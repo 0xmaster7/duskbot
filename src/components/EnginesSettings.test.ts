@@ -420,7 +420,8 @@ describe("Settings → AI in Simple mode", () => {
     ];
     const html = simple();
     expect(html).toContain(">Your AI</h3>");
-    expect(rows(html)).toEqual(["claude", "codex"]);
+    // the folded providers below More AI providers use the same row, so count only the rows above it
+    expect(rows(html.split("More AI providers")[0]!)).toEqual(["claude", "codex"]);
     expect(html).toMatch(/data-simple-engine="claude"[\s\S]*?>Manage<\/button>/);
     expect(html).toMatch(/data-simple-engine="codex"[\s\S]*?>Set up<\/button>/);
     expect(html).not.toContain("Model providers and accounts");
@@ -429,6 +430,9 @@ describe("Settings → AI in Simple mode", () => {
   it("folds every other provider under More AI providers, with the count", () => {
     fixture.instances = [engine("claude", "claudeAgent", true), engine("kimi", "kimiAgent", false), engine("mistral", "mistral", false)];
     expect(simple()).toMatch(/aria-expanded="false"[^>]*>[\s\S]*?More AI providers \(2\)/);
-    expect(simple(true)).toContain('data-engine-card="kimi"');
+    const open = simple(true).split("More AI providers")[1]!;
+    expect(rows(open)).toEqual(["kimi", "mistral"]);
+    expect(open).toMatch(/data-simple-engine="kimi"[\s\S]*?>Set up<\/button>/);
+    expect(open).not.toContain("data-engine-card");
   });
 });

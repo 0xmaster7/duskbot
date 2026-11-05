@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { isTickable } from "@/lib/bulk-select";
+import { isTickable, summarizeDelete } from "@/lib/bulk-select";
 import { currentTaskBot, useStore, type Action, type Bot } from "@/state/store";
 import { bulkDeleteBody, bulkDeleteOutcome, deleteThreadsInBulk } from "./BulkSelectBar";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -39,7 +39,9 @@ type Dispatch = (action: Action) => void;
 
 export async function deleteAllThreads(bot: Bot, dispatch: Dispatch): Promise<void> {
   const outcome = await deleteThreadsInBulk({ botId: bot.id }, allThreadRows(bot).map((row) => row.threadId), dispatch);
-  dispatch({ type: "notice", notice: { kind: "note", botName: null, text: bulkDeleteOutcome(outcome) } });
+  // the rows vanishing says it all, as in grok; a note only when something was kept or failed
+  const done = summarizeDelete(outcome.responses);
+  if (done.busy || done.missing || outcome.error) dispatch({ type: "notice", notice: { kind: "note", botName: null, text: bulkDeleteOutcome(outcome) } });
 }
 
 export function deleteAllThreadsCopy(rows: ReturnType<typeof allThreadRows>, simple = false) {

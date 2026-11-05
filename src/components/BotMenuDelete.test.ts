@@ -41,4 +41,11 @@ describe("delete all threads", () => {
     expect(post).toHaveBeenCalledWith("/api/bots/maus/tasks/delete", { method: "POST", body: JSON.stringify({ threadIds: ["open", "pinned"] }) });
     expect(dispatch).toHaveBeenLastCalledWith({ type: "notice", notice: { kind: "note", botName: null, text: "Deleted: 1. Kept because they are running: 1." } });
   });
+
+  it("says nothing when every thread went", async () => {
+    vi.mocked(api).mockResolvedValueOnce({ deleted: ["open", "pinned"], refused: [], bot: { id: "maus" } });
+    const dispatch = vi.fn();
+    await deleteAllThreads(bot, dispatch);
+    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "notice" }));
+  });
 });

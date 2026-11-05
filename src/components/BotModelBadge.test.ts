@@ -86,12 +86,10 @@ describe("sidebar bot row", () => {
       expect(found[0]).toContain(placement);
     });
 
-  // simple mode's rail still shows the mark; its comfortable row keeps to name and preview with no mark, as grok does.
-  it("shows the model once in a Simple mode icons row", () => {
+  // simple mode keeps to the avatar, as grok does: its rail tile and comfortable row show no model mark.
+  it("shows no model mark in a Simple mode icons row", () => {
     fixture.advanced = false;
-    const found = badges(render(bot("claude", "opus"), "icons"));
-    expect(found).toHaveLength(1);
-    expect(found[0]).toContain('aria-label="Model: Opus 4.1 (Claude)"');
+    expect(badges(render(bot("claude", "opus"), "icons"))).toHaveLength(0);
   });
 
   it("shows no model mark in a Simple mode comfortable row", () => {

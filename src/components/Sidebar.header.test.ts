@@ -65,11 +65,11 @@ describe("sidebar header", () => {
     expect(html).not.toMatch(collapse);
   });
 
-  it.each(["comfortable", "icons"] as const)("keeps add, no activity menu and no collapse button in Simple mode at %s density: its edge is dragged instead; the open list drops the Inbox, as grok has none", (density) => {
+  it.each(["comfortable", "icons"] as const)("keeps add, no activity menu and no collapse button in Simple mode at %s density: its edge is dragged instead; open or as avatars it drops the Inbox, as grok has none", (density) => {
     fixture.advanced = false;
     fixture.density = density;
     const html = render();
-    expect(html.includes('aria-label="Inbox"')).toBe(density === "icons");
+    expect(html).not.toContain('aria-label="Inbox"');
     expect(html).not.toContain('aria-label="Active Threads"');
     expect(html).toContain(density === "icons" ? 'aria-label="New or share"' : 'aria-label="New Bot"');
     expect(html).not.toMatch(collapse);

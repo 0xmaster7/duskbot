@@ -417,31 +417,31 @@ function SimpleEngines({ rows, isReady, renderEngine, more }: {
   const [opened, setOpened] = useState<string | null>(null);
   const featured = rows.filter((instance) => isReady(instance) || instance.authentication !== undefined);
   const others = rows.filter((instance) => !featured.includes(instance));
+  // grok's settings row: the mark, the name over its status, one pill; the setup opens under it in the same card
+  const row = (instance: InstanceInfo) => {
+    const ready = isReady(instance), open = opened === instance.instanceId;
+    return (
+      <div key={instance.instanceId} data-simple-engine={instance.instanceId} className="group">
+        <div className="flex min-h-12 flex-wrap items-center gap-x-5 gap-y-2 px-3.5 py-2.5">
+          <span className="flex min-w-[min(100%,15rem)] flex-1 items-center gap-3">
+            <InstanceProviderMark instance={instance} size={14} subtle />
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="truncate text-[13px] leading-[18px] tracking-[-0.08px] text-ink">{instance.displayName}</span>
+              <span className="truncate text-[13px] leading-[18px] tracking-[-0.08px] text-ink-secondary">{simpleStatus(instance, ready)}</span>
+            </span>
+          </span>
+          <button type="button" aria-expanded={open} className="ui-button ml-auto shrink-0" onClick={() => setOpened(open ? null : instance.instanceId)}>
+            {t(open ? "common.done" : ready ? "settings.simple.ai.manage" : "settings.simple.ai.setUp")}
+          </button>
+        </div>
+        {open && <div className="px-3.5 pb-3">{renderEngine(instance, true)}</div>}
+      </div>
+    );
+  };
   return (
     <>
       <SettingsGroup label={t("settings.simple.ai.yours")} actions={<RefreshEngines />}>
-        <SettingsRows>
-          {featured.map((instance) => {
-            const ready = isReady(instance), open = opened === instance.instanceId;
-            return (
-              <div key={instance.instanceId} data-simple-engine={instance.instanceId} className="group">
-                <div className="flex min-h-11 flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5">
-                  <span className="flex min-w-[min(100%,15rem)] flex-1 items-center gap-3">
-                    <InstanceProviderMark instance={instance} size={14} subtle />
-                    <span className="flex min-w-0 flex-col gap-0.5">
-                      <span className="truncate text-[14px] leading-5 text-ink">{instance.displayName}</span>
-                      <span className="truncate text-[13px] leading-[18px] text-ink-secondary">{simpleStatus(instance, ready)}</span>
-                    </span>
-                  </span>
-                  <button type="button" aria-expanded={open} className="ui-button ml-auto shrink-0" onClick={() => setOpened(open ? null : instance.instanceId)}>
-                    {t(open ? "common.done" : ready ? "settings.simple.ai.manage" : "settings.simple.ai.setUp")}
-                  </button>
-                </div>
-                {open && <div className="px-4 pb-3">{renderEngine(instance, true)}</div>}
-              </div>
-            );
-          })}
-        </SettingsRows>
+        <SettingsRows>{featured.map(row)}</SettingsRows>
       </SettingsGroup>
       {others.length > 0 && (
         <SettingsDisclosureRow
@@ -453,7 +453,7 @@ function SimpleEngines({ rows, isReady, renderEngine, more }: {
           </span>}
           {...more}
         >
-          <EngineSections instances={others} isReady={isReady} renderEngine={(instance) => renderEngine(instance)} />
+          <SettingsRows>{others.map(row)}</SettingsRows>
         </SettingsDisclosureRow>
       )}
     </>

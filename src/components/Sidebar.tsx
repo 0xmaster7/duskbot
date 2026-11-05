@@ -812,7 +812,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
           animated={working || noticing || (mascotMotion?.kind ?? "none") !== "none"}
         />}
         {/* Bottom-left, clear of the status dots on the right and of the row's hover actions. */}
-        {(iconOnly || !simpleList) && <BotModelBadge bot={bot} instances={instances} avatarSize={avatarSize} />}
+        {(iconOnly || !simpleList) && !railTile && <BotModelBadge bot={bot} instances={instances} avatarSize={avatarSize} />}
         {simpleRow && <AvatarActivityDot activity={rowActivity} />}
         {!simpleRow && working && (
           <span
@@ -1455,7 +1455,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
           />
         </div>
       </div>}
-      {!q && !simple && <SidebarInboxRow icons={density === "icons"} large={!advanced} running={attentionHasRunningWork(attention)} onOpened={phone ? onClose : undefined} />}
+      {!q && !simple && !rail && <SidebarInboxRow icons={density === "icons"} large={!advanced} running={attentionHasRunningWork(attention)} onOpened={phone ? onClose : undefined} />}
       {universalPins && pinnedBots.length > 0 && !simpleDesk && (
         <div
           data-sidebar-universal-pins=""

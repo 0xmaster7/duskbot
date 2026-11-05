@@ -99,7 +99,7 @@ export function BulkSelectBar({ rows, selected, maxDeletable, freshConversation,
 }) {
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
+  const [result, setResult] = useState<{ text: string; clean: boolean } | null>(null);
   const count = selected.size;
   const overLimit = maxDeletable !== undefined && count > maxDeletable;
   const body = bulkDeleteBody(rows, selected, freshConversation);
@@ -110,14 +110,16 @@ export function BulkSelectBar({ rows, selected, maxDeletable, freshConversation,
     void onDelete(ids).then((outcome) => {
       const gone = new Set(outcome.responses.flatMap((response) => response.deleted));
       onChange((previous) => new Set([...previous].filter((id) => !gone.has(id))));
-      setResult(bulkDeleteOutcome(outcome));
+      const done = summarizeDelete(outcome.responses);
+      setResult({ text: bulkDeleteOutcome(outcome), clean: !done.busy && !done.missing && !outcome.error });
       setPending(false);
       setConfirming(false);
     });
   };
   return <div className="sticky bottom-0 z-10 -mx-1 border-t border-hairline/40 bg-panel px-2 py-1.5">
-    <span role="status" className="block text-[11px] text-ink-secondary">
-      {result ?? (overLimit ? t("task.bulk.channelLimit") : "")}
+    {/* a clean delete is only announced; the rows going is the visible answer */}
+    <span role="status" className={result?.clean ? "sr-only" : "block text-[11px] text-ink-secondary"}>
+      {result?.text ?? (overLimit ? t("task.bulk.channelLimit") : "")}
     </span>
     <div className="flex items-center gap-2">
       <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-ink">{t("task.bulk.selected", { count })}</span>

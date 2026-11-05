@@ -639,14 +639,14 @@ function Step({ n, title, done, children }: { n: number; title: string; done: bo
     <div className="flex gap-3">
       <div
         className={cn(
-          "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full text-[11px]",
-          done ? "bg-success/20 text-success" : "border border-hairline/50 text-ink-secondary",
+          "flex size-[18px] shrink-0 items-center justify-center rounded-full text-[11px]",
+          done ? "bg-success/20 text-success" : "bg-ink/[0.06] text-ink-secondary",
         )}
       >
         {done ? <Check size={12} /> : n}
       </div>
       <div className="min-w-0 flex-1">
-        <div className={cn("text-[14px]", done ? "text-ink-secondary line-through" : "text-ink")}>{title}</div>
+        <div className={cn("text-[13px] leading-[18px]", done ? "text-ink-secondary line-through" : "text-ink")}>{title}</div>
         {!done && children && <div className="mt-2 flex flex-col items-start gap-2 [&>*]:max-w-full">{children}</div>}
       </div>
     </div>
@@ -1290,17 +1290,17 @@ export function LocalComputerSection() {
         title={t("vm.isolation.title")}
         subtitle={t("vm.isolation.subtitle")}
       >
-        <div className="flex overflow-hidden rounded-lg border border-hairline/40">
-          {(["shared", "per-bot"] as const).map((mode, index) => (
+        <div className="inline-flex h-7 rounded-full bg-ink/[0.06] p-0.5">
+          {(["shared", "per-bot"] as const).map((mode) => (
             <button
               key={mode}
               type="button"
+              aria-pressed={status?.mode === mode}
               disabled={!status || policyPending}
               onClick={() => void savePolicy(mode, status?.max_instances ?? 2)}
               className={cn(
-                "flex-1 px-3 py-2 text-[13px] disabled:opacity-50",
-                index > 0 && "border-l border-hairline/40",
-                status?.mode === mode ? "bg-control text-ink" : "text-ink-secondary hover:text-ink",
+                "h-6 cursor-pointer rounded-full px-3 text-[13px] leading-[18px] transition-[background-color,color] duration-[120ms] ease-[ease] disabled:cursor-default disabled:opacity-50",
+                status?.mode === mode ? "bg-menu text-ink shadow-[0_1px_3px_0_rgb(28_28_28/0.12)]" : "text-ink-secondary enabled:hover:text-ink",
               )}
             >
               {mode === "shared" ? t("vm.isolation.shared") : t("vm.isolation.perBot")}
