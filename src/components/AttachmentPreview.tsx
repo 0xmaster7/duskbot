@@ -726,7 +726,7 @@ export function AttachmentThumbnail({
               onPreview();
             }
           }}
-          className="absolute inset-0 block size-full cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/60 aria-disabled:cursor-default"
+          className="absolute inset-0 block size-full cursor-pointer text-left focus-visible:outline-none focus-visible:inset-ring-2 focus-visible:inset-ring-accent/60 aria-disabled:cursor-default"
           aria-label={t("attach.previewImageAria", { name: image.name })}
           title={t("attach.previewAria", { name: image.name })}
         >
@@ -919,7 +919,7 @@ function FileCard({ file, message, save, preview, retryable, className }: {
     <section data-file-card="" className={cn("chat-file-card relative flex h-[72px] w-[354px] max-w-full items-center gap-[14px] rounded-[22px] bg-composer ps-5 pe-5", className)}
       title={save.state === "saved" && save.savedTo ? t("attach.savedTo", { path: save.savedTo }) : file.name}>
       <button type="button" {...chipNameAction(preview, save, file.name, retryable)}
-        className="absolute inset-0 rounded-[22px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus disabled:cursor-wait" />
+        className="absolute inset-0 rounded-[22px] focus-visible:outline-none focus-visible:inset-ring-2 focus-visible:inset-ring-focus disabled:cursor-wait" />
       <span aria-hidden="true" className="chat-file-glyph pointer-events-none relative flex h-10 w-8 shrink-0 flex-col overflow-hidden rounded-[6px] bg-composer">
         <span className="mx-1 mt-1 h-1 rounded-[2px] bg-ink/[0.18]" />
         <span className="mx-1 mt-[3px] h-1 w-[11px] rounded-[2px] bg-ink/[0.18]" />
@@ -971,7 +971,7 @@ export function AttachedFileChip({ file, message, linked = false, compact = fals
         <button
           type="button"
           {...chipNameAction(preview, save, file.name, retryable)}
-          className="flex min-h-10 min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-left transition-colors hover:bg-raised/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/60 disabled:cursor-wait disabled:hover:bg-transparent"
+          className="flex min-h-10 min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-left transition-colors hover:bg-raised/70 focus-visible:outline-none focus-visible:inset-ring-2 focus-visible:inset-ring-accent/60 disabled:cursor-wait disabled:hover:bg-transparent"
         >
           <FileText size={14} className="shrink-0" aria-hidden="true" />
           <span className="min-w-0 flex-1 truncate text-ink">{file.name}</span>

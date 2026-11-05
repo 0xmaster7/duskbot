@@ -72,7 +72,7 @@ export function MausBotCustomize({ preview, name, nameRef, image, onName, onPatc
               title={GROK_BODIES[id].name}
               data-mausbot-welcome-body={id}
               onClick={() => shape({ mascotBody: id })}
-              className={cn("flex h-11 items-center justify-center rounded-xl", !picture && wearsBody(preview.mascotBody ?? "cursor", id) ? "bg-ink/[0.08] ring-[1.5px] ring-inset ring-ink/25" : "hover:bg-ink/[0.05]")}
+              className={cn("flex h-11 items-center justify-center rounded-xl", !picture && wearsBody(preview.mascotBody ?? "cursor", id) ? "bg-ink/[0.08] inset-ring-[1.5px] inset-ring-ink/25" : "hover:bg-ink/[0.05]")}
             >
               <MausAvatar color={preview.color} bodyId={id} size={30} animated={false} trackPointer={false} />
             </button>

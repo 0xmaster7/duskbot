@@ -1,12 +1,11 @@
 import type { LocaleKey } from "@/locales";
 import type { BotSettingsSection } from "@/state/store";
 
-export const PANEL_TABS = ["details", "library", "computer", "advanced"] as const;
+export const PANEL_TABS = ["details", "computer", "advanced"] as const;
 export type PanelTab = (typeof PANEL_TABS)[number];
 
 export const TAB_LABEL: Record<PanelTab, LocaleKey> = {
   details: "botPanel.tab.details",
-  library: "botPanel.tab.library",
   computer: "botPanel.tab.computer",
   advanced: "botPanel.tab.advanced",
 };
@@ -18,11 +17,11 @@ export type PageId =
   | "browser" | "folder" | "android"
   | "voice" | "blurb" | "team" | "chiefteams" | "mcp" | "tools" | "webhooks" | "visibility" | "slack"
   | "overview" | "prompt" | "history"
-  | "backups" | "threads" | "api";
+  | "backups" | "threads" | "api" | "library";
 
 /** The pages Simple mode draws; a link to any other page lands where its section does. Bot settings is an alias: it
- * lands on the Advanced tab, which holds its rows. */
-export const SIMPLE_PAGES = ["settings", "apps", "routines", "memory", "skills", "folder", "browser", "where", "instructions", "backups", "threads", "api"] as const satisfies readonly PageId[];
+ * lands on the Advanced tab, which holds its rows. Library is everything the bot made, opened from Advanced. */
+export const SIMPLE_PAGES = ["settings", "apps", "routines", "memory", "skills", "folder", "browser", "where", "instructions", "backups", "threads", "api", "library"] as const satisfies readonly PageId[];
 export type SimplePageId = (typeof SIMPLE_PAGES)[number];
 
 export function isSimplePage(page: PageId): page is SimplePageId {
@@ -44,10 +43,10 @@ export const PAGES: Record<PageId, PageMeta> = {
   approvals: { title: "botPanel.page.approvals", home: "details" },
   routines: { title: "botSettings.simple.routines", home: "details" },
   apps: { title: "botPanel.appsRow", home: "details", intro: "botPanel.apps.intro" },
-  memory: { title: "botPanel.memoryRow", home: "library", intro: "botPanel.memory.intro" },
-  skills: { title: "botSettings.simple.skills", home: "library", intro: "botSettings.simple.skillsHint" },
+  memory: { title: "botPanel.memoryRow", home: "advanced", intro: "botPanel.memory.intro" },
+  skills: { title: "botSettings.simple.skills", home: "advanced", intro: "botSettings.simple.skillsHint" },
   browser: { title: "settings.sites.title", home: "computer" },
-  folder: { title: "computer.files.folder", home: "library", intro: "botPanel.folder.intro" },
+  folder: { title: "computer.files.folder", home: "advanced", intro: "botPanel.folder.intro" },
   android: { title: "botPanel.page.android", home: "computer" },
   voice: { title: "botPanel.page.voice", home: "details" },
   blurb: { title: "botPanel.page.blurb", home: "details" },
@@ -65,6 +64,7 @@ export const PAGES: Record<PageId, PageMeta> = {
   backups: { title: "botPanel.page.backups", home: "details" },
   threads: { title: "botPanel.conversations.title", home: "details" },
   api: { title: "botPanel.page.api", home: "details" },
+  library: { title: "botPanel.tab.library", home: "advanced" },
 };
 
 export const PAGE_IDS = Object.keys(PAGES) as PageId[];
@@ -82,17 +82,17 @@ const SECTION_TARGET: Record<BotSettingsSection, PanelTarget> = {
   identity: { tab: "details" },
   slack: { tab: "details" },
   soul: { tab: "details", page: "instructions" },
-  skills: { tab: "library", page: "skills" },
-  memory: { tab: "library", page: "memory" },
-  library: { tab: "library" },
+  skills: { tab: "advanced", page: "skills" },
+  memory: { tab: "advanced", page: "memory" },
+  library: { tab: "advanced", anchor: "library" },
   routines: { tab: "details", page: "routines" },
   access: { tab: "computer", page: "where" },
-  model: { tab: "advanced", anchor: "model" },
+  model: { tab: "details", anchor: "model" },
   permissions: { tab: "advanced" },
-  voice: { tab: "details" },
+  voice: { tab: "advanced", anchor: "call" },
   visibility: { tab: "details" },
   history: { tab: "details" },
-  usage: { tab: "advanced", anchor: "model" },
+  usage: { tab: "details", anchor: "model" },
 };
 
 export function sectionTarget(section: BotSettingsSection): PanelTarget {

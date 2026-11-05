@@ -29,7 +29,7 @@ vi.mock("./DetailsTab", () => ({
   DetailsTab: (props: { onOpen: (page: string) => void }) =>
     createElement("div", { "data-stub-details": true }, createElement("button", { type: "button", "data-panel-gear": true, onClick: () => props.onOpen("settings") }, "Bot settings")),
 }));
-vi.mock("./LibraryTab", () => ({ LibraryTab: stub("library"), libraryItems: () => ({ pages: [], apps: [], shared: [], unshared: [] }) }));
+vi.mock("./LibraryTab", () => ({ LibraryPage: stub("library"), LibrarySection: stub("library-section"), libraryItems: () => ({ pages: [], apps: [], shared: [], unshared: [] }) }));
 vi.mock("./ComputerTab", () => ({ ComputerTab: stub("computer") }));
 vi.mock("./AdvancedTab", () => ({ AdvancedTab: stub("advanced") }));
 vi.mock("./pages", () => ({
@@ -150,8 +150,8 @@ describe("named links into the bot panel", () => {
     expect([tab(), page()]).toEqual(["details", null]);
   });
 
-  it("lands permissions, model and usage links on the Advanced tab", async () => {
-    for (const section of ["permissions", "model", "usage"] as const) {
+  it("lands permissions, voice and library links on the Advanced tab", async () => {
+    for (const section of ["permissions", "voice", "library"] as const) {
       openBotSettings(fixture.dispatch, section);
       render(section);
       await settle();
@@ -167,8 +167,8 @@ describe("named links into the bot panel", () => {
     expect(host.querySelector("[data-stub-advanced]")).not.toBeNull();
   });
 
-  it("lands usage, history, voice and visibility links on the Details tab, with no Advanced page", async () => {
-    for (const section of ["history", "voice", "visibility", "overview"] as const) {
+  it("lands model, usage, history and visibility links on the Details tab, with no Advanced page", async () => {
+    for (const section of ["model", "usage", "history", "visibility", "overview"] as const) {
       openBotSettings(fixture.dispatch, section);
       render(section);
       await settle();
@@ -178,16 +178,16 @@ describe("named links into the bot panel", () => {
 });
 
 describe("the panel's tabs", () => {
-  it("are Details, Library, Computer and Advanced, opening on Details, each drawing its own tab", async () => {
+  it("are Details, Computer and Advanced, opening on Details, each drawing its own tab", async () => {
     render(null);
     await settle();
     expect([...host.querySelectorAll('[role="tab"]')].map((element) => [element.getAttribute("data-panel-tab"), element.textContent]))
-      .toEqual([["details", "Details"], ["library", "Library"], ["computer", "Computer"], ["advanced", "Advanced"]]);
+      .toEqual([["details", "Details"], ["computer", "Computer"], ["advanced", "Advanced"]]);
     expect(tab()).toBe("details");
     expect(host.querySelector("[data-panel-tabs]")!.className.split(" ")).toEqual(expect.arrayContaining(["sticky", "top-0", "bg-app"]));
     expect(host.querySelector('[role="tablist"]')!.className.split(" ")).toEqual(expect.arrayContaining(["gap-0.5"]));
     expect(host.querySelector('[role="tab"]')!.className.split(" ")).toEqual(expect.arrayContaining(["h-[26px]", "text-[13px]", "bg-ink/[0.06]"]));
-    for (const id of ["library", "computer", "advanced", "details"]) {
+    for (const id of ["computer", "advanced", "details"]) {
       click(host.querySelector(`[data-panel-tab="${id}"]`));
       expect(tab()).toBe(id);
       expect(host.querySelector(`[data-stub-${id}]`), id).not.toBeNull();
@@ -323,10 +323,10 @@ describe("Escape in the bot panel", () => {
     back?.focus();
     const event = press(back, "Escape");
     expect(event.defaultPrevented).toBe(true);
-    expect([tab(), page()]).toEqual(["library", null]);
+    expect([tab(), page()]).toEqual(["advanced", null]);
     expect(dialogCloses).not.toHaveBeenCalled();
     // On a tab, Escape is the dialog's: it closes the panel.
-    press(host.querySelector('[data-panel-tab="library"]'), "Escape");
+    press(host.querySelector('[data-panel-tab="advanced"]'), "Escape");
     expect(dialogCloses).toHaveBeenCalledTimes(1);
   });
 
@@ -347,7 +347,7 @@ describe("Escape in the bot panel", () => {
     // a page's header is Grok's: Back, its title and Close, with no Share
     expect(moreButton()).toBeNull();
     press(host.querySelector("[data-panel-back]"), "Escape");
-    expect([tab(), page()]).toEqual(["library", null]);
+    expect([tab(), page()]).toEqual(["advanced", null]);
     expect(dialogCloses).not.toHaveBeenCalled();
   });
 });

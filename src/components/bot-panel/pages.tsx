@@ -21,6 +21,7 @@ import { RoutineList } from "../routines/RoutineList";
 import { BrowserLogins } from "./browser-logins";
 import { useOpenComputer, WherePage } from "./ComputerTab";
 import { ApiPage, BackupsPage, InstructionsPage, SettingsPage, ThreadsPage } from "./SettingsPage";
+import { LibraryPage } from "./LibraryTab";
 import { panelMemoryNotes, withMemoryNote, withoutMemoryNote, type PanelMemoryNote } from "./memory-notes";
 import type { SimplePageId } from "./page-registry";
 import { BotSwitch, buttonCls, Card, LinkRow, NoteRow, RadioRow, rowCls, SwitchRow, TextRow, TrashButton } from "./rows";
@@ -424,5 +425,7 @@ export function PageBody({ page, onOpen, editingInstructions, onEditInstructions
       return <ThreadsPage {...context} />;
     case "api":
       return <ApiPage {...context} />;
+    case "library":
+      return <LibraryPage bot={context.bot} />;
   }
 }

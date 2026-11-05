@@ -30,7 +30,8 @@ async function pill(services: Record<string, { connected: boolean }>, circle = f
 it("asks to connect apps until one is connected, then is simply the way into Apps", async () => {
   expect(await pill({})).toEqual({ label: "Connect apps", faces: ["googledrive", "googlecalendar", "granola"] });
   expect(await pill({ github: { connected: false } }), "an app that is only listed is not connected").toEqual({ label: "Connect apps", faces: ["googledrive", "googlecalendar", "granola"] });
-  expect(await pill({ github: { connected: true } })).toEqual({ label: "Apps", faces: ["github", "googledrive", "googlecalendar"] });
+  expect(await pill({ github: { connected: true } })).toEqual({ label: "Apps", faces: ["googledrive", "googlecalendar", "granola"] });
+  expect((await pill({ googledrive: { connected: true } })).faces, "a connected app gives its place to the next").toEqual(["googlecalendar", "granola", "notion"]);
   expect((await pill({ github: { connected: true } }, true)).label, "the footer's grid button keeps grok's name").toBe("Connect apps");
 });
 

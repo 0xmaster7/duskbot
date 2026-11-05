@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useStore, type AppSettingsSection } from "@/state/store";
+import { ADVANCED_PAGES, type AdvancedPage } from "@/lib/open-settings";
 import { t } from "@/lib/i18n";
 import { FEEDBACK_URL, HELP_CENTER_URL, appVersion, openExternalLink } from "@/lib/app-links";
 import { useCopyFeedback } from "@/lib/copy-text";
@@ -30,7 +31,7 @@ import { DefaultBotSidebarRow } from "./DefaultBotControls";
 import { DefaultBotSettings } from "./NewBotDialog";
 import { DiagnosticsRow } from "./DiagnosticsRow";
 import { EnginesSettings } from "./EnginesSettings";
-import { GrokIcon, type GrokIconName } from "./GrokIcon";
+import { GrokIcon } from "./GrokIcon";
 import { ImportSettings } from "./ImportSettings";
 import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal";
 import { LocalComputerSection } from "./LocalComputerSection";
@@ -280,17 +281,7 @@ export function UpdatesPane({ remoteActive }: { remoteActive: boolean }) {
   );
 }
 
-export type AdvancedPage = "apps" | "bots" | "looks" | "team" | "data" | "builder" | "about";
-
-export const ADVANCED_PAGES: ReadonlyArray<{ id: AdvancedPage; group: "bots" | "workspace" | "app"; icon: GrokIconName; sections: AppSettingsSection[] }> = [
-  { id: "apps", group: "bots", icon: "plug", sections: ["apps", "skills"] },
-  { id: "bots", group: "bots", icon: "robot", sections: ["bots"] },
-  { id: "team", group: "workspace", icon: "building", sections: ["organization", "people", "workspaces"] },
-  { id: "data", group: "workspace", icon: "database", sections: ["data", "backups", "import"] },
-  { id: "looks", group: "app", icon: "palette", sections: ["looks"] },
-  { id: "builder", group: "app", icon: "sliders", sections: ["builder", "experimental"] },
-  { id: "about", group: "app", icon: "info", sections: ["about"] },
-];
+export { ADVANCED_PAGES, type AdvancedPage } from "@/lib/open-settings";
 
 const ADVANCED_GROUPS: ReadonlyArray<{ id: "bots" | "workspace" | "app"; labelKey: LocaleKey }> = [
   { id: "bots", labelKey: "settings.advanced.group.bots" },

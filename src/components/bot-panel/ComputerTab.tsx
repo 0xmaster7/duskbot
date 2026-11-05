@@ -13,6 +13,7 @@ import { screenFramePreview } from "../ScreenFrame";
 import type { BotPatch, useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
 import type { SimplePageId } from "./page-registry";
 import { Card, RadioRow } from "./rows";
+import "./computer-tab.css";
 
 type Derived = ReturnType<typeof useBotSettingsDerived>;
 type PlaceChoice = "auto" | Place | "off";
@@ -111,7 +112,8 @@ export function WherePage({ bot, derived }: { bot: Bot; derived: Derived }) {
   );
 }
 
-const ASLEEP_GREY = "#808080";
+// grok paints the sleeping mascot in 56% ink, so it sits a step darker than the grey tile behind it
+const ASLEEP_GREY = "color-mix(in srgb, var(--color-ink) 56%, transparent)";
 
 /** Grok's Computer tab: the bot's screen in a 16:10 frame (asleep, working or its latest frame) and whose screen it is. */
 export function ComputerTab({ bot }: { bot: Bot; derived: Derived; onOpen: (page: SimplePageId) => void }) {
@@ -141,7 +143,14 @@ export function ComputerTab({ bot }: { bot: Bot; derived: Derived; onOpen: (page
           </>
         ) : (
           <>
-            <MausAvatar color={bot.color} bodyId={bot.mascotBody ?? undefined} gradient={[ASLEEP_GREY, ASLEEP_GREY, ASLEEP_GREY]} size={32} state="sleeping" label={bot.name} />
+            <span data-asleep-mascot="" className="relative flex size-8">
+              <span className="computer-asleep-breathe flex">
+                <MausAvatar color={bot.color} bodyId={bot.mascotBody ?? undefined} gradient={[ASLEEP_GREY, ASLEEP_GREY, ASLEEP_GREY]} size={32} state="sleeping" label={bot.name} />
+              </span>
+              <span aria-hidden="true" className="absolute inset-[4px_4px_28px_28px]">
+                {[0, 4, 8].map((left) => <span key={left} className="computer-asleep-z" style={{ left }} />)}
+              </span>
+            </span>
             <span className="max-w-[80%] text-[13px] font-medium leading-[18px] tracking-[0.015em] text-ink">{t("botPanel.screen.resting")}</span>
           </>
         )}

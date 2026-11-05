@@ -195,7 +195,7 @@ function TableViewport({ columns, rows, order, name, wrap, large, sort, onSort, 
   const header = (column: TableColumn, index: number) => column.content ?? (column.text || t("table.column", { number: index + 1 }));
   const arrow = (index: number, className?: string) => sort?.column === index && sort.descending ? <ArrowDown size={12} className={className} /> : <ArrowUp size={12} className={cn(className, sort?.column !== index && !card && "opacity-35")} />;
   return <div ref={scroll} tabIndex={0} role="region" aria-label={name}
-    className={cn("overflow-auto overscroll-x-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/60", card && !fit && "[mask-image:linear-gradient(90deg,#000_calc(100%-40px),transparent)]")}
+    className={cn("overflow-auto overscroll-x-contain focus-visible:outline-none focus-visible:inset-ring-2 focus-visible:inset-ring-accent/60", card && !fit && "[mask-image:linear-gradient(90deg,#000_calc(100%-40px),transparent)]")}
     style={{ maxHeight: large ? "65dvh" : virtual || !wrap ? 400 : undefined }} data-fit={fit || undefined}>
     <table dir={direction} aria-label={name} aria-rowcount={order.length + 1} className={cn("w-full border-separate border-spacing-0 text-[14px]", fit ? "table-auto" : "table-fixed", card && "leading-5")} style={fit ? undefined : { minWidth: widths.reduce((a, b) => a + b, 0) }}>
       {!fit && <colgroup>{widths.map((width, index) => <col key={index} style={{ width }} />)}</colgroup>}

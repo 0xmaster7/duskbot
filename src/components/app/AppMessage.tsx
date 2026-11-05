@@ -201,7 +201,7 @@ function AppRow({ botId, botName, threadId, message, payload, pool }: {
   ) : noPage ? (
     message.text ? <div dir="auto" className={cn("line-clamp-6 whitespace-pre-wrap text-[13px] leading-[18px] text-ink-secondary", bordered ? "px-4 pb-3" : "pb-2")}>{message.text}</div> : null
   ) : (
-    <div data-app-box className={cn("relative w-full", bordered && "border-t border-ink/[0.08]", point.pointing && "ring-2 ring-inset ring-accent/60")} style={{ height }}>
+    <div data-app-box className={cn("relative w-full", bordered && "border-t border-ink/[0.08]", point.pointing && "inset-ring-2 inset-ring-accent/60")} style={{ height }}>
       {current ? (
         <AppFrame
           key={loaded!.key}

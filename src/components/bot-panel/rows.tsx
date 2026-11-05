@@ -1,4 +1,4 @@
-import type { ReactNode, Ref } from "react";
+import { createContext, useContext, type ReactNode, type Ref } from "react";
 import { Check, ChevronLeft, ChevronRight, Trash2, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/cn";
@@ -38,10 +38,23 @@ export function LabelAction({ children, onClick, ...rest }: { children: ReactNod
   );
 }
 
+const InSections = createContext(false);
+
+/** A tab's sections in Grok's one rhythm: 22px between each, whatever it is (a card, a labelled card, an empty line). The
+ * cards inside drop their own margins; a wrapper of several cards passes them through with `contents`. */
+export function PanelSections({ children, ...rest }: { children: ReactNode; "data-panel-tabpanel"?: string }) {
+  return (
+    <InSections.Provider value={true}>
+      <div {...rest} data-panel-sections="" className="flex flex-col gap-[22px]">{children}</div>
+    </InSections.Provider>
+  );
+}
+
 export function Card({ label, action, anchor, className, children }: { label?: ReactNode; action?: ReactNode; anchor?: string; className?: string; children: ReactNode }) {
   const advanced = useAdvancedMode();
+  const inSections = useContext(InSections);
   return (
-    <section data-panel-card={anchor} className={cn(sectionGapCls(Boolean(label)), "first:mt-0", className)}>
+    <section data-panel-card={anchor} className={cn(!inSections && cn(sectionGapCls(Boolean(label)), "first:mt-0"), className)}>
       {label && <CardLabel action={action}>{label}</CardLabel>}
       <div
         data-panel-card-surface=""

@@ -356,7 +356,7 @@ export function TeamCanvas({ sections, canManage, onMove, onInstructions, onMemo
       : null;
 
   return <div ref={viewport} role="region" aria-label={t("canvas.region")} tabIndex={0} data-team-canvas
-    className="relative min-h-0 flex-1 touch-none overflow-clip outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/40"
+    className="relative min-h-0 flex-1 touch-none overflow-clip outline-none focus-visible:inset-ring-2 focus-visible:inset-ring-accent/40"
     style={{ backgroundImage: "radial-gradient(circle, color-mix(in srgb, var(--color-ink-secondary) 18%, transparent) 1px, transparent 1px)", backgroundSize: `${24 * view.scale}px ${24 * view.scale}px`, backgroundPosition: `${view.x}px ${view.y}px` }}
     onPointerDown={start} onPointerMove={move} onPointerUp={(event) => finish(event)} onPointerCancel={(event) => finish(event, true)}
     onDragOver={(event) => {

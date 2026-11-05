@@ -11,7 +11,7 @@ import { GrokIcon } from "../GrokIcon";
 import { chipNameAction, useHtmlPreview } from "../HtmlFilePreview";
 import { FileKindIcon } from "./FileKindIcon";
 import type { SimplePageId } from "./page-registry";
-import { Card, PanelEmpty } from "./rows";
+import { Card, LabelAction, PanelEmpty } from "./rows";
 
 export interface LibraryItems {
   pages: Array<{ messageId: string; title: string; url: string }>;
@@ -167,13 +167,12 @@ function Group({ group, entries, now }: { group: GroupKey; entries: Entry[]; now
   );
 }
 
-/** Grok's Library tab: everything the bot made in this conversation, newest first, under Today, This week and Older. */
-export function LibraryTab({ bot }: { bot: Bot; onOpen?: (page: SimplePageId) => void }) {
+/** Everything the bot made in this conversation as Library rows, newest first, with when each was made. */
+function useLibraryEntries(bot: Bot): Entry[] {
   const { dispatch } = useStore();
   const openPage = usePageOpener();
   const phone = !useMediaQuery(SIDEBAR_INLINE, true);
   const items = useMemo(() => libraryItems(bot), [bot]);
-  const now = Date.now();
   const showInChat = (messageId: string) => {
     dispatch({ type: "focusMessage", threadId: bot.threadId, messageId });
     if (phone) dispatch({ type: "toggleSettings", open: false });
@@ -187,7 +186,7 @@ export function LibraryTab({ bot }: { bot: Bot; onOpen?: (page: SimplePageId) =>
     if (files) for (const path of [...files.added, ...files.changed]) changedAt.set(path, message.at);
   }
 
-  const entries: Entry[] = [
+  return [
     ...items.pages.map((page): Entry => ({
       key: `page:${page.url}`,
       at: atOf(page.messageId),
@@ -213,20 +212,47 @@ export function LibraryTab({ bot }: { bot: Bot; onOpen?: (page: SimplePageId) =>
       ),
     })),
   ].sort((a, b) => (b.at ?? 0) - (a.at ?? 0));
+}
 
+/** Grok's Library: everything the bot made in this conversation, newest first, under Today, This week and Older. */
+export function LibraryPage({ bot }: { bot: Bot }) {
+  const entries = useLibraryEntries(bot);
+  const now = Date.now();
   if (entries.length === 0) {
     return (
-      <div data-panel-tabpanel="library">
+      <div data-panel-library="">
         <PanelEmpty data-panel-empty="library">{t("botPanel.library.empty")}</PanelEmpty>
       </div>
     );
   }
   return (
-    <div data-panel-tabpanel="library">
+    <div data-panel-library="">
       {GROUPS.map((group) => {
         const inGroup = entries.filter((entry) => libraryGroup(entry.at, now) === group);
         return inGroup.length > 0 && <Group key={group} group={group} entries={inGroup} now={now} />;
       })}
     </div>
+  );
+}
+
+const PREVIEW = 3;
+
+/** The Advanced tab's Library section: the newest few things the bot made, and View all for the whole Library. */
+export function LibrarySection({ bot, onOpen }: { bot: Bot; onOpen: (page: SimplePageId) => void }) {
+  const entries = useLibraryEntries(bot);
+  const now = Date.now();
+  const more = entries.length > PREVIEW;
+  return (
+    <Card
+      label={t("botPanel.tab.library")}
+      anchor="library"
+      action={more ? <LabelAction data-panel-page="library" onClick={() => onOpen("library")}>{t("botPanel.library.viewAll")}</LabelAction> : undefined}
+    >
+      {entries.length === 0 ? (
+        <p data-panel-empty="library" className="px-2 py-1.5 text-[13px] leading-[18px] tracking-[0.015em] text-ink/[0.56]">{t("botPanel.library.empty")}</p>
+      ) : entries.slice(0, PREVIEW).map((entry) => (
+        <div key={entry.key} className="min-w-0">{entry.render(entry.at === undefined ? null : shortAge(entry.at, now))}</div>
+      ))}
+    </Card>
   );
 }

@@ -75,6 +75,11 @@ const leave = (target: Element) => flushSync(() => target.dispatchEvent(new Poin
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(NOW);
+  // the app follows the computer's own clock format; read it the US way whatever this machine's locale is
+  const localeString = Date.prototype.toLocaleString;
+  vi.spyOn(Date.prototype, "toLocaleString").mockImplementation(function (this: Date, locales, options) {
+    return localeString.call(this, Array.isArray(locales) && locales.length === 0 ? "en-US" : locales ?? "en-US", options);
+  });
   setLocale("en");
   fixture.dispatch.mockReset();
   fixture.api.mockReset();
@@ -86,6 +91,7 @@ afterEach(() => {
   root?.unmount();
   root = null;
   document.body.innerHTML = "";
+  vi.restoreAllMocks();
   vi.useRealTimers();
 });
 

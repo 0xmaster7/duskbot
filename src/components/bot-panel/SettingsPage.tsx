@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 
 import { cn } from "@/lib/cn";
 import { useComposerChannelMode } from "@/lib/drafts";
@@ -16,8 +16,6 @@ import type { useBotSettingsDerived } from "../bot-settings/useBotSettingsDerive
 import { useDeleteAllThreads } from "../BotMenuDelete";
 import { showDefaultBot } from "../DefaultBotControls";
 import { useDesktopCapabilities } from "../DesktopCapabilities";
-import { ModelSelectRow } from "../native/ModelSelectRow";
-import { UsageMeterRow } from "../native/UsageMeter";
 import { SoulField } from "../SoulField";
 import { BackupAis } from "./BackupAis";
 import { usePlaceChoices } from "./ComputerTab";
@@ -37,13 +35,12 @@ function useMemoryLine(bot: Bot): string {
   return notes === 0 ? t("botPanel.memory.nothingYet") : notes === 1 ? t("botPanel.memory.note") : t("botPanel.memory.notes", { count: notes });
 }
 
-/** The bot's settings as Grok-style list rows: its model first, then one card of rows that each open their page, then
- * its rare actions. The Advanced tab draws it, with See Usage beside the Model label. */
-export function SettingsPage({ bot, derived, onOpen, modelAction }: {
+/** The bot's settings as Grok-style list rows: one card of rows that each open their page, then its rare actions. The
+ * Advanced tab draws it; the model lives on Details. */
+export function SettingsPage({ bot, derived, onOpen }: {
   bot: Bot;
   derived: Derived;
   onOpen?: (page: SimplePageId) => void;
-  modelAction?: ReactNode;
   editingInstructions?: boolean;
   onEditInstructions?: (open: boolean) => void;
 }) {
@@ -81,18 +78,11 @@ export function SettingsPage({ bot, derived, onOpen, modelAction }: {
   };
 
   return (
-    <div data-panel-settings>
-      <Card label={t("model.simple.model")} action={modelAction} anchor="model">
-        <div className="[&_[data-tour=model]>span:first-child]:flex! [&_[data-provider-mark]]:opacity-100!">
-          <ModelSelectRow bot={bot} threadId={bot.threadId} />
-        </div>
-        <UsageMeterRow engine={bot.modelSelection?.instanceId} />
-      </Card>
-
+    <div data-panel-settings className="contents">
       <Card label={t("botPanel.section.thisBot")} anchor="uses">
         <NavRow data-panel-page="instructions" title={t("botSettings.simple.instructions")} hint={<span className="block truncate">{firstSentence(bot.soul ?? "") || t("botPanel.instructionsHint", { name })}</span>} onClick={open("instructions")} />
         <NavRow data-panel-page="memory" title={t("botPanel.memoryRow")} hint={memoryLine} onClick={open("memory")} />
-        <NavRow data-panel-page="skills" title={t("botSettings.simple.skills")} hint={skills.loading ? " " : skillsOn > 0 ? t("botPanel.skills.on", { count: skillsOn }) : t("botPanel.none")} onClick={open("skills")} />
+        <NavRow data-panel-page="skills" title={t("botSettings.simple.skills")} hint={skills.loading ? "\u00a0" : skillsOn > 0 ? t("botPanel.skills.on", { count: skillsOn }) : t("botPanel.none")} onClick={open("skills")} />
         <NavRow data-panel-page="folder" title={t("computer.files.folder")} hint={<span className="block truncate">{bot.cwd ? shortPath(bot.cwd, capabilities.host?.homeDir) : t("botPanel.folder.private")}</span>} onClick={open("folder")} />
         <NavRow data-panel-page="apps" title={t("botPanel.appsRow")} hint={<span className="block truncate">{enabledApps.length > 0 ? enabledApps.join(", ") : t("botPanel.appsNoneYet")}</span>} onClick={open("apps")} />
         <NavRow data-panel-page="where" title={t("computer.simple.whereWorks", { name })} hint={currentLabel ?? t("computer.simple.dest.letItChoose")} onClick={open("where")} />

@@ -11,7 +11,6 @@ import { AdvancedTab } from "./AdvancedTab";
 import { AvatarEditorCard } from "./AvatarEditorCard";
 import { ComputerTab } from "./ComputerTab";
 import { DetailsTab } from "./DetailsTab";
-import { LibraryTab } from "./LibraryTab";
 import { PANEL_TABS, PAGES, resolveTarget, TAB_LABEL, type PanelTab, type PanelTarget, type SimplePageId } from "./page-registry";
 import { PageBody, pageSurfaceCls } from "./pages";
 import { linkTarget, usePanelLink, type PanelLink } from "./panel-link";
@@ -142,7 +141,6 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
       </div>
       <div role="tabpanel" aria-label={t(TAB_LABEL[tab])} className="pt-2.5">
         {tab === "details" && <DetailsTab bot={bot} derived={derived} onOpen={openPage} />}
-        {tab === "library" && <LibraryTab bot={bot} onOpen={openPage} />}
         {tab === "computer" && <ComputerTab bot={bot} derived={derived} onOpen={openPage} />}
         {tab === "advanced" && <AdvancedTab bot={bot} derived={derived} onOpen={openPage} />}
       </div>

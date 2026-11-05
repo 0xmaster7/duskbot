@@ -5,8 +5,8 @@ import { BOT_SECTIONS } from "../bot-settings/sections";
 import { isSimplePage, PAGE_IDS, PAGES, PANEL_TABS, resolveTarget, sectionTarget, SIMPLE_PAGES, TAB_LABEL } from "./page-registry";
 
 describe("the bot panel's page registry", () => {
-  it("has four tabs: Details, Library, Computer and Advanced", () => {
-    expect(PANEL_TABS).toEqual(["details", "library", "computer", "advanced"]);
+  it("has three tabs: Details, Computer and Advanced", () => {
+    expect(PANEL_TABS).toEqual(["details", "computer", "advanced"]);
   });
 
   it("lands every settings section on a tab, and on a Simple page that lives on that tab", () => {
@@ -23,19 +23,20 @@ describe("the bot panel's page registry", () => {
   it.each([
     ["overview", { tab: "details" }], ["identity", { tab: "details" }],
     ["soul", { tab: "details", page: "instructions" }],
-    ["skills", { tab: "library", page: "skills" }], ["memory", { tab: "library", page: "memory" }], ["routines", { tab: "details", page: "routines" }],
-    ["access", { tab: "computer", page: "where" }], ["model", { tab: "advanced", anchor: "model" }], ["permissions", { tab: "advanced" }],
-    ["voice", { tab: "details" }], ["visibility", { tab: "details" }], ["history", { tab: "details" }], ["usage", { tab: "advanced", anchor: "model" }], ["slack", { tab: "details" }],
+    ["skills", { tab: "advanced", page: "skills" }], ["memory", { tab: "advanced", page: "memory" }], ["routines", { tab: "details", page: "routines" }],
+    ["access", { tab: "computer", page: "where" }], ["model", { tab: "details", anchor: "model" }], ["permissions", { tab: "advanced" }],
+    ["voice", { tab: "advanced", anchor: "call" }], ["visibility", { tab: "details" }], ["history", { tab: "details" }], ["usage", { tab: "details", anchor: "model" }], ["slack", { tab: "details" }],
+    ["library", { tab: "advanced", anchor: "library" }],
   ] as const)("sends a %s link to %o", (section, target) => {
     expect(sectionTarget(section)).toEqual(target);
   });
 
-  it("draws the Simple pages on their tabs: settings on Advanced, what it keeps on Library, where it works on Computer", () => {
-    expect(SIMPLE_PAGES).toEqual(["settings", "apps", "routines", "memory", "skills", "folder", "browser", "where", "instructions", "backups", "threads", "api"]);
+  it("draws the Simple pages on their tabs: settings, what it keeps and its Library on Advanced, where it works on Computer", () => {
+    expect(SIMPLE_PAGES).toEqual(["settings", "apps", "routines", "memory", "skills", "folder", "browser", "where", "instructions", "backups", "threads", "api", "library"]);
     const home = Object.fromEntries(SIMPLE_PAGES.map((page) => [page, PAGES[page].home]));
     expect(home).toEqual({
       settings: "advanced", apps: "details", routines: "details",
-      memory: "library", skills: "library", folder: "library",
+      memory: "advanced", skills: "advanced", folder: "advanced", library: "advanced",
       browser: "computer", where: "computer",
       instructions: "details", backups: "details", threads: "details", api: "details",
     });
@@ -49,13 +50,13 @@ describe("the bot panel's page registry", () => {
       if (PAGES[id].intro) expect(keys[PAGES[id].intro], id).toBeTruthy();
     }
     for (const tab of PANEL_TABS) expect(keys[TAB_LABEL[tab]]).toBeTruthy();
-    expect(PANEL_TABS.map((tab) => keys[TAB_LABEL[tab]])).toEqual(["Details", "Library", "Computer", "Advanced"]);
+    expect(PANEL_TABS.map((tab) => keys[TAB_LABEL[tab]])).toEqual(["Details", "Computer", "Advanced"]);
     expect(keys[PAGES.settings.title]).toBe("Bot settings");
   });
 
   it("lands the Bot settings page, now an alias, on the Advanced tab", () => {
     expect(resolveTarget({ tab: "details", page: "settings" })).toEqual({ tab: "advanced" });
     expect(resolveTarget({ tab: "details", page: "settings", anchor: "model" })).toEqual({ tab: "advanced", anchor: "model" });
-    expect(resolveTarget({ tab: "library", page: "skills" })).toEqual({ tab: "library", page: "skills" });
+    expect(resolveTarget({ tab: "advanced", page: "skills" })).toEqual({ tab: "advanced", page: "skills" });
   });
 });

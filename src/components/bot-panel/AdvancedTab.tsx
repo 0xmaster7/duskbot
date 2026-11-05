@@ -1,13 +1,15 @@
 import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";
 import type { useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
-import { openSettings } from "../SettingsModal";
+import { openSettings } from "@/lib/open-settings";
+import { VoiceChatCard } from "./DetailsTab";
+import { LibrarySection } from "./LibraryTab";
 import type { SimplePageId } from "./page-registry";
-import { Card, LabelAction, NavRow } from "./rows";
+import { Card, NavRow, PanelSections } from "./rows";
 import { SettingsPage } from "./SettingsPage";
 
-/** Every native per-bot feature Grok's Details tab has no room for, in Grok's list language: the model and its usage,
- * the bot's own rows (each opening its page), its rare actions, then the app-wide Advanced features pane. */
+/** Every native per-bot feature Grok's Details tab has no room for, in Grok's list language: what the bot made, its voice
+ * chat, the bot's own rows (each opening its page), its rare actions, then the app-wide Advanced features pane. */
 export function AdvancedTab({ bot, derived, onOpen }: {
   bot: Bot;
   derived: ReturnType<typeof useBotSettingsDerived>;
@@ -15,13 +17,10 @@ export function AdvancedTab({ bot, derived, onOpen }: {
 }) {
   const { dispatch } = useStore();
   return (
-    <div data-panel-tabpanel="advanced">
-      <SettingsPage
-        bot={bot}
-        derived={derived}
-        onOpen={onOpen}
-        modelAction={<LabelAction data-panel-action="usage" onClick={() => dispatch(openSettings("usage"))}>{t("nativeUsage.banner.see")}</LabelAction>}
-      />
+    <PanelSections data-panel-tabpanel="advanced">
+      <LibrarySection bot={bot} onOpen={onOpen} />
+      <VoiceChatCard bot={bot} patch={derived.patch} />
+      <SettingsPage bot={bot} derived={derived} onOpen={onOpen} />
       <Card anchor="advanced-features">
         <NavRow
           data-panel-row="advanced-features"
@@ -30,6 +29,6 @@ export function AdvancedTab({ bot, derived, onOpen }: {
           onClick={() => dispatch(openSettings("advanced"))}
         />
       </Card>
-    </div>
+    </PanelSections>
   );
 }

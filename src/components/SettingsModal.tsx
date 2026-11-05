@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useStore, type Action, type AppSettingsSection } from "@/state/store";
-import { type LocaleKey } from "@/locales";
+import { useStore, type AppSettingsSection } from "@/state/store";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { scrollWithin } from "@/lib/scroll-within";
@@ -17,52 +16,20 @@ import { ConnectedWorkspacesSettings } from "./ConnectedWorkspacesSettings";
 import { CloudAccountSettings } from "./CloudAccountSettings";
 import { LicenseExpiryBanner } from "./LicenseExpiryBanner";
 import { workspacesAvailable } from "./WorkspacesSection";
-import { GrokIcon, type GrokIconName } from "./GrokIcon";
+import { GrokIcon } from "./GrokIcon";
 import { SIMPLE_BUTTONS } from "./SettingsPrimitives";
 import { SettingsSelect } from "./SettingsSelect";
 import {
-  ADVANCED_PAGES, AdvancedIndex, AdvancedPageView, BackButton, ComputerPane, GeneralPane, ModelsPane, PermissionsPane, TextingPane, UpdatesPane, UsagePane,
+  AdvancedIndex, AdvancedPageView, BackButton, ComputerPane, GeneralPane, ModelsPane, PermissionsPane, TextingPane, UpdatesPane, UsagePane,
   advancedTitle, type AdvancedPage, type Disclose, type RemoteAccessCards,
 } from "./SettingsPanes";
+import { ADVANCED_PAGES, SETTINGS_PANES, settingsLocation, type SettingsPane } from "@/lib/open-settings";
 import "../styles/settings.css";
 
 const WIPE_MS = 200;
 const prefersReducedMotion = () => document.documentElement.dataset.reducedMotion === "true" || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 
-export type SettingsPane = "general" | "texting" | "computer" | "permissions" | "models" | "usage" | "updates" | "advanced";
-
-/** Grok's panes with Models before its Usage & Billing, then Advanced features, which holds everything of ours Grok has no place for. */
-export const SETTINGS_PANES: ReadonlyArray<{ id: SettingsPane; labelKey: LocaleKey; icon: GrokIconName; sections: readonly AppSettingsSection[] }> = [
-  { id: "general", labelKey: "settings.section.general", icon: "settings-gear", sections: ["general", "appearance"] },
-  { id: "texting", labelKey: "settings.pane.texting", icon: "chat-bubbles", sections: ["texting", "companion", "remote"] },
-  { id: "computer", labelKey: "settings.simple.page.computer", icon: "display", sections: ["computer", "desktopWorkspaces"] },
-  { id: "permissions", labelKey: "settings.pane.permissions", icon: "shield", sections: ["permissions", "botAccess", "logins", "activity"] },
-  { id: "models", labelKey: "settings.pane.models", icon: "sparkle", sections: ["engines", "connections", "decisionModel"] },
-  { id: "usage", labelKey: "settings.pane.usage", icon: "chart-bars", sections: ["usage", "cloudAccount"] },
-  { id: "updates", labelKey: "settings.simple.page.updates", icon: "cloud-download", sections: ["updates"] },
-  { id: "advanced", labelKey: "settings.pane.advanced", icon: "sliders", sections: ["advanced", ...ADVANCED_PAGES.flatMap((page) => page.sections)] },
-];
-
-export type SettingsLocation = { pane: SettingsPane; page?: AdvancedPage };
-
-/** Where a section lives now: its pane, and inside Advanced its page. Every old deep link lands somewhere. */
-export function settingsLocation(section: AppSettingsSection): SettingsLocation {
-  const page = ADVANCED_PAGES.find((entry) => entry.sections.includes(section));
-  if (page) return { pane: "advanced", page: page.id };
-  return { pane: SETTINGS_PANES.find((pane) => pane.sections.includes(section))?.id ?? "general" };
-}
-
-/** Pages that grew into their own pane: links to the old Advanced page still land. */
-const MOVED_PAGES = { ai: "models", billing: "usage" } as const satisfies Record<string, SettingsPane>;
-
-/** Open Settings at a pane, an Advanced page, or the section that holds a setting. */
-export function openSettings(target: SettingsPane | AdvancedPage | keyof typeof MOVED_PAGES | AppSettingsSection = "general"): Action {
-  const moved = (MOVED_PAGES as Record<string, SettingsPane>)[target];
-  const pane = SETTINGS_PANES.find((entry) => entry.id === (moved ?? target));
-  const page = ADVANCED_PAGES.find((entry) => entry.id === target);
-  const section = pane ? pane.sections[0]! : page ? page.sections[0]! : (target as AppSettingsSection);
-  return { type: "toggleAppSettings", open: true, section };
-}
+export { openSettings, settingsLocation, SETTINGS_PANES, type SettingsLocation, type SettingsPane } from "@/lib/open-settings";
 
 const REMOTE_SECTIONS: readonly AppSettingsSection[] = ["appearance", "companion", "desktopWorkspaces", "looks", "advanced"];
 

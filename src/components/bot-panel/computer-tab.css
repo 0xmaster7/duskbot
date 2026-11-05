@@ -1,0 +1,40 @@
+/* grok's asleep computer: the grey mascot breathes and three small z's drift up from its top right, 2.4s each */
+.computer-asleep-breathe {
+  animation: computer-asleep-breathe 2.4s ease-in-out infinite;
+}
+@keyframes computer-asleep-breathe {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.04); }
+}
+.computer-asleep-z {
+  position: absolute;
+  top: -11px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 11px;
+  color: color-mix(in srgb, var(--color-ink) 56%, transparent);
+  opacity: 0;
+  animation: computer-asleep-z 2.4s ease-out infinite;
+}
+.computer-asleep-z::before {
+  content: "z";
+}
+.computer-asleep-z:nth-child(2) { animation-delay: -0.8s; }
+.computer-asleep-z:nth-child(3) { animation-delay: -1.6s; }
+@keyframes computer-asleep-z {
+  0% { opacity: 0; transform: translateY(0) scale(0.6); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-12px) scale(1); }
+}
+
+/* less motion: the mascot rests and the z's stay put, fading as they rise */
+@media (prefers-reduced-motion: reduce) {
+  .computer-asleep-breathe { animation: none; }
+  .computer-asleep-z { animation: none; opacity: 0.8; }
+  .computer-asleep-z:nth-child(2) { opacity: 0.5; transform: translateY(-4px); }
+  .computer-asleep-z:nth-child(3) { opacity: 0.25; transform: translateY(-8px); }
+}
+:root[data-reduced-motion="true"] .computer-asleep-breathe { animation: none; }
+:root[data-reduced-motion="true"] .computer-asleep-z { animation: none; opacity: 0.8; }
+:root[data-reduced-motion="true"] .computer-asleep-z:nth-child(2) { opacity: 0.5; transform: translateY(-4px); }
+:root[data-reduced-motion="true"] .computer-asleep-z:nth-child(3) { opacity: 0.25; transform: translateY(-8px); }

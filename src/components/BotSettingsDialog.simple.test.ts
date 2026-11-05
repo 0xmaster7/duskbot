@@ -121,7 +121,7 @@ const { AvatarEditorCard } = await import("./bot-panel/AvatarEditorCard");
 const { DetailsTab } = await import("./bot-panel/DetailsTab");
 const { AdvancedTab } = await import("./bot-panel/AdvancedTab");
 const { SettingsPage } = await import("./bot-panel/SettingsPage");
-const { LibraryTab } = await import("./bot-panel/LibraryTab");
+const { LibraryPage, LibrarySection } = await import("./bot-panel/LibraryTab");
 const { ComputerTab, WherePage } = await import("./bot-panel/ComputerTab");
 const { PageBody, AppsPage, RoutinesPage, MemoryPage, SkillsPage, FolderPage, BrowserPage } = await import("./bot-panel/pages");
 const { BrowserLogins } = await import("./bot-panel/browser-logins");
@@ -188,7 +188,8 @@ const dialog = (bot: Bot) => capture(() => BotSettingsDialog({ bot }));
 const botTab = (bot: Bot) => capture(() => DetailsTab({ bot, derived: derived(), onOpen }));
 const settingsPage = (bot: Bot, editingInstructions = false) =>
   capture(() => SettingsPage({ bot, derived: derived(), onOpen, editingInstructions, onEditInstructions }));
-const library = (bot: Bot) => capture(() => LibraryTab({ bot, onOpen }));
+const library = (bot: Bot) => capture(() => LibraryPage({ bot }));
+const librarySection = (bot: Bot) => capture(() => LibrarySection({ bot, onOpen }));
 const computer = (bot: Bot) => capture(() => ComputerTab({ bot, derived: derived(), onOpen }));
 const find = (rendered: { nodes: Node[] }, attr: string, value: unknown = true) => {
   const found = rendered.nodes.find((node) => node.props[attr] === value);
@@ -275,7 +276,7 @@ beforeEach(() => {
 });
 
 describe("the bot panel in Simple mode", () => {
-  it("has Share and a close button on top, the hero, four tabs: Details, Library, Computer and Advanced", () => {
+  it("has Share and a close button on top, the hero, three tabs: Details, Computer and Advanced", () => {
     const bot = makeBot();
     const rendered = panel(bot);
     expect(ofType(rendered, PanelShareMenu)!.props.bot).toBe(bot);
@@ -286,7 +287,7 @@ describe("the bot panel in Simple mode", () => {
     expect(hero.props.bot).toBe(bot);
     expect(hero.props.patch).toBe(patch);
     const tabs = [...rendered.html.matchAll(/data-panel-tab="(\w+)"[^>]*>([^<]+)<\/button>/g)].map((match) => [match[1], match[2]]);
-    expect(tabs).toEqual([["details", "Details"], ["library", "Library"], ["computer", "Computer"], ["advanced", "Advanced"]]);
+    expect(tabs).toEqual([["details", "Details"], ["computer", "Computer"], ["advanced", "Advanced"]]);
     expect(shown(rendered)).toEqual({ tab: "details", page: undefined });
     expect(ofType(rendered, DetailsTab)!.props.bot).toBe(bot);
     expect(rendered.html).toContain('id="bot-settings-title"');
@@ -294,7 +295,7 @@ describe("the bot panel in Simple mode", () => {
 
   it("switches tabs", () => {
     const bot = makeBot();
-    for (const [tab, type] of [["computer", ComputerTab], ["library", LibraryTab], ["advanced", AdvancedTab], ["details", DetailsTab]] as const) {
+    for (const [tab, type] of [["computer", ComputerTab], ["advanced", AdvancedTab], ["details", DetailsTab]] as const) {
       selectTab(panel(bot), tab);
       const rendered = panel(bot);
       expect(shown(rendered).tab).toBe(tab);
@@ -304,7 +305,7 @@ describe("the bot panel in Simple mode", () => {
 
   it("opens Bot settings on the Advanced tab, and its apps with Back to Advanced in Grok's sub-page header", () => {
     const bot = makeBot();
-    selectTab(panel(bot), "library");
+    selectTab(panel(bot), "computer");
     openSettings(bot);
     const settings = panel(bot);
     expect(shown(settings)).toEqual({ tab: "advanced", page: undefined });
@@ -318,14 +319,13 @@ describe("the bot panel in Simple mode", () => {
     expect(shown(panel(bot))).toEqual({ tab: "advanced", page: undefined });
   });
 
-  it("draws the Advanced tab: Model with See Usage, This bot, Actions, then Advanced features", () => {
+  it("draws the Advanced tab: Library, Voice chat, This bot, Actions, then Advanced features, and no Model", () => {
     const bot = makeBot();
     const rendered = capture(() => AdvancedTab({ bot, derived: derived(), onOpen }));
-    const order = ['data-panel-card="model"', 'data-panel-card="uses"', 'data-panel-card="actions"', 'data-panel-card="advanced-features"'].map((marker) => rendered.html.indexOf(marker));
+    const order = ['data-panel-card="library"', 'data-panel-card="call"', 'data-panel-card="uses"', 'data-panel-card="actions"', 'data-panel-card="advanced-features"'].map((marker) => rendered.html.indexOf(marker));
     expect(order.every((at, index) => at > 0 && (index === 0 || at > order[index - 1]!))).toBe(true);
-    for (const label of ["Model", "This bot", "Actions", "See Usage", "Advanced features"]) expect(rendered.html).toContain(`>${label}<`);
-    click((ofType(rendered, SettingsPage)!.props.modelAction as Node));
-    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "toggleAppSettings", open: true, section: "usage" });
+    expect(rendered.html).not.toContain('data-panel-card="model"');
+    for (const label of ["Library", "Voice chat", "This bot", "Actions", "Advanced features"]) expect(rendered.html).toContain(`>${label}<`);
     click(find(rendered, "data-panel-row", "advanced-features"));
     expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "toggleAppSettings", open: true, section: "advanced" });
   });
@@ -341,9 +341,9 @@ describe("the bot panel in Simple mode", () => {
     goBack(page);
     expect(shown(panel(bot))).toEqual({ tab: "details", page: undefined });
 
-    selectTab(panel(bot), "library");
-    (ofType(panel(bot), LibraryTab)!.props.onOpen as (page: string) => void)("memory");
-    expect(header(panel(bot))).toEqual({ back: "Library", title: "What it remembers" });
+    selectTab(panel(bot), "advanced");
+    (ofType(panel(bot), AdvancedTab)!.props.onOpen as (page: string) => void)("memory");
+    expect(header(panel(bot))).toEqual({ back: "Advanced", title: "What it remembers" });
     goBack(panel(bot));
 
     selectTab(panel(bot), "computer");
@@ -375,10 +375,10 @@ describe("the bot panel in Simple mode", () => {
 
   it.each([
     ["overview", "details", undefined], ["identity", "details", undefined], ["slack", "details", undefined],
-    ["soul", "details", "instructions"], ["skills", "library", "skills"], ["memory", "library", "memory"],
-    ["routines", "details", "routines"], ["access", "computer", "where"], ["model", "advanced", undefined],
-    ["permissions", "advanced", undefined], ["voice", "details", undefined], ["visibility", "details", undefined],
-    ["history", "details", undefined], ["usage", "advanced", undefined],
+    ["soul", "details", "instructions"], ["skills", "advanced", "skills"], ["memory", "advanced", "memory"],
+    ["routines", "details", "routines"], ["access", "computer", "where"], ["model", "details", undefined],
+    ["permissions", "advanced", undefined], ["voice", "advanced", undefined], ["visibility", "details", undefined],
+    ["history", "details", undefined], ["usage", "details", undefined], ["library", "advanced", undefined],
   ] as const)("lands a deep link to %s on %s › %s", (section, tab, page) => {
     expect([sectionTarget(section).tab, sectionTarget(section).page]).toEqual([tab, page]);
     const rendered = panel(makeBot(), section);
@@ -387,10 +387,11 @@ describe("the bot panel in Simple mode", () => {
     if (page) expect(PAGES[page].home).toBe(tab);
   });
 
-  it("opens the Instructions page for a soul link, and lands model and usage links on the Advanced tab's Model card", () => {
+  it("opens the Instructions page for a soul link, lands model and usage links on Details' Model card, and library on Advanced's Library", () => {
     expect(ofType(panel(makeBot(), "soul"), PageBody)!.props).toMatchObject({ page: "instructions" });
-    expect(sectionTarget("model")).toEqual({ tab: "advanced", anchor: "model" });
-    expect(sectionTarget("usage")).toEqual({ tab: "advanced", anchor: "model" });
+    expect(sectionTarget("model")).toEqual({ tab: "details", anchor: "model" });
+    expect(sectionTarget("usage")).toEqual({ tab: "details", anchor: "model" });
+    expect(sectionTarget("library")).toEqual({ tab: "advanced", anchor: "library" });
   });
 
   // App tool grants (PluginsPanel) and the working folder (the files pane) name a Simple page; MCP and tool
@@ -407,9 +408,9 @@ describe("the bot panel in Simple mode", () => {
     expect(shown(panel(makeBot(), "access"))).toEqual({ tab: undefined, page: "where" });
   });
 
-  it("shows no switch on Details, Library or Computer, and keeps Work until done and Hide on Bot settings", () => {
+  it("shows no switch on Details or Computer, and keeps Work until done and Hide on Bot settings", () => {
     const bot = makeBot();
-    for (const tab of ["details", "library", "computer"]) {
+    for (const tab of ["details", "computer"]) {
       selectTab(panel(bot), tab);
       expect(switches(panel(bot).html), tab).toBe(0);
     }
@@ -547,12 +548,13 @@ describe("the avatar editor", () => {
 
 
 describe("the Details tab", () => {
-  it("holds only Grok's two things: routines (or what they are) and Voice chat", () => {
+  it("holds routines (or what they are), then the Model card, and no Voice chat", () => {
     const rendered = botTab(makeBot());
-    const order = ['data-panel-empty="routines"', 'data-panel-row="voice"', 'data-panel-row="speed"', 'data-panel-row="language"'].map((marker) => rendered.html.indexOf(marker));
+    const order = ['data-panel-empty="routines"', 'data-panel-card="model"', 'data-panel-row="model"'].map((marker) => rendered.html.indexOf(marker));
     expect(order.every((index) => index > -1)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
-    for (const gone of ['data-panel-row="model"', 'data-panel-gear', 'data-conversations-new', 'data-panel-row="goal"', 'data-panel-row="approval"', 'data-panel-row="call-mode"']) {
+    expect(rendered.html).toContain('data-panel-sections=""');
+    for (const gone of ['data-panel-card="call"', 'data-panel-row="voice"', 'data-panel-gear', 'data-conversations-new', 'data-panel-row="goal"', 'data-panel-row="approval"', 'data-panel-row="call-mode"']) {
       expect(rendered.html, gone).not.toContain(gone);
     }
     expect(rendered.html).not.toContain(">Routines<");
@@ -580,8 +582,8 @@ describe("the Details tab", () => {
     expect(onOpen).toHaveBeenLastCalledWith("routines");
   });
 
-  it("offers Grok's speeds and languages, kept per bot", () => {
-    const html = botTab(makeBot()).html;
+  it("offers Grok's speeds and languages on the Advanced tab, kept per bot", () => {
+    const html = capture(() => AdvancedTab({ bot: makeBot(), derived: derived(), onOpen })).html;
     expect(html).toMatch(/data-panel-select="speed"[^>]*>.*?>1x</);
     expect(html).toMatch(/data-panel-select="language"[^>]*>.*?>Auto-detect</);
     expect(VOICE_SPEEDS).toEqual(["0.5", "0.75", "1", "1.25", "1.5", "2"]);
@@ -591,9 +593,10 @@ describe("the Details tab", () => {
 });
 
 describe("the Bot settings page", () => {
-  it("starts with the Model card, then one list card of rows that each open their page, then the actions", () => {
+  it("is one list card of rows that each open their page, then the actions, with the model left to Details", () => {
     const rendered = settingsPage(makeBot());
-    const order = ['data-panel-card="model"', 'data-panel-card="uses"', 'data-panel-card="actions"'].map((marker) => rendered.html.indexOf(marker));
+    expect(rendered.html).not.toContain('data-panel-card="model"');
+    const order = ['data-panel-card="uses"', 'data-panel-card="actions"'].map((marker) => rendered.html.indexOf(marker));
     expect(order.every((index) => index > -1)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     const pages = [...rendered.html.matchAll(/data-panel-page="(\w+)"/g)].map((match) => match[1]);
@@ -633,7 +636,7 @@ describe("the Bot settings page", () => {
   });
 });
 
-describe("the Library tab", () => {
+describe("the Library", () => {
   it("says what it will hold while the bot has made nothing, in Grok's words, and nothing else", () => {
     const rendered = library(makeBot());
     expect(rendered.html).toContain('data-panel-empty="library"');
@@ -641,6 +644,13 @@ describe("the Library tab", () => {
     for (const gone of ["memory", "skills", "folder"]) expect(has(rendered, "data-panel-page", gone), gone).toBe(false);
   });
 
+  it("sits on top of the Advanced tab as a Library section, empty until the bot makes something, with no View all", () => {
+    const rendered = librarySection(makeBot());
+    expect(rendered.html).toContain('data-panel-card="library"');
+    expect(rendered.html).toContain(">Library<");
+    expect(rendered.html).toContain(">Pages, files, and apps this Bot makes show up here<");
+    expect(has(rendered, "data-panel-page", "library")).toBe(false);
+  });
 });
 
 describe("the Computer tab", () => {

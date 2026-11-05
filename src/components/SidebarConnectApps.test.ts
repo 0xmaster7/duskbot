@@ -15,9 +15,10 @@ describe("the Connect apps faces", () => {
     expect(appFaces([], new Map()).map((face) => face.slug)).toEqual(POPULAR_APPS.map((app) => app.slug));
   });
 
-  it("puts connected apps first, fills with popular ones, and never shows more than three", () => {
+  it("shows grok's featured apps not yet connected, in order, and never more than three", () => {
     const cards = new Map([["github", card("github")], ["gmail", card("gmail")]]);
-    expect(appFaces(["github", "gmail"], cards).map((face) => face.slug)).toEqual(["github", "gmail", "googledrive"]);
+    expect(appFaces(["github", "gmail"], cards).map((face) => face.slug)).toEqual(["googledrive", "googlecalendar", "granola"]);
+    expect(appFaces(["googledrive", "granola"], cards).map((face) => face.slug)).toEqual(["googlecalendar", "notion", "slack"]);
     const many = new Map(["a", "b", "c", "d"].map((slug) => [slug, card(slug)]));
     expect(appFaces(["a", "b", "c", "d"], many)).toHaveLength(APP_FACES);
   });
@@ -30,7 +31,8 @@ describe("the Connect apps faces", () => {
     for (const face of faces) expect(face).toContain("size-[18px] shrink-0 items-center justify-center rounded-[6px] bg-white p-px");
     expect(faces[0]).not.toContain("-ms-");
     expect(faces[1]).toContain("-ms-[6px]");
-    expect(faces.join(" ")).not.toContain("rotate");
+    // at rest they sit straight; only the hovered pill fans them, as grok's does
+    for (const face of faces) expect(face.split(" ").filter((name) => name.includes("rotate")).every((name) => name.includes("group-hover/apps:"))).toBe(true);
   });
 
   it("is a round 36px apps-grid button on the collapsed rail, named for screen readers", () => {

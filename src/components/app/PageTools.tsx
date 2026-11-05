@@ -234,7 +234,7 @@ export function PageFullScreen(props: PageToolsProps & {
         <PageToolbar {...props} />
         <PageNotes version={props.version} point={point} share={props.share} />
       </div>
-      <div className={cn("relative min-h-0 flex-1 bg-app", point.pointing && "ring-2 ring-inset ring-accent/60")}>
+      <div className={cn("relative min-h-0 flex-1 bg-app", point.pointing && "inset-ring-2 inset-ring-accent/60")}>
         <AppFrame doc={props.doc} botId={props.botId} threadId={props.threadId} title={props.title} height={600} handle={props.handle}
           onHeight={() => {}} onProblem={() => {}} onTeardownRequested={close} fill />
       </div>

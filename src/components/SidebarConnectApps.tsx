@@ -6,12 +6,13 @@ import { useStore, type Action } from "@/state/store";
 
 import { loadAppCards } from "./bot-settings/useBotApps";
 import { preloadConnectedApps } from "@/lib/connected-apps";
-import { ServiceTile, type ToolkitCard } from "./ServiceIcon";
+import { ServiceTile, type TileArt, type ToolkitCard } from "./ServiceIcon";
+import { appLogo } from "./connect-apps/logos";
 import { GrokIcon } from "./GrokIcon";
 import { GROK_FOCUS, GROK_HOVER_TINT, SIMPLE_TOP_BUTTON } from "./SidebarSimpleTop";
 import { ConnectAppsHost, openConnectApps, preloadConnectApps, useConnectApps } from "./connect-apps";
 
-export type AppFace = Pick<ToolkitCard, "slug" | "label" | "logo" | "domain">;
+export type AppFace = Pick<ToolkitCard, "slug" | "label" | "logo" | "domain"> & Pick<TileArt, "image" | "padded" | "background" | "scale">;
 
 /** The three apps grok's footer shows before anything is connected. */
 export const POPULAR_APPS: readonly AppFace[] = [
@@ -20,12 +21,26 @@ export const POPULAR_APPS: readonly AppFace[] = [
   { slug: "granola", label: "Granola", logo: null, domain: "granola.ai" },
 ];
 
+/** After those, the popular apps that take a connected one's place, in order. */
+const MORE_APPS: readonly AppFace[] = [
+  { slug: "notion", label: "Notion", logo: null, domain: "notion.so" },
+  { slug: "slack", label: "Slack", logo: null, domain: "slack.com" },
+  { slug: "github", label: "GitHub", logo: null, domain: "github.com" },
+  { slug: "linear", label: "Linear", logo: null, domain: "linear.app" },
+  { slug: "figma", label: "Figma", logo: null, domain: "figma.com" },
+  { slug: "gmail", label: "Gmail", logo: null, domain: "mail.google.com" },
+];
+
 export const APP_FACES = 3;
 
+/** Grok's footer logos: its featured apps that are not connected yet, in its order, three at most, on grok's own art. */
 export function appFaces(connected: readonly string[], cards: ReadonlyMap<string, AppFace>): AppFace[] {
-  const own = connected.map((slug) => cards.get(slug)).filter((card): card is AppFace => Boolean(card));
-  const popular = POPULAR_APPS.map((app) => { const card = cards.get(app.slug); return card?.logo ? card : app; });
-  return [...own, ...popular.filter((app) => !own.some((card) => card.slug === app.slug))].slice(0, APP_FACES);
+  const taken = new Set(connected);
+  return [...POPULAR_APPS, ...MORE_APPS].filter((app) => !taken.has(app.slug)).slice(0, APP_FACES).map((app) => {
+    const card = cards.get(app.slug);
+    const art = appLogo(app.slug, app.label);
+    return { ...app, ...(card?.logo ? { logo: card.logo } : {}), ...(art ? { image: art.src, padded: art.padded, background: art.background, scale: art.scale } : {}) };
+  });
 }
 
 export interface SidebarApps {
@@ -53,9 +68,16 @@ export function useSidebarApps(): SidebarApps {
 }
 
 /** Grok's footer logo: the 16px app tile on an 18px white square, 6px round, so overlapping tiles read apart. */
-function AppFaceIcon({ face, className }: { face: AppFace; className?: string }) {
+// under the pointer grok fans its three logos: the outer two tilt 8deg away, the middle one lifts a pixel
+const FAN = [
+  "group-hover/apps:[transform:translateX(-3px)_rotate(-8deg)] rtl:group-hover/apps:[transform:translateX(3px)_rotate(8deg)]",
+  "group-hover/apps:[transform:translateY(-1px)]",
+  "group-hover/apps:[transform:translateX(3px)_rotate(8deg)] rtl:group-hover/apps:[transform:translateX(-3px)_rotate(-8deg)]",
+];
+
+function AppFaceIcon({ face, index, className }: { face: AppFace; index: number; className?: string }) {
   return (
-    <span data-app-face={face.slug} className={cn("flex size-[18px] shrink-0 items-center justify-center rounded-[6px] bg-white p-px", className)}>
+    <span data-app-face={face.slug} className={cn("flex size-[18px] shrink-0 items-center justify-center rounded-[6px] bg-white p-px transition-transform duration-300 ease-(--composer-spring) motion-reduce:transition-none", FAN[index], className)}>
       <ServiceTile card={face} size={16} />
     </span>
   );
@@ -94,7 +116,7 @@ export function ConnectAppsButton({ circle, apps: { faces, connected }, engaged 
       onFocus={(event) => { preloadConnectApps(); if (event.currentTarget.matches(":focus-visible")) onEngage?.(true); }}
       onBlur={() => onEngage?.(false)}
       onClick={() => openConnectApps()}
-      className={circle ? cn(SIMPLE_TOP_BUTTON, "h-9 min-w-9 w-auto text-[14px] font-medium leading-5 text-ink transition-[background-color,flex-grow,padding] duration-300 ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none", engaged ? "grow pl-4 pr-3" : "grow-0 px-2") : cn("group/apps flex h-9 min-w-0 flex-1 items-center justify-center rounded-full border border-ink/[0.08] bg-composer px-4 text-[14px] font-medium leading-5 tracking-[0.01em] text-ink transition-[background-color,flex-grow,padding] duration-300 ease-[cubic-bezier(.2,0,0,1)]", GROK_HOVER_TINT, GROK_FOCUS)}
+      className={circle ? cn(SIMPLE_TOP_BUTTON, "group/apps h-9 min-w-9 w-auto text-[14px] font-medium leading-5 text-ink transition-[background-color,flex-grow,padding] duration-300 ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none", engaged ? "grow pl-4 pr-3" : "grow-0 px-2") : cn("group/apps flex h-9 min-w-0 flex-1 items-center justify-center rounded-full border border-ink/[0.08] bg-composer px-4 text-[14px] font-medium leading-5 tracking-[0.01em] text-ink transition-[background-color,flex-grow,padding] duration-300 ease-[cubic-bezier(.2,0,0,1)]", GROK_HOVER_TINT, GROK_FOCUS)}
     >
       {circle ? <>
         {/* grok's widened pill trades the grid glyph for the label and the app logos */}
@@ -104,12 +126,12 @@ export function ConnectAppsButton({ circle, apps: { faces, connected }, engaged 
           engaged ? cn(!logos.length && "ms-1.5", "max-w-[200px] opacity-100 [transition-duration:300ms,150ms,300ms] [transition-delay:0ms,120ms,0ms]") : "ms-0 max-w-0 opacity-0")}>{t("sidebar.connectApps")}</span>
         {logos.length > 0 && <span aria-hidden="true" data-connect-apps-faces="" className={cn("flex shrink-0 items-center overflow-hidden transition-[max-width,opacity,margin] duration-300 ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none",
           engaged ? "ms-[4.5px] max-w-[60px] opacity-100 [transition-duration:300ms,150ms,300ms] [transition-delay:0ms,120ms,0ms]" : "ms-0 max-w-0 opacity-0")}>
-          {logos.map((face, index) => <AppFaceIcon key={face.slug} face={face} className={cn(index > 0 && "-ms-[6px]")} />)}
+          {logos.map((face, index) => <AppFaceIcon key={face.slug} face={face} index={index} className={cn(index > 0 && "-ms-[6px]")} />)}
         </span>}
       </> : <>
         <span className="min-w-0 truncate">{label}</span>
         <span aria-hidden="true" className="ms-[4.5px] flex shrink-0 items-center">
-          {faces.map((face, index) => <AppFaceIcon key={face.slug} face={face} className={cn(index > 0 && "-ms-[6px]")} />)}
+          {faces.map((face, index) => <AppFaceIcon key={face.slug} face={face} index={index} className={cn(index > 0 && "-ms-[6px]")} />)}
         </span>
       </>}
     </button>

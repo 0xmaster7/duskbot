@@ -137,7 +137,7 @@ import { pendingApprovals } from "./PendingApproval";
 import { TranscriptAnnouncer } from "./TranscriptAnnouncer";
 import { JumpToLatestButton } from "./JumpToLatestButton";
 import { UsageBanner } from "./native/UsageMeter";
-import { openSettings } from "./SettingsModal";
+import { openSettings } from "@/lib/open-settings";
 import { useTimestampPeek } from "./chat-timestamp-peek";
 import { grokUserBubbleFill, isBotTextRow, joinedCorners, needsStamp, quietRow, simpleRowLayout, SIMPLE_BOT_BUBBLE, SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT, SIMPLE_STACKED, SIMPLE_USER_BUBBLE, type BubbleJoin } from "./chat-bubble";
 

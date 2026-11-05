@@ -13,7 +13,9 @@ import { useDesktopCapabilities } from "../DesktopCapabilities";
 import type { useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
 import { SelectPill } from "../ui/SelectPill";
 import type { SimplePageId } from "./page-registry";
-import { BotSwitch, Card, PanelEmpty, rowCls, RowText } from "./rows";
+import { BotSwitch, Card, PanelEmpty, PanelSections, rowCls, RowText } from "./rows";
+import { ModelSelectRow } from "../native/ModelSelectRow";
+import { UsageMeterRow } from "../native/UsageMeter";
 import { setVoicePrefs, useVoicePrefs, VOICE_LANGUAGES, VOICE_SPEEDS, type VoiceSpeed } from "./voice-prefs";
 
 type Derived = ReturnType<typeof useBotSettingsDerived>;
@@ -96,19 +98,34 @@ function VoiceChatRow({ label, children, row }: { label: string; children: React
 
 /** Grok's Voice chat card: Voice, Speed and Language as ghost select pills. Voice is the bot's speaking voice; speed and
  * language are kept per bot on this device. */
-export function VoiceChatCard({ bot, patch, afterEmpty = false }: { bot: Bot; patch: Derived["patch"]; afterEmpty?: boolean }) {
+/** The bot's model as it was on Bot settings: the Model row with the provider's mark, then its plan's usage when the
+ * engine reports one. */
+export function ModelCard({ bot }: { bot: Bot }) {
+  return (
+    <Card label={t("model.simple.model")} anchor="model">
+      <div className="[&_[data-tour=model]>span:first-child]:flex! [&_[data-provider-mark]]:opacity-100!">
+        <ModelSelectRow bot={bot} threadId={bot.threadId} />
+      </div>
+      <UsageMeterRow engine={bot.modelSelection?.instanceId} />
+    </Card>
+  );
+}
+
+export function VoiceChatCard({ bot, patch }: { bot: Bot; patch: Derived["patch"] }) {
   const { state } = useStore();
   const tts = state.config?.tts;
   const voices = useVoiceOptions(bot, Boolean(tts?.configured)) ?? [];
   const prefs = useVoicePrefs(bot.id);
-  const voice = bot.voice ?? "";
+  // grok names the voice a bot speaks with by default, so the default row wears that voice's name
+  const fallback = tts?.voice ? voices.find((entry) => entry.id === tts.voice) : undefined;
+  const voice = bot.voice && bot.voice !== fallback?.id ? bot.voice : "";
   const voiceOptions = [
-    { value: "", label: tts?.voice || !tts?.configured ? t("botPanel.voice.default") : t("voice.pick") },
+    { value: "", label: fallback?.label ?? (tts?.voice || !tts?.configured ? t("botPanel.voice.default") : t("voice.pick")) },
     ...(voice && !voices.some((entry) => entry.id === voice) ? [{ value: voice, label: t("voice.current") }] : []),
-    ...voices.map((entry) => ({ value: entry.id, label: entry.label })),
+    ...voices.filter((entry) => entry !== fallback).map((entry) => ({ value: entry.id, label: entry.label })),
   ];
   return (
-    <Card label={t("botPanel.section.voiceChat")} anchor="call" className={afterEmpty ? "mt-[22px]" : "mt-[44px]"}>
+    <Card label={t("botPanel.section.voiceChat")} anchor="call">
       <VoiceChatRow row="voice" label={t("voice.title")}>
         <SelectPill data-panel-select="voice" aria-label={t("voice.title")} value={voice} options={voiceOptions} onChange={(next: string) => patch({ voice: next })} />
       </VoiceChatRow>
@@ -168,7 +185,7 @@ export function DetailsTab({ bot, derived, onOpen }: {
   const routines = [...derived.botRoutines].sort((a, b) => a.createdAt - b.createdAt);
 
   return (
-    <div data-panel-tabpanel="details">
+    <PanelSections data-panel-tabpanel="details">
       {routines.length === 0 ? (
         <PanelEmpty data-panel-empty="routines">{t("botPanel.routines.empty")}</PanelEmpty>
       ) : (
@@ -177,7 +194,7 @@ export function DetailsTab({ bot, derived, onOpen }: {
         </Card>
       )}
 
-      <VoiceChatCard bot={bot} patch={derived.patch} afterEmpty={routines.length === 0} />
-    </div>
+      <ModelCard bot={bot} />
+    </PanelSections>
   );
 }
