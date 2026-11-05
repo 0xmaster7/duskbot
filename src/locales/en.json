@@ -7839,5 +7839,6 @@
   "connectApps.mcpServer": "MCP server",
   "connectApps.off": "Off",
   "connectApps.mcpAdd": "Your own servers, by command or URL",
-  "connectApps.onePassword.manage": "Choose which Bots use each vault in Settings"
+  "connectApps.onePassword.manage": "Choose which Bots use each vault in Settings",
+  "connectApps.manageApp": "Manage"
 }

@@ -19,13 +19,13 @@ const view = (connector: Partial<NonNullable<Message["connector"]>>) => renderTo
 }));
 
 describe("ConnectorCard ask card", () => {
-  it("asks for the sign-in in the shared ask card, the app its title in clear ink", () => {
+  it("asks for the sign-in in Grok's connector card, the app its 14px medium title in clear ink", () => {
     const html = view({});
     expect(html).toContain('data-ask-card="pending"');
     expect(html).toContain('data-tour="connector"');
-    expect(html).toMatch(/font-medium leading-\[22px\] text-ink"><bdi dir="auto">/);
+    expect(html).toMatch(/text-\[14px\] font-medium leading-5 tracking-\[0\.01em\] text-ink"><bdi dir="auto">/);
     expect(html).not.toContain("text-accent-text\"><bdi");
-    expect(html).toContain(t("connectors.card.connectSecurely"));
+    expect(html).toMatch(new RegExp(`<button[^>]*>${t("connectors.action.connect")}</button>`));
     expect(html).toContain(`aria-label="${t("connectors.card.notNow")}"`);
   });
 
@@ -34,7 +34,7 @@ describe("ConnectorCard ask card", () => {
     expect(html).toContain('data-ask-card="settled"');
     expect(html).toContain(t("connectors.card.connected"));
     expect(html).toContain(t("connectors.card.continuing"));
-    expect(html).not.toContain(t("connectors.card.connectSecurely"));
+    expect(html).not.toMatch(new RegExp(`<button[^>]*>${t("connectors.action.connect")}</button>`));
     expect(html).not.toContain(t("connectors.card.notNow"));
   });
 
@@ -64,11 +64,11 @@ describe("ConnectorCard ask card", () => {
     const mcp = view({ source: "mcp", slug: "linear", label: "Linear" });
     expect(mcp).toContain("Sign in to Linear");
     expect(mcp).toMatch(/<button[^>]*>(?:(?!<\/button>)[^])*Sign in<\/button>/);
-    expect(mcp).not.toContain(t("connectors.card.connectSecurely"));
+    expect(mcp).not.toMatch(new RegExp(`<button[^>]*>${t("connectors.action.connect")}</button>`));
     expect(mcp).toContain(t("connectors.card.mcpSignInHint"));
     expect(mcp).not.toContain(t("connectors.card.signInHint"));
     const composio = view({ source: "composio" });
-    expect(composio).toContain(t("connectors.card.connectSecurely"));
+    expect(composio).toMatch(new RegExp(`<button[^>]*>${t("connectors.action.connect")}</button>`));
     expect(composio).not.toContain("Sign in to");
     expect(composio).toContain(t("connectors.card.signInHint"));
     expect(composio).not.toContain(t("connectors.card.mcpSignInHint"));

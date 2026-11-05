@@ -60,7 +60,7 @@ describe("plugins modal translation", () => {
     expect(html).toContain(locales.ja!["hostedMcp.access"]);
     expect(html).not.toContain("Connect Agentcard");
     expect(locales.ja).not.toHaveProperty("agentcard.description");
-    expect(html).toContain("Shop and pay from your own Agentcard account.");
+    expect(html).toContain("OpenMausBot stores no card details");
   });
 
   it("translates the in-chat connector card", () => {
@@ -76,8 +76,8 @@ describe("plugins modal translation", () => {
         connector: { slug: "gmail", label: "Gmail", description: "Read mail", status: "required", resumeKey: "resume1" },
       },
     }));
-    expect(html).toContain(locales.ja!["connectors.card.connectSecurely"]);
-    expect(html).toContain(locales.ja!["connectors.card.requested"]);
-    expect(html).not.toContain("Connect securely");
+    expect(html).toContain(locales.ja!["connectors.action.connect"]);
+    expect(html).toContain(locales.ja!["connectors.card.signInHint"]);
+    expect(html).not.toContain(">Connect<");
   });
 });

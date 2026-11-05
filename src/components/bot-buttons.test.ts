@@ -87,7 +87,7 @@ describe("a bot's cards answer in its own colour", () => {
     expectPlain(button(renderToStaticMarkup(createElement(QuestionCard, { threadId: "thread-1", message: question })), t("question.submitAll")));
   });
 
-  it("saves a key, finishes a sign-in and connects an app in the asking bot's colour", () => {
+  it("saves a key and finishes a sign-in in the asking bot's colour, and connects an app in ink", () => {
     const secret: Message = {
       id: "secret-1", role: "bot", kind: "secret", at: 1, text: "",
       secret: { target: "openaiImageApiKey", label: "OpenAI API key", description: "", placeholder: "sk-…", requestKey: "key-1" } as Message["secret"],
@@ -106,9 +106,11 @@ describe("a bot's cards answer in its own colour", () => {
       id: "connector-1", role: "bot", kind: "connector", at: 1,
       connector: { slug: "github", label: "GitHub", description: "", status: "required", resumeKey: "resume-1" },
     };
-    expectOwn(button(renderToStaticMarkup(createElement(ConnectorCard, { botId: "scout", color: "silver", threadId: "t", message: connector })), t("connectors.card.connectSecurely")), "silver");
-    const plain = button(renderToStaticMarkup(createElement(ConnectorCard, { botId: "scout", threadId: "t", message: connector })), t("connectors.card.connectSecurely"));
-    expectPlain(plain);
-    expect(classes(plain)).toContain("ui-button-primary");
+    // grok's connector card keeps its action in ink whatever the bot's colour
+    for (const color of ["silver", undefined] as const) {
+      const action = button(renderToStaticMarkup(createElement(ConnectorCard, { botId: "scout", color, threadId: "t", message: connector })), t("connectors.action.connect"));
+      expectPlain(action);
+      expect(classes(action)).toContain("bg-ink");
+    }
   });
 });

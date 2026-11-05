@@ -68,7 +68,7 @@ describe("ConnectorCard authorize refusal", () => {
 
   it("keeps a Composio app's 409 as the card's error", async () => {
     render({ source: "composio" });
-    press("Connect securely");
+    press("Connect");
     await vi.waitFor(() => expect(host.querySelector('[role="alert"]')?.textContent).toBe(SENTENCE));
     expect(host.querySelector('[role="status"]')).toBeNull();
     expect(links()).toEqual([]);
