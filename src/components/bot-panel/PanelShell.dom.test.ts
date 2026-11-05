@@ -257,7 +257,7 @@ describe("the chat header's pill", () => {
       expect(button.getAttribute("aria-label")).toBe("Open Scout's profile");
       expect(button.getAttribute("aria-expanded")).toBe("false");
       expect(button.hasAttribute("aria-controls")).toBe(false);
-      expect(header.querySelector("[data-chathead-chevron]")).not.toBeNull();
+      expect(header.querySelector("[data-chathead-chevron]")).toBeNull();
       expect(header.querySelector("[data-chathead-elsewhere]")!.getAttribute("aria-label")).toBe("Other activity (1)");
       click(button);
       expect(onToggle).toHaveBeenCalledOnce();

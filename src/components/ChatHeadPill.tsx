@@ -2,7 +2,6 @@ import { localizedTaskTitle } from "@/lib/task-title";
 import { Lock, UserRound, Users } from "lucide-react";
 import type { ComponentProps } from "react";
 
-import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";
 import { awayFromMainThread } from "@/state/thread-navigation";
@@ -14,7 +13,6 @@ import { sharedChatAudience } from "./TeamPrivateChatsLine";
 
 /** The factory title a new conversation starts with. */
 const UNTITLED = "New thread";
-const CHEVRON_MOTION = "duration-[140ms] ease-[cubic-bezier(.22,1,.36,1)]";
 
 export type ChatHeadPrivacy = { kind: "private" } | { kind: "ownHelper" } | { kind: "shared"; team: string; onlyPeopleAdded?: boolean } | null;
 
@@ -75,11 +73,6 @@ export function ChatHeadPill({ bot, avatar, privacy, onToggle }: {
       )}
       {elsewhere > 0 && (
         <span role="img" data-chathead-elsewhere aria-label={t("task.otherActivity", { count: elsewhere })} className="size-1.5 shrink-0 rounded-full bg-accent" />
-      )}
-      {!open && !conversation && (
-        <span aria-hidden="true" data-chathead-chevron className={cn("-ml-2 flex w-0 shrink-0 overflow-hidden opacity-0 transition-[width,margin,opacity] group-hover:ml-0 group-hover:w-2 group-hover:opacity-100 group-focus-visible:ml-0 group-focus-visible:w-2 group-focus-visible:opacity-100", CHEVRON_MOTION)}>
-          <GrokIcon name="chevron-right" size={12} className="-ml-0.5 shrink-0 text-ink/[0.56]" />
-        </span>
       )}
     </button>
   );
