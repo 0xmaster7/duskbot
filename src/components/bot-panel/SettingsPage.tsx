@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AppWindow, ChevronRight, FileText, ShieldCheck, Tag } from "lucide-react";
+import { AppWindow, Brain, ChevronRight, FileText, Folder, Globe, Monitor, ShieldCheck, Sparkles, Tag } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
@@ -13,6 +13,9 @@ import { useDeleteAllThreads } from "../BotMenuDelete";
 import { useTeamName } from "../bot-access/ShareBotButton";
 import { SoulField } from "../SoulField";
 import { BotApiCard } from "../bot-settings/BotApiCard";
+import { useManagedSkills } from "../bot-settings/SkillsSection";
+import { useDesktopCapabilities } from "../DesktopCapabilities";
+import { shortPath } from "@/lib/short-path";
 import { useBotApps } from "../bot-settings/useBotApps";
 import type { useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
 import { useThreadApproval } from "../thread-approval";
@@ -39,6 +42,9 @@ export function SettingsPage({ bot, derived, onOpen, editingInstructions = false
 }) {
   const { dispatch, flushBotPatches } = useStore();
   const apps = useBotApps(bot);
+  const skills = useManagedSkills(bot);
+  const { capabilities } = useDesktopCapabilities();
+  const skillsOn = skills.skills.filter((skill) => skill.enabled).length;
   const clearThreads = useDeleteAllThreads(true);
   const team = useTeamName();
   const { state } = useStore();
@@ -136,7 +142,13 @@ export function SettingsPage({ bot, derived, onOpen, editingInstructions = false
 
       <BackupAis bot={bot} onChange={(fallback) => patch({ fallback })} />
 
+      {/* what the bot keeps and where it works: its own pages, one row each */}
       <Card anchor="uses">
+        <NavRow data-panel-page="memory" icon={Brain} title={t("botPanel.memoryRow")} value={bot.memoryEnabled === false ? t("botPanel.memory.off") : undefined} onClick={() => onOpen?.("memory")} />
+        <NavRow data-panel-page="skills" icon={Sparkles} title={t("botSettings.simple.skills")} value={skills.loading ? undefined : skillsOn > 0 ? skillsOn : t("botPanel.none")} onClick={() => onOpen?.("skills")} />
+        <NavRow data-panel-page="folder" icon={Folder} title={t("computer.files.folder")} value={bot.cwd ? shortPath(bot.cwd, capabilities.host?.homeDir) : t("botPanel.folder.private")} onClick={() => onOpen?.("folder")} />
+        <NavRow data-panel-page="where" icon={Monitor} title={t("computer.simple.whereWorks", { name })} onClick={() => onOpen?.("where")} />
+        <NavRow data-panel-page="browser" icon={Globe} title={t("settings.sites.title")} onClick={() => onOpen?.("browser")} />
         <NavRow
           data-panel-page="apps"
           icon={AppWindow}

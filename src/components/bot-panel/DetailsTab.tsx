@@ -19,7 +19,7 @@ import { isArchived, orderedThreadList, threadRecency } from "../SidebarThreadRo
 import type { useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
 import { SelectPill } from "../ui/SelectPill";
 import type { SimplePageId } from "./page-registry";
-import { BotSwitch, Card, LabelAction, PanelEmpty, rowCls, RowText } from "./rows";
+import { BotSwitch, Card, LabelAction, NavRow, PanelEmpty, rowCls, RowText } from "./rows";
 
 type Derived = ReturnType<typeof useBotSettingsDerived>;
 
@@ -255,6 +255,10 @@ export function DetailsTab({ bot, derived, onOpen }: {
       <ModelCard bot={bot} derived={derived} />
 
       <VoiceChatCard voice={<VoiceRow bot={bot} patch={derived.patch} />} />
+
+      <Card anchor="settings">
+        <NavRow data-panel-gear data-panel-page="settings" title={t("botPanel.page.settings")} onClick={() => onOpen("settings")} />
+      </Card>
     </div>
   );
 }

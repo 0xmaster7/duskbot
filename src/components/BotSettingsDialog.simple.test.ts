@@ -565,13 +565,15 @@ describe("the avatar editor", () => {
 
 
 describe("the Details tab", () => {
-  it("holds New conversation, routines (or what they are), Work until done, the model card and Voice chat, in that order", () => {
+  it("holds New conversation, routines (or what they are), Work until done, the model card, Voice chat and Bot settings, in that order", () => {
     const rendered = botTab(makeBot());
-    const order = ["data-conversations-new", 'data-panel-empty="routines"', 'data-panel-row="goal"', 'data-panel-row="model"', 'data-panel-row="approval"', 'data-panel-row="call-mode"']
+    const order = ["data-conversations-new", 'data-panel-empty="routines"', 'data-panel-row="goal"', 'data-panel-row="model"', 'data-panel-row="approval"', 'data-panel-row="call-mode"', "data-panel-gear"]
       .map((marker) => rendered.html.indexOf(marker));
     expect(order.every((index) => index > -1)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
-    for (const gone of ['data-panel-item=', 'data-panel-gear', 'data-panel-card="try"', 'data-panel-row="thinking"', 'data-panel-edit="soul"', 'data-panel-page="memory"']) {
+    click(find(rendered, "data-panel-gear"));
+    expect(onOpen).toHaveBeenLastCalledWith("settings");
+    for (const gone of ['data-panel-item=', 'data-panel-card="try"', 'data-panel-row="thinking"', 'data-panel-edit="soul"', 'data-panel-page="memory"']) {
       expect(rendered.html, gone).not.toContain(gone);
     }
     expect(rendered.html).toContain(">Before Scout acts<");
@@ -628,6 +630,18 @@ describe("the Details tab", () => {
 });
 
 describe("the Bot settings page", () => {
+  it("lists what the bot keeps and where it works, one row per page, each opening its page", () => {
+    const rendered = settingsPage(makeBot());
+    const pages = [...rendered.html.matchAll(/data-panel-page="(\w+)"/g)].map((match) => match[1]);
+    expect(pages).toEqual(["memory", "skills", "folder", "where", "browser", "apps"]);
+    for (const page of pages) {
+      click(find(rendered, "data-panel-page", page));
+      expect(onOpen).toHaveBeenLastCalledWith(page);
+    }
+    expect(rowValue(rendered, "folder")).toBe("Private");
+    expect(rowValue(settingsPage(makeBot({ memoryEnabled: false })), "memory")).toBe("Off");
+  });
+
   it("holds Instructions, Before it acts, Backup AIs, Apps, Job and Hide, with every title on one edge", () => {
     const rendered = settingsPage(makeBot({ defaultBot: {} }));
     expect(rendered.html).not.toContain('data-panel-row="call-mode"');
