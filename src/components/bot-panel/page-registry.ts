@@ -1,5 +1,6 @@
 import type { LocaleKey } from "@/locales";
 import type { BotSettingsSection } from "@/state/store";
+import { isModalPage, requestPanelModal } from "./modals/panel-modal";
 
 export const PANEL_TABS = ["details", "computer", "advanced"] as const;
 export type PanelTab = (typeof PANEL_TABS)[number];
@@ -99,7 +100,10 @@ export function sectionTarget(section: BotSettingsSection): PanelTarget {
   return SECTION_TARGET[section];
 }
 
-/** A target as the panel draws it: the Bot settings page is the Advanced tab now. */
+/** A target as the panel draws it: the Bot settings page is the Advanced tab now, and a page that opens as a dialog
+ * lands on the Advanced tab, which holds its row, with the dialog asked for over it. */
 export function resolveTarget(target: PanelTarget): PanelTarget {
-  return target.page === "settings" ? { tab: "advanced", ...(target.anchor ? { anchor: target.anchor } : {}) } : target;
+  if (isModalPage(target.page)) requestPanelModal(target.page);
+  else if (target.page !== "settings") return target;
+  return { tab: "advanced", ...(target.anchor ? { anchor: target.anchor } : {}) };
 }

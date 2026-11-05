@@ -3,9 +3,15 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { BOT_SECTIONS } from "../bot-settings/sections";
-import { sectionTarget } from "./page-registry";
+import { resolveTarget, sectionTarget } from "./page-registry";
+import { pendingPanelModal, takePanelModalRequest } from "./modals/panel-modal";
 import { linkTarget, openBotSettings, openBotSettingsPage, usePanelLink, type PanelLink } from "./panel-link";
 
+const asked = () => {
+  const request = pendingPanelModal();
+  if (request) takePanelModalRequest(request);
+  return request?.page;
+};
 const link = (extra: Partial<PanelLink> & Pick<PanelLink, "section">): PanelLink => ({ nonce: 1, ...extra });
 
 describe("named links into a bot's settings", () => {
@@ -20,14 +26,16 @@ describe("named links into a bot's settings", () => {
     expect(Object.keys(dispatch.mock.calls[0]![0])).not.toContain("botId");
   });
 
-  it("lands the access callers on the Simple page that holds what they are about, else on Where it works", () => {
+  it("lands the access callers on the page or dialog that holds what they are about, else on Where it works", () => {
     expect(linkTarget("access", link({ section: "access", page: "apps" }))).toEqual({ tab: "details", page: "apps" });
-    expect(linkTarget("access", link({ section: "access", page: "folder" }))).toEqual({ tab: "advanced", page: "folder" });
-    // Simple mode has no MCP or tool-selection page: those links open Where it works, the Computer tab's page.
+    // the working folder and Where it works are dialogs over the Advanced tab
+    expect(linkTarget("access", link({ section: "access", page: "folder" }))).toEqual({ tab: "advanced" });
+    expect(asked()).toBe("folder");
+    // Simple mode has no MCP or tool-selection page: those links land where Access does, on Where it works.
     expect(linkTarget("access", link({ section: "access", page: "mcp" }))).toEqual({ tab: "computer", page: "where" });
     expect(linkTarget("access", link({ section: "access", page: "tools" }))).toEqual({ tab: "computer", page: "where" });
-    // A plain Access link (the team map's computer button) opens Where it works too: Grok's Computer tab holds only the screen.
-    expect(linkTarget("access", link({ section: "access" }))).toEqual({ tab: "computer", page: "where" });
+    expect(resolveTarget(linkTarget("access", link({ section: "access" })))).toEqual({ tab: "advanced" });
+    expect(asked()).toBe("where");
   });
 
   it("lands a link that names a card on that card, on its section's tab, and on no other section", () => {

@@ -16,7 +16,7 @@ import { Card, RadioRow } from "./rows";
 import "./computer-tab.css";
 
 type Derived = ReturnType<typeof useBotSettingsDerived>;
-type PlaceChoice = "auto" | Place | "off";
+export type PlaceChoice = "auto" | Place | "off";
 
 interface PlaceOption {
   value: PlaceChoice;
@@ -66,9 +66,12 @@ export function usePlaceChoices(bot: Bot) {
   return { options, current, currentLabel, usingNow };
 }
 
-export function WherePage({ bot, derived }: { bot: Bot; derived: Derived }) {
+/** Choosing where a bot works, as the panel and its dialog both do: a place it cannot use, or Off, is never chosen; this
+ * computer for a bot that decides alone asks first, through `warning`. */
+export function usePlacePicker(bot: Bot, derived: Derived) {
   const { dispatch } = useStore();
-  const { options, current, usingNow } = usePlaceChoices(bot);
+  const choices = usePlaceChoices(bot);
+  const { current } = choices;
   const [localAutoWarning, setLocalAutoWarning] = useState<{ botId: string; patch: BotPatch } | null>(null);
   const { patch, approvalMode } = derived;
   const choosePlace = (value: PlaceChoice) => {
@@ -79,6 +82,23 @@ export function WherePage({ bot, derived }: { bot: Bot; derived: Derived }) {
     }
     patch(value === "browser" ? { computer: "browser", browser: true } : { computer: value === "auto" ? null : value });
   };
+  const warning = (
+    <LocalComputerAutoWarning
+      open={localAutoWarning !== null}
+      onCancel={() => setLocalAutoWarning(null)}
+      onConfirm={() => {
+        const target = localAutoWarning;
+        setLocalAutoWarning(null);
+        if (!target) return;
+        dispatch({ type: "updateBot", botId: target.botId, patch: target.patch });
+      }}
+    />
+  );
+  return { ...choices, choosePlace, warning };
+}
+
+export function WherePage({ bot, derived }: { bot: Bot; derived: Derived }) {
+  const { options, current, usingNow, choosePlace, warning } = usePlacePicker(bot, derived);
 
   return (
     <>
@@ -98,16 +118,7 @@ export function WherePage({ bot, derived }: { bot: Bot; derived: Derived }) {
         </div>
       </Card>
       {usingNow && <p data-panel-using-now className="mx-1 text-[13px] text-ink-secondary">{t("computer.simple.usingNow", { place: usingNow })}</p>}
-      <LocalComputerAutoWarning
-        open={localAutoWarning !== null}
-        onCancel={() => setLocalAutoWarning(null)}
-        onConfirm={() => {
-          const target = localAutoWarning;
-          setLocalAutoWarning(null);
-          if (!target) return;
-          dispatch({ type: "updateBot", botId: target.botId, patch: target.patch });
-        }}
-      />
+      {warning}
     </>
   );
 }

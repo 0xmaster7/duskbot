@@ -126,6 +126,7 @@ const { ComputerTab, WherePage } = await import("./bot-panel/ComputerTab");
 const { PageBody, AppsPage, RoutinesPage, MemoryPage, SkillsPage, FolderPage, BrowserPage } = await import("./bot-panel/pages");
 const { BrowserLogins } = await import("./bot-panel/browser-logins");
 const { PAGES, sectionTarget } = await import("./bot-panel/page-registry");
+const { isModalPage, pendingPanelModal, takePanelModalRequest } = await import("./bot-panel/modals/panel-modal");
 const { openBotSettings } = await import("./bot-panel/panel-link");
 const { SegmentedTabs } = await import("./ui/SegmentedTabs");
 const { PanelShareMenu } = await import("./bot-panel/PanelShareMenu");
@@ -180,14 +181,19 @@ const fresh = () => {
 const patch = vi.fn();
 const onOpen = vi.fn();
 const onClose = vi.fn();
-const onEditInstructions = vi.fn();
 const derived = () => fixture.derived as never;
 const panel = (bot: Bot, linkedSection: BotSettingsSection | null = null) =>
   capture(() => BotPanel({ bot, derived: derived(), linkedSection, onClose }));
 const dialog = (bot: Bot) => capture(() => BotSettingsDialog({ bot }));
 const botTab = (bot: Bot) => capture(() => DetailsTab({ bot, derived: derived(), onOpen }));
-const settingsPage = (bot: Bot, editingInstructions = false) =>
-  capture(() => SettingsPage({ bot, derived: derived(), onOpen, editingInstructions, onEditInstructions }));
+const settingsPage = (bot: Bot) =>
+  capture(() => SettingsPage({ bot, derived: derived(), onOpen }));
+/** The dialog a link asked the Advanced tab to open, cleared as it is read. */
+const askedModal = () => {
+  const request = pendingPanelModal();
+  if (request) takePanelModalRequest(request);
+  return request?.page;
+};
 const library = (bot: Bot) => capture(() => LibraryPage({ bot }));
 const librarySection = (bot: Bot) => capture(() => LibrarySection({ bot, onOpen }));
 const computer = (bot: Bot) => capture(() => ComputerTab({ bot, derived: derived(), onOpen }));
@@ -262,7 +268,6 @@ beforeEach(() => {
   patch.mockReset();
   onOpen.mockReset();
   onClose.mockReset();
-  onEditInstructions.mockReset();
   fixture.derived = {
     patch, approvalMode: "ask", engine: engine(), trustedModesAvailable: false, activeState: "idle",
     botRoutines: [], canCoordinate: true, sectionName: "General", mascotMotion: null,
@@ -381,14 +386,22 @@ describe("the bot panel in Simple mode", () => {
     ["history", "details", undefined], ["usage", "details", undefined], ["library", "advanced", undefined],
   ] as const)("lands a deep link to %s on %s › %s", (section, tab, page) => {
     expect([sectionTarget(section).tab, sectionTarget(section).page]).toEqual([tab, page]);
+    askedModal();
     const rendered = panel(makeBot(), section);
-    if (page) expect(shown(rendered).page).toBe(page);
+    // a page that is a dialog now opens over the Advanced tab, which holds its row
+    if (isModalPage(page)) {
+      expect(shown(rendered)).toEqual({ tab: "advanced", page: undefined });
+      expect(askedModal()).toBe(page);
+    } else if (page) expect(shown(rendered).page).toBe(page);
     else expect(shown(rendered)).toEqual({ tab, page: undefined });
     if (page) expect(PAGES[page].home).toBe(tab);
   });
 
-  it("opens the Instructions page for a soul link, lands model and usage links on Details' Model card, and library on Advanced's Library", () => {
-    expect(ofType(panel(makeBot(), "soul"), PageBody)!.props).toMatchObject({ page: "instructions" });
+  it("opens the Instructions dialog for a soul link, lands model and usage links on Details' Model card, and library on Advanced's Library", () => {
+    askedModal();
+    const soul = panel(makeBot(), "soul");
+    expect(ofType(soul, PageBody)).toBeUndefined();
+    expect(askedModal()).toBe("instructions");
     expect(sectionTarget("model")).toEqual({ tab: "details", anchor: "model" });
     expect(sectionTarget("usage")).toEqual({ tab: "details", anchor: "model" });
     expect(sectionTarget("library")).toEqual({ tab: "advanced", anchor: "library" });
@@ -397,18 +410,24 @@ describe("the bot panel in Simple mode", () => {
   // App tool grants (PluginsPanel) and the working folder (the files pane) name a Simple page; MCP and tool
   // selection name none, so they land where Access does.
   it.each([["apps", "apps"], ["folder", "folder"], ["mcp", "where"], ["tools", "where"]] as const)("lands an Access link naming %s on %s", (page, landing) => {
+    askedModal();
     try {
       openBotSettings(fixture.dispatch, "access", { page });
-      expect(shown(panel(makeBot(), "access"))).toEqual({ tab: undefined, page: landing });
+      const rendered = shown(panel(makeBot(), "access"));
+      if (isModalPage(landing)) {
+        expect(rendered).toEqual({ tab: "advanced", page: undefined });
+        expect(askedModal()).toBe(landing);
+      } else expect(rendered).toEqual({ tab: undefined, page: landing });
     } finally {
       // A link without a page lands where the section does: later tests see no trace of this one.
       openBotSettings(vi.fn(), "access");
     }
     fresh();
-    expect(shown(panel(makeBot(), "access"))).toEqual({ tab: undefined, page: "where" });
+    expect(shown(panel(makeBot(), "access"))).toEqual({ tab: "advanced", page: undefined });
+    expect(askedModal()).toBe("where");
   });
 
-  it("shows no switch on Details or Computer, and keeps Work until done and Hide on Bot settings", () => {
+  it("shows no switch on Details or Computer, and leaves Work until done and Hide out of Bot settings", () => {
     const bot = makeBot();
     for (const tab of ["details", "computer"]) {
       selectTab(panel(bot), tab);
@@ -416,8 +435,8 @@ describe("the bot panel in Simple mode", () => {
     }
     openSettings(bot);
     const settings = panel(bot).html;
-    expect(settings).toContain('aria-label="Work until done"');
-    expect(settings).toContain('aria-label="Hide from sidebar"');
+    expect(settings).not.toContain('aria-label="Work until done"');
+    expect(settings).not.toContain('aria-label="Hide from sidebar"');
   });
 
 });
@@ -593,14 +612,14 @@ describe("the Details tab", () => {
 });
 
 describe("the Bot settings page", () => {
-  it("is one list card of rows that each open their page, then the actions, with the model left to Details", () => {
+  it("is one list card of rows that each open their dialog, then the actions, with the model left to Details", () => {
     const rendered = settingsPage(makeBot());
     expect(rendered.html).not.toContain('data-panel-card="model"');
     const order = ['data-panel-card="uses"', 'data-panel-card="actions"'].map((marker) => rendered.html.indexOf(marker));
     expect(order.every((index) => index > -1)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     const pages = [...rendered.html.matchAll(/data-panel-page="(\w+)"/g)].map((match) => match[1]);
-    expect(pages).toEqual(["instructions", "memory", "skills", "folder", "apps", "where", "browser", "backups", "api", "threads"]);
+    expect(pages).toEqual(["instructions", "memory", "skills", "folder", "where", "backups"]);
     for (const page of pages) {
       click(find(rendered, "data-panel-page", page));
       expect(onOpen).toHaveBeenLastCalledWith(page);
@@ -614,18 +633,13 @@ describe("the Bot settings page", () => {
     expect(hint("memory")).toBe("Off");
     expect(hint("skills")).toBe("None");
     expect(hint("backups")).toBe("None");
-    expect(hint("threads")).toBe("1 conversation");
     expect(rendered.html).toContain("Be brief.");
   });
 
-  it("keeps Work until done, Call mode, the label and Hide from sidebar as rows", () => {
+  it("has no rows for apps, signed-in sites, the API, conversations, Work until done, Hide, Call mode or the label", () => {
     const rendered = settingsPage(makeBot());
-    for (const row of ["goal", "call-mode", "job", "hide"]) expect(rendered.html, row).toContain(`data-panel-row="${row}"`);
-    const label = find(rendered, "data-panel-job");
-    expect(label.props.value).toBe("Researcher");
-    change(label, "Writer");
-    (find(settingsPage(makeBot()), "data-panel-job").props.onBlur as () => void)();
-    expect(patch).toHaveBeenLastCalledWith({ title: "Writer" });
+    for (const page of ["apps", "browser", "api", "threads"]) expect(rendered.html, page).not.toContain(`data-panel-page="${page}"`);
+    for (const row of ["goal", "call-mode", "job", "hide"]) expect(rendered.html, row).not.toContain(`data-panel-row="${row}"`);
   });
 
   it("duplicates the bot and asks before deleting all its conversations", () => {

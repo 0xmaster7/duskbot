@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import en from "@/locales/en.json";
 import { BOT_SECTIONS } from "../bot-settings/sections";
+import { MODAL_PAGES, pendingPanelModal, takePanelModalRequest } from "./modals/panel-modal";
 import { isSimplePage, PAGE_IDS, PAGES, PANEL_TABS, resolveTarget, sectionTarget, SIMPLE_PAGES, TAB_LABEL } from "./page-registry";
 
 describe("the bot panel's page registry", () => {
@@ -57,6 +58,17 @@ describe("the bot panel's page registry", () => {
   it("lands the Bot settings page, now an alias, on the Advanced tab", () => {
     expect(resolveTarget({ tab: "details", page: "settings" })).toEqual({ tab: "advanced" });
     expect(resolveTarget({ tab: "details", page: "settings", anchor: "model" })).toEqual({ tab: "advanced", anchor: "model" });
-    expect(resolveTarget({ tab: "advanced", page: "skills" })).toEqual({ tab: "advanced", page: "skills" });
+    expect(resolveTarget({ tab: "details", page: "routines" })).toEqual({ tab: "details", page: "routines" });
+  });
+
+  it("lands a page that is a dialog on the Advanced tab and asks for its dialog", () => {
+    for (const page of MODAL_PAGES) {
+      expect(resolveTarget({ tab: PAGES[page].home, page }), page).toEqual({ tab: "advanced" });
+      const request = pendingPanelModal();
+      expect(request?.page).toBe(page);
+      takePanelModalRequest(request!);
+    }
+    expect(resolveTarget({ tab: "computer", page: "where", anchor: "conversations" })).toEqual({ tab: "advanced", anchor: "conversations" });
+    takePanelModalRequest(pendingPanelModal()!);
   });
 });

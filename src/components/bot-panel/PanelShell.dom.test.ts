@@ -41,6 +41,13 @@ vi.mock("./pages", () => ({
 
 const { BotPanel } = await import("./PanelShell");
 const { openBotSettings } = await import("./panel-link");
+const { pendingPanelModal, takePanelModalRequest } = await import("./modals/panel-modal");
+/** The dialog a link asked the Advanced tab to open, cleared as it is read. */
+const asked = () => {
+  const request = pendingPanelModal();
+  if (request) takePanelModalRequest(request);
+  return request?.page;
+};
 const { ChatHeadPill } = await import("../ChatHeadPill");
 
 const bot: Bot = {
@@ -102,7 +109,8 @@ afterEach(() => {
 });
 
 describe("named links into the bot panel", () => {
-  it("opens on the page a link names, and moves there when a link arrives while it is open", async () => {
+  it("opens on the page a link names, or over the Advanced tab with the dialog it names, and moves when a link arrives", async () => {
+    asked();
     openBotSettings(fixture.dispatch, "access", { page: "apps" });
     render("access");
     await settle();
@@ -110,44 +118,45 @@ describe("named links into the bot panel", () => {
 
     flushSync(() => openBotSettings(fixture.dispatch, "access", { page: "folder" }));
     await settle();
-    expect(page()).toBe("folder");
+    expect([tab(), page()]).toEqual(["advanced", null]);
+    expect(asked()).toBe("folder");
 
-    // Simple mode has no MCP page: the link lands where Access does, on Where it works.
+    // Simple mode has no MCP page: the link lands where Access does, the Where it works dialog.
     flushSync(() => openBotSettings(fixture.dispatch, "access", { page: "mcp" }));
     await settle();
-    expect(page()).toBe("where");
+    expect([tab(), page()]).toEqual(["advanced", null]);
+    expect(asked()).toBe("where");
 
-    flushSync(() => openBotSettings(fixture.dispatch, "access", { page: "folder" }));
-    await settle();
     flushSync(() => openBotSettings(fixture.dispatch, "access"));
     await settle();
-    expect(page()).toBe("where");
+    expect(asked()).toBe("where");
   });
 
   it("follows the same link again after the panel has moved on", async () => {
+    asked();
     openBotSettings(fixture.dispatch, "access");
     render("access");
     await settle();
-    expect(page()).toBe("where");
+    expect(asked()).toBe("where");
 
-    click(host.querySelector("[data-panel-back]"));
-    expect(tab()).toBe("computer");
     click(host.querySelector('[data-panel-tab="details"]'));
     expect(tab()).toBe("details");
 
     flushSync(() => openBotSettings(fixture.dispatch, "access"));
     render("access");
     await settle();
-    expect(page()).toBe("where");
+    expect(tab()).toBe("advanced");
+    expect(asked()).toBe("where");
   });
 
-  it("opens the Instructions page for a soul link, and goes back to Details from it", async () => {
+  it("opens the Instructions dialog over the Advanced tab for a soul link, with no page to go back from", async () => {
+    asked();
     openBotSettings(fixture.dispatch, "soul");
     render("soul");
     await settle();
-    expect(page()).toBe("instructions");
-    click(host.querySelector("[data-panel-back]"));
-    expect([tab(), page()]).toEqual(["details", null]);
+    expect([tab(), page()]).toEqual(["advanced", null]);
+    expect(host.querySelector("[data-panel-back]")).toBeNull();
+    expect(asked()).toBe("instructions");
   });
 
   it("lands permissions, voice and library links on the Advanced tab", async () => {
@@ -311,10 +320,10 @@ describe("the chat header's pill", () => {
 
 describe("Escape in the bot panel", () => {
   const onPage = async () => {
-    openBotSettings(fixture.dispatch, "skills");
-    render("skills");
+    openBotSettings(fixture.dispatch, "routines");
+    render("routines");
     await settle();
-    expect(page()).toBe("skills");
+    expect(page()).toBe("routines");
   };
 
   it("goes back from a drill-in page instead of closing the panel, though the panel sits in a dialog", async () => {
@@ -323,10 +332,10 @@ describe("Escape in the bot panel", () => {
     back?.focus();
     const event = press(back, "Escape");
     expect(event.defaultPrevented).toBe(true);
-    expect([tab(), page()]).toEqual(["advanced", null]);
+    expect([tab(), page()]).toEqual(["details", null]);
     expect(dialogCloses).not.toHaveBeenCalled();
     // On a tab, Escape is the dialog's: it closes the panel.
-    press(host.querySelector('[data-panel-tab="advanced"]'), "Escape");
+    press(host.querySelector('[data-panel-tab="details"]'), "Escape");
     expect(dialogCloses).toHaveBeenCalledTimes(1);
   });
 
@@ -347,7 +356,7 @@ describe("Escape in the bot panel", () => {
     // a page's header is Grok's: Back, its title and Close, with no Share
     expect(moreButton()).toBeNull();
     press(host.querySelector("[data-panel-back]"), "Escape");
-    expect([tab(), page()]).toEqual(["advanced", null]);
+    expect([tab(), page()]).toEqual(["details", null]);
     expect(dialogCloses).not.toHaveBeenCalled();
   });
 });

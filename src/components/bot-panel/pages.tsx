@@ -2,10 +2,7 @@ import { useState, type ReactNode } from "react";
 import { FolderOpen, Plus } from "lucide-react";
 
 import { appSwitchPatch } from "@/lib/bot-app-access";
-import { skillsLibraryEnabled } from "@/lib/feature-flags";
 import { t } from "@/lib/i18n";
-import { deleteMemoryDoc, MEMORY_INDEX, saveMemoryDoc, type MemoryDoc } from "@/lib/memory";
-import { openExternalLink } from "@/lib/app-links";
 import type { Routine } from "@/lib/routines";
 import { shortPath } from "@/lib/short-path";
 import { useStore, type Bot } from "@/state/store";
@@ -13,8 +10,7 @@ import { useDesktopCapabilities } from "../DesktopCapabilities";
 import { ServiceIcon } from "../ServiceIcon";
 import { RoutineEditor } from "../RoutinesPage";
 import { useWorkingFolder } from "../bot-settings/AccessSection";
-import { useBotEditor } from "../bot-settings/BotEditorContext";
-import { SkillReviewDialog, useManagedSkills, type ManagedSkill } from "../bot-settings/SkillsSection";
+import { SkillReviewDialog } from "../bot-settings/SkillsSection";
 import { useBotApps, type BotApp } from "../bot-settings/useBotApps";
 import type { useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
 import { RoutineList } from "../routines/RoutineList";
@@ -22,10 +18,10 @@ import { BrowserLogins } from "./browser-logins";
 import { useOpenComputer, WherePage } from "./ComputerTab";
 import { ApiPage, BackupsPage, InstructionsPage, SettingsPage, ThreadsPage } from "./SettingsPage";
 import { LibraryPage } from "./LibraryTab";
-import { panelMemoryNotes, withMemoryNote, withoutMemoryNote, type PanelMemoryNote } from "./memory-notes";
 import type { SimplePageId } from "./page-registry";
 import { BotSwitch, buttonCls, Card, LinkRow, NoteRow, RadioRow, rowCls, SwitchRow, TextRow, TrashButton } from "./rows";
-import { useMemoryDoc } from "./use-memory-doc";
+import { useMemoryEditor } from "./modals/use-memory-editor";
+import { useSkillActions } from "./modals/use-skill-actions";
 
 type Derived = ReturnType<typeof useBotSettingsDerived>;
 
@@ -35,12 +31,6 @@ export interface PageContext {
 }
 
 export const pageSurfaceCls = "flex flex-col gap-3";
-
-const SKILLS_SITE = "https://skills.sh";
-
-function errorText(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
 
 export function AppsPage({ bot, derived }: PageContext) {
   const { dispatch } = useStore();
@@ -127,61 +117,15 @@ export function RoutinesPage({ bot, derived }: PageContext) {
   );
 }
 
-/** MEMORY.md's bullets, and on a Team Cloud the person's own notes. Every write goes through the memory file route with
- * the hash it was read at, so a note the bot added meanwhile is never lost: a conflict re-reads and asks again. */
 export function MemoryPage({ bot }: PageContext) {
-  const memory = useMemoryDoc(bot);
-  const [draft, setDraft] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const memoryOn = bot.memoryEnabled !== false;
-  const notes = memory.docs ? panelMemoryNotes(memory.docs) : null;
-  const index = memory.docs?.find((doc) => doc.path === MEMORY_INDEX) ?? null;
-
-  const change = async (save: () => Promise<boolean>) => {
-    if (saving) return false;
-    setSaving(true);
-    setError(null);
-    try {
-      return await save();
-    } catch (cause) {
-      setError(errorText(cause, t("botPanel.library.memoryError")));
-      return false;
-    } finally {
-      setSaving(false);
-    }
-  };
-  const write = (doc: MemoryDoc, text: string) => change(async () => {
-    const result = await saveMemoryDoc(bot.id, doc.path, text, doc.exists ? doc.hash : undefined, memory.mine);
-    if (result.ok) {
-      memory.setDoc(result.doc);
-      return true;
-    }
-    await memory.reload();
-    setError(t("memory.conflict.title", { name: bot.name }));
-    return false;
-  });
-  const forget = (note: PanelMemoryNote) => {
-    const doc = memory.docs?.find((candidate) => candidate.path === note.path);
-    if (!doc) return;
-    if (note.line !== null) void write(doc, withoutMemoryNote(doc.text, note.line));
-    else void change(async () => {
-      await deleteMemoryDoc(bot.id, doc.path, memory.mine);
-      await memory.reload();
-      return true;
-    });
-  };
-  const add = async () => {
-    if (!index || !draft.trim()) return;
-    if (await write(index, withMemoryNote(index.text, draft))) setDraft("");
-  };
+  const { memoryOn, readError, notes, index, draft, setDraft, saving, error, forget, add } = useMemoryEditor(bot);
 
   return (
     <>
       <Card>
         {!memoryOn ? (
           <NoteRow>{t("botPanel.library.memoryOff", { name: bot.name })}</NoteRow>
-        ) : memory.error ? (
+        ) : readError ? (
           <NoteRow tone="warn">{t("botPanel.library.memoryError")}</NoteRow>
         ) : notes === null ? (
           <NoteRow>{t("common.checking")}</NoteRow>
@@ -214,53 +158,7 @@ export function MemoryPage({ bot }: PageContext) {
 }
 
 export function SkillsPage({ bot }: PageContext) {
-  const { request: api } = useBotEditor();
-  const { state, dispatch } = useStore();
-  const skills = useManagedSkills(bot);
-  const [source, setSource] = useState("");
-  const [importing, setImporting] = useState(false);
-  const libraryOn = skillsLibraryEnabled(state.config);
-
-  const remove = async (skill: ManagedSkill) => {
-    if (skills.working) return;
-    if (!window.confirm(t("botPanel.skills.removeConfirm", { name: skill.name }))) return;
-    skills.setWorking(skill.name);
-    skills.setError("");
-    try {
-      if (skill.origin === "library") await skills.putAssignments(skill.name, true);
-      else {
-        await api(`/api/bots/${bot.id}/skills/${encodeURIComponent(skill.name)}`, { method: "DELETE" });
-        await skills.refresh();
-      }
-    } catch (cause) {
-      skills.setError(errorText(cause, t("botPanel.skills.removeFailed")));
-    } finally {
-      skills.setWorking("");
-    }
-  };
-  const importSkill = async () => {
-    const trimmed = source.trim();
-    if (!trimmed || importing) return;
-    setImporting(true);
-    skills.setError("");
-    try {
-      await api(`/api/bots/${bot.id}/skills`, { method: "POST", body: JSON.stringify({ source: trimmed }) });
-      setSource("");
-      await skills.refresh();
-    } catch (cause) {
-      skills.setError(errorText(cause, t("botPanel.skills.importFailed")));
-    } finally {
-      setImporting(false);
-    }
-  };
-  const browse = () => {
-    if (libraryOn) {
-      dispatch({ type: "toggleSettings", open: false });
-      dispatch({ type: "toggleAppSettings", open: true, section: "skills" });
-      return;
-    }
-    void openExternalLink(SKILLS_SITE);
-  };
+  const { skills, source, setSource, importing, remove, importSkill, browse } = useSkillActions(bot);
 
   return (
     <>
@@ -394,7 +292,7 @@ export function BrowserPage({ bot, derived }: PageContext) {
   return <BrowserLogins bot={bot} browserEnabled={derived.browserEnabled} onOpenBrowser={() => openComputer("browser")} />;
 }
 
-export function PageBody({ page, onOpen, editingInstructions, onEditInstructions, ...context }: PageContext & {
+export function PageBody({ page, onOpen, editingInstructions: _editing, onEditInstructions: _onEdit, ...context }: PageContext & {
   page: SimplePageId;
   onOpen?: (page: SimplePageId) => void;
   editingInstructions?: boolean;
@@ -402,7 +300,7 @@ export function PageBody({ page, onOpen, editingInstructions, onEditInstructions
 }): ReactNode {
   switch (page) {
     case "settings":
-      return <SettingsPage {...context} onOpen={onOpen} editingInstructions={editingInstructions} onEditInstructions={onEditInstructions} />;
+      return <SettingsPage {...context} onOpen={onOpen} />;
     case "where":
       return <WherePage {...context} />;
     case "apps":
