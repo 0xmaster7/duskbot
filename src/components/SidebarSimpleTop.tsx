@@ -3,17 +3,20 @@ import type { Ref } from "react";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { ELEVATED_CONTROL, ELEVATED_HOVER, ELEVATED_TINT } from "./elevated";
+import { ELEVATED_CONTROL } from "./elevated";
+import { GrokIcon } from "./GrokIcon";
 
 /** Keyboard focus on a Simple row or tile: the focus ring drawn inside its edge. */
 export const SIMPLE_ROW_FOCUS = "focus-visible:outline-2 focus-visible:-outline-offset-2! focus-visible:outline-focus";
 
-const SIMPLE_TOP = "flex size-9 shrink-0 items-center justify-center rounded-full text-ink/90";
+const SIMPLE_TOP = "flex size-9 shrink-0 items-center justify-center rounded-full bg-composer text-ink/[0.92] ring-1 ring-inset ring-ink/[0.08]";
+// grok lays its hover over the fill at once, with no fade
+const SIMPLE_TOP_TINT = "hover:bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_6%)]";
 const SIMPLE_TOP_FOCUS = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
-export const SIMPLE_TOP_BUTTON = `${SIMPLE_TOP} ${ELEVATED_CONTROL} ${ELEVATED_HOVER} ${SIMPLE_TOP_FOCUS}`;
+export const SIMPLE_TOP_BUTTON = `${SIMPLE_TOP} ${SIMPLE_TOP_TINT} aria-expanded:bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_6%)] ${SIMPLE_TOP_FOCUS}`;
 /** The same round control for the button of the window's rail, which is shown most of the time: its aria-expanded never
  * wears the tint of an open menu. */
-export const SIMPLE_TOP_TOGGLE = `${SIMPLE_TOP} ${ELEVATED_CONTROL} ${ELEVATED_TINT} ${SIMPLE_TOP_FOCUS}`;
+export const SIMPLE_TOP_TOGGLE = `${SIMPLE_TOP} ${SIMPLE_TOP_TINT} ${SIMPLE_TOP_FOCUS}`;
 
 /** Search and New in the top corner of Simple's sidebar in a framed window: plain icons, each its own button. */
 export const SIMPLE_CORNER_BUTTON = `flex size-[26px] shrink-0 items-center justify-center rounded-lg text-ink-secondary transition-colors hover:bg-ink/[0.06] hover:text-ink aria-expanded:bg-ink/[0.06] aria-expanded:text-ink ${SIMPLE_TOP_FOCUS}`;
@@ -35,7 +38,7 @@ export function SidebarSearchToggle({ open, onToggle, corner = false, ref }: { o
       title={t("sidebar.searchAria")}
       className={corner ? SIMPLE_CORNER_BUTTON : SIMPLE_TOP_BUTTON}
     >
-      <Search size={corner ? 17 : 18} strokeWidth={1.5} aria-hidden="true" />
+      {corner ? <Search size={17} strokeWidth={1.5} aria-hidden="true" /> : <GrokIcon name="search" size={16} />}
     </button>
   );
 }

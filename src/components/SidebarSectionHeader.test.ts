@@ -97,7 +97,7 @@ describe("SidebarSectionHeader as a Simple-mode line", () => {
     name: "Work", collapsed: false, onToggle: () => {}, reorderable: true, dragging: false, line: true, ...props,
   }) as ReactElement<Props>;
 
-  it("draws a quiet 13px name with no hairline, and a ⋯ team menu button that shows on hover, with no trash or grip", () => {
+  it("draws a quiet 13px name with no hairline, and a ⋯ team menu button out of the line's flow for the keyboard, with no trash or grip", () => {
     const onMenu = vi.fn();
     const element = line({ onMenu, onDelete: () => {} });
     const html = renderToStaticMarkup(element);
@@ -105,11 +105,12 @@ describe("SidebarSectionHeader as a Simple-mode line", () => {
     expect(html).toMatch(/text-\[13px\][^"]*text-ink-secondary/);
     expect(html).not.toContain("bg-hairline");
     expect(html).toContain('aria-label="Actions for Work department" title="Actions for Work department" aria-haspopup="menu" aria-expanded="false"');
-    expect(html).toMatch(/aria-label="Actions for Work department"[^>]*class="[^"]*\bopacity-0\b[^"]*\bgroup-hover\/section:opacity-100\b[^"]*\baria-expanded:opacity-100\b/);
+    expect(html).toMatch(/aria-label="Actions for Work department"[^>]*class="absolute [^"]*\bpointer-events-none\b[^"]*\bopacity-0\b[^"]*\bgroup-has-\[:focus-visible\]\/section:opacity-100\b[^"]*\baria-expanded:opacity-100\b[^"]*\btouch:opacity-100\b/);
+    expect(html).not.toMatch(/aria-label="Actions for Work department"[^>]*class="[^"]*\bgroup-hover\//);
     expect(html).not.toContain("Delete Work department");
     expect(html).not.toContain("lucide-grip-vertical");
     expect(html).not.toContain("lucide-trash");
-    expect(html).toMatch(/lucide-chevron-down absolute text-ink-secondary opacity-0 transition-opacity duration-\[120ms\] group-hover\/section:opacity-100 group-focus-within\/section:opacity-100 touch:opacity-100/);
+    expect(html).toMatch(/<span class="absolute flex h-4 w-3 items-center justify-center text-ink-secondary opacity-0 transition-opacity duration-\[120ms\] ease-out group-hover\/section:opacity-100 group-focus-within\/section:opacity-100 touch:opacity-100 -right-px rotate-90"><i class="grok-icon" data-icon-name="chevron-right"/);
     expect(html.indexOf(">Work</span>")).toBeLessThan(html.indexOf("Actions for Work department"));
     const button = { id: "dots" };
     const dots = nodes(element.props.children).find((node) => node.props["aria-label"] === "Actions for Work department")!;
@@ -119,10 +120,11 @@ describe("SidebarSectionHeader as a Simple-mode line", () => {
     expect(renderToStaticMarkup(line())).not.toContain("Actions for Work department");
   });
 
-  it("shows how many rows the section holds at rest, crossfading to the chevron on hover or focus", () => {
-    const html = renderToStaticMarkup(line({ count: 3 }));
-    expect(html).toMatch(/class="h-\[30px\]|group\/section flex h-\[30px\] shrink-0 items-center gap-1\.5 rounded-\[6px\] px-2 pb-1\.5 pt-2 hover:bg-\[color-mix\(in_srgb,var\(--color-raised\)_75%,var\(--color-panel\)\)\]/);
-    expect(html).toMatch(/<span class="text-\[13px\] tabular-nums leading-\[18px\] tracking-\[0.015em\] text-ink-secondary transition-opacity duration-\[120ms\] group-hover\/section:opacity-0 group-focus-within\/section:opacity-0 touch:opacity-0">3<\/span>/);
+  it("shows how many rows a collapsed section holds, crossfading to the chevron on hover or focus, and no count while open", () => {
+    expect(renderToStaticMarkup(line({ count: 3 }))).not.toContain(">3</span>");
+    const html = renderToStaticMarkup(line({ count: 3, collapsed: true }));
+    expect(html).toMatch(/class="h-\[30px\]|group\/section relative flex h-\[30px\] shrink-0 items-center gap-1\.5 rounded-\[6px\] px-2 pb-1\.5 pt-2 hover:bg-\[color-mix\(in_srgb,var\(--color-raised\)_75%,var\(--color-panel\)\)\]/);
+    expect(html).toMatch(/<span class="text-\[13px\] tabular-nums leading-\[18px\] tracking-\[0.015em\] text-ink-secondary transition-opacity duration-\[120ms\] ease-out group-hover\/section:opacity-0 group-focus-within\/section:opacity-0 touch:opacity-0">3<\/span>/);
   });
 
   it("is dragged by the line itself, and only when it can be reordered", () => {
@@ -159,10 +161,10 @@ describe("SidebarSectionHeader as a Simple-mode line", () => {
   it("shows a collapsed line's chevron and attention badges", () => {
     const html = renderToStaticMarkup(line({ collapsed: true, attention: { waiting: 1, unread: 2, working: 1 } }));
     expect(html).toContain('aria-expanded="false"');
-    expect(html).toContain("lucide-chevron-right");
+    expect(html).toMatch(/-right-\[3px\]"><i class="grok-icon" data-icon-name="chevron-right"/);
     expect(html).toContain("1 waiting for you");
     expect(html).toContain("2 unread");
     expect(html).toContain("1 working");
-    expect(renderToStaticMarkup(line())).not.toContain("lucide-chevron-right");
+    expect(renderToStaticMarkup(line())).toContain("-right-px rotate-90");
   });
 });

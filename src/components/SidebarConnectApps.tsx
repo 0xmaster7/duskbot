@@ -1,4 +1,3 @@
-import { Grid2x2Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/cn";
@@ -9,6 +8,7 @@ import { loadAppCards } from "./bot-settings/useBotApps";
 import { preloadConnectedApps } from "@/lib/connected-apps";
 import type { ToolkitCard } from "./ServiceIcon";
 import { ELEVATED_CONTROL, ELEVATED_HOVER } from "./elevated";
+import { GrokIcon } from "./GrokIcon";
 import { SIMPLE_TOP_BUTTON } from "./SidebarSimpleTop";
 
 export type AppFace = Pick<ToolkitCard, "slug" | "label" | "logo" | "domain">;
@@ -85,7 +85,7 @@ export function ConnectAppsButton({ circle, apps: { faces, connected } }: { circ
       onClick={() => dispatch({ type: "togglePlugins", open: true })}
       className={circle ? SIMPLE_TOP_BUTTON : cn("group/apps flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full pl-4 pr-3 text-[14px] font-medium leading-5 text-ink", ELEVATED_CONTROL, ELEVATED_HOVER)}
     >
-      {circle ? <Grid2x2Plus size={18} strokeWidth={1.5} aria-hidden="true" /> : <>
+      {circle ? <GrokIcon name="grid-plus" size={16} /> : <>
         <span className="min-w-0 truncate">{label}</span>
         <span aria-hidden="true" className="flex shrink-0 items-center">
           {faces.map((face, index) => <AppFaceIcon key={face.slug} face={face}

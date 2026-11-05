@@ -27,14 +27,14 @@ export function AvatarActivityDot({ activity }: { activity: RowActivity | null }
   return <span aria-hidden="true" data-testid={testId} title={label()} className={cn("absolute bottom-0.5 right-0.5 size-2 rounded-full ring-2 ring-[var(--row)]", tone)} />;
 }
 
-/** Unread, or waiting for the person (which wins): one dot centred at the row's right end, which gives way to its ⋯ on
- * hover or focus. A touch screen always shows the ⋯, so there the dot sits just before it, at the end of the name line. */
+/** Unread, or waiting for the person (which wins): one dot centred at the row's right end, which gives way to its ⋯ under
+ * keyboard focus. A touch screen always shows the ⋯, so there the dot sits just before it, at the end of the name line. */
 export function RowDot({ waiting = false }: { waiting?: boolean }) {
   const label = waiting ? t("sidebar.preview.waiting") : t("task.unread");
   const tone = cn("size-2 shrink-0 rounded-full", waiting ? "bg-warning" : "bg-accent");
   return (
     <>
-      <span aria-hidden="true" data-row-dot="" className="pointer-events-none absolute inset-y-0 right-2 flex items-center transition-opacity duration-[120ms] group-hover:opacity-0 group-focus-within:opacity-0 touch:opacity-0 max-md:hidden">
+      <span aria-hidden="true" data-row-dot="" className="pointer-events-none absolute inset-y-0 right-2 flex items-center transition-opacity duration-[120ms] group-has-[:focus-visible]:opacity-0 touch:opacity-0 max-md:hidden">
         <span data-testid={waiting ? "waiting-dot" : "unread-dot"} title={label} className={tone} />
       </span>
       <span aria-hidden="true" title={label} className={cn(tone, "hidden self-center max-md:block touch:block")} />

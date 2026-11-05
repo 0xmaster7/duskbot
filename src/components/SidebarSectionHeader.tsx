@@ -2,6 +2,7 @@ import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal, Trash2 } from 
 import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
 
 import { cn } from "@/lib/cn";
+import { GrokIcon } from "./GrokIcon";
 import { t } from "@/lib/i18n";
 import {
   sidebarAttentionLabel,
@@ -44,7 +45,7 @@ export function SidebarSectionHeader({
   line?: boolean;
   onMenu?: (button: HTMLButtonElement) => void;
   menuOpen?: boolean;
-  /** How many rows the section holds, shown at rest where the chevron shows on hover (Simple). */
+  /** How many rows the section holds, shown while it is collapsed where the chevron shows on hover (Simple). */
   count?: number;
   /** A name field in place of the name, for a department being made or renamed. */
   naming?: SectionNaming;
@@ -76,9 +77,11 @@ export function SidebarSectionHeader({
 
   if (line) {
     const tail = (
-      <span aria-hidden="true" className="relative flex size-4 shrink-0 items-center justify-center">
-        {count !== undefined && <span className={cn("text-[13px] tabular-nums leading-[18px] tracking-[0.015em] text-ink-secondary transition-opacity duration-[120ms]", onToggle && "group-hover/section:opacity-0 group-focus-within/section:opacity-0 touch:opacity-0")}>{count}</span>}
-        {onToggle && <Chevron size={12} className="absolute text-ink-secondary opacity-0 transition-opacity duration-[120ms] group-hover/section:opacity-100 group-focus-within/section:opacity-100 touch:opacity-100" />}
+      <span aria-hidden="true" className="relative flex size-4 shrink-0 items-center justify-end">
+        {count !== undefined && collapsed && <span className={cn("text-[13px] tabular-nums leading-[18px] tracking-[0.015em] text-ink-secondary transition-opacity duration-[120ms] ease-out", onToggle && "group-hover/section:opacity-0 group-focus-within/section:opacity-0 touch:opacity-0")}>{count}</span>}
+        {onToggle && <span className={cn("absolute flex h-4 w-3 items-center justify-center text-ink-secondary opacity-0 transition-opacity duration-[120ms] ease-out group-hover/section:opacity-100 group-focus-within/section:opacity-100 touch:opacity-100", collapsed ? "-right-[3px]" : "-right-px rotate-90")}>
+          <GrokIcon name="chevron-right" size={12} />
+        </span>}
       </span>
     );
     return (
@@ -91,7 +94,7 @@ export function SidebarSectionHeader({
         draggable={reorderable || undefined}
         onDragStart={reorderable ? onDragStart : undefined}
         onDragEnd={reorderable ? onDragEnd : undefined}
-        className={cn("group/section flex h-[30px] shrink-0 items-center gap-1.5 rounded-[6px] px-2 pb-1.5 pt-2 hover:bg-[color-mix(in_srgb,var(--color-raised)_75%,var(--color-panel))]", reorderable && "cursor-grab", dragging && "opacity-40", naming && "py-0.5", dropMark)}
+        className={cn("group/section relative flex h-[30px] shrink-0 items-center gap-1.5 rounded-[6px] px-2 pb-1.5 pt-2 hover:bg-[color-mix(in_srgb,var(--color-raised)_75%,var(--color-panel))]", reorderable && "cursor-grab", dragging && "opacity-40", naming && "py-0.5", dropMark)}
       >
         {naming ? <SectionNameField {...naming} /> : onToggle ? (
           <button
@@ -122,7 +125,8 @@ export function SidebarSectionHeader({
             aria-haspopup="menu"
             aria-expanded={menuOpen}
             onClick={(event) => onMenu(event.currentTarget)}
-            className="flex h-[18px] w-[22px] shrink-0 items-center justify-center rounded-[5px] text-ink-tertiary opacity-0 transition-opacity hover:bg-raised hover:text-ink focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus group-hover/section:opacity-100 group-focus-within/section:opacity-100 aria-expanded:bg-raised aria-expanded:text-ink aria-expanded:opacity-100 touch:opacity-100"
+            // out of the line's flow and shown for the keyboard or an open menu only: the line itself matches grok's
+            className="absolute inset-y-0 right-1 my-auto flex h-[18px] w-[22px] shrink-0 items-center justify-center rounded-[5px] bg-[color-mix(in_srgb,var(--color-raised)_75%,var(--color-panel))] pointer-events-none text-ink-tertiary opacity-0 transition-opacity hover:bg-raised hover:text-ink focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus group-has-[:focus-visible]/section:pointer-events-auto group-has-[:focus-visible]/section:opacity-100 aria-expanded:pointer-events-auto aria-expanded:bg-raised aria-expanded:text-ink aria-expanded:opacity-100 touch:pointer-events-auto touch:static touch:bg-transparent touch:opacity-100"
           >
             <MoreHorizontal size={15} aria-hidden="true" />
           </button>
