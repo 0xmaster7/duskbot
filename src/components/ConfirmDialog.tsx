@@ -1,6 +1,5 @@
 import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
-import { AlertTriangle } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 
@@ -78,9 +77,10 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
 
   return createPortal(
     <div
-      className={`fixed inset-0 ${props.layer ?? "z-50"} flex items-center justify-center bg-black/55 p-6`}
+      className={`fixed inset-0 ${props.layer ?? "z-50"} flex items-center justify-center p-6`}
       onMouseDown={(event) => event.target === event.currentTarget && onCancel()}
     >
+      <div aria-hidden="true" className="ui-dialog-scrim pointer-events-none absolute inset-0" />
       <ConfirmDialogCard ref={dialogRef} cancelRef={cancelRef} {...props} />
     </div>,
     document.body,
@@ -114,44 +114,31 @@ export function ConfirmDialogCard({
       aria-busy={pending}
       aria-labelledby="confirm-dialog-title"
       aria-describedby="confirm-dialog-body"
-      className={cn(
-        "w-full max-w-[420px] rounded-2xl border bg-panel p-5 shadow-2xl",
-        danger ? "border-danger/30" : "border-hairline/50",
-      )}
+      data-tone={tone}
+      className="ui-dialog relative w-full max-w-[400px] p-4 outline-none"
     >
-      <div className="flex items-start gap-3">
-        <span className={cn("mt-0.5 shrink-0", danger ? "text-danger" : "text-warning")}>
-          {icon ?? <AlertTriangle size={18} />}
-        </span>
+      <div className="flex items-start gap-2.5">
+        {icon && <span aria-hidden="true" className="mt-0.5 shrink-0 text-ink-secondary">{icon}</span>}
         <div className="min-w-0">
-          <h2 id="confirm-dialog-title" className="text-[15px] font-semibold text-ink">
+          <h2 id="confirm-dialog-title" className="ui-dialog-title">
             {title}
           </h2>
-          <p id="confirm-dialog-body" className="mt-1.5 text-[13px] leading-relaxed text-ink-secondary">
+          <div id="confirm-dialog-body" className="ui-dialog-body mt-1">
             {body}
-          </p>
+          </div>
         </div>
       </div>
-      <div className="mt-5 flex justify-end gap-2">
-        <button
-          ref={cancelRef}
-          type="button"
-          onClick={onCancel}
-          disabled={pending}
-          className="rounded-xl px-4 py-2 text-[13px] text-ink-secondary hover:bg-raised hover:text-ink"
-        >
+      <div className="mt-4 flex flex-wrap justify-end gap-2">
+        <button ref={cancelRef} type="button" onClick={onCancel} disabled={pending} className="ui-button">
           {cancelLabel}
         </button>
         {alternative && <button type="button" data-confirm-alternative onClick={alternative.onClick} disabled={pending}
-          className="rounded-xl bg-accent px-4 py-2 text-[13px] font-medium text-white hover:brightness-110">{alternative.label}</button>}
+          className="ui-button">{alternative.label}</button>}
         <button
           type="button"
           onClick={onConfirm}
           disabled={pending}
-          className={cn(
-            "rounded-xl px-4 py-2 text-[13px] font-medium",
-            danger ? "bg-danger text-white hover:brightness-110" : "bg-accent text-white hover:brightness-110",
-          )}
+          className={cn("ui-button", danger ? "ui-button-danger border-transparent bg-danger text-danger-ink" : "ui-button-primary")}
         >
           {confirmLabel}
         </button>

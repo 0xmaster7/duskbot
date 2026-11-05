@@ -4186,6 +4186,7 @@
   "botPanel.acts.customHint": "Change this in Advanced mode",
   "botPanel.section.settings": "Settings",
   "botPanel.section.conversation": "This conversation",
+  "botPanel.section.voiceChat": "Voice chat",
   "botPanel.workUntilDone.hint": "{name} keeps going on your next message until it's done",
   "botPanel.instructionsHint": "Tell {name} how to work for you",
   "botSettings.simple.justDoIt": "Just do it",

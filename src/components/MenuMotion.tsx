@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
-/** Same length as `--animate-pop-in` in styles.css. */
-export const MENU_MOTION_MS = 200;
+/** The longest overlay exit in styles/overlays.css: a dialog's 150ms (a menu is gone after 50ms). */
+export const MENU_MOTION_MS = 150;
 
 function reducedMotion(): boolean {
   if (typeof document === "undefined") return false;

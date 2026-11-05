@@ -106,7 +106,7 @@ function MenuRows({
   return (
     <>
       {items.map((item) => (
-        <div key={item.key} className="flex flex-col gap-1">
+        <div key={item.key} className="flex flex-col gap-0.5">
           {item.separatorBefore && <div role="separator" className={MENU_ITEM_SEPARATOR} />}
           {item.heading && <div className={MENU_HEADING}>{item.heading}</div>}
           <button
@@ -123,7 +123,7 @@ function MenuRows({
             onPointerEnter={(event) => onRowEnter?.(item, event.currentTarget, { x: event.clientX, y: event.clientY })}
             onPointerLeave={() => onRowLeave?.(item)}
             className={cn(
-              "flex min-h-[30px] w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-[14px] leading-[18px] disabled:opacity-60 focus-visible:bg-menu-hover focus-visible:outline-none",
+              "flex min-h-8 w-full items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-start text-[14px] leading-5 tracking-[0.01em] disabled:opacity-60 touch:min-h-10 focus-visible:bg-menu-hover focus-visible:outline-none",
               item.active || (item.submenu && openSubmenu === item.key && engaged) ? "bg-menu-active text-ink" : "text-ink hover:bg-menu-hover",
             )}
           >

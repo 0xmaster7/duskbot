@@ -50,17 +50,18 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center p-6"
       onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
+      <div aria-hidden="true" className="ui-dialog-scrim pointer-events-none absolute inset-0" />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="about-dialog-title"
-        className="w-full max-w-[360px] rounded-2xl border border-hairline/50 bg-panel p-6 text-center shadow-2xl"
+        className="ui-dialog relative w-full max-w-[360px] px-6 pb-5 pt-6 text-center"
       >
         <img src="/app-icon.svg" alt="" width={56} height={56} className="mx-auto size-14" />
-        <h2 id="about-dialog-title" className="mt-3 text-[17px] font-semibold text-ink">
+        <h2 id="about-dialog-title" className="mt-3 text-[17px] font-medium leading-6 tracking-[-0.008em] text-ink">
           {productName()}
         </h2>
         <p className="mt-1 text-[13px] text-ink-secondary">{version}</p>
@@ -78,7 +79,7 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
           ref={closeRef}
           type="button"
           onClick={onClose}
-          className="mt-5 w-full rounded-xl bg-raised px-4 py-2 text-[13px] font-medium text-ink hover:brightness-110"
+          className="ui-button mt-5 w-full"
         >
           Close
         </button>
@@ -92,7 +93,7 @@ function AboutLink({ href, label }: { href: string; label: string }) {
     <button
       type="button"
       onClick={() => void openExternalLink(href)}
-      className="text-accent hover:underline"
+      className="rounded-sm text-accent-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
     >
       {label}
     </button>

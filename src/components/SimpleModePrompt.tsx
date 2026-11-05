@@ -83,10 +83,10 @@ export function SimpleModePrompt({ onClose }: { onClose: () => void }) {
             <span id="simple-mode-switch-label" className="block text-[15px] font-medium leading-5">{t("simpleModePrompt.switch")}</span>
             <span id="simple-mode-switch-hint" className="mt-0.5 block text-[13px] leading-[18px] text-ink-secondary">{t("simpleModePrompt.switchHint")}</span>
           </span>
-          <span aria-hidden="true" className={cn("relative h-7 w-12 shrink-0 rounded-full transition-colors motion-reduce:transition-none",
-            simple ? "bg-accent" : "bg-ink/[0.14] ring-1 ring-inset ring-ink/40")}>
-            <span className={cn("absolute top-0.5 size-6 rounded-full bg-white shadow-sm transition-[left] motion-reduce:transition-none",
-              simple ? "left-[22px]" : "left-0.5")} />
+          <span aria-hidden="true" className={cn("relative h-5 w-8 shrink-0 rounded-full shadow-[inset_0_0_0_0.5px_var(--color-edge)] transition-colors duration-[120ms] ease-out motion-reduce:transition-none",
+            simple ? "bg-accent [:root[data-skin=grok]_&]:bg-accent-border" : "bg-ink/[0.06]")}>
+            <span className={cn("absolute left-0.5 top-0.5 size-4 rounded-full bg-white shadow-[0_1px_3px_0_rgb(28_28_28/0.12)] transition-transform duration-150 ease-[cubic-bezier(0.165,0.84,0.44,1)] motion-reduce:transition-none",
+              simple && "translate-x-3 rtl:-translate-x-3")} />
           </span>
         </button>
         <p className="mt-3 text-[13px] leading-[18px] text-ink-tertiary">{t("simpleModePrompt.where")}</p>
