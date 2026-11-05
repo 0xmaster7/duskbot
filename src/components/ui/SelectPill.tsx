@@ -9,6 +9,8 @@ export interface SelectPillOption<V extends string> {
   value: V;
   label: ReactNode;
   disabled?: boolean;
+  /** a native tooltip on the row, such as why it cannot be chosen */
+  title?: string;
 }
 
 const GAP = 4;
@@ -154,6 +156,7 @@ export function SelectPill<V extends string>({ value, options, onChange, disable
                   role="option"
                   aria-selected={option.value === value}
                   aria-disabled={option.disabled || undefined}
+                  title={option.title}
                   data-highlighted={index === active ? "" : undefined}
                   onPointerMove={() => !option.disabled && setActive(index)}
                   onClick={() => choose(index)}

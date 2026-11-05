@@ -675,20 +675,42 @@ describe("the Library", () => {
 });
 
 describe("the Computer tab", () => {
-  it("shows the screen as one button that opens the full view, and the caption, as Grok's Computer tab does", () => {
-    const rendered = computer(makeBot());
-    expect(find(rendered, "data-panel-action", "open-computer").props["aria-label"]).toBe("Wake computer");
-    expect(find(rendered, "data-panel-action", "open-computer").props["data-stage"]).toBe("asleep");
-    expect(find(computer(makeBot({ busy: true })), "data-panel-action", "open-computer").props["aria-label"]).toBe("Watch: Scout's screen");
+  const cloudBot = (extra: Partial<Bot> = {}) => makeBot({ computer: "cloud", ...extra });
+  const placeSelect = (rendered: Rendered) => find(rendered, "data-panel-select", "place");
+
+  it("shows a computer that is not running as one quiet button that wakes it, and the caption, as Grok's Computer tab does", () => {
+    const rendered = computer(cloudBot());
+    const screen = find(rendered, "data-panel-action", "open-computer");
+    expect(screen.props["aria-label"]).toBe("Wake computer");
+    expect(screen.props["data-stage"]).toBe("asleep");
     expect(rendered.html).toContain(">Computer is asleep<");
     expect(rendered.html).toContain("Scout&#x27;s screen");
     for (const gone of ["where", "browser"]) expect(has(rendered, "data-panel-page", gone), gone).toBe(false);
     expect(switches(rendered.html)).toBe(0);
-    expect(computer(makeBot({ busy: true })).html).toContain("Working on a task.");
+    const working = computer(cloudBot({ busy: true }));
+    expect(find(working, "data-panel-action", "open-computer").props["aria-label"]).toBe("Watch: Scout's screen");
+    expect(working.html).toContain("Working on a task.");
+  });
+
+  it("fills the frame with the latest screen the bot posted, which opens the full view", () => {
+    const rendered = computer(cloudBot({ messages: [{ id: "m1", role: "assistant", kind: "screen", hasImage: true, mime: "image/png", text: "", at: 0 }] as unknown as Bot["messages"] }));
+    const screen = find(rendered, "data-panel-action", "open-computer");
+    expect(screen.props["data-stage"]).toBe("screen");
+    expect(screen.props["aria-label"]).toBe("Watch: Scout's screen");
+    expect(rendered.html).toContain("<img");
+  });
+
+  it("says a bot that is Off has no screen, and shows nothing while Auto is still being asked", () => {
+    const off = computer(makeBot({ computer: "off" }));
+    expect(has(off, "data-panel-action", "open-computer")).toBe(false);
+    expect(off.html).toContain(">No screen<");
+    const auto = computer(makeBot());
+    expect(has(auto, "data-panel-action", "open-computer")).toBe(false);
+    expect(auto.html).toContain('data-stage="loading"');
   });
 
   it("opens the full view from the screen", () => {
-    const rendered = computer(makeBot());
+    const rendered = computer(cloudBot());
     const setItem = vi.fn();
     vi.stubGlobal("localStorage", { getItem: () => null, setItem });
     click(find(rendered, "data-panel-action", "open-computer"));
@@ -700,6 +722,19 @@ describe("the Computer tab", () => {
     vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => {} });
   });
 
+  it("picks where the bot works beside the caption, with the Where it works choices and a reason on the ones it cannot use", () => {
+    fixture.places.browser = [true, false, "Not installed"];
+    const select = placeSelect(computer(cloudBot()));
+    expect(select.props.value).toBe("cloud");
+    expect(select.props["aria-label"]).toBe("Where Scout works");
+    expect((select.props.options as Array<{ value: string; label: string; disabled?: boolean; title?: string }>).map((option) => [option.value, option.label, Boolean(option.disabled), option.title]))
+      .toEqual([["auto", "Let it choose", false, undefined], ["local", "This PC", false, undefined], ["browser", "Browser", true, "Not installed."], ["cloud", "Cloud desktop", false, undefined]]);
+    (select.props.onChange as (value: string) => void)("local");
+    expect(patch).toHaveBeenLastCalledWith({ computer: "local" });
+    (placeSelect(computer(cloudBot())).props.onChange as (value: string) => void)("auto");
+    expect(patch).toHaveBeenLastCalledWith({ computer: null });
+    expect(placeSelect(computer(cloudBot({ yourAccess: "view" }))).props.disabled).toBe(true);
+  });
 });
 
 describe("the Where it works page", () => {
