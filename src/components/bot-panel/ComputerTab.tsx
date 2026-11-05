@@ -38,7 +38,7 @@ export function useOpenComputer(bot: Pick<Bot, "id">) {
   };
 }
 
-function usePlaceChoices(bot: Bot) {
+export function usePlaceChoices(bot: Bot) {
   const { state } = useStore();
   const { capabilities } = useDesktopCapabilities();
   const platform = capabilities.host?.platform ?? "other";

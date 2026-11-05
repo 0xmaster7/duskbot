@@ -22,21 +22,22 @@ describe("the bot panel's page registry", () => {
 
   it.each([
     ["overview", { tab: "details" }], ["identity", { tab: "details" }],
-    ["soul", { tab: "details", page: "settings", anchor: "instructions", editInstructions: true }],
+    ["soul", { tab: "details", page: "instructions" }],
     ["skills", { tab: "library", page: "skills" }], ["memory", { tab: "library", page: "memory" }], ["routines", { tab: "details", page: "routines" }],
-    ["access", { tab: "computer", page: "where" }], ["model", { tab: "details", anchor: "model" }], ["permissions", { tab: "details", page: "settings", anchor: "approval" }],
-    ["voice", { tab: "details" }], ["visibility", { tab: "details" }], ["history", { tab: "details" }], ["usage", { tab: "details" }], ["slack", { tab: "details" }],
+    ["access", { tab: "computer", page: "where" }], ["model", { tab: "details", page: "settings", anchor: "model" }], ["permissions", { tab: "details", page: "settings" }],
+    ["voice", { tab: "details" }], ["visibility", { tab: "details" }], ["history", { tab: "details" }], ["usage", { tab: "details", page: "settings", anchor: "model" }], ["slack", { tab: "details" }],
   ] as const)("sends a %s link to %o", (section, target) => {
     expect(sectionTarget(section)).toEqual(target);
   });
 
   it("draws the Simple pages on their tabs: settings on Details, what it keeps on Library, where it works on Computer", () => {
-    expect(SIMPLE_PAGES).toEqual(["settings", "apps", "routines", "memory", "skills", "folder", "browser", "where"]);
+    expect(SIMPLE_PAGES).toEqual(["settings", "apps", "routines", "memory", "skills", "folder", "browser", "where", "instructions", "backups", "threads", "api"]);
     const home = Object.fromEntries(SIMPLE_PAGES.map((page) => [page, PAGES[page].home]));
     expect(home).toEqual({
       settings: "details", apps: "details", routines: "details",
       memory: "library", skills: "library", folder: "library",
       browser: "computer", where: "computer",
+      instructions: "details", backups: "details", threads: "details", api: "details",
     });
     expect(isSimplePage("mcp")).toBe(false);
   });

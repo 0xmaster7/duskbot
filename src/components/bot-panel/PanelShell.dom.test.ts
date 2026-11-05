@@ -140,29 +140,26 @@ describe("named links into the bot panel", () => {
     expect(page()).toBe("where");
   });
 
-  it("opens Bot settings with the Instructions editor for a soul link, and closes it when the panel moves on", async () => {
+  it("opens the Instructions page for a soul link, and goes back to Details from it", async () => {
     openBotSettings(fixture.dispatch, "soul");
     render("soul");
     await settle();
-    expect(page()).toBe("settings");
-    expect(host.querySelector('[data-stub-page="settings"]')?.getAttribute("data-editing-instructions")).toBe("true");
+    expect(page()).toBe("instructions");
     click(host.querySelector("[data-panel-back]"));
     expect([tab(), page()]).toEqual(["details", null]);
-    click(host.querySelector("[data-panel-gear]"));
-    expect(host.querySelector('[data-stub-page="settings"]')?.getAttribute("data-editing-instructions")).toBeNull();
   });
 
-  it("scrolls a permissions link to Before it acts on the Bot settings page", async () => {
-    const scrolled = vi.mocked(HTMLElement.prototype.scrollIntoView);
-    openBotSettings(fixture.dispatch, "permissions");
-    render("permissions");
-    await settle();
-    expect(page()).toBe("settings");
-    expect(scrolled.mock.contexts).toContain(host.querySelector('[data-panel-card="approval"]'));
+  it("lands permissions, model and usage links on the Bot settings page", async () => {
+    for (const section of ["permissions", "model", "usage"] as const) {
+      openBotSettings(fixture.dispatch, section);
+      render(section);
+      await settle();
+      expect(page(), section).toBe("settings");
+    }
   });
 
   it("lands usage, history, voice and visibility links on the Details tab, with no Advanced page", async () => {
-    for (const section of ["usage", "history", "voice", "visibility", "overview"] as const) {
+    for (const section of ["history", "voice", "visibility", "overview"] as const) {
       openBotSettings(fixture.dispatch, section);
       render(section);
       await settle();
@@ -214,7 +211,8 @@ describe("the panel's top", () => {
     click(host.querySelector('[data-panel-tab="details"]'));
     click(host.querySelector("[data-panel-gear]"));
     expect(page()).toBe("settings");
-    expect(host.querySelector("[data-panel-back]")!.textContent).toBe("Details");
+    expect(host.querySelector("[data-panel-back]")!.getAttribute("title")).toBe("Details");
+    expect(host.querySelector("[data-panel-page-title]")!.textContent).toBe("Bot settings");
     click(host.querySelector("[data-panel-back]"));
     expect([tab(), page()]).toEqual(["details", null]);
   });
@@ -325,7 +323,7 @@ describe("Escape in the bot panel", () => {
     expect(dialogCloses).toHaveBeenCalledTimes(1);
   });
 
-  it("closes the Share menu first, on a tab and on a page, and only the next Escape reaches the panel", async () => {
+  it("closes the Share menu first on a tab, and Escape on a page goes back, before anything reaches the panel", async () => {
     render(null);
     await settle();
     moreButton()?.focus();
@@ -339,13 +337,9 @@ describe("Escape in the bot panel", () => {
     flushSync(() => root.unmount());
     root = createRoot(host);
     await onPage();
-    moreButton()?.focus();
-    click(moreButton());
-    expect(shareOpen()).toBe(true);
-    press(moreButton(), "Escape");
-    expect(shareOpen()).toBe(false);
-    expect(page()).toBe("skills");
-    press(moreButton(), "Escape");
+    // a page's header is Grok's: Back, its title and Close, with no Share
+    expect(moreButton()).toBeNull();
+    press(host.querySelector("[data-panel-back]"), "Escape");
     expect([tab(), page()]).toEqual(["library", null]);
     expect(dialogCloses).not.toHaveBeenCalled();
   });
@@ -380,7 +374,7 @@ describe("focus around the hero", () => {
     expect(dialogCloses).toHaveBeenCalledTimes(1);
   });
 
-  it.each([["data-panel-rename", "Enter"], ["data-panel-rename", "Escape"], ["data-panel-label", "Enter"], ["data-panel-label", "Escape"]])(
+  it.each([["data-panel-rename", "Enter"], ["data-panel-rename", "Escape"]])(
     "gives focus back to the %s button after %s, so the next Escape still works",
     async (attr, key) => {
       render(null);

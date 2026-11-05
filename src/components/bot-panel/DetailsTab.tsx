@@ -1,25 +1,20 @@
 import { useEffect, useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
-import { activeLocale, t } from "@/lib/i18n";
-import { useComposerChannelMode } from "@/lib/drafts";
-import { localizedRelativeTime } from "@/lib/relative-time";
+import { t } from "@/lib/i18n";
 import { CALL_MODES, callModeHint, effectiveCallMode, setCallMode, useCallMode, type CallMode } from "@/lib/call-mode";
 import { callCapabilityHelp } from "@/lib/call-capability";
 import type { Routine } from "@/lib/routines";
 import { routineFinished, routineScheduleState } from "@/lib/routine-display";
 import { niceTime, scheduleLabel } from "@/lib/schedule-label";
 import { fishListeningReady, listensHere, speechBridge } from "@/lib/speech";
-import { api, openBotThread, useStore, type Bot } from "@/state/store";
-import type { ApprovalMode } from "../../../shared/approval-mode";
+import { api, useStore, type Bot } from "@/state/store";
 import { useDesktopCapabilities } from "../DesktopCapabilities";
-import { ModelSelectRow } from "../native/ModelSelectRow";
-import { UsageMeterRow } from "../native/UsageMeter";
-import { isArchived, orderedThreadList, threadRecency } from "../SidebarThreadRow";
 import type { useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
 import { SelectPill } from "../ui/SelectPill";
 import type { SimplePageId } from "./page-registry";
-import { BotSwitch, Card, LabelAction, NavRow, PanelEmpty, rowCls, RowText } from "./rows";
+import { BotSwitch, Card, PanelEmpty, rowCls, RowText } from "./rows";
+import { setVoicePrefs, useVoicePrefs, VOICE_LANGUAGES, VOICE_SPEEDS, type VoiceSpeed } from "./voice-prefs";
 
 type Derived = ReturnType<typeof useBotSettingsDerived>;
 
@@ -90,28 +85,57 @@ function useVoiceOptions(bot: Bot, enabled: boolean) {
   return voices;
 }
 
-/** Grok's Voice row: the bot's speaking voice as a select pill. Shown once speech is set up and offers voices. */
-function VoiceRow({ bot, patch }: { bot: Bot; patch: Derived["patch"] }) {
-  const { state } = useStore();
-  const tts = state.config?.tts;
-  const voices = useVoiceOptions(bot, Boolean(tts?.configured));
-  if (!tts?.configured || !voices || voices.length === 0) return null;
-  const value = bot.voice ?? "";
-  const options = [
-    { value: "", label: tts.voice ? t("voice.installDefault") : t("voice.pick") },
-    ...(value && !voices.some((voice) => voice.id === value) ? [{ value, label: t("voice.current") }] : []),
-    ...voices.map((voice) => ({ value: voice.id, label: voice.label })),
-  ];
+function VoiceChatRow({ label, children, row }: { label: string; children: ReactNode; row: string }) {
   return (
-    <div data-panel-row="voice" className={cn(rowCls, "gap-1.5")}>
-      <RowText title={t("voice.title")} />
-      <SelectPill data-panel-select="voice" aria-label={t("voice.title")} value={value} options={options} onChange={(voice: string) => patch({ voice })} />
+    <div data-panel-row={row} className={cn(rowCls, "gap-1.5")}>
+      <RowText title={label} />
+      {children}
     </div>
   );
 }
 
-/** How a call with the bot runs (44px below routines, as Grok spaces it round an empty meetings slot), as the call button does: where this device cannot listen in turns, a call is always Live. */
-export function VoiceChatCard({ voice }: { voice?: ReactNode } = {}) {
+/** Grok's Voice chat card: Voice, Speed and Language as ghost select pills. Voice is the bot's speaking voice; speed and
+ * language are kept per bot on this device. */
+export function VoiceChatCard({ bot, patch }: { bot: Bot; patch: Derived["patch"] }) {
+  const { state } = useStore();
+  const tts = state.config?.tts;
+  const voices = useVoiceOptions(bot, Boolean(tts?.configured)) ?? [];
+  const prefs = useVoicePrefs(bot.id);
+  const voice = bot.voice ?? "";
+  const voiceOptions = [
+    { value: "", label: tts?.voice || !tts?.configured ? t("botPanel.voice.default") : t("voice.pick") },
+    ...(voice && !voices.some((entry) => entry.id === voice) ? [{ value: voice, label: t("voice.current") }] : []),
+    ...voices.map((entry) => ({ value: entry.id, label: entry.label })),
+  ];
+  return (
+    <Card label={t("botPanel.section.voiceChat")} anchor="call" className="mt-[44px]">
+      <VoiceChatRow row="voice" label={t("voice.title")}>
+        <SelectPill data-panel-select="voice" aria-label={t("voice.title")} value={voice} options={voiceOptions} onChange={(next: string) => patch({ voice: next })} />
+      </VoiceChatRow>
+      <VoiceChatRow row="speed" label={t("botPanel.voice.speed")}>
+        <SelectPill
+          data-panel-select="speed"
+          aria-label={t("botPanel.voice.speed")}
+          value={prefs.speed}
+          options={VOICE_SPEEDS.map((speed) => ({ value: speed, label: `${speed}x` }))}
+          onChange={(speed: VoiceSpeed) => setVoicePrefs(bot.id, { speed })}
+        />
+      </VoiceChatRow>
+      <VoiceChatRow row="language" label={t("botPanel.voice.language")}>
+        <SelectPill
+          data-panel-select="language"
+          aria-label={t("botPanel.voice.language")}
+          value={prefs.language}
+          options={VOICE_LANGUAGES.map(([code, name]) => ({ value: code, label: name }))}
+          onChange={(language: string) => setVoicePrefs(bot.id, { language })}
+        />
+      </VoiceChatRow>
+    </Card>
+  );
+}
+
+/** How a call with the bot runs, as the call button does: where this device cannot listen in turns, a call is always Live. */
+export function CallModeRow() {
   const { state } = useStore();
   const { capabilities, ready } = useDesktopCapabilities();
   const storedCallMode = useCallMode();
@@ -120,112 +144,17 @@ export function VoiceChatCard({ voice }: { voice?: ReactNode } = {}) {
   const turnsHelp = turnsHere ? null : callCapabilityHelp(capabilities, Boolean(speechBridge()?.speechStart), fishListeningReady(state.config));
   const title = t("call.mode.menu");
   return (
-    <Card label={t("botPanel.section.voiceChat")} anchor="call" className="mt-[44px]">
-      {voice}
-      <div data-panel-row="call-mode" className={cn(rowCls, "gap-1.5")}>
-        <RowText title={title} />
-        <SelectPill
-          data-panel-select="call-mode"
-          aria-label={title}
-          title={callMode === "turns" ? callModeHint("turns") : t("call.mode.liveHint")}
-          value={callMode}
-          onChange={(mode: CallMode) => setCallMode(mode)}
-          options={CALL_MODES.map((entry) => ({ value: entry.id, label: t(entry.label), disabled: entry.id === "turns" && turnsHelp !== null }))}
-        />
-      </div>
-    </Card>
-  );
-}
-
-const RECENT_CONVERSATIONS = 3;
-
-/** The bot's latest conversations, three at most, with New on the card's label. One conversation shows only New. */
-function ConversationsCard({ bot }: { bot: Bot }) {
-  const { dispatch } = useStore();
-  const tasks = orderedThreadList((bot.tasks ?? []).filter((task) => !task.routineRunId && (!isArchived(task) || task.threadId === bot.threadId)));
-  const startNew = () => dispatch({ type: "newTask", botId: bot.id });
-  const canStart = bot.yourAccess !== "view";
-  if (tasks.length < 2) {
-    if (!canStart) return null;
-    return (
-      <Card anchor="conversations">
-        <button type="button" data-conversations-new onClick={startNew} className={cn(rowCls, "w-full cursor-pointer text-left transition-colors duration-100 hover:bg-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus")}>
-          <RowText title={t("botPanel.conversations.new")} />
-        </button>
-      </Card>
-    );
-  }
-  const now = Date.now();
-  return (
-    <Card
-      label={t("botPanel.conversations.title")}
-      anchor="conversations"
-      action={canStart ? <LabelAction data-panel-action="new-conversation" aria-label={t("botPanel.conversations.new")} onClick={startNew}>{t("botPanel.conversations.newShort")}</LabelAction> : undefined}
-    >
-      {tasks.slice(0, RECENT_CONVERSATIONS).map((task) => {
-        const at = threadRecency(task);
-        return (
-          <button
-            key={task.threadId}
-            type="button"
-            data-conversation={task.threadId}
-            aria-current={task.threadId === bot.threadId || undefined}
-            onClick={() => { if (task.threadId !== bot.threadId) openBotThread(dispatch, bot, task.threadId, false); }}
-            className={cn(rowCls, "w-full cursor-pointer text-left transition-colors duration-100 hover:bg-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus aria-[current=true]:bg-ink/[0.06]")}
-          >
-            <RowText
-              title={<span className="block truncate">{task.title || t("task.newShort")}</span>}
-              hint={at ? <span className="block truncate">{localizedRelativeTime(at, activeLocale(), now)}</span> : undefined}
-            />
-          </button>
-        );
-      })}
-    </Card>
-  );
-}
-
-/** This conversation's own switch: Work until done, the same goal mode the composer keeps for it. */
-function ConversationCard({ bot }: { bot: Bot }) {
-  const [mode, setMode] = useComposerChannelMode(`bot:${bot.id}:${bot.threadId}`);
-  const on = mode === "goal";
-  return (
-    <Card label={t("botPanel.section.thisConversation")} anchor="conversation">
-      <div data-panel-row="goal" className={rowCls}>
-        <RowText title={t("composer.goal.soloAria")} />
-        <BotSwitch color={bot.color} checked={on} aria-label={t("composer.goal.soloAria")} onClick={() => setMode(on ? "chat" : "goal")} />
-      </div>
-    </Card>
-  );
-}
-
-/** The bot's model, its engine's usage when the engine reports it, and how much it asks before it acts. */
-function ModelCard({ bot, derived }: { bot: Bot; derived: Derived }) {
-  const { dispatch } = useStore();
-  const mode = derived.approvalMode;
-  const options: Array<{ value: ApprovalMode; label: string; disabled?: boolean }> = [
-    { value: "ask", label: t("botSettings.simple.ask") },
-    { value: "full", label: t("botSettings.simple.justDoIt") },
-    ...(mode === "ask" || mode === "full" ? [] : [{ value: mode, label: t("botPanel.acts.custom"), disabled: true }]),
-  ];
-  const label = t("botSettings.simple.beforeActs", { name: bot.name });
-  return (
-    <Card label={t("model.simple.model")} anchor="model">
-      <ModelSelectRow bot={bot} threadId={bot.threadId} />
-      <UsageMeterRow engine={bot.modelSelection?.instanceId} />
-      <div data-panel-row="approval" className={cn(rowCls, "gap-1.5")}>
-        <RowText title={label} />
-        <SelectPill
-          data-panel-select="approval"
-          aria-label={label}
-          value={mode}
-          options={options}
-          onChange={(next: ApprovalMode) => {
-            if (next === mode || (next !== "ask" && next !== "full")) return;
-            dispatch({ type: "updateBot", botId: bot.id, patch: { approvalMode: next, applyToAllThreads: true } });
-          }}
-        />
-      </div>
-    </Card>
+    <div data-panel-row="call-mode" className={cn(rowCls, "gap-1.5")}>
+      <RowText title={title} hint={t("botPanel.call.hint")} />
+      <SelectPill
+        data-panel-select="call-mode"
+        aria-label={title}
+        title={callMode === "turns" ? callModeHint("turns") : t("call.mode.liveHint")}
+        value={callMode}
+        onChange={(mode: CallMode) => setCallMode(mode)}
+        options={CALL_MODES.map((entry) => ({ value: entry.id, label: t(entry.label), disabled: entry.id === "turns" && turnsHelp !== null }))}
+      />
+    </div>
   );
 }
 
@@ -240,8 +169,6 @@ export function DetailsTab({ bot, derived, onOpen }: {
 
   return (
     <div data-panel-tabpanel="details">
-      <ConversationsCard bot={bot} />
-
       {routines.length === 0 ? (
         <PanelEmpty data-panel-empty="routines">{t("botPanel.routines.empty")}</PanelEmpty>
       ) : (
@@ -250,15 +177,7 @@ export function DetailsTab({ bot, derived, onOpen }: {
         </Card>
       )}
 
-      <ConversationCard bot={bot} />
-
-      <ModelCard bot={bot} derived={derived} />
-
-      <VoiceChatCard voice={<VoiceRow bot={bot} patch={derived.patch} />} />
-
-      <Card anchor="settings">
-        <NavRow data-panel-gear data-panel-page="settings" title={t("botPanel.page.settings")} onClick={() => onOpen("settings")} />
-      </Card>
+      <VoiceChatCard bot={bot} patch={derived.patch} />
     </div>
   );
 }

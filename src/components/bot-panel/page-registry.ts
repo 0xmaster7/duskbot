@@ -16,10 +16,11 @@ export type PageId =
   | "memory" | "skills"
   | "browser" | "folder" | "android"
   | "voice" | "blurb" | "team" | "chiefteams" | "mcp" | "tools" | "webhooks" | "visibility" | "slack"
-  | "overview" | "prompt" | "history";
+  | "overview" | "prompt" | "history"
+  | "backups" | "threads" | "api";
 
 /** The pages Simple mode draws; a link to any other page lands where its section does. */
-export const SIMPLE_PAGES = ["settings", "apps", "routines", "memory", "skills", "folder", "browser", "where"] as const satisfies readonly PageId[];
+export const SIMPLE_PAGES = ["settings", "apps", "routines", "memory", "skills", "folder", "browser", "where", "instructions", "backups", "threads", "api"] as const satisfies readonly PageId[];
 export type SimplePageId = (typeof SIMPLE_PAGES)[number];
 
 export function isSimplePage(page: PageId): page is SimplePageId {
@@ -59,6 +60,9 @@ export const PAGES: Record<PageId, PageMeta> = {
   overview: { title: "botPanel.page.overview", home: "details" },
   prompt: { title: "botPanel.page.prompt", home: "details" },
   history: { title: "botPanel.page.history", home: "details" },
+  backups: { title: "botPanel.page.backups", home: "details" },
+  threads: { title: "botPanel.conversations.title", home: "details" },
+  api: { title: "botPanel.page.api", home: "details" },
 };
 
 export const PAGE_IDS = Object.keys(PAGES) as PageId[];
@@ -75,18 +79,18 @@ const SECTION_TARGET: Record<BotSettingsSection, PanelTarget> = {
   overview: { tab: "details" },
   identity: { tab: "details" },
   slack: { tab: "details" },
-  soul: { tab: "details", page: "settings", anchor: "instructions", editInstructions: true },
+  soul: { tab: "details", page: "instructions" },
   skills: { tab: "library", page: "skills" },
   memory: { tab: "library", page: "memory" },
   library: { tab: "library" },
   routines: { tab: "details", page: "routines" },
   access: { tab: "computer", page: "where" },
-  model: { tab: "details", anchor: "model" },
-  permissions: { tab: "details", page: "settings", anchor: "approval" },
+  model: { tab: "details", page: "settings", anchor: "model" },
+  permissions: { tab: "details", page: "settings" },
   voice: { tab: "details" },
   visibility: { tab: "details" },
   history: { tab: "details" },
-  usage: { tab: "details" },
+  usage: { tab: "details", page: "settings", anchor: "model" },
 };
 
 export function sectionTarget(section: BotSettingsSection): PanelTarget {

@@ -20,7 +20,7 @@ import type { useBotSettingsDerived } from "../bot-settings/useBotSettingsDerive
 import { RoutineList } from "../routines/RoutineList";
 import { BrowserLogins } from "./browser-logins";
 import { useOpenComputer, WherePage } from "./ComputerTab";
-import { SettingsPage } from "./SettingsPage";
+import { ApiPage, BackupsPage, InstructionsPage, SettingsPage, ThreadsPage } from "./SettingsPage";
 import { panelMemoryNotes, withMemoryNote, withoutMemoryNote, type PanelMemoryNote } from "./memory-notes";
 import type { SimplePageId } from "./page-registry";
 import { BotSwitch, buttonCls, Card, LinkRow, NoteRow, RadioRow, rowCls, SwitchRow, TextRow, TrashButton } from "./rows";
@@ -416,5 +416,13 @@ export function PageBody({ page, onOpen, editingInstructions, onEditInstructions
       return <FolderPage {...context} />;
     case "browser":
       return <BrowserPage {...context} />;
+    case "instructions":
+      return <InstructionsPage {...context} />;
+    case "backups":
+      return <BackupsPage {...context} />;
+    case "threads":
+      return <ThreadsPage {...context} />;
+    case "api":
+      return <ApiPage {...context} />;
   }
 }

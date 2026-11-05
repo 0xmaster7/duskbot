@@ -44,6 +44,8 @@ const fixture = vi.hoisted(() => {
     places: {} as Record<string, [boolean, boolean, string]>,
   };
 });
+// the server renderer has no DOM for motion's projection: render the panel's views as plain swaps
+vi.mock("motion/react", async (importOriginal) => ({ ...await importOriginal<typeof import("motion/react")>(), useReducedMotion: () => true }));
 vi.mock("react", async (original) => ({
   ...await original<typeof import("react")>(),
   useState: (initial: unknown) => {
@@ -116,20 +118,17 @@ const { BotSettingsDialog } = await import("./BotSettingsDialog");
 const { BotPanel } = await import("./bot-panel/PanelShell");
 const { PanelHero } = await import("./bot-panel/PanelHero");
 const { AvatarEditorCard } = await import("./bot-panel/AvatarEditorCard");
-const { DetailsTab, VoiceChatCard } = await import("./bot-panel/DetailsTab");
+const { DetailsTab } = await import("./bot-panel/DetailsTab");
 const { SettingsPage } = await import("./bot-panel/SettingsPage");
 const { LibraryTab } = await import("./bot-panel/LibraryTab");
-const { ApprovalChip } = await import("./ComposerPlusMenu");
-const { callMode, setCallMode } = await import("@/lib/call-mode");
 const { ComputerTab, WherePage } = await import("./bot-panel/ComputerTab");
 const { PageBody, AppsPage, RoutinesPage, MemoryPage, SkillsPage, FolderPage, BrowserPage } = await import("./bot-panel/pages");
 const { BrowserLogins } = await import("./bot-panel/browser-logins");
 const { PAGES, sectionTarget } = await import("./bot-panel/page-registry");
 const { openBotSettings } = await import("./bot-panel/panel-link");
-const { PageHeader } = await import("./bot-panel/rows");
 const { SegmentedTabs } = await import("./ui/SegmentedTabs");
 const { PanelShareMenu } = await import("./bot-panel/PanelShareMenu");
-const { SoulField } = await import("./SoulField");
+const { VOICE_LANGUAGES, VOICE_SPEEDS } = await import("./bot-panel/voice-prefs");
 const { LocalComputerAutoWarning } = await import("./LocalComputerAutoWarning");
 const { ThreadModelsLine } = await import("./ThreadModelsLine");
 const { ModelSection } = await import("./bot-settings/ModelSection");
@@ -220,7 +219,11 @@ const openSettings = (bot: Bot) => {
   selectTab(panel(bot), "details");
   (ofType(panel(bot), DetailsTab)!.props.onOpen as (page: string) => void)("settings");
 };
-const rowValue = (rendered: Rendered, page: string) => find(rendered, "data-panel-page", page).props.value;
+const header = (rendered: Rendered) => ({
+  back: find(rendered, "data-panel-back").props.title as string,
+  title: find(rendered, "data-panel-page-title").props.children as string,
+});
+const goBack = (rendered: Rendered) => click(find(rendered, "data-panel-back"));
 const skill = (name: string, enabled: boolean, origin?: ManagedSkill["origin"]): ManagedSkill =>
   ({ name, description: `${name} helper`, enabled, source: "github:x/y", warnings: [], ...(origin ? { origin } : {}) });
 const routine = (extra: Partial<Routine> = {}): Routine => ({
@@ -237,7 +240,6 @@ const engine = (extra: Partial<InstanceInfo> & { capabilities?: Record<string, u
 });
 const memoryDoc = (text: string): MemoryDoc => ({ path: "MEMORY.md", text, hash: "h1", exists: true });
 const switches = (html: string) => html.match(/role="switch"/g)?.length ?? 0;
-const pressed = (html: string, attr: string) => [...html.matchAll(new RegExp(`${attr}="([\\w-]+)" aria-pressed="true"`, "g"))].map((match) => match[1]);
 
 beforeEach(() => {
   fixture.advanced = false;
@@ -299,41 +301,43 @@ describe("the bot panel in Simple mode", () => {
     }
   });
 
-  it("opens Bot settings from the Details tab, with Back to Details, and its apps with Back to Bot settings", () => {
+  it("opens Bot settings with Back to Details in Grok's sub-page header, and its apps with Back to Bot settings", () => {
     const bot = makeBot();
     selectTab(panel(bot), "library");
     openSettings(bot);
     const settings = panel(bot);
     expect(shown(settings)).toEqual({ tab: undefined, page: "settings" });
-    expect(ofType(settings, PageHeader)!.props).toMatchObject({ back: "Details", title: "Bot settings" });
+    expect(header(settings)).toEqual({ back: "Details", title: "Bot settings" });
+    expect(ofType(settings, PanelShareMenu)).toBeUndefined();
     (ofType(settings, PageBody)!.props.onOpen as (page: string) => void)("apps");
     const apps = panel(bot);
-    expect(ofType(apps, PageHeader)!.props).toMatchObject({ back: "Bot settings", title: "Apps it can use", intro: "Switch on the apps Scout may use. Everything else stays off." });
-    (ofType(apps, PageHeader)!.props.onBack as () => void)();
+    expect(header(apps)).toEqual({ back: "Bot settings", title: "Apps it can use" });
+    expect(apps.html).toContain("Switch on the apps Scout may use. Everything else stays off.");
+    goBack(apps);
     expect(shown(panel(bot)).page).toBe("settings");
-    (ofType(panel(bot), PageHeader)!.props.onBack as () => void)();
+    goBack(panel(bot));
     expect(shown(panel(bot))).toEqual({ tab: "details", page: undefined });
   });
 
-  it("drills into a page with its intro and back, naming where Back goes", () => {
+  it("drills into a page and back, naming where Back goes", () => {
     const bot = makeBot();
     (ofType(panel(bot), DetailsTab)!.props.onOpen as (page: string) => void)("routines");
     const page = panel(bot);
     expect(shown(page)).toEqual({ tab: undefined, page: "routines" });
     expect(has(page, "role", "tablist")).toBe(false);
-    expect(ofType(page, PageHeader)!.props).toMatchObject({ back: "Details", title: "Routines" });
+    expect(header(page)).toEqual({ back: "Details", title: "Routines" });
     expect(page.html).toContain('id="bot-settings-title"');
-    (ofType(page, PageHeader)!.props.onBack as () => void)();
+    goBack(page);
     expect(shown(panel(bot))).toEqual({ tab: "details", page: undefined });
 
     selectTab(panel(bot), "library");
     (ofType(panel(bot), LibraryTab)!.props.onOpen as (page: string) => void)("memory");
-    expect(ofType(panel(bot), PageHeader)!.props).toMatchObject({ back: "Library", title: "What it remembers" });
-    (ofType(panel(bot), PageHeader)!.props.onBack as () => void)();
+    expect(header(panel(bot))).toEqual({ back: "Library", title: "What it remembers" });
+    goBack(panel(bot));
 
     selectTab(panel(bot), "computer");
     (ofType(panel(bot), ComputerTab)!.props.onOpen as (page: string) => void)("browser");
-    expect(ofType(panel(bot), PageHeader)!.props).toMatchObject({ back: "Computer", title: "Signed-in sites", intro: undefined });
+    expect(header(panel(bot))).toEqual({ back: "Computer", title: "Signed-in sites" });
   });
 
   it("goes back on Escape from a page, and leaves Escape to the dialog on a tab", () => {
@@ -344,17 +348,6 @@ describe("the bot panel in Simple mode", () => {
     expect(shown(panel(bot)).page).toBeUndefined();
     const onTab = key(panel(bot).nodes[0]!, "Escape");
     expect(onTab.stopPropagation).not.toHaveBeenCalled();
-  });
-
-  it("holds the Instructions editor open on Bot settings, and closes it when the panel moves on", () => {
-    const bot = makeBot();
-    openSettings(bot);
-    expect(ofType(panel(bot), PageBody)!.props.editingInstructions).toBe(false);
-    (ofType(panel(bot), PageBody)!.props.onEditInstructions as (open: boolean) => void)(true);
-    expect(ofType(panel(bot), PageBody)!.props.editingInstructions).toBe(true);
-    (ofType(panel(bot), PageHeader)!.props.onBack as () => void)();
-    openSettings(bot);
-    expect(ofType(panel(bot), PageBody)!.props.editingInstructions).toBe(false);
   });
 
   it("opens the avatar editor from the avatar and closes it with Escape", () => {
@@ -371,10 +364,10 @@ describe("the bot panel in Simple mode", () => {
 
   it.each([
     ["overview", "details", undefined], ["identity", "details", undefined], ["slack", "details", undefined],
-    ["soul", "details", "settings"], ["skills", "library", "skills"], ["memory", "library", "memory"],
-    ["routines", "details", "routines"], ["access", "computer", "where"], ["model", "details", undefined],
+    ["soul", "details", "instructions"], ["skills", "library", "skills"], ["memory", "library", "memory"],
+    ["routines", "details", "routines"], ["access", "computer", "where"], ["model", "details", "settings"],
     ["permissions", "details", "settings"], ["voice", "details", undefined], ["visibility", "details", undefined],
-    ["history", "details", undefined], ["usage", "details", undefined],
+    ["history", "details", undefined], ["usage", "details", "settings"],
   ] as const)("lands a deep link to %s on %s › %s", (section, tab, page) => {
     expect([sectionTarget(section).tab, sectionTarget(section).page]).toEqual([tab, page]);
     const rendered = panel(makeBot(), section);
@@ -383,11 +376,10 @@ describe("the bot panel in Simple mode", () => {
     if (page) expect(PAGES[page].home).toBe(tab);
   });
 
-  it("opens Bot settings with the Instructions editor for a soul link, and scrolls Model and Before it acts into view", () => {
-    expect(ofType(panel(makeBot(), "soul"), PageBody)!.props).toMatchObject({ page: "settings", editingInstructions: true });
-    expect(sectionTarget("model").anchor).toBe("model");
-    expect(sectionTarget("permissions")).toMatchObject({ page: "settings", anchor: "approval" });
-    expect(sectionTarget("soul")).toMatchObject({ page: "settings", anchor: "instructions" });
+  it("opens the Instructions page for a soul link, and lands model and usage links on Bot settings' Model card", () => {
+    expect(ofType(panel(makeBot(), "soul"), PageBody)!.props).toMatchObject({ page: "instructions" });
+    expect(sectionTarget("model")).toMatchObject({ page: "settings", anchor: "model" });
+    expect(sectionTarget("usage")).toMatchObject({ page: "settings", anchor: "model" });
   });
 
   // App tool grants (PluginsPanel) and the working folder (the files pane) name a Simple page; MCP and tool
@@ -404,21 +396,18 @@ describe("the bot panel in Simple mode", () => {
     expect(shown(panel(makeBot(), "access"))).toEqual({ tab: undefined, page: "where" });
   });
 
-  it("shows one switch on Details, Work until done, none on the other tabs, and on Bot settings only Bot API's", () => {
+  it("shows no switch on Details, Library or Computer, and keeps Work until done and Hide on Bot settings", () => {
     const bot = makeBot();
-    expect(switches(panel(bot).html)).toBe(1);
-    expect(panel(bot).html).toContain('aria-label="Work until done"');
-    for (const tab of ["library", "computer"]) {
+    for (const tab of ["details", "library", "computer"]) {
       selectTab(panel(bot), tab);
-      const rendered = panel(bot);
-      expect(switches(rendered.html), tab).toBe(0);
-      for (const text of ["Memory", "Upkeep", "Record"]) expect(rendered.html).not.toContain(`>${text}<`);
+      expect(switches(panel(bot).html), tab).toBe(0);
     }
     openSettings(bot);
     const settings = panel(bot).html;
-    expect(switches(settings)).toBe(1);
-    expect(settings).toContain('aria-label="Let apps talk to this bot"');
+    expect(settings).toContain('aria-label="Work until done"');
+    expect(settings).toContain('aria-label="Hide from sidebar"');
   });
+
 });
 
 describe("the hero", () => {
@@ -469,30 +458,12 @@ describe("the hero", () => {
     expect(has(hero(bot), "data-panel-rename")).toBe(true);
   });
 
-  it("sets the name at 17px, and offers Add a label until a title is set", () => {
+  it("sets the name at 17px, with no label line under it", () => {
     expect(find(hero(makeBot()), "data-panel-rename").props.className).toContain("text-[17px]");
-    const untitled = hero(makeBot({ title: "" }));
-    expect(find(untitled, "data-panel-label").props.children).toBe("Add a label");
-    expect(find(untitled, "data-panel-label").props.className).toContain("text-[11px]");
-    click(find(untitled, "data-panel-label"));
-    expect(find(hero(makeBot({ title: "" })), "data-panel-label-input").props.placeholder).toBe("Add a label");
+    expect(has(hero(makeBot({ title: "Researcher" })), "data-panel-label")).toBe(false);
+    expect(hero(makeBot()).html).not.toContain("Add a label");
   });
 
-  it("edits the title inline", () => {
-    const bot = makeBot();
-    expect(find(hero(bot), "data-panel-label").props.children).toBe("Researcher");
-    click(find(hero(bot), "data-panel-label"));
-    const input = find(hero(bot), "data-panel-label-input");
-    expect(input.props.value).toBe("Researcher");
-    change(input, "Writer");
-    (find(hero(bot), "data-panel-label-input").props.onBlur as () => void)();
-    expect(patch).toHaveBeenLastCalledWith({ title: "Writer" });
-
-    click(find(hero(bot), "data-panel-label"));
-    change(find(hero(bot), "data-panel-label-input"), "");
-    key(find(hero(bot), "data-panel-label-input"), "Enter");
-    expect(patch).toHaveBeenLastCalledWith({ title: "" });
-  });
 });
 
 describe("the avatar editor", () => {
@@ -565,35 +536,21 @@ describe("the avatar editor", () => {
 
 
 describe("the Details tab", () => {
-  it("holds New conversation, routines (or what they are), Work until done, the model card, Voice chat and Bot settings, in that order", () => {
+  it("holds only Grok's two things: routines (or what they are) and Voice chat", () => {
     const rendered = botTab(makeBot());
-    const order = ["data-conversations-new", 'data-panel-empty="routines"', 'data-panel-row="goal"', 'data-panel-row="model"', 'data-panel-row="approval"', 'data-panel-row="call-mode"', "data-panel-gear"]
-      .map((marker) => rendered.html.indexOf(marker));
+    const order = ['data-panel-empty="routines"', 'data-panel-row="voice"', 'data-panel-row="speed"', 'data-panel-row="language"'].map((marker) => rendered.html.indexOf(marker));
     expect(order.every((index) => index > -1)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
-    click(find(rendered, "data-panel-gear"));
-    expect(onOpen).toHaveBeenLastCalledWith("settings");
-    for (const gone of ['data-panel-item=', 'data-panel-card="try"', 'data-panel-row="thinking"', 'data-panel-edit="soul"', 'data-panel-page="memory"']) {
+    for (const gone of ['data-panel-row="model"', 'data-panel-gear', 'data-conversations-new', 'data-panel-row="goal"', 'data-panel-row="approval"', 'data-panel-row="call-mode"']) {
       expect(rendered.html, gone).not.toContain(gone);
     }
-    expect(rendered.html).toContain(">Before Scout acts<");
-    expect(switches(rendered.html)).toBe(1);
-  });
-
-  it("lists up to three recent conversations under Conversations, with New on its label, once the bot has more than one", () => {
-    const tasks = ["a", "b", "c", "d"].map((id, index) => ({ threadId: `thread-${id}`, title: `Talk ${id}`, createdAt: index, updatedAt: 100 - index }));
-    const rendered = botTab(makeBot({ tasks } as Partial<Bot>));
-    expect(rendered.html).toContain(">Conversations<");
-    expect(rendered.html.match(/data-conversation="/g)).toHaveLength(3);
-    expect(rendered.html).toContain('data-panel-action="new-conversation"');
-    expect(rendered.html).toContain(">New<");
+    expect(rendered.html).not.toContain(">Routines<");
+    expect(switches(rendered.html)).toBe(0);
   });
 
   it("says what routines are while the bot has none, in Grok's words, and lists them once it has some", () => {
     const empty = botTab(makeBot());
-    expect(empty.html).toContain('data-panel-empty="routines"');
     expect(empty.html).toContain(">Routines are recurring tasks this Bot runs on a schedule. Ask it in chat to set one up.<");
-    expect(empty.html).not.toContain("Add a routine");
     fixture.derived.botRoutines = [routine()];
     const some = botTab(makeBot());
     expect(some.html).not.toContain('data-panel-empty="routines"');
@@ -605,162 +562,63 @@ describe("the Details tab", () => {
     const rendered = botTab(makeBot());
     const rows = rendered.nodes.filter((node) => (node.props.routine as Routine | undefined)?.id !== undefined);
     expect(rows.map((node) => (node.props.routine as Routine).id)).toEqual(["r1", "r2", "r3"]);
-    expect(switches(rendered.html)).toBe(4);
+    expect(switches(rendered.html)).toBe(3);
     expect(rendered.html).toContain(">Paused<");
     expect(rendered.html).toMatch(/>Every weekday at 9:00/);
     (rows[0]!.props.onOpen as () => void)();
     expect(onOpen).toHaveBeenLastCalledWith("routines");
   });
 
-  it("chooses the call mode under Voice chat, Take turns or Live, from Grok's select pill", () => {
-    setCallMode("turns");
-    try {
-      expect(botTab(makeBot()).html).toContain(">Voice chat<");
-      const rendered = capture(() => VoiceChatCard());
-      const select = find(rendered, "aria-label", "Call mode");
-      expect((select.props.options as Array<{ value: string; label: string }>).map((option) => [option.value, option.label]))
-        .toEqual([["turns", "Take turns"], ["live", "Live"]]);
-      (select.props.onChange as (value: string) => void)("live");
-      expect(callMode()).toBe("live");
-    } finally {
-      setCallMode("turns");
-    }
+  it("offers Grok's speeds and languages, kept per bot", () => {
+    const html = botTab(makeBot()).html;
+    expect(html).toMatch(/data-panel-select="speed"[^>]*>.*?>1x</);
+    expect(html).toMatch(/data-panel-select="language"[^>]*>.*?>Auto-detect</);
+    expect(VOICE_SPEEDS).toEqual(["0.5", "0.75", "1", "1.25", "1.5", "2"]);
+    expect(VOICE_LANGUAGES).toHaveLength(29);
   });
 
 });
 
 describe("the Bot settings page", () => {
-  it("lists what the bot keeps and where it works, one row per page, each opening its page", () => {
+  it("starts with the Model card, then one list card of rows that each open their page, then the actions", () => {
     const rendered = settingsPage(makeBot());
+    const order = ['data-panel-card="model"', 'data-panel-card="uses"', 'data-panel-card="actions"'].map((marker) => rendered.html.indexOf(marker));
+    expect(order.every((index) => index > -1)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
     const pages = [...rendered.html.matchAll(/data-panel-page="(\w+)"/g)].map((match) => match[1]);
-    expect(pages).toEqual(["memory", "skills", "folder", "where", "browser", "apps"]);
+    expect(pages).toEqual(["instructions", "memory", "skills", "folder", "apps", "where", "browser", "backups", "api", "threads"]);
     for (const page of pages) {
       click(find(rendered, "data-panel-page", page));
       expect(onOpen).toHaveBeenLastCalledWith(page);
     }
-    expect(rowValue(rendered, "folder")).toBe("Private");
-    expect(rowValue(settingsPage(makeBot({ memoryEnabled: false })), "memory")).toBe("Off");
+    for (const gone of ['data-panel-row="approval"', "Before Scout acts", "data-panel-done"]) expect(rendered.html).not.toContain(gone);
   });
 
-  it("holds Instructions, Before it acts, Backup AIs, Apps, Job and Hide, with every title on one edge", () => {
-    const rendered = settingsPage(makeBot({ defaultBot: {} }));
-    expect(rendered.html).not.toContain('data-panel-row="call-mode"');
-    const order = ['data-panel-edit="soul"', 'data-panel-row="approval"', 'data-panel-row="backups"', 'data-panel-page="apps"', 'data-panel-row="job"', 'data-panel-row="default-bot-hide"']
-      .map((marker) => rendered.html.indexOf(marker));
-    expect(order.every((index) => index > -1)).toBe(true);
-    expect([...order].sort((a, b) => a - b)).toEqual(order);
-    expect(switches(rendered.html)).toBe(1);
-    expect(rendered.html).toContain('aria-label="Let apps talk to this bot"');
-    expect(rendered.html.match(/pl-\[38px\]/g)).toHaveLength(3);
+  it("gives every row a subtitle", () => {
+    const rendered = settingsPage(makeBot({ memoryEnabled: false }));
+    const hint = (page: string) => find(rendered, "data-panel-page", page).props.hint;
+    expect(hint("memory")).toBe("Off");
+    expect(hint("skills")).toBe("None");
+    expect(hint("backups")).toBe("None");
+    expect(hint("threads")).toBe("1 conversation");
+    expect(rendered.html).toContain("Be brief.");
   });
 
-  it("shows the first line of the instructions, or how to start, and edits them in place with Done", () => {
-    const bot = makeBot();
-    const closed = settingsPage(bot);
-    expect(closed.html).toContain("Be brief.");
-    expect(ofType(closed, SoulField)).toBeUndefined();
-    click(find(closed, "data-panel-edit", "soul"));
-    expect(onEditInstructions).toHaveBeenLastCalledWith(true);
-    expect(settingsPage(makeBot({ soul: "" })).html).toContain("Tell Scout how to work for you");
-
-    const open = settingsPage(bot, true);
-    expect(ofType(open, SoulField)!.props.onPatch).toBe(patch);
-    expect(has(open, "data-panel-edit", "soul")).toBe(false);
-    click(find(open, "data-panel-done", "soul"));
-    expect(onEditInstructions).toHaveBeenLastCalledWith(false);
-
-    const drifted = settingsPage(makeBot({ soulDrift: true }));
-    expect(ofType(drifted, SoulField)).toBeDefined();
-    expect(has(drifted, "data-panel-done", "soul")).toBe(false);
-  });
-
-  it("offers Ask me first and Just do it with no hint text, and writes either for every conversation", () => {
+  it("keeps Work until done, Call mode, the label and Hide from sidebar as rows", () => {
     const rendered = settingsPage(makeBot());
-    const acts = segment(rendered, "data-approval-choice");
-    expect(acts.options.map((option) => [option.value, option.label])).toEqual([["ask", "Ask me first"], ["full", "Just do it"]]);
-    expect(acts.value).toBe("ask");
-    for (const hint of ["Checks before changes", "Acts without checking", "Acts, then tells you"]) expect(rendered.html).not.toContain(`>${hint}<`);
-    acts.onChange("ask");
-    expect(fixture.dispatch).not.toHaveBeenCalled();
-    acts.onChange("full");
-    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "updateBot", botId: "scout", patch: { approvalMode: "full", applyToAllThreads: true } });
-    fixture.derived.approvalMode = "full";
-    const full = settingsPage(makeBot());
-    expect(pressed(full.html, "data-approval-choice")).toEqual(["full"]);
-    segment(full, "data-approval-choice").onChange("ask");
-    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "updateBot", botId: "scout", patch: { approvalMode: "ask", applyToAllThreads: true } });
-    expect(patch).not.toHaveBeenCalled();
-  });
-
-  it.each([["auto", "Decide for me", undefined], ["edits", "Auto-accept edits", undefined], ["custom", "Custom", "Change this in Advanced mode"]] as const)(
-    "shows a bot in %s mode as a third, selected pill it cannot pick again, beside the two choices", (mode, label, tooltip) => {
-      fixture.derived.approvalMode = mode;
-      const rendered = settingsPage(makeBot());
-      const acts = segment(rendered, "data-approval-choice");
-      expect(acts.options.map((option) => [option.value, option.label, Boolean(option.disabled)])).toEqual([["ask", "Ask me first", false], ["full", "Just do it", false], [mode, label, true]]);
-      expect((acts.options[2] as { tooltip?: string }).tooltip).toBe(tooltip);
-      expect(pressed(rendered.html, "data-approval-choice")).toEqual([mode]);
-      acts.onChange(mode);
-      expect(fixture.dispatch).not.toHaveBeenCalled();
-      acts.onChange("ask");
-      expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "updateBot", botId: "scout", patch: { approvalMode: "ask", applyToAllThreads: true } });
-    },
-  );
-
-  it("shows legacy Antigravity Auto as Ask without a third pill or a change to the saved mode", () => {
-    fixture.derived.engine = engine({ driverKind: "antigravityAgent" });
-    fixture.derived.approvalMode = "auto";
-    const rendered = settingsPage(makeBot({ approvalMode: "auto" }));
-    expect(segment(rendered, "data-approval-choice").options).toHaveLength(2);
-    expect(pressed(rendered.html, "data-approval-choice")).toEqual(["ask"]);
-    expect(patch).not.toHaveBeenCalled();
-  });
-
-  it("lets the approval level change while the bot is busy and says from when", () => {
-    const rendered = settingsPage(makeBot({ busy: true }));
-    expect(segment(rendered, "data-approval-choice").options.some((option) => option.disabled)).toBe(false);
-    expect(rendered.html).toContain("The bot is working. A change applies from its next step");
-    expect(settingsPage(makeBot()).html).not.toContain("The bot is working");
-  });
-
-  it("holds the conversation's approval level, the composer's choice, beside the bot's own", () => {
-    expect(has(settingsPage(makeBot()), "data-panel-row", "thread-approval")).toBe(false);
-    fixture.storeState = { ...fixture.storeState, instances: [engine({ displayName: "Claude" })] };
-    const rendered = settingsPage(makeBot({ tasks: [{ threadId: "thread-scout", title: "Plan", createdAt: 1, approvalMode: "full" }] }));
-    expect(has(rendered, "data-panel-row", "thread-approval")).toBe(true);
-    expect(rendered.html).toContain(">In this conversation<");
-    const choice = ofType(rendered, ApprovalChip)!.props.choice as Parameters<typeof ApprovalChip>[0]["choice"];
-    expect(choice).toMatchObject({ approvalMode: "full", providerName: "Claude", driverKind: "claudeAgent" });
-    choice.onSelect("ask");
-    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "updateTask", botId: "scout", threadId: "thread-scout", patch: { approvalMode: "ask" } });
-  });
-
-  it("values the Apps row with the apps switched on, or None yet, and opens the apps page", () => {
-    const empty = settingsPage(makeBot());
-    expect(rowValue(empty, "apps")).toBe("None yet");
-    click(find(empty, "data-panel-page", "apps"));
-    expect(onOpen).toHaveBeenLastCalledWith("apps");
-    fixture.apps = { phase: "ready", connectedSlugs: ["gmail", "notion", "slack"], apps: [app("gmail", "write"), app("notion", null), app("slack", "read")] };
-    expect(rowValue(settingsPage(makeBot()), "apps")).toBe("Gmail, Slack");
-  });
-
-  it("edits the bot's job: saved on blur, Enter leaves the field, Escape puts it back", () => {
-    const bot = makeBot();
-    const job = () => find(settingsPage(bot), "data-panel-job");
-    expect(job().props).toMatchObject({ value: "Researcher", placeholder: "What it does", "aria-label": "Job" });
-    change(job(), "  Writer ");
-    expect(job().props.value).toBe("  Writer ");
-    (job().props.onBlur as () => void)();
+    for (const row of ["goal", "call-mode", "job", "hide"]) expect(rendered.html, row).toContain(`data-panel-row="${row}"`);
+    const label = find(rendered, "data-panel-job");
+    expect(label.props.value).toBe("Researcher");
+    change(label, "Writer");
+    (find(settingsPage(makeBot()), "data-panel-job").props.onBlur as () => void)();
     expect(patch).toHaveBeenLastCalledWith({ title: "Writer" });
-    expect(job().props.value).toBe("Researcher");
+  });
 
-    patch.mockReset();
-    change(job(), "Editor");
-    const escape = key(job(), "Escape");
-    expect(escape.stopPropagation).toHaveBeenCalled();
-    expect(job().props.value).toBe("Researcher");
-    (job().props.onBlur as () => void)();
-    expect(patch).not.toHaveBeenCalled();
+  it("duplicates the bot and asks before deleting all its conversations", () => {
+    const rendered = settingsPage(makeBot());
+    click(find(rendered, "data-panel-row", "duplicate"));
+    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "duplicateBot", botId: "scout" });
+    expect(find(rendered, "data-panel-row", "delete-all").props.danger).toBe(true);
   });
 });
 

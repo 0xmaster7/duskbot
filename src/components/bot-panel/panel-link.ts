@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 import type { Action, BotSettingsSection } from "@/state/store";
-import { isSimplePage, PAGES, sectionTarget, type PageId, type PanelTarget } from "./page-registry";
+import { isSimplePage, PAGES, sectionTarget, type PageId, type PanelTarget, type SimplePageId } from "./page-registry";
 
 /**
  * A named open of a bot's settings. The store keeps only the section, which the Simple bot panel maps to one tab or
@@ -54,4 +54,9 @@ export function linkTarget(section: BotSettingsSection, link: PanelLink | null):
   const ours = link?.section === section ? link : null;
   if (ours?.page && isSimplePage(ours.page)) return { tab: PAGES[ours.page].home, page: ours.page };
   return ours?.anchor ? { ...sectionTarget(section), anchor: ours.anchor } : sectionTarget(section);
+}
+
+/** Opens a bot's panel on one of its pages, Bot settings by default: the sidebar's Bot Settings item and search use it. */
+export function openBotSettingsPage(dispatch: (action: Action) => void, botId: string, page: SimplePageId = "settings"): void {
+  openBotSettings(dispatch, "overview", { botId, page });
 }

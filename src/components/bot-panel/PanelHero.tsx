@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { Crown } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
@@ -12,9 +11,8 @@ import type { BotPatch } from "../bot-settings/useBotSettingsDerived";
 
 /** Grok's inline fields: no frame of their own, a 10% ink wash on hover and while editing. */
 const nameCls = "max-w-full rounded-lg border border-transparent px-2.5 py-0.5 text-center text-[17px] font-medium leading-6 tracking-[0.01em] text-ink transition-[border-color,background-color] duration-[120ms] ease-[ease] hover:bg-ink/[0.1]";
-const labelCls = "max-w-full rounded border border-transparent px-1 text-center text-[11px] leading-4 tracking-[0.01em] transition-[background-color] duration-[120ms] ease-[ease] hover:bg-ink/[0.1]";
 
-const HOVER_GAZE = { x: -0.7, y: 0.8 };
+const HOVER_GAZE = { x: -1, y: 1 };
 
 function useInlineEdit(save: (value: string) => void) {
   const [draft, setDraft] = useState<string | null>(null);
@@ -68,11 +66,6 @@ export function PanelHero({ bot, activeState, patch, editorOpen, onToggleEditor 
     const next = value.trim();
     if (next && next !== bot.name) patch({ name: next });
   });
-  const label = useInlineEdit((value) => {
-    const next = value.trim();
-    if (next !== bot.title.trim()) patch({ title: next });
-  });
-  const title = bot.title.trim();
   // grok's mascot looks at the pointer, so while the avatar is hovered its eyes sit low and centred, clear of the pencil
   const [hovered, setHovered] = useState(false);
 
@@ -99,12 +92,6 @@ export function PanelHero({ bot, activeState, patch, editorOpen, onToggleEditor 
         >
           <GrokIcon name="pencil" size={14} />
         </span>
-        {bot.chiefOfStaff && (
-          <span data-panel-chief title={t("chat.chiefOfStaff")} className="absolute -bottom-0.5 -right-0.5 flex size-[22px] items-center justify-center rounded-full bg-accent text-accent-ink ring-[3px] ring-app">
-            <Crown size={12} aria-hidden="true" />
-            <span className="sr-only">{t("chat.chiefOfStaff")}</span>
-          </span>
-        )}
       </button>
 
       <div data-panel-name-row className="mt-4 flex max-w-full flex-col items-center gap-1">
@@ -136,31 +123,6 @@ export function PanelHero({ bot, activeState, patch, editorOpen, onToggleEditor 
           )}
         </h2>
 
-        {label.draft !== null ? (
-          <input
-            autoFocus
-            data-panel-label-input
-            aria-label={t("botSettings.simple.job")}
-            placeholder={t("botPanel.addLabel")}
-            maxLength={BOT_PROFILE_LIMITS.title}
-            value={label.draft}
-            onChange={(event) => label.setDraft(event.target.value)}
-            onKeyDown={label.onKeyDown}
-            onBlur={label.onBlur}
-            className={cn(labelCls, "w-full border-transparent! bg-transparent text-ink-secondary outline-none placeholder:text-ink-tertiary hover:bg-transparent")}
-          />
-        ) : (
-          <button
-            ref={label.buttonRef}
-            type="button"
-            data-panel-label
-            aria-label={t("botPanel.labelField")}
-            onClick={() => label.start(bot.title)}
-            className={cn(labelCls, "cursor-text truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus", title ? "text-ink-secondary" : "text-ink-tertiary")}
-          >
-            {title || t("botPanel.addLabel")}
-          </button>
-        )}
       </div>
     </div>
   );

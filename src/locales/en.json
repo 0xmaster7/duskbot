@@ -4167,6 +4167,7 @@
   "botPanel.avatar.edit": "Edit Bot avatar",
   "botPanel.avatar.tip": "Edit Avatar",
   "botPanel.close": "Close",
+  "botPanel.call.hint": "How a voice call with it runs",
   "botPanel.backTo": "Back to {place}",
   "botPanel.page.backups": "Backup AIs",
   "botPanel.page.api": "Bot API",
@@ -7833,9 +7834,10 @@
   "connectApps.added": "Added {name}",
   "connectApps.dismiss": "Dismiss",
   "connectApps.close": "Close",
-  "connectApps.onePassword.description": "Let your Bots sign in with logins from a 1Password vault.",
+  "connectApps.onePassword.description": "Share a dedicated 1Password vault with your Bots through a service account, so they can sign in to sites on their computer",
   "connectApps.skill.subtitle": "Skill",
   "connectApps.mcpServer": "MCP server",
   "connectApps.off": "Off",
-  "connectApps.mcpAdd": "Your own servers, by command or URL"
+  "connectApps.mcpAdd": "Your own servers, by command or URL",
+  "connectApps.onePassword.manage": "Choose which Bots use each vault in Settings"
 }
