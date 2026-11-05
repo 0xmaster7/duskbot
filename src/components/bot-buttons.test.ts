@@ -65,18 +65,17 @@ const question: Message = {
 };
 
 describe("a bot's cards answer in its own colour", () => {
-  it("paints Allow once in the asking bot's colour, while Deny is the neutral second answer and Always allow stays quiet", () => {
+  it("paints Allow once in ink like grok, while Deny is the neutral second answer and Always allow stays quiet", () => {
     const html = approval({ id: "scout", name: "Scout", color: "pink" } as Bot);
-    expectOwn(button(html, t("approval.action.allowOnce")), "pink");
+    expect(classes(button(html, t("approval.action.allowOnce")))).toContain("ui-button-primary");
     const deny = button(html, t("approval.action.deny"));
     expectPlain(deny);
-    expect(classes(deny)).toEqual(expect.arrayContaining(["bg-ink/[0.07]", "text-ink"]));
+    expect(classes(deny)).toEqual(expect.arrayContaining(["text-ink-secondary", "enabled:hover:bg-ink/[0.06]"]));
     expect(classes(deny).some((name) => name.includes("danger"))).toBe(false);
     const always = button(html, t("approval.action.alwaysAllow"));
     expectPlain(always);
     expect(classes(always)).toContain("text-ink-secondary");
-    expect(classes(button(approval(), t("approval.action.allowOnce")))).toContain("bg-accent");
-    expectPlain(button(approval(), t("approval.action.allowOnce")));
+    expect(classes(button(approval(), t("approval.action.allowOnce")))).toContain("ui-button-primary");
   });
 
   it("sends a question's answers in the asking bot's colour, a light one included", () => {
