@@ -6,10 +6,10 @@ import { useCopyFeedback } from "@/lib/copy-text";
 import { t } from "@/lib/i18n";
 import { MENU_ITEM, MENU_SHEET } from "./menu-recipe";
 
-export const ACTION_ICON = { size: 17, strokeWidth: 1.5 } as const;
+export const ACTION_ICON = { size: 16, strokeWidth: 1.6 } as const;
 
 export const messageActionClass =
-  "inline-flex size-7 items-center justify-center rounded-full text-ink-tertiary transition-colors hover:bg-ink/10 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent";
+  "inline-flex size-6 items-center justify-center rounded-[8px] text-ink-secondary transition-colors duration-[120ms] hover:bg-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent pointer-coarse:size-9";
 
 export type MessageMenuItem = {
   key: string;
@@ -167,7 +167,7 @@ export function MessageActions({
     <div
       ref={rootRef}
       className={cn(
-        "relative flex items-center gap-0.5 self-end pb-0.5 transition-opacity duration-150",
+        "relative flex items-center gap-0.5 self-end pb-1.5 transition-opacity duration-150",
         mirrored && "flex-row-reverse",
         shown ? "opacity-100" : "pointer-events-none opacity-0",
         className,
@@ -191,7 +191,7 @@ export function MessageActions({
           aria-haspopup="menu"
           aria-expanded={menuOpen}
           aria-controls={menuOpen ? menuId : undefined}
-          className={cn(messageActionClass, menuOpen && "bg-ink/10 text-ink")}
+          className={cn(messageActionClass, menuOpen && "bg-ink/[0.06]")}
         >
           <Ellipsis {...ACTION_ICON} aria-hidden="true" />
         </button>

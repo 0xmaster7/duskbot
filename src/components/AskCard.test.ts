@@ -17,13 +17,13 @@ describe("AskCard", () => {
     expect(html).toContain('role="group"');
     expect(html).toContain('aria-label="Plan"');
     expect(html).toContain("Why it asks.");
-    expect(html).not.toContain("shadow");
+    expect(card).toContain("shadow-[0_2px_8px_color-mix(in_srgb,var(--color-ink)_3.5%,transparent)]");
   });
 
   it("puts the question in clear ink at reading size, under a header line in secondary ink that names the bot that asks", () => {
     const header = createElement(AskHeader, { asker: { name: "Ledger", color: "teal" }, line: "Ledger asks" });
     const html = renderToStaticMarkup(createElement(AskCard, { ariaLabel: "Q", header, title: "Should I apply the fix?" }));
-    expect(html).toMatch(/text-\[15px\] font-medium leading-\[22px\] text-ink"><bdi dir="auto">Should I apply the fix\?</);
+    expect(html).toMatch(/text-\[15px\] font-semibold leading-\[22px\] text-ink"><bdi dir="auto">Should I apply the fix\?</);
     expect(html).toMatch(/data-ask-header="" class="[^"]*text-\[13px\][^"]*text-ink-secondary[^"]*"/);
     expect(html.indexOf("Ledger asks")).toBeLessThan(html.indexOf("Should I apply the fix?"));
   });

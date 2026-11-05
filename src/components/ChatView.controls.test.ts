@@ -76,12 +76,11 @@ describe("the header's right side", () => {
     return { markup, controls: markup.slice(markup.indexOf("data-chathead-controls"), markup.indexOf("role=\"log\"")) };
   };
 
-  it("keeps the model picker and the bot's computer in view in Simple mode, with ⋯ left to the bot panel", () => {
+  it("keeps the bot's computer in view in Simple mode, with the model and ⋯ left to the bot panel", () => {
     fixture.advanced = false;
     try {
       const { markup, controls } = header();
-      expect(controls).toContain("data-test-model-control");
-      expect(fixture.model).toMatchObject({ threadId: "selected" });
+      expect(controls).not.toContain("data-test-model-control");
       const computer = controls.match(/<button[^>]*data-tour="computer"[^>]*>/)?.[0] ?? "";
       expect(computer.split(" ")).toEqual(expect.arrayContaining(["rounded-full", "size-8"]));
       expect(markup).not.toContain('data-testid="chat-more"');

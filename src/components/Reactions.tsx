@@ -1,5 +1,5 @@
 import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
-import { SmilePlus } from "lucide-react";
+import { Smile } from "lucide-react";
 import { REACTIONS, type Reaction } from "../../shared/reactions";
 import { ACTION_ICON, messageActionClass } from "@/components/MessageActions";
 import { usePopoverDismiss } from "@/hooks/use-popover-dismiss";
@@ -119,9 +119,9 @@ export function ReactAction({ threadId, message }: { threadId: string; message: 
         title={t("chat.react")}
         aria-expanded={open}
         aria-controls={open ? id : undefined}
-        className={cn(messageActionClass, open && "bg-ink/10 text-ink")}
+        className={cn(messageActionClass, open && "bg-ink/[0.06]")}
       >
-        <SmilePlus {...ACTION_ICON} aria-hidden="true" />
+        <Smile {...ACTION_ICON} aria-hidden="true" />
       </button>
       {open && (
         <div

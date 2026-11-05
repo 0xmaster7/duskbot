@@ -102,15 +102,16 @@ describe("conversational replies", () => {
     expect([...document.querySelectorAll("[data-md]")].map((el) => el.textContent)).toContain(reply);
   });
 
-  it("keeps a reply's Reply and Copy in its … menu in Simple mode, beside the reaction button", async () => {
+  it("keeps a reply's Reply beside the reaction button and its Copy in the … menu in Simple mode", async () => {
     await draw(profile({}));
     const row = document.querySelector("[data-mid='m2']")!;
-    expect(row.querySelector('[aria-label="Reply to message"]')).toBeNull();
+    expect(row.querySelector('[aria-label="Reply to message"]')).not.toBeNull();
     expect(row.querySelector('[aria-label="Copy message"]')).toBeNull();
     const more = row.querySelector<HTMLButtonElement>('button[aria-label="Message actions"]')!;
     flushSync(() => more.click());
     const items = [...document.querySelectorAll('[role="menu"][aria-label="Message actions"] [role="menuitem"]')].map((item) => item.textContent);
-    expect(items.slice(0, 2)).toEqual(["Reply", "Copy message"]);
+    expect(items[0]).toBe("Copy message");
+    expect(items).not.toContain("Reply");
   });
 
   it("puts a formatted reply in the bot's bubble in Simple mode, and on the open page in Advanced", async () => {

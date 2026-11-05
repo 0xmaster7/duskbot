@@ -22,6 +22,7 @@ import {
   ASK_QUIET_BUTTON,
   ASK_SMALL_PILL,
   askPrimary,
+  choiceLetter,
   returnFocusToComposer,
   settledAnswer,
   type Asker,
@@ -156,7 +157,8 @@ export function QuestionCard({
     if (questions.every((_, index) => answersOf(next[index] ?? EMPTY).length > 0)) send(next);
   };
 
-  const header = asker
+  // in the asker's own conversation its name is already in the header pill; a copy elsewhere says who asks
+  const header = asker && origin
     ? <AskHeader asker={asker} line={t("ask.header.asks", { name: asker.name })} origin={origin} />
     : undefined;
   const needsSubmit = !oneTap || multi || questions.length > 1;
@@ -208,8 +210,9 @@ export function QuestionCard({
         </div>
       )}
       {freeText && (
-        <div className={current.options.length > 0 ? "mt-2" : undefined}>
+        <div className={current.options.length > 0 ? "mt-px" : undefined}>
           <AskReply
+            letter={current.options.length ? choiceLetter(current.options.length) : undefined}
             label={current.options.length ? t("question.somethingElse") : current.question}
             placeholder={current.options.length ? t("question.somethingElse") : t("question.answerPlaceholder")}
             color={asker?.color}

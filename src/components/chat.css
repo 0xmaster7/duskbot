@@ -1,0 +1,71 @@
+/* a row that arrives while the conversation is open rises 12px into place; the rows already there never move */
+@keyframes chat-row-in {
+  from { transform: translateY(12px); }
+}
+.chat-row-in {
+  animation: chat-row-in 0.24s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+/* a link reads as the text around it, in medium weight, with a quiet underline that firms up on hover */
+.chat-link {
+  color: inherit;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+  unicode-bidi: isolate;
+}
+.chat-link-text {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
+  transition: text-decoration-color 0.12s ease;
+}
+.chat-link:hover .chat-link-text,
+.chat-link:focus-visible .chat-link-text {
+  text-decoration-color: currentColor;
+}
+.chat-link:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* the site's mark rides on the link's first word so the two never wrap apart */
+.chat-link-lead {
+  white-space: nowrap;
+}
+.chat-link-lead > .chat-link-text {
+  white-space: normal;
+}
+.chat-link-favicon {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-inline-end: 4px;
+  overflow: hidden;
+  vertical-align: -4px;
+  vertical-align: round(0.5cap - 9px, 1px);
+}
+.chat-link-favicon > img {
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin: 2px;
+  border-radius: 3px;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-ink) 6%, transparent);
+}
+
+/* lists sit tight, one line height apart, with markers a step quieter than the words */
+[data-chat-bubble="simple"] .chat-md :is(ul, ol) > li {
+  margin-block: 0;
+}
+.chat-md li::marker {
+  color: var(--color-ink-tertiary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-row-in { animation: none; }
+  .chat-link-text { transition: none; }
+}

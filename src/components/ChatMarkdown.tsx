@@ -17,7 +17,7 @@ import { markdownImageName, markdownImageOpenUrl } from "../lib/markdown-image";
 import { repairMarkdownTables } from "../lib/markdown-tables";
 import { TRANSCRIPT_WINDOW_SIZE } from "../lib/transcript-window";
 import { windowsPathDestinations } from "../../shared/markdown-windows-paths";
-import { GITHUB_REF_CLASS, isUseMyComputerUrl, LINK_CLASS, UseMyComputerLink, usePageOpener, withPageOpen } from "./ChatLinks";
+import { GITHUB_REF_CLASS, isUseMyComputerUrl, UseMyComputerLink, usePageOpener, withPageOpen } from "./ChatLinks";
 import { githubRefFromProps, remarkGithubRefs } from "@/lib/github-refs";
 import { GITHUB_REF_ICONS, LinkHoverCard } from "@/components/LinkHoverCard";
 import { useThreadLinkMenu } from "@/components/ThreadLinkMenu";
@@ -29,6 +29,7 @@ import { CodeBlock, CodePlate, codeHash } from "./CodeBlock";
 export { CodeBlock, HIGHLIGHT_CACHE_MAX, HIGHLIGHT_CACHE_MAX_CHARS, HIGHLIGHT_MAX_CHARS, type CodeBlockProps } from "./CodeBlock";
 import { FilePreviewButton } from "./FilePreviewButton";
 import { SaveIconButton, useHtmlPreview } from "./HtmlFilePreview";
+import "./chat.css";
 
 const mermaidCache = new Map<string, string>();
 const MERMAID_CACHE_MAX = 50;
@@ -614,6 +615,32 @@ function MarkdownImage(props: ComponentProps<"img"> & ExtraProps) {
   );
 }
 
+/** A public site's host, the only kind whose mark is worth asking for: never a bare name, an address or a local one. */
+export function faviconHost(href: string): string | null {
+  let host: string;
+  try {
+    host = new URL(href).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+  if (!host.includes(".") || /^[\d.]+$/.test(host) || host.includes(":")) return null;
+  return /\.(local|localhost|internal|lan|home|corp|test|example|invalid)$/.test(host) ? null : host;
+}
+
+function LinkWithFavicon({ href, children }: { href: string; children?: ReactNode }) {
+  const host = faviconHost(href);
+  const [failed, setFailed] = useState(false);
+  if (!host || failed) return <span className="chat-link-text">{children}</span>;
+  return (
+    <span className="chat-link-lead">
+      <span aria-hidden="true" data-copy-skip="" className="chat-link-favicon">
+        <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=32`} alt="" width={14} height={14} loading="lazy" draggable={false} referrerPolicy="no-referrer" onError={() => setFailed(true)} />
+      </span>
+      <span className="chat-link-text">{children}</span>
+    </span>
+  );
+}
+
 function MarkdownLink({ href, children, ...rest }: { href?: string; children?: ReactNode }) {
   // SAFETY: react-markdown hands hast data-* attributes through as string props
   const props = rest as Record<string, unknown>;
@@ -632,8 +659,8 @@ function MarkdownLink({ href, children, ...rest }: { href?: string; children?: R
   }
   if (!/^https?:\/\//i.test(href)) {
     return (
-      <a href={href} target="_blank" rel="noreferrer" dir="auto" className={LINK_CLASS}>
-        {children}
+      <a href={href} target="_blank" rel="noreferrer" dir="auto" className="chat-link">
+        <span className="chat-link-text">{children}</span>
       </a>
     );
   }
@@ -647,8 +674,8 @@ function MarkdownLink({ href, children, ...rest }: { href?: string; children?: R
           <span>{children}</span>
         </a>
       ) : (
-        <a {...anchor} href={href} target="_blank" rel="noreferrer" dir="auto" className={LINK_CLASS}>
-          {children}
+        <a {...anchor} href={href} target="_blank" rel="noreferrer" dir="auto" className="chat-link">
+          <LinkWithFavicon href={href}>{children}</LinkWithFavicon>
         </a>
       )}</>; }}
     </LinkHoverCard>

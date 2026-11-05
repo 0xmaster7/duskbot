@@ -3,7 +3,7 @@ import { useAdvancedMode } from "@/lib/interface-mode";
 import { PHONE_LAYOUT, useMediaQuery } from "@/lib/use-media-query";
 import { ThreadLinkContext } from "@/components/ThreadLinkMenu";
 import { useShowThreads } from "@/lib/thread-preferences";
-import { AlertTriangle, ChevronLeft, ChevronRight, Copy, Monitor, RefreshCw, Reply, Square, Webhook } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight, Copy, Monitor, RefreshCw, Square, Webhook } from "lucide-react";
 import { WorkingDots } from "@/components/WorkingIndicator";
 import { ACTION_ICON, ChatBusyContext, CopyButton, MESSAGE_ROW, MessageActions, messageActionClass, ReplyAction, type MessageMenuItem } from "@/components/MessageActions";
 import { copyText } from "@/lib/copy-text";
@@ -301,12 +301,9 @@ export function FailedTurnRow({ tool, engine, onRetry, botId, threadId }: {
 
 export { MessageBoundary };
 
-/** Simple mode keeps a message's Reply and Copy in its "…" menu, beside the one reaction button. */
-function replyAndCopy(onReply: () => void, text: string): MessageMenuItem[] {
-  return [
-    { key: "reply", icon: <Reply {...ACTION_ICON} />, label: t("chat.reply"), onSelect: onReply },
-    ...(text.trim() ? [{ key: "copy", icon: <Copy {...ACTION_ICON} />, label: t("chat.copyMessage"), onSelect: () => { void copyText(text); } }] : []),
-  ];
+/** Simple mode keeps a message's Copy in its "…" menu, after the reaction and Reply buttons. */
+function copyItem(text: string): MessageMenuItem[] {
+  return text.trim() ? [{ key: "copy", icon: <Copy {...ACTION_ICON} />, label: t("chat.copyMessage"), onSelect: () => { void copyText(text); } }] : [];
 }
 
 const Bubble = memo(function Bubble({
@@ -388,6 +385,8 @@ const Bubble = memo(function Bubble({
     [message.attachments],
   );
   const join: BubbleJoin = { above: joinAbove, below: joinBelow };
+  // only rows that arrive while the conversation is open slide in; the answer that grows from the mascot has its own
+  const fresh = !emerging && message.at > openedAt;
   const reply = useReplySegments(conversational && !user && !peer && !viewRaw && !replyTarget && message.kind === "text", text, message.at, openedAt);
   const split = reply.segments.length > 1;
   // Simple mode draws each table of a reply as its own card between the reply's prose bubbles.
@@ -423,9 +422,10 @@ const Bubble = memo(function Bubble({
   const togglePin = () =>
     dispatch({ type: "updateTask", botId, threadId, patch: { pinnedMessageId: pinned ? "" : message.id } });
   const botActions = !user && (
-    <MessageActions side="bot" forceOpen={viewRaw || speaking} menu={simple ? [...replyAndCopy(() => onReply(message), text), ...botMenu] : botMenu}>
+    <MessageActions side="bot" forceOpen={viewRaw || speaking} menu={simple ? [...copyItem(text), ...botMenu] : botMenu}>
       {!simple && <ReplyAction onReply={() => onReply(message)} />}
       {canReact && !peer && <ReactAction threadId={threadId} message={message} />}
+      {simple && <ReplyAction onReply={() => onReply(message)} />}
       {!simple && text && <CopyButton text={text} className={messageActionClass} />}
       {text && viewRaw && <RawToggleAction active onToggle={() => setViewRaw(false)} className={messageActionClass} />}
       {text && speaking && <SpeakButton text={text} botId={botId} messageId={message.id} voiceId={voiceId} tts={tts} localVoice={localVoice} className={cn(messageActionClass, "text-accent")} />}
@@ -433,7 +433,7 @@ const Bubble = memo(function Bubble({
   );
 
   return (
-    <div {...{ [MESSAGE_ROW]: "" }} className={cn("group flex w-full flex-col", user ? "animate-msg-in items-end" : "items-start", simple && join?.above && SIMPLE_STACKED)}>
+    <div {...{ [MESSAGE_ROW]: "" }} className={cn("group flex w-full flex-col", user ? "items-end" : "items-start", fresh && "chat-row-in", simple && join?.above && SIMPLE_STACKED)}>
       {message.relay ? <RelayLabel message={message} /> : peer && <PeerLabel peer={peer} />}
       {speaker && <div className="mb-0.5 px-1 text-[12px] font-medium text-ink-secondary">{speaker}</div>}
       <div className={cn("flex w-full items-center gap-1.5", user ? "justify-end" : "justify-start")}>
@@ -441,7 +441,7 @@ const Bubble = memo(function Bubble({
           <MessageActions
             side="user"
             menu={[
-              ...(simple ? replyAndCopy(() => onReply(message), visibleText) : []),
+              ...(simple ? copyItem(visibleText) : []),
               ...userMessageMenu({
                 messageId: message.id,
                 onEdit: !speaker && message.kind === "text" && !webhookView && !hasAttachments && !message.id.startsWith("optimistic-")
@@ -450,7 +450,7 @@ const Bubble = memo(function Bubble({
               }),
             ]}
           >
-            {!simple && <ReplyAction onReply={() => onReply(message)} />}
+            <ReplyAction onReply={() => onReply(message)} />
             {!simple && Boolean(visibleText.trim()) && <CopyButton text={visibleText} className={messageActionClass} />}
           </MessageActions>
         )}
@@ -568,8 +568,9 @@ const Bubble = memo(function Bubble({
         {!tabled && botActions}
         <span
           className={cn(
-            "self-end pb-1 text-[11px] tabular-nums text-ink-tertiary opacity-0 transition-opacity group-hover:opacity-100",
-            user ? "order-first mr-2" : "ml-2",
+            "tabular-nums text-ink-tertiary opacity-0 transition-opacity group-hover:opacity-100",
+            simple ? "self-center text-[12px] font-medium" : "self-end pb-1 text-[11px]",
+            user ? "order-first mr-2" : simple ? "ms-auto ps-2" : "ml-2",
           )}
         >
           {formatTime(message.at)}
@@ -1112,8 +1113,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           )}
           <ThreadContextWarning bot={bot} messages={messages} />
           {phone && <UsageAlert engine={bot.modelSelection?.instanceId} />}
-          {/* The model and the bot's computer stay in view in both modes; Simple mode moves only ⋯ into the bot panel. */}
-          {!phone && <ModelPicker key={bot.threadId} bot={bot} threadId={bot.threadId} />}
+          {/* Simple mode chooses the model in the bot panel's Details, as its header is the bot's pill alone. */}
+          {!phone && !simpleHead && <ModelPicker key={bot.threadId} bot={bot} threadId={bot.threadId} />}
           <LiveCallChip currentBotId={bot.id} onOpen={(botId, threadId) => openThread(dispatch, { botId, threadId }, state, showThreads)} />
           {!phoneMenu && <button
             data-tour="computer"
@@ -1232,7 +1233,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               <BotAvatar
                 bot={bot}
                 state={toolInFlight ? "working" : "thinking"}
-                size={advanced ? 36 : 28}
+                size={advanced ? 36 : 22}
                 forward={false}
                 lookAround={1}
                 trackPointer={false}

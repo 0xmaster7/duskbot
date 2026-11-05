@@ -4,7 +4,7 @@ import { useStore, visibleMessages, type Message } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { isPersistentQuestionCard, parseChoices } from "../../shared/ask-question";
-import { ASK_QUIET_BUTTON, AskCard, AskChoices, AskReply, AskSettledLine, returnFocusToComposer, settledAnswer } from "./AskCard";
+import { ASK_QUIET_BUTTON, AskCard, AskChoices, AskReply, AskSettledLine, choiceLetter, returnFocusToComposer, settledAnswer } from "./AskCard";
 import { ExpandableText } from "./ExpandableText";
 
 const MAX_CHOICES = 6;
@@ -97,8 +97,9 @@ export function OptionCard({
         />
       )}
       {!card.answered && !card.tool && !card.fixedOptions && (
-        <div className={options.length > 0 ? "mt-2" : undefined}>
+        <div className={options.length > 0 ? "mt-px" : undefined}>
           <AskReply
+            letter={options.length ? choiceLetter(options.length) : undefined}
             label={t("onboarding.card.custom")}
             placeholder={t(options.length ? "question.somethingElse" : "onboarding.card.custom")}
             color={bot?.color}

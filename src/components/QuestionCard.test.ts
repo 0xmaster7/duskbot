@@ -89,9 +89,9 @@ describe("one card for every question", () => {
 });
 
 describe("QuestionCard", () => {
-  it("leads with the bot that asks, then the question in clear ink, then one button per choice", () => {
+  it("leads with the question in clear ink, then one button per choice, its asker already named by the chat's pill", () => {
     const html = render(asked());
-    expect(html).toContain("Ledger asks");
+    expect(html).not.toContain("Ledger asks");
     expect(html).toMatch(/text-ink"><bdi dir="auto">Should I apply the fix to the pricing page\?</);
     for (const choice of CHOICES) expect(html).toContain(`>${choice}</span>`);
     expect(html.match(/data-ask-choice=""/g)).toHaveLength(3);

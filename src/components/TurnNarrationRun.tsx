@@ -1,6 +1,7 @@
 // Providers such as Grok narrate before tools.
 import { useEffect, useState } from "react";
 import { Check, ChevronRight } from "lucide-react";
+import { RUN_TOGGLE } from "./ActivityRun";
 
 export function TurnNarrationRun({
   label,
@@ -26,11 +27,12 @@ export function TurnNarrationRun({
           onClick={() => setOpen((value) => !value)}
           aria-expanded={open}
           title={title ?? (open ? "Hide progress messages" : "Show progress messages")}
-          className="ui-pill"
+          data-run-toggle=""
+            className={RUN_TOGGLE}
         >
-          <Check size={13} className="text-success" />
-          <span>{label}</span>
-          <ChevronRight size={13} className={open ? "rotate-90" : undefined} />
+          <Check size={13} aria-hidden="true" className="shrink-0 text-success" />
+          <span className="min-w-0 truncate leading-5">{label}</span>
+          <ChevronRight size={13} aria-hidden="true" className={open ? "shrink-0 rotate-90" : "shrink-0"} />
         </button>
       </div>
       {open && children}
