@@ -88,6 +88,35 @@ export function markMarkup(node: MarkNode): string {
   return `<${node.tag}${attrs}>${node.children.map(markMarkup).join("")}</${node.tag}>`;
 }
 
+export interface IdleScheduler {
+  request(callback: (deadline: { timeRemaining(): number }) => void): void;
+}
+
+/** The engine builds a body's geometry the first time it draws it, 2 to 25 ms a shape. */
+const WARM_BUDGET_MS = 12;
+const warmed = new Set<string>();
+
+/** Builds each body's geometry in idle time, one shape per idle slice, so the first Create New Bot dialog or a newly
+ * opened chat draws from the cache instead of paying for it inside a frame. */
+export function prewarmMarkShapes(bodies: readonly string[], sizePx: number, idle: IdleScheduler): void {
+  const queue = [...new Set(bodies.map(markShape))].filter((shape) => !warmed.has(`${shape}:${sizePx}`));
+  if (!queue.length) return;
+  for (const shape of queue) warmed.add(`${shape}:${sizePx}`);
+  const appearance = markAppearance("#000", "#fff");
+  const step = (deadline: { timeRemaining(): number }) => {
+    while (queue.length && deadline.timeRemaining() > WARM_BUDGET_MS) {
+      const shape = queue.shift()!;
+      try {
+        markTree(createAnimator({ body: shape }).frame(), appearance, markResolution(sizePx), "mark-warm", { displaySize: sizePx, extent: "100%" });
+      } catch {
+        // a shape the engine cannot draw at rest is drawn (or not) by its own mark later
+      }
+    }
+    if (queue.length) idle.request(step);
+  };
+  idle.request(step);
+}
+
 export interface MarkOptions {
   /** Unique per mounted mark: the engine names its mask and clip ids after it. */
   id: string;

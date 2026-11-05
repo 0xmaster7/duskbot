@@ -1,8 +1,13 @@
 import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState, type CSSProperties } from "react";
 
 import { mascotClock, usePrefersReducedMotion } from "./mascot-clock";
-import { MARK_CANVAS_PERCENT, MARK_POKES, createMark, type Mark, type MarkState } from "./mascot-motion-mark";
+import { MARK_CANVAS_PERCENT, MARK_POKES, createMark, prewarmMarkShapes, type Mark, type MarkState } from "./mascot-motion-mark";
 import type { MarkPoke } from "./mascot-motion-engine";
+import { GROK_BODY_IDS } from "../../shared/grok-bodies";
+
+/** The sidebar's and Create New Bot's mark size: their bodies get built ahead, in idle time. */
+const WARM_SIZE = 36;
+let warmScheduled = false;
 
 /** Grok's face names, in the order the old expression index picks them. */
 const FACES = ["neutral", "happy", "surprised", "sad", "sleepy", "squinted", "calm", "inspecting", "confused"];
@@ -80,6 +85,12 @@ export const GrokMark = forwardRef<GrokMarkHandle, GrokMarkProps>(function GrokM
   useEffect(() => {
     if (!canvas.current || !host.current || !mark.current) return;
     return mark.current.attach(canvas.current, host.current);
+  }, []);
+
+  useEffect(() => {
+    if (warmScheduled || typeof requestIdleCallback !== "function") return;
+    warmScheduled = true;
+    prewarmMarkShapes(GROK_BODY_IDS, WARM_SIZE, { request: (callback) => requestIdleCallback(callback) });
   }, []);
 
   useEffect(() => {

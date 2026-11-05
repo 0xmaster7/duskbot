@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from "vitest";
 
-import { IDLE_SETTLE_MS, MARK_STATES, SETTLED_HOLD_MS, createMark, hoverGaze, markSeed, type MarkOptions } from "./mascot-motion-mark";
+import { IDLE_SETTLE_MS, MARK_STATES, SETTLED_HOLD_MS, createMark, hoverGaze, markSeed, prewarmMarkShapes, type MarkOptions } from "./mascot-motion-mark";
 
 function rig(overrides: Partial<MarkOptions> = {}) {
   let now = 0;
@@ -112,5 +112,21 @@ describe("grok mark controller", () => {
     expect(hoverGaze(rect, 18 + 9, 18).x).toBe(0.5);
     expect(hoverGaze(rect, 18, 18 + 9).y).toBe(0.5);
     expect(hoverGaze(rect, 100, 100)).toEqual({ x: 1, y: 1 });
+  });
+});
+
+describe("prewarmMarkShapes", () => {
+  it("builds bodies in idle slices, stops while a slice is short, and never queues a shape twice", () => {
+    const slices: Array<(deadline: { timeRemaining(): number }) => void> = [];
+    const idle = { request: (callback: (deadline: { timeRemaining(): number }) => void) => void slices.push(callback) };
+    prewarmMarkShapes(["blob", "flower", "fruit", "blob"], 40, idle);
+    expect(slices).toHaveLength(1);
+    slices.shift()!({ timeRemaining: () => 0 });
+    expect(slices).toHaveLength(1);
+    let left = 3;
+    slices.shift()!({ timeRemaining: () => (left-- > 0 ? 50 : 0) });
+    expect(slices).toHaveLength(0);
+    prewarmMarkShapes(["flower", "fruit"], 40, idle);
+    expect(slices).toHaveLength(0);
   });
 });
