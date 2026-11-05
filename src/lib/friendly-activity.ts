@@ -4,7 +4,11 @@ import type { LiveStatus } from "@/state/turn-status";
 import { t } from "./i18n";
 import { turnNowPhrases, type LiveActivityPhrases } from "./live-activity";
 
-const GENERIC: LocaleKey[] = ["chat.friendly.thinking", "chat.friendly.mulling", "chat.friendly.working", "chat.friendly.chipping"];
+// grok's two pools: thinking draws from its thinking phrases, any other unnamed work from its working ones
+const THINKING: LocaleKey[] = ["chat.friendly.thinking", "chat.friendly.mulling"];
+const GENERIC: LocaleKey[] = ["chat.friendly.working", "chat.friendly.chipping"];
+// a command, search or page is said by its kind, never by the command or address itself
+const STEP_PHRASES: Record<string, LocaleKey> = { command: "chat.friendly.commands", web: "chat.friendly.digging", fetch: "chat.friendly.digging" };
 
 // Keys, not labels: t() reads the active language pack when called.
 const BY_PHASE: Array<[readonly string[], LocaleKey[]]> = [
@@ -36,16 +40,20 @@ function phrases(phase: string, keys: LocaleKey[]): LiveActivityPhrases {
 }
 
 /** Simple mode's one rotating line for what the bot is doing now: plain words in place of file names, sizes and
- * timers, chosen by the kind of step (a tool's spoken narration is read by its name, as every other step is); a
- * command, search or page the server could name is said by name. */
+ * timers, chosen by the kind of step (a tool's spoken narration is read by its name, as every other step is). */
 export function friendlyNowPhrases(status: LiveStatus | null, message?: Message): LiveActivityPhrases {
   const plain = message?.kind === "activity" && message.tool?.spoken ? { ...message, tool: { ...message.tool, spoken: undefined } } : message;
   const now = turnNowPhrases(status, plain);
-  if (now?.phase.startsWith("step:") || now?.phase.startsWith("notice:")) return now;
+  if (now?.phase.startsWith("notice:")) return now;
+  if (now?.phase.startsWith("step:")) {
+    const key = STEP_PHRASES[now.phase.split(":")[1] ?? ""];
+    return key ? phrases(key.slice("chat.friendly.".length), [key]) : now;
+  }
   const tool = (status && "tool" in status ? status.tool : undefined) ?? (message?.kind === "activity" && message.tool?.ok === undefined ? message.tool?.name : undefined);
   const service = toolService(tool);
   if (service) return { phase: `friendly:service:${service}`, phrases: [t("chat.friendly.service", { service })] };
   if (!now) return phrases("generic", GENERIC);
+  if (now.phase === "chat.activity.thinking") return phrases("thinking", THINKING);
   if (now.phase.startsWith("live:read:")) return phrases("digging", ["chat.friendly.digging"]);
   if (now.phase.startsWith("live:")) return phrases("code", ["chat.friendly.code"]);
   const match = BY_PHASE.find(([phases]) => phases.includes(now.phase));

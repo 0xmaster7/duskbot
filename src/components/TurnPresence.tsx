@@ -9,6 +9,8 @@ import { formatElapsed } from "@/lib/working-time";
 import type { StepQuiet } from "../../shared/turn-progress";
 
 const FADE_MS = 320;
+/** Grok's activity line leaves in 140ms. */
+const STATUS_EXIT_MS = 140;
 
 export function useRotatingPhrase(
   phrases: readonly string[],
@@ -51,6 +53,59 @@ function ShimmerPhrase({ text, className }: { text: string; className?: string }
       <span aria-hidden="true" className="thinking-sheen"><span data-text={text} /></span>
     </span>
   );
+}
+
+/** Grok's status label rules (its activity line): a turn's first moments say nothing until the bot is plainly busy
+ * (5s of generic work, 2.5s of thinking), each step shows one phrase drawn for it and keeps it at least 800ms before
+ * the next step may replace it. */
+export const STATUS_QUIET_MS = { working: 5_000, thinking: 2_500 } as const;
+export const STATUS_HOLD_MS = 800;
+const TYPING_PHASE = "friendly:chat.typing";
+
+function quietFor(phase: string): number {
+  if (phase === "friendly:thinking") return STATUS_QUIET_MS.thinking;
+  return phase === "friendly:generic" ? STATUS_QUIET_MS.working : 0;
+}
+
+function drawn(phrases: readonly string[], seed: string): string {
+  let hash = 2166136261;
+  for (let i = 0; i < seed.length; i++) hash = Math.imul(hash ^ seed.charCodeAt(i), 16777619);
+  return phrases[(hash >>> 0) % Math.max(1, phrases.length)] ?? "";
+}
+
+/** The step label the simple status line shows now, or null while the turn is still quiet. */
+export function useStatusLabel(phrases: readonly string[] | null, phase: string, seed: string, since: number | null, active: boolean): { key: string; text: string } | null {
+  const [, wake] = useState(0);
+  const shown = useRef<{ key: string; text: string; at: number; leftAt?: number } | null>(null);
+  const firstSeen = useRef<number | null>(null);
+  const now = Date.now();
+  if (!active) firstSeen.current = null;
+  else firstSeen.current ??= now;
+  const quietUntil = (since ?? firstSeen.current ?? now) + quietFor(phase);
+  let next: { key: string; text: string } | null = phrases && phrases.length > 0 && now >= quietUntil
+    ? { key: phase, text: drawn(phrases, `${seed}|${phase}`) }
+    : null;
+  const held = shown.current;
+  // "Typing…" outlasts the reply by 800ms: the words land, then the line moves on
+  if (held && next?.key !== held.key) held.leftAt ??= now;
+  else if (held) held.leftAt = undefined;
+  const holdUntil = held ? Math.max(held.at, held.key === TYPING_PHASE ? held.leftAt ?? 0 : 0) + STATUS_HOLD_MS : 0;
+  if (held && next?.key !== held.key && now < holdUntil) next = held;
+  if (!next) shown.current = null;
+  else if (next.key !== held?.key) shown.current = { ...next, at: now };
+  const due = Math.min(...[quietUntil, holdUntil].filter((at) => at > now));
+  useEffect(() => {
+    if (!active || !Number.isFinite(due)) return;
+    const timer = setTimeout(() => wake((tick) => tick + 1), due - Date.now());
+    return () => clearTimeout(timer);
+  }, [active, due]);
+  return active && next ? { key: next.key, text: next.text } : null;
+}
+
+/** Grok's shimmer: the words in 40% ink with a full-ink band swept across them by background-position, 2.2s in 60
+ * steps. */
+function StatusShimmer({ text }: { text: string }) {
+  return <span className="status-shimmer">{text}</span>;
 }
 
 const NOTHING: readonly string[] = [];
@@ -135,11 +190,13 @@ export function TurnPresence({
       return;
     }
     setPhase("out");
-    const timer = setTimeout(() => setMounted(false), 280);
+    const timer = setTimeout(() => setMounted(false), simple ? STATUS_EXIT_MS : 280);
     return () => clearTimeout(timer);
-  }, [visible, answering, mounted]);
+  }, [visible, answering, mounted, simple]);
 
   const showWorking = presencePhase === "think";
+  // grok's line leaves with the words it was saying
+  const simpleStatus = simple && (showWorking || presencePhase === "out");
   const expandable = Boolean(card) && showWorking;
   useEffect(() => {
     if (!expandable) setOpen(false);
@@ -159,18 +216,17 @@ export function TurnPresence({
   }, [open]);
   const lead = label ?? t("chat.activity.working");
   const now = phrases && phrases.length > 0 ? phrases : null;
-  const { current, previous } = useRotatingPhrase(now ?? NOTHING, phase ?? now?.[0] ?? "", seed, mounted && showWorking && now !== null);
+  const { current, previous } = useRotatingPhrase(now ?? NOTHING, phase ?? now?.[0] ?? "", seed, !simple && mounted && showWorking && now !== null);
+  const step = useStatusLabel(label ? [label] : now, label ? `label:${label}` : phase ?? now?.[0] ?? "", seed, since, mounted && simpleStatus);
   if (!mounted) return null;
-  const status = showWorking && simple ? (
-    <span id={statusId} className="flex min-w-0 items-baseline gap-x-1.5 text-[14px] leading-[22px] text-ink-tertiary" data-turn-status>
-      <span className="turn-phrase turn-phrase-quiet relative grid min-w-0" title={hover} data-turn-now={now ? "" : undefined}>
-        {now ? (
-          <ShimmerPhrase key={`in:${current}`} text={current} className={cn("truncate", previous !== null && "turn-phrase-in")} />
-        ) : (
-          <span>{label ?? t("chat.typing")}</span>
-        )}
-      </span>
-      {now && quiet && <QuietPart quiet={quiet} />}
+  const status = simpleStatus ? (
+    <span id={statusId} className="turn-label-slot flex h-[22px] min-w-0 items-center gap-x-1.5 text-[14px] leading-[22px]" data-turn-status>
+      {step && (
+        <span key={step.key} className="turn-label-in flex min-w-0 items-center" title={hover} data-turn-now="">
+          <StatusShimmer text={step.text} />
+        </span>
+      )}
+      {step && quiet && <QuietPart quiet={quiet} />}
     </span>
   ) : showWorking ? (
     <span id={statusId} className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-1 leading-none" data-turn-status>
@@ -209,12 +265,12 @@ export function TurnPresence({
         title={simple && showWorking ? [lead, since !== null ? formatElapsed(Date.now() - since) : null, detail ?? (now ? current : null), size].filter(Boolean).join(" · ") : undefined}
         className={cn(
           simple ? "flex h-9 min-w-0 max-w-full items-center gap-[8.5px] ps-2" : "flex min-w-0 max-w-full items-center gap-2",
-          presencePhase === "think" && "turn-mascot-in",
-          presencePhase === "out" && "turn-mascot-out",
+          presencePhase === "think" && (simple ? "turn-status-in" : "turn-mascot-in"),
+          presencePhase === "out" && (simple ? "turn-status-out" : "turn-mascot-out"),
         )}
       >
-        {avatar}
-        {expandable ? (
+        {simple ? <span className="turn-status-mark inline-flex shrink-0">{avatar}</span> : avatar}
+        {expandable && (!simple || step) ? (
           <button
             ref={toggle}
             type="button"
@@ -230,7 +286,7 @@ export function TurnPresence({
           </button>
         ) : status}
       </div>
-      {expandable && open && (
+      {expandable && (!simple || step) && open && (
         <div id={cardId} role="region" aria-label={cardLabel} className="turn-now-card">
           {card}
         </div>

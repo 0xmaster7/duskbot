@@ -138,7 +138,7 @@ function plainWhen(schedule: RoutineRequestSchedule): string {
   return scheduleLabel(schedule);
 }
 
-export function appliedChange(card: OptionCardData, name: string): { line: string; canUndo: boolean; cancels?: boolean } | undefined {
+export function appliedChange(card: OptionCardData, name: string): { line: string; canUndo: boolean; cancels?: boolean; detail?: string } | undefined {
   const routine = card.routineRequest;
   if (routine) {
     const operation = routine.operation;
@@ -173,12 +173,10 @@ export function appliedChange(card: OptionCardData, name: string): { line: strin
   }
   const profile = card.profileRequest;
   if (profile) {
-    const title = PROFILE_REQUEST_FIELDS.filter((field) => profile.changes[field] !== undefined)
+    const changed = PROFILE_REQUEST_FIELDS.filter((field) => profile.changes[field] !== undefined)
       .map((field) => t(PROFILE_FIELD_LABEL[field])).join(", ");
-    const line = profile.targetBotId === profile.botId
-      ? t("approval.applied.profileOwn", { name, title })
-      : t("approval.applied.profileOther", { name, target: `@${profile.targetName}`, title });
-    return { line, canUndo: Boolean(profile.undo) };
+    // the line only says it happened; what changed waits behind Details
+    return { line: t("approval.status.profileUpdated"), canUndo: Boolean(profile.undo), detail: changed };
   }
   const model = card.modelRequest;
   if (model) {
@@ -211,7 +209,7 @@ function AppliedChangeLine({
   card: OptionCardData;
   name: string;
   threadId?: string;
-  summary: { line: string; canUndo: boolean; cancels?: boolean };
+  summary: { line: string; canUndo: boolean; cancels?: boolean; detail?: string };
 }) {
   const [open, setOpen] = useState(false);
   const [undoing, setUndoing] = useState(false);
@@ -310,7 +308,7 @@ function AppliedChangeLine({
           aria-label={t("approval.aria.appliedDetails")}
           className="mt-1.5 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-2xl bg-inset px-4 py-3 font-mono text-[13px] leading-relaxed text-ink"
         >
-          {card.subtitle}
+          {[summary.detail, card.subtitle].filter(Boolean).join("\n\n")}
         </pre>
       )}
     </div>
@@ -322,6 +320,21 @@ export const APPROVAL_CODE_CHIP =
 
 const TEXT_ACTION =
   "inline-flex h-6 items-center rounded-full px-2 hover:bg-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
+
+/** What an allowed step did, said the way grok's steps read: plain words, the command itself only behind Details. */
+const DONE_STEP: Partial<Record<string, LocaleKey>> = {
+  Bash: "chat.now.ranCommand", shell: "chat.now.ranCommand",
+  Read: "chat.now.readFile", read: "chat.now.readFile",
+  Write: "chat.now.wroteFile",
+  Edit: "chat.now.editedFile", edit: "chat.now.editedFile",
+  WebFetch: "chat.now.readPage", fetch: "chat.now.readPage",
+  WebSearch: "chat.now.searchedWeb",
+};
+
+export function doneStepLine(tool: string | undefined): string | null {
+  const key = tool ? DONE_STEP[tool] : undefined;
+  return key ? t(key) : null;
+}
 
 function firstLineOf(text: string): string {
   const line = text.split("\n", 1)[0] ?? "";
@@ -339,6 +352,7 @@ function CompactApprovalRow({
   byVoice,
   waiting,
   answeredBelow,
+  quietOutcome = false,
 }: {
   header: string;
   summary?: string;
@@ -350,6 +364,8 @@ function CompactApprovalRow({
   byVoice: ReactNode;
   waiting: boolean;
   answeredBelow: boolean;
+  /** An allowed step needs no "Allowed": the line already says what it did. */
+  quietOutcome?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const toggle = () => setOpen((value) => !value);
@@ -389,7 +405,9 @@ function CompactApprovalRow({
             </button>
           </span>
         )}
-        <span className="shrink-0" aria-live="polite">· {outcome ?? t("approval.status.waitingAnswer")}</span>
+        {quietOutcome
+          ? <span className="sr-only" aria-live="polite">{outcome}</span>
+          : <span className="shrink-0" aria-live="polite">· {outcome ?? t("approval.status.waitingAnswer")}</span>}
         {byVoice}
         {detail && !showDetailInline && (
           <button
@@ -474,19 +492,22 @@ export function ApprovalCard({
   if (!isRoutineRequest && !isSkillRequest && !isProfileRequest && !titled && !card.modelRequest) {
     const waiting = !settled && !expired;
     const ask = yourComputerAsk(card, bot?.name ?? t("approval.someone"));
-    const header = ask ? ask.line : outbound
+    const allowed = settled === "allow" && !expired;
+    const done = !waiting && allowed && !ask && !outbound ? doneStepLine(displayTool) : null;
+    const header = done ?? (ask ? ask.line : outbound
       ? waiting ? outbound.headline : outbound.headline.replace(/\s*[?？]$/, "")
       : bot
         ? t("approval.card.namedWantsTo", { name: bot.name, action: toolLabel(displayTool) })
-        : t("approval.card.wantsTo", { action: toolLabel(displayTool) });
+        : t("approval.card.wantsTo", { action: toolLabel(displayTool) }));
     const row = (
       <CompactApprovalRow
         header={header}
         summary={outbound?.summary || undefined}
         detail={ask?.detail ?? card.subtitle}
-        showDetailInline={!outbound}
+        showDetailInline={waiting && !outbound}
+        quietOutcome={!waiting && allowed}
         outcome={outcome}
-        allowed={settled === "allow" && !expired}
+        allowed={allowed}
         expired={expired}
         byVoice={byVoice}
         waiting={waiting}

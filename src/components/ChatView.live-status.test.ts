@@ -94,20 +94,21 @@ describe("Simple mode's working line", () => {
     engine({ type: "turn.started" });
     render(busyBot([ask]));
     expect(mascot()).not.toBeNull();
-    expect(statusLine()).toBe("Thinking it through");
+    expect(statusLine()).toBe("Working on it");
     expect(mascot()!.innerHTML).toMatch(/width(="|: )28px/);
     const row = mascot()!.firstElementChild as HTMLElement;
     expect([...row.classList]).toEqual(expect.arrayContaining(["h-9", "ps-2", "gap-[8.5px]"]));
     expect(row.title).toMatch(/^Working · /);
-    expect(mascot()!.querySelector("[data-turn-status]")!.classList).toContain("text-ink-tertiary");
-    expect(mascot()!.classList).not.toContain("-mt-3");
+    expect(mascot()!.querySelector("[data-turn-status] .status-shimmer")).not.toBeNull();
+    const slot = () => mascot()!.closest(".turn-status-slot")!;
+    expect(slot().classList).not.toContain("-mt-3");
 
     engine({ type: "item.completed", itemType: "assistant_text", text: intro.text! } as Partial<RuntimeEvent>);
     render(busyBot([ask, intro]));
-    expect(mascot()!.classList, "under the bot's own bubble it sits close, as one more part of the reply").toContain("-mt-3");
-    // The reply that just arrived pops in first; the line comes back once it has.
-    act(() => void vi.advanceTimersByTime(600));
+    expect(slot().classList, "under the bot's own bubble it sits close, as one more part of the reply").toContain("-mt-3");
     engine({ type: "turn.progress", activity: "write", itemId: "toolu_write", file: "index.html", bytes: 14 * 1024 + 300 } as Partial<RuntimeEvent>);
+    expect(statusLine(), "a step keeps its words 800ms before the next replaces them, as grok's line does").toBe("Working on it");
+    act(() => void vi.advanceTimersByTime(800));
     expect(statusLine()).toBe("Writing some code");
   });
 
@@ -237,7 +238,7 @@ describe("what the bot is doing right now", () => {
     engine({ type: "item.started", itemType: "tool", itemId: "b1", title: "Bash" } as Partial<RuntimeEvent>);
     engine({ type: "turn.progress", activity: "command", itemId: "b1", target: "scrape.py", quiet: { kind: "idle" } } as Partial<RuntimeEvent>);
     render(busyBot([ask, search, bash]));
-    expect(statusLine()).toBe("Running scrape.py · idle, no output yet");
+    expect(statusLine()).toBe("Running a few commands · idle, no output yet");
     act(() => toggle()!.click());
     expect(steps()).toEqual(["done: Searched the web for “Acme construction leads”", "now: Running scrape.py"]);
   });

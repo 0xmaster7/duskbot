@@ -352,3 +352,68 @@
 .composer-press[data-composer-plus]:active:not(:disabled) {
   transform: none;
 }
+
+/* grok's activity line: the row grows from its leading edge, the mark pops, the label rises in; it leaves in 140ms */
+@keyframes turn-status-in {
+  from { opacity: 0; transform: scale(0.92); }
+}
+@keyframes turn-status-out {
+  to { opacity: 0; transform: scale(0.92); }
+}
+@keyframes turn-mark-pop {
+  from { opacity: 0; transform: scale(0.6); }
+}
+@keyframes turn-label-rise {
+  from { opacity: 0; transform: translateY(4px); }
+}
+.turn-status-in {
+  transform-origin: 0 18px;
+  animation: turn-status-in 180ms var(--omb-ease-out) backwards;
+}
+.turn-status-in .turn-status-mark {
+  animation: turn-mark-pop 340ms var(--omb-ease-back) backwards;
+}
+.turn-status-in .turn-label-slot {
+  animation: turn-label-rise 180ms var(--omb-ease-out) 220ms backwards;
+}
+.turn-status-out {
+  transform-origin: 0 18px;
+  animation: turn-status-out 140ms var(--omb-ease-out) forwards;
+}
+.turn-label-in {
+  animation: turn-label-rise 180ms var(--omb-ease-out) backwards;
+}
+.status-shimmer {
+  --status-shimmer-ink: var(--color-ink);
+  --status-shimmer-dim: color-mix(in srgb, var(--status-shimmer-ink) 40%, transparent);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: transparent;
+  background-image: linear-gradient(90deg, var(--status-shimmer-dim) 0%, var(--status-shimmer-dim) 25%, var(--status-shimmer-ink) 60%, var(--status-shimmer-dim) 75%, var(--status-shimmer-dim) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: status-shimmer 2.2s steps(60, end) infinite;
+}
+@keyframes status-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .turn-status-in, .turn-status-in .turn-status-mark, .turn-status-in .turn-label-slot, .turn-label-in { animation-name: chat-row-fade; }
+  .turn-status-out { animation-name: omb-fade-out; }
+  .status-shimmer { animation: none; background-image: none; color: var(--color-ink-secondary); }
+}
+
+/* grok's 16px pane inset for the composer and the rows riding above it */
+.chat-column-dock[data-grok-inset] {
+  max-width: calc(var(--chat-column-max) + 2rem);
+}
+.chat-column-dock[data-grok-inset] > .px-5 {
+  padding-inline: 1rem;
+}
+@media (forced-colors: active) {
+  .status-shimmer { color: CanvasText; background-image: none; }
+}

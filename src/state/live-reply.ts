@@ -1,0 +1,133 @@
+// The reply text a thread's engine is streaming right now, held outside the app reducer like the status line, so a
+// delta re-renders only the one row that shows it. It stays until the reply's message lands in the transcript.
+import { useSyncExternalStore } from "react";
+
+import type { RuntimeEvent } from "../../shared/runtime-events";
+import { redactSecretsInText } from "../../shared/redact";
+
+export interface LiveReply {
+  text: string;
+  startedAt: number;
+}
+
+const MAX_THREADS = 200;
+const MAX_STREAMED = 200;
+/** A turn that ended without its message (stopped, failed) lets its streamed text go after this long. */
+export const LIVE_REPLY_ORPHAN_MS = 1_500;
+
+const replies = new Map<string, LiveReply>();
+const listeners = new Map<string, Set<() => void>>();
+const orphanTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const streamed = new Set<string>();
+
+function notify(threadId: string): void {
+  for (const listener of Array.from(listeners.get(threadId) ?? [])) listener();
+}
+
+function cancelOrphan(threadId: string): void {
+  const timer = orphanTimers.get(threadId);
+  if (timer) clearTimeout(timer);
+  orphanTimers.delete(threadId);
+}
+
+function clear(threadId: string): void {
+  cancelOrphan(threadId);
+  if (!replies.delete(threadId)) return;
+  notify(threadId);
+}
+
+export function noteReplyEvent(event: RuntimeEvent, now = Date.now()): void {
+  const { threadId } = event;
+  switch (event.type) {
+    case "content.delta": {
+      if (event.streamKind !== "assistant_text" || !event.delta) return;
+      cancelOrphan(threadId);
+      const current = replies.get(threadId);
+      replies.delete(threadId);
+      replies.set(threadId, { text: (current?.text ?? "") + event.delta, startedAt: current?.startedAt ?? now });
+      if (replies.size > MAX_THREADS) {
+        const oldest = replies.keys().next().value!;
+        replies.delete(oldest);
+        notify(oldest);
+      }
+      notify(threadId);
+      return;
+    }
+    case "turn.started":
+      clear(threadId);
+      return;
+    case "turn.completed":
+    case "cap.exhausted":
+    case "session.exited":
+      if (!replies.has(threadId)) return;
+      cancelOrphan(threadId);
+      orphanTimers.set(threadId, setTimeout(() => clear(threadId), LIVE_REPLY_ORPHAN_MS));
+      return;
+    default:
+  }
+}
+
+/** A bot's words landed in the thread: they replace whatever was streaming there. */
+export function noteReplyLanded(threadId: string, messageId: string): void {
+  if (replies.get(threadId)?.text) {
+    streamed.add(messageId);
+    if (streamed.size > MAX_STREAMED) streamed.delete(streamed.values().next().value!);
+  }
+  clear(threadId);
+}
+
+/** The message took the place of a reply that was already on screen, so it arrives without an entrance. */
+export function replacedLiveReply(messageId: string): boolean {
+  return streamed.has(messageId);
+}
+
+export function liveReply(threadId: string | null | undefined): LiveReply | null {
+  return (threadId && replies.get(threadId)) || null;
+}
+
+function subscribe(threadId: string | null | undefined, listener: () => void): () => void {
+  if (!threadId) return () => {};
+  let set = listeners.get(threadId);
+  if (!set) listeners.set(threadId, (set = new Set()));
+  set.add(listener);
+  return () => {
+    set.delete(listener);
+    if (set.size === 0) listeners.delete(threadId);
+  };
+}
+
+export function useLiveReply(threadId: string | null | undefined): LiveReply | null {
+  return useSyncExternalStore(
+    (listener) => subscribe(threadId, listener),
+    () => liveReply(threadId),
+    () => liveReply(threadId),
+  );
+}
+
+/** Whether the thread is streaming a reply, for a parent that must not re-render on every delta. */
+export function useLiveReplyActive(threadId: string | null | undefined): boolean {
+  return useSyncExternalStore(
+    (listener) => subscribe(threadId, listener),
+    () => Boolean(liveReply(threadId)?.text),
+    () => Boolean(liveReply(threadId)?.text),
+  );
+}
+
+/** What a streaming reply may show: secrets masked as the stored message masks them, and a private key that has
+ * begun but not ended held back whole. */
+export function shownReplyText(text: string): string {
+  const redacted = redactSecretsInText(text);
+  for (const match of redacted.matchAll(/-----BEGIN [A-Z ]*PRIVATE KEY-----/g)) {
+    const body = redacted.slice(match.index + match[0].length);
+    if (!/-----END [A-Z ]*PRIVATE KEY-----/.test(body)) return redacted.slice(0, match.index);
+  }
+  return redacted;
+}
+
+/** Tests only. */
+export function resetLiveReplies(): void {
+  for (const timer of orphanTimers.values()) clearTimeout(timer);
+  orphanTimers.clear();
+  replies.clear();
+  streamed.clear();
+}

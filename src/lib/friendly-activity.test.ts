@@ -6,9 +6,9 @@ const running = (name: string, extra: Partial<NonNullable<Message["tool"]>> = {}
   ({ id: "m", role: "bot", kind: "activity", at: 1, tool: { name, ...extra } });
 
 describe("Simple mode's working line", () => {
-  it("says something friendly while nothing is reported, rotating through a few", () => {
-    expect(friendlyNowPhrases(null).phrases).toEqual(["Thinking it through", "Mulling it over", "Working on it", "Chipping away"]);
-    expect(friendlyNowPhrases({ activity: "thinking" }).phrases[0]).toBe("Thinking it through");
+  it("says something friendly while nothing is reported, from grok's working pool, and thinking from its thinking pool", () => {
+    expect(friendlyNowPhrases(null)).toEqual({ phase: "friendly:generic", phrases: ["Working on it", "Chipping away"] });
+    expect(friendlyNowPhrases({ activity: "thinking" })).toEqual({ phase: "friendly:thinking", phrases: ["Thinking it through", "Mulling it over"] });
   });
 
   it("names the kind of work in plain words, never a file name or size", () => {
@@ -26,10 +26,10 @@ describe("Simple mode's working line", () => {
     expect(friendlyNowPhrases(null, running("Bash", { spoken: "running a command" })).phrases).toEqual(["Running a few commands"]);
   });
 
-  it("says the command, search or page the server could name, as Advanced does, and still no file names", () => {
-    expect(friendlyNowPhrases({ activity: "command", itemId: "x", target: "scrape.py" }).phrases).toEqual(["Running scrape.py"]);
-    expect(friendlyNowPhrases({ activity: "web", itemId: "s", target: "Acme construction leads" }).phrases).toEqual(["Searching the web for “Acme construction leads”"]);
-    expect(friendlyNowPhrases(null, running("WebFetch", { step: { activity: "fetch", target: "linkedin.com" } })).phrases).toEqual(["Reading linkedin.com"]);
+  it("never says the command, search or address itself, as grok's line does not", () => {
+    expect(friendlyNowPhrases({ activity: "command", itemId: "x", target: "scrape.py" }).phrases).toEqual(["Running a few commands"]);
+    expect(friendlyNowPhrases({ activity: "web", itemId: "s", target: "Acme construction leads" }).phrases).toEqual(["Digging around"]);
+    expect(friendlyNowPhrases(null, running("WebFetch", { step: { activity: "fetch", target: "linkedin.com" } })).phrases).toEqual(["Digging around"]);
     expect(friendlyNowPhrases(null, running("Write", { step: { activity: "write", target: "report.md" } })).phrases).toEqual(["Writing some code"]);
   });
 

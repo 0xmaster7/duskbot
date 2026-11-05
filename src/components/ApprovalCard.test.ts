@@ -580,7 +580,7 @@ describe("ApprovalCard outbound holds", () => {
     expect(html).toContain('data-approval-row="settled"');
     expect(html).toContain("Send to Linear</span>");
     expect(html).toContain("· Create linear comment ×2");
-    expect(html).toContain("· Allowed");
+    expect(html).not.toContain("· Allowed");
     expect(html).not.toContain("issueId");
     expect(html).not.toContain("always asks first");
   });
@@ -680,7 +680,8 @@ describe("ApprovalCard for a change that applied on its own", () => {
         expectedRevision: "r", undo: { appliedRevision: "r2" },
       },
     }));
-    expect(profile).toContain("Scout updated its profile: title, standing instructions");
+    expect(profile).toContain("Profile updated</span>");
+    expect(profile).not.toContain("title, standing instructions");
     expect(profile).toContain(">Undo<");
     const model = render(applied({
       tool: "update_model",
@@ -797,7 +798,7 @@ describe("one approval, one card", () => {
   it("names code run on Composio plainly and keeps the code behind Details", () => {
     const line = renderToStaticMarkup(createElement(ApprovalCard, { bot: { name: "Ursa" }, message: proxy("allow") }));
     expect(line).toContain("Run code on Composio</span>");
-    expect(line).toContain("· Allowed");
+    expect(line).not.toContain("· Allowed");
     expect(line).not.toContain("Proxy execute");
     expect(line).not.toContain("code_to_execute");
     expect(line).not.toContain("always asks first");

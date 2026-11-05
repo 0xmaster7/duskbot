@@ -50,19 +50,19 @@ it("says the turn stopped after the person's Stop ended it before any answer", a
   sendStop(async () => ({ ok: true }), { type: "interrupt", botId: "scout", threadId: "t" }, () => {});
   await Promise.resolve(); await Promise.resolve();
   draw(scout([ask], true));
-  expect(container.textContent).not.toContain(t("chat.turnStoppedByYou"));
+  expect(container.textContent).not.toContain(t("chat.turnStopped"));
   draw(scout([ask], false));
-  expect(container.textContent).toContain(t("chat.turnStoppedByYou"));
+  expect(container.textContent).toContain(t("chat.turnStopped"));
 });
 
 it("says nothing more once the server's own stopped row or an answer is there", async () => {
   sendStop(async () => ({ ok: true }), { type: "interrupt", botId: "scout", threadId: "t" }, () => {});
   await Promise.resolve(); await Promise.resolve();
   draw(scout([ask, { id: "b1", role: "bot", kind: "text", text: "Cheese, oh cheese", at: Date.now() }], false));
-  expect(container.textContent).not.toContain(t("chat.turnStoppedByYou"));
+  expect(container.textContent).not.toContain(t("chat.turnStopped"));
 });
 
 it("says nothing for a turn nobody stopped here", () => {
   draw(scout([ask], false));
-  expect(container.textContent).not.toContain(t("chat.turnStoppedByYou"));
+  expect(container.textContent).not.toContain(t("chat.turnStopped"));
 });

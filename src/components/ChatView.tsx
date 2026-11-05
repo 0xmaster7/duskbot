@@ -60,7 +60,7 @@ import { normalizeState } from "@/lib/mascot";
 import { peerLine, peerRequest, type PeerLine } from "@/lib/peer-message";
 import { showWorkingDots } from "@/lib/turn-tail";
 import { lastNonReceipt } from "@/lib/receipts";
-import { useTurnLive } from "@/state/turn-status"; import { useTurnNow } from "./NowCard"; import { useThreadRoutineRun } from "@/state/older-routine-runs";
+import { useTurnLive } from "@/state/turn-status"; import { replacedLiveReply, shownReplyText, useLiveReply, useLiveReplyActive } from "@/state/live-reply"; import { useTurnNow } from "./NowCard"; import { useThreadRoutineRun } from "@/state/older-routine-runs";
 import { ChatMarkdown } from "./ChatMarkdown";
 import { LiveToolsContext, useLiveToolIds } from "@/hooks/use-live-tool-ids";
 import { VoiceNoteBubble, type VoiceNoteAttachment } from "./VoiceNoteBubble";
@@ -390,8 +390,8 @@ const Bubble = memo(function Bubble({
     [message.attachments],
   );
   const join: BubbleJoin = { above: joinAbove, below: joinBelow };
-  // only rows that arrive while the conversation is open slide in; the answer that grows from the mascot has its own
-  const fresh = !emerging && message.at > openedAt;
+  // only rows that arrive while the conversation is open slide in; a reply that streamed in is already in place
+  const fresh = !emerging && message.at > openedAt && !replacedLiveReply(message.id);
   const reply = useReplySegments(conversational && !user && !peer && !viewRaw && !replyTarget && message.kind === "text", text, message.at, openedAt);
   const split = reply.segments.length > 1;
   // Simple mode draws each table of a reply as its own card between the reply's prose bubbles.
@@ -537,11 +537,6 @@ const Bubble = memo(function Bubble({
                   return highlightCitationSource(citation);
                 }}
               />}
-              {message.steered && (
-                <div className="mt-1 text-[11px] text-ink-tertiary" title={t("chat.sentMidTurnHint")}>
-                  {t("chat.sentMidTurn")}
-                </div>
-              )}
               {message.quickModel && <QuickModelNote model={message.quickModel} />}
               <UserLineNote message={message} />
               {collapsible && (
@@ -624,6 +619,31 @@ const Bubble = memo(function Bubble({
   );
 });
 
+/** The reply the engine is writing, drawn as grok draws its streaming entry: the bubble the finished message will be,
+ * each delta shown as it lands, no fade and no cursor. Only this row re-renders per delta. */
+const StreamingReply = memo(function StreamingReply({ threadId, joinAbove, joinBelow, after }: {
+  threadId: string;
+  joinAbove: boolean;
+  joinBelow: boolean;
+  /** The row above: the message frame can land before the stream lets go, and a reply is never drawn twice. */
+  after: Message | undefined;
+}) {
+  const { mentionPeers, mentionPerson } = useChatRows();
+  const live = useLiveReply(threadId);
+  const text = live ? stripLeakedSystemHarnessMessages(shownReplyText(live.text)) : "";
+  const shown = text.trim();
+  if (!shown || (after?.role === "bot" && after.kind === "text" && (after.text ?? "").trim().startsWith(shown))) return null;
+  return (
+    <div data-streaming-reply="" className={cn("group relative flex w-full flex-col items-start", joinAbove && SIMPLE_STACKED)}>
+      <div className="flex w-full items-center justify-start gap-1.5">
+        <div data-chat-bubble="simple" className={cn("w-fit", SIMPLE_BUBBLE_MAX, SIMPLE_BOT_BUBBLE, joinedCorners("start", { above: joinAbove, below: joinBelow }))}>
+          <div><ChatMarkdown text={text} mentionPeers={mentionPeers} mentionPerson={mentionPerson} /></div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
 function PeerLabel({ peer }: { peer: PeerLine }) {
   const { bots } = useChatRows();
   const author =
@@ -681,8 +701,22 @@ function statusMarkFor({ busy, waitingOnYou, answering, live, failed }: { busy: 
   }
 }
 
+/** True while `on`, and for `ms` after it goes false: what is still on screen while it leaves. */
+function useLingering(on: boolean, ms: number): boolean {
+  const [lingering, setLingering] = useState(on);
+  if (on && !lingering) setLingering(true);
+  useEffect(() => {
+    if (on || !lingering) return;
+    const timer = setTimeout(() => setLingering(false), ms);
+    return () => clearTimeout(timer);
+  }, [on, lingering, ms]);
+  return on || lingering;
+}
+
 /** Simple mode's room under the last row, above the composer's own clearance: grok's last bubble ends 54px over the composer. */
 const SIMPLE_TRAILING_GAP = 34;
+/** The status line's 36px row and the 4px it sits under a bubble: the part of that room its slot takes. */
+const SIMPLE_STATUS_SLOT = 40;
 
 /** How many of a window's newest rows an opened chat paints in its first frame, and how many older ones each later step adds. */
 export const FIRST_PAINT_ROWS = 16;
@@ -879,7 +913,8 @@ const MessagesList = memo(function MessagesList({
         })();
         if (!row) return divider && <div key={m.id} className="contents">{divider}</div>;
         return (
-          <div key={m.id} className="contents" data-mid={m.id} data-tuck={layout?.tucks[i] ? "" : undefined}>
+          // a send keeps its row when the server's copy replaces the optimistic one, so it never mounts or rises twice
+          <div key={m.sendId ? `send:${m.sendId}` : m.id} className="contents" data-mid={m.id} data-tuck={layout?.tucks[i] ? "" : undefined}>
             {newDay && <DaySeparator at={m.at} today={today} simple={simple} />}
             {divider}
             {m.automation && <AutomationCaption message={m} line={m.automation} botId={botId} />}{m.inbox && <InboxCaption message={m} />}
@@ -1031,39 +1066,21 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const toolInFlight = (lastMessage?.kind === "activity" && lastMessage.tool?.ok === undefined) || Boolean(live.status && live.status.activity !== "thinking" && live.status.activity !== "reply");
   // The mascot and its status line stay for the whole turn; only its end hides them, never a timer.
   const waiting = Boolean(bot.busy && bot.activity !== "waiting-on-you" && showWorkingDots(bot.busy, lastMessage, undefined, live.ended));
-  const wasWaiting = useRef(false);
-  const [popping, setPopping] = useState<string | null>(null);
-  const poppingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => {
-    if (poppingTimer.current) clearTimeout(poppingTimer.current);
-  }, []);
-  useLayoutEffect(() => {
-    if (poppingTimer.current) clearTimeout(poppingTimer.current);
-    poppingTimer.current = null;
-    wasWaiting.current = false;
-    setPopping(null);
-  }, [bot.id]);
-  useEffect(() => {
-    wasWaiting.current = waiting;
-  }, [waiting]);
-  useLayoutEffect(() => {
-    if (lastMessage?.role !== "bot" || lastMessage.kind !== "text" || !wasWaiting.current) return;
-    const messageId = lastMessage.id;
-    if (poppingTimer.current) clearTimeout(poppingTimer.current);
-    setPopping(messageId);
-    poppingTimer.current = setTimeout(() => {
-      poppingTimer.current = null;
-      setPopping((current) => current === messageId ? null : current);
-    }, 520);
-  }, [lastMessage?.id, lastMessage?.role, lastMessage?.kind]);
+  const streamingReply = useLiveReplyActive(bot.threadId);
   const teammatesWorking = !advanced && !bot.busy && Boolean(bot.waitingForTeammates);
   const markRef = useRef<MausAvatarHandle>(null);
   const [markEmphasized, setMarkEmphasized] = useState(false);
-  const statusMarkState = statusMarkFor({ busy: Boolean(bot.busy), waitingOnYou: bot.activity === "waiting-on-you", answering: popping !== null, live: live.status?.activity, failed: lastMessage?.kind === "activity" && lastMessage.tool?.ok === false });
-  const presenceVisible = waiting || popping !== null || teammatesWorking;
+  const statusMarkState = statusMarkFor({ busy: Boolean(bot.busy), waitingOnYou: bot.activity === "waiting-on-you", answering: streamingReply, live: live.status?.activity, failed: lastMessage?.kind === "activity" && lastMessage.tool?.ok === false });
+  const presenceVisible = waiting || teammatesWorking;
+  // the bubble the line hangs under keeps its pinched corner until the line has finished leaving, as grok's does
+  const presenceShown = useLingering(presenceVisible, 140);
   const paintedMessages = useFirstPaintRows(transcriptKey, windowedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef);
   const lastShownRow = windowedMessages.findLast((message) => !quietRow(message, showToolCalls));
-  const presenceUnderBubble = Boolean(lastShownRow && isBotTextRow(lastShownRow, bot.id));
+  const lastRowIsBubble = Boolean(lastShownRow && isBotTextRow(lastShownRow, bot.id));
+  const showStreaming = !advanced && streamingReply && laterCount === 0;
+  const presenceUnderBubble = lastRowIsBubble || showStreaming;
+  // grok keeps the status line's slot at the end of the conversation whether it shows or not, so it never moves a row
+  const statusSlot = !advanced && (windowedMessages.length > 0 || busy);
   const announcement = useMemo((): TranscriptSnapshot => {
     const approval = pendingApprovals(messages)[0];
     return {
@@ -1254,7 +1271,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
 
       <div
         ref={scrollRef}
-        className="glass-scroller h-full overflow-x-hidden overflow-y-auto overscroll-y-contain px-5 [overflow-anchor:none]"
+        // grok insets its transcript and composer 16px from the pane's edges
+        className={cn("glass-scroller h-full overflow-x-hidden overflow-y-auto overscroll-y-contain [overflow-anchor:none]", advanced ? "px-5" : "px-4")}
         // Simple mode's composer sits on plain canvas, so a row scrolled into view stops clear of it.
         style={advanced ? undefined : { scrollPaddingBottom: composerDock.pad }}
         {...scrollHandlers}
@@ -1265,7 +1283,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           data-simple-rows={advanced ? undefined : ""}
           className="glass-scroller-content chat-column relative flex w-full flex-col gap-3 rounded-[18px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus data-[simple-rows]:gap-4"
           // grok leaves 54px between the last row and the composer: its 52px trailing inset and the row's own 2px
-          style={{ paddingBottom: advanced ? composerDock.pad : `calc(${composerDock.pad} + ${SIMPLE_TRAILING_GAP}px)` }}
+          style={{ paddingBottom: advanced ? composerDock.pad : `calc(${composerDock.pad} + ${SIMPLE_TRAILING_GAP - (statusSlot ? SIMPLE_STATUS_SLOT : 0)}px)` }}
           role="log"
           // focusable like grok's transcript, so the keyboard can scroll it
           tabIndex={advanced ? undefined : 0}
@@ -1293,7 +1311,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               today={localDay(Date.now())}
               editingId={editingId}
               lastBotTextId={lastBotTextId}
-              emergingId={popping}
+              emergingId={null}
               canRetryLast={!bot.busy && Boolean(lastUserMessage)}
               engine={state.instances.find((i) => i.instanceId === bot.modelSelection.instanceId)}
               unreadDividerId={unreadDivider.messageId}
@@ -1303,8 +1321,9 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               onSubmitEdit={submitEdit}
               onRegenerate={regenerate}
               onReply={selectReply}
-              seamId={!advanced && presenceVisible && presenceUnderBubble ? lastShownRow?.id ?? null : null}
+              seamId={!advanced && lastRowIsBubble && (presenceShown || showStreaming) ? lastShownRow?.id ?? null : null}
             />
+            {showStreaming && <StreamingReply threadId={bot.threadId} joinAbove={lastRowIsBubble} joinBelow={presenceShown} after={lastShownRow} />}
           </ChatBusyContext></LiveToolsContext></ChatRowsContext.Provider>
           {stopNoticeDue(messages, stoppedAt, busy) && <CancelledTurnRow name={PERSON_STOPPED_TURN_NAME} />}
           {laterCount > 0 && (
@@ -1326,7 +1345,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               </div>
             </div>
           )}
-          <div className="contents" onMouseEnter={() => setMarkEmphasized(true)} onMouseLeave={() => setMarkEmphasized(false)} onClick={() => markRef.current?.poke?.()}>
+          <div className={statusSlot ? cn("turn-status-slot h-9 shrink-0", presenceUnderBubble && SIMPLE_STACKED) : "contents"} onMouseEnter={() => setMarkEmphasized(true)} onMouseLeave={() => setMarkEmphasized(false)} onClick={() => markRef.current?.poke?.()}>
           <TurnPresence
             avatar={
               <StatusMark
@@ -1342,13 +1361,12 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               />
             }
             simple={!advanced}
-            className={cn(!advanced && presenceUnderBubble && SIMPLE_STACKED)}
+            className={cn(!advanced && !statusSlot && presenceUnderBubble && SIMPLE_STACKED)}
             label={teammatesWorking ? t("chat.teammatesWorking") : undefined}
             visible={presenceVisible}
             {...now}
             phrases={teammatesWorking ? undefined : now.phrases}
             seed={`${bot.id}:${bot.threadId ?? ""}:${busySince ?? ""}`}
-            answering={popping !== null}
             since={busySince}
           />
           </div>
@@ -1357,7 +1375,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
 
       <TranscriptAnnouncer threadKey={transcriptKey} snapshot={announcement} />
 
-      <div ref={composerDockRef} className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] chat-column-dock">
+      <div ref={composerDockRef} data-grok-inset={advanced ? undefined : ""} className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] chat-column-dock">
       {advanced && lastRunStep && showRun(recordedRun) && showRunCard && runDismissed.get(transcriptKey) !== lastRunStep.id && (
         <div className="flex justify-end px-5 pb-2">
           <VerifyCard
