@@ -20,7 +20,8 @@ function Harness() {
 }
 
 const trigger = () => host.querySelector<HTMLButtonElement>('[role="combobox"]')!;
-const listbox = () => document.querySelector<HTMLElement>('[role="listbox"]');
+// a closed listbox may still be fading out, inert, for its 100ms exit
+const listbox = () => document.querySelector<HTMLElement>('[role="listbox"]:not([inert])');
 const key = (target: Element, name: string) => act(async () => { target.dispatchEvent(new KeyboardEvent("keydown", { key: name, bubbles: true })); });
 
 beforeEach(async () => {

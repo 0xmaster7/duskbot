@@ -119,7 +119,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
         <div className="min-h-0 w-full overflow-auto p-4 leading-[18px] tracking-[-0.08px]">
           <div className="flex flex-col gap-3">
             <span className="flex self-center" data-create-bot-preview>
-              <MausAvatar bodyId={body} color={color} size={96} />
+              <MausAvatar bodyId={body} color={color} size={96} gaze={FACING} />
             </span>
             <input
               autoFocus
@@ -191,6 +191,9 @@ const KIT_BUTTON = "inline-flex h-8 shrink-0 cursor-pointer items-center justify
 
 const MARK = 36;
 const VIEW_BOX = `-15 -15 ${VIEW_SPAN} ${VIEW_SPAN}`;
+
+/** Grok's editor preview faces the viewer at rest, turning only toward a pointer on it, and morphs between shapes. */
+const FACING = { x: 0, y: 0 } as const;
 
 /** A shape to pick, in the chosen colour. Hovered, focused or chosen, a 1px ring follows its outline 3px out, as Grok's
  * tiles do: faint on hover, darker once chosen. */

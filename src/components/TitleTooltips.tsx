@@ -1,14 +1,17 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { TOOLTIP } from "@/lib/motion-presets";
 
-/** Grok's tooltip timing: about 300ms on a first hover, then instant while the pointer moves between triggers. */
-export const TOOLTIP_DELAY_MS = 300;
-const GROUP_MS = 400;
+/** Grok's tooltip timing, measured in its renderer: 300ms on a first hover; leaving holds it 100ms, then it fades out
+ * over 100ms. A trigger reached while one is still up shows at once, unanimated, as does one reached by keyboard. */
+export const TOOLTIP_DELAY_MS = TOOLTIP.openDelay;
+const TOOLTIP_CLOSE_DELAY_MS = TOOLTIP.closeDelay;
+const TOOLTIP_EXIT_MS = TOOLTIP.exit;
 const GAP = 8;
 const EDGE = 8;
 const TOOLTIP_ID = "app-title-tooltip";
 
-interface Tip { el: HTMLElement; text: string; instant: boolean }
+interface Tip { el: HTMLElement; text: string; instant: boolean; ending?: boolean }
 
 /**
  * Draws every native `title` as Grok's tooltip instead of the system one. While a trigger is hovered or focused its
@@ -23,9 +26,9 @@ export function TitleTooltips() {
   useEffect(() => {
     let pending: { el: HTMLElement; timer: number } | null = null;
     let shown: HTMLElement | null = null;
-    let lastHidden = 0;
+    let closing = 0;
+    let ending = 0;
     let poll = 0;
-
     const strip = (el: HTMLElement): string | null => {
       const title = el.getAttribute("title");
       if (title == null) return el.dataset.tipTitle ?? null;
@@ -49,11 +52,30 @@ export function TitleTooltips() {
     const cancel = () => {
       if (pending) { window.clearTimeout(pending.timer); restore(pending.el); pending = null; }
     };
+    const stopClosing = () => {
+      window.clearTimeout(closing); closing = 0;
+      window.clearTimeout(ending); ending = 0;
+    };
+    // gone now: scroll, blur, a trigger that left the page, or a newer tooltip taking over
     const hide = () => {
       cancel();
+      stopClosing();
       window.clearInterval(poll);
-      if (shown) { restore(shown); shown = null; lastHidden = Date.now(); }
+      if (shown) { restore(shown); shown = null; }
       setTip(null);
+    };
+    // Grok's close: the tip fades out from where it is, and a trigger reached meanwhile still opens at once
+    const fade = () => {
+      if (!shown) return;
+      window.clearTimeout(closing); closing = 0;
+      if (ending) return;
+      setTip((current) => (current ? { ...current, ending: true } : current));
+      ending = window.setTimeout(hide, TOOLTIP_EXIT_MS);
+    };
+    const leave = () => {
+      cancel();
+      if (!shown || closing || ending) return;
+      closing = window.setTimeout(fade, TOOLTIP_CLOSE_DELAY_MS);
     };
     const show = (el: HTMLElement, instant: boolean) => {
       const text = el.dataset.tipTitle;
@@ -65,12 +87,18 @@ export function TitleTooltips() {
       // a trigger that unmounts under the pointer sends no pointerout
       poll = window.setInterval(() => { if (!el.isConnected) hide(); }, 250);
     };
-    const arm = (el: HTMLElement) => {
-      if (shown === el || pending?.el === el) return;
+    const arm = (el: HTMLElement, keyboard = false) => {
+      if (shown === el) {
+        // back on the trigger before it finished closing: keep it
+        if (closing) { window.clearTimeout(closing); closing = 0; }
+        if (ending) { stopClosing(); setTip((current) => (current ? { ...current, ending: false, instant: true } : current)); }
+        return;
+      }
+      if (pending?.el === el) return;
+      const warm = shown !== null;
       hide();
       if (strip(el) == null) return;
-      const instant = Date.now() - lastHidden < GROUP_MS;
-      if (instant) { show(el, true); return; }
+      if (warm || keyboard) { show(el, true); return; }
       pending = { el, timer: window.setTimeout(() => { pending = null; show(el, false); }, TOOLTIP_DELAY_MS) };
     };
     const trigger = (target: EventTarget | null): HTMLElement | null =>
@@ -86,19 +114,21 @@ export function TitleTooltips() {
       if (!el) return;
       const next = event.relatedTarget;
       if (next instanceof Node && el.contains(next)) return;
-      hide();
+      leave();
     };
     const onFocusIn = (event: FocusEvent) => {
       const el = trigger(event.target);
-      if (el && el === event.target && el.matches(":focus-visible")) arm(el);
+      if (el && el === event.target && el.matches(":focus-visible")) arm(el, true);
     };
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape" && (shown || pending)) hide(); };
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape" && (shown || pending)) { cancel(); fade(); } };
+    const onPress = () => { cancel(); fade(); };
+    const onFocusOut = () => { cancel(); if (shown && !closing && !ending) fade(); };
 
     document.addEventListener("pointerover", onOver, true);
     document.addEventListener("pointerout", onOut, true);
-    document.addEventListener("pointerdown", hide, true);
+    document.addEventListener("pointerdown", onPress, true);
     document.addEventListener("focusin", onFocusIn, true);
-    document.addEventListener("focusout", hide, true);
+    document.addEventListener("focusout", onFocusOut, true);
     document.addEventListener("keydown", onKey, true);
     window.addEventListener("scroll", hide, true);
     window.addEventListener("blur", hide);
@@ -106,9 +136,9 @@ export function TitleTooltips() {
       hide();
       document.removeEventListener("pointerover", onOver, true);
       document.removeEventListener("pointerout", onOut, true);
-      document.removeEventListener("pointerdown", hide, true);
+      document.removeEventListener("pointerdown", onPress, true);
       document.removeEventListener("focusin", onFocusIn, true);
-      document.removeEventListener("focusout", hide, true);
+      document.removeEventListener("focusout", onFocusOut, true);
       document.removeEventListener("keydown", onKey, true);
       window.removeEventListener("scroll", hide, true);
       window.removeEventListener("blur", hide);
@@ -116,6 +146,8 @@ export function TitleTooltips() {
   }, []);
 
   // below the trigger and centred on it, above when there is no room, held 8px inside the window
+  const anchorEl = tip?.el;
+  const anchorText = tip?.text;
   useLayoutEffect(() => {
     if (!tip || !tipRef.current) { setPlace(null); return; }
     const anchor = tip.el.getBoundingClientRect();
@@ -124,7 +156,8 @@ export function TitleTooltips() {
     const top = below ? anchor.bottom + GAP : Math.max(EDGE, anchor.top - GAP - box.height);
     const left = Math.min(Math.max(EDGE, anchor.left + anchor.width / 2 - box.width / 2), window.innerWidth - EDGE - box.width);
     setPlace({ left, top, side: below ? "bottom" : "top" });
-  }, [tip]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anchorEl, anchorText]);
 
   if (!tip) return null;
   return createPortal(
@@ -134,6 +167,7 @@ export function TitleTooltips() {
       role="tooltip"
       data-side={place?.side ?? "bottom"}
       data-instant={tip.instant ? "" : undefined}
+      data-ending={tip.ending ? "" : undefined}
       className="ui-tooltip"
       style={place ? { left: place.left, top: place.top } : { left: 0, top: 0, visibility: "hidden" }}
     >

@@ -4,6 +4,8 @@
 
 .onboarding-step-in { animation: onboarding-fade-in 200ms ease-out both; }
 @keyframes onboarding-fade-in { from { opacity: 0; } to { opacity: 1; } }
+/* the screen being left fades out over 100ms ease-in under the new one, as Grok's step change does */
+.onboarding-step-out { animation: onboarding-fade-out 100ms ease-in forwards; }
 
 /* Screen 1: the send button is pressed, a ring spreads from it, and the message box drops away. */
 .onboarding-send-press { animation: onboarding-press 360ms ease-out both; }

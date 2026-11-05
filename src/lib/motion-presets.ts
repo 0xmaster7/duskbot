@@ -73,7 +73,9 @@ export const POPUP = {
   offset: 2,
 } as const;
 
-/** centered dialogs: 200ms fade and scale from 0.97, backdrop fades over the same time */
+/** the ui kit's centered dialog: 200ms fade and scale from 0.97. Grok's app turns it off (`animation-name: none` on
+ * dialog and backdrop), so app dialogs, confirms, Settings and Create New Bot open and close with no motion; keep
+ * this only for a surface Grok itself animates. */
 export const DIALOG = {
   initial: { opacity: 0, scale: 0.97 },
   animate: { opacity: 1, scale: 1 },
@@ -102,3 +104,13 @@ export const ROW_ENTER = {
 
 /** pane push and pop: incoming slides 100% (pop: -30%), outgoing leaves -30% (pop: 100%), 200ms */
 export const WIPE = { duration: 0.2, ease: EASE.out, pushFrom: "100%", popFrom: "-30%" } as const;
+
+/** tooltips, measured in Grok's renderer (ms): first hover waits 300; leaving holds 100, then the exit runs 100.
+ * a trigger reached while one is still up, or by keyboard focus, shows at once with no enter animation. */
+export const TOOLTIP = { openDelay: 300, closeDelay: 100, exit: GROK_DURATION.fast * 1000 } as const;
+
+/** onboarding step change: the old step fades out over 100ms ease-in while the new one fades in over 200ms ease-out */
+export const STEP = { out: { duration: 0.1, ease: "easeIn" }, in: { duration: 0.2, ease: "easeOut" } } as const;
+
+/** surfaces Grok swaps with no motion at all: switching chats, settings panes, the command palette and its results */
+export const INSTANT = { duration: 0 } as const;

@@ -2,6 +2,7 @@ import { Children, isValidElement, useEffect, useId, useLayoutEffect, useRef, us
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 import { GrokIcon } from "./GrokIcon";
+import { useMenuMotion } from "./MenuMotion";
 
 export type SettingsSelectOption = { value: string; label: ReactNode; disabled?: boolean };
 
@@ -42,9 +43,10 @@ export function SettingsSelect({ value, onChange, options: given, children, disa
   const list = useRef<HTMLDivElement>(null);
   const id = useId();
 
+  // the menu stays where it opened while it fades out, as Grok's does
+  const motion = useMenuMotion(open);
   const close = (refocus = true) => {
     setOpen(false);
-    setPlace(null);
     if (refocus) trigger.current?.focus();
   };
   const choose = (index: number) => {
@@ -61,12 +63,13 @@ export function SettingsSelect({ value, onChange, options: given, children, disa
   };
 
   useLayoutEffect(() => {
-    if (!open || !trigger.current) return;
+    if (!open) { if (!motion.shown) setPlace(null); return; }
+    if (!trigger.current) return;
     const box = trigger.current.getBoundingClientRect();
     const height = options.length * 32 + 10;
     const up = box.bottom + GAP + height > window.innerHeight - 8 && box.top - GAP - height > 8;
     setPlace({ right: window.innerWidth - box.right, up, ...(up ? { bottom: window.innerHeight - box.top + GAP } : { top: box.bottom + GAP }) });
-  }, [open, options.length]);
+  }, [open, options.length, motion.shown]);
 
   const placed = place !== null;
   useEffect(() => {
@@ -113,6 +116,8 @@ export function SettingsSelect({ value, onChange, options: given, children, disa
           pressed.current = true;
           if (open) close(); else show();
         }}
+        // the press must not pull focus back onto the pill after the menu took it, or Escape would close Settings
+        onMouseDown={(event) => { if (event.button === 0) event.preventDefault(); }}
         onClick={() => {
           if (pressed.current) { pressed.current = false; return; }
           if (open) close(); else show();
@@ -134,9 +139,10 @@ export function SettingsSelect({ value, onChange, options: given, children, disa
         <span className="min-w-0 flex-1 truncate text-start">{selected?.label ?? value}</span>
         <GrokIcon name="chevron-down" size={10} className="shrink-0 text-ink/[0.66] group-active:text-ink group-aria-expanded:text-ink" />
       </button>
-      {open && place && createPortal(
+      {motion.shown && place && createPortal(
         <div
           ref={list}
+          {...motion.exitProps}
           id={`${id}-list`}
           role="listbox"
           tabIndex={-1}
@@ -153,7 +159,7 @@ export function SettingsSelect({ value, onChange, options: given, children, disa
             else if (event.key === "Enter" || event.key === " ") { event.preventDefault(); choose(active); }
           }}
           style={{ top: place.top, bottom: place.bottom, right: place.right, minWidth: MENU_MIN, transformOrigin: place.up ? "right bottom" : "right top" }}
-          className="animate-pop-in fixed z-[2147482000] flex max-h-[min(360px,calc(100vh-16px))] max-w-[320px] flex-col gap-0.5 overflow-y-auto rounded-2xl bg-menu py-1.5 text-[13px] leading-[18px] tracking-[-0.08px] text-ink shadow-(--shadow-popover) outline-none [scrollbar-width:none]"
+          className={cn(motion.className, "fixed z-[2147482000] flex max-h-[min(360px,calc(100vh-16px))] max-w-[320px] flex-col gap-0.5 overflow-y-auto rounded-2xl bg-menu py-1.5 text-[13px] leading-[18px] tracking-[-0.08px] text-ink shadow-(--shadow-popover) outline-none [scrollbar-width:none]")}
         >
           {options.map((option, index) => (
             <div

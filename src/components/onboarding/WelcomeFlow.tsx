@@ -9,9 +9,12 @@ import { ChiefIntro } from "./ChiefIntro";
 import { ComputerStep, JobsStep } from "./GrokSteps";
 import { MeetScreen } from "./MeetScreen";
 import { localDesktopPage } from "./WelcomeGate";
+import "../../styles/onboarding.css";
 
 const LEAVE_MS = 100;
 const FADE_MS = 150;
+// the leaving step goes when its 100ms fade ends; this only covers a window that runs no animations
+const STEP_OUT_MS = 300;
 
 type Config = ReturnType<typeof useStore>["state"]["config"];
 
@@ -72,6 +75,17 @@ export function WelcomeFlow({
   const [beat, setBeat] = useState<BeatId>(() => resumeBeat(beats, initialBeat ?? (keepsDraft ? readWelcomeDraft()?.beat : undefined)));
   // Grok Bot's three screens are the meet beat's pages: a reload starts them over, the beat itself is what resumes.
   const [page, setPage] = useState(0);
+  // Grok's step change: the old step stays where it was and fades out over 100ms while the new one fades in
+  const [leavingPage, setLeavingPage] = useState<number | null>(null);
+  const leaveTimer = useRef(0);
+  const goPage = (next: number) => {
+    window.clearTimeout(leaveTimer.current);
+    const reduced = document.documentElement.dataset.reducedMotion === "true" || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    setLeavingPage(reduced || page === next ? null : page);
+    setPage(next);
+    leaveTimer.current = window.setTimeout(() => setLeavingPage(null), STEP_OUT_MS);
+  };
+  useEffect(() => () => window.clearTimeout(leaveTimer.current), []);
   const root = useRef<HTMLDivElement>(null);
   const finishing = useRef(false);
   const record = useRef(state.config?.onboarding);
@@ -155,6 +169,12 @@ export function WelcomeFlow({
     trapTab(event, root.current);
   };
 
+  const renderPage = (index: number) => index === 0
+    ? <MeetScreen hosted={hosted} onNext={() => goPage(1)} />
+    : index === 1
+      ? <ComputerStep onNext={() => goPage(2)} onBack={() => goPage(0)} />
+      : <JobsStep onNext={next} onBack={() => goPage(1)} />;
+
   return (
     <div
       ref={root}
@@ -172,12 +192,14 @@ export function WelcomeFlow({
     >
       {chief ? (
         <ChiefIntro replay={replay} onLeave={fadeScrim} onDone={(botId) => void finish("completed", botId)} />
-      ) : page === 0 ? (
-        <MeetScreen hosted={hosted} onNext={() => setPage(1)} />
-      ) : page === 1 ? (
-        <ComputerStep key="computer" onNext={() => setPage(2)} onBack={() => setPage(0)} />
       ) : (
-        <JobsStep key="jobs" onNext={next} onBack={() => setPage(1)} />
+        // keyed by page so the leaving step keeps its own state while it fades
+        [page, leavingPage].filter((index): index is number => index !== null).map((index) => index === page ? (
+          <div key={index} className="contents">{renderPage(index)}</div>
+        ) : (
+          <div key={index} aria-hidden="true" inert className="onboarding-step-out pointer-events-none absolute inset-0 flex"
+            onAnimationEnd={(event) => { if (event.target === event.currentTarget) setLeavingPage(null); }}>{renderPage(index)}</div>
+        ))
       )}
     </div>
   );

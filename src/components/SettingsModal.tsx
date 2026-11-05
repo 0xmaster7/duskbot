@@ -26,6 +26,9 @@ import {
 } from "./SettingsPanes";
 import "../styles/settings.css";
 
+const WIPE_MS = 200;
+const prefersReducedMotion = () => document.documentElement.dataset.reducedMotion === "true" || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+
 export type SettingsPane = "general" | "texting" | "computer" | "permissions" | "models" | "usage" | "updates" | "advanced";
 
 /** Grok's panes with Models before its Usage & Billing, then Advanced features, which holds everything of ours Grok has no place for. */
@@ -137,6 +140,33 @@ export function SettingsModal() {
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  // Grok's wipe between Advanced features and one of its pages: the page slides in over the list, and back out
+  const where = pane === "advanced" ? `advanced:${page ?? ""}` : pane;
+  const [shownAt, setShownAt] = useState(where);
+  const [wipe, setWipe] = useState<{ direction: "push" | "pop"; from: AdvancedPage | undefined; scrollTop: number; id: number } | null>(null);
+  if (where !== shownAt) {
+    setShownAt(where);
+    const fromPage = shownAt.startsWith("advanced:") ? (shownAt.slice(9) || undefined) as AdvancedPage | undefined : null;
+    const within = fromPage !== null && pane === "advanced" && (fromPage === undefined) !== (page === undefined);
+    setWipe(within && !prefersReducedMotion()
+      ? { direction: page ? "push" : "pop", from: fromPage, scrollTop: scrollRef.current?.scrollTop ?? 0, id: (wipe?.id ?? 0) + 1 }
+      : null);
+  }
+  useEffect(() => {
+    if (!wipe) return;
+    // focus left with the old layer: it lands on the new heading, as Grok's wipe does
+    const active = document.activeElement;
+    const heading = headingRef.current;
+    if (heading && (!active || active === document.body || active.closest("[inert]"))) {
+      heading.setAttribute("tabindex", "-1");
+      heading.focus({ preventScroll: true });
+      heading.addEventListener("blur", () => heading.removeAttribute("tabindex"), { once: true });
+    }
+    const timer = window.setTimeout(() => setWipe((current) => (current?.id === wipe.id ? null : current)), WIPE_MS + 50);
+    return () => window.clearTimeout(timer);
+  }, [wipe]);
   const thumb = useScrollThumb(scrollRef, `${pane}:${page ?? ""}`);
 
   const [folds, setFolds] = useState<Record<string, boolean>>({});
@@ -203,7 +233,7 @@ export function SettingsModal() {
       onSignIn={() => dispatch({ type: "openCloudAdd", source: "app_settings", signIn: true })} />
     : null;
 
-  const body = (() => {
+  const renderBody = (at: AdvancedPage | undefined) => {
     switch (pane) {
       case "general": return <GeneralPane has={has} remoteActive={remoteActive} />;
       case "texting": return <TextingPane has={has} remoteAccess={remoteAccess} />;
@@ -212,14 +242,46 @@ export function SettingsModal() {
       case "models": return <ModelsPane has={has} disclose={disclose} connections={<AdminOnly><KeysPage /></AdminOnly>} />;
       case "usage": return <UsagePane has={has} disclose={disclose} cloudAccount={cloudAccount} />;
       case "updates": return <UpdatesPane remoteActive={remoteActive} />;
-      case "advanced": return page
-        ? <AdvancedPageView page={page} has={has} remoteActive={remoteActive} peopleOpen={requested === "people"} />
+      case "advanced": return at
+        ? <AdvancedPageView page={at} has={has} remoteActive={remoteActive} peopleOpen={requested === "people"} />
         : <AdvancedIndex pages={advancedPages} onOpen={(next) => go(ADVANCED_PAGES.find((entry) => entry.id === next)!.sections[0]!)} />;
     }
-  })();
+  };
 
-  const title = page ? advancedTitle(page) : t(paneEntry.labelKey);
   const headingId = `settings-panel-${pane}-heading`;
+  // one pane's header and scrolling body; the outgoing copy of a wipe is drawn without ids, refs or focus
+  const paneView = (at: AdvancedPage | undefined, live: boolean) => (
+    <>
+      <header className="settings-pane-header">
+        <div className="flex min-w-0 items-center gap-1.5">
+          {at && <BackButton onBack={() => go("advanced")} />}
+          <h2 ref={live ? headingRef : undefined} id={live ? headingId : undefined}
+            className={cn("settings-pane-title truncate outline-none", at && "ps-0")}>{at ? advancedTitle(at) : t(paneEntry.labelKey)}</h2>
+        </div>
+        <div className="w-full sm:hidden">
+          <SettingsSelect
+            value={pane}
+            aria-label={t("settings.pane.picker")}
+            options={panes.map((entry) => ({ value: entry.id, label: t(entry.labelKey) }))}
+            onChange={(event) => { const next = panes.find((entry) => entry.id === event.target.value); if (next) go(next.sections[0]!); }}
+          />
+        </div>
+      </header>
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div ref={live ? scrollRef : (element) => { if (element && wipe) element.scrollTop = wipe.scrollTop; }} data-settings-scroll={live ? "" : undefined} className="settings-scroll">
+          <div className={cn("settings-pane", SIMPLE_BUTTONS, "[&_.uppercase]:normal-case [&_.uppercase]:tracking-normal")}>
+            {live && <LicenseExpiryBanner config={state.config} />}
+            {renderBody(at)}
+          </div>
+        </div>
+        {live && thumb && (
+          <div role="presentation" className="settings-scrollbar" data-scrolling={thumb.scrolling ? "" : undefined}>
+            <div style={{ top: thumb.top, height: thumb.height }} />
+          </div>
+        )}
+      </div>
+    </>
+  );
 
   return (
     <div className="settings-scrim" data-settings-sheet data-settings-look="simple" onMouseDown={(event) => event.target === event.currentTarget && close()}>
@@ -248,30 +310,12 @@ export function SettingsModal() {
             <button type="button" onClick={close} aria-label={t("settings.grok.close")} className="settings-close">
               <GrokIcon name="close" size={14} />
             </button>
-            <header className="settings-pane-header">
-              <div className="flex min-w-0 items-center gap-1.5">
-                {page && <BackButton onBack={() => go("advanced")} />}
-                <h2 id={headingId} className={cn("settings-pane-title truncate", page && "ps-0")}>{title}</h2>
-              </div>
-              <div className="w-full sm:hidden">
-                <SettingsSelect
-                  value={pane}
-                  aria-label={t("settings.pane.picker")}
-                  options={panes.map((entry) => ({ value: entry.id, label: t(entry.labelKey) }))}
-                  onChange={(event) => { const next = panes.find((entry) => entry.id === event.target.value); if (next) go(next.sections[0]!); }}
-                />
-              </div>
-            </header>
-            <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-              <div ref={scrollRef} data-settings-scroll className="settings-scroll">
-                <div className={cn("settings-pane", SIMPLE_BUTTONS, "[&_.uppercase]:normal-case [&_.uppercase]:tracking-normal")}>
-                  <LicenseExpiryBanner config={state.config} />
-                  {body}
-                </div>
-              </div>
-              {thumb && (
-                <div role="presentation" className="settings-scrollbar" data-scrolling={thumb.scrolling ? "" : undefined}>
-                  <div style={{ top: thumb.top, height: thumb.height }} />
+            <div className="settings-wipe">
+              <div className="settings-wipe-layer" data-wipe={wipe?.direction}>{paneView(page, true)}</div>
+              {wipe && (
+                <div key={`out:${wipe.id}`} aria-hidden="true" inert className="settings-wipe-layer" data-wipe={wipe.direction} data-wipe-out=""
+                  onAnimationEnd={(event) => { if (event.target === event.currentTarget) setWipe((current) => (current?.id === wipe.id ? null : current)); }}>
+                  {paneView(wipe.from, false)}
                 </div>
               )}
             </div>

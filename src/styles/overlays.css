@@ -1,7 +1,8 @@
-/* Overlays: menus, popovers, dialogs, tooltips and toasts, timed and drawn as Grok Bot's are.
+/* Overlays: menus, popovers, dialogs, tooltips and toasts, timed as Grok Bot's are (measured live in its renderer).
    Imported after styles.css and unlayered, so these win over the `animate-pop-*` utilities for overlay surfaces
-   only; a reaction chip or a jump button keeps the general pop. Values: Grok's --ease-sharp, fast 100ms (menus,
-   tooltips) and normal 150ms (dialogs, toasts), scale .98 for anchored surfaces and .97 for centred ones. */
+   only; a reaction chip or a jump button keeps the general pop. Anchored surfaces (menus, listboxes, popovers,
+   tooltips) come in from 2px toward their trigger at .98 over 100ms on --ease-sharp and leave the same way. Centred
+   dialogs and their scrim have no motion at all: Grok's app sets `animation-name: none` on its kit dialog. */
 
 :root {
   --ease-sharp: cubic-bezier(0.165, 0.84, 0.44, 1);
@@ -20,18 +21,12 @@
   }
 }
 
-/* Grok's menu: in from 2px above at .98 over 100ms; out it all but vanishes (its instant token, 50ms) */
+/* Grok's popup: in from 2px toward the trigger at .98 over 100ms; out it reverses over the same 100ms */
 @keyframes overlay-menu-in {
   from { opacity: 0; transform: translate3d(0, -2px, 0) scale(0.98); }
 }
 @keyframes overlay-menu-out {
-  to { opacity: 0; }
-}
-@keyframes overlay-dialog-in {
-  from { opacity: 0; transform: scale(0.97); }
-}
-@keyframes overlay-dialog-out {
-  to { opacity: 0; transform: scale(0.97); }
+  to { opacity: 0; transform: translate3d(0, -2px, 0) scale(0.98); }
 }
 @keyframes overlay-fade-in {
   from { opacity: 0; }
@@ -42,28 +37,32 @@
 @keyframes overlay-tooltip-in {
   from { opacity: 0; transform: translate3d(0, var(--tooltip-shift, -2px), 0) scale(0.98); }
 }
+@keyframes overlay-tooltip-out {
+  to { opacity: 0; transform: translate3d(0, var(--tooltip-shift, -2px), 0) scale(0.98); }
+}
 @keyframes overlay-toast-in {
   from { opacity: 0; transform: translateY(8px); }
 }
 
-/* anchored surfaces: a menu, listbox or popover grows out of its trigger */
-:is([role="menu"], [role="listbox"], .popover-surface, .menu-surface).animate-pop-in {
+/* anchored surfaces: a menu, listbox or popover grows out of its trigger; a non-modal dialog is a popover */
+:is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"]:not([aria-modal="true"], .ui-modal, .ui-dialog)).animate-pop-in {
   animation: overlay-menu-in var(--overlay-fast) var(--ease-sharp);
 }
-:is([role="menu"], [role="listbox"], .popover-surface, .menu-surface).animate-pop-out {
-  animation: overlay-menu-out 50ms var(--ease-sharp) forwards;
+:is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"]:not([aria-modal="true"], .ui-modal, .ui-dialog)).animate-pop-out {
+  animation: overlay-menu-out var(--overlay-fast) var(--ease-sharp) forwards;
 }
-/* centred surfaces: a dialog settles into place */
-:is([role="dialog"], [role="alertdialog"], [aria-modal="true"], .ui-modal, .ui-dialog).animate-pop-in,
+/* centred surfaces: a dialog is simply there, and gone the moment it closes */
+:is([role="alertdialog"], [aria-modal="true"], .ui-modal, .ui-dialog):not(.popover-surface, .menu-surface).animate-pop-in,
 .ui-dialog {
-  animation: overlay-dialog-in var(--overlay-normal) var(--ease-sharp);
+  animation: none;
 }
-:is([role="dialog"], [role="alertdialog"], [aria-modal="true"], .ui-modal, .ui-dialog).animate-pop-out {
-  animation: overlay-dialog-out var(--overlay-normal) var(--ease-sharp) forwards;
+:is([role="alertdialog"], [aria-modal="true"], .ui-modal, .ui-dialog):not(.popover-surface, .menu-surface).animate-pop-out {
+  animation: none;
+  opacity: 0;
 }
 .ui-scrim,
 .ui-dialog-scrim {
-  animation: overlay-fade-in var(--overlay-normal) var(--ease-sharp) both;
+  animation: none;
 }
 
 /* A dialog: the elevated tone on a half-pixel hairline with the modal lift, as Grok's card dialog. */
@@ -146,21 +145,23 @@
 }
 .ui-tooltip[data-side="top"] { --tooltip-shift: 2px; }
 .ui-tooltip[data-instant] { animation: none; }
+.ui-tooltip[data-ending] { animation: overlay-tooltip-out var(--overlay-fast) var(--ease-sharp) forwards; }
 
 /* Less movement, not less feedback: the same surfaces fade without scaling or travel. */
 @media (prefers-reduced-motion: reduce) {
-  :is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"], [role="alertdialog"], [aria-modal="true"], .ui-modal, .ui-dialog).animate-pop-in,
-  .ui-dialog, .ui-toast, .ui-tooltip {
+  :is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"]:not([aria-modal="true"], .ui-modal, .ui-dialog)).animate-pop-in,
+  .ui-toast, .ui-tooltip:not([data-instant], [data-ending]) {
     animation: overlay-fade-in var(--overlay-fast) ease-out;
   }
-  :is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"], [role="alertdialog"], [aria-modal="true"], .ui-modal, .ui-dialog).animate-pop-out {
+  :is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"]:not([aria-modal="true"], .ui-modal, .ui-dialog)).animate-pop-out,
+  .ui-tooltip[data-ending] {
     animation: overlay-fade-out var(--overlay-fast) ease-out forwards;
   }
 }
-:root[data-reduced-motion="true"] :is(:is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"], [role="alertdialog"], [aria-modal="true"], .ui-modal, .ui-dialog).animate-pop-in, .ui-dialog, .ui-toast, .ui-tooltip) {
+:root[data-reduced-motion="true"] :is(:is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"]:not([aria-modal="true"], .ui-modal, .ui-dialog)).animate-pop-in, .ui-toast, .ui-tooltip:not([data-instant], [data-ending])) {
   animation: overlay-fade-in var(--overlay-fast) ease-out;
 }
-:root[data-reduced-motion="true"] :is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"], [role="alertdialog"], [aria-modal="true"], .ui-modal, .ui-dialog).animate-pop-out {
+:root[data-reduced-motion="true"] :is(:is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"]:not([aria-modal="true"], .ui-modal, .ui-dialog)).animate-pop-out, .ui-tooltip[data-ending]) {
   animation: overlay-fade-out var(--overlay-fast) ease-out forwards;
 }
 
