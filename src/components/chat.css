@@ -274,15 +274,12 @@
   line-height: 20px;
 }
 
-/* grok's working line: the phrase rests at 40% ink and a full-ink band sweeps it every 2.2s */
+/* grok's working line: the phrase rests at 40% ink and a full-ink band sweeps across it */
 [data-turn-status] .turn-phrase-quiet .thinking-shimmer {
   color: color-mix(in srgb, var(--color-ink) 40%, transparent);
 }
 [data-turn-status] .turn-phrase-quiet .thinking-sheen > span::before {
   color: var(--color-ink);
-}
-[data-turn-status] .turn-phrase-quiet .thinking-sheen > span {
-  animation-duration: 2.2s;
 }
 
 /* the jump-to-latest pill rises 6px into place, as grok's centred floating pill does */

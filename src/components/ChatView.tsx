@@ -1,4 +1,4 @@
-import { createContext, memo, use, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch } from "react";
+import { createContext, memo, use, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type ComponentType, type Dispatch, type Ref } from "react";
 import { useAdvancedMode } from "@/lib/interface-mode";
 import { PHONE_LAYOUT, useMediaQuery } from "@/lib/use-media-query";
 import { ThreadLinkContext } from "@/components/ThreadLinkMenu";
@@ -51,10 +51,12 @@ import { isProviderSafetyBlock, PROVIDER_SAFETY_GUIDANCE, PROVIDER_SAFETY_HELP_U
 import { isCancelledTranscriptRow, PERSON_STOPPED_TURN_NAME } from "../../shared/client-cancel";
 import { stopNoticeDue, useStoppedAt } from "@/lib/stop-turn";
 import { THIS_COMPUTER_NOT_READY } from "../../shared/your-computer";
-import { BotAvatar } from "./Avatar";
+import { BotAvatar, type MausAvatarHandle } from "./Avatar";
+import type { MarkState } from "./mascot-motion-mark";
+import type { LiveStatus } from "@/state/turn-status";
 import { TurnPresence } from "./TurnPresence";
 import { showToolCallsEnabled, skillAuthoringEnabled } from "@/lib/feature-flags";
-import { normalizeState, stateForBot } from "@/lib/mascot";
+import { normalizeState } from "@/lib/mascot";
 import { peerLine, peerRequest, type PeerLine } from "@/lib/peer-message";
 import { showWorkingDots } from "@/lib/turn-tail";
 import { lastNonReceipt } from "@/lib/receipts";
@@ -661,6 +663,24 @@ const ActivityChip = memo(function ActivityChip({ message, place = "auto" }: { m
 });
 
 const RoomHandoffChip = ({ message, comm, bots, dispatch }: { message: Message; comm: NonNullable<Message["comm"]>; bots: readonly Bot[]; dispatch: Dispatch<Action> }) => { const store = useStoreRef(); return <HandoffChip message={message} bots={bots} title={t("chat.openConversationWith", { name: comm.withName })} onClick={() => openRoomThread(dispatch, comm, store.state().groups)} />; };
+/** BotAvatar hands its ref through to the mark, whose handle pokes it; its props type just doesn't name the ref. */
+const StatusMark = BotAvatar as unknown as ComponentType<ComponentProps<typeof BotAvatar> & { ref?: Ref<MausAvatarHandle> }>;
+
+/** What grok's status-line mark plays: the live step while the turn runs, its outcome once it ends. */
+function statusMarkFor({ busy, waitingOnYou, answering, live, failed }: { busy: boolean; waitingOnYou: boolean; answering: boolean; live: LiveStatus["activity"] | undefined; failed: boolean }): MarkState {
+  if (waitingOnYou) return "blocked";
+  if (answering || live === "reply") return "streaming";
+  if (!busy) return failed ? "failed" : "finished";
+  switch (live) {
+    case "thinking": return "thinking";
+    case "read": case "fetch": return "reading";
+    case "command": return "running";
+    case "write": case "edit": return "coding";
+    case "search": case "web": return "searching";
+    default: return "working";
+  }
+}
+
 /** Simple mode's room under the last row, above the composer's own clearance. */
 const SIMPLE_TRAILING_GAP = 42;
 
@@ -930,7 +950,6 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const busy = Boolean(bot.busy);
   const stoppedAt = useStoppedAt(bot.threadId);
   const openedAt = useThreadOpenedAt(bot.threadId);
-  const headerAnimated = busy || (mascotMotion?.kind ?? "none") !== "none";
   const branch = useRef(messages);
   branch.current = messages;
   const onBranch = useCallback((messageId: string) => branch.current.some((m) => m.id === messageId), []);
@@ -1007,6 +1026,9 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
     }, 520);
   }, [lastMessage?.id, lastMessage?.role, lastMessage?.kind]);
   const teammatesWorking = !advanced && !bot.busy && Boolean(bot.waitingForTeammates);
+  const markRef = useRef<MausAvatarHandle>(null);
+  const [markEmphasized, setMarkEmphasized] = useState(false);
+  const statusMarkState = statusMarkFor({ busy: Boolean(bot.busy), waitingOnYou: bot.activity === "waiting-on-you", answering: popping !== null, live: live.status?.activity, failed: lastMessage?.kind === "activity" && lastMessage.tool?.ok === false });
   const presenceVisible = waiting || popping !== null || teammatesWorking;
   const lastShownRow = windowedMessages.findLast((message) => !quietRow(message, showToolCalls));
   const presenceUnderBubble = Boolean(lastShownRow && isBotTextRow(lastShownRow, bot.id));
@@ -1061,7 +1083,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           {simpleHead ? (
             <ChatHeadPill
               bot={bot}
-              avatar={{ state: stateForBot({ ...bot, messages }), motion: mascotMotion?.kind ?? "none", motionKey: mascotMotion?.nonce ?? 0, animated: headerAnimated }}
+              // grok's header mark is a still image
+              avatar={{ state: "idle", motion: mascotMotion?.kind ?? "none", motionKey: mascotMotion?.nonce ?? 0, animated: false }}
               privacy={privateChat ? { kind: "private" } : ownHelper ? { kind: "ownHelper" } : sharedChat && team ? { kind: "shared", team: team.name, onlyPeopleAdded: bot.onlyPeopleAdded } : null}
               onToggle={() => dispatch({ type: "toggleSettings", open: !state.settingsOpen })}
             />
@@ -1076,11 +1099,11 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               >
                 <BotAvatar
                   bot={bot}
-                  state={stateForBot({ ...bot, messages })}
+                  state="idle"
                   size={24}
                   motion={mascotMotion?.kind ?? "none"}
                   motionKey={mascotMotion?.nonce ?? 0}
-                  animated={headerAnimated}
+                  animated={false}
                 />
               </button>
               <RenameTitle
@@ -1112,8 +1135,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               aria-label={t("chat.openProfileAria", { name: bot.name })}
               className={cn("group flex h-9 min-w-0 items-center gap-2.5 rounded-full py-0.5 pl-2 pr-3.5 text-ink", ELEVATED_FLOAT, ELEVATED_HOVER)}
             >
-              <BotAvatar bot={bot} state={stateForBot({ ...bot, messages })} size={24}
-                motion={mascotMotion?.kind ?? "none"} motionKey={mascotMotion?.nonce ?? 0} animated={headerAnimated} />
+              <BotAvatar bot={bot} state="idle" size={24}
+                motion={mascotMotion?.kind ?? "none"} motionKey={mascotMotion?.nonce ?? 0} animated={false} />
               <span className="min-w-0 truncate text-[14px] font-medium text-ink">{bot.name}</span>
               {chiefOfStaffBadge(bot)}
               <ChevronRight size={14} aria-hidden="true" className="-ml-2.5 w-0 shrink-0 text-ink-secondary opacity-0 transition-[width,margin,opacity] duration-150 group-hover:ml-0 group-hover:w-3.5 group-hover:opacity-100 group-focus-visible:ml-0 group-focus-visible:w-3.5 group-focus-visible:opacity-100" />
@@ -1271,12 +1294,16 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               </div>
             </div>
           )}
+          <div className="contents" onMouseEnter={() => setMarkEmphasized(true)} onMouseLeave={() => setMarkEmphasized(false)} onClick={() => markRef.current?.poke?.()}>
           <TurnPresence
             avatar={
-              <BotAvatar
+              <StatusMark
+                ref={markRef}
                 bot={bot}
-                state={toolInFlight ? "working" : "thinking"}
+                state={advanced ? (toolInFlight ? "working" : "thinking") : statusMarkState}
                 size={advanced ? 36 : 28}
+                eyeInk={advanced ? undefined : "var(--color-app)"}
+                emphasized={!advanced && markEmphasized}
                 forward={false}
                 lookAround={1}
                 trackPointer={false}
@@ -1292,6 +1319,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             answering={popping !== null}
             since={busySince}
           />
+          </div>
         </div>
       </div>
 
