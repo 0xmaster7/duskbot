@@ -40,18 +40,18 @@ afterEach(() => { vi.unstubAllGlobals(); });
 
 describe("default skin", () => {
   it("opens a fresh install following the computer's light or dark setting, in Simple mode, and keeps following it", async () => {
-    expect(await boot()).toEqual({ skin: "daylight", advanced: false, stored: "system" });
+    expect(await boot()).toEqual({ skin: "grok", advanced: false, stored: "system" });
     values.set("omb-installed", "2026-10-17T00:00:00.000Z");
     os.dark = true;
-    expect(await boot()).toEqual({ skin: "midnight", advanced: false, stored: "system" });
+    expect(await boot()).toEqual({ skin: "grok-dark", advanced: false, stored: "system" });
   });
 
-  it("switches between Daylight and Midnight when the computer does, while following it", async () => {
+  it("switches between Grok and Grok Dark when the computer does, while following it", async () => {
     await boot();
     setOsDark(true);
-    expect(document.documentElement.dataset.skin).toBe("midnight");
+    expect(document.documentElement.dataset.skin).toBe("grok-dark");
     setOsDark(false);
-    expect(document.documentElement.dataset.skin).toBe("daylight");
+    expect(document.documentElement.dataset.skin).toBe("grok");
   });
 
   it("stops following the computer once someone picks a skin", async () => {
@@ -63,12 +63,22 @@ describe("default skin", () => {
     expect(values.get("omb-skin")).toBe("meadow");
   });
 
+  it("moves an install that ran before onto the Grok look once, then keeps what it picks", async () => {
+    values.set("omb-skin", "lagoon");
+    expect(await boot()).toMatchObject({ skin: "grok", stored: "system" });
+    const skins = await import("./skins");
+    skins.applySkin("lagoon");
+    expect(await boot()).toMatchObject({ skin: "lagoon", stored: "lagoon" });
+  });
+
   it("keeps an install that ran before in Midnight when nobody picked a skin", async () => {
+    values.set("omb-skin-grok", "1");
     values.set("omb-skin", "midnight");
     expect(await boot()).toMatchObject({ skin: "midnight", stored: "midnight" });
   });
 
   it("keeps Midnight for an earlier install whose saved skin is missing or no longer exists", async () => {
+    values.set("omb-skin-grok", "1");
     values.set("omb-installed", "2026-01-01T00:00:00.000Z");
     expect(await boot()).toEqual({ skin: "midnight", advanced: true, stored: "midnight" });
     values.set("omb-skin", "retired-skin");
@@ -76,9 +86,11 @@ describe("default skin", () => {
   });
 
   it("always honours a skin someone chose", async () => {
+    values.set("omb-skin-grok", "1");
     values.set("omb-skin", "lagoon");
     expect(await boot()).toMatchObject({ skin: "lagoon" });
     values.clear();
+    values.set("omb-skin-grok", "1");
     values.set("omb-skin", "midnight");
     values.set("omb-advanced-mode", "0");
     expect(await boot()).toMatchObject({ skin: "midnight", advanced: false });
@@ -90,7 +102,7 @@ describe("default skin", () => {
     const [{ SkinPicker }, { ThemeRow }] = await Promise.all([import("@/components/SkinPicker"), import("@/components/ThemeRow")]);
     const picker = renderToStaticMarkup(createElement(SkinPicker));
     const pressed = [...picker.matchAll(/aria-pressed="true"[\s\S]*?<div class="text-\[13px\] font-medium text-ink">([^<]+)</g)].map(([, name]) => name);
-    expect(pressed).toEqual(["Midnight"]);
+    expect(pressed).toEqual(["Grok Dark"]);
     const theme = renderToStaticMarkup(createElement(ThemeRow));
     expect([...theme.matchAll(/aria-checked="true"[^>]*>([^<]+)</g)].map(([, label]) => label)).toEqual(["System"]);
   });

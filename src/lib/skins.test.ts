@@ -35,11 +35,11 @@ describe("skins", () => {
     }
   });
 
-  it("tints a hovered menu row with ink at 6% in Midnight and Daylight, and with raised at 70% in every other skin", () => {
+  it("tints a hovered menu row with ink at 6% in Midnight, Daylight and Grok, and with raised at 70% in every other skin", () => {
     for (const id of SKIN_IDS) {
       const body = css.match(new RegExp(`\\[data-skin="${id}"\\]\\s*\\{([^}]*)\\}`))?.[1] ?? "";
       const token = (name: string) => body.match(new RegExp(`(?:^|\\s)${name}:\\s*([^;]+);`))?.[1]?.trim();
-      const expected = id === "midnight" || id === "daylight"
+      const expected = ["midnight", "daylight", "grok", "grok-dark"].includes(id)
         ? `${token("--color-ink")}0f`
         : "color-mix(in srgb, var(--color-raised) 70%, transparent)";
       expect(token("--color-menu-hover"), id).toBe(expected);
@@ -49,7 +49,7 @@ describe("skins", () => {
   it("selects a code-only light or dark palette in every nearest skin", () => {
     for (const id of SKIN_IDS) {
       const body = css.match(new RegExp(`\\[data-skin="${id}"\\]\\s*\\{([^}]*)\\}`))?.[1] ?? "";
-      const scheme = ["atelier", "lagoon", "linen", "daylight", "meadow", "pop"].includes(id) ? "light" : "dark";
+      const scheme = ["atelier", "lagoon", "linen", "daylight", "grok", "meadow", "pop"].includes(id) ? "light" : "dark";
       expect(body).toContain(`--code-color-scheme: ${scheme};`);
     }
     expect(css).toMatch(/\.chat-md \.shiki\s*\{\s*color-scheme:\s*var\(--code-color-scheme\);\s*\}/);
@@ -63,11 +63,11 @@ describe("skins", () => {
     expect(PRIOR_INSTALL_SKIN).toBe("midnight");
   });
 
-  it("follows the computer between Daylight and Midnight by default", () => {
+  it("follows the computer between Grok and Grok Dark by default", () => {
     expect(DEFAULT_SKIN_CHOICE).toBe("system");
-    expect(THEME_SKINS).toEqual({ light: "daylight", dark: "midnight" });
-    expect(resolveSkin("system", false)).toBe("daylight");
-    expect(resolveSkin("system", true)).toBe("midnight");
+    expect(THEME_SKINS).toEqual({ light: "grok", dark: "grok-dark" });
+    expect(resolveSkin("system", false)).toBe("grok");
+    expect(resolveSkin("system", true)).toBe("grok-dark");
     expect(resolveSkin("meadow", true)).toBe("meadow");
   });
 

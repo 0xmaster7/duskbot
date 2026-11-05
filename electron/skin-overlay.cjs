@@ -13,6 +13,8 @@ const SKIN_CHROME = Object.freeze({
   daylight: Object.freeze({ color: "#fcfcfc", symbolColor: "#575757" }),
   meadow: Object.freeze({ color: "#ffffff", symbolColor: "#4d5a52" }),
   pop: Object.freeze({ color: "#fdf5ea", symbolColor: "#3a322d" }),
+  grok: Object.freeze({ color: "#fcfcfc", symbolColor: "#575757" }),
+  "grok-dark": Object.freeze({ color: "#121212", symbolColor: "#b5b5b5" }),
   halloween: Object.freeze({ color: "#110d16", symbolColor: "#c2b3cc" }),
 });
 

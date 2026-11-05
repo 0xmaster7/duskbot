@@ -11,6 +11,8 @@ export const SKIN_IDS = [
   "daylight",
   "meadow",
   "pop",
+  "grok",
+  "grok-dark",
   "halloween",
 ] as const;
 export type SkinId = (typeof SKIN_IDS)[number];
@@ -22,6 +24,8 @@ export type Skin = {
 };
 
 export const SKINS: readonly Skin[] = [
+  { id: "grok", name: "Grok", tagline: "Grok Bot's own look. Near-white, XVF type, ink-black bubbles." },
+  { id: "grok-dark", name: "Grok Dark", tagline: "Grok Bot after dark, in the same XVF type." },
   { id: "midnight", name: "Midnight", tagline: "The original. Cool and dark." },
   { id: "atelier", name: "Atelier", tagline: "Daylight on paper, warm and quiet." },
   { id: "foundry", name: "Foundry", tagline: "Night shift. Dark, warm, lit in brass." },
@@ -37,12 +41,14 @@ export const SKINS: readonly Skin[] = [
 
 /** "system" follows the OS between the light and dark skins below; anything else pins one skin. */
 export type SkinChoice = SkinId | "system";
-export const THEME_SKINS = { light: "daylight", dark: "midnight" } as const satisfies Record<"light" | "dark", SkinId>;
+export const THEME_SKINS = { light: "grok", dark: "grok-dark" } as const satisfies Record<"light" | "dark", SkinId>;
 
 export const DEFAULT_SKIN_CHOICE: SkinChoice = "system";
 export const PRIOR_INSTALL_SKIN: SkinId = "midnight";
 
 const KEY = "omb-skin";
+// set once every install has been moved onto the Grok look; a pick made after that sticks
+const GROK_MOVE_KEY = "omb-skin-grok";
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 
 function isSkinId(value: unknown): value is SkinId {
@@ -78,6 +84,11 @@ function getStore(): Storage | undefined {
 export function readSkinChoice(): SkinChoice {
   try {
     const store = getStore();
+    if (store && store.getItem(GROK_MOVE_KEY) == null) {
+      store.setItem(GROK_MOVE_KEY, "1");
+      store.setItem(KEY, DEFAULT_SKIN_CHOICE);
+      return DEFAULT_SKIN_CHOICE;
+    }
     const stored = store?.getItem(KEY);
     if (isSkinChoice(stored)) return stored;
     return hasPriorRun(store) ? PRIOR_INSTALL_SKIN : DEFAULT_SKIN_CHOICE;

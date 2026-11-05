@@ -14,7 +14,7 @@ function rule(selector: string, from = 0): string {
 }
 
 function skinBlocks(): string[] {
-  return [...css.matchAll(/\[data-skin="[a-z]+"\] \{[\s\S]*?\n\}/g)].map((match) => match[0]);
+  return [...css.matchAll(/\[data-skin="[a-z-]+"\] \{[\s\S]*?\n\}/g)].map((match) => match[0]);
 }
 
 describe("glass surface", () => {
@@ -36,7 +36,7 @@ describe("glass surface", () => {
   });
 
   it("is an opaque sheet for Settings in Midnight and Daylight in both modes, 900 by 700 with radius 12 in Simple", () => {
-    const sheet = rule(':root:is([data-skin="midnight"], [data-skin="daylight"]) [data-settings-look] .glass-surface');
+    const sheet = rule(':root:is([data-skin="midnight"], [data-skin="daylight"], [data-skin="grok"], [data-skin="grok-dark"]) [data-settings-look] .glass-surface');
     expect(sheet).toContain("background: var(--color-app)");
     expect(sheet).toContain("backdrop-filter: none");
     expect(sheet).toContain("box-shadow: none");
@@ -57,7 +57,7 @@ describe("glass surface", () => {
 
   it("lives outside every skin block, and every skin still defines the tokens it reads", () => {
     const blocks = skinBlocks();
-    expect(blocks).toHaveLength(11);
+    expect(blocks).toHaveLength(13);
     for (const block of blocks) {
       expect(block).not.toContain("glass");
       for (const token of ["--color-menu", "--color-card", "--color-ink"]) expect(block).toContain(`${token}:`);
