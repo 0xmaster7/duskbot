@@ -28,7 +28,7 @@ export function FolderModal({ bot, onClose }: { bot: Bot; onClose: () => void })
       onClose={onClose}
     >
       <div className="flex flex-col gap-2.5">
-        <DialogSection>
+        <DialogSection label="Files">
           <div role="radiogroup" aria-label={t("computer.files.folder")} className="flex flex-col">
             <DialogChoice
               data-panel-choice="private"

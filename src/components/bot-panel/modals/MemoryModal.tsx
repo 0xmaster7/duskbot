@@ -2,7 +2,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { Bot } from "@/state/store";
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
-import { DialogEmpty, DialogSection, DialogSkeleton, FilledField, footnoteCls, GrokDialog, listRowCls, RowIconButton, rowHintCls, rowTitleCls } from "../../ui/GrokDialog";
+import { DialogEmpty, DialogSection, DialogSkeleton, FilledField, footnoteCls, GrokDialog, listRowCls, RowIconButton, rowHintCls, rowTitleCls, useInPane } from "../../ui/GrokDialog";
 import { BotSwitch } from "../rows";
 import { useMemoryEditor } from "./use-memory-editor";
 
@@ -16,6 +16,7 @@ export function MemoryModal({ bot, derived, onClose }: {
   const count = notes?.length ?? 0;
   const label = notes === null || count === 0 ? "Notes" : count === 1 ? t("botPanel.memory.note") : t("botPanel.memory.notes", { count });
   const editable = bot.yourAccess !== "view";
+  const inPane = useInPane();
 
   return (
     <GrokDialog
@@ -25,7 +26,7 @@ export function MemoryModal({ bot, derived, onClose }: {
       onClose={onClose}
     >
       <div className="flex flex-col gap-7">
-        <DialogSection>
+        <DialogSection label="Memory">
           <div data-modal-row="memory-on" className={listRowCls}>
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <span className={rowTitleCls}>{t("memory.enable")}</span>
@@ -51,7 +52,7 @@ export function MemoryModal({ bot, derived, onClose }: {
               ) : notes.length === 0 ? (
                 <DialogEmpty>{t("botPanel.memory.empty")} Add a note below, or {bot.name} picks things up as you talk.</DialogEmpty>
               ) : (
-                <ul aria-label={label} className="m-0 flex max-h-[min(300px,calc(100dvh-420px))] list-none flex-col overflow-y-auto p-0 [scrollbar-width:thin]">
+                <ul aria-label={label} className={cn("m-0 flex list-none flex-col p-0", !inPane && "max-h-[min(300px,calc(100dvh-420px))] overflow-y-auto [scrollbar-width:thin]")}>
                   {notes.map((note) => (
                     <li key={`${note.path}:${note.line}:${note.text}`} data-memory-note={note.line ?? note.path} className={cn("group/row", listRowCls, "min-h-9 gap-x-3 py-1.5 pr-2.5")}>
                       <span className={cn(rowTitleCls, "min-w-0 flex-1 text-pretty")}>{note.text}</span>

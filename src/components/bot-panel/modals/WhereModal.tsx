@@ -42,7 +42,7 @@ export function WhereModal({ bot, derived, onClose }: {
       footer={usingNow && <span data-panel-using-now className="mr-auto truncate pl-2 text-[12px] leading-4 tracking-[0.01em] text-ink/56">{t("computer.simple.usingNow", { place: usingNow })}</span>}
     >
       <div className="flex flex-col gap-2.5">
-        <DialogSection>
+        <DialogSection label="Computer">
           <div role="radiogroup" aria-label={title} className="flex flex-col">
             {options.map((option) => (
               <DialogChoice

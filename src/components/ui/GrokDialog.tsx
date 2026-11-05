@@ -50,6 +50,10 @@ const FOCUSABLE = "button:not([disabled]), input:not([disabled]), textarea:not([
 /** Set by a sheet with a rail (the bot's settings): a dialog inside it draws as that sheet's pane instead of its own sheet. */
 export const DialogPane = createContext(false);
 
+export function useInPane(): boolean {
+  return useContext(DialogPane);
+}
+
 /** Focus into the dialog on open and back to the opener on close, Escape to close, Tab kept inside. A nested dialog
  * handles its own keys. */
 export function useDialogKeys(sheet: RefObject<HTMLElement | null>, onClose: () => void) {
@@ -165,15 +169,16 @@ function SheetView({ title, description, width = 440, onClose, footer, children,
 }
 
 /** A labelled section of a dialog: Grok's 12px label 14px in, 8px over its white card. */
-export function DialogSection({ label, action, children, bare = false, ...rest }: {
+export function DialogSection({ label, action, children, bare = false, className, ...rest }: {
   label?: ReactNode;
   action?: ReactNode;
   children: ReactNode;
   bare?: boolean;
+  className?: string;
   "data-modal-group"?: string;
 }) {
   return (
-    <section {...rest} className="flex flex-col gap-2">
+    <section {...rest} className={cn("flex flex-col gap-2", className)}>
       {(label || action) && (
         <div className="flex min-h-4 items-center justify-between gap-3 pl-3.5 pr-1">
           {label && <h3 className="m-0 text-[12px] font-normal leading-4 tracking-[0.01em] text-ink/68">{label}</h3>}

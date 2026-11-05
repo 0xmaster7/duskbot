@@ -5,13 +5,14 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Bot } from "@/state/store";
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
-import { InstructionsModal } from "./InstructionsModal";
+import { clearInstructionDrafts, InstructionsModal } from "./InstructionsModal";
 
 let root: Root | null = null;
 afterEach(() => {
   flushSync(() => root?.unmount());
   root = null;
   document.body.innerHTML = "";
+  clearInstructionDrafts();
 });
 
 function mount(bot: Partial<Bot>) {
@@ -37,15 +38,16 @@ const type = (value: string) => {
 };
 
 describe("the Instructions dialog", () => {
-  it("on its own is Grok's form dialog: a 14px titled, described sheet with no rule under the header or over the footer", () => {
+  it("is one calm card under the prompt, Save at its bottom right, with no counter or rule", () => {
     mount({});
     expect(sheet().getAttribute("role")).toBe("dialog");
-    expect(sheet().className).toContain("rounded-[14px]");
-    expect(sheet().className).toContain("bg-menu");
-    expect(sheet().querySelector("h2")!.className).toContain("text-[14px]");
-    expect(sheet().querySelector('button[aria-label="Close"]')!.className).toContain("size-6");
-    expect(document.getElementById(sheet().getAttribute("aria-describedby")!)!.textContent).toBe("How should Scout work? What should it always or never do?");
-    expect(sheet().querySelector(".border-b, .border-t")).toBeNull();
+    expect(sheet().querySelector("h3")!.textContent).toBe("How should Scout work? What should it always or never do?");
+    const card = sheet().querySelector<HTMLElement>("[data-instructions-card]")!;
+    expect(card.className).toContain("rounded-[14px]");
+    expect(card.className).toContain("outline-ink/8");
+    expect(card.contains(field())).toBe(true);
+    expect(card.lastElementChild!.lastElementChild).toBe(save());
+    expect(sheet().querySelector("[data-instructions-count], .border-b, .border-t")).toBeNull();
     expect(document.activeElement).toBe(field());
   });
 
@@ -75,6 +77,20 @@ describe("the Instructions dialog", () => {
     flushSync(() => sheet().querySelector<HTMLButtonElement>('button[aria-label="Close"]')!.click());
     expect(onClose).toHaveBeenCalledTimes(2);
     expect(patch).not.toHaveBeenCalled();
+  });
+
+  it("keeps an unsaved draft for the session when it closes, and drops it once saved", () => {
+    mount({});
+    type("Be brief. Use tables.");
+    flushSync(() => root!.unmount());
+    const { patch } = mount({});
+    expect(field().value).toBe("Be brief. Use tables.");
+    expect(save().disabled).toBe(false);
+    flushSync(() => save().click());
+    expect(patch).toHaveBeenCalledWith({ soul: "Be brief. Use tables." });
+    flushSync(() => root!.unmount());
+    mount({ soul: "Be brief. Use tables." });
+    expect(save().disabled).toBe(true);
   });
 
   it("is read-only for someone who can only view the bot", () => {

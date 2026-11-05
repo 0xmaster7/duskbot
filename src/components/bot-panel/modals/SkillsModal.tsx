@@ -2,7 +2,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";
 import { SkillReviewDialog } from "../../bot-settings/SkillsSection";
-import { DialogEmpty, DialogLinkRow, DialogSection, DialogSkeleton, FilledField, footnoteCls, GrokDialog, listRowCls, RowIconButton, rowHintCls, rowTitleCls } from "../../ui/GrokDialog";
+import { DialogEmpty, DialogLinkRow, DialogSection, DialogSkeleton, FilledField, footnoteCls, GrokDialog, listRowCls, RowIconButton, rowHintCls, rowTitleCls, useInPane } from "../../ui/GrokDialog";
 import { BotSwitch } from "../rows";
 import { useSkillActions } from "./use-skill-actions";
 
@@ -12,6 +12,7 @@ export function SkillsModal({ bot, onClose }: { bot: Bot; onClose: () => void })
   const { skills, source, setSource, importing, remove, importSkill, browse } = useSkillActions(bot);
   const busy = Boolean(skills.working);
   const count = skills.skills.length;
+  const inPane = useInPane();
 
   return (
     <GrokDialog
@@ -28,7 +29,7 @@ export function SkillsModal({ bot, onClose }: { bot: Bot; onClose: () => void })
             ) : count === 0 ? (
               <DialogEmpty>{t("botSettings.simple.noSkills")} Paste a skill link below, or browse for one.</DialogEmpty>
             ) : (
-              <ul className="m-0 flex max-h-[min(280px,calc(100dvh-460px))] list-none flex-col overflow-y-auto p-0 [scrollbar-width:thin]">
+              <ul className={cn("m-0 flex list-none flex-col p-0", !inPane && "max-h-[min(280px,calc(100dvh-460px))] overflow-y-auto [scrollbar-width:thin]")}>
                 {skills.skills.map((skill) => (
                   <li key={skill.name} data-panel-row={`skill:${skill.name}`} className={cn("group/row", listRowCls, "gap-x-3")}>
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
