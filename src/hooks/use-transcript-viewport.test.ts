@@ -441,6 +441,25 @@ describe("transcript viewport", () => {
     expect(view.current.laterCount).toBe(181);
   });
 
+  it("brings the person's own new message into view from a search result's window", () => {
+    store.state.focusMessage = { threadId: "thread", messageId: "m10", nonce: 1, consumed: false };
+    const view = mount({ messages: rows(300) });
+    expect(view.current.laterCount).toBe(180);
+    view.rerender({ messages: [...rows(300), { id: "sent", role: "user" }] });
+    view.act(() => {});
+    expect(view.current.following).toBe(true);
+    expect(view.current.laterCount).toBe(0);
+    expect(view.current.windowedMessages.at(-1)?.id).toBe("sent");
+  });
+
+  it("leaves a scrolled-up reader where they are when only the bot writes", () => {
+    const view = mount({ messages: rows(300) });
+    view.act(() => view.current.showEarlier());
+    view.rerender({ messages: [...rows(300), { id: "reply", role: "bot" }] });
+    view.act(() => {});
+    expect(view.current.following).toBe(false);
+  });
+
   it("jumps back to the latest rows and resumes following", () => {
     const view = mount({ messages: rows(300) });
     view.act(() => view.current.showEarlier());

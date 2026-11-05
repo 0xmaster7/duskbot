@@ -1309,7 +1309,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           </ChatBusyContext></LiveToolsContext></ChatRowsContext.Provider>
           {stopNoticeDue(messages, stoppedAt, busy) && <CancelledTurnRow name={PERSON_STOPPED_TURN_NAME} />}
           {laterCount > 0 && (
-            <div className="flex justify-center">
+            // clear of the jump-to-latest button, which floats over the transcript's last 40px while this shows
+            <div className="mb-10 flex justify-center">
               <button
                 onClick={showLater}
                 className="ui-pill"

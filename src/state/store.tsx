@@ -53,7 +53,7 @@ import {
 } from "../../shared/skill-request";
 import type { Routine, RoutineInput, RoutineRun, RoutineRunStatusFilter } from "@/lib/routines";
 import type { WebhookAttempt, WebhookIngressStatus, WebhookTrigger } from "@/lib/webhooks";
-import { duplicateBotProfile, restrictedCopyRequest } from "@/lib/bot-duplicate";
+import { duplicateBotProfile, duplicateCreateRequest } from "@/lib/bot-duplicate";
 import { botShowsUnread } from "@/lib/bot-unread";
 import { firstUnreadMessageId, threadOpensUnread, threadReadCursor } from "@/lib/unread-divider";
 import type { ComputerStart } from "@/lib/computer-start";
@@ -2634,7 +2634,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           // A copy of a restricted bot is restricted from its first moment.
           api("/api/bots", {
             method: "POST",
-            body: JSON.stringify(restrictedCopyRequest(source)),
+            body: JSON.stringify(duplicateCreateRequest(source)),
           })
             .then(({ bot }) =>
               api(`/api/bots/${bot.id}`, {

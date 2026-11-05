@@ -20,10 +20,25 @@ export function restrictedCopyRequest(source: RestrictedSource): RestrictedCopyR
   };
 }
 
+/** The request that creates a copy: its restrictions, and its name and look, so its greeting says who it is. */
+export function duplicateCreateRequest(source: Bot) {
+  return {
+    ...restrictedCopyRequest(source),
+    name: `${source.name} copy`,
+    ...(source.color ? { color: source.color } : {}),
+    ...(source.mascotBody ? { mascotBody: source.mascotBody } : {}),
+  };
+}
+
 /** What a copy takes from its source, PATCHed onto the new bot in one request. A copy of a VPS bot keeps its server. */
 export function duplicateBotProfile(source: Bot) {
   return {
     name: `${source.name} copy`,
+    color: source.color,
+    mascotBody: source.mascotBody,
+    ...(source.mascotFaceColor !== undefined ? { mascotFaceColor: source.mascotFaceColor } : {}),
+    ...(source.voice !== undefined ? { voice: source.voice } : {}),
+    ...(source.fallback !== undefined ? { fallback: source.fallback } : {}),
     title: source.title,
     description: source.description,
     soul: source.soul,

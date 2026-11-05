@@ -70,7 +70,8 @@ export const GrokMark = forwardRef<GrokMarkHandle, GrokMarkProps>(function GrokM
   };
   const mark = useRef<Mark | null>(null);
   mark.current ??= createMark(options, { clock: mascotClock(), now: () => performance.now() });
-  const [firstPaint] = useState(() => mark.current!.markup());
+  // one object for the life of the mark: react re-applies innerHTML whenever it gets a new one, painting over the live svg
+  const [firstPaint] = useState(() => ({ __html: mark.current!.markup() }));
   const host = useRef<HTMLSpanElement>(null);
   const canvas = useRef<HTMLSpanElement>(null);
   const pokes = useRef(0);
@@ -121,7 +122,7 @@ export const GrokMark = forwardRef<GrokMarkHandle, GrokMarkProps>(function GrokM
       <span
         ref={canvas}
         style={{ position: "absolute", left: "50%", top: "50%", width: `${MARK_CANVAS_PERCENT}%`, height: `${MARK_CANVAS_PERCENT}%`, transform: "translate(-50%, -50%)", pointerEvents: "none" }}
-        dangerouslySetInnerHTML={{ __html: firstPaint }}
+        dangerouslySetInnerHTML={firstPaint}
       />
     </span>
   );

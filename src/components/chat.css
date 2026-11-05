@@ -311,8 +311,24 @@
 }
 
 /* grok's file card and its paper glyph */
+/* the page's palette, resolved on the root before a coloured bubble repaints ink for its own text */
+:root {
+  --page-ink: var(--color-ink);
+  --page-ink-secondary: var(--color-ink-secondary);
+  --page-ink-tertiary: var(--color-ink-tertiary);
+  --page-focus: var(--color-focus);
+  --page-danger: var(--color-danger);
+}
 .chat-file-card {
   box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 8%, transparent), 0 1px 4px color-mix(in srgb, var(--color-ink) 7%, transparent);
+}
+/* a file sent with words sits in the person's coloured bubble: the white card keeps the page's dark ink */
+[data-chat-bubble] .chat-file-card {
+  --color-ink: var(--page-ink);
+  --color-ink-secondary: var(--page-ink-secondary);
+  --color-ink-tertiary: var(--page-ink-tertiary);
+  --color-focus: var(--page-focus);
+  --color-danger: var(--page-danger);
 }
 .chat-file-glyph {
   box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 12%, transparent), 0 2px 6px color-mix(in srgb, var(--color-ink) 6%, transparent);

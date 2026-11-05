@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Bot } from "@/state/store";
-import { duplicateBotProfile, restrictedCopyRequest } from "./bot-duplicate";
+import { duplicateBotProfile, duplicateCreateRequest, restrictedCopyRequest } from "./bot-duplicate";
 
 describe("what a duplicated bot is created with", () => {
   it("asks for nothing when the source is not restricted", () => {
@@ -45,5 +45,12 @@ describe("what a duplicated bot is created with", () => {
     expect(duplicateBotProfile(source)).toMatchObject({ name: "Rio copy", computer: "cloud", cloudBackend: "vps", autoStartVps: true, vpsAlias: "alpha-vps" });
     const { vpsAlias: _alias, ...onDefault } = source;
     expect(duplicateBotProfile(onDefault as Bot).vpsAlias).toBeUndefined();
+  });
+
+  it("creates the copy with its name and look, so its first greeting names it and its face matches", () => {
+    const source = { id: "src", threadId: "t", name: "Rio", color: "green", mascotBody: "heart", visibility: "admins", messages: [] } as unknown as Bot;
+    expect(duplicateCreateRequest(source)).toEqual({ visibility: "admins", name: "Rio copy", color: "green", mascotBody: "heart" });
+    expect(duplicateBotProfile({ ...source, fallback: [{ instanceId: "claude", model: "claude-sonnet-5" }], voice: "ash" } as Bot))
+      .toMatchObject({ color: "green", mascotBody: "heart", voice: "ash", fallback: [{ instanceId: "claude", model: "claude-sonnet-5" }] });
   });
 });

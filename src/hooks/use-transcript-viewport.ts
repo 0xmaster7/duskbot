@@ -223,6 +223,19 @@ export function useTranscriptViewport<T extends { id: string; role?: string }>({
     });
   };
 
+  // the person's own new message brings the transcript back to the latest, however far up or windowed it was
+  const newest = messages.at(-1);
+  const seenNewest = useRef({ key: transcriptKey, id: newest?.id });
+  const latestJump = useRef(jumpToLatest);
+  latestJump.current = jumpToLatest;
+  const windowed = transcriptWindow.end !== null;
+  useEffect(() => {
+    const seen = seenNewest.current;
+    seenNewest.current = { key: transcriptKey, id: newest?.id };
+    if (seen.key !== transcriptKey || seen.id === newest?.id || newest?.role !== "user") return;
+    if (!followRef.current || windowed) latestJump.current();
+  }, [transcriptKey, newest?.id, newest?.role, windowed]);
+
   const scrollHandlers = {
     onPointerDown: (e: PointerEvent<HTMLDivElement>) => {
       // Grabbing the scrollbar is a scroll gesture: its lane lies past clientWidth.

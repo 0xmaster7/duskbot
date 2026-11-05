@@ -146,7 +146,7 @@ export function SettingsModal() {
   useEffect(() => {
     const scroller = scrollRef.current;
     if (!scroller) return;
-    const lead = paneEntry.sections[0] === requested || (page !== undefined && ADVANCED_PAGES.find((entry) => entry.id === page)?.sections[0] === requested);
+    const lead = paneEntry.sections.find(has) === requested || (page !== undefined && ADVANCED_PAGES.find((entry) => entry.id === page)?.sections.find(has) === requested);
     revealSettingsBlock(scroller, requested === "remote" ? "remote" : requested, lead && !keyFocus);
   }, [requested, pane, page, paneEntry, keyFocus]);
 
@@ -211,7 +211,7 @@ export function SettingsModal() {
       case "updates": return <UpdatesPane remoteActive={remoteActive} />;
       case "advanced": return at
         ? <AdvancedPageView page={at} has={has} remoteActive={remoteActive} peopleOpen={requested === "people"} />
-        : <AdvancedIndex pages={advancedPages} onOpen={(next) => go(ADVANCED_PAGES.find((entry) => entry.id === next)!.sections[0]!)} />;
+        : <AdvancedIndex pages={advancedPages} onOpen={(next) => go(ADVANCED_PAGES.find((entry) => entry.id === next)!.sections.find(has)!)} />;
     }
   };
 
@@ -230,7 +230,7 @@ export function SettingsModal() {
             value={pane}
             aria-label={t("settings.pane.picker")}
             options={panes.map((entry) => ({ value: entry.id, label: t(entry.labelKey) }))}
-            onChange={(event) => { const next = panes.find((entry) => entry.id === event.target.value); if (next) go(next.sections[0]!); }}
+            onChange={(event) => { const next = panes.find((entry) => entry.id === event.target.value); if (next) go(next.sections.find(has)!); }}
           />
         </div>
       </header>
@@ -264,7 +264,7 @@ export function SettingsModal() {
                   data-settings-page={entry.id}
                   aria-current={current ? "page" : undefined}
                   aria-controls={current ? `settings-panel-${entry.id}` : undefined}
-                  onClick={() => go(entry.sections[0]!)}
+                  onClick={() => go(entry.sections.find(has)!)}
                   className="settings-nav-item"
                 >
                   <GrokIcon name={entry.icon} size={15} />

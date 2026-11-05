@@ -4,7 +4,11 @@ import { setAnalyticsEnabled, setEmailGateDone } from "../../src/lib/analytics";
 import { setAdvancedMode } from "../../src/lib/interface-mode";
 import { GROK_MOVE_NOTICE } from "../../src/lib/notices";
 import { applySkinChoice, readSkinChoice } from "../../src/lib/skins";
+import { applyChatWidth, readChatWidth } from "../../src/lib/chat-width";
+import { applyFont, readFont } from "../../src/lib/fonts";
 import "../../src/styles.css";
+import "../../src/styles/overlays.css";
+import "../../src/styles/motion.css";
 
 // This entry point is served only by the disposable verification launcher.
 // The voice-latency harness opts in with ?ombVoiceProbe=1; the recorder in
@@ -20,4 +24,6 @@ else setEmailGateDone("skipped");
 // The same for the once-per-person Move from Grok Bot popup, with ?grokMovePopup=1.
 if (!new URLSearchParams(location.search).has("grokMovePopup")) localStorage.setItem(GROK_MOVE_NOTICE, "1");
 applySkinChoice(readSkinChoice());
+applyFont(readFont());
+applyChatWidth(readChatWidth());
 createRoot(document.getElementById("root")!).render(<App />);
