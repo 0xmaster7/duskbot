@@ -1,12 +1,17 @@
-import type { ComponentProps } from "react";
+import type { ComponentProps, CSSProperties } from "react";
 
 import { cn } from "@/lib/cn";
 
 /** Grok's switch: a 32 by 20 track, a 16px knob on a 120ms ease transition, the switch blue when on. */
-export function Toggle({ checked, className, ...props }: Omit<ComponentProps<"button">, "children" | "role" | "aria-checked"> & { checked: boolean }) {
+export function Toggle({ checked, className, tone, style, ...props }: Omit<ComponentProps<"button">, "children" | "role" | "aria-checked"> & {
+  checked: boolean;
+  /** A bot's own switch colours, as Grok paints a bot's switches in its `bg/<hue>-primary` and `-primary-hover`. */
+  tone?: { on: string; hover: string };
+}) {
   return (
     <button
       {...props}
+      style={tone ? { ...style, "--toggle-on": tone.on, "--toggle-on-hover": tone.hover } as CSSProperties : style}
       type="button"
       role="switch"
       aria-checked={checked}
@@ -16,7 +21,9 @@ export function Toggle({ checked, className, ...props }: Omit<ComponentProps<"bu
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-app",
         "disabled:cursor-not-allowed disabled:opacity-50",
         checked
-          ? "bg-accent enabled:hover:brightness-95 [:root[data-skin=grok]_&]:bg-accent-border [:root[data-skin=grok]_&]:enabled:hover:bg-accent [:root[data-skin=grok]_&]:enabled:hover:brightness-100"
+          ? tone
+            ? "bg-(--toggle-on) enabled:hover:bg-(--toggle-on-hover)"
+            : "bg-accent enabled:hover:brightness-95 [:root[data-skin=grok]_&]:bg-accent-border [:root[data-skin=grok]_&]:enabled:hover:bg-accent [:root[data-skin=grok]_&]:enabled:hover:brightness-100"
           : "bg-ink/[0.06] enabled:hover:bg-ink/[0.10]",
         className,
       )}

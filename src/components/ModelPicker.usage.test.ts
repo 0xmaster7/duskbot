@@ -83,7 +83,9 @@ describe("the model button's usage bars", () => {
       const parts = [...chip().querySelectorAll("[data-usage-bars], svg.lucide-chevron-down")];
       expect(parts.map((part) => part.hasAttribute("data-usage-bars") ? "bars" : "chevron")).toEqual(["bars", "chevron"]);
       expect(chip().textContent).toContain("Claude Sonnet 5");
-      expect(chip().textContent?.indexOf("Claude Sonnet 5")).toBeLessThan(chip().textContent!.indexOf("Claude: 38% used, resets 3:40 PM"));
+      // the reset time reads in the machine's own clock, so match it the way the app formats it
+      const resets = new Date(RESET).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      expect(chip().textContent!.indexOf(`Claude: 38% used, resets ${resets}`)).toBeGreaterThan(chip().textContent!.indexOf("Claude Sonnet 5"));
     });
   }
 
@@ -111,20 +113,13 @@ describe("the model button's usage bars", () => {
     expect(chip().querySelector("[data-usage-glyph]")?.getAttribute("class")).not.toContain("@max-4xl/chathead:hidden");
   });
 
-  for (const advanced of [false, true]) {
-    it(`open as rows at the top of the model menu, for keyboard and touch (${advanced ? "Advanced" : "Simple"})`, async () => {
-      fixture.advanced = advanced;
-      render();
-      flushSync(() => chip().click());
-      await settle();
-      const menu = document.querySelector<HTMLElement>("[data-model-picker-content]")!;
-      expect(menu.firstElementChild?.hasAttribute("data-usage-menu")).toBe(true);
-      expect([...menu.querySelectorAll("[data-usage-row]")].map((row) => row.getAttribute("data-usage-row"))).toEqual(["5-hour", "weekly"]);
-      flushSync(() => chip().querySelector("[data-usage-bars]")!.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" })));
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      expect(document.querySelector("[data-usage-card]")).toBeNull();
-    });
-  }
+  it("keep usage out of the open model menu: the panel's Model card has its own usage row", async () => {
+    render();
+    flushSync(() => chip().click());
+    await settle();
+    expect(document.querySelector("[data-model-picker-content]")).not.toBeNull();
+    expect(document.querySelector("[data-usage-menu]")).toBeNull();
+  });
 
   it("leave the menu without rows for an engine with no usage", async () => {
     remember([]);

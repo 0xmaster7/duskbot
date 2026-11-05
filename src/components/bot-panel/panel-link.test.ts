@@ -20,19 +20,19 @@ describe("named links into a bot's settings", () => {
     expect(Object.keys(dispatch.mock.calls[0]![0])).not.toContain("botId");
   });
 
-  it("lands the access callers on the Simple page that holds what they are about, else on the Computer tab", () => {
+  it("lands the access callers on the Simple page that holds what they are about, else on Where it works", () => {
     expect(linkTarget("access", link({ section: "access", page: "apps" }))).toEqual({ tab: "details", page: "apps" });
     expect(linkTarget("access", link({ section: "access", page: "folder" }))).toEqual({ tab: "library", page: "folder" });
-    // Simple mode has no MCP or tool-selection page: those links open the Computer tab, where Access lives.
-    expect(linkTarget("access", link({ section: "access", page: "mcp" }))).toEqual({ tab: "computer" });
-    expect(linkTarget("access", link({ section: "access", page: "tools" }))).toEqual({ tab: "computer" });
-    // A plain Access link (the team map's computer button) still opens the Computer tab, where Works on lives.
-    expect(linkTarget("access", link({ section: "access" }))).toEqual({ tab: "computer" });
+    // Simple mode has no MCP or tool-selection page: those links open Where it works, the Computer tab's page.
+    expect(linkTarget("access", link({ section: "access", page: "mcp" }))).toEqual({ tab: "computer", page: "where" });
+    expect(linkTarget("access", link({ section: "access", page: "tools" }))).toEqual({ tab: "computer", page: "where" });
+    // A plain Access link (the team map's computer button) opens Where it works too: Grok's Computer tab holds only the screen.
+    expect(linkTarget("access", link({ section: "access" }))).toEqual({ tab: "computer", page: "where" });
   });
 
   it("lands a link that names a card on that card, on its section's tab, and on no other section", () => {
     expect(linkTarget("overview", link({ section: "overview", anchor: "conversations" }))).toEqual({ tab: "details", anchor: "conversations" });
-    expect(linkTarget("access", link({ section: "access", anchor: "conversations" }))).toEqual({ tab: "computer", anchor: "conversations" });
+    expect(linkTarget("access", link({ section: "access", anchor: "conversations" }))).toEqual({ tab: "computer", page: "where", anchor: "conversations" });
     expect(linkTarget("usage", link({ section: "overview", anchor: "conversations" }))).toEqual(sectionTarget("usage"));
   });
 

@@ -80,7 +80,7 @@ const SECTION_TARGET: Record<BotSettingsSection, PanelTarget> = {
   memory: { tab: "library", page: "memory" },
   library: { tab: "library" },
   routines: { tab: "details", page: "routines" },
-  access: { tab: "computer" },
+  access: { tab: "computer", page: "where" },
   model: { tab: "details", anchor: "model" },
   permissions: { tab: "details", page: "settings", anchor: "approval" },
   voice: { tab: "details" },

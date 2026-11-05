@@ -29,7 +29,7 @@ vi.mock("./DetailsTab", () => ({
   DetailsTab: (props: { onOpen: (page: string) => void }) =>
     createElement("div", { "data-stub-details": true }, createElement("button", { type: "button", "data-panel-gear": true, onClick: () => props.onOpen("settings") }, "Bot settings")),
 }));
-vi.mock("./LibraryTab", () => ({ LibraryTab: stub("library") }));
+vi.mock("./LibraryTab", () => ({ LibraryTab: stub("library"), libraryItems: () => ({ pages: [], apps: [], shared: [], unshared: [] }) }));
 vi.mock("./ComputerTab", () => ({ ComputerTab: stub("computer") }));
 vi.mock("./pages", () => ({
   PageBody: ({ page, editingInstructions }: { page: string; editingInstructions?: boolean }) =>
@@ -48,7 +48,7 @@ const bot: Bot = {
   modelSelection: { instanceId: "claude", model: "claude-opus-5-5" },
 };
 const onClose = vi.fn();
-const derived = { activeState: "idle", patch: vi.fn() } as never;
+const derived = { activeState: "idle", patch: vi.fn(), botRoutines: [] } as never;
 
 let host: HTMLDivElement;
 let root: Root;
@@ -71,7 +71,8 @@ const press = (element: Element | null, key: string) => {
   flushSync(() => element.dispatchEvent(event));
   return event;
 };
-const menu = () => document.querySelector("[data-sidebar-popover-menu]");
+const menu = () => document.querySelector("[data-panel-share-menu]");
+const shareOpen = () => moreButton()?.getAttribute("aria-expanded") === "true";
 const moreButton = () => host.querySelector("[data-panel-share]")?.closest("button") ?? null;
 // What BotSettingsDialog's window listener would do with the key: close the whole panel.
 const dialogCloses = vi.fn();
@@ -110,29 +111,33 @@ describe("named links into the bot panel", () => {
     await settle();
     expect(page()).toBe("folder");
 
-    // Simple mode has no MCP page: the link lands where Access does.
+    // Simple mode has no MCP page: the link lands where Access does, on Where it works.
     flushSync(() => openBotSettings(fixture.dispatch, "access", { page: "mcp" }));
     await settle();
-    expect([tab(), page()]).toEqual(["computer", null]);
+    expect(page()).toBe("where");
 
+    flushSync(() => openBotSettings(fixture.dispatch, "access", { page: "folder" }));
+    await settle();
     flushSync(() => openBotSettings(fixture.dispatch, "access"));
     await settle();
-    expect([tab(), page()]).toEqual(["computer", null]);
+    expect(page()).toBe("where");
   });
 
   it("follows the same link again after the panel has moved on", async () => {
     openBotSettings(fixture.dispatch, "access");
     render("access");
     await settle();
-    expect(tab()).toBe("computer");
+    expect(page()).toBe("where");
 
+    click(host.querySelector("[data-panel-back]"));
+    expect(tab()).toBe("computer");
     click(host.querySelector('[data-panel-tab="details"]'));
     expect(tab()).toBe("details");
 
     flushSync(() => openBotSettings(fixture.dispatch, "access"));
     render("access");
     await settle();
-    expect(tab()).toBe("computer");
+    expect(page()).toBe("where");
   });
 
   it("opens Bot settings with the Instructions editor for a soul link, and closes it when the panel moves on", async () => {
@@ -185,15 +190,18 @@ describe("the panel's tabs", () => {
 });
 
 describe("the panel's top", () => {
-  it("has a round Share button that copies or downloads the conversation, and Close, as Grok does", async () => {
+  it("has a round Share button whose one item, Create a copy, duplicates the bot, and Close, as Grok does", async () => {
     render(null);
     await settle();
     const top = [...host.querySelectorAll("button")].slice(0, 2);
-    expect(top.map((button) => button.getAttribute("aria-label") ?? button.getAttribute("title"))).toEqual(["Share", "Close settings"]);
-    for (const button of [moreButton()!, top[1]!]) expect(button.querySelector("span, svg")).not.toBeNull();
+    expect(top.map((button) => button.getAttribute("aria-label") ?? button.getAttribute("title"))).toEqual(["Share", "Close"]);
+    for (const button of [moreButton()!, top[1]!]) expect(button.querySelector("span, svg, i")).not.toBeNull();
     click(moreButton());
-    expect([...menu()!.querySelectorAll("[data-menu-key]")].map((row) => row.getAttribute("data-menu-key"))).toEqual(["copy", "download"]);
-    press(moreButton(), "Escape");
+    expect([...menu()!.querySelectorAll('[role="menuitem"]')].map((row) => row.getAttribute("data-panel-share-item"))).toEqual(["copy"]);
+    expect(menu()!.textContent).toContain("Create a copy");
+    click(menu()!.querySelector('[role="menuitem"]'));
+    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "duplicateBot", botId: "scout" });
+    expect(shareOpen()).toBe(false);
     click(top[1]!);
     expect(onClose).toHaveBeenCalledOnce();
   });
@@ -239,7 +247,8 @@ describe("the chat header's pill", () => {
     const { header, onToggle, done } = pill();
     try {
       const button = header.querySelector<HTMLButtonElement>("[data-chathead-pill]")!;
-      expect(button.textContent).toBe("Scout");
+      // the hover chevron is an icon-font glyph, so read the name itself
+      expect(button.querySelector('span[dir="auto"]')?.textContent).toBe("Scout");
       expect(button.getAttribute("aria-label")).toBe("Open Scout's profile");
       expect(button.getAttribute("aria-expanded")).toBe("false");
       expect(button.hasAttribute("aria-controls")).toBe(false);
@@ -321,9 +330,9 @@ describe("Escape in the bot panel", () => {
     await settle();
     moreButton()?.focus();
     click(moreButton());
-    expect(menu()).not.toBeNull();
+    expect(shareOpen()).toBe(true);
     press(moreButton(), "Escape");
-    expect(menu()).toBeNull();
+    expect(shareOpen()).toBe(false);
     expect(dialogCloses).not.toHaveBeenCalled();
     expect(document.activeElement).toBe(moreButton());
 
@@ -332,9 +341,9 @@ describe("Escape in the bot panel", () => {
     await onPage();
     moreButton()?.focus();
     click(moreButton());
-    expect(menu()).not.toBeNull();
+    expect(shareOpen()).toBe(true);
     press(moreButton(), "Escape");
-    expect(menu()).toBeNull();
+    expect(shareOpen()).toBe(false);
     expect(page()).toBe("skills");
     press(moreButton(), "Escape");
     expect([tab(), page()]).toEqual(["library", null]);

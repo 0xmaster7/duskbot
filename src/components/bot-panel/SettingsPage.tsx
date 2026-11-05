@@ -9,6 +9,8 @@ import type { ApprovalMode } from "../../../shared/approval-mode";
 import { BOT_PROFILE_LIMITS } from "../../../shared/bot-profile";
 import { ApprovalChip } from "../ComposerPlusMenu";
 import { DefaultBotHideRow } from "../DefaultBotControls";
+import { useDeleteAllThreads } from "../BotMenuDelete";
+import { useTeamName } from "../bot-access/ShareBotButton";
 import { SoulField } from "../SoulField";
 import { BotApiCard } from "../bot-settings/BotApiCard";
 import { useBotApps } from "../bot-settings/useBotApps";
@@ -37,6 +39,9 @@ export function SettingsPage({ bot, derived, onOpen, editingInstructions = false
 }) {
   const { dispatch, flushBotPatches } = useStore();
   const apps = useBotApps(bot);
+  const clearThreads = useDeleteAllThreads(true);
+  const team = useTeamName();
+  const { state } = useStore();
   const approval = useThreadApproval(currentTaskBot(bot));
   const [jobDraft, setJobDraft] = useState<string | null>(null);
   const { patch, approvalMode, engine } = derived;
@@ -60,6 +65,7 @@ export function SettingsPage({ bot, derived, onOpen, editingInstructions = false
     dispatch({ type: "updateBot", botId: bot.id, patch: { approvalMode: mode, applyToAllThreads: true } });
   };
 
+  const engineCoordinates = state.instances.find((instance) => instance.instanceId === bot.modelSelection.instanceId)?.capabilities?.agentsMcp;
   const soulOpen = editingInstructions || Boolean(bot.soulDrift);
   const enabledApps = apps.apps.filter((app) => app.scope !== null).map((app) => app.label);
 
@@ -167,6 +173,25 @@ export function SettingsPage({ bot, derived, onOpen, editingInstructions = false
       <BotApiCard bot={bot} webhooksLink className="mt-3.5" />
 
       <DefaultBotHideRow bot={bot} />
+
+      {/* the bot's rare actions, as quiet rows at the foot (they left the sidebar's menu) */}
+      {bot.yourAccess !== "view" && (
+        <Card anchor="actions">
+          {!team && (
+            <NavRow
+              data-panel-row="chief"
+              drill={false}
+              title={bot.chiefOfStaff ? t("sidebar.bot.removeChief") : t("sidebar.bot.makeChief")}
+              disabled={!bot.chiefOfStaff && engineCoordinates !== true}
+              tooltip={!bot.chiefOfStaff && engineCoordinates !== true ? t("sidebar.bot.chiefNeedsEngine") : undefined}
+              onClick={() => dispatch({ type: "updateBot", botId: bot.id, patch: { chiefOfStaff: !bot.chiefOfStaff } })}
+            />
+          )}
+          <NavRow data-panel-row="duplicate" drill={false} danger title={t("botPanel.actions.duplicate")} onClick={() => dispatch({ type: "duplicateBot", botId: bot.id })} />
+          <NavRow data-panel-row="delete-all" drill={false} danger title={t("task.deleteAllConversations")} onClick={() => clearThreads.ask(bot.id)} />
+        </Card>
+      )}
+      {clearThreads.dialog}
       {approval.dialogs}
     </div>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { Crown, Pencil } from "lucide-react";
+import { Crown } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
@@ -7,10 +7,14 @@ import type { MausState } from "@/lib/mascot";
 import type { Bot } from "@/state/store";
 import { BOT_PROFILE_LIMITS } from "../../../shared/bot-profile";
 import { BotAvatar } from "../Avatar";
+import { GrokIcon } from "../GrokIcon";
 import type { BotPatch } from "../bot-settings/useBotSettingsDerived";
 
-const inlineInputCls =
-  "rounded-lg border border-accent-border bg-inset px-2 py-[3px] text-center text-ink outline-none placeholder:text-ink-tertiary";
+/** Grok's inline fields: no frame of their own, a 10% ink wash on hover and while editing. */
+const nameCls = "max-w-full rounded-lg border border-transparent px-2.5 py-0.5 text-center text-[17px] font-medium leading-6 tracking-[0.01em] text-ink transition-[border-color,background-color] duration-[120ms] ease-[ease] hover:bg-ink/[0.1]";
+const labelCls = "max-w-full rounded border border-transparent px-1 text-center text-[11px] leading-4 tracking-[0.01em] transition-[background-color] duration-[120ms] ease-[ease] hover:bg-ink/[0.1]";
+
+const HOVER_GAZE = { x: -0.7, y: 0.8 };
 
 function useInlineEdit(save: (value: string) => void) {
   const [draft, setDraft] = useState<string | null>(null);
@@ -69,6 +73,8 @@ export function PanelHero({ bot, activeState, patch, editorOpen, onToggleEditor 
     if (next !== bot.title.trim()) patch({ title: next });
   });
   const title = bot.title.trim();
+  // grok's mascot looks at the pointer, so while the avatar is hovered its eyes sit low and centred, clear of the pencil
+  const [hovered, setHovered] = useState(false);
 
   return (
     <div className="group/hero flex flex-col items-center text-center">
@@ -76,16 +82,22 @@ export function PanelHero({ bot, activeState, patch, editorOpen, onToggleEditor 
         type="button"
         data-panel-avatar
         aria-label={t("botPanel.avatar.edit")}
+        title={t("botPanel.avatar.tip")}
         aria-expanded={editorOpen}
         onClick={onToggleEditor}
-        className="group relative flex rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        onPointerEnter={() => setHovered(true)}
+        onPointerLeave={() => setHovered(false)}
+        className="group relative flex cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
       >
-        <BotAvatar bot={bot} size={64} state={activeState} />
+        {/* grok darkens the mascot itself to 30% on hover, its eyes stay open holes, a 14px pencil sits on top */}
+        <span className="flex transition-[filter] duration-[140ms] ease-[ease] group-hover:brightness-[0.3] group-focus-visible:brightness-[0.3] group-aria-expanded:brightness-[0.3] motion-reduce:transition-none">
+          <BotAvatar bot={bot} size={64} state={activeState} gaze={hovered ? HOVER_GAZE : undefined} />
+        </span>
         <span
           aria-hidden="true"
-          className="absolute inset-0 flex items-center justify-center rounded-[20px] bg-black/0 text-white opacity-0 transition-[opacity,background-color] group-hover:bg-black/40 group-hover:opacity-100 group-focus-visible:bg-black/40 group-focus-visible:opacity-100 group-focus-within:opacity-100 touch:opacity-100 motion-reduce:transition-none"
+          className="pointer-events-none absolute inset-0 flex items-center justify-center text-[#f5f5f5] opacity-0 transition-opacity duration-[140ms] ease-[ease] group-hover:opacity-100 group-focus-visible:opacity-100 group-focus-within:opacity-100 group-aria-expanded:opacity-100 touch:opacity-100 motion-reduce:transition-none"
         >
-          <Pencil size={14} />
+          <GrokIcon name="pencil" size={14} />
         </span>
         {bot.chiefOfStaff && (
           <span data-panel-chief title={t("chat.chiefOfStaff")} className="absolute -bottom-0.5 -right-0.5 flex size-[22px] items-center justify-center rounded-full bg-accent text-accent-ink ring-[3px] ring-app">
@@ -93,68 +105,63 @@ export function PanelHero({ bot, activeState, patch, editorOpen, onToggleEditor 
             <span className="sr-only">{t("chat.chiefOfStaff")}</span>
           </span>
         )}
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 top-[calc(100%+4px)] z-10 -translate-x-1/2 whitespace-nowrap rounded-md border border-hairline bg-menu px-[7px] py-0.5 text-[12px] text-ink opacity-0 transition-opacity group-hover:opacity-100"
-        >
-          {t("botPanel.avatar.edit")}
-        </span>
       </button>
 
-      <div data-panel-name-row className="mt-4 flex max-w-full items-center justify-center">
-        <h2 id="bot-settings-title" className="flex min-w-0 justify-center">
+      <div data-panel-name-row className="mt-4 flex max-w-full flex-col items-center gap-1">
+        <h2 id="bot-settings-title" className="flex min-w-0 max-w-full justify-center">
           {name.draft !== null ? (
             <input
               autoFocus
               data-panel-rename-input
               aria-label={t("botSettings.simple.name")}
+              placeholder={t("botSettings.simple.name")}
               maxLength={BOT_PROFILE_LIMITS.name}
               value={name.draft}
               onChange={(event) => name.setDraft(event.target.value)}
               onKeyDown={name.onKeyDown}
               onBlur={name.onBlur}
-              className={cn(inlineInputCls, "w-[220px] max-w-full px-2.5 py-0.5 text-[17px] font-medium leading-6")}
+              className={cn(nameCls, "min-w-[2ch] border-transparent! bg-ink/[0.1] outline-none [field-sizing:content]")}
             />
           ) : (
             <button
               ref={name.buttonRef}
               type="button"
               data-panel-rename
-              title={t("botPanel.rename")}
+              aria-label={t("botPanel.nameField")}
               onClick={() => name.start(bot.name)}
-              className="group/name relative inline-flex max-w-full items-center rounded-lg border-[0.5px] border-transparent px-2.5 py-0.5 text-[17px] font-medium leading-6 tracking-[0.01em] text-ink transition-colors duration-100 hover:bg-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              className={cn(nameCls, "cursor-text truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus")}
             >
-              <span className="min-w-0 truncate">{bot.name}</span>
-              <Pencil size={13} aria-hidden="true" className="absolute -right-4 shrink-0 text-ink-tertiary opacity-0 transition-opacity group-hover/name:opacity-100 group-focus-visible/name:opacity-100 group-focus-within/name:opacity-100 touch:opacity-100" />
+              {bot.name}
             </button>
           )}
         </h2>
-      </div>
 
-      {label.draft !== null ? (
-        <input
-          autoFocus
-          data-panel-label-input
-          aria-label={t("botSettings.simple.job")}
-          placeholder={t("botSettings.simple.jobPlaceholder")}
-          maxLength={BOT_PROFILE_LIMITS.title}
-          value={label.draft}
-          onChange={(event) => label.setDraft(event.target.value)}
-          onKeyDown={label.onKeyDown}
-          onBlur={label.onBlur}
-          className={cn(inlineInputCls, "mt-[3px] w-[200px] max-w-full text-[13px]")}
-        />
-      ) : title && (
-        <button
-          ref={label.buttonRef}
-          type="button"
-          data-panel-label
-          onClick={() => label.start(bot.title)}
-          className="mt-px max-w-full truncate rounded-md px-1.5 py-px text-[13px] text-ink-secondary hover:bg-ink/[0.04]"
-        >
-          {title}
-        </button>
-      )}
+        {label.draft !== null ? (
+          <input
+            autoFocus
+            data-panel-label-input
+            aria-label={t("botSettings.simple.job")}
+            placeholder={t("botPanel.addLabel")}
+            maxLength={BOT_PROFILE_LIMITS.title}
+            value={label.draft}
+            onChange={(event) => label.setDraft(event.target.value)}
+            onKeyDown={label.onKeyDown}
+            onBlur={label.onBlur}
+            className={cn(labelCls, "w-full border-transparent! bg-transparent text-ink-secondary outline-none placeholder:text-ink-tertiary hover:bg-transparent")}
+          />
+        ) : (
+          <button
+            ref={label.buttonRef}
+            type="button"
+            data-panel-label
+            aria-label={t("botPanel.labelField")}
+            onClick={() => label.start(bot.title)}
+            className={cn(labelCls, "cursor-text truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus", title ? "text-ink-secondary" : "text-ink-tertiary")}
+          >
+            {title || t("botPanel.addLabel")}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

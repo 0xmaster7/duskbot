@@ -35,7 +35,7 @@ import { useAiSwitch } from "@/lib/ai-switch";
 import { usePickerPane } from "@/lib/model-picker-pane";
 import { threadsOnOwnModel } from "../../shared/thread-model";
 import { ThreadModelsLine } from "./ThreadModelsLine";
-import { USAGE_WARN_WIDENS, UsageBars, UsageMenuRows } from "./EngineUsage";
+import { USAGE_WARN_WIDENS, UsageBars } from "./EngineUsage";
 import { Select } from "./Select";
 
 const COMPACT_MODEL_COUNT = 5;
@@ -967,7 +967,6 @@ export function ModelPicker({
       } : { width: popoverWidth }}
       className={cn("menu-surface z-[80] flex flex-col overflow-hidden", motion.className)}
     >
-      <UsageMenuRows engine={selection.instanceId} />
       {simpleMenu ? (
         <SimpleModelMenu
           menu={simpleMenu}

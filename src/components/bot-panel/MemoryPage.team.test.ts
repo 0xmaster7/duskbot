@@ -12,7 +12,6 @@ vi.mock("@/state/store", async (importOriginal) => {
 });
 
 const { MemoryPage } = await import("./pages");
-const { LibraryTab } = await import("./LibraryTab");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 const bot = { id: "scout", threadId: "t1", name: "Scout", title: "", description: "", notifications: true, color: "green", unread: false, messages: [],
@@ -62,10 +61,4 @@ it("on a Team Cloud shows what the bot remembers about the person, from their ow
   await settle();
   expect(files["memory/food.md"]).toBe("");
   expect(host.textContent).not.toContain("durian");
-});
-
-it("counts those notes on the Library tab", async () => {
-  await act(async () => root.render(createElement(LibraryTab, { bot, onOpen: () => {} })));
-  await settle();
-  expect(host.querySelector('[data-panel-page="memory"]')?.textContent).toContain("1 note");
 });

@@ -1,15 +1,13 @@
-import { useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { useRef, type KeyboardEvent, type ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
-import { SPRING_SNAP } from "@/lib/motion-presets";
 
 export interface SegmentedTab<V extends string> {
   value: V;
   label: ReactNode;
 }
 
-/** Grok's segmented tabs: 26px pills on the page, one shared fill that springs to the chosen tab. */
+/** Grok's segmented tabs: 26px pills on the page, the chosen one filled at once (Grok draws no sliding fill). */
 export function SegmentedTabs<V extends string>({ tabs, value, onChange, label, attr, className }: {
   tabs: readonly SegmentedTab<V>[];
   value: V;
@@ -18,24 +16,7 @@ export function SegmentedTabs<V extends string>({ tabs, value, onChange, label, 
   attr?: string;
   className?: string;
 }) {
-  const reduced = useReducedMotion();
   const listRef = useRef<HTMLDivElement>(null);
-  const [fill, setFill] = useState<{ x: number; width: number } | null>(null);
-
-  useLayoutEffect(() => {
-    const list = listRef.current;
-    if (!list) return;
-    const measure = () => {
-      const chosen = list.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
-      if (!chosen || chosen.offsetWidth === 0) return setFill(null);
-      setFill((current) => (current?.x === chosen.offsetLeft && current.width === chosen.offsetWidth ? current : { x: chosen.offsetLeft, width: chosen.offsetWidth }));
-    };
-    measure();
-    if (typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(measure);
-    observer.observe(list);
-    return () => observer.disconnect();
-  }, [value, tabs]);
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
@@ -49,17 +30,7 @@ export function SegmentedTabs<V extends string>({ tabs, value, onChange, label, 
   };
 
   return (
-    <div ref={listRef} role="tablist" aria-label={label} onKeyDown={onKeyDown} className={cn("relative isolate flex gap-0.5", className)}>
-      {fill && (
-        <motion.span
-          aria-hidden="true"
-          data-tab-fill=""
-          initial={false}
-          animate={{ x: fill.x, width: fill.width }}
-          transition={reduced ? { duration: 0 } : SPRING_SNAP}
-          className="pointer-events-none absolute left-0 top-0 -z-10 h-[26px] rounded-full bg-ink/[0.06]"
-        />
-      )}
+    <div ref={listRef} role="tablist" aria-label={label} onKeyDown={onKeyDown} className={cn("flex gap-0.5", className)}>
       {tabs.map((tab) => {
         const selected = tab.value === value;
         return (
@@ -72,10 +43,9 @@ export function SegmentedTabs<V extends string>({ tabs, value, onChange, label, 
             {...(attr ? { [attr]: tab.value } : {})}
             onClick={() => onChange(tab.value)}
             className={cn(
-              "h-[26px] min-w-0 shrink truncate rounded-full px-2 py-1 text-[13px] leading-[18px] tracking-[0.015em] transition-colors duration-[120ms] ease-out",
+              "h-[26px] min-w-0 shrink truncate rounded-full px-2 py-1 text-[13px] leading-[18px] tracking-[0.015em]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-              selected ? "text-ink" : "text-ink-secondary hover:bg-ink/[0.06]",
-              selected && !fill && "bg-ink/[0.06]",
+              selected ? "bg-ink/[0.06] text-ink" : "text-ink-secondary hover:bg-ink/[0.06]",
             )}
           >
             {tab.label}

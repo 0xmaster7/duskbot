@@ -1,20 +1,20 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { X } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { Bot, BotSettingsSection } from "@/state/store";
-import { ChatShareMenu } from "@/components/ChatMoreMenu";
+import { GrokIcon } from "../GrokIcon";
 import { useCaptionChrome } from "../DesktopCapabilities";
 import type { useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
 import { AvatarEditorCard } from "./AvatarEditorCard";
 import { ComputerTab } from "./ComputerTab";
 import { DetailsTab } from "./DetailsTab";
-import { LibraryTab } from "./LibraryTab";
+import { LibraryTab, libraryItems } from "./LibraryTab";
 import { PANEL_TABS, PAGES, TAB_LABEL, type PanelTab, type PanelTarget, type SimplePageId } from "./page-registry";
 import { PageBody, pageSurfaceCls } from "./pages";
 import { linkTarget, usePanelLink, type PanelLink } from "./panel-link";
 import { PanelHero } from "./PanelHero";
+import { PanelShareMenu } from "./PanelShareMenu";
 import { PageHeader, roundButtonCls } from "./rows";
 import { SegmentedTabs } from "../ui/SegmentedTabs";
 
@@ -96,18 +96,23 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
 
   const backLabel = stack.length > 1 ? t(PAGES[stack[stack.length - 2]!].title, { name: bot.name }) : t(TAB_LABEL[tab]);
 
+  // grok splits the free height 2:3 between the hero and an empty tab, so its one line of copy sits a third of the way down
+  const empty = (tab === "details" && derived.botRoutines.length === 0) || (tab === "library" && libraryEmpty(bot));
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col" onKeyDown={onKeyDown}>
+    <div className="relative flex min-h-0 flex-1 flex-col" onKeyDown={onKeyDown}>
+      <span aria-hidden="true" data-panel-edge className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[0.5px] bg-edge" />
       <div {...dragProps} className="flex h-[60px] shrink-0 items-center justify-end gap-2 p-3">
-        <ChatShareMenu bot={bot} className={roundButtonCls} />
-        <button type="button" onClick={onClose} aria-label={t("botSettings.simple.close")} className={roundButtonCls}>
-          <X size={16} className="pointer-events-none" />
+        <PanelShareMenu bot={bot} />
+        <button type="button" onClick={onClose} aria-label={t("botPanel.close")} className={roundButtonCls}>
+          <GrokIcon name="close" size={16} />
         </button>
       </div>
 
-      <div ref={bodyRef} className="@container relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 [scrollbar-gutter:stable] [scrollbar-width:thin]">
+      <div ref={bodyRef} className="@container relative flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-4 [scrollbar-gutter:stable] [scrollbar-width:thin]">
         {page === null ? (
           <>
+            <div data-panel-head className={empty ? "flex flex-[2_1_0px] flex-col" : "contents"}>
             <div className="relative pb-3 pt-2" ref={editorRef}>
               <PanelHero
                 bot={bot}
@@ -135,7 +140,8 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
                 tabs={PANEL_TABS.map((id) => ({ value: id, label: t(TAB_LABEL[id]) }))}
               />
             </div>
-            <div role="tabpanel" aria-label={t(TAB_LABEL[tab])} className="pt-2.5">
+            </div>
+            <div role="tabpanel" aria-label={t(TAB_LABEL[tab])} className={cn("pt-2.5", empty && "flex-[3_1_0px]")}>
               {tab === "details" && <DetailsTab bot={bot} derived={derived} onOpen={openPage} />}
               {tab === "library" && <LibraryTab bot={bot} onOpen={openPage} />}
               {tab === "computer" && <ComputerTab bot={bot} derived={derived} onOpen={openPage} />}
@@ -165,4 +171,9 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
       </div>
     </div>
   );
+}
+
+function libraryEmpty(bot: Bot): boolean {
+  const { pages, apps, shared, unshared } = libraryItems(bot);
+  return pages.length + apps.length + shared.length + unshared.length === 0;
 }

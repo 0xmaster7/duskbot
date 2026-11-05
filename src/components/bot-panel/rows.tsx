@@ -4,11 +4,11 @@ import { Check, ChevronLeft, ChevronRight, Trash2, type LucideIcon } from "lucid
 import { cn } from "@/lib/cn";
 import { useAdvancedMode } from "@/lib/interface-mode";
 import type { MausColor } from "@/lib/mascot";
-import { ELEVATED_CONTROL, ELEVATED_HOVER } from "../elevated";
 import { Toggle } from "../ui/Toggle";
 
 export const rowCls = "flex min-h-[30px] items-center gap-2 rounded-lg px-2 py-1.5";
-export const roundButtonCls = `flex size-9 shrink-0 items-center justify-center rounded-full text-ink/[0.92] ${ELEVATED_CONTROL} ${ELEVATED_HOVER} [:root:is([data-skin=daylight],[data-skin=grok])_&]:shadow-[0_1px_3px_rgb(28_28_28/0.12)]`;
+/** Grok's elevated 36px icon button (Share, Close): a white circle on a hairline, a 6% ink wash laid over it on hover. */
+export const roundButtonCls = "flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-[0.5px] border-edge bg-composer text-ink/[0.92] transition-[background-color,color] duration-[120ms] ease-[ease-out] hover:bg-linear-to-b hover:from-ink/[0.06] hover:to-ink/[0.06] aria-expanded:bg-linear-to-b aria-expanded:from-ink/[0.06] aria-expanded:to-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
 const titleCls = "text-[13px] leading-[18px] tracking-[0.015em] text-ink";
 const hintCls = "text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary";
 export const buttonCls =
@@ -38,10 +38,10 @@ export function LabelAction({ children, onClick, ...rest }: { children: ReactNod
   );
 }
 
-export function Card({ label, action, anchor, children }: { label?: ReactNode; action?: ReactNode; anchor?: string; children: ReactNode }) {
+export function Card({ label, action, anchor, className, children }: { label?: ReactNode; action?: ReactNode; anchor?: string; className?: string; children: ReactNode }) {
   const advanced = useAdvancedMode();
   return (
-    <section data-panel-card={anchor} className={cn(sectionGapCls(Boolean(label)), "first:mt-0")}>
+    <section data-panel-card={anchor} className={cn(sectionGapCls(Boolean(label)), "first:mt-0", className)}>
       {label && <CardLabel action={action}>{label}</CardLabel>}
       <div
         data-panel-card-surface=""
@@ -55,6 +55,15 @@ export function Card({ label, action, anchor, children }: { label?: ReactNode; a
         {children}
       </div>
     </section>
+  );
+}
+
+/** Grok's empty tab: one centred line of 14px tertiary copy, 16px in from each side. */
+export function PanelEmpty({ children, ...rest }: { children: ReactNode; "data-panel-empty"?: string }) {
+  return (
+    <div {...rest} className="flex flex-col gap-2.5 px-4 py-4">
+      <p className="text-center text-[14px] leading-5 tracking-[0.01em] text-ink-tertiary">{children}</p>
+    </div>
   );
 }
 
@@ -75,8 +84,23 @@ export function RowIcon({ icon: Icon }: { icon: LucideIcon }) {
   );
 }
 
-export function BotSwitch({ color: _color, ...props }: Parameters<typeof Toggle>[0] & { color: MausColor }) {
-  return <Toggle {...props} />;
+/** Grok's per-hue switch colours (`bg/<hue>-primary`, `-primary-hover`); a colour Grok has no hue for keeps the accent. */
+const SWITCH_TONE: Partial<Record<MausColor, { on: string; hover: string }>> = {
+  green: { on: "#10ab61", hover: "#0d9655" },
+  blue: { on: "#1680f3", hover: "#126fd4" },
+  red: { on: "#e72e3b", hover: "#c82532" },
+  coral: { on: "#e72e3b", hover: "#c82532" },
+  orange: { on: "#ee620d", hover: "#d2550a" },
+  purple: { on: "#8351e4", hover: "#7442d1" },
+  cyan: { on: "#10a693", hover: "#0d9381" },
+  teal: { on: "#10a693", hover: "#0d9381" },
+  pink: { on: "#e52f8b", hover: "#c82779" },
+  yellow: { on: "#da830e", hover: "#c2730b" },
+  ["brown" as MausColor]: { on: "#9d6937", hover: "#86592e" },
+};
+
+export function BotSwitch({ color, ...props }: Parameters<typeof Toggle>[0] & { color: MausColor }) {
+  return <Toggle {...props} tone={SWITCH_TONE[color]} />;
 }
 
 export function SwitchRow({ title, hint, checked, onChange, disabled, color, label, tooltip, extra, ...rest }: {
