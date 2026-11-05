@@ -122,6 +122,7 @@
     "mailparser": "3.14.1",
     "mdast-util-from-markdown": "^2.0.3",
     "mermaid": "^12.1.0",
+    "motion": "^14.9.1",
     "nodemailer": "10.3.1",
     "papaparse": "^5.7.0",
     "posthog-js": "^1.415.6",
