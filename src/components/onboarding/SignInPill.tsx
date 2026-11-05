@@ -12,7 +12,8 @@ import { api, useStore, type InstanceInfo } from "@/state/store";
 import { deviceSignInLink, isDeviceSignInCode } from "../../../shared/device-sign-in";
 
 const POLL_MS = 2_000;
-export const PILL = "ui-button ui-button-pill ui-button-lg ui-button-primary w-[288px] max-w-full";
+// grok's lg pill: 425 weight, .14px tracking
+export const PILL = "ui-button ui-button-pill ui-button-lg ui-button-primary w-[288px] max-w-full font-normal tracking-[0.14px]";
 
 type Slot =
   | { kind: "start" }

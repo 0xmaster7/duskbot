@@ -164,7 +164,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
   ];
   // With nothing typed: the bots, those with news first, then what to do; settings and themes wait for a query.
   const shownCommands = q ? ranked(commands, (command) => command.name, q) : commands.filter((command) => !command.id.startsWith("theme-") && command.id !== "connect-apps" && command.id !== "check-updates" && command.id !== "settings-updates" && command.id !== "settings-permissions" && !["settings-models", "settings-usage", "settings-advanced", "bot-settings"].includes(command.id));
-  // The sidebar's order, as ⌘1 to ⌘9 count it, so each row's keycap is the shortcut that opens it from anywhere.
+  // The sidebar's order, as ⌘1 to ⌘9 count it, so each row names the shortcut that opens it from anywhere.
   const liveBots = shortcutBots(state.bots.filter((b) => !b.hidden), shownBotIds(document.querySelector("[data-sidebar-root]")));
   const slot = new Map(liveBots.slice(0, 9).map((bot, index) => [bot.id, index + 1]));
   const bots = q ? ranked(liveBots, (bot) => bot.name, q) : liveBots;
@@ -294,7 +294,8 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
                     <Marked text={bot.name} query={q} />, botPreview(bot, visibleMessages(bot), state.instances, false), "Bot",
                     <>
                       {unread && <span role="img" aria-label="Unread activity" className="flex size-2 shrink-0 items-center"><span className="size-2 rounded-full bg-accent-text" /></span>}
-                      {key && <kbd aria-label={`Command ${key}`} className="flex h-[19px] min-w-[26px] shrink-0 items-center justify-center rounded-[5px] bg-ink/6 px-1 font-sans text-[12px] leading-4 tracking-normal text-ink-secondary shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_8%,transparent)]">⌘{key}</kbd>}
+                      {/* grok's rows carry no keycap; the shortcut stays, read out only */}
+                      {key && <span className="sr-only">Command {key}</span>}
                     </>);
                 }
                 if (entry.kind === "room") {

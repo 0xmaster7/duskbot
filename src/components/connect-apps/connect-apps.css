@@ -723,17 +723,18 @@
 .ca-kit-field > span {
   color: var(--ca-ink-68);
   font-size: 11px;
-  line-height: 14px;
+  line-height: 16px;
   letter-spacing: 0.0065em;
 }
+/* grok's form field (Vault > New login): 32px, 1px ink/12, 10px corners, 9px in; focus only darkens the edge */
 .ca-kit-field > input,
 .ca-kit-input {
   box-sizing: border-box;
   width: 100%;
-  height: 34px;
-  padding: 7px 10px;
+  height: 32px;
+  padding: 0 9px;
   border: 1px solid var(--ca-ink-12);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--color-menu);
   color: var(--color-ink);
   font: inherit;
@@ -742,7 +743,7 @@
   outline: none;
 }
 .ca-kit-field > input:focus,
-.ca-kit-input:focus { border-color: var(--color-ink); }
+.ca-kit-input:focus { border-color: color-mix(in srgb, var(--color-ink) 40%, transparent); }
 .ca-kit-field > input::placeholder { color: var(--ca-ink-56); opacity: 1; }
 .ca-kit-actions {
   display: flex;
