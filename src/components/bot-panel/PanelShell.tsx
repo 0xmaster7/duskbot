@@ -1,18 +1,18 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
-import { cn } from "@/lib/cn";
 import { WIPE } from "@/lib/motion-presets";
 import { t } from "@/lib/i18n";
 import type { Bot, BotSettingsSection } from "@/state/store";
 import { GrokIcon } from "../GrokIcon";
 import { useCaptionChrome } from "../DesktopCapabilities";
 import type { useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
+import { AdvancedTab } from "./AdvancedTab";
 import { AvatarEditorCard } from "./AvatarEditorCard";
 import { ComputerTab } from "./ComputerTab";
 import { DetailsTab } from "./DetailsTab";
-import { LibraryTab, libraryItems } from "./LibraryTab";
-import { PANEL_TABS, PAGES, TAB_LABEL, type PanelTab, type PanelTarget, type SimplePageId } from "./page-registry";
+import { LibraryTab } from "./LibraryTab";
+import { PANEL_TABS, PAGES, resolveTarget, TAB_LABEL, type PanelTab, type PanelTarget, type SimplePageId } from "./page-registry";
 import { PageBody, pageSurfaceCls } from "./pages";
 import { linkTarget, usePanelLink, type PanelLink } from "./panel-link";
 import { PanelHero } from "./PanelHero";
@@ -21,7 +21,7 @@ import { roundButtonCls } from "./rows";
 import { SegmentedTabs } from "../ui/SegmentedTabs";
 
 function initialTarget(section: BotSettingsSection | null, link: PanelLink | null): PanelTarget {
-  return section ? linkTarget(section, link) : { tab: "details" };
+  return section ? resolveTarget(linkTarget(section, link)) : { tab: "details" };
 }
 
 export function BotPanel({ bot, derived, linkedSection, onClose }: {
@@ -45,7 +45,8 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
   const page = stack.at(-1) ?? null;
 
   const scrollTop = () => bodyRef.current?.scrollTo({ top: 0 });
-  const go = (target: PanelTarget) => {
+  const go = (to: PanelTarget) => {
+    const target = resolveTarget(to);
     setTab(target.tab);
     setStack(target.page ? [target.page] : []);
     setAnchor(target.anchor ?? null);
@@ -55,6 +56,7 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
   };
   const openTab = (next: PanelTab) => go({ tab: next });
   const openPage = (next: SimplePageId) => {
+    if (next === "settings") return go({ tab: "advanced" });
     setStack((current) => [...current, next]);
     setEditorOpen(false);
     setEditingInstructions(false);
@@ -98,9 +100,6 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
 
   const backLabel = stack.length > 1 ? t(PAGES[stack[stack.length - 2]!].title, { name: bot.name }) : t(TAB_LABEL[tab]);
 
-  // grok splits the free height 2:3 between the hero and an empty tab, so its one line of copy sits a third of the way down
-  const empty = (tab === "details" && derived.botRoutines.length === 0) || (tab === "library" && libraryEmpty(bot));
-
   // a deeper page pushes in from the right, a shallower one slides back: Grok's wipe navigation
   const depth = stack.length;
   const nav = useRef({ depth, direction: 1 });
@@ -112,7 +111,7 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
 
   const tabsView = (
     <>
-      <div data-panel-head className={empty ? "flex flex-[2_1_0px] flex-col" : "contents"}>
+      <div data-panel-head className="contents">
         <div className="relative pb-3 pt-2" ref={editorRef}>
           <PanelHero
             bot={bot}
@@ -141,10 +140,11 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
           />
         </div>
       </div>
-      <div role="tabpanel" aria-label={t(TAB_LABEL[tab])} className={cn("pt-2.5", empty && "flex-[3_1_0px]")}>
+      <div role="tabpanel" aria-label={t(TAB_LABEL[tab])} className="pt-2.5">
         {tab === "details" && <DetailsTab bot={bot} derived={derived} onOpen={openPage} />}
         {tab === "library" && <LibraryTab bot={bot} onOpen={openPage} />}
         {tab === "computer" && <ComputerTab bot={bot} derived={derived} onOpen={openPage} />}
+        {tab === "advanced" && <AdvancedTab bot={bot} derived={derived} onOpen={openPage} />}
       </div>
     </>
   );
@@ -233,8 +233,3 @@ const WIPE_VARIANTS = {
   center: { x: "0%", opacity: 1 },
   exit: (direction: number) => (direction > 0 ? { x: "-30%", opacity: 0, zIndex: 0 } : { x: "100%", opacity: 1, zIndex: 1 }),
 };
-
-function libraryEmpty(bot: Bot): boolean {
-  const { pages, apps, shared, unshared } = libraryItems(bot);
-  return pages.length + apps.length + shared.length + unshared.length === 0;
-}

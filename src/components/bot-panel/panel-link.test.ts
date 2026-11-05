@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { BOT_SECTIONS } from "../bot-settings/sections";
 import { sectionTarget } from "./page-registry";
-import { linkTarget, openBotSettings, usePanelLink, type PanelLink } from "./panel-link";
+import { linkTarget, openBotSettings, openBotSettingsPage, usePanelLink, type PanelLink } from "./panel-link";
 
 const link = (extra: Partial<PanelLink> & Pick<PanelLink, "section">): PanelLink => ({ nonce: 1, ...extra });
 
@@ -58,5 +58,19 @@ describe("named links into a bot's settings", () => {
     expect(seen[0]).not.toBe(seen[1]);
     expect(seen.map(({ section }) => section)).toEqual(["usage", "usage"]);
     expect(seen[1]!.nonce).toBeGreaterThan(seen[0]!.nonce);
+  });
+
+  it("opens Bot settings, by name or by the sidebar and search, on the Advanced tab", () => {
+    expect(linkTarget("overview", link({ section: "overview", page: "settings" }))).toEqual({ tab: "advanced" });
+    const dispatch = vi.fn();
+    openBotSettingsPage(dispatch, "atlas");
+    expect(dispatch).toHaveBeenCalledWith({ type: "toggleSettings", open: true, section: "overview", botId: "atlas" });
+    let landed: PanelLink | null = null;
+    const Probe = () => {
+      landed = usePanelLink();
+      return null;
+    };
+    renderToStaticMarkup(createElement(Probe));
+    expect(linkTarget("overview", landed)).toEqual({ tab: "advanced" });
   });
 });

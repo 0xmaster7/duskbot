@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import en from "@/locales/en.json";
 import { BOT_SECTIONS } from "../bot-settings/sections";
-import { isSimplePage, PAGE_IDS, PAGES, PANEL_TABS, sectionTarget, SIMPLE_PAGES, TAB_LABEL } from "./page-registry";
+import { isSimplePage, PAGE_IDS, PAGES, PANEL_TABS, resolveTarget, sectionTarget, SIMPLE_PAGES, TAB_LABEL } from "./page-registry";
 
 describe("the bot panel's page registry", () => {
-  it("has three tabs: Details, Library and Computer", () => {
-    expect(PANEL_TABS).toEqual(["details", "library", "computer"]);
+  it("has four tabs: Details, Library, Computer and Advanced", () => {
+    expect(PANEL_TABS).toEqual(["details", "library", "computer", "advanced"]);
   });
 
   it("lands every settings section on a tab, and on a Simple page that lives on that tab", () => {
@@ -24,17 +24,17 @@ describe("the bot panel's page registry", () => {
     ["overview", { tab: "details" }], ["identity", { tab: "details" }],
     ["soul", { tab: "details", page: "instructions" }],
     ["skills", { tab: "library", page: "skills" }], ["memory", { tab: "library", page: "memory" }], ["routines", { tab: "details", page: "routines" }],
-    ["access", { tab: "computer", page: "where" }], ["model", { tab: "details", page: "settings", anchor: "model" }], ["permissions", { tab: "details", page: "settings" }],
-    ["voice", { tab: "details" }], ["visibility", { tab: "details" }], ["history", { tab: "details" }], ["usage", { tab: "details", page: "settings", anchor: "model" }], ["slack", { tab: "details" }],
+    ["access", { tab: "computer", page: "where" }], ["model", { tab: "advanced", anchor: "model" }], ["permissions", { tab: "advanced" }],
+    ["voice", { tab: "details" }], ["visibility", { tab: "details" }], ["history", { tab: "details" }], ["usage", { tab: "advanced", anchor: "model" }], ["slack", { tab: "details" }],
   ] as const)("sends a %s link to %o", (section, target) => {
     expect(sectionTarget(section)).toEqual(target);
   });
 
-  it("draws the Simple pages on their tabs: settings on Details, what it keeps on Library, where it works on Computer", () => {
+  it("draws the Simple pages on their tabs: settings on Advanced, what it keeps on Library, where it works on Computer", () => {
     expect(SIMPLE_PAGES).toEqual(["settings", "apps", "routines", "memory", "skills", "folder", "browser", "where", "instructions", "backups", "threads", "api"]);
     const home = Object.fromEntries(SIMPLE_PAGES.map((page) => [page, PAGES[page].home]));
     expect(home).toEqual({
-      settings: "details", apps: "details", routines: "details",
+      settings: "advanced", apps: "details", routines: "details",
       memory: "library", skills: "library", folder: "library",
       browser: "computer", where: "computer",
       instructions: "details", backups: "details", threads: "details", api: "details",
@@ -49,7 +49,13 @@ describe("the bot panel's page registry", () => {
       if (PAGES[id].intro) expect(keys[PAGES[id].intro], id).toBeTruthy();
     }
     for (const tab of PANEL_TABS) expect(keys[TAB_LABEL[tab]]).toBeTruthy();
-    expect(PANEL_TABS.map((tab) => keys[TAB_LABEL[tab]])).toEqual(["Details", "Library", "Computer"]);
+    expect(PANEL_TABS.map((tab) => keys[TAB_LABEL[tab]])).toEqual(["Details", "Library", "Computer", "Advanced"]);
     expect(keys[PAGES.settings.title]).toBe("Bot settings");
+  });
+
+  it("lands the Bot settings page, now an alias, on the Advanced tab", () => {
+    expect(resolveTarget({ tab: "details", page: "settings" })).toEqual({ tab: "advanced" });
+    expect(resolveTarget({ tab: "details", page: "settings", anchor: "model" })).toEqual({ tab: "advanced", anchor: "model" });
+    expect(resolveTarget({ tab: "library", page: "skills" })).toEqual({ tab: "library", page: "skills" });
   });
 });

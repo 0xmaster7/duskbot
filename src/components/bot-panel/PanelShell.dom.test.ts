@@ -31,6 +31,7 @@ vi.mock("./DetailsTab", () => ({
 }));
 vi.mock("./LibraryTab", () => ({ LibraryTab: stub("library"), libraryItems: () => ({ pages: [], apps: [], shared: [], unshared: [] }) }));
 vi.mock("./ComputerTab", () => ({ ComputerTab: stub("computer") }));
+vi.mock("./AdvancedTab", () => ({ AdvancedTab: stub("advanced") }));
 vi.mock("./pages", () => ({
   PageBody: ({ page, editingInstructions }: { page: string; editingInstructions?: boolean }) =>
     createElement("div", { "data-stub-page": page, "data-editing-instructions": editingInstructions === true ? "true" : undefined },
@@ -149,13 +150,21 @@ describe("named links into the bot panel", () => {
     expect([tab(), page()]).toEqual(["details", null]);
   });
 
-  it("lands permissions, model and usage links on the Bot settings page", async () => {
+  it("lands permissions, model and usage links on the Advanced tab", async () => {
     for (const section of ["permissions", "model", "usage"] as const) {
       openBotSettings(fixture.dispatch, section);
       render(section);
       await settle();
-      expect(page(), section).toBe("settings");
+      expect([tab(), page()], section).toEqual(["advanced", null]);
     }
+  });
+
+  it("lands a Bot settings link, the sidebar's and search's, on the Advanced tab", async () => {
+    openBotSettings(fixture.dispatch, "overview", { page: "settings" });
+    render("overview");
+    await settle();
+    expect([tab(), page()]).toEqual(["advanced", null]);
+    expect(host.querySelector("[data-stub-advanced]")).not.toBeNull();
   });
 
   it("lands usage, history, voice and visibility links on the Details tab, with no Advanced page", async () => {
@@ -169,16 +178,16 @@ describe("named links into the bot panel", () => {
 });
 
 describe("the panel's tabs", () => {
-  it("are Details, Library and Computer, opening on Details, each drawing its own tab", async () => {
+  it("are Details, Library, Computer and Advanced, opening on Details, each drawing its own tab", async () => {
     render(null);
     await settle();
     expect([...host.querySelectorAll('[role="tab"]')].map((element) => [element.getAttribute("data-panel-tab"), element.textContent]))
-      .toEqual([["details", "Details"], ["library", "Library"], ["computer", "Computer"]]);
+      .toEqual([["details", "Details"], ["library", "Library"], ["computer", "Computer"], ["advanced", "Advanced"]]);
     expect(tab()).toBe("details");
     expect(host.querySelector("[data-panel-tabs]")!.className.split(" ")).toEqual(expect.arrayContaining(["sticky", "top-0", "bg-app"]));
     expect(host.querySelector('[role="tablist"]')!.className.split(" ")).toEqual(expect.arrayContaining(["gap-0.5"]));
     expect(host.querySelector('[role="tab"]')!.className.split(" ")).toEqual(expect.arrayContaining(["h-[26px]", "text-[13px]", "bg-ink/[0.06]"]));
-    for (const id of ["library", "computer", "details"]) {
+    for (const id of ["library", "computer", "advanced", "details"]) {
       click(host.querySelector(`[data-panel-tab="${id}"]`));
       expect(tab()).toBe(id);
       expect(host.querySelector(`[data-stub-${id}]`), id).not.toBeNull();
@@ -203,18 +212,16 @@ describe("the panel's top", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it("opens Bot settings from the Details tab, with Back to Details", async () => {
+  it("opens Bot settings on the Advanced tab, with no page to go back from", async () => {
     render(null);
     await settle();
     click(host.querySelector('[data-panel-tab="computer"]'));
     expect(host.querySelector("[data-panel-gear]")).toBeNull();
     click(host.querySelector('[data-panel-tab="details"]'));
     click(host.querySelector("[data-panel-gear]"));
-    expect(page()).toBe("settings");
-    expect(host.querySelector("[data-panel-back]")!.getAttribute("title")).toBe("Details");
-    expect(host.querySelector("[data-panel-page-title]")!.textContent).toBe("Bot settings");
-    click(host.querySelector("[data-panel-back]"));
-    expect([tab(), page()]).toEqual(["details", null]);
+    expect([tab(), page()]).toEqual(["advanced", null]);
+    expect(host.querySelector("[data-panel-back]")).toBeNull();
+    expect(host.querySelector('[role="tabpanel"]')!.getAttribute("aria-label")).toBe("Advanced");
   });
 
   it("puts the name right under the avatar, with no call button beside it", async () => {

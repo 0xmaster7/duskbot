@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
 import { useComposerChannelMode } from "@/lib/drafts";
@@ -38,11 +38,12 @@ function useMemoryLine(bot: Bot): string {
 }
 
 /** The bot's settings as Grok-style list rows: its model first, then one card of rows that each open their page, then
- * its rare actions. */
-export function SettingsPage({ bot, derived, onOpen }: {
+ * its rare actions. The Advanced tab draws it, with See Usage beside the Model label. */
+export function SettingsPage({ bot, derived, onOpen, modelAction }: {
   bot: Bot;
   derived: Derived;
   onOpen?: (page: SimplePageId) => void;
+  modelAction?: ReactNode;
   editingInstructions?: boolean;
   onEditInstructions?: (open: boolean) => void;
 }) {
@@ -81,14 +82,14 @@ export function SettingsPage({ bot, derived, onOpen }: {
 
   return (
     <div data-panel-settings>
-      <Card label={t("model.simple.model")} anchor="model">
+      <Card label={t("model.simple.model")} action={modelAction} anchor="model">
         <div className="[&_[data-tour=model]>span:first-child]:flex! [&_[data-provider-mark]]:opacity-100!">
           <ModelSelectRow bot={bot} threadId={bot.threadId} />
         </div>
         <UsageMeterRow engine={bot.modelSelection?.instanceId} />
       </Card>
 
-      <Card label={t("botPanel.section.bot")} anchor="uses">
+      <Card label={t("botPanel.section.thisBot")} anchor="uses">
         <NavRow data-panel-page="instructions" title={t("botSettings.simple.instructions")} hint={<span className="block truncate">{firstSentence(bot.soul ?? "") || t("botPanel.instructionsHint", { name })}</span>} onClick={open("instructions")} />
         <NavRow data-panel-page="memory" title={t("botPanel.memoryRow")} hint={memoryLine} onClick={open("memory")} />
         <NavRow data-panel-page="skills" title={t("botSettings.simple.skills")} hint={skills.loading ? " " : skillsOn > 0 ? t("botPanel.skills.on", { count: skillsOn }) : t("botPanel.none")} onClick={open("skills")} />
@@ -103,6 +104,12 @@ export function SettingsPage({ bot, derived, onOpen }: {
           <RowText title={t("composer.goal.soloAria")} hint={t("botPanel.goal.hint")} />
           <BotSwitch color={bot.color} checked={mode === "goal"} aria-label={t("composer.goal.soloAria")} onClick={() => setMode(mode === "goal" ? "chat" : "goal")} />
         </div>
+        {editable && (
+          <div data-panel-row="hide" className={rowCls}>
+            <RowText title={t("botPanel.hide.title")} hint={t("botPanel.hide.hint")} />
+            <BotSwitch color={bot.color} checked={hidden} disabled={hideBlocked} aria-label={t("botPanel.hide.title")} onClick={toggleHidden} />
+          </div>
+        )}
         <CallModeRow />
         <label data-panel-row="job" className={cn(rowCls, "cursor-text")}>
           <span className="min-w-0 flex-1">
@@ -130,16 +137,10 @@ export function SettingsPage({ bot, derived, onOpen }: {
             />
           </span>
         </label>
-        {editable && (
-          <div data-panel-row="hide" className={rowCls}>
-            <RowText title={t("botPanel.hide.title")} hint={t("botPanel.hide.hint")} />
-            <BotSwitch color={bot.color} checked={hidden} disabled={hideBlocked} aria-label={t("botPanel.hide.title")} onClick={toggleHidden} />
-          </div>
-        )}
       </Card>
 
       {editable && (
-        <Card anchor="actions">
+        <Card label={t("botPanel.section.actions")} anchor="actions">
           {!team && (
             <NavRow
               data-panel-row="chief"

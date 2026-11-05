@@ -1,13 +1,14 @@
 import type { LocaleKey } from "@/locales";
 import type { BotSettingsSection } from "@/state/store";
 
-export const PANEL_TABS = ["details", "library", "computer"] as const;
+export const PANEL_TABS = ["details", "library", "computer", "advanced"] as const;
 export type PanelTab = (typeof PANEL_TABS)[number];
 
 export const TAB_LABEL: Record<PanelTab, LocaleKey> = {
   details: "botPanel.tab.details",
   library: "botPanel.tab.library",
   computer: "botPanel.tab.computer",
+  advanced: "botPanel.tab.advanced",
 };
 
 export type PageId =
@@ -19,7 +20,8 @@ export type PageId =
   | "overview" | "prompt" | "history"
   | "backups" | "threads" | "api";
 
-/** The pages Simple mode draws; a link to any other page lands where its section does. */
+/** The pages Simple mode draws; a link to any other page lands where its section does. Bot settings is an alias: it
+ * lands on the Advanced tab, which holds its rows. */
 export const SIMPLE_PAGES = ["settings", "apps", "routines", "memory", "skills", "folder", "browser", "where", "instructions", "backups", "threads", "api"] as const satisfies readonly PageId[];
 export type SimplePageId = (typeof SIMPLE_PAGES)[number];
 
@@ -34,7 +36,7 @@ export interface PageMeta {
 }
 
 export const PAGES: Record<PageId, PageMeta> = {
-  settings: { title: "botPanel.page.settings", home: "details" },
+  settings: { title: "botPanel.page.settings", home: "advanced" },
   where: { title: "computer.simple.whereWorks", home: "computer" },
   setup: { title: "botSetup.ideas", home: "details" },
   model: { title: "model.simple.model", home: "details" },
@@ -85,14 +87,19 @@ const SECTION_TARGET: Record<BotSettingsSection, PanelTarget> = {
   library: { tab: "library" },
   routines: { tab: "details", page: "routines" },
   access: { tab: "computer", page: "where" },
-  model: { tab: "details", page: "settings", anchor: "model" },
-  permissions: { tab: "details", page: "settings" },
+  model: { tab: "advanced", anchor: "model" },
+  permissions: { tab: "advanced" },
   voice: { tab: "details" },
   visibility: { tab: "details" },
   history: { tab: "details" },
-  usage: { tab: "details", page: "settings", anchor: "model" },
+  usage: { tab: "advanced", anchor: "model" },
 };
 
 export function sectionTarget(section: BotSettingsSection): PanelTarget {
   return SECTION_TARGET[section];
+}
+
+/** A target as the panel draws it: the Bot settings page is the Advanced tab now. */
+export function resolveTarget(target: PanelTarget): PanelTarget {
+  return target.page === "settings" ? { tab: "advanced", ...(target.anchor ? { anchor: target.anchor } : {}) } : target;
 }

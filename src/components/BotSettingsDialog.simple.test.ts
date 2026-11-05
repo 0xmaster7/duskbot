@@ -119,6 +119,7 @@ const { BotPanel } = await import("./bot-panel/PanelShell");
 const { PanelHero } = await import("./bot-panel/PanelHero");
 const { AvatarEditorCard } = await import("./bot-panel/AvatarEditorCard");
 const { DetailsTab } = await import("./bot-panel/DetailsTab");
+const { AdvancedTab } = await import("./bot-panel/AdvancedTab");
 const { SettingsPage } = await import("./bot-panel/SettingsPage");
 const { LibraryTab } = await import("./bot-panel/LibraryTab");
 const { ComputerTab, WherePage } = await import("./bot-panel/ComputerTab");
@@ -214,7 +215,7 @@ const shown = (rendered: Rendered) => ({
   page: rendered.nodes.find((node) => node.type === PageBody)?.props.page,
 });
 const selectTab = (rendered: Rendered, tab: string) => (ofType(rendered, SegmentedTabs)!.props.onChange as (tab: string) => void)(tab);
-// Bot settings is the last row of the Details tab, as Grok keeps only Share and Close on top.
+// Bot settings is an alias of the Advanced tab now, as Grok keeps only Share and Close on top.
 const openSettings = (bot: Bot) => {
   selectTab(panel(bot), "details");
   (ofType(panel(bot), DetailsTab)!.props.onOpen as (page: string) => void)("settings");
@@ -274,7 +275,7 @@ beforeEach(() => {
 });
 
 describe("the bot panel in Simple mode", () => {
-  it("has Share and a close button on top, the hero, three tabs: Details, Library, Computer, and Bot settings on Details", () => {
+  it("has Share and a close button on top, the hero, four tabs: Details, Library, Computer and Advanced", () => {
     const bot = makeBot();
     const rendered = panel(bot);
     expect(ofType(rendered, PanelShareMenu)!.props.bot).toBe(bot);
@@ -285,7 +286,7 @@ describe("the bot panel in Simple mode", () => {
     expect(hero.props.bot).toBe(bot);
     expect(hero.props.patch).toBe(patch);
     const tabs = [...rendered.html.matchAll(/data-panel-tab="(\w+)"[^>]*>([^<]+)<\/button>/g)].map((match) => [match[1], match[2]]);
-    expect(tabs).toEqual([["details", "Details"], ["library", "Library"], ["computer", "Computer"]]);
+    expect(tabs).toEqual([["details", "Details"], ["library", "Library"], ["computer", "Computer"], ["advanced", "Advanced"]]);
     expect(shown(rendered)).toEqual({ tab: "details", page: undefined });
     expect(ofType(rendered, DetailsTab)!.props.bot).toBe(bot);
     expect(rendered.html).toContain('id="bot-settings-title"');
@@ -293,7 +294,7 @@ describe("the bot panel in Simple mode", () => {
 
   it("switches tabs", () => {
     const bot = makeBot();
-    for (const [tab, type] of [["computer", ComputerTab], ["library", LibraryTab], ["details", DetailsTab]] as const) {
+    for (const [tab, type] of [["computer", ComputerTab], ["library", LibraryTab], ["advanced", AdvancedTab], ["details", DetailsTab]] as const) {
       selectTab(panel(bot), tab);
       const rendered = panel(bot);
       expect(shown(rendered).tab).toBe(tab);
@@ -301,22 +302,32 @@ describe("the bot panel in Simple mode", () => {
     }
   });
 
-  it("opens Bot settings with Back to Details in Grok's sub-page header, and its apps with Back to Bot settings", () => {
+  it("opens Bot settings on the Advanced tab, and its apps with Back to Advanced in Grok's sub-page header", () => {
     const bot = makeBot();
     selectTab(panel(bot), "library");
     openSettings(bot);
     const settings = panel(bot);
-    expect(shown(settings)).toEqual({ tab: undefined, page: "settings" });
-    expect(header(settings)).toEqual({ back: "Details", title: "Bot settings" });
-    expect(ofType(settings, PanelShareMenu)).toBeUndefined();
-    (ofType(settings, PageBody)!.props.onOpen as (page: string) => void)("apps");
+    expect(shown(settings)).toEqual({ tab: "advanced", page: undefined });
+    expect(ofType(settings, AdvancedTab)!.props.bot).toBe(bot);
+    expect(ofType(settings, PanelShareMenu)).toBeDefined();
+    (ofType(settings, AdvancedTab)!.props.onOpen as (page: string) => void)("apps");
     const apps = panel(bot);
-    expect(header(apps)).toEqual({ back: "Bot settings", title: "Apps it can use" });
+    expect(header(apps)).toEqual({ back: "Advanced", title: "Apps it can use" });
     expect(apps.html).toContain("Switch on the apps Scout may use. Everything else stays off.");
     goBack(apps);
-    expect(shown(panel(bot)).page).toBe("settings");
-    goBack(panel(bot));
-    expect(shown(panel(bot))).toEqual({ tab: "details", page: undefined });
+    expect(shown(panel(bot))).toEqual({ tab: "advanced", page: undefined });
+  });
+
+  it("draws the Advanced tab: Model with See Usage, This bot, Actions, then Advanced features", () => {
+    const bot = makeBot();
+    const rendered = capture(() => AdvancedTab({ bot, derived: derived(), onOpen }));
+    const order = ['data-panel-card="model"', 'data-panel-card="uses"', 'data-panel-card="actions"', 'data-panel-card="advanced-features"'].map((marker) => rendered.html.indexOf(marker));
+    expect(order.every((at, index) => at > 0 && (index === 0 || at > order[index - 1]!))).toBe(true);
+    for (const label of ["Model", "This bot", "Actions", "See Usage", "Advanced features"]) expect(rendered.html).toContain(`>${label}<`);
+    click((ofType(rendered, SettingsPage)!.props.modelAction as Node));
+    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "toggleAppSettings", open: true, section: "usage" });
+    click(find(rendered, "data-panel-row", "advanced-features"));
+    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "toggleAppSettings", open: true, section: "advanced" });
   });
 
   it("drills into a page and back, naming where Back goes", () => {
@@ -365,9 +376,9 @@ describe("the bot panel in Simple mode", () => {
   it.each([
     ["overview", "details", undefined], ["identity", "details", undefined], ["slack", "details", undefined],
     ["soul", "details", "instructions"], ["skills", "library", "skills"], ["memory", "library", "memory"],
-    ["routines", "details", "routines"], ["access", "computer", "where"], ["model", "details", "settings"],
-    ["permissions", "details", "settings"], ["voice", "details", undefined], ["visibility", "details", undefined],
-    ["history", "details", undefined], ["usage", "details", "settings"],
+    ["routines", "details", "routines"], ["access", "computer", "where"], ["model", "advanced", undefined],
+    ["permissions", "advanced", undefined], ["voice", "details", undefined], ["visibility", "details", undefined],
+    ["history", "details", undefined], ["usage", "advanced", undefined],
   ] as const)("lands a deep link to %s on %s › %s", (section, tab, page) => {
     expect([sectionTarget(section).tab, sectionTarget(section).page]).toEqual([tab, page]);
     const rendered = panel(makeBot(), section);
@@ -376,10 +387,10 @@ describe("the bot panel in Simple mode", () => {
     if (page) expect(PAGES[page].home).toBe(tab);
   });
 
-  it("opens the Instructions page for a soul link, and lands model and usage links on Bot settings' Model card", () => {
+  it("opens the Instructions page for a soul link, and lands model and usage links on the Advanced tab's Model card", () => {
     expect(ofType(panel(makeBot(), "soul"), PageBody)!.props).toMatchObject({ page: "instructions" });
-    expect(sectionTarget("model")).toMatchObject({ page: "settings", anchor: "model" });
-    expect(sectionTarget("usage")).toMatchObject({ page: "settings", anchor: "model" });
+    expect(sectionTarget("model")).toEqual({ tab: "advanced", anchor: "model" });
+    expect(sectionTarget("usage")).toEqual({ tab: "advanced", anchor: "model" });
   });
 
   // App tool grants (PluginsPanel) and the working folder (the files pane) name a Simple page; MCP and tool
