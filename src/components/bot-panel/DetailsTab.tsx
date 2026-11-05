@@ -99,10 +99,10 @@ function VoiceChatRow({ label, children, row }: { label: string; children: React
 /** Grok's Voice chat card: Voice, Speed and Language as ghost select pills. Voice is the bot's speaking voice; speed and
  * language are kept per bot on this device. */
 /** The bot's model as it was on Bot settings: the Model row with the provider's mark, then its plan's usage when the
- * engine reports one. */
+ * engine reports one. No heading over it: its first row already says Model. */
 export function ModelCard({ bot }: { bot: Bot }) {
   return (
-    <Card label={t("model.simple.model")} anchor="model">
+    <Card anchor="model">
       <div className="[&_[data-tour=model]>span:first-child]:flex! [&_[data-provider-mark]]:opacity-100!">
         <ModelSelectRow bot={bot} threadId={bot.threadId} />
       </div>

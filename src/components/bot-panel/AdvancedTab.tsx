@@ -39,7 +39,6 @@ export function AdvancedTab({ bot, derived, onOpen }: {
         <NavRow
           data-panel-row="advanced-features"
           title={t("settings.pane.advanced")}
-          hint={t("botPanel.advancedFeatures.hint")}
           onClick={() => dispatch(openSettings("advanced"))}
         />
       </Card>

@@ -330,7 +330,10 @@ describe("the bot panel in Simple mode", () => {
     const order = ['data-panel-card="library"', 'data-panel-card="call"', 'data-panel-card="uses"', 'data-panel-card="actions"', 'data-panel-card="advanced-features"'].map((marker) => rendered.html.indexOf(marker));
     expect(order.every((at, index) => at > 0 && (index === 0 || at > order[index - 1]!))).toBe(true);
     expect(rendered.html).not.toContain('data-panel-card="model"');
-    for (const label of ["Library", "Voice chat", "This bot", "Actions", "Advanced features"]) expect(rendered.html).toContain(`>${label}<`);
+    for (const label of ["Voice chat", "This bot", "Actions", "Advanced features"]) expect(rendered.html).toContain(`>${label}<`);
+    // an empty library is grok's centred line, with no heading or card over it
+    expect(rendered.html).not.toContain(">Library<");
+    expect(rendered.html).not.toContain(">Settings for the whole app<");
     click(find(rendered, "data-panel-row", "advanced-features"));
     expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "toggleAppSettings", open: true, section: "advanced" });
   });
@@ -627,13 +630,16 @@ describe("the Bot settings page", () => {
     for (const gone of ['data-panel-row="approval"', "Before Scout acts", "data-panel-done"]) expect(rendered.html).not.toContain(gone);
   });
 
-  it("gives every row a subtitle", () => {
+  it("draws every row on one line with its value on the right, as Grok's Voice row, and no helper lines", () => {
     const rendered = settingsPage(makeBot({ memoryEnabled: false }));
-    const hint = (page: string) => find(rendered, "data-panel-page", page).props.hint;
-    expect(hint("memory")).toBe("Off");
-    expect(hint("skills")).toBe("None");
-    expect(hint("backups")).toBe("None");
-    expect(rendered.html).toContain("Be brief.");
+    const row = (page: string) => find(rendered, "data-panel-page", page).props;
+    expect(row("memory").value).toBe("Off");
+    expect(row("skills").value).toBe("None");
+    expect(row("backups").value).toBe("None");
+    for (const page of ["instructions", "memory", "skills", "folder", "where", "backups"]) expect(row(page).hint, page).toBeUndefined();
+    // instructions already written need no value; an empty one says None
+    expect(row("instructions").value).toBeUndefined();
+    expect(find(settingsPage(makeBot({ soul: "" })), "data-panel-page", "instructions").props.value).toBe("None");
   });
 
   it("has no rows for apps, signed-in sites, the API, conversations, Work until done, Hide, Call mode or the label", () => {
@@ -658,10 +664,11 @@ describe("the Library", () => {
     for (const gone of ["memory", "skills", "folder"]) expect(has(rendered, "data-panel-page", gone), gone).toBe(false);
   });
 
-  it("sits on top of the Advanced tab as a Library section, empty until the bot makes something, with no View all", () => {
+  it("sits on top of the Advanced tab as a Library section, Grok's centred empty line until the bot makes something, with no View all", () => {
     const rendered = librarySection(makeBot());
     expect(rendered.html).toContain('data-panel-card="library"');
-    expect(rendered.html).toContain(">Library<");
+    expect(rendered.html).not.toContain(">Library<");
+    expect(rendered.html).not.toContain("data-panel-card-surface");
     expect(rendered.html).toContain(">Pages, files, and apps this Bot makes show up here<");
     expect(has(rendered, "data-panel-page", "library")).toBe(false);
   });

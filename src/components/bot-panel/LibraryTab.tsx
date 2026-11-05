@@ -93,7 +93,7 @@ function RowBody({ lead, name, age }: { lead: ReactNode; name: string; age: stri
       <span className="flex min-w-0 flex-1 items-center gap-2">
         <span className="min-w-0 flex-1 truncate">{name}</span>
         {age && (
-          <span className="shrink-0 text-ink-tertiary opacity-0 transition-opacity duration-100 group-hover:opacity-100 group-focus-visible:opacity-100 group-focus-within:opacity-100 touch:opacity-100">{age}</span>
+          <span className="shrink-0 text-ink/[0.56] opacity-0 transition-opacity duration-100 group-hover:opacity-100 group-focus-visible:opacity-100 group-focus-within:opacity-100 touch:opacity-100">{age}</span>
         )}
       </span>
     </>
@@ -242,15 +242,21 @@ export function LibrarySection({ bot, onOpen }: { bot: Bot; onOpen: (page: Simpl
   const entries = useLibraryEntries(bot);
   const now = Date.now();
   const more = entries.length > PREVIEW;
+  // nothing made yet reads as grok's empty Library tab, the centred line with no card, as Details does for routines
+  if (entries.length === 0) {
+    return (
+      <section data-panel-card="library">
+        <PanelEmpty data-panel-empty="library">{t("botPanel.library.empty")}</PanelEmpty>
+      </section>
+    );
+  }
   return (
     <Card
       label={t("botPanel.tab.library")}
       anchor="library"
       action={more ? <LabelAction data-panel-page="library" onClick={() => onOpen("library")}>{t("botPanel.library.viewAll")}</LabelAction> : undefined}
     >
-      {entries.length === 0 ? (
-        <p data-panel-empty="library" className="px-2 py-1.5 text-[13px] leading-[18px] tracking-[0.015em] text-ink/[0.56]">{t("botPanel.library.empty")}</p>
-      ) : entries.slice(0, PREVIEW).map((entry) => (
+      {entries.slice(0, PREVIEW).map((entry) => (
         <div key={entry.key} className="min-w-0">{entry.render(entry.at === undefined ? null : shortAge(entry.at, now))}</div>
       ))}
     </Card>

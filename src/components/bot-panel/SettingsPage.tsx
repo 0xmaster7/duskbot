@@ -1,6 +1,5 @@
 import { t } from "@/lib/i18n";
 import { shortPath } from "@/lib/short-path";
-import { firstSentence } from "@/lib/soul";
 import { useStore, type Bot } from "@/state/store";
 import { useTeamName } from "../bot-access/ShareBotButton";
 import { BotApiCard } from "../bot-settings/BotApiCard";
@@ -51,12 +50,13 @@ export function SettingsPage({ bot, onOpen }: {
   return (
     <div data-panel-settings className="contents">
       <Card label={t("botPanel.section.thisBot")} anchor="uses">
-        <NavRow data-panel-page="instructions" title={t("botSettings.simple.instructions")} hint={<span className="block truncate">{firstSentence(bot.soul ?? "") || t("botPanel.instructionsHint", { name })}</span>} onClick={open("instructions")} />
-        <NavRow data-panel-page="memory" title={t("botPanel.memoryRow")} hint={memoryLine} onClick={open("memory")} />
-        <NavRow data-panel-page="skills" title={t("botSettings.simple.skills")} hint={skills.loading ? "\u00a0" : skillsOn > 0 ? t("botPanel.skills.on", { count: skillsOn }) : t("botPanel.none")} onClick={open("skills")} />
-        <NavRow data-panel-page="folder" title={t("computer.files.folder")} hint={<span className="block truncate">{bot.cwd ? shortPath(bot.cwd, capabilities.host?.homeDir) : t("botPanel.folder.private")}</span>} onClick={open("folder")} />
-        <NavRow data-panel-page="where" title={t("computer.simple.whereWorks", { name })} hint={currentLabel ?? t("computer.simple.dest.letItChoose")} onClick={open("where")} />
-        <NavRow data-panel-page="backups" title={t("botPanel.page.backups")} hint={backups > 0 ? t("botPanel.backups.count", { count: backups }) : t("botPanel.none")} onClick={open("backups")} />
+        {/* grok's one-line rows: what it is on the left, its value on the right, as the Voice row is */}
+        <NavRow data-panel-page="instructions" title={t("botSettings.simple.instructions")} value={(bot.soul ?? "").trim() ? undefined : t("botPanel.none")} onClick={open("instructions")} />
+        <NavRow data-panel-page="memory" title={t("botPanel.memoryRow")} value={memoryLine} onClick={open("memory")} />
+        <NavRow data-panel-page="skills" title={t("botSettings.simple.skills")} value={skills.loading ? undefined : skillsOn > 0 ? t("botPanel.skills.on", { count: skillsOn }) : t("botPanel.none")} onClick={open("skills")} />
+        <NavRow data-panel-page="folder" title={t("computer.files.folder")} value={bot.cwd ? shortPath(bot.cwd, capabilities.host?.homeDir) : t("botPanel.folder.private")} tooltip={bot.cwd ?? undefined} onClick={open("folder")} />
+        <NavRow data-panel-page="where" title={t("computer.simple.whereWorks", { name })} value={currentLabel ?? t("computer.simple.dest.letItChoose")} onClick={open("where")} />
+        <NavRow data-panel-page="backups" title={t("botPanel.page.backups")} value={backups > 0 ? t("botPanel.backups.count", { count: backups }) : t("botPanel.none")} onClick={open("backups")} />
       </Card>
 
       {editable && (

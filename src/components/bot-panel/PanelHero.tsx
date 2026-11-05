@@ -9,7 +9,7 @@ import { BotAvatar } from "../Avatar";
 import { GrokIcon } from "../GrokIcon";
 import type { BotPatch } from "../bot-settings/useBotSettingsDerived";
 
-/** Grok's inline fields: no frame of their own, a 10% ink wash on hover and while editing. */
+/** Grok's inline fields: no frame of their own, a 10% ink wash on hover, a 1px focus border while focused or editing. */
 const nameCls = "max-w-full rounded-lg border border-transparent px-2.5 py-0.5 text-center text-[17px] font-medium leading-6 tracking-[0.01em] text-ink transition-[border-color,background-color] duration-[120ms] ease-[ease] hover:bg-ink/[0.1]";
 
 const HOVER_GAZE = { x: -1, y: 1 };
@@ -107,7 +107,7 @@ export function PanelHero({ bot, activeState, patch, editorOpen, onToggleEditor 
               onChange={(event) => name.setDraft(event.target.value)}
               onKeyDown={name.onKeyDown}
               onBlur={name.onBlur}
-              className={cn(nameCls, "min-w-[2ch] border-transparent! bg-ink/[0.1] outline-none [field-sizing:content]")}
+              className={cn(nameCls, "min-w-[2ch] border-focus outline-none [field-sizing:content]")}
             />
           ) : (
             <button
@@ -116,7 +116,7 @@ export function PanelHero({ bot, activeState, patch, editorOpen, onToggleEditor 
               data-panel-rename
               aria-label={t("botPanel.nameField")}
               onClick={() => name.start(bot.name)}
-              className={cn(nameCls, "cursor-text truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus")}
+              className={cn(nameCls, "cursor-text truncate focus-visible:border-focus focus-visible:outline-none!")}
             >
               {bot.name}
             </button>

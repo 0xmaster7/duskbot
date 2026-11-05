@@ -166,7 +166,7 @@ export function ComputerTab({ bot }: { bot: Bot; derived: Derived; onOpen: (page
           </>
         )}
       </button>
-      <div className="mt-[9px] text-center text-[12px] leading-4 text-ink-tertiary">{screenOf}</div>
+      <div className="mt-[9px] text-center text-[12px] leading-4 tracking-normal text-ink/[0.56]">{screenOf}</div>
     </div>
   );
 }
