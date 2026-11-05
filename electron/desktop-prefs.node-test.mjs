@@ -282,7 +282,7 @@ test("production wiring: main answers this computer's page, My Cloud's own page 
     rendererOrigin: () => LOCAL, cloudAccountRestored: async () => calls.push("restored"), cloudOffersReady: async () => { calls.push("offers"); return true; },
     cloudPageAsking: event => event.verifiedCloud ? "cloud" : null,
     serverReady: true, LOCAL_ID: "local", switchEnvironment: id => switched(id),
-    process: { platform: "win32" }, windowFrameMade: false, broadcastDesktopCapabilities: async () => { broadcasts++; },
+    process: { platform: "win32" }, FRAME_BY_DEFAULT: true, windowFrameMade: false, broadcastDesktopCapabilities: async () => { broadcasts++; },
     // main's own: a failed switch shows its dialog and resolves.
     workspaceMenuAction: async action => { try { await action(); } catch { calls.push("dialog"); } },
   });
@@ -370,6 +370,16 @@ test("the window draws its own frame until the person turns it off, and the choi
   prefs.setWindowFrame("off");
   assert.equal(createDesktopPrefs({ read: () => saved, write: () => {} }).windowFrame(), true, "only false turns it off");
   assert.equal(createDesktopPrefs({ read: () => ({ windowFrame: "no" }), write: () => {} }).windowFrame(), true);
+});
+
+test("on macOS the window has no frame of its own until the person turns one on, as Grok Bot's has none", () => {
+  let saved = null, writes = 0;
+  const prefs = createDesktopPrefs({ read: () => saved, write: value => { saved = structuredClone(value); writes++; }, frameByDefault: false });
+  assert.equal(prefs.windowFrame(), false);
+  prefs.setWindowFrame(false);
+  assert.equal(writes, 0, "turning off a frame that is off writes nothing");
+  prefs.setWindowFrame(true);
+  assert.equal(createDesktopPrefs({ read: () => saved, write: () => {}, frameByDefault: false }).windowFrame(), true);
 });
 
 test("Settings reads and changes the window's frame on any page of the window; on Windows the change waits for a restart", async () => {

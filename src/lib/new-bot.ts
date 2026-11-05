@@ -48,13 +48,18 @@ export function announceNewBot(dispatch: (action: Action) => void, bot: Bot, war
 
 /** A paired device may not read the host's New bot defaults: the host applies them to an empty request. Auto on this
  * computer needs the person's own OK, so a bot whose defaults ask for it starts on Ask. */
-async function createNewBot(section: string | undefined, bots: readonly Bot[], team: TeamPeople | null, request: typeof api) {
+async function createNewBot(section: string | undefined, bots: readonly Bot[], team: TeamPeople | null, request: typeof api,
+  look?: Extract<Action, { type: "newBot" }>["look"]) {
   if (typeof window !== "undefined" && window.ogb?.remoteClient?.active) {
     const { bot } = await request<{ bot: Bot }>("/api/bots", { method: "POST", body: JSON.stringify(section === undefined ? {} : { section }) });
-    return { bot, warnings: [] as string[], startsOnAsk: false };
+    if (!look) return { bot, warnings: [] as string[], startsOnAsk: false };
+    const { bot: named } = await request<{ bot: Bot }>(`/api/bots/${bot.id}`, { method: "PATCH", body: JSON.stringify(look) });
+    return { bot: { ...bot, ...named, messages: bot.messages }, warnings: [] as string[], startsOnAsk: false };
   }
   const template = startingTemplate(await request<BotDefaultsAnswer>("/api/bot-defaults"), true);
-  template.profile.name = freeName(template.profile.name!, bots);
+  // A name the person typed is theirs as typed; only the suggested one steps aside for a bot that has it.
+  if (look) Object.assign(template.profile, look);
+  else template.profile.name = freeName(template.profile.name!, bots);
   if (section !== undefined) template.profile.section = section;
   const draft = new BotCreationDraft(template, () => {}, request);
   const startsOnAsk = draft.bot.approvalMode === "auto" && draft.bot.computer === "local";
@@ -73,7 +78,7 @@ export async function makeNewBot(action: Extract<Action, { type: "newBot" }>, bo
   if (currentTeamPeople()?.admin === false) return;
   let made: Awaited<ReturnType<typeof createNewBot>>;
   try {
-    made = await createNewBot(action.section, bots, currentTeamPeople(), request);
+    made = await createNewBot(action.section, bots, currentTeamPeople(), request, action.look);
   } catch (cause) {
     if (isBotLimitRefusal(cause)) return;
     const message = t("newBot.failed", { error: cause instanceof Error ? cause.message : String(cause) });

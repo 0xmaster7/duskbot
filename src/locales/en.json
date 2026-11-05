@@ -2063,6 +2063,7 @@
   "sidebar.grok.search": "Search",
   "sidebar.grok.newBot": "New Bot",
   "sidebar.grok.mainBot": "Main Bot",
+  "sidebar.grok.waiting": "Waiting for you: {text}",
   "sidebar.grok.getMobile": "Get MausBot for mobile",
   "sidebar.grok.support": "Support",
   "sidebar.grok.addAccount": "Add account",

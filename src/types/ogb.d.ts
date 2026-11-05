@@ -359,6 +359,8 @@ const __APP_VERSION__: string;
         close(): Promise<boolean>;
         state(): Promise<{ maximized: boolean }>;
         onMaximizedChanged(cb: (maximized: boolean) => void): () => void;
+        /** Widens the window by up to `deltaWidth` CSS px within its screen; resolves to the px it grew by. */
+        resizeWidthBy?(deltaWidth: number): Promise<number>;
       };
       /** Receives a GitHub package URL opened through openmausbot://install. */
       onPackageInstall?(cb: (url: string) => void): () => void;

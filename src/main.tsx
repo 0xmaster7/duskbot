@@ -8,7 +8,6 @@ import { loadPageLanguage } from "./lib/language-preference";
 import { applySkinChoice, readSkinChoice } from "./lib/skins";
 import { applyChatWidth, readChatWidth } from "./lib/chat-width";
 import { applyFont, readFont } from "./lib/fonts";
-import { settleAdvancedModeDefault } from "./lib/interface-mode";
 import { BrowserSignInPage } from "./pair/BrowserSignInPage";
 import { PairPage } from "./pair/PairPage";
 import { HomeScreen, SignedOutAtHome } from "./components/HomeScreen";
@@ -18,8 +17,7 @@ import "./styles.css";
 import "./styles/overlays.css";
 import "./styles/motion.css";
 
-// Before first paint; settleAdvancedModeDefault must run before applySkin writes omb-skin.
-settleAdvancedModeDefault();
+// Before first paint.
 applySkinChoice(readSkinChoice());
 applyFont(readFont());
 applyChatWidth(readChatWidth());

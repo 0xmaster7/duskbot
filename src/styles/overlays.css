@@ -115,7 +115,8 @@
   animation: overlay-toast-in var(--overlay-normal) var(--ease-sharp);
 }
 
-/* A tooltip: white on a hairline with the inline lift, 12/16 text, 6px corners. */
+/* A tooltip, as Grok Bot's: white on the inline lift, 12/16 text, 6px corners. Its edge is drawn inside it, a half-pixel
+   ink ring over a white one (::after), so it reads as a soft card rather than an outlined box. */
 .ui-tooltip {
   position: fixed;
   z-index: 2147483000;
@@ -124,16 +125,24 @@
   border-radius: 6px;
   background: var(--color-menu);
   color: var(--color-ink);
-  box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 12%, transparent), var(--shadow-inline);
+  box-shadow: var(--shadow-inline);
   font-size: 12px;
   font-weight: 425;
   line-height: 16px;
-  letter-spacing: 0.01em;
+  letter-spacing: normal;
   overflow-wrap: anywhere;
   white-space: pre-line;
   pointer-events: none;
   user-select: none;
   animation: overlay-tooltip-in var(--overlay-fast) var(--ease-sharp);
+}
+.ui-tooltip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 12%, transparent), inset 0 0 0 0.5px var(--color-menu);
+  pointer-events: none;
 }
 .ui-tooltip[data-side="top"] { --tooltip-shift: 2px; }
 .ui-tooltip[data-instant] { animation: none; }

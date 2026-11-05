@@ -7,6 +7,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import type { ServerFrame } from "../../shared/wire";
 import type { Action, AppState, BotAnnouncement } from "./store";
 import { LAST_CONVERSATION_KEY } from "@/lib/last-conversation";
+vi.mock("@/lib/interface-mode", () => import("@/testing/advanced-mode"));
 
 class FixtureEventSource {
   static opened: FixtureEventSource[] = [];

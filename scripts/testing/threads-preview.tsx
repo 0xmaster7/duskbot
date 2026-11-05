@@ -3,7 +3,6 @@ import App from "../../src/App";
 import { setAnalyticsEnabled, setEmailGateDone } from "../../src/lib/analytics";
 import { setAdvancedMode } from "../../src/lib/interface-mode";
 import { GROK_MOVE_NOTICE } from "../../src/lib/notices";
-import { markSimpleModePromptSeen } from "../../src/lib/simple-mode-prompt";
 import { applySkinChoice, readSkinChoice } from "../../src/lib/skins";
 import "../../src/styles.css";
 
@@ -18,7 +17,6 @@ setAnalyticsEnabled(false);
 if (new URLSearchParams(location.search).has("onboarding")) setAdvancedMode(false);
 else setEmailGateDone("skipped");
 // Every launch is a new browser, so the once-per-browser Simple mode popup shows only with ?simpleModePrompt=1.
-if (!new URLSearchParams(location.search).has("simpleModePrompt")) markSimpleModePromptSeen();
 // The same for the once-per-person Move from Grok Bot popup, with ?grokMovePopup=1.
 if (!new URLSearchParams(location.search).has("grokMovePopup")) localStorage.setItem(GROK_MOVE_NOTICE, "1");
 applySkinChoice(readSkinChoice());

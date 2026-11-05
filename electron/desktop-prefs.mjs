@@ -58,7 +58,7 @@ function parse(raw) {
 }
 
 /** A record that cannot be written is still kept for this launch. */
-export function createDesktopPrefs({ read, write }) {
+export function createDesktopPrefs({ read, write, frameByDefault = true }) {
   let record = null;
   const current = () => {
     if (record) return record;
@@ -120,11 +120,11 @@ export function createDesktopPrefs({ read, write }) {
       const railHidden = hidden === true;
       if ((current().railHidden === true) !== railHidden) save({ ...current(), railHidden });
     },
-    /** The window draws its own frame until the person turns it off. */
-    windowFrame: () => current().windowFrame !== false,
+    /** Whether the window draws its own frame: `frameByDefault` until the person turns it on or off. */
+    windowFrame: () => (typeof current().windowFrame === "boolean" ? current().windowFrame : frameByDefault),
     setWindowFrame(on) {
       const windowFrame = on !== false;
-      if ((current().windowFrame !== false) !== windowFrame) save({ ...current(), windowFrame });
+      if (current().windowFrame !== windowFrame && (typeof current().windowFrame === "boolean" || windowFrame !== frameByDefault)) save({ ...current(), windowFrame });
     },
   };
 }

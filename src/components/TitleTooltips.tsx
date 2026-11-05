@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 /** Grok's tooltip timing: about 300ms on a first hover, then instant while the pointer moves between triggers. */
-export const TOOLTIP_DELAY_MS = 320;
+export const TOOLTIP_DELAY_MS = 300;
 const GROUP_MS = 400;
 const GAP = 8;
 const EDGE = 8;

@@ -55,6 +55,8 @@ import { EmptyChatShell } from "@/components/onboarding/EmptyChatShell";
 import { cloudFirstRun, cloudWelcomeVisible, useCloudWelcome } from "@/lib/cloud-welcome";
 import { engineReady } from "@/components/EngineLibrary";
 import { CommandPalette } from "@/components/CommandPalette";
+import { CreateBotDialog, openCreateBot } from "@/components/CreateBotDialog";
+import { CHAT_MIN_WIDTH, PanelSlot } from "@/components/PanelSlot";
 import { TitleTooltips } from "@/components/TitleTooltips";
 import { t } from "@/lib/i18n";
 import { botCycleStep, shouldOpenKeyboardShortcuts } from "@/lib/keyboard-shortcuts";
@@ -72,6 +74,9 @@ import { useChiefStepOpen } from "@/lib/default-bot";
 import { SESSION_ENDED_REASON, useSessionEnded } from "@/lib/session-ended";
 import { PairPage } from "./pair/PairPage";
 import { WebPanelPage } from "@/components/WebPanelPage";
+
+/** Grok Bot's sidebar (280), the chat's floor beside a panel (424) and the panel's own (280). */
+const BOT_PANEL_DOCKS_AT = 280 + CHAT_MIN_WIDTH + 280;
 
 function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const { state, dispatch } = useStore();
@@ -93,6 +98,8 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const twoSidePanelsFit = useMediaQuery(TWO_SIDE_PANELS_FIT, true);
   const sidebarAndPanelFit = useMediaQuery(SIDEBAR_AND_PANEL_FIT, true);
   const sidebarInline = useMediaQuery(SIDEBAR_INLINE, false);
+  // As Grok Bot: the bot's panel docks beside the sidebar only while the chat keeps its 424px and the panel its 280.
+  const botPanelDocks = useMediaQuery(`(min-width: ${BOT_PANEL_DOCKS_AT}px)`, true);
   useEffect(() => {
     if (!window.ogb?.environments) return;
     const open = (computerId?: string | null) => {
@@ -150,7 +157,10 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const advanced = useAdvancedMode();
   const roomPanelOpen = useRoomPanelShown({ group, state, simple: !advanced && !remoteClient });
   const sidePanelOpen = (Boolean(bot) && (state.settingsOpen || state.computerOpen || state.inspectorOpen || state.activityOpen)) || roomPanelOpen || (notificationFeed && state.notificationsOpen) || inboxShown;
-  const collapseSidebar = sidePanelOpen && !sidebarAndPanelFit;
+  // The bot's own panel never squeezes the sidebar, as in Grok Bot; the other side panels still do on a narrow window.
+  const otherSidePanelOpen = sidePanelOpen && !(state.settingsOpen && !state.computerOpen && !state.inspectorOpen && !state.activityOpen
+    && !roomPanelOpen && !(notificationFeed && state.notificationsOpen) && !inboxShown);
+  const collapseSidebar = otherSidePanelOpen && !sidebarAndPanelFit;
   const calendarFocus = state.activeView === "routines" && state.routinesFocus.view === "calendar";
 
   const noEngines =
@@ -184,7 +194,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       const step = e.shiftKey ? botCycleStep(e) : null;
       if (e.key === "n" && !e.shiftKey) {
         e.preventDefault();
-        dispatch({ type: "newBot" });
+        openCreateBot();
       } else if (/^[1-9]$/.test(e.key)) {
         const target = bots[Number(e.key) - 1];
         if (target) {
@@ -204,6 +214,14 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   }, [state.bots, state.selectedId, state.shortcutsOpen, showThreads, dispatch]);
 
   useReadShownChatOnFocus();
+  // Grok Bot widens its window for the panel rather than squeezing the chat; a browser tab can't, so there it overlays.
+  const settingsOpened = useRef(state.settingsOpen);
+  useEffect(() => {
+    const opened = state.settingsOpen && !settingsOpened.current;
+    settingsOpened.current = state.settingsOpen;
+    const grow = BOT_PANEL_DOCKS_AT - window.innerWidth;
+    if (opened && grow > 0) void window.ogb?.windowControls?.resizeWidthBy?.(grow).catch(() => {});
+  }, [state.settingsOpen]);
   useEffect(() => {
     if (window.ogb?.setUnreadCount) window.ogb.setUnreadCount(unreadCount);
     else showBrowserUnread(unreadCount);
@@ -305,6 +323,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
     });
   }, [dispatch]);
 
+  const settingsOverlay = !botPanelDocks || ((state.inspectorOpen || state.computerOpen || (notificationFeed && state.notificationsOpen)) && !twoSidePanelsFit);
   const framed = windowFramed(capabilities);
   const strips = <>
     <UpdateBanner sidebarIndicator={framed || (!calendarFocus && (sidebarInline || drawerOpen))} />
@@ -396,11 +415,11 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
         </main>
       )}
       {/* Sibling panels need distinct keys: two keyed `bot.id` collide in React's keyed reconciliation. */}
-      {state.settingsOpen && bot && (
-        remoteClient
-          ? <RemoteAgentSettingsPanel bot={bot} overlay={state.computerOpen && !twoSidePanelsFit} />
-          : <BotSettingsDialog key={`settings:${bot.id}`} bot={bot} overlay={(state.inspectorOpen || state.computerOpen || (notificationFeed && state.notificationsOpen)) && !twoSidePanelsFit} />
-      )}
+      {state.settingsOpen && bot && remoteClient && <RemoteAgentSettingsPanel bot={bot} overlay={state.computerOpen && !twoSidePanelsFit} />}
+      {state.settingsOpen && bot && !remoteClient && settingsOverlay && <BotSettingsDialog key={`settings:${bot.id}`} bot={bot} overlay />}
+      <PanelSlot open={Boolean(state.settingsOpen && bot && !remoteClient && !settingsOverlay)}>
+        {bot && <BotSettingsDialog key={`settings:${bot.id}`} bot={bot} />}
+      </PanelSlot>
       {state.computerOpen && bot && (
         remoteClient ? (
           <RemoteDesktopPanel key={`computer:${bot.id}`} bot={bot} />
@@ -435,6 +454,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
         />
       )}
       {/* After the modals: same z-50 tier, so DOM order keeps the palette on top. */}
+      <CreateBotDialog />
       <CommandPalette onOpenChange={setPaletteOpen} />
       <TitleTooltips />
       {/* Blink resolves -webkit-app-region in DOM order, so this no-drag twin after the headers cuts the drawer button back out. */}

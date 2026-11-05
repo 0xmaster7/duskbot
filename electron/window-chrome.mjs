@@ -8,7 +8,19 @@ export function windowBackground(prefersDark) {
 /** macOS: where the traffic lights (14px) sit. In the frame's 28px top bar, 12px in, while the page beside the rail draws
  * that frame (src/components/WindowFrameBar.tsx); where an older page made room for them otherwise. The window opens with
  * them in the bar, and main moves them as each page says (chrome-rail.mjs). */
-export const TRAFFIC_LIGHTS = { framed: { x: 12, y: 7 }, unframed: { x: 16, y: 16 } };
+export const TRAFFIC_LIGHTS = { framed: { x: 12, y: 7 }, unframed: { x: 16, y: 15 } };
+
+/** Grok Bot's window has no frame of its own on macOS: the traffic lights sit over the sidebar's header. Windows keeps
+ * the app-drawn caption buttons, as the system's title bar would otherwise come back. */
+export const FRAME_BY_DEFAULT = process.platform !== "darwin";
+
+/** The window `deltaWidth` px wider, inside its screen's work area and never under `minWidth`: it grows to the right,
+ * and slides left where the screen ends. `applied` is how much it really grew. */
+export function widenedBounds({ contentBounds, workArea, deltaWidth, minWidth }) {
+  const width = Math.min(Math.max(contentBounds.width + deltaWidth, minWidth), workArea.width);
+  const x = Math.min(Math.max(contentBounds.x, workArea.x), workArea.x + workArea.width - width);
+  return { contentBounds: { ...contentBounds, x, width }, applied: width - contentBounds.width };
+}
 
 /** `frame`: the window draws its own frame (the person may turn it off): on macOS the traffic lights open where it puts
  * them, and on Windows the app draws its caption buttons, or else the system's own title bar comes back. */

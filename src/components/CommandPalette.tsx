@@ -1,23 +1,59 @@
-import { useEffect, useRef, useState } from "react";
-import { Bot as BotIcon, MessageSquare, Search, Users } from "lucide-react";
-import { api, openBot, useStore, type Bot, type Group } from "@/state/store";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { api, openBot, useStore, visibleMessages, type Action, type AppSettingsSection, type Bot, type Group } from "@/state/store";
 import { t } from "@/lib/i18n";
-import { rankByName } from "@/lib/palette-rank";
 import { useShowThreads } from "@/lib/thread-preferences";
 import { cn } from "@/lib/cn";
 import type { SearchHit } from "@/lib/search-hit";
 import { landOnSearchHit } from "@/lib/focus-message";
 import { imeComposing } from "@/lib/send-key";
+import { botUnreadCount } from "@/lib/bot-unread";
+import { applySkinChoice, THEME_SKINS } from "@/lib/skins";
+import { BotAvatar } from "./Avatar";
+import { openCreateBot } from "./CreateBotDialog";
+import { GrokIcon, type GrokIconName } from "./GrokIcon";
+import { botPreview, groupPreview } from "./sidebar-preview";
+
+/** What a row does once picked: what it opens, or what it changes. */
+type Command = { id: string; name: string; detail?: string; icon: GrokIconName; run: () => void };
 
 type PaletteEntry =
   | { kind: "bot"; bot: Bot }
   | { kind: "room"; group: Group }
-  | { kind: "message"; hit: SearchHit };
+  | { kind: "message"; hit: SearchHit }
+  | { kind: "command"; command: Command };
 
 const OPEN_EVENT = "omb:open-command-palette";
 
 export function openCommandPalette() {
   window.dispatchEvent(new Event(OPEN_EVENT));
+}
+
+/** Grok Bot's search ranking, roughly: a name that starts with the query, then one with a word that does, then the query
+ * anywhere in it, then its letters in order. Nothing that lacks them shows. */
+function matchRank(name: string, query: string): number {
+  if (!query) return 0;
+  const text = name.toLowerCase();
+  if (text.startsWith(query)) return 0;
+  if (text.split(/[\s:._-]+/).some((word) => word.startsWith(query))) return 1;
+  if (text.includes(query)) return 2;
+  let at = 0;
+  for (const letter of text) if (letter === query[at]) at++;
+  return at === query.length ? 3 : -1;
+}
+
+function ranked<T>(items: readonly T[], name: (item: T) => string, query: string): T[] {
+  return items
+    .map((item, index) => ({ item, index, rank: matchRank(name(item), query) }))
+    .filter((entry) => entry.rank >= 0)
+    .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .map((entry) => entry.item);
+}
+
+/** The query's letters where they run together in the name, in the weight Grok Bot marks them with. */
+function Marked({ text, query }: { text: string; query: string }) {
+  const at = query ? text.toLowerCase().indexOf(query) : -1;
+  if (at < 0) return <>{text}</>;
+  return <>{text.slice(0, at)}<span className="font-semibold">{text.slice(at, at + query.length)}</span>{text.slice(at + query.length)}</>;
 }
 
 export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean) => void }) {
@@ -28,6 +64,8 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
   const [messageHits, setMessageHits] = useState<SearchHit[]>([]);
   const [cursor, setCursor] = useState(0);
   const selectedRef = useRef<HTMLButtonElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const listId = useId();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -47,9 +85,11 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
 
   useEffect(() => {
     if (!open) return;
+    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setQuery("");
     setMessageHits([]);
     setCursor(0);
+    return () => { if (openerRef.current?.isConnected) openerRef.current.focus(); };
   }, [open]);
 
   useEffect(() => {
@@ -84,29 +124,51 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
 
   if (!open) return null;
 
-  const bots = rankByName(state.bots.filter((b) => !b.hidden), q);
-  const rooms = rankByName(state.groups, q);
+  const settings = (section: AppSettingsSection): Action => ({ type: "toggleAppSettings", open: true, section });
+  const updater = window.ogb?.updater;
+  const commands: Command[] = [
+    { id: "new-bot", name: "New Bot", icon: "plus", run: () => openCreateBot() },
+    { id: "shortcuts", name: "Keyboard shortcuts", detail: "Help", icon: "keyboard", run: () => dispatch({ type: "toggleShortcuts", open: true }) },
+    { id: "settings-general", name: "Settings: General", detail: "Settings", icon: "settings-gear", run: () => dispatch(settings("general")) },
+    { id: "settings-texting", name: "Settings: Texting", detail: "Settings", icon: "chat-bubbles", run: () => dispatch(settings("texting")) },
+    { id: "settings-computer", name: "Settings: Computer", detail: "Settings", icon: "display", run: () => dispatch(settings("computer")) },
+    { id: "settings-updates", name: "Settings: Updates", detail: "Settings", icon: "refresh", run: () => dispatch(settings("updates")) },
+    { id: "settings-permissions", name: "Settings: Permissions", detail: "Settings", icon: "lock", run: () => dispatch(settings("permissions")) },
+    { id: "connect-apps", name: "Connect Apps", detail: "Search across apps and skills", icon: "storefront", run: () => dispatch(settings("apps")) },
+    { id: "theme-system", name: "Theme: System", detail: "Settings · Appearance", icon: "display", run: () => applySkinChoice("system") },
+    { id: "theme-dark", name: "Theme: Dark", detail: "Settings · Appearance", icon: "moon", run: () => applySkinChoice(THEME_SKINS.dark) },
+    { id: "theme-light", name: "Theme: Light", detail: "Settings · Appearance", icon: "sun", run: () => applySkinChoice(THEME_SKINS.light) },
+    ...(updater ? [{ id: "check-updates", name: "Check for Updates", detail: "Updates", icon: "refresh" as const, run: () => void updater.check().catch(() => {}) }] : []),
+  ];
+  // With nothing typed: the bots, those with news first, then what to do; settings and themes wait for a query.
+  const shownCommands = q ? ranked(commands, (command) => command.name, q) : commands.filter((command) => !command.id.startsWith("theme-") && command.id !== "connect-apps" && command.id !== "check-updates" && command.id !== "settings-updates" && command.id !== "settings-permissions");
+  const liveBots = state.bots.filter((b) => !b.hidden);
+  const bots = q ? ranked(liveBots, (bot) => bot.name, q) : [...liveBots].sort((a, b) => Number(botUnreadCount(b) > 0) - Number(botUnreadCount(a) > 0));
+  const rooms = ranked(state.groups, (group) => group.name, q);
   const entries: PaletteEntry[] = [
     ...bots.map((bot): PaletteEntry => ({ kind: "bot", bot })),
     ...rooms.map((group): PaletteEntry => ({ kind: "room", group })),
     ...(q ? messageHits.map((hit): PaletteEntry => ({ kind: "message", hit })) : []),
+    ...shownCommands.map((command): PaletteEntry => ({ kind: "command", command })),
   ];
   const selected = entries.length ? Math.min(cursor, entries.length - 1) : 0;
+  const optionId = (index: number) => `${listId}-row-${index}`;
 
   const activate = async (entry: PaletteEntry) => {
+    setOpen(false);
     if (entry.kind === "message") {
-      const hit = entry.hit;
       try {
-        await landOnSearchHit(hit, state, dispatch, showThreads);
+        await landOnSearchHit(entry.hit, state, dispatch, showThreads);
       } catch (error) {
         dispatch({ type: "error", message: error instanceof Error ? error.message : String(error) });
       }
     } else if (entry.kind === "bot") {
       openBot(dispatch, entry.bot, showThreads);
-    } else {
+    } else if (entry.kind === "room") {
       dispatch({ type: "select", id: entry.group.id });
+    } else {
+      entry.command.run();
     }
-    setOpen(false);
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -128,121 +190,102 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
     }
   };
 
-  const roomOffset = bots.length;
-  const messageOffset = bots.length + rooms.length;
-
-  const row = (key: string, index: number, onPick: () => void, children: React.ReactNode, twoLine = false) => (
+  const row = (key: string, index: number, entry: PaletteEntry, leading: ReactNode, name: ReactNode, detail: ReactNode, kind: string, trailing?: ReactNode) => (
     <button
       key={key}
+      id={optionId(index)}
+      type="button"
+      role="option"
+      tabIndex={-1}
+      aria-selected={index === selected}
       ref={index === selected ? selectedRef : undefined}
-      onClick={onPick}
+      onClick={() => void activate(entry)}
       // mousemove, not mouseenter: rows shifting under a resting pointer must not steal the keyboard selection.
       onMouseMove={() => setCursor(index)}
       className={cn(
-        "flex min-h-8 w-full items-center gap-1.5 rounded-lg px-1.5 py-1.5 text-left",
-        twoLine && "flex-col items-stretch gap-0.5",
-        index === selected ? "bg-menu-active" : "hover:bg-menu-hover",
+        "m-0 flex h-[49px] w-full shrink-0 cursor-pointer appearance-none items-center gap-2.5 rounded-[10px] border-0 py-1.5 pl-2 pr-2.5 text-left text-[13px] leading-[18px] tracking-[0.195px] text-ink outline-none",
+        index === selected ? "bg-ink/8" : "bg-transparent",
       )}
     >
-      {children}
+      <span className="flex size-6 shrink-0 items-center justify-center">{leading}</span>
+      <span className="flex min-w-0 flex-1 flex-col justify-center gap-px tracking-[-0.08px]">
+        <span className="flex min-w-0 items-center gap-1.5"><span className="truncate">{name}</span></span>
+        {detail ? <span className="truncate text-ink-secondary">{detail}</span> : null}
+      </span>
+      {trailing}
+      <span className="sr-only">{kind}</span>
     </button>
+  );
+  const tile = (icon: GrokIconName) => (
+    <span className="flex size-6 items-center justify-center overflow-hidden rounded-[8px] bg-ink/6 text-ink-secondary"><GrokIcon name={icon} size={12} /></span>
   );
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-6 pt-[14vh]"
-      onMouseDown={(e) => e.target === e.currentTarget && setOpen(false)}
-      onKeyDown={onKeyDown}
-    >
+    <div className="fixed inset-0 z-50" onKeyDown={onKeyDown}>
+      <div aria-hidden className="absolute inset-0 bg-black/50" onMouseDown={() => setOpen(false)} />
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Command palette"
-        className="popover-surface flex max-h-[min(480px,70vh)] w-full max-w-[560px] flex-col overflow-hidden rounded-[14px] border-[0.5px] border-[var(--color-edge)] bg-menu shadow-(--shadow-modal)"
+        aria-label="Search"
+        data-command-palette
+        className="absolute left-1/2 top-1/2 flex h-[455px] max-h-[calc(100vh-32px)] w-[min(560px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[18px] border border-ink/12 bg-menu text-[13px] text-ink"
       >
-        <div className="flex items-center gap-2.5 border-b-[0.5px] border-[var(--color-edge)] px-3.5 py-3">
-          <Search size={16} className="shrink-0 text-ink-secondary" />
+        <div className="flex shrink-0 items-center gap-2.5 border-b-[0.5px] border-ink/8 py-3.5 pl-4 pr-2.5">
+          <span className="flex h-5 w-6 shrink-0 items-center justify-center text-ink/52"><GrokIcon name="search" size={16} /></span>
           <input
             autoFocus
+            role="combobox"
+            aria-expanded="true"
+            aria-autocomplete="list"
+            aria-controls={listId}
+            aria-activedescendant={entries.length ? optionId(selected) : undefined}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             aria-label={t("commandPalette.searchLabel")}
-            placeholder={t("commandPalette.searchPlaceholder")}
-            className="w-full bg-transparent text-[14px] leading-5 text-ink placeholder:text-ink-tertiary focus:outline-none"
+            placeholder="Search"
+            className="min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 text-[14px] leading-[22px] tracking-[-0.15px] text-ink outline-none placeholder:text-ink/56"
           />
-          <kbd className="shrink-0 rounded-[5px] px-1.5 py-0.5 text-[11px] leading-4 text-ink-secondary shadow-[0_0_0_0.5px_var(--color-edge)]">
-            esc
-          </kbd>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
-          {entries.length === 0 && (
-            <div className="px-3 py-6 text-center text-[13px] text-ink-secondary">
-              {q ? `Nothing matches “${query}”` : "Nothing to switch to yet"}
+        {entries.length === 0 ? (
+          <div role="status" className="flex min-h-0 flex-1 items-center justify-center px-4 text-center">
+            <span className="text-[13px] leading-[18px] tracking-[-0.08px] text-ink-secondary">No results</span>
+          </div>
+        ) : (
+          <div
+            id={listId}
+            role="listbox"
+            aria-label="Results"
+            className="min-h-0 flex-1 overflow-y-auto [mask-image:linear-gradient(transparent_0px,black_0px,black_calc(100%-24px),transparent_100%)]"
+          >
+            <div className="flex flex-col gap-0.5 p-2">
+              {entries.map((entry, index) => {
+                if (entry.kind === "bot") {
+                  const { bot } = entry;
+                  const unread = botUnreadCount(bot) > 0;
+                  return row(`bot:${bot.id}`, index, entry, <BotAvatar bot={bot} size={24} animated={false} trackPointer={false} />,
+                    <Marked text={bot.name} query={q} />, botPreview(bot, visibleMessages(bot), state.instances, false), "Bot",
+                    unread ? <span role="img" aria-label="Unread activity" className="flex size-2 shrink-0 items-center"><span className="size-2 rounded-full bg-focus" /></span> : undefined);
+                }
+                if (entry.kind === "room") {
+                  const { group } = entry;
+                  return row(`room:${group.id}`, index, entry, tile("people"), <Marked text={group.name} query={q} />,
+                    group.description || groupPreview(group, state.bots, state.instances, false), "Group chat",
+                    group.unread ? <span role="img" aria-label="Unread activity" className="flex size-2 shrink-0 items-center"><span className="size-2 rounded-full bg-focus" /></span> : undefined);
+                }
+                if (entry.kind === "message") {
+                  const { hit } = entry;
+                  const before = hit.snippet.slice(0, hit.matchStart);
+                  const match = hit.snippet.slice(hit.matchStart, hit.matchStart + hit.matchLength);
+                  const after = hit.snippet.slice(hit.matchStart + hit.matchLength);
+                  return row(`msg:${hit.threadId}:${hit.messageId}`, index, entry, tile("chat-bubbles"),
+                    hit.task ? `${hit.name} · ${hit.task}` : hit.name, <>{before}<span className="font-semibold text-ink">{match}</span>{after}</>, "Message");
+                }
+                const { command } = entry;
+                return row(`cmd:${command.id}`, index, entry, tile(command.icon), command.name, command.detail, "Action");
+              })}
             </div>
-          )}
-          {bots.length > 0 && (
-            <div className="px-1.5 pb-1 pt-1.5 text-[13px] leading-[18px] text-ink-secondary">
-              Bots
-            </div>
-          )}
-          {bots.map((bot, i) =>
-            row(
-              `bot:${bot.id}`,
-              i,
-              () => void activate({ kind: "bot", bot }),
-              <>
-                <BotIcon size={16} className="shrink-0 text-ink-secondary" />
-                <span className="truncate text-[13px] leading-[18px] text-ink">{bot.name}</span>
-                {bot.title && (
-                  <span className="min-w-0 truncate text-[13px] text-ink-secondary">{bot.title}</span>
-                )}
-              </>,
-            ),
-          )}
-          {rooms.length > 0 && (
-            <div className="px-1.5 pb-1 pt-2 text-[13px] leading-[18px] text-ink-secondary">
-              Groups
-            </div>
-          )}
-          {rooms.map((group, i) =>
-            row(
-              `room:${group.id}`,
-              roomOffset + i,
-              () => void activate({ kind: "room", group }),
-              <>
-                <Users size={16} className="shrink-0 text-ink-secondary" />
-                <span className="truncate text-[13px] leading-[18px] text-ink">{group.name}</span>
-              </>,
-            ),
-          )}
-          {q && messageHits.length > 0 && (
-            <div className="px-1.5 pb-1 pt-2 text-[13px] leading-[18px] text-ink-secondary">
-              Messages
-            </div>
-          )}
-          {q &&
-            messageHits.map((hit, i) => {
-              const before = hit.snippet.slice(0, hit.matchStart);
-              const match = hit.snippet.slice(hit.matchStart, hit.matchStart + hit.matchLength);
-              const after = hit.snippet.slice(hit.matchStart + hit.matchLength);
-              return row(
-                `msg:${hit.threadId}:${hit.messageId}`,
-                messageOffset + i,
-                () => void activate({ kind: "message", hit }),
-                <>
-                  <span className="flex items-center gap-2 truncate text-[13px] font-medium text-ink">
-                    <MessageSquare size={13} className="shrink-0 text-ink-secondary" />
-                    {hit.name}
-                    {hit.task ? <span className="font-normal text-ink-secondary"> · {hit.task}</span> : null}
-                  </span>
-                  <span className="line-clamp-2 text-[13px] text-ink-secondary">
-                    {before}<mark className="rounded-sm bg-accent/25 px-0.5 text-ink">{match}</mark>{after}
-                  </span>
-                </>,
-                true,
-              );
-            })}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

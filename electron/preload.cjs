@@ -340,6 +340,7 @@ const bridge = {
     toggleMaximize: () => ipcRenderer.invoke("window:toggle-maximize"),
     close: () => ipcRenderer.invoke("window:close"),
     state: () => ipcRenderer.invoke("window:state"),
+    resizeWidthBy: (deltaWidth) => ipcRenderer.invoke("window:resize-width-by", deltaWidth),
     onMaximizedChanged: (cb) => {
       const handler = (_event, maximized) => cb(maximized);
       ipcRenderer.on("window:maximized-changed", handler);

@@ -31,7 +31,7 @@ import { serverChildLaunch } from "./server-child-launch.mjs";
 import { packageUrlFromCommandLine, packageUrlFromDeepLink } from "./package-link.mjs";
 import { chatLinkFrom, chatLinkFromCommandLine } from "./chat-link.mjs"; import { installDesktopNotifications } from "./desktop-notifications.mjs";
 import { createOrganizationEntry, isOrganizationDeepLink, takeOrganizationDeepLink, organizationRestartIntent, withOrganizationRestartIntent, withoutOrganizationRestartIntent } from "./organization-entry.mjs";
-import { windowBackground, windowChromeOptions } from "./window-chrome.mjs";
+import { FRAME_BY_DEFAULT, widenedBounds, windowBackground, windowChromeOptions } from "./window-chrome.mjs";
 import { createAllWindowsClosedQuit } from "./window-all-closed.mjs";
 import { createStartupScreen } from "./startup-screen.mjs";
 import { createSystemTray } from "./system-tray.mjs";
@@ -2024,7 +2024,7 @@ function createWindow({ deferNavigation = false } = {}) {
     icon: APP_ICON,
     backgroundColor: windowBackground(nativeTheme.shouldUseDarkColors),
     autoHideMenuBar: process.platform !== "darwin",
-    ...windowChromeOptions(process.platform, windowFrameMade = desktopPrefs?.windowFrame() !== false),
+    ...windowChromeOptions(process.platform, windowFrameMade = desktopPrefs?.windowFrame() ?? FRAME_BY_DEFAULT),
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, "preload.cjs"),
@@ -2358,6 +2358,16 @@ for (const [channel, act] of [
     return true;
   });
 }
+// Grok Bot's way to make room for the bot's panel: the window grows to the right, or left where the screen ends.
+ipcMain.handle("window:resize-width-by", (event, deltaWidth) => {
+  const win = BrowserWindow.fromWebContents(event.sender) ?? mainWindow;
+  if (!win || win.isDestroyed() || win.isMaximized() || win.isFullScreen() || !Number.isFinite(deltaWidth)) return 0;
+  const zoom = win.webContents.getZoomFactor() || 1;
+  const next = widenedBounds({ contentBounds: win.getContentBounds(), workArea: screen.getDisplayMatching(win.getBounds()).workArea,
+    deltaWidth: Math.round(deltaWidth * zoom), minWidth: MIN_BOUNDS.width });
+  if (next.applied !== 0) win.setContentBounds(next.contentBounds);
+  return next.applied / zoom;
+});
 ipcMain.handle("window:state", (event) => {
   const win = BrowserWindow.fromWebContents(event.sender) ?? mainWindow;
   return { maximized: Boolean(win && !win.isDestroyed() && win.isMaximized()) };
@@ -2858,7 +2868,7 @@ ipcMain.handle("approvals:set-trusted-mode", localOnly("approvals:set-trusted-mo
 }));
 
 // Electron fixes a Windows window's title bar when the window is made; on macOS the choice applies at once.
-const windowFrameNow = () => (process.platform === "win32" ? windowFrameMade : null) ?? desktopPrefs?.windowFrame() !== false;
+const windowFrameNow = () => (process.platform === "win32" ? windowFrameMade : null) ?? desktopPrefs?.windowFrame() ?? FRAME_BY_DEFAULT;
 async function broadcastDesktopCapabilities() {
   const localConnection = await cuaReady;
   const build = (remote) =>
@@ -3028,7 +3038,7 @@ app.whenReady().then(async () => {
   registerCuaIpc();
   androidDevice.registerIpc(ipcMain);
   registerUpdaterIpc({ pageAllowed: updaterPageAllowed });
-  desktopPrefs = createDesktopPrefs(jsonFile(path.join(app.getPath("userData"), "desktop-prefs.json")));
+  desktopPrefs = createDesktopPrefs({ ...jsonFile(path.join(app.getPath("userData"), "desktop-prefs.json")), frameByDefault: FRAME_BY_DEFAULT });
   updatesConsent = registerDesktopPrefs({ ipcMain, cloudAccount: () => cloudAccount, prefs: desktopPrefs, localConfig: jsonFile(path.join(desktopDataDir(), "config.json")).read, cloudOffered: () => cloudAccountRestored().then(cloudOffersReady),
     frame: { made: () => windowFrameMade, restarts: process.platform === "win32", changed: () => void broadcastDesktopCapabilities() },
     languageChanged: (language, sender) => {

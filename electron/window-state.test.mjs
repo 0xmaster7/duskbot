@@ -29,7 +29,7 @@ describe("desktop window state", () => {
         { bounds: { x: 7000, y: 7000, width: 4000, height: 200 }, maximized: false },
         [primary, left],
       ),
-    ).toEqual({ bounds: { x: 0, y: 230, width: 1920, height: 620 }, maximized: false });
+    ).toEqual({ bounds: { x: 0, y: 280, width: 1920, height: 520 }, maximized: false });
   });
 
   it("uses safe default dimensions when there is no saved state", () => {

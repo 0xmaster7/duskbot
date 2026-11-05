@@ -3,7 +3,6 @@ import App from "../../src/App";
 import { setAnalyticsEnabled, setEmailGateDone } from "../../src/lib/analytics";
 import { setAdvancedMode } from "../../src/lib/interface-mode";
 import { GROK_MOVE_NOTICE } from "../../src/lib/notices";
-import { markSimpleModePromptSeen } from "../../src/lib/simple-mode-prompt";
 import { applySkin, type SkinId } from "../../src/lib/skins";
 import "../../src/styles.css";
 
@@ -12,7 +11,6 @@ import "../../src/styles.css";
 const params = new URLSearchParams(location.search);
 setAnalyticsEnabled(false);
 setEmailGateDone("skipped");
-markSimpleModePromptSeen();
 localStorage.setItem(GROK_MOVE_NOTICE, "1");
 setAdvancedMode(params.get("mode") !== "simple");
 applySkin((params.get("skin") ?? "daylight") as SkinId);
