@@ -7858,6 +7858,16 @@ describe("harness HTTP API", () => {
     }
   });
 
+  it("a new bot asked for with greeting: false starts on an empty chat, as Grok Bot's Create New Bot does", async () => {
+    const bot = (await api("POST", "/api/bots", { name: "Quiet", greeting: false })).body.bot;
+    try {
+      expect(bot.messages).toEqual([]);
+      expect((await api("GET", `/api/bots/${bot.id}`)).body.bot?.messages ?? [], "nothing is posted after it either").toEqual([]);
+    } finally {
+      await api("DELETE", `/api/bots/${bot.id}`);
+    }
+  });
+
   it("a new bot greets its person by first name and is announced in its chosen look, or a fresh one, from the first frame", async () => {
     const before = (await api("GET", "/api/config")).body.profile?.name ?? "";
     expect((await api("PUT", "/api/config", { profile: { name: "Milind Soni" } })).status).toBe(200);

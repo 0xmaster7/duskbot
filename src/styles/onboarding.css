@@ -1,0 +1,73 @@
+/* The first run's three screens, as Grok Bot's onboarding draws them: each screen fades in over 200ms, the first
+   one's message is sent and the bot starts thinking, the second shows the bot working on its own computer, the
+   third splits it into three Bots with a job each. Timings and sizes are Grok Bot's, read from its renderer. */
+
+.onboarding-step-in { animation: onboarding-fade-in 200ms ease-out both; }
+@keyframes onboarding-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* Screen 1: the send button is pressed, a ring spreads from it, and the message box drops away. */
+.onboarding-send-press { animation: onboarding-press 360ms ease-out both; }
+@keyframes onboarding-press { 0% { transform: scale(1); opacity: 1; } 35% { transform: scale(0.72); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
+.onboarding-send-ring { animation: onboarding-ring 560ms ease-out 100ms both; }
+@keyframes onboarding-ring { from { transform: scale(1); opacity: 0.7; } to { transform: scale(2.3); opacity: 0; } }
+.onboarding-composer-out { animation: onboarding-composer-out 440ms ease-in 420ms both; }
+@keyframes onboarding-composer-out { from { transform: translateY(0); opacity: 1; } to { transform: translateY(10px); opacity: 0; } }
+
+/* The bot thinking: three dots that swell in turn. */
+.onboarding-dots > span { animation: onboarding-dot 1.2s ease-in-out infinite both; }
+.onboarding-dots > span:nth-child(2) { animation-delay: 0.15s; }
+.onboarding-dots > span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes onboarding-dot { 0%, 60%, 100% { transform: scale(0.78); opacity: 0.55; } 30% { transform: scale(1); opacity: 1; } }
+
+/* Screen 2: one 6s scene that plays once and holds its last frame. */
+.onboarding-scene [class*="scene-"] { animation-duration: 6s; animation-fill-mode: both; animation-timing-function: cubic-bezier(0.45, 0, 0.25, 1); }
+.onboarding-scene .scene-wallpaper { animation: scene-wallpaper 6s ease-out both; }
+@keyframes scene-wallpaper { 0% { opacity: 0.45; } 8% { opacity: 1; } 100% { opacity: 1; } }
+.onboarding-scene .scene-window-1 { animation-name: scene-window-1; }
+@keyframes scene-window-1 { 0%, 14% { opacity: 0; transform: scale(0.96); } 18%, 100% { opacity: 1; transform: none; } }
+.onboarding-scene .scene-window-2 { animation-name: scene-window-2; }
+@keyframes scene-window-2 { 0%, 66% { opacity: 0; transform: scale(0.96); } 70%, 100% { opacity: 1; transform: none; } }
+.onboarding-scene .scene-tile { animation-timing-function: linear; }
+.onboarding-scene .scene-tile-1 { animation-name: scene-tile-1; }
+.onboarding-scene .scene-tile-2 { animation-name: scene-tile-2; }
+.onboarding-scene .scene-tile-3 { animation-name: scene-tile-3; }
+.onboarding-scene .scene-tile-4 { animation-name: scene-tile-4; }
+@keyframes scene-tile-1 { 0%, 22% { background: #fff; } 23%, 30% { background: #d9d9d9; } 31%, 100% { background: #fff; } }
+@keyframes scene-tile-2 { 0%, 33% { background: #fff; } 34%, 41% { background: #d9d9d9; } 42%, 100% { background: #fff; } }
+@keyframes scene-tile-3 { 0%, 45% { background: #fff; } 46%, 52% { background: #d9d9d9; } 53%, 100% { background: #fff; } }
+@keyframes scene-tile-4 { 0%, 55% { background: #fff; } 56%, 61% { background: #d9d9d9; } 62%, 100% { background: #fff; } }
+.onboarding-scene .scene-button { animation-name: scene-button; animation-timing-function: linear; }
+@keyframes scene-button { 0%, 89% { background: rgb(4 4 4 / 0.12); } 90%, 96% { background: rgb(4 4 4 / 0.22); } 97%, 100% { background: rgb(4 4 4 / 0.12); } }
+.onboarding-scene .scene-bot { animation-name: scene-bot; }
+@keyframes scene-bot {
+  0%, 12% { transform: translate(208px, 138px); }
+  22% { transform: translate(78px, 88px); }
+  33%, 37% { transform: translate(137px, 88px); }
+  45% { transform: translate(198px, 88px); }
+  55% { transform: translate(259px, 88px); }
+  66% { transform: translate(259px, 88px); }
+  72% { transform: translate(160px, 112px); }
+  88% { transform: translate(288px, 212px); }
+  90%, 96% { transform: translate(288px, 212px) scale(0.9); }
+  98%, 100% { transform: translate(288px, 212px); }
+}
+.onboarding-scene .scene-thinking { animation-name: scene-thinking; animation-timing-function: linear; }
+@keyframes scene-thinking { 0%, 4% { opacity: 0; } 5%, 14% { opacity: 1; } 15%, 100% { opacity: 0; } }
+.onboarding-scene .scene-face { animation-name: scene-face; animation-timing-function: linear; }
+@keyframes scene-face { 0%, 4% { opacity: 1; } 5%, 14% { opacity: 0; } 15%, 100% { opacity: 1; } }
+
+/* Screen 3: the bot splits into three, which spread to their places, then their jobs appear under them. */
+.onboarding-jobs .jobs-hero { animation: jobs-hero 1.4s ease-out both; }
+@keyframes jobs-hero { 0% { opacity: 1; transform: scale(1); } 45% { opacity: 1; transform: scale(1); } 60% { opacity: 1; transform: scale(1.06); filter: grayscale(1) brightness(1.6); } 75%, 100% { opacity: 0; transform: scale(0.6); filter: grayscale(1) brightness(1.6); } }
+.onboarding-jobs .jobs-bot { animation: jobs-bot 700ms cubic-bezier(0.34, 1.4, 0.64, 1) 650ms both; }
+@keyframes jobs-bot { from { opacity: 0; transform: translate(var(--from-x), var(--from-y)) scale(0.3); } to { opacity: 1; transform: none; } }
+.onboarding-jobs .jobs-chip { animation: jobs-chip 300ms ease-out both; }
+@keyframes jobs-chip { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-scene [class*="scene-"], .onboarding-jobs [class*="jobs-"] { animation-duration: 1ms !important; animation-delay: 0ms !important; }
+  .onboarding-dots > span, .onboarding-send-press, .onboarding-send-ring { animation: none; }
+  .onboarding-composer-out { animation: onboarding-fade-out 150ms ease-out 400ms both; }
+  .onboarding-step-in { animation-duration: 150ms; }
+}
+@keyframes onboarding-fade-out { to { opacity: 0; } }

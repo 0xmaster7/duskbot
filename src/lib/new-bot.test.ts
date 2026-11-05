@@ -138,7 +138,7 @@ describe("New bot", () => {
     vi.stubGlobal("window", { ogb: { remoteClient: { active: true } } });
     const { calls, request } = server();
     const sent = await newBot(request, { section: "Sales" });
-    expect(calls).toEqual([{ method: "POST", path: "/api/bots", body: { section: "Sales" } }]);
+    expect(calls).toEqual([{ method: "POST", path: "/api/bots", body: { greeting: false, section: "Sales" } }]);
     expect(sent.map((action) => action.type)).toEqual(["botAdded"]);
   });
 });

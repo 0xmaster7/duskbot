@@ -57,9 +57,17 @@ const key = async (name: string) => {
 const show = async (extra: Record<string, unknown> = {}) => {
   await act(async () => { root.render([createElement(Watch, { key: "w" }), createElement(WelcomeFlow, { key: "f", onDone: f.onDone, ...extra })]); });
 };
-/** Next, the first screen's 100 ms fade, and the Chief dialog's input guard. */
+/** Grok Bot's second and third screens: the bot's own computer, then a job for each Bot. */
+const throughGrokScreens = async () => {
+  expect(text()).toContain("has its own computer and works just like you");
+  await press("Next");
+  expect(text()).toContain("Give each Bot a job");
+  await press("Next");
+};
+/** Next, the two screens after it, the first run's 100 ms fade, and the Chief dialog's input guard. */
 const toChief = async (label = "Next") => {
   await press(label);
+  await throughGrokScreens();
   await tick(100);
   await tick(CHIEF_GUARD_MS);
 };
@@ -98,15 +106,20 @@ afterEach(async () => {
 });
 
 describe("a new install's first run", () => {
-  it("is two screens with an AI already working: Next, then Create, and it lands in the Chief's chat", async () => {
+  it("is Grok Bot's three screens with an AI already working, then Create, and it lands in the Chief's chat", async () => {
     await show();
     expect(host.querySelector("h1")?.textContent).toBe("Meet MausBot");
-    expect(host.querySelector("[data-demo-composer]")?.textContent, "reduced motion shows the whole sentence").toContain("Hand off any task to your team of bots");
+    expect(host.querySelector("[data-demo-composer]")?.textContent, "reduced motion shows the whole sentence").toContain("Hand off any task to your team of Bots");
     for (const gone of ["Step 1", "Back", "Skip", "Your name", "Connect an AI", "Set up later"]) expect(text()).not.toContain(gone);
     expect(button("Next")!.disabled).toBe(false);
 
     await press("Next");
-    expect(host.querySelector("[data-welcome]")?.getAttribute("data-welcome"), "the first screen fades out first").toBe("meet");
+    expect(button("Back"), "from the second screen on, Back goes a screen back").toBeDefined();
+    await press("Back");
+    expect(host.querySelector("h1")?.textContent).toBe("Meet MausBot");
+    await press("Next");
+    await throughGrokScreens();
+    expect(host.querySelector("[data-welcome]")?.getAttribute("data-welcome"), "the last screen fades out first").toBe("meet");
     await tick(100);
     expect(host.querySelector("[role=dialog]")?.textContent).toContain("Introducing your Chief of Staff");
     expect(host.querySelector("[data-welcome]")!.className).toContain("ui-scrim");
@@ -142,6 +155,7 @@ describe("the Chief step", () => {
   const finishesAtNext = async () => {
     await show();
     await press("Next");
+    await throughGrokScreens();
     await tick(100);
     expect(text()).not.toContain("Introducing your Chief of Staff");
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith(null);
@@ -258,6 +272,7 @@ describe("other first runs", () => {
     await show({ hosted: true });
     expect(text()).toContain("This is your team's shared MausBot");
     await press("Next");
+    await throughGrokScreens();
     expect(text()).not.toContain("Introducing your Chief of Staff");
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith(null);
   });

@@ -37,6 +37,7 @@ import { approvalModeFor, type ApprovalMode } from "../../shared/approval-mode";
 import { askResetBridge, desktopCapabilitiesNow } from "@/lib/desktop"; import { isBotLimitRefusal, stoppedAtBotLimit } from "@/lib/bot-limit";
 import { sameModelSelection } from "../../shared/thread-model";
 import type { BotBodyId } from "../../shared/bot-body";
+import { openCreateBot } from "@/lib/create-bot-request";
 import { StoreRefContext } from "./store-ref-context";
 import type { QuestionRequestCardData } from "../../shared/ask-question";
 import type { ProfileRequestCardData } from "../../shared/profile-request";
@@ -2606,6 +2607,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           break;
         }
         case "newBot": { if (stoppedAtBotLimit(stateRef.current)) break;
+          // A plain New Bot is Grok Bot's Create New Bot dialog; it comes back here with the person's name, shape and colour.
+          if (!action.look && !action.onCreated && !action.onError && !action.preserveSelection) { openCreateBot(action.section); break; }
           // A double click lands before React paints the pending state.
           if (creatingBot || stateRef.current.botCreationPending) break;
           creatingBot = true;

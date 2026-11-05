@@ -3103,7 +3103,8 @@
       "botApi.call.failed": "4e2453a8afcbaf0c007d44709f809bcfb55ecb09b9921cad7e57132421679dd1",
       "botApi.starter": "550019f9666c3811cacb4e5a9e5d64fb3cfabfe06c5efbc8dc704158248afcb6",
       "botApi.password": "19b0c4c1d2b3cb2c8d7518edb4bb3f58976bf6af45462ad225cc55418d4c13ec",
-      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136"
+      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136",
+      "mascotColor.brown": "18f285592896ec8ead1b69d90ee4080300ba8dc31665a6ad97550c8f81b15502"
     },
     "es": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",
@@ -8922,7 +8923,8 @@
       "botApi.call.failed": "4e2453a8afcbaf0c007d44709f809bcfb55ecb09b9921cad7e57132421679dd1",
       "botApi.starter": "550019f9666c3811cacb4e5a9e5d64fb3cfabfe06c5efbc8dc704158248afcb6",
       "botApi.password": "19b0c4c1d2b3cb2c8d7518edb4bb3f58976bf6af45462ad225cc55418d4c13ec",
-      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136"
+      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136",
+      "mascotColor.brown": "18f285592896ec8ead1b69d90ee4080300ba8dc31665a6ad97550c8f81b15502"
     },
     "fr": {
       "highlevel.unavailable": "87b8ac7f7610e6dd69f520bc59058fd92f307b9f4bcf804075f25d08bcaa7533",
@@ -11940,7 +11942,8 @@
       "botApi.call.failed": "4e2453a8afcbaf0c007d44709f809bcfb55ecb09b9921cad7e57132421679dd1",
       "botApi.starter": "550019f9666c3811cacb4e5a9e5d64fb3cfabfe06c5efbc8dc704158248afcb6",
       "botApi.password": "19b0c4c1d2b3cb2c8d7518edb4bb3f58976bf6af45462ad225cc55418d4c13ec",
-      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136"
+      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136",
+      "mascotColor.brown": "18f285592896ec8ead1b69d90ee4080300ba8dc31665a6ad97550c8f81b15502"
     },
     "hi": {
       "highlevel.unavailable": "87b8ac7f7610e6dd69f520bc59058fd92f307b9f4bcf804075f25d08bcaa7533",
@@ -14810,7 +14813,8 @@
       "botApi.call.failed": "4e2453a8afcbaf0c007d44709f809bcfb55ecb09b9921cad7e57132421679dd1",
       "botApi.starter": "550019f9666c3811cacb4e5a9e5d64fb3cfabfe06c5efbc8dc704158248afcb6",
       "botApi.password": "19b0c4c1d2b3cb2c8d7518edb4bb3f58976bf6af45462ad225cc55418d4c13ec",
-      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136"
+      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136",
+      "mascotColor.brown": "18f285592896ec8ead1b69d90ee4080300ba8dc31665a6ad97550c8f81b15502"
     },
     "ja": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",
@@ -21499,7 +21503,8 @@
       "botApi.call.failed": "4e2453a8afcbaf0c007d44709f809bcfb55ecb09b9921cad7e57132421679dd1",
       "botApi.starter": "550019f9666c3811cacb4e5a9e5d64fb3cfabfe06c5efbc8dc704158248afcb6",
       "botApi.password": "19b0c4c1d2b3cb2c8d7518edb4bb3f58976bf6af45462ad225cc55418d4c13ec",
-      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136"
+      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136",
+      "mascotColor.brown": "18f285592896ec8ead1b69d90ee4080300ba8dc31665a6ad97550c8f81b15502"
     },
     "pt-br": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",
@@ -27993,7 +27998,8 @@
       "botApi.call.failed": "4e2453a8afcbaf0c007d44709f809bcfb55ecb09b9921cad7e57132421679dd1",
       "botApi.starter": "550019f9666c3811cacb4e5a9e5d64fb3cfabfe06c5efbc8dc704158248afcb6",
       "botApi.password": "19b0c4c1d2b3cb2c8d7518edb4bb3f58976bf6af45462ad225cc55418d4c13ec",
-      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136"
+      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136",
+      "mascotColor.brown": "18f285592896ec8ead1b69d90ee4080300ba8dc31665a6ad97550c8f81b15502"
     },
     "zh": {
       "highlevel.unavailable": "87b8ac7f7610e6dd69f520bc59058fd92f307b9f4bcf804075f25d08bcaa7533",
@@ -35403,7 +35409,8 @@
       "botApi.call.failed": "4e2453a8afcbaf0c007d44709f809bcfb55ecb09b9921cad7e57132421679dd1",
       "botApi.starter": "550019f9666c3811cacb4e5a9e5d64fb3cfabfe06c5efbc8dc704158248afcb6",
       "botApi.password": "19b0c4c1d2b3cb2c8d7518edb4bb3f58976bf6af45462ad225cc55418d4c13ec",
-      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136"
+      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136",
+      "mascotColor.brown": "18f285592896ec8ead1b69d90ee4080300ba8dc31665a6ad97550c8f81b15502"
     },
     "zh-tw": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",
@@ -40097,7 +40104,8 @@
       "botApi.call.failed": "4e2453a8afcbaf0c007d44709f809bcfb55ecb09b9921cad7e57132421679dd1",
       "botApi.starter": "550019f9666c3811cacb4e5a9e5d64fb3cfabfe06c5efbc8dc704158248afcb6",
       "botApi.password": "19b0c4c1d2b3cb2c8d7518edb4bb3f58976bf6af45462ad225cc55418d4c13ec",
-      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136"
+      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136",
+      "mascotColor.brown": "18f285592896ec8ead1b69d90ee4080300ba8dc31665a6ad97550c8f81b15502"
     },
     "uk": {
       "highlevel.unavailable": "87b8ac7f7610e6dd69f520bc59058fd92f307b9f4bcf804075f25d08bcaa7533",
@@ -43409,7 +43417,8 @@
       "botApi.call.failed": "4e2453a8afcbaf0c007d44709f809bcfb55ecb09b9921cad7e57132421679dd1",
       "botApi.starter": "550019f9666c3811cacb4e5a9e5d64fb3cfabfe06c5efbc8dc704158248afcb6",
       "botApi.password": "19b0c4c1d2b3cb2c8d7518edb4bb3f58976bf6af45462ad225cc55418d4c13ec",
-      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136"
+      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136",
+      "mascotColor.brown": "18f285592896ec8ead1b69d90ee4080300ba8dc31665a6ad97550c8f81b15502"
     },
     "vi": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",
@@ -48711,7 +48720,8 @@
       "botApi.call.failed": "4e2453a8afcbaf0c007d44709f809bcfb55ecb09b9921cad7e57132421679dd1",
       "botApi.starter": "550019f9666c3811cacb4e5a9e5d64fb3cfabfe06c5efbc8dc704158248afcb6",
       "botApi.password": "19b0c4c1d2b3cb2c8d7518edb4bb3f58976bf6af45462ad225cc55418d4c13ec",
-      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136"
+      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136",
+      "mascotColor.brown": "18f285592896ec8ead1b69d90ee4080300ba8dc31665a6ad97550c8f81b15502"
     },
     "tr": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",
@@ -54013,7 +54023,8 @@
       "botApi.call.failed": "4e2453a8afcbaf0c007d44709f809bcfb55ecb09b9921cad7e57132421679dd1",
       "botApi.starter": "550019f9666c3811cacb4e5a9e5d64fb3cfabfe06c5efbc8dc704158248afcb6",
       "botApi.password": "19b0c4c1d2b3cb2c8d7518edb4bb3f58976bf6af45462ad225cc55418d4c13ec",
-      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136"
+      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136",
+      "mascotColor.brown": "18f285592896ec8ead1b69d90ee4080300ba8dc31665a6ad97550c8f81b15502"
     },
     "pl": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",
@@ -60618,7 +60629,8 @@
       "botApi.call.failed": "4e2453a8afcbaf0c007d44709f809bcfb55ecb09b9921cad7e57132421679dd1",
       "botApi.starter": "550019f9666c3811cacb4e5a9e5d64fb3cfabfe06c5efbc8dc704158248afcb6",
       "botApi.password": "19b0c4c1d2b3cb2c8d7518edb4bb3f58976bf6af45462ad225cc55418d4c13ec",
-      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136"
+      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136",
+      "mascotColor.brown": "18f285592896ec8ead1b69d90ee4080300ba8dc31665a6ad97550c8f81b15502"
     },
     "ru": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",
@@ -67285,7 +67297,8 @@
       "botApi.call.failed": "4e2453a8afcbaf0c007d44709f809bcfb55ecb09b9921cad7e57132421679dd1",
       "botApi.starter": "550019f9666c3811cacb4e5a9e5d64fb3cfabfe06c5efbc8dc704158248afcb6",
       "botApi.password": "19b0c4c1d2b3cb2c8d7518edb4bb3f58976bf6af45462ad225cc55418d4c13ec",
-      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136"
+      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136",
+      "mascotColor.brown": "18f285592896ec8ead1b69d90ee4080300ba8dc31665a6ad97550c8f81b15502"
     },
     "it": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",
@@ -73750,7 +73763,8 @@
       "botApi.call.failed": "4e2453a8afcbaf0c007d44709f809bcfb55ecb09b9921cad7e57132421679dd1",
       "botApi.starter": "550019f9666c3811cacb4e5a9e5d64fb3cfabfe06c5efbc8dc704158248afcb6",
       "botApi.password": "19b0c4c1d2b3cb2c8d7518edb4bb3f58976bf6af45462ad225cc55418d4c13ec",
-      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136"
+      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136",
+      "mascotColor.brown": "18f285592896ec8ead1b69d90ee4080300ba8dc31665a6ad97550c8f81b15502"
     },
     "ko": {
       "connectedWorkspaces.localTitle": "7d6deafeab011d734c3fdd1bfd6f69544fbb746a004019269bdb48544b01164b",
@@ -80940,7 +80954,8 @@
       "botApi.call.failed": "4e2453a8afcbaf0c007d44709f809bcfb55ecb09b9921cad7e57132421679dd1",
       "botApi.starter": "550019f9666c3811cacb4e5a9e5d64fb3cfabfe06c5efbc8dc704158248afcb6",
       "botApi.password": "19b0c4c1d2b3cb2c8d7518edb4bb3f58976bf6af45462ad225cc55418d4c13ec",
-      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136"
+      "botApi.cantTake": "cafb65a3ade729ca3503e8e4c6054209ebe8913f16ca7fad8d609926d57ab136",
+      "mascotColor.brown": "18f285592896ec8ead1b69d90ee4080300ba8dc31665a6ad97550c8f81b15502"
     }
   }
 }

@@ -82,6 +82,9 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 
+/** What Create New Bot sends once the person has named the bot; a plain New Bot only opens that dialog. */
+const CREATE: Action = { type: "newBot", look: { name: "New", color: "blue", mascotBody: "blob" } };
+
 describe("a create button with no room", () => {
   it.each<[string, Action]>([["New bot", { type: "newBot" }], ["Duplicate", { type: "duplicateBot", botId: "b0" }]])("%s opens the popup and asks the server nothing", async (_name, action) => {
     await mount(five(), STARTER);
@@ -94,7 +97,7 @@ describe("a create button with no room", () => {
   it("leaves the MausBot out of the count, as the server does", async () => {
     await mount([botNamed("maus", { defaultBot: {} } as never), ...five().slice(1)], STARTER);
     created = () => json({ bot: botNamed("new") }, 201);
-    await send({ type: "newBot" });
+    await send(CREATE);
     await vi.waitFor(() => expect(creates).toBe(1));
     expect(botLimitShown()).toBe(false);
   });
@@ -104,7 +107,7 @@ describe("a create button with no room", () => {
     FixtureEventSource.opened[0]!.send({ kind: "config", ...seen.config, cloudStarter: false, botLimit: undefined }, "run:1");
     await settle();
     created = () => json({ bot: botNamed("new") }, 201);
-    await send({ type: "newBot" });
+    await send(CREATE);
     await vi.waitFor(() => expect(creates).toBe(1));
     expect(botLimitShown()).toBe(false);
   });
@@ -112,14 +115,14 @@ describe("a create button with no room", () => {
   it("has no limit on a plan that doesn't say one", async () => {
     await mount(five(), { cloudStarter: false });
     created = () => json({ bot: botNamed("new") }, 201);
-    await send({ type: "newBot" });
+    await send(CREATE);
     await vi.waitFor(() => expect(creates).toBe(1));
     expect(botLimitShown()).toBe(false);
   });
 });
 
 describe("the server's refusal, when the page's count was stale", () => {
-  it.each<[string, Action]>([["New bot", { type: "newBot" }], ["Duplicate", { type: "duplicateBot", botId: "b1" }]])("%s shows the popup and no error beside it", async (_name, action) => {
+  it.each<[string, Action]>([["New bot", CREATE], ["Duplicate", { type: "duplicateBot", botId: "b1" }]])("%s shows the popup and no error beside it", async (_name, action) => {
     await mount(five().slice(1), STARTER);
     await send(action);
     await vi.waitFor(() => expect(botLimitShown()).toBe(true));

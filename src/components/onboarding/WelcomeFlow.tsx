@@ -6,6 +6,7 @@ import { beatsFor, completionPatch, firstRunPatch, markWelcomeFinished, resumeBe
 import { clearWelcomeDraft, readWelcomeDraft, saveWelcomeDraft } from "@/lib/welcome-draft";
 import { api, useStore } from "@/state/store";
 import { ChiefIntro } from "./ChiefIntro";
+import { ComputerStep, JobsStep } from "./GrokSteps";
 import { MeetScreen } from "./MeetScreen";
 import { localDesktopPage } from "./WelcomeGate";
 
@@ -46,8 +47,9 @@ function trapTab(event: ReactKeyboardEvent<HTMLElement>, root: HTMLElement | nul
   }
 }
 
-/** The first run: two screens, then the chat. Meeting the app (with an AI to connect when none works), then the Chief of
- * Staff over the app itself. Its end is the chat with the bot chosen there (`onDone`). */
+/** The first run, as Grok Bot's: meeting the app (with an AI to connect when none works), the bot's own computer, a job
+ * for each Bot; then the Chief of Staff over the app itself where it fits. Its end is the chat with the bot chosen there
+ * (`onDone`). */
 export function WelcomeFlow({
   onDone,
   replay = false,
@@ -68,6 +70,8 @@ export function WelcomeFlow({
   const keepsDraft = !replay && !embedded && !hosted;
   const beats = beatsFor({ hosted });
   const [beat, setBeat] = useState<BeatId>(() => resumeBeat(beats, initialBeat ?? (keepsDraft ? readWelcomeDraft()?.beat : undefined)));
+  // Grok Bot's three screens are the meet beat's pages: a reload starts them over, the beat itself is what resumes.
+  const [page, setPage] = useState(0);
   const root = useRef<HTMLDivElement>(null);
   const finishing = useRef(false);
   const record = useRef(state.config?.onboarding);
@@ -134,7 +138,7 @@ export function WelcomeFlow({
 
   useEffect(() => {
     if (beat === "meet") root.current?.focus({ preventScroll: true });
-  }, [beat]);
+  }, [beat, page]);
 
   // Escape moves on as Later does; Enter on the screen itself presses Next while it can be pressed.
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -168,8 +172,12 @@ export function WelcomeFlow({
     >
       {chief ? (
         <ChiefIntro replay={replay} onLeave={fadeScrim} onDone={(botId) => void finish("completed", botId)} />
+      ) : page === 0 ? (
+        <MeetScreen hosted={hosted} onNext={() => setPage(1)} />
+      ) : page === 1 ? (
+        <ComputerStep key="computer" onNext={() => setPage(2)} onBack={() => setPage(0)} />
       ) : (
-        <MeetScreen hosted={hosted} onNext={next} />
+        <JobsStep key="jobs" onNext={next} onBack={() => setPage(1)} />
       )}
     </div>
   );

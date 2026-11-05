@@ -1,6 +1,6 @@
 const DEFAULT_BOUNDS = Object.freeze({ width: 1040, height: 760 });
-// grok bot keeps its window 520 tall at least; the width stays above the md breakpoint, where the phone layout begins.
-const MIN_BOUNDS = Object.freeze({ width: 840, height: 520 });
+// grok bot keeps its window 520 tall at least; the width stops at the md breakpoint, where the phone layout would begin.
+const MIN_BOUNDS = Object.freeze({ width: 768, height: 520 });
 
 const integer = (value) => Number.isFinite(value) && Number.isInteger(value);
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);

@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { GROK_BODIES, type GrokBodyId } from "../../shared/grok-bodies";
 import { isMausColor, type MausColor } from "../../shared/wire";
 import { useStore } from "@/state/store";
+import { CREATE_BOT_EVENT, openCreateBot, takeCreateBotSection } from "@/lib/create-bot-request";
 import { cn } from "@/lib/cn";
 import { MausAvatar } from "./Avatar";
 import { GrokIcon } from "./GrokIcon";
@@ -31,14 +32,7 @@ const COLORS: { label: string; dot: string; color: string }[] = [
 ];
 const SWATCHES = COLORS.filter((swatch): swatch is { label: string; dot: string; color: MausColor } => isMausColor(swatch.color));
 
-const OPEN_EVENT = "omb:open-create-bot";
-let pendingSection: string | undefined;
-
-/** Opens Create New Bot (the sidebar's +, ⌘N, search's New Bot); `section`: the sidebar section it is made in. */
-export function openCreateBot(section?: string) {
-  pendingSection = section;
-  window.dispatchEvent(new Event(OPEN_EVENT));
-}
+export { openCreateBot };
 
 const pick = <T,>(items: readonly T[]): T => items[Math.floor(Math.random() * items.length)]!;
 
@@ -47,14 +41,14 @@ function useOpenRequests(onOpen: () => void) {
   latest.current = onOpen;
   useEffect(() => {
     const open = () => latest.current();
-    window.addEventListener(OPEN_EVENT, open);
-    return () => window.removeEventListener(OPEN_EVENT, open);
+    window.addEventListener(CREATE_BOT_EVENT, open);
+    return () => window.removeEventListener(CREATE_BOT_EVENT, open);
   }, []);
 }
 
 export function CreateBotDialog() {
   const [session, setSession] = useState<{ key: number; section?: string } | null>(null);
-  useOpenRequests(() => setSession((open) => open ?? { key: Date.now(), section: pendingSection }));
+  useOpenRequests(() => { const section = takeCreateBotSection(); setSession((open) => open ?? { key: Date.now(), section }); });
   if (!session) return null;
   return <CreateBotForm key={session.key} section={session.section} onClose={() => setSession(null)} />;
 }
@@ -86,6 +80,8 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
       const controls = [...root.querySelectorAll<HTMLElement>("button:not([disabled]), input:not([disabled])")];
       const first = controls[0], last = controls.at(-1);
       if (!first || !last) return;
+      // The page behind is out of reach while the dialog is up.
+      if (!root.contains(document.activeElement)) { event.preventDefault(); (event.shiftKey ? last : first).focus(); return; }
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     };
@@ -111,7 +107,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
           type="button"
           aria-label="Close dialog"
           onClick={onClose}
-          className="absolute right-2.5 top-2.5 z-[1] flex size-8 items-center justify-center rounded-full text-ink-secondary transition-[color,background-color] duration-150 ease-[ease] hover:bg-ink/6 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus"
+          className="absolute right-2.5 top-2.5 z-[1] flex size-8 items-center justify-center rounded-[9999px] text-ink-secondary transition-[color,background-color,border-color] duration-150 ease-[ease] hover:bg-ink/6 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus"
         >
           <GrokIcon name="close" size={14} />
         </button>
@@ -132,7 +128,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
               maxLength={80}
               onChange={(event) => setName(event.target.value)}
               onKeyDown={(event) => { if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); create(); } }}
-              className="my-1 h-9 w-full rounded-[8px] border-[0.5px] border-ink/12 bg-transparent px-2.5 py-2 text-center text-[13px] tracking-[0.195px] text-ink outline-none placeholder:text-ink/56 focus:border-ink/24!"
+              className="my-1 h-9 w-full rounded-[8px] border-[0.5px] border-ink/12 bg-transparent px-2.5 py-2 text-center text-[13px] tracking-[0.195px] text-ink outline-none placeholder:text-ink/56 focus:border-ink/12!"
             />
             <div className="flex flex-col gap-3">
               <div role="group" aria-label="Character shape" className="flex flex-col gap-2 py-1.5">
@@ -152,10 +148,10 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
                     aria-label={`${swatch.label} character color`}
                     aria-pressed={swatch.color === color}
                     onClick={() => setColor(swatch.color)}
-                    className="flex size-8 cursor-pointer items-center justify-center rounded-full border border-transparent p-0 outline-none hover:border-ink/12 focus-visible:shadow-[0_0_0_2px_var(--color-focus)]"
+                    className="flex size-8 cursor-pointer items-center justify-center rounded-[50%] border border-transparent p-0 text-black outline-none hover:border-ink/12 focus-visible:shadow-[0_0_0_2px_var(--color-focus)] focus-visible:outline-none!"
                   >
                     <span
-                      className="block size-6 rounded-full"
+                      className="block size-6 rounded-[50%]"
                       style={{ backgroundColor: swatch.dot, boxShadow: swatch.color === color ? "0 0 0 3px var(--color-menu), 0 0 0 4px color-mix(in srgb, var(--color-ink) 24%, transparent)" : undefined }}
                     />
                   </button>
@@ -165,14 +161,14 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
           </div>
         </div>
         <div className="flex shrink-0 items-center justify-end gap-2 border-t border-ink/12 py-3 pl-4 pr-3">
-          <button type="button" onClick={onClose} className={cn(KIT_BUTTON, "bg-ink/6 text-ink hover:bg-ink/10")}>Cancel</button>
+          <button type="button" onClick={onClose} className={cn(KIT_BUTTON, "bg-ink/6 text-ink hover:bg-ink/10")}><span>Cancel</span></button>
           <button
             type="button"
             disabled={!canCreate}
             onClick={create}
             className={cn(KIT_BUTTON, "bg-ink text-app hover:bg-[color-mix(in_srgb,var(--color-ink)_88%,var(--color-app))] disabled:bg-ink/15 disabled:text-ink/30")}
           >
-            Create
+            <span>Create</span>
           </button>
         </div>
       </div>
@@ -181,7 +177,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
 }
 
 /** Grok Bot's kit button: a 32px pill, 14px words at regular weight, a hairline drawn in its own ink. */
-const KIT_BUTTON = "inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-[14px] font-normal leading-5 tracking-[0.01em] shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,currentColor_15%,transparent)] outline-none transition-[background-color,color] duration-[120ms] ease-out focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-default";
+const KIT_BUTTON = "inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-[9999px] px-3 py-1.5 text-[14px] font-normal leading-5 tracking-[0.01em] shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,currentColor_15%,transparent)] outline-none transition-[background-color,color] duration-[120ms] ease-[ease-out] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-default";
 
 const MARK = 36;
 const VIEW_BOX = `-15 -15 ${VIEW_SPAN} ${VIEW_SPAN}`;
@@ -200,7 +196,7 @@ function ShapeTile({ id, color, selected, onPick }: { id: GrokBodyId; color: Mau
       aria-label={`${id} character shape`}
       aria-pressed={selected}
       onClick={onPick}
-      className="group/shape relative inline-flex size-12 cursor-pointer appearance-none items-center justify-center border-0 bg-transparent p-0 outline-none"
+      className="group/shape relative inline-flex size-12 cursor-pointer appearance-none items-center justify-center border-0 bg-transparent p-0 text-black outline-none focus-visible:outline-none!"
     >
       <MausAvatar bodyId={id} color={color} size={MARK} animated={false} trackPointer={false} />
       <svg

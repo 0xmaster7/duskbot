@@ -1,12 +1,12 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { api, openBot, useStore, visibleMessages, type Action, type AppSettingsSection, type Bot, type Group } from "@/state/store";
-import { t } from "@/lib/i18n";
 import { useShowThreads } from "@/lib/thread-preferences";
 import { cn } from "@/lib/cn";
 import type { SearchHit } from "@/lib/search-hit";
 import { landOnSearchHit } from "@/lib/focus-message";
 import { imeComposing } from "@/lib/send-key";
 import { botUnreadCount } from "@/lib/bot-unread";
+import { shortcutBots, shownBotIds } from "@/lib/sidebar-shortcut-order";
 import { applySkinChoice, THEME_SKINS } from "@/lib/skins";
 import { BotAvatar } from "./Avatar";
 import { openCreateBot } from "./CreateBotDialog";
@@ -96,6 +96,19 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
     onOpenChange?.(open);
   }, [onOpenChange, open]);
 
+  // Tab keeps to the search field, as Grok Bot's does: the page behind is out of reach while it is up.
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onTab = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      event.preventDefault();
+      inputRef.current?.focus();
+    };
+    window.addEventListener("keydown", onTab, true);
+    return () => window.removeEventListener("keydown", onTab, true);
+  }, [open]);
+
   const q = query.trim().toLowerCase();
 
   useEffect(() => {
@@ -142,8 +155,10 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
   ];
   // With nothing typed: the bots, those with news first, then what to do; settings and themes wait for a query.
   const shownCommands = q ? ranked(commands, (command) => command.name, q) : commands.filter((command) => !command.id.startsWith("theme-") && command.id !== "connect-apps" && command.id !== "check-updates" && command.id !== "settings-updates" && command.id !== "settings-permissions");
-  const liveBots = state.bots.filter((b) => !b.hidden);
-  const bots = q ? ranked(liveBots, (bot) => bot.name, q) : [...liveBots].sort((a, b) => Number(botUnreadCount(b) > 0) - Number(botUnreadCount(a) > 0));
+  // The sidebar's order, as ⌘1 to ⌘9 count it, so each row's keycap is the shortcut that opens it from anywhere.
+  const liveBots = shortcutBots(state.bots.filter((b) => !b.hidden), shownBotIds(document.querySelector("[data-sidebar-root]")));
+  const slot = new Map(liveBots.slice(0, 9).map((bot, index) => [bot.id, index + 1]));
+  const bots = q ? ranked(liveBots, (bot) => bot.name, q) : liveBots;
   const rooms = ranked(state.groups, (group) => group.name, q);
   const entries: PaletteEntry[] = [
     ...bots.map((bot): PaletteEntry => ({ kind: "bot", bot })),
@@ -173,6 +188,8 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (imeComposing(e.nativeEvent)) { e.stopPropagation(); return; }
+    // ⌘1 to ⌘9 open that bot from here too (the app's own shortcut); search steps aside for it.
+    if ((e.metaKey || e.ctrlKey) && /^[1-9]$/.test(e.key)) { setOpen(false); return; }
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
@@ -233,6 +250,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
         <div className="flex shrink-0 items-center gap-2.5 border-b-[0.5px] border-ink/8 py-3.5 pl-4 pr-2.5">
           <span className="flex h-5 w-6 shrink-0 items-center justify-center text-ink/52"><GrokIcon name="search" size={16} /></span>
           <input
+            ref={inputRef}
             autoFocus
             role="combobox"
             aria-expanded="true"
@@ -241,7 +259,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
             aria-activedescendant={entries.length ? optionId(selected) : undefined}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            aria-label={t("commandPalette.searchLabel")}
+            aria-label="Search"
             placeholder="Search"
             className="min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 text-[14px] leading-[22px] tracking-[-0.15px] text-ink outline-none placeholder:text-ink/56"
           />
@@ -262,15 +280,19 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
                 if (entry.kind === "bot") {
                   const { bot } = entry;
                   const unread = botUnreadCount(bot) > 0;
+                  const key = slot.get(bot.id);
                   return row(`bot:${bot.id}`, index, entry, <BotAvatar bot={bot} size={24} animated={false} trackPointer={false} />,
                     <Marked text={bot.name} query={q} />, botPreview(bot, visibleMessages(bot), state.instances, false), "Bot",
-                    unread ? <span role="img" aria-label="Unread activity" className="flex size-2 shrink-0 items-center"><span className="size-2 rounded-full bg-focus" /></span> : undefined);
+                    <>
+                      {unread && <span role="img" aria-label="Unread activity" className="flex size-2 shrink-0 items-center"><span className="size-2 rounded-full bg-accent-text" /></span>}
+                      {key && <kbd aria-label={`Command ${key}`} className="flex h-[19px] min-w-[26px] shrink-0 items-center justify-center rounded-[5px] bg-ink/6 px-1 font-sans text-[12px] leading-4 tracking-normal text-ink-secondary shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_8%,transparent)]">⌘{key}</kbd>}
+                    </>);
                 }
                 if (entry.kind === "room") {
                   const { group } = entry;
                   return row(`room:${group.id}`, index, entry, tile("people"), <Marked text={group.name} query={q} />,
                     group.description || groupPreview(group, state.bots, state.instances, false), "Group chat",
-                    group.unread ? <span role="img" aria-label="Unread activity" className="flex size-2 shrink-0 items-center"><span className="size-2 rounded-full bg-focus" /></span> : undefined);
+                    group.unread ? <span role="img" aria-label="Unread activity" className="flex size-2 shrink-0 items-center"><span className="size-2 rounded-full bg-accent-text" /></span> : undefined);
                 }
                 if (entry.kind === "message") {
                   const { hit } = entry;

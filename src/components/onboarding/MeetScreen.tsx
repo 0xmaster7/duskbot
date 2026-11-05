@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import "../../styles/onboarding.css";
 import { ArrowUp, Check, Plus } from "lucide-react";
 import { BotAvatar, MausAvatar } from "@/components/Avatar";
 import { engineReady } from "@/components/EngineLibrary";
@@ -13,7 +14,10 @@ import { ConnectAiDialog } from "./ConnectAi";
 import { PILL, SignInPill, useSignInPill } from "./SignInPill";
 import { useWelcomeAi } from "./welcome-ai";
 
-const MASCOT_SIZE = 72;
+const MASCOT_SIZE = 64;
+/** After the sentence is typed: a beat, then Send is pressed, and the bot starts thinking as the box drops away. */
+const SEND_AFTER_MS = 400;
+const THINK_AFTER_MS = 860;
 const PLACEHOLDER_MS = 700;
 const GRAPHEME_MS = 35;
 
@@ -35,19 +39,24 @@ function useDemoSentence(reduced: boolean): { text: string; typing: boolean; wai
   return { text: parts.slice(0, Math.max(0, shown)).join(""), typing: shown >= 0 && shown < parts.length, waiting: shown < 0 };
 }
 
-function DemoComposer({ reduced, onTyping }: { reduced: boolean; onTyping: (typing: boolean) => void }) {
+function DemoComposer({ reduced, sent, onTyping, onTyped }: { reduced: boolean; sent: boolean; onTyping: (typing: boolean) => void; onTyped: () => void }) {
   const { text, typing, waiting } = useDemoSentence(reduced);
   useEffect(() => onTyping(typing), [typing, onTyping]);
+  const typed = !waiting && !typing && text.length > 0;
+  useEffect(() => { if (typed) onTyped(); }, [typed, onTyped]);
   return (
-    <div aria-hidden="true" data-demo-composer=""
-      className="absolute left-1/2 top-[calc(50%-14px)] flex min-h-[76px] w-[348px] max-w-[calc(100%-32px)] -translate-x-1/2 select-none flex-col gap-2.5 rounded-[22px] border-[0.5px] border-ink/10 bg-composer px-2 pb-2 pt-3 text-left [:root:is([data-skin=daylight],[data-skin=grok])_&]:shadow-[0_2px_8px_-1px_rgb(0_0_0/0.05),0_1px_2px_rgb(0_0_0/0.03)]">
+    <div aria-hidden="true" data-demo-composer="" data-sent={sent ? "" : undefined}
+      className={cn(sent && "onboarding-composer-out", "absolute left-1/2 top-[calc(50%-14px)] flex min-h-[76px] w-[348px] max-w-[calc(100%-32px)] -translate-x-1/2 select-none flex-col gap-2.5 rounded-[22px] border-[0.5px] border-ink/10 bg-composer px-2 pb-2 pt-3 text-left [:root:is([data-skin=daylight],[data-skin=grok])_&]:shadow-[0_2px_8px_-1px_rgb(0_0_0/0.05),0_1px_2px_rgb(0_0_0/0.03)]")}>
       <div className="mx-2 whitespace-nowrap text-[14px] leading-5">
         {waiting ? <span className="text-ink-tertiary">{t("onboarding.meet.placeholder", { app: productName() })}</span> : <span className="text-ink">{text}</span>}
         {!reduced && (waiting || typing) && <span className="animate-meet-caret ml-px inline-block h-[15px] w-[1.5px] translate-y-[2px] bg-ink align-[-2px]" />}
       </div>
       <div className="flex items-center justify-between">
         <span className="flex size-7 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--color-ink)_4%,var(--color-composer))] text-ink-tertiary"><Plus size={14} /></span>
-        <span className="flex size-7 items-center justify-center rounded-full bg-ink text-app"><ArrowUp size={14} strokeWidth={2} /></span>
+        <span className="relative flex size-7">
+          {sent && <span className="onboarding-send-ring absolute inset-0.5 rounded-full border-2 border-ink" />}
+          <span className={cn("flex size-7 items-center justify-center rounded-full bg-ink text-app", sent && "onboarding-send-press")}><ArrowUp size={14} strokeWidth={2} /></span>
+        </span>
       </div>
     </div>
   );
@@ -71,18 +80,33 @@ export function MeetScreen({ hosted, onNext }: { hosted: boolean; onNext: () => 
   const pill = useSignInPill(recommended);
   const [dialog, setDialog] = useState(false);
   const [typing, setTyping] = useState(false);
+  // Grok Bot's first screen ends with its message sent: Send is pressed, the box drops away, the bot thinks.
+  const [typed, setTyped] = useState(false);
+  const onTyped = useCallback(() => setTyped(true), []);
+  const [sent, setSent] = useState(false);
+  const [thinking, setThinking] = useState(false);
+  useEffect(() => {
+    if (!typed) return;
+    const send = setTimeout(() => setSent(true), SEND_AFTER_MS);
+    const think = setTimeout(() => setThinking(true), SEND_AFTER_MS + THINK_AFTER_MS);
+    return () => { clearTimeout(send); clearTimeout(think); };
+  }, [typed]);
 
   const logo = brand().logo;
   const face = typing ? "listening" : "idle";
   const failure = pill.error ?? (tested?.state === "failed" ? tested.error ?? t("onboarding.engines.noAnswer", { name: tested.instance.displayName }) : null);
   const signingIn = asking && !ready;
   return (
-    <div className="relative h-full min-h-[600px] w-full text-center">
+    <div className="onboarding-step-in relative h-full min-h-[600px] w-full text-center">
       <h1 id="welcome-title" className="absolute left-1/2 top-[calc(50%-264px)] w-max max-w-[min(560px,calc(100%-32px))] -translate-x-1/2 text-[28px] font-normal leading-[34px] tracking-[-0.02em] text-ink">
         {t("onboarding.meet.title", { app: productName() })}
       </h1>
       <span className="absolute left-1/2 top-[calc(50%-75px)] flex -translate-x-1/2 -translate-y-1/2" style={{ width: MASCOT_SIZE, height: MASCOT_SIZE }}>
-        {logo ? (
+        {thinking ? (
+          <span data-meet-thinking="" className="onboarding-dots flex size-full items-center justify-center gap-[5px]">
+            <span className="size-[9px] rounded-full bg-ink" /><span className="size-[11px] rounded-full bg-ink" /><span className="size-[9px] rounded-full bg-ink" />
+          </span>
+        ) : logo ? (
           <img src={logo} alt="" width={MASCOT_SIZE} height={MASCOT_SIZE} className="size-full object-contain" />
         ) : maus ? (
           <BotAvatar bot={maus} size={MASCOT_SIZE} state={face} animated={!reduced} />
@@ -90,7 +114,7 @@ export function MeetScreen({ hosted, onNext }: { hosted: boolean; onNext: () => 
           <MausAvatar color="chrome" size={MASCOT_SIZE} state={face} animated={!reduced} label={DEFAULT_BOT_NAME} />
         )}
       </span>
-      <DemoComposer reduced={reduced} onTyping={setTyping} />
+      <DemoComposer reduced={reduced} sent={sent} onTyping={setTyping} onTyped={onTyped} />
       {hosted && (
         <p className="absolute left-1/2 top-[calc(50%+86px)] w-[420px] max-w-[calc(100%-32px)] -translate-x-1/2 text-[13px] leading-[18px] text-ink-secondary">
           {t("onboarding.hosted.intro")}
