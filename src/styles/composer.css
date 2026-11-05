@@ -15,6 +15,9 @@
 .composer-pill[data-growing] {
   overflow: clip;
 }
+.composer-pill[data-snap] {
+  transition-duration: 0s, 300ms, 150ms;
+}
 
 .composer-press {
   transition-property: color, background-color, filter, transform;
@@ -31,6 +34,12 @@
 @keyframes composer-glyph-in {
   from { opacity: 0; transform: scale(0.5); }
 }
+.composer-glyph-out {
+  animation: composer-glyph-out 200ms var(--composer-glyph-ease) forwards;
+}
+@keyframes composer-glyph-out {
+  to { opacity: 0; transform: scale(0.5); }
+}
 
 .composer-drop {
   animation: composer-drop-in 120ms ease-out;
@@ -46,6 +55,8 @@
   }
   .composer-press:active:not(:disabled) { transform: none; }
   [data-glyph-swap] .composer-glyph { animation-name: composer-glyph-fade; }
+  .composer-pill[data-snap] { transition-duration: 0s, 120ms, 150ms; }
+  .composer-glyph-out { animation-name: composer-glyph-fade-out; }
 }
 :root[data-reduced-motion="true"] .composer-pill {
   transition-duration: 120ms, 120ms, 150ms;
@@ -53,6 +64,11 @@
 }
 :root[data-reduced-motion="true"] .composer-press:active:not(:disabled) { transform: none; }
 :root[data-reduced-motion="true"] [data-glyph-swap] .composer-glyph { animation-name: composer-glyph-fade; }
+:root[data-reduced-motion="true"] .composer-pill[data-snap] { transition-duration: 0s, 120ms, 150ms; }
+:root[data-reduced-motion="true"] .composer-glyph-out { animation-name: composer-glyph-fade-out; }
 @keyframes composer-glyph-fade {
   from { opacity: 0; }
+}
+@keyframes composer-glyph-fade-out {
+  to { opacity: 0; }
 }

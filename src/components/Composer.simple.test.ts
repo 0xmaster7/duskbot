@@ -196,6 +196,22 @@ describe("the Simple composer in a bot chat", () => {
     expectBotButton(sendButton(), "yellow");
   });
 
+  it("hands focus back to the field after a click on Send, and fades the arrow out over the call glyph", () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => frames.push(callback));
+    restoreComposerDraft(`bot:${bot.id}:${bot.threadId}`, { text: "hello", attachments: [] });
+    render({ bot });
+    const send = sendButton()!;
+    send.focus();
+    click(send);
+    flushSync(() => frames.splice(0).forEach((frame) => frame(0)));
+    expect(container.querySelector("textarea")!.value).toBe("");
+    expect(document.activeElement).toBe(container.querySelector("textarea"));
+    const ghost = container.querySelector("[data-composer-glyph-ghost]")!;
+    expect(ghost.getAttribute("aria-hidden")).toBe("true");
+    expect(ghost.querySelector(".composer-glyph-out")).not.toBeNull();
+  });
+
   it("turns its round button into Stop while the bot works, and keeps a quiet Stop beside Send while you type", () => {
     const busy = { ...bot, busy: true };
     render({ bot: busy });
@@ -414,8 +430,13 @@ describe("the Advanced composer", () => {
       expect(stacked()).toBe(true);
       expect(classes("[data-composer-row]")).toContain("flex-wrap");
       expect(classes("textarea")).toEqual(expect.arrayContaining(["px-1", "pt-1", "pb-0"]));
+      // grok's composer stays open while any text is left, and closes to one row only once the field is empty
       type("short");
+      expect(stacked()).toBe(true);
+      expect(container.querySelector('[data-tour="composer"]')!.className.split(" ")).toContain("rounded-[18px]");
+      type("");
       expect(stacked()).toBe(false);
+      expect(container.querySelector('[data-tour="composer"]')!.className.split(" ")).toContain("rounded-[22px]");
     });
   });
 });

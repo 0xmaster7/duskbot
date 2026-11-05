@@ -70,7 +70,7 @@ import { GroupCallButton } from "./GroupCallView";
 import { ApprovalChip, ComposerPlusMenu, GoalToggle, TeachTaskButton } from "./ComposerPlusMenu";
 import { PhonePlus } from "./PhonePlus";
 import { useThreadApproval } from "./thread-approval";
-import { usePillHeight, useSlideOnChange, useStackedField, useTallPill } from "./composer-wrap";
+import { usePillHeight, useSlideOnChange, useStackedField } from "./composer-wrap";
 import "@/styles/composer.css";
 import { ComposerReplyStrip } from "./ReplyQuote";
 import { escapeCancelsReply } from "@/lib/replies";
@@ -100,6 +100,16 @@ const supportsAgents = (instances: InstanceInfo[], candidate?: Bot) =>
 
 interface ComposerDraftSnapshot extends ComposerSendSnapshot {
   reply: Message | null;
+}
+
+type SlotGlyph = "waveform" | "arrow-up" | "stop";
+
+function SlotGlyphGhost({ glyph, ink }: { glyph: SlotGlyph; ink: string }) {
+  return (
+    <span aria-hidden="true" data-composer-glyph-ghost className="pointer-events-none absolute bottom-0 right-0 z-[1] flex size-7 items-center justify-center" style={{ color: ink }}>
+      {glyph === "stop" ? <Square size={10} className="composer-glyph-out fill-current" /> : <GrokIcon name={glyph} variant="filled" size={16} className="composer-glyph-out" />}
+    </span>
+  );
 }
 
 export function Composer({
@@ -223,15 +233,16 @@ export function Composer({
   const { recording, ready: micReady, speechError, toggle: toggleMic, stop: stopDictation } = useComposerDictation({ draftId, text, onText: editText });
   const [caret, setCaret] = useState(0);
   const shellRef = useRef<HTMLDivElement>(null);
-  const tall = useTallPill(shellRef, simpleDock);
-  const multiline = simpleDock && (tall || text.includes("\n"));
   const [highlight, setHighlight] = useState(0);
   const [dismissedAt, setDismissedAt] = useState<number | null>(null);
   const [dismissedSlashAt, setDismissedSlashAt] = useState<number | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const stacked = useStackedField(inputRef, !singleRow, text);
+  const stacked = useStackedField(inputRef, !singleRow, text, simpleDock);
+  // grok's expanded composer: the text above the buttons, or a reply strip; its corners and height change together
+  const multiline = simpleDock && (stacked || Boolean(replyTo));
+  const [composing, setComposing] = useState(false);
   const pillContentRef = useRef<HTMLDivElement>(null);
-  const pillHeight = usePillHeight(shellRef, pillContentRef, simpleDock);
+  const pillHeight = usePillHeight(shellRef, pillContentRef, simpleDock, multiline, composing);
   useSlideOnChange(() => inputRef.current?.parentElement, stacked, simpleDock);
   const [dragOver, setDragOver] = useState(false);
   const draftIdRef = useRef(draftId);
@@ -534,13 +545,21 @@ export function Composer({
   // the round button's glyph pops in only when it swaps here (call, send, stop); a fresh composer, as on a chat
   // switch, shows it at rest like grok's
   const glyphShape = `${hasContent}|${stopInSlot}|${callShown}`;
-  const [glyphs, setGlyphs] = useState({ shape: glyphShape, swapped: false });
-  if (glyphs.shape !== glyphShape) setGlyphs({ shape: glyphShape, swapped: true });
-  const slot = slotColors(bot?.color, Boolean(group));
+  const slotColor = bot?.color; const room = Boolean(group);
+  const slot = useMemo(() => slotColors(slotColor, room), [slotColor, room]);
   // A one-to-one bot at work: Enter does the chosen follow-up and Ctrl/⌘ with it the other one. Rooms keep their own queue.
   const followUpFor = (alternate: boolean) => resolveFollowUp({ running: busy && !group && Boolean(bot), alternate, preferred: followUpDefault, canSteer }) ?? undefined;
   const steersNow = group ? canSteer : followUpFor(false) === "steer";
   const sendNames = sendLabels({ simple: !advanced, busy, canSteer: steersNow, name: busyName, sendLabel });
+  // grok's round button keeps one glyph stack and crossfades it; ours swaps the button, so the glyph it showed fades
+  // out over the new one's
+  const slotGlyph: SlotGlyph | null = !simpleDock || calling || locked ? null
+    : hasContent ? (busy && !steersNow ? null : "arrow-up")
+    : stopInSlot ? "stop"
+    : callShown && (group ? !advanced : Boolean(bot)) ? "waveform" : null;
+  const [glyphs, setGlyphs] = useState({ shape: glyphShape, swapped: false, glyph: slotGlyph, from: null as SlotGlyph | null, swaps: 0 });
+  if (glyphs.shape !== glyphShape) setGlyphs({ shape: glyphShape, swapped: true, glyph: slotGlyph, from: glyphs.glyph, swaps: glyphs.swaps + 1 });
+  const ghostGlyph = glyphs.swapped && glyphs.from && slotGlyph && glyphs.from !== slotGlyph ? glyphs.from : null;
   const retryFailedSend = (failed: FailedComposerSend) => {
     const failedMode = failed.channelMode ?? "chat";
     if (failed.requestText.includes("<attached-image ") && !imageTargetsSupport(failed.requestText, failedMode)) {
@@ -621,6 +640,8 @@ export function Composer({
     setAttachments([]); picks.clear();
     onConsumeReply?.();
     setChannelMode("chat");
+    // a click on the round button takes focus, and the button unmounts once the field is empty; grok hands it back
+    if (!window.matchMedia?.("(hover: none) and (pointer: coarse)").matches) refocusInput();
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -870,6 +891,8 @@ export function Composer({
             setDismissedSlashAt(null);
           }}
           onPaste={handlePaste}
+          onCompositionStart={() => setComposing(true)}
+          onCompositionEnd={() => setComposing(false)}
           onKeyUp={(e) => setCaret((e.target as HTMLTextAreaElement).selectionStart ?? 0)}
           onClick={(e) => setCaret((e.target as HTMLTextAreaElement).selectionStart ?? 0)}
           onKeyDown={(e) => {
@@ -957,7 +980,7 @@ export function Composer({
                 : "min-h-6 py-1 leading-6",
             )}
           />
-          <div data-composer-actions className={cn("flex items-center", simpleDock ? "gap-2" : "gap-1", !singleRow && !simpleDock && "@max-[30rem]/composer:ml-auto", stacked && "ml-auto")}>
+          <div data-composer-actions className={cn("flex items-center", simpleDock ? "relative gap-2" : "gap-1", !singleRow && !simpleDock && "@max-[30rem]/composer:ml-auto", stacked && "ml-auto")}>
           {(simpleDock ? stoppable : busy) && !locked && (
           <button
             onClick={interruptTurn}
@@ -998,6 +1021,7 @@ export function Composer({
             disabled={attachmentPending} onSend={(alternate) => send(followUpFor(alternate))} onChoose={send}
             menu={followUpFor(false) && { choices: followUpChoices(followUpDefault, canSteer), name: busyName, sendKey: sendLabel, alternateKey: alternateSendLabel(sendKey) }} />
           )}
+          {ghostGlyph && <SlotGlyphGhost key={glyphs.swaps} glyph={ghostGlyph} ink={slot.ink} />}
           </div>
         </div>
         </div>
