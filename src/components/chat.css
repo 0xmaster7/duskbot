@@ -225,7 +225,7 @@
   .chat-link-text { transition: none; }
 }
 
-/* the header pill darkens through a 6% ink veil on hover, as grok's does, and stays white while the panel is open */
+/* the header pill darkens through a 6% ink veil on hover, as grok's does; with the panel open it stays white */
 .chat-head-pill::before {
   content: "";
   position: absolute;
@@ -237,7 +237,7 @@
   transition: opacity 0.12s;
 }
 @media (hover: hover) and (pointer: fine) {
-  .chat-head-pill:hover::before {
+  .chat-head-pill:not([aria-expanded="true"]):hover::before {
     opacity: 1;
   }
 }
