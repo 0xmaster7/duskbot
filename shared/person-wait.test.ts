@@ -40,6 +40,8 @@ describe("what a row waits on the person for", () => {
     ["an expired proposal", options({ skillRequest: {}, expired: true })],
     ["an offer to switch engines", options({ quotaSwitch: {} })],
     ["a receipt", options({ autoApplied: true })],
+    ["an answered approval", options({ tool: "Bash", answered: "allow" })],
+    ["a profile change applied at once", options({ profileRequest: {}, autoApplied: true })],
     ["an inbox's copy of a card asked elsewhere", { ...options(), inbox: { kind: "ask", from: { name: "Mira" } } } as WireMessage],
     ["plain text", row({ text: "hello" })],
   ])("%s waits on nobody", (_name, message) => {

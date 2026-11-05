@@ -14,6 +14,8 @@ export interface PersonWaitsDeps {
   notify(notification: Notification | null): void;
   /** The conversations that may hold an open card asked since then. */
   threadsWithCards(since: number): readonly string[];
+  /** Closes the cards in `threadId` the person has moved on from, before what it waits on is read. */
+  settle?(threadId: string): void;
   now?: () => number;
 }
 
@@ -49,6 +51,7 @@ export function createPersonWaits(deps: PersonWaitsDeps) {
   }
 
   function refresh(threadId: string): void {
+    deps.settle?.(threadId);
     const wait = restsOn(threadId);
     if (wait) resting.set(threadId, wait);
     else resting.delete(threadId);
@@ -93,7 +96,10 @@ export function createPersonWaits(deps: PersonWaitsDeps) {
       withCards.delete(change.threadId);
       resting.delete(change.threadId);
     } else if (change.type === "bot") {
-      for (const [threadId, wait] of resting) if (store.taskByThread(change.botId, threadId)) show(threadId, wait);
+      for (const threadId of resting.keys()) {
+        const task = store.taskByThread(change.botId, threadId);
+        if (task && !task.busy) refresh(threadId);
+      }
     }
   });
 

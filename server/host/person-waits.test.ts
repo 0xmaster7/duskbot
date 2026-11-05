@@ -6,6 +6,7 @@ import type { Notification } from "../../shared/notification.ts";
 import type { SecretRequestCardData } from "../../shared/wire.ts";
 import { DATA_DIR } from "../config.ts";
 import { Store, type BotRecord } from "../store.ts";
+import { createAskCards, type AskCardsDeps } from "./ask-cards.ts";
 import { createPersonWaits } from "./person-waits.ts";
 
 const SECRET: SecretRequestCardData = { target: CUSTOM_SECRET_TARGET, label: "Mailbox password", description: "desc", reason: "To read the mail.", placeholder: "", helpUrl: "", requestKey: "k", delivery: "ref" };
@@ -124,6 +125,83 @@ describe("a conversation resting on the person", () => {
     expect(task()).toMatchObject({ activity: "waiting-on-you", busy: false });
     expect(store.bot(bot.id)?.busy).toBe(false);
     expect(store.taskByThread(bot.id, left)?.activity).toBe("idle");
+  });
+});
+
+describe("a person who moved on from a question", () => {
+  beforeEach(() => rmSync(DATA_DIR, { recursive: true, force: true }));
+
+  const FOLDER = "What folder on your computer should Juno use for trip files?";
+
+  function juno() {
+    const store = new Store(() => ({ instanceId: "claude", model: "claude-sonnet-5" }));
+    const live = new Set<string>();
+    const cards = createAskCards({
+      store, node: () => undefined, delegatorOf: () => undefined, notify: () => {}, copiedInto: () => false,
+      live: (_threadId, requestId) => live.has(requestId), answerNode: () => false,
+      answerCard: async () => ({ ok: true as const }), answeredIn: (threadId) => threadId,
+    } satisfies AskCardsDeps);
+    const known = new Set<string>();
+    const waits = () => createPersonWaits({ store, notify: () => {}, threadsWithCards: () => [...known], settle: (threadId) => cards.movedOn(threadId) });
+    const bot = store.createBot({ name: "Juno" });
+    const thread = store.createTask(bot.id, "Craft fair trip", false)!.threadId;
+    known.add(thread);
+    const task = () => store.taskByThread(bot.id, thread)!;
+    const ask = (requestId: string, question = FOLDER) => store.appendMessage(thread, { role: "bot", kind: "options", text: question,
+      card: { title: "Your bot has a question", subtitle: question, options: [], requestId, requestType: "question",
+        questionRequest: { version: 1, questions: [{ question, options: [{ label: "~/Trips" }, { label: "~/Documents/Trips" }] }] } } });
+    const say = (text: string) => store.appendMessage(thread, { role: "user", kind: "text", text });
+    return { store, cards, live, known, waits, bot, thread, task, ask, say };
+  }
+
+  it("retires the question when the person sends a new message after its turn ended unanswered, and stops waiting", () => {
+    const { store, cards, live, waits, bot, thread, task, ask, say } = juno();
+    waits();
+    store.setTaskActivity(bot.id, thread, "working");
+    live.add("q2");
+    const asked = ask("q2");
+    store.setTaskActivity(bot.id, thread, "waiting-on-you");
+    live.delete("q2");
+    store.setTaskActivity(bot.id, thread, "idle");
+    expect(task()).toMatchObject({ activity: "waiting-on-you", busy: false });
+    say("ok");
+    cards.movedOn(thread);
+    expect(store.activePath(thread).find((row) => row.id === asked.id)?.card).toMatchObject({ answered: "unavailable", dismissed: true });
+    expect(task()).toMatchObject({ activity: "idle", busy: false });
+    expect(store.bot(bot.id)).toMatchObject({ activity: "idle" });
+  });
+
+  it("keeps a question its running turn still waits on when the person writes, and retires it once that turn ends", () => {
+    const { store, cards, live, waits, bot, thread, task, ask, say } = juno();
+    waits();
+    store.setTaskActivity(bot.id, thread, "working");
+    live.add("q1");
+    const asked = ask("q1");
+    say("~/Trips please");
+    cards.movedOn(thread);
+    expect(store.activePath(thread).find((row) => row.id === asked.id)?.card?.answered).toBeUndefined();
+    live.delete("q1");
+    store.setTaskActivity(bot.id, thread, "idle");
+    expect(store.activePath(thread).find((row) => row.id === asked.id)?.card).toMatchObject({ answered: "unavailable", dismissed: true });
+    expect(task()).toMatchObject({ activity: "idle", busy: false });
+  });
+
+  it("clears a stale wait like Juno's on restart, and still waits on a question nobody wrote past", () => {
+    const { store, known, waits, bot, thread, task, ask, say } = juno();
+    const answered = ask("q1", "Which dates?");
+    store.patchMessage(thread, answered.id, { card: { ...answered.card!, answered: "answer", answeredText: "May 3-5" } });
+    const stale = ask("q2");
+    say("ok");
+    store.appendMessage(thread, { role: "bot", kind: "text", text: "Setup's done: trip files go in ~/Trips." });
+    const other = store.createTask(bot.id, "Packing list", false)!.threadId;
+    const resting = store.appendMessage(other, { role: "bot", kind: "options", text: "Carry-on only?",
+      card: { title: "Your bot has a question", subtitle: "Carry-on only?", options: ["Yes", "No"], requestId: "q3", requestType: "question" } });
+    known.add(other);
+    waits().boot();
+    expect(store.activePath(thread).find((row) => row.id === stale.id)?.card).toMatchObject({ answered: "unavailable", dismissed: true });
+    expect(task()).toMatchObject({ activity: "idle", busy: false });
+    expect(store.activePath(other).find((row) => row.id === resting.id)?.card?.answered).toBeUndefined();
+    expect(store.taskByThread(bot.id, other)).toMatchObject({ activity: "waiting-on-you", busy: false });
   });
 });
 

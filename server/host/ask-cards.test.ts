@@ -224,6 +224,46 @@ describe("nothing stale waits on the person", () => {
     expect(w.rows("work").map((row) => row.card!.answered ?? null)).toEqual(["unavailable", null, null]);
   });
 
+  it("a question the person wrote past, with no turn waiting on it, closes as dismissed", () => {
+    const w = world();
+    ask(w, "chat", "req-1");
+    w.store.appendMessage("chat", { role: "user", kind: "text", text: "ok" });
+    w.cards.movedOn("chat");
+    expect(w.rows("chat")[0]!.card).toMatchObject({ answered: "unavailable", dismissed: true });
+  });
+
+  it("keeps a question the person has not written past, or only answered, or that a running turn or parked work waits on", () => {
+    const w = world({ live: ["req-live"] });
+    ask(w, "chat", "req-later");
+    w.cards.movedOn("chat");
+    ask(w, "answered", "req-answered");
+    const answered = w.rows("answered")[0]!;
+    w.store.appendMessage("answered", { role: "user", kind: "text", text: "~/Trips", replyToId: answered.id });
+    w.cards.movedOn("answered");
+    ask(w, "live", "req-live");
+    w.store.appendMessage("live", { role: "user", kind: "text", text: "ok" });
+    w.cards.movedOn("live");
+    w.node({ id: "as_9", threadId: "parked" });
+    ask(w, "parked", "needs-input-as_9-1");
+    w.store.appendMessage("parked", { role: "user", kind: "text", text: "the October one" });
+    w.cards.movedOn("parked");
+    expect(["chat", "answered", "live", "parked"].map((thread) => w.rows(thread)[0]!.card!.answered ?? null)).toEqual([null, null, null, null]);
+  });
+
+  it("another bot's line, a relay or a room does not count as the person moving on", () => {
+    const w = world();
+    ask(w, "peer", "req-peer");
+    w.store.appendMessage("peer", { role: "user", kind: "text", text: "from Scout", peerAsk: { botId: "scout", name: "Scout" } });
+    w.cards.movedOn("peer");
+    ask(w, "slack", "req-slack");
+    w.store.appendMessage("slack", { role: "user", kind: "text", text: "ok", relayed: true });
+    w.cards.movedOn("slack");
+    ask(w, "room", "req-room");
+    w.store.appendMessage("room", { role: "user", kind: "text", text: "ok" });
+    w.cards.movedOn("room");
+    expect(["peer", "slack", "room"].map((thread) => w.rows(thread)[0]!.card!.answered ?? null)).toEqual([null, null, null]);
+  });
+
   it("a bot's own reply that ends on NEEDS INPUT becomes the question card, once", () => {
     const w = world();
     w.store.appendMessage("chat", { role: "bot", kind: "text", text: "I have two drafts.\nNEEDS INPUT: Which one do you like?", turnId: "t1" });

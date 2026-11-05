@@ -1472,37 +1472,6 @@ describe("harness HTTP API", () => {
       expect(restored.answered).toBeUndefined();
       expect(restored.dismissed).toBeUndefined();
 
-      const completionsBeforeSubsequentTurn = (await isolatedApi("GET", `/api/threads/${bot.threadId}/messages`)).body.messages
-        .filter((message: { role?: string; kind?: string; text?: string }) =>
-          message.role === "bot" && message.kind === "text" && message.text === "fixture turn completed").length;
-      rmSync(isolatedFinishGate, { force: true });
-      const laterText = "A later turn while the earlier question is still unanswered.";
-      const laterSent = await isolatedApi("POST", `/api/bots/${bot.id}/messages`, { text: laterText });
-      expect(laterSent.status).toBe(202);
-      await expect.poll(async () => (await isolatedApi("GET", "/api/bots?messages=0")).body.bots
-        .find((candidate: { id: string }) => candidate.id === bot.id)?.busy, { timeout: 5_000 }).toBe(true);
-      writeFileSync(isolatedFinishGate, "finish");
-      await expect.poll(async () => (await isolatedApi("GET", "/api/bots?messages=0")).body.bots
-        .find((candidate: { id: string }) => candidate.id === bot.id)?.busy, { timeout: 5_000 }).toBe(false);
-      const afterSubsequentTurn = (await isolatedApi("GET", `/api/threads/${bot.threadId}/messages`)).body.messages;
-      const laterUserMessage = afterSubsequentTurn.find((message: { id: string }) => message.id === laterSent.body.message.id);
-      expect(laterUserMessage).toMatchObject({ role: "user", text: laterText });
-      expect(afterSubsequentTurn).toContainEqual(expect.objectContaining({
-        role: "bot",
-        kind: "text",
-        text: "fixture turn completed",
-        parentId: laterUserMessage.id,
-      }));
-      await expect.poll(async () => (await isolatedApi("GET", `/api/threads/${bot.threadId}/messages`)).body.messages
-        .filter((message: { role?: string; kind?: string; text?: string }) =>
-          message.role === "bot" && message.kind === "text" && message.text === "fixture turn completed").length,
-      { timeout: 5_000 }).toBe(completionsBeforeSubsequentTurn + 1);
-      const afterSubsequentQuestion = afterSubsequentTurn
-        .find((message: { id: string }) => message.id === cardId)?.card;
-      expect(afterSubsequentQuestion).toMatchObject({ requestType: "question", requestId });
-      expect(afterSubsequentQuestion.answered).toBeUndefined();
-      expect(afterSubsequentQuestion.dismissed).toBeUndefined();
-
       const refusedDismiss = await isolatedApi("POST", `/api/bots/${bot.id}/respond`, {
         requestId,
         behavior: "answer",

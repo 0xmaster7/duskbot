@@ -6,6 +6,7 @@
 // replaced, closes, so nothing stale waits on the person.
 import { formatQuestionAnswers, isPersistentQuestionCard } from "../../shared/ask-question.ts";
 import { liveCardKind } from "../../shared/live-approval.ts";
+import { personWait } from "../../shared/person-wait.ts";
 import { allowsTool, type ToolIdentity } from "../../shared/tool-scope.ts";
 import type { OptionCardData } from "../../shared/wire.ts";
 import type { RuntimeEvent } from "../contracts.ts";
@@ -70,6 +71,14 @@ function beforeQuestion(text: string): string {
 /** A question card's own message, not an inbox copy of one. */
 const ownQuestionCard = (message: Message): boolean =>
   Boolean(message.card?.requestId && !message.inbox && !message.card.tool && isPersistentQuestionCard(message.card));
+
+const parkedNodeId = (requestId: string): string =>
+  requestId.startsWith(OPEN_QUESTION) ? requestId.slice(OPEN_QUESTION.length).replace(/-\d+$/, "") : "";
+
+/** The person's own line that takes the conversation on: not another bot's, an automation's, a relay's, or their answer
+ * to a card. */
+const movesOn = (row: Message, cardRows: ReadonlySet<string>): boolean => row.role === "user" && !row.peerAsk && !row.aside
+  && !row.webhookPost && !row.relayed && row.via !== "api" && !(row.replyToId && cardRows.has(row.replyToId));
 
 export function createAskCards(deps: AskCardsDeps) {
   const { store, delegatorOf, notify } = deps;
@@ -201,6 +210,28 @@ export function createAskCards(deps: AskCardsDeps) {
     }
   }
 
+  /** The person wrote again after a question nothing waits on any more: they moved on, so it closes as a dismissed card
+   * and the conversation stops waiting on them. A question a running turn or parked work still waits on stays open, and
+   * one the person has not written past can still be answered. */
+  function movedOn(threadId: string): void {
+    if (store.groupByThread(threadId)) return;
+    const path = store.activePath(threadId);
+    const cardRows = new Set(path.flatMap((row) => (row.card ? [row.id] : [])));
+    let spoken = false;
+    for (let index = path.length - 1; index >= 0; index -= 1) {
+      const row = path[index]!;
+      if (movesOn(row, cardRows)) {
+        spoken = true;
+        continue;
+      }
+      const card = row.card;
+      if (!spoken || !card?.requestId || !ownQuestionCard(row) || personWait(row)?.kind !== "question") continue;
+      const parked = parkedNodeId(card.requestId);
+      if (deps.live(threadId, card.requestId) || (parked && deps.node(parked)?.status === "waiting")) continue;
+      store.patchMessage(threadId, row.id, { card: { ...card, answered: "unavailable", dismissed: true } });
+    }
+  }
+
   /** Work handed on ended: a question it left open no longer waits, and its card says why (Stop, an expired wait, or
    * closed), a question its requester was still deciding too. */
   function closed(node: HandoffView): void {
@@ -219,7 +250,7 @@ export function createAskCards(deps: AskCardsDeps) {
   /** The person answered a parked question's card, or its copy: the work it waits on carries their answer, whether it waits
    * in a room or a bot's conversation. False when no work waits on that card. */
   function answerParked(threadId: string, requestId: string, text: string): boolean {
-    const id = requestId.startsWith(OPEN_QUESTION) ? requestId.slice(OPEN_QUESTION.length).replace(/-\d+$/, "") : "";
+    const id = parkedNodeId(requestId);
     const node = id ? deps.node(id) : undefined;
     const message = store.messagesFor(threadId).find((candidate) => candidate.card?.requestId === requestId && !candidate.inbox);
     if (!node || node.status !== "waiting" || node.question === undefined || node.cards?.length || !message?.card || !deps.answerNode(node.id, text)) return false;
@@ -259,5 +290,5 @@ export function createAskCards(deps: AskCardsDeps) {
     questionCard({ id: `${botId}-${turnId}`, threadId, botId, executions: 1, createdAt: reply.at, startedAt: reply.at } as HandoffView, question);
   }
 
-  return { park, decided, closed, askedAgain, answerParked, answeredInWords, typed, ownQuestion, showWaitingOnPersonChip, settleWaitingOnPersonChips };
+  return { park, decided, closed, askedAgain, movedOn, answerParked, answeredInWords, typed, ownQuestion, showWaitingOnPersonChip, settleWaitingOnPersonChips };
 }
