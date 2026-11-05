@@ -10,6 +10,7 @@ import type { ToolkitCard } from "./ServiceIcon";
 import { ELEVATED_CONTROL, ELEVATED_HOVER } from "./elevated";
 import { GrokIcon } from "./GrokIcon";
 import { SIMPLE_TOP_BUTTON } from "./SidebarSimpleTop";
+import { ConnectAppsHost, openConnectApps, preloadConnectApps, useConnectApps } from "./connect-apps";
 
 export type AppFace = Pick<ToolkitCard, "slug" | "label" | "logo" | "domain">;
 
@@ -33,9 +34,10 @@ export interface SidebarApps {
 
 export function useSidebarApps(): SidebarApps {
   const { state } = useStore();
+  const window = useConnectApps().open;
   const [apps, setApps] = useState<SidebarApps>(() => ({ faces: appFaces([], new Map()), connected: false }));
   useEffect(() => {
-    if (state.pluginsOpen) return;
+    if (state.pluginsOpen || window) return;
     let alive = true;
     void preloadConnectedApps()
       .then(async (inventory) => {
@@ -45,7 +47,7 @@ export function useSidebarApps(): SidebarApps {
       })
       .catch(() => {});
     return () => { alive = false; };
-  }, [state.pluginsOpen]);
+  }, [state.pluginsOpen, window]);
   return apps;
 }
 
@@ -65,10 +67,9 @@ function AppFaceIcon({ face, className }: { face: AppFace; className?: string })
 /** The outer logos fan out while the pill is hovered. */
 const FAN = ["motion-safe:group-hover/apps:-translate-x-[3px] motion-safe:group-hover/apps:-rotate-[8deg]", "", "motion-safe:group-hover/apps:translate-x-[3px] motion-safe:group-hover/apps:rotate-[8deg]"];
 
-/** The footer grid's click. Hook: call `openConnectApps()` from ./connect-apps here once that window lands; until then
- * Settings > Advanced > Apps and Tools, the `openSettings("apps")` action, written out to keep Settings out of this bundle. */
-export function openSidebarApps(dispatch: (action: Action) => void): void {
-  dispatch({ type: "toggleAppSettings", open: true, section: "apps" });
+/** The footer grid's click: the Connect Apps window. `dispatch` stays for callers that pass it. */
+export function openSidebarApps(_dispatch?: (action: Action) => void): void {
+  openConnectApps();
 }
 
 /** `circle` is the collapsed rail's round button. */
@@ -77,20 +78,32 @@ export function SidebarConnectApps({ circle = false }: { circle?: boolean }) {
 }
 
 /** The button for apps already read by its caller, as the footer does to fold it to a circle once one is connected. */
-export function ConnectAppsButton({ circle, apps: { faces, connected } }: { circle: boolean; apps: SidebarApps }) {
-  const { state, dispatch } = useStore();
+export function ConnectAppsButton({ circle, apps: { faces, connected }, engaged = false, onEngage }: {
+  circle: boolean; apps: SidebarApps;
+  /** grok's folded footer button: under the pointer or focus it widens into the Connect apps pill */
+  engaged?: boolean; onEngage?: (engaged: boolean) => void;
+}) {
+  const open = useConnectApps().open;
   const label = connected ? t("sidebar.nav.apps") : t("sidebar.connectApps");
   return (
+    <>
     <button
       type="button"
       data-tour="nav-apps"
       data-sidebar-nav="apps"
-      aria-pressed={circle ? undefined : state.pluginsOpen}
+      aria-pressed={circle ? undefined : open}
       aria-label={circle ? t("sidebar.connectApps") : undefined}
-      onClick={() => (circle ? openSidebarApps(dispatch) : dispatch({ type: "togglePlugins", open: true }))}
-      className={circle ? SIMPLE_TOP_BUTTON : cn("group/apps flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full pl-4 pr-3 text-[14px] font-medium leading-5 text-ink", ELEVATED_CONTROL, ELEVATED_HOVER)}
+      onPointerEnter={() => { preloadConnectApps(); onEngage?.(true); }}
+      onFocus={(event) => { preloadConnectApps(); if (event.currentTarget.matches(":focus-visible")) onEngage?.(true); }}
+      onBlur={() => onEngage?.(false)}
+      onClick={() => openConnectApps()}
+      className={circle ? cn(SIMPLE_TOP_BUTTON, "h-9 min-w-9 w-auto text-[14px] font-medium leading-5 text-ink transition-[background-color,flex-grow,padding] duration-300 ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none", engaged ? "grow pl-4 pr-3" : "grow-0 px-2") : cn("group/apps flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full pl-4 pr-3 text-[14px] font-medium leading-5 text-ink", ELEVATED_CONTROL, ELEVATED_HOVER)}
     >
-      {circle ? <GrokIcon name="grid-plus" size={16} /> : <>
+      {circle ? <>
+        <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center"><GrokIcon name="grid-plus" size={16} /></span>
+        <span aria-hidden="true" data-connect-apps-label="" className={cn("min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin] duration-300 ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none",
+          engaged ? "ms-1.5 max-w-[200px] opacity-100 [transition-duration:300ms,150ms,300ms] [transition-delay:0ms,120ms,0ms]" : "ms-0 max-w-0 opacity-0")}>{t("sidebar.connectApps")}</span>
+      </> : <>
         <span className="min-w-0 truncate">{label}</span>
         <span aria-hidden="true" className="flex shrink-0 items-center">
           {faces.map((face, index) => <AppFaceIcon key={face.slug} face={face}
@@ -98,5 +111,7 @@ export function ConnectAppsButton({ circle, apps: { faces, connected } }: { circ
         </span>
       </>}
     </button>
+    <ConnectAppsHost />
+    </>
   );
 }

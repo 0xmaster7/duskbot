@@ -1,0 +1,59 @@
+import { describe, expect, it } from "vitest";
+
+import { grokCategories, grokCategory, inCategory, matchRank, presentCategories, recommended, searchApps, type AppEntry, type Category } from "./catalog";
+
+const app = (id: string, categories: Category[], kind: AppEntry["kind"] = "composio", description = `${id} for your bots`): AppEntry =>
+  ({ id, kind, label: id[0]!.toUpperCase() + id.slice(1), description, categories, icon: {} });
+
+describe("Grok's categories over our catalog", () => {
+  it("files our catalog's categories under Grok's", () => {
+    expect(grokCategory("Developer tools")).toBe("code");
+    expect(grokCategory("Files")).toBe("productivity");
+    expect(grokCategory("Sales and CRM")).toBe("sales");
+    expect(grokCategory("Analytics")).toBe("data");
+    expect(grokCategory("Social")).toBe("marketing");
+    expect(grokCategory("Communication")).toBe("communication");
+    expect(grokCategory("Customer support")).toBe("support");
+    expect(grokCategory("Payments & billing")).toBe("finance");
+    expect(grokCategory("Gardening")).toBeNull();
+    expect(grokCategories(["Files", "Productivity", "Gardening"])).toEqual(["productivity"]);
+  });
+
+  it("lists the categories that hold an app in Grok's order, our own apps first inside one", () => {
+    const entries = [app("linear", ["code"]), app("asana", ["productivity"]), app("email", ["communication", "productivity"], "native")];
+    expect(presentCategories(entries)).toEqual(["productivity", "communication", "code"]);
+    expect(inCategory(entries, "productivity").map((entry) => entry.id)).toEqual(["email", "asana"]);
+  });
+});
+
+describe("Recommended for you", () => {
+  const entries = [app("gmail", ["communication"]), app("slack", ["communication"]), app("notion", ["productivity"]),
+    app("outlook", ["communication"]), app("asana", ["productivity"]), app("figma", ["design"])];
+
+  it("is empty until something is connected", () => {
+    expect(recommended(entries, () => "disconnected")).toEqual([]);
+  });
+
+  it("offers what you lack in the categories you use most", () => {
+    const connected = new Set(["gmail", "slack", "notion"]);
+    expect(recommended(entries, (id) => connected.has(id) ? "connected" : "disconnected").map((entry) => entry.id)).toEqual(["outlook", "asana"]);
+  });
+});
+
+describe("search", () => {
+  it("ranks a name's start, then a word, then its letters, then what an app does", () => {
+    expect(matchRank("Google Drive", "goo")).toBe(0);
+    expect(matchRank("Google Drive", "dri")).toBe(1);
+    expect(matchRank("Airtable", "rta")).toBe(2);
+    expect(matchRank("Granola", "go")).toBe(3);
+    expect(matchRank("Slack", "zz")).toBeNull();
+    const entries = [app("figma", ["design"], "composio", "Design files for go-getters"), app("granola", ["productivity"]), app("google", ["productivity"])];
+    expect(searchApps(entries, "go").map((entry) => entry.id)).toEqual(["google", "granola", "figma"]);
+    expect(searchApps(entries, "   ")).toEqual([]);
+  });
+
+  it("lists at most eight apps", () => {
+    const many = Array.from({ length: 12 }, (_, index) => app(`app${index}`, ["code"]));
+    expect(searchApps(many, "app")).toHaveLength(8);
+  });
+});

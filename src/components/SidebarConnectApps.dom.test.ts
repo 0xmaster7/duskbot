@@ -33,3 +33,14 @@ it("asks to connect apps until one is connected, then is simply the way into App
   expect(await pill({ github: { connected: true } })).toEqual({ label: "Apps", faces: ["github", "gmail", "slack"] });
   expect((await pill({ github: { connected: true } }, true)).label, "the footer's grid button keeps grok's name").toBe("Connect apps");
 });
+
+it("opens the Connect Apps window from the footer's grid button", async () => {
+  const { connectAppsState, closeConnectApps } = await import("./connect-apps/open");
+  closeConnectApps();
+  const root = createRoot(document.body.appendChild(document.createElement("div")));
+  await act(async () => { root.render(createElement(SidebarConnectApps, { circle: true })); });
+  await act(async () => { document.querySelector<HTMLButtonElement>('[data-sidebar-nav="apps"]')!.click(); });
+  expect(connectAppsState()).toMatchObject({ open: true, page: { kind: "home" } });
+  act(() => { closeConnectApps(); root.unmount(); });
+  document.body.innerHTML = "";
+});
