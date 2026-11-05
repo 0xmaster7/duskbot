@@ -134,6 +134,8 @@ import { latestFailure, latestReply, type TranscriptSnapshot } from "@/lib/trans
 import { pendingApprovals } from "./PendingApproval";
 import { TranscriptAnnouncer } from "./TranscriptAnnouncer";
 import { JumpToLatestButton } from "./JumpToLatestButton";
+import { UsageBanner } from "./native/UsageMeter";
+import { openSettings } from "./SettingsModal";
 import { useTimestampPeek } from "./chat-timestamp-peek";
 import { grokUserBubbleFill, isBotTextRow, joinedCorners, needsStamp, quietRow, simpleRowLayout, SIMPLE_BOT_BUBBLE, SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT, SIMPLE_STACKED, SIMPLE_USER_BUBBLE, type BubbleJoin } from "./chat-bubble";
 
@@ -1314,6 +1316,12 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
       {!following && (
         <div className="relative">
           <JumpToLatestButton onClick={jumpToLatest} className="pointer-events-auto bottom-2" />
+        </div>
+      )}
+      {/* grok's usage warning rides just above the composer, near or at a limit; a failed turn that already says so wins */}
+      {!advanced && canWrite !== false && !(lastShownRow && codexUsageLimitReached(`${lastShownRow.text ?? ""} ${lastShownRow.tool?.name ?? ""}`)) && (
+        <div className="pointer-events-auto px-5 pb-2">
+          <UsageBanner engine={bot.modelSelection?.instanceId} onSeeUsage={() => dispatch(openSettings("usage"))} />
         </div>
       )}
       <LiveCallBar bot={bot} />
