@@ -3,9 +3,8 @@ import { t } from "@/lib/i18n";
 import type { Bot } from "@/state/store";
 import type { GrokIconName } from "../../GrokIcon";
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
+import { DialogChoice, DialogSection, dialogPrimaryCls, footnoteCls, GrokDialog } from "../../ui/GrokDialog";
 import { usePlacePicker, type PlaceChoice } from "../ComputerTab";
-import { ChoiceCard } from "./ChoiceCard";
-import { kitPrimaryCls, ModalSheet, rowHintCls } from "./ModalSheet";
 
 const PLACE_ICON: Record<PlaceChoice, GrokIconName> = {
   auto: "sparkle",
@@ -23,8 +22,8 @@ const PLACE_LINE: Partial<Record<PlaceChoice, (name: string) => string>> = {
   cloud: () => "A desktop in the cloud that runs while yours sleeps",
 };
 
-/** Where the bot works, as one card per computer it can use: the chosen one ringed, a place it cannot reach greyed with
- * the reason. */
+/** Where the bot works, one row per computer it can use: the chosen one checked, a place it cannot reach greyed
+ * with the reason. */
 export function WhereModal({ bot, derived, onClose }: {
   bot: Bot;
   derived: ReturnType<typeof useBotSettingsDerived>;
@@ -35,34 +34,38 @@ export function WhereModal({ bot, derived, onClose }: {
   const editable = bot.yourAccess !== "view";
 
   return (
-    <ModalSheet
+    <GrokDialog
       data-panel-modal="where"
-      width={460}
       title={title}
+      description={`The computer ${bot.name} uses when a task needs apps, files or a browser.`}
       onClose={onClose}
       footer={(
         <>
-          {usingNow && <span data-panel-using-now className="mr-auto truncate text-[12px] leading-4 tracking-[0.01em] text-ink/56">{t("computer.simple.usingNow", { place: usingNow })}</span>}
-          <button type="button" onClick={onClose} className={kitPrimaryCls}><span>{t("common.done")}</span></button>
+          {usingNow && <span data-panel-using-now className="mr-auto truncate pl-2 text-[12px] leading-4 tracking-[0.01em] text-ink/56">{t("computer.simple.usingNow", { place: usingNow })}</span>}
+          <button type="button" onClick={onClose} className={dialogPrimaryCls}>{t("common.done")}</button>
         </>
       )}
     >
-      <div role="radiogroup" aria-label={title} className="flex flex-col gap-2">
-        {options.map((option) => (
-          <ChoiceCard
-            key={option.value}
-            data-panel-choice={option.value}
-            icon={PLACE_ICON[option.value]}
-            title={option.label}
-            hint={option.hint ?? PLACE_LINE[option.value]?.(bot.name)}
-            checked={current === option.value}
-            disabled={option.disabled || !editable}
-            onSelect={() => choosePlace(option.value)}
-          />
-        ))}
+      <div className="flex flex-col gap-2.5">
+        <DialogSection>
+          <div role="radiogroup" aria-label={title} className="flex flex-col">
+            {options.map((option) => (
+              <DialogChoice
+                key={option.value}
+                data-panel-choice={option.value}
+                icon={PLACE_ICON[option.value]}
+                title={option.label}
+                hint={option.hint ?? PLACE_LINE[option.value]?.(bot.name)}
+                checked={current === option.value}
+                disabled={option.disabled || !editable}
+                onSelect={() => choosePlace(option.value)}
+              />
+            ))}
+          </div>
+        </DialogSection>
+        {!editable && <p className={cn(footnoteCls)}>Only people who can edit {bot.name} can change this.</p>}
+        {warning}
       </div>
-      {!editable && <p className={cn(rowHintCls, "mt-3 px-0.5")}>Only people who can edit {bot.name} can change this.</p>}
-      {warning}
-    </ModalSheet>
+    </GrokDialog>
   );
 }
