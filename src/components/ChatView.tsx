@@ -813,7 +813,9 @@ const MessagesList = memo(function MessagesList({
         }
         const m = item.message;
         const row = (() => {
+          // simple mode talks in bubbles: stops, finished steps and settled cards leave no technical rows behind
           if (isCancelledTranscriptRow(m)) {
+            if (simple) return null;
             return (
               <CancelledTurnRow
                 onRetry={m.id === lookups.retryableId && canRetryLast ? onRegenerate : undefined} name={m.tool?.name}
@@ -828,6 +830,7 @@ const MessagesList = memo(function MessagesList({
             case "connector":
               return m.connector ? <ConnectorCard botId={botId} color={botColor} threadId={threadId} message={m} /> : null;
             case "options":
+              if (simple && m.card && (m.card.answered || m.card.dismissed)) return null;
               return optionsCardRow({ message: m, transcript, botId, botName, botColor: bots.find((one) => one.id === m.inbox?.from.botId)?.color ?? botColor, threadId, asker: bots.find((one) => one.id === (m.inbox?.from.botId ?? botId)) });
             case "widget":
             case "app":
@@ -856,7 +859,7 @@ const MessagesList = memo(function MessagesList({
             case "digest":
               return showToolCalls ? <DigestChip message={m} /> : null;
             case "compaction":
-              return <CompactionChip message={m} />;
+              return simple ? null : <CompactionChip message={m} />;
             case "screen":
               return <ScreenFrame threadId={threadId} message={m} />;
             default: {
@@ -1299,7 +1302,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               seamId={!advanced && lastRowIsBubble && presenceShown ? lastShownRow?.id ?? null : null}
             />
           </ChatBusyContext></LiveToolsContext></ChatRowsContext.Provider>
-          {stopNoticeDue(messages, stoppedAt, busy) && <CancelledTurnRow name={PERSON_STOPPED_TURN_NAME} />}
+          {advanced && stopNoticeDue(messages, stoppedAt, busy) && <CancelledTurnRow name={PERSON_STOPPED_TURN_NAME} />}
           {laterCount > 0 && (
             // clear of the jump-to-latest button, which floats over the transcript's last 40px while this shows
             <div className="mb-10 flex justify-center">

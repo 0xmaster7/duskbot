@@ -46,13 +46,13 @@ const draw = (bot: Bot) => {
 };
 const ask: Message = { id: "u1", role: "user", kind: "text", text: "Write a 250 word poem about cheese", at: Date.now() - 2_000 };
 
-it("says the turn stopped after the person's Stop ended it before any answer", async () => {
+it("leaves no stopped row in simple mode after the person's Stop, since the chat talks in bubbles only", async () => {
   sendStop(async () => ({ ok: true }), { type: "interrupt", botId: "scout", threadId: "t" }, () => {});
   await Promise.resolve(); await Promise.resolve();
   draw(scout([ask], true));
   expect(container.textContent).not.toContain(t("chat.turnStopped"));
   draw(scout([ask], false));
-  expect(container.textContent).toContain(t("chat.turnStopped"));
+  expect(container.textContent).not.toContain(t("chat.turnStopped"));
 });
 
 it("says nothing more once the server's own stopped row or an answer is there", async () => {

@@ -109,12 +109,12 @@ describe("an automation's line in the chat", () => {
   it("stops saying the run needs the person once the copy is answered, or once they wrote after the question", async () => {
     const question = { title: "Your bot has a question", subtitle: "Which account?", options: ["Work", "Home"], requestId: "ask-1", requestType: "question" as const };
     await draw(transcript([{ id: "c1", parentId: "m2", role: "bot", kind: "options", at: at(3), automation: line("run-1", { needsYou: true }), card: { ...question, answered: "answer" } }]));
-    expect(caption("run-1")?.textContent).not.toContain(t("chat.automation.needsYou"));
+    expect(caption("run-1")?.textContent ?? "").not.toContain(t("chat.automation.needsYou"));
     await draw(transcript([
       { id: "r1", parentId: "m2", role: "bot", kind: "text", text: "Should I send it?", at: at(3), automation: line("run-1", { needsYou: true }) },
       { id: "u1", parentId: "r1", role: "user", kind: "text", text: "Yes, send it.", at: at(4) },
     ]));
-    expect(caption("run-1")?.textContent).not.toContain(t("chat.automation.needsYou"));
+    expect(caption("run-1")?.textContent ?? "").not.toContain(t("chat.automation.needsYou"));
   });
 
   it("keeps saying a named sign-in needs the person, whatever they write, until the server settles it", async () => {
@@ -125,7 +125,7 @@ describe("an automation's line in the chat", () => {
     await draw(named(true));
     expect(caption("run-1")?.textContent).toContain(t("chat.automation.needsYou"));
     await draw(named(false));
-    expect(caption("run-1")?.textContent).not.toContain(t("chat.automation.needsYou"));
+    expect(caption("run-1")?.textContent ?? "").not.toContain(t("chat.automation.needsYou"));
   });
 
   it("labels a copy of a card the run waits on the same way", async () => {
