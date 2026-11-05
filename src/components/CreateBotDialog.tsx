@@ -130,7 +130,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
               maxLength={80}
               onChange={(event) => setName(event.target.value)}
               onKeyDown={(event) => { if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); create(); } }}
-              className="my-1 h-9 w-full rounded-[8px] border-[0.5px] border-ink/12 bg-transparent px-2.5 py-2 text-center text-[13px] tracking-[0.195px] text-ink outline-none placeholder:text-ink/56 focus:border-ink/12!"
+              className="my-1 h-9 w-full rounded-[8px] border border-ink/12 bg-transparent px-2.5 py-2 text-center text-[13px] tracking-[0.195px] text-ink outline-none placeholder:text-ink/56 focus:border-ink/12!"
             />
             <div className="flex flex-col gap-3">
               <div role="group" aria-label="Character shape" className="flex flex-col gap-2 py-1.5">

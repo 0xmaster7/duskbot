@@ -9,10 +9,11 @@ import { t } from "@/lib/i18n";
 import { localSetupImport } from "@/lib/setup-import";
 import { api, useStore } from "@/state/store";
 import { GROK_EXPORT_MAX_CHARS, GROK_EXPORT_PROMPT, parseGrokExport, type GrokBot } from "../../shared/grok-import";
+import { dialogPrimaryCls, formBodyCls, formCloseCls, formFooterCls, formHeaderCls, formSheetCls, formTitleCls, mdPrimaryCls, mdSecondaryCls, rowButtonCls, rowHintCls, textAreaCls } from "./ui/GrokDialog";
 
-const PRIMARY = "ui-button ui-button-primary min-h-9 px-4 text-[14px]";
-const SECONDARY = "ui-button min-h-9 px-4 text-[14px]";
-const LINE = "text-[13px] leading-relaxed text-ink-secondary";
+const PRIMARY = mdPrimaryCls;
+const SECONDARY = mdSecondaryCls;
+const LINE = cn(rowHintCls, "m-0 text-pretty");
 
 /** A Bot as one heading and a count per kind; a kind it has none of is left out. */
 export function BotCounts({ heading, skills, routines, memories, notes, skillsOff }: {
@@ -22,12 +23,12 @@ export function BotCounts({ heading, skills, routines, memories, notes, skillsOf
     [t("grokMove.count.skills"), skills], [t("grokMove.count.routines"), routines], [t("grokMove.count.memories"), memories], [t("grokMove.count.notes"), notes],
   ] as const;
   return (
-    <section data-grok-move-bot className="flex flex-col gap-1.5">
-      <h3 className="break-words text-[15px] font-semibold text-ink">{heading}</h3>
-      <dl className="flex flex-col gap-1 text-[14px]">
+    <section data-grok-move-bot className="flex flex-col gap-1">
+      <h3 className="m-0 break-words text-[13px] font-semibold leading-[18px] text-ink">{heading}</h3>
+      <dl className="m-0 flex flex-col gap-1 text-[13px] leading-[18px]">
         {rows.filter(([, count]) => count > 0).map(([label, count]) => (
           <div key={label} className="flex items-baseline justify-between gap-4">
-            <dt className="text-ink-secondary">{label}</dt>
+            <dt className="text-ink/68">{label}</dt>
             <dd className="tabular-nums text-ink">{count}</dd>
           </div>
         ))}
@@ -63,32 +64,32 @@ function BringBack({ local, look, found, reply, error, onReply, onFile, onFound 
   const { state: copied, copy } = useCopyFeedback(GROK_EXPORT_PROMPT);
   return (
     <>
-      <p className="text-[13px] leading-relaxed text-ink-secondary">{t("grokMove.intro")}</p>
-      <section className="flex flex-col items-start gap-1.5">
-        <h3 className="text-[14px] font-medium text-ink">{t("grokMove.step1")}</h3>
-        <p className="text-[13px] leading-relaxed text-ink-secondary">{t("grokMove.step1Hint")}</p>
-        {local && look.bots.length > 0 && <p data-grok-move-roster className="text-[13px] text-ink-secondary">{t("grokMove.roster", { names: look.bots.join(", ") })}</p>}
-        <button type="button" data-grok-move-copy onClick={copy} className={cn(SECONDARY, "mt-1 inline-flex items-center gap-2")}>
-          {copied === "copied" ? <Check size={15} /> : <Copy size={15} />}
+      <p className={LINE}>{t("grokMove.intro")}</p>
+      <section className="flex flex-col items-start gap-1">
+        <h3 className="m-0 text-[13px] font-medium leading-[18px] text-ink">{t("grokMove.step1")}</h3>
+        <p className={LINE}>{t("grokMove.step1Hint")}</p>
+        {local && look.bots.length > 0 && <p data-grok-move-roster className={LINE}>{t("grokMove.roster", { names: look.bots.join(", ") })}</p>}
+        <button type="button" data-grok-move-copy onClick={copy} className={cn(rowButtonCls, "mt-1 gap-1.5")}>
+          {copied === "copied" ? <Check size={14} /> : <Copy size={14} />}
           {copied === "copied" ? t("grokMove.copied") : copied === "failed" ? t("grokMove.copyFailed") : t("grokMove.copy")}
         </button>
       </section>
-      <section className="flex flex-col gap-1.5">
-        <h3 className="text-[14px] font-medium text-ink">{t("grokMove.step2")}</h3>
-        <p className="text-[13px] leading-relaxed text-ink-secondary">{t("grokMove.step2Hint")}</p>
+      <section className="flex flex-col gap-1">
+        <h3 className="m-0 text-[13px] font-medium leading-[18px] text-ink">{t("grokMove.step2")}</h3>
+        <p className={LINE}>{t("grokMove.step2Hint")}</p>
         {found.bots.length > 0 && (
-          <div data-grok-move-found className="mt-1 flex items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/[0.06] px-3 py-2">
-            <span className="min-w-0 break-words text-[13px] text-ink">{t("grokMove.found", { names: found.bots.map((bot) => bot.name).join(", ") })}</span>
-            <button type="button" data-grok-move-use-found onClick={onFound} className={cn(PRIMARY, "shrink-0")}>{t("grokMove.useFound")}</button>
+          <div data-grok-move-found className="mt-1 flex items-center justify-between gap-3 rounded-[10px] border border-ink/12 bg-ink/4 py-1.5 pl-[9px] pr-1.5">
+            <span className="min-w-0 break-words text-[13px] leading-[18px] text-ink">{t("grokMove.found", { names: found.bots.map((bot) => bot.name).join(", ") })}</span>
+            <button type="button" data-grok-move-use-found onClick={onFound} className={cn(rowButtonCls, "shrink-0")}>{t("grokMove.useFound")}</button>
           </div>
         )}
-        {found.refused.map((item) => <p key={item.file} role="alert" className="text-[13px] leading-relaxed text-danger">{t("grokMove.refused", { file: item.file, reason: item.error })}</p>)}
+        {found.refused.map((item) => <p key={item.file} role="alert" className="m-0 text-[12px] leading-4 text-danger">{t("grokMove.refused", { file: item.file, reason: item.error })}</p>)}
         <textarea value={reply} onChange={(event) => onReply(event.target.value)} rows={4}
           aria-label={t("grokMove.replyLabel")} placeholder={t("grokMove.replyPlaceholder")}
-          className="mt-1 w-full resize-y rounded-xl border border-hairline/40 bg-inset px-3 py-2.5 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none" />
-        {error && <p role="alert" className="text-[13px] leading-relaxed text-danger">{error}</p>}
+          className={cn(textAreaCls, "mt-1 resize-y")} />
+        {error && <p role="alert" className="m-0 text-[12px] leading-4 text-danger">{error}</p>}
         <div>
-          <button type="button" onClick={() => picker.current?.click()} className={cn(SECONDARY, "inline-flex items-center gap-2")}><FileUp size={15} />{t("grokMove.chooseFile")}</button>
+          <button type="button" onClick={() => picker.current?.click()} className={cn(rowButtonCls, "gap-1.5")}><FileUp size={14} />{t("grokMove.chooseFile")}</button>
           <input ref={picker} type="file" accept=".json,.md,.txt,application/json,text/plain,text/markdown" className="hidden" onChange={(event) => { onFile(event.target.files?.[0]); event.target.value = ""; }} />
         </div>
       </section>
@@ -174,7 +175,8 @@ export function GrokMoveDialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="ui-scrim fixed inset-0 z-[60] flex items-center justify-center p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !importing) onClose(); }}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !importing) onClose(); }}>
+      <div aria-hidden="true" className="ui-dialog-scrim pointer-events-none absolute inset-0" />
       <div ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="grok-move-title" data-grok-move={report ? "report" : preview ? "preview" : "start"}
         onKeyDown={(event) => {
           if (event.key !== "Escape" || importing) return;
@@ -183,18 +185,17 @@ export function GrokMoveDialog({ onClose }: { onClose: () => void }) {
           if (preview) setPreview(null);
           else onClose();
         }}
-        className="ui-modal animate-pop-in flex max-h-[min(720px,calc(100dvh-32px))] w-[560px] max-w-full flex-col overflow-hidden text-left outline-none">
-        <div className="flex h-[52px] shrink-0 items-center justify-between pl-4 pr-3">
-          <h2 id="grok-move-title" className="text-[14px] font-semibold leading-[22px] text-ink">
+        className={cn(formSheetCls, "max-h-[min(720px,calc(100dvh-32px))] max-w-[480px] text-left focus-visible:outline-none!")}>
+        <div className={formHeaderCls}>
+          <h2 id="grok-move-title" className={formTitleCls}>
             {preview ? t("grokMove.previewTitle") : t("settings.import.grokTitle")}
           </h2>
           <button type="button" disabled={importing} onClick={onClose} aria-label={t("common.close")} title={t("common.close")}
-            className="flex size-7 items-center justify-center rounded-full text-ink-secondary transition-colors hover:bg-ink/[0.06] hover:text-ink disabled:opacity-40">
+            className={cn(formCloseCls, "disabled:opacity-40")}>
             <X size={16} />
           </button>
         </div>
-        <div className="ui-modal-divider shrink-0" />
-        <div key={report ? "report" : preview ? "preview" : "start"} data-grok-move-body className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 [scrollbar-width:thin]">
+        <div key={report ? "report" : preview ? "preview" : "start"} data-grok-move-body className={cn(formBodyCls, "flex flex-col gap-4")}>
           {report ? (
             <>
               {report.bots.map((bot) => <BotCounts key={bot.name} heading={t("grokMove.isHere", { name: bot.name })} {...bot} />)}
@@ -215,8 +216,7 @@ export function GrokMoveDialog({ onClose }: { onClose: () => void }) {
               onFile={(file) => readFile.current(file)} onFound={() => void show(() => found.bots)} />
           )}
         </div>
-        <div className="ui-modal-divider shrink-0" />
-        <div className="flex shrink-0 justify-end gap-2 p-3">
+        <div className={formFooterCls}>
           {report ? (
             <>
               <button type="button" data-grok-move-another onClick={another} className={SECONDARY}>{t("grokMove.another")}</button>
@@ -225,13 +225,13 @@ export function GrokMoveDialog({ onClose }: { onClose: () => void }) {
           ) : preview ? (
             <>
               <button type="button" disabled={importing} onClick={() => setPreview(null)} className={SECONDARY}>{t("grokMove.back")}</button>
-              <button type="button" data-grok-move-import disabled={importing || !preview.plans.length} onClick={() => void start()} className={cn(PRIMARY, "inline-flex items-center gap-2")}>
-                {importing && <Loader2 size={15} className="animate-spin" />}
+              <button type="button" data-grok-move-import disabled={importing || !preview.plans.length} onClick={() => void start()} className={cn(PRIMARY, "gap-1.5")}>
+                {importing && <Loader2 size={14} className="animate-spin" />}
                 {importing ? t("grokMove.importing") : t("grokMove.import")}
               </button>
             </>
           ) : (
-            <button type="button" data-grok-move-continue disabled={!reply.trim()} onClick={() => void show(() => parseGrokExport(reply))} className={PRIMARY}>{t("onboarding.continue")}</button>
+            <button type="button" data-grok-move-continue disabled={!reply.trim()} onClick={() => void show(() => parseGrokExport(reply))} className={dialogPrimaryCls}>{t("onboarding.continue")}</button>
           )}
         </div>
       </div>

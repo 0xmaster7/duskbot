@@ -37,12 +37,13 @@ const type = (value: string) => {
 };
 
 describe("the Instructions dialog", () => {
-  it("is Grok's settings sheet: a titled, described dialog with no rule under the header or over the footer", () => {
+  it("on its own is Grok's form dialog: a 14px titled, described sheet with no rule under the header or over the footer", () => {
     mount({});
     expect(sheet().getAttribute("role")).toBe("dialog");
     expect(sheet().className).toContain("rounded-[14px]");
-    expect(sheet().className).toContain("bg-app");
-    expect(sheet().querySelector("h2")!.className).toContain("text-[17px]");
+    expect(sheet().className).toContain("bg-menu");
+    expect(sheet().querySelector("h2")!.className).toContain("text-[14px]");
+    expect(sheet().querySelector('button[aria-label="Close"]')!.className).toContain("size-6");
     expect(document.getElementById(sheet().getAttribute("aria-describedby")!)!.textContent).toBe("How should Scout work? What should it always or never do?");
     expect(sheet().querySelector(".border-b, .border-t")).toBeNull();
     expect(document.activeElement).toBe(field());
@@ -58,11 +59,13 @@ describe("the Instructions dialog", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it("shows the size only near the limit", () => {
+  it("shows the size only once it is too long to save", () => {
     mount({});
-    expect(sheet().querySelector("[data-instructions-count]")).toBeNull();
     type("x".repeat(20_000));
-    expect(sheet().querySelector("[data-instructions-count]")!.textContent).toBe("20,000 / 24,000");
+    expect(sheet().querySelector("[data-instructions-count]")).toBeNull();
+    type("x".repeat(24_001));
+    expect(sheet().querySelector("[data-instructions-count]")!.textContent).toBe("Too long to save. 24,001 / 24,000");
+    expect(save().disabled).toBe(true);
   });
 
   it("leaves the instructions as they were on Escape or the close button", () => {

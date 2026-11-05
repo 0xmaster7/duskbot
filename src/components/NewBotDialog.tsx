@@ -32,6 +32,7 @@ import { LocalComputerAutoWarning } from "./LocalComputerAutoWarning";
 import { SharePresetDialog } from "./SharePresetDialog";
 import { SettingRow } from "./SettingsPrimitives";
 import { Select } from "./Select";
+import { formCloseCls, formFooterCls, formHeaderCls, formTitleCls, mdPrimaryCls, mdSecondaryCls } from "./ui/GrokDialog";
 
 const SECTIONS = ["Identity", "Soul", "Skills", "Memory", "Routines", "Access", "Model", "Permissions", "Voice & alerts"] as const;
 type Section = typeof SECTIONS[number];
@@ -149,17 +150,18 @@ export function NewBotDialog({ defaultsMode = false, onClose, onCreated, readyBo
     },
   };
   const title = defaultsMode ? t("newBot.defaults") : t("sidebar.newBot");
-  return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-3 sm:p-5" hidden={!defaultsMode && parent.state.appSettingsOpen}>
+  return <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4" hidden={!defaultsMode && parent.state.appSettingsOpen}>
+    <div aria-hidden="true" className="ui-dialog-scrim pointer-events-none absolute inset-0" />
     <div ref={dialog} role="dialog" aria-modal="true" aria-label={title} aria-busy={saving} tabIndex={-1}
-      className="flex h-[min(760px,94dvh)] w-full max-w-[900px] flex-col overflow-hidden rounded-2xl border border-hairline/50 bg-panel shadow-2xl outline-none">
-      <div className="flex shrink-0 items-center justify-between border-b border-hairline/40 px-5 py-4">
-        <h2 className="text-[17px] font-semibold text-ink">{title}</h2>
+      className="relative flex h-[min(700px,94dvh)] w-full max-w-[900px] flex-col overflow-hidden rounded-[14px] border border-ink/12 bg-app text-[13px] font-[425] leading-[18px] text-ink outline-none focus-visible:outline-none!">
+      <div className={formHeaderCls}>
+        <h2 className={formTitleCls}>{title}</h2>
         <button type="button" onClick={() => closeRef.current()} aria-label={t("common.close")}
-          className="flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-40"><X size={18} className="pointer-events-none" /></button>
+          className={cn(formCloseCls, "disabled:opacity-40")}><X size={16} className="pointer-events-none" /></button>
       </div>
         {team && !defaultsMode && teamName && <SharedInTeam team={teamName} />}
         {choosesVisibility && (
-          <div className="flex flex-wrap items-center gap-2 px-5 pt-3 text-[13px] text-ink-secondary" data-new-bot-visibility>
+          <div className="flex flex-wrap items-center gap-2 px-4 pb-2 text-[13px] leading-[18px] text-ink/68" data-new-bot-visibility>
             <label className="flex items-center gap-2">
               {t("botSettings.visibility.title")}
               <Select size="sm"
@@ -179,18 +181,18 @@ export function NewBotDialog({ defaultsMode = false, onClose, onCreated, readyBo
                 onChange={(event) => setPeople(event.target.value)}
                 placeholder={t("botSettings.visibility.peoplePlaceholder")}
                 aria-label={t("botSettings.visibility.peopleLabel")}
-                className="min-w-[16rem] flex-1 rounded-lg border border-hairline/40 bg-inset px-3 py-1.5 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none"
+                className="h-7 min-w-[16rem] flex-1 rounded-[10px] border border-ink/12 bg-menu px-[9px] text-[13px] leading-[18px] text-ink outline-none transition-[border-color] duration-[120ms] ease-[ease] placeholder:text-ink/40 focus:border-ink/40"
               />
             )}
           </div>
         )}
       <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
-        <nav aria-label={t("newBot.sections")} className="flex shrink-0 gap-1 overflow-x-auto border-b border-hairline/40 p-2 sm:w-40 sm:flex-col sm:border-b-0 sm:border-r">
+        <nav aria-label={t("newBot.sections")} className="flex shrink-0 gap-0.5 overflow-x-auto border-b border-ink/8 px-3 py-2 sm:w-44 sm:flex-col sm:border-b-0 sm:border-r">
           {sections.map(label => <button key={label} type="button" onClick={() => setActive(label)} aria-current={active === label ? "page" : undefined}
-            className={cn("shrink-0 rounded-lg px-3 py-2 text-left text-[13px]", active === label ? "bg-control text-ink" : "text-ink-secondary hover:bg-control/50")}>{t(SECTION_KEYS[label])}</button>)}
+            className={cn("flex h-8 shrink-0 cursor-pointer items-center rounded-[8px] px-[9px] text-left text-[13px] leading-[18px] tracking-[0.195px] text-ink transition-[background-color] duration-[120ms] ease-[ease] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus", active === label ? "bg-ink/8" : "hover:bg-ink/6")}>{t(SECTION_KEYS[label])}</button>)}
         </nav>
-        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4 sm:p-5">
-          {!ready && !error && <div role="status" className="flex items-center gap-2 text-[13px] text-ink-secondary"><Loader2 size={16} className="animate-spin" />{t("newBot.loading")}</div>}
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-3 sm:px-6 sm:py-4">
+          {!ready && !error && <div role="status" className="flex items-center gap-2 text-[13px] leading-[18px] text-ink/68"><Loader2 size={14} className="animate-spin" />{t("newBot.loading")}</div>}
           {ready && <fieldset disabled={saving} className="min-w-0">
             <BotEditorStore value={scopedStore}><BotEditorContext.Provider value={{ request: draft.request, draft: true, uploadAvatar: draft.uploadAvatar }}>
               <DraftSection active={active} draft={draft} defaultsMode={defaultsMode}
@@ -199,12 +201,12 @@ export function NewBotDialog({ defaultsMode = false, onClose, onCreated, readyBo
           </fieldset>}
         </div>
       </div>
-      {error && <p role="alert" className="max-h-24 overflow-y-auto border-t border-hairline/40 px-5 py-3 text-[13px] text-danger">{error}</p>}
-      <div className="flex shrink-0 justify-end gap-2 border-t border-hairline/40 px-5 py-3">
-        <button type="button" onClick={() => closeRef.current()} className="rounded-lg px-4 py-2 text-[13px] text-ink-secondary hover:bg-control">{t("common.cancel")}</button>
+      {error && <p role="alert" className="m-0 max-h-24 shrink-0 overflow-y-auto px-4 pt-2.5 text-[12px] leading-4 text-danger">{error}</p>}
+      <div className={formFooterCls}>
+        <button type="button" onClick={() => closeRef.current()} className={mdSecondaryCls}>{t("common.cancel")}</button>
         <button type="button" disabled={!ready || saving || (!defaultsMode && !bot.name.trim())} onClick={() => void save()}
-          className="ui-button-primary flex items-center gap-2 rounded-lg bg-accent px-5 py-2 text-[13px] font-medium text-white hover:brightness-110 disabled:opacity-40">
-          {saving && <Loader2 size={15} className="animate-spin" />}{t(defaultsMode ? "newBot.saveDefaults" : "newBot.create")}
+          className={cn(mdPrimaryCls, "gap-1.5")}>
+          {saving && <Loader2 size={14} className="animate-spin" />}{t(defaultsMode ? "newBot.saveDefaults" : "newBot.create")}
         </button>
       </div>
       <LocalComputerAutoWarning open={warning === "local"} onCancel={() => setWarning(null)} onConfirm={() => { draft.consent.acknowledgeLocalAuto = true; setWarning(null); void save(); }} />
@@ -214,10 +216,10 @@ export function NewBotDialog({ defaultsMode = false, onClose, onCreated, readyBo
 
 function SharedInTeam({ team }: { team: string }) {
   const bridge = typeof window === "undefined" ? undefined : window.ogb?.workspaces;
-  return <div data-new-bot-shared className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-hairline/40 bg-raised/30 px-5 py-2.5 text-[13px] text-ink-secondary">
+  return <div data-new-bot-shared className="flex flex-wrap items-center gap-x-2 gap-y-1 px-4 pb-2 text-[12px] leading-4 tracking-[0.01em] text-ink/56">
     <span>{t("newBot.sharedWith", { team })}</span>
     {bridge
-      ? <button type="button" onClick={() => void openServerMenu(bridge).catch(() => {})} className="font-medium text-accent hover:underline">{t("newBot.justForYou")}</button>
+      ? <button type="button" onClick={() => void openServerMenu(bridge).catch(() => {})} className="rounded-sm text-ink/80 underline-offset-2 hover:text-ink hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{t("newBot.justForYou")}</button>
       : <span>{t("newBot.justForYou").replace(/\s*→$/, "")}</span>}
   </div>;
 }

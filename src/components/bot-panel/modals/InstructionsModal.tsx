@@ -6,9 +6,9 @@ import { t } from "@/lib/i18n";
 import { soulPatchFor, utf8Bytes } from "@/lib/soul";
 import type { Bot } from "@/state/store";
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
-import { dialogPrimaryCls, footnoteCls, GrokDialog, textAreaCls } from "../../ui/GrokDialog";
+import { footnoteCls, GrokDialog, mdPrimaryCls, textAreaCls } from "../../ui/GrokDialog";
 
-/** The bot's instructions in a roomy editor: a draft until Save, so Escape or another page leaves them as they were. */
+/** The bot's instructions in a plain field: a draft until Save, so Escape or another page leaves them as they were. */
 export function InstructionsModal({ bot, derived, onClose }: {
   bot: Bot;
   derived: ReturnType<typeof useBotSettingsDerived>;
@@ -22,7 +22,6 @@ export function InstructionsModal({ bot, derived, onClose }: {
   const over = bytes > limit;
   const editable = bot.yourAccess !== "view";
   const canSave = editable && !over && draft !== saved;
-  const nearLimit = bytes > limit * 0.8;
   const prompt = t("botSettings.simple.instructionsPlaceholder", { name: bot.name });
 
   const save = () => {
@@ -41,16 +40,12 @@ export function InstructionsModal({ bot, derived, onClose }: {
       onClose={onClose}
       footer={(
         <>
-          {nearLimit && (
-            <span
-              data-instructions-count
-              aria-live="polite"
-              className={cn("mr-auto pl-2 text-[12px] leading-4 tabular-nums tracking-[0.01em]", over ? "text-danger" : "text-ink/56")}
-            >
-              {over ? `Too long to save. ${bytes.toLocaleString()} / ${limit.toLocaleString()}` : `${bytes.toLocaleString()} / ${limit.toLocaleString()}`}
+          {over && (
+            <span data-instructions-count aria-live="polite" className="mr-auto pl-2 text-[12px] leading-4 tabular-nums tracking-[0.01em] text-danger">
+              {`Too long to save. ${bytes.toLocaleString()} / ${limit.toLocaleString()}`}
             </span>
           )}
-          <button type="button" data-modal-action="save" disabled={!canSave} onClick={save} className={dialogPrimaryCls}>
+          <button type="button" data-modal-action="save" disabled={!canSave} onClick={save} className={mdPrimaryCls}>
             {justSaved && !canSave ? t("common.saved") : t("common.save")}
           </button>
         </>
@@ -70,7 +65,7 @@ export function InstructionsModal({ bot, derived, onClose }: {
             save();
           }
         }}
-        className={cn(textAreaCls, "min-h-[200px] flex-1", over && "border-danger/60 focus:border-danger/70!")}
+        className={cn(textAreaCls, "h-60", over && "border-danger/60 focus:border-danger/70!")}
       />
       {!editable && <p className={cn(footnoteCls, "mt-3")}>Only people who can edit {bot.name} can change this.</p>}
     </GrokDialog>

@@ -102,11 +102,12 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("voice set-up pop-up", () => {
-  it("is a glass pop-up holding the bot's own voice settings", () => {
+  it("is Grok's form dialog holding the bot's own voice settings", () => {
     const { html } = render();
     expect(html).toContain("glass-popup-frame");
-    expect(html).toContain("glass-scrim");
-    expect(html).toContain("glass-surface");
+    expect(html).toContain("ui-dialog-scrim");
+    expect(html).toContain("rounded-[14px]");
+    expect(html).not.toContain("glass-surface");
     expect(html).toMatch(/role="dialog" aria-modal="true"/);
     expect(html).toContain("Give Pepper a voice");
     expect(html).toContain("Choose a voice provider, add its key if it needs one, then pick a voice.");
@@ -283,7 +284,6 @@ describe("voice set-up pop-up", () => {
     const view = render({ ready: true, callName: "Standup" });
     expect(view.html).toContain('role="status"');
     expect(view.html).toContain("Voice is ready. You can call Standup now.");
-    expect(view.html).toContain('data-state="happy"');
     click(byAttribute(view, "data-voice-setup-start"));
     expect(view.props.onStartCall).toHaveBeenCalledOnce();
     expect(view.props.onClose).not.toHaveBeenCalled();

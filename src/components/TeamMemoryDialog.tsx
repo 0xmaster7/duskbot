@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Brain, Check, Loader2, Pin, Plus, Trash2, X } from "lucide-react";
+import { Check, Loader2, Pin, Plus, Trash2, X } from "lucide-react";
 
 
 import { api } from "@/state/store";
@@ -8,6 +8,7 @@ import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { cn } from "@/lib/cn";
 import { Select } from "./Select";
+import { footnoteCls, formBodyCls, formCloseCls, formHeaderCls, formSheetCls, formTitleCls, listCardCls, mdPrimaryCls, mdSecondaryCls, rowHintCls, smallButtonCls, textFieldCls } from "./ui/GrokDialog";
 
 type Kind = "person" | "place" | "decision" | "term";
 
@@ -32,6 +33,11 @@ const KINDS: Array<{ kind: Kind; titleKey: LocaleKey; hintKey: LocaleKey }> = [
   { kind: "decision", titleKey: "teamMemory.kind.decisions", hintKey: "teamMemory.kind.decisionsHint" },
   { kind: "term", titleKey: "teamMemory.kind.terms", hintKey: "teamMemory.kind.termsHint" },
 ];
+
+const sectionLabelCls = "m-0 pl-3.5 text-[12px] font-normal leading-4 tracking-[0.01em] text-ink/68";
+const rowCls = "flex items-start gap-3 px-3.5 py-2.5";
+const metaCls = "mt-0.5 block text-[12px] leading-4 text-ink/56";
+const iconButtonCls = "flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-[6px] text-ink/68 transition-[background-color,color] duration-[120ms] ease-[ease] enabled:hover:bg-ink/6 enabled:hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus disabled:cursor-default disabled:opacity-50 aria-pressed:text-ink";
 
 export function TeamMemoryDialog({ section, label, onClose }: { section: string; label: string; onClose: () => void }) {
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -136,7 +142,7 @@ export function TeamMemoryDialog({ section, label, onClose }: { section: string;
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px] sm:p-6"
+      className="ui-dialog-scrim fixed inset-0 z-50 flex items-center justify-center p-4"
       onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
       <div
@@ -145,64 +151,45 @@ export function TeamMemoryDialog({ section, label, onClose }: { section: string;
         aria-modal="true"
         aria-labelledby="team-memory-title"
         tabIndex={-1}
-        className="animate-pop-in flex max-h-[min(720px,calc(100dvh-2rem))] w-full max-w-[720px] flex-col overflow-hidden rounded-2xl border border-hairline/50 bg-panel shadow-2xl shadow-black/50 outline-none"
+        className={cn(formSheetCls, "max-h-[min(720px,calc(100dvh-32px))] max-w-[560px]", "focus-visible:outline-none!")}
       >
-        <header className="flex items-start justify-between gap-4 border-b border-hairline/40 px-6 pb-4 pt-6 sm:px-8 sm:pt-7">
-          <div>
-            <div className="flex items-center gap-2">
-              <Brain size={19} className="text-accent" />
-              <h2 id="team-memory-title" className="text-[20px] font-semibold tracking-[-0.01em] text-ink">
-                {t("teamMemory.title", { name: label })}
-              </h2>
-            </div>
-            <p className="mt-1.5 max-w-[560px] text-[13px] leading-relaxed text-ink-secondary">
-              {t("teamMemory.description")}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label={t("teamMemory.close")}
-            className="flex size-9 shrink-0 items-center justify-center rounded-lg text-ink-secondary hover:bg-raised hover:text-ink"
-          >
-            <X size={19} />
+        <header className={formHeaderCls}>
+          <h2 id="team-memory-title" className={formTitleCls}>{t("teamMemory.title", { name: label })}</h2>
+          <button onClick={onClose} aria-label={t("teamMemory.close")} className={formCloseCls}>
+            <X size={16} />
           </button>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 sm:px-8">
+        <div className={cn(formBodyCls, "flex flex-col gap-5 pb-4")}>
+          <div className="flex flex-col gap-1">
+            <p className={cn(rowHintCls, "m-0 text-pretty")}>{t("teamMemory.description")}</p>
+            {entries && <p className={cn(footnoteCls, "pl-0")}>{t("teamMemory.loadedSummary", { loaded: loadedIds.length, total: entries.filter(entry => entry.status === "accepted").length })}</p>}
+            {error && <p role="alert" className="m-0 text-[12px] leading-4 text-danger">{error} <button onClick={() => void load()} className="cursor-pointer underline">{t("teamMemory.reload")}</button></p>}
+            {Object.entries(unsaved).map(([id, draft]) => <p key={id} className={cn(footnoteCls, "pl-0")}><strong className="font-medium text-ink">{draft.name}</strong> · {t("teamMemory.unsaved", { text: draft.text })}</p>)}
+          </div>
           {entries === null && !error && (
-            <div className="flex min-h-[200px] items-center justify-center text-ink-secondary">
-              <Loader2 size={20} className="animate-spin" aria-label={t("teamMemory.loading")} />
+            <div className="flex min-h-[120px] items-center justify-center text-ink/56">
+              <Loader2 size={16} className="animate-spin" aria-label={t("teamMemory.loading")} />
             </div>
           )}
-          {entries && <p className="mb-3 text-[12px] text-ink-secondary">{t("teamMemory.loadedSummary", { loaded: loadedIds.length, total: entries.filter(entry => entry.status === "accepted").length })}</p>}
-          {error && <div role="alert" className="mb-3 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[12px] text-danger">{error} <button onClick={() => void load()} className="underline">{t("teamMemory.reload")}</button></div>}
-          {Object.entries(unsaved).map(([id, draft]) => <p key={id} className="mb-3 text-[12px] text-ink-secondary"><strong>{draft.name}</strong> · {t("teamMemory.unsaved", { text: draft.text })}</p>)}
 
           {proposed.length > 0 && (
-            <section className="mb-5 rounded-xl border border-accent/30 bg-accent/5 p-3">
-              <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-accent">{t("teamMemory.waiting")}</h3>
-              <ul className="mt-2 space-y-2">
+            <section className="flex flex-col gap-2">
+              <h3 className={sectionLabelCls}>{t("teamMemory.waiting")}</h3>
+              <ul className={cn(listCardCls, "m-0 list-none p-0 py-2")}>
                 {proposed.map((entry) => (
-                  <li key={entry.id} className="flex items-start gap-3 text-[13px]">
-                    <span className="min-w-0 flex-1">
-                      <span className="text-ink-secondary">{t(`teamMemory.kind.${entry.kind}`)}: </span>
-                      <span className="font-medium text-ink">{entry.name}</span>
-                      {entry.aliases.length > 0 && <span className="text-ink-secondary"> ({t("teamMemory.also")} {entry.aliases.join(", ")})</span>}
-                      <span className="text-ink"> — {entry.detail}</span>
-                      <span className="block text-[11px] text-ink-secondary">{t("teamMemory.source", { name: entry.source.botName })}{entry.source.quote && ` · ${t("teamMemory.sourceQuote", { quote: entry.source.quote })}`}</span>
+                  <li key={entry.id} className={rowCls}>
+                    <span className="min-w-0 flex-1 text-[13px] leading-[18px]">
+                      <span className="text-ink/68">{t(`teamMemory.kind.${entry.kind}`)}: </span>
+                      <span className="text-ink">{entry.name}</span>
+                      {entry.aliases.length > 0 && <span className="text-ink/68"> ({t("teamMemory.also")} {entry.aliases.join(", ")})</span>}
+                      <span className="block text-ink">{entry.detail}</span>
+                      <span className={metaCls}>{t("teamMemory.source", { name: entry.source.botName })}{entry.source.quote && ` · ${t("teamMemory.sourceQuote", { quote: entry.source.quote })}`}</span>
                     </span>
-                    <button
-                      onClick={() => void accept(entry)}
-                      disabled={busyId !== null}
-                      className="flex shrink-0 items-center gap-1 rounded-md bg-accent px-2.5 py-1 text-[12px] font-medium text-white disabled:opacity-50"
-                    >
+                    <button onClick={() => void accept(entry)} disabled={busyId !== null} className={smallButtonCls}>
                       <Check size={12} /> {t("teamMemory.remember")}
                     </button>
-                    <button
-                      onClick={() => void remove(entry)}
-                      disabled={busyId !== null}
-                      className="shrink-0 rounded-md px-2 py-1 text-[12px] text-ink-secondary hover:text-ink disabled:opacity-50"
-                    >
+                    <button onClick={() => void remove(entry)} disabled={busyId !== null} className={cn(smallButtonCls, "bg-transparent shadow-none text-ink/68 enabled:hover:text-ink")}>
                       {t("teamMemory.skip")}
                     </button>
                   </li>
@@ -212,25 +199,23 @@ export function TeamMemoryDialog({ section, label, onClose }: { section: string;
           )}
 
           {entries !== null && entries.filter((entry) => entry.status === "accepted").length === 0 && proposed.length === 0 && (
-            <div className="rounded-xl bg-inset px-4 py-6 text-center text-[13px] text-ink-secondary">
-              {t("teamMemory.empty")}
-            </div>
+            <p className={cn(rowHintCls, "m-0 py-3 text-center")}>{t("teamMemory.empty")}</p>
           )}
 
           {KINDS.map(({ kind, titleKey, hintKey }) => {
             const rows = (entries ?? []).filter((entry) => entry.status === "accepted" && entry.kind === kind);
             if (rows.length === 0) return null;
             return (
-              <section key={kind} className="mb-5">
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-secondary" title={t(hintKey)}>
+              <section key={kind} className="flex flex-col gap-2">
+                <h3 className={sectionLabelCls} title={t(hintKey)}>
                   {t(titleKey)}
                 </h3>
-                <ul className="mt-2 divide-y divide-hairline/20 rounded-xl bg-inset">
+                <ul className={cn(listCardCls, "m-0 list-none p-0 py-2")}>
                   {rows.map((entry) => (
-                    <li key={entry.id} className="flex items-start gap-3 px-3 py-2 text-[13px]">
-                      <span className="min-w-0 flex-1">
-                        <span className="font-medium text-ink">{entry.name}</span>
-                        {entry.aliases.length > 0 && <span className="text-ink-secondary"> ({t("teamMemory.also")} {entry.aliases.join(", ")})</span>}
+                    <li key={entry.id} className={rowCls}>
+                      <span className="min-w-0 flex-1 text-[13px] leading-[18px]">
+                        <span className="text-ink">{entry.name}</span>
+                        {entry.aliases.length > 0 && <span className="text-ink/68"> ({t("teamMemory.also")} {entry.aliases.join(", ")})</span>}
                         <input
                           key={entry.revision}
                           defaultValue={entry.detail}
@@ -240,21 +225,21 @@ export function TeamMemoryDialog({ section, label, onClose }: { section: string;
                             if (event.key === "Enter") (event.target as HTMLInputElement).blur();
                           }}
                           aria-label={`${entry.name} detail`}
-                          className="mt-0.5 block w-full rounded bg-transparent px-1 py-0.5 text-[13px] text-ink outline-none hover:bg-card focus:bg-card"
+                          className="-mx-1 mt-0.5 block w-[calc(100%+8px)] rounded-[6px] bg-transparent px-1 py-0.5 text-[13px] leading-[18px] text-ink/68 outline-none transition-[background-color] duration-[120ms] ease-[ease] hover:bg-ink/4 focus:bg-ink/4 focus:text-ink"
                         />
-                        <span className="block px-1 text-[11px] text-ink-secondary">
+                        <span className={metaCls}>
                           {entry.source.botName || t("teamMemory.you")} · {new Date(entry.updatedAt).toLocaleDateString()} · {loadedIds.includes(entry.id) ? t("teamMemory.loaded") : t("teamMemory.searchable")}
                         </span>
-                        {!!entry.history?.length && <details className="mt-1 text-[11px] text-ink-secondary"><summary>{t("teamMemory.history")}</summary>{entry.history.map((version, index) => <div key={index} className="mt-1">{new Date(version.at).toLocaleDateString()}: {version.name} — {version.detail} <button disabled={busyId !== null} onClick={() => editDetail(entry, version.detail, version.name)} className="underline">{t("teamMemory.restore")}</button></div>)}</details>}
+                        {!!entry.history?.length && <details className="mt-1 text-[12px] leading-4 text-ink/56"><summary className="cursor-pointer">{t("teamMemory.history")}</summary>{entry.history.map((version, index) => <div key={index} className="mt-1">{new Date(version.at).toLocaleDateString()}: {version.name} · {version.detail} <button disabled={busyId !== null} onClick={() => editDetail(entry, version.detail, version.name)} className="cursor-pointer underline">{t("teamMemory.restore")}</button></div>)}</details>}
                       </span>
-                      <button aria-label={t(entry.pinned ? "teamMemory.unpin" : "teamMemory.pin", { name: entry.name })} aria-pressed={entry.pinned ?? false} disabled={busyId !== null} className="p-1 text-ink-secondary hover:text-accent" onClick={() => void run(entry.id, () => api(`/api/team-memory/${entry.id}?${query}`, { method: "PATCH", body: JSON.stringify({ pinned: !entry.pinned, expectedRevision: entry.revision }) }))}><Pin size={13} /></button>
+                      <button aria-label={t(entry.pinned ? "teamMemory.unpin" : "teamMemory.pin", { name: entry.name })} aria-pressed={entry.pinned ?? false} disabled={busyId !== null} className={iconButtonCls} onClick={() => void run(entry.id, () => api(`/api/team-memory/${entry.id}?${query}`, { method: "PATCH", body: JSON.stringify({ pinned: !entry.pinned, expectedRevision: entry.revision }) }))}><Pin size={14} /></button>
                       <button
                         onClick={() => void remove(entry)}
                         disabled={busyId !== null}
                         aria-label={t("teamMemory.remove", { name: entry.name })}
-                        className="shrink-0 rounded-md p-1 text-ink-secondary hover:text-danger disabled:opacity-50"
+                        className={iconButtonCls}
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={14} />
                       </button>
                     </li>
                   ))}
@@ -264,7 +249,7 @@ export function TeamMemoryDialog({ section, label, onClose }: { section: string;
           })}
 
           {adding ? (
-            <div className="rounded-xl border border-hairline/40 bg-card p-3">
+            <div className={cn(listCardCls, "gap-2 p-3")}>
               <div className="flex flex-wrap items-center gap-2">
                 <Select size="sm"
                   value={draft.kind}
@@ -282,7 +267,7 @@ export function TeamMemoryDialog({ section, label, onClose }: { section: string;
                   onChange={(event) => setDraft({ ...draft, name: event.target.value })}
                   placeholder={t("teamMemory.namePlaceholder")}
                   aria-label={t("teamMemory.nameLabel")}
-                  className="min-w-[140px] flex-1 rounded-lg border border-hairline/40 bg-inset px-2 py-1 text-[13px] text-ink outline-none focus:border-accent"
+                  className={cn(textFieldCls, "w-auto min-w-[140px] flex-1")}
                 />
               </div>
               <input
@@ -293,27 +278,27 @@ export function TeamMemoryDialog({ section, label, onClose }: { section: string;
                 }}
                 placeholder={t("teamMemory.detailPlaceholder")}
                 aria-label={t("teamMemory.detailLabel")}
-                className="mt-2 w-full rounded-lg border border-hairline/40 bg-inset px-2 py-1 text-[13px] text-ink outline-none focus:border-accent"
+                className={textFieldCls}
               />
-              <div className="mt-2 flex items-center gap-2">
+              <div className="flex items-center justify-end gap-2">
+                <button onClick={() => setAdding(false)} className={mdSecondaryCls}>
+                  {t("common.cancel")}
+                </button>
                 <button
                   onClick={add}
                   disabled={busyId !== null || !draft.name.trim() || !draft.detail.trim()}
-                  className="rounded-lg bg-accent px-3 py-1 text-[13px] font-medium text-white disabled:opacity-50"
+                  className={mdPrimaryCls}
                 >
                   {busyId === "new" ? t("teamMemory.adding") : t("teamMemory.add")}
-                </button>
-                <button onClick={() => setAdding(false)} className="text-[13px] text-ink-secondary hover:text-ink">
-                  {t("common.cancel")}
                 </button>
               </div>
             </div>
           ) : (
             <button
               onClick={() => setAdding(true)}
-              className={cn("flex items-center gap-1.5 text-[13px] text-ink-secondary hover:text-ink", entries === null && "hidden")}
+              className={cn(smallButtonCls, "self-start", entries === null && "hidden")}
             >
-              <Plus size={13} /> {t("teamMemory.addEntry")}
+              <Plus size={12} /> {t("teamMemory.addEntry")}
             </button>
           )}
         </div>

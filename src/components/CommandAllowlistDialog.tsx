@@ -4,6 +4,8 @@ import { Loader2, Trash2, X } from "lucide-react";
 import type { CommandAllowRule, CommandAllowlistResponse } from "../../shared/command-allowlist";
 import { api, useStore } from "@/state/store";
 import { t } from "@/lib/i18n";
+import { cn } from "@/lib/cn";
+import { dialogPrimaryCls, fieldLabelCls, footnoteCls, formBodyCls, formCloseCls, formHeaderCls, formSheetCls, formTitleCls, listCardCls, rowHintCls, textAreaCls, textFieldCls } from "./ui/GrokDialog";
 
 // Electron collects -webkit-app-region from layout boxes and ignores z-index, so the chat header's drag strip swallows
 // clicks on top of it.
@@ -108,7 +110,7 @@ export function CommandAllowlistDialog({ botId, botName, threadId, onClose }: {
     <div
       data-thread-overlay
       style={overlayStyle}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4"
+      className="ui-dialog-scrim fixed inset-0 z-50 flex items-center justify-center p-4"
       onMouseDown={(event) => { event.stopPropagation(); if (event.target === event.currentTarget) onClose(); }}
       onKeyDown={(event) => {
         if (event.key !== "Tab") return;
@@ -133,61 +135,55 @@ export function CommandAllowlistDialog({ botId, botName, threadId, onClose }: {
         aria-describedby={scopeId}
         aria-busy={loading || Boolean(saving) || undefined}
         tabIndex={-1}
-        className="flex max-h-[85dvh] w-full max-w-[520px] flex-col overflow-hidden rounded-2xl border border-hairline/50 bg-panel shadow-2xl"
+        className={cn(formSheetCls, "max-h-[85dvh] max-w-[520px]", "focus-visible:outline-none!")}
       >
-        <div className="flex shrink-0 items-start justify-between gap-4 px-5 pt-5">
-          <div className="min-w-0">
-            <h2 id={titleId} className="text-[16px] font-semibold text-ink">{t("commandAllowlist.title")}</h2>
-            <p className="mt-1 text-[12px] text-ink-secondary">{t("commandAllowlist.forBot", { name: botName })}</p>
-          </div>
+        <header className={formHeaderCls}>
+          <h2 id={titleId} className={formTitleCls}>{t("commandAllowlist.title")}</h2>
           <button ref={closeRef} type="button" onMouseDown={(event) => event.stopPropagation()} onClick={onClose} aria-label={t("commandAllowlist.close")}
-            className="shrink-0 rounded-md p-1.5 text-ink-secondary hover:bg-raised hover:text-ink"><X size={17} className="pointer-events-none" /></button>
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
-          <p id={scopeId} className="mt-3 text-[12px] leading-relaxed text-ink-secondary">{t("commandAllowlist.scope")}</p>
-          {loading && <p role="status" className="mt-5 flex items-center gap-2 text-[13px] text-ink-secondary">
-            <Loader2 size={15} className="animate-spin" aria-hidden="true" />{t("commandAllowlist.loading")}
+            className={formCloseCls}><X size={16} className="pointer-events-none" /></button>
+        </header>
+        <div className={cn(formBodyCls, "flex flex-col gap-3 pb-4")}>
+          <p id={scopeId} className={cn(rowHintCls, "m-0 text-pretty")}>{t("commandAllowlist.forBot", { name: botName })}. {t("commandAllowlist.scope")}</p>
+          {loading && <p role="status" className={cn(rowHintCls, "m-0 flex items-center gap-2")}>
+            <Loader2 size={14} className="animate-spin" aria-hidden="true" />{t("commandAllowlist.loading")}
           </p>}
-          {error && <div role="alert" className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">
-            <p>{error}</p>
+          {error && <div role="alert" className="text-[12px] leading-4 text-danger">
+            <p className="m-0">{error}</p>
             {!data && !loading && <button type="button" onClick={() => setRevision((value) => value + 1)}
-              className="mt-2 underline underline-offset-2">{t("commandAllowlist.retry")}</button>}
+              className="mt-1 cursor-pointer underline underline-offset-2">{t("commandAllowlist.retry")}</button>}
           </div>}
           {data && !loading && <>
-            {data.rules.length ? <ul className="mt-4 divide-y divide-hairline/25 rounded-xl border border-hairline/40">
-              {data.rules.map((rule) => <li key={rule.id} className="flex items-start gap-3 p-3">
+            {data.rules.length ? <ul className={cn(listCardCls, "m-0 list-none p-0 py-1")}>
+              {data.rules.map((rule) => <li key={rule.id} className="flex items-start gap-3 py-2.5 pl-3.5 pr-2.5">
                 <div className="min-w-0 flex-1">
-                  <pre tabIndex={0} className="max-h-28 overflow-auto whitespace-pre-wrap break-words font-mono text-[12px] leading-relaxed text-ink">{rule.command}</pre>
-                  <p className="mt-1.5 break-words text-[11px] text-ink-secondary">{providerName(rule.providerInstanceId)}</p>
-                  <p className="mt-0.5 break-all font-mono text-[11px] text-ink-secondary">{rule.cwd}</p>
+                  <pre tabIndex={0} className="m-0 max-h-28 overflow-auto whitespace-pre-wrap break-words rounded-[4px] font-mono text-[12px] leading-[18px] text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus">{rule.command}</pre>
+                  <p className="m-0 mt-1 break-words text-[12px] leading-4 text-ink/56">{providerName(rule.providerInstanceId)} · <span className="break-all font-mono">{rule.cwd}</span></p>
                 </div>
                 <button type="button" disabled={Boolean(saving)} onClick={() => void save(rule)}
                   aria-label={t("commandAllowlist.removeAria", { command: rule.command })}
                   title={t(saving === rule.id ? "commandAllowlist.removing" : "commandAllowlist.remove")}
-                  className="shrink-0 rounded-md p-1.5 text-ink-secondary hover:bg-danger/10 hover:text-danger disabled:opacity-40">
-                  {saving === rule.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                  className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-[6px] text-ink/68 transition-[background-color,color] duration-[120ms] ease-[ease] enabled:hover:bg-ink/6 enabled:hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus disabled:cursor-default disabled:opacity-40">
+                  {saving === rule.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                 </button>
               </li>)}
-            </ul> : <p className="mt-4 rounded-xl bg-inset px-3 py-4 text-[13px] text-ink-secondary">{t("commandAllowlist.empty")}</p>}
-            {data.supported ? <form className="mt-5 border-t border-hairline/30 pt-4" onSubmit={(event) => { event.preventDefault(); void save(); }}>
-              <p className="text-[12px] text-ink-secondary">{t("commandAllowlist.provider")}: <span className="text-ink">{providerName(data.context.providerInstanceId)}</span></p>
-              <label className="mt-3 block text-[12px] text-ink-secondary">{t("commandAllowlist.command")}
+            </ul> : <p className={cn(rowHintCls, "m-0 py-3 text-center")}>{t("commandAllowlist.empty")}</p>}
+            {data.supported ? <form className="mt-2 flex flex-col gap-3" onSubmit={(event) => { event.preventDefault(); void save(); }}>
+              <label className="flex flex-col gap-1"><span className={fieldLabelCls}>{t("commandAllowlist.command")} <span className="text-ink/40">({t("commandAllowlist.provider")}: {providerName(data.context.providerInstanceId)})</span></span>
                 <textarea value={command} onChange={(event) => setCommand(event.target.value)} disabled={Boolean(saving)} required rows={2} spellCheck={false}
                   aria-describedby={exactId}
-                  className="mt-1.5 w-full resize-y rounded-lg border border-hairline/50 bg-inset px-3 py-2 font-mono text-[12px] text-ink focus:border-accent/60 focus:outline-none disabled:opacity-50" />
+                  className={cn(textAreaCls, "resize-y font-mono text-[12px] tracking-normal")} />
+                <span id={exactId} className={cn(fieldLabelCls, "block")}>{t("commandAllowlist.exact")}</span>
               </label>
-              <p id={exactId} className="mt-1 text-[11px] leading-relaxed text-ink-secondary">{t("commandAllowlist.exact")}</p>
-              <label className="mt-3 block text-[12px] text-ink-secondary">{t("commandAllowlist.folder")}
+              <label className="flex flex-col gap-1"><span className={fieldLabelCls}>{t("commandAllowlist.folder")}</span>
                 <input value={cwd} onChange={(event) => setCwd(event.target.value)} disabled={Boolean(saving)} required spellCheck={false}
-                  className="mt-1.5 w-full rounded-lg border border-hairline/50 bg-inset px-3 py-2 font-mono text-[12px] text-ink focus:border-accent/60 focus:outline-none disabled:opacity-50" />
+                  className={cn(textFieldCls, "font-mono text-[12px] tracking-normal")} />
               </label>
-              <div className="mt-4 flex justify-end">
-                <button type="submit" disabled={Boolean(saving) || !command.trim() || !cwd.trim()}
-                  className="rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-white hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40">
+              <div className="flex justify-end pt-1">
+                <button type="submit" disabled={Boolean(saving) || !command.trim() || !cwd.trim()} className={dialogPrimaryCls}>
                   {t(saving === "add" ? "commandAllowlist.adding" : "commandAllowlist.add")}
                 </button>
               </div>
-            </form> : <p className="mt-4 text-[12px] leading-relaxed text-ink-secondary">{t("commandAllowlist.unsupported")}</p>}
+            </form> : <p className={cn(footnoteCls, "pl-0")}>{t("commandAllowlist.unsupported")}</p>}
           </>}
         </div>
       </div>

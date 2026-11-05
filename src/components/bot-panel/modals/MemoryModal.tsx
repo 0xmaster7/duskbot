@@ -43,7 +43,7 @@ export function MemoryModal({ bot, derived, onClose }: {
 
         {memoryOn && (
           <div className="flex flex-col gap-2.5">
-            <DialogSection label={label} data-modal-group="notes">
+            <DialogSection bare={!readError && notes !== null && notes.length === 0} label={label} data-modal-group="notes">
               {readError ? (
                 <p role="alert" className={cn(listRowCls, rowHintCls, "m-0 text-warning")}>{t("botPanel.library.memoryError")}</p>
               ) : notes === null ? (

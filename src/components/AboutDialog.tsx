@@ -13,6 +13,8 @@ import {
 import { productName } from "@/lib/brand";
 import { t } from "@/lib/i18n";
 import { useOtherServerName } from "@/lib/other-server";
+import { formSheetCls, mdSecondaryCls, rowHintCls } from "./ui/GrokDialog";
+import { cn } from "@/lib/cn";
 
 /** The app's own version first; `server` (useOtherServerName: set only when the app's window shows another server) adds a
  * line naming it with the version its page runs. A browser, or an app too old to say, keeps the page's version on one line. */
@@ -50,7 +52,7 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
       <div aria-hidden="true" className="ui-dialog-scrim pointer-events-none absolute inset-0" />
@@ -58,18 +60,18 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
         role="dialog"
         aria-modal="true"
         aria-labelledby="about-dialog-title"
-        className="ui-dialog relative w-full max-w-[360px] px-6 pb-5 pt-6 text-center"
+        className={cn(formSheetCls, "max-w-[320px] px-4 pb-3 pt-4 text-center")}
       >
-        <img src="/app-icon.svg" alt="" width={56} height={56} className="mx-auto size-14" />
-        <h2 id="about-dialog-title" className="mt-3 text-[17px] font-medium leading-6 tracking-[-0.008em] text-ink">
+        <img src="/app-icon.svg" alt="" width={40} height={40} className="mx-auto size-10" />
+        <h2 id="about-dialog-title" className="m-0 mt-2 text-[14px] font-semibold leading-5 tracking-[0.01em] text-ink">
           {productName()}
         </h2>
-        <p className="mt-1 text-[13px] text-ink-secondary">{version}</p>
-        {connected && <p className="mt-0.5 text-[13px] text-ink-secondary">{connected}</p>}
-        <p className="mt-3 text-[13px] leading-relaxed text-ink-secondary">
+        <p className="m-0 mt-0.5 text-[12px] leading-4 tracking-[0.01em] text-ink/56">{version}</p>
+        {connected && <p className="m-0 mt-0.5 text-[12px] leading-4 tracking-[0.01em] text-ink/56">{connected}</p>}
+        <p className={cn(rowHintCls, "m-0 mt-2 text-pretty")}>
           A desktop home for your agents, built on {APP_NAME}: open source, Apache 2.0 licensed.
         </p>
-        <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-[13px]">
+        <div className="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[13px] leading-[18px]">
           <AboutLink href={APP_REPOSITORY} label="GitHub" />
           <AboutLink href={DOCS_URL} label="Docs" />
           <AboutLink href={RELEASES_URL} label="Releases" />
@@ -79,7 +81,7 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
           ref={closeRef}
           type="button"
           onClick={onClose}
-          className="ui-button mt-5 w-full"
+          className={cn(mdSecondaryCls, "mt-4 w-full")}
         >
           Close
         </button>

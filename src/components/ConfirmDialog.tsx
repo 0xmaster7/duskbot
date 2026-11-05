@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 
-import { cn } from "@/lib/cn";
+import { mdDangerCls, mdPrimaryCls, mdSecondaryCls } from "./ui/GrokDialog";
 
 export type ConfirmTone = "danger" | "neutral";
 
@@ -115,31 +115,24 @@ export function ConfirmDialogCard({
       aria-labelledby="confirm-dialog-title"
       aria-describedby="confirm-dialog-body"
       data-tone={tone}
-      className="ui-dialog relative w-full max-w-[400px] p-4 outline-none"
+      className="ui-dialog relative flex w-full max-w-[320px] flex-col outline-none"
     >
-      <div className="flex items-start gap-2.5">
-        {icon && <span aria-hidden="true" className="mt-0.5 shrink-0 text-ink-secondary">{icon}</span>}
-        <div className="min-w-0">
-          <h2 id="confirm-dialog-title" className="ui-dialog-title">
-            {title}
-          </h2>
-          <div id="confirm-dialog-body" className="ui-dialog-body mt-1">
-            {body}
-          </div>
+      <div className="flex flex-col gap-1 px-4 py-3">
+        <h2 id="confirm-dialog-title" className="m-0 flex items-center gap-2 text-[14px] font-semibold leading-[22px] tracking-[-0.15px] text-ink">
+          {icon && <span aria-hidden="true" className="flex shrink-0 text-ink/56">{icon}</span>}
+          <span className="min-w-0">{title}</span>
+        </h2>
+        <div id="confirm-dialog-body" className="text-[14px] leading-[22px] tracking-[-0.15px] text-ink/56 text-pretty">
+          {body}
         </div>
       </div>
-      <div className="mt-4 flex flex-wrap justify-end gap-2">
-        <button ref={cancelRef} type="button" onClick={onCancel} disabled={pending} className="ui-button">
+      <div className="flex flex-wrap gap-2 py-3 pl-4 pr-3">
+        <button ref={cancelRef} type="button" onClick={onCancel} disabled={pending} className={`${mdSecondaryCls} flex-1`}>
           {cancelLabel}
         </button>
         {alternative && <button type="button" data-confirm-alternative onClick={alternative.onClick} disabled={pending}
-          className="ui-button">{alternative.label}</button>}
-        <button
-          type="button"
-          onClick={onConfirm}
-          disabled={pending}
-          className={cn("ui-button", danger ? "ui-button-danger border-transparent bg-danger text-danger-ink" : "ui-button-primary")}
-        >
+          className={`${mdSecondaryCls} flex-1`}>{alternative.label}</button>}
+        <button type="button" onClick={onConfirm} disabled={pending} className={`${danger ? mdDangerCls : mdPrimaryCls} flex-1`}>
           {confirmLabel}
         </button>
       </div>

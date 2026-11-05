@@ -56,7 +56,7 @@ export function FolderModal({ bot, onClose }: { bot: Bot; onClose: () => void })
               }}
             >
               {chosen && (canPick ? (
-                <div className="flex items-center gap-2 pb-2 pl-[58px] pr-3.5 pt-0.5">
+                <div className="flex items-center gap-2 pb-2 pl-[46px] pr-3.5 pt-0.5">
                   <span data-folder-path title={bot.cwd} className={pathBoxCls}>
                     <span aria-hidden="true" className="flex shrink-0 text-ink/56"><GrokIcon name="folder" size={12} /></span>
                     <span className="min-w-0 truncate">{bot.cwd ? shortPath(bot.cwd, home) : <span className="text-ink/56">No folder yet</span>}</span>
@@ -68,7 +68,7 @@ export function FolderModal({ bot, onClose }: { bot: Bot; onClose: () => void })
               ) : (
                 <form
                   data-panel-form="folder-path"
-                  className="flex items-center gap-2 pb-2 pl-[58px] pr-3.5 pt-0.5"
+                  className="flex items-center gap-2 pb-2 pl-[46px] pr-3.5 pt-0.5"
                   onSubmit={(event) => {
                     event.preventDefault();
                     const path = (draft ?? bot.cwd ?? "").trim();

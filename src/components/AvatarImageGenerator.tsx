@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { Check, Loader2, Sparkles } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { normalizeImageGenerationUrl, type AvatarImageProvider } from "../../shared/image-generation";
 import { Select } from "./Select";
 import { t } from "@/lib/i18n";
 import { productName } from "@/lib/brand";
+import { cn } from "@/lib/cn";
+import { fieldLabelCls, mdPrimaryCls, rowButtonCls, textAreaCls, textFieldCls } from "./ui/GrokDialog";
 
 const PROVIDERS = {
   openai: { label: "OpenAI", keyLabel: "OpenAI image API key", credential: "openaiImageApiKey" },
@@ -13,8 +15,8 @@ const PROVIDERS = {
   custom: { label: "Custom", keyLabel: "Custom image API key", credential: "customImageApiKey" },
 } as const;
 
-const INPUT_CLASS = "w-full min-w-0 rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none disabled:opacity-50";
-const BUTTON_CLASS = "flex items-center justify-center gap-1.5 rounded-lg bg-control px-3 py-2 text-[13px] text-ink hover:bg-raised-hover disabled:opacity-50";
+const LABEL = cn(fieldLabelCls, "flex flex-col gap-1");
+const NOTE = "m-0 text-[12px] leading-4 tracking-[0.01em] text-ink/56 text-pretty";
 
 export function AvatarImageGenerator({
   botLabel,
@@ -149,10 +151,10 @@ export function AvatarImageGenerator({
   };
 
   const connectionForm = (
-    <div className="space-y-2.5">
+    <div className="flex flex-col gap-3">
       {provider === "custom" && (
         <>
-          <label className="block text-[12px] text-ink-secondary">
+          <label className={LABEL}>
             {t("botIdentity.ai.baseUrl")}
             <input
               type="url"
@@ -161,10 +163,10 @@ export function AvatarImageGenerator({
               onChange={(event) => setUrlDraft(event.target.value)}
               placeholder="http://127.0.0.1:4000/v1"
               autoComplete="off"
-              className={`${INPUT_CLASS} mt-1`}
+              className={textFieldCls}
             />
           </label>
-          <label className="block text-[12px] text-ink-secondary">
+          <label className={LABEL}>
             {t("botIdentity.ai.imageModel")}
             <input
               value={customModel}
@@ -172,15 +174,15 @@ export function AvatarImageGenerator({
               onChange={(event) => setModelDraft(event.target.value)}
               placeholder="Model ID from your image provider"
               autoComplete="off"
-              className={`${INPUT_CLASS} mt-1`}
+              className={textFieldCls}
             />
           </label>
-          <p className="text-[11px] leading-relaxed text-ink-secondary">
+          <p className={NOTE}>
             OpenAI-compatible Images API. localhost refers to the {productName()} server, including when you open this page remotely.
           </p>
         </>
       )}
-      <label className="block text-[12px] text-ink-secondary">
+      <label className={LABEL}>
         {t(provider === "openai" ? "botIdentity.ai.openaiKey" : provider === "xai" ? "botIdentity.ai.xaiKey" : "botIdentity.ai.customKey")}{provider === "custom" ? ` (${t("botIdentity.ai.optional")})` : ""}
         <input
           type="password"
@@ -195,18 +197,18 @@ export function AvatarImageGenerator({
           }}
           placeholder={keyConfigured ? t("botIdentity.ai.savedKey") : provider === "custom" ? t("botIdentity.ai.keyless") : t("botIdentity.ai.pasteKey")}
           autoComplete="off"
-          className={`${INPUT_CLASS} mt-1`}
+          className={textFieldCls}
         />
       </label>
       {provider === "xai" && (
-        <p className="text-[11px] leading-relaxed text-ink-secondary">Shares the Grok API key in Settings. Changing or removing it also affects other Grok features.</p>
+        <p className={NOTE}>Shares the Grok API key in Settings. Changing or removing it also affects other Grok features.</p>
       )}
       {provider === "custom" && keyConfigured && (
-        <p className="text-[11px] leading-relaxed text-ink-secondary">The saved custom key will be used. Remove it for a keyless connection.</p>
+        <p className={NOTE}>The saved custom key will be used. Remove it for a keyless connection.</p>
       )}
       <div className="flex items-center justify-end gap-2">
         {keyConfigured && (
-          <button type="button" onClick={() => void removeKey()} disabled={busy} className="mr-auto rounded-md py-1.5 text-[12px] text-ink-secondary hover:text-danger disabled:opacity-50">
+          <button type="button" onClick={() => void removeKey()} disabled={busy} className="mr-auto cursor-pointer rounded-[6px] py-1 text-[12px] leading-4 text-ink/68 transition-colors duration-[120ms] ease-[ease] hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:opacity-50">
             {t("botIdentity.ai.removeKey")}
           </button>
         )}
@@ -214,9 +216,9 @@ export function AvatarImageGenerator({
           type="button"
           onClick={() => void saveConnection()}
           disabled={busy || (provider === "custom" ? !customUrl.trim() || !customModel.trim() || (!unsaved && configured) : !imageKey.trim())}
-          className={BUTTON_CLASS}
+          className={rowButtonCls}
         >
-          {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+          {saving && <Loader2 size={13} className="animate-spin" />}
           {provider === "custom" ? t("botIdentity.ai.saveConnection") : t("botIdentity.ai.saveKey")}
         </button>
       </div>
@@ -224,17 +226,14 @@ export function AvatarImageGenerator({
   );
 
   return (
-    <div className="mt-5 border-t border-hairline/40 pt-4">
-      <div className="flex items-center gap-2 text-[13px] font-medium text-ink">
-        <Sparkles size={14} className="text-accent" /> {t("botIdentity.ai.generateWith")}
-      </div>
-      <label className="mt-3 block text-[12px] text-ink-secondary">
+    <div className="flex flex-col gap-3">
+      <label className={LABEL}>
         {t("botIdentity.ai.provider")}
-        <Select value={provider} onChange={(event) => void chooseProvider(event.target.value as AvatarImageProvider)} disabled={busy || !state.config} className="mt-1 w-full">
+        <Select variant="ghost" value={provider} onChange={(event) => void chooseProvider(event.target.value as AvatarImageProvider)} disabled={busy || !state.config} className="self-start">
           {Object.entries(PROVIDERS).map(([value, info]) => <option key={value} value={value}>{info.label}</option>)}
         </Select>
       </label>
-      <p className="mt-1.5 text-[11px] leading-relaxed text-ink-secondary">
+      <p className={cn(NOTE, "-mt-1")}>
         {provider === "openai" ? t("botIdentity.ai.openaiHint")
           : provider === "xai" ? t("botIdentity.ai.xaiHint")
             : t("botIdentity.ai.customHint")}
@@ -242,23 +241,24 @@ export function AvatarImageGenerator({
       </p>
 
       {configured ? (
-        <details key={provider} className="mt-3 rounded-lg border border-hairline/40 px-3 py-2">
-          <summary className="cursor-pointer text-[12px] text-ink-secondary">{t("botIdentity.ai.connectionSettings")}</summary>
-          <div className="mt-3">{connectionForm}</div>
+        <details key={provider} className="rounded-[10px] border border-ink/8 px-[9px] py-1.5">
+          <summary className="cursor-pointer text-[12px] leading-4 text-ink/68">{t("botIdentity.ai.connectionSettings")}</summary>
+          <div className="mt-2.5 pb-1">{connectionForm}</div>
         </details>
-      ) : <div className="mt-3">{connectionForm}</div>}
+      ) : connectionForm}
 
       <textarea
         value={direction}
         disabled={busy}
         onChange={(event) => setDirection(event.target.value.slice(0, 400))}
         maxLength={400}
+        rows={3}
         placeholder={t("botIdentity.ai.directionPlaceholder", { name: botLabel })}
         aria-label={t("botIdentity.ai.directionLabel")}
-        className={`${INPUT_CLASS} mt-3 min-h-[72px] resize-none`}
+        className={textAreaCls}
       />
-      <div className="mt-2 flex items-center justify-between gap-3">
-        <span className="text-[11px] tabular-nums text-ink-secondary">{direction.length}/400</span>
+      <div className="flex items-center justify-end gap-2">
+        {unsaved && <p role="status" className={cn(NOTE, "mr-auto")}>{t("botIdentity.ai.saveBeforeGenerate")}</p>}
         <button
           type="button"
           onClick={() => {
@@ -268,14 +268,13 @@ export function AvatarImageGenerator({
             }
           }}
           disabled={busy || !configured || unsaved}
-          className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[13px] font-medium text-white hover:brightness-110 disabled:opacity-50"
+          className={mdPrimaryCls}
         >
-          {generating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+          {generating && <Loader2 size={13} className="animate-spin" />}
           {generating ? t("botIdentity.ai.generating") : t("botIdentity.ai.generate")}
         </button>
       </div>
-      {unsaved && <p role="status" className="mt-2 text-[11px] text-ink-secondary">{t("botIdentity.ai.saveBeforeGenerate")}</p>}
-      {error && <div role="alert" className="mt-3 text-[12px] text-danger">{error}</div>}
+      {error && <div role="alert" className="text-[12px] leading-4 text-danger">{error}</div>}
     </div>
   );
 }

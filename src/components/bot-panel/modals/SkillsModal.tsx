@@ -22,7 +22,7 @@ export function SkillsModal({ bot, onClose }: { bot: Bot; onClose: () => void })
     >
       <div className="flex flex-col gap-7">
         <div className="flex flex-col gap-2.5">
-          <DialogSection label={skills.loading || count === 0 ? "Installed" : `${count} ${count === 1 ? "skill" : "skills"}`}>
+          <DialogSection bare={!skills.loading && count === 0} label={skills.loading || count === 0 ? "Installed" : `${count} ${count === 1 ? "skill" : "skills"}`}>
             {skills.loading ? (
               <DialogSkeleton />
             ) : count === 0 ? (

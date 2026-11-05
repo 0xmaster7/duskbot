@@ -16,7 +16,8 @@ import { AddCloudFlow } from "./cloud-buy/AddCloudFlow";
 import { ChooseScreen } from "./cloud-buy/ChooseScreen";
 import { OneCloudScreen, StatusScreen } from "./cloud-buy/OneCloudScreen";
 import { PayScreen } from "./cloud-buy/PayScreen";
-import { CLOSE, ON_NIGHT, SHEET, StagingMark } from "./cloud-buy/parts";
+import { ON_NIGHT, SHEET, StagingMark } from "./cloud-buy/parts";
+import { formCloseCls } from "./ui/GrokDialog";
 import { SetupScreen, TeamReadyScreen, TeamSetupScreen } from "./cloud-buy/SetupScreen";
 import { BrowserSignInScreen, codeDigits, SignInScreen } from "./cloud-buy/SignInScreen";
 
@@ -94,9 +95,9 @@ const HELD: ReadonlySet<CloudAddView["kind"]> = new Set(["sign-in", "signing-in"
 export function CloudAddSheet({ kind, staging, onClose, children }: { kind: CloudAddView["kind"]; staging: boolean; onClose: () => void; children: ReactNode }) {
   return <div className="ui-scrim fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6" onMouseDown={event => event.target === event.currentTarget && !HELD.has(kind) && onClose()}>
     <div role="dialog" aria-modal="true" aria-labelledby="cloud-add-title" data-cloud-add-dialog tabIndex={-1}
-      className={cn(SHEET, "group/sheet animate-pop-in relative max-h-full w-full overflow-y-auto overscroll-contain outline-none", WIDTH[kind] ?? "max-w-[540px]")}>
-      <button type="button" onClick={onClose} aria-label={t("cloudAdd.close")} className={cn(CLOSE, ON_NIGHT, "absolute end-4 top-4 z-10")}><X size={16} /></button>
-      {staging && <StagingMark className="absolute end-14 top-[22px] z-10 group-has-[[data-night-card]]/sheet:bg-app" />}
+      className={cn(SHEET, "group/sheet relative max-h-full w-full overflow-y-auto overscroll-contain rounded-[14px] border border-ink/12 outline-none", WIDTH[kind] ?? "max-w-[540px]")}>
+      <button type="button" onClick={onClose} aria-label={t("cloudAdd.close")} className={cn(formCloseCls, ON_NIGHT, "absolute end-3 top-3 z-10")}><X size={16} /></button>
+      {staging && <StagingMark className="absolute end-11 top-[15px] z-10 group-has-[[data-night-card]]/sheet:bg-app" />}
       {children}
     </div>
   </div>;

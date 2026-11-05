@@ -7,13 +7,20 @@ import { GrokIcon, type GrokIconName } from "../GrokIcon";
 
 const buttonBase = "inline-flex shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-[9999px] font-normal outline-none transition-[background-color,color] duration-[120ms] ease-[ease] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-default enabled:active:scale-[0.98] motion-reduce:enabled:active:scale-100";
 const sizeLg = "h-9 px-4 text-[14px] leading-5 tracking-[0.01em]";
+const sizeMd = "h-8 px-3 text-[14px] leading-5 tracking-[0.01em]";
 const sizeRow = "h-[30px] px-3 text-[13px] leading-[18px] tracking-[0.195px]";
 const sizeSm = "h-6 px-2 text-[12px] leading-4 tracking-[0.01em]";
 const primaryTone = "bg-ink text-app enabled:hover:bg-[color-mix(in_srgb,var(--color-ink)_88.5%,var(--color-menu))] disabled:bg-ink/15 disabled:text-ink/30";
 const secondaryTone = "bg-ink/6 text-ink shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_6%,transparent)] enabled:hover:bg-ink/10 disabled:text-ink/30";
 
+const dangerTone = "bg-danger text-danger-ink enabled:hover:bg-[color-mix(in_srgb,var(--color-danger)_88%,black)] disabled:opacity-50";
+
 export const dialogPrimaryCls = cn(buttonBase, sizeLg, primaryTone);
 export const dialogSecondaryCls = cn(buttonBase, sizeLg, secondaryTone);
+/** Grok's 32px kit buttons: a confirm's Cancel and Delete, a pane's Save. */
+export const mdPrimaryCls = cn(buttonBase, sizeMd, primaryTone);
+export const mdSecondaryCls = cn(buttonBase, sizeMd, secondaryTone);
+export const mdDangerCls = cn(buttonBase, sizeMd, dangerTone);
 export const rowButtonCls = cn(buttonBase, sizeRow, secondaryTone);
 export const smallButtonCls = cn(buttonBase, sizeSm, secondaryTone);
 
@@ -22,7 +29,21 @@ export const rowHintCls = "text-[13px] leading-[18px] tracking-[-0.08px] text-in
 export const footnoteCls = "m-0 pl-2 text-[12px] leading-4 tracking-[0.01em] text-ink/56";
 export const listCardCls = "flex flex-col rounded-[14px] bg-menu py-2 outline-1 -outline-offset-1 outline-ink/8 [outline-style:solid]";
 export const listRowCls = "flex min-h-12 items-center gap-x-5 px-3.5 py-2.5";
-export const textAreaCls = "block w-full resize-none rounded-[14px] border border-ink/8 bg-menu px-3.5 py-3 text-[14px] leading-[22px] tracking-[0.01em] text-ink outline-none transition-[border-color] duration-[120ms] ease-[ease] [scrollbar-width:thin] placeholder:text-ink/40 focus:border-ink/24! disabled:opacity-50";
+/** Grok's text field (Vault's New login): 32px, white, a 1px ink/12 edge at 10px corners that darkens on focus, no ring. */
+export const textFieldCls = "block h-8 w-full min-w-0 rounded-[10px] border border-ink/12 bg-menu px-[9px] text-[13px] leading-[18px] tracking-[0.195px] text-ink outline-none transition-[border-color] duration-[120ms] ease-[ease] placeholder:text-ink/40 focus:border-ink/40 disabled:opacity-50";
+/** The same field grown into a few lines. */
+export const textAreaCls = "block w-full resize-none rounded-[10px] border border-ink/12 bg-menu px-[9px] py-[7px] text-[13px] leading-[18px] tracking-[0.195px] text-ink outline-none transition-[border-color] duration-[120ms] ease-[ease] [scrollbar-width:thin] placeholder:text-ink/40 focus:border-ink/40! disabled:opacity-50";
+/** A field's label, 4px over it; an "(Optional)" beside it reads ink/40. */
+export const fieldLabelCls = "text-[11px] leading-4 tracking-[0.01em] text-ink/68";
+
+/** Grok's form dialog (New login), for a dialog that does not use GrokDialog itself: a white sheet on a 1px ink/12
+ * edge at 14px corners, a 14/20 600 title beside a 24px close, a 16px-wide body and a borderless footer. */
+export const formSheetCls = "relative flex max-h-[calc(100dvh-32px)] w-full flex-col overflow-hidden rounded-[14px] border border-ink/12 bg-menu text-[13px] font-[425] leading-[18px] text-ink outline-none focus-visible:outline-none!";
+export const formHeaderCls = "flex shrink-0 items-start gap-2 py-3 pl-4 pr-3";
+export const formTitleCls = "m-0 min-w-0 flex-1 truncate text-[14px] font-semibold leading-5 tracking-[0.01em] text-ink";
+export const formCloseCls = "flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] text-ink/68 transition-[color,background-color] duration-[120ms] ease-[ease] hover:bg-ink/6 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus";
+export const formBodyCls = "min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-1.5 pt-1 [scrollbar-width:thin]";
+export const formFooterCls = "flex shrink-0 items-center justify-end gap-2 px-4 pb-4 pt-2.5";
 
 const FOCUSABLE = "button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex='-1'])";
 
@@ -70,8 +91,8 @@ export function useDialogKeys(sheet: RefObject<HTMLElement | null>, onClose: () 
   return close;
 }
 
-/** Grok's settings-pane sheet: app-toned, 14px corners on a 1px ink/12 edge, a 17px title with no rule under it,
- * white list cards in the body and a borderless footer. It appears and goes at once, as Grok's app dialogs do. */
+/** On its own, Grok's form dialog (New login); inside a railed sheet, that sheet's pane. Either way it appears and goes
+ * at once, as Grok's app dialogs do. */
 export function GrokDialog(props: DialogProps) {
   return useContext(DialogPane) ? <PaneView {...props} /> : <SheetView {...props} />;
 }
@@ -89,24 +110,24 @@ interface DialogProps {
 const headerCls = "flex shrink-0 flex-col gap-1 pb-1.5 pl-8 pr-[54px] pt-8";
 const titleCls = "m-0 min-w-0 truncate pl-2 text-[17px] font-medium leading-6 tracking-[0.01em]";
 
-/** The same dialog as one pane of a railed sheet: Settings' header and scrolling body, the footer pinned under it. */
-function PaneView({ title, description, footer, children, onClose: _onClose, width: _width, ...rest }: DialogProps) {
+/** The same dialog as one pane of a railed sheet: Settings' header and scrolling body, the footer right under its content.
+ * Grok's panes carry a title and nothing under it, so a description is left to the dialog on its own. */
+function PaneView({ title, description: _description, footer, children, onClose: _onClose, width: _width, ...rest }: DialogProps) {
   const titleId = useId();
   return (
     <section {...rest} aria-labelledby={titleId} className="flex min-h-0 flex-1 flex-col">
       <header className={headerCls}>
         <h2 id={titleId} className={titleCls}>{title}</h2>
-        {description && <p className={cn(rowHintCls, "m-0 pl-2 text-pretty")}>{description}</p>}
       </header>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-8 pb-7 pt-[22px] [scrollbar-width:none]">
         {children}
+        {footer && <div className="mt-3 flex shrink-0 items-center justify-end gap-2">{footer}</div>}
       </div>
-      {footer && <div className="-mt-3 flex shrink-0 items-center justify-end gap-2 px-8 pb-6 pt-1">{footer}</div>}
     </section>
   );
 }
 
-function SheetView({ title, description, width = 540, onClose, footer, children, ...rest }: DialogProps) {
+function SheetView({ title, description, width = 440, onClose, footer, children, ...rest }: DialogProps) {
   const sheet = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const descriptionId = useId();
@@ -123,29 +144,20 @@ function SheetView({ title, description, width = 540, onClose, footer, children,
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
-        style={{ width: `min(${width}px, calc(100vw - 32px))` }}
-        className="relative flex max-h-[calc(100dvh-32px)] flex-col overflow-hidden rounded-[14px] border border-ink/12 bg-app text-[13px] font-[425] text-ink outline-none"
+        style={{ maxWidth: `min(${width}px, calc(100vw - 32px))` }}
+        className={formSheetCls}
       >
-        <button
-          type="button"
-          aria-label={t("common.close")}
-          onClick={() => close.current()}
-          className="absolute right-2.5 top-2.5 z-[1] flex size-8 cursor-pointer items-center justify-center rounded-[9999px] text-ink/56 transition-[color,background-color] duration-[120ms] ease-[ease] hover:bg-ink/6 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus"
-        >
-          <GrokIcon name="close" size={14} />
-        </button>
-        <header className={headerCls}>
-          <h2 id={titleId} className={titleCls}>{title}</h2>
-          {description && <p id={descriptionId} className={cn(rowHintCls, "m-0 pl-2 text-pretty")}>{description}</p>}
+        <header className={formHeaderCls}>
+          <h2 id={titleId} className={formTitleCls}>{title}</h2>
+          <button type="button" aria-label={t("common.close")} onClick={() => close.current()} className={formCloseCls}>
+            <GrokIcon name="close" size={16} />
+          </button>
         </header>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-8 pb-7 pt-[22px] [scrollbar-width:thin]">
+        <div className={cn(formBodyCls, "flex flex-col")}>
+          {description && <p id={descriptionId} className={cn(rowHintCls, "m-0 mb-3 text-pretty")}>{description}</p>}
           {children}
         </div>
-        {footer && (
-          <div className="-mt-3 flex shrink-0 items-center justify-end gap-2 px-8 pb-7 pt-1">
-            {footer}
-          </div>
-        )}
+        {footer && <div className={formFooterCls}>{footer}</div>}
       </div>
     </div>,
     document.body,
@@ -175,7 +187,7 @@ export function DialogSection({ label, action, children, bare = false, ...rest }
 
 /** Grok's empty line: one plain centred sentence that names the next step. */
 export function DialogEmpty({ children }: { children: ReactNode }) {
-  return <p data-modal-empty className={cn(rowHintCls, "m-0 px-6 py-5 text-center text-pretty")}>{children}</p>;
+  return <p data-modal-empty className={cn(rowHintCls, "m-0 px-6 py-3 text-center text-pretty")}>{children}</p>;
 }
 
 export function DialogSkeleton({ lines = 2 }: { lines?: number }) {
@@ -271,9 +283,9 @@ export function DialogLinkRow({ icon, title, hint, onClick, ...rest }: {
       type="button"
       {...rest}
       onClick={onClick}
-      className="mx-1.5 flex min-h-12 cursor-pointer items-center gap-3 rounded-[10px] px-2 py-2 text-left transition-[background-color] duration-[120ms] ease-[ease] hover:bg-ink/5 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
+      className="mx-1.5 flex min-h-12 cursor-pointer items-center gap-3 rounded-[10px] px-2 py-2.5 text-left transition-[background-color] duration-[120ms] ease-[ease] hover:bg-ink/5 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
     >
-      <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-ink/5 text-ink/80">
+      <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center text-ink/68">
         <GrokIcon name={icon} size={16} />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -321,22 +333,22 @@ export function DialogChoice({ icon, title, hint, checked, disabled, onSelect, c
           next?.click();
         }}
         className={cn(
-          "mx-1.5 flex min-h-[60px] cursor-pointer items-center gap-3 rounded-[10px] px-2 py-2.5 text-left outline-none transition-[background-color] duration-[120ms] ease-[ease] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus disabled:cursor-not-allowed",
+          "mx-1.5 flex min-h-12 cursor-pointer items-center gap-3 rounded-[10px] px-2 py-2.5 text-left outline-none transition-[background-color] duration-[120ms] ease-[ease] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus disabled:cursor-not-allowed",
           !disabled && "hover:bg-ink/5",
         )}
       >
         <span
           aria-hidden="true"
           className={cn(
-            "flex size-8 shrink-0 items-center justify-center rounded-[9px] transition-colors duration-[120ms] ease-[ease]",
-            checked ? "bg-ink text-app" : "bg-ink/5 text-ink/80",
+            "flex size-5 shrink-0 items-center justify-center transition-colors duration-[120ms] ease-[ease]",
+            checked ? "text-ink" : "text-ink/68",
             disabled && !checked && "opacity-50",
           )}
         >
           <GrokIcon name={icon} size={16} />
         </span>
         <span className={cn("flex min-w-0 flex-1 flex-col gap-0.5", disabled && !checked && "opacity-50")}>
-          <span className={cn(rowTitleCls, checked && "font-medium")}>{title}</span>
+          <span className={rowTitleCls}>{title}</span>
           {hint && <span className={cn(rowHintCls, "text-pretty")}>{hint}</span>}
         </span>
         <span aria-hidden="true" className={cn("flex w-4 shrink-0 justify-center text-ink", !checked && "invisible")}>

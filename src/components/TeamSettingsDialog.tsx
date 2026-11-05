@@ -24,6 +24,7 @@ import { approvalModeOptions } from "./ApprovalModeSelector";
 import { LocalComputerAutoWarning } from "./LocalComputerAutoWarning";
 import { effortLabel } from "./ModelPicker";
 import { Select } from "./Select";
+import { dialogPrimaryCls, fieldLabelCls, footnoteCls, formBodyCls, formCloseCls, formFooterCls, formHeaderCls, formSheetCls, formTitleCls, listCardCls, mdPrimaryCls, mdSecondaryCls, rowHintCls, rowTitleCls } from "./ui/GrokDialog";
 
 type Tab = "approval" | "model";
 const KEEP = "";
@@ -31,16 +32,16 @@ const ENGINE_DEFAULT = "default";
 
 export function TeamSettingsRows({ rows }: { rows: ReadonlyArray<TeamPlanRow | TeamResultRow> }) {
   return (
-    <ul className="flex flex-col gap-1" data-testid="team-settings-rows">
+    <ul className={cn(listCardCls, "m-0 list-none p-0 py-1")} data-testid="team-settings-rows">
       {rows.map((row) => {
         const [label, tone] = row.status === "apply" ? [t("teamSettings.row.willChange"), "text-accent"]
           : row.status === "applied" ? [t("teamSettings.row.applied"), "text-success"]
-            : row.status === "unchanged" ? [t("teamSettings.row.unchanged"), "text-ink-secondary"]
+            : row.status === "unchanged" ? [t("teamSettings.row.unchanged"), "text-ink/56"]
               : [t("teamSettings.row.skipped", { reason: row.reason }), "text-warning"];
         return (
-          <li key={row.bot.id} className="flex items-start justify-between gap-3 rounded-lg bg-inset px-3 py-1.5 text-[13px]">
+          <li key={row.bot.id} className="flex items-start justify-between gap-3 px-3.5 py-2 text-[13px] leading-[18px]">
             <span className="min-w-0 truncate text-ink">{row.bot.name}</span>
-            <span className={cn("max-w-[65%] text-right text-[12px]", tone)}>{label}</span>
+            <span className={cn("max-w-[65%] text-right text-[12px] leading-[18px]", tone)}>{label}</span>
           </li>
         );
       })}
@@ -97,81 +98,87 @@ export function TeamSettingsDialog({ team, onClose }: { team: string; onClose: (
   };
   const close = () => { if (!running) onClose(); };
   const counts = results ? teamResultCounts(results) : null;
-  const tabClass = (active: boolean) => cn("flex-1 rounded-md px-2.5 py-1.5 text-[13px] font-medium",
-    active ? "bg-raised text-ink" : "text-ink-secondary hover:text-ink");
+  const tabClass = (active: boolean) => cn("h-7 cursor-pointer rounded-full px-3 text-[13px] leading-[18px] tracking-[0.195px] transition-[background-color,color] duration-[120ms] ease-[ease] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-default",
+    active ? "bg-ink/8 text-ink" : "text-ink/68 hover:text-ink");
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onMouseDown={(event) => {
+    <div className="ui-dialog-scrim fixed inset-0 z-50 flex items-center justify-center p-4" onMouseDown={(event) => {
       if (event.target === event.currentTarget) close();
     }}>
       <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="team-settings-title" data-testid="team-settings-dialog"
-        className="max-h-[90vh] w-full max-w-[460px] overflow-y-auto rounded-2xl border border-hairline/50 bg-panel p-5 text-ink shadow-2xl"
+        className={cn(formSheetCls, "max-w-[460px]", "focus-visible:outline-none!")}
         onKeyDown={(event) => { if (event.key === "Escape" && !consent) { event.stopPropagation(); close(); } }}>
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <h2 id="team-settings-title" className="text-[17px] font-semibold">{t("teamSettings.title", { name: team || t("teamSettings.general") })}</h2>
-          <button type="button" aria-label={t("teamSettings.close")} disabled={running} onClick={close} className="rounded-lg p-1.5 text-ink-secondary hover:bg-raised"><X size={18} /></button>
-        </div>
+        <header className={formHeaderCls}>
+          <h2 id="team-settings-title" className={formTitleCls}>{t("teamSettings.title", { name: team || t("teamSettings.general") })}</h2>
+          <button type="button" aria-label={t("teamSettings.close")} disabled={running} onClick={close} className={formCloseCls}><X size={16} /></button>
+        </header>
         {results && counts ? (
           <>
-            <p role="status" className="mb-3 text-[13px] text-ink-secondary">
-              {t("teamSettings.summary", { applied: counts.applied, unchanged: counts.unchanged, skipped: counts.skipped })}
-            </p>
-            <TeamSettingsRows rows={results} />
-            <div className="mt-4 flex justify-end">
-              <button type="button" onClick={onClose} className="rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-white">{t("teamSettings.done")}</button>
+            <div className={cn(formBodyCls, "flex flex-col gap-3")}>
+              <p role="status" className={cn(rowHintCls, "m-0")}>
+                {t("teamSettings.summary", { applied: counts.applied, unchanged: counts.unchanged, skipped: counts.skipped })}
+              </p>
+              <TeamSettingsRows rows={results} />
+            </div>
+            <div className={formFooterCls}>
+              <button type="button" onClick={onClose} className={dialogPrimaryCls}>{t("teamSettings.done")}</button>
             </div>
           </>
         ) : (
           <>
-            <p className="mb-3 text-[13px] leading-relaxed text-ink-secondary">{t("teamSettings.intro", { count: bots.length })}</p>
-            <div className="mb-3 flex gap-1 rounded-lg bg-inset p-0.5" role="tablist">
+            <div className={cn(formBodyCls, "flex flex-col gap-3")}>
+            <p className={cn(rowHintCls, "m-0 text-pretty")}>{t("teamSettings.intro", { count: bots.length })}</p>
+            <div className="flex gap-1" role="tablist">
               <button type="button" role="tab" aria-selected={tab === "approval"} disabled={running} className={tabClass(tab === "approval")} onClick={() => setTab("approval")}>{t("teamSettings.tab.approval")}</button>
               <button type="button" role="tab" aria-selected={tab === "model"} disabled={running} className={tabClass(tab === "model")} onClick={() => setTab("model")}>{t("teamSettings.tab.model")}</button>
             </div>
             {tab === "approval" ? (
-              <fieldset disabled={running} className="flex flex-col gap-1">
+              <fieldset disabled={running} className="m-0 flex min-w-0 flex-col gap-2 border-0 p-0">
                 <legend className="sr-only">{t("teamSettings.tab.approval")}</legend>
+                <div className={listCardCls}>
                 {approvalModeOptions().filter((option) => (TEAM_APPROVAL_MODES as readonly string[]).includes(option.mode)).map((option) => (
-                  <label key={option.mode} className={cn("flex cursor-pointer items-start gap-2 rounded-lg px-3 py-2", mode === option.mode ? "bg-raised" : "hover:bg-raised/60")}>
-                    <input type="radio" name="team-approval" className="mt-1" checked={mode === option.mode}
+                  <label key={option.mode} className="mx-1.5 flex cursor-pointer items-start gap-2.5 rounded-[10px] px-2 py-2.5 transition-[background-color] duration-[120ms] ease-[ease] hover:bg-ink/5">
+                    <input type="radio" name="team-approval" className="mt-0.5 accent-[var(--color-ink)]" checked={mode === option.mode}
                       onChange={() => setMode(option.mode as TeamApprovalMode)} />
-                    <span>
-                      <span className="block text-[14px] text-ink">{option.label}</span>
-                      <span className="block text-[12px] text-ink-secondary">{option.description}</span>
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className={rowTitleCls}>{option.label}</span>
+                      <span className={rowHintCls}>{option.description}</span>
                     </span>
                   </label>
                 ))}
-                <p className="mt-1 text-[12px] text-ink-secondary">{t("teamSettings.allThreads")} {t("teamSettings.customPerBot")}</p>
+                </div>
+                <p className={footnoteCls}>{t("teamSettings.allThreads")} {t("teamSettings.customPerBot")}</p>
               </fieldset>
             ) : (
-              <fieldset disabled={running} className="flex flex-col gap-3">
-                <label className="text-[13px] text-ink-secondary">{t("teamSettings.model")}
-                  <Select className="mt-1 w-full" aria-label={t("teamSettings.model")} value={model} onChange={(event) => setModel(event.target.value)}>
+              <fieldset disabled={running} className="m-0 flex min-w-0 flex-col gap-3 border-0 p-0">
+                <label className="flex flex-col gap-1"><span className={fieldLabelCls}>{t("teamSettings.model")}</span>
+                  <Select className="w-full" aria-label={t("teamSettings.model")} value={model} onChange={(event) => setModel(event.target.value)}>
                     <option value={KEEP}>{t("teamSettings.keepModel")}</option>
                     {models.map((choice) => <option key={choice.id} value={choice.id}>{`${choice.label} · ${choice.engines.join(", ")}`}</option>)}
                   </Select>
                 </label>
-                <label className="text-[13px] text-ink-secondary">{t("teamSettings.effort")}
-                  <Select className="mt-1 w-full" aria-label={t("teamSettings.effort")} value={effort} onChange={(event) => setEffort(event.target.value)}>
+                <label className="flex flex-col gap-1"><span className={fieldLabelCls}>{t("teamSettings.effort")}</span>
+                  <Select className="w-full" aria-label={t("teamSettings.effort")} value={effort} onChange={(event) => setEffort(event.target.value)}>
                     <option value={KEEP}>{t("teamSettings.keepEffort")}</option>
                     <option value={ENGINE_DEFAULT}>{t("teamSettings.engineDefaultEffort")}</option>
                     {efforts.map((level) => <option key={level} value={level}>{effortLabel(level)}</option>)}
                   </Select>
                 </label>
-                <p className="text-[12px] text-ink-secondary">{t("teamSettings.threadModels")}</p>
+                <p className={cn(footnoteCls, "pl-0")}>{t("teamSettings.threadModels")}</p>
               </fieldset>
             )}
             {change && (
-              <div className="mt-4">
-                <div className="mb-1 text-[12px] font-medium text-ink-secondary">{t("teamSettings.preview")}</div>
+              <div className="flex flex-col gap-2">
+                <div className="pl-3.5 text-[12px] leading-4 text-ink/68">{t("teamSettings.preview")}</div>
                 <TeamSettingsRows rows={plan} />
               </div>
             )}
-            <div className="mt-4 flex items-center justify-end gap-2">
-              {running && <span role="status" className="mr-auto text-[12px] text-ink-secondary">{t("teamSettings.progress", { done: progress, count: plan.length })}</span>}
-              <button type="button" disabled={running} onClick={close} className="rounded-lg px-3 py-2 text-[13px] text-ink-secondary hover:bg-raised">{t("common.cancel")}</button>
+            </div>
+            <div className={formFooterCls}>
+              {running && <span role="status" className="mr-auto text-[12px] leading-4 text-ink/56">{t("teamSettings.progress", { done: progress, count: plan.length })}</span>}
+              <button type="button" disabled={running} onClick={close} className={mdSecondaryCls}>{t("common.cancel")}</button>
               <button type="button" disabled={running || !applying} onClick={apply}
-                className="rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-white disabled:opacity-40">
+                className={mdPrimaryCls}>
                 {t(applying === 1 ? "teamSettings.applyOne" : "teamSettings.applyMany", { count: applying })}
               </button>
             </div>

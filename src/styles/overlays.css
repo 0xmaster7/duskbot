@@ -65,13 +65,12 @@
   animation: none;
 }
 
-/* A dialog: the elevated tone on a half-pixel hairline with the modal lift, as Grok's card dialog. */
+/* A dialog, as Grok's kit dialog: the elevated tone on a 1px ink/12 edge at 14px corners, no lift over the scrim. */
 .ui-dialog {
-  border: 0.5px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
   border-radius: 14px;
   background: var(--color-menu);
   color: var(--color-ink);
-  box-shadow: var(--shadow-modal);
 }
 .ui-dialog-scrim {
   background: rgb(0 0 0 / 0.5);

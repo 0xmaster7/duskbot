@@ -79,9 +79,9 @@ export function AvatarFraming({
       >
         <BotAvatar bot={bot} size={FRAME_SIZE} animated={false} label={`${bot.name} avatar preview`} />
       </div>
-      <div className="mb-1.5 mt-4 flex items-baseline justify-between">
-        <span className="text-[12px] font-medium uppercase tracking-[0.08em] text-ink-secondary">Zoom</span>
-        <span className="tabular-nums text-[12px] text-ink-secondary">{Math.round(zoom * 100)}%</span>
+      <div className="mb-1 mt-3 flex items-baseline justify-between text-[12px] leading-4 tracking-[0.01em] text-ink/68">
+        <span>Zoom</span>
+        <span className="tabular-nums">{Math.round(zoom * 100)}%</span>
       </div>
       <input
         type="range"
@@ -96,16 +96,16 @@ export function AvatarFraming({
         aria-valuenow={zoom}
         aria-valuetext={`${Math.round(zoom * 100)}%`}
         onChange={(event) => onPatch({ avatarZoom: clampAvatarZoom(Number(event.target.value)) })}
-        className="w-full accent-accent"
+        className="w-full accent-ink"
       />
-      <div className="mt-1.5 flex items-center justify-between gap-3 text-[12px] text-ink-secondary">
+      <div className="mt-1 flex items-center justify-between gap-3 text-[12px] leading-4 text-ink/56">
         <span>Drag the picture to reposition it. Scroll to zoom.</span>
         {framed && (
           <button
             type="button"
             disabled={disabled}
             onClick={() => onPatch({ avatarZoom: AVATAR_ZOOM_MIN, avatarFocusX: AVATAR_FOCUS_CENTER, avatarFocusY: AVATAR_FOCUS_CENTER })}
-            className="shrink-0 rounded-md px-2 py-1 text-ink hover:bg-control disabled:opacity-50"
+            className="h-6 shrink-0 cursor-pointer rounded-full bg-ink/6 px-2 text-[12px] leading-4 text-ink transition-colors duration-[120ms] ease-[ease] hover:bg-ink/10 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:opacity-50"
           >
             Reset framing
           </button>
@@ -119,9 +119,9 @@ export function OrganizationAvatarIcons({ busy, onUpload }: { busy: boolean; onU
   const organization = useOrganizationBranding();
   if (!organization?.icons.length) return null;
   return (
-    <div className="mb-3 border-b border-hairline/40 pb-3">
-      <div className="mb-2 text-[13px] font-medium text-ink-secondary">{organization.name} icons</div>
-      <div className="flex flex-wrap gap-2">{organization.icons.map(icon => <button key={icon.id} type="button" disabled={busy} title={icon.name} aria-label={`Use ${icon.name} icon`} className="flex size-12 items-center justify-center rounded-lg border border-hairline/40 hover:bg-control disabled:opacity-50" onClick={() => {
+    <div className="mb-3 flex flex-col gap-2">
+      <div className="text-[12px] leading-4 tracking-[0.01em] text-ink/68">{organization.name} icons</div>
+      <div className="flex flex-wrap gap-2">{organization.icons.map(icon => <button key={icon.id} type="button" disabled={busy} title={icon.name} aria-label={`Use ${icon.name} icon`} className="flex size-12 cursor-pointer items-center justify-center rounded-[10px] border border-ink/8 transition-colors duration-[120ms] ease-[ease] hover:bg-ink/5 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:opacity-50" onClick={() => {
         const bytes = Uint8Array.from(atob(icon.image.slice(22)), byte => byte.charCodeAt(0));
         onUpload(new File([bytes], `${icon.id}.png`, { type: "image/png" }));
       }}><img src={icon.image} alt="" className="size-10 rounded-md object-contain" /></button>)}</div>
