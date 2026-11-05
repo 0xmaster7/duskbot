@@ -3266,6 +3266,7 @@
   "approvalMode.customLocalOnlyDot": "Custom approval must be changed in the local packaged desktop app.",
   "onboarding.meet.title": "Meet {app}",
   "onboarding.meet.next": "Next",
+  "createBot.groupInstead": "Start a group chat instead",
   "onboarding.computer.title": "{app} has its own computer and works just like you",
   "onboarding.jobs.title": "Give each Bot a job",
   "onboarding.jobs.invoices": "Invoice Chaser",
@@ -4166,6 +4167,9 @@
   "botPanel.avatar.edit": "Edit Bot avatar",
   "botPanel.avatar.tip": "Edit Avatar",
   "botPanel.close": "Close",
+  "botPanel.conversations.newShort": "New",
+  "botPanel.actions.duplicate": "Duplicate bot",
+  "botPanel.section.thisConversation": "Conversation",
   "botPanel.routine.pause": "Pause {name}, {schedule}",
   "botPanel.routine.resume": "Resume {name}, {schedule}",
   "botPanel.nameField": "Bot name",
@@ -7812,5 +7816,8 @@
   "connectApps.dismiss": "Dismiss",
   "connectApps.close": "Close",
   "connectApps.onePassword.description": "Let your Bots sign in with logins from a 1Password vault.",
-  "connectApps.skill.subtitle": "Skill"
+  "connectApps.skill.subtitle": "Skill",
+  "connectApps.mcpServer": "MCP server",
+  "connectApps.off": "Off",
+  "connectApps.mcpAdd": "Your own servers, by command or URL"
 }

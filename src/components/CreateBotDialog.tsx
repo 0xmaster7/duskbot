@@ -3,6 +3,8 @@ import { GROK_BODIES, type GrokBodyId } from "../../shared/grok-bodies";
 import { isMausColor, type MausColor } from "../../shared/wire";
 import { useStore } from "@/state/store";
 import { CREATE_BOT_EVENT, openCreateBot, takeCreateBotSection } from "@/lib/create-bot-request";
+import { openNewGroup } from "@/lib/new-group-request";
+import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { MausAvatar } from "./Avatar";
 import { GrokIcon } from "./GrokIcon";
@@ -161,6 +163,14 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
           </div>
         </div>
         <div className="flex shrink-0 items-center justify-end gap-2 border-t border-ink/12 py-3 pl-4 pr-3">
+          <button
+            type="button"
+            data-group-instead=""
+            onClick={() => { onClose(); openNewGroup(); }}
+            className="mr-auto cursor-pointer rounded-[6px] border-0 bg-transparent p-0 text-[13px] leading-[18px] tracking-[0.195px] text-ink-secondary transition-colors duration-[120ms] ease-[ease-out] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          >
+            {t("createBot.groupInstead")}
+          </button>
           <button type="button" onClick={onClose} className={cn(KIT_BUTTON, "bg-ink/6 text-ink hover:bg-ink/10")}><span>Cancel</span></button>
           <button
             type="button"

@@ -138,6 +138,9 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
   if (!open) return null;
 
   const settings = (section: AppSettingsSection): Action => ({ type: "toggleAppSettings", open: true, section });
+  // Settings stays its own lazy chunk: its pane map is read once the command is picked.
+  const settingsPane = (pane: "models" | "usage" | "advanced") => () =>
+    void import("./SettingsModal").then(({ openSettings }) => dispatch(openSettings(pane))).catch(() => dispatch(settings("general")));
   const updater = window.ogb?.updater;
   const commands: Command[] = [
     { id: "new-bot", name: "New Bot", icon: "plus", run: () => openCreateBot() },
@@ -147,6 +150,9 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
     { id: "settings-computer", name: "Settings: Computer", detail: "Settings", icon: "display", run: () => dispatch(settings("computer")) },
     { id: "settings-updates", name: "Settings: Updates", detail: "Settings", icon: "refresh", run: () => dispatch(settings("updates")) },
     { id: "settings-permissions", name: "Settings: Permissions", detail: "Settings", icon: "lock", run: () => dispatch(settings("permissions")) },
+    { id: "settings-models", name: "Settings: Models", detail: "Settings", icon: "sparkle", run: settingsPane("models") },
+    { id: "settings-usage", name: "Settings: Usage & Billing", detail: "Settings", icon: "chart-bars", run: settingsPane("usage") },
+    { id: "settings-advanced", name: "Settings: Advanced features", detail: "Settings", icon: "sliders", run: settingsPane("advanced") },
     { id: "connect-apps", name: "Connect Apps", detail: "Search across apps and skills", icon: "storefront", run: () => dispatch(settings("apps")) },
     { id: "theme-system", name: "Theme: System", detail: "Settings · Appearance", icon: "display", run: () => applySkinChoice("system") },
     { id: "theme-dark", name: "Theme: Dark", detail: "Settings · Appearance", icon: "moon", run: () => applySkinChoice(THEME_SKINS.dark) },
@@ -154,7 +160,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
     ...(updater ? [{ id: "check-updates", name: "Check for Updates", detail: "Updates", icon: "refresh" as const, run: () => void updater.check().catch(() => {}) }] : []),
   ];
   // With nothing typed: the bots, those with news first, then what to do; settings and themes wait for a query.
-  const shownCommands = q ? ranked(commands, (command) => command.name, q) : commands.filter((command) => !command.id.startsWith("theme-") && command.id !== "connect-apps" && command.id !== "check-updates" && command.id !== "settings-updates" && command.id !== "settings-permissions");
+  const shownCommands = q ? ranked(commands, (command) => command.name, q) : commands.filter((command) => !command.id.startsWith("theme-") && command.id !== "connect-apps" && command.id !== "check-updates" && command.id !== "settings-updates" && command.id !== "settings-permissions" && !["settings-models", "settings-usage", "settings-advanced"].includes(command.id));
   // The sidebar's order, as ⌘1 to ⌘9 count it, so each row's keycap is the shortcut that opens it from anywhere.
   const liveBots = shortcutBots(state.bots.filter((b) => !b.hidden), shownBotIds(document.querySelector("[data-sidebar-root]")));
   const slot = new Map(liveBots.slice(0, 9).map((bot, index) => [bot.id, index + 1]));
