@@ -3,13 +3,16 @@
   from { transform: translateY(12px); }
 }
 .chat-row-in {
-  animation: chat-row-in 0.24s cubic-bezier(0.23, 1, 0.32, 1) both;
+  animation: chat-row-in 0.24s cubic-bezier(0.23, 1, 0.32, 1) backwards;
+}
+@keyframes chat-row-fade {
+  from { opacity: 0; }
 }
 
 /* a link reads as the text around it, in medium weight, with a quiet underline that firms up on hover */
 .chat-link {
   color: inherit;
-  font-weight: 500;
+  font-weight: inherit;
   overflow-wrap: anywhere;
   unicode-bidi: isolate;
 }
@@ -17,7 +20,7 @@
   text-decoration-line: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
-  text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
+  text-decoration-color: color-mix(in srgb, currentColor 12%, transparent);
   transition: text-decoration-color 0.12s ease;
 }
 .chat-link:hover .chat-link-text,
@@ -65,7 +68,234 @@
   color: var(--color-ink-tertiary);
 }
 
+/* grok's bubbles: a 6% ink wash (or the bot's colour) under a faint top gloss, with hairline highlights top and bottom */
+[data-chat-bubble="simple"].chat-bubble-bot {
+  background-color: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  background-image: linear-gradient(rgb(255 255 255 / 0.16), transparent);
+  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.16), inset 0 -0.5px 0 rgb(255 255 255 / 0.16),
+    inset 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 6%, transparent);
+}
+[data-chat-bubble="simple"].chat-bubble-user.chat-bubble-user {
+  background-image: linear-gradient(rgb(255 255 255 / 0.06), transparent) !important;
+  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.16), inset 0 -0.5px 0 rgb(255 255 255 / 0.16), inset 0 0 0 0.5px rgb(28 28 28 / 0.06);
+}
+:root:is([data-skin="grok"], [data-skin="grok-dark"]) [data-chat-bubble="simple"][style*="--grok-bubble-fill"] {
+  background-color: var(--grok-bubble-fill) !important;
+}
+
+/* every chat type style carries its own 0.01em, as grok's kit text does, instead of the body's inherited pixels */
+:where([data-chat-bubble="simple"], [data-chat-bubble="simple"] *, [data-ask-card], [data-ask-card] *, [data-chathead-pill], [data-chathead-pill] *, [data-day-stamp]) {
+  letter-spacing: 0.01em;
+}
+:where([data-chat-bubble="simple"] :is(code, pre, pre *, kbd)) {
+  letter-spacing: normal;
+}
+
+/* grok's prose: blocks 10px apart, headings 8px further from what they follow */
+[data-chat-bubble="simple"] .chat-md > * + * {
+  margin-top: 10px;
+}
+[data-chat-bubble="simple"] .chat-md > [data-md-h] {
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 22px;
+}
+[data-chat-bubble="simple"] .chat-md > [data-md-h] + *,
+[data-chat-bubble="simple"] .chat-md > * + [data-md-h] {
+  margin-top: 10px;
+}
+[data-chat-bubble="simple"] .chat-md > * + [data-md-h] {
+  margin-top: 18px;
+}
+[data-chat-bubble="simple"] .chat-md > [data-md-h]:first-child {
+  margin-top: 0;
+}
+[data-chat-bubble="simple"] .chat-md > [data-md-h="1"] {
+  font-size: 22px;
+  line-height: 28px;
+  letter-spacing: -0.012em;
+}
+[data-chat-bubble="simple"] .chat-md > [data-md-h="2"] {
+  font-size: 17px;
+  line-height: 24px;
+  letter-spacing: -0.008em;
+}
+[data-chat-bubble="simple"] .chat-md li + li {
+  margin-top: 4px;
+}
+[data-chat-bubble="simple"] .chat-md blockquote {
+  position: relative;
+  border: 0;
+  padding: 2px 2px 2px 12px;
+  color: inherit;
+}
+[data-chat-bubble="simple"] .chat-md blockquote::before {
+  content: "";
+  position: absolute;
+  inset-block: 2px;
+  inset-inline-start: 2px;
+  width: 2px;
+  border-radius: 9999px;
+  background-color: color-mix(in srgb, var(--color-ink) 24%, transparent);
+}
+[data-chat-bubble="simple"] .chat-md hr {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+}
+[data-chat-bubble="simple"] .chat-md code.ui-code-chip {
+  font-family: var(--font-mono);
+  font-size: 0.93em;
+  line-height: inherit;
+  padding: 0 4px;
+  border-radius: 4px;
+  color: var(--color-ink-secondary);
+  background-color: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  white-space: pre-wrap;
+}
+
+/* code: a plain fence is a quiet 4% block in the bubble's grey ink; a fence with a language is a white card */
+[data-chat-bubble="simple"] .chat-code-block {
+  margin-block: 0;
+  border-radius: 8px;
+  background-color: color-mix(in srgb, var(--color-ink) 4%, transparent);
+}
+[data-chat-bubble="simple"] .chat-code-block :is(pre, code) {
+  font-family: var(--font-mono);
+}
+[data-chat-bubble="simple"] .chat-code-block:not([data-lang]) pre {
+  padding-bottom: 9px;
+}
+[data-chat-bubble="simple"] .chat-code-block:not([data-lang]) :is(pre, pre code, pre span) {
+  color: var(--color-ink-secondary) !important;
+}
+[data-chat-bubble="simple"] .chat-code-block[data-lang] {
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 14px;
+  background-color: var(--color-composer);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+}
+[data-chat-bubble="simple"] .chat-code-block[data-lang] pre {
+  padding: 6px 10px !important;
+  font-size: 12px;
+  line-height: 18px;
+}
+[data-chat-bubble="simple"] .chat-code-block[data-lang] > div:last-child {
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* grok's timestamps wait past the column's edge; a sideways swipe slides your bubbles over and draws them in */
+@property --chat-ts-peek {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+@property --chat-ts-progress {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+.chat-row-ts {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  display: flex;
+  align-items: center;
+  padding-inline-start: 10px;
+  font-size: 12px;
+  line-height: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--color-ink) 56%, transparent);
+  pointer-events: none;
+  opacity: var(--chat-ts-progress, 0);
+  transform: translate3d(calc((1 - var(--chat-ts-progress, 0)) * 100%), 0, 0);
+}
+.chat-row-ts:dir(rtl) {
+  transform: translate3d(calc((var(--chat-ts-progress, 0) - 1) * 100%), 0, 0);
+}
+[data-peeking] [data-own-row] {
+  transform: translate3d(calc(-1 * var(--chat-ts-peek, 0px)), 0, 0);
+}
+[data-peeking] [data-own-row]:dir(rtl) {
+  transform: translate3d(var(--chat-ts-peek, 0px), 0, 0);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .chat-row-in { animation: none; }
+  .chat-row-in { animation: chat-row-fade 0.12s cubic-bezier(0.23, 1, 0.32, 1) backwards; }
   .chat-link-text { transition: none; }
+}
+
+/* the header pill darkens through a 6% ink veil on hover, as grok's does, and stays white while the panel is open */
+.chat-head-pill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+@media (hover: hover) and (pointer: fine) {
+  .chat-head-pill:hover::before {
+    opacity: 1;
+  }
+}
+.chat-head-pill > * {
+  position: relative;
+}
+
+/* the composer's voice and send button in grok's colour for the bot on the grok skins */
+:root:is([data-skin="grok"], [data-skin="grok-dark"]) .bot-button.grok-cta:enabled {
+  background-color: var(--grok-cta-fill);
+}
+:root:is([data-skin="grok"], [data-skin="grok-dark"]) .bot-button.grok-cta:enabled:hover {
+  background-color: var(--grok-cta-hover);
+}
+:root:is([data-skin="grok"], [data-skin="grok-dark"]) [data-composer-row] [data-call-button="composer"][style*="background-color"]:enabled {
+  background-color: var(--grok-cta-fill) !important;
+  transition: color 0.1s, background-color 0.1s, transform 0.05s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+@media (hover: hover) and (pointer: fine) {
+  :root:is([data-skin="grok"], [data-skin="grok-dark"]) [data-composer-row] [data-call-button="composer"][style*="background-color"]:enabled:hover {
+    background-color: var(--grok-cta-hover) !important;
+    filter: none;
+  }
+}
+
+/* grok's first day stamp sits 14px lower under the header than one between rows */
+[data-simple-rows]::before {
+  content: "";
+  margin-top: -2px;
+}
+
+/* your own words sit on grok's 20px line, a bot's prose on 22px */
+[data-chat-bubble="simple"].chat-bubble-user .chat-text,
+[data-chat-bubble="simple"].chat-bubble-user.chat-text {
+  line-height: 20px;
+}
+
+/* grok's working line: the phrase rests at 40% ink and a full-ink band sweeps it every 2.2s */
+[data-turn-status] .turn-phrase-quiet .thinking-shimmer {
+  color: color-mix(in srgb, var(--color-ink) 40%, transparent);
+}
+[data-turn-status] .turn-phrase-quiet .thinking-sheen > span::before {
+  color: var(--color-ink);
+}
+[data-turn-status] .turn-phrase-quiet .thinking-sheen > span {
+  animation-duration: 2.2s;
+}
+
+/* the jump-to-latest pill rises 6px into place, as grok's centred floating pill does */
+@keyframes chat-jump-in {
+  from { opacity: 0; transform: translateY(6px); }
+}
+.chat-jump {
+  animation: chat-jump-in 150ms cubic-bezier(0.2, 0, 0, 1) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-jump { animation-name: chat-row-fade; }
 }

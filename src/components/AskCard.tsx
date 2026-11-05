@@ -6,7 +6,7 @@ import { t } from "@/lib/i18n";
 import type { MausColor } from "@/lib/mascot";
 import type { Bot } from "@/state/store";
 import { BotAvatar } from "./Avatar";
-import { ELEVATED_CARD, ELEVATED_FLOAT } from "./elevated";
+import { ELEVATED_FLOAT } from "./elevated";
 
 /** The bot a card asks for: its face and name lead the card. */
 export type Asker = Pick<Bot, "name" | "color"> & Partial<Pick<Bot, "avatarUrl" | "avatarCrop" | "avatarZoom" | "avatarFocusX" | "avatarFocusY" | "mascotBody" | "mascotFaceColor">>;
@@ -64,7 +64,7 @@ export function AskCard({
       data-tour={tour}
       data-ask-card="pending"
       onKeyDown={onKeyDown}
-      className={cn("w-full max-w-[560px] rounded-[24px] px-4 pb-3 pt-3.5 text-start", stays ? `sticky top-[60px] bottom-[72px] z-10 ${ELEVATED_FLOAT}` : cn(ELEVATED_CARD, ASK_CARD_LIFT))}
+      className={cn("w-full max-w-[560px] rounded-[24px] px-4 pt-3.5 text-start", footer ? "pb-3" : "pb-2", stays ? `sticky top-[60px] bottom-[72px] z-10 ${ELEVATED_FLOAT}` : cn(ASK_CARD_RING, ASK_CARD_LIFT))}
     >
       {header && <div className="mb-1.5 pe-6">{header}</div>}
       <div className="flex min-w-0 items-start gap-2">
@@ -122,16 +122,18 @@ export function AskDetail({ text, mono = false, label }: { text: string; mono?: 
 export type AskChoice = { label: string; description?: string };
 
 /** A question card rests a hair above the page, like the bubbles beside it. */
-const ASK_CARD_LIFT = "shadow-[0_2px_8px_color-mix(in_srgb,var(--color-ink)_3.5%,transparent)]";
+export const ASK_CARD_LIFT = "shadow-[0_2px_8px_color-mix(in_srgb,var(--color-ink)_3.5%,transparent)]";
+/** Grok's card edge: a 0.5px ring at 12% ink. */
+export const ASK_CARD_RING = "bg-composer ring-[0.5px] ring-ink/[0.12]";
 
 /** The letter that names a choice, A to Z, then none: a long list reads by its labels. */
 export const choiceLetter = (index: number): string | null => index < 26 ? String.fromCharCode(65 + index) : null;
 
-function ChoiceLetter({ letter, quiet = false }: { letter: string | null; quiet?: boolean }) {
+export function ChoiceLetter({ letter, quiet = false, fill }: { letter: string | null; quiet?: boolean; fill?: string }) {
   if (!letter) return null;
   return (
-    <kbd aria-hidden="true" data-letter={letter} className={cn("flex size-6 shrink-0 items-center justify-center rounded-[8px] font-sans text-[12px] font-medium leading-4 before:content-[attr(data-letter)]",
-      quiet ? "bg-ink/[0.04] text-ink-tertiary" : "bg-ink/[0.06] text-ink-secondary")} />
+    <kbd aria-hidden="true" data-letter={letter} style={fill ? { backgroundColor: fill } : undefined} className={cn("flex size-6 shrink-0 items-center justify-center rounded-[8px] border border-ink/[0.08] font-sans text-[12px] font-medium leading-4 before:content-[attr(data-letter)]",
+      fill ? "text-white" : quiet ? "bg-ink/[0.04] text-ink-tertiary" : "bg-ink/[0.06] text-ink-secondary")} />
   );
 }
 
@@ -166,7 +168,7 @@ export function AskChoices({ choices, label, onPick, sending = null, picked = []
             aria-busy={sending === choice.label || undefined}
             disabled={disabled || (sending !== null && sending !== choice.label)}
             onClick={() => onPick(choice.label)}
-            className={cn(ASK_CHOICE, on ? "bg-ink/[0.06]" : "enabled:hover:bg-ink/[0.045] enabled:active:bg-ink/[0.07]", quiet && !on && "text-ink-secondary")}
+            className={cn(ASK_CHOICE, on ? "bg-ink/[0.06]" : "enabled:hover:bg-ink/[0.06]", quiet && !on && "text-ink-secondary")}
           >
             <ChoiceLetter letter={choiceLetter(index)} quiet={quiet && !on} />
             <span className="min-w-0 flex-1">
@@ -206,7 +208,7 @@ export function AskReply({ label, placeholder, color, onSend, sending = false, v
   const button = askPrimary(color, row ? ASK_ROW_SEND_SHAPE : ASK_ICON_SHAPE);
   return (
     <form onSubmit={send} className={row
-      ? "-mx-2 flex min-h-10 items-center gap-2.5 rounded-[16px] p-[7px] transition-colors duration-[120ms] hover:bg-ink/[0.045] focus-within:bg-ink/[0.045]"
+      ? "-mx-2 flex min-h-10 items-center gap-2.5 rounded-[16px] border border-transparent p-[7px] transition-[background-color,border-color] duration-[140ms] ease-[cubic-bezier(.16,1,.3,1)] hover:bg-ink/[0.06] focus-within:bg-ink/[0.06]"
       : "flex items-end gap-2 rounded-[16px] bg-ink/[0.045] py-1 pe-1 ps-3 ring-[0.5px] ring-ink/[0.14] focus-within:ring-ink/30"}>
       {row && <ChoiceLetter letter={letter ?? null} />}
       <textarea
@@ -223,7 +225,7 @@ export function AskReply({ label, placeholder, color, onSend, sending = false, v
           event.preventDefault();
           send();
         }}
-        className={cn("block flex-1 resize-none bg-transparent text-[14px] leading-5 text-ink outline-none placeholder:text-ink-tertiary [field-sizing:content]",
+        className={cn("block flex-1 resize-none bg-transparent text-[14px] leading-5 text-ink outline-none [field-sizing:content]", row ? "placeholder:text-ink/40" : "placeholder:text-ink-tertiary",
           row ? "min-h-5 py-0.5" : "min-h-8 py-1.5 pointer-coarse:min-h-9", multiline ? "max-h-40" : "max-h-28")}
       />
       {(!row || ready || sending) && <button type="submit" disabled={!ready} aria-label={t("chat.send")} title={t("chat.send")} aria-busy={sending || undefined} {...button}>
@@ -315,7 +317,8 @@ export const ASK_SECONDARY_BUTTON = `${ASK_BUTTON_SHAPE} ${ASK_LOOK} bg-ink/[0.0
 /** An extra option that should not compete with the answer: Always allow, Details. */
 export const ASK_QUIET_ANSWER = `${ASK_BUTTON_SHAPE} ${ASK_LOOK} text-ink-secondary enabled:hover:bg-ink/[0.06] enabled:hover:text-ink enabled:active:bg-ink/[0.1]`;
 
-const ASK_CHOICE = `flex min-h-10 w-full items-center gap-2.5 rounded-[16px] p-[7px] pe-3 text-start text-[14px] leading-5 text-ink transition-colors duration-[120ms] ${ASK_LOOK} disabled:cursor-default pointer-coarse:min-h-11`;
+/** Grok's option row: 40 tall, a 1px clear edge, its fill and edge easing in over 140ms. */
+const ASK_CHOICE = `flex min-h-10 w-full items-center gap-2.5 rounded-[16px] border border-transparent p-[7px] pe-3 text-start text-[14px] leading-5 text-ink transition-[background-color,border-color,color] duration-[140ms] ease-[cubic-bezier(.16,1,.3,1)] ${ASK_LOOK} disabled:cursor-default pointer-coarse:min-h-11`;
 
 export const ASK_CHIP = `${ASK_CONTROL} max-w-full border`;
 export const ASK_CHIP_IDLE = "border-transparent bg-ink/[0.07] text-ink hover:bg-ink/[0.12]";

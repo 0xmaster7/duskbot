@@ -10,6 +10,7 @@ import { runtimeFrameAction, StoreContext, type Bot, type InstanceInfo, type Mes
 import type { RuntimeEvent } from "../../shared/runtime-events";
 import type { FirstReplyRescue } from "../../shared/first-reply-rescue";
 import { PERSON_STOPPED_TURN_NAME, STOPPED_TURN_NAME } from "../../shared/client-cancel";
+vi.mock("@/lib/interface-mode", () => import("@/testing/advanced-mode"));
 import { CancelledTurnRow } from "./CancelledTurnRow";
 import { StatusActivityRow } from "./StatusActivityRow";
 

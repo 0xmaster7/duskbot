@@ -1,8 +1,7 @@
 import type { CSSProperties } from "react";
-import { ArrowDown } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { ELEVATED_FLOAT, ELEVATED_TINT } from "./elevated";
+import { GrokIcon } from "./GrokIcon";
 
 export function JumpToLatestButton({ onClick, className, style }: { onClick: () => void; className?: string; style?: CSSProperties }) {
   return (
@@ -10,11 +9,10 @@ export function JumpToLatestButton({ onClick, className, style }: { onClick: () 
       onClick={onClick}
       type="button"
       aria-label={t("chat.jumpToLatestAria")}
-      title={t("chat.jumpToLatest")}
-      className={cn("animate-pop-in absolute left-1/2 z-10 flex size-9 -translate-x-1/2 items-center justify-center rounded-full text-ink-secondary hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus", ELEVATED_FLOAT, ELEVATED_TINT, className)}
+      className={cn("chat-jump absolute left-1/2 z-10 flex size-8 -translate-x-1/2 items-center justify-center rounded-full bg-composer text-ink shadow-[0_1px_3px_rgb(28_28_28/0.12)] transition-colors duration-[120ms] ease-out hover:bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_6%)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus", className)}
       style={style}
     >
-      <ArrowDown size={17} strokeWidth={1.8} aria-hidden="true" />
+      <GrokIcon name="arrow-down" size={16} />
     </button>
   );
 }

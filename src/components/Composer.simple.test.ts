@@ -114,7 +114,7 @@ describe("the Simple composer in a bot chat", () => {
     render({ bot });
     expect(plus()?.getAttribute("aria-label")).toBe("Add");
     const pill = container.querySelector('[data-tour="composer"]')!.className.split(" ");
-    expect(pill).toEqual(expect.arrayContaining(["composer-pill", "rounded-[22px]", "bg-composer", "p-2", "ring-[0.5px]", "ring-ink/[0.12]", "hover:ring-ink/[0.24]",
+    expect(pill).toEqual(expect.arrayContaining(["composer-pill", "rounded-[22px]", "bg-composer", "px-[9px]", "pt-[7px]", "pb-[9px]", "ring-1", "ring-inset", "ring-ink/[0.12]",
       "focus-within:ring-ink/[0.24]", "data-[drag-over]:ring-accent"]));
     expect(pill.filter((name) => name.startsWith("shadow"))).toEqual(["shadow-[0_2px_8px_-1px_rgb(0_0_0/0.05),0_1px_2px_rgb(0_0_0/0.03),0_0_0_1px_rgb(228_228_228/0.04)]"]);
     expect(container.querySelector("[data-composer-row]")!.className).not.toContain("flex-wrap");
@@ -126,8 +126,8 @@ describe("the Simple composer in a bot chat", () => {
     const tone = userBubbleTone("purple");
     expect(fixture.call).toMatchObject({ bot: { id: "atlas" }, placement: "composer", fill: tone.background, ink: tone.ink });
     openPlus();
-    expect([...menu()!.querySelectorAll("[data-menu-key]")].map((row) => row.getAttribute("data-menu-key"))).toEqual(["attach", "goal", "teach"]);
-    expect([...menu()!.querySelectorAll("[data-menu-key]")].map((row) => row.textContent)).toEqual(["Attach files", "Work until done", "Teach a task"]);
+    expect([...menu()!.querySelectorAll("[data-menu-key]")].map((row) => row.getAttribute("data-menu-key"))).toEqual(["attach", "teach"]);
+    expect([...menu()!.querySelectorAll("[data-menu-key]")].map((row) => row.querySelector(".truncate")!.textContent)).toEqual(["Attach files", "Teach a task"]);
     const row = menu()!.querySelector("[data-menu-key='attach']")!.className.split(" ");
     expect(row).toEqual(expect.arrayContaining(["h-8", "gap-1.5", "px-2", "rounded-[10px]", "text-[14px]"]));
     expect(menu()!.className.split(" ")).toEqual(expect.arrayContaining(["popover-surface", "rounded-[16px]", "p-1.5", "w-max", "min-w-[200px]", "max-w-[280px]"]));
@@ -413,7 +413,7 @@ describe("the Advanced composer", () => {
       type("a".repeat(25) + "\nb");
       expect(stacked()).toBe(true);
       expect(classes("[data-composer-row]")).toContain("flex-wrap");
-      expect(classes("textarea")).toEqual(expect.arrayContaining(["px-1", "py-0.5"]));
+      expect(classes("textarea")).toEqual(expect.arrayContaining(["px-1", "pt-1", "pb-0"]));
       type("short");
       expect(stacked()).toBe(false);
     });

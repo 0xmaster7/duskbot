@@ -78,7 +78,7 @@ describe("QuestionCard answered in one step", () => {
     act(() => choice("Free").click());
     expect(dispatch, "one answer at a time").toHaveBeenCalledTimes(1);
     mount(card([plan], { answered: "answer", answeredText: "The user answered your questions.\n\nQ: Which plan should the workspace use?\nA: Pro" }));
-    expect(host.querySelector('[data-ask-card="settled"]')?.textContent).toContain("You chose: Pro");
+    expect(host.querySelector('[data-ask-card="answered"]')?.textContent).toContain("You chose: Pro");
   });
 
   it("takes no letter key: a choice is pressed", () => {

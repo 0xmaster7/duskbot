@@ -1,7 +1,7 @@
 import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
-import { Smile } from "lucide-react";
 import { REACTIONS, type Reaction } from "../../shared/reactions";
-import { ACTION_ICON, messageActionClass } from "@/components/MessageActions";
+import { messageActionClass } from "@/components/MessageActions";
+import { GrokIcon } from "./GrokIcon";
 import { usePopoverDismiss } from "@/hooks/use-popover-dismiss";
 import { useCanWriteIn, useReactor } from "@/lib/cloud-guest";
 import { cn } from "@/lib/cn";
@@ -116,12 +116,11 @@ export function ReactAction({ threadId, message }: { threadId: string; message: 
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-label={t("chat.react")}
-        title={t("chat.react")}
         aria-expanded={open}
         aria-controls={open ? id : undefined}
         className={cn(messageActionClass, open && "bg-ink/[0.06]")}
       >
-        <Smile {...ACTION_ICON} aria-hidden="true" />
+        <GrokIcon name="smiley-happy" size={14} />
       </button>
       {open && (
         <div
@@ -131,7 +130,7 @@ export function ReactAction({ threadId, message }: { threadId: string; message: 
           aria-label={t("chat.reactions")}
           onKeyDown={onKey}
           className={cn(
-            "popover-surface absolute bottom-full z-40 mb-1 flex animate-pop-in items-center gap-0.5 rounded-full border border-hairline/50 bg-menu p-1 shadow-2xl shadow-black/40",
+            "popover-surface animate-pop-in absolute top-full z-40 mt-1 flex origin-top-left items-center gap-1 rounded-full bg-menu p-1.5 shadow-(--shadow-popover)",
             end ? "end-0" : "start-0",
           )}
         >
@@ -141,14 +140,13 @@ export function ReactAction({ threadId, message }: { threadId: string; message: 
               type="button"
               aria-pressed={mine === emoji}
               aria-label={labelOf(emoji)}
-              title={labelOf(emoji)}
               onClick={() => {
                 react(emoji);
                 close(true);
               }}
               className={cn(
-                "flex size-8 items-center justify-center rounded-full text-[18px] leading-none transition-transform hover:scale-110 hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus motion-reduce:transition-none motion-reduce:hover:scale-100",
-                mine === emoji && "bg-accent/15",
+                "flex size-8 items-center justify-center rounded-full text-[20px] leading-none hover:bg-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                mine === emoji && "bg-ink/[0.08]",
               )}
             >
               <span aria-hidden="true">{emoji}</span>

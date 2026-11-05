@@ -4,6 +4,7 @@ import { isStatusActivity } from "@/lib/activity-runs";
 import { peerLine, peerRequest } from "@/lib/peer-message";
 import { localDay } from "@/lib/transcript-derivations";
 import type { TranscriptItem } from "@/lib/activity-runs";
+import type { MausColor } from "@/lib/mascot";
 import type { Message } from "@/state/store";
 import { isCancelledTranscriptRow } from "../../shared/client-cancel";
 import { isPureLeakedSystemHarnessMessage } from "../../shared/system-message-guard.ts";
@@ -13,11 +14,32 @@ export const SIMPLE_BUBBLE_TEXT = "text-[15px] leading-[22px]";
 
 const SIMPLE_BUBBLE_SHAPE = `min-w-9 rounded-[18px] px-3 py-[7px] ${SIMPLE_BUBBLE_TEXT}`;
 
-/** Simple mode's bot bubble: the one surface tone. */
-export const SIMPLE_BOT_BUBBLE = `${SIMPLE_BUBBLE_SHAPE} bg-card text-ink`;
+/** Simple mode's bot bubble: a 6% ink wash with a faint top gloss and hairline insets (chat.css). */
+export const SIMPLE_BOT_BUBBLE = `${SIMPLE_BUBBLE_SHAPE} chat-bubble-bot text-ink`;
 
-/** Simple mode's own bubble; the bot's colour, when on, comes from its inline style. */
-export const SIMPLE_USER_BUBBLE = `${SIMPLE_BUBBLE_SHAPE} bg-bubble-user font-normal`;
+/** Simple mode's own bubble, 15/20 like grok's; the bot's colour, when on, comes from its inline style. */
+export const SIMPLE_USER_BUBBLE = `min-w-9 rounded-[18px] px-3 py-[7px] text-[15px] leading-5 chat-bubble-user bg-bubble-user font-normal`;
+
+/** Grok's per-colour fills: your bubble takes the darker one, the voice and send button the brighter one, which
+ * darkens to the bubble's on hover. A colour grok has no match for keeps its computed tone. */
+export const GROK_BOT_FILLS: Partial<Record<MausColor, { bubble: string; button: string }>> = {
+  blue: { bubble: "#126fd4", button: "#1680f3" },
+  red: { bubble: "#c82532", button: "#e72e3b" },
+  purple: { bubble: "#7442d1", button: "#8351e4" },
+  pink: { bubble: "#c82779", button: "#e52f8b" },
+  cyan: { bubble: "#0d9381", button: "#10a693" },
+  teal: { bubble: "#0d9381", button: "#10a693" },
+  orange: { bubble: "#d2550a", button: "#ee620d" },
+  green: { bubble: "#0d9655", button: "#10ab61" },
+  yellow: { bubble: "#c2730b", button: "#da830e" },
+  silver: { bubble: "#1c1c1c", button: "#1c1c1c" },
+  chrome: { bubble: "#1c1c1c", button: "#1c1c1c" },
+};
+
+/** Your bubble's fill in Simple mode on the light grok skin: grok's own value for the bot's colour. */
+export function grokUserBubbleFill(color: MausColor | undefined): string | undefined {
+  return color ? GROK_BOT_FILLS[color]?.bubble : undefined;
+}
 
 /** At most 560 wide, 80% of the column, and always 82px short of it, so a reply never meets the far edge. */
 export const SIMPLE_BUBBLE_MAX = "max-w-[min(var(--chat-bubble-max),var(--chat-bubble-pct),calc(100%-82px))]";

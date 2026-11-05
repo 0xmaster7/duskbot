@@ -19,15 +19,21 @@ import {
   AskHeader,
   AskReply,
   AskSettledLine,
+  ASK_CARD_LIFT,
+  ASK_CARD_RING,
   ASK_QUIET_BUTTON,
   ASK_SMALL_PILL,
   askPrimary,
+  ChoiceLetter,
   choiceLetter,
   returnFocusToComposer,
   settledAnswer,
   type Asker,
 } from "./AskCard";
 import { ExpandableText } from "./ExpandableText";
+import { GROK_BOT_FILLS } from "./chat-bubble";
+import { botButtonTone } from "@/lib/bot-button";
+import type { MausColor } from "@/lib/mascot";
 import { useInboxOrigin } from "./InboxLine";
 import { accessRequestWords, cardAnswerFor } from "./bot-access/access-card";
 
@@ -107,7 +113,7 @@ export function QuestionCard({
 
   if (!card?.requestId || !questions.length) return null;
   if (decidedByBot(card)) return <DecidedQuestion threadId={threadId} asker={asker} card={card} questions={questions} />;
-  if (card.answered || card.expired || card.stopped) return <SettledQuestion card={card} questions={questions} />;
+  if (card.answered || card.expired || card.stopped) return <SettledQuestion card={card} questions={questions} asker={asker} />;
 
   const currentIndex = Math.min(active, questions.length - 1);
   const current = questions[currentIndex]!;
@@ -272,7 +278,22 @@ function DecidedQuestion({ threadId, asker, card, questions }: { threadId: strin
   );
 }
 
-function SettledQuestion({ card, questions }: { card: NonNullable<Message["card"]>; questions: readonly AskQuestion[] }) {
+/** Grok keeps an answered question in place: its title greys and only the answer stays, its letter in the bot's colour. */
+function AnsweredQuestion({ question, answer, letter, color, own }: { question: string; answer: string; letter: string | null; color?: MausColor; own: boolean }) {
+  const fill = color ? GROK_BOT_FILLS[color]?.button ?? botButtonTone(color).fill : undefined;
+  return (
+    <div role="group" aria-label={t("question.aria.card")} data-ask-card="answered" className={cn("w-full max-w-[560px] rounded-[24px] px-4 pb-2 pt-3.5 text-start", ASK_CARD_RING, ASK_CARD_LIFT)}>
+      <div className="min-w-0 break-words text-[15px] font-semibold leading-[22px] text-ink/[0.56]"><bdi dir="auto">{question}</bdi></div>
+      <div className="-mx-2 mt-3 flex min-h-10 items-center gap-2.5 p-2">
+        <ChoiceLetter letter={letter} fill={fill ?? "var(--color-ink)"} />
+        <span className="sr-only">{t(own ? "ask.settled.answered" : "ask.settled.chose")} </span>
+        <span dir="auto" className="min-w-0 flex-1 break-words text-[14px] leading-5 text-ink [unicode-bidi:plaintext]">{answer}</span>
+      </div>
+    </div>
+  );
+}
+
+function SettledQuestion({ card, questions, asker }: { card: NonNullable<Message["card"]>; questions: readonly AskQuestion[]; asker?: Asker }) {
   const [open, setOpen] = useState(false);
   if (card.stopped) return <AskSettledLine tone="stopped" ariaLabel={t("question.aria.card")}>{t("ask.settled.stopped")}</AskSettledLine>;
   if (card.expired) return <AskSettledLine tone="expired" ariaLabel={t("question.aria.card")}>{t("ask.settled.expired")}</AskSettledLine>;
@@ -284,6 +305,10 @@ function SettledQuestion({ card, questions }: { card: NonNullable<Message["card"
   const full = answer ? answerWithoutPreamble(answer) : "";
   const choices = questions.length === 1 ? questions[0]!.options.map((option) => option.label) : [];
   const many = questions.length > 1;
+  if (!many && line.value && !questions[0]!.multiSelect) {
+    const at = choices.indexOf(line.value);
+    return <AnsweredQuestion question={questions[0]!.question} answer={line.value} letter={choiceLetter(at < 0 ? choices.length : at)} color={asker?.color} own={at < 0} />;
+  }
   return (
     <AskSettledLine
       ariaLabel={t("question.aria.card")}

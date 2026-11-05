@@ -134,7 +134,8 @@ import { latestFailure, latestReply, type TranscriptSnapshot } from "@/lib/trans
 import { pendingApprovals } from "./PendingApproval";
 import { TranscriptAnnouncer } from "./TranscriptAnnouncer";
 import { JumpToLatestButton } from "./JumpToLatestButton";
-import { isBotTextRow, joinedCorners, needsStamp, quietRow, simpleRowLayout, SIMPLE_BOT_BUBBLE, SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT, SIMPLE_STACKED, SIMPLE_USER_BUBBLE, type BubbleJoin } from "./chat-bubble";
+import { useTimestampPeek } from "./chat-timestamp-peek";
+import { grokUserBubbleFill, isBotTextRow, joinedCorners, needsStamp, quietRow, simpleRowLayout, SIMPLE_BOT_BUBBLE, SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT, SIMPLE_STACKED, SIMPLE_USER_BUBBLE, type BubbleJoin } from "./chat-bubble";
 
 const USER_COLLAPSE_CHARS = 600;
 const USER_COLLAPSE_LINES = 8;
@@ -433,10 +434,10 @@ const Bubble = memo(function Bubble({
   );
 
   return (
-    <div {...{ [MESSAGE_ROW]: "" }} className={cn("group flex w-full flex-col", user ? "items-end" : "items-start", fresh && "chat-row-in", simple && join?.above && SIMPLE_STACKED)}>
+    <div {...{ [MESSAGE_ROW]: "" }} className={cn("group flex w-full flex-col", simple && "relative", user ? "items-end" : "items-start", fresh && "chat-row-in", simple && join?.above && SIMPLE_STACKED)}>
       {message.relay ? <RelayLabel message={message} /> : peer && <PeerLabel peer={peer} />}
       {speaker && <div className="mb-0.5 px-1 text-[12px] font-medium text-ink-secondary">{speaker}</div>}
-      <div className={cn("flex w-full items-center gap-1.5", user ? "justify-end" : "justify-start")}>
+      <div data-own-row={simple && user ? "" : undefined} className={cn("flex w-full items-center gap-1.5", user ? "justify-end" : "justify-start")}>
         {user && (
           <MessageActions
             side="user"
@@ -450,7 +451,7 @@ const Bubble = memo(function Bubble({
               }),
             ]}
           >
-            <ReplyAction onReply={() => onReply(message)} />
+            <ReplyAction own onReply={() => onReply(message)} />
             {!simple && Boolean(visibleText.trim()) && <CopyButton text={visibleText} className={messageActionClass} />}
           </MessageActions>
         )}
@@ -566,16 +567,13 @@ const Bubble = memo(function Bubble({
           )}
         </div>
         {!tabled && botActions}
-        <span
-          className={cn(
-            "tabular-nums text-ink-tertiary opacity-0 transition-opacity group-hover:opacity-100",
-            simple ? "self-center text-[12px] font-medium" : "self-end pb-1 text-[11px]",
-            user ? "order-first mr-2" : simple ? "ms-auto ps-2" : "ml-2",
-          )}
-        >
-          {formatTime(message.at)}
-        </span>
+        {!simple && (
+          <span className={cn("tabular-nums text-ink-tertiary opacity-0 transition-opacity group-hover:opacity-100 self-end pb-1 text-[11px]", user ? "order-first mr-2" : "ml-2")}>
+            {formatTime(message.at)}
+          </span>
+        )}
       </div>
+      {simple && <time dateTime={new Date(message.at).toISOString()} className="chat-row-ts" aria-label={new Date(message.at).toLocaleTimeString()}>{formatTime(message.at)}</time>}
       <ReactionChips threadId={threadId} message={message} bots={bots} align={user ? "end" : "start"} canReact={canReact} />
       {forks.length > 1 && (
         <div className="mt-1 flex items-center gap-0.5 pr-1 text-[12px] text-ink-secondary">
@@ -643,6 +641,9 @@ const ActivityChip = memo(function ActivityChip({ message, place = "auto" }: { m
 });
 
 const RoomHandoffChip = ({ message, comm, bots, dispatch }: { message: Message; comm: NonNullable<Message["comm"]>; bots: readonly Bot[]; dispatch: Dispatch<Action> }) => { const store = useStoreRef(); return <HandoffChip message={message} bots={bots} title={t("chat.openConversationWith", { name: comm.withName })} onClick={() => openRoomThread(dispatch, comm, store.state().groups)} />; };
+/** Simple mode's room under the last row, above the composer's own clearance. */
+const SIMPLE_TRAILING_GAP = 42;
+
 const MessagesList = memo(function MessagesList({
   messages,
   transcript,
@@ -662,6 +663,7 @@ const MessagesList = memo(function MessagesList({
   onSubmitEdit,
   onRegenerate,
   onReply,
+  seamId = null,
 }: {
   messages: Message[];
   transcript: Message[];
@@ -681,6 +683,8 @@ const MessagesList = memo(function MessagesList({
   onSubmitEdit: (id: string, text: string) => void;
   onRegenerate: () => void;
   onReply: (message: Message) => void;
+  /** The bubble the working line hangs under: its bottom corner pinches as if another bubble followed, as grok's does. */
+  seamId?: string | null;
 }) {
   const { botId, threadId, botName, botColor, bots, hasMore, focus, showToolCalls, locale, simple = false } = useChatRows(), busy = use(ChatBusyContext);
   // A finished turn keeps the bot's progress lines and folds only its tool steps under "Worked for", in both modes.
@@ -694,7 +698,11 @@ const MessagesList = memo(function MessagesList({
   const unreadIds = useMemo(() => unreadMessageIds(messages, unreadDividerId), [messages, unreadDividerId]);
   let dividerPlaced = false;
   const layout = useMemo(() => simple ? simpleRowLayout(items, { botId, showToolCalls, unreadIds }) : null, [simple, items, unreadIds, showToolCalls, botId]);
-  const joins = layout?.joins;
+  const joins = useMemo(() => {
+    if (!layout || !seamId) return layout?.joins;
+    const at = items.findIndex((item) => item.kind === "message" && item.message.id === seamId);
+    return at < 0 ? layout.joins : layout.joins.map((join, index) => index === at ? { ...join, below: true } : join);
+  }, [layout, items, seamId]);
   const durations = useMemo(() => simple ? turnDurations(messages) : null, [messages, simple]);
   const dividerAbove = (rows: readonly Message[]) => {
     if (!unreadIds || dividerPlaced || !rows.some((row) => unreadIds.has(row.id))) return null;
@@ -884,6 +892,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
     pinOn: [bot.busy, composerDock.pad],
     hasMore: bot.hasMore,
   });
+  useTimestampPeek(scrollRef, !advanced);
 
   const lastBotTextId = useMemo(
     () => [...messages].reverse().find((m) => m.role === "bot" && m.kind === "text")?.id,
@@ -907,7 +916,12 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const onBranch = useCallback((messageId: string) => branch.current.some((m) => m.id === messageId), []);
   const colorMine = useColorUserBubbles();
   // Simple mode draws your bubble in one flat tone of the bot's colour.
-  const bubbleStyle = useMemo(() => (colorMine ? userBubbleStyle(bot.color, { flat: !advanced }) : undefined), [colorMine, bot.color, advanced]);
+  const bubbleStyle = useMemo(() => {
+    if (!colorMine) return undefined;
+    const style = userBubbleStyle(bot.color, { flat: !advanced });
+    const grok = advanced ? undefined : grokUserBubbleFill(bot.color);
+    return grok ? { ...style, "--grok-bubble-fill": grok } as typeof style : style;
+  }, [colorMine, bot.color, advanced]);
   const hasMore = Boolean(bot.hasMore);
   const reactor = useReactor();
   const speakerViewer = state.config?.team && reactor !== "user" ? reactor : null;
@@ -1069,7 +1083,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             <button
               type="button"
               data-chathead-pill data-tour="bot-pill"
-              onClick={() => dispatch({ type: "toggleSettings", open: true })}
+              aria-expanded={state.settingsOpen} aria-controls={state.settingsOpen ? "bot-panel" : undefined}
+              onClick={() => dispatch({ type: "toggleSettings" })}
               title={t("chat.openProfile")}
               aria-label={t("chat.openProfileAria", { name: bot.name })}
               className={cn("group flex h-9 min-w-0 items-center gap-2.5 rounded-full py-0.5 pl-2 pr-3.5 text-ink", ELEVATED_FLOAT, ELEVATED_HOVER)}
@@ -1116,7 +1131,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           {/* Simple mode chooses the model in the bot panel's Details, as its header is the bot's pill alone. */}
           {!phone && !simpleHead && <ModelPicker key={bot.threadId} bot={bot} threadId={bot.threadId} />}
           <LiveCallChip currentBotId={bot.id} onOpen={(botId, threadId) => openThread(dispatch, { botId, threadId }, state, showThreads)} />
-          {!phoneMenu && <button
+          {/* Grok's header is the bot's pill alone: the pill opens the panel, whose Computer tab shows the bot's screen. */}
+          {!phoneMenu && !simpleHead && <button
             data-tour="computer"
             onClick={(event) => { if (!state.computerOpen) rememberComputerPanelOpen({ botId: bot.id, opener: event.currentTarget, tabs: event.detail === 0 }); dispatch({ type: "toggleComputer" }); }}
             className={cn(
@@ -1171,7 +1187,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           // Simple mode spaces groups 16px apart, Advanced 12px.
           data-simple-rows={advanced ? undefined : ""}
           className="glass-scroller-content chat-column relative flex w-full flex-col gap-3 data-[simple-rows]:gap-4"
-          style={{ paddingBottom: composerDock.pad }}
+          // grok leaves 54px between the last row and the composer: its 52px trailing inset and the row's own 2px
+          style={{ paddingBottom: advanced ? composerDock.pad : `calc(${composerDock.pad} + ${SIMPLE_TRAILING_GAP}px)` }}
           role="log"
           // off: a polite log re-reads every tick and chip while the bot works; TranscriptAnnouncer speaks once when
           // done.
@@ -1207,6 +1224,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               onSubmitEdit={submitEdit}
               onRegenerate={regenerate}
               onReply={selectReply}
+              seamId={!advanced && presenceVisible && presenceUnderBubble ? lastShownRow?.id ?? null : null}
             />
           </ChatBusyContext></LiveToolsContext></ChatRowsContext.Provider>
           {stopNoticeDue(messages, stoppedAt, busy) && <CancelledTurnRow name={PERSON_STOPPED_TURN_NAME} />}
@@ -1233,7 +1251,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               <BotAvatar
                 bot={bot}
                 state={toolInFlight ? "working" : "thinking"}
-                size={advanced ? 36 : 22}
+                size={advanced ? 36 : 28}
                 forward={false}
                 lookAround={1}
                 trackPointer={false}

@@ -1,7 +1,8 @@
 // Dev-only gallery of a Simple mode transcript, served at /chat-transcript-preview.html; not in the packaged app. It
 // mounts the real ChatView over a fixed store, with no server behind it.
-// ?state=done|working|question|approval|empty&skin=grok|grok-dark|midnight&tools=1
-import { StrictMode } from "react";
+// ?state=done|working|question|approval|empty|grok|grok-md|answered&skin=grok|grok-dark|midnight&tools=1&bot=amy
+// state=grok mirrors the grok sandbox's Amy chat line for line, so the two can be compared pixel for pixel.
+import { StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ChatView } from "@/components/ChatView";
 import { loadLocale } from "@/lib/i18n";
@@ -18,6 +19,8 @@ applySkinChoice(SKIN_IDS.includes(skin as SkinId) ? (skin as SkinId) : "midnight
 await loadLocale("en");
 
 const AT = new Date(new Date().setHours(11, 32, 0, 0)).getTime();
+const amy = params.get("bot") === "amy";
+const botName = amy ? "Amy" : "Jordan";
 const message = (id: string, minutes: number, fields: Partial<Message>): Message =>
   ({ id, at: AT + minutes * 60_000, role: "bot", kind: "text", text: "", ...fields }) as Message;
 const step = (id: string, minutes: number, name: string, input: Record<string, unknown>, ok: boolean | undefined = true): Message =>
@@ -35,7 +38,23 @@ The channel only keeps messages back to about Oct 20, so anything older is gone.
 pnpm scripts:pull --channel jordan-lee-youtube
 \`\`\``;
 
+const FUNNEL = "## Weekly funnel\n\nConversions are **up 12%** week over week.\n\n- Landing page CTR: 4.1% -> 4.6%\n- Checkout drop-off: 38% -> 31%\n- Webinar signups: 212\n\n```\npython3 report.py --week 45\n```\n\nWant me to send this to Jordan?";
+const RICH = "# Big heading\n\nIntro with `inline code` and a [Google doc](https://docs.google.com/document/d/abc) and https://example.org/raw.\n\n### Small heading\n\n1. First item\n2. Second item\n\n> A quoted line that wraps a bit to show the quote style.\n\n| Metric | Before | After |\n| --- | --- | --- |\n| CTR | 4.1% | 4.6% |\n| Drop-off | 38% | 31% |\n\n```bash\npnpm scripts:pull --channel jordan\n```\n\n---\n\n*italic* and ~~struck~~ text.";
+
+function grokRows(): Message[] {
+  const ask = { kind: "options", text: "Which channel should the Monday report go to?", card: { title: "Which channel should the Monday report go to?", subtitle: "Which channel should the Monday report go to?", options: ["Slack #growth", "Email", "Just here"], requestId: "rq", requestType: "question", ...(stateName === "answered" ? { answered: "answer", answeredText: "Email" } : {}) } } as Partial<Message>;
+  const list: Message[] = [
+    message("u1", 0, { role: "user", text: `Hey ${botName}, can you check what changed in the funnel this week?` }),
+    message("a1", 1.5, { text: stateName === "grok-md" ? RICH : FUNNEL, turnId: "t1", turnTerminal: true }),
+    message("u2", 3, { role: "user", text: "Nice. Yes, and set up a routine for every Monday." }),
+    message("a2", 4.5, { text: "Done. I sent the summary to Jordan and created a Monday 9:00 routine.", turnId: "t2", turnTerminal: true }),
+    message("w1", 6, ask),
+  ];
+  return list.map((one, index, all) => ({ ...one, parentId: all[index - 1]?.id }));
+}
+
 function rows(): Message[] {
+  if (stateName === "grok" || stateName === "grok-md" || stateName === "answered") return grokRows();
   const base: Message[] = [
     message("intro", -400, { text: "took the tinyfish invite on unfair: TinyResearch / TinySet from @Tiny_Fish, $150 for a quote. their post goes up tonight at 10:30 PM IST, and from then you have 12 hours to quote it." }),
     message("ask", 0, { role: "user", text: "can you check some good scripts that jordan said class or REALLY liked from the jordanleeyoutube channel in slack, give links" }),
@@ -57,15 +76,34 @@ function rows(): Message[] {
 
 const shown = stateName === "empty" ? [] : rows();
 const bot: Bot = {
-  id: "jordan", name: "Jordan", title: "", description: "Writes and checks scripts for the channel.", color: "red", notifications: true, unread: false,
-  threadId: "main", busy: stateName === "working", activity: stateName === "working" ? "working" : stateName === "question" || stateName === "approval" ? "waiting-on-you" : "idle",
+  id: amy ? "amy" : "jordan", name: botName, title: "", description: "Writes and checks scripts for the channel.", color: amy ? "pink" : "red", notifications: true, unread: false,
+  threadId: "main", busy: stateName === "working", activity: stateName === "working" ? "working" : stateName === "question" || stateName === "approval" || stateName === "grok" || stateName === "grok-md" ? "waiting-on-you" : "idle",
   turnStartedAt: AT, messages: shown, activeLeafId: shown.at(-1)?.id, modelSelection: { instanceId: "claude", model: "claude-opus-5-5" },
-  tasks: [{ threadId: "main", title: "Jordan", createdAt: AT - 86_400_000 }],
+  tasks: [{ threadId: "main", title: botName, createdAt: AT - 86_400_000 }],
 } as Bot;
 
 const state: AppState = { ...initialState, bots: [bot], selectedId: bot.id, connected: true,
   config: { features: { showToolCalls: params.get("tools") === "1" } } as unknown as AppState["config"] };
 const value = { state, dispatch: () => {}, flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} };
+
+// &append=1: a reply arrives 1.5s after load, to record how a new row enters.
+function Live() {
+  const [shown, setShown] = useState(bot);
+  useEffect(() => {
+    if (params.get("append") !== "1") return;
+    const timer = setTimeout(() => {
+      const next = { ...message("late", 0, { text: "Here is one more reply that just arrived.", parentId: bot.messages.at(-1)?.id, turnId: "t9", turnTerminal: true }), at: Date.now() };
+      setShown((current) => ({ ...current, messages: [...current.messages, next], activeLeafId: next.id }));
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+  const live = useMemo(() => ({ ...value, state: { ...state, bots: [shown] } }), [shown]);
+  return (
+    <StoreContext.Provider value={live}>
+      <div className="flex h-dvh w-full overflow-hidden bg-app text-ink"><div className="flex min-w-0 flex-1 flex-col"><ChatView bot={shown} /></div></div>
+    </StoreContext.Provider>
+  );
+}
 
 const realFetch = window.fetch.bind(window);
 window.fetch = async (input, init) => {
@@ -76,8 +114,6 @@ window.fetch = async (input, init) => {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <StoreContext.Provider value={value}>
-      <div className="flex h-dvh w-full overflow-hidden bg-app text-ink"><div className="flex min-w-0 flex-1 flex-col"><ChatView bot={bot} /></div></div>
-    </StoreContext.Provider>
+    <Live />
   </StrictMode>,
 );

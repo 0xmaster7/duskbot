@@ -1,8 +1,9 @@
 // Security: Shiki's output is generator-escaped; nothing else reaches the DOM as HTML.
 import { useEffect, useMemo, useState } from "react";
 import type { HighlighterCore } from "shiki/core";
-import { Check, Copy, Download, MoreHorizontal, WrapText, X } from "lucide-react";
+import { Check, Copy, Download, WrapText, X } from "lucide-react";
 
+import { GrokIcon } from "./GrokIcon";
 import { cn } from "@/lib/cn";
 import { useCopyFeedback } from "@/lib/copy-text";
 import { t } from "@/lib/i18n";
@@ -168,7 +169,8 @@ export interface CodeBlockProps {
   initialWrap?: boolean;
 }
 
-const PLATE_BUTTON = "inline-flex size-7 items-center justify-center rounded-full text-ink-secondary transition-colors hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60";
+/** Grok's copy-code button: a 24px white key with a hairline and a small drop, top right of the block. */
+const PLATE_BUTTON = "composer-press inline-flex size-6 items-center justify-center rounded-[6px] border border-ink/[0.08] bg-composer text-ink/[0.66] shadow-[0_1px_3px_rgb(28_28_28/0.12)] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
 
 /** Simple mode's hover plate on a code block or diagram: Copy, and a ⋯ menu for the rest. It shows on hover, on
  * keyboard focus and always on touch screens, and stays while its menu is open. */
@@ -179,17 +181,17 @@ export function CodePlate({ copied, onCopy, copyLabel, items }: {
   items: SidebarMenuItem[];
 }) {
   return (
-    <div data-code-plate className="absolute end-1 top-1 z-[1] flex gap-0.5 rounded-full bg-composer p-0.5 opacity-0 ring-[0.5px] ring-ink/10 transition-opacity focus-within:opacity-100 group-hover/code:opacity-100 touch:opacity-100 has-[[aria-expanded=true]]:opacity-100">
+    <div data-code-plate className="absolute end-1.5 top-1.5 z-[1] flex gap-1 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover/code:opacity-100 touch:opacity-100 has-[[aria-expanded=true]]:opacity-100">
       <button type="button" onClick={onCopy} className={PLATE_BUTTON}
         title={copied === "copied" ? t("code.copiedTitle") : copied === "failed" ? t("common.copyFailed") : copyLabel}
         aria-label={copied === "copied" ? t("code.copiedTitle") : copied === "failed" ? t("common.copyFailed") : copyLabel}>
         {copied === "failed" ? <X size={14} className="text-danger" aria-hidden="true" />
           : copied === "copied" ? <Check size={14} className="text-success" aria-hidden="true" />
-            : <Copy size={14} aria-hidden="true" />}
+            : <GrokIcon name="copy" size={14} />}
       </button>
       {copied !== "idle" && <span role="status" className="sr-only">{copied === "failed" ? t("common.copyFailed") : t("code.copiedTitle")}</span>}
-      <SidebarPopoverMenu items={items} ariaLabel={t("chat.more")} placement="below" triggerClassName="rounded-full" triggerTitle={t("chat.more")}
-        renderTrigger={() => <span className={PLATE_BUTTON}><MoreHorizontal size={14} aria-hidden="true" /></span>} />
+      <SidebarPopoverMenu items={items} ariaLabel={t("chat.more")} placement="below" triggerClassName="rounded-[6px]" triggerTitle={t("chat.more")}
+        renderTrigger={() => <span className={PLATE_BUTTON}><GrokIcon name="dots-3-horizontal" size={14} /></span>} />
     </div>
   );
 }
@@ -247,7 +249,7 @@ export function CodeBlock({ code, lang, initialWrap = false }: CodeBlockProps) {
 
   if (simple) {
     return (
-      <div dir="ltr" className="chat-code-block group/code relative my-2.5 overflow-hidden rounded-lg bg-ink/[0.04]">
+      <div dir="ltr" data-lang={lang.trim() || undefined} className="chat-code-block group/code relative my-2.5 overflow-hidden rounded-lg bg-ink/[0.04]">
         <CodePlate copied={copied} onCopy={copy} copyLabel={t("code.copyTitle")} items={[
           { key: "wrap", label: t("code.wrapLines"), icon: <WrapText size={14} aria-hidden="true" />, active: wrapLines, onSelect: () => setWrapLines((wrap) => !wrap) },
           { key: "save", label: t("code.saveAsFile"), icon: <Download size={14} aria-hidden="true" />, onSelect: download },

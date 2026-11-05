@@ -1,5 +1,6 @@
 import { createContext, use, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { Check, Copy, Ellipsis, Reply, X } from "lucide-react";
+import { Check, Copy, X } from "lucide-react";
+import { GrokIcon } from "./GrokIcon";
 import { popoverClosesOnKey, usePopoverDismiss } from "@/hooks/use-popover-dismiss";
 import { cn } from "@/lib/cn";
 import { useCopyFeedback } from "@/lib/copy-text";
@@ -167,7 +168,7 @@ export function MessageActions({
     <div
       ref={rootRef}
       className={cn(
-        "relative flex items-center gap-0.5 self-end pb-1.5 transition-opacity duration-150",
+        "relative flex items-center gap-0.5 self-center transition-opacity duration-150",
         mirrored && "flex-row-reverse",
         shown ? "opacity-100" : "pointer-events-none opacity-0",
         className,
@@ -187,13 +188,12 @@ export function MessageActions({
           type="button"
           onClick={() => setMenuOpen((value) => !value)}
           aria-label={t("chat.messageActions")}
-          title={t("chat.messageActions")}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
           aria-controls={menuOpen ? menuId : undefined}
           className={cn(messageActionClass, menuOpen && "bg-ink/[0.06]")}
         >
-          <Ellipsis {...ACTION_ICON} aria-hidden="true" />
+          <GrokIcon name="dots-3-horizontal" size={14} />
         </button>
       )}
       {menuOpen && (
@@ -233,10 +233,10 @@ export function MessageActions({
   );
 }
 
-export function ReplyAction({ onReply }: { onReply: () => void }) {
+export function ReplyAction({ onReply, own = false }: { onReply: () => void; own?: boolean }) {
   return (
-    <button type="button" onClick={onReply} aria-label={t("chat.replyToMessage")} title={t("chat.reply")} className={messageActionClass}>
-      <Reply {...ACTION_ICON} aria-hidden="true" />
+    <button type="button" onClick={onReply} aria-label={t("chat.replyToMessage")} className={messageActionClass}>
+      <GrokIcon name={own ? "arrow-u-up-right" : "arrow-u-up-left"} size={14} />
     </button>
   );
 }

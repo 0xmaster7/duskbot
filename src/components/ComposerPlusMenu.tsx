@@ -24,6 +24,7 @@ import { useMenuMotion } from "./MenuMotion";
 import { nextMenuIndex, SidebarPopoverMenu, type SidebarMenuItem } from "./SidebarPopoverMenu";
 import type { ApprovalChoice } from "./thread-approval";
 import { SIMPLE_CONTROL } from "./composer-simple";
+import { GrokIcon } from "./GrokIcon";
 
 /** Finish together: the room (or, `solo`, the one bot) keeps working until the goal is done. The chip turns accent while it is on.
  * `compact` is Simple mode's chip, shown only while the mode is on: its name and a × that turns it off. */
@@ -168,6 +169,11 @@ export function ApprovalChip({ choice, quiet = false }: { choice: ApprovalChoice
  * holds what its narrow composer has no room for: the thread's approval level, the call mode and where the bot works,
  * each running the handler its Advanced button runs. With attaching the only choice, the + opens the file picker.
  */
+/** Grok's Teach a task mark: a red record button, as teaching records what you do. */
+function TeachMark() {
+  return <span className="flex size-3.5 items-center justify-center rounded-full border-[1.5px] border-danger"><span className="size-1.5 rounded-full bg-danger" /></span>;
+}
+
 export function ComposerPlusMenu({ onAttach, goal, teach, approval, callBotId, extraItems = [], circle = false }: {
   onAttach: () => void;
   /** Starts a /learn draft in the field, where the composer offers /learn. */
@@ -194,8 +200,9 @@ export function ComposerPlusMenu({ onAttach, goal, teach, approval, callBotId, e
   const calling = callBotId !== undefined && (onCall === callBotId || isLiveCallRunning(media.phase) || lineHeldElsewhere);
   const simple = !useAdvancedMode();
   const items: SidebarMenuItem[] = [
-    { key: "attach", label: t("composer.attachFiles"), icon: <Paperclip size={16} />, onSelect: onAttach },
-    ...(goal ? [{
+    { key: "attach", label: t("composer.attachFiles"), icon: circle ? <Paperclip size={16} /> : <GrokIcon name="paperclip" size={14} />, onSelect: onAttach },
+    // grok's + holds Attach files and Teach a task alone: a bot's Work until done stays only to switch a running goal off
+    ...(goal && (circle || !goal.solo || goal.on) ? [{
       key: "goal",
       label: t(goal.solo ? "composer.goal.soloAria" : "composer.goal.aria"),
       icon: <Target size={16} />,
@@ -203,7 +210,7 @@ export function ComposerPlusMenu({ onAttach, goal, teach, approval, callBotId, e
       trailing: goal.on ? check : undefined,
       onSelect: goal.onToggle,
     } satisfies SidebarMenuItem] : []),
-    ...(teach ? [{ key: "teach", label: t("composer.teachTask"), icon: <GraduationCap size={16} />, onSelect: teach } satisfies SidebarMenuItem] : []),
+    ...(teach ? [{ key: "teach", label: t("composer.teachTask"), icon: circle ? <GraduationCap size={16} /> : <TeachMark />, onSelect: teach } satisfies SidebarMenuItem] : []),
     ...extraItems,
     ...(approval ? [approvalItem(approval.name, approval.choice, simple)] : []),
     ...(callBotId === undefined ? [] : CALL_MODES.map((entry, index): SidebarMenuItem => {
@@ -235,7 +242,7 @@ export function ComposerPlusMenu({ onAttach, goal, teach, approval, callBotId, e
     </span>
   ) : (
     <span data-composer-plus className={cn("flex items-center justify-center", SIMPLE_CONTROL, open && "bg-ink/10 text-ink")}>
-      <Plus size={20} strokeWidth={2} absoluteStrokeWidth aria-hidden="true" />
+      <GrokIcon name="plus" variant="filled" size={16} />
     </span>
   );
   if (!circle && items.length === 1) {
@@ -301,7 +308,6 @@ function ComposerMenu({ items, renderTrigger }: { items: SidebarMenuItem[]; rend
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         aria-label={t("common.add")}
-        title={t("common.add")}
         onClick={(event) => {
           const opening = !open;
           setOpen(opening);
@@ -321,7 +327,7 @@ function ComposerMenu({ items, renderTrigger }: { items: SidebarMenuItem[]; rend
           data-composer-menu
           {...motion.exitProps}
           className={cn(
-            "popover-surface absolute bottom-full start-0 z-40 mb-2 w-max min-w-[200px] max-w-[280px] origin-bottom-left rounded-[16px] border-[0.5px] border-ink/10 bg-menu p-1.5",
+            "popover-surface absolute bottom-full start-0 z-40 mb-1 flex w-max min-w-[200px] max-w-[280px] origin-bottom-left flex-col gap-0.5 rounded-[16px] bg-menu p-1.5",
             motion.className,
           )}
         >
@@ -338,7 +344,7 @@ function ComposerMenu({ items, renderTrigger }: { items: SidebarMenuItem[]; rend
               }}
               className="flex h-8 w-full items-center gap-1.5 rounded-[10px] px-2 text-start text-[14px] leading-5 tracking-[0.01em] text-ink transition-colors hover:bg-menu-hover focus-visible:bg-menu-hover focus-visible:outline-none disabled:opacity-50"
             >
-              <span className={cn("flex size-4 shrink-0 items-center justify-center [&_svg]:size-4 [&_svg]:stroke-[1.75]", item.active ? "text-accent" : "text-ink-secondary")} aria-hidden="true">{item.icon}</span>
+              <span className={cn("flex size-[18px] shrink-0 items-center justify-center [&_svg]:size-3.5 [&_svg]:stroke-[1.75]", item.active ? "text-accent" : "text-ink/[0.66]")} aria-hidden="true">{item.icon}</span>
               <span className="min-w-0 flex-1 truncate">{item.label}</span>
               {item.trailing}
             </button>

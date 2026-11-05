@@ -162,9 +162,10 @@ describe("QuestionCard", () => {
 });
 
 describe("a settled question", () => {
-  it("folds a pick into one calm line: You chose, with a check", () => {
+  it("keeps the card as grok does: the title greys and only the pick stays, its letter in the bot's colour", () => {
     const html = render(asked({ answered: "answer", answeredText: CHOICES[0] }));
-    expect(html).toContain('data-ask-card="settled"');
+    expect(html).toContain('data-ask-card="answered"');
+    expect(html).toContain('data-letter="A"');
     expect(html).toContain("You chose:");
     expect(html).toContain(CHOICES[0]);
     expect(html).not.toContain("data-ask-choice");

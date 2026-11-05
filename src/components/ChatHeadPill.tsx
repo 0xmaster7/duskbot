@@ -1,5 +1,5 @@
 import { localizedTaskTitle } from "@/lib/task-title";
-import { ChevronRight, Lock, UserRound, Users } from "lucide-react";
+import { Lock, UserRound, Users } from "lucide-react";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/cn";
@@ -7,7 +7,7 @@ import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";
 import { awayFromMainThread } from "@/state/thread-navigation";
 import { BotAvatar } from "./Avatar";
-import { ELEVATED_FLOAT, ELEVATED_HOVER } from "./elevated";
+import { GrokIcon } from "./GrokIcon";
 import { sidebarBotActivityTasks } from "./SidebarBotActivity";
 import { BOT_PANEL_ID } from "./bot-panel/side-panel";
 import { sharedChatAudience } from "./TeamPrivateChatsLine";
@@ -54,17 +54,16 @@ export function ChatHeadPill({ bot, avatar, privacy, onToggle }: {
       data-chathead-pill
       data-tour="bot-pill"
       onClick={onToggle}
-      title={t("chat.openProfile")}
       aria-label={conversation ? `${label}, ${conversation}` : label}
       aria-expanded={open}
       aria-controls={open ? BOT_PANEL_ID : undefined}
-      className={cn("group flex min-w-0 max-w-full items-center gap-2 rounded-full py-[7.5px] pl-[7.5px] pr-[13.5px] text-ink", ELEVATED_FLOAT, ELEVATED_HOVER)}
+      className="chat-head-pill group relative flex min-w-0 max-w-full items-center gap-2 rounded-full border border-ink/[0.08] bg-composer py-[7.5px] pl-[7.5px] pr-[13.5px] text-ink shadow-(--shadow-float) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
     >
       <BotAvatar bot={bot} size={24} {...avatar} />
       <span dir="auto" className="min-w-0 truncate text-[14px] font-medium leading-5">{bot.name}</span>
       {conversation && (
         <>
-          <ChevronRight size={12} aria-hidden="true" className="shrink-0 text-ink-tertiary" />
+          <GrokIcon name="chevron-right" size={12} className="shrink-0 text-ink/[0.56]" />
           <span data-chathead-conversation dir="auto" className="min-w-0 max-w-[180px] truncate text-[14px] font-medium leading-5 text-ink-secondary">{conversation}</span>
         </>
       )}
@@ -79,7 +78,7 @@ export function ChatHeadPill({ bot, avatar, privacy, onToggle }: {
       )}
       {!open && !conversation && (
         <span aria-hidden="true" data-chathead-chevron className={cn("-ml-2 flex w-0 shrink-0 overflow-hidden opacity-0 transition-[width,margin,opacity] group-hover:ml-0 group-hover:w-2 group-hover:opacity-100 group-focus-visible:ml-0 group-focus-visible:w-2 group-focus-visible:opacity-100", CHEVRON_MOTION)}>
-          <ChevronRight size={12} className={cn("-ml-0.5 shrink-0 -translate-x-1.5 text-ink-tertiary transition-transform group-hover:translate-x-0 group-focus-visible:translate-x-0", CHEVRON_MOTION)} />
+          <GrokIcon name="chevron-right" size={12} className="-ml-0.5 shrink-0 text-ink/[0.56]" />
         </span>
       )}
     </button>

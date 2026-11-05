@@ -194,7 +194,7 @@ describe("composer call button", () => {
     expect(classes).not.toContain("rounded-l-3xl");
     expect(classes).not.toContain("bg-control");
     expect(button.props.style).toEqual({ backgroundColor: "#8057c8", color: "#ffffff" });
-    expect(html).toContain("lucide-audio-lines");
+    expect(html).toContain('data-icon-name="waveform"');
     expect(html).not.toContain('aria-label="Call mode"');
     expect(renderToStaticMarkup(createElement(() => CallButton({ bot, placement: "composer" })))).toContain('aria-label="Call mode"');
   });

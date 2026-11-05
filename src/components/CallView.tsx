@@ -1,6 +1,7 @@
 // Half-duplex: the dictation helper is Apple's SFSpeechRecognizer on raw AVAudioEngine input with no echo cancellation,
 // so a mic open during playback transcribes the bot's own voice back. The buffer-backed recognizer does not finalize on
 // silence; the helper ends the stream.
+import { GrokIcon } from "./GrokIcon";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { AudioLines, Check, ChevronDown, Loader2, Phone, PhoneOff, X } from "lucide-react";
 
@@ -280,7 +281,7 @@ export function CallTargetButton({
       >
         {active
           ? <PhoneOff size={composer || round ? 15 : 17} />
-          : composer ? fill ? <AudioLines size={17} strokeWidth={2} absoluteStrokeWidth aria-hidden="true" className="composer-glyph" /> : <AudioLines size={16} aria-hidden="true" /> : <Phone size={round ? 15 : 17} />}
+          : composer ? fill ? <GrokIcon name="waveform" variant="filled" size={16} className="composer-glyph" /> : <AudioLines size={16} aria-hidden="true" /> : <Phone size={round ? 15 : 17} />}
         {unavailable && (
           <span className="absolute right-1 top-1 size-1.5 rounded-full bg-warning ring-2 ring-app" aria-hidden="true" />
         )}

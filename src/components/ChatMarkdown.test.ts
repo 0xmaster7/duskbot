@@ -1218,7 +1218,7 @@ describe("bidi: message content carries its own direction", () => {
       ].join("\n"),
     }));
 
-    expect(html).toContain('<div dir="rtl" class="mt-3 text-[18px] font-semibold">');
+    expect(html).toContain('<div dir="rtl" data-md-h="1" class="mt-3 text-[18px] font-semibold">');
     expect(html).toContain('<p dir="rtl">');
     expect(html).toContain('<p dir="ltr">An English paragraph');
     expect(html).toContain('<blockquote dir="rtl"');
