@@ -6,14 +6,19 @@ import { t } from "@/lib/i18n";
 import { ELEVATED_CONTROL } from "./elevated";
 import { GrokIcon } from "./GrokIcon";
 
-/** Keyboard focus on a Simple row or tile: the focus ring drawn inside its edge. */
-export const SIMPLE_ROW_FOCUS = "focus-visible:outline-2 focus-visible:-outline-offset-2! focus-visible:outline-focus";
+/** Grok's keyboard focus: a 2px #1e86fc ring, 1px off a control's edge, drawn inside a row's. The mouse leaves none. */
+// important: the global :focus-visible rule in styles.css is unlayered and outranks plain utilities
+export const GROK_FOCUS = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1! focus-visible:outline-[#1e86fc]!";
 
-const SIMPLE_TOP = "flex size-9 shrink-0 items-center justify-center rounded-full bg-composer text-ink/[0.92] ring-1 ring-inset ring-ink/[0.08]";
-// grok lays its hover over the fill at once, with no fade
-const SIMPLE_TOP_TINT = "hover:bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_6%)]";
-const SIMPLE_TOP_FOCUS = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
-export const SIMPLE_TOP_BUTTON = `${SIMPLE_TOP} ${SIMPLE_TOP_TINT} aria-expanded:bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_6%)] ${SIMPLE_TOP_FOCUS}`;
+/** Keyboard focus on a Simple row or tile: the focus ring drawn inside its edge. */
+export const SIMPLE_ROW_FOCUS = "focus-visible:outline-2 focus-visible:-outline-offset-2! focus-visible:outline-[#1e86fc]!";
+
+const SIMPLE_TOP = "flex size-9 shrink-0 items-center justify-center rounded-full border border-ink/[0.08] bg-composer text-ink/[0.92] transition-[background-color,color] duration-[120ms] ease-out";
+/** grok lays its hover over the fill as a 6% ink image, at once, with no fade */
+export const GROK_HOVER_TINT = "hover:bg-[linear-gradient(rgba(28,28,28,0.06),rgba(28,28,28,0.06))]";
+const SIMPLE_TOP_TINT = GROK_HOVER_TINT;
+const SIMPLE_TOP_FOCUS = GROK_FOCUS;
+export const SIMPLE_TOP_BUTTON = `${SIMPLE_TOP} ${SIMPLE_TOP_TINT} aria-expanded:bg-[linear-gradient(rgba(28,28,28,0.06),rgba(28,28,28,0.06))] ${SIMPLE_TOP_FOCUS}`;
 /** The same round control for the button of the window's rail, which is shown most of the time: its aria-expanded never
  * wears the tint of an open menu. */
 export const SIMPLE_TOP_TOGGLE = `${SIMPLE_TOP} ${SIMPLE_TOP_TINT} ${SIMPLE_TOP_FOCUS}`;

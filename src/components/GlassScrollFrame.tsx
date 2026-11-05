@@ -1,4 +1,4 @@
-import { createContext, useContext, useLayoutEffect, useRef, type HTMLAttributes, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type HTMLAttributes, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
 
@@ -52,12 +52,119 @@ export function watchScrollFade(list: HTMLElement, frame: HTMLElement): () => vo
 
 const FadeFrame = createContext(false);
 
+/** The native bar stays out of sight: the overlay below stands in for it. */
+const NO_NATIVE_BAR = ["[scrollbar-width:none]", "[&::-webkit-scrollbar]:hidden"];
+const THUMB_INSET = 6;
+const THUMB_MIN = 24;
+
+export type ThumbBox = { top: number; height: number } | null;
+
+/** Where the overlay's thumb sits on a track `track` px tall for a list scrolled as `list` is; null when nothing scrolls. */
+export function thumbBox({ scrollTop, scrollHeight, clientHeight }: Pick<HTMLElement, "scrollTop" | "scrollHeight" | "clientHeight">, track: number): ThumbBox {
+  if (scrollHeight <= clientHeight + 1 || track <= 0) return null;
+  const room = track - THUMB_INSET * 2;
+  const height = Math.max(THUMB_MIN, Math.round((room * clientHeight) / scrollHeight));
+  const travel = Math.max(0, room - height);
+  const ratio = Math.min(1, Math.max(0, scrollTop / (scrollHeight - clientHeight)));
+  return { top: THUMB_INSET + ratio * travel, height };
+}
+
+/** Grok's overlay scrollbar: a 6px thumb of 8% ink, 2px off the edge, that fades in while the pointer is over the list
+ * (12% under the pointer itself) and out 150ms after it leaves. Dragging it scrolls the list. */
+export function OverlayScrollbar({ scroller, style }: { scroller: HTMLElement | null; style?: CSSProperties }) {
+  const track = useRef<HTMLDivElement>(null);
+  const [thumb, setThumb] = useState<ThumbBox>(null);
+  const [hover, setHover] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const drag = useRef<{ y: number; top: number } | null>(null);
+  useEffect(() => {
+    if (!scroller) return;
+    scroller.classList.add(...NO_NATIVE_BAR);
+    let frame = 0;
+    const measure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const next = thumbBox(scroller, track.current?.clientHeight ?? 0);
+        setThumb((current) => (current?.top === next?.top && current?.height === next?.height ? current : next));
+      });
+    };
+    measure();
+    const enter = () => setHover(true);
+    const leave = () => setHover(false);
+    scroller.addEventListener("scroll", measure, { passive: true });
+    scroller.addEventListener("pointerenter", enter);
+    scroller.addEventListener("pointerleave", leave);
+    const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    resize?.observe(scroller);
+    if (scroller.firstElementChild) resize?.observe(scroller.firstElementChild);
+    if (track.current) resize?.observe(track.current);
+    return () => {
+      cancelAnimationFrame(frame);
+      scroller.classList.remove(...NO_NATIVE_BAR);
+      scroller.removeEventListener("scroll", measure);
+      scroller.removeEventListener("pointerenter", enter);
+      scroller.removeEventListener("pointerleave", leave);
+      resize?.disconnect();
+    };
+  }, [scroller]);
+  const grab = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!scroller || event.button !== 0) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drag.current = { y: event.clientY, top: scroller.scrollTop };
+    setDragging(true);
+  };
+  const move = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = drag.current, box = thumb, height = track.current?.clientHeight ?? 0;
+    if (!scroller || !start || !box) return;
+    const travel = height - THUMB_INSET * 2 - box.height;
+    if (travel > 0) scroller.scrollTop = start.top + ((event.clientY - start.y) * (scroller.scrollHeight - scroller.clientHeight)) / travel;
+  };
+  const release = () => { drag.current = null; setDragging(false); };
+  const shown = hover || dragging;
+  return (
+    <div ref={track} aria-hidden="true" data-overlay-scrollbar="" data-scrollable={thumb ? "" : undefined}
+      className="pointer-events-none absolute right-[1.5px] z-30 w-1.5" style={{ top: 0, bottom: 0, ...style }}>
+      {thumb && (
+        <div
+          data-overlay-scrollbar-thumb=""
+          onPointerDown={grab}
+          onPointerMove={move}
+          onPointerUp={release}
+          onPointerCancel={release}
+          style={{ top: thumb.top, height: thumb.height }}
+          className={cn(
+            "absolute inset-x-0 rounded-full bg-ink/[0.08] transition-[background-color,opacity] duration-150 hover:bg-ink/[0.12]",
+            dragging && "bg-ink/[0.12]",
+            "pointer-events-auto",
+            shown ? "opacity-100" : "opacity-0 hover:opacity-100",
+          )}
+        />
+      )}
+    </div>
+  );
+}
+
 const FADE_BAND = "pointer-events-none absolute inset-x-0 z-10 h-6 bg-[var(--scroll-fade-surface,var(--color-panel))] opacity-0 transition-opacity duration-150 ease-out";
 
 /** `fade` stacks the bars above and below the scroller instead of floating them over it as glass, and marks
  * the list's edges with a band of the surface colour that shows only while more of the list lies past that edge. */
 export function GlassScrollFrame({ className, children, fade = false, ...rest }: HTMLAttributes<HTMLDivElement> & { children: ReactNode; fade?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [scroller, setScroller] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    const frame = ref.current;
+    if (!frame || fade) return;
+    let frameId = 0;
+    const find = () => {
+      cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(() => setScroller(frame.querySelector<HTMLElement>(".glass-scroller")));
+    };
+    find();
+    const watch = new MutationObserver(find);
+    watch.observe(frame, { childList: true });
+    return () => { cancelAnimationFrame(frameId); watch.disconnect(); };
+  }, [fade]);
   useLayoutEffect(() => {
     const frame = ref.current;
     if (!frame) return;
@@ -80,6 +187,7 @@ export function GlassScrollFrame({ className, children, fade = false, ...rest }:
     <FadeFrame.Provider value={fade}>
       <div ref={ref} data-glass-frame="" className={cn("relative min-h-0", fade && "flex flex-col", className)} {...rest}>
         {children}
+        {!fade && <OverlayScrollbar scroller={scroller} style={{ top: "var(--glass-top, 0px)", bottom: "var(--glass-bottom, 0px)" }} />}
       </div>
     </FadeFrame.Provider>
   );
@@ -104,8 +212,10 @@ export function GlassScroller({ className, children, ...rest }: HTMLAttributes<H
   const fade = useContext(FadeFrame);
   const frame = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLDivElement>(null);
+  const [scroller, setScroller] = useState<HTMLElement | null>(null);
   useLayoutEffect(() => {
     if (!fade || !frame.current || !list.current) return;
+    setScroller(list.current);
     return watchScrollFade(list.current, frame.current);
   }, [fade]);
   if (!fade) {
@@ -124,6 +234,7 @@ export function GlassScroller({ className, children, ...rest }: HTMLAttributes<H
         className={cn(FADE_BAND, "top-0 [mask-image:linear-gradient(to_bottom,black,transparent)] group-data-[scroll-fade=start]/fade:opacity-100 group-data-[scroll-fade=both]/fade:opacity-100")} />
       <div aria-hidden="true" data-scroll-fade-edge="bottom"
         className={cn(FADE_BAND, "bottom-0 [mask-image:linear-gradient(to_top,black,transparent)] group-data-[scroll-fade=end]/fade:opacity-100 group-data-[scroll-fade=both]/fade:opacity-100")} />
+      <OverlayScrollbar scroller={scroller} />
     </div>
   );
 }

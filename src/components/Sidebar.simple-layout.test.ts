@@ -204,7 +204,7 @@ describe("Simple-mode sidebar layout", () => {
     const menu = tree.find((node) => node.props.role === "menu")!;
     expect(menu.props["aria-label"]).toBe("Work");
     expect(menu.props.style).toEqual({ left: 20, top: 304 });
-    const words = (node: ReactElement<Props>) => Children.toArray(node.props.children).filter((part) => typeof part === "string").join("");
+    const words = (node: ReactElement<Props>): string => Children.toArray(node.props.children).map((part) => typeof part === "string" ? part : isValidElement<Props>(part) && part.props["aria-hidden"] !== "true" ? words(part) : "").join("");
     expect(nodes(menu.props.children).filter((node) => node.props.role === "menuitem").map(words)).toEqual(["Rename", "Move up", "Move down", "Delete"]);
   });
 

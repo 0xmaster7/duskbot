@@ -172,7 +172,8 @@ describe("dragging a bot in Simple, as grok does", () => {
     section(userSectionId("Work")).onDrop(at() as never);
     // atlas already comes before dodo and echo, so its new place at the top saves no new order
     expect(actions()).toEqual([{ type: "updateBot", botId: "atlas", patch: { section: "Work" } }]);
-    expect(pinSlot()).toBeUndefined();
+    // the slot fades out where it stands, as grok's does
+    expect(render().some((node) => /\bopacity-0\b/.test(String(node.props.className)) && /\bpb-0\.5\b/.test(String(node.props.className)))).toBe(true);
   });
 
   it("leaves it where it was when dropped back on its own section, and pins it in the slot", () => {
@@ -385,7 +386,7 @@ describe("who may drag a bot: whoever the bot menu offers Move to department", (
 });
 
 describe("a department's menu in Simple", () => {
-  const words = (node: ReactElement<Props>) => Children.toArray(node.props.children).filter((part) => typeof part === "string").join("");
+  const words = (node: ReactElement<Props>): string => Children.toArray(node.props.children).map((part) => typeof part === "string" ? part : isValidElement<Props>(part) ? words(part) : "").join("");
   const openMenu = (name: string) => {
     const button = { getBoundingClientRect: () => ({ left: 20, right: 280, bottom: 300 }), focus: vi.fn(), isConnected: true } as unknown as HTMLButtonElement;
     header(name).onMenu!(button);
@@ -442,8 +443,7 @@ describe("a bot's menu in Simple", () => {
     const flyout = nodes(BotContextMenu(props)).find((node) => node.props["data-bot-menu-flyout"] === "move")!;
     return nodes(flyout.props.children).filter((node) => String(node.props.role).startsWith("menuitem"));
   };
-  const label = (node: ReactElement<Props>) => nodes(node.props.children).length
-    ? Children.toArray(node.props.children).filter((part) => typeof part === "string").join("") : String(node.props.children);
+  const label = (node: ReactElement<Props>): string => Children.toArray(node.props.children).map((part) => typeof part === "string" ? part : isValidElement<Props>(part) && part.props["aria-hidden"] !== "true" ? label(part) : "").join("");
 
   it("moves it to a section, out to Unassigned, or into a new one, from grok's Move to", () => {
     fixture.state = { ...fixture.state, sections: ["Work", "Home"] };

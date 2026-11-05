@@ -162,7 +162,7 @@ describe("the anchored menu in a document", () => {
       await act(async () => trigger().dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 })));
       const [usage, support, settings] = rows();
       await hover(support!, usage!, 60);
-      await wait(100);
+      await wait(40);
       expect(submenu()).toBeNull();
       await hover(settings!, support!, 90);
       await wait(400);

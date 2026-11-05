@@ -17,31 +17,30 @@ describe("the Connect apps faces", () => {
 
   it("puts connected apps first, fills with popular ones, and never shows more than three", () => {
     const cards = new Map([["github", card("github")], ["gmail", card("gmail")]]);
-    expect(appFaces(["github", "gmail"], cards).map((face) => face.slug)).toEqual(["github", "gmail", "slack"]);
+    expect(appFaces(["github", "gmail"], cards).map((face) => face.slug)).toEqual(["github", "gmail", "googledrive"]);
     const many = new Map(["a", "b", "c", "d"].map((slug) => [slug, card(slug)]));
     expect(appFaces(["a", "b", "c", "d"], many)).toHaveLength(APP_FACES);
   });
 
-  it("draws a 36px pill with a 14px medium label and three overlapping 16px logos whose outer two fan out on hover", () => {
+  it("draws grok's 36px hairline pill with a 14px medium label and three 16px tiles on white, 6px over each other", () => {
     const html = renderToStaticMarkup(createElement(SidebarConnectApps));
-    expect(html).toMatch(/class="group\/apps flex h-9 min-w-0 flex-1 items-center justify-center gap-1\.5 rounded-full pl-4 pr-3 text-\[14px\] font-medium leading-5 text-ink /);
+    expect(html).toMatch(/class="group\/apps flex h-9 min-w-0 flex-1 items-center justify-center rounded-full border border-ink\/\[0\.08\] bg-composer px-4 text-\[14px\] font-medium leading-5 /);
     const faces = [...html.matchAll(/data-app-face="[^"]+" class="([^"]*)"/g)].map(([, classes]) => classes!);
     expect(faces).toHaveLength(3);
-    for (const face of faces) expect(face).toContain("size-[18px] shrink-0 items-center justify-center overflow-hidden rounded-md bg-white p-px");
-    expect(faces[0]).toContain("motion-safe:group-hover/apps:-rotate-[8deg]");
-    expect(faces[1]).toContain("-ms-1.5");
-    expect(faces[1]).not.toContain("rotate");
-    expect(faces[2]).toContain("motion-safe:group-hover/apps:translate-x-[3px] motion-safe:group-hover/apps:rotate-[8deg]");
+    for (const face of faces) expect(face).toContain("size-[18px] shrink-0 items-center justify-center rounded-[6px] bg-white p-px");
+    expect(faces[0]).not.toContain("-ms-");
+    expect(faces[1]).toContain("-ms-[6px]");
+    expect(faces.join(" ")).not.toContain("rotate");
   });
 
   it("is a round 36px apps-grid button on the collapsed rail, named for screen readers", () => {
     const html = renderToStaticMarkup(createElement(SidebarConnectApps, { circle: true }));
-    expect(html).toMatch(/data-tour="nav-apps"[^>]*aria-label="Connect apps" class="[^"]*\bsize-9\b[^"]*\brounded-full\b/);
+    expect(html).toMatch(/data-tour="nav-apps"[^>]*aria-label="Connect apps" class="[^"]*\brounded-full\b[^"]*\bh-9 min-w-9\b/);
     expect(html).toContain('data-icon-name="grid-plus"');
     expect(html).not.toContain("data-app-face");
   });
 
   it("keeps a connected app it cannot draw yet out, and the popular ones in", () => {
-    expect(appFaces(["linear"], new Map()).map((face) => face.slug)).toEqual(["gmail", "slack", "notion"]);
+    expect(appFaces(["linear"], new Map()).map((face) => face.slug)).toEqual(["googledrive", "googlecalendar", "granola"]);
   });
 });

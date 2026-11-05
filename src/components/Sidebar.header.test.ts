@@ -236,7 +236,7 @@ describe("sidebar top row", () => {
       at("data-sidebar-account"),
     ];
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
-    expect(foot).toMatch(/data-tour="nav-apps" data-sidebar-nav="apps"[^>]*aria-label="Connect apps"[^>]*class="[^"]*\bsize-9\b[^"]*"><i class="grok-icon" data-icon-name="grid-plus"/);
+    expect(foot).toMatch(/data-tour="nav-apps" data-sidebar-nav="apps"[^>]*aria-label="Connect apps"[^>]*class="[^"]*\bh-9 min-w-9\b[^"]*">(<[^>]*>)*<i class="grok-icon" data-icon-name="grid-plus"/);
     expect(foot).not.toContain("data-workspace-switcher");
     expect(foot).not.toContain('data-sidebar-nav="automations"');
     expect(foot).not.toContain('data-sidebar-nav="team-map"');
@@ -352,7 +352,7 @@ describe("sidebar head and foot", () => {
 });
 
 describe("sidebar foot in Simple mode", () => {
-  it("puts grok's foot in Simple: the avatar and name, then the round apps grid, with no Automations or Team map rows", () => {
+  it("puts grok's foot in Simple: with nothing connected, the avatar and the Connect apps pill with three app tiles, and no Automations or Team map rows", () => {
     fixture.advanced = false;
     const html = render();
     const foot = html.slice(html.indexOf('data-glass-bar="bottom"'));
@@ -362,9 +362,9 @@ describe("sidebar foot in Simple mode", () => {
     expect(html.match(/data-sidebar-nav="apps"/g)).toHaveLength(1);
     expect(foot.indexOf("data-sidebar-account")).toBeGreaterThan(-1);
     expect(foot.indexOf("data-sidebar-account")).toBeLessThan(foot.indexOf('data-sidebar-nav="apps"'));
-    expect(foot).toMatch(/data-tour="nav-apps" data-sidebar-nav="apps"[^>]*aria-label="Connect apps"[^>]*>(<[^>]*>)*<i[^>]*data-icon-name="grid-plus"/);
-    expect(foot).toContain("data-sidebar-account-name");
-    expect(foot).not.toContain("data-app-face=");
+    expect(foot).toMatch(/data-tour="nav-apps" data-sidebar-nav="apps"[^>]*>(<[^>]*>)*Connect apps</);
+    expect(foot).not.toContain("data-sidebar-account-name");
+    expect(foot.match(/data-app-face="/g)).toHaveLength(3);
   });
 
   it("keeps one Automations row in the foot and no Routines row in Advanced mode, and still one Apps", () => {

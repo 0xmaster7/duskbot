@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 import { useMenuMotion } from "./MenuMotion";
 import { popoverClosesOnKey, usePopoverDismiss } from "@/hooks/use-popover-dismiss";
 import { submenuIntent, type Point, type SubmenuIntent } from "@/lib/submenu-intent";
-import { MENU_HEADING, MENU_ITEM_SEPARATOR, MENU_SHEET } from "./menu-recipe";
+import { GROK_LABEL, GROK_ROW_FILL, MENU_HEADING, MENU_ITEM_SEPARATOR, MENU_SHEET } from "./menu-recipe";
 import { GrokIcon } from "./GrokIcon";
 
 export interface SidebarMenuItem {
@@ -120,6 +120,8 @@ function MenuRows({
             aria-checked={item.checked}
             data-tour={item.tourId}
             data-menu-key={item.key}
+            tabIndex={grok ? -1 : undefined}
+            onMouseDown={grok ? (event) => event.preventDefault() : undefined}
             title={item.title}
             disabled={item.disabled}
             aria-haspopup={item.submenu ? "menu" : undefined}
@@ -128,9 +130,10 @@ function MenuRows({
             onPointerEnter={(event) => onRowEnter?.(item, event.currentTarget, { x: event.clientX, y: event.clientY })}
             onPointerLeave={() => onRowLeave?.(item)}
             className={cn(
-              "flex min-h-8 w-full items-center rounded-[10px] px-2 py-1.5 text-start text-[14px] leading-5 tracking-[0.01em] disabled:opacity-60 touch:min-h-10 focus-visible:bg-menu-hover focus-visible:outline-none",
-              grok ? "gap-1.5" : "gap-2.5",
-              item.active || (item.submenu && openSubmenu === item.key && engaged) ? "bg-menu-active text-ink" : grok && item.submenu && openSubmenu === item.key ? "bg-menu-hover text-ink" : "text-ink hover:bg-menu-hover",
+              "flex min-h-8 w-full items-center px-2 py-1.5 text-start text-[14px] leading-5 tracking-[0.01em] disabled:opacity-60 touch:min-h-10 focus-visible:outline-none",
+              !grok && "rounded-[10px] focus-visible:bg-menu-hover",
+              grok ? cn("gap-1.5 text-ink", GROK_ROW_FILL, item.submenu && openSubmenu === item.key && "before:bg-menu-hover")
+                : cn("gap-2.5", item.active || (item.submenu && openSubmenu === item.key && engaged) ? "bg-menu-active text-ink" : "text-ink hover:bg-menu-hover"),
             )}
           >
             {item.icon && (
@@ -147,7 +150,7 @@ function MenuRows({
                 {item.note && <span className="text-[12px] font-normal leading-snug text-ink-tertiary">{item.note}</span>}
               </span>
             ) : (
-              <span className={cn("flex-1", item.wrap ? "min-w-0 break-words" : "truncate")}>{item.label}</span>
+              <span className={cn("flex-1", item.wrap ? "min-w-0 break-words" : "truncate", grok && GROK_LABEL)}>{item.label}</span>
             )}
             {item.value && <span className="shrink-0 text-[13px] font-normal leading-[18px] tabular-nums text-ink-secondary">{item.value}</span>}
             {item.trailing}

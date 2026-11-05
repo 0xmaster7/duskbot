@@ -4,12 +4,11 @@ import { t } from "@/lib/i18n";
 /** The colour behind a Simple row, which the status dot on its avatar is ring-cut against. Hover sits three quarters of
  * the way to the selected fill, and neither fades: both change at once. */
 export function rowSurface(selected: boolean): string {
-  return cn(
-    "bg-[var(--row)]",
-    selected
-      ? "[--row:var(--color-raised)]"
-      : "[--row:var(--color-panel)] max-md:[--row:var(--color-app)] hover:[--row:color-mix(in_srgb,var(--color-raised)_75%,var(--color-panel))]",
-  );
+  // grok's row is clear, 6% ink under the pointer and 8% when chosen; --row is that colour laid on the panel, for the
+  // ring that cuts a badge out of the avatar
+  return selected
+    ? "bg-ink/[0.08] [--row:color-mix(in_srgb,var(--color-panel),var(--color-ink)_8%)]"
+    : "bg-transparent [--row:var(--color-panel)] max-md:[--row:var(--color-app)] hover:bg-ink/[0.06] hover:[--row:color-mix(in_srgb,var(--color-panel),var(--color-ink)_6%)]";
 }
 
 export type RowActivity = "working" | "teammate" | "queued";

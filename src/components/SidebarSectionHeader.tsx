@@ -3,12 +3,16 @@ import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type M
 
 import { cn } from "@/lib/cn";
 import { GrokIcon } from "./GrokIcon";
+import { GROK_FOCUS } from "./SidebarSimpleTop";
 import { t } from "@/lib/i18n";
 import {
   sidebarAttentionLabel,
   type SidebarSectionAttention,
 } from "@/lib/sidebar-attention";
 import type { SectionNaming } from "./SidebarBotDrag";
+
+/** grok's section header is one 30px button: 8px around, 6px under its 13px label, 6px round, grey on hover */
+const LINE_BOX = "flex h-[30px] min-w-0 flex-1 items-center gap-1.5 rounded-[6px] px-2 pb-1.5 pt-2 text-[13px] leading-[18px]";
 
 export function SidebarSectionHeader({
   name,
@@ -94,23 +98,23 @@ export function SidebarSectionHeader({
         draggable={reorderable || undefined}
         onDragStart={reorderable ? onDragStart : undefined}
         onDragEnd={reorderable ? onDragEnd : undefined}
-        className={cn("group/section relative flex h-[30px] shrink-0 items-center gap-1.5 rounded-[6px] px-2 pb-1.5 pt-2", !naming && "hover:bg-[color-mix(in_srgb,var(--color-raised)_75%,var(--color-panel))]", reorderable && "cursor-grab", dragging && "opacity-40", dropMark)}
+        className={cn("group/section relative flex h-[30px] shrink-0 items-stretch rounded-[6px]", dragging && "opacity-40", dropMark)}
       >
-        {naming ? <SectionNameField {...naming} line /> : onToggle ? (
+        {naming ? <div className={LINE_BOX}><SectionNameField {...naming} line /></div> : onToggle ? (
           <button
             type="button"
             onClick={onToggle}
             onKeyDown={onHeaderKeyDown}
             aria-expanded={!collapsed}
             aria-keyshortcuts={reorderable ? "Alt+ArrowUp Alt+ArrowDown" : undefined}
-            className="flex min-w-0 flex-1 items-center gap-1.5 rounded text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+            className={cn(LINE_BOX, "text-left hover:bg-ink/[0.06] active:bg-ink/[0.06]", GROK_FOCUS, reorderable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer")}
           >
             <span className="min-w-0 flex-1 truncate text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{name}</span>
             {collapsed && <SectionAttention attention={attention} label={attentionLabel} alert={alert} />}
             {tail}
           </button>
         ) : (
-          <div className="flex min-w-0 flex-1 items-center gap-1.5">
+          <div className={LINE_BOX}>
             <span className="min-w-0 flex-1 truncate text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{name}</span>
             {attentionLabel && <span className="sr-only">{attentionLabel}</span>}
             {tail}

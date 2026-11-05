@@ -123,7 +123,7 @@ describe("SidebarSectionHeader as a Simple-mode line", () => {
   it("shows how many rows a collapsed section holds, crossfading to the chevron on hover or focus, and no count while open", () => {
     expect(renderToStaticMarkup(line({ count: 3 }))).not.toContain(">3</span>");
     const html = renderToStaticMarkup(line({ count: 3, collapsed: true }));
-    expect(html).toMatch(/class="h-\[30px\]|group\/section relative flex h-\[30px\] shrink-0 items-center gap-1\.5 rounded-\[6px\] px-2 pb-1\.5 pt-2 hover:bg-\[color-mix\(in_srgb,var\(--color-raised\)_75%,var\(--color-panel\)\)\]/);
+    expect(html).toMatch(/<button type="button" aria-expanded="false"[^>]*class="flex h-\[30px\] min-w-0 flex-1 items-center gap-1\.5 rounded-\[6px\] px-2 pb-1\.5 pt-2 text-\[13px\] leading-\[18px\] text-left hover:bg-ink\/\[0\.06\]/);
     expect(html).toMatch(/<span class="text-\[13px\] tabular-nums leading-\[18px\] tracking-\[0.015em\] text-ink-secondary transition-opacity duration-\[120ms\] ease-out group-hover\/section:opacity-0 group-focus-within\/section:opacity-0 touch:opacity-0">3<\/span>/);
   });
 
@@ -134,7 +134,7 @@ describe("SidebarSectionHeader as a Simple-mode line", () => {
     expect(movable.props.draggable).toBe(true);
     expect(movable.props.onDragStart).toBe(onDragStart);
     expect(movable.props.onDragEnd).toBe(onDragEnd);
-    expect(String(movable.props.className)).toContain("cursor-grab");
+    expect(renderToStaticMarkup(movable)).toContain("cursor-grab");
     const fixed = line({ reorderable: false, onDragStart, onDragEnd });
     expect(fixed.props.draggable).toBeUndefined();
     expect(fixed.props.onDragStart).toBeUndefined();

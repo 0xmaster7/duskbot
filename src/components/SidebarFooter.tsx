@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import { cn } from "@/lib/cn";
 import type { SidebarDensity } from "@/lib/sidebar-preferences";
@@ -31,6 +31,7 @@ function SimpleSidebarFooter({ owner, archived }: { owner: string | null; archiv
   const account = useSimpleAccount(place, owner, archived);
   const move = useAccountMoveLine(state.config?.cloudHome === true);
   const apps = useSidebarApps();
+  const [appsEngaged, setAppsEngaged] = useState(false);
   const footer = useRef<HTMLDivElement>(null);
   // The move's words open the account menu just below them, where the move's row is.
   const openAccount = () => footer.current?.querySelector("[data-sidebar-account]")?.closest("button")?.click();
@@ -40,10 +41,16 @@ function SimpleSidebarFooter({ owner, archived }: { owner: string | null; archiv
       <CloudUsageCard />
       <SidebarPlaceStatus place={place} className="mb-2 px-1" />
       <AccountMoveStatus kind={move.kind} place={move.place} retry={move.retry} onOpen={openAccount} className="ps-1" />
-      <div className="flex items-center gap-2 not-first:mt-2">
-        <div className="me-auto min-w-0"><SidebarProfileMenu simple={account} named /></div>
-        <UpdateIndicator className="size-9" />
-        <ConnectAppsButton circle apps={apps} />
+      <div className="flex items-center gap-2 not-first:mt-2" onPointerLeave={() => setAppsEngaged(false)}>
+        {apps.connected ? <>
+          <div className="me-auto min-w-0"><SidebarProfileMenu simple={account} named nameHidden={appsEngaged} /></div>
+          <UpdateIndicator className="size-9" />
+          <ConnectAppsButton circle apps={apps} engaged={appsEngaged} onEngage={setAppsEngaged} />
+        </> : <>
+          <SidebarProfileMenu simple={account} />
+          <ConnectAppsButton circle={false} apps={apps} />
+          <UpdateIndicator className="size-9" />
+        </>}
       </div>
     </div>
   );

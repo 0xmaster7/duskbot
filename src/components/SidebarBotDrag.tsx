@@ -111,6 +111,13 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
   const [naming, setNaming] = useState<Naming | null>(null);
   const [lift, setLift] = useState<Lift | null>(null);
   const [returning, setReturning] = useState(false);
+  // grok fades the pin slot out where it stands before the list closes over it
+  const [slotLeaving, setSlotLeaving] = useState(false);
+  useEffect(() => {
+    if (!slotLeaving) return;
+    const timer = window.setTimeout(() => setSlotLeaving(false), 150);
+    return () => window.clearTimeout(timer);
+  }, [slotLeaving]);
   const dropped = useRef(false);
   const grok = useRef(simple);
   grok.current = simple;
@@ -127,6 +134,7 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
     setDrop(next);
   };
   const end = () => {
+    if (grok.current && moving.current.botId) setSlotLeaving(true);
     moving.current = { botId: null, drop: null };
     setDragging(null);
     setDrop(null);
@@ -241,8 +249,8 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
       return {
         /** the section a lifted bot would go into, washed grey as grok does */
         over: (sectionId: string) => simple && shown?.kind === "end" && shown.list !== PIN_LIST && shown.list === listFor(sectionId),
-        pinSlot: pinning ? (
-          <div className="pb-0.5">
+        pinSlot: pinning || (simple && slotLeaving) ? (
+          <div className={cn("pb-0.5 transition-opacity duration-150 ease-out motion-reduce:transition-none", !pinning && "pointer-events-none opacity-0")}>
             <div data-bot-pin-slot="" className={cn("flex h-[104px] items-center justify-center rounded-xl border border-dashed text-[14px] leading-5 tracking-[0.01em] text-ink-secondary", pinOver ? "border-ink/40 bg-ink/[0.06]" : "border-ink/[0.24]")}
               onDragOver={(event) => {
                 if (!carries(event) || !moving.current.botId) return;

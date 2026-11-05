@@ -25,6 +25,7 @@ import {
 
 import { accountMenuItems, AccountsSheet, cloudRowLabel, useAccounts, type AccountsAccess } from "./AccountMenu";
 import { GrokIcon, type GrokIconName } from "./GrokIcon";
+import { GROK_FOCUS } from "./SidebarSimpleTop";
 import { AccountMoveStatus, useAccountMove, type AccountMoveKind } from "./AccountMove";
 import { InitialsAvatar } from "./Avatar";
 import { DiscordIcon } from "./DiscordIcon";
@@ -536,7 +537,8 @@ export function profileMenuItems({
 
 /** Grok's profile menu, word for word: the phone app, Support (help, shortcuts, feedback, about) and Settings, then the
  * account's Add account and Log out. Everything else the menu once held is in Settings. */
-export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback, onAbout, onSettings, accounts }: {
+export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback, onAbout, onSettings, onAddAccount, accounts }: {
+  onAddAccount: () => void;
   onGetApp: () => void;
   onHelp: () => void;
   onShortcuts: () => void;
@@ -552,7 +554,9 @@ export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback
       { key: "add-account", label: t("sidebar.grok.addAccount"), icon: icon("person-add"), onSelect: () => accounts.add() },
       { key: "log-out", label: t("sidebar.grok.logOut"), icon: icon("arrow-bracket-from-left"), onSelect: () => accounts.signOut(active.id) },
     ]
-    : accounts.openSheet ? [{ key: "accounts-sheet", label: t("accounts.manage"), icon: icon("person"), onSelect: accounts.openSheet }] : [];
+    : accounts.openSheet ? [{ key: "accounts-sheet", label: t("accounts.manage"), icon: icon("person"), onSelect: accounts.openSheet }]
+      // nobody signed in here: Add account goes to Settings > General > Account, where the sign-in is
+      : [{ key: "add-account", label: t("sidebar.grok.addAccount"), icon: icon("person-add"), onSelect: onAddAccount }];
   return [
     { key: "mobile", label: t("sidebar.grok.getMobile"), icon: icon("device-mobile"), onSelect: onGetApp },
     { key: "support", label: t("sidebar.grok.support"), icon: icon("book"), onSelect: () => {}, submenu: [
@@ -583,9 +587,11 @@ export function useSimpleAccount(place: WorkspacePlace, owner: string | null, ar
 }
 
 /** `circle` is the phone's round avatar button at the top of the bot list. */
-export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = false, simple: account, named = false }: {
+export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = false, simple: account, named = false, nameHidden = false }: {
   /** `named`: Simple's avatar with the person's name beside it, when the footer has the room. */
   iconOnly?: boolean; rail?: boolean; circle?: boolean; simple?: SimpleAccount; named?: boolean;
+  /** grok folds the name away while the Connect apps pill widens beside it */
+  nameHidden?: boolean;
 } = {}) {
   const { state, dispatch } = useStore();
   const simple = account !== undefined;
@@ -633,6 +639,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
     onFeedback: () => void openExternalLink(FEEDBACK_URL),
     onAbout: () => setAboutOpen(true),
     onSettings: () => dispatch({ type: "toggleAppSettings", open: true, section: "general" }),
+    onAddAccount: () => dispatch({ type: "toggleAppSettings", open: true, section: "general" }),
     accounts,
   }) : null;
   const items = grokItems ?? profileMenuItems({
@@ -689,7 +696,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
         grok={simple}
         ariaLabel={name}
         onOpenChange={simple ? setMenuOpen : undefined}
-        triggerClassName={simple && named ? "group/account flex max-w-full items-center rounded-full pe-1 hover:bg-ink/[0.06] aria-expanded:bg-ink/[0.06] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" : iconOnly || simple ? cn("shrink-0", circle || simple ? "rounded-full" : "rounded-xl") : "w-full"}
+        triggerClassName={simple && named ? cn("group/account flex max-w-full items-center rounded-full pe-1 text-[13px] leading-[18px] tracking-[0.015em] text-ink transition-[background-color,color,width,padding] duration-300 ease-[cubic-bezier(.2,0,0,1)] hover:text-ink-secondary aria-expanded:text-ink-secondary", nameHidden && "pe-0", GROK_FOCUS) : iconOnly || simple ? cn("shrink-0", circle || simple ? "rounded-full" : "rounded-xl") : "w-full"}
         triggerTitle={iconOnly || (simple && !named) ? label : undefined}
         triggerLabel={label}
         triggerTour={account?.place.switchable ? "server-switcher" : undefined}
@@ -702,7 +709,8 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
             <InitialsAvatar initials={initials} avatarUrl={profile?.avatarUrl} size={36} fallback={nameless} fontSize={14} className="bg-ink/[0.08] leading-[14px] tracking-[-0.35px] text-ink-secondary shadow-[inset_0_0_0_1px_rgba(28,28,28,0.08)]" />
             {dot && <span aria-hidden data-account-dot={dot} className={cn("absolute -right-0.5 -top-0.5 size-2.5 rounded-full ring-2 ring-panel", DOT_COLOR[dot])} />}
           </span>
-          {named && <span aria-hidden="true" data-sidebar-account-name="" className="ms-2 min-w-0 truncate text-[14px] font-medium leading-5 tracking-[0.01em] text-ink">{name}</span>}
+          {named && <span aria-hidden="true" data-sidebar-account-name="" className={cn("min-w-0 truncate text-[14px] font-medium leading-5 tracking-[0.01em] transition-[opacity,margin,max-width] ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none",
+            nameHidden ? "ms-0 max-w-0 opacity-0 [transition-duration:150ms,300ms,300ms]" : "ms-2 max-w-[200px] opacity-100 [transition-delay:120ms,0ms,0ms] [transition-duration:150ms,300ms,300ms]")}>{name}</span>}
         </>) : iconOnly ? (
           <span
             ref={triggerRef}

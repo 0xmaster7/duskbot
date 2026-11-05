@@ -432,7 +432,7 @@ describe("bot deletion feedback", () => {
       onClick: vi.fn(),
     }));
 
-    expect(markup).toContain(">Delete</button>");
+    expect(markup).toContain(">Delete</span></button>");
     expect(markup).not.toContain('disabled=""');
   });
 });

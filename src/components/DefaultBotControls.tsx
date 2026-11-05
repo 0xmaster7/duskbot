@@ -14,7 +14,7 @@ export function showDefaultBot(dispatch: (action: Action) => void, bot: Pick<Bot
   if (!shown) dispatch({ type: "notice", notice: { kind: "note", botName: null, text: t("defaultBot.hidden", { name: bot.name }) } });
 }
 
-export function HideDefaultBotItem({ bot, onDone, className = "flex w-full items-center gap-3 px-3.5 py-2 text-left text-[14px]", icon }: { bot: Bot; onDone: () => void; className?: string; icon?: ReactNode }) {
+export function HideDefaultBotItem({ bot, onDone, className = "flex w-full items-center gap-3 px-3.5 py-2 text-left text-[14px]", icon, labelClassName }: { bot: Bot; onDone: () => void; className?: string; icon?: ReactNode; labelClassName?: string }) {
   const { dispatch } = useStore();
   return (
     <button
@@ -23,10 +23,10 @@ export function HideDefaultBotItem({ bot, onDone, className = "flex w-full items
       data-default-bot-hide=""
       onClick={() => { showDefaultBot(dispatch, bot, false); onDone(); }}
       title={t("defaultBot.hideHint")}
-      className={cn(className, "text-ink hover:bg-menu-hover")}
+      className={cn("text-ink hover:bg-menu-hover", className)}
     >
       {icon ?? <EyeOff size={16} className="text-ink-secondary" />}
-      {t("defaultBot.hide")}
+      <span className={labelClassName}>{t("defaultBot.hide")}</span>
     </button>
   );
 }

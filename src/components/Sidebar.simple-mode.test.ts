@@ -102,7 +102,7 @@ describe("bot-first sidebar", () => {
       expect(String(row.props.className).split(" ")).toEqual(expect.arrayContaining([...spacing]));
       expect(markup).toContain(avatar.avatarUrl
         ? `width="${size}" height="${size}"`
-        : `width="${size}px" height="${size}px"`);
+        : `width:${size}px;height:${size}px`);
       // Simple draws its mascot at the 36px it takes in the row, as grok does.
       if (!advanced && density === "comfortable") expect(markup).not.toContain("-m-[3px]");
     }
@@ -237,11 +237,11 @@ describe("bot-first sidebar", () => {
     fixture.showThreads = false;
     const group: Group = { id: "room", threadId: "room-thread", name: "Launch", memberIds: [bot.id], messages: [], defaultResponder: { kind: "mentions" }, bulletin: "", unread: false, createdAt: 1 };
     const simple = renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", { ...bot, tasks: [], projects: [] }))) + renderToStaticMarkup(createElement(GroupListItem, { group, density: "comfortable", onMenu: vi.fn() }));
-    expect(simple.match(/focus-visible:outline-2 focus-visible:-outline-offset-2! focus-visible:outline-focus/g)).toHaveLength(2);
+    expect(simple.match(/focus-visible:outline-2 focus-visible:-outline-offset-2! focus-visible:outline-\[#1e86fc\]!/g)).toHaveLength(2);
     expect(simple).not.toContain("focus-visible:ring-accent/60");
     fixture.advanced = true;
     const advanced = renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", { ...bot, tasks: [], projects: [] })));
-    expect(advanced).toContain("focus-visible:outline-2 focus-visible:-outline-offset-2! focus-visible:outline-focus");
+    expect(advanced).toContain("focus-visible:outline-2 focus-visible:-outline-offset-2! focus-visible:outline-[#1e86fc]!");
     expect(advanced).not.toContain("focus-visible:ring-accent/60");
   });
 
@@ -250,7 +250,7 @@ describe("bot-first sidebar", () => {
     fixture.state = { ...fixture.state, selectedId: bot.id, activeView: "chat" };
     const candidate = { ...bot, tasks: [], projects: [] };
     const simple = renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", candidate)));
-    expect(simple).toContain("[--row:var(--color-raised)]");
+    expect(simple).toContain("bg-ink/[0.08]");
     expect(simple).toMatch(/data-bot-actions="atlas"[^>]*class="[^"]*\bpointer-events-none opacity-0 group-has-\[:focus-visible\]:pointer-events-auto group-has-\[:focus-visible\]:opacity-100\b[^"]*\btouch:opacity-70/);
     expect(simple).not.toMatch(/data-bot-actions="atlas"[^>]*class="[^"]*\bgroup-hover:/);
     expect(simple).toContain('class="flex items-baseline justify-between gap-2 pr-7"');
@@ -314,7 +314,7 @@ describe("bot-first sidebar", () => {
     const markup = renderToStaticMarkup(createElement(Capture));
     const row = findElement(tree, "data-sidebar-group-row", group.id)!;
     expect(String(row.props.className).split(" ")).toEqual(expect.arrayContaining([...spacing]));
-    expect(markup).toContain(`width="${face}px" height="${face}px"`);
+    expect(markup).toContain(`width:${face}px;height:${face}px`);
     expect(markup).toMatch(new RegExp(`truncate text-\\[14px\\] text-ink ${name}`));
     expect(markup).toContain(`truncate text-ink-secondary ${preview}`);
   });
@@ -440,7 +440,7 @@ describe("bot-first sidebar", () => {
     const walk = (node: ReactNode) => {
       for (const child of Children.toArray(node)) {
         if (!isValidElement<ElementProps>(child)) continue;
-        if (child.props.role === "menuitem") labels.push(Children.toArray(child.props.children).filter((part) => typeof part === "string").join(""));
+        if (child.props.role === "menuitem") labels.push(Children.toArray(child.props.children).map((part) => typeof part === "string" ? part : isValidElement<ElementProps>(part) && typeof part.props.children === "string" ? part.props.children : "").join(""));
         walk(child.props.children);
       }
     };

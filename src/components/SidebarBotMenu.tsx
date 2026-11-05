@@ -14,7 +14,8 @@ import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { botUnreadThreadIds, markBotRead } from "@/lib/folder-read";
 import { ownerMenuLabel, pickOwnerOf } from "./TeamOwner";
 import { mayChangeOwner, useTeamPeople } from "@/state/team-people";
-import { MENU_ITEM, MENU_ITEM_SEPARATOR, MENU_SHEET } from "./menu-recipe";
+import { GROK_DANGER, GROK_DANGER_ICON, GROK_LABEL, GROK_ROW_FILL, MENU_ITEM, MENU_ITEM_SEPARATOR, MENU_SHEET } from "./menu-recipe";
+export { GROK_LABEL, GROK_ROW_FILL };
 import { useShowThreads } from "@/lib/thread-preferences";
 import { submenuPosition } from "./SidebarPopoverMenu";
 import { submenuIntent, type SubmenuIntent } from "@/lib/submenu-intent";
@@ -26,11 +27,14 @@ import { departmentNames, moveBotsToSection, useMayMoveBots } from "./bot-sectio
 type Flyout = "more" | "move";
 
 /** Grok's menu row: an 18px slot holding a 14px glyph, 6px before the label. */
-export const GROK_MENU_ITEM = cn(MENU_ITEM, "gap-1.5");
+// the recipe's own focus and press fills would stack on GROK_ROW_FILL's
+export const GROK_MENU_ITEM = cn(MENU_ITEM.replace("focus-visible:bg-menu-hover ", "").replace("active:bg-menu-active ", ""), "gap-1.5");
+
+
 
 export function GrokMenuIcon({ name, danger = false }: { name: GrokIconName; danger?: boolean }) {
   return (
-    <span aria-hidden="true" className={cn("flex size-[18px] shrink-0 items-center justify-center", danger ? "text-danger" : "text-ink/[0.66]")}>
+    <span aria-hidden="true" className={cn("flex size-[18px] shrink-0 items-center justify-center", danger ? GROK_DANGER_ICON : "text-ink/[0.66]")}>
       <GrokIcon name={name} size={14} />
     </span>
   );
@@ -218,6 +222,8 @@ export function BotContextMenu({
       <button
         key={label}
         type="button"
+        tabIndex={-1}
+        onMouseDown={(event) => event.preventDefault()}
         role={opts?.checked === undefined ? "menuitem" : "menuitemradio"}
         aria-checked={opts?.checked}
         disabled={opts?.disabled}
@@ -226,10 +232,10 @@ export function BotContextMenu({
           if (!opts?.keepOpen) onClose();
         }}
         title={opts?.hint}
-        className={cn(GROK_MENU_ITEM, opts?.danger ? "text-danger" : "text-ink", opts?.disabled ? "cursor-default opacity-40" : "hover:bg-menu-hover")}
+        className={cn(GROK_MENU_ITEM, GROK_ROW_FILL, "text-ink", opts?.disabled && "cursor-default opacity-40 hover:before:bg-transparent")}
       >
         <GrokMenuIcon name={icon} danger={opts?.danger} />
-        {label}
+        <span className={cn(GROK_LABEL, opts?.danger && GROK_DANGER)}>{label}</span>
       </button>
     );
     const current = bot.section?.trim() ?? "";
@@ -245,6 +251,8 @@ export function BotContextMenu({
         ref={ref}
         type="button"
         role="menuitem"
+        tabIndex={-1}
+        onMouseDown={(event) => event.preventDefault()}
         data-bot-menu-move={key === "move" ? "" : undefined}
         aria-haspopup="menu"
         aria-expanded={flyout === key}
@@ -254,10 +262,10 @@ export function BotContextMenu({
           event.preventDefault();
           showFlyout(key, true);
         }}
-        className={cn(GROK_MENU_ITEM, "text-ink hover:bg-menu-hover", flyout === key && "bg-menu-hover")}
+        className={cn(GROK_MENU_ITEM, GROK_ROW_FILL, "text-ink", flyout === key && "before:bg-menu-hover")}
       >
         <GrokMenuIcon name={icon} />
-        <span className="flex-1">{label}</span>
+        <span className={cn("flex-1", GROK_LABEL)}>{label}</span>
         <GrokIcon name="chevron-right" size={14} className="ms-2 text-ink/[0.52] rtl:-scale-x-100" />
       </button>
     );
@@ -270,9 +278,9 @@ export function BotContextMenu({
       ? grokItem("bell", t("sidebar.grok.markRead"), () => { void readAll(bot); }, { disabled: readingBotId !== null, keepOpen: true })
       : grokItem("bell-dot", t("sidebar.grok.markUnread"), () => dispatch({ type: "markUnread", botId: bot.id }));
     const hide = bot.defaultBot
-      ? <HideDefaultBotItem key="hide" bot={bot} onDone={onClose} className={GROK_MENU_ITEM} icon={<GrokMenuIcon name="eye-slash" />} />
+      ? <HideDefaultBotItem key="hide" bot={bot} onDone={onClose} className={cn(GROK_MENU_ITEM, GROK_ROW_FILL, "hover:bg-transparent")} labelClassName={GROK_LABEL} icon={<GrokMenuIcon name="eye-slash" />} />
       : member ? null : grokItem("eye-slash", t("sidebar.grok.hide"), () => onArchive(bot), { disabled: archiveBlocked, hint: archiveHint });
-    const remove = member ? null : <BotDeleteMenuItem key="delete" deleting={deleting} className={GROK_MENU_ITEM} icon={deleting ? undefined : <GrokMenuIcon name="trash" danger />} label={t("sidebar.grok.delete")} onClick={() => { onClose(); onDelete(bot); }} />;
+    const remove = member ? null : <BotDeleteMenuItem key="delete" deleting={deleting} className={cn(GROK_MENU_ITEM, GROK_ROW_FILL, "text-ink hover:bg-transparent")} labelClassName={cn(GROK_LABEL, GROK_DANGER)} icon={deleting ? undefined : <GrokMenuIcon name="trash" danger />} label={t("sidebar.grok.delete")} onClick={() => { onClose(); onDelete(bot); }} />;
     const groups = [
       [remoteClient ? null : grokItem(bot.pinned ? "pin-slash" : "pin", bot.pinned ? t("sidebar.bot.unpin") : t("sidebar.bot.pin"), () => dispatch({ type: "updateBot", botId: bot.id, patch: { pinned: !bot.pinned } })), moveTo, readState],
       [rename],

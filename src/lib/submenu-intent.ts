@@ -1,4 +1,4 @@
-export const SUBMENU_DWELL_MS = 250;
+export const SUBMENU_DWELL_MS = 100;
 export const SUBMENU_GRACE_MS = 300;
 
 export type Point = { x: number; y: number };
@@ -93,9 +93,11 @@ export function submenuIntent({ open, close, submenuBox, timers = WINDOW_TIMERS 
       }
       if (grace && !heading(point)) closeNow();
     },
+    // grok's submenu closes once the pointer leaves the menu for anywhere but the submenu, which overlaps the menu's
+    // edge, so the submenu's own enter cancels this before it runs
     leaveMenu() {
       cancelDwell();
-      if (openKey !== null) grace ??= timers.set(closeNow, SUBMENU_GRACE_MS);
+      if (openKey !== null) { cancelGrace(); grace = timers.set(closeNow, 0); }
     },
     enterSubmenu() {
       cancelGrace();

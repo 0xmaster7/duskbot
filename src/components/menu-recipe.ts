@@ -1,18 +1,34 @@
-/** Grok's menu: the elevated tone on a half-pixel edge, 6px inside, 32px rows 2px apart, the popover lift (styles/overlays.css). */
-export const MENU_SHEET = "popover-surface flex flex-col gap-0.5 rounded-[var(--radius-menu)] border-[0.5px] border-[var(--color-edge)] bg-menu p-1.5 shadow-(--shadow-popover) [&_svg.lucide]:stroke-[1.5]";
+/** Grok's menu: the elevated tone, 6px inside, 32px rows 2px apart, separators of 12% ink 4px off their rows, the popover
+ * lift (styles/overlays.css). Grok's light skins draw no rim, only the shadow; the dark ones keep the half-pixel edge. */
+export const MENU_SHEET = "popover-surface flex flex-col gap-0.5 rounded-[var(--radius-menu)] border-[0.5px] border-[var(--color-edge)] bg-menu p-1.5 shadow-(--shadow-popover) [&_svg.lucide]:stroke-[1.5] [:root[data-skin=grok]_&]:border-0 [:root[data-skin=daylight]_&]:border-0";
 
-export const MENU_ITEM = "flex min-h-8 w-full shrink-0 items-center gap-2.5 whitespace-nowrap rounded-[10px] px-2 py-1.5 text-left text-[14px] leading-5 tracking-[0.01em] focus-visible:bg-menu-hover active:bg-menu-active touch:min-h-10";
+export const MENU_ITEM = "flex min-h-8 w-full shrink-0 items-center gap-2 whitespace-nowrap rounded-[10px] px-2 py-1.5 text-left text-[14px] leading-5 tracking-[0.01em] focus-visible:bg-menu-hover active:bg-menu-active touch:min-h-10";
 
-export const MENU_ITEM_SEPARATOR = "mx-2 my-1 h-[0.5px] shrink-0 bg-ink/10";
+/** Grok paints a row's highlight on a ::before inset in the row, 10px round, and leaves the row itself square. */
+export const GROK_ROW_FILL = "isolate rounded-none before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-[10px] before:content-[''] hover:before:bg-menu-hover focus-visible:bg-transparent! focus-visible:before:bg-menu-hover active:bg-transparent active:before:bg-menu-active relative";
+
+/** Grok's row label: 18px lines in the 32px row. */
+export const GROK_LABEL = "leading-[18px]";
+
+/** A whole Grok menu row: 32px, 6px 8px inside, the ::before fill, an 18px icon slot (GROK_MENU_ICON) 6px before its
+ * label; wrap the label in GROK_LABEL. */
+export const GROK_MENU_ROW = `flex min-h-8 w-full shrink-0 items-center gap-1.5 whitespace-nowrap px-2 py-1.5 text-left text-[14px] leading-5 tracking-[0.01em] text-ink touch:min-h-10 ${GROK_ROW_FILL}`;
+export const GROK_MENU_ICON = "flex size-[18px] shrink-0 items-center justify-center text-ink/[0.66]";
+
+/** Grok's danger row: the row's ink stays; its label takes the danger red and its glyph a brighter one. */
+export const GROK_DANGER = "text-danger";
+export const GROK_DANGER_ICON = "text-[#e72e3b]";
+
+export const MENU_ITEM_SEPARATOR = "mx-2 my-1 h-[0.5px] shrink-0 bg-ink/[0.12]";
 
 export const MENU_HEADING = "px-2 pb-1 pt-2 text-[12px] font-medium leading-4 text-ink-secondary";
 
 export const MENU_ROW =
-  "group flex h-[30px] w-full min-w-0 shrink-0 items-center gap-2 rounded-md px-2 text-left text-[13px] leading-[18px] text-ink hover:bg-ink/[0.06] focus:bg-ink/[0.06] active:bg-ink/[0.08] disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent touch:h-10";
+  "group flex h-[30px] w-full min-w-0 shrink-0 items-center gap-2 rounded-[10px] px-2 text-left text-[13px] leading-[18px] text-ink hover:bg-ink/[0.06] focus:bg-ink/[0.06] active:bg-ink/[0.08] disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent touch:h-10";
 
 /** Simple mode's rows pair a model name with a second line, so they grow with it instead of clipping at 30px. */
 export const SIMPLE_MENU_ROW =
-  "group flex min-h-[30px] w-full min-w-0 shrink-0 items-center gap-2 rounded-md px-2 py-1 text-left text-[13px] leading-[18px] text-ink hover:bg-ink/[0.06] focus:bg-ink/[0.06] active:bg-ink/[0.08] disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent touch:min-h-10";
+  "group flex min-h-[30px] w-full min-w-0 shrink-0 items-center gap-2 rounded-[10px] px-2 py-1 text-left text-[13px] leading-[18px] text-ink hover:bg-ink/[0.06] focus:bg-ink/[0.06] active:bg-ink/[0.08] disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent touch:min-h-10";
 
 export const SIMPLE_MENU_META = "min-w-0 max-w-full truncate text-[12px] leading-4 text-ink-tertiary";
 
@@ -24,7 +40,7 @@ export const MENU_META = "min-w-0 max-w-[45%] shrink truncate text-[12px] leadin
 
 export const MENU_LABEL = "flex h-6 shrink-0 items-end gap-2 px-2 pb-0.5 text-[12px] font-medium leading-4 text-ink-tertiary";
 
-export const MENU_SEPARATOR = "mx-2 my-[5px] h-[0.5px] shrink-0 bg-ink/10";
+export const MENU_SEPARATOR = "mx-2 my-1 h-[0.5px] shrink-0 bg-ink/[0.12]";
 
 export const MENU_NOTE = "px-2 py-1 text-[12px] leading-4 text-ink-tertiary";
 

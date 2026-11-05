@@ -163,7 +163,7 @@ describe("Simple mode's bot menu", () => {
     draw();
     const pin = button("Pin");
     point(move(), 200);
-    await wait(100);
+    await wait(40);
     expect(flyout()).toBeNull();
     point(pin, 80);
     await wait(400);

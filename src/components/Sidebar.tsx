@@ -10,6 +10,7 @@ import { openBotRow } from "@/state/thread-navigation";
 import { llmThreadTitlesEnabled } from "@/lib/feature-flags";
 
 import { BotAvatar } from "./Avatar";
+import { hoverGaze } from "./mascot-motion-mark";
 import { BotModelBadge, botTooltip } from "./BotModelBadge"; import { SidebarBotRole } from "./BotRole";
 import { stateForBot } from "@/lib/mascot";
 import { cn } from "@/lib/cn";
@@ -31,6 +32,7 @@ import { MIN_QUERY, SearchResults } from "./SearchResults";
 import { ShareTeamDialog, TeamLibraryPanel } from "./lazy-screens";
 import { SidebarNewChatPanel } from "./SidebarNewChatPanel";
 import { openCommandPalette } from "./CommandPalette";
+import { NEW_GROUP_EVENT } from "@/lib/new-group-request";
 import { TeamSettingsDialog } from "./TeamSettingsDialog";
 import { TeamDialog } from "./TeamDialog";
 import { RenameTitle } from "./RenameTitle";
@@ -83,6 +85,7 @@ import { useTeamPeople } from "@/state/team-people";
 export { TeamMenuItems };
 import { SidebarResizeHandle, useSidebarWidth } from "./SidebarResizeHandle";
 import { SidebarMoreUnreads } from "./SidebarMoreUnreads";
+import { onOpenTemplates } from "./SidebarTemplates";
 import { PHONE_TOP_BUTTON, SIMPLE_CORNER_BUTTON, SIMPLE_ROW_FOCUS, SIMPLE_TOP_BUTTON, SidebarSearchPill, SidebarSearchToggle } from "./SidebarSimpleTop";
 import { isSidebarToggle } from "@/lib/keyboard-shortcuts";
 import { SidebarRailSeparator, SimpleRailFooter } from "./SidebarSimpleRail";
@@ -90,7 +93,8 @@ import { useShowThreads } from "@/lib/thread-preferences";
 import { useBotUnread } from "./unread-notice";
 import { attentionHasRunningWork, attentionJumpAction, attentionUnpinAction, crossBotAttentionThreads, crossBotPinnedThreads, runningRoutineRun, SidebarBotActivity, sidebarBotActivityTasks, sidebarBotStatus } from "./SidebarBotActivity";
 import { SidebarNoBots, SidebarTileGrid } from "./SidebarTiles";
-import { BotContextMenu, GROK_MENU_ITEM, GrokMenuIcon } from "./SidebarBotMenu";
+import { BotContextMenu, GROK_LABEL, GROK_MENU_ITEM, GROK_ROW_FILL, GrokMenuIcon } from "./SidebarBotMenu";
+import { GROK_DANGER } from "./menu-recipe";
 export { BotContextMenu };
 import { AvatarActivityDot, RowDot, RowStatusText, rowSurface } from "./SidebarRowMarkers";
 
@@ -722,8 +726,8 @@ function RowGazeAvatar(props: Omit<React.ComponentProps<typeof BotAvatar>, "gaze
       frame = requestAnimationFrame(() => {
         const box = anchor.current?.getBoundingClientRect();
         if (!box) return;
-        const toward = (offset: number, span: number) => Math.round(Math.max(-1, Math.min(1, offset / span)) * 60) / 100;
-        const next = { x: toward(event.clientX - (box.left + box.width / 2), box.width), y: toward(event.clientY - (box.top + box.height / 2), box.height) };
+        const look = hoverGaze(box, event.clientX, event.clientY);
+        const next = { x: Math.round(look.x * 100) / 100, y: Math.round(look.y * 100) / 100 };
         setGaze((current) => (current && current.x === next.x && current.y === next.y ? current : next));
       });
     };
@@ -746,6 +750,16 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
   const liveMedia = useLiveMedia();
   const remoteClient = typeof window !== "undefined" && window.ogb?.remoteClient?.active === true;
   const [renaming, setRenaming] = useState(false);
+  // grok's row name is plain text: the field mounts only for a rename, from the menu or a double-click
+  const [nameField, setNameField] = useState(false);
+  const [nameEdit, setNameEdit] = useState(0);
+  const [seenRename] = useState(() => ({ current: props.renameRequest ?? 0 }));
+  useEffect(() => {
+    if (!renameRequest || renameRequest === seenRename.current) return;
+    seenRename.current = renameRequest;
+    setNameField(true);
+  }, [renameRequest]);
+  useEffect(() => { if (nameField) setNameEdit((count) => count + 1); }, [nameField]);
   const [creatingProject, setCreatingProject] = useState(false);
   const [threadsOpen, setThreadsOpen] = useSearchDisclosure(`bot:${bot.id}`, showThreads ? query : "", searchMatchesThreads(query, bot.tasks, bot.projects));
   useEffect(() => { if (reveal && showThreads) setThreadsOpen(true); }, [reveal, showThreads]);
@@ -766,7 +780,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
     "flex w-full items-center rounded-xl text-left", !simpleRow && "transition-colors duration-150", SIMPLE_ROW_FOCUS,
     iconOnly
       ? railTile ? "h-[54px] justify-center" : "justify-center px-1 py-1.5"
-      : simpleRow ? "gap-2.5 rounded-[12px] p-2 md:h-[54px] md:py-0"
+      : simpleRow ? "gap-2.5 rounded-[12px] p-2 leading-[normal] tracking-[0.24px] transition-[transform,width,padding] duration-200 ease-[cubic-bezier(.22,1,.36,1)] md:h-[54px]"
         : cn(showThreads ? "gap-2 py-2" : "gap-3 py-2", showThreads ? "pl-6 pr-9 group-hover:pr-[5.75rem] group-focus-within:pr-[5.75rem] max-md:pr-9 touch:pr-[5.75rem]" : "pl-2.5 pr-9"),
     !iconOnly && "max-md:rounded-2xl max-md:py-2.5",
     simpleRow ? rowSurface(selected) : selected ? "bg-raised" : "hover:bg-raised/50",
@@ -775,6 +789,9 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
   // grok's expanded row shows no corner dot while working: the mascot works and the preview says what it does
   const rowActivity = working ? (simpleRow ? null : "working") : teammateWait ? "teammate" : queued && !waiting ? "queued" : null;
   const { unread, noticing } = useBotUnread(bot);
+  const preview = waiting ? simpleRow ? grokWaiting(lastLine(bot, visible, instances, advanced)) : t("sidebar.preview.waiting") : teammateWait ? t("sidebar.preview.waitingOnTeammate") : queued ? t("task.queued") : simpleRow && working ? lastLine(bot, visible, instances, advanced) : botPreview(bot, visible, instances, advanced);
+  // grok names a row with what it is doing: "Manager, Main Bot, Needs attention", "Koder, Working", "Content, Unread activity"
+  const grokName = [bot.name, main ? t("sidebar.grok.mainBot") : "", waiting ? t("sidebar.grok.needsAttention") : working ? t("sidebar.grok.working") : unread ? t("sidebar.grok.unreadActivity") : ""].filter(Boolean).join(", ");
   const onLiveCall = liveBadgeFor(bot.id, liveMedia, liveCall);
   const body = (
     <>
@@ -836,10 +853,10 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
         <div className={cn("flex items-baseline justify-between gap-2", simpleRow && (unread || waiting ? "pr-7" : "group-has-[:focus-visible]:pr-7 touch:pr-7"))}>
           <span className={cn("flex min-w-0 grow items-center gap-1.5 truncate text-ink", simpleRow ? "text-[14px] font-medium leading-5 tracking-[0.01em]" : "text-[15px] font-semibold leading-5")}>
             {!simpleList && bot.pinned && <Pin size={12} className="shrink-0 text-ink-secondary" />}
-            <RenameTitle
+            {simpleRow && !nameField ? <span className="truncate">{bot.name}</span> : <RenameTitle
               key={iconOnly ? "icons" : "expanded"}
               value={bot.name}
-              editRequest={renameRequest}
+              editRequest={simpleRow ? nameEdit : renameRequest}
               title={simpleRow ? undefined : tooltip}
               onCommit={(name) => {
                 if (remoteClient) {
@@ -850,10 +867,10 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
                   dispatch({ type: "updateBot", botId: bot.id, patch: { name } });
                 }
               }}
-              onEditingChange={setRenaming}
+              onEditingChange={(editing) => { setRenaming(editing); if (!editing && simpleRow) setNameField(false); }}
               className="truncate"
               inputClassName={simpleRow ? "h-5 w-full bg-transparent p-0 text-[14px] font-medium leading-5 tracking-[0.01em] text-ink outline-none" : "w-full rounded bg-inset px-1 py-0.5 text-[15px] font-semibold"}
-            />
+            />}
             {!simpleList && bot.chiefOfStaff && !renaming && (
               <Crown size={13} strokeWidth={2.25} className="shrink-0 text-accent" role="img" aria-label={t("sidebar.bot.chiefOfStaff")} data-testid="chief-crown">
                 <title>{t("sidebar.bot.chiefOfStaff")}</title>
@@ -889,7 +906,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
               {working && !simpleRow ? (
                 <SidebarWorkingStep bot={bot} last={last} />
               ) : (
-                <span dir="auto" className="truncate">{waiting ? simpleRow ? grokWaiting(lastLine(bot, visible, instances, advanced)) : t("sidebar.preview.waiting") : teammateWait ? t("sidebar.preview.waitingOnTeammate") : queued ? t("task.queued") : simpleRow && working ? lastLine(bot, visible, instances, advanced) : botPreview(bot, visible, instances, advanced)}</span>
+                <span dir="auto" className="truncate">{preview}</span>
               )}
             </span>
           )}
@@ -920,8 +937,9 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
       <div
         role={renaming ? undefined : "button"}
         tabIndex={renaming ? undefined : simpleRow && tabStop === false ? -1 : 0}
+        aria-description={simpleRow && !renaming && !deleting ? preview : undefined}
         aria-label={
-          !renaming && iconOnly
+          simpleRow && !renaming && !deleting ? grokName : !renaming && iconOnly
             ? deleting
               ? t("sidebar.bot.deletingAria", { name: bot.name })
               : `${bot.name}${bot.title?.trim() ? ` · ${bot.title.trim()}` : ""}${bot.chiefOfStaff ? ` · ${t("sidebar.bot.chiefOfStaff")}` : ""}${onLiveCall ? ` · ${t("call.live.badge")}` : ""}${waiting ? ` · ${t("sidebar.preview.waiting")}` : working ? ` · ${t("chat.activity.working")}` : teammateWait ? ` · ${t("sidebar.preview.waitingOnTeammate")}` : queued ? ` · ${t("task.queued")}` : ""}${unread ? ` · ${t("task.unread")}` : ""}`
@@ -942,6 +960,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
           }
         }}
         onContextMenu={onContextMenu}
+        onDoubleClick={simpleRow && !renaming && !deleting && !remoteClient ? () => setNameField(true) : undefined}
         className={rowClass}
       >
         {body}
@@ -1042,6 +1061,11 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
   const attentionPinned = useAttentionPinned();
   const inboxSupport = useInboxSupport();
   const [newRoom, setNewRoom] = useState(false);
+  useEffect(() => {
+    const open = () => setNewRoom(true);
+    window.addEventListener(NEW_GROUP_EVENT, open);
+    return () => window.removeEventListener(NEW_GROUP_EVENT, open);
+  }, []);
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [newFolderBotId, setNewFolderBotId] = useState<string | null>(null);
   const [newTaskFolderBotId, setNewTaskFolderBotId] = useState<string | null>(null);
@@ -1104,6 +1128,8 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
       setTeamLibraryOpen(true);
     });
   }, [remoteClient]);
+
+  useEffect(() => (remoteClient ? undefined : onOpenTemplates(() => setTeamLibraryOpen(true))), [remoteClient]);
 
   useEffect(() => {
     if (!teamFeedback) return;
@@ -1681,8 +1707,8 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
           const row = (icon: Parameters<typeof GrokMenuIcon>[0]["name"], label: string, onClick: () => void, opts?: { disabled?: boolean; danger?: boolean; autoFocus?: boolean }) => (
             <button type="button" role="menuitem" autoFocus={opts?.autoFocus} disabled={opts?.disabled} aria-disabled={opts?.disabled || undefined}
               onClick={() => { closeSectionMenu(); onClick(); }}
-              className={cn(GROK_MENU_ITEM, opts?.danger ? "text-danger" : "text-ink", opts?.disabled ? "cursor-default opacity-40" : "hover:bg-menu-hover")}>
-              <GrokMenuIcon name={icon} danger={opts?.danger} />{label}
+              className={cn(GROK_MENU_ITEM, GROK_ROW_FILL, "text-ink", opts?.disabled && "cursor-default opacity-40 hover:before:bg-transparent")}>
+              <GrokMenuIcon name={icon} danger={opts?.danger} /><span className={cn(GROK_LABEL, opts?.danger && GROK_DANGER)}>{label}</span>
             </button>
           );
           return (
