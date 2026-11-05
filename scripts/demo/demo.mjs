@@ -1,4 +1,4 @@
-// `pnpm demo`: a separate OpenMausBot seeded with demo bots, in its own data folder, harness port and UI port.
+// `pnpm demo`: a separate OpenMausBot seeded with the test bots (scripts/demo/content.mjs), in its own data folder, harness port and UI port.
 // It never reads or writes ~/.openmausbot and never talks to the 8799 harness or the 5199 UI.
 //
 //   pnpm demo            start (seeding on first run) and open it in the browser
@@ -14,7 +14,7 @@ import { existsSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync, c
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { seedLive } from "./seed-live.mjs";
+import { call, seedBots } from "./seed-live.mjs";
 
 const REPO = fileURLToPath(new URL("../..", import.meta.url));
 const REAL_DATA = resolve(homedir(), ".openmausbot");
@@ -165,7 +165,10 @@ async function seed() {
   try {
     await waitFor(`${API}/api/health`, "the demo harness", 120_000, harness);
     const now = Date.now();
-    const { state, credentials } = await seedLive(API, now, (line) => console.log(line));
+    const { state, credentials } = await seedBots(API, now, (line) => console.log(line));
+    // What the "Meet MausBot" card's Add button saves, so the fresh demo opens without it. Demo only.
+    const helper = (await call(API, "GET", "/api/bots?messages=0")).bots.find((bot) => bot.defaultBot);
+    if (helper) await call(API, "PATCH", `/api/bots/${helper.id}`, { welcomed: true, sidebarHidden: false, pinned: true });
     writeJson(join(RUN, "seed-state.json"), state);
     writeJson(join(RUN, "webhooks.json"), credentials);
   } finally {

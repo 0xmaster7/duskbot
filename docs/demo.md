@@ -1,6 +1,6 @@
 # The demo workspace
 
-`pnpm demo` starts a second, fully separate OpenMausBot filled with demo bots, so you can click through every screen
+`pnpm demo` starts a second, fully separate OpenMausBot filled with the test bots below, so you can click through every screen
 and talk to bots that reply for real, without touching your own workspace.
 
 ```sh
@@ -32,45 +32,43 @@ way to view it.
 
 ## What is in it
 
-- **Bots**, each with its own color, body, title and standing instructions: Manager (Chief of Staff), Jordan, Amy,
-  Content, Koder and Life in the **GOATS** section; Usage Auditor, scraper and B-roll in **Studio**; and MausBot.
-- **Conversations** with tool calls, a markdown report with a table and code, reactions, an answered approval card
-  (Koder), a work summary, and a failed tool call.
-- **A pending question card**: Amy asks whether to send Prasenjit's $60 quote-tweet offer. It is in Needs you and the
-  sidebar; answering it really reaches Amy, who replies with your engine.
-- **Unread chats**: Content and Amy.
-- **A room**, GOATS standup, with a short history.
-- **Library files**: Jordan's script audit, the Usage Auditor's CSV and scraper's agency list.
-- **Memory**: MEMORY.md for Jordan, Amy, Life and Content, plus a topic note and a daily log for Jordan.
-- **Skills**: funnel-report (Jordan), copy-bank (Content), deploy-checklist (Koder).
-- **Routines**: seven scheduled (four on, the three timers off), with nine past runs in the log, one failed.
-- **Webhooks**: Vercel deploy failed (Koder), Stripe payout alert (Manager), New lead form (Amy).
+The same invented test bots `pnpm test-bots` adds (`scripts/demo/content.mjs`), for a made-up ceramics shop, all in
+one **Test bots** section: Nova (research), Quill (copy), Rivet (engineer), Tally (books), Echo (support inbox), Juno
+(trips), Basil (meals) and Moss (plants), each with its own color, Grok-style body, title and instructions.
 
-Every demo bot is on **Ask me first**, so anything that needs a tool shows a real approval card first, and their
-instructions tell them the history is sample data.
+- **Conversations** with tool calls, a markdown table and code, reactions, an answered approval card (Rivet), a work
+  summary and a failed tool call.
+- **A pending question card**: Quill asks which subject line to send. Answering it really reaches Quill.
+- **Unread chats**: Quill and Echo (Echo also has a sample delivery from its webhook).
+- **A room**, Test shop standup. **Library files**: Nova's price CSV and Tally's October summary.
+- **Memory** for Nova, Quill, Tally and Moss. **Skills**: price-check, subject-lines, release-checklist.
+- **Routines**: six, all off, with past runs in the log. **Webhooks**: Storefront CI failed, Payment received, New
+  support email (a "post" webhook: it writes into Echo's chat with no AI turn).
 
-## Things to try
+Every test bot is on **Ask me first**, and its instructions say its history is sample data.
 
-- Message any bot. It answers with its history as context ("what was the next step for Mum's laptop?" to Life).
-- Answer Amy's card, then read her reply.
-- Ask Koder to do something that needs a command to see a live approval card.
-- Post to the New lead form webhook. It writes straight into Amy's chat and costs no AI turn:
+## Test bots in your own app
 
-  ```sh
-  curl -X POST -H 'content-type: application/json' \
-    -d '{"name":"Riya Kapoor","message":"Interested in a sponsored thread in December."}' \
-    "$(node -e 'console.log(require(process.env.HOME + "/.openmausbot-demo/.demo/webhooks.json")["New lead form"].url)')"
-  ```
+```sh
+pnpm test-bots            # add them to the app on this computer (127.0.0.1:8799); run again and it skips what is there
+pnpm test-bots --remove   # delete only what it added
+pnpm test-bots --url http://127.0.0.1:PORT   # another server on this computer
+```
 
-  `~/.openmausbot-demo/.demo/webhooks.json` holds the demo webhooks' addresses and secrets (readable only by you).
+It uses only the server's HTTP API while it runs (a team backup import, then section, approval level, skills,
+routines, webhooks, reactions and unread marks) and never changes, renames or deletes anything it did not create. It
+records what it created, by id, in `~/.openmausbot-test-bots/manifest-<workspace id>.json`; `--remove` deletes exactly
+those, keeps a test bot you moved out of **Test bots**, and deletes the section only when nothing else is in it.
+
+Its chats are plainer than the demo's: the HTTP import carries conversation text only, so there are no tool-call
+rows, cards (no pending question card), shared files or work summaries, and no past routine runs. Reactions, unread
+marks, memory, skills, the room, routines and webhooks are all there, and every chat takes real follow-ups.
 
 ## Costs and timers
 
 Replies use your own engine sign-in, so every message you send, every card you answer and every "run" webhook spends
-on it like a normal chat. Enabled routines also run when they come due while the demo is up (Morning copy bank on
-weekdays at 08:30, Agency dashboards check at 10:00, Friday usage audit at 17:30, Monday funnel report at 09:00), and
-within 12 hours after a time the demo was off for. Run `pnpm demo stop` when you are done, or turn routines off in the
-demo's Routines page.
+on it like a normal chat. Every routine starts off, so nothing runs on a timer until you turn one on. Run
+`pnpm demo stop` when you are done.
 
 ## Settings
 

@@ -1,328 +1,264 @@
-// The demo workspace's content: bots, their looks and instructions, conversations, rooms, memory, skills,
-// routines and webhooks. Every timestamp is relative to the moment the seed runs, so a fresh `pnpm demo --reset`
-// always reads as recent activity.
+// Invented test bots for `pnpm test-bots` (the person's own app) and `pnpm demo` (an isolated copy): a made-up
+// ceramics shop, Juniper Lane, and the people around it. Every bot lives in the "Test bots" section. Timestamps are
+// relative to the moment the seed runs.
 
 export const M = 6e4;
 export const H = 60 * M;
 export const D = 24 * H;
 
-const DEMO_NOTE = [
+export const SECTION = "Test bots";
+
+const TEST_NOTE = [
   "",
-  "This is a demo workspace. The earlier conversations, numbers, files and people in this chat are sample data made up for",
-  "the demo, so treat them as context, not as facts you checked. Keep replies short and friendly. If asked to fetch real",
-  "data, open sites, or run commands, say briefly what you would do and ask before using any tool.",
+  "You are a test bot. The conversations before this point, and the shop, people, numbers and files in them, are",
+  "invented sample data, so treat them as context, not as facts you checked. Keep replies short and friendly. If asked",
+  "to fetch real data, open sites or run commands, say briefly what you would do and ask before using any tool.",
 ].join("\n");
 
-const soul = (text) => `${text.trim()}\n${DEMO_NOTE}`;
+const soul = (text) => `${text.trim()}\n${TEST_NOTE}`;
 
-export const TEAM = "GOATS";
-export const STUDIO = "Studio";
-
-/** key, name, title, description, color (MAUS_COLOR_NAMES), mascotBody (BOT_BODY_IDS), section, chief, soul */
+/** key, name, title, description, color (MAUS_COLOR_NAMES), mascotBody (Grok-style BOT_BODY_IDS), soul */
 export const BOTS = [
   {
-    key: "jordan", name: "Jordan", title: "Growth analyst", color: "red", mascotBody: "flower", section: TEAM,
-    description: "Funnels, scripts and what actually moved the numbers.",
+    key: "nova", name: "Nova", title: "Market researcher", color: "blue", mascotBody: "crystal",
+    description: "Prices, competitors and what customers are saying.",
     soul: soul(`
-You are Jordan, the growth analyst for a small creator business that sells a webinar-led course.
-You read funnel exports, ad dashboards and script performance, and you say plainly what moved and why.
-Lead with the one number that matters, then a short table if it helps. No hype words. When something did not work, say so.`),
+You are Nova, the market researcher for Juniper Lane, a two-person online shop that sells hand-thrown ceramic mugs.
+You compare prices, read reviews and spot trends. Lead with the one finding that matters, then a small table.`),
   },
   {
-    key: "manager", name: "Manager", title: "Chief of staff", color: "blue", mascotBody: "blob", section: TEAM, chief: true,
-    description: "Runs the GOATS team and routes work to the right bot.",
+    key: "quill", name: "Quill", title: "Copywriter", color: "purple", mascotBody: "leaf",
+    description: "Product pages, emails and subject lines.",
     soul: soul(`
-You are Manager, the chief of staff of the GOATS team: Jordan (growth), Amy (partnerships), Content (copy),
-Koder (engineering) and Life (personal admin). You turn loose requests into clear jobs, say who owns each one,
-and keep a short running list of what is waiting on the person. You are calm, brief and organised.`),
+You are Quill, Juniper Lane's copywriter. The voice is warm, plain and a little playful, never pushy.
+When asked for copy, give three numbered options and say which one you would use.`),
   },
   {
-    key: "amy", name: "Amy", title: "Partnerships and outreach", color: "pink", mascotBody: "sparkle", section: TEAM,
-    description: "Creator deals, DMs and the follow-ups you forget.",
+    key: "rivet", name: "Rivet", title: "Shop engineer", color: "silver", mascotBody: "cylinder",
+    description: "Keeps the storefront, checkout and scripts running.",
     soul: soul(`
-You are Amy, who handles creator partnerships: quote-tweet and shout-out deals, sponsor replies and follow-ups.
-You know the usual rates (small accounts $30-50 per QRT, mid-size $45-70) and you always confirm money with the
-person before agreeing to anything. Warm, quick, a little informal.`),
+You are Rivet, who maintains Juniper Lane's storefront (a small Next.js site) and a few Python scripts.
+Explain a change in one plain sentence first, then the details. Never run or deploy anything without saying exactly what it does.`),
   },
   {
-    key: "content", name: "Content", title: "Copy bank and posting", color: "cyan", mascotBody: "teardrop", section: TEAM,
-    description: "Hooks, threads and the daily copy bank.",
+    key: "tally", name: "Tally", title: "Bookkeeper", color: "green", mascotBody: "square",
+    description: "Sales, costs and the monthly numbers.",
     soul: soul(`
-You are Content, the copywriter. You keep a daily copy bank: five hooks, two thread openers and one email subject line,
-each under 20 words, in the brand voice (direct, a little cheeky, never salesy). When asked for copy, give options,
-numbered, and say which one you would post.`),
+You are Tally, the bookkeeper. You track sales, materials, shipping and fees, and close each month with a short summary.
+Always show money with the currency and round to whole units in summaries.`),
   },
   {
-    key: "koder", name: "Koder", title: "Engineer", color: "purple", mascotBody: "gem", section: TEAM,
-    description: "Writes, reviews and ships the code.",
+    key: "echo", name: "Echo", title: "Support inbox", color: "pink", mascotBody: "heart",
+    description: "Sorts customer emails and drafts kind replies.",
     soul: soul(`
-You are Koder, the engineer behind the marketing site (Next.js on Vercel) and a few internal scripts.
-You explain changes in plain words first, then the details. You never deploy or run a command without saying exactly
-what it does. Prefer small, reversible changes.`),
+You are Echo, who triages Juniper Lane's support inbox: broken-in-transit claims, order changes and wholesale questions.
+Sort by urgency, draft replies in a kind, specific voice, and never promise a refund without the owner's yes.`),
   },
   {
-    key: "life", name: "Life", title: "Life admin", color: "orange", mascotBody: "fruit", section: TEAM,
-    description: "Habits, health, errands and the laptop that keeps breaking.",
+    key: "juno", name: "Juno", title: "Trip planner", color: "coral", mascotBody: "cloud",
+    description: "Weekend trips, trade fairs and train times.",
     soul: soul(`
-You are Life, a personal assistant for everything outside work: errands, appointments, habits, the gym plan and
-tech support for the family laptop. Gentle and practical. Break fixes into numbered steps a tired person can follow.`),
+You are Juno, a travel planner. You plan short trips and trade-fair visits with realistic timings, one backup option
+and a rough budget. Lists over paragraphs.`),
   },
   {
-    key: "auditor", name: "Usage Auditor", title: "Spend and usage watchdog", color: "teal", mascotBody: "shield", section: STUDIO,
-    description: "Audits AI spend, retries and wasted runs every week.",
+    key: "basil", name: "Basil", title: "Meal planner", color: "teal", mascotBody: "clover",
+    description: "Weekly meals, shopping lists and leftovers.",
     soul: soul(`
-You are the Usage Auditor. You look at how the team's AI budget was spent: which bots, which routines, retries and
-failed runs. Start every report with a one-line TL;DR, then a small table, then at most three suggestions.`),
+You are Basil, a meal planner for a busy household of two. Plan simple weeknight dinners (under 30 minutes), reuse
+ingredients across the week and always end with a shopping list grouped by aisle.`),
   },
   {
-    key: "scraper", name: "scraper", title: "Web data puller", color: "green", mascotBody: "cloud", section: STUDIO,
-    description: "Pulls lists and tables from the web into clean CSVs.",
+    key: "moss", name: "Moss", title: "Plant care", color: "brown", mascotBody: "pebble",
+    description: "Watering, light and why the leaves are yellow.",
     soul: soul(`
-You are scraper. You turn web pages and directories into clean CSV rows: name, url, contact, notes.
-You report counts first (rows pulled, new since last time, duplicates dropped) and you never guess an email address.`),
-  },
-  {
-    key: "broll", name: "B-roll", title: "Footage finder and editor", color: "yellow", mascotBody: "hex", section: STUDIO,
-    description: "Finds, trims and grades B-roll for the short videos.",
-    soul: soul(`
-You are B-roll. You find and prepare B-roll for short vertical videos: stock clips, screen recordings and cutaways.
-You care about pacing (cuts every 1.5-3 seconds), safe areas for captions and consistent grading. Short, casual replies.`),
+You are Moss, a calm plant-care helper. Ask about light, watering and the pot before guessing, and give fixes as short
+numbered steps.`),
   },
 ];
 
-const FUNNEL_MD = [
-  "## Webinar funnel, week 45",
+const PRICE_MD = [
+  "## Mug prices, small ceramic shops",
   "",
-  "Short version: **the hook rewrite worked**, the checkout fix did not move much yet.",
+  "Short version: **we're the cheapest handmade option by about 15%**, and shipping is where we lose people.",
   "",
-  "| Stage | Last week | This week | Change |",
+  "| Shop | 350 ml mug | Shipping | Reviews |",
   "| --- | ---: | ---: | ---: |",
-  "| Landing CTR | 4.1% | 4.6% | +0.5 pt |",
-  "| Registrations | 1,840 | 2,212 | +20% |",
-  "| Show-up rate | 31% | 34% | +3 pt |",
-  "| Checkout drop-off | 38% | 36% | -2 pt |",
-  "",
-  "### What changed",
-  "",
-  "1. New hook on the ad set, \"stop paying for leads you never call\"",
-  "2. Reminder SMS moved from 1h to 15m before start",
-  "3. Checkout page: removed the coupon field",
+  "| Juniper Lane | 28 | 9 | 4.8 (212) |",
+  "| Clayhouse Studio | 34 | free over 60 | 4.7 (530) |",
+  "| North Kiln | 32 | 7 | 4.6 (98) |",
+  "| Glaze & Co | 38 | free | 4.9 (1,104) |",
   "",
   "```python",
   "import pandas as pd",
-  "df = pd.read_csv(\"funnel_w45.csv\")",
-  "weekly = df.groupby(\"stage\")[\"count\"].sum()",
-  "print((weekly / weekly.shift(1) - 1).round(3))",
+  "df = pd.read_csv(\"mug-prices.csv\")",
+  "df[\"total\"] = df[\"price\"] + df[\"shipping\"]",
+  "print(df.sort_values(\"total\")[[\"shop\", \"total\"]])",
   "```",
   "",
-  "> Next: A/B the checkout headline. Want me to set that up with Koder?",
+  "> Next: try free shipping over 60 for two weeks?",
 ].join("\n");
 
-const SCRIPT_AUDIT_MD = `# Script audit, week 45
-
-| Script | Views | Saves | Verdict |
-| --- | ---: | ---: | --- |
-| "Stop paying for leads you never call" | 48,200 | 1,930 | Winner, keep iterating |
-| "3 funnels I'd never build again" | 1,870 | 41 | Stalled |
-| "The $0 webinar stack" | 1,640 | 38 | Stalled |
-| "Why your show-up rate is 20%" | 1,210 | 22 | Stalled |
-
-## Why the winner worked
-- Names a pain in the first 2 seconds, no intro
-- One claim, one proof, one call to action
-- Captions stay inside the safe area on every cut
-
-## Next week
-Write three variants of the winner's opening line and test them on the same ad set.
+const PRICES_CSV = `shop,price,shipping,rating,reviews
+Juniper Lane,28,9,4.8,212
+Clayhouse Studio,34,0,4.7,530
+North Kiln,32,7,4.6,98
+Glaze & Co,38,0,4.9,1104
 `;
 
-const USAGE_CSV = `week,bot,runs,retries,failed,share_of_budget
-45,Manager,64,3,1,0.31
-45,Jordan,12,0,0,0.12
-45,Content,20,1,0,0.14
-45,Koder,18,4,2,0.22
-45,scraper,28,2,1,0.09
-45,Usage Auditor,1,0,0,0.01
-45,B-roll,9,0,0,0.11
-`;
+const OCTOBER_MD = `# October summary
 
-const AGENCIES_CSV = `name,url,contact,notes
-Northbeam Creative,https://northbeam.example,hello@northbeam.example,Short-form ads; new since Monday
-Loop Studio,https://loopstudio.example,,Contact form only
-Halfmoon Media,https://halfmoon.example,team@halfmoon.example,UGC + paid social
-Brightside Agency,https://brightside.example,,Instagram DMs only; new since Monday
-Paper Plane Co,https://paperplane.example,ops@paperplane.example,Podcasts and YouTube
+| | Amount |
+| --- | ---: |
+| Sales (148 orders) | 4,960 |
+| Clay and glaze | -610 |
+| Kiln electricity | -240 |
+| Shipping labels | -1,020 |
+| Marketplace and card fees | -310 |
+| **Profit** | **2,780** |
+
+- Average order: 33.50
+- Breakage refunds: 6 orders, 190 in total
 `;
 
 const tool = (name, input, extra = {}) => ({ tool: name, input, ...extra });
 
-/** Conversations per bot. The first one is the bot's main chat. Entries: { u } a person's line, { tool } a tool call,
- * { b } a bot reply (ends the turn), { card } a card, { file } a file the bot shared, { digest } a work summary. */
+/** Conversations per bot; the first is the bot's main chat. Entries: { u } a person's line, { tool } a tool call,
+ * { b } a bot reply (ends the turn unless `more`), { card } a card, { file } a file the bot shared, { digest } a work
+ * summary. `pnpm test-bots` keeps the readable text of each; `pnpm demo` keeps all of it. */
 export function threads() {
   return {
-    jordan: [
+    nova: [
       {
-        key: "funnel", title: "Week 45 webinar funnel", ago: 2 * H, gap: 70e3,
-        unread: 0,
+        key: "prices", title: "Competitor mug prices", ago: 2 * H, gap: 70e3,
         script: [
-          { u: "Pull last week's webinar funnel and tell me what moved." },
-          tool("Read", { file_path: "exports/funnel_w45.csv" }),
-          tool("Bash", { command: "python3 funnel.py --week 45 --compare 44" }),
-          tool("WebSearch", { query: "webinar show-up rate benchmark 2026" }),
-          { b: FUNNEL_MD, reactions: ["🔥"] },
-          { u: "Love it. Only one script really worked though?" },
-          tool("Read", { file_path: "scripts/index.md" }),
-          {
-            b: "Only one script in there got real traction, the rest stalled under 2k views. I put the breakdown in the library as **Script audit w45**.",
-            file: { name: "script-audit-w45.md", mime: "text/markdown", body: SCRIPT_AUDIT_MD },
-          },
+          { u: "How do our mug prices compare with the other small ceramic shops?" },
+          tool("WebSearch", { query: "handmade ceramic mug 350ml price" }),
+          tool("WebFetch", { url: "https://clayhouse.example/shop/mugs" }),
+          tool("Bash", { command: "python3 compare.py mug-prices.csv" }),
+          { b: PRICE_MD, reactions: ["🎉"], file: { name: "mug-prices.csv", mime: "text/csv", body: PRICES_CSV } },
+          { u: "Interesting. Is shipping really the problem?" },
+          { b: "Mostly, yes. In the reviews of the other shops, \"free shipping\" comes up 41 times and price only 9. Our 9 shipping on a 28 mug feels like a third extra." },
         ],
       },
       {
-        key: "budget", title: "Q4 ad budget split", ago: 3 * D, gap: 90e3,
+        key: "kilns", title: "Clay supplier shortlist", ago: 3 * D, gap: 90e3,
         script: [
-          { u: "How should we split the Q4 ad budget between Meta and YouTube?" },
-          { b: "Based on the last 6 weeks: **70/30 Meta to YouTube**. Meta brings registrations at about $2.10 each; YouTube is $3.40 but those people show up 1.6x more often. If show-up rate is the goal, 60/40 is defensible. I'd start 70/30 and revisit after two weeks." },
-          { u: "Go with 70/30 for now." },
-          { b: "Done. I noted it in memory so the Monday report tracks against it." },
+          { u: "Find two backup clay suppliers in case ours runs out again." },
+          { b: "Two that ship stoneware clay in 10 kg bags within 3 days: **Riverbed Clays** (a bit cheaper, slower to answer emails) and **Ember Supply** (dearer, next-day dispatch). I'd keep Ember as the emergency option." },
         ],
       },
     ],
-    manager: [
+    quill: [
       {
-        key: "today", title: "What's on today", ago: 40 * M, gap: 60e3,
+        key: "holiday", title: "Holiday email", ago: 30 * M, gap: 80e3, unread: 2,
         script: [
-          { u: "What's on today?" },
-          tool("TodoRead", {}),
-          { b: "Three things need you today:\n\n1. **Amy** has a $60 quote-tweet offer from Prasenjit waiting on your yes or no.\n2. **Koder** wants a quick look at the new home page before it goes to everyone.\n3. **Life** says the laptop reset is the next step; it needs about an hour.\n\nEverything else is moving: Jordan's Monday funnel report ran, Content posted today's copy bank." },
-          { u: "Anything from the collab inbox?" },
-          { b: "took the tinyfish invite on unfair: TinyResearch / TinySet from @Tiny_Fish. Two more collab requests came in overnight, both under our minimum, so I left them unanswered." },
-        ],
-      },
-    ],
-    amy: [
-      {
-        key: "qrt", title: "Prasenjit QRT deal", ago: 25 * M, gap: 80e3, unread: 2,
-        script: [
-          { u: "Can you line up a couple of quote-tweets for the launch post?" },
-          tool("WebSearch", { query: "Prasenjit creator rates quote tweet" }),
-          { b: "Reached out to four creators. Two replied: Maya wants $90 (above our range), Prasenjit offered $60 for a quote-tweet within 24h of launch." },
-          { b: "Prasenjit has the $60 QRT offer ready, want me to send it?", more: true },
+          { u: "Draft the holiday gift email for the newsletter." },
+          { b: "Here's the body:\n\nOur kiln has been busy. This winter's mugs come in three new glazes, **Frost**, **Ember** and **Pine**, each one a little different because that's how handmade goes. Order by 15 December for delivery before the holidays." },
+          { b: "Which subject line should go out?", more: true },
           {
             card: {
-              title: "Send Prasenjit's $60 quote-tweet offer?",
-              subtitle: "He'll quote-tweet the launch post within 24 hours, paid by PayPal after it's live. Our usual range for his size is $45-70.",
-              options: ["Send it", "Counter at $45", "Skip this one"],
+              title: "Which subject line should go out?",
+              subtitle: "All three fit the preview text. The first one tested best last year.",
+              options: ["Three new glazes, just in time", "Your mug shelf called", "Order by 15 December"],
               requestType: "question",
-              requestId: "demo-amy-qrt-offer",
+              requestId: "test-quill-subject-line",
             },
           },
         ],
       },
       {
-        key: "sponsor", title: "Sponsor reply to Loomly", ago: 2 * D, gap: 120e3,
+        key: "product", title: "Product page for the Pine mug", ago: 2 * D, gap: 100e3,
         script: [
-          { u: "Loomly asked for our media kit. Reply for me?" },
-          { b: "Sent them the media kit with the October numbers and a note that we only take one sponsor per month. I'll nudge them Friday if there's no reply." },
+          { u: "Write a short product description for the Pine glaze mug." },
+          { b: "1. A deep forest green that pools darker at the rim. Holds 350 ml of whatever gets you through the morning.\n2. Pine: the colour of a walk you keep meaning to take.\n3. Green, glossy, a little lopsided in the best way.\n\nI'd use 1; it says what it is." },
         ],
       },
     ],
-    content: [
+    rivet: [
       {
-        key: "copybank", title: "Copy bank", ago: 15 * M, gap: 45e3, unread: 3,
+        key: "checkout", title: "Checkout button bug", ago: 5 * H, gap: 75e3,
         script: [
-          { u: "Morning copy bank please." },
-          { b: "Copy bank: Thu 5 Nov 2026\n\n**Hooks**\n1. Stop paying for leads you never call.\n2. Your webinar isn't boring. Your first 30 seconds are.\n3. We cut our ad spend 20% by deleting one field.\n4. The show-up rate trick nobody tells you about.\n5. One script did 48k views. The other three did 4k combined.\n\n**Thread openers**\n- I audited 4 of our scripts. Only one worked. Here's why:\n- 15 minutes. That's the reminder window that changed everything.\n\n**Email subject**\n- the field we deleted" },
-          { b: "I'd post hook 1 today, it matches the ad that's winning." },
-          { b: "Want me to schedule thread opener 1 for 6pm?" },
-        ],
-      },
-    ],
-    koder: [
-      {
-        key: "homepage", title: "New home page", ago: 5 * H, gap: 75e3,
-        script: [
-          { u: "Ship the new home page to make.siddz.com." },
-          tool("Read", { file_path: "app/page.tsx" }),
-          tool("Edit", { file_path: "app/page.tsx", old_string: "<Hero variant=\"v1\" />", new_string: "<Hero variant=\"v2\" />" }),
-          tool("Bash", { command: "pnpm build" }),
+          { u: "Customers say the checkout button does nothing on phones." },
+          tool("Read", { file_path: "app/cart/page.tsx" }),
+          tool("Edit", { file_path: "app/cart/page.tsx", old_string: "onClick={submit}", new_string: "onClick={() => void submit()}" }),
+          tool("Bash", { command: "pnpm test cart" }),
           {
             card: {
-              title: "Allow Koder to run a command?",
-              subtitle: "vercel deploy --prod",
+              title: "Allow Rivet to run a command?",
+              subtitle: "pnpm build && pnpm deploy:preview",
               options: ["Allow once", "Deny"],
               requestType: "permission",
               tool: "Bash",
-              requestId: "demo-koder-deploy",
+              requestId: "test-rivet-preview",
               answered: "allow",
               answeredBy: { kind: "loopback" },
             },
           },
-          tool("Bash", { command: "vercel deploy --prod" }),
-          { digest: { tools: [["Read", 1], ["Edit", 1], ["Bash", 2]], changed: ["app/page.tsx"], added: ["components/hero-v2.tsx"], reply: "The new home page is live at make.siddz.com" } },
-          { b: "The new home page is live at make.siddz.com, checking the build now. Lighthouse is 97 on mobile; the hero image is the biggest thing on the page, so I'll lazy-load the logos row next." },
+          tool("Bash", { command: "pnpm build && pnpm deploy:preview" }),
+          { digest: { tools: [["Read", 1], ["Edit", 1], ["Bash", 2]], changed: ["app/cart/page.tsx"], added: ["app/cart/cart.test.tsx"], reply: "Fixed: the checkout button now works on phones" } },
+          { b: "Fixed: the checkout button now works on phones. A promise was being dropped on iOS Safari, so the click did nothing. The preview link is ready; I added a test so it can't come back quietly." },
         ],
       },
       {
-        key: "flaky", title: "Flaky checkout test", ago: 4 * D, gap: 90e3,
+        key: "resize", title: "Photo resize script", ago: 4 * D, gap: 90e3,
         script: [
-          { u: "The checkout test keeps failing in CI." },
-          tool("Bash", { command: "pnpm test checkout --repeat 20" }, { ok: false, output: "3 of 20 runs failed: timeout waiting for #pay-button" }),
-          { b: "It's a race: the test clicks Pay before the price finishes loading. I made the test wait for the price instead of a fixed 500 ms. 50 runs in a row pass now." },
-        ],
-      },
-    ],
-    life: [
-      {
-        key: "laptop", title: "Mum's laptop is slow", ago: 6 * H, gap: 100e3,
-        script: [
-          { u: "Mum's laptop is still really slow after the reinstall of Chrome." },
-          { b: "The reinstall didn't fix it, so the next step is a reset.\n\n1. Back up the Pictures and Documents folders to the blue USB drive.\n2. Settings > System > Recovery > Reset this PC > Keep my files.\n3. It takes about an hour; plug the charger in first.\n\nWant me to put it on Saturday morning?" },
-        ],
-      },
-      {
-        key: "gym", title: "Gym plan", ago: 2 * D, gap: 60e3,
-        script: [
-          { u: "I keep skipping Thursday gym." },
-          { b: "Thursday is your latest workday three weeks running. Let's move it to Friday 7am and make Thursday a 20-minute walk. I'll remind you Thursday evening." },
+          { u: "Can you make a script that resizes product photos to 1600px?" },
+          tool("Bash", { command: "python3 resize.py photos/ --max 1600" }, { ok: false, output: "ModuleNotFoundError: No module named 'PIL'" }),
+          { b: "It needed Pillow. Here's the script; run `pip install pillow` once first.\n\n```python\nfrom pathlib import Path\nfrom PIL import Image\n\nfor path in Path(\"photos\").glob(\"*.jpg\"):\n    image = Image.open(path)\n    image.thumbnail((1600, 1600))\n    image.save(path.with_name(f\"{path.stem}-1600.jpg\"), quality=85)\n```" },
         ],
       },
     ],
-    auditor: [
+    tally: [
       {
-        key: "weekly", title: "Weekly usage audit", ago: 20 * H, gap: 60e3,
+        key: "october", title: "October books", ago: 20 * H, gap: 60e3,
         script: [
-          { u: "Where did the budget go this week?" },
-          tool("Read", { file_path: "usage/week-45.json" }),
+          { u: "Close October for me." },
+          tool("Read", { file_path: "exports/orders-2026-10.csv" }),
           {
-            b: "TL;DR: about 3% of your weekly budget went to retries.\n\n| Bot | Share | Retries |\n| --- | ---: | ---: |\n| Manager | 31% | 3 |\n| Koder | 22% | 4 |\n| Content | 14% | 1 |\n| Jordan | 12% | 0 |\n\nSuggestions:\n1. Manager's 20-minute unfair.so check finds something about once a day; hourly would save about 8%.\n2. Koder's retries were all the flaky checkout test, fixed now.\n3. Nothing else stands out.",
-            file: { name: "usage-week-45.csv", mime: "text/csv", body: USAGE_CSV },
+            b: "October made **2,780 profit** on 4,960 in sales. Shipping labels were the biggest cost again, about a fifth of sales. Full summary attached.",
+            file: { name: "october-summary.md", mime: "text/markdown", body: OCTOBER_MD },
+            reactions: ["👍"],
           },
         ],
       },
     ],
-    scraper: [
+    echo: [
       {
-        key: "agencies", title: "Agency list", ago: 9 * H, gap: 60e3,
+        key: "inbox", title: "Support inbox", ago: 50 * M, gap: 60e3, unread: 1,
         script: [
-          { u: "Refresh the agency list." },
-          tool("WebFetch", { url: "https://directory.example/agencies?category=short-form" }),
-          tool("WebFetch", { url: "https://directory.example/agencies?category=short-form&page=2" }),
-          {
-            b: "Pulled 412 rows from the agency list, 38 new since Monday. 9 duplicates dropped, 61 have no public email (marked as contact form only). Here are the first rows; the full file is attached.",
-            file: { name: "agencies-2026-11-05.csv", mime: "text/csv", body: AGENCIES_CSV },
-          },
+          { u: "What's in the inbox this morning?" },
+          tool("Read", { file_path: "inbox/today.json" }),
+          { b: "Five new emails:\n\n| Priority | From | About |\n| --- | --- | --- |\n| High | Order 1187 | Mug arrived cracked, photo attached |\n| High | Order 1192 | Wrong glaze sent (Ember instead of Frost) |\n| Medium | Café on Elm St | Wholesale price for 40 mugs |\n| Low | Order 1179 | Asks if mugs are dishwasher safe |\n| Low | Newsletter | Unsubscribe request, done |\n\nI drafted replies for the first two; both need your yes before I offer a replacement." },
         ],
       },
     ],
-    broll: [
+    juno: [
       {
-        key: "launch", title: "Launch video cutaways", ago: 30 * H, gap: 60e3,
+        key: "fair", title: "Craft fair trip", ago: 2 * D, gap: 90e3,
         script: [
-          { u: "Need cutaways for the launch video, laptop + coffee vibe." },
-          { b: "Found 14 clips, kept 6: two overhead desk shots, a coffee pour, keyboard close-ups and a window timelapse. All 9:16, graded warm to match the talking head." },
-          { u: "Why does the export look blurry?" },
-          { b: "heads up: you had baby blur set to 2x, I reset it to 1x. Re-exported, it's sharp now." },
+          { u: "Plan the trip to the spring craft fair in Ghent, two days." },
+          { b: "**Friday**\n- 07:52 train, arrive 11:40, check in near the Korenmarkt\n- 14:00-18:00 set up the stall\n\n**Saturday**\n- 09:00-17:00 fair\n- 18:42 train home\n\nBudget: about 310 for trains, one night and the stall fee. Backup: the 09:15 train if setup starts later." },
+        ],
+      },
+    ],
+    basil: [
+      {
+        key: "week", title: "This week's dinners", ago: 26 * H, gap: 60e3,
+        script: [
+          { u: "Plan five quick dinners, we have chickpeas and spinach to use up." },
+          { b: "1. Chickpea and spinach curry\n2. Lemon pasta with spinach\n3. Crispy chickpea wraps\n4. Shakshuka with spinach\n5. Leftover curry fried rice\n\n**Shopping list**\n- Produce: lemons, onions, garlic, tomatoes\n- Dairy: feta, eggs\n- Pantry: coconut milk, wraps, rice" },
+          { u: "Swap the shakshuka, we had eggs twice already." },
+          { b: "Swapped it for a tray-bake of sweet potato, chickpeas and spinach. Same shopping list minus the eggs, plus two sweet potatoes." },
+        ],
+      },
+    ],
+    moss: [
+      {
+        key: "fig", title: "Yellow leaves on the rubber plant", ago: 6 * H, gap: 100e3,
+        script: [
+          { u: "The rubber plant by the window has yellow lower leaves." },
+          { b: "Lower leaves going yellow is usually too much water rather than too little.\n\n1. Push a finger 3 cm into the soil; if it's damp, wait.\n2. Water only when the top third is dry, about every 10 days in winter.\n3. Make sure the pot drains; empty the saucer after watering.\n\nOne or two old leaves dropping is normal." },
         ],
       },
     ],
@@ -331,37 +267,36 @@ export function threads() {
 
 export const ROOMS = [
   {
-    key: "standup", name: "GOATS standup", section: TEAM, members: ["manager", "jordan", "content", "koder"],
-    responder: { kind: "member", botId: "manager" },
-    bulletin: "Daily standup for the GOATS team. Say what you shipped, what's next and what's blocked. One line each.",
+    key: "standup", name: "Test shop standup", members: ["nova", "quill", "rivet", "echo"],
+    responder: { kind: "member", botId: "nova" },
+    bulletin: "Daily standup for the Juniper Lane test team. What you did, what's next, what's blocked. One line each.",
     ago: 3 * H,
     lines: [
-      { from: null, text: "Morning team, quick standup please." },
-      { from: "manager", text: "Standup for Thu 5 Nov. One line each, blockers first." },
-      { from: "jordan", text: "Shipped the week 45 funnel report. Next: checkout headline A/B with Koder. No blockers." },
-      { from: "content", text: "Copy bank is up. Next: thread opener for 6pm. Blocked on a yes from you on hook 1." },
-      { from: "koder", text: "Home page v2 is live. Next: lazy-load the logos row. No blockers." },
-      { from: "manager", text: "Thanks all. Waiting on the person: Amy's QRT offer and Content's hook 1." },
+      { from: null, text: "Morning, quick standup please." },
+      { from: "nova", text: "Price comparison is done; shipping is our weak spot. Next: a free-shipping test plan." },
+      { from: "quill", text: "Holiday email drafted. Blocked on a subject line pick." },
+      { from: "rivet", text: "Checkout fix is on the preview link. Next: ship it after a phone test." },
+      { from: "echo", text: "Two breakage claims waiting for a yes on replacements." },
     ],
   },
 ];
 
 export const MEMORY = {
-  jordan: {
-    file: "# Jordan's memory\n\n- Q4 ad budget split: 70/30 Meta to YouTube, revisit after two weeks.\n- The person cares most about show-up rate, then registrations.\n- Funnel exports land in exports/ every Monday as funnel_wNN.csv.\n- Winning script pattern: pain in the first 2 seconds, one claim, one proof.\n",
-    topics: [{ name: "funnel-benchmarks.md", text: "# Funnel benchmarks\n\n- Webinar show-up rate: 25-35% is normal, 40%+ is great.\n- Landing CTR above 4% on cold traffic is healthy.\n" }],
-    logs: [{ day: 1, text: "- Sent the week 45 funnel report.\n- Logged the 70/30 budget decision.\n" }],
+  nova: {
+    file: "# Nova's memory\n\n- Juniper Lane sells 350 ml mugs at 28 plus 9 shipping.\n- The owner cares most about repeat customers, then new ones.\n- Competitors checked monthly: Clayhouse Studio, North Kiln, Glaze & Co.\n",
+    topics: [{ name: "competitors.md", text: "# Competitors\n\n- Glaze & Co: dearest, best reviews, free shipping.\n- North Kiln: closest to us on price.\n" }],
+    logs: [{ day: 1, text: "- Sent the competitor price table.\n- Found two backup clay suppliers.\n" }],
   },
-  amy: {
-    file: "# Amy's memory\n\n- Never agree to a paid deal without the person's yes.\n- QRT rates: small accounts $30-50, mid-size $45-70.\n- Loomly: one sponsor per month, media kit sent 3 Nov.\n",
+  quill: {
+    file: "# Quill's memory\n\n- Voice: warm, plain, a little playful, never pushy.\n- Glazes this winter: Frost, Ember, Pine.\n- Holiday order cut-off: 15 December.\n",
     topics: [], logs: [],
   },
-  life: {
-    file: "# Life's memory\n\n- Mum's laptop: Windows 11, slow after Chrome reinstall; reset planned.\n- Gym: Friday 7am replaces Thursday; Thursday is a 20-minute walk.\n- Prefers reminders the evening before, not the morning of.\n",
+  tally: {
+    file: "# Tally's memory\n\n- Books close on the 3rd of each month.\n- Shipping labels are the biggest cost line.\n",
     topics: [], logs: [],
   },
-  content: {
-    file: "# Content's memory\n\n- Brand voice: direct, a little cheeky, never salesy.\n- Hooks under 20 words. Post at 6pm local time.\n",
+  moss: {
+    file: "# Moss's memory\n\n- Rubber plant by the south window; yellow lower leaves in November.\n- Water every ~10 days in winter.\n",
     topics: [], logs: [],
   },
 };
@@ -369,56 +304,51 @@ export const MEMORY = {
 const skill = (name, description, body) => ({ name, description, text: `---\nname: ${name}\ndescription: ${description}\n---\n\n${body.trim()}\n` });
 
 export const SKILLS = {
-  jordan: [skill("funnel-report", "Write the weekly webinar funnel report: one-line summary, stage table, what changed, next test.", `
-# Funnel report
+  nova: [skill("price-check", "Compare Juniper Lane's prices and shipping with the usual competitors and summarise in one table.", `
+# Price check
 
-1. Read the newest exports/funnel_wNN.csv and the one before it.
-2. Summarise in one bold sentence: what moved most and whether it was good.
-3. Table: Landing CTR, Registrations, Show-up rate, Checkout drop-off; last week, this week, change.
-4. List what changed in ads, emails and pages that week.
-5. End with the single next test you would run.`)],
-  content: [skill("copy-bank", "Produce the daily copy bank: five hooks, two thread openers and one email subject in the brand voice.", `
-# Copy bank
+1. For each competitor, note the price of a 350 ml mug, shipping and the review score.
+2. One bold sentence: where we stand and the biggest gap.
+3. A table: shop, price, shipping, reviews.
+4. End with one test worth running.`)],
+  quill: [skill("subject-lines", "Write three email subject lines under 45 characters in the shop's voice and pick one.", `
+# Subject lines
 
-- Title it "Copy bank: <weekday> <day> <month> <year>".
-- Five hooks under 20 words, two thread openers, one lowercase email subject.
-- Say which hook you would post today and why, in one line.`)],
-  koder: [skill("deploy-checklist", "Checklist before deploying the marketing site to production.", `
-# Deploy checklist
+- Three options, each under 45 characters, no emoji, no ALL CAPS.
+- Say which one you would send and why, in one line.`)],
+  rivet: [skill("release-checklist", "Checklist before shipping a storefront change.", `
+# Release checklist
 
-1. pnpm build passes locally.
-2. Preview deploy looks right on a phone-sized screen.
-3. Say exactly which command deploys, and wait for the person's OK.
-4. After deploying, check Lighthouse mobile and report the score.`)],
+1. Tests pass and the build succeeds.
+2. Check the preview on a phone-sized screen.
+3. Say exactly which command ships it, and wait for the owner's OK.`)],
 };
 
-/** Scheduled routines. Interval ones start off so the demo never spends on a timer by surprise. */
+/** Every routine starts off, so nothing spends usage on its own; turn one on to try it. */
 export const ROUTINES = [
-  { bot: "jordan", name: "Monday funnel report", prompt: "Pull the webinar funnel and post the summary here.", schedule: { type: "daily", time: "09:00", weekdays: [1] }, enabled: true },
-  { bot: "content", name: "Morning copy bank", prompt: "Write today's copy bank and say which hook to post.", schedule: { type: "daily", time: "08:30", weekdays: [1, 2, 3, 4, 5] }, enabled: true },
-  { bot: "manager", name: "Agency dashboards check", prompt: "Open the agency dashboards and flag anything off.", schedule: { type: "daily", time: "10:00", weekdays: [1, 2, 3, 4, 5] }, enabled: true },
-  { bot: "manager", name: "Collab check (every 2 hours)", prompt: "Check X and email for new collab requests and summarise them.", schedule: { type: "interval", everyMinutes: 120 }, enabled: false },
-  { bot: "auditor", name: "Friday usage audit", prompt: "Audit this week's AI usage: TL;DR, table by bot, at most three suggestions.", schedule: { type: "daily", time: "17:30", weekdays: [5] }, enabled: true },
-  { bot: "scraper", name: "Agency list refresh", prompt: "Refresh the agency list and report rows pulled, new and duplicates.", schedule: { type: "interval", everyMinutes: 360 }, enabled: false },
-  { bot: "life", name: "Evening reminders", prompt: "Remind me of tomorrow's errands and appointments.", schedule: { type: "daily", time: "21:00", weekdays: [0, 1, 2, 3, 4, 5, 6] }, enabled: false },
+  { bot: "nova", name: "Monday price check", prompt: "Run the price check and post the table here.", schedule: { type: "daily", time: "09:00", weekdays: [1] } },
+  { bot: "quill", name: "Thursday newsletter draft", prompt: "Draft this week's newsletter: one story, one product, one subject line.", schedule: { type: "daily", time: "10:00", weekdays: [4] } },
+  { bot: "tally", name: "Month-end summary", prompt: "Summarise last month's sales, costs and profit in one table.", schedule: { type: "daily", time: "17:00", weekdays: [3] } },
+  { bot: "echo", name: "Inbox sweep (every 2 hours)", prompt: "Sort new support emails by urgency and draft replies.", schedule: { type: "interval", everyMinutes: 120 } },
+  { bot: "moss", name: "Watering reminder", prompt: "Remind me which plants need water today.", schedule: { type: "daily", time: "08:00", weekdays: [0, 3] } },
+  { bot: "rivet", name: "Nightly dependency check", prompt: "Check the storefront's dependencies for security updates.", schedule: { type: "daily", time: "02:00", weekdays: [0, 1, 2, 3, 4, 5, 6] } },
 ];
 
-/** Webhook triggers. "post" writes the delivery straight into the chat with no AI turn; "run" starts a turn. */
+/** "post" writes the delivery straight into the chat with no AI turn; "run" starts a turn. */
 export const WEBHOOKS = [
-  { bot: "koder", name: "Vercel deploy failed", prompt: "A Vercel deploy failed. Read the payload, say what broke and suggest the smallest fix.", delivery: "run" },
-  { bot: "manager", name: "Stripe payout alert", prompt: "Stripe posted a payout. Log it and tell me the total for the month.", delivery: "run" },
-  { bot: "amy", name: "New lead form", prompt: "A lead filled in the partnership form.", delivery: "post" },
+  { bot: "rivet", name: "Storefront CI failed", prompt: "CI failed on the storefront. Read the payload, say what broke and suggest the smallest fix.", delivery: "run" },
+  { bot: "tally", name: "Payment received", prompt: "A payment came in. Log it and tell me the month's running total.", delivery: "run" },
+  { bot: "echo", name: "New support email", prompt: "A customer emailed support.", delivery: "post",
+    sample: { from: "customer@example.com", subject: "Gift wrap?", message: "Hi! Can you gift wrap two Frost mugs for a birthday?" } },
 ];
 
-/** Finished runs shown in the routines log: [routine name, days ago, status, output]. */
+/** Finished runs for the demo's routine log (the demo's offline step only): [routine name, days ago, status, output]. */
 export const PAST_RUNS = [
-  ["Monday funnel report", 3, "completed", "Week 45: registrations +20%, show-up 34% (+3 pt). The hook rewrite worked; checkout fix is flat."],
-  ["Monday funnel report", 10, "completed", "Week 44: registrations flat, show-up 31%. Reminder SMS still at 1h; suggest 15m."],
-  ["Monday funnel report", 17, "completed", "Week 43: landing CTR dipped to 3.8% after the creative refresh."],
-  ["Morning copy bank", 0, "completed", "Copy bank: Thu 5 Nov 2026 posted. Suggested hook 1."],
-  ["Morning copy bank", 1, "completed", "Copy bank: Wed 4 Nov 2026 posted. Suggested hook 3."],
-  ["Morning copy bank", 2, "failed", "The engine's usage limit was reached before the copy bank finished."],
-  ["Agency dashboards check", 0, "completed", "Nothing off. Halfmoon's CPM rose 12%, still under target."],
-  ["Agency dashboards check", 1, "completed", "Northbeam paused one ad set by mistake; flagged to Amy."],
-  ["Friday usage audit", 6, "completed", "TL;DR: about 3% of the weekly budget went to retries."],
+  ["Monday price check", 3, "completed", "We're the cheapest handmade option by about 15%; shipping is the gap."],
+  ["Monday price check", 10, "completed", "No price changes at the three competitors."],
+  ["Thursday newsletter draft", 1, "completed", "Draft ready: the winter glazes story, Pine mug, \"Three new glazes, just in time\"."],
+  ["Thursday newsletter draft", 8, "failed", "The engine's usage limit was reached before the draft finished."],
+  ["Month-end summary", 2, "completed", "October: 2,780 profit on 4,960 in sales."],
+  ["Inbox sweep (every 2 hours)", 0, "completed", "Two breakage claims, one wholesale question; replies drafted."],
+  ["Watering reminder", 3, "completed", "Water the rubber plant and the herbs on the sill."],
 ];
