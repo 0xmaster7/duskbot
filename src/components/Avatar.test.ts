@@ -9,7 +9,9 @@ import {
   type BotAvatarProps,
   type MausAvatarProps,
 } from "./Avatar";
-import { MASCOT_BODIES } from "../../shared/mascot-bodies";
+import { GROK_BODIES, type GrokBodyId } from "../../shared/grok-bodies";
+
+const outline = (id: GrokBodyId) => GROK_BODIES[id].clip.slice('<path d="'.length, -'"/>'.length);
 
 const render = (props: Partial<MausAvatarProps>) =>
   renderToStaticMarkup(createElement(MausAvatar, { color: "green", animated: false, ...props }));
@@ -20,21 +22,20 @@ const renderBot = (bot: Partial<BotAvatarProps["bot"]>) =>
   );
 
 describe("MausAvatar body", () => {
-  it("wears the cursor when no body is given", () => {
-    expect(render({})).toContain(MASCOT_BODIES.cursor.fit);
+  it("wears the Grok-style tablet when no body is given", () => {
+    expect(render({})).toContain(outline("tablet"));
   });
 
-  it("wears the body it is given", () => {
-    const markup = render({ bodyId: "star" });
-    expect(markup).toContain(MASCOT_BODIES.star.fit);
+  it("wears the body it is given, drawing an older body as its Grok-style look", () => {
+    expect(render({ bodyId: "star" })).toContain(outline("star"));
+    expect(render({ bodyId: "flower" })).toContain(outline("flower"));
+    expect(render({ bodyId: "cursor" })).toContain(outline("tablet"));
   });
 
-  it("falls back to the cursor for an unknown body", () => {
+  it("falls back to the tablet for an unknown body", () => {
     // SAFETY: "hexagram" is deliberately not a MascotBodyId, to exercise the runtime fallback for persisted or streamed
     // data.
-    expect(render({ bodyId: "hexagram" as MausAvatarProps["bodyId"] })).toContain(
-      MASCOT_BODIES.cursor.fit,
-    );
+    expect(render({ bodyId: "hexagram" as MausAvatarProps["bodyId"] })).toContain(outline("tablet"));
   });
 
   it("paints the body with the per-bot gradient, never a flat black fill", () => {
@@ -46,22 +47,32 @@ describe("MausAvatar body", () => {
 });
 
 describe("mascot facial feature colors", () => {
-  it.each(["white", "black"] as const)("uses %s for both eyes and mouth on every body type", (mascotFaceColor) => {
+  it.each(["white", "black"] as const)("uses %s for the eyes on every body type, and the mouth where there is one", (mascotFaceColor) => {
     const ink = mascotFaceColor === "white" ? "#ffffff" : "#000000";
     for (const mascotBody of ["cursor", "star", "pumpkin", "vampire"] as const) {
       for (const color of ["green", "chrome"] as const) {
         const markup = renderBot({ color, mascotBody, mascotFaceColor });
         expect(markup).toContain(`fill="${ink}"`);
-        expect(markup).toContain(`stroke="${ink}"`);
         expect(markup).not.toContain('visibility="hidden"');
+        if (mascotBody === "pumpkin" || mascotBody === "vampire") expect(markup).toContain(`stroke="${ink}"`);
+        else expect(markup).not.toContain("<mask");
       }
     }
   });
 
-  it("keeps default inks when an override is reset or comes from an older profile", () => {
-    expect(renderBot({ color: "chrome", mascotFaceColor: null })).toContain('stroke="#1E2833"');
+  it("cuts the eyes out of a Grok-style body when no face ink is chosen, with no mouth", () => {
+    for (const bot of [{ color: "chrome" as const, mascotFaceColor: null }, {}]) {
+      const markup = renderBot(bot);
+      expect(markup).toContain("<mask");
+      expect(markup).toContain('mask="url(#');
+      expect(markup).not.toContain("stroke=");
+    }
     expect(renderBot({ mascotBody: "pumpkin" })).toContain('stroke="#0d0a10"');
-    expect(renderBot({})).toContain('stroke="#ffffff"');
+  });
+
+  it("paints a Grok-style body with one flat ink", () => {
+    const markup = renderBot({ color: "blue" });
+    expect(markup.match(/stop-color="#1e86fc"/g)?.length).toBe(3);
   });
 
   it("does not paint features over an uploaded image", () => {

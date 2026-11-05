@@ -70,11 +70,28 @@ export const MAUS_COLOR_LABEL = {
   chrome: "mascotColor.chrome",
 } as const satisfies Record<MausColor, LocaleKey>;
 
+/** The flat body ink each colour paints a Grok-style mascot with: Grok Bot's own `bg/<hue>-bright` values where it has
+ * the hue, the identity colour where it does not. Chrome follows the skin's ink, as Grok's black mark does. */
+export const MASCOT_INK = {
+  green: "#14c16f",
+  blue: "#1e86fc",
+  red: "#fb2b3e",
+  orange: "#fd690f",
+  purple: "#8f59f9",
+  cyan: MAUS_COLORS.cyan,
+  pink: "#f93498",
+  yellow: "#f59312",
+  teal: "#13b7a2",
+  coral: MAUS_COLORS.coral,
+  silver: "#959595",
+  chrome: "var(--color-ink)",
+} satisfies Record<MausColor, string>;
+
 export const CHROME_GRADIENT: [string, string, string] = ["#F1F4F7", "#AEB8C3", "#66717E"];
 export const CHROME_EYES = "#1E2833";
 
 export function colorSwatch(color: MausColor): string {
-  if (color !== "chrome") return MAUS_COLORS[color];
+  if (color !== "chrome") return MASCOT_INK[color];
   const [light, mid, edge] = CHROME_GRADIENT;
   return `radial-gradient(circle at 34% 26%, #ffffff 0%, ${light} 20%, ${mid} 55%, ${edge} 100%)`;
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { t } from "./i18n";
-import { CHROME_GRADIENT, colorSwatch, MAUS_COLOR_LABEL, MAUS_COLOR_NAMES, MAUS_COLORS, stateForBot } from "./mascot";
+import { CHROME_GRADIENT, colorSwatch, MASCOT_INK, MAUS_COLOR_LABEL, MAUS_COLOR_NAMES, MAUS_COLORS, stateForBot } from "./mascot";
 
 describe("stateForBot", () => {
   it("still alerts on a failed tool call when a digest receipt follows it", () => {
@@ -57,6 +57,6 @@ describe("chrome", () => {
     expect(swatch.startsWith("radial-gradient(")).toBe(true);
     expect(swatch).not.toContain("repeating");
     for (const tone of CHROME_GRADIENT) expect(swatch).toContain(tone);
-    expect(colorSwatch("blue")).toBe(MAUS_COLORS.blue);
+    expect(colorSwatch("blue")).toBe(MASCOT_INK.blue);
   });
 });

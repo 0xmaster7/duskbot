@@ -4,7 +4,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MausAvatar, type MausAvatarHandle, type MausAvatarProps } from "./Avatar";
-import { EFFECTS, EXPRESSIONS, POOLS } from "./CursorAvatar";
+import { EFFECTS } from "./CursorAvatar";
+import { GROK_BODIES } from "../../shared/grok-bodies";
 import { mascotClock } from "./mascot-clock";
 import { UNREAD_NOTICE_MS, useUnreadNotice } from "./unread-notice";
 
@@ -63,7 +64,9 @@ afterEach(() => {
 const render = (avatars: Array<Partial<MausAvatarProps> & { ref?: React.Ref<MausAvatarHandle> }>) =>
   act(() => root.render(avatars.map((props, key) => createElement(MausAvatar, { key, color: "green", ...props }))));
 const run = (ms: number) => act(() => { vi.advanceTimersByTime(ms); });
-const eyePaths = () => [...host.querySelectorAll("svg")].map((svg) => svg.querySelector("g[clip-path] path")!.getAttribute("d"));
+// a grok face cuts its eyes out of the body, so they live in the mask
+const eyeOf = (svg: ParentNode) => svg.querySelector("mask path, g[clip-path] path")!;
+const eyePaths = () => [...host.querySelectorAll("svg")].map((svg) => eyeOf(svg).getAttribute("d"));
 const toPath = (ring: Array<[number, number]>) => "M" + ring.map((p) => p[0].toFixed(2) + " " + p[1].toFixed(2)).join("L") + "Z";
 
 describe("CursorAvatar on the shared clock", () => {
@@ -89,7 +92,7 @@ describe("CursorAvatar on the shared clock", () => {
   it("paints a still mascot with its state's face and then asks for nothing", () => {
     render([{ state: "sleeping", animated: false, size: 24 }]);
     run(100);
-    expect(eyePaths()[0]).toBe(toPath(EXPRESSIONS[POOLS.sleeping[0]][0]));
+    expect(eyePaths()[0]).toBe(toPath(GROK_BODIES.tablet.face.eyes[0]!));
     frameRequests = 0;
     run(2000);
     expect(frameRequests).toBe(0);
@@ -99,7 +102,7 @@ describe("CursorAvatar on the shared clock", () => {
   it("redraws a still mascot when its look changes", () => {
     render([{ state: "idle", animated: false, size: 24, turn: 0 }]);
     run(100);
-    const eye = () => host.querySelector("g[clip-path] path")!.getAttribute("transform");
+    const eye = () => eyeOf(host).getAttribute("transform");
     const before = eye();
     render([{ state: "idle", animated: false, size: 24, turn: 40 }]);
     run(100);

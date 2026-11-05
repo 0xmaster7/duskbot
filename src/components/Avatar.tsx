@@ -9,14 +9,12 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@/lib/cn";
-import { CHROME_EYES, CHROME_GRADIENT, MAUS_COLORS, type MausColor, type MausMotion, type MausState } from "@/lib/mascot";
+import { MASCOT_INK, type MausColor, type MausMotion, type MausState } from "@/lib/mascot";
 import { CursorAvatar, type CursorAvatarHandle } from "./CursorAvatar";
 import { avatarCropRadius, botAvatarProfile, clampAvatarFocus, clampAvatarZoom, mascotFaceInk, type BotAvatarCrop, type MascotFaceColor } from "../../shared/bot-avatar";
-import { MASCOT_BODIES, botMascotBody } from "../../shared/mascot-bodies";
-import { isHalloweenBody, type BotBodyId } from "../../shared/bot-body";
+import { grokBody, isHalloweenBody, type BotBodyId } from "../../shared/bot-body";
 import { useHalloweenDressed, wornBody } from "@/lib/halloween-dress";
 import { CarvedAvatar } from "./CarvedAvatar";
-import { steelBodyImage } from "@/lib/steel-body";
 
 export const EYE_SCALE = 1.12;
 export const MOUTH_WEIGHT = 11;
@@ -45,23 +43,10 @@ const MOTION_FACE: MotionFaces = {
 
 const MOTION_FACE_MS = 1400;
 
-function mix(hex: string, toward: string, t: number): string {
-  const a = Number.parseInt(hex.slice(1), 16);
-  const b = Number.parseInt(toward.slice(1), 16);
-  const channel = (shift: number) => {
-    const va = (a >> shift) & 0xff;
-    const vb = (b >> shift) & 0xff;
-    return Math.round(va + (vb - va) * t);
-  };
-  return `#${[channel(16), channel(8), channel(0)]
-    .map((part) => part.toString(16).padStart(2, "0"))
-    .join("")}`;
-}
-
+// grok marks are one flat ink, no shading
 const gradientFor = (color: MausColor): [string, string, string] => {
-  if (color === "chrome") return CHROME_GRADIENT;
-  const fill = MAUS_COLORS[color] ?? MAUS_COLORS.green;
-  return [mix(fill, "#ffffff", 0.55), fill, mix(fill, "#000000", 0.42)];
+  const fill = MASCOT_INK[color] ?? MASCOT_INK.green;
+  return [fill, fill, fill];
 };
 
 export function roomAvatarGradient(color: MausColor): [string, string, string] {
@@ -146,8 +131,7 @@ function GradientAvatarComponent(
   }: MausAvatarProps,
   ref: React.Ref<MausAvatarHandle>,
 ) {
-  const silhouette = MASCOT_BODIES[botMascotBody(bodyId)];
-  const chrome = color === "chrome";
+  const silhouette = grokBody(bodyId);
   const faceInk = mascotFaceInk(faceColor);
   const inner = useRef<CursorAvatarHandle>(null);
   useImperativeHandle(ref, () => ({
@@ -194,8 +178,7 @@ function GradientAvatarComponent(
         size={size}
         silhouette={silhouette}
         gradient={gradient ?? gradientFor(color)}
-        picture={chrome && !faceInk ? steelBodyImage(silhouette.id, size, globalThis.devicePixelRatio ?? 1) : null}
-        eyeColor={faceInk ?? (chrome ? CHROME_EYES : undefined)}
+        eyeColor={faceInk ?? undefined}
         title={label ?? null}
         lookAround={lookAround ?? (forward ? 0 : 1)}
         gaze={{ x: (gaze?.x ?? 0) + pointer.x, y: (gaze?.y ?? 0) + pointer.y }}

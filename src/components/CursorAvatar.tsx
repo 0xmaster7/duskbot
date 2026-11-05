@@ -1,7 +1,7 @@
 /** Made with Blob Studio. */
 import React, { useEffect, useId, useMemo, useRef } from 'react'
 
-import { MASCOT_BODIES } from "../../shared/mascot-bodies"
+import { GROK_BODIES } from "../../shared/grok-bodies"
 import {
   EXPRESSIONS,
   EXPRESSION_COUNT,
@@ -40,10 +40,16 @@ export interface CursorSilhouette {
   body: string
   clip: string
   anchor: { x: number; y: number; scale: number }
+  /** A Grok-style face: these two eyes for every expression, cut out of the body, with no mouth. */
+  face?: { eyes: Ring[] }
 }
 
-const { id: _cursorBodyId, ...cursorSilhouette } = MASCOT_BODIES.cursor;
-export const DEFAULT_SILHOUETTE: CursorSilhouette = cursorSilhouette;
+const { id: _defaultBodyId, ...defaultSilhouette } = GROK_BODIES.tablet;
+export const DEFAULT_SILHOUETTE: CursorSilhouette = defaultSilhouette;
+
+// a grok face holds still at rest, the way grok's paused idle mark does
+const STILL: BodyMotion = {}
+const motionFor = (state: CursorState, face: boolean): BodyMotion => (face && state === 'idle' ? STILL : MOTION[state] ?? STILL)
 
 export const DEFAULT_GRADIENT: [string, string, string] = ["#9FE6B5","#3FAE6E","#1C7A4C"]
 
@@ -938,7 +944,7 @@ export const CursorAvatar = React.forwardRef<CursorAvatarHandle, CursorAvatarPro
       paused = false,
       silhouette = DEFAULT_SILHOUETTE,
       gradient = DEFAULT_GRADIENT, picture,
-      eyeColor = "#ffffff",
+      eyeColor,
       title,
       className,
       style,
@@ -962,7 +968,9 @@ export const CursorAvatar = React.forwardRef<CursorAvatarHandle, CursorAvatarPro
     const reduced = usePrefersReducedMotion()
     const motionStrength = motion ?? (reduced ? 0 : 1)
     const paint = `url(#${uid}-grad)`
+    const face = silhouette.face ?? null
     const props = {
+      face,
       state,
       expression,
       gaze,
@@ -980,12 +988,12 @@ export const CursorAvatar = React.forwardRef<CursorAvatarHandle, CursorAvatarPro
     }
 
     const engine = useRef({
-      current: clone(EXPRESSIONS[0]),
-      target: EXPRESSIONS[0],
+      current: clone(face?.eyes ?? EXPRESSIONS[0]),
+      target: face?.eyes ?? EXPRESSIONS[0],
       currentMouth: MOUTHS[0].slice(),
       targetMouth: MOUTHS[0],
-      currentGaze: [...GAZE[0]],
-      targetGaze: [...GAZE[0]],
+      currentGaze: face ? [0, 0] : [...GAZE[0]],
+      targetGaze: face ? [0, 0] : [...GAZE[0]],
       expression: 0,
       morph: 1,
       velocity: 0,
@@ -1007,14 +1015,15 @@ export const CursorAvatar = React.forwardRef<CursorAvatarHandle, CursorAvatarPro
     const selectExpression = (index: number) => {
       const e = engine.current
       const i = ((index % EXPRESSION_COUNT) + EXPRESSION_COUNT) % EXPRESSION_COUNT
-      if (i === e.expression && e.morph >= 1) return
+      const eyes = e.props.face?.eyes ?? EXPRESSIONS[i]
+      if (i === e.expression && e.morph >= 1 && e.target === eyes) return
       const from = { rings: displayed(e), mouth: displayedMouth(e), gaze: displayedGaze(e) }
       e.current = from.rings
       e.currentMouth = from.mouth
       e.currentGaze = from.gaze
-      e.target = EXPRESSIONS[i]
+      e.target = eyes
       e.targetMouth = MOUTHS[i]
-      e.targetGaze = GAZE[i]
+      e.targetGaze = e.props.face ? [0, 0] : GAZE[i]
       e.travel = faceTravelUnits(from, { rings: e.target, mouth: e.targetMouth, gaze: e.targetGaze })
       e.expression = i
       e.morph = 0
@@ -1044,10 +1053,10 @@ export const CursorAvatar = React.forwardRef<CursorAvatarHandle, CursorAvatarPro
 
     useEffect(() => {
       selectExpression(expression ?? POOLS[state][0])
-    }, [state, expression])
+    }, [state, expression, face])
 
     useEffect(() => {
-      if (!autoExpression || expression !== undefined || paused || reduced) return
+      if (!autoExpression || expression !== undefined || paused || reduced || face) return
       let timer: ReturnType<typeof setTimeout>
       const tick = () => {
         const [lo, hi] = EXPR_CADENCE[state]
@@ -1064,10 +1073,10 @@ export const CursorAvatar = React.forwardRef<CursorAvatarHandle, CursorAvatarPro
       }
       tick()
       return () => clearTimeout(timer)
-    }, [state, autoExpression, expression, paused, reduced])
+    }, [state, autoExpression, expression, paused, reduced, face])
 
     useEffect(() => {
-      const cadence = BLINK[state]
+      const cadence = face && state === 'idle' ? null : BLINK[state]
       if (!autoBlink || !cadence || paused || reduced) return
       let timer: ReturnType<typeof setTimeout>
       const tick = () => {
@@ -1079,12 +1088,12 @@ export const CursorAvatar = React.forwardRef<CursorAvatarHandle, CursorAvatarPro
       }
       tick()
       return () => clearTimeout(timer)
-    }, [state, autoBlink, paused, reduced])
+    }, [state, autoBlink, paused, reduced, face])
 
     useEffect(() => {
       engine.current.faceStale = true
       wake()
-    }, [state, expression, gaze?.x, gaze?.y, turn, eyeScale, lookAround, paused, reduced, motionStrength, effects, glyphs, paint, showMouth, size])
+    }, [state, expression, gaze?.x, gaze?.y, turn, eyeScale, lookAround, paused, reduced, motionStrength, effects, glyphs, paint, showMouth, size, face, eyeColor])
 
     useEffect(() => {
       const drawFace = (e: typeof engine.current, now: number, spinTurn: number) => {
@@ -1153,7 +1162,7 @@ export const CursorAvatar = React.forwardRef<CursorAvatarHandle, CursorAvatarPro
         }
         const bodyEl = bodyGroup.current
         if (bodyEl) {
-          const transform = bodyTransform(MOTION[p.state] ?? {}, now - e.stateStart, p.motionStrength ?? 1)
+          const transform = bodyTransform(motionFor(p.state, Boolean(p.face)), now - e.stateStart, p.motionStrength ?? 1)
           if (transform !== e.lastBodyTransform) {
             e.lastBodyTransform = transform
             if (transform) bodyEl.setAttribute('transform', transform)
@@ -1216,7 +1225,7 @@ export const CursorAvatar = React.forwardRef<CursorAvatarHandle, CursorAvatarPro
         drawBody(e, now, showEffects, showGlyphs)
         if (p.paused) return Infinity
         return nextMascotFrame(now, {
-          motion: MOTION[p.state] ?? {},
+          motion: motionFor(p.state, Boolean(p.face)),
           effects: EFFECTS[p.state],
           stateElapsedMs: now - e.stateStart,
           strength: p.motionStrength ?? 1,
@@ -1240,6 +1249,25 @@ export const CursorAvatar = React.forwardRef<CursorAvatarHandle, CursorAvatarPro
     const dimension = typeof size === 'number' ? `${size}px` : size
     const label = title === undefined ? `${silhouette.name} mascot` : title
     const body = silhouette.body.replace(/\{\{GRADIENT\}\}/g, `url(#${uid}-grad)`)
+    // a grok face with no chosen ink is cut out of the body, so the eyes show whatever sits behind the mascot
+    const cutout = Boolean(face) && eyeColor === undefined
+    const eyeFill = eyeColor ?? '#ffffff'
+    const mouthShown = showMouth && !face
+    const eyes = (fill: string) => (
+      <g transform={anchorTransform(silhouette.anchor)}>
+        <path ref={eye0} fill={fill} />
+        <path ref={eye1} fill={fill} />
+        {mouthShown && (
+          <path
+            ref={mouth}
+            fill="none"
+            stroke={fill}
+            strokeWidth={mouthStroke}
+            strokeLinecap="round"
+          />
+        )}
+      </g>
+    )
 
     return (
       <svg
@@ -1248,7 +1276,7 @@ export const CursorAvatar = React.forwardRef<CursorAvatarHandle, CursorAvatarPro
         width={dimension}
         height={dimension}
         className={className}
-        style={style}
+        style={face ? { overflow: 'visible', ...style } : style}
         role={label ? 'img' : undefined}
         aria-label={label ?? undefined}
         aria-hidden={label ? undefined : true}
@@ -1265,27 +1293,27 @@ export const CursorAvatar = React.forwardRef<CursorAvatarHandle, CursorAvatarPro
             transform={silhouette.fit || undefined}
             dangerouslySetInnerHTML={{ __html: silhouette.clip }}
           />
+          {cutout && !picture && (
+            <mask id={`${uid}-eyes`} maskUnits="userSpaceOnUse" x={-VIEW_SPAN} y={-VIEW_SPAN} width={VIEW_SPAN * 3} height={VIEW_SPAN * 3}>
+              <rect x={-VIEW_SPAN} y={-VIEW_SPAN} width={VIEW_SPAN * 3} height={VIEW_SPAN * 3} fill="#fff" />
+              {eyes('#000')}
+            </mask>
+          )}
         </defs>
         <g transform={flip ? `translate(${FACE_BOX} 0) scale(-1 1)` : undefined}>
           <g ref={trailLayer} />
           <g ref={bodyGroup}>
           <g ref={bodyContent}>
-          {picture ? <image href={picture} x="-15" y="-15" width={VIEW_SPAN} height={VIEW_SPAN} preserveAspectRatio="none" /> : <g transform={silhouette.fit || undefined} dangerouslySetInnerHTML={{ __html: body }} />}
-          <g clipPath={`url(#${uid}-clip)`} visibility={picture ? 'hidden' : undefined}>
-            <g transform={anchorTransform(silhouette.anchor)}>
-              <path ref={eye0} fill={eyeColor} />
-              <path ref={eye1} fill={eyeColor} />
-              {showMouth && (
-                <path
-                  ref={mouth}
-                  fill="none"
-                  stroke={eyeColor}
-                  strokeWidth={mouthStroke}
-                  strokeLinecap="round"
-                />
-              )}
+          {picture ? <image href={picture} x="-15" y="-15" width={VIEW_SPAN} height={VIEW_SPAN} preserveAspectRatio="none" /> : (
+            <g mask={cutout ? `url(#${uid}-eyes)` : undefined}>
+              <g transform={silhouette.fit || undefined} dangerouslySetInnerHTML={{ __html: body }} />
             </g>
-          </g>
+          )}
+          {!(cutout && !picture) && (
+            <g clipPath={`url(#${uid}-clip)`} visibility={picture ? 'hidden' : undefined}>
+              {eyes(eyeFill)}
+            </g>
+          )}
           </g>
           <g ref={glyphLayer} style={{ opacity: 0 }} />
           </g>
