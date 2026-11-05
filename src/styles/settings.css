@@ -1,0 +1,208 @@
+/* Settings, drawn as Grok Bot's settings dialog: a 900 by 700 sheet on a half-black scrim, a 198px rail of panes and a
+   scrolling pane of labelled white cards. It opens and closes without motion, as Grok's does. */
+
+.settings-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.5);
+}
+@container style(--code-color-scheme: dark) {
+  .settings-scrim { background: rgb(0 0 0 / 0.7); }
+}
+
+/* centred by the scrim, not by a transform, so a dialog opened from a pane can still sit fixed over the window */
+.settings-dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: min(900px, 100vw - 32px);
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+  border-radius: 14px;
+  background: var(--color-app);
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: var(--font-weight-normal, 425);
+  outline: none;
+}
+.settings-dialog:focus-visible { outline: none; }
+.settings-layout {
+  display: flex;
+  box-sizing: border-box;
+  height: min(700px, 100vh - 96px);
+  min-height: 0;
+}
+
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 2px;
+  box-sizing: border-box;
+  width: 198px;
+  padding: 16px 12px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  border-inline-end: 0.5px solid var(--color-edge);
+}
+.settings-nav::-webkit-scrollbar { display: none; }
+.settings-nav-item {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 9px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: 0.015em;
+  text-align: start;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+.settings-nav-item:hover,
+.settings-nav-item:focus-visible { background: color-mix(in srgb, var(--color-ink) 6%, transparent); }
+.settings-nav-item[aria-current="page"] { background: color-mix(in srgb, var(--color-ink) 8%, transparent); }
+.settings-nav-item:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
+.settings-nav-item > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.settings-nav-label {
+  flex-shrink: 0;
+  padding: 14px 9px 4px;
+  color: var(--color-ink-secondary);
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.01em;
+}
+
+.settings-panel {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+.settings-close {
+  position: absolute;
+  top: 10px;
+  inset-inline-end: 10px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: color-mix(in srgb, var(--color-ink) 56%, transparent);
+  cursor: pointer;
+  outline: none;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.settings-close:hover {
+  background: color-mix(in srgb, var(--color-ink) 11%, transparent);
+  color: var(--color-ink-secondary);
+}
+.settings-close:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+
+.settings-pane-header {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 2px;
+  padding: 32px 54px 6px 32px;
+}
+.settings-pane-title {
+  margin: 0;
+  padding-inline-start: 8px;
+  color: var(--color-ink);
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 24px;
+  letter-spacing: 0.01em;
+}
+
+.settings-scroll {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+}
+.settings-scroll::-webkit-scrollbar { display: none; }
+.settings-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  box-sizing: border-box;
+  padding: 22px 32px 28px;
+}
+/* Grok's scroll area: a 6px thumb, hidden at rest, shown while the pane scrolls or the thumb is held */
+.settings-scrollbar {
+  position: absolute;
+  top: 1px;
+  bottom: 5px;
+  inset-inline-end: 1px;
+  z-index: 10;
+  width: 6px;
+  pointer-events: none;
+}
+.settings-scrollbar > div {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  min-height: 20px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  opacity: 0;
+  pointer-events: auto;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+.settings-scrollbar[data-scrolling] > div,
+.settings-scrollbar > div:active { opacity: 1; }
+.settings-scrollbar > div:hover,
+.settings-scrollbar > div:active { background: color-mix(in srgb, var(--color-ink) 12%, transparent); }
+
+/* The phone fallback: one column, the panes in a picker under the title. */
+@media (max-width: 639.98px) {
+  .settings-scrim { align-items: flex-end; }
+  .settings-dialog {
+    width: 100%;
+    max-width: none;
+    max-height: none;
+    height: calc(100dvh - 44px);
+    border-radius: 14px 14px 0 0;
+  }
+  .settings-layout { height: 100%; }
+  .settings-nav { display: none; }
+  .settings-pane-header { padding: 16px 54px 6px 16px; }
+  .settings-pane { padding: 16px 16px 28px; }
+}
+
+/* Native selects left inside a pane's own panel take the select pill's frame, so they sit in a row like Grok's. */
+[data-settings-look] .settings-pane select:not([data-settings-select]) {
+  border-radius: 10px;
+}
+.settings-dialog :is([role="combobox"], [role="switch"], .ui-button, [data-settings-account] button, [data-settings-back]):focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}

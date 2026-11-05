@@ -104,6 +104,6 @@ describe("default skin", () => {
     const pressed = [...picker.matchAll(/aria-pressed="true"[\s\S]*?<div class="text-\[13px\] font-medium text-ink">([^<]+)</g)].map(([, name]) => name);
     expect(pressed).toEqual(["Grok Dark"]);
     const theme = renderToStaticMarkup(createElement(ThemeRow));
-    expect([...theme.matchAll(/aria-checked="true"[^>]*>([^<]+)</g)].map(([, label]) => label)).toEqual(["System"]);
+    expect(theme.match(/role="combobox" aria-label="Theme"[^>]*>(?:<[^>]+>)*([^<]+)</)?.[1]).toBe("System");
   });
 });

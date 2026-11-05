@@ -6,8 +6,7 @@ import { SettingsModal } from "./SettingsModal";
 
 // These pin the card as always offered; the server decides who may act.
 const fixture = vi.hoisted(() => ({ section: "companion" as AppSettingsSection, config: undefined as { cloudHome?: boolean } | undefined, phonePairing: 0 }));
-// Pinned to Advanced: these cover the Advanced rail; Simple has its own suite.
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => true, setAdvancedMode: () => {} }));
+vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => false, setAdvancedMode: () => {} }));
 vi.mock("./DesktopCapabilities", () => ({ useDesktopCapabilities: () => ({ capabilities: {} }) }));
 
 vi.mock("@/state/store", async (importOriginal) => ({
@@ -18,6 +17,7 @@ vi.mock("@/state/store", async (importOriginal) => ({
 vi.mock("./RemoteComputerSection", () => ({ RemoteComputerSection: () => null }));
 vi.mock("./CustomDomainSettings", () => ({ CustomDomainSettings: () => null }));
 vi.mock("./CompanionSection", () => ({ CompanionSection: ({ focusRequest }: { focusRequest?: number }) => `COMPANION_SECTION focus=${focusRequest ?? 0}` }));
+vi.mock("./PeopleSection", () => ({ PeopleSection: () => "PEOPLE" }));
 vi.mock("./ServerPairingCard", () => ({ ServerPairingCard: ({ cloudHome, focusRequest }: { cloudHome?: boolean; focusRequest?: number }) => `SERVER_PAIRING_CARD_MARKER${cloudHome ? " cloud" : ""} focus=${focusRequest ?? 0}` }));
 
 beforeEach(() => {
@@ -52,11 +52,12 @@ describe("Settings → Remote access: server pairing card visibility", () => {
 
   it("on an OMB Cloud home, which is personal, tells the card so and offers no People section to invite anyone", () => {
     vi.stubGlobal("window", {});
-    expect(render()).toContain(">People<");
+    fixture.section = "people";
+    expect(render()).toContain('data-settings-block="people"');
     fixture.config = { cloudHome: true };
-    const html = render();
-    expect(html).toContain("SERVER_PAIRING_CARD_MARKER cloud");
-    expect(html).not.toContain(">People<");
+    expect(render()).not.toContain('data-settings-block="people"');
+    fixture.section = "companion";
+    expect(render()).toContain("SERVER_PAIRING_CARD_MARKER cloud");
   });
 });
 

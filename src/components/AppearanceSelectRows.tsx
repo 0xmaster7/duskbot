@@ -4,13 +4,13 @@ import { CHAT_WIDTH_IDS, applyChatWidth, readChatWidth, type ChatWidthId } from 
 import { FONT_IDS, applyFont, readFont, type FontId } from "@/lib/fonts";
 import { parseSidebarToolsLayout, setSidebarToolsLayout, SIDEBAR_TOOLS_LAYOUTS, useSidebarToolsLayout } from "@/lib/sidebar-preferences";
 import { SettingRow } from "./SettingsPrimitives";
-import { Select } from "./Select";
+import { SettingsSelect } from "./SettingsSelect";
 
 export function FontRow() {
   const [current, setCurrent] = useState<FontId>(readFont);
   return (
     <SettingRow title={t("settings.font.title")} subtitle={t("settings.font.subtitle")}>
-      <Select size="sm" className="w-full max-w-[240px]"
+      <SettingsSelect
         value={current}
         aria-label={t("settings.font.aria")}
         onChange={(event) => {
@@ -23,7 +23,7 @@ export function FontRow() {
         {FONT_IDS.map((id) => (
           <option key={id} value={id}>{t(`settings.font.${id}`)}</option>
         ))}
-      </Select>
+      </SettingsSelect>
     </SettingRow>
   );
 }
@@ -32,7 +32,7 @@ export function ChatWidthRow() {
   const [current, setCurrent] = useState<ChatWidthId>(readChatWidth);
   return (
     <SettingRow title={t("settings.chatWidth.title")} subtitle={t("settings.chatWidth.subtitle")}>
-      <Select size="sm" className="w-full max-w-[240px]"
+      <SettingsSelect
         value={current}
         aria-label={t("settings.chatWidth.aria")}
         onChange={(event) => {
@@ -45,7 +45,7 @@ export function ChatWidthRow() {
         {CHAT_WIDTH_IDS.map((id) => (
           <option key={id} value={id}>{t(`settings.chatWidth.${id}`)}</option>
         ))}
-      </Select>
+      </SettingsSelect>
     </SettingRow>
   );
 }
@@ -54,7 +54,7 @@ export function SidebarToolsLayoutRow() {
   const layout = useSidebarToolsLayout();
   return (
     <SettingRow title={t("sidebar.toolsLayout.title")} subtitle={t("sidebar.toolsLayout.subtitle")}>
-      <Select size="sm" className="w-full max-w-[240px]"
+      <SettingsSelect
         value={layout}
         aria-label={t("sidebar.toolsLayout.chooseAria")}
         onChange={(event) => setSidebarToolsLayout(parseSidebarToolsLayout(event.target.value))}
@@ -62,7 +62,7 @@ export function SidebarToolsLayoutRow() {
         {SIDEBAR_TOOLS_LAYOUTS.map((option) => (
           <option key={option} value={option}>{t(`sidebar.toolsLayout.${option}`)}</option>
         ))}
-      </Select>
+      </SettingsSelect>
     </SettingRow>
   );
 }

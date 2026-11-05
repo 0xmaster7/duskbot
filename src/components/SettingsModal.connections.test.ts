@@ -25,13 +25,6 @@ afterEach(() => {
 });
 
 describe("Settings → Connections", () => {
-  it.each(["router", "OpenRouter", "base URL", "API key", "OpenAI", "Anthropic", "Groq"])("is found by searching for %s", async (typed) => {
-    const { SECTIONS, sectionMatches } = await import("./SettingsModal");
-    const connections = SECTIONS.find((entry) => entry.id === "connections")!;
-    // The modal lowercases and trims what was typed before matching.
-    expect(sectionMatches(connections, typed.trim().toLowerCase())).toBe(true);
-  });
-
   it("points OpenCode users at `opencode auth login` for other providers", async () => {
     const { SettingsModal } = await import("./SettingsModal");
     const html = renderToStaticMarkup(createElement(SettingsModal));

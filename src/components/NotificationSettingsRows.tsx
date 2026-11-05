@@ -9,13 +9,17 @@ import {
   useNotificationSounds,
 } from "@/lib/notification-preferences";
 import { requestNotificationPermission } from "@/lib/notify";
+import { chooseSound, chosenSound, play, UI_SOUND_NAMES, type UiSoundName } from "@/lib/ui-sounds";
+import type { LocaleKey } from "@/locales";
 import { SettingRow, Switch } from "./SettingsPrimitives";
+import { SettingsSelect } from "./SettingsSelect";
 
 export function NotificationRows({ simple = false }: { simple?: boolean }) {
   return (
     <>
       <DeviceNotificationsRow simple={simple} />
       <NotificationSoundsRow simple={simple} />
+      {simple && <NotificationSoundPickerRow />}
       <NotificationFeedRow simple={simple} />
     </>
   );
@@ -67,7 +71,7 @@ export function DeviceNotificationsRow({ simple = false }: { simple?: boolean })
 export function NotificationSoundsRow({ simple = false }: { simple?: boolean }) {
   const enabled = useNotificationSounds();
   return (
-    <SettingRow title={t("settings.notificationSounds.title")} subtitle={t(simple ? "settings.simple.notificationSounds" : "settings.notificationSounds.subtitle")}>
+    <SettingRow title={t(simple ? "settings.notificationSound.playTitle" : "settings.notificationSounds.title")} subtitle={t(simple ? "settings.simple.notificationSounds" : "settings.notificationSounds.subtitle")}>
       <Switch
         checked={enabled}
         aria-label={t("settings.notificationSounds.play")}
@@ -85,6 +89,37 @@ export function NotificationFeedRow({ simple = false }: { simple?: boolean }) {
         checked={enabled}
         aria-label={t("settings.notificationFeed.show")}
         onClick={() => setNotificationFeed(!enabled)}
+      />
+    </SettingRow>
+  );
+}
+
+const SOUND_LABELS: Record<UiSoundName, LocaleKey> = {
+  "open-blip": "settings.notificationSound.openBlip",
+  tick: "settings.notificationSound.tick",
+  "double-tick": "settings.notificationSound.doubleTick",
+  "chime-a": "settings.notificationSound.chimeA",
+  "chime-b": "settings.notificationSound.chimeB",
+};
+
+/** Grok's ping picker: which of its five pings plays, heard once as it is chosen. Hidden while sounds are off. */
+export function NotificationSoundPickerRow() {
+  const enabled = useNotificationSounds();
+  const [sound, setSound] = useState<UiSoundName>(chosenSound);
+  if (!enabled) return null;
+  return (
+    <SettingRow title={t("settings.notificationSound.title")} subtitle={t("settings.notificationSound.subtitle")}>
+      <SettingsSelect
+        value={sound}
+        aria-label={t("settings.notificationSound.title")}
+        options={UI_SOUND_NAMES.map((name) => ({ value: name, label: t(SOUND_LABELS[name]) }))}
+        onChange={(event) => {
+          const name = UI_SOUND_NAMES.find((candidate) => candidate === event.target.value);
+          if (!name) return;
+          chooseSound(name);
+          setSound(name);
+          play(name, { force: true });
+        }}
       />
     </SettingRow>
   );

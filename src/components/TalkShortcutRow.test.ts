@@ -62,17 +62,14 @@ describe("TalkShortcutRow", () => {
     await click(toggle());
     expect(bridge.set).toHaveBeenCalledWith({ enabled: false });
     expect(toggle().getAttribute("aria-checked")).toBe("false");
-    expect(host.querySelector("select")).toBeNull();
+    expect(host.querySelector('[role="combobox"]')).toBeNull();
   });
 
   it("changes the key and says so", async () => {
     await show();
-    const select = host.querySelector<HTMLSelectElement>("select")!;
-    await act(async () => {
-      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")!.set!.call(select, "ctrl-shift-space");
-      select.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-    await settle();
+    await click(host.querySelector<HTMLButtonElement>('[role="combobox"]')!);
+    const option = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find((element) => element.textContent === "⌃⇧Space")!;
+    await click(option);
     expect(bridge.set).toHaveBeenCalledWith({ key: "ctrl-shift-space" });
     expect(host.textContent).toContain("Hold ⌃⇧Space");
   });
@@ -100,7 +97,7 @@ describe("TalkShortcutRow", () => {
     bridge.set.mockImplementationOnce(() => new Promise<TalkShortcutState>((resolve) => { finish = resolve; }));
     await click(toggle());
     expect(toggle().disabled).toBe(true);
-    expect(host.querySelector("select")?.disabled).toBe(true);
+    expect(host.querySelector<HTMLButtonElement>('[role="combobox"]')?.disabled).toBe(true);
     await act(async () => { finish({ ...base, enabled: false }); });
     await settle();
     expect(toggle().disabled).toBe(false);

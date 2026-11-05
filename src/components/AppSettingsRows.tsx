@@ -21,7 +21,7 @@ import { setShowRunCard, useShowRunCard } from "@/lib/run-card-preferences";
 import { parseSendKey, SEND_KEYS, sendKeyLabel, setSendKey, useSendKey } from "@/lib/send-key";
 import { alternateSendLabel, parseFollowUpDefault, setFollowUpDefault, useFollowUpDefault } from "@/lib/follow-up";
 import { effectiveLanguage, setLanguageChoice, useLanguageChoice } from "@/lib/language-preference";
-import { Select } from "./Select";
+import { SettingsSelect } from "./SettingsSelect";
 
 export function UpdatesRow({ title = t("settings.updates.title") }: { title?: string }) {
   const s = useUpdaterState();
@@ -110,7 +110,7 @@ export function NewBotEffortRow() {
       subtitle={t("settings.newBotEffort.subtitle")}
       message={error ? <p role="alert" className="text-danger">{error}</p> : null}
     >
-      <Select size="sm" className="w-full max-w-[240px]"
+      <SettingsSelect
         value={current}
         disabled={saving}
         aria-label={t("settings.newBotEffort.aria")}
@@ -122,7 +122,7 @@ export function NewBotEffortRow() {
             {effortLabel(level)}
           </option>
         ))}
-      </Select>
+      </SettingsSelect>
     </SettingRow>
   );
 }
@@ -188,7 +188,7 @@ export function LanguageRow({ simple = false }: { simple?: boolean }) {
       title={t("settings.language.title")}
       subtitle={simple ? activeLocale() === "en" ? undefined : t("settings.simple.language.partial") : t("settings.language.subtitle")}
     >
-      <Select size="sm" variant={simple ? "ghost" : "field"} className={simple ? undefined : "w-full max-w-[240px]"}
+      <SettingsSelect
         value={current}
         aria-label={t("settings.language.aria")}
         onChange={(event) => setLanguageChoice(event.target.value)}
@@ -199,7 +199,7 @@ export function LanguageRow({ simple = false }: { simple?: boolean }) {
             {label}
           </option>
         ))}
-      </Select>
+      </SettingsSelect>
     </SettingRow>
   );
 }
@@ -208,7 +208,7 @@ export function SendKeyRow({ simple = false }: { simple?: boolean }) {
   const sendKey = useSendKey();
   return (
     <SettingRow title={t("settings.sendKey.title")} subtitle={t(simple ? "settings.simple.sendKey" : "settings.sendKey.subtitle", { key: sendKeyLabel("mod-enter") })}>
-      <Select size="sm" variant={simple ? "ghost" : "field"} className={simple ? undefined : "w-full max-w-[240px]"}
+      <SettingsSelect
         value={sendKey}
         aria-label={t("settings.sendKey.title")}
         onChange={(event) => setSendKey(parseSendKey(event.target.value))}
@@ -216,7 +216,7 @@ export function SendKeyRow({ simple = false }: { simple?: boolean }) {
         {SEND_KEYS.map((mode) => (
           <option key={mode} value={mode}>{sendKeyLabel(mode)}</option>
         ))}
-      </Select>
+      </SettingsSelect>
     </SettingRow>
   );
 }
@@ -227,14 +227,14 @@ export function FollowUpRow({ simple = false }: { simple?: boolean }) {
   const key = alternateSendLabel(useSendKey());
   return (
     <SettingRow title={t("settings.followUp.title")} subtitle={t(simple ? "settings.simple.followUp" : "settings.followUp.subtitle", { key })}>
-      <Select size="sm" variant={simple ? "ghost" : "field"} className={simple ? undefined : "w-full max-w-[240px]"}
+      <SettingsSelect
         value={followUp}
         aria-label={t("settings.followUp.title")}
         onChange={(event) => setFollowUpDefault(parseFollowUpDefault(event.target.value))}
       >
         <option value="steer">{t("settings.followUp.steer")}</option>
         <option value="queue">{t("settings.followUp.queue")}</option>
-      </Select>
+      </SettingsSelect>
     </SettingRow>
   );
 }

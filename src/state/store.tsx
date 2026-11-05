@@ -527,7 +527,8 @@ export type AppSettingsSection =
   | "activity"
   | "backups"
   | "workspaces"
-  | "skills" | "import" | "updates";
+  | "skills" | "import" | "updates"
+  | "texting" | "permissions" | "advanced" | "apps" | "looks" | "bots" | "data" | "builder" | "about";
 
 export type BotSettingsSection =
   | "overview"
@@ -754,7 +755,9 @@ export type Action =
   | { type: "renameTask"; botId: string; threadId: string; title: string }
   | { type: "regenerateTaskTitle"; botId: string; threadId: string; onSettled?: (ok: boolean) => void }
   | { type: "deleteTask"; botId: string; threadId: string }
-  | { type: "newBot"; section?: string; preserveSelection?: boolean; onCreated?: (bot: Bot) => void; onError?: (message: string) => void }
+  | { type: "newBot"; section?: string; preserveSelection?: boolean; onCreated?: (bot: Bot) => void; onError?: (message: string) => void;
+      /** Create New Bot's choices: the name, the shape and the colour, over the New bot defaults. */
+      look?: { name: string; color: MausColor; mascotBody: BotBodyId } }
   | { type: "botCreationPending"; on: boolean }
   | { type: "updateTask"; botId: string; threadId: string; patch: TaskUpdatePatch }
   | { type: "refreshTaskPermissions"; botId: string; threadId: string; acknowledgeLocalAuto?: boolean }

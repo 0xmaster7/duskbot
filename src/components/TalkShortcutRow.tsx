@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { TalkKeyId, TalkShortcutState } from "../../electron/talk-shortcut.mjs";
 import { t } from "@/lib/i18n";
-import { Select } from "./Select";
+import { SettingsSelect } from "./SettingsSelect";
 import { SettingRow, Switch } from "./SettingsPrimitives";
 
 /** Settings search finds the talk shortcut only where its row can show: this Mac app's own page. */
@@ -29,7 +29,7 @@ export function TalkShortcutRow() {
   const message = (
     <>
       {state.enabled && (
-        <Select size="sm" className="w-full max-w-[240px]"
+        <SettingsSelect
           value={state.key}
           disabled={busy}
           aria-label={t("settings.talk.keyAria")}
@@ -37,7 +37,7 @@ export function TalkShortcutRow() {
           onChange={(event) => change({ key: event.target.value as TalkKeyId })}
         >
           {state.keys.map((key) => <option key={key.id} value={key.id}>{key.label}</option>)}
-        </Select>
+        </SettingsSelect>
       )}
       {problem && <div role="alert" className={state.enabled ? "mt-2 text-danger" : "text-danger"}>{problem}</div>}
     </>
