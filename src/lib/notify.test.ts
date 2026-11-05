@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const sounds = vi.hoisted(() => ({ enabled: true, finished: true }));
+const uiSounds = vi.hoisted(() => ({ play: vi.fn() }));
+vi.mock("./ui-sounds", () => uiSounds);
 vi.mock("./notification-preferences", () => ({
   notificationSoundsEnabled: () => sounds.enabled,
   finishedNotificationsEnabled: () => sounds.finished,
@@ -43,6 +45,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   sounds.enabled = true;
   sounds.finished = true;
+  uiSounds.play.mockClear();
 });
 
 describe("desktop notifications", () => {
@@ -173,7 +176,7 @@ describe("on the desktop app, where main shows the banner so its click outlives 
     showNotification(frame, vi.fn(), "/api/attachments/face.png");
     await flush();
     expect(show).toHaveBeenCalledWith({
-      title: frame.title, body: frame.body, tag: "openmausbot:bot-1", silent: false, picture: "/api/attachments/face.png", botId: "bot-1", threadId: "thread-1",
+      title: frame.title, body: frame.body, tag: "openmausbot:bot-1", silent: true, picture: "/api/attachments/face.png", botId: "bot-1", threadId: "thread-1",
     });
     expect(notices).toHaveLength(0);
   });
@@ -209,10 +212,11 @@ describe("on the desktop app, where main shows the banner so its click outlives 
 });
 
 describe("notification sounds", () => {
-  it("lets the platform play its sound by default", () => {
+  it("posts silently and plays its own ping by default", () => {
     const { notices } = installNotification("granted");
     showNotification(frame, vi.fn());
-    expect(notices[0]?.options?.silent).toBeUndefined();
+    expect(notices[0]?.options?.silent).toBe(true);
+    expect(uiSounds.play).toHaveBeenCalledTimes(1);
   });
 
   it("posts silently when sounds are muted on this computer, keeping the banner", () => {

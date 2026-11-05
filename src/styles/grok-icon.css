@@ -1,0 +1,26 @@
+/* grok bot's icon font (cursor-icons-16). third-party asset: private fork only */
+@font-face {
+  font-family: "Grok Icons";
+  font-display: block;
+  src: url("../assets/fonts/grok-icons.woff2") format("woff2");
+}
+
+.grok-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: "Grok Icons";
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1;
+  color: inherit;
+  text-align: center;
+  text-transform: none;
+  text-decoration: none;
+  text-rendering: auto;
+  vertical-align: middle;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: none;
+}

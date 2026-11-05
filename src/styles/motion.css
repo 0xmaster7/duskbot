@@ -1,0 +1,80 @@
+/* grok bot motion tokens and keyframes, values read from its bundled css */
+:root {
+  --omb-duration-instant: 50ms;
+  --omb-duration-fast: 100ms;
+  --omb-duration-normal: 150ms;
+  --omb-duration-slow: 200ms;
+  --omb-duration-slower: 300ms;
+  --omb-duration-drawer: 500ms;
+
+  --omb-ease: ease;
+  --omb-ease-sharp: cubic-bezier(0.165, 0.84, 0.44, 1);
+  --omb-ease-heavy: cubic-bezier(0.645, 0.045, 0.355, 1);
+  --omb-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --omb-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --omb-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --omb-ease-quint: cubic-bezier(0.23, 1, 0.32, 1);
+  --omb-ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --omb-ease-swift: cubic-bezier(0.1, 0.9, 0.2, 1);
+  --omb-ease-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --omb-ease-accelerate: cubic-bezier(0.4, 0, 1, 1);
+
+  /* spring 1000/63 sampled over the animation; grok runs it at 240-300ms */
+  --omb-ease-spring: linear(0, 0.01588 2%, 0.05618 4%, 0.11201 6%, 0.1768 8%, 0.2458 10%, 0.31562 12%, 0.38392 14%, 0.44914 16%, 0.51029 18%, 0.56683 20%, 0.61852 22%, 0.66534 24%, 0.70743 26%, 0.74501 28%, 0.77838 30%, 0.80788 32%, 0.83383 34%, 0.85658 36%, 0.87645 38%, 0.89376 40%, 0.92183 44%, 0.94282 48%, 0.95838 52%, 0.96984 56%, 0.97823 60%, 0.98435 64%, 0.98878 68%, 0.99198 72%, 0.99594 80%, 0.99829 90%, 1 100%);
+  /* overshoot to 1.078, grok runs it at 500ms for reaction chips */
+  --omb-ease-pop: linear(0 0%, 0.0334 2.5%, 0.1181 5%, 0.2337 7.5%, 0.3639 10%, 0.4963 12.5%, 0.6218 15%, 0.7346 17.5%, 0.8311 20%, 0.9102 22.5%, 0.9718 25%, 1.0172 27.5%, 1.0482 30%, 1.0672 32.5%, 1.0764 35%, 1.078 37.5%, 1.0743 40%, 1.0669 42.5%, 1.0575 45%, 1.0472 47.5%, 1.0369 50%, 1.0273 52.5%, 1.0188 55%, 1.0116 57.5%, 1.0057 60%, 1.0012 62.5%, 0.998 65%, 0.9958 67.5%, 0.9945 70%, 0.994 72.5%, 0.9939 75%, 0.9943 77.5%, 0.9949 80%, 0.9957 82.5%, 0.9965 85%, 0.9973 87.5%, 0.998 90%, 0.9987 92.5%, 0.9992 95%, 0.9996 97.5%, 1 100%);
+}
+
+@keyframes omb-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes omb-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes omb-popup-in { from { opacity: 0; transform: translate3d(var(--omb-popup-x, 0), var(--omb-popup-y, -2px), 0) scale(0.98); } }
+@keyframes omb-dialog-in { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+@keyframes omb-dialog-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.97); } }
+@keyframes omb-rise-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes omb-card-in { from { opacity: 0; transform: translateY(8px) scale(0.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes omb-row-in { from { opacity: 0; height: 0; overflow: hidden; transform: translateY(-4px); } to { overflow: hidden; } }
+@keyframes omb-row-out { from { overflow: hidden; } to { opacity: 0; height: 0; overflow: hidden; transform: translateY(-4px); } }
+@keyframes omb-wipe-push-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes omb-wipe-push-out { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(-30%); } }
+@keyframes omb-wipe-pop-in { from { transform: translateX(-30%); } to { transform: translateX(0); } }
+@keyframes omb-wipe-pop-out { from { transform: translateX(0); } to { transform: translateX(100%); } }
+@keyframes omb-chip-pop { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
+@keyframes omb-chip-bump { 0% { transform: scale(1); } 40% { transform: scale(1.06); } 100% { transform: scale(1); } }
+@keyframes omb-typing-dot { 0%, 60%, 100% { opacity: 0.35; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-2px); } }
+@keyframes omb-breathe { 0%, 100% { opacity: 0.85; transform: scale(1); } 50% { opacity: 1; transform: scale(1.04); } }
+@keyframes omb-zzz { 0% { opacity: 0; transform: translateY(0) scale(0.6); } 25% { opacity: 1; } 100% { opacity: 0; transform: translateY(-12px) scale(1); } }
+@keyframes omb-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+.omb-popup-in { animation: omb-popup-in var(--omb-duration-fast) var(--omb-ease-sharp); }
+.omb-dialog-in { animation: omb-dialog-in var(--omb-duration-slow) var(--omb-ease-sharp) forwards; }
+.omb-dialog-out { animation: omb-dialog-out var(--omb-duration-slow) var(--omb-ease-sharp) forwards; }
+.omb-backdrop-in { animation: omb-fade-in var(--omb-duration-slow) var(--omb-ease-sharp) forwards; }
+.omb-backdrop-out { animation: omb-fade-out var(--omb-duration-slow) var(--omb-ease-sharp) forwards; }
+.omb-card-in { animation: omb-card-in 320ms var(--omb-ease-out) backwards; }
+.omb-row-in { animation: omb-row-in 240ms var(--omb-ease-spring) backwards; }
+.omb-row-out { animation: omb-row-out 240ms var(--omb-ease-spring) forwards; }
+.omb-wipe-push-in { animation: omb-wipe-push-in 200ms var(--omb-ease-out); }
+.omb-wipe-push-out { animation: omb-wipe-push-out 200ms var(--omb-ease-out) forwards; }
+.omb-wipe-pop-in { animation: omb-wipe-pop-in 200ms var(--omb-ease-out); }
+.omb-wipe-pop-out { animation: omb-wipe-pop-out 200ms var(--omb-ease-out) forwards; }
+.omb-chip-pop { animation: omb-chip-pop 500ms var(--omb-ease-pop) backwards; }
+.omb-chip-bump { animation: omb-chip-bump 240ms ease-out; }
+.omb-typing-dot { animation: omb-typing-dot 1.4s ease-in-out infinite both; }
+.omb-typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.omb-typing-dot:nth-child(2) { animation-delay: -0.16s; }
+.omb-breathe { animation: omb-breathe 2.4s ease-in-out infinite; }
+.omb-zzz { animation: omb-zzz 2.4s ease-out infinite; }
+.omb-zzz:nth-child(2) { animation-delay: -800ms; }
+.omb-zzz:nth-child(3) { animation-delay: -1600ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .omb-popup-in, .omb-dialog-in, .omb-card-in, .omb-row-in, .omb-wipe-push-in, .omb-wipe-pop-in, .omb-chip-pop {
+    animation-name: omb-fade-in;
+  }
+  .omb-dialog-out, .omb-row-out, .omb-wipe-push-out, .omb-wipe-pop-out {
+    animation-name: omb-fade-out;
+  }
+  .omb-chip-bump, .omb-typing-dot, .omb-breathe, .omb-zzz {
+    animation: none;
+  }
+}

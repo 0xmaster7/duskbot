@@ -1,5 +1,6 @@
 import type { Notification } from "../../shared/notification";
-import { finishedNotificationsEnabled, notificationSoundsEnabled } from "./notification-preferences";
+import { finishedNotificationsEnabled } from "./notification-preferences";
+import { play } from "./ui-sounds";
 
 export type NotifyFrame = Notification;
 
@@ -47,9 +48,10 @@ export function showNotification(
     body: frame.body,
     ...buildNotificationOptions({ id: frame.botId, avatarUrl }),
     ...(spend ? { tag: "openmausbot:spend", icon: undefined } : {}),
-    ...(notificationSoundsEnabled() ? {} : { silent: true }),
+    silent: true,
   };
   const shownByPage = () => {
+    play();
     new Notification(title, options).onclick = () => {
       window.focus();
       onOpen({ botId: frame.botId, threadId: frame.threadId });
@@ -59,5 +61,5 @@ export function showNotification(
   if (!desktop) return shownByPage();
   void desktop.show({
     title, body: frame.body, tag: options.tag, silent: options.silent === true, picture: options.icon, botId: frame.botId, threadId: frame.threadId,
-  }).then((shown) => { if (!shown) shownByPage(); }, shownByPage);
+  }).then((shown) => { if (shown) play(); else shownByPage(); }, shownByPage);
 }
