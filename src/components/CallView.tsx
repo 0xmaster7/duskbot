@@ -266,7 +266,7 @@ export function CallTargetButton({
             : inverse
               ? "bg-ink text-app hover:opacity-90 max-md:size-9"
             : fill
-              ? "hover:brightness-110"
+              ? composer ? "composer-press hover:brightness-[0.88]" : "hover:brightness-110"
             : placement === "panel"
               ? unavailable ? "bg-ink/[0.06] text-ink-tertiary hover:text-ink-secondary" : "bg-ink/[0.06] text-ink hover:bg-ink/[0.11]"
             : composer
@@ -280,7 +280,7 @@ export function CallTargetButton({
       >
         {active
           ? <PhoneOff size={composer || round ? 15 : 17} />
-          : composer ? fill ? <AudioLines size={15} strokeWidth={1.75} absoluteStrokeWidth aria-hidden="true" /> : <AudioLines size={16} aria-hidden="true" /> : <Phone size={round ? 15 : 17} />}
+          : composer ? fill ? <AudioLines size={17} strokeWidth={2} absoluteStrokeWidth aria-hidden="true" className="composer-glyph" /> : <AudioLines size={16} aria-hidden="true" /> : <Phone size={round ? 15 : 17} />}
         {unavailable && (
           <span className="absolute right-1 top-1 size-1.5 rounded-full bg-warning ring-2 ring-app" aria-hidden="true" />
         )}

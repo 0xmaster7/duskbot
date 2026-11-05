@@ -70,7 +70,8 @@ import { GroupCallButton } from "./GroupCallView";
 import { ApprovalChip, ComposerPlusMenu, GoalToggle, TeachTaskButton } from "./ComposerPlusMenu";
 import { PhonePlus } from "./PhonePlus";
 import { useThreadApproval } from "./thread-approval";
-import { useStackedField, useTallPill } from "./composer-wrap";
+import { usePillHeight, useSlideOnChange, useStackedField, useTallPill } from "./composer-wrap";
+import "@/styles/composer.css";
 import { ComposerReplyStrip } from "./ReplyQuote";
 import { escapeCancelsReply } from "@/lib/replies";
 import { useThreadRefs } from "./ThreadRefs";
@@ -228,7 +229,11 @@ export function Composer({
   const [dismissedAt, setDismissedAt] = useState<number | null>(null);
   const [dismissedSlashAt, setDismissedSlashAt] = useState<number | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const stacked = useStackedField(inputRef, advanced && !singleRow, text);
+  const stacked = useStackedField(inputRef, !singleRow, text);
+  const pillContentRef = useRef<HTMLDivElement>(null);
+  const pillHeight = usePillHeight(shellRef, pillContentRef, simpleDock);
+  useSlideOnChange(() => inputRef.current?.parentElement, stacked, simpleDock);
+  const [dragOver, setDragOver] = useState(false);
   const draftIdRef = useRef(draftId);
   draftIdRef.current = draftId;
   const caretRef = useRef(0);
@@ -757,6 +762,7 @@ export function Composer({
           notice={attachmentNotice}
           onNotice={setAttachmentNotice}
           onPendingChange={(pending) => changeDraftAttachmentPending(draftId, pending)}
+          onDraggingChange={setDragOver}
           uploadImage={uploadImage}
         />
         <QueuedComposerMessages
@@ -781,7 +787,8 @@ export function Composer({
             data-composer-backdrop
             className={cn("pointer-events-none absolute -left-5 -right-5 bg-app", advanced ? "-bottom-3 top-1/2" : cn("top-0", simpleDock ? "-bottom-4" : "-bottom-3"))}
           />
-        <div ref={shellRef} data-tour="composer" data-multiline={multiline ? "" : undefined} className={cn("@container/composer relative z-[1]", singleRow ? "flex items-end gap-2" : simpleDock ? cn(SIMPLE_COMPOSER, multiline ? "rounded-[18px]" : "rounded-[22px]") : cn("rounded-2xl px-2 py-1.5", ELEVATED_FLOAT))}>
+        <div ref={shellRef} data-tour="composer" data-multiline={multiline ? "" : undefined} data-drag-over={simpleDock && dragOver ? "" : undefined}
+          style={pillHeight === undefined ? undefined : { height: pillHeight }} className={cn("@container/composer relative z-[1]", singleRow ? "flex items-end gap-2" : simpleDock ? cn(SIMPLE_COMPOSER, multiline ? "rounded-[18px]" : "rounded-[22px]") : cn("rounded-2xl px-2 py-1.5", ELEVATED_FLOAT))}>
         {singleRow && !locked && (
           <div className="flex shrink-0 items-center">
             <PhonePlus
@@ -799,9 +806,9 @@ export function Composer({
             />
           </div>
         )}
-        <div className={singleRow ? cn("min-w-0 flex-1 rounded-[26px] px-3 py-1.5", ELEVATED_FLOAT) : "contents"}>
+        <div ref={pillContentRef} className={singleRow ? cn("min-w-0 flex-1 rounded-[26px] px-3 py-1.5", ELEVATED_FLOAT) : simpleDock ? "flex shrink-0 flex-col" : "contents"}>
         {replyTo && <ComposerReplyStrip message={replyTo} fallbackName={bot?.name} onClear={onClearReply} />}
-        <div data-composer-row className={cn("flex items-end", simpleDock ? "gap-1.5" : "gap-1", !singleRow && !simpleDock && "@max-[30rem]/composer:flex-wrap", stacked && "flex-wrap")}>
+        <div data-composer-row className={cn("flex items-end", simpleDock ? cn("gap-2", stacked && "gap-y-2") : "gap-1", !singleRow && !simpleDock && "@max-[30rem]/composer:flex-wrap", stacked && "flex-wrap")}>
           <input
             ref={fileInput}
             type="file"
@@ -842,7 +849,7 @@ export function Composer({
             </div>
           )}
           <MentionTextarea
-          wrapperClassName={singleRow || simpleDock ? undefined : cn("@max-[30rem]/composer:order-first @max-[30rem]/composer:basis-full", stacked && "order-first basis-full")}
+          wrapperClassName={singleRow ? undefined : simpleDock ? cn(stacked && "order-first basis-full") : cn("@max-[30rem]/composer:order-first @max-[30rem]/composer:basis-full", stacked && "order-first basis-full")}
           inputRef={inputRef}
           peers={[...(group ? members ?? [] : state.bots.filter((member) => member.id !== bot?.id)), ...teammates.peers]}
           everyone={Boolean(group && !group.dm)}
@@ -936,9 +943,11 @@ export function Composer({
           })}
           aria-label={t("composer.placeholder.bot", { name: group ? group.name : (bot?.name ?? "") })}
             className={cn(
-              "block max-h-[9rem] w-full resize-none overflow-y-auto bg-transparent placeholder:text-ink-tertiary focus:outline-none",
-              !simpleDock && "px-1 text-[15px]",
-              simpleDock ? "min-h-7 px-0.5 py-1 text-[14px] leading-5" : "min-h-6 py-1 leading-6",
+              "block max-h-[9rem] w-full resize-none overflow-y-auto bg-transparent focus:outline-none",
+              !simpleDock && "px-1 text-[15px] placeholder:text-ink-tertiary",
+              simpleDock
+                ? cn("text-[14px] leading-5 tracking-[0.01em] placeholder:text-ink/40", stacked ? "min-h-6 px-1 py-0.5" : "min-h-7 px-0 py-1")
+                : "min-h-6 py-1 leading-6",
             )}
           />
           <div data-composer-actions className={cn("flex items-center", simpleDock ? "gap-2" : "gap-1", !singleRow && !simpleDock && "@max-[30rem]/composer:ml-auto", stacked && "ml-auto")}>
@@ -950,13 +959,13 @@ export function Composer({
             className={cn(
               "flex shrink-0 items-center justify-center rounded-full",
               !simpleDock ? "size-8 text-ink-secondary hover:bg-raised hover:text-ink"
-                : stopInSlot ? cn("size-7", slot.button.className)
+                : stopInSlot ? cn("composer-press size-7", slot.button.className)
                 : SIMPLE_CONTROL,
             )}
             style={stopInSlot ? slot.button.style : undefined}
             title={t("chat.stop")}
           >
-            <Square size={simpleDock ? 10 : 14} className="fill-current" />
+            <Square size={simpleDock ? 10 : 14} className={cn("fill-current", stopInSlot && "composer-glyph")} />
           </button>
         )}
         {!locked && !busy && micReady && (

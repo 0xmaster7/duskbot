@@ -234,8 +234,8 @@ export function ComposerPlusMenu({ onAttach, goal, teach, approval, callBotId, e
       <Plus size={22} aria-hidden="true" />
     </span>
   ) : (
-    <span data-composer-plus className={cn("flex items-center justify-center transition-colors", SIMPLE_CONTROL, open && "bg-ink/[0.09] text-ink")}>
-      <Plus size={20} strokeWidth={1.75} absoluteStrokeWidth aria-hidden="true" />
+    <span data-composer-plus className={cn("flex items-center justify-center", SIMPLE_CONTROL, open && "bg-ink/10 text-ink")}>
+      <Plus size={20} strokeWidth={2} absoluteStrokeWidth aria-hidden="true" />
     </span>
   );
   if (!circle && items.length === 1) {
@@ -321,7 +321,7 @@ function ComposerMenu({ items, renderTrigger }: { items: SidebarMenuItem[]; rend
           data-composer-menu
           {...motion.exitProps}
           className={cn(
-            "popover-surface absolute bottom-full start-0 z-40 mb-2 w-max min-w-[200px] max-w-[280px] origin-bottom-left rounded-[14px] border-[0.5px] border-ink/10 bg-menu p-1",
+            "popover-surface absolute bottom-full start-0 z-40 mb-2 w-max min-w-[200px] max-w-[280px] origin-bottom-left rounded-[16px] border-[0.5px] border-ink/10 bg-menu p-1.5",
             motion.className,
           )}
         >
@@ -336,9 +336,9 @@ function ComposerMenu({ items, renderTrigger }: { items: SidebarMenuItem[]; rend
                 close(false);
                 item.onSelect();
               }}
-              className="flex h-[34px] w-full items-center gap-2 rounded-[9px] px-3 text-start text-[15px] text-ink transition-colors hover:bg-menu-hover focus-visible:bg-menu-hover focus-visible:outline-none disabled:opacity-50"
+              className="flex h-8 w-full items-center gap-1.5 rounded-[10px] px-2 text-start text-[14px] leading-5 tracking-[0.01em] text-ink transition-colors hover:bg-menu-hover focus-visible:bg-menu-hover focus-visible:outline-none disabled:opacity-50"
             >
-              <span className={cn("flex size-3.5 shrink-0 items-center justify-center [&_svg]:size-3.5 [&_svg]:stroke-[1.5]", item.active ? "text-accent" : "text-ink-secondary")} aria-hidden="true">{item.icon}</span>
+              <span className={cn("flex size-4 shrink-0 items-center justify-center [&_svg]:size-4 [&_svg]:stroke-[1.75]", item.active ? "text-accent" : "text-ink-secondary")} aria-hidden="true">{item.icon}</span>
               <span className="min-w-0 flex-1 truncate">{item.label}</span>
               {item.trailing}
             </button>

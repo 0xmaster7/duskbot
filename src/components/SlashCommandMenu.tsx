@@ -20,9 +20,9 @@ export function SlashCommandMenu({ listRef, motion, commands, highlight, onPick,
       ref={listRef}
       role="listbox"
       aria-label={t("composer.commands.aria")}
-      className={cn("absolute bottom-full left-2 z-20 mb-2 max-h-80 w-80 max-w-[calc(100%-1rem)] overflow-x-hidden overflow-y-auto overscroll-contain rounded-xl border border-hairline/40 bg-raised shadow-lg", motion.className)} {...motion.exitProps}
+      className={cn("popover-surface absolute bottom-full start-2 z-20 mb-2 max-h-80 w-80 max-w-[calc(100%-1rem)] origin-bottom-left overflow-x-hidden overflow-y-auto overscroll-contain rounded-[16px] border-[0.5px] border-ink/10 p-1.5", motion.className)} {...motion.exitProps}
     >
-      <div className="border-b border-hairline/20 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-secondary">
+      <div className="px-2 pb-1 pt-0.5 text-[12px] font-medium tracking-[0.01em] text-ink-tertiary">
         {t("composer.commands.title")}
       </div>
       {commands.map((command, index) => (
@@ -36,11 +36,11 @@ export function SlashCommandMenu({ listRef, motion, commands, highlight, onPick,
           onClick={() => onPick(command)}
           onMouseEnter={() => onHighlight(index)}
           className={cn(
-            "flex w-full items-center gap-3 px-3 py-2.5 text-left",
-            index === highlight ? "bg-raised-hover" : "",
+            "flex w-full items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-start",
+            index === highlight && "bg-menu-hover",
           )}
         >
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
+          <span className="flex size-4 shrink-0 items-center justify-center text-ink-secondary">
             {command.kind === "skill" ? (
               <Sparkles size={15} aria-hidden="true" />
             ) : command.id === "goal" ? (
@@ -51,12 +51,12 @@ export function SlashCommandMenu({ listRef, motion, commands, highlight, onPick,
           </span>
           <span className="min-w-0 flex-1">
             <span className="flex min-w-0 items-center gap-2">
-              <span className="truncate text-[14px] font-medium text-accent">{command.label}</span>
+              <span className="truncate text-[14px] leading-5 tracking-[0.01em] text-ink">{command.label}</span>
               {command.kind === "skill" && (
-                <span className="shrink-0 rounded-full bg-accent/10 px-1.5 text-[11px] font-medium leading-4 text-accent">{t("composer.command.skillTag")}</span>
+                <span className="shrink-0 rounded-full bg-ink/[0.06] px-1.5 text-[11px] font-medium leading-4 text-ink-secondary">{t("composer.command.skillTag")}</span>
               )}
             </span>
-            <span className="block truncate text-xs text-ink-secondary">
+            <span className="block truncate text-[12px] leading-4 text-ink-tertiary">
               {command.description}
             </span>
           </span>

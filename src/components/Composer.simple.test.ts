@@ -114,12 +114,12 @@ describe("the Simple composer in a bot chat", () => {
     render({ bot });
     expect(plus()?.getAttribute("aria-label")).toBe("Add");
     const pill = container.querySelector('[data-tour="composer"]')!.className.split(" ");
-    expect(pill).toEqual(expect.arrayContaining(["rounded-[22px]", "bg-composer", "p-2", "ring-[0.5px]", "hover:ring-ink/[0.22]", "focus-within:ring-ink/[0.22]",
-      "[transition:border-radius_300ms,box-shadow_150ms]"]));
+    expect(pill).toEqual(expect.arrayContaining(["composer-pill", "rounded-[22px]", "bg-composer", "p-2", "ring-[0.5px]", "ring-ink/[0.12]", "hover:ring-ink/[0.24]",
+      "focus-within:ring-ink/[0.24]", "data-[drag-over]:ring-accent"]));
     expect(pill.filter((name) => name.startsWith("shadow"))).toEqual(["shadow-[0_2px_8px_-1px_rgb(0_0_0/0.05),0_1px_2px_rgb(0_0_0/0.03),0_0_0_1px_rgb(228_228_228/0.04)]"]);
     expect(container.querySelector("[data-composer-row]")!.className).not.toContain("flex-wrap");
     expect(container.querySelector("[data-composer-actions]")!.className.split(" ")).toContain("gap-2");
-    expect(container.querySelector("[data-composer-plus]")!.className.split(" ")).toEqual(expect.arrayContaining(["size-7", "bg-ink/[0.05]", "ring-inset", "text-ink-tertiary"]));
+    expect(container.querySelector("[data-composer-plus]")!.className.split(" ")).toEqual(expect.arrayContaining(["composer-press", "size-7", "bg-ink/[0.06]", "ring-inset", "ring-ink/[0.08]", "text-ink/[0.56]"]));
     expect(container.querySelector('button[aria-label="Attach a file"]')).toBeNull();
     expect(container.querySelector("[data-goal-chip]")).toBeNull();
     expect(container.querySelector("[data-approval-chip]")).toBeNull();
@@ -129,8 +129,8 @@ describe("the Simple composer in a bot chat", () => {
     expect([...menu()!.querySelectorAll("[data-menu-key]")].map((row) => row.getAttribute("data-menu-key"))).toEqual(["attach", "goal", "teach"]);
     expect([...menu()!.querySelectorAll("[data-menu-key]")].map((row) => row.textContent)).toEqual(["Attach files", "Work until done", "Teach a task"]);
     const row = menu()!.querySelector("[data-menu-key='attach']")!.className.split(" ");
-    expect(row).toEqual(expect.arrayContaining(["h-[34px]", "gap-2", "px-3", "text-[15px]"]));
-    expect(menu()!.className.split(" ")).toEqual(expect.arrayContaining(["popover-surface", "rounded-[14px]", "w-max", "min-w-[200px]", "max-w-[280px]"]));
+    expect(row).toEqual(expect.arrayContaining(["h-8", "gap-1.5", "px-2", "rounded-[10px]", "text-[14px]"]));
+    expect(menu()!.className.split(" ")).toEqual(expect.arrayContaining(["popover-surface", "rounded-[16px]", "p-1.5", "w-max", "min-w-[200px]", "max-w-[280px]"]));
   });
 
   it("starts a /learn draft from Teach a task, ahead of anything already typed", () => {
@@ -407,12 +407,15 @@ describe("the Advanced composer", () => {
       expect(stacked()).toBe(false);
     });
 
-    it("leaves Simple's pill alone", () => {
+    it("gives Simple's text the pill's full width above the + and the round button too", () => {
       wrapPast20();
       render({ bot });
       type("a".repeat(25) + "\nb");
+      expect(stacked()).toBe(true);
+      expect(classes("[data-composer-row]")).toContain("flex-wrap");
+      expect(classes("textarea")).toEqual(expect.arrayContaining(["px-1", "py-0.5"]));
+      type("short");
       expect(stacked()).toBe(false);
-      expect(classes("[data-composer-row]")).not.toContain("flex-wrap");
     });
   });
 });

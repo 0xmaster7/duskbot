@@ -40,11 +40,13 @@ export function ComposerSendButton({ compact, waits, label, title, look, disable
       style={waits ? undefined : look.style}
       className={cn(
         "flex shrink-0 items-center justify-center rounded-full disabled:cursor-default",
-        compact ? "size-7 animate-[slot-fade-in_120ms_ease-out]" : "size-8",
+        compact ? "composer-press size-7" : "size-8",
         waits ? "bg-raised text-ink-secondary hover:bg-raised-hover" : look.className,
       )}
     >
-      {waits ? <Clock size={compact ? 14 : 15} /> : <ArrowUp size={16} strokeWidth={1.75} absoluteStrokeWidth />}
+      {waits
+        ? <Clock size={compact ? 14 : 15} className={compact ? "composer-glyph" : undefined} />
+        : <ArrowUp size={16} strokeWidth={compact ? 2 : 1.75} absoluteStrokeWidth className={compact ? "composer-glyph" : undefined} />}
     </button>
   );
   if (!menu) return button;

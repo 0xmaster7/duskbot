@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ClipboardPaste, File as FileIcon, Image as ImageIcon, LoaderCircle, MessageSquareText, X } from "lucide-react";
+import { ClipboardPaste, File as FileIcon, Image as ImageIcon, LoaderCircle, MessageSquareText, Paperclip, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
   attachmentImageUrl,
@@ -30,6 +30,7 @@ export function ComposerAttachments({
   notice,
   onNotice,
   onPendingChange,
+  onDraggingChange,
   uploadImage,
 }: {
   items: Attachment[];
@@ -41,6 +42,7 @@ export function ComposerAttachments({
   notice: string | null;
   onNotice: (notice: string | null) => void;
   onPendingChange?: (pending: boolean) => void;
+  onDraggingChange?: (dragging: boolean) => void;
   uploadImage: (file: File) => Promise<Attachment | null>;
 }) {
   const [dragging, setDragging] = useState(false);
@@ -53,6 +55,9 @@ export function ComposerAttachments({
   const callbacks = useRef({ onAdd, onNotice, onPendingChange, allowImages, imageSlots, imageBytes, uploadImage });
   callbacks.current = { onAdd, onNotice, onPendingChange, allowImages, imageSlots, imageBytes, uploadImage };
   const pendingDrops = useRef(new Set<symbol>());
+  const draggingChanged = useRef(onDraggingChange);
+  draggingChanged.current = onDraggingChange;
+  useEffect(() => draggingChanged.current?.(dragging), [dragging]);
 
   useEffect(() => {
     const carriesFiles = (e: DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes("Files");
@@ -110,10 +115,12 @@ export function ComposerAttachments({
   return (
     <>
       {dragging && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-10">
-          <div className="rounded-2xl border-2 border-dashed border-accent/70 bg-panel/90 px-8 py-6 text-[14px] font-medium text-ink shadow-2xl">
-            Drop to attach
-          </div>
+        <div className="composer-drop pointer-events-none fixed inset-2 z-50 flex flex-col items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-dashed border-accent bg-[color-mix(in_srgb,var(--color-app)_88%,transparent)] backdrop-blur-md">
+          <span className="absolute inset-0 rounded-[inherit] bg-accent/[0.09]" aria-hidden="true" />
+          <span className="relative flex rounded-xl bg-composer p-2.5 text-accent shadow-[inset_0_0_0_0.5px_rgb(28_28_28/0.08)]" aria-hidden="true">
+            <Paperclip size={24} strokeWidth={1.75} absoluteStrokeWidth />
+          </span>
+          <span className="relative text-[14px] font-medium tracking-[0.01em] text-ink">Drop to attach</span>
         </div>
       )}
 
@@ -231,8 +238,8 @@ function Chip({
     <div
       title={title}
       className={cn(
-        "group relative w-[172px] rounded-xl border border-hairline/40 bg-raised px-2.5 py-2",
-        "transition-colors hover:border-hairline",
+        "group relative w-[172px] rounded-[12px] border-[0.5px] border-ink/[0.08] bg-composer px-2.5 py-2",
+        "shadow-[0_4px_12px_-1px_rgb(28_28_28/0.08),0_2px_4px_-2px_rgb(28_28_28/0.06)] transition-colors hover:border-ink/[0.16]",
       )}
     >
       {children}
@@ -246,9 +253,9 @@ function Chip({
       <button
         onClick={onRemove}
         aria-label={`Remove ${label === "PASTED" ? "pasted text" : "file"}`}
-        className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full border border-hairline/60 bg-panel text-ink-secondary opacity-0 transition-opacity hover:text-ink focus-visible:opacity-100 group-hover:opacity-100 touch:opacity-100"
+        className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-ink text-app opacity-0 transition-opacity hover:bg-ink/85 focus-visible:opacity-100 group-hover:opacity-100 touch:opacity-100"
       >
-        <X size={11} />
+        <X size={11} strokeWidth={2.25} />
       </button>
     </div>
   );
