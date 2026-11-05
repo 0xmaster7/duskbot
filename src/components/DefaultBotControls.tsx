@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { EyeOff } from "lucide-react";
 
 import { cn } from "@/lib/cn";
@@ -13,7 +14,7 @@ export function showDefaultBot(dispatch: (action: Action) => void, bot: Pick<Bot
   if (!shown) dispatch({ type: "notice", notice: { kind: "note", botName: null, text: t("defaultBot.hidden", { name: bot.name }) } });
 }
 
-export function HideDefaultBotItem({ bot, onDone, className = "flex w-full items-center gap-3 px-3.5 py-2 text-left text-[14px]" }: { bot: Bot; onDone: () => void; className?: string }) {
+export function HideDefaultBotItem({ bot, onDone, className = "flex w-full items-center gap-3 px-3.5 py-2 text-left text-[14px]", icon }: { bot: Bot; onDone: () => void; className?: string; icon?: ReactNode }) {
   const { dispatch } = useStore();
   return (
     <button
@@ -24,7 +25,7 @@ export function HideDefaultBotItem({ bot, onDone, className = "flex w-full items
       title={t("defaultBot.hideHint")}
       className={cn(className, "text-ink hover:bg-menu-hover")}
     >
-      <EyeOff size={16} className="text-ink-secondary" />
+      {icon ?? <EyeOff size={16} className="text-ink-secondary" />}
       {t("defaultBot.hide")}
     </button>
   );

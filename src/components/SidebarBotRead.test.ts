@@ -31,7 +31,9 @@ const draw = () => flushSync(() => root.render(createElement(BotEditorStore, {
   value: { state, dispatch, flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} },
   children: createElement(BotContextMenu, { menu, onClose, onArchive: vi.fn(), onDelete: vi.fn(), onMoveToSection: vi.fn(), onNewFolder: vi.fn(), onNewTaskFolder: vi.fn(), onRename }),
 })));
-const button = (label = "Mark all conversations as read") => [...document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find((node) => node.textContent === label)!;
+// grok icons draw a private-use glyph, which is no part of a row's words
+const text = (node: Node) => (node.textContent ?? "").replace(/[\uE000-\uF8FF\u{F0000}-\u{FFFFD}]/gu, "");
+const button = (label = "Mark all conversations as read") => [...document.querySelectorAll<HTMLButtonElement>('[role^="menuitem"]')].find((node) => text(node) === label)!;
 const response = (threadId: string) => {
   const current = state.bots[0]!;
   return new Response(JSON.stringify({ bot: { ...current, tasks: current.tasks!.map((task) => task.threadId === threadId ? { ...task, unread: false } : task) } }), { headers: { "content-type": "application/json" } });
@@ -111,13 +113,13 @@ describe("bot menu bulk reads", () => {
     mode.advanced = false;
     const fetch = vi.fn(async (_url: unknown, init?: RequestInit) => response(JSON.parse(String(init?.body)).threadId));
     vi.stubGlobal("fetch", fetch); draw();
-    expect(button("Mark as unread")).toBeUndefined();
-    flushSync(() => button("Mark as read").click());
+    expect(button("Mark as Unread")).toBeUndefined();
+    flushSync(() => button("Mark as Read").click());
     await expect.poll(() => onClose.mock.calls.length).toBe(1);
     expect(state.bots[0]!.tasks!.every((task) => !task.unread)).toBe(true);
     draw();
-    expect(button("Mark as read")).toBeUndefined();
-    flushSync(() => button("Mark as unread").click());
+    expect(button("Mark as Read")).toBeUndefined();
+    flushSync(() => button("Mark as Unread").click());
     expect(state.bots[0]!.unread).toBe(true);
   });
 });
@@ -125,55 +127,54 @@ describe("bot menu bulk reads", () => {
 describe("Simple mode's bot menu", () => {
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   const sheet = () => document.querySelector<HTMLElement>('[data-bot-menu][aria-label="Actions for Reviewer"]')!;
-  const more = () => document.querySelector<HTMLElement>("[data-bot-menu-more]")!;
-  const flyout = () => document.querySelector('[role="menu"][aria-label="More"]');
+  const move = () => document.querySelector<HTMLElement>("[data-bot-menu-move]")!;
+  const flyout = () => document.querySelector('[role="menu"][aria-label="Move to"]');
   const point = (target: Element, y: number) => target.dispatchEvent(new MouseEvent("pointerover", { bubbles: true, clientX: 60, clientY: y }));
+  const words = () => [...sheet().children].map((node) => node.getAttribute("role") === "separator" ? "|" : text(node));
   beforeEach(() => { mode.advanced = false; });
 
-  it("leads with Pin, Move and Mark as read, then the thread items, then Rename, then Copy conversation ID and More, and ends with Archive and Delete", () => {
+  it("is grok's menu word for word: Pin and Mark as Read, Rename Bot, Copy conversation ID, then Hide from sidebar and Delete", () => {
     draw();
-    expect([...sheet().querySelectorAll("button")].map((node) => node.textContent)).toEqual([
-      "Pin", "Move to department", "Mark as read", "New thread", "View threads", "Rename", "Copy conversation ID", "More", "Archive", "Delete",
-    ]);
-    expect([...sheet().children].map((node) => node.getAttribute("role") === "separator" ? "|" : node.textContent)).toEqual([
-      "Pin", "Move to department", "Mark as read", "|", "New thread", "View threads", "|", "Rename", "|", "Copy conversation ID", "More", "|", "Archive", "Delete",
-    ]);
-    flushSync(() => button("Rename").click());
+    expect(words()).toEqual(["Pin", "Mark as Read", "|", "Rename Bot", "|", "Copy conversation ID", "|", "Hide from sidebar", "Delete"]);
+    expect([...sheet().querySelectorAll("[data-icon-name]")].map((node) => node.getAttribute("data-icon-name"))).toEqual(["pin", "bell", "pencil-square", "copy", "eye-slash", "trash"]);
+    flushSync(() => button("Rename Bot").click());
     expect(onRename).toHaveBeenCalledWith(bot.id);
   });
 
-  it("offers Delete all conversations only with two or more, last and in danger, and asks with its count", () => {
-    draw();
-    flushSync(() => more().click());
-    const deleteAll = [...flyout()!.querySelectorAll("button")].at(-1)!;
-    expect(deleteAll.textContent).toBe("Delete all conversations…");
-    expect(deleteAll.className).toContain("text-danger");
-    flushSync(() => deleteAll.click());
-    expect(document.body.textContent).toContain("Delete all conversations (3)?");
-    state = { ...state, bots: [{ ...structuredClone(bot), tasks: [bot.tasks![0]!] }] };
+  it("offers Move to new section while there are no sections, and Move to with each section, Unassigned and Create section once there are", () => {
+    const onNewSection = vi.fn();
+    const render = () => flushSync(() => root.render(createElement(BotEditorStore, {
+      value: { state, dispatch, flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} },
+      children: createElement(BotContextMenu, { menu, onClose, onArchive: vi.fn(), onDelete: vi.fn(), onMoveToSection: vi.fn(), onNewFolder: vi.fn(), onNewTaskFolder: vi.fn(), onRename, onNewSection }),
+    })));
+    render();
+    expect(words().slice(0, 3)).toEqual(["Pin", "Move to new section", "Mark as Read"]);
+    flushSync(() => button("Move to new section").click());
+    expect(onNewSection).toHaveBeenCalledWith(bot.id);
+    state = { ...state, sections: ["GOATS"], bots: [{ ...structuredClone(bot), section: "GOATS" }] };
     menu = { botId: bot.id, x: 50, y: 50 };
-    draw();
-    flushSync(() => more().click());
-    expect([...flyout()!.querySelectorAll("button")].map((node) => node.textContent)).not.toContain("Delete all conversations…");
+    render();
+    flushSync(() => move().click());
+    expect([...flyout()!.children].map((node) => node.getAttribute("role") === "separator" ? "|" : `${node.getAttribute("aria-checked") === "true" ? "✓" : ""}${text(node)}`)).toEqual(["✓GOATS", "Unassigned", "|", "Create section"]);
   });
 
-  it("opens More only after the pointer rests on it, closes it when a sibling row takes the pointer, and opens it at once on a click", async () => {
+  it("opens Move to only after the pointer rests on it, closes it when a sibling row takes the pointer, and opens it at once on a click", async () => {
+    state = { ...state, sections: ["GOATS"] };
     draw();
     const pin = button("Pin");
-    point(more(), 200);
+    point(move(), 200);
     await wait(100);
     expect(flyout()).toBeNull();
     point(pin, 80);
     await wait(400);
     expect(flyout()).toBeNull();
-    point(more(), 200);
+    point(move(), 200);
     await wait(320);
     expect(flyout()).not.toBeNull();
-    expect([...flyout()!.querySelectorAll("button")].map((node) => node.textContent)).toEqual(["Edit profile", "Make Chief of Staff", "Duplicate", "Delete all conversations…"]);
     point(pin, 80);
     await wait(20);
     expect(flyout()).toBeNull();
-    flushSync(() => more().click());
+    flushSync(() => move().click());
     await wait(20);
     expect(flyout()).not.toBeNull();
   });

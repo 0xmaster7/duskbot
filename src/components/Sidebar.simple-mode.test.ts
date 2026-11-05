@@ -147,7 +147,7 @@ describe("bot-first sidebar", () => {
     expect(renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable")))).not.toContain('data-testid="bot-role"');
   });
 
-  it("ends a Simple row's preview line with its engine's faded mark, puts the unread dot centred at the row's right end where ⋯ shows, and never moves the name", () => {
+  it("keeps a Simple row's preview line to its words with no engine mark, as grok does, puts the unread dot centred at the row's right end where ⋯ shows, and never moves the name", () => {
     fixture.showThreads = false;
     fixture.state = { ...fixture.state, instances: [{ instanceId: "fake", driverKind: "claudeAgent", displayName: "Claude" }] as unknown as AppState["instances"] };
     const candidate = { ...bot, tasks: [], projects: [], unread: true, messages: [{ id: "m", role: "bot", kind: "text", text: "Done.", at: 1 }] } as Bot;
@@ -155,13 +155,11 @@ describe("bot-first sidebar", () => {
     function Capture() { tree = botRow(rowProps("comfortable", candidate)); return tree; }
     const markup = renderToStaticMarkup(createElement(Capture));
     const line = markup.slice(markup.indexOf(">Done.<"));
-    expect(line).toMatch(/^>Done\.<\/span><\/span><span data-testid="model-badge" role="img" aria-label="Model: [^"]+ \(Claude\)" class="[^"]*\bms-auto\b[^"]*"><span data-provider-mark="brand" class="[^"]*\bopacity-60\b/);
-    expect(line).toMatch(/^>Done\.<\/span><\/span><span data-testid="model-badge"[^>]*><span data-provider-mark="brand"[^>]*><svg[\s\S]*?<\/svg><\/span><\/span><\/div><span class="sr-only">Unread<\/span>/);
+    expect(line).toMatch(/^>Done\.<\/span><\/span><\/div><span class="sr-only">Unread<\/span>/);
     const name = markup.slice(markup.indexOf('class="flex items-baseline justify-between gap-2 pr-7"'), markup.indexOf(">Done.<"));
     expect(name).toMatch(/<span aria-hidden="true" data-row-dot="" class="pointer-events-none absolute inset-y-0 right-2 flex items-center transition-opacity duration-\[120ms\] group-has-\[:focus-visible\]:opacity-0 touch:opacity-0 max-md:hidden"><span data-testid="unread-dot" title="Unread" class="size-2 shrink-0 rounded-full bg-accent"><\/span><\/span>/);
     expect(name).toContain('<span aria-hidden="true" title="Unread" class="size-2 shrink-0 rounded-full bg-accent hidden self-center max-md:block touch:block"></span>');
-    expect(markup.match(/data-provider-mark=/g)).toHaveLength(1);
-    expect(line.slice(0, line.indexOf("data-provider-mark"))).not.toContain("title=");
+    expect(markup).not.toContain("data-provider-mark=");
     expect(String(findElement(tree, "data-sidebar-bot-row", bot.id)!.props.className)).not.toContain("group-hover:pr-9");
     expect(markup).not.toContain("group-hover:pr-7");
     expect(markup).toMatch(/data-bot-actions="atlas"[^>]*class="[^"]*\bright-2 top-1 translate-y-0\b/);
@@ -178,16 +176,19 @@ describe("bot-first sidebar", () => {
     expect(advanced).toMatch(/<span data-testid="model-badge"[^>]*><span data-provider-mark="brand" class="[^"]*\bopacity-60\b/);
   });
 
-  it("shows a waiting Simple row as an amber dot and preview, and a working one as a ring-cut dot on the avatar, with no badge or live region", () => {
+  it("shows a waiting Simple row as grok's amber dot and preview, and a working one with no dot at all, with no badge or live region", () => {
     fixture.showThreads = false;
-    const quiet = { ...bot, tasks: [], projects: [], unread: false };
+    const quiet = { ...bot, tasks: [], projects: [], unread: false, messages: [] };
     const waiting = renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", { ...quiet, activity: "waiting-on-you" })));
-    expect(waiting).toContain('data-testid="waiting-dot" title="Waiting for you…" class="size-2 shrink-0 rounded-full bg-warning"');
+    expect(waiting).toContain('data-testid="waiting-dot" title="Waiting for you…" class="size-2 shrink-0 rounded-full bg-[#da830e]"');
+    expect(waiting).toContain("text-[#aa6300]");
+    const asked = renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", { ...quiet, activity: "waiting-on-you", messages: [{ id: "q", role: "bot", kind: "text", text: "send the reply to vitaliu?", at: 1 }] } as Bot)));
+    expect(asked).toContain(">Waiting for you: send the reply to vitaliu?</span>");
     expect(waiting).not.toContain(">!<");
     expect(waiting).not.toContain("font-semibold text-warning");
     expect(waiting).not.toContain('role="status"');
     const working = renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", { ...quiet, busy: true })));
-    expect(working).toContain('data-testid="working-dot" title="Working" class="absolute bottom-0.5 right-0.5 size-2 rounded-full ring-2 ring-[var(--row)] bg-success"');
+    expect(working).not.toContain('data-testid="working-dot"');
     expect(working).toContain('<span class="sr-only">Working</span>');
     expect(working).not.toContain('role="status"');
     expect(working).toContain("[--row:var(--color-panel)]");
@@ -203,10 +204,17 @@ describe("bot-first sidebar", () => {
     noteTurnEvent({ eventId: "e1", provider: "claudeAgent", threadId: "leads", createdAt: "2026-10-28T12:00:00.000Z", turnId: "t1",
       type: "turn.progress", activity: "command", itemId: "c1", target: "scrape.py", quiet: { kind: "busy" } } as RuntimeEvent);
     const working = renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", candidate)));
-    expect(working).toContain('<span dir="auto" data-sidebar-working-phrase="" class="truncate">Running scrape.py</span>');
     expect(working, "the row's second line keeps its height: no taller dots").not.toContain("h-[1.5em]");
-    expect(working).not.toContain("Monday");
     expect(working, "the row says the step alone, not how it is doing").not.toContain("busy, no output yet");
+    if (!advanced) {
+      // grok's working row keeps its last words; the mascot is what works
+      expect(working).toContain("Here are the leads from Monday.");
+      expect(working).not.toContain("scrape.py");
+      resetTurnLive();
+      return;
+    }
+    expect(working).toContain('<span dir="auto" data-sidebar-working-phrase="" class="truncate">Running scrape.py</span>');
+    expect(working).not.toContain("Monday");
     const done = renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", { ...candidate, busy: false, tasks: [{ ...leads, busy: false, activity: "idle" }] })));
     expect(done).toContain("Here are the leads from Monday.");
     expect(done).not.toContain("scrape.py");
@@ -273,22 +281,24 @@ describe("bot-first sidebar", () => {
     expect(advanced).toMatch(/data-testid="model-badge"[^>]*><span data-provider-mark="brand" class="[^"]*\bopacity-60\b/);
   });
 
-  it("keeps a Simple row to its name, preview and one faded engine mark, naming role, Chief and engine in its tooltip", () => {
+  it("keeps a Simple row to its name and preview, with grok's main-bot star and no tooltip", () => {
     fixture.showThreads = false;
     const instances = [{ instanceId: "fake", driverKind: "claude", displayName: "Claude", models: { options: [{ id: "test", label: "Sonnet" }] } }] as unknown as AppState["instances"];
     fixture.state = { ...fixture.state, instances, selectedId: bot.id };
     const candidate = { ...bot, title: "Research", chiefOfStaff: true, pinned: true, tasks: [], projects: [], messages: [{ id: "m", role: "bot", kind: "text", text: "Done.", at: 1 }] } as Bot;
     let tree: ReactNode;
-    function Capture() { tree = botRow(rowProps("comfortable", candidate)); return tree; }
+    function Capture() { tree = botRow({ ...rowProps("comfortable", candidate), main: true }); return tree; }
     const markup = renderToStaticMarkup(createElement(Capture));
     expect(markup).not.toContain('data-testid="bot-role"');
-    expect(markup.match(/data-testid="model-badge"/g)).toHaveLength(1);
-    expect(markup.match(/data-provider-mark=/g)).toHaveLength(1);
-    expect(markup).toMatch(/<span class="absolute -bottom-px -right-px flex size-\[13px\] [^"]*ring-\[var\(--row\)\]"><svg[^>]*role="img"[^>]*aria-label="Chief of Staff"[^>]*data-testid="chief-crown"/);
+    expect(markup).not.toContain('data-testid="model-badge"');
+    expect(markup).not.toContain("data-provider-mark=");
+    expect(markup).toMatch(/data-testid="main-bot-star" class="absolute bottom-0 right-0 flex size-\[9\.6px\] [^"]*bg-\[#f59312\][^"]*ring-\[var\(--row\)\]"><i[^>]*data-icon-name="star"[^>]*aria-label="Main Bot"/);
+    expect(markup).toContain('<span class="sr-only">Main Bot</span>');
+    expect(markup).not.toContain('data-testid="chief-crown"');
     expect(markup).not.toContain("lucide-pin");
     expect(markup).not.toMatch(/tabular-nums text-ink-secondary transition-opacity group-hover:opacity-0/);
     const row = findElement(tree, "data-sidebar-bot-row", bot.id)!;
-    expect(row.props.title).toBe("Atlas · Research · Chief of Staff · Model: Sonnet (Claude)");
+    expect(row.props.title).toBeUndefined();
   });
 
   it.each([
@@ -418,7 +428,7 @@ describe("bot-first sidebar", () => {
     expect(disabled).toContain("Move to department");
   });
 
-  it("gives the Simple bot menu New thread, View threads and Set as main thread", () => {
+  it("keeps the Simple bot menu to grok's items: no New thread, View threads or Set as main thread", () => {
     let tree: ReactNode;
     function Capture() {
       tree = BotContextMenu({
@@ -426,68 +436,20 @@ describe("bot-first sidebar", () => {
       });
       return tree;
     }
-    const items = () => {
-      const found: ReactElement<ElementProps>[] = [];
-      const walk = (node: ReactNode) => {
-        for (const child of Children.toArray(node)) {
-          if (!isValidElement<ElementProps>(child)) continue;
-          if (child.props.role === "menuitem") found.push(child);
-          walk(child.props.children);
-        }
-      };
-      walk(tree);
-      return found;
+    const labels: string[] = [];
+    const walk = (node: ReactNode) => {
+      for (const child of Children.toArray(node)) {
+        if (!isValidElement<ElementProps>(child)) continue;
+        if (child.props.role === "menuitem") labels.push(Children.toArray(child.props.children).filter((part) => typeof part === "string").join(""));
+        walk(child.props.children);
+      }
     };
-    const named = (label: string) => items().find((item) => Children.toArray(item.props.children).includes(label));
     fixture.state = { ...fixture.state, bots: [{ ...bot, mainThreadId: "idle-history" }], selectedId: bot.id };
     renderToStaticMarkup(createElement(Capture));
-
-    named("New thread")!.props.onClick!({} as MouseEvent);
-    expect(fixture.dispatch.mock.calls).toEqual([[{ type: "newTask", botId: bot.id }]]);
-
-    fixture.dispatch.mockClear();
-    named("View threads")!.props.onClick!({} as MouseEvent);
-    expect(fixture.dispatch.mock.calls).toEqual([
-      [{ type: "select", id: bot.id }],
-      [{ type: "toggleSettings", open: true, section: "history", botId: bot.id }],
-    ]);
-
-    fixture.dispatch.mockClear();
-    const setMain = named("Set as main thread")!;
-    expect(setMain.props.disabled).toBeFalsy();
-    setMain.props.onClick!({} as MouseEvent);
-    expect(fixture.dispatch.mock.calls).toEqual([[{ type: "updateBot", botId: bot.id, patch: { mainThreadChoice: "last-selected" } }]]);
-
-    // Not offered until the person is known to be the owner or an admin.
-    for (const admin of [null, false]) {
-      fixture.admin = admin;
-      renderToStaticMarkup(createElement(Capture));
-      expect(named("Set as main thread")).toBeUndefined();
-    }
-    fixture.admin = true;
-
-    // Already main: offered but off. Another bot's open thread, or a routine run, is never offered.
-    fixture.state = { ...fixture.state, bots: [{ ...bot, mainThreadId: "last-selected" }] };
-    renderToStaticMarkup(createElement(Capture));
-    expect(named("Set as main thread")!.props.disabled).toBe(true);
-    fixture.state = { ...fixture.state, selectedId: "other-bot" };
-    renderToStaticMarkup(createElement(Capture));
-    expect(named("Set as main thread")).toBeUndefined();
-    expect(named("New thread")).toBeDefined();
-    fixture.state = { ...fixture.state, selectedId: bot.id, bots: [{ ...bot, threadId: "run", tasks: [...bot.tasks!, { threadId: "run", title: "Run", createdAt: 9, routineRunId: "r" }] }] };
-    renderToStaticMarkup(createElement(Capture));
-    expect(named("Set as main thread")).toBeUndefined();
-    // A Team Cloud private thread can't be the main thread either (the host refuses it).
-    fixture.state = { ...fixture.state, selectedId: bot.id, bots: [{ ...bot, threadId: "mine", tasks: [...bot.tasks!, { threadId: "mine", title: "Mine", createdAt: 9, private: true }] }] };
-    renderToStaticMarkup(createElement(Capture));
-    expect(named("Set as main thread")).toBeUndefined();
-    // A view-only teammate can look at the threads but not start one.
-    fixture.state = { ...fixture.state, bots: [{ ...bot, yourAccess: "view" }] };
-    renderToStaticMarkup(createElement(Capture));
-    expect(named("New thread")).toBeUndefined();
-    expect(named("View threads")).toBeDefined();
+    walk(tree);
+    for (const gone of ["New thread", "View threads", "Set as main thread", "More", "Edit profile", "Duplicate"]) expect(labels).not.toContain(gone);
+    expect(labels).toContain("Copy conversation ID");
   });
-
   it("Edit profile opens the panel without naming a section", () => {
     fixture.advanced = true;
     let tree: ReactNode;

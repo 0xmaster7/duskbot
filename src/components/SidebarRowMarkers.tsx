@@ -31,7 +31,7 @@ export function AvatarActivityDot({ activity }: { activity: RowActivity | null }
  * keyboard focus. A touch screen always shows the ⋯, so there the dot sits just before it, at the end of the name line. */
 export function RowDot({ waiting = false }: { waiting?: boolean }) {
   const label = waiting ? t("sidebar.preview.waiting") : t("task.unread");
-  const tone = cn("size-2 shrink-0 rounded-full", waiting ? "bg-warning" : "bg-accent");
+  const tone = cn("size-2 shrink-0 rounded-full", waiting ? "bg-[#da830e]" : "bg-accent");
   return (
     <>
       <span aria-hidden="true" data-row-dot="" className="pointer-events-none absolute inset-y-0 right-2 flex items-center transition-opacity duration-[120ms] group-has-[:focus-visible]:opacity-0 touch:opacity-0 max-md:hidden">

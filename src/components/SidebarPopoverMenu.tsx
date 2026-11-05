@@ -6,6 +6,7 @@ import { useMenuMotion } from "./MenuMotion";
 import { popoverClosesOnKey, usePopoverDismiss } from "@/hooks/use-popover-dismiss";
 import { submenuIntent, type Point, type SubmenuIntent } from "@/lib/submenu-intent";
 import { MENU_HEADING, MENU_ITEM_SEPARATOR, MENU_SHEET } from "./menu-recipe";
+import { GrokIcon } from "./GrokIcon";
 
 export interface SidebarMenuItem {
   key: string;
@@ -57,8 +58,9 @@ export function anchoredMenuPosition(anchor: Box, menu: Size, viewport: Size, rt
   return { left, top: Math.min(Math.max(top, EDGE_MARGIN), maxTop) };
 }
 
+/** Grok's submenu: tucked 10px over its menu's edge, its top on the row's. */
 export function submenuPosition(menu: Box, row: Box, submenu: Size, viewport: Size, rtl = false): { left: number; top: number } {
-  const gap = 4;
+  const gap = -10;
   const after = rtl ? menu.left - gap - submenu.width : menu.right + gap;
   const before = rtl ? menu.right + gap : menu.left - gap - submenu.width;
   const fits = (left: number) => left >= EDGE_MARGIN && left + submenu.width <= viewport.width - EDGE_MARGIN;
@@ -67,7 +69,7 @@ export function submenuPosition(menu: Box, row: Box, submenu: Size, viewport: Si
   const maxTop = Math.max(EDGE_MARGIN, viewport.height - submenu.height - EDGE_MARGIN);
   return {
     left: Math.min(Math.max(preferred, EDGE_MARGIN), maxLeft),
-    top: Math.min(Math.max(row.top - 6, EDGE_MARGIN), maxTop),
+    top: Math.min(Math.max(row.top, EDGE_MARGIN), maxTop),
   };
 }
 
@@ -95,7 +97,10 @@ function MenuRows({
   onItem,
   onRowEnter,
   onRowLeave,
+  grok = false,
 }: {
+  /** grok's rows: an 18px slot for a 14px glyph, 6px before the label */
+  grok?: boolean;
   items: SidebarMenuItem[];
   openSubmenu?: string | null;
   engaged?: boolean;
@@ -123,13 +128,14 @@ function MenuRows({
             onPointerEnter={(event) => onRowEnter?.(item, event.currentTarget, { x: event.clientX, y: event.clientY })}
             onPointerLeave={() => onRowLeave?.(item)}
             className={cn(
-              "flex min-h-8 w-full items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-start text-[14px] leading-5 tracking-[0.01em] disabled:opacity-60 touch:min-h-10 focus-visible:bg-menu-hover focus-visible:outline-none",
-              item.active || (item.submenu && openSubmenu === item.key && engaged) ? "bg-menu-active text-ink" : "text-ink hover:bg-menu-hover",
+              "flex min-h-8 w-full items-center rounded-[10px] px-2 py-1.5 text-start text-[14px] leading-5 tracking-[0.01em] disabled:opacity-60 touch:min-h-10 focus-visible:bg-menu-hover focus-visible:outline-none",
+              grok ? "gap-1.5" : "gap-2.5",
+              item.active || (item.submenu && openSubmenu === item.key && engaged) ? "bg-menu-active text-ink" : grok && item.submenu && openSubmenu === item.key ? "bg-menu-hover text-ink" : "text-ink hover:bg-menu-hover",
             )}
           >
             {item.icon && (
               <span
-                className={cn("flex size-4 shrink-0 items-center justify-center [&>svg]:size-4", item.wrap && "h-[18px] self-start", item.active ? "text-accent" : "text-ink-secondary")}
+                className={cn("flex shrink-0 items-center justify-center [&>svg]:size-4", grok ? "size-[18px]" : "size-4", item.wrap && "h-[18px] self-start", item.active ? "text-accent" : grok ? "text-ink/[0.66]" : "text-ink-secondary")}
               >
                 {item.icon}
               </span>
@@ -153,7 +159,9 @@ function MenuRows({
                 )}
               />
             )}
-            {(item.submenu || item.chevron) && <ChevronRight size={14} aria-hidden className="-me-0.5 shrink-0 text-ink-secondary rtl:-scale-x-100" />}
+            {(item.submenu || item.chevron) && (grok
+              ? <GrokIcon name="chevron-right" size={14} className="ms-2 shrink-0 text-ink/[0.52] rtl:-scale-x-100" />
+              : <ChevronRight size={14} aria-hidden className="-me-0.5 shrink-0 text-ink-secondary rtl:-scale-x-100" />)}
           </button>
         </div>
       ))}
@@ -176,7 +184,9 @@ export function SidebarPopoverMenu({
   triggerTour,
   onOpenChange,
   renderTrigger,
+  grok = false,
 }: {
+  grok?: boolean;
   placement?: "above" | "below";
   align?: "start" | "end";
   items: SidebarMenuItem[];
@@ -354,7 +364,7 @@ export function SidebarPopoverMenu({
       onKeyDown={(event) => onMenuKey(event, false)}
       onPointerMove={(event) => intent.move({ x: event.clientX, y: event.clientY }, Boolean(submenu && subRowRef.current?.contains(event.target as Node)))}
       onPointerLeave={() => intent.leaveMenu()}
-      style={anchored ? { position: "fixed", left: position?.left ?? 0, top: position?.top ?? 0, minWidth: MENU_MIN_WIDTH, width: "max-content", maxWidth: `min(${MENU_MAX_WIDTH}px, calc(100vw - ${EDGE_MARGIN * 2}px))`, maxHeight: `calc(100vh - ${EDGE_MARGIN * 2}px)`, visibility: position ? undefined : "hidden" } : undefined}
+      style={anchored ? { position: "fixed", left: position?.left ?? 0, top: position?.top ?? 0, minWidth: grok ? 200 : MENU_MIN_WIDTH, width: "max-content", maxWidth: `min(${MENU_MAX_WIDTH}px, calc(100vw - ${EDGE_MARGIN * 2}px))`, maxHeight: `calc(100vh - ${EDGE_MARGIN * 2}px)`, visibility: position ? undefined : "hidden" } : undefined}
       className={cn(
         sheetClass,
         anchored ? "z-[60] overflow-y-auto" : "absolute z-40",
@@ -363,6 +373,7 @@ export function SidebarPopoverMenu({
       )}
     >
       <MenuRows
+        grok={grok}
         items={items}
         openSubmenu={submenu}
         engaged={engaged}
@@ -387,10 +398,11 @@ export function SidebarPopoverMenu({
       onPointerLeave={() => setEngaged(false)}
       onFocus={() => setEngaged(true)}
       onBlur={(event) => { if (!(event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget))) setEngaged(false); }}
-      style={{ position: "fixed", left: subPosition?.left ?? 0, top: subPosition?.top ?? 0, minWidth: 200, width: "max-content", maxWidth: `min(${MENU_MAX_WIDTH}px, calc(100vw - ${EDGE_MARGIN * 2}px))`, maxHeight: `calc(100vh - ${EDGE_MARGIN * 2}px)`, visibility: subPosition ? undefined : "hidden" }}
-      className={cn(sheetClass, "z-[61] animate-pop-in overflow-y-auto")}
+      style={{ position: "fixed", left: subPosition?.left ?? 0, top: subPosition?.top ?? 0, minWidth: grok ? 160 : 200, width: "max-content", maxWidth: `min(${MENU_MAX_WIDTH}px, calc(100vw - ${EDGE_MARGIN * 2}px))`, maxHeight: `calc(100vh - ${EDGE_MARGIN * 2}px)`, visibility: subPosition ? undefined : "hidden" }}
+      className={cn(sheetClass, "z-[61] overflow-y-auto", !grok && "animate-pop-in")}
     >
       <MenuRows
+        grok={grok}
         items={openItem.submenu}
         onItem={(item) => {
           item.onSelect();

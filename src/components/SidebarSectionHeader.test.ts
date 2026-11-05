@@ -105,7 +105,7 @@ describe("SidebarSectionHeader as a Simple-mode line", () => {
     expect(html).toMatch(/text-\[13px\][^"]*text-ink-secondary/);
     expect(html).not.toContain("bg-hairline");
     expect(html).toContain('aria-label="Actions for Work department" title="Actions for Work department" aria-haspopup="menu" aria-expanded="false"');
-    expect(html).toMatch(/aria-label="Actions for Work department"[^>]*class="absolute [^"]*\bpointer-events-none\b[^"]*\bopacity-0\b[^"]*\bgroup-has-\[:focus-visible\]\/section:opacity-100\b[^"]*\baria-expanded:opacity-100\b[^"]*\btouch:opacity-100\b/);
+    expect(html).toMatch(/aria-label="Actions for Work department"[^>]*class="absolute [^"]*\bpointer-events-none\b[^"]*\bopacity-0\b[^"]*\bgroup-has-\[:focus-visible\]\/section:opacity-100\b[^"]*\btouch:opacity-100\b/);
     expect(html).not.toMatch(/aria-label="Actions for Work department"[^>]*class="[^"]*\bgroup-hover\//);
     expect(html).not.toContain("Delete Work department");
     expect(html).not.toContain("lucide-grip-vertical");

@@ -65,13 +65,13 @@ describe("sidebar header", () => {
     expect(html).not.toMatch(collapse);
   });
 
-  it.each(["comfortable", "icons"] as const)("keeps the Inbox and add, no activity menu and no collapse button in Simple mode at %s density: its edge is dragged instead", (density) => {
+  it.each(["comfortable", "icons"] as const)("keeps add, no activity menu and no collapse button in Simple mode at %s density: its edge is dragged instead; the open list drops the Inbox, as grok has none", (density) => {
     fixture.advanced = false;
     fixture.density = density;
     const html = render();
-    expect(html).toContain('aria-label="Inbox"');
+    expect(html.includes('aria-label="Inbox"')).toBe(density === "icons");
     expect(html).not.toContain('aria-label="Active Threads"');
-    expect(html).toContain('aria-label="New or share"');
+    expect(html).toContain(density === "icons" ? 'aria-label="New or share"' : 'aria-label="New Bot"');
     expect(html).not.toMatch(collapse);
     expect(html, "the edge that is dragged, open or as avatars, so the avatars are never a dead end").toMatch(/role="separator" aria-label="Resize sidebar"/);
   });
@@ -85,7 +85,7 @@ describe("sidebar top row", () => {
   });
   const topRow = (html: string) => {
     const start = html.indexOf("data-sidebar-top-row");
-    const end = html.indexOf('aria-label="New or share"');
+    const end = html.includes('aria-label="New or share"') ? html.indexOf('aria-label="New or share"') : html.indexOf('aria-label="New Bot"');
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
     return html.slice(start, end);
@@ -147,7 +147,7 @@ describe("sidebar top row", () => {
     expect(buttons).toBeGreaterThan(slot);
     expect(classesOf(row, "data-sidebar-top-buttons")).toEqual(expect.arrayContaining(["shrink-0", "pointer-events-auto"]));
     expect(row.slice(buttons).match(/<button/g)).toHaveLength(2);
-    expect(row).toMatch(/data-sidebar-search-toggle="true" aria-label="Search bots and messages" aria-expanded="false" title="Search bots and messages" class="[^"]*\bsize-\[26px\][^"]*\brounded-lg\b[^"]*\btext-ink-secondary\b/);
+    expect(row).toMatch(/data-sidebar-search-toggle="true" aria-label="Search" aria-expanded="false" title="Search" class="[^"]*\bsize-\[26px\][^"]*\brounded-lg\b[^"]*\btext-ink-secondary\b/);
     expect(row, "no round box round either").not.toContain("bg-composer");
     expect(html).toMatch(/aria-label="New or share" class="[^"]*\bsize-\[26px\][^"]*\brounded-lg\b/);
     expect(html).not.toContain("data-sidebar-edge-toggle");
@@ -352,7 +352,7 @@ describe("sidebar head and foot", () => {
 });
 
 describe("sidebar foot in Simple mode", () => {
-  it("puts the account avatar then the Connect apps pill in the foot, with Automations and Team map in the account menu", () => {
+  it("puts grok's foot in Simple: the avatar and name, then the round apps grid, with no Automations or Team map rows", () => {
     fixture.advanced = false;
     const html = render();
     const foot = html.slice(html.indexOf('data-glass-bar="bottom"'));
@@ -362,8 +362,9 @@ describe("sidebar foot in Simple mode", () => {
     expect(html.match(/data-sidebar-nav="apps"/g)).toHaveLength(1);
     expect(foot.indexOf("data-sidebar-account")).toBeGreaterThan(-1);
     expect(foot.indexOf("data-sidebar-account")).toBeLessThan(foot.indexOf('data-sidebar-nav="apps"'));
-    expect(foot).toMatch(/data-tour="nav-apps" data-sidebar-nav="apps"[^>]*>(<[^>]*>)*Connect apps</);
-    expect(foot.match(/data-app-face="/g)).toHaveLength(3);
+    expect(foot).toMatch(/data-tour="nav-apps" data-sidebar-nav="apps"[^>]*aria-label="Connect apps"[^>]*>(<[^>]*>)*<i[^>]*data-icon-name="grid-plus"/);
+    expect(foot).toContain("data-sidebar-account-name");
+    expect(foot).not.toContain("data-app-face=");
   });
 
   it("keeps one Automations row in the foot and no Routines row in Advanced mode, and still one Apps", () => {

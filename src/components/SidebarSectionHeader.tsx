@@ -94,16 +94,15 @@ export function SidebarSectionHeader({
         draggable={reorderable || undefined}
         onDragStart={reorderable ? onDragStart : undefined}
         onDragEnd={reorderable ? onDragEnd : undefined}
-        className={cn("group/section relative flex h-[30px] shrink-0 items-center gap-1.5 rounded-[6px] px-2 pb-1.5 pt-2 hover:bg-[color-mix(in_srgb,var(--color-raised)_75%,var(--color-panel))]", reorderable && "cursor-grab", dragging && "opacity-40", naming && "py-0.5", dropMark)}
+        className={cn("group/section relative flex h-[30px] shrink-0 items-center gap-1.5 rounded-[6px] px-2 pb-1.5 pt-2", !naming && "hover:bg-[color-mix(in_srgb,var(--color-raised)_75%,var(--color-panel))]", reorderable && "cursor-grab", dragging && "opacity-40", dropMark)}
       >
-        {naming ? <SectionNameField {...naming} /> : onToggle ? (
+        {naming ? <SectionNameField {...naming} line /> : onToggle ? (
           <button
             type="button"
             onClick={onToggle}
             onKeyDown={onHeaderKeyDown}
             aria-expanded={!collapsed}
             aria-keyshortcuts={reorderable ? "Alt+ArrowUp Alt+ArrowDown" : undefined}
-            title={toggleTitle}
             className="flex min-w-0 flex-1 items-center gap-1.5 rounded text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
           >
             <span className="min-w-0 flex-1 truncate text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{name}</span>
@@ -126,7 +125,7 @@ export function SidebarSectionHeader({
             aria-expanded={menuOpen}
             onClick={(event) => onMenu(event.currentTarget)}
             // out of the line's flow and shown for the keyboard or an open menu only: the line itself matches grok's
-            className="absolute inset-y-0 right-1 my-auto flex h-[18px] w-[22px] shrink-0 items-center justify-center rounded-[5px] bg-[color-mix(in_srgb,var(--color-raised)_75%,var(--color-panel))] pointer-events-none text-ink-tertiary opacity-0 transition-opacity hover:bg-raised hover:text-ink focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus group-has-[:focus-visible]/section:pointer-events-auto group-has-[:focus-visible]/section:opacity-100 aria-expanded:pointer-events-auto aria-expanded:bg-raised aria-expanded:text-ink aria-expanded:opacity-100 touch:pointer-events-auto touch:static touch:bg-transparent touch:opacity-100"
+            className="absolute inset-y-0 right-1 my-auto flex h-[18px] w-[22px] shrink-0 items-center justify-center rounded-[5px] bg-[color-mix(in_srgb,var(--color-raised)_75%,var(--color-panel))] pointer-events-none text-ink-tertiary opacity-0 transition-opacity hover:bg-raised hover:text-ink focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus group-has-[:focus-visible]/section:pointer-events-auto group-has-[:focus-visible]/section:opacity-100 touch:pointer-events-auto touch:static touch:bg-transparent touch:opacity-100"
           >
             <MoreHorizontal size={15} aria-hidden="true" />
           </button>
@@ -191,7 +190,7 @@ export function SidebarSectionHeader({
   );
 }
 
-function SectionNameField({ value, label, onCommit, onCancel }: SectionNaming) {
+function SectionNameField({ value, label, onCommit, onCancel, line = false }: SectionNaming & { line?: boolean }) {
   const [draft, setDraft] = useState(value);
   const field = useRef<HTMLInputElement>(null);
   const settled = useRef(false);
@@ -225,7 +224,9 @@ function SectionNameField({ value, label, onCommit, onCancel }: SectionNaming) {
           settle(false);
         }
       }}
-      className="h-6 min-w-0 flex-1 rounded-md bg-ink/[0.05] px-1.5 text-[13px] leading-[18px] text-ink outline-none ring-1 ring-accent/60"
+      className={line
+        ? "h-[18px] min-w-0 flex-1 bg-transparent p-0 text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary outline-none"
+        : "h-6 min-w-0 flex-1 rounded-md bg-ink/[0.05] px-1.5 text-[13px] leading-[18px] text-ink outline-none ring-1 ring-accent/60"}
     />
   );
 }

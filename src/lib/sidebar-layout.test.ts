@@ -257,25 +257,26 @@ describe("Simple-mode section order", () => {
   const work = userSectionId("Work");
   const home = userSectionId("Home");
 
-  it("puts Pinned, the bots, group chats and bot threads first, then the departments in their saved order", () => {
+  it("puts Pinned first, the departments in their saved order, then the unassigned bots, group chats and bot threads", () => {
     const natural = [PINNED_SECTION_ID, CHANNELS_SECTION_ID, BOT_CHATS_SECTION_ID, BOTS_SECTION_ID, work];
-    expect(simpleSidebarSections(natural)).toEqual([PINNED_SECTION_ID, BOTS_SECTION_ID, CHANNELS_SECTION_ID, BOT_CHATS_SECTION_ID, work]);
-    expect(simpleSidebarSections([work, CHANNELS_SECTION_ID, BOTS_SECTION_ID])).toEqual([BOTS_SECTION_ID, CHANNELS_SECTION_ID, work]);
+    expect(simpleSidebarSections(natural)).toEqual([PINNED_SECTION_ID, work, BOTS_SECTION_ID, CHANNELS_SECTION_ID, BOT_CHATS_SECTION_ID]);
+    expect(simpleSidebarSections([work, CHANNELS_SECTION_ID, BOTS_SECTION_ID])).toEqual([work, BOTS_SECTION_ID, CHANNELS_SECTION_ID]);
     const saved = orderedSidebarSections([CHANNELS_SECTION_ID, BOTS_SECTION_ID, work, home], [home, CHANNELS_SECTION_ID, BOTS_SECTION_ID, work]);
-    expect(simpleSidebarSections(saved)).toEqual([BOTS_SECTION_ID, CHANNELS_SECTION_ID, home, work]);
+    expect(simpleSidebarSections(saved)).toEqual([home, work, BOTS_SECTION_ID, CHANNELS_SECTION_ID]);
   });
 
   it("keeps that default until a section is moved in Simple, then follows Simple's own saved order", () => {
     const ordered = [PINNED_SECTION_ID, CHANNELS_SECTION_ID, BOTS_SECTION_ID, work, home];
-    expect(simpleOrderedSections(ordered, [])).toEqual([PINNED_SECTION_ID, BOTS_SECTION_ID, CHANNELS_SECTION_ID, work, home]);
+    expect(simpleOrderedSections(ordered, [])).toEqual([PINNED_SECTION_ID, work, home, BOTS_SECTION_ID, CHANNELS_SECTION_ID]);
     const moved = [CHANNELS_SECTION_ID, home, PINNED_SECTION_ID, BOTS_SECTION_ID, work];
     expect(simpleOrderedSections(ordered, moved)).toEqual(moved);
   });
 
   it("can move any section, the bots and group chats included, above the others", () => {
     const shown = simpleOrderedSections([CHANNELS_SECTION_ID, BOTS_SECTION_ID, work], []);
-    expect(moveSection(shown, work, -1)).toEqual([BOTS_SECTION_ID, work, CHANNELS_SECTION_ID]);
-    expect(placeSection(shown, CHANNELS_SECTION_ID, BOTS_SECTION_ID, "before")).toEqual([CHANNELS_SECTION_ID, BOTS_SECTION_ID, work]);
+    expect(shown).toEqual([work, BOTS_SECTION_ID, CHANNELS_SECTION_ID]);
+    expect(moveSection(shown, BOTS_SECTION_ID, -1)).toEqual([BOTS_SECTION_ID, work, CHANNELS_SECTION_ID]);
+    expect(placeSection(shown, CHANNELS_SECTION_ID, work, "before")).toEqual([CHANNELS_SECTION_ID, work, BOTS_SECTION_ID]);
   });
 
   it("slots a department added after a Simple move in beside its neighbours from the default", () => {

@@ -23,7 +23,8 @@ import {
   Zap,
 } from "lucide-react";
 
-import { accountMenuItems, AccountsSheet, cloudRowLabel, useAccounts } from "./AccountMenu";
+import { accountMenuItems, AccountsSheet, cloudRowLabel, useAccounts, type AccountsAccess } from "./AccountMenu";
+import { GrokIcon, type GrokIconName } from "./GrokIcon";
 import { AccountMoveStatus, useAccountMove, type AccountMoveKind } from "./AccountMove";
 import { InitialsAvatar } from "./Avatar";
 import { DiscordIcon } from "./DiscordIcon";
@@ -533,6 +534,38 @@ export function profileMenuItems({
   return groups.flatMap((group, at) => group.map((item, index) => (at > 0 && index === 0 ? { ...item, separatorBefore: true } : item)));
 }
 
+/** Grok's profile menu, word for word: the phone app, Support (help, shortcuts, feedback, about) and Settings, then the
+ * account's Add account and Log out. Everything else the menu once held is in Settings. */
+export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback, onAbout, onSettings, accounts }: {
+  onGetApp: () => void;
+  onHelp: () => void;
+  onShortcuts: () => void;
+  onFeedback: () => void;
+  onAbout: () => void;
+  onSettings: () => void;
+  accounts: Pick<AccountsAccess, "view" | "openSheet" | "signOut" | "add">;
+}): SidebarMenuItem[] {
+  const icon = (name: GrokIconName) => <GrokIcon name={name} size={14} />;
+  const active = accounts.view?.active;
+  const account: SidebarMenuItem[] = active
+    ? [
+      { key: "add-account", label: t("sidebar.grok.addAccount"), icon: icon("person-add"), onSelect: () => accounts.add() },
+      { key: "log-out", label: t("sidebar.grok.logOut"), icon: icon("arrow-bracket-from-left"), onSelect: () => accounts.signOut(active.id) },
+    ]
+    : accounts.openSheet ? [{ key: "accounts-sheet", label: t("accounts.manage"), icon: icon("person"), onSelect: accounts.openSheet }] : [];
+  return [
+    { key: "mobile", label: t("sidebar.grok.getMobile"), icon: icon("device-mobile"), onSelect: onGetApp },
+    { key: "support", label: t("sidebar.grok.support"), icon: icon("book"), onSelect: () => {}, submenu: [
+      { key: "help", label: t("sidebar.menu.help"), icon: icon("question-circle"), onSelect: onHelp },
+      { key: "shortcuts", label: t("sidebar.menu.shortcuts"), icon: icon("keyboard"), onSelect: onShortcuts },
+      { key: "feedback", label: t("sidebar.menu.feedback"), icon: icon("mail"), onSelect: onFeedback },
+      { key: "about", label: t("sidebar.menu.about"), icon: icon("info"), onSelect: onAbout },
+    ] },
+    { key: "settings", label: t("sidebar.menu.settings"), icon: icon("gear"), onSelect: onSettings },
+    ...account.map((item, index) => (index === 0 ? { ...item, separatorBefore: true } : item)),
+  ];
+}
+
 export interface ArchivedBots {
   count: number;
   open: () => void;
@@ -590,7 +623,19 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
   const move = useAccountMove(state.config?.cloudHome === true, { onOpen: openCloudAccount, onPairPhone: () => dispatch(phonePairingSettingsAction()) });
   const accounts = useAccounts();
 
-  const items = profileMenuItems({
+  const grokItems = simple ? grokProfileMenuItems({
+    onGetApp: () => setPhoneAppOpen(true),
+    onHelp: () => void openExternalLink(HELP_CENTER_URL),
+    onShortcuts: () => {
+      triggerRef.current?.closest("button")?.focus();
+      dispatch({ type: "toggleShortcuts", open: true });
+    },
+    onFeedback: () => void openExternalLink(FEEDBACK_URL),
+    onAbout: () => setAboutOpen(true),
+    onSettings: () => dispatch({ type: "toggleAppSettings", open: true, section: "general" }),
+    accounts,
+  }) : null;
+  const items = grokItems ?? profileMenuItems({
     phone: simple
       ? simplePhoneItems({ connected: phone.kind === "connected", onGetApp: () => setPhoneAppOpen(true) })
       : phoneMenuItems({
@@ -641,22 +686,23 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
     <>
       <SidebarPopoverMenu
         items={items}
+        grok={simple}
         ariaLabel={name}
         onOpenChange={simple ? setMenuOpen : undefined}
-        triggerClassName={simple && named ? "group/account flex max-w-full items-center rounded-full pe-1" : iconOnly || simple ? cn("shrink-0", circle || simple ? "rounded-full" : "rounded-xl") : "w-full"}
-        triggerTitle={iconOnly || simple ? label : undefined}
+        triggerClassName={simple && named ? "group/account flex max-w-full items-center rounded-full pe-1 hover:bg-ink/[0.06] aria-expanded:bg-ink/[0.06] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" : iconOnly || simple ? cn("shrink-0", circle || simple ? "rounded-full" : "rounded-xl") : "w-full"}
+        triggerTitle={iconOnly || (simple && !named) ? label : undefined}
         triggerLabel={label}
         triggerTour={account?.place.switchable ? "server-switcher" : undefined}
         renderTrigger={({ open }) => simple ? (<>
           <span
             ref={triggerRef}
             data-sidebar-account=""
-            className={cn("relative flex size-9 items-center justify-center rounded-full ring-2 transition-shadow", open ? "ring-ink/15" : "ring-transparent hover:ring-ink/10")}
+            className={cn("relative flex size-9 items-center justify-center rounded-full", !named && (open ? "bg-ink/[0.06]" : "hover:bg-ink/[0.06]"))}
           >
-            <InitialsAvatar initials={initials} avatarUrl={profile?.avatarUrl} size={36} fallback={nameless} fontSize={14} className="ring-1 ring-inset ring-ink/[0.04]" />
+            <InitialsAvatar initials={initials} avatarUrl={profile?.avatarUrl} size={36} fallback={nameless} fontSize={14} className="bg-ink/[0.08] leading-[14px] tracking-[-0.35px] text-ink-secondary shadow-[inset_0_0_0_1px_rgba(28,28,28,0.08)]" />
             {dot && <span aria-hidden data-account-dot={dot} className={cn("absolute -right-0.5 -top-0.5 size-2.5 rounded-full ring-2 ring-panel", DOT_COLOR[dot])} />}
           </span>
-          {named && <span aria-hidden="true" data-sidebar-account-name="" className="ms-2 min-w-0 truncate text-[14px] font-medium leading-5 tracking-[0.01em] text-ink transition-colors duration-150 group-hover/account:text-ink-secondary">{name}</span>}
+          {named && <span aria-hidden="true" data-sidebar-account-name="" className="ms-2 min-w-0 truncate text-[14px] font-medium leading-5 tracking-[0.01em] text-ink">{name}</span>}
         </>) : iconOnly ? (
           <span
             ref={triggerRef}

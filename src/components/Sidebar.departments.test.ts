@@ -88,7 +88,7 @@ const actions = () => fixture.dispatch.mock.calls.map(([action]) => action as Ac
 
 function transfer() {
   const data = new Map<string, string>();
-  return { types: [] as string[], effectAllowed: "", dropEffect: "", setData(type: string, value: string) { data.set(type, value); this.types.push(type); }, getData: (type: string) => data.get(type) ?? "" };
+  return { types: [] as string[], effectAllowed: "", dropEffect: "", setData(type: string, value: string) { data.set(type, value); this.types.push(type); }, getData: (type: string) => data.get(type) ?? "", setDragImage: vi.fn() };
 }
 let carried = transfer();
 /** The bot rows a section's drop zone finds under it, each 54px tall from `top`. */
@@ -98,7 +98,7 @@ const laidOut = (...ids: string[]) => {
 };
 /** A drag event `offset` pixels into a 54px row. */
 const at = (offset = 27) => ({
-  dataTransfer: carried, clientY: offset, currentTarget: { getBoundingClientRect: () => ({ top: 0, height: 54 }), querySelectorAll: () => rowElements },
+  dataTransfer: carried, clientX: 100, clientY: offset, currentTarget: { getBoundingClientRect: () => ({ top: 0, left: 12, height: 54 }), querySelectorAll: () => rowElements },
   preventDefault: vi.fn(), stopPropagation: vi.fn(),
 });
 function drag(id: string) {
@@ -127,6 +127,7 @@ beforeEach(() => {
   }));
   vi.stubGlobal("document", { body: {}, querySelector: () => null });
   vi.stubGlobal("requestAnimationFrame", () => 0);
+  vi.stubGlobal("Image", class { src = ""; });
   vi.stubGlobal("fetch", async (path: string, init: RequestInit) => {
     fixture.requests.push({ path, method: init.method ?? "GET", body: init.body ? JSON.parse(String(init.body)) : undefined });
     return new Response(JSON.stringify({ sections: ["Clients"], botIds: [] }), { status: 200 });
@@ -141,8 +142,9 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("Simple's sidebar before anyone drags", () => {
   it("looks as it did: the same sections and rows, nothing marked, each row ready to drag", () => {
-    expect(sections()).toEqual([BOTS_SECTION_ID, CHANNELS_SECTION_ID, userSectionId("Work")]);
-    expect(listed()).toEqual(["atlas", "bea", "cleo", "dodo", "echo"]);
+    expect(sections()).toEqual([userSectionId("Work"), BOTS_SECTION_ID, CHANNELS_SECTION_ID]);
+    expect(headers().map((props) => props.name)).toEqual(["Work", "Unassigned", "Group chats"]);
+    expect(listed()).toEqual(["dodo", "echo", "atlas", "bea", "cleo"]);
     for (const props of rows()) {
       expect(props.botDrop).toBeNull();
       expect(props.botDragging).toBe(false);
@@ -157,7 +159,35 @@ describe("Simple's sidebar before anyone drags", () => {
   });
 });
 
-describe("dragging a bot", () => {
+describe("dragging a bot in Simple, as grok does", () => {
+  const pinSlot = () => render().find((node) => node.props["data-bot-pin-slot"] !== undefined);
+  it("lifts it with a slot to pin it, washes the section under it, and drops it at the top of another section", () => {
+    drag("atlas");
+    expect(row("atlas").botDragging).toBe(true);
+    expect(pinSlot()).toBeDefined();
+    section(userSectionId("Work")).onDragOver(at() as never);
+    expect(String((section(userSectionId("Work")) as unknown as { className: string }).className)).toContain("bg-ink/[0.06]");
+    expect(header("Work").dropInto).toBe(false);
+    expect(rows().every((props) => !props.botDrop)).toBe(true);
+    section(userSectionId("Work")).onDrop(at() as never);
+    // atlas already comes before dodo and echo, so its new place at the top saves no new order
+    expect(actions()).toEqual([{ type: "updateBot", botId: "atlas", patch: { section: "Work" } }]);
+    expect(pinSlot()).toBeUndefined();
+  });
+
+  it("leaves it where it was when dropped back on its own section, and pins it in the slot", () => {
+    drag("dodo");
+    section(userSectionId("Work")).onDragOver(at() as never);
+    section(userSectionId("Work")).onDrop(at() as never);
+    expect(actions()).toEqual([]);
+    drag("bea");
+    (pinSlot()!.props.onDrop as (event: unknown) => void)(at());
+    expect(actions()).toEqual([{ type: "updateBot", botId: "bea", patch: { pinned: true } }]);
+  });
+});
+
+describe("dragging a bot in Advanced's list", () => {
+  beforeEach(() => { fixture.advanced = true; });
   it("shows a line where it lands and saves the new order", () => {
     drag("cleo");
     expect(row("cleo").botDragging).toBe(true);
@@ -175,7 +205,7 @@ describe("dragging a bot", () => {
     expect(row("atlas").botDrop).toBe("group");
     row("atlas").botDrag!.row("atlas").onDrop(at() as never);
     expect(actions()).toEqual([]);
-    expect(sections()).toEqual([BOTS_SECTION_ID, CHANNELS_SECTION_ID, userSectionId("Work"), userSectionId(NEW_DEPARTMENT)]);
+    expect(sections()).toEqual([CHANNELS_SECTION_ID, BOTS_SECTION_ID, userSectionId("Work"), userSectionId(NEW_DEPARTMENT)]);
     const naming = header(NEW_DEPARTMENT).naming!;
     expect(naming.value).toBe("New department");
     expect(naming.label).toBe("New department name");
@@ -257,7 +287,7 @@ describe("dragging a bot", () => {
     fixture.state = { ...fixture.state, bots: fixture.state.bots.map((candidate) => ({ ...candidate, section: "Work" })) };
     expect(sections()).not.toContain(BOTS_SECTION_ID);
     drag("dodo");
-    expect(sections()[0]).toBe(BOTS_SECTION_ID);
+    expect(sections()).toContain(BOTS_SECTION_ID);
     section(BOTS_SECTION_ID).onDragOver(at() as never);
     expect(render().some((node) => node.props["data-bot-drop-slot"] !== undefined)).toBe(true);
     section(BOTS_SECTION_ID).onDrop(at() as never);
@@ -285,12 +315,6 @@ describe("dragging a bot", () => {
     expect(actions()).toEqual([]);
   });
 
-  it("works the same in Advanced, where the bots' list has a heading", () => {
-    fixture.advanced = true;
-    drag("dodo");
-    row("atlas").botDrag!.row("atlas").onDrop(at() as never);
-    expect(header(NEW_DEPARTMENT).naming!.value).toBe("New department");
-  });
 });
 
 describe("bots that are working or waiting on the person", () => {
@@ -302,20 +326,21 @@ describe("bots that are working or waiting on the person", () => {
     busy("cleo", { busy: true });
     busy("bea", { activity: "waiting-on-you" });
     busy("echo", { busy: true });
-    expect(listed()).toEqual(["bea", "cleo", "atlas", "echo", "dodo"]);
+    expect(listed()).toEqual(["echo", "dodo", "bea", "cleo", "atlas"]);
     busy("cleo", { busy: false });
     busy("bea", { activity: "idle" });
     busy("echo", { busy: false });
-    expect(listed()).toEqual(["atlas", "bea", "cleo", "dodo", "echo"]);
+    expect(listed()).toEqual(["dodo", "echo", "atlas", "bea", "cleo"]);
   });
 
   it("count a working thread, but not a wait on a teammate", () => {
     busy("cleo", { tasks: [{ threadId: "c1", title: "Run", createdAt: 1, busy: true } as Task] });
     busy("bea", { waitingForTeammates: true });
-    expect(listed()).toEqual(["cleo", "atlas", "bea", "dodo", "echo"]);
+    expect(listed()).toEqual(["dodo", "echo", "cleo", "atlas", "bea"]);
   });
 
   it("never store the shown order: Alt+Up/Down and drops use the person's own order", () => {
+    fixture.advanced = true;
     busy("cleo", { busy: true });
     row("atlas").botDrag!.step("atlas", 1);
     expect(actions()).toEqual([{ type: "botsOrdered", botIds: ["bea", "atlas", "cleo"] }]);
@@ -332,7 +357,7 @@ describe("who may drag a bot: whoever the bot menu offers Move to department", (
   it("gives a Team Cloud member without the admin scope no row to drag and no Alt+Up/Down, and starts no drag", () => {
     const drawnEarlier = row("atlas").botDrag!;
     fixture.admin = false;
-    expect(listed()).toEqual(["atlas", "bea", "cleo", "dodo", "echo"]);
+    expect(listed()).toEqual(["dodo", "echo", "atlas", "bea", "cleo"]);
     expect(rows().map((props) => props.botDrag)).toEqual([undefined, undefined, undefined, undefined, undefined]);
     carried = transfer();
     drawnEarlier.row("atlas").onDragStart(at() as never);
@@ -355,31 +380,40 @@ describe("who may drag a bot: whoever the bot menu offers Move to department", (
     for (const props of rows()) expect(props.botDrag!.row(props.bot.id).draggable).toBe(true);
     drag("atlas");
     section(userSectionId("Work")).onDrop(at() as never);
-    expect(actions()).toEqual([{ type: "updateBot", botId: "atlas", patch: { section: "Work" } }, { type: "botsOrdered", botIds: ["dodo", "echo", "atlas"] }]);
+    expect(actions()).toEqual([{ type: "updateBot", botId: "atlas", patch: { section: "Work" } }]);
   });
 });
 
 describe("a department's menu in Simple", () => {
+  const words = (node: ReactElement<Props>) => Children.toArray(node.props.children).filter((part) => typeof part === "string").join("");
   const openMenu = (name: string) => {
-    const button = { getBoundingClientRect: () => ({ right: 280, bottom: 300 }), focus: vi.fn(), isConnected: true } as unknown as HTMLButtonElement;
+    const button = { getBoundingClientRect: () => ({ left: 20, right: 280, bottom: 300 }), focus: vi.fn(), isConnected: true } as unknown as HTMLButtonElement;
     header(name).onMenu!(button);
-    return render().find((node) => node.type === TeamMenuItems)!.props as unknown as Parameters<typeof TeamMenuItems>[0];
+    const items = render().filter((node) => node.props.role === "menuitem");
+    return Object.fromEntries(items.map((node) => [words(node), node.props as { onClick: () => void; disabled?: boolean }]));
   };
 
+  it("is grok's: Rename, Move up, Move down and Delete; Unassigned only moves", () => {
+    expect(Object.keys(openMenu("Work"))).toEqual(["Rename", "Move up", "Move down", "Delete"]);
+    expect(openMenu("Work")["Move up"]!.disabled).toBe(true);
+    fixture.values = [];
+    expect(Object.keys(openMenu("Unassigned"))).toEqual(["Move up", "Move down"]);
+  });
+
   it("renames it in place", async () => {
-    openMenu("Work").onRename();
+    openMenu("Work")["Rename"]!.onClick();
     expect(render().some((node) => node.type === TeamDialog)).toBe(false);
     const naming = header("Work").naming!;
-    expect([naming.value, naming.label]).toEqual(["Work", "Rename Work department"]);
+    expect([naming.value, naming.label]).toEqual(["Work", "Rename section"]);
     naming.onCommit("Clients");
     await vi.waitFor(() => expect(actions()).toEqual([{ type: "sections", sections: ["Clients"] }]));
     expect(fixture.requests).toEqual([{ path: "/api/sidebar-sections?section=Work", method: "PATCH", body: { name: "Clients" } }]);
   });
 
   it("deletes it saying the bots stay, out of any department", () => {
-    openMenu("Work").onDelete();
+    openMenu("Work")["Delete"]!.onClick();
     const dialog = render().find((node) => node.type === ConfirmDialog && node.props.open === true)!;
-    expect(dialog.props.body).toBe("Its bots and group chats stay, with their conversations, outside any department. The department and its shared instructions are deleted. This cannot be undone.");
+    expect([dialog.props.title, dialog.props.body, dialog.props.confirmLabel]).toEqual(["Delete \u201cWork\u201d", "Its Bots move to Unassigned. No Bots are deleted.", "Delete"]);
   });
 
   it("keeps Advanced's rename dialog", () => {
@@ -406,30 +440,34 @@ describe("a bot's menu in Simple", () => {
     (move.props.onClick as (event: { detail: number }) => void)({ detail: 1 });
     fixture.index = 0;
     const flyout = nodes(BotContextMenu(props)).find((node) => node.props["data-bot-menu-flyout"] === "move")!;
-    return nodes(flyout.props.children).filter((node) => node.props.role === "menuitem");
+    return nodes(flyout.props.children).filter((node) => String(node.props.role).startsWith("menuitem"));
   };
   const label = (node: ReactElement<Props>) => nodes(node.props.children).length
     ? Children.toArray(node.props.children).filter((part) => typeof part === "string").join("") : String(node.props.children);
 
-  it("moves it to a department, a new one or out of one, from Move to department", () => {
+  it("moves it to a section, out to Unassigned, or into a new one, from grok's Move to", () => {
     fixture.state = { ...fixture.state, sections: ["Work", "Home"] };
     const props = menuProps("dodo");
     const items = open(props);
-    expect(items.map(label)).toEqual(["Work", "Home", "New department…", "Remove from department"]);
-    expect(items[0]!.props.disabled).toBe(true);
+    expect(items.map(label)).toEqual(["Work", "Home", "Unassigned", "Create section"]);
+    expect(items.map((item) => item.props["aria-checked"])).toEqual([true, false, false, undefined]);
     (items[1]!.props.onClick as () => void)();
-    (items[3]!.props.onClick as () => void)();
+    (items[2]!.props.onClick as () => void)();
     expect(actions()).toEqual([
       { type: "updateBot", botId: "dodo", patch: { section: "Home" } },
       { type: "updateBot", botId: "dodo", patch: { section: "" } },
     ]);
-    (items[2]!.props.onClick as () => void)();
+    (items[3]!.props.onClick as () => void)();
     expect(props.onNewSection).toHaveBeenCalledWith("dodo");
   });
 
-  it("offers only New department… to a bot in none, when there are no departments yet", () => {
+  it("offers Move to new section, with no flyout, while there are no sections", () => {
     fixture.state = { ...fixture.state, sections: [], bots: [bot("atlas"), bot("bea")] };
-    expect(open(menuProps("atlas")).map(label)).toEqual(["New department…"]);
+    const props = menuProps("atlas");
+    fixture.index = 0;
+    const item = nodes(BotContextMenu(props)).find((node) => node.props.role === "menuitem" && label(node) === "Move to new section")!;
+    (item.props.onClick as () => void)();
+    expect(props.onNewSection).toHaveBeenCalledWith("atlas");
   });
 });
 

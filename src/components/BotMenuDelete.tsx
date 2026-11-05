@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
@@ -7,10 +7,11 @@ import { currentTaskBot, useStore, type Action, type Bot } from "@/state/store";
 import { bulkDeleteBody, bulkDeleteOutcome, deleteThreadsInBulk } from "./BulkSelectBar";
 import { ConfirmDialog } from "./ConfirmDialog";
 
-export function BotDeleteMenuItem({ deleting, onClick, className = "flex w-full items-center gap-3 px-3.5 py-2 text-left text-[14px]" }: { deleting: boolean; onClick: () => void; className?: string }) {
+export function BotDeleteMenuItem({ deleting, onClick, className = "flex w-full items-center gap-3 px-3.5 py-2 text-left text-[14px]", icon, label }: { deleting: boolean; onClick: () => void; className?: string; icon?: ReactNode; label?: string }) {
   return (
     <button
       type="button"
+      role="menuitem"
       disabled={deleting}
       aria-busy={deleting || undefined}
       onClick={onClick}
@@ -21,8 +22,8 @@ export function BotDeleteMenuItem({ deleting, onClick, className = "flex w-full 
         deleting ? "cursor-default opacity-40" : "hover:bg-menu-hover",
       )}
     >
-      {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-      {deleting ? t("sidebar.bot.deleteChecking") : t("common.delete")}
+      {deleting ? <Loader2 size={16} className="animate-spin" /> : icon ?? <Trash2 size={16} />}
+      {deleting ? t("sidebar.bot.deleteChecking") : label ?? t("common.delete")}
     </button>
   );
 }

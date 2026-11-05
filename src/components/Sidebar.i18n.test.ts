@@ -48,8 +48,8 @@ describe("sidebar rows", () => {
     setLocale("pt-br");
     const markup = renderRow(bot({ chiefOfStaff: true, busy: true }));
 
-    expect(markup).toContain("Chefe de gabinete");
-    expect(markup).toContain(`>${t("chat.activity.thinking")}</span>`);
+    expect(markup).toContain(`<span class="sr-only">${t("chat.activity.working")}</span>`);
+    expect(t("chat.activity.working")).not.toBe("Working");
     expect(markup).not.toContain("Chief of Staff");
 
     setLocale("ja");

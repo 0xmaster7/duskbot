@@ -1,4 +1,6 @@
-import { useRef, useState, type Dispatch, type DragEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type Dispatch, type DragEvent } from "react";
+import { createPortal } from "react-dom";
+import { BotAvatar } from "./Avatar";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { nextRename } from "@/lib/rename";
@@ -9,6 +11,7 @@ import { moveBotsToSection, renameDepartment, saveBotOrder, useMayMoveBots } fro
 
 /** The department being named, before it exists. The server trims names and never keeps a control character. */
 export const NEW_DEPARTMENT = "\u0000new";
+const PIN_LIST = "\u0000pin";
 
 type DropHandlers = { onDragOver: (event: DragEvent<HTMLElement>) => void; onDrop: (event: DragEvent<HTMLElement>) => void };
 
@@ -26,8 +29,64 @@ type Arranged = { enabled: boolean; lists: Map<string, string[]>; bots: Bot[]; t
 const carries = (event: DragEvent<HTMLElement>) => event.dataTransfer.types.includes(BOT_ROW_DRAG_TYPE);
 const failure = (cause: unknown) => (cause instanceof Error ? cause.message : String(cause));
 
-export function botRowDropClass(drop: BotDropPlace | null | undefined, dragging: boolean | undefined): string {
-  return cn(dragging && "opacity-40", drop === "group" && "rounded-[10px] bg-accent/10 outline outline-2 -outline-offset-2 outline-accent/70");
+export function botRowDropClass(drop: BotDropPlace | null | undefined, dragging: boolean | undefined, simple = false): string {
+  return cn(dragging && (simple ? "opacity-50" : "opacity-40"), drop === "group" && "rounded-[10px] bg-accent/10 outline outline-2 -outline-offset-2 outline-accent/70");
+}
+
+type Lift = { botId: string; left: number; top: number; x: number; y: number };
+
+const TILE = { width: 80, height: 90 };
+/** grok holds the lifted tile centred on the pointer */
+const tileAt = (x: number, y: number) => `translate3d(${x - TILE.width / 2}px, ${y - TILE.height / 2}px, 0)`;
+
+let blankImage: HTMLImageElement | null = null;
+/** Chrome draws a native drag image unless it is handed an empty one; the tile below is drawn instead. */
+function hideNativeDragImage(event: DragEvent<HTMLElement>) {
+  blankImage ??= Object.assign(new Image(), { src: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" });
+  event.dataTransfer.setDragImage(blankImage, 0, 0);
+}
+
+const DROP_BACK = "transform 300ms cubic-bezier(.25,1.15,.4,1)";
+
+/** Grok's lifted bot: an 80px tile, its avatar and name on a 90% white card, scaled 1.04, that follows the pointer and
+ * springs back to its row when the drag is called off. */
+function BotDragTile({ lift, bot, returning, onReturned }: { lift: Lift; bot: Bot; returning: boolean; onReturned: () => void }) {
+  const tile = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (returning) return;
+    let frame = 0;
+    const follow = (event: { clientX: number; clientY: number }) => {
+      if (event.clientX === 0 && event.clientY === 0) return;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (tile.current) tile.current.style.transform = tileAt(event.clientX, event.clientY);
+      });
+    };
+    document.addEventListener("dragover", follow);
+    return () => { cancelAnimationFrame(frame); document.removeEventListener("dragover", follow); };
+  }, [lift, returning]);
+  useEffect(() => {
+    if (!returning) return;
+    const element = tile.current;
+    if (!element || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return onReturned();
+    element.style.transition = DROP_BACK;
+    element.style.transform = `translate3d(${lift.left}px, ${lift.top}px, 0)`;
+    const timer = window.setTimeout(onReturned, 300);
+    return () => window.clearTimeout(timer);
+  }, [returning, onReturned, lift]);
+  const style: CSSProperties = { left: 0, top: 0, transform: tileAt(lift.x, lift.y) };
+  return createPortal(
+    <div ref={tile} aria-hidden="true" data-bot-drag-tile="" className="pointer-events-none fixed z-[999] w-20" style={style}>
+      <div className="relative scale-[1.04]">
+        <div className="absolute inset-0 rounded-xl bg-composer opacity-90 shadow-(--shadow-popover)" />
+        <div className="relative flex flex-col items-center gap-1 px-2 py-1">
+          <BotAvatar bot={bot} size={60} animated={false} trackPointer={false} />
+          <span className="w-full truncate text-center text-[12px] font-medium leading-[18px] tracking-[0.01em] text-ink">{bot.name}</span>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
 }
 
 export function BotDropLine({ place }: { place: BotDropPlace | null | undefined }) {
@@ -37,7 +96,9 @@ export function BotDropLine({ place }: { place: BotDropPlace | null | undefined 
 
 /** Dragging bots between the rows outside any department and each department's, onto a bot to start a department,
  * Alt+Up/Down, and the name field a new or renamed department shows in its heading. */
-export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onError, onCancelled }: {
+export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onError, onCancelled, simple = false }: {
+  /** grok's drag: a lifted tile, a section takes the bot as a whole, and a slot at the top pins it */
+  simple?: boolean;
   dispatch: Dispatch<Action>;
   announce: (text: string) => void;
   onNamed: (name: string) => void;
@@ -48,6 +109,11 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
   const [dragging, setDragging] = useState<string | null>(null);
   const [drop, setDrop] = useState<BotDrop | null>(null);
   const [naming, setNaming] = useState<Naming | null>(null);
+  const [lift, setLift] = useState<Lift | null>(null);
+  const [returning, setReturning] = useState(false);
+  const dropped = useRef(false);
+  const grok = useRef(simple);
+  grok.current = simple;
   const mayMove = useMayMoveBots();
   const latest = useRef<Arranged>({ enabled: false, lists: new Map(), bots: [], taken: [] });
   const moving = useRef<{ botId: string | null; drop: BotDrop | null }>({ botId: null, drop: null });
@@ -64,8 +130,11 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
     moving.current = { botId: null, drop: null };
     setDragging(null);
     setDrop(null);
+    if (dropped.current) setLift(null);
+    else setReturning(true);
+    dropped.current = false;
   };
-  const startNew = (botIds: string[]) => setNaming({ kind: "new", botIds, name: unusedName(t("sidebar.section.newName"), latest.current.taken) });
+  const startNew = (botIds: string[]) => setNaming({ kind: "new", botIds, name: unusedName(t(grok.current ? "sidebar.grok.newSection" : "sidebar.section.newName"), latest.current.taken) });
   const apply = (botId: string, move: BotMove, keyboard: boolean) => {
     if (move.kind === "group") return startNew(move.botIds);
     const { lists, bots } = latest.current;
@@ -78,6 +147,7 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
   };
   const finish = (target: BotDrop | null) => {
     const botId = moving.current.botId;
+    dropped.current = true;
     end();
     const move = botId && target && latest.current.enabled ? planBotDrop(latest.current.lists, botId, target) : null;
     if (botId && move) apply(botId, move, false);
@@ -97,17 +167,24 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
         event.dataTransfer.setData(BOT_ROW_DRAG_TYPE, botId);
         moving.current = { botId, drop: null };
         setDragging(botId);
+        if (grok.current) {
+          hideNativeDragImage(event);
+          const box = event.currentTarget.getBoundingClientRect();
+          dropped.current = false;
+          setReturning(false);
+          setLift({ botId, left: box.left, top: box.top, x: event.clientX, y: event.clientY });
+        }
       },
-      onDragEnd: end,
+      onDragEnd: () => { if (moving.current.botId) end(); },
       onDragOver: (event) => {
-        if (!carries(event) || !moving.current.botId) return;
+        if (grok.current || !carries(event) || !moving.current.botId) return;
         event.preventDefault();
         event.stopPropagation();
         event.dataTransfer.dropEffect = "move";
         show(botId === moving.current.botId ? null : rowDrop(event, botId));
       },
       onDrop: (event) => {
-        if (!carries(event)) return;
+        if (grok.current || !carries(event)) return;
         event.preventDefault();
         event.stopPropagation();
         finish(botId === moving.current.botId ? null : rowDrop(event, botId));
@@ -131,7 +208,9 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
     if (to) renameDepartment(dispatch, current.section, to).then(() => onRenamed(current.section, to), (cause) => onError(failure(cause)));
   };
 
+  const lifted = lift ? latest.current.bots.find((bot) => bot.id === lift.botId) : undefined;
   return {
+    overlay: lift && lifted ? <BotDragTile lift={lift} bot={lifted} returning={returning} onReturned={() => { setLift(null); setReturning(false); }} /> : null,
     pending: naming?.kind === "new" ? [NEW_DEPARTMENT] : [],
     preview: <T extends Bot>(bots: T[]): T[] => naming?.kind === "new" ? bots.map((bot) => (naming.botIds.includes(bot.id) ? { ...bot, section: NEW_DEPARTMENT } : bot)) : bots,
     startNew: (botIds: string[]) => startNew(botIds),
@@ -156,14 +235,43 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
         const row = rows.find(({ box }) => event.clientY < box.bottom) ?? rows.at(-1)!;
         return { kind: "row", botId: row.botId, place: event.clientY < row.box.top + row.box.height / 2 ? "before" : "after" };
       };
+      const grokDrop = (list: string): BotDrop => ({ kind: "end", list });
+      const pinning = active !== null && simple && !bots.find((bot) => bot.id === active)?.pinned;
+      const pinOver = shown?.kind === "end" && shown.list === PIN_LIST;
       return {
+        /** the section a lifted bot would go into, washed grey as grok does */
+        over: (sectionId: string) => simple && shown?.kind === "end" && shown.list !== PIN_LIST && shown.list === listFor(sectionId),
+        pinSlot: pinning ? (
+          <div className="pb-0.5">
+            <div data-bot-pin-slot="" className={cn("flex h-[104px] items-center justify-center rounded-xl border border-dashed text-[14px] leading-5 tracking-[0.01em] text-ink-secondary", pinOver ? "border-ink/40 bg-ink/[0.06]" : "border-ink/[0.24]")}
+              onDragOver={(event) => {
+                if (!carries(event) || !moving.current.botId) return;
+                event.preventDefault();
+                event.stopPropagation();
+                event.dataTransfer.dropEffect = "move";
+                show({ kind: "end", list: PIN_LIST });
+              }}
+              onDrop={(event) => {
+                if (!carries(event)) return;
+                event.preventDefault();
+                event.stopPropagation();
+                const botId = moving.current.botId;
+                dropped.current = true;
+                end();
+                if (botId) actions.current.dispatch({ type: "updateBot", botId, patch: { pinned: true } });
+              }}>
+              {t("sidebar.grok.dragToPin")}
+            </div>
+          </div>
+        ) : null,
         row: (botId: string): { botDrag?: BotRowDrag; botDrop?: BotDropPlace | null; botDragging?: boolean } => {
           if (!movable || botListOf(lists, botId) === undefined) return {};
+          if (simple) return { botDrag: controller.current!, botDrop: null, botDragging: active === botId };
           const place = shown?.kind === "row" && shown.botId === botId ? shown.place
             : shown?.kind === "end" && shown.list === "" && botId === mainIds.at(-1) ? "after" : null;
           return { botDrag: controller.current!, botDrop: place, botDragging: active === botId };
         },
-        into: (name: string | null) => shown?.kind === "end" && name !== null && name !== "" && shown.list === name,
+        into: (name: string | null) => !simple && shown?.kind === "end" && name !== null && name !== "" && shown.list === name,
         zone: (sectionId: string, fallback: DropHandlers): DropHandlers => ({
           onDragOver: (event) => {
             if (!carries(event)) return fallback.onDragOver(event);
@@ -171,6 +279,7 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
             if (!moving.current.botId || list === null || !lists.has(list)) return show(null);
             event.preventDefault();
             event.dataTransfer.dropEffect = "move";
+            if (simple) return show(grokDrop(list));
             const target = zoneDrop(event, list);
             show(target.kind === "row" && target.botId === moving.current.botId ? null : target);
           },
@@ -178,6 +287,13 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
             if (!carries(event)) return fallback.onDrop(event);
             event.preventDefault();
             const list = listFor(sectionId);
+            // a bot dropped back on its own section stays where it was, as in grok
+            if (simple) {
+              const first = list !== null ? lists.get(list)?.[0] : undefined;
+              const into: BotDrop | null = list === null || !lists.has(list) || botListOf(lists, moving.current.botId ?? "") === list ? null
+                : first ? { kind: "row", botId: first, place: "before" } : { kind: "end", list };
+              return finish(into);
+            }
             finish(list !== null && lists.has(list) ? zoneDrop(event, list) : null);
           },
         }),
@@ -191,7 +307,7 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
           if (value === null) return undefined;
           return {
             value,
-            label: naming.kind === "new" ? t("sidebar.section.newContextAria") : t("team.renameAria", { name }),
+            label: simple ? t("sidebar.grok.renameSection") : naming.kind === "new" ? t("sidebar.section.newContextAria") : t("team.renameAria", { name }),
             onCommit: (draft) => finishNaming(naming, draft),
             onCancel: () => { setNaming(null); onCancelled(); },
           };

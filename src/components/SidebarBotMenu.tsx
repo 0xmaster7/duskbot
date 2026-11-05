@@ -1,12 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Archive, BellDot, Check, CheckCheck, ChevronRight, ClipboardCopy, Copy, Crown, FolderMinus, FolderOpen, FolderPlus, Loader2, MessagesSquare, MoreHorizontal, Pencil, Pin, PinOff, SquarePen, Star, Trash2, Users } from "lucide-react";
+import { Archive, BellDot, CheckCheck, ClipboardCopy, Copy, Crown, FolderOpen, FolderPlus, Loader2, Pencil, Pin, PinOff, SquarePen, Trash2, Users } from "lucide-react";
 import { api, useStore, openBot, type Bot } from "@/state/store";
 import { cn } from "@/lib/cn";
+import { GrokIcon, type GrokIconName } from "./GrokIcon";
 import { useHeldMenuMotion } from "./MenuMotion";
 import { t } from "@/lib/i18n";
 import { copyText } from "@/lib/copy-text";
-import { allThreadRows, BotDeleteMenuItem, useDeleteAllThreads } from "./BotMenuDelete";
+import { BotDeleteMenuItem, useDeleteAllThreads } from "./BotMenuDelete";
 import { HideDefaultBotItem } from "./DefaultBotControls";
 import { navigateThreadMenu } from "./BotProjects";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
@@ -21,10 +22,19 @@ import { useAdvancedMode } from "@/lib/interface-mode";
 import { useMoveToTeam } from "./MoveToTeam";
 import type { MenuState } from "./Sidebar";
 import { departmentNames, moveBotsToSection, useMayMoveBots } from "./bot-sections";
-import { openBotSettings } from "./bot-panel/panel-link";
-import { isArchived } from "./SidebarThreadRow";
 
 type Flyout = "more" | "move";
+
+/** Grok's menu row: an 18px slot holding a 14px glyph, 6px before the label. */
+export const GROK_MENU_ITEM = cn(MENU_ITEM, "gap-1.5");
+
+export function GrokMenuIcon({ name, danger = false }: { name: GrokIconName; danger?: boolean }) {
+  return (
+    <span aria-hidden="true" className={cn("flex size-[18px] shrink-0 items-center justify-center", danger ? "text-danger" : "text-ink/[0.66]")}>
+      <GrokIcon name={name} size={14} />
+    </span>
+  );
+}
 
 export function BotContextMenu({
   menu,
@@ -55,7 +65,7 @@ export function BotContextMenu({
   const flyoutRef = useRef<HTMLDivElement>(null);
   const hoveredRow = useRef<Element | null>(null);
   const [flyout, setFlyout] = useState<Flyout | null>(null);
-  const [moreEngaged, setMoreEngaged] = useState(false);
+  const [, setMoreEngaged] = useState(false);
   const moreIntent = useRef<SubmenuIntent | null>(null);
   moreIntent.current ??= submenuIntent({
     open: (key) => setFlyout(key as Flyout),
@@ -204,25 +214,37 @@ export function BotContextMenu({
       more.openNow(key);
       if (focus) requestAnimationFrame(() => flyoutRef.current?.querySelector<HTMLButtonElement>("button:not([disabled])")?.focus());
     };
-    const copyId = item(<ClipboardCopy size={16} className="text-ink-secondary" />, t("sidebar.copyConversationId"), () => { void copyText(bot.threadId); });
+    const grokItem = (icon: GrokIconName, label: string, onClick?: () => void, opts?: { danger?: boolean; disabled?: boolean; hint?: string; keepOpen?: boolean; checked?: boolean }) => (
+      <button
+        key={label}
+        type="button"
+        role={opts?.checked === undefined ? "menuitem" : "menuitemradio"}
+        aria-checked={opts?.checked}
+        disabled={opts?.disabled}
+        onClick={() => {
+          onClick?.();
+          if (!opts?.keepOpen) onClose();
+        }}
+        title={opts?.hint}
+        className={cn(GROK_MENU_ITEM, opts?.danger ? "text-danger" : "text-ink", opts?.disabled ? "cursor-default opacity-40" : "hover:bg-menu-hover")}
+      >
+        <GrokMenuIcon name={icon} danger={opts?.danger} />
+        {label}
+      </button>
+    );
     const current = bot.section?.trim() ?? "";
     const departments = departmentNames(state);
     const moveItems = [
-      ...departments.map((name) => item(
-        <span className="flex size-4 shrink-0 items-center justify-center">{name === current && <Check size={15} className="text-accent" />}</span>,
-        name, () => moveBotsToSection(dispatch, [bot.id], name), { disabled: name === current },
-      )),
-      ...(departments.length ? [divider("move-new")] : []),
-      ...(onNewSection ? [item(<FolderPlus size={16} className="text-ink-secondary" />, t("sidebar.section.newContext"), () => onNewSection(bot.id))] : []),
-      ...(current ? [item(<FolderMinus size={16} className="text-ink-secondary" />, t("sidebar.section.removeFromDepartment"), () => moveBotsToSection(dispatch, [bot.id], ""))] : []),
+      ...departments.map((name) => grokItem(name === current ? "check" : "folder", name, () => moveBotsToSection(dispatch, [bot.id], name), { checked: name === current })),
+      grokItem(current === "" ? "check" : "folder", t("sidebar.grok.unassigned"), () => moveBotsToSection(dispatch, [bot.id], ""), { checked: current === "" }),
+      ...(onNewSection ? [divider("move-new"), grokItem("folder-plus", t("sidebar.grok.createSection"), () => onNewSection(bot.id))] : []),
     ];
-    const flyoutButton = (key: Flyout, ref: React.RefObject<HTMLButtonElement | null>, icon: React.ReactNode, label: string) => (
+    const flyoutButton = (key: Flyout, ref: React.RefObject<HTMLButtonElement | null>, icon: GrokIconName, label: string) => (
       <button
         key={key}
         ref={ref}
         type="button"
         role="menuitem"
-        data-bot-menu-more={key === "more" ? "" : undefined}
         data-bot-menu-move={key === "move" ? "" : undefined}
         aria-haspopup="menu"
         aria-expanded={flyout === key}
@@ -232,55 +254,31 @@ export function BotContextMenu({
           event.preventDefault();
           showFlyout(key, true);
         }}
-        className={cn(MENU_ITEM, "text-ink hover:bg-menu-hover", flyout === key && moreEngaged && "bg-menu-active")}
+        className={cn(GROK_MENU_ITEM, "text-ink hover:bg-menu-hover", flyout === key && "bg-menu-hover")}
       >
-        {icon}
+        <GrokMenuIcon name={icon} />
         <span className="flex-1">{label}</span>
-        <ChevronRight size={15} aria-hidden="true" className="text-ink-secondary rtl:-scale-x-100" />
+        <GrokIcon name="chevron-right" size={14} className="ms-2 text-ink/[0.52] rtl:-scale-x-100" />
       </button>
     );
-    const moveToSection = mayMove ? flyoutButton("move", moveRef, <FolderPlus size={16} className="text-ink-secondary" />, t("sidebar.bot.moveToSection")) : null;
-    const rename = onRename && item(<SquarePen size={16} className="text-ink-secondary" />, t("sidebar.bot.rename"), () => onRename(bot.id));
-    const editProfile = item(<Pencil size={16} className="text-ink-secondary" />, t("sidebar.bot.simple.editProfile"), () => {
-      openForSettings();
-      if (!state.settingsOpen) dispatch({ type: "toggleSettings", open: true });
-    });
-    const owner = team && mayChangeOwner(bot, team) ? item(<Users size={16} className="text-ink-secondary" />, ownerMenuLabel(bot, team), () => pickOwnerOf([bot], team, shown)) : null;
-    const deleteAll = !member && allThreadRows(bot).length >= 2 ? [divider("more-threads"), item(<Trash2 size={16} />, t("task.deleteAllConversations"), () => clearThreads.ask(bot.id), { danger: true })] : [];
+    const moveTo = !mayMove ? null : departments.length || current
+      ? flyoutButton("move", moveRef, "folder", t("sidebar.grok.moveTo"))
+      : onNewSection ? grokItem("folder-plus", t("sidebar.grok.moveToNewSection"), () => onNewSection(bot.id)) : null;
+    const rename = onRename && grokItem("pencil-square", t("sidebar.grok.renameBot"), () => onRename(bot.id));
+    const copyId = grokItem("copy", t("sidebar.copyConversationId"), () => { void copyText(bot.threadId); });
     const readState = readingBotId === bot.id || botUnreadThreadIds(bot).length > 0
-      ? item(
-        readingBotId === bot.id ? <Loader2 size={16} className="animate-spin text-ink-secondary" /> : <CheckCheck size={16} className="text-ink-secondary" />,
-        readingBotId === bot.id ? t("sidebar.bot.markingAllRead") : t("sidebar.bot.simple.markRead"),
-        () => { void readAll(bot); },
-        { disabled: readingBotId !== null, keepOpen: true },
-      )
-      : item(<BellDot size={16} className="text-ink-secondary" />, t("sidebar.bot.simple.markUnread"), () => dispatch({ type: "markUnread", botId: bot.id }));
-    const moreItems = remoteClient ? [editProfile, owner, ...deleteAll] : [
-      editProfile,
-      team ? null : chiefItem(),
-      member ? null : item(<Copy size={16} className="text-ink-secondary" />, t("sidebar.bot.duplicate"), () => dispatch({ type: "duplicateBot", botId: bot.id })),
-      owner,
-      ...moveToTeam.items(bot, item),
-      ...deleteAll,
-    ];
-    // Simple view hides the thread list: start one, see them all (the panel's Conversations), and choose the one it opens.
-    const newThread = bot.yourAccess === "view" ? null : item(<SquarePen size={16} className="text-ink-secondary" />, t("task.newShort"), () => dispatch({ type: "newTask", botId: bot.id }));
-    const viewThreads = item(<MessagesSquare size={16} className="text-ink-secondary" />, t("sidebar.bot.simple.viewThreads"), () => {
-      openForSettings();
-      openBotSettings(dispatch, "history", { botId: bot.id, anchor: "conversations" });
-    });
-    const openTask = state.selectedId === bot.id ? bot.tasks?.find((task) => task.threadId === bot.threadId) : undefined;
-    const setMain = remoteClient || admin !== true || !openTask || openTask.routineRunId || openTask.private || isArchived(openTask) ? null : item(
-      <Star size={16} className="text-ink-secondary" />, t("sidebar.bot.simple.setMainThread"),
-      () => dispatch({ type: "updateBot", botId: bot.id, patch: { mainThreadChoice: bot.threadId } }),
-      bot.mainThreadId === bot.threadId ? { disabled: true, hint: t("sidebar.bot.simple.isMainThread") } : undefined,
-    );
-    const threads = [divider("threads"), newThread, viewThreads, setMain];
-    const moreRow = flyoutButton("more", moreRef, <MoreHorizontal size={16} className="text-ink-secondary" />, t("sidebar.bot.more"));
-    const leave = bot.defaultBot ? [<HideDefaultBotItem key="hide" bot={bot} onDone={onClose} className={MENU_ITEM} />] : member ? [] : [
-      item(<Archive size={16} className="text-ink-secondary" />, t("sidebar.bot.archive"), () => onArchive(bot), { disabled: archiveBlocked, hint: archiveHint }),
-      <BotDeleteMenuItem key="delete" deleting={deleting} className={MENU_ITEM} onClick={() => { onClose(); onDelete(bot); }} />,
-    ];
+      ? grokItem("bell", t("sidebar.grok.markRead"), () => { void readAll(bot); }, { disabled: readingBotId !== null, keepOpen: true })
+      : grokItem("bell-dot", t("sidebar.grok.markUnread"), () => dispatch({ type: "markUnread", botId: bot.id }));
+    const hide = bot.defaultBot
+      ? <HideDefaultBotItem key="hide" bot={bot} onDone={onClose} className={GROK_MENU_ITEM} icon={<GrokMenuIcon name="eye-slash" />} />
+      : member ? null : grokItem("eye-slash", t("sidebar.grok.hide"), () => onArchive(bot), { disabled: archiveBlocked, hint: archiveHint });
+    const remove = member ? null : <BotDeleteMenuItem key="delete" deleting={deleting} className={GROK_MENU_ITEM} icon={deleting ? undefined : <GrokMenuIcon name="trash" danger />} label={t("sidebar.grok.delete")} onClick={() => { onClose(); onDelete(bot); }} />;
+    const groups = [
+      [remoteClient ? null : grokItem(bot.pinned ? "pin-slash" : "pin", bot.pinned ? t("sidebar.bot.unpin") : t("sidebar.bot.pin"), () => dispatch({ type: "updateBot", botId: bot.id, patch: { pinned: !bot.pinned } })), moveTo, readState],
+      [rename],
+      [copyId],
+      [hide, remove],
+    ].map((group) => group.filter(Boolean)).filter((group) => group.length > 0);
     return <>{clearThreads.dialog}{moveToTeam.dialog}{createPortal(
       <div
         ref={menuRef}
@@ -306,34 +304,20 @@ export function BotContextMenu({
           more.leaveMenu();
         }}
         style={{ top: shown.y, left: shown.x }}
-        className={cn("fixed z-40 max-h-[calc(100dvh-16px)] w-max min-w-[198px] max-w-[calc(100vw-16px)] overflow-y-auto overscroll-contain", MENU_SHEET, motion.className)} {...motion.exitProps}
+        className={cn("fixed z-40 max-h-[calc(100dvh-16px)] w-max min-w-[200px] max-w-[min(320px,calc(100vw-16px))] overflow-y-auto overscroll-contain", MENU_SHEET, motion.className)} {...motion.exitProps}
       >
-        {remoteClient ? [moveToSection, ...threads, ...(rename ? [divider("rename"), rename] : []), divider("copy"), copyId, moreRow] : [
-          item(
-            bot.pinned ? <PinOff size={16} className="text-ink-secondary" /> : <Pin size={16} className="text-ink-secondary" />,
-            bot.pinned ? t("sidebar.bot.unpin") : t("sidebar.bot.pin"),
-            () => dispatch({ type: "updateBot", botId: bot.id, patch: { pinned: !bot.pinned } }),
-          ),
-          moveToSection,
-          readState,
-          ...threads,
-          ...(rename ? [divider("rename"), rename] : []),
-          divider("copy"),
-          copyId,
-          moreRow,
-          ...(leave.length ? [divider("leave"), ...leave] : []),
-        ]}
+        {groups.flatMap((group, index) => (index > 0 ? [divider(`group-${index}`), ...group] : group))}
         {readError?.botId === bot.id && <p role="alert" className="px-2 py-1.5 text-[12px] text-danger">{readError.message}</p>}
       </div>,
       document.body,
-    )}{flyout && createPortal(
+    )}{flyout === "move" && createPortal(
       <div
         ref={flyoutRef}
         data-bot-menu
         data-bot-menu-flyout={flyout}
         data-sidebar
         role="menu"
-        aria-label={flyout === "more" ? t("sidebar.bot.more") : t("sidebar.bot.moveToSection")}
+        aria-label={t("sidebar.grok.moveTo")}
         onPointerEnter={() => { more.enterSubmenu(); setMoreEngaged(true); }}
         onPointerLeave={() => setMoreEngaged(false)}
         onFocus={() => setMoreEngaged(true)}
@@ -350,9 +334,9 @@ export function BotContextMenu({
           navigateThreadMenu(event);
         }}
         style={{ top: shown.y, left: shown.x }}
-        className={cn("fixed z-40 max-h-[calc(100dvh-16px)] w-max min-w-[180px] max-w-[calc(100vw-16px)] animate-pop-in overflow-y-auto overscroll-contain", MENU_SHEET)}
+        className={cn("fixed z-40 max-h-[calc(100dvh-16px)] w-max min-w-[180px] max-w-[min(320px,calc(100vw-16px))] overflow-y-auto overscroll-contain", MENU_SHEET)}
       >
-        {flyout === "more" ? moreItems : moveItems}
+        {moveItems}
       </div>,
       document.body,
     )}</>;

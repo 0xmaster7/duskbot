@@ -51,14 +51,14 @@ describe("submenuPosition", () => {
   const row = { left: 18, right: 286, top: 520, bottom: 560 };
   const sub = { width: 240, height: 180 };
 
-  it("sits beside the menu on the inline end side, level with its row", () => {
-    expect(submenuPosition(sheet, row, sub, viewport)).toEqual({ left: 296, top: 514 });
-    expect(submenuPosition({ left: 988, right: 1268, top: 434, bottom: 734 }, row, sub, viewport, true)).toEqual({ left: 988 - 4 - 240, top: 514 });
+  it("tucks 10px over the menu's inline end edge, its top on its row's, as grok does", () => {
+    expect(submenuPosition(sheet, row, sub, viewport)).toEqual({ left: 282, top: 520 });
+    expect(submenuPosition({ left: 988, right: 1268, top: 434, bottom: 734 }, row, sub, viewport, true)).toEqual({ left: 988 + 10 - 240, top: 520 });
   });
 
   it("flips to the other side when the window has no room", () => {
     const right = { left: 900, right: 1180, top: 434, bottom: 734 };
-    expect(submenuPosition(right, row, sub, viewport).left).toBe(900 - 4 - 240);
+    expect(submenuPosition(right, row, sub, viewport).left).toBe(900 + 10 - 240);
   });
 });
 

@@ -75,7 +75,7 @@ describe("bot actions menu viewport placement", () => {
     const element = measuredMenu(228, 468);
     const cleanup = layoutEffects();
     expect(element.style).toEqual({ top: "324px", left: "764px" });
-    expect(html).toContain(">Archive</button>");
+    expect(html).toContain(">Hide from sidebar</button>");
     expect(fixture.portal?.target).toBe(document.body);
     expect(html).toContain("data-sidebar");
     expect(listeners.has("resize")).toBe(true);
@@ -91,7 +91,7 @@ describe("bot actions menu viewport placement", () => {
     layoutEffects();
     expect(element.style).toEqual({ top: "8px", left: "8px" });
     expect(html).toContain("max-h-[calc(100dvh-16px)]");
-    expect(html).toContain("max-w-[calc(100vw-16px)]");
+    expect(html).toContain("max-w-[min(320px,calc(100vw-16px))]");
     expect(html).toContain("overflow-y-auto");
     expect(html).toContain("overscroll-contain");
     expect(html).not.toContain("overflow-hidden");

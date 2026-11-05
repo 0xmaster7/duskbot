@@ -41,9 +41,9 @@ function SimpleSidebarFooter({ owner, archived }: { owner: string | null; archiv
       <SidebarPlaceStatus place={place} className="mb-2 px-1" />
       <AccountMoveStatus kind={move.kind} place={move.place} retry={move.retry} onOpen={openAccount} className="ps-1" />
       <div className="flex items-center gap-2 not-first:mt-2">
-        {apps.connected ? <div className="me-auto min-w-0"><SidebarProfileMenu simple={account} named /></div> : <SidebarProfileMenu simple={account} />}
-        <ConnectAppsButton circle={apps.connected} apps={apps} />
+        <div className="me-auto min-w-0"><SidebarProfileMenu simple={account} named /></div>
         <UpdateIndicator className="size-9" />
+        <ConnectAppsButton circle apps={apps} />
       </div>
     </div>
   );

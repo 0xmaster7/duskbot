@@ -36,7 +36,7 @@ describe("the Connect apps faces", () => {
 
   it("is a round 36px apps-grid button on the collapsed rail, named for screen readers", () => {
     const html = renderToStaticMarkup(createElement(SidebarConnectApps, { circle: true }));
-    expect(html).toMatch(/data-tour="nav-apps"[^>]*aria-label="Connect apps" title="Connect apps" class="[^"]*\bsize-9\b[^"]*\brounded-full\b/);
+    expect(html).toMatch(/data-tour="nav-apps"[^>]*aria-label="Connect apps" class="[^"]*\bsize-9\b[^"]*\brounded-full\b/);
     expect(html).toContain('data-icon-name="grid-plus"');
     expect(html).not.toContain("data-app-face");
   });

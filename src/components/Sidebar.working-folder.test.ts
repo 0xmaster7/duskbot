@@ -83,11 +83,11 @@ describe("working folder through the rendered sidebar", () => {
     expect(document.querySelector('[role="dialog"]')).toBeNull();
   });
 
-  it("keeps new-thread folder creation out of Simple mode", () => {
+  it("keeps new-thread folder creation out of Simple mode, whose menu is grok's", () => {
     access.advanced = false;
     render();
     openMenu();
-    expect(menuItem("New thread")).toBeDefined();
+    expect(menuItem("New thread")).toBeUndefined();
     expect(menuItem("New thread in a working folder…")).toBeUndefined();
   });
 });

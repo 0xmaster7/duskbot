@@ -66,8 +66,11 @@ function plusMenu(admin: boolean | null) {
 }
 
 describe("the sidebar's + menu", () => {
-  it("offers a new bot and templates to someone who can make one, and while that isn't known yet", () => {
-    for (const admin of [true, null]) expect(plusMenu(admin)).toEqual(["New bot", "New group chat", "Templates"]);
+  it("is grok's New Bot itself, with no menu, for someone who can make one, and while that isn't known yet", () => {
+    for (const admin of [true, null]) {
+      expect(plusMenu(admin)).toEqual([]);
+      expect(render().some((node) => node.type === "button" && node.props["aria-label"] === "New Bot")).toBe(true);
+    }
   });
 
   it("offers neither to a User, who keeps New group chat", () => {

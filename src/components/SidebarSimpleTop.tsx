@@ -33,9 +33,9 @@ export function SidebarSearchToggle({ open, onToggle, corner = false, ref }: { o
       type="button"
       data-sidebar-search-toggle
       onClick={onToggle}
-      aria-label={t("sidebar.searchAria")}
-      aria-expanded={open}
-      title={t("sidebar.searchAria")}
+      aria-label={t("sidebar.grok.search")}
+      aria-expanded={corner ? open : undefined}
+      title={t("sidebar.grok.search")}
       className={corner ? SIMPLE_CORNER_BUTTON : SIMPLE_TOP_BUTTON}
     >
       {corner ? <Search size={17} strokeWidth={1.5} aria-hidden="true" /> : <GrokIcon name="search" size={16} />}

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { useStore } from "@/state/store";
+import { useStore, type Action } from "@/state/store";
 
 import { loadAppCards } from "./bot-settings/useBotApps";
 import { preloadConnectedApps } from "@/lib/connected-apps";
@@ -65,6 +65,12 @@ function AppFaceIcon({ face, className }: { face: AppFace; className?: string })
 /** The outer logos fan out while the pill is hovered. */
 const FAN = ["motion-safe:group-hover/apps:-translate-x-[3px] motion-safe:group-hover/apps:-rotate-[8deg]", "", "motion-safe:group-hover/apps:translate-x-[3px] motion-safe:group-hover/apps:rotate-[8deg]"];
 
+/** The footer grid's click. Hook: call `openConnectApps()` from ./connect-apps here once that window lands; until then
+ * Settings > Advanced > Apps and Tools, the `openSettings("apps")` action, written out to keep Settings out of this bundle. */
+export function openSidebarApps(dispatch: (action: Action) => void): void {
+  dispatch({ type: "toggleAppSettings", open: true, section: "apps" });
+}
+
 /** `circle` is the collapsed rail's round button. */
 export function SidebarConnectApps({ circle = false }: { circle?: boolean }) {
   return <ConnectAppsButton circle={circle} apps={useSidebarApps()} />;
@@ -79,10 +85,9 @@ export function ConnectAppsButton({ circle, apps: { faces, connected } }: { circ
       type="button"
       data-tour="nav-apps"
       data-sidebar-nav="apps"
-      aria-pressed={state.pluginsOpen}
-      aria-label={circle ? label : undefined}
-      title={circle ? label : undefined}
-      onClick={() => dispatch({ type: "togglePlugins", open: true })}
+      aria-pressed={circle ? undefined : state.pluginsOpen}
+      aria-label={circle ? t("sidebar.connectApps") : undefined}
+      onClick={() => (circle ? openSidebarApps(dispatch) : dispatch({ type: "togglePlugins", open: true }))}
       className={circle ? SIMPLE_TOP_BUTTON : cn("group/apps flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full pl-4 pr-3 text-[14px] font-medium leading-5 text-ink", ELEVATED_CONTROL, ELEVATED_HOVER)}
     >
       {circle ? <GrokIcon name="grid-plus" size={16} /> : <>

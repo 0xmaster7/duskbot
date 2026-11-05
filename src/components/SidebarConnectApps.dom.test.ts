@@ -31,5 +31,5 @@ it("asks to connect apps until one is connected, then is simply the way into App
   expect(await pill({})).toEqual({ label: "Connect apps", faces: ["gmail", "slack", "notion"] });
   expect(await pill({ github: { connected: false } }), "an app that is only listed is not connected").toEqual({ label: "Connect apps", faces: ["gmail", "slack", "notion"] });
   expect(await pill({ github: { connected: true } })).toEqual({ label: "Apps", faces: ["github", "gmail", "slack"] });
-  expect((await pill({ github: { connected: true } }, true)).label, "and on the collapsed rail").toBe("Apps");
+  expect((await pill({ github: { connected: true } }, true)).label, "the footer's grid button keeps grok's name").toBe("Connect apps");
 });
