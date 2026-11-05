@@ -1,4 +1,5 @@
 import { CURSOR_STATES, type CursorState } from "@/components/CursorAvatar";
+import type { MarkState } from "@/components/mascot-motion-mark";
 import { botShowsUnread } from "./bot-unread";
 import { lastNonReceipt } from "./receipts";
 import type { MausColor } from "../../shared/wire";
@@ -6,7 +7,8 @@ import type { LocaleKey } from "@/locales";
 
 export { MAUS_COLOR_NAMES, type MausColor } from "../../shared/wire";
 
-export type MausState = CursorState;
+/** Every state a mark can show: our older names and Grok's (working, streaming, blocked, finished, failed and more). */
+export type MausState = CursorState | MarkState;
 export const MAUS_STATES = CURSOR_STATES;
 
 /** CursorAvatar ships French group labels; these mirror its STATE_GROUPS memberships exactly. */
@@ -59,6 +61,7 @@ export const MAUS_COLORS = {
   yellow: "#D8A729",
   teal: "#01A492",
   coral: "#E5634E",
+  brown: "#a06b39",
   silver: "#A8ADB4",
   chrome: "#B3BAC4",
 } satisfies Record<MausColor, string>;
@@ -66,7 +69,7 @@ export const MAUS_COLORS = {
 export const MAUS_COLOR_LABEL = {
   green: "mascotColor.green", blue: "mascotColor.blue", red: "mascotColor.red", orange: "mascotColor.orange",
   purple: "mascotColor.purple", cyan: "mascotColor.cyan", pink: "mascotColor.pink", yellow: "mascotColor.yellow",
-  teal: "mascotColor.teal", coral: "mascotColor.coral", silver: "mascotColor.silver",
+  teal: "mascotColor.teal", coral: "mascotColor.coral", brown: "mascotColor.brown", silver: "mascotColor.silver",
   chrome: "mascotColor.chrome",
 } as const satisfies Record<MausColor, LocaleKey>;
 
@@ -83,6 +86,7 @@ export const MASCOT_INK = {
   yellow: "#f59312",
   teal: "#13b7a2",
   coral: MAUS_COLORS.coral,
+  brown: "#a06b39",
   silver: "#959595",
   chrome: "var(--color-ink)",
 } satisfies Record<MausColor, string>;
@@ -167,47 +171,14 @@ export type MascotBotProfile = {
   messages?: MascotMessage[];
 };
 
-export function stateForBot(bot: MascotBotProfile): MausState {
-  const pinned = normalizeState(bot.mascotExpression);
-  if (pinned) return pinned;
-
+/** The mark state a bot's avatar shows, Grok's way: busy while a turn runs, blocked while a question waits on the
+ * person, failed after a failed step, and otherwise idle (still), unless the person pinned a resting face. */
+export function stateForBot(bot: MascotBotProfile): MarkState {
   const last = lastNonReceipt(bot.messages);
 
-  if (last?.kind === "activity" && last.tool?.ok === false) return "alerting";
   if (bot.busy) return "working";
+  if (last?.kind === "activity" && last.tool?.ok === false) return "failed";
   if (botShowsUnread(bot)) return "notifying";
-  if (last?.kind === "options") return "curious";
-
-  const profile = `${bot.name} ${bot.title ?? ""} ${bot.description ?? ""}`.toLowerCase();
-  const matches = (words: RegExp) => words.test(profile);
-
-  if (matches(/\b(code|coding|developer|development|engineer|engineering|build|debug|program|software)\b/)) {
-    return "working";
-  }
-  if (matches(/\b(research|researcher|search|investigate|strategy|strategist|study|learn|knowledge)\b/)) {
-    return "searching";
-  }
-  if (matches(/\b(marketing|growth|launch|campaign|social|sales|outreach|brand)\b/)) {
-    return "excited";
-  }
-  if (matches(/\b(overnight|night|background|async|queue|batch|long-running)\b/)) {
-    return "drowsy";
-  }
-  if (matches(/\b(monitor|monitoring|incident|alert|watch|status|uptime)\b/)) {
-    return "radar";
-  }
-  if (matches(/\b(review|reviewer|audit|critic|critique|quality|qa|test|legal)\b/)) {
-    return "suspicious";
-  }
-  if (matches(/\b(security|secure|compliance|risk|privacy|finance|financial)\b/)) {
-    return "scared";
-  }
-  if (matches(/\b(design|designer|creative|brainstorm|art|illustration|music|story)\b/)) {
-    return "playful";
-  }
-  if (matches(/\b(support|help|success|onboarding|coach|teacher|guide|welcome)\b/)) {
-    return "happy";
-  }
-
-  return "idle";
+  if (last?.kind === "options") return "blocked";
+  return normalizeState(bot.mascotExpression) ?? "idle";
 }

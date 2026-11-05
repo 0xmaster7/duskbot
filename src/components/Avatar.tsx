@@ -9,17 +9,17 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@/lib/cn";
-import { MASCOT_INK, type MausColor, type MausMotion, type MausState } from "@/lib/mascot";
-import { CursorAvatar, type CursorAvatarHandle } from "./CursorAvatar";
+import { MASCOT_INK, MAUS_STATES, type MausColor, type MausMotion, type MausState } from "@/lib/mascot";
+import type { CursorAvatarHandle, CursorState } from "./CursorAvatar";
+import { GrokMark, type GrokMarkHandle } from "./mascot-motion-view";
+import { hoverGaze, type MarkState } from "./mascot-motion-mark";
 import { avatarCropRadius, botAvatarProfile, clampAvatarFocus, clampAvatarZoom, mascotFaceInk, type BotAvatarCrop, type MascotFaceColor } from "../../shared/bot-avatar";
-import { grokBody, isHalloweenBody, type BotBodyId } from "../../shared/bot-body";
+import { grokBodyFor, isHalloweenBody, type BotBodyId } from "../../shared/bot-body";
 import { useHalloweenDressed, wornBody } from "@/lib/halloween-dress";
 import { CarvedAvatar } from "./CarvedAvatar";
 
 export const EYE_SCALE = 1.12;
 export const MOUTH_WEIGHT = 11;
-
-const POINTER_GAZE = { forward: 1, authored: 0.25 };
 
 interface MotionFaces
   extends Partial<
@@ -43,11 +43,8 @@ const MOTION_FACE: MotionFaces = {
 
 const MOTION_FACE_MS = 1400;
 
-// grok marks are one flat ink, no shading
-const gradientFor = (color: MausColor): [string, string, string] => {
-  const fill = MASCOT_INK[color] ?? MASCOT_INK.green;
-  return [fill, fill, fill];
-};
+// grok marks are one flat ink, no shading; a readable gradient paints with its middle stop
+const inkFor = (color: MausColor, gradient?: [string, string, string]): string => gradient?.[1] ?? MASCOT_INK[color] ?? MASCOT_INK.green;
 
 export function roomAvatarGradient(color: MausColor): [string, string, string] {
   const fill = `var(--identity-${color})`;
@@ -58,11 +55,16 @@ export function roomAvatarGradient(color: MausColor): [string, string, string] {
   ];
 }
 
-export type MausAvatarHandle = CursorAvatarHandle;
+export type MausAvatarHandle = CursorAvatarHandle & Partial<Pick<GrokMarkHandle, "poke">>;
 
 export type MausAvatarProps = {
   color: MausColor;
+  /** Any of Grok's mark states: idle rests still, working and the other busy states play Grok's clips. */
   state?: MausState;
+  /** Grok's isEmphasized: a resting face looks up, surprised, while the pointer is on the status line. */
+  emphasized?: boolean;
+  /** CSS paint for the eyes, over the bot's face colour: Grok's status line paints them var(--sand-bg-chrome). */
+  eyeInk?: string;
   expression?: number;
   size?: number;
   label?: string;
@@ -83,6 +85,14 @@ export type MausAvatarProps = {
   faceColor?: MascotFaceColor | null;
 };
 
+// the carved halloween bodies keep the older engine, which names fewer states
+const CARVED_STATE: Partial<Record<MarkState, CursorState>> = {
+  streaming: "writing", reading: "searching", coding: "working", running: "working", computing: "working",
+  controlling: "working", waiting: "orbit", blocked: "curious", finished: "happy", failed: "sad", approving: "happy",
+};
+const carvedState = (state: MausState | undefined): CursorState | undefined =>
+  state === undefined ? undefined : (CARVED_STATE[state as MarkState] ?? (MAUS_STATES.includes(state as CursorState) ? (state as CursorState) : "idle"));
+
 function MausAvatarComponent(props: MausAvatarProps, ref: React.Ref<MausAvatarHandle>) {
   const { bodyId, color, size, state, motion, motionKey, gaze, trackPointer, animated, label } = props;
   if (isHalloweenBody(bodyId)) {
@@ -93,7 +103,7 @@ function MausAvatarComponent(props: MausAvatarProps, ref: React.Ref<MausAvatarHa
         color={color}
         faceColor={props.faceColor}
         size={size}
-        state={state}
+        state={carvedState(state)}
         motion={motion}
         motionKey={motionKey}
         gaze={gaze}
@@ -110,19 +120,14 @@ function GradientAvatarComponent(
   {
     color,
     state = "idle",
+    emphasized,
+    eyeInk,
     expression,
     size = 44,
     label,
     motion = "none",
     motionKey = 0,
-    turn,
     gaze,
-    spring,
-    eyeScale,
-    showMouth,
-    mouthStroke,
-    forward = true,
-    lookAround,
     trackPointer = true,
     animated = true,
     bodyId,
@@ -131,13 +136,13 @@ function GradientAvatarComponent(
   }: MausAvatarProps,
   ref: React.Ref<MausAvatarHandle>,
 ) {
-  const silhouette = grokBody(bodyId);
   const faceInk = mascotFaceInk(faceColor);
-  const inner = useRef<CursorAvatarHandle>(null);
+  const inner = useRef<GrokMarkHandle>(null);
   useImperativeHandle(ref, () => ({
     blink: () => inner.current?.blink(),
     spin: (durationMs?: number) => inner.current?.spin(durationMs),
     setExpression: (index: number) => inner.current?.setExpression(index),
+    poke: (kind) => inner.current?.poke(kind),
   }));
 
   const [motionState, setMotionState] = useState<MausState | null>(null);
@@ -153,41 +158,35 @@ function GradientAvatarComponent(
     return () => clearTimeout(timer);
   }, [motion, motionKey, animated]);
 
-  const [pointer, setPointer] = useState({ x: 0, y: 0 });
-  const range = forward ? POINTER_GAZE.forward : POINTER_GAZE.authored;
+  // grok's attachMarkHoverGaze: the body turns toward a pointer on it, full turn half a mark from its centre
+  const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
+  const tracking = trackPointer && animated;
   const onPointerMove = (event: ReactPointerEvent<HTMLSpanElement>) => {
-    if (!trackPointer || !animated) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    setPointer({
-      x: Math.max(-1, Math.min(1, ((event.clientX - rect.left) / rect.width) * 2 - 1)) * range,
-      y: Math.max(-1, Math.min(1, ((event.clientY - rect.top) / rect.height) * 2 - 1)) * range,
-    });
+    const next = hoverGaze(event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY);
+    setPointer((current) => (current && current.x === next.x && current.y === next.y ? current : next));
   };
-  const onPointerLeave = () => setPointer({ x: 0, y: 0 });
+  const onPointerLeave = () => setPointer(null);
+  const look = pointer ?? (gaze ? { x: gaze.x ?? 0, y: gaze.y ?? 0 } : null);
 
   return (
     <span
       className="inline-flex shrink-0"
-      onPointerMove={trackPointer && animated ? onPointerMove : undefined}
-      onPointerLeave={trackPointer && animated ? onPointerLeave : undefined}
+      onPointerMove={tracking ? onPointerMove : undefined}
+      onPointerLeave={tracking ? onPointerLeave : undefined}
     >
-      <CursorAvatar
+      <GrokMark
         ref={inner}
+        body={grokBodyFor(bodyId)}
+        ink={inkFor(color, gradient)}
+        eye={eyeInk ?? faceInk ?? undefined}
         state={motionState ?? state}
+        emphasized={emphasized}
         expression={expression}
         size={size}
-        silhouette={silhouette}
-        gradient={gradient ?? gradientFor(color)}
-        eyeColor={faceInk ?? undefined}
-        title={label ?? null}
-        lookAround={lookAround ?? (forward ? 0 : 1)}
-        gaze={{ x: (gaze?.x ?? 0) + pointer.x, y: (gaze?.y ?? 0) + pointer.y }}
-        turn={turn}
-        spring={spring}
-        eyeScale={eyeScale}
-        showMouth={showMouth}
-        mouthStroke={mouthStroke}
-        paused={!animated}
+        animated={animated}
+        gaze={look}
+        seed={label ?? undefined}
+        label={label ?? null}
       />
     </span>
   );

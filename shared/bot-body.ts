@@ -58,8 +58,8 @@ export function wearsBody(current: unknown, id: BotBodyId): boolean {
   return grokBodyFor(current) === grokBodyFor(id);
 }
 
-/** The costume each bot colour wears when "Dress my bots up" is on with the Halloween skin. */
-export const COSTUME_FOR_COLOR: Record<Exclude<MausColor, "silver" | "chrome">, HalloweenBodyId> = {
+/** The costume each bot colour wears (ten costumes, so brown keeps its own body) when "Dress my bots up" is on with the Halloween skin. */
+export const COSTUME_FOR_COLOR: Record<Exclude<MausColor, "silver" | "chrome" | "brown">, HalloweenBodyId> = {
   orange: "pumpkin",
   purple: "ghost",
   teal: "witch",

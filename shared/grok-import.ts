@@ -20,7 +20,7 @@ const OLD_EXPORT_FORMAT = "openmaus.grok/1";
 export const GROK_EXPORT_FILE = /^grok-bot-export[^/\\]*\.(?:json|md|txt)$/i;
 export const GROK_EXPORT_MAX_CHARS = 4 * 1024 * 1024;
 const MAX_ROUTINES = 50;
-const BOT_COLORS = ["green", "blue", "red", "orange", "purple", "cyan", "pink", "yellow", "teal", "coral"] as const;
+const BOT_COLORS = ["green", "blue", "red", "orange", "purple", "cyan", "pink", "yellow", "teal", "coral", "brown"] as const;
 /** Failed brace matches before a reply stops being searched: each one scans to the end of the text. */
 const MAX_UNBALANCED = 50;
 

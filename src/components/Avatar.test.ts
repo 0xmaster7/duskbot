@@ -9,9 +9,9 @@ import {
   type BotAvatarProps,
   type MausAvatarProps,
 } from "./Avatar";
-import { GROK_BODIES, type GrokBodyId } from "../../shared/grok-bodies";
 
-const outline = (id: GrokBodyId) => GROK_BODIES[id].clip.slice('<path d="'.length, -'"/>'.length);
+// the engine's body outline: the first path of the mark, with the per-mount id stripped
+const outline = (markup: string) => markup.match(/-body"><path d="([^"]+)"/)?.[1] ?? "";
 
 const render = (props: Partial<MausAvatarProps>) =>
   renderToStaticMarkup(createElement(MausAvatar, { color: "green", animated: false, ...props }));
@@ -23,26 +23,28 @@ const renderBot = (bot: Partial<BotAvatarProps["bot"]>) =>
 
 describe("MausAvatar body", () => {
   it("wears the Grok-style tablet when no body is given", () => {
-    expect(render({})).toContain(outline("tablet"));
+    expect(outline(render({}))).toBe(outline(render({ bodyId: "tablet" })));
+    expect(outline(render({}))).not.toBe("");
   });
 
   it("wears the body it is given, drawing an older body as its Grok-style look", () => {
-    expect(render({ bodyId: "star" })).toContain(outline("star"));
-    expect(render({ bodyId: "flower" })).toContain(outline("flower"));
-    expect(render({ bodyId: "cursor" })).toContain(outline("tablet"));
+    const tablet = outline(render({ bodyId: "tablet" }));
+    expect(outline(render({ bodyId: "star" }))).not.toBe(tablet);
+    expect(outline(render({ bodyId: "flower" }))).not.toBe(outline(render({ bodyId: "star" })));
+    expect(outline(render({ bodyId: "cursor" }))).toBe(tablet);
+    expect(outline(render({ bodyId: "fruit" }))).not.toBe("");
   });
 
   it("falls back to the tablet for an unknown body", () => {
     // SAFETY: "hexagram" is deliberately not a MascotBodyId, to exercise the runtime fallback for persisted or streamed
     // data.
-    expect(render({ bodyId: "hexagram" as MausAvatarProps["bodyId"] })).toContain(outline("tablet"));
+    expect(outline(render({ bodyId: "hexagram" as MausAvatarProps["bodyId"] }))).toBe(outline(render({ bodyId: "tablet" })));
   });
 
-  it("paints the body with the per-bot gradient, never a flat black fill", () => {
-    const markup = render({ bodyId: "circle" });
+  it("paints the body with the bot's flat ink, never a flat black fill", () => {
+    const markup = render({ bodyId: "circle", color: "blue" });
     expect(markup).not.toContain('fill="#000000"');
-    expect(markup).not.toContain("{{GRADIENT}}");
-    expect(markup).toContain("url(#");
+    expect(markup).toContain('fill="#1e86fc"');
   });
 });
 
@@ -55,7 +57,7 @@ describe("mascot facial feature colors", () => {
         expect(markup).toContain(`fill="${ink}"`);
         expect(markup).not.toContain('visibility="hidden"');
         if (mascotBody === "pumpkin" || mascotBody === "vampire") expect(markup).toContain(`stroke="${ink}"`);
-        else expect(markup).not.toContain("<mask");
+        else expect(markup).not.toContain("-holes");
       }
     }
   });
@@ -63,7 +65,7 @@ describe("mascot facial feature colors", () => {
   it("cuts the eyes out of a Grok-style body when no face ink is chosen, with no mouth", () => {
     for (const bot of [{ color: "chrome" as const, mascotFaceColor: null }, {}]) {
       const markup = renderBot(bot);
-      expect(markup).toContain("<mask");
+      expect(markup).toContain("-holes");
       expect(markup).toContain('mask="url(#');
       expect(markup).not.toContain("stroke=");
     }
@@ -72,7 +74,8 @@ describe("mascot facial feature colors", () => {
 
   it("paints a Grok-style body with one flat ink", () => {
     const markup = renderBot({ color: "blue" });
-    expect(markup.match(/stop-color="#1e86fc"/g)?.length).toBe(3);
+    expect(markup.match(/fill="#1e86fc"/g)?.length).toBe(1);
+    expect(markup).not.toContain("Gradient");
   });
 
   it("does not paint features over an uploaded image", () => {

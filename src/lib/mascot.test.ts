@@ -11,11 +11,11 @@ describe("stateForBot", () => {
         { kind: "activity", tool: { ok: false } },
         { kind: "digest" },
       ],
-    })).toBe("alerting");
+    })).toBe("failed");
   });
 
   it("keeps reading a pending card as curious behind a receipt", () => {
-    expect(stateForBot({ name: "Atlas", messages: [{ kind: "options" }, { kind: "digest" }] })).toBe("curious");
+    expect(stateForBot({ name: "Atlas", messages: [{ kind: "options" }, { kind: "digest" }] })).toBe("blocked");
   });
 
   it("still alerts on a failed tool call when a live call's record follows it", () => {
@@ -25,7 +25,7 @@ describe("stateForBot", () => {
         { kind: "activity", tool: { ok: false } },
         { kind: "call" },
       ],
-    })).toBe("alerting");
+    })).toBe("failed");
     expect(stateForBot({
       name: "Atlas",
       messages: [
@@ -33,11 +33,11 @@ describe("stateForBot", () => {
         { kind: "digest" },
         { kind: "call" },
       ],
-    })).toBe("alerting");
+    })).toBe("failed");
   });
 
   it("keeps reading a pending card as curious behind a live call's record", () => {
-    expect(stateForBot({ name: "Atlas", messages: [{ kind: "options" }, { kind: "call" }] })).toBe("curious");
+    expect(stateForBot({ name: "Atlas", messages: [{ kind: "options" }, { kind: "call" }] })).toBe("blocked");
   });
 });
 

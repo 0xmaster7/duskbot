@@ -45,8 +45,8 @@ describe("bot bodies", () => {
     expect(isHalloweenBody(null)).toBe(false);
   });
 
-  it("gives every bot colour but silver and chrome its own costume", () => {
-    const dressed = MAUS_COLOR_NAMES.filter((color) => color !== "silver" && color !== "chrome");
+  it("gives every bot colour but silver, chrome and brown its own costume", () => {
+    const dressed = MAUS_COLOR_NAMES.filter((color) => color !== "silver" && color !== "chrome" && color !== "brown");
     expect(Object.keys(COSTUME_FOR_COLOR).sort()).toEqual([...dressed].sort());
     expect(new Set(Object.values(COSTUME_FOR_COLOR)).size).toBe(dressed.length);
     for (const body of Object.values(COSTUME_FOR_COLOR)) expect(isHalloweenBody(body)).toBe(true);

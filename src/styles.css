@@ -333,6 +333,7 @@
   --identity-yellow: #D8A729;
   --identity-teal: #01A492;
   --identity-coral: #E5634E;
+  --identity-brown: #a8703c;
   --identity-silver: #A8ADB4;
   --identity-chrome: #B3BAC4;
 }
@@ -404,6 +405,7 @@
   --identity-yellow: #896a19;
   --identity-teal: #017c6f;
   --identity-coral: #cd361e;
+  --identity-brown: #956335;
   --identity-silver: #686f79;
   --identity-chrome: #646f80;
 }
@@ -479,6 +481,7 @@
   --identity-yellow: #D8A729;
   --identity-teal: #01A492;
   --identity-coral: #E5634E;
+  --identity-brown: #a56f3b;
   --identity-silver: #A8ADB4;
   --identity-chrome: #B3BAC4;
 }
@@ -562,6 +565,7 @@
   --identity-yellow: #836518;
   --identity-teal: #01776a;
   --identity-coral: #c3341d;
+  --identity-brown: #8e5f33;
   --identity-silver: #646a73;
   --identity-chrome: #5f6a7b;
 }
@@ -624,6 +628,7 @@
   --identity-yellow: #D8A729;
   --identity-teal: #01A492;
   --identity-coral: #E5634E;
+  --identity-brown: #a8703c;
   --identity-silver: #A8ADB4;
   --identity-chrome: #B3BAC4;
 }
@@ -687,6 +692,7 @@
   --identity-yellow: #886819;
   --identity-teal: #017a6d;
   --identity-coral: #c9361e;
+  --identity-brown: #936234;
   --identity-silver: #676d77;
   --identity-chrome: #626d7e;
 }
@@ -748,6 +754,7 @@
   --identity-yellow: #D8A729;
   --identity-teal: #01A492;
   --identity-coral: #E5634E;
+  --identity-brown: #a7703b;
   --identity-silver: #A8ADB4;
   --identity-chrome: #B3BAC4;
 }
@@ -829,6 +836,7 @@
   --identity-yellow: #91701b;
   --identity-teal: #018375;
   --identity-coral: #d83920;
+  --identity-brown: #9e6938;
   --identity-silver: #6e7580;
   --identity-chrome: #697688;
   --shadow-float: 0 4px 12px -1px rgb(28 28 28 / 0.08), 0 2px 4px -2px rgb(28 28 28 / 0.06);
@@ -863,7 +871,7 @@
   --color-accent: #126fd4;
   --color-accent-border: #1680f3; /* sand-bg-accent-primary, the switch blue */
   --color-accent-text: #0b69cc;
-  --color-focus: #0b6dd3;         /* sand-text-accent-primary */
+  --color-focus: #0b6dd3;         /* sand-text-accent-primary; Grok's ring #1e86fc is under 3:1 on inset and control fills */
   --color-accent-ink: #ffffff;
   --color-composer: #ffffff;
   --color-composer-ring: #1c1c1c1f;
@@ -904,6 +912,7 @@
   --identity-yellow: #91701b;
   --identity-teal: #018375;
   --identity-coral: #d83920;
+  --identity-brown: #9e6938;
   --identity-silver: #6e7580;
   --identity-chrome: #697688;
   --shadow-float: 0 4px 12px -1px rgb(28 28 28 / 0.08), 0 2px 4px -2px rgb(28 28 28 / 0.06);
@@ -973,6 +982,7 @@
   --identity-yellow: #D8A729;
   --identity-teal: #01A492;
   --identity-coral: #E5634E;
+  --identity-brown: #a8703c;
   --identity-silver: #A8ADB4;
   --identity-chrome: #B3BAC4;
 }
@@ -1037,6 +1047,7 @@
   --identity-yellow: #93721b;
   --identity-teal: #018577;
   --identity-coral: #db3a20;
+  --identity-brown: #a06b39;
   --identity-silver: #707782;
   --identity-chrome: #6b778a;
 }
@@ -1102,6 +1113,7 @@
   --identity-yellow: #8d6c1a;
   --identity-teal: #017f72;
   --identity-coral: #d1381f;
+  --identity-brown: #996637;
   --identity-silver: #6a727c;
   --identity-chrome: #667284;
 }
@@ -1159,6 +1171,7 @@
   --identity-yellow: #D8A729;
   --identity-teal: #01A492;
   --identity-coral: #E5634E;
+  --identity-brown: #a56f3b;
   --identity-silver: #A8ADB4;
   --identity-chrome: #B3BAC4;
 }
@@ -3255,6 +3268,7 @@ button:disabled.bg-danger {
 .bot-identity[data-bot-color="yellow"] { color: var(--identity-yellow); }
 .bot-identity[data-bot-color="teal"] { color: var(--identity-teal); }
 .bot-identity[data-bot-color="coral"] { color: var(--identity-coral); }
+.bot-identity[data-bot-color="brown"] { color: var(--identity-brown); }
 .bot-identity[data-bot-color="silver"] { color: var(--identity-silver); }
 .bot-identity[data-bot-color="chrome"] { color: var(--identity-chrome); }
 
