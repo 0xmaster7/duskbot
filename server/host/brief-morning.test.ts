@@ -7,6 +7,7 @@ import type { CalendarEvent } from "../connected-reads.ts";
 import type { RoutineRun } from "../routines.ts";
 import { Store } from "../store.ts";
 import { createBrief, MORNING_WAKE_EARLY_MS } from "./brief.ts";
+import { ENGLISH_BRIEF } from "./brief-words.ts";
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -38,7 +39,7 @@ function setup(options: { zone: string; start: string; morning?: string; overnig
       overnight: (since) => { sinces.push(since); return options.overnight; },
     },
   });
-  const cards = () => store.messagesFor(store.bot(chief.id)!.threadId).filter((message) => message.serverCard && message.widget?.root.title === "Your brief");
+  const cards = () => store.messagesFor(store.bot(chief.id)!.threadId).filter((message) => message.serverCard && message.kind === "text");
   const meeting = (at: number): CalendarEvent => ({
     id: `m-${at}`, title: "Standup", start: at, end: at + 30 * MINUTE, allDay: false, status: "confirmed", selfDeclined: false,
     attendees: [{ email: "me@x.test", self: true, organizer: true }, { email: "ada@x.test", name: "Ada", self: false, organizer: false }],
@@ -113,9 +114,7 @@ describe("the morning brief", () => {
     await s.tick();
     expect(clock(s.now(), "Europe/Berlin")).toBe("08:00");
     expect(s.sinces).toEqual([away]);
-    const root = JSON.stringify(s.cards().at(-1)!.widget!.root);
-    expect(root.indexOf("While you slept, I sorted 23 emails")).toBeGreaterThan(-1);
-    expect(root.indexOf("While you slept")).toBeLessThan(root.indexOf("Needs you"));
+    expect(s.cards().at(-1)!.text).toBe(["While you slept, I sorted 23 emails, drafted 2 replies and prepped 1 meeting.", ENGLISH_BRIEF.intro, ENGLISH_BRIEF.nothingNeedsYou].join("\n\n"));
     expect(s.pushed).toEqual(["Your first brief is ready"]);
   });
 
@@ -126,7 +125,7 @@ describe("the morning brief", () => {
     await s.brief.report({ routine: {} as never, at: s.now(), meetings: [s.meeting(Date.parse("2026-10-22T10:00:00Z"))], clashes: [] });
     await s.tick();
     expect(s.sinces).toEqual([]);
-    expect(JSON.stringify(s.cards().at(-1)!.widget!.root)).not.toContain("While you slept");
+    expect(s.cards().at(-1)!.text).not.toContain("While you slept");
   });
 
   it("gives a watch run still sorting the night's mail up to 20 minutes, then goes without it", async () => {

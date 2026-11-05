@@ -1,16 +1,15 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { NeedsYouItem } from "../../shared/today.ts";
-import { widgetActions, type WidgetRoot } from "../../shared/widget.ts";
 import type { CalendarEvent, EmailHeader } from "../connected-reads.ts";
 import type { RequestAuth } from "../request-auth.ts";
 import type { RoutineRun } from "../routines.ts";
 import { Store, type Message } from "../store.ts";
-import { AWAY_MS, createBrief } from "./brief.ts";
-import { briefCard } from "./brief-cards.ts";
+import { AWAY_MS, BRIEF_FILE, createBrief } from "./brief.ts";
+import { briefMessage, plain } from "./brief-message.ts";
 import { ENGLISH_BRIEF } from "./brief-words.ts";
 
 const MINUTE = 60_000;
@@ -49,8 +48,8 @@ function setup(options: { hosted?: boolean; needsYou?: NeedsYouItem[]; language?
   let brief = make();
   const thread = () => store.bot(chief.id)!.threadId;
   const rows = (): Message[] => store.messagesFor(thread());
-  const card = () => rows().findLast((message) => message.serverCard && message.widget?.root.title === "Your brief");
-  const shown = () => JSON.stringify(card()?.widget?.root ?? null);
+  const card = () => rows().findLast((message) => message.serverCard && message.kind === "text");
+  const shown = () => card()?.text ?? "";
   const watchRun = (key: string, reply: string): RoutineRun => {
     const runThread = store.createTask(chief.id, "Keep an eye on my day", false)!.threadId;
     store.appendMessage(runThread, { role: "bot", kind: "text", text: reply, turnId: "turn-1" });
@@ -58,13 +57,44 @@ function setup(options: { hosted?: boolean; needsYou?: NeedsYouItem[]; language?
       manual: false, threadId: runThread, checkKey: key, deliver: "brief", access: "read-and-draft", createdAt: now };
   };
   return {
-    get brief() { return brief; }, store, chief, notified, failed, kept, items, runs, rows, card, shown, watchRun, thread,
+    get brief() { return brief; }, store, chief, notified, failed, kept, items, runs, rows, card, shown, watchRun, thread, dir,
     advance: (ms: number) => { now += ms; }, now: () => now, busy: (value: boolean) => { busy = value; }, restart: () => { brief = make(); },
     watch: (on: boolean) => { watching = on; },
   };
 }
 
 describe("the brief", () => {
+  it("is an ordinary message in the chat: a short list of what needs the person, each naming the bot, linked to its chat", async () => {
+    const needsYou: NeedsYouItem[] = [];
+    const s = setup({ needsYou });
+    const juno = s.store.createBot({ name: "Juno" });
+    needsYou.push({ kind: "question", id: "q1", at: 0, botId: juno.id, threadId: juno.threadId, text: "Should I book the 9:40 flight to Lisbon?" });
+    expect(await s.brief.active("desktop", "UTC")).toEqual({ returned: false, open: { botId: s.chief.id, threadId: s.thread() } });
+    const message = s.card()!;
+    expect(message).toMatchObject({ role: "bot", kind: "text", serverCard: true });
+    expect(message.widget).toBeUndefined();
+    expect(message.text).toBe([
+      ENGLISH_BRIEF.intro,
+      `Quick heads-up, one thing needs you:\n- [Juno asked you](<openmausbot://thread/${juno.threadId}?bot=${juno.id}>): Should I book the 9:40 flight to Lisbon?`,
+    ].join("\n\n"));
+    expect(message.text).not.toMatch(/Your brief|Thursday|October/);
+    expect(s.notified).toEqual(["Your brief: 1 needs you"]);
+  });
+
+  it("keeps untrusted words as words: no link, image, emphasis, math, heading or autolink", () => {
+    expect(plain("[click](https://evil.test) ![x](https://t.test/p.png) **now** $x$ \\(y\\) <b> www.evil.test mailto:me@x.test a_b ~c~ &amp;"))
+      .toBe("&#91;click&#93;(https:\u2060//evil.test) !&#91;x&#93;(https:\u2060//t.test/p.png) &#42;&#42;now&#42;&#42; &#36;x&#36; &#92;(y&#92;) &lt;b&gt; www\u2060.evil.test mailto:\u2060me@\u2060x.test a&#95;b &#126;c&#126; &amp;amp;");
+    expect(plain("# Big")).toBe("&#35; Big");
+    expect(plain("12. twelve")).toBe("12&#46; twelve");
+    expect(plain("- item")).toBe("&#45; item");
+    expect(plain("> quote")).toBe("&gt; quote");
+    expect(plain("Ada asked: can we meet at 9:40?")).toBe("Ada asked: can we meet at 9:40?");
+    const { text } = briefMessage({ now: 0, timeZone: "UTC", intro: false, needs: [], meetings: [{ title: "**Standup** [x](https://evil.test)", start: 0 }], routines: [],
+      emails: [{ messageId: "m1", threadId: "t1", from: "[Ada](https://evil.test) <ada@x.test>", subject: "![p](https://t.test/p.png)", needsReply: true }] });
+    expect(text).toContain("- [&#91;Ada&#93;(https:\u2060//evil.test) is waiting on your reply](<https://mail.google.com/mail/#all/t1>): !&#91;p&#93;(https:\u2060//t.test/p.png)");
+    expect(text).toContain("On your calendar today: &#42;&#42;Standup&#42;&#42; &#91;x&#93;(https:\u2060//evil.test) at 12:00 AM.");
+  });
+
   it.each(["completed", "failed"] as const)("includes a routine %s just after local midnight", async (status) => {
     const s = setup({ needsYou: [{ kind: "signed-out", id: "sign-in", at: 0, instanceId: "claude", botIds: [] }] });
     s.advance(21_643);
@@ -78,34 +108,34 @@ describe("the brief", () => {
     expect(s.shown()).not.toContain("Before midnight");
   });
 
-  it("counts only the emails it leaves out, and still says how many new ones wait", () => {
+  it("keeps what is only worth a look to a few lines, counts the rest, and still says how many new ones wait", () => {
     const emails = Array.from({ length: 8 }, (_, at) => ({ messageId: `m${at}`, threadId: `t${at}`, from: `Sender ${at} <s${at}@x.test>`, subject: `Subject ${at}`, needsReply: false }));
-    const shown = JSON.stringify(briefCard({ now: Date.parse("2026-10-22T08:00:00Z"), timeZone: "UTC", intro: false, needs: [], meetings: null, emails, waiting: 3, routines: [] }).card);
-    expect(shown).toContain("and 2 more");
-    expect(shown).toContain(ENGLISH_BRIEF.waitingCount(3));
+    const { text } = briefMessage({ now: Date.parse("2026-10-22T08:00:00Z"), timeZone: "UTC", intro: false, needs: [], meetings: null, emails, waiting: 3, routines: [] });
+    expect(text).toContain("Also worth a look:\n- [Sender 0](<https://mail.google.com/mail/#all/t0>): Subject 0\n");
+    expect(text).toContain("- and 4 more");
+    expect(text).not.toContain("Subject 4");
+    expect(text.endsWith(ENGLISH_BRIEF.waitingCount(3))).toBe(true);
   });
 
   it("offers the night's ideas as plain text on the first open of the day, without a notification", async () => {
     const s = setup({ ideas: ["Make the Friday report a routine", "<b>Save</b> the draft checklist as a skill"] });
     expect((await s.brief.active("desktop", "UTC")).open).toEqual({ botId: s.chief.id, threadId: s.thread() });
-    const root = s.card()!.widget!.root;
-    expect(s.shown()).toContain('"value":"Ideas"');
-    expect(s.shown()).toContain("Make the Friday report a routine");
-    expect(s.shown()).toContain("Noticed across 3 chats");
-    expect(JSON.stringify(root)).not.toMatch(/"type":"(?:Button|Link|Image|Html)"[^}]*Save/);
+    expect(s.shown()).toContain("- An idea from your chats: Make the Friday report a routine");
+    expect(s.shown()).toContain("- An idea from your chats: &lt;b&gt;Save&lt;/b&gt; the draft checklist as a skill");
     expect(s.notified).toEqual([]);
   });
 
-  it("shows ideas after routines, counts them in the summary, and leaves the section out when there are none", () => {
+  it("lists ideas after routines, counts them in the summary, and says one quiet line when there is nothing", () => {
     const facts = { now: Date.parse("2026-10-22T08:00:00Z"), timeZone: "UTC", intro: false, needs: [], meetings: null, emails: [], routines: [] };
-    const none = briefCard(facts);
-    expect(JSON.stringify(none.card)).not.toContain(ENGLISH_BRIEF.ideas);
-    const many = briefCard({ ...facts, ideas: Array.from({ length: 7 }, (_, i) => ({ text: `Idea ${i}`, note: ENGLISH_BRIEF.noticedAcross(4) })) });
-    expect(JSON.stringify(many.card)).toContain("and 1 more");
-    expect(JSON.stringify(many.summary)).toContain("7 ideas");
+    const none = briefMessage(facts);
+    expect(none.text).toBe(ENGLISH_BRIEF.nothingNeedsYou);
+    const many = briefMessage({ ...facts, routines: [{ text: "Tidy my inbox", note: "Done." }], ideas: Array.from({ length: 7 }, (_, i) => ({ text: `Idea ${i}`, note: "" })) });
+    expect(many.text.indexOf("Tidy my inbox")).toBeLessThan(many.text.indexOf("Idea 0"));
+    expect(many.text).toContain("- and 4 more");
+    expect(many.summary).toContain("7 ideas");
   });
 
-  it("is not there while it has nothing for the person, so an open never takes the screen for an empty card", async () => {
+  it("is not there while it has nothing for the person, so an open never takes the screen for an empty message", async () => {
     const needsYou: NeedsYouItem[] = [];
     const s = setup({ needsYou });
     expect(await s.brief.active("desktop", "UTC")).toEqual({ returned: false });
@@ -133,15 +163,15 @@ describe("the brief", () => {
     expect(await s.brief.active("desktop")).toEqual({ returned: false });
     s.advance(AWAY_MS);
     expect(await s.brief.active("desktop")).toMatchObject({ returned: true, open: { threadId: s.thread() } });
-    expect(s.card()!.id).toBe(first.id);
-    expect(s.card()!.widget!.rev ?? 0).toBe(0);
-    expect(s.shown()).toContain(ENGLISH_BRIEF.intro);
+    expect(s.card()).toEqual(first);
     await s.brief.report({ routine: {} as never, at: s.now(), trouble: [{ app: "gmail", signedOut: false }] });
     expect(s.card()!.id).toBe(first.id);
-    expect(s.card()!.widget!.rev).toBe(1);
+    expect(s.shown()).toContain(ENGLISH_BRIEF.intro);
+    expect(s.shown()).toContain("Quick heads-up, 2 things need you:");
+    expect(s.rows().filter((message) => message.serverCard)).toHaveLength(1);
   });
 
-  it("keeps its home chat when the person starts a newer one, and posts a new card the next day", async () => {
+  it("keeps its home chat when the person starts a newer one, and posts a new message the next day without the intro", async () => {
     const s = setup({ needsYou: [{ kind: "signed-out", id: "x", at: 0, instanceId: "claude", botIds: [] }] });
     await s.brief.active("desktop", "UTC");
     const home = s.thread();
@@ -151,40 +181,36 @@ describe("the brief", () => {
     await s.brief.active("desktop");
     const today = s.store.messagesFor(home).findLast((message) => message.serverCard)!;
     expect(today.id).not.toBe(first);
-    expect(today.widget!.root.title).toBe("Your brief");
-    expect(JSON.stringify(today.widget!.root)).not.toContain(ENGLISH_BRIEF.intro);
+    expect(today).toMatchObject({ role: "bot", kind: "text" });
+    expect(today.text).toBe("Quick heads-up, one thing needs you:\n- Claude is signed out: Sign in again in Settings, Model providers.");
   });
 
-  it("speaks the language set in Settings, dates included", async () => {
+  it("speaks the language set in Settings", async () => {
     const s = setup({ language: "pt-BR", needsYou: [{ kind: "signed-out", id: "x", at: 0, instanceId: "claude", botIds: [] }] });
     await s.brief.active("desktop", "UTC");
     s.notified.length = 0;
     s.items.set("chk-1", { mail: [ada], prep: [] });
     await s.brief.consume(s.watchRun("chk-1", '{"important": [{"id": "m1", "why": "Ada precisa dos números.", "needsReply": true}], "prep": []}'), "turn-1");
-    const root = s.rows().findLast((message) => message.serverCard && message.widget?.root.title === "Seu resumo")!.widget!.root as WidgetRoot;
-    const shown = JSON.stringify(root);
-    expect(shown).toContain("quinta-feira, 22 de outubro");
-    expect(shown).toContain("Precisa da sua atenção");
-    expect(shown).toContain("Aguardando sua resposta · Ada precisa dos números.");
+    const shown = s.shown();
+    expect(shown).toContain("Um aviso rápido, 2 coisas precisam de você:");
+    expect(shown).toContain("- [Ada está esperando sua resposta](<https://mail.google.com/mail/#all/t1>): Q3 numbers · Ada precisa dos números.");
     expect(shown).toContain("Sessão encerrada em Claude");
-    expect(shown).not.toMatch(/Needs you|Waiting on your reply|Thursday/);
-    expect(widgetActions(root).map((entry) => entry.label)).toEqual(expect.arrayContaining(["Rascunhar resposta para Ada", "Abrir no Gmail", "Dispensar o e-mail de Ada"]));
+    expect(shown).not.toMatch(/heads-up|waiting on your reply|Sign in again/);
     expect(s.notified).toEqual(["Seu resumo: 2 precisam de você"]);
   });
 
-  it("follows the language the person's app shows over the server's, and switches today's card in place", async () => {
+  it("follows the language the person's app shows over the server's, and switches today's message in place", async () => {
     const s = setup({ language: "pt-br", needsYou: [{ kind: "signed-out", id: "x", at: 0, instanceId: "claude", botIds: [] }] });
     await s.brief.active("desktop", "UTC", "es");
-    const title = () => s.rows().findLast((message) => message.serverCard)!.widget!.root.title;
-    const first = s.rows().findLast((message) => message.serverCard)!.id;
-    expect(title()).toBe("Tu resumen");
+    const first = s.card()!.id;
+    expect(s.shown()).toContain("Un aviso rápido, hay una cosa que te necesita:");
     s.advance(2 * MINUTE);
     expect(await s.brief.active("desktop", "UTC", "de")).toEqual({ returned: false });
-    expect(title()).toBe("Dein Überblick");
+    expect(s.shown()).toContain("Kurz zur Info, eine Sache wartet auf dich:");
     expect(s.rows().filter((message) => message.serverCard).map((message) => message.id)).toEqual([first]);
     s.restart();
     await s.brief.refresh();
-    expect(title()).toBe("Dein Überblick");
+    expect(s.shown()).toContain("Kurz zur Info, eine Sache wartet auf dich:");
   });
 
   it("does not tell the person again about the same rows when only the language changed", async () => {
@@ -194,11 +220,11 @@ describe("the brief", () => {
     expect(s.notified).toEqual(["Tu resumen: 1 te necesita"]);
     options.language = "de";
     await s.brief.refresh();
-    expect(s.rows().findLast((message) => message.serverCard)!.widget!.root.title).toBe("Dein Überblick");
+    expect(s.shown()).toContain("Kurz zur Info, eine Sache wartet auf dich:");
     expect(s.notified).toHaveLength(1);
   });
 
-  it("a routine run that published a page offers Open page, which opens the page itself, beside Open for its chat", async () => {
+  it("a routine run that published a page links the page itself, beside the link to its chat", async () => {
     const s = setup({ needsYou: [{ kind: "signed-out", id: "x", at: 0, instanceId: "claude", botIds: [] }] });
     const PAGE = "https://abcdefghijklmnopqrstuvwxyz.mausbot.page/";
     const run = (id: string, name: string, card?: "live" | "unpublished"): RoutineRun => {
@@ -210,22 +236,23 @@ describe("the brief", () => {
     };
     s.runs.push(run("dash", "Refresh the sales dashboard", "live"), run("gone", "Old dashboard", "unpublished"), run("plain", "Tidy my inbox"));
     await s.brief.active("desktop", "UTC");
-    const actions = widgetActions(s.card()!.widget!.root as WidgetRoot).map((entry) => [entry.label, entry.action.type, entry.action.payload]);
-    expect(actions.filter(([, type]) => type === "open_url")).toEqual([["Open page", "open_url", { url: PAGE }]]);
-    expect(actions.filter(([, type]) => type === "open_thread")).toHaveLength(3);
+    const dash = s.store.bot(s.chief.id)!.tasks!.find((task) => task.title === "Refresh the sales dashboard")!.threadId;
+    expect(s.shown()).toContain(`- [Refresh the sales dashboard](<openmausbot://thread/${dash}?bot=${s.chief.id}>): Updated the dashboard. · [Open page](<${PAGE}>)`);
+    expect(s.shown().match(/\[Open page\]/g)).toHaveLength(1);
+    expect(s.shown().match(/\(<openmausbot:\/\/thread\//g)).toHaveLength(3);
   });
 
-  it("a watch run's answer becomes rows and a prep card, and tells the person once", async () => {
+  it("a watch run's answer becomes lines and a prep card, and tells the person once", async () => {
     const s = setup();
     await s.brief.active("desktop", "UTC");
     s.notified.length = 0;
     s.items.set("chk-1", { mail: [ada], prep: [{ key: "uid-1", event: { ...standup, start: s.now() + 60 * MINUTE, end: s.now() + 90 * MINUTE } }] });
     await s.brief.consume(s.watchRun("chk-1", '{"important": [{"id": "m1", "why": "Ada needs the numbers by Friday.", "needsReply": true}], "prep": [{"id": "uid-1", "brief": "Ada runs it."}]}'), "turn-1");
     expect(s.kept).toEqual(["chk-1"]);
-    expect(s.shown()).toContain("Ada: Q3 numbers");
-    expect(s.shown()).toContain("Waiting on your reply · Ada needs the numbers by Friday.");
-    const actions = widgetActions(s.card()!.widget!.root as WidgetRoot).map((entry) => [entry.label, entry.action.type]);
-    expect(actions).toEqual(expect.arrayContaining([["Draft a reply to Ada", "draft_reply"], ["Dismiss Ada's email", "dismiss_row"], ["Open in Gmail", "open_url"]]));
+    expect(s.shown()).toBe([
+      ENGLISH_BRIEF.intro,
+      "Quick heads-up, one thing needs you:\n- [Ada is waiting on your reply](<https://mail.google.com/mail/#all/t1>): Q3 numbers · Ada needs the numbers by Friday.",
+    ].join("\n\n"));
     const prep = s.rows().find((message) => message.widget?.root.title === "Prep: Standup")!;
     expect(prep.serverCard).toBe(true);
     expect(s.notified).toEqual(["Prep ready: Standup, Today, 9:00 AM to 9:30 AM", "Your brief: 1 needs you"]);
@@ -244,28 +271,29 @@ describe("the brief", () => {
     expect(s.rows().length).toBe(before);
   });
 
-  it("Dismiss is the owner's, on the brief only, starts no turn, and the next sort hears the sender", async () => {
+  it("Dismiss on today's card from before the brief was a message is still the owner's and starts no turn", async () => {
     const s = setup();
     await s.brief.active("desktop", "UTC");
     s.items.set("chk-1", { mail: [ada], prep: [] });
     await s.brief.consume(s.watchRun("chk-1", '{"important": [{"id": "m1", "why": "Needs a reply.", "needsReply": false}]}'), "turn-1");
-    const card = s.card()!;
+    const message = s.card()!;
     const dismiss = { type: "dismiss_row", payload: { messageId: "m1" } };
-    expect(s.brief.serverPress(s.chief, s.thread(), card.id, dismiss, guest)).toBe("refused");
-    expect(s.brief.serverPress({ id: "someone-else" }, s.thread(), card.id, dismiss, owner)).toBeNull();
-    expect(s.brief.serverPress(s.chief, s.thread(), card.id, { type: "draft_reply", payload: { messageId: "m1" } }, owner)).toBeNull();
-    const other = s.rows().findLast((message) => message.serverCard && message.id !== card.id);
-    if (other) expect(s.brief.serverPress(s.chief, s.thread(), other.id, dismiss, owner)).toBeNull();
-    const posted = s.store.appendMessage(s.thread(), { role: "bot", kind: "widget", serverCard: true, text: "x", widget: { ...card.widget!, root: { ...card.widget!.root, title: "Another card" } } });
-    expect(s.brief.serverPress(s.chief, s.thread(), posted.id, dismiss, owner)).toBeNull();
-    expect(s.brief.serverPress(s.chief, s.thread(), card.id, dismiss, owner)).toBe("handled");
-    await vi.waitFor(() => expect(s.shown()).not.toContain("Q3 numbers"));
-    expect(s.brief.dismissedFrom()).toEqual(["ada@x.test"]);
-    // Nothing is left on it, so coming back does not open it.
+    expect(s.brief.serverPress(s.chief, s.thread(), message.id, dismiss, owner), "the message itself has nothing to press").toBeNull();
+    // A card the brief posted before it became a message, today's.
+    const legacy = s.store.appendMessage(s.thread(), { role: "bot", kind: "widget", serverCard: true, text: "Your brief", widget: { v: 1, root: { type: "Card", id: "root", title: "Your brief", children: [] } as never } });
+    const file = join(s.dir, BRIEF_FILE);
+    const state = JSON.parse(readFileSync(file, "utf8"));
+    writeFileSync(file, JSON.stringify({ ...state, card: { ...state.card, messageId: legacy.id } }));
+    s.restart();
+    expect(s.brief.serverPress(s.chief, s.thread(), legacy.id, dismiss, guest)).toBe("refused");
+    expect(s.brief.serverPress({ id: "someone-else" }, s.thread(), legacy.id, dismiss, owner)).toBeNull();
+    expect(s.brief.serverPress(s.chief, s.thread(), legacy.id, { type: "draft_reply", payload: { messageId: "m1" } }, owner)).toBeNull();
+    expect(s.brief.serverPress(s.chief, s.thread(), legacy.id, dismiss, owner)).toBe("handled");
+    // Nothing is left for the person, so coming back neither posts nor opens a brief.
     s.advance(AWAY_MS);
     expect(await s.brief.active("desktop")).toEqual({ returned: true });
-    s.restart();
-    expect(s.brief.dismissedFrom()).toEqual(["ada@x.test"]);
+    expect(s.card()!.id).toBe(message.id);
+    expect(JSON.parse(readFileSync(file, "utf8")).dismissed.map((one: { messageId: string }) => one.messageId)).toEqual(["m1"]);
   });
 
   it("a Draft a reply press carries the email as records, by its id only", async () => {
@@ -289,7 +317,7 @@ describe("the brief", () => {
     expect(s.shown()).toContain("Couldn't read Gmail");
     expect(s.shown()).toContain("Reconnect Gmail in Connected apps.");
     expect(s.shown()).toContain("Claude is signed out");
-    expect(s.shown()).toContain("8:09 AM · Standup");
+    expect(s.shown()).toContain("On your calendar today: Standup at 8:09 AM.");
   });
 
   it("waits for a busy chat instead of writing into a turn", async () => {

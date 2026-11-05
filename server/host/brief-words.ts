@@ -1,26 +1,25 @@
-// The brief is a widget the server writes, so its words come from here in the language set in Settings, not from the app's packs.
+// The brief is a chat message the server writes, so its words come from here in the language set for the person, not from the app's packs.
 import { byLanguage } from "../language.ts";
 
 type Count = (count: number) => string;
 type Name = (name: string) => string;
 type Pair = (first: string, second: string) => string;
+type List = (items: string[]) => string;
 
 export interface BriefWords {
+  /** Leads the notification's summary. */
   title: string;
+  /** Said once, the first time the brief is posted. */
   intro: string;
-  needsYou: string;
   nothingNeedsYou: string;
-  yourDay: string;
-  noMoreMeetings: string;
-  importantEmails: string;
-  routines: string;
-  open: string;
-  join: string;
-  openInGmail: string;
-  draftReply: Name;
-  dismiss: Name;
-  waitingOnReply: string;
-  important: string;
+  needsLead: Count;
+  /** One list line: what it is, then its note. */
+  line: Pair;
+  waitingOn: Name;
+  today: List;
+  meetingAt: Pair;
+  alsoLead: string;
+  idea: Name;
   noSender: string;
   noSubject: string;
   more: Count;
@@ -52,26 +51,19 @@ export interface BriefWords {
   unpreparedMeetings: string;
   unpreparedNote: Name;
   isAsking: Name;
-  ideas: string;
-  noticedAcross: Count;
 }
 
 const en: BriefWords = {
   title: "Your brief",
-  intro: "I keep an eye on your calendar and email and put what needs you here, once a day and when you come back. Tell me to stop, or what to watch for.",
-  needsYou: "Needs you",
-  nothingNeedsYou: "Nothing needs you right now.",
-  yourDay: "Your day",
-  noMoreMeetings: "No more meetings today.",
-  importantEmails: "Important emails",
-  routines: "Routines",
-  open: "Open",
-  join: "Join",
-  openInGmail: "Open in Gmail",
-  draftReply: (who) => `Draft a reply to ${who}`,
-  dismiss: (who) => `Dismiss ${who}'s email`,
-  waitingOnReply: "Waiting on your reply",
-  important: "Important",
+  intro: "I'll keep an eye on your calendar and email and let you know here when something needs you. Tell me if you'd like me to stop, or what to watch for.",
+  nothingNeedsYou: "All good, nothing needs you right now.",
+  needsLead: (n) => (n === 1 ? "Quick heads-up, one thing needs you:" : `Quick heads-up, ${n} things need you:`),
+  line: (a, b) => `${a}: ${b}`,
+  waitingOn: (who) => `${who} is waiting on your reply`,
+  today: (items) => `On your calendar today: ${items.join(", ")}.`,
+  meetingAt: (time, title) => `${title} at ${time}`,
+  alsoLead: "Also worth a look:",
+  idea: (text) => `An idea from your chats: ${text}`,
   noSender: "(no sender)",
   noSubject: "(no subject)",
   more: (n) => `and ${n} more`,
@@ -110,26 +102,19 @@ const en: BriefWords = {
   unpreparedMeetings: "I didn't prepare meetings",
   unpreparedNote: (name) => `That needs a Claude model as ${name}'s AI. Your email is still sorted, and your day, reminders and clashes show here.`,
   isAsking: (bot) => `${bot} is asking you`,
-  ideas: "Ideas",
-  noticedAcross: (n) => `Noticed across ${n} chats`,
 };
 
 const ptBr: BriefWords = {
   title: "Seu resumo",
-  intro: "Fico de olho na sua agenda e no seu e-mail e coloco aqui o que precisa da sua atenção, uma vez por dia e quando você volta. Me diga para parar ou o que observar.",
-  needsYou: "Precisa da sua atenção",
-  nothingNeedsYou: "Nada precisa de você agora.",
-  yourDay: "Seu dia",
-  noMoreMeetings: "Não há mais reuniões hoje.",
-  importantEmails: "E-mails importantes",
-  routines: "Rotinas",
-  open: "Abrir",
-  join: "Participar",
-  openInGmail: "Abrir no Gmail",
-  draftReply: (who) => `Rascunhar resposta para ${who}`,
-  dismiss: (who) => `Dispensar o e-mail de ${who}`,
-  waitingOnReply: "Aguardando sua resposta",
-  important: "Importante",
+  intro: "Vou ficar de olho na sua agenda e no seu e-mail e aviso aqui quando algo precisar de você. Me diga se quiser que eu pare, ou o que devo observar.",
+  nothingNeedsYou: "Tudo certo, nada precisa de você agora.",
+  needsLead: (n) => (n === 1 ? "Um aviso rápido, uma coisa precisa de você:" : `Um aviso rápido, ${n} coisas precisam de você:`),
+  line: (a, b) => `${a}: ${b}`,
+  waitingOn: (who) => `${who} está esperando sua resposta`,
+  today: (items) => `Na sua agenda hoje: ${items.join(", ")}.`,
+  meetingAt: (time, title) => `${title} (${time})`,
+  alsoLead: "Também vale a pena ver:",
+  idea: (text) => `Uma ideia das suas conversas: ${text}`,
   noSender: "(sem remetente)",
   noSubject: "(sem assunto)",
   more: (n) => `e mais ${n}`,
@@ -170,26 +155,19 @@ const ptBr: BriefWords = {
   unpreparedMeetings: "Não preparei as reuniões",
   unpreparedNote: (name) => `Para isso, a IA de ${name} precisa ser um modelo Claude. Seus e-mails continuam organizados, e seu dia, lembretes e conflitos aparecem aqui.`,
   isAsking: (bot) => `${bot} está perguntando a você`,
-  ideas: "Ideias",
-  noticedAcross: (n) => `Percebido em ${n} conversas`,
 };
 
 const es: BriefWords = {
   title: "Tu resumen",
-  intro: "Estoy pendiente de tu calendario y de tu correo, y dejo aquí lo que te necesita, una vez al día y cuando vuelves. Dime que pare, o qué debo vigilar.",
-  needsYou: "Te necesita",
-  nothingNeedsYou: "Nada te necesita ahora mismo.",
-  yourDay: "Tu día",
-  noMoreMeetings: "No hay más reuniones hoy.",
-  importantEmails: "Correos importantes",
-  routines: "Rutinas",
-  open: "Abrir",
-  join: "Unirse",
-  openInGmail: "Abrir en Gmail",
-  draftReply: (who) => `Redactar respuesta a ${who}`,
-  dismiss: (who) => `Descartar el correo de ${who}`,
-  waitingOnReply: "Espera tu respuesta",
-  important: "Importante",
+  intro: "Estaré pendiente de tu calendario y tu correo, y te aviso aquí cuando algo te necesite. Dime si quieres que pare, o qué debo vigilar.",
+  nothingNeedsYou: "Todo bien, nada te necesita ahora mismo.",
+  needsLead: (n) => (n === 1 ? "Un aviso rápido, hay una cosa que te necesita:" : `Un aviso rápido, hay ${n} cosas que te necesitan:`),
+  line: (a, b) => `${a}: ${b}`,
+  waitingOn: (who) => `${who} espera tu respuesta`,
+  today: (items) => `En tu calendario hoy: ${items.join(", ")}.`,
+  meetingAt: (time, title) => `${title} (${time})`,
+  alsoLead: "También vale la pena ver:",
+  idea: (text) => `Una idea de tus chats: ${text}`,
   noSender: "(sin remitente)",
   noSubject: "(sin asunto)",
   more: (n) => `y ${n} más`,
@@ -230,26 +208,19 @@ const es: BriefWords = {
   unpreparedMeetings: "No preparé las reuniones",
   unpreparedNote: (name) => `Para eso, la IA de ${name} debe ser un modelo Claude. Tu correo sigue ordenado, y tu día, los recordatorios y los solapamientos se muestran aquí.`,
   isAsking: (bot) => `${bot} te está preguntando algo`,
-  ideas: "Ideas",
-  noticedAcross: (n) => `Visto en ${n} chats`,
 };
 
 const de: BriefWords = {
   title: "Dein Überblick",
-  intro: "Ich behalte deinen Kalender und deine E-Mails im Blick und lege hier ab, was auf dich wartet, einmal am Tag und wenn du zurückkommst. Sag mir Bescheid, wenn ich aufhören soll oder worauf ich achten soll.",
-  needsYou: "Wartet auf dich",
-  nothingNeedsYou: "Gerade wartet nichts auf dich.",
-  yourDay: "Dein Tag",
-  noMoreMeetings: "Heute keine weiteren Termine.",
-  importantEmails: "Wichtige E-Mails",
-  routines: "Routinen",
-  open: "Öffnen",
-  join: "Beitreten",
-  openInGmail: "In Gmail öffnen",
-  draftReply: (who) => `Antwort an ${who} entwerfen`,
-  dismiss: (who) => `E-Mail von ${who} ausblenden`,
-  waitingOnReply: "Deine Antwort steht aus",
-  important: "Wichtig",
+  intro: "Ich behalte deinen Kalender und deine E-Mails im Blick und sage dir hier Bescheid, wenn etwas auf dich wartet. Sag mir, wenn ich aufhören soll oder worauf ich achten soll.",
+  nothingNeedsYou: "Alles gut, gerade wartet nichts auf dich.",
+  needsLead: (n) => (n === 1 ? "Kurz zur Info, eine Sache wartet auf dich:" : `Kurz zur Info, ${n} Dinge warten auf dich:`),
+  line: (a, b) => `${a}: ${b}`,
+  waitingOn: (who) => `${who} wartet auf deine Antwort`,
+  today: (items) => `Heute in deinem Kalender: ${items.join(", ")}.`,
+  meetingAt: (time, title) => `${title} um ${time}`,
+  alsoLead: "Auch einen Blick wert:",
+  idea: (text) => `Eine Idee aus deinen Chats: ${text}`,
   noSender: "(kein Absender)",
   noSubject: "(kein Betreff)",
   more: (n) => `und ${n} weitere`,
@@ -290,26 +261,19 @@ const de: BriefWords = {
   unpreparedMeetings: "Ich habe keine Termine vorbereitet",
   unpreparedNote: (name) => `Dafür braucht ${name} ein Claude-Modell als KI. Deine E-Mails werden weiterhin sortiert, und dein Tag, deine Erinnerungen und Terminüberschneidungen werden hier angezeigt.`,
   isAsking: (bot) => `${bot} fragt dich etwas`,
-  ideas: "Ideen",
-  noticedAcross: (n) => `In ${n} Chats bemerkt`,
 };
 
 const fr: BriefWords = {
   title: "Votre point du jour",
-  intro: "Je garde un œil sur votre agenda et vos e-mails, et je rassemble ici ce qui demande votre attention, une fois par jour et à votre retour. Dites-moi d’arrêter, ou ce qu’il faut surveiller.",
-  needsYou: "Demande votre attention",
-  nothingNeedsYou: "Rien ne demande votre attention pour le moment.",
-  yourDay: "Votre journée",
-  noMoreMeetings: "Plus aucune réunion aujourd’hui.",
-  importantEmails: "E-mails importants",
-  routines: "Routines",
-  open: "Ouvrir",
-  join: "Rejoindre",
-  openInGmail: "Ouvrir dans Gmail",
-  draftReply: (who) => `Rédiger une réponse à ${who}`,
-  dismiss: (who) => `Ignorer l’e-mail : ${who}`,
-  waitingOnReply: "Attend votre réponse",
-  important: "Important",
+  intro: "Je garde un œil sur votre agenda et vos e-mails, et je vous préviens ici quand quelque chose demande votre attention. Dites-moi si vous voulez que j’arrête, ou ce qu’il faut surveiller.",
+  nothingNeedsYou: "Tout va bien, rien ne demande votre attention pour le moment.",
+  needsLead: (n) => (n === 1 ? "Petit point rapide, une chose demande votre attention :" : `Petit point rapide, ${n} choses demandent votre attention :`),
+  line: (a, b) => `${a} : ${b}`,
+  waitingOn: (who) => `${who} attend votre réponse`,
+  today: (items) => `Dans votre agenda aujourd’hui : ${items.join(", ")}.`,
+  meetingAt: (time, title) => `${title} à ${time}`,
+  alsoLead: "À voir aussi :",
+  idea: (text) => `Une idée tirée de vos discussions : ${text}`,
   noSender: "(sans expéditeur)",
   noSubject: "(sans objet)",
   more: (n) => `et ${n} ${n < 2 ? "autre" : "autres"}`,
@@ -350,26 +314,19 @@ const fr: BriefWords = {
   unpreparedMeetings: "Je n'ai pas préparé les réunions",
   unpreparedNote: (name) => `${name} doit utiliser un modèle Claude comme IA. Vos e-mails restent triés, et votre journée, vos rappels et les chevauchements s'affichent ici.`,
   isAsking: (bot) => `${bot} vous pose une question`,
-  ideas: "Idées",
-  noticedAcross: (n) => `Remarqué dans ${n} discussions`,
 };
 
 const ja: BriefWords = {
   title: "ブリーフィング",
-  intro: "カレンダーとメールを確認して、対応が必要なことを1日1回、そしてあなたが戻ってきたときに、ここにまとめます。やめてほしいときや、注目してほしいことがあれば教えてください。",
-  needsYou: "対応が必要",
+  intro: "カレンダーとメールを確認して、対応が必要なことがあればここでお知らせします。やめてほしいときや、注目してほしいことがあれば教えてください。",
   nothingNeedsYou: "今は対応が必要なものはありません。",
-  yourDay: "今日の予定",
-  noMoreMeetings: "今日の会議はもうありません。",
-  importantEmails: "重要なメール",
-  routines: "ルーティン",
-  open: "開く",
-  join: "参加",
-  openInGmail: "Gmailで開く",
-  draftReply: (who) => `${who}への返信を下書きする`,
-  dismiss: (who) => `${who}のメールを非表示にする`,
-  waitingOnReply: "返信待ち",
-  important: "重要",
+  needsLead: (n) => `お知らせです。対応が必要なことが${n}件あります：`,
+  line: (a, b) => `${a}：${b}`,
+  waitingOn: (who) => `${who}があなたの返信を待っています`,
+  today: (items) => `今日の予定：${items.join("、")}`,
+  meetingAt: (time, title) => `${time} ${title}`,
+  alsoLead: "ほかにも確認しておきたいこと：",
+  idea: (text) => `チャットから気づいたこと：${text}`,
   noSender: "（差出人なし）",
   noSubject: "（件名なし）",
   more: (n) => `ほか${n}件`,
@@ -408,26 +365,19 @@ const ja: BriefWords = {
   unpreparedMeetings: "会議の準備は行っていません",
   unpreparedNote: (name) => `${name}のAIにはClaudeモデルが必要です。メールは引き続き整理され、今日の予定、リマインダー、重なりはここに表示されます。`,
   isAsking: (bot) => `${bot}が質問しています`,
-  ideas: "アイデア",
-  noticedAcross: (n) => `${n}件のチャットから気づいたこと`,
 };
 
 const zh: BriefWords = {
   title: "你的简报",
-  intro: "我会留意你的日历和邮件，并把需要你处理的事放在这里，每天一次，你回来时也会整理一次。想让我停止，或想让我关注什么，直接告诉我就行。",
-  needsYou: "需要你处理",
-  nothingNeedsYou: "目前没有需要你处理的事。",
-  yourDay: "今日日程",
-  noMoreMeetings: "今天没有其他会议了。",
-  importantEmails: "重要邮件",
-  routines: "例行任务",
-  open: "打开",
-  join: "加入",
-  openInGmail: "在 Gmail 中打开",
-  draftReply: (who) => `给 ${who} 起草回复`,
-  dismiss: (who) => `忽略 ${who} 的邮件`,
-  waitingOnReply: "等待你回复",
-  important: "重要",
+  intro: "我会留意你的日历和邮件，有需要你处理的事就在这里告诉你。想让我停下，或想让我关注什么，直接告诉我就行。",
+  nothingNeedsYou: "一切正常，目前没有需要你处理的事。",
+  needsLead: (n) => `提醒一下，有 ${n} 件事需要你处理：`,
+  line: (a, b) => `${a}：${b}`,
+  waitingOn: (who) => `${who} 在等你回复`,
+  today: (items) => `今天的日程：${items.join("、")}。`,
+  meetingAt: (time, title) => `${time} ${title}`,
+  alsoLead: "另外值得一看：",
+  idea: (text) => `来自你对话的想法：${text}`,
   noSender: "（无发件人）",
   noSubject: "（无主题）",
   more: (n) => `还有 ${n} 项`,
@@ -466,26 +416,19 @@ const zh: BriefWords = {
   unpreparedMeetings: "我没有准备会议",
   unpreparedNote: (name) => `需要将 ${name} 的 AI 设为 Claude 模型。你的邮件仍会整理，你的日程、提醒和时间冲突会显示在这里。`,
   isAsking: (bot) => `${bot} 正在向你提问`,
-  ideas: "想法",
-  noticedAcross: (n) => `从 ${n} 个对话中发现`,
 };
 
 const zhTw: BriefWords = {
   title: "你的簡報",
-  intro: "我會留意你的行事曆和郵件，並把需要你處理的事放在這裡，每天一次，你回來時也會整理一次。想讓我停止，或想讓我注意什麼，直接告訴我就好。",
-  needsYou: "需要你處理",
-  nothingNeedsYou: "目前沒有需要你處理的事。",
-  yourDay: "今日行程",
-  noMoreMeetings: "今天沒有其他會議了。",
-  importantEmails: "重要郵件",
-  routines: "例行工作",
-  open: "開啟",
-  join: "加入",
-  openInGmail: "在 Gmail 中開啟",
-  draftReply: (who) => `為 ${who} 草擬回覆`,
-  dismiss: (who) => `略過 ${who} 的郵件`,
-  waitingOnReply: "等待你回覆",
-  important: "重要",
+  intro: "我會留意你的行事曆和郵件，有需要你處理的事就在這裡告訴你。想讓我停止，或想讓我注意什麼，直接告訴我就好。",
+  nothingNeedsYou: "一切正常，目前沒有需要你處理的事。",
+  needsLead: (n) => `提醒一下，有 ${n} 件事需要你處理：`,
+  line: (a, b) => `${a}：${b}`,
+  waitingOn: (who) => `${who} 在等你回覆`,
+  today: (items) => `今天的行程：${items.join("、")}。`,
+  meetingAt: (time, title) => `${time} ${title}`,
+  alsoLead: "另外值得一看：",
+  idea: (text) => `來自你對話的想法：${text}`,
   noSender: "（無寄件者）",
   noSubject: "（無主旨）",
   more: (n) => `還有 ${n} 項`,
@@ -524,26 +467,19 @@ const zhTw: BriefWords = {
   unpreparedMeetings: "我沒有準備會議",
   unpreparedNote: (name) => `需要將 ${name} 的 AI 設為 Claude 模型。你的郵件仍會整理，你的行程、提醒和時間重疊會顯示在這裡。`,
   isAsking: (bot) => `${bot} 正在問你問題`,
-  ideas: "想法",
-  noticedAcross: (n) => `從 ${n} 個對話中發現`,
 };
 
 const hi: BriefWords = {
   title: "आपका सारांश",
-  intro: "आपके कैलेंडर और ईमेल पर मेरी नज़र रहती है, और जिन बातों में आपकी ज़रूरत है, वे दिन में एक बार और आपके लौटने पर यहाँ इकट्ठी हो जाती हैं। मुझे रुकने के लिए कहें, या बताएँ कि किस पर नज़र रखनी है।",
-  needsYou: "आपकी ज़रूरत है",
-  nothingNeedsYou: "अभी किसी चीज़ को आपकी ज़रूरत नहीं है।",
-  yourDay: "आपका दिन",
-  noMoreMeetings: "आज और कोई मीटिंग नहीं है।",
-  importantEmails: "ज़रूरी ईमेल",
-  routines: "रूटीन",
-  open: "खोलें",
-  join: "जुड़ें",
-  openInGmail: "Gmail में खोलें",
-  draftReply: (who) => `${who} को जवाब का ड्राफ़्ट बनाएँ`,
-  dismiss: (who) => `${who} का ईमेल अनदेखा करें`,
-  waitingOnReply: "आपके जवाब का इंतज़ार है",
-  important: "ज़रूरी",
+  intro: "मैं आपके कैलेंडर और ईमेल पर नज़र रखूँगा, और जब किसी चीज़ में आपकी ज़रूरत होगी तो यहीं बता दूँगा। अगर आप चाहें कि मैं रुक जाऊँ, या किस पर नज़र रखूँ, तो बता दीजिए।",
+  nothingNeedsYou: "सब ठीक है, अभी किसी चीज़ को आपकी ज़रूरत नहीं है।",
+  needsLead: (n) => (n === 1 ? "एक छोटी-सी सूचना, एक चीज़ को आपकी ज़रूरत है:" : `एक छोटी-सी सूचना, ${n} चीज़ों को आपकी ज़रूरत है:`),
+  line: (a, b) => `${a}: ${b}`,
+  waitingOn: (who) => `${who} आपके जवाब का इंतज़ार कर रहे हैं`,
+  today: (items) => `आज आपके कैलेंडर में: ${items.join(", ")}।`,
+  meetingAt: (time, title) => `${time} पर ${title}`,
+  alsoLead: "ये भी देख लें:",
+  idea: (text) => `आपकी चैट से एक आइडिया: ${text}`,
   noSender: "(कोई भेजने वाला नहीं)",
   noSubject: "(कोई विषय नहीं)",
   more: (n) => `और ${n}`,
@@ -584,8 +520,6 @@ const hi: BriefWords = {
   unpreparedMeetings: "मैंने मीटिंग की तैयारी नहीं की",
   unpreparedNote: (name) => `इसके लिए ${name} के AI के रूप में Claude मॉडल चाहिए। आपके ईमेल अब भी छाँटे जा रहे हैं, और आपका दिन, रिमाइंडर और टकराव यहाँ दिखते हैं।`,
   isAsking: (bot) => `${bot} आपसे कुछ पूछ रहा है`,
-  ideas: "सुझाव",
-  noticedAcross: (n) => `${n} चैट में देखा गया`,
 };
 
 const ukRules = new Intl.PluralRules("uk");
@@ -595,20 +529,15 @@ const ukCount = (n: number, one: string, few: string, many: string): string => {
 };
 const uk: BriefWords = {
   title: "Ваш огляд",
-  intro: "Я переглядаю ваш календар і пошту та збираю тут те, що потребує вашої уваги, раз на день і коли ви повертаєтеся. Скажіть, якщо мені потрібно зупинитися або на що звертати увагу.",
-  needsYou: "Потребує вашої уваги",
-  nothingNeedsYou: "Зараз ніщо не потребує вашої уваги.",
-  yourDay: "Ваш день",
-  noMoreMeetings: "Сьогодні більше немає зустрічей.",
-  importantEmails: "Важливі листи",
-  routines: "Рутини",
-  open: "Відкрити",
-  join: "Приєднатися",
-  openInGmail: "Відкрити в Gmail",
-  draftReply: (who) => `Створити чернетку відповіді для ${who}`,
-  dismiss: (who) => `Приховати лист: ${who}`,
-  waitingOnReply: "Чекає на вашу відповідь",
-  important: "Важливе",
+  intro: "Я стежитиму за вашим календарем і поштою та повідомлятиму тут, коли щось потребуватиме вашої уваги. Скажіть, якщо мені варто зупинитися або на що звертати увагу.",
+  nothingNeedsYou: "Усе гаразд, зараз ніщо не потребує вашої уваги.",
+  needsLead: (n) => (n === 1 ? "Коротке нагадування, одна справа потребує вашої уваги:" : `Коротке нагадування, ${ukCount(n, "справа", "справи", "справ")} ${ukRules.select(n) === "one" ? "потребує" : "потребують"} вашої уваги:`),
+  line: (a, b) => `${a}: ${b}`,
+  waitingOn: (who) => `${who} чекає на вашу відповідь`,
+  today: (items) => `Сьогодні у вашому календарі: ${items.join(", ")}.`,
+  meetingAt: (time, title) => `${title} о ${time}`,
+  alsoLead: "Також варто глянути:",
+  idea: (text) => `Ідея з ваших чатів: ${text}`,
   noSender: "(без відправника)",
   noSubject: "(без теми)",
   more: (n) => `і ще ${n}`,
@@ -647,26 +576,19 @@ const uk: BriefWords = {
   unpreparedMeetings: "Зустрічі не підготовлено",
   unpreparedNote: (name) => `Для цього потрібна модель Claude як ШІ бота «${name}». Пошта й далі розбирається, а ваш день, нагадування та накладання подій показуються тут.`,
   isAsking: (bot) => `${bot} ставить вам запитання`,
-  ideas: "Ідеї",
-  noticedAcross: (n) => `Помічено в ${n} чатах`,
 };
 
 const vi: BriefWords = {
   title: "Bản tóm tắt của bạn",
-  intro: "Tôi theo dõi lịch và email của bạn rồi đưa những việc cần bạn xử lý vào đây, mỗi ngày một lần và khi bạn quay lại. Cứ bảo tôi dừng lại, hoặc cho tôi biết cần chú ý điều gì.",
-  needsYou: "Cần bạn xử lý",
-  nothingNeedsYou: "Hiện không có việc nào cần bạn xử lý.",
-  yourDay: "Lịch hôm nay",
-  noMoreMeetings: "Hôm nay không còn cuộc họp nào.",
-  importantEmails: "Email quan trọng",
-  routines: "Tác vụ định kỳ",
-  open: "Mở",
-  join: "Tham gia",
-  openInGmail: "Mở trong Gmail",
-  draftReply: (who) => `Soạn nháp thư trả lời ${who}`,
-  dismiss: (who) => `Bỏ qua email của ${who}`,
-  waitingOnReply: "Đang chờ bạn trả lời",
-  important: "Quan trọng",
+  intro: "Tôi sẽ theo dõi lịch và email của bạn, và báo ở đây khi có việc cần bạn xử lý. Cứ bảo tôi nếu bạn muốn tôi dừng lại, hoặc cần chú ý điều gì.",
+  nothingNeedsYou: "Mọi thứ ổn, hiện không có việc nào cần bạn xử lý.",
+  needsLead: (n) => (n === 1 ? "Nhắc nhanh, có một việc cần bạn xử lý:" : `Nhắc nhanh, có ${n} việc cần bạn xử lý:`),
+  line: (a, b) => `${a}: ${b}`,
+  waitingOn: (who) => `${who} đang chờ bạn trả lời`,
+  today: (items) => `Lịch hôm nay của bạn: ${items.join(", ")}.`,
+  meetingAt: (time, title) => `${title} lúc ${time}`,
+  alsoLead: "Cũng đáng xem:",
+  idea: (text) => `Một ý tưởng từ các cuộc trò chuyện: ${text}`,
   noSender: "(không có người gửi)",
   noSubject: "(không có tiêu đề)",
   more: (n) => `và ${n} mục nữa`,
@@ -705,26 +627,19 @@ const vi: BriefWords = {
   unpreparedMeetings: "Tôi chưa chuẩn bị cuộc họp",
   unpreparedNote: (name) => `Để làm việc đó, AI của ${name} phải là mô hình Claude. Email của bạn vẫn được sắp xếp, còn lịch hôm nay, lời nhắc và lịch trùng hiện ở đây.`,
   isAsking: (bot) => `${bot} đang hỏi bạn`,
-  ideas: "Ý tưởng",
-  noticedAcross: (n) => `Nhận thấy qua ${n} cuộc trò chuyện`,
 };
 
 const tr: BriefWords = {
   title: "Özetin",
-  intro: "Takvimine ve e-postana göz kulak olurum; seni bekleyen şeyleri günde bir kez ve sen geri döndüğünde buraya koyarım. Durmamı ya da neyi izlemem gerektiğini söyle.",
-  needsYou: "Seni bekliyor",
-  nothingNeedsYou: "Şu anda seni bekleyen bir şey yok.",
-  yourDay: "Bugünkü programın",
-  noMoreMeetings: "Bugün başka toplantı yok.",
-  importantEmails: "Önemli e-postalar",
-  routines: "Rutinler",
-  open: "Aç",
-  join: "Katıl",
-  openInGmail: "Gmail’de aç",
-  draftReply: (who) => `${who} için yanıt taslağı oluştur`,
-  dismiss: (who) => `E-postayı yoksay: ${who}`,
-  waitingOnReply: "Yanıtını bekliyor",
-  important: "Önemli",
+  intro: "Takvimine ve e-postana göz kulak olacağım, seni bekleyen bir şey olduğunda burada haber vereceğim. Durmamı ya da neye dikkat etmemi istersen söylemen yeterli.",
+  nothingNeedsYou: "Her şey yolunda, şu anda seni bekleyen bir şey yok.",
+  needsLead: (n) => (n === 1 ? "Kısa bir not, seni bekleyen bir şey var:" : `Kısa bir not, seni bekleyen ${n} şey var:`),
+  line: (a, b) => `${a}: ${b}`,
+  waitingOn: (who) => `${who} yanıtını bekliyor`,
+  today: (items) => `Bugün takviminde: ${items.join(", ")}.`,
+  meetingAt: (time, title) => `${time} ${title}`,
+  alsoLead: "Şunlara da göz atabilirsin:",
+  idea: (text) => `Sohbetlerinden bir fikir: ${text}`,
   noSender: "(gönderen yok)",
   noSubject: "(konu yok)",
   more: (n) => `ve ${n} tane daha`,
@@ -763,26 +678,19 @@ const tr: BriefWords = {
   unpreparedMeetings: "Toplantıları hazırlamadım",
   unpreparedNote: (name) => `Bunun için ${name} adlı botun yapay zekâsı bir Claude modeli olmalı. E-postaların ayıklanmaya devam ediyor; bugünkü programın, hatırlatıcılar ve çakışmalar burada görünür.`,
   isAsking: (bot) => `${bot} sana bir şey soruyor`,
-  ideas: "Fikirler",
-  noticedAcross: (n) => `${n} sohbette fark edildi`,
 };
 
 const ko: BriefWords = {
   title: "내 브리핑",
-  intro: "캘린더와 이메일을 지켜보다가 확인할 일을 하루에 한 번, 그리고 돌아오실 때 여기에 정리해 드려요. 그만하라고 하거나 무엇을 지켜볼지 알려 주세요.",
-  needsYou: "확인 필요",
-  nothingNeedsYou: "지금 확인할 일이 없어요.",
-  yourDay: "오늘 일정",
-  noMoreMeetings: "오늘은 더 이상 회의가 없어요.",
-  importantEmails: "중요한 이메일",
-  routines: "루틴",
-  open: "열기",
-  join: "참여",
-  openInGmail: "Gmail에서 열기",
-  draftReply: (who) => `${who}에게 보낼 답장 초안 쓰기`,
-  dismiss: (who) => `${who}의 이메일 닫기`,
-  waitingOnReply: "답장을 기다리는 중",
-  important: "중요",
+  intro: "캘린더와 이메일을 지켜보다가 확인할 일이 생기면 여기서 알려 드릴게요. 그만하길 원하시거나 지켜볼 게 있으면 말씀해 주세요.",
+  nothingNeedsYou: "모두 괜찮아요. 지금 확인할 일이 없어요.",
+  needsLead: (n) => (n === 1 ? "잠깐 알려 드려요. 확인할 일이 하나 있어요:" : `잠깐 알려 드려요. 확인할 일이 ${n}개 있어요:`),
+  line: (a, b) => `${a}: ${b}`,
+  waitingOn: (who) => `${who}님이 답장을 기다리고 있어요`,
+  today: (items) => `오늘 일정: ${items.join(", ")}`,
+  meetingAt: (time, title) => `${time} ${title}`,
+  alsoLead: "이것도 살펴보세요:",
+  idea: (text) => `채팅에서 발견한 아이디어: ${text}`,
   noSender: "(보낸 사람 없음)",
   noSubject: "(제목 없음)",
   more: (n) => `외 ${n}개`,
@@ -821,8 +729,6 @@ const ko: BriefWords = {
   unpreparedMeetings: "회의 준비를 하지 못했어요",
   unpreparedNote: (name) => `그러려면 ${name}의 AI가 Claude 모델이어야 해요. 이메일은 계속 정리되고, 오늘 일정, 미리 알림, 일정 충돌은 여기에 표시돼요.`,
   isAsking: (bot) => `${bot}이(가) 묻고 있어요`,
-  ideas: "아이디어",
-  noticedAcross: (n) => `채팅 ${n}개에서 발견`,
 };
 
 const WORDS = { en, de, es, fr, hi, ja, ko, "pt-br": ptBr, zh, "zh-tw": zhTw, uk, vi, tr };

@@ -30,12 +30,14 @@ Expected:
   defused. It runs at `--permission-mode default`, and its system prompt has no
   recent work. Only Gmail and Calendar reads reach the service, and none names
   an account.
-- The 10-minute reminder, the prep card and the brief rows appear in MausBot's
-  chat, and the brief's notification names that chat. The brief is edited in
-  place, not posted twice.
+- The 10-minute reminder and the prep card appear in MausBot's chat, and the
+  brief lands there as a plain bot message (no widget): the intro, "Quick
+  heads-up, one thing needs you:" with Ada's email linked to its Gmail thread,
+  and today's meeting line. Its notification names that chat. The brief is
+  edited in place, not posted twice.
 - The same mail again is nothing new: there is no second turn.
-- Dismiss removes the row with no turn, and the next sort's prompt holds the
-  dismissed sender as records.
+- A reply to the brief reaches MausBot's turn with the brief quoted as
+  untrusted content, and the brief is still one message.
 - A Gmail error is a failed check, never "nothing new": the routine shows
   `checkTrouble` and the brief says to reconnect Gmail.
 - A routine of the person's own runs as before: at the bot's own level, as a
@@ -70,8 +72,8 @@ Expected:
 - With a watch already on MausBot, the Chief's is kept and MausBot's own is
   paused; a paused watch stays paused and nothing else is left on. A queued run
   holds the handover until it ends. A frozen computer hands nothing over.
-- MausBot hidden from the sidebar gets the brief card, its notification, the
-  first-open answer and the add-a-key card; today's earlier card stays in the
+- MausBot hidden from the sidebar gets the brief message, its notification, the
+  first-open answer and the add-a-key card; today's earlier brief stays in the
   Chief's chat.
 - On a Team Cloud there is no watch and nothing is handed over, and a member's
   MausBot is never the proactive bot, so its briefing routine reads nothing.

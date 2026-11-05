@@ -37,21 +37,26 @@ desktop, headless and on a Cloud.
 
 ## What the person sees
 
-- **The brief.** One card a day in a fixed chat of MausBot's, edited in
-  place, built with no AI. It exists only once it has something for the person
-  (something that needs them, an important email or a meeting today); an empty
-  brief is never posted. It opens on the first open of the day and after three
-  hours away. Any other moment, it never takes the screen from the chat in use.
-  Its first appearance says what it does and that the person can tell MausBot
-  to stop or change it. Sections:
-  1. **Needs you**: emails waiting on a reply, failed or missed routines,
-     meetings that clash, an app that can't be read ("Couldn't read Gmail ·
-     Reconnect Gmail in Connected apps"), a signed-out AI, a usage limit, a
-     question a bot is waiting on;
-  2. **Your day**: today's meetings, with Join for an https meeting link;
-  3. **Important emails**: what the watch picked, each with a one-line why,
-     **Draft a reply**, **Open in Gmail** and **Dismiss**;
-  4. **Routines**: other routines' results today.
+- **The brief.** One ordinary chat message a day from MausBot, in a fixed chat
+  of MausBot's, edited in place, written with no AI. It exists only once it has
+  something for the person (something that needs them, an important email or a
+  meeting today); an empty brief is never posted. It opens on the first open of
+  the day and after three hours away. Any other moment, it never takes the
+  screen from the chat in use. No title or date: the first one ever says once
+  what it does and that the person can tell MausBot to stop or change it. Then:
+  1. "Quick heads-up, N things need you:" and a short list (six at most, then
+     "and N more"): emails waiting on a reply, failed or missed routines,
+     meetings that clash, an app that can't be read ("Couldn't read Gmail:
+     Reconnect Gmail in Connected apps."), a signed-out AI, a usage limit, a
+     question a bot is waiting on ("Juno asked you: ..."). A line that opens a
+     chat links it, and an email links its Gmail thread. With none of these,
+     one line: "All good, nothing needs you right now.";
+  2. one line naming today's meetings and their times;
+  3. "Also worth a look:" a few other important emails, routine results (with
+     the page a run published) and the night's ideas.
+  Mail, invites, questions and ideas are untrusted: each piece is escaped, so it
+  can never become a link, image, heading or math. Briefs posted as cards
+  before this stay in the chat as they were.
 - **Meeting prep**: a card in the same chat when a meeting with other people is
   within four hours.
 - **The 10-minute reminder**: a card posted by the server, with no AI.
@@ -133,16 +138,17 @@ there is no brief at all. Its row says
 
 - `routine-checks.json`: per routine, cursors, judged ids, meetings prepped and
   reminded, and the items a run holds. Ids and times only.
-- `brief.json`: the brief's home chat and today's card, presence, the zone of
+- `brief.json`: the brief's home chat and today's message, presence, the zone of
   record (from the person's device, so a Cloud is not stuck on UTC), the
   important rows by id, and recent dismissals with the sender's address. The
   senders and subjects it shows are read back from Gmail by id after a restart.
 - `watch.json`: that the default routine was made, so it is never made again,
   and the bot each briefing routine was handed to.
-- A card the server built carries `serverCard`. A bot can't edit it, and it
-  replays into a turn only as records. Dismiss works only for the owner or an
-  admin, only on the brief, checks thread ownership before reading a widget, and
-  starts no turn. Recent dismissals go into the next triage as records.
+- A card or brief message the server built carries `serverCard`. A bot can't
+  edit it, and it replays into a turn only as records. Dismiss, on today's brief
+  card from before the brief was a message, works only for the owner or an
+  admin, checks thread ownership before reading a widget, and starts no turn.
+  Recent dismissals go into the next triage as records.
 - A hosted team workspace or Team Cloud gets no watch and no brief. Presence is
   recorded for the owner only.
 - A personal Cloud that began with its first hour (`server/host/first-hour.ts`)

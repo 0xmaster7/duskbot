@@ -53,7 +53,7 @@ function start(options: { team?: boolean; frozen?: boolean } = {}) {
 }
 
 const json = (file: string) => JSON.parse(readFileSync(join(DATA_DIR, file), "utf8"));
-const briefCards = (store: Store, bot: BotRecord) => store.messagesFor(bot.threadId).filter((message) => message.serverCard && message.widget?.root.title === "Your brief");
+const briefCards = (store: Store, bot: BotRecord) => store.messagesFor(bot.threadId).filter((message) => message.serverCard && message.kind === "text");
 /** Writes runs into routines.json the way the routine engine keeps them. */
 function withRuns(runs: RoutineRun[]): void {
   const file = json("routines.json");
@@ -222,7 +222,7 @@ describe("MausBot keeps an eye on the day", () => {
     const hidden = after.store.bot(maus.id)!;
     expect(hidden.sidebarHidden).toBe(true);
     expect(briefCards(after.store, hidden)).toHaveLength(1);
-    expect(JSON.stringify(briefCards(after.store, hidden)[0]!.widget!.root)).toContain("Tell me to stop, or what to watch for.");
+    expect(briefCards(after.store, hidden)[0]!.text).toContain("Tell me if you'd like me to stop, or what to watch for.");
     expect(briefCards(after.store, after.store.bot(clive.id)!), "today's earlier card stays with the Chief").toHaveLength(1);
     expect(after.notified.at(-1)).toMatchObject({ kind: "brief", botId: maus.id, threadId: hidden.threadId });
     expect(await after.proactive.brief.active("desktop", "UTC")).toMatchObject({ open: { botId: maus.id, threadId: hidden.threadId } });

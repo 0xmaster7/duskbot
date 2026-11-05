@@ -148,7 +148,7 @@ describe("the brief on a non-Claude engine, sorted by the helper models", () => 
       schedule: { type: "interval", everyMinutes: 15, anchorAt: 0 }, durationMinutes: 30, nextRunAt: null, createdAt: now - 60 * MINUTE, updatedAt: 0,
       checks: ["calendar", "mail", "runs"], access: "read-and-draft", deliver: "brief",
     };
-    const shown = () => JSON.stringify(store.messagesFor(store.bot(chief.id)!.threadId).findLast((row) => row.serverCard && row.widget?.root.title === "Your brief")?.widget?.root ?? null);
+    const shown = () => store.messagesFor(store.bot(chief.id)!.threadId).findLast((row) => row.serverCard && row.kind === "text")?.text ?? "";
     return { brief, checks, routine, inbox, shown, advance: (ms: number) => { now += ms; }, now: () => now };
   }
 
@@ -159,8 +159,7 @@ describe("the brief on a non-Claude engine, sorted by the helper models", () => 
     w.inbox.push(email("a", "Shop <deals@shop.example>", "This week's deals", "Save 20%", w.now() - 5 * MINUTE), email("b", "Dana Ruiz <dana@northwind.example>", "PO number?", "Could you confirm it?", w.now() - 3 * MINUTE));
     const result = await w.checks.check(w.routine, { manual: false });
     expect(result.run).toBeUndefined();
-    expect(w.shown()).toContain("Dana Ruiz: PO number?");
-    expect(w.shown()).toContain("Waiting on your reply · Asks you to confirm the PO number.");
+    expect(w.shown()).toMatch(/^- \[Dana Ruiz is waiting on your reply\]\(<https:\/\/mail\.google\.com\/[^>]+>\): PO number\? · Asks you to confirm the PO number\.$/m);
     expect(w.shown()).not.toContain("This week's deals");
     expect(w.shown()).not.toContain("I didn't sort email");
     // Judged once: the next check asks nobody about the same mail.
@@ -180,7 +179,8 @@ describe("the brief on a non-Claude engine, sorted by the helper models", () => 
     helpers.decider.calls.mockImplementation((async () => ({ ok: true, provider: "workersai", latencyMs: 1, answers: { type: "choice", choice: "reply", pTop: 0.9, margin: 0.8, probabilities: { reply: 0.9, important: 0.05, skip: 0.05 } } })) as never);
     w.advance(15 * MINUTE);
     await w.checks.check(w.routine, { manual: false });
-    expect(w.shown()).toContain("Dana: PO number?");
+    expect(w.shown()).toContain("[Dana is waiting on your reply]");
+    expect(w.shown()).toContain("PO number?");
   });
 
   it("without any helper model the engine's limit stays as it was: email is not sorted, and the brief says why", async () => {

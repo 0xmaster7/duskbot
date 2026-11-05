@@ -1,5 +1,5 @@
-// The main agent's brief: one server-built card a day in a fixed chat of the proactive bot's, edited in place, rendered
-// with no AI from what the checks found and what the watch run sorted. It exists only once it has something for the person, opens
+// The main agent's brief: one server-written chat message a day in a fixed chat of the proactive bot's, edited in place,
+// written with no AI from what the checks found and what the watch run sorted. It exists only once it has something for the person, opens
 // on the first open of the day and after three hours away, and tells the person once per update. Presence, the brief's home and its rows live in brief.json,
 // ids and times only; the senders and subjects it shows are read back from Gmail by id after a restart. Where a morning
 // time is set, the day's brief is also posted and pushed then, led by what was done while the person was away.
@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { z } from "zod";
 
 import type { NeedsYouItem } from "../../shared/today.ts";
-import type { WidgetAction, WidgetRoot } from "../../shared/widget.ts";
+import type { WidgetAction } from "../../shared/widget.ts";
 import { writeFileAtomic } from "../atomic.ts";
 import { createAgentCard } from "../chat-widgets.ts";
 import type { CalendarEvent, EmailHeader, ReadSession } from "../connected-reads.ts";
@@ -18,7 +18,8 @@ import type { RoutineRun } from "../routines.ts";
 import type { BotRecord, Message, Store } from "../store.ts";
 import { answered, localDate, qualifies, validZone } from "./check-plan.ts";
 import { parseWatchResult } from "./check-prompts.ts";
-import { briefCard, clockTime, DISMISS_ACTION, DRAFT_ACTION, prepCard, reminderCard, type BriefEmail, type BriefFacts, type BriefRow, type BuiltCard, type NeedRow } from "./brief-cards.ts";
+import { clockTime, DISMISS_ACTION, DRAFT_ACTION, prepCard, reminderCard, type BuiltCard } from "./brief-cards.ts";
+import { briefMessage, type BriefEmail, type BriefFacts, type BriefRow, type BuiltMessage, type NeedRow } from "./brief-message.ts";
 import { briefWords, type BriefWords } from "./brief-words.ts";
 import { proactiveOwner } from "./proactive-owner.ts";
 import type { CheckReport } from "./routine-checks.ts";
@@ -54,7 +55,7 @@ const stateSchema = z.object({
   language: z.string().max(35).optional(),
   lastActiveAt: at.optional(),
   home: z.object({ botId: id, threadId: id }).optional(),
-  /** The day the first brief was posted: that day's card says what it does. */
+  /** The day the first brief was posted: that day's message says what it does. */
   introducedOn: z.string().max(10).optional(),
   card: z.object({ day: z.string().max(10), botId: id, threadId: id, messageId: id, postedAt: at }).optional(),
   important: z.array(z.object({ messageId: id, threadId: id, at, judgedAt: at, needsReply: z.boolean() })).max(MAX_ROWS),
@@ -177,8 +178,6 @@ export function createBrief(deps: BriefDeps) {
   const headers = new Map<string, EmailHeader & { why?: string }>();
   let dirty = false;
   let rendering = false;
-  /** The card last written, so a check that changed nothing leaves it (and a press on it) alone. */
-  let written: { messageId: string; json: string } | undefined;
 
   const timeZone = (): string | undefined => validZone(state.timeZone) ?? deps.hostTimeZone();
   const today = (): string => localDate(now(), timeZone());
@@ -204,12 +203,13 @@ export function createBrief(deps: BriefDeps) {
     return threadId;
   }
 
-  /** Today's card, while it is this bot's: one the brief's earlier bot posted stays where it is. */
+  /** Today's brief message, while it is this bot's: one the brief's earlier bot posted stays where it is, and so does a
+   * card from before the brief was a message, so today's brief is then posted anew. */
   const currentCard = (bot: BotRecord): { row: Message; card: NonNullable<BriefState["card"]> } | null => {
     const card = state.card;
     if (!card || card.day !== today() || card.botId !== bot.id) return null;
     const row = deps.store.messagesFor(card.threadId).find((message) => message.id === card.messageId);
-    return row?.serverCard ? { row, card } : null;
+    return row?.serverCard && row.kind === "text" ? { row, card } : null;
   };
 
   function liveImportant(at: number): Important[] {
@@ -288,7 +288,7 @@ export function createBrief(deps: BriefDeps) {
       return header ? [{ messageId: row.messageId, threadId: row.threadId, from: header.from, subject: header.subject, needsReply: row.needsReply, ...(header.why ? { why: header.why } : {}) }] : [];
     });
     const dreamt = deps.ideas?.(chiefBot.id);
-    const ideas = (dreamt?.ideas ?? []).map((idea): BriefRow => ({ text: idea, note: w.noticedAcross(dreamt!.conversations) }));
+    const ideas = (dreamt?.ideas ?? []).map((idea): BriefRow => ({ text: idea, note: "" }));
     return {
       now: at, ...(zone ? { timeZone: zone } : {}), ...(language ? { language } : {}), intro: state.introducedOn === undefined || state.introducedOn === day,
       ...(state.morningLine?.day === day ? { overnight: state.morningLine.text } : {}),
@@ -321,7 +321,7 @@ export function createBrief(deps: BriefDeps) {
   }
 
   /** Posts today's brief, or edits it in place. `create`: post one when it has anything to show, not only what needs the
-   * person. `worth`: the card has something in it, so an arrival may open it. */
+   * person. `worth`: the brief has something in it, so an arrival may open it. */
   async function render(options: { create: boolean; notify: boolean; morning?: boolean }): Promise<{ botId: string; threadId: string; worth: boolean } | null> {
     if (deps.hosted || !deps.watching()) return null;
     const bot = chief();
@@ -345,12 +345,11 @@ export function createBrief(deps: BriefDeps) {
         return null;
       }
       dirty = false;
-      const card = briefCard(built);
-      const json = JSON.stringify(card.card);
-      if (existing && written?.messageId === existing.card.messageId && written.json === json && !options.morning) return { botId: bot.id, threadId, worth };
-      const shown = existing ? edit(bot, existing.card, card) : post(bot, threadId, card);
+      const card = briefMessage(built);
+      // a check that changed nothing leaves today's message alone
+      if (existing && existing.row.text === card.text && !options.morning) return { botId: bot.id, threadId, worth };
+      const shown = existing ? edit(existing.card, card) : say(bot, threadId, card);
       if (!shown) return null;
-      written = { messageId: shown, json };
       if (!existing) {
         state.card = { day: today(), botId: bot.id, threadId, messageId: shown, postedAt: now() };
         state.introducedOn ??= state.card.day;
@@ -367,6 +366,19 @@ export function createBrief(deps: BriefDeps) {
     }
   }
 
+  /** Security invariant: the brief is marked a server card, so it is replayed to the bot as records, never as its own words. */
+  function say(bot: BotRecord, threadId: string, built: BuiltMessage): string {
+    const posted = deps.store.appendMessage(threadId, { role: "bot", kind: "text", text: built.text, serverCard: true });
+    deps.store.patchTask(bot.id, threadId, { unread: true });
+    return posted.id;
+  }
+
+  function edit(card: NonNullable<BriefState["card"]>, built: BuiltMessage): string | null {
+    const edited = deps.store.patchMessage(card.threadId, card.messageId, { text: built.text });
+    if (!edited) console.warn("brief: today's message could not be edited");
+    return edited?.id ?? null;
+  }
+
   function post(bot: BotRecord, threadId: string, card: BuiltCard): string | null {
     const posted = createAgentCard({ store: deps.store as Parameters<typeof createAgentCard>[0]["store"], bot, threadId, input: { tool: "show_widget", widget: card.card }, serverCard: true });
     if (!posted.ok) {
@@ -375,15 +387,6 @@ export function createBrief(deps: BriefDeps) {
     }
     deps.store.patchTask(bot.id, threadId, { unread: true });
     return posted.messageId;
-  }
-
-  function edit(bot: BotRecord, card: NonNullable<BriefState["card"]>, built: BuiltCard): string | null {
-    const edited = createAgentCard({ store: deps.store as Parameters<typeof createAgentCard>[0]["store"], bot, threadId: card.threadId, input: { tool: "update_widget", widget_id: card.messageId, widget: built.card }, serverCard: true });
-    if (!edited.ok) {
-      console.warn(`brief: the card could not be edited: ${edited.error}`);
-      return null;
-    }
-    return edited.messageId;
   }
 
   /** A server card of its own in the brief's chat: a prep or a reminder. Null when there is no proactive bot or chat. */
@@ -524,11 +527,12 @@ export function createBrief(deps: BriefDeps) {
     return card !== undefined && card.threadId === threadId && card.messageId === messageId;
   };
 
-  /** Security invariant: only the owner or an admin dismisses, only on the brief card itself, and the press starts no
-   * turn. Null for any other press, which goes to the bot as usual. */
+  /** Security invariant: only the owner or an admin dismisses, only on today's brief card from before the brief was a
+   * message, and the press starts no turn. Null for any other press, which goes to the bot as usual. */
   function serverPress(bot: Pick<BotRecord, "id">, threadId: string, messageId: string, action: WidgetAction, auth: RequestAuth): "handled" | "refused" | null {
     if (deps.hosted || action.type !== DISMISS_ACTION || !briefRow(threadId, messageId) || state.card?.botId !== bot.id) return null;
-    if (deps.store.messagesFor(threadId).find((row) => row.id === messageId)?.serverCard !== true) return null;
+    const row = deps.store.messagesFor(threadId).find((one) => one.id === messageId);
+    if (row?.serverCard !== true || row.kind !== "widget") return null;
     if (!ownerOrAdmin(auth)) return "refused";
     const target = isRecord(action.payload) && typeof action.payload.messageId === "string" ? action.payload.messageId : null;
     if (!target) return "handled";
@@ -556,7 +560,7 @@ export function createBrief(deps: BriefDeps) {
 
   return {
     chief, report, consume, active, serverPress, pressRecords, timeZone,
-    /** Something the brief shows changed outside a check (a watch run failed): edit today's card in place. */
+    /** Something the brief shows changed outside a check (a watch run failed): edit today's message in place. */
     refresh: (): Promise<unknown> => render({ create: false, notify: true }),
     dismissedFrom: (): string[] => [...new Set(state.dismissed.filter((one) => one.from && now() - one.at <= DISMISSED_MS).reverse().map((one) => one.from))].slice(0, 20),
     /** Each minute: the morning brief when it is due, else an edit a busy chat held back. */
@@ -567,12 +571,13 @@ export function createBrief(deps: BriefDeps) {
     nextWakeAt,
     /** The language the person's app shows, else the one set in Settings. */
     language: (): string | undefined => state.language ?? deps.language(),
-    card: (): WidgetRoot | undefined => {
+    /** Today's brief message, while it is the proactive bot's. */
+    message: (): Message | undefined => {
       const bot = chief();
-      return bot ? currentCard(bot)?.row.widget?.root : undefined;
+      return bot ? currentCard(bot)?.row : undefined;
     },
-    /** The brief moved to another bot: from now on it lives in that bot's main chat, and its next card says what it
-     * does. Cards already posted stay where they are. */
+    /** The brief moved to another bot: from now on it lives in that bot's main chat, and its next message says what it
+     * does. Briefs already posted stay where they are. */
     moveTo: (botId: string): void => {
       if (state.home?.botId === botId) return;
       const threadId = deps.mainThread(botId);
