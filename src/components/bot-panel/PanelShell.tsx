@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { Settings, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
@@ -16,6 +16,7 @@ import { PageBody, pageSurfaceCls } from "./pages";
 import { linkTarget, usePanelLink, type PanelLink } from "./panel-link";
 import { PanelHero } from "./PanelHero";
 import { PageHeader, roundButtonCls } from "./rows";
+import { SegmentedTabs } from "../ui/SegmentedTabs";
 
 function initialTarget(section: BotSettingsSection | null, link: PanelLink | null): PanelTarget {
   return section ? linkTarget(section, link) : { tab: "details" };
@@ -54,6 +55,7 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
   const openPage = (next: SimplePageId) => {
     setStack((current) => [...current, next]);
     setEditorOpen(false);
+    setEditingInstructions(false);
     scrollTop();
   };
   const closeEditor = () => {
@@ -96,28 +98,17 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col" onKeyDown={onKeyDown}>
-      <div {...dragProps} className="flex h-[50px] shrink-0 items-start justify-end gap-2.5 px-[13px] pt-[13px]">
+      <div {...dragProps} className="flex h-[60px] shrink-0 items-center justify-end gap-2 p-3">
         <ChatShareMenu bot={bot} className={roundButtonCls} />
-        <button
-          type="button"
-          data-panel-gear
-          aria-label={t("botPanel.page.settings")}
-          title={t("botPanel.page.settings")}
-          aria-current={page === "settings" ? "page" : undefined}
-          onClick={() => go({ tab: "details", page: "settings" })}
-          className={roundButtonCls}
-        >
-          <Settings size={16} className="pointer-events-none" />
-        </button>
         <button type="button" onClick={onClose} aria-label={t("botSettings.simple.close")} className={roundButtonCls}>
           <X size={16} className="pointer-events-none" />
         </button>
       </div>
 
-      <div ref={bodyRef} className="@container relative min-h-0 flex-1 overflow-y-auto px-4 pb-7">
+      <div ref={bodyRef} className="@container relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 [scrollbar-gutter:stable] [scrollbar-width:thin]">
         {page === null ? (
           <>
-            <div className="relative mt-3.5" ref={editorRef}>
+            <div className="relative pb-3 pt-2" ref={editorRef}>
               <PanelHero
                 bot={bot}
                 activeState={derived.activeState}
@@ -133,28 +124,18 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
               )}
             </div>
             <div
-              role="tablist"
-              aria-label={t("botSettings.simple.tabs")}
-              className="sticky top-0 z-[1] -mx-4 mt-[15px] flex justify-center gap-0.5 bg-app px-4 pb-2.5 pt-1 after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-3 after:bg-linear-to-b after:from-app after:to-transparent"
+              data-panel-tabs
+              className="sticky top-0 z-[1] -mx-4 flex justify-center bg-app px-4 pb-2.5 pt-1 after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-3 after:bg-linear-to-b after:from-app after:to-transparent"
             >
-              {PANEL_TABS.map((id) => (
-                <button
-                  key={id}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === id}
-                  data-panel-tab={id}
-                  onClick={() => openTab(id)}
-                  className={cn(
-                    "h-[26px] min-w-0 shrink truncate rounded-full px-2 text-[13px] leading-[18px] transition-colors",
-                    tab === id ? "bg-ink/[0.07] text-ink" : "text-ink-secondary hover:text-ink",
-                  )}
-                >
-                  {t(TAB_LABEL[id])}
-                </button>
-              ))}
+              <SegmentedTabs
+                attr="data-panel-tab"
+                label={t("botSettings.simple.tabs")}
+                value={tab}
+                onChange={openTab}
+                tabs={PANEL_TABS.map((id) => ({ value: id, label: t(TAB_LABEL[id]) }))}
+              />
             </div>
-            <div role="tabpanel">
+            <div role="tabpanel" aria-label={t(TAB_LABEL[tab])} className="pt-2.5">
               {tab === "details" && <DetailsTab bot={bot} derived={derived} onOpen={openPage} />}
               {tab === "library" && <LibraryTab bot={bot} onOpen={openPage} />}
               {tab === "computer" && <ComputerTab bot={bot} derived={derived} onOpen={openPage} />}

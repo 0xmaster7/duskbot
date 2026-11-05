@@ -6,9 +6,9 @@ import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { colorSwatch, MAUS_COLOR_LABEL, MAUS_COLOR_NAMES, PICKABLE_STATES, type MausState } from "@/lib/mascot";
 import type { Bot } from "@/state/store";
-import { MASCOT_BODIES, MASCOT_BODY_IDS } from "../../../shared/mascot-bodies";
+import { GROK_BODIES, GROK_BODY_IDS } from "../../../shared/grok-bodies";
 import { HALLOWEEN_BODIES, HALLOWEEN_BODY_IDS } from "../../../shared/halloween-bodies";
-import { isHalloweenBody, type BotBodyId } from "../../../shared/bot-body";
+import { isHalloweenBody, wearsBody, type BotBodyId } from "../../../shared/bot-body";
 import { useHalloweenDressed, wornBody } from "@/lib/halloween-dress";
 import { MausAvatar } from "../Avatar";
 import { AvatarImageGenerator } from "../AvatarImageGenerator";
@@ -75,13 +75,13 @@ export function AvatarEditorCard({ bot, activeState, onPatch, onClose }: {
       key={id}
       type="button"
       disabled={busy}
-      aria-pressed={!showsImage && body === id}
+      aria-pressed={!showsImage && wearsBody(body, id)}
       aria-label={`Use the ${name} body`}
       title={name}
       onClick={() => pickMascot({ mascotBody: id })}
       className={cn(
         "flex h-[58px] items-center justify-center rounded-xl disabled:opacity-50",
-        !showsImage && body === id ? "bg-ink/[0.08] ring-[1.5px] ring-inset ring-ink/25" : "hover:bg-ink/[0.05]",
+        !showsImage && wearsBody(body, id) ? "bg-ink/[0.08] ring-[1.5px] ring-inset ring-ink/25" : "hover:bg-ink/[0.05]",
       )}
     >
       <MausAvatar color={bot.color} faceColor={bot.mascotFaceColor} bodyId={id} size={40} animated={false} trackPointer={false} />
@@ -135,7 +135,7 @@ export function AvatarEditorCard({ bot, activeState, onPatch, onClose }: {
         {tab === "bot" && (
           <>
             <div className="grid grid-cols-5 gap-1.5">
-              {MASCOT_BODY_IDS.map((id) => bodyButton(id, MASCOT_BODIES[id].name))}
+              {GROK_BODY_IDS.map((id) => bodyButton(id, GROK_BODIES[id].name))}
             </div>
             <div className="flex flex-wrap justify-center gap-2 px-1 pb-1 pt-3.5">
               {MAUS_COLOR_NAMES.map((color) => (

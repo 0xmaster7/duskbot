@@ -1,17 +1,13 @@
 import { useState } from "react";
-import { AppWindow, AudioLines, ChevronRight, FileText, ShieldCheck, Tag } from "lucide-react";
+import { AppWindow, ChevronRight, FileText, ShieldCheck, Tag } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { CALL_MODES, callModeHint, effectiveCallMode, setCallMode, useCallMode, type CallMode } from "@/lib/call-mode";
-import { callCapabilityHelp } from "@/lib/call-capability";
-import { fishListeningReady, listensHere, speechBridge } from "@/lib/speech";
 import { firstSentence } from "@/lib/soul";
 import { currentTaskBot, useStore, type Bot } from "@/state/store";
 import type { ApprovalMode } from "../../../shared/approval-mode";
 import { BOT_PROFILE_LIMITS } from "../../../shared/bot-profile";
 import { ApprovalChip } from "../ComposerPlusMenu";
-import { useDesktopCapabilities } from "../DesktopCapabilities";
 import { DefaultBotHideRow } from "../DefaultBotControls";
 import { SoulField } from "../SoulField";
 import { BotApiCard } from "../bot-settings/BotApiCard";
@@ -39,11 +35,9 @@ export function SettingsPage({ bot, derived, onOpen, editingInstructions = false
   editingInstructions?: boolean;
   onEditInstructions?: (open: boolean) => void;
 }) {
-  const { state, dispatch, flushBotPatches } = useStore();
-  const { capabilities, ready } = useDesktopCapabilities();
+  const { dispatch, flushBotPatches } = useStore();
   const apps = useBotApps(bot);
   const approval = useThreadApproval(currentTaskBot(bot));
-  const storedCallMode = useCallMode();
   const [jobDraft, setJobDraft] = useState<string | null>(null);
   const { patch, approvalMode, engine } = derived;
   const name = bot.name;
@@ -65,17 +59,6 @@ export function SettingsPage({ bot, derived, onOpen, editingInstructions = false
     if (mode === approvalMode || (mode !== "ask" && mode !== "full")) return;
     dispatch({ type: "updateBot", botId: bot.id, patch: { approvalMode: mode, applyToAllThreads: true } });
   };
-
-  // As the call button: where this device cannot listen in turns, a call is always Live.
-  const turnsHere = !ready || listensHere(capabilities, state.config);
-  const callMode = effectiveCallMode(storedCallMode, { turnsHere, canLive: true });
-  const turnsHelp = turnsHere ? null : callCapabilityHelp(capabilities, Boolean(speechBridge()?.speechStart), fishListeningReady(state.config));
-  const callOptions: SegmentOption<CallMode>[] = CALL_MODES.map((entry) => ({
-    value: entry.id,
-    label: t(entry.label),
-    disabled: entry.id === "turns" && turnsHelp !== null,
-    tooltip: entry.id === "turns" && turnsHelp ? `${turnsHelp.label}. ${turnsHelp.reason}` : entry.id === "live" ? t("call.mode.liveHint") : callModeHint("turns"),
-  }));
 
   const soulOpen = editingInstructions || Boolean(bot.soulDrift);
   const enabledApps = apps.apps.filter((app) => app.scope !== null).map((app) => app.label);
@@ -146,18 +129,6 @@ export function SettingsPage({ bot, derived, onOpen, editingInstructions = false
       </Card>
 
       <BackupAis bot={bot} onChange={(fallback) => patch({ fallback })} />
-
-      <Card anchor="call">
-        <ColRow data-panel-row="call-mode">
-          <div className="flex items-center gap-2.5">
-            <RowIcon icon={AudioLines} />
-            <RowText title={t("call.mode.menu")} />
-          </div>
-          <div className="pl-[38px]">
-            <Segmented attr="data-call-mode" label={t("call.mode.menu")} value={callMode} onChange={setCallMode} options={callOptions} />
-          </div>
-        </ColRow>
-      </Card>
 
       <Card anchor="uses">
         <NavRow

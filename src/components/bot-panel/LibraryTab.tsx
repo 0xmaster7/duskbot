@@ -1,4 +1,4 @@
-import { AppWindow, Brain, FileText, Folder, Globe, Zap } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useMemo } from "react";
 
 import { t } from "@/lib/i18n";
@@ -69,17 +69,15 @@ export function LibraryTab({ bot, onOpen }: { bot: Bot; onOpen: (page: SimplePag
     : notes === 1 ? t("botPanel.memory.note") : t("botPanel.memory.notes", { count: notes });
   const keeps = (
     <Card anchor="keeps">
-      <NavRow data-panel-page="memory" icon={Brain} title={t("botPanel.memoryRow")} value={memoryValue} onClick={() => onOpen("memory")} />
+      <NavRow data-panel-page="memory" title={t("botPanel.memoryRow")} value={memoryValue} onClick={() => onOpen("memory")} />
       <NavRow
         data-panel-page="skills"
-        icon={Zap}
         title={t("botSettings.simple.skills")}
         value={skills.loading ? undefined : skillsOn > 0 ? skillsOn : t("botPanel.none")}
         onClick={() => onOpen("skills")}
       />
       <NavRow
         data-panel-page="folder"
-        icon={Folder}
         title={t("computer.files.folder")}
         value={bot.cwd ? shortPath(bot.cwd, capabilities.host?.homeDir) : t("botPanel.folder.private")}
         onClick={() => onOpen("folder")}
@@ -90,7 +88,7 @@ export function LibraryTab({ bot, onOpen }: { bot: Bot; onOpen: (page: SimplePag
   if (pages.length + apps.length + shared.length + unshared.length === 0) {
     return (
       <div data-panel-tabpanel="library">
-        <p data-panel-empty="library" className="px-3 py-7 text-center text-[13px] leading-[18px] text-ink-tertiary">
+        <p data-panel-empty="library" className="px-3 pb-1 pt-6 text-center text-[13px] leading-[18px] text-ink-tertiary">
           {t("botPanel.library.empty")}
         </p>
         {keeps}
@@ -102,19 +100,19 @@ export function LibraryTab({ bot, onOpen }: { bot: Bot; onOpen: (page: SimplePag
       {pages.length > 0 && (
         <Card label={t("botPanel.library.pages")} anchor="pages">
           {pages.map((page) => (
-            <NavRow key={page.url} data-panel-row="page" icon={Globe} title={<span className="block truncate">{page.title}</span>} hint={<span className="block truncate">{page.url}</span>} onClick={() => openPage(page.url)} />
+            <NavRow key={page.url} data-panel-row="page" title={<span className="block truncate">{page.title}</span>} hint={<span className="block truncate">{page.url}</span>} onClick={() => openPage(page.url)} />
           ))}
         </Card>
       )}
       {apps.length > 0 && (
         <Card label={t("botPanel.library.apps")} anchor="apps">
           {apps.map((app) => (
-            <NavRow key={app.messageId} data-panel-row="app" icon={AppWindow} title={<span className="block truncate">{app.title}</span>} onClick={() => showInChat(app.messageId)} />
+            <NavRow key={app.messageId} data-panel-row="app" title={<span className="block truncate">{app.title}</span>} onClick={() => showInChat(app.messageId)} />
           ))}
         </Card>
       )}
       {shared.length + unshared.length > 0 && (
-        <section data-panel-card="files">
+        <section data-panel-card="files" className="mt-[22px] first:mt-0">
           <CardLabel>{t("botPanel.library.files")}</CardLabel>
           <ul className="flex flex-col gap-1.5">
             {shared.map((reference) => (
@@ -123,7 +121,7 @@ export function LibraryTab({ bot, onOpen }: { bot: Bot; onOpen: (page: SimplePag
               </li>
             ))}
             {unshared.map((path) => (
-              <li key={path} title={t("computer.files.notSharedHint")} className="flex min-w-0 items-center gap-2 rounded-lg border border-hairline/40 px-2.5 py-2">
+              <li key={path} title={t("computer.files.notSharedHint")} className="flex min-w-0 items-center gap-2 rounded-lg border-[0.5px] border-edge bg-composer px-2.5 py-2">
                 <FileText size={14} className="shrink-0 text-ink-secondary" aria-hidden="true" />
                 <span className="min-w-0 flex-1 truncate text-[13px] text-ink">{fileName(path)}</span>
                 <span className="shrink-0 text-[11px] text-ink-tertiary">{t("computer.files.notShared")}</span>
@@ -132,7 +130,7 @@ export function LibraryTab({ bot, onOpen }: { bot: Bot; onOpen: (page: SimplePag
           </ul>
         </section>
       )}
-      <p className="mt-3 text-center text-[12px] text-ink-tertiary">{t("botPanel.library.scope")}</p>
+      <p className="mt-1.5 text-center text-[12px] leading-4 text-ink-tertiary">{t("botPanel.library.scope")}</p>
       {keeps}
     </div>
   );

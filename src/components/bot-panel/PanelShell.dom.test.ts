@@ -25,7 +25,10 @@ vi.mock("../AvatarImageGenerator", () => ({ AvatarImageGenerator: () => null }))
 vi.mock("@/lib/use-organization-branding", () => ({ useOrganizationBranding: () => null }));
 const stub = (name: string) => (props: Record<string, unknown>) =>
   createElement("div", { [`data-stub-${name}`]: true, "data-editing-instructions": props.editingInstructions === true ? "true" : undefined });
-vi.mock("./DetailsTab", () => ({ DetailsTab: stub("details") }));
+vi.mock("./DetailsTab", () => ({
+  DetailsTab: (props: { onOpen: (page: string) => void }) =>
+    createElement("div", { "data-stub-details": true }, createElement("button", { type: "button", "data-panel-gear": true, onClick: () => props.onOpen("settings") }, "Bot settings")),
+}));
 vi.mock("./LibraryTab", () => ({ LibraryTab: stub("library") }));
 vi.mock("./ComputerTab", () => ({ ComputerTab: stub("computer") }));
 vi.mock("./pages", () => ({
@@ -170,9 +173,9 @@ describe("the panel's tabs", () => {
     expect([...host.querySelectorAll('[role="tab"]')].map((element) => [element.getAttribute("data-panel-tab"), element.textContent]))
       .toEqual([["details", "Details"], ["library", "Library"], ["computer", "Computer"]]);
     expect(tab()).toBe("details");
-    const strip = host.querySelector('[role="tablist"]')!.className.split(" ");
-    expect(strip).toEqual(expect.arrayContaining(["sticky", "top-0", "bg-app", "gap-0.5"]));
-    expect(host.querySelector('[role="tab"]')!.className.split(" ")).toEqual(expect.arrayContaining(["h-[26px]", "text-[13px]", "bg-ink/[0.07]"]));
+    expect(host.querySelector("[data-panel-tabs]")!.className.split(" ")).toEqual(expect.arrayContaining(["sticky", "top-0", "bg-app"]));
+    expect(host.querySelector('[role="tablist"]')!.className.split(" ")).toEqual(expect.arrayContaining(["gap-0.5"]));
+    expect(host.querySelector('[role="tab"]')!.className.split(" ")).toEqual(expect.arrayContaining(["h-[26px]", "text-[13px]", "bg-ink/[0.06]"]));
     for (const id of ["library", "computer", "details"]) {
       click(host.querySelector(`[data-panel-tab="${id}"]`));
       expect(tab()).toBe(id);
@@ -182,26 +185,27 @@ describe("the panel's tabs", () => {
 });
 
 describe("the panel's top", () => {
-  it("has a round Share button that copies or downloads the conversation, a gear for Bot settings, and Close", async () => {
+  it("has a round Share button that copies or downloads the conversation, and Close, as Grok does", async () => {
     render(null);
     await settle();
-    const top = [...host.querySelectorAll("button")].slice(0, 3);
-    expect(top.map((button) => button.getAttribute("aria-label") ?? button.getAttribute("title"))).toEqual(["Share", "Bot settings", "Close settings"]);
-    for (const button of [moreButton()!, top[1]!, top[2]!]) expect(button.querySelector("span, svg")).not.toBeNull();
+    const top = [...host.querySelectorAll("button")].slice(0, 2);
+    expect(top.map((button) => button.getAttribute("aria-label") ?? button.getAttribute("title"))).toEqual(["Share", "Close settings"]);
+    for (const button of [moreButton()!, top[1]!]) expect(button.querySelector("span, svg")).not.toBeNull();
     click(moreButton());
     expect([...menu()!.querySelectorAll("[data-menu-key]")].map((row) => row.getAttribute("data-menu-key"))).toEqual(["copy", "download"]);
     press(moreButton(), "Escape");
-    click(top[2]!);
+    click(top[1]!);
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it("opens Bot settings from the gear on any tab, with Back to Details", async () => {
+  it("opens Bot settings from the Details tab, with Back to Details", async () => {
     render(null);
     await settle();
     click(host.querySelector('[data-panel-tab="computer"]'));
+    expect(host.querySelector("[data-panel-gear]")).toBeNull();
+    click(host.querySelector('[data-panel-tab="details"]'));
     click(host.querySelector("[data-panel-gear]"));
     expect(page()).toBe("settings");
-    expect(host.querySelector("[data-panel-gear]")!.getAttribute("aria-current")).toBe("page");
     expect(host.querySelector("[data-panel-back]")!.textContent).toBe("Details");
     click(host.querySelector("[data-panel-back]"));
     expect([tab(), page()]).toEqual(["details", null]);

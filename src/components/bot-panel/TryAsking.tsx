@@ -14,7 +14,7 @@ export function TryAsking({ bot }: { bot: Bot }) {
       {HELPER_ASK_KEYS.map((key) => (
         <button key={key} type="button" data-panel-ask={key}
           onClick={() => dispatch({ type: "send", botId: bot.id, text: t(key), threadId: bot.threadId })}
-          className="flex h-9 w-full items-center px-3.5 text-left text-[14px] text-ink transition-colors hover:bg-ink/[0.03]">
+          className="flex min-h-[30px] w-full items-center rounded-lg px-2 py-1.5 text-left text-[13px] leading-[18px] tracking-[0.015em] text-ink hover:bg-ink/[0.06]">
           <span className="truncate">{t(key)}</span>
         </button>
       ))}

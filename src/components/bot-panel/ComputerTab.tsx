@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { KeyRound, Monitor } from "lucide-react";
+import { Monitor } from "lucide-react";
 
 import { writeComputerPanelView, type ComputerPanelView } from "@/lib/computer-panel-view";
 import { t } from "@/lib/i18n";
@@ -145,19 +145,19 @@ export function ComputerTab({ bot, derived, onOpen }: { bot: Bot; derived: Deriv
         data-panel-action="open-computer"
         aria-label={`${t("place.action.watch")}: ${screenOf}`}
         onClick={() => openComputer()}
-        className="group relative mt-2.5 flex aspect-[16/10] w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-xl bg-composer ring-1 ring-inset ring-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-border"
+        className="group relative flex aspect-[16/10] w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-xl bg-composer shadow-[inset_0_0_0_0.5px_var(--color-edge)] transition-colors duration-100 hover:bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_5%)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
       >
         {screenSrc ? (
           <img src={screenSrc} alt="" className="absolute inset-0 size-full object-cover" />
         ) : bot.busy ? (
           <>
             <span className="opacity-55"><BotAvatar bot={bot} size={52} animated={false} /></span>
-            <span className="max-w-[80%] text-center text-[13px] text-ink-secondary">{t("botPanel.screen.working")}</span>
+            <span className="max-w-[80%] text-center text-[13px] leading-[18px] text-ink-secondary">{t("botPanel.screen.working")}</span>
           </>
         ) : (
           <>
             <span className="opacity-60"><BotAvatar bot={bot} size={44} state="sleeping" animated={false} /></span>
-            <span className="max-w-[80%] text-center text-[13px] font-medium text-ink">{t("botPanel.screen.resting")}</span>
+            <span className="max-w-[80%] text-center text-[13px] font-medium leading-[18px] text-ink">{t("botPanel.screen.resting")}</span>
           </>
         )}
         <span
@@ -168,12 +168,11 @@ export function ComputerTab({ bot, derived, onOpen }: { bot: Bot; derived: Deriv
           {t("place.action.watch")}
         </span>
       </button>
-      <div className="mt-3 text-center text-[13px] text-ink-tertiary">{screenOf}</div>
+      <div className="mt-1.5 text-center text-[12px] leading-4 tracking-[0.01em] text-ink-tertiary">{screenOf}</div>
 
       <Card anchor="where">
         <NavRow
           data-panel-page="where"
-          icon={Monitor}
           title={t("computer.simple.whereWorks", { name: bot.name })}
           hint={usingNow ? t("computer.simple.usingNow", { place: usingNow }) : undefined}
           value={currentLabel}
@@ -181,7 +180,6 @@ export function ComputerTab({ bot, derived, onOpen }: { bot: Bot; derived: Deriv
         />
         <NavRow
           data-panel-page="browser"
-          icon={KeyRound}
           title={t("settings.sites.title")}
           value={signedIn ?? undefined}
           onClick={() => onOpen("browser")}

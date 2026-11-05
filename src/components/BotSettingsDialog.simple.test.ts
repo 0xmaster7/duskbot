@@ -116,7 +116,7 @@ const { BotSettingsDialog } = await import("./BotSettingsDialog");
 const { BotPanel } = await import("./bot-panel/PanelShell");
 const { PanelHero } = await import("./bot-panel/PanelHero");
 const { AvatarEditorCard } = await import("./bot-panel/AvatarEditorCard");
-const { DetailsTab } = await import("./bot-panel/DetailsTab");
+const { DetailsTab, VoiceChatCard } = await import("./bot-panel/DetailsTab");
 const { BotConversations } = await import("./bot-panel/Conversations");
 const { SettingsPage } = await import("./bot-panel/SettingsPage");
 const { LibraryTab } = await import("./bot-panel/LibraryTab");
@@ -128,6 +128,7 @@ const { BrowserLogins } = await import("./bot-panel/browser-logins");
 const { PAGES, sectionTarget } = await import("./bot-panel/page-registry");
 const { openBotSettings } = await import("./bot-panel/panel-link");
 const { PageHeader } = await import("./bot-panel/rows");
+const { SegmentedTabs } = await import("./ui/SegmentedTabs");
 const { ChatShareMenu } = await import("./ChatMoreMenu");
 const { SoulField } = await import("./SoulField");
 const { LocalComputerAutoWarning } = await import("./LocalComputerAutoWarning");
@@ -140,7 +141,6 @@ const { SignedInSites } = await import("./SignedInSites");
 const { AvatarImageGenerator } = await import("./AvatarImageGenerator");
 const { AvatarFraming } = await import("./avatar-editing");
 const { MascotFaceColorPicker } = await import("./MascotFaceColorPicker");
-const { Switch } = await import("./SettingsPrimitives");
 
 afterAll(() => vi.unstubAllGlobals());
 
@@ -214,9 +214,15 @@ const key = (node: Node, name: string) => {
   return event;
 };
 const shown = (rendered: Rendered) => ({
-  tab: rendered.nodes.find((node) => node.props["data-panel-tab"] !== undefined && node.props["aria-selected"] === true)?.props["data-panel-tab"],
+  tab: rendered.nodes.find((node) => node.type === SegmentedTabs)?.props.value as string | undefined,
   page: rendered.nodes.find((node) => node.type === PageBody)?.props.page,
 });
+const selectTab = (rendered: Rendered, tab: string) => (ofType(rendered, SegmentedTabs)!.props.onChange as (tab: string) => void)(tab);
+// Bot settings is the last row of the Details tab, as Grok keeps only Share and Close on top.
+const openSettings = (bot: Bot) => {
+  selectTab(panel(bot), "details");
+  (ofType(panel(bot), DetailsTab)!.props.onOpen as (page: string) => void)("settings");
+};
 const rowValue = (rendered: Rendered, page: string) => find(rendered, "data-panel-page", page).props.value;
 const skill = (name: string, enabled: boolean, origin?: ManagedSkill["origin"]): ManagedSkill =>
   ({ name, description: `${name} helper`, enabled, source: "github:x/y", warnings: [], ...(origin ? { origin } : {}) });
@@ -269,12 +275,11 @@ beforeEach(() => {
 });
 
 describe("the bot panel in Simple mode", () => {
-  it("has Share, a gear for Bot settings and a close button on top, the hero, and three tabs: Details, Library, Computer", () => {
+  it("has Share and a close button on top, the hero, three tabs: Details, Library, Computer, and Bot settings on Details", () => {
     const bot = makeBot();
     const rendered = panel(bot);
     expect(ofType(rendered, ChatShareMenu)!.props.bot).toBe(bot);
-    const gear = find(rendered, "data-panel-gear");
-    expect([gear.props["aria-label"], gear.props.title]).toEqual(["Bot settings", "Bot settings"]);
+    expect(has(rendered, "data-panel-gear")).toBe(false);
     click(find(rendered, "aria-label", "Close settings"));
     expect(onClose).toHaveBeenCalled();
     const hero = ofType(rendered, PanelHero)!;
@@ -290,17 +295,17 @@ describe("the bot panel in Simple mode", () => {
   it("switches tabs", () => {
     const bot = makeBot();
     for (const [tab, type] of [["computer", ComputerTab], ["library", LibraryTab], ["details", DetailsTab]] as const) {
-      click(find(panel(bot), "data-panel-tab", tab));
+      selectTab(panel(bot), tab);
       const rendered = panel(bot);
       expect(shown(rendered).tab).toBe(tab);
       expect(ofType(rendered, type)).toBeDefined();
     }
   });
 
-  it("opens Bot settings from the gear on any tab, with Back to Details, and its apps with Back to Bot settings", () => {
+  it("opens Bot settings from the Details tab, with Back to Details, and its apps with Back to Bot settings", () => {
     const bot = makeBot();
-    click(find(panel(bot), "data-panel-tab", "library"));
-    click(find(panel(bot), "data-panel-gear"));
+    selectTab(panel(bot), "library");
+    openSettings(bot);
     const settings = panel(bot);
     expect(shown(settings)).toEqual({ tab: undefined, page: "settings" });
     expect(ofType(settings, PageHeader)!.props).toMatchObject({ back: "Details", title: "Bot settings" });
@@ -324,12 +329,12 @@ describe("the bot panel in Simple mode", () => {
     (ofType(page, PageHeader)!.props.onBack as () => void)();
     expect(shown(panel(bot))).toEqual({ tab: "details", page: undefined });
 
-    click(find(panel(bot), "data-panel-tab", "library"));
+    selectTab(panel(bot), "library");
     (ofType(panel(bot), LibraryTab)!.props.onOpen as (page: string) => void)("memory");
     expect(ofType(panel(bot), PageHeader)!.props).toMatchObject({ back: "Library", title: "What it remembers" });
     (ofType(panel(bot), PageHeader)!.props.onBack as () => void)();
 
-    click(find(panel(bot), "data-panel-tab", "computer"));
+    selectTab(panel(bot), "computer");
     (ofType(panel(bot), ComputerTab)!.props.onOpen as (page: string) => void)("browser");
     expect(ofType(panel(bot), PageHeader)!.props).toMatchObject({ back: "Computer", title: "Signed-in sites", intro: undefined });
   });
@@ -346,12 +351,12 @@ describe("the bot panel in Simple mode", () => {
 
   it("holds the Instructions editor open on Bot settings, and closes it when the panel moves on", () => {
     const bot = makeBot();
-    click(find(panel(bot), "data-panel-gear"));
+    openSettings(bot);
     expect(ofType(panel(bot), PageBody)!.props.editingInstructions).toBe(false);
     (ofType(panel(bot), PageBody)!.props.onEditInstructions as (open: boolean) => void)(true);
     expect(ofType(panel(bot), PageBody)!.props.editingInstructions).toBe(true);
     (ofType(panel(bot), PageHeader)!.props.onBack as () => void)();
-    click(find(panel(bot), "data-panel-gear"));
+    openSettings(bot);
     expect(ofType(panel(bot), PageBody)!.props.editingInstructions).toBe(false);
   });
 
@@ -409,12 +414,12 @@ describe("the bot panel in Simple mode", () => {
     expect(switches(panel(bot).html)).toBe(0);
     expect(panel(bot).html).not.toContain('aria-label="Work until done"');
     for (const tab of ["library", "computer"]) {
-      click(find(panel(bot), "data-panel-tab", tab));
+      selectTab(panel(bot), tab);
       const rendered = panel(bot);
       expect(switches(rendered.html), tab).toBe(0);
       for (const text of ["Memory", "Upkeep", "Record"]) expect(rendered.html).not.toContain(`>${text}<`);
     }
-    click(find(panel(bot), "data-panel-gear"));
+    openSettings(bot);
     const settings = panel(bot).html;
     expect(switches(settings)).toBe(1);
     expect(settings).toContain('aria-label="Let apps talk to this bot"');
@@ -495,14 +500,14 @@ describe("the hero", () => {
 describe("the avatar editor", () => {
   const editor = (bot: Bot) => capture(() => AvatarEditorCard({ bot, activeState: "idle", onPatch: patch, onClose }));
 
-  it("shows the ten bodies and twelve colors, with the Halloween bodies and the faces behind More looks", () => {
+  it("shows the Grok-style bodies and twelve colors, with the Halloween bodies and the faces behind More looks", () => {
     const bot = makeBot();
     const rendered = editor(bot);
-    expect(rendered.html.match(/aria-label="Use the \w+ body"/g)).toHaveLength(10);
+    expect(rendered.html.match(/aria-label="Use the \w+ body"/g)).toHaveLength(26);
     expect(rendered.html.match(/aria-label="Use \w+ mascot color"/g)).toHaveLength(12);
     expect(rendered.html).not.toContain(">Halloween<");
     expect(has(rendered, "data-avatar-face", "idle")).toBe(false);
-    expect(find(rendered, "aria-label", "Use the Cursor body").props["aria-pressed"]).toBe(true);
+    expect(find(rendered, "aria-label", "Use the Tablet body").props["aria-pressed"]).toBe(true);
     click(find(rendered, "aria-label", "Use the Blob body"));
     expect(patch).toHaveBeenLastCalledWith({ mascotBody: "blob" });
     click(find(rendered, "aria-label", "Use blue mascot color"));
@@ -520,7 +525,7 @@ describe("the avatar editor", () => {
     click(more);
     const open = editor(bot);
     expect(find(open, "data-avatar-more").props["aria-expanded"]).toBe(true);
-    expect(open.html.match(/aria-label="Use the \w+ body"/g)).toHaveLength(20);
+    expect(open.html.match(/aria-label="Use the \w+ body"/g)).toHaveLength(36);
     expect(open.html).toContain(">Halloween<");
     click(find(open, "aria-label", "Use the Pumpkin body"));
     expect(patch).toHaveBeenLastCalledWith({ mascotBody: "pumpkin" });
@@ -595,19 +600,22 @@ describe("the avatar editor", () => {
 
 
 describe("the Details tab", () => {
-  it("holds the model, the conversations, routines and this conversation's rows, in that order, with no switch or Thinking row", () => {
+  it("holds the model, the conversations, routines, voice chat, this conversation's rows and Bot settings, in that order, with no switch or Thinking row", () => {
     const rendered = botTab(makeBot());
     expect(ofType(rendered, ModelPicker)!.props).toMatchObject({ bot: expect.objectContaining({ id: "scout" }), threadId: "thread-scout", contained: true });
     expect(ofType(rendered, BotConversations)!.props.bot).toMatchObject({ id: "scout" });
-    const order = ['data-panel-row="model"', 'data-panel-card="conversations"', 'data-panel-empty="routines"', 'data-panel-item="find"', 'data-panel-item="activity"']
+    const order = ['data-panel-row="model"', 'data-panel-card="conversations"', 'data-panel-empty="routines"', 'data-panel-row="call-mode"', 'data-panel-item="find"', 'data-panel-item="activity"', 'data-panel-gear']
       .map((marker) => rendered.html.indexOf(marker));
     expect(order.every((index) => index > -1)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
-    for (const gone of ['data-panel-row="thinking"', 'data-panel-edit="soul"', 'data-panel-row="approval"', 'data-panel-row="goal"', 'data-panel-row="call-mode"',
+    for (const gone of ['data-panel-row="thinking"', 'data-panel-edit="soul"', 'data-panel-row="approval"', 'data-panel-row="goal"',
       'data-panel-page="apps"', 'data-panel-page="memory"', 'data-panel-page="skills"', 'data-panel-page="folder"']) {
       expect(rendered.html, gone).not.toContain(gone);
     }
     expect(rendered.html).not.toContain(">Settings<");
+    expect(find(rendered, "data-panel-gear").props.title).toBe("Bot settings");
+    click(find(rendered, "data-panel-gear"));
+    expect(onOpen).toHaveBeenLastCalledWith("settings");
     expect(switches(rendered.html)).toBe(0);
   });
 
@@ -626,14 +634,31 @@ describe("the Details tab", () => {
     expect(some.html.indexOf('data-panel-card="conversations"')).toBeLessThan(some.html.indexOf('data-panel-page="routines"'));
   });
 
-  it("values Routines by how many are on, and opens the routines page", () => {
-    fixture.derived.botRoutines = [routine(), routine({ id: "r2", enabled: false }), routine({ id: "r3" })];
+  it("lists each routine with its switch, the ones on first, and opens the routines page from a row or Add a routine", () => {
+    fixture.derived.botRoutines = [routine({ id: "r2", name: "Paused one", enabled: false }), routine(), routine({ id: "r3", name: "Another" })];
     const rendered = botTab(makeBot());
-    expect(rowValue(rendered, "routines")).toBe("2 on");
+    const rows = rendered.nodes.filter((node) => (node.props.routine as Routine | undefined)?.id !== undefined);
+    expect(rows.map((node) => (node.props.routine as Routine).id)).toEqual(["r3", "r1", "r2"]);
+    expect(switches(rendered.html)).toBe(3);
+    expect(rendered.html).toContain(">Paused<");
+    (rows[0]!.props.onOpen as () => void)();
+    expect(onOpen).toHaveBeenLastCalledWith("routines");
     click(find(rendered, "data-panel-page", "routines"));
     expect(onOpen).toHaveBeenLastCalledWith("routines");
-    fixture.derived.botRoutines = [routine({ enabled: false })];
-    expect(rowValue(botTab(makeBot()), "routines")).toBe("None");
+  });
+
+  it("chooses the call mode under Voice chat, Take turns or Live", () => {
+    setCallMode("turns");
+    try {
+      expect(botTab(makeBot()).html).toContain(">Voice chat<");
+      const rendered = capture(() => VoiceChatCard());
+      const select = find(rendered, "aria-label", "Call mode");
+      expect(rendered.html).toMatch(/<option value="turns"[^>]*>Take turns<\/option><option value="live"[^>]*>Live<\/option>/);
+      change(select, "live");
+      expect(callMode()).toBe("live");
+    } finally {
+      setCallMode("turns");
+    }
   });
 
   it("lists Find and Activity for this conversation as rows that run them, leaving Copy and Download to Share", () => {
@@ -647,15 +672,16 @@ describe("the Details tab", () => {
 });
 
 describe("the Bot settings page", () => {
-  it("holds Instructions, Before it acts, Backup AIs, Call mode, Apps, Job and Hide, with every title on one edge", () => {
+  it("holds Instructions, Before it acts, Backup AIs, Apps, Job and Hide, with every title on one edge", () => {
     const rendered = settingsPage(makeBot({ defaultBot: {} }));
-    const order = ['data-panel-edit="soul"', 'data-panel-row="approval"', 'data-panel-row="backups"', 'data-panel-row="call-mode"', 'data-panel-page="apps"', 'data-panel-row="job"', 'data-panel-row="default-bot-hide"']
+    expect(rendered.html).not.toContain('data-panel-row="call-mode"');
+    const order = ['data-panel-edit="soul"', 'data-panel-row="approval"', 'data-panel-row="backups"', 'data-panel-page="apps"', 'data-panel-row="job"', 'data-panel-row="default-bot-hide"']
       .map((marker) => rendered.html.indexOf(marker));
     expect(order.every((index) => index > -1)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     expect(switches(rendered.html)).toBe(1);
     expect(rendered.html).toContain('aria-label="Let apps talk to this bot"');
-    expect(rendered.html.match(/pl-\[38px\]/g)).toHaveLength(4);
+    expect(rendered.html.match(/pl-\[38px\]/g)).toHaveLength(3);
   });
 
   it("shows the first line of the instructions, or how to start, and edits them in place with Done", () => {
@@ -737,18 +763,6 @@ describe("the Bot settings page", () => {
     expect(choice).toMatchObject({ approvalMode: "full", providerName: "Claude", driverKind: "claudeAgent" });
     choice.onSelect("ask");
     expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "updateTask", botId: "scout", threadId: "thread-scout", patch: { approvalMode: "ask" } });
-  });
-
-  it("chooses the call mode, Take turns or Live", () => {
-    setCallMode("turns");
-    try {
-      const calls = segment(settingsPage(makeBot()), "data-call-mode");
-      expect(calls.options.map((option) => [option.value, option.label])).toEqual([["turns", "Take turns"], ["live", "Live"]]);
-      calls.onChange("live");
-      expect(callMode()).toBe("live");
-    } finally {
-      setCallMode("turns");
-    }
   });
 
   it("values the Apps row with the apps switched on, or None yet, and opens the apps page", () => {
@@ -1228,11 +1242,11 @@ describe("the bot settings dialog", () => {
 });
 
 describe("the panel's switches", () => {
-  it("are the shared switch, in the bot's own color when on", () => {
+  it("are the shared Grok toggle, in the switch blue rather than the bot's own color", () => {
     fixture.apps = { phase: "ready", connectedSlugs: ["gmail"], apps: [app("gmail", "write")] };
     const html = capture(() => PageBody({ page: "apps", bot: makeBot({ color: "blue" }), derived: derived() }) as ReactNode).html;
     expect(html.match(/role="switch"/g)).toHaveLength(1);
-    expect(html).toContain("background-color:#377FE6");
-    expect(Switch).toBeDefined();
+    expect(html).toContain("data-ui-toggle");
+    expect(html).not.toContain("background-color:#377FE6");
   });
 });
