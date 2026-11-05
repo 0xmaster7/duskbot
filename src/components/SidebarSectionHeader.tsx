@@ -77,8 +77,8 @@ export function SidebarSectionHeader({
   if (line) {
     const tail = (
       <span aria-hidden="true" className="relative flex size-4 shrink-0 items-center justify-center">
-        {count !== undefined && <span className={cn("text-[12px] tabular-nums leading-4 text-ink-secondary transition-opacity", onToggle && "group-hover/section:opacity-0 group-focus-within/section:opacity-0 touch:opacity-0")}>{count}</span>}
-        {onToggle && <Chevron size={14} className="absolute text-ink-secondary opacity-0 transition-opacity group-hover/section:opacity-100 group-focus-within/section:opacity-100 touch:opacity-100" />}
+        {count !== undefined && <span className={cn("text-[13px] tabular-nums leading-[18px] tracking-[0.015em] text-ink-secondary transition-opacity duration-[120ms]", onToggle && "group-hover/section:opacity-0 group-focus-within/section:opacity-0 touch:opacity-0")}>{count}</span>}
+        {onToggle && <Chevron size={12} className="absolute text-ink-secondary opacity-0 transition-opacity duration-[120ms] group-hover/section:opacity-100 group-focus-within/section:opacity-100 touch:opacity-100" />}
       </span>
     );
     return (
@@ -91,7 +91,7 @@ export function SidebarSectionHeader({
         draggable={reorderable || undefined}
         onDragStart={reorderable ? onDragStart : undefined}
         onDragEnd={reorderable ? onDragEnd : undefined}
-        className={cn("group/section flex h-[30px] items-center gap-1.5 rounded-[6px] px-2 pb-1.5 pt-2 hover:bg-raised/50", reorderable && "cursor-grab", dragging && "opacity-40", naming && "py-0.5", dropMark)}
+        className={cn("group/section flex h-[30px] shrink-0 items-center gap-1.5 rounded-[6px] px-2 pb-1.5 pt-2 hover:bg-[color-mix(in_srgb,var(--color-raised)_75%,var(--color-panel))]", reorderable && "cursor-grab", dragging && "opacity-40", naming && "py-0.5", dropMark)}
       >
         {naming ? <SectionNameField {...naming} /> : onToggle ? (
           <button
@@ -103,13 +103,13 @@ export function SidebarSectionHeader({
             title={toggleTitle}
             className="flex min-w-0 flex-1 items-center gap-1.5 rounded text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
           >
-            <span className="min-w-0 flex-1 truncate text-[12px] leading-4 text-ink-secondary">{name}</span>
+            <span className="min-w-0 flex-1 truncate text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{name}</span>
             {collapsed && <SectionAttention attention={attention} label={attentionLabel} alert={alert} />}
             {tail}
           </button>
         ) : (
           <div className="flex min-w-0 flex-1 items-center gap-1.5">
-            <span className="min-w-0 flex-1 truncate text-[12px] leading-4 text-ink-secondary">{name}</span>
+            <span className="min-w-0 flex-1 truncate text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{name}</span>
             {attentionLabel && <span className="sr-only">{attentionLabel}</span>}
             {tail}
           </div>

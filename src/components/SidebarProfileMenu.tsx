@@ -550,8 +550,9 @@ export function useSimpleAccount(place: WorkspacePlace, owner: string | null, ar
 }
 
 /** `circle` is the phone's round avatar button at the top of the bot list. */
-export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = false, simple: account }: {
-  iconOnly?: boolean; rail?: boolean; circle?: boolean; simple?: SimpleAccount;
+export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = false, simple: account, named = false }: {
+  /** `named`: Simple's avatar with the person's name beside it, when the footer has the room. */
+  iconOnly?: boolean; rail?: boolean; circle?: boolean; simple?: SimpleAccount; named?: boolean;
 } = {}) {
   const { state, dispatch } = useStore();
   const simple = account !== undefined;
@@ -642,11 +643,11 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
         items={items}
         ariaLabel={name}
         onOpenChange={simple ? setMenuOpen : undefined}
-        triggerClassName={iconOnly || simple ? cn("shrink-0", circle || simple ? "rounded-full" : "rounded-xl") : "w-full"}
+        triggerClassName={simple && named ? "group/account flex max-w-full items-center rounded-full pe-1" : iconOnly || simple ? cn("shrink-0", circle || simple ? "rounded-full" : "rounded-xl") : "w-full"}
         triggerTitle={iconOnly || simple ? label : undefined}
         triggerLabel={label}
         triggerTour={account?.place.switchable ? "server-switcher" : undefined}
-        renderTrigger={({ open }) => simple ? (
+        renderTrigger={({ open }) => simple ? (<>
           <span
             ref={triggerRef}
             data-sidebar-account=""
@@ -655,7 +656,8 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
             <InitialsAvatar initials={initials} avatarUrl={profile?.avatarUrl} size={36} fallback={nameless} fontSize={14} className="ring-1 ring-inset ring-ink/[0.04]" />
             {dot && <span aria-hidden data-account-dot={dot} className={cn("absolute -right-0.5 -top-0.5 size-2.5 rounded-full ring-2 ring-panel", DOT_COLOR[dot])} />}
           </span>
-        ) : iconOnly ? (
+          {named && <span aria-hidden="true" data-sidebar-account-name="" className="ms-2 min-w-0 truncate text-[14px] font-medium leading-5 tracking-[0.01em] text-ink transition-colors duration-150 group-hover/account:text-ink-secondary">{name}</span>}
+        </>) : iconOnly ? (
           <span
             ref={triggerRef}
             className={cn(

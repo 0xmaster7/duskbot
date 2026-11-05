@@ -8,7 +8,7 @@ import { AccountMoveStatus, useAccountMoveLine } from "./AccountMove";
 import { CloudRoomCard } from "./CloudRoomCard";
 import { CloudUsageCard } from "./CloudUsageMeter";
 import { endCloudHowTo, useWorkspacePlace, type WorkspacePlace } from "./DesktopWorkspaceSwitcher";
-import { SidebarConnectApps } from "./SidebarConnectApps";
+import { ConnectAppsButton, useSidebarApps } from "./SidebarConnectApps";
 import { SidebarBottomButtons, SidebarFooterNav } from "./SidebarFooterNav";
 import { phoneSettingsAction, SidebarPhoneButton } from "./SidebarPhoneButton";
 import { SidebarProfileMenu, useSimpleAccount, type ArchivedBots } from "./SidebarProfileMenu";
@@ -30,6 +30,7 @@ function SimpleSidebarFooter({ owner, archived }: { owner: string | null; archiv
   const place = useSimplePlace();
   const account = useSimpleAccount(place, owner, archived);
   const move = useAccountMoveLine(state.config?.cloudHome === true);
+  const apps = useSidebarApps();
   const footer = useRef<HTMLDivElement>(null);
   // The move's words open the account menu just below them, where the move's row is.
   const openAccount = () => footer.current?.querySelector("[data-sidebar-account]")?.closest("button")?.click();
@@ -40,8 +41,8 @@ function SimpleSidebarFooter({ owner, archived }: { owner: string | null; archiv
       <SidebarPlaceStatus place={place} className="mb-2 px-1" />
       <AccountMoveStatus kind={move.kind} place={move.place} retry={move.retry} onOpen={openAccount} className="ps-1" />
       <div className="flex items-center gap-2 not-first:mt-2">
-        <SidebarProfileMenu simple={account} />
-        <SidebarConnectApps />
+        {apps.connected ? <div className="me-auto min-w-0"><SidebarProfileMenu simple={account} named /></div> : <SidebarProfileMenu simple={account} />}
+        <ConnectAppsButton circle={apps.connected} apps={apps} />
         <UpdateIndicator className="size-9" />
       </div>
     </div>

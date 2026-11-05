@@ -1,4 +1,4 @@
-import { Puzzle } from "lucide-react";
+import { Grid2x2Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/cn";
@@ -26,12 +26,12 @@ export function appFaces(connected: readonly string[], cards: ReadonlyMap<string
   return [...own, ...POPULAR_APPS.filter((app) => !own.some((card) => card.slug === app.slug))].slice(0, APP_FACES);
 }
 
-interface SidebarApps {
+export interface SidebarApps {
   faces: AppFace[];
   connected: boolean;
 }
 
-function useSidebarApps(): SidebarApps {
+export function useSidebarApps(): SidebarApps {
   const { state } = useStore();
   const [apps, setApps] = useState<SidebarApps>(() => ({ faces: appFaces([], new Map()), connected: false }));
   useEffect(() => {
@@ -67,8 +67,12 @@ const FAN = ["motion-safe:group-hover/apps:-translate-x-[3px] motion-safe:group-
 
 /** `circle` is the collapsed rail's round button. */
 export function SidebarConnectApps({ circle = false }: { circle?: boolean }) {
+  return <ConnectAppsButton circle={circle} apps={useSidebarApps()} />;
+}
+
+/** The button for apps already read by its caller, as the footer does to fold it to a circle once one is connected. */
+export function ConnectAppsButton({ circle, apps: { faces, connected } }: { circle: boolean; apps: SidebarApps }) {
   const { state, dispatch } = useStore();
-  const { faces, connected } = useSidebarApps();
   const label = connected ? t("sidebar.nav.apps") : t("sidebar.connectApps");
   return (
     <button
@@ -81,7 +85,7 @@ export function SidebarConnectApps({ circle = false }: { circle?: boolean }) {
       onClick={() => dispatch({ type: "togglePlugins", open: true })}
       className={circle ? SIMPLE_TOP_BUTTON : cn("group/apps flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full pl-4 pr-3 text-[14px] font-medium leading-5 text-ink", ELEVATED_CONTROL, ELEVATED_HOVER)}
     >
-      {circle ? <Puzzle size={18} strokeWidth={1.5} aria-hidden="true" /> : <>
+      {circle ? <Grid2x2Plus size={18} strokeWidth={1.5} aria-hidden="true" /> : <>
         <span className="min-w-0 truncate">{label}</span>
         <span aria-hidden="true" className="flex shrink-0 items-center">
           {faces.map((face, index) => <AppFaceIcon key={face.slug} face={face}

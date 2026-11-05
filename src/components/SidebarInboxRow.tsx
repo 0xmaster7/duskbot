@@ -38,10 +38,12 @@ export function SidebarInboxRow({ icons, large, running, onOpened }: {
     );
   }
   return (
-    <div className="px-2 pb-1">
+    <div className={large ? "px-3 pt-1" : "px-2 pb-1"}>
       <button type="button" data-sidebar-inbox={count} aria-label={label} title={label} aria-pressed={open} onClick={toggle}
-        className={cn("flex w-full min-w-0 items-center gap-2.5 rounded-lg px-2 py-1.5 text-left outline-none hover:bg-raised/60 focus-visible:ring-2 focus-visible:ring-accent/60", open && "bg-raised")}>
-        <span className={cn("relative grid shrink-0 place-items-center rounded-full bg-raised text-ink-secondary", large ? "size-9" : "size-8")}>
+        className={cn("flex w-full min-w-0 items-center text-left outline-none focus-visible:ring-2 focus-visible:ring-accent/60", large
+          ? cn("h-[54px] gap-2.5 rounded-[12px] p-2", open ? "bg-raised" : "hover:bg-[color-mix(in_srgb,var(--color-raised)_75%,var(--color-panel))]")
+          : cn("gap-2.5 rounded-lg px-2 py-1.5 hover:bg-raised/60", open && "bg-raised"))}>
+        <span className={cn("relative grid shrink-0 place-items-center rounded-full text-ink-secondary", large ? "size-9 bg-ink/[0.08]" : "size-8 bg-raised")}>
           <Inbox size={large ? 18 : 16} strokeWidth={1.75} aria-hidden="true" />
           {dot}
         </span>

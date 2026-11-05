@@ -74,6 +74,7 @@ import { GlassBar, GlassScrollFrame, GlassScroller } from "./GlassScrollFrame";
 import { DesktopWorkspaceSwitcher, endCloudHowTo } from "./DesktopWorkspaceSwitcher"; import { PlaceTint } from "./PlaceTint"; import { ChromeRailToggle } from "./ChromeRailToggle";
 import { useCloudOwner } from "./CloudOwner";
 import { SidebarSectionHeader } from "./SidebarSectionHeader";
+import { SectionRows } from "./SidebarSectionRows";
 import { NeedsYouButton, OwnerPickerHost, pickOwnerOf } from "./TeamOwner"; import { SidebarPeople } from "./SidebarPeople"; import { SidebarInboxRow } from "./SidebarInboxRow"; import { SidebarActiveThreads } from "./SidebarActiveThreads"; import { setAttentionPinned, useAttentionPinned } from "./inbox/attention-pinned"; import { useInboxSupport } from "@/state/inbox";
 import { showWhoReportsToWhom, TeamMenuItems } from "./SidebarTeamMenu";
 import { MENU_ITEM, MENU_SHEET } from "./menu-recipe";
@@ -187,8 +188,8 @@ export function GroupListItem({
       className={cn(
         "relative flex w-full items-center rounded-md text-left", SIMPLE_ROW_FOCUS,
         density === "icons" ? (railTile ? "h-[54px] justify-center" : "justify-center px-1 py-1.5") : simpleRow
-          ? cn("gap-2 rounded-[10px] py-2 pr-2 group-hover:pr-9 group-focus-within:pr-9 max-md:pr-9 touch:pr-9 md:h-[54px] md:py-0", !group.dm && hasThreadList ? "pl-6" : "pl-2") : "gap-2 py-1.5 pl-6 pr-9",
-        selected && !expanded ? "bg-raised" : "hover:bg-raised/50",
+          ? cn("gap-2.5 rounded-[12px] py-2 pr-2 group-hover:pr-9 group-focus-within:pr-9 max-md:pr-9 touch:pr-9 md:h-[54px] md:py-0", !group.dm && hasThreadList ? "pl-6" : "pl-2") : "gap-2 py-1.5 pl-6 pr-9",
+        simpleRow ? rowSurface(selected && !expanded) : selected && !expanded ? "bg-raised" : "hover:bg-raised/50",
       )}
       title={density === "icons" ? group.name : undefined}
       aria-label={density === "icons" ? group.name : undefined}
@@ -718,16 +719,16 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
   const title = bot.title.trim();
   const details = [title, bot.chiefOfStaff ? t("sidebar.bot.chiefOfStaff") : ""].filter(Boolean);
   const rowClass = cn(
-    "flex w-full items-center rounded-xl text-left transition-colors duration-150", SIMPLE_ROW_FOCUS,
+    "flex w-full items-center rounded-xl text-left", !simpleRow && "transition-colors duration-150", SIMPLE_ROW_FOCUS,
     iconOnly
       ? railTile ? "h-[54px] justify-center" : "justify-center px-1 py-1.5"
-      : simpleRow ? "gap-2 rounded-[10px] py-2 pl-2 pr-2 md:h-[54px] md:py-0"
+      : simpleRow ? "gap-2.5 rounded-[12px] p-2 md:h-[54px] md:py-0"
         : cn(showThreads ? "gap-2 py-2" : "gap-3 py-2", showThreads ? "pl-6 pr-9 group-hover:pr-[5.75rem] group-focus-within:pr-[5.75rem] max-md:pr-9 touch:pr-[5.75rem]" : "pl-2.5 pr-9"),
     !iconOnly && "max-md:rounded-2xl max-md:py-2.5",
-    selected ? "bg-raised" : "hover:bg-raised/50",
-    simpleRow && rowSurface(selected),
+    simpleRow ? rowSurface(selected) : selected ? "bg-raised" : "hover:bg-raised/50",
   );
   const { waiting, working, teammateWait, queued } = sidebarBotStatus(bot, pendingQueued);
+  const rowActivity = working ? "working" : teammateWait ? "teammate" : queued && !waiting ? "queued" : null;
   const { unread, noticing } = useBotUnread(bot);
   const onLiveCall = liveBadgeFor(bot.id, liveMedia, liveCall);
   const body = (
@@ -743,7 +744,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
         />
         {/* Bottom-left, clear of the status dots on the right and of the row's hover actions. */}
         {(iconOnly || !simpleList) && <BotModelBadge bot={bot} instances={instances} avatarSize={avatarSize} />}
-        {simpleRow && <AvatarActivityDot activity={working ? "working" : teammateWait ? "teammate" : queued && !waiting ? "queued" : null} />}
+        {simpleRow && <AvatarActivityDot activity={rowActivity} />}
         {!simpleRow && working && (
           <span
             data-testid="working-dot"
@@ -759,7 +760,14 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
           className={cn("absolute -right-0.5 -bottom-0.5 rounded-full border-2 border-panel bg-accent", iconOnly ? "size-3" : "size-2.5")} />}
         {!simpleRow && !teammateWait && !waiting && !working && queued && <span data-testid="queued-dot" role="status" aria-label={t("task.queued")} title={t("task.queued")}
           className={cn("absolute -right-0.5 -bottom-0.5 rounded-full border-2 border-panel bg-ink-secondary", iconOnly ? "size-3" : "size-2.5")} />}
-        {bot.chiefOfStaff && (iconOnly || simpleRow) && (
+        {bot.chiefOfStaff && simpleRow && !rowActivity && (
+          <span className="absolute -bottom-px -right-px flex size-[13px] items-center justify-center rounded-full bg-[#E8993A] text-white ring-2 ring-[var(--row)]">
+            <Crown size={8} strokeWidth={2} fill="currentColor" className="shrink-0" role="img" aria-label={t("sidebar.bot.chiefOfStaff")} data-testid="chief-crown">
+              <title>{t("sidebar.bot.chiefOfStaff")}</title>
+            </Crown>
+          </span>
+        )}
+        {bot.chiefOfStaff && iconOnly && (
           <span className="absolute -left-1 -top-1 flex rounded-full bg-raised p-[3px]">
             <Crown size={11} strokeWidth={2.25} className="shrink-0 text-accent" role="img" aria-label={t("sidebar.bot.chiefOfStaff")} data-testid="chief-crown">
               <title>{t("sidebar.bot.chiefOfStaff")}</title>
@@ -835,7 +843,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
               )}
             </span>
           )}
-          {simpleRow && <BotEngineMark bot={bot} instances={instances} className="ms-auto" />}
+          {simpleRow && <BotEngineMark bot={bot} instances={instances} className="absolute bottom-2 right-2 rounded-full bg-[var(--row)] opacity-0 shadow-[-6px_0_6px_var(--row)] transition-opacity duration-[120ms] group-hover:opacity-100 group-focus-within:opacity-100 touch:opacity-100 max-md:static max-md:ms-auto max-md:opacity-100 max-md:shadow-none" />}
           {!simpleRow && unread && <span className="size-2 shrink-0 rounded-full bg-accent" aria-label={t("task.unreadMany")} />}
         </div>}
         {simpleRow && <RowStatusText working={working} unread={unread} />}
@@ -1131,7 +1139,8 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
   const layout = sections.arrange(naturalSectionIds);
   const sectionIds = layout.sectionIds;
   const showPinnedCircleThreads = !simpleDesk && pinnedCircleThreadListVisible(pinnedCircles, density, pinnedBots.length);
-  const tiles = simpleDesk && (primary !== null || pinnedBots.length > 0);
+  const tiles = simpleDesk && pinnedBots.length > 0;
+  const primaryHeadless = primary !== null && simple && sectionIds[0] === BOTS_SECTION_ID;
   const { interactive: layoutInteractive, collapsed: sectionCollapsed, toggle: toggleSection } = sections;
   const archivedBots = state.bots.filter((bot) => bot.hidden && !bot.movedTo);
   const archivedEntry = remoteClient ? undefined : { count: archivedBots.length, open: () => setArchivedBotsOpen(true) };
@@ -1368,7 +1377,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
           onToggle={layoutInteractive ? () => toggleSection(PINNED_THREADS_SECTION_ID) : undefined}
         />
       )}
-      {tiles && <SidebarTileGrid primary={primary} pinned={pinnedBots} row={botRow} corner={corner} />}
+      {tiles && <SidebarTileGrid primary={null} pinned={pinnedBots} row={botRow} corner={corner} />}
       {simpleDesk && !tiles && <SidebarNoBots />}
       </GlassBar>
 
@@ -1376,11 +1385,12 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
         onAvatars={(avatars) => setSidebarDensity(avatars ? "icons" : "comfortable")} style={windowNoDragStyle} />}
 
       <GlassScroller className={rail ? "[scrollbar-gutter:stable_both-edges]" : simpleDesk ? "px-3" : "px-2"}>
-        <div className={cn("flex flex-col", simpleDesk ? cn("gap-0.5 pb-2", !tiles && "pt-2") : advanced ? "gap-0.5" : "gap-1 pb-2 pt-2")}>
+        <div className={cn("flex flex-col", simpleDesk ? "gap-2.5 pb-6 pt-1" : advanced ? "gap-0.5" : "gap-1 pb-2 pt-2")}>
           {matchingBots.length === 0 && visibleGroups.length === 0 && q && q.length < MIN_QUERY && (
             <div className="px-3 py-6 text-center text-[13px] text-ink-secondary">{t("sidebar.noMatch", { query })}</div>
           )}
           {!q && <NeedsYouButton compact={rail} />}{!q && <SidebarPeople compact={rail} />}
+          {primary && !primaryHeadless && <BotListItem {...botRow(primary)} />}
           {unsectionedChief && (phone ? (
             <PhoneHero bot={unsectionedChief} selected={botRow(unsectionedChief).selected} onOpen={() => openBotRow(dispatch, unsectionedChief, showThreads, botRow(unsectionedChief).selected)} onMenu={setMenu} />
           ) : (
@@ -1426,7 +1436,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
                 {...drops.zone(id, layout.zone(id))}
                 className={cn(
                   "flex flex-col",
-                  advanced || simpleDesk ? "gap-0.5" : "gap-1",
+                  advanced ? "gap-0.5" : "gap-1",
                   density !== "icons" && index > 0 && !simple && "pt-3",
                 )}
               >
@@ -1456,9 +1466,9 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
                 {collapsed && queued.length > 0 && <button type="button" onClick={() => toggleSection(id)}
                   title={`${t("task.queued")} · ${queued.join(", ")}`} aria-label={`${t("sidebar.section.expand", { name: sectionLabel(id) })} · ${t("task.queued")} · ${queued.join(", ")}`}
                   className="mx-3 mb-1 inline-flex h-7 items-center self-start rounded-full bg-raised/50 px-3 text-[13px] font-medium leading-4 text-ink-secondary hover:text-ink">{t("task.queued")} · {queued.length}</button>}
-                {!collapsed && (
-                  <>
+                <SectionRows open={!collapsed} animate={simpleDesk}>{!collapsed && <>
                     {id === BOTS_SECTION_ID && drops.slot}
+                    {headless && primaryHeadless && <BotListItem {...botRow(primary)} />}
                     {sectionChiefItems.map((bot) => <BotListItem key={bot.id} {...botRow(bot)} />)}
                     {sectionGroupItems.map((group) => (
                       <GroupListItem
@@ -1484,8 +1494,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
                         <Plus size={13} /> {t(state.bots.some(bot => !bot.hidden && bot.section?.trim() === sectionName) ? "team.manageBots" : "team.addBots")}
                       </button>
                     )}
-                  </>
-                )}
+                </>}</SectionRows>
                 {layout.dropLine(id, "after")}
               </div>
             );
