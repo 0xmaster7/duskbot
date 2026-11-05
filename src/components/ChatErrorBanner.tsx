@@ -3,11 +3,14 @@ import { t } from "@/lib/i18n";
 import { plainErrorLine } from "@/lib/plain-error";
 import type { AppState } from "@/state/store";
 
+// grok's prompt notices: one 12/16 line above the message box, no box, 2px in from its edge
+const NOTICE_LINE = "flex items-start gap-1.5 px-0.5 text-[12px] leading-4";
+
 export function ChatNotice({ notice }: { notice: AppState["notice"] }) {
   if (!notice) return null;
   return (
     <div className="w-full px-5">
-      <div role="status" className="mb-2 rounded-lg border border-hairline/40 bg-panel px-3 py-2 text-[13px] text-ink-secondary">
+      <div role="status" className={`mb-2 ${NOTICE_LINE} text-ink-secondary`}>
         {notice.kind === "note"
           ? notice.text
           : notice.kind === "steer-images"
@@ -25,19 +28,19 @@ export function ChatErrorBanner({ message, onDismiss }: { message: string | null
   const plain = plainErrorLine(message);
   return (
     <div className="w-full px-5">
-      <div role="alert" className="mb-2 flex items-start gap-2 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[13px] text-danger">
+      <div role="alert" data-chat-error="" className={`mb-2 ${NOTICE_LINE} text-danger`}>
         <div className="min-w-0 flex-1 break-words">
           <p>{plain ?? message}</p>
-          {plain && <details className="mt-1 text-[12px] text-ink-secondary"><summary className="cursor-pointer">{t("chat.error.details")}</summary><p dir="auto" className="mt-1 break-words">{message}</p></details>}
+          {plain && <details className="mt-0.5 text-ink-tertiary"><summary className="w-fit cursor-pointer list-none rounded-sm [&::-webkit-details-marker]:hidden hover:text-ink-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">{t("chat.error.details")}</summary><p dir="auto" className="mt-0.5 break-words text-ink-secondary">{message}</p></details>}
         </div>
         <button
           type="button"
           onClick={onDismiss}
           aria-label={t("chat.error.dismiss")}
           title={t("chat.error.dismiss")}
-          className="shrink-0 rounded p-0.5 hover:bg-danger/10"
+          className="-my-0.5 flex size-5 shrink-0 items-center justify-center rounded-full text-ink-tertiary transition-colors hover:bg-ink/[0.06] hover:text-ink-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus pointer-coarse:size-9 pointer-coarse:-my-2.5"
         >
-          <X size={13} />
+          <X size={12} aria-hidden="true" />
         </button>
       </div>
     </div>

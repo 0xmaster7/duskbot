@@ -27,23 +27,23 @@ export function PinnedBanner({
   if (!text) return null;
   return (
     <div className="w-full px-5">
-      <div className="mb-2 flex items-center gap-2 rounded-lg border border-accent/25 bg-[color-mix(in_srgb,var(--color-accent)_7%,var(--color-app))] px-3 py-1.5">
-        <Pin size={12} className="shrink-0 text-accent" />
+      <div data-pinned-banner="" className="mb-2 flex min-h-8 items-center gap-2 rounded-[14px] bg-composer py-1 pe-1 ps-3 ring-[0.5px] ring-ink/[0.1]">
+        <Pin size={12} aria-hidden="true" className="shrink-0 text-ink-tertiary" />
         <button
           onClick={() => onJump(pinned.id)}
-          className="flex min-w-0 flex-1 items-baseline gap-2 text-left"
+          className="flex min-w-0 flex-1 items-baseline gap-2 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           title={t("chat.pinnedJump")}
         >
-          <span className="shrink-0 text-[12px] font-medium text-accent">{sender}</span>
+          <span className="shrink-0 text-[12px] font-medium leading-4 text-ink">{sender}</span>
           <span dir="auto" className="truncate text-[13px] text-ink-secondary">{text}</span>
         </button>
         {onUnpin && <button
           onClick={onUnpin}
           aria-label={t("chat.unpinMessage")}
           title={t("chat.unpin")}
-          className="shrink-0 rounded p-0.5 text-ink-secondary hover:bg-raised hover:text-ink"
+          className="flex size-6 shrink-0 items-center justify-center rounded-full text-ink-tertiary transition-colors hover:bg-ink/[0.06] hover:text-ink-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus pointer-coarse:size-9"
         >
-          <X size={13} />
+          <X size={12} aria-hidden="true" />
         </button>}
       </div>
     </div>

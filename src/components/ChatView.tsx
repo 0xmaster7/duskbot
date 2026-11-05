@@ -1228,14 +1228,13 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
       </div>
 
       {(advanced || remoteClient) && <BotActivityPicker bot={bot} />}{privateChat && team && <TeamPrivateFirstLine key={team.id} team={team} />}
-      {routineExecution && <div className="mx-5 mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[12px] text-ink-secondary">
+      {routineExecution && <div className="mx-5 mb-2 flex min-h-8 flex-wrap items-center gap-1 rounded-[14px] bg-composer py-1 pe-1 ps-3 text-[12px] leading-4 text-ink-secondary ring-[0.5px] ring-ink/[0.1]">
         <span className="min-w-0 flex-1 truncate">{t("routines.executionDetails", { name: routineExecution.routineName })}</span>
-        {canOpenResults && resultsThreadId && <button type="button" onClick={() => openThread(dispatch, { botId: bot.id, threadId: resultsThreadId }, state, showThreads)} className="rounded px-2 py-1 text-accent hover:bg-raised">{t("routines.results.back")}</button>}
-        <button type="button" onClick={() => dispatch({ type: "showRoutines", section: "logs", routineId: routineExecution.routineId, botId: bot.id })} className="rounded px-2 py-1 hover:bg-raised hover:text-ink">{t("routines.logs")}</button>
+        {canOpenResults && resultsThreadId && <button type="button" onClick={() => openThread(dispatch, { botId: bot.id, threadId: resultsThreadId }, state, showThreads)} className="h-6 rounded-full px-2 text-ink transition-colors hover:bg-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">{t("routines.results.back")}</button>}
+        <button type="button" onClick={() => dispatch({ type: "showRoutines", section: "logs", routineId: routineExecution.routineId, botId: bot.id })} className="h-6 rounded-full px-2 transition-colors hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">{t("routines.logs")}</button>
       </div>}
       {findOpen && <ChatFindBar threadId={bot.threadId} onClose={() => setFindOpen(false)} />}
 
-      <ChatErrorBanner message={state.error} onDismiss={() => dispatch({ type: "error", message: null })} />
       <ChatNotice notice={state.notice} />
 
       <PinnedBanner
@@ -1385,6 +1384,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           <UsageBanner engine={bot.modelSelection?.instanceId} onSeeUsage={() => dispatch(openSettings("usage"))} />
         </div>
       )}
+      {/* grok says what went wrong in one quiet line just above the message box */}
+      <div className="pointer-events-auto"><ChatErrorBanner message={state.error} onDismiss={() => dispatch({ type: "error", message: null })} /></div>
       <LiveCallBar bot={bot} />
       {canWrite === false ? (
         <NewConversationInstead bot={bot} onNew={() => dispatch({ type: "newTask", botId: bot.id })} />

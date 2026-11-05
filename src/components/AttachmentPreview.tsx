@@ -704,10 +704,10 @@ export function AttachmentThumbnail({
               setState("loading");
               setAttempt((value) => value + 1);
             }}
-            className="flex items-center gap-1 rounded-md border border-hairline/50 bg-panel px-2 py-1 text-[11px] text-ink hover:bg-raised"
+            className="flex h-6 items-center gap-1 rounded-full bg-ink/[0.06] px-2.5 text-[12px] leading-4 text-ink transition-colors hover:bg-ink/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             aria-label={t("attach.retryAria", { name: image.name })}
           >
-            <RotateCcw size={11} /> {t("chat.retry")}
+            <RotateCcw size={12} aria-hidden="true" /> {t("chat.retry")}
           </span>}
         </span>
       ) : (

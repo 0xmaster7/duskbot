@@ -182,7 +182,7 @@ export const PendingApprovalPanel = memo(function PendingApprovalPanel({
               : t("approval.aria.pending")
       }
       data-ask-card="approval"
-      className="px-4 pb-3.5 pt-3"
+      className="px-4 pb-4 pt-3.5"
     >
       <div className="flex min-w-0 items-center gap-2" aria-live="polite">
         <div className="min-w-0 flex-1">

@@ -314,11 +314,11 @@ export function askPrimary(color: MausColor | undefined, shape = ASK_BUTTON_SHAP
 
 /** A card's other answers: Deny, Cancel, Not now. */
 export const ASK_SECONDARY_BUTTON = `${ASK_BUTTON_SHAPE} ${ASK_LOOK} bg-ink/[0.07] text-ink enabled:hover:bg-ink/[0.11] enabled:active:bg-ink/[0.15]`;
-/** An extra option that should not compete with the answer: Always allow, Details. */
-export const ASK_QUIET_ANSWER = `${ASK_BUTTON_SHAPE} ${ASK_LOOK} text-ink-secondary enabled:hover:bg-ink/[0.06] enabled:hover:text-ink enabled:active:bg-ink/[0.1]`;
+/** An extra option that should not compete with the answer: Always allow, Details. Grok's Discard: regular weight beside the medium primary. */
+export const ASK_QUIET_ANSWER = `${ASK_BUTTON_SHAPE.replace("font-medium", "font-normal")} ${ASK_LOOK} text-ink-secondary enabled:hover:bg-ink/[0.06] enabled:hover:text-ink enabled:active:bg-ink/[0.1]`;
 
 /** Grok's option row: 40 tall, a 1px clear edge, its fill and edge easing in over 140ms. */
-const ASK_CHOICE = `flex min-h-10 w-full items-center gap-2.5 rounded-[16px] border border-transparent p-[7px] pe-3 text-start text-[14px] leading-5 text-ink transition-[background-color,border-color,color] duration-[140ms] ease-[cubic-bezier(.16,1,.3,1)] ${ASK_LOOK} disabled:cursor-default pointer-coarse:min-h-11`;
+export const ASK_CHOICE = `flex min-h-10 w-full items-center gap-2.5 rounded-[16px] border border-transparent p-[7px] pe-3 text-start text-[14px] leading-5 text-ink transition-[background-color,border-color,color] duration-[140ms] ease-[cubic-bezier(.16,1,.3,1)] ${ASK_LOOK} disabled:cursor-default pointer-coarse:min-h-11`;
 
 export const ASK_CHIP = `${ASK_CONTROL} max-w-full border`;
 export const ASK_CHIP_IDLE = "border-transparent bg-ink/[0.07] text-ink hover:bg-ink/[0.12]";

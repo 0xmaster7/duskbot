@@ -18,7 +18,9 @@ describe("ChatErrorBanner", () => {
     expect(markup).toContain("Clipboard has no image");
     expect(markup).toContain('aria-label="Dismiss"');
     expect(markup).toContain('type="button"');
-    expect(markup).toContain("border-danger/30");
+    // grok's prompt notice: a quiet red line, no box
+    expect(markup).toContain("text-[12px] leading-4 text-danger");
+    expect(markup).not.toMatch(/bg-danger|border-danger/);
   });
 
   it("reads a machine's words as one plain line and keeps them under Details", () => {

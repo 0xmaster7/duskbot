@@ -1,6 +1,6 @@
 // Dev-only gallery of a Simple mode transcript, served at /chat-transcript-preview.html; not in the packaged app. It
 // mounts the real ChatView over a fixed store, with no server behind it.
-// ?state=done|working|question|approval|empty|grok|grok-md|answered|cards&skin=grok|grok-dark|midnight&tools=1&bot=amy
+// ?state=done|working|question|approval|empty|grok|grok-md|answered|cards|setup&skin=grok|grok-dark|midnight&tools=1&bot=amy&error=words
 // state=grok mirrors the grok sandbox's Amy chat line for line, so the two can be compared pixel for pixel.
 import { StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -73,6 +73,8 @@ function cardRows(): Message[] {
 
 function rows(): Message[] {
   if (stateName === "cards") return cardRows();
+  // state=setup: a new bot's greeting and its first-run question card
+  if (stateName === "setup") return [message("hi", 0, { text: `Hi, I'm ${botName}. What would you like me to do?`, setupOffer: true, turnId: "s", turnTerminal: true })];
   if (stateName === "grok" || stateName === "grok-md" || stateName === "answered") return grokRows();
   const base: Message[] = [
     message("intro", -400, { text: "took the tinyfish invite on unfair: TinyResearch / TinySet from @Tiny_Fish, $150 for a quote. their post goes up tonight at 10:30 PM IST, and from then you have 12 hours to quote it." }),
@@ -95,13 +97,13 @@ function rows(): Message[] {
 
 const shown = stateName === "empty" ? [] : rows();
 const bot: Bot = {
-  id: amy ? "amy" : "jordan", name: botName, title: "", description: "Writes and checks scripts for the channel.", color: amy ? "pink" : "red", notifications: true, unread: false,
+  id: amy ? "amy" : "jordan", name: botName, title: "", description: stateName === "setup" ? "" : "Writes and checks scripts for the channel.", color: amy ? "pink" : "red", notifications: true, unread: false,
   threadId: "main", busy: stateName === "working", activity: stateName === "working" ? "working" : stateName === "question" || stateName === "approval" || stateName === "grok" || stateName === "grok-md" ? "waiting-on-you" : "idle",
   turnStartedAt: AT, messages: shown, activeLeafId: shown.at(-1)?.id, modelSelection: { instanceId: "claude", model: "claude-opus-5-5" },
   tasks: [{ threadId: "main", title: botName, createdAt: AT - 86_400_000 }],
 } as Bot;
 
-const state: AppState = { ...initialState, bots: [bot], selectedId: bot.id, connected: true,
+const state: AppState = { ...initialState, bots: [bot], selectedId: bot.id, connected: true, error: params.get("error"), instances: [{ instanceId: "claude", capabilities: { agentsMcp: true } }] as unknown as AppState["instances"],
   config: { features: { showToolCalls: params.get("tools") === "1" } } as unknown as AppState["config"] };
 const value = { state, dispatch: () => {}, flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} };
 

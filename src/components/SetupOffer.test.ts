@@ -66,7 +66,7 @@ beforeEach(() => {
 
 describe("the setup card under a new bot's greeting", () => {
   const offered = { ...greeting, setupChoices: ["Plan my trips", "Watch the news"] } as Message;
-  const label = (node: Node) => nodes(node.props.children).map((child) => child.props.children).filter((text) => typeof text === "string").join("|");
+  const label = (node: Node) => nodes(node.props.children).map((child) => child.props.letter ?? child.props.children).filter((text) => typeof text === "string").join("|");
 
   it("asks what to help with first, with the greeting's own answers lettered in order, then Something else", () => {
     const view = renderOffer(offered);

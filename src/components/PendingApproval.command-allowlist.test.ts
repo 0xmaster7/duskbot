@@ -145,9 +145,13 @@ describe("remembering exact command approvals", () => {
       expect(name).toContain("focus-visible:ring-2");
       expect(name).toContain("min-h-9");
       expect(name).toContain("pointer-coarse:min-h-11");
-      expect(name).toContain("text-[14px] font-medium");
+      expect(name).toContain("text-[14px]");
     }
     const [always, deny, allow] = classes;
+    // grok's Discard sits at regular weight beside the medium primary
+    expect(always).toContain("font-normal");
+    expect(deny).toContain("font-normal");
+    expect(allow).toContain("font-medium");
     expect(always).toContain("text-ink-secondary");
     expect(always).not.toMatch(/(^|\s)bg-/);
     // grok's Discard: quiet text, no fill

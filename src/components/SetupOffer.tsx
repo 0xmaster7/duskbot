@@ -11,7 +11,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { api, useStore, type Bot, type Message } from "@/state/store";
-import { moveChoiceFocus, returnFocusToComposer } from "./AskCard";
+import { ASK_CARD_LIFT, ASK_CARD_RING, ASK_CHOICE, ChoiceLetter, moveChoiceFocus, returnFocusToComposer } from "./AskCard";
 
 const blank = (bot: Pick<Bot, "soul" | "description">): boolean => !bot.soul?.trim() && !bot.description?.trim();
 const LETTERS = "ABCDEFGH";
@@ -106,42 +106,41 @@ export function SetupOffer({ botId, threadId, message, transcript }: { botId: st
   };
 
   return (
-    <section data-setup-card={message.id} aria-label={title} aria-busy={busy || pending || updating || undefined} onKeyDown={quiet || pending ? undefined : byLetter}
-      className="w-full max-w-[min(var(--chat-bubble-max),var(--chat-bubble-pct))] rounded-[24px] bg-composer px-2 pb-2 pt-3 ring-[0.5px] ring-ink/10">
-      <div className="flex items-start justify-between gap-2 ps-3 pe-1">
-        <h3 dir="auto" className="py-px text-[16px] font-semibold leading-[22px] text-ink-secondary">{title}</h3>
+    <section data-setup-card={message.id} data-ask-card={settled ? "settled" : "pending"} aria-label={title} aria-busy={busy || pending || updating || undefined}
+      onKeyDown={quiet || pending ? undefined : byLetter}
+      className={cn("w-full max-w-[min(560px,var(--chat-bubble-pct))] rounded-[24px] px-4 pb-2 pt-3.5 text-start", ASK_CARD_RING, ASK_CARD_LIFT)}>
+      {/* grok's question card: a 15/22 title, then its lettered rows 8px in from the card's edge */}
+      <div className="flex min-w-0 items-start gap-2">
+        <h3 dir="auto" className={cn("min-w-0 flex-1 break-words text-[15px] font-semibold leading-[22px]", settled ? "text-ink/[0.56]" : "text-ink")}>{title}</h3>
         {!settled && <button type="button" onClick={close} aria-label={t("common.close")} title={t("common.close")}
-          className="-mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full text-ink-tertiary hover:bg-ink/[0.07] hover:text-ink-secondary">
+          className="-me-1.5 -mb-1 -mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full text-ink-tertiary hover:bg-ink/[0.07] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus pointer-coarse:size-9">
           <X size={15} aria-hidden="true" />
         </button>}
       </div>
-      {pending ? <div data-setup-waiting="" className="mt-1.5 flex flex-col">
+      {pending ? <div data-setup-waiting="" className="-mx-2 mt-3 flex flex-col gap-px">
         {PLACEHOLDER_WIDTHS.map((width) => (
-          <div key={width} className="flex min-h-10 items-center px-3 py-2">
-            <span className="h-4 rounded-md bg-ink/[0.06] motion-safe:animate-pulse" style={{ width }} />
+          <div key={width} className="flex min-h-10 items-center gap-2.5 p-[7px]">
+            <span className="size-6 shrink-0 rounded-[8px] bg-ink/[0.04]" />
+            <span className="h-3.5 rounded-md bg-ink/[0.06] motion-safe:animate-pulse" style={{ width }} />
           </div>
         ))}
       </div> : <div key={choices.join("\n")} data-setup-updating={updating ? "" : undefined}
-        className={cn("mt-1.5 flex flex-col", updating ? "motion-safe:animate-pulse" : waitedOnce.current && "motion-safe:animate-msg-in")}>
+        className={cn("-mx-2 mt-3 flex flex-col gap-px", updating ? "motion-safe:animate-pulse" : waitedOnce.current && "motion-safe:animate-msg-in")}>
         {options.map((option, index) => (
           <button key={option.label} type="button" data-ask-choice="" disabled={quiet || busy} onClick={option.pick}
-            className={cn("group flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-start",
-              quiet ? "cursor-default" : "hover:bg-ink/[0.05] disabled:cursor-default")}>
-            <kbd className={cn("flex size-6 shrink-0 items-center justify-center rounded-md font-sans text-[12px] font-medium",
-              quiet ? "bg-ink/[0.04] text-ink-tertiary" : "bg-ink/[0.07] text-ink-secondary group-hover:bg-ink/[0.1]")}>
-              {LETTERS[index]}
-            </kbd>
-            <span dir="auto" className={cn("min-w-0 break-words text-[14px] leading-5", quiet ? "text-ink-tertiary" : "text-ink")}>{option.label}</span>
+            className={cn(ASK_CHOICE, quiet ? "text-ink-secondary disabled:opacity-100" : "enabled:hover:bg-ink/[0.06]")}>
+            <ChoiceLetter letter={LETTERS[index] ?? null} quiet={quiet} />
+            <span dir="auto" className="min-w-0 flex-1 break-words [unicode-bidi:plaintext]">{option.label}</span>
           </button>
         ))}
       </div>}
       {settled && answer && (
-        <div data-setup-answer="" className="mx-3 mb-1 mt-1.5 border-t border-hairline/40 pt-2.5">
-          <div className="text-[12px] leading-4 text-ink-tertiary">{t("chat.setupCard.answer")}</div>
+        <div data-setup-answer="" className="mx-1 mb-1.5 mt-1 border-t border-ink/[0.08] pt-2.5">
+          <div className="text-[12px] leading-4 text-ink-secondary">{t("chat.setupCard.answer")}</div>
           <div dir="auto" className="mt-0.5 break-words text-[14px] leading-5 text-ink">{answer.text}</div>
         </div>
       )}
-      {error && <p role="alert" dir="auto" className="mx-3 mb-1 mt-1 text-[12px] text-danger">{error}</p>}
+      {error && <p role="alert" dir="auto" className="mx-1 mb-1.5 mt-1 text-[12px] leading-4 text-danger">{error}</p>}
     </section>
   );
 }

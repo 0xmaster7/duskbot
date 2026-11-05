@@ -20,13 +20,11 @@ export function LicenseExpiryBanner({ config }: { config: ConfigStatus | null | 
   return (
     <div
       role="status"
-      className={cn(
-        "flex items-start gap-2 rounded-xl border px-3 py-2.5 text-[13px] leading-relaxed",
-        notice.tone === "danger" ? "border-danger/40 bg-danger/10 text-danger" : "border-warning/40 bg-warning/10 text-warning",
-      )}
+      data-license-banner={notice.tone}
+      className="flex items-start gap-2.5 rounded-[14px] bg-menu px-3.5 py-2.5 outline-[0.5px] outline-offset-[-0.5px] outline-edge [outline-style:solid]"
     >
-      <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-      <span>{notice.text}</span>
+      <AlertTriangle size={14} aria-hidden="true" className={cn("mt-0.5 shrink-0", notice.tone === "danger" ? "text-danger" : "text-warning")} />
+      <span className="min-w-0 flex-1 text-[13px] leading-[18px] text-ink">{notice.text}</span>
     </div>
   );
 }

@@ -5,8 +5,11 @@ import { t } from "@/lib/i18n";
 import { productName } from "../lib/brand";
 import { NoticeToast } from "./NoticeCard";
 
-const primaryAction =
-  "flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent py-1.5 text-[13px] font-medium text-white transition-colors disabled:cursor-default disabled:bg-control disabled:text-ink-secondary";
+// grok's banner scale: 28px pills at 13px, the answer in the ink primary
+const pill = "flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-full px-3 text-[13px] leading-[18px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-default pointer-coarse:h-9";
+const primaryAction = `${pill} ui-button-primary font-medium disabled:opacity-40`;
+const secondaryAction = `${pill} bg-ink/[0.06] text-ink hover:bg-ink/[0.1] disabled:text-ink-secondary disabled:hover:bg-ink/[0.06]`;
+const quietAction = `${pill} text-ink-secondary hover:bg-ink/[0.06] hover:text-ink disabled:opacity-50 disabled:hover:bg-transparent`;
 
 // electron-updater surfaces failures as a whole HTTP dump (status line, every header, stack trace).
 function friendlyError(message?: string): string {
@@ -94,39 +97,38 @@ export function UpdateBanner({ sidebarIndicator = false }: UpdateBannerProps) {
             : friendlyError(s.message);
 
   return (
-    <div className="animate-panel-in fixed bottom-4 left-[calc(var(--rail-beside,0px)_+_1rem)] z-50 w-[300px] rounded-xl border border-hairline/40 bg-panel p-3.5 shadow-2xl shadow-black/50">
+    <div data-update-banner="" className="fixed bottom-4 left-[calc(var(--rail-beside,0px)_+_1rem)] z-50 w-[300px] max-w-[calc(100vw_-_var(--rail-beside,0px)_-_32px)] ui-toast py-3 pe-2.5 ps-3.5">
       <div className="flex items-start gap-2.5">
-        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">
-          <Sparkles size={14} />
-        </span>
+        <Sparkles size={14} aria-hidden="true" className="mt-0.5 shrink-0 text-ink-secondary" />
         <div className="min-w-0 flex-1">
-          <div className="text-[14px] font-semibold text-ink">{title}</div>
-          <div className="mt-0.5 text-[13px] text-ink-secondary" title={subtitle}>
+          <div className="text-[13px] font-medium leading-[18px] text-ink">{title}</div>
+          <div className="text-[13px] leading-[18px] text-ink-secondary" title={subtitle}>
             {subtitle}
           </div>
         </div>
         {!installing && (
           <button
             onClick={() => setDismissed(key)}
-            className="shrink-0 rounded-md p-1 text-ink-secondary hover:bg-control hover:text-ink"
+            className="-mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full text-ink-tertiary transition-colors hover:bg-ink/[0.06] hover:text-ink-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus pointer-coarse:size-9"
             title="Dismiss"
+            aria-label="Dismiss"
           >
-            <X size={14} />
+            <X size={12} aria-hidden="true" />
           </button>
         )}
       </div>
 
       {s.status === "handed-off" && s.command && (
-        <code className="mt-2.5 block overflow-x-auto rounded-lg bg-control px-2 py-1.5 font-mono text-[12px] whitespace-pre text-ink-secondary">
+        <code className="me-1 ms-6 mt-2 block overflow-x-auto rounded-[8px] bg-ink/[0.04] px-2 py-1.5 font-mono text-[12px] leading-[18px] whitespace-pre text-ink-secondary">
           {s.command}
         </code>
       )}
 
       {installing && (
-        <div className="mt-2.5 flex gap-2">
+        <div className="mt-2.5 flex justify-end gap-2 pe-1">
           <button
             disabled
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-control py-1.5 text-[13px] font-medium text-ink-secondary"
+            className={`${secondaryAction} text-ink-secondary`}
           >
             <Loader2 size={13} className="animate-spin" /> {handoff ? "Opening…" : "Restarting…"}
           </button>
@@ -134,7 +136,14 @@ export function UpdateBanner({ sidebarIndicator = false }: UpdateBannerProps) {
       )}
 
       {!installing && (
-        <div className="mt-2.5 flex gap-2">
+        <div className="mt-2.5 flex flex-wrap justify-end gap-2 pe-1">
+          <button
+            onClick={() => setDismissed(key)}
+            disabled={pending !== null}
+            className={quietAction}
+          >
+            {s.status === "handed-off" || s.retryable === false ? "Dismiss" : "Later"}
+          </button>
           {s.status === "downloaded" && (
             <button
               onClick={() => {
@@ -166,7 +175,7 @@ export function UpdateBanner({ sidebarIndicator = false }: UpdateBannerProps) {
                 void updater.check();
               }}
               disabled={pending !== null}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-control py-1.5 text-[13px] text-ink hover:bg-raised-hover disabled:text-ink-secondary disabled:hover:bg-control"
+              className={secondaryAction}
             >
               {pending === "check" ? (
                 <>
@@ -177,13 +186,6 @@ export function UpdateBanner({ sidebarIndicator = false }: UpdateBannerProps) {
               )}
             </button>
           )}
-          <button
-            onClick={() => setDismissed(key)}
-            disabled={pending !== null}
-            className="rounded-lg px-3 py-1.5 text-[13px] text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-50 disabled:hover:bg-transparent"
-          >
-            {s.status === "handed-off" || s.retryable === false ? "Dismiss" : "Later"}
-          </button>
         </div>
       )}
     </div>
