@@ -20,6 +20,10 @@ export function MentionTextarea({ inputRef, peers, everyone = false, wrapperClas
     const style = getComputedStyle(input);
     for (const property of TEXT_LAYOUT) mirror.style.setProperty(property, style.getPropertyValue(property));
     mirror.style.width = `${input.clientWidth}px`;
+    // the field can carry a margin inside the wrapper; the mirror sits exactly over it, or the text drifts off the caret
+    mirror.style.top = `${input.offsetTop}px`;
+    mirror.style.height = `${input.clientHeight}px`;
+    mirror.style.bottom = "auto";
     mirror.scrollTop = input.scrollTop;
     mirror.scrollLeft = input.scrollLeft;
   }, [inputRef]);

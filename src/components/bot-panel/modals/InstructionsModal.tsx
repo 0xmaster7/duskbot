@@ -34,7 +34,6 @@ export function InstructionsModal({ bot, derived, onClose }: {
   return (
     <GrokDialog
       data-panel-modal="instructions"
-      width={600}
       title={t("botSettings.simple.instructions")}
       description={prompt}
       onClose={onClose}

@@ -53,7 +53,7 @@ export function MemoryModal({ bot, derived, onClose }: {
               ) : (
                 <ul aria-label={label} className="m-0 flex max-h-[min(300px,calc(100dvh-420px))] list-none flex-col overflow-y-auto p-0 [scrollbar-width:thin]">
                   {notes.map((note) => (
-                    <li key={`${note.path}:${note.line}:${note.text}`} data-memory-note={note.line ?? note.path} className={cn("group/row", listRowCls, "min-h-11 gap-x-3 py-2 pr-2.5")}>
+                    <li key={`${note.path}:${note.line}:${note.text}`} data-memory-note={note.line ?? note.path} className={cn("group/row", listRowCls, "min-h-9 gap-x-3 py-1.5 pr-2.5")}>
                       <span className={cn(rowTitleCls, "min-w-0 flex-1 text-pretty")}>{note.text}</span>
                       {editable && <RowIconButton reveal icon="trash" data-modal-action="forget" label={t("botPanel.memory.forget")} disabled={saving} onClick={() => forget(note)} />}
                     </li>

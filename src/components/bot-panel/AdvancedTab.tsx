@@ -6,7 +6,7 @@ import type { useBotSettingsDerived } from "../bot-settings/useBotSettingsDerive
 import { openSettings } from "@/lib/open-settings";
 import { VoiceChatCard } from "./DetailsTab";
 import { LibrarySection } from "./LibraryTab";
-import { BotSheet } from "./modals/BotSheet";
+import { PanelModal } from "./modals/PanelModals";
 import { takePanelModalRequest, usePanelModalRequest, type ModalPage } from "./modals/panel-modal";
 import type { SimplePageId } from "./page-registry";
 import { Card, NavRow, PanelSections } from "./rows";
@@ -42,7 +42,7 @@ export function AdvancedTab({ bot, derived, onOpen }: {
           onClick={() => dispatch(openSettings("advanced"))}
         />
       </Card>
-      {modal && <BotSheet key={modal} initial={modal} bot={bot} derived={derived} onClose={() => setModal(null)} />}
+      {modal && <PanelModal key={modal} page={modal} bot={bot} derived={derived} onClose={() => setModal(null)} />}
     </PanelSections>
   );
 }

@@ -153,7 +153,7 @@ function SheetView({ title, description, width = 440, onClose, footer, children,
             <GrokIcon name="close" size={16} />
           </button>
         </header>
-        <div className={cn(formBodyCls, "flex flex-col")}>
+        <div className={cn(formBodyCls, "flex flex-col", !footer && "pb-4")}>
           {description && <p id={descriptionId} className={cn(rowHintCls, "m-0 mb-3 text-pretty")}>{description}</p>}
           {children}
         </div>
