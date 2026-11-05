@@ -129,4 +129,30 @@ describe("prewarmMarkShapes", () => {
     prewarmMarkShapes(["flower", "fruit"], 40, idle);
     expect(slices).toHaveLength(0);
   });
+
+  it("turns a static mark that goes live on hover toward the gaze, as a sidebar row does", () => {
+    const r = rig({ isLive: false, isPlaying: false });
+    const rest = r.canvas.innerHTML;
+    r.mark.update({ isLive: true, isPlaying: true });
+    r.mark.gaze({ x: 0.8, y: -0.3 });
+    r.run(800);
+    expect(r.canvas.innerHTML).not.toBe(rest);
+  });
+
+  it("answers emphasis and pokes on a busy status-line mark", () => {
+    const quiet = rig({ state: "running", sizePx: 28 });
+    const loud = rig({ state: "running", sizePx: 28 });
+    loud.mark.update({ isEmphasized: true });
+    let differs = 0;
+    for (let i = 0; i < 30; i++) {
+      quiet.run(100);
+      loud.run(100);
+      if (loud.canvas.innerHTML !== quiet.canvas.innerHTML) differs++;
+    }
+    expect(differs).toBeGreaterThan(0);
+    const poked = rig({ state: "running", sizePx: 28 });
+    poked.mark.poke("spin");
+    poked.run(600);
+    expect(poked.canvas.innerHTML).not.toBe(quiet.canvas.innerHTML);
+  });
 });

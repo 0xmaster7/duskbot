@@ -288,6 +288,9 @@ export function createMark(initial: MarkOptions, env: MarkEnvironment): Mark {
       if (changed("isLive") || changed("isReducedMotion") || changed("isPlaying") || changed("state")) syncPlaying();
       if (changed("isLive") || changed("isReducedMotion")) {
         if (isStill()) running = false;
+        // the still pose leaves the animator paused, and a paused animator ignores gaze: hand it back to the driver
+        else if (playing) animator.play();
+        else animator.rest();
         dirty = true;
       }
       if (dirty || changed("ink") || changed("eye") || changed("sizePx") || changed("isPlaying") || changed("maxFrameRate")) refresh();
