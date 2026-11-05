@@ -231,13 +231,38 @@ export interface SegmentOption<V extends string> {
   tooltip?: string;
 }
 
-export function Segmented<V extends string>({ options, value, onChange, label, attr }: {
+export function Segmented<V extends string>({ options, value, onChange, label, attr, compact = false }: {
   options: readonly SegmentOption<V>[];
   value: string | null | undefined;
   onChange: (value: V) => void;
   label: string;
   attr: string;
+  /** Grok's tab pills instead of a filled track: 26px, the chosen one on a 6% ink wash. */
+  compact?: boolean;
 }) {
+  if (compact) {
+    return (
+      <div role="group" aria-label={label} className="flex min-w-0 gap-0.5">
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            {...{ [attr]: option.value }}
+            aria-pressed={value === option.value}
+            disabled={option.disabled}
+            title={option.tooltip}
+            onClick={() => onChange(option.value)}
+            className={cn(
+              "h-[26px] min-w-0 shrink truncate rounded-full px-2 py-1 text-[13px] leading-[18px] tracking-[0.015em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50",
+              value === option.value ? "bg-ink/[0.06] text-ink" : "text-ink-secondary enabled:cursor-pointer enabled:hover:bg-ink/[0.06]",
+            )}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    );
+  }
   return (
     <div role="group" aria-label={label} className="flex w-full rounded-full bg-ink/[0.05] p-[3px]">
       {options.map((option) => (

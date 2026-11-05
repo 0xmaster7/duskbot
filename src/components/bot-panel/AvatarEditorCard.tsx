@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { ImagePlus, Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
@@ -100,9 +100,9 @@ export function AvatarEditorCard({ bot, onPatch, onClose }: {
       aria-label={t("botPanel.avatar.edit")}
       data-panel-avatar-editor
       onKeyDown={onKeyDown}
-      className="popover-surface absolute inset-x-[-5px] top-[78px] z-30 overflow-hidden rounded-2xl border border-ink/[0.08] bg-menu text-left shadow-(--shadow-popover)"
+      className="popover-surface absolute inset-x-[-5px] top-[78px] z-30 overflow-hidden rounded-[16px] border border-ink/[0.08] bg-menu text-left shadow-(--shadow-popover)"
     >
-      <div ref={tabsRef} role="tablist" aria-label={t("botPanel.avatar.edit")} className="flex items-center gap-0.5 border-b border-ink/[0.06] p-2">
+      <div ref={tabsRef} role="tablist" aria-label={t("botPanel.avatar.edit")} className="flex items-center gap-0.5 border-b border-ink/[0.08] p-2">
         {TABS.map(([id, label]) => (
           <button
             key={id}
@@ -119,7 +119,7 @@ export function AvatarEditorCard({ bot, onPatch, onClose }: {
             {t(label)}
           </button>
         ))}
-        <button
+        {tab === "bot" && <button
           type="button"
           data-avatar-reset
           disabled={busy}
@@ -128,7 +128,7 @@ export function AvatarEditorCard({ bot, onPatch, onClose }: {
           className="ml-auto h-[22px] cursor-pointer rounded-lg border border-transparent px-2 text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary transition-colors duration-[140ms] hover:bg-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50"
         >
           {t("botPanel.avatar.reset")}
-        </button>
+        </button>}
       </div>
 
       <div className="p-3">
@@ -194,15 +194,16 @@ export function AvatarEditorCard({ bot, onPatch, onClose }: {
                 event.preventDefault();
                 void upload(event.dataTransfer.files?.[0]);
               }}
-              className="flex w-full flex-col items-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-ink/15 px-3 py-6 text-center text-[13px] text-ink-secondary hover:border-ink/25 hover:text-ink disabled:opacity-50"
+              className="flex min-h-[120px] w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] border border-dashed border-ink/[0.12] px-3 py-5 text-center text-[14px] leading-[22px] text-ink-secondary transition-[border-color,color] duration-[120ms] ease-[ease] hover:border-ink/[0.24] hover:text-ink disabled:opacity-50"
             >
-              {uploading ? <Loader2 size={22} className="animate-spin" /> : <ImagePlus size={22} />}
+              {uploading && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
               <span>{t("botPanel.avatar.drop")}</span>
-              <span className="text-[12px] text-ink-tertiary">{t("botPanel.avatar.types")}</span>
+              <span className="text-[12px] leading-4 text-ink/[0.56]">{t("botPanel.avatar.types")}</span>
             </button>
-            <div className="mt-2.5 flex items-center gap-2.5">
-              <span className="shrink-0 text-[12px] text-ink-secondary">{t("botPanel.avatar.shape")}</span>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="shrink-0 text-[12px] leading-4 text-ink-secondary">{t("botPanel.avatar.shape")}</span>
               <Segmented
+                compact
                 attr="data-avatar-crop"
                 label={t("botPanel.avatar.shape")}
                 value={showsImage ? crop : null}
@@ -216,13 +217,12 @@ export function AvatarEditorCard({ bot, onPatch, onClose }: {
                   disabled={busy}
                   aria-label="Remove custom avatar image"
                   title={t("botPanel.avatar.remove")}
-                  className="flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-secondary hover:bg-control hover:text-danger disabled:opacity-50"
+                  className="ml-auto flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink-secondary hover:bg-ink/[0.06] hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50"
                 >
-                  <Trash2 size={14} />
+                  <Trash2 size={14} aria-hidden="true" />
                 </button>
               )}
             </div>
-            {!showsImage && <p className="mt-2 text-[12px] text-ink-tertiary">{t("botPanel.avatar.uploadHint")}</p>}
           </>
         )}
 
