@@ -62,6 +62,9 @@ import { UsageSection } from "./UsageSection";
 import { WindowFrameRow } from "./WindowFrameRow";
 import { WorkspaceBackupSettings } from "./WorkspaceBackupSettings";
 import { WorkspacesSection } from "./WorkspacesSection";
+import { UsageMeterCard } from "./native/UsageMeter";
+import { reportsUsage, useEngineLimits } from "@/lib/limit-resets";
+import { openInbox } from "@/state/inbox";
 import {
   AdvancedModeRow, BrowserProfilesRow, ExperimentalFeaturesRow, FollowUpRow, LanguageRow, NewBotEffortRow, PinnedCirclesRow,
   ReplayTourRow, RunCardRow, SendKeyRow, ShowThreadsRow, ToolCallsRow, UniversalPinsRow, UpdatesRow,
@@ -88,7 +91,7 @@ export function AccountRow() {
   useEffect(() => {
     if (editing) fields.current?.querySelector<HTMLInputElement>("input:not([type=file])")?.focus();
   }, [editing]);
-  const pill = "inline-flex h-8 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-full bg-ink/[0.06] px-3 py-1.5 text-[14px] leading-5 tracking-[0.01em] text-ink shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_6%,transparent)] transition-[background-color,color] duration-[120ms] ease-out hover:bg-ink/10 outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus";
+  const pill = "inline-flex h-8 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-full bg-ink/[0.06] px-3 py-1.5 text-[14px] leading-5 tracking-[0.01em] text-ink shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_6%,transparent)] transition-[background-color,color] duration-[120ms] ease-[ease-out] hover:bg-ink/10 outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus";
   return (
     <div data-settings-account="" className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3.5 px-4 py-3.5">
@@ -116,7 +119,7 @@ export function AccountRow() {
         <div className="ms-auto flex flex-wrap items-center justify-end gap-2">
           {!active && (
             <button type="button" aria-expanded={editing} aria-controls={fieldsId} className={pill} onClick={() => setEditing(!editing)}>
-              {editing ? t("common.done") : t(name || email ? "settings.simple.account.edit" : "settings.simple.account.add")}
+              {editing ? t("common.done") : t(name || email ? "settings.simple.account.edit" : "settings.grok.account.add")}
             </button>
           )}
           {window.ogb?.accounts && active && accounts.noRail && (
@@ -155,15 +158,14 @@ export function AccentRow() {
   );
 }
 
-export function GeneralPane({ has, remoteActive, peopleOpen }: { has: Has; remoteActive: boolean; peopleOpen: boolean }) {
+export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boolean }) {
   return (
     <>
-      {!remoteActive && (has("general") || has("people")) && (
+      {!remoteActive && has("general") && (
         <SettingsGroup label={t("settings.group.account")} block="general">
           <SettingsRows>
-            {has("general") && <AccountRow />}
-            {has("general") && <CloudPlanRow place="account" />}
-            {has("people") && <div data-settings-block="people" className="scroll-mt-4"><PeopleSection simple startOpen={peopleOpen} /></div>}
+            <AccountRow />
+            <CloudPlanRow place="account" />
           </SettingsRows>
         </SettingsGroup>
       )}
@@ -278,14 +280,12 @@ export function UpdatesPane({ remoteActive }: { remoteActive: boolean }) {
   );
 }
 
-export type AdvancedPage = "ai" | "apps" | "bots" | "looks" | "billing" | "team" | "data" | "builder" | "about";
+export type AdvancedPage = "apps" | "bots" | "looks" | "team" | "data" | "builder" | "about";
 
 export const ADVANCED_PAGES: ReadonlyArray<{ id: AdvancedPage; group: "bots" | "workspace" | "app"; icon: GrokIconName; sections: AppSettingsSection[] }> = [
-  { id: "ai", group: "bots", icon: "sparkle", sections: ["engines", "connections", "decisionModel"] },
   { id: "apps", group: "bots", icon: "plug", sections: ["apps", "skills"] },
   { id: "bots", group: "bots", icon: "robot", sections: ["bots"] },
-  { id: "billing", group: "workspace", icon: "chart-bars", sections: ["usage", "cloudAccount"] },
-  { id: "team", group: "workspace", icon: "building", sections: ["organization", "workspaces"] },
+  { id: "team", group: "workspace", icon: "building", sections: ["organization", "people", "workspaces"] },
   { id: "data", group: "workspace", icon: "database", sections: ["data", "backups", "import"] },
   { id: "looks", group: "app", icon: "palette", sections: ["looks"] },
   { id: "builder", group: "app", icon: "sliders", sections: ["builder", "experimental"] },
@@ -370,6 +370,7 @@ function BotsPage({ remoteActive }: { remoteActive: boolean }) {
     <>
       <SettingsGroup label={t("settings.advanced.bots.title")} block="bots">
         <SettingsRows>
+          <OpenRow data-settings-open="inbox" title={t("settings.advanced.bots.inbox")} subtitle={t("settings.advanced.bots.inboxSubtitle")} onOpen={() => { dispatch({ type: "toggleAppSettings", open: false }); openInbox(); }} />
           <OpenRow data-settings-open="automations" title={t("settings.advanced.bots.automations")} subtitle={t("settings.advanced.bots.automationsSubtitle")} onOpen={() => go({ type: "showRoutines", view: "list" })} />
           <OpenRow data-settings-open="team-map" title={t("settings.advanced.bots.teamMap")} subtitle={t("settings.advanced.bots.teamMapSubtitle")} onOpen={() => go({ type: "showTeamMap" })} />
           {files && <OpenRow data-settings-open="files" title={t("settings.advanced.bots.files")} subtitle={t("settings.advanced.bots.filesSubtitle")} onOpen={() => go({ type: "showFiles" })} />}
@@ -423,17 +424,29 @@ function LooksPage({ remoteActive }: { remoteActive: boolean }) {
   );
 }
 
-function BillingPage({ has, disclose, cloudAccount }: { has: Has; disclose: Disclose; cloudAccount: ReactNode }) {
+/** Grok's Usage & Billing pane: a card per engine limit, the Cloud's meters, the breakdown behind a disclosure, then the plan. */
+export function UsagePane({ has, disclose, cloudAccount }: { has: Has; disclose: Disclose; cloudAccount: ReactNode }) {
   const { usage, upgrade, dialog } = useCloudUsageSettings();
   const plan = useCloudPlan();
   const signedOut = plan?.view.kind === "signed-out" || plan?.view.kind === "removed";
+  const limits = useEngineLimits().filter(reportsUsage);
   return (
     <>
-      <div data-settings-block="usage" className="scroll-mt-4">
-        {usage ? <CloudUsageSummaryView usage={usage} upgrade={upgrade}>{dialog}</CloudUsageSummaryView> : <AdminOnly note="settings.adminOnly.usage"><PlanUsageSummary /></AdminOnly>}
-      </div>
+      {limits.length ? (
+        <SettingsGroup block="usage" footnote={t("settings.usage.footnote")}>
+          <div data-usage-cards="" className="flex flex-col gap-3">{limits.map((limit) => <UsageMeterCard key={limit.engine} limit={limit} />)}</div>
+        </SettingsGroup>
+      ) : !usage && (
+        <SettingsGroup block="usage">
+          <SettingsRows>
+            <SettingRow title={t("settings.usage.empty.title")} subtitle={t("settings.usage.empty.subtitle")}>{null}</SettingRow>
+          </SettingsRows>
+        </SettingsGroup>
+      )}
+      {usage && <div data-settings-block="cloudUsage" className="scroll-mt-4"><CloudUsageSummaryView usage={usage} upgrade={upgrade}>{dialog}</CloudUsageSummaryView></div>}
       {(usage || has("usage")) && (
-        <SettingsDisclosureRow title={t("settings.simple.billing.limits")} {...disclose("billing-limits")}>
+        <SettingsDisclosureRow title={t("settings.usage.breakdown")} {...disclose("billing-limits")}>
+          {!usage && <AdminOnly note="settings.adminOnly.usage"><PlanUsageSummary /></AdminOnly>}
           {usage && <CloudUsageDetails usage={usage} upgrade={upgrade} />}
           {has("usage") && <AdminOnly note="settings.adminOnly.usage"><UsageSection /></AdminOnly>}
         </SettingsDisclosureRow>
@@ -448,10 +461,11 @@ function BillingPage({ has, disclose, cloudAccount }: { has: Has; disclose: Disc
   );
 }
 
-function TeamPage({ has }: { has: Has }) {
+function TeamPage({ has, peopleOpen }: { has: Has; peopleOpen: boolean }) {
   return (
     <>
       {has("organization") && <SettingsGroup label={t("settings.section.organization")} block="organization"><OrganizationSettings /></SettingsGroup>}
+      {has("people") && <SettingsGroup block="people"><SettingsRows><PeopleSection simple startOpen={peopleOpen} /></SettingsRows></SettingsGroup>}
       {has("workspaces") && <SettingsGroup label={t("settings.section.workspaces")} block="workspaces"><WorkspacesSection /></SettingsGroup>}
     </>
   );
@@ -508,28 +522,28 @@ function AboutPage() {
   );
 }
 
-export function AdvancedPageView({ page, has, remoteActive, disclose, connections, cloudAccount }: {
+/** Model providers and their sign-ins, API keys and the decision model: what every bot's model picker draws from. */
+export function ModelsPane({ has, disclose, connections }: { has: Has; disclose: Disclose; connections: ReactNode }) {
+  return (
+    <>
+      {has("engines") && <div data-settings-block="engines" className="flex scroll-mt-4 flex-col gap-7"><AdminOnly><EnginesSettings simple more={disclose("ai-more")} /></AdminOnly></div>}
+      {has("connections") && <SettingsGroup label={t("settings.section.connections")} block="connections"><AdminOnly>{connections}</AdminOnly></SettingsGroup>}
+      {has("decisionModel") && <SettingsGroup label={t("settings.section.decisionModel")} block="decisionModel"><AdminOnly><DecisionModelSettings /></AdminOnly></SettingsGroup>}
+    </>
+  );
+}
+
+export function AdvancedPageView({ page, has, remoteActive, peopleOpen }: {
   page: AdvancedPage;
   has: Has;
   remoteActive: boolean;
-  disclose: Disclose;
-  connections: ReactNode;
-  cloudAccount: ReactNode;
+  peopleOpen: boolean;
 }) {
   switch (page) {
-    case "ai":
-      return (
-        <>
-          {has("engines") && <div data-settings-block="engines" className="flex scroll-mt-4 flex-col gap-7"><AdminOnly><EnginesSettings simple more={disclose("ai-more")} /></AdminOnly></div>}
-          {has("connections") && <SettingsGroup label={t("settings.section.connections")} block="connections"><AdminOnly>{connections}</AdminOnly></SettingsGroup>}
-          {has("decisionModel") && <SettingsGroup label={t("settings.section.decisionModel")} block="decisionModel"><AdminOnly><DecisionModelSettings /></AdminOnly></SettingsGroup>}
-        </>
-      );
     case "apps": return <AppsPage has={has} />;
     case "bots": return <BotsPage remoteActive={remoteActive} />;
     case "looks": return <LooksPage remoteActive={remoteActive} />;
-    case "billing": return <BillingPage has={has} disclose={disclose} cloudAccount={cloudAccount} />;
-    case "team": return <TeamPage has={has} />;
+    case "team": return <TeamPage has={has} peopleOpen={peopleOpen} />;
     case "data": return <DataPage has={has} />;
     case "builder": return <BuilderPage />;
     case "about": return <AboutPage />;

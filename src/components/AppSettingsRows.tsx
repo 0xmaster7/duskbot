@@ -190,7 +190,7 @@ export function LanguageRow({ simple = false }: { simple?: boolean }) {
     >
       <SettingsSelect
         value={current}
-        aria-label={t("settings.language.aria")}
+        aria-label={t(simple ? "settings.language.title" : "settings.language.aria")}
         onChange={(event) => setLanguageChoice(event.target.value)}
       >
         <option value="">{t(simple ? "settings.simple.language.system" : "settings.language.system")}</option>

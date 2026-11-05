@@ -81,9 +81,10 @@ const markers = (html: string) => [...html.matchAll(/MARKER:([^;]+);/g)].map((ma
 const title = (html: string) => html.match(/<h2 id="[^"]*" class="settings-pane-title[^"]*">([^<]+)<\/h2>/)?.[1];
 
 describe("Settings, drawn as Grok Bot's", () => {
-  it("rails Grok's five panes, then Advanced last", () => {
+  it("rails Grok's panes with Models and Usage & Billing, then Advanced features last", () => {
     const html = open("general");
-    expect(panes(html)).toEqual(["general", "texting", "computer", "permissions", "updates", "advanced"]);
+    expect(panes(html)).toEqual(["general", "texting", "computer", "permissions", "models", "usage", "updates", "advanced"]);
+    expect(html).toContain('data-icon-name="chart-bars"');
     expect(html).toContain('data-icon-name="settings-gear"');
     expect(html).toContain('data-icon-name="cloud-download"');
     expect(current(html)).toBe("general");
@@ -93,7 +94,7 @@ describe("Settings, drawn as Grok Bot's", () => {
   it("opens General as Account, Appearance, System and Notifications, with Theme, Accent and Language as selects", () => {
     const html = open("general");
     expect(groups(html)).toEqual(["Account", "Appearance", "System", "Notifications"]);
-    for (const label of ["Theme", "Accent", "App language"]) expect(html).toContain(`role="combobox" aria-label="${label}`);
+    for (const label of ["Theme", "Accent", "Language"]) expect(html).toContain(`role="combobox" aria-label="${label}`);
     expect(html).toContain("Play Sound for Notifications");
     expect(html).toContain('aria-label="Notification Sound"');
     expect(html).toContain("Open Blip");
@@ -105,22 +106,38 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(open("general")).not.toContain('aria-label="Notification Sound"');
   });
 
-  it("keeps the first screen of Advanced to three cards of pages, nothing else", () => {
+  it("keeps the first screen of Advanced features to three cards of pages, nothing else", () => {
     const html = open("advanced");
-    expect(title(html)).toBe("Advanced");
-    expect(groups(html)).toEqual(["Bots and AI", "Account", "App"]);
+    expect(title(html)).toBe("Advanced features");
+    expect(groups(html)).toEqual(["Bots and tools", "Account", "App"]);
     expect([...html.matchAll(/data-settings-advanced="([^"]+)"/g)].map((match) => match[1]))
-      .toEqual(["ai", "apps", "bots", "billing", "team", "data", "looks", "builder", "about"]);
+      .toEqual(["apps", "bots", "team", "data", "looks", "builder", "about"]);
     expect(markers(html)).toEqual([]);
     expect(html).not.toContain("data-settings-back");
   });
 
-  it("opens an Advanced page under Advanced, with a way back", () => {
-    const html = open("engines");
+  it("opens an Advanced features page under it, with a way back", () => {
+    const html = open("apps");
     expect(current(html)).toBe("advanced");
-    expect(title(html)).toBe("AI and Models");
-    expect(html).toContain('aria-label="Back to Advanced"');
+    expect(title(html)).toBe("Apps and Tools");
+    expect(html).toContain('aria-label="Back to Advanced features"');
+  });
+
+  it("gives providers, keys and the decision model their own Models pane", () => {
+    const html = open("engines");
+    expect(current(html)).toBe("models");
+    expect(title(html)).toBe("Models");
+    expect(html).not.toContain("data-settings-back");
     expect(markers(html)).toEqual(["engines", "apiKeys", "decisionModel"]);
+  });
+
+  it("opens Usage & Billing as Grok's pane: the limits, an empty state when none report, then the plan", () => {
+    const html = open("usage");
+    expect(current(html)).toBe("usage");
+    expect(title(html)).toBe("Usage &amp; Billing");
+    expect(html).toContain("No usage limits to show");
+    expect(html).toContain("Usage breakdown");
+    expect(markers(open("cloudAccount"))).toContain("cloudAccount");
   });
 
   it("homes the features Grok has no place for inside Advanced", () => {
@@ -128,7 +145,7 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(open("bots")).toContain('data-settings-open="archived"');
     expect(open("about")).toContain('data-settings-open="shortcuts"');
     expect(open("looks")).toContain('data-settings-block="looks"');
-    expect(markers(open("usage"))).toContain("cloudAccount");
+    expect(open("bots")).toContain('data-settings-open="inbox"');
   });
 
   it("puts the phone on Texting, the bots' computer and servers on Computer, and logins on Permissions", () => {
@@ -169,8 +186,8 @@ describe("where every section lives now", () => {
       expect(SETTINGS_PANES.some((pane) => pane.id === at.pane), section).toBe(true);
       if (at.pane === "advanced" && section !== "advanced") expect(ADVANCED_PAGES.find((page) => page.id === at.page)?.sections, section).toContain(section);
     }
-    expect(settingsLocation("engines")).toEqual({ pane: "advanced", page: "ai" });
-    expect(settingsLocation("usage")).toEqual({ pane: "advanced", page: "billing" });
+    expect(settingsLocation("engines")).toEqual({ pane: "models" });
+    expect(settingsLocation("usage")).toEqual({ pane: "usage" });
     expect(settingsLocation("companion")).toEqual({ pane: "texting" });
     expect(settingsLocation("appearance")).toEqual({ pane: "general" });
   });
@@ -178,6 +195,8 @@ describe("where every section lives now", () => {
   it("opens Settings at a pane, an Advanced page or a section", () => {
     expect(openSettings("permissions")).toEqual({ type: "toggleAppSettings", open: true, section: "permissions" });
     expect(openSettings("ai")).toEqual({ type: "toggleAppSettings", open: true, section: "engines" });
+    expect(openSettings("billing")).toEqual({ type: "toggleAppSettings", open: true, section: "usage" });
+    expect(openSettings("models")).toEqual({ type: "toggleAppSettings", open: true, section: "engines" });
     expect(openSettings("advanced")).toEqual({ type: "toggleAppSettings", open: true, section: "advanced" });
     expect(openSettings("logins")).toEqual({ type: "toggleAppSettings", open: true, section: "logins" });
     expect(openSettings()).toEqual({ type: "toggleAppSettings", open: true, section: "general" });

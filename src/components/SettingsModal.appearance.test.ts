@@ -122,7 +122,7 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
     const html = render();
     expect(trigger(html, "Theme")).toBeTruthy();
     expect(trigger(html, "Accent")).toBe("Neutral");
-    expect(trigger(html, "App language")).toBeTruthy();
+    expect(trigger(html, "Language")).toBeTruthy();
     expect(html).not.toContain('aria-label="Advanced mode"');
   });
 
@@ -136,7 +136,7 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
     fixture.section = "general";
     vi.stubGlobal("window", { ogb: { remoteClient: { active: true } } });
     const html = render();
-    expect(html).toContain('aria-label="App language"');
+    expect(html).toContain('aria-label="Language"');
     expect(html).not.toContain('aria-label="Advanced mode"');
   });
 
@@ -360,11 +360,10 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
     fixture.section = "organization";
     vi.stubGlobal("window", { ogb: { organization: {} } });
     expect(render()).toContain("personal and local models");
-    fixture.section = "advanced";
     vi.stubGlobal("window", {});
-    expect(render()).not.toContain('data-settings-advanced="team"');
+    expect(render()).not.toContain("personal and local models");
     vi.stubGlobal("window", { ogb: { organization: {}, remoteClient: { active: true } } });
-    expect(render()).not.toContain('data-settings-advanced="team"');
+    expect(render()).not.toContain("personal and local models");
   });
 
   it("offers personal Cloud in Usage and Billing, only through the local desktop bridge", () => {

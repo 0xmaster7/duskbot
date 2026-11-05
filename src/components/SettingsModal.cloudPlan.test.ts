@@ -24,7 +24,7 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); });
 const render = () => renderToStaticMarkup(createElement(SettingsModal));
 
-describe("Settings → Advanced → Usage and Billing → OMB Cloud on a server open in the app's window", () => {
+describe("Settings → Usage & Billing → OMB Cloud on a server open in the app's window", () => {
   const reachable = 'data-settings-block="cloudAccount"';
   it("is not offered on a server that is not an OMB Cloud home", () => {
     vi.stubGlobal("window", { ogb: { cloudPlan: plan } });
@@ -36,7 +36,7 @@ describe("Settings → Advanced → Usage and Billing → OMB Cloud on a server 
     fixture.config = { cloudHome: true };
     const html = render();
     expect(html).toContain("CLOUD_PLAN_MARKER home"); expect(html).toContain(reachable);
-    expect(html).toMatch(/data-settings-page="advanced" aria-current="page"/);
+    expect(html).toMatch(/data-settings-page="usage" aria-current="page"/);
   });
   it("is the full account section in the app on this computer, the plan row above it carrying the offer", () => {
     vi.stubGlobal("window", { ogb: { cloudAccount: {}, cloudPlan: plan } });

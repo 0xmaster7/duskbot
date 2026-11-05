@@ -20,21 +20,22 @@ import { workspacesAvailable } from "./WorkspacesSection";
 import { GrokIcon, type GrokIconName } from "./GrokIcon";
 import { SIMPLE_BUTTONS } from "./SettingsPrimitives";
 import { SettingsSelect } from "./SettingsSelect";
-import { shortcutLabel } from "./ShortcutHint";
 import {
-  ADVANCED_PAGES, AdvancedIndex, AdvancedPageView, BackButton, ComputerPane, GeneralPane, PermissionsPane, TextingPane, UpdatesPane,
+  ADVANCED_PAGES, AdvancedIndex, AdvancedPageView, BackButton, ComputerPane, GeneralPane, ModelsPane, PermissionsPane, TextingPane, UpdatesPane, UsagePane,
   advancedTitle, type AdvancedPage, type Disclose, type RemoteAccessCards,
 } from "./SettingsPanes";
 import "../styles/settings.css";
 
-export type SettingsPane = "general" | "texting" | "computer" | "permissions" | "updates" | "advanced";
+export type SettingsPane = "general" | "texting" | "computer" | "permissions" | "models" | "usage" | "updates" | "advanced";
 
-/** Grok's five panes, then Advanced, which holds everything of ours Grok has no place for. */
+/** Grok's panes with Models before its Usage & Billing, then Advanced features, which holds everything of ours Grok has no place for. */
 export const SETTINGS_PANES: ReadonlyArray<{ id: SettingsPane; labelKey: LocaleKey; icon: GrokIconName; sections: readonly AppSettingsSection[] }> = [
-  { id: "general", labelKey: "settings.section.general", icon: "settings-gear", sections: ["general", "appearance", "people"] },
+  { id: "general", labelKey: "settings.section.general", icon: "settings-gear", sections: ["general", "appearance"] },
   { id: "texting", labelKey: "settings.pane.texting", icon: "chat-bubbles", sections: ["texting", "companion", "remote"] },
   { id: "computer", labelKey: "settings.simple.page.computer", icon: "display", sections: ["computer", "desktopWorkspaces"] },
   { id: "permissions", labelKey: "settings.pane.permissions", icon: "shield", sections: ["permissions", "botAccess", "logins", "activity"] },
+  { id: "models", labelKey: "settings.pane.models", icon: "sparkle", sections: ["engines", "connections", "decisionModel"] },
+  { id: "usage", labelKey: "settings.pane.usage", icon: "chart-bars", sections: ["usage", "cloudAccount"] },
   { id: "updates", labelKey: "settings.simple.page.updates", icon: "cloud-download", sections: ["updates"] },
   { id: "advanced", labelKey: "settings.pane.advanced", icon: "sliders", sections: ["advanced", ...ADVANCED_PAGES.flatMap((page) => page.sections)] },
 ];
@@ -48,9 +49,13 @@ export function settingsLocation(section: AppSettingsSection): SettingsLocation 
   return { pane: SETTINGS_PANES.find((pane) => pane.sections.includes(section))?.id ?? "general" };
 }
 
+/** Pages that grew into their own pane: links to the old Advanced page still land. */
+const MOVED_PAGES = { ai: "models", billing: "usage" } as const satisfies Record<string, SettingsPane>;
+
 /** Open Settings at a pane, an Advanced page, or the section that holds a setting. */
-export function openSettings(target: SettingsPane | AdvancedPage | AppSettingsSection = "general"): Action {
-  const pane = SETTINGS_PANES.find((entry) => entry.id === target);
+export function openSettings(target: SettingsPane | AdvancedPage | keyof typeof MOVED_PAGES | AppSettingsSection = "general"): Action {
+  const moved = (MOVED_PAGES as Record<string, SettingsPane>)[target];
+  const pane = SETTINGS_PANES.find((entry) => entry.id === (moved ?? target));
   const page = ADVANCED_PAGES.find((entry) => entry.id === target);
   const section = pane ? pane.sections[0]! : page ? page.sections[0]! : (target as AppSettingsSection);
   return { type: "toggleAppSettings", open: true, section };
@@ -200,13 +205,15 @@ export function SettingsModal() {
 
   const body = (() => {
     switch (pane) {
-      case "general": return <GeneralPane has={has} remoteActive={remoteActive} peopleOpen={requested === "people"} />;
+      case "general": return <GeneralPane has={has} remoteActive={remoteActive} />;
       case "texting": return <TextingPane has={has} remoteAccess={remoteAccess} />;
       case "computer": return <ComputerPane has={has} remoteAccess={remoteAccess} servers={<ConnectedWorkspacesSettings />} disclose={disclose} />;
       case "permissions": return <PermissionsPane has={has} />;
+      case "models": return <ModelsPane has={has} disclose={disclose} connections={<AdminOnly><KeysPage /></AdminOnly>} />;
+      case "usage": return <UsagePane has={has} disclose={disclose} cloudAccount={cloudAccount} />;
       case "updates": return <UpdatesPane remoteActive={remoteActive} />;
       case "advanced": return page
-        ? <AdvancedPageView page={page} has={has} remoteActive={remoteActive} disclose={disclose} connections={<AdminOnly><KeysPage /></AdminOnly>} cloudAccount={cloudAccount} />
+        ? <AdvancedPageView page={page} has={has} remoteActive={remoteActive} peopleOpen={requested === "people"} />
         : <AdvancedIndex pages={advancedPages} onOpen={(next) => go(ADVANCED_PAGES.find((entry) => entry.id === next)!.sections[0]!)} />;
     }
   })();
@@ -238,7 +245,7 @@ export function SettingsModal() {
             })}
           </nav>
           <section id={`settings-panel-${pane}`} aria-labelledby={headingId} className="settings-panel">
-            <button type="button" onClick={close} aria-label={t("settings.grok.close")} title={`${t("settings.grok.close")} (${shortcutLabel("close-panel")})`} className="settings-close">
+            <button type="button" onClick={close} aria-label={t("settings.grok.close")} className="settings-close">
               <GrokIcon name="close" size={14} />
             </button>
             <header className="settings-pane-header">

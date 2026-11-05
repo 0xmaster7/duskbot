@@ -53,6 +53,7 @@ export function SettingsSelect({ value, onChange, options: given, children, disa
     close();
     if (option.value !== value) onChange({ target: { value: option.value } });
   };
+  const pressed = useRef(false);
   const show = () => {
     if (disabled) return;
     setActive(Math.max(0, options.findIndex((option) => option.value === value)));
@@ -107,7 +108,15 @@ export function SettingsSelect({ value, onChange, options: given, children, disa
         aria-controls={open ? `${id}-list` : undefined}
         disabled={disabled}
         data-settings-select={rest["data-settings-select"] ?? ""}
-        onClick={() => (open ? close() : show())}
+        onPointerDown={(event) => {
+          if (event.pointerType !== "mouse" || event.button !== 0) return;
+          pressed.current = true;
+          if (open) close(); else show();
+        }}
+        onClick={() => {
+          if (pressed.current) { pressed.current = false; return; }
+          if (open) close(); else show();
+        }}
         onKeyDown={(event) => {
           if (["ArrowDown", "ArrowUp", "Enter", " "].includes(event.key)) {
             event.preventDefault();
@@ -115,15 +124,15 @@ export function SettingsSelect({ value, onChange, options: given, children, disa
           }
         }}
         className={cn(
-          "inline-flex h-7 min-w-0 max-w-[240px] shrink-0 cursor-pointer items-center gap-1 rounded-[10px] border border-ink/[0.06] bg-transparent py-1 pl-[7px] pr-[5px] text-[13px] leading-[18px] tracking-[-0.08px] text-ink",
-          "transition-[color,background-color] duration-100 ease-[ease] hover:bg-ink/[0.06] active:bg-ink/[0.06] aria-expanded:bg-ink/[0.06]",
+          "group inline-flex h-7 min-w-0 max-w-[240px] shrink-0 cursor-pointer items-center gap-1 rounded-[10px] border border-ink/[0.06] bg-transparent py-1 pl-[7px] pr-[5px] text-[13px] leading-[18px] tracking-[-0.08px] text-ink",
+          "[transition:color_100ms_ease,background-color_100ms_ease,transform_50ms_cubic-bezier(0.165,0.84,0.44,1)] hover:bg-ink/[0.06] active:bg-ink/[0.06] aria-expanded:bg-ink/[0.06]",
           "outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus",
           "disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent",
           className,
         )}
       >
         <span className="min-w-0 flex-1 truncate text-start">{selected?.label ?? value}</span>
-        <GrokIcon name="chevron-down" size={10} className="shrink-0" />
+        <GrokIcon name="chevron-down" size={10} className="shrink-0 text-ink/[0.66] group-active:text-ink group-aria-expanded:text-ink" />
       </button>
       {open && place && createPortal(
         <div

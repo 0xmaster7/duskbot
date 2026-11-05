@@ -39,7 +39,7 @@ describe("Settings → General", () => {
     setLocale("pt-br");
     const pt = await renderSettings();
     expect(pt).toContain("Configurações");
-    expect(pt).toContain("Idioma do app");
+    expect(pt).toContain('aria-label="Idioma"');
 
     // Same module instance, no reload: a frozen label would still say the Portuguese words here.
     setLocale("ja");
@@ -50,7 +50,7 @@ describe("Settings → General", () => {
       expect(locales.ja[key], key).not.toBe(en[key]);
       expect(ja, key).toContain(locales.ja[key]!);
     }
-    expect(ja).not.toContain("Idioma do app");
+    expect(ja).not.toContain('aria-label="Idioma"');
   });
 
   it("stays English when no language is picked", async () => {
@@ -58,7 +58,7 @@ describe("Settings → General", () => {
     const html = await renderSettings();
     expect(html).toContain('aria-label="Settings"');
     expect(html).toContain(">General</h2>");
-    expect(html).toContain("App language");
+    expect(html).toContain('aria-label="Language"');
   });
 
   it("offers a labeled compact pane picker without removing the rail", async () => {
