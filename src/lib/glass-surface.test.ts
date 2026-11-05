@@ -99,7 +99,7 @@ describe("glass surface", () => {
     const apps = readFileSync(join(src, "components", "PluginsPanel.tsx"), "utf8");
     expect(apps).toContain('data-apps-grid className="@container flex flex-col gap-7 pt-1"');
     const section = readFileSync(join(src, "components", "AppsSection.tsx"), "utf8");
-    expect(section).toContain("grid grid-cols-1 items-start gap-x-6 gap-y-1 @xl:grid-cols-2");
+    expect(section).toContain("grid grid-cols-1 items-start gap-x-2 gap-y-0.5 @xl:grid-cols-2");
     const mcp = readFileSync(join(src, "components", "McpServersPanel.tsx"), "utf8");
     expect(mcp).toContain('data-mcp-row className="flex flex-wrap items-center gap-3"');
     expect(mcp).toContain('data-mcp-row-actions className="ml-auto flex flex-wrap items-center justify-end gap-1"');
