@@ -201,8 +201,8 @@ export function ComposerPlusMenu({ onAttach, goal, teach, approval, callBotId, e
   const simple = !useAdvancedMode();
   const items: SidebarMenuItem[] = [
     { key: "attach", label: t("composer.attachFiles"), icon: circle ? <Paperclip size={16} /> : <GrokIcon name="paperclip" size={14} />, onSelect: onAttach },
-    // grok's + holds Attach files and Teach a task alone: a bot's Work until done stays only to switch a running goal off
-    ...(goal && (circle || !goal.solo || goal.on) ? [{
+    // grok's + holds Attach files and Teach a task alone: a bot's Work until done lives in its panel's Details
+    ...(goal && (circle || !goal.solo) ? [{
       key: "goal",
       label: t(goal.solo ? "composer.goal.soloAria" : "composer.goal.aria"),
       icon: <Target size={16} />,
@@ -241,18 +241,18 @@ export function ComposerPlusMenu({ onAttach, goal, teach, approval, callBotId, e
       <Plus size={22} aria-hidden="true" />
     </span>
   ) : (
-    <span data-composer-plus className={cn("flex items-center justify-center", SIMPLE_CONTROL, open && "bg-ink/10 text-ink")}>
-      <GrokIcon name="plus" variant="filled" size={16} />
-    </span>
+    <GrokIcon name="plus" variant="filled" size={16} />
   );
+  // grok's + is the round control itself, not a button around one
+  const plusClass = (open: boolean) => cn("flex shrink-0 items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus", SIMPLE_CONTROL, open && "bg-ink/10 text-ink");
   if (!circle && items.length === 1) {
     return (
-      <button type="button" onClick={onAttach} aria-label={t("composer.attachFiles")} title={t("composer.attachFiles")} className="flex shrink-0 rounded-full">
+      <button type="button" data-composer-plus onClick={onAttach} aria-label={t("composer.attachFiles")} className={plusClass(false)}>
         {trigger(false)}
       </button>
     );
   }
-  if (!circle) return <ComposerMenu items={items} renderTrigger={trigger} />;
+  if (!circle) return <ComposerMenu items={items} renderTrigger={trigger} triggerClass={plusClass} />;
   return (
     <SidebarPopoverMenu
       items={items}
@@ -266,7 +266,7 @@ export function ComposerPlusMenu({ onAttach, goal, teach, approval, callBotId, e
 
 /** The composer's own + menu: a short list just above the +, in the app's large menu style. Escape or a click
  * elsewhere closes it and hands focus back to the +. */
-function ComposerMenu({ items, renderTrigger }: { items: SidebarMenuItem[]; renderTrigger: (open: boolean) => ReactNode }) {
+function ComposerMenu({ items, renderTrigger, triggerClass }: { items: SidebarMenuItem[]; renderTrigger: (open: boolean) => ReactNode; triggerClass: (open: boolean) => string }) {
   const [open, setOpen] = useState(false);
   const motion = useMenuMotion(open);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -308,13 +308,14 @@ function ComposerMenu({ items, renderTrigger }: { items: SidebarMenuItem[]; rend
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         aria-label={t("common.add")}
+        data-composer-plus
         onClick={(event) => {
           const opening = !open;
           setOpen(opening);
           // A keyboard press lands on the first row, as every menu here does.
           if (opening && event.detail === 0) requestAnimationFrame(() => rows()[0]?.focus());
         }}
-        className="flex shrink-0 rounded-full"
+        className={triggerClass(open)}
       >
         {renderTrigger(open)}
       </button>

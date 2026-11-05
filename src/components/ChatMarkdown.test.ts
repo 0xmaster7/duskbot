@@ -1378,7 +1378,7 @@ describe("Simple mode's code block", () => {
     try { return render(); } finally { mode.advanced = true; }
   };
 
-  it("drops the header bar for a quiet surface, with Copy and a ⋯ menu on a hover plate", () => {
+  it("drops the header bar for a quiet surface, with grok's Copy alone on a hover plate", () => {
     const html = simple(() => renderToStaticMarkup(createElement(CodeBlock, { code: "const a = 1;", lang: "js" })));
     expect(html).toMatch(/class="chat-code-block group\/code relative my-2\.5 overflow-hidden rounded-lg bg-ink\/\[0\.04\]"/);
     expect(html).not.toContain("border-hairline");
@@ -1386,8 +1386,7 @@ describe("Simple mode's code block", () => {
     const plate = html.match(/<div data-code-plate="[^"]*" class="([^"]*)"/)?.[1] ?? "";
     expect(plate.split(" ")).toEqual(expect.arrayContaining(["opacity-0", "group-hover/code:opacity-100", "focus-within:opacity-100", "touch:opacity-100"]));
     expect(html).toContain('aria-label="Copy code"');
-    expect(html).toContain('aria-label="More"');
-    expect(html).toMatch(/<pre class="[^"]*leading-5 px-3 py-2 text-ink-secondary/);
+    expect(html).not.toContain('aria-label="More"');
   });
 
   it("gives a diagram the same plate instead of its header", () => {

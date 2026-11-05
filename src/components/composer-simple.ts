@@ -11,7 +11,7 @@ import { GROK_BOT_FILLS } from "./chat-bubble";
 export const SIMPLE_COMPOSER = "composer-pill flex flex-col justify-end bg-composer px-[9px] pt-[7px] pb-[9px] ring-1 ring-inset ring-ink/[0.12] focus-within:ring-ink/[0.24] data-[drag-over]:ring-accent shadow-[0_2px_8px_-1px_rgb(0_0_0/0.05),0_1px_2px_rgb(0_0_0/0.03),0_0_0_1px_rgb(228_228_228/0.04)]";
 
 /** Simple mode's small round controls in the composer: the +, the mic and Stop beside the round button. */
-export const SIMPLE_CONTROL = "composer-press size-7 rounded-full bg-ink/[0.06] ring-[0.5px] ring-inset ring-ink/[0.08] text-ink/[0.56] hover:bg-ink/10 hover:text-ink active:scale-[0.94]";
+export const SIMPLE_CONTROL = "composer-press size-7 rounded-full bg-ink/[0.06] ring-[0.5px] ring-inset ring-ink/[0.08] text-ink/[0.56] hover:bg-ink/10 hover:text-ink";
 
 const ROOM_FILL = { fill: "var(--color-accent)", ink: "var(--color-accent-ink)" };
 
@@ -25,7 +25,7 @@ export function slotColors(color: Bot["color"] | undefined, room: boolean): { fi
   const grok = GROK_BOT_FILLS[own];
   // on the grok skins the round button wears grok's own colour for the bot, darkening to its bubble's on hover (chat.css)
   const vars = grok ? { "--grok-cta-fill": grok.button, "--grok-cta-hover": grok.bubble } as CSSProperties : undefined;
-  return { fill: tone.fill, ink: tone.ink, button: { className: cn(BOT_BUTTON, grok && "grok-cta"), style: { ...botButtonStyle(own), ...vars } }, vars };
+  return { fill: grok ? `var(--grok-cta, ${tone.fill})` : tone.fill, ink: tone.ink, button: { className: cn(BOT_BUTTON, grok && "grok-cta"), style: { ...botButtonStyle(own), ...vars } }, vars };
 }
 
 export function composerPlaceholder({ simple, locked, approval, attaching, listening, replying, busy, canSteer, queued, busyName, sendLabel, group, members, jevOn, goal, botName, setupHint, question = false }: {

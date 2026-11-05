@@ -169,36 +169,42 @@ export interface CodeBlockProps {
   initialWrap?: boolean;
 }
 
+const PLATE_BUTTON_SMALL = "composer-press inline-flex size-5 items-center justify-center rounded-[4px] border border-ink/[0.08] bg-composer text-ink/[0.66] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
 /** Grok's copy-code button: a 24px white key with a hairline and a small drop, top right of the block. */
 const PLATE_BUTTON = "composer-press inline-flex size-6 items-center justify-center rounded-[6px] border border-ink/[0.08] bg-composer text-ink/[0.66] shadow-[0_1px_3px_rgb(28_28_28/0.12)] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
 
 /** Simple mode's hover plate on a code block or diagram: Copy, and a ⋯ menu for the rest. It shows on hover, on
  * keyboard focus and always on touch screens, and stays while its menu is open. */
-export function CodePlate({ copied, onCopy, copyLabel, items }: {
+export function CodePlate({ copied, onCopy, copyLabel, items, small = false }: {
   copied: "idle" | "copied" | "failed";
   onCopy: () => void;
   copyLabel: string;
   items: SidebarMenuItem[];
+  /** Grok's key on a fenced block with a language: 20px, a 4px corner and no drop. */
+  small?: boolean;
 }) {
+  const button = small ? PLATE_BUTTON_SMALL : PLATE_BUTTON;
+  const icon = small ? 12 : 14;
   return (
     <div data-code-plate className="absolute end-1.5 top-1.5 z-[1] flex gap-1 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover/code:opacity-100 touch:opacity-100 has-[[aria-expanded=true]]:opacity-100">
-      <button type="button" onClick={onCopy} className={PLATE_BUTTON}
+      <button type="button" onClick={onCopy} className={button}
         title={copied === "copied" ? t("code.copiedTitle") : copied === "failed" ? t("common.copyFailed") : copyLabel}
         aria-label={copied === "copied" ? t("code.copiedTitle") : copied === "failed" ? t("common.copyFailed") : copyLabel}>
-        {copied === "failed" ? <X size={14} className="text-danger" aria-hidden="true" />
-          : copied === "copied" ? <Check size={14} className="text-success" aria-hidden="true" />
-            : <GrokIcon name="copy" size={14} />}
+        {copied === "failed" ? <X size={icon} className="text-danger" aria-hidden="true" />
+          : copied === "copied" ? <Check size={icon} className="text-success" aria-hidden="true" />
+            : <GrokIcon name="copy" size={icon} />}
       </button>
       {copied !== "idle" && <span role="status" className="sr-only">{copied === "failed" ? t("common.copyFailed") : t("code.copiedTitle")}</span>}
-      <SidebarPopoverMenu items={items} ariaLabel={t("chat.more")} placement="below" triggerClassName="rounded-[6px]" triggerTitle={t("chat.more")}
-        renderTrigger={() => <span className={PLATE_BUTTON}><GrokIcon name="dots-3-horizontal" size={14} /></span>} />
+      {items.length > 0 && <SidebarPopoverMenu items={items} ariaLabel={t("chat.more")} placement="below" triggerClassName="rounded-[6px]" triggerTitle={t("chat.more")}
+        renderTrigger={() => <span className={button}><GrokIcon name="dots-3-horizontal" size={icon} /></span>} />}
     </div>
   );
 }
 
 export function CodeBlock({ code, lang, initialWrap = false }: CodeBlockProps) {
   const simple = !useAdvancedMode();
-  const highlightable = code.length <= HIGHLIGHT_MAX_CHARS;
+  // simple mode leaves a fence with no language plain, in the bubble's grey, as grok does
+  const highlightable = code.length <= HIGHLIGHT_MAX_CHARS && (!simple || Boolean(lang.trim()));
   const [html, setHtml] = useState<string | null>(() => highlightable ? highlightCache.get(highlightKey(lang, code)) ?? null : null);
   // React compares dangerouslySetInnerHTML by identity: a fresh object each render rebuilds the highlighted DOM.
   const markup = useMemo(() => (html ? { __html: html } : null), [html]);
@@ -250,11 +256,8 @@ export function CodeBlock({ code, lang, initialWrap = false }: CodeBlockProps) {
   if (simple) {
     return (
       <div dir="ltr" data-lang={lang.trim() || undefined} className="chat-code-block group/code relative my-2.5 overflow-hidden rounded-lg bg-ink/[0.04]">
-        <CodePlate copied={copied} onCopy={copy} copyLabel={t("code.copyTitle")} items={[
-          { key: "wrap", label: t("code.wrapLines"), icon: <WrapText size={14} aria-hidden="true" />, active: wrapLines, onSelect: () => setWrapLines((wrap) => !wrap) },
-          { key: "save", label: t("code.saveAsFile"), icon: <Download size={14} aria-hidden="true" />, onSelect: download },
-          { key: "about", label: t("code.caption", { language: displayLanguage, lines: formatLineCount(lineCount) }), disabled: true, separatorBefore: true, onSelect: () => {} },
-        ]} />
+        {/* grok's code block offers copy alone */}
+        <CodePlate copied={copied} onCopy={copy} copyLabel={t("code.copyTitle")} small={Boolean(lang.trim())} items={[]} />
         {body("leading-5 [&_pre]:px-3 [&_pre]:py-2", "text-ink-secondary")}
       </div>
     );

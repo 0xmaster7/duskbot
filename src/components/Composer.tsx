@@ -849,7 +849,8 @@ export function Composer({
             </div>
           )}
           <MentionTextarea
-          wrapperClassName={singleRow ? undefined : simpleDock ? cn(stacked && "order-first basis-full") : cn("@max-[30rem]/composer:order-first @max-[30rem]/composer:basis-full", stacked && "order-first basis-full")}
+          // grok keeps 80px clear at the field's end for its mic and voice buttons, whether or not the mic shows
+          wrapperClassName={singleRow ? undefined : simpleDock ? cn(stacked ? "order-first basis-full" : !(micReady && !busy && !locked) && "me-9") : cn("@max-[30rem]/composer:order-first @max-[30rem]/composer:basis-full", stacked && "order-first basis-full")}
           inputRef={inputRef}
           peers={[...(group ? members ?? [] : state.bots.filter((member) => member.id !== bot?.id)), ...teammates.peers]}
           everyone={Boolean(group && !group.dm)}
@@ -947,7 +948,7 @@ export function Composer({
               "block max-h-[9rem] w-full resize-none overflow-y-auto bg-transparent focus:outline-none",
               !simpleDock && "px-1 text-[15px] placeholder:text-ink-tertiary",
               simpleDock
-                ? cn("text-[14px] leading-5 tracking-[0.01em] placeholder:text-ink/40", stacked ? "min-h-6 px-1 pt-1 pb-0" : "min-h-7 px-0 pt-[5px] pb-[3px]")
+                ? cn("text-[14px] leading-5 tracking-[0.01em] placeholder:text-ink/40", stacked ? "min-h-6 px-1 pt-1 pb-0" : "min-h-5 p-0 mt-[3px] mb-px")
                 : "min-h-6 py-1 leading-6",
             )}
           />

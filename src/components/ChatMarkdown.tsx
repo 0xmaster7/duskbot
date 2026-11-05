@@ -627,7 +627,21 @@ export function faviconHost(href: string): string | null {
   return /\.(local|localhost|internal|lan|home|corp|test|example|invalid)$/.test(host) ? null : host;
 }
 
-function LinkWithFavicon({ href, children }: { href: string; children?: ReactNode }) {
+/** A bare address reads as grok shows it: host and path, without the scheme, query or a trailing slash. */
+export function bareUrlLabel(href: string, children: ReactNode): ReactNode {
+  const text = typeof children === "string" ? children : Array.isArray(children) && children.length === 1 && typeof children[0] === "string" ? children[0] : null;
+  if (text === null || text.replace(/\/$/, "") !== href.replace(/\/$/, "")) return children;
+  try {
+    const url = new URL(href);
+    const path = url.pathname.replace(/\/$/, "");
+    return `${url.host}${path}`;
+  } catch {
+    return children;
+  }
+}
+
+function LinkWithFavicon({ href, children: given }: { href: string; children?: ReactNode }) {
+  const children = bareUrlLabel(href, given);
   const host = faviconHost(href);
   const [failed, setFailed] = useState(false);
   if (!host || failed) return <span className="chat-link-text">{children}</span>;

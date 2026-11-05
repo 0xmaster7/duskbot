@@ -160,13 +160,14 @@ export function ReactAction({ threadId, message }: { threadId: string; message: 
 
 export const useCanReact = (threadId: string) => useCanWriteIn(threadId) !== false;
 
-type ChipProps = { threadId: string; message: Message; bots?: readonly Bot[]; align?: "start" | "end"; canReact?: boolean };
+/** `float`: grok's tapbacks, white pills riding the bubble's top corner instead of a row under it. */
+type ChipProps = { threadId: string; message: Message; bots?: readonly Bot[]; align?: "start" | "end"; canReact?: boolean; float?: boolean };
 
 export function ReactionChips(props: ChipProps) {
   return props.message.reactions?.length ? <Chips {...props} /> : null;
 }
 
-function Chips({ threadId, message, bots = [], align = "start", canReact = true }: ChipProps) {
+function Chips({ threadId, message, bots = [], align = "start", canReact = true, float = false }: ChipProps) {
   const { me, mine, react } = useReaction(threadId, message);
   const reactions = message.reactions ?? [];
   const nameOf = (reaction: NonNullable<Message["reactions"]>[number]) => reaction.by === me ? t("chat.you")
@@ -179,24 +180,27 @@ function Chips({ threadId, message, bots = [], align = "start", canReact = true 
       return { emoji, people: chose.map(nameOf), fresh: chose.some((reaction) => (reaction.at ?? 0) > justNow) };
     });
   return (
-    <div role="group" aria-label={t("chat.reactions")} className={cn("mt-1 flex flex-wrap gap-1", align === "end" ? "justify-end" : "justify-start")}>
+    <div role="group" aria-label={t("chat.reactions")} data-copy-skip={float ? "" : undefined}
+      className={cn("flex flex-wrap gap-1", float ? cn("absolute -top-[22px] z-[1]", align === "end" ? "-start-4" : "-end-4") : cn("mt-1", align === "end" ? "justify-end" : "justify-start"))}>
       {shown.map(({ emoji, people, fresh }) => {
         const label = t("chat.reaction.chip", { reaction: labelOf(emoji), people: people.join(", ") });
-        const chip = cn(
-          "flex items-center gap-1 rounded-full border px-2 py-0.5 text-[13px] leading-5",
-          fresh && "animate-pop-in",
-          mine === emoji ? "border-accent/50 bg-accent/15" : "border-hairline/40 bg-panel",
-        );
+        const chip = float
+          ? cn("chat-reaction-pill flex h-[30px] items-center rounded-full bg-composer px-[7px] text-[12px] leading-4 text-ink/[0.68]", fresh && "chat-reaction-pop")
+          : cn(
+            "flex items-center gap-1 rounded-full border px-2 py-0.5 text-[13px] leading-5",
+            fresh && "animate-pop-in",
+            mine === emoji ? "border-accent/50 bg-accent/15" : "border-hairline/40 bg-panel",
+          );
         const face = (
           <>
-            <span aria-hidden="true">{emoji}</span>
+            <span aria-hidden="true" className={float ? "text-[16px] leading-4" : undefined}>{emoji}</span>
             {people.length > 1 && <span aria-hidden="true" className="text-[12px] tabular-nums text-ink-secondary">{people.length}</span>}
           </>
         );
         return canReact && Object.hasOwn(LABEL, emoji) ? (
           <button key={emoji} type="button" aria-pressed={mine === emoji} aria-label={label} title={people.join(", ")}
             onClick={() => react(emoji as Reaction)}
-            className={cn(chip, "hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus")}>
+            className={cn(chip, float ? "composer-press focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus" : "hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus")}>
             {face}
           </button>
         ) : (

@@ -150,7 +150,8 @@ describe("remembering exact command approvals", () => {
     const [always, deny, allow] = classes;
     expect(always).toContain("text-ink-secondary");
     expect(always).not.toMatch(/(^|\s)bg-/);
-    expect(deny).toContain("bg-ink/[0.07]");
+    // grok's Discard: quiet text, no fill
+    expect(deny).toContain("text-ink-secondary");
     expect(deny).not.toContain("danger");
     expect(allow).toContain("ui-button-primary");
   });

@@ -1,4 +1,6 @@
 import { useDeferredValue, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { GrokIcon } from "./GrokIcon";
+import { SidebarPopoverMenu } from "./SidebarPopoverMenu";
 import { createPortal } from "react-dom";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowDown, ArrowUp, Check, Copy, Download, Maximize2, Search, WrapText, X } from "lucide-react";
@@ -50,7 +52,13 @@ const SMALL_TABLE_ROWS = 8;
 /** Simple mode's table card: the composer surface with a hairline edge and no footer. Its header row starts at the
  * top; the hover plate floats over the header's right end and takes no room. Only touch screens, where the plate is
  * always shown and its buttons keep 40px targets, give it a band of its own. */
-const TABLE_CARD = "group/table relative w-full overflow-hidden rounded-[24px] bg-composer text-ink shadow-[0_0_0_0.5px_var(--color-composer-ring),0_2px_8px_rgb(28_28_28/0.035)] touch:pt-11";
+/** A figure grok lines up on the right too: grouped digits, a currency sign, a percent, a unit like "pt". */
+const READS_AS_NUMBER = /^[+\u2212-]?[$€£¥]?\d[\d,]*(?:\.\d+)?\s?(?:%|pt|pp|x|×|k|m|bn)?$/i;
+
+/** Grok's card corner key: 24px white, a hairline and a small drop, as on its code blocks. */
+const TABLE_PLATE_BUTTON = "composer-press inline-flex h-6 items-center justify-center border border-ink/[0.08] bg-composer text-ink/[0.66] hover:bg-[linear-gradient(rgb(28_28_28/0.06),rgb(28_28_28/0.06))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
+/** Grok's table card: white, rounded 20, a 0.5px 12% ring and a soft drop, 24px of room above the header for its plate. */
+const TABLE_CARD = "group/table relative w-full overflow-hidden rounded-[20px] bg-composer pt-6 text-ink shadow-[0_0_0_0.5px_rgb(28_28_28/0.12),0_2px_8px_rgb(28_28_28/0.035)] touch:pt-11";
 
 export function RichTable({ columns, rows, name = t("table.title"), expanded = false, direction = "ltr", headless = false, card: asCard = true }: RichTableProps) {
   const simple = !useAdvancedMode();
@@ -92,10 +100,13 @@ export function RichTable({ columns, rows, name = t("table.title"), expanded = f
   const sortBy = (column: number) => setSort(sort?.column !== column ? { column, descending: false } : !sort.descending ? { column, descending: true } : null);
   const card = () => (
     <div data-table-card className={TABLE_CARD} dir="ltr">
-      <div className="table-plate absolute end-1.5 top-1.5 z-20 flex items-center gap-0.5 rounded-full bg-composer p-0.5 opacity-0 ring-[0.5px] ring-ink/10 transition-opacity focus-within:opacity-100 group-hover/table:opacity-100 touch:end-1 touch:top-0 touch:bg-transparent touch:p-0 touch:opacity-100 touch:ring-0">
-        <button type="button" className="table-action !rounded-full" aria-label={t("table.copyPlain")} title={t("table.copyPlain")} onClick={() => void copy()}>{copyState === "copied" ? <Check size={14} /> : <Copy size={14} />}</button>
-        <button type="button" className="table-action !rounded-full" aria-label={t("table.download")} title={t("table.download")} onClick={download}><Download size={14} /></button>
-        <button type="button" className="table-action !rounded-full" aria-label={t("table.expand")} title={t("table.expand")} onClick={(event) => { trigger.current = event.currentTarget; setOpen(true); }}><Maximize2 size={14} /></button>
+      <div className="table-plate absolute end-1.5 top-1.5 z-20 flex items-center opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover/table:opacity-100 has-[[aria-expanded=true]]:opacity-100 touch:end-1 touch:top-1 touch:opacity-100">
+        <button type="button" className={cn(TABLE_PLATE_BUTTON, "w-6 rounded-s-[6px]")} aria-label={t("table.copyPlain")} onClick={() => void copy()}>{copyState === "copied" ? <Check size={14} /> : <GrokIcon name="copy" size={14} />}</button>
+        <SidebarPopoverMenu grok items={[
+          { key: "download", label: t("table.download"), icon: <Download size={14} aria-hidden="true" />, onSelect: download },
+          { key: "expand", label: t("table.expand"), icon: <Maximize2 size={14} aria-hidden="true" />, onSelect: () => { trigger.current = document.activeElement as HTMLButtonElement | null; setOpen(true); } },
+        ]} ariaLabel={t("table.copyOptions")} placement="below" align="end" triggerClassName={cn(TABLE_PLATE_BUTTON, "-ms-px w-4 rounded-e-[6px]")} triggerLabel={t("table.copyOptions")}
+          renderTrigger={() => <GrokIcon name="chevron-down" size={12} />} />
       </div>
       {rows.length > SMALL_TABLE_ROWS && (
         <div className="flex items-center gap-2 px-4 pb-1.5 text-ink-tertiary">
@@ -170,7 +181,7 @@ function TableViewport({ columns, rows, order, name, wrap, large, sort, onSort, 
   ))), [columns, rows]);
   const numeric = useMemo(() => columns.map((_, index) => {
     const nonempty = rows.slice(0, 200).map((row) => row[index]?.text.trim() ?? "").filter(Boolean);
-    return nonempty.length > 0 && nonempty.every(isTableNumber);
+    return nonempty.length > 0 && nonempty.every((text) => isTableNumber(text) || READS_AS_NUMBER.test(text));
   }), [columns, rows]);
   const virtualizer = useVirtualizer({ count: order.length, getScrollElement: () => scroll.current, estimateSize: () => 42,
     getItemKey: (index) => order[index]!, overscan: 6, enabled: virtual, initialRect: { width: 800, height: 400 }, scrollMargin: headingHeight });
@@ -193,10 +204,8 @@ function TableViewport({ columns, rows, order, name, wrap, large, sort, onSort, 
           className={card ? "px-4 py-2.5 align-bottom font-semibold" : "h-10 border-b border-hairline/60 px-3 py-2 font-medium"} style={{ textAlign: alignment(column, index) }}>
           <div className="break-words [overflow-wrap:anywhere]" style={fit ? { minWidth: minimums[index] } : undefined}>
             {card ? (
-              <button type="button" className="group/th inline-flex max-w-full items-center gap-1 text-start font-semibold [text-align:inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60" aria-label={sortLabel(column, index)} title={sortLabel(column, index)} onClick={() => onSort(index)}>
-                <span dir="auto">{header(column, index)}</span>
-                {arrow(index, cn("shrink-0 text-ink-tertiary transition-opacity", sort?.column === index ? "opacity-100" : "opacity-0 group-hover/th:opacity-100 group-focus-within/th:opacity-100 touch:opacity-100"))}
-              </button>
+              // grok's table card names its columns and nothing more; sorting lives in the expanded table
+              <span dir="auto">{header(column, index)}</span>
             ) : <>
               <span dir="auto">{header(column, index)}</span>
               <button type="button" className="table-action ms-1 inline-flex align-middle" aria-label={sortLabel(column, index)} title={sortLabel(column, index)} onClick={() => onSort(index)}>{arrow(index)}</button>
@@ -210,7 +219,7 @@ function TableViewport({ columns, rows, order, name, wrap, large, sort, onSort, 
           className={card ? undefined : item.index % 2 ? cn(look === "quiet" ? "bg-ink/[0.03]" : "bg-inset/35", "hover:bg-raised/70") : "hover:bg-raised/70"}>
           {columns.map((column, index) => {
             const cell = rows[order[item.index]!]![index];
-            return <td key={index} className={card ? "border-t-[0.5px] border-ink/[0.07] px-4 py-2.5 align-top tabular-nums" : "border-b border-hairline/20 px-3 py-2.5 align-top tabular-nums"} style={{ textAlign: cell?.align ?? alignment(column, index), verticalAlign: cell?.vAlign }}>
+            return <td key={index} className={card ? "border-t border-ink/[0.06] px-4 py-2.5 align-top tabular-nums" : "border-b border-hairline/20 px-3 py-2.5 align-top tabular-nums"} style={{ textAlign: cell?.align ?? alignment(column, index), verticalAlign: cell?.vAlign }}>
               <div dir="auto" title={!wrap ? cell?.text : undefined} className={wrap ? "whitespace-pre-wrap break-words [overflow-wrap:anywhere]" : "truncate"}>{cell?.content ?? cell?.text}</div>
             </td>;
           })}

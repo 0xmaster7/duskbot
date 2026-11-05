@@ -76,11 +76,11 @@
     inset 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 6%, transparent);
 }
 [data-chat-bubble="simple"].chat-bubble-user.chat-bubble-user {
-  background-image: linear-gradient(rgb(255 255 255 / 0.06), transparent) !important;
+  background-image: linear-gradient(rgb(255 255 255 / 0.06), transparent);
   box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.16), inset 0 -0.5px 0 rgb(255 255 255 / 0.16), inset 0 0 0 0.5px rgb(28 28 28 / 0.06);
 }
-:root:is([data-skin="grok"], [data-skin="grok-dark"]) [data-chat-bubble="simple"][style*="--grok-bubble-fill"] {
-  background-color: var(--grok-bubble-fill) !important;
+:root:is([data-skin="grok"], [data-skin="grok-dark"]) [data-chat-bubble="simple"] {
+  --grok-bubble: var(--grok-bubble-fill);
 }
 
 /* every chat type style carries its own 0.01em, as grok's kit text does, instead of the body's inherited pixels */
@@ -166,9 +166,6 @@
 [data-chat-bubble="simple"] .chat-code-block:not([data-lang]) pre {
   padding-bottom: 9px;
 }
-[data-chat-bubble="simple"] .chat-code-block:not([data-lang]) :is(pre, pre code, pre span) {
-  color: var(--color-ink-secondary) !important;
-}
 [data-chat-bubble="simple"] .chat-code-block[data-lang] {
   width: fit-content;
   max-width: 100%;
@@ -177,7 +174,7 @@
   border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
 }
 [data-chat-bubble="simple"] .chat-code-block[data-lang] pre {
-  padding: 6px 10px !important;
+  padding: 6px 10px;
   font-size: 12px;
   line-height: 18px;
 }
@@ -255,13 +252,12 @@
 :root:is([data-skin="grok"], [data-skin="grok-dark"]) .bot-button.grok-cta:enabled:hover {
   background-color: var(--grok-cta-hover);
 }
-:root:is([data-skin="grok"], [data-skin="grok-dark"]) [data-composer-row] [data-call-button="composer"][style*="background-color"]:enabled {
-  background-color: var(--grok-cta-fill) !important;
-  transition: color 0.1s, background-color 0.1s, transform 0.05s cubic-bezier(0.165, 0.84, 0.44, 1);
+:root:is([data-skin="grok"], [data-skin="grok-dark"]) [data-composer-row] {
+  --grok-cta: var(--grok-cta-fill);
 }
 @media (hover: hover) and (pointer: fine) {
-  :root:is([data-skin="grok"], [data-skin="grok-dark"]) [data-composer-row] [data-call-button="composer"][style*="background-color"]:enabled:hover {
-    background-color: var(--grok-cta-hover) !important;
+  :root:is([data-skin="grok"], [data-skin="grok-dark"]) [data-composer-row] [data-call-button="composer"]:enabled:hover {
+    --grok-cta: var(--grok-cta-hover);
     filter: none;
   }
 }
@@ -298,4 +294,48 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .chat-jump { animation-name: chat-row-fade; }
+}
+
+/* grok's tapback pill: a hairline inside and a ring of the page colour cut around it where it overlaps the bubble */
+[data-chat-bubble="simple"][data-reacted] {
+  position: relative;
+}
+.chat-reaction-pill {
+  box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 12%, transparent), 0 0 0 2.8px var(--color-app);
+}
+.chat-reaction-pop {
+  animation: chat-reaction-pop 500ms linear(0, 0.2 6%, 0.6 16%, 0.9 26%, 1.05 36%, 1.078 44%, 1.05 54%, 1.01 68%, 0.998 80%, 1) backwards;
+}
+@keyframes chat-reaction-pop {
+  from { opacity: 0; transform: scale(0.6); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-reaction-pop { animation: chat-row-fade 0.12s ease-out backwards; }
+}
+
+/* grok's file card and its paper glyph */
+.chat-file-card {
+  box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 8%, transparent), 0 1px 4px color-mix(in srgb, var(--color-ink) 7%, transparent);
+}
+.chat-file-glyph {
+  box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 12%, transparent), 0 2px 6px color-mix(in srgb, var(--color-ink) 6%, transparent);
+}
+.chat-file-card .table-action {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  color: color-mix(in srgb, var(--color-ink) 66%, transparent);
+  transition: background-color 0.12s, color 0.12s;
+}
+.chat-file-card .table-action:hover {
+  background-color: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  color: var(--color-ink);
+}
+
+/* grok's + does not shrink on press */
+.composer-press[data-composer-plus]:active:not(:disabled) {
+  transform: none;
 }

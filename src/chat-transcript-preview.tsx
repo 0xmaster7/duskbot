@@ -1,6 +1,6 @@
 // Dev-only gallery of a Simple mode transcript, served at /chat-transcript-preview.html; not in the packaged app. It
 // mounts the real ChatView over a fixed store, with no server behind it.
-// ?state=done|working|question|approval|empty|grok|grok-md|answered&skin=grok|grok-dark|midnight&tools=1&bot=amy
+// ?state=done|working|question|approval|empty|grok|grok-md|answered|cards&skin=grok|grok-dark|midnight&tools=1&bot=amy
 // state=grok mirrors the grok sandbox's Amy chat line for line, so the two can be compared pixel for pixel.
 import { StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -53,7 +53,26 @@ function grokRows(): Message[] {
   return list.map((one, index, all) => ({ ...one, parentId: all[index - 1]?.id }));
 }
 
+// state=cards: grok's Amy sandbox chat, its images, file cards, link, voice memo and a reaction
+function cardRows(): Message[] {
+  const id = (name: string) => `123e4567-e89b-12d3-a456-4266141740${name}`;
+  const list: Message[] = [
+    message("c1", 0, { role: "user", text: "Can you grab the screenshots from the launch thread?" }),
+    message("c2", 1, { text: "Here are the two from the thread, the sunset one is the hero shot.", turnId: "c", turnTerminal: true,
+      attachments: [{ kind: "image", path: `/attachments/${id("01")}.png`, mime: "image/png" }, { kind: "image", path: `/attachments/${id("02")}.png`, mime: "image/png" },
+        { kind: "file", path: `/attachments/${id("03")}.pdf`, mime: "application/pdf", name: "Q4-sponsor-deck.pdf" }, { kind: "file", path: `/attachments/${id("04")}.xlsx`, mime: "application/vnd.ms-excel", name: "creator-rates.xlsx" }],
+      reactions: [{ emoji: "❤️", by: "user", at: AT }] }),
+    message("c3", 2, { role: "user", text: "And the repo link?" }),
+    message("c4", 3, { text: "Also this one is worth a watch before the call: https://www.youtube.com/watch?v=dQw4w9WgXcQ", turnId: "d", turnTerminal: true }),
+    message("c5", 3.2, { text: "Quick recap while you were out.", turnId: "e", turnTerminal: true,
+      attachments: [{ kind: "audio", path: `/attachments/${id("05")}.mp3`, mime: "audio/mpeg", durationMs: 6000, text: "Quick recap while you were out: Prasenjit replied and the deck is ready." }] }),
+    message("c6", 4, { role: "user", text: "ok send him the yes" }),
+  ];
+  return list.map((one, index, all) => ({ ...one, parentId: all[index - 1]?.id }));
+}
+
 function rows(): Message[] {
+  if (stateName === "cards") return cardRows();
   if (stateName === "grok" || stateName === "grok-md" || stateName === "answered") return grokRows();
   const base: Message[] = [
     message("intro", -400, { text: "took the tinyfish invite on unfair: TinyResearch / TinySet from @Tiny_Fish, $150 for a quote. their post goes up tonight at 10:30 PM IST, and from then you have 12 hours to quote it." }),

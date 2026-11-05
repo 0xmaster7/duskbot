@@ -29,7 +29,7 @@ describe("the voice note's transcript disclosure", () => {
       const toggle = container.querySelector<HTMLButtonElement>("button[data-test-voice-note-transcript]")!;
       expect(toggle).toBeTruthy();
       expect(toggle.getAttribute("aria-expanded")).toBe("false");
-      expect(container.textContent).toContain("Transcript");
+      expect(toggle.getAttribute("aria-label")).toBe("Transcript");
       expect(container.textContent).not.toContain("Deploy is green");
 
       flushSync(() => toggle.click());

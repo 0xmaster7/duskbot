@@ -415,6 +415,14 @@ const Bubble = memo(function Bubble({
     );
   }
 
+  // grok's tapbacks ride the bubble's top corner; a split or tabled reply keeps them in a row underneath
+  // grok draws a bot's images, files and voice notes as rows of their own beside its words, never inside the bubble
+  const mediaSplit = Boolean(simple && !user && !split && !tabled && text.trim() && (voiceNotes.length > 0 || generatedPaths.length + linkedFiles.length > 0 || (group && group.images.length + group.files.length > 0)));
+  const floatReactions = Boolean(simple && message.reactions?.length && !split && !attachmentsOnly && !webhookView);
+  // with media beside the words, grok's tapbacks ride the media row instead of the bubble
+  const mediaReactions = floatReactions && mediaSplit;
+  const reactionsOnBubble = floatReactions && !mediaSplit && !tabled;
+  const mediaChips = mediaReactions && <ReactionChips float threadId={threadId} message={message} bots={bots} align="start" canReact={canReact} />;
   const forks = user && versions ? versions : [message];
   const versionIndex = forks.findIndex((v) => v.id === message.id);
   const switchTo = (v: Message | undefined) => {
@@ -434,7 +442,7 @@ const Bubble = memo(function Bubble({
   );
 
   return (
-    <div {...{ [MESSAGE_ROW]: "" }} className={cn("group flex w-full flex-col", simple && "relative", user ? "items-end" : "items-start", fresh && "chat-row-in", simple && join?.above && SIMPLE_STACKED)}>
+    <div {...{ [MESSAGE_ROW]: "" }} className={cn("group flex w-full flex-col", simple && "relative", (reactionsOnBubble || (mediaReactions && !group)) && "pt-[26px]", user ? "items-end" : "items-start", fresh && "chat-row-in", simple && join?.above && SIMPLE_STACKED)}>
       {message.relay ? <RelayLabel message={message} /> : peer && <PeerLabel peer={peer} />}
       {speaker && <div className="mb-0.5 px-1 text-[12px] font-medium text-ink-secondary">{speaker}</div>}
       <div data-own-row={simple && user ? "" : undefined} className={cn("flex w-full items-center gap-1.5", user ? "justify-end" : "justify-start")}>
@@ -463,17 +471,19 @@ const Bubble = memo(function Bubble({
             emerging && "turn-answer",
             user && webhookView
               ? cn("overflow-hidden border border-accent/25 bg-card text-ink", simple ? cn("rounded-[18px]", SIMPLE_BUBBLE_TEXT) : "shadow-[0_10px_30px_rgba(0,0,0,0.18)]")
-              : attachmentsOnly || split || tabled
-                ? cn("text-ink", simple && SIMPLE_BUBBLE_TEXT)
+              : attachmentsOnly || split || tabled || mediaSplit
+                ? cn("text-ink", simple && SIMPLE_BUBBLE_TEXT, mediaSplit && "flex flex-col items-start gap-1")
                 : user
                   ? cn("whitespace-pre-wrap [overflow-wrap:anywhere] text-ink", simple ? SIMPLE_USER_BUBBLE : "bg-bubble-user px-4 py-2.5", ownBubbleStyle && "user-bubble-colored", simple && ownBubbleStyle && "antialiased")
                   : formatted
                     ? cn(formattedReplyWidth(text), "px-1 text-ink")
                     : simple ? SIMPLE_BOT_BUBBLE : "bg-card px-4 py-2.5 text-ink",
-            simple && join && !split && !attachmentsOnly && !tabled && joinedCorners(user ? "end" : "start", join),
+            simple && join && !split && !attachmentsOnly && !tabled && !mediaSplit && joinedCorners(user ? "end" : "start", join),
           )}
           style={user && !webhookView && !attachmentsOnly ? ownBubbleStyle : undefined}
-          title={workedFor === undefined ? new Date(message.at).toLocaleString() : `${workedLabel(workedFor)} · ${new Date(message.at).toLocaleString()}`}
+          data-reacted={reactionsOnBubble ? "" : undefined}
+          // simple mode shows time through the sideways peek, as grok does, not a tooltip over the whole bubble
+          title={simple ? undefined : workedFor === undefined ? new Date(message.at).toLocaleString() : `${workedLabel(workedFor)} · ${new Date(message.at).toLocaleString()}`}
         >
           {replyTarget && (
             <div className="mb-2">
@@ -544,27 +554,35 @@ const Bubble = memo(function Bubble({
           ) : (
             <MessageBoundary key={viewRaw ? "raw" : "rendered"} fallbackText={text || t("chat.generatedImage")}>
               {voiceNotes.length > 0 && (
-                <div className={cn("flex flex-col", (text || generatedPaths.length > 0 || linkedFiles.length > 0) && "mb-2")}>
+                <div className={cn("flex flex-col", !simple && (text || generatedPaths.length > 0 || linkedFiles.length > 0) && "mb-2", simple && "gap-1")}>
                   {voiceNotes.map((note) => (
                     <VoiceNoteBubble key={note.path} attachment={note} />
                   ))}
                 </div>
               )}
-              {!group && <AttachmentGallery images={generatedPaths} files={linkedFiles} message={{ threadId, messageId: message.id }} className={text ? undefined : "mb-0"} eager={eagerAttachments} />}
+              {!group && (mediaChips && (generatedPaths.length + linkedFiles.length > 0)
+                ? <div className="relative">{mediaChips}<AttachmentGallery images={generatedPaths} files={linkedFiles} message={{ threadId, messageId: message.id }} eager={eagerAttachments} /></div>
+                : <AttachmentGallery images={generatedPaths} files={linkedFiles} message={{ threadId, messageId: message.id }} className={simple ? undefined : text ? undefined : "mb-0"} eager={eagerAttachments} />)}
               {split ? (
                 <ConversationalReply simple={simple} join={join} segments={reply.segments} firstNew={reply.firstNew} citation={{ messageId: message.id, botId, threadId }}
                   renderSegment={(segment) => <ChatMarkdown text={segment} mentionPeers={mentionPeers} mentionPerson={mentionPerson} message={{ threadId, messageId: message.id }} delivered={group?.delivered} />} />
               ) : tabled && blocks ? (
                 <ReplyBlocks blocks={blocks} join={join} tray={botActions} citation={{ messageId: message.id, ownerType: "bot", ownerId: botId, threadId }}
+                  chips={floatReactions && <ReactionChips float threadId={threadId} message={message} bots={bots} align="start" canReact={canReact} />}
                   render={(block) => <ChatMarkdown text={block} mentionPeers={mentionPeers} mentionPerson={mentionPerson} message={{ threadId, messageId: message.id }} delivered={group?.delivered} />} />
               ) : viewRaw && text ? (
                 <div data-citation-source={message.id} data-citation-owner-type="bot" data-citation-owner={botId} data-citation-thread={threadId}><RawMarkdownView text={text} /></div>
+              ) : text && mediaSplit ? (
+                <div data-chat-bubble="simple" className={cn("w-fit max-w-full", SIMPLE_BOT_BUBBLE, join && joinedCorners("start", join))} data-citation-source={message.id} data-citation-owner-type="bot" data-citation-owner={botId} data-citation-thread={threadId}><ChatMarkdown text={text} mentionPeers={mentionPeers} mentionPerson={mentionPerson} message={{ threadId, messageId: message.id }} delivered={group?.delivered} /></div>
               ) : text ? (
                 <div data-citation-source={message.id} data-citation-owner-type="bot" data-citation-owner={botId} data-citation-thread={threadId}><ChatMarkdown text={text} mentionPeers={mentionPeers} mentionPerson={mentionPerson} message={{ threadId, messageId: message.id }} delivered={group?.delivered} /></div>
               ) : null}
-              {group && <AttachmentGallery images={group.images} files={group.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} beneath />}
+              {group && (mediaChips
+                ? <div className="relative mt-[26px]">{mediaChips}<AttachmentGallery images={group.images} files={group.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} /></div>
+                : <AttachmentGallery images={group.images} files={group.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} beneath={!simple} />)}
             </MessageBoundary>
           )}
+          {reactionsOnBubble && <ReactionChips float threadId={threadId} message={message} bots={bots} align={user ? "end" : "start"} canReact={canReact} />}
         </div>
         {!tabled && botActions}
         {!simple && (
@@ -574,7 +592,7 @@ const Bubble = memo(function Bubble({
         )}
       </div>
       {simple && <time dateTime={new Date(message.at).toISOString()} className="chat-row-ts" aria-label={new Date(message.at).toLocaleTimeString()}>{formatTime(message.at)}</time>}
-      <ReactionChips threadId={threadId} message={message} bots={bots} align={user ? "end" : "start"} canReact={canReact} />
+      {!floatReactions && <ReactionChips threadId={threadId} message={message} bots={bots} align={user ? "end" : "start"} canReact={canReact} />}
       {forks.length > 1 && (
         <div className="mt-1 flex items-center gap-0.5 pr-1 text-[12px] text-ink-secondary">
           <button
@@ -919,8 +937,11 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const bubbleStyle = useMemo(() => {
     if (!colorMine) return undefined;
     const style = userBubbleStyle(bot.color, { flat: !advanced });
-    const grok = advanced ? undefined : grokUserBubbleFill(bot.color);
-    return grok ? { ...style, "--grok-bubble-fill": grok } as typeof style : style;
+    if (advanced) return style;
+    // simple mode: chat.css lays grok's gloss over the fill, and the grok skins swap in grok's own fill for the colour
+    const { backgroundImage: _flat, ...rest } = style;
+    const grok = grokUserBubbleFill(bot.color);
+    return grok ? { ...rest, backgroundColor: `var(--grok-bubble, ${String(style.backgroundColor)})`, "--grok-bubble-fill": grok } as typeof style : rest;
   }, [colorMine, bot.color, advanced]);
   const hasMore = Boolean(bot.hasMore);
   const reactor = useReactor();
@@ -1186,10 +1207,12 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           ref={transcriptRef}
           // Simple mode spaces groups 16px apart, Advanced 12px.
           data-simple-rows={advanced ? undefined : ""}
-          className="glass-scroller-content chat-column relative flex w-full flex-col gap-3 data-[simple-rows]:gap-4"
+          className="glass-scroller-content chat-column relative flex w-full flex-col gap-3 rounded-[18px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus data-[simple-rows]:gap-4"
           // grok leaves 54px between the last row and the composer: its 52px trailing inset and the row's own 2px
           style={{ paddingBottom: advanced ? composerDock.pad : `calc(${composerDock.pad} + ${SIMPLE_TRAILING_GAP}px)` }}
           role="log"
+          // focusable like grok's transcript, so the keyboard can scroll it
+          tabIndex={advanced ? undefined : 0}
           // off: a polite log re-reads every tick and chip while the bot works; TranscriptAnnouncer speaks once when
           // done.
           aria-live="off"

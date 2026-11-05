@@ -27,7 +27,7 @@ describe("VoiceNoteBubble", () => {
     expect(markup).toContain('type="range"');
     expect(markup).toContain('aria-label="Seek voice note"');
     expect(markup).toContain('max="4.2"');
-    expect(markup).toContain("0:00");
+    // paused at the start it shows the note's length, as grok's does
     expect(markup).toContain("0:04");
     expect(markup).not.toContain("autoplay");
     expect(markup).toContain('src="/api/attachments/123e4567-e89b-12d3-a456-426614174000.mp3"');

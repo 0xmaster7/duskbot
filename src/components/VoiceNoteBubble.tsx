@@ -1,12 +1,12 @@
 // No playback during a Live call: the call's microphone would pick the note up.
-import { useEffect, useRef, useState } from "react";
-import { ChevronRight, Pause, Play } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { attachmentAudioUrl } from "@/lib/composer-attachments";
 import { t } from "@/lib/i18n";
 import { isLiveCallRunning, useLiveMedia } from "@/lib/live-call-media";
 import { speaker } from "@/lib/tts";
 import { cn } from "@/lib/cn";
+import { GrokIcon } from "./GrokIcon";
 
 export interface VoiceNoteAttachment {
   kind: "audio";
@@ -15,6 +15,20 @@ export interface VoiceNoteAttachment {
   durationMs?: number;
   /** The words the note speaks; shown behind a collapsed Transcript, never as message body. */
   text?: string;
+}
+
+const SPEEDS = [1, 1.5, 2] as const;
+const BAR_COUNT = 56;
+
+/** A steady pattern of bar heights for one note, the same each time it draws: decoration, not the audio's own levels. */
+function waveform(seed: string): string[] {
+  let hash = 2166136261;
+  for (const char of seed) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
+  return Array.from({ length: BAR_COUNT }, (_, index) => {
+    hash = Math.imul(hash ^ (index + 1), 16777619);
+    const level = ((hash >>> 0) % 1000) / 1000;
+    return `${Math.round(4 + level * level * 20)}px`;
+  });
 }
 
 function clock(seconds: number): string {
@@ -41,6 +55,8 @@ export function VoiceNoteBubble({
   );
   const [time, setTime] = useState(0);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
+  const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1);
+  const bars = useMemo(() => waveform(attachment.path), [attachment.path]);
   const transcript = attachment.text?.trim() ?? "";
   const onLiveCall = isLiveCallRunning(useLiveMedia().phase);
 
@@ -79,12 +95,20 @@ export function VoiceNoteBubble({
     setTime(next);
   };
 
+  const progress = duration ? Math.min(1, time / duration) : 0;
+  const cycleSpeed = () => {
+    const next = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]!;
+    setSpeed(next);
+    if (audioRef.current) audioRef.current.playbackRate = next;
+  };
+  const playLabel = playing ? t("chat.voiceNote.pause") : onLiveCall ? t("chat.voiceNote.onLiveCall") : t("chat.voiceNote.play");
+
   return (
     <div
-      className={cn("flex w-full flex-col rounded-xl bg-inset/60 px-3 py-2", className)}
+      className={cn("flex w-[400px] max-w-full flex-col overflow-hidden rounded-[26px] bg-ink/[0.06]", className)}
       data-test-voice-note=""
     >
-      <div className="flex w-full items-center gap-3">
+      <div className="flex h-12 w-full items-center gap-3 px-2">
         <audio
           ref={audioRef}
           src={url}
@@ -92,6 +116,7 @@ export function VoiceNoteBubble({
           onLoadedMetadata={(event) => {
             const loaded = event.currentTarget.duration;
             if (Number.isFinite(loaded) && loaded > 0) setDuration(loaded);
+            event.currentTarget.playbackRate = speed;
           }}
           onTimeUpdate={(event) => setTime(event.currentTarget.currentTime)}
           onPlay={() => setPlaying(true)}
@@ -106,46 +131,60 @@ export function VoiceNoteBubble({
             giveBackVoice();
           }}
         />
-        <button
-          type="button"
-          onClick={toggle}
-          disabled={onLiveCall && !playing}
-          aria-label={playing ? t("chat.voiceNote.pause") : onLiveCall ? t("chat.voiceNote.onLiveCall") : t("chat.voiceNote.play")}
-          title={playing ? t("chat.voiceNote.pause") : onLiveCall ? t("chat.voiceNote.onLiveCall") : t("chat.voiceNote.play")}
-          className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-        >
-          {playing ? <Pause size={13} className="fill-current" /> : <Play size={13} className="translate-x-px fill-current" />}
-        </button>
-        <input
-          type="range"
-          aria-label={t("chat.voiceNote.seek")}
-          min={0}
-          max={duration ?? 0}
-          step={0.1}
-          value={Math.min(time, duration ?? time)}
-          onChange={(event) => seek(Number(event.currentTarget.value))}
-          disabled={!duration}
-          className="h-1 flex-1 accent-accent"
-        />
-        <span className="shrink-0 text-[11px] tabular-nums text-ink-secondary">
-          {clock(time)} / {duration === null ? "--:--" : clock(duration)}
+        <div className="flex h-8 shrink-0 items-center rounded-full bg-ink/[0.08] shadow-[0_0_0_0.5px_rgb(28_28_28/0.06)]">
+          <button
+            type="button"
+            onClick={toggle}
+            disabled={onLiveCall && !playing}
+            aria-label={playLabel}
+            className="ms-1.5 me-1 flex size-6 shrink-0 items-center justify-center rounded-full text-ink-secondary transition-colors hover:text-ink disabled:opacity-40"
+          >
+            <GrokIcon name={playing ? "pause" : "play"} variant="filled" size={14} />
+          </button>
+          <span aria-hidden="true" className="h-8 w-[0.5px] bg-ink/[0.06]" />
+          <button type="button" onClick={cycleSpeed} aria-label={t("chat.voiceNote.speed", { speed: String(speed) })}
+            className="h-8 w-[34px] pe-0.5 text-[14px] font-medium leading-5 text-ink-secondary transition-colors hover:text-ink">
+            {speed}×
+          </button>
+        </div>
+        <div className="relative flex h-8 min-w-0 flex-1 items-center">
+          <span aria-hidden="true" className="flex h-full w-full items-center justify-between gap-px">
+            {bars.map((height, index) => (
+              <span key={index} className={cn("w-[1.5px] rounded-full", index / bars.length < progress ? "bg-ink/[0.56]" : "bg-ink/[0.2]")} style={{ height }} />
+            ))}
+          </span>
+          <input
+            type="range"
+            aria-label={t("chat.voiceNote.seek")}
+            min={0}
+            max={duration ?? 0}
+            step={0.1}
+            value={Math.min(time, duration ?? time)}
+            onChange={(event) => seek(Number(event.currentTarget.value))}
+            disabled={!duration}
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-default"
+          />
+        </div>
+        <span className="shrink-0 text-[13px] leading-[18px] tabular-nums text-ink-secondary">
+          {clock(playing || time > 0 ? time : duration ?? 0)}
         </span>
-      </div>
-      {transcript && (
-        <>
+        {transcript ? (
           <button
             type="button"
             onClick={() => setTranscriptOpen((open) => !open)}
             data-test-voice-note-transcript=""
             aria-expanded={transcriptOpen}
-            className="mt-1 flex items-center gap-0.5 self-start text-[12px] text-ink-secondary transition-colors hover:text-ink"
+            aria-label={t("chat.voiceNote.transcript")}
+            className="flex size-8 shrink-0 items-center justify-center rounded-full text-ink/[0.66] transition-colors hover:bg-ink/[0.06] hover:text-ink"
           >
-            <ChevronRight size={12} aria-hidden="true" className={cn("transition-transform duration-150", transcriptOpen && "rotate-90")} />
-            {t("chat.voiceNote.transcript")}
+            <GrokIcon name="chevrons-up-down" size={14} />
           </button>
-          {transcriptOpen && (
-            <p className="mt-1 whitespace-pre-wrap text-[13px] leading-snug text-ink">{transcript}</p>
-          )}
+        ) : <span aria-hidden="true" className="w-1" />}
+      </div>
+      {transcript && transcriptOpen && (
+        <>
+          <span aria-hidden="true" className="h-px w-full bg-ink/[0.08]" />
+          <p className="whitespace-pre-wrap px-3 py-1 pb-2.5 text-[14px] leading-5 text-ink/[0.48]">{transcript}</p>
         </>
       )}
     </div>

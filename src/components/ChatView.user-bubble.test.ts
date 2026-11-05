@@ -49,13 +49,13 @@ describe("bot-colored user bubbles", () => {
     expect(html).toContain("hello from me");
   });
 
-  it("paints the person's bubble in one flat tone of the bot, with readable text", () => {
+  it("paints the person's bubble in the bot's tone, grok's own fill on the grok skins, with readable text", () => {
     fixture.colorMine = true;
     const tone = userBubbleTone("yellow");
     const html = renderToStaticMarkup(createElement(ChatView, { bot }));
     expect(html).toContain("user-bubble-colored");
-    expect(html).toContain(`background-color:${tone.background}`);
-    expect(html).toContain("background-image:none");
+    expect(html).toContain(`background-color:var(--grok-bubble, ${tone.background})`);
+    expect(html).toContain("--grok-bubble-fill:#c2730b");
     expect(html).not.toContain(tone.gradient);
     expect(html).toContain(`--color-ink:${tone.ink}`);
     expect(html).toContain("hello from me");

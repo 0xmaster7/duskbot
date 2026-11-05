@@ -280,7 +280,8 @@ export function PendingApprovalActions({
       rememberCommand: rememberCommand || undefined,
     });
 
-  const allow = askPrimary(bot?.color);
+  // grok's card answers are a black pill and a quiet text button, never the bot's colour
+  const allow = askPrimary(undefined);
   const marked = (action: string) => (tag ? { [`data-${tag}-action`]: action } : {});
   const showPrimary = part !== "more";
   const showMore = part !== "primary";
@@ -333,7 +334,7 @@ export function PendingApprovalActions({
       type="button"
       onClick={() => decide("deny")}
       autoFocus={titled}
-      className={ASK_SECONDARY_BUTTON}
+      className={ASK_QUIET_ANSWER}
     >
       {pending.message.card?.lendingLift ? pending.message.card.options[1] : isRoutineRequest || isProfileRequest || titled ? t("approval.action.cancel") : t("approval.action.deny")}
     </button>,

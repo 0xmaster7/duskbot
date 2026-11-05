@@ -890,11 +890,61 @@ export function MarkdownImagePreview({
   );
 }
 
-export function AttachedFileChip({ file, message, linked = false, compact = false, className }: {
+/** The coloured band at the foot of grok's file glyph, by the kind of document. */
+function fileBand(name: string): string {
+  const ext = name.split(".").at(-1)?.toLowerCase() ?? "";
+  if (ext === "pdf") return "#fb2b3e";
+  if (["xls", "xlsx", "csv", "tsv", "numbers"].includes(ext)) return "#14c16f";
+  if (["doc", "docx", "pages", "rtf", "txt", "md"].includes(ext)) return "#1e86fc";
+  if (["ppt", "pptx", "key"].includes(ext)) return "#fd690f";
+  if (["zip", "tar", "gz", "rar", "7z"].includes(ext)) return "#a06b39";
+  return "rgb(28 28 28 / 0.24)";
+}
+
+/** Grok's file card: a white 72px card with a small paper glyph, the name with its extension kept, and a round action. */
+function FileCard({ file, message, save, preview, retryable, className }: {
+  file: TranscriptFileAttachment;
+  message: MessageAttachmentContext;
+  save: ReturnType<typeof useLocalFileSave>;
+  preview: ReturnType<typeof useHtmlPreview>;
+  retryable: boolean;
+  className?: string;
+}) {
+  const failed = save.state === "failed";
+  const dot = file.name.lastIndexOf(".");
+  const base = dot > 0 ? file.name.slice(0, dot) : file.name;
+  const ext = dot > 0 ? file.name.slice(dot) : "";
+  const meta = save.state === "saving" ? t("attach.downloading") : save.state === "saved" ? t("attach.downloaded") : failed ? saveFailureText(save) : ext.slice(1).toUpperCase() || t("attach.file");
+  return (
+    <section data-file-card="" className={cn("chat-file-card relative flex h-[72px] w-[354px] max-w-full items-center gap-[14px] rounded-[22px] bg-composer ps-5 pe-5", className)}
+      title={save.state === "saved" && save.savedTo ? t("attach.savedTo", { path: save.savedTo }) : file.name}>
+      <button type="button" {...chipNameAction(preview, save, file.name, retryable)}
+        className="absolute inset-0 rounded-[22px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus disabled:cursor-wait" />
+      <span aria-hidden="true" className="chat-file-glyph pointer-events-none relative flex h-10 w-8 shrink-0 flex-col overflow-hidden rounded-[6px] bg-composer">
+        <span className="mx-1 mt-1 h-1 rounded-[2px] bg-ink/[0.18]" />
+        <span className="mx-1 mt-[3px] h-1 w-[11px] rounded-[2px] bg-ink/[0.18]" />
+        <span className="mx-1 mt-[3px] h-1 w-[11px] rounded-[2px] bg-ink/[0.18]" />
+        <span className="mt-auto h-3 w-full" style={{ backgroundColor: fileBand(file.name) }} />
+      </span>
+      <span className="pointer-events-none flex min-w-0 flex-1 flex-col">
+        <span className="flex min-w-0 text-[14px] font-medium leading-5 text-ink"><span className="min-w-0 truncate">{base}</span><span className="shrink-0">{ext}</span></span>
+        <span role={failed ? "alert" : save.state === "idle" ? undefined : "status"} className={cn("truncate text-[13px] leading-[18px]", failed ? "text-danger" : "text-ink-secondary")}>{meta}</span>
+      </span>
+      <span className="relative flex shrink-0">
+        {preview.html ? <SaveIconButton name={file.name} save={save} retryable={retryable} /> : <FilePreviewButton path={file.path} name={file.name} message={message} />}
+      </span>
+      {preview.dialog}
+    </section>
+  );
+}
+
+export function AttachedFileChip({ file, message, linked = false, compact = false, card = false, className }: {
   file: TranscriptFileAttachment;
   message?: MessageAttachmentContext;
   linked?: boolean;
   compact?: boolean;
+  /** Simple mode's transcript: grok's white file card. */
+  card?: boolean;
   className?: string;
 }) {
   const save = useLocalFileSave(file.path, file.name, message);
@@ -902,6 +952,7 @@ export function AttachedFileChip({ file, message, linked = false, compact = fals
   const failed = save.state === "failed";
   const retryable = failed && !save.outsideWorkspace;
   if (compact) return <CompactFileChip file={file} message={message} linked={linked} save={save} preview={preview} className={className} />;
+  if (card && message && (file.private || linked)) return <FileCard file={file} message={message} save={save} preview={preview} retryable={retryable} className={className} />;
   if (!message || (!file.private && !linked)) {
     return (
       <div title={t("attach.legacyFile", { name: file.name })} className={cn("flex max-w-[280px] items-center gap-2 overflow-hidden rounded-lg border border-hairline/40 bg-inset/70 px-2.5 py-2 text-[12px] text-ink-secondary", className)}>

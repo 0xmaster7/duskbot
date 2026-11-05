@@ -124,7 +124,7 @@ describe("the Simple composer in a bot chat", () => {
     expect(container.querySelector("[data-goal-chip]")).toBeNull();
     expect(container.querySelector("[data-approval-chip]")).toBeNull();
     const tone = userBubbleTone("purple");
-    expect(fixture.call).toMatchObject({ bot: { id: "atlas" }, placement: "composer", fill: tone.background, ink: tone.ink });
+    expect(fixture.call).toMatchObject({ bot: { id: "atlas" }, placement: "composer", fill: `var(--grok-cta, ${tone.background})`, ink: tone.ink });
     openPlus();
     expect([...menu()!.querySelectorAll("[data-menu-key]")].map((row) => row.getAttribute("data-menu-key"))).toEqual(["attach", "teach"]);
     expect([...menu()!.querySelectorAll("[data-menu-key]")].map((row) => row.querySelector(".truncate")!.textContent)).toEqual(["Attach files", "Teach a task"]);
