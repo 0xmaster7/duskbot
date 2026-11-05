@@ -80,6 +80,23 @@ export function profileInitials(profile?: { name?: string; email?: string }): st
   return email ? email[0]!.toUpperCase() : "?";
 }
 
+/** This computer's account name for a profile with neither a name nor an email: its full name, else its login. */
+export function useComputerName(enabled: boolean): string | null {
+  const [name, setName] = useState<string | null>(null);
+  useEffect(() => {
+    const bridge = window.ogb?.desktopProfile;
+    if (!enabled || !bridge) return;
+    let active = true;
+    void (async () => {
+      const full = (await bridge.systemName().catch(() => null))?.trim();
+      const login = full ? null : (await bridge.loginName?.().catch(() => null))?.trim();
+      if (active) setName(full || login || null);
+    })();
+    return () => { active = false; };
+  }, [enabled]);
+  return name;
+}
+
 export function profileLabel(profile?: { name?: string; email?: string }): string {
   return profile?.name?.trim() || profile?.email?.trim() || t("sidebar.profile.you");
 }
@@ -619,7 +636,9 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
   }, []);
 
   const profile = profileForSession(state.config?.profile, session);
-  const name = profileLabel(profile);
+  // grok's footer falls back to the computer's account: "S" in the grey circle, "siddharth" beside it
+  const computer = useComputerName(simple && !profile?.name?.trim() && !profile?.email?.trim());
+  const name = computer ?? profileLabel(profile);
   const connectTo = (destination: PhoneDestination) => selectPhoneDestination(destination, { bridge: cloudPhone.bridge, dispatch });
   const remote = window.ogb?.remoteClient?.active === true;
   const besideRail = railShown(usePlaces());
@@ -682,7 +701,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
   });
   const noteworthy = update && updateNoteworthy(update.phase, update.pending) && !updateHasButton(update.phase);
   const needsYou = account?.automationsNeedYou === true;
-  const initials = profileInitials(profile);
+  const initials = computer ? computer[0]!.toUpperCase() : profileInitials(profile);
   const nameless = simple && initials === "?" ? <UserRound size={18} strokeWidth={1.75} aria-hidden /> : undefined;
   const label = accountLabel(name, { automationsNeedYou: needsYou, update: simple && noteworthy && update ? update.label : null, move: move.kind });
   const dot = accountDot({ automationsNeedYou: needsYou, update: noteworthy ? (update.phase === "error" ? "failed" : "news") : null, move: move.kind });

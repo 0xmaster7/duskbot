@@ -631,6 +631,7 @@ const bridge = {
   },
   desktopProfile: {
     systemName: () => ipcRenderer.invoke("desktop-profile:system-name"),
+    loginName: () => ipcRenderer.invoke("desktop-profile:login-name"),
   },
   desktopNotices: {
     state: () => ipcRenderer.invoke("desktop-notices:state"),

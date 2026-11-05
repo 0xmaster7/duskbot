@@ -25,7 +25,7 @@
   transform: scale(0.98);
 }
 
-.composer-glyph {
+[data-glyph-swap] .composer-glyph {
   animation: composer-glyph-in 200ms var(--composer-glyph-ease);
 }
 @keyframes composer-glyph-in {
@@ -45,14 +45,14 @@
     transition-timing-function: ease;
   }
   .composer-press:active:not(:disabled) { transform: none; }
-  .composer-glyph { animation-name: composer-glyph-fade; }
+  [data-glyph-swap] .composer-glyph { animation-name: composer-glyph-fade; }
 }
 :root[data-reduced-motion="true"] .composer-pill {
   transition-duration: 120ms, 120ms, 150ms;
   transition-timing-function: ease;
 }
 :root[data-reduced-motion="true"] .composer-press:active:not(:disabled) { transform: none; }
-:root[data-reduced-motion="true"] .composer-glyph { animation-name: composer-glyph-fade; }
+:root[data-reduced-motion="true"] [data-glyph-swap] .composer-glyph { animation-name: composer-glyph-fade; }
 @keyframes composer-glyph-fade {
   from { opacity: 0; }
 }

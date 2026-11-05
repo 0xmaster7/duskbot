@@ -80,6 +80,8 @@ export function ConnectAppsButton({ circle, apps: { faces, connected }, engaged 
 }) {
   const open = useConnectApps().open;
   const label = connected ? t("sidebar.nav.apps") : t("sidebar.connectApps");
+  // only the footer's folded button widens; the rail's stays a glyph
+  const logos = circle && onEngage ? faces : [];
   return (
     <>
     <button
@@ -95,9 +97,15 @@ export function ConnectAppsButton({ circle, apps: { faces, connected }, engaged 
       className={circle ? cn(SIMPLE_TOP_BUTTON, "h-9 min-w-9 w-auto text-[14px] font-medium leading-5 text-ink transition-[background-color,flex-grow,padding] duration-300 ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none", engaged ? "grow pl-4 pr-3" : "grow-0 px-2") : cn("group/apps flex h-9 min-w-0 flex-1 items-center justify-center rounded-full border border-ink/[0.08] bg-composer px-4 text-[14px] font-medium leading-5 tracking-[0.01em] text-ink transition-[background-color,flex-grow,padding] duration-300 ease-[cubic-bezier(.2,0,0,1)]", GROK_HOVER_TINT, GROK_FOCUS)}
     >
       {circle ? <>
-        <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center"><GrokIcon name="grid-plus" size={16} /></span>
+        {/* grok's widened pill trades the grid glyph for the label and the app logos */}
+        <span aria-hidden="true" data-connect-apps-icon="" className={cn("flex h-5 shrink-0 items-center justify-center overflow-hidden transition-[max-width,opacity] duration-300 ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none",
+          engaged && logos.length ? "max-w-0 opacity-0" : "w-5 max-w-5 opacity-100")}><GrokIcon name="grid-plus" size={16} /></span>
         <span aria-hidden="true" data-connect-apps-label="" className={cn("min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin] duration-300 ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none",
-          engaged ? "ms-1.5 max-w-[200px] opacity-100 [transition-duration:300ms,150ms,300ms] [transition-delay:0ms,120ms,0ms]" : "ms-0 max-w-0 opacity-0")}>{t("sidebar.connectApps")}</span>
+          engaged ? cn(!logos.length && "ms-1.5", "max-w-[200px] opacity-100 [transition-duration:300ms,150ms,300ms] [transition-delay:0ms,120ms,0ms]") : "ms-0 max-w-0 opacity-0")}>{t("sidebar.connectApps")}</span>
+        {logos.length > 0 && <span aria-hidden="true" data-connect-apps-faces="" className={cn("flex shrink-0 items-center overflow-hidden transition-[max-width,opacity,margin] duration-300 ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none",
+          engaged ? "ms-[4.5px] max-w-[60px] opacity-100 [transition-duration:300ms,150ms,300ms] [transition-delay:0ms,120ms,0ms]" : "ms-0 max-w-0 opacity-0")}>
+          {logos.map((face, index) => <AppFaceIcon key={face.slug} face={face} className={cn(index > 0 && "-ms-[6px]")} />)}
+        </span>}
       </> : <>
         <span className="min-w-0 truncate">{label}</span>
         <span aria-hidden="true" className="ms-[4.5px] flex shrink-0 items-center">

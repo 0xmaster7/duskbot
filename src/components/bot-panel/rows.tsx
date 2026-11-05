@@ -58,11 +58,11 @@ export function Card({ label, action, anchor, className, children }: { label?: R
   );
 }
 
-/** Grok's empty tab: one centred line of 14px tertiary copy, 16px in from each side. */
+/** Grok's empty tab: centred 13/18 copy at 56% ink, right under the tabs and 16px in from each side. */
 export function PanelEmpty({ children, ...rest }: { children: ReactNode; "data-panel-empty"?: string }) {
   return (
     <div {...rest} className="flex flex-col gap-2.5 px-4 py-4">
-      <p className="text-center text-[14px] leading-5 tracking-[0.01em] text-ink-tertiary">{children}</p>
+      <p className="text-pretty text-center text-[13px] leading-[18px] tracking-[0.015em] text-ink/[0.56]">{children}</p>
     </div>
   );
 }

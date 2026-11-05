@@ -96,7 +96,7 @@ function VoiceChatRow({ label, children, row }: { label: string; children: React
 
 /** Grok's Voice chat card: Voice, Speed and Language as ghost select pills. Voice is the bot's speaking voice; speed and
  * language are kept per bot on this device. */
-export function VoiceChatCard({ bot, patch }: { bot: Bot; patch: Derived["patch"] }) {
+export function VoiceChatCard({ bot, patch, afterEmpty = false }: { bot: Bot; patch: Derived["patch"]; afterEmpty?: boolean }) {
   const { state } = useStore();
   const tts = state.config?.tts;
   const voices = useVoiceOptions(bot, Boolean(tts?.configured)) ?? [];
@@ -108,7 +108,7 @@ export function VoiceChatCard({ bot, patch }: { bot: Bot; patch: Derived["patch"
     ...voices.map((entry) => ({ value: entry.id, label: entry.label })),
   ];
   return (
-    <Card label={t("botPanel.section.voiceChat")} anchor="call" className="mt-[44px]">
+    <Card label={t("botPanel.section.voiceChat")} anchor="call" className={afterEmpty ? "mt-[22px]" : "mt-[44px]"}>
       <VoiceChatRow row="voice" label={t("voice.title")}>
         <SelectPill data-panel-select="voice" aria-label={t("voice.title")} value={voice} options={voiceOptions} onChange={(next: string) => patch({ voice: next })} />
       </VoiceChatRow>
@@ -177,7 +177,7 @@ export function DetailsTab({ bot, derived, onOpen }: {
         </Card>
       )}
 
-      <VoiceChatCard bot={bot} patch={derived.patch} />
+      <VoiceChatCard bot={bot} patch={derived.patch} afterEmpty={routines.length === 0} />
     </div>
   );
 }

@@ -97,7 +97,7 @@ describe("Simple mode's working line", () => {
     expect(statusLine()).toBe("Thinking it through");
     expect(mascot()!.innerHTML).toMatch(/width(="|: )28px/);
     const row = mascot()!.firstElementChild as HTMLElement;
-    expect([...row.classList]).toEqual(expect.arrayContaining(["h-9", "ps-2", "gap-2"]));
+    expect([...row.classList]).toEqual(expect.arrayContaining(["h-9", "ps-2", "gap-[8.5px]"]));
     expect(row.title).toMatch(/^Working · /);
     expect(mascot()!.querySelector("[data-turn-status]")!.classList).toContain("text-ink-tertiary");
     expect(mascot()!.classList).not.toContain("-mt-3");

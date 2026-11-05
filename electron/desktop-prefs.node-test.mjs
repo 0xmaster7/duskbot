@@ -90,6 +90,7 @@ function desktopMain({ offered = true, page = event => event.page, config = () =
     languageChanged: (language, sender) => told.push([language, sender]),
     now: () => now,
     systemName: async () => "Ada Lovelace",
+    loginName: () => "ada",
   });
   const ask = (channel, page, ...args) => handlers.get(channel)({ page, sender: `${page}-page` }, ...args);
   const answer = channel => page => { const event = { page }; listeners.get(channel)(event); return event.returnValue; };
@@ -98,7 +99,7 @@ function desktopMain({ offered = true, page = event => event.page, config = () =
 
 test("every page of this desktop's window reads and records the same notices; nothing else is answered", async () => {
   const main = desktopMain();
-  assert.deepEqual(main.channels, ["desktop-notices:state", "desktop-notices:seen", "desktop-profile:system-name", "desktop-analytics:set", "desktop-language:set", "window-frame:state", "window-frame:set"]);
+  assert.deepEqual(main.channels, ["desktop-notices:state", "desktop-notices:seen", "desktop-profile:system-name", "desktop-profile:login-name", "desktop-analytics:set", "desktop-language:set", "window-frame:state", "window-frame:set"]);
   for (const page of ["local", "cloud", "server"]) assert.deepEqual(await main.ask("desktop-notices:state", page), { seen: [], cloud: true });
   await main.ask("desktop-notices:seen", "server", POPUP);
   assert.deepEqual(await main.ask("desktop-notices:state", "local"), { seen: [POPUP], cloud: true });
@@ -110,6 +111,8 @@ test("a first run's default name for the profile goes to this computer's own pag
   const main = desktopMain();
   assert.equal(await main.ask("desktop-profile:system-name", "local"), "Ada Lovelace");
   for (const page of ["cloud", "server"]) assert.throws(() => main.ask("desktop-profile:system-name", page), /only available in this app's window/, page);
+  assert.equal(await main.ask("desktop-profile:login-name", "local"), "ada");
+  for (const page of ["cloud", "server"]) assert.throws(() => main.ask("desktop-profile:login-name", page), /only available in this app's window/, page);
 });
 
 test("This computer's own record counts on every page before its page loads on this build: an earlier close; the welcome's Cloud beat does not", async () => {

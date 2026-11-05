@@ -3,6 +3,7 @@
 // the person hid the window's rail of places and whether they turned the window's frame off.
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
 import { onboardingHints } from "./onboarding-record.mjs";
 import { DEFAULT_TALK_KEY, isTalkKey } from "./talk-keys.mjs";
 import { createUpdatesConsent, parseUpdatesConsent, registerUpdatesConsent } from "./updates-consent.mjs";
@@ -137,7 +138,7 @@ export function createDesktopPrefs({ read, write, frameByDefault = true }) {
  * MausBot Cloud, asked once its Cloud sign-in is restored. `localConfig()`: This computer's own workspace's config.json.
  * `languageChanged(language, sender)`: tells this desktop's other pages the language picked on one of them.
  */
-export function registerDesktopPrefs({ prefs: given, ipcMain, read, write, page, cloudOffered, cloudAccount, localConfig = () => null, languageChanged = () => {}, frame = null, now = Date.now, systemName = accountFullName }) {
+export function registerDesktopPrefs({ prefs: given, ipcMain, read, write, page, cloudOffered, cloudAccount, localConfig = () => null, languageChanged = () => {}, frame = null, now = Date.now, systemName = accountFullName, loginName = () => os.userInfo().username }) {
   let prefs = given ?? null;
   const store = () => prefs ??= createDesktopPrefs({ read, write });
   const from = (channel, pages, handler) => (event, ...args) => {
@@ -158,6 +159,8 @@ export function registerDesktopPrefs({ prefs: given, ipcMain, read, write, page,
   ipcMain.handle("desktop-notices:seen", from("desktop-notices:seen", ANY, (_, id) => store().markSeen(id)));
   // A first run's default name for the profile: this computer's own page only, never a server's.
   ipcMain.handle("desktop-profile:system-name", from("desktop-profile:system-name", ["local"], () => systemName()));
+  // the footer avatar's fallback when the account has no full name: the login's short name, as grok shows it
+  ipcMain.handle("desktop-profile:login-name", from("desktop-profile:login-name", ["local"], () => { try { return String(loginName() ?? "").trim() || null; } catch { return null; } }));
   // Security: a server's page learns only that this desktop turned analytics off, never that it is on.
   ipcMain.on("desktop-analytics:read", event => {
     try {

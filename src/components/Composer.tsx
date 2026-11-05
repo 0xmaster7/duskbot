@@ -531,6 +531,11 @@ export function Composer({
   // Simple mode's round button is the call, Send while there is text, and Stop while the bot works.
   const stopInSlot = simpleDock && stoppable && !locked && !hasContent && !calling;
   const callShown = !simpleDock || (!hasContent && !stopInSlot);
+  // the round button's glyph pops in only when it swaps here (call, send, stop); a fresh composer, as on a chat
+  // switch, shows it at rest like grok's
+  const glyphShape = `${hasContent}|${stopInSlot}|${callShown}`;
+  const [glyphs, setGlyphs] = useState({ shape: glyphShape, swapped: false });
+  if (glyphs.shape !== glyphShape) setGlyphs({ shape: glyphShape, swapped: true });
   const slot = slotColors(bot?.color, Boolean(group));
   // A one-to-one bot at work: Enter does the chosen follow-up and Ctrl/⌘ with it the other one. Rooms keep their own queue.
   const followUpFor = (alternate: boolean) => resolveFollowUp({ running: busy && !group && Boolean(bot), alternate, preferred: followUpDefault, canSteer }) ?? undefined;
@@ -808,7 +813,7 @@ export function Composer({
         )}
         <div ref={pillContentRef} className={singleRow ? cn("min-w-0 flex-1 rounded-[26px] px-3 py-1.5", ELEVATED_FLOAT) : simpleDock ? "flex shrink-0 flex-col" : "contents"}>
         {replyTo && <ComposerReplyStrip message={replyTo} fallbackName={bot?.name} onClear={onClearReply} />}
-        <div data-composer-row style={simpleDock ? slot.vars : undefined} className={cn("flex items-end", simpleDock ? cn("gap-2", stacked && "gap-y-2") : "gap-1", !singleRow && !simpleDock && "@max-[30rem]/composer:flex-wrap", stacked && "flex-wrap")}>
+        <div data-composer-row data-glyph-swap={glyphs.swapped ? "" : undefined} style={simpleDock ? slot.vars : undefined} className={cn("flex items-end", simpleDock ? cn("gap-2", stacked && "gap-y-2") : "gap-1", !singleRow && !simpleDock && "@max-[30rem]/composer:flex-wrap", stacked && "flex-wrap")}>
           <input
             ref={fileInput}
             type="file"

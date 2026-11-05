@@ -21,6 +21,7 @@ import { submenuPosition } from "./SidebarPopoverMenu";
 import { submenuIntent, type SubmenuIntent } from "@/lib/submenu-intent";
 import { useAdvancedMode } from "@/lib/interface-mode";
 import { useMoveToTeam } from "./MoveToTeam";
+import { openBotSettingsPage } from "./bot-panel/panel-link";
 import type { MenuState } from "./Sidebar";
 import { departmentNames, moveBotsToSection, useMayMoveBots } from "./bot-sections";
 
@@ -274,6 +275,7 @@ export function BotContextMenu({
       : onNewSection ? grokItem("folder-plus", t("sidebar.grok.moveToNewSection"), () => onNewSection(bot.id)) : null;
     const rename = onRename && grokItem("pencil-square", t("sidebar.grok.renameBot"), () => onRename(bot.id));
     const copyId = grokItem("copy", t("sidebar.copyConversationId"), () => { void copyText(bot.threadId); });
+    const settings = grokItem("gear", t("sidebar.grok.botSettings"), () => openBotSettingsPage(dispatch, bot.id));
     const readState = readingBotId === bot.id || botUnreadThreadIds(bot).length > 0
       ? grokItem("bell", t("sidebar.grok.markRead"), () => { void readAll(bot); }, { disabled: readingBotId !== null, keepOpen: true })
       : grokItem("bell-dot", t("sidebar.grok.markUnread"), () => dispatch({ type: "markUnread", botId: bot.id }));
@@ -285,6 +287,7 @@ export function BotContextMenu({
       [remoteClient ? null : grokItem(bot.pinned ? "pin-slash" : "pin", bot.pinned ? t("sidebar.bot.unpin") : t("sidebar.bot.pin"), () => dispatch({ type: "updateBot", botId: bot.id, patch: { pinned: !bot.pinned } })), moveTo, readState],
       [rename],
       [copyId],
+      [settings],
       [hide, remove],
     ].map((group) => group.filter(Boolean)).filter((group) => group.length > 0);
     return <>{clearThreads.dialog}{moveToTeam.dialog}{createPortal(

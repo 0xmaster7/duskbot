@@ -208,7 +208,7 @@ export function TurnPresence({
       <div
         title={simple && showWorking ? [lead, since !== null ? formatElapsed(Date.now() - since) : null, detail ?? (now ? current : null), size].filter(Boolean).join(" · ") : undefined}
         className={cn(
-          simple ? "flex h-9 min-w-0 max-w-full items-center gap-2 ps-2" : "flex min-w-0 max-w-full items-center gap-2",
+          simple ? "flex h-9 min-w-0 max-w-full items-center gap-[8.5px] ps-2" : "flex min-w-0 max-w-full items-center gap-2",
           presencePhase === "think" && "turn-mascot-in",
           presencePhase === "out" && "turn-mascot-out",
         )}

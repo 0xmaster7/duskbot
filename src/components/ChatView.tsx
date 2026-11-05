@@ -1,4 +1,4 @@
-import { createContext, memo, use, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type ComponentType, type Dispatch, type Ref } from "react";
+import { createContext, memo, startTransition, use, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type ComponentType, type Dispatch, type Ref } from "react";
 import { useAdvancedMode } from "@/lib/interface-mode";
 import { PHONE_LAYOUT, useMediaQuery } from "@/lib/use-media-query";
 import { ThreadLinkContext } from "@/components/ThreadLinkMenu";
@@ -681,8 +681,32 @@ function statusMarkFor({ busy, waitingOnYou, answering, live, failed }: { busy: 
   }
 }
 
-/** Simple mode's room under the last row, above the composer's own clearance. */
-const SIMPLE_TRAILING_GAP = 42;
+/** Simple mode's room under the last row, above the composer's own clearance: grok's last bubble ends 54px over the composer. */
+const SIMPLE_TRAILING_GAP = 34;
+
+/** How many of a window's newest rows an opened chat paints in its first frame, and how many older ones each later step adds. */
+export const FIRST_PAINT_ROWS = 16;
+export const MOUNT_STEP_ROWS = 24;
+
+/** A chat opened on a long window paints its newest rows first, then mounts the older ones above them a step at a time in
+ * interruptible renders, so switching into it never blocks a frame. A search jump or a window off the latest rows
+ * (`hold`) mounts whole, since it scrolls to a row that may sit above the tail. */
+export function useFirstPaintRows(key: string, rows: Message[], hold: boolean): Message[] {
+  const [shown, setShown] = useState({ key, count: FIRST_PAINT_ROWS });
+  if (shown.key !== key) setShown({ key, count: FIRST_PAINT_ROWS });
+  // a chat whose rows all showed once keeps showing all of them as it grows, without another render to say so
+  const whole = useRef<string | null>(null);
+  const count = hold || whole.current === key ? Infinity : shown.key === key ? shown.count : FIRST_PAINT_ROWS;
+  const total = rows.length;
+  useEffect(() => {
+    if (count >= total) {
+      whole.current = key;
+      return;
+    }
+    startTransition(() => setShown({ key, count: count + MOUNT_STEP_ROWS >= total ? Infinity : count + MOUNT_STEP_ROWS }));
+  }, [key, count, total, hold]);
+  return useMemo(() => (count >= rows.length ? rows : rows.slice(-count)), [count, rows]);
+}
 
 const MessagesList = memo(function MessagesList({
   messages,
@@ -1030,6 +1054,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const [markEmphasized, setMarkEmphasized] = useState(false);
   const statusMarkState = statusMarkFor({ busy: Boolean(bot.busy), waitingOnYou: bot.activity === "waiting-on-you", answering: popping !== null, live: live.status?.activity, failed: lastMessage?.kind === "activity" && lastMessage.tool?.ok === false });
   const presenceVisible = waiting || popping !== null || teammatesWorking;
+  const paintedMessages = useFirstPaintRows(transcriptKey, windowedMessages, Boolean(focus && !focus.consumed) || laterCount > 0);
   const lastShownRow = windowedMessages.findLast((message) => !quietRow(message, showToolCalls));
   const presenceUnderBubble = Boolean(lastShownRow && isBotTextRow(lastShownRow, bot.id));
   const announcement = useMemo((): TranscriptSnapshot => {
@@ -1254,7 +1279,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           {windowedMessages.length === 0 && !bot.busy && <EmptyChat bot={bot} />}
           <ChatRowsContext.Provider value={rows}><LiveToolsContext value={liveTools}><ChatBusyContext value={busy}>
             <MessagesList
-              messages={windowedMessages}
+              messages={paintedMessages}
               transcript={messages}
               lookups={lookups}
               place={place}
