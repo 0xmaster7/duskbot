@@ -809,7 +809,7 @@
   border-radius: 9px;
   background: var(--color-menu);
   box-shadow: var(--ca-shadow);
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 15px;
 }
 .ca-toast > :nth-child(2) { flex: 1 1 auto; min-width: 0; }

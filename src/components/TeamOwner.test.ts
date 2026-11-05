@@ -40,11 +40,15 @@ describe("who looks after a team bot, in the sidebar", () => {
     expect(row(bot({ createdBy: ADA.email }))).not.toContain("data-owner-face");
   });
 
-  it("keeps the selected bot's ⋯ menu in view, not only on hover", () => {
+  it("hides even the selected bot's ⋯ menu until keyboard focus or its menu is open, as grok does", () => {
     const actions = (markup: string) => markup.match(/<button[^>]*data-bot-actions="fox"[^>]*>/)?.[0] ?? "";
-    expect(actions(row(bot(), true))).toContain("opacity-100");
-    expect(actions(row(bot(), false))).toContain("opacity-0");
-    expect(actions(row(bot(), false))).toContain("group-hover:opacity-100");
+    for (const selected of [true, false]) {
+      const button = actions(row(bot(), selected));
+      expect(button).toContain("pointer-events-none opacity-0");
+      expect(button).toContain("group-has-[:focus-visible]:opacity-100");
+      expect(button).toContain("aria-expanded:opacity-100");
+      expect(button).not.toContain("group-hover:");
+    }
   });
 
   it("names no department caption for the person its bots report to", () => {

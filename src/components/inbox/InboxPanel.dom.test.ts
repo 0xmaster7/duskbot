@@ -15,7 +15,7 @@ vi.mock("../../state/api", () => ({
 }));
 
 import { initialState, StoreContext, type AppState, type Bot } from "@/state/store";
-import { BOT_BUTTON, botButtonTone } from "@/lib/bot-button";
+import { BOT_BUTTON } from "@/lib/bot-button";
 import { closeInbox, currentInboxPanel, inboxVersion, openInbox, setInboxView, useInboxLoader } from "@/state/inbox";
 import { approvalRow, inboxView, messageRow, questionRow, reportRow, settledRow } from "@/testing/inbox-fixture";
 import type { InboxView } from "../../../shared/inbox";
@@ -119,25 +119,25 @@ describe("the inbox's card in the chat", () => {
   });
 });
 
-describe("answer buttons in the asking bot's colour", () => {
+describe("answer buttons on an ask", () => {
   const reporter = { id: "reporter", name: "Reporter", color: "orange" } as Bot;
   /** The answer under a line, not the quick action on the row itself. */
   const answer = (selector: string) => [...document.querySelectorAll<HTMLElement>(selector)].find((button) => !button.closest("[data-inbox-row]"))!;
-  const own = (selector: string) => {
+  const ink = (selector: string) => {
     const button = answer(selector);
-    expect(button.className.split(" ")).toContain(BOT_BUTTON);
-    expect(button.style.getPropertyValue("--bot-button")).toBe(botButtonTone("orange").fill);
-    expect(button.style.getPropertyValue("--bot-button-ink")).toBe(botButtonTone("orange").ink);
+    expect(button.className.split(" ")).toContain("ui-button-primary");
+    expect(button.className.split(" ")).not.toContain(BOT_BUTTON);
+    expect(button.style.getPropertyValue("--bot-button")).toBe("");
   };
 
-  it("paints Allow on the chat's card and in the panel in the colour of the bot the line is from", async () => {
+  it("paints Allow on the chat's card and in the panel in ink like grok, even for a bot this app knows", async () => {
     shown({ ...inboxView(), anchor: questionRow.id });
     await mount(createElement(InboxCardSlot, { threadId: "inbox", messageId: questionRow.id }), [reporter]);
-    own('[data-inbox-card] [data-inbox-action="allow"]');
+    ink('[data-inbox-card] [data-inbox-action="allow"]');
     expect(answer('[data-inbox-card] [data-inbox-action="deny"]').className.split(" ")).not.toContain(BOT_BUTTON);
     openInbox({ reading: approvalRow.id });
     await mount(createElement(InboxPanel), [reporter]);
-    own('[data-inbox-reading] [data-inbox-action="allow"]');
+    ink('[data-inbox-reading] [data-inbox-action="allow"]');
   });
 
   it("keeps the plain primary for a teammate's line and for a bot this app does not know", async () => {

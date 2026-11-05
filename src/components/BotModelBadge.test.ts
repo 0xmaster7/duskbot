@@ -86,12 +86,17 @@ describe("sidebar bot row", () => {
       expect(found[0]).toContain(placement);
     });
 
-  // Simple mode shows the mark too (the owner's ask, 2026-10-22): a person sees which provider each bot runs on at a glance.
-  it.each<SidebarDensity>(["comfortable", "icons"])("shows the model once in a Simple mode %s row", (density) => {
+  // simple mode's rail still shows the mark; its comfortable row keeps to name and preview with no mark, as grok does.
+  it("shows the model once in a Simple mode icons row", () => {
     fixture.advanced = false;
-    const found = badges(render(bot("claude", "opus"), density));
+    const found = badges(render(bot("claude", "opus"), "icons"));
     expect(found).toHaveLength(1);
     expect(found[0]).toContain('aria-label="Model: Opus 4.1 (Claude)"');
+  });
+
+  it("shows no model mark in a Simple mode comfortable row", () => {
+    fixture.advanced = false;
+    expect(badges(render(bot("claude", "opus"), "comfortable"))).toHaveLength(0);
   });
 
   it("shows no badge while the bot's engine is missing", () => {

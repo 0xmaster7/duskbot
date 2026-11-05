@@ -67,7 +67,7 @@ describe("rendered references", () => {
 
   it("keeps a link the bot wrote words for, and code, as they are", () => {
     const html = render("[the drag fix](https://github.com/a/app/pull/7) and `a/app#8`");
-    expect(html).toContain(">the drag fix</a>");
+    expect(html).toContain('<span class="chat-link-text">the drag fix</span></span></a>');
     expect(html).not.toContain("data-github-ref");
     expect(html).toContain("<code");
     expect(html).toContain("a/app#8");
