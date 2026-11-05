@@ -7,8 +7,8 @@ const running = (name: string, extra: Partial<NonNullable<Message["tool"]>> = {}
 
 describe("Simple mode's working line", () => {
   it("says something friendly while nothing is reported, from grok's working pool, and thinking from its thinking pool", () => {
-    expect(friendlyNowPhrases(null)).toEqual({ phase: "friendly:generic", phrases: ["Working on it", "Chipping away"] });
-    expect(friendlyNowPhrases({ activity: "thinking" })).toEqual({ phase: "friendly:thinking", phrases: ["Thinking it through", "Mulling it over"] });
+    expect(friendlyNowPhrases(null)).toEqual({ phase: "friendly:generic", phrases: ["Working on it", "Chipping away", "Getting it done", "Making progress", "Handling it"] });
+    expect(friendlyNowPhrases({ activity: "thinking" })).toEqual({ phase: "friendly:thinking", phrases: ["Thinking it through", "Mulling it over", "Putting it together"] });
   });
 
   it("names the kind of work in plain words, never a file name or size", () => {

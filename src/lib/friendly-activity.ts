@@ -5,8 +5,8 @@ import { t } from "./i18n";
 import { turnNowPhrases, type LiveActivityPhrases } from "./live-activity";
 
 // grok's two pools: thinking draws from its thinking phrases, any other unnamed work from its working ones
-const THINKING: LocaleKey[] = ["chat.friendly.thinking", "chat.friendly.mulling"];
-const GENERIC: LocaleKey[] = ["chat.friendly.working", "chat.friendly.chipping"];
+const THINKING: LocaleKey[] = ["chat.friendly.thinking", "chat.friendly.mulling", "chat.friendly.puttingTogether"];
+const GENERIC: LocaleKey[] = ["chat.friendly.working", "chat.friendly.chipping", "chat.friendly.gettingDone", "chat.friendly.progress", "chat.friendly.handling"];
 // a command, search or page is said by its kind, never by the command or address itself
 const STEP_PHRASES: Record<string, LocaleKey> = { command: "chat.friendly.commands", web: "chat.friendly.digging", fetch: "chat.friendly.digging" };
 

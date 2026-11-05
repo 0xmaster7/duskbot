@@ -176,7 +176,7 @@ export function appliedChange(card: OptionCardData, name: string): { line: strin
     const changed = PROFILE_REQUEST_FIELDS.filter((field) => profile.changes[field] !== undefined)
       .map((field) => t(PROFILE_FIELD_LABEL[field])).join(", ");
     // the line only says it happened; what changed waits behind Details
-    return { line: t("approval.status.profileUpdated"), canUndo: Boolean(profile.undo), detail: changed };
+    return { line: t("approval.applied.profileOwnPlain", { name }), canUndo: Boolean(profile.undo), detail: changed };
   }
   const model = card.modelRequest;
   if (model) {

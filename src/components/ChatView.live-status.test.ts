@@ -94,7 +94,8 @@ describe("Simple mode's working line", () => {
     engine({ type: "turn.started" });
     render(busyBot([ask]));
     expect(mascot()).not.toBeNull();
-    expect(statusLine()).toBe("Working on it");
+    const first = statusLine();
+    expect(["Working on it", "Chipping away", "Getting it done", "Making progress", "Handling it"]).toContain(first);
     expect(mascot()!.innerHTML).toMatch(/width(="|: )28px/);
     const row = mascot()!.firstElementChild as HTMLElement;
     expect([...row.classList]).toEqual(expect.arrayContaining(["h-9", "ps-2", "gap-[8.5px]"]));
@@ -107,7 +108,7 @@ describe("Simple mode's working line", () => {
     render(busyBot([ask, intro]));
     expect(slot().classList, "under the bot's own bubble it sits close, as one more part of the reply").toContain("-mt-3");
     engine({ type: "turn.progress", activity: "write", itemId: "toolu_write", file: "index.html", bytes: 14 * 1024 + 300 } as Partial<RuntimeEvent>);
-    expect(statusLine(), "a step keeps its words 800ms before the next replaces them, as grok's line does").toBe("Working on it");
+    expect(statusLine(), "a step keeps its words 800ms before the next replaces them, as grok's line does").toBe(first);
     act(() => void vi.advanceTimersByTime(800));
     expect(statusLine()).toBe("Writing some code");
   });

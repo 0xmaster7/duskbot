@@ -680,7 +680,7 @@ describe("ApprovalCard for a change that applied on its own", () => {
         expectedRevision: "r", undo: { appliedRevision: "r2" },
       },
     }));
-    expect(profile).toContain("Profile updated</span>");
+    expect(profile).toMatch(/updated its settings<\/span>/);
     expect(profile).not.toContain("title, standing instructions");
     expect(profile).toContain(">Undo<");
     const model = render(applied({
