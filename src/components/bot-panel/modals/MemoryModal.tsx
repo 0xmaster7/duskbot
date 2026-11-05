@@ -2,7 +2,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { Bot } from "@/state/store";
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
-import { DialogEmpty, DialogSection, DialogSkeleton, dialogPrimaryCls, FilledField, footnoteCls, GrokDialog, listRowCls, RowIconButton, rowHintCls, rowTitleCls } from "../../ui/GrokDialog";
+import { DialogEmpty, DialogSection, DialogSkeleton, FilledField, footnoteCls, GrokDialog, listRowCls, RowIconButton, rowHintCls, rowTitleCls } from "../../ui/GrokDialog";
 import { BotSwitch } from "../rows";
 import { useMemoryEditor } from "./use-memory-editor";
 
@@ -23,7 +23,6 @@ export function MemoryModal({ bot, derived, onClose }: {
       title={t("botPanel.memoryRow")}
       description={`What ${bot.name} keeps in mind between chats.`}
       onClose={onClose}
-      footer={<button type="button" onClick={onClose} className={dialogPrimaryCls}>{t("common.done")}</button>}
     >
       <div className="flex flex-col gap-7">
         <DialogSection>

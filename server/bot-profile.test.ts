@@ -112,12 +112,17 @@ describe("mascotBody", () => {
     });
   });
 
+  it("accepts the Grok-style bodies the picker offers", () => {
+    expect(parseBotProfilePatch({ mascotBody: "cloud" }, true)).toEqual({ ok: true, patch: { mascotBody: "cloud" } });
+  });
+
   it("maps an unknown body to a readable message", () => {
     expect(parseBotProfilePatch({ mascotBody: "hexagram" } as never, true)).toEqual({
       ok: false,
       error:
         "mascotBody must be cursor, blob, circle, squircle, capsule, drop, shield, hexagon, diamond, star, " +
-        "pumpkin, ghost, witch, bat, cat, skull, monster, mummy, vampire, or spider",
+        "tablet, cloud, flower, sparkle, wedge, heart, fruit, clover, square, teardrop, pebble, bean, egg, cylinder, " +
+        "hex, gem, crystal, dome, arch, leaf, house, pumpkin, ghost, witch, bat, cat, skull, monster, mummy, vampire, or spider",
     });
   });
 });

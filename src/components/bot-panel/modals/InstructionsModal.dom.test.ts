@@ -48,23 +48,29 @@ describe("the Instructions dialog", () => {
     expect(document.activeElement).toBe(field());
   });
 
-  it("saves only a changed draft, then closes", () => {
+  it("saves only a changed draft and stays open", () => {
     const { patch, onClose } = mount({});
     expect(save().disabled).toBe(true);
     type("Be brief. Use lists.");
     expect(save().disabled).toBe(false);
     flushSync(() => save().click());
     expect(patch).toHaveBeenCalledWith({ soul: "Be brief. Use lists." });
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
   });
 
-  it("leaves the instructions as they were on Cancel, Escape or the close button", () => {
+  it("shows the size only near the limit", () => {
+    mount({});
+    expect(sheet().querySelector("[data-instructions-count]")).toBeNull();
+    type("x".repeat(20_000));
+    expect(sheet().querySelector("[data-instructions-count]")!.textContent).toBe("20,000 / 24,000");
+  });
+
+  it("leaves the instructions as they were on Escape or the close button", () => {
     const { patch, onClose } = mount({});
     type("Something else");
-    flushSync(() => [...sheet().querySelectorAll("button")].find((button) => button.textContent === "Cancel")!.click());
     flushSync(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
     flushSync(() => sheet().querySelector<HTMLButtonElement>('button[aria-label="Close"]')!.click());
-    expect(onClose).toHaveBeenCalledTimes(3);
+    expect(onClose).toHaveBeenCalledTimes(2);
     expect(patch).not.toHaveBeenCalled();
   });
 

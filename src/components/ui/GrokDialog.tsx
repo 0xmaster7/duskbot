@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type FormEvent, type ReactNode, type Ref } from "react";
+import { createContext, useContext, useEffect, useId, useRef, type FormEvent, type ReactNode, type Ref, type RefObject } from "react";
 import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/cn";
@@ -22,24 +22,16 @@ export const rowHintCls = "text-[13px] leading-[18px] tracking-[-0.08px] text-in
 export const footnoteCls = "m-0 pl-2 text-[12px] leading-4 tracking-[0.01em] text-ink/56";
 export const listCardCls = "flex flex-col rounded-[14px] bg-menu py-2 outline-1 -outline-offset-1 outline-ink/8 [outline-style:solid]";
 export const listRowCls = "flex min-h-12 items-center gap-x-5 px-3.5 py-2.5";
-export const textAreaCls = "block w-full resize-none rounded-[14px] border border-ink/8 bg-menu px-3.5 py-3 text-[14px] leading-[22px] tracking-[0.01em] text-ink outline-none transition-[border-color] duration-[120ms] ease-[ease] [scrollbar-width:thin] placeholder:text-ink/40 focus:border-ink/40! disabled:opacity-50";
+export const textAreaCls = "block w-full resize-none rounded-[14px] border border-ink/8 bg-menu px-3.5 py-3 text-[14px] leading-[22px] tracking-[0.01em] text-ink outline-none transition-[border-color] duration-[120ms] ease-[ease] [scrollbar-width:thin] placeholder:text-ink/40 focus:border-ink/24! disabled:opacity-50";
 
 const FOCUSABLE = "button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex='-1'])";
 
-/** Grok's settings-pane sheet: app-toned, 14px corners on a 1px ink/12 edge, a 17px title with no rule under it,
- * white list cards in the body and a borderless footer. It appears and goes at once, as Grok's app dialogs do. */
-export function GrokDialog({ title, description, width = 540, onClose, footer, children, ...rest }: {
-  title: ReactNode;
-  description?: ReactNode;
-  width?: number;
-  onClose: () => void;
-  footer?: ReactNode;
-  children: ReactNode;
-  "data-panel-modal"?: string;
-}) {
-  const sheet = useRef<HTMLDivElement>(null);
-  const titleId = useId();
-  const descriptionId = useId();
+/** Set by a sheet with a rail (the bot's settings): a dialog inside it draws as that sheet's pane instead of its own sheet. */
+export const DialogPane = createContext(false);
+
+/** Focus into the dialog on open and back to the opener on close, Escape to close, Tab kept inside. A nested dialog
+ * handles its own keys. */
+export function useDialogKeys(sheet: RefObject<HTMLElement | null>, onClose: () => void) {
   const close = useRef(onClose);
   close.current = onClose;
 
@@ -73,7 +65,52 @@ export function GrokDialog({ title, description, width = 540, onClose, footer, c
       window.removeEventListener("keydown", onKey);
       if (opener?.isConnected) opener.focus({ preventScroll: true });
     };
-  }, []);
+  }, [sheet]);
+
+  return close;
+}
+
+/** Grok's settings-pane sheet: app-toned, 14px corners on a 1px ink/12 edge, a 17px title with no rule under it,
+ * white list cards in the body and a borderless footer. It appears and goes at once, as Grok's app dialogs do. */
+export function GrokDialog(props: DialogProps) {
+  return useContext(DialogPane) ? <PaneView {...props} /> : <SheetView {...props} />;
+}
+
+interface DialogProps {
+  title: ReactNode;
+  description?: ReactNode;
+  width?: number;
+  onClose: () => void;
+  footer?: ReactNode;
+  children: ReactNode;
+  "data-panel-modal"?: string;
+}
+
+const headerCls = "flex shrink-0 flex-col gap-1 pb-1.5 pl-8 pr-[54px] pt-8";
+const titleCls = "m-0 min-w-0 truncate pl-2 text-[17px] font-medium leading-6 tracking-[0.01em]";
+
+/** The same dialog as one pane of a railed sheet: Settings' header and scrolling body, the footer pinned under it. */
+function PaneView({ title, description, footer, children, onClose: _onClose, width: _width, ...rest }: DialogProps) {
+  const titleId = useId();
+  return (
+    <section {...rest} aria-labelledby={titleId} className="flex min-h-0 flex-1 flex-col">
+      <header className={headerCls}>
+        <h2 id={titleId} className={titleCls}>{title}</h2>
+        {description && <p className={cn(rowHintCls, "m-0 pl-2 text-pretty")}>{description}</p>}
+      </header>
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-8 pb-7 pt-[22px] [scrollbar-width:none]">
+        {children}
+      </div>
+      {footer && <div className="-mt-3 flex shrink-0 items-center justify-end gap-2 px-8 pb-6 pt-1">{footer}</div>}
+    </section>
+  );
+}
+
+function SheetView({ title, description, width = 540, onClose, footer, children, ...rest }: DialogProps) {
+  const sheet = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const descriptionId = useId();
+  const close = useDialogKeys(sheet, onClose);
 
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -97,8 +134,8 @@ export function GrokDialog({ title, description, width = 540, onClose, footer, c
         >
           <GrokIcon name="close" size={14} />
         </button>
-        <header className="flex shrink-0 flex-col gap-1 pb-1.5 pl-8 pr-[54px] pt-8">
-          <h2 id={titleId} className="m-0 min-w-0 truncate pl-2 text-[17px] font-medium leading-6 tracking-[0.01em]">{title}</h2>
+        <header className={headerCls}>
+          <h2 id={titleId} className={titleCls}>{title}</h2>
           {description && <p id={descriptionId} className={cn(rowHintCls, "m-0 pl-2 text-pretty")}>{description}</p>}
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-8 pb-7 pt-[22px] [scrollbar-width:thin]">

@@ -3,7 +3,7 @@ import { t } from "@/lib/i18n";
 import type { Bot } from "@/state/store";
 import type { GrokIconName } from "../../GrokIcon";
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
-import { DialogChoice, DialogSection, dialogPrimaryCls, footnoteCls, GrokDialog } from "../../ui/GrokDialog";
+import { DialogChoice, DialogSection, footnoteCls, GrokDialog } from "../../ui/GrokDialog";
 import { usePlacePicker, type PlaceChoice } from "../ComputerTab";
 
 const PLACE_ICON: Record<PlaceChoice, GrokIconName> = {
@@ -39,12 +39,7 @@ export function WhereModal({ bot, derived, onClose }: {
       title={title}
       description={`The computer ${bot.name} uses when a task needs apps, files or a browser.`}
       onClose={onClose}
-      footer={(
-        <>
-          {usingNow && <span data-panel-using-now className="mr-auto truncate pl-2 text-[12px] leading-4 tracking-[0.01em] text-ink/56">{t("computer.simple.usingNow", { place: usingNow })}</span>}
-          <button type="button" onClick={onClose} className={dialogPrimaryCls}>{t("common.done")}</button>
-        </>
-      )}
+      footer={usingNow && <span data-panel-using-now className="mr-auto truncate pl-2 text-[12px] leading-4 tracking-[0.01em] text-ink/56">{t("computer.simple.usingNow", { place: usingNow })}</span>}
     >
       <div className="flex flex-col gap-2.5">
         <DialogSection>

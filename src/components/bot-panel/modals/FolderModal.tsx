@@ -7,7 +7,7 @@ import type { Bot } from "@/state/store";
 import { useDesktopCapabilities } from "../../DesktopCapabilities";
 import { GrokIcon } from "../../GrokIcon";
 import { useWorkingFolder } from "../../bot-settings/AccessSection";
-import { DialogChoice, DialogSection, dialogPrimaryCls, footnoteCls, GrokDialog, rowButtonCls } from "../../ui/GrokDialog";
+import { DialogChoice, DialogSection, footnoteCls, GrokDialog, rowButtonCls } from "../../ui/GrokDialog";
 
 const pathBoxCls = "flex h-8 min-w-0 flex-1 items-center gap-1.5 rounded-[10px] border border-ink/12 bg-ink/4 px-2.5 font-mono text-[12px] leading-4 text-ink";
 
@@ -26,7 +26,6 @@ export function FolderModal({ bot, onClose }: { bot: Bot; onClose: () => void })
       title={t("computer.files.folder")}
       description={t("botPanel.folder.intro", { name: bot.name })}
       onClose={onClose}
-      footer={<button type="button" onClick={onClose} className={dialogPrimaryCls}>{t("common.done")}</button>}
     >
       <div className="flex flex-col gap-2.5">
         <DialogSection>

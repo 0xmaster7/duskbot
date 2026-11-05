@@ -8,7 +8,7 @@ import { useStore, type Bot } from "@/state/store";
 import { GrokIcon } from "../../GrokIcon";
 import { InstanceProviderMark } from "../../ProviderIcons";
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
-import { DialogEmpty, DialogSection, dialogPrimaryCls, footnoteCls, GrokDialog, listRowCls, RowIconButton, rowHintCls, rowTitleCls } from "../../ui/GrokDialog";
+import { DialogEmpty, DialogSection, footnoteCls, GrokDialog, listRowCls, RowIconButton, rowHintCls, rowTitleCls } from "../../ui/GrokDialog";
 import { BackupChooser, MAX_BACKUPS, modelKey, type Backup } from "../BackupAis";
 
 const chooserRowCls = "mx-1.5 flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-[10px] px-2 text-left transition-[background-color] duration-[120ms] ease-[ease] hover:bg-ink/5 aria-expanded:bg-ink/6 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus disabled:cursor-default";
@@ -51,7 +51,6 @@ export function BackupsModal({ bot, derived, onClose }: {
       title={t("botPanel.backups.title")}
       description={`If ${bot.name}'s AI hits its limit or can't start, the first one here takes over.`}
       onClose={onClose}
-      footer={<button type="button" onClick={onClose} className={dialogPrimaryCls}>{t("common.done")}</button>}
     >
       <div className="flex flex-col gap-7">
         <DialogSection label="Main AI">

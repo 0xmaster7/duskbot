@@ -2,7 +2,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";
 import { SkillReviewDialog } from "../../bot-settings/SkillsSection";
-import { DialogEmpty, DialogLinkRow, DialogSection, DialogSkeleton, dialogPrimaryCls, FilledField, footnoteCls, GrokDialog, listRowCls, RowIconButton, rowHintCls, rowTitleCls } from "../../ui/GrokDialog";
+import { DialogEmpty, DialogLinkRow, DialogSection, DialogSkeleton, FilledField, footnoteCls, GrokDialog, listRowCls, RowIconButton, rowHintCls, rowTitleCls } from "../../ui/GrokDialog";
 import { BotSwitch } from "../rows";
 import { useSkillActions } from "./use-skill-actions";
 
@@ -19,7 +19,6 @@ export function SkillsModal({ bot, onClose }: { bot: Bot; onClose: () => void })
       title={t("botSettings.simple.skills")}
       description={t("botSettings.simple.skillsHint", { name: bot.name })}
       onClose={onClose}
-      footer={<button type="button" onClick={onClose} className={dialogPrimaryCls}>{t("common.done")}</button>}
     >
       <div className="flex flex-col gap-7">
         <div className="flex flex-col gap-2.5">
