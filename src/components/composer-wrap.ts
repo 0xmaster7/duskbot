@@ -7,15 +7,16 @@ import { useLayoutEffect, useRef, useState, type RefObject } from "react";
  */
 export function usePillHeight(shellRef: RefObject<HTMLDivElement | null>, contentRef: RefObject<HTMLDivElement | null>, on: boolean, expanded: boolean, composing = false): number | undefined {
   const [height, setHeight] = useState<number | undefined>(undefined);
-  const live = useRef({ expanded, composing, settled: expanded });
+  const live = useRef<{ expanded: boolean; composing: boolean; settled: boolean } | null>(null);
+  live.current ??= { expanded, composing, settled: expanded };
   live.current.expanded = expanded;
   live.current.composing = composing;
-  const measureRef = useRef<() => void>(() => {});
+  const measureRef = useRef<(() => void) | null>(null);
   useLayoutEffect(() => {
     const shell = shellRef.current;
     const content = contentRef.current;
     if (!on || !shell || !content || typeof ResizeObserver === "undefined") {
-      measureRef.current = () => {};
+      measureRef.current = null;
       setHeight(undefined);
       return;
     }
@@ -24,10 +25,11 @@ export function usePillHeight(shellRef: RefObject<HTMLDivElement | null>, conten
     const done = () => {
       window.clearTimeout(settle);
       delete shell.dataset.growing;
-      if (live.current.expanded) live.current.settled = true;
+      if (live.current?.expanded) live.current.settled = true;
     };
     const measure = () => {
       const state = live.current;
+      if (!state) return;
       if (!state.expanded) state.settled = false;
       else if (state.composing) state.settled = true;
       const snap = state.expanded && state.settled;
@@ -54,7 +56,7 @@ export function usePillHeight(shellRef: RefObject<HTMLDivElement | null>, conten
     shell.addEventListener("transitionend", ended);
     shell.addEventListener("transitioncancel", ended);
     return () => {
-      measureRef.current = () => {};
+      measureRef.current = null;
       observer.disconnect();
       shell.removeEventListener("transitionend", ended);
       shell.removeEventListener("transitioncancel", ended);
@@ -64,7 +66,7 @@ export function usePillHeight(shellRef: RefObject<HTMLDivElement | null>, conten
     };
   }, [shellRef, contentRef, on]);
   // a resize observer reports a frame late; measuring after every render starts the pill with its content
-  useLayoutEffect(() => measureRef.current());
+  useLayoutEffect(() => measureRef.current?.());
   return on ? height : undefined;
 }
 

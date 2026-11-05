@@ -55,10 +55,9 @@ function ShimmerPhrase({ text, className }: { text: string; className?: string }
   );
 }
 
-/** Grok's status label rules (its activity line): a turn's first moments say nothing until the bot is plainly busy
- * (5s of generic work, 2.5s of thinking), each step shows one phrase drawn for it and keeps it at least 800ms before
- * the next step may replace it. */
-export const STATUS_QUIET_MS = { working: 5_000, thinking: 2_500 } as const;
+/** The status label rules: the mark never shows without words, each step shows one phrase drawn for it and keeps it
+ * at least 800ms before the next step may replace it. */
+export const STATUS_QUIET_MS = { working: 0, thinking: 0 } as const;
 export const STATUS_HOLD_MS = 800;
 const TYPING_PHASE = "friendly:chat.typing";
 
@@ -91,6 +90,8 @@ export function useStatusLabel(phrases: readonly string[] | null, phase: string,
   else if (held) held.leftAt = undefined;
   const holdUntil = held ? Math.max(held.at, held.key === TYPING_PHASE ? held.leftAt ?? 0 : 0) + STATUS_HOLD_MS : 0;
   if (held && next?.key !== held.key && now < holdUntil) next = held;
+  // one phrase per step: a re-render inside the same step keeps the words it already showed
+  else if (held && next?.key === held.key) next = held;
   if (!next) shown.current = null;
   else if (next.key !== held?.key) shown.current = { ...next, at: now };
   const due = Math.min(...[quietUntil, holdUntil].filter((at) => at > now));

@@ -374,7 +374,7 @@
   animation: turn-mark-pop 340ms var(--omb-ease-back) backwards;
 }
 .turn-status-in .turn-label-slot {
-  animation: turn-label-rise 180ms var(--omb-ease-out) 220ms backwards;
+  animation: turn-label-rise 180ms var(--omb-ease-out) backwards;
 }
 .turn-status-out {
   transform-origin: 0 18px;

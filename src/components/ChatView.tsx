@@ -60,7 +60,7 @@ import { normalizeState } from "@/lib/mascot";
 import { peerLine, peerRequest, type PeerLine } from "@/lib/peer-message";
 import { showWorkingDots } from "@/lib/turn-tail";
 import { lastNonReceipt } from "@/lib/receipts";
-import { useTurnLive } from "@/state/turn-status"; import { replacedLiveReply, shownReplyText, useLiveReply, useLiveReplyActive } from "@/state/live-reply"; import { useTurnNow } from "./NowCard"; import { useThreadRoutineRun } from "@/state/older-routine-runs";
+import { useTurnLive } from "@/state/turn-status"; import { useLiveReplyActive } from "@/state/live-reply"; import { useTurnNow } from "./NowCard"; import { useThreadRoutineRun } from "@/state/older-routine-runs";
 import { ChatMarkdown } from "./ChatMarkdown";
 import { LiveToolsContext, useLiveToolIds } from "@/hooks/use-live-tool-ids";
 import { VoiceNoteBubble, type VoiceNoteAttachment } from "./VoiceNoteBubble";
@@ -391,7 +391,7 @@ const Bubble = memo(function Bubble({
   );
   const join: BubbleJoin = { above: joinAbove, below: joinBelow };
   // only rows that arrive while the conversation is open slide in; a reply that streamed in is already in place
-  const fresh = !emerging && message.at > openedAt && !replacedLiveReply(message.id);
+  const fresh = !emerging && message.at > openedAt;
   const reply = useReplySegments(conversational && !user && !peer && !viewRaw && !replyTarget && message.kind === "text", text, message.at, openedAt);
   const split = reply.segments.length > 1;
   // Simple mode draws each table of a reply as its own card between the reply's prose bubbles.
@@ -615,31 +615,6 @@ const Bubble = memo(function Bubble({
           </button>
         </div>
       )}
-    </div>
-  );
-});
-
-/** The reply the engine is writing, drawn as grok draws its streaming entry: the bubble the finished message will be,
- * each delta shown as it lands, no fade and no cursor. Only this row re-renders per delta. */
-const StreamingReply = memo(function StreamingReply({ threadId, joinAbove, joinBelow, after }: {
-  threadId: string;
-  joinAbove: boolean;
-  joinBelow: boolean;
-  /** The row above: the message frame can land before the stream lets go, and a reply is never drawn twice. */
-  after: Message | undefined;
-}) {
-  const { mentionPeers, mentionPerson } = useChatRows();
-  const live = useLiveReply(threadId);
-  const text = live ? stripLeakedSystemHarnessMessages(shownReplyText(live.text)) : "";
-  const shown = text.trim();
-  if (!shown || (after?.role === "bot" && after.kind === "text" && (after.text ?? "").trim().startsWith(shown))) return null;
-  return (
-    <div data-streaming-reply="" className={cn("group relative flex w-full flex-col items-start", joinAbove && SIMPLE_STACKED)}>
-      <div className="flex w-full items-center justify-start gap-1.5">
-        <div data-chat-bubble="simple" className={cn("w-fit", SIMPLE_BUBBLE_MAX, SIMPLE_BOT_BUBBLE, joinedCorners("start", { above: joinAbove, below: joinBelow }))}>
-          <div><ChatMarkdown text={text} mentionPeers={mentionPeers} mentionPerson={mentionPerson} /></div>
-        </div>
-      </div>
     </div>
   );
 });
@@ -1066,10 +1041,11 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const toolInFlight = (lastMessage?.kind === "activity" && lastMessage.tool?.ok === undefined) || Boolean(live.status && live.status.activity !== "thinking" && live.status.activity !== "reply");
   // The mascot and its status line stay for the whole turn; only its end hides them, never a timer.
   const waiting = Boolean(bot.busy && bot.activity !== "waiting-on-you" && showWorkingDots(bot.busy, lastMessage, undefined, live.ended));
-  const streamingReply = useLiveReplyActive(bot.threadId);
   const teammatesWorking = !advanced && !bot.busy && Boolean(bot.waitingForTeammates);
   const markRef = useRef<MausAvatarHandle>(null);
   const [markEmphasized, setMarkEmphasized] = useState(false);
+  // the reply is written whole; while the engine types it the mark only looks like it is answering
+  const streamingReply = useLiveReplyActive(bot.threadId);
   const statusMarkState = statusMarkFor({ busy: Boolean(bot.busy), waitingOnYou: bot.activity === "waiting-on-you", answering: streamingReply, live: live.status?.activity, failed: lastMessage?.kind === "activity" && lastMessage.tool?.ok === false });
   const presenceVisible = waiting || teammatesWorking;
   // the bubble the line hangs under keeps its pinched corner until the line has finished leaving, as grok's does
@@ -1077,8 +1053,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const paintedMessages = useFirstPaintRows(transcriptKey, windowedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef);
   const lastShownRow = windowedMessages.findLast((message) => !quietRow(message, showToolCalls));
   const lastRowIsBubble = Boolean(lastShownRow && isBotTextRow(lastShownRow, bot.id));
-  const showStreaming = !advanced && streamingReply && laterCount === 0;
-  const presenceUnderBubble = lastRowIsBubble || showStreaming;
+  const presenceUnderBubble = lastRowIsBubble;
   // grok keeps the status line's slot at the end of the conversation whether it shows or not, so it never moves a row
   const statusSlot = !advanced && (windowedMessages.length > 0 || busy);
   const announcement = useMemo((): TranscriptSnapshot => {
@@ -1321,9 +1296,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               onSubmitEdit={submitEdit}
               onRegenerate={regenerate}
               onReply={selectReply}
-              seamId={!advanced && lastRowIsBubble && (presenceShown || showStreaming) ? lastShownRow?.id ?? null : null}
+              seamId={!advanced && lastRowIsBubble && presenceShown ? lastShownRow?.id ?? null : null}
             />
-            {showStreaming && <StreamingReply threadId={bot.threadId} joinAbove={lastRowIsBubble} joinBelow={presenceShown} after={lastShownRow} />}
           </ChatBusyContext></LiveToolsContext></ChatRowsContext.Provider>
           {stopNoticeDue(messages, stoppedAt, busy) && <CancelledTurnRow name={PERSON_STOPPED_TURN_NAME} />}
           {laterCount > 0 && (
