@@ -152,7 +152,6 @@ describe("AccessSection always-allowed list", () => {
     const connect = nodes(tree).find((node) => node.type === "button" && renderToStaticMarkup(node).includes("Connect an app"))!;
     connect.props.onClick!();
     expect(fixture.dispatch.mock.calls).toEqual([
-      [{ type: "toggleSettings", open: false }],
       [{ type: "togglePlugins", open: true, surface: "apps" }],
     ]);
   });

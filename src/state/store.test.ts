@@ -3154,17 +3154,18 @@ describe("notifications feed", () => {
     }
   });
 
-  it("unpinned, the same four still close it exactly as before (regression guard)", () => {
+  it("unpinned, the three side panels still close it, the settings modal does not (regression guard)", () => {
     const open = reducer(initialState, { type: "toggleNotifications", open: true });
     expect(open.notificationsPinned).toBe(false);
     for (const action of [
       { type: "toggleComputer", open: true } as const,
       { type: "toggleInspector", open: true } as const,
       { type: "toggleActivity", open: true } as const,
-      { type: "toggleAppSettings", open: true } as const,
     ]) {
       expect(reducer(open, action).notificationsOpen).toBe(false);
     }
+    // Settings is a modal: the feed beside the chat stays as it was under it
+    expect(reducer(open, { type: "toggleAppSettings", open: true }).notificationsOpen).toBe(true);
   });
 });
 

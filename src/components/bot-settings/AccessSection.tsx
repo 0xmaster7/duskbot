@@ -140,7 +140,6 @@ export function McpServersCard({ bot, patch }: { bot: Bot; patch: (patch: { mcpS
     patch({ mcpServers: next });
   };
   const openPlugins = () => {
-    dispatch({ type: "toggleSettings", open: false });
     dispatch({ type: "togglePlugins", open: true, surface: "mcp" });
   };
 
@@ -742,7 +741,6 @@ export function AccessSection({
           <button
             type="button"
             onClick={() => {
-              dispatch({ type: "toggleSettings", open: false });
               dispatch({ type: "togglePlugins", open: true, surface: "apps" });
             }}
             className="mt-3 flex items-center gap-1.5 rounded-lg bg-control px-3 py-2 text-[13px] text-ink hover:bg-raised-hover"

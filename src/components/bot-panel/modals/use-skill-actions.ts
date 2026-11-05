@@ -56,7 +56,6 @@ export function useSkillActions(bot: Bot) {
   };
   const browse = () => {
     if (libraryOn) {
-      dispatch({ type: "toggleSettings", open: false });
       dispatch({ type: "toggleAppSettings", open: true, section: "skills" });
       return;
     }

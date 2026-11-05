@@ -1446,7 +1446,7 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         pluginsOpen: open,
         pluginsSurface: action.surface ?? state.pluginsSurface,
-        ...(open ? { settingsOpen: false, appSettingsOpen: false, shortcutsOpen: false } : {}),
+        ...(open ? { appSettingsOpen: false, shortcutsOpen: false } : {}),
       };
     }
     case "botCreationPending":
@@ -1542,16 +1542,12 @@ export function reducer(state: AppState, action: Action): AppState {
       const open = action.open ?? !state.appSettingsOpen;
       return {
         ...state,
+        // Settings is a modal over the window: whatever side panel was open stays open under it, as in Grok Bot.
         appSettingsOpen: open,
-        activityOpen: open ? false : state.activityOpen,
         appSettingsSection: action.section ?? state.appSettingsSection,
         appSettingsCloudLink: action.cloudLink && open ? state.appSettingsCloudLink + 1 : 0,
         appSettingsPhonePairing: action.phonePairing && open ? state.appSettingsPhonePairing + 1 : 0,
-        settingsOpen: open ? false : state.settingsOpen,
-        computerOpen: open ? false : state.computerOpen,
-        inspectorOpen: open ? false : state.inspectorOpen,
         pluginsOpen: open ? false : state.pluginsOpen,
-        notificationsOpen: open && !state.notificationsPinned ? false : state.notificationsOpen,
       };
     }
     case "toggleShortcuts": {
@@ -1787,7 +1783,7 @@ export function reducer(state: AppState, action: Action): AppState {
       return reconcileModelVariantSessions(reconcileSnapshotQueues(switched, [action.bot]));
     }
     case "newBot":
-      return action.preserveSelection ? state : { ...state, settingsOpen: false, appSettingsOpen: false, pluginsOpen: false, shortcutsOpen: false };
+      return action.preserveSelection ? state : { ...state, appSettingsOpen: false, pluginsOpen: false, shortcutsOpen: false };
     case "duplicateBot":
     case "createProject":
     case "updateProject":
@@ -2104,9 +2100,15 @@ export const StoreContext = createContext<{
   refreshModels: (instanceId: string) => Promise<void>;
 } | null>(null);
 
+/** Grok Bot keeps its info pane open across reloads (`sand.infoPane.open`): only the person closes it. */
+export const BOT_PANEL_OPEN_KEY = "openmausbot.botPanelOpen.v1";
+
 function restoreBotSettingsSection(state: AppState): AppState {
   const section = readLastBotSection();
-  return section ? { ...state, botSettingsSection: section, botSettingsSectionStored: true } : state;
+  let panelOpen = false;
+  try { panelOpen = globalThis.localStorage?.getItem(BOT_PANEL_OPEN_KEY) === "1"; } catch {}
+  const restored = panelOpen ? { ...state, settingsOpen: true } : state;
+  return section ? { ...restored, botSettingsSection: section, botSettingsSectionStored: true } : restored;
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -2128,6 +2130,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (state.selectedId) rememberConversation(state.selectedId);
   }, [state.selectedId]);
+  useEffect(() => {
+    try { globalThis.localStorage?.setItem(BOT_PANEL_OPEN_KEY, state.settingsOpen ? "1" : "0"); } catch {}
+  }, [state.settingsOpen]);
   useEffect(() => {
     if (state.settingsOpen && state.botSettingsExpandAccordion) rememberBotSection(state.botSettingsSection);
   }, [state.settingsOpen, state.botSettingsExpandAccordion, state.botSettingsSection]);

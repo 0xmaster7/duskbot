@@ -16,7 +16,7 @@ import { parseComputerHelp } from "@/lib/computer-control";
 import { Sidebar } from "@/components/Sidebar";
 import { ChatView } from "@/components/ChatView";
 import { GroupView } from "@/components/GroupView";
-import { SIDEBAR_AND_PANEL_FIT, SIDEBAR_INLINE, TWO_SIDE_PANELS_FIT, useMediaQuery } from "@/lib/use-media-query";
+import { SIDEBAR_INLINE, TWO_SIDE_PANELS_FIT, useMediaQuery } from "@/lib/use-media-query";
 import { preloadConnectedApps } from "@/lib/connected-apps";
 import { ConnectAppsHost, connectAppsPageFor, openConnectApps } from "@/components/connect-apps";
 import {
@@ -97,7 +97,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
     state.groups.filter((group) => group.unread).length;
   const remoteClient = window.ogb?.remoteClient?.active === true;
   const twoSidePanelsFit = useMediaQuery(TWO_SIDE_PANELS_FIT, true);
-  const sidebarAndPanelFit = useMediaQuery(SIDEBAR_AND_PANEL_FIT, true);
   const sidebarInline = useMediaQuery(SIDEBAR_INLINE, false);
   // As Grok Bot: the bot's panel docks beside the sidebar only while the chat keeps its 424px and the panel its 280.
   const botPanelDocks = useMediaQuery(`(min-width: ${BOT_PANEL_DOCKS_AT}px)`, true);
@@ -162,11 +161,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const notificationFeed = useNotificationFeed() && !remoteClient;
   const advanced = useAdvancedMode();
   const roomPanelOpen = useRoomPanelShown({ group, state, simple: !advanced && !remoteClient });
-  const sidePanelOpen = (Boolean(bot) && (state.settingsOpen || state.computerOpen || state.inspectorOpen || state.activityOpen)) || roomPanelOpen || (notificationFeed && state.notificationsOpen) || inboxShown;
-  // The bot's own panel never squeezes the sidebar, as in Grok Bot; the other side panels still do on a narrow window.
-  const otherSidePanelOpen = sidePanelOpen && !(state.settingsOpen && !state.computerOpen && !state.inspectorOpen && !state.activityOpen
-    && !roomPanelOpen && !(notificationFeed && state.notificationsOpen) && !inboxShown);
-  const collapseSidebar = otherSidePanelOpen && !sidebarAndPanelFit;
+  // The sidebar only folds when the person folds it: a side panel opening beside it never collapses it, as in Grok Bot.
   const calendarFocus = state.activeView === "routines" && state.routinesFocus.view === "calendar";
 
   const noEngines =
@@ -371,7 +366,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       {framed && strips}
       <div className={framed ? "relative flex min-h-0 flex-1" : "contents"}>
       {!calendarFocus && <Sidebar
-        collapseToIcons={collapseSidebar}
         open={drawerOpen}
         onClose={() => {
           setDrawerOpen(false);

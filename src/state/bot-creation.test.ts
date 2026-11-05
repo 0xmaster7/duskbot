@@ -80,15 +80,15 @@ describe("setup navigation", () => {
     expect(reducer(state, { type: "botAdded", bot })).toMatchObject({ activeView: "chat", selectedId: "created" });
   });
 
-  it("puts the new bot's chat in front of any open settings, except from a department's own dialog", () => {
+  it("puts the new bot's chat in front of any open settings and leaves the side panels, except from a department's own dialog", () => {
     const start = { ...initialState, settingsOpen: true, appSettingsOpen: true, pluginsOpen: true, shortcutsOpen: true, computerOpen: true };
-    expect(reducer(start, { type: "newBot" })).toMatchObject({ settingsOpen: false, appSettingsOpen: false, pluginsOpen: false, shortcutsOpen: false, computerOpen: true });
+    expect(reducer(start, { type: "newBot" })).toMatchObject({ settingsOpen: true, appSettingsOpen: false, pluginsOpen: false, shortcutsOpen: false, computerOpen: true });
     expect(reducer(start, { type: "newBot", section: "Sales", preserveSelection: true })).toBe(start);
   });
 
   it("opens the requested Plugins surface and remembers it on reopen", () => {
     const next = reducer({ ...initialState, settingsOpen: true }, { type: "togglePlugins", open: true, surface: "mcp" });
-    expect(next).toMatchObject({ pluginsOpen: true, pluginsSurface: "mcp", settingsOpen: false });
+    expect(next).toMatchObject({ pluginsOpen: true, pluginsSurface: "mcp", settingsOpen: true });
     const closed = reducer(next, { type: "togglePlugins", open: false });
     expect(reducer(closed, { type: "togglePlugins", open: true })).toMatchObject({ pluginsSurface: "mcp" });
   });

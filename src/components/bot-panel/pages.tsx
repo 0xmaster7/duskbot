@@ -75,7 +75,6 @@ export function AppsPage({ bot, derived }: PageContext) {
           data-panel-link="add-app"
           icon={Plus}
           onClick={() => {
-            dispatch({ type: "toggleSettings", open: false });
             dispatch({ type: "togglePlugins", open: true, surface: "apps" });
           }}
         >

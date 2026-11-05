@@ -819,7 +819,6 @@ describe("the drill-in pages", () => {
     expect(empty.html).toContain("No apps connected yet.");
     click(find(empty, "data-panel-link", "add-app"));
     expect((fixture.dispatch as ReturnType<typeof vi.fn>).mock.calls).toEqual([
-      [{ type: "toggleSettings", open: false }],
       [{ type: "togglePlugins", open: true, surface: "apps" }],
     ]);
     fixture.derived.canUseConnectedApps = false;
@@ -909,8 +908,7 @@ describe("the drill-in pages", () => {
     expect(fixture.openExternal).toHaveBeenCalledWith("https://skills.sh");
     fixture.storeState = { ...fixture.storeState, config: { features: { skillsLibrary: true } } };
     click(find(body("skills"), "data-panel-link", "browse-skills"));
-    expect((fixture.dispatch as ReturnType<typeof vi.fn>).mock.calls.slice(-2)).toEqual([
-      [{ type: "toggleSettings", open: false }],
+    expect((fixture.dispatch as ReturnType<typeof vi.fn>).mock.calls.slice(-1)).toEqual([
       [{ type: "toggleAppSettings", open: true, section: "skills" }],
     ]);
     fixture.skills.working = "triage";
