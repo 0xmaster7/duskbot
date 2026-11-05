@@ -7,7 +7,7 @@ import { Select } from "./Select";
 import { t } from "@/lib/i18n";
 import { productName } from "@/lib/brand";
 import { cn } from "@/lib/cn";
-import { fieldLabelCls, mdPrimaryCls, rowButtonCls, textAreaCls, textFieldCls } from "./ui/GrokDialog";
+import { fieldLabelCls, rowButtonCls, textFieldCls } from "./ui/GrokDialog";
 
 const PROVIDERS = {
   openai: { label: "OpenAI", keyLabel: "OpenAI image API key", credential: "openaiImageApiKey" },
@@ -225,8 +225,8 @@ export function AvatarImageGenerator({
     </div>
   );
 
-  return (
-    <div className="flex flex-col gap-3">
+  const connection = (
+    <>
       <label className={LABEL}>
         {t("botIdentity.ai.provider")}
         <Select variant="ghost" value={provider} onChange={(event) => void chooseProvider(event.target.value as AvatarImageProvider)} disabled={busy || !state.config} className="self-start">
@@ -239,42 +239,43 @@ export function AvatarImageGenerator({
             : t("botIdentity.ai.customHint")}
         {" "}{t("botIdentity.ai.shared")}
       </p>
+      {connectionForm}
+    </>
+  );
 
-      {configured ? (
-        <details key={provider} className="rounded-[10px] border border-ink/8 px-[9px] py-1.5">
-          <summary className="cursor-pointer text-[12px] leading-4 text-ink/68">{t("botIdentity.ai.connectionSettings")}</summary>
-          <div className="mt-2.5 pb-1">{connectionForm}</div>
-        </details>
-      ) : connectionForm}
-
+  return (
+    <div className="flex flex-col gap-3">
       <textarea
         value={direction}
         disabled={busy}
         onChange={(event) => setDirection(event.target.value.slice(0, 400))}
         maxLength={400}
-        rows={3}
         placeholder={t("botIdentity.ai.directionPlaceholder", { name: botLabel })}
         aria-label={t("botIdentity.ai.directionLabel")}
-        className={textAreaCls}
+        className="block h-[174px] w-full resize-none rounded-[10px] border border-ink/12 bg-menu px-2.5 py-2 text-[14px] leading-[22px] tracking-[0.015em] text-ink outline-none [scrollbar-width:thin] placeholder:text-ink/56 disabled:opacity-50"
       />
-      <div className="flex items-center justify-end gap-2">
-        {unsaved && <p role="status" className={cn(NOTE, "mr-auto")}>{t("botIdentity.ai.saveBeforeGenerate")}</p>}
-        <button
-          type="button"
-          onClick={() => {
-            if (!busy && configured && !unsaved) {
-              setError(null);
-              void onGenerate(direction.trim());
-            }
-          }}
-          disabled={busy || !configured || unsaved}
-          className={mdPrimaryCls}
-        >
-          {generating && <Loader2 size={13} className="animate-spin" />}
-          {generating ? t("botIdentity.ai.generating") : t("botIdentity.ai.generate")}
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={() => {
+          if (!busy && configured && !unsaved) {
+            setError(null);
+            void onGenerate(direction.trim());
+          }
+        }}
+        disabled={busy || !configured || unsaved}
+        className="flex h-[30px] w-full cursor-pointer items-center justify-center gap-1.5 rounded-[10px] bg-ink px-[13px] text-[13px] font-[425] leading-[18px] tracking-[0.195px] text-app transition-[background-color] duration-[120ms] ease-[ease] enabled:hover:bg-[color-mix(in_srgb,var(--color-ink)_88.5%,var(--color-menu))] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-56"
+      >
+        {generating && <Loader2 size={13} className="animate-spin" />}
+        {generating ? t("botIdentity.ai.generating") : t("botPanel.avatar.tabGenerate")}
+      </button>
+      {unsaved && <p role="status" className={NOTE}>{t("botIdentity.ai.saveBeforeGenerate")}</p>}
       {error && <div role="alert" className="text-[12px] leading-4 text-danger">{error}</div>}
+      {configured ? (
+        <details key={provider} className="-mt-1 [&[open]>summary]:mb-2.5">
+          <summary className="w-fit cursor-pointer rounded-[6px] text-[12px] leading-4 text-ink/56 transition-colors duration-[120ms] ease-[ease] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus">{t("botIdentity.ai.connectionSettings")}</summary>
+          <div className="flex flex-col gap-3">{connection}</div>
+        </details>
+      ) : connection}
     </div>
   );
 }

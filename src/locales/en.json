@@ -7046,7 +7046,7 @@
   "botIdentity.ai.openaiKey": "OpenAI image API key",
   "botIdentity.ai.xaiKey": "Grok API key",
   "botIdentity.ai.customKey": "Custom image API key",
-  "botIdentity.ai.directionPlaceholder": "Optional direction, e.g. “a calm navigator inspired by {name}”",
+  "botIdentity.ai.directionPlaceholder": "Describe your avatar…",
   "botIdentity.ai.directionLabel": "Avatar generation direction",
   "botIdentity.soul.label": "Standing instructions (SOUL.md)",
   "botIdentity.soul.moveToFile": "Move instructions into SOUL.md",

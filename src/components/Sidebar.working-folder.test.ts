@@ -59,7 +59,8 @@ describe("working folder through the rendered sidebar", () => {
     openMenu();
     expect(menuItem("New thread")).toBeDefined();
     flushSync(() => menuItem("New thread in a working folder…")!.click());
-    const dialog = document.querySelector<HTMLElement>('[role="dialog"][aria-label="New thread in a working folder…"]')!;
+    const dialog = [...document.querySelectorAll<HTMLElement>('[role="dialog"]')]
+      .find((element) => document.getElementById(element.getAttribute("aria-labelledby") ?? "")?.textContent === "New thread in a working folder…")!;
     expect(dialog).not.toBeNull();
     const input = dialog.querySelector<HTMLInputElement>("input")!;
     expect(input.value).toBe("/projects/default");
