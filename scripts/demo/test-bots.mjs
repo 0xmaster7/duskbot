@@ -4,7 +4,7 @@
 //
 //   pnpm test-bots [--url http://127.0.0.1:PORT]
 //   pnpm test-bots --remove [--url ...]
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { SECTION } from "./content.mjs";
@@ -14,6 +14,8 @@ const args = process.argv.slice(2);
 const flag = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
 const base = (flag("--url") || process.env.OMB_TEST_BOTS_URL || "http://127.0.0.1:8799").replace(/\/$/, "");
 const remove = args.includes("--remove");
+// --first-run: what `pnpm dev:server` runs on start; seeds a brand-new workspace once, and never again after
+const firstRun = args.includes("--first-run");
 const MANIFESTS = join(homedir(), ".openmausbot-test-bots");
 
 if (!/^http:\/\/(127\.0\.0\.1|localhost):\d{1,5}$/.test(base)) {
@@ -106,9 +108,22 @@ async function removeAll(manifestFile) {
   else rmSync(manifestFile, { force: true });
 }
 
+/** A workspace gets the test bots by itself only while it is new: nothing but its starting bot and no rooms. The marker
+ * is written either way, so a person who removes them, or already had bots, is never seeded behind their back. */
+async function seedIfNew(manifestFile) {
+  const marker = manifestFile.replace(/manifest-/, "first-run-");
+  if (existsSync(marker) || existsSync(manifestFile)) return;
+  const roster = await call(base, "GET", "/api/bots?messages=0");
+  const fresh = (roster.bots ?? []).length <= 1 && !(roster.groups ?? []).length;
+  mkdirSync(MANIFESTS, { recursive: true, mode: 0o700 });
+  writeFileSync(marker, `${new Date().toISOString()}\n`, { mode: 0o600 });
+  if (fresh) await seed(manifestFile);
+}
+
 try {
   const manifestFile = await target();
   if (remove) await removeAll(manifestFile);
+  else if (firstRun) await seedIfNew(manifestFile);
   else await seed(manifestFile);
 } catch (error) {
   console.error(`pnpm test-bots: ${error instanceof Error ? error.message : error}`);
