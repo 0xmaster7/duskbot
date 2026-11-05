@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, Loader2, Mail, MoreHorizontal } from "lucide-react";
+import { Mail } from "lucide-react";
 
 import { api } from "@/state/store";
 import { t } from "@/lib/i18n";
 import type { EmailConnectAnswer, EmailServerFields, EmailStatus } from "../../shared/email";
-import { SidebarPopoverMenu } from "./SidebarPopoverMenu";
+import { KitActions, KitBody, KitButton, KitCard, KitField, KitLink, KitRow, KitStatus, KitText } from "./connect-apps/detail-kit";
 
-const pill = "inline-flex h-7 min-w-[64px] shrink-0 items-center justify-center gap-2 rounded-full bg-control/80 px-3 text-[13px] font-medium leading-5 text-ink transition-colors hover:bg-raised-hover disabled:opacity-40";
 const field = "h-8 w-full min-w-0 rounded-lg bg-inset px-2.5 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none focus:ring-1 focus:ring-accent/50";
 
 export function EmailIcon() {
@@ -32,7 +31,7 @@ export function EmailServerInputs({ value, onChange, className = field }: { valu
   );
 }
 
-/** The Email card in Apps: any mailbox on any mail host, connected with an address and a password. */
+/** Email on its Connect Apps page: any mailbox on any mail host, connected with an address and a password. */
 export function EmailCard({ refreshKey = 0, onConnection }: {
   refreshKey?: number;
   /** true once connected, false otherwise, null until the server has answered */
@@ -92,62 +91,49 @@ export function EmailCard({ refreshKey = 0, onConnection }: {
   if (status?.state === "unavailable") return null;
   const accounts = status?.accounts ?? [];
   const connected = accounts.length > 0;
-  const description = connected ? accounts.map((account) => account.address).join(", ") : t("email.description");
-  const problem = accounts.find((account) => account.problem)?.problem;
 
   return (
-    <div data-app-tile="email" data-email-state={status?.state ?? "loading"} className="flex min-w-0 flex-col rounded-xl px-2 py-2 transition-colors hover:bg-raised/40">
-      <div className="flex items-center gap-3">
-        <EmailIcon />
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <span className="truncate text-[14px] font-semibold leading-5 text-ink">{t("email.title")}</span>
-            {connected && <Check size={13} strokeWidth={2.5} className="shrink-0 text-success" aria-label={t("apps.connected")} />}
-          </div>
-          <p className="truncate text-[13px] leading-[18px] text-ink-secondary" title={description}>{description}</p>
+    <KitBody data-app-tile="email" data-email-state={status?.state ?? "loading"}>
+      {status === null && (loadFailed
+        ? <KitActions><KitButton variant="secondary" onClick={() => void load()}>{t("connectors.action.retry")}</KitButton></KitActions>
+        : <KitStatus>{t("common.checking")}</KitStatus>)}
+      {status !== null && !open && <KitText>{t("email.help")}</KitText>}
+      {connected && (
+        <div className="ca-kit-card">
+          <KitCard label={t("connectApps.accounts")} count={accounts.length}>
+            {accounts.map((account) => (
+              <KitRow key={account.address} title={account.address} detail={account.problem}>
+                <button type="button" className="ca-link" data-tone="danger" aria-label={t("email.disconnect", { address: account.address })} onClick={() => void disconnect(account.address)}>
+                  {t("connectors.disconnect")}
+                </button>
+              </KitRow>
+            ))}
+          </KitCard>
         </div>
-        {status === null ? (
-          loadFailed
-            ? <button type="button" onClick={() => void load()} className={pill}>{t("connectors.action.retry")}</button>
-            : <button type="button" disabled className={pill} aria-label={t("common.checking")}><Loader2 size={14} className="animate-spin" /></button>
-        ) : (
-          <div className="flex shrink-0 items-center gap-1.5">
-            {(!connected || open) && <button type="button" disabled={busy} onClick={() => { setOpen(!open); setError(null); }} className={pill} aria-expanded={open}>{open ? t("common.cancel") : t("connectors.action.connect")}</button>}
-            {connected && (
-              <SidebarPopoverMenu
-                placement="below"
-                ariaLabel={t("email.menu")}
-                triggerClassName="shrink-0"
-                items={[
-                  { key: "email-add", label: t("email.addAnother"), onSelect: () => { setOpen(true); setError(null); } },
-                  ...accounts.map((account) => ({ key: `email-remove-${account.address}`, label: t("email.disconnect", { address: account.address }), onSelect: () => void disconnect(account.address) })),
-                ]}
-                renderTrigger={() => <span className="inline-flex size-7 items-center justify-center rounded-full bg-control/80 text-ink hover:bg-raised-hover"><MoreHorizontal size={15} aria-hidden="true" /></span>}
-              />
-            )}
-          </div>
-        )}
-      </div>
-      <div className="ps-[52px]">
-        {done && <p role="status" className="mt-1.5 text-[12px] text-ink-secondary">{done}</p>}
-        {problem && !open && <p role="alert" className="mt-1.5 text-[12px] text-warning">{problem}</p>}
-        {error && <p role="alert" className="mt-1.5 text-[12px] text-danger">{error}</p>}
-        {open && (
-          <form data-email-form className="mt-2 flex flex-col gap-2" onSubmit={(event) => { event.preventDefault(); void connect(); }}>
-            <input type="email" autoComplete="off" spellCheck={false} dir="ltr" aria-label={t("email.address")} placeholder={t("email.address")} value={address} onChange={(event) => setAddress(event.target.value)} className={field} />
-            <input type="password" autoComplete="new-password" spellCheck={false} dir="ltr" aria-label={t("email.password")} placeholder={t("email.password")} value={password} onChange={(event) => setPassword(event.target.value)} className={field} />
-            {needsServer && <EmailServerInputs value={server} onChange={setServer} />}
-            <p className="text-[12px] leading-relaxed text-ink-secondary">{t("email.help")}</p>
-            <div className="flex items-center gap-2">
-              <button type="submit" disabled={busy || !address.trim() || !password} className={pill}>
-                {busy ? <Loader2 size={14} className="animate-spin" /> : t("connectors.action.connect")}
-              </button>
-              {busy && <span role="status" className="text-[12px] text-ink-secondary">{t("email.checking")}</span>}
-              {!needsServer && !busy && <button type="button" onClick={() => setNeedsServer(true)} className="text-[12px] text-ink-secondary underline underline-offset-2 hover:text-ink">{t("email.typeServer")}</button>}
-            </div>
-          </form>
-        )}
-      </div>
-    </div>
+      )}
+      {done && <KitStatus tone="ok">{done}</KitStatus>}
+      {error && <KitStatus tone="danger">{error}</KitStatus>}
+      {status !== null && !open && (
+        <KitActions>
+          <KitButton variant={connected ? "secondary" : "primary"} onClick={() => { setOpen(true); setError(null); }}>
+            {connected ? t("email.addAnother") : t("connectors.action.connect")}
+          </KitButton>
+        </KitActions>
+      )}
+      {open && (
+        <form data-email-form className="ca-kit" style={{ alignSelf: "stretch" }} onSubmit={(event) => { event.preventDefault(); void connect(); }}>
+          <KitText>{t("email.help")}</KitText>
+          <KitField label={t("email.address")} type="email" autoComplete="off" spellCheck={false} dir="ltr" value={address} onChange={(event) => setAddress(event.target.value)} />
+          <KitField label={t("email.password")} type="password" autoComplete="new-password" spellCheck={false} dir="ltr" value={password} onChange={(event) => setPassword(event.target.value)} />
+          {needsServer && <EmailServerInputs value={server} onChange={setServer} className="ca-kit-input" />}
+          <KitActions>
+            <KitButton type="submit" disabled={busy || !address.trim() || !password}>{busy ? t("connectApps.connecting") : t("connectors.action.connect")}</KitButton>
+            <KitButton variant="secondary" disabled={busy} onClick={() => { setOpen(false); setError(null); }}>{t("common.cancel")}</KitButton>
+          </KitActions>
+          {busy && <KitStatus>{t("email.checking")}</KitStatus>}
+          {!needsServer && !busy && <KitLink onClick={() => setNeedsServer(true)}>{t("email.typeServer")}</KitLink>}
+        </form>
+      )}
+    </KitBody>
   );
 }

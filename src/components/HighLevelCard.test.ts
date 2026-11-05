@@ -98,12 +98,11 @@ describe("HighLevel card states", () => {
     expect(onConnection).toHaveBeenLastCalledWith(false);
   });
 
-  it("shows the location's name once connected, with a menu instead of a Connect button", async () => {
+  it("shows the location's name once connected, with Disconnect instead of a Connect button", async () => {
     await mount(connectedStatus);
     expect(text()).toContain("Connected · Example Profiles");
     expect(button("Connect HighLevel")).toBeUndefined();
-    expect(button("HighLevel options")).toBeTruthy();
-    expect(host.querySelector('[aria-label="Connected"]')).toBeTruthy();
+    expect(button("Disconnect")).toBeTruthy();
     expect(onConnection).toHaveBeenLastCalledWith(true);
   });
 
@@ -111,7 +110,7 @@ describe("HighLevel card states", () => {
     await mount({ state: "needs-sign-in", location: { id: "loc_1", name: "Example Profiles" } });
     expect(text()).toContain("Signed out. Reconnect to keep using it.");
     expect(button("Reconnect HighLevel")?.textContent).toBe("Reconnect");
-    expect(button("HighLevel options")).toBeTruthy();
+    expect(button("Disconnect")).toBeTruthy();
     expect(onConnection).toHaveBeenLastCalledWith(false);
   });
 
@@ -243,18 +242,14 @@ describe("Private Integration token", () => {
     // The field keeps what was typed so it can be corrected, masked; nothing else in the card repeats it.
     expect(tokenField!.type).toBe("password");
     expect(text()).not.toContain("pit-secret");
-    expect(button("Connect HighLevel")).toBeTruthy();
+    expect(host.querySelector('form[data-highlevel-token-form] button[type="submit"]')?.textContent).toBe("Connect");
   });
 });
 
 describe("Disconnecting HighLevel", () => {
   it("asks first, then removes the connection and returns to Connect", async () => {
     await mount(connectedStatus);
-    await act(async () => button("HighLevel options")!.click());
-    await settle();
-    const item = document.querySelector<HTMLButtonElement>('[role="menuitem"][data-menu-key="disconnect"]')!;
-    expect(item.textContent).toContain("Disconnect");
-    await act(async () => item.click());
+    await act(async () => button("Disconnect")!.click());
     await settle();
     expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("Disconnect HighLevel?"));
     expect(server.calls).toContainEqual(["DELETE", "/api/highlevel", undefined]);
@@ -265,9 +260,7 @@ describe("Disconnecting HighLevel", () => {
   it("does nothing when the person declines", async () => {
     await mount(connectedStatus);
     vi.mocked(window.confirm).mockReturnValueOnce(false);
-    await act(async () => button("HighLevel options")!.click());
-    await settle();
-    await act(async () => document.querySelector<HTMLButtonElement>('[role="menuitem"][data-menu-key="disconnect"]')!.click());
+    await act(async () => button("Disconnect")!.click());
     await settle();
     expect(server.calls.some(([method, path]) => method === "DELETE" && path === "/api/highlevel")).toBe(false);
     expect(text()).toContain("Connected · Example Profiles");

@@ -8,6 +8,7 @@ import { sendKeyLabel, useSendKey } from "@/lib/send-key";
 import type { LocaleKey } from "@/locales";
 import { api, useStore } from "@/state/store";
 import { Spotlight } from "./Spotlight";
+import { closeConnectApps } from "@/components/connect-apps/open";
 
 const MASCOT: Record<TourStep["id"], MausState> = {
   "tour.composer": "happy",
@@ -80,7 +81,7 @@ export function GuidedTour() {
           if (!press("nav-apps")) dispatch({ type: "togglePlugins", open: true });
           return;
         case "closeApps":
-          dispatch({ type: "togglePlugins", open: false });
+          closeConnectApps();
           return;
         case "openAutomations":
           if (!press("nav-automations") && readAdvancedMode()) dispatch({ type: "showRoutines" });

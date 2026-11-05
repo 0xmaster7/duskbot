@@ -18,9 +18,10 @@ import { ChatView } from "@/components/ChatView";
 import { GroupView } from "@/components/GroupView";
 import { SIDEBAR_AND_PANEL_FIT, SIDEBAR_INLINE, TWO_SIDE_PANELS_FIT, useMediaQuery } from "@/lib/use-media-query";
 import { preloadConnectedApps } from "@/lib/connected-apps";
+import { ConnectAppsHost, connectAppsPageFor, openConnectApps } from "@/components/connect-apps";
 import {
   ActivityPanel, BotSettingsDialog, CloudAddDialog, ComputerPanel, FilesView, InspectorPanel, KeyboardShortcutsModal, LocalVmWorkspace,
-  PluginsPanel, preloadScreens, RemoteAgentSettingsPanel, RemoteDesktopPanel, RoomPanel, SettingsModal, TeamMapPage, TriggersPage,
+  preloadScreens, RemoteAgentSettingsPanel, RemoteDesktopPanel, RoomPanel, SettingsModal, TeamMapPage, TriggersPage,
 } from "@/components/lazy-screens";
 import { useAdvancedMode } from "@/lib/interface-mode";
 import { useRoomPanelShown } from "@/lib/room-panel";
@@ -137,6 +138,11 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
     window.history.replaceState(null, "", request.rest);
     dispatch("section" in request ? { type: "toggleAppSettings", open: true, section: request.section } : { type: "togglePlugins", open: true, surface: request.surface });
   }, [dispatch]);
+  useEffect(() => { // every way into the old Plugins screen opens Connect Apps
+    if (!state.pluginsOpen) return;
+    openConnectApps(connectAppsPageFor(state.pluginsSurface));
+    dispatch({ type: "togglePlugins", open: false });
+  }, [state.pluginsOpen, state.pluginsSurface, dispatch]);
   useExternalChatLinks(state, dispatch); useDesktopNotificationOpens(state, dispatch);
   usePresence(state, dispatch);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -446,7 +452,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       <CloudHowTo />
       <CloudSetup viewer={viewer} welcomeShown={welcomeOnScreen} />
       <WelcomeKeeper viewer={viewer} />
-      {state.pluginsOpen && <PluginsPanel />}
+      <ConnectAppsHost />
       {state.shortcutsOpen && (
         <KeyboardShortcutsModal
           open={state.shortcutsOpen}

@@ -11,7 +11,7 @@ import { managedConnectorUnavailableReason } from "../../../shared/connector-ava
 import { hasActiveConnection } from "@/lib/connector-status";
 import type { SkillsLibrarySkillWire } from "../../../shared/wire";
 import { GrokIcon } from "../GrokIcon";
-import { GrokBotMark } from "../GrokBotMark";
+import { GrokMark } from "../mascot-motion-view";
 import { AppsSection } from "../AppsSection";
 import { McpServersPanel } from "../McpServersPanel";
 import { XCard } from "../XCard";
@@ -21,31 +21,47 @@ import { PostizCard } from "../PostizCard";
 import { openKeySettings } from "../keys/key-focus";
 import { botsUsingService } from "../PluginsPanel";
 import { AppRow, AppTile, GlyphTile, type RowAction } from "./AppRow";
-import { AppPage, type AppPageModel } from "./AppPage";
+import { AppFacts, AppPage, appFacts, type AppPageModel } from "./AppPage";
+import { OnePasswordBody } from "./OnePasswordBody";
+import type { OnePasswordStatus } from "../../../shared/logins";
 import { CategoryMenu } from "./CategoryMenu";
 import {
   CATEGORY_LABEL, INLINE_CHIPS, SECTION_SIZE, grokCategories, inCategory, matchRank, presentCategories, recommended, searchApps,
   type AppEntry, type Category, type Connection,
 } from "./catalog";
-import type { ConnectAppsPage } from "./open";
+import { MCP_SERVERS_ID as MCP_PAGE, type ConnectAppsPage } from "./open";
 import { useConnectors, type ConnectorPhase } from "./use-connectors";
+import { appLogo } from "./logos";
+import type { ToolkitCard } from "../ServiceIcon";
 import "./connect-apps.css";
 
 type NativeId = "x" | "email" | "highlevel" | "postiz";
 const NATIVE_IDS: readonly NativeId[] = ["email", "x", "highlevel", "postiz"];
-const MCP_PAGE = "mcp";
+const RECOMMENDED = "recommended";
 const SETTINGS = (section: "logins" | "skills"): Action => ({ type: "toggleAppSettings", open: true, section });
+
+function logoIcon(...names: string[]): AppEntry["icon"] {
+  const logo = appLogo(...names);
+  return logo ? { image: logo.src, padded: logo.padded, background: logo.background, scale: logo.scale } : {};
+}
+
+/** Grok's logo when it has one, then the catalog's own mark, then Composio's mark for the slug: never a favicon. */
+function cardIcon(card: ToolkitCard): AppEntry["icon"] {
+  const known = logoIcon(card.slug, card.label);
+  if (known.image) return known;
+  return { logo: card.logo ?? `https://logos.composio.dev/api/${encodeURIComponent(card.slug)}`, padded: true };
+}
 
 function nativeEntries(): AppEntry[] {
   return [
-    { id: "1password", kind: "logins", label: "1Password", description: t("connectApps.onePassword.description"), categories: ["credentials"], icon: { domain: "1password.com" }, website: "1password.com", keywords: "password vault logins" },
-    { id: "email", kind: "native", label: t("email.title"), description: t("email.description"), categories: ["communication"], icon: { glyph: "envelope" }, keywords: "email mail imap smtp mailbox" },
-    { id: "x", kind: "native", label: t("apps.x.title"), description: t("apps.x.description"), categories: ["marketing"], icon: { domain: "x.com" }, website: "x.com", keywords: "x twitter posts" },
-    { id: "highlevel", kind: "native", label: t("highlevel.title"), description: t("highlevel.description"), categories: ["sales"], icon: { domain: "gohighlevel.com" }, website: "gohighlevel.com", keywords: "highlevel high level growably crm" },
-    { id: "postiz", kind: "native", label: "Postiz", description: t("postiz.description"), categories: ["marketing"], icon: { domain: "postiz.com" }, website: "postiz.com", keywords: "postiz social media posts schedule" },
+    { id: "1password", kind: "logins", label: "1Password", description: t("connectApps.onePassword.description"), categories: ["credentials"], icon: logoIcon("1password"), website: "1password.com", keywords: "password vault logins" },
+    { id: "email", kind: "native", label: t("email.title"), description: t("email.description"), categories: ["communication"], icon: { glyph: "envelope", glyphPaint: "rgb(229 47 139)" }, keywords: "email mail imap smtp mailbox" },
+    { id: "x", kind: "native", label: t("apps.x.title"), description: t("apps.x.description"), categories: ["marketing"], icon: logoIcon("x"), website: "x.com", keywords: "x twitter posts" },
+    { id: "highlevel", kind: "native", label: t("highlevel.title"), description: t("highlevel.description"), categories: ["sales"], icon: logoIcon("highlevel"), website: "gohighlevel.com", keywords: "highlevel high level growably crm" },
+    { id: "postiz", kind: "native", label: "Postiz", description: t("postiz.description"), categories: ["marketing"], icon: logoIcon("postiz"), website: "postiz.com", keywords: "postiz social media posts schedule" },
     ...HOSTED_MCP_APPS.map((app): AppEntry => ({
       id: app.id, kind: "hosted", label: app.label, description: t(app.description), categories: ["finance"],
-      icon: "image" in app.icon ? { image: app.icon.image } : { glyph: "credit-card" }, website: new URL(app.url).hostname.replace(/^mcp\./, ""), keywords: app.keywords,
+      icon: "image" in app.icon ? { image: app.icon.image } : { glyph: "credit-card", glyphPaint: "rgb(48 49 54)" }, website: new URL(app.url).hostname.replace(/^mcp\./, ""), keywords: app.keywords,
     })),
   ];
 }
@@ -70,7 +86,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   const [toast, setToast] = useState<Toast | null>(null);
   const [natives, setNatives] = useState<Record<NativeId, boolean | null>>({ x: null, email: null, highlevel: null, postiz: null });
   const [hosted, setHosted] = useState<HostedConnections | null>(null);
-  const [onePassword, setOnePassword] = useState<boolean | null>(null);
+  const [onePassword, setOnePassword] = useState<OnePasswordStatus | null>(null);
   const [skills, setSkills] = useState<SkillsLibrarySkillWire[] | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const dialog = useRef<HTMLDivElement>(null);
@@ -87,7 +103,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
 
   useEffect(() => {
     let alive = true;
-    listLogins().then((answer) => { if (alive) setOnePassword(answer.onePassword?.connected === true); }).catch(() => { if (alive) setOnePassword(null); });
+    listLogins().then((answer) => { if (alive) setOnePassword(answer.onePassword ?? { connected: false }); }).catch(() => { if (alive) setOnePassword(null); });
     void loadMcpServers().then((servers) => { if (alive) setMcpServers(servers); });
     fetch("/api/skills-library")
       .then(async (response) => (response.ok ? ((await response.json()) as { skills?: SkillsLibrarySkillWire[] }).skills ?? [] : []))
@@ -113,7 +129,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
       .filter((card) => !managedConnectorUnavailableReason(connectors.mode, card.slug) || hasActiveConnection(connectors.status[card.slug]))
       .map((card): AppEntry => ({
         id: card.slug, kind: "composio", label: card.label, description: connectorDescription(card), categories: grokCategories(card.categories),
-        icon: { logo: card.logo, domain: card.domain }, website: card.domain ?? undefined, keywords: card.slug,
+        icon: cardIcon(card), website: card.domain ?? undefined, keywords: card.slug,
       }));
     return [...own, ...catalog];
   }, [connectors.cards, connectors.mode, connectors.status]);
@@ -124,7 +140,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     if (!entry) return "unknown";
     const known = (value: boolean | null | undefined): Connection => value == null ? "unknown" : value ? "connected" : "disconnected";
     if (entry.kind === "composio") return connectors.isConnected(id) ? "connected" : "disconnected";
-    if (entry.kind === "logins") return known(onePassword);
+    if (entry.kind === "logins") return known(onePassword?.connected);
     if (entry.kind === "hosted") return known(hosted?.[id as HostedMcpAppId]);
     return known(natives[id as NativeId]);
   }, [byId, connectors, hosted, natives, onePassword]);
@@ -170,7 +186,6 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     return entry.kind === "composio" && card ? connectors.phaseOf(card, blocked(card.slug)) : null;
   };
   const startConnect = (entry: AppEntry) => {
-    if (entry.kind === "logins") return leaveFor(SETTINGS("logins"));
     if (entry.kind !== "composio" || !connectors.configured) return go({ kind: "detail", id: entry.id });
     void connectors.connect(entry.id);
   };
@@ -247,6 +262,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
 
   const nativeCardsShown = page.kind === "detail" && (NATIVE_IDS as readonly string[]).includes(page.id) ? page.id : null;
   const hostedShown = page.kind === "detail" && HOSTED_MCP_APPS.some((app) => app.id === page.id) ? page.id : null;
+  const onePasswordShown = page.kind === "detail" && page.id === "1password";
   const setNative = useCallback((id: NativeId) => (value: boolean | null) => setNatives((current) => current[id] === value ? current : { ...current, [id]: value }), []);
   const nativeSetters = useMemo(() => Object.fromEntries(NATIVE_IDS.map((id) => [id, setNative(id)])) as Record<NativeId, (value: boolean | null) => void>, [setNative]);
 
@@ -320,11 +336,13 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
       );
     }
     const sections: Array<{ key: string; title: string; entries: AppEntry[]; viewAll?: () => void }> = [];
+    const picks = recommended(entries.filter((entry) => entry.kind === "composio"), connection, Infinity);
     if (page.kind === "category") {
-      sections.push({ key: page.category, title: label(page.category as Category), entries: inCategory(entries, page.category) });
+      sections.push(page.category === RECOMMENDED
+        ? { key: RECOMMENDED, title: t("connectApps.recommended"), entries: picks }
+        : { key: page.category, title: label(page.category as Category), entries: inCategory(entries, page.category) });
     } else {
-      const picks = recommended(entries.filter((entry) => entry.kind === "composio"), connection);
-      if (picks.length) sections.push({ key: "recommended", title: t("connectApps.recommended"), entries: picks });
+      if (picks.length) sections.push({ key: RECOMMENDED, title: t("connectApps.recommended"), entries: picks.slice(0, SECTION_SIZE), viewAll: picks.length > SECTION_SIZE ? () => go({ kind: "category", category: RECOMMENDED }) : undefined });
       for (const category of categories) {
         const members = inCategory(entries, category);
         sections.push({ key: category, title: label(category), entries: members.slice(0, SECTION_SIZE), viewAll: members.length > SECTION_SIZE ? () => go({ kind: "category", category }) : undefined });
@@ -345,9 +363,9 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
 
   return (
     <div className="ca-scrim" data-connect-apps="" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <div ref={dialog} role="dialog" aria-modal="true" aria-label={t("connectApps.title")} tabIndex={-1} className="ca-dialog" onKeyDown={onDialogKey}>
+      <div ref={dialog} data-tour="apps-panel" role="dialog" aria-modal="true" aria-label={t("connectApps.title")} tabIndex={-1} className="ca-dialog" onKeyDown={onDialogKey}>
         <div className="ca-layout">
-          <button type="button" className="ca-icon-button ca-close" aria-label={t("connectApps.close")} onClick={onClose}>
+          <button type="button" data-tour="apps-close" className="ca-icon-button ca-close" aria-label={t("connectApps.close")} onClick={onClose}>
             <GrokIcon name="close" size={16} />
           </button>
           <div className="ca-bar" data-sub={sub ? "" : undefined}>
@@ -439,7 +457,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
                           )}
                         </div>
                         <button type="button" className="ca-templates" data-bot-templates-link="" onClick={onTemplates}>
-                          <GrokBotMark size={18} />
+                          <GrokMark body="blob" ink="var(--ca-mark)" size={18} animated={false} />
                           {t("connectApps.templates")}
                           <span data-arrow="" aria-hidden="true"><GrokIcon name="arrow-right-up" size={12} /></span>
                         </button>
@@ -467,7 +485,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
                   </div>
                 )}
                 {body}
-                <div className={nativeCardsShown || hostedShown ? "ca-card ca-native mt-6" : "hidden"} data-native-host="">
+                <div className={nativeCardsShown || hostedShown || onePasswordShown ? "ca-native-host" : "hidden"} data-native-host="">
                   <div className={hostedShown ? "contents" : "hidden"}>
                     <McpServersPanel hostedCards={{ shown: (id) => id === hostedShown, onConnections: setHosted }} />
                   </div>
@@ -475,7 +493,13 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
                   <div className={nativeCardsShown === "email" ? "contents" : "hidden"}><EmailCard onConnection={nativeSetters.email} /></div>
                   <div className={nativeCardsShown === "highlevel" ? "contents" : "hidden"}><HighLevelCard onConnection={nativeSetters.highlevel} /></div>
                   <div className={nativeCardsShown === "postiz" ? "contents" : "hidden"}><PostizCard onConnection={nativeSetters.postiz} /></div>
+                  {onePasswordShown && <OnePasswordBody status={onePassword} onChange={setOnePassword} onManage={() => leaveFor(SETTINGS("logins"))} />}
                 </div>
+                {detailEntry && detailEntry.kind !== "composio" && (
+                  <div className="ca-native-facts">
+                    <AppFacts facts={appFacts({ entry: detailEntry, categoryLabel: detailEntry.categories[0] ? label(detailEntry.categories[0]) : null, usedBy: [] })} />
+                  </div>
+                )}
               </div>
             </div>
             {thumb && (

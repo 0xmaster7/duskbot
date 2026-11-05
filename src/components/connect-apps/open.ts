@@ -15,6 +15,12 @@ export interface ConnectAppsState {
 }
 
 const HOME: ConnectAppsPage = { kind: "home" };
+export const MCP_SERVERS_ID = "mcp";
+
+/** The page for an old Plugins surface: "mcp" is the MCP servers page, anything else the home. */
+export function connectAppsPageFor(surface: "apps" | "mcp" | undefined): ConnectAppsPage {
+  return surface === "mcp" ? { kind: "detail", id: MCP_SERVERS_ID } : HOME;
+}
 let current: ConnectAppsState = { open: false, page: HOME, nonce: 0 };
 const watchers = new Set<() => void>();
 

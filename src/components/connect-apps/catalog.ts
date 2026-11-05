@@ -57,7 +57,13 @@ export interface AppIcon {
   logo?: string | null;
   domain?: string | null;
   image?: string;
+  /** A bare mark set inside the tile instead of filling it. */
+  padded?: boolean;
+  background?: string;
+  scale?: number;
   glyph?: GrokIconName;
+  /** A glyph tile's paint, with the glyph in white on it. */
+  glyphPaint?: string;
 }
 
 /** One app the window lists, whichever system connects it. */

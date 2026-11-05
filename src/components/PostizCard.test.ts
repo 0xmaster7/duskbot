@@ -90,14 +90,13 @@ afterEach(async () => {
 });
 
 describe("the Postiz card", () => {
-  it("offers Connect and an API key instead, with Postiz's own words and mark", async () => {
+  it("offers Connect and an API key instead, with Postiz's own words", async () => {
     await mount(notConnected);
     expect(text()).toContain("Postiz");
     expect(text()).toContain("Draft, schedule and publish social posts with Postiz.");
     expect(button("Connect Postiz")).toBeTruthy();
     expect(button("Use an API key instead")).toBeTruthy();
     expect(host.querySelector("input")).toBeNull();
-    expect(host.querySelector("svg rect")?.getAttribute("fill")).toBe("#612bd3");
     expect(onConnection).toHaveBeenLastCalledWith(false);
   });
 
@@ -115,7 +114,7 @@ describe("the Postiz card", () => {
     ]));
     expect(calls).toContainEqual(["PATCH", "/api/mcp/servers/postiz", { enabled: true }]);
     expect(text()).toContain("Connected to api.postiz.com");
-    expect(button("Postiz options")).toBeTruthy();
+    expect(button("Disconnect")).toBeTruthy();
     expect(onConnection).toHaveBeenLastCalledWith(true);
   });
 
@@ -171,9 +170,7 @@ describe("the Postiz card", () => {
 
   it("disconnects after asking, removing a saved key first", async () => {
     await mount({ ...base, state: "connected", how: "key", keySaved: true });
-    await act(async () => button("Postiz options")!.click());
-    await settle();
-    await act(async () => document.querySelector<HTMLButtonElement>('[role="menuitem"][data-menu-key="disconnect"]')!.click());
+    await act(async () => button("Disconnect")!.click());
     await settle();
     expect(window.confirm).toHaveBeenCalledWith("Disconnect Postiz? Bots stop using it until you connect it again.");
     const order = calls.filter(([method]) => method !== "GET" && method !== "POST").map(([method, path, body]) => [method, path, body]);

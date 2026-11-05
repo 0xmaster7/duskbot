@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, ExternalLink, Loader2, MoreHorizontal } from "lucide-react";
 
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { t } from "@/lib/i18n";
@@ -10,11 +9,8 @@ import { keySaved, keySaveFailure } from "@/lib/product-events";
 import { POSTIZ_API, postizErrorText, postizHost, postizSaveErrorText } from "@/lib/postiz";
 import { isPostizStatus, POSTIZ_CLOUD, POSTIZ_KEY_PAGE, POSTIZ_SERVER, type PostizStatus } from "../../shared/postiz";
 import { cleanKey, looksLikeKey, saveCredential } from "./keys/key-save";
-import { SidebarPopoverMenu } from "./SidebarPopoverMenu";
+import { KitActions, KitBody, KitButton, KitField, KitLink, KitStatus, KitText } from "./connect-apps/detail-kit";
 
-const pill = "inline-flex h-7 min-w-[64px] shrink-0 items-center justify-center gap-2 rounded-full bg-control/80 px-3 text-[13px] font-medium leading-5 text-ink transition-colors hover:bg-raised-hover disabled:opacity-40";
-const field = "h-8 w-full min-w-0 rounded-lg bg-inset px-2.5 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none focus:ring-1 focus:ring-accent/50";
-const link = "text-[12px] text-accent-text underline underline-offset-2";
 const SERVER = encodeURIComponent(POSTIZ_SERVER);
 const OWN_SIGN_IN_POLL_MS = 1_500;
 const OWN_SIGN_IN_WAIT_MS = 5 * 60_000;
@@ -31,7 +27,7 @@ export function PostizIcon() {
 
 type OwnConnection = { connected: boolean; how: "sign-in" | "key" | null } | null;
 
-/** The Postiz card in Apps: Postiz Cloud's sign-in, or an organisation API key for Postiz Cloud or a person's own
+/** Postiz on its Connect Apps page: Postiz Cloud's sign-in, or an organisation API key for Postiz Cloud or a person's own
  * Postiz server. Once connected, bots get Postiz's tools as the `postiz` MCP server. */
 export function PostizCard({ refreshKey = 0, onConnection }: {
   refreshKey?: number;
@@ -251,105 +247,74 @@ export function PostizCard({ refreshKey = 0, onConnection }: {
         : needsSignIn ? t("connectors.signedOut")
           : refused ? t("postiz.keyRefused")
             : t("postiz.description");
-  const menu = (connected || needsSignIn || refused) && (
-    <SidebarPopoverMenu
-      placement="below"
-      ariaLabel={t("postiz.menu")}
-      triggerClassName="shrink-0"
-      items={[{ key: "disconnect", label: t("connectors.disconnect"), disabled: busy !== null, onSelect: () => void disconnect() }]}
-      renderTrigger={() => (
-        <span className="inline-flex size-7 items-center justify-center rounded-full bg-control/80 text-ink hover:bg-raised-hover">
-          {busy === "disconnect" ? <Loader2 size={14} className="animate-spin" /> : <MoreHorizontal size={15} aria-hidden="true" />}
-        </span>
-      )}
-    />
-  );
   const offerConnect = status !== null && !connected && !blocked;
 
   return (
-    <div data-app-tile="postiz" data-postiz-state={status?.state ?? "loading"} className="flex min-w-0 flex-col rounded-xl px-2 py-2 transition-colors hover:bg-raised/40">
-      <div className="flex items-center gap-3">
-        <PostizIcon />
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <span className="truncate text-[14px] font-semibold leading-5 text-ink">Postiz</span>
-            {connected && <Check size={13} strokeWidth={2.5} className="shrink-0 text-success" aria-label={t("apps.connected")} />}
-          </div>
-          <p className="truncate text-[13px] leading-[18px] text-ink-secondary" title={description}>{description}</p>
-        </div>
-        {waiting ? (
-          <button type="button" onClick={cancel} className={pill}>{t("mcp.auth.cancel")}</button>
-        ) : status === null ? (
-          loadFailed
-            ? <button type="button" onClick={() => void load()} className={pill}>{t("connectors.action.retry")}</button>
-            : <button type="button" disabled className={pill} aria-label={t("common.checking")}><Loader2 size={14} className="animate-spin" /></button>
-        ) : connected ? menu : offerConnect && !keyMode ? (
-          <div className="flex shrink-0 items-center gap-1.5">
-            <button type="button" aria-label={t(needsSignIn || refused ? "postiz.reconnect" : "postiz.connect")} disabled={busy !== null}
-              onClick={() => refused ? (setKeyMode(true), setError(null)) : void connect()} className={pill}>
+    <KitBody data-app-tile="postiz" data-postiz-state={status?.state ?? "loading"}>
+      {status === null && !waiting
+        ? (loadFailed
+          ? <KitActions><KitButton variant="secondary" onClick={() => void load()}>{t("connectors.action.retry")}</KitButton></KitActions>
+          : <KitStatus>{t("common.checking")}</KitStatus>)
+        : <KitText>{description}</KitText>}
+      {waiting && (
+        <>
+          <KitStatus>{t(loadingTools ? "postiz.loadingTools" : "postiz.finishInBrowser")}</KitStatus>
+          <KitActions>
+            <KitButton variant="secondary" onClick={cancel}>{t("mcp.auth.cancel")}</KitButton>
+            {flow?.authorizationUrl && mcpSignInLink(flow.authorizationUrl) && (
+              <KitLink onClick={() => void openExternalLink(flow.authorizationUrl!).catch(() => setError(t("mcp.auth.openFailed")))}>{t("mcp.auth.openAgain")}</KitLink>
+            )}
+          </KitActions>
+          {flow?.flowId && flow.pasteBack && (
+            <form data-postiz-paste className="ca-kit" style={{ alignSelf: "stretch" }} onSubmit={(event) => { event.preventDefault(); void completePasted(); }}>
+              <KitText>{t("mcp.auth.pasteBackHint")}</KitText>
+              <KitField label={t("mcp.auth.callbackUrl")} type="text" value={callbackUrl} onChange={(event) => setCallbackUrl(event.target.value)} autoComplete="off" spellCheck={false}
+                placeholder="http://127.0.0.1:…/mcp-oauth/callback?…" />
+              <KitActions><KitButton type="submit" disabled={!callbackUrl.trim()}>{t("mcp.auth.complete")}</KitButton></KitActions>
+            </form>
+          )}
+        </>
+      )}
+      {offerConnect && !waiting && status.team && !person && (
+        <label data-postiz-only-me className="ca-kit-text flex items-center gap-2">
+          <input type="checkbox" checked={onlyMe} onChange={(event) => setOnlyMe(event.target.checked)} /> {t("mcp.team.onlyMe")}
+        </label>
+      )}
+      {person && !connected && !waiting && <KitText>{t("postiz.personScope")}</KitText>}
+      {!waiting && status !== null && !keyMode && (connected || offerConnect || needsSignIn || refused) && (
+        <KitActions>
+          {offerConnect && (
+            <KitButton aria-label={t(needsSignIn || refused ? "postiz.reconnect" : "postiz.connect")} disabled={busy !== null}
+              onClick={() => refused ? (setKeyMode(true), setError(null)) : void connect()}>
               {t(needsSignIn || refused ? "connectors.action.reconnect" : "connectors.action.connect")}
-            </button>
-            {menu}
-          </div>
-        ) : null}
-      </div>
-      <div className="ps-[52px]">
-        {waiting && (
-          <div role="status" className="mt-1.5 flex flex-col gap-1.5 text-[12px] text-ink-secondary">
-            <p className="flex items-center gap-2">
-              <Loader2 size={12} className="shrink-0 animate-spin" aria-hidden="true" />
-              <span>{t(loadingTools ? "postiz.loadingTools" : "postiz.finishInBrowser")}</span>
-              {flow?.authorizationUrl && mcpSignInLink(flow.authorizationUrl) && (
-                <button type="button" onClick={() => void openExternalLink(flow.authorizationUrl!).catch(() => setError(t("mcp.auth.openFailed")))} className={link}>
-                  {t("mcp.auth.openAgain")}
-                </button>
-              )}
-            </p>
-            {flow?.flowId && flow.pasteBack && (
-              <form data-postiz-paste className="flex flex-col gap-1.5" onSubmit={(event) => { event.preventDefault(); void completePasted(); }}>
-                <span className="leading-relaxed text-ink">{t("mcp.auth.pasteBackHint")}</span>
-                <input type="text" value={callbackUrl} onChange={(event) => setCallbackUrl(event.target.value)} autoComplete="off" spellCheck={false}
-                  aria-label={t("mcp.auth.callbackUrl")} placeholder="http://127.0.0.1:…/mcp-oauth/callback?…" className={field} />
-                <button type="submit" disabled={!callbackUrl.trim()} className={pill}>{t("mcp.auth.complete")}</button>
-              </form>
-            )}
-          </div>
-        )}
-        {error && <p role="alert" className="mt-1.5 text-[12px] text-danger">{error}</p>}
-        {offerConnect && !waiting && status.team && !person && (
-          <label data-postiz-only-me className="mt-1.5 flex items-center gap-2 text-[12px] text-ink-secondary">
-            <input type="checkbox" checked={onlyMe} onChange={(event) => setOnlyMe(event.target.checked)} /> {t("mcp.team.onlyMe")}
-          </label>
-        )}
-        {person && !connected && !waiting && <p className="mt-1.5 text-[12px] leading-relaxed text-ink-secondary">{t("postiz.personScope")}</p>}
-        {offerConnect && !waiting && (keyMode ? (
-          <form data-postiz-key-form className="mt-2 flex flex-col gap-2" onSubmit={(event) => { event.preventDefault(); void connectWithKey(); }}>
-            <input type="password" autoComplete="off" spellCheck={false} aria-label={t("postiz.keyField")} placeholder={t("keys.postiz.placeholder")}
-              value={key} disabled={busy === "key"} onChange={(event) => { setError(null); setKey(event.target.value); }} className={field} />
-            {!person && !onlyMe && (
-              <input type="url" autoComplete="off" spellCheck={false} aria-label={t("postiz.addressField")} placeholder={POSTIZ_CLOUD}
-                value={address} disabled={busy === "key"} onChange={(event) => { setError(null); setAddress(event.target.value); }} className={field} />
-            )}
-            <p className="text-[12px] leading-relaxed text-ink-secondary">{t(person || onlyMe ? "postiz.keyHelp" : "postiz.keyAndAddressHelp")}</p>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <button type="submit" disabled={busy !== null || !key.trim()} className={pill}>
-                {busy === "key" ? <Loader2 size={14} className="animate-spin" /> : t("connectors.action.connect")}
-              </button>
-              <a href={POSTIZ_KEY_PAGE} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] font-medium text-accent-text hover:underline">
-                {t("postiz.keyLink")}
-                <ExternalLink size={11} aria-hidden="true" />
-              </a>
-              <button type="button" onClick={() => { setKeyMode(false); setError(null); }} className="text-[12px] text-ink-secondary underline underline-offset-2 hover:text-ink">
-                {t("postiz.useSignIn")}
-              </button>
-            </div>
-          </form>
-        ) : (
-          <button type="button" onClick={() => { setKeyMode(true); setError(null); setAddress(status.selfHosted ? status.address : ""); }} className={`mt-1.5 inline-block ${link}`}>
-            {t("postiz.useKey")}
-          </button>
-        ))}
-      </div>
-    </div>
+            </KitButton>
+          )}
+          {(connected || needsSignIn || refused) && (
+            <KitButton variant="secondary" tone="danger" disabled={busy !== null} onClick={() => void disconnect()}>
+              {busy === "disconnect" ? t("common.checking") : t("connectors.disconnect")}
+            </KitButton>
+          )}
+        </KitActions>
+      )}
+      {offerConnect && !waiting && (keyMode ? (
+        <form data-postiz-key-form className="ca-kit" style={{ alignSelf: "stretch" }} onSubmit={(event) => { event.preventDefault(); void connectWithKey(); }}>
+          <KitText>{t(person || onlyMe ? "postiz.keyHelp" : "postiz.keyAndAddressHelp")}</KitText>
+          <KitField label={t("postiz.keyField")} type="password" autoComplete="off" spellCheck={false} placeholder={t("keys.postiz.placeholder")}
+            value={key} disabled={busy === "key"} onChange={(event) => { setError(null); setKey(event.target.value); }} />
+          {!person && !onlyMe && (
+            <KitField label={t("postiz.addressField")} type="url" autoComplete="off" spellCheck={false} placeholder={POSTIZ_CLOUD}
+              value={address} disabled={busy === "key"} onChange={(event) => { setError(null); setAddress(event.target.value); }} />
+          )}
+          <KitActions>
+            <KitButton type="submit" disabled={busy !== null || !key.trim()}>{busy === "key" ? t("connectApps.connecting") : t("connectors.action.connect")}</KitButton>
+            <KitButton variant="secondary" onClick={() => { setKeyMode(false); setError(null); }}>{t("common.cancel")}</KitButton>
+            <a href={POSTIZ_KEY_PAGE} target="_blank" rel="noopener noreferrer" className="ca-kit-link">{t("postiz.keyLink")}</a>
+          </KitActions>
+        </form>
+      ) : (
+        <KitLink onClick={() => { setKeyMode(true); setError(null); setAddress(status.selfHosted ? status.address : ""); }}>{t("postiz.useKey")}</KitLink>
+      ))}
+      {error && <KitStatus tone="danger">{error}</KitStatus>}
+    </KitBody>
   );
 }

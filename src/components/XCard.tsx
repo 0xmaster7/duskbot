@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, ExternalLink, Loader2 } from "lucide-react";
 
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { activeLocale, t } from "@/lib/i18n";
@@ -8,10 +7,9 @@ import { keyRemoved, keySaved, keySaveFailure, keyTestResult } from "@/lib/produ
 import { isXConnectorStatus, type XConnectorStatus, type XIncludedUsage } from "../../shared/x-connector";
 import { looksLikeKey, saveCredential, tregVerdict } from "./keys/key-save";
 import { useCloudPlan } from "./ProIntroduction";
+import { KitActions, KitBody, KitButton, KitField, KitLink, KitStatus, KitText } from "./connect-apps/detail-kit";
 
 const TREG_URL = "https://treg.to";
-const pill = "inline-flex h-7 min-w-[64px] shrink-0 items-center justify-center gap-2 rounded-full bg-control/80 px-3 text-[13px] font-medium leading-5 text-ink transition-colors hover:bg-raised-hover disabled:opacity-40";
-const field = "h-8 w-full min-w-0 rounded-lg bg-inset px-2.5 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none focus:ring-1 focus:ring-accent/50";
 
 /** What the card's search box matches. */
 export const X_CARD_SEARCH = "x twitter treg tweets posts";
@@ -41,7 +39,7 @@ export function xUsageLines(usage: XIncludedUsage): { line: string; usedUp: bool
     : { line: `${t("apps.x.usage", counts)} ${t("apps.x.resets", { date: day(usage.resetsAt) })}`, usedUp: false };
 }
 
-/** The X (Twitter) card in Apps: included with a Cloud plan, or the person's own treg key, which is used first. */
+/** X (Twitter) on its Connect Apps page: included with a Cloud plan, or the person's own treg key, which is used first. */
 export function XCard({ refreshKey = 0, onConnection }: {
   refreshKey?: number;
   /** true while bots have the X tools, false otherwise, null until the server has answered */
@@ -153,75 +151,34 @@ export function XCard({ refreshKey = 0, onConnection }: {
         : connecting && !status.unavailable ? t("apps.x.connecting") : t("apps.x.addKey");
 
   return (
-    <div data-app-tile="x" data-x-state={status === null ? "loading" : using ?? "none"} className="flex min-w-0 flex-col rounded-xl px-2 py-2 transition-colors hover:bg-raised/40">
-      <div className="flex items-center gap-3">
-        <XIcon />
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <span className="truncate text-[14px] font-semibold leading-5 text-ink">{t("apps.x.title")}</span>
-            {using !== null && <Check size={13} strokeWidth={2.5} className="shrink-0 text-success" aria-label={t("apps.connected")} />}
-          </div>
-          <p className="truncate text-[13px] leading-[18px] text-ink-secondary" title={description}>{description}</p>
-        </div>
-        {status === null ? (
-          loadFailed
-            ? <button type="button" onClick={() => void load(true)} className={pill}>{t("connectors.action.retry")}</button>
-            : <button type="button" disabled className={pill} aria-label={t("common.checking")}><Loader2 size={14} className="animate-spin" /></button>
-        ) : using === "own" ? (
-          <button type="button" disabled={busy !== null} onClick={() => void test()} className={pill}>
-            {busy === "test" ? <Loader2 size={14} className="animate-spin" /> : t("keys.test")}
-          </button>
-        ) : null}
-      </div>
-      <div className="ps-[52px]">
-        {using === "own" && (
-          <p className="mt-1 text-[12px] leading-relaxed text-ink-secondary">
-            {status?.included ? t("apps.x.ownFirst") : t("apps.x.ownBilled")}
-          </p>
-        )}
-        {using === "included" && usage && (
-          <p data-x-usage className={usage.usedUp ? "mt-1 text-[12px] leading-relaxed text-warning" : "mt-1 text-[12px] leading-relaxed text-ink-secondary"}>{usage.line}</p>
-        )}
-        {using === "own" && (
-          <button type="button" disabled={busy !== null} onClick={() => void remove()} className="mt-1.5 inline-flex items-center gap-1.5 text-[12px] text-danger underline underline-offset-2 disabled:opacity-50">
-            {busy === "remove" && <Loader2 size={12} className="animate-spin" aria-hidden="true" />}
-            {t("apps.x.remove")}
-          </button>
-        )}
-        {using === "included" && !showForm && (
-          <button type="button" onClick={() => { setAddingOwn(true); setError(null); }} className="mt-1.5 inline-block text-[12px] text-accent-text underline underline-offset-2">
-            {t("apps.x.useOwnKey")}
-          </button>
-        )}
-        {showForm && (
-          <form data-x-key-form className="mt-2 flex flex-col gap-2" onSubmit={(event) => { event.preventDefault(); void save(); }}>
-            {using === null && <p className="text-[12px] leading-relaxed text-ink-secondary">{t("apps.x.addKeyHelp")}</p>}
-            <div className="flex items-center gap-2">
-              <input
-                type="password"
-                autoComplete="off"
-                spellCheck={false}
-                aria-label={t("keys.treg.label")}
-                placeholder={t("keys.treg.placeholder")}
-                value={key}
-                disabled={busy === "save"}
-                onChange={(event) => { setError(null); setKey(event.target.value); }}
-                onPaste={() => { saveAfterPaste.current = true; }}
-                className={field}
-              />
-              <button type="submit" disabled={busy !== null || !key.trim()} className={pill}>
-                {busy === "save" ? <Loader2 size={14} className="animate-spin" /> : t("common.save")}
-              </button>
-            </div>
-            <a href={TREG_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] font-medium text-accent-text hover:underline">
-              {t("keys.treg.link")}
-              <ExternalLink size={11} aria-hidden="true" />
-            </a>
-          </form>
-        )}
-        {verdict && <p role="status" className="mt-1.5 text-[12px] text-ink-secondary">{verdict}</p>}
-        {error && <p role="alert" className="mt-1.5 text-[12px] text-danger">{error}</p>}
-      </div>
-    </div>
+    <KitBody data-app-tile="x" data-x-state={status === null ? "loading" : using ?? "none"}>
+      {status === null
+        ? (loadFailed
+          ? <KitActions><KitButton variant="secondary" onClick={() => void load(true)}>{t("connectors.action.retry")}</KitButton></KitActions>
+          : <KitStatus>{t("common.checking")}</KitStatus>)
+        : <KitText>{description}</KitText>}
+      {using === "own" && <KitText>{status?.included ? t("apps.x.ownFirst") : t("apps.x.ownBilled")}</KitText>}
+      {using === "included" && usage && <span data-x-usage><KitStatus tone={usage.usedUp ? "warning" : "quiet"}>{usage.line}</KitStatus></span>}
+      {using === "own" && (
+        <KitActions>
+          <KitButton variant="secondary" disabled={busy !== null} onClick={() => void test()}>{busy === "test" ? t("common.checking") : t("keys.test")}</KitButton>
+          <KitButton variant="secondary" tone="danger" disabled={busy !== null} onClick={() => void remove()}>{t("apps.x.remove")}</KitButton>
+        </KitActions>
+      )}
+      {using === "included" && !showForm && <KitLink onClick={() => { setAddingOwn(true); setError(null); }}>{t("apps.x.useOwnKey")}</KitLink>}
+      {showForm && (
+        <form data-x-key-form className="ca-kit" style={{ alignSelf: "stretch" }} onSubmit={(event) => { event.preventDefault(); void save(); }}>
+          {using === null && <KitText>{t("apps.x.addKeyHelp")}</KitText>}
+          <KitField label={t("keys.treg.label")} type="password" autoComplete="off" spellCheck={false} placeholder={t("keys.treg.placeholder")} value={key}
+            disabled={busy === "save"} onChange={(event) => { setError(null); setKey(event.target.value); }} onPaste={() => { saveAfterPaste.current = true; }} />
+          <KitActions>
+            <KitButton type="submit" disabled={busy !== null || !key.trim()}>{busy === "save" ? t("connectApps.connecting") : t("common.save")}</KitButton>
+            <a href={TREG_URL} target="_blank" rel="noopener noreferrer" className="ca-kit-link">{t("keys.treg.link")}</a>
+          </KitActions>
+        </form>
+      )}
+      {verdict && <KitStatus>{verdict}</KitStatus>}
+      {error && <KitStatus tone="danger">{error}</KitStatus>}
+    </KitBody>
   );
 }

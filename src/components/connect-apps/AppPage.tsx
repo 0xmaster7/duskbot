@@ -47,9 +47,6 @@ export function AppPage({ model }: { model: AppPageModel }) {
   const aliasError = askingAlias && connectors.error ? (typeof connectors.error === "string" ? connectors.error : t(connectors.error.key)) : null;
 
   const primary = ((): Primary | null => {
-    if (entry.kind === "logins") return model.connection === "connected"
-      ? { label: t("connectors.openSettings"), quiet: true, onClick: model.onOpenLogins }
-      : { label: t("connectors.action.connect"), onClick: model.onOpenLogins };
     if (!composio || !phase) return null;
     const connect: Primary = { label: t("connectors.action.connect"), onClick: () => void connectors.connect(slug) };
     if (!connectors.configured) return { ...connect, disabled: model.remoteClient, onClick: model.onOpenKeys };
@@ -65,11 +62,8 @@ export function AppPage({ model }: { model: AppPageModel }) {
     }
   })();
 
-  const facts: Array<[string, string]> = [];
-  const ownCard = entry.kind === "native" || entry.kind === "hosted";
-  if (model.categoryLabel) facts.push([t("connectApps.info.category"), model.categoryLabel]);
-  if (entry.website) facts.push([t("connectApps.info.website"), entry.website]);
-  if (model.usedBy.length) facts.push([t("connectApps.info.usedBy"), model.usedBy.join(", ")]);
+  const facts = appFacts(model);
+  const ownCard = entry.kind !== "composio";
 
   return (
     <div className="ca-detail" data-app-page={slug}>
@@ -130,20 +124,34 @@ export function AppPage({ model }: { model: AppPageModel }) {
             </div>
           </div>
         )}
-        {facts.length > 0 && !ownCard && (
-          <div>
-            <h3 className="ca-group-label">{t("connectApps.information")}</h3>
-            <dl className="ca-card">
-              {facts.map(([term, value]) => (
-                <div key={term} className="ca-card-row">
-                  <dt>{term}</dt>
-                  <dd title={value}>{value}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        )}
+        {!ownCard && <AppFacts facts={facts} />}
       </div>
+    </div>
+  );
+}
+
+export function appFacts(model: Pick<AppPageModel, "entry" | "categoryLabel" | "usedBy">): Array<[string, string]> {
+  const facts: Array<[string, string]> = [];
+  if (model.categoryLabel) facts.push([t("connectApps.info.category"), model.categoryLabel]);
+  if (model.entry.website) facts.push([t("connectApps.info.website"), model.entry.website]);
+  if (model.usedBy.length) facts.push([t("connectApps.info.usedBy"), model.usedBy.join(", ")]);
+  return facts;
+}
+
+/** Grok's Information card: a label, then a bordered list of facts with their values at the end. */
+export function AppFacts({ facts }: { facts: Array<[string, string]> }) {
+  if (!facts.length) return null;
+  return (
+    <div>
+      <h3 className="ca-group-label">{t("connectApps.information")}</h3>
+      <dl className="ca-card">
+        {facts.map(([term, value]) => (
+          <div key={term} className="ca-card-row">
+            <dt>{term}</dt>
+            <dd title={value}>{value}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }

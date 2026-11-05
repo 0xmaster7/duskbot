@@ -46,14 +46,16 @@ export function ServiceIcon({ card, className = "size-11" }: { card: Pick<Toolki
 
 const TILE = "relative inline-flex shrink-0 items-center justify-center overflow-hidden border border-ink/[0.08] box-border leading-none";
 
-/** Grok's app tile: a hairline square whose corners grow with it (11px at 40, 16px at 56), the logo on white inside, or
- * the app's initial on a faint fill. */
-export function ServiceTile({ card, size = 40, className }: { card: Pick<ToolkitCard, "logo" | "domain" | "label"> & { image?: string }; size?: number; className?: string }) {
+export interface TileArt { label: string; logo?: string | null; domain?: string | null; image?: string; padded?: boolean; background?: string; scale?: number }
+
+/** Grok's app tile: a hairline square whose corners grow with it (11px at 40, 16px at 56). An app icon fills it; a bare
+ * mark sits at 68% of it, on its own paint when it has one; with no art, the app's initial on a faint fill. */
+export function ServiceTile({ card, size = 40, className }: { card: TileArt; size?: number; className?: string }) {
   const sources = [card.image, card.logo, card.domain ? `https://www.google.com/s2/favicons?domain=${card.domain}&sz=64` : null]
     .filter((source): source is string => Boolean(source));
   const [failed, setFailed] = useState(0);
   const source = sources[failed];
-  const frame = { width: size, height: size, borderRadius: Math.round(size * 0.28) };
+  const frame = { width: size, height: size, borderRadius: Math.round(size * 0.28), background: card.background };
   if (!source) {
     return (
       <span aria-hidden="true" className={cn(TILE, "bg-ink/[0.06] font-medium text-ink-secondary", className)} style={{ ...frame, fontSize: Math.round(size * 0.38) }}>
@@ -61,10 +63,11 @@ export function ServiceTile({ card, size = 40, className }: { card: Pick<Toolkit
       </span>
     );
   }
-  const inner = card.image || size <= 24 ? size - 2 : Math.round(size * 0.7);
+  const padded = card.padded || source !== card.image;
+  const inner = padded ? size * (card.scale ?? 0.684) : size - 2;
   return (
-    <span aria-hidden="true" className={cn(TILE, "bg-white", className)} style={frame}>
-      <img key={source} src={source} alt="" draggable={false} decoding="async" width={inner} height={inner} className="object-contain" onError={() => setFailed((count) => count + 1)} />
+    <span aria-hidden="true" className={cn(TILE, className)} style={frame}>
+      <img key={source} src={source} alt="" draggable={false} decoding="async" style={{ width: inner, height: inner }} className="object-contain" onError={() => setFailed((count) => count + 1)} />
     </span>
   );
 }

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Check,
   CheckCircle2,
   FlaskConical,
   Globe,
@@ -34,6 +33,8 @@ import { HOSTED_MCP_APPS, hostedConnections, hostedMcpApp, hostedServerName, typ
 import { POSTIZ_SERVER } from "../../shared/postiz";
 import { CHAT_TOOL_LIMIT, chatToolBudgetFit } from "../../shared/tool-budget";
 import { openBotSettings } from "./bot-panel/panel-link";
+import { closeConnectApps } from "./connect-apps/open";
+import { KitActions, KitBody, KitButton, KitStatus, KitText } from "./connect-apps/detail-kit";
 
 export interface ProbeResult {
   ok: boolean;
@@ -501,35 +502,29 @@ export function McpServersPanel({ embedded = false, hostedCards, hideHosted = fa
     const failed = error || (cardFailure?.id === app.id ? cardFailure.message : null) || (result && !result.ok ? result.error : null);
     const pending = busy !== null || signingIn !== null;
     const mine = busy === `hosted:${app.id}` || (server !== undefined && (signingIn === server.name || busy === `signout:${server.name}`));
-    return <div data-app-tile={app.id} className="flex min-w-0 flex-col rounded-xl px-2 py-2 transition-colors hover:bg-raised/40">
-      <div className="flex items-center gap-3">
-        <HostedMcpIcon app={app} />
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <span className="truncate text-[14px] font-semibold leading-5 text-ink">{app.label}</span>
-            {connected && <Check size={13} strokeWidth={2.5} className="shrink-0 text-success" aria-label={t("apps.connected")} />}
-          </div>
-          <p className="truncate text-[13px] leading-[18px] text-ink-secondary" title={t(app.description)}>{t(app.description)}</p>
-        </div>
-        {server && signingIn === server.name ? <button type="button" onClick={() => signInAbort.current?.abort()} className="inline-flex h-7 shrink-0 items-center rounded-full bg-control/80 px-3 text-[13px] font-medium leading-5 text-ink">{t("mcp.auth.cancel")}</button> :
-          <button type="button" aria-label={t(connected ? "hostedMcp.disconnect" : "hostedMcp.connect", { service: app.label })}
-            disabled={pending || (servers !== null && !connected && (Boolean(server?.managedBy) || (restricted && !policy?.mcp.allowlist.length)))}
-            onClick={() => void (servers === null ? load() : connected && server ? signOut(server, app) : connectHosted(app))}
-            className="inline-flex h-7 min-w-[64px] shrink-0 items-center justify-center gap-2 rounded-full bg-control/80 px-3 text-[13px] font-medium leading-5 text-ink hover:bg-raised-hover disabled:opacity-40">
-            {pending && (mine || busy === "load") ? <Loader2 size={14} className="animate-spin" /> : servers === null ? t("connectors.action.retry") : t(connected ? "connectors.disconnect" : "connectors.action.connect")}
-          </button>}
-      </div>
-      <div className="ps-[52px]">
-      {failed && <p role="alert" className="mt-1.5 text-[12px] text-danger">{typeof failed === "string" ? failed : t(failed.key, failed.params)}</p>}
+    const disabled = pending || (servers !== null && !connected && (Boolean(server?.managedBy) || (restricted && !policy?.mcp.allowlist.length)));
+    return <KitBody data-app-tile={app.id}>
+      <KitText>{t(app.notice)}</KitText>
+      {connected && <KitStatus tone="ok">{t("apps.connected")}</KitStatus>}
+      <KitActions>
+        {server && signingIn === server.name
+          ? <KitButton variant="secondary" onClick={() => signInAbort.current?.abort()}>{t("mcp.auth.cancel")}</KitButton>
+          : <KitButton variant={connected ? "secondary" : "primary"} tone={connected ? "danger" : undefined} disabled={disabled}
+            aria-label={t(connected ? "hostedMcp.disconnect" : "hostedMcp.connect", { service: app.label })}
+            onClick={() => void (servers === null ? load() : connected && server ? signOut(server, app) : connectHosted(app))}>
+            {pending && (mine || busy === "load") ? t("connectApps.connecting") : servers === null ? t("connectors.action.retry") : t(connected ? "connectors.disconnect" : "connectors.action.connect")}
+          </KitButton>}
+      </KitActions>
+      {failed && <KitStatus tone="danger">{typeof failed === "string" ? failed : t(failed.key, failed.params)}</KitStatus>}
       {server && renderSignIn(server)}
-      <details className="mt-1 text-[12px] text-ink-secondary">
-        <summary className="cursor-pointer">{t("hostedMcp.access")}</summary>
-        <p className="mt-2 leading-relaxed">{t(app.notice)}</p>
-        <p className="mt-2 leading-relaxed">{t("hostedMcp.accessHint")}</p>
-        <div className="mt-2 flex flex-wrap gap-2">{(store.bots ?? []).filter((bot) => !bot.hidden).map((bot) => <button key={bot.id} type="button" onClick={() => { dispatch({ type: "togglePlugins", open: false }); openBotSettings(dispatch, "access", { botId: bot.id, page: "mcp" }); }} className="rounded-lg bg-control px-2.5 py-1.5 text-ink hover:bg-raised-hover">{t("hostedMcp.botSettings", { name: bot.name })}</button>)}</div>
-      </details>
+      <div data-hosted-access="" className="ca-kit">
+        <h3 className="ca-group-label" style={{ paddingInline: 0 }}>{t("hostedMcp.access")}</h3>
+        <KitText>{t("hostedMcp.accessHint")}</KitText>
+        <KitActions>{(store.bots ?? []).filter((bot) => !bot.hidden).map((bot) => (
+          <KitButton key={bot.id} variant="secondary" onClick={() => { closeConnectApps(); openBotSettings(dispatch, "access", { botId: bot.id, page: "mcp" }); }}>{t("hostedMcp.botSettings", { name: bot.name })}</KitButton>
+        ))}</KitActions>
       </div>
-    </div>;
+    </KitBody>;
   }
 
   if (hostedCards) {
@@ -668,7 +663,7 @@ export function McpServersPanel({ embedded = false, hostedCards, hideHosted = fa
                     <details className="mt-2">
                       <summary className="cursor-pointer font-medium text-ink">{t("hostedMcp.access")}</summary>
                       <p className="mt-2">{t("hostedMcp.accessHint")}</p>
-                      <div className="mt-2 flex flex-wrap gap-2">{(store.bots ?? []).filter((bot) => !bot.hidden).map((bot) => <button key={bot.id} type="button" onClick={() => { dispatch({ type: "togglePlugins", open: false }); openBotSettings(dispatch, "access", { botId: bot.id, page: "mcp" }); }} className="rounded-lg bg-control px-2.5 py-1.5 text-ink hover:bg-raised-hover">{t("hostedMcp.botSettings", { name: bot.name })}</button>)}</div>
+                      <div className="mt-2 flex flex-wrap gap-2">{(store.bots ?? []).filter((bot) => !bot.hidden).map((bot) => <button key={bot.id} type="button" onClick={() => { closeConnectApps(); openBotSettings(dispatch, "access", { botId: bot.id, page: "mcp" }); }} className="rounded-lg bg-control px-2.5 py-1.5 text-ink hover:bg-raised-hover">{t("hostedMcp.botSettings", { name: bot.name })}</button>)}</div>
                     </details>
                   </div>}
                   <McpAppsSwitch<McpServerListing> server={server} disabled={busy !== null || signingIn !== null} onSaved={(next) => { loadGeneration.current += 1; listed(next); }} />{renderSignIn(server)}

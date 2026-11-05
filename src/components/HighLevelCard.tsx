@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, Loader2, MoreHorizontal } from "lucide-react";
 
 import { api } from "@/state/store";
 import { t } from "@/lib/i18n";
@@ -16,10 +15,8 @@ import {
   type HighLevelStatus,
 } from "@/lib/highlevel-sign-in";
 import { forgetHighLevelStatus, rememberHighLevelStatus } from "@/lib/highlevel-status";
-import { SidebarPopoverMenu } from "./SidebarPopoverMenu";
+import { KitActions, KitBody, KitButton, KitField, KitLink, KitStatus, KitText } from "./connect-apps/detail-kit";
 
-const pill = "inline-flex h-7 min-w-[64px] shrink-0 items-center justify-center gap-2 rounded-full bg-control/80 px-3 text-[13px] font-medium leading-5 text-ink transition-colors hover:bg-raised-hover disabled:opacity-40";
-const field = "h-8 w-full min-w-0 rounded-lg bg-inset px-2.5 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none focus:ring-1 focus:ring-accent/50";
 
 export function HighLevelIcon() {
   return (
@@ -30,7 +27,7 @@ export function HighLevelIcon() {
   );
 }
 
-/** The native HighLevel card in Connected apps: one connection per installation, set up by signing in. */
+/** HighLevel on its Connect Apps page: one connection per installation, set up by signing in. */
 export function HighLevelCard({ refreshKey = 0, onConnection }: {
   refreshKey?: number;
   /** true once connected, false otherwise, null until the server has answered */
@@ -199,111 +196,50 @@ export function HighLevelCard({ refreshKey = 0, onConnection }: {
       : needsSignIn
         ? t("connectors.signedOut")
         : t("highlevel.description");
-  const menu = (connected || needsSignIn) && (
-    <SidebarPopoverMenu
-      placement="below"
-      ariaLabel={t("highlevel.menu")}
-      triggerClassName="shrink-0"
-      items={[{ key: "disconnect", label: t("connectors.disconnect"), disabled: busy !== null, onSelect: () => void disconnect() }]}
-      renderTrigger={() => (
-        <span className="inline-flex size-7 items-center justify-center rounded-full bg-control/80 text-ink hover:bg-raised-hover">
-          {busy === "disconnect" ? <Loader2 size={14} className="animate-spin" /> : <MoreHorizontal size={15} aria-hidden="true" />}
-        </span>
-      )}
-    />
-  );
 
   return (
-    <div data-app-tile="highlevel" data-highlevel-state={state ?? "loading"} className="flex min-w-0 flex-col rounded-xl px-2 py-2 transition-colors hover:bg-raised/40">
-      <div className="flex items-center gap-3">
-        <HighLevelIcon />
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <span className="truncate text-[14px] font-semibold leading-5 text-ink">{t("highlevel.title")}</span>
-            {connected && <Check size={13} strokeWidth={2.5} className="shrink-0 text-success" aria-label={t("apps.connected")} />}
-          </div>
-          <p className="truncate text-[13px] leading-[18px] text-ink-secondary" title={description}>{description}</p>
-        </div>
-        {connecting ? (
-          <button type="button" onClick={cancel} className={pill}>{t("mcp.auth.cancel")}</button>
-        ) : status === null ? (
-          loadFailed
-            ? <button type="button" onClick={() => void load()} className={pill}>{t("connectors.action.retry")}</button>
-            : <button type="button" disabled className={pill} aria-label={t("common.checking")}><Loader2 size={14} className="animate-spin" /></button>
-        ) : connected ? (
-          menu
-        ) : (
-          <div className="flex shrink-0 items-center gap-1.5">
-            <button
-              type="button"
-              aria-label={t(needsSignIn ? "highlevel.reconnect" : "highlevel.connect")}
-              disabled={busy !== null}
-              onClick={() => void connect()}
-              className={pill}
-            >
+    <KitBody data-app-tile="highlevel" data-highlevel-state={state ?? "loading"}>
+      {status === null && !connecting
+        ? (loadFailed
+          ? <KitActions><KitButton variant="secondary" onClick={() => void load()}>{t("connectors.action.retry")}</KitButton></KitActions>
+          : <KitStatus>{t("common.checking")}</KitStatus>)
+        : <KitText>{description}</KitText>}
+      {connecting && (
+        <>
+          <KitStatus>{t("highlevel.finishInBrowser")}</KitStatus>
+          <KitActions>
+            <KitButton variant="secondary" onClick={cancel}>{t("mcp.auth.cancel")}</KitButton>
+            {flow && <KitLink onClick={() => void openExternalLink(flow.authorizationUrl).catch(() => setError(t("mcp.auth.openFailed")))}>{t("mcp.auth.openAgain")}</KitLink>}
+          </KitActions>
+        </>
+      )}
+      {!connecting && status !== null && !tokenMode && (
+        <KitActions>
+          {!connected && (
+            <KitButton aria-label={t(needsSignIn ? "highlevel.reconnect" : "highlevel.connect")} disabled={busy !== null} onClick={() => void connect()}>
               {t(needsSignIn ? "connectors.action.reconnect" : "connectors.action.connect")}
-            </button>
-            {menu}
-          </div>
-        )}
-      </div>
-      <div className="ps-[52px]">
-        {connecting && (
-          <p role="status" className="mt-1.5 flex items-center gap-2 text-[12px] text-ink-secondary">
-            <Loader2 size={12} className="shrink-0 animate-spin" aria-hidden="true" />
-            <span>{t("highlevel.finishInBrowser")}</span>
-            {flow && (
-              <button type="button" onClick={() => void openExternalLink(flow.authorizationUrl).catch(() => setError(t("mcp.auth.openFailed")))} className="text-accent-text underline underline-offset-2">
-                {t("mcp.auth.openAgain")}
-              </button>
-            )}
-          </p>
-        )}
-        {error && <p role="alert" className="mt-1.5 text-[12px] text-danger">{error}</p>}
-        {!connecting && status !== null && !connected && !needsSignIn && (
-          tokenMode ? (
-            <form
-              data-highlevel-token-form
-              className="mt-2 flex flex-col gap-2"
-              onSubmit={(event) => { event.preventDefault(); void connectWithToken(); }}
-            >
-              <input
-                type="password"
-                autoComplete="off"
-                spellCheck={false}
-                aria-label={t("highlevel.tokenField")}
-                placeholder={t("highlevel.tokenField")}
-                value={token}
-                onChange={(event) => setToken(event.target.value)}
-                className={field}
-              />
-              <input
-                type="text"
-                autoComplete="off"
-                spellCheck={false}
-                aria-label={t("highlevel.locationField")}
-                placeholder={t("highlevel.locationField")}
-                value={locationId}
-                onChange={(event) => setLocationId(event.target.value)}
-                className={field}
-              />
-              <p className="text-[12px] leading-relaxed text-ink-secondary">{t("highlevel.tokenHelp")}</p>
-              <div className="flex items-center gap-2">
-                <button type="submit" disabled={busy !== null} className={pill}>
-                  {busy === "token" ? <Loader2 size={14} className="animate-spin" /> : t("connectors.action.connect")}
-                </button>
-                <button type="button" onClick={() => { setTokenMode(false); setError(null); }} className="text-[12px] text-ink-secondary underline underline-offset-2 hover:text-ink">
-                  {t("highlevel.useSignIn")}
-                </button>
-              </div>
-            </form>
-          ) : (
-            <button type="button" onClick={() => { setTokenMode(true); setError(null); }} className="mt-1.5 inline-block text-[12px] text-accent-text underline underline-offset-2">
-              {t("highlevel.useToken")}
-            </button>
-          )
-        )}
-      </div>
-    </div>
+            </KitButton>
+          )}
+          {(connected || needsSignIn) && (
+            <KitButton variant="secondary" tone="danger" disabled={busy !== null} onClick={() => void disconnect()}>
+              {busy === "disconnect" ? t("common.checking") : t("connectors.disconnect")}
+            </KitButton>
+          )}
+        </KitActions>
+      )}
+      {!connecting && status !== null && !connected && !needsSignIn && (tokenMode ? (
+        <form data-highlevel-token-form className="ca-kit" style={{ alignSelf: "stretch" }} onSubmit={(event) => { event.preventDefault(); void connectWithToken(); }}>
+          <KitText>{t("highlevel.tokenHelp")}</KitText>
+          <KitField label={t("highlevel.tokenField")} type="password" autoComplete="off" spellCheck={false} value={token} onChange={(event) => setToken(event.target.value)} />
+          <KitField label={t("highlevel.locationField")} type="text" autoComplete="off" spellCheck={false} value={locationId} onChange={(event) => setLocationId(event.target.value)} />
+          <KitActions>
+            <KitButton type="submit" disabled={busy !== null}>{busy === "token" ? t("connectApps.connecting") : t("connectors.action.connect")}</KitButton>
+            <KitButton variant="secondary" onClick={() => { setTokenMode(false); setError(null); }}>{t("common.cancel")}</KitButton>
+          </KitActions>
+          <KitLink onClick={() => { setTokenMode(false); setError(null); }}>{t("highlevel.useSignIn")}</KitLink>
+        </form>
+      ) : <KitLink onClick={() => { setTokenMode(true); setError(null); }}>{t("highlevel.useToken")}</KitLink>)}
+      {error && <KitStatus tone="danger">{error}</KitStatus>}
+    </KitBody>
   );
 }

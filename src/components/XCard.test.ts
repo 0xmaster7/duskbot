@@ -96,7 +96,6 @@ describe("the X card in Apps", () => {
   it("shows a Cloud plan's included calls with this month's use, and nothing to set up", async () => {
     await mount({ included: true, usage: USAGE });
     expect(card().dataset.xState).toBe("included");
-    expect(text()).toContain("X (Twitter)");
     expect(text()).toContain("Included with your plan");
     expect(text()).toContain("312 of 5,000 X calls this month. They reset on November 1.");
     expect(field()).toBeNull();

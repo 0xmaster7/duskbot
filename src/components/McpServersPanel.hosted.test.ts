@@ -187,7 +187,7 @@ describe.each(HOSTED_MCP_APPS)("The $label card", (app) => {
   it("turns the server off before signing out", async () => {
     servers = [listing(app, { enabled: true, auth: "signed-in" })];
     await mount();
-    expect(card(app).querySelector('[aria-label="Connected"]')).not.toBeNull();
+    expect(card(app).textContent).toContain("Connected");
     await act(async () => button(app, "Disconnect").click());
     await settle();
     expect(fixture.api.mock.calls.map(([path]) => path).slice(-2)).toEqual([`/api/mcp/servers/${app.id}`, `/api/mcp/servers/${app.id}/sign-out`]);
@@ -208,27 +208,19 @@ describe.each(HOSTED_MCP_APPS)("The $label card", (app) => {
 
   it("opens each visible bot's Access settings on its MCP page from Bot access", async () => {
     await mount();
-    const buttons = [...card(app).querySelectorAll("details button")];
+    const buttons = [...card(app).querySelectorAll("[data-hosted-access] button")];
     expect(buttons.map((element) => element.textContent)).toEqual(["Manage Atlas’s access"]);
     await act(async () => (buttons[0] as HTMLButtonElement).click());
-    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "togglePlugins", open: false });
     expect(fixture.openBotSettings).toHaveBeenCalledWith(fixture.dispatch, "access", { botId: "atlas", page: "mcp" });
   });
 
-  it("shows its logo, or its glyph and no image when the service publishes no logo we may ship", async () => {
-    await mount();
-    expect(card(app).querySelector("img") !== null).toBe("image" in app.icon);
-    expect(card(app).querySelector("svg") !== null).toBe("glyph" in app.icon);
-  });
 });
 
 describe("the Agentcard tile", () => {
-  it("draws a glyph and never an Agentcard logo, and says Agentcard keeps the cards", async () => {
+  it("draws no Agentcard logo, and says Agentcard keeps the cards", async () => {
     await mount();
     const tile = card(HOSTED_MCP_APPS.find((app) => app.id === "agentcard")!);
     expect(tile.querySelector("img")).toBeNull();
-    expect(tile.querySelector("svg")).not.toBeNull();
-    expect(tile.textContent).toContain("Shop and pay from your own Agentcard account.");
     expect(tile.textContent).toContain("OpenMausBot stores no card details");
   });
 });

@@ -6,14 +6,17 @@ import { ServiceTile } from "../ServiceIcon";
 import type { AppEntry } from "./catalog";
 
 export function AppTile({ entry, size = 40 }: { entry: Pick<AppEntry, "label" | "icon">; size?: number }) {
-  if (entry.icon.glyph) return <GlyphTile name={entry.icon.glyph} size={size} />;
-  return <ServiceTile card={{ label: entry.label, logo: entry.icon.logo ?? null, domain: entry.icon.domain ?? null, image: entry.icon.image }} size={size} />;
+  const { glyph, glyphPaint, ...art } = entry.icon;
+  if (glyph) return <GlyphTile name={glyph} size={size} paint={glyphPaint} />;
+  return <ServiceTile card={{ label: entry.label, ...art }} size={size} />;
 }
 
-export function GlyphTile({ name, size }: { name: GrokIconName; size: number }) {
+/** A glyph in a tile: white on the app's paint, as Grok draws its own apps, or quiet ink on the plain tile. */
+export function GlyphTile({ name, size, paint }: { name: GrokIconName; size: number; paint?: string }) {
   return (
-    <span aria-hidden="true" className="ca-glyph-tile" style={{ width: size, height: size, borderRadius: Math.round(size * 0.28) }}>
-      <GrokIcon name={name} size={Math.round(size * 0.45)} />
+    <span aria-hidden="true" className="ca-glyph-tile" data-painted={paint ? "" : undefined}
+      style={{ width: size, height: size, borderRadius: Math.round(size * 0.28), background: paint }}>
+      <GrokIcon name={name} size={Math.round(size * (paint ? 0.55 : 0.45))} />
     </span>
   );
 }
