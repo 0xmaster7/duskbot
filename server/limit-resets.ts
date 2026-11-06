@@ -22,21 +22,46 @@ function windowLine(name: LimitWindowName, window: PlanWindow): { window: LimitW
   return { window: name, used: window.usedPercent, resetsAt: Number.isFinite(resetsAt) ? resetsAt : null };
 }
 
+type WindowLine = { window: LimitWindowName; usedPercent: number; resetsAt: number | null };
+
 /** An engine's limit from its plan-usage row. The windows at their limit decide, and all must reset, so the latest of
  * their resets counts; with none at the limit, the fullest window counts. Null when the row has no usage. */
 export function engineLimitFromUsage(row: PlanProviderRow): EngineLimit | null {
   if (!row.ok || (row.driver !== "claude" && row.driver !== "codex" && row.driver !== "grok")) return null;
-  const windows = [windowLine("5-hour", row.fiveHour), windowLine("weekly", row.weekly)].filter((line) => line !== null);
-  const base = { engine: row.id, name: row.name, driver: row.driver as Driver,
-    windows: windows.map(({ window, used, resetsAt }) => ({ window, usedPercent: used, resetsAt })) };
-  if (!windows.length) return { ...base, window: null, usedPercent: null, resetsAt: null, blocked: false };
-  const full = windows.filter((line) => line.used >= 100);
+  const windows = [windowLine("5-hour", row.fiveHour), windowLine("weekly", row.weekly)].filter((line) => line !== null)
+    .map(({ window, used, resetsAt }) => ({ window, usedPercent: used, resetsAt }));
+  return limitFromWindows({ engine: row.id, name: row.name, driver: row.driver as Driver }, windows);
+}
+
+function limitFromWindows(base: Pick<EngineLimit, "engine" | "name" | "driver">, windows: WindowLine[]): EngineLimit {
+  const known = { ...base, windows };
+  if (!windows.length) return { ...known, window: null, usedPercent: null, resetsAt: null, blocked: false };
+  const full = windows.filter((line) => line.usedPercent >= 100);
   if (full.length) {
     const latest = full.reduce((left, right) => (right.resetsAt ?? 0) > (left.resetsAt ?? 0) ? right : left);
-    return { ...base, window: latest.window, usedPercent: 100, resetsAt: full.some((line) => line.resetsAt === null) ? null : latest.resetsAt, blocked: true };
+    return { ...known, window: latest.window, usedPercent: 100, resetsAt: full.some((line) => line.resetsAt === null) ? null : latest.resetsAt, blocked: true };
   }
-  const fullest = [...windows].sort((left, right) => right.used - left.used || (left.resetsAt ?? Infinity) - (right.resetsAt ?? Infinity))[0]!;
-  return { ...base, window: fullest.window, usedPercent: fullest.used, resetsAt: fullest.resetsAt, blocked: false };
+  const fullest = [...windows].sort((left, right) => right.usedPercent - left.usedPercent || (left.resetsAt ?? Infinity) - (right.resetsAt ?? Infinity))[0]!;
+  return { ...known, window: fullest.window, usedPercent: fullest.usedPercent, resetsAt: fullest.resetsAt, blocked: false };
+}
+
+/** A usage read kept from before: without the windows that have reset since, whose share is no longer known. */
+function stillCurrent(limit: EngineLimit, now: number): EngineLimit | null {
+  const windows = (limit.windows ?? []).filter((line) => line.resetsAt === null || line.resetsAt > now);
+  return windows.length ? limitFromWindows(limit, windows) : null;
+}
+
+const DRIVERS: ReadonlySet<string> = new Set<Driver>(["claude", "codex", "grok"]);
+const WINDOW_NAMES: ReadonlySet<string> = new Set<LimitWindowName>(["5-hour", "weekly", "other"]);
+
+function savedLimit(engine: string, value: unknown): EngineLimit | null {
+  const saved = value as { name?: unknown; driver?: unknown; windows?: unknown } | null;
+  if (!saved || typeof saved.name !== "string" || typeof saved.driver !== "string" || !DRIVERS.has(saved.driver) || !Array.isArray(saved.windows)) return null;
+  const windows = saved.windows.flatMap((line: { window?: unknown; usedPercent?: unknown; resetsAt?: unknown } | null) =>
+    line && typeof line.window === "string" && WINDOW_NAMES.has(line.window) && typeof line.usedPercent === "number" && Number.isFinite(line.usedPercent) &&
+    (line.resetsAt === null || (typeof line.resetsAt === "number" && Number.isFinite(line.resetsAt)))
+      ? [{ window: line.window as LimitWindowName, usedPercent: line.usedPercent, resetsAt: line.resetsAt as number | null }] : []);
+  return windows.length ? limitFromWindows({ engine, name: saved.name, driver: saved.driver as Driver }, windows) : null;
 }
 
 /** How far apart a refusal's reset and its window's own reset can be: a refusal names its minute, usage the second. */
@@ -81,6 +106,9 @@ export interface LimitClockOptions {
   now?: () => number;
   /** Where the refusals' holds are kept across restarts; none in tests that need no file. */
   file?: string;
+  /** Where the last usage each engine reported is kept, so a restart, or a read the provider refuses (Claude's usage
+   * endpoint answers 429 to reads close together), still knows it. */
+  usageFile?: string;
 }
 
 /** A test fixture's plan usage, read fresh each time so a test can move a reset. Never set outside tests. */
@@ -115,6 +143,7 @@ export class LimitResetClock {
     this.options = options;
     this.now = options.now ?? Date.now;
     this.loadHolds();
+    this.loadUsage();
   }
 
   /** The reset a limit-reset automation for this engine waits for: a refusal's own time unless usage shows a later
@@ -202,7 +231,12 @@ export class LimitResetClock {
     let released = false;
     for (const row of report.providers) {
       const limit = engineLimitFromUsage(row);
-      if (!limit) continue;
+      if (!limit) {
+        const before = row.ok ? undefined : this.usage.get(row.id);
+        const kept = before && stillCurrent(before, this.now());
+        if (kept) next.set(kept.engine, kept);
+        continue;
+      }
       next.set(limit.engine, limit);
       if (fetchedAt >= (this.heldAt.get(limit.engine) ?? 0) && codexHoldGone(row, limit, this.refusals.get(limit.engine), this.guessed.has(limit.engine))) {
         this.refusals.delete(limit.engine);
@@ -211,6 +245,7 @@ export class LimitResetClock {
     }
     if (released) this.saveHolds();
     this.usage = next;
+    this.saveUsage();
     this.checkedAt = this.now();
     this.options.onChange?.();
   }
@@ -279,6 +314,28 @@ export class LimitResetClock {
       if (typeof until !== "number" || !Number.isFinite(until) || until < this.now() - REFUSAL_GRACE_MS) continue;
       this.refusals.set(engine, until);
       if (hold?.guessed === true) this.guessed.add(engine);
+    }
+  }
+
+  private loadUsage(): void {
+    if (!this.options.usageFile) return;
+    let saved: unknown;
+    try { saved = JSON.parse(readFileSync(this.options.usageFile, "utf8")); } catch { return; }
+    if (!saved || typeof saved !== "object" || Array.isArray(saved)) return;
+    for (const [engine, value] of Object.entries(saved)) {
+      const limit = savedLimit(engine, value);
+      const current = limit && stillCurrent(limit, this.now());
+      if (current) this.usage.set(engine, current);
+    }
+  }
+
+  private saveUsage(): void {
+    if (!this.options.usageFile) return;
+    const usage = Object.fromEntries([...this.usage.values()].map(({ engine, name, driver, windows }) => [engine, { name, driver, windows: windows ?? [] }]));
+    try {
+      writeFileAtomic(this.options.usageFile, JSON.stringify(usage), { mode: 0o600 });
+    } catch (error) {
+      console.error(`limit usage: could not save: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

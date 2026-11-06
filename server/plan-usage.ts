@@ -267,7 +267,8 @@ export function defaultCredentialReader(env: NodeJS.ProcessEnv = process.env): C
 
 export async function fetchPlanUsage(accounts: PlanAccount[], deps: PlanUsageDeps): Promise<PlanUsageReport> {
   const now = deps.now?.() ?? Date.now();
-  const providers = await Promise.all(accounts.filter((account) => !account.noUsage).map((account) => fetchProvider(account, deps)));
+  const sameLogin = new Map<string, Promise<PlanProviderRow>>();
+  const providers = await Promise.all(accounts.filter((account) => !account.noUsage).map((account) => fetchProvider(account, deps, sameLogin)));
   return { fetchedAt: new Date(now).toISOString(), providers };
 }
 
@@ -858,14 +859,27 @@ function okRow(account: PlanAccount, windows: PlanWindows): PlanProviderRow {
   };
 }
 
-async function fetchProvider(account: PlanAccount, deps: PlanUsageDeps): Promise<PlanProviderRow> {
+/** Accounts on one sign-in (two Claude engines on the same login) share one read: Claude's usage endpoint answers 429 to
+ * a second read made at once. */
+async function fetchProvider(account: PlanAccount, deps: PlanUsageDeps, sameLogin: Map<string, Promise<PlanProviderRow>>): Promise<PlanProviderRow> {
   let credential: PlanCredential;
   try {
     credential = await deps.credentials.read(account);
   } catch {
     return errorRow(account, signInAgain(account.driver));
   }
-  if (credential.expired || !credential.token) return errorRow(account, signInAgain(account.driver));
+  const token = credential.token;
+  if (credential.expired || !token) return errorRow(account, signInAgain(account.driver));
+  const login = createHash("sha256").update(`${account.driver}\0${credential.accountId ?? ""}\0${token}`).digest("hex");
+  let read = sameLogin.get(login);
+  if (!read) {
+    read = fetchSignedIn(account, { ...credential, token }, deps);
+    sameLogin.set(login, read);
+  }
+  return { ...(await read), id: account.id, name: account.name };
+}
+
+async function fetchSignedIn(account: PlanAccount, credential: PlanCredential & { token: string }, deps: PlanUsageDeps): Promise<PlanProviderRow> {
   try {
     if (account.driver === "claude") return await fetchClaude(account, credential.token, deps);
     if (account.driver === "codex") return await fetchCodex(account, credential.token, credential.accountId, deps);

@@ -384,6 +384,23 @@ describe("plan usage fetcher", () => {
     expect(JSON.stringify(report)).not.toContain(SECRET);
   });
 
+  it("reads usage once for two Claude engines on the same sign-in, since a second read at once is answered 429", async () => {
+    let reads = 0;
+    const fetchImpl = vi.fn<PlanFetch>(async () => ++reads > 1 ? jsonResponse({ error: "rate_limited" }, 429) : jsonResponse({
+      seven_day: { utilization: 57, resets_at: "2026-10-03T00:00:00.000Z" },
+    }));
+    const report = await fetchPlanUsage([account("claude"), account("claude", { id: "claudeApi", name: "Claude API" })], {
+      fetch: fetchImpl,
+      now: () => NOW,
+      credentials: { read: () => ({ token: SECRET, accountId: null, expired: false }) },
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(report.providers.map((provider) => [provider.id, provider.name, provider.ok, provider.weekly.usedPercent])).toEqual([
+      ["claude", "Claude", true, 57],
+      ["claudeApi", "Claude API", true, 57],
+    ]);
+  });
+
   it("reads a Grok login map, skips expired entries, and ignores a settings failure", async () => {
     const fresh = "grok-fresh-fixture-token";
     const stale = "grok-stale-fixture-token";

@@ -317,6 +317,35 @@ describe("LimitResetClock and the turns that follow a refusal", () => {
     }
   });
 
+  it("keeps the last usage it read through a restart and through reads the provider refuses, until its windows reset", () => {
+    const dir = mkdtempSync(join(tmpdir(), "omb-limit-usage-"));
+    try {
+      const usageFile = join(dir, "limit-usage.json");
+      let now = NOW;
+      const boot = () => new LimitResetClock({ accounts: () => accounts, now: () => now, usageFile });
+      const refused = { ...claude([0, null], [0, null]), ok: false, error: "Claude returned an unexpected usage response" };
+      const first = boot();
+      first.noteUsage(report(claude([20, NOW + 2 * HOUR], [57, NOW + 96 * HOUR])));
+      first.noteUsage(report(refused));
+      expect(first.limit("claude"), "a refused read keeps what was known").toMatchObject({ window: "weekly", usedPercent: 57, resetsAt: NOW + 96 * HOUR });
+      now = NOW + 3 * HOUR;
+      const restarted = boot();
+      expect(restarted.report().checkedAt, "usage is still read on the first ask").toBe(0);
+      expect(restarted.limit("claude"), "known right after a restart, without the 5-hour window that has reset").toMatchObject({
+        window: "weekly", usedPercent: 57, resetsAt: NOW + 96 * HOUR, windows: [{ window: "weekly", usedPercent: 57, resetsAt: NOW + 96 * HOUR }],
+      });
+      restarted.noteUsage(report(refused));
+      expect(restarted.limit("claude")?.usedPercent, "and the first read after it refused too").toBe(57);
+      restarted.noteUsage(report());
+      expect(restarted.limit("claude"), "an engine no longer listed is dropped").toBeUndefined();
+      first.noteUsage(report(claude([20, NOW + 2 * HOUR], [57, NOW + 96 * HOUR])));
+      now = NOW + 97 * HOUR;
+      expect(boot().limit("claude"), "nothing is kept once every window has reset").toBeUndefined();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("holds the engine until it is checked again when its refusal names a reset that already passed", () => {
     const { instance } = clock();
     instance.noteRuntimeEvent("claude", started("t1"));
