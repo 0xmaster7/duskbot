@@ -19,8 +19,8 @@
 .mention-highlight {
   --mention-color: var(--color-ink-secondary);
 
-  /* quiet like grok: a hint of the bot's color in the text, no fill or underline */
-  color: color-mix(in srgb, var(--mention-color) 55%, var(--color-ink));
+  /* quiet like grok: every mention the same ink and weight, no fill, underline or per-bot colour */
+  color: var(--color-ink);
   font-weight: 500;
 }
 .mention-highlight.mention-you {

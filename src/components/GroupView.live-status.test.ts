@@ -45,8 +45,8 @@ describe("a room's speaker through a long turn", () => {
     const writing = draw([ask, said]);
     expect(writing, "the 1:1 status line: a friendly phrase").toContain("Writing some code");
     const line = /data-turn-status="true">(.*?)<\/span><\/span><\/span>/.exec(writing)?.[1]?.replace(/<[^>]+>/g, "");
-    expect(line, "the line says who and the phrase alone: no file name, size, timer or lead word").toBe("AdaWriting some code");
-    expect(writing).toMatch(/data-turn-name="">Ada</);
+    expect(line, "one working bot keeps the plain 1:1 line: the phrase alone, no name, file, size, timer or lead word").toBe("Writing some code");
+    expect(writing).not.toMatch(/data-turn-name="">Ada</);
     expect(writing).not.toContain("room-stop-member");
     engine("turn.completed");
     expect(draw([ask, said]), "the turn ended: her settled reply needs no mascot").not.toContain("turn-presence");

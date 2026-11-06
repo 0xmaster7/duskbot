@@ -85,6 +85,7 @@ export function RoomWorkingLines({ group, members, workingIds, speaker, slot }: 
               transition={reduce ? { height: { duration: 0 }, opacity: REDUCED } : { height: ENTER, default: LEAVE }}
             >
               <WorkingLine
+                named={ordered.length > 1}
                 bot={bot}
                 state={isSpeaker ? speaker.markState : "working"}
                 phrases={words.phrases}
@@ -100,8 +101,9 @@ export function RoomWorkingLines({ group, members, workingIds, speaker, slot }: 
   );
 }
 
-function WorkingLine({ bot, state, phrases, phase, since, seed }: {
+function WorkingLine({ bot, named, state, phrases, phase, since, seed }: {
   bot: Bot;
+  named: boolean;
   state: MarkState;
   phrases?: readonly string[];
   phase?: string;
@@ -126,7 +128,8 @@ function WorkingLine({ bot, state, phrases, phase, since, seed }: {
         }
         simple
         visible
-        name={bot.name}
+        // one bot keeps the plain 1:1 line; names only tell several apart
+        name={named ? bot.name : undefined}
         phrases={phrases}
         phase={phase}
         seed={seed}
