@@ -86,6 +86,8 @@ describe("lazyScreen", () => {
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
     const reload = vi.spyOn(window.location, "reload").mockImplementation(() => {});
+    // the quiet reload already ran a moment ago, so this failure shows the notice
+    sessionStorage.setItem("openmausbot.screenReload", String(Date.now()));
     const load = vi.fn((): Loaded => Promise.reject(new TypeError("Failed to fetch dynamically imported module")));
     const Screen = lazyScreen("TeamMapPage", load);
     await expect(Screen.preload()).rejects.toThrow(TypeError);
@@ -93,7 +95,7 @@ describe("lazyScreen", () => {
     await settle();
     expect(document.querySelector("main")!.outerHTML).toBe("<main>chat</main>");
     const notice = document.querySelector<HTMLElement>('[role="alert"]');
-    expect(notice?.textContent).toContain("couldn’t load");
+    expect(notice?.textContent).toContain("didn’t load");
     expect(document.body.textContent).not.toContain("Team map");
     expect(errors).not.toHaveBeenCalled();
     expect(warnings).toHaveBeenCalledTimes(2);
@@ -101,6 +103,17 @@ describe("lazyScreen", () => {
     expect(reload).not.toHaveBeenCalled();
     notice!.querySelector("button")!.click();
     expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it("reloads the window once on its own when a chunk first fails", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const reload = vi.spyOn(window.location, "reload").mockImplementation(() => {});
+    sessionStorage.removeItem("openmausbot.screenReload");
+    const Screen = lazyScreen("InboxPanel", (): Loaded => Promise.reject(new TypeError("Failed to fetch dynamically imported module")));
+    await expect(Screen.preload()).rejects.toThrow(TypeError);
+    expect(reload).toHaveBeenCalledTimes(1);
+    await expect(Screen.preload()).rejects.toThrow(TypeError);
+    expect(reload, "never a reload loop").toHaveBeenCalledTimes(1);
   });
 
   it("logs a failed prefetch rather than dropping it silently", async () => {

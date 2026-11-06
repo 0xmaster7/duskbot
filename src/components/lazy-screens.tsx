@@ -22,6 +22,7 @@ export function lazyScreen<Props>(
     (error: unknown) => {
       loading = undefined;
       console.warn(`[lazy-screens] ${name} could not be loaded; reloading the window fetches it again.`, error);
+      reloadOnce(name);
       throw error;
     },
   ));
@@ -45,18 +46,34 @@ export function lazyScreen<Props>(
   return Object.assign(Screen, { preload });
 }
 
+const RELOADED_KEY = "openmausbot.screenReload";
+
+// a failed chunk is usually a stale build or a file caught mid-edit; one quiet reload fetches it fresh, and only a
+// second failure within a minute shows the notice
+function reloadOnce(name: string) {
+  try {
+    const last = Number(sessionStorage.getItem(RELOADED_KEY) ?? 0);
+    if (Date.now() - last < 60_000) return;
+    sessionStorage.setItem(RELOADED_KEY, String(Date.now()));
+  } catch {
+    return;
+  }
+  console.warn(`[lazy-screens] reloading once for ${name}`);
+  window.location.reload();
+}
+
 function ScreenUnavailable() {
   return createPortal(
     <div
       role="alert"
       data-screen-unavailable
-      className="fixed bottom-4 left-1/2 z-[100] flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-3 rounded-xl border border-danger/30 bg-card px-3.5 py-2.5 text-[13px] text-danger shadow-xl"
+      className="fixed bottom-4 left-1/2 z-[100] flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-3 rounded-[14px] bg-menu py-2 pe-2 ps-3.5 text-[13px] leading-[18px] text-ink shadow-[0_8px_24px_rgb(0_0_0/0.12)] outline-[0.5px] outline-offset-[-0.5px] outline-edge [outline-style:solid]"
     >
-      <span>{t("screenLoad.failed")}</span>
+      <span>{t("screenLoad.failedShort")}</span>
       <button
         type="button"
         onClick={() => window.location.reload()}
-        className="shrink-0 rounded-md px-1.5 py-0.5 font-medium text-accent hover:bg-raised"
+        className="h-7 shrink-0 rounded-full bg-ink/[0.06] px-3 text-[13px] font-medium text-ink hover:bg-ink/[0.1]"
       >
         {t("screenLoad.reload")}
       </button>
