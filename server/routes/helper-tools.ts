@@ -43,7 +43,7 @@ export const HELPER_MESSAGES = {
 } as const;
 
 const FAILURE: Partial<Record<DeciderFailure, string>> = {
-  rejected: "The helper model refused its key. Ask the person to check it in Settings → Decision and extraction.",
+  rejected: "The helper model refused its key. Ask the person to check it in the group chat's Who responds settings.",
   rate_limited: "The helper model's allowance is used up for now. Try again later, or do this yourself.",
   overloaded: "The helper model is busy. Try again in a minute.",
   timeout: "The helper model took too long. Try a smaller input.",
@@ -51,7 +51,7 @@ const FAILURE: Partial<Record<DeciderFailure, string>> = {
   misconfigured: "That request is outside what the helper model takes.",
   too_large: "That is too large for the helper model. Send less text or a smaller image; trying the same again will not work.",
 };
-const BY: Record<DeciderProvider, string> = { jev: "Jev", workersai: "Cloudflare Workers AI", openrouter: "OpenRouter" };
+const BY: Record<DeciderProvider, string> = { jev: "Jev", workersai: "Cloudflare Workers AI", openrouter: "OpenRouter", gateway: "Vercel AI Gateway" };
 
 const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === "object" && !Array.isArray(value);
 const text = (value: unknown): string | null => (typeof value === "string" && value.trim() ? value : null);

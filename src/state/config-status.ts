@@ -6,7 +6,7 @@ import type { ModelSelection } from "./store";
 /** A saved credential: whether it is set and, for admins, its last four characters. The key itself never comes back. */
 export interface SavedKey { configured: boolean; last4?: string }
 
-export type NestedKeyName = "ttsKey" | "fishAudioKey" | "geminiTtsKey" | "jevApiKey" | "openrouterDeciderKey" | "workersAiToken" | "openaiImageApiKey" | "customImageApiKey" | "openaiLiveKey";
+export type NestedKeyName = "ttsKey" | "fishAudioKey" | "geminiTtsKey" | "jevApiKey" | "openrouterDeciderKey" | "gatewayDeciderKey" | "workersAiToken" | "openaiImageApiKey" | "customImageApiKey" | "openaiLiveKey";
 
 /** GET /api/config — configured flags only; secrets are never echoed. */
 export interface ConfigStatus {
@@ -87,9 +87,10 @@ export interface ConfigStatus {
    * saved. OpenRouter only: `keySource` says which key is in use (its own, or
    * the one under Settings → API keys); `sharedKey`: that one is on file. */
   decider?: {
-    provider: "jev" | "workersai" | "openrouter";
-    /** The OpenRouter model in use; present only while OpenRouter is the provider. */
+    provider: "jev" | "workersai" | "openrouter" | "gateway";
+    /** The model in use; present only while OpenRouter or Vercel AI Gateway is the provider. */
     model?: string;
+    api?: "chat" | "decisions";
     configured: boolean;
     keySource?: "own" | "shared";
     sharedKey?: boolean;
@@ -99,7 +100,7 @@ export interface ConfigStatus {
   };
   /** The decision and extraction models' keys: which of the person's own are on file, never a key. */
   helpers?: {
-    own: { jev: boolean; workersAi: boolean; openrouter: boolean };
+    own: { jev: boolean; workersAi: boolean; openrouter: boolean; gateway?: boolean };
     sharedKey?: boolean;
     workersAiAccountId?: string;
     extraction: { provider?: "jev" | "workersai" | "openrouter"; included?: boolean; ready: boolean };

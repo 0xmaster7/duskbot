@@ -556,19 +556,21 @@ describe("OpenRouter as the provider", () => {
     expect(row).not.toHaveProperty("model");
   });
 
-  it("Cloud's included relay comes before OpenRouter, and its token never goes to OpenRouter", async () => {
+  it("OpenRouter picked with its own key comes before Cloud's included relay, whose token never goes to OpenRouter", async () => {
     const relay = "https://cloud.example.test/api/cloud/services/decider";
     vi.stubEnv("OMB_CLOUD_DECIDER_URL", relay);
     vi.stubEnv("OMB_CLOUD_DECIDER_TOKEN", "omb_decide_unit_included_token_0123456789");
     const fetchImpl = yes();
     const chose: AppConfig = { decider: { ...OR.decider } };
-    expect(describeDecider(chose)).toEqual({ provider: "jev", configured: true, included: true, enabled: true, jobs: { roomRouting: true } });
+    expect(describeDecider(chose)).toMatchObject({ provider: "openrouter", configured: true, keySource: "own" });
     await decider(chose, fetchImpl).testKey();
-    expect(String(fetchImpl.mock.calls[0]![0])).toBe(`${relay}/v1/systemone`);
-    // A job the relay does not take falls through to OpenRouter, with the person's own OpenRouter key only.
-    await decider(chose, fetchImpl).testKey({ provider: "openrouter" });
-    expect(String(fetchImpl.mock.calls[1]![0])).toBe("https://openrouter.ai/api/v1/chat/completions");
-    expect(authOf(fetchImpl, 1)).toBe(`Bearer ${OR_KEY}`);
+    expect(String(fetchImpl.mock.calls[0]![0])).toBe("https://openrouter.ai/api/v1/chat/completions");
+    expect(authOf(fetchImpl, 0)).toBe(`Bearer ${OR_KEY}`);
+    // with no provider picked, the relay still comes first
+    const unpicked: AppConfig = { decider: { ...OR.decider, provider: undefined } };
+    expect(describeDecider(unpicked)).toEqual({ provider: "jev", configured: true, included: true, enabled: true, jobs: { roomRouting: true } });
+    await decider(unpicked, fetchImpl).testKey();
+    expect(String(fetchImpl.mock.calls[1]![0])).toBe(`${relay}/v1/systemone`);
   });
 
   it("Settings status names the provider and the model in use, and never a key", () => {
@@ -727,7 +729,7 @@ describe("settings rules with two providers", () => {
   it("switching on needs some key, and the error names every kind", () => {
     expect(deciderSavePatch({ provider: "openrouter", enabled: true }, { enabled: false, key: KEY })).toEqual({ ok: true, patch: { provider: "openrouter", enabled: true } });
     expect(deciderSavePatch({ enabled: true }, { provider: "openrouter", openrouterKey: "sk-or" })).toEqual({ ok: true, patch: { enabled: true } });
-    expect(deciderSavePatch({ enabled: true }, {})).toEqual({ ok: false, error: "Save a Cloudflare Workers AI, Jev or OpenRouter key before turning on fast decisions." });
+    expect(deciderSavePatch({ enabled: true }, {})).toEqual({ ok: false, error: "Save a Vercel AI Gateway, OpenRouter, Jev or Cloudflare Workers AI key before turning on fast decisions." });
     expect(deciderSavePatch({ enabled: true }, { workersAiToken: "cf-token" })).toMatchObject({ ok: false });
     expect(deciderSavePatch({ provider: "openrouter", enabled: true }, {}, { included: true })).toMatchObject({ ok: true });
   });

@@ -41,7 +41,7 @@ export interface KeyTarget {
 export type KeyId =
   | "openai" | "anthropic" | "xai" | "openrouter" | "mistral" | "cerebras" | "groq" | "greenference" | "meta" | "deepseek" | "opencodeGo" | "opencodeProviders"
   | "lmStudio" | "openaiCompat" | "liveCalls" | "liveKey" | "elevenlabs" | "fishAudio" | "geminiTts" | "box" | "vps" | "onePassword" | "composio" | "treg"
-  | "jev" | "openrouterHelper" | "workersAi" | "imageOpenai" | "imageCustom";
+  | "jev" | "openrouterHelper" | "gatewayHelper" | "workersAi" | "imageOpenai" | "imageCustom";
 
 export type KeyMark = { driverKind: string; preset?: ProviderIconPreset } | { icon: LucideIcon };
 
@@ -174,9 +174,13 @@ export const KEY_CATALOG: readonly KeyEntry[] = [
     target: { patch: (value) => ({ decider: { openrouterKey: value } }), slot: "openrouterDeciderKey", verifiedOnSave: true,
       saved: (config) => flag(config.savedKeys?.openrouterDeciderKey ?? { configured: config.helpers?.own.openrouter === true }),
       placeholder: "sk-or-v1-…", href: "https://openrouter.ai/keys", analytics: "openrouter_decider", shape: /^sk-or-/ } },
+  { id: "gatewayHelper", section: "helpers", labelKey: "keys.label.gatewayHelper", purposeKey: "keys.purpose.gatewayHelper", name: "Vercel AI Gateway", env: ["OMB_GATEWAY_DECIDER_KEY"],
+    words: ["vercel", "ai gateway", "gateway", "jev", "decisions", "helper", "rooms"], mark: { icon: Zap }, kind: "key",
+    target: { patch: (value) => ({ decider: { gatewayKey: value } }), slot: "gatewayDeciderKey", verifiedOnSave: true,
+      saved: (config) => flag(config.savedKeys?.gatewayDeciderKey ?? { configured: config.helpers?.own.gateway === true }),
+      placeholder: "…", href: "https://vercel.com/ai-gateway", analytics: "gateway_decider" } },
   { id: "workersAi", section: "helpers", labelKey: "decider.workersAi.title", purposeKey: "keys.purpose.workersAi", name: "Cloudflare", env: ["OMB_WORKERS_AI_TOKEN"],
-    words: ["cloudflare", "workers ai", "clef", "clairic", "decisions", "helper"], mark: { icon: Zap }, kind: "elsewhere",
-    opens: "decisionModel", whereKey: "keys.where.decisions",
+    words: ["cloudflare", "workers ai", "clef", "clairic", "decisions", "helper"], mark: { icon: Zap }, kind: "elsewhere", whereKey: "keys.where.workersAi",
     status: (config) => flag(config.savedKeys?.workersAiToken ?? { configured: config.helpers?.own.workersAi === true }) },
   { id: "imageOpenai", section: "helpers", labelKey: "keys.label.imageOpenai", purposeKey: "keys.purpose.imageOpenai", name: "OpenAI", env: ["OMB_OPENAI_IMAGE_KEY"],
     words: ["openai", "image", "images", "pictures", "avatar", "gpt image"], mark: { icon: Image }, kind: "key",

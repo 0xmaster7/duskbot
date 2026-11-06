@@ -23,7 +23,6 @@ import { BuiltInBrowserRow, ServerSitesRow } from "./BrowserSettingsRows";
 import { CloudPlanFootnote, CloudPlanRow, useCloudPlan } from "./ProIntroduction";
 import { CloudUsageDetails, CloudUsageSummaryView, useCloudUsageSettings } from "./CloudUsageMeter";
 import { CompanyBackupSettings } from "./CompanyBackupSettings";
-import { DecisionModelSettings } from "./DecisionModelSettings";
 import { DiagnosticsRow } from "./DiagnosticsRow";
 import { EnginesSettings } from "./EnginesSettings";
 import { ImportSettings } from "./ImportSettings";
@@ -74,7 +73,6 @@ export const SECTION_PAGES: Partial<Record<AppSettingsSection, { id: string; tit
   botAccess: { id: "botAccess", title: "settings.section.botAccess" },
   activity: { id: "activity", title: "settings.section.activity" },
   connections: { id: "keys", title: "settings.section.connections" },
-  decisionModel: { id: "decision", title: "settings.section.decisionModel" },
   cloudAccount: { id: "plan", title: "settings.section.cloudAccount" },
   skills: { id: "skills", title: "settings.section.skills" },
   organization: { id: "organization", title: "settings.section.organization" },
@@ -493,20 +491,18 @@ function BuilderPage() {
   );
 }
 
-/** Model providers and their sign-ins, API keys and the decision model: what every bot's model picker draws from. */
+/** Model providers and their sign-ins and API keys: what every bot's model picker draws from. */
 export function ModelsPane({ has, disclose, connections }: { has: Has; disclose: Disclose; connections: ReactNode }) {
   const { at } = useSubPage();
   if (at === "keys") return <div data-settings-block="connections" className="contents"><AdminOnly>{connections}</AdminOnly></div>;
-  if (at === "decision") return <div data-settings-block="decisionModel" className="contents"><AdminOnly><DecisionModelSettings /></AdminOnly></div>;
   if (at === "recovery") return <AdminOnly><AutomaticRecoverySettings /></AdminOnly>;
   if (at) return <div data-settings-block="engines" className="contents"><AdminOnly><EnginesSettings simple more={disclose("ai-more")} /></AdminOnly></div>;
   return (
     <>
       {has("engines") && <div data-settings-block="engines" className="flex scroll-mt-4 flex-col gap-5"><AdminOnly><EnginesSettings simple more={disclose("ai-more")} /></AdminOnly></div>}
-      {(has("connections") || has("decisionModel")) && (
+      {has("connections") && (
         <RowsCard label={t("settings.rows.more")} data-settings-block="models-more">
           {has("connections") && <PageRow page="keys" title={t("settings.section.connections")} hint={t("settings.hint.keys")} />}
-          {has("decisionModel") && <PageRow page="decision" title={t("settings.section.decisionModel")} hint={t("settings.hint.decision")} />}
           <PageRow page="recovery" title={t("settings.recovery.title")} hint={t("settings.hint.recovery")} />
         </RowsCard>
       )}

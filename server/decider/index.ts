@@ -3,8 +3,9 @@
 import type { AppConfig } from "../config.ts";
 import { deciderCredential } from "../included-services.ts";
 import {
-  helpersOn, includedAccount, jevAccount, openrouterAccount, sharedOpenRouterKey, workersAiAccount, type HelperAccount,
+  gatewayAccount, helpersOn, includedAccount, jevAccount, openrouterAccount, sharedOpenRouterKey, workersAiAccount, type HelperAccount,
 } from "./accounts.ts";
+import { GATEWAY_DEFAULT_API, GATEWAY_DEFAULT_MODEL, gatewayBackend } from "./gateway.ts";
 import { jevBackend } from "./jev.ts";
 import { appendDeciderLog, stateHash } from "./log.ts";
 import { OPENROUTER_DEFAULT_API, OPENROUTER_DEFAULT_MODEL, openrouterBackend } from "./openrouter.ts";
@@ -24,13 +25,14 @@ export const KEY_CHECK_TIMEOUT_MS = 10_000;
 const MIN_TIMEOUT_MS = 50;
 const MAX_TIMEOUT_MS = 30_000;
 
-const BACKENDS: Record<DeciderProvider, DeciderBackend> = { jev: jevBackend, workersai: workersAiBackend, openrouter: openrouterBackend };
+const BACKENDS: Record<DeciderProvider, DeciderBackend> = { jev: jevBackend, workersai: workersAiBackend, openrouter: openrouterBackend, gateway: gatewayBackend };
 
 type DeciderConfig = NonNullable<AppConfig["decider"]>;
 
 /** The provider a draft key with no provider named is tested at: the old provider choice, else Jev. */
 function draftProvider(cfg: AppConfig): DeciderProvider {
-  return cfg.decider?.provider === "openrouter" ? "openrouter" : "jev";
+  const provider = cfg.decider?.provider;
+  return provider === "openrouter" || provider === "gateway" ? provider : "jev";
 }
 
 export function deciderModel(cfg: AppConfig): string {
@@ -42,11 +44,23 @@ export function deciderApi(cfg: AppConfig): OpenRouterApi {
   return cfg.decider.openrouterApi === "decisions" ? "decisions" : "chat";
 }
 
-/** In order: the person's own Jev key, their own Workers AI key (Clef), Cloud's included relay (only for seams it
- * accepts), the OpenRouter LLM fallback, nothing. */
+export function gatewayModel(cfg: AppConfig): string {
+  return cfg.decider?.gatewayModel?.trim() || GATEWAY_DEFAULT_MODEL;
+}
+
+export function gatewayApi(cfg: AppConfig): OpenRouterApi {
+  if (!cfg.decider?.gatewayModel?.trim()) return GATEWAY_DEFAULT_API;
+  return cfg.decider.gatewayApi === "decisions" ? "decisions" : "chat";
+}
+
+/** The provider picked (OpenRouter or Vercel AI Gateway) when its key is there, then in order: the person's own Jev
+ * key, their own Workers AI key (Clef), Cloud's included relay (only for seams it accepts), their AI Gateway key, the
+ * OpenRouter LLM fallback, nothing. */
 export function deciderAccount(cfg: AppConfig, seam?: DeciderSeam): HelperAccount | null {
   const jev = jevAccount(cfg);
-  const candidates = [jev, workersAiAccount(cfg), jev?.included ? null : includedAccount(), openrouterAccount(cfg)];
+  const gateway = gatewayAccount(cfg);
+  const picked = cfg.decider?.provider === "gateway" ? gateway : cfg.decider?.provider === "openrouter" && cfg.decider.openrouterKey?.trim() ? openrouterAccount(cfg) : null;
+  const candidates = [picked, jev, workersAiAccount(cfg), jev?.included ? null : includedAccount(), gateway, openrouterAccount(cfg)];
   return candidates.find((account): account is HelperAccount => Boolean(account) && !(account!.included && seam && !relaySeam(seam))) ?? null;
 }
 
@@ -84,6 +98,7 @@ export function describeDecider(cfg: AppConfig) {
   return {
     provider,
     ...(provider === "openrouter" ? { model: deciderModel(cfg), api: deciderApi(cfg) } : {}),
+    ...(provider === "gateway" ? { model: gatewayModel(cfg), api: gatewayApi(cfg) } : {}),
     configured: Boolean(account),
     ...(account?.keySource ? { keySource: account.keySource } : {}),
     ...(provider === "openrouter" && deciderSharedKeyUsable(cfg) ? { sharedKey: true as const } : {}),
@@ -101,7 +116,7 @@ export interface DeciderKeyFallback {
   shared?: boolean;
 }
 
-const KEY_FIELDS = ["key", "workersAiToken", "openrouterKey"] as const;
+const KEY_FIELDS = ["key", "workersAiToken", "openrouterKey", "gatewayKey"] as const;
 
 /** Jobs merge per job, because saveConfig replaces a section's nested objects whole. Saving any key switches the helper
  * models and their jobs on; clearing the last key with nothing to fall back on switches them off. */
@@ -115,9 +130,10 @@ export function deciderSavePatch(
   const saving = KEY_FIELDS.some((field) => Boolean(next[field]));
   const clearing = KEY_FIELDS.some((field) => next[field] === "");
   const after = (field: (typeof KEY_FIELDS)[number] | "workersAiAccountId") => (typeof next[field] === "string" ? next[field] : current?.[field]?.trim()) || "";
-  const ownAfter = Boolean(after("key") || after("openrouterKey") || (after("workersAiToken") && after("workersAiAccountId")));
+  const ownAfter = Boolean(after("key") || after("openrouterKey") || after("gatewayKey") || (after("workersAiToken") && after("workersAiAccountId")));
   const fallbackHere = fallback.included === true || fallback.shared === true;
   if (patch.openrouterModel !== undefined && patch.openrouterApi === undefined) next.openrouterApi = "chat";
+  if (patch.gatewayModel !== undefined && patch.gatewayApi === undefined) next.gatewayApi = "chat";
   if (next.workersAiToken && !after("workersAiAccountId")) return { ok: false, error: "Add your Cloudflare account ID with the token." };
   if (saving) {
     next.enabled = patch.enabled ?? true;
@@ -128,7 +144,7 @@ export function deciderSavePatch(
     next.jobs = { ...current?.jobs, ...patch.jobs };
   }
   if (next.enabled === true && !saving && !ownAfter && !fallbackHere) {
-    return { ok: false, error: "Save a Cloudflare Workers AI, Jev or OpenRouter key before turning on fast decisions." };
+    return { ok: false, error: "Save a Vercel AI Gateway, OpenRouter, Jev or Cloudflare Workers AI key before turning on fast decisions." };
   }
   return { ok: true, patch: next };
 }
@@ -140,9 +156,10 @@ export const DECIDER_KEY_REJECTED: Record<DeciderProvider, string> = {
   jev: "Jev rejected this key. Check it at typesafe.ai and paste it again.",
   workersai: "Cloudflare rejected this token. Check that it has Workers AI permission and belongs to this account ID.",
   openrouter: "OpenRouter rejected this key. Check it at openrouter.ai/keys and paste it again.",
+  gateway: "Vercel AI Gateway rejected this key, or the model. Check the key in your Vercel dashboard under AI Gateway and paste it again.",
 };
 
-/** The key a save brings, to be tested before it is kept: Jev's, then Workers AI's, then OpenRouter's. */
+/** The key a save brings, to be tested before it is kept: Jev's, then Workers AI's, then AI Gateway's, then OpenRouter's. */
 export function deciderPatchKey(
   patch: Partial<DeciderConfig>,
   current: DeciderConfig | undefined,
@@ -154,6 +171,15 @@ export function deciderPatchKey(
   if (workersAiKey) {
     const accountId = (patch.workersAiAccountId ?? current?.workersAiAccountId)?.trim();
     return { provider: "workersai", check: { key: workersAiKey, provider: "workersai", ...(accountId ? { accountId } : {}) } };
+  }
+  const gatewayKey = patch.gatewayKey?.trim();
+  if (gatewayKey) {
+    const savedModel = (patch.gatewayModel ?? current?.gatewayModel)?.trim();
+    const api = patch.gatewayModel !== undefined ? patch.gatewayApi : patch.gatewayApi ?? current?.gatewayApi;
+    return {
+      provider: "gateway",
+      check: { key: gatewayKey, provider: "gateway", model: savedModel || GATEWAY_DEFAULT_MODEL, api: savedModel ? (api === "decisions" ? "decisions" : "chat") : GATEWAY_DEFAULT_API },
+    };
   }
   if (!openrouterKey) return null;
   const savedModel = (patch.openrouterModel ?? current?.openrouterModel)?.trim();
@@ -176,6 +202,7 @@ function checkAccount(cfg: AppConfig, input: { key?: string; provider?: DeciderP
   const provider = input.provider ?? draftProvider(cfg);
   if (provider === "workersai") return workersAiAccount(cfg, { token: draft, accountId: input.accountId });
   if (provider === "openrouter") return openrouterAccount(cfg, draft);
+  if (provider === "gateway") return gatewayAccount(cfg, draft);
   return jevAccount(cfg, draft) ?? includedAccount();
 }
 
@@ -299,8 +326,9 @@ export function createDecider(deps: DeciderDeps): Decider {
   }
 
   const openrouterRequest = (cfg: AppConfig, account: HelperAccount, input: { model?: string; api?: OpenRouterApi } = {}) =>
-    account.provider !== "openrouter" ? {}
-      : input.model?.trim() ? { model: input.model.trim(), api: input.api ?? "chat" } : { model: deciderModel(cfg), api: deciderApi(cfg) };
+    account.provider !== "openrouter" && account.provider !== "gateway" ? {}
+      : input.model?.trim() ? { model: input.model.trim(), api: input.api ?? "chat" }
+        : account.provider === "gateway" ? { model: gatewayModel(cfg), api: gatewayApi(cfg) } : { model: deciderModel(cfg), api: deciderApi(cfg) };
 
   async function ask<Qs extends Record<string, DeciderQuestion>>(
     seam: DeciderSeam,

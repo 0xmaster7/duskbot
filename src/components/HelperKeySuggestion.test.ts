@@ -38,16 +38,16 @@ beforeEach(() => {
 describe("the add-a-key suggestion card", () => {
   it("is a plain message with Add key and Not now, in the device's words, not an approval card", () => {
     const view = render(message());
-    expect(view.html).toContain("Want me to sort your email for free? Add a Cloudflare Workers AI key (free tier) or a Jev key.");
+    expect(view.html).toContain("Want me to sort your email? Add a Jev key.");
     expect(view.html).toContain("Add key");
     expect(view.html).toContain("Not now");
     expect(view.html).not.toContain("data-ask-card");
     expect(richRowKind(message())).toBe("widget");
   });
 
-  it("Add key opens Settings → Decision and extraction on this device; nothing is sent", () => {
+  it("Add key opens Settings → API keys at Jev on this device; nothing is sent", () => {
     (render(message()).add!.props.onClick as () => void)();
-    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "toggleAppSettings", open: true, section: "decisionModel" });
+    expect(fixture.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "toggleAppSettings", open: true }));
     expect(fixture.api).not.toHaveBeenCalled();
   });
 

@@ -136,7 +136,7 @@ export function createExtractor(deps: ExtractorDeps): Extractor {
 export function describeHelpers(cfg: AppConfig) {
   const accountId = cfg.decider?.workersAiAccountId?.trim();
   return {
-    own: { jev: Boolean(cfg.decider?.key?.trim()), workersAi: Boolean(cfg.decider?.workersAiToken?.trim()), openrouter: Boolean(cfg.decider?.openrouterKey?.trim()) },
+    own: { jev: Boolean(cfg.decider?.key?.trim()), workersAi: Boolean(cfg.decider?.workersAiToken?.trim()), openrouter: Boolean(cfg.decider?.openrouterKey?.trim()), gateway: Boolean(cfg.decider?.gatewayKey?.trim()) },
     ...(sharedOpenRouterKey(cfg) ? { sharedKey: true as const } : {}),
     ...(accountId ? { workersAiAccountId: accountId } : {}),
     extraction: describeExtractor(cfg),

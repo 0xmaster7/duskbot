@@ -100,7 +100,7 @@ export function SettingsModal() {
 
   const offered: Record<AppSettingsSection, boolean> = {
     general: true, appearance: true, texting: true, companion: true, remote: true, computer: true, logins: true, updates: true,
-    advanced: true, apps: true, looks: true, bots: true, data: true, builder: true, about: true, engines: true, connections: true, decisionModel: true,
+    advanced: true, apps: true, looks: true, bots: true, data: true, builder: true, about: true, engines: true, connections: true,
     skills: true, usage: true, backups: true, import: true, experimental: true, transfer: vpsLinkAvailable(),
     desktopWorkspaces: Boolean(window.ogb?.environments),
     organization: Boolean(window.ogb?.organization),

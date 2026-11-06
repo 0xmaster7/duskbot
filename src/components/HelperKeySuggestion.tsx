@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { api, useStore, type Message } from "@/state/store";
 import { ASK_PRIMARY_BUTTON, ASK_QUIET_BUTTON } from "./AskCard";
+import { openKeySettings } from "./keys/key-focus";
 
 export function HelperKeySuggestion({ threadId, message }: { threadId?: string; message: Message }) {
   const { dispatch } = useStore();
@@ -37,7 +38,7 @@ export function HelperKeySuggestion({ threadId, message }: { threadId?: string; 
           <button
             type="button"
             data-testid="helper-suggestion-add"
-            onClick={() => dispatch({ type: "toggleAppSettings", open: true, section: "decisionModel" })}
+            onClick={() => dispatch(openKeySettings("jev"))}
             className={ASK_PRIMARY_BUTTON}
           >
             {t("chat.helperSuggestion.addKey")}

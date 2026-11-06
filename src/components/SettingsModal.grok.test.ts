@@ -35,7 +35,6 @@ vi.mock("@/lib/notification-preferences", () => ({
 }));
 const { marker } = vi.hoisted(() => ({ marker: (name: string) => () => `MARKER:${name};` }));
 vi.mock("./EnginesSettings", () => ({ EnginesSettings: marker("engines") }));
-vi.mock("./DecisionModelSettings", () => ({ DecisionModelSettings: marker("decisionModel") }));
 vi.mock("./keys/KeysPage", () => ({ KeysPage: marker("apiKeys") }));
 vi.mock("./RemoteComputerSection", () => ({ RemoteComputerSection: marker("remoteClient") }));
 vi.mock("./CustomDomainSettings", () => ({ CustomDomainSettings: () => null }));
@@ -128,17 +127,16 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(html).toContain('aria-label="Back to Advanced features"');
   });
 
-  it("gives providers, keys and the decision model their own Models pane", () => {
+  it("gives providers and keys their own Models pane, with Jev set up in the group chat instead", () => {
     const html = open("engines");
     expect(current(html)).toBe("models");
     expect(title(html)).toBe("Models");
     expect(html).not.toContain("data-settings-back");
     expect(markers(html)).toEqual(["engines"]);
     expect(html).toContain('data-panel-page="keys"');
-    expect(html).toContain('data-panel-page="decision"');
+    expect(html).not.toContain('data-panel-page="decision"');
     expect(html).toContain('data-panel-page="recovery"');
     expect(markers(open("connections"))).toEqual(["apiKeys"]);
-    expect(markers(open("decisionModel"))).toEqual(["decisionModel"]);
   });
 
   it("opens Usage & Billing as Grok's pane: the limits, an empty state when none report, then the plan", () => {
@@ -190,7 +188,7 @@ describe("Settings, drawn as Grok Bot's", () => {
 
 describe("where every section lives now", () => {
   const every: AppSettingsSection[] = [
-    "general", "desktopWorkspaces", "organization", "cloudAccount", "appearance", "experimental", "connections", "decisionModel", "engines",
+    "general", "desktopWorkspaces", "organization", "cloudAccount", "appearance", "experimental", "connections", "engines",
     "companion", "remote", "computer", "logins", "usage", "people", "botAccess", "activity", "backups", "workspaces", "skills", "import", "updates",
     "texting", "permissions", "advanced", "apps", "looks", "bots", "data", "builder", "about",
   ];

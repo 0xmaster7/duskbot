@@ -23,7 +23,7 @@ export const SETTINGS_PANES: ReadonlyArray<{ id: SettingsPane; labelKey: LocaleK
   { id: "computer", labelKey: "settings.simple.page.computer", icon: "display", sections: ["computer", "desktopWorkspaces", "remote", "transfer"] },
   { id: "permissions", labelKey: "settings.pane.permissions", icon: "shield", sections: ["permissions", "botAccess", "activity"] },
   { id: "vault", labelKey: "settings.w6.pane.vault", icon: "vault", sections: ["logins"] },
-  { id: "models", labelKey: "settings.pane.models", icon: "sparkle", sections: ["engines", "connections", "decisionModel"] },
+  { id: "models", labelKey: "settings.pane.models", icon: "sparkle", sections: ["engines", "connections"] },
   { id: "bots", labelKey: "settings.pane.bots", icon: "robot", sections: ["bots"] },
   { id: "usage", labelKey: "settings.pane.usage", icon: "chart-bars", sections: ["usage", "cloudAccount"] },
   { id: "updates", labelKey: "settings.simple.page.updates", icon: "cloud-download", sections: ["updates", "about"] },

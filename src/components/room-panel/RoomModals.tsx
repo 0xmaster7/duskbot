@@ -1,7 +1,8 @@
 import { useState } from "react";
 
-import { defaultResponderName, effectiveDefaultResponder, jevRoomRoutingOn } from "@/lib/group-routing";
+import { effectiveDefaultResponder } from "@/lib/group-routing";
 import { t } from "@/lib/i18n";
+import type { LocaleKey } from "@/locales";
 import { normalizeState } from "@/lib/mascot";
 import { chosenResponder, responderChoice, type ResponderChoice } from "@/lib/room-responder";
 import { shortPath } from "@/lib/short-path";
@@ -11,6 +12,8 @@ import { FolderPathDialog } from "../bot-panel/modals/FolderModal";
 import { InstructionsCard } from "../bot-panel/modals/InstructionsModal";
 import { useDesktopCapabilities } from "../DesktopCapabilities";
 import { Card, CheckRow, FormDialog, FormField, NavRow, NoteRow, SheetPane } from "../ListRows";
+import { RadioRow, radioArrows } from "../bot-panel/rows";
+import { JevSetup } from "./JevSetup";
 import { textFieldCls } from "../ui/GrokDialog";
 
 export type RoomDialog = "responder" | "folder" | "instructions" | "about";
@@ -113,47 +116,38 @@ export function RoomFolderModal({ group }: { group: Group; onClose: () => void }
   );
 }
 
-/** Who answers a message that @mentions nobody: one member, MausBot choosing, everyone, or only who is mentioned. */
+/** Who answers a message that @mentions nobody: one member, MausBot choosing (with Jev set up right under it),
+ * everyone, or only who is mentioned. Each choice is its own row; arrow keys move between them. */
 export function RoomResponderModal({ group, members }: { group: Group; members: Bot[]; onClose: () => void }) {
-  const { state, dispatch } = useStore();
-  const jevOn = jevRoomRoutingOn(state.config);
+  const { dispatch } = useStore();
   const responder = effectiveDefaultResponder(group, members);
   const current = responderChoice(responder);
   const choose = (choice: ResponderChoice) => {
     if (choice === current) return;
     dispatch({ type: "patchGroup", groupId: group.id, patch: { defaultResponder: chosenResponder(choice, responder) } });
   };
-  const behaviours: { choice: "auto" | "everyone" | "mentions"; title: string; hint?: string }[] = [
-    {
-      choice: "auto",
-      title: t("room.panel.responder.autoOption"),
-      hint: jevOn ? undefined : t("room.responder.autoOff", { name: defaultResponderName(group, members) ?? t("room.responder.leadFallback") }),
-    },
-    { choice: "everyone", title: t("room.panel.responder.everyone") },
-    { choice: "mentions", title: t("room.panel.responder.mentions") },
+  const behaviours: { choice: "auto" | "everyone" | "mentions"; title: LocaleKey; hint: LocaleKey }[] = [
+    { choice: "auto", title: "room.panel.responder.autoOption", hint: "room.panel.responder.autoHint" },
+    { choice: "everyone", title: "room.panel.responder.everyone", hint: "room.panel.responder.everyoneHint" },
+    { choice: "mentions", title: "room.panel.responder.mentions", hint: "room.panel.responder.mentionsHint" },
   ];
+  const row = (choice: ResponderChoice, props: Omit<Parameters<typeof RadioRow>[0], "checked" | "onClick">) => (
+    <RadioRow key={choice} {...props} data-panel-choice={choice} checked={current === choice} tabIndex={current === choice ? 0 : -1} onClick={() => choose(choice)} />
+  );
   return (
     <SheetPane data-panel-modal="responder" title={t("room.panel.whoResponds")}>
-      <div role="radiogroup" aria-label={t("room.panel.whoResponds")} className="contents">
-        <Card data-sheet-group="members">
-          {members.map((member) => (
-            <CheckRow
-              key={member.id}
-              role="radio"
-              data-panel-choice={`member:${member.id}`}
-              leading={<BotAvatar bot={member} state={normalizeState(member.mascotExpression) ?? "happy"} size={20} animated={false} />}
-              title={member.name}
-              checked={current === `member:${member.id}`}
-              onClick={() => choose(`member:${member.id}`)}
-            />
-          ))}
+      <div role="radiogroup" aria-label={t("room.panel.whoResponds")} onKeyDown={radioArrows} className="contents">
+        <Card data-sheet-group="members" label={t("room.panel.responder.oneBot")}>
+          {members.map((member) => row(`member:${member.id}`, {
+            title: member.name,
+            leading: <BotAvatar bot={member} state={normalizeState(member.mascotExpression) ?? "happy"} size={20} animated={false} />,
+          }))}
         </Card>
-        <Card data-sheet-group="behaviours">
-          {behaviours.map(({ choice, title, hint }) => (
-            <CheckRow key={choice} role="radio" data-panel-choice={choice} title={title} hint={hint} checked={current === choice} onClick={() => choose(choice)} />
-          ))}
+        <Card data-sheet-group="behaviours" footnote={t("room.panel.responder.mentionsWin")}>
+          {behaviours.map(({ choice, title, hint }) => row(choice, { title: t(title), hint: t(hint) }))}
         </Card>
       </div>
+      {current === "auto" && <JevSetup />}
     </SheetPane>
   );
 }

@@ -6,11 +6,12 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppState, Bot, ConfigStatus, Group } from "@/state/store";
 
-const fixture = vi.hoisted(() => ({ dispatch: vi.fn(), find: vi.fn(), config: null as ConfigStatus | null }));
+const fixture = vi.hoisted(() => ({ dispatch: vi.fn(), find: vi.fn(), api: vi.fn(), config: null as ConfigStatus | null }));
 vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();
   return {
     ...original,
+    api: (...args: unknown[]) => fixture.api(...args),
     useStore: () => ({ state: { ...original.initialState, bots: fixtureBots, config: fixture.config } as AppState, dispatch: fixture.dispatch }),
   };
 });
@@ -22,6 +23,7 @@ vi.mock("../DesktopCapabilities", async (importOriginal) => ({
 }));
 vi.mock("../Avatar", () => ({ BotAvatar: () => null, MausAvatar: () => null }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
+vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => true }));
 vi.mock("../bot-settings/useBotSettingsDerived", () => ({ useBotSettingsDerived: () => ({}) }));
 vi.mock("../bot-panel/ComputerTab", async () => {
   const { createElement: h } = await import("react");
@@ -229,10 +231,13 @@ describe("Who responds", () => {
       ["member:bench", "Vendor Bench", "false"],
       ["member:paper", "Paperwork", "false"],
       ["member:match", "Matcher", "false"],
-      ["auto", "Let MausBot choose", "false"],
-      ["everyone", "Everyone at once", "false"],
-      ["mentions", "Only who I @mention", "false"],
+      ["auto", "Let MausBot choosePicks the right bot for each message", "false"],
+      ["everyone", "Everyone at onceEvery bot answers, side by side", "false"],
+      ["mentions", "Only who I @mentionBots answer only when named", "false"],
     ]);
+    // one tab stop for the group: the chosen row
+    expect([...document.querySelectorAll('[role="radio"]')].map((row) => row.getAttribute("tabindex"))).toEqual(["0", "-1", "-1", "-1", "-1", "-1", "-1"]);
+    expect($('[data-sheet-group="jev"]')).toBeNull();
     click($('[data-panel-choice="auto"]'));
     click($('[data-panel-choice="member:bench"]'));
     click($('[data-panel-choice="everyone"]'));
@@ -246,11 +251,113 @@ describe("Who responds", () => {
     ]);
   });
 
-  it("says who answers instead while Jev is off", () => {
-    fixture.config = jev(false);
+  it("moves and picks with the arrow keys, wrapping at the ends", () => {
+    renderPage(createElement(RoomResponderModal, { group: room(), members: fixtureBots, onClose: vi.fn() }));
+    const first = $('[data-panel-choice="member:lead"]')!;
+    first.focus();
+    press(first, "ArrowDown");
+    expect(document.activeElement?.getAttribute("data-panel-choice")).toBe("member:bench");
+    press(document.activeElement, "ArrowUp");
+    press(document.activeElement, "ArrowUp");
+    expect(document.activeElement?.getAttribute("data-panel-choice")).toBe("mentions");
+    expect(patches().map((action) => action.patch.defaultResponder)).toEqual([
+      // the fixture's room stays on its lead, so landing back on it changes nothing
+      { kind: "member", botId: "bench" }, { kind: "mentions" },
+    ]);
+  });
+
+  it("shows one quiet Jev row with Change once it is set up", () => {
+    fixture.config = { ...jev(true), decider: { provider: "gateway", model: "typesafe-ai/jev", api: "decisions", configured: true, enabled: true, jobs: { roomRouting: true } } } as ConfigStatus;
+    fixture.api.mockResolvedValue({ source: "gateway", models: [{ id: "typesafe-ai/jev", name: "Jev", group: "recommended", api: "decisions" }] });
     renderPage(createElement(RoomResponderModal, { group: room({ defaultResponder: { kind: "auto", fallbackBotId: "paper" } }), members: fixtureBots, onClose: vi.fn() }));
-    expect(words($('[data-panel-choice="auto"]'))).toBe("Let MausBot chooseJev is off, so plain messages go to Paperwork; @mentions override this");
-    expect($('[data-panel-choice="auto"]')?.getAttribute("aria-checked")).toBe("true");
+    expect(words($('[data-sheet-row="jev-ready"]'))).toBe("Jev: typesafe-ai/jev via Vercel AI GatewayChange");
+    expect($('[data-sheet-row="jev-key"]')).toBeNull();
+    click($('[data-jev-action="change"]'));
+    expect($('[data-sheet-row="jev-key"]')).not.toBeNull();
+    expect($('[data-jev-provider="gateway"]')?.getAttribute("aria-pressed")).toBe("true");
+  });
+});
+
+describe("Jev setup in Who responds", () => {
+  const setInput = (field: HTMLInputElement, value: string) => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(field, value);
+    flushSync(() => field.dispatchEvent(new Event("input", { bubbles: true })));
+  };
+  const GATEWAY_MODELS = { source: "gateway", models: [
+    { id: "typesafe-ai/jev", name: "Jev", group: "recommended", api: "decisions" },
+    { id: "openai/gpt-5-nano", name: "GPT-5 nano", group: "more", api: "chat" },
+  ] };
+
+  beforeEach(() => {
+    fixture.config = { rooms: { turnTimeoutMinutes: 5 }, decider: { provider: "jev", configured: false, enabled: false, jobs: { roomRouting: true } }, helpers: { own: { jev: false, workersAi: false, openrouter: false }, extraction: { ready: false } } } as unknown as ConfigStatus;
+    fixture.api.mockReset();
+    fixture.api.mockImplementation(async (path: string, init?: { body?: string }) => {
+      if (path === "/api/decider/models?provider=gateway") return GATEWAY_MODELS;
+      if (path === "/api/decider/models") return { source: "builtin", models: [{ id: "typesafe/jev-1.13", name: "TypeSafe: Jev 1.13", group: "recommended", api: "decisions" }] };
+      if (path === "/api/decider/test") return JSON.parse(init!.body!).key === "bad" ? { ok: false, reason: "rejected", status: 401 } : { ok: true, latencyMs: 210 };
+      if (path === "/api/config") return { ...fixture.config, decider: { provider: "gateway", model: "openai/gpt-5-nano", configured: true, enabled: true, jobs: { roomRouting: true } } };
+      throw new Error(`unexpected ${path}`);
+    });
+  });
+
+  const openAuto = () => renderPage(createElement(RoomResponderModal, { group: room({ defaultResponder: { kind: "auto", fallbackBotId: "lead" } }), members: fixtureBots, onClose: vi.fn() }));
+
+  it("offers the three providers as pills, Vercel AI Gateway first, with a key field and Test", () => {
+    openAuto();
+    expect([...document.querySelectorAll("[data-jev-provider]")].map((pill) => [pill.textContent, pill.getAttribute("aria-pressed")]))
+      .toEqual([["Vercel AI Gateway", "true"], ["OpenRouter", "false"], ["Jev", "false"]]);
+    const field = $<HTMLInputElement>('[data-sheet-row="jev-key"] input')!;
+    expect(field.type).toBe("password");
+    expect(field.getAttribute("aria-label")).toBe("Vercel AI Gateway key");
+    expect($<HTMLButtonElement>('[data-jev-action="test"]')!.disabled).toBe(true);
+    expect($('[data-sheet-row="jev-model"]')).toBeNull();
+    click($('[data-jev-provider="jev"]'));
+    expect($('[data-sheet-row="jev-key"] input')?.getAttribute("aria-label")).toBe("Jev key");
+  });
+
+  it("says plainly when a key is refused, and shows no model picker", async () => {
+    openAuto();
+    setInput($<HTMLInputElement>('[data-sheet-row="jev-key"] input')!, "bad");
+    click($('[data-jev-action="test"]'));
+    await settle();
+    expect(fixture.api).toHaveBeenCalledWith("/api/decider/test", { method: "POST", body: JSON.stringify({ provider: "gateway", key: "bad" }) });
+    expect(words($('[data-sheet-group="jev"] [role="status"]'))).toBe("That key was refused. Check it and paste it again.");
+    expect($('[data-sheet-row="jev-model"]')).toBeNull();
+  });
+
+  it("tests the key, lists the gateway's models with Custom model, and saves the key with the model picked", async () => {
+    openAuto();
+    setInput($<HTMLInputElement>('[data-sheet-row="jev-key"] input')!, "vck_unit_key");
+    click($('[data-jev-action="test"]'));
+    await settle();
+    expect(words($('[data-sheet-group="jev"] [role="status"]'))).toBe("Works · 210 ms");
+    const select = $('[data-settings-select="jev-model"]')!;
+    expect(words(select)).toContain("Jev");
+    click(select);
+    const options = [...document.querySelectorAll('[role="option"]')].map((option) => words(option));
+    expect(options).toEqual(["Jev", "GPT-5 nano", "Custom model"]);
+    click([...document.querySelectorAll('[role="option"]')][1]!);
+    click($('[data-jev-action="save"]'));
+    await settle();
+    expect(fixture.api).toHaveBeenLastCalledWith("/api/config", { method: "PUT", body: JSON.stringify({ decider: { provider: "gateway", gatewayModel: "openai/gpt-5-nano", gatewayApi: "chat", gatewayKey: "vck_unit_key" } }) });
+    expect(fixture.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "configStatus" }));
+  });
+
+  it("saves a custom OpenRouter model as a chat model, and only once it looks like vendor/model", async () => {
+    openAuto();
+    click($('[data-jev-provider="openrouter"]'));
+    setInput($<HTMLInputElement>('[data-sheet-row="jev-key"] input')!, "sk-or-unit");
+    click($('[data-jev-action="test"]'));
+    await settle();
+    click($('[data-settings-select="jev-model"]'));
+    click([...document.querySelectorAll('[role="option"]')].at(-1)!);
+    const custom = $<HTMLInputElement>('[data-sheet-row="jev-custom"] input')!;
+    setInput(custom, "not a model");
+    expect($<HTMLButtonElement>('[data-jev-action="save"]')!.disabled).toBe(true);
+    setInput(custom, "mistral/ministral-3b");
+    click($('[data-jev-action="save"]'));
+    await settle();
+    expect(fixture.api).toHaveBeenLastCalledWith("/api/config", { method: "PUT", body: JSON.stringify({ decider: { provider: "openrouter", openrouterModel: "mistral/ministral-3b", openrouterApi: "chat", openrouterKey: "sk-or-unit" } }) });
   });
 });
 

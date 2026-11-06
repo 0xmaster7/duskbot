@@ -142,13 +142,22 @@ async function decide(request: BackendRequest): Promise<BackendResult> {
     return refusal(response.status);
   }
   let body: unknown;
-  let answered: unknown;
   try {
     body = await response.json();
-    if (decisions) {
-      const parsed = parseJevResponse(body, request.questions);
-      return parsed.ok ? parsed : { ok: false, reason: "malformed" };
-    }
+  } catch {
+    return { ok: false, reason: "malformed" };
+  }
+  if (decisions) {
+    const parsed = parseJevResponse(body, request.questions);
+    return parsed.ok ? parsed : { ok: false, reason: "malformed" };
+  }
+  return parseChatDecision(body, request.questions);
+}
+
+/** An OpenAI-style chat completion whose message is the strict JSON `openrouterSchema` asked for. */
+export function parseChatDecision(body: unknown, questions: Record<string, DeciderQuestion>): BackendResult {
+  let answered: unknown;
+  try {
     const content = isRecord(body) && Array.isArray(body.choices) && isRecord(body.choices[0]) && isRecord(body.choices[0].message)
       ? body.choices[0].message.content
       : undefined;
@@ -156,7 +165,7 @@ async function decide(request: BackendRequest): Promise<BackendResult> {
   } catch {
     return { ok: false, reason: "malformed" };
   }
-  const parsed = parseJevResponse(answered, request.questions);
+  const parsed = parseJevResponse(answered, questions);
   if (!parsed.ok || !isRecord(body)) return { ok: false, reason: "malformed" };
   const promptTokens = isRecord(body.usage) ? body.usage.prompt_tokens : undefined;
   const inputTokens = typeof promptTokens === "number" && Number.isFinite(promptTokens) && promptTokens >= 0 ? promptTokens : undefined;

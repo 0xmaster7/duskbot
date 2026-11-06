@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { splitReplyBlocks } from "@/lib/formatted-reply";
 import { activeLocale, t } from "@/lib/i18n";
+import { openBotSettings } from "@/lib/open-settings";
 import { useShowThreads } from "@/lib/thread-preferences";
 import { useReactor } from "@/lib/cloud-guest";
 import { otherSpeaker } from "@/lib/own-profile";
@@ -1002,7 +1003,7 @@ export function GroupView({ group }: { group: Group }) {
             {t("room.responder.jevOffHint", { name: defaultResponderName(group, members) ?? t("room.responder.leadFallback") })}{" "}
             <button
               type="button"
-              onClick={() => dispatch({ type: "toggleAppSettings", open: true, section: "decisionModel" })}
+              onClick={() => dispatch(openBotSettings({ kind: "group", id: group.id, row: "responder" }))}
               className="cursor-pointer text-accent hover:underline"
             >
               {t("room.responder.jevOffOpen")}

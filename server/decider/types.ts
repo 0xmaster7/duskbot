@@ -1,5 +1,5 @@
-/** workersai: Cloudflare's Clef on Workers AI, Jev-compatible. */
-export type DeciderProvider = "jev" | "workersai" | "openrouter";
+/** workersai: Cloudflare's Clef on Workers AI, Jev-compatible; gateway: Vercel AI Gateway. */
+export type DeciderProvider = "jev" | "workersai" | "openrouter" | "gateway";
 
 /** chat: a chat model asked for strict JSON; decisions: OpenRouter's Decisions API (output modality `decisions`). */
 export type OpenRouterApi = "chat" | "decisions";

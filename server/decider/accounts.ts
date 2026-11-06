@@ -3,6 +3,7 @@
 import type { AppConfig } from "../config.ts";
 import { deciderCredential, type ServiceCredential } from "../included-services.ts";
 import { WORKERS_AI_ACCOUNT_ID } from "./config.ts";
+import { GATEWAY_DEFAULT_BASE_URL } from "./gateway.ts";
 import { OPENROUTER_DEFAULT_BASE_URL } from "./openrouter.ts";
 import type { DeciderProvider } from "./types.ts";
 import { WORKERS_AI_DEFAULT_BASE_URL } from "./workers-ai.ts";
@@ -54,6 +55,12 @@ export function includedAccount(): HelperAccount | null {
 export function openrouterAccount(cfg: AppConfig, draft?: string): HelperAccount | null {
   const key = deciderOpenRouterKey(cfg, draft);
   return key ? { provider: "openrouter", token: key.token, api: cfg.decider?.openrouterBaseUrl?.trim() || OPENROUTER_DEFAULT_BASE_URL, included: false, keySource: key.source } : null;
+}
+
+/** The person's own Vercel AI Gateway key. */
+export function gatewayAccount(cfg: AppConfig, draft?: string): HelperAccount | null {
+  const token = draft?.trim() || cfg.decider?.gatewayKey?.trim();
+  return token ? { provider: "gateway", token, api: cfg.decider?.gatewayBaseUrl?.trim() || GATEWAY_DEFAULT_BASE_URL, included: false } : null;
 }
 
 /** On and usable: the helper models' one switch. An included relay is on unless switched off; an own key once switched on. */

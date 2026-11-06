@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import { Check, ChevronRight, Trash2, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/cn";
@@ -56,6 +56,19 @@ export function LinkRow({ children, onClick, icon: Icon = ChevronRight, ...rest 
       <Icon size={14} className="shrink-0" aria-hidden="true" />
     </button>
   );
+}
+
+/** Arrow keys move through a radiogroup's rows and pick the one they land on, as native radios do. */
+export function radioArrows(event: KeyboardEvent<HTMLElement>) {
+  const step = event.key === "ArrowDown" || event.key === "ArrowRight" ? 1 : event.key === "ArrowUp" || event.key === "ArrowLeft" ? -1 : 0;
+  if (!step) return;
+  const radios = [...event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]:not(:disabled)')];
+  const at = radios.indexOf(document.activeElement as HTMLButtonElement);
+  if (at < 0 || radios.length < 2) return;
+  event.preventDefault();
+  const next = radios[(at + step + radios.length) % radios.length]!;
+  next.focus();
+  next.click();
 }
 
 export interface SegmentOption<V extends string> {
@@ -141,12 +154,14 @@ export function TrashButton({ label, onClick, disabled, ...rest }: {
   );
 }
 
-export function RadioRow({ title, hint, checked, onClick, disabled, ...rest }: {
+export function RadioRow({ title, hint, leading, checked, onClick, disabled, ...rest }: {
   title: ReactNode;
   hint?: ReactNode;
+  leading?: ReactNode;
   checked: boolean;
   onClick: () => void;
   disabled?: boolean;
+  tabIndex?: number;
   "data-panel-choice"?: string;
 }) {
   return (
@@ -159,6 +174,7 @@ export function RadioRow({ title, hint, checked, onClick, disabled, ...rest }: {
       onClick={onClick}
       className={cn(rowCls, "w-full cursor-pointer text-left outline-none enabled:hover:bg-ink/[0.035] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-50")}
     >
+      {leading}
       <RowText title={title} hint={hint} />
       <span className="flex w-4 shrink-0 text-ink">{checked && <Check size={16} aria-hidden="true" />}</span>
     </button>

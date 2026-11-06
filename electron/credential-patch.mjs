@@ -9,6 +9,7 @@ export const CREDENTIAL_PATCH = {
   geminiTtsKey: (value) => ({ tts: { geminiKey: value } }),
   jevApiKey: (value) => ({ decider: { key: value } }),
   openrouterDeciderKey: (value) => ({ decider: { openrouterKey: value } }),
+  gatewayDeciderKey: (value) => ({ decider: { gatewayKey: value } }),
   workersAiToken: (value) => ({ decider: { workersAiToken: value } }),
   openaiImageApiKey: (value) => ({ imageGen: { key: value } }),
   customImageApiKey: (value) => ({ imageGen: { customApiKey: value } }),

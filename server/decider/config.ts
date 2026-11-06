@@ -14,7 +14,7 @@ const optionalText = z.string().optional();
  * fast classifiers and extractors that pick and read things for bots, starting
  * with who answers a room message. `key` is the Jev key, `workersAiToken` a
  * Cloudflare Workers AI token for `workersAiAccountId` (Clef and Clairic), and
- * `openrouterKey` the OpenRouter one: write-only like every credential, and
+ * `openrouterKey` the OpenRouter one, `gatewayKey` Vercel AI Gateway's: write-only like every credential, and
  * kept apart from each other and from the engine's OpenRouter key. `baseUrl` / `openrouterBaseUrl` point at a compatible
  * server instead of the vendor's (operator settings with no UI);
  * `openrouterModel` is an OpenRouter model id and `openrouterApi` says
@@ -24,9 +24,23 @@ const optionalText = z.string().optional();
  * log's retention. */
 export const deciderConfigSchema = z.object({
   enabled: z.boolean().optional(),
-  provider: z.enum(["jev", "openrouter", "off"]).optional(),
+  provider: z.enum(["jev", "openrouter", "gateway", "off"]).optional(),
   key: optionalText,
   openrouterKey: optionalText,
+  gatewayKey: optionalText,
+  gatewayModel: z
+    .string()
+    .trim()
+    .max(OPENROUTER_MODEL_ID_MAX)
+    .regex(OPENROUTER_MODEL_ID, "an AI Gateway model id looks like vendor/model")
+    .optional(),
+  gatewayApi: z.enum(["chat", "decisions"]).optional(),
+  gatewayBaseUrl: z
+    .string()
+    .trim()
+    .max(2048)
+    .refine((value) => !value || /^https?:\/\//i.test(value), "the AI Gateway address must start with http:// or https://")
+    .optional(),
   workersAiToken: optionalText,
   workersAiAccountId: z.string().trim().refine((value) => !value || WORKERS_AI_ACCOUNT_ID.test(value), "a Cloudflare account ID is 32 letters and digits").optional(),
   workersAiBaseUrl: z
@@ -60,7 +74,7 @@ export const deciderConfigSchema = z.object({
 /** The decision model; see `deciderConfigSchema`. */
 export interface DeciderConfig {
   enabled?: boolean;
-  provider?: "jev" | "openrouter" | "off";
+  provider?: "jev" | "openrouter" | "gateway" | "off";
   key?: string;
   baseUrl?: string;
   openrouterKey?: string;
@@ -68,6 +82,11 @@ export interface DeciderConfig {
   /** Which OpenRouter API `openrouterModel` is served by: absent is `chat`. */
   openrouterApi?: "chat" | "decisions";
   openrouterBaseUrl?: string;
+  /** Vercel AI Gateway: its key, a model id, whether that model is a decision model or a chat one, and an operator address. */
+  gatewayKey?: string;
+  gatewayModel?: string;
+  gatewayApi?: "chat" | "decisions";
+  gatewayBaseUrl?: string;
   workersAiToken?: string;
   workersAiAccountId?: string;
   /** An operator setting with no UI, like `baseUrl`: Workers AI's REST root, `/client/v4` included. */

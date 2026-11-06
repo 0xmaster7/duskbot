@@ -508,7 +508,6 @@ export type AppSettingsSection =
   | "appearance"
   | "experimental"
   | "connections"
-  | "decisionModel"
   | "engines"
   | "companion"
   | "remote"
