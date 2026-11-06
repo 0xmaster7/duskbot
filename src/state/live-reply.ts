@@ -124,6 +124,12 @@ export function shownReplyText(text: string): string {
   return redacted;
 }
 
+/** The live stream restarted without the frames it missed: the reply may have landed or its turn ended unseen, so
+ * nothing streamed before reads as still streaming. */
+export function forgetLiveReplies(): void {
+  for (const threadId of Array.from(replies.keys())) clear(threadId);
+}
+
 /** Tests only. */
 export function resetLiveReplies(): void {
   for (const timer of orphanTimers.values()) clearTimeout(timer);

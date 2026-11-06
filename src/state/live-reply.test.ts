@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RuntimeEvent } from "../../shared/runtime-events";
-import { LIVE_REPLY_ORPHAN_MS, liveReply, noteReplyEvent, noteReplyLanded, replacedLiveReply, resetLiveReplies, shownReplyText } from "./live-reply";
+import { forgetLiveReplies, LIVE_REPLY_ORPHAN_MS, liveReply, noteReplyEvent, noteReplyLanded, replacedLiveReply, resetLiveReplies, shownReplyText } from "./live-reply";
 
 const frame = (event: Partial<RuntimeEvent>) => ({ eventId: "e", threadId: "t", ...event }) as RuntimeEvent;
 const delta = (text: string, streamKind: "assistant_text" | "reasoning_text" = "assistant_text") => noteReplyEvent(frame({ type: "content.delta", streamKind, delta: text }), 10);
@@ -16,6 +16,12 @@ describe("a streaming reply", () => {
     delta("thinking about it", "reasoning_text");
     delta("Here it is");
     expect(liveReply("t")).toEqual({ text: "Sure. Here it is", startedAt: 10 });
+  });
+
+  it("stops reading as streaming when the stream restarts without the frames it missed", () => {
+    delta("Sure.");
+    forgetLiveReplies();
+    expect(liveReply("t")).toBeNull();
   });
 
   it("gives way to its message, which then arrives without an entrance", () => {

@@ -50,7 +50,7 @@ import { firstUnreadMessageId, threadOpensUnread, threadReadCursor } from "@/lib
 import type { ComputerStart } from "@/lib/computer-start";
 import { parseComputerHelp } from "@/lib/computer-control";
 import { answerResponse, dismissResponse } from "@/lib/card-answer";
-import { forgetLiveTurns, noteRuntimeTurn, sendStop } from "@/lib/stop-turn";
+import { forgetLiveTurns, noteRuntimeTurn, sendStop } from "@/lib/stop-turn"; import { forgetTurnStatuses } from "@/state/turn-status"; import { forgetLiveReplies } from "@/state/live-reply";
 import { readLastConversation, rememberConversation } from "@/lib/last-conversation";
 import { readLastBotSection, rememberBotSection } from "@/lib/last-bot-section";
 import { showNotification } from "@/lib/notify";
@@ -3282,7 +3282,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         publishMissedFrames();
         // Frames buffered before a non-resumable stream belong to an abandoned generation, and so do the turns they named.
         pendingFrames.splice(0);
-        forgetLiveTurns();
+        forgetLiveTurns(); forgetTurnStatuses(); forgetLiveReplies();
         return hydrate();
       },
       onFrame: (frame) => {

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { RuntimeEvent } from "../../shared/runtime-events";
-import { noteTurnEvent, resetTurnLive, turnLive } from "./turn-status";
+import { forgetTurnStatuses, noteTurnEvent, resetTurnLive, turnLive } from "./turn-status";
 
 let seq = 0;
 const note = (event: Partial<RuntimeEvent>, threadId = "t") =>
@@ -10,6 +10,14 @@ const note = (event: Partial<RuntimeEvent>, threadId = "t") =>
 afterEach(() => resetTurnLive());
 
 describe("a thread's live turn", () => {
+  it("drops every status when the stream restarts without the frames it missed, so a missed end never shows as working", () => {
+    note({ type: "content.delta", streamKind: "assistant_text", delta: "Sure" } as Partial<RuntimeEvent>);
+    note({ type: "turn.progress", activity: "write", itemId: "w", bytes: 9 } as Partial<RuntimeEvent>, "u");
+    forgetTurnStatuses();
+    expect(turnLive("t")).toEqual({ ended: false, status: null });
+    expect(turnLive("u")).toEqual({ ended: false, status: null });
+  });
+
   it("knows nothing before any frame", () => {
     expect(turnLive("t")).toEqual({ ended: false, status: null });
     expect(turnLive(undefined)).toEqual({ ended: false, status: null });

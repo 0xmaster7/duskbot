@@ -94,6 +94,14 @@ export function useTurnLive(threadId: string | null | undefined): TurnLive {
   );
 }
 
+/** The live stream restarted without the frames it missed: a turn's end may be among them, so no status it showed
+ * stands. The next frame of a still running turn puts one back. */
+export function forgetTurnStatuses(): void {
+  const shown = Array.from(threads.keys());
+  threads.clear();
+  for (const threadId of shown) for (const listener of Array.from(listeners.get(threadId) ?? [])) listener();
+}
+
 /** Tests only. */
 export function resetTurnLive(): void {
   threads.clear();
