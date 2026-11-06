@@ -64,7 +64,7 @@ function RoundRoomMoreMenu({ group }: { group: Group }) {
           data-testid="room-more"
           className={cn(
             "flex size-8 items-center justify-center rounded-full bg-raised/50 transition-colors hover:bg-raised",
-            "max-md:size-9 max-md:border max-md:border-hairline max-md:bg-card",
+            "max-md:size-10 max-md:border max-md:border-hairline max-md:bg-card",
             open || on ? "text-accent" : "text-ink",
           )}
         >

@@ -1327,6 +1327,26 @@ body,
     env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
 }
 
+/* the phone layout: the app ends on top of the software keyboard (src/lib/phone-viewport.ts sets the inset, and the
+   home indicator hides under an open keyboard), the page itself never rubber-bands, and a tap gets a press state in
+   place of the browser's grey flash. */
+@media (max-width: 767.98px) {
+  html, body { overscroll-behavior: none; }
+  #root { padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--keyboard-inset, 0px)); }
+}
+@media (max-width: 767.98px) and (hover: none) {
+  html { -webkit-tap-highlight-color: transparent; }
+  :is(button, a[href], [role="button"], [role="menuitem"], [role="menuitemradio"], [role="option"], [role="tab"], [role="switch"]):not(:disabled, [aria-disabled="true"]):active {
+    opacity: 0.6;
+  }
+}
+/* safari zooms the page into any field under 16px when it takes focus; fields already sized 16px or more keep theirs */
+@media (max-width: 767.98px) and (pointer: coarse) {
+  :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), textarea, select):not([class*="text-[16px]"], [class*="text-[17px]"], [class*="text-[18px]"], [class*="text-[19px]"], [class*="text-[2"], [class*="text-[3"], [class*="text-base"], [class*="text-lg"], [class*="text-xl"], [class*="text-2xl"], [class*="text-3xl"]) {
+    font-size: 16px;
+  }
+}
+
 /* ────────────────────────────────────────────────────────────────────────
    FONTS
    An optional interface-font override, independent of the skin (see

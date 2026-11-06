@@ -807,7 +807,7 @@ export function Composer({
             />
           </div>
         )}
-        <div ref={pillContentRef} className={singleRow ? cn("min-w-0 flex-1 rounded-[26px] px-3 py-1.5", ELEVATED_FLOAT) : simpleDock ? "flex shrink-0 flex-col" : "contents"}>
+        <div ref={pillContentRef} className={singleRow ? cn("min-w-0 flex-1 rounded-[26px] py-1 pl-3 pr-1", ELEVATED_FLOAT) : simpleDock ? "flex shrink-0 flex-col" : "contents"}>
         {replyTo && <ComposerReplyStrip message={replyTo} fallbackName={bot?.name} onClear={onClearReply} />}<ComposerAttachmentStrip items={attachments} onRemove={removeAttachment} onChangeCitation={(citation: CitationAttachment) => editAttachments((current) => current.map((attachment) => attachment.id === citation.id ? citation : attachment))} onDisplayInChatBox={displayPasteInChatBox} notice={attachmentNotice} onNotice={setAttachmentNotice} />
         <div data-composer-row data-glyph-swap={glyphs.swapped ? "" : undefined} style={simpleDock ? slot.vars : undefined} className={cn("flex items-end", simpleDock ? cn("gap-2", stacked && "gap-y-2") : "gap-1", !singleRow && !simpleDock && "@max-[30rem]/composer:flex-wrap", stacked && "flex-wrap")}>
           {pickers.inputs}
@@ -954,7 +954,7 @@ export function Composer({
             data-composer-stop={simpleDock ? (stopInSlot ? "slot" : "beside") : undefined}
             className={cn(
               "flex shrink-0 items-center justify-center rounded-full",
-              !simpleDock ? "size-8 text-ink-secondary hover:bg-raised hover:text-ink"
+              !simpleDock ? "size-8 text-ink-secondary hover:bg-raised hover:text-ink max-md:size-10"
                 : stopInSlot ? cn("composer-press size-7", slot.button.className)
                 : SIMPLE_CONTROL,
             )}
@@ -970,7 +970,7 @@ export function Composer({
             aria-label={recording ? t("composer.dictation.stop") : t("composer.dictation.start")}
             className={cn(
               "flex shrink-0 items-center justify-center rounded-full",
-              simpleDock ? "size-7" : "size-8",
+              simpleDock ? "size-7" : "size-8 max-md:size-10",
               recording
                 ? "animate-pulse bg-danger/20 text-danger"
                 : advanced || singleRow ? "text-ink-secondary hover:bg-raised hover:text-ink" : SIMPLE_CONTROL,

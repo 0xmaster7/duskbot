@@ -19,6 +19,7 @@ import { ChatView } from "@/components/ChatView";
 import { GroupView } from "@/components/GroupView";
 import { PHONE_LAYOUT, SIDEBAR_INLINE, TWO_SIDE_PANELS_FIT, useMediaQuery } from "@/lib/use-media-query";
 import { useEdgeSwipeOpen } from "@/components/SidebarDrawer";
+import { usePhoneViewport } from "@/lib/phone-viewport";
 import { preloadConnectedApps } from "@/lib/connected-apps";
 import { ConnectAppsHost, connectAppsPageFor, openConnectApps } from "@/components/connect-apps";
 import {
@@ -168,6 +169,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const calendarFocus = state.activeView === "routines" && state.routinesFocus.view === "calendar";
   const phoneLayout = useMediaQuery(PHONE_LAYOUT, false);
   useEdgeSwipeOpen(phoneLayout && !drawerOpen && !calendarFocus, () => setDrawerOpen(true));
+  usePhoneViewport(phoneLayout);
 
   const noEngines =
     state.connected &&
@@ -351,7 +353,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
         aria-label="Open bot list"
         aria-expanded={drawerOpen}
         onClick={() => setDrawerOpen(true)}
-        className="absolute left-3 top-3 z-30 rounded-md p-1.5 text-ink-secondary hover:bg-raised hover:text-ink max-md:flex max-md:size-9 max-md:items-center max-md:justify-center max-md:rounded-full max-md:border max-md:border-hairline max-md:bg-card max-md:p-0 max-md:text-ink md:hidden"
+        className="absolute left-3 top-3 z-30 rounded-md p-1.5 text-ink-secondary hover:bg-raised hover:text-ink max-md:top-2.5 max-md:flex max-md:size-10 max-md:items-center max-md:justify-center max-md:rounded-full max-md:border max-md:border-hairline max-md:bg-card max-md:p-0 max-md:text-ink md:hidden"
       >
         <Menu size={18} className="max-md:hidden" />
         <ChevronLeft size={20} aria-hidden="true" className="hidden max-md:block" />

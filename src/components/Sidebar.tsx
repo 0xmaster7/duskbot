@@ -743,7 +743,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
       )}
       {!renaming && !deleting && !iconOnly && <>
         <button type="button" data-bot-actions={bot.id} aria-label={t("sidebar.bot.actions", { name: bot.name })} title={t("sidebar.bot.actions", { name: bot.name })} aria-haspopup="menu" onClick={(event) => { const rect = event.currentTarget.getBoundingClientRect(); onMenu({ botId: bot.id, x: rect.left, y: rect.bottom }); }}
-          className={cn("absolute right-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded text-ink-secondary transition-[opacity,background-color,color] duration-[180ms] ease-out hover:bg-raised hover:text-ink", simpleRow && "right-2 top-1 translate-y-0 rounded-lg",
+          className={cn("absolute right-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded text-ink-secondary transition-[opacity,background-color,color] duration-[180ms] ease-out hover:bg-raised hover:text-ink max-md:size-10 max-md:rounded-full", simpleRow && "right-2 top-1 translate-y-0 rounded-lg max-md:right-1 max-md:top-0",
             simpleRow ? "pointer-events-none opacity-0 group-has-[:focus-visible]:pointer-events-auto group-has-[:focus-visible]:opacity-100 aria-expanded:pointer-events-auto aria-expanded:opacity-100 max-md:pointer-events-auto max-md:opacity-70 touch:pointer-events-auto touch:opacity-70"
               : selected ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 max-md:pointer-events-auto max-md:opacity-70 touch:pointer-events-auto touch:opacity-70")}><MoreHorizontal size={15} /></button>
       </>}
@@ -1140,7 +1140,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
         sidePanelOpen ? advanced ? "md:max-w-[320px]" : "md:max-w-[280px]" : "md:max-w-[calc(100vw-320px)]",
         // max-md: rather than an md: cancel: Tailwind v4 emits the native `translate`, and any value but `none` makes
         // this a containing block for its `fixed` descendants.
-        "max-md:absolute max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:w-full max-md:bg-app",
+        "max-md:absolute max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:w-full max-md:border-r-0 max-md:bg-app",
         // the phone's drawer is placed by usePhoneDrawer; until the layout is known a closed list stays off screen
         !phone && !open && "max-md:-translate-x-full",
       )}
