@@ -44,7 +44,7 @@ const LINES: Record<string, number> = {
   "src/components/PhoneSetupFlow.tsx": 1146,
   "server/cli.ts": 1080,
   "src/components/AttachmentPreview.tsx": 1086,
-  "src/components/Composer.tsx": 1036,
+  "src/components/Composer.tsx": 1038,
   "src/components/grok-icon-glyphs.ts": 1234,
 };
 

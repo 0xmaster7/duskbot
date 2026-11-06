@@ -1,4 +1,5 @@
 import { directMessageSent, roomMessageSent } from "@/lib/product-events";
+import { cueMascot } from "./mascot-events";
 import { useComposerDictation } from "@/lib/use-composer-dictation";
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import { Mic, Paperclip, Square, X } from "lucide-react";
@@ -885,6 +886,7 @@ export function Composer({
           value={text}
           onChange={(e) => {
             if (recording) stopDictation();
+            if (bot && !group) cueMascot(bot.id, "watch");
             editText(e.target.value);
             setCaret(e.target.selectionStart ?? e.target.value.length);
             setDismissedAt(null);

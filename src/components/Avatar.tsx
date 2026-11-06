@@ -13,6 +13,7 @@ import { MASCOT_INK, MAUS_STATES, type MausColor, type MausMotion, type MausStat
 import type { CursorAvatarHandle, CursorState } from "./CursorAvatar";
 import { GrokMark, type GrokMarkHandle } from "./mascot-motion-view";
 import { hoverGaze, type MarkState } from "./mascot-motion-mark";
+import type { MarkReaction } from "./mascot-personality";
 import { avatarCropRadius, botAvatarProfile, clampAvatarFocus, clampAvatarZoom, mascotFaceInk, type BotAvatarCrop, type MascotFaceColor } from "../../shared/bot-avatar";
 import { grokBodyFor, isHalloweenBody, type BotBodyId } from "../../shared/bot-body";
 import { useHalloweenDressed, wornBody } from "@/lib/halloween-dress";
@@ -23,12 +24,12 @@ export const MOUTH_WEIGHT = 11;
 
 interface MotionFaces
   extends Partial<
-    Record<Exclude<MausMotion, "none">, { state?: MausState; blink?: boolean; spin?: number }>
+    Record<Exclude<MausMotion, "none">, { state?: MausState; blink?: boolean; spin?: number; react?: MarkReaction }>
   > {}
 
 const MOTION_FACE: MotionFaces = {
   arrive: { state: "spawning", spin: 900 },
-  switch: { state: "waking", spin: 620 },
+  switch: { react: "greet" },
   customize: { state: "proud", blink: true },
   alert: { state: "alerting" },
   thinking: { state: "thinking" },
@@ -55,7 +56,7 @@ export function roomAvatarGradient(color: MausColor): [string, string, string] {
   ];
 }
 
-export type MausAvatarHandle = CursorAvatarHandle & Partial<Pick<GrokMarkHandle, "poke">>;
+export type MausAvatarHandle = CursorAvatarHandle & Partial<Pick<GrokMarkHandle, "poke" | "react">>;
 
 export type MausAvatarProps = {
   color: MausColor;
@@ -83,6 +84,10 @@ export type MausAvatarProps = {
   bodyId?: BotBodyId;
   gradient?: [string, string, string];
   faceColor?: MascotFaceColor | null;
+  /** The bot whose app moments this mark answers (see mascot-events). */
+  cueKey?: string;
+  /** False keeps Grok's still idle between turns. */
+  personality?: boolean;
 };
 
 // the carved halloween bodies keep the older engine, which names fewer states
@@ -133,6 +138,8 @@ function GradientAvatarComponent(
     bodyId,
     gradient,
     faceColor,
+    cueKey,
+    personality,
   }: MausAvatarProps,
   ref: React.Ref<MausAvatarHandle>,
 ) {
@@ -143,6 +150,7 @@ function GradientAvatarComponent(
     spin: (durationMs?: number) => inner.current?.spin(durationMs),
     setExpression: (index: number) => inner.current?.setExpression(index),
     poke: (kind) => inner.current?.poke(kind),
+    react: (kind) => inner.current?.react(kind),
   }));
 
   const [motionState, setMotionState] = useState<MausState | null>(null);
@@ -152,6 +160,7 @@ function GradientAvatarComponent(
     if (!beat) return;
     if (beat.blink) inner.current?.blink();
     if (beat.spin) inner.current?.spin(beat.spin);
+    if (beat.react) inner.current?.react(beat.react);
     if (!beat.state) return;
     setMotionState(beat.state);
     const timer = setTimeout(() => setMotionState(null), MOTION_FACE_MS);
@@ -187,6 +196,8 @@ function GradientAvatarComponent(
         gaze={look}
         seed={label ?? undefined}
         label={label ?? null}
+        cueKey={cueKey}
+        personality={personality}
       />
     </span>
   );
@@ -199,6 +210,7 @@ export const MausAvatar = memo(forwardRef(MausAvatarComponent));
 export type BotAvatarProps = Omit<MausAvatarProps, "color" | "gradient"> & {
   readable?: boolean;
   bot: {
+    id?: string;
     name?: string;
     color: MausColor;
     avatarUrl?: string | null;
@@ -249,6 +261,7 @@ export function BotAvatar({ bot, size = 44, label, readable = false, ...mascotPr
         gradient={readable ? roomAvatarGradient(bot.color) : undefined}
         size={size}
         label={label ?? bot.name}
+        cueKey={mascotProps.cueKey ?? bot.id}
       />
     );
   }

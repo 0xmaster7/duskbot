@@ -20,9 +20,12 @@ export interface MarkFrame {
 
 export interface MarkAnimator {
   readonly isPlaying: boolean;
+  /** Seconds in the loaded clip. */
+  readonly duration: number;
   readonly isSettled: boolean;
   readonly loopCount: number;
   readonly face: string;
+  load(clip: MarkClip, options?: { isPlaying?: boolean; transition?: "bridge" | "cut"; phase?: number }): void;
   play(): void;
   pause(): void;
   rest(): void;
@@ -59,6 +62,12 @@ export interface MarkRecipe {
   holdSeconds?: number;
 }
 
+/** One authored clip: tracks for body, rotation, lids and expression keys. */
+export interface MarkClip {
+  readonly name: string;
+  readonly duration: number;
+}
+
 export interface MarkNode {
   tag: string;
   attrs: Record<string, string | number>;
@@ -89,4 +98,10 @@ export function markTree(
   options?: { isProof?: boolean; displaySize?: number; extent?: string },
 ): MarkNode;
 export function morphSeconds(morph: string): number;
+export function markClip(name: string): MarkClip;
+export const MARK_CLIPS: ReadonlyMap<string, MarkClip>;
+/** The rest pose's [pitch, yaw, roll] in degrees. */
+export const MARK_REST_ROTATION: readonly [number, number, number];
+/** Grok's seeded PRNG: the same seed gives the same sequence in [0, 1). */
+export function seededRandom(seed: number): () => number;
 export function patchMark(canvas: Element, tree: MarkNode): void;

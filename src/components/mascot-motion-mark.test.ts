@@ -51,19 +51,19 @@ describe("grok mark controller", () => {
     expect(markSeed("a")).toBe(0xe40c292c);
   });
 
-  it("draws an idle mark at rest and then sleeps", () => {
-    const r = rig();
+  it("draws an idle mark at rest and then sleeps, with grok's still idle", () => {
+    const r = rig({ hasPersonality: false });
     expect(r.canvas.querySelector("svg")).not.toBeNull();
     r.run(1000);
     expect(r.mark.isSleeping).toBe(true);
     expect(r.due()).toBe(Infinity);
   });
 
-  it("plays a busy state at 30 frames a second", () => {
+  it("plays a busy state at 60 frames a second", () => {
     const r = rig({ state: "working" });
     r.run(2000);
-    expect(r.frames()).toBeGreaterThanOrEqual(59);
-    expect(r.frames()).toBeLessThanOrEqual(61);
+    expect(r.frames()).toBeGreaterThanOrEqual(118);
+    expect(r.frames()).toBeLessThanOrEqual(121);
     expect(r.draws()).toBeGreaterThan(40);
     expect(r.mark.isSleeping).toBe(false);
   });
@@ -112,6 +112,59 @@ describe("grok mark controller", () => {
     expect(hoverGaze(rect, 18 + 9, 18).x).toBe(0.5);
     expect(hoverGaze(rect, 18, 18 + 9).y).toBe(0.5);
     expect(hoverGaze(rect, 100, 100)).toEqual({ x: 1, y: 1 });
+  });
+});
+
+describe("our idle life", () => {
+  it("sleeps between idle acts on a timer, then wakes for one", () => {
+    const r = rig();
+    r.run(1000);
+    expect(r.mark.isSleeping).toBe(true);
+    const due = r.due();
+    expect(due).toBeGreaterThan(r.now());
+    expect(due).toBeLessThan(r.now() + 10_000);
+    r.run(due - r.now() + 50);
+    expect(r.mark.lastAct).not.toBeNull();
+    r.run(4000);
+    expect(r.draws()).toBeGreaterThan(0);
+  });
+
+  it("acts on its own schedule per bot, so two marks never act together", () => {
+    const a = rig({ seed: "Koder" });
+    const b = rig({ seed: "Jordan" });
+    a.run(1000);
+    b.run(1000);
+    expect(a.due()).not.toBe(b.due());
+  });
+
+  it("dozes off after long untouched idle, and a hover wakes it", () => {
+    const r = rig();
+    r.run(150_000);
+    expect(r.mark.isDozing).toBe(true);
+    r.mark.gaze({ x: 0.5, y: 0 });
+    expect(r.mark.isDozing).toBe(false);
+    expect(r.mark.lastAct).toBe("wake");
+  });
+
+  it("hops when a turn starts, cheers when it finishes and startles when it fails", () => {
+    const r = rig();
+    r.run(500);
+    r.mark.update({ state: "thinking" });
+    expect(r.mark.lastAct).toBe("hop");
+    r.run(1000);
+    r.mark.update({ state: "finished" });
+    expect(r.mark.lastAct).toBe("cheer");
+    r.mark.update({ state: "failed" });
+    expect(r.mark.lastAct).toBe("startle");
+  });
+
+  it("stays still under reduced motion and on static marks", () => {
+    for (const r of [rig({ isReducedMotion: true }), rig({ isLive: false })]) {
+      r.run(20_000);
+      r.mark.react("hop");
+      r.run(2000);
+      expect(r.draws()).toBe(0);
+    }
   });
 });
 

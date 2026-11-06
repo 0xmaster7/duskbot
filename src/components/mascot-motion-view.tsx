@@ -3,11 +3,17 @@ import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState, ty
 import { mascotClock, usePrefersReducedMotion } from "./mascot-clock";
 import { MARK_CANVAS_PERCENT, MARK_POKES, createMark, prewarmMarkShapes, type Mark, type MarkState } from "./mascot-motion-mark";
 import type { MarkPoke } from "./mascot-motion-engine";
+import type { MarkReaction } from "./mascot-personality";
+import { onMascotCue } from "./mascot-events";
 import { GROK_BODY_IDS } from "../../shared/grok-bodies";
 
 /** The sidebar's and Create New Bot's mark size: their bodies get built ahead, in idle time. */
 const WARM_SIZE = 36;
 let warmScheduled = false;
+
+/** How long a mark keeps looking at the composer after the last keystroke. */
+const WATCH_MS = 1400;
+const COMPOSER_GAZE = { x: 0.15, y: 0.75 };
 
 /** Grok's face names, in the order the old expression index picks them. */
 const FACES = ["neutral", "happy", "surprised", "sad", "sleepy", "squinted", "calm", "inspecting", "confused"];
@@ -31,6 +37,10 @@ export interface GrokMarkProps {
   /** Face index from the older expression list, held until it changes. */
   expression?: number;
   label?: string | null;
+  /** False keeps Grok's still idle: no blinks, glances or dozing between turns. */
+  personality?: boolean;
+  /** The bot whose app moments (a message typed, a chat opened) this mark answers. */
+  cueKey?: string;
   className?: string;
   style?: CSSProperties;
 }
@@ -41,10 +51,12 @@ export interface GrokMarkHandle {
   setExpression: (index: number) => void;
   /** No kind cycles spin, bounce and nod, like a tap on Grok's status-line mark. */
   poke: (kind?: MarkPoke) => void;
+  react: (kind: MarkReaction) => void;
+  playClip: (name: string) => void;
 }
 
 export const GrokMark = forwardRef<GrokMarkHandle, GrokMarkProps>(function GrokMark(
-  { body, ink, eye, state = "idle", size = 44, animated = true, emphasized = false, gaze, seed, expression, label, className, style },
+  { body, ink, eye, state = "idle", size = 44, animated = true, emphasized = false, gaze, seed, expression, label, personality = true, cueKey, className, style },
   ref,
 ) {
   const reactId = useId();
@@ -67,6 +79,7 @@ export const GrokMark = forwardRef<GrokMarkHandle, GrokMarkProps>(function GrokM
     isPlaying: animated,
     isEmphasized: emphasized,
     isReducedMotion: reduced,
+    hasPersonality: personality,
   };
   const mark = useRef<Mark | null>(null);
   mark.current ??= createMark(options, { clock: mascotClock(), now: () => performance.now() });
@@ -81,7 +94,25 @@ export const GrokMark = forwardRef<GrokMarkHandle, GrokMarkProps>(function GrokM
     spin: () => mark.current?.poke("spin"),
     setExpression: (index: number) => mark.current?.setExpression(FACES[((index % FACES.length) + FACES.length) % FACES.length]!),
     poke: (kind?: MarkPoke) => mark.current?.poke(kind ?? MARK_POKES[pokes.current++ % MARK_POKES.length]!),
+    react: (kind: MarkReaction) => mark.current?.react(kind),
+    playClip: (name: string) => mark.current?.playClip(name),
   }), []);
+
+  const [watching, setWatching] = useState(false);
+  useEffect(() => {
+    if (!cueKey) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const stop = onMascotCue(cueKey, (cue) => {
+      if (cue !== "watch") return mark.current?.react(cue);
+      setWatching(true);
+      clearTimeout(timer);
+      timer = setTimeout(() => setWatching(false), WATCH_MS);
+    });
+    return () => {
+      stop();
+      clearTimeout(timer);
+    };
+  }, [cueKey]);
 
   useEffect(() => {
     if (!canvas.current || !host.current || !mark.current) return;
@@ -98,8 +129,9 @@ export const GrokMark = forwardRef<GrokMarkHandle, GrokMarkProps>(function GrokM
     mark.current?.update(options);
   });
 
-  const gx = gaze?.x;
-  const gy = gaze?.y;
+  const look = gaze ?? (watching && everLive.current ? COMPOSER_GAZE : null);
+  const gx = look?.x;
+  const gy = look?.y;
   useEffect(() => {
     mark.current?.gaze(gx === undefined || gy === undefined ? null : { x: gx, y: gy });
   }, [gx, gy]);
@@ -117,6 +149,7 @@ export const GrokMark = forwardRef<GrokMarkHandle, GrokMarkProps>(function GrokM
       role={label ? "img" : undefined}
       aria-label={label ?? undefined}
       aria-hidden={label ? undefined : true}
+      onDoubleClick={everLive.current ? () => mark.current?.react("spin") : undefined}
       style={{ display: "inline-block", position: "relative", flexShrink: 0, width: size, height: size, lineHeight: 0, ...style }}
     >
       <span

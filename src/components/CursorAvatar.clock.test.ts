@@ -67,13 +67,13 @@ const run = (ms: number) => act(() => { vi.advanceTimersByTime(ms); });
 const markOf = () => host.querySelector(".grok-bot-mark")!;
 
 describe("grok marks on the shared clock", () => {
-  it("draws every busy mascot from one animation frame, 30 times a second", () => {
+  it("draws every busy mascot from one animation frame, 60 times a second", () => {
     render(Array.from({ length: 12 }, (_, i) => ({ state: "working" as const, size: [24, 28, 36, 64][i % 4] })));
     run(100);
     frameRequests = 0;
     run(1000);
-    expect(frameRequests).toBeGreaterThanOrEqual(28);
-    expect(frameRequests).toBeLessThanOrEqual(62);
+    expect(frameRequests).toBeGreaterThanOrEqual(55);
+    expect(frameRequests).toBeLessThanOrEqual(70);
     expect(mascotClock().pending()).toBe(12);
   });
 
@@ -93,9 +93,9 @@ describe("grok marks on the shared clock", () => {
     expect(markup("working")).toBe(markup("idle"));
   });
 
-  it("lets an idle mascot settle to no frames, and wakes it for a blink", () => {
+  it("lets an idle mascot with grok's still idle settle to no frames, and wakes it for a blink", () => {
     const ref = createRef<MausAvatarHandle>();
-    render([{ state: "idle", size: 24, ref }]);
+    render([{ state: "idle", size: 24, ref, personality: false }]);
     run(1000);
     expect(mascotClock().pending()).toBe(0);
     frameRequests = 0;
@@ -108,9 +108,9 @@ describe("grok marks on the shared clock", () => {
   });
 
   it("keeps playing 1.4 s after a turn ends, then rests and sleeps", () => {
-    render([{ state: "working", size: 28 }]);
+    render([{ state: "working", size: 28, personality: false }]);
     run(1000);
-    render([{ state: "idle", size: 28 }]);
+    render([{ state: "idle", size: 28, personality: false }]);
     run(IDLE_SETTLE_MS - 200);
     expect(mascotClock().pending()).toBe(1);
     run(1500);

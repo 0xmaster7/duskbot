@@ -8,18 +8,22 @@ import {
   createStateDriver,
   gazeFromPointer,
   markAppearance,
+  markClip,
   markFillScale,
   markShapeFor,
   markTree,
   morphSeconds,
   patchMark,
   type MarkAnimator,
+  type MarkClip,
   type MarkGaze,
   type MarkNode,
   type MarkPoke,
   type MarkStateDriver,
 } from "./mascot-motion-engine";
 import { nextFrameAt } from "./mascot-motion";
+import { createPersona, type MarkReaction } from "./mascot-personality";
+import { OMB_CLIPS } from "./mascot-clips";
 import type { MascotClock, MascotTicket } from "./mascot-clock";
 
 /** Every state Grok's mark knows, ours included: idle, working, streaming, blocked, finished and the rest. */
@@ -35,8 +39,8 @@ export type MarkState =
 
 export const isMarkState = (value: unknown): value is MarkState => typeof value === "string" && Object.hasOwn(MARK_RECIPES, value);
 
-/** Grok draws at 30 frames a second unless its sand_marks_60fps gate is on. */
-export const MARK_FRAME_RATE = 30;
+/** Grok's sand_marks_60fps rate: its default 30 steps visibly on a 60 or 120 Hz display. */
+export const MARK_FRAME_RATE = 60;
 /** Below this many pixels a mark is compact and idles on Idle_B alone. */
 export const COMPACT_MARK_PX = 48;
 /** A mark that returns to idle keeps playing this long before it rests (1 ms under reduced motion). */
@@ -45,6 +49,8 @@ const IDLE_SETTLE_REDUCED_MS = 1;
 /** Grok's sidebar shows a turn's finished or failed state this long after it settles. */
 export const SETTLED_HOLD_MS = 8000;
 const SETTLED_STATES = new Set<MarkState>(["finished", "failed"]);
+/** A turn running: going into one from rest is the bot getting a message. */
+const TURN_STATES = new Set<MarkState>(["thinking", "streaming", "reading", "searching", "running", "coding", "working"]);
 /** A still mark is the rest pose after 60 steps of 0.1 s. */
 const STILL_STEPS = 60;
 const STILL_STEP_S = 0.1;
@@ -135,6 +141,8 @@ export interface MarkOptions {
   isEmphasized: boolean;
   isReducedMotion: boolean;
   maxFrameRate?: number;
+  /** Our idle life and reactions on top of Grok's driver; false keeps Grok's still idle. */
+  hasPersonality?: boolean;
 }
 
 export interface MarkEnvironment {
@@ -151,11 +159,17 @@ export interface Mark {
   poke(kind: MarkPoke, turns?: number): void;
   blink(): void;
   setExpression(face: string): void;
+  react(kind: MarkReaction): void;
+  /** Plays one of Grok's clips or ours once, then rests: the preview page's play buttons. */
+  playClip(name: string): void;
   /** What the engine is playing now; a state with a `next` moves on by itself. */
   readonly state: string;
   /** The clip the state driver picked, null while resting. */
   readonly clip: string | null;
   readonly isSleeping: boolean;
+  readonly isDozing: boolean;
+  /** The idle act or reaction played last. */
+  readonly lastAct: string | null;
 }
 
 export function createMark(initial: MarkOptions, env: MarkEnvironment): Mark {
@@ -183,6 +197,21 @@ export function createMark(initial: MarkOptions, env: MarkEnvironment): Mark {
   let running = false;
   let last = 0;
   let lastDriverState = driver.state;
+  let gazeHeld = false;
+  // a clip the persona plays on a resting mark loops until we put the mark back to rest
+  let oneShotLoop: number | null = null;
+  const playOnce = (clip: MarkClip) => {
+    animator.load(clip, { isPlaying: true });
+    oneShotLoop = playing ? null : animator.loopCount;
+  };
+  const persona = createPersona(markSeed(t.seed), {
+    blink: () => animator.blink(),
+    play: playOnce,
+    poke: (kind, turns = 1) => animator.poke(kind, { turns }),
+    holdFace: (face) => animator.holdFace(face),
+  }, markClip);
+  const hasPersona = () => t.hasPersonality !== false && !isStill();
+  const canIdle = () => hasPersona() && t.isPlaying && !playing && driver.state === "idle" && !gazeHeld;
 
   const tree = () => markTree(animator.frame(), appearance, markResolution(t.sizePx), t.id, { displaySize: t.sizePx, extent: "100%" });
   const draw = () => {
@@ -217,7 +246,12 @@ export function createMark(initial: MarkOptions, env: MarkEnvironment): Mark {
   };
 
   const frame = (now: number): number => {
-    if (!running) return Infinity;
+    if (!running) {
+      const next = persona.tick(now, canIdle());
+      if (animator.isSettled) return next;
+      running = true;
+      last = now - interval();
+    }
     const step = interval();
     if (now - last < step - 1) return last + step;
     const dt = (now - last) / 1000;
@@ -229,11 +263,15 @@ export function createMark(initial: MarkOptions, env: MarkEnvironment): Mark {
       lastDriverState = driver.state;
     }
     syncPlaying();
+    if (oneShotLoop !== null && (playing || animator.loopCount !== oneShotLoop)) {
+      if (!playing) animator.rest();
+      oneShotLoop = null;
+    }
     animator.advance(dt);
     draw();
     if (!playing && animator.isSettled) {
       running = false;
-      return Infinity;
+      return persona.tick(now, canIdle());
     }
     return nextFrameAt(now, step);
   };
@@ -249,6 +287,12 @@ export function createMark(initial: MarkOptions, env: MarkEnvironment): Mark {
     },
     get isSleeping() {
       return !running;
+    },
+    get isDozing() {
+      return persona.isDozing;
+    },
+    get lastAct() {
+      return persona.lastAct;
     },
     markup: () => markMarkup(tree()),
     attach(nextCanvas, host) {
@@ -275,6 +319,7 @@ export function createMark(initial: MarkOptions, env: MarkEnvironment): Mark {
         dirty = true;
       }
       if (changed("state")) {
+        persona.touch(env.now());
         driver.setState(t.state);
         restAt = restFor(t.state, env.now());
         lastDriverState = driver.state;
@@ -282,9 +327,16 @@ export function createMark(initial: MarkOptions, env: MarkEnvironment): Mark {
           animator.poke("spin", { turns: 2 });
           animator.poke("bounce");
         }
+        if (hasPersona()) {
+          if (TURN_STATES.has(t.state) && !TURN_STATES.has(before.state)) persona.react("hop", env.now());
+          else if (t.state === "finished") persona.react("cheer", env.now());
+          else if (t.state === "failed") persona.react("startle", env.now());
+          else if (t.state === "blocked") animator.poke("bounce");
+        }
         dirty = true;
       }
       if (changed("isEmphasized")) {
+        if (t.isEmphasized) persona.touch(env.now());
         driver.setEmphasis(t.isEmphasized);
         dirty = true;
       }
@@ -302,16 +354,30 @@ export function createMark(initial: MarkOptions, env: MarkEnvironment): Mark {
     },
     gaze(gaze) {
       if (t.isReducedMotion) return;
+      gazeHeld = gaze !== null;
+      if (gaze) persona.touch(env.now());
       animator.setGaze(gaze ? ([gaze.x, -gaze.y] as MarkGaze) : null);
       refresh();
     },
     poke(kind, turns = 1) {
       if (t.isReducedMotion) return;
+      persona.touch(env.now());
       animator.poke(kind, { turns });
       refresh();
     },
     blink() {
       animator.blink();
+      refresh();
+    },
+    playClip(name) {
+      if (isStill()) return;
+      persona.touch(env.now());
+      playOnce(Object.hasOwn(OMB_CLIPS, name) ? OMB_CLIPS[name as keyof typeof OMB_CLIPS] : markClip(name));
+      refresh();
+    },
+    react(kind) {
+      if (isStill()) return;
+      persona.react(kind, env.now());
       refresh();
     },
     setExpression(face) {
