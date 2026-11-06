@@ -292,8 +292,15 @@ export function createVpsLink(deps) {
     const link = needLink();
     await signedIn(link);
     const { instances = [] } = await serverCall(link, "GET", "/api/instances?fresh=1");
-    return instances.filter((instance) => instance?.driver === "claude" || instance?.driver === "codex").map((instance) => ({
-      instanceId: instance.instanceId, kind: instance.driver, name: instance.displayName || (instance.driver === "claude" ? "Claude" : "ChatGPT"),
+    // the server names the engine in driverKind (claudeAgent, codex); older servers used driver
+    const kindOf = (instance) => {
+      const driver = instance?.driverKind ?? instance?.driver;
+      if (instance?.instanceId === "claude" && (driver === "claudeAgent" || driver === "claude")) return "claude";
+      if (instance?.instanceId === "codex" && driver === "codex") return "codex";
+      return null;
+    };
+    return instances.filter((instance) => kindOf(instance) !== null).map((instance) => ({
+      instanceId: instance.instanceId, kind: kindOf(instance), name: instance.displayName || (kindOf(instance) === "claude" ? "Claude" : "ChatGPT"),
       signedIn: instance.snapshot?.authenticated === true,
     }));
   }

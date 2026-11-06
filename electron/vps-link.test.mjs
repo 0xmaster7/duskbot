@@ -72,8 +72,10 @@ beforeAll(async () => {
       if (req.url === "/api/auth/session") return reply(200, signedIn ? { kind: "session" } : { kind: "none" });
       if (!signedIn) return reply(403, { error: "pair this device" });
       if (req.url === "/api/instances?fresh=1") return reply(200, { instances: [
-        { instanceId: "claude", driver: "claude", snapshot: { authenticated: false } },
-        { instanceId: "codex", driver: "codex", snapshot: { authenticated: false } },
+        { instanceId: "claude", driverKind: "claudeAgent", snapshot: { authenticated: false } },
+        { instanceId: "codex", driverKind: "codex", snapshot: { authenticated: false } },
+        { instanceId: "chatgpt", driverKind: "codex", snapshot: { authenticated: false } },
+        { instanceId: "claudeApi", driverKind: "claudeAgent", snapshot: { authenticated: false } },
         { instanceId: "grok", driver: "grok", snapshot: {} },
       ] });
       return reply(404, { error: "not here" });
