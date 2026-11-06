@@ -1243,7 +1243,7 @@ async function startDevServer() {
     entry: path.join(root, "server", "dev-server.ts"),
     env: { ...process.env, OMB_PORT: String(SERVER_PORT) },
     port: SERVER_PORT,
-    grant: grantLocalComputer,
+    grant: (proc, isCurrent) => { serverProc = proc; if (!proc.__ombDevWired) { proc.__ombDevWired = true; proc.on("message", (message) => { if (serverProc !== proc) return; try { if (trustedApprovalMode.receive(proc, message) || managedDesktopRelay.receive(proc, message) || orgLibrary?.receive(message) || receivePhoneSecretSave(proc, message)) return; oneHome.receive(proc, message); } catch (error) { slog(`desktop private sync rejected: ${error?.message ?? error}`); } }); } syncDesktopMutationToken(proc); grantLocalComputer(proc, isCurrent); }, // the dev child is this app's own server too: same private channel for moves, logins and approvals
     conflict: (port) => {
       const message = devServerConflictMessage(port);
       console.error(`[dev-server] ${message}`);
