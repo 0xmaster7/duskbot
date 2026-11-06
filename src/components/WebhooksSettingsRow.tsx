@@ -7,7 +7,7 @@ export function WebhooksSettingsRow() {
   const { state, dispatch } = useStore();
   // a remote client's Automations page lists schedules only
   if (typeof window !== "undefined" && window.ogb?.remoteClient?.active === true) return null;
-  const count = state.webhooks.length;
+  const count = state.webhooks?.length ?? 0;
   return (
     <Card data-settings-block="webhooks">
       <NavRow
