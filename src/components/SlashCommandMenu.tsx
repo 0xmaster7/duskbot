@@ -1,9 +1,11 @@
 import type { RefObject } from "react";
 import { BookOpen, Sparkles, Target } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { ComposerMenuRow } from "./ComposerMenuRow";
 import { t } from "@/lib/i18n";
 import type { ComposerSlashCommand } from "@/lib/composer-commands";
 import type { MenuMotion } from "./MenuMotion";
+import { COMPOSER_LIST } from "./MentionMenu";
 
 /** The composer's / list: room commands like /goal, then the bot's skills. */
 export function SlashCommandMenu({ listRef, motion, commands, highlight, onPick, onHighlight }: {
@@ -20,48 +22,30 @@ export function SlashCommandMenu({ listRef, motion, commands, highlight, onPick,
       ref={listRef}
       role="listbox"
       aria-label={t("composer.commands.aria")}
-      className={cn("popover-surface absolute bottom-full start-2 z-20 mb-2 max-h-80 w-80 max-w-[calc(100%-1rem)] origin-bottom-left overflow-x-hidden overflow-y-auto overscroll-contain rounded-[16px] border-[0.5px] border-ink/10 p-1.5", motion.className)} {...motion.exitProps}
+      className={cn(COMPOSER_LIST, "max-h-80", motion.className)} {...motion.exitProps}
     >
-      <div className="px-2 pb-1 pt-0.5 text-[12px] font-medium tracking-[0.01em] text-ink-tertiary">
+      <div className="shrink-0 px-2 pb-0.5 pt-0.5 text-[12px] leading-4 font-medium text-[color:var(--composer-muted)]">
         {t("composer.commands.title")}
       </div>
-      {commands.map((command, index) => (
-        <button
-          key={`${command.kind}:${command.id}`}
-          data-command-index={index}
-          type="button"
-          role="option"
-          aria-selected={index === highlight}
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => onPick(command)}
-          onMouseEnter={() => onHighlight(index)}
-          className={cn(
-            "flex w-full items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-start",
-            index === highlight && "bg-menu-hover",
-          )}
-        >
-          <span className="flex size-4 shrink-0 items-center justify-center text-ink-secondary">
-            {command.kind === "skill" ? (
-              <Sparkles size={15} aria-hidden="true" />
-            ) : command.id === "goal" ? (
-              <Target size={15} aria-hidden="true" />
-            ) : (
-              <BookOpen size={15} aria-hidden="true" />
-            )}
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="flex min-w-0 items-center gap-2">
-              <span className="truncate text-[14px] leading-5 tracking-[0.01em] text-ink">{command.label}</span>
-              {command.kind === "skill" && (
-                <span className="shrink-0 rounded-full bg-ink/[0.06] px-1.5 text-[11px] font-medium leading-4 text-ink-secondary">{t("composer.command.skillTag")}</span>
-              )}
-            </span>
-            <span className="block truncate text-[12px] leading-4 text-ink-tertiary">
-              {command.description}
-            </span>
-          </span>
-        </button>
-      ))}
+      {commands.map((command, index) => {
+        const Icon = command.kind === "skill" ? Sparkles : command.id === "goal" ? Target : BookOpen;
+        return (
+          <ComposerMenuRow
+            key={`${command.kind}:${command.id}`}
+            data-command-index={index}
+            role="option"
+            aria-selected={index === highlight}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => onPick(command)}
+            onMouseEnter={() => onHighlight(index)}
+            selected={index === highlight}
+            icon={<Icon size={14} className="text-[color:var(--composer-muted)]" aria-hidden="true" />}
+            name={command.label}
+            description={command.description}
+            kind={command.kind === "skill" ? t("composer.command.skillTag") : ""}
+          />
+        );
+      })}
     </div>
   );
 }

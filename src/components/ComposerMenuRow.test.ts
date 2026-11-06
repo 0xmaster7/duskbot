@@ -28,7 +28,8 @@ it("keeps the description on its own direction and the kind tag at the logical e
   expect(html).not.toContain("text-left");
   expect(html).not.toContain("text-right");
   expect(html).toContain("truncate");
-  expect(html).toContain("bg-menu-hover");
+  expect(html).toContain("bg-menu-active");
+  expect(html).toContain("h-7");
 });
 
 it("omits the description line when a bot has no title", () => {

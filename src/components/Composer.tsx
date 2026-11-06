@@ -942,7 +942,7 @@ export function Composer({
               "block max-h-[9rem] w-full resize-none overflow-y-auto bg-transparent focus:outline-none",
               !simpleDock && "px-1 text-[15px] placeholder:text-ink-tertiary",
               simpleDock
-                ? cn("text-[14px] leading-5 tracking-[0.01em] placeholder:text-ink/40", stacked ? "min-h-6 px-1 pt-1 pb-0" : "min-h-5 p-0 mt-[3px] mb-px")
+                ? cn("text-[14px] leading-5 placeholder:text-[color:var(--composer-placeholder)]", stacked ? "min-h-6 px-1 pt-1 pb-0" : "min-h-5 p-0 mt-[3px] mb-px")
                 : "min-h-6 py-1 leading-6",
             )}
           />

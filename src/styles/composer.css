@@ -5,6 +5,24 @@
     0.85658 36%, 0.87645 38%, 0.89376 40%, 0.92183 44%, 0.94282 48%, 0.95838 52%, 0.96984 56%, 0.97823 60%, 0.98435 64%,
     0.98878 68%, 0.99198 72%, 0.99594 80%, 0.99829 90%, 1 100%);
   --composer-glyph-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* grok's ink mixes for the frame's one hairline, the round controls, the placeholder and the @ and / lists (muted is
+     their grey label too); the dark skins run each a step quieter, as grok's dark theme does */
+  --composer-line: color-mix(in srgb, var(--color-ink) 24%, transparent);
+  --composer-control: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  --composer-control-hover: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  --composer-control-ring: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  --composer-muted: color-mix(in srgb, var(--color-ink) 56%, transparent);
+  --composer-placeholder: color-mix(in srgb, var(--color-ink) 40%, transparent);
+  --composer-menu-line: color-mix(in srgb, var(--color-ink) 12%, transparent);
+}
+:root:is([data-skin="midnight"], [data-skin="grok-dark"]) {
+  --composer-line: color-mix(in srgb, var(--color-ink) 22%, transparent);
+  --composer-control: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  --composer-control-hover: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  --composer-control-ring: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  --composer-muted: color-mix(in srgb, var(--color-ink) 54%, transparent);
+  --composer-placeholder: color-mix(in srgb, var(--color-ink) 38%, transparent);
+  --composer-menu-line: color-mix(in srgb, var(--color-ink) 10%, transparent);
 }
 
 .composer-pill {
@@ -26,10 +44,6 @@
 }
 .composer-press:active:not(:disabled) {
   transform: scale(0.98);
-}
-/* the send button presses deeper, as bencho's primary buttons do */
-.composer-press[data-composer-send]:active:not(:disabled) {
-  transform: scale(0.96);
 }
 
 [data-glyph-swap] .composer-glyph {
@@ -57,7 +71,7 @@
     transition-duration: 120ms, 120ms, 150ms;
     transition-timing-function: ease;
   }
-  .composer-press:active:not(:disabled), .composer-press[data-composer-send]:active:not(:disabled) { transform: none; }
+  .composer-press:active:not(:disabled) { transform: none; }
   [data-glyph-swap] .composer-glyph { animation-name: composer-glyph-fade; }
   .composer-pill[data-snap] { transition-duration: 0s, 120ms, 150ms; }
   .composer-glyph-out { animation-name: composer-glyph-fade-out; }
@@ -66,8 +80,7 @@
   transition-duration: 120ms, 120ms, 150ms;
   transition-timing-function: ease;
 }
-:root[data-reduced-motion="true"] .composer-press:active:not(:disabled),
-:root[data-reduced-motion="true"] .composer-press[data-composer-send]:active:not(:disabled) { transform: none; }
+:root[data-reduced-motion="true"] .composer-press:active:not(:disabled) { transform: none; }
 :root[data-reduced-motion="true"] [data-glyph-swap] .composer-glyph { animation-name: composer-glyph-fade; }
 :root[data-reduced-motion="true"] .composer-pill[data-snap] { transition-duration: 0s, 120ms, 150ms; }
 :root[data-reduced-motion="true"] .composer-glyph-out { animation-name: composer-glyph-fade-out; }
