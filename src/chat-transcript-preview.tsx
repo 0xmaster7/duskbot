@@ -9,6 +9,7 @@ import { loadLocale } from "@/lib/i18n";
 import { setAdvancedMode } from "@/lib/interface-mode";
 import { applySkinChoice, SKIN_IDS, type SkinId } from "@/lib/skins";
 import { initialState, StoreContext, type AppState, type Bot, type Message } from "@/state/store";
+import "./font-faces";
 import "./styles.css";
 
 const params = new URLSearchParams(location.search);

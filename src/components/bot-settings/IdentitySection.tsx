@@ -11,6 +11,7 @@ import { BotInstructionsDialog } from "../BotInstructionsDialog";
 import { Field, inputCls } from "./field";
 import type { BotPatch } from "./useBotSettingsDerived";
 import { useBotEditor } from "./BotEditorContext";
+import { useSheetLook } from "./sheet-look";
 import { PackageProvenance } from "./PackageProvenance";
 import { ProposalStatus } from "./ProposalStatus";
 import { randomBotName } from "@/lib/random-bot-name";
@@ -37,6 +38,7 @@ export function IdentitySection({
   const { draft } = useBotEditor();
   const { state } = useStore();
   const shows = (part: IdentityPart) => !parts || parts.includes(part);
+  const sheet = useSheetLook();
 
   return (
     <div className="flex flex-col gap-4">
@@ -99,7 +101,7 @@ export function IdentitySection({
           onChange={(e) => patch({ description: e.target.value })}
         />
         <div className="mt-1.5 flex items-start justify-between gap-3 text-[11px] text-ink-secondary">
-          <span>{t("botSettings.identity.blurbHelp")}</span>
+          <span>{sheet ? t("botPanel.sheet.blurbHint") : t("botSettings.identity.blurbHelp")}</span>
           {bot.description.length > 3_000 && (
             <span className="shrink-0 tabular-nums">
               {bot.description.length.toLocaleString()} / {BOT_PROFILE_LIMITS.description.toLocaleString()}

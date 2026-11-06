@@ -4,29 +4,29 @@ import type { LocaleKey } from "@/locales";
 import type { Action, AppSettingsSection } from "@/state/store";
 import type { GrokIconName } from "@/components/GrokIcon";
 
-export type AdvancedPage = "apps" | "bots" | "looks" | "team" | "data" | "builder" | "about";
+export type AdvancedPage = "apps" | "bots" | "looks" | "team" | "data" | "builder";
 
-export const ADVANCED_PAGES: ReadonlyArray<{ id: AdvancedPage; group: "bots" | "workspace" | "app"; icon: GrokIconName; sections: AppSettingsSection[] }> = [
-  { id: "apps", group: "bots", icon: "plug", sections: ["apps", "skills"] },
-  { id: "bots", group: "bots", icon: "robot", sections: ["bots"] },
-  { id: "team", group: "workspace", icon: "building", sections: ["organization", "people", "workspaces"] },
-  { id: "data", group: "workspace", icon: "database", sections: ["data", "backups", "import"] },
-  { id: "looks", group: "app", icon: "palette", sections: ["looks"] },
-  { id: "builder", group: "app", icon: "sliders", sections: ["builder", "experimental"] },
-  { id: "about", group: "app", icon: "info", sections: ["about"] },
+export const ADVANCED_PAGES: ReadonlyArray<{ id: AdvancedPage; icon: GrokIconName; sections: AppSettingsSection[] }> = [
+  { id: "apps", icon: "plug", sections: ["apps", "skills"] },
+  { id: "bots", icon: "robot", sections: ["bots"] },
+  { id: "looks", icon: "palette", sections: ["looks"] },
+  { id: "team", icon: "building", sections: ["organization", "people", "workspaces"] },
+  { id: "data", icon: "database", sections: ["data", "backups"] },
+  { id: "builder", icon: "sliders", sections: ["builder", "experimental"] },
 ];
 
-export type SettingsPane = "general" | "texting" | "computer" | "permissions" | "models" | "usage" | "updates" | "advanced";
+export type SettingsPane = "general" | "texting" | "computer" | "permissions" | "vault" | "models" | "usage" | "updates" | "advanced";
 
-/** Grok's panes with Models before its Usage & Billing, then Advanced features, which holds everything of ours Grok has no place for. */
+/** Grok's panes, with Phone, Models and Advanced features for what Grok has no pane for. */
 export const SETTINGS_PANES: ReadonlyArray<{ id: SettingsPane; labelKey: LocaleKey; icon: GrokIconName; sections: readonly AppSettingsSection[] }> = [
-  { id: "general", labelKey: "settings.section.general", icon: "settings-gear", sections: ["general", "appearance"] },
-  { id: "texting", labelKey: "settings.pane.texting", icon: "chat-bubbles", sections: ["texting", "companion", "remote"] },
+  { id: "general", labelKey: "settings.section.general", icon: "settings-gear", sections: ["general", "appearance", "import"] },
+  { id: "texting", labelKey: "settings.grok.group.phone", icon: "chat-bubbles", sections: ["texting", "companion", "remote"] },
   { id: "computer", labelKey: "settings.simple.page.computer", icon: "display", sections: ["computer", "desktopWorkspaces"] },
-  { id: "permissions", labelKey: "settings.pane.permissions", icon: "shield", sections: ["permissions", "botAccess", "logins", "activity"] },
+  { id: "permissions", labelKey: "settings.pane.permissions", icon: "shield", sections: ["permissions", "botAccess", "activity"] },
+  { id: "vault", labelKey: "settings.w6.pane.vault", icon: "vault", sections: ["logins"] },
   { id: "models", labelKey: "settings.pane.models", icon: "sparkle", sections: ["engines", "connections", "decisionModel"] },
   { id: "usage", labelKey: "settings.pane.usage", icon: "chart-bars", sections: ["usage", "cloudAccount"] },
-  { id: "updates", labelKey: "settings.simple.page.updates", icon: "cloud-download", sections: ["updates"] },
+  { id: "updates", labelKey: "settings.simple.page.updates", icon: "cloud-download", sections: ["updates", "about"] },
   { id: "advanced", labelKey: "settings.pane.advanced", icon: "sliders", sections: ["advanced", ...ADVANCED_PAGES.flatMap((page) => page.sections)] },
 ];
 

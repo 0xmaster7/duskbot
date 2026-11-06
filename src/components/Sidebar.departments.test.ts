@@ -432,7 +432,7 @@ describe("a bot's menu in Simple", () => {
   type MenuProps = Parameters<typeof BotContextMenu>[0];
   const menuProps = (botId: string, extra: Partial<MenuProps> = {}): MenuProps => ({
     menu: { botId, x: 0, y: 0 }, onClose: vi.fn(), onArchive: vi.fn(), onDelete: vi.fn(), onMoveToSection: vi.fn(),
-    onNewFolder: vi.fn(), onNewTaskFolder: vi.fn(), onNewSection: vi.fn(), ...extra,
+    onNewSection: vi.fn(), ...extra,
   });
   const open = (props: MenuProps) => {
     fixture.index = 0;

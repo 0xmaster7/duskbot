@@ -161,6 +161,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const notificationFeed = useNotificationFeed() && !remoteClient;
   const advanced = useAdvancedMode();
   const roomPanelOpen = useRoomPanelShown({ group, state, simple: !advanced && !remoteClient });
+  const roomPanelOverlay = notificationFeed && state.notificationsOpen && !twoSidePanelsFit;
   // The sidebar only folds when the person folds it: a side panel opening beside it never collapses it, as in Grok Bot.
   const calendarFocus = state.activeView === "routines" && state.routinesFocus.view === "calendar";
 
@@ -417,8 +418,9 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       {/* Sibling panels need distinct keys: two keyed `bot.id` collide in React's keyed reconciliation. */}
       {state.settingsOpen && bot && remoteClient && <RemoteAgentSettingsPanel bot={bot} overlay={state.computerOpen && !twoSidePanelsFit} />}
       {state.settingsOpen && bot && !remoteClient && settingsOverlay && <BotSettingsDialog key={`settings:${bot.id}`} bot={bot} overlay />}
-      <PanelSlot open={Boolean(state.settingsOpen && bot && !remoteClient && !settingsOverlay)}>
-        {bot && <BotSettingsDialog key={`settings:${bot.id}`} bot={bot} />}
+      {/* bot and room panels share one slot, so moving between a bot and a room swaps the content without the column closing */}
+      <PanelSlot open={Boolean(state.settingsOpen && bot && !remoteClient && !settingsOverlay) || Boolean(roomPanelOpen && group && !roomPanelOverlay)}>
+        {bot ? <BotSettingsDialog key={`settings:${bot.id}`} bot={bot} /> : group ? <RoomPanel key={`room:${group.id}`} group={group} /> : null}
       </PanelSlot>
       {state.computerOpen && bot && (
         remoteClient ? (
@@ -431,9 +433,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
           />
         )
       )}
-      {roomPanelOpen && group && (
-        <RoomPanel key={`room:${group.id}`} group={group} overlay={notificationFeed && state.notificationsOpen && !twoSidePanelsFit} />
-      )}
+      {roomPanelOpen && group && roomPanelOverlay && <RoomPanel key={`room:${group.id}`} group={group} overlay />}
       {!remoteClient && state.inspectorOpen && bot && <InspectorPanel key={bot.threadId} bot={bot} />}
       {!remoteClient && state.activityOpen && bot && <ActivityPanel key={`activity:${bot.id}`} bot={bot} />}
       {inboxShown && <InboxPanel />}

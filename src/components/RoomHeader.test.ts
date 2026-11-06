@@ -95,7 +95,7 @@ describe("the room header in Simple mode", () => {
   it("keeps every control and the instructions line in Advanced mode", () => {
     fixture.advanced = true;
     const markup = view(room());
-    expect(shown(header(markup))).toEqual(Object.keys(CONTROLS));
+    expect(shown(header(markup))).toEqual(Object.keys(CONTROLS).filter((key) => key !== "threads"));
     expect(header(markup)).not.toContain("data-room-name");
     expect(markup).toContain(BULLETIN);
   });
@@ -103,7 +103,7 @@ describe("the room header in Simple mode", () => {
   it("keeps today's header on a remote client, which cannot open the Room panel", () => {
     const markup = view(room(), { remoteClient: { active: true } });
     // A remote client never had the folder chip, the responder picker or Manage members.
-    expect(shown(header(markup))).toEqual(["threads", "find", "export", "turnLimit", "usage"]);
+    expect(shown(header(markup))).toEqual(["find", "export", "turnLimit", "usage"]);
     expect(header(markup)).not.toContain("data-room-name");
     expect(markup).toContain(BULLETIN);
   });

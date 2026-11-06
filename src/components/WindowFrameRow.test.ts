@@ -41,7 +41,7 @@ describe("Settings' switch for the window's frame", () => {
   it("is on by default on macOS and turns the frame off at once, with nothing to restart", async () => {
     await mount();
     expect(host.textContent).toContain("Window frame");
-    expect(host.textContent).toContain("A thin bar across the top that says where you are");
+    expect(host.textContent).toContain("Window frame");
     expect(toggle()?.getAttribute("aria-checked")).toBe("true");
     await act(async () => { toggle()!.click(); await Promise.resolve(); });
     expect(set).toHaveBeenCalledWith(false);

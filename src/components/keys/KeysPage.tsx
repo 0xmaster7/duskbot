@@ -11,9 +11,12 @@ import { KEY_CATALOG, KEY_SECTIONS, keyMatches, savedState, type KeyEntry, type 
 import { finishKeyFocus, useKeyFocus, type KeyFocusRequest } from "./key-focus";
 import { AnthropicEveryClaudeBot, OpenAiCompatUrl, OpenCodeProviderKeys, VpsConnection } from "./KeyPanels";
 import { KEY_ROW, KeyRow, MaskedKey, RowHeading, type KeyStatus } from "./KeyRow";
+import { SIMPLE_CARD } from "../SettingsPrimitives";
 
-const CARD = "rounded-xl bg-card in-data-[settings-look=simple]:rounded-[12px] in-data-[settings-look=simple]:border-[0.5px] in-data-[settings-look=simple]:border-(--settings-edge) in-data-[settings-look=simple]:bg-menu";
 const HIGHLIGHT_MS = 1600;
+// these rows repeat another row's name, so their purpose line is what tells them apart
+const PURPOSE_SHOWN: ReadonlySet<KeyId> = new Set<KeyId>(["liveCalls", "liveKey"]);
+const quiet = (entry: KeyEntry) => !PURPOSE_SHOWN.has(entry.id);
 
 const PANELS: Partial<Record<KeyId, () => ReactNode>> = {
   opencodeProviders: () => <OpenCodeProviderKeys />,
@@ -41,7 +44,7 @@ function PanelRow({ entry }: { entry: KeyEntry }) {
   const status: KeyStatus = saved.configured ? { tone: "ok", text: t("keys.connected") } : null;
   return (
     <div data-key-row={entry.id} role="group" aria-labelledby={titleId} className={KEY_ROW}>
-      <RowHeading entry={entry} status={status} titleId={titleId} />
+      <RowHeading entry={entry} status={status} titleId={titleId} purpose={!quiet(entry)} />
       <div className="flex flex-col gap-2 pl-8">{PANELS[entry.id]?.()}</div>
     </div>
   );
@@ -55,7 +58,7 @@ function ElsewhereRow({ entry }: { entry: KeyEntry }) {
   const status: KeyStatus = saved.configured ? { tone: "ok", text: t("keys.connected") } : null;
   return (
     <div data-key-row={entry.id} role="group" aria-labelledby={titleId} className={KEY_ROW}>
-      <RowHeading entry={entry} status={status} titleId={titleId} />
+      <RowHeading entry={entry} status={status} titleId={titleId} purpose={!quiet(entry)} />
       <div className="flex flex-col gap-2 pl-8">
         {saved.configured && <div className="flex"><MaskedKey saved={saved} label={t(entry.labelKey)} /></div>}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -72,10 +75,10 @@ function ElsewhereRow({ entry }: { entry: KeyEntry }) {
 }
 
 export function KeyCatalogRow({ entry }: { entry: KeyEntry }) {
-  if (entry.kind === "uses" && entry.uses) return <KeyRow id={entry.uses} row={entry.id} />;
+  if (entry.kind === "uses" && entry.uses) return <KeyRow id={entry.uses} row={entry.id} quiet={quiet(entry)} />;
   if (entry.kind === "panel") return <PanelRow entry={entry} />;
   if (entry.kind === "elsewhere") return <ElsewhereRow entry={entry} />;
-  return <KeyRow id={entry.id}>{EXTRAS[entry.id]?.()}</KeyRow>;
+  return <KeyRow id={entry.id} quiet={quiet(entry)}>{EXTRAS[entry.id]?.()}</KeyRow>;
 }
 
 function KeySection({ id, rows, open, onToggle }: { id: KeySectionId; rows: KeyEntry[]; open: boolean; onToggle: () => void }) {
@@ -85,22 +88,19 @@ function KeySection({ id, rows, open, onToggle }: { id: KeySectionId; rows: KeyE
   const bodyId = useId();
   const count = rows.filter((entry) => connected(entry, state.config)).length;
   return (
-    <section data-keys-section={id} aria-labelledby={headId} className={CARD}>
+    <section data-keys-section={id} aria-labelledby={headId} className="border-t-[0.5px] border-edge first:border-t-0">
       <button
         type="button"
         aria-expanded={open}
         aria-controls={bodyId}
         onClick={onToggle}
-        className="flex w-full cursor-pointer items-center gap-3 rounded-[inherit] px-4 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/60"
+        className="flex min-h-12 w-full cursor-pointer items-center gap-3 px-3.5 py-2.5 text-left outline-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
       >
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span id={headId} className="text-[14px] font-medium leading-5 text-ink">{t(section.titleKey)}</span>
-          <span className="text-[13px] leading-[18px] text-ink-secondary">{t(section.purposeKey)}</span>
-        </span>
-        {count > 0 && <span className="shrink-0 text-[12px] leading-4 text-ink-secondary">{t("keys.section.connected", { count })}</span>}
+        <span id={headId} className="min-w-0 flex-1 truncate text-[13px] leading-[18px] tracking-[-0.08px] text-ink">{t(section.titleKey)}</span>
+        {count > 0 && <span className="shrink-0 text-[13px] leading-[18px] text-ink-secondary">{t("keys.section.connected", { count })}</span>}
         <ChevronRight size={14} aria-hidden="true" className={cn("shrink-0 text-ink-secondary transition-transform motion-reduce:transition-none", open && "rotate-90")} />
       </button>
-      <div id={bodyId} hidden={!open} className="flex flex-col gap-0.5 border-t border-hairline/40 px-1 py-1.5 in-data-[settings-look=simple]:border-t-[0.5px] in-data-[settings-look=simple]:border-(--settings-edge)">
+      <div id={bodyId} hidden={!open} className="flex flex-col gap-0.5 px-1 pb-1.5">
         {rows.map((entry) => <KeyCatalogRow key={entry.id} entry={entry} />)}
       </div>
     </section>
@@ -122,10 +122,7 @@ function landOn(page: HTMLElement | null, request: KeyFocusRequest, section: Key
 export function KeysPage() {
   const { state } = useStore();
   const [query, setQuery] = useState("");
-  const [open, setOpen] = useState<ReadonlySet<KeySectionId>>(() => new Set(
-    KEY_SECTIONS.filter((section) => section.id === "ai" || KEY_CATALOG.some((entry) => entry.section === section.id && connected(entry, state.config)))
-      .map((section) => section.id),
-  ));
+  const [open, setOpen] = useState<ReadonlySet<KeySectionId>>(() => new Set());
   const pageRef = useRef<HTMLDivElement>(null);
   const focus = useKeyFocus();
   const q = query.trim().toLowerCase();
@@ -154,8 +151,7 @@ export function KeysPage() {
   });
 
   return (
-    <div ref={pageRef} data-keys-page className="flex flex-col gap-4">
-      <p className="text-[13px] leading-[18px] text-ink-secondary">{t("settings.connections.subtitle")}</p>
+    <div ref={pageRef} data-keys-page className="flex flex-col gap-2">
       <div className="flex h-8 items-center gap-2 rounded-lg bg-ink/[0.05] px-[9px] focus-within:ring-2 focus-within:ring-focus/60">
         <Search size={15} aria-hidden="true" className="shrink-0 text-ink-secondary" />
         <input
@@ -177,8 +173,8 @@ export function KeysPage() {
         />
       </div>
       {sections.length === 0 ? (
-        <p data-keys-empty className="px-1 text-[13px] leading-[18px] text-ink-secondary">{t("keys.search.none", { query: query.trim() })}</p>
-      ) : sections.map(({ id, rows: sectionRows }) => (
+        <p data-keys-empty className="px-3.5 text-[13px] leading-[18px] text-ink-secondary">{t("keys.search.none", { query: query.trim() })}</p>
+      ) : <div className={cn(SIMPLE_CARD, "py-0")}>{sections.map(({ id, rows: sectionRows }) => (
         <KeySection
           key={id}
           id={id}
@@ -191,7 +187,7 @@ export function KeysPage() {
             return next;
           })}
         />
-      ))}
+      ))}</div>}
     </div>
   );
 }

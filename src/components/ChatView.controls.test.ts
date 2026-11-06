@@ -101,7 +101,7 @@ describe("the header's right side", () => {
       expect(markup).toContain('data-tour="computer"');
       expect(markup).toContain('data-testid="chat-more"');
       const more = fixture.menus.find((menu) => menu.ariaLabel === "More")!;
-      expect(more.items.map((item) => item.key)).toEqual(["find", "new-thread", "copy", "download"]);
+      expect(more.items.map((item) => item.key)).toEqual(["find", "copy", "download"]);
     } finally {
       delete window.ogb;
       fixture.advanced = true;
@@ -164,7 +164,7 @@ describe("the Simple header", () => {
       try {
         const remote = renderToStaticMarkup(createElement(ChatView, { bot: busyElsewhere }));
         expect(remote).not.toContain("data-chathead-elsewhere");
-        expect(remote).toContain("data-background-activity");
+        expect(remote).not.toContain("data-background-activity");
       } finally {
         delete window.ogb;
       }
@@ -174,7 +174,7 @@ describe("the Simple header", () => {
     fixture.showThreads = false;
     const advanced = renderToStaticMarkup(createElement(ChatView, { bot: busyElsewhere }));
     expect(advanced).not.toContain("data-chathead-elsewhere");
-    expect(advanced).toContain("data-background-activity");
+    expect(advanced).not.toContain("data-background-activity");
     expect(advanced).toContain("data-chathead-back");
     expect(advanced).toContain("data-chathead-role");
     fixture.showThreads = true;

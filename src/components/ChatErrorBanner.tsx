@@ -17,7 +17,7 @@ export function ChatNotice({ notice }: { notice: AppState["notice"] }) {
             ? t("composer.queued.steerImagesHeld")
             : notice.kind === "bot-gone"
               ? t("thread.botGone")
-              : notice.botName ? t("thread.goneShowing", { name: notice.botName }) : t("thread.gone")}
+              : notice.botName ? t("conversation.goneShowing", { name: notice.botName }) : t("conversation.gone")}
       </div>
     </div>
   );

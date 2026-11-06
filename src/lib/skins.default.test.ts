@@ -101,7 +101,7 @@ describe("default skin", () => {
     await boot();
     const [{ SkinPicker }, { ThemeRow }] = await Promise.all([import("@/components/SkinPicker"), import("@/components/ThemeRow")]);
     const picker = renderToStaticMarkup(createElement(SkinPicker));
-    const pressed = [...picker.matchAll(/aria-pressed="true"[\s\S]*?<div class="text-\[13px\] font-medium text-ink">([^<]+)</g)].map(([, name]) => name);
+    const pressed = [...picker.matchAll(/aria-pressed="true"[\s\S]*?<div class="[^"]*text-ink"[^>]*>([^<]+)</g)].map(([, name]) => name);
     expect(pressed).toEqual(["Grok Dark"]);
     const theme = renderToStaticMarkup(createElement(ThemeRow));
     expect(theme.match(/role="combobox" aria-label="Theme"[^>]*>(?:<[^>]+>)*([^<]+)</)?.[1]).toBe("System");

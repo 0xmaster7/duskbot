@@ -49,12 +49,12 @@ export function McpCallTimeoutSettings() {
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor="mcp-call-timeout" className="text-[13px] font-medium text-ink">
-        {t("settings.mcpCalls.label")}
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+      <label htmlFor="mcp-call-timeout" className="min-w-0 flex-1 text-[13px] leading-[18px] text-ink">
+        {t("settings.w6c.mcpCalls.label")}
       </label>
       <div
-        className={`flex max-w-[220px] items-center rounded-lg border bg-inset ${
+        className={`flex w-[150px] shrink-0 items-center rounded-lg border bg-inset ${
           error ? "border-danger/60" : "border-hairline/40 focus-within:border-focus"
         }`}
       >
@@ -68,7 +68,7 @@ export function McpCallTimeoutSettings() {
           value={value}
           disabled={saving}
           aria-invalid={Boolean(error)}
-          aria-describedby={error ? "mcp-call-timeout-error mcp-call-timeout-help" : "mcp-call-timeout-help"}
+          aria-describedby={error ? "mcp-call-timeout-error" : undefined}
           onChange={(event) => {
             setValue(event.target.value);
             setDirty(true);
@@ -82,11 +82,8 @@ export function McpCallTimeoutSettings() {
         />
         <span className="pr-3 text-[13px] text-ink-secondary">{t("settings.mcpCalls.minutes")}</span>
       </div>
-      <p id="mcp-call-timeout-help" className="text-[12px] leading-relaxed text-ink-secondary">
-        {t("settings.mcpCalls.help")}
-      </p>
       {error ? (
-        <p id="mcp-call-timeout-error" role="alert" className="text-[12px] text-danger">
+        <p id="mcp-call-timeout-error" role="alert" className="basis-full text-[12px] text-danger">
           {error}
         </p>
       ) : null}

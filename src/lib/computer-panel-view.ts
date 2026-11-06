@@ -1,11 +1,12 @@
 export type ComputerPanelView = "computer" | "android" | "browser" | "routines" | "files" | "data";
 
-type PanelTabsContext = { advanced: boolean; androidConnected: boolean };
+/** `browser`: the bot works in its browser, or something asked for its browser view; Simple shows that tab only then. */
+type PanelTabsContext = { advanced: boolean; androidConnected: boolean; browser?: boolean };
 
-export function computerPanelTabs({ advanced, androidConnected }: PanelTabsContext): ComputerPanelView[] {
+export function computerPanelTabs({ advanced, androidConnected, browser = false }: PanelTabsContext): ComputerPanelView[] {
   return advanced
     ? ["computer", "routines", ...(androidConnected ? (["android"] as const) : []), "browser", "data"]
-    : ["computer", "browser", "data", "files"];
+    : ["computer", ...(browser ? (["browser"] as const) : []), "data"];
 }
 
 export function resolveComputerPanelView(view: ComputerPanelView, context: PanelTabsContext): ComputerPanelView {

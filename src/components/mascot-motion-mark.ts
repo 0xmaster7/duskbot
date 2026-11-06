@@ -153,6 +153,8 @@ export interface Mark {
   setExpression(face: string): void;
   /** What the engine is playing now; a state with a `next` moves on by itself. */
   readonly state: string;
+  /** The clip the state driver picked, null while resting. */
+  readonly clip: string | null;
   readonly isSleeping: boolean;
 }
 
@@ -241,6 +243,9 @@ export function createMark(initial: MarkOptions, env: MarkEnvironment): Mark {
   return {
     get state() {
       return driver.state;
+    },
+    get clip() {
+      return driver.clip;
     },
     get isSleeping() {
       return !running;

@@ -9,7 +9,7 @@ import { waitForExit } from "../../server/testing/cleanup.ts";
 import { BOT_ROLES } from "../../src/lib/bot-roles.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
-import { openTemplates } from "./grok-nav.ts";
+import { closeBotPanel, openBotSheet, openPanelMenu, openTemplates } from "./grok-nav.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const binary = resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env });
@@ -54,18 +54,8 @@ describe("bot setup and tools in the real renderer", () => {
     const press = (keys: string) => ui("press", "--keys", keys);
     const bots = async (): Promise<SavedBot[]> => (await fetch(`${info.url}/api/bots`).then((response) => response.json())).bots;
     const snapshot = async () => (await ui("snapshot")).snapshot as string;
-    const openTools = async () => {
-      // Open the profile from the chat header. A remembered section can
-      // already have the Access row expanded, so expand only when collapsed.
-      const state = await ui("snapshot", "--interactive");
-      const profile = Object.entries(state.refs as Record<string, { role: string; name: string }>)
-        .find(([, entry]) => entry.role === "button" && /Open .+ profile/.test(entry.name));
-      expect(profile).toBeDefined();
-      await ui("click", "--ref", `@${profile![0]}`);
-      const accessExpanded = () => evaluate("[...document.querySelectorAll('[role=dialog] button')].find(b => b.textContent.trim() === 'Access')?.getAttribute('aria-expanded')");
-      await expect.poll(accessExpanded, { timeout: 10_000 }).toMatch(/^(?:true|false)$/);
-      if ((await accessExpanded()) !== "true") await click("Access");
-    };
+    // Panel > Advanced > Tools: the bot's settings sheet at its tools (apps, MCP servers, tool selection).
+    const openTools = async () => openBotSheet(ui, created[0].name, "tools");
     const reviewReadyBot = async (name: string, title: string) => {
       await openTemplates(ui);
       await expect.poll(snapshot, { timeout: 20_000 }).toContain(`Add ${name}, ${title}`);
@@ -125,35 +115,21 @@ describe("bot setup and tools in the real renderer", () => {
     expect((await runControlOmb(["wait", "--bot", created[0].id, "--timeout", "20", "--url", info.url]) as { status: string }).status).toBe("settled");
     await openTools();
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("No MCP servers added yet.");
-    const usageExpanded = () => evaluate("[...document.querySelectorAll('[role=dialog] button')].find(b => b.textContent.trim() === 'Usage')?.getAttribute('aria-expanded')");
-    const openHeaderUsage = async () => {
-      await click("More");
-      const state = await ui("snapshot", "--interactive");
-      const cost = Object.entries(state.refs as Record<string, { role: string; name: string }>)
-        .filter(([, entry]) => entry.role === "menuitem" && entry.name.includes("$0.01"));
-      expect(cost).toHaveLength(1);
-      await ui("click", "--ref", `@${cost[0][0]}`);
-      await expect.poll(usageExpanded, { timeout: 10_000 }).toBe("true");
-      expect(await snapshot()).toContain("All bots");
-      // Allow subpixel rounding at the bottom edge of the scroll viewport.
-      await expect.poll(() => evaluate("(() => { const row = document.querySelector('[data-bot-settings-section=usage]'); const rect = row?.getBoundingClientRect(); return rect ? Math.max(-rect.top, rect.bottom - innerHeight) : 9999; })()"), { timeout: 10_000 }).toBeLessThanOrEqual(1);
-    };
-    await openHeaderUsage();
-    await click("Usage");
-    expect(await usageExpanded()).toBe("false");
-    await openHeaderUsage(); // same section, already mounted, after collapse
-    const search = await ui("snapshot", "--interactive");
-    const searchRef = Object.entries(search.refs as Record<string, { role: string; name: string }>)
-      .find(([, entry]) => entry.role === "textbox" && entry.name === "Search settings");
-    expect(searchRef).toBeDefined();
-    await ui("type", "--ref", `@${searchRef![0]}`, "--text", "standing");
-    expect(await evaluate("document.querySelector('[aria-label=\"Search settings\"]')?.value")).toBe("standing");
-    await openHeaderUsage(); // a stale search must not hide an external target
-    expect(await evaluate("document.querySelector('[aria-label=\"Search settings\"]')?.value")).toBe("");
+    await press("Escape");
+    await expect.poll(() => evaluate("Boolean(document.querySelector('[data-bot-sheet]'))"), { timeout: 10_000 }).toBe(false);
+    // The panel's Share menu shows this chat's cost; its Usage opens Settings at Usage & Billing.
+    await openPanelMenu(ui, created[0].name);
+    const state = await ui("snapshot", "--interactive");
+    const cost = Object.entries(state.refs as Record<string, { role: string; name: string }>)
+      .filter(([, entry]) => entry.role === "menuitem" && entry.name.includes("$0.01"));
+    expect(cost).toHaveLength(1);
+    await ui("click", "--ref", `@${cost[0][0]}`);
+    await expect.poll(snapshot, { timeout: 10_000 }).toContain('dialog "Settings"');
+    await expect.poll(() => evaluate("[...document.querySelectorAll('[role=dialog] h2')].some(heading => heading.textContent.trim() === 'Usage & Billing')"), { timeout: 10_000 }).toBe(true);
     await ui("screenshot", "--out", `${info.logPath}.settings.png`);
-    await click("Overview");
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Optional ways to customize this bot. You can start chatting now.");
-    await click("Access");
+    await press("Escape");
+    await expect.poll(() => evaluate("[...document.querySelectorAll('[role=dialog] h2')].some(heading => heading.textContent.trim() === 'Usage & Billing')"), { timeout: 10_000 }).toBe(false);
+    await openTools();
     await click("Add an MCP server…");
     // The registry loads on mount; Add MCP server is disabled until it finishes.
     await expect.poll(() => evaluate("[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Add MCP server')?.disabled"), { timeout: 10_000 }).toBe(false);
@@ -166,7 +142,13 @@ describe("bot setup and tools in the real renderer", () => {
     await ui("type", "--ref", `@${textarea![0]}`, "--text", JSON.stringify({ mcpServers: {
       fixture: { command: process.execPath, args: ["-e", "process.exit(0)"] },
     } }));
-    await click("Add");
+    // the chat's composer has an Add of its own beside the form's
+    const add = Object.entries(pasted.refs as Record<string, { role: string; name: string }>)
+      .filter(([, entry]) => entry.role === "button" && entry.name === "Add").map(([ref]) => ref);
+    const formAdd = (await evaluate(`(() => { const form = document.querySelector('textarea[aria-label="Server link or setup command"]').closest('form, [role=dialog]'); return [...form.querySelectorAll('button')].some(button => button.textContent.trim() === 'Add'); })()`)) as boolean;
+    expect(formAdd).toBe(true);
+    expect(add.length).toBeGreaterThan(0);
+    await evaluate(`[...document.querySelector('textarea[aria-label="Server link or setup command"]').closest('form, [role=dialog]').querySelectorAll('button')].find(button => button.textContent.trim() === 'Add').click(); true`);
     const registry = async () => (await fetch(`${info.url}/api/mcp/servers`).then((response) => response.json())).servers;
     // It exits before answering, so it is saved but stays off, with the reason on its row.
     await expect.poll(registry, { timeout: 10_000 }).toMatchObject([{ name: "fixture", enabled: false }]);
@@ -174,7 +156,14 @@ describe("bot setup and tools in the real renderer", () => {
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Turn fixture on");
     await click("Turn fixture on");
     await expect.poll(registry, { timeout: 10_000 }).toMatchObject([{ name: "fixture", enabled: true }]);
-    await press("Escape");
+    // Escape leaves Connect Apps, which the link opened in place of the sheet; the switch it turned on let focus go
+    const connectApps = () => evaluate("Boolean(document.querySelector('.ca-scrim'))");
+    for (let round = 0; round < 3 && await connectApps(); round++) {
+      await evaluate("(document.querySelector('[data-connect-apps] [role=dialog]') ?? document.querySelector('[data-connect-apps] [tabindex]'))?.focus(); true");
+      await press("Escape");
+      await expect.poll(connectApps, { timeout: 2_000 }).toBe(false).catch(() => {});
+    }
+    expect(await connectApps()).toBe(false);
     await openTools();
     await expect.poll(() => evaluate("document.querySelector('[aria-label=\"Let this bot use fixture\"]')?.getAttribute('aria-checked')"), { timeout: 10_000 }).toBe("true");
     await click("Let this bot use fixture");
@@ -187,7 +176,17 @@ describe("bot setup and tools in the real renderer", () => {
     // modal is left behind to hold the focus.
     const beforeShortcut = await bots();
     await press("Control+n");
+    await expect.poll(snapshot, { timeout: 10_000 }).toContain('dialog "Create New Bot"');
+    // the open panel names its own heading Bot name too: type into the dialog's field
+    const nameField = Object.entries((await ui("snapshot", "--interactive")).refs as Record<string, { role: string; name: string }>)
+      .find(([, entry]) => entry.role === "textbox" && entry.name === "Bot name");
+    expect(nameField).toBeDefined();
+    await ui("type", "--ref", `@${nameField![0]}`, "--text", "Third helper");
+    await press("Enter");
     await expect.poll(async () => (await bots()).length, { timeout: 10_000 }).toBe(beforeShortcut.length + 1);
+    // the docked panel stays beside the new bot's chat, as Grok's does; the sheet over it is gone
+    await expect.poll(() => evaluate("document.querySelectorAll('[aria-modal=true]').length"), { timeout: 10_000 }).toBe(0);
+    await closeBotPanel(ui);
     await expect.poll(dialogCount, { timeout: 10_000 }).toBe(0);
 
     // A failed profile step must roll back the incomplete ready-made bot and

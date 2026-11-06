@@ -16,8 +16,7 @@ describe("ThreadConcurrencySettings", () => {
     expect(markup).toContain('value="3" selected=""');
     expect(markup.match(/<option /g)).toHaveLength(16);
     expect(markup).toContain('value="16"');
-    expect(markup).toContain("Extra messages queue until a slot opens.");
-    expect(markup).toContain("Maximum running threads per bot");
+    expect(markup).toContain("Tasks at once per bot");
   });
   it("shows Starter's one thread per bot as a plan limit it cannot raise", () => {
     fixture.limit = 1; fixture.cloudStarter = true;

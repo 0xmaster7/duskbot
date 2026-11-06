@@ -151,17 +151,17 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
     expect(fixture.setAdvancedMode).toHaveBeenCalledWith(false);
   });
 
-  it("groups skins, thread visibility, and tool-call display with preservation copy in Looks", () => {
+  it("groups skins, pins and tool-call display in Looks, with no dead thread or run card switches", () => {
     fixture.section = "looks";
     const html = render();
     expect(html).toContain("Midnight");
-    expect(html).toContain('aria-label="Show threads"');
+    expect(html).not.toContain('aria-label="Show threads"');
+    expect(html).not.toContain('aria-label="Show the run card"');
     expect(html).toContain('aria-label="Pinned bots as circles"');
     expect(html).toContain('aria-label="Universal pins"');
-    expect(html).toContain("from every group");
     expect(html).toContain('aria-label="Show tool calls in chat"');
-    expect(html).toContain("all conversation history and running work");
-    expect(html).not.toContain("Stop after no progress for");
+    expect(html).not.toContain("from every group");
+    expect(html).not.toContain("Group turn time limit");
   });
 
   it("keeps the switch for the window's rail of places with the sidebar's rows, where this window has one", () => {
@@ -170,24 +170,12 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
     fixture.rail = { available: true, hidden: true };
     const html = render();
     const at = html.indexOf('aria-label="Show your computers"');
-    expect(at).toBeGreaterThan(html.indexOf('aria-label="Choose tools layout"'));
-    expect(at).toBeLessThan(html.indexOf('aria-label="Show threads"'));
+    expect(at).toBeGreaterThan(html.indexOf('aria-label="Chat width"'));
+    expect(at).toBeLessThan(html.indexOf('aria-label="Pinned bots as circles"'));
     const toggle = fixture.switches.find((props) => props["aria-label"] === "Show your computers")!;
     expect(toggle.checked).toBe(false);
     toggle.onClick!({} as never);
     expect(fixture.railHidden).toEqual([false]);
-  });
-
-  it.each([true, false])("only updates the local thread preference when the switch is %s", (enabled) => {
-    fixture.section = "looks";
-    fixture.showThreads = enabled;
-    render();
-    const toggle = fixture.switches.find((props) => props["aria-label"] === "Show threads")!;
-    expect(toggle.checked).toBe(enabled);
-    toggle.onClick!({} as never);
-    expect(fixture.setShowThreads).toHaveBeenCalledWith(!enabled);
-    expect(fixture.api).not.toHaveBeenCalled();
-    expect(fixture.dispatch).not.toHaveBeenCalled();
   });
 
   it.each([true, false])("mutes notification sounds on this computer only when the switch is %s", (enabled) => {
@@ -210,13 +198,9 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
     expect(html).not.toContain(">Avatars only<");
   });
 
-  it("offers the tools layout row", () => {
+  it("drops the tools layout row, which only the removed Advanced mode read", () => {
     fixture.section = "looks";
-    const html = render();
-    expect(html).toContain("Tools layout");
-    expect(html).toContain("As a column of avatars, the sidebar always shows icons.");
-    expect(trigger(html, "Choose tools layout")).toBe("Rows");
-    expect(fixture.setSidebarToolsLayout).not.toHaveBeenCalled();
+    expect(render()).not.toContain("Tools layout");
   });
 
   it.each([
@@ -267,29 +251,15 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
     expect(fixture.dispatch).not.toHaveBeenCalled();
   });
 
-  it("offers the run card visibility toggle in Looks", () => {
-    fixture.section = "looks";
-    fixture.showRunCard = true;
-    const html = render();
-    expect(html).toContain('aria-label="Show the run card"');
-    expect(html).toContain("saving the run as a skill");
-    const toggle = fixture.switches.find((props) => props["aria-label"] === "Show the run card")!;
-    expect(toggle.checked).toBe(true);
-    toggle.onClick!({} as never);
-    expect(fixture.setShowRunCard).toHaveBeenCalledWith(false);
-    expect(fixture.api).not.toHaveBeenCalled();
-    expect(fixture.dispatch).not.toHaveBeenCalled();
-  });
-
   it("keeps the builder controls together in Builder Controls, off the first screens", () => {
     fixture.section = "builder";
     const html = render();
-    expect(html).toContain("Stop after no progress for");
-    expect(html).toContain("Maximum running threads per bot");
+    expect(html).toContain("Group turn time limit");
+    expect(html).toContain("Tasks at once per bot");
     expect(html).toContain("Automatic recovery");
     fixture.section = "general";
     const general = render();
-    for (const text of ["Stop after no progress for", "Maximum running threads per bot", "Automatic recovery", 'aria-label="Show threads"', "Midnight"]) {
+    for (const text of ["Group turn time limit", "Tasks at once per bot", "Automatic recovery", 'aria-label="Pinned bots as circles"', "Midnight"]) {
       expect(general, text).not.toContain(text);
     }
   });
@@ -299,8 +269,7 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
     vi.stubGlobal("window", { ogb: { remoteClient: { active: true } } });
     const html = render();
     expect(html).toContain("Midnight");
-    expect(html).toContain('aria-label="Show threads"');
-    expect(html).toContain('aria-label="Choose tools layout"');
+    expect(html).toContain('aria-label="Pinned bots as circles"');
     expect(html).not.toContain('aria-label="Show tool calls in chat"');
     expect(html).not.toContain('data-settings-page="updates"');
     expect(html).not.toContain('data-settings-page="permissions"');
@@ -311,7 +280,6 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
     const html = render();
     expect(html).toContain("Export full backup");
     expect(html).toContain('type="file" accept=".ombbackup"');
-    expect(html).toContain("Older team backups and shareable templates");
   });
 
   it("renders Looks and its controls in Japanese", () => {
@@ -319,8 +287,7 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
     fixture.section = "looks";
     const html = render();
     for (const key of [
-      "settings.section.appearance", "settings.threadDisplay.show", "settings.threadDisplay.subtitle", "settings.pinnedCircles.title",
-      "settings.pinnedCircles.subtitle", "settings.universalPins.title", "settings.universalPins.subtitle",
+      "settings.section.appearance", "settings.pinnedCircles.title", "settings.universalPins.title",
     ] as const) {
       expect(locales.ja[key], key).toBeTruthy();
       expect(locales.ja[key], key).not.toBe(en[key]);
@@ -335,9 +302,8 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
       fixture.section = "looks";
       const html = render();
       expect(html).toContain("Looks");
-      expect(html).toContain('aria-label="Show threads"');
-      expect(html).toContain("from every group");
-      expect(html).not.toContain("settings.threadDisplay");
+      expect(html).toContain('aria-label="Universal pins"');
+      expect(html).not.toContain("settings.universalPins");
       expect(html).not.toContain("settings.advanced");
     } finally {
       delete locales.zz;

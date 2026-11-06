@@ -8,6 +8,7 @@ import { Select } from "@/components/Select";
 import { EMPTY_ONBOARDING, type BeatId } from "@/lib/onboarding";
 import { SKINS, type SkinId } from "@/lib/skins";
 import { StoreProvider } from "@/state/store";
+import "./font-faces";
 import "./styles.css";
 import "./styles/overlays.css";
 

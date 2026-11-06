@@ -91,8 +91,7 @@ export function UpdatesConsentRow() {
     return choose(status, email).catch(error => { setFailed(true); throw error; }).finally(() => setBusy(false));
   };
   const subtitle = <>
-    {t("settings.updatesConsent.subtitle")}
-    {on && state.email && <>{" "}{t("settings.updatesConsent.to", { email: state.email })}</>}
+    {on && state.email ? t("settings.updatesConsent.to", { email: state.email }) : t("settings.w6c.updatesConsent.subtitle")}
   </>;
   return <SettingRow title={t("settings.updatesConsent.title")} subtitle={subtitle}
     message={failed ? <span role="alert" className="text-danger">{t("updatesConsent.failed")}</span> : undefined}>

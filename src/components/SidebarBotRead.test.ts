@@ -29,7 +29,7 @@ const onRename = vi.fn();
 const dispatch = (action: Action) => { state = reducer(state, action); draw(); };
 const draw = () => flushSync(() => root.render(createElement(BotEditorStore, {
   value: { state, dispatch, flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} },
-  children: createElement(BotContextMenu, { menu, onClose, onArchive: vi.fn(), onDelete: vi.fn(), onMoveToSection: vi.fn(), onNewFolder: vi.fn(), onNewTaskFolder: vi.fn(), onRename }),
+  children: createElement(BotContextMenu, { menu, onClose, onArchive: vi.fn(), onDelete: vi.fn(), onMoveToSection: vi.fn(), onRename }),
 })));
 // grok icons draw a private-use glyph, which is no part of a row's words
 const text = (node: Node) => (node.textContent ?? "").replace(/[\uE000-\uF8FF\u{F0000}-\u{FFFFD}]/gu, "");
@@ -145,7 +145,7 @@ describe("Simple mode's bot menu", () => {
     const onNewSection = vi.fn();
     const render = () => flushSync(() => root.render(createElement(BotEditorStore, {
       value: { state, dispatch, flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} },
-      children: createElement(BotContextMenu, { menu, onClose, onArchive: vi.fn(), onDelete: vi.fn(), onMoveToSection: vi.fn(), onNewFolder: vi.fn(), onNewTaskFolder: vi.fn(), onRename, onNewSection }),
+      children: createElement(BotContextMenu, { menu, onClose, onArchive: vi.fn(), onDelete: vi.fn(), onMoveToSection: vi.fn(), onRename, onNewSection }),
     })));
     render();
     expect(words().slice(0, 3)).toEqual(["Pin", "Move to new section", "Mark as Read"]);

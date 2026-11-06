@@ -46,14 +46,14 @@ function renderPanel(
 }
 
 describe("pinned attention panel", () => {
-  it("renders the popover's rows under the Active Threads name", () => {
-    const { markup } = renderPanel();
-    expect(markup).toContain("Active Threads");
-    expect(markup).toContain("Review permission");
-    expect(markup).toContain("Atlas");
+  it("renders one row per bot under the Active now name, with no thread title", () => {
+    const { markup } = renderPanel([entry, { ...entry, task: { ...entry.task, threadId: "older", title: "Older work" } }]);
+    expect(markup).toContain("Active now");
+    expect(markup).not.toContain("Review permission");
+    expect(markup).not.toContain("Older work");
+    expect(markup.split('aria-label="Atlas · ').length - 1).toBe(1);
     expect(markup).toContain('data-testid="sidebar-attention-panel"');
-    const label = t("attention.item", { title: "Review permission", name: "Atlas", status: t("task.waiting") });
-    expect(markup).toContain('aria-label="' + label + '"');
+    expect(markup).toContain(`aria-label="Atlas · ${t("task.waiting")}"`);
   });
 
   it("keeps the popover's jump behavior through the shared rows", () => {
@@ -64,15 +64,15 @@ describe("pinned attention panel", () => {
       return tree;
     }
     renderToStaticMarkup(createElement(Capture));
-    const label = t("attention.item", { title: "Review permission", name: "Atlas", status: t("task.waiting") });
+    const label = `Atlas · ${t("task.waiting")}`;
     findElement(tree as ReactNode, "aria-label", label)!.props.onClick!({} as MouseEvent);
     expect(onJump).toHaveBeenCalledExactlyOnceWith(entry);
   });
 
   it("collapses to the header row plus the empty label when nothing is active", () => {
     const { markup } = renderPanel([]);
-    expect(markup).toContain("Active Threads");
-    expect(markup).toContain("No active threads");
+    expect(markup).toContain("Active now");
+    expect(markup).toContain("Nothing active right now");
     expect(markup).not.toContain("Review permission");
   });
 
@@ -84,21 +84,21 @@ describe("pinned attention panel", () => {
 
   it("hides the rows but keeps the header when collapsed", () => {
     const { markup } = renderPanel([entry], { collapsed: true });
-    expect(markup).toContain("Active Threads");
-    expect(markup).not.toContain("Review permission");
-    const label = t("sidebar.section.expand", { name: t("attention.title") });
+    expect(markup).toContain("Active now");
+    expect(markup).not.toContain('aria-label="Atlas · ');
+    const label = t("sidebar.section.expand", { name: t("attention.active") });
     expect(markup).toContain('aria-label="' + label + '"');
     expect(markup).toContain('aria-expanded="false"');
   });
 
   it("shows the empty label only when expanded", () => {
     const { markup } = renderPanel([], { collapsed: true });
-    expect(markup).not.toContain("No active threads");
+    expect(markup).not.toContain("Nothing active right now");
   });
 
   it("toggles from the collapse/expand control", () => {
     const { tree, onToggle } = renderPanel([entry], { collapsed: false });
-    const label = t("sidebar.section.collapse", { name: t("attention.title") });
+    const label = t("sidebar.section.collapse", { name: t("attention.active") });
     findElement(tree(), "aria-label", label)!.props.onClick!({} as MouseEvent);
     expect(onToggle).toHaveBeenCalledOnce();
   });
@@ -108,6 +108,6 @@ describe("pinned attention panel", () => {
       entries: [entry], onUnpin: vi.fn(), onJump: vi.fn(), collapsed: false,
     }));
     expect(markup).toMatch(/<button[^>]+disabled=""[^>]+aria-expanded="true"/);
-    expect(markup).toContain("Review permission");
+    expect(markup).toContain('aria-label="Atlas · ');
   });
 });

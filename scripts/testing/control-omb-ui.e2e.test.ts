@@ -13,7 +13,7 @@ import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { removeTempDir, waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
-import { openSettings } from "./grok-nav.ts";
+import { clickByName, openPanelMenu, openSettings } from "./grok-nav.ts";
 import { fixtureApi } from "./preview-fixture.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
@@ -370,100 +370,19 @@ describe("control-omb ui drives the real renderer", () => {
     await expect(ui("snapshot", info.ui)).rejects.toThrow("could not read the ui handle");
   }, LAUNCH_TIMEOUT_MS + 120_000);
 
-  // The thread-only model scope (header model picker), the This run card with Save as skill, and the Inspector were
-  // drawn only by the Advanced chat (ChatView's header ModelPicker and VerifyCard, ChatHeaderMenu); the one layout has
-  // none of them on a desktop window. Kept as the record of what is missing until they get a home.
-  run("changes one thread's model, saves the verified run as a skill and opens the Inspector", async () => {
+  // The Inspector lives in the bot panel's Share menu. The thread-only model scope is gone with threads (one thread per
+  // bot), and the This run card with Save as skill was drawn only by the removed Advanced chat, so neither is checked.
+  run("opens the Inspector from the bot panel's Share menu with the run's log, events and raw protocol", async () => {
     launched = await launch(["--tool-calls", TOOL_CALLS]);
     const { info } = launched;
     await ui("flag", info.ui, "--set", "features.showToolCalls=true");
-    const savedBot = async () => (await fetch(`${info.url}/api/bots`).then((response) => response.json())).bots.find((bot: any) => bot.id === info.botId);
-    const originalBot = await savedBot();
-    const originalModel = originalBot.modelSelection.model;
-    const models = await runControlOmb(["models", "--url", info.url]) as any;
-    const options = models.instances.find((instance: any) => instance.instanceId === originalBot.modelSelection.instanceId).models.options;
-    const originalLabel = options.find((option: any) => option.id === originalModel).label;
-    const nextModel = options.find((option: any) => option.id !== originalModel);
-    await ui("click", info.ui, "--name", originalLabel);
-    expect(await ui("eval", info.ui, "--js", "[...document.querySelectorAll('[aria-label=\"Apply model changes to\"] button')].find(b => b.textContent === 'Only this thread').getAttribute('aria-pressed')"))
-      .toMatchObject({ result: "true" });
-    await ui("click", info.ui, "--name", "Thread + bot default");
-    const scopeShot = join(evidenceDir, "model-scope.png");
-    mkdirSync(evidenceDir, { recursive: true });
-    await ui("screenshot", info.ui, "--out", scopeShot);
-    await ui("click", info.ui, "--name", nextModel.label);
-    await expect.poll(async () => (await savedBot()).modelSelection.model, { timeout: 10_000 }).toBe(nextModel.id);
-    expect((await savedBot()).tasks.find((task: any) => task.threadId === originalBot.threadId).modelSelection.model).toBe(nextModel.id);
-    // A model with reasoning levels keeps the menu open after the pick, so its level can be set next.
-    expect(await ui("eval", info.ui, "--js", "String(Boolean(document.querySelector('[data-model-picker-content]')))"))
-      .toMatchObject({ result: "true" });
-    await ui("click", info.ui, "--name", "Only this thread");
-    const modelSnapshot = await ui("snapshot", info.ui, "--interactive");
-    const originalRow = Object.entries(modelSnapshot.refs as Record<string, { name: string; role: string }>)
-      .find(([, value]) => value.role === "button" && value.name.startsWith(originalLabel));
-    expect(originalRow).toBeDefined();
-    await ui("click", info.ui, "--ref", `@${originalRow![0]}`);
-    await expect.poll(async () => (await savedBot()).tasks.find((task: any) => task.threadId === originalBot.threadId).modelSelection.model,
-      { timeout: 10_000 }).toBe(originalModel);
-    expect((await savedBot()).modelSelection.model).toBe(nextModel.id);
-    expect((await savedBot()).approvalMode).toBe(originalBot.approvalMode);
-    // The menu is still open after that pick; close it before using the composer.
-    await ui("press", info.ui, "--keys", "Escape");
-    await expect.poll(async () => (await ui("eval", info.ui, "--js", "String(Boolean(document.querySelector('[data-model-picker-content]')))")).result,
-      { timeout: 10_000 }).toBe("false");
-
     await ui("type", info.ui, "--name", "Message Pepper", "--text", "hello");
     await ui("press", info.ui, "--keys", "Enter");
     await ui("wait-settle", info.ui, "--timeout", "60");
-    const tree = (await ui("snapshot", info.ui)).snapshot as string;
-    // All three scripted commands go through the control CLI, so all are verified.
-    expect(tree).toContain("3 steps · 3 verified · 1 failed · 1 dry run");
-    // Hit-test the actual layout, not just the Tailwind class strings: the
-    // blank band beside the floating card must reach the transcript while
-    // the card and composer remain interactive.
-    const hitTest = await ui("eval", info.ui, "--js", `(() => {
-      const card = document.querySelector('section[aria-label="This run"]');
-      const dock = card.parentElement.parentElement;
-      const rect = card.getBoundingClientRect();
-      const blank = document.elementFromPoint(dock.getBoundingClientRect().left + 8, rect.top + rect.height / 2);
-      const onCard = document.elementFromPoint(rect.left + 20, rect.top + 20);
-      const scroll = document.querySelector('[role="log"]').parentElement;
-      const composer = ${COMPOSER};
-      const input = composer.getBoundingClientRect();
-      return {
-        blankReachesTranscript: scroll.contains(blank) && !dock.contains(blank) && getComputedStyle(scroll).overflowY === 'auto',
-        cardInteractive: card.contains(onCard),
-        composerInteractive: document.elementFromPoint(input.left + input.width / 2, input.top + input.height / 2) === composer,
-      };
-    })()`);
-    expect(hitTest).toMatchObject({ result: { blankReachesTranscript: true, cardInteractive: true, composerInteractive: true } });
-
-    const rowsBefore = await ui("eval", info.ui, "--js", "document.querySelectorAll('[data-mid]').length");
-    await ui("click", info.ui, "--name", "Save as skill");
-    const drafted = await ui("eval", info.ui, "--js", `${COMPOSER}.value`);
-    expect(drafted.ok).toBe(true);
-    const draft = drafted.result as string;
-    expect(draft.startsWith("Create a verification skill from the run below.\nGoal: hello\n")).toBe(true);
-    expect(draft).toContain("✓ doctor — pnpm control:omb doctor (verified)\n");
-    expect(draft).toContain("✗ ui — pnpm control:omb ui click --name Missing (verified)\n");
-    expect(draft).toContain("[dry run] ui — pnpm control:omb ui flag --set features.showToolCalls=true --dry-run (verified)\n");
-    expect(draft.endsWith("\n\n")).toBe(true);
-    expect(await ui("eval", info.ui, "--js", `document.activeElement === ${COMPOSER}`)).toMatchObject({ ok: true, result: true });
-    // The composer sits inside the conversation landmark, so its draft shows up
-    // in that snapshot; "nothing was sent" is the message-row count, unchanged.
-    const rowsAfter = await ui("eval", info.ui, "--js", "document.querySelectorAll('[data-mid]').length");
-    expect(rowsAfter.result).toBe(rowsBefore.result);
-    const afterSave = await ui("snapshot", info.ui);
-    const transcriptAfterSave = (afterSave.snapshot as string).slice((afterSave.snapshot as string).indexOf('log "Conversation with Pepper"'));
-    expect(transcriptAfterSave.match(/StaticText "hello"/g)).toHaveLength(1);
-
-    await ui("click", info.ui, "--name", "Collapse the run");
-    const collapsed = await ui("snapshot", info.ui);
-    expect(collapsed.snapshot).toContain("Expand the run");
-    expect(collapsed.snapshot).not.toContain('list "Run steps"');
-
-    await ui("click", info.ui, "--name", "More");
-    await ui("click", info.ui, "--name", "Inspector");
+    mkdirSync(evidenceDir, { recursive: true });
+    const nav = (verb: string, ...args: string[]) => ui(verb, info.ui, ...args);
+    await openPanelMenu(nav, "Pepper");
+    await clickByName(nav, /^Inspector/, "menuitem");
     // A local page fetches a screen when it opens, so the panel arrives just after the click.
     const inspected = await vi.waitFor(async () => {
       const snapshot = await ui("snapshot", info.ui);

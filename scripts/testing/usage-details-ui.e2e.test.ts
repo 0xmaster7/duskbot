@@ -7,7 +7,7 @@ import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { agentBrowser, sessionEnv, UI_TOOLS_DIR, type UiHandle } from "./control-omb-ui.ts";
-import { settled as stillFrames } from "./grok-nav.ts";
+import { clickByName, openPanelMenu, settled as stillFrames } from "./grok-nav.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const enabled = process.env.OMB_UI_E2E === "1" || Boolean(resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env }));
@@ -125,10 +125,9 @@ if (!enabled) console.log("skipping usage details UI: set OMB_UI_E2E=1 to instal
   }
 }, 660_000);
 
-// A desktop window's ⋯ (the conversation's usage, export and Inspector beside Settings) was drawn only by the Advanced
-// chat header (ChatView's ChatHeaderMenu); the one layout keeps it on a phone's header alone. Kept as the record of what
-// a desktop window is missing until it gets a home.
-(enabled ? it : it.skip)("keeps a desktop window's ⋯, its usage beside the sidebar and the Inspector beside Settings", async () => {
+// A desktop window's header is the pill alone; the conversation's usage, copy, download, Activity and Inspector live in
+// the bot panel's Share menu, Grok's one menu of rich items.
+(enabled ? it : it.skip)("keeps a desktop window's chat usage, copy, download, Activity and Inspector in the bot panel's Share menu", async () => {
   let child: ChildProcess | undefined;
   let info: { ui: string; url: string; botId: string; logPath: string } | undefined;
   try {
@@ -145,6 +144,7 @@ if (!enabled) console.log("skipping usage details UI: set OMB_UI_E2E=1 to instal
     const handle = info!;
     const ui = (verb: string, ...args: string[]) => runControlOmb(["ui", verb, "--ui", handle.ui, ...args]) as Promise<Record<string, any>>;
     const evaluate = async (js: string) => (await ui("eval", "--js", js)).result;
+    const menuOpen = () => evaluate("Boolean(document.querySelector('[data-panel-share-menu]'))");
     await ui("type", "--name", "Message Pepper", "--text", "Check the fixture usage");
     await ui("press", "--keys", "Enter");
     await ui("wait-settle", "--timeout", "60");
@@ -152,55 +152,58 @@ if (!enabled) console.log("skipping usage details UI: set OMB_UI_E2E=1 to instal
     const geometry = [];
     for (const width of [800, 1100, 1600]) {
       await agentBrowser(browser.binary, sessionEnv(browser), ["set", "viewport", String(width), "900"]);
-      await ui("click", "--name", "More");
+      await expect.poll(() => evaluate("innerWidth")).toBe(width);
+      await stillFrames(ui);
+      await openPanelMenu(ui, "Pepper");
       const layout = await evaluate(`(() => {
-        const rect = selector => { const r = document.querySelector(selector).getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width }; };
-        return { viewport: innerWidth, scroll: document.documentElement.scrollWidth,
-          menu: rect('[role=menu][aria-label=More]'), editor: rect('.mention-editor'),
-          row: rect('[data-composer-row]'), controls: rect('[data-composer-actions]'),
-          wraps: getComputedStyle(document.querySelector('[data-composer-row]')).flexWrap === 'wrap' };
+        const r = document.querySelector('[data-panel-share-menu]').getBoundingClientRect();
+        return { viewport: innerWidth, scroll: document.documentElement.scrollWidth, menu: { left: r.left, right: r.right, top: r.top, bottom: r.bottom },
+          items: [...document.querySelectorAll('[data-panel-share-menu] [role=menuitem]')].map(item => item.dataset.panelShareItem),
+          usage: document.querySelector('[data-panel-share-item=usage] [data-testid=usage-chip]')?.textContent ?? null };
       })()`);
-      expect(await evaluate("document.querySelectorAll('[data-chathead-controls] > div').length")).toBeLessThan(6);
       expect(layout.scroll).toBeLessThanOrEqual(width);
-      expect(layout.viewport).toBe(width);
       expect(layout.menu.left).toBeGreaterThanOrEqual(0);
       expect(layout.menu.right).toBeLessThanOrEqual(width);
-      expect(layout.controls.width).toBeGreaterThan(0);
-      // Simple mode keeps the editor and its controls on one row at every width.
-      if (layout.wraps && layout.row.width < 480) {
-        expect(layout.editor.width).toBeGreaterThanOrEqual(layout.row.width - 1);
-        expect(layout.editor.bottom).toBeLessThanOrEqual(layout.controls.top);
-      }
+      expect(layout.menu.bottom).toBeLessThanOrEqual(900);
+      expect(layout.items).toEqual(["duplicate", "copy", "download", "usage", "activity", "inspector"]);
+      expect(layout.usage).toContain("$0.01");
       geometry.push(layout);
-      await ui("screenshot", "--out", `${handle.logPath}.header-${width}.png`);
+      await ui("screenshot", "--out", `${handle.logPath}.panel-menu-${width}.png`);
       await ui("press", "--keys", "Escape");
+      await expect.poll(menuOpen).toBe(false);
     }
     await agentBrowser(browser.binary, sessionEnv(browser), ["set", "viewport", "1100", "900"]);
     await expect.poll(() => evaluate("innerWidth")).toBe(1100);
-    const density = await evaluate("localStorage.getItem('openmausbot.sidebarDensity')");
-    await ui("click", "--name", "More");
-    const snapshot = await ui("snapshot", "--interactive");
-    const usage = Object.entries(snapshot.refs as Record<string, { name: string; role: string }>).find(([, entry]) => entry.role === "menuitem" && entry.name.startsWith("Usage"))!;
-    await ui("click", "--ref", `@${usage[0]}`);
-    await expect.poll(() => evaluate("document.querySelector('[data-sidebar]').getBoundingClientRect().width")).toBe(80);
-    expect(await evaluate("localStorage.getItem('openmausbot.sidebarDensity')")).toBe(density);
+    await stillFrames(ui);
+
+    // Copy chat keeps the menu open and says what happened, a denied clipboard included.
+    await evaluate(`Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: async () => { throw new Error('fixture denial'); } }); true`);
+    await openPanelMenu(ui, "Pepper");
+    await clickByName(ui, /^Copy chat/, "menuitem");
+    await expect.poll(() => evaluate("document.querySelector('[data-panel-share-menu] [role=status]')?.textContent")).toBe("Couldn't copy. Use Download instead.");
+    await evaluate(`Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: async text => { window.copiedTranscript = text; } }); true`);
+    await evaluate("document.querySelector('[data-panel-share-item=copy]').click(); true");
+    await expect.poll(() => evaluate("document.querySelector('[data-panel-share-menu] [role=status]')?.textContent")).toBe("Copied");
+    expect(await evaluate("window.copiedTranscript")).toContain("Check the fixture usage");
+    await ui("press", "--keys", "Escape");
+    await expect.poll(menuOpen).toBe(false);
+
+    // Usage opens Settings at Usage & Billing.
+    await openPanelMenu(ui, "Pepper");
+    await clickByName(ui, /^Usage/, "menuitem");
+    await expect.poll(async () => (await ui("snapshot")).snapshot as string, { timeout: 10_000 }).toContain('dialog "Settings"');
+    expect(await evaluate("[...document.querySelectorAll('[role=dialog] h2')].some(heading => heading.textContent.trim() === 'Usage & Billing')")).toBe(true);
     await ui("screenshot", "--out", `${handle.logPath}.settings-1100.png`);
-    expect(await evaluate("Boolean(document.querySelector('[role=dialog]'))")).toBe(true);
     await ui("press", "--keys", "Escape");
-    await expect.poll(() => evaluate("document.querySelector('[data-sidebar]').getBoundingClientRect().width")).toBe(320);
-    await ui("click", "--name", "More");
-    await ui("click", "--name", "Inspector");
-    await ui("click", "--name", "More");
-    const withInspector = await ui("snapshot", "--interactive");
-    const usageWithInspector = Object.entries(withInspector.refs as Record<string, { name: string; role: string }>).find(([, entry]) => entry.role === "menuitem" && entry.name.startsWith("Usage"))!;
-    await ui("click", "--ref", `@${usageWithInspector[0]}`);
-    await expect.poll(() => evaluate("getComputedStyle(document.querySelector('[role=dialog]')).position")).toBe("absolute");
-    expect(await evaluate("document.querySelector('main').getBoundingClientRect().width")).toBeGreaterThan(400);
-    await ui("screenshot", "--out", `${handle.logPath}.two-panels-1100.png`);
-    await agentBrowser(browser.binary, sessionEnv(browser), ["set", "viewport", "1600", "900"]);
-    await expect.poll(() => evaluate("getComputedStyle(document.querySelector('[role=dialog]')).position")).toBe("static");
-    await ui("press", "--keys", "Escape");
-    expect(await evaluate("Boolean(document.querySelector('[aria-label=Inspector]'))")).toBe(true);
+    await expect.poll(() => evaluate("[...document.querySelectorAll('[role=dialog] h2')].some(heading => heading.textContent.trim() === 'Usage & Billing')")).toBe(false);
+
+    await openPanelMenu(ui, "Pepper");
+    await clickByName(ui, /^Inspector/, "menuitem");
+    await expect.poll(() => evaluate("Boolean(document.querySelector('[aria-label=Inspector]'))"), { timeout: 10_000 }).toBe(true);
+    await ui("screenshot", "--out", `${handle.logPath}.inspector-1100.png`);
+    const consoleResult = await ui("console");
+    expect((consoleResult.messages ?? []).filter((row: { type?: string }) => row.type === "error")).toEqual([]);
+    writeFileSync(handle.logPath + ".panel-menu.json", JSON.stringify({ geometry }, null, 2));
   } finally {
     if (child && child.exitCode === null && child.signalCode === null) await waitForExit(child, { signal: "SIGINT", graceMs: 30_000 });
   }

@@ -81,9 +81,10 @@ const markers = (html: string) => [...html.matchAll(/MARKER:([^;]+);/g)].map((ma
 const title = (html: string) => html.match(/<h2 id="[^"]*" class="settings-pane-title[^"]*">([^<]+)<\/h2>/)?.[1];
 
 describe("Settings, drawn as Grok Bot's", () => {
-  it("rails Grok's panes with Models and Usage & Billing, then Advanced features last", () => {
+  it("rails Grok's panes with Phone and Models, then Advanced features last", () => {
     const html = open("general");
-    expect(panes(html)).toEqual(["general", "texting", "computer", "permissions", "models", "usage", "updates", "advanced"]);
+    expect(panes(html)).toEqual(["general", "texting", "computer", "vault", "models", "usage", "updates", "advanced"]);
+    expect(html).toContain('data-icon-name="vault"');
     expect(html).toContain('data-icon-name="chart-bars"');
     expect(html).toContain('data-icon-name="settings-gear"');
     expect(html).toContain('data-icon-name="cloud-download"');
@@ -91,9 +92,10 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(title(html)).toBe("General");
   });
 
-  it("opens General as Account, Appearance, System and Notifications, with Theme, Accent and Language as selects", () => {
+  it("opens General as Account, Appearance, System, Notifications and Grok's Import, with Theme, Accent and Language as selects", () => {
     const html = open("general");
-    expect(groups(html)).toEqual(["Account", "Appearance", "System", "Notifications"]);
+    expect(groups(html)).toEqual(["Account", "Appearance", "System", "Notifications", "Import"]);
+    expect(markers(html)).toEqual(["import"]);
     for (const label of ["Theme", "Accent", "Language"]) expect(html).toContain(`role="combobox" aria-label="${label}`);
     expect(html).toContain("Play Sound for Notifications");
     expect(html).toContain('aria-label="Notification Sound"');
@@ -106,12 +108,13 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(open("general")).not.toContain('aria-label="Notification Sound"');
   });
 
-  it("keeps the first screen of Advanced features to three cards of pages, nothing else", () => {
+  it("opens Advanced features on the places bots work, then one card of rarer settings", () => {
     const html = open("advanced");
     expect(title(html)).toBe("Advanced features");
-    expect(groups(html)).toEqual(["Bots and tools", "Account", "App"]);
+    expect(groups(html)).toEqual(["Your bots", "More settings"]);
+    expect([...html.matchAll(/data-settings-open="([^"]+)"/g)].map((match) => match[1])).toEqual(["inbox", "automations", "team-map"]);
     expect([...html.matchAll(/data-settings-advanced="([^"]+)"/g)].map((match) => match[1]))
-      .toEqual(["apps", "bots", "team", "data", "looks", "builder", "about"]);
+      .toEqual(["apps", "bots", "looks", "team", "data", "builder"]);
     expect(markers(html)).toEqual([]);
     expect(html).not.toContain("data-settings-back");
   });
@@ -119,7 +122,7 @@ describe("Settings, drawn as Grok Bot's", () => {
   it("opens an Advanced features page under it, with a way back", () => {
     const html = open("apps");
     expect(current(html)).toBe("advanced");
-    expect(title(html)).toBe("Apps and Tools");
+    expect(title(html)).toBe("Apps and tools");
     expect(html).toContain('aria-label="Back to Advanced features"');
   });
 
@@ -140,28 +143,32 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(markers(open("cloudAccount"))).toContain("cloudAccount");
   });
 
-  it("homes the features Grok has no place for inside Advanced", () => {
+  it("homes the features Grok has no place for inside Advanced, and help under Updates", () => {
     expect(markers(open("apps"))).toContain("mcp");
-    expect(open("bots")).toContain('data-settings-open="archived"');
+    expect(current(open("about"))).toBe("updates");
     expect(open("about")).toContain('data-settings-open="shortcuts"');
     expect(open("looks")).toContain('data-settings-block="looks"');
-    expect(open("bots")).toContain('data-settings-open="inbox"');
+    expect(open("looks")).not.toContain("Show threads");
+    expect(open("bots")).toContain('data-settings-block="bot-defaults"');
+    expect(markers(open("backups"))).toEqual(["backups"]);
   });
 
-  it("puts the phone on Texting, the bots' computer and servers on Computer, and logins on Permissions", () => {
+  it("puts the phone on Phone, the bots' computer and servers on Computer, and logins in the Vault", () => {
     expect(markers(open("companion"))).toEqual(["pairing", "companion"]);
     expect(current(open("companion"))).toBe("texting");
     expect(markers(open("computer"))).toContain("computer");
     expect(markers(open("desktopWorkspaces"))).toContain("desktopWorkspaces");
     expect(markers(open("logins"))).toEqual(["logins"]);
-    expect(current(open("logins"))).toBe("permissions");
+    expect(current(open("logins"))).toBe("vault");
   });
 
-  it("gives a team's admins Bot access on Permissions, and nobody else", () => {
+  it("gives a team's admins Bot access on Permissions, and hides the pane when it would be empty", () => {
     expect(markers(open("permissions"))).not.toContain("botAccess");
+    expect(panes(open("general"))).not.toContain("permissions");
     fixture.config = { ...fixture.config, team: { name: "Acme" } };
     fixture.ownerOrAdmin = true;
     expect(markers(open("permissions"))).toContain("botAccess");
+    expect(panes(open("general"))).toContain("permissions");
   });
 
   it("shows a paired remote client General, Texting, Computer and only Looks in Advanced", () => {
@@ -189,6 +196,8 @@ describe("where every section lives now", () => {
     expect(settingsLocation("engines")).toEqual({ pane: "models" });
     expect(settingsLocation("usage")).toEqual({ pane: "usage" });
     expect(settingsLocation("companion")).toEqual({ pane: "texting" });
+    expect(settingsLocation("logins")).toEqual({ pane: "vault" });
+    expect(settingsLocation("import")).toEqual({ pane: "general" });
     expect(settingsLocation("appearance")).toEqual({ pane: "general" });
   });
 

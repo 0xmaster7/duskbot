@@ -5,7 +5,11 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bot, Group, Message } from "@/state/store";
 
-const fixture = vi.hoisted(() => ({ dispatch: vi.fn() }));
+const fixture = vi.hoisted(() => ({ dispatch: vi.fn(), advanced: false }));
+vi.mock("@/lib/interface-mode", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/interface-mode")>(),
+  useAdvancedMode: () => fixture.advanced,
+}));
 vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();
   return { ...original, useStore: () => ({
@@ -43,6 +47,7 @@ const transcript = (messages: Message[]) => createElement(Transcript, {
 
 beforeEach(() => {
   fixture.dispatch.mockClear();
+  fixture.advanced = false;
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
@@ -53,7 +58,20 @@ afterEach(() => {
 });
 
 describe("a member's room reply", () => {
-  it("shows the final message and folds the turn's working notes above it", () => {
+  it("keeps a finished turn's working notes as bubbles above the reply, with no fold, as a 1:1 chat does", () => {
+    const messages = [
+      ask,
+      note("n1", "I'll check my own work history…", 2_000),
+      { ...note("final", "Fixed: the title now reads Launch.", 9_000), turnTerminal: true },
+    ];
+    render(transcript(messages));
+    expect(host.textContent).not.toContain("Worked for");
+    expect(host.textContent!.indexOf("I'll check my own work history")).toBeLessThan(host.textContent!.indexOf("Fixed: the title"));
+    expect(host.textContent!.match(/Lead/g)).toHaveLength(1);
+  });
+
+  it("folds the turn's working notes above the final message in Advanced", () => {
+    fixture.advanced = true;
     const messages = [
       ask,
       note("n1", "I'll check my own work history…", 2_000),

@@ -50,7 +50,7 @@ export function RoomWorkingFolder({ group, heading = true }: { group: Group; hea
             {shownCwd ? shortPath(shownCwd, home) : <span className="text-ink-secondary">{t("room.folder.own")}</span>}
           </div>
           <div className="mt-2 text-[12px] text-ink-secondary">
-            {t("room.folder.locked")}
+            {t("room.folder.lockedChat")}
           </div>
         </div>
       ) : canPick ? (

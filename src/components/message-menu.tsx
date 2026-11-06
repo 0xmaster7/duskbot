@@ -12,7 +12,7 @@ export function roomPin(group: Group, message: Message, dispatch: ReturnType<typ
   const pinned = group.pinnedMessageId === message.id;
   return {
     pinned,
-    hint: t("room.pinHint"),
+    hint: t("room.pinHintChat"),
     onToggle: () => dispatch({ type: "patchGroup", groupId: group.id, patch: { pinnedMessageId: pinned ? "" : message.id } }),
   };
 }
@@ -23,7 +23,7 @@ function pinItem(pin: PinAction | undefined): MessageMenuItem[] {
     key: "pin",
     icon: pin.pinned ? <PinOff {...ACTION_ICON} /> : <Pin {...ACTION_ICON} />,
     label: pin.pinned ? t("chat.unpinMessage") : t("chat.pinMessage"),
-    title: pin.pinned ? t("chat.unpinHint") : pin.hint ?? t("chat.pinHint"),
+    title: pin.pinned ? t("chat.unpinHint") : pin.hint ?? t("chat.pinHintChat"),
     onSelect: pin.onToggle,
   }];
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { readComputerPanelView, resolveComputerPanelView, writeComputerPanelView } from "./computer-panel-view";
+import { computerPanelTabs, readComputerPanelView, resolveComputerPanelView, writeComputerPanelView } from "./computer-panel-view";
 
 describe("computer panel view persistence", () => {
   it("restores the browser for the same bot after the expanded workspace closes", () => {
@@ -55,8 +55,14 @@ describe("computer panel view availability", () => {
   it("keeps a view whose trigger is on the row", () => {
     for (const view of ["computer", "browser", "data"] as const) {
       expect(resolveComputerPanelView(view, { advanced: true, androidConnected: true })).toBe(view);
-      expect(resolveComputerPanelView(view, { advanced: false, androidConnected: false })).toBe(view);
+      expect(resolveComputerPanelView(view, { advanced: false, androidConnected: false, browser: true })).toBe(view);
     }
-    expect(resolveComputerPanelView("files", { advanced: false, androidConnected: false })).toBe("files");
+  });
+
+  it("keeps Simple to Screen and Data, with Browser only when the bot's browser is asked for", () => {
+    expect(computerPanelTabs({ advanced: false, androidConnected: true })).toEqual(["computer", "data"]);
+    expect(computerPanelTabs({ advanced: false, androidConnected: false, browser: true })).toEqual(["computer", "browser", "data"]);
+    expect(resolveComputerPanelView("browser", { advanced: false, androidConnected: false })).toBe("computer");
+    expect(resolveComputerPanelView("files", { advanced: false, androidConnected: false })).toBe("computer");
   });
 });

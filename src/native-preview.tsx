@@ -11,6 +11,7 @@ import { loadLocale } from "@/lib/i18n";
 import { rememberLimits, type EngineLimit } from "@/lib/limit-resets";
 import { applySkinChoice, SKIN_IDS, type SkinId } from "@/lib/skins";
 import { initialState, reducer, StoreContext, type AppState, type Bot, type InstanceInfo } from "@/state/store";
+import "./font-faces";
 import "./styles.css";
 import "./styles/overlays.css";
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 
 import { cn } from "@/lib/cn";
 import { rememberComputerPanelOpen } from "@/lib/computer-panel-focus";
@@ -11,6 +11,7 @@ import { BotAvatar, MausAvatar } from "../Avatar";
 import { useDesktopCapabilities } from "../DesktopCapabilities";
 import { LocalComputerAutoWarning } from "../LocalComputerAutoWarning";
 import { usePlaceViews } from "../PlaceChip";
+import type { GrokIconName } from "../GrokIcon";
 import { SelectPill } from "../ui/SelectPill";
 import type { BotPatch, useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
 import type { PlaceActionId } from "../../../shared/place-view";
@@ -18,6 +19,8 @@ import { useBotScreen } from "./bot-screen";
 import type { SimplePageId } from "./page-registry";
 import { Card, RadioRow } from "./rows";
 import "./computer-tab.css";
+
+const ComputerPanel = lazy(() => import("../ComputerPanel").then((module) => ({ default: module.ComputerPanel })));
 
 type Derived = ReturnType<typeof useBotSettingsDerived>;
 export type PlaceChoice = "auto" | Place | "off";
@@ -147,18 +150,40 @@ function AsleepMascot({ bot }: { bot: Bot }) {
   );
 }
 
-/** Grok's Computer tab: the bot's screen in its own frame (live, asleep or working), then whose screen it is beside
- * where the bot works, picked the way the Where it works dialog picks it. */
+type TabChoice = PlaceChoice | "add";
+
+const CHOICE_ICON: Record<TabChoice, GrokIconName> = {
+  auto: "sparkle",
+  local: "laptop",
+  browser: "browser",
+  cloud: "cloud",
+  vm: "lock",
+  off: "minus",
+  add: "plus",
+};
+
+/** Grok's Computer tab: the bot's screen in its own frame (live, asleep or working), whose screen it is, and one select
+ * for where it works: this computer, the cloud desktop, or adding a cloud computer. The screen opens the full view. */
 export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOpen: (page: SimplePageId) => void }) {
   const { dispatch } = useStore();
-  const openComputer = useOpenComputer(bot);
   const { options, current, usingNow, choosePlace, warning } = usePlacePicker(bot, derived);
   const placeViews = usePlaceViews(bot);
   const { place, src, loading, blocked } = useBotScreen(bot);
   const [ratio, setRatio] = useState<number | null>(null);
+  const [full, setFull] = useState<{ wake: boolean } | null>(null);
   const screenOf = t("computer.screenOf", { name: bot.name });
   const whereTitle = t("computer.simple.whereWorks", { name: bot.name });
   const editable = bot.yourAccess !== "view";
+  const choices = [
+    ...options.filter((option) => option.value === "local" || option.value === "cloud" || option.value === current),
+    { value: "add" as const, label: t("computer.simple.addCloud") },
+  ];
+  // the cloud's own setup step when it has one (a key, a plan), else Settings where computers are managed
+  const addCloud = () => {
+    const step = placeViews.cloud.view.action;
+    if (step && !PANEL_ACTIONS.has(step.id) && openPlaceAction(step.id, { botId: bot.id, threadId: bot.threadId, place: "cloud" }, dispatch)) return;
+    dispatch({ type: "toggleAppSettings", open: true, section: "computer" });
+  };
 
   const known = place && place !== "auto" && place !== "off" ? placeViews[place] : null;
   const issue = known && (!known.reachable || placeHasIssue(known.view)) ? known.view : null;
@@ -167,10 +192,10 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
   const line = issue?.line && issue.line !== issue.short ? issue.line : null;
   const action = blocked ? t("place.action.openComputerPanel") : issue ? issue.action?.label : known?.view.action?.label ?? t("botPanel.screen.wake");
 
-  const act = (keyboard: boolean) => {
+  const open = () => {
     const id = known?.view.action?.id;
-    if (!blocked && id && !PANEL_ACTIONS.has(id) && openPlaceAction(id, { botId: bot.id, threadId: bot.threadId, place: place as Place }, dispatch)) return;
-    openComputer(place === "browser" || id === "turn-on-browser" ? "browser" : "computer", keyboard);
+    if (stage === "asleep" && !blocked && id && !PANEL_ACTIONS.has(id) && openPlaceAction(id, { botId: bot.id, threadId: bot.threadId, place: place as Place }, dispatch)) return;
+    setFull({ wake: stage === "asleep" && (id === "wake" || id === "start") });
   };
   const frameCls = "relative flex w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_6%)] text-center text-[13px] leading-[18px] tracking-[0.015em] shadow-[inset_0_0_0_0.5px_var(--color-edge)]";
   const buttonCls = "cursor-pointer transition-[background-color] duration-100 hover:bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_8%)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
@@ -193,7 +218,8 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
           data-stage={stage}
           data-place={place}
           aria-label={stage === "asleep" ? action ?? title : `${t("place.action.watch")}: ${screenOf}`}
-          onClick={(event) => stage === "asleep" ? act(event.detail === 0) : openComputer(place === "browser" ? "browser" : "computer", event.detail === 0)}
+          aria-haspopup="dialog"
+          onClick={open}
           style={stage === "screen" ? { aspectRatio: ratio ?? DEFAULT_RATIO } : undefined}
           className={cn(frameCls, buttonCls, stage !== "screen" && "aspect-[16/10]",
             stage === "screen" && "bg-transparent hover:bg-transparent after:pointer-events-none after:absolute after:inset-0 after:rounded-xl after:bg-ink/[0.04] after:opacity-0 after:shadow-[inset_0_0_0_0.5px_var(--color-edge)] after:transition-opacity after:duration-100 after:content-[''] hover:after:opacity-100")}
@@ -222,7 +248,7 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
               <AsleepMascot bot={bot} />
               <span className="max-w-[80%] font-medium text-ink">{title}</span>
               {line && <span className="-mt-1 max-w-[80%] text-[12px] leading-4 tracking-normal text-ink/[0.56]">{line}</span>}
-              {action && (
+              {action && (issue || blocked) && (
                 <span aria-hidden="true" className="mt-1 inline-flex h-6 items-center rounded-lg border border-ink/[0.08] px-2 text-[12px] leading-4 tracking-normal text-ink">
                   {action}
                 </span>
@@ -233,18 +259,26 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
       )}
       <div className="mt-[5px] flex min-h-6 items-center justify-between gap-2 pl-1">
         <span data-panel-screen-of="" className="min-w-0 truncate text-[12px] leading-4 tracking-normal text-ink/[0.56]">{screenOf}</span>
-        <SelectPill
+        <SelectPill<TabChoice>
           data-panel-select="place"
           aria-label={whereTitle}
           title={usingNow ? t("computer.simple.usingNow", { place: usingNow }) : whereTitle}
           value={current}
           disabled={!editable}
-          onChange={choosePlace}
-          options={options.map((option) => ({ value: option.value, label: option.label, disabled: option.disabled, title: option.hint }))}
+          onChange={(value) => value === "add" ? addCloud() : choosePlace(value)}
+          options={choices.map((option) => ({
+            value: option.value, label: option.label, icon: CHOICE_ICON[option.value], separated: option.value === "add",
+            disabled: "disabled" in option ? option.disabled : undefined, title: "hint" in option ? option.hint : undefined,
+          }))}
           className="my-0 mr-0"
         />
       </div>
       {warning}
+      {full && (
+        <Suspense fallback={null}>
+          <ComputerPanel bot={bot} fullscreen={{ wake: full.wake, onExit: () => setFull(null) }} />
+        </Suspense>
+      )}
     </div>
   );
 }

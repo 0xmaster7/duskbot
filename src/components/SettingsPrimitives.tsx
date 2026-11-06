@@ -119,6 +119,9 @@ export function SettingsGroup({ label, block, actions, footnote, children }: {
   );
 }
 
+/** One Grok card around several SettingsRows, as if they were one list of rows. */
+export const MERGED_ROWS = cn(SIMPLE_CARD, "flex flex-col empty:hidden [&>[data-settings-rows]]:rounded-none [&>[data-settings-rows]]:bg-transparent [&>[data-settings-rows]]:py-0 [&>[data-settings-rows]]:outline-none");
+
 export function SettingsRows({ children }: { children: ReactNode }) {
   return <div data-settings-rows="" className={cn(SIMPLE_CARD, "flex flex-col empty:hidden")}>{children}</div>;
 }

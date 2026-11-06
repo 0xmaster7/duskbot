@@ -50,7 +50,7 @@ export function composerPlaceholder({ simple, locked, approval, attaching, liste
   botName: string;
   setupHint: string | null | undefined;
 }): string {
-  if (locked) return t("composer.placeholder.locked");
+  if (locked) return t("composer.placeholder.lockedChat");
   if (approval) return t("composer.placeholder.approval");
   if (attaching) return t("composer.placeholder.attaching");
   if (listening) return t("composer.placeholder.listening");

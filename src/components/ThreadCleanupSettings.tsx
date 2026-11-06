@@ -141,7 +141,7 @@ export function ThreadCleanupSettings() {
   };
 
   return (
-    <Card title={t("settings.threadCleanup.title")} subtitle={t("settings.threadCleanup.subtitle")}>
+    <Card title={t("settings.threadCleanup.title")}>
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <input
@@ -164,7 +164,7 @@ export function ThreadCleanupSettings() {
               value={retentionValue}
               disabled={confirmedRetentionDays === null || pending !== null}
               aria-invalid={errorKnob === "retention"}
-              aria-describedby="thread-log-retention-help"
+              aria-label={t("settings.threadCleanup.retention.enable")}
               onChange={(event) => {
                 setRetentionDraft(event.target.value);
                 setError("");
@@ -179,9 +179,8 @@ export function ThreadCleanupSettings() {
             <span className="pr-3 text-[13px] text-ink-secondary">{t("settings.threadCleanup.retention.unit")}</span>
           </div>
         </div>
-        <p id="thread-log-retention-help" className="text-[12px] leading-relaxed text-ink-secondary">{t("settings.threadCleanup.retention.help")}</p>
       </div>
-      <div className="mt-4 flex flex-col gap-2">
+      <div className="mt-3 flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <input
             id="thread-log-cap-enabled"
@@ -203,7 +202,7 @@ export function ThreadCleanupSettings() {
               value={capValue}
               disabled={confirmedCapBytes === null || pending !== null}
               aria-invalid={errorKnob === "cap"}
-              aria-describedby="thread-log-cap-help"
+              aria-label={t("settings.threadCleanup.cap.enable")}
               onChange={(event) => {
                 setCapDraft(event.target.value);
                 setError("");
@@ -218,7 +217,6 @@ export function ThreadCleanupSettings() {
             <span className="pr-3 text-[13px] text-ink-secondary">{t("settings.threadCleanup.cap.unit")}</span>
           </div>
         </div>
-        <p id="thread-log-cap-help" className="text-[12px] leading-relaxed text-ink-secondary">{t("settings.threadCleanup.cap.help")}</p>
       </div>
       {pending !== null && <p role="status" className="mt-2 text-[12px] text-ink-secondary">{t("settings.threadCleanup.saving")}</p>}
       {error && <p role="alert" className="mt-2 text-[12px] text-danger">{error}</p>}

@@ -84,15 +84,23 @@ afterEach(() => {
 });
 
 describe("the keys page", () => {
-  it("groups the keys into plain sections, AI providers open first", () => {
+  it("groups the keys into plain sections, all folded to their titles", () => {
     page();
     expect([...host.querySelectorAll<HTMLElement>("[data-keys-section]")].map((element) => element.dataset.keysSection))
       .toEqual(["ai", "servers", "voice", "computers", "apps", "helpers"]);
-    expect(section("ai").textContent).toContain("AI providers");
-    expect(expanded("ai")).toBe("true");
+    expect(section("ai").querySelector("button")!.textContent).toBe("AI providers");
+    expect(expanded("ai")).toBe("false");
     expect(expanded("voice")).toBe("false");
-    expect(rowsShown()).toContain("openai");
-    expect(rowsShown()).not.toContain("elevenlabs");
+    expect(rowsShown()).toEqual([]);
+    expect(host.textContent).not.toContain("Paste a key and it saves and checks itself");
+  });
+
+  it("names each key row without its purpose line or note, except the rows that repeat another's name", () => {
+    page();
+    flushSync(() => section("ai").querySelector<HTMLButtonElement>("button[aria-expanded]")!.click());
+    expect(row("openrouter")!.textContent).not.toContain("Hundreds of models through one key");
+    expect(row("openai")!.textContent).not.toContain("Codex doesn't use this key");
+    expect(host.textContent).not.toContain("Save a key for any provider OpenCode supports");
   });
 
   it("offers the Live calls service, OpenAI or Azure OpenAI, on the separate live key row", () => {
@@ -126,11 +134,11 @@ describe("the keys page", () => {
     expect(row("liveCalls")).not.toBeNull();
   });
 
-  it("opens a section that holds a saved key, and counts what is connected", () => {
+  it("keeps a section that holds a saved key folded, and counts what is connected", () => {
     setConfig({ ...fx.config, box: { configured: true, last4: "c3d4" } });
     page();
-    expect(expanded("computers")).toBe("true");
-    expect(section("computers").textContent).toContain("1 connected");
+    expect(expanded("computers")).toBe("false");
+    expect(section("computers").querySelector("button")!.textContent).toContain("1 connected");
   });
 
   it("filters rows live by name, purpose and section, and says so when nothing matches", () => {

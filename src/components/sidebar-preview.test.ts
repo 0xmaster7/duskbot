@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Bot, Group, Message } from "@/state/store";
-import { botPreview, groupPreview, lastPreviewable } from "./sidebar-preview";
+import { botPreview, groupPreview, lastPreviewable, waitingLine } from "./sidebar-preview";
 
 let at = 0;
 const message = (fields: Partial<Message>): Message => ({ id: `m${++at}`, at, role: "bot", kind: "text", ...fields }) as Message;
@@ -12,6 +12,13 @@ describe("sidebar previews", () => {
     const visible = [message({ role: "user", text: "Paint a sunset" }), message({ text: "I painted a sunset in JS Paint." }), screen()];
     expect(botPreview(bot, visible, [], false)).toBe("I painted a sunset in JS Paint.");
     expect(botPreview(bot, [...visible, message({ kind: "digest", text: "[digest]" }), screen()], [], false)).toBe("I painted a sunset in JS Paint.");
+  });
+
+  it("quotes the open question when waiting, not the bot's later closing line, and falls back to the newest line", () => {
+    const question = message({ kind: "options", card: { title: "Your bot has a question", subtitle: "Which folder for trip files?", options: [], requestId: "q1", requestType: "question" } } as unknown as Partial<Message>);
+    const closing = message({ text: "Setup's done. Want me to plan another trip?" });
+    expect(waitingLine(bot, [question, closing], [], false)).toBe("Which folder for trip files?");
+    expect(waitingLine(bot, [closing], [], false)).toBe("Setup's done. Want me to plan another trip?");
   });
 
   it("shows nothing for a conversation that holds only screen frames", () => {

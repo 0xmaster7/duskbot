@@ -14,7 +14,7 @@ export function usageSummary(bot: Bot, instances: AppState["instances"]): { shor
     usageDetail(usage),
     lastTurnDetail(usage),
     contextDetail(usage),
-    share?.tone === "danger" ? t("chat.usage.contextNudge") : null,
+    share?.tone === "danger" ? t("chat.usage.contextNudgeCompact") : null,
     keepWarmLine(task?.cacheKeepWarm),
     hasFiniteCost(usage.costUsd) ? `${formatUsd(usage.costUsd)} ${costCaption(billing)}` : null,
   ]

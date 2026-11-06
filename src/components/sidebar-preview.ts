@@ -10,6 +10,7 @@ import { citationPreviewText } from "@/lib/citations";
 import { plainPreviewText } from "@/lib/plain-preview";
 import { isClientCancellation, isStoppedTurnName } from "../../shared/client-cancel";
 import { roomWorkingPreview } from "@/lib/room-threads";
+import { openPersonWait } from "../../shared/person-wait";
 
 /** The newest message a preview can show. A receipt or a screen frame says nothing about the conversation on its own. */
 export function lastPreviewable<T extends { kind: string }>(messages: readonly T[] | undefined): T | undefined {
@@ -37,6 +38,12 @@ function quotedLine(messages: readonly Message[], last: Message, advanced: boole
     if (message.kind !== "activity" && !isReceipt(message) && message.kind !== "screen") return message;
   }
   return last;
+}
+
+/** What a waiting row quotes: the open question itself, not a line the bot said after it. */
+export function waitingLine(bot: Bot, visible: Message[], instances: InstanceInfo[], advanced: boolean): string {
+  const wait = openPersonWait(visible);
+  return wait?.kind === "question" && wait.label.trim() ? plainPreviewText(wait.label) : lastLine(bot, visible, instances, advanced);
 }
 
 /** The conversation's newest line as a preview shows it, whatever the bot is doing now. */

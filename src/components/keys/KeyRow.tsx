@@ -61,13 +61,13 @@ export function SavedKeyLine({ id }: { id: KeyId }) {
   );
 }
 
-export function RowHeading({ entry, status, titleId }: { entry: KeyEntry; status: KeyStatus; titleId?: string }) {
+export function RowHeading({ entry, status, titleId, purpose = true }: { entry: KeyEntry; status: KeyStatus; titleId?: string; purpose?: boolean }) {
   return (
     <div className="flex items-start gap-3">
       <span className="flex size-5 shrink-0 items-center justify-center"><KeyMarkIcon entry={entry} /></span>
       <div className="min-w-0 flex-1">
         <div id={titleId} className="text-[14px] leading-5 text-ink">{t(entry.labelKey)}</div>
-        <div className="text-[13px] leading-[18px] text-ink-secondary">{t(entry.purposeKey)}</div>
+        {purpose && <div className="text-[13px] leading-[18px] text-ink-secondary">{t(entry.purposeKey)}</div>}
       </div>
       <KeyStatusChip status={status} />
     </div>
@@ -84,6 +84,7 @@ export function KeyRow({
   via = "settings",
   onSaved,
   bare = false,
+  quiet = false,
   rejected: rejectedHere,
   className,
   children,
@@ -93,6 +94,7 @@ export function KeyRow({
   via?: KeyVia;
   onSaved?: (configured: boolean) => void;
   bare?: boolean;
+  quiet?: boolean;
   rejected?: boolean;
   className?: string;
   children?: ReactNode;
@@ -336,7 +338,7 @@ export function KeyRow({
   );
 
   const warning = target.warningKey && fieldShown ? t(target.warningKey) : null;
-  const note = target.noteKey && fieldShown && !pointer ? t(target.noteKey) : null;
+  const note = target.noteKey && fieldShown && !pointer && !quiet ? t(target.noteKey) : null;
 
   return (
     <div
@@ -347,7 +349,7 @@ export function KeyRow({
       role="group"
       className={cn(KEY_ROW, className)}
     >
-      {bare ? status && <KeyStatusChip status={status} /> : <RowHeading entry={row} status={status} titleId={titleId} />}
+      {bare ? status && <KeyStatusChip status={status} /> : <RowHeading entry={row} status={status} titleId={titleId} purpose={!quiet} />}
       <div className={cn("flex flex-col gap-2", !bare && "pl-8")}>
         {fieldShown ? field : saved.configured ? masked : (
           <div>

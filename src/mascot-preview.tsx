@@ -17,6 +17,7 @@ import {
   type MausState,
 } from "@/lib/mascot";
 import { EXPRESSION_COUNT } from "@/components/CursorAvatar";
+import "./font-faces";
 import "./styles.css";
 import "./mascot-preview.css";
 

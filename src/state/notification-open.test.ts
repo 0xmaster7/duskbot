@@ -48,7 +48,6 @@ let dispatch: (action: Action) => void;
 
 const { StoreProvider, useStore, openBot, openBotRow, openThread } = await import("./store");
 const { landOnSearchHit } = await import("@/lib/focus-message");
-const { threadsWhenTreeHidden } = await import("@/components/SidebarBotActivity");
 const { setAdvancedMode } = await import("@/lib/interface-mode");
 const { setShowThreads } = await import("@/lib/thread-preferences");
 
@@ -198,8 +197,6 @@ describe("opening a bot with threads hidden", () => {
     expect(reads()).toEqual([]);
     expect(scoutNow().threadId).toBe("main-chat");
     expect(unread("left-behind")).toBe(true);
-    expect(threadsWhenTreeHidden(scoutNow(), {}).map((task) => task.threadId).filter((id) => id !== scoutNow().threadId))
-      .toEqual(expect.arrayContaining(["left-behind", "finished"]));
   });
 
   it("lands on a search hit in another thread by the switch alone, with the whole thread", async () => {
@@ -267,7 +264,6 @@ describe("launching the app on a bot", () => {
     expect(reads()).toEqual([]);
     expect(scoutNow().threadId).toBe("main-chat");
     expect(unread("left-behind")).toBe(true);
-    expect(threadsWhenTreeHidden(scoutNow(), {}).map((task) => task.threadId)).toContain("left-behind");
   });
 
   it("keeps the bot where it was while threads are shown, as it always has", async () => {

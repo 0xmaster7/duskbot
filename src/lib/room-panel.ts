@@ -36,7 +36,7 @@ export function useRoomPanel(): string | null {
   return useSyncExternalStore(subscribe, () => openGroupId, () => null);
 }
 
-/** Whether the shell draws the open room's panel. Another room, another view, a bot panel or a mode change closes it. */
+/** Whether the shell draws the room's panel: open like the bot panel (the side panel preference), or opened for this room. */
 export function useRoomPanelShown({ group, state, simple }: {
   group: Pick<Group, "id"> | undefined;
   state: Pick<AppState, "selectedId" | "activeView" | "settingsOpen">;
@@ -44,10 +44,7 @@ export function useRoomPanelShown({ group, state, simple }: {
 }): boolean {
   const open = useRoomPanel();
   useEffect(() => closeRoomPanel(), [state.selectedId, state.activeView, simple]);
-  useEffect(() => {
-    if (state.settingsOpen) closeRoomPanel();
-  }, [state.settingsOpen]);
-  return simple && state.activeView === "chat" && group !== undefined && open === group.id;
+  return simple && state.activeView === "chat" && group !== undefined && (state.settingsOpen || open === group.id);
 }
 
 // A remote client cannot open desktop panels, so it keeps every control in the header.

@@ -81,7 +81,7 @@ export function ActivitySection() {
 
   const set = (patch: Partial<ActivityFilters>) => setFilters((current) => ({ ...current, ...patch }));
   return (
-    <Card title={t("activity.title")} subtitle={t("activity.subtitle", { days: String(days ?? 180) })}>
+    <Card subtitle={t("settings.w6c.activity.kept", { days: String(days ?? 180) })}>
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
           {t("activity.who")}

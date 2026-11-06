@@ -41,10 +41,8 @@ export function ShareLearnedSkillsSettings() {
     <div className="mt-4 border-t border-hairline/30 pt-4" data-testid="share-learned-skills-settings">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <div className="text-[14px] font-medium text-ink">{t("settings.experimental.shareSkills")}</div>
-          <div className="mt-0.5 text-[12px] leading-relaxed text-ink-secondary">
-            {t(authoring ? "settings.experimental.shareSkillsDetail" : "settings.experimental.shareSkillsNeedsAuthoring")}
-          </div>
+          <div className="text-[13px] leading-[18px] text-ink">{t("settings.experimental.shareSkills")}</div>
+          {!authoring && <div className="mt-0.5 text-[12px] leading-relaxed text-ink-secondary">{t("settings.experimental.shareSkillsNeedsAuthoring")}</div>}
         </div>
         <div className="inline-flex shrink-0 rounded-xl bg-inset p-1" role="radiogroup" aria-label={t("settings.experimental.shareSkillsAria")}>
           {MODES.map((option) => (

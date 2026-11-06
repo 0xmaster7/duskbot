@@ -5,7 +5,12 @@ import { lazyScreen, TeamLibraryPanel } from "../lazy-screens";
 import { openTemplates } from "../SidebarTemplates";
 import { closeConnectApps, useConnectApps } from "./open";
 
-const ConnectAppsWindow = lazyScreen("ConnectAppsWindow", async () => (await import("./ConnectAppsWindow")).ConnectAppsWindow);
+const FIRST_FRAME_WAIT_MS = 600;
+const ConnectAppsWindow = lazyScreen("ConnectAppsWindow", async () => {
+  const screen = await import("./ConnectAppsWindow");
+  await Promise.race([screen.prepareConnectApps(), new Promise((resolve) => setTimeout(resolve, FIRST_FRAME_WAIT_MS))]);
+  return screen.ConnectAppsWindow;
+});
 
 const hosts: Array<(owns: boolean) => void> = [];
 const settle = () => hosts.forEach((own, index) => own(index === 0));

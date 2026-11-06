@@ -50,13 +50,27 @@ export interface Connectors {
   reload: () => void;
 }
 
+interface CatalogAnswer { cards?: ToolkitCard[]; configured?: boolean; mode?: ConnectorMode; setup?: Connectors["setup"] }
+let catalogAnswer: CatalogAnswer | null = null;
+let catalogRequest: Promise<CatalogAnswer> | null = null;
+
+/** Reads the catalog again; the window opens on the last answer while a newer one comes. */
+export function loadConnectorCatalog(): Promise<CatalogAnswer> {
+  catalogRequest ??= (api("/api/connectors/catalog") as Promise<CatalogAnswer>)
+    .then((answer) => (catalogAnswer = answer))
+    .finally(() => { catalogRequest = null; });
+  return catalogRequest;
+}
+
+export const cachedConnectorCatalog = (): CatalogAnswer | null => catalogAnswer;
+
 /** The Composio catalog and its connections, with the same connect flow the Apps page has always run: reserve the tab on
  * the click, authorize, open the sign-in page, then poll until the account turns up. */
 export function useConnectors(): Connectors {
-  const [cards, setCards] = useState<ToolkitCard[] | null>(null);
-  const [configured, setConfigured] = useState(false);
-  const [mode, setMode] = useState<ConnectorMode>("unavailable");
-  const [setup, setSetup] = useState<Connectors["setup"]>(undefined);
+  const [cards, setCards] = useState<ToolkitCard[] | null>(() => catalogAnswer ? catalogAnswer.cards ?? [] : null);
+  const [configured, setConfigured] = useState(() => Boolean(catalogAnswer?.configured));
+  const [mode, setMode] = useState<ConnectorMode>(() => catalogAnswer?.mode ?? "unavailable");
+  const [setup, setSetup] = useState<Connectors["setup"]>(() => catalogAnswer?.setup);
   const [status, setStatus] = useState<Record<string, ConnectorStatus>>(() => connectorStatusMemory()?.services ?? readCachedInventory()?.services ?? {});
   const [stale, setStale] = useState(connectorStatusMemory()?.authoritative === false);
   const [phase, setPhase] = useState<ConnectorInventoryPhase>(connectorStatusMemory() === null ? "loading" : "ready");
@@ -114,7 +128,7 @@ export function useConnectors(): Connectors {
         if (!hadInventory) setPhase("error");
         setError(cause instanceof Error ? cause.message : String(cause));
       });
-    api("/api/connectors/catalog")
+    loadConnectorCatalog()
       .then((response) => {
         if (!alive) return;
         setCards(response.cards ?? []);

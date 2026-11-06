@@ -140,7 +140,7 @@ describe("Settings → Logins", () => {
       .mockResolvedValueOnce({ onePassword: OFF })
       .mockResolvedValueOnce({ logins: [], onePassword: OFF });
     await render();
-    expect(host.querySelector("[data-onepassword]")!.textContent).toContain("create a service account that can read one vault only");
+    expect(host.querySelector("[data-onepassword]")!.textContent).toContain("service account that reads one vault");
     const field = host.querySelector<HTMLInputElement>('input[name="onePasswordToken"]')!;
     expect(field.type).toBe("password");
     await type("onePasswordToken", "ops_fake-typed-token");

@@ -542,8 +542,8 @@ export function McpServersPanel({ embedded = false, hostedCards, hideHosted = fa
       <div className={embedded ? "" : "mx-auto max-w-[840px]"}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-[1_1_280px]">
-            <h3 id="mcp-servers-title" className="text-[15px] font-semibold text-ink">{t("mcp.title")}</h3>
-            <p className="mt-1 max-w-[610px] break-words text-[13px] leading-relaxed text-ink-secondary">
+            <h3 id="mcp-servers-title" className="text-[15px] font-semibold text-ink in-data-[settings-look=simple]:sr-only">{t("mcp.title")}</h3>
+            <p className="mt-1 max-w-[610px] break-words text-[13px] leading-relaxed text-ink-secondary in-data-[settings-look=simple]:hidden">
               {t("mcp.subtitle")}
             </p>
           </div>
@@ -581,17 +581,17 @@ export function McpServersPanel({ embedded = false, hostedCards, hideHosted = fa
         })}</div>}
         <ClaudeCodeSwitches />
 
-        <div className="mt-4 rounded-xl border border-hairline/50 bg-raised/35 px-4 py-3 text-[12px] leading-relaxed text-ink-secondary">
+        <div className="mt-4 rounded-xl border border-hairline/50 bg-raised/35 px-4 py-3 text-[12px] leading-relaxed text-ink-secondary in-data-[settings-look=simple]:hidden">
           {t("mcp.trustNotice")}
         </div>
 
         {servers === null ? (
           <div className="flex items-center justify-center gap-2 py-24 text-[13px] text-ink-secondary"><Loader2 size={14} className="animate-spin" /> {t("mcp.loading")}</div>
         ) : visibleServers?.length === 0 && !editing ? (
-          <div className="mt-5 flex min-h-32 flex-col items-center justify-center rounded-2xl border border-dashed border-hairline/60 text-center">
-            <div className="flex size-11 items-center justify-center rounded-xl bg-raised text-ink-secondary"><ServerCog size={21} /></div>
-            <div className="mt-3 text-[14px] font-medium text-ink">{t("mcp.empty.title")}</div>
-            <div className="mt-1 max-w-sm text-[13px] text-ink-secondary">{t("mcp.empty.desc")}</div>
+          <div className="mt-5 flex min-h-32 flex-col items-center justify-center rounded-2xl border border-dashed border-hairline/60 text-center in-data-[settings-look=simple]:mt-3 in-data-[settings-look=simple]:min-h-16 in-data-[settings-look=simple]:rounded-[14px]">
+            <div className="flex size-11 items-center justify-center rounded-xl bg-raised text-ink-secondary in-data-[settings-look=simple]:hidden"><ServerCog size={21} /></div>
+            <div className="mt-3 text-[14px] font-medium text-ink in-data-[settings-look=simple]:mt-0 in-data-[settings-look=simple]:text-[13px] in-data-[settings-look=simple]:font-normal in-data-[settings-look=simple]:text-ink-secondary">{t("mcp.empty.title")}</div>
+            <div className="mt-1 max-w-sm text-[13px] text-ink-secondary in-data-[settings-look=simple]:hidden">{t("mcp.empty.desc")}</div>
           </div>
         ) : (
           <div className="mt-5 space-y-3">

@@ -1,13 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Archive, BellDot, CheckCheck, ClipboardCopy, Copy, Crown, FolderOpen, FolderPlus, Loader2, Pencil, Pin, PinOff, SquarePen, Trash2, Users } from "lucide-react";
+import { Archive, BellDot, CheckCheck, ClipboardCopy, Copy, Crown, FolderPlus, Loader2, Pencil, Pin, PinOff, Users } from "lucide-react";
 import { api, useStore, openBot, type Bot } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { GrokIcon, type GrokIconName } from "./GrokIcon";
 import { useHeldMenuMotion } from "./MenuMotion";
 import { t } from "@/lib/i18n";
 import { copyText } from "@/lib/copy-text";
-import { BotDeleteMenuItem, useDeleteAllThreads } from "./BotMenuDelete";
+import { BotDeleteMenuItem } from "./BotMenuDelete";
 import { HideDefaultBotItem } from "./DefaultBotControls";
 import { navigateThreadMenu } from "./BotProjects";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
@@ -16,7 +16,6 @@ import { ownerMenuLabel, pickOwnerOf } from "./TeamOwner";
 import { mayChangeOwner, useTeamPeople } from "@/state/team-people";
 import { GROK_DANGER, GROK_DANGER_ICON, GROK_LABEL, GROK_ROW_FILL, MENU_ITEM, MENU_ITEM_SEPARATOR, MENU_SHEET } from "./menu-recipe";
 export { GROK_LABEL, GROK_ROW_FILL };
-import { useShowThreads } from "@/lib/thread-preferences";
 import { submenuPosition } from "./SidebarPopoverMenu";
 import { submenuIntent, type SubmenuIntent } from "@/lib/submenu-intent";
 import { useAdvancedMode } from "@/lib/interface-mode";
@@ -47,8 +46,6 @@ export function BotContextMenu({
   onArchive,
   onDelete,
   onMoveToSection,
-  onNewFolder,
-  onNewTaskFolder,
   onRename,
   onNewSection,
 }: {
@@ -57,8 +54,6 @@ export function BotContextMenu({
   onArchive: (bot: Bot) => void;
   onDelete: (bot: Bot) => void;
   onMoveToSection: (botId: string) => void;
-  onNewFolder: (botId: string) => void;
-  onNewTaskFolder: (botId: string) => void;
   onRename?: (botId: string) => void;
   /** Simple: "New department…" names a department in the sidebar, with this bot in it. */
   onNewSection?: (botId: string) => void;
@@ -82,11 +77,10 @@ export function BotContextMenu({
   const more = moreIntent.current;
   const shown = motion.value;
   const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
   const admin = useOwnerOrAdmin();
   const member = admin === false;
   const mayMove = useMayMoveBots();
-  const clearThreads = useDeleteAllThreads(simpleMenu), moveToTeam = useMoveToTeam({ blocked: (bot) => (bot.defaultBot ? t("teamMove.blockedDefault", { name: bot.name }) : bot.chiefOfStaff ? t("teamMove.blockedChief") : state.bots.filter((candidate) => !candidate.hidden).length <= 1 ? t("teamMove.blockedLast") : undefined) });
+  const moveToTeam = useMoveToTeam({ blocked: (bot) => (bot.defaultBot ? t("teamMove.blockedDefault", { name: bot.name }) : bot.chiefOfStaff ? t("teamMove.blockedChief") : state.bots.filter((candidate) => !candidate.hidden).length <= 1 ? t("teamMove.blockedLast") : undefined) });
   const remoteClient = window.ogb?.remoteClient?.active === true;
   const bot = shown ? state.bots.find((b) => b.id === shown.botId) : undefined;
   const team = useTeamPeople();
@@ -164,7 +158,7 @@ export function BotContextMenu({
     sheetOut.style.top = `${place.top}px`;
   });
 
-  if (!motion.shown || !bot || !shown) return <>{clearThreads.dialog}{moveToTeam.dialog}</>;
+  if (!motion.shown || !bot || !shown) return <>{moveToTeam.dialog}</>;
   const deleting = state.deletingBots[bot.id] === true;
   const engine = state.instances.find((instance) => instance.instanceId === bot.modelSelection.instanceId);
   const canCoordinate = engine?.capabilities?.agentsMcp === true;
@@ -184,7 +178,7 @@ export function BotContextMenu({
   );
   const openForSettings = () => {
     if (state.selectedId === bot.id) dispatch({ type: "select", id: bot.id });
-    else openBot(dispatch, bot, showThreads);
+    else openBot(dispatch, bot, false);
   };
   const item = (
     icon: React.ReactNode,
@@ -290,7 +284,7 @@ export function BotContextMenu({
       [settings],
       [hide, remove],
     ].map((group) => group.filter(Boolean)).filter((group) => group.length > 0);
-    return <>{clearThreads.dialog}{moveToTeam.dialog}{createPortal(
+    return <>{moveToTeam.dialog}{createPortal(
       <div
         ref={menuRef}
         data-bot-menu
@@ -353,7 +347,7 @@ export function BotContextMenu({
     )}</>;
   }
 
-  return <>{clearThreads.dialog}{moveToTeam.dialog}{createPortal(
+  return <>{moveToTeam.dialog}{createPortal(
     <div
       ref={menuRef}
       data-bot-menu
@@ -364,13 +358,6 @@ export function BotContextMenu({
       style={{ top: shown.y, left: shown.x }}
       className={cn("fixed z-40 max-h-[calc(100dvh-16px)] w-max min-w-[198px] max-w-[calc(100vw-16px)] overflow-y-auto overscroll-contain", MENU_SHEET, motion.className)} {...motion.exitProps}
     >
-      {showThreads && <>
-        {item(<SquarePen size={16} className="text-ink-secondary" />, t("task.newShort"), () => dispatch({ type: "newTask", botId: bot.id }))}
-        {admin && item(<FolderOpen size={16} className="shrink-0 text-ink-secondary" />, t("task.folder.new"), () => onNewTaskFolder(bot.id))}
-        {item(<FolderPlus size={16} className="text-ink-secondary" />, t("folder.new"), () => onNewFolder(bot.id))}
-      </>}
-      {!member && item(<Trash2 size={16} />, t("task.deleteAll"), () => clearThreads.ask(bot.id), { danger: true })}
-      {divider("threads")}
       {team && mayChangeOwner(bot, team) && item(<Users size={16} className="text-ink-secondary" />, ownerMenuLabel(bot, team), () => pickOwnerOf([bot], team, shown))}
       {remoteClient ? [
         mayMove && item(<FolderPlus size={16} className="text-ink-secondary" />, t("sidebar.bot.moveToSection"), () => {

@@ -6,6 +6,7 @@ import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { openBotSheet } from "./grok-nav.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const enabled = Boolean(resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env })) || process.env.OMB_UI_E2E === "1";
@@ -57,7 +58,8 @@ interface SavedBot { id: string; name: string; toolScope?: { allow?: string[]; d
       })()`);
     };
     const scope = async (id = first.id) => (await bots()).find(bot => bot.id === id)?.toolScope;
-    await selectBot(first.name); await click("Open settings"); await click("Access");
+    // Settings open the bot's panel; Advanced > Tools opens its settings sheet at Tools.
+    await selectBot(first.name); await click("Open settings"); await openBotSheet(ui, first.name, "tools");
     expect(await snapshot()).toContain("All current tools");
     await mode("custom");
     await fill("Allow (one per line)", "native:*\nmcp:mail:read_notes");
@@ -111,7 +113,7 @@ interface SavedBot { id: string; name: string; toolScope?: { allow?: string[]; d
     await fill("Allow (one per line)", ""); await click("Save tool selection");
     await expect.poll(snapshot).toContain("Saving tool selection…");
     await selectBot(second.name);
-    await click("Open settings"); await click("Access");
+    await click("Open settings"); await openBotSheet(ui, second.name, "tools");
     await expect.poll(snapshot).toContain("All current tools");
     await evaluate("window.rejectSelection(); true");
     expect(await snapshot()).not.toContain("Late first-bot error");
@@ -136,7 +138,7 @@ interface SavedBot { id: string; name: string; toolScope?: { allow?: string[]; d
     expect(await evaluate("window.duplicateCreation.settings.toolScope")).toEqual({ allow: ["native:*"], deny: [] });
     await expect.poll(async () => (await bots()).find(bot => bot.name === `${first.name} copy`)?.toolScope).toEqual({ allow: ["native:*"], deny: [] });
 
-    await selectBot(first.name); await click("Open settings"); await click("Access");
+    await selectBot(first.name); await click("Open settings"); await openBotSheet(ui, first.name, "tools");
     await runControlOmb(["send", "--bot", first.id, "--text", "Stay active for the settings test.", "--url", info.url]);
     await expect.poll(async () => (await bots()).find(bot => bot.id === first.id)?.busy).toBe(true);
     await expect.poll(() => evaluate("document.querySelector('select[aria-label=\"Tool selection\"]')?.disabled")).toBe(true);

@@ -89,10 +89,9 @@ describe("full backup Settings in the real renderer", () => {
     expect(await snapshot()).not.toContain("Export backup");
     await ui("press", "--keys", "Escape");
     await expect.poll(snapshot).not.toContain('dialog "Templates"');
-    await openAdvancedSettings(ui, "Privacy and Data");
+    await openAdvancedSettings(ui, "Privacy and data");
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Export full backup");
-    expect(await snapshot()).toContain("Saved account credentials and connections are not included");
-    expect(await snapshot()).toContain("not automatically redacted");
+    expect(await snapshot()).toContain("Sign-ins and keys are left out. The password can't be recovered.");
     await ui("screenshot", "--out", join(ROOT, ".omb-scratch", "verify-evidence", "workspace-backup-settings.png"));
     await type("Backup password", "fixture password 123");
     await type("Confirm backup password", "fixture password 123");

@@ -8,7 +8,8 @@ import { waitForLocalVmReady } from "@/lib/local-vm-readiness";
 import { CalendarClock, ChevronRight, Columns2, Box, Check, Cloud, Sparkles, Globe, Hand, Loader2, Maximize2, Monitor, Moon, Power, Settings, X } from "lucide-react";
 import { api, ApiError, currentTaskBot, useStore, type Bot, type ConfigStatus } from "@/state/store";
 import { useAdvancedMode } from "@/lib/interface-mode";
-import { ComputerFilesPane } from "./ComputerFilesPane";
+import { ComputerFullscreen, ComputerFullscreenNote, fullscreenActionCls, type ScreenControl } from "./ComputerFullscreen";
+import { MausAvatar } from "./Avatar";
 import { effectivePlace, isComputerPlace, personPin, placeLabelKey, placeOffered } from "@/lib/place";
 import type { CloudBackend } from "../../shared/wire";
 import { KeyRow } from "./keys/KeyRow"; import { openKeySettings } from "./keys/key-focus";
@@ -115,6 +116,8 @@ interface LocalVmStatus {
   target_key: string;
 }
 
+const FULLSCREEN_MARK = "rgb(255 255 255 / 0.88)";
+
 const computerControlSnapshotSchema = z.object({
   held: z.boolean().optional().default(false),
   helpReason: z.string().nullable().optional().default(null),
@@ -125,9 +128,12 @@ const computerControlSnapshotSchema = z.object({
 export function ComputerPanel({
   bot: profileBot,
   onOpenVmWorkspace,
+  fullscreen,
 }: {
   bot: Bot;
   onOpenVmWorkspace?: (botId: string) => void;
+  /** Grok's full view of the screen over the whole window, opened from the bot panel; `wake` wakes a sleeping desktop. */
+  fullscreen?: { wake: boolean; onExit: () => void };
 }) {
   const { dragProps } = useCaptionChrome();
   const { panelWidth, separatorRef, separatorWidth, onSeparatorKeyDown, onResizeStart, onResizeMove, onResizeEnd } = useComputerPanelResize();
@@ -260,8 +266,9 @@ export function ComputerPanel({
   const [dataRequest, setDataRequest] = useState<{ id: string; requestId: number }>();
   const androidStatus = useAndroidUsbDevices();
   const androidConnected = androidStatus.devices.length > 0;
-  const panelTabs = computerPanelTabs({ advanced, androidConnected });
-  const panelView = resolveComputerPanelView(storedPanelView, { advanced, androidConnected });
+  const tabsContext = { advanced, androidConnected, browser: storedPanelView === "browser" || profileBot.computer === "browser" };
+  const panelTabs = computerPanelTabs(tabsContext);
+  const panelView = fullscreen ? "computer" : resolveComputerPanelView(storedPanelView, tabsContext);
   const panelRef = useComputerPanelEntry(profileBot.id, panelView);
   const browserAvailableHere = browserAvailable(state.config);
   const browserEnabled = builtInBrowserEnabled(state.config) && bot.browser !== false
@@ -319,28 +326,28 @@ export function ComputerPanel({
   }, [panelTargetKey, bot.id, bot.computer, browserEnabled]);
 
   useEffect(() => {
-    if (!requestedDataResult || requestedDataResult.consumed) return;
+    if (fullscreen || !requestedDataResult || requestedDataResult.consumed) return;
     explicitPanelView.current = true;
     setDataRequest(requestedDataResult);
     setPanelView("data");
     writeComputerPanelView(bot.id, "data");
     dispatch({ type: "dataResultFocusConsumed", requestId: requestedDataResult.requestId });
-  }, [bot.id, dispatch, requestedDataResult]);
+  }, [bot.id, dispatch, requestedDataResult, fullscreen]);
 
   const requestedSignIn = state.signInFocus?.botId === bot.id ? state.signInFocus : undefined;
   const [signInRequest, setSignInRequest] = useState<{ url: string; site: string; nonce: number }>();
   // A published page's Open (usePageOpener): this bot's browser shows, with the page in a new tab.
   const [pageRequest, setPageRequest] = useState<PanelPage>();
-  usePanelPage(bot.id, (page) => { selectPanelView("browser"); setPageRequest(page); });
+  usePanelPage(fullscreen ? "" : bot.id, (page) => { selectPanelView("browser"); setPageRequest(page); });
   useEffect(() => {
-    if (!requestedSignIn || requestedSignIn.consumed) return;
+    if (fullscreen || !requestedSignIn || requestedSignIn.consumed) return;
     const view = requestedSignIn.place === "browser" ? "browser" : "computer";
     explicitPanelView.current = true;
     setPanelView(view);
     writeComputerPanelView(bot.id, view);
     if (view === "browser") setSignInRequest({ url: requestedSignIn.url, site: requestedSignIn.site, nonce: requestedSignIn.requestId });
     dispatch({ type: "signInFocusConsumed", requestId: requestedSignIn.requestId });
-  }, [bot.id, dispatch, requestedSignIn]);
+  }, [bot.id, dispatch, requestedSignIn, fullscreen]);
 
   useEffect(() => {
     let alive = true;
@@ -1187,6 +1194,78 @@ export function ComputerPanel({
     error: bot.computer === "cloud" && (cloudRefused || placeBlocked(cloudView)) ? cloudView.line : t("computer.phase.error"),
   } satisfies Record<Exclude<Phase, "ready" | "local" | "vm">, string>;
 
+  const screenLine = currentTeamComputer
+    ? autoView.line
+    : cloudPreviewReady
+    ? t("computer.waitingFrame")
+    : phase === "ready"
+      ? t("computer.autoChooseCloudOpen")
+    : phase === "vm"
+      ? t("computer.capturingVm")
+    : phase === "local"
+      ? isLinux
+        ? t("computer.linuxReady")
+        : localMisses >= 3
+        ? t("computer.needsScreenPerm")
+        : t("computer.capturingLocal")
+      : vmResumable
+        ? t(pending === "vm-start" ? "vm.setup.starting" : "computer.phase.vmStopped")
+        : emptyState[phase];
+
+  const wokeOnOpen = useRef(false);
+  useEffect(() => {
+    if (!fullscreen?.wake || wokeOnOpen.current || pending !== null) return;
+    const id = cloudView.action?.id;
+    if ((phase === "cloud-asleep" || phase === "cloud-new") && panelOffers(id)) {
+      wokeOnOpen.current = true;
+      runPlaceAction(id);
+    } else if (vmResumable && canManageVm && vmStatus.mode !== "pool") {
+      wokeOnOpen.current = true;
+      void runVmAction("vm-start");
+    }
+  });
+
+  if (fullscreen) {
+    const held = liveHere || control.held;
+    const waking = pending === "provision" || pending === "vm-start" || phase === "checking" || phase === "starting" || (phase === "busy-boat" && busyBoat.spinner);
+    const screenControl: ScreenControl = held
+      ? { held: true, onDone: () => void handBack(), busy: controlPending || takeover.handingBack }
+      : { held: false, onTake: liveTarget || cloudPreviewReady ? () => void takeControl() : undefined, busy: controlPending || pending === "join" };
+    const frame = liveHere && liveTarget ? (
+      <Suspense fallback={null}>
+        <LiveDesktop
+          target={liveTarget} threadId={bot.threadId} name={bot.name} poster={frameSrc}
+          expanded={false} onExpandedChange={() => {}}
+          onHandBack={() => void handBack()} handingBack={takeover.handingBack}
+          onUnreachable={() => { takeover.leave(); setError(new LocalizedPanelError("computer.err.openDesktop")); }}
+        />
+      </Suspense>
+    ) : frameSrc ? <img src={frameSrc} alt={t("computer.screenOf", { name: bot.name })} draggable={false} className="absolute inset-0 size-full object-contain" /> : null;
+    const busy = waking || cloudPreviewReady || phase === "vm" || (phase === "local" && !isLinux && localMisses < 3);
+    const nextStep = currentTeamComputer ? autoView : bot.computer === "cloud" ? cloudView : worksOnView;
+    return (
+      <ComputerFullscreen
+        label={t("computer.screenOf", { name: bot.name })}
+        onExit={fullscreen.onExit}
+        frame={frame}
+        control={frame ? screenControl : null}
+        alert={frame && !cloudRefused ? errorText : null}
+        note={(
+          <ComputerFullscreenNote
+            busy={busy}
+            text={waking ? t("computer.wakingUp") : screenLine}
+            mark={<MausAvatar color={bot.color} bodyId={bot.mascotBody ?? undefined} gradient={[FULLSCREEN_MARK, FULLSCREEN_MARK, FULLSCREEN_MARK]} size={56} state={busy ? "thinking" : "idle"} label={bot.name} />}
+          >
+            {!busy && placeActionButton(nextStep, fullscreenActionCls)}
+            {phase === "local" && !isLinux && localMisses >= 3 && (
+              <button type="button" onClick={() => window.ogb?.permOpenSettings?.("screen")} className={fullscreenActionCls}>{t("computer.openSettings")}</button>
+            )}
+          </ComputerFullscreenNote>
+        )}
+      />
+    );
+  }
+
   return (
     <>
     <aside
@@ -1296,10 +1375,6 @@ export function ComputerPanel({
             <DataPanel key={bot.id} bot={bot} requestedCard={dataRequest} />
           </Suspense>
         </div>
-      ) : panelView === "files" ? (
-        <div {...tabPanelProps("files")} className={cn("flex min-h-0 flex-1 flex-col", TAB_PANEL_FOCUS)}>
-          <ComputerFilesPane bot={bot} />
-        </div>
       ) : panelView === "android" && androidConnected ? (
         <div {...tabPanelProps("android")} className={cn("flex-1 overflow-y-auto px-4 pt-2", TAB_PANEL_FOCUS)}>
           <AndroidDevicePanel status={androidStatus} />
@@ -1382,25 +1457,7 @@ export function ComputerPanel({
               ) : (
                 <Monitor size={22} />
               )}
-              <span className="text-[12px]">
-                {currentTeamComputer
-                  ? autoView.line
-                  : cloudPreviewReady
-                  ? t("computer.waitingFrame")
-                  : phase === "ready"
-                    ? t("computer.autoChooseCloudOpen")
-                  : phase === "vm"
-                    ? t("computer.capturingVm")
-                  : phase === "local"
-                    ? isLinux
-                      ? t("computer.linuxReady")
-                      : localMisses >= 3
-                      ? t("computer.needsScreenPerm")
-                      : t("computer.capturingLocal")
-                    : vmResumable
-                      ? t(pending === "vm-start" ? "vm.setup.starting" : "computer.phase.vmStopped")
-                      : emptyState[phase]}
-              </span>
+              <span className="text-[12px]">{screenLine}</span>
               {currentTeamComputer && placeActionButton(autoView)}
               {bot.computer === "cloud" && (phase === "unconfigured" || phase === "error") && cloudView.action?.id !== "add-boat-key" && placeActionButton(cloudView)}
               {phase === "local" && !isLinux && localMisses >= 3 && (
@@ -1741,57 +1798,25 @@ export function ComputerPanel({
           </span>
           <ChevronRight size={14} className="shrink-0 text-ink-secondary rtl:-scale-x-100" aria-hidden="true" />
         </button>
-        </> : (
-          <div className="mt-4 rounded-xl bg-card p-4" data-testid="where-works">
-            <div className="text-[15px] font-medium text-ink">{t("computer.simple.whereWorks", { name: bot.name })}</div>
-            <div role="group" aria-label={t("computer.destinationAria")} className="mt-3 grid grid-cols-3 gap-2">
-              {placeOptions.map(({ mode, Icon, selected, disabled, unavailableTitle, simpleLabel, issue, view }) => (
-                <button
-                  key={mode ?? "auto"}
-                  type="button"
-                  disabled={disabled}
-                  title={unavailableTitle}
-                  aria-pressed={selected}
-                  onClick={() => selectPlace(mode)}
-                  className={cn(
-                    "flex min-w-0 flex-col items-center gap-1.5 rounded-lg border px-1.5 py-2.5 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-card",
-                    selected
-                      ? "border-accent/60 bg-accent/10 text-ink"
-                      : "border-hairline/50 bg-panel/30 text-ink-secondary",
-                    disabled ? "cursor-not-allowed opacity-50" : "hover:border-accent/40 hover:bg-control/60",
-                  )}
-                >
-                  <Icon size={16} className={cn("shrink-0", selected ? "text-accent" : "text-ink-secondary")} aria-hidden="true" />
-                  <span className="w-full truncate text-[12px] font-medium leading-4">{simpleLabel}</span>
-                  {issue && <span className="w-full truncate text-[11px] leading-3 text-ink-secondary">{view.short}</span>}
-                </button>
-              ))}
-            </div>
-            <div className="mt-3 text-[12px] leading-5 text-ink-secondary" data-testid="place-line">
-              {worksOnView.line}
-              {placeActionButton(worksOnView, "mt-1 block font-medium text-accent hover:underline")}
-            </div>
-            {heldPin && (
-              <div className="mt-2 flex items-center gap-2">
-                <p className="min-w-0 flex-1 text-[12px] leading-5 text-ink-secondary" data-testid="place-pinned-note">
-                  {t("place.pinnedNoteSimple", {
-                    place: placeOptions.find(({ mode }) => mode === heldPin)?.simpleLabel ?? t(placeLabelKey(heldPin)),
-                  })}
-                </p>
-                <button
-                  type="button"
-                  disabled={Boolean(bot.busy)}
-                  title={bot.busy ? t("place.busy") : undefined}
-                  onClick={() => dispatch({ type: "updateTask", botId: profileBot.id, threadId: profileBot.threadId, patch: { surface: null } })}
-                  className="shrink-0 rounded-md px-2 py-0.5 text-[12px] font-medium leading-5 text-accent-text transition-colors hover:bg-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
-                  data-testid="place-unpin"
-                >
-                  {t("place.unpinSimple", {
-                    place: placeOptions.find(({ selected }) => selected)?.simpleLabel ?? t(placeLabelKey(profileBot.computer ?? "auto")),
-                  })}
-                </button>
-              </div>
-            )}
+        </> : heldPin && (
+          <div className="mt-3 flex items-center gap-2 px-1">
+            <p className="min-w-0 flex-1 text-[12px] leading-5 text-ink-secondary" data-testid="place-pinned-note">
+              {t("place.pinnedNoteSimple", {
+                place: placeOptions.find(({ mode }) => mode === heldPin)?.simpleLabel ?? t(placeLabelKey(heldPin)),
+              })}
+            </p>
+            <button
+              type="button"
+              disabled={Boolean(bot.busy)}
+              title={bot.busy ? t("place.busy") : undefined}
+              onClick={() => dispatch({ type: "updateTask", botId: profileBot.id, threadId: profileBot.threadId, patch: { surface: null } })}
+              className="shrink-0 rounded-md px-2 py-0.5 text-[12px] font-medium leading-5 text-accent-text transition-colors hover:bg-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+              data-testid="place-unpin"
+            >
+              {t("place.unpinSimple", {
+                place: placeOptions.find(({ selected }) => selected)?.simpleLabel ?? t(placeLabelKey(profileBot.computer ?? "auto")),
+              })}
+            </button>
           </div>
         )}
       </div>

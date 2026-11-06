@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { KeyRound, Loader2, LockKeyhole, Plus, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
+import { KeyRound, Loader2, Plus, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
 
 import type { LoginBots, LoginSummary, OnePasswordStatus, OnePasswordVault } from "../../shared/logins";
 import { t } from "@/lib/i18n";
@@ -50,7 +50,7 @@ export function LoginsSettings() {
   useEffect(() => { if (ownerOrAdmin) void load(); }, [ownerOrAdmin]);
 
   if (ownerOrAdmin === false) {
-    return <Card title={t("settings.logins.title")} subtitle={t("settings.logins.adminOnly")} />;
+    return <Card subtitle={t("settings.logins.adminOnly")} />;
   }
 
   const botNames = (value: LoginBots) => {
@@ -75,11 +75,11 @@ export function LoginsSettings() {
   };
 
   return (
-    <Card title={t("settings.logins.title")} subtitle={t("settings.logins.subtitle")}>
+    <Card>
       <div className="flex flex-col gap-3" aria-busy={logins === null || busy}>
         {state.config?.cloudHome === true && <p className="text-[12px] leading-relaxed text-ink-secondary" data-logins-cloud-own>{t("settings.logins.cloudOwn")}</p>}
         {logins === null && !error && <p className="text-[12px] text-ink-secondary">{t("settings.logins.loading")}</p>}
-        {logins?.length === 0 && !adding && <p className="text-[12px] leading-relaxed text-ink-secondary">{t("settings.logins.empty")}</p>}
+        {logins?.length === 0 && !adding && <p className="text-[13px] leading-[18px] text-ink-secondary">{t("settings.w6c.logins.empty")}</p>}
         {!!logins?.length && (
           <ul className="divide-y divide-hairline/30" data-logins-list>
             {logins.map((login) => (
@@ -160,7 +160,6 @@ export function LoginsSettings() {
             <Plus size={14} />{t("settings.logins.add")}
           </button>
         )}
-        <p className="text-[12px] leading-relaxed text-ink-tertiary">{t("settings.logins.limits")}</p>
         {error && <p role="alert" className="text-[12px] text-danger">{error}</p>}
         <OnePasswordConnection status={onePassword} disabled={logins === null} bots={bots} botNames={botNames}
           onChange={async (next) => { setOnePassword(next); await load(); }} />
@@ -276,7 +275,7 @@ function OnePasswordConnection({ status, disabled, bots, botNames, onChange }: {
         </>
       ) : (
         <form className="flex flex-col gap-2" onSubmit={connect}>
-          <p className="text-[12px] leading-relaxed text-ink-secondary">{t("settings.logins.onePassword.guide")}</p>
+          <p className="text-[13px] leading-[18px] text-ink-secondary">{t("settings.w6c.logins.onePasswordGuide")}</p>
           <div className="flex flex-wrap gap-2">
             <input name="onePasswordToken" type="password" autoComplete="off" spellCheck={false} maxLength={8192} value={token}
               onChange={(event) => setToken(event.target.value)} disabled={disabled || busy !== null}
@@ -288,9 +287,6 @@ function OnePasswordConnection({ status, disabled, bots, botNames, onChange }: {
           </div>
         </form>
       )}
-      <p className="flex items-start gap-1 text-[12px] leading-snug text-ink-tertiary">
-        <LockKeyhole size={11} aria-hidden="true" className="mt-[3px] shrink-0" /> {t("settings.logins.onePassword.note")}
-      </p>
       {error && <p role="alert" className="text-[12px] text-danger">{error}</p>}
     </section>
   );

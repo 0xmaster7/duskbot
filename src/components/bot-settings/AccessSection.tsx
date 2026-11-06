@@ -34,6 +34,7 @@ import { openKeySettings } from "../keys/key-focus";
 import { KeysLink } from "../keys/KeysLink";
 import type { ConnectorScope, ConnectorScopes } from "../../../shared/connector-scopes";
 import type { useBotSettingsDerived } from "./useBotSettingsDerived";
+import { SheetGroup, useSheetLook } from "./sheet-look";
 
 /**
  * Claude keeps sessions per project folder, so the server pins each task's folder on its first turn. PATCHed directly,
@@ -142,10 +143,12 @@ export function McpServersCard({ bot, patch }: { bot: Bot; patch: (patch: { mcpS
   const openPlugins = () => {
     dispatch({ type: "togglePlugins", open: true, surface: "mcp" });
   };
+  const sheet = useSheetLook();
 
   return (
+    <SheetGroup label={t("connectors.tab.mcp")}>
     <div className="rounded-xl bg-card p-4">
-      <div className="flex items-center justify-between gap-4">
+      {sheet ? <ProposalStatus bot={bot} kind="owner" /> : <div className="flex items-center justify-between gap-4">
         <div>
           <div className="text-[15px] font-medium text-ink">{t("connectors.tab.mcp")}</div>
           <div className="mt-0.5 text-[13px] text-ink-secondary">
@@ -153,18 +156,18 @@ export function McpServersCard({ bot, patch }: { bot: Bot; patch: (patch: { mcpS
           </div>
           <ProposalStatus bot={bot} kind="owner" />
         </div>
-      </div>
+      </div>}
       {error && (
         <div role="alert" className="mt-3 text-[12px] text-danger">
           {t("botAccess.mcpRefreshError")} <button type="button" onClick={() => void refresh()} className="underline">{t("connectors.action.retry")}</button>
         </div>
       )}
       {servers === null ? !error && (
-        <div className="mt-3 text-[12px] text-ink-secondary">{t("mcp.loading")}</div>
+        <div className={cn(!sheet && "mt-3", "text-[12px] text-ink-secondary")}>{t("mcp.loading")}</div>
       ) : servers.length === 0 ? (
-        <div className="mt-3 rounded-lg bg-inset px-3 py-2 text-[12px] text-ink-secondary">{t("botAccess.mcpEmpty")}</div>
+        <div className={cn(!sheet && "mt-3", "rounded-lg bg-inset px-3 py-2 text-[12px] text-ink-secondary")}>{t("botAccess.mcpEmpty")}</div>
       ) : (
-        <div className="mt-3 divide-y divide-hairline/40 overflow-hidden rounded-lg border border-hairline/40">
+        <div className={cn(!sheet && "mt-3", "divide-y divide-hairline/40 overflow-hidden rounded-lg border border-hairline/40")}>
           {servers.map((server) => (
             <div key={server.name} className="flex items-center justify-between gap-3 px-3 py-2">
               <div className="min-w-0 flex-1">
@@ -196,6 +199,7 @@ export function McpServersCard({ bot, patch }: { bot: Bot; patch: (patch: { mcpS
       </div>
       {bot.busy && <p className="mt-2 text-[12px] text-ink-secondary">{t("botAccess.mcpBusy")}</p>}
     </div>
+    </SheetGroup>
   );
 }
 
@@ -484,11 +488,13 @@ function ResearchCard({ bot, patch }: { bot: Bot; patch: (patch: { xResearch: bo
   const on = bot.xResearch !== false;
   const line = !available ? t(connecting ? "research.connecting" : "research.addKey")
     : !on ? t("research.off") : t(ownKey ? "research.ownOn" : "research.planOn");
+  const sheet = useSheetLook();
   return (
+    <SheetGroup label={t("research.title")}>
     <div className="flex items-center justify-between gap-4 rounded-xl bg-card p-4" data-testid="access-x-research">
       <div>
-        <div className="text-[15px] font-medium text-ink">{t("research.title")}</div>
-        <div className="mt-0.5 text-[13px] text-ink-secondary">{line}</div>
+        {!sheet && <div className="text-[15px] font-medium text-ink">{t("research.title")}</div>}
+        <div className={cn(!sheet && "mt-0.5", "text-[13px] text-ink-secondary")}>{line}</div>
         {!available && !connecting && (
           <button type="button" className="ui-button mt-2" onClick={() => dispatch(openKeySettings("treg"))}>
             {t("research.openKeys")}
@@ -503,6 +509,7 @@ function ResearchCard({ bot, patch }: { bot: Bot; patch: (patch: { xResearch: bo
         className="disabled:cursor-not-allowed"
       />
     </div>
+    </SheetGroup>
   );
 }
 
@@ -673,6 +680,7 @@ export function AccessSection({
   const webhooks = state.webhooks.filter((webhook) => webhook.botId === bot.id);
   const alwaysAllow = bot.alwaysAllow ?? [];
   const shows = (part: AccessPart) => !parts || parts.includes(part);
+  const sheet = useSheetLook();
 
   return (
     <div className="flex flex-col gap-4">
@@ -694,11 +702,11 @@ export function AccessSection({
 
       {shows("folder") && <WorkingFolder bot={bot} />}
 
-      {shows("apps") && <div className="rounded-xl bg-card p-4">
+      {shows("apps") && <SheetGroup label={t("botAccess.apps.title")}><div className="rounded-xl bg-card p-4">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <div className="text-[15px] font-medium text-ink">{t("botAccess.apps.title")}</div>
-            <div className="mt-0.5 text-[13px] text-ink-secondary">
+            {!sheet && <div className="text-[15px] font-medium text-ink">{t("botAccess.apps.title")}</div>}
+            <div className={cn(!sheet && "mt-0.5", "text-[13px] text-ink-secondary")}>
               {!connectedAppsConfigured
                 ? t("botAccess.apps.connectInSettings")
                 : !canUseConnectedApps
@@ -748,7 +756,7 @@ export function AccessSection({
             <Plus size={14} /> {t("botAccess.connectApp")}
           </button>
         )}
-      </div>}
+      </div></SheetGroup>}
 
       {shows("phone") && <PhoneAppsCard bot={bot} patch={patch} />}
       {shows("mcp") && <McpServersCard bot={bot} patch={patch} />}
@@ -829,14 +837,14 @@ export function AccessSection({
         )}
       </div>}
 
-      {!draft && shows("always") && <div className="rounded-xl bg-card p-4">
-        <div className="text-[15px] font-medium text-ink">{t("botAccess.always.title")}</div>
-        <div className="mt-0.5 text-[13px] text-ink-secondary">{t("botAccess.always.description")}</div>
+      {!draft && shows("always") && <SheetGroup label={t("botAccess.always.title")}><div className="rounded-xl bg-card p-4">
+        {!sheet && <div className="text-[15px] font-medium text-ink">{t("botAccess.always.title")}</div>}
+        {!sheet && <div className="mt-0.5 text-[13px] text-ink-secondary">{t("botAccess.always.description")}</div>}
         <ProposalStatus bot={bot} kind="owner" />
         {alwaysAllow.length === 0 ? (
-          <div className="mt-3 rounded-lg bg-inset px-3 py-2 text-[12px] text-ink-secondary">{t("botAccess.always.empty")}</div>
+          <div className={cn(!sheet && "mt-3", "rounded-lg bg-inset px-3 py-2 text-[12px] text-ink-secondary")}>{t("botAccess.always.empty")}</div>
         ) : (
-          <div className="mt-3 divide-y divide-hairline/40 overflow-hidden rounded-lg border border-hairline/40">
+          <div className={cn(!sheet && "mt-3", "divide-y divide-hairline/40 overflow-hidden rounded-lg border border-hairline/40")}>
             {alwaysAllow.map((entry) => (
               <div key={entry} className="flex items-center justify-between gap-3 px-3 py-2">
                 <span className="min-w-0 flex-1 truncate font-mono text-[13px] text-ink">{entry}</span>
@@ -852,7 +860,7 @@ export function AccessSection({
             ))}
           </div>
         )}
-      </div>}
+      </div></SheetGroup>}
 
     </div>
   );

@@ -49,7 +49,7 @@ export function AttachmentStorageSettings() {
       title={t("settings.attachments.title")}
       subtitle={<>
         <span data-attachments-used className="block">{t("settings.attachments.used", { used: size(usage.usedBytes), max: size(usage.maxBytes) })}</span>
-        <span className="block">{t(confirming ? "settings.attachments.confirmText" : "settings.attachments.help")}</span>
+        {confirming && <span className="block">{t("settings.attachments.confirmText")}</span>}
       </>}
       message={result && <p role={result.kind === "error" ? "alert" : "status"} className={cn(result.kind === "error" ? "text-danger" : "text-success")}>
         {result.message}

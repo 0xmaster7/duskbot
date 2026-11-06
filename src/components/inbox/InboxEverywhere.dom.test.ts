@@ -17,7 +17,6 @@ import { initialState, StoreContext, type AppState, type Bot } from "@/state/sto
 import { closeInbox, currentInboxPanel, openInbox, readInboxLine, refreshInbox, setInboxView } from "@/state/inbox";
 import { setTeamPeople } from "@/state/team-people";
 import type { InboxRow, InboxView } from "../../../shared/inbox";
-import { SidebarActiveThreads } from "../SidebarActiveThreads";
 import { NeedsYouButton } from "../TeamOwner";
 import { SidebarInboxRow } from "../SidebarInboxRow";
 import { setAttentionPinned } from "./attention-pinned";
@@ -137,12 +136,10 @@ describe("the Inbox row", () => {
 describe("an older server, with no inbox off a team", () => {
   beforeEach(() => { server.refusal = { status: 404 }; });
 
-  it("falls back to the tray and Needs you it showed before, and is not asked again", async () => {
+  it("falls back to the Needs you it showed before, and is not asked again", async () => {
     await refreshInbox();
-    await mount(createElement("div", null, row(), createElement(SidebarActiveThreads, { entries: [], icons: false, phone: false, dispatch: vi.fn() })));
+    await mount(row());
     expect(inboxButton(), "no row where there is no inbox").toBeNull();
-    await click('[aria-label="Active Threads"]');
-    expect(document.body.textContent).toContain("No active threads");
     setTeamPeople({ people: [], me: null, admin: true, needsYou: [{ kind: "question", id: "q", at: AT, botId: "eli", threadId: "t", text: "Which?" }] });
     await mount(createElement(NeedsYouButton));
     expect(document.querySelector("[data-needs-you]"), "Needs you stays on an older team's Cloud").not.toBeNull();
@@ -231,7 +228,7 @@ describe("a place's inbox in the panel", () => {
     expect(dispatch.mock.calls.map(([action]) => action.threadId).filter(Boolean).every((threadId) => threadId === "eli-launch"), "nothing opens another of the bot's threads").toBe(true);
   });
 
-  it("lists the conversations at work with a jump to each and the pin, leaving out what the inbox already asks", async () => {
+  it("lists each bot at work once, with a jump and the pin, leaving out what the inbox already asks", async () => {
     const working = { threadId: "eli-work", title: "Writing the page", createdAt: 1, busy: true, activity: "working" as const };
     const asking = { threadId: "eli-pricing", title: "Pricing work", createdAt: 2, activity: "waiting-on-you" as const };
     const told = { threadId: "noa-main", title: "Told already", createdAt: 3, unread: true };
@@ -239,11 +236,11 @@ describe("a place's inbox in the panel", () => {
     const lineThere = { ...news, id: "line-t", origin: { botId: "eli", threadId: "line-thread", title: "Told and still working" } };
     await panel([approval, news, lineThere], [bot({ tasks: [working, asking, told, toldAndWorking] as Bot["tasks"] })]);
     const section = document.querySelector<HTMLElement>("[data-inbox-active]")!;
-    expect(section.textContent).toContain("Writing the page");
+    const rows = [...section.querySelectorAll<HTMLElement>("button[aria-label]")].filter((one) => !one.hasAttribute("data-inbox-pin"));
+    expect(rows.map((one) => one.getAttribute("aria-label")), "one row for the bot, named for it, not its thread").toEqual(["Eli · Working"]);
+    expect(section.textContent).not.toContain("Writing the page");
     expect(section.textContent).not.toContain("Pricing work");
-    expect(section.textContent, "unread news is already a line above").not.toContain("Told already");
-    expect(section.textContent, "work still going stays reachable").toContain("Told and still working");
-    await act(async () => { [...section.querySelectorAll<HTMLElement>("button")].find((one) => one.textContent?.includes("Writing the page"))!.click(); });
+    await act(async () => { rows[0]!.click(); });
     expect(dispatch).toHaveBeenCalledWith({ type: "switchTask", botId: "eli", threadId: "eli-work" });
     await click("[data-inbox-pin]");
     expect(document.querySelector("[data-inbox-pin]")!.getAttribute("aria-label")).toBe("Unpin");

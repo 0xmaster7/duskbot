@@ -29,8 +29,6 @@ describe("ThreadCleanupSettings", () => {
     expect(markup).toContain('value="30"');
     expect(markup).toContain('value="50"');
     expect(markup).toContain('disabled=""');
-    expect(markup).toContain("Off by default.");
-    expect(markup.match(/never threads or transcripts\./g)).toHaveLength(2);
   });
 
   it("shows the confirmed server values, cap converted from bytes to MiB", () => {
@@ -49,12 +47,11 @@ describe("ThreadCleanupSettings", () => {
     expect(markup).toContain('value="0.25"');
   });
 
-  it("wires both number inputs to their help copy", () => {
+  it("names both number inputs and keeps no help paragraphs", () => {
     fixture.threads = { maxConcurrentPerBot: 3, eventLogRetentionDays: 7, eventLogMaxBytes: 1048576 };
     const markup = renderToStaticMarkup(createElement(ThreadCleanupSettings));
-    expect(markup).toContain('aria-describedby="thread-log-retention-help"');
-    expect(markup).toContain('aria-describedby="thread-log-cap-help"');
-    expect(markup).toContain('id="thread-log-retention-help"');
-    expect(markup).toContain('id="thread-log-cap-help"');
+    expect(markup).toMatch(/aria-label="[^"]+"[^>]*id="thread-log-retention-days"|id="thread-log-retention-days"[^>]*aria-label="[^"]+"/);
+    expect(markup).toMatch(/id="thread-log-cap-mib"[^>]*aria-label="[^"]+"/);
+    expect(markup).not.toContain("thread-log-retention-help");
   });
 });

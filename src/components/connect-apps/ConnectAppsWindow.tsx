@@ -4,6 +4,7 @@ import { useStore, type Action } from "@/state/store";
 import { t } from "@/lib/i18n";
 import { connectorDescription } from "@/lib/app-catalog";
 import { listLogins } from "@/lib/logins";
+import { connectorStatusMemory, preloadConnectedApps } from "@/lib/connected-apps";
 import { loadMcpServers, type McpServerSummary } from "@/lib/mcp-servers";
 import { POSTIZ_SERVER } from "../../../shared/postiz";
 import { HOSTED_MCP_APPS, type HostedConnections, type HostedMcpAppId } from "@/lib/hosted-mcp-apps";
@@ -30,7 +31,7 @@ import {
   type AppEntry, type Category, type Connection,
 } from "./catalog";
 import { MCP_SERVERS_ID as MCP_PAGE, type ConnectAppsPage } from "./open";
-import { useConnectors, type ConnectorPhase } from "./use-connectors";
+import { cachedConnectorCatalog, loadConnectorCatalog, useConnectors, type ConnectorPhase } from "./use-connectors";
 import { appLogo } from "./logos";
 import type { ToolkitCard } from "../ServiceIcon";
 import "./connect-apps.css";
@@ -64,6 +65,24 @@ function nativeEntries(): AppEntry[] {
       icon: "image" in app.icon ? { image: app.icon.image } : { glyph: "credit-card", glyphPaint: "rgb(48 49 54)" }, website: new URL(app.url).hostname.replace(/^mcp\./, ""), keywords: app.keywords,
     })),
   ];
+}
+
+function decodeImage(src: string): Promise<void> {
+  const image = new Image();
+  image.src = src;
+  return image.decode().catch(() => {});
+}
+
+/** What the window's first frame shows, read ahead: the catalog, what is connected and every bundled logo, so it opens
+ * complete instead of filling in. */
+export function prepareConnectApps(): Promise<void> {
+  const logos = (cards: readonly ToolkitCard[]) => Promise.all([...nativeEntries().map((entry) => entry.icon), ...cards.map(cardIcon)]
+    .flatMap((icon) => (icon.image ? [decodeImage(icon.image)] : [])));
+  const catalog = cachedConnectorCatalog();
+  return Promise.allSettled([
+    catalog ? logos(catalog.cards ?? []) : loadConnectorCatalog().then((answer) => logos(answer.cards ?? [])),
+    connectorStatusMemory() ? null : preloadConnectedApps(),
+  ]).then(() => {});
 }
 
 interface Toast { kind: "success" | "error"; text: string }

@@ -227,14 +227,14 @@ describe("Computer panel tab", () => {
     expect(selected()).toBe("Screen");
   });
 
-  it("stops on the Files tab in Simple mode", async () => {
+  it("stops on the Data tab in Simple mode", async () => {
     fixture.advanced = false;
     await open(makeBot());
-    expect(tabLabels()).toEqual(["Screen", "Browser", "Data", "Files"]);
+    expect(tabLabels()).toEqual(["Screen", "Data"]);
     press("Screen", "End");
     await settle();
-    expect(selected()).toBe("Files");
-    expect(document.activeElement).toBe(tab("Files"));
+    expect(selected()).toBe("Data");
+    expect(document.activeElement).toBe(tab("Data"));
   });
 
   it("points every selected trigger at its panel and the panel back", async () => {

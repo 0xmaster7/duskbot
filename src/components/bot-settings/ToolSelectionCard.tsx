@@ -6,6 +6,7 @@ import { TOOL_SCOPE_SUPPORT } from "../../../shared/tool-scope-support";
 import { useBotEditor } from "./BotEditorContext";
 import { inputCls } from "./field";
 import { Select } from "../Select";
+import { SheetGroup, useSheetLook } from "./sheet-look";
 
 type Draft = { custom: boolean; onlyListed: boolean; allow: string; deny: string };
 const lines = (text: string) => text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
@@ -13,6 +14,7 @@ const lines = (text: string) => text.split(/\r?\n/).map(line => line.trim()).fil
 /** Direct, acknowledged saves: a rejected restriction must never appear saved in the optimistic queue. */
 export function ToolSelectionCard({ bot, engineKind }: { bot: Bot; engineKind?: string }) {
   const { request } = useBotEditor();
+  const sheet = useSheetLook();
   const saved = parseToolScope(bot.toolScope);
   const scope = saved.ok ? saved.scope : undefined;
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -51,17 +53,17 @@ export function ToolSelectionCard({ bot, engineKind }: { bot: Bot; engineKind?: 
     : engineKind === "grokAgent" ? "native:read_file\nnative:search_replace\nnative:write"
       : support === "mcp" ? "native:*\nmcp:mail:read_notes" : "native:ask_user\nmcp:mail:read_notes";
 
-  return <div className="rounded-xl bg-card p-4">
-    <div className="text-[15px] font-medium text-ink">{t("botAccess.tools.title")}</div>
-    <p className="mt-0.5 text-[13px] text-ink-secondary">{t("botAccess.tools.description")}</p>
-    <p role={saved.ok ? "status" : "alert"} className={`mt-2 text-[12px] ${saved.ok ? "text-ink-secondary" : "text-danger"}`}>
+  return <SheetGroup label={t("botAccess.tools.title")}><div className="rounded-xl bg-card p-4">
+    {!sheet && <div className="text-[15px] font-medium text-ink">{t("botAccess.tools.title")}</div>}
+    {!sheet && <p className="mt-0.5 text-[13px] text-ink-secondary">{t("botAccess.tools.description")}</p>}
+    {!(sheet && saved.ok && scope === undefined) && <p role={saved.ok ? "status" : "alert"} className={`${sheet ? "mb-3 " : "mt-2 "}text-[12px] ${saved.ok ? "text-ink-secondary" : "text-danger"}`}>
       {!saved.ok ? t("botAccess.tools.corrupt") : scope?.allow?.length === 0 ? t("botAccess.tools.none")
         : scope === undefined ? t("botAccess.tools.all") : t("botAccess.tools.customSaved")}
-    </p>
-    <label className="mt-3 block text-[13px] text-ink-secondary">
-      {t("botAccess.tools.mode")}
+    </p>}
+    <label className={`${sheet ? "" : "mt-3 "}block text-[13px] text-ink-secondary`}>
+      {!sheet && t("botAccess.tools.mode")}
       <Select aria-label={t("botAccess.tools.title")} disabled={saving || !!bot.busy} value={fields.custom ? "custom" : "all"}
-        className="mt-1 w-full" onChange={event => change({ custom: event.target.value === "custom", onlyListed: fields.custom ? fields.onlyListed : true })}>
+        className={sheet ? "w-full" : "mt-1 w-full"} onChange={event => change({ custom: event.target.value === "custom", onlyListed: fields.custom ? fields.onlyListed : true })}>
         <option value="all">{t("botAccess.tools.all")}</option>
         <option value="custom">{t("botAccess.tools.custom")}</option>
       </Select>
@@ -96,5 +98,5 @@ export function ToolSelectionCard({ bot, engineKind }: { bot: Bot; engineKind?: 
       </button>
       <a href="https://github.com/milind-soni/OpenMausBot/blob/main/docs/tool-selection.md" target="_blank" rel="noreferrer" className="text-[12px] text-ink-secondary underline">{t("botAccess.tools.examples")}</a>
     </div>
-  </div>;
+  </div></SheetGroup>;
 }

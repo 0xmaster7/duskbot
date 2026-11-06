@@ -125,7 +125,6 @@ const { LibraryPage, LibrarySection } = await import("./bot-panel/LibraryTab");
 const { ComputerTab, WherePage } = await import("./bot-panel/ComputerTab");
 const { PageBody, AppsPage, RoutinesPage, MemoryPage, SkillsPage, FolderPage, BrowserPage } = await import("./bot-panel/pages");
 const { BrowserLogins } = await import("./bot-panel/browser-logins");
-const { takeComputerPanelTabFocus } = await import("@/lib/computer-panel-focus");
 const { PAGES, sectionTarget } = await import("./bot-panel/page-registry");
 const { isModalPage, pendingPanelModal, takePanelModalRequest } = await import("./bot-panel/modals/panel-modal");
 const { openBotSettings } = await import("./bot-panel/panel-link");
@@ -383,7 +382,7 @@ describe("the bot panel in Simple mode", () => {
   });
 
   it.each([
-    ["overview", "details", undefined], ["identity", "details", undefined], ["slack", "details", undefined],
+    ["overview", "details", undefined], ["identity", "advanced", undefined], ["slack", "advanced", undefined],
     ["soul", "details", "instructions"], ["skills", "advanced", "skills"], ["memory", "advanced", "memory"],
     ["routines", "details", "routines"], ["access", "computer", "where"], ["model", "details", undefined],
     ["permissions", "advanced", undefined], ["voice", "advanced", undefined], ["visibility", "details", undefined],
@@ -396,6 +395,10 @@ describe("the bot panel in Simple mode", () => {
     if (isModalPage(page)) {
       expect(shown(rendered)).toEqual({ tab: "advanced", page: undefined });
       expect(askedModal()).toBe(page);
+    } else if (sectionTarget(section).sheet) {
+      // the bot's identity, Slack and permissions open their page of the settings sheet over the Advanced tab
+      expect(shown(rendered)).toEqual({ tab: "advanced", page: undefined });
+      expect(askedModal()).toBe(sectionTarget(section).sheet);
     } else if (page) expect(shown(rendered).page).toBe(page);
     else expect(shown(rendered)).toEqual({ tab, page: undefined });
     if (page) expect(PAGES[page].home).toBe(tab);
@@ -616,14 +619,14 @@ describe("the Details tab", () => {
 });
 
 describe("the Bot settings page", () => {
-  it("is one list card of rows that each open their dialog, then the actions, with the model left to Details", () => {
+  it("is two list cards of rows that each open their page of the sheet, then the actions, with the model left to Details", () => {
     const rendered = settingsPage(makeBot());
     expect(rendered.html).not.toContain('data-panel-card="model"');
-    const order = ['data-panel-card="uses"', 'data-panel-card="actions"'].map((marker) => rendered.html.indexOf(marker));
+    const order = ['data-panel-card="uses"', 'data-panel-card="access"', 'data-panel-card="actions"'].map((marker) => rendered.html.indexOf(marker));
     expect(order.every((index) => index > -1)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     const pages = [...rendered.html.matchAll(/data-panel-page="(\w+)"/g)].map((match) => match[1]);
-    expect(pages).toEqual(["instructions", "memory", "skills", "folder", "where", "backups"]);
+    expect(pages).toEqual(["instructions", "memory", "skills", "identity", "tools", "permissions", "folder", "where", "backups"]);
     for (const page of pages) {
       click(find(rendered, "data-panel-page", page));
       expect(onOpen).toHaveBeenLastCalledWith(page);
@@ -710,37 +713,35 @@ describe("the Computer tab", () => {
     expect(auto.html).toContain('data-stage="loading"');
   });
 
-  it("opens the full view from the screen", () => {
+  it("opens Grok's full view of the screen over the window, and leaves the bot panel where it is", () => {
+    const full = (rendered: Rendered) => rendered.nodes.find((node) => node.props.fullscreen !== undefined);
     const rendered = computer(cloudBot());
-    const setItem = vi.fn();
-    vi.stubGlobal("localStorage", { getItem: () => null, setItem });
+    expect(full(rendered)).toBeUndefined();
     click(find(rendered, "data-panel-action", "open-computer"));
-    expect(setItem).toHaveBeenLastCalledWith("omb-computer-panel-view:scout", "computer");
-    expect((fixture.dispatch as ReturnType<typeof vi.fn>).mock.calls.slice(-2)).toEqual([
-      [{ type: "toggleSettings", open: false }],
-      [{ type: "toggleComputer", open: true }],
-    ]);
-    expect(takeComputerPanelTabFocus("scout")).toBe(false);
-    vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => {} });
+    const opened = full(computer(cloudBot()));
+    expect(opened?.props.fullscreen).toMatchObject({ wake: false });
+    expect(fixture.dispatch).not.toHaveBeenCalledWith({ type: "toggleComputer", open: true });
+    expect(fixture.dispatch).not.toHaveBeenCalledWith({ type: "toggleSettings", open: false });
+    (opened!.props.fullscreen as { onExit: () => void }).onExit();
+    expect(full(computer(cloudBot()))).toBeUndefined();
   });
 
-  it("hands a keyboard open of the screen to the panel's tab", () => {
-    vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => {} });
-    click(find(computer(cloudBot()), "data-panel-action", "open-computer"), 0);
-    expect(takeComputerPanelTabFocus("scout")).toBe(true);
-  });
-
-  it("picks where the bot works beside the caption, with the Where it works choices and a reason on the ones it cannot use", () => {
+  it("picks this computer or the cloud desktop beside the caption, and ends with adding one in Settings", () => {
     fixture.places.browser = [true, false, "Not installed"];
     const select = placeSelect(computer(cloudBot()));
     expect(select.props.value).toBe("cloud");
     expect(select.props["aria-label"]).toBe("Where Scout works");
     expect((select.props.options as Array<{ value: string; label: string; disabled?: boolean; title?: string }>).map((option) => [option.value, option.label, Boolean(option.disabled), option.title]))
-      .toEqual([["auto", "Let it choose", false, undefined], ["local", "This PC", false, undefined], ["browser", "Browser", true, "Not installed."], ["cloud", "Cloud desktop", false, undefined]]);
+      .toEqual([["local", "This PC", false, undefined], ["cloud", "Cloud desktop", false, undefined], ["add", "Add cloud desktop…", false, undefined]]);
     (select.props.onChange as (value: string) => void)("local");
     expect(patch).toHaveBeenLastCalledWith({ computer: "local" });
-    (placeSelect(computer(cloudBot())).props.onChange as (value: string) => void)("auto");
-    expect(patch).toHaveBeenLastCalledWith({ computer: null });
+    patch.mockReset();
+    (placeSelect(computer(cloudBot())).props.onChange as (value: string) => void)("add");
+    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "toggleAppSettings", open: true, section: "computer" });
+    expect(patch).not.toHaveBeenCalled();
+    expect((select.props.options as Array<{ icon?: string; separated?: boolean }>).map((option) => [option.icon, Boolean(option.separated)]))
+      .toEqual([["laptop", false], ["cloud", false], ["plus", true]]);
+    expect((placeSelect(computer(makeBot())).props.options as Array<{ value: string }>).map((option) => option.value)).toEqual(["auto", "local", "cloud", "add"]);
     expect(placeSelect(computer(cloudBot({ yourAccess: "view" }))).props.disabled).toBe(true);
   });
 });

@@ -299,7 +299,7 @@ export function PageBody({ page, onOpen, editingInstructions: _editing, onEditIn
 }): ReactNode {
   switch (page) {
     case "settings":
-      return <SettingsPage {...context} onOpen={onOpen} />;
+      return <SettingsPage {...context} />;
     case "where":
       return <WherePage {...context} />;
     case "apps":

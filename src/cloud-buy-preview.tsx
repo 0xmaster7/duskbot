@@ -15,6 +15,7 @@ import type { CloudAddView } from "@/lib/cloud-plan";
 import { loadLocale } from "@/lib/i18n";
 import { SKIN_IDS, type SkinId } from "@/lib/skins";
 import { whatsNewView } from "@/lib/whats-new";
+import "./font-faces";
 import "./styles.css";
 
 const NOW = Date.now(), DAY = 86_400_000;

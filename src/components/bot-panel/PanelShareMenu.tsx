@@ -1,39 +1,107 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";
 import { BotAvatar } from "../Avatar";
-import { ChatShareMenu } from "../ChatMoreMenu";
-import { GrokIcon } from "../GrokIcon";
+import { useChatMoreItems } from "../ChatMoreMenu";
+import { GrokIcon, type GrokIconName } from "../GrokIcon";
 import { useMenuMotion } from "../MenuMotion";
-import { useTeamName } from "../bot-access/ShareBotButton";
+import { saveAccess } from "../bot-access/access";
+import { UndoToast, useTeamName } from "../bot-access/ShareBotButton";
+import { ShareBotDialog, type AccessChange } from "../bot-access/ShareBotDialog";
 import { roundButtonCls } from "./rows";
 
 const GAP = 4;
 
-/** Grok's Share on the panel: one menu item, Create a copy, under the button's right edge. A team bot keeps the team
- * share (who can use it), and Copy and Download stay in the chat's ⋯ menu. */
-export function PanelShareMenu({ bot }: { bot: Bot }) {
-  const team = useTeamName();
-  if (team) return <ChatShareMenu bot={bot} className={roundButtonCls} />;
-  return <CopyMenu bot={bot} />;
+interface Entry {
+  key: string;
+  title: string;
+  hint: ReactNode;
+  tile: ReactNode;
+  disabled?: boolean;
+  keepOpen?: boolean;
+  onSelect: () => void;
 }
 
-function CopyMenu({ bot }: { bot: Bot }) {
+const SHARE_KEYS = ["copy", "download"];
+const MORE_ICON: Record<string, GrokIconName> = { usage: "gauge", activity: "list-checks", inspector: "bug" };
+
+/** Grok's icon tile: a 36px elevated circle in a 40px slot. */
+function IconTile({ name }: { name: GrokIconName }) {
+  return (
+    <span aria-hidden="true" className="relative flex size-10 shrink-0 items-center justify-center">
+      <span className="flex size-9 items-center justify-center rounded-full border-[0.5px] border-edge bg-composer text-ink">
+        <GrokIcon name={name} size={16} />
+      </span>
+    </span>
+  );
+}
+
+/** Grok's Share on the panel, one menu of rich items under the button's right edge: share the bot (a copy, or on a team
+ * who can use it) and this chat (copy, download), then the chat's usage, Activity and the Inspector. */
+export function PanelShareMenu({ bot }: { bot: Bot }) {
+  // a "Copied" note never follows the panel into another conversation
+  return <ShareMenu key={bot.threadId} bot={bot} />;
+}
+
+function ShareMenu({ bot }: { bot: Bot }) {
   const { dispatch } = useStore();
+  const team = useTeamName();
+  const { items } = useChatMoreItems(bot);
   const [open, setOpen] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [change, setChange] = useState<AccessChange | null>(null);
+  const settled = useCallback(() => setChange(null), []);
   const motion = useMenuMotion(open);
   const [place, setPlace] = useState<{ top: number; right: number } | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
-  const item = useRef<HTMLButtonElement>(null);
 
   const close = (refocus = true) => {
     setOpen(false);
     if (refocus) trigger.current?.focus();
   };
+
+  const status = (key: string) => {
+    const trailing = items.find((item) => item.key === key)?.trailing;
+    return trailing ? <span className="contents">{trailing}</span> : null;
+  };
+  const share: Entry[] = [
+    team
+      ? { key: "people", title: t("botPanel.share.people"), hint: t("botPanel.share.peopleHint", { name: bot.name }), tile: <IconTile name="people" />, onSelect: () => setSharing(true) }
+      : {
+          key: "duplicate",
+          title: t("botPanel.share.copy"),
+          hint: t("botPanel.share.copyHint"),
+          // grok draws the bot and its copy: the copy up and to the right, paler
+          tile: (
+            <span aria-hidden="true" className="relative size-10 shrink-0">
+              <span className="absolute right-0.5 top-0.5 flex opacity-55"><BotAvatar bot={bot} size={20} animated={false} trackPointer={false} /></span>
+              <span className="absolute bottom-0.5 left-0.5 flex"><BotAvatar bot={bot} size={20} animated={false} trackPointer={false} /></span>
+            </span>
+          ),
+          onSelect: () => dispatch({ type: "duplicateBot", botId: bot.id }),
+        },
+    ...items.filter((item) => SHARE_KEYS.includes(item.key)).map((item): Entry => ({
+      key: item.key,
+      title: t(item.key === "copy" ? "botPanel.share.copyChat" : "botPanel.share.download"),
+      hint: (item.key === "copy" && status("copy")) || t(item.key === "copy" ? "botPanel.share.copyChatHint" : "botPanel.share.downloadHint"),
+      tile: <IconTile name={item.key === "copy" ? "copy" : "arrow-bracket-to-down"} />,
+      disabled: item.disabled,
+      keepOpen: item.keepOpen,
+      onSelect: item.onSelect,
+    })),
+  ];
+  const more: Entry[] = items.filter((item) => item.key in MORE_ICON).map((item) => ({
+    key: item.key,
+    title: item.label,
+    hint: item.key === "usage" ? <>{status("usage")}{" · "}{t("botPanel.share.usageHint")}</>
+      : t(item.key === "activity" ? "botPanel.share.activityHint" : "botPanel.share.inspectorHint", { name: bot.name }),
+    tile: <IconTile name={MORE_ICON[item.key]!} />,
+    onSelect: item.onSelect,
+  }));
 
   useLayoutEffect(() => {
     if (!open || !trigger.current) return;
@@ -42,7 +110,7 @@ function CopyMenu({ bot }: { bot: Bot }) {
   }, [open]);
 
   useEffect(() => {
-    if (open && place) item.current?.focus({ preventScroll: true });
+    if (open && place) menu.current?.querySelector<HTMLElement>("[role=menuitem]:not(:disabled)")?.focus({ preventScroll: true });
   }, [open, place]);
 
   useEffect(() => {
@@ -60,13 +128,48 @@ function CopyMenu({ bot }: { bot: Bot }) {
     };
   }, [open]);
 
+  const onMenuKey = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); close(); return; }
+    if (event.key === "Tab") { close(); return; }
+    const rows = [...(menu.current?.querySelectorAll<HTMLElement>("[role=menuitem]:not(:disabled)") ?? [])];
+    const at = rows.indexOf(document.activeElement as HTMLElement);
+    const next = event.key === "ArrowDown" ? (at + 1) % rows.length
+      : event.key === "ArrowUp" ? (at - 1 + rows.length) % rows.length
+        : event.key === "Home" ? 0 : event.key === "End" ? rows.length - 1 : null;
+    if (next === null || rows.length === 0) return;
+    event.preventDefault();
+    rows[next]?.focus();
+  };
+
+  const row = (entry: Entry) => (
+    <button
+      key={entry.key}
+      type="button"
+      role="menuitem"
+      data-panel-share-item={entry.key}
+      disabled={entry.disabled}
+      onClick={() => {
+        if (!entry.keepOpen) close(false);
+        entry.onSelect();
+      }}
+      className="relative flex w-full cursor-pointer items-center gap-2 px-1.5 py-[5px] text-left outline-none before:pointer-events-none before:absolute before:inset-0 before:rounded-[10px] before:content-[''] enabled:hover:before:bg-ink/[0.06] focus-visible:before:bg-ink/[0.06] disabled:cursor-default disabled:opacity-45"
+    >
+      {entry.tile}
+      <span className="relative flex min-w-0 flex-col">
+        <span className="truncate font-medium">{entry.title}</span>
+        <span className="truncate text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{entry.hint}</span>
+      </span>
+    </button>
+  );
+
   return (
     <>
       <button
         ref={trigger}
         type="button"
         data-panel-share=""
-        aria-label={t("chat.export.heading")}
+        aria-label={t("botPanel.share.menu")}
+        title={t("chat.export.heading")}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => (open ? close() : setOpen(true))}
@@ -82,45 +185,27 @@ function CopyMenu({ bot }: { bot: Bot }) {
         <GrokIcon name="arrow-bracket-from-up" size={16} />
       </button>
       {typeof document !== "undefined" && createPortal(
-          motion.shown && place && (
-            <div
-              ref={menu}
-              role="menu"
-              aria-label={t("chat.export.heading")}
-              data-panel-share-menu=""
-              {...motion.exitProps}
-              onKeyDown={(event) => {
-                if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); close(); }
-                else if (event.key === "Tab") close();
-              }}
-              style={{ top: place.top, right: place.right, transformOrigin: "right top" }}
-              className={cn(motion.className, "fixed z-[2147482000] flex w-[230px] flex-col gap-0.5 rounded-2xl bg-menu p-1.5 text-[14px] leading-5 tracking-[0.01em] text-ink shadow-(--shadow-popover) outline-none")}
-            >
-              <button
-                ref={item}
-                type="button"
-                role="menuitem"
-                data-panel-share-item="copy"
-                onClick={() => {
-                  close(false);
-                  dispatch({ type: "duplicateBot", botId: bot.id });
-                }}
-                className="relative flex w-full cursor-pointer items-center gap-2 px-1.5 py-[5px] text-left outline-none before:pointer-events-none before:absolute before:inset-0 before:rounded-[10px] before:content-[''] hover:before:bg-ink/[0.06] focus-visible:before:bg-ink/[0.06]"
-              >
-                {/* grok draws the bot and its copy: the copy up and to the right, paler */}
-                <span aria-hidden="true" className="relative size-10 shrink-0">
-                  <span className="absolute right-0.5 top-0.5 flex opacity-55"><BotAvatar bot={bot} size={20} animated={false} trackPointer={false} /></span>
-                  <span className="absolute bottom-0.5 left-0.5 flex"><BotAvatar bot={bot} size={20} animated={false} trackPointer={false} /></span>
-                </span>
-                <span className="relative flex min-w-0 flex-col">
-                  <span className="truncate font-medium">{t("botPanel.share.copy")}</span>
-                  <span className="truncate text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{t("botPanel.share.copyHint")}</span>
-                </span>
-              </button>
-            </div>
-          ),
+        motion.shown && place && (
+          <div
+            ref={menu}
+            role="menu"
+            aria-label={t("botPanel.share.menu")}
+            data-panel-share-menu=""
+            {...motion.exitProps}
+            onKeyDown={onMenuKey}
+            style={{ top: place.top, right: place.right, transformOrigin: "right top" }}
+            className={cn(motion.className, "fixed z-[2147482000] flex max-h-[calc(100dvh-80px)] w-[256px] max-w-[calc(100vw-16px)] flex-col gap-0.5 overflow-y-auto rounded-2xl bg-menu p-1.5 text-[14px] leading-5 tracking-[0.01em] text-ink shadow-(--shadow-popover) outline-none [scrollbar-width:none]")}
+          >
+            {share.map(row)}
+            {more.length > 0 && <div role="separator" className="mx-2 my-1 h-px shrink-0 bg-ink/8" />}
+            {more.map(row)}
+          </div>
+        ),
         document.body,
       )}
+      {sharing && team && <ShareBotDialog bot={bot} teamName={team} onClose={() => setSharing(false)} onChanged={setChange} />}
+      {change && <UndoToast key={`${change.text}:${JSON.stringify(change.after)}`} text={change.text}
+        onUndo={() => saveAccess(bot.id, change.before)} onDone={settled} />}
     </>
   );
 }

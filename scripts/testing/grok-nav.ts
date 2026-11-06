@@ -1,6 +1,6 @@
 // How a person reaches the places the one grok layout keeps off the sidebar:
-// Automations, the Team map and the Inbox from Settings > Advanced features >
-// Bots, bot Templates from Connect apps. Every step goes by accessible name.
+// Automations, the Team map and the Inbox from Settings > Advanced features,
+// bot Templates from Connect apps. Every step goes by accessible name.
 import { expect } from "vitest";
 
 type Ui = (verb: string, ...args: string[]) => Promise<Record<string, any>>;
@@ -72,27 +72,16 @@ export async function openSettings(ui: Ui, pane?: string): Promise<void> {
   if (pane) await clickByName(ui, pane, "button");
 }
 
-/** Settings > Advanced features > one of its pages: "Bots", "Apps and Tools", "Privacy and Data"... */
+/** Settings > Advanced features > one of its pages: "Bots", "Apps and tools", "Privacy and data"... */
 export async function openAdvancedSettings(ui: Ui, page: string): Promise<void> {
   await openSettings(ui, "Advanced features");
-  await clickByName(ui, new RegExp(`^${page.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} `), "button");
+  await clickByName(ui, new RegExp(`^${page.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?: |$)`), "button");
 }
 
-/** The Open button in the Bots page's row of this title; every row's button is named Open, so the row's group names it. */
+/** A row of Advanced features' first card, which opens that place straight away. */
 export async function openFromBotsSettings(ui: Ui, row: "Inbox" | "Automations" | "Team map" | "Files"): Promise<void> {
-  await openAdvancedSettings(ui, "Bots");
-  await expect.poll(async () => (await ui("snapshot")).snapshot as string, { timeout: 10_000 }).toContain(`group "${row}"`);
-  const { snapshot, refs } = await ui("snapshot") as { snapshot: string; refs: Record<string, Ref> };
-  const lines = snapshot.split("\n");
-  const at = lines.findIndex((line) => line.includes(`group "${row}"`));
-  const open = lines.slice(at + 1).find((line) => /button "Open" \[.*ref=(e\d+)/.test(line));
-  const ref = open?.match(/ref=(e\d+)/)?.[1];
-  expect(ref && refs[ref]?.name).toBe("Open");
-  // the pane wipes in from the side; a click mid-wipe opens the row beside it
-  const button = `document.querySelector('[data-settings-open=${row.toLowerCase().replace(" ", "-")}]')`;
-  await expect.poll(async () => (await ui("eval", "--js", `new Promise((done) => { const at = () => { const r = ${button}?.getBoundingClientRect(); return r ? [r.left, r.top].join() : null; };
-    const first = at(); setTimeout(() => done(first !== null && first === at()), 250); })`)).result, { timeout: 10_000, message: `${row} row still` }).toBe(true);
-  await ui("click", "--ref", `@${ref}`);
+  await openSettings(ui, "Advanced features");
+  await clickByName(ui, row, "button");
 }
 
 export async function openTeamMap(ui: Ui): Promise<void> {
@@ -110,4 +99,49 @@ export async function openTemplates(ui: Ui): Promise<void> {
   await clickByName(ui, "Connect apps", "button");
   await clickByName(ui, "Bot templates", "button", 15_000);
   await expect.poll(async () => (await ui("snapshot")).snapshot as string, { timeout: 20_000 }).toContain('dialog "Templates"');
+}
+
+/** The bot's panel: the chat header's pill opens it, unless it is open already. */
+export async function openBotPanel(ui: Ui, botName: string): Promise<void> {
+  await dismissNotices(ui);
+  if ((await ui("eval", "--js", "Boolean(document.getElementById('bot-panel'))")).result !== true) await clickByName(ui, `Open ${botName}'s profile`, "button");
+  await expect.poll(async () => (await ui("eval", "--js", "Boolean(document.getElementById('bot-panel'))")).result, { timeout: 10_000 }).toBe(true);
+}
+
+/** Panel > Advanced > a row of the bot's settings ("tools", "permissions", "identity", "slack"...): its settings sheet,
+ * open at that page. A row's name carries its value, so the row is found by its page. */
+export async function openBotSheet(ui: Ui, botName: string, page: string): Promise<void> {
+  await openBotPanel(ui, botName);
+  await clickByName(ui, "Advanced", "tab");
+  const row = `document.querySelector('#bot-panel [data-panel-page=${JSON.stringify(page)}]')`;
+  await expect.poll(async () => (await ui("eval", "--js", `Boolean(${row})`)).result, { timeout: 10_000, message: `${page} row` }).toBe(true);
+  await settled(ui);
+  await ui("eval", "--js", `${row}.click(); true`);
+  await expect.poll(async () => (await ui("eval", "--js", `document.querySelector('[data-bot-sheet] [data-bot-sheet-page][aria-current=page]')?.dataset.botSheetPage ?? null`)).result, { timeout: 10_000 }).toBe(page);
+}
+
+/** The bot's settings sheet closed, and the panel with it. */
+export async function closeBotPanel(ui: Ui): Promise<void> {
+  if ((await ui("eval", "--js", "Boolean(document.querySelector('[data-bot-sheet]'))")).result === true) {
+    await ui("eval", "--js", "document.querySelector('[data-bot-sheet] .settings-close').click(); true");
+    await expect.poll(async () => (await ui("eval", "--js", "Boolean(document.querySelector('[data-bot-sheet]'))")).result).toBe(false);
+  }
+  if ((await ui("eval", "--js", "Boolean(document.getElementById('bot-panel'))")).result === true) {
+    await ui("eval", "--js", "document.querySelector('#bot-panel button[aria-label=\"Close\"]').click(); true");
+    await expect.poll(async () => (await ui("eval", "--js", "Boolean(document.getElementById('bot-panel'))")).result, { timeout: 10_000 }).toBe(false);
+  }
+}
+
+/** The panel's Share menu, which also holds this chat's copy, download, usage, Activity and Inspector. */
+export async function openPanelMenu(ui: Ui, botName: string): Promise<void> {
+  await openBotPanel(ui, botName);
+  await clickByName(ui, "Share and more", "button");
+  await expect.poll(async () => (await ui("eval", "--js", "Boolean(document.querySelector('[data-panel-share-menu]'))")).result, { timeout: 10_000 }).toBe(true);
+  await settled(ui);
+}
+
+/** Another page of the open settings sheet, from its rail. */
+export async function sheetPage(ui: Ui, page: string): Promise<void> {
+  await ui("eval", "--js", `document.querySelector('[data-bot-sheet] [data-bot-sheet-page=${JSON.stringify(page)}]').click(); true`);
+  await expect.poll(async () => (await ui("eval", "--js", `document.querySelector('[data-bot-sheet] [data-bot-sheet-page][aria-current=page]')?.dataset.botSheetPage ?? null`)).result, { timeout: 10_000 }).toBe(page);
 }

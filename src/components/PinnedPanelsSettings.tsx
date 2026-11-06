@@ -29,7 +29,7 @@ export function PinnedPanelsSettings() {
   };
 
   return (
-    <Card title={t("webPanels.settings.title")} subtitle={t("webPanels.settings.subtitle")}>
+    <Card title={t("webPanels.settings.title")}>
       <div className="flex flex-col gap-3">
         {panels.length > 0 && (
           <ul className="flex flex-col divide-y divide-hairline/40 rounded-lg border border-hairline/40">
@@ -82,9 +82,7 @@ export function PinnedPanelsSettings() {
             {t(error === "name" ? "webPanels.settings.nameInvalid" : error === "self" ? "webPanels.settings.urlSelf" : "webPanels.settings.urlInvalid", { max: MAX_WEB_PANEL_NAME })}
           </p>
         )}
-        <p className="text-[12px] leading-relaxed text-ink-secondary">
-          {full ? t("webPanels.settings.full", { max: MAX_WEB_PANELS }) : t("webPanels.settings.help")}
-        </p>
+        {full && <p className="text-[12px] leading-relaxed text-ink-secondary">{t("webPanels.settings.full", { max: MAX_WEB_PANELS })}</p>}
       </div>
     </Card>
   );

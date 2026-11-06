@@ -2,7 +2,7 @@ import { Children, createElement, isValidElement, type ReactElement, type ReactN
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Bot, InstanceInfo, Message, Task } from "@/state/store";
+import type { Bot, InstanceInfo, Task } from "@/state/store";
 import type { FeatureFlagConfig } from "@/lib/feature-flags";
 
 // Hook-by-call-order harness: state survives between renders, effects never run, handlers are read off the element
@@ -102,7 +102,6 @@ vi.mock("@/state/store", async (importOriginal) => ({
 }));
 
 const { ComputerPanel } = await import("./ComputerPanel");
-const { ComputerFilesPane } = await import("./ComputerFilesPane");
 const { CloudBackendPicker } = await import("./CloudBackendPicker");
 const { LocalComputerAutoWarning } = await import("./LocalComputerAutoWarning");
 const { KeyRow } = await import("./keys/KeyRow");
@@ -160,14 +159,6 @@ const tabs = (rendered: ReturnType<typeof render>) => {
   const bar = rendered.nodes.find((node) => node.props["data-testid"] === "computer-tabs")!;
   return nodes(bar.props.children).filter((node) => node.type === "button").map((node) => text(node.props.children));
 };
-const placeLine = (rendered: ReturnType<typeof render>) =>
-  text(rendered.nodes.find((node) => node.props["data-testid"] === "place-line")!.props.children).replace(/&#x27;/g, "'");
-const grid = (rendered: ReturnType<typeof render>) => {
-  const card = rendered.nodes.find((node) => node.props["data-testid"] === "where-works");
-  if (!card) return [];
-  return nodes(card.props.children).filter((node) => node.type === "button");
-};
-
 beforeEach(() => {
   fixture.advanced = false;
   fixture.view.current = "computer";
@@ -208,9 +199,12 @@ describe("Computer panel tabs", () => {
     }
   });
 
-  it("shows Screen, Browser, Data and Files in Simple mode", () => {
+  it("shows Screen and Data in Simple mode, and Browser only for a bot that works in its browser", () => {
     fixture.android = true;
-    expect(tabs(render(makeBot()))).toEqual(["Screen", "Browser", "Data", "Files"]);
+    expect(tabs(render(makeBot()))).toEqual(["Screen", "Data"]);
+    fixture.values = [];
+    phaseIndex = -1;
+    expect(tabs(render(makeBot({ computer: "browser" })))).toEqual(["Screen", "Browser", "Data"]);
   });
 
   it("keeps the Advanced tabs unchanged", () => {
@@ -225,81 +219,10 @@ describe("Computer panel tabs", () => {
   it("reads a Routines view stored by Advanced as the Computer tab in Simple", () => {
     fixture.view.current = "routines";
     const rendered = render(makeBot());
-    expect(rendered.nodes.find((node) => node.props["data-testid"] === "where-works")).toBeDefined();
+    expect(rendered.nodes.find((node) => node.props.id === "computer-panel-tabs-panel-computer")).toBeDefined();
+    expect(rendered.nodes.some((node) => node.props["data-testid"] === "where-works")).toBe(false);
   });
 
-  it("lists the files this chat changed in the Files tab", () => {
-    fixture.view.current = "files";
-    const digest = (files: { added?: string[]; changed?: string[]; deleted?: string[] }) => ({
-      id: Math.random().toString(36), role: "assistant", kind: "digest", text: "",
-      digest: { files: { added: [], changed: [], deleted: [], ...files } },
-    }) as unknown as Message;
-    const rendered = render(makeBot({ messages: [
-      digest({ added: ["/Users/me/work/report.md", "/Users/me/work/old.txt"] }),
-      digest({ changed: ["/Users/me/work/notes.md"], deleted: ["/Users/me/work/old.txt"] }),
-    ] }));
-    expect(rendered.nodes.some((node) => node.type === ComputerFilesPane)).toBe(true);
-    expect(rendered.html).toContain("notes.md");
-    expect(rendered.html).toContain("report.md");
-    expect(rendered.html).not.toContain("old.txt");
-    expect(rendered.html).toContain("~/work");
-    expect(rendered.html).toContain("Scout&#x27;s private folder");
-  });
-
-  it("explains an empty Files tab", () => {
-    fixture.view.current = "files";
-    expect(render(makeBot()).html).toContain("Files Scout makes or changes in this chat will show up here.");
-  });
-
-  it("shows the selected chat's pinned folder after the bot default changes", () => {
-    fixture.view.current = "files";
-    const rendered = render(makeBot({
-      cwd: "/workspace/new-project",
-      tasks: [
-        { threadId: "other-thread", title: "Other chat", createdAt: 1, cwd: "/workspace/other-project" },
-        { threadId: "thread-scout", title: "Existing chat", createdAt: 2, cwd: "/Users/me/original-project" },
-      ],
-    }));
-    expect(rendered.html).toContain('title="/Users/me/original-project"');
-    expect(rendered.html).toContain("~/original-project");
-    expect(rendered.html).not.toContain("/workspace/new-project");
-    expect(rendered.html).not.toContain("/workspace/other-project");
-    expect(rendered.html).toContain("Change default");
-    expect(rendered.html).toContain("This chat keeps its current folder.");
-  });
-
-  it("keeps showing the pinned private folder after the bot default is cleared", () => {
-    fixture.view.current = "files";
-    const rendered = render(makeBot({ tasks: [
-      { threadId: "thread-scout", title: "Existing chat", createdAt: 1, cwd: "/Users/me/.openmausbot/task-workspaces/scout/thread-scout" },
-    ] }));
-    expect(rendered.html).toContain('title="/Users/me/.openmausbot/task-workspaces/scout/thread-scout"');
-    expect(rendered.html).toContain("~/.openmausbot/task-workspaces/scout/thread-scout");
-    expect(rendered.html).not.toContain("Scout&#x27;s private folder");
-  });
-
-  it("shows a legacy home-folder pin instead of the new bot default", () => {
-    fixture.view.current = "files";
-    const rendered = render(makeBot({
-      cwd: "/workspace/new-project",
-      tasks: [{ threadId: "thread-scout", title: "Legacy chat", createdAt: 1, cwd: null }],
-    }));
-    expect(rendered.html).toContain("Home folder");
-    expect(rendered.html).not.toContain("/workspace/new-project");
-    expect(rendered.html).not.toContain("Scout&#x27;s private folder");
-    expect(rendered.html).toContain("Change default");
-  });
-
-  it("uses the bot default until the selected chat has a folder pin", () => {
-    fixture.view.current = "files";
-    for (const tasks of [undefined, [{ threadId: "thread-scout", title: "New chat", createdAt: 1 }]]) {
-      const rendered = render(makeBot({ cwd: "/Users/me/new-project", tasks }));
-      expect(rendered.html).toContain('title="/Users/me/new-project"');
-      expect(rendered.html).toContain("~/new-project");
-      expect(rendered.html).not.toContain("This chat keeps its current folder.");
-      expect(rendered.html).not.toContain("Change default");
-    }
-  });
 });
 
 describe("Simple Browser tab with the browser off", () => {
@@ -358,52 +281,7 @@ function browserSwitch(rendered: ReturnType<typeof render>) {
   return rendered.nodes.find((node) => node.props["aria-label"] === "Let Scout use a browser")!;
 }
 
-describe("Where the bot works", () => {
-  it("offers six places in a 3-column grid with plain names", () => {
-    const rendered = render(makeBot());
-    const card = rendered.nodes.find((node) => node.props["data-testid"] === "where-works")!;
-    expect(rendered.html).toContain("Where Scout works");
-    expect(nodes(card.props.children).find((node) => node.props.role === "group")!.props.className).toContain("grid-cols-3");
-    expect(grid(rendered).map((node) => text(node.props.children))).toEqual(["Auto", "Cloud desktop", "Private desktop", "This Mac", "Browser", "Off"]);
-    expect(placeLine(rendered)).toBe("Uses the built-in browser, a private desktop on this computer, or this computer's screen, whichever the task needs.");
-  });
-
-  it("says This PC off a Mac, and never names a Local VM in Auto's line there", () => {
-    fixture.platform = "win32";
-    const rendered = render(makeBot());
-    expect(grid(rendered).map((node) => text(node.props.children))).toContain("This PC");
-    expect(placeLine(rendered)).not.toMatch(/Local VM|Boat|cloud box/i);
-  });
-
-  it("leaves This Mac out on another server's page, where this computer can never be a bot's place", () => {
-    fixture.localComputer = { available: false, support: "unsupported", enabled: false, status: "unavailable", reasonCode: "remote-server" };
-    expect(grid(render(makeBot())).map((node) => text(node.props.children))).toEqual(["Auto", "Cloud desktop", "Private desktop", "Browser", "Off"]);
-  });
-
-  it("says what Auto does on My Cloud, where it starts a cloud computer by itself", () => {
-    fixture.config = { ...fixture.config, cloudHome: true };
-    expect(placeLine(render(makeBot()))).toBe("Uses the built-in browser. In a chat, it starts its cloud desktop by itself when a task needs desktop apps.");
-  });
-
-  it("J11: the Advanced cards and the Simple grid name the same problem in the same words", () => {
-    fixture.instances = [{ ...engine(), displayName: "Plain", capabilities: { computerMcp: false, browserMcp: true } } as InstanceInfo];
-    const simple = render(makeBot());
-    const tile = grid(simple).find((node) => text(node.props.children).startsWith("Cloud desktop"))!;
-    expect(tile.props.disabled).toBe(true);
-    expect(text(tile.props.children)).toBe("Cloud desktopNot with this model");
-    expect(tile.props.title).toBe("M can't use a desktop. Choose a model that can, such as Claude or ChatGPT.");
-
-    fixture.advanced = true;
-    fixture.values = [];
-    phaseIndex = -1;
-    const advanced = render(makeBot());
-    const group = advanced.nodes.find((node) => node.props.role === "group" && node.props["aria-label"] === "Computer destination")!;
-    const card = nodes(group.props.children).filter((node) => node.type === "button")[1]!;
-    expect(card.props.disabled).toBe(true);
-    expect(text(card.props.children)).toBe("Cloud desktopNot with this model");
-    expect(card.props.title).toBe(tile.props.title);
-  });
-
+describe("Choosing a place in the panel", () => {
   it("reads a refused start as the same state a failed row does, never the relay's words", () => {
     fixture.seed = {
       phase: "error",
@@ -419,18 +297,18 @@ describe("Where the bot works", () => {
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "toggleAppSettings", open: true, section: "computer" });
   });
 
-  it("offers the one next action for the chosen place, and a User is told to ask an Admin", () => {
+  it("says what the chosen place needs under its screen, and a User is told to ask an Admin", () => {
     fixture.config = { ...fixture.config, box: { configured: false } };
-    const rendered = render(makeBot({ computer: "cloud" }));
-    expect(placeLine(rendered)).toBe("Bots here can get their own cloud desktops from Boat, a paid service.Connect Boat");
-    (rendered.nodes.find((node) => node.props["data-testid"] === "place-action")!.props.onClick as () => void)();
-    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "toggleAppSettings", open: true, section: "connections" });
+    const unconfigured = { phase: "unconfigured", resolved: { botId: "scout", threadId: "thread-scout", computer: "cloud", cloudBackend: "box" } };
+    fixture.seed = unconfigured;
+    expect(render(makeBot({ computer: "cloud" })).html).toContain("Bots here can get their own cloud desktops from Boat, a paid service.");
 
     fixture.ownerOrAdmin = false;
     fixture.values = [];
     phaseIndex = -1;
+    fixture.seed = unconfigured;
     const user = render(makeBot({ computer: "cloud" }));
-    expect(placeLine(user)).toBe("Bots here can get their own cloud desktops from Boat, a paid service. Ask an Admin to change it.");
+    expect(user.html).toContain("Ask an Admin to change it.");
     expect(user.nodes.some((node) => node.props["data-testid"] === "place-action")).toBe(false);
   });
 
@@ -466,27 +344,22 @@ describe("Where the bot works", () => {
       { computer: "off" },
     ];
     for (const [index, patch] of expected.entries()) {
-      const calls: unknown[][] = [];
-      for (const advanced of [true, false]) {
-        fixture.advanced = advanced;
-        fixture.values = [];
-        fixture.dispatch = vi.fn();
-        const start = makeBot({ computer: patch.computer === "off" ? "cloud" : "off" });
-        const rendered = render(start);
-        const group = rendered.nodes.find((node) => node.props.role === "group" && node.props["aria-label"] === "Computer destination")!;
-        const option = nodes(group.props.children).filter((node) => node.type === "button")[index]!;
-        (option.props.onClick as () => void)();
-        calls.push((fixture.dispatch as ReturnType<typeof vi.fn>).mock.calls);
-      }
-      expect(calls[0]).toEqual([[{ type: "updateBot", botId: "scout", patch }]]);
-      expect(calls[1]).toEqual(calls[0]);
+      fixture.advanced = true;
+      fixture.values = [];
+      fixture.dispatch = vi.fn();
+      const rendered = render(makeBot({ computer: patch.computer === "off" ? "cloud" : "off" }));
+      const group = rendered.nodes.find((node) => node.props.role === "group" && node.props["aria-label"] === "Computer destination")!;
+      (nodes(group.props.children).filter((node) => node.type === "button")[index]!.props.onClick as () => void)();
+      expect((fixture.dispatch as ReturnType<typeof vi.fn>).mock.calls).toEqual([[{ type: "updateBot", botId: "scout", patch }]]);
     }
   });
 
   it("asks before letting an auto-approving bot use this Mac", () => {
+    fixture.advanced = true;
     const start = makeBot({ computer: "off", approvalMode: "auto" } as Partial<Bot>);
     const rendered = render(start);
-    (grid(rendered).find((node) => text(node.props.children) === "This Mac")!.props.onClick as () => void)();
+    const group = rendered.nodes.find((node) => node.props.role === "group" && node.props["aria-label"] === "Computer destination")!;
+    (nodes(group.props.children).filter((node) => node.type === "button").find((node) => text(node.props.children).startsWith("This computer"))!.props.onClick as () => void)();
     expect(fixture.dispatch).not.toHaveBeenCalled();
     const warning = render(start).nodes.find((node) => node.type === LocalComputerAutoWarning)!;
     expect(warning.props.open).toBe(true);

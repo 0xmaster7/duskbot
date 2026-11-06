@@ -22,7 +22,6 @@ import { PlaceIcon } from "./PlaceIcon";
 import { roomMemberQueueTitle } from "./RoomQueueList";
 import { RoomWorkingFolderChip } from "./RoomWorkingFolder";
 import { Select } from "./Select";
-import { GroupTaskPicker } from "./TaskPicker";
 
 export function DefaultResponderSelect({ group, members }: { group: Group; members: Bot[] }) {
   const { state, dispatch } = useStore();
@@ -79,7 +78,7 @@ function memberMauses(group: Group, members: Bot[]) {
           held
             ? t("room.holds.avatarHeld", { name: b.name })
             : queueTitle ?? (busyElsewhere
-              ? t("room.memberWorkingElsewhere", { name: b.name })
+              ? t("room.memberWorkingElsewhere.chat", { name: b.name })
               : `${b.name}${busy ? " — working…" : ""}${contextWarning ? ` — ${t("contextWarning.short", { percent: contextWarning.percent })}` : ""}`)
         }
         className={cn(
@@ -145,6 +144,7 @@ export function RoomHeader({
   onOpenMembers: () => void;
   membersTriggerRef: RefObject<HTMLButtonElement | null>;
 }) {
+  const { dispatch } = useStore();
   const { dragProps: headerDragProps, noDragStyle: headerNoDragStyle } = useCaptionChrome();
   const faces = memberMauses(group, members);
   const membersLabel = members.length === 1
@@ -159,7 +159,10 @@ export function RoomHeader({
             <button
               type="button"
               data-room-name
-              onClick={(event) => openRoomPanel(group.id, event.currentTarget)}
+              onClick={(event) => {
+                openRoomPanel(group.id, event.currentTarget);
+                dispatch({ type: "toggleSettings", open: true });
+              }}
               title={t("room.panel.open")}
               aria-label={t("room.panel.openAria", { name: group.name })}
               aria-haspopup="dialog"
@@ -210,7 +213,6 @@ export function RoomHeader({
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="truncate text-[15px] font-semibold text-ink">{group.name}</span>
-              {!setupPending && !group.dm && <GroupTaskPicker group={group} />}
             </div>
             {group.description && <p className="truncate text-[12px] leading-4 text-ink-secondary">{group.description}</p>}
           </div>

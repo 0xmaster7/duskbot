@@ -53,6 +53,7 @@ import { stopNoticeDue, useStoppedAt } from "@/lib/stop-turn";
 import { THIS_COMPUTER_NOT_READY } from "../../shared/your-computer";
 import { BotAvatar, type MausAvatarHandle } from "./Avatar";
 import type { MarkState } from "./mascot-motion-mark";
+import { turnMarkState } from "./mascot-presence";
 import type { LiveStatus } from "@/state/turn-status";
 import { TurnPresence } from "./TurnPresence";
 import { showToolCallsEnabled, skillAuthoringEnabled } from "@/lib/feature-flags";
@@ -94,7 +95,7 @@ import { AttachmentGallery, collectMessageFiles, replyAttachmentGroup, splitMess
 import { ScreenFrame } from "./ScreenFrame";
 import { CompactionChip, DigestChip } from "./DigestChip";
 import { RenameTitle } from "./RenameTitle"; import { ChatHeadRole, chiefOfStaffBadge } from "./BotRole";
-import { BotActivityPicker } from "./TaskPicker"; import { ChatHeadPill } from "./ChatHeadPill"; import { useStoreRef } from "@/state/store-ref";
+import { ChatHeadPill } from "./ChatHeadPill"; import { useStoreRef } from "@/state/store-ref";
 import { ELEVATED_FLOAT, ELEVATED_HOVER } from "./elevated";
 import { ModelPicker } from "./ModelPicker";
 import { ChatHeaderMenu, ChatMoreMenu } from "./ChatMoreMenu"; import { TeamOwnHelperHeader, TeamPrivateFirstLine, TeamPrivateHeader, TeamSharedHeader } from "./TeamPrivateChatsLine";
@@ -662,7 +663,7 @@ const RoomHandoffChip = ({ message, comm, bots, dispatch }: { message: Message; 
 const StatusMark = BotAvatar as unknown as ComponentType<ComponentProps<typeof BotAvatar> & { ref?: Ref<MausAvatarHandle> }>;
 
 /** What grok's status-line mark plays: the live step while the turn runs, its outcome once it ends. */
-function statusMarkFor({ busy, waitingOnYou, answering, live, failed }: { busy: boolean; waitingOnYou: boolean; answering: boolean; live: LiveStatus["activity"] | undefined; failed: boolean }): MarkState {
+export function statusMarkFor({ busy, waitingOnYou, answering, live, failed }: { busy: boolean; waitingOnYou: boolean; answering: boolean; live: LiveStatus["activity"] | undefined; failed: boolean }): MarkState {
   if (waitingOnYou) return "blocked";
   if (answering || live === "reply") return "streaming";
   if (!busy) return failed ? "failed" : "finished";
@@ -677,7 +678,7 @@ function statusMarkFor({ busy, waitingOnYou, answering, live, failed }: { busy: 
 }
 
 /** True while `on`, and for `ms` after it goes false: what is still on screen while it leaves. */
-function useLingering(on: boolean, ms: number): boolean {
+export function useLingering(on: boolean, ms: number): boolean {
   const [lingering, setLingering] = useState(on);
   if (on && !lingering) setLingering(true);
   useEffect(() => {
@@ -689,9 +690,9 @@ function useLingering(on: boolean, ms: number): boolean {
 }
 
 /** Simple mode's room under the last row, above the composer's own clearance: grok's last bubble ends 54px over the composer. */
-const SIMPLE_TRAILING_GAP = 34;
+export const SIMPLE_TRAILING_GAP = 34;
 /** The status line's 36px row and the 4px it sits under a bubble: the part of that room its slot takes. */
-const SIMPLE_STATUS_SLOT = 40;
+export const SIMPLE_STATUS_SLOT = 40;
 
 /** How many of a window's newest rows an opened chat paints in its first frame, and how many older ones each later step adds. */
 export const FIRST_PAINT_ROWS = 16;
@@ -1049,7 +1050,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const [markEmphasized, setMarkEmphasized] = useState(false);
   // the reply is written whole; while the engine types it the mark only looks like it is answering
   const streamingReply = useLiveReplyActive(bot.threadId);
-  const statusMarkState = statusMarkFor({ busy: Boolean(bot.busy), waitingOnYou: bot.activity === "waiting-on-you", answering: streamingReply, live: live.status?.activity, failed: lastMessage?.kind === "activity" && lastMessage.tool?.ok === false });
+  const statusMarkState = bot.busy ? turnMarkState({ running: true, composing: streamingReply, activity: live.status?.activity ?? null, awaiting: bot.activity === "waiting-on-you", settled: null }, Date.now()) : statusMarkFor({ busy: false, waitingOnYou: bot.activity === "waiting-on-you", answering: streamingReply, live: live.status?.activity, failed: lastMessage?.kind === "activity" && lastMessage.tool?.ok === false });
   const presenceVisible = waiting || teammatesWorking;
   // the bubble the line hangs under keeps its pinched corner until the line has finished leaving, as grok's does
   const presenceShown = useLingering(presenceVisible, 140);
@@ -1222,7 +1223,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
         </div>
       </div>
 
-      {(advanced || remoteClient) && <BotActivityPicker bot={bot} />}{privateChat && team && <TeamPrivateFirstLine key={team.id} team={team} />}
+      {privateChat && team && <TeamPrivateFirstLine key={team.id} team={team} />}
       {routineExecution && <div className="mx-5 mb-2 flex min-h-8 flex-wrap items-center gap-1 rounded-[14px] bg-composer py-1 pe-1 ps-3 text-[12px] leading-4 text-ink-secondary ring-[0.5px] ring-ink/[0.1]">
         <span className="min-w-0 flex-1 truncate">{t("routines.executionDetails", { name: routineExecution.routineName })}</span>
         {canOpenResults && resultsThreadId && <button type="button" onClick={() => openThread(dispatch, { botId: bot.id, threadId: resultsThreadId }, state, showThreads)} className="h-6 rounded-full px-2 text-ink transition-colors hover:bg-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">{t("routines.results.back")}</button>}

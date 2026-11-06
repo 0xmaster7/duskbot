@@ -1,8 +1,8 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/cn";
-import { GrokIcon } from "../GrokIcon";
+import { GrokIcon, type GrokIconName } from "../GrokIcon";
 import { useMenuMotion } from "../MenuMotion";
 
 export interface SelectPillOption<V extends string> {
@@ -11,6 +11,10 @@ export interface SelectPillOption<V extends string> {
   disabled?: boolean;
   /** a native tooltip on the row, such as why it cannot be chosen */
   title?: string;
+  /** a leading glyph in the menu row, as Grok's menus have; the pill shows the label alone */
+  icon?: GrokIconName;
+  /** a hairline above the row, setting an action apart from the choices */
+  separated?: boolean;
 }
 
 const GAP = 4;
@@ -58,7 +62,7 @@ export function SelectPill<V extends string>({ value, options, onChange, disable
   useLayoutEffect(() => {
     if (!open || !trigger.current) return;
     const box = trigger.current.getBoundingClientRect();
-    const height = options.length * (ROW + ROW_GAP) - ROW_GAP + 12;
+    const height = options.length * (ROW + ROW_GAP) - ROW_GAP + 12 + options.filter((option) => option.separated).length * (9 + ROW_GAP);
     const up = box.bottom + GAP + height > window.innerHeight - 8 && box.top - GAP - height > 8;
     setPlace({ right: window.innerWidth - box.right, up, ...(up ? { bottom: window.innerHeight - box.top + GAP } : { top: box.bottom + GAP }) });
   }, [open, options.length]);
@@ -150,8 +154,9 @@ export function SelectPill<V extends string>({ value, options, onChange, disable
               className={cn(motion.className, "fixed z-[2147482000] flex max-h-[min(360px,calc(100vh-16px))] max-w-[320px] flex-col gap-0.5 overflow-y-auto rounded-2xl bg-menu py-1.5 text-[13px] leading-[18px] tracking-[-0.08px] text-ink shadow-(--shadow-popover) outline-none [scrollbar-width:none]")}
             >
               {options.map((option, index) => (
+                <Fragment key={option.value}>
+                {option.separated && <div aria-hidden="true" className="mx-3.5 my-1 h-px shrink-0 bg-ink/8" />}
                 <div
-                  key={option.value}
                   id={`${id}-${index}`}
                   role="option"
                   aria-selected={option.value === value}
@@ -166,9 +171,11 @@ export function SelectPill<V extends string>({ value, options, onChange, disable
                     "aria-disabled:cursor-default aria-disabled:opacity-50",
                   )}
                 >
+                  {option.icon && <GrokIcon name={option.icon} size={16} className="relative shrink-0" />}
                   <span className="relative min-w-0 flex-1 truncate">{option.label}</span>
                   {option.value === value && <GrokIcon name="check" size={12} className="relative shrink-0" />}
                 </div>
+                </Fragment>
               ))}
             </div>
           ),

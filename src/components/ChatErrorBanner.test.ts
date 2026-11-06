@@ -59,8 +59,8 @@ describe("ChatNotice", () => {
 
   it("says which reference no longer resolves", () => {
     expect(markup(null)).toBe("");
-    expect(markup({ kind: "thread-gone", botName: null })).toContain("That thread is no longer here.");
-    expect(markup({ kind: "thread-gone", botName: "Ada" })).toContain("That thread is no longer here. Showing Ada instead.");
+    expect(markup({ kind: "thread-gone", botName: null })).toContain("That conversation is no longer here.");
+    expect(markup({ kind: "thread-gone", botName: "Ada" })).toContain("That conversation is no longer here. Showing Ada instead.");
     expect(markup({ kind: "bot-gone", botName: null })).toContain("That bot is no longer here.");
     expect(markup({ kind: "bot-gone", botName: null })).toContain('role="status"');
   });

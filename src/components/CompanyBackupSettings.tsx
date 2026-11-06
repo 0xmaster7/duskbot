@@ -242,10 +242,9 @@ export function ConnectedCompanyBackupSettings({ connection, bridge }: { connect
 
   return <Card title={t("companyBackup.title")} subtitle={t("companyBackup.account", { organization: connection.organization?.name ?? "", email: connection.email ?? "" })}>
     <div className="flex flex-col gap-3">
-      <p className="text-[13px] text-ink-secondary">{t("companyBackup.managedScope")}</p>
       {bridge.configureSchedule && schedule && <div className="rounded-lg border border-hairline/40 p-3">
         <div className="flex items-center justify-between gap-3">
-          <div><div className="text-[14px] font-medium">{t("companyBackup.daily")}</div><p className="mt-1 text-[12px] text-ink-secondary">{t("companyBackup.scheduleHelp")}</p></div>
+          <div><div className="text-[14px] font-medium">{t("companyBackup.daily")}</div></div>
           <Switch aria-label={t("companyBackup.daily")} checked={schedule.enabled} disabled={action !== null || !state || (!schedule.enabled && disabled)} onClick={() => schedule.enabled ? void configureSchedule(false) : openDialog({ kind: "schedule" })} />
         </div>
         <p role="status" className="mt-2 text-[12px] text-ink-secondary">{t(`companyBackup.scheduleStatus.${schedule.status}`)}</p>

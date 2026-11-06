@@ -1,6 +1,6 @@
 import type { LocaleKey } from "@/locales";
 import type { BotSettingsSection } from "@/state/store";
-import { isModalPage, requestPanelModal } from "./modals/panel-modal";
+import { isModalPage, requestPanelModal, type SheetPage } from "./modals/panel-modal";
 
 export const PANEL_TABS = ["details", "computer", "advanced"] as const;
 export type PanelTab = (typeof PANEL_TABS)[number];
@@ -76,12 +76,14 @@ export interface PanelTarget {
   anchor?: string;
   /** Opens the Instructions editor in place on the Bot settings page. */
   editInstructions?: boolean;
+  /** A page of the bot's settings sheet to open over the Advanced tab. */
+  sheet?: SheetPage;
 }
 
 const SECTION_TARGET: Record<BotSettingsSection, PanelTarget> = {
   overview: { tab: "details" },
-  identity: { tab: "details" },
-  slack: { tab: "details" },
+  identity: { tab: "advanced", sheet: "identity" },
+  slack: { tab: "advanced", sheet: "slack" },
   soul: { tab: "details", page: "instructions" },
   skills: { tab: "advanced", page: "skills" },
   memory: { tab: "advanced", page: "memory" },
@@ -89,7 +91,7 @@ const SECTION_TARGET: Record<BotSettingsSection, PanelTarget> = {
   routines: { tab: "details", page: "routines" },
   access: { tab: "computer", page: "where" },
   model: { tab: "details", anchor: "model" },
-  permissions: { tab: "advanced" },
+  permissions: { tab: "advanced", sheet: "permissions" },
   voice: { tab: "advanced", anchor: "call" },
   visibility: { tab: "details" },
   history: { tab: "details" },
@@ -103,7 +105,8 @@ export function sectionTarget(section: BotSettingsSection): PanelTarget {
 /** A target as the panel draws it: the Bot settings page is the Advanced tab now, and a page that opens as a dialog
  * lands on the Advanced tab, which holds its row, with the dialog asked for over it. */
 export function resolveTarget(target: PanelTarget): PanelTarget {
-  if (isModalPage(target.page)) requestPanelModal(target.page);
+  if (target.sheet) requestPanelModal(target.sheet);
+  else if (isModalPage(target.page)) requestPanelModal(target.page);
   else if (target.page !== "settings") return target;
   return { tab: "advanced", ...(target.anchor ? { anchor: target.anchor } : {}) };
 }

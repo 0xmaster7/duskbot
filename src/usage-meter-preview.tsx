@@ -12,6 +12,7 @@ import { cloudPlanLabel } from "@/lib/cloud-plan";
 import { loadLocale, t } from "@/lib/i18n";
 import { SKIN_IDS, type SkinId } from "@/lib/skins";
 import { upgradeConfirmBody, usageCardView } from "@/lib/usage-meter";
+import "./font-faces";
 import "./styles.css";
 
 const RESETS = Date.UTC(2026, 10, 1);

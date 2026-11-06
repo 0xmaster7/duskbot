@@ -13,6 +13,7 @@ import { PairPage } from "./pair/PairPage";
 import { HomeScreen, SignedOutAtHome } from "./components/HomeScreen";
 import { PageBoundary } from "./components/PageBoundary";
 import { endedBeforeReload, forgetEndedSession, SESSION_ENDED_REASON } from "./lib/session-ended";
+import "./font-faces";
 import "./styles.css";
 import "./styles/overlays.css";
 import "./styles/motion.css";

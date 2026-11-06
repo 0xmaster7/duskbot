@@ -24,7 +24,7 @@ export function WindowFrameRow() {
   const relaunch = window.ogb?.relaunch;
   const toggle = () => void bridge.set(!state.on).then(setState).catch(() => {});
   return <div data-window-frame-switch>
-    <SettingRow title={t("settings.windowFrame.title")} subtitle={t("settings.windowFrame.subtitle")}>
+    <SettingRow title={t("settings.windowFrame.title")}>
       <Switch checked={state.on} aria-label={t("settings.windowFrame.title")} onClick={toggle} />
     </SettingRow>
     {state.restart && <div role="status" data-window-frame-restart className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 pb-3 text-[13px] text-ink-secondary">

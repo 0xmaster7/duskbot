@@ -94,18 +94,18 @@ describe("SidebarNewChatPanel", () => {
     expect(text).not.toContain("Ghost");
   });
 
-  it("offers no new bot to someone who can't make one, and Enter still starts with the first bot", () => {
+  it("offers no new bot to someone who can't make one, and Enter still opens the first bot", () => {
     const { input } = open(false);
     expect(container!.textContent).not.toContain("Create new bot");
     expect(container!.textContent).toContain("Create group chat");
     key(input, "Enter");
-    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "newTask", botId: "scout" });
+    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "switchTask", botId: "scout", threadId: "latest" });
   });
 
-  it("starts a new thread with the first bot on Enter", () => {
+  it("opens the first bot's one conversation on Enter, never a new thread", () => {
     const { props, input } = open();
     key(input, "Enter");
-    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "newTask", botId: "scout" });
+    expect(fixture.dispatch).toHaveBeenCalledExactlyOnceWith({ type: "switchTask", botId: "scout", threadId: "latest" });
     expect(props.onClose).toHaveBeenCalled();
   });
 
@@ -114,7 +114,8 @@ describe("SidebarNewChatPanel", () => {
     type(input, "qu");
     expect(container!.textContent).not.toContain("Scout");
     key(input, "Enter");
-    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "newTask", botId: "quill" });
+    expect(fixture.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "newTask" }));
+    expect(fixture.dispatch.mock.calls.some(([action]) => "botId" in action ? action.botId === "quill" : action.id === "quill")).toBe(true);
   });
 
   it("does nothing on Enter when no bot matches", () => {

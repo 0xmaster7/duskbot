@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -48,6 +48,14 @@ describe("fonts", () => {
     }
     expect(css).toMatch(/@import "@fontsource-variable\/geist";/);
     expect(css).toMatch(/--font-mono:\s*"Geist Mono Variable"/);
+  });
+
+  it("registers the Grok faces from script, never as @font-face a stylesheet rebuild would reload", () => {
+    const here = dirname(fileURLToPath(import.meta.url));
+    const sheets = ["../styles.css", ...readdirSync(join(here, "../styles")).map((name) => `../styles/${name}`)];
+    for (const sheet of sheets) expect(readFileSync(join(here, sheet), "utf8"), sheet).not.toMatch(/font-family:\s*"(XVF|XVF Mono|Grok Icons)";\s*(font-weight|font-display|src)/);
+    const faces = readFileSync(join(here, "../font-faces.ts"), "utf8");
+    for (const family of ["XVF", "XVF Mono", "Grok Icons"]) expect(faces).toContain(`["${family}",`);
   });
 
   it("spells BlinkMacSystemFont exactly, since Chromium skips any other casing", () => {

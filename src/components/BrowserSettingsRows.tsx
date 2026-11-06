@@ -40,14 +40,14 @@ export function BuiltInBrowserRow() {
 
   return (
     <SettingRow
-    title={t("settings.experimental.browserAria")}
-    subtitle={desktopBrowser
-        ? browser
-        ? t("settings.experimental.browserOn")
-        : t("settings.experimental.browserOff")
+      title={t("settings.experimental.browser")}
+      subtitle={desktopBrowser
+        ? undefined
         : browserBlockedOnWindows
-        ? t("settings.experimental.browserWindows")
-        : browserUnavailableReason(state.config)}
+          ? t("settings.w6a.browser.windows")
+          : state.config?.browserEngine?.kind === "unavailable" && browserInstallable
+            ? t("settings.w6a.browser.notInstalled")
+            : browserUnavailableReason(state.config)}
     message={error ? <p role="alert" className="text-danger">{error}</p> : null}
     >
       <Switch
@@ -73,7 +73,7 @@ export function ServerSitesRow() {
   return (
     <SettingRow
       title={t("settings.browser.serverSites")}
-      subtitle={t("settings.browser.serverSitesDetail")}
+      subtitle={t("settings.w6a.browser.serverSitesDetail")}
       message={error ? <p role="alert" className="text-danger">{error}</p> : null}
     >
       <Switch
@@ -97,8 +97,7 @@ export function NewBrowserSettings() {
     <div className="mt-4 border-t border-hairline/30 pt-4" data-testid="new-browser-settings">
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <div className="text-[14px] font-medium text-ink">{t("settings.experimental.newBrowser")}</div>
-          <div className="mt-0.5 text-[12px] leading-relaxed text-ink-secondary">{t("settings.experimental.newBrowserDetail")}</div>
+          <div className="text-[13px] leading-[18px] text-ink">{t("settings.experimental.newBrowser")}</div>
         </div>
         <Switch
           checked={on}

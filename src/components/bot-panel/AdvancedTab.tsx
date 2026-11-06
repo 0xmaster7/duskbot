@@ -4,10 +4,11 @@ import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";
 import type { useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
 import { openSettings } from "@/lib/open-settings";
+import { useSlackManagementUrl } from "../bot-settings/useSlackManagement";
 import { VoiceChatCard } from "./DetailsTab";
 import { LibrarySection } from "./LibraryTab";
 import { BotSheet } from "./modals/BotSheet";
-import { takePanelModalRequest, usePanelModalRequest, type ModalPage } from "./modals/panel-modal";
+import { takePanelModalRequest, usePanelModalRequest, type SheetPage } from "./modals/panel-modal";
 import type { SimplePageId } from "./page-registry";
 import { Card, NavRow, PanelSections } from "./rows";
 import { SettingsPage } from "./SettingsPage";
@@ -21,7 +22,8 @@ export function AdvancedTab({ bot, derived, onOpen }: {
   onOpen: (page: SimplePageId) => void;
 }) {
   const { dispatch } = useStore();
-  const [modal, setModal] = useState<ModalPage | null>(null);
+  const [modal, setModal] = useState<SheetPage | null>(null);
+  const slackUrl = useSlackManagementUrl(bot.id);
   const request = usePanelModalRequest();
 
   useEffect(() => {
@@ -34,7 +36,7 @@ export function AdvancedTab({ bot, derived, onOpen }: {
     <PanelSections data-panel-tabpanel="advanced">
       <LibrarySection bot={bot} onOpen={onOpen} />
       <VoiceChatCard bot={bot} patch={derived.patch} />
-      <SettingsPage bot={bot} derived={derived} onOpen={setModal} />
+      <SettingsPage bot={bot} derived={derived} onOpen={setModal} slackUrl={slackUrl} />
       <Card anchor="advanced-features">
         <NavRow
           data-panel-row="advanced-features"
@@ -42,7 +44,7 @@ export function AdvancedTab({ bot, derived, onOpen }: {
           onClick={() => dispatch(openSettings("advanced"))}
         />
       </Card>
-      {modal && <BotSheet key={modal} initial={modal} bot={bot} derived={derived} onClose={() => setModal(null)} />}
+      {modal && <BotSheet key={modal} initial={modal} bot={bot} derived={derived} slackUrl={slackUrl} onClose={() => setModal(null)} />}
     </PanelSections>
   );
 }

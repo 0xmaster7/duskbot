@@ -6,7 +6,7 @@ import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
-import { clickByName, openTeamMap } from "./grok-nav.ts";
+import { clickByName, openBotSheet, openPanelMenu, openTeamMap, sheetPage } from "./grok-nav.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const enabled = process.env.OMB_UI_E2E === "1" || Boolean(resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env }));
@@ -60,8 +60,9 @@ describe("trust controls in the real renderer", () => {
     const saved = async () => (await bots()).find(candidate => candidate.id === bot.id)!;
     const memory = async () => (await fetch(`${info.url}/api/team-memory?section=`).then(response => response.json())).entries as Array<{ id: string; name: string; detail: string }>;
 
-    await click("More");
-    await click("Activity");
+    // Activity sits in the bot panel's Share menu, with this chat's copy, download, usage and the Inspector.
+    await openPanelMenu(ui, "Pepper");
+    await clickByName(ui, /^Activity/, "menuitem");
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Nothing yet.");
     await runControlOmb(["send", "--bot", bot.id, "--text", "Run the harmless fixture tool.", "--url", info.url]);
     await runControlOmb(["wait", "--bot", bot.id, "--timeout", "20", "--url", info.url]);
@@ -69,12 +70,7 @@ describe("trust controls in the real renderer", () => {
     await ui("screenshot", "--out", `${info.logPath}.activity.png`);
     await click("Close activity");
 
-    const interactive = await ui("snapshot", "--interactive");
-    const profile = Object.entries(interactive.refs as Record<string, { role: string; name: string }>)
-      .find(([, entry]) => entry.role === "button" && entry.name === "Open Pepper's profile");
-    expect(profile).toBeDefined();
-    await ui("click", "--ref", `@${profile![0]}`);
-    await click("Permissions");
+    await openBotSheet(ui, "Pepper", "permissions");
     await click("Allow a daily amount");
     await type("Daily outbound limit", "7");
     await ui("press", "--keys", "Tab");
@@ -94,7 +90,7 @@ describe("trust controls in the real renderer", () => {
       await (await import('/src/components/PluginsPanel.tsx')).preloadConnectedApps(true);
       return true;
     })()`);
-    await click("Access");
+    await sheetPage(ui, "tools");
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Limit this bot to specific apps");
     await click("Limit this bot to specific apps");
     await expect.poll(async () => (await saved()).connectorScopes, { timeout: 10_000 }).toEqual({ apps: {} });
@@ -112,8 +108,7 @@ describe("trust controls in the real renderer", () => {
       body: JSON.stringify({ fallback: [{ instanceId: bot.modelSelection.instanceId, model: bot.modelSelection.model }] }),
     });
     expect(seeded.ok).toBe(true);
-    await clickByName(ui, "Advanced", "tab");
-    await clickByName(ui, /^Backup AIs /, "button");
+    await sheetPage(ui, "backups");
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("If Pepper's AI hits its limit or can't start, the first one here takes over.");
     expect(await snapshot()).toContain('list "Backup AIs"');
     await clickByName(ui, /^Remove .+ from backups$/, "button");

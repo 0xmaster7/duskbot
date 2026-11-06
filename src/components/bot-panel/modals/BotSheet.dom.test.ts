@@ -57,8 +57,8 @@ describe("the bot's settings sheet", () => {
     expect(pane().dataset.panelModal).toBe("skills");
     item("skills").focus();
     press("ArrowDown");
-    expect(current()).toBe("folder");
-    expect(document.activeElement).toBe(item("folder"));
+    expect(current()).toBe("identity");
+    expect(document.activeElement).toBe(item("identity"));
     press("End");
     expect(current()).toBe("backups");
     press("ArrowDown");
@@ -75,5 +75,12 @@ describe("the bot's settings sheet", () => {
     const scrim = document.querySelector<HTMLElement>("[data-bot-sheet]")!;
     flushSync(() => scrim.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })));
     expect(onClose).toHaveBeenCalledTimes(3);
+  });
+
+  it("has a Slack page only while Admin manages the bot's Slack app", () => {
+    mount("instructions");
+    expect(document.querySelector("[data-bot-sheet-page=slack]")).toBeNull();
+    expect([...document.querySelectorAll<HTMLElement>("[data-bot-sheet-page]")].map((entry) => entry.dataset.botSheetPage))
+      .toEqual(["instructions", "memory", "skills", "identity", "tools", "permissions", "folder", "where", "backups"]);
   });
 });

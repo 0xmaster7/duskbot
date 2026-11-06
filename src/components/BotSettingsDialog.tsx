@@ -54,7 +54,8 @@ export function BotSettingsDialog({ bot, overlay = false }: {
   const advanced = useAdvancedMode();
   const simpleView = !advanced;
   const linkedSection = !collapsed && !state.botSettingsExpandRemembered ? section : null;
-  const slackUrl = useSlackManagementUrl(bot.id);
+  // the panel's Advanced tab reads it for the bot's settings sheet
+  const slackUrl = useSlackManagementUrl(bot.id, advanced);
   const ownerOrAdmin = useOwnerOrAdmin();
   const teamName = useTeamName();
   const sections = BOT_SECTIONS

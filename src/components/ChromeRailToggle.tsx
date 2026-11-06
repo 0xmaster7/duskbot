@@ -36,7 +36,7 @@ export function ChromeRailRow() {
   const rail = useChromeRail();
   if (!rail?.available) return null;
   return <div data-rail-switch>
-    <SettingRow title={t("rail.show")} subtitle={t("rail.showSub")}>
+    <SettingRow title={t("rail.show")}>
       <Switch checked={!rail.hidden} aria-label={t("rail.show")} onClick={() => setChromeRailHidden(!rail.hidden)} />
     </SettingRow>
   </div>;

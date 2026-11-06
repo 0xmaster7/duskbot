@@ -203,6 +203,71 @@ describe("a person who moved on from a question", () => {
     expect(store.activePath(other).find((row) => row.id === resting.id)?.card?.answered).toBeUndefined();
     expect(store.taskByThread(bot.id, other)).toMatchObject({ activity: "waiting-on-you", busy: false });
   });
+
+  function junoSetup() {
+    const fixture = juno();
+    const { store, live, waits, bot, thread, ask, say } = fixture;
+    waits();
+    store.setTaskActivity(bot.id, thread, "working");
+    live.add("q1");
+    const first = ask("q1", "Should Juno do anything on its own, or purely on-demand?");
+    store.patchMessage(thread, first.id, { card: { ...first.card!, answered: "answer", answeredText: "On demand + trip reminders" } });
+    live.delete("q1");
+    live.add("q2");
+    const folder = ask("q2");
+    store.appendMessage(thread, { role: "user", kind: "text", text: "uh no", steered: true } as never);
+    fixture.cards.movedOn(thread);
+    live.delete("q2");
+    store.setTaskActivity(bot.id, thread, "idle");
+    return { ...fixture, folder, finish: () => {
+      say("ok");
+      const approval = store.appendMessage(thread, { role: "bot", kind: "options", card: { title: "Approval needed", subtitle: "mkdir -p ~/Trips", options: [], requestId: "a1", requestType: "permission", tool: "Bash" } });
+      store.patchMessage(thread, approval.id, { card: { ...approval.card!, answered: "allow" } });
+      const profile = store.appendMessage(thread, { role: "bot", kind: "options", card: { title: "Update Juno's profile?", options: [], requestId: "p1", tool: "update_profile", mcpRequest: {} } as never });
+      store.patchMessage(thread, profile.id, { card: { ...profile.card!, answered: "allow", dismissed: true, autoApplied: true } });
+      say("ok");
+      store.appendMessage(thread, { role: "bot", kind: "text", text: "Setup's done and ready to go. Want me to plan another trip, or revisit the Ghent fair itinerary?" });
+    } };
+  }
+
+  it("does not wait on the person after juno's setup ends on a plain closing question", () => {
+    const { store, bot, thread, task, folder, finish } = junoSetup();
+    finish();
+    expect(store.activePath(thread).find((row) => row.id === folder.id)?.card).toMatchObject({ answered: "unavailable", dismissed: true });
+    expect(task()).toMatchObject({ activity: "idle", busy: false });
+    expect(store.bot(bot.id)?.activity).not.toBe("waiting-on-you");
+  });
+
+  it("clears juno's persisted state on the next start: the stale folder question closes and nothing waits", () => {
+    const fixture = juno();
+    const { store, known, waits, bot, thread, task, ask, say } = fixture;
+    const first = ask("q1", "Should Juno do anything on its own, or purely on-demand?");
+    store.patchMessage(thread, first.id, { card: { ...first.card!, answered: "answer", answeredText: "On demand + trip reminders" } });
+    const folder = ask("q2");
+    store.appendMessage(thread, { role: "user", kind: "text", text: "uh no", steered: true } as never);
+    say("ok");
+    say("ok");
+    store.appendMessage(thread, { role: "bot", kind: "text", text: "Setup's done and ready to go. Want me to plan another trip, or revisit the Ghent fair itinerary?" });
+    known.add(thread);
+    const started = waits();
+    started.boot();
+    expect(store.activePath(thread).find((row) => row.id === folder.id)?.card).toMatchObject({ answered: "unavailable", dismissed: true });
+    expect(task()).toMatchObject({ activity: "idle", busy: false });
+    expect(store.bot(bot.id)?.activity).not.toBe("waiting-on-you");
+    expect(started.waiting()).toEqual([]);
+  });
+
+  it("never waits on a plain question in the bot's words", () => {
+    const { store, known, waits, bot, thread, task, say } = juno();
+    say("Plan the Ghent trip");
+    store.appendMessage(thread, { role: "bot", kind: "text", text: "Want me to plan another trip, or revisit the Ghent fair itinerary?" });
+    known.add(thread);
+    const started = waits();
+    started.boot();
+    expect(task().activity ?? "idle").toBe("idle");
+    expect(store.bot(bot.id)?.activity).not.toBe("waiting-on-you");
+    expect(started.waiting()).toEqual([]);
+  });
 });
 
 describe("telling the person", () => {

@@ -30,13 +30,13 @@ export function PlaceLookRows() {
     : outcome === "unsupported" ? t("placeLook.unsupported") : null;
   return <>
     {look && <div data-place-look={look.change ?? "locked"}>
-      <SettingRow title={t("placeLook.sidebarColor")} subtitle={computer ? t("placeLook.sidebarColorSub") : t("placeLook.sub", { name: look.name })}
+      <SettingRow title={t("placeLook.sidebarColor")}
         message={outcome === "failed" ? <p role="alert" className="text-danger">{t("placeLook.failed")}</p> : note && <p className="text-ink-secondary">{note}</p>}>
         <SwatchRadios value={pending ?? look.swatch} onChange={choose} label={computer ? t("placeLook.sidebarColor") : t("placeLook.aria", { name: look.name })}
           disabled={locked} offset="menu" none />
       </SettingRow>
     </div>}
-    <PlacePicture banner={state.config?.workspaceBanner ?? null} canChange={admin} subtitle={t(computer ? "placeLook.sidebarPictureSub" : "placeLook.pictureSub")} />
+    <PlacePicture banner={state.config?.workspaceBanner ?? null} canChange={admin} />
   </>;
 }
 

@@ -12,7 +12,7 @@ function breakdown(usage: { input: number; output: number; cachedInput?: number 
 export function groupUsageSummary(usage?: GroupThreadUsage | null): { short: string; title: string } | null {
   if (!usage?.turns) return null;
   const title = [
-    t("room.usage.total", { details: breakdown(usage) }),
+    t("room.usage.totalChat", { details: breakdown(usage) }),
     usage.lastTurn ? t("room.usage.last", { name: usage.lastSpeaker?.name ?? "", details: breakdown(usage.lastTurn) }) : null,
     hasFiniteCost(usage.costUsd) ? t("room.usage.cost", { cost: formatUsd(usage.costUsd) }) : null,
   ].filter(Boolean).join("\n");

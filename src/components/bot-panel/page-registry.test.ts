@@ -22,11 +22,11 @@ describe("the bot panel's page registry", () => {
   });
 
   it.each([
-    ["overview", { tab: "details" }], ["identity", { tab: "details" }],
+    ["overview", { tab: "details" }], ["identity", { tab: "advanced", sheet: "identity" }],
     ["soul", { tab: "details", page: "instructions" }],
     ["skills", { tab: "advanced", page: "skills" }], ["memory", { tab: "advanced", page: "memory" }], ["routines", { tab: "details", page: "routines" }],
-    ["access", { tab: "computer", page: "where" }], ["model", { tab: "details", anchor: "model" }], ["permissions", { tab: "advanced" }],
-    ["voice", { tab: "advanced", anchor: "call" }], ["visibility", { tab: "details" }], ["history", { tab: "details" }], ["usage", { tab: "details", anchor: "model" }], ["slack", { tab: "details" }],
+    ["access", { tab: "computer", page: "where" }], ["model", { tab: "details", anchor: "model" }], ["permissions", { tab: "advanced", sheet: "permissions" }],
+    ["voice", { tab: "advanced", anchor: "call" }], ["visibility", { tab: "details" }], ["history", { tab: "details" }], ["usage", { tab: "details", anchor: "model" }], ["slack", { tab: "advanced", sheet: "slack" }],
     ["library", { tab: "advanced", anchor: "library" }],
   ] as const)("sends a %s link to %o", (section, target) => {
     expect(sectionTarget(section)).toEqual(target);

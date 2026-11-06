@@ -80,7 +80,6 @@ export function WorkersAiKeyCard({ failureText }: { failureText: (result: { reas
 
   return (
     <Card title={t("decider.workersAi.title")}>
-      <p className="mb-2 text-[12px] leading-relaxed text-ink-secondary">{t("decider.workersAi.detail")}</p>
       {saved && (
         <div role="status" className="mb-2 flex items-center gap-2 text-[13px] text-success">
           <span className="size-1.5 rounded-full bg-success" />

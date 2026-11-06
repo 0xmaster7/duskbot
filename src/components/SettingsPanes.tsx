@@ -9,6 +9,7 @@ import { useAdvancedMode } from "@/lib/interface-mode";
 import { useCloudFilesReady } from "@/lib/cloud-files";
 import { setColorUserBubbles, useColorUserBubbles } from "@/lib/user-bubble-preference";
 import { cn } from "@/lib/cn";
+import { SKINS, resolveSkin } from "@/lib/skins";
 import type { LocaleKey } from "@/locales";
 import { productName } from "../lib/brand";
 import { AccountsSheet, useAccounts } from "./AccountMenu";
@@ -21,7 +22,7 @@ import { AttachmentStorageSettings } from "./AttachmentStorageSettings";
 import { AutomaticRecoverySettings } from "./AutomaticRecoverySettings";
 import { AccessOverview } from "./bot-access/AccessOverview";
 import { BuiltInBrowserRow, ServerSitesRow } from "./BrowserSettingsRows";
-import { ChatWidthRow, FontRow, SidebarToolsLayoutRow } from "./AppearanceSelectRows";
+import { ChatWidthRow, FontRow } from "./AppearanceSelectRows";
 import { ChromeRailRow } from "./ChromeRailToggle";
 import { CloudPlanFootnote, CloudPlanRow, useCloudPlan } from "./ProIntroduction";
 import { CloudUsageDetails, CloudUsageSummaryView, useCloudUsageSettings } from "./CloudUsageMeter";
@@ -31,7 +32,7 @@ import { DefaultBotSidebarRow } from "./DefaultBotControls";
 import { DefaultBotSettings } from "./NewBotDialog";
 import { DiagnosticsRow } from "./DiagnosticsRow";
 import { EnginesSettings } from "./EnginesSettings";
-import { GrokIcon } from "./GrokIcon";
+import { GrokIcon, type GrokIconName } from "./GrokIcon";
 import { ImportSettings } from "./ImportSettings";
 import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal";
 import { LocalComputerSection } from "./LocalComputerSection";
@@ -43,7 +44,6 @@ import { OpenAtLoginRow } from "./OpenAtLoginRow";
 import { OrganizationSettings } from "./OrganizationSettings";
 import { PeopleSection } from "./PeopleSection";
 import { PhoneAppDialog } from "./PhoneAppDialog";
-import { PinnedPanelsSettings } from "./PinnedPanelsSettings";
 import { PlaceLookRows } from "./PlaceLookCard";
 import { PlanUsageSummary } from "./PlanUsage";
 import { ProfileFields } from "./ProfileSettings";
@@ -55,7 +55,7 @@ import { profileInitials, useServerUpdateItem } from "./SidebarProfileMenu";
 import { SkillsSection } from "./SkillsSection";
 import { SkinPicker } from "./SkinPicker";
 import { TalkShortcutRow } from "./TalkShortcutRow";
-import { ThemeRow } from "./ThemeRow";
+import { ThemeRow, useSkinChoice } from "./ThemeRow";
 import { ThreadCleanupSettings } from "./ThreadCleanupSettings";
 import { ThreadConcurrencySettings } from "./ThreadConcurrencySettings";
 import { UpdatesConsentRow } from "./UpdatesConsent";
@@ -68,7 +68,7 @@ import { reportsUsage, useEngineLimits } from "@/lib/limit-resets";
 import { openInbox } from "@/state/inbox";
 import {
   AdvancedModeRow, BrowserProfilesRow, ExperimentalFeaturesRow, FollowUpRow, LanguageRow, NewBotEffortRow, PinnedCirclesRow,
-  ReplayTourRow, RunCardRow, SendKeyRow, ShowThreadsRow, ToolCallsRow, UniversalPinsRow, UpdatesRow,
+  ReplayTourRow, SendKeyRow, ToolCallsRow, UniversalPinsRow, UpdatesRow,
 } from "./AppSettingsRows";
 
 export type Has = (id: AppSettingsSection) => boolean;
@@ -189,6 +189,7 @@ export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boo
       <SettingsGroup label={t("notifications.title")} block="notifications">
         <SettingsRows><NotificationRows simple /></SettingsRows>
       </SettingsGroup>
+      {has("import") && <SettingsGroup label={t("settings.section.import")} block="import"><AdminOnly><ImportSettings /></AdminOnly></SettingsGroup>}
     </>
   );
 }
@@ -198,14 +199,14 @@ export function TextingPane({ has, remoteAccess }: { has: Has; remoteAccess: Rem
   return (
     <>
       {has("companion") && (
-        <SettingsGroup label={t("settings.grok.group.phone")} block="companion">
+        <SettingsGroup block="companion">
           {remoteAccess.pairing}
           {remoteAccess.companion}
         </SettingsGroup>
       )}
       <SettingsGroup block="phone-app">
         <SettingsRows>
-          <SettingRow title={t("settings.texting.phoneApp.title")} subtitle={t("settings.texting.phoneApp.subtitle")}>
+          <SettingRow title={t("settings.texting.phoneApp.title")}>
             <button type="button" className="ui-button" onClick={() => setPhoneApp(true)}>{t("settings.texting.phoneApp.action")}</button>
           </SettingRow>
         </SettingsRows>
@@ -218,7 +219,7 @@ export function TextingPane({ has, remoteAccess }: { has: Has; remoteAccess: Rem
 export function ComputerPane({ has, remoteAccess, servers, disclose }: { has: Has; remoteAccess: RemoteAccessCards; servers: ReactNode; disclose: Disclose }) {
   return (
     <>
-      {has("computer") && <SettingsGroup label={t("settings.grok.group.yourComputer")} block="computer"><AdminOnly><LocalComputerSection /></AdminOnly></SettingsGroup>}
+      {has("computer") && <div data-settings-block="computer" className="flex scroll-mt-4 flex-col gap-7"><AdminOnly><LocalComputerSection /></AdminOnly></div>}
       {has("computer") && (
         <SettingsGroup label={t("settings.grok.group.browser")} block="browser">
           <SettingsRows><BuiltInBrowserRow /><ServerSitesRow /></SettingsRows>
@@ -239,17 +240,14 @@ export function PermissionsPane({ has }: { has: Has }) {
   return (
     <>
       {has("botAccess") && <SettingsGroup label={t("settings.section.botAccess")} block="botAccess"><AccessOverview /></SettingsGroup>}
-      {has("logins") && <SettingsGroup label={t("settings.section.logins")} block="logins"><LoginsSettings /></SettingsGroup>}
       {has("activity") && <SettingsGroup label={t("settings.section.activity")} block="activity"><ActivitySection /></SettingsGroup>}
-      {!has("botAccess") && !has("logins") && !has("activity") && (
-        <SettingsGroup block="permissions">
-          <SettingsRows>
-            <SettingRow title={t("settings.permissions.empty.title")} subtitle={t("settings.permissions.empty.subtitle")}>{null}</SettingRow>
-          </SettingsRows>
-        </SettingsGroup>
-      )}
     </>
   );
+}
+
+/** Grok's Vault: the logins bots sign in with, and 1Password. */
+export function VaultPane() {
+  return <SettingsGroup label={t("settings.section.logins")} block="logins"><LoginsSettings /></SettingsGroup>;
 }
 
 const versionTitle = () => `${productName()} ${appVersion()}`;
@@ -270,57 +268,105 @@ function ServerUpdatesRow() {
 
 export function UpdatesPane({ remoteActive }: { remoteActive: boolean }) {
   return (
-    <SettingsGroup label={t("settings.grok.group.version")} block="updates">
+    <>
+      <SettingsGroup label={t("settings.grok.group.version")} block="updates">
+        <SettingsRows>
+          {window.ogb?.updater ? <UpdatesRow title={versionTitle()} /> : <ServerUpdatesRow />}
+          <UpdatesConsentRow />
+        </SettingsRows>
+      </SettingsGroup>
+      <HelpGroup remoteActive={remoteActive} />
+    </>
+  );
+}
+
+function HelpGroup({ remoteActive }: { remoteActive: boolean }) {
+  const [about, setAbout] = useState(false);
+  const [shortcuts, setShortcuts] = useState(false);
+  return (
+    <SettingsGroup label={t("settings.w6.group.help")} block="about">
       <SettingsRows>
-        {window.ogb?.updater ? <UpdatesRow title={versionTitle()} /> : <ServerUpdatesRow />}
-        <UpdatesConsentRow />
+        <IndexRow data-settings-open="about" label={t("settings.advanced.about.about")} onOpen={() => setAbout(true)} />
+        <IndexRow data-settings-open="shortcuts" label={t("settings.advanced.about.shortcuts")} onOpen={() => setShortcuts(true)} />
+        <IndexRow data-settings-open="help" label={t("settings.advanced.about.help")} external onOpen={() => void openExternalLink(HELP_CENTER_URL)} />
+        <IndexRow data-settings-open="feedback" label={t("settings.advanced.about.feedback")} external onOpen={() => void openExternalLink(FEEDBACK_URL)} />
         {!remoteActive && <ReplayTourRow />}
         <DiagnosticsRow simple />
       </SettingsRows>
+      <AboutDialog open={about} onClose={() => setAbout(false)} />
+      <KeyboardShortcutsModal open={shortcuts} onClose={() => setShortcuts(false)} />
     </SettingsGroup>
   );
 }
 
 export { ADVANCED_PAGES, type AdvancedPage } from "@/lib/open-settings";
 
-const ADVANCED_GROUPS: ReadonlyArray<{ id: "bots" | "workspace" | "app"; labelKey: LocaleKey }> = [
-  { id: "bots", labelKey: "settings.advanced.group.bots" },
-  { id: "workspace", labelKey: "settings.advanced.group.workspace" },
-  { id: "app", labelKey: "settings.advanced.group.app" },
-];
+const ADVANCED_TITLES: Record<AdvancedPage, LocaleKey> = {
+  apps: "settings.w6.apps.title",
+  bots: "settings.advanced.bots.title",
+  looks: "settings.advanced.looks.title",
+  team: "settings.w6.team.title",
+  data: "settings.w6.data.title",
+  builder: "settings.w6.builder.title",
+};
 
-export const advancedTitle = (page: AdvancedPage) => t(`settings.advanced.${page}.title` as LocaleKey);
+export const advancedTitle = (page: AdvancedPage) => t(ADVANCED_TITLES[page]);
 
-function DrillRow({ page, onOpen }: { page: (typeof ADVANCED_PAGES)[number]; onOpen: () => void }) {
+/** A Grok settings row that goes somewhere: an icon, one label, an optional value, and the chevron (or an out arrow for a web page). */
+function IndexRow({ icon, label, value, external = false, onOpen, ...rest }: {
+  icon?: GrokIconName;
+  label: string;
+  value?: ReactNode;
+  external?: boolean;
+  onOpen: () => void;
+  "data-settings-advanced"?: string;
+  "data-settings-open"?: string;
+}) {
   return (
     <button
       type="button"
-      data-settings-advanced={page.id}
+      {...rest}
       onClick={onOpen}
-      className="flex w-full cursor-pointer items-center gap-3 px-3.5 py-2.5 text-start transition-colors duration-[120ms] ease-[ease] hover:bg-ink/[0.04] outline-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
+      className="flex min-h-12 w-full cursor-pointer items-center gap-3 px-3.5 py-2.5 text-start transition-colors duration-[120ms] ease-[ease] hover:bg-ink/[0.04] outline-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
     >
-      <GrokIcon name={page.icon} size={15} className="shrink-0 text-ink-secondary" />
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-[13px] leading-[18px] tracking-[-0.08px] text-ink">{advancedTitle(page.id)}</span>
-        <span className="-mt-0.5 text-[13px] leading-[18px] tracking-[-0.08px] text-ink-secondary">{t(`settings.advanced.${page.id}.subtitle` as LocaleKey)}</span>
-      </span>
-      <GrokIcon name="chevron-right" size={12} className="shrink-0 text-ink-secondary rtl:-scale-x-100" />
+      {icon && <GrokIcon name={icon} size={15} className="shrink-0 text-ink-secondary" />}
+      <span className="min-w-0 flex-1 truncate text-[13px] leading-[18px] tracking-[-0.08px] text-ink">{label}</span>
+      {value !== undefined && value !== null && <span className="shrink-0 text-[13px] leading-[18px] tracking-[-0.08px] text-ink-secondary">{value}</span>}
+      <GrokIcon name={external ? "link-external" : "chevron-right"} size={external ? 14 : 12} className={cn("shrink-0 text-ink-secondary", !external && "rtl:-scale-x-100")} />
     </button>
   );
 }
 
-export function AdvancedIndex({ pages, onOpen }: { pages: readonly AdvancedPage[]; onOpen: (page: AdvancedPage) => void }) {
+/** The first screen of Advanced features: the places Grok keeps off its sidebar open straight away, then the rarer settings. */
+export function AdvancedIndex({ pages, remoteActive, onOpen }: { pages: readonly AdvancedPage[]; remoteActive: boolean; onOpen: (page: AdvancedPage) => void }) {
+  const { state, dispatch } = useStore();
+  const files = useCloudFilesReady();
+  const [archivedOpen, setArchivedOpen] = useState(false);
+  const archived = state.bots.filter((bot) => bot.hidden && !bot.movedTo);
+  const leave = (action: Parameters<typeof dispatch>[0]) => { dispatch({ type: "toggleAppSettings", open: false }); dispatch(action); };
+  const skinChoice = useSkinChoice();
+  const skin = SKINS.find((entry) => entry.id === resolveSkin(skinChoice))?.name;
   return (
     <>
-      {ADVANCED_GROUPS.map((group) => {
-        const entries = ADVANCED_PAGES.filter((page) => page.group === group.id && pages.includes(page.id));
-        if (!entries.length) return null;
-        return (
-          <SettingsGroup key={group.id} label={t(group.labelKey)} block={`advanced-${group.id}`}>
-            <SettingsRows>{entries.map((page) => <DrillRow key={page.id} page={page} onOpen={() => onOpen(page.id)} />)}</SettingsRows>
-          </SettingsGroup>
-        );
-      })}
+      {!remoteActive && (
+        <SettingsGroup label={t("settings.w6.group.yourBots")} block="advanced-bots">
+          <SettingsRows>
+            <IndexRow data-settings-open="inbox" icon="inbox" label={t("settings.advanced.bots.inbox")} onOpen={() => { dispatch({ type: "toggleAppSettings", open: false }); openInbox(); }} />
+            <IndexRow data-settings-open="automations" icon="clock" label={t("settings.advanced.bots.automations")} onOpen={() => leave({ type: "showRoutines", view: "list" })} />
+            <IndexRow data-settings-open="team-map" icon="people" label={t("settings.advanced.bots.teamMap")} onOpen={() => leave({ type: "showTeamMap" })} />
+            {files && <IndexRow data-settings-open="files" icon="folder" label={t("settings.advanced.bots.files")} onOpen={() => leave({ type: "showFiles" })} />}
+            {archived.length > 0 && <IndexRow data-settings-open="archived" icon="archive" label={t("settings.advanced.bots.archived")} value={archived.length} onOpen={() => setArchivedOpen(true)} />}
+          </SettingsRows>
+        </SettingsGroup>
+      )}
+      <SettingsGroup label={remoteActive ? undefined : t("settings.w6.group.more")} block="advanced-pages">
+        <SettingsRows>
+          {ADVANCED_PAGES.filter((page) => pages.includes(page.id)).map((page) => (
+            <IndexRow key={page.id} data-settings-advanced={page.id} icon={page.icon} label={advancedTitle(page.id)} value={page.id === "looks" ? skin : undefined} onOpen={() => onOpen(page.id)} />
+          ))}
+        </SettingsRows>
+      </SettingsGroup>
+      {archivedOpen && <ArchivedBotsPanel bots={archived} onClose={() => setArchivedOpen(false)} onRestored={() => {}} />}
     </>
   );
 }
@@ -337,9 +383,9 @@ function AppsPage({ has }: { has: Has }) {
   const { state, dispatch } = useStore();
   return (
     <>
-      <SettingsGroup label={t("settings.advanced.apps.title")} block="apps">
+      <SettingsGroup block="apps">
         <SettingsRows>
-          <OpenRow data-settings-open="apps" title={t("settings.advanced.apps.connected.title")} subtitle={t("settings.advanced.apps.connected.subtitle")}
+          <OpenRow data-settings-open="apps" title={t("settings.advanced.apps.connected.title")}
             onOpen={() => dispatch({ type: "togglePlugins", open: true, surface: "apps" })} />
         </SettingsRows>
       </SettingsGroup>
@@ -351,29 +397,11 @@ function AppsPage({ has }: { has: Has }) {
   );
 }
 
-function BotsPage({ remoteActive }: { remoteActive: boolean }) {
-  const { state, dispatch } = useStore();
-  const files = useCloudFilesReady();
-  const [archivedOpen, setArchivedOpen] = useState(false);
-  const archived = state.bots.filter((bot) => bot.hidden && !bot.movedTo);
-  const go = (action: Parameters<typeof dispatch>[0]) => { dispatch({ type: "toggleAppSettings", open: false }); dispatch(action); };
+function BotsPage() {
   return (
     <>
-      <SettingsGroup label={t("settings.advanced.bots.title")} block="bots">
-        <SettingsRows>
-          <OpenRow data-settings-open="inbox" title={t("settings.advanced.bots.inbox")} subtitle={t("settings.advanced.bots.inboxSubtitle")} onOpen={() => { dispatch({ type: "toggleAppSettings", open: false }); openInbox(); }} />
-          <OpenRow data-settings-open="automations" title={t("settings.advanced.bots.automations")} subtitle={t("settings.advanced.bots.automationsSubtitle")} onOpen={() => go({ type: "showRoutines", view: "list" })} />
-          <OpenRow data-settings-open="team-map" title={t("settings.advanced.bots.teamMap")} subtitle={t("settings.advanced.bots.teamMapSubtitle")} onOpen={() => go({ type: "showTeamMap" })} />
-          {files && <OpenRow data-settings-open="files" title={t("settings.advanced.bots.files")} subtitle={t("settings.advanced.bots.filesSubtitle")} onOpen={() => go({ type: "showFiles" })} />}
-          {!remoteActive && (
-            <SettingRow title={t("settings.advanced.bots.archived")} subtitle={archived.length ? t("settings.advanced.bots.archivedSubtitle", { count: archived.length }) : t("settings.advanced.bots.archivedNone")}>
-              <button type="button" data-settings-open="archived" className="ui-button" disabled={!archived.length} onClick={() => setArchivedOpen(true)}>{t("settings.advanced.open")}</button>
-            </SettingRow>
-          )}
-        </SettingsRows>
-      </SettingsGroup>
-      <SettingsGroup label={t("settings.profile.title")} block="profile">
-        <Card subtitle={t("settings.profile.sharedSubtitle")}><ProfileFields /></Card>
+      <SettingsGroup label={t("settings.w6.group.aboutYou")} block="profile">
+        <Card><ProfileFields /></Card>
       </SettingsGroup>
       <SettingsGroup label={t("settings.advanced.bots.defaults")} block="bot-defaults">
         <SettingsRows>
@@ -383,7 +411,6 @@ function BotsPage({ remoteActive }: { remoteActive: boolean }) {
         <NewBotEffortRow />
         <DefaultBotSettings />
       </SettingsGroup>
-      {archivedOpen && <ArchivedBotsPanel bots={archived} onClose={() => setArchivedOpen(false)} onRestored={() => {}} />}
     </>
   );
 }
@@ -398,17 +425,14 @@ function LooksPage({ remoteActive }: { remoteActive: boolean }) {
           <WindowFrameRow />
           <FontRow />
           <ChatWidthRow />
+          {!remoteActive && <ToolCallsRow />}
         </SettingsRows>
       </SettingsGroup>
       <SettingsGroup label={t("settings.grok.group.sidebar")} block="sidebar">
         <SettingsRows>
-          <SidebarToolsLayoutRow />
           <ChromeRailRow />
-          <ShowThreadsRow />
           <PinnedCirclesRow />
           <UniversalPinsRow />
-          {!remoteActive && <ToolCallsRow />}
-          <RunCardRow />
         </SettingsRows>
       </SettingsGroup>
     </>
@@ -465,7 +489,7 @@ function TeamPage({ has, peopleOpen }: { has: Has; peopleOpen: boolean }) {
 function DataPage({ has }: { has: Has }) {
   return (
     <>
-      <SettingsGroup label={t("settings.advanced.data.title")} block="data">
+      <SettingsGroup block="data">
         <SettingsRows>
           <AnalyticsRow simple />
           <AttachmentStorageSettings />
@@ -473,7 +497,6 @@ function DataPage({ has }: { has: Has }) {
         <ThreadCleanupSettings />
       </SettingsGroup>
       {has("backups") && <SettingsGroup label={t("settings.section.backups")} block="backups"><AdminOnly><WorkspaceBackupSettings /><CompanyBackupSettings /></AdminOnly></SettingsGroup>}
-      {has("import") && <SettingsGroup label={t("settings.section.import")} block="import"><AdminOnly><ImportSettings /></AdminOnly></SettingsGroup>}
     </>
   );
 }
@@ -481,35 +504,14 @@ function DataPage({ has }: { has: Has }) {
 function BuilderPage() {
   const advanced = useAdvancedMode();
   return (
-    <SettingsGroup label={t("settings.advanced.builder.title")} block="builder">
+    <SettingsGroup block="builder">
       {advanced && <SettingsRows><AdvancedModeRow simple /></SettingsRows>}
       <SettingsRows><SavedStepsRow /></SettingsRows>
-      <Card title={t("settings.roomTurns.title")} subtitle={t("settings.roomTurns.subtitle")}><RoomTurnTimeoutSettings /></Card>
-      <Card title={t("settings.mcpCalls.title")} subtitle={t("settings.mcpCalls.subtitle")}><McpCallTimeoutSettings /></Card>
+      <Card><div className="flex flex-col gap-3"><RoomTurnTimeoutSettings /><McpCallTimeoutSettings /></div></Card>
       <ThreadConcurrencySettings />
       <AutomaticRecoverySettings />
-      <PinnedPanelsSettings />
       <ExperimentalFeaturesRow />
     </SettingsGroup>
-  );
-}
-
-function AboutPage() {
-  const [about, setAbout] = useState(false);
-  const [shortcuts, setShortcuts] = useState(false);
-  return (
-    <>
-      <SettingsGroup label={t("settings.advanced.about.title")} block="about">
-        <SettingsRows>
-          <OpenRow data-settings-open="about" title={t("settings.advanced.about.about")} subtitle={versionTitle()} onOpen={() => setAbout(true)} />
-          <OpenRow data-settings-open="shortcuts" title={t("settings.advanced.about.shortcuts")} subtitle={t("settings.advanced.about.shortcutsSubtitle")} action={t("settings.advanced.about.view")} onOpen={() => setShortcuts(true)} />
-          <OpenRow data-settings-open="help" title={t("settings.advanced.about.help")} subtitle={t("settings.advanced.about.helpSubtitle")} onOpen={() => void openExternalLink(HELP_CENTER_URL)} />
-          <OpenRow data-settings-open="feedback" title={t("settings.advanced.about.feedback")} subtitle={t("settings.advanced.about.feedbackSubtitle")} onOpen={() => void openExternalLink(FEEDBACK_URL)} />
-        </SettingsRows>
-      </SettingsGroup>
-      <AboutDialog open={about} onClose={() => setAbout(false)} />
-      <KeyboardShortcutsModal open={shortcuts} onClose={() => setShortcuts(false)} />
-    </>
   );
 }
 
@@ -532,12 +534,11 @@ export function AdvancedPageView({ page, has, remoteActive, peopleOpen }: {
 }) {
   switch (page) {
     case "apps": return <AppsPage has={has} />;
-    case "bots": return <BotsPage remoteActive={remoteActive} />;
+    case "bots": return <BotsPage />;
     case "looks": return <LooksPage remoteActive={remoteActive} />;
     case "team": return <TeamPage has={has} peopleOpen={peopleOpen} />;
     case "data": return <DataPage has={has} />;
     case "builder": return <BuilderPage />;
-    case "about": return <AboutPage />;
   }
 }
 

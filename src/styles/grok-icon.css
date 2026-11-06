@@ -1,10 +1,3 @@
-/* grok bot's icon font (cursor-icons-16). third-party asset: private fork only */
-@font-face {
-  font-family: "Grok Icons";
-  font-display: block;
-  src: url("../assets/fonts/grok-icons.woff2") format("woff2");
-}
-
 .grok-icon {
   display: inline-flex;
   align-items: center;

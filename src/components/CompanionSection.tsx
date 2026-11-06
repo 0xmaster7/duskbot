@@ -150,14 +150,7 @@ export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { prof
   const remoteBlocked = managedPolicy?.remoteAccess === false ? t("policy.remoteBlocked", { organization: managedPolicy.organizationName }) : null;
   const managedBy = managedPolicy?.remoteAccess === false ? t("policy.managedBy", { organization: managedPolicy.organizationName }) : null;
 
-  if (!companionBridge()) {
-    return (
-      <Card
-        title={t("remote.desktopOnly.title", { app: productName() })}
-        subtitle={t("remote.desktopOnly.subtitle")}
-      />
-    );
-  }
+  if (!companionBridge()) return null;
 
   if (!state) {
     return (
@@ -191,7 +184,7 @@ export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { prof
     <div className="flex flex-col gap-4">
       {remoteBlocked && <p role="status" className="text-[13px] leading-relaxed text-ink-secondary">{remoteBlocked}</p>}
       <div ref={pairingFlow} tabIndex={-1} data-phone-pairing="computer" className="scroll-mt-4 rounded-xl ring-1 ring-accent/40 focus:outline-none">
-        <Card title={pairingCopy.title} subtitle={pairingCopy.subtitle}>
+        <Card title={pairingCopy.title} subtitle={c.localFallback || c.tailscaleFallback ? pairingCopy.subtitle : undefined}>
           {(panelStatus || (pairedCount > 0 && c.hostedReady)) && (
             <div className="mb-4 flex items-center justify-between gap-3">
               {panelStatus && (
@@ -223,9 +216,6 @@ export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { prof
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
               <div className="text-[13px] text-ink">{t("remote.title")}</div>
-              <div className="mt-0.5 text-[12px] leading-relaxed text-ink-secondary">
-                {t("remote.toggleDetail")}
-              </div>
             </div>
             <Switch
               checked={state.enabled}
@@ -261,10 +251,7 @@ export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { prof
                         </button>
                       </div>
                       <div className="mt-3 flex items-center justify-between gap-3 border-t border-hairline/30 pt-3">
-                        <div>
-                          <div className="text-[12px] text-ink">{t("remote.devices.allowView")}</div>
-                          <div className="mt-0.5 text-[11px] text-ink-secondary">{t("remote.devices.allowViewDetail")}</div>
-                        </div>
+                        <div className="text-[12px] text-ink">{t("remote.devices.allowView")}</div>
                         <Switch
                           checked={device.cloudDesktopAccess}
                           aria-label={t("remote.devices.viewAria", { name: device.name })}
@@ -277,10 +264,7 @@ export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { prof
                         />
                       </div>
                       <div className="mt-3 flex items-center justify-between gap-3 border-t border-hairline/30 pt-3">
-                        <div>
-                          <div className="text-[12px] text-ink">{t("remote.devices.allowBrowser")}</div>
-                          <div className="mt-0.5 text-[11px] text-ink-secondary">{t("remote.devices.allowBrowserDetail")}</div>
-                        </div>
+                        <div className="text-[12px] text-ink">{t("remote.devices.allowBrowser")}</div>
                         <Switch
                           checked={device.browserControlAccess === true}
                           aria-label={t("remote.devices.browserAria", { name: device.name })}
@@ -299,7 +283,6 @@ export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { prof
 
           <div className="border-t border-hairline/30 pt-4">
             <div className="text-[13px] text-ink">{t("remote.pairing.tailscale.title")}</div>
-            <div className="mt-0.5 text-[12px] leading-relaxed text-ink-secondary">{t("remote.tailscaleCard.subtitle")}</div>
             <div className="mt-3">
               <div className="rounded-xl bg-inset px-3 py-3" aria-live="polite">
                 <div className="flex items-start gap-2.5">

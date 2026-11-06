@@ -14,46 +14,18 @@
   }
 }
 
-/* Grok's interface faces, xAI's own (X-VF and XMono-VF), copied from the
-   Grok Bot app for this private fork. Not for redistribution. */
-@font-face {
-  font-family: "XVF";
-  font-weight: 200 800;
-  font-display: fallback;
-  src: url("./assets/fonts/xvf.woff2") format("woff2");
-}
-@font-face {
-  font-family: "XVF Mono";
-  font-weight: 200 800;
-  font-display: fallback;
-  src: url("./assets/fonts/xvf-mono.woff2") format("woff2");
-}
-
 /* Inline mentions keep the surrounding font metrics, including in the
    textarea mirror. No padding/border/font-weight changes that shift the caret. */
 .mention-highlight {
   --mention-color: var(--color-ink-secondary);
 
-  color: color-mix(in srgb, var(--mention-color) 30%, var(--color-ink));
-  background: color-mix(in srgb, var(--mention-color) 24%, var(--color-inset));
-  border-radius: 3px;
-  text-decoration: underline;
-  text-decoration-color: var(--mention-color);
-  text-underline-offset: 3px;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
-}
-.mention-highlight.mention-person {
-  text-decoration-style: dotted;
+  /* quiet like grok: a hint of the bot's color in the text, no fill or underline */
+  color: color-mix(in srgb, var(--mention-color) 55%, var(--color-ink));
+  font-weight: 500;
 }
 .mention-highlight.mention-you {
-  --mention-color: var(--color-accent);
   color: var(--color-ink);
-  background: color-mix(in srgb, var(--mention-color) 40%, var(--color-inset));
-  text-decoration: none;
   font-weight: 600;
-  padding: 0 0.25em;
-  border-radius: 4px;
 }
 ::highlight(search-result-text) {
   color: var(--color-ink);
@@ -3279,9 +3251,7 @@ button:disabled.bg-danger {
   box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.16);
 }
 .user-bubble-colored .mention-highlight {
-  color: var(--color-ink);
-  background: color-mix(in srgb, var(--mention-color) 22%, var(--color-inset));
-  text-decoration-color: var(--color-ink);
+  color: inherit;
 }
 .user-bubble-colored::selection,
 .user-bubble-colored *::selection {
@@ -3360,3 +3330,7 @@ button:disabled.bg-danger {
 .trace-step-box { background: color-mix(in srgb, #8b7cf6 14%, var(--color-card)); border-color: color-mix(in srgb, #8b7cf6 30%, var(--color-card)); }
 .trace-step-ink { color: color-mix(in srgb, #7c6cf0 85%, var(--color-ink)); }
 .trace-tool-ink { color: color-mix(in srgb, #1f9a8c 80%, var(--color-ink)); }
+/* the composer's mirror must keep the textarea's metrics, so no weight change there */
+.mention-editor-mirror .mention-highlight {
+  font-weight: inherit;
+}

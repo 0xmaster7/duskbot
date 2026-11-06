@@ -310,7 +310,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
                   const match = hit.snippet.slice(hit.matchStart, hit.matchStart + hit.matchLength);
                   const after = hit.snippet.slice(hit.matchStart + hit.matchLength);
                   return row(`msg:${hit.threadId}:${hit.messageId}`, index, entry, tile("chat-bubbles"),
-                    hit.task ? `${hit.name} · ${hit.task}` : hit.name, <>{before}<span className="font-semibold text-ink">{match}</span>{after}</>, "Message");
+                    hit.name, <>{before}<span className="font-semibold text-ink">{match}</span>{after}</>, "Message");
                 }
                 const { command } = entry;
                 return row(`cmd:${command.id}`, index, entry, tile(command.icon), command.name, command.detail, "Action");

@@ -7,6 +7,7 @@ import { applyFont, readFont } from "./lib/fonts";
 import { settleAdvancedModeDefault } from "./lib/interface-mode";
 import { loadPageLanguage } from "./lib/language-preference";
 import { applySkinChoice, readSkinChoice } from "./lib/skins";
+import "./font-faces";
 import "./styles.css";
 
 // The window's own rail of places (electron/chrome-rail.mjs): see-through but for the rail and its open sheets. Only

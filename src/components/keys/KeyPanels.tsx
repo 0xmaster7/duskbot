@@ -49,10 +49,9 @@ export function OpenCodeProviderKeys() {
 
   return (
     <div data-opencode-provider-keys className="flex flex-col gap-2">
-      <p className="text-[12px] leading-4 text-ink-secondary">{t("keys.opencode.otherProviders.hint")}</p>
       {state.config?.cloudHome !== true && (
         <p className="text-[12px] leading-4 text-ink-secondary">
-          {t("keys.opencode.providersHint").split("{command}").flatMap((part, index) =>
+          {t("settings.w6b.opencode.providersHint").split("{command}").flatMap((part, index) =>
             index === 0 ? [part] : [<code key={index} className="font-mono">opencode auth login</code>, part])}
         </p>
       )}
@@ -167,11 +166,10 @@ export function VpsConnection() {
   return (
     <div className="flex flex-col gap-2">
       <p className="text-[12px] leading-4 text-ink-secondary">
-        {t("keys.vps.descBefore")}
+        {t("settings.w6b.vps.desc")}{" "}
         <a href="https://github.com/milind-soni/OpenMausBot/blob/main/docs/byo-vps.md" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
-          {t("keys.vps.descLink")}
+          {t("settings.w6b.vps.guide")}
         </a>
-        {t("keys.vps.descAfter")}
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <input

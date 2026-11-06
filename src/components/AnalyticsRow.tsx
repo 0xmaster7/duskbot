@@ -9,9 +9,9 @@ export function AnalyticsRow({ simple = false }: { simple?: boolean }) {
   const [on, setOn] = useState(analyticsEnabled);
   const subtitle = (
     <>
-      {t(simple ? "settings.simple.analytics" : "settings.analytics.subtitle")}{" "}
+      {t(simple ? "settings.w6c.analytics.subtitle" : "settings.analytics.subtitle")}{" "}
       <a href={ANALYTICS_DOC_URL} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
-        {t(simple ? "settings.simple.analyticsLink" : "settings.analytics.link")}
+        {t(simple ? "settings.w6c.analytics.link" : "settings.analytics.link")}
       </a>
     </>
   );

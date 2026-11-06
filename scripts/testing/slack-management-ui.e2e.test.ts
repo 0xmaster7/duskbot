@@ -9,6 +9,7 @@ import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { clickByName, closeBotPanel, settled } from "./grok-nav.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const binary = resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env });
@@ -39,21 +40,28 @@ describe("Slack management in agent settings", () => {
     const ui = (verb: string, ...args: string[]) => runControlOmb(["ui", verb, "--ui", fixture.ui, ...args]) as Promise<Record<string, any>>;
     const evaluate = async (js: string) => (await ui("eval", "--js", js)).result;
     const snapshot = async () => (await ui("snapshot")).snapshot as string;
-    const click = (name: string) => ui("click", "--name", name);
+    // The Slack page of the bot's settings sheet, and its row on the panel's Advanced tab.
     const link = () => evaluate("document.querySelector('[data-bot-settings-section=slack] a')?.getAttribute('href') ?? null");
-    const row = () => evaluate("Boolean(document.querySelector('[data-bot-settings-section=slack]'))");
+    const row = () => evaluate("Boolean(document.querySelector('#bot-panel [data-panel-page=slack]'))");
     const openProfile = async () => {
       await expect.poll(snapshot, { timeout: 15_000 }).toMatch(/button "Open .+ profile"/);
       const state = await ui("snapshot", "--interactive");
       const profile = Object.entries(state.refs as Record<string, { role: string; name: string }>)
         .find(([, entry]) => entry.role === "button" && /Open .+ profile/.test(entry.name));
       expect(profile).toBeDefined();
+      await settled(ui);
       await ui("click", "--ref", `@${profile![0]}`);
-      await expect.poll(snapshot, { timeout: 10_000 }).toContain("Identity");
+      await clickByName(ui, "Advanced", "tab");
+      await expect.poll(() => evaluate("Boolean(document.querySelector('#bot-panel [data-panel-page=identity]'))"), { timeout: 10_000 }).toBe(true);
     };
-    // Availability is read when settings open, so each mode reopens them.
+    const openSlack = async () => {
+      await settled(ui);
+      await evaluate("document.querySelector('#bot-panel [data-panel-page=slack]').click(); true");
+      await expect.poll(() => evaluate("document.querySelector('[data-bot-sheet-page][aria-current=page]')?.dataset.botSheetPage ?? null"), { timeout: 10_000 }).toBe("slack");
+    };
+    // Availability is read when the Advanced tab opens, so each mode reopens the panel.
     const reopen = async (mode: string) => {
-      await click("Close settings");
+      await closeBotPanel(ui);
       await evaluate(`window.slackFixture.mode = ${JSON.stringify(mode)}; true`);
       const before = await evaluate("window.slackFixture.requests.length") as number;
       await openProfile();
@@ -88,21 +96,22 @@ describe("Slack management in agent settings", () => {
     })()`);
     await reopen("ready");
     await expect.poll(row, { timeout: 10_000 }).toBe(true);
-    await click("Slack");
+    await openSlack();
     await expect.poll(link, { timeout: 10_000 }).toMatch(/^https:\/\/admin\.example\.test\/slack\?workspace=acme&bot=/);
-    expect(await snapshot()).toContain("Give this agent its own Slack app, with its own name and picture, so your team can message it directly.");
+    expect(await snapshot()).toContain("Its own Slack app, so your team can message it.");
     expect(await snapshot()).toContain("Manage in Admin");
     expect(await evaluate("document.querySelector('[data-bot-settings-section=slack] a')?.getAttribute('rel')")).toBe("noopener noreferrer");
     expect(await evaluate("document.querySelector('[data-bot-settings-section=slack] a')?.getAttribute('target')")).toBe("_blank");
-    // One link and the row's own toggle: no switches, no confirmations.
+    // One link: no switches, no confirmations.
     expect(await evaluate("document.querySelectorAll('[data-bot-settings-section=slack] a').length")).toBe(1);
-    expect(await evaluate("document.querySelectorAll('[data-bot-settings-section=slack] button, [data-bot-settings-section=slack] input').length")).toBe(1);
+    expect(await evaluate("document.querySelectorAll('[data-bot-settings-section=slack] button, [data-bot-settings-section=slack] input').length")).toBe(0);
 
-    // Anything but an available answer removes the row, even though Slack was the open section.
+    // Anything but an available answer removes the row and the sheet's page, even though Slack was the open page.
     for (const mode of ["unavailable", "denied", "error"]) {
       await reopen(mode);
       expect(await row(), mode).toBe(false);
       expect(await link(), mode).toBeNull();
+      expect(await evaluate("Boolean(document.querySelector('[data-bot-sheet-page=slack]'))"), mode).toBe(false);
     }
 
     // An old response ignores AbortSignal deliberately: it must not surface
@@ -110,7 +119,7 @@ describe("Slack management in agent settings", () => {
     await reopen("pending");
     await expect.poll(() => evaluate("window.slackFixture.pending.length"), { timeout: 10_000 }).toBe(1);
     expect(await row()).toBe(false);
-    await click("Close settings");
+    await closeBotPanel(ui);
     await runControlOmb(["new-bot", "--name", "Slack Juniper", "--url", fixture.url]);
     const saved = await fetch(`${fixture.url}/api/bots?messages=0`).then((response) => response.json()) as { bots: Array<{ id: string; name: string }> };
     const second = saved.bots.find((bot) => bot.name === "Slack Juniper")!;
@@ -119,14 +128,13 @@ describe("Slack management in agent settings", () => {
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Slack Juniper");
     const sidebar = await ui("snapshot", "--interactive");
     const sidebarRow = Object.entries(sidebar.refs as Record<string, { role: string; name: string }>)
-      .find(([, entry]) => entry.role === "button" && entry.name.includes("Slack Juniper") && !entry.name.startsWith("Open "));
+      .find(([, entry]) => entry.role === "button" && entry.name.includes("Slack Juniper") && !/^(Open|Actions for) /.test(entry.name));
     expect(sidebarRow).toBeDefined();
     await ui("click", "--ref", `@${sidebarRow![0]}`);
     await evaluate("window.slackFixture.mode = 'ready'; true");
     await openProfile();
     await expect.poll(row, { timeout: 10_000 }).toBe(true);
-    // Slack is still the open section from the first agent's settings.
-    await evaluate("document.querySelector('[data-bot-settings-section=slack] > button[aria-expanded=false]')?.click(); true");
+    await openSlack();
     const expected = `https://admin.example.test/slack?workspace=acme&bot=${second.id}`;
     await expect.poll(link, { timeout: 10_000 }).toBe(expected);
     await evaluate("window.slackFixture.pending.forEach(resolve => resolve()); true");

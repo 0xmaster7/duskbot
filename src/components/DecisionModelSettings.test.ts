@@ -82,18 +82,18 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("DecisionModelSettings", () => {
-  it("explains itself, then the switch, the key, and what it decides", () => {
+  it("shows the switch with its live status, then the key, without an explainer", () => {
     const view = render();
-    const order = ["Small, fast models that sort and read things for your bots", "Decisions: not set up · Extraction: not set up", "Cloudflare Workers AI (free tier)",
-      "Use fast decisions and extraction", "Jev API key", "What it decides", "Who answers in rooms"]
+    const order = ["Use fast decisions and extraction", "Decisions: not set up · Extraction: not set up", "Who answers in rooms", "Jev API key", "Cloudflare Workers AI (free tier)"]
       .map((text) => view.html.indexOf(text));
     expect(order.every((at) => at >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(view.html).not.toContain("Small, fast models that sort and read things for your bots");
+    expect(view.html).not.toContain("What it decides");
     expect(view.html).toContain("Not connected");
     expect(view.html).toContain('href="https://typesafe.ai"');
     expect(view.master.props.checked).toBe(false);
     expect(view.master.props.disabled).toBe(true);
-    expect(view.html).toContain("Save a key below to turn this on.");
   });
 
   it("offers both providers, with Jev selected for an existing install and no model picker", () => {
@@ -107,10 +107,9 @@ describe("DecisionModelSettings", () => {
     expect(fixture.api).not.toHaveBeenCalled();
   });
 
-  it("lists the coming-soon jobs with no switch", () => {
+  it("lists only the job it does, with its switch", () => {
     const view = render();
-    for (const label of ["Browser clicks", "Tool selection", "Where work runs"]) expect(view.html).toContain(label);
-    expect(view.html.match(/Coming soon/g)).toHaveLength(3);
+    for (const label of ["Browser clicks", "Tool selection", "Where work runs", "Coming soon"]) expect(view.html).not.toContain(label);
     expect(view.switches).toHaveLength(2);
   });
 
@@ -420,7 +419,6 @@ describe("DecisionModelSettings", () => {
         const view = render();
         expect(view.html).toContain("Not connected");
         expect(view.html).toContain("Save an OpenRouter key under API keys to use it here and for models");
-        expect(view.html).toContain("Save an OpenRouter key below or under API keys to turn this on.");
         expect(view.manage).toBeDefined();
         expect(view.master.props.disabled).toBe(true);
         expect(view.test.props.disabled).toBe(true);

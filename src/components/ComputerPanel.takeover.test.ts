@@ -218,7 +218,7 @@ describe("taking control of a Local VM", () => {
     fixture.beacons = [];
     await open(makeBot({ computer: "vm" }));
     await press("Take control");
-    await press("Browser");
+    await press("Data");
     expect(releases(), "leaving the Screen view left the bot waiting").toHaveLength(1);
 
     fixture.beacons = [];

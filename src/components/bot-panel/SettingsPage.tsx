@@ -12,7 +12,7 @@ import { BackupAis } from "./BackupAis";
 import { usePlaceChoices } from "./ComputerTab";
 import { BotConversations } from "./Conversations";
 import { panelMemoryNotes } from "./memory-notes";
-import type { ModalPage } from "./modals/panel-modal";
+import type { SheetPage } from "./modals/panel-modal";
 import { Card, NavRow } from "./rows";
 import { useMemoryDoc } from "./use-memory-doc";
 
@@ -25,12 +25,13 @@ function useMemoryLine(bot: Bot): string {
   return notes === 0 ? t("botPanel.memory.nothingYet") : notes === 1 ? t("botPanel.memory.note") : t("botPanel.memory.notes", { count: notes });
 }
 
-/** The bot's settings as Grok-style list rows: one card of rows that each open their dialog, then its rare actions. The
- * Advanced tab draws it; the model lives on Details. */
-export function SettingsPage({ bot, onOpen }: {
+/** The bot's settings as Grok-style list rows: what it knows, then what it can reach, each row opening its page of the
+ * bot's settings sheet; then its rare actions. The Advanced tab draws it; the model lives on Details. */
+export function SettingsPage({ bot, onOpen, slackUrl = null }: {
   bot: Bot;
   derived?: Derived;
-  onOpen?: (page: ModalPage) => void;
+  onOpen?: (page: SheetPage) => void;
+  slackUrl?: string | null;
 }) {
   const { state, dispatch } = useStore();
   const skills = useManagedSkills(bot);
@@ -40,7 +41,7 @@ export function SettingsPage({ bot, onOpen }: {
   const clearThreads = useDeleteAllThreads(true);
   const team = useTeamName();
   const name = bot.name;
-  const open = (page: ModalPage) => () => onOpen?.(page);
+  const open = (page: SheetPage) => () => onOpen?.(page);
 
   const skillsOn = skills.skills.filter((skill) => skill.enabled).length;
   const backups = bot.fallback?.length ?? 0;
@@ -54,9 +55,16 @@ export function SettingsPage({ bot, onOpen }: {
         <NavRow data-panel-page="instructions" title={t("botSettings.simple.instructions")} value={(bot.soul ?? "").trim() ? undefined : t("botPanel.none")} onClick={open("instructions")} />
         <NavRow data-panel-page="memory" title={t("botPanel.memoryRow")} value={memoryLine} onClick={open("memory")} />
         <NavRow data-panel-page="skills" title={t("botSettings.simple.skills")} value={skills.loading ? undefined : skillsOn > 0 ? t("botPanel.skills.on", { count: skillsOn }) : t("botPanel.none")} onClick={open("skills")} />
+        <NavRow data-panel-page="identity" title={t("botSettings.sections.identity")} value={bot.title?.trim() || undefined} onClick={open("identity")} />
+      </Card>
+
+      <Card label={t("botSettings.sections.access")} anchor="access">
+        <NavRow data-panel-page="tools" title={t("botPanel.page.tools")} value={bot.toolScope !== undefined ? t("botPanel.tools.custom") : undefined} onClick={open("tools")} />
+        <NavRow data-panel-page="permissions" title={t("botSettings.sections.permissions")} value={bot.chiefOfStaff ? t("permissions.chief.title") : undefined} onClick={open("permissions")} />
         <NavRow data-panel-page="folder" title={t("computer.files.folder")} value={bot.cwd ? shortPath(bot.cwd, capabilities.host?.homeDir) : t("botPanel.folder.private")} tooltip={bot.cwd ?? undefined} onClick={open("folder")} />
         <NavRow data-panel-page="where" title={t("computer.simple.whereWorks", { name })} value={currentLabel ?? t("computer.simple.dest.letItChoose")} onClick={open("where")} />
         <NavRow data-panel-page="backups" title={t("botPanel.page.backups")} value={backups > 0 ? t("botPanel.backups.count", { count: backups }) : t("botPanel.none")} onClick={open("backups")} />
+        {slackUrl && <NavRow data-panel-page="slack" title={t("botPanel.page.slack")} onClick={open("slack")} />}
       </Card>
 
       {editable && (

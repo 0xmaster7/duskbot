@@ -81,11 +81,10 @@ describe("RoomMoreMenu, the Room panel's round ⋯", () => {
     expect(item(room(), "find").active).toBe(true);
   });
 
-  it("offers find, threads, share and the time per turn, and usage once the room has some", () => {
-    expect(menuOf(room()).items.map((entry) => entry.key)).toEqual(["find", "new-thread", "threads", "copy", "download", "turn-limit"]);
+  it("offers find, share and the time per turn, and usage once the room has some", () => {
+    expect(menuOf(room()).items.map((entry) => entry.key)).toEqual(["find", "copy", "download", "turn-limit"]);
     const used = room({ usage: { input: 1200, output: 300, costUsd: 0.42, turns: 2 } });
-    expect(menuOf(used).items.map((entry) => entry.key)).toEqual(["find", "new-thread", "threads", "copy", "download", "turn-limit", "usage"]);
-    expect(menuOf(room()).items.find((entry) => entry.key === "new-thread")).toMatchObject({ label: "New thread", heading: "Threads", separatorBefore: true });
+    expect(menuOf(used).items.map((entry) => entry.key)).toEqual(["find", "copy", "download", "turn-limit", "usage"]);
     expect(menuOf(room()).items.find((entry) => entry.key === "copy")).toMatchObject({ label: "Copy as Markdown", heading: "Share", separatorBefore: true });
   });
 
@@ -94,28 +93,12 @@ describe("RoomMoreMenu, the Room panel's round ⋯", () => {
     expect(fixture.find).toHaveBeenCalledWith("launch");
   });
 
-  it("starts a new thread in the room", () => {
-    item(room(), "new-thread").onSelect();
-    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "newGroupTask", groupId: "desk" });
-  });
-
-  it("lists the room's threads newest first, marks the open one and switches to another", () => {
-    const threads = item(room(), "threads");
-    expect(threads).toMatchObject({ label: "All threads", value: "3" });
-    expect(threads.submenu!.map((entry) => [entry.label, Boolean(entry.active)])).toEqual([
-      ["Launch plan", true],
-      ["New thread", false],
-      ["Desk HQ", false],
-    ]);
-    threads.submenu![2]!.onSelect();
-    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "switchGroupTask", groupId: "desk", threadId: "main" });
-  });
-
-  it("leaves the thread items to the sidebar when it shows threads, and All threads out with one thread", () => {
-    fixture.threadsShown = true;
-    expect(menuOf(room()).items.map((entry) => entry.key)).toEqual(["find", "copy", "download", "turn-limit"]);
-    fixture.threadsShown = false;
-    expect(menuOf(room({ tasks: [task("launch", "Launch plan", 3)] })).items.map((entry) => entry.key)).not.toContain("threads");
+  it("offers no thread items, however many conversations the room has", () => {
+    for (const tasks of [undefined, [task("launch", "Launch plan", 3)]]) {
+      const keys = menuOf(room(tasks ? { tasks } : {})).items.map((entry) => entry.key);
+      expect(keys).not.toContain("threads");
+      expect(keys).not.toContain("new-thread");
+    }
   });
 
   it("copies and downloads the room's transcript as Markdown", async () => {
@@ -157,6 +140,6 @@ describe("RoomMoreMenu, the Room panel's round ⋯", () => {
     expect(usage.label).toBe("Usage");
     const markup = renderToStaticMarkup(createElement("div", null, usage.trailing));
     expect(markup).toContain(">$0.42</span>");
-    expect(markup).toContain('title="This thread:');
+    expect(markup).toContain('title="This chat:');
   });
 });

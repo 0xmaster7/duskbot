@@ -4,12 +4,17 @@ import { useSyncExternalStore } from "react";
 export const MODAL_PAGES = ["instructions", "memory", "skills", "folder", "where", "backups"] as const;
 export type ModalPage = (typeof MODAL_PAGES)[number];
 
+/** Every page of the bot's settings sheet: the dialog pages, then the bot's tools, permissions, identity and Slack, which
+ * only the sheet draws. */
+export const SHEET_PAGES = ["instructions", "memory", "skills", "identity", "tools", "permissions", "folder", "where", "backups", "slack"] as const;
+export type SheetPage = (typeof SHEET_PAGES)[number];
+
 export function isModalPage(page: string | undefined): page is ModalPage {
   return page !== undefined && (MODAL_PAGES as readonly string[]).includes(page);
 }
 
 export interface ModalRequest {
-  page: ModalPage;
+  page: SheetPage;
   nonce: number;
 }
 
@@ -20,7 +25,7 @@ const watchers = new Set<() => void>();
 const notify = () => queueMicrotask(() => { for (const watch of Array.from(watchers)) watch(); });
 
 /** Asks the Advanced tab to open `page`'s dialog; a deep link lands there and the tab picks the request up. */
-export function requestPanelModal(page: ModalPage): void {
+export function requestPanelModal(page: SheetPage): void {
   pending = { page, nonce: ++count };
   notify();
 }

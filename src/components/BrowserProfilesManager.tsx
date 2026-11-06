@@ -9,10 +9,11 @@ import { Select } from "./Select";
 import { browserScope } from "@/lib/team-browser";
 
 /** Security: the server owns session routing and erasure; this UI never handles cookies or partitions. */
-export function BrowserProfilesManager({ bot, onProfileChanged, disabled = false }: {
+export function BrowserProfilesManager({ bot, onProfileChanged, disabled = false, folded = false }: {
   bot?: Bot;
   onProfileChanged?: () => void;
   disabled?: boolean;
+  folded?: boolean;
 }) {
   const { state, dispatch, flushBotPatches } = useStore();
   const profiles = state.config?.browserProfiles ?? [];
@@ -185,7 +186,7 @@ export function BrowserProfilesManager({ bot, onProfileChanged, disabled = false
             )}
         </div>
       )}
-      <details open={!currentBot} className="min-w-0">
+      <details open={!currentBot && !folded} className="min-w-0">
         <summary className="cursor-pointer text-[12px] font-medium text-ink-secondary hover:text-ink">{t("settings.profiles.manage")}</summary>
         <div className="mt-3 flex flex-col gap-3">
           <form className="flex flex-wrap gap-2" onSubmit={(event) => { event.preventDefault(); void create(); }}>

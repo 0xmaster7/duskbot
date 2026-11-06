@@ -74,7 +74,6 @@ export function SearchResults({ query, onLanded }: { query: string; onLanded: ()
             <span className="min-w-0 flex-1">
               <span className="flex items-baseline gap-1.5 text-[12px] text-ink-secondary">
                 <span className="truncate font-medium text-ink">{hit.from ?? hit.name}</span>
-                {hit.task ? <span className="truncate">· {hit.task}</span> : null}
                 <span className="ml-auto shrink-0 tabular-nums">{formatTime(hit.at)}</span>
               </span>
               <span dir="auto" className={cn("mt-0.5 line-clamp-2 text-[13px] leading-snug", hit.role === "user" ? "text-ink" : "text-ink-secondary")}>

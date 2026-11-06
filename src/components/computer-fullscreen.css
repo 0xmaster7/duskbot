@@ -1,0 +1,20 @@
+/* grok's waking line on the dark cover: a light band sweeps the text */
+.computer-waking-text {
+  color: transparent;
+  background-image: linear-gradient(90deg, rgb(255 255 255 / 0.4) 0%, rgb(255 255 255 / 0.4) 25%, rgb(255 255 255 / 0.9) 60%, rgb(255 255 255 / 0.4) 75%, rgb(255 255 255 / 0.4) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: computer-waking-text 2.2s linear infinite;
+}
+@keyframes computer-waking-text {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .computer-waking-text { animation: none; background-image: none; color: rgb(255 255 255 / 0.68); }
+}
+:root[data-reduced-motion="true"] .computer-waking-text { animation: none; background-image: none; color: rgb(255 255 255 / 0.68); }
+@media (forced-colors: active) {
+  .computer-waking-text { color: CanvasText; background-image: none; }
+}

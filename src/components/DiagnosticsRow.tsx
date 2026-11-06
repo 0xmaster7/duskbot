@@ -44,13 +44,13 @@ export function DiagnosticsRow({ simple = false }: { simple?: boolean }) {
   return (
     <SettingRow
       title={t("settings.diagnostics.title")}
-      subtitle={t(simple ? "settings.simple.diagnostics" : "settings.diagnostics.subtitle")}
+      subtitle={t(simple ? "settings.w6c.diagnostics.subtitle" : "settings.diagnostics.subtitle")}
       message={<>
         {folder && result?.kind !== "error" && <p role="status" data-logs-folder className="break-all text-ink-secondary">{t("settings.diagnostics.logsAt", { folder })}</p>}
         {result && <p role={result.kind === "error" ? "alert" : "status"} className={cn("break-all", result.kind === "error" ? "text-danger" : "text-success")}>
           {result.message}
         </p>}
-        <p data-logs-help className="text-ink-tertiary">{t(here ? "settings.diagnostics.logsHelp" : "settings.diagnostics.elsewhere")}</p>
+        {!(simple && here) && <p data-logs-help className="text-ink-tertiary">{t(here ? "settings.diagnostics.logsHelp" : simple ? "settings.w6c.diagnostics.elsewhere" : "settings.diagnostics.elsewhere")}</p>}
       </>}
     >
       {here && <div className="flex flex-wrap gap-2">

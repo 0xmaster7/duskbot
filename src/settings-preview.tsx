@@ -6,6 +6,7 @@ import { SettingsModal } from "@/components/SettingsModal";
 import { loadLocale } from "@/lib/i18n";
 import { applySkinChoice, SKIN_IDS, type SkinId } from "@/lib/skins";
 import { initialState, reducer, StoreContext, type AppSettingsSection, type AppState } from "@/state/store";
+import "./font-faces";
 import "./styles.css";
 import "./styles/overlays.css";
 

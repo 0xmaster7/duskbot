@@ -6,6 +6,7 @@ import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { openBotSheet } from "./grok-nav.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const enabled = process.env.OMB_UI_E2E === "1" || Boolean(resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env }));
@@ -35,8 +36,6 @@ const enabled = process.env.OMB_UI_E2E === "1" || Boolean(resolveAgentBrowserBin
     };
     const ui = (verb: string, ...args: string[]) => runControlOmb(["ui", verb, "--ui", info.ui, ...args]) as Promise<any>;
     const click = (name: string) => ui("click", "--name", name);
-    // The browser harness does not assign refs to native <summary> nodes.
-    const toggleTeams = () => ui("eval", "--js", "document.querySelector('[data-bot-settings-section=permissions] summary').click()");
     const snapshot = async () => (await ui("snapshot")).snapshot as string;
     const clickRole = async (role: string, name: string | RegExp) => {
       const refs = (await ui("snapshot")).refs as Record<string, { role: string; name: string }>;
@@ -54,10 +53,9 @@ const enabled = process.env.OMB_UI_E2E === "1" || Boolean(resolveAgentBrowserBin
     await expect.poll(snapshot, { timeout: 15_000 }).toContain("Actions for Clive");
     await clickRole("button", /^Clive(?:,|$)/);
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Open Clive's profile");
-    await clickRole("button", "Open Clive's profile");
-    await click("Permissions");
+    // Panel > Advanced > Permissions opens the bot's settings sheet there; the departments list is open under Chief of Staff.
+    await openBotSheet(ui, "Clive", "permissions");
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Also in charge of");
-    await toggleTeams();
     await clickRole("checkbox", "Engineering");
     await clickRole("checkbox", "Research");
     await clickRole("checkbox", "Empty delivery");
@@ -66,7 +64,6 @@ const enabled = process.env.OMB_UI_E2E === "1" || Boolean(resolveAgentBrowserBin
     await expect.poll(async () => (await saved()).managedSections?.toSorted(), { timeout: 10_000 }).toEqual(["Empty delivery", "Engineering", "Research"]);
     // The server update remounts the controlled list so another bot's old
     // selection can never be saved from a stale dialog.
-    await toggleTeams();
     const granted = await snapshot();
     expect(granted).toContain('checkbox "Engineering" [checked=true');
     expect(granted).toContain('checkbox "Research" [checked=true');
@@ -82,7 +79,6 @@ const enabled = process.env.OMB_UI_E2E === "1" || Boolean(resolveAgentBrowserBin
     expect((await saved()).managedSections?.toSorted()).toEqual(["Empty delivery", "Research"]);
     await api("/api/sidebar-sections?section=Empty%20delivery", { name: "Empty launch" });
     await expect.poll(async () => (await saved()).managedSections, { timeout: 10_000 }).toEqual(["Research"]);
-    await toggleTeams();
     await expect.poll(snapshot, { timeout: 10_000 }).toContain('checkbox "Empty launch" [checked=false');
     expect(await snapshot()).not.toContain('checkbox "Empty delivery"');
     // A new empty team appears in an already-open selector through SSE.

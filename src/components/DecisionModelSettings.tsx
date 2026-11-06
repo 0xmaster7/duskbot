@@ -5,7 +5,7 @@ import { api, useStore, type ConfigStatus } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
-import { Card, SettingRow, Switch } from "./SettingsPrimitives";
+import { Card, SettingRow, SettingsRows, Switch } from "./SettingsPrimitives";
 import { Select } from "./Select";
 import { WorkersAiKeyCard } from "./WorkersAiKeyCard";
 import { openKeySettings } from "./keys/key-focus";
@@ -90,8 +90,6 @@ export function deciderFailureText(result: { reason: string; status?: number }, 
   const key = FAILURES[result.reason];
   return key ? t(key) : t("decider.error.other");
 }
-
-const COMING_SOON: LocaleKey[] = ["decider.jobs.browserClicks", "decider.jobs.toolSelection", "decider.jobs.placement"];
 
 export function DecisionModelSettings() {
   const { state, dispatch } = useStore();
@@ -202,62 +200,69 @@ export function DecisionModelSettings() {
 
   return (
     <>
-      <section className="space-y-2 px-4">
-        <p className="text-[13px] leading-relaxed text-ink-secondary">{t("decider.intro")}</p>
-        <p role="status" data-testid="helpers-status" className="text-[13px] font-medium text-ink">{helpersStatusLine(state.config)}</p>
-      </section>
-      <WorkersAiKeyCard failureText={(result) => deciderFailureText(result, false, "workersai")} />
-      <SettingRow title={t("decider.provider.label")}>
-        <Select className="w-48"
-          data-testid="decider-provider"
-          value={provider}
-          onChange={(event) => choose({ provider: event.target.value === "openrouter" ? "openrouter" : "jev" })}
-          disabled={switching || !state.config}
-          aria-label={t("decider.provider.label")}
+      <SettingsRows>
+        <SettingRow
+          title={t(openrouter ? "decider.openrouter.master" : "decider.master")}
+          subtitle={<span role="status" data-testid="helpers-status">{helpersStatusLine(state.config)}</span>}
         >
-          <option value="jev">{t("decider.provider.jev")}</option>
-          <option value="openrouter">{t("decider.provider.openrouter")}</option>
-        </Select>
-      </SettingRow>
-      {openrouter && (
-        <SettingRow title={t("decider.model.label")} subtitle={models?.source === "builtin" ? t("decider.model.builtinNote") : undefined}>
-          <Select className="w-64 max-w-full"
-            data-testid="decider-model"
-            value={decider?.model ?? ""}
-            onChange={(event) => choose({
-              openrouterModel: event.target.value,
-              openrouterApi: models?.models.find((model) => model.id === event.target.value)?.api ?? "chat",
-            })}
-            disabled={switching}
-            aria-label={t("decider.model.label")}
+          <Switch
+            data-testid="decider-master"
+            aria-label={t(openrouter ? "decider.openrouter.master" : "decider.master")}
+            checked={enabled}
+            disabled={!configured || switching || !state.config}
+            onClick={() => void patch({ enabled: !enabled })}
+            className="cursor-pointer"
+          />
+        </SettingRow>
+        <SettingRow title={t("decider.provider.label")}>
+          <Select className="w-48"
+            data-testid="decider-provider"
+            value={provider}
+            onChange={(event) => choose({ provider: event.target.value === "openrouter" ? "openrouter" : "jev" })}
+            disabled={switching || !state.config}
+            aria-label={t("decider.provider.label")}
           >
-            {decider?.model && !models?.models.some((model) => model.id === decider.model) && (
-              <option value={decider.model}>{decider.model}</option>
-            )}
-            {(["recommended", "more"] as const).map((group) => {
-              const inGroup = models?.models.filter((model) => model.group === group) ?? [];
-              return inGroup.length > 0 && (
-                <optgroup key={group} label={t(group === "recommended" ? "decider.model.recommended" : "decider.model.more")}>
-                  {inGroup.map((model) => <option key={model.id} value={model.id}>{model.name}</option>)}
-                </optgroup>
-              );
-            })}
+            <option value="jev">{t("decider.provider.jev")}</option>
+            <option value="openrouter">{t("decider.provider.openrouter")}</option>
           </Select>
         </SettingRow>
-      )}
-      <SettingRow
-        title={t(openrouter ? "decider.openrouter.master" : "decider.master")}
-        subtitle={configured ? undefined : t(openrouter ? "decider.masterNeedsKey.openrouter" : "decider.masterNeedsKey")}
-      >
-        <Switch
-          data-testid="decider-master"
-          aria-label={t(openrouter ? "decider.openrouter.master" : "decider.master")}
-          checked={enabled}
-          disabled={!configured || switching || !state.config}
-          onClick={() => void patch({ enabled: !enabled })}
-          className="cursor-pointer"
-        />
-      </SettingRow>
+        {openrouter && (
+          <SettingRow title={t("decider.model.label")} subtitle={models?.source === "builtin" ? t("decider.model.builtinNote") : undefined}>
+            <Select className="w-64 max-w-full"
+              data-testid="decider-model"
+              value={decider?.model ?? ""}
+              onChange={(event) => choose({
+                openrouterModel: event.target.value,
+                openrouterApi: models?.models.find((model) => model.id === event.target.value)?.api ?? "chat",
+              })}
+              disabled={switching}
+              aria-label={t("decider.model.label")}
+            >
+              {decider?.model && !models?.models.some((model) => model.id === decider.model) && (
+                <option value={decider.model}>{decider.model}</option>
+              )}
+              {(["recommended", "more"] as const).map((group) => {
+                const inGroup = models?.models.filter((model) => model.group === group) ?? [];
+                return inGroup.length > 0 && (
+                  <optgroup key={group} label={t(group === "recommended" ? "decider.model.recommended" : "decider.model.more")}>
+                    {inGroup.map((model) => <option key={model.id} value={model.id}>{model.name}</option>)}
+                  </optgroup>
+                );
+              })}
+            </Select>
+          </SettingRow>
+        )}
+        <SettingRow title={t("decider.jobs.roomRouting")}>
+          <Switch
+            data-testid="decider-job-roomRouting"
+            aria-label={t("decider.jobs.roomRouting")}
+            checked={enabled && roomRouting}
+            disabled={!enabled || switching}
+            onClick={() => void patch({ jobs: { roomRouting: !roomRouting } })}
+            className="cursor-pointer"
+          />
+        </SettingRow>
+      </SettingsRows>
 
       <Card title={t(openrouter ? "decider.openrouter.key.label" : "decider.key.label")}>
         <div role="status" className="mb-2 flex items-center gap-2 text-[13px] text-ink-secondary">
@@ -341,32 +346,7 @@ export function DecisionModelSettings() {
         )}
       </Card>
 
-      <Card title={t("decider.jobs.title")}>
-        <ul className="flex flex-col">
-          <li className="flex items-start justify-between gap-4 py-2">
-            <div className="min-w-0">
-              <div className="text-[13px] font-medium text-ink">{t("decider.jobs.roomRouting")}</div>
-              <div className="mt-0.5 text-[12px] leading-relaxed text-ink-secondary">{t("decider.jobs.roomRoutingDetail")}</div>
-            </div>
-            <Switch
-              data-testid="decider-job-roomRouting"
-              aria-label={t("decider.jobs.roomRouting")}
-              checked={enabled && roomRouting}
-              disabled={!enabled || switching}
-              onClick={() => void patch({ jobs: { roomRouting: !roomRouting } })}
-              className="cursor-pointer"
-            />
-          </li>
-          {COMING_SOON.map((label) => (
-            <li key={label} data-testid="decider-coming-soon" aria-disabled="true" className="flex items-center justify-between gap-4 border-t border-hairline/40 py-2 opacity-50">
-              <span className="text-[13px] text-ink-secondary">{t(label)}</span>
-              <span className="rounded bg-control px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-ink-secondary">
-                {t("decider.jobs.comingSoon")}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </Card>
+      <WorkersAiKeyCard failureText={(result) => deciderFailureText(result, false, "workersai")} />
     </>
   );
 }

@@ -10,7 +10,7 @@ vi.mock("./DesktopCapabilities", () => ({
 }));
 
 import { ConfirmDialogCard } from "./ConfirmDialog";
-import { BotListItem, BotThreadList, botConfirmCopy, botRowProps, roomDeleteCopy } from "./Sidebar";
+import { BotListItem, botConfirmCopy, botRowProps, roomDeleteCopy } from "./Sidebar";
 
 const bot = (overrides: Partial<Bot> = {}): Bot => ({
   id: "atlas",
@@ -37,12 +37,6 @@ afterEach(() => {
 });
 
 describe("sidebar rows", () => {
-  it("translates a legacy thread's fallback title", () => {
-    setLocale("ja");
-    const markup = renderToStaticMarkup(createElement(BotThreadList, { ...rowProps(bot()), selected: true }));
-    expect(markup).toContain(`title="${t("task.newShort")}"`);
-    expect(markup).not.toContain('title="New thread"');
-  });
 
   it("translates the row's own copy and its actions", () => {
     setLocale("pt-br");
@@ -85,12 +79,13 @@ describe("room delete confirmation copy", () => {
     expect(copy.tone).toBe("danger");
   });
 
-  it("uses the thread wording for a bot-to-bot room", () => {
+  it("calls a bot-to-bot room a chat, never a thread", () => {
     const copy = roomDeleteCopy({ name: "Pen ⇄ Ink", dm: true });
     expect(copy.title).toBe("Delete Pen ⇄ Ink?");
-    expect(copy.body).toContain("Pen ⇄ Ink thread");
+    expect(copy.body).toContain("Pen ⇄ Ink chat");
+    expect(copy.body).not.toMatch(/thread/);
     expect(copy.body).not.toMatch(/group chat/);
-    expect(copy.confirmLabel).toBe(t("sidebar.room.deleteChat"));
+    expect(copy.confirmLabel).toBe(t("sidebar.room.deleteBotChat"));
   });
 
   it("renders as a danger alert dialog with Cancel before the delete action", () => {

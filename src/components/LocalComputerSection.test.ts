@@ -295,10 +295,9 @@ describe("cloud computer inventory UI", () => {
 
   it("keeps disconnected, unavailable, and empty states distinct", () => {
     const disconnected = renderCard({ configured: false });
-    expect(disconnected).toContain("Boat is not connected");
+    expect(disconnected).toContain("Add cloud desktop");
     expect(disconnected).not.toContain("No cloud desktops found");
-    expect(disconnected.match(/Boat is not connected/g)).toHaveLength(1);
-    expect(disconnected).toContain("Connect your Boat account");
+    expect(disconnected).toContain('data-keys-link="box"');
     expect(disconnected).not.toContain("aria-busy");
 
     const unavailable = renderCard({ unavailableReason: "boat.dev is unavailable" });
@@ -480,11 +479,9 @@ describe("VPS computer inventory UI", () => {
       ],
     });
 
-    expect(markup).toContain("SSH host: production-vps");
+    expect(markup).toContain("production-vps · 2 desktops");
     expect(markup).toContain("Research");
-    expect(markup).toContain("Owned by this bot");
     expect(markup).toContain("Leftover desktop · ID ef123456");
-    expect(markup).toContain("Its bot no longer exists");
     expect(markup).toContain("Running");
     expect(markup).toContain("Stopped");
     expect(markup).not.toMatch(new RegExp(`${ownedVps.name}|${orphanName}|containerId|VNC_PW|password`));
@@ -510,12 +507,9 @@ describe("VPS computer inventory UI", () => {
   });
 
   it("keeps disconnected, unavailable, and empty states distinct", () => {
-    const disconnected = renderCard({ configured: false, aliases: [] });
-    expect(disconnected).toContain("To use your own VPS, add its SSH alias");
-    expect(disconnected.match(/No VPS is set up yet/g)).toHaveLength(1);
-    expect(disconnected).not.toContain("aria-busy");
+    expect(renderCard({ configured: false, aliases: [] })).toBe("");
     expect(renderCard({ unavailableReason: "SSH host cannot be reached" })).toContain("SSH host cannot be reached");
-    expect(renderCard()).toContain("No MausBot desktops found on your VPS");
+    expect(renderCard()).toContain("None yet");
   });
 
   it("tags computers on more than one server and keeps reachable rows beside the warning", () => {
@@ -526,7 +520,7 @@ describe("VPS computer inventory UI", () => {
       ownerName: "Ops",
     };
     const multi = renderCard({ aliases: ["production-vps", "alpha-vps"], instances: [ownedVps, second] });
-    expect(multi).toContain("SSH host: production-vps, alpha-vps");
+    expect(multi).toContain("production-vps, alpha-vps · 2 desktops");
     expect(multi).toContain("alpha-vps");
     expect(multi).not.toMatch(new RegExp(`${second.name}|containerId|VNC_PW`));
 
@@ -563,17 +557,17 @@ describe("VPS computer inventory UI", () => {
 
 describe("Settings → Computers on an OMB Cloud home", () => {
   afterEach(() => { storeFixture.config = null; });
-  const cards = () => [...renderToStaticMarkup(createElement(LocalComputerSection)).matchAll(/<div class="text-\[16px\] font-semibold text-ink[^"]*">([^<]+)<\/div>/g)].map((match) => match[1]);
+  const cards = () => [...renderToStaticMarkup(createElement(LocalComputerSection)).matchAll(/<div (?:id="[^"]*" )?class="text-\[(?:16px\] font-semibold|14px\] font-medium) text-ink[^"]*">([^<]+)<\/div>/g)].map((match) => match[1]);
 
   it("sets up a Local VM on a desktop or self-hosted server", () => {
-    expect(cards()).toEqual(expect.arrayContaining(["Cloud desktops", "Private desktops", "Setup"]));
+    expect(cards()).toEqual(expect.arrayContaining(["Cloud desktops", "Private desktop", "Setup"]));
   });
 
   it("shows no Local VM, and no steps to install one, where it cannot exist", () => {
     storeFixture.config = { cloudHome: true };
     const titles = cards();
     expect(titles).toContain("Cloud desktops");
-    expect(titles).not.toContain("Private desktops");
+    expect(titles).not.toContain("Private desktop");
     expect(titles).not.toContain("Setup");
   });
 });

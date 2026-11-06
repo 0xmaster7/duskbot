@@ -205,18 +205,26 @@ describe("the panel's tabs", () => {
 });
 
 describe("the panel's top", () => {
-  it("has a round Share button whose one item, Create a copy, duplicates the bot, and Close, as Grok does", async () => {
+  it("has a round Share button holding Create a copy, this chat's Copy and Download, Activity and the Inspector, and Close", async () => {
     render(null);
     await settle();
     const top = [...host.querySelectorAll("button")].slice(0, 2);
-    expect(top.map((button) => button.getAttribute("aria-label") ?? button.getAttribute("title"))).toEqual(["Share", "Close"]);
+    expect(top.map((button) => button.getAttribute("aria-label") ?? button.getAttribute("title"))).toEqual(["Share and more", "Close"]);
+    expect(top[0]!.getAttribute("title")).toBe("Share");
     for (const button of [moreButton()!, top[1]!]) expect(button.querySelector("span, svg, i")).not.toBeNull();
     click(moreButton());
-    expect([...menu()!.querySelectorAll('[role="menuitem"]')].map((row) => row.getAttribute("data-panel-share-item"))).toEqual(["copy"]);
+    const rows = () => [...menu()!.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')];
+    expect(rows().map((row) => row.getAttribute("data-panel-share-item"))).toEqual(["duplicate", "copy", "download", "activity", "inspector"]);
+    // an empty chat has nothing to copy or download yet
+    expect(rows().filter((row) => row.disabled).map((row) => row.getAttribute("data-panel-share-item"))).toEqual(["copy", "download"]);
+    expect(menu()!.querySelectorAll('[role="separator"]')).toHaveLength(1);
     expect(menu()!.textContent).toContain("Create a copy");
-    click(menu()!.querySelector('[role="menuitem"]'));
+    click(rows()[0]!);
     expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "duplicateBot", botId: "scout" });
     expect(shareOpen()).toBe(false);
+    click(moreButton());
+    click(menu()!.querySelector('[data-panel-share-item="inspector"]'));
+    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "toggleInspector" });
     click(top[1]!);
     expect(onClose).toHaveBeenCalledOnce();
   });

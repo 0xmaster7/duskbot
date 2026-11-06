@@ -101,7 +101,6 @@ export function RemoteComputerSection({ hideWhenUnavailable = false }: { hideWhe
   return (
     <Card
       title={state.active ? t("remote.client.active") : t("remote.client.idle")}
-      subtitle={t("remote.client.subtitle")}
     >
       {!bridge && !environments ? (
         <p className="text-[13px] text-ink-secondary">{t("remote.client.desktopOnly")}</p>

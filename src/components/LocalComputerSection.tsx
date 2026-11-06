@@ -5,8 +5,6 @@ import type { LocaleKey } from "@/locales";
 import {
   AlertTriangle,
   Check,
-  Circle,
-  Cloud,
   ExternalLink,
   Loader2,
   Moon,
@@ -15,12 +13,14 @@ import {
   Square,
   Trash2,
 } from "lucide-react";
-import { Card, CommandLine } from "./SettingsPrimitives";
+import { Card, CommandLine, MERGED_ROWS, SettingRow, SettingsDisclosureRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
 import { MacLocalControl } from "./MacLocalControl";
 import { Select } from "./Select";
 import { cn } from "@/lib/cn";
 import { useStore } from "@/state/store";
-import { VpsComputersCard } from "./VpsComputersCard"; import { KeysLink } from "./keys/KeysLink";
+import { openKeySettings } from "./keys/key-focus";
+import { GrokIcon } from "./GrokIcon";
+import { VpsComputersCard, inventoryCount } from "./VpsComputersCard";
 
 type Action = "pull" | "run" | "start" | "stop" | "remove" | "recreate";
 
@@ -349,6 +349,24 @@ export function confirmComputerAction(
   return plan.request;
 }
 
+/** The one way in to a cloud desktop: the Boat key, the same step the Computer tab's "Add cloud desktop" takes. */
+function AddCloudDesktopRow() {
+  const { dispatch } = useStore();
+  if (typeof window !== "undefined" && window.ogb?.remoteClient?.active === true) return null;
+  return (
+    <button
+      type="button"
+      data-keys-link="box"
+      data-settings-open="add-cloud-desktop"
+      onClick={() => dispatch(openKeySettings("box"))}
+      className="flex min-h-12 w-full cursor-pointer items-center gap-3 px-3.5 py-2.5 text-start transition-colors duration-[120ms] ease-[ease] hover:bg-ink/[0.04] outline-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
+    >
+      <span className="min-w-0 flex-1 truncate text-[13px] leading-[18px] tracking-[-0.08px] text-ink">{t("settings.w6.computer.addCloud")}</span>
+      <GrokIcon name="chevron-right" size={12} className="shrink-0 text-ink-secondary rtl:-scale-x-100" />
+    </button>
+  );
+}
+
 export function CloudComputersCard({
   instances,
   configured,
@@ -370,31 +388,28 @@ export function CloudComputersCard({
   onSleep: (instance: CloudComputerInventoryInstance) => void;
   onDelete: (instance: CloudComputerInventoryInstance) => void;
 }) {
+  const disconnected = configured === false && !loading && !unavailableReason;
+  const status = loading && instances.length === 0
+    ? t("common.checking")
+    : unavailableReason
+      ? undefined
+      : configured === false
+        ? t("settings.w6a.cloud.notConnected")
+        : configured === true
+          ? instances.length === 0 ? t("vm.cloud.noneFound") : inventoryCount(instances.length)
+          : undefined;
+  if (disconnected) return <SettingsRows><AddCloudDesktopRow /></SettingsRows>;
   return (
-    <Card
-      title={t("vm.cloud.title")}
-      subtitle={t("vm.cloud.subtitle")}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-[12px] text-ink-secondary">
-          {configured === true
-            ? t("vm.cloud.includesOrphans")
-            : configured === false
-              ? <>{t("vm.cloud.needsKey")} <KeysLink id="box" /></>
-              : t("vm.cloud.refreshHint")}
-        </div>
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={loading || pending !== null}
-          aria-label={t("vm.cloud.refreshAria")}
-          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-hairline/40 px-2.5 py-1.5 text-[12px] text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-40"
-        >
-          <RefreshCw size={12} className={cn(loading && "animate-spin")} /> {t("vm.refresh")}
-        </button>
-      </div>
+    <SettingsRows>
+      <SettingRow title={t("vm.cloud.title")} subtitle={status}>
+        {(
+            <button type="button" onClick={onRefresh} disabled={loading || pending !== null} aria-label={t("vm.cloud.refreshAria")} className="ui-button">
+              <RefreshCw size={12} className={cn(loading && "animate-spin")} /> {t("vm.refresh")}
+            </button>
+          )}
+      </SettingRow>
 
-      {error && <div role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{error}</div>}
+      {error && <div role="alert" className="mx-3.5 my-1 rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{error}</div>}
 
       <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         {loading
@@ -408,25 +423,16 @@ export function CloudComputersCard({
                 : t("vm.cloud.foundMany", { count: instances.length })}
       </p>
 
-      {!(configured === false && !loading && !unavailableReason) && <div
+      {!disconnected && <div
         aria-busy={loading || pending !== null}
-        className="mt-3 overflow-hidden rounded-xl border border-hairline/40"
+        className="flex flex-col empty:hidden"
       >
-        {loading && instances.length === 0 ? (
-          <div className="flex items-center gap-2 px-3 py-4 text-[13px] text-ink-secondary">
-            <Loader2 size={13} className="animate-spin" /> {t("vm.cloud.checkingList")}
-          </div>
-        ) : unavailableReason ? (
-          <div className="flex items-center gap-2 px-3 py-4 text-[13px] text-ink-secondary">
+        {unavailableReason && (
+          <div className="flex items-center gap-2 px-3.5 py-2.5 text-[13px] leading-[18px] text-ink-secondary">
             <AlertTriangle size={14} className="shrink-0 text-warning" /> {unavailableReason}
           </div>
-        ) : configured === false ? (
-          <div className="flex items-center gap-2 px-3 py-4 text-[13px] text-ink-secondary">
-            <Cloud size={14} className="shrink-0" /> {t("vm.cloud.notConnected")}
-          </div>
-        ) : instances.length === 0 ? (
-          <div className="px-3 py-4 text-[13px] text-ink-secondary">{t("vm.cloud.noneFound")}</div>
-        ) : instances.map((instance, index) => {
+        )}
+        {!unavailableReason && instances.map((instance) => {
           const kind = cloudComputerInventoryStateKind(instance);
           const state = computerStateLabel(kind);
           const isPending = pending?.boxId === instance.boxId;
@@ -435,14 +441,11 @@ export function CloudComputersCard({
           return (
             <div
               key={instance.boxId}
-              className={cn(
-                "flex items-start justify-between gap-3 px-3 py-3",
-                index > 0 && "border-t border-hairline/35",
-              )}
+              className="flex items-start justify-between gap-3 px-3.5 py-2.5"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="truncate text-[14px] font-medium text-ink">
+                  <span className="truncate text-[13px] leading-[18px] text-ink">
                     {instance.orphaned ? t("vm.cloud.orphan") : instance.ownerName}
                   </span>
                   <span
@@ -458,11 +461,11 @@ export function CloudComputersCard({
                     {state}
                   </span>
                 </div>
-                <div className="mt-1 break-all text-[12px] text-ink-secondary">
+                <div className="break-all text-[13px] leading-[18px] text-ink-secondary">
                   {instance.orphaned ? t("vm.owner.gone") : t("vm.owner.owned")} · {instance.name}
                 </div>
                 {instance.inUse && (
-                  <div className="mt-1 text-[12px] text-ink-secondary">{t("vm.cloud.stopFirst")}</div>
+                  <div className="text-[13px] leading-[18px] text-ink-secondary">{t("vm.cloud.stopFirst")}</div>
                 )}
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
@@ -472,7 +475,7 @@ export function CloudComputersCard({
                   disabled={loading || instance.inUse || pending !== null || !canSleep}
                   aria-busy={isPending && pending?.action === "sleep" ? true : undefined}
                   title={canSleep ? t("vm.cloud.sleepTitle") : t("vm.cloud.sleepBlocked", { state: state.toLowerCase() })}
-                  className="flex items-center gap-1.5 rounded-lg border border-hairline/40 px-2.5 py-1.5 text-[12px] text-ink-secondary hover:bg-control hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+                  className="ui-button disabled:cursor-not-allowed"
                 >
                   {isPending && pending?.action === "sleep" ? <Loader2 size={12} className="animate-spin" /> : <Moon size={12} />}
                   {t("vm.cloud.sleep")}
@@ -483,7 +486,7 @@ export function CloudComputersCard({
                   disabled={loading || instance.inUse || pending !== null || isRemoving}
                   aria-busy={isPending && pending?.action === "delete" ? true : undefined}
                   title={t("vm.cloud.deleteTitle")}
-                  className="flex items-center gap-1.5 rounded-lg bg-danger/10 px-2.5 py-1.5 text-[12px] font-medium text-danger hover:bg-danger/15 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="ui-button ui-button-danger disabled:cursor-not-allowed disabled:opacity-40!"
                 >
                   {isPending && pending?.action === "delete" ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                   {t("common.delete")}
@@ -493,7 +496,7 @@ export function CloudComputersCard({
           );
         })}
       </div>}
-    </Card>
+    </SettingsRows>
   );
 }
 
@@ -519,16 +522,11 @@ export function LocalVmInventoryCard({
   return (
     <Card
       title={t("vm.perBot.title")}
-      subtitle={t("vm.perBot.subtitle", {
-        count: unavailableReason
-          ? t("vm.perBot.inventoryUnavailable")
-          : t("vm.perBot.created", { count: instances.length, max: maxInstances }),
-      })}
+      subtitle={unavailableReason
+        ? t("vm.perBot.inventoryUnavailable")
+        : t("vm.perBot.created", { count: instances.length, max: maxInstances })}
     >
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-[12px] text-ink-secondary">
-          {t("vm.perBot.deleteHint")}
-        </div>
+      <div className="flex items-center justify-end gap-3">
         <button
           type="button"
           onClick={onRefresh}
@@ -735,10 +733,7 @@ export function LocalVmIdleTimeoutSetting({
   return (
     <div className="mt-3">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <label htmlFor="local-vm-idle-timeout" className="text-[13px] text-ink">{t("vm.idle.label")}</label>
-          <div id="local-vm-idle-timeout-help" className="text-[12px] text-ink-secondary">{t("vm.idle.detail")}</div>
-        </div>
+        <label htmlFor="local-vm-idle-timeout" className="text-[13px] text-ink">{t("vm.idle.label")}</label>
         <div
           className={cn(
             "flex w-[150px] shrink-0 items-center rounded-lg border bg-control",
@@ -755,7 +750,7 @@ export function LocalVmIdleTimeoutSetting({
             value={value}
             disabled={disabled || saving}
             aria-invalid={Boolean(error)}
-            aria-describedby={error ? "local-vm-idle-timeout-error local-vm-idle-timeout-help" : "local-vm-idle-timeout-help"}
+            aria-describedby={error ? "local-vm-idle-timeout-error" : undefined}
             onChange={(event) => {
               setValue(event.target.value);
               setDirty(true);
@@ -783,6 +778,7 @@ export function LocalComputerSection() {
   const cloudHome = useStore().state.config?.cloudHome === true;
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [pending, setPending] = useState<Action | null>(null);
   const actionController = useRef<AbortController | null>(null);
   useEffect(() => () => actionController.current?.abort(), []);
@@ -1199,7 +1195,6 @@ export function LocalComputerSection() {
         status?.persistence === "unsafe"),
   );
   const unavailable = !loading && !status;
-  const host = status?.platform === "darwin" ? t("vm.host.mac") : t("vm.host.computer");
   const perBot = status?.mode === "per-bot";
   const perBotRuntimeUnsupported = perBot && status?.runtime === "container";
   const headerReady = perBot ? Boolean(status?.daemonUp && status?.image && !perBotRuntimeUnsupported) : ready;
@@ -1207,6 +1202,8 @@ export function LocalComputerSection() {
   return (
     <>
       <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">{announcement}</p>
+      <SettingsGroup label={t("settings.w6.group.cloudDesktop")} block="cloud-desktop">
+      <div className={MERGED_ROWS}>
       <CloudComputersCard
         instances={cloudInventory}
         configured={cloudConfigured}
@@ -1230,66 +1227,51 @@ export function LocalComputerSection() {
         onRefresh={() => setVpsRefreshKey((key) => key + 1)}
         onRemove={(instance) => void removeVpsComputer(instance)}
       />
+      </div>
+      </SettingsGroup>
 
-      <MacLocalControl />
-
-      {!cloudHome && <>
-      <Card
-        title={t("vm.main.title")}
-        subtitle={perBot
-          ? t("vm.main.perBotSubtitle", { host })
-          : t("vm.main.sharedSubtitle", { host })}
-      >
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            aria-live="polite"
-            className={cn(
-              "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px]",
-              headerReady ? "bg-success/15 text-success" : "bg-control text-ink-secondary",
-            )}
-          >
-            {loading ? <Loader2 size={12} className="animate-spin" /> : headerReady ? <Check size={12} /> : <Circle size={9} />}
-            {loading
-              ? t("common.checking")
-              : unavailable
-                ? t("vm.main.statusUnavailable")
-                : perBot && headerReady
-                  ? t("vm.main.readyPerBot")
-                  : perBotRuntimeUnsupported
-                    ? t("vm.main.perBotUnsupported")
+      {!cloudHome && (
+      <SettingsGroup label={t("settings.grok.group.yourComputer")} block="private-desktop">
+      <SettingsRows>
+        <SettingRow
+          title={t("settings.w6a.private.title")}
+          subtitle={<span aria-live="polite">{loading
+            ? t("common.checking")
+            : unavailable
+              ? t("vm.main.statusUnavailable")
+              : perBot && headerReady
+                ? t("vm.main.readyPerBot")
+                : perBotRuntimeUnsupported
+                  ? t("vm.main.perBotUnsupported")
                   : ready
                     ? t("vm.main.ready")
-                    : (status?.problem ?? t("vm.main.notReady"))}
-          </span>
-          <button
-            onClick={() => {
-              setLoading(true);
-              setRefreshKey((key) => key + 1);
-              setInventoryRefreshKey((key) => key + 1);
-            }}
-            disabled={loading || pending !== null}
-            className="flex items-center gap-1.5 rounded-lg border border-hairline/40 px-2.5 py-1 text-[13px] text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-40"
-          >
-            <RefreshCw size={12} /> {t("vm.main.recheck")}
-          </button>
-          {ready && !perBot && (
-            <a
-              href={status?.viewer_url ?? c?.view}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1.5 rounded-lg border border-hairline/40 px-2.5 py-1 text-[13px] text-ink hover:bg-control"
+                    : (status?.problem ?? t("vm.main.notReady"))}</span>}
+          message={error ? <div role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{error}</div> : null}
+        >
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setLoading(true);
+                setRefreshKey((key) => key + 1);
+                setInventoryRefreshKey((key) => key + 1);
+              }}
+              disabled={loading || pending !== null}
+              className="ui-button"
             >
-              <ExternalLink size={12} /> {t("vm.main.watch")}
-            </a>
-          )}
-        </div>
-        {error && <div role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{error}</div>}
-      </Card>
-
-      <Card
-        title={t("vm.isolation.title")}
-        subtitle={t("vm.isolation.subtitle")}
-      >
+              <RefreshCw size={12} className={cn(loading && "animate-spin")} /> {t("vm.main.recheck")}
+            </button>
+            {ready && !perBot && (
+              <a href={status?.viewer_url ?? c?.view} target="_blank" rel="noreferrer" className="ui-button">
+                <ExternalLink size={12} /> {t("vm.main.watch")}
+              </a>
+            )}
+          </div>
+        </SettingRow>
+      </SettingsRows>
+      <MacLocalControl />
+      <SettingsDisclosureRow id="private-desktop" title={t("settings.w6a.private.more")} open={detailsOpen} onToggle={() => setDetailsOpen((open) => !open)}>
+      <Card title={t("vm.isolation.title")}>
         <div className="inline-flex h-7 rounded-full bg-ink/[0.06] p-0.5">
           {(["shared", "per-bot"] as const).map((mode) => (
             <button
@@ -1311,7 +1293,6 @@ export function LocalComputerSection() {
           <div className="mt-3 flex items-center justify-between gap-3">
             <div>
               <div className="text-[13px] text-ink">{t("vm.isolation.max")}</div>
-              <div className="text-[12px] text-ink-secondary">{t("vm.isolation.maxDetail")}</div>
             </div>
             <Select size="sm"
               aria-label={t("vm.isolation.maxAria")}
@@ -1331,12 +1312,9 @@ export function LocalComputerSection() {
         {policyPending && <div className="mt-2 flex items-center gap-1.5 text-[12px] text-ink-secondary"><Loader2 size={12} className="animate-spin" /> {t("vm.saving")}</div>}
       </Card>
 
-      <Card title={t("vm.setup.title")} subtitle={t("vm.setup.subtitle")}>
+      <Card title={t("vm.setup.title")}>
         <div className="flex flex-col gap-4">
           <Step n={1} title={t("vm.setup.step1")} done={Boolean(status?.runtime)}>
-            <div className="text-[13px] leading-relaxed text-ink-secondary">
-              {t("vm.setup.step1Detail")}
-            </div>
             {c?.install ? (
               <CommandLine command={c.install} />
             ) : (
@@ -1381,11 +1359,7 @@ export function LocalComputerSection() {
             done={!perBot && ready}
           >
             {perBot ? (
-              <div className="text-[13px] leading-relaxed text-ink-secondary">
-                {perBotRuntimeUnsupported
-                  ? t("vm.setup.applePort")
-                  : t("vm.setup.perBotHint")}
-              </div>
+              perBotRuntimeUnsupported && <div className="text-[13px] leading-[18px] text-ink-secondary">{t("vm.setup.applePort")}</div>
             ) : needsRecreate ? (
               <>
                 <div className="flex gap-2 text-[13px] text-warning">
@@ -1408,10 +1382,7 @@ export function LocalComputerSection() {
             ) : status?.container === "running" ? (
               <div className="flex items-center gap-2 text-[13px] text-ink-secondary"><Loader2 size={13} className="animate-spin" /> {t("vm.setup.waiting")}</div>
             ) : status?.image ? (
-              <>
-                <ActionButton action="run" pending={pending} onClick={() => void act("run")}>{t("vm.setup.start")}</ActionButton>
-                <p className="text-[13px] leading-relaxed text-ink-secondary">{t("vm.setup.idleHint")}</p>
-              </>
+              <ActionButton action="run" pending={pending} onClick={() => void act("run")}>{t("vm.setup.start")}</ActionButton>
             ) : null}
             {c?.run && <details className="text-[12px] text-ink-secondary"><summary className="cursor-pointer">{t("vm.setup.showCommand")}</summary><div className="mt-2"><CommandLine command={c.run} /></div></details>}
           </Step>
@@ -1441,12 +1412,8 @@ export function LocalComputerSection() {
       )}
 
       <Card
-        title={t("vm.safety.title")}
-        subtitle={
-          perBot
-            ? t("vm.safety.perBot", { path: status?.workspace_guest_path ?? "/home/cua/workspace" })
-            : t("vm.safety.shared", { path: status?.workspace_guest_path ?? "/home/cua/workspace" })
-        }
+        title={t("settings.w6a.private.storage")}
+        subtitle={t("settings.w6a.private.folder", { path: status?.workspace_path ?? t("vm.safety.notCreated") })}
       >
         {existing && (
           <div className="flex flex-wrap gap-2">
@@ -1460,16 +1427,11 @@ export function LocalComputerSection() {
             </ActionButton>
           </div>
         )}
-        <div className="mt-3 break-all text-[11px] text-ink-secondary">
-          {t("vm.safety.workspace", {
-            path: status?.workspace_path ?? t("vm.safety.notCreated"),
-            driver: status?.driver_version ?? "0.37.0",
-            image: status?.image_ref ?? t("vm.safety.notPrepared"),
-          })}
-          {status?.base_image_ref ? <> · {t("vm.safety.baseImage", { image: status.base_image_ref })}</> : null}
-        </div>
       </Card>
-      </>}
+      </SettingsDisclosureRow>
+      </SettingsGroup>
+      )}
+      {cloudHome && <MacLocalControl />}
     </>
   );
 }

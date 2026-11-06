@@ -4,14 +4,16 @@ import { BackupsModal } from "./BackupsModal";
 import { FolderModal } from "./FolderModal";
 import { InstructionsModal } from "./InstructionsModal";
 import { MemoryModal } from "./MemoryModal";
-import type { ModalPage } from "./panel-modal";
+import type { SheetPage } from "./panel-modal";
+import { IdentityModal, PermissionsModal, SlackModal, ToolsModal } from "./SectionModals";
 import { SkillsModal } from "./SkillsModal";
 import { WhereModal } from "./WhereModal";
 
-export function PanelModal({ page, bot, derived, onClose }: {
-  page: ModalPage;
+export function PanelModal({ page, bot, derived, slackUrl = null, onClose }: {
+  page: SheetPage;
   bot: Bot;
   derived: ReturnType<typeof useBotSettingsDerived>;
+  slackUrl?: string | null;
   onClose: () => void;
 }) {
   switch (page) {
@@ -21,11 +23,19 @@ export function PanelModal({ page, bot, derived, onClose }: {
       return <MemoryModal bot={bot} derived={derived} onClose={onClose} />;
     case "skills":
       return <SkillsModal bot={bot} onClose={onClose} />;
+    case "identity":
+      return <IdentityModal bot={bot} derived={derived} onClose={onClose} />;
+    case "tools":
+      return <ToolsModal bot={bot} derived={derived} onClose={onClose} />;
+    case "permissions":
+      return <PermissionsModal bot={bot} derived={derived} onClose={onClose} />;
     case "folder":
       return <FolderModal bot={bot} onClose={onClose} />;
     case "where":
       return <WhereModal bot={bot} derived={derived} onClose={onClose} />;
     case "backups":
       return <BackupsModal bot={bot} derived={derived} onClose={onClose} />;
+    case "slack":
+      return slackUrl ? <SlackModal managementUrl={slackUrl} onClose={onClose} /> : null;
   }
 }

@@ -446,11 +446,6 @@ function SimpleEngines({ rows, isReady, renderEngine, more }: {
       {others.length > 0 && (
         <SettingsDisclosureRow
           title={t("settings.simple.ai.more", { count: String(others.length) })}
-          trailing={<span aria-hidden="true" className="flex items-center -space-x-1">
-            {others.slice(0, 4).map((instance) => (
-              <span key={instance.instanceId} className="flex size-[18px] items-center justify-center rounded-full bg-menu"><InstanceProviderMark instance={instance} size={14} subtle /></span>
-            ))}
-          </span>}
           {...more}
         >
           <SettingsRows>{others.map(row)}</SettingsRows>

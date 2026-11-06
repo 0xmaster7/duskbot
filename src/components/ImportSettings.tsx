@@ -120,10 +120,10 @@ export function AiAppsImportView({ local, detection, chosen, status, result, onC
     );
   }
   return (
-    <section data-import-section="apps" className="rounded-xl bg-card p-4">
-      <div className="text-[15px] font-medium text-ink">{t("settings.import.appsTitle")}</div>
-      <div className="mt-0.5 text-[13px] leading-relaxed text-ink-secondary">{t("settings.import.appsSubtitle")}</div>
-      <div className="mt-4">{body}</div>
+    <section data-import-section="apps" className="rounded-xl bg-card p-4 in-data-[settings-look=simple]:rounded-[14px] in-data-[settings-look=simple]:bg-menu in-data-[settings-look=simple]:px-3.5 in-data-[settings-look=simple]:py-3 in-data-[settings-look=simple]:outline-[0.5px] in-data-[settings-look=simple]:outline-offset-[-0.5px] in-data-[settings-look=simple]:outline-edge in-data-[settings-look=simple]:[outline-style:solid]">
+      <div className="text-[13px] leading-[18px] text-ink">{t("settings.import.appsTitle")}</div>
+      <div className="text-[13px] leading-[18px] text-ink-secondary">{t("settings.w6c.import.appsSubtitle")}</div>
+      <div className="mt-3">{body}</div>
     </section>
   );
 }
@@ -163,10 +163,12 @@ function AiAppsImport({ client, local }: { client: SetupImportClient; local: boo
 export function GrokImportSection() {
   const [open, setOpen] = useState(false);
   return (
-    <section data-import-section="grok" className="rounded-xl bg-card p-4">
-      <div className="flex items-center gap-2 text-[15px] font-medium text-ink"><GrokBotMark size={16} />{t("settings.import.grokTitle")}</div>
-      <div className="mt-0.5 text-[13px] leading-relaxed text-ink-secondary">{t("settings.import.grokSubtitle")}</div>
-      <button type="button" data-grok-move-open onClick={() => setOpen(true)} className={cn(buttonClass, "mt-3")}>{t("settings.import.grokTitle")}</button>
+    <section data-import-section="grok" className="rounded-xl bg-card p-4 in-data-[settings-look=simple]:rounded-[14px] in-data-[settings-look=simple]:bg-menu in-data-[settings-look=simple]:px-3.5 in-data-[settings-look=simple]:py-3 in-data-[settings-look=simple]:outline-[0.5px] in-data-[settings-look=simple]:outline-offset-[-0.5px] in-data-[settings-look=simple]:outline-edge in-data-[settings-look=simple]:[outline-style:solid] flex flex-wrap items-center justify-between gap-x-5 gap-y-2">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 text-[13px] leading-[18px] text-ink"><GrokBotMark size={14} />{t("settings.import.grokTitle")}</div>
+        <div className="text-[13px] leading-[18px] text-ink-secondary">{t("settings.w6c.import.grokSubtitle")}</div>
+      </div>
+      <button type="button" data-grok-move-open onClick={() => setOpen(true)} className="ui-button">{t("settings.w6c.import.start")}</button>
       {open && <GrokMoveDialog onClose={() => setOpen(false)} />}
     </section>
   );
@@ -174,9 +176,10 @@ export function GrokImportSection() {
 
 export function ImportSettings({ client = setupImportApi }: { client?: SetupImportClient }) {
   const { state } = useStore();
+  const local = localSetupImport(state.config?.cloudHome === true);
   return (
     <div className="flex flex-col gap-4">
-      <AiAppsImport client={client} local={localSetupImport(state.config?.cloudHome === true)} />
+      {local && <AiAppsImport client={client} local />}
       <GrokImportSection />
     </div>
   );

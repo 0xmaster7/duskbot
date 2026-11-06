@@ -20,7 +20,7 @@ import { GrokIcon } from "./GrokIcon";
 import { SIMPLE_BUTTONS } from "./SettingsPrimitives";
 import { SettingsSelect } from "./SettingsSelect";
 import {
-  AdvancedIndex, AdvancedPageView, BackButton, ComputerPane, GeneralPane, ModelsPane, PermissionsPane, TextingPane, UpdatesPane, UsagePane,
+  AdvancedIndex, AdvancedPageView, BackButton, ComputerPane, GeneralPane, ModelsPane, PermissionsPane, TextingPane, UpdatesPane, UsagePane, VaultPane,
   advancedTitle, type AdvancedPage, type Disclose, type RemoteAccessCards,
 } from "./SettingsPanes";
 import { ADVANCED_PAGES, SETTINGS_PANES, settingsLocation, type SettingsPane } from "@/lib/open-settings";
@@ -82,7 +82,7 @@ export function SettingsModal() {
   const cloudHome = state.config?.cloudHome === true;
 
   const offered: Record<AppSettingsSection, boolean> = {
-    general: true, appearance: true, texting: true, companion: true, remote: true, computer: true, logins: true, permissions: true, updates: true,
+    general: true, appearance: true, texting: true, companion: true, remote: true, computer: true, logins: true, updates: true,
     advanced: true, apps: true, looks: true, bots: true, data: true, builder: true, about: true, engines: true, connections: true, decisionModel: true,
     skills: true, usage: true, backups: true, import: true, experimental: true,
     desktopWorkspaces: Boolean(window.ogb?.environments),
@@ -92,7 +92,9 @@ export function SettingsModal() {
     people: !window.ogb && !cloudHome,
     activity: !window.ogb && ownerOrAdmin === true,
     botAccess: Boolean(state.config?.team) && ownerOrAdmin === true,
+    permissions: false,
   };
+  offered.permissions = offered.botAccess || offered.activity;
   const has = (id: AppSettingsSection) => offered[id] && (!remoteActive || REMOTE_SECTIONS.includes(id));
 
   const paneShown = (pane: SettingsPane) => !remoteActive || pane === "general" || pane === "texting" || pane === "computer" || pane === "advanced";
@@ -206,12 +208,13 @@ export function SettingsModal() {
       case "texting": return <TextingPane has={has} remoteAccess={remoteAccess} />;
       case "computer": return <ComputerPane has={has} remoteAccess={remoteAccess} servers={<ConnectedWorkspacesSettings />} disclose={disclose} />;
       case "permissions": return <PermissionsPane has={has} />;
+      case "vault": return <VaultPane />;
       case "models": return <ModelsPane has={has} disclose={disclose} connections={<AdminOnly><KeysPage /></AdminOnly>} />;
       case "usage": return <UsagePane has={has} disclose={disclose} cloudAccount={cloudAccount} />;
       case "updates": return <UpdatesPane remoteActive={remoteActive} />;
       case "advanced": return at
         ? <AdvancedPageView page={at} has={has} remoteActive={remoteActive} peopleOpen={requested === "people"} />
-        : <AdvancedIndex pages={advancedPages} onOpen={(next) => go(ADVANCED_PAGES.find((entry) => entry.id === next)!.sections.find(has)!)} />;
+        : <AdvancedIndex pages={advancedPages} remoteActive={remoteActive} onOpen={(next) => go(ADVANCED_PAGES.find((entry) => entry.id === next)!.sections.find(has)!)} />;
     }
   };
 

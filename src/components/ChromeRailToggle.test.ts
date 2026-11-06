@@ -49,7 +49,8 @@ it("once main says this window has a rail, the button hides it and shows it agai
   expect(rail.state, "one offer from the page, whatever asks").toHaveBeenCalledTimes(1);
   expect(said()).toEqual(["Hide your computers", "Hide your computers", "true", "true"]);
   const row = host.querySelector("[data-rail-switch]")!.textContent!;
-  for (const words of ["Show your computers", "An icon for each place your bots live, on the left of the app."]) expect(row).toContain(words);
+  expect(row).toContain("Show your computers");
+  expect(row).not.toContain("An icon for each place");
   await click(button());
   expect(rail.setHidden).toHaveBeenLastCalledWith(true);
   expect(said()).toEqual(["Show your computers", "Show your computers", "false", "false"]);

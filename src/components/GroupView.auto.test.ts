@@ -68,7 +68,7 @@ describe("routed-by line", () => {
     expect(renderToStaticMarkup(createElement(RoutedByLine, { routedBy: { provider: "openrouter", probability: 0.81 } }))).toContain("Picked by OpenRouter · 81%");
   });
 
-  it("appears under a Jev-routed reply only", () => {
+  it("stays out of the room's view: who routed a reply is no part of the conversation", () => {
     const reply = (id: string, extra: Partial<Message> = {}): Message =>
       ({ id, role: "bot", kind: "text", text: `reply ${id}`, at: 1_000, from: { botId: "theo", name: "Theo", color: "green" }, ...extra });
     const messages = [reply("routed", { routedBy: { provider: "jev", probability: 0.94 } }), reply("plain", { at: 2_000 })];
@@ -77,9 +77,8 @@ describe("routed-by line", () => {
       group: { ...room({ kind: "auto" }), threadId: "thread", messages } as Group, members, locale: "en",
       messages, transcript: messages, onReply: () => undefined,
     }));
-    expect(markup.match(/Picked by Jev/g)).toHaveLength(1);
-    expect(markup.indexOf("Picked by Jev")).toBeGreaterThan(markup.indexOf("reply routed"));
-    expect(markup.indexOf("Picked by Jev")).toBeLessThan(markup.indexOf("reply plain"));
+    expect(markup).toContain("reply routed");
+    expect(markup).not.toContain("Picked by");
     vi.unstubAllGlobals();
   });
 });

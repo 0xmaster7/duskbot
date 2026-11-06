@@ -30,7 +30,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 const render = (bot: Bot) => renderToStaticMarkup(createElement(BotContextMenu, {
   menu: { botId: bot.id, x: 10, y: 10 }, onClose: vi.fn(), onArchive: vi.fn(), onDelete: vi.fn(),
-  onMoveToSection: vi.fn(), onNewFolder: vi.fn(), onNewTaskFolder: vi.fn(),
+  onMoveToSection: vi.fn(),
 }));
 
 describe("a team bot's actions for a session without the admin scope", () => {

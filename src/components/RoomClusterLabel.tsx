@@ -10,7 +10,7 @@ function isPaletteColor(color: string): color is MausColor {
 export function ClusterLabel({ bot, name, color }: { bot?: Bot; name: string; color: string }) {
   const known = isPaletteColor(color);
   return (
-    <div className="mt-1 flex items-center gap-1.5 pl-0.5">
+    <div className="flex h-4 items-center gap-1.5 ps-1">
       <BotAvatar
         bot={bot ?? { name, color: color as Bot["color"] }}
         state={normalizeState(bot?.mascotExpression) ?? "happy"}
@@ -21,7 +21,7 @@ export function ClusterLabel({ bot, name, color }: { bot?: Bot; name: string; co
         readable={known}
       />
       <span
-        className={cn("text-[11px] font-medium", known ? "bot-identity" : "text-ink-secondary")}
+        className={cn("truncate text-[12px] font-medium leading-4", known ? "bot-identity" : "text-ink-secondary")}
         data-bot-color={known ? color : undefined}
       >{name}</span>
     </div>

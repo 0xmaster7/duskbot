@@ -188,8 +188,8 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
     return (
       <div ref={root} tabIndex={-1} data-phone-pairing="server" className="flex scroll-mt-4 flex-col gap-1.5 focus:outline-none">
         <div data-settings-rows="" className={cn(SIMPLE_CARD, "flex flex-col")}>
-          {nameRow("px-4 py-2.5")}
-          <SettingRow title={t("settings.simple.computer.pair")} subtitle={pairingCodes ? cloudHome ? t("remote.serverPairing.cloudPersonal") : undefined : t("remote.serverPairing.portal")}>
+          {nameRow("px-3.5 py-2.5")}
+          <SettingRow title={t("settings.simple.computer.pair")} subtitle={pairingCodes ? cloudHome ? t("settings.w6a.phone.cloudPersonal") : undefined : t("settings.w6a.phone.portal")}>
             {pairingCodes ? (
               <div className="flex items-center gap-2">
                 {cloudHome ? null : (
@@ -204,12 +204,12 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
               </div>
             ) : null}
           </SettingRow>
-          {offerPanel ? <div className="px-4 pb-2.5 [&>div]:mt-0">{offerPanel}</div> : null}
+          {offerPanel ? <div className="px-3.5 pb-2.5 [&>div]:mt-0">{offerPanel}</div> : null}
           {listed.length === 0 ? (
-            <p className="px-4 py-2.5 text-[13px] leading-[18px] text-ink-secondary">{t("remote.serverPairing.noDevices")}</p>
+            <p className="px-3.5 py-2.5 text-[13px] leading-[18px] text-ink-secondary">{t("remote.serverPairing.noDevices")}</p>
           ) : listed.map((device) => (
-            <div key={device.id} className="flex min-h-11 flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5">
-              <span className="min-w-[min(100%,15rem)] flex-1 text-[14px] leading-5 text-ink">
+            <div key={device.id} className="flex min-h-11 flex-wrap items-center gap-x-5 gap-y-2 px-3.5 py-2.5">
+              <span className="min-w-[min(100%,15rem)] flex-1 text-[13px] leading-[18px] text-ink">
                 {device.label}
                 <span className="text-ink-secondary">
                   {" · "}{scopeName(device)}{" · "}{t("remote.serverPairing.seen", { when: lastSeen(device.lastSeenAt, now) })}
@@ -222,7 +222,7 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
             </div>
           ))}
         </div>
-        {error ? <p className="pl-4 text-[12px] leading-4 text-danger">{error}</p> : null}
+        {error ? <p role="alert" className="pl-3.5 text-[12px] leading-4 text-danger">{error}</p> : null}
       </div>
     );
   }

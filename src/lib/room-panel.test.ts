@@ -81,12 +81,16 @@ describe("the Room panel's open state", () => {
     expect(seen.shown).toBe(false);
   });
 
-  it("closes when a bot panel opens, another view opens or the mode changes", () => {
-    render(inRoom);
-    open();
+  it("stays open like the bot panel while the side panel is open, in any room", () => {
     render({ ...inRoom, settingsOpen: true });
-    expect(seen.open).toBeNull();
+    expect(seen.shown).toBe(true);
+    render({ ...inRoom, selectedId: "standup", settingsOpen: true }, true, { id: "standup" });
+    expect(seen.shown).toBe(true);
+    render({ ...inRoom, activeView: "routines", settingsOpen: true });
+    expect(seen.shown).toBe(false);
+  });
 
+  it("closes when another view opens or the mode changes", () => {
     render(inRoom);
     open();
     render({ ...inRoom, activeView: "routines" });

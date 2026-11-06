@@ -5,7 +5,11 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bot, Group, Message } from "@/state/store";
 
-const fixture = vi.hoisted(() => ({ dispatch: vi.fn() }));
+const fixture = vi.hoisted(() => ({ dispatch: vi.fn(), advanced: true }));
+vi.mock("@/lib/interface-mode", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/interface-mode")>(),
+  useAdvancedMode: () => fixture.advanced,
+}));
 vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();
   return { ...original, useStore: () => ({
@@ -44,6 +48,7 @@ const retry = () => [...host.querySelectorAll("button")].find((button) => button
 
 beforeEach(() => {
   fixture.dispatch.mockClear();
+  fixture.advanced = true;
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
@@ -54,6 +59,15 @@ afterEach(() => {
 });
 
 describe("a cancelled turn in a room", () => {
+  it("leaves no row behind in the room's simple view, as a 1:1 chat does", () => {
+    fixture.advanced = false;
+    render([ask, cancel]);
+    expect(host.textContent).toContain("Try the new model");
+    expect(host.textContent).not.toContain("Stopped");
+    expect(host.textContent).not.toContain(CANCELLED);
+    expect(retry()).toBeUndefined();
+  });
+
   it("renders a muted stop and resends the same message on the room's send path", () => {
     render([ask, cancel]);
     expect(host.textContent).toContain("Stopped");
