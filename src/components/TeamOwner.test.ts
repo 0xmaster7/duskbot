@@ -91,8 +91,8 @@ describe("a teammate's face", () => {
     const motion = { shown: true, closing: false, className: "", exitProps: {} };
     const menu = renderToStaticMarkup(createElement(MentionMenu, { listRef: { current: null }, motion, choices: teammateChoices([{ ...ADA, pictureUrl: PICTURE }, BOB]),
       highlight: 0, everyoneCount: 0, onPick: vi.fn(), onHighlight: vi.fn() }));
-    expect(menu).toMatch(/<img src="\/api\/team\/people\/p_ada\/picture\?v=1"[^>]*style="width:16px;height:16px"[^>]*>[^]*?Ada</);
-    expect(menu).toMatch(/<span aria-hidden="true" style="width:16px;height:16px[^"]*"[^>]*>B<\/span>[^]*?Bob</);
+    expect(menu).toMatch(/<img src="\/api\/team\/people\/p_ada\/picture\?v=1"[^>]*style="width:24px;height:24px"[^>]*>[^]*?Ada</);
+    expect(menu).toMatch(/<span aria-hidden="true" style="width:24px;height:24px[^"]*"[^>]*>B<\/span>[^]*?Bob</);
     const told = (name: string, email: string) => renderToStaticMarkup(createElement(TeammateChip, {
       message: { id: "m1", role: "bot", kind: "activity", relay: { kind: "told", email, name }, tool: { name: `Told ${name}`, ok: true, output: "hi" } } as never }));
     expect(told("Ada", ADA.email)).toContain(`src="${PICTURE}"`);

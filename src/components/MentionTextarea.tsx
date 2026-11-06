@@ -31,12 +31,9 @@ export function MentionTextarea({ inputRef, peers, everyone = false, wrapperClas
     const input = inputRef.current;
     if (!input) return;
     const scrollTop = input.scrollTop;
-    const style = getComputedStyle(input);
-    const line = parseFloat(style.lineHeight) || 24;
-    // six whole lines of text, as grok's field shows before it scrolls, plus the field's own padding
-    const pad = (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0);
+    const line = parseFloat(getComputedStyle(input).lineHeight) || 24;
     input.style.height = "auto";
-    input.style.height = `${Math.min(input.scrollHeight, line * 6 + pad)}px`;
+    input.style.height = `${Math.min(input.scrollHeight, line * 6)}px`;
     input.scrollTop = scrollTop;
     sync();
   }, [inputRef, sync]);

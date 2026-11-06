@@ -1,12 +1,11 @@
 // Messages that did not send, above the composer (Composer.tsx): Retry, Edit to take one back into the field, or dismiss.
 // Edit on a failed send is an idea from Threebot (MIT).
-import { CircleAlert, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import type { FailedComposerSend } from "@/lib/drafts";
 import { t } from "@/lib/i18n";
 
-// one flat line, no tinted card: the red mark says what happened, small outlined pills say what to do
-const ACTION = "h-6 shrink-0 rounded-full border border-[color:var(--composer-menu-line)] px-2.5 text-[12px] leading-4 font-medium text-ink hover:bg-ink/[0.035]";
+const ACTION = "shrink-0 rounded px-2 py-1 font-medium hover:bg-danger/10";
 
 export function ComposerFailedSends({ sends, onRetry, onEdit, onDismiss }: {
   sends: FailedComposerSend[];
@@ -18,11 +17,9 @@ export function ComposerFailedSends({ sends, onRetry, onEdit, onDismiss }: {
     <div
       key={failed.id}
       data-failed-send
-      role="status"
-      className="mb-1.5 flex min-h-8 items-center gap-1.5 ps-3 pe-1 text-[13px] leading-[18px]"
+      className="mb-2 flex items-center gap-2 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[13px] text-danger"
     >
-      <CircleAlert size={14} strokeWidth={2} className="shrink-0 text-danger" aria-hidden="true" />
-      <span className="min-w-0 flex-1 truncate text-[color:var(--composer-muted)]">
+      <span className="min-w-0 flex-1 truncate">
         {t("composer.failed.notSent", { text: failed.text.trim() || t("composer.failed.attachment") })}
       </span>
       <button type="button" onClick={() => onRetry(failed)} className={ACTION}>
@@ -36,9 +33,9 @@ export function ComposerFailedSends({ sends, onRetry, onEdit, onDismiss }: {
         onClick={() => onDismiss(failed)}
         aria-label={t("composer.failed.dismissAria")}
         title={t("composer.failed.dismiss")}
-        className="flex size-6 shrink-0 items-center justify-center rounded-full text-[color:var(--composer-muted)] hover:bg-ink/[0.035] hover:text-ink"
+        className="flex size-5 shrink-0 items-center justify-center rounded hover:bg-danger/10"
       >
-        <X size={13} strokeWidth={2} aria-hidden="true" />
+        <X size={13} strokeWidth={2.5} />
       </button>
     </div>
   ));

@@ -18,28 +18,26 @@ export function ComposerMenuRow({
   kind: string;
   selected?: boolean;
 } & ButtonHTMLAttributes<HTMLButtonElement>) {
-  // grok's @ row: one 28px line, a 16px face, the name, then the grey kind at the end; a bot's title waits in grey
-  // after its name, so two bots of one name still read apart
   return (
     <button
       type={type}
       {...rest}
       className={cn(
-        "flex h-7 w-full shrink-0 items-center gap-1.5 rounded-[6px] px-2 text-start text-[13px] leading-[18px]",
-        selected && "bg-menu-active",
+        "flex w-full items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-start",
+        selected && "bg-menu-hover",
         className,
       )}
     >
-      <span className="flex size-4 shrink-0 items-center justify-center">{icon}</span>
-      <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
-        <span className="max-w-full shrink-0 truncate text-ink">{name}</span>
+      <span className="shrink-0">{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[14px] leading-5 tracking-[0.01em] text-ink">{name}</span>
         {description ? (
-          <span dir="auto" className="min-w-0 truncate text-[color:var(--composer-muted)]">
+          <span dir="auto" className="block truncate text-[12px] leading-4 text-ink-tertiary">
             {description}
           </span>
         ) : null}
       </span>
-      <span className="shrink-0 text-end text-[color:var(--composer-muted)]">{kind}</span>
+      <span className="shrink-0 text-end text-[12px] text-ink-tertiary">{kind}</span>
     </button>
   );
 }
