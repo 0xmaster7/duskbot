@@ -176,6 +176,7 @@ export function installVpsLink(deps) {
     forget: () => link.forget(),
   };
   for (const method of METHODS) ipcMain.handle(`vps-link:${method}`, guard(`vps-link:${method}`, handlers[method]));
-  void link.resume().catch((error) => log(`vps link: ${error?.message ?? error}`));
+  // safeStorage only works once electron is ready, and every saved tunnel key needs it
+  void (deps.whenReady?.() ?? Promise.resolve()).then(() => link.resume()).catch((error) => log(`vps link: ${error?.message ?? error}`));
   return link;
 }
