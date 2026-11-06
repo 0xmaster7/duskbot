@@ -14,8 +14,7 @@
   text-decoration-line: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
-  text-decoration-color: color-mix(in srgb, currentColor 12%, transparent);
-  transition: text-decoration-color 0.12s ease;
+  text-decoration-color: color-mix(in srgb, currentColor var(--chat-underline), transparent);
 }
 .chat-link:hover .chat-link-text,
 .chat-link:focus-visible .chat-link-text {
@@ -44,7 +43,7 @@
 }
 .chat-link-favicon > .grok-icon {
   margin: 1px;
-  color: color-mix(in srgb, var(--color-ink) 56%, transparent);
+  color: color-mix(in srgb, var(--color-ink) var(--chat-ts), transparent);
 }
 .chat-link-favicon > img {
   display: block;
@@ -81,7 +80,7 @@
   margin-block: 0;
 }
 .chat-md li::marker {
-  color: color-mix(in srgb, var(--color-ink) 56%, transparent);
+  color: color-mix(in srgb, var(--color-ink) var(--chat-ts), transparent);
 }
 /* a nested list starts 4px under its item, 16px in, on hollow bullets */
 [data-chat-bubble="simple"] .chat-md li > :is(ul, ol) {
@@ -92,16 +91,44 @@
   list-style-type: circle;
 }
 
-/* grok's bubbles: a 6% ink wash (or the bot's colour) under a faint top gloss, with hairline highlights top and bottom */
+/* the transcript's ink steps: grok's light values here, its dark ones below, where a 16% gloss would read as a shine */
+:root {
+  --chat-wash: 6%;
+  --chat-gloss: 0.16;
+  --chat-gloss-own: 0.06;
+  --chat-edge: 0.16;
+  --chat-ring: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  --chat-ring-own: rgb(28 28 28 / 0.06);
+  --chat-code-wash: 4%;
+  --chat-quote-bar: 24%;
+  --chat-rule: 12%;
+  --chat-underline: 12%;
+  --chat-ts: 56%;
+}
+:root:is([data-skin="grok-dark"], [data-skin="midnight"], [data-skin="dusk"], [data-skin="foundry"], [data-skin="graphite"], [data-skin="halloween"]) {
+  --chat-wash: 4%;
+  --chat-gloss: 0.03;
+  --chat-gloss-own: 0.01;
+  --chat-edge: 0.03;
+  --chat-ring: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  --chat-ring-own: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  --chat-code-wash: 2%;
+  --chat-quote-bar: 22%;
+  --chat-rule: 10%;
+  --chat-underline: 10%;
+  --chat-ts: 54%;
+}
+
+/* grok's bubbles: an ink wash (or the bot's colour) under a faint top gloss, with hairline highlights top and bottom */
 [data-chat-bubble="simple"].chat-bubble-bot {
-  background-color: color-mix(in srgb, var(--color-ink) 6%, transparent);
-  background-image: linear-gradient(rgb(255 255 255 / 0.16), transparent);
-  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.16), inset 0 -0.5px 0 rgb(255 255 255 / 0.16),
-    inset 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 6%, transparent);
+  background-color: color-mix(in srgb, var(--color-ink) var(--chat-wash), transparent);
+  background-image: linear-gradient(rgb(255 255 255 / var(--chat-gloss)), transparent);
+  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / var(--chat-edge)), inset 0 -0.5px 0 rgb(255 255 255 / var(--chat-edge)),
+    inset 0 0 0 0.5px var(--chat-ring);
 }
 [data-chat-bubble="simple"].chat-bubble-user.chat-bubble-user {
-  background-image: linear-gradient(rgb(255 255 255 / 0.06), transparent);
-  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.16), inset 0 -0.5px 0 rgb(255 255 255 / 0.16), inset 0 0 0 0.5px rgb(28 28 28 / 0.06);
+  background-image: linear-gradient(rgb(255 255 255 / var(--chat-gloss-own)), transparent);
+  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / var(--chat-edge)), inset 0 -0.5px 0 rgb(255 255 255 / var(--chat-edge)), inset 0 0 0 0.5px var(--chat-ring-own);
 }
 :root:is([data-skin="grok"], [data-skin="grok-dark"]) [data-chat-bubble="simple"] {
   --grok-bubble: var(--grok-bubble-fill);
@@ -175,12 +202,12 @@
   inset-inline-start: 2px;
   width: 2px;
   border-radius: 9999px;
-  background-color: color-mix(in srgb, var(--color-ink) 24%, transparent);
+  background-color: color-mix(in srgb, var(--color-ink) var(--chat-quote-bar), transparent);
 }
 [data-chat-bubble="simple"] .chat-md hr {
   margin: 0;
   border: 0;
-  border-top: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--color-ink) var(--chat-rule), transparent);
 }
 [data-chat-bubble="simple"] .chat-md code.ui-code-chip {
   font-family: var(--font-mono);
@@ -189,7 +216,7 @@
   padding: 0 4px;
   border-radius: 4px;
   color: var(--color-ink-secondary);
-  background-color: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  background-color: color-mix(in srgb, var(--color-ink) var(--chat-code-wash), transparent);
   white-space: pre-wrap;
 }
 
@@ -197,7 +224,7 @@
 [data-chat-bubble="simple"] .chat-code-block {
   margin-block: 0;
   border-radius: 8px;
-  background-color: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  background-color: color-mix(in srgb, var(--color-ink) var(--chat-code-wash), transparent);
 }
 [data-chat-bubble="simple"] .chat-code-block :is(pre, code) {
   font-family: var(--font-mono);
@@ -248,7 +275,7 @@
   line-height: 12px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
-  color: color-mix(in srgb, var(--color-ink) 56%, transparent);
+  color: color-mix(in srgb, var(--color-ink) var(--chat-ts), transparent);
   pointer-events: none;
   opacity: var(--chat-ts-progress, 0);
   transform: translate3d(calc((1 - var(--chat-ts-progress, 0)) * 100%), 0, 0);
@@ -261,10 +288,6 @@
 }
 [data-peeking] [data-own-row]:dir(rtl) {
   transform: translate3d(var(--chat-ts-peek, 0px), 0, 0);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .chat-link-text { transition: none; }
 }
 
 /* the header pill darkens through a 6% ink veil on hover, as grok's does; with the panel open it stays white */
