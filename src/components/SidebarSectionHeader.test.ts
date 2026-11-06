@@ -97,12 +97,12 @@ describe("SidebarSectionHeader as a Simple-mode line", () => {
     name: "Work", collapsed: false, onToggle: () => {}, reorderable: true, dragging: false, line: true, ...props,
   }) as ReactElement<Props>;
 
-  it("draws a quiet 13px name with no hairline, and a ⋯ team menu button out of the line's flow for the keyboard, with no trash or grip", () => {
+  it("draws a quiet 12px name with no hairline, and a ⋯ team menu button out of the line's flow for the keyboard, with no trash or grip", () => {
     const onMenu = vi.fn();
     const element = line({ onMenu, onDelete: () => {} });
     const html = renderToStaticMarkup(element);
     expect(html).toContain('data-sidebar-section-line=""');
-    expect(html).toMatch(/text-\[13px\][^"]*text-ink-secondary/);
+    expect(html).toMatch(/text-\[12px\][^"]*text-ink-secondary/);
     expect(html).not.toContain("bg-hairline");
     expect(html).toContain('aria-label="Actions for Work department" title="Actions for Work department" aria-haspopup="menu" aria-expanded="false"');
     expect(html).toMatch(/aria-label="Actions for Work department"[^>]*class="absolute [^"]*\bpointer-events-none\b[^"]*\bopacity-0\b[^"]*\bgroup-has-\[:focus-visible\]\/section:opacity-100\b[^"]*\btouch:opacity-100\b/);
@@ -124,7 +124,7 @@ describe("SidebarSectionHeader as a Simple-mode line", () => {
     expect(renderToStaticMarkup(line({ count: 3 }))).not.toContain(">3</span>");
     const html = renderToStaticMarkup(line({ count: 3, collapsed: true }));
     expect(html).toMatch(/<button type="button" aria-expanded="false"[^>]*class="flex h-\[30px\] min-w-0 flex-1 items-center gap-1\.5 rounded-\[6px\] px-2 pb-1\.5 pt-2 text-\[13px\] leading-\[18px\] text-left hover:bg-ink\/\[0\.06\]/);
-    expect(html).toMatch(/<span class="text-\[13px\] tabular-nums leading-\[18px\] tracking-\[0.015em\] text-ink-secondary transition-opacity duration-\[120ms\] ease-out group-hover\/section:opacity-0 group-focus-within\/section:opacity-0 touch:opacity-0">3<\/span>/);
+    expect(html).toMatch(/<span class="text-\[12px\] tabular-nums leading-4 tracking-\[0.015em\] text-ink-secondary transition-opacity duration-\[120ms\] ease-out group-hover\/section:opacity-0 group-focus-within\/section:opacity-0 touch:opacity-0">3<\/span>/);
   });
 
   it("is dragged by the line itself, and only when it can be reordered", () => {

@@ -87,6 +87,7 @@ import { BotContextMenu, GROK_LABEL, GROK_MENU_ITEM, GROK_ROW_FILL, GrokMenuIcon
 import { GROK_DANGER } from "./menu-recipe";
 export { BotContextMenu };
 import { AvatarActivityDot, RowDot, RowStatusText, rowSurface } from "./SidebarRowMarkers";
+import { ShortcutBadge, useShortcutSlot } from "./SidebarShortcutHold";
 
 
 import { SidebarAttentionPanel } from "./SidebarAttentionPanel";
@@ -560,6 +561,8 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
   const rowActivity = working ? (simpleRow ? null : "working") : teammateWait ? "teammate" : queued && !waiting ? "queued" : null;
   const { unread } = useBotUnread(bot);
   const markState = useBotMarkState(bot);
+  // grok: hold ⌘ (⌃ elsewhere) and each row shows the number that opens it, where its dot sits
+  const slot = useShortcutSlot(bot.id, simpleRow && !renaming && !deleting);
   const preview = waiting ? simpleRow ? grokWaiting(waitingLine(bot, visible, instances, advanced)) : t("sidebar.preview.waiting") : teammateWait ? t("sidebar.preview.waitingOnTeammate") : queued ? t("task.queued") : simpleRow && working ? lastLine(bot, visible, instances, advanced) : botPreview(bot, visible, instances, advanced);
   // grok names a row with what it is doing: "Manager, Main Bot, Needs attention", "Koder, Working", "Content, Unread activity"
   const grokName = [bot.name, main ? t("sidebar.grok.mainBot") : "", waiting ? t("sidebar.grok.needsAttention") : working ? t("sidebar.grok.working") : unread ? t("sidebar.grok.unreadActivity") : ""].filter(Boolean).join(", ");
@@ -621,7 +624,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
         )}
       </span>
       <div className={cn("min-w-0 flex-1", iconOnly && "hidden", simpleRow && "flex flex-col gap-px")}>
-        <div className={cn("flex items-baseline justify-between gap-2", simpleRow && (unread || waiting ? "pr-7" : "group-has-[:focus-visible]:pr-7 touch:pr-7"))}>
+        <div className={cn("flex items-baseline justify-between gap-2", simpleRow && (slot ? "pr-8" : unread || waiting ? "pr-7" : "group-has-[:focus-visible]:pr-7 touch:pr-7"))}>
           <span className={cn("flex min-w-0 grow items-center gap-1.5 truncate text-ink", simpleRow ? "text-[14px] font-medium leading-5 tracking-[0.01em]" : "text-[15px] font-semibold leading-5")}>
             {!simpleList && bot.pinned && <Pin size={12} className="shrink-0 text-ink-secondary" />}
             {simpleRow && !nameField ? <span className="truncate">{bot.name}</span> : <RenameTitle
@@ -663,7 +666,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
               {formatTime(last.at)}
             </span>
           )}
-          {simpleRow && (unread || waiting) && <RowDot waiting={waiting} />}
+          {simpleRow && (slot ? <ShortcutBadge n={slot} /> : (unread || waiting) && <RowDot waiting={waiting} />)}
         </div>
         <div className="flex items-center justify-between gap-2">
           {deleting ? (

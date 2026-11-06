@@ -11,7 +11,7 @@ import {
 } from "@/lib/sidebar-attention";
 import type { SectionNaming } from "./SidebarBotDrag";
 
-/** grok's section header is one 30px button: 8px around, 6px under its 13px label, 6px round, grey on hover */
+/** grok's section header is one 30px button: 8px around, 6px under, 6px round, grey on hover; its name and count are 12px */
 const LINE_BOX = "flex h-[30px] min-w-0 flex-1 items-center gap-1.5 rounded-[6px] px-2 pb-1.5 pt-2 text-[13px] leading-[18px]";
 
 export function SidebarSectionHeader({
@@ -82,7 +82,7 @@ export function SidebarSectionHeader({
   if (line) {
     const tail = (
       <span aria-hidden="true" className="relative flex size-4 shrink-0 items-center justify-end">
-        {count !== undefined && collapsed && <span className={cn("text-[13px] tabular-nums leading-[18px] tracking-[0.015em] text-ink-secondary transition-opacity duration-[120ms] ease-out", onToggle && "group-hover/section:opacity-0 group-focus-within/section:opacity-0 touch:opacity-0")}>{count}</span>}
+        {count !== undefined && collapsed && <span className={cn("text-[12px] tabular-nums leading-4 tracking-[0.015em] text-ink-secondary transition-opacity duration-[120ms] ease-out", onToggle && "group-hover/section:opacity-0 group-focus-within/section:opacity-0 touch:opacity-0")}>{count}</span>}
         {onToggle && <span className={cn("absolute flex h-4 w-3 items-center justify-center text-ink-secondary opacity-0 transition-opacity duration-[120ms] ease-out group-hover/section:opacity-100 group-focus-within/section:opacity-100 touch:opacity-100", collapsed ? "-right-[3px]" : "-right-px rotate-90")}>
           <GrokIcon name="chevron-right" size={12} />
         </span>}
@@ -109,13 +109,13 @@ export function SidebarSectionHeader({
             aria-keyshortcuts={reorderable ? "Alt+ArrowUp Alt+ArrowDown" : undefined}
             className={cn(LINE_BOX, "text-left hover:bg-ink/[0.06] active:bg-ink/[0.06]", GROK_FOCUS, reorderable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer")}
           >
-            <span className="min-w-0 flex-1 truncate text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{name}</span>
+            <span className="min-w-0 flex-1 truncate text-[12px] leading-4 tracking-[0.015em] text-ink-secondary">{name}</span>
             {collapsed && <SectionAttention attention={attention} label={attentionLabel} alert={alert} />}
             {tail}
           </button>
         ) : (
           <div className={LINE_BOX}>
-            <span className="min-w-0 flex-1 truncate text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{name}</span>
+            <span className="min-w-0 flex-1 truncate text-[12px] leading-4 tracking-[0.015em] text-ink-secondary">{name}</span>
             {attentionLabel && <span className="sr-only">{attentionLabel}</span>}
             {tail}
           </div>
@@ -229,7 +229,7 @@ function SectionNameField({ value, label, onCommit, onCancel, line = false }: Se
         }
       }}
       className={line
-        ? "h-[18px] min-w-0 flex-1 bg-transparent p-0 text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary outline-none"
+        ? "h-4 min-w-0 flex-1 bg-transparent p-0 text-[12px] leading-4 tracking-[0.015em] text-ink-secondary outline-none"
         : "h-6 min-w-0 flex-1 rounded-md bg-ink/[0.05] px-1.5 text-[13px] leading-[18px] text-ink outline-none ring-1 ring-accent/60"}
     />
   );
