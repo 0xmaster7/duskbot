@@ -6,7 +6,8 @@ import { expect, it } from "vitest";
 import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
-import { OPEN_SIDEBAR_TOOLS, UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { openTeamMap } from "./grok-nav.ts";
 import { fixtureApi } from "./preview-fixture.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
@@ -53,7 +54,7 @@ type Computer = { id: string; name: string; section: string | null; state: strin
     const record = async (id: string) => (await computers()).find(computer => computer.id === id);
     const receipts = () => provider("GET", "/__fixture");
     const focused = () => evaluate("document.activeElement?.getAttribute('aria-label') || document.activeElement?.textContent?.trim()");
-    const openMap = async () => { await evaluate(OPEN_SIDEBAR_TOOLS); await click("Team map"); await expect.poll(snapshot).toContain('region "Team canvas"'); };
+    const openMap = async () => { await openTeamMap(ui); await expect.poll(snapshot).toContain('region "Team canvas"'); };
     await api("PATCH", `/api/bots/${fixture.botId}`, { name: "Ada", section: "Engineering", computer: "off" });
     await api("POST", "/api/sidebar-sections", { name: "Research" });
     await api("POST", "/api/bots", { name: "Ben", section: "Research", modelSelection: { instanceId: "claude", model: "claude-sonnet-5" } });
@@ -151,7 +152,11 @@ type Computer = { id: string; name: string; section: string | null; state: strin
     await expect.poll(snapshot, { timeout: 10_000 }).not.toContain('complementary "Desktops"');
     await click("Open chat with Ben");
     await expect.poll(snapshot, { timeout: 10_000 }).toContain('log "Conversation with Ben"');
-    await click("Bot's screen");
+    // Ben's screen is on the Computer tab of its profile; the screen itself opens the computer panel.
+    await click("Open Ben's profile");
+    await click("Computer", "tab");
+    await expect.poll(() => evaluate("document.querySelector('[data-panel-action=open-computer]')?.getAttribute('aria-label') ?? null"), { timeout: 10_000 }).toBeTruthy();
+    await click(await evaluate("document.querySelector('[data-panel-action=open-computer]').getAttribute('aria-label')"));
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Ben's screen");
     await expect.poll(snapshot, { timeout: 20_000, interval: 250 }).toContain("Uses Engineering desktop, the cloud desktop this department shares.");
     expect(await snapshot()).not.toContain("Choose Cloud");

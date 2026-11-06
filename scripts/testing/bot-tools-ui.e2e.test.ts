@@ -9,6 +9,7 @@ import { waitForExit } from "../../server/testing/cleanup.ts";
 import { BOT_ROLES } from "../../src/lib/bot-roles.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { openTemplates } from "./grok-nav.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const binary = resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env });
@@ -66,8 +67,7 @@ describe("bot setup and tools in the real renderer", () => {
       if ((await accessExpanded()) !== "true") await click("Access");
     };
     const reviewReadyBot = async (name: string, title: string) => {
-      await click("New or share");
-      await click("Templates");
+      await openTemplates(ui);
       await expect.poll(snapshot, { timeout: 20_000 }).toContain(`Add ${name}, ${title}`);
       await click(`Add ${name}, ${title}`);
       await expect.poll(snapshot, { timeout: 10_000 }).toContain("Starting role");
@@ -76,7 +76,7 @@ describe("bot setup and tools in the real renderer", () => {
     const original = await bots();
 
     // Hold creation in this disposable browser: New bot again while the first
-    // is in flight must not make a second bot, and no dialog opens either time.
+    // is in flight must not make a second bot. New bot asks for a name first.
     await evaluate(`(() => {
       const fetch = window.fetch.bind(window);
       window.botCreateRequests = 0;
@@ -91,9 +91,20 @@ describe("bot setup and tools in the real renderer", () => {
       };
       return true;
     })()`);
+    const createDisabled = () => evaluate("[...document.querySelectorAll('[data-create-bot-dialog] button')].find(button => button.textContent.trim() === 'Create')?.disabled ?? null");
     await press("Control+n");
+    await expect.poll(snapshot, { timeout: 10_000 }).toContain('dialog "Create New Bot"');
+    await ui("type", "--name", "Bot name", "--text", "Fixture helper");
+    await press("Enter");
     await expect.poll(() => evaluate("window.botCreateRequests"), { timeout: 10_000 }).toBe(1);
+    expect(await dialogCount()).toBe(0);
     await press("Control+n");
+    await expect.poll(snapshot, { timeout: 10_000 }).toContain('dialog "Create New Bot"');
+    await ui("type", "--name", "Bot name", "--text", "Second helper");
+    expect(await createDisabled()).toBe(true);
+    await press("Enter");
+    expect(await evaluate("window.botCreateRequests")).toBe(1);
+    await press("Escape");
     expect(await dialogCount()).toBe(0);
     await evaluate("window.releaseBotCreation(); true");
     await expect.poll(async () => (await bots()).length, { timeout: 10_000 }).toBe(original.length + 1);
@@ -101,6 +112,7 @@ describe("bot setup and tools in the real renderer", () => {
     const created = (await bots()).filter((bot) => !original.some((old) => old.id === bot.id));
     expect(created).toHaveLength(1);
     expect(original.map((bot) => bot.name)).not.toContain(created[0].name);
+    expect(created[0].name).toBe("Fixture helper");
     expect(created[0].computer).toBe(original[0].computer);
     expect(created[0].browser).toBe(original[0].browser);
     // Its chat is open, ready for the first message.

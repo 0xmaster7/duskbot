@@ -7,6 +7,7 @@ import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { openTeamMap } from "./grok-nav.ts";
 import { fixtureApi } from "./preview-fixture.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
@@ -45,8 +46,8 @@ type Receipts = { calls: Array<{ method: string; path: string }>; shots: Record<
     const press = (label: string) => evaluate(`(() => { const target = [...document.querySelectorAll('button, a, [role=menuitem]')].find(button => button.getAttribute('aria-label') === ${JSON.stringify(label)} || button.textContent.trim() === ${JSON.stringify(label)}); target?.click(); return Boolean(target); })()`);
     const openMap = async () => {
       await expect.poll(snapshot, { timeout: 15_000 }).toContain("Iris");
-      if (!await press("Team map")) await press("Tools");
-      await expect.poll(() => snapshot().then((text) => text.includes('region "Team canvas"') || press("Team map").then(() => false)), { timeout: 15_000 }).toBe(true);
+      await openTeamMap(ui);
+      await expect.poll(snapshot, { timeout: 15_000 }).toContain('region "Team canvas"');
     };
 
     const before = await receipts();

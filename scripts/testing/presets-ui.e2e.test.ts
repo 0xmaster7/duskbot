@@ -8,6 +8,8 @@ import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { request } from "../mcp-server.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { openAdvancedSettings } from "./grok-nav.ts";
+import { openTemplatesWhenFree, waitStill } from "./grok-templates.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const binary = resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env });
@@ -38,10 +40,6 @@ describe("Preset bots in the real renderer", () => {
     const ui = (verb: string, ...args: string[]) => runControlOmb(["ui", verb, "--ui", info.ui, ...args]) as Promise<Record<string, any>>;
     const evaluate = async (js: string) => (await ui("eval", "--js", js)).result;
     const click = (name: string) => ui("click", "--name", name).catch((error: Error) => { throw new Error(`clicking "${name}": ${error.message}`); });
-    // A panel or dialog that just closed can still cover the sidebar for a
-    // frame; agent-browser refuses a covered click without sending it, so
-    // retrying is safe.
-    const clickWhenFree = (name: string) => expect.poll(() => click(name).then(() => true, () => false), { timeout: 10_000 }).toBe(true);
     const snapshot = async () => (await ui("snapshot")).snapshot as string;
     const api = (path: string, method = "GET", body?: unknown) => request(path, { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }) }, info.url);
 
@@ -62,9 +60,9 @@ describe("Preset bots in the real renderer", () => {
     })()`);
 
     await expect.poll(snapshot, { timeout: 10_000 }).toContain('button "You"');
-    await click("You");
-    await click("Settings");
+    await openAdvancedSettings(ui, "Bots");
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Share as preset…");
+    await waitStill(ui, "Share as preset…");
     await click("Share as preset…");
     await expect.poll(snapshot, { timeout: 20_000 }).toContain("What's in the file");
     let dialog = await snapshot();
@@ -79,10 +77,12 @@ describe("Preset bots in the real renderer", () => {
     expect(saved.package).toMatchObject({ id: "sky", agents: [], presets: [{ key: "new-bot-defaults", name: "Sky", skills: ["follow-up"], seed: { memory: { "MEMORY.md": "- Customers first.\n" } } }] });
     expect(JSON.stringify(saved)).not.toMatch(/"approvalMode"|"composio"|"modelSelection"|"enabled"/);
     await click("Done");
-    await click("Close settings");
+    await expect.poll(snapshot).not.toContain("Share New bot defaults as a preset");
+    // The chat's first question card has its own Close: press Escape for the Settings dialog.
+    await ui("press", "--keys", "Escape");
+    await expect.poll(snapshot).not.toContain('dialog "Settings"');
 
-    await clickWhenFree("New or share");
-    await click("Templates");
+    await openTemplatesWhenFree(ui);
     await click("Import");
     await evaluate(`(() => { const input = document.querySelector('[role=dialog] input[type=file]'); const transfer = new DataTransfer(); transfer.items.add(new File([window.__presetText], 'sky-1.0.0.openmaus.json', { type: 'application/json' })); input.files = transfer.files; input.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Preset bots and skills · no department");
@@ -104,8 +104,7 @@ describe("Preset bots in the real renderer", () => {
     stored.content[orgRow.installId] = stored.content[stored.presets[0].installId];
     writeFileSync(presetsFile, JSON.stringify(stored));
 
-    await clickWhenFree("New or share");
-    await click("Templates");
+    await openTemplatesWhenFree(ui);
     await click("Share");
     await click("Share the General department");
     await expect.poll(snapshot, { timeout: 20_000 }).toContain("What's in the file");
@@ -121,8 +120,7 @@ describe("Preset bots in the real renderer", () => {
     const bots = async () => (await api("/api/bots")).bots as Array<{ id: string; name: string; installedPackage?: Record<string, unknown> }>;
     const create = async (value: string, expected: string, shot: string) => {
       const before = await bots();
-      await clickWhenFree("New or share");
-      await click("Templates");
+      await openTemplatesWhenFree(ui);
       await expect.poll(snapshot, { timeout: 20_000 }).toContain("Add Scout, Researcher");
       await click("Add Scout, Researcher");
       await expect.poll(async () => (await ui("eval", "--js", "[...document.querySelectorAll('[role=dialog] button')].find(button => button.textContent.trim() === 'Create bot')?.disabled")).result, { timeout: 20_000 }).toBe(false);

@@ -13,6 +13,7 @@ import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { removeTempDir, waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { openSettings } from "./grok-nav.ts";
 import { fixtureApi } from "./preview-fixture.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
@@ -118,8 +119,8 @@ describe("control-omb ui drives the real renderer", () => {
     await ui("type", info.ui, "--name", "Message Pepper", "--text", "Find the striped zebra");
     await ui("press", info.ui, "--keys", "Enter");
     await ui("wait-settle", info.ui, "--timeout", "60");
-    await ui("click", info.ui, "--name", "More");
-    await ui("click", info.ui, "--name", "Find in conversation");
+    // The simple chat header is the pill alone; find in a conversation is its shortcut.
+    await ui("press", info.ui, "--keys", "Control+f");
     await ui("type", info.ui, "--name", "Find in this conversation", "--text", "zebra");
     const highlighted = async () => (await ui("eval", info.ui, "--js", "[...CSS.highlights.get('search-result-text') ?? []][0]?.toString() ?? null")).result;
     await expect.poll(async () => (await ui("snapshot", info.ui)).snapshot, { timeout: 10_000 }).toContain("1 of 1");
@@ -144,9 +145,21 @@ describe("control-omb ui drives the real renderer", () => {
     await ui("type", info.ui, "--name", "Find in this conversation", "--text", "fake claude");
     await expect.poll(highlighted, { timeout: 10_000 }).toBe("fake claude");
     await ui("press", info.ui, "--keys", "Escape");
-    await ui("type", info.ui, "--name", "Search bots and messages", "--text", "zebra");
-    await expect.poll(async () => (await ui("eval", info.ui, "--js", "[...document.querySelectorAll('mark')].some(mark => mark.textContent === 'zebra')")).result, { timeout: 10_000 }).toBe(true);
-    await ui("eval", info.ui, "--js", "[...document.querySelectorAll('mark')].find(mark => mark.textContent === 'zebra').closest('button').click(); true");
+    // The sidebar's Search opens the search palette, whose message results land on the match.
+    const sidebarSearch = refsNamed(await ui("snapshot", info.ui), "Search", "button");
+    expect(sidebarSearch).toHaveLength(1);
+    await ui("click", info.ui, "--ref", sidebarSearch[0]!);
+    let palette: string[] = [];
+    await expect.poll(async () => (palette = refsNamed(await ui("snapshot", info.ui), "Search", "combobox")).length, { timeout: 10_000 }).toBe(1);
+    await ui("type", info.ui, "--ref", palette[0]!, "--text", "zebra");
+    let hit: string | undefined;
+    await expect.poll(async () => {
+      const refs = (await ui("snapshot", info.ui)).refs as Record<string, { name: string; role: string }>;
+      hit = Object.entries(refs).find(([, element]) => element.role === "option" && element.name.includes("Find the striped zebra") && element.name.endsWith("Message"))?.[0];
+      return Boolean(hit);
+    }, { timeout: 10_000 }).toBe(true);
+    expect(await ui("eval", info.ui, "--js", "[...document.querySelectorAll('[role=option] .font-semibold')].some(match => match.textContent === 'zebra')")).toMatchObject({ result: true });
+    await ui("click", info.ui, "--ref", `@${hit}`);
     await expect.poll(highlighted, { timeout: 10_000 }).toBe("zebra");
     await waitForExit(launched.child, { signal: "SIGINT", graceMs: 30_000 });
     expect(launched.child.exitCode).toBe(0);
@@ -191,14 +204,9 @@ describe("control-omb ui drives the real renderer", () => {
       };
       return true;
     })()`);
-    await click("You");
-    await click("Settings");
-    // Settings is a lazy chunk: it paints once the chunk arrives.
-    await expect.poll(() => evaluate(`(() => {
-      const tab = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'API keys');
-      tab?.click();
-      return Boolean(tab);
-    })()`), { timeout: 10_000 }).toBe(true);
+    // API keys sit in Settings > Models, under the model providers.
+    await openSettings((verb, ...args) => ui(verb, info.ui, ...args), "Models");
+    await expect.poll(() => evaluate(`Boolean(document.querySelector('[data-settings-block="connections"]'))`), { timeout: 10_000 }).toBe(true);
     // The servers section opens on its own, because a key is saved there.
     await expect.poll(masked, { timeout: 10_000 }).toContain("••••••••-key");
 
@@ -261,30 +269,19 @@ describe("control-omb ui drives the real renderer", () => {
     const options = models.instances.find((instance: any) => instance.instanceId === originalBot.modelSelection.instanceId).models.options;
     const originalLabel = options.find((option: any) => option.id === originalModel).label;
     const nextModel = options.find((option: any) => option.id !== originalModel);
+    // The chat header is the pill alone: the model is picked in the bot's panel, and an owner's pick there is the
+    // thread's and the bot's default at once.
+    await ui("click", info.ui, "--name", "Open Pepper's profile");
     await ui("click", info.ui, "--name", originalLabel);
-    expect(await ui("eval", info.ui, "--js", "[...document.querySelectorAll('[aria-label=\"Apply model changes to\"] button')].find(b => b.textContent === 'Only this thread').getAttribute('aria-pressed')"))
-      .toMatchObject({ result: "true" });
-    await ui("click", info.ui, "--name", "Thread + bot default");
+    await expect.poll(async () => (await ui("eval", info.ui, "--js", "String(Boolean(document.querySelector('[data-model-picker-content]')))")).result,
+      { timeout: 10_000 }).toBe("true");
     const scopeShot = join(evidenceDir, "model-scope.png");
     mkdirSync(evidenceDir, { recursive: true });
     await ui("screenshot", info.ui, "--out", scopeShot);
     await ui("click", info.ui, "--name", nextModel.label);
     await expect.poll(async () => (await savedBot()).modelSelection.model, { timeout: 10_000 }).toBe(nextModel.id);
     expect((await savedBot()).tasks.find((task: any) => task.threadId === originalBot.threadId).modelSelection.model).toBe(nextModel.id);
-    // A model with reasoning levels keeps the menu open after the pick, so its level can be set next.
-    expect(await ui("eval", info.ui, "--js", "String(Boolean(document.querySelector('[data-model-picker-content]')))"))
-      .toMatchObject({ result: "true" });
-    await ui("click", info.ui, "--name", "Only this thread");
-    const modelSnapshot = await ui("snapshot", info.ui, "--interactive");
-    const originalRow = Object.entries(modelSnapshot.refs as Record<string, { name: string; role: string }>)
-      .find(([, value]) => value.role === "button" && value.name.startsWith(originalLabel));
-    expect(originalRow).toBeDefined();
-    await ui("click", info.ui, "--ref", `@${originalRow![0]}`);
-    await expect.poll(async () => (await savedBot()).tasks.find((task: any) => task.threadId === originalBot.threadId).modelSelection.model,
-      { timeout: 10_000 }).toBe(originalModel);
-    expect((await savedBot()).modelSelection.model).toBe(nextModel.id);
     expect((await savedBot()).approvalMode).toBe(originalBot.approvalMode);
-    // The menu is still open after that pick; close it before using the composer.
     await ui("press", info.ui, "--keys", "Escape");
     await expect.poll(async () => (await ui("eval", info.ui, "--js", "String(Boolean(document.querySelector('[data-model-picker-content]')))")).result,
       { timeout: 10_000 }).toBe("false");
@@ -314,31 +311,24 @@ describe("control-omb ui drives the real renderer", () => {
     const transcript = tree.slice(transcriptStart);
     expect(transcript).toContain('StaticText "hello"'); // the sent turn
     expect(transcript).toContain(`StaticText "${REPLY}"`);
-    expect(transcript).toMatch(/StaticText "Bash"/);
     expect(tree).not.toContain("Not logged in");
     expect(tree).not.toContain("Execution timeline");
-    // All three scripted commands go through the control CLI, so all are verified.
-    expect(tree).toContain("3 steps · 3 verified · 1 failed · 1 dry run");
+    // Simple chat folds the steps under "Worked" and names each command the way a person reads it.
+    await ui("click", info.ui, "--name", "Worked");
+    const chips = async () => Object.values((await ui("snapshot", info.ui)).refs as Record<string, { name: string; role: string }>)
+      .filter((element) => element.role === "button" && element.name.startsWith("Run a command · ")).map((element) => element.name).sort();
+    await expect.poll(chips, { timeout: 10_000 }).toEqual([
+      "Run a command · Completed · Tool details",
+      "Run a command · Completed · Tool details",
+      "Run a command · Failed · Tool details",
+    ]);
 
-    // Hit-test the actual layout, not just the Tailwind class strings: the
-    // blank band beside the floating card must reach the transcript while
-    // the card and composer remain interactive.
-    const hitTest = await ui("eval", info.ui, "--js", `(() => {
-      const card = document.querySelector('section[aria-label="This run"]');
-      const dock = card.parentElement.parentElement;
-      const rect = card.getBoundingClientRect();
-      const blank = document.elementFromPoint(dock.getBoundingClientRect().left + 8, rect.top + rect.height / 2);
-      const onCard = document.elementFromPoint(rect.left + 20, rect.top + 20);
-      const scroll = document.querySelector('[role="log"]').parentElement;
+    const composerHit = await ui("eval", info.ui, "--js", `(() => {
       const composer = ${COMPOSER};
       const input = composer.getBoundingClientRect();
-      return {
-        blankReachesTranscript: scroll.contains(blank) && !dock.contains(blank) && getComputedStyle(scroll).overflowY === 'auto',
-        cardInteractive: card.contains(onCard),
-        composerInteractive: document.elementFromPoint(input.left + input.width / 2, input.top + input.height / 2) === composer,
-      };
+      return document.elementFromPoint(input.left + input.width / 2, input.top + input.height / 2) === composer;
     })()`);
-    expect(hitTest).toMatchObject({ result: { blankReachesTranscript: true, cardInteractive: true, composerInteractive: true } });
+    expect(composerHit).toMatchObject({ result: true });
 
     expect(await runControlOmb(["doctor", "--url", info.url])).toMatchObject({ ok: true });
     await expect(ui("click", info.ui, "--name", "Deliberately missing QA control")).rejects.toThrow("no element is named");
@@ -366,6 +356,87 @@ describe("control-omb ui drives the real renderer", () => {
     const png = readFileSync(shotPath);
     expect(png.length).toBeGreaterThan(1_000);
     expect(png.subarray(0, 8)).toEqual(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+
+    const logs = await ui("console", info.ui);
+    expect(logs.ok).toBe(true);
+    expect((logs.messages as Array<{ type: string; text: string }>).filter((message) => message.type === "error")).toEqual([]);
+    const title = await ui("eval", info.ui, "--js", "document.title");
+    expect(title).toMatchObject({ ok: true, result: "Isolated OpenMaus Chat" });
+
+    await waitForExit(launched.child, { signal: "SIGINT", graceMs: 30_000 });
+    expect(launched.child.exitCode).toBe(0);
+    expect(existsSync(info.dataDir)).toBe(false);
+    expect(existsSync(info.logPath)).toBe(true);
+    await expect(ui("snapshot", info.ui)).rejects.toThrow("could not read the ui handle");
+  }, LAUNCH_TIMEOUT_MS + 120_000);
+
+  // The thread-only model scope (header model picker), the This run card with Save as skill, and the Inspector were
+  // drawn only by the Advanced chat (ChatView's header ModelPicker and VerifyCard, ChatHeaderMenu); the one layout has
+  // none of them on a desktop window. Kept as the record of what is missing until they get a home.
+  run("changes one thread's model, saves the verified run as a skill and opens the Inspector", async () => {
+    launched = await launch(["--tool-calls", TOOL_CALLS]);
+    const { info } = launched;
+    await ui("flag", info.ui, "--set", "features.showToolCalls=true");
+    const savedBot = async () => (await fetch(`${info.url}/api/bots`).then((response) => response.json())).bots.find((bot: any) => bot.id === info.botId);
+    const originalBot = await savedBot();
+    const originalModel = originalBot.modelSelection.model;
+    const models = await runControlOmb(["models", "--url", info.url]) as any;
+    const options = models.instances.find((instance: any) => instance.instanceId === originalBot.modelSelection.instanceId).models.options;
+    const originalLabel = options.find((option: any) => option.id === originalModel).label;
+    const nextModel = options.find((option: any) => option.id !== originalModel);
+    await ui("click", info.ui, "--name", originalLabel);
+    expect(await ui("eval", info.ui, "--js", "[...document.querySelectorAll('[aria-label=\"Apply model changes to\"] button')].find(b => b.textContent === 'Only this thread').getAttribute('aria-pressed')"))
+      .toMatchObject({ result: "true" });
+    await ui("click", info.ui, "--name", "Thread + bot default");
+    const scopeShot = join(evidenceDir, "model-scope.png");
+    mkdirSync(evidenceDir, { recursive: true });
+    await ui("screenshot", info.ui, "--out", scopeShot);
+    await ui("click", info.ui, "--name", nextModel.label);
+    await expect.poll(async () => (await savedBot()).modelSelection.model, { timeout: 10_000 }).toBe(nextModel.id);
+    expect((await savedBot()).tasks.find((task: any) => task.threadId === originalBot.threadId).modelSelection.model).toBe(nextModel.id);
+    // A model with reasoning levels keeps the menu open after the pick, so its level can be set next.
+    expect(await ui("eval", info.ui, "--js", "String(Boolean(document.querySelector('[data-model-picker-content]')))"))
+      .toMatchObject({ result: "true" });
+    await ui("click", info.ui, "--name", "Only this thread");
+    const modelSnapshot = await ui("snapshot", info.ui, "--interactive");
+    const originalRow = Object.entries(modelSnapshot.refs as Record<string, { name: string; role: string }>)
+      .find(([, value]) => value.role === "button" && value.name.startsWith(originalLabel));
+    expect(originalRow).toBeDefined();
+    await ui("click", info.ui, "--ref", `@${originalRow![0]}`);
+    await expect.poll(async () => (await savedBot()).tasks.find((task: any) => task.threadId === originalBot.threadId).modelSelection.model,
+      { timeout: 10_000 }).toBe(originalModel);
+    expect((await savedBot()).modelSelection.model).toBe(nextModel.id);
+    expect((await savedBot()).approvalMode).toBe(originalBot.approvalMode);
+    // The menu is still open after that pick; close it before using the composer.
+    await ui("press", info.ui, "--keys", "Escape");
+    await expect.poll(async () => (await ui("eval", info.ui, "--js", "String(Boolean(document.querySelector('[data-model-picker-content]')))")).result,
+      { timeout: 10_000 }).toBe("false");
+
+    await ui("type", info.ui, "--name", "Message Pepper", "--text", "hello");
+    await ui("press", info.ui, "--keys", "Enter");
+    await ui("wait-settle", info.ui, "--timeout", "60");
+    const tree = (await ui("snapshot", info.ui)).snapshot as string;
+    // All three scripted commands go through the control CLI, so all are verified.
+    expect(tree).toContain("3 steps · 3 verified · 1 failed · 1 dry run");
+    // Hit-test the actual layout, not just the Tailwind class strings: the
+    // blank band beside the floating card must reach the transcript while
+    // the card and composer remain interactive.
+    const hitTest = await ui("eval", info.ui, "--js", `(() => {
+      const card = document.querySelector('section[aria-label="This run"]');
+      const dock = card.parentElement.parentElement;
+      const rect = card.getBoundingClientRect();
+      const blank = document.elementFromPoint(dock.getBoundingClientRect().left + 8, rect.top + rect.height / 2);
+      const onCard = document.elementFromPoint(rect.left + 20, rect.top + 20);
+      const scroll = document.querySelector('[role="log"]').parentElement;
+      const composer = ${COMPOSER};
+      const input = composer.getBoundingClientRect();
+      return {
+        blankReachesTranscript: scroll.contains(blank) && !dock.contains(blank) && getComputedStyle(scroll).overflowY === 'auto',
+        cardInteractive: card.contains(onCard),
+        composerInteractive: document.elementFromPoint(input.left + input.width / 2, input.top + input.height / 2) === composer,
+      };
+    })()`);
+    expect(hitTest).toMatchObject({ result: { blankReachesTranscript: true, cardInteractive: true, composerInteractive: true } });
 
     const rowsBefore = await ui("eval", info.ui, "--js", "document.querySelectorAll('[data-mid]').length");
     await ui("click", info.ui, "--name", "Save as skill");
@@ -418,16 +489,6 @@ describe("control-omb ui drives the real renderer", () => {
     await ui("click", info.ui, "--name", "Close the Inspector");
     expect((await ui("snapshot", info.ui)).snapshot).not.toContain('complementary "Inspector"');
 
-    const logs = await ui("console", info.ui);
-    expect(logs.ok).toBe(true);
-    expect((logs.messages as Array<{ type: string; text: string }>).filter((message) => message.type === "error")).toEqual([]);
-    const title = await ui("eval", info.ui, "--js", "document.title");
-    expect(title).toMatchObject({ ok: true, result: "Isolated OpenMaus Chat" });
-
     await waitForExit(launched.child, { signal: "SIGINT", graceMs: 30_000 });
-    expect(launched.child.exitCode).toBe(0);
-    expect(existsSync(info.dataDir)).toBe(false);
-    expect(existsSync(info.logPath)).toBe(true);
-    await expect(ui("snapshot", info.ui)).rejects.toThrow("could not read the ui handle");
   }, LAUNCH_TIMEOUT_MS + 120_000);
 });

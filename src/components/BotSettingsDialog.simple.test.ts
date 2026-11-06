@@ -125,6 +125,7 @@ const { LibraryPage, LibrarySection } = await import("./bot-panel/LibraryTab");
 const { ComputerTab, WherePage } = await import("./bot-panel/ComputerTab");
 const { PageBody, AppsPage, RoutinesPage, MemoryPage, SkillsPage, FolderPage, BrowserPage } = await import("./bot-panel/pages");
 const { BrowserLogins } = await import("./bot-panel/browser-logins");
+const { takeComputerPanelTabFocus } = await import("@/lib/computer-panel-focus");
 const { PAGES, sectionTarget } = await import("./bot-panel/page-registry");
 const { isModalPage, pendingPanelModal, takePanelModalRequest } = await import("./bot-panel/modals/panel-modal");
 const { openBotSettings } = await import("./bot-panel/panel-link");
@@ -209,7 +210,7 @@ const segment = (rendered: { nodes: Node[] }, attr: string) => {
 };
 const has = (rendered: { nodes: Node[] }, attr: string, value: unknown = true) => rendered.nodes.some((node) => node.props[attr] === value);
 const ofType = (rendered: { nodes: Node[] }, type: unknown) => rendered.nodes.find((node) => node.type === type);
-const click = (node: Node) => (node.props.onClick as () => void)();
+const click = (node: Node, detail = 1) => (node.props.onClick as (event: { detail: number }) => void)({ detail });
 const change = (node: Node, value: string) => (node.props.onChange as (event: unknown) => void)({ target: { value } });
 const submit = (node: Node) => (node.props.onSubmit as (event: unknown) => void)({ preventDefault: () => {} });
 const key = (node: Node, name: string) => {
@@ -719,7 +720,14 @@ describe("the Computer tab", () => {
       [{ type: "toggleSettings", open: false }],
       [{ type: "toggleComputer", open: true }],
     ]);
+    expect(takeComputerPanelTabFocus("scout")).toBe(false);
     vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => {} });
+  });
+
+  it("hands a keyboard open of the screen to the panel's tab", () => {
+    vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => {} });
+    click(find(computer(cloudBot()), "data-panel-action", "open-computer"), 0);
+    expect(takeComputerPanelTabFocus("scout")).toBe(true);
   });
 
   it("picks where the bot works beside the caption, with the Where it works choices and a reason on the ones it cannot use", () => {

@@ -149,7 +149,6 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
 
   const pageView = page === null ? null : (
     <div data-panel-page-view={page} className="pt-1">
-      <span id="bot-settings-title" className="sr-only">{bot.name}</span>
       {PAGES[page].intro && <p className="mx-3 mb-2.5 text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{t(PAGES[page].intro, { name: bot.name })}</p>}
       <div className={pageSurfaceCls}>
         <PageBody
@@ -186,6 +185,7 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col" onKeyDown={onKeyDown}>
+      <span id="bot-settings-title" className="sr-only">{bot.name}</span>
       <span aria-hidden="true" data-panel-edge className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[0.5px] bg-edge" />
       <div {...dragProps} className="relative flex h-[60px] shrink-0 items-center gap-2 p-3">
         {page === null ? (

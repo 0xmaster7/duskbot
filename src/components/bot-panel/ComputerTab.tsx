@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { cn } from "@/lib/cn";
+import { rememberComputerPanelOpen } from "@/lib/computer-panel-focus";
 import { writeComputerPanelView, type ComputerPanelView } from "@/lib/computer-panel-view";
 import { t } from "@/lib/i18n";
 import type { Place } from "@/lib/place";
@@ -35,8 +36,9 @@ const EXTRA_PLACE_LABEL: Record<Exclude<PlaceChoice, "auto" | "local" | "cloud" 
 
 export function useOpenComputer(bot: Pick<Bot, "id">) {
   const { dispatch } = useStore();
-  return (view: ComputerPanelView = "computer") => {
+  return (view: ComputerPanelView = "computer", keyboard = false) => {
     writeComputerPanelView(bot.id, view);
+    rememberComputerPanelOpen({ botId: bot.id, opener: null, tabs: keyboard });
     dispatch({ type: "toggleSettings", open: false });
     dispatch({ type: "toggleComputer", open: true });
   };
@@ -165,10 +167,10 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
   const line = issue?.line && issue.line !== issue.short ? issue.line : null;
   const action = blocked ? t("place.action.openComputerPanel") : issue ? issue.action?.label : known?.view.action?.label ?? t("botPanel.screen.wake");
 
-  const act = () => {
+  const act = (keyboard: boolean) => {
     const id = known?.view.action?.id;
     if (!blocked && id && !PANEL_ACTIONS.has(id) && openPlaceAction(id, { botId: bot.id, threadId: bot.threadId, place: place as Place }, dispatch)) return;
-    openComputer(place === "browser" || id === "turn-on-browser" ? "browser" : "computer");
+    openComputer(place === "browser" || id === "turn-on-browser" ? "browser" : "computer", keyboard);
   };
   const frameCls = "relative flex w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_6%)] text-center text-[13px] leading-[18px] tracking-[0.015em] shadow-[inset_0_0_0_0.5px_var(--color-edge)]";
   const buttonCls = "cursor-pointer transition-[background-color] duration-100 hover:bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_8%)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
@@ -191,7 +193,7 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
           data-stage={stage}
           data-place={place}
           aria-label={stage === "asleep" ? action ?? title : `${t("place.action.watch")}: ${screenOf}`}
-          onClick={stage === "asleep" ? act : () => openComputer(place === "browser" ? "browser" : "computer")}
+          onClick={(event) => stage === "asleep" ? act(event.detail === 0) : openComputer(place === "browser" ? "browser" : "computer", event.detail === 0)}
           style={stage === "screen" ? { aspectRatio: ratio ?? DEFAULT_RATIO } : undefined}
           className={cn(frameCls, buttonCls, stage !== "screen" && "aspect-[16/10]",
             stage === "screen" && "bg-transparent hover:bg-transparent after:pointer-events-none after:absolute after:inset-0 after:rounded-xl after:bg-ink/[0.04] after:opacity-0 after:shadow-[inset_0_0_0_0.5px_var(--color-edge)] after:transition-opacity after:duration-100 after:content-[''] hover:after:opacity-100")}

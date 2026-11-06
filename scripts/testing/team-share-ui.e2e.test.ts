@@ -7,6 +7,7 @@ import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { request } from "../mcp-server.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { openTemplatesWhenFree } from "./grok-templates.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const binary = resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env });
@@ -65,8 +66,7 @@ describe("Share team in the real renderer", () => {
       return true;
     })()`);
 
-    await click("New or share");
-    await click("Templates");
+    await openTemplatesWhenFree(ui);
     await click("Share");
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Share the Sales desk department");
     await click("Share the Sales desk department");

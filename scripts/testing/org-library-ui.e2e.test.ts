@@ -10,6 +10,8 @@ import { canonicalJson, parsePackageDocument } from "../../shared/package-format
 import { runControlOmb } from "../control-omb.ts";
 import { request } from "../mcp-server.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { clickByName } from "./grok-nav.ts";
+import { openTemplatesWhenFree } from "./grok-templates.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const FIXTURES = join(ROOT, "shared", "package-fixtures");
@@ -72,8 +74,7 @@ describe("the organization library in the real renderer", () => {
     const api = (path: string, method = "GET", body?: unknown) => request(path, { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }) }, info.url);
     const evidence = (name: string) => ui("screenshot", "--out", join(ROOT, ".omb-scratch", "verify-evidence", name));
 
-    await click("New or share");
-    await click("Templates");
+    await openTemplatesWhenFree(ui);
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Community templates");
     expect(await snapshot()).not.toContain("From Customer Co");
     await press("Escape");
@@ -92,8 +93,7 @@ describe("the organization library in the real renderer", () => {
     });
     expect(relayed.status).toBe(200);
 
-    await click("New or share");
-    await click("Templates");
+    await openTemplatesWhenFree(ui);
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Packages Customer Co shares with you");
     let shelf = await snapshot();
     for (const line of ["From Customer Co", "Sales desk", "Recommended by Acme Partners", "Sales skills", "From Acme Partners"]) expect(shelf).toContain(line);
@@ -115,8 +115,7 @@ describe("the organization library in the real renderer", () => {
     }
     expect((await api("/api/routines")).routines.every((routine: { enabled: boolean }) => !routine.enabled)).toBe(true);
 
-    await click("New or share");
-    await click("Templates");
+    await openTemplatesWhenFree(ui);
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Packages Customer Co shares with you");
     shelf = await snapshot();
     expect(shelf).toContain("Added");
@@ -131,9 +130,9 @@ describe("the organization library in the real renderer", () => {
       .find(([, entry]) => entry.role === "button" && /Open .+ profile/.test(entry.name));
     expect(profile).toBeDefined();
     await ui("click", "--ref", `@${profile![0]}`);
-    await click("Identity");
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("From Sales desk 1.3.0 · Acme Partners");
-    await click("Skills");
+    await clickByName(ui, "Advanced", "tab");
+    await clickByName(ui, /^Skills /, "button");
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Skills your organization shares");
     await evidence("org-library-bot-skills.png");
     await click("Add follow-up to this bot");

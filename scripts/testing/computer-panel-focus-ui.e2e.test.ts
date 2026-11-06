@@ -1,5 +1,5 @@
-// The real chat header button, the real panel, and real key presses: the
-// renderer's focus hand-off is only provable in a browser.
+// The bot panel's Computer tab, the real computer panel, and real key presses:
+// the renderer's focus hand-off is only provable in a browser.
 import { spawn, type ChildProcess } from "node:child_process";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,13 +8,14 @@ import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { clickByName } from "./grok-nav.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const binary = resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env });
 const enabled = process.env.OMB_UI_E2E === "1" || Boolean(binary);
 if (!enabled) console.info("skipping computer panel focus UI e2e: set OMB_UI_E2E=1 to install the pinned browser");
 
-(enabled ? it : it.skip)("hands the keyboard's open to the panel's tab, and the close back to the button", async () => {
+(enabled ? it : it.skip)("hands the keyboard's open to the panel's tab, and the close back to the bot's row", async () => {
   let child: ChildProcess | undefined;
   let info: { ui: string } | undefined;
   try {
@@ -43,26 +44,34 @@ if (!enabled) console.info("skipping computer panel focus UI e2e: set OMB_UI_E2E
     })()`);
     const panelOpen = () => visible('[data-computer-panel-close]');
 
-    // The chat header only carries the computer button in advanced mode.
-    await evaluate("(async () => { const mode = await import('/src/lib/interface-mode.ts'); mode.setAdvancedMode(true); return true; })()");
-    await expect.poll(() => visible('[data-tour="computer"]'), { timeout: 15_000 }).toBe(true);
-
-    await evaluate("(() => { document.querySelector('[data-tour=\"computer\"]').focus(); return true; })()");
-    expect(await evaluate("document.activeElement.getAttribute('data-tour')")).toBe("computer");
+    // The chat header is the pill alone; the bot's screen opens from its panel's Computer tab, which closes as the
+    // computer panel opens, so the close hands focus to the bot's sidebar row.
+    const screen = '[data-panel-action="open-computer"]';
+    const botRow = `[data-sidebar-bot-row="${info!.botId}"]`;
+    const openComputerTab = async () => {
+      await clickByName(ui, /^Open Pepper's profile/, "button");
+      await clickByName(ui, "Computer", "tab");
+      await expect.poll(() => visible(screen), { timeout: 15_000 }).toBe(true);
+    };
+    await openComputerTab();
+    await evaluate(`(() => { document.querySelector(${JSON.stringify(screen)}).focus(); return true; })()`);
+    expect(await evaluate("document.activeElement.dataset.panelAction")).toBe("open-computer");
     await ui("press", "--keys", "Enter");
     await expect.poll(panelOpen, { timeout: 15_000 }).toBe(true);
     await expect.poll(entryFocus, { timeout: 5_000 }).toMatchObject({ tab: true, close: false, ring: true });
 
-    // Enter on the panel's own close button hands focus back to the chat button.
+    // Enter on the panel's own close button hands focus back to the bot's row.
     await evaluate("document.querySelector('[data-computer-panel-close]').focus(); true");
     await ui("press", "--keys", "Enter");
     await expect.poll(panelOpen, { timeout: 5_000 }).toBe(false);
-    await expect.poll(() => evaluate("document.activeElement.getAttribute('data-tour')"), { timeout: 5_000 }).toBe("computer");
+    await expect.poll(() => evaluate(`document.activeElement === document.querySelector(${JSON.stringify(botRow)})`), { timeout: 5_000 }).toBe(true);
 
     // A pointer click carries no keyboard intent: the panel must not take focus.
-    await ui("click", "--name", "Bot's screen");
+    await openComputerTab();
+    const name = await evaluate(`document.querySelector(${JSON.stringify(screen)}).getAttribute('aria-label')`) as string;
+    await clickByName(ui, name, "button");
     await expect.poll(panelOpen, { timeout: 15_000 }).toBe(true);
-    await expect.poll(() => evaluate("document.activeElement.getAttribute('data-tour')"), { timeout: 5_000 }).toBe("computer");
+    await new Promise((done) => setTimeout(done, 500));
     expect(await entryFocus()).toMatchObject({ tab: false, close: false });
   } finally {
     await waitForExit(child, { signal: "SIGINT", graceMs: 30_000 });

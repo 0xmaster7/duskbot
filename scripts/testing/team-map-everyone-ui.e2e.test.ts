@@ -8,6 +8,7 @@ import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { openTeamMap } from "./grok-nav.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const binary = resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env });
@@ -41,7 +42,6 @@ type Bot = { id: string; name: string; threadId: string; chiefOfStaff?: boolean;
     const linesTo = async (bot: Bot) => ((await call("GET", `/api/threads/${bot.threadId}/messages`)).messages as Array<{ role: string; text?: string }>)
       .filter((message) => message.role === "user").map((message) => message.text ?? "");
     const shot = async (name: string) => { if (process.env.OMB_EVERYONE_SHOTS) await ui("screenshot", "--out", join(process.env.OMB_EVERYONE_SHOTS, `${name}.png`)); };
-    const press = (label: string) => evaluate(`(() => { const target = [...document.querySelectorAll('button, a, [role=menuitem]')].find(button => button.getAttribute('aria-label') === ${JSON.stringify(label)} || button.textContent.trim() === ${JSON.stringify(label)}); target?.click(); return Boolean(target); })()`);
     const pageText = () => evaluate("document.body.innerText") as Promise<string>;
 
     for (const name of ["Mail", "Books", "Calendar"]) await call("POST", "/api/bots", { name });
@@ -53,8 +53,11 @@ type Bot = { id: string; name: string; threadId: string; chiefOfStaff?: boolean;
     }
     await evaluate("location.reload(); true");
     await expect.poll(pageText, { timeout: 20_000 }).toContain("Calendar");
-    if (!await press("Team map")) await press("Tools");
-    await expect.poll(() => press("Team map").then(() => evaluate("Boolean(document.querySelector('textarea[aria-label=\"Message bots on the map\"]'))")), { timeout: 20_000 }).toBe(true);
+    const openMap = async () => {
+      await openTeamMap(ui);
+      await expect.poll(() => evaluate("Boolean(document.querySelector('textarea[aria-label=\"Message bots on the map\"]'))"), { timeout: 20_000 }).toBe(true);
+    };
+    await openMap();
     const before = new Map(await Promise.all((await bots()).map(async (bot) => [bot.id, (await linesTo(bot)).length] as const)));
     const say = async (text: string) => {
       await ui("type", "--name", "Message bots on the map", "--text", text);
@@ -81,7 +84,8 @@ type Bot = { id: string; name: string; threadId: string; chiefOfStaff?: boolean;
     // No Chief: everyone gets the line, as before.
     await call("PATCH", `/api/bots/${chief.id}`, { chiefOfStaff: false });
     await evaluate("location.reload(); true");
-    await expect.poll(() => press("Team map").then(() => evaluate("Boolean(document.querySelector('textarea[aria-label=\"Message bots on the map\"]'))")), { timeout: 20_000 }).toBe(true);
+    await expect.poll(pageText, { timeout: 20_000 }).toContain("Calendar");
+    await openMap();
     await say("@everyone hello all");
     await expect.poll(pageText).not.toContain("who passes it on");
     await send();

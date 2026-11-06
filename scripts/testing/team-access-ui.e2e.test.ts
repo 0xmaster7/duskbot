@@ -52,7 +52,7 @@ const enabled = process.env.OMB_UI_E2E === "1" || Boolean(resolveAgentBrowserBin
     await api("/api/sidebar-sections", { name: "Empty delivery" }, "POST");
     await ui("eval", "--js", "location.reload(); true");
     await expect.poll(snapshot, { timeout: 15_000 }).toContain("Actions for Clive");
-    await clickRole("button", /^Clive Rename Clive /);
+    await clickRole("button", /^Clive(?:,|$)/);
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Open Clive's profile");
     await clickRole("button", "Open Clive's profile");
     await click("Permissions");

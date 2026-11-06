@@ -95,7 +95,7 @@ export function PanelHero({ bot, activeState, patch, editorOpen, onToggleEditor 
       </button>
 
       <div data-panel-name-row className="mt-4 flex max-w-full flex-col items-center gap-1">
-        <h2 id="bot-settings-title" className="flex min-w-0 max-w-full justify-center">
+        <h2 className="flex min-w-0 max-w-full justify-center">
           {name.draft !== null ? (
             <input
               autoFocus

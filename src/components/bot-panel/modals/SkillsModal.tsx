@@ -1,6 +1,7 @@
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";
+import { OrgSkillsCard } from "../../bot-settings/OrgSkillsCard";
 import { SkillReviewDialog } from "../../bot-settings/SkillsSection";
 import { DialogEmpty, DialogLinkRow, DialogSection, DialogSkeleton, FilledField, footnoteCls, GrokDialog, listRowCls, RowIconButton, rowHintCls, rowTitleCls, useInPane } from "../../ui/GrokDialog";
 import { BotSwitch } from "../rows";
@@ -69,6 +70,8 @@ export function SkillsModal({ bot, onClose }: { bot: Bot; onClose: () => void })
           />
           {skills.error && !skills.reviewing && <p role="alert" className={cn(footnoteCls, "text-warning")}>{skills.error}</p>}
         </div>
+
+        <OrgSkillsCard bot={bot} onAdded={() => void skills.refresh()} />
 
         <DialogSection label="Find more">
           <DialogLinkRow data-panel-link="browse-skills" icon="book-open" title={t("botPanel.skills.browse")} hint="Ready-made skills anyone can add" onClick={browse} />

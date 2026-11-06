@@ -8,6 +8,7 @@ import { waitForExit } from "../../server/testing/cleanup.ts";
 import type { Routine } from "../../src/lib/routines.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { openAutomations } from "./grok-nav.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const enabled = process.env.OMB_UI_E2E === "1" || Boolean(resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env }));
@@ -49,7 +50,7 @@ afterAll(() => waitForExit(child, { signal: "SIGINT", graceMs: 30_000 }));
 
   const title = 'input[placeholder="What should happen?"]';
   const newButton = "[...document.querySelectorAll('main header button')].find(button => button.textContent === 'New')";
-  await click("Automations");
+  await openAutomations(ui);
   await expect.poll(() => evaluate(`Boolean(${newButton})`)).toBe(true);
   await evaluate(`${newButton}.click()`);
   await click("Set it up yourself"); await click("On a schedule"); await click("Continue");

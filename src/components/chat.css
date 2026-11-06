@@ -414,6 +414,9 @@
 .chat-column-dock[data-grok-inset] > .px-5 {
   padding-inline: 1rem;
 }
+.chat-column-dock[data-grok-inset] [data-composer-backdrop] {
+  inset-inline: -1rem;
+}
 @media (forced-colors: active) {
   .status-shimmer { color: CanvasText; background-image: none; }
 }

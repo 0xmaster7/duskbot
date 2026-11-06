@@ -6,7 +6,8 @@ import { expect, it } from "vitest";
 import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
-import { OPEN_SIDEBAR_TOOLS, UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { openTeamMap } from "./grok-nav.ts";
 import { fixtureApi } from "./preview-fixture.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
@@ -72,11 +73,7 @@ type BotRecord = {
       return summary.parentElement.open;
     })()`);
     const messages = async (id: string) => (await control("messages", "--bot", id, "--limit", "10")).messages;
-    const openMap = async () => {
-      await evaluate(OPEN_SIDEBAR_TOOLS);
-      await click("Team map");
-      await expect.poll(() => evaluate("Boolean(document.querySelector('[data-team-canvas]'))"), { timeout: 10_000 }).toBe(true);
-    };
+    const openMap = () => openTeamMap(ui);
     const teamPosition = (name: string) => evaluate(`(() => {
       const team = document.querySelector(${JSON.stringify(teamSelector(name))});
       return { x: parseFloat(team.style.left), y: parseFloat(team.style.top) };
@@ -190,15 +187,18 @@ type BotRecord = {
     expect(await evaluate("Boolean(document.querySelector('[data-team-canvas]'))")).toBe(true);
     await expect.poll(() => evaluate("[...document.querySelectorAll('[data-team-canvas] [aria-label^=\"Desktop for \"]')].map(button => button.getAttribute('aria-label'))"))
       .toEqual(["Desktop for Ben"]);
+    // The bot's computer opens its settings sheet at Where Ben works, over its panel.
     await click("Desktop for Ben");
-    await expect.poll(() => evaluate("document.querySelector('[data-bot-settings-section=access] > button')?.getAttribute('aria-expanded')")).toBe("true");
-    await click("Close settings");
+    await expect.poll(() => evaluate("document.querySelector('[data-bot-sheet] [aria-current=page]')?.dataset.botSheetPage ?? null")).toBe("where");
+    await ui("press", "--keys", "Escape");
+    await expect.poll(() => evaluate("Boolean(document.querySelector('[data-bot-sheet]'))")).toBe(false);
+    await click("Close");
     await expect.poll(() => evaluate("document.querySelectorAll('[data-team-canvas] [aria-label^=\"Desktop for \"]').length")).toBe(0);
     await click("Change default model for Ben");
-    await expect.poll(() => evaluate("document.querySelector('[data-bot-settings-section=model] > button')?.getAttribute('aria-expanded')")).toBe("true");
-    expect(await snapshot()).toContain("Default model");
+    await expect.poll(snapshot, { timeout: 10_000 }).toContain('tab "Details" [selected');
+    expect(await evaluate("document.querySelector('[data-panel-card=model]')?.textContent")).toContain("Claude Sonnet 5");
     expect(await evaluate("Boolean(document.querySelector('[data-team-canvas]'))")).toBe(true);
-    await click("Close settings");
+    await click("Close");
 
     // Membership changes go through the real dialog and server. A failed
     // mixed-Chief move must preserve every selected bot's original team.

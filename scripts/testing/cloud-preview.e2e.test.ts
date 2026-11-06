@@ -104,7 +104,7 @@ describe("cloud preview recovery in the real renderer", () => {
     expect(await evaluate('document.querySelector("[data-tour=computer-tabs] button")?.getAttribute("aria-selected")')).toBe("true");
     await select("Conversation surface", "browser-pin");
     await expect.poll(() => evaluate('document.querySelector("[data-tour=computer-browser]")?.getAttribute("aria-selected")'), { timeout: 5000 }).toBe("true");
-    await clickTab("Routines");
+    await clickTab("Data");
     await pause(200);
     expect(await evaluate('document.querySelector("[data-tour=computer-browser]")?.getAttribute("aria-selected")')).toBe("false");
     await select("Conversation surface", "default");
@@ -116,10 +116,10 @@ describe("cloud preview recovery in the real renderer", () => {
     await pause(200);
     expect(await frameVisible()).toBe(true);
     expect((await stat("paths") as string[]).filter((path) => path.endsWith("/computer/provision"))).toHaveLength(busyProvisions);
-    await clickTab("Routines");
+    await clickTab("Data");
     await click("Busy: true");
     await pause(200);
-    expect(await evaluate('Array.from(document.querySelectorAll("[data-tour=computer-tabs] button")).find(button => button.textContent.includes("Routines"))?.getAttribute("aria-selected")')).toBe("true");
+    expect(await evaluate('Array.from(document.querySelectorAll("[data-tour=computer-tabs] button")).find(button => button.textContent.includes("Data"))?.getAttribute("aria-selected")')).toBe("true");
     await evaluate('document.querySelector("[data-tour=computer-tabs] button")?.click(); true');
     await expect.poll(frameVisible, { timeout: 6000 }).toBe(true);
 

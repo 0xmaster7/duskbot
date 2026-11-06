@@ -317,7 +317,7 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
             value,
             label: simple ? t("sidebar.grok.renameSection") : naming.kind === "new" ? t("sidebar.section.newContextAria") : t("team.renameAria", { name }),
             onCommit: (draft) => finishNaming(naming, draft),
-            onCancel: () => { setNaming(null); onCancelled(); },
+            onCancel: () => { setNaming(null); if (naming.kind === "rename") onNamed(naming.section); else onCancelled(); },
           };
         },
       };

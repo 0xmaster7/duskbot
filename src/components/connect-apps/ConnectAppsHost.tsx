@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { lazyScreen, TeamLibraryPanel } from "../lazy-screens";
+import { openTemplates } from "../SidebarTemplates";
 import { closeConnectApps, useConnectApps } from "./open";
 
 const ConnectAppsWindow = lazyScreen("ConnectAppsWindow", async () => (await import("./ConnectAppsWindow")).ConnectAppsWindow);
@@ -28,7 +29,7 @@ export function ConnectAppsHost() {
   return (
     <>
       {open && createPortal(
-        <ConnectAppsWindow page={page} nonce={nonce} onClose={closeConnectApps} onTemplates={() => { closeConnectApps(); setTemplates(true); }} />,
+        <ConnectAppsWindow page={page} nonce={nonce} onClose={closeConnectApps} onTemplates={() => { closeConnectApps(); if (!openTemplates()) setTemplates(true); }} />,
         document.body,
       )}
       {templates && (

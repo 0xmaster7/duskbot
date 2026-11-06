@@ -43,6 +43,7 @@ describe("Slack management in agent settings", () => {
     const link = () => evaluate("document.querySelector('[data-bot-settings-section=slack] a')?.getAttribute('href') ?? null");
     const row = () => evaluate("Boolean(document.querySelector('[data-bot-settings-section=slack]'))");
     const openProfile = async () => {
+      await expect.poll(snapshot, { timeout: 15_000 }).toMatch(/button "Open .+ profile"/);
       const state = await ui("snapshot", "--interactive");
       const profile = Object.entries(state.refs as Record<string, { role: string; name: string }>)
         .find(([, entry]) => entry.role === "button" && /Open .+ profile/.test(entry.name));

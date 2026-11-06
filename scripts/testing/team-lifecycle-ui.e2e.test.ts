@@ -8,7 +8,8 @@ import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { request } from "../mcp-server.ts";
 import { mountPreview, type MountedPreview } from "./preview-fixture.ts";
-import { OPEN_SIDEBAR_TOOLS, UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { openTeamMap, refWithin } from "./grok-nav.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const binary = resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env });
@@ -50,6 +51,8 @@ if (!enabled) console.log("skipping team lifecycle UI e2e: set OMB_UI_E2E=1 to i
       try { return await ui("click", "--ref", await target(name, ["button", "checkbox", "menuitem"])); }
       catch (error) { throw new Error(`Click ${name}: ${error}\n${(await ui("snapshot")).snapshot}`); }
     };
+    // grok's sidebar rows carry just the bot's name, the same as its tick box in a move dialog.
+    const tick = async (name: string) => ui("click", "--ref", await target(name, ["checkbox"]));
     const type = async (name: string, text: string) => {
       const ref = await target(name, ["textbox"]);
       await ui("click", "--ref", ref);
@@ -75,12 +78,21 @@ if (!enabled) console.log("skipping team lifecycle UI e2e: set OMB_UI_E2E=1 to i
     const a = (await control("new-bot", "--name", "Researcher", "--section", "Research") as any).bot;
     const b = (await control("new-bot", "--name", "Engineer", "--section", "Engineering") as any).bot;
 
-    await click("New or share");
+    // An empty department starts from the Team map's Add menu.
+    await openTeamMap(ui);
+    await ui("eval", "--js", "document.querySelector('summary[aria-label=\"Add to team map\"]').focus(); true");
+    await ui("press", "--keys", "Enter");
     await click("Create department");
     await type("Department name", "Delivery");
     await click("Create department");
     await expect.poll(snapshot, { timeout: 10_000 }).toContain('button "Delivery"');
     expect((await api("/api/bots?messages=0")).sections).toContain("Delivery");
+    // the header's actions button is the keyboard's way to the right click's Rename, Move and Delete menu
+    const deleteFromMenu = async (name: string) => {
+      await evaluate(`document.querySelector(${JSON.stringify(`[aria-label=${JSON.stringify(`Actions for ${name} department`)}]`)}).focus(); true`);
+      await ui("press", "--keys", "Enter");
+      await click("Delete");
+    };
     const teamMenu = async (name: string) => ui("eval", "--js", `(() => {
       const header = [...document.querySelectorAll('[data-section]')].find(node => node.dataset.section === ${JSON.stringify(name)});
       if (!header) throw new Error('Missing team header');
@@ -91,14 +103,17 @@ if (!enabled) console.log("skipping team lifecycle UI e2e: set OMB_UI_E2E=1 to i
     await teamMenu("Delivery");
     await ui("press", "--keys", "Escape");
     expect((await ui("eval", "--js", "document.activeElement.closest('[data-section]')?.dataset.section")).result).toBe("Delivery");
+    // grok renames a section in place: Escape keeps the old name and hands focus back to its header.
     await teamMenu("Delivery");
-    await click("Rename department");
-    await click("Cancel");
+    await click("Rename");
+    await target("Rename section", ["textbox"]);
+    await ui("press", "--keys", "Escape");
+    await expect.poll(snapshot).not.toContain('textbox "Rename section"');
     expect((await ui("eval", "--js", "document.activeElement.closest('[data-section]')?.dataset.section")).result).toBe("Delivery");
     await teamMenu("Delivery");
-    await click("Rename department");
-    await type("Department name", "Dispatch");
-    await click("Save name");
+    await click("Rename");
+    await type("Rename section", "Dispatch");
+    await ui("press", "--keys", "Enter");
     await expect.poll(snapshot).toContain('button "Dispatch"');
     expect((await ui("eval", "--js", "document.querySelector('[data-section=Dispatch] button')?.getAttribute('aria-expanded')")).result).toBe("false");
     expect((await ui("eval", "--js", "JSON.parse(localStorage.getItem('openmausbot.sidebarCollapsedSections.v1'))")).result).toContain("section:Dispatch");
@@ -106,21 +121,20 @@ if (!enabled) console.log("skipping team lifecycle UI e2e: set OMB_UI_E2E=1 to i
     await ui("eval", "--js", "location.reload(); true");
     await expect.poll(snapshot, { timeout: 15_000 }).toContain('button "Dispatch"');
     await teamMenu("Dispatch");
-    await click("Rename department");
-    await type("Department name", "Delivery");
-    await click("Save name");
+    await click("Rename");
+    await type("Rename section", "Delivery");
+    await ui("press", "--keys", "Enter");
     await expect.poll(snapshot).toContain('button "Delivery"');
-    await ui("eval", "--js", OPEN_SIDEBAR_TOOLS);
-    await click("Team map");
+    await openTeamMap(ui);
     await manage("Delivery");
     await click("Move bots to Delivery");
-    await click("Researcher");
-    await click("Engineer");
+    await tick("Researcher");
+    await tick("Engineer");
     await click("Save");
     await expect.poll(async () => (await api("/api/bots?messages=0")).bots.filter((bot: any) => bot.section === "Delivery").length).toBe(2);
     await manage("Delivery");
     await click("Move bots to Delivery");
-    await click("Researcher");
+    await tick("Researcher");
     // Hold only the creation response: persistence and SSE remain real, and
     // the unsaved ticks above must survive the wait.
     await ui("eval", "--js", `(() => {
@@ -135,7 +149,7 @@ if (!enabled) console.log("skipping team lifecycle UI e2e: set OMB_UI_E2E=1 to i
       };
       return true;
     })()`);
-    await click("New Bot");
+    await ui("click", "--ref", await refWithin(ui, 'dialog "Add or remove bots"', "New Bot"));
     let created: { id: string; name: string };
     await expect.poll(async () => {
       created = (await ui("eval", "--js", "window.createdTeamMember ?? null")).result;
@@ -153,12 +167,11 @@ if (!enabled) console.log("skipping team lifecycle UI e2e: set OMB_UI_E2E=1 to i
     await click("Edit Delivery shared instructions");
     await type("Delivery shared instructions", "Research first, then build and review.");
     await click("Save shared instructions");
-    expect((await api("/api/section-context?section=Delivery")).text).toBe("Research first, then build and review.");
+    await expect.poll(async () => (await api("/api/section-context?section=Delivery")).text).toBe("Research first, then build and review.");
 
     await ui("eval", "--js", "location.reload(); true");
     await expect.poll(snapshot, { timeout: 15_000 }).toContain('button "Delivery"');
-    await ui("eval", "--js", OPEN_SIDEBAR_TOOLS);
-    await click("Team map");
+    await openTeamMap(ui);
     await manage("Delivery");
     expect(await snapshot()).toContain("Edit Delivery shared instructions");
     // A second fixture client moves the bots out. SSE must keep the empty
@@ -174,8 +187,8 @@ if (!enabled) console.log("skipping team lifecycle UI e2e: set OMB_UI_E2E=1 to i
     const screenshot = join(ROOT, ".omb-scratch", "verify-evidence", "team-lifecycle.png");
     await ui("screenshot", "--out", screenshot);
     await teamMenu("Launch");
-    await click("Delete department");
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain('alertdialog "Delete Launch department?"');
+    await click("Delete");
+    await expect.poll(snapshot, { timeout: 10_000 }).toContain('alertdialog "Delete “Launch”"');
     await ui("eval", "--js", `(() => {
       const original = window.fetch.bind(window); window.teamDeleteRequests = 0;
       window.fetch = async (url, init) => {
@@ -185,7 +198,7 @@ if (!enabled) console.log("skipping team lifecycle UI e2e: set OMB_UI_E2E=1 to i
         }
         return original(url, init);
       };
-      const button = [...document.querySelectorAll('[role="alertdialog"] button')].find(node => node.textContent === 'Delete department');
+      const button = [...document.querySelectorAll('[role="alertdialog"] button')].find(node => node.textContent === 'Delete');
       button.click(); button.click(); return true;
     })()`);
     await expect.poll(async () => (await ui("eval", "--js", "document.querySelector('[role=alertdialog]')?.getAttribute('aria-busy')")).result).toBe("true");
@@ -193,61 +206,59 @@ if (!enabled) console.log("skipping team lifecycle UI e2e: set OMB_UI_E2E=1 to i
     expect((await ui("eval", "--js", "document.activeElement.getAttribute('role')")).result).toBe("alertdialog");
     expect((await ui("eval", "--js", "[...document.querySelectorAll('[role=alertdialog] button')].every(button => button.disabled)")).result).toBe(true);
     await ui("press", "--keys", "Escape");
-    expect(await snapshot()).toContain('alertdialog "Delete Launch department?"');
+    expect(await snapshot()).toContain('alertdialog "Delete “Launch”"');
     await ui("press", "--keys", "Tab");
     expect((await ui("eval", "--js", "document.activeElement.getAttribute('role')")).result).toBe("alertdialog");
     await ui("eval", "--js", "window.releaseTeamDelete(); true");
     await expect.poll(async () => (await ui("eval", "--js", "document.activeElement.textContent")).result).toBe("Cancel");
     await ui("press", "--keys", "Shift+Tab");
-    expect((await ui("eval", "--js", "document.activeElement.textContent")).result).toBe("Delete department");
-    await click("Delete department");
+    expect((await ui("eval", "--js", "document.activeElement.textContent")).result).toBe("Delete");
+    await click("Delete");
     await expect.poll(async () => (await ui("eval", "--js", "window.teamDeleteRequests")).result).toBe(2);
     await ui("eval", "--js", "window.releaseTeamDelete(); true");
     await expect.poll(async () => (await api("/api/bots?messages=0")).sections.includes("Launch")).toBe(false);
     // The server commits before the pending DELETE response reaches React.
     // Finish this UI action before the next fixture client creates a section;
     // otherwise its SSE update can race the previous response's section list.
-    await expect.poll(snapshot).not.toContain('alertdialog "Delete Launch department?"');
+    await expect.poll(snapshot).not.toContain('alertdialog "Delete “Launch”"');
 
     // Section management is available where the section lives, without
     // requiring the team map. Cancel and Escape must leave its brief intact.
     await api("/api/sidebar-sections", "POST", { name: "Sidebar empty" });
     await api("/api/section-context?section=Sidebar%20empty", "PUT", { text: "Keep this until deletion is confirmed." });
-    await click("Delete Sidebar empty department");
-    await expect.poll(snapshot).toContain('alertdialog "Delete Sidebar empty department?"');
+    await deleteFromMenu("Sidebar empty");
+    await expect.poll(snapshot).toContain('alertdialog "Delete “Sidebar empty”"');
     expect(await focused()).toBe("Cancel");
     await ui("press", "--keys", "Shift+Tab");
-    expect(await focused()).toBe("Delete department");
+    expect(await focused()).toBe("Delete");
     await ui("press", "--keys", "Tab");
     expect(await focused()).toBe("Cancel");
     await ui("press", "--keys", "Escape");
-    await expect.poll(focused).toBe("Delete Sidebar empty department");
+    await expect.poll(focused).toBe("Actions for Sidebar empty department");
     expect((await api("/api/sidebar-sections")).sections).toContain("Sidebar empty");
     expect((await api("/api/section-context?section=Sidebar%20empty")).text).toBe("Keep this until deletion is confirmed.");
-    await click("Delete Sidebar empty department");
+    await deleteFromMenu("Sidebar empty");
     await click("Cancel");
-    await expect.poll(focused).toBe("Delete Sidebar empty department");
+    await expect.poll(focused).toBe("Actions for Sidebar empty department");
     expect((await api("/api/sidebar-sections")).sections).toContain("Sidebar empty");
-    await click("Delete Sidebar empty department");
-    await click("Delete department");
+    await deleteFromMenu("Sidebar empty");
+    await click("Delete");
     await expect.poll(async () => (await api("/api/sidebar-sections")).sections.includes("Sidebar empty")).toBe(false);
     await expect.poll(() => evaluate('Boolean(document.querySelector("[data-sidebar-section-id=\\"section:Sidebar empty\\"]"))')).toBe(false);
     expect((await fetch(`${info.url}/api/section-context?section=Sidebar%20empty`)).status).toBe(404);
 
     // The visible delete button shares the established keep-members behavior:
-    // active, pinned and archived bots move to General with their chats intact.
+    // active, pinned and archived bots move to Unassigned with their chats intact.
     await control("send", "--bot", a.id, "--text", "Keep this conversation when its sidebar section is deleted.");
     expect(await control("wait", "--bot", a.id, "--timeout", "30")).toMatchObject({ status: "settled" });
     const transcript = (await control("messages", "--bot", a.id, "--limit", "10") as any).messages;
     expect(transcript.length).toBeGreaterThan(0);
     const deleteSectionByIcon = async (name: string) => {
-      await click(`Delete ${name} department`);
-      await expect.poll(snapshot).toContain(`alertdialog "Delete ${name} department?"`);
+      await deleteFromMenu(name);
+      await expect.poll(snapshot).toContain(`alertdialog "Delete “${name}”"`);
       expect(await focused()).toBe("Cancel");
-      expect(await evaluate("document.querySelector('[role=alertdialog]')?.textContent")).toContain(
-        "Bots and group chats move to General with their conversations intact.",
-      );
-      await click("Delete department");
+      expect(await evaluate("document.querySelector('[role=alertdialog]')?.textContent")).toContain("Its Bots move to Unassigned. No Bots are deleted.");
+      await click("Delete");
       await expect.poll(async () => (await api("/api/sidebar-sections")).sections.includes(name)).toBe(false);
       await expect.poll(() => evaluate(`Boolean(document.querySelector(${JSON.stringify(`[data-sidebar-section-id="section:${name}"]`)}))`)).toBe(false);
     };
@@ -262,7 +273,8 @@ if (!enabled) console.log("skipping team lifecycle UI e2e: set OMB_UI_E2E=1 to i
       const sectionRow = `[data-sidebar-section-id="section:${member.name}"] [data-sidebar-bot-row="${a.id}"]`;
       await expect.poll(() => evaluate(`Boolean(document.querySelector(${JSON.stringify(sectionRow)}))`)).toBe(!member.pinned && !member.hidden);
       if (member.pinned) {
-        await expect.poll(() => evaluate(`Boolean(document.querySelector('[data-sidebar-section-id="builtin:pinned"] [data-sidebar-bot-row="${a.id}"]'))`)).toBe(true);
+        // grok pins a bot as a tile above the sections
+        await expect.poll(() => evaluate(`Boolean(document.querySelector('[data-sidebar-tile="pinned"][data-sidebar-bot-row="${a.id}"]'))`)).toBe(true);
       }
       if (member.hidden) {
         await expect.poll(() => evaluate(`Boolean(document.querySelector('[data-sidebar-bot-row="${a.id}"]'))`)).toBe(false);

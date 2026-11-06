@@ -10,6 +10,7 @@ import { niceTime, scheduleLabel } from "@/lib/schedule-label";
 import { fishListeningReady, listensHere, speechBridge } from "@/lib/speech";
 import { api, useStore, type Bot } from "@/state/store";
 import { useDesktopCapabilities } from "../DesktopCapabilities";
+import { PackageProvenance } from "../bot-settings/PackageProvenance";
 import type { useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
 import { SelectPill } from "../ui/SelectPill";
 import type { SimplePageId } from "./page-registry";
@@ -195,6 +196,7 @@ export function DetailsTab({ bot, derived, onOpen }: {
       )}
 
       <ModelCard bot={bot} />
+      <PackageProvenance bot={bot} />
     </PanelSections>
   );
 }

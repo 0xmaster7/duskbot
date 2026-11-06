@@ -4,7 +4,7 @@
 // directory, OMB_AGENT_BROWSER_PATH or PATH) or OMB_UI_E2E=1 asks for the
 // verified download; otherwise skipped.
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,7 +13,7 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { removeTempDir, waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
-import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { agentBrowser, sessionEnv, UI_TOOLS_DIR, type UiHandle } from "./control-omb-ui.ts";
 import { fixtureApi } from "./preview-fixture.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
@@ -96,18 +96,6 @@ function elapsedSeconds(text: string): number {
   return -1;
 }
 
-/** Selection can already expand a thread list. Click only its collapsed DOM
- * chevron, avoiding both accidental collapse and transient duplicate AX names. */
-async function expandThreads(handle: string, name: string): Promise<void> {
-  const collapsed = JSON.stringify(`button[aria-label="Expand ${name} threads"]`);
-  const expanded = JSON.stringify(`button[aria-label="Collapse ${name} threads"]`);
-  await waitUntil(async () => (await ui("eval", handle, "--js", `(() => {
-    if (document.querySelector(${expanded})) return true;
-    document.querySelector(${collapsed})?.click();
-    return false;
-  })()`)).result, 10_000, `${name}'s thread list to expand`);
-}
-
 async function waitUntil<T>(probe: () => Promise<T>, timeoutMs: number, what: string): Promise<T> {
   const deadline = Date.now() + timeoutMs;
   let last: T;
@@ -149,21 +137,37 @@ describe("the thinking timer stays anchored across a thread switch", () => {
     const { info } = launched;
     const api = fixtureApi(info.url);
     const evaluate = async (js: string) => (await ui("eval", info.ui, "--js", js)).result;
-    const timerText = () => evaluate(`document.querySelector('.turn-presence .tabular-nums')?.textContent ?? null`);
-    const selectThread = (threadId: string) => evaluate(`document.querySelector('[data-sidebar-thread-row="${threadId}"]')?.click(); true`);
-    const isCurrent = (threadId: string) => evaluate(`Boolean(document.querySelector('[data-sidebar-thread-row="${threadId}"][aria-current="page"]'))`);
+    // A 1:1 chat's status line is Grok's rotating phrase; the elapsed time is in its tooltip, as a person reads it.
+    // Leaving the line repaints it, so each hover shows the time as of that hover.
+    const handle = JSON.parse(readFileSync(info.ui, "utf8")) as UiHandle;
+    const hover = (selector: string) => agentBrowser(handle.binary, sessionEnv(handle), ["hover", selector]);
+    const until = (probe: string) => evaluate(`new Promise((done) => {
+      const end = performance.now() + 3000;
+      const read = () => { const value = ${probe}; value || performance.now() > end ? done(value || null) : setTimeout(read, 50); };
+      read();
+    })`);
+    const timerText = async () => {
+      if (!await evaluate("Boolean(document.querySelector('.turn-presence > div'))")) return null;
+      await hover('textarea[aria-label="Message Pepper"]');
+      await until("!document.querySelector('[role=tooltip]')");
+      await hover(".turn-presence > div");
+      const tip = await until("document.querySelector('[role=tooltip]:not([data-ending])')?.textContent") as string | null;
+      return tip?.split(" · ").find((part) => /^(?:\d+m \d{2}s|\d+s)$/.test(part)) ?? null;
+    };
+    // The simple sidebar lists bots, not threads: a person leaves Pepper's busy conversation by opening another bot
+    // and comes back through Pepper's row, which reopens the same conversation.
+    const rowOf = (botId: string) => `[data-sidebar-bot-row="${botId}"]`;
+    const selectRow = (botId: string) => evaluate(`document.querySelector('${rowOf(botId)}')?.click(); true`);
+    const isCurrent = (botId: string) => evaluate(`Boolean(document.querySelector('${rowOf(botId)}[aria-current="page"]'))`);
     const taskOf = async (threadId: string) =>
       (await api("GET", "/api/bots")).bots.find((bot: any) => bot.id === info.botId).tasks.find((task: any) => task.threadId === threadId);
 
-    // The second thread comes through the same POST the sidebar's "New thread" uses.
-    const busyThread = (await api("GET", "/api/bots")).bots.find((bot: any) => bot.id === info.botId).threadId;
-    const otherThread = (await api("POST", `/api/bots/${info.botId}/tasks`, {})).task.threadId;
-    await expandThreads(info.ui, "Pepper");
-    await waitUntil(() => evaluate(`Boolean(document.querySelector('[data-sidebar-thread-row="${otherThread}"]'))`), 10_000, "the new thread's sidebar row to appear");
-    // Creating a thread selects it on the server. Pin the original thread in
-    // the renderer before sending the turn whose stamp this case observes.
-    await selectThread(busyThread);
-    await waitUntil(() => isCurrent(busyThread), 10_000, "the original thread to become current");
+    const { bots } = await api("GET", "/api/bots");
+    const busyThread = bots.find((bot: any) => bot.id === info.botId).threadId;
+    const otherBot = bots.find((bot: any) => bot.id !== info.botId && !bot.hidden).id;
+    await waitUntil(() => evaluate(`Boolean(document.querySelector('${rowOf(otherBot)}'))`), 10_000, "the other bot's sidebar row to appear");
+    await selectRow(info.botId);
+    await waitUntil(() => isCurrent(info.botId), 10_000, "Pepper to become current");
 
     await ui("type", info.ui, "--name", "Message Pepper", "--text", "hello");
     await ui("press", info.ui, "--keys", "Enter");
@@ -183,11 +187,12 @@ describe("the thinking timer stays anchored across a thread switch", () => {
     const beforeSwitch = await timerText();
     expect(elapsedSeconds(beforeSwitch)).toBeGreaterThanOrEqual(Math.floor((Date.now() - stamp) / 1000) - 2);
 
-    await selectThread(otherThread);
-    await waitUntil(() => isCurrent(otherThread), 10_000, "the other thread to become current");
+    await selectRow(otherBot);
+    await waitUntil(() => isCurrent(otherBot), 10_000, "the other bot to become current");
     await new Promise((done) => setTimeout(done, 3_000));
-    await selectThread(busyThread);
-    await waitUntil(() => isCurrent(busyThread), 10_000, "the busy thread to become current again");
+    await selectRow(info.botId);
+    await waitUntil(() => isCurrent(info.botId), 10_000, "Pepper's busy conversation to become current again");
+    expect((await api("GET", "/api/bots")).bots.find((bot: any) => bot.id === info.botId).threadId).toBe(busyThread);
 
     // A restart would show single digits after a 13+ second turn.
     const resumed = await waitUntil(timerText, 10_000, "the thinking readout to appear again");

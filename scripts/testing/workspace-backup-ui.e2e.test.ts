@@ -9,6 +9,8 @@ import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { openAdvancedSettings } from "./grok-nav.ts";
+import { openTemplatesWhenFree } from "./grok-templates.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const binary = resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env });
@@ -82,15 +84,12 @@ describe("full backup Settings in the real renderer", () => {
       return true;
     })()`);
     await expect.poll(snapshot, { timeout: 10_000 }).toContain('button "You"');
-    await click("New or share");
-    const menu = await snapshot();
-    expect(menu).toContain('button "Templates"');
-    expect(menu).not.toContain('button "Export backup"');
-    await click("Templates");
+    // Templates stays a place for bots and teams; backups live only in Settings.
+    await openTemplatesWhenFree(ui);
+    expect(await snapshot()).not.toContain("Export backup");
     await ui("press", "--keys", "Escape");
-    await click("You");
-    await click("Settings");
-    await click("Backups");
+    await expect.poll(snapshot).not.toContain('dialog "Templates"');
+    await openAdvancedSettings(ui, "Privacy and Data");
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Export full backup");
     expect(await snapshot()).toContain("Saved account credentials and connections are not included");
     expect(await snapshot()).toContain("not automatically redacted");
@@ -124,7 +123,7 @@ describe("full backup Settings in the real renderer", () => {
     const evidence = join(ROOT, ".omb-scratch", "verify-evidence", "workspace-backup-preview.png");
     await ui("screenshot", "--out", evidence);
     await click("Replace installation");
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Fully quit OpenMausBot");
+    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Fully quit MausBot");
     expect(await evaluate("window.backupFixture.calls.find(call => call.path.endsWith('/restore')).body")).toEqual({ id: "validated-stage", confirmation: "REPLACE" });
     expect(await evaluate("window.backupFixture.calls.find(call => call.path.endsWith('/upload')).rawFile")).toBe(true);
     expect(await evaluate("localStorage.getItem('omb-pending-workspace-restore')")).toBe("validated-stage");

@@ -7,6 +7,7 @@ import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { request } from "../mcp-server.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { openTemplatesWhenFree } from "./grok-templates.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const binary = resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env });
@@ -66,8 +67,7 @@ describe("additive template imports in the real renderer", () => {
       return true;
     })()`);
     for (const source of ["library", "file"]) {
-      await click("New or share");
-      await click("Templates");
+      await openTemplatesWhenFree(ui);
       if (source === "library") {
         await expect.poll(snapshot, { timeout: 10_000 }).toContain('button "Load"');
         await click("Load");

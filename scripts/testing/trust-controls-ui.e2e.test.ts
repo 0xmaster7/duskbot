@@ -6,6 +6,7 @@ import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { clickByName, openTeamMap } from "./grok-nav.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const enabled = process.env.OMB_UI_E2E === "1" || Boolean(resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env }));
@@ -105,23 +106,22 @@ describe("trust controls in the real renderer", () => {
     await click("Limit this bot to specific apps");
     await expect.poll(async () => (await saved()).connectorScopes, { timeout: 10_000 }).toBeUndefined();
     // Seed a saved chain without any real account/auth or execution. The
-    // actual Model control must remove it via the existing bot patch queue.
+    // bot's Backup AIs page must remove it via the existing bot patch queue.
     const seeded = await fetch(`${info.url}/api/bots/${bot.id}`, {
       method: "PATCH", headers: { "content-type": "application/json" },
       body: JSON.stringify({ fallback: [{ instanceId: bot.modelSelection.instanceId, model: bot.modelSelection.model }] }),
     });
     expect(seeded.ok).toBe(true);
-    await click("Model");
-    expect(await snapshot()).toContain("Automatic recovery is off. This list stays inactive");
-    expect(await snapshot()).toContain("Work that may have run is not replayed");
-    await expect.poll(() => evaluate("Boolean(document.querySelector('button[aria-label$=\"from the fallback list\"]'))"), { timeout: 10_000 }).toBe(true);
-    await evaluate("document.querySelector('button[aria-label$=\"from the fallback list\"]').click(); true");
+    await clickByName(ui, "Advanced", "tab");
+    await clickByName(ui, /^Backup AIs /, "button");
+    await expect.poll(snapshot, { timeout: 10_000 }).toContain("If Pepper's AI hits its limit or can't start, the first one here takes over.");
+    expect(await snapshot()).toContain('list "Backup AIs"');
+    await clickByName(ui, /^Remove .+ from backups$/, "button");
     await expect.poll(async () => (await saved()).fallback, { timeout: 10_000 }).toEqual([]);
     expect((await saved()).modelSelection).toEqual(bot.modelSelection);
     await ui("press", "--keys", "Escape");
 
-    await evaluate(`(() => { localStorage.setItem('omb-advanced-mode','1'); window.dispatchEvent(new StorageEvent('storage', {key:'omb-advanced-mode'})); return true; })()`);
-    await click("Team map");
+    await openTeamMap(ui);
     const openMemory = async () => {
       await evaluate(`(() => { const menu = document.querySelector('[data-team-key=""] details'); if (!menu) throw new Error('No General team menu'); if (!menu.open) menu.querySelector('summary').click(); return true; })()`);
       await click("General department memory");

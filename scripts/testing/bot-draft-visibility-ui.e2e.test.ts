@@ -6,6 +6,7 @@ import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { openTemplatesWhenFree } from "./grok-templates.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const binary = resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env });
@@ -30,8 +31,7 @@ if (!enabled) console.log("skipping draft visibility UI: set OMB_UI_E2E=1 to ins
     const snapshot = async () => (await ui("snapshot")).snapshot as string;
     const bots = async () => (await fetch(`${info.url}/api/bots?messages=0`).then(response => response.json())).bots as Array<{ id: string; visibility?: string }>;
     const before = await bots();
-    await ui("click", "--name", "New or share");
-    await ui("click", "--name", "Templates");
+    await openTemplatesWhenFree(ui);
     await expect.poll(snapshot, { timeout: 20_000 }).toContain("Add Scout, Researcher");
     await ui("click", "--name", "Add Scout, Researcher");
     await expect.poll(snapshot).toContain("Who can see it");
