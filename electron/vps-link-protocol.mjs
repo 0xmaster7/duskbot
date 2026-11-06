@@ -119,7 +119,7 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
   const guard = frameGuard();
   const host = `vps-${id}.localhost`;
   const waiting = new Map();
-  let outbox = [], flushing = null, server = null, polling = false, closed = false, listeningPort = port;
+  let outbox = [], flushing = null, server = null, server6 = null, polling = false, closed = false, listeningPort = port;
   const abort = new AbortController();
 
   async function post(frames) {
@@ -222,6 +222,9 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
       server = createServer(onRequest);
       await new Promise((resolve, reject) => { server.once("error", reject); server.listen(port, "127.0.0.1", () => resolve()); });
       listeningPort = server.address().port;
+      // *.localhost resolves to ::1 first for node's fetch, so the same port answers on ipv6 loopback too
+      const v6 = createServer(onRequest);
+      await new Promise((resolve) => { v6.once("error", () => resolve()); v6.listen(listeningPort, "::1", () => { server6 = v6; resolve(); }); });
       void poll();
       return `http://${host}:${listeningPort}`;
     },
@@ -241,7 +244,9 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
       abort.abort();
       fail("closed");
       if (server) await new Promise((resolve) => server.close(() => resolve()));
+      if (server6) await new Promise((resolve) => server6.close(() => resolve()));
       server = null;
+      server6 = null;
     },
   };
 }
