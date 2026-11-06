@@ -4,11 +4,14 @@ import { ChromeRail } from "./components/ChromeRail";
 import { PageBoundary } from "./components/PageBoundary";
 import { bootstrapBrand } from "./lib/brand";
 import { applyFont, readFont } from "./lib/fonts";
+import { watchFocusNav } from "./lib/focus-nav";
 import { settleAdvancedModeDefault } from "./lib/interface-mode";
 import { loadPageLanguage } from "./lib/language-preference";
 import { applySkinChoice, readSkinChoice } from "./lib/skins";
 import "./font-faces";
 import "./styles.css";
+
+watchFocusNav();
 
 // The window's own rail of places (electron/chrome-rail.mjs): see-through but for the rail and its open sheets. Only
 // the desktop's preload gives this app's page a rail; anywhere else this address is the app.

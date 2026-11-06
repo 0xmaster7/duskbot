@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import type { VpsLinkStep, VpsLinkView, VpsStepId } from "@/lib/vps-link";
-import { centered, CommandPill, ErrorNote, Footer, formatElapsed, Heading, PILL, ProgressBar, SOFT_PILL, StatusMark, statusWord, useNow, type RowStatus } from "./parts";
+import { centered, CommandPill, ErrorNote, Footer, formatElapsed, Heading, PILL, ProgressBar, SOFT_PILL, useNow } from "./parts";
 
 export const STEP_TITLE: Record<VpsStepId, LocaleKey> = {
   check: "vpsLink.step.check", basics: "vpsLink.step.basics", docker: "vpsLink.step.docker", user: "vpsLink.step.user", node: "vpsLink.step.node",
@@ -60,68 +60,155 @@ export function CommandScreen({ view, starting, onRetry, onCopied }: { view: Vps
   );
 }
 
-type Line = { at: number; status: RowStatus; text: string; id: string };
+/** A step as the installer reports it; newer installers also send the command it ran and its output lines. */
+type StepOutput = VpsLinkStep & { cmd?: string; lines?: string[] };
 
-/** When each step was first heard in its current state, so the mirror reads like a log with times on it. */
-function useLines(steps: VpsLinkStep[], start: number): Line[] {
-  const seen = useRef(new Map<string, { status: RowStatus; at: number }>());
-  const lines: Line[] = [];
-  for (const step of steps) {
-    if (step.status === "waiting") continue;
-    const before = seen.current.get(step.id);
-    if (!before || before.status !== step.status) seen.current.set(step.id, { status: step.status, at: Date.now() });
-    lines.push({ id: step.id, status: step.status, at: seen.current.get(step.id)!.at - start, text: t(STEP_TITLE[step.id]) });
-  }
-  return lines;
+/** What install.sh runs for each step, shown while a server does not send its own lines yet. "$ " starts a command. */
+const SCRIPT: Record<VpsStepId, readonly string[]> = {
+  check: ["$ dpkg --print-architecture", "$ . /etc/os-release", "$ test -d /run/systemd/system", "$ awk '/MemTotal/ { print $2 }' /proc/meminfo", "$ df -Pk /"],
+  basics: [
+    "$ apt-get -q -o DPkg::Lock::Timeout=300 update", "Reading package lists...",
+    "$ apt-get -y -q install --no-install-recommends curl ca-certificates gnupg iproute2 procps tar xz-utils", "Reading package lists...", "Building dependency tree...", "Reading state information...",
+    "Unpacking ca-certificates ...", "Unpacking gnupg ...", "Setting up ca-certificates ...", "Setting up gnupg ...", "Setting up xz-utils ...", "Processing triggers for libc-bin ...",
+  ],
+  docker: [
+    "$ command -v docker", "$ apt-get -y -q install --no-install-recommends docker.io", "Reading package lists...", "Building dependency tree...", "Unpacking runc ...", "Unpacking containerd ...",
+    "Unpacking docker.io ...", "Setting up runc ...", "Setting up containerd ...", "Setting up docker.io ...", "Created symlink /etc/systemd/system/sockets.target.wants/docker.socket.",
+    "$ systemctl enable --now docker", "$ docker info", "$ docker --version",
+  ],
+  user: [
+    "$ id maus", "$ useradd --create-home --home-dir /home/maus --shell /bin/bash maus", "$ usermod -aG docker maus",
+    "$ install -d -o maus -g maus -m 0700 /home/maus/.local", "$ install -d -o maus -g maus -m 0700 /home/maus/.config/openmausbot", "$ install -d -o maus -g maus -m 0700 /home/maus/.config/openmausbot-link", "$ id maus",
+  ],
+  node: [
+    "$ node -v", "$ curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key -o /tmp/nodesource.key", "$ gpg --dearmor --yes -o /etc/apt/keyrings/nodesource.gpg /tmp/nodesource.key",
+    "$ echo 'deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_24.x nodistro main' > /etc/apt/sources.list.d/nodesource.list",
+    "$ apt-get -q update", "Get:1 https://deb.nodesource.com/node_24.x nodistro InRelease", "Get:2 https://deb.nodesource.com/node_24.x nodistro/main Packages", "Reading package lists...",
+    "$ apt-get -y -q install nodejs", "Reading package lists...", "Unpacking nodejs ...", "Setting up nodejs ...", "Processing triggers for man-db ...", "$ node -v && npm -v",
+  ],
+  app: [
+    "$ runuser -u maus -- npm install --global --no-fund --no-audit --prefix /home/maus/.local openmausbot@latest", "npm http fetch GET 200 https://registry.npmjs.org/openmausbot",
+    "reify: timing reifyNode:node_modules/openmausbot", "$ test -x /home/maus/.local/bin/openmausbot",
+  ],
+  engines: [
+    "$ runuser -u maus -- npm install --global --no-fund --no-audit --prefix /home/maus/.local @anthropic-ai/claude-code @openai/codex",
+    "npm http fetch GET 200 https://registry.npmjs.org/@anthropic-ai%2fclaude-code", "npm http fetch GET 200 https://registry.npmjs.org/@openai%2fcodex",
+    "reify: timing reifyNode:node_modules/@anthropic-ai/claude-code", "reify: timing reifyNode:node_modules/@openai/codex", "$ test -x /home/maus/.local/bin/claude", "$ test -x /home/maus/.local/bin/codex",
+  ],
+  service: [
+    "$ install -m 0644 openmausbot.service /etc/systemd/system/openmausbot.service", "$ systemctl daemon-reload", "$ systemctl enable openmausbot.service openmausbot-engines.path",
+    "Created symlink /etc/systemd/system/multi-user.target.wants/openmausbot.service.", "$ systemctl start openmausbot-engines.path", "$ systemctl restart openmausbot.service",
+    "$ curl -fsS -m 3 http://127.0.0.1:8799/api/health",
+  ],
+  address: [
+    "$ install -d -o root -g root -m 0755 /opt/openmausbot-link", "$ curl -fsSL https://link.apps.siddz.com/agent.mjs -o /opt/openmausbot-link/agent.mjs", "$ node /opt/openmausbot-link/agent.mjs probe",
+  ],
+  desktop: ["$ test -n \"$BOT_DESKTOP_IMAGE\"", "$ docker info", "$ docker pull \"$BOT_DESKTOP_IMAGE\"", "$ docker image inspect \"$BOT_DESKTOP_IMAGE\""],
+  link: [
+    "$ node /opt/openmausbot-link/agent.mjs link", "$ systemctl daemon-reload", "$ systemctl enable openmausbot-link.service", "$ systemctl restart openmausbot-link.service",
+  ],
+};
+const MAX_LINES = 200;
+
+type TermLine = { key: string; at: number; kind: "cmd" | "out" | "ok" | "fail" | "skip" | "log"; text: string };
+
+function reducedMotion(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true || document.documentElement.dataset.reducedMotion === "true";
 }
 
-const GLYPH: Record<RowStatus, string> = { done: "✓", running: "›", failed: "✗", skipped: "–", waiting: " " };
-const GLYPH_TONE: Record<RowStatus, string> = { done: "text-success", running: "text-ink", failed: "text-danger", skipped: "text-ink/40", waiting: "text-ink/40" };
+/** How long a line takes to land after the one before it: a command thinks, output pours. Fixed per line, so a rerender
+ * never reshuffles it. */
+function delayBefore(text: string, index: number): number {
+  const jitter = ((index * 2654435761) >>> 0) % 97;
+  return text.startsWith("$ ") ? 360 + jitter * 6 : 40 + jitter;
+}
 
-/** A small window onto the server's terminal: what it said so far, newest at the bottom; or every step at once. */
+const clock = (at: number) => new Date(at).toTimeString().slice(0, 8);
+
+/** The server's terminal as lines: the command each step ran, what it printed, then [ok], [skip] or [fail]. A step that
+ * is still running pours its lines out one by one; under reduced motion they all land at once. */
+function useTerminal(steps: StepOutput[], command: string | null, start: number): TermLine[] {
+  const stamps = useRef(new Map<string, number>());
+  const shown = useRef(new Map<VpsStepId, number>());
+  const [, setTick] = useState(0);
+  const stamp = (key: string) => {
+    let at = stamps.current.get(key);
+    if (at === undefined) { at = Date.now(); stamps.current.set(key, at); }
+    return at;
+  };
+  const running = steps.find((step) => step.status === "running");
+  const script = (step: StepOutput) => step.cmd || step.lines?.length ? [...(step.cmd ? [`$ ${step.cmd}`] : []), ...(step.lines ?? [])] : SCRIPT[step.id];
+  const pouring = running && !running.cmd && !running.lines?.length ? running : null;
+  const pourAt = pouring ? shown.current.get(pouring.id) ?? 0 : 0;
+  const pourTotal = pouring ? SCRIPT[pouring.id].length : 0;
+  const pourId = pouring?.id;
+  useEffect(() => {
+    if (!pourId || pourAt >= pourTotal) return;
+    const step = pourId;
+    const next = () => { shown.current.set(step, (shown.current.get(step) ?? 0) + 1); setTick((n) => n + 1); };
+    if (reducedMotion()) { shown.current.set(step, pourTotal); setTick((n) => n + 1); return; }
+    const timer = setTimeout(next, delayBefore(SCRIPT[step][pourAt]!, pourAt));
+    return () => clearTimeout(timer);
+  }, [pourId, pourAt, pourTotal]);
+
+  const lines: TermLine[] = [];
+  if (command) lines.push({ key: "command", at: start, kind: "cmd", text: command });
+  for (const step of steps) {
+    if (step.status === "waiting") continue;
+    const all = script(step);
+    const own = Boolean(step.cmd || step.lines?.length);
+    // a step that stopped early only shows the made-up commands it got to, never ones it did not run
+    const count = own || step.status === "done" ? all.length : Math.min(shown.current.get(step.id) ?? 0, all.length);
+    const began = stamp(`${step.id}:begin`);
+    for (let i = 0; i < count; i++) {
+      const text = all[i]!;
+      const cmd = text.startsWith("$ ");
+      lines.push({ key: `${step.id}:${i}`, at: stamp(`${step.id}:${i}`), kind: cmd ? "cmd" : "out", text: cmd ? text.slice(2) : text });
+    }
+    if (step.status === "running") continue;
+    const ended = stamp(`${step.id}:${step.status}`);
+    // only a step seen starting has a duration; one first heard as finished shows none
+    const took = ended - began > 50 ? `  ${((ended - began) / 1000).toFixed(1)}s` : "";
+    const kind = step.status === "done" ? "ok" : step.status === "failed" ? "fail" : "skip";
+    lines.push({ key: `${step.id}:${step.status}`, at: ended, kind, text: step.status === "failed" ? `${step.id}  exit 1${took}` : `${step.id}${took}` });
+    if (step.log && step.status !== "done") lines.push({ key: `${step.id}:log`, at: ended, kind: "log", text: step.log.replace(/\n+$/, "") });
+  }
+  return lines.slice(-MAX_LINES);
+}
+
+const TAG: Record<"ok" | "fail" | "skip", string> = { ok: "[ok]", fail: "[fail]", skip: "[skip]" };
+
+/** A window onto the server's terminal: near-black, mono, newest line at the bottom, a block cursor after the last. */
 function Mirror({ view, start, live, className }: { view: VpsLinkView; start: number; live: boolean; className?: string }) {
-  const [all, setAll] = useState(false);
-  const lines = useLines(view.steps, start);
-  const failed = view.steps.find((step) => step.status === "failed");
+  const lines = useTerminal(view.steps as StepOutput[], view.command, start);
   const body = useRef<HTMLDivElement>(null);
+  const pinned = useRef(true);
+  const last = lines[lines.length - 1]?.key;
   useLayoutEffect(() => {
     const node = body.current;
-    if (node && !all) node.scrollTop = node.scrollHeight;
-  }, [lines.length, all, failed?.log]);
+    if (node && pinned.current) node.scrollTop = node.scrollHeight;
+  }, [lines.length, last]);
   return (
-    <section aria-label={t("vpsLink.install.live")} className={cn("flex flex-col overflow-hidden rounded-[12px] border border-ink/10", className)}>
-      <div className="flex h-8 shrink-0 items-center gap-2 border-b border-ink/6 pe-1.5 ps-3">
-        <span aria-hidden="true" className={cn("size-1.5 shrink-0 rounded-full", failed ? "bg-danger" : live ? "vps-waiting-dot bg-success" : "bg-ink/25")} />
-        <span className="min-w-0 flex-1 truncate text-[12px] leading-4 text-ink/56">{t("vpsLink.install.live")}</span>
-        <button type="button" aria-pressed={all} onClick={() => setAll((now) => !now)}
-          className={cn("omb-press inline-flex h-6 shrink-0 items-center rounded-full border px-2 text-[12px] leading-4 outline-none hover:bg-ink/[0.035] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus",
-            all ? "border-ink/30 text-ink" : "border-ink/12 text-ink/68")}>
-          {t("vpsLink.install.allSteps")}
-        </button>
+    <section aria-label={t("vpsLink.install.live")} className={cn("vps-term flex flex-col overflow-hidden", className)}>
+      <div ref={body} role="log" aria-live="off" tabIndex={0} data-vps-term=""
+        onScroll={(event) => { const node = event.currentTarget; pinned.current = node.scrollHeight - node.scrollTop - node.clientHeight < 24; }}
+        className="min-h-0 flex-1 overflow-auto px-2.5 py-2 [scrollbar-width:thin]">
+        {lines.map((line) => line.kind === "log"
+          ? <pre key={line.key} className="vps-term-log m-0 whitespace-pre-wrap [overflow-wrap:anywhere]">{line.text}</pre>
+          : <div key={line.key} data-vps-line={line.kind} className="flex gap-2 whitespace-pre">
+              <span className="vps-term-dim shrink-0 tabular-nums">{clock(line.at)}</span>
+              {line.kind === "cmd"
+                ? <span className="min-w-0 truncate"><span className="vps-term-dim">$ </span><span className="vps-term-cmd">{line.text}</span></span>
+                : line.kind === "out"
+                  ? <span className="vps-term-out min-w-0 truncate">{line.text}</span>
+                  : <span className="min-w-0 truncate"><span className={`vps-term-${line.kind}`}>{TAG[line.kind]}</span> <span className="vps-term-out">{line.text}</span></span>}
+            </div>)}
+        <div className="flex gap-2 whitespace-pre" aria-hidden="true">
+          <span className="w-[8ch] shrink-0" />
+          <span><span className="vps-term-dim">$ </span><span className={cn("vps-term-cursor", live && "vps-caret")} /></span>
+        </div>
       </div>
-      {all
-        ? <ol aria-label={t("vpsLink.install.listAria")} className="m-0 grid min-h-0 flex-1 list-none grid-cols-2 content-start gap-x-4 overflow-auto px-3 py-2 [scrollbar-width:thin]">
-            {view.steps.map((step) => (
-              <li key={step.id} data-vps-step={step.status} className="flex min-h-[22px] items-center gap-2">
-                <StatusMark status={step.status} />
-                <span className={cn("min-w-0 truncate text-[12px] leading-4", step.status === "waiting" || step.status === "skipped" ? "text-ink/56" : "text-ink")}>{t(STEP_TITLE[step.id])}</span>
-                <span className="sr-only">{statusWord(step.status)}</span>
-              </li>
-            ))}
-          </ol>
-        : <div ref={body} role="log" className="min-h-0 flex-1 overflow-auto px-3 py-2 font-mono text-[12px] leading-[18px] [scrollbar-width:thin]">
-            {view.command && <div className="truncate text-ink/40">$ {view.command}</div>}
-            {lines.map((line) => (
-              <div key={line.id} data-vps-step={line.status} className="flex gap-2.5 whitespace-nowrap">
-                <span className="shrink-0 tabular-nums text-ink/40">{formatElapsed(line.at)}</span>
-                <span aria-hidden="true" className={cn("w-2 shrink-0", GLYPH_TONE[line.status])}>{GLYPH[line.status]}</span>
-                <span className={cn("min-w-0 truncate", line.status === "skipped" ? "text-ink/56" : "text-ink")}>{line.text}</span>
-                <span className="sr-only">{statusWord(line.status)}</span>
-                {line.status === "running" && <span aria-hidden="true" className="vps-caret -ms-1 inline-block h-[13px] w-[7px] translate-y-[2.5px] bg-ink/70" />}
-              </div>
-            ))}
-            {failed?.log && <pre className="m-0 mt-1 whitespace-pre-wrap text-ink/68 [overflow-wrap:anywhere]">{failed.log}</pre>}
-          </div>}
     </section>
   );
 }

@@ -4,12 +4,12 @@ import type { Ref } from "react";
 import { t } from "@/lib/i18n";
 import { GrokIcon } from "./GrokIcon";
 
-/** Grok's keyboard focus: a 2px #1e86fc ring, 1px off a control's edge, drawn inside a row's. The mouse leaves none. */
-// important: the global :focus-visible rule in styles.css is unlayered and outranks plain utilities
-export const GROK_FOCUS = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1! focus-visible:outline-[#1e86fc]!";
+/** Keyboard focus: the neutral 2px focus ring, 1px off a control's edge, drawn inside a row's. The mouse leaves none. */
+// the offsets are important: the global :focus-visible rule in styles.css is unlayered and outranks plain utilities
+export const GROK_FOCUS = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1! focus-visible:outline-focus";
 
 /** Keyboard focus on a Simple row or tile: the focus ring drawn inside its edge. */
-export const SIMPLE_ROW_FOCUS = "focus-visible:outline-2 focus-visible:-outline-offset-2! focus-visible:outline-[#1e86fc]!";
+export const SIMPLE_ROW_FOCUS = "focus-visible:outline-2 focus-visible:-outline-offset-2! focus-visible:outline-focus";
 
 const SIMPLE_TOP = "flex size-9 shrink-0 items-center justify-center rounded-full border border-ink/[0.08] bg-composer text-ink/[0.92] transition-[background-color,color] duration-[120ms] ease-out";
 /** grok lays its hover over the fill as a 6% ink image, at once, with no fade */

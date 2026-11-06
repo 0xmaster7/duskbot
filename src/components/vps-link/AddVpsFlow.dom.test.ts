@@ -99,8 +99,9 @@ describe("Add your VPS", () => {
     // 2: the steps arrive in the live mirror; a failed one says so in words, shows its log tail and the same line again
     await fake.emit({ ...fake.view(), stage: "installing", steps: steps(1, { at: 1, log: "E: Unable to locate package curl" }) });
     await stageShown(2);
-    expect(text()).toContain("Checking your server");
-    expect(text()).toContain("Didn't work");
+    expect(document.querySelector("[data-vps-term]")?.textContent).toContain("$ dpkg --print-architecture");
+    expect(document.querySelector("[data-vps-line='ok']")?.textContent).toContain("[ok]");
+    expect(document.querySelector("[data-vps-line='fail']")?.textContent).toContain("[fail]");
     expect(text()).toContain("Something got stuck");
     expect(document.querySelector("pre")?.textContent).toContain("Unable to locate package curl");
     expect(document.querySelectorAll("[data-vps-command]").length).toBe(1);

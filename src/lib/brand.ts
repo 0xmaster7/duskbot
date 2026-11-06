@@ -56,7 +56,6 @@ export function brandVars(b: Brand): Record<string, string> {
   return {
     "--color-accent": b.accent,
     "--color-accent-border": b.accent,
-    "--color-focus": b.accent,
     "--color-accent-text": b.accent,
     "--color-accent-ink": accentInk(b.accent),
   };

@@ -21,7 +21,6 @@ describe("brand", () => {
     expect(brandVars({ name: "X", accent: "#1D4ED8" })).toEqual({
       "--color-accent": "#1D4ED8",
       "--color-accent-border": "#1D4ED8",
-      "--color-focus": "#1D4ED8",
       "--color-accent-text": "#1D4ED8",
       "--color-accent-ink": "#ffffff",
     });

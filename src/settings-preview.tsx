@@ -7,6 +7,7 @@ import { AddVpsHost } from "@/components/vps-link/AddVpsHost";
 import { previewVpsBridge } from "@/components/vps-link/preview-bridge";
 import { openAddVps } from "@/lib/vps-link";
 import { loadLocale } from "@/lib/i18n";
+import { watchFocusNav } from "@/lib/focus-nav";
 import { applySkinChoice, SKIN_IDS, type SkinId } from "@/lib/skins";
 import { initialState, reducer, StoreContext, type AppSettingsSection, type AppState } from "@/state/store";
 import "./font-faces";
@@ -14,6 +15,7 @@ import "./styles.css";
 import "./styles/overlays.css";
 import "./styles/motion.css";
 
+watchFocusNav();
 const params = new URLSearchParams(location.search);
 const skin = params.get("skin") ?? "grok";
 applySkinChoice(SKIN_IDS.includes(skin as SkinId) ? (skin as SkinId) : "grok");

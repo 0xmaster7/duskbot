@@ -56,3 +56,23 @@
 :root[data-reduced-motion="true"] .vps-traveler { animation: vps-fade 1.5s ease-in-out infinite both !important; }
 :root[data-reduced-motion="true"] .vps-scene[data-mode="moving"] .vps-guide { transform: none; opacity: 0.35; }
 @keyframes vps-fade { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+
+/* the install mirror: a real terminal, near-black in either theme, one hairline edge, mono and dense */
+.vps-term {
+  background: #0c0c0d;
+  color: #c8c8c8;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 15px;
+  font-variant-ligatures: none;
+}
+.vps-term [data-vps-term]:focus-visible { outline-offset: -2px; }
+.vps-term-dim { color: #767676; }
+.vps-term-cmd { color: #ededed; }
+.vps-term-out, .vps-term-log { color: #a3a3a3; }
+.vps-term-ok { color: #4fd18b; }
+.vps-term-fail { color: #ff6b6b; }
+.vps-term-skip { color: #d8b25a; }
+.vps-term-cursor { display: inline-block; width: 1ch; height: 13px; vertical-align: -2px; background: #d4d4d4; }

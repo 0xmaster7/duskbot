@@ -8,6 +8,7 @@ import { loadPageLanguage } from "./lib/language-preference";
 import { applySkinChoice, readSkinChoice } from "./lib/skins";
 import { applyChatWidth, readChatWidth } from "./lib/chat-width";
 import { applyFont, readFont } from "./lib/fonts";
+import { watchFocusNav } from "./lib/focus-nav";
 import { BrowserSignInPage } from "./pair/BrowserSignInPage";
 import { PairPage } from "./pair/PairPage";
 import { HomeScreen, SignedOutAtHome } from "./components/HomeScreen";
@@ -22,6 +23,7 @@ import "./styles/motion.css";
 applySkinChoice(readSkinChoice());
 applyFont(readFont());
 applyChatWidth(readChatWidth());
+watchFocusNav();
 
 // The app is its own chunk, so these pages don't parse it. Everywhere else its fetch starts now, alongside the session
 // read, instead of after it. A failed fetch renders as a throw, so PageBoundary offers a reload.
