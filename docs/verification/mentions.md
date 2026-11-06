@@ -46,13 +46,7 @@ the first line from Arabic to English switched both computed directions
 together. Known Bot colors and Unicode-negative matches were also checked.
 
 The actual composer send settled, with the mixed-script text preserved in the
-user bubble and colored mentions in the fake-engine reply. Evidence:
-[before](evidence/mentions/rtl-before.png),
-[after](evidence/mentions/rtl-after.png),
-[sent/light](evidence/mentions/rtl-sent-light.png),
-[DOM](evidence/mentions/rtl-dom.json),
-[wait](evidence/mentions/rtl-wait.json), and
-[transcript](evidence/mentions/rtl-messages.json).
+user bubble and colored mentions in the fake-engine reply.
 
 ```sh
 node --experimental-strip-types scripts/verify-mentions.ts --bot-mentions
@@ -78,7 +72,7 @@ rechecked on unmodified `922715f0` and both still fail there.
 
 Verified on Windows in Chromium on 2026-09-07 against upstream `9c681f44`
 (0.1.61) and the mention-highlight change. Both channel and direct-chat `wait`
-results were `settled`; bounded transcripts are in `evidence/mentions/`.
+results were `settled`.
 Long-draft checks measured matching 584px scroll heights and 440px scroll
 offsets for the textarea and mirror. Editing while scrolled retained alignment.
 The 390px check covers the composer; the existing channel header still overflows
@@ -116,12 +110,6 @@ The channel settled with fake-engine replies. The corresponding regression test
 mixes all ten palette colors with repeated/reversed names and reversed roster
 order in both MentionText and ChatMarkdown. All 26 focused tests, typecheck and
 targeted lint passed; no additional production-code change was needed.
-
-Evidence: [dark screenshot](evidence/mentions/multi-bot-dark.png),
-[light screenshot](evidence/mentions/multi-bot-light.png),
-[computed styles](evidence/mentions/multi-bot-dom.json),
-[wait](evidence/mentions/multi-bot-wait.json) and
-[transcript](evidence/mentions/multi-bot-messages.json).
 
 Run details (2026-09-07, isolated API `http://127.0.0.1:21621`, renderer
 `http://127.0.0.1:5173/__mentions.html`):
@@ -176,11 +164,7 @@ node --experimental-strip-types scripts/control-omb.ts messages --channel 2ee9e1
 
 Recorded on 2026-09-07; printed log:
 `%TEMP%/openmausbot-verification-evidence/server-1788791336713-2520.log`.
-The channel settled. Evidence: [wait](evidence/mentions/bot-reply-wait.json),
-[transcript](evidence/mentions/bot-reply-messages.json),
-[DOM palettes](evidence/mentions/bot-reply-dom.json),
-[dark screenshot](evidence/mentions/bot-reply-dark.png) and
-[light screenshot](evidence/mentions/bot-reply-light.png).
+The channel settled.
 All 792 renderer tests (102 files), typecheck, renderer build and targeted
 oxlint passed. The full server/Electron suite was not repeated for these
 renderer and fixture changes.
@@ -190,7 +174,3 @@ It does not establish packaged Electron, Safari, operating-system IME candidate
 windows, or real-provider delegation behavior. Mention decoration uses the current
 roster; historical names no longer in that roster stay plain text.
 
-| Skin | Before | After |
-| --- | --- | --- |
-| Midnight | ![Before: plain mentions](evidence/mentions/before-dark.png) | ![After: highlighted mentions](evidence/mentions/after-dark.png) |
-| Atelier | ![Before: plain mentions](evidence/mentions/before-light.png) | ![After: highlighted mentions](evidence/mentions/after-light.png) |

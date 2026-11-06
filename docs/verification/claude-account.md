@@ -41,9 +41,7 @@ pnpm build
 
 ## UI evidence
 
-Confirmation after a forced error; the real Settings surface remains retryable:
-
-![Claude sign-out confirmation](evidence/claude-account/confirmation.png)
+After a forced error the real Settings surface remains retryable.
 
 This offline check does not prove a real Anthropic account login or OS
 credential-store operation. No provider login was used for this review.

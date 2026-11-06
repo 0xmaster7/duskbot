@@ -106,7 +106,3 @@ No browser console errors were observed.
 The before screenshots use upstream `82d277ae`; all names and model data are
 synthetic. These images establish renderer behavior, not provider acceptance.
 
-| Control | Before | After |
-| --- | --- | --- |
-| Conversation | ![Conversation before](evidence/opencode-variants/conversation-before.png) | ![Conversation after](evidence/opencode-variants/conversation-after.png) |
-| Profile | ![Profile before](evidence/opencode-variants/profile-before.png) | ![Profile after](evidence/opencode-variants/profile-after.png) |

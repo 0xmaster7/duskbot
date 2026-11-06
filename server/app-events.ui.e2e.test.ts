@@ -5,6 +5,7 @@
 //   [OMB_UI_SHOTS=<folder for screenshots>] vitest run server/app-events.ui.e2e.test.ts
 import { createRequire } from "node:module";
 import { mkdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { WELCOME_VERSION } from "../electron/onboarding-record.mjs";
@@ -12,7 +13,7 @@ import { launchVerificationServer, runControlOmb } from "../scripts/control-omb.
 import { startBrokerFake, type BrokerFake } from "./testing/broker-fake.ts";
 
 const { OMB_UI_CHROMIUM: chromiumPath, OMB_UI_PLAYWRIGHT_CORE: playwrightPath, OMB_UI_DIST: dist } = process.env;
-const shots = process.env.OMB_UI_SHOTS ?? join(process.cwd(), "docs", "screenshots", "automations-app-events");
+const shots = process.env.OMB_UI_SHOTS ?? join(tmpdir(), "openmausbot-verification-evidence", "automations-app-events");
 const ready = Boolean(chromiumPath && playwrightPath && dist);
 
 let broker: BrokerFake;

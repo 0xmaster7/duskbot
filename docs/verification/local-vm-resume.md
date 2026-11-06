@@ -53,17 +53,15 @@ Apple container, native iOS, or persistence across image replacement.
 
 ## Review evidence
 
-The [before screenshot](evidence/local-vm-resume/before.png) was captured with
+The before screenshot was captured with
 unchanged production code at upstream
 `9f0c33d00fc490491bf794704fd192046d2f31eb`, using the same disposable fixture
 and an inspected stopped-VM response. The fixture's status text reflects the
 baseline server's refusal to resume. Only the fixture transport was copied
 into that checkout.
 
-The [stopped](evidence/local-vm-resume/stopped.png),
-[starting](evidence/local-vm-resume/starting.png) and
-[ready](evidence/local-vm-resume/ready.png) screenshots show the changed panel.
-The [startup video](evidence/local-vm-resume/resume.mp4) records Start, two
+The stopped, starting and ready screenshots showed the changed panel.
+The startup video recorded Start, two
 readiness polls with the button disabled, then the ready preview. Screenshots
 capture the real panel element; video hides only the fixture controls.
 The desktop preview is explicitly synthetic and does not claim a live remote

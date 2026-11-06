@@ -62,8 +62,6 @@ same synthetic bot/provider setup. Its custom engines advertised only
 `agent-default`, with no variant capability; the picker displayed "No models
 to show here yet." No feature code was used for this baseline.
 
-![Before: custom ACP picker has no native model choices](evidence/custom-acp-models/before.png)
-
 The real renderer was also opened in an isolated browser preview backed by the
 same disposable server and fake ACP engine. The operator opened the synthetic
 `novel-zcode-flash` bot profile, opened its model picker, selected
@@ -72,10 +70,6 @@ reload retained that bot's model and thinking choice while the second synthetic
 bot still used `agent-default`. All four synthetic provider identities were
 visible in the picker. These screenshots show the implemented feature against
 the offline fixture; they are not screenshots of installed provider accounts.
-
-![Custom ACP providers and model choices](evidence/custom-acp-models/model-picker.png)
-
-![Selected Flash model and its supported thinking choices](evidence/custom-acp-models/flash-thinking.png)
 
 These checks do not establish a packaged desktop launch. The isolated E2E establishes OMB persistence
 and actual ACP transport against a fake agent; acceptance by an installed

@@ -200,5 +200,4 @@ pnpm exec vitest run src/lib/onboarding.test.ts src/lib/welcome-draft.test.ts sr
 27 2026). That fixture's fake engine always reports a signed-in account, so the
 no-AI first screen, the Chief screen with bots to choose and narrow windows were
 checked in `onboarding-preview.html` (`?ai=0`, `?screen=chief&bots=3`,
-`?w=840&h=620`) in Midnight and Daylight. Before and after screenshots are in
-`evidence/onboarding/`.
+`?w=840&h=620`) in Midnight and Daylight.

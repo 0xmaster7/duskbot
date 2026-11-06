@@ -83,10 +83,6 @@ pnpm control:omb ui eval --ui $H --js "document.title"
 Keep the `wait-settle` JSON, both snapshots, the screenshot and the printed
 server log path. The console output must contain no `error` entries.
 
-What the screenshot looks like when the recipe passes (`evidence/chat-ui/chat-ui.png`):
-
-![The isolated app after the recipe: Pepper's greeting, the sent "hello", a passed Bash chip and the fake reply](evidence/chat-ui/chat-ui.png)
-
 The permanent form of this recipe is `scripts/testing/control-omb-ui.e2e.test.ts`:
 
 The fixture also hit-tests the rendered empty band beside **This run**. It
@@ -175,10 +171,6 @@ This is mobile web renderer coverage in an isolated Chromium profile. It does
 not verify the separately maintained native iOS or Android clients, physical
 devices, or Safari. Clipboard permissions are confined to the fixture origin;
 the refusal case replaces only that disposable page's clipboard writer.
-
-| Before: small icon-only actions | After: labeled touch controls |
-| --- | --- |
-| ![Before at 390px](assets/mobile-code-blocks/before-390.png) | ![After at 390px](assets/mobile-code-blocks/after-390.png) |
 
 ## Thinking timer across thread switches
 

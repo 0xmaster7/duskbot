@@ -1,11 +1,11 @@
 // Renders the talk box (electron/talk-panel.mjs) in headless Chrome for every state, light and dark, into
-// docs/verification/evidence/talk-shortcut/. The viewport is the box's own window: 400 px wide and as tall as the card,
+// OMB_UI_EVIDENCE_DIR or a new temporary folder it prints. The viewport is the box's own window: 400 px wide and as tall as the card,
 // 56 to 240 px, at 2x. Each skin is rendered with macOS's appearance emulated the other way round, so the pictures show
 // the box following the app's skin. Reduced motion is on, so the listening ring is still.
 //
 //   node scripts/talk-box-evidence.mjs [path to Chrome]
 import { spawn, execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,7 +13,9 @@ import { replyPreview, TALK_PANEL, talkPanelHtml } from "../electron/talk-panel.
 import { TALK_TEXT } from "../electron/talk-session.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
-const out = join(root, "docs/verification/evidence/talk-shortcut");
+const out = process.env.OMB_UI_EVIDENCE_DIR ?? mkdtempSync(join(tmpdir(), "talk-shortcut-"));
+mkdirSync(out, { recursive: true });
+console.log(`pictures in ${out}`);
 const chrome = process.argv[2] ?? process.env.CHROME ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const asked = "what's on my calendar today";
 const STATES = [

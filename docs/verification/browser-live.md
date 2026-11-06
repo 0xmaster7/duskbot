@@ -117,15 +117,6 @@ bot's screen and its Browser tab in Simple mode, and open the test page. The pag
 edge of the panel at 1280 CSS pixels wide; Maximize shows it at the window's own size; a preset
 from the menu (new engine) still shows bands on purpose.
 
-| | Midnight | Daylight |
-| --- | --- | --- |
-| Before: 1280x720 with bands | ![Before, Midnight](images/browser-fill/before-midnight-simple.png) | ![Before, Daylight](images/browser-fill/before-daylight-simple.png) |
-| After: 1280x2406, the panel's shape | ![After, Midnight](images/browser-fill/after-midnight-simple.png) | ![After, Daylight](images/browser-fill/after-daylight-simple.png) |
-
-| Maximized, before | Maximized, after | A wider Advanced panel | Tablet preset (new engine) |
-| --- | --- | --- | --- |
-| ![Before](images/browser-fill/before-midnight-maximized.png) | ![After](images/browser-fill/after-midnight-maximized.png) | ![Wide](images/browser-fill/after-midnight-advanced-wide.png) | ![Tablet](images/browser-fill/after-new-engine-tablet-preset.png) |
-
 `scripts/testing/browser-fill.e2e.test.ts` runs the agent-browser side against the pinned engine and
 `server/browser/viewers/viewers.e2e.test.ts` the new engine's (`OMB_CDP_CHROME`).
 

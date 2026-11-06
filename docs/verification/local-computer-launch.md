@@ -128,8 +128,7 @@ resumes it, and the bot's waiting call returns the computer.
 `node --experimental-strip-types scripts/verify-windows-lend.ts --shots <dir>`
 photographs the taskbar icon's menu as the real module builds it, the card in
 the real chat (`computer-ask-preview.html`) and the PC's own screen-control
-status, in a light and a dark look; `docs/verification/evidence/windows-lend/`
-holds the current set.
+status, in a light and a dark look.
 
 ### Foreground typing and menu clicks
 

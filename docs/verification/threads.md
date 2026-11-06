@@ -131,13 +131,6 @@ The isolated renderer was exercised with Show threads on/off, direct bot
 selection, an unread sibling, a real pending permission broker, and thread-scoped
 Stop. These screenshots show the actual offline fixture, not mockups:
 
-| Threads shown | Threads hidden |
-| --- | --- |
-| ![Threads shown](images/optional-threads/threads-shown.jpg) | ![Threads hidden](images/optional-threads/threads-hidden.jpg) |
-
-![Appearance settings](images/optional-threads/appearance.jpg)
-![Approval remains reachable with threads hidden](images/optional-threads/approval-hidden-mode.jpg)
-
 The offline CLI may report an interrupted subprocess when stopped; the checks
 here concern ownership, state and navigation, not real-provider behavior.
 The seed/setup path uses the same HTTP and control commands as the API tests.

@@ -1,8 +1,7 @@
 # Chat widgets
 
 A bot shows a widget with `show_widget`, the person presses a button on it, and
-the press reaches the bot as their next message. Design:
-[`docs/superpowers/specs/2026-10-13-chat-widgets-design.md`](../superpowers/specs/2026-10-13-chat-widgets-design.md).
+the press reaches the bot as their next message.
 
 To see widgets with a real bot, paste the prompts in
 [Chat widgets: prompts to try with a real bot](widget-prompts.md).
@@ -63,11 +62,3 @@ one line, a tick and `Create routine`, and the person's message reads
 shows the form again, read-only, with the values that were sent. The console
 has no `error` entries.
 
-What it looks like when the recipe passes: the list in Midnight
-(`evidence/widgets/list-midnight.png`), the form before the press
-(`evidence/widgets/form-midnight.png`), and the settled form's Details in
-Meadow (`evidence/widgets/settled-details-meadow.png`).
-
-![A pull-request list widget with two buttons under it](evidence/widgets/list-midnight.png)
-
-![The settled routine form, opened read-only with the values that were sent](evidence/widgets/settled-details-meadow.png)

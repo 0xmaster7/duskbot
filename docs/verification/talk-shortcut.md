@@ -26,9 +26,9 @@ They do not prove the real hotkey, the microphone, that the box never takes
 focus, that it shows over full-screen apps and other Spaces, or the release of
 ⌃⌥ after speech (no unit test covers that release path).
 
-`docs/verification/evidence/talk-shortcut/` holds the box page rendered in
-headless Chrome for every state in the app's light and dark skins
-(`light-*.png`, `dark-*.png`). Regenerate them with:
+To see the box page rendered in headless Chrome for every state in the app's
+light and dark skins (`light-*.png`, `dark-*.png`, written to
+`OMB_UI_EVIDENCE_DIR` or a temporary folder it prints), run:
 
 ```sh
 node scripts/talk-box-evidence.mjs   # Chrome path as an argument or CHROME= when not in /Applications

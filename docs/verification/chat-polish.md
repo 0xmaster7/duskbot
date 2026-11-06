@@ -52,12 +52,7 @@ Attachment tests cover existing file authorization, MIME checks, a 25 MB cap
 
 ## Evidence: 2026-09-13
 
-Manually driven with computer use against the isolated fixture:
-
-- [Desktop settings](evidence/chat-polish/settings-desktop.png)
-- [Narrow, light settings](evidence/chat-polish/settings-narrow.png)
-- [Expanded tool input/result](evidence/chat-polish/chat-details.png)
-
+Manually driven with computer use against the isolated fixture.
 Successful, failed, and missing tool results were observed; redacted details
 survived reload. The local MP4 decoded at 1592×1524, duration 14.03 s, and playback
 advanced without a media error. Both gallery expansion directions, the image

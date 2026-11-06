@@ -269,9 +269,6 @@ The [routines fixture](routines.md) checks confirmed proposals, manual and
 scheduled runs, central run logs, List/Calendar views, and bot-scoped routines
 using the real renderer and an isolated fake-engine server.
 
-The [interval restrictions recipe](interval-restrictions.md) checks weekday and
-time-window limits on scheduled routines in that same disposable fixture.
-
 The [automation reports recipe](automation-reports.md) checks that every run
 reports into the bot's chat as one captioned bot message, that quiet runs write
 nothing, that a run's question is answered in that chat, and the concurrency
@@ -332,9 +329,6 @@ It includes workspace ownership, persistence, and proxy authentication checks.
 
 The [Podman Firefox sandbox recipe](podman-firefox.md) checks the capability set a
 managed desktop keeps so Firefox can start, with before/after acceptance evidence.
-
-The [Hetzner launch record](hetzner-launch-2026-09-07.md) is a dated self-hosting
-run on a disposable VPS: what passed, what was corrected, and what it does not prove.
 
 Keep the JSON from `wait` and `messages`, the exact command sequence, and the
 fixture's printed log path. Evidence must show both the action and the resulting
