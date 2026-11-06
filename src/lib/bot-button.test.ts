@@ -81,7 +81,7 @@ describe("a bot's own button", () => {
     expect(rule(".bot-button")).toMatch(/background-color:\s*var\(--bot-button\);[\s\S]*color:\s*var\(--bot-button-ink\);/);
     expect(rule(".bot-button:enabled:hover")).toContain("background-color: var(--bot-button-hover);");
     expect(rule(".bot-button:enabled:active")).toContain("background-color: var(--bot-button-pressed);");
-    expect(rule(":focus-visible")).toMatch(/outline:\s*2px solid var\(--color-focus\);[\s\S]*outline-offset:\s*2px;/);
+    expect(rule(":focus-visible")).toMatch(/outline:\s*2px solid var\(--color-focus\);[\s\S]*outline-offset:\s*1px;/);
     expect(css).not.toMatch(/\.bot-button[^{]*:focus-visible/);
     expect(rule(".bot-button:disabled")).toMatch(/background-color:\s*var\(--color-raised-hover\);[\s\S]*color:\s*var\(--color-ink-secondary\);/);
     const tone = botButtonTone("blue");

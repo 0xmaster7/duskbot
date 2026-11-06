@@ -12,7 +12,7 @@ let focused = false;
 let host: HTMLDivElement;
 let root: Root;
 
-const line = () => document.querySelector("[data-notice-toast]")?.textContent ?? null;
+const line = () => document.querySelector("[data-notice-toast] [data-toast-text]")?.textContent ?? null;
 
 beforeEach(async () => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

@@ -1876,7 +1876,11 @@ body {
    unlayered rules outrank Tailwind utilities without needing !important. */
 :focus-visible {
   outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
+  outline-offset: 1px; /* grok's ring: 2px solid at 1px out */
+}
+/* a control that draws its own ring as a shadow keeps that one ring, not a second outline around it */
+:focus-visible:is([class*="focus-visible:ring-"], [class*="focus-visible:inset-ring-"]) {
+  outline: none;
 }
 /* A menu row shows keyboard focus as its hover fill. */
 [role="menu"] :is(button, [role^="menuitem"]):focus-visible {

@@ -1,0 +1,47 @@
+import { useEffect, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+
+import { cn } from "@/lib/cn";
+import { t } from "@/lib/i18n";
+import { GrokIcon } from "../GrokIcon";
+import { smallButtonCls } from "./GrokDialog";
+
+/** Grok's bot-action toast timing: a plain line passes in 5s, one carrying Undo stays 12s. */
+export const TOAST_MS = 5_000;
+export const UNDO_TOAST_MS = 12_000;
+
+/** The one passing line, as Grok's bot-action toast: a 13px glyph (a check, or a red exclamation for an error), the words,
+ * an optional small Undo, and an 18px close. Bottom centre, above the message box, there at once and gone at once. */
+export function Toast({ text, tone = "done", action, onDone, timeoutMs, className, ...rest }: {
+  text: ReactNode;
+  tone?: "done" | "error";
+  action?: { label: string; onClick: () => void; disabled?: boolean };
+  onDone: () => void;
+  timeoutMs?: number;
+  className?: string;
+  "data-notice-toast"?: string;
+  "data-access-toast"?: string;
+}) {
+  const error = tone === "error";
+  const ms = timeoutMs ?? (action ? UNDO_TOAST_MS : TOAST_MS);
+  const done = useRef(onDone);
+  done.current = onDone;
+  // the clock restarts only when the words change, not on every render of a caller's inline onDone
+  useEffect(() => {
+    const timer = window.setTimeout(() => done.current(), ms);
+    return () => window.clearTimeout(timer);
+  }, [ms, text]);
+  const toast = (
+    <div {...rest} role={error ? "alert" : "status"} aria-live={error ? "assertive" : "polite"} data-kind={tone} className={cn("ui-toast", className)}>
+      <span aria-hidden="true" className={cn("inline-flex shrink-0", error ? "text-danger" : "text-ink-secondary")}>
+        <GrokIcon name={error ? "exclamation-circle" : "check"} size={13} />
+      </span>
+      <span data-toast-text="" className="min-w-0 flex-1 break-words">{text}</span>
+      {action && <button type="button" disabled={action.disabled} onClick={action.onClick} className={smallButtonCls}>{action.label}</button>}
+      <button type="button" aria-label={t("chat.error.dismiss")} onClick={onDone} className="ui-toast-close">
+        <GrokIcon name="close" size={12} />
+      </button>
+    </div>
+  );
+  return typeof document === "undefined" || !document.body ? toast : createPortal(toast, document.body);
+}

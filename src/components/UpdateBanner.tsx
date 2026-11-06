@@ -97,7 +97,7 @@ export function UpdateBanner({ sidebarIndicator = false }: UpdateBannerProps) {
             : friendlyError(s.message);
 
   return (
-    <div data-update-banner="" className="fixed bottom-4 left-[calc(var(--rail-beside,0px)_+_1rem)] z-50 w-[300px] max-w-[calc(100vw_-_var(--rail-beside,0px)_-_32px)] ui-toast py-3 pe-2.5 ps-3.5">
+    <div data-update-banner="" className="fixed bottom-4 left-[calc(var(--rail-beside,0px)_+_1rem)] z-50 w-[300px] max-w-[calc(100vw_-_var(--rail-beside,0px)_-_32px)] ui-corner-card py-3 pe-2.5 ps-3.5">
       <div className="flex items-start gap-2.5">
         <Sparkles size={14} aria-hidden="true" className="mt-0.5 shrink-0 text-ink-secondary" />
         <div className="min-w-0 flex-1">

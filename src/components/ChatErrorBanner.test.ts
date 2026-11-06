@@ -20,7 +20,7 @@ describe("ChatErrorBanner", () => {
     expect(markup).toContain('type="button"');
     // grok's error tray: a neutral card on a hairline, only the glyph is red
     expect(markup).toContain("border-ink/[0.12] bg-composer");
-    expect(markup).toContain("lucide-circle-alert");
+    expect(markup).toContain('data-icon-name="exclamation-circle"');
     expect(markup).toContain("text-danger");
     expect(markup).not.toMatch(/bg-danger|border-danger|text-\[12px\]/);
   });

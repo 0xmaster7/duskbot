@@ -90,15 +90,55 @@
   color: var(--color-danger-ink);
 }
 
-/* A notice card or toast in the corner: the popover tone and lift, there at once. */
-/* Grok's banner: 1px ink/12 at 18px corners on the inline lift */
-.ui-toast {
+/* A notice card in the corner, Grok's banner: 1px ink/12 at 18px corners on the inline lift, there at once. */
+.ui-corner-card {
   border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
   border-radius: 18px;
   background: var(--color-menu);
   color: var(--color-ink);
-  box-shadow: 0 4px 12px -1px rgb(28 28 28 / 0.08), 0 2px 4px -2px rgb(28 28 28 / 0.06);
+  box-shadow: var(--shadow-inline);
 }
+
+/* A passing toast, Grok's bot-action toast: bottom centre 88px up (clear of the message box), min(440px, 100vw - 32px),
+   9/10/9/12 in, 10px gaps, 10px corners, words on the elevated tone (13px, Grok's 12.5 rounded to the whole-pixel scale) and the popover lift, no edge. */
+.ui-toast {
+  position: fixed;
+  bottom: 88px;
+  inset-inline-start: 50%;
+  z-index: 70;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(440px, 100vw - 32px);
+  padding: 9px 10px 9px 12px;
+  border-radius: 10px;
+  background: var(--color-menu);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-popover);
+  font-size: 13px;
+  line-height: 18px;
+  transform: translateX(-50%);
+}
+[dir="rtl"] .ui-toast { transform: translateX(50%); }
+/* its close: 18px at 5px corners, 70% ink, full on hover over a currentColor/16 fill */
+.ui-toast-close {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+}
+.ui-toast-close:hover { opacity: 1; background: color-mix(in srgb, currentColor 16%, transparent); }
+.ui-toast-close:focus-visible { opacity: 1; outline: 2px solid var(--color-focus); outline-offset: 1px; }
 
 /* A tooltip, as Grok Bot's: white on the inline lift, 12/16 text, 6px corners. Its edge is drawn inside it, a half-pixel
    ink ring over a white one (::after), so it reads as a soft card rather than an outlined box. */
