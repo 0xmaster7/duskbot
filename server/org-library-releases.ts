@@ -86,7 +86,6 @@ export function applyUpdates(context: ReleaseContext): string[] {
       update.bots();
       update.rooms();
       update.routines();
-      update.brief();
     } catch (error) {
       // The parts written so far carry their new stamps, so the next catalog picks up from here.
       console.warn(`[org-library] could not finish updating ${install.name || install.packageId}: ${error instanceof Error ? error.message : String(error)}`);
@@ -241,16 +240,6 @@ class InstallUpdate {
       for (const part of take) parts[part] = pair(values[part], written[part]);
       this.deps.routines.stampInstalledPackage(id, { ...stamp, parts });
     }
-  }
-
-  brief(): void {
-    const stamp = this.install.team?.parts.brief;
-    const sections = this.deps.sections;
-    if (!stamp || !sections || !this.install.section) return;
-    const released = this.pkg.team?.brief ?? "";
-    if (!takesRelease(stamp, released, sections.read(this.install.section))) return;
-    sections.write(this.install.section, released);
-    this.install.team!.parts.brief = pair(released, released);
   }
 
   private nameTaken(botId: string, name: string): boolean {

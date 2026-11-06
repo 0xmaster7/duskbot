@@ -1,6 +1,6 @@
 import { BOT_PACKAGE_MAX_SKILLS } from "./bot-package.ts";
 import type { SkillsLibraryHost } from "./host/skills-library.ts";
-import type { ExportablePackageSkill, TeamExportSkip } from "./package-export.ts";
+import type { ExportablePackageSkill } from "./package-export.ts";
 import { isSkillName } from "./skills.ts";
 import type { BotRecord } from "./store.ts";
 
@@ -56,45 +56,5 @@ export function skillExport(host: Pick<SkillsLibraryHost, "listBotSkills" | "rea
     return byBot;
   }
 
-  function collectTeamSkills(
-    bots: readonly BotRecord[],
-    selection: unknown,
-  ): { ok: true; all: boolean; skillsByBot: Map<string, ExportablePackageSkill[]>; skipped: TeamExportSkip[]; available: string[] } | { ok: false; error: string; available: string[] } {
-    const all = selection === undefined || selection === "all";
-    const available = [...new Set(bots.flatMap((bot) => listBotSkills(bot).map((skill) => skill.name)))].sort();
-    if (!all && (!Array.isArray(selection) || selection.some((name) => typeof name !== "string" || !isSkillName(name)))) {
-      return { ok: false, error: "skills must be \"all\" or a list of skill names", available };
-    }
-    const chosen = new Set(all ? available : selection as string[]);
-    const unknown = [...chosen].find((name) => !available.includes(name));
-    if (unknown) return { ok: false, error: `This team has no skill named "${unknown}"`, available };
-    const skillsByBot = new Map<string, ExportablePackageSkill[]>();
-    const skipped: TeamExportSkip[] = [];
-    for (const bot of bots) {
-      const assigned: ExportablePackageSkill[] = [];
-      for (const listing of listBotSkills(bot)) {
-        if (!chosen.has(listing.name)) continue;
-        const instructions = readBotSkillFile(bot, listing.name);
-        if (instructions === null) {
-          if (!all) return { ok: false, error: `Skill "${listing.name}" changed or is unavailable and cannot be shared safely`, available };
-          const part = `skills[${listing.name}]`;
-          if (!skipped.some((skip) => skip.part === part)) skipped.push({ part, reason: "skill_changed" });
-          continue;
-        }
-        assigned.push({
-          name: listing.name,
-          description: listing.description,
-          ...(listing.source ? { source: listing.source } : {}),
-          ...(listing.license ? { license: listing.license } : {}),
-          ...(listing.compatibility ? { compatibility: listing.compatibility } : {}),
-          instructions,
-          enabled: listing.enabled,
-        });
-      }
-      if (assigned.length) skillsByBot.set(bot.id, assigned);
-    }
-    return { ok: true, all, skillsByBot, skipped, available };
-  }
-
-  return { checkedExportSkillNames, collectExportSkills, collectTeamSkills };
+  return { checkedExportSkillNames, collectExportSkills };
 }

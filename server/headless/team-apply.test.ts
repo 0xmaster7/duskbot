@@ -110,7 +110,7 @@ describe("team apply", () => {
     const { client, writes, state } = workspace();
     const plan = await reconcile(client, file(), options({ apply: false }));
     expect(plan.lines).toEqual([
-      'team "Launch Room": create · brief set (1 line)',
+      'team "Launch Room": create',
       'bot "Room Lead": create (Chief of Launch Room · claude/claude-sonnet-5 · Full access · computer off)',
       'bot "Priya": create (team Launch Room · Full access · computer browser)',
       'room "Rehearsal": create (2 members, team Launch Room)',
@@ -121,7 +121,7 @@ describe("team apply", () => {
     const applied = await reconcile(client, file(), options());
     expect(applied.lines).toEqual(plan.lines);
     expect(writes).toEqual([
-      "POST /api/sidebar-sections", "PUT /api/section-context?section=Launch%20Room",
+      "POST /api/sidebar-sections",
       "POST /api/bots", "PATCH /api/bots/bot-1", "POST /api/bots", "PATCH /api/bots/bot-2",
       "POST /api/bots/bot-1/skill-template", "PATCH /api/bots/bot-1", "tool create_channel",
     ]);
@@ -332,12 +332,11 @@ describe("team export", () => {
     }
   });
 
-  it("takes a key written into a soul, a brief or a skill out of the file, and apply leaves those as they are", async () => {
+  it("takes a key written into a soul or a skill out of the file, and apply leaves those as they are", async () => {
     const KEY = "sk-ant-api03-abcdefghijklmnopqrstuvwxyz0123456789";
     const { client, writes, state } = workspace();
     await reconcile(client, file(), options());
     state.bots.find((bot) => bot.name === "Room Lead")!.soul = `Lead the rehearsal. Pay with ${KEY}.`;
-    state.briefs["Launch Room"] = `We rehearse a launch. The staging key is ${KEY}.`;
     state.skills["bot-1"]!["launch-report"]!.text = `---\nname: launch-report\ndescription: Write it.\n---\nUpload with ${KEY}\n`;
     const dir = mkdtempSync(join(tmpdir(), "omb-team-export-"));
     try {
@@ -346,7 +345,7 @@ describe("team export", () => {
         output: new Output({ out: () => undefined, err: () => undefined, readStdin: async () => "" }, {}), client: async () => client,
         signal: new AbortController().signal, defaultWaitMs: 1_000 } as VerbContext;
       const exported = await teamExportVerb(ctx);
-      expect((exported.result as Rec).redacted).toEqual(['team "Launch Room" brief', 'bot "Room Lead" soul', 'bot "Room Lead" skill launch-report']);
+      expect((exported.result as Rec).redacted).toEqual(['bot "Room Lead" soul', 'bot "Room Lead" skill launch-report']);
       const written = [readFileSync(out, "utf8"), readFileSync(join(dir, "skills/room-lead/launch-report/SKILL.md"), "utf8")].join("\n");
       expect(written).not.toContain(KEY);
       expect(written).toContain("«redacted");

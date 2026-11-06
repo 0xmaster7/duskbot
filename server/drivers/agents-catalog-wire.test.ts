@@ -107,7 +107,7 @@ const BUDGET_BASELINE: Record<string, number> = {
   "skills+shared+voice+escalations+x+team": 69416,
   "default+no-computer-pick": 57038,
   "default+room": 50849,
-  "non-chief+room": 41633,
+  "non-chief+room": 40777,
 };
 
 const RPC_PREFIX = '{"jsonrpc":"2.0","id":1,"result":';

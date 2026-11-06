@@ -93,7 +93,7 @@ export function createCloudSendRoutes(deps: CloudSendRouteDeps): RouteHandler {
       if (!deps.chats) return json(res, 404, { error: "not found" });
       res.setHeader("cache-control", "no-store");
       return json(res, 200, await cloudSendManifest({ summary: () => cloudSendSummary(sources, { move: true, ...(bot ? { bot } : {}) }), store: deps.chats.store, dataDir: deps.chats.dataDir,
-        connections: deps.connections ?? (async () => []), heads: threadHeads, ...(move ? { kinds: move, teamMemory: move.teamMemory } : {}), ...(bot ? { bot } : {}) }));
+        connections: deps.connections ?? (async () => []), heads: threadHeads, ...(move ? { kinds: move } : {}), ...(bot ? { bot } : {}) }));
     }
     if (path === "/api/cloud-send/verify-secrets") {
       if (!home || !deps.connectionFingerprints) return json(res, 404, { error: "not found" });

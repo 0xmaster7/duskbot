@@ -1,13 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { memoryLines, mergeMemoryText } from "./cloud-send-memory.ts";
 import { DATA_DIR } from "./config.ts";
 import { adoptMemoryJournal, flushMemoryJournal, journalFile, readMemoryJournal, recordMemoryChange, type MemoryJournalEntry } from "./memory-journal.ts";
 import { adoptLearned, learnedState } from "./profile-learned.ts";
-import { TeamMemory } from "./team-memory.ts";
 
 describe("a memory file merged into My Cloud's", () => {
   const theirs = "# Notes\n- 2026-10-05 · from chat · Acme pays on the 5th. · updated 2026-10-06\n- 2026-10-04 · from chat · Prefers email.\n";
@@ -51,15 +49,7 @@ describe("what bots learned about the person", () => {
   });
 });
 
-describe("a team's memory and a bot's journal", () => {
-  it("team entries arrive once: one this team has by id or by key stays as it is", () => {
-    const memory = new TeamMemory(join(mkdtempSync(join(tmpdir(), "omb-team-")), "team-memory.json"));
-    const entry = (id: string, name: string) => ({ id, kind: "person", name, detail: `${name} at Acme.`, aliases: [], status: "accepted", source: { botId: "b1", botName: "Nova", threadId: "t", at: 1 }, updatedAt: 1 });
-    expect(memory.adopt("", [entry("e1", "Dana"), entry("e2", "Raj"), { id: "bad" }])).toBe(2);
-    expect(memory.adopt("", [entry("e1", "Dana"), entry("e3", "dana"), entry("e4", "Lee")])).toBe(1);
-    expect(memory.list("").map((held) => held.name).sort()).toEqual(["Dana", "Lee", "Raj"]);
-  });
-
+describe("a bot's journal", () => {
   it("journal rows arrive by id, in time order among this server's own, and none of them can be reverted here", async () => {
     const own = recordMemoryChange("b9", { path: "MEMORY.md", actor: "person", via: "ui", before: "a\n", after: "b\n" })!;
     await flushMemoryJournal("b9");

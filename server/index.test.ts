@@ -12748,40 +12748,11 @@ describe("harness HTTP API", () => {
   });
 });
 
-describe("section context API", () => {
-  it("keeps user-managed briefs isolated by live section and clears them explicitly", async () => {
-    const work = (await api("POST", "/api/bots")).body.bot;
-    const personal = (await api("POST", "/api/bots")).body.bot;
-    try {
-      await api("PATCH", `/api/bots/${work.id}`, { section: "Work" });
-      await api("PATCH", `/api/bots/${personal.id}`, { section: "Personal" });
-
-      const saved = await api("PUT", "/api/section-context?section=Work", { text: "# Goals\n- Ship Friday" });
-      expect(saved.status).toBe(200);
-      expect(saved.body).toMatchObject({ section: "Work", label: "Work", text: "# Goals\n- Ship Friday" });
-      expect(saved.body.updatedAt).toEqual(expect.any(Number));
-
-      const read = await api("GET", "/api/section-context?section=%20Work%20");
-      expect(read.body.text).toBe("# Goals\n- Ship Friday");
-      expect((await api("GET", "/api/section-context?section=Personal")).body.text).toBe("");
-      expect((await api("GET", "/api/section-context?section=")).body.label).toBe("General");
-
-      const cleared = await api("PUT", "/api/section-context?section=Work", { text: "  " });
-      expect(cleared.body).toMatchObject({ text: "", updatedAt: null });
-      expect((await api("GET", "/api/section-context?section=Work")).body.text).toBe("");
-    } finally {
-      await api("DELETE", `/api/bots/${work.id}`);
-      await api("DELETE", `/api/bots/${personal.id}`);
-    }
-  });
-
-  it("rejects missing, unknown, invalid, and oversized section context writes", async () => {
-    expect((await api("GET", "/api/section-context")).status).toBe(400);
-    expect((await api("PUT", "/api/section-context?section=Missing", { text: "x" })).status).toBe(404);
-    expect((await api("PUT", "/api/section-context?section=", { text: 7 })).status).toBe(400);
-    const oversized = await api("PUT", "/api/section-context?section=", { text: "x".repeat(24_001) });
-    expect(oversized.status).toBe(400);
-    expect(oversized.body.error).toContain("24KB");
+describe("retired department routes", () => {
+  it("no longer serve shared section instructions or team memory", async () => {
+    expect((await api("GET", "/api/section-context?section=")).status).toBe(404);
+    expect((await api("PUT", "/api/section-context?section=", { text: "x" })).status).toBe(404);
+    expect((await api("GET", "/api/team-memory?section=")).status).toBe(404);
   });
 });
 

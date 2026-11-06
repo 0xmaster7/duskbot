@@ -98,8 +98,6 @@ describe("skills the engine loads by itself", () => {
     installSkill(bot.id, "local", [{ path: "SKILL.md", content: skillMd("mine") }]);
     setSkillEnabled(bot.id, "mine", true);
     expect(listed(host.listBotSkills(bot))).toEqual(["mine:own", "personal-notes:native", "growth-data-expert:native"]);
-    const team = skillExport(host).collectTeamSkills([bot], "all");
-    expect(team.ok && [...team.skillsByBot.values()].flat().map((skill) => skill.name)).toEqual(["mine"]);
     expect(skillExport(host).checkedExportSkillNames(["personal-notes"], [bot])).toMatchObject({ ok: false });
   });
 

@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { NewBotDefaults } from "./new-bot-defaults.ts";
-import type { BotRecord } from "./store.ts";
 
 const FIXTURES = join(import.meta.dirname, "..", "shared", "package-fixtures");
 const fixture = (name: string): any => JSON.parse(readFileSync(join(FIXTURES, name), "utf8"));
@@ -21,7 +20,6 @@ async function installation() {
   const { RoutineManager } = await import("./routines.ts");
   const skills = await import("./skills.ts");
   const workspace = await import("./workspace.ts");
-  const sections = await import("./section-context.ts");
   const presets = await import("./presets.ts");
   const importer = await import("./package-import.ts");
   const exporter = await import("./package-export.ts");
@@ -44,7 +42,6 @@ async function installation() {
     skills: { install: skills.installSkill, setEnabled: skills.setSkillEnabled, installOrg: skills.installOrgSkill },
     memory: { writeIndex: workspace.writeMemoryFile, writeTopic: workspace.writeMemoryTopic },
     mcp: { servers: () => mcp.servers, refusal: () => undefined, persist: (next: Record<string, unknown>) => { mcp.servers = next; } },
-    sections: { writeBrief: (section: string, text: string) => void sections.writeSectionContext(section, text) },
     images: { save: () => "/api/attachments/fixture.png" },
     defaultSelection: () => ({ instanceId: "claude", model: "default-model" }),
     presets: presetStore,
@@ -259,28 +256,6 @@ describe("sharing my New bot defaults as a preset", () => {
     expect(app.presets.presetFromDefaults(defaults(), { includeNotes: false }).value!.preset).not.toHaveProperty("seed");
     const empty = app.presets.presetFromDefaults({ profile: { approvalMode: "auto", computer: "local" }, memory: {}, skills: [], routines: [] }, { includeNotes: true });
     expect(empty).toEqual({ value: null, skipped: [{ part: "presets[new-bot-defaults]", reason: "preset_empty" }] });
-  });
-
-  it("goes into a team file with its skills, never pushing out the team's own", async () => {
-    const app = await installation();
-    const built = app.presets.presetFromDefaults(defaults({
-      skills: [
-        { name: "follow-up", description: "follow-up steps.", source: "fixture", text: skillText("follow-up"), enabled: true, warnings: [] },
-        { name: "research-brief", description: "research-brief steps.", source: "fixture", text: skillText("research-brief", "Different."), enabled: true, warnings: [] },
-      ],
-    }), { includeNotes: true });
-    const bot = { id: "b1", threadId: "t1", name: "Morgan", color: "green", section: "Sales desk", createdAt: 1 } as BotRecord;
-    const exported = app.exporter.createTeamPackageExport({
-      team: "Sales desk", bots: [bot], groups: [], routines: [], published: null,
-      skillsByBot: new Map([["b1", [{ name: "research-brief", description: "research-brief steps.", instructions: skillText("research-brief"), source: "fixture" }]]]),
-      preset: built.value,
-    });
-    const pkg = exported.document.package;
-    expect(pkg.presets).toEqual([expect.objectContaining({ key: "new-bot-defaults", name: "Sky", skills: ["follow-up"] })]);
-    expect(pkg.skills!.entries.map((skill) => skill.name).sort()).toEqual(["follow-up", "research-brief"]);
-    expect(pkg.skills!.entries.find((skill) => skill.name === "research-brief")!.instructions).toContain("Do it well.");
-    expect(exported.skipped).toEqual([{ part: "presets[new-bot-defaults].skills[research-brief]", reason: "preset_skill_conflict" }]);
-    expect(JSON.stringify(pkg)).not.toMatch(/enabled|opus|approval/);
   });
 
   it("saves a library file of the preset and its skills, redacted, with a stable id and the next release", async () => {

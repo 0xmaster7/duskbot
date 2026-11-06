@@ -5,7 +5,6 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import { BOT_PROFILE_LIMITS } from "../../shared/bot-profile.ts";
 import { botSkillTemplateSchema } from "../new-bot-defaults.ts";
-import { SECTION_CONTEXT_MAX_BYTES } from "../section-context.ts";
 import { removeTempDir } from "../testing/cleanup.ts";
 import { loadTeamFile, ROOM_BRIEF_MAX_CHARS, serverFolder, SKILL_MAX_BYTES, TEAM_BRIEF_MAX_BYTES } from "./team-file.ts";
 
@@ -136,7 +135,7 @@ rooms:
   });
 
   it("holds a file to the limits the server holds each write to", async () => {
-    expect(TEAM_BRIEF_MAX_BYTES).toBe(SECTION_CONTEXT_MAX_BYTES);
+    expect(TEAM_BRIEF_MAX_BYTES).toBe(24_000);
     // a room's brief goes through MCP's create_channel, which holds it to the same length
     const { handleToolCall } = await import("../../scripts/mcp-server.ts");
     const fetcher = async () => ({ group: { id: "g1", name: "R", memberIds: ["a"] } });

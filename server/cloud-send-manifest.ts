@@ -5,13 +5,12 @@ import { attachmentNames, type ChatStore } from "./cloud-chat-merge.ts";
 import { listBotFiles, type BotFile } from "./cloud-send-files.ts";
 import { chatHeads, conversationSettings } from "./cloud-send-chats.ts";
 import { automationSwitches, routineRunIds, type MoveKindsDeps } from "./cloud-send-kinds.ts";
-import { journalIds, memoryFiles, memoryLines, teamsHere } from "./cloud-send-memory.ts";
+import { journalIds, memoryFiles, memoryLines } from "./cloud-send-memory.ts";
 import type { CloudSendSummary } from "./cloud-send.ts";
 import { factIdentity } from "./memory-entries.ts";
 import { hashMemoryText } from "./memory-store.ts";
 import { learnedState } from "./profile-learned.ts";
 import type { BotRecord } from "./store.ts";
-import type { TeamMemory } from "./team-memory.ts";
 
 export interface ManifestConversation { threadId: string; bot?: string; room?: string; rows: number; newest: string; settings: Record<string, unknown> }
 
@@ -49,7 +48,6 @@ export interface ManifestSources {
   /** Each conversation's stored rows and its newest. */
   heads(): Map<string, { lastId: string; rows: number }>;
   kinds?: MoveKindsDeps;
-  teamMemory?: Pick<TeamMemory, "list">;
   /** A move of this one bot into a team: what it carries only (its summary is already kept to it). */
   bot?: string;
 }
@@ -84,8 +82,7 @@ export async function cloudSendManifest(sources: ManifestSources): Promise<Cloud
     journal: sent.map((bot) => ({ bot, ids: journalIds(bot) })).filter((entry) => entry.ids.length),
     learned: [...new Set(learnedState().learned.map((fact) => factIdentity(fact.text)).filter(Boolean))].sort(),
     forgotten: [...new Set(learnedState().removed)].sort(),
-    teams: sources.teamMemory ? teamsHere(sources.teamMemory).map((team) => ({ section: team.section, context: team.context === null ? null : memoryLines(team.context),
-      memory: team.memory.map((entry) => entry.key ?? `${entry.kind}:${entry.name.toLowerCase()}`).sort() })) : [],
+    teams: [],
     rooms: rooms.map((room) => ({ id: room.id, name: room.name, members: [...room.memberIds].sort(),
       threads: room.tasks?.length ? room.tasks.map((task) => task.threadId) : [room.threadId] })),
     connections: (await sources.connections()).map((item) => item.id).sort(),

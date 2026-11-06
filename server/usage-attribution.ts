@@ -1,14 +1,10 @@
-// Who a usage row was spent for, and in which department. A routine's row names the person who wrote the routine (on a
-// Team Cloud), and work a teammate did for a delegating turn names the person whose turn started the job, followed
-// down the trace's parent links; the department is the bot's when the row is booked, so moving a bot later never
-// rewrites what was spent.
+// Who a usage row was spent for. A routine's row names the person who wrote the routine (on a Team Cloud), and work a
+// teammate did for a delegating turn names the person whose turn started the job, followed down the trace's parent links.
 import type { UsageRow } from "./usage-ledger.ts";
 
 const REMEMBERED_TURNS = 5_000;
 
 export interface UsageAttributionDeps {
-  /** The bot's department now; blank or missing is none. */
-  section(botId: string): string | undefined;
   /** The email of the person who wrote the routine, when known. */
   routineWriter(routineId: string): string | undefined;
   /** What started the conversation's current turn: a parent still running has no row yet. */
@@ -23,8 +19,7 @@ export function createUsageAttribution(deps: UsageAttributionDeps) {
     turnPerson.set(turnId, email);
     if (turnPerson.size > REMEMBERED_TURNS) turnPerson.delete(turnPerson.keys().next().value!);
   };
-  return <Row extends Pick<UsageRow, "botId" | "trigger" | "turnId" | "parent">>(row: Row): Row & Pick<UsageRow, "section"> => {
-    const section = deps.section(row.botId)?.trim();
+  return <Row extends Pick<UsageRow, "botId" | "trigger" | "turnId" | "parent">>(row: Row): Row => {
     let trigger = row.trigger;
     if (trigger.kind === "routine" && !trigger.email && trigger.routineId) {
       const email = deps.routineWriter(trigger.routineId);
@@ -36,7 +31,7 @@ export function createUsageAttribution(deps: UsageAttributionDeps) {
       if (email) trigger = { ...trigger, email };
     }
     remember(row.turnId, personOf(trigger));
-    return { ...row, trigger, ...(section ? { section } : {}) };
+    return { ...row, trigger };
   };
 }
 

@@ -286,39 +286,6 @@ describe("memory_update", () => {
   });
 });
 
-describe("propose_team_memory", () => {
-  it.each(["person", "place", "decision", "term"])("sends the %s proposal with exact identity and never claims immediate publication", async (kind) => {
-    const calls: Array<{ path: string; body: any }> = [];
-    const result = await callTool("propose_team_memory", { kind, name: "  Fixture name  ", detail: "  Unreviewed detail  ", aliases: ["Alias"] }, context({
-      client: {
-        api: async (path, init) => {
-          calls.push({ path, body: JSON.parse(String(init?.body)) });
-          return { status: "proposed", requestId: "proposal-fixture", summary: "Needs admin review" };
-        },
-        apiResponse: async () => ({ ok: true, status: 200, body: {} }),
-      },
-    }));
-    expect(result.isError).not.toBe(true);
-    expect(result.text).toMatch(/confirm|wait/i);
-    expect(result.text).not.toContain("Remembered for the team");
-    expect(calls).toEqual([{ path: "/api/internal/team-memory", body: {
-      fromBotId: "bot-voice", fromThreadId: "thread-voice", kind, name: "Fixture name", detail: "Unreviewed detail", aliases: ["Alias"],
-    } }]);
-  });
-
-  it("reports a fact that applied on its own as applied, with no card to wait for", async () => {
-    const result = await callTool("propose_team_memory", { kind: "term", name: "OKR", detail: "The quarter's goals." }, context({
-      client: {
-        api: async () => ({ status: "applied", state: "applied", requestId: "entry-fixture", summary: "Term: OKR — The quarter's goals." }),
-        apiResponse: async () => ({ ok: true, status: 200, body: {} }),
-      },
-    }));
-    expect(result.isError).not.toBe(true);
-    expect(result.text).toContain("Applied the team memory entry for OKR.");
-    expect(result.text).not.toContain("confirmation card");
-  });
-});
-
 describe("X research tools", () => {
   const ROUTES = { x_search: "search", x_user_posts: "user-posts", x_post: "post", x_profile: "profile" } as const;
 

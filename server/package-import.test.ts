@@ -18,7 +18,6 @@ async function installation(options: { refuse?: (name: string) => string | undef
   const { RoutineManager } = await import("./routines.ts");
   const skills = await import("./skills.ts");
   const workspace = await import("./workspace.ts");
-  const sections = await import("./section-context.ts");
   const { saveImage } = await import("./attachments.ts");
   const { botAvatarUrlFromStoredPath } = await import("../shared/bot-avatar.ts");
   const importer = await import("./package-import.ts");
@@ -43,14 +42,13 @@ async function installation(options: { refuse?: (name: string) => string | undef
       refusal: (name: string) => options.refuse?.(name),
       persist: (next: Record<string, unknown>) => { mcp.servers = next; },
     },
-    sections: { writeBrief: (section: string, text: string) => void sections.writeSectionContext(section, text) },
     images: { save: (bytes: Uint8Array, mime: string) => botAvatarUrlFromStoredPath(saveImage(Buffer.from(bytes), mime).path)! },
     broadcast: (event: { kind: string }) => { events.push(event.kind); },
     defaultSelection: () => ({ instanceId: "claude", model: "default-model" }),
   };
   const snapshot = () => JSON.stringify({ bots: store.bots.map((bot) => bot.id), groups: store.groups.map((group) => group.id),
     routines: routines.listRoutines().map((routine) => routine.id), sections: store.sections, servers: mcp.servers });
-  return { store, routines, skills, workspace, sections, importer, parsePackageDocument, deps, mcp, events, snapshot };
+  return { store, routines, skills, workspace, importer, parsePackageDocument, deps, mcp, events, snapshot };
 }
 
 afterEach(async () => {
@@ -83,7 +81,6 @@ describe("importing a whole team", () => {
     expect(lead).not.toHaveProperty("autoApprove");
     expect(lead.installedPackage?.installId).toMatch(/^[0-9a-f-]{36}$/);
     expect(new Set(result.bots.map((bot) => bot.installedPackage?.installId)).size).toBe(1);
-    expect(app.sections.readSectionContext("Sales desk")?.text).toContain("49 per seat");
     expect(result.groups).toEqual([expect.objectContaining({
       name: "Deal desk", section: "Sales desk", bulletin: expect.stringContaining("Cite sources"),
       defaultResponder: { kind: "member", botId: lead.id }, setupCompletedAt: expect.any(Number),
@@ -106,7 +103,7 @@ describe("importing a whole team", () => {
     expect(app.workspace.readMemoryFile(lead.id).text).toContain("short summaries");
     expect(app.workspace.readMemoryTopic(lead.id, "pricing.md")).toContain("49 per seat");
     expect(result.notes).toBe(2);
-    expect(result.brief).toBe(true);
+    expect(result.brief).toBe(false);
     expect(result.skipped).toEqual([{ part: "presets[support]", reason: "presets_not_supported_yet" }]);
     expect(app.events.filter((kind) => kind === "bot")).toHaveLength(3);
   });
@@ -174,11 +171,10 @@ describe("importing a whole team", () => {
   it("leaves nothing behind when the last step fails", async () => {
     const app = await installation();
     const before = app.snapshot();
-    const failing = { ...app.deps, sections: { writeBrief: () => { throw new Error("disk full"); } } };
+    const failing = { ...app.deps, images: { save: () => { throw new Error("disk full"); } } };
     expect(() => app.importer.importPackageDocument(app.parsePackageDocument(fixture("full-team.v2.json")), { trust: "file", mode: "add" }, failing))
       .toThrow("disk full");
     expect(app.snapshot()).toBe(before);
-    expect(app.sections.readSectionContext("Sales desk")).toBeNull();
   });
 
   it("refuses a library-only package with a pointer to the shelf, creating nothing", async () => {

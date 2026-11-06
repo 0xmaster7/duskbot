@@ -61,7 +61,6 @@ export interface PackageImportDeps {
     refusal(name: string, server: object): string | undefined;
     persist(next: Record<string, unknown>): void;
   };
-  sections: { writeBrief(section: string, text: string): void };
   images: { save(bytes: Uint8Array, mime: string): string };
   broadcast?: (event: { kind: "bot"; bot: BotRecord } | { kind: "group"; group: GroupRecord }) => void;
   defaultSelection: () => ModelSelection;
@@ -379,9 +378,8 @@ function runImport(source: ImportSource, options: PackageImportOptions, deps: Pa
       }
     }
 
-    // Brief first, leader last, so an interrupted organization add can tell a finished team from a partial one.
-    const brief = Boolean(pkg?.team?.brief?.trim());
-    if (brief) deps.sections.writeBrief(section, pkg!.team!.brief!);
+    // a package's department brief is no longer applied
+    const brief = false;
 
     const groupIds = new Map<string, string>();
     for (const room of pkg?.rooms ?? []) {
@@ -455,7 +453,7 @@ function runImport(source: ImportSource, options: PackageImportOptions, deps: Pa
       orgIndex.team.parts = pairs(TEAM_PARTS, {
         name: pkg.team.name, brief: pkg.team.brief ?? "", leader: pkg.team.leader ?? null,
       }, {
-        name: section, brief: brief ? pkg.team.brief! : "", leader: pkg.team.leader ? botIds.get(pkg.team.leader)! : null,
+        name: section, brief: "", leader: pkg.team.leader ? botIds.get(pkg.team.leader)! : null,
       });
     }
     let presets: PackageImportResult["presets"];

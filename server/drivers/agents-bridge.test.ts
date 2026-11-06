@@ -256,7 +256,6 @@ describe("find_tool", () => {
     ["add an MCP server", "mcp_server"],
     ["see how the threads I opened are going", "list_threads"],
     ["write a line to today's log", "memory_log"],
-    ["remember a decision for the whole team", "propose_team_memory"],
     ["save this procedure as a reusable skill", "skill_manage"],
     ["create a new specialist bot", "create_bot"],
     ["rename a room or change its members", "manage_room"],

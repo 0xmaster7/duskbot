@@ -5,14 +5,12 @@ import { validateBotCwd } from "../bot-cwd.ts";
 import { fetchBotDirectory, matchDirectoryBots, type MatchedDirectoryBot } from "../bot-directory.ts";
 import { isBotPackage, packageSummary, parsePackageDocument, renderBotPackageMarkdown, type PackageDocument } from "../bot-package.ts";
 import { parseVisibility } from "../bot-visibility.ts";
-import type { AppConfig } from "../config.ts";
 import type { ModelSelection } from "../contracts.ts";
 import type { OrgLibrary } from "../org-library.ts";
 import {
   TeamExportError,
   createBotPackageExport,
   createLibraryPackageExport,
-  createTeamPackageExport,
   type ExportablePackageSkill,
   type TeamExportSkip,
 } from "../package-export.ts";
@@ -25,10 +23,8 @@ import {
 } from "../package-import.ts";
 import { readPublishedLibrary, writePublishedLibrary, type DefaultsPreset } from "../presets.ts";
 import { scoutProject, suggestTeam } from "../project-scout.ts";
-import { readPublishedTeam, writePublishedTeam } from "../published-teams.ts";
 import type { RoutineManager } from "../routines.ts";
-import { readSectionContext } from "../section-context.ts";
-import { sectionKey, type BotRecord, type GroupRecord, type Store } from "../store.ts";
+import type { BotRecord, GroupRecord, Store } from "../store.ts";
 import { createTeamBackup, importTeamBackup } from "../team-backup.ts";
 import { fetchGithubTeam, fetchLibraryTeam, fetchTeamCatalog } from "../team-library.ts";
 import { createTeamManifest, parseTeamManifest } from "../team-manifest.ts";
@@ -37,7 +33,6 @@ import { PASS, type RouteHandler } from "./table.ts";
 
 export interface TeamRouteDeps {
   store: Store;
-  cfg: Pick<AppConfig, "mcpServers">;
   /** The exporting person's name, as a package's author: the server's profile's, or on a Team Cloud the person's own. */
   authorName(auth: RequestAuth): string | undefined;
   routines(): RoutineManager | null;
@@ -49,20 +44,16 @@ export interface TeamRouteDeps {
   defaultSelection(): Promise<ModelSelection>;
   defaultsPresetFor(body: Record<string, unknown>, includeNotes: boolean): { preset: DefaultsPreset | null; skipped: TeamExportSkip[] };
   packageImportDeps(selection: ModelSelection): PackageImportDeps;
-  starterNotes(botId: string): Array<{ path: string; text: string }>;
   checkedExportSkillNames(value: unknown, bots: readonly BotRecord[]): { ok: true; names: string[] } | { ok: false; error: string };
   collectExportSkills(bots: readonly BotRecord[], names: readonly string[]): ReadonlyMap<string, readonly ExportablePackageSkill[]>;
-  collectTeamSkills(bots: readonly BotRecord[], selection: unknown):
-    | { ok: true; all: boolean; skillsByBot: Map<string, ExportablePackageSkill[]>; skipped: TeamExportSkip[]; available: string[] }
-    | { ok: false; error: string; available: string[] };
   /** On a Team Cloud: false for someone else's private chat, which a team backup never carries. */
   threadShown?(auth: RequestAuth): (threadId: string) => boolean;
 }
 
 export function createTeamRoutes(deps: TeamRouteDeps): RouteHandler {
   const {
-    store, cfg, broadcast, publicBot, publicGroupState, groupWithThread, defaultSelection, defaultsPresetFor,
-    packageImportDeps, starterNotes, checkedExportSkillNames, collectExportSkills, collectTeamSkills,
+    store, broadcast, publicBot, publicGroupState, groupWithThread, defaultSelection, defaultsPresetFor,
+    packageImportDeps, checkedExportSkillNames, collectExportSkills,
   } = deps;
   return async ({ req, res, url, path, method, auth, json, readBody }) => {
     let m: RegExpMatchArray | null = null;
@@ -99,56 +90,7 @@ export function createTeamRoutes(deps: TeamRouteDeps): RouteHandler {
           throw error;
         }
       }
-      if (body.format === "package" && body.version === 2) {
-        if (typeof body.team !== "string") return json(res, 400, { error: "Choose a team to share." });
-        const team = body.team.trim();
-        if (team && !store.sections.includes(team) && !store.bots.some((bot) => sectionKey(bot.section) === team)) {
-          return json(res, 404, { error: "That team no longer exists." });
-        }
-        const optional = (value: unknown) => (typeof value === "string" ? value : undefined);
-        const teamBots = store.bots.filter((bot) => !bot.hidden && sectionKey(bot.section) === team);
-        const skills = collectTeamSkills(teamBots, body.skills);
-        if (!skills.ok) return json(res, 400, { error: skills.error, choices: { skills: skills.available } });
-        const avatars = body.avatars && typeof body.avatars === "object" && !Array.isArray(body.avatars)
-          ? body.avatars as Record<string, unknown>
-          : undefined;
-        const defaults = body.includeDefaultsPreset === true ? defaultsPresetFor(body, body.includeMemory === true) : null;
-        try {
-          const exported = createTeamPackageExport({
-            team,
-            name: optional(body.name),
-            tagline: optional(body.tagline),
-            summary: optional(body.summary),
-            release: optional(body.release),
-            notes: optional(body.notes),
-            authorName: profileName,
-            bots: store.bots,
-            groups: store.groups,
-            routines: routines!.listRoutines(),
-            brief: readSectionContext(team)?.text,
-            published: readPublishedTeam(team),
-            skillsByBot: skills.skillsByBot,
-            skillSelection: skills.all ? "all" : "chosen",
-            memoryByBot: body.includeMemory === true ? new Map(teamBots.map((bot) => [bot.id, starterNotes(bot.id)])) : undefined,
-            avatars,
-            mcpServers: cfg.mcpServers ?? {},
-            skipped: [...skills.skipped, ...(defaults?.skipped ?? [])],
-            preset: defaults?.preset ?? null,
-          });
-          if (body.dryRun !== true) writePublishedTeam(team, exported.published);
-          return json(res, 200, {
-            document: exported.document,
-            filename: exported.filename,
-            redacted: exported.redacted,
-            skipped: exported.skipped,
-            summary: packageSummary(exported.document),
-            choices: { skills: skills.available },
-          });
-        } catch (error) {
-          if (error instanceof TeamExportError) return json(res, error.status, { error: error.message, choices: { skills: skills.available } });
-          throw error;
-        }
-      }
+      if (body.format === "package" && body.version === 2) return json(res, 410, { error: "Sharing a department is no longer available." });
       const name =
         typeof body.name === "string" && body.name.trim()
           ? body.name.trim()

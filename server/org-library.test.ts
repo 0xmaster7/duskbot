@@ -81,7 +81,6 @@ async function installation(from?: string) {
   const { RoutineManager } = await import("./routines.ts");
   const skills = await import("./skills.ts");
   const workspace = await import("./workspace.ts");
-  const sections = await import("./section-context.ts");
   const { saveImage } = await import("./attachments.ts");
   const { botAvatarUrlFromStoredPath } = await import("../shared/bot-avatar.ts");
   const { DATA_DIR } = await import("./config.ts");
@@ -103,7 +102,6 @@ async function installation(from?: string) {
     skills: { install: skills.installSkill, setEnabled: skills.setSkillEnabled, installOrg: skills.installOrgSkill },
     memory: { writeIndex: workspace.writeMemoryFile, writeTopic: workspace.writeMemoryTopic },
     mcp: { servers: () => mcp.servers, refusal: () => undefined, persist: (next: Record<string, unknown>) => { mcp.servers = next; } },
-    sections: { writeBrief: (section: string, text: string) => void sections.writeSectionContext(section, text) },
     images: { save: (bytes: Uint8Array, mime: string) => botAvatarUrlFromStoredPath(saveImage(Buffer.from(bytes), mime).path)! },
     defaultSelection: () => ({ instanceId: "claude", model: "default-model" }),
     presets: presetStore,
@@ -115,7 +113,6 @@ async function installation(from?: string) {
     store,
     routines,
     skills: { list: skills.listSkills, stamps, setEnabled: skills.setSkillEnabled, installOrg: over.installOrg ?? skills.installOrgSkill, read: over.read ?? skills.readSkillFile, remove: skills.removeSkill },
-    sections: { read: (section) => sections.readSectionContext(section)?.text ?? "", write: (section, text) => void sections.writeSectionContext(section, text) },
     presets: presetStore,
     postState: (message) => posted.push(structuredClone(message)),
   });
@@ -125,7 +122,7 @@ async function installation(from?: string) {
   };
   const statePath = join(DATA_DIR, "org-library", "state.json");
   const readState = () => JSON.parse(readFileSync(statePath, "utf8"));
-  return { store, routines, skills, stamps, parts, sections, DATA_DIR, importDeps, mcp, posted, open, writeBlob, statePath, readState, parseOrgLibraryCatalog };
+  return { store, routines, skills, stamps, parts, DATA_DIR, importDeps, mcp, posted, open, writeBlob, statePath, readState, parseOrgLibraryCatalog };
 }
 
 afterEach(async () => {
@@ -340,7 +337,7 @@ describe("adding from the shelf", () => {
       connections: { crm: { name: "crm", r: expect.stringMatching(hex), w: expect.stringMatching(hex) } },
     });
     for (const part of app.parts.TEAM_PARTS) expect(install.team.parts[part]).toEqual({ r: expect.stringMatching(hex), w: expect.stringMatching(hex) });
-    for (const part of ["name", "brief"] as const) expect(install.team.parts[part].w, part).toBe(install.team.parts[part].r);
+    for (const part of ["name"] as const) expect(install.team.parts[part].w, part).toBe(install.team.parts[part].r);
     expect(install.connections.crm.w).toBe(install.connections.crm.r);
     const [preset] = app.importDeps.presets.list();
     expect(preset).toMatchObject({ source: "org", installId, key: "support", ref: "acme/sales-desk", sha256: team.sha256 });
@@ -536,7 +533,6 @@ describe("adding from the shelf", () => {
     expect(crashed.store.groups).toEqual([]);
     expect(crashed.routines.listRoutines()).toEqual([]);
     expect(crashed.store.sections).not.toContain("Sales desk");
-    expect(crashed.sections.readSectionContext("Sales desk")).toBeNull();
     expect(crashed.readState()).toMatchObject({ installs: {}, adding: {} });
     restarted.applyRelay(relay(body));
     await restarted.settled();
@@ -551,7 +547,6 @@ describe("adding from the shelf", () => {
     expect(crashed.store.groups).toHaveLength(1);
     expect(crashed.routines.listRoutines()).toHaveLength(2);
     expect(crashed.store.bots.find((bot) => bot.installedPackage?.agentKey === "lead")!.chiefOfStaff).toBe(true);
-    expect(crashed.sections.readSectionContext("Sales desk")!.text).toContain("49 per seat");
     expect(crashed.readState()).toMatchObject({ installs: { [installId]: { status: "installed" } }, adding: {} });
     expect(crashed.posted.at(-1).packages).toEqual([{ packageId: TEAM_ID, release: "1.3.0", sha256: team.sha256, state: "installed" }]);
     restarted.dispose();
@@ -622,7 +617,6 @@ describe("adding from the shelf", () => {
       installs: { [installId]: { packageId: TEAM_ID, release: "1.3.0", sha256: team.sha256, status: "installed", kind: "team", section: "Sales desk" } },
     });
     expect(Object.keys(crashed.readState().installs[installId].bots).sort()).toEqual(["lead", "scout", "writer"]);
-    expect(crashed.sections.readSectionContext("Sales desk")!.text).toContain("49 per seat");
     restarted.applyRelay(relay(body));
     await restarted.settled();
     expect(crashed.posted.at(-1).packages).toEqual([{ packageId: TEAM_ID, release: "1.3.0", sha256: team.sha256, state: "installed" }]);
@@ -1019,7 +1013,6 @@ describe("a newer release of an added team", () => {
     expect(app.store.groups[0]!.bulletin).toBe("Cite sources. Lead answers first.");
     const daily = app.routines.listRoutines().find((routine) => routine.id === routineOf("daily-digest").routineId)!;
     expect(daily).toMatchObject({ prompt: "Summarise yesterday's deals, biggest first.", enabled: false });
-    expect(app.sections.readSectionContext(lead.section)?.text).toBe("We sell a team plan at 59 per seat.");
     expect(app.readState().installs[installId]).toMatchObject({ release: "1.4.0", sha256: next.sha256, status: "installed" });
     expect(app.posted.at(-1).packages).toEqual([{ packageId: TEAM_ID, release: "1.4.0", sha256: next.sha256, state: "installed" }]);
     expect(library.list().packages[0]!.installed).toMatchObject({ release: "1.4.0" });

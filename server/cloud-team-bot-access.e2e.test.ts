@@ -288,7 +288,6 @@ describe("a team bot shared with a level per person", () => {
       ["POST", "/api/internal/model-requests", { model: "x" }],
       ["POST", "/api/internal/skills", { action: "create" }],
       ["POST", "/api/internal/memory", { text: "x" }],
-      ["POST", "/api/internal/team-memory", { text: "x" }],
       ["GET", "/api/internal/session-search?q=pay"],
       ["GET", "/api/internal/session-read?threadId=x"],
       ["POST", "/api/internal/coordinate-bots", { to: "x" }],

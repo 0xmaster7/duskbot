@@ -265,11 +265,6 @@ it("a bot never carries Bob's chat to an Admin: not its tools in the Admin's cha
     expect((await call(`/api/internal/session-read?fromBotId=${bot.id}&threadId=${bobThread}&messageId=${firstId}`)).status).toBe(404);
     expect((await call(`/api/internal/threads/${bobThread}/close?fromBotId=${bot.id}`, { method: "POST", body: "{}" })).status).toBe(404);
   }
-  // What a bot learns in Bob's chat stays in his layer: it never publishes it as the section's shared memory.
-  const bobs = await team.capability(bot.id, bobThread);
-  const published = await fetch(`${team.base}/api/internal/team-memory`, { method: "POST", headers: { authorization: `Bearer ${bobs}`, "content-type": "application/json" },
-    body: JSON.stringify({ fromBotId: bot.id, fromThreadId: bobThread, kind: "decision", name: "Interview", detail: "Bob is interviewing at Kumquat Labs" }) });
-  expect(published.status).toBe(403);
   // Another bot: the team's Chief cannot restart it or read its title through a retry.
   const chief = ((await team.as(owner, "GET", "/api/bots")).body.bots as Array<{ id: string; chiefOfStaff?: boolean; threadId: string }>).find((entry) => entry.chiefOfStaff);
   if (chief) {

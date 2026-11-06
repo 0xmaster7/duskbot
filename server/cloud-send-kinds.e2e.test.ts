@@ -79,15 +79,10 @@ it("a move carries the automations, files, memory, fields and skills, and its ch
   const journalHere = (await local("GET", `/api/bots/${nova.id}/memory/journal?limit=50`)).body.entries as Array<{ id: string }>;
   expect(journalHere.length).toBeGreaterThanOrEqual(3);
 
-  // What Nova learned about the person, and the team's shared context and memory, on both sides.
+  // What Nova learned about the person, on both sides.
   const fact = { id: randomUUID(), text: "Lives in Pune", line: "- 2026-10-03 · learned by Nova · Lives in Pune", botId: nova.id, botName: "Nova", at: Date.now() };
   writeFileSync(join(dataDir("desktop"), "profile-learned.json"), JSON.stringify({ learned: [fact], removed: ["Hates spam"] }));
   expect((await local("PATCH", "/api/config", { profile: { name: "Amit", aboutMe: `Runs a shop.\n${fact.line}` } })).status).toBe(200);
-  expect((await local("PUT", "/api/section-context?section=Ops", { text: "Ops handles invoices.\n" })).status).toBe(200);
-  expect((await onCloud("PUT", "/api/section-context?section=Ops", { text: "Ops is two people.\n" })).status).toBe(200);
-  expect((await local("POST", "/api/team-memory?section=Ops", { kind: "person", name: "Dana", detail: "Acme's contact." })).status).toBeLessThan(300);
-  expect((await local("POST", "/api/team-memory?section=Ops", { kind: "term", name: "PO", detail: "A purchase order." })).status).toBeLessThan(300);
-  expect((await onCloud("POST", "/api/team-memory?section=Ops", { kind: "person", name: "Dana", detail: "Acme's contact." })).status).toBeLessThan(300);
 
   // The bot fields Send everything left out, and a bot archived here.
   project = (await local("POST", `/api/bots/${nova.id}/projects`, { name: "Launch", emoji: "🚀" })).body.project.id;
@@ -202,9 +197,6 @@ it("a move carries the automations, files, memory, fields and skills, and its ch
   for (const entry of journalHere) expect(journalThere.has(entry.id)).toBe(true);
   const aboutThere = (await onCloud("GET", "/api/config")).body.profile.aboutMe as string;
   expect(aboutThere.split("\n").filter((line) => line.includes("Lives in Pune"))).toHaveLength(1);
-  expect(((await onCloud("GET", "/api/section-context?section=Ops")).body.text as string).split("\n").filter(Boolean)).toEqual(["Ops is two people.", "Ops handles invoices."]);
-  const team = (await onCloud("GET", "/api/team-memory?section=Ops")).body.entries as Array<{ name: string }>;
-  expect(team.map((entry) => entry.name).sort()).toEqual(["Dana", "PO"]);
 
   // The bot and conversation fields.
   expect(await botOn(onCloud, nova.id)).toMatchObject({ pinned: true, chiefOfStaff: true, fallback: [{ instanceId: "claude", model: "claude-haiku-5" }], projects: [{ id: project, name: "Launch", emoji: "🚀" }] });

@@ -42,7 +42,6 @@ const EXACT: ReadonlySet<string> = new Set([
   "POST /api/internal/manage-room",
   "POST /api/internal/memory",
   "POST /api/internal/memory/log",
-  "POST /api/internal/team-memory",
   "POST /api/internal/profile-requests",
   "POST /api/internal/model-requests",
   "POST /api/internal/team-setup-requests",

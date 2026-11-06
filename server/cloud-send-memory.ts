@@ -1,5 +1,5 @@
 // A move's memory: each bot's notes, topics and daily logs with its memory journal, what bots learned about the person,
-// and each team's shared context and memory, merged into My Cloud's own so nothing is lost and nothing is doubled. This
+// merged into My Cloud's own so nothing is lost and nothing is doubled. This
 // computer answers GET /api/cloud-send/memory (with `bot`: that bot's); My Cloud merges POST /api/cloud-send/memory
 // over its owner's session. Admin scope.
 import { createHash } from "node:crypto";
@@ -12,9 +12,7 @@ import { MEMORY_INDEX, memoryOverview, parseMemoryPath, readMemoryDoc } from "./
 import { adoptLearned, learnedState, type LearnedFact } from "./profile-learned.ts";
 import type { RequestAuth } from "./request-auth.ts";
 import type { RouteContext } from "./routes/table.ts";
-import { readSectionContext, readSections, sectionContextKey, writeSectionContext } from "./section-context.ts";
 import type { BotRecord } from "./store.ts";
-import type { TeamMemory, TeamMemoryEntry } from "./team-memory.ts";
 import { readMemoryFile } from "./workspace.ts";
 
 const MEMORY_BODY_MAX = 16 * 1024 * 1024;
@@ -23,7 +21,6 @@ const FRONTMATTER = /^---\n[\s\S]*?\n---\n/u;
 
 export interface MoveMemoryDeps {
   bot(id: string): BotRecord | undefined;
-  teamMemory: Pick<TeamMemory, "list" | "adopt">;
   aboutMe(): string;
   saveAboutMe(text: string): void;
   owner(auth: RequestAuth): CloudOwner | null;
@@ -83,13 +80,6 @@ export function memoryFiles(botId: string): Array<{ path: string; text: string }
   return files;
 }
 
-/** Each team's shared context and memory entries; General's too. */
-export function teamsHere(teamMemory: Pick<TeamMemory, "list">): Array<{ section: string; context: string | null; memory: TeamMemoryEntry[] }> {
-  return ["", ...readSections()].map((section) => ({ section, context: readSectionContext(section)?.text ?? null,
-    memory: teamMemory.list(section).map(({ revision: _revision, ...entry }) => entry) }))
-    .filter((team) => team.context !== null || team.memory.length);
-}
-
 export function journalIds(botId: string): string[] {
   return readMemoryJournal(botId, JOURNAL_ROWS).map((entry) => entry.id);
 }
@@ -102,10 +92,11 @@ const mergeSchema = z.object({
   files: z.array(fileSchema).max(2_000).optional(),
   journal: z.array(z.record(z.string(), z.unknown())).max(JOURNAL_ROWS).optional(),
   about: z.object({ learned: z.array(learnedSchema).max(500), removed: z.array(z.string().max(400)).max(1_000) }).optional(),
-  teams: z.array(z.object({ section: z.string().max(60), context: z.string().max(24_000).nullable(), memory: z.array(z.unknown()).max(2_000) })).max(200).optional(),
+  // older computers still send department notes; they are accepted and dropped
+  teams: z.array(z.unknown()).max(200).optional(),
 });
 
-/** Merges what arrived into My Cloud's memory; how many files, journal rows, About me lines and team entries changed,
+/** Merges what arrived into My Cloud's memory; how many files, journal rows and About me lines changed,
  * and the files it could not keep. */
 async function merge(deps: MoveMemoryDeps, body: z.infer<typeof mergeSchema>) {
   const out = { files: 0, journal: 0, about: 0, teams: 0, failed: [] as string[] };
@@ -127,17 +118,6 @@ async function merge(deps: MoveMemoryDeps, body: z.infer<typeof mergeSchema>) {
     if (!adopted) out.failed.push("about-me");
     else if (adopted.added) { deps.saveAboutMe(adopted.aboutMe); out.about = adopted.added; }
   }
-  for (const team of body.teams ?? []) {
-    const section = sectionContextKey(team.section);
-    if (team.context?.trim()) {
-      const current = readSectionContext(section)?.text ?? "";
-      const next = mergeMemoryText(current, team.context);
-      if (next !== current) {
-        try { writeSectionContext(section, next); out.teams++; } catch { out.failed.push(`team:${section}`); }
-      }
-    }
-    out.teams += deps.teamMemory.adopt(section, team.memory);
-  }
   return out;
 }
 
@@ -147,7 +127,7 @@ export async function moveMemoryRoute(deps: MoveMemoryDeps, { req, res, path, me
   res.setHeader("cache-control", "no-store");
   if (method === "GET") {
     const botId = url.searchParams.get("bot");
-    if (botId === null) json(res, 200, { v: 1, about: learnedState(), teams: teamsHere(deps.teamMemory) });
+    if (botId === null) json(res, 200, { v: 1, about: learnedState(), teams: [] });
     else if (!/^[\w-]{1,128}$/u.test(botId) || !deps.bot(botId)) json(res, 404, { error: "no such bot" });
     else json(res, 200, { v: 1, files: memoryFiles(botId), journal: readMemoryJournal(botId, JOURNAL_ROWS).map(({ before: _before, ...entry }) => entry) });
     return true;
@@ -155,7 +135,7 @@ export async function moveMemoryRoute(deps: MoveMemoryDeps, { req, res, path, me
   if (method !== "POST") { json(res, 405, { error: "method not allowed" }); return true; }
   if (!deps.owner(auth)) { json(res, 403, { error: "Only My Cloud's owner can move memory into it." }); return true; }
   const body = mergeSchema.safeParse(await readBody(req, MEMORY_BODY_MAX));
-  if (!body.success) { json(res, 400, { error: "send { v: 1, bot, files, journal } or { v: 1, about, teams }" }); return true; }
+  if (!body.success) { json(res, 400, { error: "send { v: 1, bot, files, journal } or { v: 1, about }" }); return true; }
   if (body.data.bot && !deps.bot(body.data.bot)) { json(res, 409, { error: "This bot is not on My Cloud yet." }); return true; }
   json(res, 200, { v: 1, ...(await merge(deps, body.data)) });
   return true;

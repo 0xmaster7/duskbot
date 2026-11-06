@@ -7,9 +7,8 @@ import { parsePackageDocument } from "../../shared/package-format.ts";
 import { parseTeamBackup } from "../../shared/team-backup.ts";
 import { DATA_DIR } from "../config.ts";
 import { selectGroupGoalCoordinator } from "../group-goal-run.ts";
-import { createTeamPackageExport } from "../package-export.ts";
 import { RoutineManager } from "../routines.ts";
-import { Store, normalizeGroupDefaultResponder, roomResponders, type BotRecord, type GroupRecord } from "../store.ts";
+import { Store, normalizeGroupDefaultResponder, roomResponders, type GroupRecord } from "../store.ts";
 import { createTeamBackup, importTeamBackup } from "../team-backup.ts";
 import { parseTeamManifest } from "../team-manifest.ts";
 
@@ -73,22 +72,6 @@ describe("packages", () => {
     expect(() => parsePackageDocument(withResponder({ kind: 42 }))).toThrow();
   });
 
-  it("an Auto room is exported as its lead, which every older app can open", () => {
-    const bot = (id: string, name: string): BotRecord => ({
-      id, threadId: `thread-${id}`, name, title: "", description: "", notifications: true, color: "green", unread: false,
-      modelSelection: { instanceId: "engine", model: "model" }, resumeCursors: {}, createdAt: 1, section: "Desk",
-    });
-    const room = (defaultResponder: GroupRecord["defaultResponder"]): GroupRecord => ({
-      id: "room", threadId: "room-thread", name: "Desk room", memberIds: ["a", "b"], defaultResponder, bulletin: "",
-      unread: false, createdAt: 1, section: "Desk",
-    });
-    const exported = (defaultResponder: GroupRecord["defaultResponder"]) => createTeamPackageExport({
-      team: "Desk", authorName: "Mira", bots: [bot("a", "Ada"), bot("b", "Bea")], groups: [room(defaultResponder)], routines: [],
-      published: null, skillsByBot: new Map(), mcpServers: {}, avatars: {},
-    }).document.package.rooms?.[0]?.defaultResponder;
-    expect(exported({ kind: "auto", fallbackBotId: "b" })).toEqual({ kind: "agent", agent: "bea" });
-    expect(exported({ kind: "auto" })).toEqual({ kind: "agent", agent: "ada" });
-  });
 });
 
 describe("team backups", () => {

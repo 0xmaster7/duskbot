@@ -253,8 +253,6 @@ export interface OrgLibraryDeps {
     read?(botId: string, name: string): string | null;
     remove?(botId: string, name: string): { removed: true } | { error: string };
   };
-  /** A team's brief, by its section; without it an update leaves the brief as it is. */
-  sections?: { read(section: string): string; write(section: string, text: string): void };
   postState?: (message: OrgLibraryStateMessage) => void;
   now?: () => number;
   presets?: { list(): StoredPreset[] };

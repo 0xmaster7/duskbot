@@ -23,7 +23,17 @@ import { peerAllowKey } from "./peer-approval-key.ts";
 import { hasTeamAuthority } from "./peer-roster.ts";
 import { Store, toWireTask, type BotRecord } from "./store.ts";
 import type { TeamSetupRequest } from "../shared/team-setup.ts";
-import { SECTION_CONTEXTS_FILE, readSectionContext, writeSectionContext } from "./section-context.ts";
+import { SECTION_CONTEXTS_FILE } from "./section-context.ts";
+
+// shared instructions an older version left in the sections file
+const legacyFile = () => existsSync(SECTION_CONTEXTS_FILE) ? JSON.parse(readFileSync(SECTION_CONTEXTS_FILE, "utf8")) : { version: 1, sections: [], contexts: {} };
+function writeSectionContext(section: string, text: string) {
+  const file = legacyFile();
+  file.contexts = { ...file.contexts, [section]: { text, updatedAt: 1 } };
+  if (section && !file.sections.includes(section)) file.sections.push(section);
+  writeFileSync(SECTION_CONTEXTS_FILE, JSON.stringify(file));
+}
+const readSectionContext = (section: string): { text: string } | null => legacyFile().contexts?.[section] ?? null;
 import { TeamComputers } from "./team-computers.ts";
 import { allowsTool } from "../shared/tool-scope.ts";
 

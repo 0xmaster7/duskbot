@@ -61,7 +61,6 @@ beforeAll(async () => {
     [quill.id]: { turns: [
       { steps: [
         { tool: "memory_update", arguments: { action: "prefer", text: STYLE } },
-        { tool: "propose_team_memory", expectError: true, arguments: { kind: "decision", name: "Update style", detail: STYLE } },
       ], reply: "Friday's update: shipped the inbox." },
     ] },
   }));
@@ -86,10 +85,6 @@ it("saves a preference once in Bob's About me, from his own chat and from work h
   expect(preferResults(asked)).toEqual(["Saved in Bob's About me, which every bot reads in their work. Don't pass it on to other bots or save it in your own notes too."]);
   const handed = turns().find((turn) => turn.botId === quill.id)!;
   expect(preferResults(handed)).toEqual(["Saved in Bob's About me, which every bot reads in their work. Don't pass it on to other bots or save it in your own notes too."]);
-  // Team memory stays closed to Bob's private work, and says where his own preference goes instead.
-  const shared = handed.evidence.find((entry) => entry.step?.tool === "propose_team_memory")!.response!.result!;
-  expect(shared.isError).toBe(true);
-  expect(shared.content![0]!.text).toContain("A preference of the person's own goes in their About me with memory_update action=prefer.");
 
   const bobs = await aboutMe(bob);
   expect(bobs).toMatch(new RegExp(`· learned by Scout · ${REMINDERS}`));

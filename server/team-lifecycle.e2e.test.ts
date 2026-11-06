@@ -19,6 +19,9 @@ it("retains empty teams, moves existing bots, and keeps legacy imports additive 
     expect(response.status, JSON.stringify(result)).toBe(status);
     return result;
   };
+  // shared instructions an older version saved stay in the sections file and follow renames
+  const sectionsFile = () => JSON.parse(readFileSync(join(dataDir, "section-contexts.json"), "utf8"));
+  const brief = (section: string): string | undefined => sectionsFile().contexts?.[section]?.text;
   const control = async (...args: string[]) => {
     const result = await runControlOmb([...args, "--url", url]);
     evidence.push({ command: args, result });
@@ -34,7 +37,7 @@ it("retains empty teams, moves existing bots, and keeps legacy imports additive 
     await api("/api/sidebar-sections", "POST", { name: "Delivery" });
     await api("/api/sidebar-sections", "POST", { name: "Untouched empty", botIds: [] });
     expect((await api("/api/bots?messages=0")).sections).toEqual(expect.arrayContaining(["Research", "Engineering", "Delivery", "Untouched empty"]));
-    await api("/api/section-context?section=Delivery", "PUT", { text: "Finish research before engineering." });
+    writeFileSync(join(dataDir, "section-contexts.json"), JSON.stringify({ ...sectionsFile(), contexts: { Delivery: { text: "Finish research before engineering.", updatedAt: 1 } } }));
     const moved = await api("/api/sidebar-sections", "POST", { name: "Delivery", botIds: [a.id, b.id] });
     expect(moved.bots.map((bot: any) => bot.id)).toEqual([a.id, b.id]);
     expect(moved.bots.every((bot: any) => bot.section === "Delivery")).toBe(true);
@@ -42,7 +45,7 @@ it("retains empty teams, moves existing bots, and keeps legacy imports additive 
     await api("/api/sidebar-sections?section=Delivery", "PATCH", { name: "Renamed" });
     const renamed = await api("/api/bots?messages=0");
     expect(renamed.bots.filter((bot: any) => [a.id, b.id].includes(bot.id)).every((bot: any) => bot.section === "Renamed")).toBe(true);
-    expect((await api("/api/section-context?section=Renamed")).text).toBe("Finish research before engineering.");
+    expect(brief("Renamed")).toBe("Finish research before engineering.");
     expect(await messages()).toEqual(transcript);
     await api("/api/sidebar-sections?section=Renamed", "PATCH", { name: "Delivery" });
     const edited = await api("/api/sidebar-sections?section=Delivery", "PUT", { addBotIds: [], removeBotIds: [b.id] });
@@ -54,7 +57,7 @@ it("retains empty teams, moves existing bots, and keeps legacy imports additive 
     await api("/api/sidebar-sections", "POST", { name: "", botIds: [a.id, b.id] });
     expect((await api("/api/sidebar-sections")).sections).toContain("Delivery");
     await api("/api/sidebar-sections?section=Delivery", "PATCH", { name: "Launch" });
-    expect((await api("/api/section-context?section=Launch")).text).toBe("Finish research before engineering.");
+    expect(brief("Launch")).toBe("Finish research before engineering.");
     await api("/api/sidebar-sections?section=Launch", "PATCH", { name: "Untouched empty" }, 409);
 
     const imported = await api("/api/teams/import?mode=add", "POST", {
@@ -64,7 +67,7 @@ it("retains empty teams, moves existing bots, and keeps legacy imports additive 
     }, 201);
     expect(imported.bots[0].section).toBe("Launch 2");
     expect(imported.bots[0].id).not.toBe(a.id);
-    expect((await api("/api/section-context?section=Launch")).text).toBe("Finish research before engineering.");
+    expect(brief("Launch")).toBe("Finish research before engineering.");
     expect(await messages()).toEqual(transcript);
 
     await api(`/api/bots/${imported.bots[0].id}`, "PATCH", { hidden: true });
@@ -105,9 +108,10 @@ it("retains empty teams, moves existing bots, and keeps legacy imports additive 
     expect(state.sections).not.toContain("Delivery");
     expect(state.sections).not.toContain("Launch 2");
     expect(state.bots.find((bot: any) => bot.id === a.id).section).toBeUndefined();
-    expect((await api("/api/section-context?section=Launch")).text).toBe("Finish research before engineering.");
+    expect(brief("Launch")).toBe("Finish research before engineering.");
     expect(await messages()).toEqual(transcript);
     await api("/api/sidebar-sections?section=Launch", "DELETE");
+    expect(brief("Launch")).toBeUndefined();
     await api("/api/section-context?section=Launch", "GET", undefined, 404);
     expect(readFileSync(logPath, "utf8")).not.toMatch(/ReferenceError|store: change listener threw/);
 
@@ -136,7 +140,6 @@ it("retains empty teams, moves existing bots, and keeps legacy imports additive 
     expect(JSON.parse(readFileSync(join(dataDir, "bots.json"), "utf8")).find((bot: any) => bot.id === a.id).tasks).toHaveLength(1);
     expect(JSON.parse(readFileSync(join(dataDir, "groups.json"), "utf8")).find((group: any) => group.id === room.id).tasks).toHaveLength(1);
     await api("/api/sidebar-sections", "POST", { name: "Must not overwrite recovery data" }, 500);
-    await api("/api/section-context?section=Recovered%20bot%20team", "PUT", { text: "Must not replace the damaged file" }, 500);
     expect(readFileSync(registryFile, "utf8")).toBe(malformed);
     expect(readFileSync(logPath, "utf8")).toContain("[teams] Startup could not register team names");
     evidence.push({ malformedRegistryRestart: true, legacyBotAndGroupMigrated: true, conversationsRetained: true, laterTeamWritesRejected: true });

@@ -720,24 +720,6 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     if (r.error || r.ok !== true) return { text: String(r.error ?? "The log line was not confirmed."), isError: true };
     return { text: `Logged to ${String(r.file)}: ${String(r.line)}` };
   }
-  if (name === "propose_team_memory") {
-    const kind = String(args.kind ?? "").trim();
-    const entryName = String(args.name ?? "").trim();
-    const detail = String(args.detail ?? "").trim();
-    if (!kind || !entryName || !detail) return { text: "propose_team_memory needs kind, name, and detail.", isError: true };
-    const r = await api("/api/internal/team-memory", {
-      method: "POST", body: JSON.stringify({
-        fromBotId: BOT_ID,
-        fromThreadId: THREAD_ID,
-        kind,
-        key: typeof args.key === "string" ? args.key : undefined,
-        name: entryName,
-        detail,
-        aliases: Array.isArray(args.aliases) ? args.aliases.filter((alias) => typeof alias === "string") : undefined,
-      }),
-    });
-    return confirmationResult(r, `the team memory entry for ${entryName}`, "entry");
-  }
   if (member === "session_search") {
     const q = String(args.query ?? "").trim();
     const since = typeof args.since === "string" ? args.since.trim() : "";
@@ -750,14 +732,13 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     if (since) query.set("since", since);
     if (until) query.set("until", until);
     if (typeof args.limit === "number" && Number.isFinite(args.limit)) query.set("limit", String(Math.trunc(args.limit)));
-    if (args.scope === "conversations" || args.scope === "memory" || args.scope === "team") query.set("scope", args.scope);
+    if (args.scope === "conversations" || args.scope === "memory") query.set("scope", args.scope);
     const r = await api(`/api/internal/session-search?${query.toString()}`);
     const hits = Array.isArray(r.hits) ? (r.hits as Json[]) : [];
     const memoryHits = Array.isArray(r.memoryHits) ? r.memoryHits.filter(jsonRecord) : [];
-    const teamHits = Array.isArray(r.teamHits) ? r.teamHits.filter(jsonRecord) : [];
-    const memoryBlock = memorySearchText(memoryHits, teamHits);
+    const memoryBlock = memorySearchText(memoryHits);
     const asked = q ? `matches "${q}"` : `is there since ${since}${until ? ` until ${until}` : ""}`;
-    if (!hits.length && !memoryHits.length && !teamHits.length) {
+    if (!hits.length && !memoryHits.length) {
       return { text: q
         ? `Nothing of yours ${asked} — no earlier conversation and no memory file. Try fewer or different words; every word must appear.`
         : `Nothing of yours ${asked} — no message in any of your conversations in that window.` };

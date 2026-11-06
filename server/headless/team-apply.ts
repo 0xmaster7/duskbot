@@ -159,19 +159,11 @@ export async function reconcile(client: HeadlessClient, file: TeamFile, options:
   }
   for (const name of teamNames) {
     const existing = sectionNamed(name);
-    const brief = file.teams.find((team) => key(team.name) === key(name))?.brief;
     const parts: string[] = [];
     if (!existing) {
       parts.push("create");
       if (options.apply) await write("/api/sidebar-sections", { method: "POST", body: JSON.stringify({ name, botIds: [] }) });
       sections.push(name);
-    }
-    if (brief !== undefined) {
-      const current = existing ? String((await client.json<Rec>(`/api/section-context?section=${enc(existing)}`)).text ?? "") : "";
-      if (current.trimEnd() !== brief.trimEnd()) {
-        parts.push(current.trim() ? `brief ${lines(changedLines(current, brief))} changed` : `brief set (${lines(brief.trimEnd().split("\n").length)})`);
-        if (options.apply) await write(`/api/section-context?section=${enc(existing ?? name)}`, { method: "PUT", body: JSON.stringify({ text: brief.trimEnd() }) });
-      }
     }
     note(`team "${name}": ${parts.join(" · ")}`, !parts.length ? "unchanged" : existing ? "changed" : "created");
   }
@@ -421,10 +413,7 @@ export async function teamExportVerb(ctx: VerbContext): Promise<VerbOutcome> {
     return cleaned;
   };
   const teams = sections.filter((section) => inScope(section) && (wanted.length || bots.some((bot) => key(bot.section) === key(section))));
-  const teamEntries = await Promise.all(teams.map(async (name) => {
-    const brief = String((await client.json<Rec>(`/api/section-context?section=${enc(name)}`)).text ?? "");
-    return { name, ...(brief.trim() ? { brief: clean(brief, `team "${name}" brief`) } : {}) };
-  }));
+  const teamEntries = teams.map((name) => ({ name }));
   const skipped: string[] = [];
   let skills = 0;
   const botEntries = [];
