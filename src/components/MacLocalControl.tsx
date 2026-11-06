@@ -81,7 +81,7 @@ export function MacLocalControl() {
                 type="button"
                 onClick={() => void openSettings()}
                 disabled={pending}
-                className="ui-button ui-button-sm ui-button-primary"
+                className="ui-button ui-button-primary h-6! min-h-6! px-2.5! text-[12px]! leading-4!"
               >
                 Open System Settings
               </button>
@@ -90,7 +90,7 @@ export function MacLocalControl() {
               type="button"
               onClick={() => void retry()}
               disabled={pending}
-              className="ui-button ui-button-sm"
+              className="ui-button h-6! min-h-6! px-2.5! text-[12px]! leading-4!"
             >
               {pending && <Loader2 size={13} className="animate-spin" />}
               Retry
