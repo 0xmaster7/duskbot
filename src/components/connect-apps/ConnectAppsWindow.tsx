@@ -22,7 +22,7 @@ import { PostizCard } from "../PostizCard";
 import { openKeySettings } from "../keys/key-focus";
 import { botsUsingService } from "../PluginsPanel";
 import { AppRow, AppTile, GlyphTile, type RowAction } from "./AppRow";
-import { AppFacts, AppPage, appFacts, type AppPageModel } from "./AppPage";
+import { AppFacts, AppPage, appFacts, type AppPageModel, type Way } from "./AppPage";
 import { OnePasswordBody } from "./OnePasswordBody";
 import type { OnePasswordStatus } from "../../../shared/logins";
 import { CategoryMenu } from "./CategoryMenu";
@@ -34,9 +34,10 @@ import { MCP_SERVERS_ID as MCP_PAGE, type ConnectAppsPage } from "./open";
 import { cachedConnectorCatalog, loadConnectorCatalog, useConnectors, type ConnectorPhase } from "./use-connectors";
 import { appLogo } from "./logos";
 import { composioLogo, loadComposioSnapshot, snapshotToolkit } from "./composio-snapshot";
-import { useRemoteApps } from "./use-remote-apps";
+import { prefetchRemoteApps, useRemoteApps } from "./use-remote-apps";
+import { idsOf, mergeEntries } from "./merge";
 import { WindowedRows } from "./WindowedRows";
-import { directoryKey, type DirectoryApp } from "../../../shared/connector-directory";
+import type { DirectoryApp } from "../../../shared/connector-directory";
 import type { ToolkitCard } from "../ServiceIcon";
 import "./connect-apps.css";
 
@@ -49,6 +50,29 @@ const CUSTOM_MCP = "custom-mcp";
 // a section this long draws only the rows in view
 const WINDOW_FROM = 40;
 const SETTINGS = (section: "logins" | "skills"): Action => ({ type: "toggleAppSettings", open: true, section });
+// the longest the window waits for what it has not read yet before it draws its rows anyway
+const READY_WAIT_MS = 1_200;
+const OWN_KINDS: ReadonlySet<AppEntry["kind"]> = new Set(["native", "hosted", "logins"]);
+
+// what the last open learned, so the next one draws its first frame with it instead of filling in
+const memory: {
+  natives: Record<NativeId, boolean | null>;
+  hosted: HostedConnections | null;
+  onePassword: OnePasswordStatus | null;
+  skills: SkillsLibrarySkillWire[] | null;
+} = { natives: { x: null, email: null, highlevel: null, postiz: null }, hosted: null, onePassword: null, skills: null };
+// a row keeps the place it was first drawn in for the whole session, whichever source answers later
+const rowOrder = new Map<string, number>();
+
+/** The merged list in the order its rows were first drawn, new rows after. */
+export function stableOrder(entries: readonly AppEntry[], order: Map<string, number> = rowOrder): AppEntry[] {
+  for (const entry of entries) if (!order.has(entry.id)) order.set(entry.id, order.size);
+  return [...entries].sort((a, b) => order.get(a.id)! - order.get(b.id)!);
+}
+
+interface Section { key: string; title: string; ids: string[]; viewAll?: ConnectAppsPage }
+/** One view's chips and sections, fixed when it is first drawn: later answers change a row's button, never its place. */
+interface Layout { view: number; categories: Category[]; sections: Section[] }
 
 function logoIcon(...names: string[]): AppEntry["icon"] {
   const logo = appLogo(...names);
@@ -68,7 +92,6 @@ function remoteIcon(app: DirectoryApp): AppEntry["icon"] {
   return known.image ? known : { domain: app.domain };
 }
 
-const keysOf = (...names: string[]) => names.map(directoryKey);
 
 function nativeEntries(): AppEntry[] {
   return [
@@ -101,6 +124,8 @@ export function prepareConnectApps(): Promise<void> {
     catalog ? logos(catalog.cards ?? []) : loadConnectorCatalog().then((answer) => logos(answer.cards ?? [])),
     connectorStatusMemory() ? null : preloadConnectedApps(),
     loadComposioSnapshot(),
+    prefetchRemoteApps(),
+    memory.onePassword ? null : listLogins().then((answer) => { memory.onePassword ??= answer.onePassword ?? { connected: false }; }),
   ]).then(() => {});
 }
 
@@ -126,17 +151,38 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   const [active, setActive] = useState(-1);
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
-  const [natives, setNatives] = useState<Record<NativeId, boolean | null>>({ x: null, email: null, highlevel: null, postiz: null });
-  const [hosted, setHosted] = useState<HostedConnections | null>(null);
-  const [onePassword, setOnePassword] = useState<OnePasswordStatus | null>(null);
-  const [skills, setSkills] = useState<SkillsLibrarySkillWire[] | null>(null);
+  const [natives, setNatives] = useState<Record<NativeId, boolean | null>>(() => memory.natives);
+  const [hosted, setHosted] = useState<HostedConnections | null>(() => memory.hosted);
+  const [onePassword, setOnePassword] = useState<OnePasswordStatus | null>(() => memory.onePassword);
+  const [skills, setSkills] = useState<SkillsLibrarySkillWire[] | null>(() => memory.skills);
+  const [view, setView] = useState(0);
+  const [waited, setWaited] = useState(false);
+  const layout = useRef<Layout | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const dialog = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const pageKey = `${page.kind}:${"id" in page ? page.id : "category" in page ? page.category : ""}`;
 
-  useEffect(() => { setPage(requested); setTrail([]); }, [requested, nonce]);
+  const opened = useRef({ requested, nonce });
+  useEffect(() => {
+    setPage(requested);
+    setTrail([]);
+    // a new open of a mounted window is a new view; the mount itself keeps the layout its first frame drew
+    if (opened.current.requested === requested && opened.current.nonce === nonce) return;
+    opened.current = { requested, nonce };
+    setView((count) => count + 1);
+  }, [requested, nonce]);
+  useEffect(() => {
+    const timer = setTimeout(() => setWaited(true), READY_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, []);
+  useEffect(() => {
+    if (natives.x !== null || natives.email !== null || natives.highlevel !== null || natives.postiz !== null) memory.natives = natives;
+    if (hosted) memory.hosted = hosted;
+    if (onePassword) memory.onePassword = onePassword;
+    if (skills) memory.skills = skills;
+  }, [natives, hosted, onePassword, skills]);
   useEffect(() => {
     scroller.current?.scrollTo({ top: 0 });
     setScrolled(false);
@@ -164,21 +210,16 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     ? t("policy.managedBy", { organization: policy.organizationName }) : null, [policy]);
 
   const cards = useMemo(() => new Map((connectors.cards ?? []).map((card) => [card.slug, card])), [connectors.cards]);
+  const ready = (connectors.ready && remote.settled) || waited;
   const entries = useMemo<AppEntry[]>(() => {
     const own = nativeEntries();
-    const taken = new Set(own.flatMap((entry) => keysOf(entry.id, entry.label)));
-    const vendorKeys = new Set(remote.apps.flatMap((app) => keysOf(app.id, app.label)));
-    // without composio set up its list is a placeholder that cannot connect, so a vendor's own server takes its row
     const catalog = (connectors.cards ?? [])
       .filter((card) => !managedConnectorUnavailableReason(connectors.mode, card.slug) || hasActiveConnection(connectors.status[card.slug]))
-      .filter((card) => connectors.configured || connectors.via?.signedIn || hasActiveConnection(connectors.status[card.slug]) || !keysOf(card.slug, card.label).some((key) => vendorKeys.has(key)))
       .map((card): AppEntry => ({
         id: card.slug, kind: "composio", label: card.label, description: connectorDescription(card), categories: grokCategories(card.categories),
         icon: cardIcon(card), website: card.domain ?? undefined, keywords: card.slug,
       }));
-    for (const entry of catalog) for (const key of keysOf(entry.id, entry.label)) taken.add(key);
     const vendors = remote.apps
-      .filter((app) => !keysOf(app.id, app.label).some((key) => taken.has(key)))
       .map((app): AppEntry => ({
         id: app.id, kind: "remote", label: app.label, description: app.description, categories: grokCategories(app.categories),
         icon: remoteIcon(app), website: app.domain ?? undefined, keywords: `${app.id} mcp`,
@@ -187,15 +228,23 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     const custom = (mcpServers ?? [])
       .filter((server) => !server.bot && server.name !== POSTIZ_SERVER && !remote.ownsServer(server.name) && !HOSTED_MCP_APPS.some((app) => server.name === app.id || server.name.startsWith(`${app.id}-`)))
       .map((server): AppEntry => ({ id: `mcp:${server.name}`, kind: "custom", label: server.name, description: t("connectApps.mcpServer"), categories: [], icon: { glyph: "server" }, keywords: "mcp custom" }));
-    return [...own, ...catalog, ...vendors, ...custom];
-  }, [connectors.cards, connectors.configured, connectors.via?.signedIn, connectors.mode, connectors.status, remote, mcpServers]);
+    // one row per app: our card, composio's listings and the vendor's own server fold together
+    const merged = [...mergeEntries([...own, ...catalog, ...vendors]), ...custom];
+    return ready ? stableOrder(merged) : merged;
+  }, [connectors.cards, connectors.mode, connectors.status, remote, mcpServers, ready]);
   const serverOn = useMemo(() => new Map((mcpServers ?? []).map((server) => [`mcp:${server.name}`, server.enabled])), [mcpServers]);
   const remoteApps = useMemo(() => new Map(remote.apps.map((app) => [app.id, app])), [remote.apps]);
-  const byId = useMemo(() => new Map(entries.map((entry) => [entry.id, entry])), [entries]);
+  // a merged row answers to every id it folds in, its own winning
+  const byId = useMemo(() => {
+    const map = new Map<string, AppEntry>();
+    for (const entry of entries) for (const id of idsOf(entry).slice(1)) if (!map.has(id)) map.set(id, entry);
+    for (const entry of entries) map.set(entry.id, entry);
+    return map;
+  }, [entries]);
 
-  const connection = useCallback((id: string): Connection => {
-    const entry = byId.get(id);
-    if (!entry) return "unknown";
+  /** How the row's own way in stands, before the other ways it folds in. */
+  const ownConnection = useCallback((entry: AppEntry): Connection => {
+    const id = entry.id;
     const known = (value: boolean | null | undefined): Connection => value == null ? "unknown" : value ? "connected" : "disconnected";
     if (entry.kind === "composio") return connectors.isConnected(id) ? "connected" : "disconnected";
     if (entry.kind === "remote") return remote.connection(id);
@@ -203,7 +252,18 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     if (entry.kind === "logins") return known(onePassword?.connected);
     if (entry.kind === "hosted") return known(hosted?.[id as HostedMcpAppId]);
     return known(natives[id as NativeId]);
-  }, [byId, connectors, hosted, natives, onePassword, remote, serverOn]);
+  }, [connectors, hosted, natives, onePassword, remote, serverOn]);
+  const composioConnected = useCallback((entry: AppEntry) => [entry.kind === "composio" ? entry.id : entry.composio, ...(entry.aliases ?? [])]
+    .some((slug) => slug !== undefined && connectors.isConnected(slug)), [connectors]);
+
+  // connected through any of its ways
+  const connection = useCallback((id: string): Connection => {
+    const entry = byId.get(id);
+    if (!entry) return "unknown";
+    const own = ownConnection(entry);
+    if (own === "connected") return own;
+    return composioConnected(entry) || (entry.remote !== undefined && remote.connection(entry.remote) === "connected") ? "connected" : own;
+  }, [byId, composioConnected, ownConnection, remote]);
 
   const connected = useMemo(() => entries.filter((entry) => connection(entry.id) === "connected"), [entries, connection]);
   const isConnected = useMemo(() => new Set(connected.map((entry) => entry.id)), [connected]);
@@ -240,27 +300,36 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     setActive(-1);
     setTrail((past) => next.kind === "detail" || next.kind === "yours" ? [...past, page] : []);
     setPage(next);
+    setView((count) => count + 1);
   };
   const back = () => {
     setPage(trail.at(-1) ?? { kind: "home" });
     setTrail((past) => past.slice(0, -1));
+    setView((count) => count + 1);
   };
   const leaveFor = (action: Action) => { onClose(); dispatch(action); };
   // a row's Connect that opened Composio lands on the app's page, which says what to do there
+  const detailId = page.kind === "detail" ? byId.get(page.id)?.id ?? page.id : null;
   useEffect(() => {
     const slug = connectors.setupFor ?? connectors.keyFor;
-    if (slug && !(page.kind === "detail" && page.id === slug)) go({ kind: "detail", id: slug });
+    const target = slug ? byId.get(slug)?.id ?? slug : null;
+    if (target && detailId !== target) go({ kind: "detail", id: target });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connectors.setupFor, connectors.keyFor]);
 
-  const phaseOf = (entry: AppEntry): ConnectorPhase | null => {
-    const card = cards.get(entry.id);
-    return entry.kind === "composio" && card ? connectors.phaseOf(card, blocked(card.slug)) : null;
+  const composioReady = connectors.configured || connectors.via?.signedIn === true;
+  const composioSlug = (entry: AppEntry) => entry.kind === "composio" ? entry.id : entry.composio;
+  const composioPhase = (slug: string | undefined): ConnectorPhase | null => {
+    const card = slug ? cards.get(slug) : undefined;
+    return card ? connectors.phaseOf(card, blocked(card.slug)) : null;
   };
+  const phaseOf = (entry: AppEntry): ConnectorPhase | null => entry.kind === "composio" ? composioPhase(entry.id) : null;
+  // composio not set up: the vendor's own server signs in with one click, so it is the row's way in
+  const vendorOf = (entry: AppEntry) => entry.kind === "remote" ? remoteApps.get(entry.id) : entry.remote && !composioReady ? remoteApps.get(entry.remote) : undefined;
   const startConnect = (entry: AppEntry) => {
-    const vendor = entry.kind === "remote" ? remoteApps.get(entry.id) : undefined;
+    const vendor = vendorOf(entry);
     if (vendor) return void remote.connect(vendor);
-    const ready = connectors.configured || connectors.via?.signedIn === true;
+    const ready = composioReady;
     if (entry.kind === "composio" && !ready && !window.ogb?.remoteClient?.active) connectors.askKey(entry.id);
     if (entry.kind !== "composio" || !ready) return go({ kind: "detail", id: entry.id });
     void connectors.connect(entry.id);
@@ -268,10 +337,11 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   const rowAction = (entry: AppEntry): RowAction => {
     if (entry.id === CUSTOM_MCP) return { kind: "button", label: t("common.add"), onClick: () => go({ kind: "detail", id: CUSTOM_MCP }) };
     if (entry.kind === "custom") return connection(entry.id) === "connected" ? { kind: "connected" } : { kind: "status", label: t("connectApps.off"), tone: "quiet" };
-    if (connection(entry.id) === "connected" && entry.kind !== "composio") return { kind: "connected" };
+    if (connection(entry.id) === "connected" && (entry.kind !== "composio" || !connectors.isConnected(entry.id))) return { kind: "connected" };
     const phase = phaseOf(entry);
     const connect: RowAction = { kind: "button", label: t("connectors.action.connect"), onClick: () => startConnect(entry) };
-    if (entry.kind === "remote") return { ...connect, busy: remote.busy === entry.id };
+    const vendor = vendorOf(entry);
+    if (vendor) return { ...connect, busy: remote.busy === vendor.id };
     if (!phase) return connect;
     switch (phase.kind) {
       case "connected": case "included": return { kind: "connected" };
@@ -289,11 +359,36 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
       onOpen={() => go({ kind: "detail", id: entry.kind === "custom" ? CUSTOM_MCP : entry.id })} />
   );
 
-  const categories = useMemo(() => presentCategories(entries), [entries]);
+  const label = (category: Category) => t(CATEGORY_LABEL[category]);
+  const arrange = (): Omit<Layout, "view"> => {
+    const categories = presentCategories(entries);
+    const sections: Section[] = [];
+    const ids = (list: AppEntry[]) => list.map((entry) => entry.id);
+    // what is connected leads, as its own group, and the rest follow without it
+    const rest = (list: AppEntry[]) => list.filter((entry) => !isConnected.has(entry.id));
+    const picks = recommended(entries.filter(fromCatalog), connection, Infinity);
+    if (page.kind === "category") {
+      const members = page.category === RECOMMENDED ? picks : inCategory(entries, page.category);
+      const mine = members.filter((entry) => isConnected.has(entry.id));
+      if (mine.length) sections.push({ key: CONNECTED, title: t("apps.connected"), ids: ids(mine) });
+      sections.push({ key: page.category, title: page.category === RECOMMENDED ? t("connectApps.recommended") : label(page.category as Category), ids: ids(rest(members)) });
+    } else if (page.kind === "home") {
+      if (connected.length) sections.push({ key: CONNECTED, title: t("apps.connected"), ids: ids(connected.slice(0, SECTION_SIZE)), viewAll: connected.length > SECTION_SIZE ? { kind: "yours" } : undefined });
+      if (picks.length) sections.push({ key: RECOMMENDED, title: t("connectApps.recommended"), ids: ids(picks.slice(0, SECTION_SIZE)), viewAll: picks.length > SECTION_SIZE ? { kind: "category", category: RECOMMENDED } : undefined });
+      for (const category of categories) {
+        const members = rest(inCategory(entries, category));
+        if (!members.length) continue;
+        sections.push({ key: category, title: label(category), ids: ids(members.slice(0, SECTION_SIZE)), viewAll: members.length > SECTION_SIZE ? { kind: "category", category } : undefined });
+      }
+    }
+    return { categories, sections };
+  };
+  // the first frame of a view is its final layout: drawn once everything in memory is merged, then kept
+  if (ready && layout.current?.view !== view) layout.current = { view, ...arrange() };
+  const categories = layout.current?.categories ?? [];
   const inline = categories.slice(0, INLINE_CHIPS);
   const more = categories.slice(INLINE_CHIPS);
   const selected = page.kind === "category" ? page.category : null;
-  const label = (category: Category) => t(CATEGORY_LABEL[category]);
 
   const trimmed = query.trim();
   const appHits = useMemo(() => trimmed ? searchApps(entries, trimmed) : [], [entries, trimmed]);
@@ -342,13 +437,13 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     else if (!event.shiftKey && at === last) { event.preventDefault(); first.focus(); }
   };
 
-  const nativeCardsShown = page.kind === "detail" && (NATIVE_IDS as readonly string[]).includes(page.id) ? page.id : null;
-  const hostedShown = page.kind === "detail" && HOSTED_MCP_APPS.some((app) => app.id === page.id) ? page.id : null;
-  const onePasswordShown = page.kind === "detail" && page.id === "1password";
+  const nativeCardsShown = detailId && (NATIVE_IDS as readonly string[]).includes(detailId) ? detailId : null;
+  const hostedShown = detailId && HOSTED_MCP_APPS.some((app) => app.id === detailId) ? detailId : null;
+  const onePasswordShown = detailId === "1password";
   const setNative = useCallback((id: NativeId) => (value: boolean | null) => setNatives((current) => current[id] === value ? current : { ...current, [id]: value }), []);
   const nativeSetters = useMemo(() => Object.fromEntries(NATIVE_IDS.map((id) => [id, setNative(id)])) as Record<NativeId, (value: boolean | null) => void>, [setNative]);
 
-  const detailEntry = page.kind === "detail" ? byId.get(page.id) : undefined;
+  const detailEntry = detailId ? byId.get(detailId) : undefined;
   const sub = page.kind === "detail" || page.kind === "yours";
 
   const body = (() => {
@@ -366,13 +461,34 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
       );
     }
     if (page.kind === "detail") {
-      if (!detailEntry) return connectors.cards === null ? <p className="ca-loading">{t("connectors.loadingCatalog")}</p> : null;
-      const card = cards.get(detailEntry.id);
+      if (!detailEntry) return ready ? null : <p className="ca-loading">{t("connectors.loadingCatalog")}</p>;
+      const slug = composioSlug(detailEntry);
+      const card = slug ? cards.get(slug) : undefined;
+      const phase = composioPhase(slug);
+      const vendor = detailEntry.kind === "remote" ? remoteApps.get(detailEntry.id) : detailEntry.remote ? remoteApps.get(detailEntry.remote) : undefined;
+      const ways: Way[] = [];
+      if (OWN_KINDS.has(detailEntry.kind)) {
+        ways.push({ key: "own", label: t(detailEntry.kind === "logins" ? "connectApps.way.vault" : "connectApps.way.builtIn"), connected: ownConnection(detailEntry) === "connected" });
+      }
+      if (vendor) {
+        ways.push({ key: "remote", label: t("connectApps.way.server", { name: detailEntry.label }), connected: remote.connection(vendor.id) === "connected",
+          action: { kind: "button", label: t("connectors.action.connect"), busy: remote.busy === vendor.id, disabled: remote.connection(vendor.id) === "unknown", onClick: () => void remote.connect(vendor) } });
+      }
+      if (slug && card) {
+        const connect = { kind: "button" as const, label: t("connectors.action.connect"), onClick: () => composioReady ? void connectors.connect(slug) : connectors.askKey(slug) };
+        ways.push({ key: "composio", label: t("connectApps.way.composio"), connected: composioConnected(detailEntry),
+          action: phase?.kind === "connecting" ? { ...connect, busy: true }
+            : phase?.kind === "continue" ? { ...connect, pending: true, title: t("connectors.finishSetup"), onClick: () => connectors.resume(slug) }
+              : phase?.kind === "unavailable" ? { ...connect, disabled: true, title: phase.reason }
+                : { ...connect, disabled: !composioReady && window.ogb?.remoteClient?.active === true } });
+      }
       const model: AppPageModel = {
         entry: detailEntry,
         connection: connection(detailEntry.id),
-        phase: phaseOf(detailEntry),
+        phase,
         card,
+        ...(slug ? { composioSlug: slug } : {}),
+        ways,
         connectors,
         categoryLabel: detailEntry.categories[0] ? label(detailEntry.categories[0]) : null,
         usedBy: card && connection(detailEntry.id) === "connected" ? botsUsingService(state.bots, state.instances, card.slug).map((bot) => bot.name) : [],
@@ -380,10 +496,10 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
         remoteClient: window.ogb?.remoteClient?.active === true,
         onOpenLogins: () => leaveFor(SETTINGS("logins")),
         onOpenKeys: () => leaveFor(openKeySettings("composio")),
-        ...(detailEntry.kind === "remote" && remoteApps.get(detailEntry.id) ? { remote: {
-          open: remoteApps.get(detailEntry.id)!.auth === "none",
-          busy: remote.busy === detailEntry.id,
-          onConnect: () => void remote.connect(remoteApps.get(detailEntry.id)!),
+        ...(vendor ? { remote: {
+          open: vendor.auth === "none",
+          busy: remote.busy === vendor.id,
+          onConnect: () => void remote.connect(vendor),
           onManage: () => go({ kind: "detail", id: MCP_PAGE }),
         } } : {}),
       };
@@ -426,35 +542,21 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
         </div>
       );
     }
-    const sections: Array<{ key: string; title: string; entries: AppEntry[]; viewAll?: () => void }> = [];
-    // what is connected leads, as its own group, and the rest follow without it
-    const rest = (list: AppEntry[]) => list.filter((entry) => !isConnected.has(entry.id));
-    const picks = recommended(entries.filter(fromCatalog), connection, Infinity);
-    if (page.kind === "category") {
-      const members = page.category === RECOMMENDED ? picks : inCategory(entries, page.category);
-      const mine = members.filter((entry) => isConnected.has(entry.id));
-      if (mine.length) sections.push({ key: CONNECTED, title: t("apps.connected"), entries: mine });
-      sections.push({ key: page.category, title: page.category === RECOMMENDED ? t("connectApps.recommended") : label(page.category as Category), entries: rest(members) });
-    } else {
-      if (connected.length) sections.push({ key: CONNECTED, title: t("apps.connected"), entries: connected.slice(0, SECTION_SIZE), viewAll: connected.length > SECTION_SIZE ? () => go({ kind: "yours" }) : undefined });
-      if (picks.length) sections.push({ key: RECOMMENDED, title: t("connectApps.recommended"), entries: picks.slice(0, SECTION_SIZE), viewAll: picks.length > SECTION_SIZE ? () => go({ kind: "category", category: RECOMMENDED }) : undefined });
-      for (const category of categories) {
-        const members = rest(inCategory(entries, category));
-        if (!members.length) continue;
-        sections.push({ key: category, title: label(category), entries: members.slice(0, SECTION_SIZE), viewAll: members.length > SECTION_SIZE ? () => go({ kind: "category", category }) : undefined });
-      }
-    }
+    if (!layout.current) return <div className="ca-sections @container"><p className="ca-loading">{t("connectors.loadingCatalog")}</p></div>;
     return (
       <div className="ca-sections @container">
-        {connectors.cards === null && <p className="ca-loading">{t("connectors.loadingCatalog")}</p>}
-        {sections.map((section) => (
-          <AppsSection key={section.key} id={`ca-section-${section.key}`} title={section.title}
-            viewAll={section.viewAll ? { label: t("apps.viewAll"), onClick: section.viewAll } : undefined}>
-            {section.entries.length > WINDOW_FROM
-              ? <WindowedRows items={section.entries} scroller={scroller} render={row} />
-              : section.entries.map((entry) => row(entry))}
-          </AppsSection>
-        ))}
+        {layout.current.sections.map((section) => {
+          const members = section.ids.flatMap((id) => byId.get(id) ?? []);
+          const viewAll = section.viewAll;
+          return (
+            <AppsSection key={section.key} id={`ca-section-${section.key}`} title={section.title}
+              viewAll={viewAll ? { label: t("apps.viewAll"), onClick: () => go(viewAll) } : undefined}>
+              {members.length > WINDOW_FROM
+                ? <WindowedRows items={members} scroller={scroller} render={row} />
+                : members.map((entry) => row(entry))}
+            </AppsSection>
+          );
+        })}
       </div>
     );
   })();
@@ -560,7 +662,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
                           <span data-arrow="" aria-hidden="true"><GrokIcon name="arrow-right-up" size={12} /></span>
                         </button>
                       </div>
-                      <div className="ca-chips" role="group" aria-label={t("connectApps.categoriesAria")} data-marketplace-chips="">
+                      {layout.current && <div className="ca-chips" role="group" aria-label={t("connectApps.categoriesAria")} data-marketplace-chips="">
                         <button type="button" className="ca-chip" aria-pressed={selected === null} onClick={() => go({ kind: "home" })}>{t("apps.filter.all")}</button>
                         {inline.map((category) => (
                           <button key={category} type="button" className="ca-chip" aria-pressed={selected === category}
@@ -578,7 +680,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
                             onOpenChange={setMenuOpen}
                           />
                         )}
-                      </div>
+                      </div>}
                     </div>
                   </div>
                 )}

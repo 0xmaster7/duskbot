@@ -6,7 +6,7 @@ import { needsReconnect } from "@/lib/connector-status";
 import { connectorSetupNotice } from "../PluginsPanel";
 import type { ToolkitCard } from "../ServiceIcon";
 import { GrokIcon } from "../GrokIcon";
-import { AppTile } from "./AppRow";
+import { AppTile, ConnectedMark, RowPill, type RowAction } from "./AppRow";
 import type { AppEntry, Connection } from "./catalog";
 import type { ConnectorPhase, Connectors } from "./use-connectors";
 import { COMPOSIO_AUTH_CONFIGS_URL } from "../../../shared/connector-availability";
@@ -14,8 +14,19 @@ import { composioPage, loadToolkitActions, type SnapshotToolkit, type ToolkitAct
 import { ComposioKeyStep } from "./ComposioKeyStep";
 import type { ConnectorAccount } from "@/lib/connector-status";
 
+/** One way an app connects, when it has more than one: our own card, the vendor's server, Composio. */
+export interface Way {
+  key: "own" | "remote" | "composio";
+  label: string;
+  connected: boolean;
+  action?: Extract<RowAction, { kind: "button" }>;
+}
+
 export interface AppPageModel {
   entry: AppEntry;
+  /** The app's Composio toolkit, its own id or the one folded into our card. */
+  composioSlug?: string;
+  ways?: Way[];
   connection: Connection;
   phase: ConnectorPhase | null;
   card: ToolkitCard | undefined;
@@ -48,25 +59,30 @@ function PrimaryButton({ primary }: { primary: Primary }) {
 export function AppPage({ model }: { model: AppPageModel }) {
   const { entry, phase, card, connectors } = model;
   const [alias, setAlias] = useState("");
-  const slug = entry.id;
-  const composio = entry.kind === "composio" && card !== undefined;
+  const slug = model.composioSlug ?? entry.id;
+  const composio = model.composioSlug !== undefined && card !== undefined;
+  // more than one way in: each shows in the ways card, and Composio's setup waits until that one is picked
+  const ways = model.ways && model.ways.length > 1 ? model.ways : null;
   const status = composio ? connectors.status[slug] : undefined;
   const accounts = status?.accounts ?? [];
   // a key is all that is missing: the key step shows right here, no trip to Settings
   const viaSignedIn = connectors.via?.signedIn === true;
   const askingKey = composio && !model.remoteClient && !viaSignedIn
-    && (connectors.keyFor === slug || (!connectors.configured && !connectors.stale && connectors.setup === "needs-setup"));
-  const setup = composio && !askingKey && !viaSignedIn ? connectorSetupNotice({ configured: connectors.configured, stale: connectors.stale, setup: connectors.setup, remoteClient: model.remoteClient }) : null;
+    && (connectors.keyFor === slug || (!ways && !connectors.configured && !connectors.stale && connectors.setup === "needs-setup"));
+  const setup = composio && !askingKey && !viaSignedIn && !ways ? connectorSetupNotice({ configured: connectors.configured, stale: connectors.stale, setup: connectors.setup, remoteClient: model.remoteClient }) : null;
   const askingAlias = composio && connectors.aliasFor === slug;
   const aliasError = askingAlias && connectors.error ? (typeof connectors.error === "string" ? connectors.error : t(connectors.error.key)) : null;
 
   const primary = ((): Primary | null => {
-    if (model.remote) {
+    // our own card connects in its body below
+    if (entry.kind !== "composio" && entry.kind !== "remote") return null;
+    if (model.remote && (entry.kind === "remote" || !(connectors.configured || viaSignedIn))) {
       return model.connection === "connected"
         ? { label: t("connectApps.remote.manage"), quiet: true, onClick: model.remote.onManage }
         : { label: t("connectors.action.connect"), busy: model.remote.busy, disabled: model.connection === "unknown", onClick: model.remote.onConnect };
     }
     if (!composio || !phase || askingKey) return null;
+    if (ways && model.connection === "connected" && phase.kind === "connect") return null;
     const connect: Primary = { label: t("connectors.action.connect"), onClick: () => void connectors.connect(slug) };
     if (!connectors.configured && !viaSignedIn) return { ...connect, disabled: model.remoteClient, onClick: () => connectors.askKey(slug) };
     switch (phase.kind) {
@@ -87,7 +103,7 @@ export function AppPage({ model }: { model: AppPageModel }) {
   const ownCard = entry.kind !== "composio";
 
   return (
-    <div className="ca-detail" data-app-page={slug}>
+    <div className="ca-detail" data-app-page={entry.id}>
       <div className="ca-detail-top">
         <header className="ca-detail-header">
           <AppTile entry={entry} size={56} />
@@ -112,7 +128,20 @@ export function AppPage({ model }: { model: AppPageModel }) {
             {connectors.mode === "managed" && !model.remoteClient && <>{" "}<button type="button" className="ca-link" onClick={() => connectors.askKey(slug)}>{t("connectApps.key.add")}</button></>}
           </p>
         )}
-        {model.remote && <p className="ca-notice">{t(model.remote.open ? "connectApps.remote.open" : "connectApps.remote.note", { name: entry.label })}</p>}
+        {ways && (
+          <div data-ways="">
+            <h3 className="ca-group-label">{t("connectApps.ways")}</h3>
+            <div className="ca-card">
+              {ways.map((way) => (
+                <div key={way.key} className="ca-card-row" data-way={way.key}>
+                  <span>{way.label}</span>
+                  {way.connected ? <ConnectedMark /> : way.action && <RowPill action={way.action} name={`${entry.label}, ${way.label}`} />}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {model.remote && !ways && <p className="ca-notice">{t(model.remote.open ? "connectApps.remote.open" : "connectApps.remote.note", { name: entry.label })}</p>}
         {askingKey && <ComposioKeyStep slug={slug} name={entry.label} connectors={connectors} />}
         {composio && (accounts.length > 0 || askingAlias) && (
           <div data-accounts="">

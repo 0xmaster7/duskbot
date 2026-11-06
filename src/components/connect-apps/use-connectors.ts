@@ -45,6 +45,9 @@ export type ConnectorPhase =
 
 export interface Connectors {
   cards: ToolkitCard[] | null;
+  /** The bundled catalog, the live one and what is connected have each answered once, or were already in memory: the
+   * window draws its rows from here on and later answers only update them in place. */
+  ready: boolean;
   configured: boolean;
   mode: ConnectorMode;
   setup: "ready" | "needs-setup" | "service-unavailable" | undefined;
@@ -106,6 +109,8 @@ export function useConnectors(): Connectors {
   const [live, setLive] = useState<ToolkitCard[] | null>(() => catalogAnswer ? catalogAnswer.cards ?? [] : null);
   const [source, setSource] = useState(() => catalogAnswer?.source);
   const [bundled, setBundled] = useState(cachedComposioSnapshot);
+  const [bundledSettled, setBundledSettled] = useState(() => cachedComposioSnapshot() !== null);
+  const [liveSettled, setLiveSettled] = useState(() => catalogAnswer !== null);
   const [configured, setConfigured] = useState(() => Boolean(catalogAnswer?.configured));
   const [mode, setMode] = useState<ConnectorMode>(() => catalogAnswer?.mode ?? "unavailable");
   const [setup, setSetup] = useState<Connectors["setup"]>(() => catalogAnswer?.setup);
@@ -188,9 +193,11 @@ export function useConnectors(): Connectors {
         setConfigured(Boolean(response.configured));
         setMode(response.mode ?? "unavailable");
         setSetup(response.setup);
+        setLiveSettled(true);
       })
       .catch((cause) => {
         if (!alive) return;
+        setLiveSettled(true);
         setLive((current) => current ?? []);
         setError(lacksAdminScope(cause) ? { key: "connectors.adminOnly" } : cause.message);
       });
@@ -199,7 +206,7 @@ export function useConnectors(): Connectors {
 
   useEffect(() => {
     let alive = true;
-    if (!bundled) void loadComposioSnapshot().then((answer) => { if (alive && answer) setBundled(answer); });
+    if (!bundled) void loadComposioSnapshot().then((answer) => { if (alive && answer) setBundled(answer); }).finally(() => { if (alive) setBundledSettled(true); });
     return () => { alive = false; };
   }, [bundled]);
   // every Composio toolkit, whether or not a broker or key can list them live
@@ -437,8 +444,10 @@ export function useConnectors(): Connectors {
     return setupFor === card.slug ? { kind: "setup" } : { kind: "connect" };
   };
 
+  const ready = bundledSettled && liveSettled && cards !== null && (phase !== "loading" || Object.keys(status).length > 0);
+
   return {
-    cards, configured, mode, setup, stale, phase, status, error, aliasFor, setupFor, keyFor, via, viaApps, signInComposio,
+    cards, ready, configured, mode, setup, stale, phase, status, error, aliasFor, setupFor, keyFor, via, viaApps, signInComposio,
     setError, askAlias: setAliasFor, askKey: setKeyFor, phaseOf,
     isConnected: (slug) => hasActiveConnection(status[slug]) || viaApps[slug] === true,
     connect, continueAfterKey, resume, disconnect,

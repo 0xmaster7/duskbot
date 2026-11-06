@@ -6,6 +6,7 @@ import { openTemplates } from "../SidebarTemplates";
 import { closeConnectApps, useConnectApps } from "./open";
 
 const FIRST_FRAME_WAIT_MS = 600;
+const IDLE_PREFETCH_MS = 4_000;
 const ConnectAppsWindow = lazyScreen("ConnectAppsWindow", async () => {
   const screen = await import("./ConnectAppsWindow");
   await Promise.race([screen.prepareConnectApps(), new Promise((resolve) => setTimeout(resolve, FIRST_FRAME_WAIT_MS))]);
@@ -30,6 +31,16 @@ export function ConnectAppsHost() {
       settle();
     };
   }, []);
+  // read the catalog, the snapshot and what is connected once the app is idle after boot, so the first open is complete
+  useEffect(() => {
+    if (!first) return;
+    if (typeof window.requestIdleCallback === "function") {
+      const idle = window.requestIdleCallback(preloadConnectApps, { timeout: IDLE_PREFETCH_MS });
+      return () => window.cancelIdleCallback(idle);
+    }
+    const timer = setTimeout(preloadConnectApps, IDLE_PREFETCH_MS);
+    return () => clearTimeout(timer);
+  }, [first]);
   if (!first) return null;
   return (
     <>

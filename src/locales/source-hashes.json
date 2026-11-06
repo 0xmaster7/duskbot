@@ -3061,7 +3061,12 @@
       "vpsLink.move.count.messages": "04d7b48339271ea67d3c8493e07e90bc68dc565485eebe5e0b67c21c1586e3c0",
       "vpsLink.move.pausedTitle": "b299b1929ace4ad60b3d560672e896e8a7301379120cc8aae6eaa1d3ad20d5d9",
       "vpsLink.move.progressAria": "fc8553e8c010fe725dc4f9654f9c94779e297aaf33c78f4377b14d13837de51c",
-      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6"
+      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6",
+      "connectApps.ways": "c28c3bf17e86e394f9880e96862e546350f1ed62d0766a3afcfb68b942f124a3",
+      "connectApps.way.vault": "d6f79c7e70d32bf2b36be6bd445c461ea2d312b708cc82710bda4a0c0ef8999f",
+      "connectApps.way.builtIn": "78a6a8fe9be5ec07665beecc3284374e1629c53a0df9f93ce41f9db742a6c576",
+      "connectApps.way.server": "efa7904333186e760b06d0d8abe867bda2435462251c1eefb219903b28548bca",
+      "connectApps.way.composio": "b78da4d858676b57397385664a9839e716d5991bdd9231b3b86f136f71a7c761"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -8762,7 +8767,12 @@
       "vpsLink.move.count.messages": "04d7b48339271ea67d3c8493e07e90bc68dc565485eebe5e0b67c21c1586e3c0",
       "vpsLink.move.pausedTitle": "b299b1929ace4ad60b3d560672e896e8a7301379120cc8aae6eaa1d3ad20d5d9",
       "vpsLink.move.progressAria": "fc8553e8c010fe725dc4f9654f9c94779e297aaf33c78f4377b14d13837de51c",
-      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6"
+      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6",
+      "connectApps.ways": "c28c3bf17e86e394f9880e96862e546350f1ed62d0766a3afcfb68b942f124a3",
+      "connectApps.way.vault": "d6f79c7e70d32bf2b36be6bd445c461ea2d312b708cc82710bda4a0c0ef8999f",
+      "connectApps.way.builtIn": "78a6a8fe9be5ec07665beecc3284374e1629c53a0df9f93ce41f9db742a6c576",
+      "connectApps.way.server": "efa7904333186e760b06d0d8abe867bda2435462251c1eefb219903b28548bca",
+      "connectApps.way.composio": "b78da4d858676b57397385664a9839e716d5991bdd9231b3b86f136f71a7c761"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -11738,7 +11748,12 @@
       "vpsLink.move.count.messages": "04d7b48339271ea67d3c8493e07e90bc68dc565485eebe5e0b67c21c1586e3c0",
       "vpsLink.move.pausedTitle": "b299b1929ace4ad60b3d560672e896e8a7301379120cc8aae6eaa1d3ad20d5d9",
       "vpsLink.move.progressAria": "fc8553e8c010fe725dc4f9654f9c94779e297aaf33c78f4377b14d13837de51c",
-      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6"
+      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6",
+      "connectApps.ways": "c28c3bf17e86e394f9880e96862e546350f1ed62d0766a3afcfb68b942f124a3",
+      "connectApps.way.vault": "d6f79c7e70d32bf2b36be6bd445c461ea2d312b708cc82710bda4a0c0ef8999f",
+      "connectApps.way.builtIn": "78a6a8fe9be5ec07665beecc3284374e1629c53a0df9f93ce41f9db742a6c576",
+      "connectApps.way.server": "efa7904333186e760b06d0d8abe867bda2435462251c1eefb219903b28548bca",
+      "connectApps.way.composio": "b78da4d858676b57397385664a9839e716d5991bdd9231b3b86f136f71a7c761"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -14710,7 +14725,12 @@
       "vpsLink.move.count.messages": "04d7b48339271ea67d3c8493e07e90bc68dc565485eebe5e0b67c21c1586e3c0",
       "vpsLink.move.pausedTitle": "b299b1929ace4ad60b3d560672e896e8a7301379120cc8aae6eaa1d3ad20d5d9",
       "vpsLink.move.progressAria": "fc8553e8c010fe725dc4f9654f9c94779e297aaf33c78f4377b14d13837de51c",
-      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6"
+      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6",
+      "connectApps.ways": "c28c3bf17e86e394f9880e96862e546350f1ed62d0766a3afcfb68b942f124a3",
+      "connectApps.way.vault": "d6f79c7e70d32bf2b36be6bd445c461ea2d312b708cc82710bda4a0c0ef8999f",
+      "connectApps.way.builtIn": "78a6a8fe9be5ec07665beecc3284374e1629c53a0df9f93ce41f9db742a6c576",
+      "connectApps.way.server": "efa7904333186e760b06d0d8abe867bda2435462251c1eefb219903b28548bca",
+      "connectApps.way.composio": "b78da4d858676b57397385664a9839e716d5991bdd9231b3b86f136f71a7c761"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -21190,7 +21210,12 @@
       "vpsLink.move.count.messages": "04d7b48339271ea67d3c8493e07e90bc68dc565485eebe5e0b67c21c1586e3c0",
       "vpsLink.move.pausedTitle": "b299b1929ace4ad60b3d560672e896e8a7301379120cc8aae6eaa1d3ad20d5d9",
       "vpsLink.move.progressAria": "fc8553e8c010fe725dc4f9654f9c94779e297aaf33c78f4377b14d13837de51c",
-      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6"
+      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6",
+      "connectApps.ways": "c28c3bf17e86e394f9880e96862e546350f1ed62d0766a3afcfb68b942f124a3",
+      "connectApps.way.vault": "d6f79c7e70d32bf2b36be6bd445c461ea2d312b708cc82710bda4a0c0ef8999f",
+      "connectApps.way.builtIn": "78a6a8fe9be5ec07665beecc3284374e1629c53a0df9f93ce41f9db742a6c576",
+      "connectApps.way.server": "efa7904333186e760b06d0d8abe867bda2435462251c1eefb219903b28548bca",
+      "connectApps.way.composio": "b78da4d858676b57397385664a9839e716d5991bdd9231b3b86f136f71a7c761"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -27492,7 +27517,12 @@
       "vpsLink.move.count.messages": "04d7b48339271ea67d3c8493e07e90bc68dc565485eebe5e0b67c21c1586e3c0",
       "vpsLink.move.pausedTitle": "b299b1929ace4ad60b3d560672e896e8a7301379120cc8aae6eaa1d3ad20d5d9",
       "vpsLink.move.progressAria": "fc8553e8c010fe725dc4f9654f9c94779e297aaf33c78f4377b14d13837de51c",
-      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6"
+      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6",
+      "connectApps.ways": "c28c3bf17e86e394f9880e96862e546350f1ed62d0766a3afcfb68b942f124a3",
+      "connectApps.way.vault": "d6f79c7e70d32bf2b36be6bd445c461ea2d312b708cc82710bda4a0c0ef8999f",
+      "connectApps.way.builtIn": "78a6a8fe9be5ec07665beecc3284374e1629c53a0df9f93ce41f9db742a6c576",
+      "connectApps.way.server": "efa7904333186e760b06d0d8abe867bda2435462251c1eefb219903b28548bca",
+      "connectApps.way.composio": "b78da4d858676b57397385664a9839e716d5991bdd9231b3b86f136f71a7c761"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -34653,7 +34683,12 @@
       "vpsLink.move.count.messages": "04d7b48339271ea67d3c8493e07e90bc68dc565485eebe5e0b67c21c1586e3c0",
       "vpsLink.move.pausedTitle": "b299b1929ace4ad60b3d560672e896e8a7301379120cc8aae6eaa1d3ad20d5d9",
       "vpsLink.move.progressAria": "fc8553e8c010fe725dc4f9654f9c94779e297aaf33c78f4377b14d13837de51c",
-      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6"
+      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6",
+      "connectApps.ways": "c28c3bf17e86e394f9880e96862e546350f1ed62d0766a3afcfb68b942f124a3",
+      "connectApps.way.vault": "d6f79c7e70d32bf2b36be6bd445c461ea2d312b708cc82710bda4a0c0ef8999f",
+      "connectApps.way.builtIn": "78a6a8fe9be5ec07665beecc3284374e1629c53a0df9f93ce41f9db742a6c576",
+      "connectApps.way.server": "efa7904333186e760b06d0d8abe867bda2435462251c1eefb219903b28548bca",
+      "connectApps.way.composio": "b78da4d858676b57397385664a9839e716d5991bdd9231b3b86f136f71a7c761"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -39295,7 +39330,12 @@
       "vpsLink.move.count.messages": "04d7b48339271ea67d3c8493e07e90bc68dc565485eebe5e0b67c21c1586e3c0",
       "vpsLink.move.pausedTitle": "b299b1929ace4ad60b3d560672e896e8a7301379120cc8aae6eaa1d3ad20d5d9",
       "vpsLink.move.progressAria": "fc8553e8c010fe725dc4f9654f9c94779e297aaf33c78f4377b14d13837de51c",
-      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6"
+      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6",
+      "connectApps.ways": "c28c3bf17e86e394f9880e96862e546350f1ed62d0766a3afcfb68b942f124a3",
+      "connectApps.way.vault": "d6f79c7e70d32bf2b36be6bd445c461ea2d312b708cc82710bda4a0c0ef8999f",
+      "connectApps.way.builtIn": "78a6a8fe9be5ec07665beecc3284374e1629c53a0df9f93ce41f9db742a6c576",
+      "connectApps.way.server": "efa7904333186e760b06d0d8abe867bda2435462251c1eefb219903b28548bca",
+      "connectApps.way.composio": "b78da4d858676b57397385664a9839e716d5991bdd9231b3b86f136f71a7c761"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -42676,7 +42716,12 @@
       "vpsLink.move.count.messages": "04d7b48339271ea67d3c8493e07e90bc68dc565485eebe5e0b67c21c1586e3c0",
       "vpsLink.move.pausedTitle": "b299b1929ace4ad60b3d560672e896e8a7301379120cc8aae6eaa1d3ad20d5d9",
       "vpsLink.move.progressAria": "fc8553e8c010fe725dc4f9654f9c94779e297aaf33c78f4377b14d13837de51c",
-      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6"
+      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6",
+      "connectApps.ways": "c28c3bf17e86e394f9880e96862e546350f1ed62d0766a3afcfb68b942f124a3",
+      "connectApps.way.vault": "d6f79c7e70d32bf2b36be6bd445c461ea2d312b708cc82710bda4a0c0ef8999f",
+      "connectApps.way.builtIn": "78a6a8fe9be5ec07665beecc3284374e1629c53a0df9f93ce41f9db742a6c576",
+      "connectApps.way.server": "efa7904333186e760b06d0d8abe867bda2435462251c1eefb219903b28548bca",
+      "connectApps.way.composio": "b78da4d858676b57397385664a9839e716d5991bdd9231b3b86f136f71a7c761"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -47872,7 +47917,12 @@
       "vpsLink.move.count.messages": "04d7b48339271ea67d3c8493e07e90bc68dc565485eebe5e0b67c21c1586e3c0",
       "vpsLink.move.pausedTitle": "b299b1929ace4ad60b3d560672e896e8a7301379120cc8aae6eaa1d3ad20d5d9",
       "vpsLink.move.progressAria": "fc8553e8c010fe725dc4f9654f9c94779e297aaf33c78f4377b14d13837de51c",
-      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6"
+      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6",
+      "connectApps.ways": "c28c3bf17e86e394f9880e96862e546350f1ed62d0766a3afcfb68b942f124a3",
+      "connectApps.way.vault": "d6f79c7e70d32bf2b36be6bd445c461ea2d312b708cc82710bda4a0c0ef8999f",
+      "connectApps.way.builtIn": "78a6a8fe9be5ec07665beecc3284374e1629c53a0df9f93ce41f9db742a6c576",
+      "connectApps.way.server": "efa7904333186e760b06d0d8abe867bda2435462251c1eefb219903b28548bca",
+      "connectApps.way.composio": "b78da4d858676b57397385664a9839e716d5991bdd9231b3b86f136f71a7c761"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -53068,7 +53118,12 @@
       "vpsLink.move.count.messages": "04d7b48339271ea67d3c8493e07e90bc68dc565485eebe5e0b67c21c1586e3c0",
       "vpsLink.move.pausedTitle": "b299b1929ace4ad60b3d560672e896e8a7301379120cc8aae6eaa1d3ad20d5d9",
       "vpsLink.move.progressAria": "fc8553e8c010fe725dc4f9654f9c94779e297aaf33c78f4377b14d13837de51c",
-      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6"
+      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6",
+      "connectApps.ways": "c28c3bf17e86e394f9880e96862e546350f1ed62d0766a3afcfb68b942f124a3",
+      "connectApps.way.vault": "d6f79c7e70d32bf2b36be6bd445c461ea2d312b708cc82710bda4a0c0ef8999f",
+      "connectApps.way.builtIn": "78a6a8fe9be5ec07665beecc3284374e1629c53a0df9f93ce41f9db742a6c576",
+      "connectApps.way.server": "efa7904333186e760b06d0d8abe867bda2435462251c1eefb219903b28548bca",
+      "connectApps.way.composio": "b78da4d858676b57397385664a9839e716d5991bdd9231b3b86f136f71a7c761"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -59489,7 +59544,12 @@
       "vpsLink.move.count.messages": "04d7b48339271ea67d3c8493e07e90bc68dc565485eebe5e0b67c21c1586e3c0",
       "vpsLink.move.pausedTitle": "b299b1929ace4ad60b3d560672e896e8a7301379120cc8aae6eaa1d3ad20d5d9",
       "vpsLink.move.progressAria": "fc8553e8c010fe725dc4f9654f9c94779e297aaf33c78f4377b14d13837de51c",
-      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6"
+      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6",
+      "connectApps.ways": "c28c3bf17e86e394f9880e96862e546350f1ed62d0766a3afcfb68b942f124a3",
+      "connectApps.way.vault": "d6f79c7e70d32bf2b36be6bd445c461ea2d312b708cc82710bda4a0c0ef8999f",
+      "connectApps.way.builtIn": "78a6a8fe9be5ec07665beecc3284374e1629c53a0df9f93ce41f9db742a6c576",
+      "connectApps.way.server": "efa7904333186e760b06d0d8abe867bda2435462251c1eefb219903b28548bca",
+      "connectApps.way.composio": "b78da4d858676b57397385664a9839e716d5991bdd9231b3b86f136f71a7c761"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -65948,7 +66008,12 @@
       "vpsLink.move.count.messages": "04d7b48339271ea67d3c8493e07e90bc68dc565485eebe5e0b67c21c1586e3c0",
       "vpsLink.move.pausedTitle": "b299b1929ace4ad60b3d560672e896e8a7301379120cc8aae6eaa1d3ad20d5d9",
       "vpsLink.move.progressAria": "fc8553e8c010fe725dc4f9654f9c94779e297aaf33c78f4377b14d13837de51c",
-      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6"
+      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6",
+      "connectApps.ways": "c28c3bf17e86e394f9880e96862e546350f1ed62d0766a3afcfb68b942f124a3",
+      "connectApps.way.vault": "d6f79c7e70d32bf2b36be6bd445c461ea2d312b708cc82710bda4a0c0ef8999f",
+      "connectApps.way.builtIn": "78a6a8fe9be5ec07665beecc3284374e1629c53a0df9f93ce41f9db742a6c576",
+      "connectApps.way.server": "efa7904333186e760b06d0d8abe867bda2435462251c1eefb219903b28548bca",
+      "connectApps.way.composio": "b78da4d858676b57397385664a9839e716d5991bdd9231b3b86f136f71a7c761"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -72212,7 +72277,12 @@
       "vpsLink.move.count.messages": "04d7b48339271ea67d3c8493e07e90bc68dc565485eebe5e0b67c21c1586e3c0",
       "vpsLink.move.pausedTitle": "b299b1929ace4ad60b3d560672e896e8a7301379120cc8aae6eaa1d3ad20d5d9",
       "vpsLink.move.progressAria": "fc8553e8c010fe725dc4f9654f9c94779e297aaf33c78f4377b14d13837de51c",
-      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6"
+      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6",
+      "connectApps.ways": "c28c3bf17e86e394f9880e96862e546350f1ed62d0766a3afcfb68b942f124a3",
+      "connectApps.way.vault": "d6f79c7e70d32bf2b36be6bd445c461ea2d312b708cc82710bda4a0c0ef8999f",
+      "connectApps.way.builtIn": "78a6a8fe9be5ec07665beecc3284374e1629c53a0df9f93ce41f9db742a6c576",
+      "connectApps.way.server": "efa7904333186e760b06d0d8abe867bda2435462251c1eefb219903b28548bca",
+      "connectApps.way.composio": "b78da4d858676b57397385664a9839e716d5991bdd9231b3b86f136f71a7c761"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -79165,7 +79235,12 @@
       "vpsLink.move.count.messages": "04d7b48339271ea67d3c8493e07e90bc68dc565485eebe5e0b67c21c1586e3c0",
       "vpsLink.move.pausedTitle": "b299b1929ace4ad60b3d560672e896e8a7301379120cc8aae6eaa1d3ad20d5d9",
       "vpsLink.move.progressAria": "fc8553e8c010fe725dc4f9654f9c94779e297aaf33c78f4377b14d13837de51c",
-      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6"
+      "vpsLink.move.statsAria": "2f00672ec7616c9cfe4e4cd2ba4430be61af2d2be0596a1a1c2e42ac8225c3f6",
+      "connectApps.ways": "c28c3bf17e86e394f9880e96862e546350f1ed62d0766a3afcfb68b942f124a3",
+      "connectApps.way.vault": "d6f79c7e70d32bf2b36be6bd445c461ea2d312b708cc82710bda4a0c0ef8999f",
+      "connectApps.way.builtIn": "78a6a8fe9be5ec07665beecc3284374e1629c53a0df9f93ce41f9db742a6c576",
+      "connectApps.way.server": "efa7904333186e760b06d0d8abe867bda2435462251c1eefb219903b28548bca",
+      "connectApps.way.composio": "b78da4d858676b57397385664a9839e716d5991bdd9231b3b86f136f71a7c761"
     }
   }
 }

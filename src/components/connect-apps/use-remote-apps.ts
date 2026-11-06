@@ -10,13 +10,25 @@ import { isRemoteMcpListing, type McpServerListing, type RemoteMcpListing } from
 import type { Connection } from "./catalog";
 
 let directory: Promise<DirectoryApp[]> | null = null;
+// kept across opens, so the window's first frame already has them
+let directoryApps: DirectoryApp[] | null = null;
+let directoryFailed = false;
+let serverList: McpServerListing[] | null = null;
 
 /** The vendors' own MCP servers the directory kept, read once per session. */
 function loadRemoteApps(): Promise<DirectoryApp[]> {
   directory ??= (api("/api/connectors/directory") as Promise<DirectoryAnswer>)
-    .then((answer) => (answer.apps ?? []).filter((app) => app.source === "remote-mcp" && typeof app.url === "string"))
-    .catch((cause) => { directory = null; throw cause; });
+    .then((answer) => (directoryApps = (answer.apps ?? []).filter((app) => app.source === "remote-mcp" && typeof app.url === "string")))
+    .catch((cause) => { directory = null; directoryFailed = true; throw cause; });
   return directory;
+}
+
+/** Reads the directory and the MCP servers ahead of the window, for its first frame. */
+export function prefetchRemoteApps(): Promise<unknown> {
+  return Promise.allSettled([
+    loadRemoteApps(),
+    serverList ? null : api("/api/mcp/servers").then((answer) => { serverList ??= answer.servers ?? []; }),
+  ]);
 }
 
 /** The same endpoint: origin and path, a trailing slash either way. */
@@ -45,6 +57,8 @@ export function remoteConnection(app: DirectoryApp, server: RemoteMcpListing | u
 
 export interface RemoteApps {
   apps: DirectoryApp[];
+  /** The directory and the servers have answered (or failed): the list will not grow on its own any more. */
+  settled: boolean;
   busy: string | null;
   error: string | null;
   clearError: () => void;
@@ -57,8 +71,10 @@ export interface RemoteApps {
 /** Adds the vendor's server and signs in with the person's own account, the same flow as Add MCP server's Sign in.
  * `needsPanel`: a remote browser pastes the callback back, which only the MCP servers page can take. */
 export function useRemoteApps(options: { needsPanel: () => boolean; openPanel: () => void }): RemoteApps {
-  const [apps, setApps] = useState<DirectoryApp[]>([]);
-  const [servers, setServers] = useState<McpServerListing[] | null>(null);
+  const [apps, setApps] = useState<DirectoryApp[]>(() => directoryApps ?? []);
+  const [appsSettled, setAppsSettled] = useState(() => directoryApps !== null);
+  const [servers, setServersNow] = useState<McpServerListing[] | null>(() => serverList);
+  const setServers = useCallback((next: McpServerListing[]) => { serverList = next; setServersNow(next); }, []);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const signIn = useRef<AbortController | null>(null);
@@ -69,15 +85,15 @@ export function useRemoteApps(options: { needsPanel: () => boolean; openPanel: (
     setServers(next ?? []);
     updateMcpServers(next ?? []);
     return next ?? [];
-  }, []);
+  }, [setServers]);
   const reload = useCallback(() => api("/api/mcp/servers").then((answer) => listed(answer.servers)), [listed]);
 
   useEffect(() => {
     let alive = true;
-    loadRemoteApps().then((list) => { if (alive) setApps(list); }).catch(() => {});
+    loadRemoteApps().then((list) => { if (alive) setApps(list); }).catch(() => {}).finally(() => { if (alive) setAppsSettled(true); });
     api("/api/mcp/servers").then((answer) => { if (alive) setServers(answer.servers ?? []); }).catch(() => { if (alive) setServers([]); });
     return () => { alive = false; signIn.current?.abort(); };
-  }, []);
+  }, [setServers]);
 
   const serverOf = (app: DirectoryApp) => servers?.find((server): server is RemoteMcpListing =>
     isRemoteMcpListing(server) && server.type === "http" && sameEndpoint(server.url, app.url!));
@@ -115,6 +131,7 @@ export function useRemoteApps(options: { needsPanel: () => boolean; openPanel: (
   const byId = new Map(apps.map((app) => [app.id, app]));
   return {
     apps, busy, error,
+    settled: (appsSettled || directoryFailed) && servers !== null,
     clearError: () => setError(null),
     connection: (id) => { const app = byId.get(id); return app && servers ? remoteConnection(app, serverOf(app)) : "unknown"; },
     ownsServer: (name) => apps.some((app) => serverOf(app)?.name === name),

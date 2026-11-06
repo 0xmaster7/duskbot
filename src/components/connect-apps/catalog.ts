@@ -88,6 +88,12 @@ export interface AppEntry {
   website?: string;
   /** Words besides the label that find it. */
   keywords?: string;
+  /** The same app in Composio's catalog, when this row is our own card: its second way in. */
+  composio?: string;
+  /** The same app's own MCP server, from the directory: another way in. */
+  remote?: string;
+  /** Composio's other listings of the same app, which count toward its connected state. */
+  aliases?: string[];
 }
 
 export type Connection = "connected" | "disconnected" | "unknown";

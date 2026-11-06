@@ -8,9 +8,12 @@ const fixture = vi.hoisted(() => ({
   opened: [] as string[],
   connected: { slack: { connected: true, accounts: [{ id: "ca_1", status: "ACTIVE" }] } } as Record<string, unknown>,
   dispatch: vi.fn(),
+  memory: null as { services: Record<string, unknown>; authoritative: boolean } | null,
+  inventory: null as Promise<{ services: Record<string, unknown>; authoritative: boolean }> | null,
   bundled: {
-    source: "test", count: 2,
+    source: "test", count: 3,
     toolkits: [
+      { slug: "_1password", name: "1password", description: "Password manager and digital vault", category: "password manager", auth: ["API_KEY"], tools: 6 },
       { slug: "asana", name: "Asana", description: "Tasks and projects for teams", category: "project management", auth: ["OAUTH2"], managed: true as const, tools: 12, triggers: 1 },
       { slug: "attio", name: "Attio", description: "A CRM built for you", category: "crm", auth: ["OAUTH2", "API_KEY"], tools: 40 },
     ],
@@ -30,9 +33,9 @@ vi.mock("./composio-snapshot", async (original) => ({
   loadToolkitActions: async (slug: string) => fixture.actions[slug] ?? null,
 }));
 vi.mock("@/lib/connected-apps", () => ({
-  connectorStatusMemory: () => null,
+  connectorStatusMemory: () => fixture.memory,
   rememberConnectorStatus: () => {},
-  preloadConnectedApps: async () => ({ services: fixture.connected, authoritative: true }),
+  preloadConnectedApps: () => fixture.inventory ?? Promise.resolve({ services: fixture.connected, authoritative: true }),
 }));
 vi.mock("@/lib/connector-oauth", async (original) => ({
   ...await original<typeof import("@/lib/connector-oauth")>(),
@@ -88,6 +91,8 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
+  fixture.memory = null;
+  fixture.inventory = null;
   act(() => root.unmount());
   document.body.innerHTML = "";
   vi.unstubAllGlobals();
@@ -344,6 +349,47 @@ describe("the Connect Apps window", () => {
     await act(async () => { confirm.click(); });
     await flush();
     expect(fixture.api).toHaveBeenCalledWith("/api/connectors/slack/accounts/ca_1", { method: "DELETE" });
+  });
+
+  it("lists our 1Password and Composio's as one row, and its page offers both ways in", async () => {
+    expect(dialog().querySelectorAll('[data-app-row="1password"]')).toHaveLength(1);
+    expect(dialog().querySelector('[data-app-row="_1password"]'), "composio's listing folds into ours").toBeNull();
+    await act(async () => { dialog().querySelector<HTMLButtonElement>('[data-app-row="1password"] .ca-row-open')!.click(); });
+    await flush();
+    const ways = [...dialog().querySelectorAll("[data-ways] [data-way]")];
+    expect(ways.map((way) => [way.getAttribute("data-way"), way.querySelector("span")?.textContent])).toEqual([
+      ["own", "Share a vault (built in)"], ["composio", "Connect via Composio"],
+    ]);
+    await act(async () => { ways[1]!.querySelector<HTMLButtonElement>(".ca-pill")!.click(); });
+    await flush();
+    expect(fixture.api).toHaveBeenCalledWith("/api/connectors/_1password/authorize", { method: "POST" });
+    expect(dialog().querySelector("[data-app-page]")?.getAttribute("data-app-page"), "it stays on our page").toBe("1password");
+  });
+
+  it("keeps every row in place when live answers come after the first frame: only a row's button changes", async () => {
+    act(() => root.unmount());
+    let answerCatalog: (value: unknown) => void = () => {};
+    let answerStatus: (value: { services: Record<string, unknown>; authoritative: boolean }) => void = () => {};
+    fixture.memory = { services: fixture.connected, authoritative: true };
+    fixture.inventory = new Promise((resolve) => { answerStatus = resolve; });
+    fixture.api.mockImplementation(async (path: string) => {
+      if (path === "/api/connectors/catalog") return new Promise((resolve) => { answerCatalog = resolve; });
+      return { services: {} };
+    });
+    root = createRoot(document.body.appendChild(document.createElement("div")));
+    await act(async () => { root.render(createElement(ConnectAppsWindow, { page: { kind: "home" }, nonce: 6, onClose, onTemplates: vi.fn() })); });
+    await flush();
+    const rows = () => [...dialog().querySelectorAll("[data-app-row]")].map((row) => row.getAttribute("data-app-row"));
+    const first = rows();
+    const sections = titles();
+    expect(first, "the first frame already has the cached catalog").toEqual(expect.arrayContaining(["slack", "asana", "linear", "attio"]));
+    expect(dialog().querySelector('[data-app-row="asana"]')?.textContent).not.toContain("Connected");
+    await act(async () => { answerCatalog({ configured: true, mode: "self-hosted", setup: "ready", source: "api", cards: [...CARDS].reverse() }); });
+    await act(async () => { answerStatus({ services: { ...fixture.connected, asana: { connected: true, accounts: [{ id: "ca_2", status: "ACTIVE" }] } }, authoritative: true }); });
+    await flush();
+    expect(rows(), "no row moves or appears").toEqual(first);
+    expect(titles()).toEqual(sections);
+    expect(dialog().querySelector('[data-app-row="asana"]')?.textContent, "the badge updates in place").toContain("Connected");
   });
 
   it("adds any MCP server from the Custom MCP row", async () => {
