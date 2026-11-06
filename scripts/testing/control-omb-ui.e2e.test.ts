@@ -206,6 +206,7 @@ describe("control-omb ui drives the real renderer", () => {
     })()`);
     // API keys sit in Settings > Models, under the model providers.
     await openSettings((verb, ...args) => ui(verb, info.ui, ...args), "Models");
+    await clickByName((verb, ...args) => ui(verb, info.ui, ...args), "API keys", "button");
     await expect.poll(() => evaluate(`Boolean(document.querySelector('[data-settings-block="connections"]'))`), { timeout: 10_000 }).toBe(true);
     // The servers section opens on its own, because a key is saved there.
     await expect.poll(masked, { timeout: 10_000 }).toContain("••••••••-key");

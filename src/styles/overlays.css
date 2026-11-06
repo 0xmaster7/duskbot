@@ -178,7 +178,7 @@
   border-radius: 14px;
   background-color: var(--color-menu);
   color: var(--color-ink);
-  box-shadow: 0 4px 12px -1px rgb(28 28 28 / 0.08), 0 2px 4px -2px rgb(28 28 28 / 0.06);
+  box-shadow: none;
 }
 [role="alert"]:is([class*="bg-danger/"], [class*="border-danger"]):not(.ui-notice)::before {
   content: "\f3aa";

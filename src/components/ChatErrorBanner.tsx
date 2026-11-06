@@ -25,7 +25,7 @@ export function ChatNotice({ notice }: { notice: AppState["notice"] }) {
 }
 
 // grok's error tray: a card on a hairline with one coloured glyph, a 14/20 title, quiet words, ink pill actions
-const CARD = "flex items-start gap-3 rounded-[18px] border border-ink/[0.12] bg-composer p-3 text-[14px] leading-5 text-ink shadow-[0_4px_12px_-1px_rgb(28_28_28/0.08),0_2px_4px_-2px_rgb(28_28_28/0.06)]";
+const CARD = "flex items-start gap-3 rounded-[18px] border border-ink/[0.12] bg-composer p-3 text-[14px] leading-5 text-ink";
 export const CARD_ACTION = "ui-button ui-button-pill border-transparent bg-ink/[0.06] text-ink hover:bg-ink/[0.1]";
 const SUMMARY = "w-fit cursor-pointer list-none rounded-sm [&::-webkit-details-marker]:hidden hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
 

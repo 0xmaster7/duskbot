@@ -9,7 +9,7 @@ import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
-import { openAdvancedSettings } from "./grok-nav.ts";
+import { clickByName, openAdvancedSettings } from "./grok-nav.ts";
 import { openTemplatesWhenFree } from "./grok-templates.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
@@ -90,6 +90,7 @@ describe("full backup Settings in the real renderer", () => {
     await ui("press", "--keys", "Escape");
     await expect.poll(snapshot).not.toContain('dialog "Templates"');
     await openAdvancedSettings(ui, "Privacy and data");
+    await clickByName(ui, "Backups", "button");
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Export full backup");
     expect(await snapshot()).toContain("Sign-ins and keys are left out. The password can't be recovered.");
     await ui("screenshot", "--out", join(ROOT, ".omb-scratch", "verify-evidence", "workspace-backup-settings.png"));

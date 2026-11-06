@@ -8,7 +8,7 @@ import { rowButtonCls } from "./GrokDialog";
 export type NoticeTone = "info" | "warning" | "danger" | "success";
 
 /** Grok's banner (sand-banner): a white card on a 1px ink/12 edge at 18px corners, the inline lift, 12px in, 12px gaps. */
-export const noticeCardCls = "flex items-start gap-3 rounded-[18px] border border-ink/12 bg-menu p-3 text-[14px] leading-5 text-ink shadow-[0_4px_12px_-1px_rgb(28_28_28/0.08),0_2px_4px_-2px_rgb(28_28_28/0.06)]";
+export const noticeCardCls = "flex items-start gap-3 rounded-[18px] border border-ink/12 bg-menu p-3 text-[14px] leading-5 text-ink";
 /** A notice's action: Grok's 30px ink/6 pill. */
 export const noticeActionCls = rowButtonCls;
 
