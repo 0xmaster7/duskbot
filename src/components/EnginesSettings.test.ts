@@ -410,9 +410,9 @@ describe("Settings → AI in Simple mode", () => {
     fixture.bots = [];
     return renderToStaticMarkup(createElement(EnginesSettings, { simple: true, more: { id: "ai-more", open, onToggle: () => {} } }));
   };
-  const rows = (html: string) => [...html.matchAll(/data-simple-engine="([^"]+)"/g)].map((match) => match[1]);
+  const rows = (html: string) => [...html.matchAll(/data-panel-page="engine:([^"]+)"/g)].map((match) => match[1]);
 
-  it("lists each ready provider, and each one signed in by subscription, as a row with Manage or Set up", () => {
+  it("lists each ready provider, and each one signed in by subscription, as a row showing its status", () => {
     fixture.instances = [
       engine("claude", "claudeAgent", true),
       engine("codex", "codexAgent", false, { authentication: { method: "device-code" } }),
@@ -420,19 +420,16 @@ describe("Settings → AI in Simple mode", () => {
     ];
     const html = simple();
     expect(html).toContain(">Your AI</h3>");
-    // the folded providers below More AI providers use the same row, so count only the rows above it
-    expect(rows(html.split("More AI providers")[0]!)).toEqual(["claude", "codex"]);
-    expect(html).toMatch(/data-simple-engine="claude"[\s\S]*?>Manage<\/button>/);
-    expect(html).toMatch(/data-simple-engine="codex"[\s\S]*?>Set up<\/button>/);
+    expect(rows(html)).toEqual(["claude", "codex"]);
+    expect(html).toMatch(/data-panel-page="engine:claude"[\s\S]*?>Ready<\/span>/);
+    expect(html).toMatch(/data-panel-page="engine:codex"[\s\S]*?>Sign-in required<\/span>/);
     expect(html).not.toContain("Model providers and accounts");
   });
 
-  it("folds every other provider under More AI providers, with the count", () => {
+  it("puts every other provider behind More AI providers, with the count", () => {
     fixture.instances = [engine("claude", "claudeAgent", true), engine("kimi", "kimiAgent", false), engine("mistral", "mistral", false)];
-    expect(simple()).toMatch(/aria-expanded="false"[^>]*>[\s\S]*?More AI providers \(2\)/);
-    const open = simple(true).split("More AI providers")[1]!;
-    expect(rows(open)).toEqual(["kimi", "mistral"]);
-    expect(open).toMatch(/data-simple-engine="kimi"[\s\S]*?>Set up<\/button>/);
-    expect(open).not.toContain("data-engine-card");
+    const html = simple();
+    expect(html).toMatch(/data-panel-page="more-engines"[\s\S]*?More AI providers \(2\)/);
+    expect(rows(html)).toEqual(["claude"]);
   });
 });

@@ -115,7 +115,8 @@ export function SettingsModal() {
     const place = settingsLocation(section);
     const home = place.page ? ADVANCED_PAGES.find((entry) => entry.id === place.page)?.sections : SETTINGS_PANES.find((entry) => entry.id === place.pane)?.sections;
     // the rail and Advanced's rows open a pane or page by its first section: that is its list, not one of its pages
-    if (!target || !has(section) || home?.find(has) === section) return [];
+    const phoneLink = section === "companion" && state.appSettingsPhonePairing > 0;
+    if (!target || !has(section) || (home?.find(has) === section && !phoneLink)) return [];
     return [{ id: target.id, title: t(target.title) }];
   };
   const [sub, setSub] = useState<{ key: string; stack: SubPage[] }>(() => ({ key: paneKey, stack: linkedPage(requested) }));

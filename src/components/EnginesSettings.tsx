@@ -423,7 +423,6 @@ function SimpleEngines({ rows, isReady, renderEngine, more }: {
     <NavRow
       key={instance.instanceId}
       data-panel-page={`engine:${instance.instanceId}`}
-      aria-label={`${instance.displayName}, ${simpleStatus(instance, isReady(instance))}`}
       title={instance.displayName}
       value={simpleStatus(instance, isReady(instance))}
       onClick={() => open(`engine:${instance.instanceId}`, instance.displayName)}

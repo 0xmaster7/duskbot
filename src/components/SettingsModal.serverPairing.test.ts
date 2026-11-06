@@ -47,15 +47,15 @@ describe("Settings → Remote access: server pairing card visibility", () => {
 
   it("is offered when this desktop is a remote client of a hosted workspace, whose phones pair only here", () => {
     vi.stubGlobal("window", { ogb: { remoteClient: { active: true } } });
-    expect(render()).toContain("SERVER_PAIRING_CARD_MARKER");
+    expect(render()).toContain('data-panel-page="pairing"');
   });
 
   it("on an OMB Cloud home, which is personal, tells the card so and offers no People section to invite anyone", () => {
     vi.stubGlobal("window", {});
     fixture.section = "people";
-    expect(render()).toContain('data-settings-block="people"');
+    expect(render()).toContain('data-panel-page="people"');
     fixture.config = { cloudHome: true };
-    expect(render()).not.toContain('data-settings-block="people"');
+    expect(render()).not.toContain('data-panel-page="people"');
     fixture.section = "companion";
     expect(render()).toContain("SERVER_PAIRING_CARD_MARKER cloud");
   });
