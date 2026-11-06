@@ -13,6 +13,7 @@ vi.mock("@/state/store", async (importOriginal) => {
 import {
   CloudComputersCard,
   LocalComputerSection,
+  LocalVmIdleTimeoutField,
   LocalVmIdleTimeoutSetting,
   LocalVmInventoryCard,
   cloudComputerActionPlan,
@@ -371,9 +372,9 @@ describe("cloud computer inventory UI", () => {
     ]) {
       setLocale(locale);
       expect(renderCard({ instances: [ownedCloudComputer] }))
-        .toContain(`bg-success/15 text-success">${running}</span>`);
+        .toContain(`data-computer-state="good" class="shrink-0 text-[13px] leading-[18px] text-success">${running}</span>`);
       expect(renderCard({ instances: [{ ...ownedCloudComputer, state: "archived" }] }))
-        .toContain(`bg-control text-ink-secondary">${sleeping}</span>`);
+        .toContain(`data-computer-state="idle" class="shrink-0 text-[13px] leading-[18px] text-ink-secondary">${sleeping}</span>`);
       const translatedPlan = cloudComputerActionPlan("delete", ownedCloudComputer);
       expect(translatedPlan.confirmation).not.toBe(englishPlan.confirmation);
       expect(translatedPlan.confirmation).toContain(ownedCloudComputer.ownerName);
@@ -547,28 +548,29 @@ describe("VPS computer inventory UI", () => {
   it("keeps running and paused VPS badge colors when labels are translated", () => {
     setLocale("pt-br");
     const running = renderCard({ instances: [ownedVps] });
-    expect(running).toContain('bg-success/15 text-success">Em execução</span>');
+    expect(running).toContain('data-computer-state="good" class="shrink-0 text-[13px] leading-[18px] text-success">Em execução</span>');
     expect(running).toContain("Remover");
     expect(running).not.toContain(">Remove</button>");
     expect(renderCard({ instances: [{ ...ownedVps, state: "paused" }] }))
-      .toContain('bg-control text-ink-secondary">Pausado</span>');
+      .toContain('data-computer-state="idle" class="shrink-0 text-[13px] leading-[18px] text-ink-secondary">Pausado</span>');
   });
 });
 
 describe("Settings → Computers on an OMB Cloud home", () => {
   afterEach(() => { storeFixture.config = null; });
-  const cards = () => [...renderToStaticMarkup(createElement(LocalComputerSection)).matchAll(/<(?:div|h3) (?:id="[^"]*" )?class="(?:text-\[(?:16px\] font-semibold|14px\] font-medium) text-ink|text-\[12px\] leading-4)[^"]*">([^<]+)<\/(?:div|h3)>/g)].map((match) => match[1]);
+  // the labels and row names the page draws
+  const cards = () => [...renderToStaticMarkup(createElement(LocalComputerSection)).matchAll(/<(?:div|h3)[^>]*data-(?:row-title|settings-heading)=""[^>]*>([^<]+)<\/(?:div|h3)>/g)].map((match) => match[1]);
 
   it("sets up a Local VM on a desktop or self-hosted server", () => {
-    expect(cards()).toEqual(expect.arrayContaining(["Cloud desktops", "Private desktop", "Isolation"]));
+    expect(cards()).toEqual(expect.arrayContaining(["Cloud desktop", "Private desktop", "Setup and options"]));
   });
 
   it("shows no Local VM, and no steps to install one, where it cannot exist", () => {
     storeFixture.config = { cloudHome: true };
     const titles = cards();
-    expect(titles).toContain("Cloud desktops");
+    expect(titles).toContain("Cloud desktop");
     expect(titles).not.toContain("Private desktop");
-    expect(titles).not.toContain("Setup");
+    expect(titles).not.toContain("Setup and options");
   });
 });
 
@@ -581,17 +583,20 @@ describe("Local VM idle timeout setting", () => {
     expect(parseLocalVmIdleTimeoutMinutes(value)).toBeNull();
   });
 
-  it("shows the confirmed window as a bounded, labelled minutes field", () => {
-    const markup = renderToStaticMarkup(createElement(LocalVmIdleTimeoutSetting, {
+  it("shows the confirmed window as the row's value, and its form as a bounded, labelled minutes field", () => {
+    const row = renderToStaticMarkup(createElement(LocalVmIdleTimeoutSetting, {
       minutes: 30,
       disabled: false,
       onSave: async () => {},
     }));
-    expect(markup).toContain('for="local-vm-idle-timeout"');
-    expect(markup).toContain("Stop idle desktops after");
-    expect(markup).toContain('min="5"');
-    expect(markup).toContain('max="1440"');
-    expect(markup).toContain('value="30"');
-    expect(markup).toContain("minutes");
+    expect(row).toContain("Stop idle desktops after");
+    expect(row).toContain("30 minutes");
+    expect(row).not.toContain("<input");
+    const field = renderToStaticMarkup(createElement(LocalVmIdleTimeoutField, { value: "30", disabled: false, error: "", onChange: () => {} }));
+    expect(field).toMatch(/<label[^>]*>[\s\S]*Stop idle desktops after[\s\S]*<input[^>]*id="local-vm-idle-timeout"/);
+    expect(field).toContain('min="5"');
+    expect(field).toContain('max="1440"');
+    expect(field).toContain('value="30"');
+    expect(field).toContain("minutes");
   });
 });

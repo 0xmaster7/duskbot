@@ -1,17 +1,22 @@
 import type { ComponentProps, CSSProperties } from "react";
 
 import { cn } from "@/lib/cn";
+import { useOptimisticSwitch } from "./optimistic-switch";
 
 /** Grok's switch: a 32 by 20 track, the switch blue when on, its colours on a 120ms ease; the 16px knob travels on
  * bencho's thumb spring and stretches along its travel while pressed. */
-export function Toggle({ checked, className, tone, style, ...props }: Omit<ComponentProps<"button">, "children" | "role" | "aria-checked"> & {
+export function Toggle({ checked: owned, className, tone, style, disabled: ownedDisabled, onClick: ownedClick, ...props }: Omit<ComponentProps<"button">, "children" | "role" | "aria-checked"> & {
   checked: boolean;
   /** A bot's own switch colours, as Grok paints a bot's switches in its `bg/<hue>-primary` and `-primary-hover`. */
   tone?: { on: string; hover: string };
 }) {
+  const { checked, disabled, busy, onClick } = useOptimisticSwitch(owned, ownedDisabled, ownedClick);
   return (
     <button
       {...props}
+      disabled={disabled}
+      aria-busy={busy || undefined}
+      onClick={onClick}
       style={tone ? { ...style, "--toggle-on": tone.on, "--toggle-on-hover": tone.hover } as CSSProperties : style}
       type="button"
       role="switch"

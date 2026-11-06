@@ -9,9 +9,11 @@ import { keyRemoved, keySaved, keySaveFailure, savedKeyResult } from "@/lib/prod
 import { InstanceProviderMark } from "../ProviderIcons";
 import { keyEntry, keyForInstance, looksLikeOtherKey, savedState, shownKeyEntry, type KeyEntry, type KeyId, type SavedState } from "./key-catalog";
 import { checkKey, cleanKey, looksLikeKey, saveKey } from "./key-save";
+import { CopyRow } from "../ListRows";
 
-export const KEY_FIELD = "h-8 w-full min-w-0 rounded-lg border border-hairline/60 bg-inset px-3 font-mono text-[13px] leading-8 text-ink placeholder:text-ink-tertiary focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 disabled:opacity-60";
-export const KEY_ROW = "group flex scroll-mt-24 flex-col gap-2 rounded-[10px] px-4 py-2.5 transition-[background-color,box-shadow] duration-500 data-[key-highlight]:bg-accent/10 data-[key-highlight]:ring-1 data-[key-highlight]:ring-accent/40 motion-reduce:transition-none";
+/** A key field: the panel's quiet hairline box, no fill, unchanged on hover and focus (the caret marks it). */
+export const KEY_FIELD = "h-7 w-full min-w-0 rounded-lg border border-ink/10 bg-transparent px-2.5 font-mono text-[12px] leading-7 text-ink placeholder:font-sans placeholder:text-ink-tertiary outline-none disabled:opacity-60";
+export const KEY_ROW = "group flex scroll-mt-24 flex-col gap-1.5 rounded-lg px-2 py-1.5 transition-[background-color,box-shadow] duration-500 data-[key-highlight]:bg-accent/10 data-[key-highlight]:ring-1 data-[key-highlight]:ring-accent/40 motion-reduce:transition-none";
 const MASK = "••••••••";
 
 export function KeyMarkIcon({ entry }: { entry: KeyEntry }) {
@@ -61,13 +63,14 @@ export function SavedKeyLine({ id }: { id: KeyId }) {
   );
 }
 
-export function RowHeading({ entry, status, titleId, purpose = true }: { entry: KeyEntry; status: KeyStatus; titleId?: string; purpose?: boolean }) {
+export function RowHeading({ entry, status, titleId, purpose = true, hint }: { entry: KeyEntry; status: KeyStatus; titleId?: string; purpose?: boolean; hint?: ReactNode }) {
   return (
-    <div className="flex items-start gap-3">
+    <div className="flex items-center gap-2.5">
       <span className="flex size-5 shrink-0 items-center justify-center"><KeyMarkIcon entry={entry} /></span>
       <div className="min-w-0 flex-1">
-        <div id={titleId} className="text-[14px] leading-5 text-ink">{t(entry.labelKey)}</div>
-        {purpose && <div className="text-[13px] leading-[18px] text-ink-secondary">{t(entry.purposeKey)}</div>}
+        <div id={titleId} data-row-title="" className="text-[13px] leading-[18px] text-ink">{t(entry.labelKey)}</div>
+        {purpose && <div data-row-hint="" className="text-[12px] leading-4 text-ink-secondary">{t(entry.purposeKey)}</div>}
+        {hint}
       </div>
       <KeyStatusChip status={status} />
     </div>
@@ -340,9 +343,16 @@ export function KeyRow({
   const warning = target.warningKey && fieldShown ? t(target.warningKey) : null;
   const note = target.noteKey && fieldShown && !pointer && !quiet ? t(target.noteKey) : null;
 
+  const linkInHeading = quiet && !bare && fieldShown && Boolean(target.href);
+  const getKey = target.href && (
+    <a href={target.href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] leading-4 font-medium text-accent-text hover:underline">
+      {t("keys.row.getKey")}
+      <ExternalLink size={11} aria-hidden="true" />
+    </a>
+  );
   const messages = (
     <>
-        {(notice || failure || other || warning || installCommand || note || verdict || (fieldShown && target.href) || (!fieldShown && saved.configured && target.test)) && (
+        {(notice || failure || other || warning || installCommand || note || verdict || (fieldShown && target.href && !linkInHeading) || (!fieldShown && saved.configured && target.test)) && (
         <div className="flex flex-col gap-1.5 text-[12px] leading-4">
           {notice && <p role="alert" className="text-danger">{notice}</p>}
           {failure && (
@@ -369,7 +379,7 @@ export function KeyRow({
                 <TriangleAlert size={13} aria-hidden="true" className="mt-px shrink-0" />
                 <span>{t("keys.row.engineMissing", { engine: missingEngine.displayName })}</span>
               </p>
-              <code className="select-all break-all rounded-md bg-inset px-2 py-1 font-mono text-[12px] text-ink">{installCommand}</code>
+              <CopyRow title={missingEngine.displayName} text={installCommand} copyLabel={t("engineSetup.copyCommand")} />
               <button type="button" data-key-engine-check className="cursor-pointer self-start text-ink-secondary hover:text-ink hover:underline disabled:opacity-50" disabled={enginesChecking}
                 onClick={() => void checkEngines()}>
                 {enginesChecking ? t("common.checking") : t("common.checkAgain")}
@@ -379,14 +389,9 @@ export function KeyRow({
           )}
           {note && <p className="text-ink-secondary">{note}</p>}
           {verdict && <p role="status" className="whitespace-pre-line text-ink-secondary">{verdict}</p>}
-          {(fieldShown && target.href) || (!fieldShown && saved.configured && target.test) ? (
+          {(fieldShown && target.href && !linkInHeading) || (!fieldShown && saved.configured && target.test) ? (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-              {fieldShown && target.href && (
-                <a href={target.href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-accent-text hover:underline">
-                  {t("keys.row.getKey")}
-                  <ExternalLink size={11} aria-hidden="true" />
-                </a>
-              )}
+              {fieldShown && !linkInHeading && getKey}
               {!fieldShown && saved.configured && target.test && (
                 <button type="button" data-key-check className="cursor-pointer text-ink-secondary hover:text-ink hover:underline disabled:opacity-50" disabled={busy !== null} onClick={() => void recheck()}>
                   {t("common.checkAgain")}
@@ -414,7 +419,7 @@ export function KeyRow({
   if (quiet && !bare) {
     return (
       <div {...attributes} className={cn(KEY_ROW, "flex-row flex-wrap items-center gap-x-5", className)}>
-        <div className="min-w-0 flex-1 basis-48"><RowHeading entry={row} status={status} titleId={titleId} purpose={false} /></div>
+        <div className="min-w-0 flex-1 basis-48"><RowHeading entry={row} status={status} titleId={titleId} purpose={false} hint={linkInHeading ? <div>{getKey}</div> : undefined} /></div>
         <div className="ms-auto w-[min(100%,20rem)]">{fieldOrSaved}</div>
         <div className="flex w-full flex-col gap-2 empty:hidden">{messages}{children}</div>
       </div>
@@ -424,7 +429,7 @@ export function KeyRow({
   return (
     <div {...attributes} className={cn(KEY_ROW, className)}>
       {bare ? status && <KeyStatusChip status={status} /> : <RowHeading entry={row} status={status} titleId={titleId} purpose={!quiet} />}
-      <div className={cn("flex flex-col gap-2", !bare && "pl-8")}>
+      <div className={cn("flex flex-col gap-1.5", !bare && "ps-[30px]")}>
         {fieldOrSaved}
         {messages}
         {children}

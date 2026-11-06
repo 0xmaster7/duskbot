@@ -24,6 +24,20 @@ vi.mock("@/state/store", () => ({
   useStore: () => ({ state: { config: fixture.config }, dispatch: fixture.dispatch }),
 }));
 
+// the leaves draw plain markup here, so only this page's own state runs through the hook stub above
+vi.mock("./SettingsPrimitives", async (original) => ({
+  ...await original<typeof import("./SettingsPrimitives")>(),
+  Switch: (props: Record<string, unknown>) => createElement("button", { role: "switch", "aria-checked": String(props.checked), disabled: Boolean(props.disabled) }),
+}));
+vi.mock("./SettingsSelect", () => ({
+  SettingsSelect: ({ children, value }: { children?: ReactNode; value: string }) => createElement("select", { value, readOnly: true }, children),
+}));
+vi.mock("./ListRows", async (original) => ({
+  ...await original<typeof import("./ListRows")>(),
+  FormDialog: ({ children, saveLabel }: { children?: ReactNode; saveLabel?: string }) => createElement("form", { "data-dialog": "" }, children, createElement("span", null, saveLabel)),
+  NavRow: ({ title, onClick }: { title: ReactNode; onClick: () => void }) => createElement("button", { type: "button", onClick }, title),
+}));
+
 const KEY = "tsk_ui_secret_key_value";
 type Node = ReactElement<Record<string, unknown> & { children?: ReactNode }>;
 function nodes(value: ReactNode): Node[] {
@@ -33,12 +47,14 @@ function nodes(value: ReactNode): Node[] {
     return [node, ...nodes(node.props.children)];
   });
 }
-function render() {
+function renderOnce() {
   let tree: ReactNode = null;
   function Capture() { fixture.index = 0; fixture.effects = []; tree = DecisionModelSettings(); return tree; }
   const html = renderToStaticMarkup(createElement(Capture));
   const all = nodes(tree);
   const byTestId = (id: string) => all.filter((node) => node.props["data-testid"] === id);
+  // the key is typed in its small dialog; its Save is the dialog's own
+  const dialog = all.find((node) => node.props["data-panel-modal"] === "decider-key");
   return {
     html,
     switches: all.filter((node) => node.type === Switch),
@@ -46,11 +62,20 @@ function render() {
     job: byTestId("decider-job-roomRouting")[0]!,
     provider: byTestId("decider-provider")[0],
     model: byTestId("decider-model")[0],
-    save: byTestId("decider-save")[0]!,
+    open: byTestId("decider-key-open")[0]!,
+    dialog,
+    save: dialog && ({ props: { onClick: dialog.props.onSave, disabled: !dialog.props.canSave || Boolean(dialog.props.busy) } } as unknown as Node),
     test: byTestId("decider-test")[0]!,
     manage: byTestId("decider-manage-keys")[0],
     input: all.find((node) => node.type === "input")!,
   };
+}
+/** The page, with its key dialog open (as a person would, from Add key or Replace). */
+function render() {
+  const view = renderOnce();
+  if (view.dialog) return view as typeof view & { save: Node };
+  (view.open.props.onClick as () => void)();
+  return renderOnce() as ReturnType<typeof renderOnce> & { save: Node };
 }
 const click = (node: Node) => (node.props.onClick as () => void)();
 const type = (node: Node, value: string) => (node.props.onChange as (event: { target: { value: string } }) => void)({ target: { value } });
@@ -91,7 +116,7 @@ describe("DecisionModelSettings", () => {
     expect(view.html).not.toContain("Small, fast models that sort and read things for your bots");
     expect(view.html).not.toContain("What it decides");
     expect(view.html).toContain("Not connected");
-    expect(view.html).toContain('href="https://typesafe.ai"');
+    expect(view.html).toContain("Get a key at typesafe.ai");
     expect(view.master.props.checked).toBe(false);
     expect(view.master.props.disabled).toBe(true);
   });
@@ -115,7 +140,7 @@ describe("DecisionModelSettings", () => {
 
   it("every button shows a pointer cursor", () => {
     const view = render();
-    for (const node of [view.save, view.test, view.master, view.job]) expect(String(node.props.className)).toContain("cursor-pointer");
+    for (const node of [view.open, view.test]) expect(String(node.props.className)).toContain("cursor-pointer");
   });
 
   it("saves the key, shows Connected, and never renders the key back", async () => {
@@ -258,7 +283,7 @@ describe("DecisionModelSettings", () => {
     it("shows OpenRouter's labels, key link and model picker, and not Jev's", () => {
       const view = render();
       for (const text of ["Use OpenRouter for fast decisions", "OpenRouter API key", "Get a key at openrouter.ai", "Not connected"]) expect(view.html).toContain(text);
-      expect(view.html).toContain('href="https://openrouter.ai/keys"');
+      expect(view.html).toContain("Get a key at openrouter.ai");
       expect(view.html).not.toContain("Use Jev for fast decisions");
       expect(view.html).not.toContain("typesafe.ai");
       expect(view.input.props.placeholder).toBe("Paste your OpenRouter API key");

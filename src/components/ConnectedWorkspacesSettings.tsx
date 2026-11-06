@@ -1,10 +1,11 @@
 import { t } from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
-import { Check, Cloud, Laptop, Loader2, Trash2 } from "lucide-react";
-import { Card } from "./SettingsPrimitives";
+import { Trash2 } from "lucide-react";
+import { Card as RowsCard, CopyRow, FormDialog, FormField, ItemRow, NavRow, NoteRow, SwitchRow, pillCls } from "./ListRows";
 import { ComputerSharingSettings } from "./ComputerSharingSettings";
 import { CloudTile } from "./cloud-buy/parts";
 import { cloudColor } from "@/lib/cloud-look";
+import { textFieldCls } from "./ui/GrokDialog";
 import { useStore } from "@/state/store";
 import { sharedComputersEnabled } from "@/lib/feature-flags";
 
@@ -28,6 +29,8 @@ export function ConnectedWorkspacesSettings() {
   const [envName, setEnvName] = useState("");
   const [envDir, setEnvDir] = useState("");
   const [envForget, setEnvForget] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [envPurge, setEnvPurge] = useState(false);
   const [envError, setEnvError] = useState("");
   const pending = useRef(false);
@@ -35,7 +38,7 @@ export function ConnectedWorkspacesSettings() {
   useEffect(() => {
     const current = ++generation.current;
     void bridge?.state().then((state) => { if (generation.current === current) setSaved(state); })
-      .catch(() => { if (generation.current === current) setError("Could not load saved servers. Please reopen this page."); });
+      .catch(() => { if (generation.current === current) setError(t("settings.s2.servers.loadError")); });
     return () => { generation.current++; };
   }, [bridge]);
   useEffect(() => {
@@ -66,125 +69,99 @@ export function ConnectedWorkspacesSettings() {
       if (generation.current === current) setBusy(false);
     }
   };
-  if (!bridge) return <p className="text-[13px] text-ink-secondary">Manage server connections in the desktop app.</p>;
+  if (!bridge) return <RowsCard><NoteRow>{t("settings.s2.servers.desktopOnly")}</NoteRow></RowsCard>;
   const confirmAction = (message: string) => window.ogb?.confirm ? window.ogb.confirm(message) : window.confirm(message);
   const connected = saved?.environments.find(entry => entry.id === computerId);
   const computerWorkspace = connected?.origin && !connected.home ? { id: connected.id, name: connected.name, origin: connected.origin } : undefined;
   const locals = saved?.environments.filter(entry => entry.kind === "local") ?? [];
   const forgetEntry = locals.find(entry => entry.id === envForget);
+  // a quiet trash button at the end of a row, named for what it forgets
+  const forgetButton = (label: string, onClick: () => void) => (
+    <button type="button" disabled={busy} aria-label={label} title={label} onClick={onClick}
+      className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-ink-secondary hover:bg-ink/[0.035] hover:text-danger outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus disabled:opacity-45">
+      <Trash2 size={13} aria-hidden="true" />
+    </button>
+  );
+  const current = <span data-panel-value="" className="shrink-0 text-[13px] leading-[18px] text-ink-secondary">{t("connectedWorkspaces.current")}</span>;
   return <>
-    {saved?.packaged && <Card title={t("connectedWorkspaces.localTitle")}>
-      {envError && <p role="alert" className="text-[12px] text-danger">{envError}</p>}
-      {locals.length > 0 && <ul className="divide-y divide-hairline/40">
-        {locals.map((entry) => {
+    {saved?.packaged && <RowsCard label={t("connectedWorkspaces.localTitle")} data-settings-block="environments">
+      {locals.map((entry) => {
+        const active = entry.id === saved.activeId;
+        return <ItemRow key={entry.id} title={entry.name} hint={<>{entry.dataDir}{entry.missing && <> · <span>{t("connectedWorkspaces.missing")}</span></>}</>}>
+          {active ? current : <button type="button" className="ui-button" disabled={busy} aria-label={t("connectedWorkspaces.switchTo", { name: entry.name })}
+            onClick={() => void perform(async () => {
+              if (!await confirmAction(t("connectedWorkspaces.switchConfirm", { name: entry.name }))) return;
+              const result = await bridge.switch(entry.id);
+              if (result && result.ok === false) throw new Error(t("connectedWorkspaces.switchError"));
+              return true;
+            }, setEnvError)}>{t("connectedWorkspaces.switch")}</button>}
+          {!active && forgetButton(t("connectedWorkspaces.forgetName", { name: entry.name }), () => { setEnvForget(entry.id); setEnvPurge(false); })}
+        </ItemRow>;
+      })}
+      <NavRow data-settings-open="new-environment" title={t("connectedWorkspaces.newEnvironment")} hint={t("settings.s2.env.newHint")} onClick={() => { setEnvError(""); setCreating(true); }} />
+      {envError && !creating && !forgetEntry && <NoteRow tone="danger">{envError}</NoteRow>}
+    </RowsCard>}
+    <RowsCard label={t("settings.s2.servers.title")} data-settings-block="servers">
+      {!saved ? <NoteRow>{error ? t("settings.s2.servers.loadFailed") : t("settings.s2.servers.loading")}</NoteRow> :
+        [{ id: "local", name: t("settings.s2.servers.thisComputer"), origin: "", color: undefined }, ...saved.environments.filter((entry) => entry.kind !== "local")].map((entry) => {
           const active = entry.id === saved.activeId;
-          return <li key={entry.id} className="flex items-center gap-3 py-3">
-            <Laptop size={18} className="shrink-0 text-ink-secondary" />
-            <div className="min-w-0 flex-1"><div className="truncate text-[13px] font-medium text-ink">{entry.name}</div>
-              <div className="break-all text-[12px] text-ink-secondary">{entry.dataDir}
-                {entry.missing && <span className="ml-2 rounded-md bg-inset px-1.5 py-0.5 text-[11px]">{t("connectedWorkspaces.missing")}</span>}</div></div>
-            {active ? <span className="flex shrink-0 items-center gap-1 text-[12px] text-ink-secondary"><Check size={13} />{t("connectedWorkspaces.current")}</span> :
-              <button type="button" disabled={busy} aria-label={t("connectedWorkspaces.switchTo", { name: entry.name })}
-                onClick={() => void perform(async () => {
-                  if (!await confirmAction(t("connectedWorkspaces.switchConfirm", { name: entry.name }))) return;
-                  const result = await bridge.switch(entry.id);
-                  if (result && result.ok === false) throw new Error(t("connectedWorkspaces.switchError"));
-                  return true;
-                }, setEnvError)}
-                className="rounded-md px-2 py-1.5 text-[12px] text-ink hover:bg-control disabled:opacity-50">{t("connectedWorkspaces.switch")}</button>}
-            {!active && <button type="button" disabled={busy} aria-label={t("connectedWorkspaces.forgetName", { name: entry.name })} title={t("connectedWorkspaces.forgetName", { name: entry.name })}
-              onClick={() => { setEnvForget(entry.id); setEnvPurge(false); }}
-              className="rounded-md p-1.5 text-ink-secondary hover:bg-control hover:text-danger disabled:opacity-50"><Trash2 size={14} /></button>}
-          </li>;
+          return <ItemRow key={entry.id} title={<span className="flex min-w-0 items-center gap-2">{cloudColor(entry.color) && <CloudTile color={entry.color} size={16} />}<span className="truncate">{entry.name}</span></span>}
+            hint={entry.origin || t("settings.s2.servers.local")}>
+            {active ? current : <button type="button" className="ui-button" disabled={busy} aria-label={t("settings.s2.servers.switchTo", { name: entry.name })}
+              onClick={() => void perform(async () => { await bridge.switch(entry.id); return true; })}>{t("connectedWorkspaces.switch")}</button>}
+            {entry.id !== "local" && !ownCloud(entry) && sharingOffered && <button type="button" className="ui-button" disabled={busy} aria-label={t("settings.s2.servers.accessFor", { name: entry.name })} onClick={() => setComputerId(entry.id)}>{t("settings.s2.servers.access")}</button>}
+            {entry.id !== "local" && forgetButton(t("settings.s2.servers.forget", { name: entry.name }), () => void perform(() => bridge.forget(entry.id)))}
+          </ItemRow>;
         })}
-      </ul>}
-      {forgetEntry && <div className="mt-3 rounded-lg border border-hairline/40 p-3">
-        <label className="flex items-start gap-2 text-[12px] leading-relaxed text-ink-secondary">
-          <input type="checkbox" checked={envPurge} disabled={busy} className="mt-0.5" onChange={(event) => setEnvPurge(event.target.checked)} />
-          {t("connectedWorkspaces.forgetPurge", { path: forgetEntry.dataDir ?? "" })}
-        </label>
-        <div className="mt-2 flex gap-2">
-          <button type="button" disabled={busy} onClick={() => void perform(async () => {
-            const result = envPurge ? await bridge.forget(forgetEntry.id, true) : await bridge.forget(forgetEntry.id);
-            if (result && result.ok === false) throw new Error(t("connectedWorkspaces.forgetError"));
-            setEnvForget(null);
-          }, setEnvError)} className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-danger hover:bg-control disabled:opacity-50">{t("connectedWorkspaces.forget")}</button>
-          <button type="button" onClick={() => setEnvForget(null)} className="rounded-lg px-3 py-1.5 text-[12px] text-ink hover:bg-control">{t("connectedWorkspaces.cancel")}</button>
-        </div>
-      </div>}
-      <p className="mt-4 text-[13px] font-medium text-ink">{t("connectedWorkspaces.newEnvironment")}</p>
-      <form className="flex flex-col gap-3 pt-2" onSubmit={(event) => {
-        event.preventDefault();
-        if (!envName.trim()) return;
-        void perform(async () => {
-          const created = await bridge.create(envName.trim(), envDir.trim() || undefined);
-          if (!created?.ok) throw new Error(t("connectedWorkspaces.createError"));
-          setEnvName(""); setEnvDir("");
-        }, setEnvError);
-      }}>
-        <label className="flex flex-col gap-1.5 text-[12px] text-ink-secondary">{t("connectedWorkspaces.name")}
-          <input required value={envName} disabled={busy} maxLength={60} onChange={(event) => setEnvName(event.target.value)} placeholder={t("connectedWorkspaces.environmentPlaceholder")}
-            className="w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[14px] text-ink outline-none focus:border-accent/50" />
-        </label>
-        <label className="flex flex-col gap-1.5 text-[12px] text-ink-secondary">{t("connectedWorkspaces.dataFolder")}
-          <span className="flex gap-2">
-            <input value={envDir} disabled={busy} onChange={(event) => setEnvDir(event.target.value)} placeholder={t("connectedWorkspaces.defaultFolder")}
-              className="w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[14px] text-ink outline-none focus:border-accent/50" />
-            <button type="button" disabled={busy} onClick={() => void perform(async () => {
-              const picked = await bridge.pickDir();
-              if (picked?.ok && picked.path) setEnvDir(picked.path);
-            }, setEnvError)} className="shrink-0 rounded-lg border border-hairline/40 px-3 text-[12px] text-ink hover:bg-control disabled:opacity-50">{t("connectedWorkspaces.choose")}</button>
-          </span>
-        </label>
-        <button type="submit" disabled={busy || !envName.trim()} className="flex w-fit items-center gap-2 rounded-lg bg-accent px-3 py-2 text-[13px] font-medium text-accent-ink disabled:opacity-50">
-          {busy && <Loader2 size={14} className="animate-spin" />}{t("connectedWorkspaces.create")}
-        </button>
-      </form>
-    </Card>}
-    <Card title="Your servers">
-      {!saved ? <p role="status" className="text-[13px] text-ink-secondary">{error ? "Saved servers could not be loaded." : "Loading servers…"}</p> :
-        <ul className="divide-y divide-hairline/40">
-          {[{ id: "local", name: "This computer", origin: "", color: undefined }, ...saved.environments.filter((entry) => entry.kind !== "local")].map((entry) => {
-            const active = entry.id === saved.activeId;
-            const Icon = entry.id === "local" ? Laptop : Cloud;
-            return <li key={entry.id} className="flex items-center gap-3 py-3">
-              {cloudColor(entry.color) ? <CloudTile color={entry.color} size={20} /> : <Icon size={18} className="shrink-0 text-ink-secondary" />}
-              <div className="min-w-0 flex-1"><div className="truncate text-[13px] font-medium text-ink">{entry.name}</div>
-                <div className="break-all text-[12px] text-ink-secondary">{entry.origin || "Local bots and conversations"}</div></div>
-              {active ? <span className="flex shrink-0 items-center gap-1 text-[12px] text-ink-secondary"><Check size={13} />Current</span> :
-                <button type="button" disabled={busy} aria-label={`Switch to ${entry.name}`} onClick={() => void perform(async () => { await bridge.switch(entry.id); return true; })}
-                  className="rounded-md px-2 py-1.5 text-[12px] text-ink hover:bg-control disabled:opacity-50">Switch</button>}
-              {entry.id !== "local" && !ownCloud(entry) && sharingOffered && <button type="button" disabled={busy} aria-label={`Computer access for ${entry.name}`} onClick={() => setComputerId(entry.id)} className="rounded-md px-2 py-1.5 text-[12px] text-ink hover:bg-control">Computer access</button>}
-              {entry.id !== "local" && <button type="button" disabled={busy} aria-label={`Forget ${entry.name}`} title={`Forget ${entry.name}`}
-                onClick={() => void perform(() => bridge.forget(entry.id))} className="rounded-md p-1.5 text-ink-secondary hover:bg-control hover:text-danger disabled:opacity-50"><Trash2 size={14} /></button>}
-            </li>;
-          })}
-        </ul>}
-    </Card>
+      <NavRow data-settings-open="connect-server" title={t("settings.s2.servers.connect")} hint={t("settings.s2.servers.connectHint")} onClick={() => { setError(""); setAdding(true); }} />
+      <CopyRow title={t("settings.s2.servers.command")} text="npx openmausbot pair" />
+      {error && saved && !adding && <NoteRow tone="danger">{error}</NoteRow>}
+    </RowsCard>
     {sharingOffered && computerWorkspace && <ComputerSharingSettings key={computerWorkspace.id} workspace={computerWorkspace} onClose={() => setComputerId(null)} />}
-    <Card title="Connect to a server">
-      <form className="flex flex-col gap-3" onSubmit={(event) => {
-        event.preventDefault();
-        if (address.trim()) void perform(() => bridge.addFromLink(address.trim(), name.trim()));
-      }}>
-        <label className="flex flex-col gap-1.5 text-[12px] text-ink-secondary">Server address or pairing link
-          <input required value={address} disabled={busy} onChange={(event) => setAddress(event.target.value)}
-            placeholder="https://bots.yourcompany.com" autoCapitalize="none" autoCorrect="off" autoComplete="off" spellCheck={false}
-            className="w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[14px] text-ink outline-none focus:border-accent/50" />
-        </label>
-        <label className="flex flex-col gap-1.5 text-[12px] text-ink-secondary">Name (optional)
-          <input value={name} disabled={busy} maxLength={60} onChange={(event) => setName(event.target.value)} placeholder="My server"
-            className="w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[14px] text-ink outline-none focus:border-accent/50" />
-        </label>
-        <details className="text-[12px] text-ink-secondary"><summary className="cursor-pointer">Need a pairing code?</summary>
-          <p className="mt-2">Run this on the server and copy the link it prints:</p>
-          <code className="mt-1 block select-all break-words rounded-md bg-inset px-2 py-2 text-ink">npx openmausbot pair --label "My desktop"</code>
-        </details>
-        {error && <p role="alert" className="text-[12px] text-danger">{error}</p>}
-        <button type="submit" disabled={busy || !address.trim()} className="flex w-fit items-center gap-2 rounded-lg bg-accent px-3 py-2 text-[13px] font-medium text-accent-ink disabled:opacity-50">
-          {busy && <Loader2 size={14} className="animate-spin" />}Connect
-        </button>
-      </form>
-    </Card>
+    {adding && <FormDialog data-panel-modal="connect-server" title={t("settings.s2.servers.connect")} description={t("settings.s2.servers.commandNote")}
+      saveLabel={t("settings.s2.servers.connectAction")} canSave={Boolean(address.trim())} busy={busy} error={error || undefined}
+      onSave={() => perform(async () => { const done = await bridge.addFromLink(address.trim(), name.trim()); setAdding(false); return done; })}
+      onClose={() => setAdding(false)}>
+      <FormField label={t("settings.s2.servers.address")}>
+        <input required value={address} disabled={busy} onChange={(event) => setAddress(event.target.value)}
+          placeholder="https://bots.yourcompany.com" autoCapitalize="none" autoCorrect="off" autoComplete="off" spellCheck={false} className={textFieldCls} />
+      </FormField>
+      <FormField label={t("settings.s2.servers.name")}>
+        <input value={name} disabled={busy} maxLength={60} onChange={(event) => setName(event.target.value)} placeholder={t("settings.s2.servers.namePlaceholder")} className={textFieldCls} />
+      </FormField>
+    </FormDialog>}
+    {creating && <FormDialog data-panel-modal="new-environment" title={t("connectedWorkspaces.newEnvironment")} saveLabel={t("connectedWorkspaces.create")}
+      canSave={Boolean(envName.trim())} busy={busy} error={envError || undefined}
+      onSave={() => perform(async () => {
+        const created = await bridge.create(envName.trim(), envDir.trim() || undefined);
+        if (!created?.ok) throw new Error(t("connectedWorkspaces.createError"));
+        setEnvName(""); setEnvDir(""); setCreating(false);
+      }, setEnvError)}
+      onClose={() => setCreating(false)}>
+      <FormField label={t("connectedWorkspaces.name")}>
+        <input required value={envName} disabled={busy} maxLength={60} onChange={(event) => setEnvName(event.target.value)} placeholder={t("connectedWorkspaces.environmentPlaceholder")} className={textFieldCls} />
+      </FormField>
+      <FormField label={t("connectedWorkspaces.dataFolder")}>
+        <span className="flex gap-2">
+          <input value={envDir} disabled={busy} onChange={(event) => setEnvDir(event.target.value)} placeholder={t("connectedWorkspaces.defaultFolder")} className={textFieldCls} />
+          <button type="button" disabled={busy} className={pillCls} onClick={() => void perform(async () => {
+            const picked = await bridge.pickDir();
+            if (picked?.ok && picked.path) setEnvDir(picked.path);
+          }, setEnvError)}>{t("connectedWorkspaces.choose")}</button>
+        </span>
+      </FormField>
+    </FormDialog>}
+    {forgetEntry && <FormDialog data-panel-modal="forget-environment" title={t("settings.s2.env.forgetTitle", { name: forgetEntry.name })}
+      saveLabel={t("connectedWorkspaces.forget")} cancelLabel={t("connectedWorkspaces.cancel")} busy={busy} error={envError || undefined}
+      onSave={() => perform(async () => {
+        const result = envPurge ? await bridge.forget(forgetEntry.id, true) : await bridge.forget(forgetEntry.id);
+        if (result && result.ok === false) throw new Error(t("connectedWorkspaces.forgetError"));
+        setEnvForget(null);
+      }, setEnvError)}
+      onClose={() => setEnvForget(null)}>
+      <div className="-mx-2 flex flex-col">
+        <SwitchRow title={t("settings.s2.env.purge")} hint={forgetEntry.dataDir} checked={envPurge} disabled={busy} onChange={() => setEnvPurge(!envPurge)} />
+      </div>
+    </FormDialog>}
   </>;
 }

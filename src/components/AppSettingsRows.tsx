@@ -10,7 +10,8 @@ import { productName } from "../lib/brand";
 import { BrowserProfilesManager } from "./BrowserProfilesManager";
 import { NewBrowserSettings } from "./BrowserSettingsRows";
 import { NavRow } from "./ListRows";
-import { Card, SettingRow, Switch } from "./SettingsPrimitives";
+import { Card, SIMPLE_CARD, SettingRow, Switch } from "./SettingsPrimitives";
+import { cn } from "@/lib/cn";
 import { LearnedSkillsSettings } from "./ShareLearnedSkillsSettings";
 import { effortLabel } from "./ModelPicker";
 import { EFFORT_LEVELS, isEffortLevel } from "../../shared/wire";
@@ -332,23 +333,19 @@ export function ExperimentalFeaturesRow() {
   };
 
   return (
-    <Card title={t("settings.experimental.title")}>
-      <div className="flex items-center justify-between gap-4">
-        <div className="min-w-0">
-          <div className="text-[13px] leading-[18px] text-ink">{t("settings.experimental.skillAuthoring")}</div>
-        </div>
+    // the sections below are shared with older screens: here they sit as plain rows, without their own rule and gap
+    <div data-settings-rows="" className={cn(SIMPLE_CARD, "flex flex-col [&>[data-testid]]:mt-0 [&>[data-testid]]:border-t-0 [&>[data-testid]]:px-2 [&>[data-testid]]:py-1.5")}>
+      <SettingRow title={t("settings.experimental.skillAuthoring")} message={error ? <span role="alert" className="text-danger">{error}</span> : null}>
         <Switch
           checked={skillAuthoring}
           aria-label={t("settings.experimental.skillAuthoringAria")}
           disabled={saving}
           onClick={() => void toggle(!skillAuthoring)}
-          className="disabled:cursor-wait disabled:opacity-50"
         />
-      </div>
-      {error ? <p role="alert" className="mt-2 text-[12px] text-danger">{error}</p> : null}
+      </SettingRow>
       <LearnedSkillsSettings />
       <NewBrowserSettings />
-    </Card>
+    </div>
   );
 }
 

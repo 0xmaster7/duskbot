@@ -6,6 +6,7 @@ import type { CloudUsage, CloudUsageMeter } from "../../electron/cloud-home.mjs"
 import { cloudPlanChanged, useCloudPlanSnapshot } from "./CloudTrialNotice";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { Card, SIMPLE_CARD } from "./SettingsPrimitives";
+import { Card as RowsCard, NavRow, NoteRow, rowCls } from "./ListRows";
 import { localDesktopPage } from "./onboarding/WelcomeGate";
 import { cloudPlanLabel } from "@/lib/cloud-plan";
 import { cn } from "@/lib/cn";
@@ -48,7 +49,7 @@ const AMOUNT: Record<MeterBand, string> = { ok: "text-ink-secondary", near: "tex
 export function MeterRow({ meter, compact = false }: { meter: CloudUsageMeter; compact?: boolean }) {
   const label = meterLabel(meter.kind), band = meterBand(meterPercent(meter));
   return (
-    <div className={compact ? "mt-2.5" : "py-2.5"}>
+    <div className={compact ? "mt-2.5" : cn(rowCls, "flex-col items-stretch gap-0", "in-[.divide-y]:px-0 in-[.divide-y]:py-2.5")}>
       <div className={cn("mb-1 flex flex-wrap items-baseline justify-between gap-x-3", compact ? "text-[12px]" : "text-[13px]")}>
         <span className="min-w-0 text-ink">{label}</span>
         <span className={cn("ms-auto shrink-0 tabular-nums", AMOUNT[band])}>{meterAmounts(meter)}</span>
@@ -191,7 +192,8 @@ export function CloudUsageCard() {
   );
 }
 
-function MeterList({ usage }: { usage: CloudUsage }) {
+function MeterList({ usage, rows = false }: { usage: CloudUsage; rows?: boolean }) {
+  if (rows) return usage.meters.length ? <>{usage.meters.map((meter) => <MeterRow key={meter.kind} meter={meter} />)}</> : <NoteRow>{t("usageMeter.empty")}</NoteRow>;
   return usage.meters.length ? <div className="divide-y divide-hairline/30">{usage.meters.map((meter) => <MeterRow key={meter.kind} meter={meter} />)}</div>
     : <p className="text-[13px] text-ink-secondary">{t("usageMeter.empty")}</p>;
 }
@@ -205,6 +207,14 @@ function OtherPlans({ usage, upgrade }: { usage: CloudUsage; upgrade: UpgradeUi 
   return <>{[...usage.upgrades].sort((a, b) => a.amount - b.amount).slice(1).map((other) => (
     <button key={other.tier} type="button" disabled={upgrade.busy !== null} onClick={() => upgrade.onUpgrade(other.tier)}
       className="cursor-pointer text-[13px] text-ink-secondary underline underline-offset-2 hover:text-ink disabled:opacity-50">{upgradeLabel(other)}</button>
+  ))}</>;
+}
+
+/** The bigger plans as rows of the usage card, each one press from its confirm. */
+function OtherPlanRows({ usage, upgrade }: { usage: CloudUsage; upgrade: UpgradeUi }) {
+  if (upgradePath(usage) !== "app") return null;
+  return <>{[...usage.upgrades].sort((a, b) => a.amount - b.amount).slice(1).map((other) => (
+    <NavRow key={other.tier} title={upgradeLabel(other)} disabled={upgrade.busy !== null} onClick={() => upgrade.onUpgrade(other.tier)} />
   ))}</>;
 }
 
@@ -262,10 +272,10 @@ export function UsageSummaryCard({ kind, title, percent, label, note, children }
 }) {
   const band = meterBand(percent);
   return (
-    <section data-usage-summary={kind} data-band={band} aria-label={label} className={cn(SIMPLE_CARD, "px-4 py-3.5")}>
+    <section data-usage-summary={kind} data-band={band} aria-label={label} className={cn(SIMPLE_CARD, "px-3 py-2.5")}>
       <p className="text-[13px] leading-[18px] text-ink">{title}</p>
-      <p className="mt-2 flex items-baseline gap-1.5">
-        <span className="text-[22px] font-medium leading-7 tracking-[-0.012em] text-ink tabular-nums">{percent}%</span>
+      <p className="mt-1 flex items-baseline gap-1.5">
+        <span className="text-[17px] font-medium leading-6 text-ink tabular-nums">{percent}%</span>
         <span className="text-[13px] text-ink-secondary">{t("settings.simple.billing.used")}</span>
       </p>
       <div role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} className="mt-2 h-1 w-full overflow-hidden rounded-full bg-ink/[0.04]">
@@ -281,7 +291,7 @@ export function CloudUsageSummaryView({ usage, upgrade, children }: { usage: Clo
   const percent = includedUsePercent(usage);
   return (
     <UsageSummaryCard kind="cloud" title={t("settings.simple.billing.included")} percent={percent} label={t("settings.simple.billing.summary", { percent: String(percent) })} note={resetLine(usage)}>
-      <UpgradeButton usage={usage} upgrade={upgrade} className="mt-3.5" />
+      <UpgradeButton usage={usage} upgrade={upgrade} className="mt-2.5" />
       {upgrade.note && <div className="mt-2"><NoteLine note={upgrade.note} /></div>}
       {children}
     </UsageSummaryCard>
@@ -290,14 +300,12 @@ export function CloudUsageSummaryView({ usage, upgrade, children }: { usage: Clo
 
 export function CloudUsageDetails({ usage, upgrade }: { usage: CloudUsage; upgrade: UpgradeUi }) {
   return (
-    <Card title={t("usageMeter.title")} subtitle={t("usageMeter.subtitle", { plan: cloudPlanLabel(usage.tier) })}>
-      <div data-cloud-usage={usage.tier}>
-        <MeterList usage={usage} />
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 empty:hidden">
-          {upgradePath(usage) === "top" && <TopPlanNote usage={usage} />}
-          <OtherPlans usage={usage} upgrade={upgrade} />
-        </div>
+    <RowsCard label={t("usageMeter.title")}>
+      <div data-cloud-usage={usage.tier} className="contents">
+        <MeterList usage={usage} rows />
+        {upgradePath(usage) === "top" && <NoteRow>{t(TEAM_TIERS.includes(usage.tier) ? "usageMeter.teamPlan" : "usageMeter.topPlan")}</NoteRow>}
+        <OtherPlanRows usage={usage} upgrade={upgrade} />
       </div>
-    </Card>
+    </RowsCard>
   );
 }

@@ -45,7 +45,10 @@ describe("the Instructions dialog", () => {
     expect(sheet().querySelector("[data-instructions-card]")!.previousElementSibling!.textContent).toBe("How should Scout work? What should it always or never do?");
     const card = sheet().querySelector<HTMLElement>("[data-instructions-card]")!;
     expect(card.className).toContain("rounded-[12px]");
-    expect(card.className).toContain("border-edge");
+    // no fill, one hairline that stays put on focus
+    expect(card.className).toContain("border-ink/10");
+    expect(card.className).toContain("bg-transparent");
+    expect(card.className).not.toContain("focus-within:");
     expect(card.contains(field())).toBe(true);
     expect(card.lastElementChild!.lastElementChild).toBe(save());
     expect(sheet().querySelector("[data-instructions-count], .border-b, .border-t")).toBeNull();

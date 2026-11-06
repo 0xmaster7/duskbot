@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Plus, RefreshCw } from "lucide-react";
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { formatUsd, hasFiniteCost } from "@/lib/usage";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { CopyLink } from "./PeopleSection";
-import { Card } from "./SettingsPrimitives";
+import { Card as RowsCard, FormDialog, FormField, ItemRow, NoteRow, SwitchRow, pillCls } from "./ListRows";
+import { textFieldCls } from "./ui/GrokDialog";
 
 export interface FleetWorkspaceView {
   slug: string;
@@ -31,15 +31,9 @@ export function workspacesAvailable(config: ConfigStatus | null | undefined): bo
 const fetchFleet = (): Promise<FleetView> => api("/api/fleet");
 
 export function WorkspacesTable({ fleet, onAct, busy }: { fleet: FleetView; onAct: (slug: string, action: "suspend" | "resume" | "delete" | "users") => void; busy: string | null }) {
-  if (fleet.workspaces.length === 0) return <div className="text-[13px] text-ink-secondary">{t("workspaces.empty", { domain: fleet.domain })}</div>;
+  if (fleet.workspaces.length === 0) return <NoteRow>{t("workspaces.empty", { domain: fleet.domain })}</NoteRow>;
   return (
-    <div className="flex flex-col">
-      <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-5 border-b border-hairline/40 pb-2 text-[12px] font-medium uppercase tracking-wide text-ink-secondary">
-        <span>{t("workspaces.colWorkspace")}</span>
-        <span className="text-right">{t("workspaces.colState")}</span>
-        <span className="text-right">{t("workspaces.colMonth")}</span>
-        <span />
-      </div>
+    <>
       {fleet.workspaces.map((workspace) => {
         const suspended = workspace.status === "suspended";
         const operational = workspace.status === "running" || suspended;
@@ -47,31 +41,30 @@ export function WorkspacesTable({ fleet, onAct, busy }: { fleet: FleetView; onAc
           : workspace.status === "error" ? t("workspaces.error")
           : workspace.status === "retained" ? t("workspaces.retained")
           : suspended ? t("workspaces.suspended") : workspace.live === "active" ? t("workspaces.running") : workspace.live;
+        const tone = suspended || workspace.status === "provisioning" ? "text-warning" : workspace.status === "running" && workspace.live === "active" ? "text-success" : "text-danger";
         return (
-          <div key={workspace.slug} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-5 border-b border-hairline/20 py-2 text-[13px]">
-            <span className="min-w-0">
-              <span className="block truncate text-ink">{workspace.slug}</span>
-              <a href={`https://${workspace.host}`} target="_blank" rel="noreferrer" className="block truncate text-[12px] text-accent hover:underline">{workspace.host}</a>
-              {!operational && <span className="block text-[12px] text-ink-secondary">{t("workspaces.recoveryHint")}</span>}
+          <ItemRow key={workspace.slug} title={workspace.slug} hint={<>
+            <a href={`https://${workspace.host}`} target="_blank" rel="noreferrer" className="hover:text-ink hover:underline">{workspace.host}</a>
+            {" · "}<span className={tone}>{state}</span>
+            {" · "}<span className="tabular-nums" title={workspace.usage.turns === null ? undefined : t("workspaces.turns", { turns: String(workspace.usage.turns) })}>
+              {hasFiniteCost(workspace.usage.costUsd) ? formatUsd(workspace.usage.costUsd) : "-"}
+              {hasFiniteCost(workspace.usage.billableUsd) && <> · {formatUsd(workspace.usage.billableUsd)}</>}
             </span>
-            <span className={cn("text-right", suspended || workspace.status === "provisioning" ? "text-warning" : workspace.status === "running" && workspace.live === "active" ? "text-success" : "text-danger")}>{state}</span>
-            <span className="text-right tabular-nums text-ink" title={workspace.usage.turns === null ? undefined : t("workspaces.turns", { turns: String(workspace.usage.turns) })}>
-              {hasFiniteCost(workspace.usage.costUsd) ? formatUsd(workspace.usage.costUsd) : "—"}
-              {hasFiniteCost(workspace.usage.billableUsd) && <span className="text-ink-secondary"> · {formatUsd(workspace.usage.billableUsd)}</span>}
-            </span>
-            <span className="flex items-center justify-end gap-2 text-[12px]">
-              {operational && <><button type="button" disabled={busy !== null} onClick={() => onAct(workspace.slug, "users")} className="text-ink-secondary hover:text-ink disabled:opacity-50">{t("workspaces.users")}</button>
-              <button type="button" disabled={busy !== null} onClick={() => onAct(workspace.slug, suspended ? "resume" : "suspend")} className="text-ink-secondary hover:text-ink disabled:opacity-50">{suspended ? t("workspaces.resume") : t("workspaces.suspend")}</button>
-              <button type="button" disabled={busy !== null} onClick={() => onAct(workspace.slug, "delete")} className="text-danger hover:underline disabled:opacity-50">{t("workspaces.delete")}</button></>}
-            </span>
-          </div>
+            {!operational && <span className="block">{t("workspaces.recoveryHint")}</span>}
+          </>}>
+            {operational && <>
+              <button type="button" disabled={busy !== null} onClick={() => onAct(workspace.slug, "users")} className="ui-button">{t("workspaces.users")}</button>
+              <button type="button" disabled={busy !== null} onClick={() => onAct(workspace.slug, suspended ? "resume" : "suspend")} className="ui-button">{suspended ? t("workspaces.resume") : t("workspaces.suspend")}</button>
+              <button type="button" disabled={busy !== null} onClick={() => onAct(workspace.slug, "delete")} className="ui-button text-danger">{t("workspaces.delete")}</button>
+            </>}
+          </ItemRow>
         );
       })}
-    </div>
+    </>
   );
 }
 
-function NewWorkspaceForm({ domain, onCreated, disabled }: { domain: string; onCreated: (log: string[], created: { slug: string; admin: string }) => void; disabled: boolean }) {
+function NewWorkspaceForm({ domain, onCreated, onClose, disabled }: { domain: string; onCreated: (log: string[], created: { slug: string; admin: string }) => void; onClose: () => void; disabled: boolean }) {
   const [slug, setSlug] = useState("");
   const [admin, setAdmin] = useState("");
   const [members, setMembers] = useState("");
@@ -102,46 +95,33 @@ function NewWorkspaceForm({ domain, onCreated, disabled }: { domain: string; onC
     }
   };
 
-  const field = "w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none disabled:opacity-50";
   return (
-    <form className="flex flex-col gap-3" onSubmit={(event) => { event.preventDefault(); void create(); }}>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
-          {t("workspaces.name")}
-          <div className="flex items-center gap-1">
-            <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="acme" pattern="[a-z][a-z0-9-]{1,30}" required disabled={disabled || saving} aria-label={t("workspaces.name")} className={field} />
-            <span className="whitespace-nowrap text-[12px] text-ink-secondary">.{domain}</span>
-          </div>
-        </label>
-        <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
-          {t("workspaces.adminEmail")}
-          <input value={admin} onChange={(e) => setAdmin(e.target.value)} type="email" required disabled={disabled || saving} aria-label={t("workspaces.adminEmail")} className={field} />
-        </label>
-        <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
-          {t("workspaces.members")}
-          <input value={members} onChange={(e) => setMembers(e.target.value)} placeholder="bob@acme.test, @acme.test" disabled={disabled || saving} aria-label={t("workspaces.members")} className={field} />
-        </label>
-        <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
-          {t("workspaces.cap")}
-          <input value={cap} onChange={(e) => setCap(e.target.value)} inputMode="decimal" placeholder="50" disabled={disabled || saving} aria-label={t("workspaces.cap")} className={field} />
-        </label>
-        <label className="flex flex-col gap-1 text-[12px] text-ink-secondary sm:col-span-2">
-          {t("workspaces.anthropicKey")}
-          <input value={anthropicKey} onChange={(e) => setAnthropicKey(e.target.value)} type="password" autoComplete="off" placeholder="sk-ant-…" disabled={disabled || saving} aria-label={t("workspaces.anthropicKey")} className={field} />
-        </label>
-      </div>
-      <p className="text-[12px] leading-relaxed text-ink-secondary">{t("workspaces.createHint")}</p>
-      {error && <p role="alert" className="text-[12px] text-danger">{error}</p>}
-      <div className="flex justify-end">
-        <button type="submit" disabled={disabled || saving} className="ui-button ui-button-primary">
-          {saving ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}{saving ? t("workspaces.creating") : t("workspaces.create")}
-        </button>
-      </div>
-    </form>
+    <FormDialog data-panel-modal="workspace-new" title={t("workspaces.new")} description={t("workspaces.createHint")} width={460}
+      saveLabel={saving ? t("workspaces.creating") : t("workspaces.create")} canSave={Boolean(slug.trim() && admin.trim())} busy={disabled || saving}
+      error={error ?? undefined} onSave={create} onClose={onClose}>
+      <FormField label={t("workspaces.name")}>
+        <span className="flex items-center gap-1.5">
+          <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="acme" pattern="[a-z][a-z0-9-]{1,30}" required disabled={disabled || saving} aria-label={t("workspaces.name")} className={textFieldCls} />
+          <span className="whitespace-nowrap text-[12px] text-ink-secondary">.{domain}</span>
+        </span>
+      </FormField>
+      <FormField label={t("workspaces.adminEmail")}>
+        <input value={admin} onChange={(e) => setAdmin(e.target.value)} type="email" required disabled={disabled || saving} aria-label={t("workspaces.adminEmail")} className={textFieldCls} />
+      </FormField>
+      <FormField label={t("workspaces.members")}>
+        <input value={members} onChange={(e) => setMembers(e.target.value)} placeholder="bob@acme.test, @acme.test" disabled={disabled || saving} aria-label={t("workspaces.members")} className={textFieldCls} />
+      </FormField>
+      <FormField label={t("workspaces.cap")}>
+        <input value={cap} onChange={(e) => setCap(e.target.value)} inputMode="decimal" placeholder="50" disabled={disabled || saving} aria-label={t("workspaces.cap")} className={textFieldCls} />
+      </FormField>
+      <FormField label={t("workspaces.anthropicKey")}>
+        <input value={anthropicKey} onChange={(e) => setAnthropicKey(e.target.value)} type="password" autoComplete="off" placeholder="sk-ant-…" disabled={disabled || saving} aria-label={t("workspaces.anthropicKey")} className={textFieldCls} />
+      </FormField>
+    </FormDialog>
   );
 }
 
-function UsersForm({ slug, onDone }: { slug: string; onDone: (log: string[]) => void }) {
+function UsersForm({ slug, onDone, onClose }: { slug: string; onDone: (log: string[]) => void; onClose: () => void }) {
   const [email, setEmail] = useState("");
   const [chatOnly, setChatOnly] = useState(false);
   const [busy, setBusy] = useState<"add" | "remove" | null>(null);
@@ -161,16 +141,18 @@ function UsersForm({ slug, onDone }: { slug: string; onDone: (log: string[]) => 
     }
   };
   return (
-    <div className="mt-2 rounded-lg border border-hairline/40 p-3">
-      <div className="mb-2 text-[13px] font-medium text-ink">{t("workspaces.usersTitle", { slug })}</div>
-      <div className="flex flex-wrap items-center gap-2">
-        <input value={email} onChange={(e) => setEmail(e.target.value)} type="text" placeholder="person@example.com or @example.com" aria-label={t("workspaces.email")} disabled={busy !== null} className="min-w-[16rem] flex-1 rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none disabled:opacity-50" />
-        <label className="flex items-center gap-1.5 text-[12px] text-ink-secondary"><input type="checkbox" checked={chatOnly} onChange={(e) => setChatOnly(e.target.checked)} disabled={busy !== null} />{t("workspaces.chatOnly")}</label>
-        <button type="button" disabled={busy !== null || !email.trim()} onClick={() => void run("add")} className="rounded-lg bg-raised px-3 py-1.5 text-[12px] text-ink hover:bg-raised-hover disabled:opacity-50">{busy === "add" ? t("workspaces.working") : t("workspaces.addUser")}</button>
-        <button type="button" disabled={busy !== null || !email.trim()} onClick={() => void run("remove")} className="rounded-lg px-3 py-1.5 text-[12px] text-danger hover:underline disabled:opacity-50">{busy === "remove" ? t("workspaces.working") : t("workspaces.removeUser")}</button>
+    <FormDialog data-panel-modal="workspace-users" title={t("workspaces.usersTitle", { slug })} error={error ?? undefined} onClose={onClose}>
+      <FormField label={t("workspaces.email")}>
+        <input value={email} onChange={(e) => setEmail(e.target.value)} type="text" placeholder="person@example.com or @example.com" aria-label={t("workspaces.email")} disabled={busy !== null} className={textFieldCls} />
+      </FormField>
+      <div className="-mx-2 flex flex-col">
+        <SwitchRow title={t("workspaces.chatOnly")} checked={chatOnly} disabled={busy !== null} onChange={() => setChatOnly(!chatOnly)} />
       </div>
-      {error && <p role="alert" className="mt-2 text-[12px] text-danger">{error}</p>}
-    </div>
+      <div className="flex justify-end gap-2">
+        <button type="button" disabled={busy !== null || !email.trim()} onClick={() => void run("remove")} className={cn(pillCls, "text-danger")}>{busy === "remove" ? t("workspaces.working") : t("workspaces.removeUser")}</button>
+        <button type="button" disabled={busy !== null || !email.trim()} onClick={() => void run("add")} className={pillCls}>{busy === "add" ? t("workspaces.working") : t("workspaces.addUser")}</button>
+      </div>
+    </FormDialog>
   );
 }
 
@@ -244,35 +226,35 @@ export function WorkspacesSection({ load = fetchFleet }: { load?: () => Promise<
 
   if (!workspacesAvailable(state.config)) return null;
   return (
-    <div className="flex flex-col gap-5">
-      <Card title={t("workspaces.title")} subtitle={t("workspaces.subtitle")}>
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => void refresh()} disabled={loading || busy !== null} className="flex items-center gap-1 text-[12px] text-ink-secondary hover:text-ink disabled:opacity-50"><RefreshCw size={12} className={cn(loading && "animate-spin")} />{t("workspaces.refresh")}</button>
-          <button type="button" onClick={() => setCreating((value) => !value)} disabled={busy !== null} className="ml-auto flex items-center gap-1.5 rounded-lg border border-hairline/40 px-3 py-1.5 text-[12px] text-ink-secondary hover:bg-raised/50 hover:text-ink disabled:opacity-50"><Plus size={13} />{t("workspaces.new")}</button>
-          <button type="button" onClick={() => void upgrade()} disabled={busy !== null || !fleet?.workspaces.length} className="rounded-lg border border-hairline/40 px-3 py-1.5 text-[12px] text-ink-secondary hover:bg-raised/50 hover:text-ink disabled:opacity-50">{busy === "*" ? t("workspaces.working") : t("workspaces.upgradeAll")}</button>
-        </div>
-        {creating && fleet && <div className="mb-4 rounded-xl border border-hairline/40 p-3"><NewWorkspaceForm domain={fleet.domain} disabled={busy !== null} onCreated={(lines, created) => { setCreating(false); setLog(lines); setInviteLink(`https://${created.slug}.${fleet.domain}/pair?email=${encodeURIComponent(created.admin)}`); void refresh(); }} /></div>}
-        {inviteLink && <div className="mb-4"><CopyLink link={inviteLink} /></div>}
-        {error && <p role="alert" className="mb-2 text-[12px] text-danger">{error}</p>}
-        {fleet ? <WorkspacesTable fleet={fleet} onAct={(slug, action) => void act(slug, action)} busy={busy} /> : loading ? <div className="flex items-center gap-2 text-[13px] text-ink-secondary"><Loader2 size={14} className="animate-spin" />{t("common.checking")}</div> : null}
-        {usersFor && <UsersForm slug={usersFor} onDone={(lines) => { setLog(lines); void refresh(); }} />}
-        {log.length > 0 && (
-          <pre className="mt-3 max-h-40 overflow-auto rounded-lg bg-inset p-2 text-[12px] text-ink-secondary">{log.join("\n")}</pre>
-        )}
-      </Card>
+    <>
+      <RowsCard label={t("workspaces.title")} footnote={t("workspaces.subtitle")} data-settings-block="fleet">
+        <ItemRow title={t("workspaces.title")} hint={loading ? t("common.checking") : undefined}>
+          <button type="button" onClick={() => void refresh()} disabled={loading || busy !== null} className="ui-button">{t("workspaces.refresh")}</button>
+          <button type="button" onClick={() => void upgrade()} disabled={busy !== null || !fleet?.workspaces.length} className="ui-button">{busy === "*" ? t("workspaces.working") : t("workspaces.upgradeAll")}</button>
+          <button type="button" onClick={() => setCreating(true)} disabled={busy !== null || !fleet} className="ui-button">{t("workspaces.new")}</button>
+        </ItemRow>
+        {inviteLink && <CopyLink link={inviteLink} />}
+        {error && <NoteRow tone="danger">{error}</NoteRow>}
+        {fleet && <WorkspacesTable fleet={fleet} onAct={(slug, action) => void act(slug, action)} busy={busy} />}
+        {log.map((line, index) => <NoteRow key={index}>{line}</NoteRow>)}
+      </RowsCard>
+      {creating && fleet && <NewWorkspaceForm domain={fleet.domain} disabled={busy !== null} onClose={() => setCreating(false)}
+        onCreated={(lines, created) => { setCreating(false); setLog(lines); setInviteLink(`https://${created.slug}.${fleet.domain}/pair?email=${encodeURIComponent(created.admin)}`); void refresh(); }} />}
+      {usersFor && <UsersForm slug={usersFor} onClose={() => setUsersFor(null)} onDone={(lines) => { setLog(lines); void refresh(); }} />}
       <ConfirmDialog
         open={confirm !== null}
         title={t("workspaces.deleteTitle", { slug: confirm?.slug ?? "" })}
-        body={t(confirm?.keepData ? "confirm.workspaceDeleteKeep" : "confirm.workspaceDelete")}
+        // keeping the data is decided inside the question itself
+        body={<>
+          {t(confirm?.keepData ? "confirm.workspaceDeleteKeep" : "confirm.workspaceDelete")}
+          {confirm && <label className="mt-3 flex cursor-pointer items-center gap-2 text-[13px] text-ink">
+            <input type="checkbox" checked={confirm.keepData} onChange={(e) => setConfirm({ ...confirm, keepData: e.target.checked })} className="accent-accent" />{t("workspaces.keepData")}
+          </label>}
+        </>}
         confirmLabel={t("workspaces.delete")}
         onCancel={() => setConfirm(null)}
         onConfirm={() => void remove()}
       />
-      {confirm && (
-        <label className="flex items-center gap-2 text-[12px] text-ink-secondary">
-          <input type="checkbox" checked={confirm.keepData} onChange={(e) => setConfirm({ ...confirm, keepData: e.target.checked })} />{t("workspaces.keepData")}
-        </label>
-      )}
-    </div>
+    </>
   );
 }

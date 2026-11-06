@@ -45,7 +45,7 @@ function PanelRow({ entry }: { entry: KeyEntry }) {
   return (
     <div data-key-row={entry.id} role="group" aria-labelledby={titleId} className={KEY_ROW}>
       <RowHeading entry={entry} status={status} titleId={titleId} purpose={!quiet(entry)} />
-      <div className="flex flex-col gap-2 pl-8">{PANELS[entry.id]?.()}</div>
+      <div className="flex flex-col gap-1.5 ps-[30px]">{PANELS[entry.id]?.()}</div>
     </div>
   );
 }
@@ -59,7 +59,7 @@ function ElsewhereRow({ entry }: { entry: KeyEntry }) {
   return (
     <div data-key-row={entry.id} role="group" aria-labelledby={titleId} className={KEY_ROW}>
       <RowHeading entry={entry} status={status} titleId={titleId} purpose={!quiet(entry)} />
-      <div className="flex flex-col gap-2 pl-8">
+      <div className="flex flex-col gap-1.5 ps-[30px]">
         {saved.configured && <div className="flex"><MaskedKey saved={saved} label={t(entry.labelKey)} /></div>}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           {entry.whereKey && <span className="min-w-0 flex-1 text-[12px] leading-4 text-ink-secondary">{t(entry.whereKey)}</span>}
@@ -88,19 +88,19 @@ function KeySection({ id, rows, open, onToggle }: { id: KeySectionId; rows: KeyE
   const bodyId = useId();
   const count = rows.filter((entry) => connected(entry, state.config)).length;
   return (
-    <section data-keys-section={id} aria-labelledby={headId} className="border-t-[0.5px] border-edge first:border-t-0">
+    <section data-keys-section={id} aria-labelledby={headId}>
       <button
         type="button"
         aria-expanded={open}
         aria-controls={bodyId}
         onClick={onToggle}
-        className="flex min-h-12 w-full cursor-pointer items-center gap-3 px-3.5 py-2.5 text-left outline-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
+        className="flex min-h-8 w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-left outline-none hover:bg-ink/[0.035] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
       >
         <span id={headId} className="min-w-0 flex-1 truncate text-[13px] leading-[18px] tracking-[-0.08px] text-ink">{t(section.titleKey)}</span>
         {count > 0 && <span className="shrink-0 text-[13px] leading-[18px] text-ink-secondary">{t("keys.section.connected", { count })}</span>}
-        <ChevronRight size={14} aria-hidden="true" className={cn("shrink-0 text-ink-secondary transition-transform motion-reduce:transition-none", open && "rotate-90")} />
+        <ChevronRight size={14} aria-hidden="true" className={cn("-mr-0.5 shrink-0 text-ink-tertiary", open && "rotate-90")} />
       </button>
-      <div id={bodyId} hidden={!open} className="flex flex-col gap-0.5 px-1 pb-1.5">
+      <div id={bodyId} hidden={!open} className="flex flex-col gap-0.5 pb-1">
         {rows.map((entry) => <KeyCatalogRow key={entry.id} entry={entry} />)}
       </div>
     </section>
@@ -152,8 +152,8 @@ export function KeysPage() {
 
   return (
     <div ref={pageRef} data-keys-page className="flex flex-col gap-2">
-      <div className="flex h-8 items-center gap-2 rounded-lg border border-ink/10 bg-transparent px-[9px] ">
-        <Search size={15} aria-hidden="true" className="shrink-0 text-ink-secondary" />
+      <div className="flex h-8 items-center gap-2 rounded-lg border border-ink/10 bg-transparent px-[9px]">
+        <Search size={14} aria-hidden="true" className="shrink-0 text-ink-secondary" />
         <input
           data-keys-search
           type="text"
@@ -174,7 +174,7 @@ export function KeysPage() {
       </div>
       {sections.length === 0 ? (
         <p data-keys-empty className="px-3.5 text-[13px] leading-[18px] text-ink-secondary">{t("keys.search.none", { query: query.trim() })}</p>
-      ) : <div className={cn(SIMPLE_CARD, "py-0")}>{sections.map(({ id, rows: sectionRows }) => (
+      ) : <div className={SIMPLE_CARD}>{sections.map(({ id, rows: sectionRows }) => (
         <KeySection
           key={id}
           id={id}

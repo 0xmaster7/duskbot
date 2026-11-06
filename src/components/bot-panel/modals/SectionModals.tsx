@@ -54,7 +54,7 @@ export function IdentityModal({ bot, derived }: { bot: Bot; derived: Derived; on
           <NavRow drill={false} data-sheet-row="default-bot-hide" title={t("defaultBot.hide")} onClick={() => showDefaultBot(dispatch, bot, false)} />
         </Card>
       )}
-      <PackageProvenance bot={bot} />
+      <PackageProvenance bot={bot} rows />
       {editing && <ProfileDialog bot={bot} focus={editing} onSave={(patch) => { derived.patch(patch); setEditing(null); }} onClose={() => setEditing(null)} />}
     </SheetPane>
   );
@@ -115,7 +115,7 @@ export function SlackModal({ managementUrl }: { managementUrl: string; onClose: 
             target="_blank"
             rel="noopener noreferrer"
             data-sheet-row="slack"
-            className={cn(rowCls, "cursor-pointer outline-none transition-[background-color] duration-100 ease-[ease] hover:bg-ink/[0.06] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus")}
+            className={cn(rowCls, "cursor-pointer outline-none hover:bg-ink/[0.035] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus")}
           >
             <RowText title={t("botPanel.sheet.slack")} hint={t("botPanel.sheet.slackHint")} />
             <span className="shrink-0 text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{t("botSlack.manage")}</span>

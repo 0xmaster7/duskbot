@@ -26,25 +26,27 @@ export function TalkShortcutRow() {
     void bridge.set(next).then(setState, () => setFailed(true)).finally(() => setBusy(false));
   };
   const problem = failed ? t("settings.talk.failed") : state.enabled && state.taken ? t("settings.talk.taken", { key: label }) : null;
-  const message = (
-    <>
-      {state.enabled && (
-        <SettingsSelect
-          value={state.key}
-          disabled={busy}
-          aria-label={t("settings.talk.keyAria")}
-          // SAFETY: the options are rendered from state.keys, so the value is always a member.
-          onChange={(event) => change({ key: event.target.value as TalkKeyId })}
-        >
-          {state.keys.map((key) => <option key={key.id} value={key.id}>{key.label}</option>)}
-        </SettingsSelect>
-      )}
-      {problem && <div role="alert" className={state.enabled ? "mt-2 text-danger" : "text-danger"}>{problem}</div>}
-    </>
-  );
+  // one row for the switch, and the key as its own row's quiet value once it is on
   return (
-    <SettingRow title={t("settings.talk.title")} subtitle={t("settings.talk.subtitle", { key: label })} message={state.enabled || problem ? message : null}>
-      <Switch checked={state.enabled} disabled={busy} aria-label={t("settings.talk.aria")} onClick={() => change({ enabled: !state.enabled })} />
-    </SettingRow>
+    <>
+      <SettingRow title={t("settings.talk.title")} subtitle={t("settings.s2.talk.subtitle", { key: label })}
+        message={problem ? <div role="alert" className="text-danger">{problem}</div> : null}>
+        <Switch checked={state.enabled} disabled={busy} aria-label={t("settings.talk.aria")} onClick={() => change({ enabled: !state.enabled })} />
+      </SettingRow>
+      {state.enabled && (
+        <SettingRow title={t("settings.s2.talk.key")}>
+          <SettingsSelect
+            data-settings-select="talk-key"
+            value={state.key}
+            disabled={busy}
+            aria-label={t("settings.talk.keyAria")}
+            // SAFETY: the options are rendered from state.keys, so the value is always a member.
+            onChange={(event) => change({ key: event.target.value as TalkKeyId })}
+          >
+            {state.keys.map((key) => <option key={key.id} value={key.id}>{key.label}</option>)}
+          </SettingsSelect>
+        </SettingRow>
+      )}
+    </>
   );
 }

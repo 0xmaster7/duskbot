@@ -1,17 +1,18 @@
 // Security: the invite link is convenience, not a second door; the one-time code still goes to the address itself.
 import { useCallback, useEffect, useState } from "react";
-import { Check, Copy, ExternalLink, Link2, Loader2, Plus, RefreshCw, X } from "lucide-react";
+import { ExternalLink, Link2 } from "lucide-react";
 import { api } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { useCopyFeedback } from "@/lib/copy-text";
 import { formatUsd, hasFiniteCost } from "@/lib/usage";
 import { readMembership, type Membership } from "../lib/membership";
 import { readSessionState, type SessionState } from "../lib/session";
 import { canPairDevices } from "./ServerPairingCard";
 import { normalizeAccessEntry, withEntry, withoutEntry, type SignInLists } from "./SignInAccessCard";
-import { Card, SettingRow } from "./SettingsPrimitives";
-import { Select } from "./Select";
+import { SettingRow } from "./SettingsPrimitives";
+import { SettingsSelect } from "./SettingsSelect";
+import { CopyRow, FormDialog, FormField, ItemRow, NoteRow, rowCls } from "./ListRows";
+import { textFieldCls } from "./ui/GrokDialog";
 
 export type Role = "admin" | "member";
 
@@ -90,6 +91,7 @@ export function lastSeenLabel(lastSeenAt: number | null, now = Date.now()): stri
   return new Date(lastSeenAt).toISOString().slice(0, 10);
 }
 
+/** Each person as a panel row: who, their role, last seen and this month's spend as one quiet line, and their actions. */
 export function PeopleTable({ people, busy, onRole, onRemove, onLink, readOnly = false }: {
   people: Person[];
   busy: boolean;
@@ -98,87 +100,58 @@ export function PeopleTable({ people, busy, onRole, onRemove, onLink, readOnly =
   onLink: (person: Person) => void;
   readOnly?: boolean;
 }) {
-  if (people.length === 0) return <p className="text-[13px] text-ink-secondary">{t(readOnly ? "people.portal.empty" : "people.empty")}</p>;
-  const columns = "grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-x-4";
+  if (people.length === 0) return <NoteRow>{t(readOnly ? "people.portal.empty" : "people.empty")}</NoteRow>;
   return (
-    <div className="flex flex-col">
-      <div className={cn(columns, "border-b border-hairline/40 pb-2 text-[12px] font-medium uppercase tracking-wide text-ink-secondary")}>
-        <span>{t("people.colPerson")}</span>
-        <span>{t("people.colRole")}</span>
-        <span className="text-right">{t("people.colLastSeen")}</span>
-        <span className="text-right">{t("people.colMonth")}</span>
-        <span />
-      </div>
-      {people.map((person) => (
-        <div key={person.entry} className={cn(columns, "border-b border-hairline/20 py-2 text-[13px]")}>
-          <span className="min-w-0">
-            <span className="block truncate text-ink">{person.isDomain ? t("people.everyoneAt", { domain: person.entry.slice(1) }) : person.entry}</span>
-            {person.devices > 0 && <span className="block text-[12px] text-ink-secondary">{t("people.devices", { count: String(person.devices) })}</span>}
-          </span>
-          <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", person.role === "admin" ? "bg-accent/15 text-accent" : "bg-control text-ink-secondary")}>
-            {person.role === "admin" ? t("people.roleAdmin") : t("people.roleMember")}
-          </span>
-          <span className="text-right tabular-nums text-ink-secondary">{person.isDomain ? "—" : lastSeenLabel(person.lastSeenAt)}</span>
-          <span className="text-right tabular-nums text-ink" title={t("people.turns", { turns: String(person.turns) })}>
-            {hasFiniteCost(person.costUsd) ? `${person.estimated ? "~" : ""}${formatUsd(person.costUsd)}` : "—"}
-          </span>
-          {readOnly ? <span /> : <span className="flex items-center justify-end gap-2 text-[12px]">
-            <button type="button" disabled={busy} onClick={() => onLink(person)} aria-label={t("people.link")} title={t("people.link")} className="rounded-md p-1 text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-50"><Link2 size={13} /></button>
-            <button type="button" disabled={busy} onClick={() => onRole(person, person.role === "admin" ? "member" : "admin")} className="text-ink-secondary hover:text-ink disabled:opacity-50">
-              {person.role === "admin" ? t("people.makeMember") : t("people.makeAdmin")}
-            </button>
-            <button type="button" disabled={busy} onClick={() => onRemove(person)} className="text-danger hover:underline disabled:opacity-50">{t("people.remove")}</button>
-          </span>}
-        </div>
-      ))}
-    </div>
+    <>
+      {people.map((person) => {
+        const spend = hasFiniteCost(person.costUsd) ? `${person.estimated ? "~" : ""}${formatUsd(person.costUsd)}` : "-";
+        const hint = [
+          person.role === "admin" ? t("people.roleAdmin") : t("people.roleMember"),
+          person.isDomain ? "" : `${t("people.colLastSeen")} ${lastSeenLabel(person.lastSeenAt)}`,
+          `${t("people.colMonth")} ${spend}`,
+          person.devices > 0 ? t("people.devices", { count: String(person.devices) }) : "",
+        ].filter(Boolean).join(" · ");
+        return (
+          <ItemRow key={person.entry} title={person.isDomain ? t("people.everyoneAt", { domain: person.entry.slice(1) }) : person.entry} hint={<span title={t("people.turns", { turns: String(person.turns) })}>{hint}</span>}>
+            {!readOnly && <>
+              <button type="button" disabled={busy} onClick={() => onLink(person)} aria-label={t("people.link")} title={t("people.link")}
+                className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-ink-secondary hover:bg-ink/[0.035] hover:text-ink disabled:opacity-45"><Link2 size={13} aria-hidden="true" /></button>
+              <button type="button" disabled={busy} onClick={() => onRole(person, person.role === "admin" ? "member" : "admin")} className="ui-button">
+                {person.role === "admin" ? t("people.makeMember") : t("people.makeAdmin")}
+              </button>
+              <button type="button" disabled={busy} onClick={() => onRemove(person)} className="ui-button text-danger">{t("people.remove")}</button>
+            </>}
+          </ItemRow>
+        );
+      })}
+    </>
   );
 }
 
+/** The invite link, as the one copyable row. */
 export function CopyLink({ link }: { link: string }) {
-  const { state, copy } = useCopyFeedback(link);
-  return (
-    <div className="mt-3 rounded-lg border border-hairline/40 bg-inset p-3 text-[13px]">
-      <div className="mb-1 text-ink-secondary">{t("people.link")}</div>
-      <div className="flex items-center gap-2">
-        <code className="min-w-0 flex-1 select-all break-all text-ink">{link}</code>
-        <button type="button" onClick={copy} className="flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[12px] text-ink-secondary hover:bg-control hover:text-ink">
-          {state === "copied" ? <Check size={13} className="text-success" /> : state === "failed" ? <X size={13} className="text-danger" /> : <Copy size={13} />}
-          {t(state === "copied" ? "people.copied" : state === "failed" ? "common.copyFailed" : "people.copy")}
-        </button>
-      </div>
-      <p className="mt-2 text-[12px] leading-relaxed text-ink-secondary">{t("people.linkHint")}</p>
-    </div>
-  );
+  return <CopyRow title={t("people.link")} text={link} />;
 }
 
 export function PortalPeople({ peopleUrl, people }: { peopleUrl: string | null; people: Person[] }) {
   const noop = () => {};
   return (
-    <Card title={t("people.title")} subtitle={t("people.portal.subtitle")}>
-      <div data-people-portal className="flex flex-col gap-3 text-[13px] leading-relaxed text-ink-secondary">
-        <p>{t("people.portal.managed")}</p>
-        {peopleUrl && (
-          <a
-            href={peopleUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex w-fit items-center gap-2 rounded-lg bg-control px-3 py-2 font-medium text-ink hover:bg-control/70"
-          >
-            {t("people.portal.open")} <ExternalLink size={14} aria-hidden="true" />
-          </a>
-        )}
-      </div>
-      <div className="mt-4">
-        <PeopleTable people={people} busy={false} readOnly onRole={noop} onRemove={noop} onLink={noop} />
-      </div>
-      <p className="mt-3 text-[12px] leading-relaxed text-ink-secondary">{t("people.portal.note")}</p>
-    </Card>
+    <div data-people-portal="" className="contents">
+      <NoteRow>{t("people.portal.managed")}</NoteRow>
+      {peopleUrl && (
+        <a href={peopleUrl} target="_blank" rel="noopener noreferrer" className={cn(rowCls, "cursor-pointer text-[13px] leading-[18px] text-ink hover:bg-ink/[0.035]")}>
+          <span className="min-w-0 flex-1">{t("people.portal.open")}</span>
+          <ExternalLink size={12} aria-hidden="true" className="shrink-0 text-ink-tertiary" />
+        </a>
+      )}
+      <PeopleTable people={people} busy={false} readOnly onRole={noop} onRemove={noop} onLink={noop} />
+      <NoteRow>{t("people.portal.note")}</NoteRow>
+    </div>
   );
 }
 
-export function PeopleSection({ simple = false, startOpen = false }: { simple?: boolean; startOpen?: boolean }) {
-  const [open, setOpen] = useState(startOpen);
+export function PeopleSection() {
+  const [inviting, setInviting] = useState(false);
   const [tried, setTried] = useState(false);
   const [session, setSession] = useState<SessionState | null>(null);
   const [membership, setMembership] = useState<Membership | null>(null);
@@ -243,68 +216,54 @@ export function PeopleSection({ simple = false, startOpen = false }: { simple?: 
     }
   };
 
-  const invite = async () => {
+  const invite = async (): Promise<boolean> => {
     setTried(true);
-    if (!lists || busy) return;
+    if (!lists || busy) return false;
     const entry = normalizeAccessEntry(draft);
     if (!entry) {
       setError(t("remote.signInAccess.invalid"));
-      return;
+      return false;
     }
     await save(withEntry(lists, entry, role));
     setDraft("");
     setLink(inviteLink(base, entry));
+    return true;
   };
 
   if (!canPairDevices(session)) return null;
-  const portal = membership?.authority === "portal" ? <PortalPeople peopleUrl={membership.peopleUrl} people={people} /> : null;
-  const content = (
-    <>
-      {emailOffered === false && (!simple || tried) && <p className="mb-3 rounded-lg border border-warning/25 bg-warning/5 px-3 py-2 text-[13px] text-ink-secondary">{t(membership?.pairingCodes === false ? "people.portalSignIn" : "people.notHosted")}</p>}
-      <form className="flex flex-wrap items-center gap-2" onSubmit={(event) => { event.preventDefault(); void invite(); }}>
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder={t("remote.signInAccess.placeholder")}
-          aria-label={t("people.inviteEmail")}
-          disabled={busy}
-          className="min-w-[16rem] flex-1 rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none disabled:opacity-50"
-        />
-        <Select value={role} onChange={(e) => setRole(e.target.value as Role)} aria-label={t("people.colRole")} disabled={busy}>
-          <option value="member">{t("people.roleMember")}</option>
-          <option value="admin">{t("people.roleAdmin")}</option>
-        </Select>
-        <button type="submit" disabled={busy || !draft.trim()} className="ui-button ui-button-primary">
-          {busy ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}{t("people.invite")}
-        </button>
-        <button type="button" onClick={() => void load()} disabled={loading || busy} aria-label={t("people.refresh")} title={t("people.refresh")} className="rounded-md p-1.5 text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-50"><RefreshCw size={13} className={cn(loading && "animate-spin")} /></button>
-      </form>
-      {!simple && <p className="mt-2 text-[12px] leading-relaxed text-ink-secondary">{t("people.inviteHint")}</p>}
+  if (membership?.authority === "portal") return <PortalPeople peopleUrl={membership.peopleUrl} people={people} />;
+  return (
+    <div data-people-summary="" className="contents">
+      {emailOffered === false && tried && <NoteRow tone="warn">{t(membership?.pairingCodes === false ? "people.portalSignIn" : "people.notHosted")}</NoteRow>}
+      <ItemRow title={t("people.title")} hint={t("settings.simple.people")}>
+        <button type="button" onClick={() => void load()} disabled={loading || busy} className="ui-button">{t("people.refresh")}</button>
+        <button type="button" data-settings-open="people-invite" disabled={busy} className="ui-button" onClick={() => { setError(null); setInviting(true); }}>{t("settings.simple.people.invite")}</button>
+      </ItemRow>
       {link && <CopyLink link={link} />}
-      {error && <p role="alert" className="mt-2 text-[12px] text-danger">{error}</p>}
-      <div className="mt-4">
-        <PeopleTable
-          people={people}
-          busy={busy}
-          onRole={(person, next) => { if (lists) void save(withEntry(lists, person.entry, next)); }}
-          onRemove={(person) => { if (lists) void save(withoutEntry(lists, person.entry)); }}
-          onLink={(person) => setLink(inviteLink(base, person.entry))}
-        />
-      </div>
-      {!simple && <p className="mt-3 text-[12px] leading-relaxed text-ink-secondary">{t("people.note")}</p>}
-    </>
+      {error && !inviting && <NoteRow tone="danger">{error}</NoteRow>}
+      <PeopleTable
+        people={people}
+        busy={busy}
+        onRole={(person, next) => { if (lists) void save(withEntry(lists, person.entry, next)); }}
+        onRemove={(person) => { if (lists) void save(withoutEntry(lists, person.entry)); }}
+        onLink={(person) => setLink(inviteLink(base, person.entry))}
+      />
+      {inviting && (
+        <FormDialog data-panel-modal="people-invite" title={t("settings.simple.people.invite")} description={t("people.inviteHint")}
+          saveLabel={t("people.invite")} canSave={Boolean(draft.trim())} busy={busy} error={error ?? undefined}
+          onSave={async () => { if (await invite()) setInviting(false); }} onClose={() => setInviting(false)}>
+          <FormField label={t("people.inviteEmail")}>
+            <input autoFocus value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={t("remote.signInAccess.placeholder")} disabled={busy} className={textFieldCls} />
+          </FormField>
+          <div className="-mx-2 flex flex-col">
+            <SettingRow title={t("people.colRole")}>
+              <SettingsSelect data-settings-select="people-role" aria-label={t("people.colRole")} value={role} disabled={busy}
+                options={[{ value: "member", label: t("people.roleMember") }, { value: "admin", label: t("people.roleAdmin") }]}
+                onChange={(e) => setRole(e.target.value as Role)} />
+            </SettingRow>
+          </div>
+        </FormDialog>
+      )}
+    </div>
   );
-  if (simple) {
-    return (
-      <div data-people-summary="">
-        <SettingRow title={t("people.title")} subtitle={t("settings.simple.people")}>
-          <button type="button" aria-expanded={open} className="ui-button" onClick={() => setOpen(!open)}>
-            {open ? t("common.done") : t("settings.simple.people.invite")}
-          </button>
-        </SettingRow>
-        {open && <div className="px-3.5 pb-3.5 pt-1">{portal ?? content}</div>}
-      </div>
-    );
-  }
-  return portal ?? <Card title={t("people.title")} subtitle={t("people.subtitle")}>{content}</Card>;
 }

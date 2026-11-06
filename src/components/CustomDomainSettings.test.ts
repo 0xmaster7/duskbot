@@ -32,8 +32,10 @@ describe("custom domain setup guidance", () => {
     expect(html).toContain("Never publish the app");
     expect(html).toContain("bots.example.com");
     expect(html).not.toContain(status.publicUrl!);
-    expect(html).toContain("Advanced server setup");
-    expect(html).not.toMatch(/<details[^>]*\bopen/);
+    // the guide is rows in its own small dialog: no fold-outs or code blocks on the page
+    expect(html).not.toContain("<details");
+    expect(html).not.toContain("<pre");
+    expect(html).toContain('data-copy-row=""');
   });
 });
 

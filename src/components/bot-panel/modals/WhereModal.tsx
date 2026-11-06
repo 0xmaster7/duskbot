@@ -4,7 +4,6 @@ import { useStore, type Bot } from "@/state/store";
 import { usePlaceViews } from "../../PlaceChip";
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
 import { Card, CheckRow, NavRow, SheetPane } from "../../ListRows";
-import { footnoteCls } from "../../ui/GrokDialog";
 import type { PlaceActionId } from "../../../../shared/place-view";
 import { usePlacePicker, type PlaceChoice } from "../ComputerTab";
 
@@ -35,7 +34,8 @@ export function WhereModal({ bot, derived, onClose }: {
 
   return (
     <SheetPane data-panel-modal="where" title={title}>
-      <Card data-sheet-group="where" footnote={usingNow ? <span data-panel-using-now>{t("computer.simple.usingNow", { place: usingNow })}</span> : undefined}>
+      <Card data-sheet-group="where" footnote={usingNow ? <span data-panel-using-now>{t("computer.simple.usingNow", { place: usingNow })}</span>
+        : !editable ? `Only people who can edit ${bot.name} can change this.` : undefined}>
         <div role="radiogroup" aria-label={title} className="contents">
           {rows.map((option) => (
             <CheckRow
@@ -61,7 +61,6 @@ export function WhereModal({ bot, derived, onClose }: {
           />
         )}
       </Card>
-      {!editable && <p className={footnoteCls}>Only people who can edit {bot.name} can change this.</p>}
       {warning}
     </SheetPane>
   );

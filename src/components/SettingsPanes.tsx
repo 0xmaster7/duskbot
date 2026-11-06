@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { ChevronRight } from "lucide-react";
 import { useStore, type AppSettingsSection } from "@/state/store";
 import { ADVANCED_PAGES, type AdvancedPage } from "@/lib/open-settings";
 import { t } from "@/lib/i18n";
@@ -32,6 +33,7 @@ import { EnginesSettings } from "./EnginesSettings";
 import { ImportSettings } from "./ImportSettings";
 import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal";
 import { LocalComputerSection } from "./LocalComputerSection";
+import { PHONE_ADVANCED_PAGE, PRIVATE_SETUP_PAGE, PROFILE_PAGE } from "./settings-page-ids";
 import { LoginsSettings } from "./LoginsSettings";
 import { McpCallTimeoutSettings } from "./McpCallTimeoutSettings";
 import { McpServersPanel } from "./McpServersPanel";
@@ -45,8 +47,8 @@ import { PlanUsageSummary } from "./PlanUsage";
 import { ProfileAvatar, ProfileFields } from "./ProfileSettings";
 import { RoomTurnTimeoutSettings } from "./RoomTurnTimeoutSettings";
 import { SavedStepsRow } from "./SavedStepsRow";
-import { SettingRow, SettingsExpand, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
-import { Card as RowsCard, FormDialog, NavRow, SwitchRow, useSubPage } from "./ListRows";
+import { SettingRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
+import { Card as RowsCard, FormDialog, ItemRow, NavRow, SwitchRow, useSubPage } from "./ListRows";
 import { SettingsSelect } from "./SettingsSelect";
 import { useServerUpdateItem } from "./SidebarProfileMenu";
 import { SkillsSection } from "./SkillsSection";
@@ -108,24 +110,39 @@ export function AccountRows() {
   const active = accounts.view?.active ?? null;
   const name = profile?.name?.trim() || active?.email?.split("@")[0] || "";
   const email = active?.email ?? profile?.email?.trim() ?? "";
+  const who = (
+    <>
+      <ProfileAvatar small profile={{ ...profile, name, email }} />
+      <div className="min-w-0 flex-1 text-start">
+        <div data-row-title="" className="truncate text-[13px] leading-[18px] text-ink">{name || t("settings.simple.account.noName")}</div>
+        {email && <div data-row-hint="" className="truncate text-[12px] leading-4 text-ink-secondary">{email}</div>}
+      </div>
+    </>
+  );
   return (
     <>
-      <div data-settings-account="" className="flex min-w-0 items-center gap-3.5">
-        <button type="button" data-settings-open="profile" aria-label={t("settings.w6.group.aboutYou")} onClick={() => setEditing(true)}
-          className="shrink-0 cursor-pointer rounded-full outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-          <ProfileAvatar profile={{ ...profile, name, email }} />
+      {!active ? (
+        // nobody signs in here: the whole row opens the name form, as a panel row does
+        <button type="button" data-settings-account="" data-settings-open="profile" onClick={() => setEditing(true)}
+          className="flex w-full min-w-0 cursor-pointer items-center gap-2.5 text-start outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus">
+          {who}
+          <span data-panel-value="" className="shrink-0 text-[13px] leading-[18px] text-ink-secondary">{t(name ? "settings.simple.account.edit" : "settings.simple.account.add")}</span>
+          <ChevronRight size={14} aria-hidden="true" className="-mr-0.5 shrink-0 text-ink-tertiary rtl:-scale-x-100" />
         </button>
-        <div className="min-w-0 flex-1">
-          <div data-row-title="" className="truncate text-[13px] font-medium leading-[18px] text-ink">{name || t("settings.simple.account.noName")}</div>
-          {email && <div data-row-hint="" className="mt-0.5 truncate text-[13px] leading-[18px] text-ink-secondary">{email}</div>}
+      ) : (
+        <div data-settings-account="" className="flex min-w-0 items-center gap-2.5">
+          <button type="button" data-settings-open="profile" aria-label={t("settings.w6.group.aboutYou")} onClick={() => setEditing(true)}
+            className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-md outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+            {who}
+          </button>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {window.ogb?.accounts && accounts.noRail && <button type="button" data-settings-open="add-account" className="ui-button" onClick={() => setAdding(true)}>{t("settings.grok.account.add")}</button>}
+            {accounts.openSheet && <button type="button" data-settings-open="account" className="ui-button" onClick={() => accounts.openSheet?.()}>{t("settings.rows.account")}</button>}
+            <button type="button" data-settings-open="sign-out" className="ui-button" onClick={() => accounts.signOut(active.id)}>{t("settings.grok.account.signOut")}</button>
+          </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {!active && <button type="button" className="ui-button" onClick={() => setEditing(true)}>{t(name ? "settings.simple.account.edit" : "settings.simple.account.add")}</button>}
-          {window.ogb?.accounts && (accounts.noRail || !active) && <button type="button" data-settings-open="add-account" className="ui-button" onClick={() => setAdding(true)}>{t("settings.grok.account.add")}</button>}
-          {active && accounts.openSheet && <button type="button" data-settings-open="account" className="ui-button" onClick={() => accounts.openSheet?.()}>{t("settings.rows.account")}</button>}
-          {active && <button type="button" data-settings-open="sign-out" className="ui-button" onClick={() => accounts.signOut(active.id)}>{t("settings.grok.account.signOut")}</button>}
-        </div>
-      </div>
+      )}
+      {!active && window.ogb?.accounts && <NavRow data-settings-open="add-account" title={t("settings.grok.account.add")} onClick={() => setAdding(true)} />}
       {editing && (
         <FormDialog data-panel-modal="profile" title={t("settings.w6.group.aboutYou")} width={460} onClose={() => setEditing(false)}>
           <div data-settings-look="simple" className="-mx-2 flex flex-col"><ProfileFields /></div>
@@ -212,8 +229,8 @@ function ImportRow() {
 export function TextingPane({ has, remoteAccess }: { has: Has; remoteAccess: RemoteAccessCards }) {
   const { at } = useSubPage();
   const [phoneApp, setPhoneApp] = useState(false);
-  const [pairing, setPairing] = useState(false);
-  if (at === "pairing") return <div data-settings-block="companion" className="flex flex-col gap-[22px]">{remoteAccess.pairing}{remoteAccess.companion}</div>;
+  if (at === "pairing") return <div data-settings-block="companion" className="flex flex-col gap-5">{remoteAccess.pairing}{remoteAccess.companion}</div>;
+  if (at === PHONE_ADVANCED_PAGE) return <div data-settings-block="companion-advanced" className="flex flex-col gap-5">{remoteAccess.companion}</div>;
   return (
     <>
       <SettingsGroup label={t("settings.texting.phoneApp.title")} block="phone-app">
@@ -221,14 +238,7 @@ export function TextingPane({ has, remoteAccess }: { has: Has; remoteAccess: Rem
           <SettingRow title={t("settings.phone.use.title")} subtitle={t("settings.phone.use.hint")}>
             <button type="button" data-settings-open="phone-app" className="ui-button" onClick={() => setPhoneApp(true)}>{t("settings.phone.use.action")}</button>
           </SettingRow>
-          {has("companion") && (
-            <SettingRow title={t("settings.w6.pairing.title")} subtitle={t("settings.phone.pair.hint")}
-              message={<SettingsExpand open={pairing}><div data-settings-block="companion-pairing" className="pt-2">{remoteAccess.pairing}</div></SettingsExpand>}>
-              <button type="button" data-panel-page="pairing" aria-expanded={pairing} className="ui-button" onClick={() => setPairing(!pairing)}>
-                {pairing ? t("common.done") : t("settings.phone.pair.action")}
-              </button>
-            </SettingRow>
-          )}
+          {has("companion") && <PageRow page="pairing" title={t("settings.w6.pairing.title")} hint={t("settings.phone.pair.hint")} />}
         </SettingsRows>
       </SettingsGroup>
       {has("companion") && remoteAccess.companion && <div data-settings-block="companion" className="contents">{remoteAccess.companion}</div>}
@@ -240,13 +250,13 @@ export function TextingPane({ has, remoteAccess }: { has: Has; remoteAccess: Rem
 export function ComputerPane({ has, remoteAccess, servers }: { has: Has; remoteAccess: RemoteAccessCards; servers: ReactNode }) {
   const { at } = useSubPage();
   const { state } = useStore();
-  if (at === "computers") return <div data-settings-block="computer" className="flex flex-col gap-[22px]"><AdminOnly><LocalComputerSection /></AdminOnly></div>;
-  if (at === "profiles") return <BrowserProfilesManager />;
+  if (at === "computers" || at === PRIVATE_SETUP_PAGE) return <div data-settings-block="computer" className="flex flex-col gap-5"><AdminOnly><LocalComputerSection /></AdminOnly></div>;
+  if (at === "profiles" || at?.startsWith(PROFILE_PAGE)) return <BrowserProfilesManager />;
   if (at === "elsewhere") {
     return (
-      <div data-settings-block="remote" className="flex flex-col gap-[22px]">
-        {has("companion") && <div className="flex flex-col gap-[22px] empty:hidden">{remoteAccess.client}{remoteAccess.domain}</div>}
-        {has("desktopWorkspaces") && <div data-settings-block="desktopWorkspaces" className="flex flex-col gap-[22px]">{servers}</div>}
+      <div data-settings-block="remote" className="flex flex-col gap-5">
+        {has("desktopWorkspaces") && <div data-settings-block="desktopWorkspaces" className="flex flex-col gap-5">{servers}</div>}
+        {has("companion") && <div className="flex flex-col gap-5 empty:hidden">{remoteAccess.client}{remoteAccess.domain}</div>}
       </div>
     );
   }
@@ -450,29 +460,27 @@ export function UsagePane({ has, cloudAccount }: { has: Has; cloudAccount: React
   const limits = useEngineLimits().filter(reportsUsage);
   if (at === "breakdown") {
     return (
-      <div className="flex flex-col gap-[22px]">
+      <div className="flex flex-col gap-5">
         {!usage && <AdminOnly note="settings.adminOnly.usage"><PlanUsageSummary /></AdminOnly>}
         {usage && <CloudUsageDetails usage={usage} upgrade={upgrade} />}
         {has("usage") && <AdminOnly note="settings.adminOnly.usage"><UsageSection /></AdminOnly>}
       </div>
     );
   }
-  if (at === "plan") return <div data-settings-block="cloudAccount" className="flex flex-col gap-[22px]">{cloudAccount}</div>;
+  if (at === "plan") return <div data-settings-block="cloudAccount" className="flex flex-col gap-5">{cloudAccount}</div>;
   return (
     <>
       {limits.length ? (
         <SettingsGroup block="usage" footnote={t("settings.usage.footnote")}>
           <div data-usage-cards="" className="flex flex-col gap-3">{limits.map((limit) => <UsageMeterCard key={limit.engine} limit={limit} />)}</div>
         </SettingsGroup>
-      ) : !usage && (
-        <RowsCard data-settings-block="usage">
-          <NavRow drill={false} disabled title={t("settings.usage.empty.title")} hint={t("settings.usage.empty.subtitle")} onClick={() => {}} />
-        </RowsCard>
-      )}
+      ) : null}
       {usage && <div data-settings-block="cloudUsage" className="scroll-mt-4"><CloudUsageSummaryView usage={usage} upgrade={upgrade}>{dialog}</CloudUsageSummaryView></div>}
-      {(usage || has("usage")) && (
-        <RowsCard>
-          <PageRow page="breakdown" title={t("settings.usage.breakdown")} hint={t("settings.hint.breakdown")} />
+      {/* no limits yet: one quiet line in the same card as the breakdown, never a greyed-out row */}
+      {((!limits.length && !usage) || usage || has("usage")) && (
+        <RowsCard data-settings-block={!limits.length && !usage ? "usage" : undefined}>
+          {!limits.length && !usage && <ItemRow title={t("settings.usage.empty.title")} hint={t("settings.s2.usage.emptyHint")} />}
+          {(usage || has("usage")) && <PageRow page="breakdown" title={t("settings.usage.breakdown")} hint={t("settings.hint.breakdown")} />}
         </RowsCard>
       )}
       {has("cloudAccount") && (
@@ -487,10 +495,10 @@ export function UsagePane({ has, cloudAccount }: { has: Has; cloudAccount: React
   );
 }
 
-function TeamPage({ has, peopleOpen }: { has: Has; peopleOpen: boolean }) {
+function TeamPage({ has }: { has: Has }) {
   const { at } = useSubPage();
   if (at === "organization") return <div data-settings-block="organization" className="contents"><OrganizationSettings /></div>;
-  if (at === "people") return <div data-settings-block="people" className="contents"><SettingsRows><PeopleSection simple startOpen={peopleOpen} /></SettingsRows></div>;
+  if (at === "people") return <RowsCard data-settings-block="people"><PeopleSection /></RowsCard>;
   if (at === "workspaces") return <div data-settings-block="workspaces" className="contents"><WorkspacesSection /></div>;
   return (
     <RowsCard data-settings-block="team">
@@ -505,7 +513,7 @@ function DataPage({ has }: { has: Has }) {
   const { at } = useSubPage();
   if (at === "attachments") return <SettingsRows><AttachmentStorageSettings /></SettingsRows>;
   if (at === "thread-cleanup") return <div data-settings-block="thread-cleanup" className="contents"><ThreadCleanupSettings /></div>;
-  if (at === "backups") return <div data-settings-block="backups" className="flex flex-col gap-[22px]"><AdminOnly><WorkspaceBackupSettings /><CompanyBackupSettings /></AdminOnly></div>;
+  if (at === "backups") return <div data-settings-block="backups" className="flex flex-col gap-5"><AdminOnly><WorkspaceBackupSettings /><CompanyBackupSettings /></AdminOnly></div>;
   return (
     <>
       <SettingsGroup block="data">
@@ -565,7 +573,7 @@ export function ModelsPane({ has, disclose, connections }: { has: Has; disclose:
   if (at) return <div data-settings-block="engines" className="contents"><AdminOnly><EnginesSettings simple more={disclose("ai-more")} /></AdminOnly></div>;
   return (
     <>
-      {has("engines") && <div data-settings-block="engines" className="flex scroll-mt-4 flex-col gap-[22px]"><AdminOnly><EnginesSettings simple more={disclose("ai-more")} /></AdminOnly></div>}
+      {has("engines") && <div data-settings-block="engines" className="flex scroll-mt-4 flex-col gap-5"><AdminOnly><EnginesSettings simple more={disclose("ai-more")} /></AdminOnly></div>}
       {(has("connections") || has("decisionModel")) && (
         <RowsCard label={t("settings.rows.more")} data-settings-block="models-more">
           {has("connections") && <PageRow page="keys" title={t("settings.section.connections")} hint={t("settings.hint.keys")} />}
@@ -576,16 +584,17 @@ export function ModelsPane({ has, disclose, connections }: { has: Has; disclose:
   );
 }
 
-export function AdvancedPageView({ page, has, remoteActive, peopleOpen }: {
+export function AdvancedPageView({ page, has, remoteActive }: {
   page: AdvancedPage;
   has: Has;
   remoteActive: boolean;
-  peopleOpen: boolean;
+  /** kept for callers; People shows its list straight away now */
+  peopleOpen?: boolean;
 }) {
   switch (page) {
     case "apps": return <AppsPage has={has} />;
     case "looks": return <LooksPage remoteActive={remoteActive} />;
-    case "team": return <TeamPage has={has} peopleOpen={peopleOpen} />;
+    case "team": return <TeamPage has={has} />;
     case "data": return <DataPage has={has} />;
     case "builder": return <BuilderPage />;
   }

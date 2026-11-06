@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { t } from "@/lib/i18n";
-import { SIMPLE_CARD } from "./SettingsPrimitives";
 import { cn } from "@/lib/cn";
+import { Card as RowsCard, FormDialog, FormField, ItemRow, NoteRow } from "./ListRows";
+import { Toggle } from "./ui/Toggle";
+import { textFieldCls } from "./ui/GrokDialog";
 
 /** Server bounds from server/config.ts, mirrored to reject out-of-range input before the round trip. */
 const MIN_RETENTION_DAYS = 1;
@@ -34,9 +36,7 @@ function mibText(bytes: number): string {
 
 type Knob = "retention" | "cap";
 
-const ROW = "flex min-h-12 flex-wrap items-center gap-x-3 gap-y-2 px-3.5 py-2.5";
-const LABEL = "min-w-0 flex-1 text-[13px] leading-[18px] tracking-[-0.08px] text-ink";
-const FIELD = "order-last flex h-8 w-[120px] shrink-0 items-center rounded-[10px] border bg-menu";
+const FIELD = cn(textFieldCls, "flex items-center px-0");
 
 export function ThreadCleanupSettings() {
   const { state, dispatch } = useStore();
@@ -47,6 +47,7 @@ export function ThreadCleanupSettings() {
   const [pending, setPending] = useState<Knob | null>(null);
   const [error, setError] = useState("");
   const [errorKnob, setErrorKnob] = useState<Knob | null>(null);
+  const [editing, setEditing] = useState<Knob | null>(null);
   const saving = useRef(false);
 
   const retentionValue = retentionDraft ?? (confirmedRetentionDays === null ? String(DEFAULT_RETENTION_DAYS) : String(confirmedRetentionDays));
@@ -113,114 +114,86 @@ export function ThreadCleanupSettings() {
     void save({ eventLogMaxBytes: bytes }, "cap");
   };
 
-  const commitRetention = () => {
-    if (confirmedRetentionDays === null) return;
+  const commitRetention = (): boolean => {
+    if (confirmedRetentionDays === null) return true;
     const days = parseDays(retentionValue);
     if (days === null) {
       setError(t("settings.threadCleanup.invalidRetention"));
       setErrorKnob("retention");
-      return;
+      return false;
     }
     if (days === confirmedRetentionDays) {
       setRetentionDraft(null);
       setError("");
-      return;
+      return true;
     }
     void save({ eventLogRetentionDays: days }, "retention");
+    return true;
   };
 
-  const commitCap = () => {
-    if (confirmedCapBytes === null) return;
+  const commitCap = (): boolean => {
+    if (confirmedCapBytes === null) return true;
     const bytes = parseCapMib(capValue);
     if (bytes === null) {
       setError(t("settings.threadCleanup.invalidCap"));
       setErrorKnob("cap");
-      return;
+      return false;
     }
     if (bytes === confirmedCapBytes) {
       setCapDraft(null);
       setError("");
-      return;
+      return true;
     }
     void save({ eventLogMaxBytes: bytes }, "cap");
+    return true;
   };
 
-  return (
-    <div data-settings-rows="" className={cn(SIMPLE_CARD, "flex flex-col")}>
-      <div className={ROW}>
-          <input
-            id="thread-log-retention-enabled"
-            type="checkbox"
-            checked={confirmedRetentionDays !== null}
-            disabled={pending !== null}
-            onChange={(event) => toggleRetention(event.target.checked)}
-            className="size-4 accent-accent"
-          />
-          <label htmlFor="thread-log-retention-enabled" className={LABEL}>{t("settings.threadCleanup.retention.enable")}</label>
-          <div className={cn(FIELD, errorKnob === "retention" ? "border-danger/60" : "border-ink/12 focus-within:border-ink/40")}>
-            <input
-              id="thread-log-retention-days"
-              type="number"
-              min={MIN_RETENTION_DAYS}
-              max={MAX_RETENTION_DAYS}
-              step={1}
-              inputMode="numeric"
-              value={retentionValue}
-              disabled={confirmedRetentionDays === null || pending !== null}
-              aria-invalid={errorKnob === "retention"}
-              aria-label={t("settings.threadCleanup.retention.enable")}
-              onChange={(event) => {
-                setRetentionDraft(event.target.value);
-                setError("");
-                setErrorKnob(null);
-              }}
-              onBlur={commitRetention}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") event.currentTarget.blur();
-              }}
-              className="min-w-0 flex-1 bg-transparent px-2.5 text-[13px] tabular-nums text-ink focus:outline-none"
-            />
-            <span className="pr-3 text-[13px] text-ink-secondary">{t("settings.threadCleanup.retention.unit")}</span>
-          </div>
-      </div>
-      <div className={ROW}>
-          <input
-            id="thread-log-cap-enabled"
-            type="checkbox"
-            checked={confirmedCapBytes !== null}
-            disabled={pending !== null}
-            onChange={(event) => toggleCap(event.target.checked)}
-            className="size-4 accent-accent"
-          />
-          <label htmlFor="thread-log-cap-enabled" className={LABEL}>{t("settings.threadCleanup.cap.enable")}</label>
-          <div className={cn(FIELD, errorKnob === "cap" ? "border-danger/60" : "border-ink/12 focus-within:border-ink/40")}>
-            <input
-              id="thread-log-cap-mib"
-              type="number"
-              min={MIN_CAP_BYTES / MIB}
-              max={MAX_CAP_BYTES / MIB}
-              step={0.25}
-              inputMode="decimal"
-              value={capValue}
-              disabled={confirmedCapBytes === null || pending !== null}
-              aria-invalid={errorKnob === "cap"}
-              aria-label={t("settings.threadCleanup.cap.enable")}
-              onChange={(event) => {
-                setCapDraft(event.target.value);
-                setError("");
-                setErrorKnob(null);
-              }}
-              onBlur={commitCap}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") event.currentTarget.blur();
-              }}
-              className="min-w-0 flex-1 bg-transparent px-2.5 text-[13px] tabular-nums text-ink focus:outline-none"
-            />
-            <span className="pr-3 text-[13px] text-ink-secondary">{t("settings.threadCleanup.cap.unit")}</span>
-          </div>
-      </div>
-      {pending !== null && <p role="status" className="px-3.5 pb-2.5 text-[13px] leading-[18px] text-ink-secondary">{t("settings.threadCleanup.saving")}</p>}
-      {error && <p role="alert" className="px-3.5 pb-2.5 text-[13px] leading-[18px] text-danger">{error}</p>}
+  // a number field inside the knob's own small dialog; Save commits it as leaving the field did before
+  const field = (knob: Knob) => knob === "retention" ? (
+    <div className={FIELD}>
+      <input id="thread-log-retention-days" type="number" min={MIN_RETENTION_DAYS} max={MAX_RETENTION_DAYS} step={1} inputMode="numeric" value={retentionValue}
+        disabled={pending !== null} aria-invalid={errorKnob === "retention"} aria-label={t("settings.threadCleanup.retention.enable")}
+        onChange={(event) => { setRetentionDraft(event.target.value); setError(""); setErrorKnob(null); }}
+        className="h-full min-w-0 flex-1 bg-transparent px-[9px] text-[13px] tabular-nums text-ink outline-none" />
+      <span className="pr-3 text-[13px] text-ink-secondary">{t("settings.threadCleanup.retention.unit")}</span>
     </div>
+  ) : (
+    <div className={FIELD}>
+      <input id="thread-log-cap-mib" type="number" min={MIN_CAP_BYTES / MIB} max={MAX_CAP_BYTES / MIB} step={0.25} inputMode="decimal" value={capValue}
+        disabled={pending !== null} aria-invalid={errorKnob === "cap"} aria-label={t("settings.threadCleanup.cap.enable")}
+        onChange={(event) => { setCapDraft(event.target.value); setError(""); setErrorKnob(null); }}
+        className="h-full min-w-0 flex-1 bg-transparent px-[9px] text-[13px] tabular-nums text-ink outline-none" />
+      <span className="pr-3 text-[13px] text-ink-secondary">{t("settings.threadCleanup.cap.unit")}</span>
+    </div>
+  );
+  const knobRow = (knob: Knob) => {
+    const on = knob === "retention" ? confirmedRetentionDays !== null : confirmedCapBytes !== null;
+    const title = t(knob === "retention" ? "settings.s2.cleanup.retention" : "settings.s2.cleanup.cap");
+    const hint = !on ? t("settings.s2.off") : knob === "retention"
+      ? t("settings.s2.cleanup.retentionHint", { days: String(confirmedRetentionDays) })
+      : t("settings.s2.cleanup.capHint", { size: mibText(confirmedCapBytes!) });
+    return (
+      <ItemRow title={title} hint={hint}>
+        {on && <button type="button" className="ui-button" disabled={pending !== null} onClick={() => { setError(""); setErrorKnob(null); setEditing(knob); }}>{t("settings.s2.change")}</button>}
+        <Toggle id={`thread-log-${knob}-enabled`} checked={on} disabled={pending !== null} aria-label={title}
+          onClick={() => (knob === "retention" ? toggleRetention(!on) : toggleCap(!on))} />
+      </ItemRow>
+    );
+  };
+  return (
+    <RowsCard data-settings-block="thread-cleanup-rows">
+      {knobRow("retention")}
+      {knobRow("cap")}
+      {pending !== null && !editing && <NoteRow><span role="status">{t("settings.threadCleanup.saving")}</span></NoteRow>}
+      {error && !editing && <NoteRow tone="danger">{error}</NoteRow>}
+      {editing && (
+        <FormDialog data-panel-modal="thread-cleanup" title={t(editing === "retention" ? "settings.s2.cleanup.retention" : "settings.s2.cleanup.cap")}
+          busy={pending !== null} error={error || undefined}
+          onSave={() => { const done = editing === "retention" ? commitRetention() : commitCap(); if (done) setEditing(null); }}
+          onClose={() => { setEditing(null); setRetentionDraft(null); setCapDraft(null); setError(""); setErrorKnob(null); }}>
+          <FormField label={t(editing === "retention" ? "settings.threadCleanup.retention.enable" : "settings.threadCleanup.cap.enable")}>{field(editing)}</FormField>
+        </FormDialog>
+      )}
+    </RowsCard>
   );
 }

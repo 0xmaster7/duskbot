@@ -79,9 +79,9 @@ export function CloudPlanRow({ place, usage = null, upgrade }: { place: "account
     const cheapest = offer && offer.plans.length ? Math.min(...offer.plans.map((entry) => entry.amount)) : null;
     return (
       <SettingRow title={t("pro.name")} subtitle={place === "plan" && cheapest !== null ? t("pro.fromPrice", { price: usd(cheapest / 100) }) : t("pro.settingsSummary")}>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5">
           {place === "plan" && plan.view.kind === "signed-out" && (
-            <button type="button" className="cursor-pointer text-[13px] text-ink-secondary hover:text-ink"
+            <button type="button" className="ui-button"
               onClick={() => dispatch({ type: "openCloudAdd", source: "app_settings", signIn: true })}>{t("cloudAccount.signIn")}</button>
           )}
           <button type="button" data-cloud-offer={trial ? "trial" : "plans"} className="ui-button ui-button-primary"

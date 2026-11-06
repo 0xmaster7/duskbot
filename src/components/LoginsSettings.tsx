@@ -8,7 +8,7 @@ import { relativeTime } from "@/lib/memory";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { useStore } from "@/state/store";
 import { LoginBotPicker, LoginForm } from "./LoginForm";
-import { ItemRow, NavRow, NoteRow } from "./ListRows";
+import { ItemRow, NavRow, NoteRow, SwitchRow } from "./ListRows";
 import { Card, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
 import { DialogPane, GrokDialog, mdPrimaryCls, mdSecondaryCls, textFieldCls } from "./ui/GrokDialog";
 import { cn } from "@/lib/cn";
@@ -49,7 +49,7 @@ export function VaultNewItem() {
   return (
     <div ref={root} className="relative" data-vault-new="">
       <button type="button" aria-label={t("settings.vault.newItem")} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}
-        className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-full bg-ink px-3.5 text-[14px] leading-5 text-app transition-colors duration-[120ms] hover:bg-ink/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+        className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-full bg-ink px-3 text-[13px] leading-[18px] text-app hover:bg-ink/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
         {t("settings.vault.newItem")}<GrokIcon name="chevron-down" size={12} />
       </button>
       {open && (
@@ -67,7 +67,7 @@ type VaultTab = "all" | "saved" | "onepassword";
 /** A login's site as Grok's 32px rounded tile: its first letter on a faint fill. */
 function SiteTile({ site }: { site: string }) {
   return (
-    <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-lg border-[0.5px] border-ink/10 bg-ink/[0.04] text-[14px] font-medium uppercase text-ink-secondary">
+    <span aria-hidden="true" className="flex size-6 shrink-0 items-center justify-center rounded-md border-[0.5px] border-ink/10 bg-ink/[0.04] text-[12px] font-medium uppercase text-ink-secondary">
       {site.replace(/^www\./, "").charAt(0)}
     </span>
   );
@@ -157,24 +157,24 @@ export function LoginsSettings() {
 
   return (
     <>
-      <section data-settings-block="logins" aria-label={t("settings.section.logins")} className="flex scroll-mt-4 flex-col gap-5">
+      <section data-settings-block="logins" aria-label={t("settings.section.logins")} className="flex scroll-mt-4 flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div role="tablist" aria-label={t("settings.section.logins")} className="flex items-center gap-1">
             {tabs.map((entry) => (
               <button key={entry.id} type="button" role="tab" aria-selected={tab === entry.id} data-vault-tab={entry.id} onClick={() => setTab(entry.id)}
-                className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full px-2.5 text-[14px] leading-5 text-ink-secondary transition-colors duration-[120ms] hover:text-ink aria-selected:bg-ink/[0.06] aria-selected:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus">
+                className="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full px-2.5 text-[13px] leading-[18px] text-ink-secondary hover:text-ink aria-selected:bg-ink/[0.06] aria-selected:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus">
                 {entry.label}<span className="text-ink/[0.56] tabular-nums">{entry.count}</span>
               </button>
             ))}
           </div>
-          <label className="flex h-8 w-[200px] max-w-full items-center gap-2 rounded-full border border-ink/[0.12] px-3 text-ink-secondary">
+          <label className="flex h-7 w-[200px] max-w-full items-center gap-2 rounded-full border border-ink/10 px-2.5 text-ink-secondary">
             <GrokIcon name="search" size={14} />
             <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} aria-label={t("settings.vault.search")} placeholder={t("settings.vault.search")}
-              className="h-full min-w-0 flex-1 border-0! bg-transparent p-0 text-[14px] leading-5 text-ink outline-none placeholder:text-ink-secondary [&::-webkit-search-cancel-button]:hidden" />
+              className="h-full min-w-0 flex-1 border-0! bg-transparent p-0 text-[13px] leading-[18px] text-ink outline-none placeholder:text-ink-secondary [&::-webkit-search-cancel-button]:hidden" />
           </label>
         </div>
         {state.config?.cloudHome === true && <p className="px-3 text-[12px] leading-4 text-ink-tertiary" data-logins-cloud-own>{t("settings.logins.cloudOwn")}</p>}
-        {logins?.length === 0 ? <p className="py-5 text-center text-[13px] leading-[18px] text-ink-secondary">{t("settings.w6c.logins.empty")} {t("settings.vault.empty")}</p> : <SettingsRows>
+        {logins?.length === 0 ? <p className="py-2 text-center text-[13px] leading-[18px] text-ink-secondary">{t("settings.w6c.logins.empty")} {t("settings.vault.empty")}</p> : <SettingsRows>
           <div aria-busy={logins === null || busy} className="flex flex-col">
             {logins === null && !error && <NoteRow>{t("settings.logins.loading")}</NoteRow>}
             {!!logins?.length && shown.length === 0 && <NoteRow>{t("settings.vault.noMatch")}</NoteRow>}
@@ -189,8 +189,8 @@ export function LoginsSettings() {
                   return (
                     <li key={login.id} className="flex flex-col" data-login-row={login.site}>
                       {login.source === "1password"
-                        ? <ItemRow icon={undefined} title={<span className="flex items-center gap-3"><SiteTile site={login.site} /><span className="min-w-0">{title}</span></span>} hint={<span className="ps-11">{hint}</span>} />
-                        : <NavRow title={<span className="flex items-center gap-3"><SiteTile site={login.site} /><span className="min-w-0">{title}</span></span>} hint={<span className="ps-11">{hint}</span>} disabled={busy} aria-label={t("settings.logins.changeFor", { site: login.site })} onClick={() => startEdit(login)} />}
+                        ? <ItemRow icon={undefined} title={<span className="flex items-center gap-2.5"><SiteTile site={login.site} /><span className="min-w-0">{title}</span></span>} hint={<span className="block ps-[34px]">{hint}</span>} />
+                        : <NavRow title={<span className="flex items-center gap-2.5"><SiteTile site={login.site} /><span className="min-w-0">{title}</span></span>} hint={<span className="block ps-[34px]">{hint}</span>} disabled={busy} aria-label={t("settings.logins.changeFor", { site: login.site })} onClick={() => startEdit(login)} />}
                     </li>
                   );
                 })}
@@ -198,7 +198,7 @@ export function LoginsSettings() {
             )}
           </div>
         </SettingsRows>}
-        <p className="px-4 text-[12px] leading-4 text-ink-tertiary">{t("settings.vault.footnote")}</p>
+        <p data-settings-footnote="" className="-mt-3.5 px-3 text-[11px] leading-[15px] text-ink-tertiary">{t("settings.vault.footnote")}</p>
         {error && <p role="alert" className="px-3 text-[12px] leading-4 text-danger">{error}</p>}
       </section>
       {adding && loginForm(t("settings.logins.add"), () => setAdding(false),
@@ -225,12 +225,7 @@ export function LoginsSettings() {
               setEditing(null);
               await load();
             }}>
-            {editingLogin.hasTotp && (
-              <label className="flex items-center gap-2 text-[13px] leading-[18px] text-ink">
-                <input type="checkbox" checked={removeTotp} onChange={(event) => setRemoveTotp(event.target.checked)} />
-                {t("settings.logins.removeTotp")}
-              </label>
-            )}
+            {editingLogin.hasTotp && <div className="-mx-2"><SwitchRow title={t("settings.logins.removeTotp")} checked={removeTotp} onChange={() => setRemoveTotp(!removeTotp)} /></div>}
             <ExactHostChoice checked={editExact} onChange={setEditExact}
               label={t("settings.logins.exactHostFor", { hosts: editingLogin.hosts.join(", "), site: editingLogin.site })} />
             <LoginBotPicker value={editBots} onChange={setEditBots} bots={bots} />

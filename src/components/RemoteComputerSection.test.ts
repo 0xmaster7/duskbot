@@ -46,44 +46,27 @@ describe("remote connection Settings", () => {
     setLocale("en");
     return renderToStaticMarkup(createElement(RemoteComputerSection));
   };
-  const environments = { addFromLink: vi.fn() };
 
-  it("defaults to server pairing and explains how to obtain a fresh full link", () => {
-    const html = render({ environments, remoteClient: { active: false } });
-    expect(html).toContain('<option value="server" selected="">Self-hosted server</option>');
-    expect(html).toContain('<option value="companion">Desktop companion</option>');
-    expect(html).toContain("Server pairing link");
-    // Full access first: only it can make a server you own your bots' home; chat-only says what it can't do.
-    expect(html.indexOf('data-pair-access="full"')).toBeLessThan(html.indexOf('data-pair-access="client"'));
-    expect(html).toMatch(/data-pair-access="full"[\s\S]*?Your own server: full access[\s\S]*?>npx openmausbot pair<\/code>/);
-    expect(html).toMatch(/data-pair-access="client"[\s\S]*?chat and approvals only[\s\S]*?>npx openmausbot pair --client<\/code>[\s\S]*?make the server your bots[\s\S]{1,8}home/);
-    expect(html).toContain("12-character code");
-    expect(html).toContain("custom domains and Cloudflare Tunnel");
-    expect(html).toContain("Connect to server");
-    expect(html).toContain("Server menu");
-    expect(html).not.toContain('placeholder="000000"');
-    expect(environments.addFromLink).not.toHaveBeenCalled();
-  });
-
-  it("allows a server-only bridge without presenting a companion option", () => {
-    const html = render({ environments });
-    expect(html).toContain("Server pairing link");
-    expect(html).not.toContain("<select");
-  });
-
-  it("preserves six-digit companion pairing when the server bridge is unavailable", () => {
+  it("pairs with another desktop from one row; its address and code wait in a small form", () => {
     const html = render({ remoteClient: { active: false } });
-    expect(html).toContain("Companion address");
-    expect(html).toContain("Six-digit companion code");
-    expect(html).toContain('placeholder="000000"');
-    expect(html).toContain("managed MausBot HTTPS address");
-    expect(html).toContain("Tailscale name ending in .ts.net");
+    expect(html).toContain("Pair with another desktop");
+    expect(html).toContain('data-settings-open="companion-pair"');
+    // no fields, paragraphs, code blocks or big buttons on the page itself
+    expect(html).not.toContain("<input");
     expect(html).not.toContain("<select");
-    expect(html).not.toContain("Server pairing link");
+    expect(html).not.toContain("<code");
+    expect(html).not.toMatch(/<p[\s>]/);
+    expect(html).not.toContain("Self-hosted server");
   });
 
-  it("keeps an active companion connection on its disconnect screen", () => {
-    const html = render({ environments, remoteClient: { active: true } });
+  it("leaves server connections to Your servers when only the server bridge is there", () => {
+    const html = render({ environments: { addFromLink: vi.fn() } });
+    expect(html).toContain("requires the installed app");
+    expect(html).not.toContain("<form");
+  });
+
+  it("keeps an active companion connection on its disconnect row", () => {
+    const html = render({ environments: {}, remoteClient: { active: true } });
     expect(html).toContain("Disconnect and use this computer");
     expect(html).not.toContain("<form");
     expect(html).not.toContain("<select");

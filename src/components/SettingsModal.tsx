@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { AnimatePresence, useIsPresent } from "motion/react";
 import { useStore, type AppSettingsSection } from "@/state/store";
 import { t } from "@/lib/i18n";
@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 import { scrollWithin } from "@/lib/scroll-within";
 import { useMediaQuery } from "@/lib/use-media-query";
 import { PHONE_SHEET, REDUCED, SCRIM, WIPE } from "@/lib/motion-presets";
-import { MotionDiv, MotionSpan, useMotionReduced } from "./ui/SheetMotion";
+import { MotionDiv, useMotionReduced } from "./ui/SheetMotion";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { currentPhonePairingTarget, phonePairingSettingsAction } from "@/lib/phone-pairing";
 import { AdminOnly } from "./AdminOnly";
@@ -46,7 +46,18 @@ export function revealSettingsBlock(
   else scroller.scrollTop = 0;
 }
 
-function useScrollThumb(scroller: React.RefObject<HTMLDivElement | null>, key: string) {
+/** Grok's scroll thumb, drawn by its own small component so a scroll re-renders two divs, not the pane. */
+function ScrollThumb({ scroller, watch }: { scroller: RefObject<HTMLDivElement | null>; watch: string }) {
+  const thumb = useScrollThumb(scroller, watch);
+  if (!thumb) return null;
+  return (
+    <div role="presentation" className="settings-scrollbar" data-scrolling={thumb.scrolling ? "" : undefined}>
+      <div style={{ top: thumb.top, height: thumb.height }} />
+    </div>
+  );
+}
+
+function useScrollThumb(scroller: RefObject<HTMLDivElement | null>, key: string) {
   const [thumb, setThumb] = useState<{ top: number; height: number; scrolling: boolean } | null>(null);
   useEffect(() => {
     const element = scroller.current;
@@ -105,7 +116,10 @@ export function SettingsModal() {
   const panes = SETTINGS_PANES.filter((pane) => paneShown(pane.id) && pane.sections.some(has));
   const advancedPages = ADVANCED_PAGES.filter((page) => page.sections.some(has)).map((page) => page.id);
 
-  const requested = state.appSettingsSection;
+  // moving between panes and pages stays inside Settings: a store update would re-render the whole app under the sheet
+  // on every click. The next request from outside (a link, a menu) wins again.
+  const [localNav, setLocalNav] = useState<{ request: number; section: AppSettingsSection } | null>(null);
+  const requested = localNav && localNav.request === state.appSettingsRequest ? localNav.section : state.appSettingsSection;
   const at = settingsLocation(has(requested) ? requested : remoteActive && requested === "remote" ? "companion" : "general");
   const pane = panes.some((entry) => entry.id === at.pane) ? at.pane : "general";
   const page = pane === "advanced" && at.page && advancedPages.includes(at.page) ? at.page : undefined;
@@ -154,7 +168,6 @@ export function SettingsModal() {
     if (botTarget) consumeBotTarget();
   }, [botTarget]);
   const stack = sub.key === paneKey ? sub.stack : [];
-  const thumb = useScrollThumb(scrollRef, `${paneKey}:${stack.length}`);
 
   const [folds, setFolds] = useState<Record<string, boolean>>({});
   const keyFocus = useKeyFocus();
@@ -174,7 +187,7 @@ export function SettingsModal() {
   const close = () => dispatch({ type: "toggleAppSettings", open: false });
   const go = (section: AppSettingsSection) => {
     setPhoneList(false);
-    dispatch({ type: "toggleAppSettings", open: true, section });
+    setLocalNav({ request: state.appSettingsRequest, section });
   };
   const reduced = useMotionReduced();
 
@@ -272,23 +285,12 @@ export function SettingsModal() {
               <SubPageContext.Provider value={nav}><PanelSections className="contents">{renderBody(at ?? undefined)}</PanelSections></SubPageContext.Provider>
             </div>
           </div>
-          {live && thumb && (
-            <div role="presentation" className="settings-scrollbar" data-scrolling={thumb.scrolling ? "" : undefined}>
-              <div style={{ top: thumb.top, height: thumb.height }} />
-            </div>
-          )}
+          {live && <ScrollThumb scroller={scrollRef} watch={`${paneKey}:${pages.length}`} />}
         </div>
       </>
     );
   };
 
-  // the chosen pane's fill is one layer under the rail; it jumps to the pane picked next, raw like the sidebar
-  const railRef = useRef<HTMLDivElement>(null);
-  const [fill, setFill] = useState<{ top: number; height: number } | null>(null);
-  useLayoutEffect(() => {
-    const item = railRef.current?.querySelector<HTMLElement>('[aria-current="page"]');
-    setFill(item ? { top: item.offsetTop, height: item.offsetHeight } : null);
-  }, [pane, phone, panes.length]);
   const listShown = phone && phoneList;
   const nav = (
     <nav aria-label={t("settings.grok.navAria")} className="settings-nav">
@@ -298,18 +300,7 @@ export function SettingsModal() {
           <GrokIcon name="close" size={18} />
         </button>
       </div>
-      <div ref={railRef} className="settings-nav-list">
-        {!phone && fill && (
-          <MotionSpan
-            aria-hidden="true"
-            data-settings-nav-fill=""
-            className="settings-nav-fill"
-            initial={false}
-            animate={{ y: fill.top }}
-            style={{ height: fill.height }}
-            transition={{ duration: 0 }}
-          />
-        )}
+      <div className="settings-nav-list">
         {panes.map((entry) => {
           const current = entry.id === pane && !phone;
           return (
@@ -336,14 +327,10 @@ export function SettingsModal() {
       <button type="button" onClick={close} aria-label={t("settings.grok.close")} className="settings-close">
         <GrokIcon name="close" size={14} />
       </button>
-      <MotionDiv
-        key={pane}
-        // raw like the sidebar: a pane swaps in the same frame
-        initial={false}
-        className="flex min-h-0 flex-1 flex-col"
-      >
+      {/* raw like the sidebar: a pane swaps in the same frame */}
+      <div key={pane} className="flex min-h-0 flex-1 flex-col">
         <WipeStack at={JSON.stringify({ at: page ?? null, pages: stack })} depth={(page ? 1 : 0) + stack.length} group={pane} layer={layer} />
-      </MotionDiv>
+      </div>
     </section>
   );
   // on a phone the list and a pane are one screen each: a pane pushes in from the end, the list comes back from the start

@@ -55,7 +55,7 @@ export function BuiltInBrowserRow() {
           aria-label={t("settings.experimental.browserAria")}
           disabled={saving || (!browser && !desktopBrowser && !browserInstallable)}
           onClick={() => void save({ features: { browser: !browser } })}
-          className="disabled:cursor-wait disabled:opacity-50"
+          className="disabled:opacity-50"
       />
     </SettingRow>
   );
@@ -81,7 +81,7 @@ export function ServerSitesRow() {
         aria-label={t("settings.browser.serverSites")}
         disabled={saving}
         onClick={() => void save({ browserEngine: { egress: { localNetwork: !on } } })}
-        className="disabled:cursor-wait disabled:opacity-50"
+        className="disabled:opacity-50"
       />
     </SettingRow>
   );
@@ -94,20 +94,16 @@ export function NewBrowserSettings() {
   const { saving, error, save } = useConfigSave();
 
   return (
-    <div className="mt-4 border-t border-hairline/30 pt-4" data-testid="new-browser-settings">
-      <div className="flex items-center justify-between gap-4">
-        <div className="min-w-0">
-          <div className="text-[13px] leading-[18px] text-ink">{t("settings.experimental.newBrowser")}</div>
-        </div>
+    <div data-testid="new-browser-settings" className="contents">
+      <SettingRow title={t("settings.experimental.newBrowser")} message={error ? <p role="alert" className="text-danger">{error}</p> : null}>
         <Switch
           checked={on}
           aria-label={t("settings.experimental.newBrowserAria")}
           disabled={saving}
           onClick={() => void save({ browserEngine: { engine: on ? "agent-browser" : "chrome" } })}
-          className="disabled:cursor-wait disabled:opacity-50"
+          className="disabled:opacity-50"
         />
-      </div>
-      {error ? <p role="alert" className="mt-2 text-[12px] text-danger">{error}</p> : null}
+      </SettingRow>
     </div>
   );
 }

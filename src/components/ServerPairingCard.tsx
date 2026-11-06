@@ -8,9 +8,9 @@ import { isOwnerOrAdmin, readSessionState, type SessionState } from "../lib/sess
 import { readMembership } from "../lib/membership";
 import { lastSeen, minutesLeft } from "../lib/pairing-time";
 import { revealPhonePairing } from "../lib/phone-pairing";
-import { Card, SettingRow, SIMPLE_CARD } from "./SettingsPrimitives";
-import { Select } from "./Select";
-import { cn } from "@/lib/cn";
+import { Card, SettingRow } from "./SettingsPrimitives";
+import { SettingsSelect } from "./SettingsSelect";
+import { Card as RowsCard, CopyRow, ItemRow, NoteRow } from "./ListRows";
 import { TeamPhoneCard } from "./TeamPhoneCard";
 import { ComputerNameRow } from "./ComputerNameRow";
 
@@ -108,6 +108,13 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
   }
   if (!canPairDevices(session)) {
     if (pairingBlockedReason(session) !== "chat-only") return null;
+    if (simple) {
+      return (
+        <div ref={root} tabIndex={-1} data-phone-pairing="server" className="scroll-mt-4 focus:outline-none">
+          <RowsCard><div data-server-pairing-chat-only="" className="contents"><NoteRow>{t(pairingCodes ? "remote.serverPairing.chatOnly" : "remote.serverPairing.portalChatOnly")}</NoteRow></div></RowsCard>
+        </div>
+      );
+    }
     return (
       <div ref={root} tabIndex={-1} data-phone-pairing="server" className="scroll-mt-4 rounded-xl focus:outline-none">
         <Card title={t("remote.serverPairing.title")} subtitle={t(pairingCodes ? "remote.serverPairing.subtitle" : "remote.serverPairing.portalSubtitle")}>
@@ -181,70 +188,63 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
   ) : null;
   // Loaded with the config; a personal cloud has no computer of its own to name.
   const nameRow = (className: string) => pairingCodes && !cloudHome && computerName !== null
-    ? <ComputerNameRow saved={computerName} onSaved={setComputerName} className={className} /> : null;
+    ? <div className={className}><ComputerNameRow saved={computerName} onSaved={setComputerName} /></div> : null;
   const scopeName = (device: PairedDevice) => t(device.scopes.includes("admin") ? "remote.serverPairing.scope.admin" : "remote.serverPairing.scope.client");
 
   if (simple) {
+    // Grok's rows: the name, the access a code gives, Create code, then the code, its QR and its link; who is signed in below
     return (
-      <div ref={root} tabIndex={-1} data-phone-pairing="server" className="flex scroll-mt-4 flex-col gap-1.5 focus:outline-none">
-        <div data-settings-rows="" className={cn(SIMPLE_CARD, "flex flex-col")}>
-          {nameRow("px-3.5 py-2.5")}
-          <SettingRow title={t("settings.w6.pairing.title")} subtitle={pairingCodes ? cloudHome ? t("settings.w6a.phone.cloudPersonal") : undefined : t("settings.w6a.phone.portal")}>
+      <div ref={root} tabIndex={-1} data-phone-pairing="server" className="flex scroll-mt-4 flex-col gap-5 focus:outline-none">
+        <RowsCard data-settings-block="pair-code">
+          {pairingCodes && !cloudHome && computerName !== null && <ComputerNameRow saved={computerName} onSaved={setComputerName} />}
+          {pairingCodes && !cloudHome && (
+            <SettingRow title={t("settings.s2.pairing.access")}>
+              <SettingsSelect data-settings-select="pairing-scope" value={scope} aria-label={t("remote.serverPairing.title")}
+                options={[{ value: "admin", label: t("remote.serverPairing.scope.admin") }, { value: "client", label: t("remote.serverPairing.scope.client") }]}
+                onChange={(event) => setScope(event.target.value === "client" ? "client" : "admin")} />
+            </SettingRow>
+          )}
+          <ItemRow title={t("settings.w6.pairing.title")} hint={pairingCodes ? cloudHome ? t("settings.w6a.phone.cloudPersonal") : undefined : t("settings.w6a.phone.portal")}>
             {pairingCodes ? (
-              <div className="flex items-center gap-2">
-                {cloudHome ? null : (
-                  <Select variant="ghost" value={scope} aria-label={t("remote.serverPairing.title")} onChange={(event) => setScope(event.target.value === "client" ? "client" : "admin")}>
-                    <option value="admin">{t("remote.serverPairing.scope.admin")}</option>
-                    <option value="client">{t("remote.serverPairing.scope.client")}</option>
-                  </Select>
-                )}
-                <button type="button" data-phone-pairing-action onClick={() => void create()} disabled={busy} className="ui-button">
-                  {busy ? t("remote.serverPairing.creating") : t("settings.simple.computer.createCode")}
-                </button>
-              </div>
+              <button type="button" data-phone-pairing-action onClick={() => void create()} disabled={busy} className="ui-button">
+                {busy ? t("remote.serverPairing.creating") : t("settings.simple.computer.createCode")}
+              </button>
             ) : null}
-          </SettingRow>
+          </ItemRow>
           {pairingCodes && offer ? (expired ? (
-            <SettingRow title={t("remote.serverPairing.expired")}>{null}</SettingRow>
+            <NoteRow>{t("remote.serverPairing.expired")}</NoteRow>
           ) : (
             <>
-              <SettingRow title={t("settings.w6.pairing.code")} subtitle={offer.url ? t("remote.serverPairing.expires", { minutes: minutesLeft(offer.expiresAt, now) }) : offer.hint ?? t("remote.serverPairing.noLink")}>
+              <ItemRow title={t("settings.w6.pairing.code")} hint={offer.url ? t("remote.serverPairing.expires", { minutes: minutesLeft(offer.expiresAt, now) }) : offer.hint ?? t("remote.serverPairing.noLink")}>
                 <span className="font-mono text-[15px] tracking-[0.14em] text-ink">{offer.code}</span>
-              </SettingRow>
+              </ItemRow>
               {offer.url ? (
                 <>
-                  <div className="flex justify-center px-3.5 pb-3">
+                  <div data-pairing-qr="" className="flex justify-center py-2">
                     <div className="rounded-[10px] bg-white p-3 outline outline-[0.5px] -outline-offset-[0.5px] outline-edge">
-                      <QRCodeSVG value={offer.url} size={160} level="M" bgColor="#ffffff" fgColor="#111111" />
+                      <QRCodeSVG value={offer.url} size={148} level="M" bgColor="#ffffff" fgColor="#111111" />
                     </div>
                   </div>
-                  <SettingRow title={t("settings.w6.pairing.link")} subtitle={<span className="break-all">{offer.url}</span>}>
-                    <button type="button" onClick={() => void copyLink()} className="ui-button">
-                      {t(copied === "copied" ? "remote.serverPairing.copied" : copied === "failed" ? "common.copyFailed" : "remote.serverPairing.copyLink")}
-                    </button>
-                  </SettingRow>
+                  <CopyRow title={t("settings.w6.pairing.link")} text={offer.url} copyLabel={t("remote.serverPairing.copyLink")} />
                 </>
               ) : null}
             </>
           )) : null}
+          {error ? <NoteRow tone="danger">{error}</NoteRow> : null}
+        </RowsCard>
+        {/* "Signed-in" either way: the desktop's own paired phones are listed under "Paired devices" on the same page */}
+        <RowsCard label={t("remote.serverPairing.portalDevices")} data-settings-block="paired-sessions">
           {listed.length === 0 ? (
-            <p className="px-3.5 py-2.5 text-[13px] leading-[18px] text-ink-secondary">{t("remote.serverPairing.noDevices")}</p>
+            <NoteRow>{t("remote.serverPairing.noDevices")}</NoteRow>
           ) : listed.map((device) => (
-            <div key={device.id} className="flex min-h-11 flex-wrap items-center gap-x-5 gap-y-2 px-3.5 py-2.5">
-              <span className="min-w-[min(100%,15rem)] flex-1 text-[13px] leading-[18px] text-ink">
-                {device.label}
-                <span className="text-ink-secondary">
-                  {" · "}{scopeName(device)}{" · "}{t("remote.serverPairing.seen", { when: lastSeen(device.lastSeenAt, now) })}
-                  {device.id === current ? ` · ${t("remote.serverPairing.thisBrowser")}` : ""}
-                </span>
-              </span>
+            <ItemRow key={device.id} title={device.label}
+              hint={`${scopeName(device)} · ${t("remote.serverPairing.seen", { when: lastSeen(device.lastSeenAt, now) })}${device.id === current ? ` · ${t("remote.serverPairing.thisBrowser")}` : ""}`}>
               {device.id === current ? null : (
-                <button type="button" onClick={() => void signOut(device.id)} className="ui-button ml-auto shrink-0">{t("remote.serverPairing.signOut")}</button>
+                <button type="button" onClick={() => void signOut(device.id)} className="ui-button">{t("remote.serverPairing.signOut")}</button>
               )}
-            </div>
+            </ItemRow>
           ))}
-        </div>
-        {error ? <p role="alert" className="pl-3.5 text-[12px] leading-4 text-danger">{error}</p> : null}
+        </RowsCard>
       </div>
     );
   }

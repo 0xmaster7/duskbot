@@ -53,6 +53,7 @@ describe("people table", () => {
     expect(html).toContain(">Make admin<");
     expect(html).toContain(">Remove<");
     expect(html).toContain('aria-label="Invite link"');
+    expect(html).not.toContain("<table");
   });
 
   it("says so when nobody is on the list", () => {

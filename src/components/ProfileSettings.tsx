@@ -208,14 +208,14 @@ export function ProfileFields() {
   );
 }
 
-export function ProfileAvatar({ profile }: { profile?: { name?: string; email?: string; avatarUrl?: string } }) {
+export function ProfileAvatar({ profile, small = false }: { profile?: { name?: string; email?: string; avatarUrl?: string }; small?: boolean }) {
   const [failed, setFailed] = useState<string | null>(null);
   const initials = profileInitials(profile);
   const photo = profile?.avatarUrl && failed !== profile.avatarUrl ? profile.avatarUrl : null;
   return (
-    <span className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink/[0.06] text-[15px] font-medium text-ink-secondary">
+    <span className={cn("flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink/[0.06] font-medium text-ink-secondary", small ? "size-7 text-[11px]" : "size-11 text-[15px]")}>
       {photo ? <img src={photo} alt="" onError={() => setFailed(photo)} className="size-full object-cover" />
-        : initials !== "?" ? initials : <User size={20} aria-hidden="true" />}
+        : initials !== "?" ? initials : <User size={small ? 14 : 20} aria-hidden="true" />}
     </span>
   );
 }

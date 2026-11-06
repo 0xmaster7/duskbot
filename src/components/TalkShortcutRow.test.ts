@@ -96,10 +96,14 @@ describe("TalkShortcutRow", () => {
     await show();
     bridge.set.mockImplementationOnce(() => new Promise<TalkShortcutState>((resolve) => { finish = resolve; }));
     await click(toggle());
-    expect(toggle().disabled).toBe(true);
-    expect(host.querySelector<HTMLButtonElement>('[role="combobox"]')?.disabled).toBe(true);
+    // the switch shows the new position at once and stays live, but a second press waits for the first change
+    expect(toggle().getAttribute("aria-checked")).toBe("false");
+    expect(toggle().getAttribute("aria-busy")).toBe("true");
+    await click(toggle());
+    expect(bridge.set).toHaveBeenCalledTimes(1);
     await act(async () => { finish({ ...base, enabled: false }); });
     await settle();
+    expect(toggle().getAttribute("aria-busy")).toBeNull();
     expect(toggle().disabled).toBe(false);
   });
 

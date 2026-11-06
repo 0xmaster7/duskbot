@@ -210,7 +210,8 @@ describe("the Automations list switch", () => {
     await vi.waitFor(() => expect(toggle(name).getAttribute("aria-checked")).toBe("false"));
     expect(row(id).dataset.automationStatus).toBe("paused");
     expect(row(id).textContent).toContain("Paused");
-    await vi.waitFor(() => expect(toggle(name).disabled).toBe(false));
+    // the switch moved at once and stays live; the next press waits for this answer to land
+    await vi.waitFor(() => expect(toggle(name).hasAttribute("aria-busy")).toBe(false));
     flushSync(() => toggle(name).click());
     await vi.waitFor(() => expect(toggle(name).getAttribute("aria-checked")).toBe("true"));
     expect(row(id).dataset.automationStatus).toBe("working");

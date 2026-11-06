@@ -14,6 +14,8 @@ export { installCommandFor };
 import { keyEntry, keyForInstance, type KeyId } from "./keys/key-catalog";
 import { openKeySettings } from "./keys/key-focus";
 import { KeyRow, SavedKeyLine } from "./keys/KeyRow";
+import { Card, CopyRow, ItemRow, NavRow, NoteRow, rowCls } from "./ListRows";
+import { openExternalLink } from "@/lib/app-links";
 
 export function needsSignIn(instance: InstanceInfo | undefined): boolean {
   return instance?.snapshot.state === "available" && instance.snapshot.authenticated === false;
@@ -150,7 +152,7 @@ export function CommandRow({
   );
 }
 
-function ServerEngineInstall({ instance, mode, command, quiet = false }: { instance: InstanceInfo; mode: "install" | "update"; command: string | null; quiet?: boolean }) {
+function ServerEngineInstall({ instance, mode, command, quiet = false, rows }: { instance: InstanceInfo; mode: "install" | "update"; command: string | null; quiet?: boolean; rows?: { title: string; hint: string } }) {
   const { state, dispatch, refreshModels } = useStore();
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -180,6 +182,23 @@ function ServerEngineInstall({ instance, mode, command, quiet = false }: { insta
       setBusy(false);
     }
   };
+
+  // Settings' rows: the notice is the row, its one action the pill; the terminal way is a copyable row under it
+  if (rows) {
+    return (
+      <>
+        <ItemRow title={rows.title} hint={rows.hint} tone="warn">
+          <button type="button" className="ui-button" disabled={busy} onClick={() => void run()}>
+            {busy ? t("engineSetup.serverInstalling") : t(mode === "update" ? "engineSetup.serverUpdate" : "engineSetup.serverInstall", { name: instance.displayName })}
+          </button>
+        </ItemRow>
+        {done && !busy && <NoteRow>{t("engineSetup.installVerified")}</NoteRow>}
+        {!busy && <AppCopyNotice instance={instance} className={rowCls} />}
+        {error && <NoteRow tone="danger">{error}</NoteRow>}
+        {terminalCommand && <CopyRow title={t("engineSetup.preferTerminal")} text={terminalCommand} copyLabel={t("engineSetup.copyCommand")} />}
+      </>
+    );
+  }
 
   return (
     <div className="mt-3 space-y-2">
@@ -220,12 +239,27 @@ export function EngineUpdateNotice({
   instance,
   className,
   quiet = false,
+  rows = false,
 }: {
   update: NonNullable<InstanceInfo["snapshot"]["update"]>;
   instance?: InstanceInfo;
   className?: string;
   quiet?: boolean;
+  /** drawn as rows of the Settings card it sits in, not as its own box */
+  rows?: boolean;
 }) {
+  if (rows) {
+    return (
+      <div data-engine-update-notice="" className="contents">
+        {instance?.install?.server
+          ? <ServerEngineInstall instance={instance} mode="update" command={update.command} quiet={quiet} rows={{ title: update.title, hint: update.message }} />
+          : <>
+            <ItemRow title={update.title} hint={update.message} tone="warn" />
+            <CopyRow title={t("engineSetup.openUpdate")} text={update.command} copyLabel={t("engineSetup.copyCommand")} />
+          </>}
+      </div>
+    );
+  }
   return (
     <div
       data-engine-update-notice
@@ -248,10 +282,13 @@ export function EngineUpdateNotice({
 export function EngineWarningNotice({
   warning,
   className,
+  rows = false,
 }: {
   warning: NonNullable<InstanceInfo["snapshot"]["warning"]>;
   className?: string;
+  rows?: boolean;
 }) {
+  if (rows) return <div data-engine-warning-notice="" className="contents"><ItemRow title={warning.title} hint={warning.message} tone="warn" /></div>;
   return (
     <div
       data-engine-warning-notice
@@ -509,6 +546,7 @@ export function EngineSetup({
   description: descriptionOverride,
   quiet = false,
   onHost = false,
+  rows = false,
 }: {
   instance: InstanceInfo;
   className?: string;
@@ -518,6 +556,8 @@ export function EngineSetup({
   quiet?: boolean;
   /** A paired desktop: sign-in and setup happen on the host, whose AIs it uses. */
   onHost?: boolean;
+  /** Settings' engine page: an install drawn as rows of one card (title, the command to copy, Check again, the guide) */
+  rows?: boolean;
 }) {
   const { state } = useStore();
   const cloudHome = state.config?.cloudHome === true;
@@ -585,6 +625,11 @@ export function EngineSetup({
   // The app's own copy is out of reach of the person's terminal, so its sign-in is finished here.
   if (signInOnly && install.appCopy && !deviceSignIn && !browserSignIn && !pasteSignIn) {
     return <AppCopySetup instance={instance} className={className} unframed={unframed} />;
+  }
+
+  if (rows && !deviceSignIn && !browserSignIn && !pasteSignIn && !install.managed) {
+    return <EngineSetupRows instance={instance} title={title} description={description} command={command ?? null} installCommand={installCommand}
+      signInOnly={signInOnly} cloudHome={cloudHome} />;
   }
 
   return (
@@ -667,5 +712,58 @@ export function EngineSetup({
         </a>
       )}
     </div>
+  );
+}
+
+/** An engine's install or terminal sign-in as rows of one Settings card: what it needs in a line, its one action as a pill
+ * (install here, or open the command in a terminal), the command as a row to copy, Check again and the setup guide. */
+function EngineSetupRows({ instance, title, description, command, installCommand, signInOnly, cloudHome }: {
+  instance: InstanceInfo;
+  title: string;
+  description: string;
+  command: string | null;
+  installCommand: string | null;
+  signInOnly: boolean;
+  cloudHome: boolean;
+}) {
+  const { refreshInstances } = useStore();
+  const [checking, setChecking] = useState(false);
+  const [checkError, setCheckError] = useState<string | null>(null);
+  const [opened, setOpened] = useState(false);
+  const install = instance.install!;
+  const canOpen = Boolean(command) && !cloudHome && serverTerminal(false);
+  const reason = instance.snapshot.state === "unavailable" ? instance.snapshot.reason : undefined;
+  const check = async () => {
+    setChecking(true);
+    setCheckError(null);
+    try { await refreshInstances({ reportErrors: true }); }
+    catch (cause) { setCheckError(cause instanceof Error ? cause.message : String(cause)); }
+    finally { setChecking(false); }
+  };
+  return (
+    <Card data-settings-block="engine-setup">
+      {install.server && !signInOnly ? (
+        <ServerEngineInstall instance={instance} mode="install" command={installCommand} rows={{ title, hint: description }} />
+      ) : (
+        <>
+          <ItemRow title={title} hint={description}>
+            {canOpen && (
+              <button type="button" className="ui-button" onClick={() => void window.ogb!.openInstallTerminal!(command!).then((done) => setOpened(Boolean(done)))}>
+                {opened ? t("engineSetup.opened") : t("engineSetup.terminal")}
+              </button>
+            )}
+          </ItemRow>
+          {command ? <CopyRow title={t("settings.s2.engine.command")} text={command} copyLabel={t("engineSetup.copyCommand")} />
+            : <NoteRow>{t("engineSetup.noInstaller")}</NoteRow>}
+        </>
+      )}
+      {reason && <NoteRow tone="danger">{reason}</NoteRow>}
+      {!signInOnly && install.needsNode && !install.server && <NoteRow>{t("engineSetup.needsNode").replace("{npm}", "npm")}</NoteRow>}
+      {(install.command || install.signInCommand) && (
+        <NavRow drill={false} title={checking ? t("common.checking") : t("engines.library.refresh")} hint={t("settings.s2.engine.sameMachineShort")} disabled={checking} onClick={() => void check()} />
+      )}
+      {checkError && <NoteRow tone="danger">{t("engineSetup.checkFailed", { reason: checkError })}</NoteRow>}
+      {install.docsUrl && <NavRow external title={t("engineSetup.viewGuide")} onClick={() => void openExternalLink(install.docsUrl!)} />}
+    </Card>
   );
 }

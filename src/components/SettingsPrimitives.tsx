@@ -5,6 +5,7 @@ import { Check, ChevronRight, Copy, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useCopyFeedback } from "@/lib/copy-text";
 import { t } from "@/lib/i18n";
+import { useOptimisticSwitch } from "./ui/optimistic-switch";
 
 /** The panel's card: white, 12px corners on a half-pixel edge, 4px in, its rows drawing their own hover pill. */
 export const SIMPLE_CARD = "flex flex-col rounded-[12px] border-[0.5px] border-edge bg-composer p-1";
@@ -18,13 +19,19 @@ export const SIMPLE_BUTTONS = cn(
 );
 
 export function Switch({
-  checked,
+  checked: owned,
   className,
+  disabled: ownedDisabled,
+  onClick: ownedClick,
   ...props
 }: Omit<ComponentProps<"button">, "children" | "role" | "aria-checked"> & { checked: boolean }) {
+  const { checked, disabled, busy, onClick } = useOptimisticSwitch(owned, ownedDisabled, ownedClick);
   return (
     <button
       {...props}
+      disabled={disabled}
+      aria-busy={busy || undefined}
+      onClick={onClick}
       type="button"
       role="switch"
       aria-checked={checked}

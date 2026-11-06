@@ -94,9 +94,11 @@ describe("full backup Settings in the real renderer", () => {
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Export full backup");
     expect(await snapshot()).toContain("Sign-ins and keys are left out. The password can't be recovered.");
     await ui("screenshot", "--out", join(ROOT, ".omb-scratch", "verify-evidence", "workspace-backup-settings.png"));
+    // the passwords live in Export's own small dialog; Enter in its last field exports
+    await click("Export full backup");
     await type("Backup password", "fixture password 123");
     await type("Confirm backup password", "fixture password 123");
-    await click("Export full backup");
+    await ui("press", "--keys", "Enter");
     await expect.poll(() => evaluate("window.backupFixture.download"), { timeout: 10_000 }).toEqual({ href: "/api/workspace-backup/download/download-stage", filename: "fixture.ombbackup" });
     expect(await evaluate("window.backupFixture.calls.find(call => call.path.endsWith('/export')).body.clientState['fixture-auth-token'] ?? null")).toBeNull();
     expect(await evaluate("window.backupFixture.calls.find(call => call.path.endsWith('/export')).body.clientState['omb-webhook-credentials'] ?? null")).toBeNull();

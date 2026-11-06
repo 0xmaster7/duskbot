@@ -54,8 +54,8 @@ export function McpCallTimeoutSettings() {
         {t("settings.w6c.mcpCalls.label")}
       </label>
       <div
-        className={`flex w-[150px] shrink-0 items-center rounded-lg border bg-inset ${
-          error ? "border-danger/60" : "border-hairline/40 focus-within:border-focus"
+        className={`flex h-8 w-[150px] shrink-0 items-center rounded-[10px] border bg-transparent ${
+          error ? "border-danger/60" : "border-ink/10"
         }`}
       >
         <input
@@ -78,7 +78,7 @@ export function McpCallTimeoutSettings() {
           onKeyDown={(event) => {
             if (event.key === "Enter") event.currentTarget.blur();
           }}
-          className="min-w-0 flex-1 bg-transparent px-3 py-2 text-[14px] tabular-nums text-ink focus:outline-none"
+          className="h-full min-w-0 flex-1 bg-transparent px-[9px] text-[13px] tabular-nums text-ink outline-none"
         />
         <span className="pr-3 text-[13px] text-ink-secondary">{t("settings.mcpCalls.minutes")}</span>
       </div>

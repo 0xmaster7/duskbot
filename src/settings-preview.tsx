@@ -26,6 +26,21 @@ if (params.get("desktop") === "1") {
   } });
 }
 
+// ?remote=1: the desktop's server list, local environments and companion client, so Computer > Connect from elsewhere
+// draws as the packaged app does
+if (params.get("remote") === "1") {
+  const environments = [
+    { id: "env-1", kind: "local", name: "Work", dataDir: "/Users/you/.openmausbot-work", missing: false },
+    { id: "vps", kind: "remote", name: "VPS", origin: "https://bots.example.com" },
+  ];
+  const state = async () => ({ localOrigin: "http://127.0.0.1:8799", remote: false, packaged: true, activeId: "local", environments });
+  Object.assign((window as unknown as { ogb: object }).ogb ?? Object.assign(window, { ogb: {} }).ogb, {
+    environments: { state, switch: async () => ({ ok: true }), forget: async () => ({ ok: true }), addFromLink: async () => true,
+      create: async () => ({ ok: true }), pickDir: async () => ({ ok: false }), onOpenSettings: () => () => {} },
+    remoteClient: { active: false, state: async () => ({ active: false }), pair: async () => {}, disconnect: async () => {} },
+  });
+}
+
 // ?companion=off|paired: the desktop's phone bridge, so the Phone pane draws as the app does
 const companionMode = params.get("companion");
 if (companionMode) {

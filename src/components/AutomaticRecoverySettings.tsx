@@ -1,8 +1,9 @@
 import { useRef, useState } from "react";
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { t } from "@/lib/i18n";
-import { SettingsGroup, SettingsRows, Switch } from "./SettingsPrimitives";
-import { Select } from "./Select";
+import { SettingRow, SettingsGroup, SettingsRows, Switch } from "./SettingsPrimitives";
+import { SettingsSelect } from "./SettingsSelect";
+import { NoteRow } from "./ListRows";
 
 type Recovery = NonNullable<ConfigStatus["automaticRecovery"]>;
 
@@ -37,45 +38,43 @@ export function AutomaticRecoverySettings() {
       setSaving(false);
     }
   };
-  const row = "flex min-h-12 flex-wrap items-center justify-between gap-x-5 gap-y-2 px-3.5 py-2.5";
-  const label = "text-[13px] leading-[18px] tracking-[-0.08px] text-ink";
+  const engineOptions = [
+    { value: "", label: t("settings.recovery.chooseEngine") },
+    ...(value.backup && !engine ? [{ value: value.backup.instanceId, label: t("settings.recovery.unavailable", { name: value.backup.instanceId }), disabled: true }] : []),
+    ...engines.map((instance) => ({ value: instance.instanceId, label: instance.displayName,
+      disabled: !instance.models.options.some((model) => instance.snapshot.authenticated !== false || model.custom) })),
+  ];
+  const modelOptions = [
+    { value: "", label: t("settings.recovery.chooseModel") },
+    ...(value.backup?.model && !ready ? [{ value: value.backup.model, label: t("settings.recovery.unavailable", { name: value.backup.model }), disabled: true }] : []),
+    ...models.map((model) => ({ value: model.id, label: model.label })),
+  ];
   return (
-    <SettingsGroup label={t("settings.recovery.title")} block="recovery">
+    <SettingsGroup block="recovery">
       <SettingsRows>
-        <div className={row}>
-          <div className="min-w-0 flex-1 basis-48">
-            <label htmlFor="automatic-recovery-enabled" className={label}>{t("settings.recovery.enable")}</label>
-            {value.enabled && <div className="text-[13px] leading-[18px] tracking-[-0.08px] text-ink-secondary">{t(ready ? "settings.w6c.recovery.charges" : "settings.recovery.required")}</div>}
-          </div>
-          <Switch id="automatic-recovery-enabled" checked={value.enabled} disabled={saving || !state.config}
+        <SettingRow title={t("settings.recovery.enable")} subtitle={value.enabled ? t(ready ? "settings.w6c.recovery.charges" : "settings.recovery.required") : undefined}>
+          <Switch id="automatic-recovery-enabled" aria-label={t("settings.recovery.enable")} checked={value.enabled} disabled={saving || !state.config}
             onClick={() => change({ ...value, enabled: !value.enabled })} />
-        </div>
-        <div className={row}>
-          <label htmlFor="automatic-recovery-engine" className={label}>{t("settings.recovery.engine")}</label>
-          <Select size="sm" id="automatic-recovery-engine" value={value.backup?.instanceId ?? ""} disabled={saving || !value.enabled}
-            onChange={(event) => change({ enabled: value.enabled, ...(event.target.value ? { backup: { instanceId: event.target.value, model: "" } } : {}) })}>
-            <option value="">{t("settings.recovery.chooseEngine")}</option>
-            {value.backup && !engine && <option value={value.backup.instanceId} disabled>{t("settings.recovery.unavailable", { name: value.backup.instanceId })}</option>}
-            {engines.map((instance) => <option key={instance.instanceId} value={instance.instanceId}
-              disabled={!instance.models.options.some((model) => instance.snapshot.authenticated !== false || model.custom)}>{instance.displayName}</option>)}
-          </Select>
-        </div>
-        <div className={row}>
-          <label htmlFor="automatic-recovery-model" className={label}>{t("settings.recovery.model")}</label>
-          <Select size="sm" id="automatic-recovery-model" value={value.backup?.model ?? ""} disabled={saving || !value.enabled || !engine}
-            onChange={(event) => change({ enabled: value.enabled, backup: { instanceId: engine!.instanceId, model: event.target.value } })}>
-            <option value="">{t("settings.recovery.chooseModel")}</option>
-            {value.backup?.model && !ready && <option value={value.backup.model} disabled>{t("settings.recovery.unavailable", { name: value.backup.model })}</option>}
-            {models.map((model) => <option key={model.id} value={model.id}>{model.label}</option>)}
-          </Select>
-        </div>
-        <div className="flex justify-end px-3.5 py-2.5">
-          <button type="button" disabled={!draft || saving || (value.enabled && !ready)} onClick={() => void save()} className="ui-button ui-button-primary">
-            {saving ? t("settings.threads.saving") : t("common.save")}
-          </button>
-        </div>
+        </SettingRow>
+        <SettingRow title={t("settings.recovery.engine")}>
+          <SettingsSelect data-settings-select="automatic-recovery-engine" aria-label={t("settings.recovery.engine")} value={value.backup?.instanceId ?? ""} disabled={saving || !value.enabled}
+            options={engineOptions}
+            onChange={(event) => change({ enabled: value.enabled, ...(event.target.value ? { backup: { instanceId: event.target.value, model: "" } } : {}) })} />
+        </SettingRow>
+        <SettingRow title={t("settings.recovery.model")}>
+          <SettingsSelect data-settings-select="automatic-recovery-model" aria-label={t("settings.recovery.model")} value={value.backup?.model ?? ""} disabled={saving || !value.enabled || !engine}
+            options={modelOptions}
+            onChange={(event) => change({ enabled: value.enabled, backup: { instanceId: engine!.instanceId, model: event.target.value } })} />
+        </SettingRow>
+        {draft && (
+          <SettingRow title={t("settings.s2.unsaved")}>
+            <button type="button" disabled={saving || (value.enabled && !ready)} onClick={() => void save()} className="ui-button ui-button-primary">
+              {saving ? t("settings.threads.saving") : t("common.save")}
+            </button>
+          </SettingRow>
+        )}
         {saving && <span role="status" className="sr-only">{t("settings.threads.saving")}</span>}
-        {error && <p role="alert" className="px-3.5 pb-2.5 text-[13px] leading-[18px] text-danger">{error}</p>}
+        {error && <NoteRow tone="danger">{error}</NoteRow>}
       </SettingsRows>
     </SettingsGroup>
   );

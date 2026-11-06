@@ -1,15 +1,6 @@
 import { cloudAsleep, onCloudPower } from "../lib/cloud-power";
 import { api, ApiError, snapshotArrays } from "./api";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-  type ReactNode,
-} from "react";
+import { createContext, startTransition, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import type { BotMovedTo, BotVisibility, CardAnswerer, CloudBackend, ConnectorToolGrant, EffortLevel, InstalledPackageMetadata, LiveCallState, ServerFrame, GroupThreadUsage, SteerQueueReason, WireBot, WireGroup, WireTask, OptionCardData as WireOptionCard } from "../../shared/wire";
 import { movesThreadToTop } from "../../shared/wire"; import type { DefaultBotFields } from "../../shared/default-bot";
@@ -593,6 +584,8 @@ export interface AppState {
   appSettingsSection: AppSettingsSection;
   appSettingsCloudLink: number;
   appSettingsPhonePairing: number;
+  /** Counts requests to open Settings: Settings moves between its panes locally and still follows the next request. */
+  appSettingsRequest: number;
   shortcutsOpen: boolean;
   cloudAdd: { source: import("@/lib/cloud-plan").CloudSource; signIn?: true } | null;
   cloudHowTo: boolean;
@@ -1547,6 +1540,7 @@ export function reducer(state: AppState, action: Action): AppState {
         appSettingsSection: action.section ?? state.appSettingsSection,
         appSettingsCloudLink: action.cloudLink && open ? state.appSettingsCloudLink + 1 : 0,
         appSettingsPhonePairing: action.phonePairing && open ? state.appSettingsPhonePairing + 1 : 0,
+        appSettingsRequest: open ? state.appSettingsRequest + 1 : state.appSettingsRequest,
         pluginsOpen: open ? false : state.pluginsOpen,
       };
     }
@@ -1891,6 +1885,7 @@ export const initialState: AppState = {
   appSettingsSection: "general",
   appSettingsCloudLink: 0,
   appSettingsPhonePairing: 0,
+  appSettingsRequest: 0,
   shortcutsOpen: false,
   cloudAdd: null,
   cloudHowTo: false,
@@ -2268,6 +2263,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
 
     const wrapped: React.Dispatch<Action> = (action) => {
+      // a saved setting re-renders the whole app: as a transition, so the switch that saved it and the next click never wait
+      if (action.type === "configStatus") { startTransition(() => rawDispatch(action)); return; }
       if (["select", "newTask", "switchTask", "newGroupTask", "switchGroupTask", "showChat", "showRoutines", "showTeamMap", "showFiles", "showWebPanel"].includes(action.type)) selectionRevision.current++;
       // Pin before any await or optimistic state change.
       action = pinBotThreadAction(action, stateRef.current.bots);

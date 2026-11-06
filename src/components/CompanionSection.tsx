@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { t } from "@/lib/i18n";
 import { Loader2 } from "lucide-react";
 import {
@@ -15,8 +15,10 @@ import { companionPairingMode } from "../lib/phone-setup";
 import { revealPhonePairing } from "../lib/phone-pairing";
 import { PhonesList } from "./PhonesList";
 import { ConnectionDetail } from "./ConnectionDetail";
-import { SettingRow, SettingsDisclosureRow, SettingsGroup, SettingsRows, Switch } from "./SettingsPrimitives";
+import { SettingRow, SettingsGroup, SettingsRows, Switch } from "./SettingsPrimitives";
+import { NavRow, NoteRow, useSubPage } from "./ListRows";
 import { useStore } from "@/state/store";
+import { PHONE_ADVANCED_PAGE } from "./settings-page-ids";
 
 export {
   companionAccountActionError,
@@ -133,7 +135,8 @@ export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { prof
   const pairingFlow = useRef<HTMLDivElement>(null);
   const revealed = useRef(0);
   const loaded = Boolean(state);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const sub = useSubPage();
+  const advancedPage = sub.at === PHONE_ADVANCED_PAGE;
   useEffect(() => {
     if (!focusRequest) revealed.current = 0;
     else if (revealed.current !== focusRequest && revealPhonePairing(pairingFlow.current)) revealed.current = focusRequest;
@@ -177,52 +180,18 @@ export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { prof
         : t("settings.w6.phone.signedOut");
   const problem = c.error ?? state.error;
 
-  return (
-    <div className="flex flex-col gap-7">
-      <div ref={pairingFlow} tabIndex={-1} data-phone-pairing="computer" className="scroll-mt-4 rounded-[14px] focus:outline-none">
-        <SettingsRows><PhoneSetupFlowView controller={c} /></SettingsRows>
-      </div>
-      {remoteBlocked && <p role="status" className="-mt-5 pl-3.5 text-[12px] leading-4 text-ink-tertiary">{remoteBlocked}</p>}
-
-      {state.devices.length > 0 && (
-        <SettingsGroup label={t("remote.devices.title")} block="paired-devices">
-          {state.devices.map((device) => (
-            <SettingsRows key={device.id}>
-              <SettingRow title={device.name} subtitle={t("remote.devices.lastSeen", { when: relative(device.lastSeenAt) })}>
-                <button
-                  type="button"
-                  disabled={c.busy}
-                  onClick={() => void c.act((companion) => companion.revoke(device.id))}
-                  aria-label={t("remote.devices.remove", { name: device.name })}
-                  className="ui-button"
-                >
-                  {t("settings.w6.phone.remove")}
-                </button>
-              </SettingRow>
-              <SettingRow title={t("settings.w6.phone.computerView")}>
-                <Switch
-                  checked={device.cloudDesktopAccess}
-                  aria-label={t("remote.devices.viewAria", { name: device.name })}
-                  disabled={c.busy}
-                  onClick={() => void c.act((companion) => companion.cloudDesktop(device.id, !device.cloudDesktopAccess))}
-                />
-              </SettingRow>
-              <SettingRow title={t("settings.w6.phone.browserControl")}>
-                <Switch
-                  checked={device.browserControlAccess === true}
-                  aria-label={t("remote.devices.browserAria", { name: device.name })}
-                  disabled={c.busy}
-                  onClick={() => void c.act((companion) => companion.browserControl(device.id, !device.browserControlAccess))}
-                />
-              </SettingRow>
-            </SettingsRows>
-          ))}
-        </SettingsGroup>
-      )}
-
-      <PhonesList />
-
-      <SettingsDisclosureRow id="remote-advanced" title={t("settings.w6.phone.advanced")} open={advancedOpen} onToggle={() => setAdvancedOpen((open) => !open)}>
+  // the connection's own page: Pair over Tailscale or Wi-Fi draws the pairing flow here, above the rows, and goes to it
+  if (advancedPage) {
+    return (
+      <div className="flex flex-col gap-5">
+        {(c.localFallback || c.tailscaleFallback) && (
+          <>
+            <div ref={pairingFlow} tabIndex={-1} data-phone-pairing="computer" className="scroll-mt-4 rounded-[14px] focus:outline-none">
+              <SettingsRows><PhoneSetupFlowView controller={c} /></SettingsRows>
+            </div>
+            {remoteBlocked && <p role="status" className="-mt-3 pl-3 text-[11px] leading-4 text-ink-tertiary">{remoteBlocked}</p>}
+          </>
+        )}
         <SettingsRows>
           <SettingRow title={t("remote.title")}>
             <Switch
@@ -284,12 +253,63 @@ export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { prof
               </button>
             )}
           </SettingRow>
-          {accountActionError && <p role="alert" className="px-3.5 pb-2.5 text-[13px] leading-[18px] text-danger">{accountActionError}</p>}
+          {accountActionError && <NoteRow tone="danger">{accountActionError}</NoteRow>}
           {hosted && <ConnectionDetail label={t("remote.connection.secureRoute")} value={endpointHost(hosted.url)} />}
           {localRoutes.map((route) => <ConnectionDetail key={`${route.label}:${route.value}`} {...route} />)}
-          {problem && <p role="alert" className="px-3.5 pb-2.5 text-[13px] leading-[18px] text-danger">{problem}</p>}
+          {problem && <NoteRow tone="danger">{problem}</NoteRow>}
         </SettingsRows>
-      </SettingsDisclosureRow>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div ref={pairingFlow} tabIndex={-1} data-phone-pairing="computer" className="scroll-mt-4 rounded-[14px] focus:outline-none">
+        <SettingsRows><PhoneSetupFlowView controller={c} /></SettingsRows>
+      </div>
+      {remoteBlocked && <p role="status" className="-mt-3 pl-3 text-[11px] leading-4 text-ink-tertiary">{remoteBlocked}</p>}
+
+      {state.devices.length > 0 && (
+        <SettingsGroup label={t("remote.devices.title")} block="paired-devices">
+          {state.devices.map((device) => (
+            <SettingsRows key={device.id}>
+              <SettingRow title={device.name} subtitle={t("remote.devices.lastSeen", { when: relative(device.lastSeenAt) })}>
+                <button
+                  type="button"
+                  disabled={c.busy}
+                  onClick={() => void c.act((companion) => companion.revoke(device.id))}
+                  aria-label={t("remote.devices.remove", { name: device.name })}
+                  className="ui-button"
+                >
+                  {t("settings.w6.phone.remove")}
+                </button>
+              </SettingRow>
+              <SettingRow title={t("settings.w6.phone.computerView")}>
+                <Switch
+                  checked={device.cloudDesktopAccess}
+                  aria-label={t("remote.devices.viewAria", { name: device.name })}
+                  disabled={c.busy}
+                  onClick={() => void c.act((companion) => companion.cloudDesktop(device.id, !device.cloudDesktopAccess))}
+                />
+              </SettingRow>
+              <SettingRow title={t("settings.w6.phone.browserControl")}>
+                <Switch
+                  checked={device.browserControlAccess === true}
+                  aria-label={t("remote.devices.browserAria", { name: device.name })}
+                  disabled={c.busy}
+                  onClick={() => void c.act((companion) => companion.browserControl(device.id, !device.browserControlAccess))}
+                />
+              </SettingRow>
+            </SettingsRows>
+          ))}
+        </SettingsGroup>
+      )}
+
+      <PhonesList />
+
+      <SettingsRows>
+        <NavRow data-panel-page={PHONE_ADVANCED_PAGE} title={t("settings.w6.phone.advanced")} onClick={() => sub.open(PHONE_ADVANCED_PAGE, t("settings.w6.phone.advanced"))} />
+      </SettingsRows>
     </div>
   );
 }

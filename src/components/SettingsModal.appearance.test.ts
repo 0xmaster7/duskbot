@@ -315,7 +315,7 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
     fixture.section = "desktopWorkspaces";
     vi.stubGlobal("window", { ogb: { environments: {} } });
     const local = render();
-    expect(local).toContain("Server address or pairing link");
+    expect(local).toContain("Connect to a server");
     expect(local).toContain("Your servers");
     fixture.section = "computer";
     vi.stubGlobal("window", { ogb: { workspaces: {} } });

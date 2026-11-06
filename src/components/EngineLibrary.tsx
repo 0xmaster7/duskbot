@@ -29,7 +29,7 @@ export interface EngineCardSummary { title: string; subtitle: string; ready: boo
 
 /** Children stay mounted so closing a card does not abandon an in-progress sign-in or a CLI path draft. */
 export function EngineCard({ instance, children, summary, bare = false }: { instance: InstanceInfo; children: ReactNode; summary?: EngineCardSummary; bare?: boolean }) {
-  if (bare) return <div data-engine-card={instance.instanceId} className="min-w-0">{children}</div>;
+  if (bare) return <div data-engine-card={instance.instanceId} className="flex min-w-0 flex-col gap-5">{children}</div>;
   const ready = summary?.ready ?? engineReady(instance);
   const email = instance.snapshot.authenticated === true ? instance.snapshot.account?.email : undefined;
   const title = summary?.title ?? instance.displayName;

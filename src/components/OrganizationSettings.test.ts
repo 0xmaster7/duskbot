@@ -29,6 +29,12 @@ vi.mock("react", async (original) => ({ ...await original<typeof import("react")
 vi.mock("@/state/store", async (original) => ({ ...await original<typeof import("@/state/store")>(),
   useStore: () => ({ state: { bots: fixture.store.bots, instances: fixture.store.instances }, dispatch: fixture.store.dispatch, flushBotPatches: fixture.store.flushBotPatches }),
 }));
+// the dialogs draw as plain forms here: no portal on the server renderer
+vi.mock("./ListRows", async (original) => {
+  const { createElement: h } = await import("react");
+  return { ...await original<typeof import("./ListRows")>(),
+    FormDialog: ({ title, description, children }: { title: ReactNode; description?: ReactNode; children: ReactNode }) => h("form", { "data-dialog": "" }, h("h2", null, title), description ? h("p", null, description) : null, children) };
+});
 import { OrganizationSettings } from "./OrganizationSettings";
 import { CompanyModels } from "./CompanyModels";
 
@@ -108,9 +114,10 @@ describe("optional desktop Organisation settings", () => {
     let view = render();
     expect(view.html).toContain("https://admin.openmausbot.com");
     expect(view.html).toContain("Sign in with your organization");
-    expect(view.html).toContain("<summary");
+    // a custom portal is its own row, its address only in that row's dialog
+    expect(view.html).toContain('data-settings-open="organization-custom"');
     expect(view.html).toContain("Advanced");
-    expect(view.html).not.toMatch(/<details[^>]*\bopen/);
+    expect(view.html).not.toContain("<input");
     expect(view.html).toContain("personal and local models");
     expect(view.html).toContain("does not upload your chat history");
     expect(bridge.begin).not.toHaveBeenCalled();
@@ -121,14 +128,20 @@ describe("optional desktop Organisation settings", () => {
     const progress = render().html;
     expect(progress).toContain("Finish signing in through your browser");
     expect(progress).toContain("connect automatically");
-    expect(progress).toMatch(/<details[^>]*><summary[^>]*>Security details<\/summary>[\s\S]*ABCDE-FGHIJ[\s\S]*<\/details>/);
+    // the verification code waits behind Security details
+    expect(progress).toContain("Security details");
+    expect(progress).not.toContain("ABCDE-FGHIJ");
     expect(progress).not.toContain("admin.example.test/enroll");
-    expect(progress).not.toMatch(/<details[^>]*\bopen/);
+    const opener = (id: string) => render().nodes.find(node => (node.props as Record<string, unknown>)["data-settings-open"] === id)!;
+    opener("organization-security").props.onClick!();
+    expect(render().html).toContain("ABCDE-FGHIJ");
     button("Cancel sign-in").props.onClick!(); await flush();
-    expect(bridge.cancelEnrollment).toHaveBeenCalledOnce(); view = render();
+    expect(bridge.cancelEnrollment).toHaveBeenCalledOnce();
+    opener("organization-custom").props.onClick!();
+    view = render();
     view.nodes.find(node => node.type === "input")!.props.onChange!({ target: { value: " https://admin.example.test " } });
     view = render();
-    view.nodes.find(node => node.type === "form")!.props.onSubmit!({ preventDefault: vi.fn() }); await flush();
+    await (view.nodes.find(node => typeof (node.props as { onSave?: unknown }).onSave === "function")!.props as unknown as { onSave: () => Promise<void> }).onSave(); await flush();
     expect(bridge.begin).toHaveBeenNthCalledWith(2, { portalOrigin: "https://admin.example.test" });
   });
 

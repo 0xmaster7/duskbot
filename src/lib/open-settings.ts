@@ -20,8 +20,8 @@ export type SettingsPane = "general" | "texting" | "computer" | "permissions" | 
 /** Grok's panes, with Phone, Models, Bots and Advanced features for what Grok has no pane for. */
 export const SETTINGS_PANES: ReadonlyArray<{ id: SettingsPane; labelKey: LocaleKey; icon: GrokIconName; sections: readonly AppSettingsSection[] }> = [
   { id: "general", labelKey: "settings.section.general", icon: "settings-gear", sections: ["general", "appearance", "import"] },
-  { id: "texting", labelKey: "settings.grok.group.phone", icon: "chat-bubbles", sections: ["texting", "companion", "remote"] },
-  { id: "computer", labelKey: "settings.simple.page.computer", icon: "display", sections: ["computer", "desktopWorkspaces"] },
+  { id: "texting", labelKey: "settings.grok.group.phone", icon: "chat-bubbles", sections: ["texting", "companion"] },
+  { id: "computer", labelKey: "settings.simple.page.computer", icon: "display", sections: ["computer", "desktopWorkspaces", "remote"] },
   { id: "permissions", labelKey: "settings.pane.permissions", icon: "shield", sections: ["permissions", "botAccess", "activity"] },
   { id: "vault", labelKey: "settings.w6.pane.vault", icon: "vault", sections: ["logins"] },
   { id: "models", labelKey: "settings.pane.models", icon: "sparkle", sections: ["engines", "connections", "decisionModel"] },

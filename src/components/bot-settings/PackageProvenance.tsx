@@ -3,8 +3,9 @@ import { useEffect, useState } from "react";
 import type { Bot } from "@/state/store";
 import { packageProvenance, type OrgLibraryInstall, type OrgLibraryListing } from "@/lib/org-library";
 import { useBotEditor } from "./BotEditorContext";
+import { Card, NoteRow } from "../ListRows";
 
-export function PackageProvenance({ bot }: { bot: Bot }) {
+export function PackageProvenance({ bot, rows = false }: { bot: Bot; rows?: boolean }) {
   const { request, draft } = useBotEditor();
   const [installs, setInstalls] = useState<OrgLibraryInstall[]>([]);
   const org = bot.installedPackage?.source === "org";
@@ -23,6 +24,15 @@ export function PackageProvenance({ bot }: { bot: Bot }) {
 
   const provenance = packageProvenance(bot.installedPackage, installs);
   if (!provenance) return null;
+  // on a settings page: one quiet line in a card, and the warning under it
+  if (rows) {
+    return (
+      <Card data-sheet-group="provenance">
+        <NoteRow>{provenance.line}</NoteRow>
+        {provenance.withdrawn && <NoteRow tone="warn">{provenance.withdrawn}</NoteRow>}
+      </Card>
+    );
+  }
   return (
     <div className="rounded-lg bg-inset px-3 py-2 text-[12px] text-ink-secondary">
       <div className="truncate">{provenance.line}</div>

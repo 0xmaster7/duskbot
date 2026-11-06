@@ -58,27 +58,27 @@ export function UsageMeterCard({ limit, now = Date.now() }: { limit: EngineLimit
   return (
     <div data-usage-card={limit.engine} role="group" aria-label={title} className="flex flex-col max-sm:gap-2">
       <div aria-hidden="true" className="px-4 text-[14px] font-[600] leading-5 text-ink/60 sm:hidden">{title}</div>
-      <div className="flex flex-col rounded-[14px] bg-menu px-3.5 pb-3.5 pt-4 outline-[0.5px] outline-offset-[-0.5px] outline-edge [outline-style:solid] max-sm:gap-0.5 max-sm:rounded-none max-sm:bg-transparent max-sm:p-0 max-sm:outline-0">
+      <div className="flex flex-col rounded-[12px] bg-menu px-3 pb-2.5 pt-2.5 outline-[0.5px] outline-offset-[-0.5px] outline-edge [outline-style:solid] max-sm:gap-0.5 max-sm:rounded-none max-sm:bg-transparent max-sm:p-0 max-sm:outline-0">
         <div data-usage-segment="" className={cn("flex flex-col", segment, "max-sm:pb-4 max-sm:pt-3.5")}>
           <div className="text-[13px] leading-[18px] tracking-[-0.08px] text-ink max-sm:hidden">{title}</div>
-          <div className="mt-2.5 flex items-baseline gap-1 max-sm:mt-0 max-sm:flex-wrap">
+          <div className="mt-1 flex items-baseline gap-1 max-sm:mt-0 max-sm:flex-wrap">
             {lead.tone === "out" ? (
-              <span className="text-[22px] leading-7 tracking-[0.22px] text-ink max-sm:text-[26px] max-sm:font-medium max-sm:leading-8">{t("nativeUsage.atLimit")}</span>
+              <span className="text-[17px] leading-6 tracking-normal text-ink max-sm:text-[26px] max-sm:font-medium max-sm:leading-8">{t("nativeUsage.atLimit")}</span>
             ) : (
               <>
-                <span className="text-[22px] leading-7 tracking-[0.22px] text-ink tabular-nums max-sm:text-[26px] max-sm:font-medium max-sm:leading-8 max-sm:tracking-normal">{usedOf(lead.left)}%</span>
+                <span className="text-[17px] leading-6 tracking-normal text-ink tabular-nums max-sm:text-[26px] max-sm:font-medium max-sm:leading-8 max-sm:tracking-normal">{usedOf(lead.left)}%</span>
                 <span className="text-[13px] leading-[18px] text-ink/[0.56] max-sm:text-[16px] max-sm:leading-[22px]">{t("nativeUsage.used")}</span>
               </>
             )}
             <span className="ms-auto shrink-0 text-[14px] leading-5 text-ink-secondary sm:hidden">{windowLine(lead.window, lead.resetsAt, now)}</span>
           </div>
-          <UsageBar used={usedOf(lead.left)} warn={lead.tone !== "fine"} className="mt-2.5 max-sm:mt-3 max-sm:h-[18px] max-sm:rounded-[5px] max-sm:bg-ink/[0.05] max-sm:[&>div]:rounded-[5px]" />
+          <UsageBar used={usedOf(lead.left)} warn={lead.tone !== "fine"} className="mt-2 max-sm:mt-3 max-sm:h-[18px] max-sm:rounded-[5px] max-sm:bg-ink/[0.05] max-sm:[&>div]:rounded-[5px]" />
           <div className="mt-1.5 text-[11px] leading-[14px] tracking-[0.07px] text-ink-secondary max-sm:hidden">
             {windowLine(lead.window, lead.resetsAt, now)}
           </div>
         </div>
         {rest.map((row) => (
-          <div key={row.window} data-usage-window={row.window} data-usage-segment="" className={cn("mt-4 flex flex-col max-sm:mt-0 max-sm:min-h-[52px] max-sm:justify-center max-sm:gap-2 max-sm:py-3", segment)}>
+          <div key={row.window} data-usage-window={row.window} data-usage-segment="" className={cn("mt-3 flex flex-col max-sm:mt-0 max-sm:min-h-[52px] max-sm:justify-center max-sm:gap-2 max-sm:py-3", segment)}>
             <UsageBar used={usedOf(row.left)} warn={row.tone !== "fine"} className="max-sm:order-1 max-sm:h-1.5" />
             <div className="mt-1.5 flex items-baseline justify-between gap-3 text-[11px] leading-[14px] tracking-[0.07px] text-ink-secondary max-sm:mt-0 max-sm:text-[15px] max-sm:leading-5 max-sm:tracking-normal">
               <span className="min-w-0 truncate max-sm:text-ink">{windowLine(row.window, row.resetsAt, now)}</span>

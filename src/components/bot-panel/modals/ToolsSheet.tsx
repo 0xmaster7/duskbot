@@ -5,7 +5,7 @@ import { t } from "@/lib/i18n";
 import { mcpServersForBot, mcpServersOfBot, useMcpServers } from "@/lib/mcp-servers";
 import { useStore, type Bot } from "@/state/store";
 import type { ConnectorScope } from "../../../../shared/connector-scopes";
-import { ConnectorToolsGrants } from "../../bot-settings/AccessSection";
+import { ConnectorGrantPage, ConnectorGrantRows, GRANT_PAGE } from "../../bot-settings/ConnectorGrantRows";
 import { useToolSelection } from "../../bot-settings/ToolSelectionCard";
 import { useBotApps } from "../../bot-settings/useBotApps";
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
@@ -20,12 +20,16 @@ type Derived = ReturnType<typeof useBotSettingsDerived>;
 /** The bot's apps and tools as rows; app limits, MCP servers, a custom selection and always-allowed tools each open their
  * own page. */
 export function ToolsSheet({ bot, derived }: { bot: Bot; derived: Derived }) {
-  const { at } = useSubPage();
+  const sub = useSubPage();
+  // the page on top: in Settings a sheet's pages stack under Settings' own, so the first of them is not always the one shown
+  const at = sub.stack?.length ? sub.stack.at(-1)!.id : sub.at;
   const apps = useBotApps(bot);
   const selection = useToolSelection(bot, derived.engine?.driverKind);
+  const grantSlugs = apps.connectedSlugs.filter((slug) => slug !== HIGHLEVEL_SLUG);
+  if (at?.startsWith(GRANT_PAGE)) return <ConnectorGrantPage bot={bot} patch={derived.patch} slug={at.slice(GRANT_PAGE.length)} slugs={grantSlugs} />;
   switch (at) {
     case "apps": return <AppLimitsPage bot={bot} derived={derived} apps={apps} />;
-    case "grants": return <Card><div className="px-2 py-1.5"><ConnectorToolsGrants bot={bot} patch={derived.patch} slugs={apps.connectedSlugs.filter((slug) => slug !== HIGHLEVEL_SLUG)} /></div></Card>;
+    case "grants": return <ConnectorGrantRows bot={bot} patch={derived.patch} slugs={grantSlugs} />;
     case "servers": return <ServersPage bot={bot} patch={derived.patch} />;
     case "selection": return <SelectionPage bot={bot} selection={selection} />;
     case "always": return <AlwaysPage bot={bot} patch={derived.patch} />;

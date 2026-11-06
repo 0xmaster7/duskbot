@@ -88,8 +88,9 @@ export function InstructionsCard({ label, value, disabled, invalid, placeholder,
       <div
         data-instructions-card
         className={cn(
-          "flex min-h-[240px] flex-1 flex-col rounded-[12px] border-[0.5px] bg-composer transition-[border-color] duration-[120ms] ease-[ease]",
-          invalid ? "border-danger/60" : "border-edge focus-within:border-ink/20",
+          // no fill, and a hairline that stays as it is while you type; the caret shows where
+          "flex min-h-[240px] flex-1 flex-col rounded-[12px] border bg-transparent",
+          invalid ? "border-danger/60" : "border-ink/10",
         )}
       >
         <textarea

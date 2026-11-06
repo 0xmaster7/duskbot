@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Check, Loader2, RefreshCw, TriangleAlert } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 
 import { api, useStore, type InstanceInfo } from "@/state/store";
 import { EngineCard, EngineSections, RefreshEngines, engineReady } from "./EngineLibrary";
 import { cn } from "@/lib/cn";
-import { useMenuMotion } from "./MenuMotion";
 import { t } from "@/lib/i18n";
 import { ApiKeyEngineManage, EngineSetup, EngineUpdateNotice, EngineWarningNotice, isApiKeyEngine } from "./EngineSetup";
 import { AppCopyNotice } from "./EngineAppCopy";
@@ -15,7 +14,10 @@ import { AntigravityFreeSpace } from "./AntigravityFreeSpace";
 import { CacheKeepWarmSettings } from "./CacheKeepWarmSettings";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { Select } from "./Select";
-import { Card, NavRow, useSubPage } from "./ListRows";
+import { Card, FormDialog, FormField, ItemRow, NavRow, NoteRow, useSubPage } from "./ListRows";
+import { textFieldCls } from "./ui/GrokDialog";
+
+const RowsCard = Card;
 
 interface ProbeResult {
   ok: boolean;
@@ -93,91 +95,54 @@ function CustomPicker({ instance, cliDefault, onClose, onSaved }: {
       .finally(() => setProbing(false));
   };
 
+  // a failed test can still be kept: the dialog's Save becomes Save anyway, and editing the path clears the verdict
+  const failed = probe !== null && !probe.ok;
   return (
-    <div className="mt-2.5 flex flex-col gap-2">
+    <FormDialog
+      data-panel-modal="engine-cli"
+      title={t("engines.setCli")}
+      description={t("settings.s2.engine.setCliNote")}
+      width={460}
+      saveLabel={failed ? t("engines.saveAnyway") : t("common.save")}
+      canSave={Boolean(value) && dirty}
+      busy={busy}
+      error={error ?? (failed && probe?.message ? t("engines.testFailed", { message: probe.message }) : undefined)}
+      onSave={failed ? persist : save}
+      onClose={onClose}
+    >
       {candidates !== null && candidates.length > 0 && (
-        <Select
-          className="w-full font-mono"
-          value={manual.trim() ? "" : selected}
-          onChange={(e) => {
-            setSelected(e.target.value);
-            setManual("");
-          }}
-          aria-label={t("engines.detectedAria", { name: instance.displayName })}
-          disabled={busy}
-        >
-          <option value="">{t("engines.selectBinary")}</option>
-          {candidates.map((p) => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </Select>
-      )}
-      <input
-        type="text"
-        value={manual}
-        onChange={(e) => setManual(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key !== "Enter") return;
-          e.preventDefault();
-          if (!value || !dirty) return;
-          save();
-        }}
-        placeholder={candidates?.length ? t("engines.manualPath") : "/absolute/path/to/cli"}
-        aria-label={t("engines.customAria", { name: instance.displayName })}
-        spellCheck={false}
-        disabled={busy}
-        className="w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 font-mono text-[12px] text-ink placeholder:font-sans placeholder:text-ink-secondary focus:outline-none disabled:opacity-50"
-      />
-      {probe && !probe.ok && probe.message && (
-        <div role="alert" className="flex gap-1.5 rounded-lg border border-warning/25 bg-warning/10 px-2.5 py-2 text-[12px] leading-relaxed text-warning">
-          <TriangleAlert size={13} className="mt-0.5 shrink-0" />
-          <span>{t("engines.testFailed", { message: probe.message })}</span>
-        </div>
-      )}
-      {probe?.ok && probe.version && (
-        <div className="text-[12px] text-success">{t("engines.testPassed", { version: probe.version })}</div>
-      )}
-      {error && <div role="alert" className="text-[12px] text-danger">{error}</div>}
-      <div className="flex justify-end gap-2">
-        <button
-          onClick={onClose}
-          disabled={busy}
-          className="rounded-lg px-3 py-1.5 text-[13px] text-ink-secondary hover:bg-raised/50 hover:text-ink disabled:opacity-50"
-        >
-          {t("common.cancel")}
-        </button>
-        {probe && !probe.ok ? (
-          <>
-            <button
-              onClick={() => setProbe(null)}
-              disabled={busy}
-              className="rounded-lg px-3 py-1.5 text-[13px] text-ink-secondary hover:bg-raised/50 hover:text-ink disabled:opacity-50"
-            >
-              {t("engines.editPath")}
-            </button>
-            <button
-              onClick={() => persist()}
-              disabled={busy}
-              className="flex items-center gap-1.5 rounded-lg bg-raised px-3 py-1.5 text-[13px] text-danger hover:bg-raised-hover disabled:opacity-50"
-            >
-              {saving ? <Loader2 size={13} className="animate-spin" /> : t("engines.saveAnyway")}
-            </button>
-          </>
-        ) : (
-          <button
-            onClick={save}
-            disabled={busy || !value || !dirty}
-            className={cn(
-              "flex w-[72px] items-center justify-center gap-1.5 rounded-lg py-1.5 text-[13px]",
-              "bg-raised text-ink hover:bg-raised-hover",
-              "disabled:cursor-not-allowed disabled:opacity-50",
-            )}
+        <FormField label={t("settings.s2.engine.detected")}>
+          <Select
+            className="w-full font-mono"
+            value={manual.trim() ? "" : selected}
+            onChange={(e) => {
+              setSelected(e.target.value);
+              setManual("");
+            }}
+            aria-label={t("engines.detectedAria", { name: instance.displayName })}
+            disabled={busy}
           >
-            {busy ? <Loader2 size={13} className="animate-spin" /> : <><Check size={13} />{t("common.save")}</>}
-          </button>
-        )}
-      </div>
-    </div>
+            <option value="">{t("engines.selectBinary")}</option>
+            {candidates.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </Select>
+        </FormField>
+      )}
+      <FormField label={t("settings.s2.engine.binaryPath")}>
+        <input
+          type="text"
+          value={manual}
+          onChange={(e) => setManual(e.target.value)}
+          placeholder={candidates?.length ? t("engines.manualPath") : "/absolute/path/to/cli"}
+          aria-label={t("engines.customAria", { name: instance.displayName })}
+          spellCheck={false}
+          disabled={busy}
+          className={cn(textFieldCls, "font-mono text-[12px] placeholder:font-sans")}
+        />
+      </FormField>
+      {probe?.ok && probe.version && <p role="status" className="m-0 text-[12px] leading-4 text-success">{t("engines.testPassed", { version: probe.version })}</p>}
+    </FormDialog>
   );
 }
 
@@ -185,7 +150,6 @@ function CustomPicker({ instance, cliDefault, onClose, onSaved }: {
 function EngineAdvanced({ instance }: { instance: InstanceInfo }) {
   const { refreshInstances } = useStore();
   const [open, setOpen] = useState(false);
-  const cliMotion = useMenuMotion(open);
   const [switching, setSwitching] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [updatedVersion, setUpdatedVersion] = useState<string | null>(null);
@@ -240,83 +204,38 @@ function EngineAdvanced({ instance }: { instance: InstanceInfo }) {
       .finally(() => setUpdating(false));
   };
 
+  const path = instance.cli ?? instance.cliDefault;
   return (
-      <details className="mt-4 border-t border-hairline/40 pt-3">
-        <summary className="cursor-pointer rounded-md py-1 text-[12px] font-medium text-ink-secondary outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">{t("engines.library.advanced")}</summary>
-        <p className="mt-2 text-[12px] leading-relaxed text-ink-secondary">{t("engines.footer")}</p>
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-[13px]">
-          {instance.cli ? (
-            <span className="w-full break-all font-mono text-[12px] text-ink-secondary" title={instance.cli}>
-              {instance.cli}
-            </span>
-          ) : (
-            instance.cliDefault && (
-              <span className="break-all font-mono text-[11px] text-ink-secondary">{instance.cliDefault}</span>
-            )
-          )}
-          {instance.snapshot.version && (
-            <span className="break-all text-[11px] text-ink-secondary" title={instance.snapshot.version}>
-              {instance.snapshot.version}
-            </span>
-          )}
-          <span className="flex-1" />
-          {instance.driverKind === "claudeAgent" && (
-            <button
-              onClick={updateClaude}
-              disabled={switching || updating}
-              className="flex shrink-0 items-center gap-1 text-[12px] text-ink-secondary hover:text-ink disabled:opacity-50"
-            >
-              {updating ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-              {updating ? t("engines.updating") : t("engines.updateClaude")}
-            </button>
-          )}
-          {instance.cli && (
-            <button
-              onClick={reset}
-              disabled={switching || updating}
-              className="shrink-0 text-[12px] text-ink-secondary hover:text-ink disabled:opacity-50"
-            >
-              {switching ? t("engines.resetting") : t("engines.reset")}
-            </button>
-          )}
-          <button
-            type="button"
-            data-hide-engine={instance.instanceId}
-            onClick={hide}
-            disabled={switching || updating}
-            title={t("engines.hideHint")}
-            className="shrink-0 text-[12px] text-ink-secondary hover:text-ink disabled:opacity-50"
-          >
-            {t("engines.hide")}
+    <RowsCard label={t("engines.library.advanced")}>
+      <ItemRow title={t("settings.s2.engine.program")} hint={[path, instance.snapshot.version].filter(Boolean).join(" · ") || t("settings.s2.engine.programDefault")}>
+        {instance.driverKind === "claudeAgent" && (
+          <button type="button" className="ui-button" onClick={updateClaude} disabled={switching || updating}>
+            {updating ? t("engines.updating") : t("engines.updateClaude")}
           </button>
-          <button
-            onClick={() => setOpen((v) => !v)}
-            disabled={updating}
-            aria-expanded={open}
-            className={cn(
-              "shrink-0 rounded-lg border border-hairline/40 px-3 py-1 text-[12px]",
-              open ? "bg-accent/15 text-accent" : "text-ink-secondary hover:bg-raised/50 hover:text-ink",
-              "disabled:opacity-50",
-            )}
-          >
-            {t("engines.setCli")}
+        )}
+        {instance.cli && (
+          <button type="button" className="ui-button" onClick={reset} disabled={switching || updating}>
+            {switching ? t("engines.resetting") : t("engines.reset")}
           </button>
-        </div>
-        {updatedVersion && (
-          <div role="status" className="mt-1 text-[12px] text-success">{t("engines.claudeUpdated", { version: updatedVersion })}</div>
         )}
-        {error && <div role="alert" className="mt-1 text-[12px] text-danger">{error}</div>}
-        {cliMotion.shown && (
-          <div className={cliMotion.className} {...cliMotion.exitProps}>
-            <CustomPicker
-              instance={instance}
-              cliDefault={instance.cliDefault}
-              onClose={() => setOpen(false)}
-              onSaved={refreshInstances}
-            />
-          </div>
-        )}
-      </details>
+      </ItemRow>
+      <NavRow data-settings-open="engine-cli" title={t("engines.setCli")} hint={t("settings.s2.engine.setCliHint")} disabled={updating} onClick={() => setOpen(true)} />
+      <ItemRow title={t("settings.s2.engine.hideTitle")} hint={t("settings.s2.engine.hideHint")}>
+        <button type="button" className="ui-button" data-hide-engine={instance.instanceId} onClick={hide} disabled={switching || updating} title={t("engines.hideHint")}>
+          {t("engines.hide")}
+        </button>
+      </ItemRow>
+      {updatedVersion && <NoteRow>{t("engines.claudeUpdated", { version: updatedVersion })}</NoteRow>}
+      {error && <NoteRow tone="danger">{error}</NoteRow>}
+      {open && (
+        <CustomPicker
+          instance={instance}
+          cliDefault={instance.cliDefault}
+          onClose={() => setOpen(false)}
+          onSaved={refreshInstances}
+        />
+      )}
+    </RowsCard>
   );
 }
 
@@ -345,13 +264,13 @@ function AntigravityAccountAction({ instance, action }: { instance: InstanceInfo
     }
   };
   return <>
-    <div className="flex flex-wrap items-center gap-2">
-      <button type="button" disabled={running || usedBy > 0} onClick={() => setConfirming(true)} className={cn("rounded-lg px-2.5 py-1.5 text-[12px] font-medium disabled:cursor-not-allowed disabled:opacity-50", remove ? "text-danger hover:bg-danger/10" : "text-ink-secondary hover:bg-raised hover:text-ink")}>
+    <ItemRow title={instance.displayName}
+      hint={usedBy > 0 ? t("accounts.inUse", { count: String(usedBy) }) : undefined}>
+      <button type="button" className={remove ? "ui-button ui-button-danger" : "ui-button"} disabled={running || usedBy > 0} onClick={() => setConfirming(true)}>
         {running ? <Loader2 size={13} className="animate-spin" /> : label}
       </button>
-      {usedBy > 0 && <p className="text-[11px] text-ink-secondary">{t("accounts.inUse", { count: String(usedBy) })}</p>}
-    </div>
-    {error && <p role="alert" className="text-[12px] text-danger">{error}</p>}
+    </ItemRow>
+    {error && <NoteRow tone="danger">{error}</NoteRow>}
     <ConfirmDialog open={confirming} title={t(remove ? "accounts.removeTitle" : "accounts.signOutTitle", { name: instance.displayName })}
       body={t(remove ? "confirm.accountRemove" : "confirm.signOut")}
       confirmLabel={label} tone="neutral" pending={running} onCancel={() => { if (!running) setConfirming(false); }} onConfirm={() => void run()} />
@@ -359,43 +278,44 @@ function AntigravityAccountAction({ instance, action }: { instance: InstanceInfo
 }
 
 function EngineRow({ instance, bare = false }: { instance: InstanceInfo; bare?: boolean }) {
-  const policyNote = instance.policy && <p className="mb-2 text-[12px] leading-relaxed text-ink-secondary">
-    <span className="font-medium text-ink">{t("policy.managedBy", { organization: instance.policy.organizationName })}</span> · {instance.policy.reason}
-  </p>;
+  const policy = instance.policy && <NoteRow><span className="text-ink">{t("policy.managedBy", { organization: instance.policy.organizationName })}</span> · {instance.policy.reason}</NoteRow>;
   if (instance.trialCredit) return <EngineCard instance={instance} bare={bare}>
-    <p data-trial-credit={instance.trialCredit} className="text-[13px] leading-relaxed text-ink-secondary">{t(instance.trialCredit === "used_up" ? "engines.trialCreditUsedUp"
-      : instance.trialCredit === "ended" ? "engines.trialCreditEnded" : engineReady(instance) ? "engines.trialCredit" : "engines.trialCreditOwn")}</p>
+    <RowsCard><NoteRow><span data-trial-credit={instance.trialCredit}>{t(instance.trialCredit === "used_up" ? "engines.trialCreditUsedUp"
+      : instance.trialCredit === "ended" ? "engines.trialCreditEnded" : engineReady(instance) ? "engines.trialCredit" : "engines.trialCreditOwn")}</span></NoteRow></RowsCard>
   </EngineCard>;
   if (instance.readOnly) return <EngineCard instance={instance} bare={bare}>
-    {policyNote}
-    <p className="text-[13px] leading-relaxed text-ink-secondary">{t("organization.managedEngine")}</p>
-    {!engineReady(instance) && <p className="mt-2 text-[12px] text-ink-secondary">{t("organization.engineUnavailable")}</p>}
+    <RowsCard>
+      {policy}
+      <NoteRow>{t("organization.managedEngine")}</NoteRow>
+      {!engineReady(instance) && <NoteRow>{t("organization.engineUnavailable")}</NoteRow>}
+    </RowsCard>
   </EngineCard>;
 
+  const signedIn = engineReady(instance) && instance.snapshot.authenticated === true && (
+    instance.authentication?.method === "device-code" ? t(DEVICE_SIGN_IN_COPY[deviceSignInProvider(instance.driverKind)].connectedAccount)
+      : instance.authentication?.method === "paste-code" ? t("engineSetup.claude.connectedAccount") : null);
   return (
     <EngineCard instance={instance} bare={bare}>
-      {policyNote}
-      {!engineReady(instance) && <EngineSetup instance={instance} intent={instance.access === "custom" ? "inject" : "cloud"} unframed />}
-      {engineReady(instance) && <ApiKeyEngineManage instance={instance} className="mt-3" />}
+      {policy && <RowsCard>{policy}</RowsCard>}
+      {!engineReady(instance) && <EngineSetup instance={instance} intent={instance.access === "custom" ? "inject" : "cloud"} unframed rows={bare} />}
+      {engineReady(instance) && <ApiKeyEngineManage instance={instance} />}
       {/* The setup panel that first said so is gone once the engine is Ready. */}
-      {engineReady(instance) && <AppCopyNotice instance={instance} className="mt-3" />}
-      {instance.snapshot.update && <EngineUpdateNotice update={instance.snapshot.update} instance={instance} className="mt-3" quiet />}
-      {instance.snapshot.warning && <EngineWarningNotice warning={instance.snapshot.warning} className="mt-3" />}
-      {engineReady(instance) && instance.snapshot.authenticated === true && (
-        instance.authentication?.method === "device-code"
-          ? <p className="flex items-center gap-1.5 text-[12px] text-success"><Check size={13} />{t(DEVICE_SIGN_IN_COPY[deviceSignInProvider(instance.driverKind)].connectedAccount)}</p>
-          : instance.authentication?.method === "paste-code" && (
-            <p className="flex items-center gap-1.5 text-[12px] text-success"><Check size={13} />{t("engineSetup.claude.connectedAccount")}</p>
-          )
+      {engineReady(instance) && <AppCopyNotice instance={instance} />}
+      {(signedIn || instance.snapshot.update || instance.snapshot.warning) && (
+        <RowsCard>
+          {signedIn && <ItemRow title={signedIn} value={<Check size={13} className="text-success" aria-label={t("onboarding.engines.ready")} />} />}
+          {instance.snapshot.update && <EngineUpdateNotice update={instance.snapshot.update} instance={instance} quiet rows />}
+          {instance.snapshot.warning && <EngineWarningNotice warning={instance.snapshot.warning} rows />}
+        </RowsCard>
       )}
       {instance.freeUpSpace && <AntigravityFreeSpace instance={instance} />}
       {instance.driverKind === "antigravityAgent" && (
-        <div className="mt-3 space-y-3">
-          {instance.snapshot.authenticated && <p className="break-words text-[12px] text-ink-secondary">{instance.snapshot.account?.email ?? t("engineSetup.antigravity.emailUnavailable")}</p>}
+        <RowsCard>
+          {instance.snapshot.authenticated && <ItemRow title={instance.snapshot.account?.email ?? t("engineSetup.antigravity.emailUnavailable")} />}
           <AddAccount label={t("engineSetup.antigravity.addAccount")} endpoint="/api/instances/antigravity-accounts" extra={{ sourceInstanceId: instance.instanceId }} onAdded={() => {}} />
           {instance.snapshot.authenticated === true && instance.authentication?.signOut === true && <AntigravityAccountAction instance={instance} action="signOut" />}
           {instance.instanceId.startsWith("antigravity-") && <AntigravityAccountAction instance={instance} action="remove" />}
-        </div>
+        </RowsCard>
       )}
       <EngineAdvanced instance={instance} />
     </EngineCard>
@@ -417,7 +337,7 @@ function SimpleEngines({ rows, isReady, renderEngine, more }: {
   const featured = rows.filter((instance) => isReady(instance) || instance.authentication !== undefined);
   const others = rows.filter((instance) => !featured.includes(instance));
   const shown = at?.startsWith("engine:") ? rows.find((instance) => `engine:${instance.instanceId}` === at) : undefined;
-  if (shown) return <div data-simple-engine={shown.instanceId} className="flex flex-col gap-[22px]">{renderEngine(shown, true)}</div>;
+  if (shown) return <div data-simple-engine={shown.instanceId} className="flex flex-col gap-5">{renderEngine(shown, true)}</div>;
   // the panel's row: the name, its status on the right, a chevron to its page
   const row = (instance: InstanceInfo) => (
     <NavRow
@@ -428,7 +348,7 @@ function SimpleEngines({ rows, isReady, renderEngine, more }: {
       onClick={() => open(`engine:${instance.instanceId}`, instance.displayName)}
     />
   );
-  if (at === "more-engines") return <Card>{others.map(row)}</Card>;
+  if (at === "more-engines") return <><Card>{others.map(row)}</Card><HiddenEngines /></>;
   void more;
   return (
     <>
@@ -467,22 +387,16 @@ export function HiddenEngines() {
       .finally(() => setBusy(null));
   };
   return (
-    <details data-hidden-engines className="px-4">
-      <summary className="cursor-pointer text-[13px] font-medium text-ink-secondary hover:text-ink">{t("engines.hiddenTitle", { count: String(hidden.length) })}</summary>
-      <p className="mt-2 text-[12px] text-ink-secondary">{t("engines.hiddenHint")}</p>
-      <div className="mt-2 flex flex-col gap-1.5">
-        {hidden.map((entry) => (
-          <div key={entry.instanceId} className="flex items-center justify-between gap-3 rounded-lg border border-hairline/40 bg-inset px-3 py-2">
-            <span className="min-w-0 truncate text-[13px] text-ink">{entry.displayName}</span>
-            <button type="button" data-unhide-engine={entry.instanceId} disabled={busy !== null} onClick={() => unhide(entry.instanceId)}
-              className="shrink-0 text-[12px] font-medium text-accent hover:underline disabled:opacity-50">
-              {busy === entry.instanceId ? t("engines.unhiding") : t("engines.unhide")}
-            </button>
-          </div>
-        ))}
-      </div>
-      {error && <div role="alert" className="mt-1 text-[12px] text-danger">{error}</div>}
-    </details>
+    <div data-hidden-engines="" className="contents"><Card label={t("engines.hiddenTitle", { count: String(hidden.length) })} footnote={t("engines.hiddenHint")}>
+      {hidden.map((entry) => (
+        <ItemRow key={entry.instanceId} title={entry.displayName}>
+          <button type="button" className="ui-button" data-unhide-engine={entry.instanceId} disabled={busy !== null} onClick={() => unhide(entry.instanceId)}>
+            {busy === entry.instanceId ? t("engines.unhiding") : t("engines.unhide")}
+          </button>
+        </ItemRow>
+      ))}
+      {error && <NoteRow tone="danger">{error}</NoteRow>}
+    </Card></div>
   );
 }
 

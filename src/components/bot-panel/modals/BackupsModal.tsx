@@ -12,7 +12,7 @@ import { Card, NoteRow, rowCls, SheetPane } from "../../ListRows";
 import { RowIconButton } from "../../ui/GrokDialog";
 import { BackupChooser, MAX_BACKUPS, modelKey, type Backup } from "../BackupAis";
 
-const chooserRowCls = cn(rowCls, "min-w-0 flex-1 cursor-pointer text-left outline-none transition-[background-color] duration-100 ease-[ease] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus disabled:cursor-default");
+const chooserRowCls = cn(rowCls, "min-w-0 flex-1 cursor-pointer text-left outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus disabled:cursor-default");
 const textCls = "text-[13px] leading-[18px] tracking-[0.015em]";
 
 /** The bot's backup AIs as an ordered list under its own: change one, move it up or down, remove it, add another. */
@@ -68,7 +68,7 @@ export function BackupsModal({ bot, derived }: {
             {chain.map((entry, index) => {
               const { instance, name, short } = describe(entry);
               return (
-                <li key={modelKey(entry.instanceId, entry.model)} data-backup={entry.instanceId} className="group/row flex items-center rounded-lg transition-[background-color] duration-100 has-[>button:first-child:hover]:bg-ink/[0.06] has-[>button[aria-expanded=true]]:bg-ink/[0.06]">
+                <li key={modelKey(entry.instanceId, entry.model)} data-backup={entry.instanceId} className="group/row flex items-center rounded-lg has-[>button:first-child:hover]:bg-ink/[0.035] has-[>button[aria-expanded=true]]:bg-ink/[0.035]">
                   <BackupChooser
                     bot={bot}
                     current={entry}
@@ -121,7 +121,7 @@ export function BackupsModal({ bot, derived }: {
             label={t("model.fallback.add")}
             buttonRef={addRef}
             data-panel-action="backup-add"
-            className={cn(chooserRowCls, "flex-none hover:bg-ink/[0.06] aria-expanded:bg-ink/[0.06]")}
+            className={cn(chooserRowCls, "flex-none hover:bg-ink/[0.035] aria-expanded:bg-ink/[0.035]")}
           >
             <span className={cn(textCls, "min-w-0 flex-1 text-ink")}>{t("model.fallback.add")}</span>
             <span aria-hidden="true" className="flex shrink-0 text-ink-tertiary"><GrokIcon name="chevron-down-small" size={14} /></span>

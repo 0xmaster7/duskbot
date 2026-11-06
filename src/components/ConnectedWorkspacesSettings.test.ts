@@ -11,6 +11,9 @@ vi.mock("react", async original => ({ ...await original<typeof import("react")>(
 }));
 const config = vi.hoisted(() => ({ value: {} as Record<string, unknown> }));
 vi.mock("@/state/store", () => ({ useStore: () => ({ state: { config: config.value }, dispatch: () => {} }) }));
+// the forms are small portal dialogs in the app; here they render in place so their fields can be read
+vi.mock("./ListRows", async original => ({ ...await original<typeof import("./ListRows")>(),
+  FormDialog: ({ children }: { children?: ReactNode }) => children }));
 import { ConnectedWorkspacesSettings } from "./ConnectedWorkspacesSettings";
 
 type Node = ReactElement<{ children?: ReactNode; onClick?: () => void; "aria-label"?: string;
@@ -58,8 +61,13 @@ function stubEnvironments(stateOverrides: Record<string, unknown> = {}, bridgeEx
 }
 const rowButton = (ariaLabel: string) => render().nodes.filter(n => n.type === "button" && n.props["aria-label"] === ariaLabel)[0];
 const textButton = (label: string) => render().nodes.filter(n => n.type === "button" && Children.toArray(n.props.children).join("") === label)[0];
-const forms = () => render().nodes.filter(n => n.type === "form");
-const envFormFields = () => nodes(forms()[0]!.props.children).filter(n => n.type === "input");
+type Dialog = ReactElement<{ children?: ReactNode; onSave?: () => unknown; onClose?: () => void; "data-panel-modal"?: string }>;
+const dialog = (id: string) => render().nodes.find(n => (n as unknown as Dialog).props["data-panel-modal"] === id) as unknown as Dialog | undefined;
+const navRow = (title: string) => render().nodes.find(n => (n.props as { title?: unknown }).title === title && typeof n.props.onClick === "function");
+const openCreate = async () => { navRow("New environment")!.props.onClick!(); await mount(); };
+const envFormFields = () => nodes(dialog("new-environment")!.props.children).filter(n => n.type === "input");
+const submitCreate = () => dialog("new-environment")!.props.onSave!();
+const switchRow = () => render().nodes.find(n => (n.props as { title?: unknown }).title === "Also delete this folder") as unknown as ReactElement<{ onChange: () => void }> | undefined;
 
 it("lists local environments with their folders above the servers, marking a missing one", async () => {
   await stubEnvironments(); await mount();
@@ -76,37 +84,44 @@ it("hides local environments and the create form in a dev build", async () => {
   await stubEnvironments({ packaged: false }); await mount();
   const { html } = render();
   expect(html).not.toContain("Environments on this computer");
-  expect(html).not.toContain("Choose…");
+  expect(html).not.toContain("New environment");
   expect(html).not.toContain("/home/me/.openmausbot-work");
 });
 
 it("creates an environment with the chosen folder — and without one when the field is left empty", async () => {
   const environments = stubEnvironments({}, { create: vi.fn().mockResolvedValue({ ok: true, state: envState() }) });
   await mount();
+  expect(dialog("new-environment")).toBeUndefined();
+  await openCreate();
   envFormFields()[0]!.props.onChange!({ target: { value: "Work" } });
   envFormFields()[1]!.props.onChange!({ target: { value: "/data/work" } });
-  forms()[0]!.props.onSubmit!({ preventDefault: () => {} });
+  submitCreate();
   await flush();
   expect(environments.create).toHaveBeenCalledWith("Work", "/data/work");
+  // a created environment closes the form, and the next one starts empty
+  expect(dialog("new-environment")).toBeUndefined();
+  await openCreate();
   expect(envFormFields()[0]!.props.value).toBe("");
   expect(envFormFields()[1]!.props.value).toBe("");
   envFormFields()[0]!.props.onChange!({ target: { value: "Solo" } });
-  forms()[0]!.props.onSubmit!({ preventDefault: () => {} });
+  submitCreate();
   await flush();
   expect(environments.create).toHaveBeenLastCalledWith("Solo", undefined);
+  await openCreate();
   environments.create.mockResolvedValueOnce({ ok: false, error: "duplicate" });
   envFormFields()[0]!.props.onChange!({ target: { value: "Work" } });
-  forms()[0]!.props.onSubmit!({ preventDefault: () => {} });
+  submitCreate();
   await flush();
-  expect(render().html).toContain("Couldn't create the environment. Check the data folder, then try again.");
+  expect((dialog("new-environment")!.props as { error?: unknown }).error).toBe("Couldn't create the environment. Check the data folder, then try again.");
 });
 
 it('"Choose…" fills the folder field from the native picker', async () => {
   stubEnvironments({}, { pickDir: vi.fn().mockResolvedValue({ ok: true, path: "/picked/dir" }) });
   await mount();
+  await openCreate();
   textButton("Choose…")!.props.onClick!();
   await flush();
-  expect(render().html).toContain('value="/picked/dir"');
+  expect(envFormFields()[1]!.props.value).toBe("/picked/dir");
 });
 
 it("asks what to do with the folder when forgetting a local environment, and deletes only when asked", async () => {
@@ -114,21 +129,21 @@ it("asks what to do with the folder when forgetting a local environment, and del
   await mount();
   rowButton("Forget Old")!.props.onClick!();
   await mount();
-  expect(render().html).toContain("Also delete this folder");
-  textButton("Cancel")!.props.onClick!();
+  expect(switchRow()).toBeDefined();
+  dialog("forget-environment")!.props.onClose!();
   await mount();
-  expect(render().html).not.toContain("Also delete this folder");
+  expect(switchRow()).toBeUndefined();
   expect(environments.forget).not.toHaveBeenCalled();
   rowButton("Forget Work")!.props.onClick!();
   await mount();
-  textButton("Forget")!.props.onClick!();
+  dialog("forget-environment")!.props.onSave!();
   await flush();
   expect(environments.forget.mock.calls).toEqual([["env-1"]]);
   rowButton("Forget Old")!.props.onClick!();
   await mount();
-  render().nodes.find(n => n.type === "input" && n.props.type === "checkbox")!.props.onChange!({ target: { checked: true } });
+  switchRow()!.props.onChange();
   await mount();
-  textButton("Forget")!.props.onClick!();
+  dialog("forget-environment")!.props.onSave!();
   await flush();
   expect(environments.forget.mock.calls).toEqual([["env-1"], ["env-2", true]]);
 });
@@ -158,10 +173,10 @@ it("a failed forget keeps the panel honest: one generic error, no crash", async 
   await mount();
   rowButton("Forget Work")!.props.onClick!();
   await mount();
-  textButton("Forget")!.props.onClick!();
+  dialog("forget-environment")!.props.onSave!();
   await flush();
   expect(environments.forget).toHaveBeenCalledWith("env-1");
-  expect(render().html).toContain("Couldn't forget the environment. Try again.");
+  expect((dialog("forget-environment")!.props as { error?: unknown }).error).toBe("Couldn't forget the environment. Try again.");
   expect(render().html).not.toContain("purge");
 });
 

@@ -5,7 +5,7 @@ import { ANDROID_APK_URL, IOS_APP_STORE_URL, openExternalLink } from "@/lib/app-
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { cn } from "@/lib/cn";
-import { formSheetCls, formTitleCls, mdPrimaryCls, mdSecondaryCls, rowHintCls } from "./ui/GrokDialog";
+import { formSheetCls, formTitleCls, mdSecondaryCls, rowHintCls, smallButtonCls } from "./ui/GrokDialog";
 
 export const PHONE_APPS: ReadonlyArray<{ id: "ios" | "android"; nameKey: LocaleKey; actionKey: LocaleKey; url: string }> = [
   { id: "ios", nameKey: "phoneApp.ios", actionKey: "phoneApp.iosAction", url: IOS_APP_STORE_URL },
@@ -52,23 +52,23 @@ export function PhoneAppDialog({ open, onClose, connect = [] }: { open: boolean;
           {t("phoneApp.title")}
         </h2>
         <p className={cn(rowHintCls, "m-0 mt-1 text-pretty")}>{t("phoneApp.subtitle")}</p>
-        <ul className="m-0 mt-3 grid list-none grid-cols-1 gap-2 p-0 sm:grid-cols-2">
+        <ul className="m-0 mt-3 grid list-none grid-cols-2 gap-2 p-0">
           {PHONE_APPS.map((app) => (
-            <li key={app.id} data-phone-app={app.id} className="flex flex-col items-center gap-2 rounded-[10px] border border-ink/8 p-3 text-center">
+            <li key={app.id} data-phone-app={app.id} className="flex flex-col items-center gap-2 py-1 text-center">
               <div className="text-[13px] leading-[18px] text-ink">{t(app.nameKey)}</div>
-              <div className="rounded-[6px] bg-white p-1.5">
-                <QRCodeSVG value={app.url} size={120} level="M" bgColor="#ffffff" fgColor="#111111" title={t(app.actionKey)} />
+              <div className="rounded-[8px] bg-white p-1.5 outline outline-[0.5px] -outline-offset-[0.5px] outline-edge">
+                <QRCodeSVG value={app.url} size={112} level="M" bgColor="#ffffff" fgColor="#111111" title={t(app.actionKey)} />
               </div>
-              <button type="button" onClick={() => void openExternalLink(app.url)} className="rounded-sm text-[12px] leading-4 text-accent-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+              <button type="button" onClick={() => void openExternalLink(app.url)} className={smallButtonCls}>
                 {t(app.actionKey)}
               </button>
             </li>
           ))}
         </ul>
         {connect.length ? (
-          <div className="mt-3 flex flex-col gap-2">
-            <p className={cn(rowHintCls, "m-0")}>{t("phoneApp.next")}</p>
-            {connect.map((destination, index) => (
+          <div className="mt-3 flex flex-col">
+            <p className={cn(rowHintCls, "m-0 px-2 pb-1 text-[12px] leading-4")}>{t("phoneApp.next")}</p>
+            {connect.map((destination) => (
               <button
                 key={destination.key}
                 type="button"
@@ -77,22 +77,19 @@ export function PhoneAppDialog({ open, onClose, connect = [] }: { open: boolean;
                   onClose();
                   destination.onSelect();
                 }}
-                className={cn(index === 0 ? mdPrimaryCls : mdSecondaryCls, "h-auto min-h-8 w-full flex-col gap-0 rounded-[10px] py-1.5 text-[13px] leading-[18px]")}
+                className="flex min-h-[32px] w-full cursor-pointer flex-col items-start rounded-lg px-2 py-1.5 text-start hover:bg-ink/[0.035] outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus"
               >
-                <span>{t("sidebar.menu.connectPhone")}</span>
-                <span className="text-[12px] leading-4 opacity-70">{destination.subtitle}</span>
+                <span className="text-[13px] leading-[18px] text-ink">{t("sidebar.menu.connectPhone")}</span>
+                <span className="text-[12px] leading-4 text-ink-secondary">{destination.subtitle}</span>
               </button>
             ))}
           </div>
         ) : null}
-        <button
-          ref={closeRef}
-          type="button"
-          onClick={onClose}
-          className={cn(mdSecondaryCls, "mt-3 w-full")}
-        >
-          {t("common.close")}
-        </button>
+        <div className="mt-3 flex justify-end">
+          <button ref={closeRef} type="button" onClick={onClose} className={mdSecondaryCls}>
+            {t("common.close")}
+          </button>
+        </div>
       </div>
     </div>
   );

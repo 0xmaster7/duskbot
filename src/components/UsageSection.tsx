@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ChevronRight, Download, Loader2 } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { activeLocale, documentLanguage, t } from "@/lib/i18n";
 import { listenLiveFrames } from "@/lib/live-events";
@@ -10,10 +10,11 @@ import type { LocaleKey } from "@/locales";
 import type { TraceList, TraceRootSummary } from "../../shared/usage-trace";
 import { BotAvatar } from "./Avatar";
 import { PlanUsage } from "./PlanUsage";
-import { Select } from "./Select";
+import { SettingsSelect } from "./SettingsSelect";
+import { Card as RowsCard, ItemRow, NavRow, NoteRow, RowText, rowCls } from "./ListRows";
 import { UsageBudgetCards, type BudgetState } from "./UsageBudget";
 import { TraceView } from "./usage/TraceView";
-import { LiveBadge, modelName, StatStrip, totalsStats } from "./usage/TraceWaterfall";
+import { LiveBadge, modelName, totalsStats } from "./usage/TraceWaterfall";
 
 export type UsageGroupBy = "bot" | "model" | "user" | "day" | "engine" | "routine" | "department";
 const OTHER_GROUPINGS: readonly UsageGroupBy[] = ["model", "user", "department", "day", "engine", "routine"];
@@ -80,21 +81,21 @@ export function GroupBars({ groupBy, groups }: { groupBy: UsageGroupBy; groups: 
   const { state } = useStore();
   const top = [...groups].sort((a, b) => headlineTokens(b) - headlineTokens(a)).slice(0, 6);
   const max = Math.max(...top.map(headlineTokens), 0);
-  if (!top.length || max <= 0) return <p className="text-[13px] text-ink-secondary">{t("usage.page.whereEmpty")}</p>;
+  if (!top.length || max <= 0) return <NoteRow>{t("usage.page.whereEmpty")}</NoteRow>;
   return (
-    <ul className="flex flex-col gap-2.5">
+    <ul className="contents">
       {top.map((group) => {
         const bot = groupBy === "bot" ? state.bots.find((item) => `bot:${item.id}` === group.key) : undefined;
         return (
-          <li key={group.key} className="grid grid-cols-[minmax(0,9rem)_1fr_auto] items-center gap-3 text-[13px]" title={t("usage.page.turns", { count: String(group.turns) })}>
+          <li key={group.key} className={cn(rowCls, "grid grid-cols-[minmax(0,9rem)_1fr_auto] text-[13px] leading-[18px]")} title={t("usage.page.turns", { count: String(group.turns) })}>
             <span className="flex min-w-0 items-center gap-2 text-ink">
               {bot && <BotAvatar bot={bot} state="idle" size={18} animated={false} />}
               <span className="truncate">{groupBy === "model" ? modelName(group.label, state.instances) : usageGroupLabel(groupBy, group)}</span>
             </span>
-            <span className="h-2 overflow-hidden rounded-full bg-raised">
-              <span className="block h-full rounded-full bg-accent/70" style={{ width: `${Math.max(2, (headlineTokens(group) / max) * 100)}%` }} />
+            <span className="h-1 overflow-hidden rounded-full bg-ink/[0.06]">
+              <span className="block h-full rounded-full bg-ink/40" style={{ width: `${Math.max(2, (headlineTokens(group) / max) * 100)}%` }} />
             </span>
-            <span className="min-w-[4.5rem] text-right tabular-nums text-ink-secondary">
+            <span className="min-w-[4.5rem] text-end tabular-nums text-ink-secondary">
               {formatTokens(headlineTokens(group))}
               {hasFiniteCost(group.costUsd) && group.costUsd > 0 && ` · ${formatCost(group.costUsd)}`}
             </span>
@@ -111,31 +112,23 @@ function WhereItWent({ range, version, onBudget }: { range: { from: string; to: 
   const byOther = useUsageGroups(range, other, version);
   useEffect(() => { onBudget(byBot?.budget ?? null); }, [byBot, onBudget]);
   return (
-    <section className="rounded-2xl border border-hairline/50 bg-card p-5" aria-label={t("usage.page.where")}>
-      <h3 className="text-[15px] font-medium text-ink">{t("usage.page.where")}</h3>
-      <div className="mt-4 grid gap-6 md:grid-cols-2">
-        <div>
-          <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-ink-secondary">{t(GROUP_LABEL_KEYS.bot)}</div>
-          {byBot ? <GroupBars groupBy="bot" groups={byBot.groups} /> : <Loader2 size={14} className="animate-spin text-ink-secondary" />}
+    <>
+      <RowsCard label={t("usage.page.where")}>
+        {byBot ? <GroupBars groupBy="bot" groups={byBot.groups} /> : <NoteRow>{t("common.checking")}</NoteRow>}
+      </RowsCard>
+      <RowsCard label={t(GROUP_LABEL_KEYS[other])} action={(
+        <div role="tablist" aria-label={t("usage.history.groupBy")} className="flex flex-wrap justify-end gap-0.5">
+          {OTHER_GROUPINGS.map((option) => (
+            <button key={option} type="button" role="tab" aria-selected={other === option} onClick={() => setOther(option)}
+              className="cursor-pointer rounded-md px-1.5 py-px text-[12px] leading-4 text-ink-secondary hover:text-ink aria-selected:bg-ink/[0.06] aria-selected:text-ink focus-visible:outline-2 focus-visible:outline-focus">
+              {t(GROUP_LABEL_KEYS[option])}
+            </button>
+          ))}
         </div>
-        <div>
-          <div role="tablist" aria-label={t("usage.history.groupBy")} className="-mt-1 mb-2 flex flex-wrap gap-1">
-            {OTHER_GROUPINGS.map((option) => (
-              <button
-                key={option}
-                type="button"
-                role="tab"
-                aria-selected={other === option}
-                onClick={() => setOther(option)}
-                className={cn("rounded-md px-2 py-0.5 text-[11px] font-medium uppercase tracking-[0.06em]",
-                  other === option ? "bg-accent/12 text-accent" : "text-ink-secondary hover:bg-raised/60 hover:text-ink")}
-              >{t(GROUP_LABEL_KEYS[option])}</button>
-            ))}
-          </div>
-          {byOther?.groupBy === other ? <GroupBars groupBy={other} groups={byOther.groups} /> : <Loader2 size={14} className="animate-spin text-ink-secondary" />}
-        </div>
-      </div>
-    </section>
+      )}>
+        {byOther?.groupBy === other ? <GroupBars groupBy={other} groups={byOther.groups} /> : <NoteRow>{t("common.checking")}</NoteRow>}
+      </RowsCard>
+    </>
   );
 }
 
@@ -148,25 +141,25 @@ export function RunRow({ root, onOpen }: { root: TraceRootSummary; onOpen: () =>
   const title = root.title || t(`trace.source.${root.source}`, { bot: root.bots[0]?.name ?? "" });
   return (
     <li>
-      <button type="button" onClick={onOpen} className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-raised/50" data-testid="usage-run">
+      <button type="button" onClick={onOpen} className={cn(rowCls, "grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] text-start hover:bg-ink/[0.035] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus")} data-testid="usage-run">
         <span className="flex w-[38px] shrink-0 -space-x-1.5 sm:w-[74px]">
           {root.bots.slice(0, 4).map((entry, index) => {
             const bot = state.bots.find((item) => item.id === entry.id);
             return bot
-              ? <span key={entry.id} className={cn("rounded-full ring-2 ring-card", index > 1 && "hidden sm:block")}><BotAvatar bot={bot} state="idle" size={22} animated={false} /></span>
-              : <span key={entry.id} className={cn("flex size-[22px] items-center justify-center rounded-full bg-raised text-[10px] font-semibold text-ink-secondary ring-2 ring-card", index > 1 && "hidden sm:flex")}>{entry.name.slice(0, 1).toUpperCase()}</span>;
+              ? <span key={entry.id} className={cn("rounded-full ring-2 ring-card", index > 1 && "hidden sm:block")}><BotAvatar bot={bot} state="idle" size={20} animated={false} /></span>
+              : <span key={entry.id} className={cn("flex size-5 items-center justify-center rounded-full bg-raised text-[10px] font-semibold text-ink-secondary ring-2 ring-card", index > 1 && "hidden sm:flex")}>{entry.name.slice(0, 1).toUpperCase()}</span>;
           })}
         </span>
         <span className="min-w-0">
-          <span className="block truncate text-[14px] text-ink">{title}</span>
-          <span className="block truncate text-[12px] text-ink-tertiary">{startedLabel(root.startedAt)} · {root.bots.map((bot) => bot.name).join(", ")}</span>
+          <span data-row-title="" className="block truncate text-[13px] leading-[18px] text-ink">{title}</span>
+          <span data-row-hint="" className="block truncate text-[12px] leading-4 text-ink-secondary">{startedLabel(root.startedAt)} · {root.bots.map((bot) => bot.name).join(", ")}</span>
         </span>
-        <span className="flex items-center gap-3 text-[13px] tabular-nums text-ink-secondary">
+        <span className="flex items-center gap-3 text-[13px] leading-[18px] tabular-nums text-ink-secondary">
           {root.running && <LiveBadge />}
           {root.errors > 0 && <span className="rounded-md bg-danger/12 px-1.5 py-0.5 text-[12px] font-medium text-danger">{t("trace.groupErrors", { count: String(root.errors) })}</span>}
           {root.timed ? <span className="hidden min-w-[3.5rem] text-right sm:inline">{formatDuration(root.durationMs)}</span>
             : <span className="hidden rounded bg-raised px-1.5 text-[11px] sm:inline">{t("trace.notTimed")}</span>}
-          <span className="min-w-[3.5rem] text-right text-ink">{formatCost(root.costUsd)}</span>
+          <span className="min-w-[3.5rem] text-end text-ink-secondary">{formatCost(root.costUsd)}</span>
           <ChevronRight size={14} className="text-ink-tertiary" />
         </span>
       </button>
@@ -211,45 +204,41 @@ export function UsageSection() {
   const untimed = list?.roots.some((root) => !root.timed);
 
   return (
-    <div className="flex flex-col gap-4" data-testid="usage-page">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-        <p className="min-w-0 flex-1 text-[13px] leading-relaxed text-ink-secondary">{t("usage.page.subtitle")}</p>
-        <div className="flex items-center gap-2">
-          <Select size="sm" value={period} onChange={(event) => { setPeriod(event.target.value as UsagePeriod); setOpen(null); }} aria-label={t("usage.history.period")}>
+    <div className="flex flex-col gap-5" data-testid="usage-page">
+      <RowsCard>
+        <div className={cn(rowCls, "flex-wrap")}>
+          <RowText title={t("usage.history.period")} />
+          <SettingsSelect data-settings-select="usage-period" value={period} onChange={(event) => { setPeriod(event.target.value as UsagePeriod); setOpen(null); }} aria-label={t("usage.history.period")}>
             {USAGE_PERIODS.map((option) => <option key={option} value={option}>{t(PERIOD_LABEL_KEYS[option])}</option>)}
-          </Select>
-          <a href={usageExportHref(range)} download className="flex items-center gap-1.5 rounded-lg border border-hairline/40 px-2.5 py-1 text-[12px] text-ink-secondary hover:bg-raised/50 hover:text-ink">
-            <Download size={13} />{t("usage.history.export")}
-          </a>
+          </SettingsSelect>
+          <a href={usageExportHref(range)} download className="ui-button">{t("usage.history.export")}</a>
         </div>
-      </div>
-      {error && <p role="alert" className="text-[12px] text-danger">{error}</p>}
+        {error && <NoteRow tone="danger">{error}</NoteRow>}
+      </RowsCard>
       {open ? (
         <TraceView id={open.id} at={open.at} actions={(
-          <button type="button" onClick={() => setOpen(null)} className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[13px] text-ink-secondary hover:bg-raised hover:text-ink">
-            <ArrowLeft size={13} />{t("trace.back")}
-          </button>
+          <button type="button" onClick={() => setOpen(null)} className="ui-button">{t("trace.back")}</button>
         )} />
       ) : (
         <>
-          <section className="overflow-hidden rounded-2xl border border-hairline/50 bg-card" data-testid="usage-totals">
-            {list ? <StatStrip items={totalsStats(list.totals, t("trace.stat.time"))} />
-              : <div className="flex items-center gap-2 p-5 text-[13px] text-ink-secondary"><Loader2 size={14} className="animate-spin" />{t("common.checking")}</div>}
+          <section data-testid="usage-totals" className="contents">
+            <RowsCard label={t("settings.s2.usage.totals")}>
+              {list ? totalsStats(list.totals, t("trace.stat.time")).map((item) => (
+                <div key={item.label} title={item.hint} className="contents">
+                  <ItemRow title={item.label} value={<span className={cn("tabular-nums", "tone" in item && item.tone === "danger" && "text-danger")}>{item.value}</span>} />
+                </div>
+              )) : <NoteRow>{t("common.checking")}</NoteRow>}
+            </RowsCard>
           </section>
           <WhereItWent range={range} version={version} onBudget={setBudget} />
-          <section className="rounded-2xl border border-hairline/50 bg-card p-2" aria-label={t("usage.page.runs")}>
-            <div className="px-3 pb-1 pt-3">
-              <h3 className="text-[15px] font-medium text-ink">{t("usage.page.runs")}</h3>
-              <p className="mt-0.5 text-[13px] text-ink-secondary">{t("usage.page.runsHint")}</p>
-            </div>
-            {list && !list.roots.length && <p className="px-3 py-3 text-[13px] text-ink-secondary">{t("usage.page.runsEmpty")}</p>}
-            <ul className="mt-1 flex flex-col">
-              {list?.roots.map((root) => <RunRow key={root.id} root={root} onOpen={() => setOpen({ id: root.id, at: root.startedAt })} />)}
-            </ul>
-            {list?.next !== undefined && (
-              <button type="button" onClick={more} className="m-2 rounded-lg px-3 py-1.5 text-[13px] text-accent hover:bg-raised/50">{t("usage.page.more")}</button>
-            )}
-            {untimed && <p className="px-3 pb-3 pt-1 text-[12px] text-ink-tertiary">{t("usage.page.untimedNote")}</p>}
+          <section aria-label={t("usage.page.runs")} className="contents">
+            <RowsCard label={t("usage.page.runs")} footnote={untimed ? t("usage.page.untimedNote") : undefined}>
+              {list && !list.roots.length && <NoteRow>{t("usage.page.runsEmpty")}</NoteRow>}
+              <ul className="contents">
+                {list?.roots.map((root) => <RunRow key={root.id} root={root} onOpen={() => setOpen({ id: root.id, at: root.startedAt })} />)}
+              </ul>
+              {list?.next !== undefined && <NavRow drill={false} title={t("usage.page.more")} onClick={more} />}
+            </RowsCard>
           </section>
         </>
       )}

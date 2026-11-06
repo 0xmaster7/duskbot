@@ -14,6 +14,12 @@ vi.mock("@/state/store", () => ({
   }),
 }));
 import { BrowserProfilesManager } from "./BrowserProfilesManager";
+import { SubPageContext } from "./ListRows";
+
+// Settings' list of shared profiles, and one profile's own page
+const list = () => renderToStaticMarkup(createElement(BrowserProfilesManager));
+const page = (id = "work") => renderToStaticMarkup(createElement(SubPageContext.Provider,
+  { value: { at: `profile:${id}`, open: () => {}, back: () => {} } }, createElement(BrowserProfilesManager)));
 
 const bot = { id: "pepper", name: "Pepper", browserProfile: "work" } as Bot;
 beforeEach(() => {
@@ -25,12 +31,14 @@ beforeEach(() => {
 
 describe("browser profile manager", () => {
   it("renders on the web without an Electron bridge and never exposes internal partition ids", () => {
-    const html = renderToStaticMarkup(createElement(BrowserProfilesManager));
-    expect(html).toContain("Create profile");
+    const html = list();
+    expect(html).toContain("New profile");
+    expect(html).toContain('data-panel-page="profile:work"');
     expect(html).toContain("Work");
     expect(html).toContain("used by Pepper, Scout");
     expect(html).not.toContain("LegacyWork");
-    expect(html).toMatch(/<details[^>]*\bopen/);
+    expect(html).not.toContain("<details");
+    expect(html).not.toContain("<input");
   });
 
   it("offers own, shared and temporary sessions without changing the current selection", () => {
@@ -61,8 +69,9 @@ describe("browser profile manager", () => {
   });
 
   it("offers each profile Built-in or My Chrome, and lists a built-in profile's signed-in sites with who shares them", () => {
-    const html = renderToStaticMarkup(createElement(BrowserProfilesManager));
-    expect(html).toMatch(/<select[^>]*>.*?<option value="" selected="">Built-in<\/option><option value="chrome">My Chrome<\/option><\/select>/);
+    expect(list()).toContain("Built-in");
+    const html = page();
+    expect(html).toMatch(/role="combobox"[^>]*aria-label="Browser"[\s\S]*?Built-in/);
     expect(html).toContain("Signed-in sites");
     expect(html).toContain("Pepper, Scout share this browser: signing out here signs all of them out.");
     expect(html).not.toContain("act inside your real Chrome");
@@ -70,8 +79,8 @@ describe("browser profile manager", () => {
 
   it("says plainly that a My Chrome profile's bots act in the person's real, signed-in Chrome", () => {
     fixture.profiles = [{ id: "work", name: "Work", browser: "chrome" }];
-    const html = renderToStaticMarkup(createElement(BrowserProfilesManager));
-    expect(html).toContain('<option value="chrome" selected="">My Chrome</option>');
+    const html = page();
+    expect(html).toMatch(/role="combobox"[^>]*aria-label="Browser"[\s\S]*?My Chrome/);
     expect(html).toContain("Bots on this profile act inside your real Chrome, signed in as you");
     expect(html).toContain("chrome://inspect/#remote-debugging");
     expect(html).not.toContain("Signed-in sites");
@@ -82,9 +91,8 @@ describe("browser profile manager", () => {
   it("says on Cloud and servers that My Chrome does not apply, and keeps the built-in browser", () => {
     fixture.myChrome = false;
     fixture.profiles = [{ id: "work", name: "Work", browser: "chrome" }];
-    const html = renderToStaticMarkup(createElement(BrowserProfilesManager));
-    expect(html).toContain('<option value="chrome" disabled="" selected="">My Chrome</option>');
-    expect(html).toContain("My Chrome is for the desktop app, where bots run on your own computer. Anywhere else, such as the Cloud, there is no Chrome of yours to use, so every profile uses the built-in browser.");
+    expect(list()).toContain("My Chrome is for the desktop app, where bots run on your own computer. Anywhere else, such as the Cloud, there is no Chrome of yours to use, so every profile uses the built-in browser.");
+    const html = page();
     expect(html).not.toContain("act inside your real Chrome");
     expect(html).toContain("Signed-in sites");
   });
@@ -119,7 +127,7 @@ describe("browser profile manager", () => {
   it("on My Cloud with nothing lent, a My Chrome profile shows the My Chrome note and how to lend it, never a sign-ins list", () => {
     fixture.engine = { myChrome: false, myChromeLendable: true };
     fixture.profiles = [{ id: "work", name: "Work", browser: "chrome" }];
-    const html = renderToStaticMarkup(createElement(BrowserProfilesManager));
+    const html = page();
     expect(html).toContain("act inside your real Chrome");
     expect(html).not.toContain("Signed-in sites");
     const botPanel = renderToStaticMarkup(createElement(BrowserProfilesManager, { bot })).split("<details")[0]!;

@@ -2,23 +2,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { t } from "@/lib/i18n";
 import { waitForLocalVmReady } from "@/lib/local-vm-readiness";
 import type { LocaleKey } from "@/locales";
-import {
-  AlertTriangle,
-  ExternalLink,
-  Loader2,
-  Moon,
-  RefreshCw,
-  Trash2,
-} from "lucide-react";
-import { Card, MERGED_ROWS, SettingRow, SettingsDisclosureRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
+import { Loader2 } from "lucide-react";
+import { SettingRow } from "./SettingsPrimitives";
+import { Card as RowsCard, FormDialog, FormField, ItemRow, NavRow, NoteRow, useSubPage } from "./ListRows";
+import { textFieldCls } from "./ui/GrokDialog";
 import { MacLocalControl } from "./MacLocalControl";
-import { Select } from "./Select";
+import { PRIVATE_SETUP_PAGE } from "./settings-page-ids";
 import { SettingsSelect } from "./SettingsSelect";
 import { useCopyFeedback } from "@/lib/copy-text";
 import { cn } from "@/lib/cn";
 import { useStore } from "@/state/store";
 import { openKeySettings } from "./keys/key-focus";
-import { GrokIcon } from "./GrokIcon";
 import { VpsComputersCard, inventoryCount } from "./VpsComputersCard";
 
 type Action = "pull" | "run" | "start" | "stop" | "remove" | "recreate";
@@ -352,17 +346,15 @@ export function confirmComputerAction(
 function AddCloudDesktopRow() {
   const { dispatch } = useStore();
   if (typeof window !== "undefined" && window.ogb?.remoteClient?.active === true) return null;
+  return <NavRow data-keys-link="box" data-settings-open="add-cloud-desktop" title={t("settings.w6.computer.addCloud")} onClick={() => dispatch(openKeySettings("box"))} />;
+}
+
+/** A computer's state as the row's quiet value: green while it works, grey asleep or stopped, amber otherwise. */
+export function ComputerState({ kind, label, busy = false }: { kind: "good" | "idle" | "warn"; label: string; busy?: boolean }) {
   return (
-    <button
-      type="button"
-      data-keys-link="box"
-      data-settings-open="add-cloud-desktop"
-      onClick={() => dispatch(openKeySettings("box"))}
-      className="flex min-h-12 w-full cursor-pointer items-center gap-3 px-3.5 py-2.5 text-start transition-colors duration-[120ms] ease-[ease] hover:bg-ink/[0.04] outline-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
-    >
-      <span className="min-w-0 flex-1 truncate text-[13px] leading-[18px] tracking-[-0.08px] text-ink">{t("settings.w6.computer.addCloud")}</span>
-      <GrokIcon name="chevron-right" size={12} className="shrink-0 text-ink-secondary rtl:-scale-x-100" />
-    </button>
+    <span data-computer-state={kind} className={cn("shrink-0 text-[13px] leading-[18px]", kind === "good" ? "text-success" : kind === "idle" ? "text-ink-secondary" : "text-warning")}>
+      {busy && <Loader2 size={11} aria-hidden="true" className="me-1 inline animate-spin align-[-1px]" />}{label}
+    </span>
   );
 }
 
@@ -397,18 +389,14 @@ export function CloudComputersCard({
         : configured === true
           ? instances.length === 0 ? t("vm.cloud.noneFound") : inventoryCount(instances.length)
           : undefined;
-  if (disconnected) return <SettingsRows><AddCloudDesktopRow /></SettingsRows>;
+  if (disconnected) return <AddCloudDesktopRow />;
   return (
-    <SettingsRows>
-      <SettingRow title={t("vm.cloud.title")} subtitle={status}>
-        {(
-            <button type="button" onClick={onRefresh} disabled={loading || pending !== null} aria-label={t("vm.cloud.refreshAria")} className="ui-button">
-              <RefreshCw size={12} className={cn(loading && "animate-spin")} /> {t("vm.refresh")}
-            </button>
-          )}
-      </SettingRow>
+    <>
+      <ItemRow title={t("vm.cloud.title")} hint={status}>
+        <button type="button" onClick={onRefresh} disabled={loading || pending !== null} aria-label={t("vm.cloud.refreshAria")} className="ui-button">{t("vm.refresh")}</button>
+      </ItemRow>
 
-      {error && <div role="alert" className="mx-3.5 my-1 rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{error}</div>}
+      {error && <NoteRow tone="danger">{error}</NoteRow>}
 
       <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         {loading
@@ -422,15 +410,8 @@ export function CloudComputersCard({
                 : t("vm.cloud.foundMany", { count: instances.length })}
       </p>
 
-      {!disconnected && <div
-        aria-busy={loading || pending !== null}
-        className="flex flex-col empty:hidden"
-      >
-        {unavailableReason && (
-          <div className="flex items-center gap-2 px-3.5 py-2.5 text-[13px] leading-[18px] text-ink-secondary">
-            <AlertTriangle size={14} className="shrink-0 text-warning" /> {unavailableReason}
-          </div>
-        )}
+      <div aria-busy={loading || pending !== null} className="contents">
+        {unavailableReason && <NoteRow tone="warn">{unavailableReason}</NoteRow>}
         {!unavailableReason && instances.map((instance) => {
           const kind = cloudComputerInventoryStateKind(instance);
           const state = computerStateLabel(kind);
@@ -438,64 +419,39 @@ export function CloudComputersCard({
           const canSleep = cloudComputerCanSleep(instance);
           const isRemoving = kind === "removing";
           return (
-            <div
+            <ItemRow
               key={instance.boxId}
-              className="flex items-start justify-between gap-3 px-3.5 py-2.5"
+              title={instance.orphaned ? t("vm.cloud.orphan") : instance.ownerName}
+              hint={instance.inUse
+                ? t("vm.cloud.stopFirst")
+                : <>{instance.orphaned ? t("vm.owner.gone") : t("vm.owner.owned")} · <span className="break-all">{instance.name}</span></>}
             >
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="truncate text-[13px] leading-[18px] text-ink">
-                    {instance.orphaned ? t("vm.cloud.orphan") : instance.ownerName}
-                  </span>
-                  <span
-                    className={cn(
-                      "rounded-full px-2 py-0.5 text-[11px]",
-                      instance.inUse || kind === "running"
-                        ? "bg-success/15 text-success"
-                        : kind === "sleeping" || kind === "going-to-sleep"
-                          ? "bg-control text-ink-secondary"
-                          : "bg-warning/15 text-warning",
-                    )}
-                  >
-                    {state}
-                  </span>
-                </div>
-                <div className="break-all text-[13px] leading-[18px] text-ink-secondary">
-                  {instance.orphaned ? t("vm.owner.gone") : t("vm.owner.owned")} · {instance.name}
-                </div>
-                {instance.inUse && (
-                  <div className="text-[13px] leading-[18px] text-ink-secondary">{t("vm.cloud.stopFirst")}</div>
-                )}
-              </div>
-              <div className="flex shrink-0 items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => onSleep(instance)}
-                  disabled={loading || instance.inUse || pending !== null || !canSleep}
-                  aria-busy={isPending && pending?.action === "sleep" ? true : undefined}
-                  title={canSleep ? t("vm.cloud.sleepTitle") : t("vm.cloud.sleepBlocked", { state: state.toLowerCase() })}
-                  className="ui-button disabled:cursor-not-allowed"
-                >
-                  {isPending && pending?.action === "sleep" ? <Loader2 size={12} className="animate-spin" /> : <Moon size={12} />}
-                  {t("vm.cloud.sleep")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onDelete(instance)}
-                  disabled={loading || instance.inUse || pending !== null || isRemoving}
-                  aria-busy={isPending && pending?.action === "delete" ? true : undefined}
-                  title={t("vm.cloud.deleteTitle")}
-                  className="ui-button ui-button-danger disabled:cursor-not-allowed disabled:opacity-40!"
-                >
-                  {isPending && pending?.action === "delete" ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                  {t("common.delete")}
-                </button>
-              </div>
-            </div>
+              <ComputerState label={state} kind={instance.inUse || kind === "running" ? "good" : kind === "sleeping" || kind === "going-to-sleep" ? "idle" : "warn"} />
+              <button
+                type="button"
+                onClick={() => onSleep(instance)}
+                disabled={loading || instance.inUse || pending !== null || !canSleep}
+                aria-busy={isPending && pending?.action === "sleep" ? true : undefined}
+                title={canSleep ? t("vm.cloud.sleepTitle") : t("vm.cloud.sleepBlocked", { state: state.toLowerCase() })}
+                className="ui-button"
+              >
+                {t("vm.cloud.sleep")}
+              </button>
+              <button
+                type="button"
+                onClick={() => onDelete(instance)}
+                disabled={loading || instance.inUse || pending !== null || isRemoving}
+                aria-busy={isPending && pending?.action === "delete" ? true : undefined}
+                title={t("vm.cloud.deleteTitle")}
+                className="ui-button ui-button-danger"
+              >
+                {t("common.delete")}
+              </button>
+            </ItemRow>
           );
         })}
-      </div>}
-    </SettingsRows>
+      </div>
+    </>
   );
 }
 
@@ -518,26 +474,14 @@ export function LocalVmInventoryCard({
   onRefresh: () => void;
   onDelete: (instance: LocalVmInventoryInstance) => void;
 }) {
+  const busy = loading || deletingBotId !== null;
   return (
-    <Card
-      title={t("vm.perBot.title")}
-      subtitle={unavailableReason
-        ? t("vm.perBot.inventoryUnavailable")
-        : t("vm.perBot.created", { count: instances.length, max: maxInstances })}
-    >
-      <div className="flex items-center justify-end gap-3">
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={loading || deletingBotId !== null}
-          aria-label={t("vm.perBot.refreshAria")}
-          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-hairline/40 px-2.5 py-1.5 text-[12px] text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-40"
-        >
-          <RefreshCw size={12} className={cn(loading && "animate-spin")} /> {t("vm.refresh")}
-        </button>
-      </div>
+    <RowsCard label={t("vm.perBot.title")} data-settings-block="per-bot-desktops">
+      <ItemRow title={unavailableReason ? t("vm.perBot.inventoryUnavailable") : t("vm.perBot.created", { count: instances.length, max: maxInstances })}>
+        <button type="button" onClick={onRefresh} disabled={busy} aria-label={t("vm.perBot.refreshAria")} className="ui-button">{t("vm.refresh")}</button>
+      </ItemRow>
 
-      {error && <div role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{error}</div>}
+      {error && <NoteRow tone="danger">{error}</NoteRow>}
 
       <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         {loading
@@ -549,65 +493,26 @@ export function LocalVmInventoryCard({
               : t("vm.perBot.foundMany", { count: instances.length })}
       </p>
 
-      <div
-        aria-busy={loading || deletingBotId !== null}
-        className="mt-3 overflow-hidden rounded-xl border border-hairline/40"
-      >
+      <div aria-busy={busy} className="contents">
         {loading && instances.length === 0 ? (
-          <div className="flex items-center gap-2 px-3 py-4 text-[13px] text-ink-secondary">
-            <Loader2 size={13} className="animate-spin" /> {t("vm.perBot.checkingList")}
-          </div>
+          <NoteRow>{t("vm.perBot.checkingList")}</NoteRow>
         ) : unavailableReason ? (
-          <div className="flex items-center gap-2 px-3 py-4 text-[13px] text-ink-secondary">
-            <AlertTriangle size={14} className="shrink-0 text-warning" /> {unavailableReason}
-          </div>
+          <NoteRow tone="warn">{unavailableReason}</NoteRow>
         ) : instances.length === 0 ? (
-          <div className="px-3 py-4 text-[13px] text-ink-secondary">{t("vm.perBot.none")}</div>
-        ) : instances.map((instance, index) => {
+          <NoteRow>{t("vm.perBot.none")}</NoteRow>
+        ) : instances.map((instance) => {
           const state = localVmInventoryState(instance);
           const deleting = deletingBotId === instance.botId;
           const managed = instance.managed === true;
+          const destination = t("vm.perBot.destination", { destination: t(destinationLabelKeys[instance.destination]) });
+          const note = !managed
+            ? <span className="text-warning">{t("vm.perBot.unmanaged")}</span>
+            : instance.problem && !instance.inUse
+              ? <span className="text-warning">{instance.problem}</span>
+              : instance.inUse ? t("vm.perBot.stopFirst") : null;
           return (
-            <div
-              key={instance.botId}
-              className={cn(
-                "flex items-start justify-between gap-3 px-3 py-3",
-                index > 0 && "border-t border-hairline/35",
-              )}
-            >
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="truncate text-[14px] font-medium text-ink">{instance.name}</span>
-                  <span
-                    className={cn(
-                      "rounded-full px-2 py-0.5 text-[11px]",
-                      !managed
-                        ? "bg-warning/15 text-warning"
-                        : instance.inUse || instance.ready
-                          ? "bg-success/15 text-success"
-                          : instance.container === "stopped"
-                            ? "bg-control text-ink-secondary"
-                            : "bg-warning/15 text-warning",
-                    )}
-                  >
-                    {state}
-                  </span>
-                </div>
-                <div className="mt-1 text-[12px] text-ink-secondary">
-                  {t("vm.perBot.destination", { destination: t(destinationLabelKeys[instance.destination]) })}
-                </div>
-                {!managed && (
-                  <div className="mt-1 text-[12px] text-warning">
-                    {t("vm.perBot.unmanaged")}
-                  </div>
-                )}
-                {managed && instance.problem && !instance.inUse && (
-                  <div className="mt-1 text-[12px] text-warning">{instance.problem}</div>
-                )}
-                {managed && instance.inUse && (
-                  <div className="mt-1 text-[12px] text-ink-secondary">{t("vm.perBot.stopFirst")}</div>
-                )}
-              </div>
+            <ItemRow key={instance.botId} title={instance.name} hint={note ? <>{destination} · {note}</> : destination}>
+              <ComputerState label={state} kind={!managed ? "warn" : instance.inUse || instance.ready ? "good" : instance.container === "stopped" ? "idle" : "warn"} />
               {managed && <button
                 type="button"
                 onClick={() => onDelete(instance)}
@@ -618,16 +523,15 @@ export function LocalVmInventoryCard({
                     ? t("vm.perBot.deleteBlocked")
                     : t("vm.perBot.deleteTitle", { name: instance.name })
                 }
-                className="flex shrink-0 items-center gap-1.5 rounded-lg bg-danger/10 px-2.5 py-1.5 text-[12px] font-medium text-danger hover:bg-danger/15 disabled:cursor-not-allowed disabled:opacity-40"
+                className="ui-button ui-button-danger"
               >
-                {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                 {t("common.delete")}
               </button>}
-            </div>
+            </ItemRow>
           );
         })}
       </div>
-    </Card>
+    </RowsCard>
   );
 }
 
@@ -666,7 +570,7 @@ function ActionButton({
       disabled={pending !== null}
       className={cn("ui-button", danger && "ui-button-danger")}
     >
-      {pending === action && <Loader2 size={13} className="animate-spin" />}
+      {pending === action && <Loader2 size={12} aria-hidden="true" className="animate-spin" />}
       {children}
     </button>
   );
@@ -684,6 +588,30 @@ export function parseLocalVmIdleTimeoutMinutes(value: string): number | null {
   return minutes >= MIN_LOCAL_VM_IDLE_TIMEOUT_MINUTES && minutes <= MAX_LOCAL_VM_IDLE_TIMEOUT_MINUTES ? minutes : null;
 }
 
+/** The minutes field of the idle timeout, as its small form draws it. */
+export function LocalVmIdleTimeoutField({ value, disabled, error, onChange }: { value: string; disabled: boolean; error: string; onChange: (value: string) => void }) {
+  return (
+    <FormField label={t("vm.idle.label")}>
+      <span className="flex items-center gap-2">
+        <input
+          id="local-vm-idle-timeout"
+          type="number"
+          min={MIN_LOCAL_VM_IDLE_TIMEOUT_MINUTES}
+          max={MAX_LOCAL_VM_IDLE_TIMEOUT_MINUTES}
+          step={1}
+          inputMode="numeric"
+          value={value}
+          disabled={disabled}
+          aria-invalid={Boolean(error)}
+          onChange={(event) => onChange(event.target.value)}
+          className={cn(textFieldCls, "w-28 tabular-nums")}
+        />
+        <span className="text-[13px] text-ink-secondary">{t("vm.idle.minutes")}</span>
+      </span>
+    </FormField>
+  );
+}
+
 export function LocalVmIdleTimeoutSetting({
   minutes,
   disabled,
@@ -693,17 +621,13 @@ export function LocalVmIdleTimeoutSetting({
   disabled: boolean;
   onSave: (minutes: number) => Promise<void>;
 }) {
+  const [open, setOpen] = useState(false);
   const [value, setValue] = useState(String(minutes));
-  const [dirty, setDirty] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (!dirty) setValue(String(minutes));
-  }, [minutes, dirty]);
-
   const save = async () => {
-    if (!dirty || saving) return;
+    if (saving) return;
     const parsed = parseLocalVmIdleTimeoutMinutes(value);
     if (parsed === null) {
       setError(t("vm.idle.range"));
@@ -713,8 +637,8 @@ export function LocalVmIdleTimeoutSetting({
     try {
       await onSave(parsed);
       setValue(String(parsed));
-      setDirty(false);
       setError("");
+      setOpen(false);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t("vm.idle.error"));
     } finally {
@@ -723,46 +647,16 @@ export function LocalVmIdleTimeoutSetting({
   };
 
   return (
-    <div className="px-3.5 py-2.5">
-      <div className="flex min-h-7 items-center justify-between gap-3">
-        <label htmlFor="local-vm-idle-timeout" className="text-[13px] leading-[18px] text-ink">{t("vm.idle.label")}</label>
-        <div
-          className={cn(
-            "flex h-8 w-[150px] shrink-0 items-center rounded-[10px] border bg-menu",
-            error ? "border-danger/60" : "border-ink/12 focus-within:border-ink/40",
-          )}
-        >
-          <input
-            id="local-vm-idle-timeout"
-            type="number"
-            min={MIN_LOCAL_VM_IDLE_TIMEOUT_MINUTES}
-            max={MAX_LOCAL_VM_IDLE_TIMEOUT_MINUTES}
-            step={1}
-            inputMode="numeric"
-            value={value}
-            disabled={disabled || saving}
-            aria-invalid={Boolean(error)}
-            aria-describedby={error ? "local-vm-idle-timeout-error" : undefined}
-            onChange={(event) => {
-              setValue(event.target.value);
-              setDirty(true);
-              setError("");
-            }}
-            onBlur={() => void save()}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") event.currentTarget.blur();
-            }}
-            className="min-w-0 flex-1 bg-transparent px-2.5 py-1.5 text-[13px] tabular-nums text-ink focus:outline-none disabled:opacity-50"
-          />
-          <span className="pr-2.5 text-[13px] text-ink-secondary">{t("vm.idle.minutes")}</span>
-        </div>
-      </div>
-      {error ? (
-        <p id="local-vm-idle-timeout-error" role="alert" className="mt-1.5 text-[12px] text-danger">
-          {error}
-        </p>
-      ) : null}
-    </div>
+    <>
+      <NavRow data-settings-open="idle-timeout" title={t("vm.idle.label")} value={`${minutes} ${t("vm.idle.minutes")}`} disabled={disabled}
+        onClick={() => { setValue(String(minutes)); setError(""); setOpen(true); }} />
+      {open && (
+        <FormDialog data-panel-modal="idle-timeout" title={t("vm.idle.label")} description={t("vm.idle.detail")} busy={saving} error={error || undefined}
+          onSave={save} onClose={() => setOpen(false)}>
+          <LocalVmIdleTimeoutField value={value} disabled={saving} error={error} onChange={(next) => { setValue(next); setError(""); }} />
+        </FormDialog>
+      )}
+    </>
   );
 }
 
@@ -770,7 +664,7 @@ export function LocalComputerSection() {
   const cloudHome = useStore().state.config?.cloudHome === true;
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const sub = useSubPage();
   const [pending, setPending] = useState<Action | null>(null);
   const actionController = useRef<AbortController | null>(null);
   useEffect(() => () => actionController.current?.abort(), []);
@@ -1191,109 +1085,44 @@ export function LocalComputerSection() {
   const perBotRuntimeUnsupported = perBot && status?.runtime === "container";
   const headerReady = perBot ? Boolean(status?.daemonUp && status?.image && !perBotRuntimeUnsupported) : ready;
 
-  return (
-    <>
-      <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">{announcement}</p>
-      <SettingsGroup label={t("settings.w6.group.cloudDesktop")} block="cloud-desktop">
-      <div className={MERGED_ROWS}>
-      <CloudComputersCard
-        instances={cloudInventory}
-        configured={cloudConfigured}
-        loading={cloudLoading}
-        pending={cloudPending}
-        error={cloudError}
-        unavailableReason={cloudUnavailableReason}
-        onRefresh={() => setCloudRefreshKey((key) => key + 1)}
-        onSleep={(instance) => void actOnCloudComputer("sleep", instance)}
-        onDelete={(instance) => void actOnCloudComputer("delete", instance)}
-      />
+  const announcer = <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">{announcement}</p>;
 
-      <VpsComputersCard
-        instances={vpsInventory}
-        configured={vpsConfigured}
-        aliases={vpsAliases}
-        loading={vpsLoading}
-        removingName={vpsRemovingName}
-        error={vpsError}
-        unavailableReason={vpsUnavailableReason}
-        onRefresh={() => setVpsRefreshKey((key) => key + 1)}
-        onRemove={(instance) => void removeVpsComputer(instance)}
-      />
-      </div>
-      </SettingsGroup>
-
-      {!cloudHome && (
-      <SettingsGroup label={t("settings.grok.group.yourComputer")} block="private-desktop">
-      <SettingsRows>
-        <SettingRow
-          title={t("settings.w6a.private.title")}
-          subtitle={<span aria-live="polite">{loading
-            ? t("common.checking")
-            : unavailable
-              ? t("vm.main.statusUnavailable")
-              : perBot && headerReady
-                ? t("vm.main.readyPerBot")
-                : perBotRuntimeUnsupported
-                  ? t("vm.main.perBotUnsupported")
-                  : ready
-                    ? t("vm.main.ready")
-                    : (status?.problem ?? t("vm.main.notReady"))}</span>}
-          message={error ? <div role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{error}</div> : null}
-        >
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setLoading(true);
-                setRefreshKey((key) => key + 1);
-                setInventoryRefreshKey((key) => key + 1);
-              }}
-              disabled={loading || pending !== null}
-              className="ui-button"
-            >
-              <RefreshCw size={12} className={cn(loading && "animate-spin")} /> {t("vm.main.recheck")}
-            </button>
-            {ready && !perBot && (
-              <a href={status?.viewer_url ?? c?.view} target="_blank" rel="noreferrer" className="ui-button">
-                <ExternalLink size={12} /> {t("vm.main.watch")}
-              </a>
-            )}
-          </div>
-        </SettingRow>
-      </SettingsRows>
-      <MacLocalControl />
-      <SettingsDisclosureRow id="private-desktop" title={t("settings.w6a.private.more")} open={detailsOpen} onToggle={() => setDetailsOpen((open) => !open)}>
-      <SettingsRows>
-        <SettingRow title={t("vm.isolation.title")} subtitle={policyPending ? t("vm.saving") : undefined}>
-          <SettingsSelect
-            value={status?.mode ?? "shared"}
-            aria-label={t("vm.isolation.title")}
-            disabled={!status || policyPending}
-            options={[{ value: "shared", label: t("vm.isolation.shared") }, { value: "per-bot", label: t("vm.isolation.perBot") }]}
-            onChange={(event) => void savePolicy(event.target.value === "per-bot" ? "per-bot" : "shared", status?.max_instances ?? 2)}
-          />
-        </SettingRow>
-        {perBot && (
-          <SettingRow title={t("vm.isolation.max")}>
-            <Select size="sm"
-              aria-label={t("vm.isolation.maxAria")}
-              value={status?.max_instances ?? 2}
+  // Setup and options is its own page of this one: the private desktop's policy, its setup steps and its storage
+  if (sub.at === PRIVATE_SETUP_PAGE && !cloudHome) {
+    return (
+      <>
+        {announcer}
+        <RowsCard data-settings-block="private-desktop-options">
+          <SettingRow title={t("vm.isolation.title")} subtitle={policyPending ? t("vm.saving") : undefined}>
+            <SettingsSelect
+              value={status?.mode ?? "shared"}
+              aria-label={t("vm.isolation.title")}
               disabled={!status || policyPending}
-              onChange={(event) => void savePolicy(status?.mode ?? "shared", Number(event.target.value))}
-            >
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((value) => <option key={value} value={value}>{value}</option>)}
-            </Select>
+              options={[{ value: "shared", label: t("vm.isolation.shared") }, { value: "per-bot", label: t("vm.isolation.perBot") }]}
+              onChange={(event) => void savePolicy(event.target.value === "per-bot" ? "per-bot" : "shared", status?.max_instances ?? 2)}
+            />
           </SettingRow>
-        )}
-        <LocalVmIdleTimeoutSetting
-          minutes={status ? Math.round(status.idle_timeout_ms / 60_000) : DEFAULT_LOCAL_VM_IDLE_TIMEOUT_MINUTES}
-          disabled={!status || policyPending}
-          onSave={saveIdleTimeout}
-        />
-      </SettingsRows>
+          {perBot && (
+            <SettingRow title={t("vm.isolation.max")}>
+              <SettingsSelect
+                data-settings-select="max-desktops"
+                aria-label={t("vm.isolation.maxAria")}
+                value={String(status?.max_instances ?? 2)}
+                disabled={!status || policyPending}
+                options={[1, 2, 3, 4, 5, 6, 7, 8].map((value) => ({ value: String(value), label: String(value) }))}
+                onChange={(event) => void savePolicy(status?.mode ?? "shared", Number(event.target.value))}
+              />
+            </SettingRow>
+          )}
+          <LocalVmIdleTimeoutSetting
+            minutes={status?.idle_timeout_ms ? Math.round(status.idle_timeout_ms / 60_000) : DEFAULT_LOCAL_VM_IDLE_TIMEOUT_MINUTES}
+            disabled={!status || policyPending}
+            onSave={saveIdleTimeout}
+          />
+        </RowsCard>
 
-      <SettingsGroup label={t("vm.setup.title")} block="private-desktop-setup">
-        <SettingsRows>
+        <RowsCard label={t("vm.setup.title")} data-settings-block="private-desktop-setup"
+          footnote={unavailable ? t("vm.inspectFailed") : undefined}>
           <Step title={t("vm.setup.step1")} done={Boolean(status?.runtime)}>
             {c?.install
               ? <CopyCommand command={c.install} />
@@ -1327,37 +1156,100 @@ export function LocalComputerSection() {
               <ActionButton action={status?.container === "stopped" ? "start" : "run"} pending={pending} onClick={() => void act(status?.container === "stopped" ? "start" : "run")}>{t("vm.setup.start")}</ActionButton>
             ) : null}
           </Step>
-        </SettingsRows>
-        {unavailable && <p className="-mt-0.5 pl-3.5 text-[12px] leading-4 text-ink-tertiary">{t("vm.inspectFailed")}</p>}
-      </SettingsGroup>
+        </RowsCard>
 
-      {perBot && (
-        <LocalVmInventoryCard
-          instances={inventory}
-          maxInstances={inventoryMax || status?.max_instances || 2}
-          loading={inventoryLoading}
-          deletingBotId={deletingBotId}
-          error={inventoryError}
-          unavailableReason={inventoryUnavailableReason}
-          onRefresh={() => setInventoryRefreshKey((key) => key + 1)}
-          onDelete={(instance) => void deletePerBotVm(instance)}
+        {perBot && (
+          <LocalVmInventoryCard
+            instances={inventory}
+            maxInstances={inventoryMax || status?.max_instances || 2}
+            loading={inventoryLoading}
+            deletingBotId={deletingBotId}
+            error={inventoryError}
+            unavailableReason={inventoryUnavailableReason}
+            onRefresh={() => setInventoryRefreshKey((key) => key + 1)}
+            onDelete={(instance) => void deletePerBotVm(instance)}
+          />
+        )}
+
+        <RowsCard data-settings-block="private-desktop-storage">
+          <SettingRow title={t("settings.w6a.private.storage")} subtitle={t("settings.w6a.private.folder", { path: status?.workspace_path ?? t("vm.safety.notCreated") })}>
+            {existing ? (
+              <div className="flex flex-wrap items-center justify-end gap-1.5">
+                {status?.container === "running" && <ActionButton action="stop" pending={pending} onClick={() => void act("stop")}>{t("vm.safety.stop")}</ActionButton>}
+                <ActionButton action="remove" pending={pending} onClick={() => void act("remove")} danger>{perBot ? t("vm.safety.deleteLegacy") : t("vm.safety.deleteVm")}</ActionButton>
+              </div>
+            ) : null}
+          </SettingRow>
+        </RowsCard>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {announcer}
+      <RowsCard label={t("settings.w6.group.cloudDesktop")} data-settings-block="cloud-desktop">
+        <CloudComputersCard
+          instances={cloudInventory}
+          configured={cloudConfigured}
+          loading={cloudLoading}
+          pending={cloudPending}
+          error={cloudError}
+          unavailableReason={cloudUnavailableReason}
+          onRefresh={() => setCloudRefreshKey((key) => key + 1)}
+          onSleep={(instance) => void actOnCloudComputer("sleep", instance)}
+          onDelete={(instance) => void actOnCloudComputer("delete", instance)}
         />
-      )}
+        <VpsComputersCard
+          instances={vpsInventory}
+          configured={vpsConfigured}
+          aliases={vpsAliases}
+          loading={vpsLoading}
+          removingName={vpsRemovingName}
+          error={vpsError}
+          unavailableReason={vpsUnavailableReason}
+          onRefresh={() => setVpsRefreshKey((key) => key + 1)}
+          onRemove={(instance) => void removeVpsComputer(instance)}
+        />
+      </RowsCard>
 
-      <SettingsRows>
-        <SettingRow title={t("settings.w6a.private.storage")} subtitle={t("settings.w6a.private.folder", { path: status?.workspace_path ?? t("vm.safety.notCreated") })}>
-          {existing ? (
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              {status?.container === "running" && <ActionButton action="stop" pending={pending} onClick={() => void act("stop")}>{t("vm.safety.stop")}</ActionButton>}
-              <ActionButton action="remove" pending={pending} onClick={() => void act("remove")} danger>{perBot ? t("vm.safety.deleteLegacy") : t("vm.safety.deleteVm")}</ActionButton>
-            </div>
-          ) : null}
-        </SettingRow>
-      </SettingsRows>
-      </SettingsDisclosureRow>
-      </SettingsGroup>
+      {!cloudHome && (
+        <RowsCard label={t("settings.grok.group.yourComputer")} data-settings-block="private-desktop">
+          <ItemRow
+            title={t("settings.w6a.private.title")}
+            hint={<span aria-live="polite">{loading
+              ? t("common.checking")
+              : unavailable
+                ? t("vm.main.statusUnavailable")
+                : perBot && headerReady
+                  ? t("vm.main.readyPerBot")
+                  : perBotRuntimeUnsupported
+                    ? t("vm.main.perBotUnsupported")
+                    : ready
+                      ? t("vm.main.ready")
+                      : (status?.problem ?? t("vm.main.notReady"))}</span>}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setLoading(true);
+                setRefreshKey((key) => key + 1);
+                setInventoryRefreshKey((key) => key + 1);
+              }}
+              disabled={loading || pending !== null}
+              className="ui-button"
+            >
+              {t("vm.main.recheck")}
+            </button>
+            {ready && !perBot && (
+              <a href={status?.viewer_url ?? c?.view} target="_blank" rel="noreferrer" className="ui-button">{t("vm.main.watch")}</a>
+            )}
+          </ItemRow>
+          {error && <NoteRow tone="danger">{error}</NoteRow>}
+          <NavRow data-panel-page={PRIVATE_SETUP_PAGE} title={t("settings.w6a.private.more")} onClick={() => sub.open(PRIVATE_SETUP_PAGE, t("settings.w6a.private.more"))} />
+        </RowsCard>
       )}
-      {cloudHome && <MacLocalControl />}
+      <MacLocalControl />
     </>
   );
 }

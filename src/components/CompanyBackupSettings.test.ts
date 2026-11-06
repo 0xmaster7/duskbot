@@ -55,6 +55,8 @@ const change = (input: Node, value: string) => input.props.onChange!({ target: {
 const submit = (form: Node) => form.props.onSubmit!({ preventDefault: vi.fn() });
 const buttons = (label: string) => render().nodes.filter(node => node.type === "button" && content(node.props.children) === label);
 const button = (label: string) => buttons(label)[0];
+// the daily switch is a SwitchRow: its onChange is the switch's press
+const asSwitch = (row: { props: Record<string, unknown> }) => ({ props: { onClick: row.props.onChange as () => void, disabled: row.props.disabled as boolean | undefined } });
 const passwords = () => render().nodes.filter(node => node.type === "input" && node.props.type === "password");
 const form = () => render().nodes.find(node => node.type === "form")!;
 const confirmation = () => render().nodes.find(node => node.type === "input" && (!node.props.type || node.props.type === "text"))!;
@@ -169,7 +171,7 @@ describe("optional Company cloud backup settings", () => {
     const saved = () => { fixture.index = 0; fixture.effects = []; const tree = SavedCompanyBackupSchedule({ bridge }); return nodes(tree); };
     fixture.values = [];
     saved(); effects(); await flush();
-    const toggle = saved().find(node => node.props["aria-label"] === "Daily backups")!;
+    const toggle = asSwitch(saved().find(node => (node.props as { label?: string }).label === "Daily backups")!);
     toggle.props.onClick!(); await flush();
     expect(bridge.configureSchedule).toHaveBeenCalledExactlyOnceWith({ enabled: false });
     expect(saved()).toEqual([]);
@@ -346,7 +348,7 @@ describe("optional Company cloud backup settings", () => {
     expect([...storage.values()]).not.toContain(PASSWORD);
   });
 
-  const scheduleSwitch = () => render().nodes.find(node => node.props["aria-label"] === "Daily backups")!;
+  const scheduleSwitch = () => asSwitch(render().nodes.find(node => (node.props as { label?: string }).label === "Daily backups")!);
   const scheduleOff = { busy: false, schedule: { enabled: false, status: "off" as const } };
   it("keeps daily backups off without any automatic setting mutation or password request", async () => {
     vi.mocked(bridge.state).mockResolvedValueOnce(scheduleOff);

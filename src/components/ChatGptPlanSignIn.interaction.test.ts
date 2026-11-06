@@ -87,13 +87,14 @@ it.each([undefined, "google-original"])("adds a named account, then hands its id
     ...(antigravityInstanceId ? { extra: { sourceInstanceId: antigravityInstanceId } } : {}) };
   fixture.api.mockResolvedValueOnce({ instanceId: "chatgpt-second", instances: accounts });
   fixture.index = 0;
-  nodes(AddAccount(props)).find((node) => node.type === "button")!.props.onClick!();
+  // the row opens a small form; its Save submits it
+  (nodes(AddAccount(props)).find((node) => (node.props as { "data-add-account-row"?: string })["data-add-account-row"]) as ReactElement<{ onClick: () => void }>).props.onClick();
   fixture.index = 0;
   const input = nodes(AddAccount(props)).find((node) => node.type === "input") as ReactElement<{ onChange: (event: { target: { value: string } }) => void }>;
   input.props.onChange({ target: { value: " Work " } });
   fixture.index = 0;
-  const form = nodes(AddAccount(props)).find((node) => node.type === "form") as ReactElement<{ onSubmit: (event: { preventDefault: () => void }) => void }>;
-  form.props.onSubmit({ preventDefault: () => {} });
+  const form = nodes(AddAccount(props)).find((node) => (node.props as { "data-panel-modal"?: string })["data-panel-modal"] === "add-account") as ReactElement<{ onSave: () => void }>;
+  form.props.onSave();
   await flush();
   expect(fixture.api).toHaveBeenCalledWith(`/api/instances/${antigravityInstanceId ? "antigravity" : "chatgpt"}-accounts`, { method: "POST", body: JSON.stringify({ displayName: "Work", ...(antigravityInstanceId ? { sourceInstanceId: antigravityInstanceId } : {}) }) });
   expect(fixture.api).toHaveBeenCalledOnce();

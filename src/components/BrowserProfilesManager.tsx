@@ -8,6 +8,11 @@ import { askConfirm } from "./ConfirmDialog";
 import { SignedInSites } from "./SignedInSites";
 import { Select } from "./Select";
 import { browserScope } from "@/lib/team-browser";
+import { Card as RowsCard, FormDialog, FormField, ItemRow, NavRow, NoteRow, useSubPage } from "./ListRows";
+import { SettingRow } from "./SettingsPrimitives";
+import { SettingsSelect } from "./SettingsSelect";
+import { textFieldCls } from "./ui/GrokDialog";
+import { PROFILE_PAGE } from "./settings-page-ids";
 
 /** Security: the server owns session routing and erasure; this UI never handles cookies or partitions. */
 export function BrowserProfilesManager({ bot, onProfileChanged, disabled = false, folded = false }: {
@@ -29,6 +34,8 @@ export function BrowserProfilesManager({ bot, onProfileChanged, disabled = false
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [error, setError] = useState("");
   const fieldId = useId();
+  const sub = useSubPage();
+  const [adding, setAdding] = useState(false);
   const locked = busy || disabled || canManage !== true;
 
   useEffect(() => {
@@ -71,7 +78,7 @@ export function BrowserProfilesManager({ bot, onProfileChanged, disabled = false
     setBusy(true);
     setError("");
     try {
-      if (await save([...profiles, { id: newBrowserProfileId(), name: name.trim() }])) setName("");
+      if (await save([...profiles, { id: newBrowserProfileId(), name: name.trim() }])) { setName(""); setAdding(false); }
     } finally {
       setBusy(false);
     }
@@ -94,20 +101,22 @@ export function BrowserProfilesManager({ bot, onProfileChanged, disabled = false
     }
   };
 
-  const remove = async (profile: BrowserProfile) => {
-    if (locked) return;
+  const remove = async (profile: BrowserProfile): Promise<boolean> => {
+    if (locked) return false;
     const blocked = browserProfileDeletionBlockReason(bots, profile.id);
-    if (blocked) return setError(blocked);
+    if (blocked) { setError(blocked); return false; }
     const users = bots.filter((candidate) => candidate.browserProfile === profile.id);
     const summary = users.length ? `${t("settings.profiles.deleteUsers", { names: users.map((candidate) => candidate.name).join(", ") })} ` : "";
-    if (!(await askConfirm({ title: t("memory.confirmDelete", { name: profile.name }), body: summary + t("confirm.profileDeleteBody"), confirmLabel: t("common.delete") }))) return;
+    if (!(await askConfirm({ title: t("memory.confirmDelete", { name: profile.name }), body: summary + t("confirm.profileDeleteBody"), confirmLabel: t("common.delete") }))) return false;
     setBusy(true);
     setError("");
     try {
       if (await save(profiles.filter((candidate) => candidate.id !== profile.id))) {
         if (renaming?.id === profile.id) setRenaming(null);
         if (currentBot?.browserProfile === profile.id) onProfileChanged?.();
+        return true;
       }
+      return false;
     } finally {
       setBusy(false);
     }
@@ -144,7 +153,9 @@ export function BrowserProfilesManager({ bot, onProfileChanged, disabled = false
     }
   };
 
-  if (canManage === false) return <p className="text-[12px] text-ink-secondary">{t("settings.profiles.ownerOnly")}</p>;
+  if (canManage === false) return currentBot
+    ? <p className="text-[12px] text-ink-secondary">{t("settings.profiles.ownerOnly")}</p>
+    : <RowsCard><NoteRow>{t("settings.profiles.ownerOnly")}</NoteRow></RowsCard>;
 
   const inputClass = "min-w-0 flex-1 rounded-md border border-hairline/40 bg-inset px-2.5 py-2 text-[13px] text-ink outline-none focus:border-accent disabled:opacity-50";
   const buttonClass = "shrink-0 rounded-md bg-control px-2.5 py-2 text-[12px] text-ink hover:bg-raised-hover disabled:opacity-50";
@@ -158,6 +169,89 @@ export function BrowserProfilesManager({ bot, onProfileChanged, disabled = false
     {myChromeOn && <p className="text-[11px] leading-relaxed text-ink-secondary">{t("settings.profiles.myChromeLent", { name: myChromeOn.name, device: myChromeOn.device })}</p>}
     {myChromeOn?.online === false && <p className="text-[11px] leading-relaxed text-ink-secondary">{t("settings.profiles.myChromeLentOffline", { name: myChromeOn.name })}</p>}
   </>;
+  // In Settings (no bot): the shared profiles as rows, each opening its own page; names are typed in a small form
+  if (!currentBot) {
+    const errorRow = error ? <NoteRow tone="danger">{error}</NoteRow> : null;
+    const renameDialog = renaming && (
+      <FormDialog data-panel-modal="rename-profile" title={t("settings.profiles.rename")} canSave={Boolean(renaming.name.trim())} busy={busy}
+        error={error || undefined} onSave={rename} onClose={() => setRenaming(null)}>
+        <FormField label={t("settings.profiles.nameAria")}>
+          <input autoFocus value={renaming.name} onChange={(event) => setRenaming({ id: renaming.id, name: event.target.value })} maxLength={40} required disabled={locked} className={textFieldCls} />
+        </FormField>
+      </FormDialog>
+    );
+    const pageId = sub.at?.startsWith(PROFILE_PAGE) ? sub.at.slice(PROFILE_PAGE.length) : null;
+    if (pageId !== null) {
+      const profile = profiles.find((candidate) => candidate.id === pageId);
+      if (!profile) return <RowsCard><NoteRow>{t("settings.profiles.removed")}</NoteRow></RowsCard>;
+      const users = usersOf(profile.id);
+      const blocked = browserProfileDeletionBlockReason(bots, profile.id);
+      const chrome = usesMyChrome(profile);
+      return (
+        <div className="contents" aria-busy={busy}>
+          <RowsCard data-settings-block="browser-profile">
+            <NavRow data-settings-open="rename-profile" title={t("settings.profiles.nameAria")} value={profile.name} disabled={locked}
+              onClick={() => { setRenaming({ id: profile.id, name: profile.name }); setError(""); }} />
+            <SettingRow title={t("settings.profiles.browserLabel")}>
+              <SettingsSelect data-settings-select="profile-browser" aria-label={t("settings.profiles.browserLabel")} value={profile.browser ?? ""} disabled={locked}
+                options={[{ value: "", label: t("settings.profiles.builtIn") }, { value: "chrome", label: t("settings.profiles.myChrome"), disabled: !myChrome }]}
+                onChange={(event) => void setBrowser(profile, event.target.value)} />
+            </SettingRow>
+            <ItemRow title={t("settings.s2.profiles.usedBy")} value={users.length ? users.join(", ") : t("settings.s2.profiles.nobody")} />
+            {errorRow}
+          </RowsCard>
+          {chrome ? (
+            <RowsCard>
+              <NoteRow>{t("settings.profiles.myChromeHint")}</NoteRow>
+              {myChromeOn && <NoteRow>{t("settings.profiles.myChromeLent", { name: myChromeOn.name, device: myChromeOn.device })}</NoteRow>}
+              {myChromeOn?.online === false && <NoteRow>{t("settings.profiles.myChromeLentOffline", { name: myChromeOn.name })}</NoteRow>}
+              {!myChrome && <NoteRow>{t(myChromeLendable ? "settings.profiles.myChromeShare" : "settings.profiles.myChromeUnavailable")}</NoteRow>}
+            </RowsCard>
+          ) : (
+            <RowsCard label={t("settings.sites.title")}>
+              <SignedInSites bare target={{ profile: profile.id }} sharedBy={users} disabled={locked} />
+            </RowsCard>
+          )}
+          <RowsCard>
+            <NavRow danger drill={false} data-settings-open="delete-profile" title={t("settings.s2.profiles.delete")} hint={blocked ?? undefined}
+              aria-label={`${t("common.delete")} ${profile.name}`} disabled={locked || Boolean(blocked)}
+              onClick={() => void remove(profile).then((removed) => { if (removed) sub.back(); })} />
+          </RowsCard>
+          {renameDialog}
+        </div>
+      );
+    }
+    return (
+      <div className="contents" aria-busy={busy}>
+        <RowsCard data-settings-block="browser-profiles"
+          footnote={profiles.length >= 20 ? t("settings.profiles.limit")
+            : !myChrome && profiles.length > 0 ? t(myChromeLendable ? "settings.profiles.myChromeShare" : "settings.profiles.myChromeUnavailable") : undefined}>
+          {!profiles.length && <NoteRow>{t("settings.profiles.sharedEmpty")}</NoteRow>}
+          {profiles.map((profile) => {
+            const users = usersOf(profile.id);
+            return (
+              <NavRow key={profile.id} data-panel-page={`${PROFILE_PAGE}${profile.id}`} title={profile.name}
+                hint={users.length ? t("settings.profiles.usedBy", { names: users.join(", ") }) : t("settings.profiles.notInUse")}
+                value={profile.browser === "chrome" ? t("settings.profiles.myChrome") : t("settings.profiles.builtIn")}
+                onClick={() => { setError(""); sub.open(`${PROFILE_PAGE}${profile.id}`, profile.name); }} />
+            );
+          })}
+          <NavRow data-settings-open="new-profile" title={t("settings.s2.profiles.new")} hint={t("settings.s2.profiles.newHint")} disabled={locked || profiles.length >= 20}
+            onClick={() => { setError(""); setName(""); setAdding(true); }} />
+          {!adding && errorRow}
+        </RowsCard>
+        {adding && (
+          <FormDialog data-panel-modal="new-profile" title={t("settings.s2.profiles.new")} saveLabel={t("settings.profiles.create")} canSave={Boolean(name.trim())} busy={busy}
+            error={error || undefined} onSave={create} onClose={() => setAdding(false)}>
+            <FormField label={t("settings.profiles.newName")}>
+              <input autoFocus value={name} onChange={(event) => setName(event.target.value)} maxLength={40} required disabled={locked} className={textFieldCls} />
+            </FormField>
+          </FormDialog>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-w-0 flex-col gap-3" aria-busy={busy}>
       {currentBot && (

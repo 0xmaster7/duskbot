@@ -199,7 +199,7 @@ export function McpServersCard({ bot, patch }: { bot: Bot; patch: (patch: { mcpS
   );
 }
 
-interface ToolListing {
+export interface ToolListing {
   name: string;
   description?: string;
 }
@@ -208,7 +208,7 @@ let connectorToolsCache: { at: number; services: Record<string, ToolListing[]> }
 let connectorToolsRequest: Promise<Record<string, ToolListing[]>> | null = null;
 const CONNECTOR_TOOLS_CACHE_MS = 60_000;
 
-function preloadConnectorTools(force = false): Promise<Record<string, ToolListing[]>> {
+export function preloadConnectorTools(force = false): Promise<Record<string, ToolListing[]>> {
   if (!force && connectorToolsCache && Date.now() - connectorToolsCache.at < CONNECTOR_TOOLS_CACHE_MS) {
     return Promise.resolve(connectorToolsCache.services);
   }
@@ -225,8 +225,8 @@ function preloadConnectorTools(force = false): Promise<Record<string, ToolListin
   return connectorToolsRequest;
 }
 
-const VERB_ORDER: ConnectorVerb[] = ["read", "draft", "send", "modify", "delete"];
-const VERB_LABELS: Record<ConnectorVerb, LocaleKey> = {
+export const VERB_ORDER: ConnectorVerb[] = ["read", "draft", "send", "modify", "delete"];
+export const VERB_LABELS: Record<ConnectorVerb, LocaleKey> = {
   read: "botAccess.grants.verb.read",
   draft: "botAccess.grants.verb.draft",
   send: "botAccess.grants.verb.send",

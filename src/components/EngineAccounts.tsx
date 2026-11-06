@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Check, Loader2, MoreHorizontal, Plus } from "lucide-react";
+import { Loader2, MoreHorizontal, Plus } from "lucide-react";
 import { api, useStore, type InstanceInfo } from "@/state/store";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
@@ -11,6 +11,8 @@ import { ChatGptPlanStatus } from "./ChatGptPlanStatus";
 import { EngineCard, engineReady, providerName, type EngineCardSummary } from "./EngineLibrary";
 import { CommandRow, EngineSetup, EngineUpdateNotice, EngineWarningNotice } from "./EngineSetup";
 import { MENU_SHEET } from "./menu-recipe";
+import { Card as RowsCard, FormDialog, FormField, NavRow, NoteRow, rowCls } from "./ListRows";
+import { textFieldCls } from "./ui/GrokDialog";
 
 /** Providers whose accounts are listed together on one card, each signed in on its own. */
 export type AccountGroup = "claude" | "chatgpt";
@@ -168,19 +170,13 @@ function RenameForm({ instance, onDone }: { instance: InstanceInfo; onDone: () =
     }
   };
   return (
-    <form className="flex min-w-0 flex-1 flex-col gap-1" onSubmit={(event) => { event.preventDefault(); void save(); }}>
-      <div className="flex gap-2">
+    <FormDialog data-panel-modal="rename-account" title={t("accounts.rename")} busy={saving} canSave={Boolean(name.trim())}
+      error={error ?? undefined} onSave={save} onClose={onDone}>
+      <FormField label={t("accounts.nameLabel")}>
         <input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} autoFocus disabled={saving}
-          aria-label={t("accounts.nameLabel")}
-          onKeyDown={(event) => { if (event.key === "Escape") { event.stopPropagation(); onDone(); } }}
-          className="min-w-0 flex-1 rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-[13px] text-ink outline-none focus:border-accent-border disabled:opacity-50" />
-        <button type="submit" disabled={saving || !name.trim()} className="rounded-lg bg-raised px-3 py-1.5 text-[12px] font-medium text-ink hover:bg-raised-hover disabled:opacity-50">
-          {saving ? <Loader2 size={13} className="animate-spin" /> : t("common.save")}
-        </button>
-        <button type="button" onClick={onDone} disabled={saving} className="rounded-lg px-2.5 py-1.5 text-[12px] text-ink-secondary hover:bg-control">{t("common.cancel")}</button>
-      </div>
-      {error && <p role="alert" className="text-[12px] text-danger">{error}</p>}
-    </form>
+          aria-label={t("accounts.nameLabel")} className={textFieldCls} />
+      </FormField>
+    </FormDialog>
   );
 }
 
@@ -203,45 +199,34 @@ function AccountRow({ group, instance, signingIn, onSignIn, onSignInDone }: {
     : instance.snapshot.reason ?? t("onboarding.engines.needsSetup");
 
   return (
-    <li data-account={instance.instanceId} data-account-state={state} className="px-3 py-2.5">
-      <div className="flex min-h-9 items-center gap-3">
-        <span aria-hidden="true" className={cn("flex size-6 shrink-0 items-center justify-center rounded-full",
-          state === "signedIn" ? "bg-success/15 text-success" : "bg-control text-ink-secondary")}>
-          {state === "signedIn" ? <Check size={13} /> : <span className={cn("size-1.5 rounded-full", state === "signedOut" ? "bg-warning" : "bg-ink-tertiary")} />}
-        </span>
-        {renaming ? <RenameForm instance={instance} onDone={() => setRenaming(false)} /> : (
-          <>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-[13px] font-medium text-ink" title={instance.displayName}>{instance.displayName}</div>
-              <div className="truncate text-[12px] text-ink-secondary" title={detail}>{detail}</div>
-            </div>
-            {state !== "signedIn" && state !== "unavailable" && !blocked && !signingIn && (
-              <button type="button" onClick={onSignIn} className={cn("shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold",
-                state === "signedOut" ? "bg-accent text-white hover:brightness-110" : "bg-control text-ink hover:bg-raised-hover")}>
-                {t("accounts.signIn")}
-              </button>
-            )}
-            <AccountMenu group={group} instance={instance} onRename={() => setRenaming(true)} />
-          </>
+    <li data-account={instance.instanceId} data-account-state={state} className={cn(rowCls, "flex-col items-stretch gap-1.5")}>
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span aria-hidden="true" className={cn("size-1.5 shrink-0 rounded-full", state === "signedIn" ? "bg-success" : state === "signedOut" ? "bg-warning" : "bg-ink-tertiary")} />
+        <div className="min-w-0 flex-1">
+          <div data-row-title="" className="truncate text-[13px] leading-[18px] text-ink" title={instance.displayName}>{instance.displayName}</div>
+          <div data-row-hint="" className="truncate text-[12px] leading-4 text-ink-secondary" title={detail}>{detail}</div>
+        </div>
+        {state !== "signedIn" && state !== "unavailable" && !blocked && !signingIn && (
+          <button type="button" onClick={onSignIn} className={state === "signedOut" ? "ui-button ui-button-primary" : "ui-button"}>
+            {t("accounts.signIn")}
+          </button>
         )}
+        <AccountMenu group={group} instance={instance} onRename={() => setRenaming(true)} />
       </div>
+      {renaming && <RenameForm instance={instance} onDone={() => setRenaming(false)} />}
       {signingIn && (
-        <div className="pl-9">
+        <div className="ps-4">
           {group === "claude"
             ? <>
               <ClaudeSignIn instanceId={instance.instanceId} autoStart onDone={onSignInDone} />
-              {instance.claudeAccount?.signInCommand && (
-                <details className="mt-2 text-[12px] text-ink-secondary">
-                  <summary className="cursor-pointer select-none hover:text-ink">{t("engineSetup.preferTerminal")}</summary>
-                  <CommandRow command={instance.claudeAccount.signInCommand} actionLabel={t("engineSetup.openSignIn")} compact />
-                </details>
-              )}
+              {/* the terminal way, as one row: the command with copy (and open, where a terminal can be) */}
+              {instance.claudeAccount?.signInCommand && <CommandRow command={instance.claudeAccount.signInCommand} actionLabel={t("engineSetup.openSignIn")} compact />}
             </>
             : <DeviceSignIn instanceId={instance.instanceId} provider="codex" browserPkce={instance.authentication?.method === "browser-pkce"} autoStart onDone={onSignInDone} />}
         </div>
       )}
       {group === "chatgpt" && state === "signedIn" && instance.snapshot.chatgptPlan && (
-        <div className="pl-9"><ChatGptPlanStatus instanceId={instance.instanceId} welcome={false} /></div>
+        <div className="ps-4"><ChatGptPlanStatus instanceId={instance.instanceId} welcome={false} /></div>
       )}
     </li>
   );
@@ -281,37 +266,27 @@ export function AddAccount({ label, endpoint, extra, folder: offerFolder = false
     }
   };
 
-  if (!open) {
-    return (
-      <button type="button" onClick={() => setOpen(true)} className="flex min-h-8 w-fit items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-medium text-ink-secondary outline-none hover:bg-control hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">
-        <Plus size={14} />{label}
-      </button>
-    );
-  }
   return (
-    <form data-add-account={endpoint} className="space-y-2.5 rounded-xl border border-hairline/50 bg-app p-3" onSubmit={(event) => { event.preventDefault(); void add(); }}>
-      <label className="flex flex-col gap-1 text-[12px] font-medium text-ink">
-        {t("accounts.nameLabel")}
-        <input value={name} onChange={(event) => setName(event.target.value)} placeholder={t("accounts.namePlaceholder")} maxLength={80} autoFocus required disabled={saving}
-          className="rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[13px] font-normal text-ink outline-none focus:border-accent-border disabled:opacity-50" />
-      </label>
-      {offerFolder && (
-        <details className="text-[12px] text-ink-secondary">
-          <summary className="cursor-pointer select-none hover:text-ink">{t("accounts.folderToggle")}</summary>
-          <input value={folder} onChange={(event) => setFolder(event.target.value)} placeholder="~/.claude-work" maxLength={4096} spellCheck={false} disabled={saving}
-            aria-label={t("accounts.folderToggle")}
-            className="mt-2 w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 font-mono text-[12px] text-ink outline-none focus:border-accent-border disabled:opacity-50" />
-          <p className="mt-1 leading-relaxed">{t("accounts.folderHint")}</p>
-        </details>
+    <>
+      <NavRow data-add-account-row={endpoint} icon={Plus} title={label} drill={false} onClick={() => setOpen(true)} />
+      {open && (
+        <FormDialog data-panel-modal="add-account" title={label} description={offerFolder ? t("settings.s2.accounts.folderHint") : undefined}
+          saveLabel={t("accounts.addSubmit")} canSave={Boolean(name.trim())} busy={saving} error={error ?? undefined}
+          onSave={add} onClose={() => { setOpen(false); setError(null); }}>
+          <div data-add-account={endpoint} className="contents">
+            <FormField label={t("accounts.nameLabel")}>
+              <input value={name} onChange={(event) => setName(event.target.value)} placeholder={t("accounts.namePlaceholder")} maxLength={80} autoFocus required disabled={saving} className={textFieldCls} />
+            </FormField>
+            {offerFolder && (
+              <FormField label={t("settings.s2.accounts.folder")}>
+                <input value={folder} onChange={(event) => setFolder(event.target.value)} placeholder="~/.claude-work" maxLength={4096} spellCheck={false} disabled={saving}
+                  aria-label={t("accounts.folderToggle")} className={cn(textFieldCls, "font-mono text-[12px]")} />
+              </FormField>
+            )}
+          </div>
+        </FormDialog>
       )}
-      {error && <p role="alert" className="text-[12px] text-danger">{error}</p>}
-      <div className="flex justify-end gap-2">
-        <button type="button" onClick={() => { setOpen(false); setError(null); }} disabled={saving} className="rounded-lg px-3 py-1.5 text-[12px] text-ink-secondary hover:bg-control disabled:opacity-50">{t("common.cancel")}</button>
-        <button type="submit" disabled={saving || !name.trim()} className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[12px] font-semibold text-white hover:brightness-110 disabled:opacity-50">
-          {saving && <Loader2 size={13} className="animate-spin" />}{t("accounts.addSubmit")}
-        </button>
-      </div>
-    </form>
+    </>
   );
 }
 
@@ -323,12 +298,10 @@ export function AccountsCard({ group, accounts, advanced, bare = false }: { grou
   const policy = accounts.find((instance) => instance.policy)?.policy;
   return (
     <EngineCard instance={primary} summary={summaryFor(group, accounts)} bare={bare}>
-      {policy && <p className="mb-3 text-[12px] leading-relaxed text-ink-secondary">
-        <span className="font-medium text-ink">{t("policy.managedBy", { organization: policy.organizationName })}</span> · {policy.reason}
-      </p>}
-      {!installed ? <EngineSetup instance={primary} unframed /> : (
-        <div className="space-y-2">
-          <ul data-accounts={group} className="divide-y divide-hairline/40 rounded-xl border border-hairline/50 bg-panel/40">
+      {policy && <RowsCard><NoteRow><span className="text-ink">{t("policy.managedBy", { organization: policy.organizationName })}</span> · {policy.reason}</NoteRow></RowsCard>}
+      {!installed ? <EngineSetup instance={primary} unframed rows={bare} /> : (
+        <RowsCard>
+          <ul data-accounts={group} className="contents">
             {accounts.map((instance) => (
               <AccountRow key={instance.instanceId} group={group} instance={instance}
                 signingIn={signingIn === instance.instanceId}
@@ -337,10 +310,14 @@ export function AccountsCard({ group, accounts, advanced, bare = false }: { grou
             ))}
           </ul>
           {!primary.snapshot.authenticationUnavailableReason && <AddAccount label={t(COPY[group].add)} endpoint={`/api/instances/${group}-accounts`} folder={group === "claude"} onAdded={setSigningIn} />}
-        </div>
+        </RowsCard>
       )}
-      {primary.snapshot.update && <EngineUpdateNotice update={primary.snapshot.update} instance={primary} className="mt-3" quiet />}
-      {primary.snapshot.warning && <EngineWarningNotice warning={primary.snapshot.warning} className="mt-3" />}
+      {(primary.snapshot.update || primary.snapshot.warning) && (
+        <RowsCard>
+          {primary.snapshot.update && <EngineUpdateNotice update={primary.snapshot.update} instance={primary} quiet rows />}
+          {primary.snapshot.warning && <EngineWarningNotice warning={primary.snapshot.warning} rows />}
+        </RowsCard>
+      )}
       {advanced}
     </EngineCard>
   );

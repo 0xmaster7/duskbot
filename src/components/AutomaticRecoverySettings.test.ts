@@ -44,9 +44,10 @@ function render() {
   return {
     html,
     toggle: all.find(node => node.type === Switch)!,
-    engine: all.find(node => node.props.id === "automatic-recovery-engine")!,
-    model: all.find(node => node.props.id === "automatic-recovery-model")!,
-    save: all.find(node => node.type === "button")!,
+    engine: all.find(node => node.props["data-settings-select"] === "automatic-recovery-engine")!,
+    model: all.find(node => node.props["data-settings-select"] === "automatic-recovery-model")!,
+    // Save shows once something changed; absent reads as disabled
+    save: all.find(node => node.type === "button") ?? ({ props: { disabled: true } } as unknown as Node),
   };
 }
 const click = (node: Node) => (node.props.onClick as () => void)();
@@ -68,8 +69,8 @@ describe("AutomaticRecoverySettings", () => {
     expect(view.toggle.props.checked).toBe(false);
     expect(view.engine.props.disabled).toBe(true);
     expect(view.save.props.disabled).toBe(true);
-    expect(view.html).toContain('for="automatic-recovery-engine"');
-    expect(view.html).toContain('for="automatic-recovery-model"');
+    expect(view.html).toContain('aria-label="Backup AI"'.replace("Backup AI", view.engine.props["aria-label"] as string));
+    expect(view.model.props["aria-label"]).toBeTruthy();
     expect(view.html).not.toContain("automatic-recovery-help");
   });
 

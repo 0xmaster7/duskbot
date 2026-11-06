@@ -38,12 +38,12 @@ describe("hidden providers in Settings", () => {
     expect(host.querySelector("[data-hidden-engines]")).toBeNull();
   });
 
-  it("lists hidden providers, folded, and unhides one with a click", async () => {
+  it("lists hidden providers as rows under their own label, and unhides one with a click", async () => {
     fixture.hidden = [{ instanceId: "hermes", displayName: "Hermes" }, { instanceId: "pi", displayName: "pi" }];
     flushSync(() => root.render(createElement(HiddenEngines)));
     await settle();
     const list = host.querySelector("[data-hidden-engines]")!;
-    expect(list.querySelector("summary")!.textContent).toBe("Hidden (2)");
+    expect(list.querySelector("[data-settings-heading]")!.textContent).toBe("Hidden (2)");
     expect(list.textContent).toContain("Hermes");
     flushSync(() => host.querySelector<HTMLButtonElement>('[data-unhide-engine="hermes"]')!.click());
     await settle();

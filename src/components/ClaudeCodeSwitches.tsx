@@ -41,7 +41,7 @@ function ClaudeConfigSwitch({ feature, enabled, prefix }: { feature: Feature; en
         aria-label={t(`${prefix}.aria` as LocaleKey)}
         disabled={saving}
         onClick={() => void toggle()}
-        className="mt-0.5 shrink-0 disabled:cursor-wait disabled:opacity-50 in-data-[settings-look=simple]:mt-0"
+        className="mt-0.5 shrink-0 disabled:opacity-50 in-data-[settings-look=simple]:mt-0"
       />
     </div>
   );

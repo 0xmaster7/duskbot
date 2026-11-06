@@ -1,51 +1,35 @@
 import { useCallback, useEffect, useState } from "react";
-import { ChevronRight, Download, Loader2, RefreshCw } from "lucide-react";
 
 import { api } from "@/state/store";
-import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { ACTIVITY_WHATS, activityQuery, describeEntry, formatValue, whoLabel, type ActivityEntry, type ActivityFilters, type ActivityWhat } from "@/lib/activity";
 import type { LocaleKey } from "@/locales";
-import { Select } from "./Select";
-import { Card } from "./SettingsPrimitives";
+import { Card as RowsCard, FormDialog, FormField, ItemRow, NavRow, NoteRow } from "./ListRows";
+import { SettingRow } from "./SettingsPrimitives";
+import { SettingsSelect } from "./SettingsSelect";
+import { textFieldCls } from "./ui/GrokDialog";
 
-const inputClass = "rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none [color-scheme:dark]";
-
+/** One entry: who did what as the row, when (and what was approved) as its quiet line; an admin change opens its
+ * before and after under it, one path a line. */
 export function ActivityRow({ entry }: { entry: ActivityEntry }) {
   const [open, setOpen] = useState(false);
   const detail = entry.type === "admin" && (entry.changed?.length || entry.before || entry.after);
+  const when = <time className="tabular-nums" dateTime={entry.at}>{new Date(entry.at).toLocaleString()}</time>;
   return (
-    <li className="border-b border-hairline/20 py-2 text-[13px]" data-activity-entry={entry.type}>
-      <div className="grid grid-cols-[auto_1fr] items-start gap-x-3">
-        <time className="whitespace-nowrap tabular-nums text-ink-secondary" dateTime={entry.at}>{new Date(entry.at).toLocaleString()}</time>
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-baseline gap-x-2">
-            <span className="font-medium text-ink">{whoLabel(entry.who)}</span>
-            <span className="min-w-0 break-words text-ink">{describeEntry(entry)}</span>
-          </div>
-          {entry.type === "approval" && entry.summary && <div className="mt-0.5 truncate text-[12px] text-ink-secondary">{entry.summary}</div>}
-          {detail && (
-            <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="cursor-pointer mt-0.5 flex items-center gap-1 text-[12px] text-ink-secondary hover:text-ink">
-              <ChevronRight size={12} className={cn("transition-transform", open && "rotate-90")} />
-              {t("activity.changed", { paths: (entry.changed ?? []).join(", ") || "—" })}
-            </button>
-          )}
-          {detail && open && entry.type === "admin" && (
-            <dl className="mt-1 grid grid-cols-[auto_1fr_1fr] gap-x-3 gap-y-0.5 rounded-lg bg-inset p-2 text-[12px]">
-              <dt />
-              <dd className="text-ink-secondary">{t("activity.before")}</dd>
-              <dd className="text-ink-secondary">{t("activity.after")}</dd>
-              {(entry.changed ?? Object.keys({ ...entry.before, ...entry.after })).map((path) => (
-                <div key={path} className="contents">
-                  <dt className="font-mono text-ink-secondary">{path}</dt>
-                  <dd className="min-w-0 break-all font-mono text-ink">{formatValue(entry.before?.[path])}</dd>
-                  <dd className="min-w-0 break-all font-mono text-ink">{formatValue(entry.after?.[path])}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
-        </div>
-      </div>
+    <li className="contents" data-activity-entry={entry.type}>
+      <ItemRow title={<><span className="text-ink">{whoLabel(entry.who)}</span> <span className="break-words">{describeEntry(entry)}</span></>}
+        hint={entry.type === "approval" && entry.summary ? <>{when} · {entry.summary}</> : when}>
+        {detail && (
+          <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="ui-button">
+            {t("activity.changed", { paths: (entry.changed ?? []).join(", ") || "-" })}
+          </button>
+        )}
+      </ItemRow>
+      {detail && open && entry.type === "admin" && (entry.changed ?? Object.keys({ ...entry.before, ...entry.after })).map((path) => (
+        <NoteRow key={path}>
+          <span className="text-ink">{path}</span>: {formatValue(entry.before?.[path])} {"→"} {formatValue(entry.after?.[path])}
+        </NoteRow>
+      ))}
     </li>
   );
 }
@@ -57,6 +41,7 @@ export function ActivitySection() {
   const [days, setDays] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<"who" | "dates" | null>(null);
   const query = activityQuery(filters);
 
   const load = useCallback(async () => {
@@ -80,42 +65,45 @@ export function ActivitySection() {
   }, [load]);
 
   const set = (patch: Partial<ActivityFilters>) => setFilters((current) => ({ ...current, ...patch }));
+  const dates = filters.from || filters.to ? `${filters.from || "…"} ${t("activity.to").toLowerCase()} ${filters.to || "…"}` : t("settings.s2.activity.anyTime");
   return (
-    <Card subtitle={t("settings.w6c.activity.kept", { days: String(days ?? 180) })}>
-      <div className="flex flex-wrap items-end gap-2">
-        <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
-          {t("activity.who")}
-          <input value={filters.who} onChange={(e) => set({ who: e.target.value })} placeholder={t("activity.whoPlaceholder")} className={cn(inputClass, "w-44")} />
-        </label>
-        <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
-          {t("activity.what")}
-          <Select value={filters.what} onChange={(e) => set({ what: e.target.value as ActivityWhat })}>
-            {ACTIVITY_WHATS.map((what) => <option key={what} value={what}>{t(`activity.what.${what}` as LocaleKey)}</option>)}
-          </Select>
-        </label>
-        <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
-          {t("activity.from")}
-          <input type="date" value={filters.from} max={filters.to || undefined} onChange={(e) => set({ from: e.target.value })} className={inputClass} />
-        </label>
-        <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
-          {t("activity.to")}
-          <input type="date" value={filters.to} min={filters.from || undefined} onChange={(e) => set({ to: e.target.value })} className={inputClass} />
-        </label>
-        <button type="button" onClick={() => void load()} disabled={loading} aria-label={t("activity.refresh")} title={t("activity.refresh")} className="cursor-pointer rounded-md p-2 text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-50">
-          {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-        </button>
-        <a href={`/api/admin-activity.csv${query}`} download className="ui-button hover:bg-raised-hover">
-          <Download size={13} aria-hidden="true" />{t("activity.export")}
-        </a>
-      </div>
-      {error && <p role="alert" className="mt-3 text-[13px] text-danger">{t("activity.error", { message: error })}</p>}
-      {!error && entries.length === 0 && !loading && <p className="mt-4 text-[13px] text-ink-secondary">{t("activity.empty")}</p>}
-      {entries.length > 0 && (
-        <ul className="mt-3 flex flex-col">
-          {entries.map((entry, index) => <ActivityRow key={`${entry.at}-${index}`} entry={entry} />)}
-        </ul>
+    <>
+      <RowsCard label={t("settings.s2.activity.filters")} data-settings-block="activity-filters">
+        <NavRow data-settings-open="activity-who" title={t("activity.who")} value={filters.who || t("settings.s2.activity.anyone")} onClick={() => setEditing("who")} />
+        <SettingRow title={t("activity.what")}>
+            <SettingsSelect data-settings-select="activity-what" aria-label={t("activity.what")} value={filters.what}
+              options={ACTIVITY_WHATS.map((what) => ({ value: what, label: t(`activity.what.${what}` as LocaleKey) }))}
+              onChange={(event) => set({ what: event.target.value as ActivityWhat })} />
+        </SettingRow>
+        <NavRow data-settings-open="activity-dates" title={t("settings.s2.activity.dates")} value={dates} onClick={() => setEditing("dates")} />
+      </RowsCard>
+      <RowsCard label={t("settings.s2.activity.log")} data-settings-block="activity-log">
+        <ItemRow title={t("settings.w6c.activity.kept", { days: String(days ?? 180) })}
+          hint={total > entries.length ? t("activity.more", { shown: String(entries.length), total: String(total) }) : undefined}>
+          <button type="button" onClick={() => void load()} disabled={loading} className="ui-button">{t("activity.refresh")}</button>
+          <a href={`/api/admin-activity.csv${query}`} download className="ui-button">{t("activity.export")}</a>
+        </ItemRow>
+        {error && <NoteRow tone="danger">{t("activity.error", { message: error })}</NoteRow>}
+        {!error && entries.length === 0 && !loading && <NoteRow>{t("activity.empty")}</NoteRow>}
+        {entries.length > 0 && <ul className="contents">{entries.map((entry, index) => <ActivityRow key={`${entry.at}-${index}`} entry={entry} />)}</ul>}
+      </RowsCard>
+      {editing === "who" && (
+        <FormDialog data-panel-modal="activity-who" title={t("activity.who")} onClose={() => setEditing(null)}>
+          <FormField label={t("activity.who")}>
+            <input autoFocus value={filters.who} onChange={(e) => set({ who: e.target.value })} placeholder={t("activity.whoPlaceholder")} className={textFieldCls} />
+          </FormField>
+        </FormDialog>
       )}
-      {total > entries.length && <p className="mt-3 text-[12px] text-ink-secondary">{t("activity.more", { shown: String(entries.length), total: String(total) })}</p>}
-    </Card>
+      {editing === "dates" && (
+        <FormDialog data-panel-modal="activity-dates" title={t("settings.s2.activity.dates")} onClose={() => setEditing(null)}>
+          <FormField label={t("activity.from")}>
+            <input type="date" value={filters.from} max={filters.to || undefined} onChange={(e) => set({ from: e.target.value })} className={textFieldCls} />
+          </FormField>
+          <FormField label={t("activity.to")}>
+            <input type="date" value={filters.to} min={filters.from || undefined} onChange={(e) => set({ to: e.target.value })} className={textFieldCls} />
+          </FormField>
+        </FormDialog>
+      )}
+    </>
   );
 }

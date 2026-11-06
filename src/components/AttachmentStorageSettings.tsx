@@ -51,14 +51,14 @@ export function AttachmentStorageSettings() {
         <span data-attachments-used className="block">{t("settings.attachments.used", { used: size(usage.usedBytes), max: size(usage.maxBytes) })}</span>
         {confirming && <span className="block">{t("settings.attachments.confirmText")}</span>}
       </>}
-      message={result && <p role={result.kind === "error" ? "alert" : "status"} className={cn(result.kind === "error" ? "text-danger" : "text-success")}>
+      message={result && <span role={result.kind === "error" ? "alert" : "status"} className={cn("block", result.kind === "error" ? "text-danger" : "text-ink-secondary")}>
         {result.message}
-      </p>}
+      </span>}
     >
       <div className="flex flex-wrap gap-2">
         {confirming ? <>
           <button type="button" onClick={() => setConfirming(false)} disabled={clearing} className="ui-button">{t("settings.attachments.cancel")}</button>
-          <button type="button" onClick={() => void clear()} disabled={clearing} className="ui-button text-danger">
+          <button type="button" onClick={() => void clear()} disabled={clearing} className="ui-button ui-button-danger">
             {clearing ? t("settings.attachments.clearing") : t("settings.attachments.confirm")}
           </button>
         </> : <button type="button" onClick={() => { setResult(null); setConfirming(true); }} className="ui-button">{t("settings.attachments.clear")}</button>}

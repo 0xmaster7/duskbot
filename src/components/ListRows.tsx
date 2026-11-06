@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode, type Ref } from "react";
-import { ChevronRight, type LucideIcon } from "lucide-react";
+import { Check, ChevronRight, Copy, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/cn";
+import { useCopyFeedback } from "@/lib/copy-text";
 import { t } from "@/lib/i18n";
 import { GrokIcon } from "./GrokIcon";
 import { DialogPane, GrokDialog, mdPrimaryCls, mdSecondaryCls, rowButtonCls } from "./ui/GrokDialog";
@@ -289,6 +290,26 @@ export function CheckRow({ title, hint, leading, checked, onClick, disabled, rol
   );
 }
 
+/** A command or address to copy: its name, the text itself as the row's quiet mono line, and a small copy button. The
+ * one way Settings shows a command. */
+export function CopyRow({ title, text, copyLabel, multiline = false, ...rest }: { title: ReactNode; text: string; copyLabel?: string; multiline?: boolean; "data-sheet-row"?: string; "data-copy-row"?: string }) {
+  const { state, copy } = useCopyFeedback(text);
+  const label = state === "failed" ? t("common.copyFailed") : state === "copied" ? t("settings.s2.copied")
+    : copyLabel ?? t("settings.s2.copy", { what: text });
+  return (
+    <div {...rest} data-copy-row={rest["data-copy-row"] ?? ""} className={rowCls}>
+      <div className="min-w-0 flex-1">
+        <div data-row-title="" className={titleCls}>{title}</div>
+        <code data-copy-text="" className={cn("block font-mono text-[12px] leading-4 text-ink-secondary select-all", multiline ? "overflow-x-auto whitespace-pre" : "truncate")}>{text}</code>
+      </div>
+      <button type="button" onClick={copy} aria-label={label} title={label}
+        className={cn("flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-ink-secondary hover:bg-ink/[0.035] hover:text-ink", focusCls)}>
+        {state === "copied" ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
+      </button>
+    </div>
+  );
+}
+
 export function NoteRow({ children, tone, ...rest }: { children: ReactNode; tone?: "warn" | "danger"; "data-sheet-row"?: string }) {
   return (
     <div {...rest} role={tone ? "alert" : undefined} className={rowCls}>
@@ -408,7 +429,7 @@ export function SheetPane({ title, footer, children, ...rest }: { title: string;
   const base = useContext(SheetInSettings);
   const outer = useContext(SubPageContext);
   if (base !== null) {
-    const nav: SubPageNav = { at: outer.stack?.[base]?.id, open: outer.open, back: outer.back, stack: outer.stack?.slice(base) };
+    const nav: SubPageNav = { at: (outer.stack?.length ?? 0) > base ? outer.stack!.at(-1)!.id : undefined, open: outer.open, back: outer.back, stack: outer.stack?.slice(base) };
     return (
       <section {...rest} className="contents">
         <SubPageContext.Provider value={nav}>{children}</SubPageContext.Provider>

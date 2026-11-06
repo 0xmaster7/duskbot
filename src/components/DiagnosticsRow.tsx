@@ -46,11 +46,11 @@ export function DiagnosticsRow({ simple = false }: { simple?: boolean }) {
       title={t("settings.diagnostics.title")}
       subtitle={t(simple ? "settings.w6c.diagnostics.subtitle" : "settings.diagnostics.subtitle")}
       message={<>
-        {folder && result?.kind !== "error" && <p role="status" data-logs-folder className="break-all text-ink-secondary">{t("settings.diagnostics.logsAt", { folder })}</p>}
-        {result && <p role={result.kind === "error" ? "alert" : "status"} className={cn("break-all", result.kind === "error" ? "text-danger" : "text-success")}>
+        {folder && result?.kind !== "error" && <span role="status" data-logs-folder className="block break-all text-ink-secondary">{t("settings.diagnostics.logsAt", { folder })}</span>}
+        {result && <span role={result.kind === "error" ? "alert" : "status"} className={cn("block break-all", result.kind === "error" ? "text-danger" : "text-ink-secondary")}>
           {result.message}
-        </p>}
-        {!(simple && here) && <p data-logs-help className="text-ink-tertiary">{t(here ? "settings.diagnostics.logsHelp" : simple ? "settings.w6c.diagnostics.elsewhere" : "settings.diagnostics.elsewhere")}</p>}
+        </span>}
+        {!(simple && here) && <span data-logs-help className="block text-ink-tertiary">{t(here ? "settings.diagnostics.logsHelp" : simple ? "settings.w6c.diagnostics.elsewhere" : "settings.diagnostics.elsewhere")}</span>}
       </>}
     >
       {here && <div className="flex flex-wrap gap-2">

@@ -176,7 +176,7 @@ function RoutineWakeBar() {
           setBusy(true);
           bridge.keepAwake(!state.keepAwake).then(setState).catch(() => {}).finally(() => setBusy(false));
         }}
-        className="shrink-0 disabled:cursor-wait disabled:opacity-50"
+        className="shrink-0 disabled:opacity-50"
       />
     </div>
   );
