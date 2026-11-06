@@ -5,6 +5,7 @@ import { needsReconnect } from "@/lib/connector-status";
 import { askConfirm } from "../ConfirmDialog";
 import { connectorSetupNotice, disconnectAccountConfirmation } from "../PluginsPanel";
 import type { ToolkitCard } from "../ServiceIcon";
+import { GrokIcon } from "../GrokIcon";
 import { AppTile } from "./AppRow";
 import type { AppEntry, Connection } from "./catalog";
 import type { ConnectorPhase, Connectors } from "./use-connectors";
@@ -90,6 +91,7 @@ export function AppPage({ model }: { model: AppPageModel }) {
             <div className="ca-card">
               {accounts.map((account) => (
                 <div key={account.id} className="ca-card-row">
+                  <span data-glyph="" aria-hidden="true"><GrokIcon name="person" size={16} /></span>
                   <span>
                     {account.alias || account.id}
                     <small>{account.status.toLowerCase()}</small>

@@ -222,8 +222,9 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
       default: return connect;
     }
   };
-  const row = (entry: AppEntry, subtitle?: string) => (
-    <AppRow key={entry.id} entry={entry} subtitle={subtitle} action={rowAction(entry)} onOpen={() => go({ kind: "detail", id: entry.id })} />
+  // grok's rows always say what the app does, under its name
+  const row = (entry: AppEntry) => (
+    <AppRow key={entry.id} entry={entry} subtitle={entry.description} action={rowAction(entry)} onOpen={() => go({ kind: "detail", id: entry.id })} />
   );
 
   const categories = presentCategories(entries);
@@ -418,7 +419,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
                             {connected.slice(0, 4).map((entry) => <span key={entry.id}><AppTile entry={entry} size={18} /></span>)}
                           </span>
                         )}
-                        <span>{connected.length > 0 ? t("apps.connectedCount", { count: connected.length }) : t("connectApps.yours")}</span>
+                        <span>{t("apps.connectedCount", { count: connected.length })}</span>
                         <span data-chevron="" aria-hidden="true" className="inline-flex"><GrokIcon name="chevron-right" size={12} /></span>
                       </button>
                     </div>

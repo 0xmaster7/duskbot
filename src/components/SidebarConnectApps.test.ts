@@ -25,7 +25,9 @@ describe("the Connect apps faces", () => {
 
   it("draws grok's 36px hairline pill with a 14px medium label and three 16px tiles on white, 6px over each other", () => {
     const html = renderToStaticMarkup(createElement(SidebarConnectApps));
-    expect(html).toMatch(/class="group\/apps flex h-9 min-w-0 flex-1 items-center justify-center rounded-full border border-ink\/\[0\.08\] bg-composer px-4 text-\[14px\] font-medium leading-5 /);
+    // 16px in, 12px out beside the logos, which sit 6px after the label
+    expect(html).toMatch(/class="group\/apps flex h-9 min-w-0 flex-1 items-center justify-center rounded-full border border-ink\/\[0\.08\] bg-composer ps-4 text-\[14px\] font-medium leading-5 [^"]*\bpe-3\b/);
+    expect(html).toContain('class="ms-1.5 flex shrink-0 items-center"');
     const faces = [...html.matchAll(/data-app-face="[^"]+" class="([^"]*)"/g)].map(([, classes]) => classes!);
     expect(faces).toHaveLength(3);
     for (const face of faces) expect(face).toContain("size-[18px] shrink-0 items-center justify-center rounded-[6px] bg-white p-px");

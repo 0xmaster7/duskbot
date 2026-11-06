@@ -8,7 +8,7 @@ import { GROK_LABEL, GROK_ROW_FILL, MENU_SHEET } from "../menu-recipe";
 
 export interface CategoryChoice { key: string; label: string }
 
-/** Grok's More chip: a 200px menu of the remaining categories, under the chip on its start edge. */
+/** Grok's More chip: a 200px menu of the remaining categories, under the chip on its start edge, in 30px rows. */
 export function CategoryMenu({ label, ariaLabel, choices, selected, onPick, onOpenChange }: {
   label: string;
   ariaLabel: string;
@@ -77,7 +77,7 @@ export function CategoryMenu({ label, ariaLabel, choices, selected, onPick, onOp
           role="menu"
           aria-label={ariaLabel}
           onKeyDown={onMenuKey}
-          className={cn(MENU_SHEET, "omb-popup-in fixed z-[70] w-[200px] origin-top-left")}
+          className={cn(MENU_SHEET, "omb-popup-in fixed z-[70] w-[200px] origin-top-left rounded-[12px]")}
           style={{ left: place?.left ?? 0, top: place?.top ?? 0, visibility: place ? undefined : "hidden" }}
         >
           {choices.map((choice) => (
@@ -93,7 +93,7 @@ export function CategoryMenu({ label, ariaLabel, choices, selected, onPick, onOp
                 show(false);
                 onPick(choice.key);
               }}
-              className={cn("flex h-8 cursor-pointer items-center px-2 py-1.5 text-[14px] tracking-[0.01em] text-ink outline-none", GROK_ROW_FILL)}
+              className={cn("flex h-[30px] cursor-pointer items-center px-2 py-1.5 text-[13px] text-ink outline-none", GROK_ROW_FILL, "before:rounded-[6px]")}
             >
               <span className={cn("min-w-0 truncate", GROK_LABEL)}>{choice.label}</span>
             </div>

@@ -32,6 +32,8 @@ const MORE_APPS: readonly AppFace[] = [
 ];
 
 export const APP_FACES = 3;
+/** Grok folds its footer pill to the grid button once this many apps are connected (its min_connected_apps). */
+export const FOLD_AT = 4;
 
 /** Grok's footer logos: its featured apps that are not connected yet, in its order, three at most, on grok's own art. */
 export function appFaces(connected: readonly string[], cards: ReadonlyMap<string, AppFace>): AppFace[] {
@@ -45,6 +47,7 @@ export function appFaces(connected: readonly string[], cards: ReadonlyMap<string
 
 export interface SidebarApps {
   faces: AppFace[];
+  /** enough apps are connected that grok folds the footer pill to its grid button */
   connected: boolean;
 }
 
@@ -59,7 +62,7 @@ export function useSidebarApps(): SidebarApps {
       .then(async (inventory) => {
         const connected = Object.entries(inventory.services).filter(([, status]) => status.connected).map(([slug]) => slug).sort();
         const cards = await loadAppCards().catch(() => new Map<string, AppFace>());
-        if (alive) setApps({ faces: appFaces(connected, cards), connected: connected.length > 0 });
+        if (alive) setApps({ faces: appFaces(connected, cards), connected: connected.length >= FOLD_AT });
       })
       .catch(() => {});
     return () => { alive = false; };
@@ -68,8 +71,6 @@ export function useSidebarApps(): SidebarApps {
 }
 
 /** Grok's footer logo: the 16px app tile on an 18px white square, 6px round, so overlapping tiles read apart. */
-// under the pointer grok fans its three logos: the outer two tilt 8deg away, the middle one lifts a pixel
-
 function AppFaceIcon({ face, className }: { face: AppFace; className?: string }) {
   return (
     <span data-app-face={face.slug} className={cn("flex size-[18px] shrink-0 items-center justify-center rounded-[6px] bg-white p-px", className)}>
@@ -90,13 +91,13 @@ export function SidebarConnectApps({ circle = false }: { circle?: boolean }) {
 }
 
 /** The button for apps already read by its caller, as the footer does to fold it to a circle once one is connected. */
-export function ConnectAppsButton({ circle, apps: { faces, connected }, engaged = false, onEngage }: {
+export function ConnectAppsButton({ circle, apps: { faces }, engaged = false, onEngage }: {
   circle: boolean; apps: SidebarApps;
   /** grok's folded footer button: under the pointer or focus it widens into the Connect apps pill */
   engaged?: boolean; onEngage?: (engaged: boolean) => void;
 }) {
   const open = useConnectApps().open;
-  const label = connected ? t("sidebar.nav.apps") : t("sidebar.connectApps");
+  const label = t("sidebar.connectApps");
   // only the footer's folded button widens; the rail's stays a glyph
   const logos = circle && onEngage ? faces : [];
   return (
@@ -111,7 +112,10 @@ export function ConnectAppsButton({ circle, apps: { faces, connected }, engaged 
       onFocus={(event) => { preloadConnectApps(); if (event.currentTarget.matches(":focus-visible")) onEngage?.(true); }}
       onBlur={() => onEngage?.(false)}
       onClick={() => openConnectApps()}
-      className={circle ? cn(SIMPLE_TOP_BUTTON, "group/apps h-9 min-w-9 w-auto text-[14px] font-medium leading-5 text-ink transition-[flex-grow,padding] duration-300 ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none", engaged ? "grow pl-4 pr-3" : "grow-0 px-2") : cn("group/apps flex h-9 min-w-0 flex-1 items-center justify-center rounded-full border border-ink/[0.08] bg-composer px-4 text-[14px] font-medium leading-5 tracking-[0.01em] text-ink transition-[flex-grow,padding] duration-300 ease-[cubic-bezier(.2,0,0,1)]", GROK_HOVER_TINT, GROK_FOCUS)}
+      // grok's folded pill is a 36px circle (its basis), and widens to its content: 16/12 in, 12/9 beside the logos
+      className={circle ? cn(SIMPLE_TOP_BUTTON, "group/apps h-9 min-w-9 w-auto shrink text-[14px] font-medium leading-5 text-ink transition-[flex-grow,padding] duration-300 ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none",
+        engaged ? cn("grow basis-auto", logos.length ? "ps-3 pe-[9px]" : "ps-4 pe-3") : "grow-0 basis-9 px-2")
+        : cn("group/apps flex h-9 min-w-0 flex-1 items-center justify-center rounded-full border border-ink/[0.08] bg-composer ps-4 text-[14px] font-medium leading-5 tracking-[0.01em] text-ink", faces.length ? "pe-3" : "pe-4", GROK_HOVER_TINT, GROK_FOCUS)}
     >
       {circle ? <>
         {/* grok's widened pill trades the grid glyph for the label and the app logos */}
@@ -119,13 +123,14 @@ export function ConnectAppsButton({ circle, apps: { faces, connected }, engaged 
           engaged && logos.length ? "max-w-0 opacity-0" : "w-5 max-w-5 opacity-100")}><GrokIcon name="grid-plus" size={16} /></span>
         <span aria-hidden="true" data-connect-apps-label="" className={cn("min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin] duration-300 ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none",
           engaged ? cn(!logos.length && "ms-1.5", "max-w-[200px] opacity-100 [transition-duration:300ms,150ms,300ms] [transition-delay:0ms,120ms,0ms]") : "ms-0 max-w-0 opacity-0")}>{t("sidebar.connectApps")}</span>
-        {logos.length > 0 && <span aria-hidden="true" data-connect-apps-faces="" className={cn("flex shrink-0 items-center overflow-hidden transition-[max-width,opacity,margin] duration-300 ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none",
-          engaged ? "ms-[4.5px] max-w-[60px] opacity-100 [transition-duration:300ms,150ms,300ms] [transition-delay:0ms,120ms,0ms]" : "ms-0 max-w-0 opacity-0")}>
+        {/* grok's strip beside the widened label: 36px of the logos, painting 5px past its edge */}
+        {logos.length > 0 && <span aria-hidden="true" data-connect-apps-faces="" className={cn("flex shrink-0 items-center [overflow-clip-margin:5px] [overflow:clip] transition-[max-width,opacity,margin] duration-300 ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none",
+          engaged ? "ms-1.5 w-9 max-w-9 opacity-100" : "ms-0 w-9 max-w-0 opacity-0")}>
           {logos.map((face, index) => <AppFaceIcon key={face.slug} face={face} className={cn(index > 0 && "-ms-[6px]")} />)}
         </span>}
       </> : <>
         <span className="min-w-0 truncate">{label}</span>
-        <span aria-hidden="true" className="ms-[4.5px] flex shrink-0 items-center">
+        <span aria-hidden="true" className="ms-1.5 flex shrink-0 items-center">
           {faces.map((face, index) => <AppFaceIcon key={face.slug} face={face} className={cn(index > 0 && "-ms-[6px]")} />)}
         </span>
       </>}

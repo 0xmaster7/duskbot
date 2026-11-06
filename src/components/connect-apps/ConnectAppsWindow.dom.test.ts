@@ -82,6 +82,7 @@ describe("the Connect Apps window", () => {
     expect(titles()).toContain("Password Managers");
     expect(dialog().querySelector('[data-app-row="slack"]')?.textContent).toContain("Connected");
     expect(dialog().querySelector('[data-app-row="outlook"] .ca-pill')?.getAttribute("aria-label")).toBe("Connect Outlook");
+    expect(dialog().querySelector('[data-app-row="outlook"] .ca-row-subtitle')?.textContent, "each row says what its app does, as grok's do").toBeTruthy();
   });
 
   it("shows one category from its chip and goes back to All from it again", async () => {
