@@ -68,16 +68,15 @@ await evaluate("localStorage.clear(); sessionStorage.clear(); localStorage.setIt
 await textVisible("Meet OpenMausBot");
 await evaluate("document.documentElement.dataset.reducedMotion = 'true'; true");
 await screenshot("welcome");
-// Two screens, no form: the first asks nothing and shows no steps, Back or Skip.
+// Grok Bot's three screens, no form: the first asks nothing and shows no steps, Back or Skip.
 assert.equal(await evaluate("document.querySelectorAll('[data-welcome] input').length"), 0, "no field on the first screen");
 for (const gone of ["Step 1", "Back", "Skip", "Your name"]) assert.equal((await snapshot()).includes(gone), false, gone);
 await click("Next");
-await textVisible("Introducing your Chief of Staff");
-// A reload on the second screen comes back to it.
-await evaluate("setTimeout(() => location.reload(), 0); true");
-await textVisible("Introducing your Chief of Staff");
-await screenshot("chief");
-console.log("PASS the first run is two screens, and a reload keeps the second");
+await textVisible("has its own computer and works just like you");
+await click("Next");
+await textVisible("Give each Bot a job");
+await screenshot("jobs");
+console.log("PASS the first run is three screens, with no Chief of Staff screen after them");
 
 // The completion write failing never keeps the person out of the chat.
 await evaluate(`(() => {
@@ -91,8 +90,8 @@ await evaluate(`(() => {
   };
   return true;
 })()`);
-await click("Create Chief of Staff");
-await poll(() => evaluate("document.querySelectorAll('[data-welcome]').length"), 0, "Create lands in the chat");
+await click("Next");
+await poll(() => evaluate("document.querySelectorAll('[data-welcome]').length"), 0, "the last Next lands in the chat");
 // The welcome lands in the chat with the Chief (the server's first bot): its first messages, no AI asked.
 const first = await evaluate("fetch('/api/bots').then(r => r.json()).then(data => data.bots.find(bot => bot.chiefOfStaff && !bot.hidden))");
 assert.ok(first?.name, "the Chief");

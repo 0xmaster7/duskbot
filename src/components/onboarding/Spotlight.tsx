@@ -196,7 +196,7 @@ export function Spotlight({
             !settled && "opacity-0",
           )}
         >
-          <div className="shrink-0 drop-shadow-[0_6px_14px_rgba(0,0,0,0.35)]">
+          <div className="shrink-0">
             <MausAvatar
               color="green"
               state={mascot}
@@ -217,7 +217,7 @@ export function Spotlight({
                   type="button"
                   autoFocus
                   onClick={primary.onClick}
-                  className="rounded-lg bg-accent px-3 py-1.5 text-[13px] font-medium text-white transition-transform duration-150 active:scale-[0.98]"
+                  className="ui-button ui-button-pill ui-button-sm ui-button-primary"
                 >
                   {primary.label}
                 </button>
@@ -231,7 +231,7 @@ export function Spotlight({
                 <button
                   type="button"
                   onClick={secondary.onClick}
-                  className="ml-auto text-[12px] text-ink-secondary transition-colors hover:text-ink"
+                  className="ml-auto text-[12px] text-ink-secondary hover:text-ink"
                 >
                   {secondary.label}
                 </button>

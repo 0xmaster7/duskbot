@@ -1,17 +1,15 @@
 // @vitest-environment happy-dom
-// The first run: two screens, then the chat. Meeting the app (and connecting an AI when none works), then the Chief of
-// Staff over the app; what it saves, where it lands, and what a reload or a replay does.
+// The first run: Grok Bot's three screens, then the chat. Meeting the app (and connecting an AI when none works); what it
+// saves, where it lands (MausBot, made the Chief where none is), and what a replay does.
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { introStaged, stageIntro, useChiefStepOpen } from "@/lib/default-bot";
+import { introStaged, stageIntro } from "@/lib/default-bot";
 import { setLocale } from "@/lib/i18n";
-import { WHATS_NEW_NOTICE } from "@/lib/notices";
 import { EMPTY_ONBOARDING, MET_CHIEF_HINT, WELCOME_VERSION } from "@/lib/onboarding";
-import { saveWelcomeDraft } from "@/lib/welcome-draft";
 import type { InstanceInfo } from "@/state/store";
 
-const f = vi.hoisted(() => ({ state: {} as Record<string, unknown>, dispatch: vi.fn(), api: vi.fn(), landed: vi.fn(), onDone: vi.fn(),
+const f = vi.hoisted(() => ({ state: {} as Record<string, unknown>, dispatch: vi.fn(), api: vi.fn(), onDone: vi.fn(),
   checks: [] as string[] }));
 vi.mock("@/state/store", () => ({ useStore: () => ({ state: f.state, dispatch: f.dispatch }), api: f.api }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn(), setEmailGateDone: vi.fn() }));
@@ -23,9 +21,7 @@ vi.mock("@/components/EngineSetup", async (original) => {
     EngineSetup: ({ instance }: { instance: InstanceInfo }) => h("div", { "data-engine-setup": instance.instanceId }) };
 });
 vi.mock("@/lib/default-bot", async (original) => ({ ...(await original<typeof import("@/lib/default-bot")>()), useViewerEmail: () => null }));
-vi.mock("@/lib/mausbot-landing", () => ({ FLIGHT_MS: 700, landInSidebar: (input: { botId: string; commit: () => void }) => { f.landed(input.botId); input.commit(); } }));
 const { WelcomeFlow } = await import("./WelcomeFlow");
-const { CHIEF_FADE_MS, CHIEF_GUARD_MS } = await import("./ChiefIntro");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 const claude = (ready: boolean, aiTest?: InstanceInfo["aiTest"]): InstanceInfo => ({
@@ -41,21 +37,15 @@ const maus = { id: "maus", threadId: "t", name: "MausBot", title: "", descriptio
   modelSelection: { instanceId: "claude", model: "m" }, messages: [], defaultBot: {}, chiefOfStaff: true };
 
 let host: HTMLDivElement, root: Root;
-let chiefStep = false;
-function Watch() {
-  chiefStep = useChiefStepOpen();
-  return null;
-}
 const text = () => host.textContent ?? "";
 const button = (label: string) => [...host.querySelectorAll("button")].find((node) => node.textContent === label);
 const press = async (label: string) => { await act(async () => { button(label)!.click(); }); };
-const tick = async (ms: number) => { await act(async () => { vi.advanceTimersByTime(ms); }); };
 const key = async (name: string) => {
   const screen = host.querySelector<HTMLElement>("[data-welcome]")!;
   await act(async () => { screen.dispatchEvent(new KeyboardEvent("keydown", { key: name, bubbles: true })); });
 };
 const show = async (extra: Record<string, unknown> = {}) => {
-  await act(async () => { root.render([createElement(Watch, { key: "w" }), createElement(WelcomeFlow, { key: "f", onDone: f.onDone, ...extra })]); });
+  await act(async () => { root.render(createElement(WelcomeFlow, { onDone: f.onDone, ...extra })); });
 };
 /** Grok Bot's second and third screens: the bot's own computer, then a job for each Bot. */
 const throughGrokScreens = async () => {
@@ -64,12 +54,10 @@ const throughGrokScreens = async () => {
   expect(text()).toContain("Give each Bot a job");
   await press("Next");
 };
-/** Next, the two screens after it, the first run's 100 ms fade, and the Chief dialog's input guard. */
-const toChief = async (label = "Next") => {
-  await press(label);
+/** Next and the two screens after it, to the chat. */
+const throughAll = async () => {
+  await press("Next");
   await throughGrokScreens();
-  await tick(100);
-  await tick(CHIEF_GUARD_MS);
 };
 const saved = () => f.api.mock.calls.filter(([path, init]) => path === "/api/config" && init?.method === "PUT").map(([, init]) => JSON.parse(init.body));
 const memoryStorage = () => {
@@ -84,7 +72,6 @@ beforeEach(() => {
   vi.stubGlobal("localStorage", memoryStorage());
   vi.stubGlobal("sessionStorage", memoryStorage());
   f.dispatch.mockReset();
-  f.landed.mockReset();
   f.onDone.mockReset();
   f.api.mockReset();
   f.checks = [];
@@ -106,7 +93,7 @@ afterEach(async () => {
 });
 
 describe("a new install's first run", () => {
-  it("is Grok Bot's three screens with an AI already working, then Create, and it lands in the Chief's chat", async () => {
+  it("is Grok Bot's three screens with an AI already working, then MausBot's chat, as the Chief", async () => {
     await show();
     expect(host.querySelector("h1")?.textContent).toBe("Meet MausBot");
     expect(host.querySelector("[data-demo-composer]")?.textContent, "reduced motion shows the whole sentence").toContain("Hand off any task to your team of Bots");
@@ -119,18 +106,8 @@ describe("a new install's first run", () => {
     expect(host.querySelector("h1")?.textContent).toBe("Meet MausBot");
     await press("Next");
     await throughGrokScreens();
-    expect(host.querySelector("[data-welcome]")?.getAttribute("data-welcome"), "the last screen fades out first").toBe("meet");
-    await tick(100);
-    expect(host.querySelector("[role=dialog]")?.textContent).toContain("Introducing your Chief of Staff");
-    expect(host.querySelector("[data-welcome]")!.className).toContain("ui-scrim");
-    expect(chiefStep, "the app behind it is the empty shell").toBe(true);
-    expect(button("Choose an existing bot"), "no bots of the person's own yet").toBeUndefined();
-
-    await tick(CHIEF_GUARD_MS);
-    await press("Create Chief of Staff");
-    expect(f.landed).toHaveBeenCalledWith("maus");
+    expect(text(), "no Chief of Staff screen to ask").not.toContain("Introducing your Chief of Staff");
     expect(f.dispatch).toHaveBeenCalledWith({ type: "updateBot", botId: "maus", patch: { welcomed: true } });
-    await tick(CHIEF_FADE_MS);
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
     expect(introStaged("maus"), "its first messages arrive one at a time").toBe(true);
     await act(async () => {});
@@ -143,24 +120,23 @@ describe("a new install's first run", () => {
     expect(button("Next")!.disabled).toBe(false);
     expect(host.querySelector("[data-sign-in]")).toBeNull();
   });
-
-  it("comes back to the second screen after a reload there", async () => {
-    saveWelcomeDraft({ beat: "chief" });
-    await show();
-    expect(text()).toContain("Introducing your Chief of Staff");
-  });
 });
 
-describe("the Chief step", () => {
+describe("MausBot as the Chief", () => {
   const finishesAtNext = async () => {
     await show();
-    await press("Next");
-    await throughGrokScreens();
-    await tick(100);
-    expect(text()).not.toContain("Introducing your Chief of Staff");
+    await throughAll();
+    expect(f.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "updateBot" }));
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith(null);
-    expect(chiefStep).toBe(false);
   };
+
+  it("makes MausBot the Chief only where there is none", async () => {
+    f.state = { ...f.state, bots: [{ ...maus, chiefOfStaff: false }] };
+    await show();
+    await throughAll();
+    expect(f.dispatch).toHaveBeenCalledWith({ type: "updateBot", botId: "maus", patch: { welcomed: true, chiefOfStaff: true } });
+    expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
+  });
 
   it("is skipped once MausBot has met the person", async () => {
     f.state = { ...f.state, bots: [{ ...maus, welcomed: true }] };
@@ -178,21 +154,6 @@ describe("the Chief step", () => {
   });
 });
 
-describe("What's new", () => {
-  it("is left for a later launch by a first run on a desktop that sells the Cloud: everyone who installs sees it once", async () => {
-    const seen = vi.fn(async () => {});
-    vi.stubGlobal("ogb", { remoteClient: { active: false }, cloudAccount: { offer: vi.fn() }, desktopNotices: { seen } });
-    await show();
-    await toChief();
-    await press("Create Chief of Staff");
-    await tick(CHIEF_FADE_MS);
-    await act(async () => {});
-    expect(seen).not.toHaveBeenCalled();
-    expect(saved()[0].onboarding.hintsSeen).toEqual([MET_CHIEF_HINT]);
-    expect(localStorage.getItem(WHATS_NEW_NOTICE)).toBeNull();
-  });
-});
-
 describe("with no AI working yet", () => {
   it("keeps the screen's shape: the pill signs in, and the line under it offers other ways or later", async () => {
     f.state = { ...f.state, instances: [signIn()] };
@@ -202,8 +163,9 @@ describe("with no AI working yet", () => {
     expect(button("Sign in with Claude")).toBeDefined();
     expect(button("Other ways to connect")).toBeDefined();
     expect(host.querySelector("[data-engine-setup]"), "no setup card on the screen itself").toBeNull();
-    await toChief("Set up later");
-    expect(text()).toContain("Introducing your Chief of Staff");
+    await press("Set up later");
+    await throughGrokScreens();
+    expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
   });
 
   it("opens every other way in the Connect an AI dialog, where OpenCode's free model is only a backup", async () => {
@@ -262,8 +224,7 @@ describe("with no AI working yet", () => {
     expect(text()).toContain("Meet MausBot");
     await act(async () => { host.querySelector("[data-connect-ai]")!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
     await key("Escape");
-    await tick(100);
-    expect(text()).toContain("Introducing your Chief of Staff");
+    expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
   });
 });
 
@@ -280,9 +241,7 @@ describe("other first runs", () => {
   it("a replay from Settings records nothing about a first chat", async () => {
     f.state = { ...f.state, config: { onboarding: { ...EMPTY_ONBOARDING, completedAt: "2026-09-01T00:00:00.000Z", version: WELCOME_VERSION } } };
     await show({ replay: true });
-    await toChief();
-    await press("Create Chief of Staff");
-    await tick(CHIEF_FADE_MS);
+    await throughAll();
     await act(async () => {});
     expect(saved()[0].onboarding).not.toHaveProperty("hintsSeen");
     expect(introStaged("maus"), "a replay lands in a chat that may be long under way").toBe(false);

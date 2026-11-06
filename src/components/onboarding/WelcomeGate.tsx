@@ -3,7 +3,6 @@ import { emailGateDone } from "@/lib/analytics";
 import { clearWelcomeDraft } from "@/lib/welcome-draft";
 import { hostedMember, LOCAL_VIEWER, welcomeDue, welcomeViewer, type WelcomeViewer } from "@/lib/onboarding";
 import { api, useStore } from "@/state/store";
-import { SharedWorkspaceHint } from "./SharedWorkspaceHint";
 import { WelcomeFlow } from "./WelcomeFlow";
 
 /**
@@ -45,17 +44,12 @@ export function WelcomeGate({ viewer }: { viewer: WelcomeViewer | null }) {
   useEffect(() => {
     if (finished) clearWelcomeDraft();
   }, [finished]);
-  if (!viewer) return null;
-  if (hostedMember(viewer)) {
-    return remoteClient ? null : (
-      <SharedWorkspaceHint
-        replay={state.welcomeOpen}
-        onClose={() => {
-          if (state.welcomeOpen) dispatch({ type: "toggleWelcome", open: false });
-        }}
-      />
-    );
-  }
+  // a member of a hosted place has no first run here and writes nothing to its config
+  const member = Boolean(viewer && hostedMember(viewer));
+  useEffect(() => {
+    if (member && state.welcomeOpen) dispatch({ type: "toggleWelcome", open: false });
+  }, [member, state.welcomeOpen, dispatch]);
+  if (!viewer || member) return null;
   const due =
     !dismissed &&
     welcomeDue(state.config, {

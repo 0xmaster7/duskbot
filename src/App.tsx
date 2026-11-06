@@ -5,10 +5,8 @@ import { CLOUD_LINK_SETTINGS, openBot, StoreProvider, useStore } from "@/state/s
 import { nextShortcutBot, shortcutBots, shownBotIds } from "@/lib/sidebar-shortcut-order";
 import { useShowThreads } from "@/lib/thread-preferences";
 import { useWelcomeViewer, WelcomeGate } from "@/components/onboarding/WelcomeGate";
-import { MausBotWelcome } from "@/components/MausBotWelcome";
 import { CloudTimeZoneSync } from "@/components/CloudTimeZone";
-import { cloudSignInDue, spotlightsQuiet, type WelcomeViewer } from "@/lib/onboarding";
-import { FirstConversationTour } from "@/components/onboarding/FirstConversationTour";
+import { cloudSignInDue, type WelcomeViewer } from "@/lib/onboarding";
 import { GuidedTour } from "@/components/onboarding/GuidedTour";
 import { LiveCallHost } from "@/components/LiveCallHost";
 import { ThreadRefsProvider } from "@/components/ThreadRefs";
@@ -55,7 +53,6 @@ import { cloudIntentDue, cloudIntentShown, useCloudIntent } from "@/lib/cloud-in
 import { CloudSetup } from "@/components/CloudSetup";
 import { CloudWelcome } from "@/components/cloud-welcome/CloudWelcome";
 import { WelcomeKeeper } from "@/components/cloud-welcome/WelcomeKeeper";
-import { EmptyChatShell } from "@/components/onboarding/EmptyChatShell";
 import { cloudFirstRun, cloudWelcomeVisible, useCloudWelcome } from "@/lib/cloud-welcome";
 import { engineReady } from "@/components/EngineLibrary";
 import { CommandPalette } from "@/components/CommandPalette";
@@ -74,7 +71,6 @@ import { usePresence } from "@/hooks/use-presence";
 import { ChatNotice } from "@/components/ChatErrorBanner";
 import { loadingLine } from "@/lib/app-loading";
 import { useAiSwitchKeeper } from "@/lib/ai-switch";
-import { useChiefStepOpen } from "@/lib/default-bot";
 import { SESSION_ENDED_REASON, useSessionEnded } from "@/lib/session-ended";
 import { PairPage } from "./pair/PairPage";
 import { WebPanelPage } from "@/components/WebPanelPage";
@@ -159,8 +155,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const calendarOriginRef = useRef<"chat" | "web-panel">("chat");
   const loading = loadingLine({ connected: state.connected, hydrated: state.hydrated === true, developer: import.meta.env.DEV });
   const group = state.groups.find((g) => g.id === state.selectedId);
-  const chiefStep = useChiefStepOpen();
-  const bot = group || chiefStep ? undefined : (state.bots.find((b) => b.id === state.selectedId) ?? state.bots[0]);
+  const bot = group ? undefined : (state.bots.find((b) => b.id === state.selectedId) ?? state.bots[0]);
   const notificationFeed = useNotificationFeed() && !remoteClient;
   const advanced = useAdvancedMode();
   const roomPanelOpen = useRoomPanelShown({ group, state, simple: !advanced && !remoteClient });
@@ -389,8 +384,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
         <CloudEngineSignIn />
       ) : noEngines ? (
         <NoEngines />
-      ) : chiefStep ? (
-        <EmptyChatShell />
       ) : group ? (
         <GroupView key={group.id} group={group} />
       ) : bot ? (
@@ -478,11 +471,9 @@ function Application() {
           <Shell viewer={viewer} />
         </ThreadRefsProvider>
         <WelcomeGate viewer={viewer} />
-        <MausBotWelcome viewer={viewer} />
         <CloudTimeZoneSync viewer={viewer} />
         <GuidedTour />
         <LiveCallHost />
-        <FirstConversationTour quiet={spotlightsQuiet(viewer)} />
       </StoreProvider>
     </DesktopCapabilitiesProvider>
   );

@@ -28,7 +28,6 @@ import { createHomeWindow, installHomeWindowIpc, HOME_SCREEN_PATH } from "../../
 import { createStartupScreen } from "../../electron/startup-screen.mjs";
 import { packageUrlFromDeepLink } from "../../electron/package-link.mjs";
 import { WELCOME_VERSION } from "../../electron/onboarding-record.mjs";
-import { SPOTLIGHTS } from "../../src/lib/first-conversation.ts";
 import { TOUR_STEPS } from "../../src/lib/guided-tour.ts";
 import { NOTICES } from "../../src/lib/notices.ts";
 import { waitForExit } from "../../server/testing/cleanup.ts";
@@ -257,7 +256,7 @@ export interface HomeWorld {
 
 /** Both sides past their welcome, so a page opens straight on its chats. */
 export async function welcomed(fx: CloudSendFixture): Promise<void> {
-  const onboarding = { completedAt: new Date().toISOString(), version: WELCOME_VERSION, hintsSeen: [...TOUR_STEPS.map((step) => step.id), ...SPOTLIGHTS] };
+  const onboarding = { completedAt: new Date().toISOString(), version: WELCOME_VERSION, hintsSeen: TOUR_STEPS.map((step) => step.id) };
   await fx.local("PATCH", "/api/config", { onboarding, language: "en" });
   await fx.onCloud("PATCH", "/api/config", { onboarding: { ...onboarding, hintsSeen: [...onboarding.hintsSeen, "cloud-welcome-done", "cloud-setup-hidden"] }, language: "en" });
 }

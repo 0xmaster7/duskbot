@@ -1,18 +1,15 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { setEmailGateDone, track } from "@/lib/analytics";
 import { cn } from "@/lib/cn";
-import { chiefStepFits, myDefaultBot, setChiefStepOpen, useViewerEmail } from "@/lib/default-bot";
+import { chiefFor, chiefStepFits, createChiefPatch, myDefaultBot, stageIntro, useViewerEmail } from "@/lib/default-bot";
 import { beatsFor, completionPatch, firstRunPatch, markWelcomeFinished, resumeBeat, showWelcome, type BeatId } from "@/lib/onboarding";
 import { clearWelcomeDraft, readWelcomeDraft, saveWelcomeDraft } from "@/lib/welcome-draft";
 import { api, useStore } from "@/state/store";
-import { ChiefIntro } from "./ChiefIntro";
 import { ComputerStep, JobsStep } from "./GrokSteps";
 import { MeetScreen } from "./MeetScreen";
 import { localDesktopPage } from "./WelcomeGate";
 import "../../styles/onboarding.css";
 
-const LEAVE_MS = 100;
-const FADE_MS = 150;
 // the leaving step goes when its 100ms fade ends; this only covers a window that runs no animations
 const STEP_OUT_MS = 300;
 
@@ -51,8 +48,7 @@ function trapTab(event: ReactKeyboardEvent<HTMLElement>, root: HTMLElement | nul
 }
 
 /** The first run, as Grok Bot's: meeting the app (with an AI to connect when none works), the bot's own computer, a job
- * for each Bot; then the Chief of Staff over the app itself where it fits. Its end is the chat with the bot chosen there
- * (`onDone`). */
+ * for each Bot. Its end is the chat (`onDone`): MausBot's, made the Chief of Staff where no other bot is one. */
 export function WelcomeFlow({
   onDone,
   replay = false,
@@ -72,7 +68,7 @@ export function WelcomeFlow({
   // browser may hold another person's draft.
   const keepsDraft = !replay && !embedded && !hosted;
   const beats = beatsFor({ hosted });
-  const [beat, setBeat] = useState<BeatId>(() => resumeBeat(beats, initialBeat ?? (keepsDraft ? readWelcomeDraft()?.beat : undefined)));
+  const [beat] = useState<BeatId>(() => resumeBeat(beats, initialBeat ?? (keepsDraft ? readWelcomeDraft()?.beat : undefined)));
   // Grok Bot's three screens are the meet beat's pages: a reload starts them over, the beat itself is what resumes.
   const [page, setPage] = useState(0);
   // Grok's step change: the old step stays where it was and fades out over 100ms while the new one fades in
@@ -122,46 +118,27 @@ export function WelcomeFlow({
     [beat, dispatch, onDone, replay, embedded, keepsDraft, hosted],
   );
 
-  // The first screen fades away before the Chief step comes up; a timer moves on, since a hidden window runs no
-  // animation to its end.
-  const toChief = beats.includes("chief") && chiefStepFits(state.bots, maus);
-  const leaving = useRef(false);
+  // where it fits, MausBot becomes the Chief of Staff and greets, as grok's default bot does, with no screen to ask
   const next = useCallback(() => {
-    if (finishing.current || leaving.current) return;
-    if (!toChief) return void finish("completed", null);
-    leaving.current = true;
-    root.current?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: LEAVE_MS, easing: "ease-in", fill: "forwards" });
-    setTimeout(() => {
-      root.current?.getAnimations().forEach((animation) => animation.cancel());
-      setBeat("chief");
-    }, LEAVE_MS);
-  }, [toChief, finish]);
-
-  const chief = beat === "chief";
-  useEffect(() => {
-    if (!chief || embedded) return;
-    setChiefStepOpen(true);
-    return () => setChiefStepOpen(false);
-  }, [chief, embedded]);
-  // The scrim fades with the dialog and lets clicks through while MausBot lands.
-  const fadeScrim = useCallback(() => {
-    if (!root.current) return;
-    root.current.style.pointerEvents = "none";
-    root.current.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE_MS, fill: "forwards" });
-  }, []);
+    if (finishing.current) return;
+    if (!beats.includes("chief") || !maus || !chiefStepFits(state.bots, maus)) return void finish("completed", null);
+    if (!replay) stageIntro(maus.id);
+    dispatch({ type: "updateBot", botId: maus.id, patch: createChiefPatch(maus, chiefFor(state.bots, maus)) });
+    void finish("completed", maus.id);
+  }, [beats, maus, state.bots, replay, dispatch, finish]);
 
   useEffect(() => {
-    if (beat === "meet") root.current?.focus({ preventScroll: true });
-  }, [beat, page]);
+    root.current?.focus({ preventScroll: true });
+  }, [page]);
 
   // Escape moves on as Later does; Enter on the screen itself presses Next while it can be pressed.
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (beat === "meet" && event.key === "Escape") {
+    if (event.key === "Escape") {
       event.preventDefault();
       next();
       return;
     }
-    if (beat === "meet" && event.key === "Enter" && event.target === root.current) {
+    if (event.key === "Enter" && event.target === root.current) {
       event.preventDefault();
       root.current.querySelector<HTMLButtonElement>("[data-primary]:not([disabled])")?.click();
       return;
@@ -178,29 +155,21 @@ export function WelcomeFlow({
   return (
     <div
       ref={root}
-      role={chief ? undefined : "dialog"}
-      aria-modal={chief ? undefined : true}
-      aria-labelledby={chief ? undefined : "welcome-title"}
+      role="dialog"
+      aria-modal
+      aria-labelledby="welcome-title"
       tabIndex={-1}
       onKeyDown={onKeyDown}
-      data-welcome={beat}
-      className={cn(
-        "welcome-screen flex outline-none",
-        embedded ? "relative h-full w-full" : "fixed inset-0 z-50",
-        chief ? "ui-scrim items-center justify-center p-4" : "overflow-y-auto bg-app",
-      )}
+      data-welcome="meet"
+      className={cn("welcome-screen flex overflow-y-auto bg-app outline-none", embedded ? "relative h-full w-full" : "fixed inset-0 z-50")}
     >
-      {chief ? (
-        <ChiefIntro replay={replay} onLeave={fadeScrim} onDone={(botId) => void finish("completed", botId)} />
+      {/* keyed by page so the leaving step keeps its own state while it fades */}
+      {[page, leavingPage].filter((index): index is number => index !== null).map((index) => index === page ? (
+        <div key={index} className="contents">{renderPage(index)}</div>
       ) : (
-        // keyed by page so the leaving step keeps its own state while it fades
-        [page, leavingPage].filter((index): index is number => index !== null).map((index) => index === page ? (
-          <div key={index} className="contents">{renderPage(index)}</div>
-        ) : (
-          <div key={index} aria-hidden="true" inert className="onboarding-step-out pointer-events-none absolute inset-0 flex"
-            onAnimationEnd={(event) => { if (event.target === event.currentTarget) setLeavingPage(null); }}>{renderPage(index)}</div>
-        ))
-      )}
+        <div key={index} aria-hidden="true" inert className="onboarding-step-out pointer-events-none absolute inset-0 flex"
+          onAnimationEnd={(event) => { if (event.target === event.currentTarget) setLeavingPage(null); }}>{renderPage(index)}</div>
+      ))}
     </div>
   );
 }

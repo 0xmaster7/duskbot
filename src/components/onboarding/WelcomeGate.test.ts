@@ -1,4 +1,4 @@
-import { createElement, isValidElement, type EffectCallback, type ReactElement, type ReactNode } from "react";
+import { createElement, type EffectCallback, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EMPTY_ONBOARDING, LOCAL_VIEWER, WELCOME_VERSION, type WelcomeViewer } from "@/lib/onboarding";
@@ -25,7 +25,6 @@ vi.mock("@/lib/analytics", () => ({ emailGateDone: () => false }));
 // The gate's job is choosing; the flow itself has its own recipe.
 vi.mock("./WelcomeFlow", () => ({ WelcomeFlow: () => null }));
 vi.mock("@/components/Avatar", () => ({ MausAvatar: () => null }));
-import { SharedWorkspaceHint } from "./SharedWorkspaceHint";
 import { useWelcomeViewer, WelcomeGate } from "./WelcomeGate";
 import { WelcomeFlow } from "./WelcomeFlow";
 
@@ -139,41 +138,15 @@ describe("who gets the welcome flow", () => {
     expect(gate({ hosted: false, canSave: true, cloudHome: true }).tree?.type).toBe(WelcomeFlow);
   });
 
-  it("gives a hosted member a note instead, and nothing that writes the workspace config", async () => {
-    const { tree, html } = gate({ hosted: true, canSave: false });
-    expect(tree?.type).toBe(SharedWorkspaceHint);
-    expect(html).toContain("Your team&#x27;s shared MausBot");
-    expect(html).not.toContain("role=\"dialog\"");
-    fixture.values = [];
-    const hint = render(() => SharedWorkspaceHint({ replay: false, onClose: vi.fn() }));
-    const gotIt = (hint.tree!.props.children as Node[]).flatMap(function all(node): Node[] {
-      if (!isValidElement(node)) return [];
-      const children = (node as Node).props.children;
-      return [node as Node, ...(Array.isArray(children) ? children : [children]).flatMap(all)];
-    }).find((node) => node.type === "button")!;
-    gotIt.props.onClick!();
+  it("gives a hosted member nothing: no first run, no note, and a replay closes without writing the workspace config", async () => {
+    store.state = { ...store.state, config: {} };
+    expect(gate({ hosted: true, canSave: false }).tree).toBeNull();
+    store.state = { ...store.state, welcomeOpen: true };
+    expect(gate({ hosted: true, canSave: false }).tree).toBeNull();
+    for (const effect of fixture.effects) effect();
+    expect(store.dispatch).toHaveBeenCalledWith({ type: "toggleWelcome", open: false });
     await flush();
     expect(store.api).not.toHaveBeenCalled();
-    expect(fetch).not.toHaveBeenCalled();
-    expect(localStorage.getItem("omb.onboarding.sharedWorkspaceHint")).toBe("1");
-    fixture.values = [];
-    expect(render(() => SharedWorkspaceHint({ replay: false, onClose: vi.fn() })).html).toBe("");
-    fixture.values = [];
-    expect(render(() => SharedWorkspaceHint({ replay: true, onClose: vi.fn() })).html).toContain("shared MausBot");
-    vi.stubGlobal("localStorage", { getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("blocked"); } });
-    fixture.values = [];
-    expect(render(() => SharedWorkspaceHint({ replay: false, onClose: vi.fn() })).html).toContain("shared MausBot");
-  });
-
-  it("never opens the flow for a hosted member, even when the admin has not finished it", () => {
-    store.state = { ...store.state, config: {} };
-    expect(gate({ hosted: true, canSave: false }).tree?.type).toBe(SharedWorkspaceHint);
-    store.state = { ...store.state, welcomeOpen: true };
-    const replay = gate({ hosted: true, canSave: false }).tree!;
-    expect(replay.type).toBe(SharedWorkspaceHint);
-    expect(replay.props.replay).toBe(true);
-    replay.props.onClose!();
-    expect(store.dispatch).toHaveBeenCalledWith({ type: "toggleWelcome", open: false });
   });
 
   it("adds nothing for a member of a server that is not hosted, such as the owner's own paired browser", () => {
@@ -188,7 +161,7 @@ describe("who gets the welcome flow", () => {
 
   it("treats a hosted workspace opened inside the desktop app like a browser", () => {
     vi.stubGlobal("window", REMOTE_PAGE);
-    expect(gate({ hosted: true, canSave: false }).tree?.type).toBe(SharedWorkspaceHint);
+    expect(gate({ hosted: true, canSave: false }).tree).toBeNull();
     const admin = gate({ hosted: true, canSave: true }).tree!;
     expect(admin.type).toBe(WelcomeFlow);
     expect(admin.props.hosted).toBe(true);

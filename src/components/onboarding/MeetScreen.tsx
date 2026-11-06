@@ -135,9 +135,9 @@ export function MeetScreen({ hosted, onNext }: { hosted: boolean; onNext: () => 
         )}
         {signingIn && (
           <p className="mt-3 text-[13px] leading-[18px] text-ink-secondary">
-            <button type="button" onClick={() => setDialog(true)} className="rounded transition-colors hover:text-ink">{t("onboarding.meet.otherWays")}</button>
+            <button type="button" onClick={() => setDialog(true)} className="rounded hover:text-ink">{t("onboarding.meet.otherWays")}</button>
             <span aria-hidden="true"> · </span>
-            <button type="button" data-welcome-later="" onClick={onNext} className="rounded transition-colors hover:text-ink">{t("onboarding.meet.setupLater")}</button>
+            <button type="button" data-welcome-later="" onClick={onNext} className="rounded hover:text-ink">{t("onboarding.meet.setupLater")}</button>
           </p>
         )}
         {signingIn && failure && <p role="alert" className="mt-2 text-[13px] leading-[18px] text-danger">{failure}</p>}

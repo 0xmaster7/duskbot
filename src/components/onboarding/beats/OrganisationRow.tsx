@@ -4,9 +4,8 @@ import type { ManagedDesktopBridge, ManagedDesktopState } from "../../../../elec
 import { productName } from "@/lib/brand";
 import { t } from "@/lib/i18n";
 import { companyModelCount, DEFAULT_ADMIN_ORIGIN } from "@/lib/onboarding";
-import { staggerIndex } from "./shared";
 
-const linkClass = "w-fit text-[12px] text-ink-secondary underline-offset-2 transition-colors hover:text-ink hover:underline";
+const linkClass = "w-fit text-[12px] text-ink-secondary underline-offset-2 hover:text-ink hover:underline";
 
 export function OrganisationRow({
   bridge,
@@ -100,7 +99,7 @@ export function OrganisationRow({
         type="button"
         disabled={busy}
         onClick={() => void perform(() => bridge.begin({ portalOrigin: DEFAULT_ADMIN_ORIGIN }))}
-        className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-[13px] font-medium text-white transition-[filter] hover:brightness-110 disabled:opacity-50"
+        className="ui-button ui-button-pill ui-button-sm ui-button-primary shrink-0"
       >
         {busy ? t("organization.working") : t("onboarding.org.signIn")}
       </button>
@@ -124,7 +123,7 @@ export function OrganisationRow({
         type="button"
         disabled={busy}
         onClick={() => void perform(() => bridge.cancelEnrollment())}
-        className="shrink-0 rounded-md px-2 py-1 text-[12px] text-ink-secondary transition-colors hover:bg-raised hover:text-ink disabled:opacity-50"
+        className="ui-button ui-button-pill ui-button-sm shrink-0"
       >
         {t("organization.cancel")}
       </button>
@@ -151,10 +150,7 @@ export function OrganisationRow({
   }
 
   return (
-    <div
-      className="animate-rise mt-4 flex items-center gap-3 rounded-xl border border-hairline/40 bg-card px-3.5 py-3"
-      style={staggerIndex(1)}
-    >
+    <div className="flex items-center gap-3 px-4 py-2.5">
       <Building2 size={18} className="shrink-0 text-ink-secondary" aria-hidden="true" />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         {body}
