@@ -12,7 +12,7 @@
 /* a link reads as the text around it, in medium weight, with a quiet underline that firms up on hover */
 .chat-link {
   color: inherit;
-  font-weight: inherit;
+  font-weight: 500;
   overflow-wrap: anywhere;
   unicode-bidi: isolate;
 }
@@ -48,6 +48,10 @@
   vertical-align: -4px;
   vertical-align: round(0.5cap - 9px, 1px);
 }
+.chat-link-favicon > .grok-icon {
+  margin: 1px;
+  color: color-mix(in srgb, var(--color-ink) 56%, transparent);
+}
 .chat-link-favicon > img {
   display: block;
   width: 14px;
@@ -65,7 +69,15 @@
   margin-block: 0;
 }
 .chat-md li::marker {
-  color: var(--color-ink-tertiary);
+  color: color-mix(in srgb, var(--color-ink) 56%, transparent);
+}
+/* a nested list starts 4px under its item, 16px in, on hollow bullets */
+[data-chat-bubble="simple"] .chat-md li > :is(ul, ol) {
+  margin-top: 4px;
+  padding-inline-start: 16px;
+}
+[data-chat-bubble="simple"] .chat-md li > ul {
+  list-style-type: circle;
 }
 
 /* grok's bubbles: a 6% ink wash (or the bot's colour) under a faint top gloss, with hairline highlights top and bottom */
@@ -106,6 +118,9 @@
 }
 [data-chat-bubble="simple"] .chat-md > * + [data-md-h] {
   margin-top: 18px;
+}
+[data-chat-bubble="simple"] .chat-md > * + [data-md-h="1"] {
+  margin-top: 10px;
 }
 [data-chat-bubble="simple"] .chat-md > [data-md-h]:first-child {
   margin-top: 0;
@@ -164,11 +179,9 @@
   font-family: var(--font-mono);
 }
 [data-chat-bubble="simple"] .chat-code-block:not([data-lang]) pre {
-  padding-bottom: 9px;
+  padding-block: 9px;
 }
 [data-chat-bubble="simple"] .chat-code-block[data-lang] {
-  width: fit-content;
-  max-width: 100%;
   border-radius: 14px;
   background-color: var(--color-composer);
   border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
@@ -177,6 +190,12 @@
   padding: 6px 10px;
   font-size: 12px;
   line-height: 18px;
+  font-weight: 400;
+  letter-spacing: 0.15px;
+}
+/* a code block and a rule keep the 10px every block has from the one before */
+[data-chat-bubble="simple"] .chat-md > * + :is(.chat-code-block, hr) {
+  margin-top: 10px;
 }
 [data-chat-bubble="simple"] .chat-code-block[data-lang] > div:last-child {
   font-size: 12px;

@@ -265,9 +265,8 @@ export function DecisionModelSettings() {
       </SettingsRows>
 
       <Card title={t(openrouter ? "decider.openrouter.key.label" : "decider.key.label")}>
-        <div role="status" className="mb-2 flex items-center gap-2 text-[13px] text-ink-secondary">
-          <span className={cn("size-1.5 rounded-full", configured ? "bg-success" : "bg-raised-hover")} />
-          <span className={configured ? "text-success" : undefined}>
+        <div role="status" className="mb-2 flex items-center gap-2 text-[13px] leading-[18px] text-ink-secondary">
+          <span>
             {included
               ? t("keys.includedWithCloudPro")
               : usingShared

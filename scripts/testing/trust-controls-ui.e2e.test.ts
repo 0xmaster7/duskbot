@@ -71,11 +71,14 @@ describe("trust controls in the real renderer", () => {
     await click("Close activity");
 
     await openBotSheet(ui, "Pepper", "permissions");
-    await click("Allow a daily amount");
+    // Sending on your behalf is a menu on its row
+    await clickByName(ui, "Sending on your behalf", "combobox");
+    await clickByName(ui, "Allow a daily amount", "option");
     await type("Daily outbound limit", "7");
     await ui("press", "--keys", "Tab");
     await expect.poll(async () => (await saved()).outbound, { timeout: 10_000 }).toEqual({ policy: "allow", dailyCap: 7 });
-    await click("Ask every time");
+    await clickByName(ui, "Sending on your behalf", "combobox");
+    await clickByName(ui, "Ask every time", "option");
     await expect.poll(async () => (await saved()).outbound, { timeout: 10_000 }).toEqual({ policy: "ask", dailyCap: 7 });
 
     // Only this page's inventory reads are synthetic; policy writes still
@@ -109,7 +112,7 @@ describe("trust controls in the real renderer", () => {
     });
     expect(seeded.ok).toBe(true);
     await sheetPage(ui, "backups");
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain("If Pepper's AI hits its limit or can't start, the first one here takes over.");
+    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Used in order when the main AI fails.");
     expect(await snapshot()).toContain('list "Backup AIs"');
     await clickByName(ui, /^Remove .+ from backups$/, "button");
     await expect.poll(async () => (await saved()).fallback, { timeout: 10_000 }).toEqual([]);

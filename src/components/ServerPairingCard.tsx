@@ -189,7 +189,7 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
       <div ref={root} tabIndex={-1} data-phone-pairing="server" className="flex scroll-mt-4 flex-col gap-1.5 focus:outline-none">
         <div data-settings-rows="" className={cn(SIMPLE_CARD, "flex flex-col")}>
           {nameRow("px-3.5 py-2.5")}
-          <SettingRow title={t("settings.simple.computer.pair")} subtitle={pairingCodes ? cloudHome ? t("settings.w6a.phone.cloudPersonal") : undefined : t("settings.w6a.phone.portal")}>
+          <SettingRow title={t("settings.w6.pairing.title")} subtitle={pairingCodes ? cloudHome ? t("settings.w6a.phone.cloudPersonal") : undefined : t("settings.w6a.phone.portal")}>
             {pairingCodes ? (
               <div className="flex items-center gap-2">
                 {cloudHome ? null : (
@@ -204,7 +204,29 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
               </div>
             ) : null}
           </SettingRow>
-          {offerPanel ? <div className="px-3.5 pb-2.5 [&>div]:mt-0">{offerPanel}</div> : null}
+          {pairingCodes && offer ? (expired ? (
+            <SettingRow title={t("remote.serverPairing.expired")}>{null}</SettingRow>
+          ) : (
+            <>
+              <SettingRow title={t("settings.w6.pairing.code")} subtitle={offer.url ? t("remote.serverPairing.expires", { minutes: minutesLeft(offer.expiresAt, now) }) : offer.hint ?? t("remote.serverPairing.noLink")}>
+                <span className="font-mono text-[15px] tracking-[0.14em] text-ink">{offer.code}</span>
+              </SettingRow>
+              {offer.url ? (
+                <>
+                  <div className="flex justify-center px-3.5 pb-3">
+                    <div className="rounded-[10px] bg-white p-3 outline outline-[0.5px] -outline-offset-[0.5px] outline-edge">
+                      <QRCodeSVG value={offer.url} size={160} level="M" bgColor="#ffffff" fgColor="#111111" />
+                    </div>
+                  </div>
+                  <SettingRow title={t("settings.w6.pairing.link")} subtitle={<span className="break-all">{offer.url}</span>}>
+                    <button type="button" onClick={() => void copyLink()} className="ui-button">
+                      {t(copied === "copied" ? "remote.serverPairing.copied" : copied === "failed" ? "common.copyFailed" : "remote.serverPairing.copyLink")}
+                    </button>
+                  </SettingRow>
+                </>
+              ) : null}
+            </>
+          )) : null}
           {listed.length === 0 ? (
             <p className="px-3.5 py-2.5 text-[13px] leading-[18px] text-ink-secondary">{t("remote.serverPairing.noDevices")}</p>
           ) : listed.map((device) => (

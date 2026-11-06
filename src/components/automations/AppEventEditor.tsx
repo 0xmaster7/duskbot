@@ -1,7 +1,7 @@
 // "When something happens in an app": pick the bot, the app and what happens in it, a few plain filters, and what the
 // bot does. Only connected apps the chosen bot may use are offered.
 import { useEffect, useRef, useState } from "react";
-import { Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { BotAvatar } from "@/components/Avatar";
 import { useModalDialog } from "@/hooks/use-modal-dialog";
@@ -11,9 +11,11 @@ import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";
 import { Select } from "../Select";
 import { suggestedName } from "../WebhookTrigger";
+import { GrokIcon } from "../GrokIcon";
+import { fieldLabelCls, formBodyCls, formCloseCls, formFooterCls, formHeaderCls, formSheetCls, formTitleCls, mdPrimaryCls, mdSecondaryCls, rowButtonCls, textAreaCls, textFieldCls } from "../ui/GrokDialog";
 
-const FIELD = "w-full rounded-xl border border-hairline/60 bg-panel px-3.5 py-2.5 text-[13px] text-ink outline-none placeholder:text-ink-tertiary focus:border-accent/70";
-const LABEL = "mb-1.5 block text-[12px] font-medium text-ink-secondary";
+const FIELD = textFieldCls;
+const LABEL = cn(fieldLabelCls, "mb-1 block");
 
 export function AppEventEditor({ trigger, bots, initialBotId, onClose, onSaved }: { trigger?: AppTrigger; bots: Bot[]; initialBotId?: string; onClose: () => void; onSaved?: (trigger: AppTrigger) => void }) {
   const { dispatch } = useStore();
@@ -86,28 +88,29 @@ export function AppEventEditor({ trigger, bots, initialBotId, onClose, onSaved }
   const title = trigger ? t("automations.editor.app.editTitle") : t("automations.editor.appEvent.title");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-5 backdrop-blur-sm" onMouseDown={(click) => click.target === click.currentTarget && onClose()}>
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} className="flex max-h-[90vh] w-full max-w-[560px] flex-col overflow-hidden rounded-2xl border border-hairline/60 bg-panel shadow-2xl">
-        <div className="flex items-start justify-between border-b border-hairline/40 px-5 py-4">
-          <div className="text-[17px] font-semibold text-ink">{title}</div>
-          <button type="button" onClick={onClose} aria-label={t("automations.newBox.cancel")} className="rounded-lg p-2 text-ink-secondary hover:bg-raised hover:text-ink"><X size={18} /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div aria-hidden="true" className="ui-dialog-scrim absolute inset-0" onMouseDown={onClose} />
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} style={{ maxWidth: "min(460px, calc(100vw - 32px))" }} className={formSheetCls}>
+        <div className={formHeaderCls}>
+          <h2 className={formTitleCls}>{title}</h2>
+          <button type="button" onClick={onClose} aria-label={t("automations.newBox.cancel")} className={formCloseCls}><GrokIcon name="close" size={16} /></button>
         </div>
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
+        <div className={cn(formBodyCls, "space-y-4")}>
           {!trigger && (
             <div>
-              <div className="mb-2 text-[13px] font-medium text-ink">{t("automations.editor.app.who")}</div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{bots.map((bot) => (
-                <button key={bot.id} type="button" onClick={() => setBotId(bot.id)} className={cn("flex min-w-0 items-center gap-2 rounded-xl border px-3 py-2 text-left", botId === bot.id ? "border-accent/70 bg-accent/10" : "border-hairline/50 bg-inset hover:bg-raised/60")}>
-                  <BotAvatar bot={bot} state={botId === bot.id ? "happy" : "idle"} size={32} animated={false} /><span className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink">{bot.name}</span>
+              <div className={cn(fieldLabelCls, "mb-1")}>{t("automations.editor.app.who")}</div>
+              <div className="grid grid-cols-2 gap-0.5 rounded-[10px] border border-ink/12 p-1 sm:grid-cols-3">{bots.map((bot) => (
+                <button key={bot.id} type="button" onClick={() => setBotId(bot.id)} aria-pressed={botId === bot.id} className={cn("flex h-8 min-w-0 items-center gap-2 rounded-[8px] px-2 text-left transition-[background-color] duration-[120ms] ease-[ease] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus", botId === bot.id ? "bg-ink/6" : "hover:bg-ink/5")}>
+                  <BotAvatar bot={bot} state={botId === bot.id ? "happy" : "idle"} size={20} animated={false} /><span className="min-w-0 flex-1 truncate text-[13px] leading-[18px] text-ink">{bot.name}</span>
                 </button>
               ))}</div>
             </div>
           )}
           {!trigger && !catalog && !error && <p className="flex items-center gap-2 text-[13px] text-ink-secondary"><Loader2 size={14} className="animate-spin" />{t("automations.editor.appEvent.loading")}</p>}
           {!trigger && catalog && (catalog.unavailable || !catalog.apps.some((candidate) => candidate.events.length)) && (
-            <div className="rounded-xl border border-hairline/45 bg-inset/50 p-3.5 text-[13px] text-ink-secondary">
-              <p>{catalog.unavailable ?? t("automations.editor.appEvent.noApps")}</p>
-              {!catalog.unavailable && <button type="button" onClick={() => dispatch({ type: "togglePlugins", open: true, surface: "apps" })} className="mt-2.5 rounded-lg bg-accent px-3 py-1.5 text-[13px] font-medium text-accent-ink hover:brightness-110">{t("automations.editor.appEvent.connect")}</button>}
+            <div className="flex flex-col items-start gap-2 text-[13px] leading-[18px] text-ink/68">
+              <p className="m-0">{catalog.unavailable ?? t("automations.editor.appEvent.noApps")}</p>
+              {!catalog.unavailable && <button type="button" onClick={() => dispatch({ type: "togglePlugins", open: true, surface: "apps" })} className={rowButtonCls}>{t("automations.editor.appEvent.connect")}</button>}
             </div>
           )}
           {!trigger && catalog && appEntry && (
@@ -148,26 +151,26 @@ export function AppEventEditor({ trigger, bots, initialBotId, onClose, onSaved }
                 filterField("subject", t("automations.editor.appEvent.subject"), "order"),
                 filterField("label", t("automations.editor.appEvent.label"), "Customers"),
               ] : filterField("text", t("automations.editor.appEvent.text"), "urgent")}
-              {delivery && <p className="self-end text-[12px] text-ink-secondary sm:col-span-2">{delivery === "poll" ? t("automations.editor.appEvent.checks") : t("automations.editor.appEvent.instant")}</p>}
+              {delivery && <p className="m-0 self-end text-[12px] leading-4 text-ink/56 sm:col-span-2">{delivery === "poll" ? t("automations.editor.appEvent.checks") : t("automations.editor.appEvent.instant")}</p>}
             </div>
           )}
           {(trigger || appEntry) && (
             <label className="block">
-              <span className="mb-2 block text-[13px] font-medium text-ink">{t("automations.editor.app.what")}</span>
-              <textarea value={prompt} onChange={(input) => setPrompt(input.target.value)} rows={3} placeholder={t("automations.editor.appEvent.whatPlaceholder")} className={cn(FIELD, "resize-y py-3 leading-relaxed")} />
+              <span className={cn(fieldLabelCls, "mb-1 block")}>{t("automations.editor.app.what")}</span>
+              <textarea value={prompt} onChange={(input) => setPrompt(input.target.value)} rows={3} placeholder={t("automations.editor.appEvent.whatPlaceholder")} className={cn(textAreaCls, "resize-y")} />
             </label>
           )}
           {(trigger || appEntry) && (
-            <details className="rounded-xl border border-hairline/45 bg-inset/45 px-4 py-3">
-              <summary className="cursor-pointer text-[13px] font-medium text-ink">{t("automations.more")}</summary>
+            <details>
+              <summary className="-ml-1 w-fit cursor-pointer rounded-[6px] px-1 text-[13px] leading-[18px] text-ink/68 transition-[background-color,color] duration-[120ms] ease-[ease] hover:bg-ink/6 hover:text-ink">{t("automations.more")}</summary>
               <label className="mt-4 block"><span className={LABEL}>{t("automations.editor.app.name")}</span><input value={name} onChange={(input) => setName(input.target.value)} placeholder={suggestedName(prompt, bots.find((bot) => bot.id === botId))} className={FIELD} /></label>
             </details>
           )}
-          {error && <div role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-3.5 py-3 text-[12px] text-danger">{error}</div>}
+          {error && <p role="alert" className="m-0 text-[12px] leading-4 text-danger">{error}</p>}
         </div>
-        <div className="flex justify-end gap-2 border-t border-hairline/40 px-5 py-4">
-          <button type="button" onClick={onClose} className="rounded-xl px-4 py-2 text-[13px] text-ink-secondary hover:bg-raised hover:text-ink">{t("automations.newBox.cancel")}</button>
-          <button type="button" disabled={saving || !botId || (!trigger && !chosen) || required.some((field) => !config[field.name]?.trim())} onClick={() => void save()} className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-[13px] font-medium text-accent-ink hover:brightness-110 disabled:opacity-40">{saving && <Loader2 size={14} className="animate-spin" />}{trigger ? t("automations.editor.app.save") : t("automations.editor.app.create")}</button>
+        <div className={formFooterCls}>
+          <button type="button" onClick={onClose} className={mdSecondaryCls}>{t("automations.newBox.cancel")}</button>
+          <button type="button" disabled={saving || !botId || (!trigger && !chosen) || required.some((field) => !config[field.name]?.trim())} onClick={() => void save()} className={cn(mdPrimaryCls, "gap-1.5")}>{saving && <Loader2 size={14} className="animate-spin" />}{trigger ? t("automations.editor.app.save") : t("automations.editor.app.create")}</button>
         </div>
       </div>
     </div>

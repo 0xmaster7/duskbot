@@ -467,13 +467,12 @@ export function TeamLibraryPanel({
                   <ArrowLeft size={18} />
                 </button>
               )}
-              <h2 id="team-library-title" className="truncate text-[22px] font-semibold tracking-[-0.01em] text-ink">
+              <h2 id="team-library-title" className="m-0 truncate pl-2 text-[17px] font-medium leading-6 tracking-[0.01em] text-ink">
                 {pending ? pending.name : t("templates.title")}
               </h2>
             </div>
-            <p className={cn("mt-1 text-[13px] text-ink-secondary", pending && "ml-9")}>
-                {pending
-                  ? pending.kind === "backup"
+            {pending && <p className="m-0 ml-9 mt-1 text-[13px] leading-[18px] text-ink/68">
+                {pending.kind === "backup"
                     ? t("templates.backupSummary", { bots: pending.members.length, conversations: pending.conversations ?? 0 })
                     : pending.kind === "package"
                     ? pending.library
@@ -481,9 +480,8 @@ export function TeamLibraryPanel({
                       : pending.version === 2
                       ? t("teamImport.sharedTeam", { count: pending.members.length })
                       : t("templates.playbookSummary", { count: pending.members.length })
-                    : t("templates.readyBots", { count: pending.members.length })
-                  : t("templates.subtitle")}
-            </p>
+                    : t("templates.readyBots", { count: pending.members.length })}
+            </p>}
           </div>
           <div className="flex shrink-0 items-center gap-1">
             {!pending && (
@@ -557,7 +555,7 @@ export function TeamLibraryPanel({
         ) : (
           <>
             <div className="flex flex-col gap-3 px-6 pb-4 pt-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-              <div className="flex w-fit rounded-xl bg-raised/70 p-1" role="tablist" aria-label={t("templates.source") }>
+              <div className="flex w-fit gap-0.5" role="tablist" aria-label={t("templates.source") }>
                 {orgListing?.organization && (
                   <button
                     role="tab"
@@ -568,8 +566,8 @@ export function TeamLibraryPanel({
                       setError("");
                     }}
                     className={cn(
-                      "max-w-[220px] truncate rounded-lg px-4 py-2 text-[14px] transition-colors",
-                      tab === "org" ? "bg-card text-ink shadow-sm" : "text-ink-secondary hover:text-ink",
+                      "max-w-[220px] truncate rounded-full px-2.5 py-1 text-[13px] leading-[18px] tracking-[0.015em] transition-[background-color,color] duration-[120ms] ease-[ease]",
+                      tab === "org" ? "bg-ink/6 text-ink" : "text-ink/68 hover:bg-ink/6 hover:text-ink",
                     )}
                   >
                     {t("orgLibrary.tab", { name: orgListing.organization.name })}
@@ -584,8 +582,8 @@ export function TeamLibraryPanel({
                     setError("");
                   }}
                   className={cn(
-                    "rounded-lg px-4 py-2 text-[14px] transition-colors",
-                    tab === "explore" ? "bg-card text-ink shadow-sm" : "text-ink-secondary hover:text-ink",
+                    "rounded-full px-2.5 py-1 text-[13px] leading-[18px] tracking-[0.015em] transition-[background-color,color] duration-[120ms] ease-[ease]",
+                      tab === "explore" ? "bg-ink/6 text-ink" : "text-ink/68 hover:bg-ink/6 hover:text-ink",
                   )}
                 >
                   {t("templates.explore")}
@@ -599,8 +597,8 @@ export function TeamLibraryPanel({
                     setError("");
                   }}
                   className={cn(
-                    "rounded-lg px-4 py-2 text-[14px] transition-colors",
-                    tab === "import" ? "bg-card text-ink shadow-sm" : "text-ink-secondary hover:text-ink",
+                    "rounded-full px-2.5 py-1 text-[13px] leading-[18px] tracking-[0.015em] transition-[background-color,color] duration-[120ms] ease-[ease]",
+                      tab === "import" ? "bg-ink/6 text-ink" : "text-ink/68 hover:bg-ink/6 hover:text-ink",
                   )}
                 >
                   {t("templates.import")}
@@ -614,8 +612,8 @@ export function TeamLibraryPanel({
                     setError("");
                   }}
                   className={cn(
-                    "rounded-lg px-4 py-2 text-[14px] transition-colors",
-                    tab === "scout" ? "bg-card text-ink shadow-sm" : "text-ink-secondary hover:text-ink",
+                    "rounded-full px-2.5 py-1 text-[13px] leading-[18px] tracking-[0.015em] transition-[background-color,color] duration-[120ms] ease-[ease]",
+                      tab === "scout" ? "bg-ink/6 text-ink" : "text-ink/68 hover:bg-ink/6 hover:text-ink",
                   )}
                 >
                   {t("templates.fromFolder")}
@@ -629,22 +627,22 @@ export function TeamLibraryPanel({
                     setError("");
                   }}
                   className={cn(
-                    "rounded-lg px-4 py-2 text-[14px] transition-colors",
-                    tab === "share" ? "bg-card text-ink shadow-sm" : "text-ink-secondary hover:text-ink",
+                    "rounded-full px-2.5 py-1 text-[13px] leading-[18px] tracking-[0.015em] transition-[background-color,color] duration-[120ms] ease-[ease]",
+                      tab === "share" ? "bg-ink/6 text-ink" : "text-ink/68 hover:bg-ink/6 hover:text-ink",
                   )}
                 >
                   {t("teamLibrary.shareTab")}
                 </button>
               </div>
               {tab === "explore" && (
-                <label className="flex h-11 w-full items-center gap-2.5 rounded-xl bg-raised/70 px-3.5 sm:w-[320px]">
-                  <Search size={17} className="shrink-0 text-ink-secondary" />
+                <label className="flex h-8 w-full items-center gap-1.5 rounded-full border border-ink/8 bg-ink/4 px-[11px] transition-[border-color] duration-[120ms] ease-[ease] focus-within:border-ink/24 sm:w-[280px]">
+                  <Search size={14} aria-hidden="true" className="shrink-0 text-ink/56" />
                   <input
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                     placeholder={t("templates.search")}
                     aria-label={t("templates.search")}
-                    className="min-w-0 flex-1 bg-transparent text-[14px] text-ink placeholder:text-ink-secondary focus:outline-none"
+                    className="min-w-0 flex-1 bg-transparent text-[13px] leading-[18px] text-ink placeholder:text-ink/56 focus:outline-none"
                   />
                 </label>
               )}
@@ -664,7 +662,7 @@ export function TeamLibraryPanel({
               {tab === "explore" && (
                 <div>
                   <ReadyBotGallery search={search} onDialog={setNestedDialog} onAdded={onClose} />
-                  <div className="mb-3 text-[12px] font-medium text-ink-secondary">
+                  <div className="mb-1 pl-3 text-[12px] leading-4 text-ink/56">
                     {search ? t("templates.searchResults") : t("templates.communityTemplates")}
                   </div>
                   {catalogLoading && (

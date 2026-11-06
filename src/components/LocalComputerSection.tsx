@@ -4,18 +4,17 @@ import { waitForLocalVmReady } from "@/lib/local-vm-readiness";
 import type { LocaleKey } from "@/locales";
 import {
   AlertTriangle,
-  Check,
   ExternalLink,
   Loader2,
   Moon,
   RefreshCw,
-  RotateCcw,
-  Square,
   Trash2,
 } from "lucide-react";
-import { Card, CommandLine, MERGED_ROWS, SettingRow, SettingsDisclosureRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
+import { Card, MERGED_ROWS, SettingRow, SettingsDisclosureRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
 import { MacLocalControl } from "./MacLocalControl";
 import { Select } from "./Select";
+import { SettingsSelect } from "./SettingsSelect";
+import { useCopyFeedback } from "@/lib/copy-text";
 import { cn } from "@/lib/cn";
 import { useStore } from "@/state/store";
 import { openKeySettings } from "./keys/key-focus";
@@ -632,23 +631,18 @@ export function LocalVmInventoryCard({
   );
 }
 
-function Step({ n, title, done, children }: { n: number; title: string; done: boolean; children?: React.ReactNode }) {
+/** A setup step as a Grok row: its name, Done once it is, and what to do next on the right. */
+function Step({ title, done, detail, children }: { title: string; done: boolean; detail?: React.ReactNode; children?: React.ReactNode }) {
   return (
-    <div className="flex gap-3">
-      <div
-        className={cn(
-          "flex size-[18px] shrink-0 items-center justify-center rounded-full text-[11px]",
-          done ? "bg-success/20 text-success" : "bg-ink/[0.06] text-ink-secondary",
-        )}
-      >
-        {done ? <Check size={12} /> : n}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className={cn("text-[13px] leading-[18px]", done ? "text-ink-secondary line-through" : "text-ink")}>{title}</div>
-        {!done && children && <div className="mt-2 flex flex-col items-start gap-2 [&>*]:max-w-full">{children}</div>}
-      </div>
-    </div>
+    <SettingRow title={title} subtitle={done ? t("settings.w6.setup.done") : detail}>
+      {!done && children ? <div className="flex flex-wrap items-center justify-end gap-2">{children}</div> : null}
+    </SettingRow>
   );
+}
+
+function CopyCommand({ command }: { command: string }) {
+  const { state, copy } = useCopyFeedback(command);
+  return <button type="button" onClick={copy} title={command} className="ui-button">{state === "copied" ? t("settings.w6.setup.copied") : t("settings.w6.setup.copy")}</button>;
 }
 
 function ActionButton({
@@ -666,13 +660,11 @@ function ActionButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       aria-busy={pending === action}
       disabled={pending !== null}
-      className={cn(
-        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium disabled:opacity-50",
-        danger ? "bg-danger/15 text-danger hover:bg-danger/20" : "bg-accent text-white hover:brightness-110",
-      )}
+      className={cn("ui-button", danger && "ui-button-danger")}
     >
       {pending === action && <Loader2 size={13} className="animate-spin" />}
       {children}
@@ -731,13 +723,13 @@ export function LocalVmIdleTimeoutSetting({
   };
 
   return (
-    <div className="mt-3">
-      <div className="flex items-center justify-between gap-3">
-        <label htmlFor="local-vm-idle-timeout" className="text-[13px] text-ink">{t("vm.idle.label")}</label>
+    <div className="px-3.5 py-2.5">
+      <div className="flex min-h-7 items-center justify-between gap-3">
+        <label htmlFor="local-vm-idle-timeout" className="text-[13px] leading-[18px] text-ink">{t("vm.idle.label")}</label>
         <div
           className={cn(
-            "flex w-[150px] shrink-0 items-center rounded-lg border bg-control",
-            error ? "border-danger/60" : "border-hairline/40 focus-within:border-focus",
+            "flex h-8 w-[150px] shrink-0 items-center rounded-[10px] border bg-menu",
+            error ? "border-danger/60" : "border-ink/12 focus-within:border-ink/40",
           )}
         >
           <input
@@ -1271,29 +1263,18 @@ export function LocalComputerSection() {
       </SettingsRows>
       <MacLocalControl />
       <SettingsDisclosureRow id="private-desktop" title={t("settings.w6a.private.more")} open={detailsOpen} onToggle={() => setDetailsOpen((open) => !open)}>
-      <Card title={t("vm.isolation.title")}>
-        <div className="inline-flex h-7 rounded-full bg-ink/[0.06] p-0.5">
-          {(["shared", "per-bot"] as const).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              aria-pressed={status?.mode === mode}
-              disabled={!status || policyPending}
-              onClick={() => void savePolicy(mode, status?.max_instances ?? 2)}
-              className={cn(
-                "h-6 cursor-pointer rounded-full px-3 text-[13px] leading-[18px] transition-[background-color,color] duration-[120ms] ease-[ease] disabled:cursor-default disabled:opacity-50",
-                status?.mode === mode ? "bg-menu text-ink shadow-[0_1px_3px_0_rgb(28_28_28/0.12)]" : "text-ink-secondary enabled:hover:text-ink",
-              )}
-            >
-              {mode === "shared" ? t("vm.isolation.shared") : t("vm.isolation.perBot")}
-            </button>
-          ))}
-        </div>
+      <SettingsRows>
+        <SettingRow title={t("vm.isolation.title")} subtitle={policyPending ? t("vm.saving") : undefined}>
+          <SettingsSelect
+            value={status?.mode ?? "shared"}
+            aria-label={t("vm.isolation.title")}
+            disabled={!status || policyPending}
+            options={[{ value: "shared", label: t("vm.isolation.shared") }, { value: "per-bot", label: t("vm.isolation.perBot") }]}
+            onChange={(event) => void savePolicy(event.target.value === "per-bot" ? "per-bot" : "shared", status?.max_instances ?? 2)}
+          />
+        </SettingRow>
         {perBot && (
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <div>
-              <div className="text-[13px] text-ink">{t("vm.isolation.max")}</div>
-            </div>
+          <SettingRow title={t("vm.isolation.max")}>
             <Select size="sm"
               aria-label={t("vm.isolation.maxAria")}
               value={status?.max_instances ?? 2}
@@ -1302,92 +1283,53 @@ export function LocalComputerSection() {
             >
               {[1, 2, 3, 4, 5, 6, 7, 8].map((value) => <option key={value} value={value}>{value}</option>)}
             </Select>
-          </div>
+          </SettingRow>
         )}
         <LocalVmIdleTimeoutSetting
           minutes={status ? Math.round(status.idle_timeout_ms / 60_000) : DEFAULT_LOCAL_VM_IDLE_TIMEOUT_MINUTES}
           disabled={!status || policyPending}
           onSave={saveIdleTimeout}
         />
-        {policyPending && <div className="mt-2 flex items-center gap-1.5 text-[12px] text-ink-secondary"><Loader2 size={12} className="animate-spin" /> {t("vm.saving")}</div>}
-      </Card>
+      </SettingsRows>
 
-      <Card title={t("vm.setup.title")}>
-        <div className="flex flex-col gap-4">
-          <Step n={1} title={t("vm.setup.step1")} done={Boolean(status?.runtime)}>
-            {c?.install ? (
-              <CommandLine command={c.install} />
-            ) : (
-              <a href="https://podman.io/docs/installation" target="_blank" rel="noreferrer" className="text-[13px] text-accent hover:underline">
-                {t("vm.setup.podmanGuide")}
-              </a>
-            )}
+      <SettingsGroup label={t("vm.setup.title")} block="private-desktop-setup">
+        <SettingsRows>
+          <Step title={t("vm.setup.step1")} done={Boolean(status?.runtime)}>
+            {c?.install
+              ? <CopyCommand command={c.install} />
+              : <a href="https://podman.io/docs/installation" target="_blank" rel="noreferrer" className="ui-button">{t("settings.w6.setup.guide")}</a>}
           </Step>
-
           <Step
-            n={2}
-            title={
-              status?.runtime && !status.daemonUp
-                ? t("vm.setup.step2Open", { runtime: status.runtime })
-                : t("vm.setup.step2")
-            }
+            title={status?.runtime && !status.daemonUp ? t("vm.setup.step2Open", { runtime: status.runtime }) : t("vm.setup.step2")}
             done={Boolean(status?.daemonUp)}
           >
-            {!status?.runtime ? null : c?.runtimeStart ? (
-              <CommandLine command={c.runtimeStart} />
-            ) : (
-              <div className="text-[13px] text-ink-secondary">{t("vm.setup.step2Detail")}</div>
-            )}
+            {status?.runtime && c?.runtimeStart ? <CopyCommand command={c.runtimeStart} /> : null}
           </Step>
-
-          <Step n={3} title={t("vm.setup.step3")} done={Boolean(status?.image)}>
-            {status?.daemonUp && (
-              <ActionButton action="pull" pending={pending} onClick={() => void act("pull")}>{t("vm.setup.prepare")}</ActionButton>
-            )}
-            {c?.pull && <details className="text-[12px] text-ink-secondary"><summary className="cursor-pointer">{t("vm.setup.showPull")}</summary><div className="mt-2"><CommandLine command={c.pull} /></div></details>}
+          <Step title={t("vm.setup.step3")} done={Boolean(status?.image)}>
+            {c?.pull && <CopyCommand command={c.pull} />}
+            {status?.daemonUp && <ActionButton action="pull" pending={pending} onClick={() => void act("pull")}>{t("vm.setup.prepare")}</ActionButton>}
           </Step>
-
           <Step
-            n={4}
-            title={
-              perBot
-                ? t("vm.setup.step4PerBot")
-                : needsRecreate
-                  ? t("vm.setup.step4Recreate")
-                  : t("vm.setup.step4")
-            }
+            title={perBot ? t("vm.setup.step4PerBot") : needsRecreate ? t("vm.setup.step4Recreate") : t("vm.setup.step4")}
             done={!perBot && ready}
+            detail={perBot
+              ? perBotRuntimeUnsupported ? t("vm.setup.applePort") : undefined
+              : needsRecreate
+                ? status?.image ? status?.problem : t("vm.setup.prepareFirst")
+                : status?.container === "running" ? t("vm.setup.waiting") : undefined}
           >
-            {perBot ? (
-              perBotRuntimeUnsupported && <div className="text-[13px] leading-[18px] text-ink-secondary">{t("vm.setup.applePort")}</div>
-            ) : needsRecreate ? (
-              <>
-                <div className="flex gap-2 text-[13px] text-warning">
-                  <AlertTriangle size={15} className="mt-0.5 shrink-0" />
-                  <span>{status?.problem}</span>
-                </div>
-                {status?.image ? (
-                  <ActionButton action="recreate" pending={pending} onClick={() => void act("recreate")} danger>
-                    <RotateCcw size={13} /> {t("vm.setup.recreate")}
-                  </ActionButton>
-                ) : (
-                  <div className="text-[13px] text-ink-secondary">{t("vm.setup.prepareFirst")}</div>
-                )}
-              </>
-            ) : status?.container === "stopped" ? (
-              <>
-                <p className="text-[13px] text-ink-secondary">{t(status.stop_reason === "idle" ? "vm.stopped.idle" : "vm.stopped.detail")}</p>
-                <ActionButton action="start" pending={pending} onClick={() => void act("start")}>{t("vm.setup.start")}</ActionButton>
-              </>
-            ) : status?.container === "running" ? (
-              <div className="flex items-center gap-2 text-[13px] text-ink-secondary"><Loader2 size={13} className="animate-spin" /> {t("vm.setup.waiting")}</div>
-            ) : status?.image ? (
-              <ActionButton action="run" pending={pending} onClick={() => void act("run")}>{t("vm.setup.start")}</ActionButton>
+            {c?.run && <CopyCommand command={c.run} />}
+            {perBot ? null : needsRecreate ? (
+              status?.image ? (
+                <ActionButton action="recreate" pending={pending} onClick={() => void act("recreate")} danger>{t("vm.setup.recreate")}</ActionButton>
+              ) : null
+            ) : status?.container === "stopped" || (status?.image && status?.container !== "running") ? (
+              <ActionButton action={status?.container === "stopped" ? "start" : "run"} pending={pending} onClick={() => void act(status?.container === "stopped" ? "start" : "run")}>{t("vm.setup.start")}</ActionButton>
             ) : null}
-            {c?.run && <details className="text-[12px] text-ink-secondary"><summary className="cursor-pointer">{t("vm.setup.showCommand")}</summary><div className="mt-2"><CommandLine command={c.run} /></div></details>}
           </Step>
-        </div>
-      </Card>
+        </SettingsRows>
+        {unavailable && <p className="-mt-0.5 pl-3.5 text-[12px] leading-4 text-ink-tertiary">{t("vm.inspectFailed")}</p>}
+      </SettingsGroup>
 
       {perBot && (
         <LocalVmInventoryCard
@@ -1402,32 +1344,16 @@ export function LocalComputerSection() {
         />
       )}
 
-      {unavailable && (
-        <Card>
-          <div className="flex gap-2 text-[13px] text-ink-secondary">
-            <AlertTriangle size={15} className="mt-0.5 shrink-0 text-warning" />
-            <span>{t("vm.inspectFailed")}</span>
-          </div>
-        </Card>
-      )}
-
-      <Card
-        title={t("settings.w6a.private.storage")}
-        subtitle={t("settings.w6a.private.folder", { path: status?.workspace_path ?? t("vm.safety.notCreated") })}
-      >
-        {existing && (
-          <div className="flex flex-wrap gap-2">
-            {status?.container === "running" && (
-              <ActionButton action="stop" pending={pending} onClick={() => void act("stop")}>
-                <Square size={12} /> {t("vm.safety.stop")}
-              </ActionButton>
-            )}
-            <ActionButton action="remove" pending={pending} onClick={() => void act("remove")} danger>
-              <Trash2 size={12} /> {perBot ? t("vm.safety.deleteLegacy") : t("vm.safety.deleteVm")}
-            </ActionButton>
-          </div>
-        )}
-      </Card>
+      <SettingsRows>
+        <SettingRow title={t("settings.w6a.private.storage")} subtitle={t("settings.w6a.private.folder", { path: status?.workspace_path ?? t("vm.safety.notCreated") })}>
+          {existing ? (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {status?.container === "running" && <ActionButton action="stop" pending={pending} onClick={() => void act("stop")}>{t("vm.safety.stop")}</ActionButton>}
+              <ActionButton action="remove" pending={pending} onClick={() => void act("remove")} danger>{perBot ? t("vm.safety.deleteLegacy") : t("vm.safety.deleteVm")}</ActionButton>
+            </div>
+          ) : null}
+        </SettingRow>
+      </SettingsRows>
       </SettingsDisclosureRow>
       </SettingsGroup>
       )}

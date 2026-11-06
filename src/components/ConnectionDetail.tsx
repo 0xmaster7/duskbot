@@ -10,28 +10,23 @@ export const addressPreview = (value: string): string => {
   return `${value.slice(0, 10)}…${value.slice(-6)}`;
 };
 
+/** A Grok row: the label, the address half hidden until revealed, and its copy button. */
 export function ConnectionDetail({ label, value }: { label: string; value: string }) {
   const [revealed, setRevealed] = useState(false);
   const { state: copyState, copy } = useCopyFeedback(value);
 
   return (
-    <div className="flex items-center gap-3 rounded-lg bg-inset px-3 py-2">
-      <div className="min-w-0 flex-1">
-        <div className="text-[11px] font-medium uppercase tracking-wide text-ink-secondary">{label}</div>
-        <div className="mt-0.5 truncate font-mono text-[12px] text-ink">
-          {revealed ? value : addressPreview(value)}
-        </div>
-      </div>
-      <button
-        onClick={() => setRevealed((current) => !current)}
-        className="shrink-0 rounded px-2 py-1 text-[11px] text-ink-secondary hover:bg-control hover:text-ink"
-      >
+    <div className="flex min-h-12 items-center gap-3 px-3.5 py-2.5">
+      <div className="min-w-0 flex-1 truncate text-[13px] leading-[18px] text-ink">{label}</div>
+      <div className="min-w-0 truncate font-mono text-[12px] leading-4 text-ink-secondary">{revealed ? value : addressPreview(value)}</div>
+      <button type="button" onClick={() => setRevealed((current) => !current)} className="ui-button shrink-0">
         {revealed ? "Hide" : "Reveal"}
       </button>
       <button
+        type="button"
         onClick={copy}
         aria-label={copyState === "failed" ? t("common.copyFailed") : `Copy ${label}`}
-        className="shrink-0 rounded p-1.5 text-ink-secondary hover:bg-control hover:text-ink"
+        className="inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink-secondary hover:bg-ink/[0.06] hover:text-ink outline-none focus-visible:outline-2 focus-visible:outline-focus"
       >
         {copyState === "copied" ? <Check size={13} className="text-success" /> : copyState === "failed" ? <X size={13} className="text-danger" /> : <Copy size={13} />}
       </button>

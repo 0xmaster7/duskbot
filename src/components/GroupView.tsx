@@ -103,6 +103,7 @@ import { HandoffChip } from "./HandoffReply"; import { TeammateChip } from "./Te
 import { RoomWorkingFolder } from "./RoomWorkingFolder";
 import { RoomBulletin } from "./RoomBulletin";
 import { RoomHeader } from "./RoomHeader";
+import { mdPrimaryCls, mdSecondaryCls, textAreaCls, textFieldCls } from "./ui/GrokDialog";
 import { useChatFindRequests } from "@/lib/chat-find";
 import { simpleRoomHeader } from "@/lib/room-panel";
 
@@ -650,42 +651,35 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
     <section
       data-testid="room-setup"
       aria-labelledby="room-setup-title"
-      className="relative z-20 w-full overflow-visible rounded-2xl border border-hairline/50 bg-card shadow-xl shadow-black/10"
+      className="relative z-20 w-full overflow-visible rounded-[14px] border border-ink/12 bg-menu"
     >
-      <div className="rounded-t-3xl border-b border-hairline/40 bg-panel/70 px-5 py-5 sm:px-7">
-        <div className="flex items-start gap-3">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-sm font-bold text-white">1</span>
-          <div>
-            <h1 id="room-setup-title" className="text-xl font-semibold tracking-tight text-ink">{t("room.setup.title", { name: group.name })}</h1>
-            <p className="mt-1 max-w-[560px] text-[14px] leading-relaxed text-ink-secondary">
-              {t("room.setup.detailChat")}
-            </p>
-          </div>
-        </div>
+      <div className="px-4 pb-1 pt-3">
+        <h1 id="room-setup-title" className="m-0 text-[14px] font-semibold leading-5 tracking-[0.01em] text-ink">{t("room.setup.title", { name: group.name })}</h1>
+        <p className="m-0 mt-0.5 text-[13px] leading-[18px] text-ink/68">{t("room.setup.detailChat")}</p>
       </div>
       <form
-        className="space-y-5 px-5 py-5 sm:px-7 sm:py-6"
+        className="space-y-4 px-4 pb-4 pt-3"
         onSubmit={(event) => {
           event.preventDefault();
           void finish("complete");
         }}
       >
         <label className="block">
-          <span className="text-[13px] font-semibold text-ink">{t("room.folder.title")}</span>
-          <span className="mt-1 block text-[12px] text-ink-secondary">{t("room.setup.folderDetail")}</span>
+          <span className="text-[13px] font-medium leading-[18px] text-ink">{t("room.folder.title")}</span>
+          <span className="mt-0.5 block text-[12px] leading-4 text-ink/56">{t("room.setup.folderDetail")}</span>
           <div className="mt-2 flex gap-2">
             <input
               value={folder}
               onChange={(event) => setFolder(event.target.value)}
               placeholder={t("room.folder.own")}
-              className="min-w-0 flex-1 rounded-xl border border-hairline/50 bg-inset px-3 py-2.5 font-mono text-[13px] text-ink placeholder:text-ink-secondary focus:border-accent focus:outline-none"
+              className={cn(textFieldCls, "flex-1")}
             />
             {window.ogb?.pickFolder && (
               <button
                 type="button"
                 onClick={() => void pickFolder()}
                 disabled={saving}
-                className="flex shrink-0 items-center gap-1.5 rounded-xl border border-hairline/50 bg-raised px-3 py-2 text-[13px] font-medium text-ink hover:bg-raised-hover disabled:opacity-50"
+                className={cn(mdSecondaryCls, "gap-1.5")}
               >
                 <FolderOpen size={14} /> Choose
               </button>
@@ -694,8 +688,8 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
         </label>
 
         <fieldset className="block">
-          <legend className="text-[13px] font-semibold text-ink">{t("room.responder.aria")}</legend>
-          <p className="mt-1 text-[12px] text-ink-secondary">{t("room.setup.responderDetail")}</p>
+          <legend className="text-[13px] font-medium leading-[18px] text-ink">{t("room.responder.aria")}</legend>
+          <p className="mt-0.5 text-[12px] leading-4 text-ink/56">{t("room.setup.responderDetail")}</p>
           <div role="radiogroup" aria-label={t("room.responder.aria")} className="mt-2 grid gap-2 sm:grid-cols-2">
             <button
               type="button"
@@ -707,24 +701,24 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
               }}
               disabled={saving}
               className={cn(
-                "flex min-h-[72px] w-full cursor-pointer flex-col items-start justify-between rounded-2xl border px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-50",
+                "flex min-h-[60px] w-full cursor-pointer flex-col items-start justify-between rounded-[10px] border px-3 py-2.5 text-left transition-[background-color,border-color] duration-[120ms] ease-[ease] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50",
                 behavior === "auto"
-                  ? "border-accent bg-accent/10 text-ink ring-1 ring-accent/30"
-                  : "border-hairline/50 bg-inset text-ink-secondary hover:border-hairline hover:bg-raised",
+                  ? "border-ink/24 bg-ink/4 text-ink"
+                  : "border-ink/12 text-ink hover:bg-ink/4",
               )}
             >
-              <span className="flex items-center gap-2 text-[13px] font-semibold">
+              <span className="flex items-center gap-2 text-[13px] leading-[18px]">
                 <span
                   className={cn(
                     "flex size-4 shrink-0 items-center justify-center rounded-full border",
-                    behavior === "auto" ? "border-accent bg-accent" : "border-ink-secondary/60",
+                    behavior === "auto" ? "border-ink bg-ink" : "border-ink/24",
                   )}
                 >
-                  {behavior === "auto" && <span className="size-1.5 rounded-full bg-white" />}
+                  {behavior === "auto" && <span className="size-1.5 rounded-full bg-app" />}
                 </span>
                 {jevOn ? t("room.responder.autoOption") : t("room.responder.autoOptionOff")}
               </span>
-              <span className="ml-6 mt-2 text-[12px] text-ink-secondary">
+              <span className="ml-6 mt-1 text-[12px] leading-4 text-ink/56">
                 {jevOn ? t("room.setup.autoDetail") : t("room.setup.autoDetailOff")}
               </span>
             </button>
@@ -742,21 +736,21 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
                 }}
                 disabled={saving}
                 className={cn(
-                  "flex min-h-[72px] w-full flex-col items-start justify-between rounded-2xl border px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-50",
+                  "flex min-h-[60px] w-full flex-col items-start justify-between rounded-[10px] border px-3 py-2.5 text-left transition-[background-color,border-color] duration-[120ms] ease-[ease] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50",
                   behavior === "lead"
-                    ? "border-accent bg-accent/10 text-ink ring-1 ring-accent/30"
-                    : "border-hairline/50 bg-inset text-ink-secondary hover:border-hairline hover:bg-raised",
+                    ? "border-ink/24 bg-ink/4 text-ink"
+                    : "border-ink/12 text-ink hover:bg-ink/4",
                 )}
               >
                 <span className="flex w-full items-center justify-between gap-2">
-                  <span className="flex items-center gap-2 text-[13px] font-semibold">
+                  <span className="flex items-center gap-2 text-[13px] leading-[18px]">
                     <span
                       className={cn(
                         "flex size-4 shrink-0 items-center justify-center rounded-full border",
-                        behavior === "lead" ? "border-accent bg-accent" : "border-ink-secondary/60",
+                        behavior === "lead" ? "border-ink bg-ink" : "border-ink/24",
                       )}
                     >
-                      {behavior === "lead" && <span className="size-1.5 rounded-full bg-white" />}
+                      {behavior === "lead" && <span className="size-1.5 rounded-full bg-app" />}
                     </span>
                     {t("room.behavior.lead")}
                   </span>
@@ -766,7 +760,7 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
                     className={cn("shrink-0 text-ink-secondary transition-transform", leadPickerOpen && "rotate-180")}
                   />
                 </span>
-                <span className="ml-6 mt-2 truncate text-[12px] text-ink-secondary">
+                <span className="ml-6 mt-1 truncate text-[12px] leading-4 text-ink/56">
                   {selectedLead?.name ?? t("room.behavior.chooseTeammate")}
                 </span>
               </button>
@@ -774,7 +768,7 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
                 <div
                   role="listbox"
                   aria-label={t("room.behavior.chooseLead")}
-                  className={cn("absolute left-0 top-full z-30 mt-2 w-72 max-w-[calc(100vw-3rem)] overflow-hidden rounded-2xl border border-hairline/60 bg-panel shadow-2xl shadow-black/20", leadMotion.className)} {...leadMotion.exitProps}
+                  className={cn("absolute left-0 top-full z-30 mt-2 w-72 max-w-[calc(100vw-3rem)] overflow-hidden rounded-[12px] border border-ink/12 bg-menu shadow-[0_8px_24px_rgb(0_0_0/0.12)]", leadMotion.className)} {...leadMotion.exitProps}
                 >
                   <div className="border-b border-hairline/40 px-3 py-2.5">
                     <div className="text-[13px] font-semibold text-ink">{t("room.behavior.chooseLead")}</div>
@@ -795,7 +789,7 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
                           }}
                           className={cn(
                             "flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left transition",
-                            selected ? "bg-accent/10" : "hover:bg-raised",
+                            selected ? "bg-ink/6" : "hover:bg-ink/5",
                           )}
                         >
                           <BotAvatar
@@ -808,7 +802,7 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
                             <span className="block truncate text-[13px] font-medium text-ink">{member.name}</span>
                             <span className="block truncate text-[11px] text-ink-secondary">{member.title}</span>
                           </span>
-                          {selected && <Check size={15} className="shrink-0 text-accent" />}
+                          {selected && <Check size={14} className="shrink-0 text-ink" />}
                         </button>
                       );
                     })}
@@ -827,24 +821,24 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
               }}
               disabled={saving}
               className={cn(
-                "flex min-h-[72px] w-full flex-col items-start justify-between rounded-2xl border px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-50",
+                "flex min-h-[60px] w-full flex-col items-start justify-between rounded-[10px] border px-3 py-2.5 text-left transition-[background-color,border-color] duration-[120ms] ease-[ease] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50",
                 behavior === "everyone"
-                  ? "border-accent bg-accent/10 text-ink ring-1 ring-accent/30"
-                  : "border-hairline/50 bg-inset text-ink-secondary hover:border-hairline hover:bg-raised",
+                  ? "border-ink/24 bg-ink/4 text-ink"
+                  : "border-ink/12 text-ink hover:bg-ink/4",
               )}
             >
-              <span className="flex items-center gap-2 text-[13px] font-semibold">
+              <span className="flex items-center gap-2 text-[13px] leading-[18px]">
                 <span
                   className={cn(
                     "flex size-4 shrink-0 items-center justify-center rounded-full border",
-                    behavior === "everyone" ? "border-accent bg-accent" : "border-ink-secondary/60",
+                    behavior === "everyone" ? "border-ink bg-ink" : "border-ink/24",
                   )}
                 >
-                  {behavior === "everyone" && <span className="size-1.5 rounded-full bg-white" />}
+                  {behavior === "everyone" && <span className="size-1.5 rounded-full bg-app" />}
                 </span>
                 {t("room.responder.everyoneOption")}
               </span>
-              <span className="ml-6 mt-2 text-[12px] text-ink-secondary">{t("room.setup.allMembers")}</span>
+              <span className="ml-6 mt-1 text-[12px] leading-4 text-ink/56">{t("room.setup.allMembers")}</span>
             </button>
 
             <button
@@ -857,54 +851,54 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
               }}
               disabled={saving}
               className={cn(
-                "flex min-h-[72px] w-full flex-col items-start justify-between rounded-2xl border px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-50",
+                "flex min-h-[60px] w-full flex-col items-start justify-between rounded-[10px] border px-3 py-2.5 text-left transition-[background-color,border-color] duration-[120ms] ease-[ease] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50",
                 behavior === "mentions"
-                  ? "border-accent bg-accent/10 text-ink ring-1 ring-accent/30"
-                  : "border-hairline/50 bg-inset text-ink-secondary hover:border-hairline hover:bg-raised",
+                  ? "border-ink/24 bg-ink/4 text-ink"
+                  : "border-ink/12 text-ink hover:bg-ink/4",
               )}
             >
-              <span className="flex items-center gap-2 text-[13px] font-semibold">
+              <span className="flex items-center gap-2 text-[13px] leading-[18px]">
                 <span
                   className={cn(
                     "flex size-4 shrink-0 items-center justify-center rounded-full border",
-                    behavior === "mentions" ? "border-accent bg-accent" : "border-ink-secondary/60",
+                    behavior === "mentions" ? "border-ink bg-ink" : "border-ink/24",
                   )}
                 >
-                  {behavior === "mentions" && <span className="size-1.5 rounded-full bg-white" />}
+                  {behavior === "mentions" && <span className="size-1.5 rounded-full bg-app" />}
                 </span>
                 {t("room.responder.mentionsOption")}
               </span>
-              <span className="ml-6 mt-2 text-[12px] text-ink-secondary">{t("room.setup.onlyMentioned")}</span>
+              <span className="ml-6 mt-1 text-[12px] leading-4 text-ink/56">{t("room.setup.onlyMentioned")}</span>
             </button>
           </div>
         </fieldset>
 
         <label className="block">
-          <span className="text-[13px] font-semibold text-ink">{t("room.setup.instructions")}</span>
-          <span className="mt-1 block text-[12px] text-ink-secondary">{t("room.setup.instructionsDetail")}</span>
+          <span className="text-[13px] font-medium leading-[18px] text-ink">{t("room.setup.instructions")}</span>
+          <span className="mt-0.5 block text-[12px] leading-4 text-ink/56">{t("room.setup.instructionsDetail")}</span>
           <textarea
             value={instructions}
             onChange={(event) => setInstructions(event.target.value)}
             rows={5}
             placeholder={t("room.setup.instructionsPlaceholder")}
-            className="mt-2 w-full resize-y rounded-xl border border-hairline/50 bg-inset px-3 py-2.5 text-[13px] leading-relaxed text-ink placeholder:text-ink-secondary focus:border-accent focus:outline-none"
+            className={cn(textAreaCls, "mt-2 resize-y")}
           />
         </label>
 
-        {error && <div role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-[13px] text-danger">{error}</div>}
+        {error && <p role="alert" className="m-0 text-[12px] leading-4 text-danger">{error}</p>}
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
           <button
             type="button"
             onClick={() => void finish("skip")}
             disabled={saving}
-            className="rounded-xl px-3 py-2 text-left text-[13px] text-ink-secondary hover:bg-raised hover:text-ink disabled:opacity-50"
+            className={mdSecondaryCls}
           >
             {t("room.setup.skip")}
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-[13px] font-semibold text-white hover:brightness-110 disabled:opacity-50"
+            className={cn(mdPrimaryCls, "gap-1.5")}
           >
             {saving && <Loader2 size={14} className="animate-spin" />}
             {t("room.setup.save")}

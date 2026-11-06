@@ -196,7 +196,7 @@ describe("Automations page", () => {
     const other = { ...bot, id: "other", name: "Other" };
     fixture.values = [];
     const tree = capture(() => WebhookEditor({ bots: [bot, other], initialBotId: "other", onClose: vi.fn(), onCredential: vi.fn() }));
-    const picked = tree.filter((node) => node.type === "button" && String(node.props.className).includes("border-accent/70")).map((node) => textOf(node.props.children));
+    const picked = tree.filter((node) => node.type === "button" && node.props["aria-pressed"] === true).map((node) => textOf(node.props.children));
     expect(picked).toContain("Other");
     expect(picked).not.toContain(bot.name);
   });
@@ -291,7 +291,7 @@ describe("routine editor", () => {
     const html = editor(cronRoutine);
     expect(html).toContain('aria-expanded="true"');
     for (const text of hidden.filter((text) => text !== "Routine type")) expect(html, text).toContain(text);
-    expect(html).not.toMatch(/aria-pressed="true"/);
+    expect(html).not.toMatch(/aria-pressed="true"[^>]*>(Once|Every day|Weekdays|Every week)</);
   });
 
   it("shows a saved startup choice when the simple editor opens", () => {

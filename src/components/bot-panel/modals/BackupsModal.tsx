@@ -131,8 +131,7 @@ export function BackupsModal({ bot, derived, onClose }: {
               </div>
             )}
           </DialogSection>
-          {chain.length === 0 && editable && <p className={footnoteCls}>No backups yet. {bot.name} waits for its own AI until you add one.</p>}
-          {chain.length > 0 && chain.length < MAX_BACKUPS && <p className={footnoteCls}>If {bot.name}'s AI hits its limit or can't start, the first one here takes over.</p>}
+          {chain.length > 0 && chain.length < MAX_BACKUPS && <p className={footnoteCls}>{t("botPanel.sheet.backupsHint")}</p>}
           {chain.length >= MAX_BACKUPS && <p className={footnoteCls}>That's the most a bot can keep.</p>}
         </div>
       </div>

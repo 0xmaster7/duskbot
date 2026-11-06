@@ -52,7 +52,7 @@ function mount(element: ReturnType<typeof createElement>) {
   return container;
 }
 const button = (container: HTMLElement, label: string) => {
-  const found = [...container.querySelectorAll("button")].find((candidate) => candidate.textContent?.trim() === label);
+  const found = [...container.querySelectorAll("button")].find((candidate) => candidate.textContent?.replace(/[\uE000-\uF8FF\u{F0000}-\u{FFFFD}]/gu, "").trim() === label || candidate.getAttribute("aria-label") === label);
   if (!found) throw new Error(`no ${label} button in ${container.innerHTML}`);
   return found;
 };

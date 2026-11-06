@@ -81,8 +81,7 @@ export function WorkersAiKeyCard({ failureText }: { failureText: (result: { reas
   return (
     <Card title={t("decider.workersAi.title")}>
       {saved && (
-        <div role="status" className="mb-2 flex items-center gap-2 text-[13px] text-success">
-          <span className="size-1.5 rounded-full bg-success" />
+        <div role="status" className="mb-2 flex items-center gap-2 text-[13px] leading-[18px] text-ink-secondary">
           <span>{t("decider.status.connected")}</span>
         </div>
       )}

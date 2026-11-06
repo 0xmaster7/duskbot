@@ -30,7 +30,7 @@ function ClaudeConfigSwitch({ feature, enabled, prefix }: { feature: Feature; en
   };
 
   return (
-    <div className="mt-4 flex items-start justify-between gap-4 rounded-2xl border border-hairline/50 bg-card px-4 py-4 sm:px-5 in-data-[settings-look=simple]:mt-3 in-data-[settings-look=simple]:items-center in-data-[settings-look=simple]:rounded-[14px] in-data-[settings-look=simple]:border-0 in-data-[settings-look=simple]:bg-menu in-data-[settings-look=simple]:px-3.5 in-data-[settings-look=simple]:py-2.5 in-data-[settings-look=simple]:outline-[0.5px] in-data-[settings-look=simple]:outline-offset-[-0.5px] in-data-[settings-look=simple]:outline-edge in-data-[settings-look=simple]:[outline-style:solid]">
+    <div className="mt-4 flex items-start justify-between gap-4 rounded-2xl border border-hairline/50 bg-card px-4 py-4 sm:px-5 in-data-[settings-look=simple]:mt-0 in-data-[settings-look=simple]:min-h-12 in-data-[settings-look=simple]:items-center in-data-[settings-look=simple]:rounded-none! in-data-[settings-look=simple]:border-0! in-data-[settings-look=simple]:bg-transparent! in-data-[settings-look=simple]:px-3.5! in-data-[settings-look=simple]:py-2.5!">
       <div className="min-w-0">
         <div className="text-[14px] font-medium text-ink in-data-[settings-look=simple]:text-[13px] in-data-[settings-look=simple]:leading-[18px] in-data-[settings-look=simple]:font-normal">{t(`${prefix}.title` as LocaleKey)}</div>
         <p className="mt-1 text-[12px] leading-relaxed text-ink-secondary in-data-[settings-look=simple]:hidden">{t(`${prefix}.desc` as LocaleKey)}</p>

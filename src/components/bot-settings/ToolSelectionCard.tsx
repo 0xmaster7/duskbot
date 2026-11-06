@@ -6,15 +6,13 @@ import { TOOL_SCOPE_SUPPORT } from "../../../shared/tool-scope-support";
 import { useBotEditor } from "./BotEditorContext";
 import { inputCls } from "./field";
 import { Select } from "../Select";
-import { SheetGroup, useSheetLook } from "./sheet-look";
 
 type Draft = { custom: boolean; onlyListed: boolean; allow: string; deny: string };
 const lines = (text: string) => text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
 
 /** Direct, acknowledged saves: a rejected restriction must never appear saved in the optimistic queue. */
-export function ToolSelectionCard({ bot, engineKind }: { bot: Bot; engineKind?: string }) {
+export function useToolSelection(bot: Bot, engineKind?: string) {
   const { request } = useBotEditor();
-  const sheet = useSheetLook();
   const saved = parseToolScope(bot.toolScope);
   const scope = saved.ok ? saved.scope : undefined;
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -36,11 +34,11 @@ export function ToolSelectionCard({ bot, engineKind }: { bot: Bot; engineKind?: 
   const unavailable = restricted && support !== "native-and-mcp"
     && (support !== "mcp" || narrowsNativeTools(proposed));
   const change = (patch: Partial<Draft>) => { setDraft({ ...fields, ...patch }); setError(null); };
-  const save = async () => {
-    if (!draft || bot.busy || pending.current || !parsed.ok) return;
+  const send = async (toolScope: unknown) => {
+    if (bot.busy || pending.current) return;
     pending.current = true; setSaving(true); setError(null);
     try {
-      await request(`/api/bots/${bot.id}`, { method: "PATCH", body: JSON.stringify({ toolScope: parsed.scope ?? null }) });
+      await request(`/api/bots/${bot.id}`, { method: "PATCH", body: JSON.stringify({ toolScope }) });
       if (alive.current) setDraft(null);
     } catch (cause) {
       if (alive.current) setError(cause instanceof Error ? cause.message : String(cause));
@@ -49,21 +47,36 @@ export function ToolSelectionCard({ bot, engineKind }: { bot: Bot; engineKind?: 
       if (alive.current) setSaving(false);
     }
   };
+  const save = async () => {
+    if (!draft || !parsed.ok) return;
+    await send(parsed.scope ?? null);
+  };
+  /** Every current tool again, saved at once. */
+  const clear = async () => {
+    if (bot.toolScope === undefined) { setDraft(null); setError(null); return; }
+    await send(null);
+  };
   const example = engineKind === "piAgent" ? "native:read\nnative:edit\nnative:write"
     : engineKind === "grokAgent" ? "native:read_file\nnative:search_replace\nnative:write"
       : support === "mcp" ? "native:*\nmcp:mail:read_notes" : "native:ask_user\nmcp:mail:read_notes";
+  const status = !saved.ok ? t("botAccess.tools.corrupt") : scope?.allow?.length === 0 ? t("botAccess.tools.none")
+    : scope === undefined ? t("botAccess.tools.all") : t("botAccess.tools.customSaved");
+  return { saved, scope, draft, fields, parsed, support, unavailable, saving, error, change, save, clear, example, status, empty: fields.onlyListed && lines(fields.allow).length === 0 };
+}
 
-  return <SheetGroup label={t("botAccess.tools.title")}><div className="rounded-xl bg-card p-4">
-    {!sheet && <div className="text-[15px] font-medium text-ink">{t("botAccess.tools.title")}</div>}
-    {!sheet && <p className="mt-0.5 text-[13px] text-ink-secondary">{t("botAccess.tools.description")}</p>}
-    {!(sheet && saved.ok && scope === undefined) && <p role={saved.ok ? "status" : "alert"} className={`${sheet ? "mb-3 " : "mt-2 "}text-[12px] ${saved.ok ? "text-ink-secondary" : "text-danger"}`}>
-      {!saved.ok ? t("botAccess.tools.corrupt") : scope?.allow?.length === 0 ? t("botAccess.tools.none")
-        : scope === undefined ? t("botAccess.tools.all") : t("botAccess.tools.customSaved")}
-    </p>}
-    <label className={`${sheet ? "" : "mt-3 "}block text-[13px] text-ink-secondary`}>
-      {!sheet && t("botAccess.tools.mode")}
+export function ToolSelectionCard({ bot, engineKind }: { bot: Bot; engineKind?: string }) {
+  const { saved, draft, fields, parsed, support, unavailable, saving, error, change, save, example, status } = useToolSelection(bot, engineKind);
+
+  return <div className="rounded-xl bg-card p-4">
+    <div className="text-[15px] font-medium text-ink">{t("botAccess.tools.title")}</div>
+    <p className="mt-0.5 text-[13px] text-ink-secondary">{t("botAccess.tools.description")}</p>
+    <p role={saved.ok ? "status" : "alert"} className={`mt-2 text-[12px] ${saved.ok ? "text-ink-secondary" : "text-danger"}`}>
+      {status}
+    </p>
+    <label className="mt-3 block text-[13px] text-ink-secondary">
+      {t("botAccess.tools.mode")}
       <Select aria-label={t("botAccess.tools.title")} disabled={saving || !!bot.busy} value={fields.custom ? "custom" : "all"}
-        className={sheet ? "w-full" : "mt-1 w-full"} onChange={event => change({ custom: event.target.value === "custom", onlyListed: fields.custom ? fields.onlyListed : true })}>
+        className="mt-1 w-full" onChange={event => change({ custom: event.target.value === "custom", onlyListed: fields.custom ? fields.onlyListed : true })}>
         <option value="all">{t("botAccess.tools.all")}</option>
         <option value="custom">{t("botAccess.tools.custom")}</option>
       </Select>
@@ -98,5 +111,5 @@ export function ToolSelectionCard({ bot, engineKind }: { bot: Bot; engineKind?: 
       </button>
       <a href="https://github.com/milind-soni/OpenMausBot/blob/main/docs/tool-selection.md" target="_blank" rel="noreferrer" className="text-[12px] text-ink-secondary underline">{t("botAccess.tools.examples")}</a>
     </div>
-  </div></SheetGroup>;
+  </div>;
 }

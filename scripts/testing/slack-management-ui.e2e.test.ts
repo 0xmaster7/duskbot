@@ -98,7 +98,7 @@ describe("Slack management in agent settings", () => {
     await expect.poll(row, { timeout: 10_000 }).toBe(true);
     await openSlack();
     await expect.poll(link, { timeout: 10_000 }).toMatch(/^https:\/\/admin\.example\.test\/slack\?workspace=acme&bot=/);
-    expect(await snapshot()).toContain("Its own Slack app, so your team can message it.");
+    expect(await snapshot()).toContain("Your team can message it there");
     expect(await snapshot()).toContain("Manage in Admin");
     expect(await evaluate("document.querySelector('[data-bot-settings-section=slack] a')?.getAttribute('rel')")).toBe("noopener noreferrer");
     expect(await evaluate("document.querySelector('[data-bot-settings-section=slack] a')?.getAttribute('target')")).toBe("_blank");

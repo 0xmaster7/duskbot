@@ -132,11 +132,11 @@ export function CustomDomainSettings() {
     } finally { setBusy(null); }
   };
 
+  if (status && !status.supported) return null;
   return (
-    <Card title={t("settings.domain.title")} subtitle={t("settings.domain.subtitle")}>
+    <Card title={t("settings.domain.title")}>
       <div className="space-y-3" data-custom-domain-settings>
         {busy === "loading" && <p role="status" className="flex items-center gap-2 text-[13px] text-ink-secondary"><Loader2 size={14} className="animate-spin" />{t("settings.domain.loading")}</p>}
-        {status && !status.supported && <p className="text-[13px] leading-relaxed text-ink-secondary">{t("settings.domain.serverOnly")}</p>}
         {status?.supported && (
           <>
             <form onSubmit={(event) => { event.preventDefault(); if (domain.trim() && !busy) void save(false); }} className="space-y-2">

@@ -25,6 +25,28 @@ if (params.get("desktop") === "1") {
   } });
 }
 
+// ?companion=off|paired: the desktop's phone bridge, so the Phone pane draws as the app does
+const companionMode = params.get("companion");
+if (companionMode) {
+  const devices = companionMode === "paired"
+    ? [{ id: "d1", name: "Siddharth's iPhone", lastSeenAt: Date.now() - 3_600_000, cloudDesktopAccess: true, browserControlAccess: false }]
+    : [];
+  let companion = { enabled: companionMode === "paired", keepAwake: false, port: 8810, devices, pairing: null as null | { code: string; token: string; expiresAt: number }, lan: "192.168.1.34" };
+  const same = async () => companion;
+  const account = { available: true, status: "ready", email: "siddharth@example.com" };
+  Object.assign((window as unknown as { ogb: object }).ogb ?? Object.assign(window, { ogb: {} }).ogb, {
+    companion: {
+      state: same, start: async () => (companion = { ...companion, enabled: true }), stop: async () => (companion = { ...companion, enabled: false }),
+      keepAwake: same, refreshTailscale: same, cloudDesktop: same, browserControl: same, revoke: same,
+      pairing: async (open: boolean) => (companion = { ...companion, pairing: open ? { code: "482913", token: `omb_pair_${"a".repeat(43)}`, expiresAt: Date.now() + 120_000 } : null }),
+    },
+    companionAccount: {
+      state: async () => account, requestCode: async () => account, verifyCode: async () => account, retry: async () => account,
+      signOut: async () => account, prepare: async () => account,
+    },
+  });
+}
+
 const DAY = 86_400_000;
 const LIMITS = params.get("limits") === "1" ? { checkedAt: Date.now(), engines: [
   { engine: "claude", name: "Claude", driver: "claude", window: "weekly", usedPercent: 62, resetsAt: Date.now() + 4 * DAY, blocked: false,

@@ -10,7 +10,6 @@ import {
 } from "react";
 import {
   CheckCircle2,
-  ChevronRight,
   CircleAlert,
   Clock3,
   Cloud,
@@ -71,6 +70,8 @@ import { limitResetWhen, type ResetMarker } from "@/lib/limit-resets";
 import { LimitResetFields, type LimitResetChoice } from "./routines/LimitResetFields";
 import { DAY_NAMES, durationLabel, niceDate, niceTime, scheduleLabel } from "@/lib/schedule-label";
 import { Select } from "./Select";
+import { GrokIcon } from "./GrokIcon";
+import { fieldLabelCls, formBodyCls, formCloseCls, formFooterCls, formHeaderCls, formSheetCls, formTitleCls, mdPrimaryCls, mdSecondaryCls, rowButtonCls, smallButtonCls, textAreaCls, textFieldCls } from "./ui/GrokDialog";
 import {
   isRoutineProblemRun,
   type Routine,
@@ -245,14 +246,14 @@ function BotPicker({
   const [query, setQuery] = useState("");
   const filtered = bots.filter((bot) => `${bot.name} ${bot.title}`.toLowerCase().includes(query.toLowerCase()));
   return (
-    <div className="rounded-xl border border-hairline/50 bg-inset/60 p-2">
+    <div className="rounded-[10px] border border-ink/12 p-1">
       {!locked && bots.length > 5 && (
-        <label className="mb-2 flex items-center gap-2 rounded-lg border border-transparent bg-panel px-2.5 py-2 text-ink-secondary focus-within:border-focus">
-          <Search size={14} />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("routines.findBot")} className="min-w-0 flex-1 bg-transparent text-[12px] text-ink outline-none placeholder:text-ink-tertiary" />
+        <label className="mb-1 flex h-8 items-center gap-1.5 rounded-full border border-ink/12 bg-ink/4 px-[11px] text-ink/56 transition-[border-color] duration-[120ms] ease-[ease] focus-within:border-ink/24">
+          <Search size={14} aria-hidden="true" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} aria-label={t("routines.findBot")} placeholder={t("routines.findBot")} className="min-w-0 flex-1 bg-transparent text-[13px] leading-[18px] text-ink outline-none placeholder:text-ink/56" />
         </label>
       )}
-      <div className="grid max-h-48 grid-cols-1 gap-1 overflow-y-auto sm:grid-cols-2">
+      <div className="grid max-h-48 grid-cols-1 gap-0.5 overflow-y-auto sm:grid-cols-2">
         {filtered.map((bot) => {
           const active = selected.includes(bot.id);
           return (
@@ -261,11 +262,12 @@ function BotPicker({
               type="button"
               disabled={locked}
               onClick={() => onChange(multiple ? (active ? selected.filter((id) => id !== bot.id) : [...selected, bot.id]) : [bot.id])}
-              className={cn("flex min-w-0 items-center gap-2 rounded-lg px-2 py-2 text-left transition", active ? "bg-accent/12 ring-1 ring-accent/50" : "hover:bg-raised", locked && "cursor-default")}
+              aria-pressed={active}
+              className={cn("flex h-8 min-w-0 items-center gap-2 rounded-[8px] px-2 text-left transition-[background-color] duration-[120ms] ease-[ease] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus", active ? "bg-ink/6" : "hover:bg-ink/5", locked && "cursor-default")}
             >
-              <BotAvatar bot={bot} state={active ? "happy" : "idle"} size={32} animated={false} />
-              <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink">{bot.name}</span>
-              {active && <CheckCircle2 size={14} className="shrink-0 text-accent" />}
+              <BotAvatar bot={bot} state={active ? "happy" : "idle"} size={20} animated={false} />
+              <span className="min-w-0 flex-1 truncate text-[13px] leading-[18px] text-ink">{bot.name}</span>
+              {active && <GrokIcon name="check" size={14} className="shrink-0 text-ink" />}
             </button>
           );
         })}
@@ -570,22 +572,22 @@ export function EventEditor({
           );
   const routineTypeControl = kind === "routine" && !lockedBotId && (
             <div className={cn(advanced && "ml-10")}>
-              <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-ink-secondary">{t("routines.editor.type")}</div>
+              <div className={cn(fieldLabelCls, "mb-1")}>{t("routines.editor.type")}</div>
               <div className="grid gap-2 sm:grid-cols-2">
                 <button
                   type="button"
                   onClick={() => selectRoutineTarget("bot")}
-                  className={cn("flex items-start gap-3 rounded-xl border p-3 text-left transition", routineTarget === "bot" ? "border-accent/60 bg-accent/10" : "border-hairline/50 bg-inset hover:bg-raised")}
+                  className={cn("flex items-start gap-3 rounded-xl border p-3 text-left transition", routineTarget === "bot" ? "border-ink/24 bg-ink/4" : "border-ink/12 hover:bg-ink/4")}
                 >
-                  <UserRoundPlus size={17} className={cn("mt-0.5 shrink-0", routineTarget === "bot" ? "text-accent" : "text-ink-secondary")} />
+                  <UserRoundPlus size={17} className={cn("mt-0.5 shrink-0", routineTarget === "bot" ? "text-ink" : "text-ink/56")} />
                   <span><span className="block text-[13px] font-medium text-ink">{t("routines.editor.botTask")}</span><span className="mt-1 block text-[11px] leading-relaxed text-ink-secondary">{t("routines.editor.botTaskHelp")}</span></span>
                 </button>
                 <button
                   type="button"
                   onClick={() => selectRoutineTarget("room-goal")}
-                  className={cn("flex items-start gap-3 rounded-xl border p-3 text-left transition", routineTarget === "room-goal" ? "border-accent/60 bg-accent/10" : "border-hairline/50 bg-inset hover:bg-raised")}
+                  className={cn("flex items-start gap-3 rounded-xl border p-3 text-left transition", routineTarget === "room-goal" ? "border-ink/24 bg-ink/4" : "border-ink/12 hover:bg-ink/4")}
                 >
-                  <Target size={17} className={cn("mt-0.5 shrink-0", routineTarget === "room-goal" ? "text-accent" : "text-ink-secondary")} />
+                  <Target size={17} className={cn("mt-0.5 shrink-0", routineTarget === "room-goal" ? "text-ink" : "text-ink/56")} />
                   <span><span className="block text-[13px] font-medium text-ink">{t("routines.editor.teamGoal")}</span><span className="mt-1 block text-[11px] leading-relaxed text-ink-secondary">{t("routines.editor.teamGoalHelp")}</span></span>
                 </button>
               </div>
@@ -593,10 +595,10 @@ export function EventEditor({
           );
   const whenControls = recurrence !== "interval" && recurrence !== "limit_reset" && !isCronChoice(recurrence) && (
                 <div className="flex flex-wrap items-center gap-2">
-                  {kind === "routine" && recurrence === "none" && <span className="text-[12px] font-medium text-ink-secondary">Starts</span>}
-                  {kind === "routine" && recurrence === "weekly" && <span className="text-[12px] font-medium text-ink-secondary">On</span>}
-                  {(kind === "call" || recurrence === "none" || recurrence === "weekly") && <input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="rounded-lg border border-hairline/50 bg-inset px-3 py-2 text-[13px] text-ink outline-none focus:border-accent [color-scheme:dark]" />}
-                  <input type="time" step={CALENDAR_SLOT_MINUTES * 60} value={startTime} onChange={(event) => setStartTime(event.target.value)} className="rounded-lg border border-hairline/50 bg-inset px-3 py-2 text-[13px] text-ink outline-none focus:border-accent [color-scheme:dark]" />
+                  {kind === "routine" && recurrence === "none" && <span className="text-[13px] leading-[18px] text-ink/68">Starts</span>}
+                  {kind === "routine" && recurrence === "weekly" && <span className="text-[13px] leading-[18px] text-ink/68">On</span>}
+                  {(kind === "call" || recurrence === "none" || recurrence === "weekly") && <input type="date" aria-label={t("routines.editor.when")} value={date} onChange={(event) => setDate(event.target.value)} className={cn(textFieldCls, "w-auto")} />}
+                  <input type="time" aria-label={t("routines.editor.when")} step={CALENDAR_SLOT_MINUTES * 60} value={startTime} onChange={(event) => setStartTime(event.target.value)} className={cn(textFieldCls, "w-auto")} />
                   {kind === "call" && <>
                     <span className="text-[12px] text-ink-secondary">to</span>
                     <span className="rounded-lg border border-hairline/40 bg-inset/60 px-3 py-2 text-[13px] text-ink">{niceTime(endAt)}</span>
@@ -802,11 +804,11 @@ export function EventEditor({
                 </details>
               );
   const continuityControl = kind === "routine" && !isRoomGoal && recurrence !== "none" && (
-          <label className={cn("flex items-start gap-3 rounded-xl border border-hairline/40 bg-inset/40 px-3.5 py-3", advanced && "ml-8")}>
-            <input type="checkbox" aria-label={t("routines.continuityLabel")} checked={continuity} onChange={(event) => setContinuity(event.target.checked)} className="mt-0.5 accent-accent" />
-            <span>
-              <span className="block text-[13px] font-medium text-ink">{t("routines.continuityLabel")}</span>
-              <span className="mt-1 block text-[11px] leading-relaxed text-ink-secondary">{t("routines.continuityHelp")}</span>
+          <label className={cn("flex items-start gap-2.5", advanced && "ml-8")}>
+            <input type="checkbox" aria-label={t("routines.continuityLabel")} checked={continuity} onChange={(event) => setContinuity(event.target.checked)} className="mt-0.5 accent-ink" />
+            <span className="flex flex-col gap-0.5">
+              <span className="text-[13px] leading-[18px] text-ink">{t("routines.continuityLabel")}</span>
+              <span className="text-[12px] leading-4 text-ink/56">{t("routines.continuityHelp")}</span>
             </span>
           </label>
         );
@@ -823,7 +825,7 @@ export function EventEditor({
               </div>
             ) : <div className="min-w-0 flex-1 space-y-2">
               <input ref={fileInput} type="file" multiple className="hidden" onChange={(event) => { void pickFiles(event.target.files); event.target.value = ""; }} />
-              <button type="button" onClick={() => fileInput.current?.click()} className="rounded-lg border border-hairline/50 px-3 py-2 text-[13px] font-medium text-ink hover:bg-raised">Add attachment</button>
+              <button type="button" onClick={() => fileInput.current?.click()} className={rowButtonCls}>Add attachment</button>
               <AttachmentChips attachments={attachments} onRemove={(id) => setAttachments((current) => current.filter((attachment) => attachment.id !== id))} />
               <div className="text-[11px] leading-relaxed text-ink-secondary">
                 {kind === "routine"
@@ -846,8 +848,8 @@ export function EventEditor({
                     <div className="mt-1 text-[11px] leading-relaxed text-ink-secondary">{t("routines.editor.roomGoalKept")}</div>
                   </div>
                 ) : <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => setRunOn("maus")} className={cn("rounded-xl border p-3 text-left", runOn === "maus" ? "border-accent/60 bg-accent/10" : "border-hairline/50 bg-inset hover:bg-raised")}><div className="text-[13px] font-medium text-ink">Bot’s current setup</div><div className="mt-1 text-[11px] text-ink-secondary">Keeps its model and configured computer, including a self-hosted VPS.</div></button>
-                  <button type="button" disabled={!cloudReady || attachments.length > 0} onClick={() => setRunOn("cloud")} className={cn("rounded-xl border p-3 text-left disabled:cursor-not-allowed disabled:opacity-45", runOn === "cloud" ? "border-accent/60 bg-accent/10" : "border-hairline/50 bg-inset hover:bg-raised")}><div className="text-[13px] font-medium text-ink">{t("routines.runsOn.boat")}</div><div className="mt-1 text-[11px] text-ink-secondary">{t(cloudHome ? "routines.runsOn.boatHintCloudHome" : "routines.runsOn.boatHint")}</div></button>
+                  <button type="button" onClick={() => setRunOn("maus")} className={cn("rounded-xl border p-3 text-left", runOn === "maus" ? "border-ink/24 bg-ink/4" : "border-ink/12 hover:bg-ink/4")}><div className="text-[13px] font-medium text-ink">Bot’s current setup</div><div className="mt-1 text-[11px] text-ink-secondary">Keeps its model and configured computer, including a self-hosted VPS.</div></button>
+                  <button type="button" disabled={!cloudReady || attachments.length > 0} onClick={() => setRunOn("cloud")} className={cn("rounded-xl border p-3 text-left disabled:cursor-not-allowed disabled:opacity-45", runOn === "cloud" ? "border-ink/24 bg-ink/4" : "border-ink/12 hover:bg-ink/4")}><div className="text-[13px] font-medium text-ink">{t("routines.runsOn.boat")}</div><div className="mt-1 text-[11px] text-ink-secondary">{t(cloudHome ? "routines.runsOn.boatHintCloudHome" : "routines.runsOn.boatHint")}</div></button>
                 </div>}
               </div>
             </div>
@@ -863,22 +865,23 @@ export function EventEditor({
   ] as const;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-3 backdrop-blur-sm" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={existingRoutine || existingCall ? "Edit calendar event" : "Create calendar event"} tabIndex={-1} className="max-h-[94vh] w-full max-w-[760px] overflow-y-auto rounded-2xl border border-hairline/60 bg-panel shadow-2xl">
-        <div className="sticky top-0 z-20 flex items-center justify-between border-b border-hairline/40 bg-panel/95 px-5 py-3.5 backdrop-blur">
-          <div className="text-[15px] font-semibold text-ink">{headerTitle}</div>
-          <button onClick={onClose} className="rounded-full p-2 text-ink-secondary hover:bg-raised hover:text-ink" aria-label="Close"><X size={18} /></button>
-        </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div aria-hidden="true" className="ui-dialog-scrim absolute inset-0" onMouseDown={onClose} />
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={existingRoutine || existingCall ? "Edit calendar event" : "Create calendar event"} tabIndex={-1} style={{ maxWidth: advanced ? "min(640px, calc(100vw - 32px))" : "min(460px, calc(100vw - 32px))" }} className={formSheetCls}>
+        <header className={formHeaderCls}>
+          <h2 className={formTitleCls}>{headerTitle}</h2>
+          <button type="button" onClick={onClose} className={formCloseCls} aria-label="Close"><GrokIcon name="close" size={16} /></button>
+        </header>
 
-        <div className="space-y-5 px-5 py-5 sm:px-8">
+        <div className={cn(formBodyCls, "flex flex-col gap-3 pb-2")}>
           {advanced && kindSwitchControl}
 
           {advanced && routineTypeControl}
 
-          <div className="flex items-start gap-4">
-            <span className="mt-3 size-4 shrink-0 rounded bg-accent" />
-            <input autoFocus value={name} onChange={(event) => setName(event.target.value)} aria-label={t("routines.editor.titleLabel")} placeholder={kind === "routine" ? (advanced ? "Add title" : t("routines.editor.titlePlaceholder")) : "Add call title"} className="min-w-0 flex-1 border-b border-hairline/60 bg-transparent px-1 pb-2 text-[22px] font-medium text-ink outline-none placeholder:text-ink-tertiary focus:border-accent" />
-          </div>
+          <label className="flex flex-col gap-1">
+            <span className={fieldLabelCls}>{t("routines.editor.titleLabel")}</span>
+            <input autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder={kind === "routine" ? (advanced ? "Add title" : t("routines.editor.titlePlaceholder")) : "Add call title"} className={textFieldCls} />
+          </label>
 
           {advanced ? (
             <div className="flex items-start gap-4">
@@ -892,31 +895,30 @@ export function EventEditor({
               </div>
             </div>
           ) : (
-            <div className="flex items-start gap-4">
-              <Clock3 size={18} className="mt-2.5 shrink-0 text-ink-secondary" />
-              <div className="min-w-0 flex-1 space-y-3">
-                <div className="text-[13px] font-medium text-ink">{t("routines.editor.when")}</div>
+            <div className="flex flex-col gap-1">
+              <div className={fieldLabelCls}>{t("routines.editor.when")}</div>
+              <div className="flex min-w-0 flex-col gap-2">
                 {whenControls}
-                <div role="group" aria-label={t("routines.editor.repeat")} className="flex flex-wrap gap-1.5">
+                <div role="group" aria-label={t("routines.editor.repeat")} className="flex flex-wrap gap-1">
                   {repeatChoices.map(([choice, label]) => (
                     <button
                       key={choice}
                       type="button"
                       aria-pressed={recurrence === choice}
                       onClick={() => selectRecurrence(choice)}
-                      className={cn("rounded-full border px-3 py-1.5 text-[12px] font-medium transition", recurrence === choice ? "border-accent-border bg-accent/15 text-accent-text" : "border-hairline/50 bg-inset text-ink-secondary hover:bg-raised hover:text-ink")}
+                      className={cn(smallButtonCls, "h-[26px] px-2.5 text-[13px] leading-[18px]", recurrence === choice ? "bg-ink text-app enabled:hover:bg-ink" : "bg-transparent text-ink/68 shadow-none enabled:hover:bg-ink/6 enabled:hover:text-ink")}
                     >
                       {t(label)}
                     </button>
                   ))}
                 </div>
-                {!repeatChoices.some(([choice]) => choice === recurrence) && <div className="text-[12px] text-ink-secondary">{t("routines.editor.customRepeat")}</div>}
+                {!repeatChoices.some(([choice]) => choice === recurrence) && <div className="text-[12px] leading-4 text-ink/56">{t("routines.editor.customRepeat")}</div>}
               </div>
             </div>
           )}
 
           <div className="flex items-start gap-4">
-            {isRoomGoal ? <UsersRound size={18} className="mt-2.5 shrink-0 text-ink-secondary" /> : <UserRoundPlus size={18} className="mt-2.5 shrink-0 text-ink-secondary" />}
+            {advanced && (isRoomGoal ? <UsersRound size={18} className="mt-2.5 shrink-0 text-ink-secondary" /> : <UserRoundPlus size={18} className="mt-2.5 shrink-0 text-ink-secondary" />)}
             <div className="min-w-0 flex-1">
               {isRoomGoal ? (
                 <div className="space-y-3">
@@ -941,17 +943,14 @@ export function EventEditor({
                 </div>
               ) : (
                 <>
-                  <div className="mb-2 text-[13px] font-medium text-ink">{kind === "routine" ? (advanced ? "Assign a bot" : t("routines.editor.who")) : "Add guests"}</div>
+                  <div className={cn(fieldLabelCls, "mb-1")}>{kind === "routine" ? (advanced ? "Assign a bot" : t("routines.editor.who")) : "Add guests"}</div>
                   {bots.length > 0 ? (
                 <>
                   <BotPicker bots={bots} selected={botIds} multiple={kind === "call"} locked={Boolean(lockedBotId)} onChange={selectBots} />
-                  <div className="mt-2 text-[12px] text-ink-secondary">{kind === "routine" ? "This bot owns each scheduled run." : `${selectedBots.length || "No"} bot${selectedBots.length === 1 ? "" : "s"} invited to the call.`}</div>
+                  {kind === "call" && <div className="mt-1 text-[12px] leading-4 text-ink/56">{`${selectedBots.length || "No"} bot${selectedBots.length === 1 ? "" : "s"} invited to the call.`}</div>}
                 </>
               ) : (
-                <button type="button" onClick={() => { dispatch({ type: "newBot" }); onClose(); }} className="w-full rounded-xl border border-dashed border-accent/45 bg-accent/[0.06] px-4 py-4 text-left hover:bg-accent/10">
-                  <div className="text-[13px] font-medium text-accent">Create your first bot</div>
-                  <div className="mt-1 text-[12px] text-ink-secondary">A calendar event needs at least one bot.</div>
-                </button>
+                <button type="button" onClick={() => { dispatch({ type: "newBot" }); onClose(); }} className={rowButtonCls}>Create your first bot</button>
                   )}
                 </>
               )}
@@ -959,10 +958,10 @@ export function EventEditor({
           </div>
 
           {advanced && resultsControl}
-          <div className="flex items-start gap-4">
-            <FileText size={18} className="mt-2.5 shrink-0 text-ink-secondary" />
-            <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={5} aria-label={t("routines.editor.descriptionLabel")} placeholder={isRoomGoal ? "What should the team accomplish?" : kind === "routine" ? (advanced ? "Add instructions for the bot" : t("routines.editor.instructionsPlaceholder")) : "Add description or agenda"} className="min-w-0 flex-1 resize-y rounded-xl border border-hairline/50 bg-inset px-3.5 py-3 text-[13px] leading-relaxed text-ink outline-none placeholder:text-ink-tertiary focus:border-accent" />
-          </div>
+          <label className="flex flex-col gap-1">
+            <span className={fieldLabelCls}>{t("routines.editor.descriptionLabel")}</span>
+            <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={4} placeholder={isRoomGoal ? "What should the team accomplish?" : kind === "routine" ? (advanced ? "Add instructions for the bot" : t("routines.editor.instructionsPlaceholder")) : "Add description or agenda"} className={cn(textAreaCls, "resize-y")} />
+          </label>
           {continuityControl}
 
           {advanced && attachmentsRow}
@@ -976,13 +975,13 @@ export function EventEditor({
                 aria-expanded={moreOpen}
                 aria-controls="routine-more-options"
                 onClick={() => setMoreOpen((open) => !open)}
-                className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-medium text-accent-text hover:bg-raised"
+                className="-ml-1 flex h-6 items-center gap-1 rounded-[6px] px-1 text-[13px] leading-[18px] text-ink/68 transition-[color,background-color] duration-[120ms] ease-[ease] hover:bg-ink/6 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus"
               >
-                <ChevronRight size={14} className={cn("transition-transform", moreOpen && "rotate-90")} />
+                <GrokIcon name="chevron-right" size={12} className={cn("transition-transform duration-[120ms]", moreOpen && "rotate-90")} />
                 {t(moreOpen ? "routines.editor.fewer" : "routines.editor.more")}
               </button>
               {moreOpen && (
-                <div id="routine-more-options" className="mt-3 space-y-5 rounded-xl border border-hairline/40 bg-inset/30 p-4">
+                <div id="routine-more-options" className="mt-3 flex flex-col gap-4">
                   {kindSwitchControl}
                   {routineTypeControl}
                   <div className="space-y-3">
@@ -999,13 +998,13 @@ export function EventEditor({
             </div>
           )}
 
-          {error && <div className="ml-10 flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/10 px-3 py-2.5 text-[13px] text-danger"><CircleAlert size={15} className="mt-0.5 shrink-0" />{error}</div>}
+          {error && <p role="alert" className="m-0 flex items-start gap-1.5 text-[12px] leading-4 text-danger"><CircleAlert size={14} aria-hidden="true" className="shrink-0" />{error}</p>}
         </div>
 
 
-        <div className="sticky bottom-0 flex items-center justify-end gap-2 border-t border-hairline/40 bg-panel/95 px-5 py-3.5 backdrop-blur">
-          <button onClick={onClose} className="rounded-lg px-4 py-2 text-[13px] text-ink-secondary hover:bg-raised hover:text-ink">Cancel</button>
-          <button onClick={save} disabled={saving || attachmentPending || !valid} className="flex items-center gap-2 rounded-lg bg-accent px-5 py-2 text-[13px] font-semibold text-white hover:brightness-110 disabled:opacity-40">{(saving || attachmentPending) && <Loader2 size={14} className="animate-spin" />}{attachmentPending ? "Attaching…" : existingRoutine || existingCall || (kind === "routine" && !isRoomGoal) ? t("automations.editor.app.save") : kind === "call" ? "Schedule call" : "Schedule team goal"}</button>
+        <div className={formFooterCls}>
+          <button type="button" onClick={onClose} className={mdSecondaryCls}>Cancel</button>
+          <button type="button" onClick={save} disabled={saving || attachmentPending || !valid} className={cn(mdPrimaryCls, "gap-1.5")}>{(saving || attachmentPending) && <Loader2 size={14} className="animate-spin" />}{attachmentPending ? "Attaching…" : existingRoutine || existingCall || (kind === "routine" && !isRoomGoal) ? t("automations.editor.app.save") : kind === "call" ? "Schedule call" : "Schedule team goal"}</button>
         </div>
       </div>
     </div>

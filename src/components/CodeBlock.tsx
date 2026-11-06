@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { HighlighterCore } from "shiki/core";
 import { Check, Copy, Download, WrapText, X } from "lucide-react";
 
+import { GROK_LIGHT_THEME } from "./code-theme-grok";
 import { GrokIcon } from "./GrokIcon";
 import { cn } from "@/lib/cn";
 import { useCopyFeedback } from "@/lib/copy-text";
@@ -37,7 +38,7 @@ export const codeHash = (s: string) => {
 };
 
 // Shiki's package entry registers every grammar and theme (hundreds of chunks), so each one is imported on its own.
-const LIGHT_THEME = "github-light-default";
+const LIGHT_THEME = GROK_LIGHT_THEME.name!;
 const DARK_THEME = "github-dark-default";
 const grammarLoaders = {
   javascript: () => import("shiki/langs/javascript.mjs"),
@@ -121,7 +122,7 @@ function getHighlighter(): Promise<HighlighterCore> {
     const { createJavaScriptRegexEngine } = await import("shiki/engine/javascript");
     return createHighlighterCore({
       themes: [
-        import("shiki/themes/github-light-default.mjs").then((mod) => mod.default),
+        GROK_LIGHT_THEME,
         import("shiki/themes/github-dark-default.mjs").then((mod) => mod.default),
       ],
       langs: [],

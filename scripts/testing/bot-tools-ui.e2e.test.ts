@@ -114,7 +114,7 @@ describe("bot setup and tools in the real renderer", () => {
     await runControlOmb(["send", "--bot", created[0].id, "--text", "Reply briefly for the sidebar test.", "--url", info.url]);
     expect((await runControlOmb(["wait", "--bot", created[0].id, "--timeout", "20", "--url", info.url]) as { status: string }).status).toBe("settled");
     await openTools();
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain("No MCP servers added yet.");
+    await expect.poll(snapshot, { timeout: 10_000 }).toContain("No servers");
     await press("Escape");
     await expect.poll(() => evaluate("Boolean(document.querySelector('[data-bot-sheet]'))"), { timeout: 10_000 }).toBe(false);
     // The panel's Share menu shows this chat's cost; its Usage opens Settings at Usage & Billing.

@@ -42,11 +42,16 @@ interface SavedBot { id: string; name: string; toolScope?: { allow?: string[]; d
       const button = [...document.querySelectorAll('main > div button')].find(button => button.textContent.trim().endsWith(': ' + ${JSON.stringify(name)}));
       if (!button) throw new Error('Missing fixture bot'); button.click(); return true;
     })()`);
-    const mode = (value: "all" | "custom") => evaluate(`(() => {
-      const select = document.querySelector('select[aria-label="Tool selection"]');
-      if (!select || select.disabled) throw new Error('Selection is unavailable');
-      select.value = ${JSON.stringify(value)}; select.dispatchEvent(new Event('change', { bubbles: true })); return true;
-    })()`);
+    // The row's menu: All tools saves at once, Custom opens the lists to fill and save.
+    const mode = async (value: "all" | "custom") => {
+      await evaluate(`(() => {
+        const pill = document.querySelector('button[aria-label="Tool selection"]');
+        if (!pill || pill.disabled) throw new Error('Selection is unavailable');
+        pill.click(); return true;
+      })()`);
+      await expect.poll(() => evaluate("Boolean(document.querySelector('[role=listbox][aria-label=\"Tool selection\"]'))")).toBe(true);
+      await evaluate(`[...document.querySelectorAll('[role=listbox][aria-label="Tool selection"] [role=option]')].find(option => option.textContent.trim() === ${JSON.stringify(value === "all" ? "All tools" : "Custom")}).click(); true`);
+    };
     const fill = async (name: string, text: string) => {
       // Use the native setter for a deterministic React change, as in the
       // existing UI tests; saving still uses the real button and API.
@@ -70,7 +75,7 @@ interface SavedBot { id: string; name: string; toolScope?: { allow?: string[]; d
     expect(await snapshot()).toContain("Custom selection saved");
 
     await fill("Allow (one per line)", "native:read*");
-    expect(await evaluate("[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Save tool selection')?.disabled")).toBe(true);
+    expect(await evaluate("document.querySelector('button[aria-label=\"Save tool selection\"]')?.disabled")).toBe(true);
     expect(await scope()).toEqual(selected);
     await fill("Allow (one per line)", "");
     expect(await snapshot()).toContain("An empty Allow list selects no tools");
@@ -78,7 +83,7 @@ interface SavedBot { id: string; name: string; toolScope?: { allow?: string[]; d
     await click("Save tool selection");
     await expect.poll(() => scope()).toEqual({ allow: [], deny: ["mcp:mail:send"] });
     await expect.poll(snapshot).toContain("No tools selected");
-    await mode("all"); await click("Save tool selection");
+    await mode("all");
     await expect.poll(() => scope()).toBeUndefined();
 
     // A rejected save must leave the server and saved status unrestricted,
@@ -141,11 +146,11 @@ interface SavedBot { id: string; name: string; toolScope?: { allow?: string[]; d
     await selectBot(first.name); await click("Open settings"); await openBotSheet(ui, first.name, "tools");
     await runControlOmb(["send", "--bot", first.id, "--text", "Stay active for the settings test.", "--url", info.url]);
     await expect.poll(async () => (await bots()).find(bot => bot.id === first.id)?.busy).toBe(true);
-    await expect.poll(() => evaluate("document.querySelector('select[aria-label=\"Tool selection\"]')?.disabled")).toBe(true);
+    await expect.poll(() => evaluate("document.querySelector('button[aria-label=\"Tool selection\"]')?.disabled")).toBe(true);
     expect(await snapshot()).toContain("Wait until this bot finishes all active tasks");
     await runControlOmb(["interrupt", "--bot", first.id, "--url", info.url]);
     await runControlOmb(["wait", "--bot", first.id, "--timeout", "30", "--url", info.url]);
-    await expect.poll(() => evaluate("document.querySelector('select[aria-label=\"Tool selection\"]')?.disabled")).toBe(false);
+    await expect.poll(() => evaluate("document.querySelector('button[aria-label=\"Tool selection\"]')?.disabled")).toBe(false);
   } finally {
     if (child?.connected) child.send("stop");
     await waitForExit(child, { graceMs: 30_000 });

@@ -1,3 +1,5 @@
+import { cn } from "@/lib/cn";
+import { textFieldCls } from "./ui/GrokDialog";
 import { useEffect, useId, useRef, useState } from "react";
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { t } from "@/lib/i18n";
@@ -133,8 +135,8 @@ function ProfilePhoto() {
               <button type="button" className="rounded-md bg-control px-2 py-1 text-[12px] text-ink hover:bg-raised-hover" disabled={busy} onClick={() => save(draft)}>{t("settings.profile.avatar.save")}</button>
             </div>
           </div>
-        ) : avatarUrl ? <img src={avatarUrl} alt="" className="size-12 rounded-full object-cover" /> : <div className="size-12 rounded-full bg-raised" />}
-        <label className="cursor-pointer rounded-lg bg-control px-3 py-2 text-[12px] text-ink hover:bg-raised-hover">
+        ) : avatarUrl ? <img src={avatarUrl} alt="" className="size-8 rounded-full object-cover" /> : <div className="size-8 rounded-full bg-ink/[0.06]" />}
+        <label className="ui-button cursor-pointer">
           {busy ? t("settings.profile.avatar.uploading") : t("settings.profile.avatar.choose")}
           <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" className="sr-only" disabled={busy} onChange={(event) => {
             const file = event.target.files?.[0];
@@ -142,7 +144,7 @@ function ProfilePhoto() {
             pick(file);
           }} />
         </label>
-        {avatarUrl && !draft && <button type="button" className="text-[12px] text-ink-secondary underline" onClick={remove}>{t("settings.profile.avatar.remove")}</button>}
+        {avatarUrl && !draft && <button type="button" className="ui-button" onClick={remove}>{t("settings.profile.avatar.remove")}</button>}
       </div>
       {error && <div role="alert" className="text-[12px] text-danger">{error}</div>}
     </>
@@ -178,23 +180,30 @@ export function ProfileFields() {
       .catch(() => {});
   };
 
-  const inputClass =
-    "w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[14px] text-ink placeholder:text-ink-secondary focus:outline-none";
+  const inputClass = cn(textFieldCls, "w-56 max-w-full");
+  const row = "flex min-h-12 flex-wrap items-center justify-between gap-x-5 gap-y-2 px-3.5 py-2.5";
+  const label = "text-[13px] leading-[18px] tracking-[-0.08px] text-ink";
   return (
-    <div className="flex flex-col gap-3">
-      <ProfilePhoto />
-      <input aria-label={t("settings.profile.name")} value={name} onChange={(e) => setName(e.target.value)} onBlur={save} placeholder={t("settings.profile.name")} className={inputClass} />
-      <input
-        type="email"
-        aria-label={t("phone.signIn.email")}
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        onBlur={team ? undefined : save}
-        readOnly={team}
-        placeholder="you@example.com"
-        className={inputClass}
-      />
-      <AboutMeSettings />
+    <div className="flex flex-col">
+      <div className={row}><span className={label}>{t("settings.w6.profile.photo")}</span><ProfilePhoto /></div>
+      <div className={row}>
+        <span className={label}>{t("settings.profile.name")}</span>
+        <input aria-label={t("settings.profile.name")} value={name} onChange={(e) => setName(e.target.value)} onBlur={save} placeholder={t("settings.profile.name")} className={inputClass} />
+      </div>
+      <div className={row}>
+        <span className={label}>{t("phone.signIn.email")}</span>
+        <input
+          type="email"
+          aria-label={t("phone.signIn.email")}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          onBlur={team ? undefined : save}
+          readOnly={team}
+          placeholder="you@example.com"
+          className={inputClass}
+        />
+      </div>
+      <div className="px-3.5 py-2.5"><AboutMeSettings /></div>
     </div>
   );
 }

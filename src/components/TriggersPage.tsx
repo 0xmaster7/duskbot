@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { ArrowLeft, Plus, Zap } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { useDesktopCapabilities, windowFramed } from "@/components/DesktopCapabilities";
 import { automationsFrom, automationSentence, automationStatus, orderAutomations, statusLine, type Automation } from "@/lib/automations";
@@ -17,7 +17,9 @@ import { LimitWarnings } from "./automations/LimitWarnings";
 import { NewAutomation, type SetUpKind } from "./automations/NewAutomation";
 import { FixButton, StatusMark } from "./automations/parts";
 import { RoutineEditor } from "./RoutineCalendarPage";
+import { GrokIcon } from "./GrokIcon";
 import { Select } from "./Select";
+import { mdPrimaryCls, rowButtonCls, rowHintCls, rowTitleCls } from "./ui/GrokDialog";
 import { Switch } from "./SettingsPrimitives";
 import { WebhookEditor } from "./WebhookTrigger";
 
@@ -71,8 +73,8 @@ export function TriggersPage({ onBack, onOpenRoom }: { onBack: () => void; onOpe
     <main className="flex h-full min-w-0 flex-1 flex-col bg-app animate-workspace-in">
       <header className={cn("shrink-0 border-b border-hairline/35 bg-app py-3 pr-4", macInset && !windowFramed(capabilities) && view === "calendar" ? "pl-[86px]" : view === "list" ? "pl-12 md:pl-4" : "pl-4")} style={windowDragStyle}>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" ref={backButtonRef} onClick={onBack} aria-label="Back" title="Back" className="flex size-9 shrink-0 items-center justify-center rounded-lg text-ink-secondary hover:bg-raised hover:text-ink" style={windowNoDragStyle}><ArrowLeft size={18} /></button>
-          <h1 data-tour="automations-page" className="mr-1 text-[18px] font-semibold tracking-tight text-ink">{t("automations.title")}</h1>
+          <button type="button" ref={backButtonRef} onClick={onBack} aria-label="Back" title="Back" className="flex size-8 shrink-0 items-center justify-center rounded-full text-ink/68 transition-[background-color,color] duration-[120ms] ease-[ease] hover:bg-ink/6 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus" style={windowNoDragStyle}><ArrowLeft size={16} /></button>
+          <h1 data-tour="automations-page" className="m-0 mr-1 text-[17px] font-medium leading-6 tracking-[0.01em] text-ink">{t("automations.title")}</h1>
           <div className="ml-auto flex items-center gap-3" style={windowNoDragStyle}>
             {showFilter && view === "list" && (
               <Select size="sm" aria-label={t("automations.allBots")} value={botFilter} onChange={(event) => setBotFilter(event.target.value)} className="max-w-[180px]">
@@ -80,15 +82,15 @@ export function TriggersPage({ onBack, onOpenRoom }: { onBack: () => void; onOpe
                 {visibleBots.map((bot) => <option key={bot.id} value={bot.id}>{bot.name}</option>)}
               </Select>
             )}
-            <div role="group" aria-label={t("automations.view")} className="flex items-center rounded-lg border border-hairline/50 bg-panel p-0.5">
+            <div role="group" aria-label={t("automations.view")} className="flex gap-0.5">
               {(["list", "calendar"] as const).map((option) => (
                 <button key={option} type="button" aria-pressed={view === option} onClick={() => dispatch({ type: "showRoutines", view: option, botId: botFilter === "all" ? undefined : botFilter })}
-                  className={cn("rounded-md px-3 py-1 text-[13px] font-medium", view === option ? "bg-raised text-ink shadow-sm" : "text-ink-secondary hover:text-ink")}>
+                  className={cn("h-[26px] rounded-full px-2 py-1 text-[13px] leading-[18px] tracking-[0.015em] transition-[background-color,color] duration-[120ms] ease-[ease] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus", view === option ? "bg-ink/6 text-ink" : "text-ink/68 hover:bg-ink/6")}>
                   {option === "list" ? t("automations.list") : t("automations.calendar")}
                 </button>
               ))}
             </div>
-            <button type="button" onClick={() => setNewText("")} className="flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-semibold text-accent-ink hover:brightness-110"><Plus size={15} aria-hidden="true" />{t("automations.new")}</button>
+            <button type="button" onClick={() => setNewText("")} className={mdPrimaryCls}><GrokIcon name="plus" size={14} />{t("automations.new")}</button>
           </div>
         </div>
       </header>
@@ -99,29 +101,27 @@ export function TriggersPage({ onBack, onOpenRoom }: { onBack: () => void; onOpe
             <div className="mx-auto w-full max-w-3xl p-4 sm:p-6">
               <LimitWarnings botFilter={showFilter ? botFilter : "all"} />
               {all.length === 0 && state.routinesLoadState !== "loading" && state.hydrated ? (
-                <section aria-label={t("automations.empty.title")} className="px-6 py-16 text-center">
-                  <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-accent/10 text-accent"><Zap size={22} /></div>
-                  <h2 className="text-[17px] font-semibold text-ink">{t("automations.empty.title")}</h2>
-                  <button type="button" onClick={() => setNewText(t("automations.empty.example"))} className="mt-3 text-[14px] text-accent-text underline-offset-2 hover:underline">{t("automations.empty.try")}</button>
-                  <div><button type="button" onClick={() => setNewText("")} className="mt-6 inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-[13px] font-medium text-accent-ink hover:brightness-110"><Plus size={15} />{t("automations.new")}</button></div>
+                <section aria-label={t("automations.empty.title")} className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+                  <h2 className={cn(rowHintCls, "m-0 font-normal")}>{t("automations.empty.title")}</h2>
+                  <button type="button" onClick={() => setNewText(t("automations.empty.example"))} className={rowButtonCls}>{t("automations.empty.try")}</button>
                 </section>
               ) : (
-                <ul aria-label={t("automations.title")} className="divide-y divide-hairline/30 overflow-hidden rounded-2xl border border-hairline/40 bg-card">
+                <ul aria-label={t("automations.title")} className="m-0 flex list-none flex-col rounded-[14px] bg-menu p-0 py-2 outline-1 -outline-offset-1 outline-ink/8 [outline-style:solid]">
                   {listed.map((automation) => {
                     const status = automationStatus(automation);
                     const name = automation.name.trim();
                     return (
-                      <li key={automation.id} data-automation={automation.id} data-automation-status={status.state} className={cn("flex items-start gap-3 px-4 py-3.5", openId === automation.id && "bg-raised/60")}>
+                      <li key={automation.id} data-automation={automation.id} data-automation-status={status.state} className={cn("relative mx-1.5 flex min-h-12 items-start gap-3 rounded-[10px] px-2 py-2.5 transition-[background-color] duration-[120ms] ease-[ease] hover:bg-ink/5", openId === automation.id && "bg-ink/5")}>
                         <StatusMark status={status} className="mt-[5px]" />
                         <div className="min-w-0 flex-1">
-                          <button type="button" onClick={() => setOpenId(automation.id)} className="block text-left text-[15px] font-medium leading-snug text-ink hover:text-accent-text">{name || sentenceOf(automation)}</button>
-                          {name && <div className="mt-0.5 text-[13px] text-ink">{sentenceOf(automation)}</div>}
+                          <button type="button" onClick={() => setOpenId(automation.id)} className={cn(rowTitleCls, "block cursor-pointer text-left after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus")}>{name || sentenceOf(automation)}</button>
+                          {name && <div className={cn(rowHintCls, "mt-0.5")}>{sentenceOf(automation)}</div>}
                           {status.state === "needs-you"
-                            ? <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px] text-warning">{t("automations.needsYou", { reason: status.reason ?? "" })}<FixButton automation={automation} status={status} actions={actions} onEdit={() => setEditing({ kind: automation.kind, id: automation.id })} /></div>
-                            : <div className="mt-0.5 text-[13px] text-ink-secondary">{statusLine(automation)}</div>}
+                            ? <div className="relative mt-1 flex flex-wrap items-center gap-2 text-[13px] leading-[18px] text-warning">{t("automations.needsYou", { reason: status.reason ?? "" })}<FixButton automation={automation} status={status} actions={actions} onEdit={() => setEditing({ kind: automation.kind, id: automation.id })} /></div>
+                            : <div className={cn(rowHintCls, "mt-0.5")}>{statusLine(automation)}</div>}
                           {actions.error && actions.errorFor?.endsWith(`:${automation.id}`) && <p role="alert" className="mt-1 text-[12px] text-danger">{actions.error}</p>}
                         </div>
-                        {status.state !== "done" && <Switch checked={automation.enabled} disabled={actions.busy === `toggle:${automation.id}`} aria-label={t("automations.toggle", { name: automation.name })} onClick={() => void actions.toggle(automation)} className="mt-0.5 shrink-0" />}
+                        {status.state !== "done" && <Switch checked={automation.enabled} disabled={actions.busy === `toggle:${automation.id}`} aria-label={t("automations.toggle", { name: automation.name })} onClick={() => void actions.toggle(automation)} className="relative z-[1] mt-0.5 shrink-0" />}
                       </li>
                     );
                   })}

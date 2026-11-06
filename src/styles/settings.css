@@ -2,6 +2,26 @@
    scrolling pane of labelled white cards. It opens, closes and switches panes without motion, as Grok's does; only a
    page inside Advanced features wipes in and out, with Grok's in-dialog push (200ms, the app "out" curve). */
 
+/* The one set of Settings colours, measured from Grok Bot's light settings sheet (#fcfcfc sheet, white cards on an ink/8
+   edge, ink/68 secondary, ink/8 selected, ink/6 hover, ink/6 switch track that is ink/10 on hover, the accent when on).
+   Every pane and the bot's sheet read these through SettingsPrimitives and the classes below. */
+.settings-dialog,
+[data-settings-look] {
+  --settings-sheet: var(--color-app);
+  --settings-card: var(--color-menu);
+  --settings-edge: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  --settings-field-edge: color-mix(in srgb, var(--color-ink) 12%, transparent);
+  --settings-secondary: var(--color-ink-secondary);
+  --settings-selected: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  --settings-hover: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  --settings-row-hover: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  --settings-pill: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  --settings-pill-hover: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  --settings-switch-off: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  --settings-switch-off-hover: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  --settings-switch-on: var(--color-accent-border);
+}
+
 .settings-scrim {
   position: fixed;
   inset: 0;
@@ -27,7 +47,7 @@
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
   border-radius: 14px;
-  background: var(--color-app);
+  background: var(--settings-sheet);
   color: var(--color-ink);
   font-size: 13px;
   font-weight: var(--font-weight-normal, 425);
@@ -52,7 +72,7 @@
   padding: 16px 12px;
   overflow-y: auto;
   scrollbar-width: none;
-  border-inline-end: 0.5px solid var(--color-edge);
+  border-inline-end: 0.5px solid var(--settings-edge);
 }
 .settings-nav::-webkit-scrollbar { display: none; }
 .settings-nav-item {
@@ -76,8 +96,8 @@
   outline: none;
   transition: background-color 0.12s ease, color 0.12s ease;
 }
-.settings-nav-item:hover { background: color-mix(in srgb, var(--color-ink) 6%, transparent); }
-.settings-nav-item[aria-current="page"] { background: color-mix(in srgb, var(--color-ink) 8%, transparent); }
+.settings-nav-item:hover { background: var(--settings-hover); }
+.settings-nav-item[aria-current="page"] { background: var(--settings-selected); }
 .settings-nav-item:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
 /* a bot's sheet: Grok's ink/6 hover reads as a second selection beside its ink/8, so hover stays at half of it */
 [data-bot-sheet] .settings-nav-item:not([aria-current="page"]):hover { background: color-mix(in srgb, var(--color-ink) 4%, transparent); }
@@ -308,7 +328,7 @@
 }
 
 /* the older section cards: grey fills and 16px corners become Grok's white card on an ink/8 edge */
-[data-settings-look] .settings-pane .bg-card { background-color: var(--color-menu); }
+[data-settings-look] .settings-pane .bg-card:not([data-card]) { background-color: var(--color-menu); }
 [data-settings-look] .settings-pane .bg-card:is(.rounded-xl, .rounded-2xl, .rounded-lg).border {
   border-width: 0.5px;
   border-color: color-mix(in srgb, var(--color-ink) 8%, transparent);

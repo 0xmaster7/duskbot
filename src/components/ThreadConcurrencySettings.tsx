@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { t } from "@/lib/i18n";
-import { Card } from "./SettingsPrimitives";
 import { Select } from "./Select";
 
 export function ThreadConcurrencySettings() {
@@ -30,8 +29,8 @@ export function ThreadConcurrencySettings() {
     }
   };
   return (
-    <Card>
-      <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2">
+    <div className="px-3.5 py-2.5">
+      <div className="flex min-h-7 flex-wrap items-center justify-between gap-x-5 gap-y-2">
         <label htmlFor="thread-concurrency" className="min-w-0 flex-1 text-[13px] leading-[18px] text-ink">{t("settings.w6c.threads.label")}</label>
         <Select id="thread-concurrency" value={pending ?? confirmed} disabled={pending !== null || oneThreadPerBot}
           aria-describedby={oneThreadPerBot ? "thread-concurrency-help" : undefined}
@@ -42,6 +41,6 @@ export function ThreadConcurrencySettings() {
       {oneThreadPerBot && <p id="thread-concurrency-help" className="mt-2 text-[12px] leading-relaxed text-ink-secondary">{t("settings.threads.starter")}</p>}
       {pending !== null && <p role="status" className="mt-2 text-[12px] text-ink-secondary">{t("settings.threads.saving")}</p>}
       {error && <p role="alert" className="mt-2 text-[12px] text-danger">{error}</p>}
-    </Card>
+    </div>
   );
 }

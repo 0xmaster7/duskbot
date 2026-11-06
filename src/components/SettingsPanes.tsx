@@ -49,7 +49,7 @@ import { PlanUsageSummary } from "./PlanUsage";
 import { ProfileFields } from "./ProfileSettings";
 import { RoomTurnTimeoutSettings } from "./RoomTurnTimeoutSettings";
 import { SavedStepsRow } from "./SavedStepsRow";
-import { Card, SettingRow, SettingsDisclosureRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
+import { SettingRow, SettingsDisclosureRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
 import { SettingsSelect } from "./SettingsSelect";
 import { profileInitials, useServerUpdateItem } from "./SidebarProfileMenu";
 import { SkillsSection } from "./SkillsSection";
@@ -130,7 +130,7 @@ export function AccountRow() {
           {accounts.openSheet && <button type="button" className={pill} onClick={accounts.openSheet}>{t("settings.simple.account.manage")}</button>}
         </div>
       </div>
-      <div id={fieldsId} ref={fields} hidden={!editing} className="px-4 pb-3.5">
+      <div id={fieldsId} ref={fields} hidden={!editing} className="-mt-3 pb-1">
         {editing && <ProfileFields />}
       </div>
       {(adding || accounts.sheet) && (
@@ -247,7 +247,7 @@ export function PermissionsPane({ has }: { has: Has }) {
 
 /** Grok's Vault: the logins bots sign in with, and 1Password. */
 export function VaultPane() {
-  return <SettingsGroup label={t("settings.section.logins")} block="logins"><LoginsSettings /></SettingsGroup>;
+  return <LoginsSettings />;
 }
 
 const versionTitle = () => `${productName()} ${appVersion()}`;
@@ -390,7 +390,7 @@ function AppsPage({ has }: { has: Has }) {
         </SettingsRows>
       </SettingsGroup>
       <SettingsGroup label={t("settings.advanced.apps.mcp")} block="mcp">
-        <AdminOnly><div className="flex flex-col gap-3"><McpServersPanel embedded /></div></AdminOnly>
+        <AdminOnly><McpServersPanel embedded rows /></AdminOnly>
       </SettingsGroup>
       {has("skills") && skillsLibraryEnabled(state.config) && <SettingsGroup label={t("settings.section.skills")} block="skills"><SkillsSection /></SettingsGroup>}
     </>
@@ -401,15 +401,15 @@ function BotsPage() {
   return (
     <>
       <SettingsGroup label={t("settings.w6.group.aboutYou")} block="profile">
-        <Card><ProfileFields /></Card>
+        <SettingsRows><ProfileFields /></SettingsRows>
       </SettingsGroup>
       <SettingsGroup label={t("settings.advanced.bots.defaults")} block="bot-defaults">
         <SettingsRows>
           <DefaultBotSidebarRow simple />
           <FollowUpRow simple />
+          <NewBotEffortRow />
+          <DefaultBotSettings />
         </SettingsRows>
-        <NewBotEffortRow />
-        <DefaultBotSettings />
       </SettingsGroup>
     </>
   );
@@ -494,8 +494,8 @@ function DataPage({ has }: { has: Has }) {
           <AnalyticsRow simple />
           <AttachmentStorageSettings />
         </SettingsRows>
-        <ThreadCleanupSettings />
       </SettingsGroup>
+      <SettingsGroup label={t("settings.threadCleanup.title")} block="thread-cleanup"><ThreadCleanupSettings /></SettingsGroup>
       {has("backups") && <SettingsGroup label={t("settings.section.backups")} block="backups"><AdminOnly><WorkspaceBackupSettings /><CompanyBackupSettings /></AdminOnly></SettingsGroup>}
     </>
   );
@@ -504,14 +504,19 @@ function DataPage({ has }: { has: Has }) {
 function BuilderPage() {
   const advanced = useAdvancedMode();
   return (
-    <SettingsGroup block="builder">
-      {advanced && <SettingsRows><AdvancedModeRow simple /></SettingsRows>}
-      <SettingsRows><SavedStepsRow /></SettingsRows>
-      <Card><div className="flex flex-col gap-3"><RoomTurnTimeoutSettings /><McpCallTimeoutSettings /></div></Card>
-      <ThreadConcurrencySettings />
+    <>
+      <SettingsGroup block="builder">
+        <SettingsRows>
+          {advanced && <AdvancedModeRow simple />}
+          <SavedStepsRow />
+          <div className="flex min-h-12 items-center px-3.5 py-2.5 [&>*]:flex-1"><RoomTurnTimeoutSettings /></div>
+          <div className="flex min-h-12 items-center px-3.5 py-2.5 [&>*]:flex-1"><McpCallTimeoutSettings /></div>
+          <ThreadConcurrencySettings />
+        </SettingsRows>
+      </SettingsGroup>
       <AutomaticRecoverySettings />
       <ExperimentalFeaturesRow />
-    </SettingsGroup>
+    </>
   );
 }
 

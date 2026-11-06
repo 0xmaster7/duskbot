@@ -17,8 +17,6 @@ import { ManagedTeamsSettings } from "./ManagedTeamsSettings";
 import { ProposalStatus } from "./ProposalStatus";
 import type { useBotSettingsDerived } from "./useBotSettingsDerived";
 import { useBotEditor } from "./BotEditorContext";
-import { SheetGroup, useSheetLook } from "./sheet-look";
-import { rowHintCls, rowTitleCls } from "../ui/GrokDialog";
 
 export type PermissionsPart = "chief" | "peers" | "approval" | "outbound";
 
@@ -40,7 +38,6 @@ export function PermissionsSection({
   const [localAutoWarning, setLocalAutoWarning] = useState<string | null>(null);
   const [commandAllowlistTarget, setCommandAllowlistTarget] = useState<{ botId: string; botName: string } | null>(null);
   const shows = (part: PermissionsPart) => !parts || parts.includes(part);
-  const sheet = useSheetLook();
   const applyFullEverywhere = () =>
     dispatch({ type: "updateBot", botId: bot.id, patch: { approvalMode: "full", applyToAllThreads: true } });
   const setApprovalMode = (mode: ApprovalMode) => {
@@ -58,31 +55,7 @@ export function PermissionsSection({
 
   return (
     <div className="flex flex-col gap-4">
-      {shows("chief") && !team && sheet && <SheetGroup label={t("permissions.chief.title")}><div className="rounded-xl bg-card p-4">
-        <div className="flex items-center justify-between gap-4">
-          <span className={cn(rowHintCls, "min-w-0")}>{t("botPanel.sheet.chief", { section: displaySectionName })}</span>
-          <Switch
-            checked={Boolean(bot.chiefOfStaff)}
-            aria-label={t("permissions.chief.title")}
-            disabled={!bot.chiefOfStaff && !canCoordinate}
-            onClick={() => patch({ chiefOfStaff: !bot.chiefOfStaff })}
-            title={!bot.chiefOfStaff && !canCoordinate ? t("permissions.cannotCoordinate") : undefined}
-            className="disabled:cursor-not-allowed"
-          />
-        </div>
-        {!canCoordinate && <p className="m-0 mt-2 text-[12px] text-warning">{t(bot.chiefOfStaff ? "permissions.chief.unsupportedCurrent" : "permissions.chief.unsupported")}</p>}
-        <ProposalStatus bot={bot} kind="chief" />
-        {bot.chiefOfStaff && <ManagedTeamsSettings
-          key={bot.id + JSON.stringify(bot.managedSections ?? [])}
-          name={bot.name} ownTeam={bot.section?.trim() || ""}
-          teams={["", ...(state.sections ?? []), ...[...state.bots, ...state.groups].map(member => member.section?.trim() || "")]}
-          allowed={bot.managedSections ?? []}
-          onSave={managedSections => patch({ managedSections, acknowledgePeerScope: true })}
-        />}
-        {bot.chiefOfStaff && <ProposalStatus bot={bot} kind="owner" />}
-      </div></SheetGroup>}
-
-      {shows("chief") && !team && !sheet && <div
+      {shows("chief") && !team && <div
         className={cn(
           "rounded-xl border p-4",
           bot.chiefOfStaff ? "border-accent/40 bg-accent/10" : "border-hairline/40 bg-card",
@@ -132,15 +105,15 @@ export function PermissionsSection({
         {bot.chiefOfStaff && <ProposalStatus bot={bot} kind="owner" />}
       </div>}
 
-      {shows("peers") && <SheetGroup label={t("botPanel.sheet.peers")}><div className="rounded-xl bg-card p-4">
+      {shows("peers") && <div className="rounded-xl bg-card p-4">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <div className={sheet ? rowTitleCls : "text-[15px] font-medium text-ink"}>{t("permissions.peers.title")}</div>
-            {!sheet && <div className="mt-0.5 text-[13px] text-ink-secondary">
+            <div className="text-[15px] font-medium text-ink">{t("permissions.peers.title")}</div>
+            <div className="mt-0.5 text-[13px] text-ink-secondary">
               {bot.approvePeerComms
                 ? t("permissions.peers.on")
                 : t("permissions.peers.off")}
-            </div>}
+            </div>
             <ProposalStatus bot={bot} kind="owner" />
           </div>
           <Switch
@@ -154,15 +127,15 @@ export function PermissionsSection({
         </div>
         {Array.isArray(bot.peers) && <PeersListNote peers={bot.peers} bots={state.bots}
           onOpen={() => patch({ peers: null, acknowledgePeerScope: true })} />}
-      </div></SheetGroup>}
+      </div>}
 
-      {shows("approval") && <SheetGroup label={t("permissions.approval.title")}><div className="rounded-xl bg-card p-4">
-        {!sheet && <div className="text-[15px] font-medium text-ink">{t("permissions.approval.title")}</div>}
-        {!sheet && <div className="mt-0.5 text-[13px] text-ink-secondary">
+      {shows("approval") && <div className="rounded-xl bg-card p-4">
+        <div className="text-[15px] font-medium text-ink">{t("permissions.approval.title")}</div>
+        <div className="mt-0.5 text-[13px] text-ink-secondary">
           {draft ? t("permissions.approval.draftHanded") : t("permissions.approval.helpHanded")}
-        </div>}
+        </div>
         <ProposalStatus bot={bot} kind="owner" />
-        <div className={sheet ? undefined : "mt-3"}>
+        <div className="mt-3">
           <ApprovalModeSelector
             approvalMode={bot.approvalMode}
             autoApprove={bot.autoApprove}
@@ -186,7 +159,7 @@ export function PermissionsSection({
           className="mt-3 block text-[13px] text-accent hover:underline"
           onClick={() => setCommandAllowlistTarget({ botId: bot.id, botName: bot.name })}
         >{t("commandAllowlist.manage")}</button>}
-      </div></SheetGroup>}
+      </div>}
 
       {commandAllowlistTarget && <CommandAllowlistDialog
         key={`command-allowlist:${commandAllowlistTarget.botId}`}
@@ -249,15 +222,13 @@ function OutboundControl({ bot, onChange }: { bot: Bot; onChange: (policy: Outbo
     if (parsed !== policy.dailyCap) onChange({ policy: policy.policy, dailyCap: parsed });
   };
 
-  const sheet = useSheetLook();
   return (
-    <SheetGroup label={t("permissions.outbound.title")}>
     <div className="rounded-xl bg-card p-4">
-      {!sheet && <div className="text-[15px] font-medium text-ink">{t("permissions.outbound.title")}</div>}
-      {!sheet && <div className="mt-0.5 text-[13px] text-ink-secondary">
+      <div className="text-[15px] font-medium text-ink">{t("permissions.outbound.title")}</div>
+      <div className="mt-0.5 text-[13px] text-ink-secondary">
         {t("permissions.outbound.help")}
-      </div>}
-      <div className={cn(!sheet && "mt-3", "flex gap-1 rounded-lg bg-inset p-0.5")}>
+      </div>
+      <div className="mt-3 flex gap-1 rounded-lg bg-inset p-0.5">
         {(
           [
             ["ask", t("permissions.outbound.ask"), t("permissions.outbound.askHint")],
@@ -306,6 +277,5 @@ function OutboundControl({ bot, onChange }: { bot: Bot; onChange: (policy: Outbo
         </div>
       )}
     </div>
-    </SheetGroup>
   );
 }

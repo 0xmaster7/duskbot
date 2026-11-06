@@ -26,6 +26,7 @@ import { MarkdownImagePreview, MessageFolderFiles, OutsideWorkspaceFile, saveFai
 import { ThreadLink, ThreadRefsContext, threadLinkFromProps, type ThreadRefsValue } from "./ThreadRefs";
 import { MarkdownTable } from "./MarkdownTable";
 import { CodeBlock, CodePlate, codeHash } from "./CodeBlock";
+import { GrokIcon } from "./GrokIcon";
 export { CodeBlock, HIGHLIGHT_CACHE_MAX, HIGHLIGHT_CACHE_MAX_CHARS, HIGHLIGHT_MAX_CHARS, type CodeBlockProps } from "./CodeBlock";
 import { FilePreviewButton } from "./FilePreviewButton";
 import { SaveIconButton, useHtmlPreview } from "./HtmlFilePreview";
@@ -644,11 +645,12 @@ function LinkWithFavicon({ href, children: given }: { href: string; children?: R
   const children = bareUrlLabel(href, given);
   const host = faviconHost(href);
   const [failed, setFailed] = useState(false);
-  if (!host || failed) return <span className="chat-link-text">{children}</span>;
   return (
     <span className="chat-link-lead">
       <span aria-hidden="true" data-copy-skip="" className="chat-link-favicon">
-        <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=32`} alt="" width={14} height={14} loading="lazy" draggable={false} referrerPolicy="no-referrer" onError={() => setFailed(true)} />
+        {host && !failed
+          ? <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=32`} alt="" width={14} height={14} loading="lazy" draggable={false} referrerPolicy="no-referrer" onError={() => setFailed(true)} />
+          : <GrokIcon name="globe" size={16} />}
       </span>
       <span className="chat-link-text">{children}</span>
     </span>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowRight, BookOpen, Box, Loader2, Monitor, Plus, Save, Users, UsersRound, X } from "lucide-react";
+import { ArrowRight, Box, Loader2, Monitor, Plus, Users, UsersRound, X } from "lucide-react";
 
 import { api, formatTime, openBot, openThread, useStore, type Bot } from "@/state/store";
 import {
@@ -21,6 +21,8 @@ import { useTeamPeople } from "@/state/team-people";
 import { TeamDialog } from "./TeamDialog";
 import { TeamMemoryDialog } from "./TeamMemoryDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { GrokIcon } from "./GrokIcon";
+import { formBodyCls, formCloseCls, formFooterCls, formHeaderCls, formSheetCls, formTitleCls, mdPrimaryCls, mdSecondaryCls, rowHintCls, textAreaCls } from "./ui/GrokDialog";
 import { t } from "@/lib/i18n";
 import { CanvasComputers } from "./CanvasComputers";
 import { useMapComputers, useShowComputers } from "@/lib/map-computers";
@@ -183,40 +185,29 @@ function SectionContextDialog({ section, label, onClose }: { section: string; la
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px] sm:p-6"
-      onMouseDown={(event) => event.target === event.currentTarget && requestClose()}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
     >
+      <div aria-hidden="true" className="ui-dialog-scrim absolute inset-0" onMouseDown={requestClose} />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="section-context-title"
         tabIndex={-1}
-        className="animate-pop-in flex max-h-[min(680px,calc(100dvh-2rem))] w-full max-w-[680px] flex-col overflow-hidden rounded-2xl border border-hairline/50 bg-panel shadow-2xl shadow-black/50 outline-none"
+        style={{ maxWidth: "min(520px, calc(100vw - 32px))" }}
+        className={formSheetCls}
       >
-        <header className="flex items-start justify-between gap-4 border-b border-hairline/40 px-6 pb-4 pt-6 sm:px-8 sm:pt-7">
-          <div>
-            <div className="flex items-center gap-2">
-              <BookOpen size={19} className="text-accent" />
-              <h2 id="section-context-title" className="text-[20px] font-semibold tracking-[-0.01em] text-ink">
-                {t("team.instructionsTitle", { name: label })}
-              </h2>
-            </div>
-            <p className="mt-1.5 max-w-[520px] text-[13px] leading-relaxed text-ink-secondary">
-              {t("team.instructionsHint")}
-            </p>
-          </div>
-          <button
-            onClick={requestClose}
-            disabled={saving}
-            aria-label={t("team.instructionsClose")}
-            className="flex size-9 shrink-0 items-center justify-center rounded-lg text-ink-secondary hover:bg-raised hover:text-ink disabled:opacity-40"
-          >
-            <X size={19} />
+        <header className={formHeaderCls}>
+          <h2 id="section-context-title" className={formTitleCls}>
+            {t("team.instructionsTitle", { name: label })}
+          </h2>
+          <button type="button" onClick={requestClose} disabled={saving} aria-label={t("team.instructionsClose")} className={cn(formCloseCls, "disabled:opacity-40")}>
+            <GrokIcon name="close" size={16} />
           </button>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 sm:px-8">
+        <div className={formBodyCls}>
+          <p className={cn(rowHintCls, "m-0 mb-3 text-pretty")}>{t("team.instructionsHint")}</p>
           {loading ? (
             <div className="flex min-h-[260px] items-center justify-center text-ink-secondary">
               <Loader2 size={20} className="animate-spin" aria-label={t("team.instructionsLoading")} />
@@ -229,31 +220,28 @@ function SectionContextDialog({ section, label, onClose }: { section: string; la
                 onChange={(event) => setText(event.target.value)}
                 placeholder={t("team.instructionsPlaceholder")}
                 aria-label={t("team.instructionsTitle", { name: label })}
-                className="min-h-[280px] w-full resize-y rounded-xl border border-hairline/60 bg-inset px-4 py-3 font-mono text-[13px] leading-relaxed text-ink outline-none placeholder:text-ink-tertiary focus:border-accent/50"
+                className={cn(textAreaCls, "min-h-[240px] resize-y")}
               />
-              <div className="mt-2 flex items-start justify-between gap-4 text-[12px] text-ink-secondary">
-                <span>
-                  {t("team.instructionsFactHint")} {updatedAt ? ` ${t("team.instructionsLastSaved", { time: new Date(updatedAt).toLocaleString() })}` : ""}
-                </span>
-                <span className={cn("shrink-0 tabular-nums", bytes > maxBytes && "text-danger")}>
-                  {bytes.toLocaleString()} / {maxBytes.toLocaleString()} bytes
-                </span>
-              </div>
+              <p className="m-0 mt-2 text-[12px] leading-4 text-ink/56">
+                {t("team.instructionsFactHint")}{updatedAt ? ` ${t("team.instructionsLastSaved", { time: new Date(updatedAt).toLocaleString() })}` : ""}
+                {bytes > maxBytes && <span className="text-danger"> {bytes.toLocaleString()} / {maxBytes.toLocaleString()} bytes</span>}
+              </p>
             </>
           )}
-          {error && <div className="mt-3 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[12px] text-danger">{error}</div>}
+          {error && <p role="alert" className="m-0 mt-2 text-[12px] leading-4 text-danger">{error}</p>}
         </div>
 
-        <footer className="flex items-center justify-end gap-2 border-t border-hairline/40 px-6 py-4 sm:px-8">
-          <button onClick={requestClose} disabled={saving} className="rounded-lg px-3.5 py-2 text-[13px] text-ink-secondary hover:bg-raised hover:text-ink disabled:opacity-40">
+        <footer className={formFooterCls}>
+          <button type="button" onClick={requestClose} disabled={saving} className={mdSecondaryCls}>
             {t("common.cancel")}
           </button>
           <button
             onClick={() => void save()}
             disabled={loading || saving || !dirty || bytes > maxBytes}
-            className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-white hover:brightness-110 disabled:opacity-40"
+            type="button"
+            className={cn(mdPrimaryCls, "gap-1.5")}
           >
-            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+            {saving && <Loader2 size={14} className="animate-spin" />}
             {t("team.instructionsSave")}
           </button>
         </footer>

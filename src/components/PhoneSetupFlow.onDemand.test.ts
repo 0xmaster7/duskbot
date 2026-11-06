@@ -103,8 +103,8 @@ afterEach(() => {
 async function startPairing(fake: ReturnType<typeof desktop>) {
   (globalThis as { ogb?: unknown }).ogb = fake.bridge;
   flushSync(() => root.render(createElement(PhoneSetupFlow)));
-  await vi.waitFor(() => expect(button("Pair a device")?.disabled).toBe(false));
-  button("Pair a device")!.click();
+  await vi.waitFor(() => expect(button("Pair")?.disabled).toBe(false));
+  button("Pair")!.click();
 }
 
 describe("pairing on a computer that holds no HTTPS address yet", () => {
@@ -137,10 +137,10 @@ describe("pairing on a computer that holds no HTTPS address yet", () => {
     await vi.waitFor(() => expect(text()).toContain(FULL));
     expect(text()).toContain("Secure access needs attention");
     expect(button("Try secure access again")).not.toBeNull();
-    expect(button("Pair on this Wi-Fi instead")).not.toBeNull();
+    expect(button("Use Wi-Fi")).not.toBeNull();
     expect(fake.bridge.companion.pairing).not.toHaveBeenCalled();
 
-    flushSync(() => button("Pair on this Wi-Fi instead")!.click());
+    flushSync(() => button("Use Wi-Fi")!.click());
     await vi.waitFor(() => expect(host.querySelector('[aria-label="Device pairing QR code"]')).not.toBeNull());
     expect(fake.bridge.companion.pairing).toHaveBeenCalledWith(true);
     expect(fake.bridge.companionAccount.prepare).toHaveBeenCalledOnce();

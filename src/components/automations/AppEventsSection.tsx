@@ -13,23 +13,23 @@ export function AppEventsSection({ trigger }: { trigger: AppTrigger }) {
   const skipped = skippedToday(trigger);
   return (
     <section data-app-events={trigger.id}>
-      <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-ink-tertiary">{t("automations.panel.events")}</h3>
-      {skipped && <p className="mb-2 rounded-lg bg-warning/10 px-2.5 py-1.5 text-[12px] text-warning">{skipped}</p>}
+      <h3 className="m-0 mb-1 text-[12px] font-normal leading-4 tracking-[0.01em] text-ink/56">{t("automations.panel.events")}</h3>
+      {skipped && <p className="m-0 mb-1 text-[12px] leading-4 text-warning">{skipped}</p>}
       {recent.length === 0
-        ? <p className="text-[13px] text-ink-secondary">{t("automations.panel.noEvents")}</p>
+        ? <p className="m-0 text-[13px] leading-[18px] text-ink/68">{t("automations.panel.noEvents")}</p>
         : <ul className="space-y-1">{recent.map((attempt) => {
           const line = attemptLine(attempt);
           const when = lastWhen(attempt.at);
           return (
-            <li key={attempt.id} className="flex items-baseline gap-2 px-2 py-1 text-[13px]">
-              <span className="shrink-0 text-ink-secondary">{when.charAt(0).toLocaleUpperCase() + when.slice(1)}</span>
+            <li key={attempt.id} className="flex items-baseline gap-2 py-1 text-[13px] leading-[18px]">
+              <span className="shrink-0 text-ink/68">{when.charAt(0).toLocaleUpperCase() + when.slice(1)}</span>
               <span className={cn("shrink-0 font-semibold", line.mark === "✓" ? "text-success" : line.mark === "✗" ? "text-danger" : "text-ink-tertiary")}>{line.mark}</span>
               <span className="min-w-0 truncate text-ink" title={line.text}>{line.text}</span>
             </li>
           );
         })}</ul>}
       {service?.eventsPerDay && (
-        <p className="mt-2 text-[11px] text-ink-tertiary">
+        <p className="m-0 mt-1 text-[12px] leading-4 text-ink/56">
           {t("automations.app.limit", { count: service.eventsPerDay.toLocaleString(), place: t(service.plan === "cloud" ? "automations.app.placeCloud" : "automations.app.placeDesktop") })}
         </p>
       )}

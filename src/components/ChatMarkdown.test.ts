@@ -408,7 +408,7 @@ it("requests both code palettes for skin-aware highlighting", async () => {
     for (const callback of effects.splice(0)) cleanup.push(callback());
     await vi.waitFor(() => expect(shiki.codeToHtml).toHaveBeenCalledWith("Palette regression sample", {
       lang: "text",
-      themes: { light: "github-light-default", dark: "github-dark-default" },
+      themes: { light: "grok-light", dark: "github-dark-default" },
       defaultColor: "light-dark()",
     }));
     await vi.waitFor(() => expect(renderToStaticMarkup(fence)).toContain("dual palette"));

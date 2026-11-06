@@ -3,8 +3,8 @@ import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";
 import { OrgSkillsCard } from "../../bot-settings/OrgSkillsCard";
 import { SkillReviewDialog } from "../../bot-settings/SkillsSection";
-import { DialogEmpty, DialogLinkRow, DialogSection, DialogSkeleton, FilledField, footnoteCls, GrokDialog, listRowCls, RowIconButton, rowHintCls, rowTitleCls, useInPane } from "../../ui/GrokDialog";
-import { BotSwitch } from "../rows";
+import { DialogLinkRow, DialogSection, DialogSkeleton, FilledField, footnoteCls, GrokDialog, listRowCls, RowIconButton, rowHintCls, rowTitleCls, useInPane } from "../../ui/GrokDialog";
+import { Switch } from "../../SettingsPrimitives";
 import { useSkillActions } from "./use-skill-actions";
 
 /** The bot's skills: each switchable and removable, a line to add one from a link, and the ways to find more. */
@@ -24,11 +24,11 @@ export function SkillsModal({ bot, onClose }: { bot: Bot; onClose: () => void })
     >
       <div className="flex flex-col gap-7">
         <div className="flex flex-col gap-2.5">
-          <DialogSection bare={!skills.loading && count === 0} label={skills.loading || count === 0 ? "Installed" : `${count} ${count === 1 ? "skill" : "skills"}`}>
+          <DialogSection label={skills.loading || count === 0 ? "Installed" : `${count} ${count === 1 ? "skill" : "skills"}`}>
             {skills.loading ? (
               <DialogSkeleton />
             ) : count === 0 ? (
-              <DialogEmpty>{t("botSettings.simple.noSkills")} Paste a skill link below, or browse for one.</DialogEmpty>
+              <p data-modal-empty className={cn(listRowCls, rowTitleCls, "m-0")}>{t("botPanel.sheet.noSkills")}</p>
             ) : (
               <ul className={cn("m-0 flex list-none flex-col p-0", !inPane && "max-h-[min(280px,calc(100dvh-460px))] overflow-y-auto [scrollbar-width:thin]")}>
                 {skills.skills.map((skill) => (
@@ -45,8 +45,7 @@ export function SkillsModal({ bot, onClose }: { bot: Bot; onClose: () => void })
                       disabled={busy}
                       onClick={() => void remove(skill)}
                     />
-                    <BotSwitch
-                      color={bot.color}
+                    <Switch
                       checked={skill.enabled}
                       disabled={busy}
                       aria-label={t("botSettings.simple.skillToggle", { name: skill.name })}

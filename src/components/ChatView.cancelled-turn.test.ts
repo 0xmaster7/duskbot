@@ -112,7 +112,7 @@ describe("a cancelled turn", () => {
     const cause = `${CANCELLED} See the logs.`;
     render({ ...bot, messages: [ask, { id: "error", role: "bot", kind: "activity", at: 2, tool: { name: `error: ${cause}`, ok: false } }] });
     expect(host.textContent).toContain(cause);
-    expect(host.innerHTML).toContain("border-danger");
+    expect(host.querySelector("[data-chat-error][role=alert]"), "a real error keeps the danger card").not.toBeNull();
     expect(host.textContent).not.toContain("Stopped");
     expect(retry()).toBeTruthy();
   });

@@ -340,76 +340,93 @@ export function KeyRow({
   const warning = target.warningKey && fieldShown ? t(target.warningKey) : null;
   const note = target.noteKey && fieldShown && !pointer && !quiet ? t(target.noteKey) : null;
 
+  const messages = (
+    <>
+        {(notice || failure || other || warning || installCommand || note || verdict || (fieldShown && target.href) || (!fieldShown && saved.configured && target.test)) && (
+        <div className="flex flex-col gap-1.5 text-[12px] leading-4">
+          {notice && <p role="alert" className="text-danger">{notice}</p>}
+          {failure && (
+            <p role="alert" className="flex gap-1.5 text-danger">
+              <CircleAlert size={13} aria-hidden="true" className="mt-px shrink-0" />
+              <span>{t("keys.row.failed", { reason: failure })}</span>
+            </p>
+          )}
+          {other && (
+            <p className="flex gap-1.5 text-warning">
+              <TriangleAlert size={13} aria-hidden="true" className="mt-px shrink-0" />
+              <span>{t("keys.row.looksLike", { label: t(other.labelKey) })}</span>
+            </p>
+          )}
+          {warning && (
+            <p className="flex gap-1.5 text-warning">
+              <TriangleAlert size={13} aria-hidden="true" className="mt-px shrink-0" />
+              <span>{warning}</span>
+            </p>
+          )}
+          {installCommand && missingEngine && (
+            <div data-key-engine-missing className="flex flex-col gap-1">
+              <p className="flex gap-1.5 text-warning">
+                <TriangleAlert size={13} aria-hidden="true" className="mt-px shrink-0" />
+                <span>{t("keys.row.engineMissing", { engine: missingEngine.displayName })}</span>
+              </p>
+              <code className="select-all break-all rounded-md bg-inset px-2 py-1 font-mono text-[12px] text-ink">{installCommand}</code>
+              <button type="button" data-key-engine-check className="cursor-pointer self-start text-ink-secondary hover:text-ink hover:underline disabled:opacity-50" disabled={enginesChecking}
+                onClick={() => void checkEngines()}>
+                {enginesChecking ? t("common.checking") : t("common.checkAgain")}
+              </button>
+              {engineCheckError && <p role="alert" className="text-danger">{t("engineSetup.checkFailed", { reason: engineCheckError })}</p>}
+            </div>
+          )}
+          {note && <p className="text-ink-secondary">{note}</p>}
+          {verdict && <p role="status" className="whitespace-pre-line text-ink-secondary">{verdict}</p>}
+          {(fieldShown && target.href) || (!fieldShown && saved.configured && target.test) ? (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              {fieldShown && target.href && (
+                <a href={target.href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-accent-text hover:underline">
+                  {t("keys.row.getKey")}
+                  <ExternalLink size={11} aria-hidden="true" />
+                </a>
+              )}
+              {!fieldShown && saved.configured && target.test && (
+                <button type="button" data-key-check className="cursor-pointer text-ink-secondary hover:text-ink hover:underline disabled:opacity-50" disabled={busy !== null} onClick={() => void recheck()}>
+                  {t("common.checkAgain")}
+                </button>
+              )}
+            </div>
+          ) : null}
+        </div>
+      )}
+    </>
+  );
+  const fieldOrSaved = fieldShown ? field : saved.configured ? masked : (
+    <div>
+      <button type="button" data-key-own className="ui-button" onClick={() => { setOwnKey(true); focusAfter.current = "input"; }}>{t("keys.row.useOwn")}</button>
+    </div>
+  );
+  const attributes = {
+    "data-key-row": row.id,
+    "data-api-key-row": pointer ? undefined : entry.id,
+    "data-key-state": saved.configured ? "saved" : saved.included ? "included" : "empty",
+    "aria-labelledby": bare ? undefined : titleId,
+    role: "group",
+  } as const;
+
+  if (quiet && !bare) {
+    return (
+      <div {...attributes} className={cn(KEY_ROW, "flex-row flex-wrap items-center gap-x-5", className)}>
+        <div className="min-w-0 flex-1 basis-48"><RowHeading entry={row} status={status} titleId={titleId} purpose={false} /></div>
+        <div className="ms-auto w-[min(100%,20rem)]">{fieldOrSaved}</div>
+        <div className="flex w-full flex-col gap-2 empty:hidden">{messages}{children}</div>
+      </div>
+    );
+  }
+
   return (
-    <div
-      data-key-row={row.id}
-      data-api-key-row={pointer ? undefined : entry.id}
-      data-key-state={saved.configured ? "saved" : saved.included ? "included" : "empty"}
-      aria-labelledby={bare ? undefined : titleId}
-      role="group"
-      className={cn(KEY_ROW, className)}
-    >
+    <div {...attributes} className={cn(KEY_ROW, className)}>
       {bare ? status && <KeyStatusChip status={status} /> : <RowHeading entry={row} status={status} titleId={titleId} purpose={!quiet} />}
       <div className={cn("flex flex-col gap-2", !bare && "pl-8")}>
-        {fieldShown ? field : saved.configured ? masked : (
-          <div>
-            <button type="button" data-key-own className="ui-button" onClick={() => { setOwnKey(true); focusAfter.current = "input"; }}>{t("keys.row.useOwn")}</button>
-          </div>
-        )}
-        {(notice || failure || other || warning || installCommand || note || verdict || (fieldShown && target.href) || (!fieldShown && saved.configured && target.test)) && (
-          <div className="flex flex-col gap-1.5 text-[12px] leading-4">
-            {notice && <p role="alert" className="text-danger">{notice}</p>}
-            {failure && (
-              <p role="alert" className="flex gap-1.5 text-danger">
-                <CircleAlert size={13} aria-hidden="true" className="mt-px shrink-0" />
-                <span>{t("keys.row.failed", { reason: failure })}</span>
-              </p>
-            )}
-            {other && (
-              <p className="flex gap-1.5 text-warning">
-                <TriangleAlert size={13} aria-hidden="true" className="mt-px shrink-0" />
-                <span>{t("keys.row.looksLike", { label: t(other.labelKey) })}</span>
-              </p>
-            )}
-            {warning && (
-              <p className="flex gap-1.5 text-warning">
-                <TriangleAlert size={13} aria-hidden="true" className="mt-px shrink-0" />
-                <span>{warning}</span>
-              </p>
-            )}
-            {installCommand && missingEngine && (
-              <div data-key-engine-missing className="flex flex-col gap-1">
-                <p className="flex gap-1.5 text-warning">
-                  <TriangleAlert size={13} aria-hidden="true" className="mt-px shrink-0" />
-                  <span>{t("keys.row.engineMissing", { engine: missingEngine.displayName })}</span>
-                </p>
-                <code className="select-all break-all rounded-md bg-inset px-2 py-1 font-mono text-[12px] text-ink">{installCommand}</code>
-                <button type="button" data-key-engine-check className="cursor-pointer self-start text-ink-secondary hover:text-ink hover:underline disabled:opacity-50" disabled={enginesChecking}
-                  onClick={() => void checkEngines()}>
-                  {enginesChecking ? t("common.checking") : t("common.checkAgain")}
-                </button>
-                {engineCheckError && <p role="alert" className="text-danger">{t("engineSetup.checkFailed", { reason: engineCheckError })}</p>}
-              </div>
-            )}
-            {note && <p className="text-ink-secondary">{note}</p>}
-            {verdict && <p role="status" className="whitespace-pre-line text-ink-secondary">{verdict}</p>}
-            {(fieldShown && target.href) || (!fieldShown && saved.configured && target.test) ? (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                {fieldShown && target.href && (
-                  <a href={target.href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-accent-text hover:underline">
-                    {t("keys.row.getKey")}
-                    <ExternalLink size={11} aria-hidden="true" />
-                  </a>
-                )}
-                {!fieldShown && saved.configured && target.test && (
-                  <button type="button" data-key-check className="cursor-pointer text-ink-secondary hover:text-ink hover:underline disabled:opacity-50" disabled={busy !== null} onClick={() => void recheck()}>
-                    {t("common.checkAgain")}
-                  </button>
-                )}
-              </div>
-            ) : null}
-          </div>
-        )}
+        {fieldOrSaved}
+        {messages}
         {children}
       </div>
     </div>

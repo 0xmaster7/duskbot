@@ -2,8 +2,8 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { Bot } from "@/state/store";
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
-import { DialogEmpty, DialogSection, DialogSkeleton, FilledField, footnoteCls, GrokDialog, listRowCls, RowIconButton, rowHintCls, rowTitleCls, useInPane } from "../../ui/GrokDialog";
-import { BotSwitch } from "../rows";
+import { DialogSection, DialogSkeleton, FilledField, footnoteCls, GrokDialog, listRowCls, RowIconButton, rowHintCls, rowTitleCls, useInPane } from "../../ui/GrokDialog";
+import { Switch } from "../../SettingsPrimitives";
 import { useMemoryEditor } from "./use-memory-editor";
 
 /** What the bot remembers: memory on or off, its notes with a forget on each, and a line to add one. */
@@ -30,10 +30,9 @@ export function MemoryModal({ bot, derived, onClose }: {
           <div data-modal-row="memory-on" className={listRowCls}>
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <span className={rowTitleCls}>{t("memory.enable")}</span>
-              <span className={rowHintCls}>{memoryOn ? `${bot.name} saves what matters and keeps it tidy.` : t("botPanel.library.memoryOff", { name: bot.name })}</span>
+              <span className={rowHintCls}>{memoryOn ? t("botPanel.sheet.memoryOn") : t("botPanel.sheet.off")}</span>
             </div>
-            <BotSwitch
-              color={bot.color}
+            <Switch
               checked={memoryOn}
               disabled={Boolean(bot.busy) || !editable}
               aria-label={t("memory.enable")}
@@ -44,13 +43,13 @@ export function MemoryModal({ bot, derived, onClose }: {
 
         {memoryOn && (
           <div className="flex flex-col gap-2.5">
-            <DialogSection bare={!readError && notes !== null && notes.length === 0} label={label} data-modal-group="notes">
+            <DialogSection label={label} data-modal-group="notes">
               {readError ? (
                 <p role="alert" className={cn(listRowCls, rowHintCls, "m-0 text-warning")}>{t("botPanel.library.memoryError")}</p>
               ) : notes === null ? (
                 <DialogSkeleton />
               ) : notes.length === 0 ? (
-                <DialogEmpty>{t("botPanel.memory.empty")} Add a note below, or {bot.name} picks things up as you talk.</DialogEmpty>
+                <p data-modal-empty className={cn(listRowCls, rowTitleCls, "m-0")}>{t("botPanel.sheet.noNotes")}</p>
               ) : (
                 <ul aria-label={label} className={cn("m-0 flex list-none flex-col p-0", !inPane && "max-h-[min(300px,calc(100dvh-420px))] overflow-y-auto [scrollbar-width:thin]")}>
                   {notes.map((note) => (

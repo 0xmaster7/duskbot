@@ -7,18 +7,11 @@ import {
   useReducer,
   useRef,
   useState,
+  type ReactNode,
 } from "react";
 import { t } from "@/lib/i18n";
-import {
-  ArrowLeft,
-  Check,
-  Loader2,
-  Mail,
-  QrCode,
-  ShieldCheck,
-  Smartphone,
-  Wifi,
-} from "lucide-react";
+import { cn } from "@/lib/cn";
+import { AlertTriangle, Check, Loader2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { phonePairingLink } from "../../shared/pairing-link";
 import {
@@ -65,7 +58,6 @@ import {
   phonePairingManualCodeMode,
 } from "../lib/companion-state";
 import { ConnectionDetail } from "./ConnectionDetail";
-import { productName } from "../lib/brand";
 
 export interface PhoneDevice {
   id: string;
@@ -878,25 +870,34 @@ export function usePhoneSetupController(profileEmail = ""): PhoneSetupController
   };
 }
 
-function ValuePoints() {
-  const points: Array<{ Icon: typeof Smartphone; title: string; detail: string }> = [
-    { Icon: Smartphone, title: t("phone.value.chats"), detail: t("phone.value.chatsDetail") },
-    { Icon: Check, title: t("phone.value.approvals"), detail: t("phone.value.approvalsDetail") },
-    { Icon: ShieldCheck, title: t("phone.value.private"), detail: t("phone.value.privateDetail") },
-  ];
+const ROW = "flex min-h-12 flex-wrap items-center justify-between gap-x-5 gap-y-2 px-3.5 py-2.5";
+const LABEL = "min-w-0 flex-1 basis-48";
+const TITLE = "text-[13px] leading-[18px] tracking-[-0.08px] text-ink";
+const SECONDARY = "text-[13px] leading-[18px] tracking-[-0.08px] text-ink-secondary";
+const FIELD = "h-8 w-56 max-w-full rounded-[10px] border border-ink/12 bg-menu px-3 text-[13px] text-ink outline-none placeholder:text-ink-tertiary focus:border-ink/40 disabled:opacity-50";
+
+/** One Grok row: a label, an optional short line under it, and what sits on the right. */
+function FlowRow({ title, detail, alert, children }: { title: ReactNode; detail?: ReactNode; alert?: boolean; children?: ReactNode }) {
   return (
-    <div className="mt-5 grid w-full gap-2 sm:grid-cols-3">
-      {points.map(({ Icon, title, detail }) => (
-        <div key={title} className="rounded-xl bg-inset px-3 py-3 text-left">
-          <Icon size={16} className="text-accent" />
-          <div className="mt-2 text-[13px] font-medium text-ink">{title}</div>
-          <div className="mt-0.5 text-[12px] leading-relaxed text-ink-secondary">{detail}</div>
-        </div>
-      ))}
+    <div className={ROW}>
+      <div className={LABEL}>
+        <div className={TITLE}>{title}</div>
+        {detail && <div role={alert ? "alert" : undefined} className={SECONDARY}>{detail}</div>}
+      </div>
+      {children && <div className="ms-auto flex shrink-0 flex-wrap items-center justify-end gap-2">{children}</div>}
     </div>
   );
 }
 
+const ErrorLine = ({ children }: { children: ReactNode }) => <p role="alert" className="px-3.5 pb-2.5 text-[13px] leading-[18px] text-danger">{children}</p>;
+
+export function phoneAccessStatus(state: CompanionState | null): string {
+  if (!state) return t("common.checking");
+  if (!state.enabled) return t("settings.w6.phone.off");
+  return state.devices.length ? t("settings.w6.phone.paired", { count: state.devices.length }) : t("settings.w6.phone.on");
+}
+
+/** Settings' pairing rows: pair, sign in for the HTTPS route, wait, then the QR and its code. */
 export function PhoneSetupFlowView({ controller }: { controller: PhoneSetupController }) {
   const c = controller;
   const actionError = companionAccountActionError(c.account, c.accountError);
@@ -905,241 +906,135 @@ export function PhoneSetupFlowView({ controller }: { controller: PhoneSetupContr
 
   if (c.phase === "intro") {
     return (
-      <div className="flex flex-col items-center text-center">
-        <div className="flex size-14 items-center justify-center rounded-2xl bg-accent/12 text-accent">
-          <Smartphone size={26} />
-        </div>
-        <h2 className="mt-4 text-[19px] font-semibold text-ink">{t("phone.intro.title", { app: productName() })}</h2>
-        <p className="mt-1.5 max-w-[460px] text-[14px] leading-relaxed text-ink-secondary">
-          {t("phone.intro.detail")}
-        </p>
-        <ValuePoints />
-        <button
-          data-phone-pairing-action
-          onClick={c.start}
-          disabled={!c.state || c.busy || c.accountBusy}
-          className="mt-5 w-full max-w-[320px] rounded-lg bg-accent py-2.5 text-[14px] font-medium text-white hover:opacity-90 disabled:cursor-wait disabled:opacity-40"
-        >
-          {c.state?.devices.length ? t("phone.intro.pairAnother") : t("phone.intro.pair")}
-        </button>
-        {c.error && <p role="alert" className="mt-3 max-w-[390px] text-[13px] text-danger">{c.error}</p>}
-      </div>
+      <>
+        <FlowRow title={t("settings.w6.phone.title")} detail={phoneAccessStatus(c.state)}>
+          <button type="button" data-phone-pairing-action onClick={c.start} disabled={!c.state || c.busy || c.accountBusy} className="ui-button">
+            {c.state?.devices.length ? t("settings.w6.phone.pairAnother") : t("settings.w6.phone.pair")}
+          </button>
+        </FlowRow>
+        {c.error && <ErrorLine>{c.error}</ErrorLine>}
+      </>
     );
   }
 
   if (c.phase === "sign-in") {
     const unavailable = !c.account?.available;
     const failed = c.account?.status === "error" || c.setupTimedOut;
+    const problem = unavailable
+      ? t("phone.signIn.unavailable")
+      : c.setupTimedOut
+        ? t("phone.signIn.timedOut")
+        : failed ? c.account?.message ?? t("phone.signIn.failed") : null;
     return (
-      <div className="mx-auto flex w-full max-w-[430px] flex-col">
-        <button onClick={c.cancel} className="mb-4 flex w-fit items-center gap-1.5 text-[12px] text-ink-secondary hover:text-ink">
-          <ArrowLeft size={13} /> {t("phone.back")}
-        </button>
-        <div className="flex size-11 items-center justify-center rounded-xl bg-accent/12 text-accent">
-          <Mail size={20} />
-        </div>
-        <h2 className="mt-3 text-[18px] font-semibold text-ink">
-          {unavailable || failed ? t("phone.signIn.attention") : t("phone.signIn.title")}
-        </h2>
-        <p
-          role={c.setupTimedOut ? "alert" : undefined}
-          className="mt-1 text-[13px] leading-relaxed text-ink-secondary"
-        >
-          {unavailable
-            ? t("phone.signIn.unavailable")
-            : c.setupTimedOut
-              ? t("phone.signIn.timedOut")
-            : failed
-              ? c.account?.message ?? t("phone.signIn.failed")
-              : t("phone.signIn.emailPrompt")}
-        </p>
-
+      <>
+        <FlowRow title={unavailable || failed ? t("phone.signIn.attention") : t("phone.signIn.title")} detail={problem} alert={Boolean(c.setupTimedOut)}>
+          {(unavailable || failed) && (
+            <button type="button" disabled={c.accountBusy} onClick={c.retryAccount} className="ui-button">
+              {c.accountBusy ? t("remote.account.retrying") : t("phone.signIn.retry")}
+            </button>
+          )}
+          <button type="button" onClick={c.cancel} className="ui-button">{t("phone.back")}</button>
+        </FlowRow>
         {!unavailable && !failed && (
-          <div className="mt-5 flex flex-col gap-3">
-            <label className="flex flex-col gap-1.5">
-              <span className="text-[12px] font-medium text-ink-secondary">{t("phone.signIn.email")}</span>
+          <>
+            <FlowRow title={<label htmlFor="phone-sign-in-email">{t("phone.signIn.email")}</label>}>
               <input
+                id="phone-sign-in-email"
                 autoFocus
                 autoComplete="email"
                 inputMode="email"
                 value={c.email}
                 disabled={c.accountBusy || c.codeSent}
                 onChange={(event) => c.setEmail(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !c.codeSent && canSubmitEmail) c.requestCode();
-                }}
+                onKeyDown={(event) => { if (event.key === "Enter" && !c.codeSent && canSubmitEmail) c.requestCode(); }}
                 placeholder="you@example.com"
-                className="rounded-lg border border-hairline/50 bg-inset px-3 py-2.5 text-[14px] text-ink outline-none placeholder:text-ink-tertiary focus:border-accent disabled:opacity-50"
+                className={FIELD}
               />
-            </label>
+              {c.codeSent
+                ? <button type="button" disabled={c.accountBusy} onClick={c.changeEmail} className="ui-button">{t("settings.w6.phone.change")}</button>
+                : <button type="button" disabled={c.accountBusy || !canSubmitEmail} onClick={c.requestCode} className="ui-button">{c.accountBusy ? t("phone.signIn.working") : t("settings.w6.phone.sendCode")}</button>}
+            </FlowRow>
             {c.codeSent && (
-              <label className="flex flex-col gap-1.5">
-                <span className="text-[12px] font-medium text-ink-secondary">{t("phone.signIn.code")}</span>
+              <FlowRow title={<label htmlFor="phone-sign-in-code">{t("settings.w6.phone.code")}</label>}>
                 <input
+                  id="phone-sign-in-code"
                   autoFocus
                   autoComplete="one-time-code"
                   inputMode="numeric"
                   value={c.code}
                   disabled={c.accountBusy}
                   onChange={(event) => c.setCode(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" && c.code.length === 8) c.verifyCode();
-                  }}
+                  onKeyDown={(event) => { if (event.key === "Enter" && c.code.length === 8) c.verifyCode(); }}
                   placeholder="12345678"
-                  className="rounded-lg border border-hairline/50 bg-inset px-3 py-2.5 font-mono text-[16px] tracking-[0.18em] text-ink outline-none placeholder:tracking-normal placeholder:text-ink-tertiary focus:border-accent disabled:opacity-50"
+                  className={cn(FIELD, "font-mono tracking-[0.18em] placeholder:tracking-normal")}
                 />
-              </label>
+                <button type="button" disabled={c.accountBusy || c.code.length !== 8} onClick={c.verifyCode} className="ui-button">
+                  {c.accountBusy ? t("phone.signIn.working") : t("settings.w6.phone.verify")}
+                </button>
+              </FlowRow>
             )}
-            <button
-              disabled={c.accountBusy || (!c.codeSent && !canSubmitEmail) || (c.codeSent && c.code.length !== 8)}
-              onClick={c.codeSent ? c.verifyCode : c.requestCode}
-              className="rounded-lg bg-accent py-2.5 text-[14px] font-medium text-white hover:opacity-90 disabled:opacity-40"
-            >
-              {c.accountBusy ? t("phone.signIn.working") : c.codeSent ? t("phone.signIn.verify") : t("phone.signIn.sendCode")}
-            </button>
-            {c.codeSent && (
-              <button
-                disabled={c.accountBusy}
-                onClick={c.changeEmail}
-                className="text-[12px] text-ink-secondary hover:text-ink disabled:opacity-40"
-              >
-                {t("phone.signIn.otherEmail")}
-              </button>
-            )}
-            {c.codeSent && !actionError && (
-              <p className="text-[12px] text-ink-secondary">{t("phone.signIn.expires")}</p>
-            )}
-          </div>
+          </>
         )}
-
-        {(unavailable || failed) && (
-          <button
-            disabled={c.accountBusy}
-            onClick={c.retryAccount}
-            className="mt-5 rounded-lg bg-accent py-2.5 text-[14px] font-medium text-white disabled:opacity-40"
-          >
-            {c.accountBusy ? t("remote.account.retrying") : t("phone.signIn.retry")}
-          </button>
-        )}
-        {actionError && <p role="alert" className="mt-3 text-[13px] text-danger">{actionError}</p>}
-        <div className="my-4 flex items-center gap-3 text-[11px] text-ink-secondary">
-          <span className="h-px flex-1 bg-hairline/40" /> {t("phone.signIn.or")} <span className="h-px flex-1 bg-hairline/40" />
-        </div>
-        <button
-          disabled={c.busy || c.accountBusy}
-          onClick={c.useLocal}
-          className="flex items-center justify-center gap-2 rounded-lg border border-hairline/50 py-2.5 text-[13px] text-ink hover:bg-control disabled:opacity-40"
-        >
-          <Wifi size={15} /> {t("phone.signIn.wifiInstead")}
-        </button>
-        <p className="mt-2 text-center text-[11px] leading-relaxed text-ink-secondary">
-          {t("phone.signIn.wifiNote")}
-        </p>
-      </div>
+        {actionError && <ErrorLine>{actionError}</ErrorLine>}
+        <FlowRow title={t("settings.w6.phone.wifi")} detail={t("settings.w6.phone.wifiDetail")}>
+          <button type="button" disabled={c.busy || c.accountBusy} onClick={c.useLocal} className="ui-button">{t("settings.w6.phone.useWifi")}</button>
+        </FlowRow>
+      </>
     );
   }
 
   if (c.phase === "verifying") {
     return (
-      <div className="flex flex-col items-center py-8 text-center">
-        <div className="flex size-14 items-center justify-center rounded-2xl bg-accent/12 text-accent">
-          <Loader2 size={25} className="animate-spin" />
-        </div>
-        <h2 className="mt-4 text-[18px] font-semibold text-ink">
-          {c.localFallback
-            ? t("phone.verifying.local")
-            : c.tailscaleFallback
-              ? t("phone.verifying.tailscale")
-              : t("phone.verifying.secure")}
-        </h2>
-        <p className="mt-1.5 max-w-[360px] text-[13px] leading-relaxed text-ink-secondary">
-          {c.localFallback
-            ? t("phone.verifying.localDetail")
-            : c.tailscaleFallback
-              ? t("phone.verifying.tailscaleDetail")
-            : t("phone.verifying.secureDetail")}
-        </p>
-        {(c.error || c.accountError) && (
-          <p role="alert" className="mt-3 max-w-[380px] text-[13px] text-danger">{c.error ?? c.accountError}</p>
-        )}
-        <button onClick={c.cancel} className="mt-5 text-[12px] text-ink-secondary hover:text-ink">{t("common.cancel")}</button>
-      </div>
+      <>
+        <FlowRow
+          title={<span className="inline-flex items-center gap-2"><Loader2 size={13} className="animate-spin text-ink-secondary" />
+            {c.localFallback ? t("phone.verifying.local") : c.tailscaleFallback ? t("phone.verifying.tailscale") : t("phone.verifying.secure")}</span>}
+        >
+          <button type="button" onClick={c.cancel} className="ui-button">{t("common.cancel")}</button>
+        </FlowRow>
+        {(c.error || c.accountError) && <ErrorLine>{c.error ?? c.accountError}</ErrorLine>}
+      </>
     );
   }
 
   if (c.phase === "success") {
     return (
-      <div className="flex flex-col items-center py-6 text-center">
-        <div className="flex size-14 items-center justify-center rounded-full bg-success/15 text-success">
-          <Check size={28} />
-        </div>
-        <h2 className="mt-4 text-[19px] font-semibold text-ink">{t("phone.success.title")}</h2>
-        <p className="mt-1.5 text-[13px] text-ink-secondary">
-          {t("phone.success.detail")}
-        </p>
-        <button
-          onClick={c.finish}
-          className="mt-5 w-full max-w-[280px] rounded-lg bg-accent py-2.5 text-[14px] font-medium text-white"
-        >
-          {t("phone.success.done")}
-        </button>
-      </div>
+      <FlowRow title={<span className="inline-flex items-center gap-2"><Check size={14} className="text-success" />{t("phone.success.title")}</span>}>
+        <button type="button" onClick={c.finish} className="ui-button">{t("phone.success.done")}</button>
+      </FlowRow>
     );
   }
 
   return (
-    <div className="flex flex-col items-center text-center">
-      <div className="flex size-12 items-center justify-center rounded-xl bg-white text-black">
-        <QrCode size={23} />
-      </div>
-      <h2 className="mt-3 text-[18px] font-semibold text-ink">
-        {c.pairingExpired ? t("phone.code.expired") : t("phone.code.title")}
-      </h2>
-      <p className="mt-1 text-[13px] text-ink-secondary">
-        {c.pairingExpired ? t("phone.code.expiredDetail") : t("phone.code.detail")}
-      </p>
+    <>
+      <FlowRow
+        title={c.pairingExpired ? t("phone.code.expired") : t("settings.w6.phone.scan")}
+        detail={!c.pairingExpired && manualCodeMode === "details" && c.state?.pairing ? t("phone.code.expiresIn", { seconds: c.secondsLeft }) : undefined}
+      >
+        {c.pairingExpired && <button type="button" onClick={c.refreshCode} className="ui-button">{t("settings.w6.phone.newCode")}</button>}
+        <button type="button" onClick={c.cancel} className="ui-button">{t("common.cancel")}</button>
+      </FlowRow>
       {!c.pairingExpired && c.pairingLink && (
-        <div className="mt-4 rounded-2xl bg-white p-3.5" aria-label={t("phone.code.qrAria")}>
-          <QRCodeSVG value={c.pairingLink} size={180} level="M" bgColor="#ffffff" fgColor="#111111" />
-        </div>
-      )}
-      {!c.pairingExpired && manualCodeMode === "direct" && c.state?.pairing && (
-        <div className="mt-4 w-full max-w-[320px] rounded-xl bg-inset px-4 py-3 text-[13px] text-ink-secondary">
-          <div>{t("phone.code.manualIntro")}</div>
-          <div className="mt-2 font-mono text-[22px] tracking-[0.25em] text-ink">
-            {c.state.pairing.code}
+        <div className="flex justify-center px-3.5 pb-3">
+          <div className="rounded-[10px] bg-white p-3 outline outline-[0.5px] -outline-offset-[0.5px] outline-edge" aria-label={t("phone.code.qrAria")}>
+            <QRCodeSVG value={c.pairingLink} size={160} level="M" bgColor="#ffffff" fgColor="#111111" />
           </div>
         </div>
-      )}
-      {!c.pairingExpired && manualCodeMode === "details" && c.state?.pairing && (
-        <p className="mt-3 text-[12px] text-ink-secondary">{t("phone.code.expiresIn", { seconds: c.secondsLeft })}</p>
       )}
       {!c.pairingExpired && c.localFallback && c.state?.publicNetwork && (
-        <p role="note" className="mt-3 w-full max-w-[390px] rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-left text-[12px] leading-relaxed text-warning">
-          {t("phone.code.publicNetwork", { network: c.state.publicNetwork })}
+        <p role="note" className="flex gap-2 px-3.5 pb-2.5 text-[13px] leading-[18px] text-ink-secondary">
+          <AlertTriangle size={14} className="mt-0.5 shrink-0 text-warning" />{t("phone.code.publicNetwork", { network: c.state.publicNetwork })}
         </p>
       )}
-      {c.pairingExpired && (
-        <button onClick={c.refreshCode} className="mt-5 rounded-lg bg-accent px-5 py-2.5 text-[14px] font-medium text-white">
-          {t("phone.code.createNew")}
-        </button>
-      )}
       {!c.pairingExpired && c.state?.pairing && (
-        <details className="mt-4 w-full max-w-[390px] rounded-lg border border-hairline/40 px-3 py-2 text-left">
-          <summary className="cursor-pointer text-[12px] text-ink-secondary">{t("phone.code.trouble")}</summary>
-          <div className="mt-3 text-[12px] text-ink-secondary">
-            {t("phone.code.manual")}
-            <div className="mt-1 font-mono text-[22px] tracking-[0.25em] text-ink">{c.state.pairing.code}</div>
-            {c.address && (
-              <div className="mt-3">
-                <ConnectionDetail label={t("phone.code.address")} value={c.addressText ?? `${c.address}:${c.pairingPort}`} />
-              </div>
-            )}
-          </div>
-        </details>
+        <FlowRow title={t("phone.code.manual")}>
+          <span className="font-mono text-[15px] tracking-[0.2em] text-ink">{c.state.pairing.code}</span>
+        </FlowRow>
       )}
-      <button onClick={c.cancel} className="mt-4 text-[12px] text-ink-secondary hover:text-ink">{t("common.cancel")}</button>
-    </div>
+      {!c.pairingExpired && c.state?.pairing && c.address && (
+        <ConnectionDetail label={t("phone.code.address")} value={c.addressText ?? `${c.address}:${c.pairingPort}`} />
+      )}
+    </>
   );
 }
 

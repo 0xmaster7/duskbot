@@ -4,6 +4,7 @@ import { Loader2, LockKeyhole } from "lucide-react";
 import type { LoginBots } from "../../shared/logins";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
+import { fieldLabelCls, textFieldCls } from "./ui/GrokDialog";
 import type { LoginFieldsInput } from "@/lib/logins";
 
 // Security: the browser is asked not to fill or remember these fields, what was typed is dropped once saved, and a
@@ -21,6 +22,7 @@ export function LoginForm({
   onCancel,
   children,
   autoFocus = false,
+  compact = false,
 }: {
   site?: { value: string; onChange: (value: string) => void };
   username?: boolean;
@@ -30,8 +32,12 @@ export function LoginForm({
   onCancel?: () => void;
   children?: ReactNode;
   autoFocus?: boolean;
+  /** Settings' Grok fields: 32px white fields, 11px labels, no hints under them. */
+  compact?: boolean;
 }) {
   const id = useId();
+  const field = compact ? textFieldCls : FIELD;
+  const label = compact ? cn("flex flex-col gap-1", fieldLabelCls) : LABEL;
   const [user, setUser] = useState("");
   const [password, setPassword] = useState("");
   const [totp, setTotp] = useState("");
@@ -58,43 +64,45 @@ export function LoginForm({
   return (
     <form onSubmit={(event) => void submit(event)} className="flex flex-col gap-2.5" aria-busy={pending} data-login-form>
       {site && (
-        <label className={LABEL}>
+        <label className={label}>
           {t("logins.site")}
           <input name="site" type="text" inputMode="url" autoComplete="off" spellCheck={false} required maxLength={2048}
             placeholder={t("logins.sitePlaceholder")} value={site.value} onChange={(event) => site.onChange(event.target.value)}
-            disabled={pending} className={FIELD} autoFocus={autoFocus} aria-describedby={`${id}-site`} />
-          <span id={`${id}-site`} className="text-[12px] font-normal leading-snug text-ink-tertiary">{t("logins.siteHint")}</span>
+            disabled={pending} className={field} autoFocus={autoFocus} aria-describedby={compact ? undefined : `${id}-site`} />
+          {!compact && <span id={`${id}-site`} className="text-[12px] font-normal leading-snug text-ink-tertiary">{t("logins.siteHint")}</span>}
         </label>
       )}
       {username && (
-        <label className={LABEL}>
+        <label className={label}>
           {t("logins.username")}
           <input name="username" type="text" autoComplete="off" spellCheck={false} maxLength={512} value={user}
-            onChange={(event) => setUser(event.target.value)} disabled={pending} className={FIELD} autoFocus={autoFocus && !site} />
+            onChange={(event) => setUser(event.target.value)} disabled={pending} className={field} autoFocus={autoFocus && !site} />
         </label>
       )}
-      <label className={LABEL}>
+      <label className={label}>
         {t(replacing ? "logins.passwordKeep" : "logins.password")}
         <input name="password" type="password" autoComplete="new-password" spellCheck={false} maxLength={512} value={password}
-          required={!replacing} placeholder="••••••••" onChange={(event) => setPassword(event.target.value)} disabled={pending} className={FIELD}
+          required={!replacing} placeholder="••••••••" onChange={(event) => setPassword(event.target.value)} disabled={pending} className={field}
           autoFocus={autoFocus && !site && !username} />
       </label>
-      <label className={LABEL}>
+      <label className={label}>
         {t(replacing ? "logins.totpKeep" : "logins.totp")}
         <input name="totp" type="password" autoComplete="off" spellCheck={false} maxLength={2048} value={totp}
-          onChange={(event) => setTotp(event.target.value)} disabled={pending} className={FIELD} aria-describedby={`${id}-totp`} />
-        <span id={`${id}-totp`} className="text-[12px] font-normal leading-snug text-ink-tertiary">{t("logins.totpHint")}</span>
+          onChange={(event) => setTotp(event.target.value)} disabled={pending} className={field} aria-describedby={compact ? undefined : `${id}-totp`} />
+        {!compact && <span id={`${id}-totp`} className="text-[12px] font-normal leading-snug text-ink-tertiary">{t("logins.totpHint")}</span>}
       </label>
       {children}
-      <p className="flex items-start gap-1 text-[12px] leading-snug text-ink-tertiary">
-        <LockKeyhole size={11} aria-hidden="true" className="mt-[3px] shrink-0" /> {t("logins.private")}
-      </p>
+      {!compact && (
+        <p className="flex items-start gap-1 text-[12px] leading-snug text-ink-tertiary">
+          <LockKeyhole size={11} aria-hidden="true" className="mt-[3px] shrink-0" /> {t("logins.private")}
+        </p>
+      )}
       {error && <p role="alert" className="text-[12px] text-danger">{error}</p>}
       <div className="flex flex-wrap justify-end gap-2">
         {onCancel && (
-          <button type="button" onClick={onCancel} disabled={pending} className="ui-button ui-button-md">{t("logins.cancel")}</button>
+          <button type="button" onClick={onCancel} disabled={pending} className={cn("ui-button", !compact && "ui-button-md")}>{t("logins.cancel")}</button>
         )}
-        <button type="submit" disabled={pending} className="ui-button ui-button-md ui-button-primary inline-flex items-center gap-1.5">
+        <button type="submit" disabled={pending} className={cn("ui-button ui-button-primary inline-flex items-center gap-1.5", !compact && "ui-button-md")}>
           {pending && <Loader2 size={13} className="animate-spin" />}{submitLabel}
         </button>
       </div>

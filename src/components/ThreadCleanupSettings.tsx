@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { t } from "@/lib/i18n";
-import { Card } from "./SettingsPrimitives";
+import { SIMPLE_CARD } from "./SettingsPrimitives";
+import { cn } from "@/lib/cn";
 
 /** Server bounds from server/config.ts, mirrored to reject out-of-range input before the round trip. */
 const MIN_RETENTION_DAYS = 1;
@@ -32,6 +33,10 @@ function mibText(bytes: number): string {
 }
 
 type Knob = "retention" | "cap";
+
+const ROW = "flex min-h-12 flex-wrap items-center gap-x-3 gap-y-2 px-3.5 py-2.5";
+const LABEL = "min-w-0 flex-1 text-[13px] leading-[18px] tracking-[-0.08px] text-ink";
+const FIELD = "order-last flex h-8 w-[120px] shrink-0 items-center rounded-[10px] border bg-menu";
 
 export function ThreadCleanupSettings() {
   const { state, dispatch } = useStore();
@@ -141,9 +146,8 @@ export function ThreadCleanupSettings() {
   };
 
   return (
-    <Card title={t("settings.threadCleanup.title")}>
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
+    <div data-settings-rows="" className={cn(SIMPLE_CARD, "flex flex-col")}>
+      <div className={ROW}>
           <input
             id="thread-log-retention-enabled"
             type="checkbox"
@@ -152,8 +156,8 @@ export function ThreadCleanupSettings() {
             onChange={(event) => toggleRetention(event.target.checked)}
             className="size-4 accent-accent"
           />
-          <label htmlFor="thread-log-retention-enabled" className="text-[13px] font-medium text-ink">{t("settings.threadCleanup.retention.enable")}</label>
-          <div className={`flex max-w-[160px] items-center rounded-lg border bg-inset ${errorKnob === "retention" ? "border-danger/60" : "border-hairline/40 focus-within:border-focus"}`}>
+          <label htmlFor="thread-log-retention-enabled" className={LABEL}>{t("settings.threadCleanup.retention.enable")}</label>
+          <div className={cn(FIELD, errorKnob === "retention" ? "border-danger/60" : "border-ink/12 focus-within:border-ink/40")}>
             <input
               id="thread-log-retention-days"
               type="number"
@@ -174,14 +178,12 @@ export function ThreadCleanupSettings() {
               onKeyDown={(event) => {
                 if (event.key === "Enter") event.currentTarget.blur();
               }}
-              className="min-w-0 flex-1 bg-transparent px-3 py-2 text-[14px] tabular-nums text-ink focus:outline-none"
+              className="min-w-0 flex-1 bg-transparent px-2.5 text-[13px] tabular-nums text-ink focus:outline-none"
             />
             <span className="pr-3 text-[13px] text-ink-secondary">{t("settings.threadCleanup.retention.unit")}</span>
           </div>
-        </div>
       </div>
-      <div className="mt-3 flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className={ROW}>
           <input
             id="thread-log-cap-enabled"
             type="checkbox"
@@ -190,8 +192,8 @@ export function ThreadCleanupSettings() {
             onChange={(event) => toggleCap(event.target.checked)}
             className="size-4 accent-accent"
           />
-          <label htmlFor="thread-log-cap-enabled" className="text-[13px] font-medium text-ink">{t("settings.threadCleanup.cap.enable")}</label>
-          <div className={`flex max-w-[160px] items-center rounded-lg border bg-inset ${errorKnob === "cap" ? "border-danger/60" : "border-hairline/40 focus-within:border-focus"}`}>
+          <label htmlFor="thread-log-cap-enabled" className={LABEL}>{t("settings.threadCleanup.cap.enable")}</label>
+          <div className={cn(FIELD, errorKnob === "cap" ? "border-danger/60" : "border-ink/12 focus-within:border-ink/40")}>
             <input
               id="thread-log-cap-mib"
               type="number"
@@ -212,14 +214,13 @@ export function ThreadCleanupSettings() {
               onKeyDown={(event) => {
                 if (event.key === "Enter") event.currentTarget.blur();
               }}
-              className="min-w-0 flex-1 bg-transparent px-3 py-2 text-[14px] tabular-nums text-ink focus:outline-none"
+              className="min-w-0 flex-1 bg-transparent px-2.5 text-[13px] tabular-nums text-ink focus:outline-none"
             />
             <span className="pr-3 text-[13px] text-ink-secondary">{t("settings.threadCleanup.cap.unit")}</span>
           </div>
-        </div>
       </div>
-      {pending !== null && <p role="status" className="mt-2 text-[12px] text-ink-secondary">{t("settings.threadCleanup.saving")}</p>}
-      {error && <p role="alert" className="mt-2 text-[12px] text-danger">{error}</p>}
-    </Card>
+      {pending !== null && <p role="status" className="px-3.5 pb-2.5 text-[13px] leading-[18px] text-ink-secondary">{t("settings.threadCleanup.saving")}</p>}
+      {error && <p role="alert" className="px-3.5 pb-2.5 text-[13px] leading-[18px] text-danger">{error}</p>}
+    </div>
   );
 }

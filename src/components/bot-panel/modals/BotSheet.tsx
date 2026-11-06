@@ -11,7 +11,6 @@ import { DialogPane, useDialogKeys } from "../../ui/GrokDialog";
 import { PanelModal } from "./PanelModals";
 import { SHEET_PAGES, type SheetPage } from "./panel-modal";
 import "../../../styles/settings.css";
-import "./bot-sheet.css";
 
 const ICON: Record<SheetPage, GrokIconName> = {
   instructions: "pencil-square",
@@ -101,7 +100,7 @@ export function BotSheet({ initial, bot, derived, slackUrl = null, onClose }: {
               </button>
             ))}
           </nav>
-          <div className="settings-panel">
+          <div className="settings-panel" data-settings-look="simple">
             <button type="button" onClick={() => close.current()} aria-label={t("common.close")} className="settings-close">
               <GrokIcon name="close" size={14} />
             </button>

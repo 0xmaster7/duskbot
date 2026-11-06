@@ -43,8 +43,7 @@ describe("ready-made bots gallery", () => {
     expect(cards()).toEqual(READY_BOTS.map((bot) => bot.id));
     const labels = [...host.querySelectorAll("button[aria-label^='Add ']")].map((add) => add.getAttribute("aria-label"));
     expect(new Set(labels).size).toBe(READY_BOTS.length);
-    expect(host.textContent).toContain("Try: “Add my monstera: living room, bright indirect light”");
-    expect(host.textContent).toContain("Includes a paused routine");
+    expect(host.querySelector(`[data-ready-bot="${READY_BOTS[0]!.id}"]`)?.getAttribute("title")).toBe(READY_BOTS[0]!.description);
   });
 
   it("narrows to a category and back to all", () => {
