@@ -1,7 +1,7 @@
 // the app's half of linking a vps (link-service/agent.mjs is the server's half; the crypto block is the same in both and
 // a test proves they interoperate). the link service only ever sees verifiers, public keys and sealed blobs.
 import { createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes } from "node:crypto";
-import { createServer } from "node:http";
+import { STATUS_CODES, createServer } from "node:http";
 
 const B32 = "abcdefghijklmnopqrstuvwxyz234567";
 const FRAME_SKEW_MS = 5 * 60_000;
@@ -12,6 +12,52 @@ export function takeBatch(outbox) {
   let size = 0, count = 0;
   while (count < outbox.length && count < 64 && (count === 0 || size + outbox[count].length <= BATCH_BYTES)) size += outbox[count++].length;
   return outbox.splice(0, count);
+}
+
+/** a websocket's bytes wait here at most this much before its socket is paused (the link service queues 16 MB a side) */
+const STREAM_HIGH = 2 * 1024 * 1024;
+const STREAM_LOW = 512 * 1024;
+/**
+ * frames waiting for the one post in flight (kept in step with the other end of the tunnel). a stream's bytes join its
+ * last waiting piece and are sealed only when sent, so a busy websocket costs a few frames per post, not one per chunk.
+ */
+export function createOutbox({ seal: sealRaw, post, delayMs }) {
+  const items = [];
+  const drains = new Set();
+  let flushing = null;
+  const queued = () => items.reduce((sum, item) => sum + (typeof item === "string" ? item.length : item.size), 0);
+  function kick() {
+    if (flushing) return;
+    flushing = (async () => {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      while (items.length) {
+        for (let at = 0; at < items.length; at += 1) {
+          const item = items[at];
+          if (typeof item !== "string") items[at] = sealRaw(item.r, item.parts.length === 1 ? item.parts[0] : Buffer.concat(item.parts));
+        }
+        if ((await post(takeBatch(items))) === false) items.length = 0;
+        if (drains.size && queued() < STREAM_LOW) { const waiting = [...drains]; drains.clear(); for (const resume of waiting) resume(); }
+      }
+      flushing = null;
+      if (drains.size) { const waiting = [...drains]; drains.clear(); for (const resume of waiting) resume(); }
+    })();
+  }
+  return {
+    push(sealed) { items.push(sealed); kick(); },
+    /** false: stop reading this stream until `onDrain` calls back */
+    bytes(r, chunk) {
+      const last = items[items.length - 1];
+      if (last && typeof last !== "string" && last.r === r && last.size + chunk.length <= CHUNK) { last.parts.push(chunk); last.size += chunk.length; }
+      else for (let at = 0; at < chunk.length; at += CHUNK) {
+        const part = chunk.subarray(at, at + CHUNK);
+        items.push({ r, parts: [part], size: part.length });
+      }
+      kick();
+      return queued() < STREAM_HIGH;
+    },
+    onDrain(resume) { drains.add(resume); },
+    get size() { return queued(); },
+  };
 }
 const HOP = new Set(["connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailer", "transfer-encoding", "upgrade", "content-length", "x-forwarded-for", "x-forwarded-proto", "x-forwarded-host", "forwarded"]);
 
@@ -56,15 +102,27 @@ export function frameGuard(now = Date.now) {
     if (typeof ts !== "number" || Math.abs(t - ts) > FRAME_SKEW_MS) return false;
     if (seen.has(iv)) return false;
     seen.set(iv, t);
-    if (seen.size > 5000) for (const [key, at] of seen) if (t - at > 2 * FRAME_SKEW_MS) seen.delete(key);
+    // oldest first, so a busy stream prunes a few entries per frame instead of walking them all
+    for (const [key, at] of seen) { if (t - at <= 2 * FRAME_SKEW_MS) break; seen.delete(key); }
     return true;
   };
 }
 export function sealFrame(key, id, dir, frame) {
   return seal(key, `${id}|${dir}`, Buffer.from(JSON.stringify({ ...frame, ts: Date.now() })));
 }
+/** a websocket's bytes travel raw, not as base64 in json: 0x01, the 12-letter stream id, the time, then the bytes */
+export function sealBytes(key, id, dir, r, bytes) {
+  const head = Buffer.alloc(21);
+  head[0] = 1;
+  head.write(r, 1, 12, "latin1");
+  head.writeDoubleBE(Date.now(), 13);
+  return seal(key, `${id}|${dir}`, Buffer.concat([head, bytes]));
+}
 export function openFrame(key, id, dir, sealed, guard) {
-  const value = JSON.parse(open(key, `${id}|${dir}`, sealed).toString("utf8"));
+  const plain = open(key, `${id}|${dir}`, sealed);
+  const value = plain[0] === 1 && plain.length >= 21
+    ? { t: "bytes", r: plain.toString("latin1", 1, 13), ts: plain.readDoubleBE(13), b: plain.subarray(21) }
+    : JSON.parse(plain.toString("utf8"));
   if (guard && !guard(sealed.slice(0, 16), value.ts)) return null;
   return value;
 }
@@ -119,7 +177,7 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
   const guard = frameGuard();
   const host = `vps-${id}.localhost`;
   const waiting = new Map();
-  let outbox = [], flushing = null, server = null, server6 = null, polling = false, closed = false, listeningPort = port;
+  let server = null, server6 = null, polling = false, closed = false, listeningPort = port;
   const abort = new AbortController();
 
   async function post(frames) {
@@ -134,14 +192,8 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
     }
     return false;
   }
-  function emit(frame) {
-    outbox.push(sealFrame(key, id, "to-vps", frame));
-    if (!flushing) flushing = (async () => {
-      await new Promise((resolve) => setTimeout(resolve, 5));
-      while (outbox.length) await post(takeBatch(outbox));
-      flushing = null;
-    })();
-  }
+  const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-vps", r, bytes), post, delayMs: 5 });
+  const emit = (frame) => outbox.push(sealFrame(key, id, "to-vps", frame));
   function fail(message) {
     for (const entry of waiting.values()) entry.fail(message);
     waiting.clear();
@@ -153,6 +205,7 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
     entry.touch();
     if (frame.t === "head") entry.head(frame.status, frame.headers ?? {});
     else if (frame.t === "data") entry.data(Buffer.from(frame.d ?? "", "base64"));
+    else if (frame.t === "bytes") entry.data(frame.b);
     else if (frame.t === "end") { waiting.delete(frame.r); entry.end(); }
     else if (frame.t === "err") { waiting.delete(frame.r); entry.fail(frame.message ?? "The server did not answer."); }
     else if (frame.t === "ctl") { waiting.delete(frame.r); entry.ctl(frame); }
@@ -214,16 +267,61 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
     req.on("end", () => emit({ t: "body", r, end: true }));
   }
 
+  /** a websocket (the live desktop): the handshake travels like a request, then its bytes both ways, raw and sealed */
+  function onUpgrade(req, socket, head) {
+    socket.on("error", () => socket.destroy());
+    if (String(req.headers.host ?? "") !== `${host}:${listeningPort}`) { socket.end("HTTP/1.1 421 Misdirected Request\r\ncontent-length: 0\r\nconnection: close\r\n\r\n"); return; }
+    socket.setNoDelay(true);
+    const r = randomB32(12);
+    const headers = {};
+    for (const [name, value] of Object.entries(req.headers)) if (!HOP.has(name)) headers[name] = value;
+    let timer = null, answered = false, open = false;
+    const refuse = (status, message) => {
+      clearTimeout(timer);
+      if (answered) { socket.destroy(); return; }
+      answered = true;
+      const body = JSON.stringify({ error: message });
+      socket.end(`HTTP/1.1 ${status} ${STATUS_CODES[status]}\r\ncontent-type: application/json; charset=utf-8\r\ncontent-length: ${Buffer.byteLength(body)}\r\nconnection: close\r\n\r\n${body}`);
+    };
+    // only the handshake has a deadline: an idle desktop may say nothing for a long while
+    const touch = () => { if (open) return; clearTimeout(timer); timer = setTimeout(() => { if (waiting.delete(r)) emit({ t: "cancel", r }); refuse(504, "The server took too long to answer."); }, replyTimeoutMs); };
+    const read = (chunk) => { if (!outbox.bytes(r, chunk)) { socket.pause(); outbox.onDrain(() => socket.resume()); } };
+    waiting.set(r, {
+      touch,
+      head: (status, out) => {
+        answered = true;
+        open = status === 101;
+        if (open) clearTimeout(timer);
+        const lines = [`HTTP/1.1 ${status} ${STATUS_CODES[status] ?? ""}`, ...(open ? ["Upgrade: websocket", "Connection: Upgrade"] : ["Connection: close"])];
+        for (const [name, value] of Object.entries(out)) {
+          for (const one of Array.isArray(value) ? value : [value]) if (/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(name) && !/[\r\n]/.test(String(one))) lines.push(`${name}: ${one}`);
+        }
+        socket.write(`${lines.join("\r\n")}\r\n\r\n`);
+        if (open) socket.on("data", read);
+      },
+      data: (chunk) => socket.write(chunk),
+      end: () => { clearTimeout(timer); socket.end(); },
+      fail: (message) => refuse(502, message),
+      ctl: () => {},
+    });
+    touch();
+    socket.on("close", () => { clearTimeout(timer); if (waiting.delete(r)) emit({ t: "cancel", r }); });
+    emit({ t: "req", r, method: req.method, path: req.url, headers, end: true, up: true });
+    if (head?.length) outbox.bytes(r, head);
+  }
+
   return {
     host,
     origin: () => `http://${host}:${listeningPort}`,
     async start() {
       if (server) return `http://${host}:${listeningPort}`;
       server = createServer(onRequest);
+      server.on("upgrade", onUpgrade);
       await new Promise((resolve, reject) => { server.once("error", reject); server.listen(port, "127.0.0.1", () => resolve()); });
       listeningPort = server.address().port;
       // *.localhost resolves to ::1 first for node's fetch, so the same port answers on ipv6 loopback too
       const v6 = createServer(onRequest);
+      v6.on("upgrade", onUpgrade);
       await new Promise((resolve) => { v6.once("error", () => resolve()); v6.listen(listeningPort, "::1", () => { server6 = v6; resolve(); }); });
       void poll();
       return `http://${host}:${listeningPort}`;

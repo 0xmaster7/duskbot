@@ -21,6 +21,52 @@ export function takeBatch(outbox) {
   while (count < outbox.length && count < 64 && (count === 0 || size + outbox[count].length <= BATCH_BYTES)) size += outbox[count++].length;
   return outbox.splice(0, count);
 }
+
+/** a websocket's bytes wait here at most this much before its socket is paused (the link service queues 16 MB a side) */
+const STREAM_HIGH = 2 * 1024 * 1024;
+const STREAM_LOW = 512 * 1024;
+/**
+ * frames waiting for the one post in flight (kept in step with the other end of the tunnel). a stream's bytes join its
+ * last waiting piece and are sealed only when sent, so a busy websocket costs a few frames per post, not one per chunk.
+ */
+export function createOutbox({ seal: sealRaw, post, delayMs }) {
+  const items = [];
+  const drains = new Set();
+  let flushing = null;
+  const queued = () => items.reduce((sum, item) => sum + (typeof item === "string" ? item.length : item.size), 0);
+  function kick() {
+    if (flushing) return;
+    flushing = (async () => {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      while (items.length) {
+        for (let at = 0; at < items.length; at += 1) {
+          const item = items[at];
+          if (typeof item !== "string") items[at] = sealRaw(item.r, item.parts.length === 1 ? item.parts[0] : Buffer.concat(item.parts));
+        }
+        if ((await post(takeBatch(items))) === false) items.length = 0;
+        if (drains.size && queued() < STREAM_LOW) { const waiting = [...drains]; drains.clear(); for (const resume of waiting) resume(); }
+      }
+      flushing = null;
+      if (drains.size) { const waiting = [...drains]; drains.clear(); for (const resume of waiting) resume(); }
+    })();
+  }
+  return {
+    push(sealed) { items.push(sealed); kick(); },
+    /** false: stop reading this stream until `onDrain` calls back */
+    bytes(r, chunk) {
+      const last = items[items.length - 1];
+      if (last && typeof last !== "string" && last.r === r && last.size + chunk.length <= CHUNK) { last.parts.push(chunk); last.size += chunk.length; }
+      else for (let at = 0; at < chunk.length; at += CHUNK) {
+        const part = chunk.subarray(at, at + CHUNK);
+        items.push({ r, parts: [part], size: part.length });
+      }
+      kick();
+      return queued() < STREAM_HIGH;
+    },
+    onDrain(resume) { drains.add(resume); },
+    get size() { return queued(); },
+  };
+}
 /** hop-by-hop headers never cross the tunnel */
 const HOP = new Set(["connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailer", "transfer-encoding", "upgrade", "content-length", "x-forwarded-for", "x-forwarded-proto", "x-forwarded-host", "forwarded"]);
 
@@ -59,15 +105,27 @@ export function frameGuard(now = Date.now) {
     if (typeof ts !== "number" || Math.abs(t - ts) > FRAME_SKEW_MS) return false;
     if (seen.has(iv)) return false;
     seen.set(iv, t);
-    if (seen.size > 5000) for (const [key, at] of seen) if (t - at > 2 * FRAME_SKEW_MS) seen.delete(key);
+    // oldest first, so a busy stream prunes a few entries per frame instead of walking them all
+    for (const [key, at] of seen) { if (t - at <= 2 * FRAME_SKEW_MS) break; seen.delete(key); }
     return true;
   };
 }
 export function sealFrame(key, id, dir, frame) {
   return seal(key, `${id}|${dir}`, Buffer.from(JSON.stringify({ ...frame, ts: Date.now() })));
 }
+/** a websocket's bytes travel raw, not as base64 in json: 0x01, the 12-letter stream id, the time, then the bytes */
+export function sealBytes(key, id, dir, r, bytes) {
+  const head = Buffer.alloc(21);
+  head[0] = 1;
+  head.write(r, 1, 12, "latin1");
+  head.writeDoubleBE(Date.now(), 13);
+  return seal(key, `${id}|${dir}`, Buffer.concat([head, bytes]));
+}
 export function openFrame(key, id, dir, sealed, guard) {
-  const value = JSON.parse(open(key, `${id}|${dir}`, sealed).toString("utf8"));
+  const plain = open(key, `${id}|${dir}`, sealed);
+  const value = plain[0] === 1 && plain.length >= 21
+    ? { t: "bytes", r: plain.toString("latin1", 1, 13), ts: plain.readDoubleBE(13), b: plain.subarray(21) }
+    : JSON.parse(plain.toString("utf8"));
   if (guard && !guard(sealed.slice(0, 16), value.ts)) return null;
   return value;
 }
@@ -246,8 +304,6 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
   const key = Buffer.from(keyText, "base64url");
   const guard = frameGuard();
   const pending = new Map();
-  let outbox = [];
-  let flushing = null;
   let stopped = false;
   const abort = new AbortController();
 
@@ -261,18 +317,29 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
       await new Promise((resolve) => setTimeout(resolve, Math.min(5000, 200 * 2 ** attempt)));
     }
   };
-  function emit(frame) {
-    outbox.push(sealFrame(key, id, "to-app", frame));
-    if (!flushing) flushing = (async () => {
-      await new Promise((resolve) => setTimeout(resolve, 15));
-      while (outbox.length) await post(takeBatch(outbox));
-      flushing = null;
-    })();
+  // 5 ms: a websocket's replies (the live desktop) are felt; posts are one at a time, so more coalesce while one is out
+  const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-app", r, bytes), post, delayMs: 5 });
+  const emit = (frame) => outbox.push(sealFrame(key, id, "to-app", frame));
+
+  /** a websocket the app opened: the server answers its handshake, then the socket's bytes cross both ways */
+  function upgraded(frame, early, res, socket, head) {
+    const out = {};
+    for (const [name, value] of Object.entries(res.headers)) if (!HOP.has(name)) out[name] = value;
+    emit({ t: "head", r: frame.r, status: 101, headers: out, up: true });
+    socket.setNoDelay(true);
+    pending.set(frame.r, { write: (chunk) => socket.write(chunk), end: () => socket.end(), destroy: () => socket.destroy() });
+    for (const chunk of early) socket.write(chunk);
+    const read = (chunk) => { if (!outbox.bytes(frame.r, chunk)) { socket.pause(); outbox.onDrain(() => socket.resume()); } };
+    if (head.length) read(head);
+    socket.on("data", read);
+    socket.on("error", () => socket.destroy());
+    socket.on("close", () => { if (pending.delete(frame.r)) emit({ t: "end", r: frame.r }); });
   }
 
   function startRequest(frame) {
     const headers = {};
     for (const [name, value] of Object.entries(frame.headers ?? {})) if (!HOP.has(name.toLowerCase())) headers[name] = value;
+    if (frame.up === true) { headers.connection = "Upgrade"; headers.upgrade = "websocket"; }
     // marks every tunnelled request as remote (server/request-auth.ts isProxied): it needs a paired session, never loopback trust
     headers["x-forwarded-for"] = "192.0.2.10";
     headers["x-forwarded-proto"] = "http";
@@ -286,7 +353,12 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
       res.on("error", () => { pending.delete(frame.r); emit({ t: "err", r: frame.r, message: "reply cut off" }); });
     });
     req.on("error", () => { if (pending.delete(frame.r)) emit({ t: "err", r: frame.r, message: "OpenMausBot on the server did not answer" }); });
-    pending.set(frame.r, req);
+    // bytes the app sent before the handshake was answered wait for the socket
+    const early = [];
+    if (frame.up === true) req.on("upgrade", (res, socket, head) => { if (pending.has(frame.r)) upgraded(frame, early, res, socket, head); else socket.destroy(); });
+    pending.set(frame.r, frame.up === true
+      ? { write: (chunk) => early.push(chunk), end: () => {}, destroy: () => req.destroy() }
+      : { write: (chunk) => req.write(chunk), end: () => req.end(), destroy: () => req.destroy() });
     if (frame.end) req.end();
   }
 
@@ -299,6 +371,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
       if (frame.end) req.end();
       return;
     }
+    if (frame.t === "bytes") { pending.get(frame.r)?.write(frame.b); return; }
     if (frame.t === "cancel") { pending.get(frame.r)?.destroy(); pending.delete(frame.r); return; }
     if (frame.t === "ctl") {
       try { emit({ t: "ctl", r: frame.r, ok: true, data: await control(frame.op, frame.data) }); }
@@ -311,7 +384,12 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
     while (!stopped) {
       try {
         const response = await fetchImpl(`${base}/v1/tunnels/${id}/to-vps?wait=25`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.any([abort.signal, AbortSignal.timeout(40_000)]) });
-        if (response.status === 404) { log("link: this server was unlinked in the app; the tunnel stops"); stopped = true; return "unlinked"; }
+        if (response.status === 404) {
+          log("link: this server was unlinked in the app; the tunnel stops");
+          stopped = true;
+          for (const req of pending.values()) req.destroy();
+          return "unlinked";
+        }
         if (!response.ok) throw new Error(`link service answered ${response.status}`);
         const { frames = [] } = await response.json();
         failures = 0;

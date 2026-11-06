@@ -1,8 +1,9 @@
 // the link service end to end on loopback: a setup session as the app and the install script use it, the agent's real
 // `link` command sealing a result only the app opens, and the sealed relay tunnel carrying requests, streams and control.
 import { execFile } from "node:child_process";
+import { createHash, randomBytes } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { createServer } from "node:http";
+import { createServer, request as httpRequest } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,8 +11,8 @@ import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createLinkService, publicIp } from "../src/app.mjs";
-import { createTunnelAgent, open as agentOpen } from "../agent.mjs";
-import { createRelayClient, createTunnelProxy, newLinkKeys, openResult, seal, sha256hex, vpsTokenOf } from "../../electron/vps-link-protocol.mjs";
+import { createTunnelAgent, open as agentOpen, openFrame as agentOpenFrame, sealBytes as agentSealBytes } from "../agent.mjs";
+import { createRelayClient, createTunnelProxy, frameGuard, newLinkKeys, openFrame, openResult, seal, sealBytes, sha256hex, vpsTokenOf } from "../../electron/vps-link-protocol.mjs";
 
 const run = promisify(execFile);
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -43,6 +44,19 @@ beforeAll(async () => {
       res.end(JSON.stringify({ echo: Buffer.concat(chunks).length, url: req.url }));
     });
   });
+  // the server's desktop viewer stands in as a websocket that echoes, or refuses with a json answer
+  fakeServer.on("upgrade", (req, socket, head) => {
+    seen.push({ method: req.method, url: req.url, headers: req.headers, upgrade: true });
+    if (!req.url.startsWith("/ws/echo")) {
+      const body = JSON.stringify({ error: "Take control of this computer first" });
+      socket.end(`HTTP/1.1 409 Conflict\r\ncontent-type: application/json\r\ncontent-length: ${body.length}\r\nconnection: close\r\n\r\n${body}`);
+      return;
+    }
+    const accept = createHash("sha1").update(`${req.headers["sec-websocket-key"]}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest("base64");
+    socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+    if (head.length) socket.write(head);
+    socket.pipe(socket);
+  });
   fakePort = await listen(fakeServer);
 });
 
@@ -52,6 +66,36 @@ afterAll(async () => {
   await new Promise((resolve) => fakeServer.close(resolve));
   rmSync(dir, { recursive: true, force: true });
 });
+
+async function openTunnel() {
+  const relay = createRelayClient({ base });
+  const keys = newLinkKeys();
+  const made = await relay.create({ verifier: keys.verifier, appPub: keys.pub });
+  const vpsToken = vpsTokenOf(keys.secret);
+  await post(`/v1/sessions/${made.id}/claim`, vpsToken, {});
+  const tunnel = { key: Buffer.alloc(32, 9).toString("base64url"), vps: "w".repeat(43), app: "b".repeat(43) };
+  await post(`/v1/sessions/${made.id}/result`, vpsToken, { sealed: seal(Buffer.alloc(32), made.id, Buffer.from("{}")), vpsPub: keys.pub, tunnel: { vps: sha256hex(tunnel.vps), app: sha256hex(tunnel.app) } });
+  const agent = createTunnelAgent({ base, id: made.id, key: tunnel.key, token: tunnel.vps, server: { host: "127.0.0.1", port: fakePort }, log: () => {} });
+  const running = agent.run();
+  const proxy = createTunnelProxy({ base, id: made.id, key: tunnel.key, token: tunnel.app });
+  const port = new URL(await proxy.start()).port;
+  return { id: made.id, port, proxy, close: async () => { await relay.forget(made.id, tunnel.app); await running; await proxy.close(); } };
+}
+
+/** a websocket handshake as a browser makes it, to the app's proxy with the vps host name */
+function upgrade({ id, port }, path, host = `vps-${id}.localhost:${port}`) {
+  return new Promise((resolve, reject) => {
+    const req = httpRequest({ host: "127.0.0.1", port, path, headers: { host, origin: `http://${host}`, connection: "Upgrade", upgrade: "websocket", "sec-websocket-version": "13", "sec-websocket-key": randomBytes(16).toString("base64") } });
+    req.on("upgrade", (res, socket, head) => resolve({ status: res.statusCode, headers: res.headers, socket, head }));
+    req.on("response", (res) => {
+      const chunks = [];
+      res.on("data", (chunk) => chunks.push(chunk));
+      res.on("end", () => resolve({ status: res.statusCode, headers: res.headers, text: Buffer.concat(chunks).toString("utf8") }));
+    });
+    req.on("error", reject);
+    req.end();
+  });
+}
 
 const post = (route, token, body) => fetch(`${base}${route}`, { method: "POST", headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body) });
 
@@ -308,4 +352,62 @@ describe("relay tunnel", () => {
     expect((await fetch(`${base}/v1/tunnels/${made.id}/to-app`, { headers: { authorization: `Bearer ${tunnel.app}` } })).status).toBe(404);
     expect((await drop(tunnel.vps)).status).toBe(404);
   });
+});
+
+describe("relay tunnel websockets (the live desktop)", () => {
+  it("seals a stream's bytes raw, and both ends open each other's", () => {
+    const key = randomBytes(32);
+    const bytes = randomBytes(5000);
+    const fromApp = agentOpenFrame(key, "abcdefghij", "to-vps", sealBytes(key, "abcdefghij", "to-vps", "r".repeat(12), bytes), frameGuard());
+    expect(fromApp.t).toBe("bytes");
+    expect(fromApp.r).toBe("r".repeat(12));
+    expect(Buffer.compare(fromApp.b, bytes)).toBe(0);
+    const sealed = agentSealBytes(key, "abcdefghij", "to-app", "s".repeat(12), bytes);
+    // raw, not base64 in json: about a third over the bytes for base64url, not two thirds
+    expect(sealed.length).toBeLessThan(bytes.length * 1.4);
+    const guard = frameGuard();
+    expect(Buffer.compare(openFrame(key, "abcdefghij", "to-app", sealed, guard).b, bytes)).toBe(0);
+    expect(openFrame(key, "abcdefghij", "to-app", sealed, guard)).toBeNull();
+    expect(() => openFrame(key, "abcdefghij", "to-vps", sealed)).toThrow();
+  });
+
+  it("carries a websocket both ways, binary-safe and in order, under the relay's post limit, and closes it from either end", async () => {
+    const tunnel = await openTunnel();
+    largestPost = 0;
+    const ws = await upgrade(tunnel, "/ws/echo?botId=b1");
+    expect(ws.status).toBe(101);
+    expect(ws.headers.upgrade).toBe("websocket");
+    expect(ws.headers["sec-websocket-accept"]).toBeTruthy();
+    const arrived = seen.find((entry) => entry.upgrade && entry.url === "/ws/echo?botId=b1");
+    expect(arrived.headers["x-forwarded-for"]).toBe("192.0.2.10");
+    expect(arrived.headers.origin).toBe(`http://vps-${tunnel.id}.localhost:${tunnel.port}`);
+
+    // small writes (pointer and keys) come back quickly; then a few megabytes (a desktop's frames) come back whole
+    const small = Buffer.from([0x05, 0x00, 0x01, 0x02]);
+    const echoed = [];
+    ws.socket.on("data", (chunk) => echoed.push(chunk));
+    const started = Date.now();
+    ws.socket.write(small);
+    await expect.poll(() => Buffer.concat(echoed).length, { timeout: 5000 }).toBe(small.length);
+    expect(Date.now() - started).toBeLessThan(1000);
+    const big = randomBytes(3 * 1024 * 1024 + 17);
+    for (let at = 0; at < big.length; at += 60_000) ws.socket.write(big.subarray(at, at + 60_000));
+    await expect.poll(() => Buffer.concat(echoed).length, { timeout: 15_000 }).toBe(small.length + big.length);
+    expect(Buffer.compare(Buffer.concat(echoed).subarray(small.length), big)).toBe(0);
+    expect(largestPost).toBeLessThan(1_000_000);
+
+    const closed = new Promise((resolve) => ws.socket.once("close", resolve));
+    ws.socket.destroy();
+    await closed;
+    await tunnel.close();
+  }, 30_000);
+
+  it("passes a refused handshake on as the server's answer, and refuses a wrong host", async () => {
+    const tunnel = await openTunnel();
+    const refused = await upgrade(tunnel, "/ws/not-yours");
+    expect(refused.status).toBe(409);
+    expect(JSON.parse(refused.text).error).toContain("Take control");
+    expect((await upgrade(tunnel, "/ws/echo", "evil.example:1")).status).toBe(421);
+    await tunnel.close();
+  }, 20_000);
 });

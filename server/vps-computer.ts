@@ -1,7 +1,6 @@
 // BYO Linux VPS: Docker's SSH transport reaches the user's daemon; one Cua Driver desktop container per bot.
 import { createHash, randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
-import { createConnection, createServer, type AddressInfo } from "node:net";
 
 import {
   BASE_IMAGE,
@@ -30,6 +29,8 @@ import { DATA_DIR, isValidSshAlias, vpsSshAlias, type AppConfig } from "./config
 import { augmentedPath } from "./env-path.ts";
 import { killCliTree, spawnCli } from "./procs.ts";
 import { prepareVpsSsh } from "./vps-ssh.ts";
+import { boxChromeExecArgs, boxChromeRelay, forwardViewer, isThisServerVps, type ViewerLink } from "./vps-local.ts";
+import { sshViewer } from "./vps-viewer.ts";
 import { loadEnvironmentId } from "./environment.ts";
 import { SPAWNED_PROXIES } from "./proxy-paths.ts";
 
@@ -92,7 +93,7 @@ const REMOTE_VIEWER_GRACE_MS = 30_000;
 const NATIVE_VIEWER_LIFETIME_MS = 8 * 60 * 60_000;
 const desktopTunnels = new Map<
   string,
-  { child: ReturnType<typeof spawn>; joinUrl: string; expiry: ReturnType<typeof setTimeout>; viewers: number; localViewer: boolean }
+  { link: ViewerLink; joinUrl: string; expiry: ReturnType<typeof setTimeout>; viewers: number; localViewer: boolean }
 >();
 
 function invalidateVpsStatus(key: string): void {
@@ -186,6 +187,8 @@ export function vpsContainerName(botId: string): string {
 }
 
 export function vpsDockerArgs(alias: string, args: string[]): string[] {
+  // a server on the linked VPS drives its own daemon
+  if (isThisServerVps(alias)) return args;
   if (!isValidSshAlias(alias)) {
     throw new Error("invalid VPS SSH config alias");
   }
@@ -218,44 +221,12 @@ export function vpsSshTunnelArgs(alias: string, localPort: number, privateIp: st
   ];
 }
 
-function unusedLoopbackPort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const probe = createServer();
-    probe.once("error", reject);
-    probe.listen(0, "127.0.0.1", () => {
-      // SAFETY: bound to an IPv4 TCP address above, so Node returns AddressInfo, not a socket path.
-      const port = (probe.address() as AddressInfo).port;
-      probe.close((error) => {
-        if (error) reject(error);
-        else if (port >= 1024) resolve(port);
-        else reject(new Error("could not reserve a VPS viewer port"));
-      });
-    });
-  });
-}
-
-function loopbackAnswers(port: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    const socket = createConnection({ host: "127.0.0.1", port });
-    let settled = false;
-    const finish = (answer: boolean) => {
-      if (settled) return;
-      settled = true;
-      socket.destroy();
-      resolve(answer);
-    };
-    socket.once("connect", () => finish(true));
-    socket.once("error", () => finish(false));
-    socket.setTimeout(250, () => finish(false));
-  });
-}
-
 function stopDesktopTunnel(botId: string): boolean {
   const tunnel = desktopTunnels.get(botId);
   if (!tunnel) return false;
   desktopTunnels.delete(botId);
   clearTimeout(tunnel.expiry);
-  if (tunnel.child.exitCode === null && !tunnel.child.killed) tunnel.child.kill("SIGTERM");
+  tunnel.link.stop();
   return true;
 }
 
@@ -275,12 +246,12 @@ export function closeAllVpsDesktopTunnels(): void {
 
 export function vpsDesktopConnection(botId: string) {
   const tunnel = desktopTunnels.get(botId);
-  if (!tunnel || tunnel.child.exitCode !== null || tunnel.child.killed) return;
+  if (!tunnel || !tunnel.link.alive()) return;
   const url = new URL(tunnel.joinUrl);
   return {
     port: Number(url.port),
     password: new URLSearchParams(url.hash.slice(1)).get("password"),
-    live: () => desktopTunnels.get(botId) === tunnel && tunnel.child.exitCode === null && !tunnel.child.killed,
+    live: () => desktopTunnels.get(botId) === tunnel && tunnel.link.alive(),
     retain: () => {
       tunnel.viewers++;
       if (!tunnel.localViewer) clearTimeout(tunnel.expiry);
@@ -404,7 +375,8 @@ function emptyStatus(botId: string, alias: string | null, desktop = preferredVps
     desktopReady: false,
     desktop_error: null,
     ready: false,
-    problem: alias ? "Docker over SSH is not reachable" : "Configure a VPS SSH alias in Settings → API keys",
+    problem: isThisServerVps(alias) ? "Docker is not running on this server"
+      : alias ? "Docker over SSH is not reachable" : "Configure a VPS SSH alias in Settings → API keys",
     image_ref: desktop === "cua" ? VPS_IMAGE : BOT_DESKTOP_IMAGE,
     base_image_ref: BASE_IMAGE,
     driver_version: CUA_DRIVER_VERSION,
@@ -1170,7 +1142,7 @@ export async function vpsComputerJoin(
   if (!alias) throw Object.assign(new Error("VPS is not configured"), { status: 409 });
 
   const existing = desktopTunnels.get(botId);
-  if (existing && existing.child.exitCode === null && !existing.child.killed) {
+  if (existing && existing.link.alive()) {
     if (!remoteViewer) existing.localViewer = true;
     if (!existing.viewers || existing.localViewer) {
       clearTimeout(existing.expiry);
@@ -1194,48 +1166,46 @@ export async function vpsComputerJoin(
     );
   }
 
-  const localPort = await unusedLoopbackPort();
-  const ssh = prepareVpsSsh(DATA_DIR, augmentedPath());
-  const child = spawn("ssh", vpsSshTunnelArgs(alias, localPort, connection.privateIp, ssh.configPath), {
-    shell: false,
-    env: { ...process.env, PATH: ssh.path },
-    stdio: ["ignore", "ignore", "pipe"],
-    windowsHide: true,
-  });
-  let failure: string | null = null;
-  let stderr = "";
-  child.stderr?.setEncoding("utf8");
-  child.stderr?.on("data", (chunk: string) => {
-    stderr = `${stderr}${chunk}`.slice(-1000);
-  });
-  child.once("error", (error) => {
-    failure = error.message;
-  });
-  child.once("close", (code) => {
-    const active = desktopTunnels.get(botId);
-    if (active?.child === child) {
-      clearTimeout(active.expiry);
-      desktopTunnels.delete(botId);
-    }
-    if (!failure) failure = stderr.trim() || `SSH viewer tunnel exited ${code ?? "without a status"}`;
-  });
-
-  const deadline = Date.now() + 10_000;
-  while (Date.now() < deadline && !failure) {
-    if (await loopbackAnswers(localPort)) break;
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-  if (failure || !(await loopbackAnswers(localPort))) {
-    if (child.exitCode === null && !child.killed) child.kill("SIGTERM");
-    const detail = failure || stderr.trim() || "the SSH port forward did not become ready";
-    throw Object.assign(new Error(`Could not open the VPS live desktop: ${detail}`), { status: 502 });
-  }
-
-  const joinUrl = `http://127.0.0.1:${localPort}/vnc.html#autoconnect=true&resize=scale&password=${encodeURIComponent(connection.password)}`;
+  const link = isThisServerVps(alias)
+    ? await forwardViewer(connection.privateIp)
+    : await sshViewer((localPort, configPath) => vpsSshTunnelArgs(alias, localPort, connection.privateIp, configPath), (gone) => {
+      const active = desktopTunnels.get(botId);
+      if (active?.link === gone) {
+        clearTimeout(active.expiry);
+        desktopTunnels.delete(botId);
+      }
+    });
+  const joinUrl = `http://127.0.0.1:${link.port}/vnc.html#autoconnect=true&resize=scale&password=${encodeURIComponent(connection.password)}`;
   const expiry = setTimeout(() => stopDesktopTunnel(botId), remoteViewer ? REMOTE_VIEWER_GRACE_MS : NATIVE_VIEWER_LIFETIME_MS);
   expiry.unref?.();
-  desktopTunnels.set(botId, { child, joinUrl, expiry, viewers: 0, localViewer: !remoteViewer });
+  desktopTunnels.set(botId, { link, joinUrl, expiry, viewers: 0, localViewer: !remoteViewer });
   return { joinUrl, state: "running" };
+}
+
+const boxChromes = new Map<string, { containerId: string; url: string; close: () => void }>();
+
+/** The CDP address a bot's browser attaches to, when its computer is a running bot desktop on this server's own Docker. */
+export async function vpsBoxChrome(cfg: AppConfig, botId: string): Promise<string | null> {
+  const alias = vpsSshAlias(snapshotVpsConfig(cfg));
+  const known = boxChromes.get(botId);
+  if (!alias || !isThisServerVps(alias)) { known?.close(); boxChromes.delete(botId); return null; }
+  const status = await vpsComputerStatus(cfg, botId);
+  const containerId = status.container_id;
+  if (!status.ready || status.desktop !== "bot-desktop" || !containerId) {
+    known?.close();
+    boxChromes.delete(botId);
+    return null;
+  }
+  if (known?.containerId === containerId) return known.url;
+  known?.close();
+  const relay = await boxChromeRelay(() => spawn("docker", boxChromeExecArgs(containerId), {
+    shell: false, stdio: ["pipe", "pipe", "ignore"], windowsHide: true,
+  }));
+  const current = boxChromes.get(botId);
+  if (current && current.containerId === containerId) { relay.close(); return current.url; }
+  current?.close();
+  boxChromes.set(botId, { containerId, ...relay });
+  return relay.url;
 }
 
 export function vpsContainerMcpArgs(alias: string, containerName: string): string[] {

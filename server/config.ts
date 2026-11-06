@@ -9,6 +9,7 @@ import { botAvatarUrlSchema } from "../shared/bot-avatar.ts"; import { TALKING_S
 import { writeFileAtomic } from "./atomic.ts";
 import { defaultBotThreads, MAX_CONCURRENT_BOT_THREADS } from "./bot-thread-limits.ts";
 import { anthropicKeyEnv } from "./anthropic-key-env.ts";
+import { THIS_SERVER_VPS, vpsIsThisServer } from "./vps-local.ts";
 import { withoutComputerEngine } from "./computer-engine-removal.ts";
 import { newBotDefaultsSchema, type NewBotDefaults } from "./new-bot-defaults.ts";
 import { replaySettings } from "./replay-settings.ts";
@@ -610,7 +611,8 @@ export function parseConfigPatch(value: JsonValue): ConfigPatch {
 }
 
 export function vpsSshAlias(cfg: AppConfig): string | null {
-  return isValidSshAlias(cfg.vps?.sshAlias) ? cfg.vps.sshAlias : null;
+  if (isValidSshAlias(cfg.vps?.sshAlias)) return cfg.vps.sshAlias;
+  return vpsIsThisServer() ? THIS_SERVER_VPS : null;
 }
 
 /** Revalidated because the value is forwarded into a child process environment. */

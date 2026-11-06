@@ -69,6 +69,9 @@ export interface BrowserHostDeps {
   audienceOf?(threadId: string): Audience;
   /** The box every Chrome of the bots' browsers runs in (a Team Cloud's), or none. */
   browserBox?(seccompFd: number, ro: readonly string[]): LauncherBox | null;
+  /** The Chromium on a bot's own computer when that computer runs on this server (a linked VPS): the bot browses in
+   * that window, which the person watches on the Screen and can take control of. Null: no such computer running. */
+  boxChrome?(botId: string): Promise<string | null>;
 }
 
 type Spec = { command: string; args?: readonly string[]; env: Record<string, string> };
@@ -204,14 +207,19 @@ export function createBrowserHost(deps: BrowserHostDeps) {
     return Boolean(profileId) && myChromeAvailable()
       && cfg.browserProfiles?.some((profile) => profile.id === profileId && profile.browser === "chrome") === true;
   }
-  function browserSessionSpec(binaryPath: string, session: string, profile: string | undefined, egressPort?: number, cdpUrl?: string) {
+  function browserSessionSpec(binaryPath: string, session: string, profile: string | undefined, egressPort?: number, cdpUrl?: string, inBox = false) {
     const attachCdpUrl = cdpUrl ?? browserEngineAttachCdpUrl(cfg);
     return agentBrowserIntegration({
       binaryPath, session, encryptionKey: browserEngineEncryptionKey(), persistent: profile !== "guest", egressPort,
       env: { ...process.env, PATH: augmentedPath() },
       launcher: chromeLauncher.env(),
-      ...(usesMyChrome(profile) ? { attach: attachCdpUrl ? { cdpUrl: attachCdpUrl } : {} } : {}),
+      ...(inBox || usesMyChrome(profile) ? { attach: attachCdpUrl ? { cdpUrl: attachCdpUrl } : {} } : {}),
     });
+  }
+  /** Its computer's own Chromium, when the bot's computer runs on this server; a failed lookup is no such computer. */
+  async function boxChromeOf(botId: string): Promise<string | null> {
+    if (!deps.boxChrome) return null;
+    return deps.boxChrome(botId).catch(() => null);
   }
   function browserProfileIdOf(profile: string | undefined): string | undefined {
     const target = profile && profile !== "guest" ? browserProfilePartitionTarget(cfg, profile) : null;
@@ -244,7 +252,8 @@ export function createBrowserHost(deps: BrowserHostDeps) {
     const profileTarget = profile && profile !== "guest" ? browserProfilePartitionTarget(cfg, profile) : null;
     const partitionId = profile === "guest" ? "guest" : (profileTarget?.partitionId ?? "");
     const browserProfileId = profileTarget?.profileId ?? profile;
-    if (onChrome(profile)) {
+    const inBox = await boxChromeOf(botId);
+    if (!inBox && onChrome(profile)) {
       const { session, spec } = chromeSpec(botId, profile, audience);
       usedBrowserSessions.set(session, spec);
       return { profile: partitionId, session, spec, integration: turn ? turnIntegration(botId, session, turn) : spec };
@@ -255,7 +264,9 @@ export function createBrowserHost(deps: BrowserHostDeps) {
       return null;
     }
     const session = currentBrowserSession(botId, profile, audience);
-    const spec = browserSessionSpec(status.binaryPath, session, browserProfileId, usesMyChrome(browserProfileId) ? undefined : await browserEgress.open(session));
+    const cdpUrl = inBox ?? undefined;
+    // the box's network is fenced on its own, so its Chromium takes no egress gate from this host
+    const spec = browserSessionSpec(status.binaryPath, session, browserProfileId, inBox || usesMyChrome(browserProfileId) ? undefined : await browserEgress.open(session), cdpUrl, Boolean(inBox));
     usedBrowserSessions.set(session, spec);
     await prepareBrowserSessionState(status.binaryPath, session, { env: spec.env, persistent: profile !== "guest" && !attachesToChrome(spec.env), isCurrent: () => {
       const current = store.bot(botId);
@@ -268,14 +279,16 @@ export function createBrowserHost(deps: BrowserHostDeps) {
   }
   /** A bot's browser as it runs or would run now, without preparing it; null while its engine is not installed. */
   async function currentBrowserSpec(botId: string, profile: string | undefined, audience: Audience = "team"): Promise<{ session: string; spec: Spec } | null> {
-    if (onChrome(profile)) return chromeSpec(botId, profile, audience);
+    const inBox = await boxChromeOf(botId);
+    if (!inBox && onChrome(profile)) return chromeSpec(botId, profile, audience);
     const engine = browserEngineStatus();
     if (engine.kind !== "ready") return null;
     const session = currentBrowserSession(botId, profile, audience);
     const used = usedBrowserSessions.get(session);
-    if (used) return { session, spec: used };
+    if (used && (!inBox || used.env.AGENT_BROWSER_CDP === inBox)) return { session, spec: used };
     const profileId = browserProfileIdOf(profile);
-    return { session, spec: browserSessionSpec(engine.binaryPath, session, profileId, usesMyChrome(profileId) ? undefined : await browserEgress.open(session)) };
+    const cdpUrl = inBox ?? undefined;
+    return { session, spec: browserSessionSpec(engine.binaryPath, session, profileId, inBox || usesMyChrome(profileId) ? undefined : await browserEgress.open(session), cdpUrl, Boolean(inBox)) };
   }
   /** fill_login's reads and typing, on whichever engine runs the session. */
   function loginInput(session: string, spec: Spec, env: NodeJS.ProcessEnv): Pick<FillLoginDeps, "engine" | "insertText" | "press" | "click"> {

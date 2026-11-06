@@ -1,3 +1,5 @@
+import { isThisServerVps } from "./vps-local.ts";
+
 export const CLOUD_BACKEND_CHANGE_ERROR = "stop the active turn before changing the cloud backend";
 export const BOAT_ACCOUNT_RESOURCES_ERROR =
   "remove this installation's cloud computers before changing or clearing the Boat account";
@@ -12,7 +14,7 @@ export const VPS_BOT_ALIAS_LIFECYCLE_ERROR = "wait for VPS computer actions to f
 /** A server that cannot answer never keeps a bot on it or keeps it alive: what may be left there, and how to remove it. */
 export function vpsLeftBehindNotice(done: "Moved" | "Deleted", alias: string, containerName: string): string {
   return `${done}. ${alias} could not be reached, so this bot's computer there, if it is still there, was left as it is. ` +
-    `When ${alias} is back, remove it with: docker -H ssh://${alias} rm -f ${containerName}`;
+    `When ${alias} is back, remove it with: docker ${isThisServerVps(alias) ? "" : `-H ssh://${alias} `}rm -f ${containerName}`;
 }
 
 export function cloudBackendChangeError(botBusy: boolean, activeVpsThread: boolean): string | null {
