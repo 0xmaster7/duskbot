@@ -9,7 +9,7 @@ import { smallButtonCls, textFieldCls } from "../ui/GrokDialog";
 import { centered, deviceWord, ErrorNote, Footer, Heading, Lead, message, PILL, SOFT_PILL } from "./parts";
 
 const POLL_MS = 2000;
-const CARD = "flex w-[236px] max-w-full flex-col items-center gap-1.5 rounded-[16px] border border-ink/10 px-4 py-3.5 text-center";
+const CARD = "flex w-[236px] max-w-full flex-col items-center justify-center gap-1.5 self-stretch rounded-[16px] border border-ink/10 px-4 py-3.5 text-center";
 
 function EngineCard({ engine, bridge, onSignedIn }: { engine: VpsEngine; bridge: VpsLinkBridge; onSignedIn: () => void }) {
   const [flow, setFlow] = useState<VpsSignIn | null>(null);
@@ -68,7 +68,7 @@ function EngineCard({ engine, bridge, onSignedIn }: { engine: VpsEngine; bridge:
 
   if (!signedIn && !waiting) {
     return (
-      <li data-vps-engine={engine.kind} className="flex w-[236px] max-w-full shrink flex-col items-center gap-2">
+      <li data-vps-engine={engine.kind} className="flex w-[236px] max-w-full shrink flex-col items-center gap-2 self-stretch">
         <button type="button" disabled={busy} onClick={() => void start()}
           className={cn(CARD, "omb-press cursor-pointer outline-none enabled:hover:bg-ink/[0.035] enabled:active:bg-ink/[0.05] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-default")}>
           {face}
@@ -141,7 +141,7 @@ export function SignInScreen({ bridge, server, autoSkip, onDone }: { bridge: Vps
               </ul>
             : engines.length === 0
               ? <p className="m-0 text-[13px] leading-[18px] text-ink/56">{t("vpsLink.signIn.none")}</p>
-              : <ul aria-label={t("vpsLink.signIn.listAria")} className="m-0 flex list-none items-start justify-center gap-3 p-0">
+              : <ul aria-label={t("vpsLink.signIn.listAria")} className="m-0 flex list-none items-stretch justify-center gap-3 p-0">
                   {engines.map((engine) => <EngineCard key={engine.instanceId} engine={engine} bridge={bridge}
                     onSignedIn={() => setSigned((current) => new Set(current).add(engine.instanceId))} />)}
                 </ul>}

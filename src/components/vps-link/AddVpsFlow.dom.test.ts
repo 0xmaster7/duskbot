@@ -99,11 +99,10 @@ describe("Add your VPS", () => {
     // 2: the steps arrive in the live mirror; a failed one says so in words, shows its log tail and the same line again
     await fake.emit({ ...fake.view(), stage: "installing", steps: steps(1, { at: 1, log: "E: Unable to locate package curl" }) });
     await stageShown(2);
-    expect(document.querySelector("[data-vps-term]")?.textContent).toContain("$ dpkg --print-architecture");
-    expect(document.querySelector("[data-vps-line='ok']")?.textContent).toContain("[ok]");
-    expect(document.querySelector("[data-vps-line='fail']")?.textContent).toContain("[fail]");
+    expect(document.querySelectorAll("[data-vps-term] [data-vps-line]").length).toBeLessThanOrEqual(6);
+    expect(document.querySelector("[data-vps-term]")?.textContent).not.toContain("[ok]");
     expect(text()).toContain("Something got stuck");
-    expect(document.querySelector("pre")?.textContent).toContain("Unable to locate package curl");
+    expect(document.querySelector("[data-vps-term]")?.textContent).toContain("Unable to locate package curl");
     expect(document.querySelectorAll("[data-vps-command]").length).toBe(1);
     expect(text()).toContain("Getting the basics didn't work");
     expect(document.querySelector("[data-vps-scene]")?.getAttribute("data-vps-scene")).toBe("stuck");
@@ -134,8 +133,8 @@ describe("Add your VPS", () => {
     await stageShown(4);
     expect(text()).toContain("Move everything to My VPS");
     expect(text()).toContain("Pixel");
-    expect(text()).toContain("420");
-    expect(text()).toContain("Messages");
+    expect(text()).toContain("14Chats");
+    expect(text()).not.toContain("Messages");
     expect(text()).toContain("50 MB");
     await click(button("Move everything here"));
     expect(fake.bridge.move).toHaveBeenCalledTimes(1);

@@ -60,11 +60,8 @@ function Counts({ preview }: { preview: VpsMovePreview }) {
   const count = (value: number) => value.toLocaleString(activeLocale());
   const counts: Array<[LocaleKey, string | null]> = [
     ["vpsLink.move.count.chats", count(preview.chats)],
-    ["vpsLink.move.count.messages", preview.messages === null ? null : count(preview.messages)],
     ["vpsLink.move.count.skills", count(preview.skills)],
-    ["vpsLink.move.count.memories", preview.memories === null ? null : count(preview.memories)],
     ["vpsLink.move.count.routines", count(preview.routines)],
-    ["vpsLink.move.count.apps", preview.apps === null ? null : count(preview.apps)],
     ["vpsLink.move.count.files", preview.bytes === null ? null : formatBytes(preview.bytes)],
   ];
   return (

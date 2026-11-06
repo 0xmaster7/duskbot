@@ -175,10 +175,9 @@ function useTerminal(steps: StepOutput[], command: string | null, start: number)
   return lines.slice(-MAX_LINES);
 }
 
-const TAG: Record<"ok" | "fail" | "skip", string> = { ok: "[ok]", fail: "[fail]", skip: "[skip]" };
 
 /** A window onto the server's terminal: near-black, mono, newest line at the bottom, a block cursor after the last. */
-function Mirror({ view, start, live, className }: { view: VpsLinkView; start: number; live: boolean; className?: string }) {
+function Mirror({ view, start, className }: { view: VpsLinkView; start: number; className?: string }) {
   const lines = useTerminal(view.steps as StepOutput[], view.command, start);
   const body = useRef<HTMLDivElement>(null);
   const pinned = useRef(true);
@@ -191,19 +190,13 @@ function Mirror({ view, start, live, className }: { view: VpsLinkView; start: nu
     <section aria-label={t("vpsLink.install.live")} className={cn("vps-term flex flex-col overflow-hidden", className)}>
       <div ref={body} role="log" aria-live="off" tabIndex={0} data-vps-term=""
         onScroll={(event) => { const node = event.currentTarget; pinned.current = node.scrollHeight - node.scrollTop - node.clientHeight < 24; }}
-        className="min-h-0 flex-1 overflow-auto px-2.5 py-2 [scrollbar-width:thin]">
-        {lines.map((line) => line.kind === "log"
-          ? <pre key={line.key} className="vps-term-log m-0 whitespace-pre-wrap [overflow-wrap:anywhere]">{line.text}</pre>
-          : <div key={line.key} data-vps-line={line.kind} className="flex gap-2 whitespace-pre">
-              {line.kind === "cmd"
-                ? <span className="min-w-0 truncate"><span className="vps-term-dim">$ </span><span className="vps-term-cmd">{line.text}</span></span>
-                : line.kind === "out"
-                  ? <span className="vps-term-out min-w-0 truncate">{line.text}</span>
-                  : <span className="min-w-0 truncate"><span className={`vps-term-${line.kind}`}>{TAG[line.kind]}</span> <span className="vps-term-out">{line.text}</span></span>}
-            </div>)}
-        <div className="flex gap-2 whitespace-pre" aria-hidden="true">
-          <span><span className="vps-term-dim">$ </span><span className={cn("vps-term-cursor", live && "vps-caret")} /></span>
-        </div>
+        className="flex min-h-0 flex-1 flex-col justify-end overflow-hidden px-3.5 py-3">
+        {lines.slice(-6).map((line) => (
+          <div key={line.key} data-vps-line={line.kind}
+            className={cn("vps-term-line truncate whitespace-pre", line.kind === "fail" && "vps-term-fail")}>
+            {line.kind === "log" ? line.text.split("\n").filter(Boolean).slice(-1)[0] : line.text}
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -246,9 +239,9 @@ export function InstallScreen({ view, onRetry }: { view: VpsLinkView; onRetry: (
               <p className="m-0 text-center text-[13px] leading-[18px] text-ink/68 text-pretty">{t("vpsLink.install.rerun")}</p>
               {view.command && <CommandPill command={view.command} />}
             </div>
-            <Mirror view={view} start={start} live={false} className={cn(centered, "top-[calc(50%+96px)] h-[92px]")} />
+            <Mirror view={view} start={start} className={cn(centered, "top-[calc(50%+96px)] h-[92px]")} />
           </>
-        : <Mirror view={view} start={start} live className={cn(centered, "top-[calc(50%+4px)] h-[112px]")} />}
+        : <Mirror view={view} start={start} className={cn(centered, "top-[calc(50%+4px)] h-[112px]")} />}
       <Footer>
         {view.error && <ErrorNote>{view.error}</ErrorNote>}
         {failed || view.error
