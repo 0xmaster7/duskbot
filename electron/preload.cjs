@@ -283,12 +283,11 @@ const bridge = {
     begin: () => ipcRenderer.invoke("screen:live-intent"),
   },
   screenFrame: () => ipcRenderer.invoke("screen:frame"),
-  /** Physical USB devices only; network ADB is deliberately excluded. */
+  // stub: the android device tab is gone, kept for pages of the last two releases (bridge-contract.json)
   androidDevice: {
-    status: () => ipcRenderer.invoke("android-device:status"),
-    frame: (serial) => ipcRenderer.invoke("android-device:frame", serial),
-    input: (serial, payload) =>
-      ipcRenderer.invoke("android-device:input", serial, payload).then(() => undefined),
+    status: () => Promise.resolve({ available: false, reasonCode: "adb-unavailable", devices: [] }),
+    frame: () => Promise.reject(new Error("android device view was removed")),
+    input: () => Promise.reject(new Error("android device view was removed")),
   },
   speechStart: (options) => ipcRenderer.invoke("speech:start", options),
   speechStop: () => ipcRenderer.invoke("speech:stop"),

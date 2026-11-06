@@ -158,20 +158,14 @@ it("loads, queries, shows, pages, renders and exports through the real server", 
     expect(image.headers.get("content-type")).toMatch(/svg/);
     expect(await image.text()).toMatch(/<svg/);
 
-    await api("POST", DATA_ROUTES.run(bot.id), { sql: "SELECT count(*) AS n FROM sales", title: "Count" });
-    const afterRun = (await api("GET", DATA_ROUTES.sheet(bot.id))).sheet as DataSheet;
-    expect(afterRun.cards).toHaveLength(3);
-    expect(afterRun.cards[2]).toMatchObject({ title: "Count", by: "person", status: "ready", rowCount: 1 });
-
-    const exported = await api("POST", DATA_ROUTES.export(bot.id), { cardId: tableCard.data.id, format: "csv" });
-    expect(exported.path.startsWith(join(dataDir, "Downloads"))).toBe(true);
-    expect(existsSync(exported.path)).toBe(true);
-    expect(readFileSync(exported.path, "utf8").split("\n")[0]).toBe("region,total");
-
-    await api("PATCH", DATA_ROUTES.card(bot.id, tableCard.data.id), { title: "Totals by region" });
-    await api("DELETE", DATA_ROUTES.card(bot.id, afterRun.cards[2]!.id));
-    const final = (await api("GET", DATA_ROUTES.sheet(bot.id))).sheet as DataSheet;
-    expect(final.cards.map((card) => card.title)).toEqual(["Totals by region", "By region"]);
+    // the first capability ended with the chat turn above
+    const exporter = await api("POST", "/api/testing/internal-capability", { botId: bot.id, threadId, kind: "data" }, 201, { "x-openmausbot-test-capability": CAPABILITY_KEY });
+    const exported = await call("data_export", { id: tableCard.data.id, format: "csv" }, exporter.token);
+    expect(exported.isError, exported.text).toBe(false);
+    expect(readFileSync(exported.data.path, "utf8").split("\n")[0]).toBe("region,total");
+    for (const [method, path] of [["POST", `/api/bots/${bot.id}/data/run`], ["POST", `/api/bots/${bot.id}/data/export`], ["DELETE", `/api/bots/${bot.id}/data/cards/${tableCard.data.id}`]] as const) {
+      await api(method, path, method === "DELETE" ? undefined : {}, 400);
+    }
 
     // Opt-in: downloads the real signed extensions into this fixture's empty cache.
     if (process.env.OMB_TEST_DUCKDB_EXTENSIONS === "1") {

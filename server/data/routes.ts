@@ -5,7 +5,7 @@ import { z } from "zod";
 import { DATA_LIMITS, type DataError, type DataErrorCode } from "../../shared/data-surface.ts";
 import { PASS, type RouteContext, type RouteHandler } from "../routes/table.ts";
 import type { DataSheetRegistry } from "./sheet.ts";
-import { cancelCardRun, exportData, renderCard, resultRelation, showCard, toDataError, type DataContext } from "./tools.ts";
+import { renderCard, resultRelation, toDataError, type DataContext } from "./tools.ts";
 import { DataFailure, type ChartCompiler, type ChartRenderer, type DataEngine, type VegaLiteValidator } from "./types.ts";
 
 export interface DataRouteDeps {
@@ -22,19 +22,6 @@ const ROUTE = /^\/api\/bots\/([\w-]+)\/data(?:\/(.+))?$/;
 const CARD_ID = /^c_\d+$/;
 const identifier = z.string().min(1).max(300);
 const cardId = z.string().regex(CARD_ID);
-const chartSpec = z.object({
-  type: z.enum(["bar", "line", "area", "scatter", "histogram", "pie", "heatmap"]),
-  x: z.string().max(200),
-  y: z.string().max(200).optional(),
-  color: z.string().max(200).optional(),
-  agg: z.enum(["count", "sum", "avg", "min", "max", "median"]).optional(),
-  sort: z.enum(["x", "-x", "y", "-y"]).optional(),
-  limit: z.number().int().min(1).max(1000).optional(),
-  stack: z.boolean().optional(),
-  timeUnit: z.enum(["hour", "day", "week", "month", "quarter", "year"]).optional(),
-  bins: z.number().int().min(2).max(500).optional(),
-  size: z.string().max(200).optional(),
-}).strict();
 const pageBody = z.object({
   table: identifier.optional(),
   cardId: cardId.optional(),
@@ -43,21 +30,6 @@ const pageBody = z.object({
   sort: z.object({ column: z.string().max(300), direction: z.enum(["asc", "desc"]) }).strict().optional(),
   filter: z.string().max(200).optional(),
   filterColumn: identifier.optional(),
-}).strict();
-const runBody = z.object({
-  sql: z.string().max(100_000),
-  cardId: cardId.optional(),
-  title: z.string().max(200).optional(),
-  chart: chartSpec.optional(),
-  vegaLite: z.record(z.string(), z.unknown()).optional(),
-  live: z.boolean().optional(),
-}).strict();
-const cancelBody = z.object({ cardId }).strict();
-const cardPatch = z.object({ title: z.string().min(1).max(200).optional(), pinned: z.boolean().optional() }).strict();
-const exportBody = z.object({
-  cardId: cardId.optional(),
-  table: identifier.optional(),
-  format: z.enum(["csv", "parquet", "xlsx", "png", "svg"]),
 }).strict();
 
 export function dataErrorStatus(code: DataErrorCode): number {
@@ -129,39 +101,9 @@ export function createDataRoutes(deps: DataRouteDeps): RouteHandler {
         }
         return ctx.json(res, 200, await database.page(target, { offset: input.offset, limit: input.limit, sort: input.sort, filter: input.filter, filterColumn: input.filterColumn, signal: abort.signal }));
       }
-      if (rest === "run" && method === "POST") {
-        const input = await body(ctx, runBody);
-        if (!input) return;
-        const existing = input.cardId ? sheet.card(input.cardId) : undefined;
-        const chart = input.chart ?? (input.vegaLite ? undefined : existing?.chart);
-        const vegaLite = input.vegaLite ?? (chart ? undefined : existing?.vegaLite);
-        const result = await showCard(context, { id: input.cardId, title: input.title, sql: input.sql, kind: chart || vegaLite ? "chart" : "table", chart, vegaLite, live: input.live });
-        return ctx.json(res, 200, { card: sheet.card(result.id), result });
-      }
-      if (rest === "cancel" && method === "POST") {
-        const input = await body(ctx, cancelBody);
-        if (!input) return;
-        const card = sheet.card(input.cardId);
-        if (!card) return replyError(ctx, { code: "card_not_found", message: `No card ${input.cardId} on the sheet.` });
-        cancelCardRun(sheet, card.id);
-        const cancelled = card.status === "running"
-          ? sheet.updateCard(card.id, { status: "failed", error: { code: "cancelled", message: "Cancelled from the Data tab." } })
-          : card;
-        return ctx.json(res, 200, { card: cancelled });
-      }
       if (head === "cards" && second && CARD_ID.test(second)) {
         const card = sheet.card(second);
         if (!card) return replyError(ctx, { code: "card_not_found", message: `No card ${second} on the sheet.` });
-        if (!third && method === "PATCH") {
-          const patch = await body(ctx, cardPatch);
-          if (!patch) return;
-          return ctx.json(res, 200, { card: sheet.updateCard(card.id, patch) });
-        }
-        if (!third && method === "DELETE") {
-          cancelCardRun(sheet, card.id);
-          await sheet.removeCard(card.id);
-          return ctx.json(res, 200, { ok: true });
-        }
         if (third === "image" && method === "GET") {
           const query = ctx.url.searchParams;
           const format = query.get("format") === "svg" ? "svg" : "png";
@@ -174,22 +116,6 @@ export function createDataRoutes(deps: DataRouteDeps): RouteHandler {
           });
           return sendImage(res, format, image);
         }
-      }
-      if (head === "tables" && second && third === "stats" && method === "GET") {
-        const table = await database.resolveTable(decodeURIComponent(second));
-        return ctx.json(res, 200, await database.stats(table, { signal: abort.signal }));
-      }
-      if (head === "tables" && second && third === "histogram" && method === "GET") {
-        const column = ctx.url.searchParams.get("column");
-        if (!column) return replyError(ctx, invalid("column is required."));
-        const bins = Number(ctx.url.searchParams.get("bins"));
-        const table = await database.resolveTable(decodeURIComponent(second));
-        return ctx.json(res, 200, await database.histogram(table, column, { bins: Number.isInteger(bins) && bins >= 2 && bins <= 200 ? bins : undefined, signal: abort.signal }));
-      }
-      if (rest === "export" && method === "POST") {
-        const input = await body(ctx, exportBody);
-        if (!input) return;
-        return ctx.json(res, 200, await exportData(context, { id: input.cardId, table: input.table, format: input.format }));
       }
       return replyError(ctx, { code: "invalid_input", message: `No ${method} ${ctx.path} route.` });
     } catch (error) {

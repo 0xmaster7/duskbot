@@ -32,37 +32,28 @@ describe("computer panel view persistence", () => {
     expect(readComputerPanelView("other", storage)).toBe("computer");
   });
 
-  it("round-trips the Data tab", () => {
-    const values = new Map<string, string>();
-    const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => { values.set(key, value); } };
-    writeComputerPanelView("scout", "data", storage);
-    expect(readComputerPanelView("scout", storage)).toBe("data");
+  it("reads a stored Data or Android tab from before they were removed as the screen", () => {
+    for (const stale of ["data", "android"]) expect(readComputerPanelView("scout", { getItem: () => stale })).toBe("computer");
   });
 });
 
 describe("computer panel view availability", () => {
-  it("drops the Android tab once its device disconnects", () => {
-    expect(resolveComputerPanelView("android", { advanced: true, androidConnected: true })).toBe("android");
-    expect(resolveComputerPanelView("android", { advanced: true, androidConnected: false })).toBe("computer");
-  });
-
   it("drops the tabs the current mode does not render", () => {
-    expect(resolveComputerPanelView("routines", { advanced: false, androidConnected: false })).toBe("computer");
-    expect(resolveComputerPanelView("android", { advanced: false, androidConnected: true })).toBe("computer");
-    expect(resolveComputerPanelView("files", { advanced: true, androidConnected: true })).toBe("computer");
+    expect(resolveComputerPanelView("routines", { advanced: false })).toBe("computer");
+    expect(resolveComputerPanelView("files", { advanced: true })).toBe("computer");
   });
 
   it("keeps a view whose trigger is on the row", () => {
-    for (const view of ["computer", "browser", "data"] as const) {
-      expect(resolveComputerPanelView(view, { advanced: true, androidConnected: true })).toBe(view);
-      expect(resolveComputerPanelView(view, { advanced: false, androidConnected: false, browser: true })).toBe(view);
+    for (const view of ["computer", "browser"] as const) {
+      expect(resolveComputerPanelView(view, { advanced: true })).toBe(view);
+      expect(resolveComputerPanelView(view, { advanced: false, browser: true })).toBe(view);
     }
   });
 
-  it("keeps Simple to Screen and Data, with Browser only when the bot's browser is asked for", () => {
-    expect(computerPanelTabs({ advanced: false, androidConnected: true })).toEqual(["computer", "data"]);
-    expect(computerPanelTabs({ advanced: false, androidConnected: false, browser: true })).toEqual(["computer", "browser", "data"]);
-    expect(resolveComputerPanelView("browser", { advanced: false, androidConnected: false })).toBe("computer");
-    expect(resolveComputerPanelView("files", { advanced: false, androidConnected: false })).toBe("computer");
+  it("keeps Simple to Screen, with Browser only when the bot's browser is asked for", () => {
+    expect(computerPanelTabs({ advanced: false })).toEqual(["computer"]);
+    expect(computerPanelTabs({ advanced: false, browser: true })).toEqual(["computer", "browser"]);
+    expect(computerPanelTabs({ advanced: true })).toEqual(["computer", "routines", "browser"]);
+    expect(resolveComputerPanelView("browser", { advanced: false })).toBe("computer");
   });
 });

@@ -599,9 +599,7 @@ export interface AppState {
   computerControl: Record<string, ComputerControlState>;
   dataSheets: Record<string, DataSheet>;
   dataTables: Record<string, DataTable[]>;
-  dataResultFocus: { botId: string; id: string; requestId: number; consumed: boolean } | null;
   signInFocus: { botId: string; messageId: string; url: string; site: string; place: import("../../shared/wire").Surface; requestId: number; consumed: boolean } | null;
-  dataView: import("@/lib/composer-attachments").DataViewContext | null;
   focusMessage: { threadId: string; messageId: string; matchText?: string; nonce: number; consumed: boolean } | null;
   unreadDivider: { threadId: string; messageId: string } | null;
   connected: boolean;
@@ -771,7 +769,6 @@ export type Action =
   | { type: "computerStart"; botId: string; start: ComputerStart | null }
   | ({ type: "computerControl"; botId: string } & ComputerControlState)
   | { type: "dataSheet"; sheet: DataSheet; tables?: DataTable[] }
-  | { type: "dataView"; view: AppState["dataView"] }
   | { type: "loadDataSheet"; botId: string; onError?: (message: string) => void }
   | { type: "modelVariantRuntime"; event: RuntimeEvent }
   | { type: "setModel"; botId: string; selection: ModelSelection; threadId?: string; updateBotDefault?: boolean; resetApprovalToAsk?: boolean }
@@ -783,8 +780,6 @@ export type Action =
   | { type: "toggleSettings"; open?: boolean; section?: BotSettingsSection; botId?: string }
   | { type: "togglePlugins"; open?: boolean; surface?: "apps" | "mcp" }
   | { type: "toggleComputer"; open?: boolean; botId?: string }
-  | { type: "openDataResult"; botId: string; cardId: string }
-  | { type: "dataResultFocusConsumed"; requestId: number }
   | { type: "openSignIn"; botId: string; messageId: string; url: string; site: string; place: import("../../shared/wire").Surface }
   | { type: "signInFocusConsumed"; requestId: number }
   | { type: "toggleActivity"; open?: boolean }
@@ -1460,14 +1455,6 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, focusMessage: { ...state.focusMessage, consumed: true } };
     case "unreadDividerDone":
       return state.unreadDivider?.threadId === action.threadId ? { ...state, unreadDivider: null } : state;
-    case "openDataResult": {
-      if (!state.bots.some((bot) => bot.id === action.botId)) return state;
-      const selected = reducer(reducer(state, { type: "select", id: action.botId }), { type: "toggleComputer", open: true });
-      return { ...selected, dataResultFocus: { botId: action.botId, id: action.cardId, requestId: (state.dataResultFocus?.requestId ?? 0) + 1, consumed: false } };
-    }
-    case "dataResultFocusConsumed":
-      return state.dataResultFocus?.requestId === action.requestId
-        ? { ...state, dataResultFocus: { ...state.dataResultFocus, consumed: true } } : state;
     case "openSignIn": {
       if (!state.bots.some((bot) => bot.id === action.botId)) return state;
       const selected = reducer(reducer(state, { type: "select", id: action.botId }), { type: "toggleComputer", open: true });
@@ -1787,8 +1774,6 @@ export function reducer(state: AppState, action: Action): AppState {
         dataSheets: { ...state.dataSheets, [action.sheet.botId]: action.sheet },
         ...(action.tables ? { dataTables: { ...state.dataTables, [action.sheet.botId]: action.tables } } : {}),
       };
-    case "dataView":
-      return { ...state, dataView: action.view };
     case "sendGroup": {
       if (!action.sendId) return state;
       const group = state.groups.find((candidate) => candidate.id === action.groupId);
@@ -1880,9 +1865,7 @@ export const initialState: AppState = {
   computerControl: {},
   dataSheets: {},
   dataTables: {},
-  dataResultFocus: null,
   signInFocus: null,
-  dataView: null,
   focusMessage: null,
   unreadDivider: null,
   connected: false,
@@ -2647,9 +2630,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             () => {},
           );
           break;
-        case "openDataResult":
         case "select": {
-          const id = action.type === "select" ? action.id : action.botId;
+          const id = action.id;
           const bot = stateRef.current.bots.find((b) => b.id === id);
           const group = stateRef.current.groups.find((g) => g.id === id);
           if (bot?.unread) {

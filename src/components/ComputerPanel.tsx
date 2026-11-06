@@ -23,10 +23,8 @@ import { CloudBackendPicker } from "./CloudBackendPicker";
 import { useDesktopCapabilities } from "./DesktopCapabilities";
 import { RoutinesSection } from "./bot-settings/RoutinesSection";
 import { routineRunLabel, routineRunTone } from "@/lib/routine-display";
-import { AndroidDevicePanel, useAndroidUsbDevices } from "./AndroidDevicePanel";
 import { BrowserPanel } from "./BrowserPanel";
 import { usePanelPage, type PanelPage } from "@/lib/page-open";
-const DataPanel = lazy(() => import("./data/DataPanel").then((module) => ({ default: module.DataPanel })));
 const loadLiveDesktop = () => import("./LiveDesktop").then((module) => ({ default: module.LiveDesktop }));
 const LiveDesktop = lazy(loadLiveDesktop);
 import { browserAvailable, browserUnavailableReason, builtInBrowserEnabled } from "@/lib/feature-flags";
@@ -47,7 +45,7 @@ import {
   resolveBoatPanelAction,
   shouldPollCloudPreview,
 } from "@/lib/local-computer";
-import { moveBetweenTabs, PANEL_TABS, panelTabProps, scrollTabsWithWheel, TAB_PANEL_FOCUS, tabPanelProps, useAndroidTabFallback } from "./computer-panel-tabs";
+import { moveBetweenTabs, PANEL_TABS, panelTabProps, scrollTabsWithWheel, TAB_PANEL_FOCUS, tabPanelProps } from "./computer-panel-tabs";
 import { releaseComputerPanelFocus, useComputerPanelEntry } from "@/lib/computer-panel-focus";
 import { PANEL_MAX_WIDTH, PANEL_MIN_WIDTH, useComputerPanelResize } from "./computer-panel-resize";
 import {
@@ -264,11 +262,7 @@ export function ComputerPanel({
   const errorText = panelErrorText(error);
   const advanced = useAdvancedMode();
   const [storedPanelView, setPanelView] = useState<ComputerPanelView>(() => readComputerPanelView(bot.id));
-  const requestedDataResult = state.dataResultFocus?.botId === bot.id ? state.dataResultFocus : undefined;
-  const [dataRequest, setDataRequest] = useState<{ id: string; requestId: number }>();
-  const androidStatus = useAndroidUsbDevices();
-  const androidConnected = androidStatus.devices.length > 0;
-  const tabsContext = { advanced, androidConnected, browser: storedPanelView === "browser" || profileBot.computer === "browser" };
+  const tabsContext = { advanced, browser: storedPanelView === "browser" || profileBot.computer === "browser" };
   const panelTabs = computerPanelTabs(tabsContext);
   const panelView = fullscreen ? "computer" : resolveComputerPanelView(storedPanelView, tabsContext);
   const panelRef = useComputerPanelEntry(profileBot.id, panelView);
@@ -327,15 +321,6 @@ export function ComputerPanel({
       : previous === null ? readComputerPanelView(bot.id) : "computer");
   }, [panelTargetKey, bot.id, bot.computer, browserEnabled]);
 
-  useEffect(() => {
-    if (fullscreen || !requestedDataResult || requestedDataResult.consumed) return;
-    explicitPanelView.current = true;
-    setDataRequest(requestedDataResult);
-    setPanelView("data");
-    writeComputerPanelView(bot.id, "data");
-    dispatch({ type: "dataResultFocusConsumed", requestId: requestedDataResult.requestId });
-  }, [bot.id, dispatch, requestedDataResult, fullscreen]);
-
   const requestedSignIn = state.signInFocus?.botId === bot.id ? state.signInFocus : undefined;
   const [signInRequest, setSignInRequest] = useState<{ url: string; site: string; nonce: number }>();
   // A published page's Open (usePageOpener): this bot's browser shows, with the page in a new tab.
@@ -371,7 +356,6 @@ export function ComputerPanel({
     };
   }, [bot.id]);
 
-  useAndroidTabFallback(bot.id, androidStatus, setPanelView);
   useEffect(() => {
     vmReadinessAttempts.current = 0;
   }, [bot.id, bot.computer]);
@@ -1389,16 +1373,6 @@ export function ComputerPanel({
               </div>
             )}
           </div>
-        </div>
-      ) : panelView === "data" ? (
-        <div {...tabPanelProps("data")} className={cn("flex min-h-0 flex-1 flex-col overflow-hidden", TAB_PANEL_FOCUS)}>
-          <Suspense fallback={<div className="flex flex-1 items-center justify-center text-[13px] text-ink-secondary" role="status">{t("data.loading")}</div>}>
-            <DataPanel key={bot.id} bot={bot} requestedCard={dataRequest} />
-          </Suspense>
-        </div>
-      ) : panelView === "android" && androidConnected ? (
-        <div {...tabPanelProps("android")} className={cn("flex-1 overflow-y-auto px-4 pt-2", TAB_PANEL_FOCUS)}>
-          <AndroidDevicePanel status={androidStatus} />
         </div>
       ) : (
       <div {...tabPanelProps("computer")} className={cn("flex-1 overflow-y-auto px-5 pb-5", TAB_PANEL_FOCUS)}>

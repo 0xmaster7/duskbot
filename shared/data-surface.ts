@@ -180,8 +180,7 @@ export interface DataBroadcast {
   sheet: DataSheet;
 }
 
-/** Panel routes, all under `/api/bots/:botId/data`. The person's own
- * actions take the same paths as the bot's tools inside the server. */
+/** Read routes, all under `/api/bots/:botId/data`: the sheet, result pages for inline charts, and chart images. */
 export interface DataPageRequest {
   /** A source table name, or a card id (its result table). Exactly one. */
   table?: string;
@@ -203,18 +202,6 @@ export interface DataPage {
   offset: number;
 }
 
-export interface DataRunRequest {
-  sql: string;
-  /** Update this card instead of adding one. */
-  cardId?: string;
-  title?: string;
-  /** Chart the result instead of tabling it. */
-  chart?: OmbChartSpec;
-  vegaLite?: Record<string, unknown>;
-  /** Replace an existing result only after a successful, current live edit. */
-  live?: boolean;
-}
-
 export interface DataColumnStats {
   table: string;
   rowCount: number;
@@ -230,22 +217,9 @@ export interface DataHistogram {
 
 export type DataExportFormat = "csv" | "parquet" | "xlsx" | "png" | "svg";
 
-export interface DataExportRequest {
-  cardId?: string;
-  table?: string;
-  format: DataExportFormat;
-}
-
 export const DATA_ROUTES = {
   sheet: (botId: string) => `/api/bots/${encodeURIComponent(botId)}/data`,
   page: (botId: string) => `/api/bots/${encodeURIComponent(botId)}/data/page`,
-  run: (botId: string) => `/api/bots/${encodeURIComponent(botId)}/data/run`,
-  cancel: (botId: string) => `/api/bots/${encodeURIComponent(botId)}/data/cancel`,
-  card: (botId: string, cardId: string) => `/api/bots/${encodeURIComponent(botId)}/data/cards/${encodeURIComponent(cardId)}`,
-  stats: (botId: string, table: string) => `/api/bots/${encodeURIComponent(botId)}/data/tables/${encodeURIComponent(table)}/stats`,
-  histogram: (botId: string, table: string, column: string) =>
-    `/api/bots/${encodeURIComponent(botId)}/data/tables/${encodeURIComponent(table)}/histogram?column=${encodeURIComponent(column)}`,
-  export: (botId: string) => `/api/bots/${encodeURIComponent(botId)}/data/export`,
   /** Server-rendered chart image for phones, Slack and email. */
   image: (botId: string, cardId: string) => `/api/bots/${encodeURIComponent(botId)}/data/cards/${encodeURIComponent(cardId)}/image`,
 } as const;

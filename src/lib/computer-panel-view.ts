@@ -1,12 +1,10 @@
-export type ComputerPanelView = "computer" | "android" | "browser" | "routines" | "files" | "data";
+export type ComputerPanelView = "computer" | "browser" | "routines" | "files";
 
 /** `browser`: the bot works in its browser, or something asked for its browser view; Simple shows that tab only then. */
-type PanelTabsContext = { advanced: boolean; androidConnected: boolean; browser?: boolean };
+type PanelTabsContext = { advanced: boolean; browser?: boolean };
 
-export function computerPanelTabs({ advanced, androidConnected, browser = false }: PanelTabsContext): ComputerPanelView[] {
-  return advanced
-    ? ["computer", "routines", ...(androidConnected ? (["android"] as const) : []), "browser", "data"]
-    : ["computer", ...(browser ? (["browser"] as const) : []), "data"];
+export function computerPanelTabs({ advanced, browser = false }: PanelTabsContext): ComputerPanelView[] {
+  return advanced ? ["computer", "routines", "browser"] : ["computer", ...(browser ? (["browser"] as const) : [])];
 }
 
 export function resolveComputerPanelView(view: ComputerPanelView, context: PanelTabsContext): ComputerPanelView {
@@ -25,7 +23,8 @@ export function readComputerPanelView(
 ): ComputerPanelView {
   try {
     const value = storage.getItem(storageKey(botId));
-    if (value === "android" || value === "browser" || value === "routines" || value === "files" || value === "data") return value;
+    // a stored "data" or "android" tab from before those tabs were removed reads as computer
+    if (value === "browser" || value === "routines" || value === "files") return value;
   } catch {
   }
   return "computer";

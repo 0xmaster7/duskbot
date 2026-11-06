@@ -29,7 +29,8 @@ vi.mock("./DesktopCapabilities", async (importOriginal) => ({
     },
   }),
 }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => false, setAdvancedMode: () => {} }));
+const mode = vi.hoisted(() => ({ advanced: false }));
+vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => mode.advanced, setAdvancedMode: () => {} }));
 vi.mock("./CloudScreenPreview", () => ({
   CloudScreenPreview: ({ onOpen }: { onOpen: () => void }) => createElement("button", { "data-preview": "", onClick: onOpen }, "preview"),
 }));
@@ -39,7 +40,6 @@ vi.mock("./LiveDesktop", () => ({
     return createElement("div", { "data-live-desktop": "", "data-target": props.target, "data-expanded": String(props.expanded) });
   },
 }));
-vi.mock("./AndroidDevicePanel", () => ({ AndroidDevicePanel: () => null, useAndroidUsbDevices: () => ({ devices: [] }) }));
 vi.mock("./BrowserPanel", () => ({ BrowserPanel: () => null }));
 vi.mock("./CloudBackendPicker", () => ({ CloudBackendPicker: () => null }));
 vi.mock("./bot-settings/RoutinesSection", () => ({ RoutinesSection: () => null }));
@@ -216,13 +216,19 @@ describe("taking control of a Local VM", () => {
     ]);
 
     fixture.beacons = [];
+    // only Advanced has another tab to leave Screen for
+    mode.advanced = true;
+    try {
+      await open(makeBot({ computer: "vm" }));
+      await press("Take control");
+      await press("Routines");
+      expect(releases(), "leaving the Screen view left the bot waiting").toHaveLength(1);
+      root!.unmount();
+      root = null;
+    } finally { mode.advanced = false; }
     await open(makeBot({ computer: "vm" }));
-    await press("Take control");
-    await press("Data");
-    expect(releases(), "leaving the Screen view left the bot waiting").toHaveLength(1);
 
     fixture.beacons = [];
-    await press("Screen");
     await press("Take control");
     window.dispatchEvent(new Event("pagehide"));
     await settle();

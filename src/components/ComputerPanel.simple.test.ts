@@ -25,7 +25,6 @@ const fixture = vi.hoisted(() => {
     seed: {} as Record<string, unknown>,
     config: {} as FeatureFlagConfig & { cloudHome?: boolean; box?: { configured: boolean; last4?: string } },
     instances: [] as InstanceInfo[],
-    android: false,
     dispatch: (() => {}) as (...args: unknown[]) => void,
     api: (() => Promise.resolve({})) as (...args: unknown[]) => Promise<unknown>,
     setAdvancedMode: (() => {}) as (enabled: boolean) => void,
@@ -72,10 +71,6 @@ vi.mock("./DesktopCapabilities", () => ({
       localComputer: fixture.localComputer,
     },
   }),
-}));
-vi.mock("./AndroidDevicePanel", () => ({
-  AndroidDevicePanel: () => null,
-  useAndroidUsbDevices: () => ({ devices: fixture.android ? [{ serial: "p1" }] : [] }),
 }));
 vi.mock("./BrowserPanel", () => ({ BrowserPanel: () => createElement("div", null, "BROWSER-PANEL") }));
 vi.mock("./CloudScreenPreview", () => ({ CloudScreenPreview: () => null }));
@@ -171,7 +166,6 @@ beforeEach(() => {
   phaseIndex = -1;
   fixture.config = { features: { browser: true }, browserEngine: { kind: "engine" } };
   fixture.instances = [engine()];
-  fixture.android = false;
   fixture.dispatch = vi.fn();
   fixture.api = vi.fn(() => Promise.resolve({ features: { browser: true } }));
   fixture.setAdvancedMode = vi.fn();
@@ -199,21 +193,18 @@ describe("Computer panel tabs", () => {
     }
   });
 
-  it("shows Screen and Data in Simple mode, and Browser only for a bot that works in its browser", () => {
-    fixture.android = true;
-    expect(tabs(render(makeBot()))).toEqual(["Screen", "Data"]);
+  it("shows Screen in Simple mode, and Browser only for a bot that works in its browser", () => {
+    expect(tabs(render(makeBot()))).toEqual(["Screen"]);
     fixture.values = [];
     phaseIndex = -1;
-    expect(tabs(render(makeBot({ computer: "browser" })))).toEqual(["Screen", "Browser", "Data"]);
+    expect(tabs(render(makeBot({ computer: "browser" })))).toEqual(["Screen", "Browser"]);
   });
 
   it("keeps the Advanced tabs unchanged", () => {
     fixture.advanced = true;
-    fixture.android = true;
-    expect(tabs(render(makeBot()))).toEqual(["Screen", "Routines", "Android", "Browser", "Data"]);
+    expect(tabs(render(makeBot()))).toEqual(["Screen", "Routines", "Browser"]);
     fixture.config = {};
-    fixture.android = false;
-    expect(tabs(render(makeBot()))).toEqual(["Screen", "Routines", "Browser", "Data"]);
+    expect(tabs(render(makeBot()))).toEqual(["Screen", "Routines", "Browser"]);
   });
 
   it("reads a Routines view stored by Advanced as the Computer tab in Simple", () => {

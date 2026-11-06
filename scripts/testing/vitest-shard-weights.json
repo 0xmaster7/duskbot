@@ -968,7 +968,6 @@
     "src/components/ChatMarkdown.test.ts": 6,
     "src/components/ComputerPanel.tabs.test.ts": 6,
     "src/components/ComputerPanel.takeover.test.ts": 11,
-    "src/components/data/DataPanel.test.ts": 8,
     "src/locales/vocabulary.test.ts": 5
   }
 }

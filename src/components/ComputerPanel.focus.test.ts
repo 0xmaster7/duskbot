@@ -26,11 +26,9 @@ vi.mock("./DesktopCapabilities", async (importOriginal) => ({
 vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => fixture.advanced, setAdvancedMode: () => {} }));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => true }));
 vi.mock("./CloudScreenPreview", () => ({ CloudScreenPreview: () => null }));
-vi.mock("./AndroidDevicePanel", () => ({ AndroidDevicePanel: () => null, useAndroidUsbDevices: () => ({ devices: [] }) }));
 vi.mock("./BrowserPanel", () => ({ BrowserPanel: () => null }));
 vi.mock("./CloudBackendPicker", () => ({ CloudBackendPicker: () => null }));
 vi.mock("./bot-settings/RoutinesSection", () => ({ RoutinesSection: () => null }));
-vi.mock("./data/DataPanel", () => ({ DataPanel: () => createElement("div", { "data-testid": "data-panel" }) }));
 vi.mock("@/state/store", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/state/store")>(),
   api: async (path: string) => {
@@ -188,10 +186,10 @@ describe("computer panel entry focus", () => {
     runFrames();
     expect(document.activeElement).toBe(activeTab());
 
-    // Auto resolves its surface, or a data result and a sign-in move the tab.
-    flushSync(() => tabByLabel("Data").click());
+    // Auto resolves its surface, or a sign-in moves the tab.
+    flushSync(() => tabByLabel("Routines").click());
     await settle();
-    expect(document.activeElement).toBe(tabByLabel("Data"));
+    expect(document.activeElement).toBe(tabByLabel("Routines"));
   });
 
   it("stops following the selection once focus leaves the tab row", async () => {
@@ -201,7 +199,7 @@ describe("computer panel entry focus", () => {
     const content = document.querySelector<HTMLElement>('[role="tabpanel"]')!;
     flushSync(() => content.focus());
 
-    flushSync(() => tabByLabel("Data").click());
+    flushSync(() => tabByLabel("Routines").click());
     await settle();
     expect(document.activeElement).toBe(content);
   });

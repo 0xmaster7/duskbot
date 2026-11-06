@@ -97,7 +97,7 @@ describe("Data result receipt", () => {
     store.state.dataSheets = { bot: sheet("bot", [chartCard("c_1")]) };
   });
 
-  it("expands only the recorded SQL without opening the viewer", () => {
+  it("expands only the recorded SQL", () => {
     dispatch.mockClear();
     const container = document.createElement("div");
     const root = createRoot(container);
@@ -112,33 +112,21 @@ describe("Data result receipt", () => {
       expect(container.querySelector("pre code")!.textContent).toBe(sql);
       expect(container.querySelector("pre")!.parentElement!.id).toBe(disclosure.getAttribute("aria-controls"));
       expect(dispatch).not.toHaveBeenCalled();
-      container.querySelector<HTMLButtonElement>("button:not([aria-expanded])")!.click();
-      expect(dispatch).toHaveBeenCalledWith({ type: "openDataResult", botId: "bot", cardId: "c_1" });
       flushSync(() => disclosure.click());
       expect(container.querySelector("pre")).toBeNull();
     } finally { root.unmount(); }
   });
 
-  it("opens the exact result, and a table result draws nothing in the chat", () => {
-    store.state.bots = [{ id: "bot" }];
+  it("shows a table result as its title alone, with nothing to open", () => {
     const message: Message = { ...receipt("bot", "c_1", "table"), dataResult: { botId: "bot", cardId: "c_1", title: "Revenue", kind: "table" } };
     const container = document.createElement("div");
     const root = createRoot(container);
     try {
       flushSync(() => root.render(createElement(DataResultChip, { message })));
-      expect(container.textContent).toContain("Revenue");
-      expect(container.textContent).toContain("Open in Data");
-      expect(container.querySelector("button[aria-expanded]")).toBeNull();
-      container.querySelector("button")!.click();
-      expect(dispatch).toHaveBeenCalledWith({ type: "openDataResult", botId: "bot", cardId: "c_1" });
+      expect(container.textContent).toBe("Revenue");
+      expect(container.querySelector("button")).toBeNull();
       expect(container.querySelector("canvas,table,iframe")).toBeNull();
-      flushSync(() => root.render(createElement(DataResultChip, { message: { ...message, dataResult: { ...message.dataResult!, botId: "deleted" } } })));
-      expect(container.querySelector("button")!.disabled).toBe(true);
-      vi.stubGlobal("ogb", { remoteClient: { active: true } });
-      flushSync(() => root.render(createElement(DataResultChip, { message })));
-      expect(container.querySelector("button")!.disabled).toBe(true);
-      expect(container.querySelector("button")!.title).toContain("companion");
-    } finally { root.unmount(); vi.unstubAllGlobals(); }
+    } finally { root.unmount(); }
   });
 
   it("is never read as a status row, a failed turn or a bare tool name, whatever the result is called", () => {
