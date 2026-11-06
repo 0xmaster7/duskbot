@@ -394,13 +394,20 @@ describe("thread control placement", () => {
     expect(markup).not.toContain("<button");
     expect(renderToStaticMarkup(createElement(ErrorRow, { message: "Network timeout", onRetry: () => {} }))).toContain("<button");
   });
-  it("draws Retry and the next action on the 28px control step", () => {
+  it("draws Retry and the next action as grok's quiet 32px ink pill, never a red outline", () => {
     const retry = renderToStaticMarkup(createElement(ErrorRow, { message: "Network timeout", onRetry: () => {} }));
     const action = renderToStaticMarkup(createElement(ErrorRow, { message: "Network timeout", action: { label: "Open", onClick: () => {} } }));
     for (const markup of [retry, action]) {
-      expect(markup).toContain('class="ui-button ui-button-md ');
-      expect(markup).not.toContain("text-[13px]");
+      expect(markup).toContain('class="ui-button ui-button-pill border-transparent bg-ink/[0.06]');
+      expect(markup).not.toMatch(/border-danger|bg-danger/);
     }
+  });
+  it("says in a few words that this computer can't be used, with the server's reason under Details", () => {
+    const line = "Only the OpenMausBot app on this computer can let a bot use it. Open the app here, or let the bot work in its own browser or on a cloud desktop instead.";
+    const markup = renderToStaticMarkup(createElement(ErrorRow, { message: line, action: { label: "Open screen", onClick: () => {} } }));
+    expect(markup).toContain("I can&#x27;t use this computer right now.");
+    expect(markup).toMatch(/<details[\s\S]*Details[\s\S]*Only the OpenMausBot app/);
+    expect(markup).toContain(">Open screen</button>");
   });
   it("directs ChatGPT plan limits to usage settings rather than repeatedly retrying", () => {
     const markup = renderToStaticMarkup(createElement(ErrorRow, { message: "ChatGPT plan usage limit reached (subscription_sharing_usage_limit_exceeded)", onRetry: () => {} }));

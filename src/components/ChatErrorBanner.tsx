@@ -1,4 +1,5 @@
-import { X } from "lucide-react";
+import type { ReactNode } from "react";
+import { CircleAlert, X } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { plainErrorLine } from "@/lib/plain-error";
 import type { AppState } from "@/state/store";
@@ -23,26 +24,52 @@ export function ChatNotice({ notice }: { notice: AppState["notice"] }) {
   );
 }
 
-export function ChatErrorBanner({ message, onDismiss }: { message: string | null; onDismiss: () => void }) {
-  if (!message) return null;
-  const plain = plainErrorLine(message);
+// grok's error tray: a card on a hairline with one coloured glyph, a 14/20 title, quiet words, ink pill actions
+const CARD = "flex items-start gap-3 rounded-[18px] border border-ink/[0.12] bg-composer p-3 text-[14px] leading-5 text-ink shadow-[0_4px_12px_-1px_rgb(28_28_28/0.08),0_2px_4px_-2px_rgb(28_28_28/0.06)]";
+export const CARD_ACTION = "ui-button ui-button-pill border-transparent bg-ink/[0.06] text-ink hover:bg-ink/[0.1]";
+const SUMMARY = "w-fit cursor-pointer list-none rounded-sm [&::-webkit-details-marker]:hidden hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
+
+export function ChatErrorCard({ tone = "danger", title, details, detailsLabel, children, actions, onDismiss, className = "" }: {
+  tone?: "danger" | "warning";
+  title: ReactNode;
+  /** The words behind a plain title, one click away. */
+  details?: string | null;
+  detailsLabel?: string;
+  children?: ReactNode;
+  actions?: ReactNode;
+  onDismiss?: () => void;
+  className?: string;
+}) {
   return (
-    <div className="w-full px-5">
-      <div role="alert" data-chat-error="" className={`mb-2 ${NOTICE_LINE} text-danger`}>
-        <div className="min-w-0 flex-1 break-words">
-          <p>{plain ?? message}</p>
-          {plain && <details className="mt-0.5 text-ink-tertiary"><summary className="w-fit cursor-pointer list-none rounded-sm [&::-webkit-details-marker]:hidden hover:text-ink-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">{t("chat.error.details")}</summary><p dir="auto" className="mt-0.5 break-words text-ink-secondary">{message}</p></details>}
-        </div>
+    <div role={tone === "danger" ? "alert" : "status"} data-chat-error="" className={`${CARD} ${className}`}>
+      <CircleAlert size={20} aria-hidden="true" fill="currentColor" className={`shrink-0 [&_line]:stroke-composer ${tone === "danger" ? "text-danger" : "text-warning"}`} />
+      <div className="min-w-0 flex-1 break-words">
+        <span className="block font-medium">{title}</span>
+        {details && <details className="text-ink-secondary"><summary className={SUMMARY}>{detailsLabel ?? t("chat.error.details")}</summary><p dir="auto" className="mt-0.5 break-words">{details}</p></details>}
+        {children}
+        {actions && <div className="mt-3 flex flex-wrap items-center gap-2">{actions}</div>}
+      </div>
+      {onDismiss && (
         <button
           type="button"
           onClick={onDismiss}
           aria-label={t("chat.error.dismiss")}
           title={t("chat.error.dismiss")}
-          className="-my-0.5 flex size-5 shrink-0 items-center justify-center rounded-full text-ink-tertiary transition-colors hover:bg-ink/[0.06] hover:text-ink-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus pointer-coarse:size-9 pointer-coarse:-my-2.5"
+          className="-my-0.5 flex size-6 shrink-0 items-center justify-center rounded-full text-ink-tertiary transition-colors hover:bg-ink/[0.06] hover:text-ink-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus pointer-coarse:size-11 pointer-coarse:-my-2.5"
         >
-          <X size={12} aria-hidden="true" />
+          <X size={16} aria-hidden="true" />
         </button>
-      </div>
+      )}
+    </div>
+  );
+}
+
+export function ChatErrorBanner({ message, onDismiss }: { message: string | null; onDismiss: () => void }) {
+  if (!message) return null;
+  const plain = plainErrorLine(message);
+  return (
+    <div className="mb-2 w-full px-5">
+      <ChatErrorCard title={plain ?? message} details={plain ? message : null} onDismiss={onDismiss} />
     </div>
   );
 }

@@ -27,6 +27,14 @@ export const YOUR_COMPUTER_TOOL = "use_your_computer";
 /** A failed turn's line starts with this when the desktop app's own driver is not ready; the app adds the permission fix. */
 export const THIS_COMPUTER_NOT_READY = "OpenMausBot can't use this computer yet — ";
 
+/** A failed turn's line when the server it ran on was not started by the desktop app, so it was never handed this computer. */
+export const THIS_COMPUTER_NOT_GRANTED =
+  "Only the OpenMausBot app on this computer can let a bot use it. Open the app here, or let the bot work in its own browser or on a cloud desktop instead.";
+
+export function isThisComputerNotGranted(line: string): boolean {
+  return line.startsWith(THIS_COMPUTER_NOT_GRANTED.slice(0, THIS_COMPUTER_NOT_GRANTED.indexOf(".") + 1));
+}
+
 const BROWSERS: Record<string, string> = {
   chrome: "Chrome", "google chrome": "Chrome", chromium: "Chromium", safari: "Safari", firefox: "Firefox",
   "mozilla firefox": "Firefox", edge: "Edge", "microsoft edge": "Edge", msedge: "Edge", brave: "Brave", "brave browser": "Brave",

@@ -3,7 +3,7 @@ import { useAdvancedMode } from "@/lib/interface-mode";
 import { PHONE_LAYOUT, useMediaQuery } from "@/lib/use-media-query";
 import { ThreadLinkContext } from "@/components/ThreadLinkMenu";
 import { useShowThreads } from "@/lib/thread-preferences";
-import { AlertTriangle, ChevronLeft, ChevronRight, Copy, Monitor, RefreshCw, Square, Webhook } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, Monitor, RefreshCw, Square, Webhook } from "lucide-react";
 import { WorkingDots } from "@/components/WorkingIndicator";
 import { ACTION_ICON, ChatBusyContext, CopyButton, MESSAGE_ROW, MessageActions, messageActionClass, ReplyAction, type MessageMenuItem } from "@/components/MessageActions";
 import { copyText } from "@/lib/copy-text";
@@ -50,7 +50,7 @@ import type { LocaleKey } from "@/locales";
 import { isProviderSafetyBlock, PROVIDER_SAFETY_GUIDANCE, PROVIDER_SAFETY_HELP_URL } from "../../shared/provider-safety";
 import { isCancelledTranscriptRow, PERSON_STOPPED_TURN_NAME } from "../../shared/client-cancel";
 import { stopNoticeDue, useStoppedAt } from "@/lib/stop-turn";
-import { THIS_COMPUTER_NOT_READY } from "../../shared/your-computer";
+import { isThisComputerNotGranted, THIS_COMPUTER_NOT_READY } from "../../shared/your-computer";
 import { BotAvatar, type MausAvatarHandle } from "./Avatar";
 import type { MarkState } from "./mascot-motion-mark";
 import { turnMarkState } from "./mascot-presence";
@@ -81,7 +81,7 @@ import { optionsCardRow } from "./OptionsCardRow";
 import { MessageBoundary } from "./MessageBoundary";
 import { RichMessageRow, UserLineNote, richRowKind } from "./RichMessageRow"; import { SetupOffer } from "./SetupOffer"; import { SavedStepsChip } from "./SavedStepsChip";
 import { Composer } from "./Composer";
-import { ChatErrorBanner, ChatNotice } from "./ChatErrorBanner";
+import { CARD_ACTION, ChatErrorBanner, ChatErrorCard, ChatNotice } from "./ChatErrorBanner";
 import { ThreadContextWarning } from "./ContextWarning";
 import { UsageAlert, useLimitResetContinue } from "./EngineUsage";
 import { ChatFindBar } from "./ChatFindBar";
@@ -204,51 +204,41 @@ export function ErrorRow({
     failedPermissions.length > 0 && failedPermissions.join(",") === currentPermissions.join(",")
     ? macCuaPermissionMessage(currentPermissions)
     : null;
-  const headline = macCuaReason ?? plainHeadline ?? message;
+  const notGranted = isThisComputerNotGranted(message);
+  const headline = macCuaReason ?? (notGranted ? t(capabilities.host.platform === "darwin" ? "chat.error.cantUseThisMac" : "chat.error.cantUseThisComputer") : null) ?? plainHeadline ?? message;
+  // the desktop app's own page is on a server it did not start (a copy run from source): the app has nothing to open
+  const details = notGranted && ready && capabilities.localComputer.available ? t("chat.error.notTheAppsServer") : message;
   const usageUrl = action ? null : message.includes("subscription_sharing_usage_limit_exceeded") ? CHATGPT_USAGE_URL : codexUsageLimitReached(message) ? CODEX_USAGE_URL : null;
+  const setup = setupInstance && !(setupInstance.snapshot.state === "available" && setupInstance.snapshot.authenticated !== false);
+  const safety = !usageUrl && !claudeUpdateInstance && isProviderSafetyBlock(message);
+  const button = usageUrl ? (
+    <ManageUsageLink href={usageUrl} className="ui-button ui-button-pill border-transparent bg-ink text-app hover:brightness-110" />
+  ) : claudeUpdateInstance || safety || setup ? null : action !== undefined ? (
+    action && <button type="button" onClick={action.onClick} className={CARD_ACTION}>{action.label}</button>
+  ) : onRetry ? (
+    <button type="button" onClick={onRetry} className={CARD_ACTION}><RefreshCw size={14} aria-hidden="true" /> {t("chat.retry")}</button>
+  ) : null;
   return (
     <div className="flex justify-start">
-      <div className="w-fit max-w-[min(var(--chat-bubble-max),var(--chat-bubble-pct))] rounded-xl border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-[14px] text-danger">
-        <div className="flex items-start gap-2">
-          <AlertTriangle size={15} className="mt-0.5 shrink-0" />
-          <span className="min-w-0 break-words">{headline}</span>
-        </div>
-        {headline !== message && <details className="mt-2 text-[12px] text-ink-secondary"><summary className="cursor-pointer">{macCuaReason ? t("computer.mac.permission.driverDetail") : t("chat.error.details")}</summary><p className="mt-1 break-words">{message}</p></details>}
-        {macCuaReason &&
-          <MacCuaRecoveryActions reason={message} />}
-        {usageUrl ? (
-          <ManageUsageLink href={usageUrl} className="ui-button ui-button-md mt-2 border-transparent bg-ink text-app hover:brightness-110" />
-        ) : claudeUpdateInstance ? (
+      <ChatErrorCard
+        className="w-fit max-w-[min(var(--chat-bubble-max),var(--chat-bubble-pct))]"
+        title={headline}
+        details={headline !== message ? details : null}
+        detailsLabel={macCuaReason ? t("computer.mac.permission.driverDetail") : undefined}
+        actions={button}
+      >
+        {macCuaReason && <MacCuaRecoveryActions reason={message} />}
+        {!usageUrl && claudeUpdateInstance ? (
           <ClaudeUpdatePrompt instance={claudeUpdateInstance} onRetry={onRetry} />
-        ) : isProviderSafetyBlock(message) ? (
-          <p className="mt-2 text-[13px] leading-relaxed text-ink-secondary">
+        ) : safety ? (
+          <p className="mt-1 text-ink-secondary">
             {PROVIDER_SAFETY_GUIDANCE}{" "}
             <a href={PROVIDER_SAFETY_HELP_URL} target="_blank" rel="noreferrer" className="underline">About provider safety checks</a>
           </p>
-        ) : setupInstance &&
-        !(setupInstance.snapshot.state === "available" && setupInstance.snapshot.authenticated !== false) ? (
+        ) : !usageUrl && setup ? (
           <EngineSetup instance={setupInstance} className="mt-2 text-ink-secondary" />
-        ) : action !== undefined ? (
-          action && (
-            <button
-              type="button"
-              onClick={action.onClick}
-              className="ui-button ui-button-md mt-1.5 rounded-full border-danger/30 bg-transparent text-danger hover:bg-danger/15"
-            >
-              {action.label}
-            </button>
-          )
-        ) : (
-          onRetry && (
-            <button
-              onClick={onRetry}
-              className="ui-button ui-button-md mt-1.5 rounded-full border-danger/30 bg-transparent text-danger hover:bg-danger/15"
-            >
-              <RefreshCw size={12} /> {t("chat.retry")}
-            </button>
-          )
-        )}
-      </div>
+        ) : null}
+      </ChatErrorCard>
     </div>
   );
 }
@@ -268,7 +258,8 @@ function PlaceFailedRow({ place, botId, threadId, onRetry }: {
   const onClick = !id ? undefined
     : id === "try-again" ? onRetry
     : () => { openPlaceAction(id, { botId, threadId }, dispatch); };
-  return <ErrorRow message={view.line} action={view.action && onClick ? { label: view.action.label, onClick } : null} />;
+  const label = id === "open-computer-panel" ? t("chat.error.openScreen") : view.action?.label;
+  return <ErrorRow message={view.line} action={label && onClick ? { label, onClick } : null} />;
 }
 
 const TRIAL_CREDIT_LINE: Record<"paused" | "too_low", LocaleKey> = { paused: "engines.trialCreditPaused", too_low: "engines.trialCreditTooLow" };
