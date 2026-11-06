@@ -1,10 +1,11 @@
 import type { LocaleKey } from "@/locales";
 import type { GrokIconName } from "../GrokIcon";
 
-/** Grok's marketplace categories, in its order. The first five are chips; the rest wait under More. */
+/** Grok's marketplace categories, in its order, then AI for Composio's many AI tools. The first five are chips; the
+ * rest wait under More. */
 export const CATEGORIES = [
   "credentials", "productivity", "communication", "design", "code",
-  "data", "sales", "marketing", "finance", "research", "support", "other",
+  "data", "sales", "marketing", "finance", "research", "support", "ai", "other",
 ] as const;
 export type Category = (typeof CATEGORIES)[number];
 
@@ -25,6 +26,7 @@ export const CATEGORY_LABEL: Record<Category, LocaleKey> = {
   finance: "connectApps.category.finance",
   research: "connectApps.category.research",
   support: "connectApps.category.support",
+  ai: "connectApps.category.ai",
   other: "connectApps.category.other",
 };
 
@@ -32,14 +34,15 @@ const CATEGORY_WORDS: ReadonlyArray<[Category, RegExp]> = [
   ["credentials", /password|credential|login|vault|secret|identity/],
   ["sales", /sales|crm|lead/],
   ["support", /support|help ?desk|ticket|customer service/],
-  ["finance", /financ|payment|accounting|billing|invoice|bank|commerce|checkout/],
-  ["marketing", /marketing|social|advertis|\bads\b|seo|content/],
-  ["data", /analytic|\bdata\b|metric|business intelligence|\bbi\b/],
-  ["design", /design|creative|canvas|whiteboard|image|photo/],
-  ["code", /develop|code|engineer|devops|infrastructure|cloud|hosting|database|monitor|\bapi\b/],
-  ["communication", /communicat|e-?mail|\bmail|chat|messag|meeting|inbox|calendar|schedul|phone|sms/],
-  ["research", /research|search|science|news|knowledge/],
-  ["productivity", /productiv|file|document|storage|project|task|note|office|automation|workflow/],
+  ["finance", /financ|payment|accounting|billing|invoice|bank|commerce|checkout|tax|fundrais/],
+  ["ai", /artificial intelligence|\bai\b|model context protocol|\bmcp\b|\bmodels?\b|agent|chatbot|assistant|transcri/],
+  ["marketing", /marketing|social|advertis|\bads\b|seo|content|url shortener|review/],
+  ["data", /analytic|\bdata\b|metric|business intelligence|\bbi\b|scrap|browser|places|weather|internet of things/],
+  ["design", /design|creative|canvas|whiteboard|image|photo|video|audio|media|website|app builder/],
+  ["code", /develop|code|engineer|devops|infrastructure|cloud|hosting|database|monitor|\bapi\b|it operations/],
+  ["communication", /communicat|e-?mail|\bmail|chat|messag|meeting|inbox|calendar|schedul|phone|sms|conferenc|webinar|notification|call|event/],
+  ["research", /research|search|science|news|knowledge|education|course|legal/],
+  ["productivity", /productiv|file|document|storage|project|task|note|office|automation|workflow|spreadsheet|form|survey|signature|time tracking|bookmark|collaborat|human resources|\bhr\b|recruit|contact|product management/],
 ];
 
 /** The Grok category an OpenMausBot catalog category belongs to, or null when none fits. */

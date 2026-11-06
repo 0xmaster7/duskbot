@@ -33,6 +33,7 @@ import {
 import { MCP_SERVERS_ID as MCP_PAGE, type ConnectAppsPage } from "./open";
 import { cachedConnectorCatalog, loadConnectorCatalog, useConnectors, type ConnectorPhase } from "./use-connectors";
 import { appLogo } from "./logos";
+import { composioLogo, loadComposioSnapshot, snapshotToolkit } from "./composio-snapshot";
 import { useRemoteApps } from "./use-remote-apps";
 import { directoryKey, type DirectoryApp } from "../../../shared/connector-directory";
 import type { ToolkitCard } from "../ServiceIcon";
@@ -41,6 +42,8 @@ import "./connect-apps.css";
 type NativeId = "x" | "email" | "highlevel" | "postiz";
 const NATIVE_IDS: readonly NativeId[] = ["email", "x", "highlevel", "postiz"];
 const RECOMMENDED = "recommended";
+// a category holds hundreds of Composio apps: rows arrive a page at a time as the list nears its end
+const ROWS_PAGE = 60;
 const SETTINGS = (section: "logins" | "skills"): Action => ({ type: "toggleAppSettings", open: true, section });
 
 function logoIcon(...names: string[]): AppEntry["icon"] {
@@ -52,7 +55,7 @@ function logoIcon(...names: string[]): AppEntry["icon"] {
 function cardIcon(card: ToolkitCard): AppEntry["icon"] {
   const known = logoIcon(card.slug, card.label);
   if (known.image) return known;
-  return { logo: card.logo ?? `https://logos.composio.dev/api/${encodeURIComponent(card.slug)}`, padded: true };
+  return { logo: card.logo ?? composioLogo(card.slug), padded: true };
 }
 
 /** Our bundled logo when we have one, else the vendor site's own icon through /api/site-icon. */
@@ -92,6 +95,7 @@ export function prepareConnectApps(): Promise<void> {
   return Promise.allSettled([
     catalog ? logos(catalog.cards ?? []) : loadConnectorCatalog().then((answer) => logos(answer.cards ?? [])),
     connectorStatusMemory() ? null : preloadConnectedApps(),
+    loadComposioSnapshot(),
   ]).then(() => {});
 }
 
@@ -122,6 +126,8 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   const [onePassword, setOnePassword] = useState<OnePasswordStatus | null>(null);
   const [skills, setSkills] = useState<SkillsLibrarySkillWire[] | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [rowLimit, setRowLimit] = useState(ROWS_PAGE);
+  const moreRows = useRef<HTMLDivElement>(null);
   const dialog = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -131,6 +137,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   useEffect(() => {
     scroller.current?.scrollTo({ top: 0 });
     setScrolled(false);
+    setRowLimit(ROWS_PAGE);
     if (dialog.current && !dialog.current.contains(document.activeElement)) dialog.current.focus({ preventScroll: true });
   }, [page]);
 
@@ -150,6 +157,16 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     dialog.current?.focus();
     return () => previous?.focus();
   }, []);
+
+  useEffect(() => {
+    const target = moreRows.current;
+    if (!target || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver((seen) => {
+      if (seen.some((entry) => entry.isIntersecting)) setRowLimit((limit) => limit + ROWS_PAGE);
+    }, { root: scroller.current, rootMargin: "0px 0px 800px 0px" });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [page, rowLimit]);
 
   const policy = state.config?.managedPolicy;
   const blocked = useCallback((slug: string) => policy?.apps && !policy.apps.allowAll && !policy.apps.allowlist.includes(slug)
@@ -347,6 +364,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
         connectors,
         categoryLabel: detailEntry.categories[0] ? label(detailEntry.categories[0]) : null,
         usedBy: card && connection(detailEntry.id) === "connected" ? botsUsingService(state.bots, state.instances, card.slug).map((bot) => bot.name) : [],
+        ...(detailEntry.kind === "composio" ? { toolkit: snapshotToolkit(detailEntry.id) } : {}),
         remoteClient: window.ogb?.remoteClient?.active === true,
         onOpenLogins: () => leaveFor(SETTINGS("logins")),
         onOpenKeys: () => leaveFor(openKeySettings("composio")),
@@ -396,12 +414,12 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
         </div>
       );
     }
-    const sections: Array<{ key: string; title: string; entries: AppEntry[]; viewAll?: () => void }> = [];
+    const sections: Array<{ key: string; title: string; entries: AppEntry[]; viewAll?: () => void; growing?: boolean }> = [];
     const picks = recommended(entries.filter(fromCatalog), connection, Infinity);
     if (page.kind === "category") {
       sections.push(page.category === RECOMMENDED
-        ? { key: RECOMMENDED, title: t("connectApps.recommended"), entries: picks }
-        : { key: page.category, title: label(page.category as Category), entries: inCategory(entries, page.category) });
+        ? { key: RECOMMENDED, title: t("connectApps.recommended"), entries: picks, growing: true }
+        : { key: page.category, title: label(page.category as Category), entries: inCategory(entries, page.category), growing: true });
     } else {
       if (picks.length) sections.push({ key: RECOMMENDED, title: t("connectApps.recommended"), entries: picks.slice(0, SECTION_SIZE), viewAll: picks.length > SECTION_SIZE ? () => go({ kind: "category", category: RECOMMENDED }) : undefined });
       for (const category of categories) {
@@ -412,12 +430,16 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     return (
       <div className="ca-sections @container">
         {connectors.cards === null && <p className="ca-loading">{t("connectors.loadingCatalog")}</p>}
-        {sections.map((section) => (
-          <AppsSection key={section.key} id={`ca-section-${section.key}`} title={section.title}
-            viewAll={section.viewAll ? { label: t("apps.viewAll"), onClick: section.viewAll } : undefined}>
-            {section.entries.map((entry) => row(entry))}
-          </AppsSection>
-        ))}
+        {sections.map((section) => {
+          const growing = section.growing && typeof IntersectionObserver !== "undefined" && section.entries.length > rowLimit;
+          return (
+            <AppsSection key={section.key} id={`ca-section-${section.key}`} title={section.title}
+              viewAll={section.viewAll ? { label: t("apps.viewAll"), onClick: section.viewAll } : undefined}
+              after={growing ? <div ref={moreRows} aria-hidden="true" className="h-px" /> : undefined}>
+              {(growing ? section.entries.slice(0, rowLimit) : section.entries).map((entry) => row(entry))}
+            </AppsSection>
+          );
+        })}
       </div>
     );
   })();

@@ -7,12 +7,28 @@ const fixture = vi.hoisted(() => ({
   api: vi.fn(),
   opened: [] as string[],
   connected: { slack: { connected: true, accounts: [{ id: "ca_1", status: "ACTIVE" }] } } as Record<string, unknown>,
+  dispatch: vi.fn(),
+  bundled: {
+    source: "test", count: 2,
+    toolkits: [
+      { slug: "asana", name: "Asana", description: "Tasks and projects for teams", category: "project management", auth: ["OAUTH2"], managed: true as const, tools: 12, triggers: 1 },
+      { slug: "attio", name: "Attio", description: "A CRM built for you", category: "crm", auth: ["OAUTH2", "API_KEY"], tools: 40 },
+    ],
+  },
+  actions: { attio: { actions: ["Create record", "Find person"] } } as Record<string, { actions: string[]; triggers?: string[] }>,
 }));
 
 vi.mock("@/state/store", async (original) => {
   const store = await original<typeof import("@/state/store")>();
-  return { ...store, api: fixture.api, useStore: () => ({ state: store.initialState, dispatch: vi.fn() }) };
+  return { ...store, api: fixture.api, useStore: () => ({ state: store.initialState, dispatch: fixture.dispatch }) };
 });
+vi.mock("./composio-snapshot", async (original) => ({
+  ...await original<typeof import("./composio-snapshot")>(),
+  loadComposioSnapshot: async () => fixture.bundled,
+  cachedComposioSnapshot: () => null,
+  snapshotToolkit: (slug: string) => fixture.bundled.toolkits.find((toolkit) => toolkit.slug === slug),
+  loadToolkitActions: async (slug: string) => fixture.actions[slug] ?? null,
+}));
 vi.mock("@/lib/connected-apps", () => ({
   connectorStatusMemory: () => null,
   rememberConnectorStatus: () => {},
@@ -51,9 +67,10 @@ const flush = () => act(() => new Promise((resolve) => setTimeout(resolve, 0)));
 
 beforeEach(async () => {
   fixture.opened = [];
+  fixture.dispatch.mockReset();
   fixture.api.mockReset();
   fixture.api.mockImplementation(async (path: string) => {
-    if (path === "/api/connectors/catalog") return { configured: true, mode: "self-hosted", setup: "ready", cards: CARDS };
+    if (path === "/api/connectors/catalog") return { configured: true, mode: "self-hosted", setup: "ready", source: "api", cards: CARDS };
     if (path.endsWith("/authorize")) return { url: "https://connect.example/asana" };
     return { services: {} };
   });
@@ -123,6 +140,39 @@ describe("the Connect Apps window", () => {
     await act(async () => { finish({ url: "https://connect.example/asana" }); });
     await flush();
     expect(fixture.opened).toEqual(["https://connect.example/asana"]);
+  });
+
+  it("lists every Composio app the live catalog lacks, with what it can do and how you sign in on its page", async () => {
+    expect(dialog().querySelector('[data-app-row="attio"] .ca-row-subtitle')?.textContent).toBe("A CRM built for you");
+    await act(async () => { dialog().querySelector<HTMLButtonElement>('[data-app-row="attio"] .ca-row-open')!.click(); });
+    await flush();
+    const page = dialog().querySelector("[data-app-page]")!;
+    expect(page.getAttribute("data-app-page")).toBe("attio");
+    expect([...page.querySelectorAll('[data-toolkit-group="actions"] .ca-card-row')].map((row) => row.textContent))
+      .toEqual(["Create record", "Find person", "See all 40 on Composio"]);
+    expect(page.querySelector<HTMLAnchorElement>('[data-toolkit-group="actions"] a')?.href).toBe("https://docs.composio.dev/toolkits/attio");
+    expect(page.textContent).toContain("Your account, API key");
+  });
+
+  it("without a broker or a key still lists the whole catalog, and Connect leads to the Composio key in Settings", async () => {
+    act(() => root.unmount());
+    fixture.api.mockImplementation(async (path: string) => path === "/api/connectors/catalog"
+      ? { configured: false, mode: "unavailable", setup: "needs-setup", source: "curated", cards: [card("slack", "Slack", "Communication")] }
+      : { services: {} });
+    const { loadConnectorCatalog } = await import("./use-connectors");
+    await loadConnectorCatalog();
+    root = createRoot(document.body.appendChild(document.createElement("div")));
+    await act(async () => { root.render(createElement(ConnectAppsWindow, { page: { kind: "home" }, nonce: 2, onClose, onTemplates: vi.fn() })); });
+    await flush();
+    expect(dialog().querySelector('[data-app-row="attio"]')).not.toBeNull();
+    expect(dialog().querySelector('[data-app-row="slack"]')).not.toBeNull();
+    await act(async () => { dialog().querySelector<HTMLButtonElement>('[data-app-row="attio"] .ca-pill')!.click(); });
+    expect(fixture.api).not.toHaveBeenCalledWith("/api/connectors/attio/authorize", expect.anything());
+    const connect = dialog().querySelector<HTMLButtonElement>("[data-app-page] .ca-primary")!;
+    expect(connect.disabled).toBe(false);
+    await act(async () => { connect.click(); });
+    expect(onClose).toHaveBeenCalled();
+    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "toggleAppSettings", open: true, section: "connections" });
   });
 
   it("closes on Escape, and the search's Escape only closes its results", async () => {

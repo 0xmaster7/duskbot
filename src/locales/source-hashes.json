@@ -2883,7 +2883,17 @@
       "connectApps.category.other": "f97e9da0e3b879f0a9df979ae260a5f7e1371edb127c1862d4f861981166cdc1",
       "connectApps.remote.note": "8183fb455705aeceecb81692d256dfb135e72ac9bcf9f4a15c209a1fc05aa709",
       "connectApps.remote.open": "ef7dc83397c9923e1c6182949a6d0e6e4dcac53fa69a4c9a56fb0e81db21b3e2",
-      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b"
+      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b",
+      "connectApps.category.ai": "11fb682be0a0233d5fb899721ecfc1827d20f0d2ff2e093310efa61efca8af1c",
+      "connectApps.info.signIn": "5bbbe53187ad8e90dc01a1d67c29c2a4ea0b359267e9a6c8765ecc3c2a814cfb",
+      "connectApps.info.triggers": "e62f2148a64d96bbe686416d73a233e656bf7e9fb9c2160598b525f6a99c8de6",
+      "connectApps.canDo": "55e8e93ff5d4458b70beebdd811e79a38a7fa880895205419f36a0d21a75f044",
+      "connectApps.composioAll": "cc8fa6e7dc1fec48c94cb2c02373a23c4155d5347ac8b9d0aae263702a1f764d",
+      "connectApps.auth.account": "dbb5f6371b6a2a677f09c24d17fdc581132a41881a818469a92b58588e8764bc",
+      "connectApps.auth.key": "16f0ee47f993d6270c9059450473eea493ca8ae037f8877782ae2bc176f24d18",
+      "connectApps.auth.token": "9a911b08feb9d2928240dda42c6efa8794ab3457f8b59a7cfb5187e817f948e3",
+      "connectApps.auth.password": "e3db92128adfe5d4e73fbec0e125affef62616750a7d96c519cb026bdd519a2c",
+      "connectApps.auth.none": "5058fb634a37f43dc4fcefad4896472f61422c03fd77d58a73fdac70a51c4553"
     },
     "es": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",
@@ -8422,7 +8432,17 @@
       "connectApps.category.other": "f97e9da0e3b879f0a9df979ae260a5f7e1371edb127c1862d4f861981166cdc1",
       "connectApps.remote.note": "8183fb455705aeceecb81692d256dfb135e72ac9bcf9f4a15c209a1fc05aa709",
       "connectApps.remote.open": "ef7dc83397c9923e1c6182949a6d0e6e4dcac53fa69a4c9a56fb0e81db21b3e2",
-      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b"
+      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b",
+      "connectApps.category.ai": "11fb682be0a0233d5fb899721ecfc1827d20f0d2ff2e093310efa61efca8af1c",
+      "connectApps.info.signIn": "5bbbe53187ad8e90dc01a1d67c29c2a4ea0b359267e9a6c8765ecc3c2a814cfb",
+      "connectApps.info.triggers": "e62f2148a64d96bbe686416d73a233e656bf7e9fb9c2160598b525f6a99c8de6",
+      "connectApps.canDo": "55e8e93ff5d4458b70beebdd811e79a38a7fa880895205419f36a0d21a75f044",
+      "connectApps.composioAll": "cc8fa6e7dc1fec48c94cb2c02373a23c4155d5347ac8b9d0aae263702a1f764d",
+      "connectApps.auth.account": "dbb5f6371b6a2a677f09c24d17fdc581132a41881a818469a92b58588e8764bc",
+      "connectApps.auth.key": "16f0ee47f993d6270c9059450473eea493ca8ae037f8877782ae2bc176f24d18",
+      "connectApps.auth.token": "9a911b08feb9d2928240dda42c6efa8794ab3457f8b59a7cfb5187e817f948e3",
+      "connectApps.auth.password": "e3db92128adfe5d4e73fbec0e125affef62616750a7d96c519cb026bdd519a2c",
+      "connectApps.auth.none": "5058fb634a37f43dc4fcefad4896472f61422c03fd77d58a73fdac70a51c4553"
     },
     "fr": {
       "highlevel.unavailable": "87b8ac7f7610e6dd69f520bc59058fd92f307b9f4bcf804075f25d08bcaa7533",
@@ -11220,7 +11240,17 @@
       "connectApps.category.other": "f97e9da0e3b879f0a9df979ae260a5f7e1371edb127c1862d4f861981166cdc1",
       "connectApps.remote.note": "8183fb455705aeceecb81692d256dfb135e72ac9bcf9f4a15c209a1fc05aa709",
       "connectApps.remote.open": "ef7dc83397c9923e1c6182949a6d0e6e4dcac53fa69a4c9a56fb0e81db21b3e2",
-      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b"
+      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b",
+      "connectApps.category.ai": "11fb682be0a0233d5fb899721ecfc1827d20f0d2ff2e093310efa61efca8af1c",
+      "connectApps.info.signIn": "5bbbe53187ad8e90dc01a1d67c29c2a4ea0b359267e9a6c8765ecc3c2a814cfb",
+      "connectApps.info.triggers": "e62f2148a64d96bbe686416d73a233e656bf7e9fb9c2160598b525f6a99c8de6",
+      "connectApps.canDo": "55e8e93ff5d4458b70beebdd811e79a38a7fa880895205419f36a0d21a75f044",
+      "connectApps.composioAll": "cc8fa6e7dc1fec48c94cb2c02373a23c4155d5347ac8b9d0aae263702a1f764d",
+      "connectApps.auth.account": "dbb5f6371b6a2a677f09c24d17fdc581132a41881a818469a92b58588e8764bc",
+      "connectApps.auth.key": "16f0ee47f993d6270c9059450473eea493ca8ae037f8877782ae2bc176f24d18",
+      "connectApps.auth.token": "9a911b08feb9d2928240dda42c6efa8794ab3457f8b59a7cfb5187e817f948e3",
+      "connectApps.auth.password": "e3db92128adfe5d4e73fbec0e125affef62616750a7d96c519cb026bdd519a2c",
+      "connectApps.auth.none": "5058fb634a37f43dc4fcefad4896472f61422c03fd77d58a73fdac70a51c4553"
     },
     "hi": {
       "highlevel.unavailable": "87b8ac7f7610e6dd69f520bc59058fd92f307b9f4bcf804075f25d08bcaa7533",
@@ -14014,7 +14044,17 @@
       "connectApps.category.other": "f97e9da0e3b879f0a9df979ae260a5f7e1371edb127c1862d4f861981166cdc1",
       "connectApps.remote.note": "8183fb455705aeceecb81692d256dfb135e72ac9bcf9f4a15c209a1fc05aa709",
       "connectApps.remote.open": "ef7dc83397c9923e1c6182949a6d0e6e4dcac53fa69a4c9a56fb0e81db21b3e2",
-      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b"
+      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b",
+      "connectApps.category.ai": "11fb682be0a0233d5fb899721ecfc1827d20f0d2ff2e093310efa61efca8af1c",
+      "connectApps.info.signIn": "5bbbe53187ad8e90dc01a1d67c29c2a4ea0b359267e9a6c8765ecc3c2a814cfb",
+      "connectApps.info.triggers": "e62f2148a64d96bbe686416d73a233e656bf7e9fb9c2160598b525f6a99c8de6",
+      "connectApps.canDo": "55e8e93ff5d4458b70beebdd811e79a38a7fa880895205419f36a0d21a75f044",
+      "connectApps.composioAll": "cc8fa6e7dc1fec48c94cb2c02373a23c4155d5347ac8b9d0aae263702a1f764d",
+      "connectApps.auth.account": "dbb5f6371b6a2a677f09c24d17fdc581132a41881a818469a92b58588e8764bc",
+      "connectApps.auth.key": "16f0ee47f993d6270c9059450473eea493ca8ae037f8877782ae2bc176f24d18",
+      "connectApps.auth.token": "9a911b08feb9d2928240dda42c6efa8794ab3457f8b59a7cfb5187e817f948e3",
+      "connectApps.auth.password": "e3db92128adfe5d4e73fbec0e125affef62616750a7d96c519cb026bdd519a2c",
+      "connectApps.auth.none": "5058fb634a37f43dc4fcefad4896472f61422c03fd77d58a73fdac70a51c4553"
     },
     "ja": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",
@@ -20332,7 +20372,17 @@
       "connectApps.category.other": "f97e9da0e3b879f0a9df979ae260a5f7e1371edb127c1862d4f861981166cdc1",
       "connectApps.remote.note": "8183fb455705aeceecb81692d256dfb135e72ac9bcf9f4a15c209a1fc05aa709",
       "connectApps.remote.open": "ef7dc83397c9923e1c6182949a6d0e6e4dcac53fa69a4c9a56fb0e81db21b3e2",
-      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b"
+      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b",
+      "connectApps.category.ai": "11fb682be0a0233d5fb899721ecfc1827d20f0d2ff2e093310efa61efca8af1c",
+      "connectApps.info.signIn": "5bbbe53187ad8e90dc01a1d67c29c2a4ea0b359267e9a6c8765ecc3c2a814cfb",
+      "connectApps.info.triggers": "e62f2148a64d96bbe686416d73a233e656bf7e9fb9c2160598b525f6a99c8de6",
+      "connectApps.canDo": "55e8e93ff5d4458b70beebdd811e79a38a7fa880895205419f36a0d21a75f044",
+      "connectApps.composioAll": "cc8fa6e7dc1fec48c94cb2c02373a23c4155d5347ac8b9d0aae263702a1f764d",
+      "connectApps.auth.account": "dbb5f6371b6a2a677f09c24d17fdc581132a41881a818469a92b58588e8764bc",
+      "connectApps.auth.key": "16f0ee47f993d6270c9059450473eea493ca8ae037f8877782ae2bc176f24d18",
+      "connectApps.auth.token": "9a911b08feb9d2928240dda42c6efa8794ab3457f8b59a7cfb5187e817f948e3",
+      "connectApps.auth.password": "e3db92128adfe5d4e73fbec0e125affef62616750a7d96c519cb026bdd519a2c",
+      "connectApps.auth.none": "5058fb634a37f43dc4fcefad4896472f61422c03fd77d58a73fdac70a51c4553"
     },
     "pt-br": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",
@@ -26472,7 +26522,17 @@
       "connectApps.category.other": "f97e9da0e3b879f0a9df979ae260a5f7e1371edb127c1862d4f861981166cdc1",
       "connectApps.remote.note": "8183fb455705aeceecb81692d256dfb135e72ac9bcf9f4a15c209a1fc05aa709",
       "connectApps.remote.open": "ef7dc83397c9923e1c6182949a6d0e6e4dcac53fa69a4c9a56fb0e81db21b3e2",
-      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b"
+      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b",
+      "connectApps.category.ai": "11fb682be0a0233d5fb899721ecfc1827d20f0d2ff2e093310efa61efca8af1c",
+      "connectApps.info.signIn": "5bbbe53187ad8e90dc01a1d67c29c2a4ea0b359267e9a6c8765ecc3c2a814cfb",
+      "connectApps.info.triggers": "e62f2148a64d96bbe686416d73a233e656bf7e9fb9c2160598b525f6a99c8de6",
+      "connectApps.canDo": "55e8e93ff5d4458b70beebdd811e79a38a7fa880895205419f36a0d21a75f044",
+      "connectApps.composioAll": "cc8fa6e7dc1fec48c94cb2c02373a23c4155d5347ac8b9d0aae263702a1f764d",
+      "connectApps.auth.account": "dbb5f6371b6a2a677f09c24d17fdc581132a41881a818469a92b58588e8764bc",
+      "connectApps.auth.key": "16f0ee47f993d6270c9059450473eea493ca8ae037f8877782ae2bc176f24d18",
+      "connectApps.auth.token": "9a911b08feb9d2928240dda42c6efa8794ab3457f8b59a7cfb5187e817f948e3",
+      "connectApps.auth.password": "e3db92128adfe5d4e73fbec0e125affef62616750a7d96c519cb026bdd519a2c",
+      "connectApps.auth.none": "5058fb634a37f43dc4fcefad4896472f61422c03fd77d58a73fdac70a51c4553"
     },
     "zh": {
       "highlevel.unavailable": "87b8ac7f7610e6dd69f520bc59058fd92f307b9f4bcf804075f25d08bcaa7533",
@@ -33480,7 +33540,17 @@
       "connectApps.category.other": "f97e9da0e3b879f0a9df979ae260a5f7e1371edb127c1862d4f861981166cdc1",
       "connectApps.remote.note": "8183fb455705aeceecb81692d256dfb135e72ac9bcf9f4a15c209a1fc05aa709",
       "connectApps.remote.open": "ef7dc83397c9923e1c6182949a6d0e6e4dcac53fa69a4c9a56fb0e81db21b3e2",
-      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b"
+      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b",
+      "connectApps.category.ai": "11fb682be0a0233d5fb899721ecfc1827d20f0d2ff2e093310efa61efca8af1c",
+      "connectApps.info.signIn": "5bbbe53187ad8e90dc01a1d67c29c2a4ea0b359267e9a6c8765ecc3c2a814cfb",
+      "connectApps.info.triggers": "e62f2148a64d96bbe686416d73a233e656bf7e9fb9c2160598b525f6a99c8de6",
+      "connectApps.canDo": "55e8e93ff5d4458b70beebdd811e79a38a7fa880895205419f36a0d21a75f044",
+      "connectApps.composioAll": "cc8fa6e7dc1fec48c94cb2c02373a23c4155d5347ac8b9d0aae263702a1f764d",
+      "connectApps.auth.account": "dbb5f6371b6a2a677f09c24d17fdc581132a41881a818469a92b58588e8764bc",
+      "connectApps.auth.key": "16f0ee47f993d6270c9059450473eea493ca8ae037f8877782ae2bc176f24d18",
+      "connectApps.auth.token": "9a911b08feb9d2928240dda42c6efa8794ab3457f8b59a7cfb5187e817f948e3",
+      "connectApps.auth.password": "e3db92128adfe5d4e73fbec0e125affef62616750a7d96c519cb026bdd519a2c",
+      "connectApps.auth.none": "5058fb634a37f43dc4fcefad4896472f61422c03fd77d58a73fdac70a51c4553"
     },
     "zh-tw": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",
@@ -37960,7 +38030,17 @@
       "connectApps.category.other": "f97e9da0e3b879f0a9df979ae260a5f7e1371edb127c1862d4f861981166cdc1",
       "connectApps.remote.note": "8183fb455705aeceecb81692d256dfb135e72ac9bcf9f4a15c209a1fc05aa709",
       "connectApps.remote.open": "ef7dc83397c9923e1c6182949a6d0e6e4dcac53fa69a4c9a56fb0e81db21b3e2",
-      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b"
+      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b",
+      "connectApps.category.ai": "11fb682be0a0233d5fb899721ecfc1827d20f0d2ff2e093310efa61efca8af1c",
+      "connectApps.info.signIn": "5bbbe53187ad8e90dc01a1d67c29c2a4ea0b359267e9a6c8765ecc3c2a814cfb",
+      "connectApps.info.triggers": "e62f2148a64d96bbe686416d73a233e656bf7e9fb9c2160598b525f6a99c8de6",
+      "connectApps.canDo": "55e8e93ff5d4458b70beebdd811e79a38a7fa880895205419f36a0d21a75f044",
+      "connectApps.composioAll": "cc8fa6e7dc1fec48c94cb2c02373a23c4155d5347ac8b9d0aae263702a1f764d",
+      "connectApps.auth.account": "dbb5f6371b6a2a677f09c24d17fdc581132a41881a818469a92b58588e8764bc",
+      "connectApps.auth.key": "16f0ee47f993d6270c9059450473eea493ca8ae037f8877782ae2bc176f24d18",
+      "connectApps.auth.token": "9a911b08feb9d2928240dda42c6efa8794ab3457f8b59a7cfb5187e817f948e3",
+      "connectApps.auth.password": "e3db92128adfe5d4e73fbec0e125affef62616750a7d96c519cb026bdd519a2c",
+      "connectApps.auth.none": "5058fb634a37f43dc4fcefad4896472f61422c03fd77d58a73fdac70a51c4553"
     },
     "uk": {
       "highlevel.unavailable": "87b8ac7f7610e6dd69f520bc59058fd92f307b9f4bcf804075f25d08bcaa7533",
@@ -41179,7 +41259,17 @@
       "connectApps.category.other": "f97e9da0e3b879f0a9df979ae260a5f7e1371edb127c1862d4f861981166cdc1",
       "connectApps.remote.note": "8183fb455705aeceecb81692d256dfb135e72ac9bcf9f4a15c209a1fc05aa709",
       "connectApps.remote.open": "ef7dc83397c9923e1c6182949a6d0e6e4dcac53fa69a4c9a56fb0e81db21b3e2",
-      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b"
+      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b",
+      "connectApps.category.ai": "11fb682be0a0233d5fb899721ecfc1827d20f0d2ff2e093310efa61efca8af1c",
+      "connectApps.info.signIn": "5bbbe53187ad8e90dc01a1d67c29c2a4ea0b359267e9a6c8765ecc3c2a814cfb",
+      "connectApps.info.triggers": "e62f2148a64d96bbe686416d73a233e656bf7e9fb9c2160598b525f6a99c8de6",
+      "connectApps.canDo": "55e8e93ff5d4458b70beebdd811e79a38a7fa880895205419f36a0d21a75f044",
+      "connectApps.composioAll": "cc8fa6e7dc1fec48c94cb2c02373a23c4155d5347ac8b9d0aae263702a1f764d",
+      "connectApps.auth.account": "dbb5f6371b6a2a677f09c24d17fdc581132a41881a818469a92b58588e8764bc",
+      "connectApps.auth.key": "16f0ee47f993d6270c9059450473eea493ca8ae037f8877782ae2bc176f24d18",
+      "connectApps.auth.token": "9a911b08feb9d2928240dda42c6efa8794ab3457f8b59a7cfb5187e817f948e3",
+      "connectApps.auth.password": "e3db92128adfe5d4e73fbec0e125affef62616750a7d96c519cb026bdd519a2c",
+      "connectApps.auth.none": "5058fb634a37f43dc4fcefad4896472f61422c03fd77d58a73fdac70a51c4553"
     },
     "vi": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",
@@ -46213,7 +46303,17 @@
       "connectApps.category.other": "f97e9da0e3b879f0a9df979ae260a5f7e1371edb127c1862d4f861981166cdc1",
       "connectApps.remote.note": "8183fb455705aeceecb81692d256dfb135e72ac9bcf9f4a15c209a1fc05aa709",
       "connectApps.remote.open": "ef7dc83397c9923e1c6182949a6d0e6e4dcac53fa69a4c9a56fb0e81db21b3e2",
-      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b"
+      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b",
+      "connectApps.category.ai": "11fb682be0a0233d5fb899721ecfc1827d20f0d2ff2e093310efa61efca8af1c",
+      "connectApps.info.signIn": "5bbbe53187ad8e90dc01a1d67c29c2a4ea0b359267e9a6c8765ecc3c2a814cfb",
+      "connectApps.info.triggers": "e62f2148a64d96bbe686416d73a233e656bf7e9fb9c2160598b525f6a99c8de6",
+      "connectApps.canDo": "55e8e93ff5d4458b70beebdd811e79a38a7fa880895205419f36a0d21a75f044",
+      "connectApps.composioAll": "cc8fa6e7dc1fec48c94cb2c02373a23c4155d5347ac8b9d0aae263702a1f764d",
+      "connectApps.auth.account": "dbb5f6371b6a2a677f09c24d17fdc581132a41881a818469a92b58588e8764bc",
+      "connectApps.auth.key": "16f0ee47f993d6270c9059450473eea493ca8ae037f8877782ae2bc176f24d18",
+      "connectApps.auth.token": "9a911b08feb9d2928240dda42c6efa8794ab3457f8b59a7cfb5187e817f948e3",
+      "connectApps.auth.password": "e3db92128adfe5d4e73fbec0e125affef62616750a7d96c519cb026bdd519a2c",
+      "connectApps.auth.none": "5058fb634a37f43dc4fcefad4896472f61422c03fd77d58a73fdac70a51c4553"
     },
     "tr": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",
@@ -51247,7 +51347,17 @@
       "connectApps.category.other": "f97e9da0e3b879f0a9df979ae260a5f7e1371edb127c1862d4f861981166cdc1",
       "connectApps.remote.note": "8183fb455705aeceecb81692d256dfb135e72ac9bcf9f4a15c209a1fc05aa709",
       "connectApps.remote.open": "ef7dc83397c9923e1c6182949a6d0e6e4dcac53fa69a4c9a56fb0e81db21b3e2",
-      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b"
+      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b",
+      "connectApps.category.ai": "11fb682be0a0233d5fb899721ecfc1827d20f0d2ff2e093310efa61efca8af1c",
+      "connectApps.info.signIn": "5bbbe53187ad8e90dc01a1d67c29c2a4ea0b359267e9a6c8765ecc3c2a814cfb",
+      "connectApps.info.triggers": "e62f2148a64d96bbe686416d73a233e656bf7e9fb9c2160598b525f6a99c8de6",
+      "connectApps.canDo": "55e8e93ff5d4458b70beebdd811e79a38a7fa880895205419f36a0d21a75f044",
+      "connectApps.composioAll": "cc8fa6e7dc1fec48c94cb2c02373a23c4155d5347ac8b9d0aae263702a1f764d",
+      "connectApps.auth.account": "dbb5f6371b6a2a677f09c24d17fdc581132a41881a818469a92b58588e8764bc",
+      "connectApps.auth.key": "16f0ee47f993d6270c9059450473eea493ca8ae037f8877782ae2bc176f24d18",
+      "connectApps.auth.token": "9a911b08feb9d2928240dda42c6efa8794ab3457f8b59a7cfb5187e817f948e3",
+      "connectApps.auth.password": "e3db92128adfe5d4e73fbec0e125affef62616750a7d96c519cb026bdd519a2c",
+      "connectApps.auth.none": "5058fb634a37f43dc4fcefad4896472f61422c03fd77d58a73fdac70a51c4553"
     },
     "pl": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",
@@ -57506,7 +57616,17 @@
       "connectApps.category.other": "f97e9da0e3b879f0a9df979ae260a5f7e1371edb127c1862d4f861981166cdc1",
       "connectApps.remote.note": "8183fb455705aeceecb81692d256dfb135e72ac9bcf9f4a15c209a1fc05aa709",
       "connectApps.remote.open": "ef7dc83397c9923e1c6182949a6d0e6e4dcac53fa69a4c9a56fb0e81db21b3e2",
-      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b"
+      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b",
+      "connectApps.category.ai": "11fb682be0a0233d5fb899721ecfc1827d20f0d2ff2e093310efa61efca8af1c",
+      "connectApps.info.signIn": "5bbbe53187ad8e90dc01a1d67c29c2a4ea0b359267e9a6c8765ecc3c2a814cfb",
+      "connectApps.info.triggers": "e62f2148a64d96bbe686416d73a233e656bf7e9fb9c2160598b525f6a99c8de6",
+      "connectApps.canDo": "55e8e93ff5d4458b70beebdd811e79a38a7fa880895205419f36a0d21a75f044",
+      "connectApps.composioAll": "cc8fa6e7dc1fec48c94cb2c02373a23c4155d5347ac8b9d0aae263702a1f764d",
+      "connectApps.auth.account": "dbb5f6371b6a2a677f09c24d17fdc581132a41881a818469a92b58588e8764bc",
+      "connectApps.auth.key": "16f0ee47f993d6270c9059450473eea493ca8ae037f8877782ae2bc176f24d18",
+      "connectApps.auth.token": "9a911b08feb9d2928240dda42c6efa8794ab3457f8b59a7cfb5187e817f948e3",
+      "connectApps.auth.password": "e3db92128adfe5d4e73fbec0e125affef62616750a7d96c519cb026bdd519a2c",
+      "connectApps.auth.none": "5058fb634a37f43dc4fcefad4896472f61422c03fd77d58a73fdac70a51c4553"
     },
     "ru": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",
@@ -63802,7 +63922,17 @@
       "connectApps.category.other": "f97e9da0e3b879f0a9df979ae260a5f7e1371edb127c1862d4f861981166cdc1",
       "connectApps.remote.note": "8183fb455705aeceecb81692d256dfb135e72ac9bcf9f4a15c209a1fc05aa709",
       "connectApps.remote.open": "ef7dc83397c9923e1c6182949a6d0e6e4dcac53fa69a4c9a56fb0e81db21b3e2",
-      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b"
+      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b",
+      "connectApps.category.ai": "11fb682be0a0233d5fb899721ecfc1827d20f0d2ff2e093310efa61efca8af1c",
+      "connectApps.info.signIn": "5bbbe53187ad8e90dc01a1d67c29c2a4ea0b359267e9a6c8765ecc3c2a814cfb",
+      "connectApps.info.triggers": "e62f2148a64d96bbe686416d73a233e656bf7e9fb9c2160598b525f6a99c8de6",
+      "connectApps.canDo": "55e8e93ff5d4458b70beebdd811e79a38a7fa880895205419f36a0d21a75f044",
+      "connectApps.composioAll": "cc8fa6e7dc1fec48c94cb2c02373a23c4155d5347ac8b9d0aae263702a1f764d",
+      "connectApps.auth.account": "dbb5f6371b6a2a677f09c24d17fdc581132a41881a818469a92b58588e8764bc",
+      "connectApps.auth.key": "16f0ee47f993d6270c9059450473eea493ca8ae037f8877782ae2bc176f24d18",
+      "connectApps.auth.token": "9a911b08feb9d2928240dda42c6efa8794ab3457f8b59a7cfb5187e817f948e3",
+      "connectApps.auth.password": "e3db92128adfe5d4e73fbec0e125affef62616750a7d96c519cb026bdd519a2c",
+      "connectApps.auth.none": "5058fb634a37f43dc4fcefad4896472f61422c03fd77d58a73fdac70a51c4553"
     },
     "it": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",
@@ -69903,7 +70033,17 @@
       "connectApps.category.other": "f97e9da0e3b879f0a9df979ae260a5f7e1371edb127c1862d4f861981166cdc1",
       "connectApps.remote.note": "8183fb455705aeceecb81692d256dfb135e72ac9bcf9f4a15c209a1fc05aa709",
       "connectApps.remote.open": "ef7dc83397c9923e1c6182949a6d0e6e4dcac53fa69a4c9a56fb0e81db21b3e2",
-      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b"
+      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b",
+      "connectApps.category.ai": "11fb682be0a0233d5fb899721ecfc1827d20f0d2ff2e093310efa61efca8af1c",
+      "connectApps.info.signIn": "5bbbe53187ad8e90dc01a1d67c29c2a4ea0b359267e9a6c8765ecc3c2a814cfb",
+      "connectApps.info.triggers": "e62f2148a64d96bbe686416d73a233e656bf7e9fb9c2160598b525f6a99c8de6",
+      "connectApps.canDo": "55e8e93ff5d4458b70beebdd811e79a38a7fa880895205419f36a0d21a75f044",
+      "connectApps.composioAll": "cc8fa6e7dc1fec48c94cb2c02373a23c4155d5347ac8b9d0aae263702a1f764d",
+      "connectApps.auth.account": "dbb5f6371b6a2a677f09c24d17fdc581132a41881a818469a92b58588e8764bc",
+      "connectApps.auth.key": "16f0ee47f993d6270c9059450473eea493ca8ae037f8877782ae2bc176f24d18",
+      "connectApps.auth.token": "9a911b08feb9d2928240dda42c6efa8794ab3457f8b59a7cfb5187e817f948e3",
+      "connectApps.auth.password": "e3db92128adfe5d4e73fbec0e125affef62616750a7d96c519cb026bdd519a2c",
+      "connectApps.auth.none": "5058fb634a37f43dc4fcefad4896472f61422c03fd77d58a73fdac70a51c4553"
     },
     "ko": {
       "connectedWorkspaces.localTitle": "7d6deafeab011d734c3fdd1bfd6f69544fbb746a004019269bdb48544b01164b",
@@ -76694,7 +76834,17 @@
       "connectApps.category.other": "f97e9da0e3b879f0a9df979ae260a5f7e1371edb127c1862d4f861981166cdc1",
       "connectApps.remote.note": "8183fb455705aeceecb81692d256dfb135e72ac9bcf9f4a15c209a1fc05aa709",
       "connectApps.remote.open": "ef7dc83397c9923e1c6182949a6d0e6e4dcac53fa69a4c9a56fb0e81db21b3e2",
-      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b"
+      "connectApps.remote.manage": "5a23444828db654a0eaef5f81aabe79432871f43f73ea888279b3ee212f98a7b",
+      "connectApps.category.ai": "11fb682be0a0233d5fb899721ecfc1827d20f0d2ff2e093310efa61efca8af1c",
+      "connectApps.info.signIn": "5bbbe53187ad8e90dc01a1d67c29c2a4ea0b359267e9a6c8765ecc3c2a814cfb",
+      "connectApps.info.triggers": "e62f2148a64d96bbe686416d73a233e656bf7e9fb9c2160598b525f6a99c8de6",
+      "connectApps.canDo": "55e8e93ff5d4458b70beebdd811e79a38a7fa880895205419f36a0d21a75f044",
+      "connectApps.composioAll": "cc8fa6e7dc1fec48c94cb2c02373a23c4155d5347ac8b9d0aae263702a1f764d",
+      "connectApps.auth.account": "dbb5f6371b6a2a677f09c24d17fdc581132a41881a818469a92b58588e8764bc",
+      "connectApps.auth.key": "16f0ee47f993d6270c9059450473eea493ca8ae037f8877782ae2bc176f24d18",
+      "connectApps.auth.token": "9a911b08feb9d2928240dda42c6efa8794ab3457f8b59a7cfb5187e817f948e3",
+      "connectApps.auth.password": "e3db92128adfe5d4e73fbec0e125affef62616750a7d96c519cb026bdd519a2c",
+      "connectApps.auth.none": "5058fb634a37f43dc4fcefad4896472f61422c03fd77d58a73fdac70a51c4553"
     }
   }
 }

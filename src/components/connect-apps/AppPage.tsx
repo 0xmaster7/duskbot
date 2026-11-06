@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { t } from "@/lib/i18n";
+import type { LocaleKey } from "@/locales";
 import { needsReconnect } from "@/lib/connector-status";
 import { askConfirm } from "../ConfirmDialog";
 import { connectorSetupNotice, disconnectAccountConfirmation } from "../PluginsPanel";
@@ -9,6 +10,7 @@ import { GrokIcon } from "../GrokIcon";
 import { AppTile } from "./AppRow";
 import type { AppEntry, Connection } from "./catalog";
 import type { ConnectorPhase, Connectors } from "./use-connectors";
+import { composioPage, loadToolkitActions, type SnapshotToolkit, type ToolkitActions } from "./composio-snapshot";
 
 export interface AppPageModel {
   entry: AppEntry;
@@ -18,6 +20,8 @@ export interface AppPageModel {
   connectors: Connectors;
   categoryLabel: string | null;
   usedBy: string[];
+  /** What Composio's catalog says about the app: how you sign in, and what it can do. */
+  toolkit?: SnapshotToolkit;
   remoteClient: boolean;
   onOpenLogins: () => void;
   onOpenKeys: () => void;
@@ -135,18 +139,69 @@ export function AppPage({ model }: { model: AppPageModel }) {
             </div>
           </div>
         )}
+        {model.toolkit && <ToolkitAbilities toolkit={model.toolkit} />}
         {!ownCard && <AppFacts facts={facts} />}
       </div>
     </div>
   );
 }
 
-export function appFacts(model: Pick<AppPageModel, "entry" | "categoryLabel" | "usedBy">): Array<[string, string]> {
+const AUTH_LABEL: Record<string, LocaleKey> = {
+  OAUTH2: "connectApps.auth.account", OAUTH1: "connectApps.auth.account", DCR_OAUTH: "connectApps.auth.account", S2S_OAUTH2: "connectApps.auth.account",
+  API_KEY: "connectApps.auth.key", BEARER_TOKEN: "connectApps.auth.token", BASIC: "connectApps.auth.password", BASIC_WITH_JWT: "connectApps.auth.password",
+  NO_AUTH: "connectApps.auth.none",
+};
+
+/** How you sign in to a Composio app, in words: "Your account, API key". */
+export function signInLabel(schemes: readonly string[] | undefined): string | null {
+  const labels = [...new Set((schemes ?? []).flatMap((scheme) => AUTH_LABEL[scheme] ? [t(AUTH_LABEL[scheme])] : []))];
+  return labels.length ? labels.join(", ") : null;
+}
+
+export function appFacts(model: Pick<AppPageModel, "entry" | "categoryLabel" | "usedBy" | "toolkit">): Array<[string, string]> {
   const facts: Array<[string, string]> = [];
   if (model.categoryLabel) facts.push([t("connectApps.info.category"), model.categoryLabel]);
+  const signIn = signInLabel(model.toolkit?.auth);
+  if (signIn) facts.push([t("connectApps.info.signIn"), signIn]);
   if (model.entry.website) facts.push([t("connectApps.info.website"), model.entry.website]);
   if (model.usedBy.length) facts.push([t("connectApps.info.usedBy"), model.usedBy.join(", ")]);
   return facts;
+}
+
+const SHOWN = 8;
+
+/** What an app can do: its first actions and triggers by name, then a link to every one on Composio's page for it. */
+function ToolkitAbilities({ toolkit }: { toolkit: SnapshotToolkit }) {
+  // undefined while its names load, so the card opens whole instead of growing
+  const [lists, setLists] = useState<ToolkitActions | null | undefined>(undefined);
+  useEffect(() => {
+    let alive = true;
+    setLists(undefined);
+    void loadToolkitActions(toolkit.slug).then((found) => { if (alive) setLists(found); });
+    return () => { alive = false; };
+  }, [toolkit.slug]);
+  const groups: Array<{ key: string; label: string; names: string[]; total: number }> = [
+    { key: "actions", label: t("connectApps.canDo"), names: lists?.actions ?? [], total: toolkit.tools },
+    { key: "triggers", label: t("connectApps.info.triggers"), names: lists?.triggers ?? [], total: toolkit.triggers ?? 0 },
+  ];
+  if (lists === undefined) return null;
+  return groups.filter((group) => group.total > 0).map((group) => (
+    <div key={group.key} data-toolkit-group={group.key}>
+      <h3 className="ca-group-label">{group.label}<span>{group.total}</span></h3>
+      <div className="ca-card">
+        {group.names.slice(0, SHOWN).map((name, index) => (
+          <div key={`${index}:${name}`} className="ca-card-row"><span>{name}</span></div>
+        ))}
+        {group.total > Math.min(SHOWN, group.names.length) && (
+          <div className="ca-card-row">
+            <a className="ca-link" href={composioPage(toolkit.slug)} target="_blank" rel="noopener noreferrer">
+              {t("connectApps.composioAll", { count: group.total })}
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+  ));
 }
 
 /** Grok's Information card: a label, then a bordered list of facts with their values at the end. */

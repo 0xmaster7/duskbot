@@ -15,6 +15,8 @@ describe("Grok's categories over our catalog", () => {
     expect(grokCategory("Communication")).toBe("communication");
     expect(grokCategory("Customer support")).toBe("support");
     expect(grokCategory("Payments & billing")).toBe("finance");
+    expect(grokCategory("Artificial intelligence")).toBe("ai");
+    expect(grokCategory("Model context protocol")).toBe("ai");
     expect(grokCategory("Gardening")).toBeNull();
     expect(grokCategories(["Files", "Productivity", "Gardening"])).toEqual(["productivity"]);
   });

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { api } from "@/state/store";
 import { t } from "@/lib/i18n";
@@ -14,6 +14,7 @@ import { accountAliasTaken, accountToReconnect, hasActiveConnection, requiresAcc
 import { mergeCompleteConnectorStatus, mergeCurrentConnectorStatus, onlyLatestConnectorResponses } from "@/lib/connector-status-merge";
 import { managedConnectorUnavailableReason } from "../../../shared/connector-availability";
 import type { ToolkitCard } from "../ServiceIcon";
+import { cachedComposioSnapshot, loadComposioSnapshot, mergeCatalog } from "./composio-snapshot";
 
 export type ConnectorError = string | { key: LocaleKey } | null;
 export type ConnectorMode = "managed" | "self-hosted" | "unavailable";
@@ -50,7 +51,7 @@ export interface Connectors {
   reload: () => void;
 }
 
-interface CatalogAnswer { cards?: ToolkitCard[]; configured?: boolean; mode?: ConnectorMode; setup?: Connectors["setup"] }
+interface CatalogAnswer { cards?: ToolkitCard[]; configured?: boolean; mode?: ConnectorMode; setup?: Connectors["setup"]; source?: "api" | "curated" }
 let catalogAnswer: CatalogAnswer | null = null;
 let catalogRequest: Promise<CatalogAnswer> | null = null;
 
@@ -67,7 +68,9 @@ export const cachedConnectorCatalog = (): CatalogAnswer | null => catalogAnswer;
 /** The Composio catalog and its connections, with the same connect flow the Apps page has always run: reserve the tab on
  * the click, authorize, open the sign-in page, then poll until the account turns up. */
 export function useConnectors(): Connectors {
-  const [cards, setCards] = useState<ToolkitCard[] | null>(() => catalogAnswer ? catalogAnswer.cards ?? [] : null);
+  const [live, setLive] = useState<ToolkitCard[] | null>(() => catalogAnswer ? catalogAnswer.cards ?? [] : null);
+  const [source, setSource] = useState(() => catalogAnswer?.source);
+  const [bundled, setBundled] = useState(cachedComposioSnapshot);
   const [configured, setConfigured] = useState(() => Boolean(catalogAnswer?.configured));
   const [mode, setMode] = useState<ConnectorMode>(() => catalogAnswer?.mode ?? "unavailable");
   const [setup, setSetup] = useState<Connectors["setup"]>(() => catalogAnswer?.setup);
@@ -131,18 +134,27 @@ export function useConnectors(): Connectors {
     loadConnectorCatalog()
       .then((response) => {
         if (!alive) return;
-        setCards(response.cards ?? []);
+        setLive(response.cards ?? []);
+        setSource(response.source);
         setConfigured(Boolean(response.configured));
         setMode(response.mode ?? "unavailable");
         setSetup(response.setup);
       })
       .catch((cause) => {
         if (!alive) return;
-        setCards((current) => current ?? []);
+        setLive((current) => current ?? []);
         setError(lacksAdminScope(cause) ? { key: "connectors.adminOnly" } : cause.message);
       });
     return () => { alive = false; };
   }, [reloads]);
+
+  useEffect(() => {
+    let alive = true;
+    if (!bundled) void loadComposioSnapshot().then((answer) => { if (alive && answer) setBundled(answer); });
+    return () => { alive = false; };
+  }, [bundled]);
+  // every Composio toolkit, whether or not a broker or key can list them live
+  const cards = useMemo(() => mergeCatalog(live, source, bundled), [live, source, bundled]);
 
   useEffect(() => {
     if (phase === "ready") rememberConnectorStatus(status, !stale);
