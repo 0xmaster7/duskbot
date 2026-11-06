@@ -26,8 +26,8 @@ export function ChatNotice({ notice }: { notice: AppState["notice"] }) {
 }
 
 // grok's error tray: a card on a hairline with one coloured glyph, a 14/20 title, quiet words, ink pill actions
-const CARD = "flex items-start gap-3 rounded-[18px] border border-ink/[0.12] bg-composer p-3 text-[14px] leading-5 text-ink";
-export const CARD_ACTION = "ui-button ui-button-pill border-transparent bg-ink/[0.06] text-ink hover:bg-ink/[0.1]";
+const CARD = "flex items-start gap-2.5 rounded-[14px] border border-ink/[0.08] bg-composer px-3 py-2.5 text-[13px] leading-[18px] text-ink";
+export const CARD_ACTION = "ui-button ui-button-sm ui-button-pill border-transparent bg-ink/[0.06] text-ink hover:bg-ink/[0.1]";
 const SUMMARY = "w-fit cursor-pointer list-none rounded-sm [&::-webkit-details-marker]:hidden hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus";
 
 export function ChatErrorCard({ tone = "danger", title, details, detailsLabel, children, actions, onDismiss, className = "" }: {
@@ -48,7 +48,7 @@ export function ChatErrorCard({ tone = "danger", title, details, detailsLabel, c
         <span className="block font-medium">{title}</span>
         {details && <details className="text-ink-secondary"><summary className={SUMMARY}>{detailsLabel ?? t("chat.error.details")}</summary><p dir="auto" className="mt-0.5 break-words">{details}</p></details>}
         {children}
-        {actions && <div className="mt-3 flex flex-wrap items-center gap-2">{actions}</div>}
+        {actions && <div className="mt-2 flex flex-wrap items-center gap-1.5">{actions}</div>}
       </div>
       {onDismiss && (
         <button

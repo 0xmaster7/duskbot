@@ -25,7 +25,12 @@ export type YourComputerKey = keyof typeof YOUR_COMPUTER_WORDS;
 export const YOUR_COMPUTER_TOOL = "use_your_computer";
 
 /** A failed turn's line starts with this when the desktop app's own driver is not ready; the app adds the permission fix. */
-export const THIS_COMPUTER_NOT_READY = "OpenMausBot can't use this computer yet — ";
+export const THIS_COMPUTER_NOT_READY = "OpenMausBot can't use this computer yet: ";
+
+/** Also matches lines saved before the separator changed. */
+export function isThisComputerNotReady(line: string): boolean {
+  return line.startsWith(THIS_COMPUTER_NOT_READY) || line.startsWith("OpenMausBot can't use this computer yet \u2014 ");
+}
 
 /** A failed turn's line when the server it ran on was not started by the desktop app, so it was never handed this computer. */
 export const THIS_COMPUTER_NOT_GRANTED =

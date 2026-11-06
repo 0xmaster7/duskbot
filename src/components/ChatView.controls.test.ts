@@ -391,11 +391,11 @@ describe("thread control placement", () => {
     expect(markup).not.toContain("<button");
     expect(renderToStaticMarkup(createElement(ErrorRow, { message: "Network timeout", onRetry: () => {} }))).toContain("<button");
   });
-  it("draws Retry and the next action as grok's quiet 32px ink pill, never a red outline", () => {
+  it("draws Retry and the next action as a small 24px ink pill, never a red outline", () => {
     const retry = renderToStaticMarkup(createElement(ErrorRow, { message: "Network timeout", onRetry: () => {} }));
     const action = renderToStaticMarkup(createElement(ErrorRow, { message: "Network timeout", action: { label: "Open", onClick: () => {} } }));
     for (const markup of [retry, action]) {
-      expect(markup).toContain('class="ui-button ui-button-pill border-transparent bg-ink/[0.06]');
+      expect(markup).toContain('class="ui-button ui-button-sm ui-button-pill border-transparent bg-ink/[0.06]');
       expect(markup).not.toMatch(/border-danger|bg-danger/);
     }
   });

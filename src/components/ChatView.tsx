@@ -50,7 +50,7 @@ import type { LocaleKey } from "@/locales";
 import { isProviderSafetyBlock, PROVIDER_SAFETY_GUIDANCE, PROVIDER_SAFETY_HELP_URL } from "../../shared/provider-safety";
 import { isCancelledTranscriptRow, PERSON_STOPPED_TURN_NAME } from "../../shared/client-cancel";
 import { stopNoticeDue, useStoppedAt } from "@/lib/stop-turn";
-import { isThisComputerNotGranted, THIS_COMPUTER_NOT_READY } from "../../shared/your-computer";
+import { isThisComputerNotGranted, isThisComputerNotReady } from "../../shared/your-computer";
 import { BotAvatar, type MausAvatarHandle } from "./Avatar";
 import type { MarkState } from "./mascot-motion-mark";
 import { turnMarkState } from "./mascot-presence";
@@ -204,7 +204,7 @@ export function ErrorRow({
   const currentPermissions = missingMacCuaPermissions(capabilities.localComputer.message);
   const macCuaReason = ready && capabilities.host.platform === "darwin" &&
     capabilities.localComputer.available === false && capabilities.localComputer.reasonCode !== "remote-server" &&
-    message.startsWith(THIS_COMPUTER_NOT_READY) &&
+    isThisComputerNotReady(message) &&
     failedPermissions.length > 0 && failedPermissions.join(",") === currentPermissions.join(",")
     ? macCuaPermissionMessage(currentPermissions)
     : null;
