@@ -95,6 +95,7 @@ export function RoomWorkingLines({ group, members, workingIds, typingIds = [], s
             stateOf={stateOf}
             eyeInk="var(--color-app)"
             overlap={several ? 6 : 0}
+            ground="var(--color-app)"
             motion
           />
         }

@@ -27,8 +27,8 @@ function privacyLabelOf(privacy: ChatHeadPrivacy): string | null {
   }
 }
 
-// grok's pill: a half-pixel ink/8 edge; under the pointer or keyboard a 6% ink tint fades in over 120ms
-const CHAT_HEAD_PILL = "chat-head-pill group relative isolate flex min-w-0 max-w-full items-center gap-2 rounded-full border-[0.5px] border-ink/[0.08] bg-composer py-[7.5px] pl-[7.5px] pr-[13.5px] text-ink shadow-(--shadow-float) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-[inherit] before:bg-ink/[0.035] before:opacity-0 before:content-[''] hover:before:opacity-100 focus-visible:before:opacity-100 motion-reduce:before:transition-none";
+// grok's pill: a half-pixel ink/8 edge; under the pointer or keyboard a 3.5% ink tint, at once
+const CHAT_HEAD_PILL = "chat-head-pill group relative isolate flex min-w-0 max-w-full items-center gap-2 rounded-full border-[0.5px] border-ink/[0.08] bg-composer py-[7.5px] pl-[7.5px] pr-[13.5px] text-ink shadow-(--shadow-float) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-[inherit] before:bg-ink/[0.035] before:opacity-0 before:content-[''] hover:before:opacity-100 focus-visible:before:opacity-100";
 
 
 /** A room in the pill: its members' faces where a bot's face goes, its name, and whether its panel is open. */

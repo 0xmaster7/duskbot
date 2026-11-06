@@ -82,7 +82,7 @@ function memberMauses(group: Group, members: Bot[]) {
             ? t("room.holds.avatarHeld", { name: b.name })
             : queueTitle ?? (busyElsewhere
               ? t("room.memberWorkingElsewhere.chat", { name: b.name })
-              : `${b.name}${busy ? " — working…" : ""}${contextWarning ? ` — ${t("contextWarning.short", { percent: contextWarning.percent })}` : ""}`)
+              : [busy ? t("sidebar.preview.botWorking", { name: b.name }) : b.name, contextWarning && t("contextWarning.short", { percent: contextWarning.percent })].filter(Boolean).join(" · "))
         }
         className={cn(
           "relative inline-flex rounded-full",
@@ -144,7 +144,7 @@ function RoomHeadPill({ group, members, dragProps, noDragStyle }: {
               name: group.name,
               label: t("room.panel.openAria", { name: group.name }),
               expanded,
-              faces: <BotFaces members={members} size={24} max={PILL_FACES} working={working} overlap={4} ground="bg-composer" />,
+              faces: <BotFaces members={members} size={24} max={PILL_FACES} working={working} overlap={4} ground="var(--color-composer)" />,
             }}
             onToggle={(event) => {
               if (expanded) {

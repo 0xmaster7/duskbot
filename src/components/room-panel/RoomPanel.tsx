@@ -37,7 +37,7 @@ function RoomHero({ group, members }: { group: Group; members: Bot[] }) {
   return (
     <div className="flex flex-col items-center text-center">
       <div data-room-panel-faces className="flex h-16 items-center">
-        <BotFaces members={members} size={members.length > 1 ? 52 : 64} working={working} rest="happy" overlap={16} />
+        <BotFaces members={members} size={members.length > 1 ? 52 : 64} working={working} rest="happy" overlap={16} ground="var(--color-app)" />
       </div>
       <div data-panel-name-row className="mt-4 flex max-w-full flex-col items-center gap-1">
         <h2 className="max-w-full truncate rounded-lg border border-transparent px-2.5 py-0.5 text-[17px] font-medium leading-6 tracking-[0.01em] text-ink">{group.name}</h2>

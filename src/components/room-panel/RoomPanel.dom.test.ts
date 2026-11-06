@@ -289,7 +289,9 @@ describe("Members", () => {
   it("opens Manage members", () => {
     render(room());
     click($('[data-panel-row="members"]'));
-    expect($('[role="dialog"][aria-label="Manage members of Desk HQ"]')).not.toBeNull();
+    const dialog = $('[role="dialog"][data-panel-modal="members"]');
+    expect(dialog?.querySelector("h2")?.textContent).toBe("Manage members");
+    expect(dialog?.textContent).toContain("Desk HQ");
   });
 });
 
