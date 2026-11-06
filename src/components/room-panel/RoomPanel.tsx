@@ -1,150 +1,93 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { ChevronRight, FileText, Folder, MessagesSquare, Users, X } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
-import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
+import { WIPE } from "@/lib/motion-presets";
 import { closeRoomPanel } from "@/lib/room-panel";
-import { responderShortLabel } from "@/lib/room-responder";
 import type { LocaleKey } from "@/locales";
 import { useStore, type Bot, type Group } from "@/state/store";
 import { BotAvatar } from "../Avatar";
 import { useCaptionChrome } from "../DesktopCapabilities";
+import { GrokIcon } from "../GrokIcon";
 import { ManageMembersPanel } from "../ManageMembersPanel";
-import { useBulletinEditor } from "../RoomBulletin";
 import { RoomMoreMenu } from "../RoomMoreMenu";
-import { RoomWorkingFolder, roomWorkingFolder } from "../RoomWorkingFolder";
-import { buttonCls, Card, ColRow, NavRow, PageHeader, roundButtonCls, rowCls, RowText } from "../bot-panel/rows";
+import { RoomWorkingFolder } from "../RoomWorkingFolder";
+import { PANEL_TABS, TAB_LABEL, type PanelTab } from "../bot-panel/page-registry";
+import { pageSurfaceCls } from "../bot-panel/pages";
+import { roundButtonCls } from "../bot-panel/rows";
 import { sidePanelCls } from "../bot-panel/side-panel";
+import { SegmentedTabs } from "../ui/SegmentedTabs";
+import { RoomAdvancedTab } from "./RoomAdvancedTab";
+import { RoomComputerTab } from "./RoomComputerTab";
+import { PerBotModels, RoomDetailsTab, type RoomPage } from "./RoomDetailsTab";
 import { ResponderPage } from "./ResponderPage";
-
-type RoomPage = "responder" | "folder";
 
 const PAGES: Record<RoomPage, { title: LocaleKey; intro: LocaleKey }> = {
   responder: { title: "room.panel.whoResponds", intro: "room.panel.responder.intro" },
   folder: { title: "room.folder.title", intro: "room.folder.detail" },
+  models: { title: "room.panel.perBot", intro: "room.panel.perBotIntro" },
 };
 
+// RoomMoreMenu draws its own 32px trigger; in this header it wears the bot panel's 36px elevated circle
+const moreTriggerCls = "[&_[data-testid=room-more]]:size-9! [&_[data-testid=room-more]]:border-[0.5px]! [&_[data-testid=room-more]]:border-edge! [&_[data-testid=room-more]]:bg-composer! [&_[data-testid=room-more]]:text-ink/[0.92] [&_[data-testid=room-more]:hover]:bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_6%)]!";
+
 function RoomHero({ group, members }: { group: Group; members: Bot[] }) {
+  const faces = members.slice(0, 3);
   return (
     <div className="flex flex-col items-center text-center">
-      <div data-room-panel-faces className="mt-0.5 flex -space-x-3">
-        {members.slice(0, 3).map((member) => (
-          <BotAvatar key={member.id} bot={member} state="happy" size={52} animated={false} />
+      <div data-room-panel-faces className="flex h-16 items-center -space-x-4">
+        {faces.map((member) => (
+          <BotAvatar key={member.id} bot={member} state="happy" size={faces.length > 1 ? 52 : 64} animated={false} />
         ))}
       </div>
-      <h2 id="room-panel-title" className="mt-2.5 max-w-full truncate px-1.5 text-[18px] font-semibold text-ink">{group.name}</h2>
-      {group.description && <p className="mt-px line-clamp-2 max-w-full text-[13px] text-ink-secondary">{group.description}</p>}
+      <div data-panel-name-row className="mt-4 flex max-w-full flex-col items-center gap-1">
+        <h2 className="max-w-full truncate rounded-lg border border-transparent px-2.5 py-0.5 text-[17px] font-medium leading-6 tracking-[0.01em] text-ink">{group.name}</h2>
+        {group.description && (
+          <p dir="auto" className="line-clamp-2 max-w-full px-2.5 text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{group.description}</p>
+        )}
+      </div>
     </div>
   );
 }
 
-function InstructionsRow({ group }: { group: Group }) {
-  const bulletin = useBulletinEditor(group);
-  const editRef = useRef<HTMLButtonElement>(null);
-  const refocus = useRef(false);
-  useEffect(() => {
-    if (bulletin.open || !refocus.current) return;
-    refocus.current = false;
-    editRef.current?.focus();
-  }, [bulletin.open]);
-  const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    if (event.key === "Escape" || (event.key === "Enter" && (event.metaKey || event.ctrlKey))) refocus.current = true;
-    bulletin.onKeyDown(event);
-  };
-
-  if (bulletin.open) {
-    return (
-      <ColRow data-panel-row="instructions">
-        <RowText title={t("room.panel.instructions")} />
-        <textarea
-          autoFocus
-          dir="auto"
-          aria-label={t("room.panel.instructions")}
-          value={bulletin.draft}
-          onChange={(event) => bulletin.setDraft(event.target.value)}
-          onBlur={bulletin.save}
-          onKeyDown={onKeyDown}
-          placeholder={t("room.bulletin.placeholder")}
-          rows={6}
-          className="w-full resize-y rounded-lg border border-hairline bg-inset px-2.5 py-2 text-[13px] leading-relaxed text-ink outline-none placeholder:text-ink-tertiary focus:border-accent-border"
-        />
-        <div className="flex justify-end">
-          <button
-            type="button"
-            data-panel-done="instructions"
-            // Keeps the field focused, so its blur does not save before Done does.
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => {
-              refocus.current = true;
-              bulletin.save();
-            }}
-            className={buttonCls}
-          >
-            {t("botSettings.simple.done")}
-          </button>
-        </div>
-      </ColRow>
-    );
-  }
-  const firstLine = group.bulletin.split("\n")[0]?.trim();
-  return (
-    <button
-      ref={editRef}
-      type="button"
-      data-panel-edit="instructions"
-      aria-label={`${t("botSettings.simple.edit")}: ${t("room.panel.instructions")}`}
-      onClick={bulletin.start}
-      className={cn(rowCls, "w-full text-left hover:bg-ink/[0.03]")}
-    >
-      <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-ink/[0.05] text-ink-secondary max-md:size-8 max-md:rounded-full" aria-hidden="true">
-        <FileText size={15} />
-      </span>
-      <RowText
-        title={t("room.panel.instructions")}
-        hint={<span dir="auto" className="line-clamp-1">{firstLine || t("room.panel.instructionsHint")}</span>}
-      />
-      <ChevronRight size={15} className="shrink-0 text-ink-tertiary" aria-hidden="true" />
-    </button>
-  );
-}
-
 export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: boolean }) {
-  const { state } = useStore();
+  const { state, dispatch } = useStore();
   const { dragProps } = useCaptionChrome();
+  // the side panel stays shut for every chat until the person opens it again, as the bot panel does
+  const close = () => {
+    closeRoomPanel({ refocus: true });
+    dispatch({ type: "toggleSettings", open: false });
+  };
+  const [tab, setTab] = useState<PanelTab>("details");
   const [page, setPage] = useState<RoomPage | null>(null);
   const [membersOpen, setMembersOpen] = useState(false);
   const dialogRef = useRef<HTMLElement>(null);
-  const bodyRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement | null>(null);
   const membersRowRef = useRef<HTMLButtonElement>(null);
   const leftPage = useRef<RoomPage | null>(null);
   const members = useMemo(
     () => group.memberIds.map((id) => state.bots.find((bot) => bot.id === id)).filter((bot): bot is Bot => Boolean(bot)),
     [group.memberIds, state.bots],
   );
-  const folder = roomWorkingFolder(group);
   const closeMembers = useCallback(() => setMembersOpen(false), []);
 
-  const openPage = (next: RoomPage) => {
-    setPage(next);
+  const openTab = (next: PanelTab) => {
+    setTab(next);
     bodyRef.current?.scrollTo({ top: 0 });
   };
+  const openPage = (next: RoomPage) => setPage(next);
   const back = () => {
     leftPage.current = page;
     setPage(null);
   };
 
-  // The row or Back button that was pressed is gone with the view it sat in: focus moves to its counterpart, so the
-  // next Escape still lands in the panel.
+  // the pressed row or Back button leaves with its view, so focus moves to its counterpart and Escape still lands here
   useEffect(() => {
     if (page !== null) {
-      bodyRef.current?.querySelector<HTMLElement>("[data-panel-back]")?.focus();
+      dialogRef.current?.querySelector<HTMLElement>("[data-panel-back]")?.focus();
     } else if (leftPage.current) {
-      bodyRef.current?.querySelector<HTMLElement>(`[data-panel-page="${leftPage.current}"]`)?.focus();
+      dialogRef.current?.querySelector<HTMLElement>(`[data-panel-page="${leftPage.current}"]`)?.focus();
       leftPage.current = null;
     }
   }, [page]);
@@ -156,7 +99,7 @@ export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: 
       if (event.key !== "Escape" || event.defaultPrevented) return;
       if (dialog && event.target instanceof Node && !dialog.contains(event.target)) return;
       event.preventDefault();
-      closeRoomPanel({ refocus: true });
+      close();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -169,6 +112,73 @@ export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: 
     back();
   };
 
+  const nav = useRef({ page, direction: 1 });
+  if (nav.current.page !== page) nav.current = { page, direction: page !== null ? 1 : -1 };
+  const direction = nav.current.direction;
+  const prefersReduced = useReducedMotion();
+  const reduced = prefersReduced || (typeof document !== "undefined" && document.documentElement.dataset.reducedMotion === "true");
+  const viewKey = page === null ? "tabs" : `1:${page}`;
+  const backLabel = t(TAB_LABEL[tab]);
+
+  const rowProps = { group, members, onOpen: openPage, onMembers: () => setMembersOpen(true), membersRef: membersRowRef };
+  const tabsView = (
+    <>
+      <div data-panel-head className="contents">
+        <div className="relative pb-3 pt-2">
+          <RoomHero group={group} members={members} />
+        </div>
+        <div
+          data-panel-tabs
+          className="sticky top-0 z-[1] -mx-4 flex justify-center bg-app px-4 pb-2.5 pt-1 after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-3 after:bg-linear-to-b after:from-app after:to-transparent"
+        >
+          <SegmentedTabs
+            attr="data-panel-tab"
+            label={t("room.panel.open")}
+            value={tab}
+            onChange={openTab}
+            tabs={PANEL_TABS.map((id) => ({ value: id, label: t(TAB_LABEL[id]) }))}
+          />
+        </div>
+      </div>
+      <div role="tabpanel" aria-label={t(TAB_LABEL[tab])} className="pt-2.5">
+        {tab === "details" && <RoomDetailsTab {...rowProps} />}
+        {tab === "computer" && <RoomComputerTab members={members} />}
+        {tab === "advanced" && <RoomAdvancedTab {...rowProps} />}
+      </div>
+    </>
+  );
+
+  const pageView = page === null ? null : (
+    <div data-panel-page-view={page} className="pt-1">
+      <p className="mx-3 mb-2.5 text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{t(PAGES[page].intro)}</p>
+      <div className={pageSurfaceCls}>
+        {page === "responder" ? <ResponderPage group={group} members={members} />
+          : page === "models" ? <PerBotModels members={members} />
+            : <RoomWorkingFolder group={group} heading={false} />}
+      </div>
+    </div>
+  );
+
+  const viewCls = "@container absolute inset-0 flex flex-col overflow-y-auto overscroll-contain bg-app px-4 pb-4 [scrollbar-gutter:stable] [scrollbar-width:thin]";
+  const setBody = (element: HTMLDivElement | null) => { if (element) bodyRef.current = element; };
+  const view = (content: ReactNode) => reduced ? (
+    <div key={viewKey} ref={setBody} className={viewCls}>{content}</div>
+  ) : (
+    <motion.div
+      key={viewKey}
+      ref={setBody}
+      custom={direction}
+      variants={WIPE_VARIANTS}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={{ duration: WIPE.duration, ease: WIPE.ease }}
+      className={viewCls}
+    >
+      {content}
+    </motion.div>
+  );
+
   return (
     <>
       <aside
@@ -180,52 +190,41 @@ export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: 
         onKeyDown={onKeyDown}
         className={sidePanelCls(overlay, true)}
       >
-        <div {...dragProps} className="flex h-[52px] shrink-0 items-center justify-end gap-2 px-3.5">
-          <RoomMoreMenu group={group} />
-          <button type="button" onClick={() => closeRoomPanel({ refocus: true })} aria-label={t("botSettings.simple.close")} className={roundButtonCls}>
-            <X size={16} className="pointer-events-none" />
+        <span id="room-panel-title" className="sr-only">{group.name}</span>
+        <span aria-hidden="true" data-panel-edge className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[0.5px] bg-edge" />
+        <div {...dragProps} className="relative flex h-[60px] shrink-0 items-center gap-2 p-3">
+          {page === null ? (
+            <span className={`ms-auto flex ${moreTriggerCls}`}>
+              <RoomMoreMenu group={group} />
+            </span>
+          ) : (
+            <>
+              <button
+                type="button"
+                data-panel-back
+                aria-label={t("botPanel.backTo", { place: backLabel })}
+                title={backLabel}
+                onClick={back}
+                className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-ink/[0.66] transition-[background-color,color] duration-[120ms] ease-[ease-out] hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              >
+                <GrokIcon name="chevron-left" size={14} />
+              </button>
+              <span data-panel-page-title className="pointer-events-none absolute left-1/2 top-1/2 max-w-[60%] -translate-x-1/2 -translate-y-1/2 truncate text-[13px] font-medium leading-[18px]">
+                {t(PAGES[page].title)}
+              </span>
+              <span className="ms-auto" />
+            </>
+          )}
+          <button type="button" onClick={close} aria-label={t("botPanel.close")} className={roundButtonCls}>
+            <GrokIcon name="close" size={16} />
           </button>
         </div>
 
-        <div ref={bodyRef} className="@container relative min-h-0 flex-1 overflow-y-auto px-5 pb-7">
-          {page === null ? (
-            <>
-              <RoomHero group={group} members={members} />
-              <Card>
-                <NavRow
-                  data-panel-page="responder"
-                  icon={MessagesSquare}
-                  title={t("room.panel.whoResponds")}
-                  value={responderShortLabel(group, members)}
-                  onClick={() => openPage("responder")}
-                />
-                <NavRow
-                  data-panel-page="folder"
-                  icon={Folder}
-                  title={t("room.folder.title")}
-                  value={folder?.name ?? t("room.panel.folder.own")}
-                  tooltip={folder?.path}
-                  onClick={() => openPage("folder")}
-                />
-                <InstructionsRow group={group} />
-                <NavRow
-                  ref={membersRowRef}
-                  data-panel-row="members"
-                  icon={Users}
-                  title={t("room.panel.members")}
-                  value={String(members.length)}
-                  onClick={() => setMembersOpen(true)}
-                />
-              </Card>
-            </>
-          ) : (
-            <div data-panel-page-view={page}>
-              <span id="room-panel-title" className="sr-only">{group.name}</span>
-              <PageHeader back={group.name} title={t(PAGES[page].title)} intro={t(PAGES[page].intro)} onBack={back} />
-              <div className="mt-4 flex flex-col gap-3">
-                {page === "responder" ? <ResponderPage group={group} members={members} /> : <RoomWorkingFolder group={group} heading={false} />}
-              </div>
-            </div>
+        <div className="relative min-h-0 flex-1 overflow-hidden">
+          {reduced ? view(page === null ? tabsView : pageView) : (
+            <AnimatePresence initial={false} custom={direction}>
+              {view(page === null ? tabsView : pageView)}
+            </AnimatePresence>
           )}
         </div>
       </aside>
@@ -236,3 +235,9 @@ export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: 
     </>
   );
 }
+
+const WIPE_VARIANTS = {
+  enter: (direction: number) => ({ x: direction > 0 ? WIPE.pushFrom : WIPE.popFrom, opacity: 1, zIndex: direction > 0 ? 1 : 0 }),
+  center: { x: "0%", opacity: 1 },
+  exit: (direction: number) => (direction > 0 ? { x: "-30%", opacity: 0, zIndex: 0 } : { x: "100%", opacity: 1, zIndex: 1 }),
+};

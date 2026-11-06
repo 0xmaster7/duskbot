@@ -6,7 +6,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppState, Bot, ConfigStatus, Group } from "@/state/store";
 
-const fixture = vi.hoisted(() => ({ dispatch: vi.fn(), config: null as ConfigStatus | null }));
+const fixture = vi.hoisted(() => ({ dispatch: vi.fn(), find: vi.fn(), config: null as ConfigStatus | null }));
 vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();
   return {
@@ -22,6 +22,25 @@ vi.mock("../DesktopCapabilities", async (importOriginal) => ({
 }));
 vi.mock("../Avatar", () => ({ BotAvatar: () => null, MausAvatar: () => null }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
+vi.mock("../bot-settings/useBotSettingsDerived", () => ({ useBotSettingsDerived: () => ({}) }));
+vi.mock("../bot-panel/ComputerTab", async () => {
+  const { createElement: h } = await import("react");
+  return { ComputerTab: ({ bot }: { bot: Bot }) => h("span", { "data-panel-screen-of": "" }, `${bot.name}'s screen`) };
+});
+vi.mock("../native/ModelSelectRow", async () => {
+  const { createElement: h, useContext } = await import("react");
+  const { StoreContext } = await import("@/state/store");
+  const opus = { instanceId: "test", model: "opus" };
+  return {
+    ModelSelectRow: function ModelRow({ bot, title }: { bot: Bot; title?: string }) {
+      const store = useContext(StoreContext);
+      const pick = () => store?.dispatch({ type: "setModel", botId: bot.id, threadId: bot.threadId, updateBotDefault: true, selection: opus });
+      return h("button", { type: "button", "data-model-row": bot.id, onClick: pick }, title ?? "Model");
+    },
+  };
+});
+vi.mock("../native/UsageMeter", () => ({ UsageMeterRow: () => null }));
+vi.mock("@/lib/chat-find", async (importOriginal) => ({ ...await importOriginal<typeof import("@/lib/chat-find")>(), requestChatFind: fixture.find }));
 
 const bot = (id: string, name: string): Bot => ({
   id, threadId: `${id}-thread`, name, title: "", description: "", color: "green",
@@ -119,6 +138,80 @@ describe("the Room panel's card", () => {
   });
 });
 
+describe("the tabs", () => {
+  it("are the bot panel's Details, Computer and Advanced", () => {
+    render(room());
+    const tabs = [...document.querySelectorAll("[data-panel-tab]")].map((tab) => [tab.textContent, tab.getAttribute("aria-selected")]);
+    expect(tabs).toEqual([["Details", "true"], ["Computer", "false"], ["Advanced", "false"]]);
+  });
+
+  it("set one model for every member from Details, and keep each bot's own one level down", async () => {
+    render(room());
+    expect($("[data-room-model-row]")?.getAttribute("data-room-model-row")).toBe("same");
+    click($('[data-room-model-row] [data-model-row]'));
+    const picks = fixture.dispatch.mock.calls.map(([action]) => action).filter((action) => action.type === "setModel");
+    expect(picks.map((action) => [action.botId, action.threadId, action.selection.model])).toEqual([
+      ["lead", "lead-thread", "opus"], ["bench", "bench-thread", "opus"], ["paper", "paper-thread", "opus"], ["match", "match-thread", "opus"],
+    ]);
+    click($('[data-panel-page="models"]'));
+    await settle();
+    expect(page()).toBe("models");
+    expect([...document.querySelectorAll("[data-room-model]")].map((row) => row.textContent)).toEqual(["Desk Manager", "Vendor Bench", "Paperwork", "Matcher"]);
+  });
+
+  it("read Mixed while members run different models", () => {
+    fixtureBots[1]!.modelSelection = { instanceId: "test", model: "other" };
+    try {
+      render(room());
+      expect($("[data-room-model-row]")?.getAttribute("data-room-model-row")).toBe("mixed");
+    } finally {
+      fixtureBots[1]!.modelSelection = { instanceId: "test", model: "m" };
+    }
+  });
+
+  it("show each member's computer on Computer, one after another", () => {
+    render(room());
+    click($('[data-panel-tab="computer"]'));
+    const screens = [...document.querySelectorAll("[data-room-screen]")].map((card) => card.querySelector("[data-panel-screen-of]")?.textContent);
+    expect(screens).toEqual(["Desk Manager's screen", "Vendor Bench's screen", "Paperwork's screen", "Matcher's screen"]);
+  });
+
+  it("keep the turn limit and deleting the room on Advanced, deleting only once confirmed", () => {
+    render(room());
+    click($('[data-panel-tab="advanced"]'));
+    expect($('[data-panel-row="turn-limit"]')).not.toBeNull();
+    expect($('[data-panel-page="responder"]')).not.toBeNull();
+    click($('[data-panel-row="find"]'));
+    expect(fixture.find).toHaveBeenCalledWith("desk-thread");
+    click($('[data-panel-row="delete"]'));
+    expect(fixture.dispatch.mock.calls.some(([action]) => action.type === "deleteGroup")).toBe(false);
+    const confirm = [...document.querySelectorAll("button")].find((button) => button.textContent === "Delete group chat" && !button.hasAttribute("data-panel-row"));
+    click(confirm ?? null);
+    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "deleteGroup", groupId: "desk" });
+  });
+});
+
+describe("Advanced", () => {
+  it("renames the room in place, and Escape keeps the old name", async () => {
+    render(room());
+    click($('[data-panel-tab="advanced"]'));
+    click($('[data-panel-edit="name"]'));
+    const input = () => $<HTMLInputElement>('[data-panel-row="name"] input');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input(), "Desk Two");
+    flushSync(() => input()!.dispatchEvent(new Event("input", { bubbles: true })));
+    press(input(), "Enter");
+    await settle();
+    expect(patches()).toEqual([{ type: "patchGroup", groupId: "desk", patch: { name: "Desk Two" } }]);
+    expect(document.activeElement?.getAttribute("data-panel-edit")).toBe("name");
+    click($('[data-panel-edit="name"]'));
+    press(input(), "Escape");
+    await settle();
+    expect(input()).toBeNull();
+    expect(patches()).toHaveLength(1);
+    expect(seen.open).toBe("desk");
+  });
+});
+
 describe("Who responds", () => {
   it("lists each member, then MausBot choosing, everyone and mentions only, and writes what the header picker writes", async () => {
     render(room());
@@ -165,7 +258,7 @@ describe("Working folder", () => {
     await settle();
     expect(page()).toBe("folder");
     expect($("[data-room-working-folder]")).not.toBeNull();
-    expect($('[data-panel-page-view="folder"] h3')?.textContent).toBe("Working folder");
+    expect($("[data-panel-page-title]")?.textContent).toBe("Working folder");
   });
 });
 
@@ -238,7 +331,7 @@ describe("Escape", () => {
 
   it("closes from the ✕ too", () => {
     render(room());
-    click($('[aria-label="Close settings"]'));
+    click($('[aria-label="Close"]'));
     expect(seen.open).toBeNull();
     expect(document.activeElement).toBe(opener);
   });
