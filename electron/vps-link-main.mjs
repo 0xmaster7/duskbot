@@ -11,6 +11,15 @@ import { pipeline } from "node:stream/promises";
 import { createVpsLink } from "./vps-link.mjs";
 
 export const DEFAULT_LINK_BASE = "https://link.apps.siddz.com";
+
+/** reads a value saved by protect; electron's async safeStorage decrypt answers { result }, not a bare string */
+export function unprotectWith(encryption) {
+  return async (value) => {
+    if (!value.startsWith("e:")) return value.slice(2);
+    const out = await encryption.decrypt(Buffer.from(value.slice(2), "base64"));
+    return typeof out === "string" ? out : String(out?.result ?? "");
+  };
+}
 const METHODS = ["state", "start", "cancel", "reset", "engines", "signIn", "signInStatus", "signInCode", "signInCancel", "openUrl", "preview", "move", "open", "where", "backups", "backupNow", "restore", "moveBack", "forget"];
 
 /** the tls verifier for the servers this app pinned: their own key, on top of the usual checks; every other host as usual */
@@ -71,7 +80,7 @@ async function folderSize(dir, limit = 200_000) {
 /**
  * @param {{
  *   ipcMain: any, guard(channel: string, handler: Function): Function, userData: string, session: any, shell: any,
- *   encryption: { available(): Promise<boolean>, encrypt(text: string): Promise<Buffer>, decrypt(value: Buffer): Promise<string> },
+ *   encryption: { available(): Promise<boolean>, encrypt(text: string): Promise<Buffer>, decrypt(value: Buffer): Promise<string | { result: string }> },
  *   jsonFile(file: string): { read(): unknown, write(value: unknown): void },
  *   environments(): any, persist(next: any): void, withEnvironment: Function, makeId(): string, forgetEnvironment(id: string): unknown,
  *   ownHome: any, localRequest(route: string, init?: RequestInit): Promise<Response>, switchTo(id: string): unknown, relaunch(): void,
@@ -84,7 +93,7 @@ export function installVpsLink(deps) {
   let pinned = false;
   const backupsDir = path.join(userData, "vps-backups");
   const protect = async (text) => ((await encryption.available()) ? `e:${(await encryption.encrypt(text)).toString("base64")}` : `p:${text}`);
-  const unprotect = async (value) => (value.startsWith("e:") ? encryption.decrypt(Buffer.from(value.slice(2), "base64")) : value.slice(2));
+  const unprotect = unprotectWith(encryption);
   const ownHomeFiles = ["own-home.json", "own-home-choice.json", "own-home-send.json"].map((name) => jsonFile(path.join(userData, name)));
 
   const link = createVpsLink({
