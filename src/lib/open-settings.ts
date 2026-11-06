@@ -5,11 +5,10 @@ import type { LocaleKey } from "@/locales";
 import type { Action, AppSettingsSection } from "@/state/store";
 import type { GrokIconName } from "@/components/GrokIcon";
 
-export type AdvancedPage = "apps" | "looks" | "team" | "data" | "builder";
+export type AdvancedPage = "apps" | "team" | "data" | "builder";
 
 export const ADVANCED_PAGES: ReadonlyArray<{ id: AdvancedPage; icon: GrokIconName; sections: AppSettingsSection[] }> = [
   { id: "apps", icon: "plug", sections: ["apps", "skills"] },
-  { id: "looks", icon: "palette", sections: ["looks"] },
   { id: "team", icon: "building", sections: ["organization", "people", "workspaces"] },
   { id: "data", icon: "database", sections: ["data", "backups"] },
   { id: "builder", icon: "sliders", sections: ["builder", "experimental"] },
@@ -19,7 +18,7 @@ export type SettingsPane = "general" | "texting" | "computer" | "permissions" | 
 
 /** Grok's panes, with Phone, Models, Bots and Advanced features for what Grok has no pane for. */
 export const SETTINGS_PANES: ReadonlyArray<{ id: SettingsPane; labelKey: LocaleKey; icon: GrokIconName; sections: readonly AppSettingsSection[] }> = [
-  { id: "general", labelKey: "settings.section.general", icon: "settings-gear", sections: ["general", "appearance", "import"] },
+  { id: "general", labelKey: "settings.section.general", icon: "settings-gear", sections: ["general", "appearance", "looks", "import"] },
   { id: "texting", labelKey: "settings.grok.group.phone", icon: "chat-bubbles", sections: ["texting", "companion"] },
   { id: "computer", labelKey: "settings.simple.page.computer", icon: "display", sections: ["computer", "desktopWorkspaces", "remote"] },
   { id: "permissions", labelKey: "settings.pane.permissions", icon: "shield", sections: ["permissions", "botAccess", "activity"] },

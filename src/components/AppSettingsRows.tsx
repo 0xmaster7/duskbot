@@ -1,22 +1,19 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { api, useStore, type ConfigStatus } from "@/state/store";
-import { builtInBrowserEnabled, showToolCallsEnabled, skillAuthoringEnabled } from "@/lib/feature-flags";
+import { skillAuthoringEnabled } from "@/lib/feature-flags";
 import { localeChoices } from "@/locales";
 import { activeLocale, t } from "@/lib/i18n";
 import { withTourReset } from "@/lib/guided-tour";
 import { completionPatch } from "@/lib/onboarding";
 import { useUpdaterState } from "@/lib/updater";
 import { productName } from "../lib/brand";
-import { BrowserProfilesManager } from "./BrowserProfilesManager";
 import { NewBrowserSettings } from "./BrowserSettingsRows";
 import { NavRow } from "./ListRows";
-import { Card, SIMPLE_CARD, SettingRow, Switch } from "./SettingsPrimitives";
+import { SIMPLE_CARD, SettingRow, Switch } from "./SettingsPrimitives";
 import { cn } from "@/lib/cn";
 import { LearnedSkillsSettings } from "./ShareLearnedSkillsSettings";
 import { effortLabel } from "./ModelPicker";
 import { EFFORT_LEVELS, isEffortLevel } from "../../shared/wire";
-import { setColorUserBubbles, useColorUserBubbles } from "@/lib/user-bubble-preference";
-import { setPinnedCircles, setUniversalPins, usePinnedCircles, useUniversalPins } from "@/lib/sidebar-preferences";
 import { parseSendKey, SEND_KEYS, sendKeyLabel, setSendKey, useSendKey } from "@/lib/send-key";
 import { alternateSendLabel, parseFollowUpDefault, setFollowUpDefault, useFollowUpDefault } from "@/lib/follow-up";
 import { effectiveLanguage, setLanguageChoice, useLanguageChoice } from "@/lib/language-preference";
@@ -125,7 +122,7 @@ export function NewBotEffortRow() {
   );
 }
 
-/** The two tours as rows of Help: the app tour (marking onboarding done if it was not) and the welcome tour. */
+/** The app tour as a row of Help, marking onboarding done if it was not. */
 export function ReplayTourRows() {
   const { state, dispatch } = useStore();
   const [saving, setSaving] = useState(false);
@@ -148,12 +145,7 @@ export function ReplayTourRows() {
       .catch(() => setFailed(true))
       .finally(() => setSaving(false));
   };
-  return (
-    <>
-      <NavRow data-settings-open="app-tour" drill={false} disabled={saving} title={t("settings.welcome.appTour")} hint={failed ? t("onboarding.tour.error") : undefined} onClick={replayApp} />
-      <NavRow data-settings-open="welcome-tour" drill={false} title={t("settings.welcome.replay")} onClick={() => dispatch({ type: "toggleWelcome", open: true })} />
-    </>
-  );
+  return <NavRow data-settings-open="app-tour" drill={false} disabled={saving} title={t("settings.welcome.appTour")} hint={failed ? t("onboarding.tour.error") : undefined} onClick={replayApp} />;
 }
 
 export function LanguageRow({ simple = false }: { simple?: boolean }) {
@@ -216,85 +208,7 @@ export function FollowUpRow({ simple = false }: { simple?: boolean }) {
   );
 }
 
-export function ColorUserBubblesRow({ simple = false }: { simple?: boolean }) {
-  const enabled = useColorUserBubbles();
-  return (
-    <SettingRow title={t("settings.userBubbles.title")} subtitle={simple ? undefined : t("settings.userBubbles.subtitle")}>
-      <Switch
-        checked={enabled}
-        aria-label={t("settings.userBubbles.aria")}
-        onClick={() => setColorUserBubbles(!enabled)}
-      />
-    </SettingRow>
-  );
-}
-
-export function PinnedCirclesRow() {
-  const enabled = usePinnedCircles();
-  return (
-    <SettingRow title={t("settings.pinnedCircles.title")}>
-      <Switch
-        checked={enabled}
-        aria-label={t("settings.pinnedCircles.title")}
-        onClick={() => setPinnedCircles(!enabled)}
-      />
-    </SettingRow>
-  );
-}
-
-export function UniversalPinsRow() {
-  const enabled = useUniversalPins();
-  return (
-    <SettingRow title={t("settings.universalPins.title")}>
-      <Switch
-        checked={enabled}
-        aria-label={t("settings.universalPins.title")}
-        onClick={() => setUniversalPins(!enabled)}
-      />
-    </SettingRow>
-  );
-}
-
-export function ToolCallsRow() {
-  const { state, dispatch } = useStore();
-  const enabled = showToolCallsEnabled(state.config);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-
-  const toggle = async () => {
-    if (saving) return;
-    setSaving(true);
-    setError("");
-    try {
-      const config: ConfigStatus = await api("/api/config", {
-        method: "PATCH",
-        body: JSON.stringify({ features: { showToolCalls: !enabled } }),
-      });
-      dispatch({ type: "configStatus", config });
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("settings.toolCalls.error"));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <SettingRow
-      title={t("settings.toolCalls.title")}
-      message={error ? <p role="alert" className="text-danger">{error}</p> : null}
-    >
-      <Switch
-        checked={enabled}
-        aria-label={t("settings.toolCalls.aria")}
-        disabled={saving}
-        onClick={() => void toggle()}
-        className="disabled:cursor-wait disabled:opacity-50"
-      />
-    </SettingRow>
-  );
-}
-
-export function ExperimentalFeaturesRow() {
+export function ExperimentalFeaturesRow({ lead }: { lead?: ReactNode }) {
   const { state, dispatch } = useStore();
   const skillAuthoring = skillAuthoringEnabled(state.config);
   const [saving, setSaving] = useState(false);
@@ -320,6 +234,7 @@ export function ExperimentalFeaturesRow() {
   return (
     // the sections below are shared with older screens: here they sit as plain rows, without their own rule and gap
     <div data-settings-rows="" className={cn(SIMPLE_CARD, "flex flex-col [&>[data-testid]]:mt-0 [&>[data-testid]]:border-t-0 [&>[data-testid]]:px-2 [&>[data-testid]]:py-1.5")}>
+      {lead}
       <SettingRow title={t("settings.experimental.skillAuthoring")} message={error ? <span role="alert" className="text-danger">{error}</span> : null}>
         <Switch
           checked={skillAuthoring}
@@ -334,13 +249,3 @@ export function ExperimentalFeaturesRow() {
   );
 }
 
-export function BrowserProfilesRow() {
-  const { state } = useStore();
-  const profiles = state.config?.browserProfiles ?? [];
-  if (!builtInBrowserEnabled(state.config) && profiles.length === 0) return null;
-  return (
-    <Card title={t("settings.profiles.title")}>
-      <BrowserProfilesManager folded />
-    </Card>
-  );
-}

@@ -5,33 +5,36 @@ import { SettingRow } from "./SettingsPrimitives";
 import { SettingsSelect } from "./SettingsSelect";
 
 const THEMES = [
-  { choice: "system", label: "settings.theme.system" },
+  { choice: "system", label: "settings.simple.theme.system" },
   { choice: THEME_SKINS.light, label: "settings.theme.light" },
   { choice: THEME_SKINS.dark, label: "settings.theme.dark" },
 ] as const satisfies readonly { choice: SkinChoice; label: string }[];
+
+/** the other looks, after Grok's three themes in the same select */
+const LOOKS = SKINS.filter((skin) => !THEMES.some((theme) => theme.choice === skin.id));
 
 export function useSkinChoice(): SkinChoice {
   return useSyncExternalStore(subscribeSkin, readSkinChoice, readSkinChoice);
 }
 
-export function ThemeRow({ simple = false }: { simple?: boolean }) {
+/** Grok's three themes, then the other looks. */
+export const themeOptions = () => [
+  ...THEMES.map((theme) => ({ value: theme.choice, label: t(theme.label) })),
+  ...LOOKS.map((skin) => ({ value: skin.id, label: skin.name })),
+];
+
+export function ThemeRow() {
   const choice = useSkinChoice();
-  const look = THEMES.some((theme) => theme.choice === choice) ? undefined : SKINS.find((skin) => skin.id === choice)?.name;
   return (
-    <SettingRow
-      title={t("settings.theme.title")}
-      subtitle={look ? t("settings.theme.look", { name: look }) : simple ? undefined : t("settings.theme.subtitle")}
-    >
+    <SettingRow title={t("settings.theme.title")}>
       <SettingsSelect
-        value={look ? "" : choice}
+        data-settings-select="theme"
+        value={choice}
         aria-label={t("settings.theme.title")}
-        options={[
-          ...(look ? [{ value: "", label: look, disabled: true }] : []),
-          ...THEMES.map((theme) => ({ value: theme.choice, label: t(simple && theme.choice === "system" ? "settings.simple.theme.system" : theme.label) })),
-        ]}
+        options={themeOptions()}
         onChange={(event) => {
-          const theme = THEMES.find((entry) => entry.choice === event.target.value);
-          if (theme) applySkinChoice(theme.choice);
+          const next = [...THEMES.map((theme) => theme.choice), ...LOOKS.map((skin) => skin.id)].find((value) => value === event.target.value);
+          if (next) applySkinChoice(next);
         }}
       />
     </SettingRow>

@@ -29,10 +29,10 @@ async function page(start: PlaceLook | null, { answer = saved(start ?? COMPUTER)
   Object.assign(window, { ogb: { app: { version: "0.1.131", ownPage: own }, workspaces } });
   const { setLocale } = await import("@/lib/i18n");
   setLocale("en");
-  const { PlaceLookCard } = await import("./PlaceLookCard");
+  const { PlaceLookRows } = await import("./PlaceLookCard");
   const { PlaceTint } = await import("./PlaceTint");
   root = createRoot(host);
-  await act(async () => { root!.render(createElement("div", null, createElement(PlaceTint), createElement(PlaceLookCard))); });
+  await act(async () => { root!.render(createElement("div", null, createElement(PlaceTint), createElement("div", { "data-sidebar-look": "" }, createElement(PlaceLookRows)))); });
   await act(async () => { await Promise.resolve(); });
   return { workspaces, pictures, changed: () => changed() };
 }
@@ -60,7 +60,6 @@ it("this computer, by default: plain, nothing chosen, in plain words with no pic
   expect(words, "no Cloud's words on this computer").not.toMatch(/This computer|place|workspace|Everyone here|admins/i);
   expect(host.querySelector("[role='radiogroup']")?.getAttribute("aria-label")).toBe("Sidebar color");
   expect([swatch("slate").getAttribute("aria-label"), swatch("slate").disabled, button("Use an image")?.disabled], "None, and both changeable here").toEqual(["None", false, false]);
-  expect(host.querySelector("[data-sidebar-look]")?.getAttribute("data-settings-look"), "in the Simple look in Advanced too").toBe("simple");
 });
 
 it("this computer takes a colour and a picture, both shown at once; None and Remove make it plain again", async () => {
@@ -151,9 +150,9 @@ it("a browser or an older app: no colour and no tint, only the place's picture",
   vi.doMock("@/state/store", () => ({ useStore: () => ({ state: { config: {} } }) }));
   vi.doMock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => true }));
   Object.assign(window, { ogb: { workspaces: { state: vi.fn() } } });
-  const { PlaceLookCard } = await import("./PlaceLookCard");
+  const { PlaceLookRows } = await import("./PlaceLookCard");
   root = createRoot(host);
-  await act(async () => { root!.render(createElement(PlaceLookCard)); });
+  await act(async () => { root!.render(createElement("div", { "data-sidebar-look": "" }, createElement(PlaceLookRows))); });
   expect(host.querySelector("[data-swatch]")).toBeNull();
 });
 

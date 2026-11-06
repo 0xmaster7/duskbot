@@ -7,6 +7,7 @@ import { en, locales } from "@/locales";
 import type { AppSettingsSection } from "@/state/store";
 import type { Switch } from "./SettingsPrimitives";
 import { SettingsModal } from "./SettingsModal";
+import { themeOptions } from "./ThemeRow";
 
 const fixture = vi.hoisted(() => ({
   section: "appearance" as AppSettingsSection,
@@ -116,7 +117,7 @@ const render = () => renderToStaticMarkup(createElement(SettingsModal));
 
 const trigger = (html: string, label: string) => html.match(new RegExp(`role="combobox" aria-label="${label}"[^>]*>(?:<[^>]+>)*([^<]+)<`))?.[1];
 
-describe("Settings → General → Appearance, and Advanced → Looks", () => {
+describe("Settings → General → Appearance", () => {
   it("draws Grok's Appearance card: Theme, Accent and Language, with no Advanced mode switch", () => {
     fixture.section = "general";
     const html = render();
@@ -145,31 +146,23 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
     expect(render()).not.toContain('aria-label="Advanced mode"');
   });
 
-  it("groups skins, pins and tool-call display in Looks, with no dead thread or run card switches", () => {
-    fixture.section = "looks";
-    const html = render();
-    expect(html).toContain('role="combobox" aria-label="Skin"');
-    expect(html).not.toContain('aria-label="Show threads"');
-    expect(html).not.toContain('aria-label="Show the run card"');
-    expect(html).toContain('aria-label="Pinned bots as circles"');
-    expect(html).toContain('aria-label="Universal pins"');
-    expect(html).toContain('aria-label="Show tool calls in chat"');
-    expect(html).not.toContain("from every group");
-    expect(html).not.toContain("Group turn time limit");
+  it("folds the old Looks page into Appearance: the skins sit in the Theme select, with nothing about pins, fonts, widths or tool calls", () => {
+    expect(themeOptions().map((option) => option.label)).toEqual(expect.arrayContaining(["Follow System", "Light", "Dark", "Midnight", "Halloween"]));
+    expect(themeOptions().map((option) => option.label)).not.toContain("Grok Dark");
+    for (const section of ["general", "looks"] as const) {
+      fixture.section = section;
+      const html = render();
+      expect(trigger(html, "Theme")).toBeTruthy();
+      for (const gone of ['aria-label="Skin"', "Pinned bots as circles", "Universal pins", "Show tool calls in chat", "Chat width", 'aria-label="Font"', "Show threads", "Show the run card"]) {
+        expect(html, gone).not.toContain(gone);
+      }
+    }
   });
 
-  it("keeps the switch for the window's rail of places with the sidebar's rows, where this window has one", () => {
-    fixture.section = "looks";
-    expect(render()).not.toContain("Show your computers");
+  it("has no Settings switch for the window's rail of places: its own button hides and shows it", () => {
+    fixture.section = "general";
     fixture.rail = { available: true, hidden: true };
-    const html = render();
-    const at = html.indexOf('aria-label="Show your computers"');
-    expect(at).toBeGreaterThan(html.indexOf('aria-label="Chat width"'));
-    expect(at).toBeLessThan(html.indexOf('aria-label="Pinned bots as circles"'));
-    const toggle = fixture.switches.find((props) => props["aria-label"] === "Show your computers")!;
-    expect(toggle.checked).toBe(false);
-    toggle.onClick!({} as never);
-    expect(fixture.railHidden).toEqual([false]);
+    expect(render()).not.toContain("Show your computers");
   });
 
   it.each([true, false])("mutes notification sounds on this computer only when the switch is %s", (enabled) => {
@@ -186,14 +179,14 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
   });
 
   it("has no choice of sidebar density: the sidebar's edge is dragged instead", () => {
-    fixture.section = "looks";
+    fixture.section = "general";
     const html = render();
     expect(html).not.toContain("Sidebar density");
     expect(html).not.toContain(">Avatars only<");
   });
 
   it("drops the tools layout row, which only the removed Advanced mode read", () => {
-    fixture.section = "looks";
+    fixture.section = "general";
     expect(render()).not.toContain("Tools layout");
   });
 
@@ -232,39 +225,21 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
     expect(fixture.api).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ["standard", "Standard"],
-    ["wide", "Wide"],
-    ["full", "Full width"],
-  ])("shows the saved chat width (%s) in Looks", (width, label) => {
-    fixture.section = "looks";
-    vi.stubGlobal("localStorage", { getItem: (key: string) => key === "omb-chat-width" ? width : null });
-    const html = render();
-    expect(trigger(html, "Chat width")).toBe(label);
-    expect(fixture.api).not.toHaveBeenCalled();
-    expect(fixture.dispatch).not.toHaveBeenCalled();
-  });
-
-  it("keeps the builder controls together in Builder Controls, off the first screens", () => {
+  it("keeps the experiments on their own page, with no timeouts or task limits, and recovery with the models", () => {
     fixture.section = "builder";
     const html = render();
-    expect(html).toContain("Group turn time limit");
-    expect(html).toContain("Tasks at once per bot");
-    expect(html).toContain("Automatic recovery");
+    expect(html).toContain("Experimental features");
+    for (const gone of ["Group turn time limit", "Tasks at once per bot", "MCP tool call", "Automatic recovery"]) expect(html, gone).not.toContain(gone);
     fixture.section = "general";
     const general = render();
-    for (const text of ["Group turn time limit", "Tasks at once per bot", "Automatic recovery", 'aria-label="Pinned bots as circles"', "Midnight"]) {
-      expect(general, text).not.toContain(text);
-    }
+    for (const text of ["Automatic recovery", "Experimental features"]) expect(general, text).not.toContain(text);
   });
 
-  it("makes local looks available remotely without exposing server settings", () => {
+  it("keeps the local look reachable remotely without exposing server settings", () => {
     fixture.section = "looks";
     vi.stubGlobal("window", { ogb: { remoteClient: { active: true } } });
     const html = render();
-    expect(html).toContain('role="combobox" aria-label="Skin"');
-    expect(html).toContain('aria-label="Pinned bots as circles"');
-    expect(html).not.toContain('aria-label="Show tool calls in chat"');
+    expect(html).toContain('aria-label="Theme"');
     expect(html).not.toContain('data-settings-page="updates"');
     expect(html).not.toContain('data-settings-page="permissions"');
   });
@@ -276,13 +251,11 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
     expect(html).toContain('type="file" accept=".ombbackup"');
   });
 
-  it("renders Looks and its controls in Japanese", () => {
+  it("renders Appearance in Japanese", () => {
     setLocale("ja");
     fixture.section = "looks";
     const html = render();
-    for (const key of [
-      "settings.section.appearance", "settings.pinnedCircles.title", "settings.universalPins.title",
-    ] as const) {
+    for (const key of ["settings.section.appearance", "settings.language.title"] as const) {
       expect(locales.ja[key], key).toBeTruthy();
       expect(locales.ja[key], key).not.toBe(en[key]);
       expect(html, key).toContain(locales.ja[key]!);
@@ -295,10 +268,10 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
       setLocale("zz");
       fixture.section = "looks";
       const html = render();
-      expect(html).toContain("Looks");
-      expect(html).toContain('aria-label="Universal pins"');
-      expect(html).not.toContain("settings.universalPins");
-      expect(html).not.toContain("settings.advanced");
+      expect(html).toContain("Appearance");
+      expect(html).toContain('aria-label="Theme"');
+      expect(html).not.toContain("settings.theme");
+      expect(html).not.toContain("settings.section");
     } finally {
       delete locales.zz;
       setLocale("en");

@@ -6,7 +6,7 @@ import { choosePlaceColor, usePlaceLook } from "@/lib/place-look";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { useStore } from "@/state/store";
 import { PlacePicture } from "./PlacePicture";
-import { SettingRow, SettingsRows, SIMPLE_BUTTONS } from "./SettingsPrimitives";
+import { SettingRow } from "./SettingsPrimitives";
 import { SwatchRadios } from "./SwatchRadios";
 
 /** The sidebar's look, as two rows of Settings: its colour, in the six swatches the rail's circles use, and its picture,
@@ -38,11 +38,4 @@ export function PlaceLookRows() {
     </div>}
     <PlacePicture banner={state.config?.workspaceBanner ?? null} canChange={admin} />
   </>;
-}
-
-/** The same rows in a card of their own, in the Simple look in Advanced too. */
-export function PlaceLookCard() {
-  return <div data-sidebar-look data-settings-look="simple" className={SIMPLE_BUTTONS}>
-    <SettingsRows><PlaceLookRows /></SettingsRows>
-  </div>;
 }

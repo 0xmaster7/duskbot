@@ -26,49 +26,44 @@ async function page(rail: ChromeRailBridge | undefined) {
   Object.assign(window, { ogb: rail ? { rail } : undefined });
   const { setLocale } = await import("@/lib/i18n");
   setLocale("en");
-  const { ChromeRailRow, ChromeRailToggle } = await import("./ChromeRailToggle");
+  const { ChromeRailToggle } = await import("./ChromeRailToggle");
   root = createRoot(host);
   await act(async () => {
-    root!.render(createElement("div", null, createElement(ChromeRailToggle, { advanced: true, icons: false }),
-      createElement("div", { "data-settings-look": "simple" }, createElement(ChromeRailRow))));
+    root!.render(createElement("div", null, createElement(ChromeRailToggle, { advanced: true, icons: false })));
   });
   await act(async () => { await Promise.resolve(); });
 }
 const button = () => host.querySelector<HTMLButtonElement>("[data-rail-toggle]");
-const toggle = () => host.querySelector<HTMLButtonElement>("[data-rail-switch] [role='switch']");
-const said = () => [button()?.getAttribute("aria-label"), button()?.getAttribute("title"), button()?.getAttribute("aria-expanded"), toggle()?.getAttribute("aria-checked")];
+const said = () => [button()?.getAttribute("aria-label"), button()?.getAttribute("title"), button()?.getAttribute("aria-expanded")];
 const click = async (target: HTMLElement | null) => {
   expect(target).toBeTruthy();
   await act(async () => { target!.click(); await Promise.resolve(); });
   await act(async () => { await Promise.resolve(); });
 };
 
-it("once main says this window has a rail, the button hides it and shows it again, and the switch in Settings says the same", async () => {
+it("once main says this window has a rail, the button hides it and shows it again", async () => {
   const { rail } = bridge({ available: true, hidden: false });
   await page(rail);
   expect(rail.state, "one offer from the page, whatever asks").toHaveBeenCalledTimes(1);
-  expect(said()).toEqual(["Hide your computers", "Hide your computers", "true", "true"]);
-  const row = host.querySelector("[data-rail-switch]")!.textContent!;
-  expect(row).toContain("Show your computers");
-  expect(row).not.toContain("An icon for each place");
+  expect(said()).toEqual(["Hide your computers", "Hide your computers", "true"]);
   await click(button());
   expect(rail.setHidden).toHaveBeenLastCalledWith(true);
-  expect(said()).toEqual(["Show your computers", "Show your computers", "false", "false"]);
-  await click(toggle());
+  expect(said()).toEqual(["Show your computers", "Show your computers", "false"]);
+  await click(button());
   expect(rail.setHidden).toHaveBeenLastCalledWith(false);
-  expect(said()).toEqual(["Hide your computers", "Hide your computers", "true", "true"]);
+  expect(said()).toEqual(["Hide your computers", "Hide your computers", "true"]);
 });
 
-it("main's word wins: a click it refuses puts the button back, and with one place left the button and the switch go", async () => {
+it("main's word wins: a click it refuses puts the button back, and with one place left the button goes", async () => {
   const { rail, push } = bridge({ available: true, hidden: false }, { refuse: true });
   await page(rail);
   await click(button());
   expect(rail.setHidden).toHaveBeenCalledWith(true);
-  expect(said()).toEqual(["Hide your computers", "Hide your computers", "true", "true"]);
+  expect(said()).toEqual(["Hide your computers", "Hide your computers", "true"]);
   await push({ available: false, hidden: false });
-  expect([button(), toggle()]).toEqual([null, null]);
+  expect(button()).toBeNull();
   await push({ available: true, hidden: true });
-  expect(said()).toEqual(["Show your computers", "Show your computers", "false", "false"]);
+  expect(said()).toEqual(["Show your computers", "Show your computers", "false"]);
 });
 
 it("nothing in a browser, on an older app, on a page that isn't beside the rail, or with one place", async () => {
@@ -77,7 +72,7 @@ it("nothing in a browser, on an older app, on a page that isn't beside the rail,
   const onePlace = bridge({ available: false, hidden: true }).rail;
   for (const rail of [undefined, older, elsewhere, onePlace]) {
     await page(rail);
-    expect([button(), toggle()]).toEqual([null, null]);
+    expect(button()).toBeNull();
     await act(async () => root?.unmount());
     root = null;
   }

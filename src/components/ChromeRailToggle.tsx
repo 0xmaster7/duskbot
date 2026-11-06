@@ -2,7 +2,6 @@ import type { CSSProperties } from "react";
 import { cn } from "@/lib/cn";
 import { setChromeRailHidden, useChromeRail } from "@/lib/chrome-rail";
 import { t } from "@/lib/i18n";
-import { SettingRow, Switch } from "./SettingsPrimitives";
 import { SIMPLE_TOP_TOGGLE } from "./SidebarSimpleTop";
 
 /** The window's rail of places, drawn small: a window with the rail at its left edge and three places on it. */
@@ -29,15 +28,4 @@ export function ChromeRailToggle({ advanced = false, icons = false, bar, style }
       icons ? "size-[46px] rounded-xl" : "size-8 rounded-full") : SIMPLE_TOP_TOGGLE)}>
     <RailStripIcon size={bar ? 15 : advanced && icons ? 20 : 18} />
   </button>;
-}
-
-/** Settings' switch for the same rail, while this window has one. */
-export function ChromeRailRow() {
-  const rail = useChromeRail();
-  if (!rail?.available) return null;
-  return <div data-rail-switch>
-    <SettingRow title={t("rail.show")}>
-      <Switch checked={!rail.hidden} aria-label={t("rail.show")} onClick={() => setChromeRailHidden(!rail.hidden)} />
-    </SettingRow>
-  </div>;
 }

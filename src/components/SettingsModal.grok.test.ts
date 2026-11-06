@@ -110,13 +110,13 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(open("general")).not.toContain('aria-label="Notification Sound"');
   });
 
-  it("opens Advanced features on the places bots work, then one card of rarer settings", () => {
+  it("opens Advanced features on one card of its rarer pages, with no shortcuts to places the sidebar already has", () => {
     const html = open("advanced");
     expect(title(html)).toBe("Advanced features");
-    expect(groups(html)).toEqual(["Your bots", "More settings"]);
-    expect([...html.matchAll(/data-settings-open="([^"]+)"/g)].map((match) => match[1])).toEqual(["inbox", "automations", "team-map"]);
+    expect(groups(html)).toEqual([]);
+    expect([...html.matchAll(/data-settings-open="([^"]+)"/g)].map((match) => match[1])).toEqual([]);
     expect([...html.matchAll(/data-settings-advanced="([^"]+)"/g)].map((match) => match[1]))
-      .toEqual(["apps", "looks", "team", "data", "builder"]);
+      .toEqual(["apps", "team", "data", "builder"]);
     expect(markers(html)).toEqual([]);
     expect(html).not.toContain("data-settings-back");
   });
@@ -136,6 +136,7 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(markers(html)).toEqual(["engines"]);
     expect(html).toContain('data-panel-page="keys"');
     expect(html).toContain('data-panel-page="decision"');
+    expect(html).toContain('data-panel-page="recovery"');
     expect(markers(open("connections"))).toEqual(["apiKeys"]);
     expect(markers(open("decisionModel"))).toEqual(["decisionModel"]);
   });
@@ -153,8 +154,8 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(open("apps")).toContain('data-panel-page="mcp"');
     expect(current(open("about"))).toBe("updates");
     expect(open("about")).toContain('data-settings-open="shortcuts"');
-    expect(open("looks")).toContain('data-settings-block="looks"');
-    expect(open("looks")).not.toContain("Show threads");
+    expect(current(open("looks"))).toBe("general");
+    expect(open("looks")).toContain('data-settings-block="appearance"');
     expect(open("bots")).toContain('data-settings-block="bot-defaults"');
     expect(markers(open("backups"))).toEqual(["backups"]);
   });
@@ -178,11 +179,11 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(panes(open("general"))).toContain("permissions");
   });
 
-  it("shows a paired remote client General, Texting, Computer and only Looks in Advanced", () => {
+  it("shows a paired remote client General, Texting and Computer, with its look in General", () => {
     vi.stubGlobal("window", { ogb: { remoteClient: { active: true }, environments: {} } });
-    expect(panes(open("general"))).toEqual(["general", "texting", "computer", "advanced"]);
+    expect(panes(open("general"))).toEqual(["general", "texting", "computer"]);
     expect(groups(open("general"))).toEqual(["Appearance", "Notifications"]);
-    expect([...open("advanced").matchAll(/data-settings-advanced="([^"]+)"/g)].map((match) => match[1])).toEqual(["looks"]);
+    expect(current(open("looks"))).toBe("general");
     expect(current(open("engines"))).toBe("general");
   });
 });

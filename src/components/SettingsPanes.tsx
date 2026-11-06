@@ -5,9 +5,8 @@ import { ADVANCED_PAGES, type AdvancedPage } from "@/lib/open-settings";
 import { t } from "@/lib/i18n";
 import { FEEDBACK_URL, HELP_CENTER_URL, appVersion, openExternalLink } from "@/lib/app-links";
 import { builtInBrowserEnabled, skillsLibraryEnabled } from "@/lib/feature-flags";
-import { useCloudFilesReady } from "@/lib/cloud-files";
 import { setColorUserBubbles, useColorUserBubbles } from "@/lib/user-bubble-preference";
-import { SKINS, applySkin, resolveSkin } from "@/lib/skins";
+import { resolveSkin } from "@/lib/skins";
 import { setDressUp, useDressUp } from "@/lib/halloween-dress";
 import type { LocaleKey } from "@/locales";
 import { productName } from "../lib/brand";
@@ -21,8 +20,6 @@ import { AttachmentStorageSettings } from "./AttachmentStorageSettings";
 import { AutomaticRecoverySettings } from "./AutomaticRecoverySettings";
 import { AccessOverview } from "./bot-access/AccessOverview";
 import { BuiltInBrowserRow, ServerSitesRow } from "./BrowserSettingsRows";
-import { ChatWidthRow, FontRow } from "./AppearanceSelectRows";
-import { ChromeRailRow } from "./ChromeRailToggle";
 import { CloudPlanFootnote, CloudPlanRow, useCloudPlan } from "./ProIntroduction";
 import { CloudUsageDetails, CloudUsageSummaryView, useCloudUsageSettings } from "./CloudUsageMeter";
 import { CompanyBackupSettings } from "./CompanyBackupSettings";
@@ -35,7 +32,6 @@ import { LocalComputerSection } from "./LocalComputerSection";
 import { CLOUD_SETUP_PAGE, PHONE_ADVANCED_PAGE, PRIVATE_SETUP_PAGE, PROFILE_PAGE } from "./settings-page-ids";
 import { CloudDesktopKeys } from "./keys/KeysPage";
 import { LoginsSettings } from "./LoginsSettings";
-import { McpCallTimeoutSettings } from "./McpCallTimeoutSettings";
 import { McpServersPanel } from "./McpServersPanel";
 import { NotificationRows } from "./NotificationSettingsRows";
 import { OpenAtLoginRow } from "./OpenAtLoginRow";
@@ -45,7 +41,6 @@ import { PhoneAppDialog } from "./PhoneAppDialog";
 import { PlaceLookRows } from "./PlaceLookCard";
 import { PlanUsageSummary } from "./PlanUsage";
 import { ProfileAvatar, ProfileFields } from "./ProfileSettings";
-import { RoomTurnTimeoutSettings } from "./RoomTurnTimeoutSettings";
 import { SavedStepsRow } from "./SavedStepsRow";
 import { SettingRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
 import { Card as RowsCard, FormDialog, ItemRow, NavRow, SwitchRow, useSubPage } from "./ListRows";
@@ -56,18 +51,14 @@ import { BrowserProfilesManager } from "./BrowserProfilesManager";
 import { TalkShortcutRow } from "./TalkShortcutRow";
 import { ThemeRow, useSkinChoice } from "./ThemeRow";
 import { ThreadCleanupSettings } from "./ThreadCleanupSettings";
-import { ThreadConcurrencySettings } from "./ThreadConcurrencySettings";
 import { UpdatesConsentRow } from "./UpdatesConsent";
 import { UsageSection } from "./UsageSection";
-import { WindowFrameRow } from "./WindowFrameRow";
 import { WorkspaceBackupSettings } from "./WorkspaceBackupSettings";
 import { WorkspacesSection } from "./WorkspacesSection";
 import { UsageMeterCard } from "./native/UsageMeter";
 import { reportsUsage, useEngineLimits } from "@/lib/limit-resets";
-import { openInbox } from "@/state/inbox";
 import {
-  ExperimentalFeaturesRow, LanguageRow, PinnedCirclesRow,
-  ReplayTourRows, SendKeyRow, ToolCallsRow, UniversalPinsRow, UpdatesRow,
+  ExperimentalFeaturesRow, LanguageRow, ReplayTourRows, SendKeyRow, UpdatesRow,
 } from "./AppSettingsRows";
 
 export type Has = (id: AppSettingsSection) => boolean;
@@ -90,7 +81,6 @@ export const SECTION_PAGES: Partial<Record<AppSettingsSection, { id: string; tit
   people: { id: "people", title: "settings.section.people" },
   workspaces: { id: "workspaces", title: "settings.section.workspaces" },
   backups: { id: "backups", title: "settings.section.backups" },
-  experimental: { id: "experimental", title: "settings.experimental.title" },
 };
 
 /** A row that opens one of its pane's pages. */
@@ -174,6 +164,13 @@ export function AccentRow() {
   );
 }
 
+/** The Halloween look's bats and hats, while that look is on. */
+function DressUpRow() {
+  const dressed = useDressUp();
+  if (resolveSkin(useSkinChoice()) !== "halloween") return null;
+  return <SwitchRow title={t("settings.skin.dressUp.title")} checked={dressed} onChange={() => setDressUp(!dressed)} />;
+}
+
 export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boolean }) {
   const { at } = useSubPage();
   if (at === "import") return <AdminOnly><ImportSettings /></AdminOnly>;
@@ -189,9 +186,11 @@ export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boo
       )}
       <SettingsGroup label={t("settings.section.appearance")} block="appearance">
         <SettingsRows>
-          <ThemeRow simple />
+          <ThemeRow />
+          <DressUpRow />
           <AccentRow />
           <LanguageRow simple />
+          <PlaceLookRows />
         </SettingsRows>
       </SettingsGroup>
       {!remoteActive && (
@@ -354,46 +353,32 @@ export { ADVANCED_PAGES, type AdvancedPage } from "@/lib/open-settings";
 
 const ADVANCED_TITLES: Record<AdvancedPage, LocaleKey> = {
   apps: "settings.w6.apps.title",
-  looks: "settings.advanced.looks.title",
   team: "settings.w6.team.title",
   data: "settings.w6.data.title",
-  builder: "settings.w6.builder.title",
+  builder: "settings.experimental.title",
 };
 
 export const advancedTitle = (page: AdvancedPage) => t(ADVANCED_TITLES[page]);
 
 const ADVANCED_HINTS: Record<AdvancedPage, LocaleKey> = {
   apps: "settings.hint.appsPage",
-  looks: "settings.hint.looks",
   team: "settings.hint.team",
   data: "settings.hint.data",
-  builder: "settings.hint.builder",
+  builder: "settings.hint.experimental",
 };
 
-/** The first screen of Advanced features: the places Grok keeps off its sidebar open straight away, then the rarer settings. */
+/** The first screen of Advanced: the rarer pages, and the archived bots while there are any. */
 export function AdvancedIndex({ pages, remoteActive, onOpen }: { pages: readonly AdvancedPage[]; remoteActive: boolean; onOpen: (page: AdvancedPage) => void }) {
-  const { state, dispatch } = useStore();
-  const files = useCloudFilesReady();
+  const { state } = useStore();
   const [archivedOpen, setArchivedOpen] = useState(false);
-  const archived = state.bots.filter((bot) => bot.hidden && !bot.movedTo);
-  const leave = (action: Parameters<typeof dispatch>[0]) => { dispatch({ type: "toggleAppSettings", open: false }); dispatch(action); };
-  const skinChoice = useSkinChoice();
-  const skin = SKINS.find((entry) => entry.id === resolveSkin(skinChoice))?.name;
+  const archived = remoteActive ? [] : state.bots.filter((bot) => bot.hidden && !bot.movedTo);
   return (
     <>
-      {!remoteActive && (
-        <RowsCard label={t("settings.w6.group.yourBots")} data-settings-block="advanced-bots">
-          <NavRow data-settings-open="inbox" title={t("settings.advanced.bots.inbox")} hint={t("settings.hint.inbox")} onClick={() => { dispatch({ type: "toggleAppSettings", open: false }); openInbox(); }} />
-          <NavRow data-settings-open="automations" title={t("settings.advanced.bots.automations")} hint={t("settings.hint.automations")} onClick={() => leave({ type: "showRoutines", view: "list" })} />
-          <NavRow data-settings-open="team-map" title={t("settings.advanced.bots.teamMap")} hint={t("settings.hint.teamMap")} onClick={() => leave({ type: "showTeamMap" })} />
-          {files && <NavRow data-settings-open="files" title={t("settings.advanced.bots.files")} hint={t("settings.hint.files")} onClick={() => leave({ type: "showFiles" })} />}
-          {archived.length > 0 && <NavRow data-settings-open="archived" title={t("settings.advanced.bots.archived")} hint={t("settings.hint.archived")} value={archived.length} onClick={() => setArchivedOpen(true)} />}
-        </RowsCard>
-      )}
-      <RowsCard label={remoteActive ? undefined : t("settings.w6.group.more")} data-settings-block="advanced-pages">
+      <RowsCard data-settings-block="advanced-pages">
         {ADVANCED_PAGES.filter((page) => pages.includes(page.id)).map((page) => (
-          <NavRow key={page.id} data-settings-advanced={page.id} title={advancedTitle(page.id)} hint={t(ADVANCED_HINTS[page.id])} value={page.id === "looks" ? skin : undefined} onClick={() => onOpen(page.id)} />
+          <NavRow key={page.id} data-settings-advanced={page.id} title={advancedTitle(page.id)} hint={t(ADVANCED_HINTS[page.id])} onClick={() => onOpen(page.id)} />
         ))}
+        {archived.length > 0 && <NavRow data-settings-open="archived" title={t("settings.advanced.bots.archived")} hint={t("settings.hint.archived")} value={archived.length} onClick={() => setArchivedOpen(true)} />}
       </RowsCard>
       {archivedOpen && <ArchivedBotsPanel bots={archived} onClose={() => setArchivedOpen(false)} onRestored={() => {}} />}
     </>
@@ -412,43 +397,6 @@ function AppsPage({ has }: { has: Has }) {
       <PageRow page="mcp" title={t("settings.advanced.apps.mcp")} hint={t("settings.hint.mcp")} />
       {skills && <PageRow page="skills" title={t("settings.section.skills")} hint={t("settings.hint.skills")} />}
     </RowsCard>
-  );
-}
-
-function LooksPage({ remoteActive }: { remoteActive: boolean }) {
-  const active = resolveSkin(useSkinChoice());
-  const dressed = useDressUp();
-  return (
-    <>
-      <RowsCard data-settings-block="looks">
-        <SettingRow title={t("settings.skin.title")}>
-          <SettingsSelect
-            data-settings-select="skin"
-            value={active}
-            aria-label={t("settings.skin.title")}
-            options={SKINS.map((skin) => ({ value: skin.id, label: skin.name }))}
-            onChange={(event) => { const skin = SKINS.find((entry) => entry.id === event.target.value); if (skin) applySkin(skin.id); }}
-          />
-        </SettingRow>
-        {active === "halloween" && <SwitchRow title={t("settings.skin.dressUp.title")} checked={dressed} onChange={() => setDressUp(!dressed)} />}
-      </RowsCard>
-      <SettingsGroup label={t("settings.section.appearance")} block="appearance-more">
-        <SettingsRows>
-          <PlaceLookRows />
-          <WindowFrameRow />
-          <FontRow />
-          <ChatWidthRow />
-          {!remoteActive && <ToolCallsRow />}
-        </SettingsRows>
-      </SettingsGroup>
-      <SettingsGroup label={t("settings.grok.group.sidebar")} block="sidebar">
-        <SettingsRows>
-          <ChromeRailRow />
-          <PinnedCirclesRow />
-          <UniversalPinsRow />
-        </SettingsRows>
-      </SettingsGroup>
-    </>
   );
 }
 
@@ -529,37 +477,13 @@ function DataPage({ has }: { has: Has }) {
   );
 }
 
-/** A number setting that saves on its own field: its value in the row, the field in a small form. */
-function FieldDialogRow({ title, value, children, ...rest }: { title: string; value: ReactNode; children: ReactNode; "data-settings-open"?: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <NavRow {...rest} title={title} value={value} onClick={() => setOpen(true)} />
-      {open && <FormDialog title={title} onClose={() => setOpen(false)}>{children}</FormDialog>}
-    </>
-  );
-}
-
+/** Features still being built, and the way back to the Simple look while Advanced is on. */
 function BuilderPage() {
-  const { at } = useSubPage();
-  const { state } = useStore();
-  const minutes = (value: number | undefined) => (value ? `${value} ${t("settings.roomTurns.minutes")}` : undefined);
-  if (at === "recovery") return <AutomaticRecoverySettings />;
-  if (at === "experimental") return <div data-settings-block="experimental" className="contents"><ExperimentalFeaturesRow /></div>;
   return (
     <SettingsGroup block="builder">
-      <SettingsRows>
-        <SavedStepsRow />
-        <FieldDialogRow data-settings-open="room-turns" title={t("settings.w6c.roomTurns.label")} value={minutes(state.config?.rooms?.turnTimeoutMinutes)}>
-          <RoomTurnTimeoutSettings />
-        </FieldDialogRow>
-        <FieldDialogRow data-settings-open="mcp-calls" title={t("settings.w6c.mcpCalls.label")} value={minutes(state.config?.mcp?.callTimeoutMinutes)}>
-          <McpCallTimeoutSettings />
-        </FieldDialogRow>
-        <ThreadConcurrencySettings />
-        <PageRow page="recovery" title={t("settings.recovery.title")} hint={t("settings.hint.recovery")} />
-        <PageRow page="experimental" title={t("settings.experimental.title")} hint={t("settings.hint.experimental")} />
-      </SettingsRows>
+      <div data-settings-block="experimental" className="contents">
+        <ExperimentalFeaturesRow lead={<SavedStepsRow />} />
+      </div>
     </SettingsGroup>
   );
 }
@@ -569,6 +493,7 @@ export function ModelsPane({ has, disclose, connections }: { has: Has; disclose:
   const { at } = useSubPage();
   if (at === "keys") return <div data-settings-block="connections" className="contents"><AdminOnly>{connections}</AdminOnly></div>;
   if (at === "decision") return <div data-settings-block="decisionModel" className="contents"><AdminOnly><DecisionModelSettings /></AdminOnly></div>;
+  if (at === "recovery") return <AdminOnly><AutomaticRecoverySettings /></AdminOnly>;
   if (at) return <div data-settings-block="engines" className="contents"><AdminOnly><EnginesSettings simple more={disclose("ai-more")} /></AdminOnly></div>;
   return (
     <>
@@ -577,22 +502,23 @@ export function ModelsPane({ has, disclose, connections }: { has: Has; disclose:
         <RowsCard label={t("settings.rows.more")} data-settings-block="models-more">
           {has("connections") && <PageRow page="keys" title={t("settings.section.connections")} hint={t("settings.hint.keys")} />}
           {has("decisionModel") && <PageRow page="decision" title={t("settings.section.decisionModel")} hint={t("settings.hint.decision")} />}
+          <PageRow page="recovery" title={t("settings.recovery.title")} hint={t("settings.hint.recovery")} />
         </RowsCard>
       )}
     </>
   );
 }
 
-export function AdvancedPageView({ page, has, remoteActive }: {
+export function AdvancedPageView({ page, has }: {
   page: AdvancedPage;
   has: Has;
-  remoteActive: boolean;
+  /** kept for callers */
+  remoteActive?: boolean;
   /** kept for callers; People shows its list straight away now */
   peopleOpen?: boolean;
 }) {
   switch (page) {
     case "apps": return <AppsPage has={has} />;
-    case "looks": return <LooksPage remoteActive={remoteActive} />;
     case "team": return <TeamPage has={has} />;
     case "data": return <DataPage has={has} />;
     case "builder": return <BuilderPage />;
