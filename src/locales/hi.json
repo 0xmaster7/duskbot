@@ -2851,5 +2851,9 @@
   "mermaid.fit": "स्क्रीन में फ़िट करें",
   "mermaid.downloadPng": "PNG डाउनलोड करें",
   "mermaid.close": "डायग्राम व्यूअर बंद करें",
-  "mermaid.downloadFailed": "PNG सेव नहीं हो सका। फिर से कोशिश करें।"
+  "mermaid.downloadFailed": "PNG सेव नहीं हो सका। फिर से कोशिश करें।",
+  "connectApps.category.other": "अन्य",
+  "connectApps.remote.note": "{name} के अपने MCP सर्वर से जुड़ता है। आप अपने {name} खाते से साइन इन करते हैं, कहीं और साइन अप नहीं करना होता।",
+  "connectApps.remote.open": "{name} के अपने MCP सर्वर से जुड़ता है। साइन इन की ज़रूरत नहीं।",
+  "connectApps.remote.manage": "प्रबंधित करें"
 }

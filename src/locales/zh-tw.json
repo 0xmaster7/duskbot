@@ -4650,5 +4650,9 @@
   "mermaid.fit": "符合螢幕大小",
   "mermaid.downloadPng": "下載 PNG",
   "mermaid.close": "關閉圖表檢視器",
-  "mermaid.downloadFailed": "無法儲存 PNG，請再試一次。"
+  "mermaid.downloadFailed": "無法儲存 PNG，請再試一次。",
+  "connectApps.category.other": "其他",
+  "connectApps.remote.note": "連接 {name} 官方的 MCP 伺服器。用你的 {name} 帳號登入即可，無需其他註冊。",
+  "connectApps.remote.open": "連接 {name} 官方的 MCP 伺服器。無需登入。",
+  "connectApps.remote.manage": "管理"
 }

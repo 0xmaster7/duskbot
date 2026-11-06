@@ -19,10 +19,18 @@ describe("Grok's categories over our catalog", () => {
     expect(grokCategories(["Files", "Productivity", "Gardening"])).toEqual(["productivity"]);
   });
 
+  it("lists an app no category fits under Other, last, so the whole catalog shows", () => {
+    expect(grokCategories(["Gardening"])).toEqual(["other"]);
+    expect(grokCategories(undefined)).toEqual(["other"]);
+    expect(presentCategories([app("hackernews", ["other"]), app("linear", ["code"])])).toEqual(["code", "other"]);
+  });
+
   it("lists the categories that hold an app in Grok's order, our own apps first inside one", () => {
     const entries = [app("linear", ["code"]), app("asana", ["productivity"]), app("email", ["communication", "productivity"], "native")];
     expect(presentCategories(entries)).toEqual(["productivity", "communication", "code"]);
     expect(inCategory(entries, "productivity").map((entry) => entry.id)).toEqual(["email", "asana"]);
+    const mixed = [app("granola", ["productivity"], "remote"), ...entries];
+    expect(inCategory(mixed, "productivity").map((entry) => entry.id)).toEqual(["email", "granola", "asana"]);
   });
 });
 

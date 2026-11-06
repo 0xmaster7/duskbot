@@ -3287,5 +3287,9 @@
   "mermaid.fit": "За розміром екрана",
   "mermaid.downloadPng": "Завантажити PNG",
   "mermaid.close": "Закрити перегляд діаграми",
-  "mermaid.downloadFailed": "Не вдалося зберегти PNG. Спробуйте ще раз."
+  "mermaid.downloadFailed": "Не вдалося зберегти PNG. Спробуйте ще раз.",
+  "connectApps.category.other": "Інше",
+  "connectApps.remote.note": "Підключається до власного MCP-сервера {name}. Ви входите через акаунт {name}, без інших реєстрацій.",
+  "connectApps.remote.open": "Підключається до власного MCP-сервера {name}. Вхід не потрібен.",
+  "connectApps.remote.manage": "Керувати"
 }

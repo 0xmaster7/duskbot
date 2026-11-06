@@ -1,0 +1,123 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { api } from "@/state/store";
+import { openExternalLink } from "@/lib/app-links";
+import { runMcpSignIn } from "@/lib/mcp-sign-in";
+import { updateMcpServers } from "@/lib/mcp-servers";
+import { t } from "@/lib/i18n";
+import type { DirectoryAnswer, DirectoryApp } from "../../../shared/connector-directory";
+import { isRemoteMcpListing, type McpServerListing, type RemoteMcpListing } from "../mcp-draft";
+import type { Connection } from "./catalog";
+
+let directory: Promise<DirectoryApp[]> | null = null;
+
+/** The vendors' own MCP servers the directory kept, read once per session. */
+function loadRemoteApps(): Promise<DirectoryApp[]> {
+  directory ??= (api("/api/connectors/directory") as Promise<DirectoryAnswer>)
+    .then((answer) => (answer.apps ?? []).filter((app) => app.source === "remote-mcp" && typeof app.url === "string"))
+    .catch((cause) => { directory = null; throw cause; });
+  return directory;
+}
+
+/** The same endpoint: origin and path, a trailing slash either way. */
+export function sameEndpoint(a: string, b: string): boolean {
+  try {
+    const left = new URL(a), right = new URL(b);
+    const path = (url: URL) => url.pathname.replace(/\/+$/, "");
+    return left.origin === right.origin && path(left) === path(right) && !left.search && !left.hash;
+  } catch {
+    return false;
+  }
+}
+
+/** `linear`, then `linear-2`…: never an existing server's name. */
+export function freeServerName(id: string, servers: ReadonlyArray<{ name: string }>): string {
+  const names = new Set(servers.map((server) => server.name));
+  let name = id;
+  for (let suffix = 2; names.has(name); suffix++) name = `${id}-${suffix}`;
+  return name;
+}
+
+export function remoteConnection(app: DirectoryApp, server: RemoteMcpListing | undefined): Connection {
+  if (!server?.enabled) return "disconnected";
+  return app.auth === "none" || server.auth === "signed-in" ? "connected" : "disconnected";
+}
+
+export interface RemoteApps {
+  apps: DirectoryApp[];
+  busy: string | null;
+  error: string | null;
+  clearError: () => void;
+  connection: (id: string) => Connection;
+  /** True when this MCP server is one of these apps, so Your apps lists it once. */
+  ownsServer: (name: string) => boolean;
+  connect: (app: DirectoryApp) => Promise<void>;
+}
+
+/** Adds the vendor's server and signs in with the person's own account, the same flow as Add MCP server's Sign in.
+ * `needsPanel`: a remote browser pastes the callback back, which only the MCP servers page can take. */
+export function useRemoteApps(options: { needsPanel: () => boolean; openPanel: () => void }): RemoteApps {
+  const [apps, setApps] = useState<DirectoryApp[]>([]);
+  const [servers, setServers] = useState<McpServerListing[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const signIn = useRef<AbortController | null>(null);
+  const latest = useRef(options);
+  latest.current = options;
+
+  const listed = useCallback((next: McpServerListing[] | undefined) => {
+    setServers(next ?? []);
+    updateMcpServers(next ?? []);
+    return next ?? [];
+  }, []);
+  const reload = useCallback(() => api("/api/mcp/servers").then((answer) => listed(answer.servers)), [listed]);
+
+  useEffect(() => {
+    let alive = true;
+    loadRemoteApps().then((list) => { if (alive) setApps(list); }).catch(() => {});
+    api("/api/mcp/servers").then((answer) => { if (alive) setServers(answer.servers ?? []); }).catch(() => { if (alive) setServers([]); });
+    return () => { alive = false; signIn.current?.abort(); };
+  }, []);
+
+  const serverOf = (app: DirectoryApp) => servers?.find((server): server is RemoteMcpListing =>
+    isRemoteMcpListing(server) && server.type === "http" && sameEndpoint(server.url, app.url!));
+
+  const connect = async (app: DirectoryApp) => {
+    if (busy) return;
+    setBusy(app.id);
+    setError(null);
+    const controller = new AbortController();
+    signIn.current = controller;
+    try {
+      let server = serverOf(app);
+      const name = server?.name ?? freeServerName(app.id, servers ?? []);
+      if (!server) {
+        const added = listed((await api("/api/mcp/servers", { method: "POST", body: JSON.stringify({ name, type: "http", url: app.url, enabled: app.auth === "none" }) })).servers);
+        server = added.find((entry): entry is RemoteMcpListing => entry.name === name && isRemoteMcpListing(entry));
+        if (!server) throw new Error(t("hostedMcp.setupFailed", { service: app.label }));
+      }
+      if (app.auth === "oauth" && server.auth !== "signed-in") {
+        if (latest.current.needsPanel()) { latest.current.openPanel(); return; }
+        const result = await runMcpSignIn(name, { api, open: openExternalLink, signal: controller.signal });
+        if (result.phase === "cancelled" || controller.signal.aborted) return;
+        if (result.phase !== "succeeded") throw new Error(result.message || t("mcp.auth.failed"));
+      }
+      if (!server.enabled || app.auth === "oauth") listed((await api(`/api/mcp/servers/${encodeURIComponent(name)}`, { method: "PATCH", body: JSON.stringify({ enabled: true }) })).servers);
+    } catch (cause) {
+      if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : String(cause));
+      void reload().catch(() => {});
+    } finally {
+      if (signIn.current === controller) signIn.current = null;
+      setBusy(null);
+    }
+  };
+
+  const byId = new Map(apps.map((app) => [app.id, app]));
+  return {
+    apps, busy, error,
+    clearError: () => setError(null),
+    connection: (id) => { const app = byId.get(id); return app && servers ? remoteConnection(app, serverOf(app)) : "unknown"; },
+    ownsServer: (name) => apps.some((app) => serverOf(app)?.name === name),
+    connect,
+  };
+}

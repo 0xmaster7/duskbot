@@ -6629,5 +6629,9 @@
   "mermaid.fit": "画面に合わせる",
   "mermaid.downloadPng": "PNG をダウンロード",
   "mermaid.close": "図のビューアを閉じる",
-  "mermaid.downloadFailed": "PNG を保存できませんでした。もう一度お試しください。"
+  "mermaid.downloadFailed": "PNG を保存できませんでした。もう一度お試しください。",
+  "connectApps.category.other": "その他",
+  "connectApps.remote.note": "{name} 公式の MCP サーバーに接続します。{name} アカウントでサインインするだけで、ほかの登録は不要です。",
+  "connectApps.remote.open": "{name} 公式の MCP サーバーに接続します。サインインは不要です。",
+  "connectApps.remote.manage": "管理"
 }

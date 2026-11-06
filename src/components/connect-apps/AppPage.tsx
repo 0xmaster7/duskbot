@@ -21,6 +21,8 @@ export interface AppPageModel {
   remoteClient: boolean;
   onOpenLogins: () => void;
   onOpenKeys: () => void;
+  /** A vendor's own MCP server: connect signs in there, managing it is the MCP servers page. */
+  remote?: { open: boolean; busy: boolean; onConnect: () => void; onManage: () => void };
 }
 
 interface Primary { label: string; busy?: boolean; disabled?: boolean; quiet?: boolean; onClick?: () => void }
@@ -49,6 +51,11 @@ export function AppPage({ model }: { model: AppPageModel }) {
   const aliasError = askingAlias && connectors.error ? (typeof connectors.error === "string" ? connectors.error : t(connectors.error.key)) : null;
 
   const primary = ((): Primary | null => {
+    if (model.remote) {
+      return model.connection === "connected"
+        ? { label: t("connectApps.remote.manage"), quiet: true, onClick: model.remote.onManage }
+        : { label: t("connectors.action.connect"), busy: model.remote.busy, disabled: model.connection === "unknown", onClick: model.remote.onConnect };
+    }
     if (!composio || !phase) return null;
     const connect: Primary = { label: t("connectors.action.connect"), onClick: () => void connectors.connect(slug) };
     if (!connectors.configured) return { ...connect, disabled: model.remoteClient, onClick: model.onOpenKeys };
@@ -85,6 +92,7 @@ export function AppPage({ model }: { model: AppPageModel }) {
           </p>
         )}
         {phase?.kind === "unavailable" && <p className="ca-notice">{phase.reason}</p>}
+        {model.remote && <p className="ca-notice">{t(model.remote.open ? "connectApps.remote.open" : "connectApps.remote.note", { name: entry.label })}</p>}
         {composio && (accounts.length > 0 || askingAlias) && (
           <div>
             <h3 className="ca-group-label">{t("connectApps.accounts")}{accounts.length > 0 && <span>{accounts.length}</span>}</h3>

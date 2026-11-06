@@ -7122,5 +7122,9 @@
   "mermaid.fit": "화면에 맞추기",
   "mermaid.downloadPng": "PNG 다운로드",
   "mermaid.close": "다이어그램 뷰어 닫기",
-  "mermaid.downloadFailed": "PNG를 저장하지 못했습니다. 다시 시도하세요."
+  "mermaid.downloadFailed": "PNG를 저장하지 못했습니다. 다시 시도하세요.",
+  "connectApps.category.other": "기타",
+  "connectApps.remote.note": "{name}의 자체 MCP 서버에 연결합니다. {name} 계정으로 로그인하면 되고, 다른 가입은 필요 없습니다.",
+  "connectApps.remote.open": "{name}의 자체 MCP 서버에 연결합니다. 로그인할 필요가 없습니다.",
+  "connectApps.remote.manage": "관리"
 }

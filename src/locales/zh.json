@@ -7341,5 +7341,9 @@
   "mermaid.fit": "适应屏幕",
   "mermaid.downloadPng": "下载 PNG",
   "mermaid.close": "关闭图表查看器",
-  "mermaid.downloadFailed": "无法保存 PNG，请重试。"
+  "mermaid.downloadFailed": "无法保存 PNG，请重试。",
+  "connectApps.category.other": "其他",
+  "connectApps.remote.note": "连接 {name} 官方的 MCP 服务器。用你的 {name} 账号登录即可，无需其他注册。",
+  "connectApps.remote.open": "连接 {name} 官方的 MCP 服务器。无需登录。",
+  "connectApps.remote.manage": "管理"
 }

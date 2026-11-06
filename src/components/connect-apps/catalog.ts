@@ -4,7 +4,7 @@ import type { GrokIconName } from "../GrokIcon";
 /** Grok's marketplace categories, in its order. The first five are chips; the rest wait under More. */
 export const CATEGORIES = [
   "credentials", "productivity", "communication", "design", "code",
-  "data", "sales", "marketing", "finance", "research", "support",
+  "data", "sales", "marketing", "finance", "research", "support", "other",
 ] as const;
 export type Category = (typeof CATEGORIES)[number];
 
@@ -25,6 +25,7 @@ export const CATEGORY_LABEL: Record<Category, LocaleKey> = {
   finance: "connectApps.category.finance",
   research: "connectApps.category.research",
   support: "connectApps.category.support",
+  other: "connectApps.category.other",
 };
 
 const CATEGORY_WORDS: ReadonlyArray<[Category, RegExp]> = [
@@ -47,11 +48,18 @@ export function grokCategory(name: string): Category | null {
   return CATEGORY_WORDS.find(([, words]) => words.test(normalized))?.[0] ?? null;
 }
 
+/** A catalog app's categories, or Other when none fits, so every app is listed under some category. */
 export function grokCategories(names: readonly string[] | undefined): Category[] {
-  return [...new Set((names ?? []).flatMap((name) => grokCategory(name) ?? []))];
+  const found = [...new Set((names ?? []).flatMap((name) => grokCategory(name) ?? []))];
+  return found.length ? found : ["other"];
 }
 
-export type AppKind = "composio" | "native" | "hosted" | "logins";
+/** composio: an aggregator's catalog app. remote: the vendor's own hosted MCP server, signed in with dynamic client
+ * registration. native, hosted, logins: OpenMausBot's own cards. */
+export type AppKind = "composio" | "remote" | "native" | "hosted" | "logins";
+
+/** Apps from a provider's catalog, as opposed to OpenMausBot's own cards. */
+export const fromCatalog = (entry: Pick<AppEntry, "kind">): boolean => entry.kind === "composio" || entry.kind === "remote";
 
 export interface AppIcon {
   logo?: string | null;
@@ -89,7 +97,7 @@ export function presentCategories(entries: readonly AppEntry[]): Category[] {
 /** OpenMausBot's own apps lead their category, then the catalog keeps its order. */
 export function inCategory(entries: readonly AppEntry[], category: string): AppEntry[] {
   const members = entries.filter((entry) => entry.categories.includes(category as Category));
-  return [...members.filter((entry) => entry.kind !== "composio"), ...members.filter((entry) => entry.kind === "composio")];
+  return [...members.filter((entry) => !fromCatalog(entry)), ...members.filter(fromCatalog)];
 }
 
 /** Grok's "Recommended for you": apps not yet connected, in the categories of the apps you have, the categories you use

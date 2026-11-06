@@ -6555,5 +6555,9 @@
   "mermaid.fit": "Dopasuj do ekranu",
   "mermaid.downloadPng": "Pobierz PNG",
   "mermaid.close": "Zamknij podgląd diagramu",
-  "mermaid.downloadFailed": "Nie udało się zapisać pliku PNG. Spróbuj ponownie."
+  "mermaid.downloadFailed": "Nie udało się zapisać pliku PNG. Spróbuj ponownie.",
+  "connectApps.category.other": "Inne",
+  "connectApps.remote.note": "Łączy się z własnym serwerem MCP {name}. Logujesz się kontem {name}, bez innych rejestracji.",
+  "connectApps.remote.open": "Łączy się z własnym serwerem MCP {name}. Logowanie nie jest potrzebne.",
+  "connectApps.remote.manage": "Zarządzaj"
 }

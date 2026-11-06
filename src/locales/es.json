@@ -5760,5 +5760,9 @@
   "mermaid.fit": "Ajustar a la pantalla",
   "mermaid.downloadPng": "Descargar PNG",
   "mermaid.close": "Cerrar el visor de diagramas",
-  "mermaid.downloadFailed": "No se pudo guardar el PNG. Inténtalo de nuevo."
+  "mermaid.downloadFailed": "No se pudo guardar el PNG. Inténtalo de nuevo.",
+  "connectApps.category.other": "Otros",
+  "connectApps.remote.note": "Se conecta al servidor MCP propio de {name}. Inicias sesión con tu cuenta de {name}, sin otros registros.",
+  "connectApps.remote.open": "Se conecta al servidor MCP propio de {name}. No hace falta iniciar sesión.",
+  "connectApps.remote.manage": "Gestionar"
 }

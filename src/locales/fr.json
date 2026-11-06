@@ -2999,5 +2999,9 @@
   "mermaid.fit": "Ajuster à l'écran",
   "mermaid.downloadPng": "Télécharger en PNG",
   "mermaid.close": "Fermer la visionneuse de diagramme",
-  "mermaid.downloadFailed": "Impossible d'enregistrer le PNG. Réessayez."
+  "mermaid.downloadFailed": "Impossible d'enregistrer le PNG. Réessayez.",
+  "connectApps.category.other": "Autres",
+  "connectApps.remote.note": "Se connecte au serveur MCP de {name}. Vous vous connectez avec votre compte {name}, sans autre inscription.",
+  "connectApps.remote.open": "Se connecte au serveur MCP de {name}. Aucune connexion requise.",
+  "connectApps.remote.manage": "Gérer"
 }

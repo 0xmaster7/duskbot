@@ -27,12 +27,14 @@ import { OnePasswordBody } from "./OnePasswordBody";
 import type { OnePasswordStatus } from "../../../shared/logins";
 import { CategoryMenu } from "./CategoryMenu";
 import {
-  CATEGORY_LABEL, INLINE_CHIPS, SECTION_SIZE, grokCategories, inCategory, matchRank, presentCategories, recommended, searchApps,
+  CATEGORY_LABEL, INLINE_CHIPS, SECTION_SIZE, fromCatalog, grokCategories, inCategory, matchRank, presentCategories, recommended, searchApps,
   type AppEntry, type Category, type Connection,
 } from "./catalog";
 import { MCP_SERVERS_ID as MCP_PAGE, type ConnectAppsPage } from "./open";
 import { cachedConnectorCatalog, loadConnectorCatalog, useConnectors, type ConnectorPhase } from "./use-connectors";
 import { appLogo } from "./logos";
+import { useRemoteApps } from "./use-remote-apps";
+import { directoryKey, type DirectoryApp } from "../../../shared/connector-directory";
 import type { ToolkitCard } from "../ServiceIcon";
 import "./connect-apps.css";
 
@@ -52,6 +54,14 @@ function cardIcon(card: ToolkitCard): AppEntry["icon"] {
   if (known.image) return known;
   return { logo: card.logo ?? `https://logos.composio.dev/api/${encodeURIComponent(card.slug)}`, padded: true };
 }
+
+/** Our bundled logo when we have one, else the vendor site's own icon through /api/site-icon. */
+function remoteIcon(app: DirectoryApp): AppEntry["icon"] {
+  const known = logoIcon(app.id, app.label);
+  return known.image ? known : { domain: app.domain };
+}
+
+const keysOf = (...names: string[]) => names.map(directoryKey);
 
 function nativeEntries(): AppEntry[] {
   return [
@@ -95,6 +105,10 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
 }) {
   const { state, dispatch } = useStore();
   const connectors = useConnectors();
+  const remote = useRemoteApps({
+    needsPanel: () => window.ogb?.remoteClient?.active === true,
+    openPanel: () => go({ kind: "detail", id: MCP_PAGE }),
+  });
   const [page, setPage] = useState<ConnectAppsPage>(requested);
   const [trail, setTrail] = useState<ConnectAppsPage[]>([]);
   const [mcpServers, setMcpServers] = useState<McpServerSummary[]>([]);
@@ -144,14 +158,26 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   const cards = useMemo(() => new Map((connectors.cards ?? []).map((card) => [card.slug, card])), [connectors.cards]);
   const entries = useMemo<AppEntry[]>(() => {
     const own = nativeEntries();
+    const taken = new Set(own.flatMap((entry) => keysOf(entry.id, entry.label)));
+    const vendorKeys = new Set(remote.apps.flatMap((app) => keysOf(app.id, app.label)));
+    // without composio set up its list is a placeholder that cannot connect, so a vendor's own server takes its row
     const catalog = (connectors.cards ?? [])
       .filter((card) => !managedConnectorUnavailableReason(connectors.mode, card.slug) || hasActiveConnection(connectors.status[card.slug]))
+      .filter((card) => connectors.configured || hasActiveConnection(connectors.status[card.slug]) || !keysOf(card.slug, card.label).some((key) => vendorKeys.has(key)))
       .map((card): AppEntry => ({
         id: card.slug, kind: "composio", label: card.label, description: connectorDescription(card), categories: grokCategories(card.categories),
         icon: cardIcon(card), website: card.domain ?? undefined, keywords: card.slug,
       }));
-    return [...own, ...catalog];
-  }, [connectors.cards, connectors.mode, connectors.status]);
+    for (const entry of catalog) for (const key of keysOf(entry.id, entry.label)) taken.add(key);
+    const vendors = remote.apps
+      .filter((app) => !keysOf(app.id, app.label).some((key) => taken.has(key)))
+      .map((app): AppEntry => ({
+        id: app.id, kind: "remote", label: app.label, description: app.description, categories: grokCategories(app.categories),
+        icon: remoteIcon(app), website: app.domain ?? undefined, keywords: `${app.id} mcp`,
+      }));
+    return [...own, ...catalog, ...vendors];
+  }, [connectors.cards, connectors.configured, connectors.mode, connectors.status, remote.apps]);
+  const remoteApps = useMemo(() => new Map(remote.apps.map((app) => [app.id, app])), [remote.apps]);
   const byId = useMemo(() => new Map(entries.map((entry) => [entry.id, entry])), [entries]);
 
   const connection = useCallback((id: string): Connection => {
@@ -159,10 +185,11 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     if (!entry) return "unknown";
     const known = (value: boolean | null | undefined): Connection => value == null ? "unknown" : value ? "connected" : "disconnected";
     if (entry.kind === "composio") return connectors.isConnected(id) ? "connected" : "disconnected";
+    if (entry.kind === "remote") return remote.connection(id);
     if (entry.kind === "logins") return known(onePassword?.connected);
     if (entry.kind === "hosted") return known(hosted?.[id as HostedMcpAppId]);
     return known(natives[id as NativeId]);
-  }, [byId, connectors, hosted, natives, onePassword]);
+  }, [byId, connectors, hosted, natives, onePassword, remote]);
 
   const connected = entries.filter((entry) => connection(entry.id) === "connected");
   const known = useRef(new Map<string, Connection>());
@@ -182,6 +209,11 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     if (connectors.aliasFor) return;
     setToast({ kind: "error", text });
   }, [connectors.error, connectors.aliasFor]);
+  useEffect(() => {
+    if (!remote.error) return;
+    setToast({ kind: "error", text: remote.error });
+    remote.clearError();
+  }, [remote]);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(null), 5_000);
@@ -205,6 +237,8 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     return entry.kind === "composio" && card ? connectors.phaseOf(card, blocked(card.slug)) : null;
   };
   const startConnect = (entry: AppEntry) => {
+    const vendor = entry.kind === "remote" ? remoteApps.get(entry.id) : undefined;
+    if (vendor) return void remote.connect(vendor);
     if (entry.kind !== "composio" || !connectors.configured) return go({ kind: "detail", id: entry.id });
     void connectors.connect(entry.id);
   };
@@ -212,6 +246,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     if (connection(entry.id) === "connected" && entry.kind !== "composio") return { kind: "connected" };
     const phase = phaseOf(entry);
     const connect: RowAction = { kind: "button", label: t("connectors.action.connect"), onClick: () => startConnect(entry) };
+    if (entry.kind === "remote") return { ...connect, busy: remote.busy === entry.id };
     if (!phase) return connect;
     switch (phase.kind) {
       case "connected": case "included": return { kind: "connected" };
@@ -315,11 +350,17 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
         remoteClient: window.ogb?.remoteClient?.active === true,
         onOpenLogins: () => leaveFor(SETTINGS("logins")),
         onOpenKeys: () => leaveFor(openKeySettings("composio")),
+        ...(detailEntry.kind === "remote" && remoteApps.get(detailEntry.id) ? { remote: {
+          open: remoteApps.get(detailEntry.id)!.auth === "none",
+          busy: remote.busy === detailEntry.id,
+          onConnect: () => void remote.connect(remoteApps.get(detailEntry.id)!),
+          onManage: () => go({ kind: "detail", id: MCP_PAGE }),
+        } } : {}),
       };
       return <AppPage model={model} />;
     }
     if (page.kind === "yours") {
-      const servers = mcpServers.filter((server) => server.name !== POSTIZ_SERVER && !HOSTED_MCP_APPS.some((app) => server.name === app.id || server.name.startsWith(`${app.id}-`)));
+      const servers = mcpServers.filter((server) => server.name !== POSTIZ_SERVER && !remote.ownsServer(server.name) && !HOSTED_MCP_APPS.some((app) => server.name === app.id || server.name.startsWith(`${app.id}-`)));
       const serverEntry = (name: string): AppEntry => ({ id: `mcp:${name}`, kind: "native", label: name, description: t("connectApps.mcpServer"), categories: [], icon: { glyph: "server" } });
       return (
         <div className="ca-yours @container">
@@ -356,7 +397,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
       );
     }
     const sections: Array<{ key: string; title: string; entries: AppEntry[]; viewAll?: () => void }> = [];
-    const picks = recommended(entries.filter((entry) => entry.kind === "composio"), connection, Infinity);
+    const picks = recommended(entries.filter(fromCatalog), connection, Infinity);
     if (page.kind === "category") {
       sections.push(page.category === RECOMMENDED
         ? { key: RECOMMENDED, title: t("connectApps.recommended"), entries: picks }

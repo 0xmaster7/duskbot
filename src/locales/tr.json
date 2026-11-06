@@ -5243,5 +5243,9 @@
   "mermaid.fit": "Ekrana sığdır",
   "mermaid.downloadPng": "PNG indir",
   "mermaid.close": "Diyagram görüntüleyiciyi kapat",
-  "mermaid.downloadFailed": "PNG kaydedilemedi. Tekrar deneyin."
+  "mermaid.downloadFailed": "PNG kaydedilemedi. Tekrar deneyin.",
+  "connectApps.category.other": "Diğer",
+  "connectApps.remote.note": "{name} uygulamasının kendi MCP sunucusuna bağlanır. {name} hesabınla giriş yaparsın, başka kayıt gerekmez.",
+  "connectApps.remote.open": "{name} uygulamasının kendi MCP sunucusuna bağlanır. Giriş gerekmez.",
+  "connectApps.remote.manage": "Yönet"
 }

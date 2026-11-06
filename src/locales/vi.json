@@ -5243,5 +5243,9 @@
   "mermaid.fit": "Vừa màn hình",
   "mermaid.downloadPng": "Tải xuống PNG",
   "mermaid.close": "Đóng trình xem sơ đồ",
-  "mermaid.downloadFailed": "Không lưu được PNG. Hãy thử lại."
+  "mermaid.downloadFailed": "Không lưu được PNG. Hãy thử lại.",
+  "connectApps.category.other": "Khác",
+  "connectApps.remote.note": "Kết nối với máy chủ MCP riêng của {name}. Bạn đăng nhập bằng tài khoản {name}, không cần đăng ký gì thêm.",
+  "connectApps.remote.open": "Kết nối với máy chủ MCP riêng của {name}. Không cần đăng nhập.",
+  "connectApps.remote.manage": "Quản lý"
 }
