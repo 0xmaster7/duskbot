@@ -20,7 +20,7 @@ export function unprotectWith(encryption) {
     return typeof out === "string" ? out : String(out?.result ?? "");
   };
 }
-const METHODS = ["state", "start", "cancel", "reset", "engines", "signIn", "signInStatus", "signInCode", "signInCancel", "openUrl", "preview", "move", "open", "where", "backups", "backupNow", "restore", "moveBack", "forget"];
+const METHODS = ["state", "start", "cancel", "reset", "engines", "signIn", "signInStatus", "signInCode", "signInCancel", "openUrl", "preview", "move", "retryMove", "open", "where", "backups", "backupNow", "restore", "moveBack", "forget"];
 
 /** the tls verifier for the servers this app pinned: their own key, on top of the usual checks; every other host as usual */
 export function createPins() {
@@ -167,6 +167,7 @@ export function installVpsLink(deps) {
     },
     preview: () => link.preview(),
     move: () => link.move(),
+    retryMove: () => link.retryMove(),
     open: () => link.open(),
     where: () => link.where(),
     backups: () => link.backups(),

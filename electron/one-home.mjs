@@ -27,7 +27,7 @@
 // opens again what was on of them at My Cloud is switched on here (`back` with `kept`). The Admin is then told this
 // computer no longer counts as moved. Choosing otherwise again moves it again, as anyone's first move.
 
-import { failureOf, rateLimited } from "./move-failure.mjs";
+import { failureCode, failureOf, rateLimited } from "./move-failure.mjs";
 import { gapKey, gapSummary, stayedBehind } from "./move-gaps.mjs";
 
 export { rateLimited };
@@ -50,6 +50,8 @@ export const INCOMPLETE = "Some things didn't reach My Cloud yet. It tries again
 /** A failure before the freeze (no network, My Cloud asleep or updating): tried again sooner at first, then hourly. */
 export const COPY_RETRY_MS = [2 * MINUTE, 5 * MINUTE, 15 * MINUTE, 30 * MINUTE, HOUR];
 export const FAILING_LINE_MS = DAY;
+/** The failures that only say the other side didn't answer. */
+const NOT_ANSWERED = new Set(["unanswered", "unreachable"]);
 /** At most this many of the things a move could not carry are named on its line. */
 const NAMED_MAX = 5;
 /** This computer's copy is kept this long after the move, and until My Cloud has been paid for once. */
@@ -178,8 +180,14 @@ export function arrivedCounts(here, there) {
  *   onChange?(view: unknown): void,
  *   now?(): number,
  *   timers?: { set(work: () => void, ms: number): unknown, clear(timer: unknown): void },
+ *   reach?(): Promise<void>,
+ *   copyRetryMs?: number[],
+ *   launchGraceMs?: number,
  *   log?(line: string): void,
- * }} deps `gone(origin)`: the Admin's word that this account's Cloud at `origin` is gone ("deleted", or "ended": stopped
+ * }} deps `reach()`: waits for the place the move goes to to answer, and throws when it doesn't, before each pass that
+ * goes there and before the freeze. `copyRetryMs`: the waits after a failure before the freeze, in place of
+ * COPY_RETRY_MS. `launchGraceMs`: for this long after launch a place that didn't answer is tried again at the first of
+ * those waits and counts toward no longer one, and a failure of that kind left from before is tried again at once. `gone(origin)`: the Admin's word that this account's Cloud at `origin` is gone ("deleted", or "ended": stopped
  * and kept only until it is deleted); null for anything else, and while it can't be asked. `cloud().verified`: the Admin
  * answered this sign-in just now (connected). `local.marker()`: this computer's freeze marker.
  */
@@ -188,6 +196,12 @@ export function createOneHome(deps) {
   const timers = deps.timers ?? { set: (work, ms) => { const timer = setTimeout(work, ms); timer.unref?.(); return timer; }, clear: (timer) => clearTimeout(timer) };
   const log = deps.log ?? (() => {});
   let running = null, again = false, timer = null, closed = false, waitingFor = null, waitingWhat = null, wasReady = null, reportFailedAt = -Infinity, keptFailedAt = -Infinity;
+  const copyRetry = Array.isArray(deps.copyRetryMs) && deps.copyRetryMs.length ? deps.copyRetryMs : COPY_RETRY_MS;
+  const copyWait = (tries) => copyRetry[Math.min(Math.max(tries, 1) - 1, copyRetry.length - 1)];
+  const launchedAt = now(), launchGraceMs = deps.launchGraceMs ?? 0;
+  let ranOnce = false;
+  /** Nothing answered there right after launch, as while a tunnel is still opening. */
+  const justLaunched = (error) => launchGraceMs > 0 && now() - launchedAt < launchGraceMs && NOT_ANSWERED.has(failureCode(error, "copy"));
   /** What the last run found holding the move that only a run can find out. */
   let noted = null;
 
@@ -261,10 +275,11 @@ export function createOneHome(deps) {
   async function failed(journal, error, frozen) {
     const said = sentence(error?.message) ?? "My Cloud did not answer.";
     log(`one home: ${journal.phase} failed (${said})`);
-    const tries = (journal.tries ?? 0) + 1;
-    const hourly = frozen && !rateLimited(error);
+    const early = justLaunched(error);
+    const tries = early ? journal.tries ?? 0 : (journal.tries ?? 0) + 1;
+    const hourly = frozen && !rateLimited(error) && !early;
     const frozenTries = hourly ? (journal.frozenTries ?? 0) + 1 : journal.frozenTries;
-    const wait = hourly ? Math.min(FROZEN_RETRY_MAX_MS, FROZEN_RETRY_MS * 2 ** Math.min(frozenTries - 1, 8)) : COPY_RETRY_MS[Math.min(tries - 1, COPY_RETRY_MS.length - 1)];
+    const wait = hourly ? Math.min(FROZEN_RETRY_MAX_MS, FROZEN_RETRY_MS * 2 ** Math.min(frozenTries - 1, 8)) : copyWait(early ? 1 : tries);
     // A check's gaps are kept by key, so the next check can tell whether sending again carried any of them.
     const next = write({ ...journal, phase: "copy", passes: 0, tries, frozenTries, error: said, failingSince: journal.failingSince ?? now(), failure: failureOf(error, journal.phase, journal.failure, now()),
       gapKey: typeof error?.gapKey === "string" ? error.gapKey : undefined, gaps: typeof error?.gaps === "string" ? error.gaps : undefined,
@@ -275,7 +290,7 @@ export function createOneHome(deps) {
 
   async function copy(journal) {
     waitingFor = waitingWhat = null;
-    try { await deps.send.move(); }
+    try { await deps.reach?.(); await deps.send.move(); }
     catch (error) { return error?.code === "outdated" ? updating(journal, error) : failed({ ...journal, updating: undefined }, error, false); }
     return write({ ...journal, phase: "wait", retryAt: undefined, hourly: undefined, updating: undefined });
   }
@@ -285,13 +300,15 @@ export function createOneHome(deps) {
   function updating(journal, error) {
     log(`one home: the move waits for My Cloud to update (${sentence(error?.message) ?? "too old"})`);
     const tries = (journal.tries ?? 0) + 1;
-    write({ ...journal, phase: "copy", updating: true, tries, retryAt: now() + COPY_RETRY_MS[Math.min(tries - 1, COPY_RETRY_MS.length - 1)] });
+    write({ ...journal, phase: "copy", updating: true, tries, retryAt: now() + copyWait(tries) });
     return null;
   }
 
   async function wait(journal) {
     const quietFor = now() - (deps.lastInput?.() ?? 0);
     if (quietFor < QUIET_MS) { noted = "waiting_quiet"; later(QUIET_MS - quietFor); return null; }
+    // Never frozen for a place that isn't answering: the pass after the freeze would only fail.
+    if (deps.reach) { try { await deps.reach(); } catch (error) { return failed({ ...journal, phase: "copy" }, error, false); } }
     // The journal says "freeze" before the server is frozen: a crash in between resumes frozen, never forgotten.
     return freeze(write({ ...journal, phase: "freeze" }));
   }
@@ -314,7 +331,7 @@ export function createOneHome(deps) {
   }
 
   async function final(journal) {
-    try { await deps.send.move({ final: true }); }
+    try { await deps.reach?.(); await deps.send.move({ final: true }); }
     catch (error) { return failed(journal, error, true); }
     return write({ ...journal, phase: "check", passes: 1 });
   }
@@ -638,7 +655,11 @@ export function createOneHome(deps) {
     // A move left off while My Cloud was away goes on as soon as it is back, unless it failed frozen: that waits its hour.
     const cameBack = cloud?.ready === true && wasReady === false;
     wasReady = cloud ? cloud.ready : null;
-    const waiting = () => journal.retryAt > now() && !(cameBack && !journal.hourly);
+    // Right after launch a place that only hadn't answered is tried again at once: it was likely this app starting.
+    const firstRun = !ranOnce;
+    ranOnce = true;
+    const relaunched = firstRun && launchGraceMs > 0 && NOT_ANSWERED.has(journal?.failure?.code);
+    const waiting = () => journal.retryAt > now() && !(cameBack && !journal.hourly) && !relaunched;
     if (journal && cloud && cloud.account !== journal.cloud.account) {
       // Another account's Cloud never moves this computer's copy, nor lifts its freeze once the move is done.
       if (FROZEN.has(journal.phase)) await failed(journal, tagged("Another MausBot Cloud account signed in.", "other_account"), true);
@@ -736,6 +757,12 @@ export function createOneHome(deps) {
       const journal = read();
       if (journal?.phase === "copy") write({ ...journal, retryAt: undefined, hourly: undefined });
       return kick();
+    },
+    /** The copy failed and waits to go again: what it said, and when (`retryAt`); null otherwise. */
+    trouble() {
+      const journal = read();
+      if (!journal || journal.phase !== "copy" || journal.paused || journal.updating || !Number.isSafeInteger(journal.retryAt) || !journal.error) return null;
+      return { error: journal.error, retryAt: journal.retryAt };
     },
     /** The done line, or the one about coming home, was closed. */
     seen() {

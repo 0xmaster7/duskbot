@@ -8,6 +8,9 @@ type Answer = { ok: boolean; status: number; body: any };
 
 export declare const OWNER_KNOWN_MS: number;
 export declare const OWNER_RETRY_MS: number;
+export declare const REACH_MS: number;
+export declare const OWN_COPY_RETRY_MS: readonly number[];
+export declare const LAUNCH_GRACE_MS: number;
 export function parseChoice(value: unknown): OwnHomeChoice | null;
 export function handSaved(entry: unknown): entry is SavedPlace & { kind: "remote"; origin: string };
 export function serverRequests(place: { origin: string }, fetchImpl: typeof fetch): {
@@ -44,11 +47,16 @@ export function installOwnHome(deps: {
   onChange?(): void;
   now?(): number;
   log?(line: string): void;
+  /** How long a pass waits for the server to answer. */
+  reachMs?: number;
+  sleep?(ms: number): Promise<void>;
 }): {
   kick(): Promise<void>;
   view(): OneHomeView | null;
   seen(): OneHomeView | null;
   retry(): Promise<void>;
+  /** The copy failed and waits to go again: what it said, and when. */
+  trouble(): { error: string; retryAt: number } | null;
   busy(): boolean;
   away(): boolean;
   active(): boolean;

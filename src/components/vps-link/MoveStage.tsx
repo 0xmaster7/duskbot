@@ -1,5 +1,6 @@
 // the move: what goes, the bots travelling to the server one by one, then a free Mac with its backup kept
 import { Check, LoaderCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { activeLocale, t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
@@ -27,6 +28,24 @@ export function moveProgress(move: VpsLinkMove | null, bots: number): { value: n
     return { value: 0.1 + 0.7 * share, arrived: Math.min(bots, Math.floor(share * bots)) };
   }
   return { value: move.step === "verify" ? 0.86 : 0.95, arrived: bots };
+}
+
+/** "3:42" until the next try. */
+export function retryClock(ms: number): string {
+  const seconds = Math.max(0, Math.ceil(ms / 1000));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+/** The time now, once a second while there is a time (`until`) to count down to. */
+function useNow(until: number | null): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (until === null) return;
+    setNow(Date.now());
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [until]);
+  return now;
 }
 
 const STEP_WORD: Record<"backup" | "copy" | "verify" | "empty", LocaleKey> = {
@@ -83,6 +102,9 @@ export function MoveScreen({ view, preview, previewError, onReload, bridge, onMo
   const device = deviceWord();
   const phase = movePhase(view);
   const move = view.move;
+  // a failed copy waits for its next try: the error, a countdown and Try now, in place of the hint
+  const retryAt = phase === "moving" && move?.error && typeof move.retryAt === "number" ? move.retryAt : null;
+  const now = useNow(retryAt);
 
   if (phase === "moved") {
     return (
@@ -126,7 +148,15 @@ export function MoveScreen({ view, preview, previewError, onReload, bridge, onMo
                 <p className="m-0 text-[13px] leading-[18px] text-ink/68">{t("vpsLink.move.nothingRemoved", { device })}</p>
                 <button type="button" data-primary="" className={PILL} onClick={onMove}>{t("vpsLink.tryAgain")}</button>
               </>
-            : <p className="m-0 text-[13px] leading-[18px] text-ink/56">{t("vpsLink.move.movingHint")}</p>}
+            : retryAt !== null
+              ? <>
+                  <ErrorNote>{move.error}</ErrorNote>
+                  <p role="timer" data-vps-retry="" className="m-0 text-[13px] leading-[18px] tabular-nums text-ink/56">
+                    {retryAt > now ? t("vpsLink.move.retryIn", { time: retryClock(retryAt - now) }) : t("vpsLink.move.retrying")}
+                  </p>
+                  <button type="button" className={SOFT_PILL} onClick={() => void bridge.retryMove().catch(() => {})}>{t("vpsLink.move.retryNow")}</button>
+                </>
+              : <p className="m-0 text-[13px] leading-[18px] text-ink/56">{t("vpsLink.move.movingHint")}</p>}
         </Footer>
       </>
     );

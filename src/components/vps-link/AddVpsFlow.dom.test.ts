@@ -15,6 +15,7 @@ vi.mock("@/state/store", async (original) => ({
 }));
 import { EMPTY_VIEW, VPS_STEP_IDS, type VpsLinkBridge, type VpsLinkView } from "@/lib/vps-link";
 import { AddVpsFlow } from "./AddVpsFlow";
+import { MoveScreen, retryClock } from "./MoveStage";
 import { TransferSettings } from "./TransferSettings";
 
 const COMMAND = "curl -fsSL https://link.apps.siddz.com/i/ab3d7fgh2k-q4mxw7e2r5t6y7u8i9o2p3a4s5 | sh";
@@ -45,6 +46,7 @@ function fakeBridge() {
     openUrl: vi.fn(async () => {}),
     preview: vi.fn(async () => ({ bots: [{ id: "b1", name: "Pixel" }, { id: "b2", name: "Scout" }], chats: 14, messages: 420, skills: 3, memories: 12, routines: 2, apps: 1, bytes: 52_428_800 })),
     move: vi.fn(async () => (view = { ...view, stage: "moving", move: { step: "copy", status: "running", chats: { done: 3, total: 14 } } })),
+    retryMove: vi.fn(async () => view),
     open: vi.fn(async () => {}),
     where: vi.fn(async () => ({ place: "vps" as const, server: SERVER })),
     backups: vi.fn(async () => [{ id: "k1", at: Date.UTC(2026, 10, 7, 9), bytes: 1_048_576, reason: "before-move" as const, summary: { bots: 2, chats: 14, skills: 3, routines: 2 } }]),
@@ -180,5 +182,34 @@ describe("Settings > Transfer", () => {
     await click(button("Move to this Mac"));
     expect(confirm).toHaveBeenCalledWith(expect.stringContaining("A backup is saved first"));
     expect(fake.bridge.moveBack).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("the move waiting to try again", () => {
+  it("says what went wrong and when it tries again, counting down, and Try now asks main to go again", async () => {
+    const fake = fakeBridge();
+    const view: VpsLinkView = { ...EMPTY_VIEW, stage: "moving", server: SERVER,
+      move: { step: "copy", status: "running", chats: { done: 18, total: 18 }, error: "My VPS isn't answering yet.", retryAt: Date.now() + 222_000 } };
+    await act(async () => { root.render(createElement(MoveScreen, { view, preview: null, previewError: "", onReload: () => {}, bridge: fake.bridge, onMove: () => {}, onBack: () => {} })); });
+    await settle();
+    expect(text()).toContain("Copying your bots");
+    expect(text()).toContain("My VPS isn't answering yet.");
+    expect(document.querySelector("[data-vps-retry]")?.textContent).toMatch(/^Trying again in 3:4[12]$/);
+    expect(text()).not.toContain("Keep this app open");
+    await click(button("Try now"));
+    expect(fake.bridge.retryMove).toHaveBeenCalledTimes(1);
+
+    await act(async () => { root.render(createElement(MoveScreen, { view: { ...view, move: { ...view.move!, retryAt: Date.now() - 1 } }, preview: null, previewError: "", onReload: () => {}, bridge: fake.bridge, onMove: () => {}, onBack: () => {} })); });
+    expect(document.querySelector("[data-vps-retry]")?.textContent).toBe("Trying again…");
+    await act(async () => { root.render(createElement(MoveScreen, { view: { ...view, move: { step: "copy", status: "running", chats: { done: 18, total: 18 } } }, preview: null, previewError: "", onReload: () => {}, bridge: fake.bridge, onMove: () => {}, onBack: () => {} })); });
+    expect(document.querySelector("[data-vps-retry]")).toBeNull();
+    expect(text()).toContain("Keep this app open");
+  });
+
+  it("reads the wait as minutes and seconds", () => {
+    expect(retryClock(222_000)).toBe("3:42");
+    expect(retryClock(9_100)).toBe("0:10");
+    expect(retryClock(-5)).toBe("0:00");
+    expect(retryClock(3_600_000)).toBe("60:00");
   });
 });

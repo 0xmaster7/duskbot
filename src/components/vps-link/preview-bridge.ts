@@ -68,6 +68,7 @@ export function previewVpsBridge(stage: string): VpsLinkBridge {
       for (const [at, move] of PLAY.slice(1)) setTimeout(() => emit(move.step === "done" ? { ...linked, stage: "moved", move } : moving(move)), at);
       return (view = moving(PLAY[0]![1]));
     },
+    retryMove: same,
     open: async () => {},
     where: async () => ({ place: "vps", server: SERVER }),
     backups: async () => [

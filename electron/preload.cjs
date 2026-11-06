@@ -536,6 +536,7 @@ const bridge = {
     openUrl: url => ipcRenderer.invoke("vps-link:openUrl", String(url)),
     preview: () => ipcRenderer.invoke("vps-link:preview"),
     move: () => ipcRenderer.invoke("vps-link:move"),
+    retryMove: () => ipcRenderer.invoke("vps-link:retryMove"),
     open: () => ipcRenderer.invoke("vps-link:open"),
     where: () => ipcRenderer.invoke("vps-link:where"),
     backups: () => ipcRenderer.invoke("vps-link:backups"),

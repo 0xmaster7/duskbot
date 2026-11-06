@@ -9,6 +9,7 @@
 import { createCloudSend } from "./cloud-send.mjs";
 import { freezeAnswer } from "./one-home-main.mjs";
 import { awayIn, createOneHome, parseJournal } from "./one-home.mjs";
+import { serverAnswersWithin } from "./saved-server.mjs";
 
 const record = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const ORIGIN = /^https?:\/\/[^/\s]+$/u;
@@ -19,6 +20,12 @@ export const OWNER_KNOWN_MS = 10 * 60_000;
 export const OWNER_RETRY_MS = 60_000;
 /** A chosen move that could not begin (this computer's server did not answer) looks again this often. */
 const START_RETRY_MS = 30_000;
+/** How long a pass waits for the server to answer (a linked vps's tunnel opens a moment after launch) before it fails. */
+export const REACH_MS = 30_000;
+/** A failed copy goes again soon at first, as a server of the person's own is mostly only a moment away, then slower. */
+export const OWN_COPY_RETRY_MS = Object.freeze([10_000, 30_000, 60_000, 5 * 60_000, 15 * 60_000, 30 * 60_000, 60 * 60_000]);
+/** For this long after launch, a server that didn't answer counts toward no long wait. */
+export const LAUNCH_GRACE_MS = 3 * 60_000;
 
 const tagged = (message, code, extra = {}) => Object.assign(new Error(message), { code, ...extra });
 
@@ -103,7 +110,7 @@ function jsonStore(store) {
  * to My Cloud's journal: while it is under way or done, no server of the person's own is chosen.
  */
 export function installOwnHome({ localRequest, fetch: fetchImpl, environments, handoff, journal: journalStore, choice: choiceStore, sendState, cloudJournal, lend, phone, openHome, lastInput,
-  version, onChange = () => {}, now = Date.now, log = () => {} }) {
+  version, onChange = () => {}, now = Date.now, log = () => {}, reachMs = REACH_MS, sleep }) {
   const journal = jsonStore(journalStore), choice = jsonStore(choiceStore);
   const chosen = () => parseChoice(choice.read());
   const placeOf = (picked = chosen()) => (picked ? environments().find((entry) => handSaved(entry) && entry.origin === picked.origin) ?? null : null);
@@ -152,6 +159,15 @@ export function installOwnHome({ localRequest, fetch: fetchImpl, environments, h
       frozen: async () => (await local.json("/api/move/freeze"))?.frozen === true,
     },
     session: () => openServerSession(chosen(), fetchImpl),
+    async reach() {
+      const picked = chosen();
+      if (!picked) return;
+      if (await serverAnswersWithin(picked.origin, fetchImpl, { withinMs: reachMs, now, ...(sleep ? { sleep } : {}) })) return;
+      throw tagged(`${picked.name} isn't answering yet.`, "unreachable");
+    },
+    copyRetryMs: [...OWN_COPY_RETRY_MS],
+    launchGraceMs: LAUNCH_GRACE_MS,
+    now,
     ...(lend ? { lend: (projects) => lend(projects, placeOf()) } : {}),
     ...(phone ? { phone } : {}),
     openHome: () => { const place = placeOf(); if (place) openHome?.(place); },
@@ -213,6 +229,7 @@ export function installOwnHome({ localRequest, fetch: fetchImpl, environments, h
     view: () => home.view(),
     seen: () => home.seen(),
     retry: () => home.retry(),
+    trouble: () => home.trouble(),
     busy: () => home.busy(),
     /** Home is the chosen server: its switch happened. */
     away: () => home.away(),

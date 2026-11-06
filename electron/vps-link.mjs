@@ -33,7 +33,7 @@ const plain = (error, fallback) => {
  *   retarget?(from: string, to: string): void,
  *   switchTo(id: string): Promise<void> | void,
  *   pin?(host: string, spki: string): void,
- *   ownHome: { start(id: string): Promise<unknown>, view(): any, away(): boolean, home(): any, chosen(): any },
+ *   ownHome: { start(id: string): Promise<unknown>, view(): any, away(): boolean, home(): any, chosen(): any, retry?(): Promise<void>, trouble?(): { error: string, retryAt: number } | null },
  *   ownHomeReset(): void,
  *   localRequest(route: string, init?: RequestInit): Promise<Response>,
  *   backups: { save(name: string, bytes: AsyncIterable<Uint8Array> | Uint8Array): Promise<{ file: string, bytes: number }>, open(file: string): Promise<{ body: any, size: number }>, remove?(file: string): void },
@@ -101,7 +101,7 @@ export function createVpsLink(deps) {
       server: link ? { id: link.envId, name: link.name, origin: link.origin } : null,
       mode: link?.mode ?? null,
       error: lastError,
-      move: move ? { step: move.step, status: move.status, ...(move.chats ? { chats: move.chats } : {}), ...(move.waitingFor ? { waitingFor: move.waitingFor } : {}), ...(move.error ? { error: move.error } : {}), ...(move.backupId ? { backupId: move.backupId } : {}), ...(move.kept ? { kept: true } : {}) } : null,
+      move: move ? { step: move.step, status: move.status, ...(move.chats ? { chats: move.chats } : {}), ...(move.waitingFor ? { waitingFor: move.waitingFor } : {}), ...(move.error ? { error: move.error } : {}), ...(move.retryAt ? { retryAt: move.retryAt } : {}), ...(move.backupId ? { backupId: move.backupId } : {}), ...(move.kept ? { kept: true } : {}) } : null,
     };
   }
 
@@ -456,9 +456,11 @@ export function createVpsLink(deps) {
     return { ok: true, restart: true };
   }
 
+  /** a running step keeps an error and its next try only when they are said again with it */
   function moveTo(step, status, extra = {}) {
     state.move = { ...state.move, step, status, ...extra };
-    if (status !== "failed") delete state.move.error;
+    if (!("error" in extra) && status !== "failed") delete state.move.error;
+    if (!("retryAt" in extra)) delete state.move.retryAt;
     write();
   }
 
@@ -490,9 +492,12 @@ export function createVpsLink(deps) {
       const seen = ownHome.view();
       try {
         if (!seen || seen.phase === "copy" || seen.phase === "wait") {
-          const extra = { ...(seen?.chats ? { chats: seen.chats } : {}), ...(seen?.phase === "wait" && seen.waitingFor ? { waitingFor: seen.waitingFor } : {}) };
-          if (seen?.failing?.error) moveTo("copy", "running", { ...extra, error: seen.failing.error });
-          else if (kept.step !== "copy" || JSON.stringify(extra.chats) !== JSON.stringify(kept.chats) || extra.waitingFor !== kept.waitingFor) moveTo("copy", "running", extra);
+          const trouble = ownHome.trouble?.() ?? null;
+          const said = trouble?.error ?? seen?.failing?.error;
+          const extra = { ...(seen?.chats ? { chats: seen.chats } : {}), ...(seen?.phase === "wait" && seen.waitingFor ? { waitingFor: seen.waitingFor } : {}),
+            ...(said ? { error: plain({ message: said }, "Your server didn't answer.") } : {}), ...(trouble ? { retryAt: trouble.retryAt } : {}) };
+          if (kept.step !== "copy" || JSON.stringify(extra.chats) !== JSON.stringify(kept.chats) || extra.waitingFor !== kept.waitingFor
+            || extra.error !== kept.error || extra.retryAt !== kept.retryAt) moveTo("copy", "running", extra);
         } else if (seen.phase === "finishing") {
           if (kept.step !== "verify") moveTo("verify", "running");
         } else if (seen.phase === "done") {
@@ -517,6 +522,14 @@ export function createVpsLink(deps) {
     };
     moveTimer = setTimeout(() => void tick(), 0);
     moveTimer.unref?.();
+  }
+
+  /** the move's next try, now rather than at its time */
+  function retryMove() {
+    if (!state.move || state.move.status !== "running") return view();
+    if (state.move.retryAt) moveTo(state.move.step, "running", {});
+    void ownHome.retry?.().catch((error) => log(`vps link: trying the move again failed (${error?.message ?? error})`));
+    return view();
   }
 
   async function moveBack() {
@@ -569,7 +582,7 @@ export function createVpsLink(deps) {
     view, start, cancel, resume,
     reset() { lastError = null; if (!state.pending && state.move?.step === "done") state.move = null; write(); return view(); },
     engines, signIn, signInStatus, signInCode, signInCancel,
-    preview, move, moveBack, backups, backupNow: async () => ({ id: (await backupNow("manual")).id }), restore, forget, where,
+    preview, move, retryMove, moveBack, backups, backupNow: async () => ({ id: (await backupNow("manual")).id }), restore, forget, where,
     open: async () => { const link = needLink(); await deps.switchTo(link.envId); },
     async close() { closed = true; stopFollowing(); clearTimeout(moveTimer); for (const flow of signIns.values()) flow.abort?.abort(); await Promise.all([...proxies.values()].map((proxy) => proxy.close())); },
   };

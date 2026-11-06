@@ -13,6 +13,8 @@ export interface VpsLinkMove {
   chats?: { done: number; total: number };
   waitingFor?: string;
   error?: string;
+  /** The copy failed and goes again by itself at this time (ms since epoch). */
+  retryAt?: number;
   backupId?: string;
   /** Something did not arrive, so this computer kept its copy. */
   kept?: boolean;
@@ -69,6 +71,8 @@ export interface VpsLinkBridge {
   openUrl(url: string): Promise<void>;
   preview(): Promise<VpsMovePreview>;
   move(): Promise<VpsLinkView>;
+  /** The move's next try, now. */
+  retryMove(): Promise<VpsLinkView>;
   open(): Promise<void>;
   where(): Promise<VpsWhere>;
   backups(): Promise<VpsBackup[]>;

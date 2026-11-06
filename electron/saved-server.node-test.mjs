@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { serverAnswers, serverOpens } from "./saved-server.mjs";
+import { serverAnswers, serverAnswersWithin, serverOpens, TUNNEL_GRACE_MS, tunnelOrigin } from "./saved-server.mjs";
 
 const office = { id: "vps", name: "pro cloud", origin: "https://omb-u-gone.fly.dev" };
 const answering = (status) => async () => new Response("{}", { status });
@@ -42,4 +42,37 @@ test("one that doesn't answer is the person's choice: Cancel stays put, Remove f
   const retry = asked([0]);
   assert.equal(await serverOpens(office, { fetch: back, dialog: retry.dialog, forget: () => assert.fail("not asked to") }), true, "it answered the second time");
   assert.equal(retry.shown.length, 1);
+});
+
+test("a linked vps's tunnel address is looked at quietly while its proxy opens, before anyone is asked", async () => {
+  const vps = { id: "v", name: "Oracle", origin: "http://vps-ab3d7fgh2k.localhost:47811" };
+  assert.equal(tunnelOrigin(vps.origin), true);
+  assert.equal(tunnelOrigin(office.origin), false);
+  let at = 0, looks = 0;
+  const clock = { now: () => at, sleep: async (ms) => { at += ms; } };
+  const opening = async () => (++looks < 4 ? gone() : new Response("{}", { status: 200 }));
+  const quiet = asked([]);
+  assert.equal(await serverOpens(vps, { fetch: opening, dialog: quiet.dialog, forget: () => assert.fail("not asked to"), ...clock }), true);
+  assert.deepEqual(quiet.shown, [], "no dialog while the tunnel opens");
+  assert.equal(looks, 4);
+
+  at = 0; looks = 0;
+  const dead = async () => { looks++; return gone(); };
+  const later = asked([2]);
+  assert.equal(await serverOpens(vps, { fetch: dead, dialog: later.dialog, forget: () => assert.fail("not asked to"), ...clock }), false);
+  assert.equal(later.shown.length, 1, "asked once the grace is over");
+  assert.ok(at >= TUNNEL_GRACE_MS - 1_000 && at <= TUNNEL_GRACE_MS, `waited ${at} ms`);
+
+  // a server reached directly is asked about at once, as before
+  looks = 0;
+  const direct = asked([2]);
+  await serverOpens(office, { fetch: dead, dialog: direct.dialog, forget: () => {}, ...clock });
+  assert.equal(looks, 1);
+});
+
+test("looking within a time never runs on when the clock does not move", async () => {
+  let looks = 0;
+  const answered = await serverAnswersWithin(office.origin, async () => { looks++; return gone(); }, { withinMs: 5_000, now: () => 0, sleep: async () => {} });
+  assert.equal(answered, false);
+  assert.equal(looks, 6);
 });

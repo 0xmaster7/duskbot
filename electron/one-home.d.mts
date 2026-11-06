@@ -103,6 +103,12 @@ export function createOneHome(deps: {
   onChange?(view: OneHomeView | null): void;
   now?(): number;
   timers?: { set(work: () => void, ms: number): unknown; clear(timer: unknown): void };
+  /** Waits for the place the move goes to to answer; throws when it doesn't. */
+  reach?(): Promise<void>;
+  /** The waits after a failure before the freeze, in place of COPY_RETRY_MS. */
+  copyRetryMs?: number[];
+  /** Right after launch, this long, a place that didn't answer is tried again soon and counts toward no longer wait. */
+  launchGraceMs?: number;
   log?(line: string): void;
 }): {
   kick(): Promise<void>;
@@ -116,6 +122,8 @@ export function createOneHome(deps: {
   /** Throws once this computer's bots are on their way home past turning back and `on` is false. */
   keep(on: boolean): Promise<void>;
   retry(): Promise<void>;
+  /** The copy failed and waits to go again: what it said, and when. */
+  trouble(): { error: string; retryAt: number } | null;
   seen(): OneHomeView | null;
   changed(): void;
   /** What the last run found holding the move that only a run finds out (move-status.mjs), and what kind of work holds

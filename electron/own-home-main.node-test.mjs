@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { handSaved, installOwnHome, openServerSession, OWNER_KNOWN_MS, OWNER_RETRY_MS, parseChoice } from "./own-home-main.mjs";
+import { handSaved, installOwnHome, LAUNCH_GRACE_MS, openServerSession, OWN_COPY_RETRY_MS, OWNER_KNOWN_MS, OWNER_RETRY_MS, parseChoice, REACH_MS } from "./own-home-main.mjs";
 
 const ID = "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f";
 const garage = { id: "g", kind: "remote", name: "Garage server", origin: "https://garage.example.test" };
@@ -156,4 +156,61 @@ test("a server that does not say who owns it is asked once at a time, and again 
   assert.equal(to(garage.origin), 4, "then asked again");
   assert.equal(to(family.origin), 2, "while its first ask still waits");
   own.close();
+});
+
+/** A move to a chosen server that isn't answering, on a clock the test moves; this computer's own server answers. */
+function unanswered({ journal = null, start = 1_000_000 } = {}) {
+  let at = start;
+  const { fetch, asked } = servers({ [garage.origin]: { down: true } });
+  const local = [];
+  const store = memory(journal);
+  const own = installOwnHome({
+    localRequest: async (route, init) => { local.push(`${init?.method ?? "GET"} ${route}`); return Response.json(route === "/api/move/freeze" && (init?.method ?? "GET") === "GET" ? { frozen: journal ? FROZEN_PHASES.has(journal.phase) : false } : {}); },
+    fetch, environments: () => [garage], handoff: async () => null, journal: store, choice: memory({ v: 1, id: "g", origin: garage.origin, environmentId: ID, name: "Garage server", at: 1 }),
+    sendState: memory(), cloudJournal: () => null, now: () => at, sleep: async (ms) => { at += ms; },
+  });
+  return { own, asked, local, journal: () => store.read(), now: () => at, move: (ms) => { at += ms; } };
+}
+const FROZEN_PHASES = new Set(["freeze", "final", "check"]);
+const looksAt = (asked) => asked.filter((ask) => ask.path === "/.well-known/openmausbot/environment").length;
+
+test("a pass waits for the chosen server to answer first, then fails plainly and goes again soon: 10 s, 30 s, a minute, then slower", async () => {
+  const move = unanswered();
+  await move.own.kick();
+  assert.ok(looksAt(move.asked) >= 30, `looked ${looksAt(move.asked)} times over the ${REACH_MS} ms`);
+  assert.equal(move.journal().phase, "copy");
+  assert.equal(move.journal().failure.code, "unreachable");
+  assert.equal(move.own.trouble().error, "Garage server isn't answering yet.");
+  assert.equal(move.own.trouble().retryAt - move.now(), OWN_COPY_RETRY_MS[0], "right after launch: the first wait, and no count toward longer ones");
+  assert.equal(move.journal().tries, 0);
+
+  move.move(LAUNCH_GRACE_MS);
+  const waits = [];
+  for (let i = 0; i < 4; i++) {
+    await move.own.retry();
+    waits.push(move.own.trouble().retryAt - move.now());
+  }
+  assert.deepEqual(waits, [10_000, 30_000, 60_000, 5 * 60_000]);
+  assert.ok(!move.local.some((call) => call.startsWith("POST /api/move/freeze")), "never frozen for a server that isn't answering");
+  move.own.close();
+});
+
+test("after a relaunch a move that only hadn't reached its server goes again at once, not at its hour, and a frozen pass isn't held an hour", async () => {
+  const hourLater = { v: 1, phase: "copy", cloud: { origin: garage.origin, account: `own:${ID}`, machine: garage.origin, name: "Garage server" }, startedAt: 1,
+    tries: 6, error: "fetch failed", failingSince: 1, failure: { phase: "copy", code: "unanswered", count: 6, since: 1, at: 1 }, retryAt: 1_000_000 + 60 * 60_000, hourly: true };
+  const move = unanswered({ journal: hourLater });
+  await move.own.kick();
+  assert.ok(looksAt(move.asked) > 0, "it looked now, not in an hour");
+  assert.equal(move.journal().tries, 6, "a launch race counts toward no longer wait");
+  assert.equal(move.own.trouble().retryAt - move.now(), 10_000);
+  assert.equal(move.journal().hourly, undefined);
+  move.own.close();
+
+  const frozen = unanswered({ journal: { ...hourLater, phase: "final", retryAt: undefined, hourly: undefined, frozenAt: 1 } });
+  await frozen.own.kick();
+  assert.equal(frozen.journal().phase, "copy");
+  assert.equal(frozen.journal().hourly, undefined, "not an hourly wait");
+  assert.equal(frozen.own.trouble().retryAt - frozen.now(), 10_000);
+  assert.ok(frozen.local.includes("DELETE /api/move/freeze"), "this computer goes on again");
+  frozen.own.close();
 });
