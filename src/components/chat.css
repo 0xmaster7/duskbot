@@ -486,10 +486,3 @@
   .status-shimmer { color: CanvasText; background-image: none; }
 }
 
-/* a bubble that gets a neighbour from the same speaker eases its joined corner in, as imessage's do */
-[data-chat-bubble="simple"] {
-  transition: border-radius 0.24s cubic-bezier(0.23, 1, 0.32, 1);
-}
-@media (prefers-reduced-motion: reduce) {
-  [data-chat-bubble="simple"] { transition: none; }
-}

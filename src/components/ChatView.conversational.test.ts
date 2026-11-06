@@ -77,10 +77,8 @@ describe("conversational replies", () => {
     expect(bubbles).toHaveLength(3);
     expect(bubbles.every((el) => !el.classList.contains("reply-bubble-in"))).toBe(true);
     for (const el of bubbles) expect([...el.classList]).toEqual(expect.arrayContaining(["chat-bubble-bot", "rounded-[18px]", "px-3", "text-[15px]", "leading-[22px]", "min-w-9"]));
-    expect([...bubbles[0]!.classList]).toContain("rounded-es-[6px]");
-    expect([...bubbles[1]!.classList]).toEqual(expect.arrayContaining(["rounded-ss-[6px]", "rounded-es-[6px]"]));
-    expect([...bubbles[2]!.classList]).toContain("rounded-ss-[6px]");
-    expect([...bubbles[2]!.classList]).not.toContain("rounded-es-[6px]");
+    // grok keeps every bubble fully round, even inside a group
+    for (const el of bubbles) expect([...el.classList].some((name) => /^rounded-(ss|se|es|ee)-/.test(name))).toBe(false);
     expect(document.querySelector("[data-conversational-reply]")!.classList).toContain("gap-1");
   });
 

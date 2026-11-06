@@ -60,17 +60,14 @@ export function plainBotBubble(simple: boolean): string {
 /** Simple mode's transcript spaces rows 16px apart (ChatView's data-simple-rows); a row in the same group pulls up 12px, to 4px. */
 export const SIMPLE_STACKED = "-mt-3";
 
-/** Where a Simple bubble meets its group's neighbours: those corners tighten to 6px on the bubble's own side. */
+/** Where a Simple bubble meets its group's neighbours. Grok keeps every bubble fully round, so nothing tightens. */
 export interface BubbleJoin {
   above: boolean;
   below: boolean;
 }
 
-export function joinedCorners(side: "start" | "end", join: BubbleJoin): string {
-  return cn(
-    join.above && (side === "start" ? "rounded-ss-[6px]" : "rounded-se-[6px]"),
-    join.below && (side === "start" ? "rounded-es-[6px]" : "rounded-ee-[6px]"),
-  );
+export function joinedCorners(_side: "start" | "end", _join: BubbleJoin): string {
+  return "";
 }
 
 /** Which bubble group a transcript row belongs to in Simple mode: this bot's words, the person's own words, or none. */
