@@ -20,6 +20,7 @@ const notActions: Array<{ file: string; snippet: string; why: string }> = [
   { file: "components/AttachmentPreview.tsx", snippet: "group-hover/image:opacity-100", why: "zoom hint; the whole image is the tap target" },
   { file: "components/CreateBotDialog.tsx", snippet: "group-hover/shape:opacity-12", why: "aria-hidden ring round a shape tile; the tile itself is the tap target and shows the chosen ring" },
   { file: "components/bot-panel/AvatarEditorCard.tsx", snippet: "opacity-0 group-hover/shape:opacity-100", why: "aria-hidden ring round a shape tile; the tile itself is the tap target and shows the chosen ring" },
+  { file: "components/bot-panel/ComputerTab.tsx", snippet: "group-hover/screen:opacity-100", why: "aria-hidden Open pill; the whole live screen is the tap target" },
   { file: "components/remote-desktop-panel.tsx", snippet: "bg-black/65 py-2", why: "caption; the whole preview is the tap target" },
   { file: "components/routines/CalendarSidebar.tsx", snippet: "text-[9px]", why: "'Drag' hint badge, not a control" },
   { file: "components/routines/CalendarEventCard.tsx", snippet: "cursor-ns-resize", why: "mouse drag-resize handle for call events" },

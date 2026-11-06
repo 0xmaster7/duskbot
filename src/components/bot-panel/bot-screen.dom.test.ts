@@ -17,6 +17,7 @@ vi.mock("../DesktopCapabilities", () => ({ useDesktopCapabilities: () => ({ capa
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 const { useBotScreen, LOCAL_FRAME_MS, LOCAL_MISSES } = await import("./bot-screen");
+const { resetLiveScreen } = await import("./local-screen-stream");
 
 const bot = (extra: Partial<Bot> = {}): Bot => ({
   id: "juno", threadId: "t1", name: "Juno", title: "", description: "", soul: "", notifications: true, color: "green", unread: false,
@@ -25,12 +26,12 @@ const bot = (extra: Partial<Bot> = {}): Bot => ({
 
 let root: Root;
 let seen: ReturnType<typeof useBotScreen>;
-function Probe({ value }: { value: Bot }) {
-  seen = useBotScreen(value);
+function Probe({ value, visible }: { value: Bot; visible?: boolean }) {
+  seen = useBotScreen(value, { visible });
   return null;
 }
-const render = async (value: Bot) => {
-  await act(async () => { root.render(createElement(Probe, { value })); });
+const render = async (value: Bot, visible?: boolean) => {
+  await act(async () => { root.render(createElement(Probe, { value, visible })); });
 };
 
 beforeEach(() => {
@@ -41,8 +42,10 @@ beforeEach(() => {
 });
 afterEach(() => {
   act(() => root.unmount());
+  resetLiveScreen();
   vi.useRealTimers();
   delete (window as { ogb?: unknown }).ogb;
+  Object.defineProperty(navigator, "mediaDevices", { value: undefined, configurable: true });
 });
 
 describe("the bot's screen", () => {
@@ -58,6 +61,32 @@ describe("the bot's screen", () => {
     await vi.advanceTimersByTimeAsync(LOCAL_FRAME_MS * 3);
     expect(screenFrame.mock.calls.length).toBe(calls);
     root = createRoot(document.createElement("div"));
+  });
+
+  it("streams this computer live instead of taking frames, only while the screen shows", async () => {
+    const track = { stop: vi.fn(), applyConstraints: vi.fn(() => Promise.resolve()), addEventListener: vi.fn() };
+    const stream = { getVideoTracks: () => [track], getTracks: () => [track] };
+    const getDisplayMedia = vi.fn(() => Promise.resolve(stream));
+    Object.defineProperty(navigator, "mediaDevices", { value: { getDisplayMedia }, configurable: true });
+    const screenFrame = vi.fn().mockResolvedValue("data:image/png;base64,AAA");
+    (window as { ogb?: unknown }).ogb = { screenFrame, screenLive: { begin: () => Promise.resolve(true) } };
+    await render(bot({ computer: "local" }), false);
+    expect(getDisplayMedia).not.toHaveBeenCalled();
+    await render(bot({ computer: "local" }), true);
+    expect(seen).toMatchObject({ place: "local", stream, src: null, loading: false, blocked: false });
+    await act(async () => { await vi.advanceTimersByTimeAsync(LOCAL_FRAME_MS * 3); });
+    expect(screenFrame).not.toHaveBeenCalled();
+  });
+
+  it("falls back to taking frames when the desktop app's main process cannot grant a live screen", async () => {
+    Object.defineProperty(navigator, "mediaDevices", { value: { getDisplayMedia: vi.fn() }, configurable: true });
+    const screenFrame = vi.fn().mockResolvedValue("data:image/png;base64,AAA");
+    (window as { ogb?: unknown }).ogb = { screenFrame, screenLive: { begin: () => Promise.reject(new Error("No handler registered for 'screen:live-intent'")) } };
+    await render(bot({ computer: "local" }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(seen).toMatchObject({ place: "local", stream: null, src: "data:image/png;base64,AAA", blocked: false });
+    await act(async () => { await vi.advanceTimersByTimeAsync(LOCAL_FRAME_MS); });
+    expect(screenFrame.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 
   it("calls this computer's screen blocked after empty frames, never an older posted one", async () => {

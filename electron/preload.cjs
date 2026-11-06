@@ -277,6 +277,11 @@ const bridge = {
   },
   /** Arms exactly one display-media request from the current renderer frame. */
   beginScreenPreviewIntent: () => ipcRenderer.sendSync("screen:preview-intent"),
+  /** The bot's live screen preview, which needs no click. `begin()` arms one display-media request; false off macOS.
+   * Async on purpose: an app whose main process predates it rejects instead of failing a synchronous call. */
+  screenLive: {
+    begin: () => ipcRenderer.invoke("screen:live-intent"),
+  },
   screenFrame: () => ipcRenderer.invoke("screen:frame"),
   /** Physical USB devices only; network ADB is deliberately excluded. */
   androidDevice: {

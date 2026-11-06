@@ -6,9 +6,10 @@ import { usePageVisible } from "@/lib/page-visible";
 import { api, useStore, type Bot } from "@/state/store";
 import { useDesktopCapabilities } from "../DesktopCapabilities";
 import { screenFramePreview } from "../ScreenFrame";
+import { LIVE_FPS, liveScreenPossible, useLiveScreen } from "./local-screen-stream";
 
-/** how often the tab takes a fresh frame of this computer while it shows */
-export const LOCAL_FRAME_MS = 3000;
+/** how often the tab takes a fresh frame of this computer while it shows and no live stream is possible */
+export const LOCAL_FRAME_MS = 1000;
 /** empty answers in a row before this computer's screen counts as not shareable (macOS screen recording is off) */
 export const LOCAL_MISSES = 2;
 
@@ -17,6 +18,8 @@ export interface BotScreen {
   place: EffectivePlace | undefined;
   /** the newest frame of that place, or the latest screen the bot posted */
   src: string | null;
+  /** this computer's screen, live; when present it replaces `src` */
+  stream: MediaStream | null;
   /** this computer's screen is being fetched for the first time */
   loading: boolean;
   /** this computer answered with no picture, so it cannot be shown here */
@@ -27,7 +30,7 @@ const AUTO_SURFACES: ReadonlySet<string> = new Set(["cloud", "vm", "local", "bro
 
 /** The screen the bot's Computer tab shows: this computer's own screen through the desktop app, a cloud desktop's live
  * frames, or else the last screen the bot posted in its conversation. */
-export function useBotScreen(bot: Bot): BotScreen {
+export function useBotScreen(bot: Bot, { visible = true }: { visible?: boolean } = {}): BotScreen {
   const { flushBotPatches } = useStore();
   const { capabilities } = useDesktopCapabilities();
   const pageVisible = usePageVisible();
@@ -57,10 +60,13 @@ export function useBotScreen(bot: Bot): BotScreen {
   const platform = capabilities.host.platform;
   const capturesHere = place === "local" && typeof window !== "undefined" && Boolean(window.ogb?.screenFrame)
     && (platform === "darwin" || platform === "win32");
+  const showing = capturesHere && pageVisible && visible;
+  const live = useLiveScreen(showing, LIVE_FPS.preview);
+  const streaming = live.status === "live" || live.status === "starting" || (live.status === "idle" && liveScreenPossible());
   const [local, setLocal] = useState<{ key: string; src: string | null; misses: number } | null>(null);
   const localKey = `${bot.id}:local`;
   useEffect(() => {
-    if (!capturesHere || !pageVisible) return;
+    if (!showing || streaming) return;
     let alive = true;
     let inFlight = false;
     const shoot = async () => {
@@ -80,7 +86,7 @@ export function useBotScreen(bot: Bot): BotScreen {
       alive = false;
       window.clearInterval(timer);
     };
-  }, [capturesHere, pageVisible, localKey]);
+  }, [showing, streaming, localKey]);
 
   const [cloud, setCloud] = useState<{ key: string; src: string } | null>(null);
   const cloudKey = `${bot.id}:${bot.threadId}:cloud`;
@@ -100,11 +106,14 @@ export function useBotScreen(bot: Bot): BotScreen {
   const posted = [...bot.messages].reverse().find((message) => message.kind === "screen" && (message.hasImage || message.png));
   const postedSrc = posted ? screenFramePreview({ threadId: bot.threadId, messageId: posted.id }, posted.mime).src : null;
   // this computer always shows itself as it is now, never an older posted frame
-  const src = capturesHere ? localNow?.src ?? null : cloudNow ?? (place === "off" ? null : postedSrc);
+  const stream = capturesHere && live.status === "live" ? live.stream : null;
+  const src = capturesHere ? stream ? null : localNow?.src ?? null : cloudNow ?? (place === "off" ? null : postedSrc);
+  const pictured = Boolean(stream || localNow?.src);
   return {
     place,
     src,
-    loading: capturesHere && !localNow?.src && (localNow?.misses ?? 0) < LOCAL_MISSES,
-    blocked: capturesHere && !localNow?.src && (localNow?.misses ?? 0) >= LOCAL_MISSES,
+    stream,
+    loading: capturesHere && !pictured && (live.status === "starting" || (localNow?.misses ?? 0) < LOCAL_MISSES),
+    blocked: capturesHere && !pictured && live.status !== "starting" && (localNow?.misses ?? 0) >= LOCAL_MISSES,
   };
 }

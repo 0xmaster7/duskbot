@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/cn";
 import { rememberComputerPanelOpen } from "@/lib/computer-panel-focus";
@@ -12,10 +12,13 @@ import { useDesktopCapabilities } from "../DesktopCapabilities";
 import { LocalComputerAutoWarning } from "../LocalComputerAutoWarning";
 import { usePlaceViews } from "../PlaceChip";
 import type { GrokIconName } from "../GrokIcon";
+import { GrokIcon } from "../GrokIcon";
 import { SelectPill } from "../ui/SelectPill";
 import type { BotPatch, useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
 import type { PlaceActionId } from "../../../shared/place-view";
 import { useBotScreen } from "./bot-screen";
+import { LiveScreenVideo } from "./LiveScreenVideo";
+import { primeLiveScreen } from "./local-screen-stream";
 import type { SimplePageId } from "./page-registry";
 import { Card, RadioRow } from "./rows";
 import "./computer-tab.css";
@@ -150,6 +153,22 @@ function AsleepMascot({ bot }: { bot: Bot }) {
   );
 }
 
+/** Whether the element is in view; the live screen pauses while the panel is scrolled away or covered by layout. */
+function useOnScreen(element: HTMLElement | null) {
+  const [onScreen, setOnScreen] = useState(true);
+  const last = useRef(true);
+  useEffect(() => {
+    if (!element || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => {
+      const next = Boolean(entry?.isIntersecting);
+      if (next !== last.current) setOnScreen((last.current = next));
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [element]);
+  return onScreen;
+}
+
 type TabChoice = PlaceChoice | "add";
 
 const CHOICE_ICON: Record<TabChoice, GrokIconName> = {
@@ -168,9 +187,12 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
   const { dispatch } = useStore();
   const { options, current, usingNow, choosePlace, warning } = usePlacePicker(bot, derived);
   const placeViews = usePlaceViews(bot);
-  const { place, src, loading, blocked } = useBotScreen(bot);
-  const [ratio, setRatio] = useState<number | null>(null);
+  const [screenBox, setScreenBox] = useState<HTMLElement | null>(null);
+  const onScreen = useOnScreen(screenBox);
   const [full, setFull] = useState<{ wake: boolean } | null>(null);
+  // the full view owns the live screen while it is open, as grok's preview hands its viewer over
+  const { place, src, stream, loading, blocked } = useBotScreen(bot, { visible: onScreen && !full });
+  const [ratio, setRatio] = useState<number | null>(null);
   const screenOf = t("computer.screenOf", { name: bot.name });
   const whereTitle = t("computer.simple.whereWorks", { name: bot.name });
   const editable = bot.yourAccess !== "view";
@@ -187,7 +209,7 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
 
   const known = place && place !== "auto" && place !== "off" ? placeViews[place] : null;
   const issue = known && (!known.reachable || placeHasIssue(known.view)) ? known.view : null;
-  const stage = src ? "screen" : place === undefined || loading ? "loading" : place === "off" ? "off" : bot.busy ? "working" : "asleep";
+  const stage = src || stream ? "screen" : place === undefined || loading ? "loading" : place === "off" ? "off" : bot.busy ? "working" : "asleep";
   const title = blocked ? t("computer.screen.unavailableNow") : issue ? issue.short : t("botPanel.screen.resting");
   const line = issue?.line && issue.line !== issue.short ? issue.line : null;
   const action = blocked ? t("place.action.openComputerPanel") : issue ? issue.action?.label : known?.view.action?.label ?? t("botPanel.screen.wake");
@@ -195,6 +217,7 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
   const open = () => {
     const id = known?.view.action?.id;
     if (stage === "asleep" && !blocked && id && !PANEL_ACTIONS.has(id) && openPlaceAction(id, { botId: bot.id, threadId: bot.threadId, place: place as Place }, dispatch)) return;
+    if (place === "local") primeLiveScreen();
     setFull({ wake: stage === "asleep" && (id === "wake" || id === "start") });
   };
   const frameCls = "relative flex w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_6%)] text-center text-[13px] leading-[18px] tracking-[0.015em] shadow-[inset_0_0_0_0.5px_var(--color-edge)]";
@@ -203,7 +226,7 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
   return (
     <div data-panel-tabpanel="computer">
       {stage === "off" || stage === "loading" ? (
-        <div data-panel-screen="" data-stage={stage} aria-busy={stage === "loading" || undefined} className={cn(frameCls, "aspect-[16/10]")}>
+        <div ref={setScreenBox} data-panel-screen="" data-stage={stage} aria-busy={stage === "loading" || undefined} className={cn(frameCls, "aspect-[16/10]")}>
           {stage === "off" && (
             <>
               <AsleepMascot bot={bot} />
@@ -213,6 +236,7 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
         </div>
       ) : (
         <button
+          ref={setScreenBox}
           type="button"
           data-panel-action="open-computer"
           data-stage={stage}
@@ -221,12 +245,14 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
           aria-haspopup="dialog"
           onClick={open}
           style={stage === "screen" ? { aspectRatio: ratio ?? DEFAULT_RATIO } : undefined}
-          className={cn(frameCls, buttonCls, stage !== "screen" && "aspect-[16/10]",
-            stage === "screen" && "bg-transparent hover:bg-transparent after:pointer-events-none after:absolute after:inset-0 after:rounded-xl after:bg-ink/[0.04] after:opacity-0 after:shadow-[inset_0_0_0_0.5px_var(--color-edge)] after:transition-opacity after:duration-100 after:content-[''] hover:after:opacity-100")}
+          className={cn(frameCls, buttonCls, "group/screen", stage !== "screen" && "aspect-[16/10]",
+            stage === "screen" && "bg-transparent hover:bg-transparent")}
         >
           {stage === "screen" ? (
             <>
-              <img
+              {stream ? (
+                <LiveScreenVideo stream={stream} playing={onScreen && !full} onRatio={(value) => setRatio(Math.max(1, value))} className="absolute inset-0 size-full object-cover" />
+              ) : <img
                 src={src!}
                 alt=""
                 draggable={false}
@@ -235,8 +261,16 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
                   if (width && height) setRatio(Math.max(1, width / height));
                 }}
                 className="absolute inset-0 size-full object-cover"
-              />
+              />}
               <span aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-xl shadow-[inset_0_0_0_0.5px_var(--color-edge)]" />
+              <span
+                aria-hidden="true"
+                data-panel-open-pill=""
+                className="pointer-events-none relative z-[2] inline-flex items-center gap-1.5 rounded-full bg-[rgb(0_0_0/0.9)] px-2.5 py-2 text-[12px] leading-4 tracking-normal text-white opacity-0 transition-opacity duration-[120ms] ease-out group-hover/screen:opacity-100 group-focus-visible/screen:opacity-100"
+              >
+                <GrokIcon name="arrows-expand-simple" size={14} />
+                {t("computer.open")}
+              </span>
             </>
           ) : stage === "working" ? (
             <>

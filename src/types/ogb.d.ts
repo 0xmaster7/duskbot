@@ -300,6 +300,8 @@ const __APP_VERSION__: string;
       };
       /** Arms one user-initiated display capture request from this frame. */
       beginScreenPreviewIntent(): boolean;
+      /** Absent before the desktop app that ships it; rejects when the running main process predates it. */
+      screenLive?: { begin(): Promise<boolean> };
       screenFrame(): Promise<string | null>;
       androidDevice?: {
         status(): Promise<AndroidDeviceStatus>;

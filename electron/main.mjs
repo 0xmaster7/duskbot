@@ -1456,6 +1456,10 @@ ipcMain.on("screen:preview-intent", localOnlySync("screen:preview-intent", (even
   event.returnValue = displayMediaGuard.begin(event.senderFrame);
 }));
 
+// macOS only: there the display-media handler picks the screen itself; a Linux portal would pop its picker unasked.
+ipcMain.handle("screen:live-intent", localOnly("screen:live-intent", async (event) =>
+  process.platform === "darwin" && displayMediaGuard.begin(event.senderFrame, { live: true })));
+
 ipcMain.on("desktop:unread-count", (event, value) => {
   const sender = BrowserWindow.fromWebContents(event.sender);
   if (!sender || sender !== mainWindow || sender.isDestroyed()) return;

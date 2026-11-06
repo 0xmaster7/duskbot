@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/cn";
@@ -8,14 +8,29 @@ import { GrokIcon } from "./GrokIcon";
 import { useDialogKeys } from "./ui/GrokDialog";
 import "./computer-fullscreen.css";
 
-/** The pill under the screen: watching with Take control, or in control with I'm done. A screen that can only be
- * watched (this Mac) shows the status alone. */
+/** The pill under the screen, as grok's control bar: watching with Take control; in control with I'm done when the bot
+ * asked for the person's hands (`asked`), else Stop. A screen that can only be watched shows the status alone. */
 export type ScreenControl =
   | { held: false; onTake?: () => void; busy?: boolean }
-  | { held: true; onDone: () => void; busy?: boolean };
+  | { held: true; onDone: () => void; asked?: boolean; busy?: boolean };
 
 // grok's control row under the frame
 const BAR = 52;
+// grok's computer-watch-hint: how long a click on a watched screen keeps pointing at Take control
+export const WATCH_HINT_MS = 2500;
+
+/** A click on a screen being watched pulses Take control and says so to screen readers, until WATCH_HINT_MS after the
+ * last click. */
+function useWatchHint(active: boolean) {
+  const [hint, setHint] = useState<{ count: number; shown: boolean }>({ count: 0, shown: false });
+  useEffect(() => {
+    if (!hint.shown) return;
+    const timer = setTimeout(() => setHint((previous) => ({ ...previous, shown: false })), WATCH_HINT_MS);
+    return () => clearTimeout(timer);
+  }, [hint]);
+  const shown = active && hint.shown;
+  return { count: hint.count, shown, bump: () => setHint((previous) => ({ count: previous.count + 1, shown: true })) };
+}
 
 /** Grok's full computer view: the bot's screen on a dark cover, Exit fullscreen in the top right, and the control pill
  * under the frame. Without a frame it shows `note` (waking up, connecting, or what is in the way). */
@@ -32,6 +47,8 @@ export function ComputerFullscreen({ label, onExit, frame, note, control, alert 
   const { dragProps, noDragStyle } = useCaptionChrome();
   const macInset = useDesktopCapabilities().capabilities.windowChrome === "mac-inset";
   const exit = t("desktopViewer.exitFullscreen");
+  const watching = Boolean(control && !control.held && control.onTake);
+  const hint = useWatchHint(watching);
 
   return createPortal(
     <div
@@ -63,6 +80,7 @@ export function ComputerFullscreen({ label, onExit, frame, note, control, alert 
               data-computer-frame=""
               className="relative overflow-hidden rounded-[6px] bg-white/4"
               style={{ width: `min(100cqw, calc((100cqh - ${control ? BAR : 0}px) * 16 / 10))`, aspectRatio: "16 / 10" }}
+              onPointerDown={watching ? hint.bump : undefined}
             >
               {frame}
             </div>
@@ -71,7 +89,7 @@ export function ComputerFullscreen({ label, onExit, frame, note, control, alert 
           )}
           {control && (
             <div className="flex shrink-0 items-center justify-center" style={{ height: BAR }}>
-              <ControlPill control={control} />
+              <ControlPill control={control} hint={hint} />
             </div>
           )}
           {alert && <p role="alert" className="absolute inset-x-0 top-2 mx-auto w-fit max-w-[80%] rounded-full bg-menu px-3 py-1 text-center text-[12px] leading-4 text-danger">{alert}</p>}
@@ -82,24 +100,41 @@ export function ComputerFullscreen({ label, onExit, frame, note, control, alert 
   );
 }
 
-function ControlPill({ control }: { control: ScreenControl }) {
+function ControlPill({ control, hint }: { control: ScreenControl; hint: { count: number; shown: boolean } }) {
   const action = control.held ? control.onDone : control.onTake;
+  const secondary = control.held && !control.asked;
   return (
     <div data-computer-control={control.held ? "held" : "watching"} className={cn("flex h-9 items-center gap-2.5 rounded-full bg-menu pl-3", action ? "pr-1" : "pr-3")}>
       <span aria-live="polite" className={cn("flex items-center gap-1.5 text-[13px] font-medium leading-[18px]", control.held ? "text-ink" : "text-ink/68")}>
         <GrokIcon name={control.held ? "window-pointer-arrow" : "eye"} size={16} />
         {control.held ? t("computer.inControl") : t("computer.watching")}
+        {hint.shown && <span className="sr-only">{t("computer.takeControlHint")}</span>}
       </span>
       {action && (
-        <button
-          type="button"
-          onClick={action}
-          disabled={control.busy}
-          aria-busy={control.busy || undefined}
-          className="inline-flex h-[26px] cursor-pointer items-center rounded-full bg-ink px-2 text-[13px] leading-[18px] text-app transition-[background-color] duration-[120ms] ease-[ease] enabled:hover:bg-[color-mix(in_srgb,var(--color-ink)_88.5%,var(--color-menu))] enabled:active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-wait disabled:opacity-60 motion-reduce:enabled:active:scale-100"
-        >
-          {control.held ? t("computer.done") : t("computer.takeControl")}
-        </button>
+        <span className="relative inline-flex">
+          {!control.held && (
+            <span
+              key={hint.count}
+              aria-hidden="true"
+              data-computer-hint={hint.shown ? "" : undefined}
+              className={cn("pointer-events-none absolute inset-0 rounded-full opacity-0 shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-app)_22%,transparent),0_0_14px_3px_color-mix(in_srgb,var(--color-app)_18%,transparent)]", hint.shown && "computer-watch-hint")}
+            />
+          )}
+          <button
+            type="button"
+            onClick={action}
+            disabled={control.busy}
+            aria-busy={control.busy || undefined}
+            className={cn(
+              "relative inline-flex h-[26px] cursor-pointer items-center rounded-full px-2 text-[13px] leading-[18px] transition-[background-color] duration-[120ms] ease-[ease] enabled:active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-wait disabled:opacity-60 motion-reduce:enabled:active:scale-100",
+              secondary
+                ? "bg-ink/[0.06] text-ink enabled:hover:bg-ink/[0.1]"
+                : "bg-ink text-app enabled:hover:bg-[color-mix(in_srgb,var(--color-ink)_88.5%,var(--color-menu))]",
+            )}
+          >
+            {control.held ? (control.asked ? t("computer.done") : t("computer.stopControl")) : t("computer.takeControl")}
+          </button>
+        </span>
       )}
     </div>
   );

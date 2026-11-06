@@ -40,6 +40,17 @@ describe("display media request guard", () => {
     ).toBe(false);
   });
 
+  it("lets the live preview's intent start without a click, once, and only for video from the trusted frame", () => {
+    const guard = createDisplayMediaGuard({ now: () => 1_000 });
+    guard.begin(frame, { live: true });
+    expect(guard.consume({ ...validRequest, userGesture: false }, "http://127.0.0.1:8799")).toBe(true);
+    expect(guard.consume({ ...validRequest, userGesture: false }, "http://127.0.0.1:8799")).toBe(false);
+    guard.begin(frame, { live: true });
+    expect(guard.consume({ ...validRequest, userGesture: false, audioRequested: true }, "http://127.0.0.1:8799")).toBe(false);
+    guard.begin(frame, { live: true });
+    expect(guard.consume({ ...validRequest, userGesture: false, frame: { processId: 10, routingId: 21 } }, "http://127.0.0.1:8799")).toBe(false);
+  });
+
   it("rejects an expired intent", () => {
     let current = 1_000;
     const guard = createDisplayMediaGuard({ now: () => current, ttlMs: 500 });

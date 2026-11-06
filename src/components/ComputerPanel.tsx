@@ -62,6 +62,8 @@ import { openPlaceAction, placeBlocked, placeFacts, placeHasIssue, placeViewFor,
 import { cloudRefusal, type PlaceActionId, type PlaceFacts, type PlaceView } from "../../shared/place-view";
 import { t } from "@/lib/i18n";
 import { LocalizedPanelError, panelErrorText } from "@/lib/computer-messages";
+import { LiveScreenVideo } from "./bot-panel/LiveScreenVideo";
+import { LIVE_FPS, useLiveScreen } from "./bot-panel/local-screen-stream";
 
 interface VpsComputerStatus {
   configured: boolean;
@@ -667,6 +669,8 @@ export function ComputerPanel({
   useEffect(() => { if (liveTarget) void loadLiveDesktop(); }, [liveTarget]);
 
   const pageVisible = usePageVisible();
+  const liveLocal = useLiveScreen(Boolean(fullscreen) && phase === "local" && !isLinux && computerStatusCurrent && pageVisible, LIVE_FPS.full);
+  const localStreaming = Boolean(fullscreen) && (liveLocal.status === "live" || liveLocal.status === "starting");
   const lastLiveAt = useRef(0);
   const previewBusy = useRef(bot.busy);
   useEffect(() => { previewBusy.current = bot.busy; }, [bot.busy]);
@@ -783,7 +787,7 @@ export function ComputerPanel({
   // 15+), so repeated empty frames mean denied.
   const [localMisses, setLocalMisses] = useState(0);
   useEffect(() => {
-    if (panelView !== "computer" || phase !== "local" || !computerStatusCurrent || !window.ogb || isLinux || !pageVisible) return;
+    if (panelView !== "computer" || phase !== "local" || !computerStatusCurrent || !window.ogb || isLinux || !pageVisible || localStreaming) return;
     let alive = true;
     setLocalMisses(0);
     const shoot = async () => {
@@ -796,12 +800,12 @@ export function ComputerPanel({
       }
     };
     void shoot();
-    const timer = setInterval(shoot, bot.busy ? 3000 : 30_000);
+    const timer = setInterval(shoot, fullscreen ? 1000 : bot.busy ? 3000 : 30_000);
     return () => {
       alive = false;
       clearInterval(timer);
     };
-  }, [panelView, phase, computerStatusCurrent, isLinux, pageVisible, bot.busy, bot.id, bot.threadId]);
+  }, [panelView, phase, computerStatusCurrent, isLinux, pageVisible, bot.busy, bot.id, bot.threadId, localStreaming, fullscreen]);
 
   const frameSrc = !computerStatusCurrent ? null :
     phase === "vm"
@@ -898,7 +902,21 @@ export function ComputerPanel({
     }
   };
 
+  // this computer: the person drives with their own mouse, so taking control only makes the bot's hands wait
+  const takeLocal = async () => {
+    setControlPending(true);
+    setError(null);
+    try {
+      await takeover.take();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause : String(cause));
+    } finally {
+      setControlPending(false);
+    }
+  };
+
   const takeControl = async (expand = false) => {
+    if (phase === "local" && !liveTarget) return takeLocal();
     if (!liveTarget) return cloudPreviewReady ? openDesktop() : undefined;
     if (takeover.here) return takeover.setExpanded(expand || takeover.expanded);
     setControlPending(true);
@@ -1228,9 +1246,10 @@ export function ComputerPanel({
   if (fullscreen) {
     const held = liveHere || control.held;
     const waking = pending === "provision" || pending === "vm-start" || phase === "checking" || phase === "starting" || (phase === "busy-boat" && busyBoat.spinner);
+    const localScreen = phase === "local" && !isLinux;
     const screenControl: ScreenControl = held
-      ? { held: true, onDone: () => void handBack(), busy: controlPending || takeover.handingBack }
-      : { held: false, onTake: liveTarget || cloudPreviewReady ? () => void takeControl() : undefined, busy: controlPending || pending === "join" };
+      ? { held: true, onDone: () => void handBack(), asked: Boolean(control.helpReason), busy: controlPending || takeover.handingBack }
+      : { held: false, onTake: liveTarget || cloudPreviewReady || localScreen ? () => void takeControl() : undefined, busy: controlPending || pending === "join" };
     const frame = liveHere && liveTarget ? (
       <Suspense fallback={null}>
         <LiveDesktop
@@ -1240,8 +1259,10 @@ export function ComputerPanel({
           onUnreachable={() => { takeover.leave(); setError(new LocalizedPanelError("computer.err.openDesktop")); }}
         />
       </Suspense>
+    ) : localScreen && liveLocal.stream ? (
+      <LiveScreenVideo stream={liveLocal.stream} label={t("computer.screenOf", { name: bot.name })} className="absolute inset-0 size-full object-contain" />
     ) : frameSrc ? <img src={frameSrc} alt={t("computer.screenOf", { name: bot.name })} draggable={false} className="absolute inset-0 size-full object-contain" /> : null;
-    const busy = waking || cloudPreviewReady || phase === "vm" || (phase === "local" && !isLinux && localMisses < 3);
+    const busy = waking || cloudPreviewReady || phase === "vm" || (localScreen && (localMisses < 3 || liveLocal.status === "starting"));
     const nextStep = currentTeamComputer ? autoView : bot.computer === "cloud" ? cloudView : worksOnView;
     return (
       <ComputerFullscreen

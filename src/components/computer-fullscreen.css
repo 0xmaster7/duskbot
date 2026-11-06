@@ -18,3 +18,19 @@
 @media (forced-colors: active) {
   .computer-waking-text { color: CanvasText; background-image: none; }
 }
+
+/* grok's watch hint: a click on a watched screen pulses a soft ring around Take control, once, 2.4s */
+.computer-watch-hint {
+  animation: computer-watch-hint 2.4s ease-in-out both;
+}
+@keyframes computer-watch-hint {
+  0% { opacity: 0; transform: scale(1); }
+  20% { opacity: 1; transform: scale(1.02, 1.06); }
+  50% { opacity: 0; transform: scale(1.06, 1.2); }
+  70% { opacity: 0.8; transform: scale(1.02, 1.06); }
+  100% { opacity: 0; transform: scale(1.06, 1.2); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .computer-watch-hint { animation: none; opacity: 0.7; }
+}
+:root[data-reduced-motion="true"] .computer-watch-hint { animation: none; opacity: 0.7; }
