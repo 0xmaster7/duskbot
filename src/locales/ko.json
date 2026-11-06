@@ -7186,5 +7186,19 @@
   "composer.hint.everyone": "모두 동시에 답해요",
   "room.responder.everyone": "일반 메시지는 모든 멤버에게 동시에 전달되고 함께 답해요. @멘션이 우선해요",
   "room.panel.responder.everyone": "모두 동시에",
-  "room.hint.everyone": "특정 봇을 @멘션하지 않으면 모두 동시에 답해요."
+  "room.hint.everyone": "특정 봇을 @멘션하지 않으면 모두 동시에 답해요.",
+  "composer.failed.edit": "수정",
+  "composer.attach.photos": "사진 보관함",
+  "composer.attach.camera": "사진 찍기",
+  "composer.attach.files": "파일",
+  "mermaid.expand": "전체 화면",
+  "mermaid.expandAria": "다이어그램을 전체 화면으로 열기",
+  "mermaid.viewer": "다이어그램 뷰어",
+  "mermaid.zoomIn": "확대",
+  "mermaid.zoomOut": "축소",
+  "mermaid.reset": "확대/축소 초기화",
+  "mermaid.fit": "화면에 맞추기",
+  "mermaid.downloadPng": "PNG 다운로드",
+  "mermaid.close": "다이어그램 뷰어 닫기",
+  "mermaid.downloadFailed": "PNG를 저장하지 못했습니다. 다시 시도하세요."
 }

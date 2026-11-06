@@ -6491,5 +6491,19 @@
   "composer.hint.everyone": "todos respondem ao mesmo tempo",
   "room.responder.everyone": "Mensagens simples vão para todos os membros ao mesmo tempo e eles respondem lado a lado; @menções têm prioridade",
   "room.panel.responder.everyone": "Todos ao mesmo tempo",
-  "room.hint.everyone": "Todos respondem ao mesmo tempo, a menos que você @mencione bots específicos."
+  "room.hint.everyone": "Todos respondem ao mesmo tempo, a menos que você @mencione bots específicos.",
+  "composer.failed.edit": "Editar",
+  "composer.attach.photos": "Fototeca",
+  "composer.attach.camera": "Tirar foto",
+  "composer.attach.files": "Arquivos",
+  "mermaid.expand": "Tela cheia",
+  "mermaid.expandAria": "Abrir o diagrama em tela cheia",
+  "mermaid.viewer": "Visualizador de diagrama",
+  "mermaid.zoomIn": "Aumentar zoom",
+  "mermaid.zoomOut": "Diminuir zoom",
+  "mermaid.reset": "Redefinir zoom",
+  "mermaid.fit": "Ajustar à tela",
+  "mermaid.downloadPng": "Baixar PNG",
+  "mermaid.close": "Fechar o visualizador de diagrama",
+  "mermaid.downloadFailed": "Não foi possível salvar o PNG. Tente novamente."
 }

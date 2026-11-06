@@ -28,9 +28,10 @@ import { MarkdownTable } from "./MarkdownTable";
 import { CodeBlock, CodePlate, codeHash } from "./CodeBlock";
 import { GrokIcon } from "./GrokIcon";
 import { appLogo } from "./connect-apps/logos";
-import { linkBrand, PLATED_LOGOS } from "@/lib/link-brand";
+import { linkBrand, PLATED_LOGOS } from "@/lib/link-brand"; import { siteIconUrl } from "@/lib/site-icon";
 export { CodeBlock, HIGHLIGHT_CACHE_MAX, HIGHLIGHT_CACHE_MAX_CHARS, HIGHLIGHT_MAX_CHARS, type CodeBlockProps } from "./CodeBlock";
 import { FilePreviewButton } from "./FilePreviewButton";
+import { MermaidViewer } from "./MermaidViewer";
 import { SaveIconButton, useHtmlPreview } from "./HtmlFilePreview";
 import "./chat.css";
 
@@ -195,8 +196,11 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
   const markup = useMemo(() => (svg ? { __html: svg } : null), [svg]);
   const [error, setError] = useState<string | null>(null);
   const [showSource, setShowSource] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const { state: copied, copy } = useCopyFeedback(code);
   const simple = !useAdvancedMode();
+  const expand = svg && !error ? { label: t("mermaid.expandAria"), onClick: () => setExpanded(true) } : undefined;
+  const viewer = expanded && svg && <MermaidViewer svg={svg} onClose={() => setExpanded(false)} />;
 
   useEffect(() => {
     if (typeof MutationObserver === "undefined" || typeof document === "undefined") return;
@@ -261,11 +265,12 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
   if (simple) {
     return (
       <div ref={frame} dir="ltr" className="group/code relative my-2.5 overflow-hidden rounded-lg bg-ink/[0.04]">
-        <CodePlate copied={copied} onCopy={copy} copyLabel={t("code.copySource")} items={[
+        <CodePlate copied={copied} onCopy={copy} copyLabel={t("code.copySource")} expand={expand} items={[
           { key: "source", label: t(showSource ? "code.hideSource" : "code.showSource"), icon: <WrapText size={14} aria-hidden="true" />, active: showSource, onSelect: () => setShowSource((shown) => !shown) },
           { key: "about", label: t("code.mermaid"), disabled: true, separatorBefore: true, onSelect: () => {} },
         ]} />
         {diagram}
+        {viewer}
       </div>
     );
   }
@@ -276,6 +281,13 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
           Mermaid diagram
         </span>
         <div className="flex shrink-0 items-center gap-1 whitespace-nowrap">
+          {expand && (
+            <button type="button" data-mermaid-expand onClick={expand.onClick} title={expand.label} aria-label={expand.label}
+              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-ink-secondary hover:bg-raised hover:text-ink transition-colors">
+              <GrokIcon name="arrows-expand" size={12} />
+              <span className="hidden sm:inline">{t("mermaid.expand")}</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setShowSource((visible) => !visible)}
@@ -318,6 +330,7 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
         </div>
       </div>
       {diagram}
+      {viewer}
     </div>
   );
 }
@@ -643,13 +656,9 @@ export function bareUrlLabel(href: string, children: ReactNode): ReactNode {
   }
 }
 
-/** Google's favicon service answers a site it has no icon for with a 404 whose body is its 16px default globe, and
- * Chromium draws that body; a real icon comes back at the 32px asked for. */
-const googleDefaultIcon = (image: HTMLImageElement) => image.naturalWidth < 32;
-
 function LinkWithFavicon({ href, children: given }: { href: string; children?: ReactNode }) {
   const children = bareUrlLabel(href, given);
-  const host = faviconHost(href);
+  const icon = siteIconUrl(faviconHost(href));
   const brand = linkBrand(href);
   const logo = brand ? appLogo(brand) : undefined;
   const [failed, setFailed] = useState(false);
@@ -658,8 +667,8 @@ function LinkWithFavicon({ href, children: given }: { href: string; children?: R
       <span aria-hidden="true" data-copy-skip="" className="chat-link-favicon" data-brand={logo ? brand! : undefined} data-plated={logo && PLATED_LOGOS.has(brand!) ? "" : undefined}>
         {logo
           ? <img src={logo.src} alt="" width={18} height={18} draggable={false} />
-          : host && !failed
-          ? <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=32`} alt="" width={14} height={14} loading="lazy" draggable={false} referrerPolicy="no-referrer" onError={() => setFailed(true)} onLoad={(event) => googleDefaultIcon(event.currentTarget) && setFailed(true)} />
+          : icon && !failed
+          ? <img src={icon} alt="" width={14} height={14} loading="lazy" draggable={false} onError={() => setFailed(true)} />
           : <GrokIcon name="globe" size={16} />}
       </span>
       <span className="chat-link-text">{children}</span>

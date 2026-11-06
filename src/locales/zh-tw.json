@@ -4691,5 +4691,19 @@
   "composer.hint.everyone": "大家同時回覆",
   "room.responder.everyone": "一般訊息會同時傳給所有成員，大家並行回覆；@提及優先",
   "room.panel.responder.everyone": "大家同時",
-  "room.hint.everyone": "除非你 @提及特定機器人，否則大家會同時回覆。"
+  "room.hint.everyone": "除非你 @提及特定機器人，否則大家會同時回覆。",
+  "composer.failed.edit": "編輯",
+  "composer.attach.photos": "照片圖庫",
+  "composer.attach.camera": "拍照",
+  "composer.attach.files": "檔案",
+  "mermaid.expand": "全螢幕",
+  "mermaid.expandAria": "以全螢幕開啟圖表",
+  "mermaid.viewer": "圖表檢視器",
+  "mermaid.zoomIn": "放大",
+  "mermaid.zoomOut": "縮小",
+  "mermaid.reset": "重設縮放",
+  "mermaid.fit": "符合螢幕大小",
+  "mermaid.downloadPng": "下載 PNG",
+  "mermaid.close": "關閉圖表檢視器",
+  "mermaid.downloadFailed": "無法儲存 PNG，請再試一次。"
 }

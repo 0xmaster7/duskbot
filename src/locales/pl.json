@@ -6602,5 +6602,19 @@
   "composer.hint.everyone": "wszyscy odpowiadają naraz",
   "room.responder.everyone": "Zwykłe wiadomości trafiają naraz do wszystkich członków, którzy odpowiadają równolegle; @wzmianki mają pierwszeństwo",
   "room.panel.responder.everyone": "Wszyscy naraz",
-  "room.hint.everyone": "Wszyscy odpowiadają naraz, chyba że @wspomnisz konkretne boty."
+  "room.hint.everyone": "Wszyscy odpowiadają naraz, chyba że @wspomnisz konkretne boty.",
+  "composer.failed.edit": "Edytuj",
+  "composer.attach.photos": "Biblioteka zdjęć",
+  "composer.attach.camera": "Zrób zdjęcie",
+  "composer.attach.files": "Pliki",
+  "mermaid.expand": "Pełny ekran",
+  "mermaid.expandAria": "Otwórz diagram na pełnym ekranie",
+  "mermaid.viewer": "Podgląd diagramu",
+  "mermaid.zoomIn": "Powiększ",
+  "mermaid.zoomOut": "Pomniejsz",
+  "mermaid.reset": "Resetuj powiększenie",
+  "mermaid.fit": "Dopasuj do ekranu",
+  "mermaid.downloadPng": "Pobierz PNG",
+  "mermaid.close": "Zamknij podgląd diagramu",
+  "mermaid.downloadFailed": "Nie udało się zapisać pliku PNG. Spróbuj ponownie."
 }

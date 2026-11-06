@@ -7406,5 +7406,19 @@
   "composer.hint.everyone": "大家同时回复",
   "room.responder.everyone": "普通消息会同时发给所有成员，大家并行回复；@提及优先",
   "room.panel.responder.everyone": "大家同时",
-  "room.hint.everyone": "除非你 @提及特定机器人，否则大家会同时回复。"
+  "room.hint.everyone": "除非你 @提及特定机器人，否则大家会同时回复。",
+  "composer.failed.edit": "编辑",
+  "composer.attach.photos": "照片图库",
+  "composer.attach.camera": "拍照",
+  "composer.attach.files": "文件",
+  "mermaid.expand": "全屏",
+  "mermaid.expandAria": "全屏打开图表",
+  "mermaid.viewer": "图表查看器",
+  "mermaid.zoomIn": "放大",
+  "mermaid.zoomOut": "缩小",
+  "mermaid.reset": "重置缩放",
+  "mermaid.fit": "适应屏幕",
+  "mermaid.downloadPng": "下载 PNG",
+  "mermaid.close": "关闭图表查看器",
+  "mermaid.downloadFailed": "无法保存 PNG，请重试。"
 }

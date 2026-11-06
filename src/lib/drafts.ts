@@ -25,6 +25,8 @@ export interface FailedComposerSend {
   channelMode?: "chat" | "goal";
   /** Bot ids picked from the @ list. */
   mentions?: string[];
+  /** The files it carried, so Edit can hand them back to the composer. */
+  attachments?: Attachment[];
 }
 type FailedComposerSendInput = Omit<FailedComposerSend, "id">;
 export interface ComposerSendSnapshot extends FailedComposerSendInput {
@@ -428,6 +430,7 @@ export function recoverFailedComposerSend(sent: ComposerSendSnapshot): "restored
       threadId: sent.threadId,
       channelMode: sent.channelMode,
       mentions: sent.mentions,
+      attachments: sent.attachments,
     });
     return "outbox";
   }
@@ -442,6 +445,26 @@ export function recoverFailedComposerSend(sent: ComposerSendSnapshot): "restored
   restoredSends.set(sent.draftId, retry);
   setStoredSendId(getStore(), sent.draftId, retry);
   return "restored";
+}
+
+/** Edit on a failed send: it leaves the list and its words and files go back in the composer, ahead of anything typed
+ * since. Into an empty composer it goes whole, so Send without a change still reuses its identity. Returns the
+ * composer's text. */
+export function editFailedComposerSend(id: string, failed: FailedComposerSend): string {
+  forgetFailedComposerSend(id, failed.id);
+  const store = getStore();
+  const attachments = failed.attachments ?? [];
+  if (!getDraft(store, id).trim() && getDraftAttachments(store, id).length === 0) {
+    markDraftEdited(id);
+    restoreComposerDraft(id, { text: failed.text, attachments, channelMode: failed.channelMode });
+    const retry = { sendId: failed.sendId, requestText: failed.requestText };
+    restoredSends.set(id, retry);
+    setStoredSendId(store, id, retry);
+    return failed.text;
+  }
+  if (failed.text.trim()) prependComposerDraft(id, failed.text);
+  appendDraftAttachments(id, attachments);
+  return getDraft(store, id);
 }
 
 export function forgetFailedComposerSend(id: string, failedId: string): void {

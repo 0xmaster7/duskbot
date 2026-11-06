@@ -6664,5 +6664,19 @@
   "composer.hint.everyone": "все отвечают одновременно",
   "room.responder.everyone": "Обычные сообщения приходят всем участникам одновременно, и они отвечают параллельно; @упоминания важнее",
   "room.panel.responder.everyone": "Все одновременно",
-  "room.hint.everyone": "Все отвечают одновременно, если вы не @упомянете конкретных ботов."
+  "room.hint.everyone": "Все отвечают одновременно, если вы не @упомянете конкретных ботов.",
+  "composer.failed.edit": "Изменить",
+  "composer.attach.photos": "Медиатека",
+  "composer.attach.camera": "Сделать фото",
+  "composer.attach.files": "Файлы",
+  "mermaid.expand": "Во весь экран",
+  "mermaid.expandAria": "Открыть диаграмму во весь экран",
+  "mermaid.viewer": "Просмотр диаграммы",
+  "mermaid.zoomIn": "Увеличить",
+  "mermaid.zoomOut": "Уменьшить",
+  "mermaid.reset": "Сбросить масштаб",
+  "mermaid.fit": "По размеру экрана",
+  "mermaid.downloadPng": "Скачать PNG",
+  "mermaid.close": "Закрыть просмотр диаграммы",
+  "mermaid.downloadFailed": "Не удалось сохранить PNG. Попробуйте ещё раз."
 }

@@ -6686,5 +6686,19 @@
   "composer.hint.everyone": "全員が同時に返信",
   "room.responder.everyone": "通常のメッセージは全メンバーに同時に届き、並行して返信します。@メンションが優先されます",
   "room.panel.responder.everyone": "全員同時に",
-  "room.hint.everyone": "特定のボットを@メンションしない限り、全員が同時に返信します。"
+  "room.hint.everyone": "特定のボットを@メンションしない限り、全員が同時に返信します。",
+  "composer.failed.edit": "編集",
+  "composer.attach.photos": "フォトライブラリ",
+  "composer.attach.camera": "写真を撮る",
+  "composer.attach.files": "ファイル",
+  "mermaid.expand": "全画面表示",
+  "mermaid.expandAria": "図を全画面で開く",
+  "mermaid.viewer": "図のビューア",
+  "mermaid.zoomIn": "拡大",
+  "mermaid.zoomOut": "縮小",
+  "mermaid.reset": "ズームをリセット",
+  "mermaid.fit": "画面に合わせる",
+  "mermaid.downloadPng": "PNG をダウンロード",
+  "mermaid.close": "図のビューアを閉じる",
+  "mermaid.downloadFailed": "PNG を保存できませんでした。もう一度お試しください。"
 }

@@ -13,6 +13,7 @@ import { Card, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
 import { DialogPane, GrokDialog, mdPrimaryCls, mdSecondaryCls, textFieldCls } from "./ui/GrokDialog";
 import { cn } from "@/lib/cn";
 import { GrokIcon } from "./GrokIcon";
+import { siteIconUrl } from "@/lib/site-icon";
 
 // Security: a row never shows the password, which no route returns.
 
@@ -64,11 +65,20 @@ export function VaultNewItem() {
 
 type VaultTab = "all" | "saved" | "onepassword";
 
-/** A login's site as Grok's 32px rounded tile: its first letter on a faint fill. */
+/** A login's site as Grok's rounded tile: the site's own icon once it loads, its first letter on a faint fill until
+ * then or when the site has none. */
 function SiteTile({ site }: { site: string }) {
+  const icon = siteIconUrl(site.replace(/^www\./, ""));
+  const [loaded, setLoaded] = useState<string | null>(null);
+  const [missing, setMissing] = useState<string | null>(null);
+  const shown = loaded === site;
   return (
-    <span aria-hidden="true" className="flex size-6 shrink-0 items-center justify-center rounded-md border-[0.5px] border-ink/10 bg-ink/[0.04] text-[12px] font-medium uppercase text-ink-secondary">
-      {site.replace(/^www\./, "").charAt(0)}
+    <span aria-hidden="true" className={cn("relative flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-md border-[0.5px] border-ink/10 text-[12px] font-medium uppercase text-ink-secondary", !shown && "bg-ink/[0.04]")}>
+      {!shown && site.replace(/^www\./, "").charAt(0)}
+      {icon && missing !== site && (
+        <img src={icon} alt="" width={16} height={16} draggable={false} decoding="async" onLoad={() => setLoaded(site)} onError={() => setMissing(site)}
+          className={cn("absolute size-4 object-contain", !shown && "opacity-0")} />
+      )}
     </span>
   );
 }

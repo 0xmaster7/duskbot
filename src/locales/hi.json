@@ -2868,5 +2868,19 @@
   "composer.hint.everyone": "सभी एक साथ जवाब देते हैं",
   "room.responder.everyone": "सामान्य संदेश एक साथ सभी सदस्यों को जाते हैं और वे साथ-साथ जवाब देते हैं; @मेंशन इसे बदल देते हैं",
   "room.panel.responder.everyone": "सभी एक साथ",
-  "room.hint.everyone": "जब तक आप किसी बॉट को @मेंशन न करें, सभी एक साथ जवाब देते हैं।"
+  "room.hint.everyone": "जब तक आप किसी बॉट को @मेंशन न करें, सभी एक साथ जवाब देते हैं।",
+  "composer.failed.edit": "बदलें",
+  "composer.attach.photos": "फ़ोटो लाइब्रेरी",
+  "composer.attach.camera": "फ़ोटो लें",
+  "composer.attach.files": "फ़ाइलें",
+  "mermaid.expand": "फ़ुल स्क्रीन",
+  "mermaid.expandAria": "डायग्राम फ़ुल स्क्रीन में खोलें",
+  "mermaid.viewer": "डायग्राम व्यूअर",
+  "mermaid.zoomIn": "ज़ूम इन",
+  "mermaid.zoomOut": "ज़ूम आउट",
+  "mermaid.reset": "ज़ूम रीसेट करें",
+  "mermaid.fit": "स्क्रीन में फ़िट करें",
+  "mermaid.downloadPng": "PNG डाउनलोड करें",
+  "mermaid.close": "डायग्राम व्यूअर बंद करें",
+  "mermaid.downloadFailed": "PNG सेव नहीं हो सका। फिर से कोशिश करें।"
 }

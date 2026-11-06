@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { AudioLines, Check, GraduationCap, ListChecks, Paperclip, Phone, Plus, Target, X } from "lucide-react";
+import { AudioLines, Camera, Check, GraduationCap, Images, ListChecks, Paperclip, Phone, Plus, Target, X } from "lucide-react";
 import { approvalModeFor } from "../../shared/approval-mode";
 import {
   approvalModeOptions,
@@ -23,6 +23,7 @@ import { liveLineHeldElsewhere } from "./LiveCallBar";
 import { useMenuMotion } from "./MenuMotion";
 import { nextMenuIndex, SidebarPopoverMenu, type SidebarMenuItem } from "./SidebarPopoverMenu";
 import type { ApprovalChoice } from "./thread-approval";
+import type { AttachChoices } from "./ComposerFilePickers";
 import { SIMPLE_CONTROL } from "./composer-simple";
 import { GrokIcon } from "./GrokIcon";
 
@@ -174,8 +175,10 @@ function TeachMark() {
   return <span className="flex size-3.5 items-center justify-center rounded-full border-[1.5px] border-danger"><span className="size-1.5 rounded-full bg-danger" /></span>;
 }
 
-export function ComposerPlusMenu({ onAttach, goal, teach, approval, callBotId, extraItems = [], circle = false }: {
+export function ComposerPlusMenu({ onAttach, attachChoices, goal, teach, approval, callBotId, extraItems = [], circle = false }: {
   onAttach: () => void;
+  /** A phone or touch screen: the photo library and the camera beside Files (ComposerFilePickers). */
+  attachChoices?: AttachChoices;
   /** Starts a /learn draft in the field, where the composer offers /learn. */
   teach?: () => void;
   /** Entries a phone composer moves here from its hidden buttons, such as where the bot works. */
@@ -200,7 +203,11 @@ export function ComposerPlusMenu({ onAttach, goal, teach, approval, callBotId, e
   const calling = callBotId !== undefined && (onCall === callBotId || isLiveCallRunning(media.phase) || lineHeldElsewhere);
   const simple = !useAdvancedMode();
   const items: SidebarMenuItem[] = [
-    { key: "attach", label: t("composer.attachFiles"), icon: circle ? <Paperclip size={16} /> : <GrokIcon name="paperclip" size={14} />, onSelect: onAttach },
+    ...(attachChoices ? [
+      { key: "attach:photos", label: t("composer.attach.photos"), icon: <Images size={16} />, onSelect: attachChoices.photos },
+      { key: "attach:camera", label: t("composer.attach.camera"), icon: <Camera size={16} />, onSelect: attachChoices.camera },
+    ] satisfies SidebarMenuItem[] : []),
+    { key: "attach", label: t(attachChoices ? "composer.attach.files" : "composer.attachFiles"), icon: circle || attachChoices ? <Paperclip size={16} /> : <GrokIcon name="paperclip" size={14} />, onSelect: onAttach },
     // grok's + holds Attach files and Teach a task alone: a bot's Work until done lives in its panel's Details
     ...(goal && (circle || !goal.solo) ? [{
       key: "goal",

@@ -5299,5 +5299,19 @@
   "composer.hint.everyone": "mọi người trả lời cùng lúc",
   "room.responder.everyone": "Tin nhắn thường đến mọi thành viên cùng lúc và họ trả lời song song; @nhắc tên được ưu tiên",
   "room.panel.responder.everyone": "Mọi người cùng lúc",
-  "room.hint.everyone": "Mọi người trả lời cùng lúc, trừ khi bạn @nhắc tên bot cụ thể."
+  "room.hint.everyone": "Mọi người trả lời cùng lúc, trừ khi bạn @nhắc tên bot cụ thể.",
+  "composer.failed.edit": "Chỉnh sửa",
+  "composer.attach.photos": "Thư viện ảnh",
+  "composer.attach.camera": "Chụp ảnh",
+  "composer.attach.files": "Tệp",
+  "mermaid.expand": "Toàn màn hình",
+  "mermaid.expandAria": "Mở sơ đồ ở chế độ toàn màn hình",
+  "mermaid.viewer": "Trình xem sơ đồ",
+  "mermaid.zoomIn": "Phóng to",
+  "mermaid.zoomOut": "Thu nhỏ",
+  "mermaid.reset": "Đặt lại thu phóng",
+  "mermaid.fit": "Vừa màn hình",
+  "mermaid.downloadPng": "Tải xuống PNG",
+  "mermaid.close": "Đóng trình xem sơ đồ",
+  "mermaid.downloadFailed": "Không lưu được PNG. Hãy thử lại."
 }

@@ -3102,5 +3102,19 @@
   "composer.hint.everyone": "alle antworten gleichzeitig",
   "room.responder.everyone": "Normale Nachrichten gehen gleichzeitig an alle Mitglieder, die nebeneinander antworten; @Erwähnungen haben Vorrang",
   "room.panel.responder.everyone": "Alle gleichzeitig",
-  "room.hint.everyone": "Alle antworten gleichzeitig, außer du @erwähnst bestimmte Bots."
+  "room.hint.everyone": "Alle antworten gleichzeitig, außer du @erwähnst bestimmte Bots.",
+  "composer.failed.edit": "Bearbeiten",
+  "composer.attach.photos": "Fotomediathek",
+  "composer.attach.camera": "Foto aufnehmen",
+  "composer.attach.files": "Dateien",
+  "mermaid.expand": "Vollbild",
+  "mermaid.expandAria": "Diagramm im Vollbild öffnen",
+  "mermaid.viewer": "Diagrammansicht",
+  "mermaid.zoomIn": "Vergrößern",
+  "mermaid.zoomOut": "Verkleinern",
+  "mermaid.reset": "Zoom zurücksetzen",
+  "mermaid.fit": "An Bildschirm anpassen",
+  "mermaid.downloadPng": "PNG herunterladen",
+  "mermaid.close": "Diagrammansicht schließen",
+  "mermaid.downloadFailed": "Das PNG konnte nicht gespeichert werden. Versuch es noch einmal."
 }

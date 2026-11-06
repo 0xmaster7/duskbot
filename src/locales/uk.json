@@ -3309,5 +3309,19 @@
   "composer.hint.everyone": "усі відповідають одночасно",
   "room.responder.everyone": "Звичайні повідомлення надходять усім учасникам одночасно, і вони відповідають паралельно; @згадки мають перевагу",
   "room.panel.responder.everyone": "Усі одночасно",
-  "room.hint.everyone": "Усі відповідають одночасно, якщо ви не @згадаєте конкретних ботів."
+  "room.hint.everyone": "Усі відповідають одночасно, якщо ви не @згадаєте конкретних ботів.",
+  "composer.failed.edit": "Змінити",
+  "composer.attach.photos": "Медіатека",
+  "composer.attach.camera": "Зробити фото",
+  "composer.attach.files": "Файли",
+  "mermaid.expand": "На весь екран",
+  "mermaid.expandAria": "Відкрити діаграму на весь екран",
+  "mermaid.viewer": "Перегляд діаграми",
+  "mermaid.zoomIn": "Збільшити",
+  "mermaid.zoomOut": "Зменшити",
+  "mermaid.reset": "Скинути масштаб",
+  "mermaid.fit": "За розміром екрана",
+  "mermaid.downloadPng": "Завантажити PNG",
+  "mermaid.close": "Закрити перегляд діаграми",
+  "mermaid.downloadFailed": "Не вдалося зберегти PNG. Спробуйте ще раз."
 }

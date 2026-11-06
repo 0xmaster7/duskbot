@@ -5299,5 +5299,19 @@
   "composer.hint.everyone": "herkes aynı anda yanıtlar",
   "room.responder.everyone": "Normal mesajlar tüm üyelere aynı anda gider ve hepsi birlikte yanıtlar; @bahsetmeler önceliklidir",
   "room.panel.responder.everyone": "Herkes aynı anda",
-  "room.hint.everyone": "Belirli botları @bahsetmediğin sürece herkes aynı anda yanıtlar."
+  "room.hint.everyone": "Belirli botları @bahsetmediğin sürece herkes aynı anda yanıtlar.",
+  "composer.failed.edit": "Düzenle",
+  "composer.attach.photos": "Fotoğraf arşivi",
+  "composer.attach.camera": "Fotoğraf çek",
+  "composer.attach.files": "Dosyalar",
+  "mermaid.expand": "Tam ekran",
+  "mermaid.expandAria": "Diyagramı tam ekranda aç",
+  "mermaid.viewer": "Diyagram görüntüleyici",
+  "mermaid.zoomIn": "Yakınlaştır",
+  "mermaid.zoomOut": "Uzaklaştır",
+  "mermaid.reset": "Yakınlaştırmayı sıfırla",
+  "mermaid.fit": "Ekrana sığdır",
+  "mermaid.downloadPng": "PNG indir",
+  "mermaid.close": "Diyagram görüntüleyiciyi kapat",
+  "mermaid.downloadFailed": "PNG kaydedilemedi. Tekrar deneyin."
 }

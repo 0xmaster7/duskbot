@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { cn } from "@/lib/cn";
+import { siteIconUrl } from "@/lib/site-icon";
 
 /** One connectable app as the Apps catalog lists it. */
 export interface ToolkitCard {
@@ -12,7 +13,7 @@ export interface ToolkitCard {
   categories?: string[];
 }
 
-/** An app's logo, then its site's favicon, then its initial. */
+/** An app's logo, then its site's own icon, then its initial. */
 export function ServiceIcon({ card, className = "size-11" }: { card: Pick<ToolkitCard, "logo" | "domain" | "label">; className?: string }) {
   const [stage, setStage] = useState(card.logo ? 0 : card.domain ? 1 : 2);
   if (stage === 0 && card.logo) {
@@ -26,10 +27,11 @@ export function ServiceIcon({ card, className = "size-11" }: { card: Pick<Toolki
       />
     );
   }
-  if (stage === 1 && card.domain) {
+  const siteIcon = siteIconUrl(card.domain);
+  if (stage === 1 && siteIcon) {
     return (
       <img
-        src={`https://www.google.com/s2/favicons?domain=${card.domain}&sz=64`}
+        src={siteIcon}
         alt=""
         loading="lazy"
         className={cn("rounded-xl object-contain", className)}
@@ -51,7 +53,7 @@ export interface TileArt { label: string; logo?: string | null; domain?: string 
 /** Grok's app tile: a hairline square whose corners grow with it (11px at 40, 16px at 56). An app icon fills it; a bare
  * mark sits at 68% of it, on its own paint when it has one; with no art, the app's initial on a faint fill. */
 export function ServiceTile({ card, size = 40, className }: { card: TileArt; size?: number; className?: string }) {
-  const sources = [card.image, card.logo, card.domain ? `https://www.google.com/s2/favicons?domain=${card.domain}&sz=64` : null]
+  const sources = [card.image, card.logo, siteIconUrl(card.domain)]
     .filter((source): source is string => Boolean(source));
   const [failed, setFailed] = useState(0);
   const source = sources[failed];

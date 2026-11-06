@@ -14,6 +14,7 @@ import {
   appendDraftAttachments,
   changeDraftAttachmentPending,
   draftRevision,
+  editFailedComposerSend,
   failedComposerSends,
   getDraft,
   getDraftAttachments,
@@ -436,6 +437,50 @@ describe("prependComposerDraft", () => {
     prependComposerDraft(draftId, "check the log");
     expect(getDraft(store, draftId)).toBe("check the log");
     expect(getDraftAttachments(store, draftId)).toEqual([attachment]);
+  });
+});
+
+describe("editing a failed send", () => {
+  const file = { kind: "file" as const, id: "file-1", path: "/private/attachments/log.txt", name: "log.txt", size: 12 };
+  const requestText = 'check the log\n<attached-file path="/private/attachments/log.txt" name="log.txt" />';
+
+  function outboxed(draftId: string) {
+    const revision = draftRevision(draftId);
+    markDraftEdited(draftId);
+    expect(recoverFailedComposerSend({ draftId, revision, sendId: "edit-send", threadId: "task", text: "check the log", requestText, attachments: [file], channelMode: "goal" })).toBe("outbox");
+    return failedComposerSends(draftId)[0]!;
+  }
+
+  it("puts its words and files back in an empty composer, leaves the list and keeps its send identity", () => {
+    const store = memoryStorage();
+    Object.defineProperty(globalThis, "localStorage", { configurable: true, value: store });
+    const draftId = "bot:edit-failed:empty";
+    const failed = outboxed(draftId);
+    expect(failed.attachments).toEqual([file]);
+    expect(editFailedComposerSend(draftId, failed)).toBe("check the log");
+    expect(failedComposerSends(draftId)).toEqual([]);
+    expect(getDraft(store, draftId)).toBe("check the log");
+    expect(getDraftAttachments(store, draftId)).toEqual([file]);
+    expect(getDraftChannelMode(store, draftId)).toBe("goal");
+    // Send with no change reuses the identity, so a send the server did take is not doubled; any edit starts fresh
+    expect(restoredSendId(draftId)).toBe("edit-send");
+    expect(restoredRequestText(draftId)).toBe(requestText);
+    markDraftEdited(draftId);
+    expect(restoredSendId(draftId)).toBeUndefined();
+  });
+
+  it("leads with its words and keeps what was typed since, with both sets of files", () => {
+    const store = memoryStorage();
+    Object.defineProperty(globalThis, "localStorage", { configurable: true, value: store });
+    const draftId = "bot:edit-failed:typed";
+    const failed = outboxed(draftId);
+    const typedFile = { ...file, id: "file-2", path: "/private/attachments/new.txt", name: "new.txt" };
+    setDraft(store, draftId, "and the new one");
+    setDraftAttachments(store, draftId, [typedFile]);
+    expect(editFailedComposerSend(draftId, failed)).toBe("check the log\n\nand the new one");
+    expect(getDraftAttachments(store, draftId)).toEqual([typedFile, file]);
+    expect(restoredSendId(draftId)).toBeUndefined();
+    expect(failedComposerSends(draftId)).toEqual([]);
   });
 });
 

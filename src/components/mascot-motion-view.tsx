@@ -9,6 +9,9 @@ import { ATTENTION, attentionGaze, watchPointer, type Point } from "./mascot-att
 import { opticalTransform } from "./mascot-optics";
 import { GROK_BODY_IDS } from "../../shared/grok-bodies";
 
+// grok draws sidebar-size marks and up unscaled; only small marks get the optical fit
+const RAW_MARK_PX = 32;
+
 /** The sidebar's and Create New Bot's mark size: their bodies get built ahead, in idle time. */
 const WARM_SIZE = 36;
 let warmScheduled = false;
@@ -202,7 +205,7 @@ export const GrokMark = forwardRef<GrokMarkHandle, GrokMarkProps>(function GrokM
     >
       <span
         ref={canvas}
-        style={{ position: "absolute", left: "50%", top: "50%", width: `${MARK_CANVAS_PERCENT}%`, height: `${MARK_CANVAS_PERCENT}%`, transform: opticalTransform(body), pointerEvents: "none" }}
+        style={{ position: "absolute", left: "50%", top: "50%", width: `${MARK_CANVAS_PERCENT}%`, height: `${MARK_CANVAS_PERCENT}%`, transform: size >= RAW_MARK_PX ? "translate(-50%, -50%)" : opticalTransform(body), pointerEvents: "none" }}
         dangerouslySetInnerHTML={firstPaint}
       />
     </span>

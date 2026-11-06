@@ -6,7 +6,7 @@ import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bot, Group } from "@/state/store";
-import { restoreComposerDraft } from "@/lib/drafts";
+import { failedComposerSends, rememberFailedComposerSend, restoreComposerDraft } from "@/lib/drafts";
 import { setCallMode } from "@/lib/call-mode";
 
 const fixture = vi.hoisted(() => ({
@@ -111,6 +111,44 @@ describe("the phone composer", () => {
     expect(item("place")?.textContent).toContain("Works on");
   });
 
+  it("offers the photo library, the camera and files from the +, each its own picker", () => {
+    render({ bot });
+    openPlus();
+    const keys = [...menu()!.querySelectorAll("[data-menu-key]")].map((row) => row.getAttribute("data-menu-key"));
+    expect(keys.slice(0, 3)).toEqual(["attach:photos", "attach:camera", "attach"]);
+    expect(item("attach:photos")?.textContent).toContain("Photo library");
+    expect(item("attach:camera")?.textContent).toContain("Take photo");
+    expect(item("attach")?.textContent).toContain("Files");
+    const opened: HTMLInputElement[] = [];
+    vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(function (this: HTMLInputElement) { opened.push(this); });
+    click(item("attach:camera"));
+    expect(opened[0]?.accept).toBe("image/*");
+    expect(opened[0]?.getAttribute("capture")).toBe("environment");
+    openPlus();
+    click(item("attach:photos"));
+    expect(opened[1]?.accept).toBe("image/*,video/*");
+    expect(opened[1]?.multiple).toBe(true);
+    openPlus();
+    click(item("attach"));
+    expect(opened[2]?.accept).toBe("");
+    expect(opened[2]?.hasAttribute("capture")).toBe(false);
+  });
+
+  it("Edit on a failed send puts its words back in the field, focused with the cursor at the end", async () => {
+    const draftId = `bot:${bot.id}:${bot.threadId}`;
+    rememberFailedComposerSend(draftId, { sendId: "lost", text: "ship it friday", requestText: "ship it friday", threadId: bot.threadId });
+    render({ bot });
+    expect(container.textContent).toContain("Not sent");
+    click(container.querySelector("[data-failed-edit]"));
+    await new Promise((done) => requestAnimationFrame(() => done(null)));
+    const field = container.querySelector("textarea")!;
+    expect(field.value).toBe("ship it friday");
+    expect(document.activeElement).toBe(field);
+    expect(field.selectionStart).toBe("ship it friday".length);
+    expect(failedComposerSends(draftId)).toEqual([]);
+    expect(container.querySelector("[data-failed-send]")).toBeNull();
+  });
+
   it("keeps Advanced mode's buttons in a row on a wider screen", () => {
     vi.stubGlobal("matchMedia", (query: string) => ({ matches: !query.includes("max-width"), addEventListener() {}, removeEventListener() {} }));
     fixture.advanced = true;
@@ -118,5 +156,7 @@ describe("the phone composer", () => {
     expect(container.querySelector('button[aria-label="Attach a file"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="place-chip"]')).not.toBeNull();
     expect(fixture.call?.inverse).toBe(false);
+    expect(container.querySelectorAll('input[type="file"]')).toHaveLength(1);
+    expect(container.querySelector("input[capture]")).toBeNull();
   });
 });

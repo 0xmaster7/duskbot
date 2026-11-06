@@ -2,7 +2,7 @@ import { directMessageSent, roomMessageSent } from "@/lib/product-events";
 import { cueMascot } from "./mascot-events";
 import { useComposerDictation } from "@/lib/use-composer-dictation";
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
-import { Mic, Paperclip, Square, X } from "lucide-react";
+import { Mic, Paperclip, Square } from "lucide-react";
 import { useStore, visibleMessages, currentTaskBot, type Bot, type Group, type InstanceInfo, type Message } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { PHONE_LAYOUT, useMediaQuery } from "@/lib/use-media-query";
@@ -16,6 +16,7 @@ import {
   draftRevision,
   appendDraftAttachments,
   changeDraftAttachmentPending,
+  editFailedComposerSend,
   forgetFailedComposerSend,
   markDraftEdited,
   prependComposerDraft,
@@ -34,7 +35,7 @@ import {
 import { DEVS_CHOICE, MentionMenu, teammateChoices, type MentionChoice } from "./MentionMenu"; import { useTeammates } from "@/state/team-people"; import { hiddenFromSidebar, useViewerEmail } from "@/lib/default-bot";
 import { SlashCommandMenu } from "./SlashCommandMenu";
 import { MentionTextarea } from "./MentionTextarea";
-import { ComposerAttachments, ComposerAttachmentStrip, pathForFile } from "./ComposerAttachments";
+import { ComposerAttachments, ComposerAttachmentStrip, pathForFile } from "./ComposerAttachments"; import { ComposerFailedSends } from "./ComposerFailedSends"; import { useComposerFilePickers } from "./ComposerFilePickers";
 import { PointedChips } from "./app/PointedChips"; import { SetupRequestChip, setupRequestPlaceholder } from "./SetupOffer";
 import { takePointedChips } from "@/lib/pointed-chips";
 import { splitTranscriptCitations, type CitationAttachment } from "@/lib/citations";
@@ -490,7 +491,6 @@ export function Composer({
     const timeout = window.setTimeout(() => setSteering(false), 20_000);
     return () => window.clearTimeout(timeout);
   }, [busy, pendingCount, steering]);
-  const fileInput = useRef<HTMLInputElement>(null);
   const modeBot = group ? undefined : bot;
   const { choice: approvalChoice, dialogs: approvalDialogs } = useThreadApproval(modeBot);
   const uploadImage = useCallback(async (file: File): Promise<Attachment | null> => {
@@ -534,6 +534,7 @@ export function Composer({
     refocusInput();
   };
 
+  const pickers = useComposerFilePickers((files) => void pickFiles(files));
   const hasContent = Boolean(effectiveText.trim()) || attachments.length > 0;
   const onCall = useOnCall();
   const media = useLiveMedia();
@@ -580,7 +581,7 @@ export function Composer({
           requestText: failed.requestText,
           replyToId: failed.replyToId,
           threadId: failed.threadId, mentions: failed.mentions,
-          channelMode: failed.channelMode,
+          channelMode: failed.channelMode, attachments: failed.attachments,
         });
       },
     };
@@ -589,6 +590,10 @@ export function Composer({
     } else if (bot) {
       dispatch({ type: "send", botId: bot.id, mode: failedMode, ...retry });
     }
+  };
+  const editFailedSend = (failed: FailedComposerSend) => {
+    const next = editFailedComposerSend(draftId, failed); restoreMentionPicks(draftId, failed.mentions); setCaret(next.length);
+    requestAnimationFrame(() => { inputRef.current?.focus(); inputRef.current?.setSelectionRange(next.length, next.length); });
   };
   const send = (followUp: FollowUp | undefined = followUpFor(false)) => {
     if (locked || attachmentPending) return;
@@ -732,34 +737,7 @@ export function Composer({
         </div>
       )}
       <div className="pointer-events-auto relative w-full">
-        {failedSends.map((failed) => (
-          <div
-            key={failed.id}
-            className="mb-2 flex items-center gap-2 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[13px] text-danger"
-          >
-            <span className="min-w-0 flex-1 truncate">
-              {t("composer.failed.notSent", {
-                text: failed.text.trim() || t("composer.failed.attachment"),
-              })}
-            </span>
-            <button
-              type="button"
-              onClick={() => retryFailedSend(failed)}
-              className="shrink-0 rounded px-2 py-1 font-medium hover:bg-danger/10"
-            >
-              {t("chat.retry")}
-            </button>
-            <button
-              type="button"
-              onClick={() => forgetFailedComposerSend(draftId, failed.id)}
-              aria-label={t("composer.failed.dismissAria")}
-              title={t("composer.failed.dismiss")}
-              className="flex size-5 shrink-0 items-center justify-center rounded hover:bg-danger/10"
-            >
-              <X size={13} strokeWidth={2.5} />
-            </button>
-          </div>
-        ))}
+        <ComposerFailedSends sends={failedSends} onRetry={retryFailedSend} onEdit={editFailedSend} onDismiss={(failed) => forgetFailedComposerSend(draftId, failed.id)} />
         <SlashCommandMenu listRef={commandListRef} motion={commandMotion} commands={commandCandidates} highlight={highlight}
           onPick={pickCommand} onHighlight={setHighlight} />
         <MentionMenu listRef={mentionListRef} motion={mentionMotion} choices={candidates} highlight={highlight}
@@ -815,7 +793,7 @@ export function Composer({
         {singleRow && !locked && (
           <div className="flex shrink-0 items-center">
             <PhonePlus
-              onAttach={() => fileInput.current?.click()}
+              onAttach={pickers.files} attachChoices={pickers.choices}
               goal={goal}
               teach={canLearn ? teachTask : undefined}
               approval={approvalChoice && modeBot && { name: modeBot.name, choice: approvalChoice }}
@@ -832,23 +810,13 @@ export function Composer({
         <div ref={pillContentRef} className={singleRow ? cn("min-w-0 flex-1 rounded-[26px] px-3 py-1.5", ELEVATED_FLOAT) : simpleDock ? "flex shrink-0 flex-col" : "contents"}>
         {replyTo && <ComposerReplyStrip message={replyTo} fallbackName={bot?.name} onClear={onClearReply} />}<ComposerAttachmentStrip items={attachments} onRemove={removeAttachment} onChangeCitation={(citation: CitationAttachment) => editAttachments((current) => current.map((attachment) => attachment.id === citation.id ? citation : attachment))} onDisplayInChatBox={displayPasteInChatBox} notice={attachmentNotice} onNotice={setAttachmentNotice} />
         <div data-composer-row data-glyph-swap={glyphs.swapped ? "" : undefined} style={simpleDock ? slot.vars : undefined} className={cn("flex items-end", simpleDock ? cn("gap-2", stacked && "gap-y-2") : "gap-1", !singleRow && !simpleDock && "@max-[30rem]/composer:flex-wrap", stacked && "flex-wrap")}>
-          <input
-            ref={fileInput}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              void pickFiles(e.target.files);
-              // Reset so picking the same file again still fires onChange.
-              e.target.value = "";
-            }}
-          />
+          {pickers.inputs}
           {!locked && !singleRow && (
             <div className={cn("flex items-center gap-1", simpleDock ? "shrink-0" : "flex-wrap")}>
-              {simpleDock && <ComposerPlusMenu onAttach={() => fileInput.current?.click()} goal={goal} teach={canLearn ? teachTask : undefined} />}
+              {simpleDock && <ComposerPlusMenu onAttach={pickers.files} attachChoices={pickers.choices} goal={goal} teach={canLearn ? teachTask : undefined} />}
               {advanced && <button
                 type="button"
-                onClick={() => fileInput.current?.click()}
+                onClick={pickers.files}
                 aria-label={t("composer.attach")}
                 title={t("composer.attach")}
                 className="flex size-8 shrink-0 items-center justify-center rounded-full text-ink-secondary hover:bg-control hover:text-ink"

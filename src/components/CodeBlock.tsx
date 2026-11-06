@@ -176,11 +176,13 @@ const PLATE_BUTTON = "composer-press inline-flex size-6 items-center justify-cen
 
 /** Simple mode's hover plate on a code block or diagram: Copy, and a ⋯ menu for the rest. It shows on hover, on
  * keyboard focus and always on touch screens, and stays while its menu is open. */
-export function CodePlate({ copied, onCopy, copyLabel, items, small = false }: {
+export function CodePlate({ copied, onCopy, copyLabel, items, small = false, expand }: {
   copied: "idle" | "copied" | "failed";
   onCopy: () => void;
   copyLabel: string;
   items: SidebarMenuItem[];
+  /** A key before Copy that opens the block full screen, as a diagram's does. */
+  expand?: { label: string; onClick: () => void };
   /** Grok's key on a fenced block with a language: 20px, a 4px corner and no drop. */
   small?: boolean;
 }) {
@@ -188,6 +190,9 @@ export function CodePlate({ copied, onCopy, copyLabel, items, small = false }: {
   const icon = small ? 12 : 14;
   return (
     <div data-code-plate className="absolute end-1.5 top-1.5 z-[1] flex gap-1 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover/code:opacity-100 touch:opacity-100 has-[[aria-expanded=true]]:opacity-100">
+      {expand && <button type="button" data-plate-expand onClick={expand.onClick} className={button} title={expand.label} aria-label={expand.label}>
+        <GrokIcon name="arrows-expand" size={icon} />
+      </button>}
       <button type="button" onClick={onCopy} className={button}
         title={copied === "copied" ? t("code.copiedTitle") : copied === "failed" ? t("common.copyFailed") : copyLabel}
         aria-label={copied === "copied" ? t("code.copiedTitle") : copied === "failed" ? t("common.copyFailed") : copyLabel}>
