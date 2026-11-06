@@ -138,7 +138,6 @@ export function WherePage({ bot, derived }: { bot: Bot; derived: Derived }) {
 const ASLEEP_GREY = "color-mix(in srgb, var(--color-ink) 56%, transparent)";
 // the next step a place offers that the Screen panel carries out itself
 const PANEL_ACTIONS: ReadonlySet<PlaceActionId> = new Set(["watch", "open-computer-panel", "turn-on-browser", "start", "wake", "try-again"]);
-const DEFAULT_RATIO = 16 / 10;
 
 function AsleepMascot({ bot }: { bot: Bot }) {
   return (
@@ -192,7 +191,8 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
   const [full, setFull] = useState<{ wake: boolean } | null>(null);
   // the full view owns the live screen while it is open, as grok's preview hands its viewer over
   const { place, src, stream, loading, blocked } = useBotScreen(bot, { visible: onScreen && !full });
-  const [ratio, setRatio] = useState<number | null>(null);
+  // every state shares one 16:9 frame, like the other computers; a screen fills it centred
+  const [, setRatio] = useState<number | null>(null);
   const screenOf = t("computer.screenOf", { name: bot.name });
   const whereTitle = t("computer.simple.whereWorks", { name: bot.name });
   const editable = bot.yourAccess !== "view";
@@ -221,12 +221,12 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
     setFull({ wake: stage === "asleep" && (id === "wake" || id === "start") });
   };
   const frameCls = "relative flex w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_6%)] text-center text-[13px] leading-[18px] tracking-[0.015em] shadow-[inset_0_0_0_0.5px_var(--color-edge)]";
-  const buttonCls = "cursor-pointer transition-[background-color] duration-100 hover:bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_8%)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
+  const buttonCls = "cursor-pointer transition-[background-color] duration-100 hover:bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_8%)] focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--color-ink)_22%,transparent)]";
 
   return (
     <div data-panel-tabpanel="computer">
       {stage === "off" || stage === "loading" ? (
-        <div ref={setScreenBox} data-panel-screen="" data-stage={stage} aria-busy={stage === "loading" || undefined} className={cn(frameCls, "aspect-[16/10]")}>
+        <div ref={setScreenBox} data-panel-screen="" data-stage={stage} aria-busy={stage === "loading" || undefined} className={cn(frameCls, "aspect-video")}>
           {stage === "off" && (
             <>
               <AsleepMascot bot={bot} />
@@ -244,8 +244,7 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
           aria-label={stage === "asleep" ? action ?? title : `${t("place.action.watch")}: ${screenOf}`}
           aria-haspopup="dialog"
           onClick={open}
-          style={stage === "screen" ? { aspectRatio: ratio ?? DEFAULT_RATIO } : undefined}
-          className={cn(frameCls, buttonCls, "group/screen", stage !== "screen" && "aspect-[16/10]",
+          className={cn(frameCls, buttonCls, "group/screen", "aspect-video",
             stage === "screen" && "bg-transparent hover:bg-transparent")}
         >
           {stage === "screen" ? (
