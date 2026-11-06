@@ -635,7 +635,7 @@ export function TeamLibraryPanel({
                 </button>
               </div>
               {tab === "explore" && (
-                <label className="flex h-8 w-full items-center gap-1.5 rounded-full border border-ink/8 bg-ink/4 px-[11px] transition-[border-color] duration-[120ms] ease-[ease] focus-within:border-ink/24 sm:w-[280px]">
+                <label className="flex h-8 w-full items-center gap-1.5 rounded-full border border-ink/10 bg-transparent px-[11px]  sm:w-[280px]">
                   <Search size={14} aria-hidden="true" className="shrink-0 text-ink/56" />
                   <input
                     value={search}

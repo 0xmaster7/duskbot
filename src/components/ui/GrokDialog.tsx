@@ -35,9 +35,9 @@ export const listCardCls = "flex flex-col rounded-[14px] bg-menu py-2 outline-1 
 export const listRowCls = "flex min-h-12 items-center gap-x-5 px-3.5 py-2.5";
 /** A text field: Grok's 32px box at 10px corners, borderless like the composer, a soft ink/4 fill that deepens to ink/7
  * on focus (with the caret, the focus cue), no ring. */
-export const textFieldCls = "block h-8 w-full min-w-0 rounded-[10px] bg-ink/4 px-[9px] text-[13px] leading-[18px] tracking-[0.195px] text-ink outline-none transition-[background-color] duration-[120ms] ease-[ease] placeholder:text-ink/40 focus:bg-ink/7 disabled:opacity-50";
+export const textFieldCls = "block h-8 w-full min-w-0 rounded-[10px] border border-ink/10 bg-transparent px-[9px] text-[13px] leading-[18px] tracking-[0.195px] text-ink outline-none placeholder:text-ink/40 disabled:opacity-50";
 /** The same field grown into a few lines. */
-export const textAreaCls = "block w-full resize-none rounded-[10px] bg-ink/4 px-[9px] py-[7px] text-[13px] leading-[18px] tracking-[0.195px] text-ink outline-none transition-[background-color] duration-[120ms] ease-[ease] [scrollbar-width:thin] placeholder:text-ink/40 focus:bg-ink/7 disabled:opacity-50";
+export const textAreaCls = "block w-full resize-none rounded-[10px] border border-ink/10 bg-transparent px-[9px] py-[7px] text-[13px] leading-[18px] tracking-[0.195px] text-ink outline-none [scrollbar-width:thin] placeholder:text-ink/40 disabled:opacity-50";
 /** A field's label, 4px over it; an "(Optional)" beside it reads ink/40. */
 export const fieldLabelCls = "text-[11px] leading-4 tracking-[0.01em] text-ink/68";
 
@@ -234,7 +234,7 @@ export function FilledField({ icon = "plus", value, placeholder, label, disabled
         if (ready) onSubmit();
       }}
       className={cn(
-        "flex h-8 items-center gap-1.5 rounded-[9999px] bg-ink/4 pl-3 pr-1 transition-[background-color] duration-[120ms] ease-[ease] focus-within:bg-ink/7",
+        "flex h-8 items-center gap-1.5 rounded-[9999px] border border-ink/10 bg-transparent pl-3 pr-1",
         disabled && "opacity-50",
       )}
     >

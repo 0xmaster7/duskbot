@@ -1868,22 +1868,18 @@ body {
   outline: none;
 }
 
-/* Text fields carry no border, at rest or focused, like the composer and
-   Grok's filled fields: a field drawn with a border (its own `border` class,
-   or a bordered wrapper holding it directly, as search pills do) gets a soft
-   ink/4 fill in its place, deepening to ink/7 while focused, which with the
-   caret is the focus cue (keyboard and pointer alike). Unlayered, so it wins
-   over every `border-*`, `focus:border-*`, `focus-within:border-*` and
-   field ring utility. A field reporting an error (aria-invalid) says so in
-   its quiet red line, not in a red edge. */
+/* Text fields look like grok's: no fill, one quiet hairline, and nothing
+   changes on hover, focus or active (the caret is the focus cue). A field
+   drawn with a border (its own `border` class, or a bordered wrapper holding
+   it directly, as search pills do) gets exactly this, at rest and focused.
+   Unlayered, so it wins over every bg-*, border-*, focus:* and ring utility.
+   A field reporting an error (aria-invalid) says so in its quiet red line. */
 :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"], [type="reset"], [type="image"]), textarea, select)[class~="border"],
-:is(div, label, form, span)[class~="border"]:has(> :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"], [type="reset"], [type="image"]), textarea, select)) {
-  border-color: transparent;
-  background-color: color-mix(in srgb, var(--color-ink) 4%, transparent);
-}
-:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"], [type="reset"], [type="image"]), textarea, select)[class~="border"]:focus,
-:is(div, label, form, span)[class~="border"]:has(> :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"], [type="reset"], [type="image"]), textarea, select):focus) {
-  background-color: color-mix(in srgb, var(--color-ink) 7%, transparent);
+:is(div, label, form, span)[class~="border"]:has(> :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"], [type="reset"], [type="image"]), textarea, select)),
+:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"], [type="reset"], [type="image"]), textarea, select)[class~="border"]:is(:hover, :focus, :active),
+:is(div, label, form, span)[class~="border"]:has(> :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"], [type="reset"], [type="image"]), textarea, select)):is(:hover, :focus-within, :active) {
+  border-color: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  background-color: transparent;
 }
 :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), textarea, select):focus {
   --tw-ring-shadow: 0 0 #0000;

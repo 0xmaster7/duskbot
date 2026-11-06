@@ -49,7 +49,7 @@ export function SidebarSearchToggle({ open, onToggle, corner = false, ref }: { o
 export function SidebarSearchPill({ query, onQuery, onClose }: { query: string; onQuery: (query: string) => void; onClose: () => void }) {
   return (
     <div data-sidebar-search-pill className="px-3 pb-2 pt-0.5">
-      <div className="flex h-[34px] items-center gap-2 rounded-full bg-ink/4 pl-3 pr-1.5 text-ink-secondary transition-[background-color] duration-[120ms] focus-within:bg-ink/7">
+      <div className="flex h-[34px] items-center gap-2 rounded-full border border-ink/10 bg-transparent pl-3 pr-1.5 text-ink-secondary ">
         <Search size={15} aria-hidden="true" className="shrink-0" />
         <input
           autoFocus

@@ -248,7 +248,7 @@ function BotPicker({
   return (
     <div className="rounded-[10px] border border-ink/12 p-1">
       {!locked && bots.length > 5 && (
-        <label className="mb-1 flex h-8 items-center gap-1.5 rounded-full border border-ink/12 bg-ink/4 px-[11px] text-ink/56 transition-[border-color] duration-[120ms] ease-[ease] focus-within:border-ink/24">
+        <label className="mb-1 flex h-8 items-center gap-1.5 rounded-full border border-ink/10 bg-transparent px-[11px] text-ink/56 ">
           <Search size={14} aria-hidden="true" />
           <input value={query} onChange={(event) => setQuery(event.target.value)} aria-label={t("routines.findBot")} placeholder={t("routines.findBot")} className="min-w-0 flex-1 bg-transparent text-[13px] leading-[18px] text-ink outline-none placeholder:text-ink/56" />
         </label>

@@ -152,7 +152,7 @@ export function KeysPage() {
 
   return (
     <div ref={pageRef} data-keys-page className="flex flex-col gap-2">
-      <div className="flex h-8 items-center gap-2 rounded-lg bg-ink/4 px-[9px] transition-[background-color] duration-[120ms] focus-within:bg-ink/7">
+      <div className="flex h-8 items-center gap-2 rounded-lg border border-ink/10 bg-transparent px-[9px] ">
         <Search size={15} aria-hidden="true" className="shrink-0 text-ink-secondary" />
         <input
           data-keys-search

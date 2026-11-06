@@ -45,22 +45,20 @@ describe("text field focus", () => {
     expect(css).toMatch(/:is\(input(?::not\([^)]*\))?, textarea, select\):focus-visible\s*\{\s*outline:\s*none;/);
   });
 
-  it("draws a bordered field borderless with a soft fill, above every utility", () => {
+  it("draws a bordered field like grok's, no fill and one quiet hairline, above every utility", () => {
     const rules = [...unlayered(css).matchAll(/([^{}]+)\{([^}]*)\}/g)].filter(([, selector]) => selector.includes('[class~="border"]'));
-    const rest = rules.find(([selector]) => !selector.includes(":focus"));
-    expect(rest?.[2]).toMatch(/border-color:\s*transparent/);
-    expect(rest?.[2]).toMatch(/background-color:\s*color-mix\(in srgb, var\(--color-ink\) 4%, transparent\)/);
-    expect(rest?.[1]).toMatch(/:has\(> :is\(input/);
+    expect(rules.length).toBeGreaterThan(0);
+    const [, selector, declarations] = rules[0]!;
+    expect(declarations).toMatch(/border-color:\s*color-mix\(in srgb, var\(--color-ink\) 10%, transparent\)/);
+    expect(declarations).toMatch(/background-color:\s*transparent/);
+    expect(selector).toMatch(/:has\(> :is\(input/);
   });
 
-  it("shows focus as a deeper fill, never a border or a ring", () => {
+  it("keeps the same look on hover, focus and active, never a ring", () => {
     const body = unlayered(css);
-    const focused = [...body.matchAll(/([^{}]+)\{([^}]*)\}/g)].filter(([selector]) => selector.includes('[class~="border"]') && selector.includes(":focus"));
-    expect(focused.length).toBeGreaterThan(0);
-    for (const [, , declarations] of focused) {
-      expect(declarations).toMatch(/background-color:\s*color-mix\(in srgb, var\(--color-ink\) 7%, transparent\)/);
-      expect(declarations).not.toMatch(/border-color:\s*(?!transparent)/);
-    }
+    const rule = [...body.matchAll(/([^{}]+)\{([^}]*)\}/g)].find(([selector]) => selector.includes('[class~="border"]'))!;
+    expect(rule[1]).toMatch(/:is\(:hover, :focus, :active\)/);
+    expect(rule[1]).toMatch(/:is\(:hover, :focus-within, :active\)/);
     expect(body).toMatch(/textarea, select\):focus\s*\{\s*--tw-ring-shadow: 0 0 #0000;/);
     expect(body).not.toMatch(/:focus-visible:not\(\[aria-invalid="true"\]\)\s*\{\s*border-color/);
   });

@@ -203,7 +203,7 @@ export function BotSettingsDialog({ bot, overlay = false }: {
           </span>
         </div>
 
-        <div className="mx-4 mb-2 flex shrink-0 items-center gap-2 rounded-lg bg-ink/4 px-2.5 py-2 transition-[background-color] duration-[120ms] focus-within:bg-ink/7">
+        <div className="mx-4 mb-2 flex shrink-0 items-center gap-2 rounded-lg border border-ink/10 bg-transparent px-2.5 py-2 ">
           <Search size={14} className="shrink-0 text-ink-secondary" />
           <input
             value={query}

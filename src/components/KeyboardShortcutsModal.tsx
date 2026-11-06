@@ -83,7 +83,7 @@ export function KeyboardShortcutsModal({ open, onClose }: KeyboardShortcutsModal
         </div>
 
         <div className="px-4 pb-2">
-          <div className="flex h-8 items-center gap-2 rounded-lg bg-ink/4 px-2.5 transition-[background-color] duration-[120ms] focus-within:bg-ink/7">
+          <div className="flex h-8 items-center gap-2 rounded-lg border border-ink/10 bg-transparent px-2.5 ">
             <Search size={14} className="shrink-0 text-ink-secondary" />
             <input
               ref={inputRef}

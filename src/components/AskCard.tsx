@@ -209,7 +209,7 @@ export function AskReply({ label, placeholder, color, onSend, sending = false, v
   return (
     <form onSubmit={send} className={row
       ? "-mx-2 flex min-h-10 items-center gap-2.5 rounded-[16px] border border-transparent p-[7px] transition-[background-color,border-color] duration-[140ms] ease-[cubic-bezier(.16,1,.3,1)] hover:bg-ink/[0.06] focus-within:bg-ink/[0.06]"
-      : "flex items-end gap-2 rounded-[16px] bg-ink/4 py-1 pe-1 ps-3 transition-[background-color] duration-[120ms] focus-within:bg-ink/7"}>
+      : "flex items-end gap-2 rounded-[16px] border border-ink/10 bg-transparent py-1 pe-1 ps-3 "}>
       {row && <ChoiceLetter letter={letter ?? null} />}
       <textarea
         dir="auto"
