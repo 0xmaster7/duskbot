@@ -52,6 +52,94 @@ curl -fsSL https://link.apps.siddz.com/i/<code> | sh
   through OpenMausBot's HTTP API and are never logged.
 - Unlinking in the app deletes the tunnel at the service. The agent then idles and the app forgets the server.
 
+## Step events
+
+install.sh posts every step to `POST /v1/sessions/<id>/events` (bearer: the VPS token); the app reads them from
+`GET /v1/sessions/<id>/events?after=<seq>&wait=25` (bearer: the watch token) as `events[]`:
+
+```
+{ "seq": 12, "at": 1762462800000, "step": "node", "status": "running" | "done" | "failed" | "skipped",
+  "log":   "last 30 lines\n...",              // only on failed and skipped: the step's log tail
+  "cmd":   "apt-get -y -q install nodejs",     // optional: the command running now
+  "lines": ["$ apt-get -y -q install nodejs", "Get:4 https://deb.nodesource.com/... [31.2 MB]", "..."] }  // optional
+```
+
+- While a step runs, install.sh sends its new log lines about every 0.5 s: at most 40 a batch (a batch that had more
+  starts with `[N more lines]`), each line cut to 300 characters and stripped of control characters, one batch in
+  flight at a time, and the last one before the step's `done`/`failed`. Lines starting with `$ ` are the commands it
+  runs. Those batches have `"status": "running"`, so an app that ignores `lines` sees nothing new.
+- Before anything is written to a log or sent, bearer tokens, the link secret and VPS token, `sk-...` keys and
+  `token`/`password`/`secret`/`*_KEY` values are replaced with `[redacted]`.
+- The service keeps up to 60 lines and 16 KB per event (the newest), `cmd` up to 300 characters, and the newest 150
+  line events per session; status events are never dropped for line events. Steps the app does not know
+  (`sandbox`, `fence`) are reported as `desktop`.
+- In the app, `electron/vps-link.mjs` keeps them in memory only and puts them on the view it already sends:
+  `steps[i].cmd`, `steps[i].lines` (last 200 per step) and `terminal` (last 400 lines overall, in order, each
+  `{ "step": "node", "text": "..." }`). A late batch never moves a finished step back to running.
+
+## The server build
+
+The VPS installs our own server, built from this repo, not the upstream `openmausbot` npm package. That build is
+private: the service hands it only to a claimed install session, at `/pkg/<session>/<sha256>.tgz`, with the session's
+own bearer token, while the session is still installing, at most 6 times. There is no public url for it.
+
+- The claim reply names the build: `"package": {"sha256", "size", "version", "path"}`. install.sh downloads it (the
+  terminal shows a progress bar), checks the sha256, and installs it with `npm install -g <file>` as the `maus` user.
+  Its three native dependencies (DuckDB, resvg, the 1Password SDK) still come from the npm registry, per platform.
+- No build published means no `package` in the claim, and the install stops at "Installing OpenMausBot" with "the link
+  service has no OpenMausBot build to hand out yet".
+- `OMB_PACKAGE=<npm spec or tarball url>` before `sh` installs that instead. It is never the default.
+- The bot computer kit rides the same way: `deploy/bot-desktop/` plus `shared/bot-desktop.ts` as one tgz, named in
+  the claim as `"desktop": {"sha256", "size", "image", "path"}` (`image` is `BOT_DESKTOP_IMAGE`). install.sh then sets
+  the host up the way `deploy/bot-desktop/README.md` ("Host setup the box expects") says, as three terminal steps
+  that all report to the app as its one `desktop` step:
+  - **Sandboxing bot computers**: gVisor `runsc` from its apt repo, registered in `/etc/docker/daemon.json` with
+    `"runtimeArgs": ["--overlay2=none"]`; if that fails, `"userns-remap": "default"`. The file is merged, never
+    replaced (the first original is kept as `daemon.json.omb-before`), Docker restarts only when it changed, and the
+    old file goes back if Docker won't start with the new one.
+  - **Fencing their network**: `host-fence.sh` to `/usr/local/sbin/omb-host-fence`, `omb-box-fence.service`
+    enabled and started, then `omb-host-fence --check`.
+  - **Building the bot computer**: nothing if the image is already there, a `docker pull` if a registry copy exists,
+    else the kit's `build.sh` (needs `docker-buildx`, which the Docker step adds), with a bar for its build steps.
+  Each of these that fails is shown in amber and the install goes on: bots work without a bot computer, boxes fall
+  back to strict mode without the sandbox or fence, and the app builds the image on first use.
+
+Publish a new build (from the repo root, on a machine with this checkout):
+
+```
+node scripts/build-vps-package.mjs                               # builds; writes release/vps/openmausbot-<version>-<sha12>.tgz + manifest.json
+node scripts/build-vps-package.mjs --skip-build --publish /root/omb-link-data   # on the link service host: copies it in
+```
+
+`--publish <data dir>` writes `<data dir>/packages/<sha256>.tgz` for the build and the kit, then
+`<data dir>/packages/current.json` (`{"sha256","version","commit","builtAt","desktop":{"sha256","image"}}`), each by rename, so nothing restarts and new claims get the new build at
+once. To publish from elsewhere, copy those three files into the service's `packages/` dir in that order (tgz first). Older
+tgz files keep serving installs already under way; delete them when no install from the last 2 hours needs them.
+`LINK_PACKAGES_DIR` moves the folder.
+
+## The terminal
+
+install.sh opens with the wordmark decoding out of noise and one light sweep (about a second, one awk process), then
+shows five phases, one line each: Preparing your server (check, basics, docker, user), Installing the runtime
+(node), Installing OpenMausBot (app, engines, service), Setting up the bot computer (sandbox, fence, desktop) and
+Linking to your app (address, link). The running step is the line's sub-status, with a bar for downloads of known
+size and build steps, and the line turns into one check when the phase is done (amber when an optional part failed).
+The mascot wags its tail while work runs. A failure shows the red step, its last log lines and one plain fix. The end
+is three lines: ready and how long it took, where it runs, and "go back to the app". The versions table goes to
+`/var/log/openmausbot-link/summary.log` (and on screen with `OMB_VERBOSE=1`); every step's log is
+`/var/log/openmausbot-link/<step>.log`.
+
+It falls back to plain lines (no escapes) when stdout is not a terminal or `TERM=dumb`, drops colors and the
+animation for `NO_COLOR` (`OMB_NO_ANIM=1` keeps colors without the animation), uses ASCII for `OMB_ASCII=1`, and a
+one-line wordmark under 80 columns. In-place drawing (the phase list, the mascot) only happens when the screen has
+room for all of it; otherwise lines just follow each other.
+
+Try the screen without a server (writes nothing, needs no root, runs on a Mac too):
+
+```
+OMB_INSTALL_DEMO=1 sh link-service/install.sh        # OMB_INSTALL_DEMO=fail shows a failure
+```
+
 ## Run it
 
 ```
@@ -63,6 +151,7 @@ cd link-service && npm start                       # PORT (default 8790)
 | `PORT` | 8790 | listen port |
 | `LINK_BASE` | `https://link.apps.siddz.com` | public address the VPS reaches; baked into the served script |
 | `LINK_DATA_DIR` | `./data` | `state.json` (sessions, tunnel verifiers); keep it outside the checkout so redeploys keep tunnels |
+| `LINK_PACKAGES_DIR` | `$LINK_DATA_DIR/packages` | the private server builds (see "The server build") |
 | `LINK_TRUST_PROXY` | `1` | read the client IP from `X-Real-IP` or the last `X-Forwarded-For` hop; set `0` without a proxy |
 
 The app's base comes from `OMB_LINK_BASE` (default `https://link.apps.siddz.com`).

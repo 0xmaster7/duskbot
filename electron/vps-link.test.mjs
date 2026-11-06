@@ -171,6 +171,11 @@ describe("Add your VPS", () => {
     expect(failed.stage).toBe("installing");
     expect(failed.steps.find((step) => step.id === "node").log).toContain("resolve host");
     await post(`/v1/sessions/${id}/events`, vpsToken, { step: "node", status: "done" });
+    // a late batch of terminal lines reaches the view without taking the finished step back to running
+    await post(`/v1/sessions/${id}/events`, vpsToken, { step: "node", status: "running", cmd: "apt-get -y install nodejs", lines: ["$ apt-get -y install nodejs", "Setting up nodejs (24.11.0) ..."] });
+    const mirrored = await until(() => { const seen = link.view(); return seen.terminal.length === 2 && seen; });
+    expect(mirrored.terminal[1]).toEqual({ step: "node", text: "Setting up nodejs (24.11.0) ..." });
+    expect(mirrored.steps.find((step) => step.id === "node")).toMatchObject({ status: "done", cmd: "apt-get -y install nodejs", lines: ["$ apt-get -y install nodejs", "Setting up nodejs (24.11.0) ..."] });
 
     // the agent finishes the setup on the server and keeps the tunnel open
     await run(process.execPath, [agentPath, "link"], { env: { ...process.env, HOME: home, LINK_BASE: base, LINK_ID: id, LINK_TOKEN: vpsToken, LINK_MODE: "relay", LINK_NAME: "oracle-arm", LINK_SERVER_PORT: String(vpsPort) } });

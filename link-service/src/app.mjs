@@ -3,9 +3,12 @@
 //
 // trust: the app holds the secrets. the relay stores only sha256 verifiers of bearer tokens and passes sealed blobs on.
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import { readFileSync, statSync } from "node:fs";
+import { createReadStream, readFileSync, statSync } from "node:fs";
 import { isIP } from "node:net";
+import { join } from "node:path";
+import { pipeline } from "node:stream/promises";
 
+import { createPackages } from "./packages.mjs";
 import { MAX_EVENTS, MAX_SESSIONS, MAX_TUNNELS, SESSION_LIFE_MS, createStore } from "./store.mjs";
 
 const B32 = "abcdefghijklmnopqrstuvwxyz234567";
@@ -20,11 +23,19 @@ const NONCE = /^[a-z0-9]{16,64}$/;
 const MAX_BODY = 4 * 1024 * 1024;
 const MAX_SMALL_BODY = 64 * 1024;
 const MAX_LOG = 4000;
+// live terminal lines a step streams while it runs: per event, and how many such events a session keeps
+const MAX_LINES = 60;
+const MAX_LINE = 400;
+const MAX_LINES_BYTES = 16 * 1024;
+const MAX_CMD = 300;
+const KEEP_LINE_EVENTS = 150;
 const MAX_WAIT_S = 25;
 const FRAME_MAX = 1024 * 1024 + 64;
 const QUEUE_FRAMES = 1024;
 const QUEUE_BYTES = 16 * 1024 * 1024;
 const CREATE_PER_HOUR = 30;
+/** downloads (server build and desktop kit together) one install session may make; install.sh retries three times */
+const PACKAGE_DOWNLOADS = 10;
 
 export const sha256hex = (value) => createHash("sha256").update(value).digest("hex");
 export function randomB32(length) {
@@ -103,14 +114,16 @@ function frameQueue() {
  *   dataDir?: string | null,
  *   scriptPath: string,
  *   agentPath: string,
+ *   packagesDir?: string | null,
  *   trustProxy?: boolean,
  *   now?: () => number,
  *   fetch?: typeof fetch,
  *   log?: (line: string) => void,
  * }} options
  */
-export function createLinkService({ base, dataDir = null, scriptPath, agentPath, trustProxy = true, now = Date.now, fetch: fetchImpl = fetch, log = () => {} }) {
+export function createLinkService({ base, dataDir = null, scriptPath, agentPath, packagesDir, trustProxy = true, now = Date.now, fetch: fetchImpl = fetch, log = () => {} }) {
   const store = createStore({ dir: dataDir, now });
+  const packages = createPackages(packagesDir !== undefined ? packagesDir : dataDir ? join(dataDir, "packages") : null);
   const sessionWaiters = new Map();
   const queues = new Map();
   const created = new Map();
@@ -279,7 +292,12 @@ export function createLinkService({ base, dataDir = null, scriptPath, agentPath,
         session.events.push({ seq: ++session.seq, at: now(), step: "claim", status: "done" });
         store.save();
         wakeSession(id);
-        return send(res, 200, { ok: true, expiresAt: session.createdAt + SESSION_LIFE_MS, appPub: session.appPub, label: session.label });
+        const build = packages.current();
+        return send(res, 200, {
+          ok: true, expiresAt: session.createdAt + SESSION_LIFE_MS, appPub: session.appPub, label: session.label,
+          ...(build ? { package: { sha256: build.sha256, size: build.size, version: build.version, path: `/pkg/${id}/${build.sha256}.tgz` } } : {}),
+          ...(build?.desktop ? { desktop: { sha256: build.desktop.sha256, size: build.desktop.size, image: build.desktop.image, path: `/pkg/${id}/${build.desktop.sha256}.tgz` } } : {}),
+        });
       }
       if (action === "events" && method === "POST") {
         const session = vpsSession(req, res, id);
@@ -287,9 +305,28 @@ export function createLinkService({ base, dataDir = null, scriptPath, agentPath,
         if (session.state === "waiting") return fail(res, 409, "claim first", "not_claimed");
         const body = await readJson(req);
         if (!STEP.test(body?.step ?? "") || !STATUSES.has(body?.status)) return fail(res, 400, "step and status are required");
-        if (session.events.length >= MAX_EVENTS) session.events.splice(1, session.events.length - MAX_EVENTS + 1);
+        if (body.lines !== undefined && (!Array.isArray(body.lines) || body.lines.length > MAX_LINES || body.lines.some((line) => typeof line !== "string"))) {
+          return fail(res, 400, `lines must be up to ${MAX_LINES} strings`);
+        }
         const log = typeof body.log === "string" && body.log ? body.log.slice(-MAX_LOG) : undefined;
-        const event = { seq: ++session.seq, at: now(), step: body.step, status: body.status, ...(log ? { log } : {}) };
+        const cmd = typeof body.cmd === "string" && body.cmd ? body.cmd.slice(0, MAX_CMD) : undefined;
+        let lines;
+        if (body.lines?.length) {
+          let bytes = 0;
+          lines = [];
+          for (const line of body.lines.slice().reverse()) {
+            const text = line.slice(0, MAX_LINE);
+            if ((bytes += text.length) > MAX_LINES_BYTES) break;
+            lines.unshift(text);
+          }
+        }
+        // line batches are the many, short-lived events: past KEEP_LINE_EVENTS the oldest go first, status events stay
+        if (lines) {
+          const kept = session.events.filter((event) => event.lines);
+          if (kept.length >= KEEP_LINE_EVENTS) { const drop = kept[0]; session.events.splice(session.events.indexOf(drop), 1); }
+        }
+        if (session.events.length >= MAX_EVENTS) session.events.splice(1, session.events.length - MAX_EVENTS + 1);
+        const event = { seq: ++session.seq, at: now(), step: body.step, status: body.status, ...(log ? { log } : {}), ...(cmd ? { cmd } : {}), ...(lines ? { lines } : {}) };
         session.events.push(event);
         store.save();
         wakeSession(id);
@@ -347,6 +384,24 @@ export function createLinkService({ base, dataDir = null, scriptPath, agentPath,
         return send(res, 200, view(session, after));
       }
       return fail(res, 405, "method not allowed");
+    }
+
+    // the private server build and desktop kit: only for a claimed session that is still installing, with its own bearer token
+    if (method === "GET" && (parts = /^\/pkg\/([a-z2-7]{10})\/([0-9a-f]{64})\.tgz$/.exec(path))) {
+      const [, id, sha] = parts;
+      const session = vpsSession(req, res, id);
+      if (!session) return;
+      if (session.state !== "installing") return fail(res, 409, "claim first", "not_claimed");
+      const build = packages.find(sha);
+      if (!build) return fail(res, 404, "not found", "not_found");
+      if ((session.downloads = (session.downloads ?? 0) + 1) > PACKAGE_DOWNLOADS) return fail(res, 429, "too many downloads", "rate_limited");
+      store.save();
+      res.writeHead(200, { "content-type": "application/gzip", "content-length": String(build.size), "cache-control": "no-store, private", "x-content-type-options": "nosniff" });
+      await pipeline(createReadStream(build.path), res).catch((error) => {
+        // the server closing mid-download is normal (install.sh retries); anything else is ours
+        if (error?.code !== "ERR_STREAM_PREMATURE_CLOSE") throw error;
+      });
+      return;
     }
 
     if ((parts = /^\/v1\/tunnels\/([a-z2-7]{10})(?:\/(to-vps|to-app|status))?$/.exec(path))) {

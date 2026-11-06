@@ -1,7 +1,7 @@
 // the link service end to end on loopback: a setup session as the app and the install script use it, the agent's real
 // `link` command sealing a result only the app opens, and the sealed relay tunnel carrying requests, streams and control.
 import { execFile } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -86,6 +86,18 @@ describe("setup sessions", () => {
     expect(watched.events.map((event) => [event.step, event.status])).toEqual([["node", "failed"]]);
     expect(watched.events[0].log).toContain("nodejs");
 
+    // live terminal lines: kept with their command, capped, and a bad shape refused
+    const many = Array.from({ length: 60 }, (_, i) => `Get:${i} ${"x".repeat(500)}`);
+    expect((await post(`/v1/sessions/${made.id}/events`, vpsToken, { step: "node", status: "running", cmd: "apt-get -y install nodejs", lines: many })).status).toBe(200);
+    expect((await post(`/v1/sessions/${made.id}/events`, vpsToken, { step: "node", status: "running", lines: "nope" })).status).toBe(400);
+    expect((await post(`/v1/sessions/${made.id}/events`, vpsToken, { step: "node", status: "running", lines: many.concat("one too many") })).status).toBe(400);
+    const streamed = (await relay.watch(made.id, made.watch, watched.events[0].seq)).events[0];
+    expect(streamed.cmd).toBe("apt-get -y install nodejs");
+    expect(streamed.lines.length).toBeGreaterThan(10);
+    expect(streamed.lines.every((line) => line.length <= 400)).toBe(true);
+    expect(streamed.lines.join("").length).toBeLessThanOrEqual(16 * 1024);
+    expect(streamed.lines.at(-1)).toMatch(/^Get:59 /);
+
     // the agent's own `link` command, with this suite's fake OpenMausBot as the server
     const home = mkdtempSync(join(dir, "home-"));
     await run(process.execPath, [join(root, "agent.mjs"), "link"], {
@@ -145,6 +157,64 @@ describe("setup sessions", () => {
     await post(`/v1/sessions/${made.id}/claim`, vpsTokenOf(keys.secret), {});
     const probe = await post(`/v1/sessions/${made.id}/probe`, vpsTokenOf(keys.secret), { nonce: "0123456789abcdef0123" });
     expect(await probe.json()).toEqual({ ip: "127.0.0.1", reachable: false });
+  });
+});
+
+describe("the private server build", () => {
+  it("is handed only to a claimed session with its own token, by sha256, a few times, and never after linking", async () => {
+    const tgz = Buffer.from("pretend tarball ".repeat(4096));
+    const sha = sha256hex(tgz);
+    const packages = join(dir, "data", "packages");
+    mkdirSync(packages, { recursive: true });
+    writeFileSync(join(packages, `${sha}.tgz`), tgz);
+    const kit = Buffer.from("pretend desktop kit");
+    writeFileSync(join(packages, `${sha256hex(kit)}.tgz`), kit);
+    writeFileSync(join(packages, "current.json"), JSON.stringify({ sha256: sha, version: "0.1.141", desktop: { sha256: sha256hex(kit), image: "ghcr.io/sidddevz/omb-bot-desktop:v1" } }));
+
+    const relay = createRelayClient({ base });
+    const keys = newLinkKeys();
+    const made = await relay.create({ verifier: keys.verifier, appPub: keys.pub });
+    const vpsToken = vpsTokenOf(keys.secret);
+    const get = (route, token) => fetch(`${base}${route}`, { headers: token ? { authorization: `Bearer ${token}` } : {} });
+    const route = `/pkg/${made.id}/${sha}.tgz`;
+
+    expect((await get(route, vpsToken)).status).toBe(409);
+    const claim = await (await post(`/v1/sessions/${made.id}/claim`, vpsToken, {})).json();
+    expect(claim.package).toEqual({ sha256: sha, size: tgz.length, version: "0.1.141", path: route });
+    expect(claim.desktop).toEqual({ sha256: sha256hex(kit), size: kit.length, image: "ghcr.io/sidddevz/omb-bot-desktop:v1", path: `/pkg/${made.id}/${sha256hex(kit)}.tgz` });
+    expect(Buffer.from(await (await get(claim.desktop.path, vpsToken)).arrayBuffer()).equals(kit)).toBe(true);
+
+    expect((await get(route)).status).toBe(401);
+    expect((await get(route, "x".repeat(64))).status).toBe(401);
+    expect((await get(`/pkg/${made.id}/${"0".repeat(64)}.tgz`, vpsToken)).status).toBe(404);
+    // another session's token reads nothing of this one
+    const other = newLinkKeys();
+    const otherMade = await relay.create({ verifier: other.verifier, appPub: other.pub });
+    await post(`/v1/sessions/${otherMade.id}/claim`, vpsTokenOf(other.secret), {});
+    expect((await get(route, vpsTokenOf(other.secret))).status).toBe(401);
+
+    const got = await get(route, vpsToken);
+    expect(got.status).toBe(200);
+    expect(got.headers.get("cache-control")).toContain("no-store");
+    const body = Buffer.from(await got.arrayBuffer());
+    expect(sha256hex(body)).toBe(sha);
+
+    for (let i = 0; i < 8; i += 1) await (await get(route, vpsToken)).arrayBuffer();
+    expect((await get(route, vpsToken)).status).toBe(429);
+
+    await post(`/v1/sessions/${otherMade.id}/result`, vpsTokenOf(other.secret), { sealed: "abc", vpsPub: other.pub });
+    expect((await get(`/pkg/${otherMade.id}/${sha}.tgz`, vpsTokenOf(other.secret))).status).toBe(410);
+    // the script and the public routes never name the build
+    expect(await (await fetch(`${base}/i`)).text()).not.toContain(sha);
+  });
+
+  it("advertises nothing when no build is published", async () => {
+    rmSync(join(dir, "data", "packages"), { recursive: true, force: true });
+    const relay = createRelayClient({ base });
+    const keys = newLinkKeys();
+    const made = await relay.create({ verifier: keys.verifier, appPub: keys.pub });
+    const claim = await (await post(`/v1/sessions/${made.id}/claim`, vpsTokenOf(keys.secret), {})).json();
+    expect(claim.package).toBeUndefined();
   });
 });
 

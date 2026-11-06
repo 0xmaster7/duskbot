@@ -70,9 +70,18 @@ export function createVpsLink(deps) {
   function write() { store.write(state); onChange(view()); }
   const currentLink = () => state.links.find((link) => link.id === state.current) ?? null;
 
+  // the install's live terminal: lines each step streams while it runs. kept in memory only, never in the store
+  let live = { id: null, steps: {}, feed: [] };
+  const LIVE_STEP_LINES = 200;
+  const LIVE_FEED = 400;
+  function liveFor(id) { if (live.id !== id) live = { id, steps: {}, feed: [] }; return live; }
   function steps() {
     const seen = state.pending?.steps ?? (currentLink() ? Object.fromEntries(STEP_IDS.map((id) => [id, { status: "done" }])) : {});
-    return STEP_IDS.map((id) => ({ id, status: seen[id]?.status ?? "waiting", ...(seen[id]?.log ? { log: seen[id].log } : {}) }));
+    const lines = state.pending && live.id === state.pending.id ? live.steps : {};
+    return STEP_IDS.map((id) => ({
+      id, status: seen[id]?.status ?? "waiting", ...(seen[id]?.log ? { log: seen[id].log } : {}),
+      ...(lines[id]?.cmd ? { cmd: lines[id].cmd } : {}), ...(lines[id]?.lines?.length ? { lines: lines[id].lines } : {}),
+    }));
   }
   function view() {
     const link = currentLink();
@@ -88,6 +97,7 @@ export function createVpsLink(deps) {
       command: pending ? pending.command : null,
       expiresAt: pending?.expiresAt ?? null,
       steps: steps(),
+      terminal: state.pending && live.id === state.pending.id ? live.feed : [],
       server: link ? { id: link.envId, name: link.name, origin: link.origin } : null,
       mode: link?.mode ?? null,
       error: lastError,
@@ -142,9 +152,22 @@ export function createVpsLink(deps) {
           const got = await relay.watch(pending.id, await unprotect(pending.watchP), pending.after, AbortSignal.any([abort.signal, AbortSignal.timeout(40_000)]));
           failures = 0;
           let changed = false;
+          let streamed = false;
           for (const event of got.events ?? []) {
             pending.after = Math.max(pending.after, event.seq);
-            if (!STEP_IDS.includes(event.step) || !STATUSES.has(event.status)) continue;
+            if (!STATUSES.has(event.status) || typeof event.step !== "string") continue;
+            if (Array.isArray(event.lines) || typeof event.cmd === "string") {
+              const mirror = liveFor(pending.id);
+              const lines = (Array.isArray(event.lines) ? event.lines : []).filter((line) => typeof line === "string").map((line) => line.slice(0, 400));
+              const own = (mirror.steps[event.step] ??= { lines: [] });
+              if (typeof event.cmd === "string") own.cmd = event.cmd.slice(0, 300);
+              own.lines = own.lines.concat(lines).slice(-LIVE_STEP_LINES);
+              mirror.feed = mirror.feed.concat(lines.map((text) => ({ step: event.step, text }))).slice(-LIVE_FEED);
+              streamed = true;
+              // a late batch never takes a finished step back to running
+              if (event.status === "running" && pending.steps[event.step]) continue;
+            }
+            if (!STEP_IDS.includes(event.step)) continue;
             pending.steps[event.step] = { status: event.status, ...(event.status === "failed" && typeof event.log === "string" ? { log: event.log.slice(-4000) } : {}) };
             changed = true;
           }
@@ -157,6 +180,7 @@ export function createVpsLink(deps) {
             break;
           }
           if (changed) write();
+          else if (streamed) onChange(view());
         } catch (error) {
           if (abort.signal.aborted) break;
           if (error?.status === 404) { state.pending = null; lastError = "This command expired. Make a new one."; write(); break; }
