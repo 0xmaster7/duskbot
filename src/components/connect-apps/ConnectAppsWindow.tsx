@@ -5,7 +5,7 @@ import { t } from "@/lib/i18n";
 import { connectorDescription } from "@/lib/app-catalog";
 import { listLogins } from "@/lib/logins";
 import { connectorStatusMemory, preloadConnectedApps } from "@/lib/connected-apps";
-import { loadMcpServers, type McpServerSummary } from "@/lib/mcp-servers";
+import { useMcpServers } from "@/lib/mcp-servers";
 import { POSTIZ_SERVER } from "../../../shared/postiz";
 import { HOSTED_MCP_APPS, type HostedConnections, type HostedMcpAppId } from "@/lib/hosted-mcp-apps";
 import { managedConnectorUnavailableReason } from "../../../shared/connector-availability";
@@ -35,6 +35,7 @@ import { cachedConnectorCatalog, loadConnectorCatalog, useConnectors, type Conne
 import { appLogo } from "./logos";
 import { composioLogo, loadComposioSnapshot, snapshotToolkit } from "./composio-snapshot";
 import { useRemoteApps } from "./use-remote-apps";
+import { WindowedRows } from "./WindowedRows";
 import { directoryKey, type DirectoryApp } from "../../../shared/connector-directory";
 import type { ToolkitCard } from "../ServiceIcon";
 import "./connect-apps.css";
@@ -42,8 +43,11 @@ import "./connect-apps.css";
 type NativeId = "x" | "email" | "highlevel" | "postiz";
 const NATIVE_IDS: readonly NativeId[] = ["email", "x", "highlevel", "postiz"];
 const RECOMMENDED = "recommended";
-// a category holds hundreds of Composio apps: rows arrive a page at a time as the list nears its end
-const ROWS_PAGE = 60;
+const CONNECTED = "connected";
+/** Any MCP server by its URL, kept with the MCP servers Settings has. */
+const CUSTOM_MCP = "custom-mcp";
+// a section this long draws only the rows in view
+const WINDOW_FROM = 40;
 const SETTINGS = (section: "logins" | "skills"): Action => ({ type: "toggleAppSettings", open: true, section });
 
 function logoIcon(...names: string[]): AppEntry["icon"] {
@@ -72,6 +76,7 @@ function nativeEntries(): AppEntry[] {
     { id: "email", kind: "native", label: t("email.title"), description: t("email.description"), categories: ["communication"], icon: { glyph: "envelope", glyphPaint: "rgb(229 47 139)" }, keywords: "email mail imap smtp mailbox" },
     { id: "x", kind: "native", label: t("apps.x.title"), description: t("apps.x.description"), categories: ["marketing"], icon: logoIcon("x"), website: "x.com", keywords: "x twitter posts" },
     { id: "highlevel", kind: "native", label: t("highlevel.title"), description: t("highlevel.description"), categories: ["sales"], icon: logoIcon("highlevel"), website: "gohighlevel.com", keywords: "highlevel high level growably crm" },
+    { id: CUSTOM_MCP, kind: "native", label: t("connectApps.customMcp"), description: t("connectApps.customMcp.description"), categories: ["code"], icon: { glyph: "plug" }, keywords: "custom mcp server url remote http headers oauth" },
     { id: "postiz", kind: "native", label: "Postiz", description: t("postiz.description"), categories: ["marketing"], icon: logoIcon("postiz"), website: "postiz.com", keywords: "postiz social media posts schedule" },
     ...HOSTED_MCP_APPS.map((app): AppEntry => ({
       id: app.id, kind: "hosted", label: app.label, description: t(app.description), categories: ["finance"],
@@ -115,7 +120,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   });
   const [page, setPage] = useState<ConnectAppsPage>(requested);
   const [trail, setTrail] = useState<ConnectAppsPage[]>([]);
-  const [mcpServers, setMcpServers] = useState<McpServerSummary[]>([]);
+  const mcpServers = useMcpServers().servers;
   const [query, setQuery] = useState("");
   const [resultsOpen, setResultsOpen] = useState(false);
   const [active, setActive] = useState(-1);
@@ -126,25 +131,21 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   const [onePassword, setOnePassword] = useState<OnePasswordStatus | null>(null);
   const [skills, setSkills] = useState<SkillsLibrarySkillWire[] | null>(null);
   const [scrolled, setScrolled] = useState(false);
-  const [rowLimit, setRowLimit] = useState(ROWS_PAGE);
-  const moreRows = useRef<HTMLDivElement>(null);
   const dialog = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
-  const thumb = useScrollThumb(scroller, `${page.kind}:${"id" in page ? page.id : "category" in page ? page.category : ""}`);
+  const pageKey = `${page.kind}:${"id" in page ? page.id : "category" in page ? page.category : ""}`;
 
   useEffect(() => { setPage(requested); setTrail([]); }, [requested, nonce]);
   useEffect(() => {
     scroller.current?.scrollTo({ top: 0 });
     setScrolled(false);
-    setRowLimit(ROWS_PAGE);
     if (dialog.current && !dialog.current.contains(document.activeElement)) dialog.current.focus({ preventScroll: true });
   }, [page]);
 
   useEffect(() => {
     let alive = true;
     listLogins().then((answer) => { if (alive) setOnePassword(answer.onePassword ?? { connected: false }); }).catch(() => { if (alive) setOnePassword(null); });
-    void loadMcpServers().then((servers) => { if (alive) setMcpServers(servers); });
     fetch("/api/skills-library")
       .then(async (response) => (response.ok ? ((await response.json()) as { skills?: SkillsLibrarySkillWire[] }).skills ?? [] : []))
       .then((list) => { if (alive) setSkills(list); })
@@ -158,16 +159,6 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     return () => previous?.focus();
   }, []);
 
-  useEffect(() => {
-    const target = moreRows.current;
-    if (!target || typeof IntersectionObserver === "undefined") return;
-    const observer = new IntersectionObserver((seen) => {
-      if (seen.some((entry) => entry.isIntersecting)) setRowLimit((limit) => limit + ROWS_PAGE);
-    }, { root: scroller.current, rootMargin: "0px 0px 800px 0px" });
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [page, rowLimit]);
-
   const policy = state.config?.managedPolicy;
   const blocked = useCallback((slug: string) => policy?.apps && !policy.apps.allowAll && !policy.apps.allowlist.includes(slug)
     ? t("policy.managedBy", { organization: policy.organizationName }) : null, [policy]);
@@ -180,7 +171,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     // without composio set up its list is a placeholder that cannot connect, so a vendor's own server takes its row
     const catalog = (connectors.cards ?? [])
       .filter((card) => !managedConnectorUnavailableReason(connectors.mode, card.slug) || hasActiveConnection(connectors.status[card.slug]))
-      .filter((card) => connectors.configured || hasActiveConnection(connectors.status[card.slug]) || !keysOf(card.slug, card.label).some((key) => vendorKeys.has(key)))
+      .filter((card) => connectors.configured || connectors.via?.signedIn || hasActiveConnection(connectors.status[card.slug]) || !keysOf(card.slug, card.label).some((key) => vendorKeys.has(key)))
       .map((card): AppEntry => ({
         id: card.slug, kind: "composio", label: card.label, description: connectorDescription(card), categories: grokCategories(card.categories),
         icon: cardIcon(card), website: card.domain ?? undefined, keywords: card.slug,
@@ -192,8 +183,13 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
         id: app.id, kind: "remote", label: app.label, description: app.description, categories: grokCategories(app.categories),
         icon: remoteIcon(app), website: app.domain ?? undefined, keywords: `${app.id} mcp`,
       }));
-    return [...own, ...catalog, ...vendors];
-  }, [connectors.cards, connectors.configured, connectors.mode, connectors.status, remote.apps]);
+    // a custom MCP server lists like any app once added; its page is Custom MCP, where it is edited or removed
+    const custom = (mcpServers ?? [])
+      .filter((server) => !server.bot && server.name !== POSTIZ_SERVER && !remote.ownsServer(server.name) && !HOSTED_MCP_APPS.some((app) => server.name === app.id || server.name.startsWith(`${app.id}-`)))
+      .map((server): AppEntry => ({ id: `mcp:${server.name}`, kind: "custom", label: server.name, description: t("connectApps.mcpServer"), categories: [], icon: { glyph: "server" }, keywords: "mcp custom" }));
+    return [...own, ...catalog, ...vendors, ...custom];
+  }, [connectors.cards, connectors.configured, connectors.via?.signedIn, connectors.mode, connectors.status, remote, mcpServers]);
+  const serverOn = useMemo(() => new Map((mcpServers ?? []).map((server) => [`mcp:${server.name}`, server.enabled])), [mcpServers]);
   const remoteApps = useMemo(() => new Map(remote.apps.map((app) => [app.id, app])), [remote.apps]);
   const byId = useMemo(() => new Map(entries.map((entry) => [entry.id, entry])), [entries]);
 
@@ -203,12 +199,14 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     const known = (value: boolean | null | undefined): Connection => value == null ? "unknown" : value ? "connected" : "disconnected";
     if (entry.kind === "composio") return connectors.isConnected(id) ? "connected" : "disconnected";
     if (entry.kind === "remote") return remote.connection(id);
+    if (entry.kind === "custom") return known(serverOn.get(id));
     if (entry.kind === "logins") return known(onePassword?.connected);
     if (entry.kind === "hosted") return known(hosted?.[id as HostedMcpAppId]);
     return known(natives[id as NativeId]);
-  }, [byId, connectors, hosted, natives, onePassword, remote]);
+  }, [byId, connectors, hosted, natives, onePassword, remote, serverOn]);
 
-  const connected = entries.filter((entry) => connection(entry.id) === "connected");
+  const connected = useMemo(() => entries.filter((entry) => connection(entry.id) === "connected"), [entries, connection]);
+  const isConnected = useMemo(() => new Set(connected.map((entry) => entry.id)), [connected]);
   const known = useRef(new Map<string, Connection>());
   useEffect(() => {
     let added: AppEntry | undefined;
@@ -250,10 +248,10 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   const leaveFor = (action: Action) => { onClose(); dispatch(action); };
   // a row's Connect that opened Composio lands on the app's page, which says what to do there
   useEffect(() => {
-    const slug = connectors.setupFor;
+    const slug = connectors.setupFor ?? connectors.keyFor;
     if (slug && !(page.kind === "detail" && page.id === slug)) go({ kind: "detail", id: slug });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connectors.setupFor]);
+  }, [connectors.setupFor, connectors.keyFor]);
 
   const phaseOf = (entry: AppEntry): ConnectorPhase | null => {
     const card = cards.get(entry.id);
@@ -262,10 +260,14 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   const startConnect = (entry: AppEntry) => {
     const vendor = entry.kind === "remote" ? remoteApps.get(entry.id) : undefined;
     if (vendor) return void remote.connect(vendor);
-    if (entry.kind !== "composio" || !connectors.configured) return go({ kind: "detail", id: entry.id });
+    const ready = connectors.configured || connectors.via?.signedIn === true;
+    if (entry.kind === "composio" && !ready && !window.ogb?.remoteClient?.active) connectors.askKey(entry.id);
+    if (entry.kind !== "composio" || !ready) return go({ kind: "detail", id: entry.id });
     void connectors.connect(entry.id);
   };
   const rowAction = (entry: AppEntry): RowAction => {
+    if (entry.id === CUSTOM_MCP) return { kind: "button", label: t("common.add"), onClick: () => go({ kind: "detail", id: CUSTOM_MCP }) };
+    if (entry.kind === "custom") return connection(entry.id) === "connected" ? { kind: "connected" } : { kind: "status", label: t("connectApps.off"), tone: "quiet" };
     if (connection(entry.id) === "connected" && entry.kind !== "composio") return { kind: "connected" };
     const phase = phaseOf(entry);
     const connect: RowAction = { kind: "button", label: t("connectors.action.connect"), onClick: () => startConnect(entry) };
@@ -283,17 +285,18 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   };
   // grok's rows always say what the app does, under its name
   const row = (entry: AppEntry) => (
-    <AppRow key={entry.id} entry={entry} subtitle={entry.description} action={rowAction(entry)} onOpen={() => go({ kind: "detail", id: entry.id })} />
+    <AppRow key={entry.id} entry={entry} subtitle={entry.description} action={rowAction(entry)}
+      onOpen={() => go({ kind: "detail", id: entry.kind === "custom" ? CUSTOM_MCP : entry.id })} />
   );
 
-  const categories = presentCategories(entries);
+  const categories = useMemo(() => presentCategories(entries), [entries]);
   const inline = categories.slice(0, INLINE_CHIPS);
   const more = categories.slice(INLINE_CHIPS);
   const selected = page.kind === "category" ? page.category : null;
   const label = (category: Category) => t(CATEGORY_LABEL[category]);
 
   const trimmed = query.trim();
-  const appHits = trimmed ? searchApps(entries, trimmed) : [];
+  const appHits = useMemo(() => trimmed ? searchApps(entries, trimmed) : [], [entries, trimmed]);
   const nearMatch = (text: string) => (matchRank(text, trimmed) ?? 3) < 3;
   const skillHits = trimmed ? (skills ?? []).filter((skill) => nearMatch(skill.name) || nearMatch(skill.description)).slice(0, 4) : [];
   const categoryHits = trimmed ? categories.filter((category) => nearMatch(label(category))) : [];
@@ -349,13 +352,15 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   const sub = page.kind === "detail" || page.kind === "yours";
 
   const body = (() => {
-    if (page.kind === "detail" && page.id === MCP_PAGE) {
+    if (page.kind === "detail" && (page.id === MCP_PAGE || page.id === CUSTOM_MCP)) {
+      const custom = page.id === CUSTOM_MCP;
       return (
         <div className="ca-detail">
           <div className="ca-detail-header">
-            <GlyphTile name="server" size={56} />
-            <h3 className="ca-detail-name" data-detail-hero-title="">{t("connectApps.mcp")}</h3>
+            <GlyphTile name={custom ? "plug" : "server"} size={56} />
+            <h3 className="ca-detail-name" data-detail-hero-title="">{custom ? t("connectApps.customMcp") : t("connectApps.mcp")}</h3>
           </div>
+          {custom && <p className="ca-detail-desc mb-4">{t("connectApps.customMcp.description")}</p>}
           <McpServersPanel embedded hideHosted />
         </div>
       );
@@ -385,7 +390,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
       return <AppPage model={model} />;
     }
     if (page.kind === "yours") {
-      const servers = mcpServers.filter((server) => server.name !== POSTIZ_SERVER && !remote.ownsServer(server.name) && !HOSTED_MCP_APPS.some((app) => server.name === app.id || server.name.startsWith(`${app.id}-`)));
+      const servers = (mcpServers ?? []).filter((server) => server.name !== POSTIZ_SERVER && !byId.has(`mcp:${server.name}`) && !remote.ownsServer(server.name) && !HOSTED_MCP_APPS.some((app) => server.name === app.id || server.name.startsWith(`${app.id}-`)));
       const serverEntry = (name: string): AppEntry => ({ id: `mcp:${name}`, kind: "native", label: name, description: t("connectApps.mcpServer"), categories: [], icon: { glyph: "server" } });
       return (
         <div className="ca-yours @container">
@@ -406,8 +411,8 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
             </Group>
             <Group title={t("connectApps.mcp")}>
               <div className="grid grid-cols-1 gap-x-2 gap-y-0.5 @xl:grid-cols-2">
-                <AppRow entry={{ id: MCP_PAGE, kind: "native", label: t("apps.mcp.add"), description: t("mcp.subtitle"), categories: [], icon: { glyph: "plus" } }}
-                  subtitle={t("connectApps.mcpAdd")} action={{ kind: "none" }} onOpen={() => go({ kind: "detail", id: MCP_PAGE })} />
+                <AppRow entry={{ id: CUSTOM_MCP, kind: "native", label: t("connectApps.customMcp"), description: t("connectApps.customMcp.description"), categories: [], icon: { glyph: "plug" } }}
+                  subtitle={t("connectApps.customMcp.description")} action={{ kind: "none" }} onOpen={() => go({ kind: "detail", id: CUSTOM_MCP })} />
               </div>
             </Group>
             <Group title={t("connectApps.skills")}>
@@ -421,32 +426,35 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
         </div>
       );
     }
-    const sections: Array<{ key: string; title: string; entries: AppEntry[]; viewAll?: () => void; growing?: boolean }> = [];
+    const sections: Array<{ key: string; title: string; entries: AppEntry[]; viewAll?: () => void }> = [];
+    // what is connected leads, as its own group, and the rest follow without it
+    const rest = (list: AppEntry[]) => list.filter((entry) => !isConnected.has(entry.id));
     const picks = recommended(entries.filter(fromCatalog), connection, Infinity);
     if (page.kind === "category") {
-      sections.push(page.category === RECOMMENDED
-        ? { key: RECOMMENDED, title: t("connectApps.recommended"), entries: picks, growing: true }
-        : { key: page.category, title: label(page.category as Category), entries: inCategory(entries, page.category), growing: true });
+      const members = page.category === RECOMMENDED ? picks : inCategory(entries, page.category);
+      const mine = members.filter((entry) => isConnected.has(entry.id));
+      if (mine.length) sections.push({ key: CONNECTED, title: t("apps.connected"), entries: mine });
+      sections.push({ key: page.category, title: page.category === RECOMMENDED ? t("connectApps.recommended") : label(page.category as Category), entries: rest(members) });
     } else {
+      if (connected.length) sections.push({ key: CONNECTED, title: t("apps.connected"), entries: connected.slice(0, SECTION_SIZE), viewAll: connected.length > SECTION_SIZE ? () => go({ kind: "yours" }) : undefined });
       if (picks.length) sections.push({ key: RECOMMENDED, title: t("connectApps.recommended"), entries: picks.slice(0, SECTION_SIZE), viewAll: picks.length > SECTION_SIZE ? () => go({ kind: "category", category: RECOMMENDED }) : undefined });
       for (const category of categories) {
-        const members = inCategory(entries, category);
+        const members = rest(inCategory(entries, category));
+        if (!members.length) continue;
         sections.push({ key: category, title: label(category), entries: members.slice(0, SECTION_SIZE), viewAll: members.length > SECTION_SIZE ? () => go({ kind: "category", category }) : undefined });
       }
     }
     return (
       <div className="ca-sections @container">
         {connectors.cards === null && <p className="ca-loading">{t("connectors.loadingCatalog")}</p>}
-        {sections.map((section) => {
-          const growing = section.growing && typeof IntersectionObserver !== "undefined" && section.entries.length > rowLimit;
-          return (
-            <AppsSection key={section.key} id={`ca-section-${section.key}`} title={section.title}
-              viewAll={section.viewAll ? { label: t("apps.viewAll"), onClick: section.viewAll } : undefined}
-              after={growing ? <div ref={moreRows} aria-hidden="true" className="h-px" /> : undefined}>
-              {(growing ? section.entries.slice(0, rowLimit) : section.entries).map((entry) => row(entry))}
-            </AppsSection>
-          );
-        })}
+        {sections.map((section) => (
+          <AppsSection key={section.key} id={`ca-section-${section.key}`} title={section.title}
+            viewAll={section.viewAll ? { label: t("apps.viewAll"), onClick: section.viewAll } : undefined}>
+            {section.entries.length > WINDOW_FROM
+              ? <WindowedRows items={section.entries} scroller={scroller} render={row} />
+              : section.entries.map((entry) => row(entry))}
+          </AppsSection>
+        ))}
       </div>
     );
   })();
@@ -472,7 +480,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
             )}
             {sub && (
               <h3 aria-hidden="true" className="ca-bar-title" data-shown={scrolled ? "" : undefined}>
-                {page.kind === "yours" ? t("connectApps.manage") : page.id === MCP_PAGE ? t("connectApps.mcp") : detailEntry?.label}
+                {page.kind === "yours" ? t("connectApps.manage") : page.id === MCP_PAGE ? t("connectApps.mcp") : page.id === CUSTOM_MCP ? t("connectApps.customMcp") : detailEntry?.label}
               </h3>
             )}
           </div>
@@ -585,18 +593,14 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
                   <div className={nativeCardsShown === "postiz" ? "contents" : "hidden"}><PostizCard onConnection={nativeSetters.postiz} /></div>
                   {onePasswordShown && <OnePasswordBody status={onePassword} onChange={setOnePassword} onManage={() => leaveFor(SETTINGS("logins"))} />}
                 </div>
-                {detailEntry && detailEntry.kind !== "composio" && (
+                {detailEntry && detailEntry.kind !== "composio" && detailEntry.id !== CUSTOM_MCP && (
                   <div className="ca-native-facts">
                     <AppFacts facts={appFacts({ entry: detailEntry, categoryLabel: detailEntry.categories[0] ? label(detailEntry.categories[0]) : null, usedBy: [] })} />
                   </div>
                 )}
               </div>
             </div>
-            {thumb && (
-              <div role="presentation" className="ca-scrollbar" data-scrolling={thumb.scrolling ? "" : undefined}>
-                <div style={{ top: thumb.top, height: thumb.height }} />
-              </div>
-            )}
+            <ScrollThumb scroller={scroller} page={pageKey} />
           </div>
           {toast && (
             <div className="ca-toast" role="status" aria-live="polite" data-kind={toast.kind}>
@@ -645,6 +649,17 @@ function Option({ index, active, onHover, onPick, icon, label }: {
       <span>{label}</span>
       <GrokIcon name="chevron-right" size={12} />
     </button>
+  );
+}
+
+/** The thin thumb, in a component of its own: it moves on every scroll frame and the window around it never renders for it. */
+function ScrollThumb({ scroller, page }: { scroller: React.RefObject<HTMLDivElement | null>; page: string }) {
+  const thumb = useScrollThumb(scroller, page);
+  if (!thumb) return null;
+  return (
+    <div role="presentation" className="ca-scrollbar" data-scrolling={thumb.scrolling ? "" : undefined}>
+      <div style={{ top: thumb.top, height: thumb.height }} />
+    </div>
   );
 }
 

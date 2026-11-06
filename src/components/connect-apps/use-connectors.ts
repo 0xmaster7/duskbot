@@ -6,7 +6,7 @@ import type { LocaleKey } from "@/locales";
 import { readCachedInventory } from "@/lib/connected-apps-cache";
 import { connectorStatusMemory, preloadConnectedApps, rememberConnectorStatus } from "@/lib/connected-apps";
 import { reserveConnectionPage, reusableConnectionUrl, type PendingAuthorization } from "@/lib/connector-oauth";
-import { mcpSignInLink } from "@/lib/mcp-sign-in";
+import { mcpSignInLink, runMcpSignIn } from "@/lib/mcp-sign-in";
 import { pollConnector } from "@/lib/connector-poll";
 import { connectorConnect } from "@/lib/product-events";
 import { lacksAdminScope } from "@/lib/admin-scope";
@@ -17,6 +17,17 @@ import type { ToolkitCard } from "../ServiceIcon";
 import { cachedComposioSnapshot, loadComposioSnapshot, mergeCatalog } from "./composio-snapshot";
 
 export type ConnectorError = string | { key: LocaleKey } | null;
+/** Composio Connect, Composio's own MCP server, signed in with Composio's page: apps connect through it with no key. */
+export interface ComposioConnect { added: boolean; name: string | null; signedIn: boolean; enabled: boolean }
+export const COMPOSIO_CONNECT_NAME = "composio-connect";
+export const COMPOSIO_CONNECT_URL = "https://connect.composio.dev/mcp";
+const VIA_APPS = "omb.composioConnect.apps";
+const VIA_POLL_MS = 8_000;
+const VIA_POLL_TRIES = 15;
+function readViaApps(): Record<string, true> {
+  try { return JSON.parse(localStorage.getItem(VIA_APPS) ?? "{}") as Record<string, true>; } catch { return {}; }
+}
+export type ConnectionPage = ReturnType<typeof reserveConnectionPage>;
 export type ConnectorMode = "managed" | "self-hosted" | "unavailable";
 
 /** What a Composio app's row and page show. */
@@ -45,13 +56,27 @@ export interface Connectors {
   aliasFor: string | null;
   /** The app whose last Connect opened Composio to set its sign-in up. */
   setupFor: string | null;
+  /** The app whose Connect waits for a Composio sign-in or key. */
+  keyFor: string | null;
+  /** Composio Connect, once read. */
+  via: ComposioConnect | null;
+  /** Apps connected through Composio Connect on this device. */
+  viaApps: Record<string, true>;
+  /** Adds Composio Connect when it is missing, signs in on Composio's page in the tab reserved on the click, and turns it
+   * on for bots. Resolves whether it is signed in. */
+  signInComposio: (launch: ConnectionPage) => Promise<boolean>;
   setError: (error: ConnectorError) => void;
   askAlias: (slug: string | null) => void;
+  askKey: (slug: string | null) => void;
   phaseOf: (card: ToolkitCard, policyBlocked: string | null) => ConnectorPhase;
   isConnected: (slug: string) => boolean;
   connect: (slug: string, alias?: string, replacing?: ConnectorAccount) => Promise<void>;
+  /** After a Composio key is saved: reads the catalog and connections again, then goes on with `slug`'s Connect in the tab
+   * reserved on the click, unless the key's project already has it connected. */
+  continueAfterKey: (slug: string, launch: ConnectionPage) => Promise<void>;
   resume: (slug: string) => void;
-  disconnect: (slug: string, accountId: string) => void;
+  /** Resolves false when Composio would not remove the account. */
+  disconnect: (slug: string, accountId: string) => Promise<boolean>;
   reload: () => void;
 }
 
@@ -69,6 +94,12 @@ export function loadConnectorCatalog(): Promise<CatalogAnswer> {
 
 export const cachedConnectorCatalog = (): CatalogAnswer | null => catalogAnswer;
 
+/** A new answer even when one is on its way: a key saved meanwhile changes what the catalog says. */
+function reloadConnectorCatalog(): Promise<CatalogAnswer> {
+  const pending = catalogRequest;
+  return (pending ?? Promise.resolve(null)).catch(() => null).then(() => { catalogRequest = null; return loadConnectorCatalog(); });
+}
+
 /** The Composio catalog and its connections, with the same connect flow the Apps page has always run: reserve the tab on
  * the click, authorize, open the sign-in page, then poll until the account turns up. */
 export function useConnectors(): Connectors {
@@ -85,13 +116,23 @@ export function useConnectors(): Connectors {
   const [busySlug, setBusySlug] = useState<string | null>(null);
   const [aliasFor, setAliasFor] = useState<string | null>(null);
   const [setupFor, setSetupFor] = useState<string | null>(null);
+  const [keyFor, setKeyFor] = useState<string | null>(null);
+  const [via, setVia] = useState<ComposioConnect | null>(null);
+  const [viaApps, setViaApps] = useState<Record<string, true>>(readViaApps);
+  const [viaPending, setViaPending] = useState<Record<string, string>>({});
+  const viaNow = useRef<ComposioConnect | null>(null);
+  viaNow.current = via;
+  // apps the broker's project cannot sign in to: Composio Connect connects them once signed in
+  const unmanaged = useRef(new Set<string>());
   const [error, setError] = useState<ConnectorError>(null);
   const [reloads, setReloads] = useState(0);
 
   const polls = useRef(new Map<string, () => void>());
   const generations = useRef(new Map<string, number>());
   const latestRequests = useRef(new Map<string, number>());
-  const opening = useRef<ReturnType<typeof reserveConnectionPage> | null>(null);
+  const opening = useRef<ConnectionPage | null>(null);
+  const modeNow = useRef(mode);
+  modeNow.current = mode;
 
   const forgetSettled = (services: Record<string, ConnectorStatus>, requested: ReadonlyMap<string, number>) => {
     const settled = Object.entries(services).filter(([slug, state]) => (generations.current.get(slug) ?? 0) === (requested.get(slug) ?? 0)
@@ -136,6 +177,9 @@ export function useConnectors(): Connectors {
         if (!hadInventory) setPhase("error");
         setError(cause instanceof Error ? cause.message : String(cause));
       });
+    api("/api/connectors/composio-connect")
+      .then((answer: ComposioConnect) => { if (alive) setVia(answer); })
+      .catch(() => { if (alive) setVia(null); });
     loadConnectorCatalog()
       .then((response) => {
         if (!alive) return;
@@ -181,9 +225,96 @@ export function useConnectors(): Connectors {
     polls.current.set(slug, stop);
   };
 
+  // no broker and no key, or an app the broker cannot sign in to: through Composio Connect, when signed in to it
+  const throughConnect = (slug: string) => viaNow.current?.signedIn === true && (!configured || unmanaged.current.has(slug));
+
   const connect = async (slug: string, alias?: string, replacing?: ConnectorAccount) => {
     if (busySlug || opening.current) return;
-    const launch = reserveConnectionPage();
+    if (throughConnect(slug) && !replacing) { await connectVia(slug, reserveConnectionPage()); return; }
+    await run(slug, reserveConnectionPage(), alias, replacing);
+  };
+
+  const markVia = (slug: string) => {
+    setViaApps((current) => {
+      const next: Record<string, true> = { ...current, [slug]: true };
+      try { localStorage.setItem(VIA_APPS, JSON.stringify(next)); } catch { /* private mode */ }
+      return next;
+    });
+    setViaPending((current) => Object.fromEntries(Object.entries(current).filter(([key]) => key !== slug)));
+    connectorConnect(slug, "connected");
+  };
+
+  const askVia = (slug: string) => api(`/api/connectors/composio-connect/apps/${encodeURIComponent(slug)}`, { method: "POST" }) as
+    Promise<{ status: "connected" } | { status: "started"; url: string } | { status: "failed"; message: string }>;
+
+  // composio's tool answers again on each check; it starts a link only while the app has no connection
+  const pollVia = (slug: string) => {
+    polls.current.get(slug)?.();
+    let tries = 0;
+    const timer = setInterval(() => {
+      tries += 1;
+      void askVia(slug).then((answer) => {
+        if (polls.current.get(slug) !== stop) return;
+        if (answer.status === "connected") { stop(); markVia(slug); } else if (tries >= VIA_POLL_TRIES) stop();
+      }).catch(() => { if (tries >= VIA_POLL_TRIES) stop(); });
+    }, VIA_POLL_MS);
+    const stop = () => { clearInterval(timer); if (polls.current.get(slug) === stop) polls.current.delete(slug); };
+    polls.current.set(slug, stop);
+  };
+
+  const connectVia = async (slug: string, launch: ConnectionPage) => {
+    if (opening.current) { launch.cancel(); return; }
+    opening.current = launch;
+    setBusySlug(slug);
+    setError(null);
+    try {
+      const answer = await askVia(slug);
+      if (opening.current !== launch) return;
+      if (answer.status === "connected") { markVia(slug); return; }
+      if (answer.status === "failed") throw new Error(answer.message);
+      const url = mcpSignInLink(answer.url);
+      if (!url) throw new Error(t("connectors.invalidAuthorizationUrl"));
+      setViaPending((current) => ({ ...current, [slug]: url }));
+      setKeyFor(null);
+      pollVia(slug);
+      if (!await launch.open(url) && opening.current === launch) setError({ key: "connectors.popupBlockedContinue" });
+    } catch (cause) {
+      if (opening.current === launch) setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      launch.cancel();
+      if (opening.current === launch) {
+        opening.current = null;
+        setBusySlug(null);
+      }
+    }
+  };
+
+  const signInComposio = async (launch: ConnectionPage): Promise<boolean> => {
+    try {
+      const name = viaNow.current?.added ? viaNow.current.name ?? COMPOSIO_CONNECT_NAME : COMPOSIO_CONNECT_NAME;
+      if (!viaNow.current?.added) {
+        await api("/api/mcp/servers", { method: "POST", body: JSON.stringify({ name, type: "http", url: COMPOSIO_CONNECT_URL, enabled: false }) });
+      }
+      const result = await runMcpSignIn(name, { api, open: async (url) => { await launch.open(url); } });
+      if (result.phase !== "succeeded") return false;
+      await api(`/api/mcp/servers/${encodeURIComponent(name)}`, { method: "PATCH", body: JSON.stringify({ enabled: true }) });
+      const next = await api("/api/connectors/composio-connect") as ComposioConnect;
+      viaNow.current = next;
+      setVia(next);
+      return next.signedIn === true;
+    } finally {
+      launch.cancel();
+    }
+  };
+
+  const run = async (slug: string, launch: ConnectionPage, alias?: string, replacing?: ConnectorAccount) => {
+    let viaNext = false;
+    await runOnce(slug, launch, alias, replacing, () => { viaNext = true; });
+    if (viaNext) await connectVia(slug, reserveConnectionPage());
+  };
+
+  const runOnce = async (slug: string, launch: ConnectionPage, alias: string | undefined, replacing: ConnectorAccount | undefined, goVia: () => void) => {
+    let viaNext = false;
     opening.current = launch;
     generations.current.set(slug, (generations.current.get(slug) ?? 0) + 1);
     setBusySlug(slug);
@@ -200,13 +331,18 @@ export function useConnectors(): Connectors {
       setPendingUrls((current) => ({ ...current, [slug]: { url, createdAt } }));
       setStatus((current) => ({ ...current, [slug]: { ...current[slug], connected: current[slug]?.connected ?? false, pending: true, status: "INITIATED" } }));
       setAliasFor(null);
+      setKeyFor(null);
       setSetupFor((current) => current === slug ? null : current);
       startPolling(slug, status[slug]);
       if (!await launch.open(url) && opening.current === launch) setError({ key: "connectors.popupBlockedContinue" });
     } catch (cause) {
       if (opening.current !== launch) return;
       const message = cause instanceof Error ? cause.message : String(cause);
-      if (needsComposioAuthConfig(message)) {
+      if (needsComposioAuthConfig(message) && modeNow.current === "managed") {
+        // the broker's project cannot sign in to it; Composio Connect, or the person's own key, can
+        unmanaged.current.add(slug);
+        if (viaNow.current?.signedIn) viaNext = true; else setKeyFor(slug);
+      } else if (needsComposioAuthConfig(message)) {
         // no dead end: the tab reserved on the click opens where the person sets it up, and the page says so
         setSetupFor(slug);
         await launch.open(COMPOSIO_AUTH_CONFIGS_URL);
@@ -223,11 +359,12 @@ export function useConnectors(): Connectors {
         opening.current = null;
         setBusySlug(null);
       }
+      if (viaNext) goVia();
     }
   };
 
   const resume = (slug: string) => {
-    const url = reusableConnectionUrl(pendingUrls[slug]);
+    const url = viaPending[slug] ?? reusableConnectionUrl(pendingUrls[slug]);
     if (!url) { void connect(slug); return; }
     if (opening.current) return;
     const launch = reserveConnectionPage();
@@ -242,11 +379,43 @@ export function useConnectors(): Connectors {
       });
   };
 
-  const disconnect = (slug: string, accountId: string) => {
+  const continueAfterKey = async (slug: string, launch: ConnectionPage) => {
+    if (busySlug || opening.current) { launch.cancel(); return; }
+    opening.current = launch;
     setBusySlug(slug);
-    api(`/api/connectors/${slug}/accounts/${encodeURIComponent(accountId)}`, { method: "DELETE" })
-      .then(() => refreshStatus([slug]))
-      .catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)))
+    let goOn = false;
+    try {
+      const [answer, inventory] = await Promise.all([reloadConnectorCatalog(), preloadConnectedApps(true)]);
+      if (opening.current !== launch) return;
+      setLive(answer.cards ?? []);
+      setSource(answer.source);
+      setConfigured(Boolean(answer.configured));
+      setMode(answer.mode ?? "unavailable");
+      modeNow.current = answer.mode ?? "unavailable";
+      setSetup(answer.setup);
+      setStale(!inventory.authoritative);
+      setStatus((current) => ({ ...current, ...inventory.services }));
+      setPhase("ready");
+      setKeyFor(null);
+      // the key's project may have the app connected already: then there is nothing to sign in to
+      goOn = !hasActiveConnection(inventory.services[slug]);
+    } catch (cause) {
+      if (opening.current === launch) setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      if (opening.current === launch && !goOn) {
+        launch.cancel();
+        opening.current = null;
+        setBusySlug(null);
+      }
+    }
+    if (goOn) await run(slug, launch);
+  };
+
+  const disconnect = (slug: string, accountId: string): Promise<boolean> => {
+    setBusySlug(slug);
+    return api(`/api/connectors/${slug}/accounts/${encodeURIComponent(accountId)}`, { method: "DELETE" })
+      .then(() => refreshStatus([slug]).then(() => true))
+      .catch(() => false)
       .finally(() => setBusySlug(null));
   };
 
@@ -258,6 +427,8 @@ export function useConnectors(): Connectors {
     if (unavailable) return { kind: "unavailable", reason: unavailable };
     if (card.noAuth === true || (state?.connected === true && !state.accounts?.length && !pending && !failed)) return { kind: "included" };
     if (busySlug === card.slug) return { kind: "connecting" };
+    if (viaApps[card.slug] && !hasActiveConnection(state)) return { kind: "connected" };
+    if (viaPending[card.slug]) return { kind: "continue", url: viaPending[card.slug]! };
     if (phase === "loading") return { kind: "checking" };
     if (pending) return { kind: "continue", url: reusableConnectionUrl(pendingUrls[card.slug]) };
     const reconnect = accountToReconnect(state);
@@ -267,10 +438,10 @@ export function useConnectors(): Connectors {
   };
 
   return {
-    cards, configured, mode, setup, stale, phase, status, error, aliasFor, setupFor,
-    setError, askAlias: setAliasFor, phaseOf,
-    isConnected: (slug) => hasActiveConnection(status[slug]),
-    connect, resume, disconnect,
+    cards, configured, mode, setup, stale, phase, status, error, aliasFor, setupFor, keyFor, via, viaApps, signInComposio,
+    setError, askAlias: setAliasFor, askKey: setKeyFor, phaseOf,
+    isConnected: (slug) => hasActiveConnection(status[slug]) || viaApps[slug] === true,
+    connect, continueAfterKey, resume, disconnect,
     reload: () => setReloads((count) => count + 1),
   };
 }

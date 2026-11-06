@@ -40,7 +40,7 @@ vi.mock("@/lib/connector-oauth", async (original) => ({
 }));
 vi.mock("@/lib/connector-poll", () => ({ pollConnector: () => () => {} }));
 vi.mock("@/lib/logins", () => ({ listLogins: async () => ({ logins: [], onePassword: { connected: false } }) }));
-vi.mock("@/lib/mcp-servers", () => ({ loadMcpServers: async () => [] }));
+vi.mock("@/lib/mcp-servers", () => ({ useMcpServers: () => ({ servers: [], error: false, refresh: async () => [] }) }));
 vi.mock("../McpServersPanel", () => ({ McpServersPanel: () => null }));
 vi.mock("../XCard", () => ({ XCard: () => null }));
 vi.mock("../EmailCard", () => ({ EmailCard: () => null }));
@@ -101,9 +101,10 @@ describe("the Connect Apps window", () => {
     expect(dialog().querySelector("[data-bot-templates-link]")?.textContent).toContain("Bot templates");
     const chips = [...dialog().querySelectorAll('[data-marketplace-chips] button')].map((chip) => chip.textContent?.replace(/[\uE000-\uF8FF]/gu, ""));
     expect(chips).toEqual(["All", "Password Managers", "Productivity", "Communication", "Design", "Code", "More"]);
-    expect(titles()[0]).toBe("Recommended for you");
+    expect(titles().slice(0, 2), "what is connected leads, then the rest").toEqual(["Connected", "Recommended for you"]);
     expect(titles()).toContain("Password Managers");
-    expect(dialog().querySelector('[data-app-row="slack"]')?.textContent).toContain("Connected");
+    expect(dialog().querySelector('#ca-section-connected')?.closest("section")?.querySelector('[data-app-row="slack"]')?.textContent).toContain("Connected");
+    expect(dialog().querySelectorAll('[data-app-row="slack"]'), "a connected app is not listed twice").toHaveLength(1);
     expect(dialog().querySelector('[data-app-row="outlook"] .ca-pill')?.getAttribute("aria-label")).toBe("Connect Outlook");
     expect(dialog().querySelector('[data-app-row="outlook"] .ca-row-subtitle')?.textContent, "each row says what its app does, as grok's do").toBeTruthy();
   });
@@ -112,8 +113,10 @@ describe("the Connect Apps window", () => {
     await act(async () => { button("Design")!.click(); });
     expect(titles()).toEqual(["Design"]);
     expect(button("Design")!.getAttribute("aria-pressed")).toBe("true");
-    await act(async () => { button("Design")!.click(); });
-    expect(titles()[0]).toBe("Recommended for you");
+    await act(async () => { button("Communication")!.click(); });
+    expect(titles(), "a category's connected apps come first").toEqual(["Connected", "Communication"]);
+    await act(async () => { button("Communication")!.click(); });
+    expect(titles()[0]).toBe("Connected");
   });
 
   it("finds apps, skills and categories as you type, and opens the one Enter picks", async () => {
@@ -186,46 +189,168 @@ describe("the Connect Apps window", () => {
     expect(dialog().querySelector("[data-composio-setup]")).toBeNull();
   });
 
-  it("with the managed broker says the project's key goes in Settings too", async () => {
-    act(() => root.unmount());
-    fixture.api.mockImplementation(async (path: string) => {
-      if (path === "/api/connectors/catalog") return { configured: true, mode: "managed", setup: "ready", source: "api", cards: CARDS };
-      if (path === "/api/connectors/attio/authorize") throw new ApiError(managedCustomAuthReason("attio"), 409, { error: managedCustomAuthReason("attio") });
-      return { services: {} };
+  describe("Connect asks for a Composio key right here", () => {
+    let keySaved = false;
+    let connectedAfterKey: Record<string, unknown> = {};
+    const remount = async (page: Parameters<typeof ConnectAppsWindow>[0]["page"], mode: string) => {
+      act(() => root.unmount());
+      keySaved = false;
+      fixture.api.mockImplementation(async (path: string, init?: RequestInit) => {
+        if (path === "/api/connectors/catalog") {
+          return keySaved
+            ? { configured: true, mode: "self-hosted", setup: "ready", source: "api", cards: CARDS }
+            : { configured: mode === "managed", mode, setup: mode === "managed" ? "ready" : "needs-setup", source: "curated", cards: CARDS };
+        }
+        if (path === "/api/config" && init?.method === "PUT") {
+          const sent = JSON.parse(String(init.body)) as { composio?: { apiKey?: string } };
+          if (sent.composio?.apiKey !== "ak_good") throw new ApiError("Composio rejected this key (HTTP 401)", 400, { error: "Composio rejected this key (HTTP 401)" });
+          keySaved = true;
+          return { composio: { mode: "self-hosted", configured: true } };
+        }
+        if (path === "/api/connectors/attio/authorize") {
+          if (!keySaved) throw new ApiError(managedCustomAuthReason("attio"), 409, { error: managedCustomAuthReason("attio") });
+          return { url: "https://connect.example/attio" };
+        }
+        return { services: {} };
+      });
+      const original = fixture.connected;
+      fixture.connected = new Proxy({}, { get: (_target, key: string) => (keySaved ? connectedAfterKey : original)[key], ownKeys: () => Reflect.ownKeys(keySaved ? connectedAfterKey : original), getOwnPropertyDescriptor: (_target, key) => ({ enumerable: true, configurable: true, value: (keySaved ? connectedAfterKey : original)[key as string] }) });
+      const { loadConnectorCatalog } = await import("./use-connectors");
+      await loadConnectorCatalog();
+      root = createRoot(document.body.appendChild(document.createElement("div")));
+      await act(async () => { root.render(createElement(ConnectAppsWindow, { page, nonce: 4, onClose, onTemplates: vi.fn() })); });
+      await flush();
+    };
+    const paste = async (value: string) => {
+      const own = [...dialog().querySelectorAll<HTMLButtonElement>("[data-composio-key] button")].find((element) => element.textContent === "Use my own Composio API key");
+      if (own) await act(async () => { own.click(); });
+      const input = dialog().querySelector<HTMLInputElement>("[data-composio-key] input")!;
+      await act(async () => {
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+        setter.call(input, value);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await act(async () => { input.form!.requestSubmit(); });
+      await flush();
+    };
+    afterEach(() => { connectedAfterKey = {}; fixture.connected = { slack: { connected: true, accounts: [{ id: "ca_1", status: "ACTIVE" }] } }; });
+
+    it("without a broker or a key: a row's Connect opens the key step, and the key verifies, saves and connects the app", async () => {
+      await remount({ kind: "home" }, "unavailable");
+      expect(dialog().querySelector('[data-app-row="attio"]')).not.toBeNull();
+      await act(async () => { dialog().querySelector<HTMLButtonElement>('[data-app-row="attio"] .ca-pill')!.click(); });
+      await flush();
+      expect(fixture.api).not.toHaveBeenCalledWith("/api/connectors/attio/authorize", expect.anything());
+      expect(onClose, "no trip to Settings").not.toHaveBeenCalled();
+      const step = dialog().querySelector("[data-app-page='attio'] [data-composio-key]")!;
+      expect(step.textContent).toContain("It's free, no card needed.");
+      expect(step.querySelector("[data-composio-sign-in]")?.textContent, "signing in is the main way").toContain("Sign in with Composio");
+      await act(async () => { [...step.querySelectorAll("button")].find((element) => element.textContent === "Use my own Composio API key")!.click(); });
+      expect([...step.querySelectorAll("li")].map((item) => item.textContent?.replace(/^\d/, ""))).toEqual([
+        "Sign up or log in to ComposioOpen Composio", "Copy your API key from Settings, API KeysOpen API Keys", "Paste it here and Attio connects",
+      ]);
+      expect([...step.querySelectorAll("a")].map((link) => link.getAttribute("href")))
+        .toEqual(["https://dashboard.composio.dev", "https://dashboard.composio.dev/~/project/settings/api-keys"]);
+      await paste("ak_good");
+      expect(fixture.api).toHaveBeenCalledWith("/api/config", { method: "PUT", body: JSON.stringify({ composio: { apiKey: "ak_good" } }) });
+      expect(fixture.dispatch).toHaveBeenCalledWith({ type: "configStatus", config: { composio: { mode: "self-hosted", configured: true } } });
+      expect(fixture.api).toHaveBeenCalledWith("/api/connectors/attio/authorize", { method: "POST" });
+      expect(fixture.opened).toEqual(["https://connect.example/attio"]);
+      expect(dialog().querySelector("[data-composio-key]")).toBeNull();
     });
-    const { loadConnectorCatalog } = await import("./use-connectors");
-    await loadConnectorCatalog();
-    root = createRoot(document.body.appendChild(document.createElement("div")));
-    await act(async () => { root.render(createElement(ConnectAppsWindow, { page: { kind: "detail", id: "attio" }, nonce: 3, onClose, onTemplates: vi.fn() })); });
-    await flush();
-    await act(async () => { dialog().querySelector<HTMLButtonElement>("[data-app-page] .ca-primary")!.click(); });
-    await flush();
-    expect(fixture.opened).toEqual(["https://dashboard.composio.dev/~/project/auth-configs"]);
-    const line = dialog().querySelector("[data-composio-setup]")!;
-    expect(line.textContent).toContain("add that project's key in Settings, then check again.");
-    await act(async () => { [...line.querySelectorAll("button")].find((element) => element.textContent === "Open settings")!.click(); });
-    expect(onClose).toHaveBeenCalled();
+
+    it("Sign in with Composio adds Composio Connect, signs in on Composio's page and connects the app through it, no key", async () => {
+      await remount({ kind: "detail", id: "attio" }, "unavailable");
+      let signedIn = false;
+      const base = fixture.api.getMockImplementation()!;
+      fixture.api.mockImplementation(async (path: string, init?: RequestInit) => {
+        if (path === "/api/connectors/composio-connect") return { added: signedIn, name: signedIn ? "composio-connect" : null, signedIn, enabled: signedIn };
+        if (path === "/api/mcp/servers" && init?.method === "POST") return { servers: [] };
+        if (path === "/api/mcp/servers/composio-connect/sign-in") { signedIn = true; return { auth: { phase: "succeeded", flowId: null, authorizationUrl: null } }; }
+        if (path === "/api/mcp/servers/composio-connect" && init?.method === "PATCH") return { servers: [] };
+        if (path === "/api/connectors/composio-connect/apps/attio") return { status: "started", url: "https://connect.composio.dev/link/ln_attio" };
+        return base(path, init);
+      });
+      await act(async () => { dialog().querySelector<HTMLButtonElement>("[data-composio-sign-in]")!.click(); });
+      await flush();
+      expect(fixture.api).toHaveBeenCalledWith("/api/mcp/servers", { method: "POST", body: JSON.stringify({ name: "composio-connect", type: "http", url: "https://connect.composio.dev/mcp", enabled: false }) });
+      expect(fixture.api).toHaveBeenCalledWith("/api/mcp/servers/composio-connect", { method: "PATCH", body: JSON.stringify({ enabled: true }) });
+      expect(fixture.api).not.toHaveBeenCalledWith("/api/config", expect.anything());
+      expect(fixture.opened).toEqual(["https://connect.composio.dev/link/ln_attio"]);
+      expect(dialog().querySelector("[data-composio-key]"), "signed in: no step any more").toBeNull();
+    });
+
+    it("an app Composio Connect already has turns connected at once", async () => {
+      const kept = new Map<string, string>();
+      vi.stubGlobal("localStorage", { getItem: (key: string) => kept.get(key) ?? null, setItem: (key: string, value: string) => { kept.set(key, value); }, removeItem: (key: string) => { kept.delete(key); } });
+      await remount({ kind: "detail", id: "attio" }, "unavailable");
+      const base = fixture.api.getMockImplementation()!;
+      fixture.api.mockImplementation(async (path: string, init?: RequestInit) => {
+        if (path === "/api/connectors/composio-connect") return { added: true, name: "composio-connect", signedIn: true, enabled: true };
+        if (path === "/api/connectors/composio-connect/apps/attio") return { status: "connected" };
+        return base(path, init);
+      });
+      act(() => root.unmount());
+      root = createRoot(document.body.appendChild(document.createElement("div")));
+      await act(async () => { root.render(createElement(ConnectAppsWindow, { page: { kind: "detail", id: "attio" }, nonce: 5, onClose, onTemplates: vi.fn() })); });
+      await flush();
+      expect(dialog().querySelector("[data-composio-key]")).toBeNull();
+      await act(async () => { dialog().querySelector<HTMLButtonElement>("[data-app-page] .ca-primary")!.click(); });
+      await flush();
+      expect(fixture.opened).toEqual([]);
+      expect(JSON.parse(kept.get("omb.composioConnect.apps") ?? "{}")).toEqual({ attio: true });
+      expect(dialog().querySelector("[data-app-page] .ca-primary"), "connected: nothing left to click").toBeNull();
+    });
+
+    it("a key Composio refuses says so in one line and connects nothing", async () => {
+      await remount({ kind: "detail", id: "attio" }, "unavailable");
+      await paste("ak_bad");
+      expect(dialog().querySelector("[data-composio-key] [role=alert] > span")?.textContent).toBe("Composio didn't accept that key. Copy it again from API Keys.");
+      expect(fixture.api).not.toHaveBeenCalledWith("/api/connectors/attio/authorize", expect.anything());
+      await paste("not a key");
+      expect(dialog().querySelector("[data-composio-key] [role=alert] > span")?.textContent).toBe("Composio keys start with ak_. Copy it again from API Keys.");
+    });
+
+    it("with the managed broker, an app it cannot sign in to asks for the person's own key instead of a dead end", async () => {
+      await remount({ kind: "detail", id: "attio" }, "managed");
+      await act(async () => { dialog().querySelector<HTMLButtonElement>("[data-app-page] .ca-primary")!.click(); });
+      await flush();
+      expect(fixture.opened, "no Composio tab the broker could not use").toEqual([]);
+      expect(dialog().querySelector("[data-composio-key]")?.textContent).toContain("Attio connects through your own Composio account.");
+      await paste("ak_good");
+      expect(fixture.opened).toEqual(["https://connect.example/attio"]);
+    });
+
+    it("an app the key's project already has shows connected without signing in again", async () => {
+      connectedAfterKey = { attio: { connected: true, accounts: [{ id: "ca_attio_dash", status: "ACTIVE" }] } };
+      await remount({ kind: "detail", id: "attio" }, "unavailable");
+      await paste("ak_good");
+      expect(fixture.api).not.toHaveBeenCalledWith("/api/connectors/attio/authorize", expect.anything());
+      expect(fixture.opened).toEqual([]);
+      expect(dialog().querySelector("[data-app-page='attio'] [data-account='ca_attio_dash']")).not.toBeNull();
+    });
   });
 
-  it("without a broker or a key still lists the whole catalog, and Connect leads to the Composio key in Settings", async () => {
-    act(() => root.unmount());
-    fixture.api.mockImplementation(async (path: string) => path === "/api/connectors/catalog"
-      ? { configured: false, mode: "unavailable", setup: "needs-setup", source: "curated", cards: [card("slack", "Slack", "Communication")] }
-      : { services: {} });
-    const { loadConnectorCatalog } = await import("./use-connectors");
-    await loadConnectorCatalog();
-    root = createRoot(document.body.appendChild(document.createElement("div")));
-    await act(async () => { root.render(createElement(ConnectAppsWindow, { page: { kind: "home" }, nonce: 2, onClose, onTemplates: vi.fn() })); });
+  it("lists accounts as grok does: Disconnect asks again in place, then removes it", async () => {
+    await act(async () => { dialog().querySelector<HTMLButtonElement>('[data-app-row="slack"] .ca-row-open')!.click(); });
     await flush();
-    expect(dialog().querySelector('[data-app-row="attio"]')).not.toBeNull();
-    expect(dialog().querySelector('[data-app-row="slack"]')).not.toBeNull();
-    await act(async () => { dialog().querySelector<HTMLButtonElement>('[data-app-row="attio"] .ca-pill')!.click(); });
-    expect(fixture.api).not.toHaveBeenCalledWith("/api/connectors/attio/authorize", expect.anything());
-    const connect = dialog().querySelector<HTMLButtonElement>("[data-app-page] .ca-primary")!;
-    expect(connect.disabled).toBe(false);
-    await act(async () => { connect.click(); });
-    expect(onClose).toHaveBeenCalled();
-    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "toggleAppSettings", open: true, section: "connections" });
+    const row = () => dialog().querySelector("[data-account='ca_1']")!;
+    expect(row().textContent).toContain("Linked account");
+    expect(dialog().querySelector("[data-accounts]")?.textContent).toContain("Add account");
+    await act(async () => { row().querySelector<HTMLButtonElement>('[aria-label^="Disconnect"]')!.click(); });
+    expect(fixture.api).not.toHaveBeenCalledWith("/api/connectors/slack/accounts/ca_1", expect.anything());
+    const confirm = row().querySelector<HTMLButtonElement>('[aria-label="Confirm disconnecting Linked account"]')!;
+    expect(confirm.textContent).toBe("Confirm Disconnect");
+    await act(async () => { confirm.click(); });
+    await flush();
+    expect(fixture.api).toHaveBeenCalledWith("/api/connectors/slack/accounts/ca_1", { method: "DELETE" });
+  });
+
+  it("adds any MCP server from the Custom MCP row", async () => {
+    const custom = dialog().querySelector('[data-app-row="custom-mcp"]')!;
+    expect(custom.textContent).toContain("Custom MCP");
+    await act(async () => { custom.querySelector<HTMLButtonElement>(".ca-pill")!.click(); });
+    expect(dialog().querySelector("[data-detail-hero-title]")?.textContent).toBe("Custom MCP");
   });
 
   it("closes on Escape, and the search's Escape only closes its results", async () => {

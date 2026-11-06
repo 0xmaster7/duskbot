@@ -1,5 +1,5 @@
 import { createServer, type Server } from "node:http";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AppConfig } from "./config.ts";
 import {
@@ -66,7 +66,7 @@ const calls: Array<{
 let malformedConnectedAccounts = false;
 let connectedAccountsUnavailable = false;
 let emptyConnectedAccounts = false;
-let connectedAccountsOverride: Array<{ id: string; alias?: string; status?: string; toolkit: { slug: string } }> | null = null;
+let connectedAccountsOverride: Array<{ id: string; alias?: string; status?: string; user_id?: string; owner?: string; toolkit: { slug: string } }> | null = null;
 // The grant editor's tools/list fixture: null keeps the legacy one-frame
 // {source:"broker"} answer the relayMcp tests assert on.
 let brokerMcpTools: Array<{ name: string; description?: string }> | null = null;
@@ -356,7 +356,13 @@ beforeAll(async () => {
       res.writeHead(200, { "content-type": "application/json" });
       if (malformedConnectedAccounts) return res.end(JSON.stringify({ items: {} }));
       if (emptyConnectedAccounts) return res.end(JSON.stringify({ items: [] }));
-      if (connectedAccountsOverride) return res.end(JSON.stringify({ items: connectedAccountsOverride }));
+      if (connectedAccountsOverride) {
+        const owner = url.searchParams.get("user_ids");
+        // `owner`: who owns an account whose listing leaves user_id out
+        return res.end(JSON.stringify({ items: connectedAccountsOverride
+          .filter((account) => !owner || (account.user_id ?? account.owner ?? owner) === owner)
+          .map(({ owner: _owner, ...account }) => account) }));
+      }
       if (url.searchParams.get("cursor") === "accounts-page-2") {
         return res.end(JSON.stringify({
           items: [
@@ -772,6 +778,43 @@ describe.sequential("Composio Sessions", () => {
       apiKey: "ak_test",
       userId: "openmausbot_existing",
       sessionId: "trs_test",
+    });
+  });
+
+  describe("a saved key adopts the project's existing connections", () => {
+    const sessionUser = () => calls.filter((call) => call.method === "POST" && call.path.endsWith("/session")).at(-1)?.body?.user_id;
+    afterEach(() => { connectedAccountsOverride = null; });
+
+    it("runs the Session as the dashboard user who owns them", async () => {
+      connectedAccountsOverride = [
+        { id: "ca_gmail_dash", user_id: "dashboard_me", status: "ACTIVE", toolkit: { slug: "gmail" } },
+        { id: "ca_slack_dash", user_id: "dashboard_me", status: "ACTIVE", toolkit: { slug: "slack" } },
+        { id: "ca_github_mate", user_id: "openmausbot_teammate", status: "ACTIVE", toolkit: { slug: "github" } },
+      ];
+      const prepared = await prepareProjectSession("ak_test", { userId: "openmausbot_mine" }, undefined, true);
+      expect(prepared.userId).toBe("dashboard_me");
+      expect(sessionUser()).toBe("dashboard_me");
+    });
+
+    it("keeps its own user when that user has connections", async () => {
+      connectedAccountsOverride = [
+        { id: "ca_gmail_mine", user_id: "openmausbot_mine", status: "ACTIVE", toolkit: { slug: "gmail" } },
+        { id: "ca_slack_dash", user_id: "dashboard_me", status: "ACTIVE", toolkit: { slug: "slack" } },
+      ];
+      expect((await prepareProjectSession("ak_test", { userId: "openmausbot_mine" }, undefined, true)).userId).toBe("openmausbot_mine");
+    });
+
+    it("never takes over another OpenMausBot user, and finds the dashboard's default user", async () => {
+      connectedAccountsOverride = [{ id: "ca_github_mate", user_id: "openmausbot_teammate", status: "ACTIVE", toolkit: { slug: "github" } }];
+      expect((await prepareProjectSession("ak_test", { userId: "openmausbot_mine" }, undefined, true)).userId).toBe("openmausbot_mine");
+      // Composio may leave user_id out of the list (the field is deprecated): "default" is then asked for by name
+      connectedAccountsOverride.push({ id: "ca_notion_default", owner: "default", status: "ACTIVE", toolkit: { slug: "notion" } });
+      expect((await prepareProjectSession("ak_test", { userId: "openmausbot_mine" }, undefined, true)).userId).toBe("default");
+    });
+
+    it("leaves the user alone unless the key was just saved", async () => {
+      connectedAccountsOverride = [{ id: "ca_gmail_dash", user_id: "dashboard_me", status: "ACTIVE", toolkit: { slug: "gmail" } }];
+      expect((await prepareProjectSession("ak_test", { userId: "openmausbot_mine" })).userId).toBe("openmausbot_mine");
     });
   });
 

@@ -46,6 +46,47 @@ interface SessionCreateRequest {
   auth_configs?: AuthConfigMap;
 }
 
+const ownerPageSchema = z.object({
+  items: z.array(z.object({ user_id: z.string().nullable().optional(), status: z.string().optional() })),
+});
+
+/** Active accounts in the key's project, of one Composio user or of anyone; none when the key may not list them. */
+async function activeAccounts(apiKey: string, userId?: string): Promise<Array<{ user_id?: string | null }>> {
+  const params = new URLSearchParams({ limit: userId ? "1" : "50", statuses: "ACTIVE", order_by: "updated_at", order_direction: "desc" });
+  if (userId) params.set("user_ids", userId);
+  const res = await fetch(`${apiBase()}/connected_accounts?${params}`, { headers: projectHeaders(apiKey), signal: AbortSignal.timeout(15_000) });
+  if (!res.ok) return [];
+  const page = ownerPageSchema.safeParse(await res.json().catch(() => null));
+  return page.success ? page.data.items.filter((account) => !account.status || /^active$/i.test(account.status)) : [];
+}
+
+/** OpenMausBot names the Composio users it makes this way, this installation's and each teammate's shared one alike. */
+const OWN_USER = /^openmausbot_/;
+
+/**
+ * The Composio user a key's Session should run as so apps already connected in that project show up without connecting
+ * again. A Session sees only its own user's accounts (docs.composio.dev/docs/configuring-sessions, "The session user
+ * must match the connected-account user"), and accounts made in Composio's dashboard belong to whatever user id was
+ * typed there, often "default". So: keep `prior` when it owns an active account; otherwise the user owning the most
+ * active accounts, as the account list names them (Composio marks that field deprecated, so "default" is asked
+ * directly when it is missing). A user OpenMausBot made is never taken over: it may be a teammate's.
+ */
+export async function connectionOwner(apiKey: string, prior: string | undefined): Promise<string | undefined> {
+  try {
+    if (prior && (await activeAccounts(apiKey, prior)).length) return prior;
+    const counts = new Map<string, number>();
+    for (const account of await activeAccounts(apiKey)) {
+      if (account.user_id && !OWN_USER.test(account.user_id)) counts.set(account.user_id, (counts.get(account.user_id) ?? 0) + 1);
+    }
+    const [top] = [...counts].sort((a, b) => b[1] - a[1]);
+    if (top) return top[0];
+    if ((await activeAccounts(apiKey, "default")).length) return "default";
+  } catch {
+    // an unreachable or scoped key keeps its own user; the Session check that follows reports a real problem
+  }
+  return prior;
+}
+
 /** A user's own project key wins over the managed broker; "" means cleared, so the broker takes over again. */
 export function projectApiKey(cfg: AppConfig): string | null {
   return cfg.composio?.apiKey?.trim() || null;
@@ -159,6 +200,8 @@ export async function prepareProjectSession(
   apiKey: string,
   current?: { apiKey?: string; userId?: string; sessionId?: string },
   knownAuthConfigs?: AuthConfigMap,
+  /** A key the person just saved: its Session runs as the user who owns the project's existing connections. */
+  adopt = false,
 ): Promise<{ apiKey: string; userId: string; sessionId: string }> {
   const trimmed = apiKey.trim();
   if (!trimmed) throw new Error("Enter a Composio project API key");
@@ -167,7 +210,8 @@ export async function prepareProjectSession(
   // A Session names its auth configs at creation, so the project's are read before deciding to reuse it.
   const authConfigs = knownAuthConfigs ?? (await projectAuthConfigs(trimmed)).configs;
   let priorUserId = current?.userId;
-  if (trimmed === current?.apiKey && current.sessionId) {
+  const owner = adopt ? await connectionOwner(trimmed, priorUserId) : priorUserId;
+  if (trimmed === current?.apiKey && current.sessionId && owner === priorUserId) {
     const existing = await getProjectSession(trimmed, current.sessionId);
     if (existing && supportsMultiAccount(existing) && authConfigsReady(existing, authConfigs)) {
       return {
@@ -180,7 +224,7 @@ export async function prepareProjectSession(
     priorUserId = existing?.config?.user_id ?? priorUserId;
   }
 
-  const userId = priorUserId ?? `openmausbot_${randomUUID()}`;
+  const userId = (owner !== current?.userId ? owner : priorUserId) ?? `openmausbot_${randomUUID()}`;
   const sessionId = await createProjectSession(trimmed, userId, authConfigs);
   return { apiKey: trimmed, userId, sessionId };
 }
@@ -216,11 +260,25 @@ async function nameAuthConfigsInPlace(apiKey: string, session: SessionResponse, 
   return getProjectSession(apiKey, session.session_id);
 }
 
+/** Keys whose Session this boot already checked for connections made under another Composio user. */
+const ownerChecked = new Set<string>();
+
 export async function ensureProjectSession(cfg: AppConfig, wanted?: AuthConfigMap): Promise<SessionResponse> {
   const composio = cfg.composio;
   const apiKey = projectApiKey(cfg);
   if (!composio || !apiKey) throw new Error("No Composio project key configured");
   const configs = wanted ?? (await projectAuthConfigs(apiKey)).configs;
+  // a key saved before adoption existed: once a boot, a Session whose own made-up user has nothing connected moves to
+  // the user who has the project's connections
+  const checkKey = `${apiKey}:${composio.userId ?? ""}`;
+  if (composio.userId && OWN_USER.test(composio.userId) && !ownerChecked.has(checkKey)) {
+    ownerChecked.add(checkKey);
+    const owner = await connectionOwner(apiKey, composio.userId);
+    if (owner && owner !== composio.userId) {
+      const sessionId = await createProjectSession(apiKey, owner, configs);
+      return adoptProjectSession(composio, apiKey, owner, sessionId);
+    }
+  }
   if (composio.sessionId) {
     const existing = await getProjectSession(apiKey, composio.sessionId);
     if (existing && (supportsMultiAccount(existing) || multiAccountUpgradeAttempted.has(existing.session_id))) {

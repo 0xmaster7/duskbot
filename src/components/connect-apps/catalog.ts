@@ -58,8 +58,8 @@ export function grokCategories(names: readonly string[] | undefined): Category[]
 }
 
 /** composio: an aggregator's catalog app. remote: the vendor's own hosted MCP server, signed in with dynamic client
- * registration. native, hosted, logins: OpenMausBot's own cards. */
-export type AppKind = "composio" | "remote" | "native" | "hosted" | "logins";
+ * registration. native, hosted, logins: OpenMausBot's own cards. custom: an MCP server the person added by its URL. */
+export type AppKind = "composio" | "remote" | "native" | "hosted" | "logins" | "custom";
 
 /** Apps from a provider's catalog, as opposed to OpenMausBot's own cards. */
 export const fromCatalog = (entry: Pick<AppEntry, "kind">): boolean => entry.kind === "composio" || entry.kind === "remote";

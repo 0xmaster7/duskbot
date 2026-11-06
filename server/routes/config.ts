@@ -357,7 +357,7 @@ export function createConfigRoutes(deps: ConfigRouteDeps): RouteHandler {
       if (requestedComposioKey !== undefined) {
         if (requestedComposioKey.trim()) {
           try {
-            const prepared = await composio.prepareProjectSession(requestedComposioKey, cfg.composio);
+            const prepared = await composio.prepareProjectSession(requestedComposioKey, cfg.composio, undefined, true);
             patch.composio = { ...patch.composio, ...prepared };
           } catch (error) {
             return json(res, 400, { error: error instanceof Error ? error.message : String(error) });

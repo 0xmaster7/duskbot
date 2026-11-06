@@ -3,8 +3,7 @@ import { useEffect, useState } from "react";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { needsReconnect } from "@/lib/connector-status";
-import { askConfirm } from "../ConfirmDialog";
-import { connectorSetupNotice, disconnectAccountConfirmation } from "../PluginsPanel";
+import { connectorSetupNotice } from "../PluginsPanel";
 import type { ToolkitCard } from "../ServiceIcon";
 import { GrokIcon } from "../GrokIcon";
 import { AppTile } from "./AppRow";
@@ -12,6 +11,8 @@ import type { AppEntry, Connection } from "./catalog";
 import type { ConnectorPhase, Connectors } from "./use-connectors";
 import { COMPOSIO_AUTH_CONFIGS_URL } from "../../../shared/connector-availability";
 import { composioPage, loadToolkitActions, type SnapshotToolkit, type ToolkitActions } from "./composio-snapshot";
+import { ComposioKeyStep } from "./ComposioKeyStep";
+import type { ConnectorAccount } from "@/lib/connector-status";
 
 export interface AppPageModel {
   entry: AppEntry;
@@ -51,7 +52,11 @@ export function AppPage({ model }: { model: AppPageModel }) {
   const composio = entry.kind === "composio" && card !== undefined;
   const status = composio ? connectors.status[slug] : undefined;
   const accounts = status?.accounts ?? [];
-  const setup = composio ? connectorSetupNotice({ configured: connectors.configured, stale: connectors.stale, setup: connectors.setup, remoteClient: model.remoteClient }) : null;
+  // a key is all that is missing: the key step shows right here, no trip to Settings
+  const viaSignedIn = connectors.via?.signedIn === true;
+  const askingKey = composio && !model.remoteClient && !viaSignedIn
+    && (connectors.keyFor === slug || (!connectors.configured && !connectors.stale && connectors.setup === "needs-setup"));
+  const setup = composio && !askingKey && !viaSignedIn ? connectorSetupNotice({ configured: connectors.configured, stale: connectors.stale, setup: connectors.setup, remoteClient: model.remoteClient }) : null;
   const askingAlias = composio && connectors.aliasFor === slug;
   const aliasError = askingAlias && connectors.error ? (typeof connectors.error === "string" ? connectors.error : t(connectors.error.key)) : null;
 
@@ -61,15 +66,16 @@ export function AppPage({ model }: { model: AppPageModel }) {
         ? { label: t("connectApps.remote.manage"), quiet: true, onClick: model.remote.onManage }
         : { label: t("connectors.action.connect"), busy: model.remote.busy, disabled: model.connection === "unknown", onClick: model.remote.onConnect };
     }
-    if (!composio || !phase) return null;
+    if (!composio || !phase || askingKey) return null;
     const connect: Primary = { label: t("connectors.action.connect"), onClick: () => void connectors.connect(slug) };
-    if (!connectors.configured) return { ...connect, disabled: model.remoteClient, onClick: model.onOpenKeys };
+    if (!connectors.configured && !viaSignedIn) return { ...connect, disabled: model.remoteClient, onClick: () => connectors.askKey(slug) };
     switch (phase.kind) {
       case "checking": return { ...connect, disabled: true };
       case "connecting": return { ...connect, busy: true };
       case "continue": return { label: t("connectors.action.continue"), onClick: () => connectors.resume(slug) };
       case "reconnect": return { label: t("connectors.action.reconnect"), onClick: () => void connectors.connect(slug, phase.account.alias, phase.account) };
-      case "connected": return { label: t("connectors.action.addAccount"), quiet: true, onClick: () => { setAlias(""); connectors.askAlias(slug); } };
+      // grok keeps Add Account with the accounts it adds to
+      case "connected": return accounts.length || connectors.viaApps[slug] ? null : { label: t("connectors.action.addAccount"), quiet: true, onClick: () => { setAlias(""); connectors.askAlias(slug); } };
       case "included": return { label: t("connectors.action.included"), quiet: true, disabled: true };
       case "setup": return { ...connect, label: t("common.checkAgain") };
       case "unavailable": return { ...connect, disabled: true };
@@ -103,34 +109,19 @@ export function AppPage({ model }: { model: AppPageModel }) {
             {/* the official broker's project cannot use the person's own auth config, their own key can */}
             {t(connectors.mode === "managed" ? "connectApps.composioSetupKey" : "connectApps.composioSetup", { name: entry.label })}{" "}
             <a className="ca-link" href={COMPOSIO_AUTH_CONFIGS_URL} target="_blank" rel="noopener noreferrer">{t("connectApps.openComposio")}</a>
-            {connectors.mode === "managed" && !model.remoteClient && <>{" "}<button type="button" className="ca-link" onClick={model.onOpenKeys}>{t("connectors.openSettings")}</button></>}
+            {connectors.mode === "managed" && !model.remoteClient && <>{" "}<button type="button" className="ca-link" onClick={() => connectors.askKey(slug)}>{t("connectApps.key.add")}</button></>}
           </p>
         )}
         {model.remote && <p className="ca-notice">{t(model.remote.open ? "connectApps.remote.open" : "connectApps.remote.note", { name: entry.label })}</p>}
+        {askingKey && <ComposioKeyStep slug={slug} name={entry.label} connectors={connectors} />}
         {composio && (accounts.length > 0 || askingAlias) && (
-          <div>
-            <h3 className="ca-group-label">{t("connectApps.accounts")}{accounts.length > 0 && <span>{accounts.length}</span>}</h3>
+          <div data-accounts="">
+            <h3 className="ca-group-label">{t("connectApps.accounts")}</h3>
             <div className="ca-card">
               {accounts.map((account) => (
-                <div key={account.id} className="ca-card-row">
-                  <span data-glyph="" aria-hidden="true"><GrokIcon name="person" size={16} /></span>
-                  <span>
-                    {account.alias || account.id}
-                    <small>{account.status.toLowerCase()}</small>
-                  </span>
-                  {needsReconnect(account) && (
-                    <button type="button" className="ca-link" disabled={phase?.kind === "connecting"}
-                      aria-label={t("connectors.reconnectAria", { account: account.alias || account.id, service: entry.label })}
-                      onClick={() => void connectors.connect(slug, account.alias, account)}>
-                      {t("connectors.action.reconnect")}
-                    </button>
-                  )}
-                  <button type="button" className="ca-link" data-tone="danger" disabled={phase?.kind === "connecting"}
-                    aria-label={t("connectors.disconnectAria", { account: account.alias || account.id, service: entry.label })}
-                    onClick={() => void askConfirm(disconnectAccountConfirmation(entry.label, account)).then((yes) => { if (yes) connectors.disconnect(slug, account.id); })}>
-                    {t("connectors.disconnect")}
-                  </button>
-                </div>
+                <AccountRow key={account.id} account={account} service={entry.label} busy={phase?.kind === "connecting"}
+                  onReconnect={() => void connectors.connect(slug, account.alias, account)}
+                  onDisconnect={() => connectors.disconnect(slug, account.id)} />
               ))}
               {askingAlias && (
                 <form className="ca-alias" onSubmit={(event) => {
@@ -145,7 +136,15 @@ export function AppPage({ model }: { model: AppPageModel }) {
                   <button type="submit" className="ca-primary" disabled={phase?.kind === "connecting" || !alias.trim()}><span>{t("connectors.action.continue")}</span></button>
                 </form>
               )}
-              {aliasError && <p role="alert" className="ca-card-row text-danger">{aliasError}</p>}
+              {aliasError && <p role="alert" className="ca-card-row">{aliasError}</p>}
+              {!askingAlias && accounts.length > 0 && (
+                <div className="ca-card-row">
+                  <button type="button" className="ca-pill" disabled={phase?.kind === "connecting"}
+                    onClick={() => { setAlias(""); connectors.askAlias(slug); }}>
+                    <span>{t("connectors.action.addAccount")}</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -153,6 +152,57 @@ export function AppPage({ model }: { model: AppPageModel }) {
         {!ownCard && <AppFacts facts={facts} />}
       </div>
     </div>
+  );
+}
+
+/** One account, Grok's way: its name, a mark when it needs signing in again, and Disconnect that turns into Confirm
+ * Disconnect in place instead of asking in a dialog. */
+function AccountRow({ account, service, busy, onReconnect, onDisconnect }: {
+  account: ConnectorAccount;
+  service: string;
+  busy: boolean;
+  onReconnect: () => void;
+  onDisconnect: () => Promise<boolean>;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const title = account.alias || t("connectApps.account.fallback");
+  const stale = needsReconnect(account);
+  return (
+    <>
+      <div className="ca-card-row" data-account={account.id}>
+        <span data-glyph="" aria-hidden="true"><GrokIcon name="person" size={16} /></span>
+        <span title={account.alias ? undefined : account.id}>
+          {title}
+          {stale && <span className="ca-account-tag">{t("connectApps.account.needsReconnect")}</span>}
+        </span>
+        {stale && (
+          <button type="button" className="ca-pill" disabled={busy || removing}
+            aria-label={t("connectors.reconnectAria", { account: title, service })} onClick={onReconnect}>
+            <span>{t("connectors.action.reconnect")}</span>
+          </button>
+        )}
+        {confirming ? (
+          <button type="button" className="ca-pill" data-tone="danger-solid" disabled={busy || removing}
+            aria-label={t("connectApps.account.confirmAria", { title })}
+            onClick={() => {
+              setConfirming(false);
+              setFailed(false);
+              setRemoving(true);
+              void onDisconnect().then((ok) => { setRemoving(false); if (!ok) setFailed(true); });
+            }}>
+            <span>{t("connectApps.account.confirm")}</span>
+          </button>
+        ) : (
+          <button type="button" className="ca-pill" data-tone="danger" disabled={busy || removing}
+            aria-label={t("connectors.disconnectAria", { account: title, service })} onClick={() => setConfirming(true)}>
+            <span>{t("connectors.disconnect")}</span>
+          </button>
+        )}
+      </div>
+      {failed && <p role="alert" className="ca-card-row">{t("connectApps.account.removeFailed")}</p>}
+    </>
   );
 }
 
