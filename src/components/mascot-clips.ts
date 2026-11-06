@@ -122,6 +122,21 @@ export const OMB_CLIPS = {
       expression: [{ t: 0, v: "surprised", cut: true }, { t: 0.86, v: "neutral", cut: false }],
     },
   }),
+  // a failed turn, the quieter way: it shrinks back, squints, then shakes it off
+  Wince: clip({
+    name: "Wince",
+    duration: 1.2,
+    squashAnchor: -1,
+    tracks: {
+      squash: [{ t: 0, v: [1, 1] }, { t: 0.14, v: [1.09, 0.9], ease: OUT }, { t: 0.55, v: [1.06, 0.94] }, { t: 0.8, v: [0.98, 1.02] }, { t: 1, v: [1, 1] }],
+      rotation: [
+        { t: 0, v: [0, 0, 0] }, { t: 0.16, v: [-8, 0, 0], ease: OUT }, { t: 0.55, v: [-6, 0, 0] }, { t: 0.68, v: [-3, 0, 5] },
+        { t: 0.8, v: [-2, 0, -5] }, { t: 0.92, v: [0, 0, 3] }, { t: 1.05, v: [0, 0, 0] }, { t: 1.2, v: [0, 0, 0] },
+      ],
+      position: [{ t: 0, v: [0, 0] }, { t: 0.16, v: [0, -0.04], ease: OUT }, { t: 0.6, v: [0, -0.03] }, { t: 0.95, v: [0, 0] }],
+      expression: [{ t: 0, v: "squinted", cut: true }, { t: 0.62, v: "confused", cut: false }, { t: 1.1, v: "neutral", cut: false }],
+    },
+  }),
   Wiggle: clip(fromRest({
     name: "Wiggle",
     duration: 1.1,

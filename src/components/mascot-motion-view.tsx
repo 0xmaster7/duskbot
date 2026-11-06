@@ -5,6 +5,7 @@ import { MARK_CANVAS_PERCENT, MARK_POKES, createMark, prewarmMarkShapes, type Ma
 import type { MarkPoke } from "./mascot-motion-engine";
 import type { MarkReaction } from "./mascot-personality";
 import { onMascotCue } from "./mascot-events";
+import { ATTENTION, attentionGaze, watchPointer, type Point } from "./mascot-attention";
 import { opticalTransform } from "./mascot-optics";
 import { GROK_BODY_IDS } from "../../shared/grok-bodies";
 
@@ -138,9 +139,50 @@ export const GrokMark = forwardRef<GrokMarkHandle, GrokMarkProps>(function GrokM
   const look = gaze ?? (watching && everLive.current ? COMPOSER_GAZE : null);
   const gx = look?.x;
   const gy = look?.y;
+  const held = useRef(false);
+  held.current = gx !== undefined && gy !== undefined;
   useEffect(() => {
     mark.current?.gaze(gx === undefined || gy === undefined ? null : { x: gx, y: gy });
   }, [gx, gy]);
+
+  // a big idle mark looks at a mouse moving near it; a hover or a held gaze owns the mark instead
+  const attentive = personality && animated && !reduced && everLive.current && size >= ATTENTION.minPx;
+  useEffect(() => {
+    if (!attentive) return;
+    let rect: DOMRect | null = null;
+    let rectAt = -Infinity;
+    let last: Point | null = null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const release = () => {
+      clearTimeout(timer);
+      if (!last) return;
+      last = null;
+      if (!held.current) mark.current?.gaze(null);
+    };
+    const stop = watchPointer((point) => {
+      if (held.current) {
+        last = null;
+        return;
+      }
+      if (!point) return release();
+      const now = performance.now();
+      if (now - rectAt > ATTENTION.rectMs) {
+        rect = host.current?.getBoundingClientRect() ?? null;
+        rectAt = now;
+      }
+      const next = rect ? attentionGaze(rect, point) : null;
+      if (!next) return release();
+      clearTimeout(timer);
+      timer = setTimeout(release, ATTENTION.holdMs);
+      if (last && last.x === next.x && last.y === next.y) return;
+      last = next;
+      mark.current?.gaze(next);
+    });
+    return () => {
+      stop();
+      release();
+    };
+  }, [attentive]);
 
   useEffect(() => {
     if (expression !== undefined) mark.current?.setExpression(FACES[expression % FACES.length] ?? "neutral");

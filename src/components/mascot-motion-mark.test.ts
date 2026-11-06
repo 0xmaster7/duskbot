@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from "vitest";
 
+import { FIRST_ACT_MS } from "./mascot-personality";
 import { IDLE_SETTLE_MS, MARK_STATES, SETTLED_HOLD_MS, createMark, hoverGaze, markSeed, prewarmMarkShapes, type MarkOptions } from "./mascot-motion-mark";
 
 function rig(overrides: Partial<MarkOptions> = {}) {
@@ -123,7 +124,7 @@ describe("our idle life", () => {
     const due = r.due();
     expect(due).toBeGreaterThan(r.now());
     expect(due).toBeLessThan(r.now() + 10_000);
-    r.run(due - r.now() + 50);
+    r.run(FIRST_ACT_MS.max + 50);
     expect(r.mark.lastAct).not.toBeNull();
     r.run(4000);
     expect(r.draws()).toBeGreaterThan(0);
@@ -156,6 +157,35 @@ describe("our idle life", () => {
     expect(r.mark.lastAct).toBe("cheer");
     r.mark.update({ state: "failed" });
     expect(r.mark.lastAct).toBe("startle");
+  });
+
+  it("nods when the reply starts coming in", () => {
+    const r = rig();
+    r.run(500);
+    r.mark.update({ state: "thinking" });
+    r.run(1000);
+    r.mark.update({ state: "streaming" });
+    expect(r.mark.lastAct).toBe("nod");
+  });
+
+  it("blinks on its own clock between acts, and while a hover holds its gaze", () => {
+    const r = rig({ hasPersonality: true });
+    r.run(500);
+    r.mark.gaze({ x: 0.4, y: 0 });
+    r.run(1500);
+    const held = r.canvas.innerHTML;
+    let blinks = 0;
+    let open = true;
+    for (let i = 0; i < 12_000 / 50; i++) {
+      r.run(50);
+      const shut = r.canvas.innerHTML !== held;
+      if (shut && open) blinks++;
+      open = !shut;
+    }
+    // threebot's 2.2 to 5.8 s clock: two to six blinks in 12 s, doubles included
+    expect(blinks).toBeGreaterThanOrEqual(2);
+    expect(blinks).toBeLessThanOrEqual(8);
+    expect(r.mark.lastAct).toBeNull();
   });
 
   it("stays still under reduced motion and on static marks", () => {

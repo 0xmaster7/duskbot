@@ -198,6 +198,8 @@ export function createMark(initial: MarkOptions, env: MarkEnvironment): Mark {
   let last = 0;
   let lastDriverState = driver.state;
   let gazeHeld = false;
+  // where the persona has the mark looking, under any held gaze
+  let personaLook: MarkGaze | null = null;
   // a clip the persona plays on a resting mark loops until we put the mark back to rest
   let oneShotLoop: number | null = null;
   const playOnce = (clip: MarkClip) => {
@@ -209,9 +211,16 @@ export function createMark(initial: MarkOptions, env: MarkEnvironment): Mark {
     play: playOnce,
     poke: (kind, turns = 1) => animator.poke(kind, { turns }),
     holdFace: (face) => animator.holdFace(face),
+    look: (gaze) => {
+      personaLook = gaze ? [gaze.x, -gaze.y] : null;
+      if (!gazeHeld) animator.setGaze(personaLook);
+    },
   }, markClip);
   const hasPersona = () => t.hasPersonality !== false && !isStill();
-  const canIdle = () => hasPersona() && t.isPlaying && !playing && driver.state === "idle" && !gazeHeld;
+  // blinks keep going under a held gaze (a hover, the pointer nearby), only not over a clip that blinks on its own
+  const canBlink = () => hasPersona() && t.isPlaying && !playing && driver.state === "idle" && oneShotLoop === null;
+  const canIdle = () => canBlink() && !gazeHeld;
+  const idleTick = (now: number) => Math.min(persona.tick(now, canIdle()), persona.blinks(now, canBlink()));
 
   const tree = () => markTree(animator.frame(), appearance, markResolution(t.sizePx), t.id, { displaySize: t.sizePx, extent: "100%" });
   const draw = () => {
@@ -247,7 +256,7 @@ export function createMark(initial: MarkOptions, env: MarkEnvironment): Mark {
 
   const frame = (now: number): number => {
     if (!running) {
-      const next = persona.tick(now, canIdle());
+      const next = idleTick(now);
       if (animator.isSettled) return next;
       running = true;
       last = now - interval();
@@ -267,11 +276,13 @@ export function createMark(initial: MarkOptions, env: MarkEnvironment): Mark {
       if (!playing) animator.rest();
       oneShotLoop = null;
     }
+    // a mark kept awake by a moving gaze or a peek still blinks on time
+    persona.blinks(now, canBlink());
     animator.advance(dt);
     draw();
     if (!playing && animator.isSettled) {
       running = false;
-      return persona.tick(now, canIdle());
+      return idleTick(now);
     }
     return nextFrameAt(now, step);
   };
@@ -329,6 +340,8 @@ export function createMark(initial: MarkOptions, env: MarkEnvironment): Mark {
         }
         if (hasPersona()) {
           if (TURN_STATES.has(t.state) && !TURN_STATES.has(before.state)) persona.react("hop", env.now());
+          // the reply starts coming in: a small nod, it has the answer
+          else if (t.state === "streaming" && TURN_STATES.has(before.state)) persona.react("nod", env.now());
           else if (t.state === "finished") persona.react("cheer", env.now());
           else if (t.state === "failed") persona.react("startle", env.now());
           else if (t.state === "blocked") animator.poke("bounce");
@@ -356,7 +369,7 @@ export function createMark(initial: MarkOptions, env: MarkEnvironment): Mark {
       if (t.isReducedMotion) return;
       gazeHeld = gaze !== null;
       if (gaze) persona.touch(env.now());
-      animator.setGaze(gaze ? ([gaze.x, -gaze.y] as MarkGaze) : null);
+      animator.setGaze(gaze ? ([gaze.x, -gaze.y] as MarkGaze) : personaLook);
       refresh();
     },
     poke(kind, turns = 1) {
