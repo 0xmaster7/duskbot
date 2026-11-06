@@ -12,7 +12,6 @@ import { useCaptionChrome } from "../DesktopCapabilities";
 import { GrokIcon } from "../GrokIcon";
 import { ManageMembersPanel } from "../ManageMembersPanel";
 import { RoomMoreMenu } from "../RoomMoreMenu";
-import { RoomWorkingFolder } from "../RoomWorkingFolder";
 import { PANEL_TABS, TAB_LABEL, type PanelTab } from "../bot-panel/page-registry";
 import { pageSurfaceCls } from "../bot-panel/pages";
 import { roundButtonCls } from "../bot-panel/rows";
@@ -20,13 +19,12 @@ import { sidePanelCls } from "../bot-panel/side-panel";
 import { SegmentedTabs } from "../ui/SegmentedTabs";
 import { RoomAdvancedTab } from "./RoomAdvancedTab";
 import { RoomComputerTab } from "./RoomComputerTab";
-import { PerBotModels, RoomDetailsTab, type RoomPage } from "./RoomDetailsTab";
-import { ResponderPage } from "./ResponderPage";
+import { PerBotModels, RoomDetailsTab, type RoomPage, type RoomTarget } from "./RoomDetailsTab";
+import type { RoomDialog } from "./RoomModals";
+import { RoomSheet } from "./RoomSheet";
 
-const PAGES: Record<RoomPage, { title: LocaleKey; intro: LocaleKey }> = {
-  responder: { title: "room.panel.whoResponds", intro: "room.panel.responder.intro" },
-  folder: { title: "room.folder.title", intro: "room.folder.detail" },
-  models: { title: "room.panel.perBot", intro: "room.panel.perBotIntro" },
+const PAGES: Record<RoomPage, { title: LocaleKey }> = {
+  models: { title: "room.panel.perBot" },
 };
 
 // RoomMoreMenu draws its own 32px trigger; in this header it wears the bot panel's 36px elevated circle
@@ -76,7 +74,8 @@ export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: 
     setTab(next);
     bodyRef.current?.scrollTo({ top: 0 });
   };
-  const openPage = (next: RoomPage) => setPage(next);
+  const [dialog, setDialog] = useState<RoomDialog | null>(null);
+  const open = (target: RoomTarget) => (target === "models" ? setPage(target) : setDialog(target));
   const back = () => {
     leftPage.current = page;
     setPage(null);
@@ -120,7 +119,7 @@ export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: 
   const viewKey = page === null ? "tabs" : `1:${page}`;
   const backLabel = t(TAB_LABEL[tab]);
 
-  const rowProps = { group, members, onOpen: openPage, onMembers: () => setMembersOpen(true), membersRef: membersRowRef };
+  const rowProps = { group, members, onOpen: open, onMembers: () => setMembersOpen(true), membersRef: membersRowRef };
   const tabsView = (
     <>
       <div data-panel-head className="contents">
@@ -150,16 +149,13 @@ export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: 
 
   const pageView = page === null ? null : (
     <div data-panel-page-view={page} className="pt-1">
-      <p className="mx-3 mb-2.5 text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{t(PAGES[page].intro)}</p>
       <div className={pageSurfaceCls}>
-        {page === "responder" ? <ResponderPage group={group} members={members} />
-          : page === "models" ? <PerBotModels members={members} />
-            : <RoomWorkingFolder group={group} heading={false} />}
+        <PerBotModels members={members} />
       </div>
     </div>
   );
 
-  const viewCls = "@container absolute inset-0 flex flex-col overflow-y-auto overscroll-contain bg-app px-4 pb-4 [scrollbar-gutter:stable] [scrollbar-width:thin]";
+  const viewCls = "@container absolute inset-0 flex flex-col overflow-y-auto overscroll-contain bg-app px-4 pb-8 [scrollbar-gutter:stable] [scrollbar-width:thin]";
   const setBody = (element: HTMLDivElement | null) => { if (element) bodyRef.current = element; };
   const view = (content: ReactNode) => reduced ? (
     <div key={viewKey} ref={setBody} className={viewCls}>{content}</div>
@@ -228,6 +224,7 @@ export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: 
           )}
         </div>
       </aside>
+      {dialog && <RoomSheet initial={dialog} group={group} members={members} onClose={() => setDialog(null)} />}
       {membersOpen && createPortal(
         <ManageMembersPanel group={group} onClose={closeMembers} triggerRef={membersRowRef} />,
         document.body,

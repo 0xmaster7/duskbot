@@ -28,16 +28,8 @@ vi.mock("../bot-panel/ComputerTab", async () => {
   return { ComputerTab: ({ bot }: { bot: Bot }) => h("span", { "data-panel-screen-of": "" }, `${bot.name}'s screen`) };
 });
 vi.mock("../native/ModelSelectRow", async () => {
-  const { createElement: h, useContext } = await import("react");
-  const { StoreContext } = await import("@/state/store");
-  const opus = { instanceId: "test", model: "opus" };
-  return {
-    ModelSelectRow: function ModelRow({ bot, title }: { bot: Bot; title?: string }) {
-      const store = useContext(StoreContext);
-      const pick = () => store?.dispatch({ type: "setModel", botId: bot.id, threadId: bot.threadId, updateBotDefault: true, selection: opus });
-      return h("button", { type: "button", "data-model-row": bot.id, onClick: pick }, title ?? "Model");
-    },
-  };
+  const { createElement: h } = await import("react");
+  return { ModelSelectRow: ({ title }: { title?: string }) => h("span", { "data-model-row": "" }, title) };
 });
 vi.mock("../native/UsageMeter", () => ({ UsageMeterRow: () => null }));
 vi.mock("@/lib/chat-find", async (importOriginal) => ({ ...await importOriginal<typeof import("@/lib/chat-find")>(), requestChatFind: fixture.find }));
@@ -113,16 +105,21 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
+// icon-font glyphs sit in the private use planes; read only the words
+const words = (element: Element | null) => element?.textContent?.replace(/[\u{E000}-\u{F8FF}\u{F0000}-\u{10FFFD}]/gu, "") ?? null;
+const modal = (name: string) => $(`[data-panel-modal="${name}"]`);
+const closeModal = () => click(document.querySelector('[role="dialog"][aria-modal="true"] [aria-label="Close"]'));
+
 describe("the Room panel's card", () => {
-  it("shows the room's faces, name and description, then who responds, the folder, the instructions and the members", () => {
+  it("shows the room's faces and name, then who responds, the folder, the instructions and the members as plain rows", () => {
     render(room());
     expect($("#room-panel-title")?.textContent).toBe("Desk HQ");
     expect($("[data-room-panel]")?.textContent).toContain("The recruiting desk");
     expect(rowValue('[data-panel-page="responder"]')).toBe("Desk Manager");
     expect(rowValue('[data-panel-page="folder"]')).toBe("Its own folder");
-    expect($('[data-panel-edit="instructions"]')?.textContent).toContain("Hand out the work here.");
-    expect($('[data-panel-edit="instructions"]')?.textContent).not.toContain("Keep it short.");
+    expect(rowValue('[data-panel-page="instructions"]')).toBeNull();
     expect(rowValue('[data-panel-row="members"]')).toBe("4");
+    expect($('[data-room-panel] textarea, [data-room-panel] input')).toBeNull();
     expect($('[data-testid="room-more"]')).not.toBeNull();
   });
 
@@ -134,7 +131,7 @@ describe("the Room panel's card", () => {
     expect(rowValue('[data-panel-page="responder"]')).toBe("Everyone");
     render(room({ defaultResponder: { kind: "mentions" }, bulletin: "" }));
     expect(rowValue('[data-panel-page="responder"]')).toBe("Only who I @mention");
-    expect($('[data-panel-edit="instructions"]')?.textContent).toContain("Tell the bots what this room is for");
+    expect(rowValue('[data-panel-page="instructions"]')).toBe("None");
   });
 });
 
@@ -145,28 +142,14 @@ describe("the tabs", () => {
     expect(tabs).toEqual([["Details", "true"], ["Computer", "false"], ["Advanced", "false"]]);
   });
 
-  it("set one model for every member from Details, and keep each bot's own one level down", async () => {
+  it("keep each bot's model one level down, with no room-wide picker", async () => {
     render(room());
-    expect($("[data-room-model-row]")?.getAttribute("data-room-model-row")).toBe("same");
-    click($('[data-room-model-row] [data-model-row]'));
-    const picks = fixture.dispatch.mock.calls.map(([action]) => action).filter((action) => action.type === "setModel");
-    expect(picks.map((action) => [action.botId, action.threadId, action.selection.model])).toEqual([
-      ["lead", "lead-thread", "opus"], ["bench", "bench-thread", "opus"], ["paper", "paper-thread", "opus"], ["match", "match-thread", "opus"],
-    ]);
+    expect($("[data-room-panel] [data-model-row]")).toBeNull();
     click($('[data-panel-page="models"]'));
     await settle();
     expect(page()).toBe("models");
+    expect($('[data-panel-page-view="models"] p')).toBeNull();
     expect([...document.querySelectorAll("[data-room-model]")].map((row) => row.textContent)).toEqual(["Desk Manager", "Vendor Bench", "Paperwork", "Matcher"]);
-  });
-
-  it("read Mixed while members run different models", () => {
-    fixtureBots[1]!.modelSelection = { instanceId: "test", model: "other" };
-    try {
-      render(room());
-      expect($("[data-room-model-row]")?.getAttribute("data-room-model-row")).toBe("mixed");
-    } finally {
-      fixtureBots[1]!.modelSelection = { instanceId: "test", model: "m" };
-    }
   });
 
   it("show each member's computer on Computer, one after another", () => {
@@ -191,34 +174,27 @@ describe("the tabs", () => {
   });
 });
 
-describe("Advanced", () => {
-  it("renames the room in place, and Escape keeps the old name", async () => {
+describe("Name and description", () => {
+  it("open their own dialog from Advanced and save together", () => {
     render(room());
     click($('[data-panel-tab="advanced"]'));
-    click($('[data-panel-edit="name"]'));
-    const input = () => $<HTMLInputElement>('[data-panel-row="name"] input');
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input(), "Desk Two");
-    flushSync(() => input()!.dispatchEvent(new Event("input", { bubbles: true })));
-    press(input(), "Enter");
-    await settle();
-    expect(patches()).toEqual([{ type: "patchGroup", groupId: "desk", patch: { name: "Desk Two" } }]);
-    expect(document.activeElement?.getAttribute("data-panel-edit")).toBe("name");
-    click($('[data-panel-edit="name"]'));
-    press(input(), "Escape");
-    await settle();
-    expect(input()).toBeNull();
-    expect(patches()).toHaveLength(1);
-    expect(seen.open).toBe("desk");
+    click($('[data-panel-page="about"]'));
+    const [name, description] = [...modal("about")!.querySelectorAll("input")];
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(name, "Desk Two");
+    flushSync(() => name!.dispatchEvent(new Event("input", { bubbles: true })));
+    expect(description!.value).toBe("The recruiting desk");
+    click(modal("about")!.querySelector('[data-modal-action="save"]'));
+    expect(patches()).toEqual([{ type: "patchGroup", groupId: "desk", patch: { name: "Desk Two", description: "The recruiting desk" } }]);
+    expect(modal("about")).not.toBeNull();
   });
 });
 
 describe("Who responds", () => {
-  it("lists each member, then MausBot choosing, everyone and mentions only, and writes what the header picker writes", async () => {
+  it("lists each member, then MausBot choosing, everyone and mentions only, in its own dialog", () => {
     render(room());
     click($('[data-panel-page="responder"]'));
-    await settle();
-    expect(page()).toBe("responder");
-    const choices = [...document.querySelectorAll("[data-panel-choice]")].map((row) => [row.getAttribute("data-panel-choice"), row.textContent, row.getAttribute("aria-checked")]);
+    expect(modal("responder")).not.toBeNull();
+    const choices = [...modal("responder")!.querySelectorAll("[data-panel-choice]")].map((row) => [row.getAttribute("data-panel-choice"), words(row), row.getAttribute("aria-checked")]);
     expect(choices).toEqual([
       ["member:lead", "Desk Manager", "true"],
       ["member:bench", "Vendor Bench", "false"],
@@ -241,65 +217,47 @@ describe("Who responds", () => {
     ]);
   });
 
-  it("says who answers instead while Jev is off", async () => {
+  it("says who answers instead while Jev is off", () => {
     fixture.config = jev(false);
     render(room({ defaultResponder: { kind: "auto", fallbackBotId: "paper" } }));
     click($('[data-panel-page="responder"]'));
-    await settle();
-    expect($('[data-panel-choice="auto"]')?.textContent).toBe("Let MausBot chooseJev is off, so plain messages go to Paperwork; @mentions override this");
+    expect(words($('[data-panel-choice="auto"]'))).toBe("Let MausBot chooseJev is off, so plain messages go to Paperwork; @mentions override this");
     expect($('[data-panel-choice="auto"]')?.getAttribute("aria-checked")).toBe("true");
   });
 });
 
 describe("Working folder", () => {
-  it("opens a page with the room's folder picker", async () => {
+  it("opens its own dialog of plain choices, with the lock line only once the folder is fixed", () => {
     render(room());
     click($('[data-panel-page="folder"]'));
-    await settle();
-    expect(page()).toBe("folder");
-    expect($("[data-room-working-folder]")).not.toBeNull();
-    expect($("[data-panel-page-title]")?.textContent).toBe("Working folder");
+    expect(modal("folder")).not.toBeNull();
+    expect([...modal("folder")!.querySelectorAll("[data-panel-choice]")].map((row) => [row.getAttribute("data-panel-choice"), row.getAttribute("aria-checked")]))
+      .toEqual([["own", "true"], ["pick", "false"]]);
+    expect($("[data-folder-locked]")).toBeNull();
+    expect(modal("folder")!.querySelector(".font-mono")).toBeNull();
+    closeModal();
+    render(room({ cwd: "/Users/ada/code/recruiting", pinnedCwd: "/Users/ada/code/recruiting" }));
+    click($('[data-panel-page="folder"]'));
+    expect($('[data-panel-choice="pick"]')?.textContent).toContain("~/code/recruiting");
+    expect($('[data-panel-choice="pick"]')?.getAttribute("aria-checked")).toBe("true");
+    expect($("[data-folder-locked]")?.textContent).toBe("Fixed for this group chat after its first turn.");
   });
 });
 
 describe("Instructions", () => {
-  const field = () => $<HTMLTextAreaElement>('[data-panel-row="instructions"] textarea');
+  const field = () => $<HTMLTextAreaElement>('[data-panel-modal="instructions"] textarea');
 
-  it("edits in place and saves once with Done", async () => {
+  it("edit in their own dialog, keep the draft when closed, and save with Save", () => {
     render(room());
-    click($('[data-panel-edit="instructions"]'));
+    click($('[data-panel-page="instructions"]'));
     expect(field()?.value).toBe("Hand out the work here.\nKeep it short.");
-    type(field()!, "Hand out the work here.");
-    click($('[data-panel-done="instructions"]'));
-    await settle();
-    expect(field()).toBeNull();
-    expect(patches()).toEqual([{ type: "patchGroup", groupId: "desk", patch: { bulletin: "Hand out the work here." } }]);
-    expect(document.activeElement?.getAttribute("data-panel-edit")).toBe("instructions");
-  });
-
-  it("saves on ⌘↩ and on blur", async () => {
-    render(room());
-    click($('[data-panel-edit="instructions"]'));
-    type(field()!, "New brief");
-    press(field(), "Enter", { metaKey: true });
-    await settle();
-    expect(field()).toBeNull();
-    click($('[data-panel-edit="instructions"]'));
-    type(field()!, "Blurred brief");
-    flushSync(() => field()!.dispatchEvent(new FocusEvent("focusout", { bubbles: true })));
-    expect(patches().map((action) => action.patch)).toEqual([{ bulletin: "New brief" }, { bulletin: "Blurred brief" }]);
-  });
-
-  it("drops the draft on Escape and keeps the panel open", async () => {
-    render(room());
-    click($('[data-panel-edit="instructions"]'));
-    type(field()!, "Never mind");
-    const escape = press(field(), "Escape");
-    await settle();
-    expect(escape.defaultPrevented).toBe(true);
-    expect(field()).toBeNull();
+    type(field()!, "Draft brief");
+    closeModal();
     expect(patches()).toEqual([]);
-    expect(seen.open).toBe("desk");
+    click($('[data-panel-page="instructions"]'));
+    expect(field()?.value).toBe("Draft brief");
+    click($('[data-panel-modal="instructions"] [data-modal-action="save"]'));
+    expect(patches()).toEqual([{ type: "patchGroup", groupId: "desk", patch: { bulletin: "Draft brief" } }]);
   });
 });
 
@@ -315,14 +273,14 @@ describe("Escape", () => {
   it("leaves a page first, then closes the panel and hands focus back to the room's name", async () => {
     render(room());
     await settle();
-    click($('[data-panel-page="responder"]'));
+    click($('[data-panel-page="models"]'));
     await settle();
     expect(document.activeElement?.hasAttribute("data-panel-back")).toBe(true);
     press(document.activeElement, "Escape");
     await settle();
     expect(page()).toBeNull();
     expect(seen.open).toBe("desk");
-    expect(document.activeElement?.getAttribute("data-panel-page")).toBe("responder");
+    expect(document.activeElement?.getAttribute("data-panel-page")).toBe("models");
     press(document.activeElement, "Escape");
     await settle();
     expect(seen.open).toBeNull();
@@ -331,7 +289,7 @@ describe("Escape", () => {
 
   it("closes from the ✕ too", () => {
     render(room());
-    click($('[aria-label="Close"]'));
+    click($('[data-room-panel] [aria-label="Close"]'));
     expect(seen.open).toBeNull();
     expect(document.activeElement).toBe(opener);
   });

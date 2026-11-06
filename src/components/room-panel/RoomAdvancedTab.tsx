@@ -1,91 +1,22 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { ChevronRight, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { Trash2 } from "lucide-react";
 
 import { requestChatFind } from "@/lib/chat-find";
-import { cn } from "@/lib/cn";
 import { copyTranscriptToClipboard, downloadMarkdownTranscript, formatTranscriptMarkdown, slugifyTranscriptFilename } from "@/lib/export-transcript";
 import { t } from "@/lib/i18n";
 import { openSettings } from "@/lib/open-settings";
-import { useStore, type Group } from "@/state/store";
+import { useStore } from "@/state/store";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { PRESET_TURN_LIMITS, useConversationTurnLimit } from "../ConversationTurnLimit";
 import { roomDeleteCopy } from "../room-delete-copy";
 import { SelectPill } from "../ui/SelectPill";
-import { Card, ColRow, ItemRow, NavRow, PanelSections, rowCls, RowText } from "../bot-panel/rows";
+import { Card, ItemRow, NavRow, PanelSections } from "../bot-panel/rows";
 import { GroupUsageRow, RoomRows, type RoomRowsProps } from "./RoomDetailsTab";
 
 function turnLimitLabel(minutes: number): string {
   if (minutes === 60) return t("room.panel.hour");
   if (minutes % 60 === 0) return t("room.panel.hours", { hours: minutes / 60 });
   return t("room.panel.minutes", { minutes });
-}
-
-/** A text field of the room's, shown as a row and edited in place: Enter or leaving saves, Escape drops the draft. */
-function EditRow({ field, title, value, placeholder, onSave }: {
-  field: string;
-  title: string;
-  value: string;
-  placeholder?: string;
-  onSave: (value: string) => void;
-}) {
-  const [draft, setDraft] = useState<string | null>(null);
-  const settled = useRef(false);
-  const refocus = useRef(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    if (draft !== null || !refocus.current) return;
-    refocus.current = false;
-    buttonRef.current?.focus();
-  }, [draft]);
-  const commit = () => {
-    if (draft !== null && draft.trim() !== value) onSave(draft.trim());
-    setDraft(null);
-  };
-  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key !== "Enter" && event.key !== "Escape") return;
-    event.preventDefault();
-    event.stopPropagation();
-    settled.current = true;
-    refocus.current = true;
-    if (event.key === "Enter") commit();
-    else setDraft(null);
-  };
-
-  if (draft !== null) {
-    return (
-      <ColRow data-panel-row={field}>
-        <RowText title={title} />
-        <input
-          autoFocus
-          dir="auto"
-          aria-label={title}
-          value={draft}
-          placeholder={placeholder}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={onKeyDown}
-          onBlur={() => { if (!settled.current) commit(); }}
-          className="h-8 w-full rounded-lg border border-hairline bg-inset px-2.5 text-[13px] leading-[18px] tracking-[0.015em] text-ink outline-none placeholder:text-ink-tertiary focus:border-accent-border"
-        />
-      </ColRow>
-    );
-  }
-  return (
-    <button
-      ref={buttonRef}
-      type="button"
-      data-panel-edit={field}
-      aria-label={`${t("botSettings.simple.edit")}: ${title}`}
-      onClick={() => {
-        settled.current = false;
-        setDraft(value);
-      }}
-      className={cn(rowCls, "w-full text-left hover:bg-ink/[0.06]")}
-    >
-      <RowText title={title} />
-      <span dir="auto" className="min-w-0 max-w-[60%] shrink-0 truncate text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{value || placeholder}</span>
-      <ChevronRight size={14} className="-mr-0.5 shrink-0 text-ink-tertiary" aria-hidden="true" />
-    </button>
-  );
 }
 
 /** The room's controls in the bot panel's Advanced anatomy: the room itself, its chat, apps, then deleting it. */
@@ -98,7 +29,6 @@ export function RoomAdvancedTab(props: RoomRowsProps) {
   const deleteRef = useRef<HTMLButtonElement>(null);
   const hasMessages = group.messages.length > 0;
   const transcript = () => formatTranscriptMarkdown({ title: group.name, messages: group.messages, isGroup: true });
-  const patch = (next: Partial<Group>) => dispatch({ type: "patchGroup", groupId: group.id, patch: next });
   const turnOptions = [
     { value: "default", label: t("room.turnLimit.default", { minutes: limit.globalMinutes }) },
     ...PRESET_TURN_LIMITS.map((minutes) => ({ value: String(minutes), label: turnLimitLabel(minutes) })),
@@ -107,13 +37,12 @@ export function RoomAdvancedTab(props: RoomRowsProps) {
   return (
     <PanelSections data-panel-tabpanel="advanced">
       <Card label={t("room.panel.section.room")} anchor="room">
-        <EditRow field="name" title={t("botSettings.simple.name")} value={group.name} onSave={(name) => name && patch({ name })} />
-        <EditRow
-          field="description"
+        <NavRow data-panel-page="about" title={t("botSettings.simple.name")} value={group.name} onClick={() => props.onOpen("about")} />
+        <NavRow
+          data-panel-page="about-description"
           title={t("presetShare.description")}
-          value={group.description ?? ""}
-          placeholder={t("room.panel.descriptionHint")}
-          onSave={(description) => patch({ description })}
+          value={group.description || t("room.panel.descriptionHint")}
+          onClick={() => props.onOpen("about")}
         />
         <RoomRows {...props} />
       </Card>

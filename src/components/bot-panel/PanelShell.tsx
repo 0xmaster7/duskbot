@@ -163,7 +163,7 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
     </div>
   );
 
-  const viewCls = "@container absolute inset-0 flex flex-col overflow-y-auto overscroll-contain bg-app px-4 pb-4 [scrollbar-gutter:stable] [scrollbar-width:thin]";
+  const viewCls = "@container absolute inset-0 flex flex-col overflow-y-auto overscroll-contain bg-app px-4 pb-8 [scrollbar-gutter:stable] [scrollbar-width:thin]";
   const setBody = (element: HTMLDivElement | null) => { if (element) bodyRef.current = element; };
   const view = (content: ReactNode) => reduced ? (
     <div key={viewKey} ref={setBody} className={viewCls}>{content}</div>

@@ -20,7 +20,7 @@ describe("chat text follows the writer's direction", () => {
     expectDirAuto("RawMarkdownToggle.tsx", 'data-testid="raw-markdown-view"');
     expectDirAuto("RoomBulletin.tsx", "value={bulletin.draft}");
     expectDirAuto("RoomBulletin.tsx", "group.bulletin.split");
-    expectDirAuto("room-panel/RoomDetailsTab.tsx", "value={bulletin.draft}");
+    expectDirAuto("room-panel/RoomModals.tsx", "value={draft}");
     expectDirAuto("SearchResults.tsx", "line-clamp-2");
 
     const quotes = source("CitationUI.tsx").match(/<pre dir="auto"[^>]*>\{citation\.quote\}/g) ?? [];
