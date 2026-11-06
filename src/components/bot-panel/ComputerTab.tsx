@@ -265,9 +265,9 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
               <span
                 aria-hidden="true"
                 data-panel-open-pill=""
-                className="pointer-events-none relative z-[2] inline-flex items-center gap-1.5 rounded-full bg-[rgb(0_0_0/0.9)] px-2.5 py-2 text-[12px] leading-4 tracking-normal text-white opacity-0 transition-opacity duration-[120ms] ease-out group-hover/screen:opacity-100 group-focus-visible/screen:opacity-100"
+                className="pointer-events-none relative z-[2] inline-flex items-center gap-1.5 rounded-full bg-[rgb(0_0_0/0.9)] px-2.5 py-2 text-[13px] font-medium leading-4 tracking-[0.01em] text-white opacity-0 transition-opacity duration-[120ms] ease-out group-hover/screen:opacity-100 group-focus-visible/screen:opacity-100"
               >
-                <GrokIcon name="arrows-expand-simple" size={14} />
+                <GrokIcon name="arrows-expand-simple" size={12} />
                 {t("computer.open")}
               </span>
             </>
