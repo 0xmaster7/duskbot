@@ -301,7 +301,8 @@ describe("container images", () => {
       const output = join(root, "output");
       writeFileSync(output, "");
       const result = spawnSync("bash", ["-e", "-c", keys.run!], {
-        env: { ...keys.env, PATH: `${root}:${dirname(jq)}:/usr/bin:/bin`, GITHUB_OUTPUT: output }, encoding: "utf8",
+        // bash sources ~/.bashrc when its stdin is a socket, as node's pipes are on macOS, and that can put a real npm first.
+        env: { ...keys.env, HOME: root, PATH: `${root}:${dirname(jq)}:/usr/bin:/bin`, GITHUB_OUTPUT: output }, encoding: "utf8",
       });
       expect(result.status, result.stderr).toBe(0);
       return Object.fromEntries(readFileSync(output, "utf8").trim().split("\n").map(line => [line.slice(0, line.indexOf("=")), line.slice(line.indexOf("=") + 1)]));

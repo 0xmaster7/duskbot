@@ -145,9 +145,9 @@ describe("first-reply rescue row", () => {
 });
 
 describe("stopped row", () => {
-  it("tells the person they stopped it, in plain grey words", () => {
+  it("says one quiet word, whoever stopped it", () => {
     act(() => root.render(createElement(CancelledTurnRow, { name: PERSON_STOPPED_TURN_NAME })));
-    expect(host.textContent).toBe("You stopped this.");
+    expect(host.textContent).toBe("Stopped");
     act(() => root.render(createElement(CancelledTurnRow, { name: STOPPED_TURN_NAME })));
     expect(host.textContent).toBe("Stopped");
   });

@@ -229,7 +229,7 @@ export function AvatarImageGenerator({
     <>
       <label className={LABEL}>
         {t("botIdentity.ai.provider")}
-        <Select variant="ghost" value={provider} onChange={(event) => void chooseProvider(event.target.value as AvatarImageProvider)} disabled={busy || !state.config} className="self-start">
+        <Select variant="ghost" value={provider} onChange={(event) => void chooseProvider(event.target.value as AvatarImageProvider)} disabled={busy || !state.config} className="w-fit">
           {Object.entries(PROVIDERS).map(([value, info]) => <option key={value} value={value}>{info.label}</option>)}
         </Select>
       </label>

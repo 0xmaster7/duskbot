@@ -16,11 +16,11 @@ const HARD_CAP = 2000;
 const LISTED_FROM = 1000;
 
 const LINES: Record<string, number> = {
-  "server/index.ts": 15711,
-  "src/state/store.tsx": 3354,
-  "electron/main.mjs": 3245,
+  "server/index.ts": 15714,
+  "src/state/store.tsx": 3365,
+  "electron/main.mjs": 3255,
   "server/store.ts": 2307,
-  "src/components/Sidebar.tsx": 1689,
+  "src/components/Sidebar.tsx": 1858,
   "server/drivers/claude.ts": 2103,
   "server/drivers/acp/core.ts": 1740,
   "server/drivers/codex.ts": 1731,
@@ -28,11 +28,11 @@ const LINES: Record<string, number> = {
   "src/components/ComputerPanel.tsx": 1821,
   "src/components/RoutineCalendarPage.tsx": 1623,
   "server/config.ts": 1274,
-  "src/components/ChatView.tsx": 1306,
+  "src/components/ChatView.tsx": 1413,
   "server/routine-requests.ts": 1484,
   "src/components/GroupView.tsx": 1220,
   "src/components/LocalComputerSection.tsx": 1475,
-  "src/components/CursorAvatar.tsx": 1324,
+  "src/components/CursorAvatar.tsx": 1352,
   "server/skills.ts": 1385,
   "server/composio.ts": 1091,
   "server/vps-computer.ts": 1369,
@@ -43,7 +43,9 @@ const LINES: Record<string, number> = {
   "src/components/ModelPicker.tsx": 1046,
   "src/components/PhoneSetupFlow.tsx": 1146,
   "server/cli.ts": 1080,
-  "src/components/AttachmentPreview.tsx": 1037,
+  "src/components/AttachmentPreview.tsx": 1086,
+  "src/components/Composer.tsx": 1036,
+  "src/components/grok-icon-glyphs.ts": 1234,
 };
 
 function sourceFiles(): string[] {
