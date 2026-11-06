@@ -344,12 +344,14 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     const authorizeFirst = entry.kind === "composio" && !composioReady;
     const connect: RowAction = { kind: "button", label: t(authorizeFirst ? "connectApps.authorize" : "connectors.action.connect"), onClick: () => startConnect(entry) };
     const vendor = vendorOf(entry);
-    if (vendor) return { ...connect, busy: remote.busy === vendor.id };
+    if (vendor) return { ...connect, busy: remote.busy[vendor.id] === true, onCancel: () => remote.cancel(vendor.id) };
     if (!phase) return connect;
+    // anything that says Connecting… can be left: Cancel stops it and the row says Connect again
+    const cancel = () => connectors.cancel(entry.id);
     switch (phase.kind) {
       case "connected": case "included": return { kind: "connected" };
-      case "connecting": return { ...connect, busy: true };
-      case "continue": return { ...connect, label: t("connectApps.via.openAgain"), pending: true, title: t("connectors.finishSetup"), onClick: () => connectors.resume(entry.id) };
+      case "connecting": return { ...connect, busy: true, onCancel: cancel };
+      case "continue": return { ...connect, label: t("connectApps.via.openAgain"), pending: true, title: t("connectors.finishSetup"), onClick: () => connectors.resume(entry.id), onCancel: cancel };
       case "failed": return phase.why === "signedOut"
         ? { ...connect, label: t("connectApps.authorize"), onClick: () => go({ kind: "detail", id: entry.id }) }
         : { ...connect, label: t("connectors.action.retry"), onClick: () => void connectors.connect(entry.id) };
@@ -478,13 +480,13 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
       }
       if (vendor) {
         ways.push({ key: "remote", label: t("connectApps.way.server", { name: detailEntry.label }), connected: remote.connection(vendor.id) === "connected",
-          action: { kind: "button", label: t("connectors.action.connect"), busy: remote.busy === vendor.id, disabled: remote.connection(vendor.id) === "unknown", onClick: () => void remote.connect(vendor) } });
+          action: { kind: "button", label: t("connectors.action.connect"), busy: remote.busy[vendor.id] === true, disabled: remote.connection(vendor.id) === "unknown", onClick: () => void remote.connect(vendor), onCancel: () => remote.cancel(vendor.id) } });
       }
       if (slug && card) {
         const connect = { kind: "button" as const, label: t(composioReady ? "connectors.action.connect" : "connectApps.authorize"), onClick: () => composioReady ? void connectors.connect(slug) : connectors.askKey(slug) };
         ways.push({ key: "composio", label: t("connectApps.way.composio"), connected: composioConnected(detailEntry),
-          action: phase?.kind === "connecting" ? { ...connect, busy: true }
-            : phase?.kind === "continue" ? { ...connect, label: t("connectApps.via.openAgain"), pending: true, title: t("connectors.finishSetup"), onClick: () => connectors.resume(slug) }
+          action: phase?.kind === "connecting" ? { ...connect, busy: true, onCancel: () => connectors.cancel(slug) }
+            : phase?.kind === "continue" ? { ...connect, label: t("connectApps.via.openAgain"), pending: true, title: t("connectors.finishSetup"), onClick: () => connectors.resume(slug), onCancel: () => connectors.cancel(slug) }
               : phase?.kind === "unavailable" ? { ...connect, disabled: true, title: phase.reason }
                 : { ...connect, disabled: !composioReady && window.ogb?.remoteClient?.active === true } });
       }
@@ -504,8 +506,9 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
         onOpenKeys: () => leaveFor(openKeySettings("composio")),
         ...(vendor ? { remote: {
           open: vendor.auth === "none",
-          busy: remote.busy === vendor.id,
+          busy: remote.busy[vendor.id] === true,
           onConnect: () => void remote.connect(vendor),
+          onCancel: () => remote.cancel(vendor.id),
           onManage: () => go({ kind: "detail", id: MCP_PAGE }),
         } } : {}),
       };

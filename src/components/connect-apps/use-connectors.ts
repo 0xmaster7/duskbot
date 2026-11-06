@@ -15,7 +15,7 @@ import { mergeCompleteConnectorStatus, mergeCurrentConnectorStatus, onlyLatestCo
 import { COMPOSIO_AUTH_CONFIGS_URL, managedConnectorUnavailableReason, needsComposioAuthConfig } from "../../../shared/connector-availability";
 import type { ToolkitCard } from "../ServiceIcon";
 import { cachedComposioSnapshot, loadComposioSnapshot, mergeCatalog } from "./composio-snapshot";
-import { classifyViaError, keepPendingVia, readPendingVia, VIA_DEADLINE_MS, viaDelay, type ViaFailure, type ViaFlow } from "./via-flow";
+import { classifyViaError, keepPendingVia, readPendingVia, VIA_DEADLINE_MS, VIA_READ_MS, viaDelay, watchReturn, type ViaFailure, type ViaFlow } from "./via-flow";
 
 export type ConnectorError = string | { key: LocaleKey } | null;
 /** Composio Connect, Composio's own MCP server, signed in with Composio's page: apps connect through it with no key. */
@@ -83,6 +83,8 @@ export interface Connectors {
   phaseOf: (card: ToolkitCard, policyBlocked: string | null) => ConnectorPhase;
   isConnected: (slug: string) => boolean;
   connect: (slug: string, alias?: string, replacing?: ConnectorAccount) => Promise<void>;
+  /** Stops the app's connect or sign-in where it is, polling and all, and puts it back to Connect or Authorize. */
+  cancel: (slug: string) => void;
   /** After a Composio key is saved: reads the catalog and connections again, then goes on with `slug`'s Connect in the tab
    * reserved on the click, unless the key's project already has it connected. */
   continueAfterKey: (slug: string, launch: ConnectionPage) => Promise<void>;
@@ -127,7 +129,8 @@ export function useConnectors(): Connectors {
   const [stale, setStale] = useState(connectorStatusMemory()?.authoritative === false);
   const [phase, setPhase] = useState<ConnectorInventoryPhase>(connectorStatusMemory() === null ? "loading" : "ready");
   const [pendingUrls, setPendingUrls] = useState<Record<string, PendingAuthorization>>({});
-  const [busySlug, setBusySlug] = useState<string | null>(null);
+  // per app: one app's slow connect never holds another's
+  const [busy, setBusy] = useState<Record<string, true>>({});
   const [aliasFor, setAliasFor] = useState<string | null>(null);
   const [setupFor, setSetupFor] = useState<string | null>(null);
   const [keyFor, setKeyFor] = useState<string | null>(null);
@@ -145,7 +148,10 @@ export function useConnectors(): Connectors {
   const polls = useRef(new Map<string, () => void>());
   const generations = useRef(new Map<string, number>());
   const latestRequests = useRef(new Map<string, number>());
-  const opening = useRef<ConnectionPage | null>(null);
+  const opening = useRef(new Map<string, ConnectionPage>());
+  const requests = useRef(new Map<string, AbortController>());
+  const authorizing = useRef<{ slug: string; cancel: () => void } | null>(null);
+  const mounted = useRef(true);
   const modeNow = useRef(mode);
   modeNow.current = mode;
 
@@ -226,14 +232,29 @@ export function useConnectors(): Connectors {
     if (phase === "ready") rememberConnectorStatus(status, !stale);
   }, [phase, stale, status]);
 
-  useEffect(() => () => {
-    opening.current?.cancel();
-    opening.current = null;
-    for (const stop of polls.current.values()) stop();
-    polls.current.clear();
-    for (const stop of viaPolls.current.values()) stop();
-    viaPolls.current.clear();
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      for (const launch of opening.current.values()) launch.cancel();
+      opening.current.clear();
+      for (const request of requests.current.values()) request.abort();
+      requests.current.clear();
+      authorizing.current?.cancel();
+      authorizing.current = null;
+      for (const stop of polls.current.values()) stop();
+      polls.current.clear();
+      for (const stop of viaPolls.current.values()) stop();
+      viaPolls.current.clear();
+    };
   }, []);
+
+  const markBusy = (slug: string, on: boolean) => setBusy((current) => {
+    if (Boolean(current[slug]) === on) return current;
+    const next: Record<string, true> = { ...current };
+    if (on) next[slug] = true; else delete next[slug];
+    return next;
+  });
 
   const startPolling = (slug: string, before: ConnectorStatus | undefined) => {
     polls.current.get(slug)?.();
@@ -248,7 +269,7 @@ export function useConnectors(): Connectors {
   const throughConnect = (slug: string) => viaNow.current?.signedIn === true && (!configured || unmanaged.current.has(slug));
 
   const connect = async (slug: string, alias?: string, replacing?: ConnectorAccount) => {
-    if (busySlug || opening.current) return;
+    if (busy[slug] || opening.current.has(slug)) return;
     if (throughConnect(slug) && !replacing) { await connectVia(slug, reserveConnectionPage()); return; }
     await run(slug, reserveConnectionPage(), alias, replacing);
   };
@@ -269,7 +290,9 @@ export function useConnectors(): Connectors {
 
   type ViaAnswer = { status: "connected" } | { status: "started"; url: string } | { status: "waiting" } | { status: "none" } | { status: "failed"; message: string };
   // GET only reads; POST reads, then starts a sign-in link only when the app has no account yet
-  const askVia = (slug: string, method: "GET" | "POST") => api(`/api/connectors/composio-connect/apps/${encodeURIComponent(slug)}`, { method }) as Promise<ViaAnswer>;
+  // bounded: a read that hangs ends as trouble, never as a spinner
+  const askVia = (slug: string, method: "GET" | "POST", signal?: AbortSignal) =>
+    api(`/api/connectors/composio-connect/apps/${encodeURIComponent(slug)}`, { method, timeoutMs: VIA_READ_MS, ...(signal ? { signal } : {}) }) as Promise<ViaAnswer>;
 
   const stopVia = (slug: string) => { viaPolls.current.get(slug)?.(); viaPolls.current.delete(slug); };
 
@@ -306,75 +329,106 @@ export function useConnectors(): Connectors {
   };
 
   /** Waits for the sign-in on Composio's page: reads the app's accounts with backoff, at once when the window is back in
-   * front, until one is active, the page is closed, the link expires, or Composio says the sign-in is gone. Trouble
-   * reaching MausBot or Composio (a restart, the network) is retried and said, never silent. */
+   * front, until one is active, the page is closed, the link expires, the person stays back here a while without
+   * finishing, or Composio says the sign-in is gone. Trouble reaching MausBot or Composio (a restart, the network) is
+   * retried and said, never silent; the link's own deadline holds even while a read hangs. */
   const pollVia = (slug: string, url: string, since: number, closed?: () => boolean) => {
     stopVia(slug);
+    if (!mounted.current) return;
     let alive = true;
-    let busy = false;
+    let reading = false;
     let attempt = 0;
     let back = false;
     let trouble = false;
+    let gaveUp = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    const reads = new AbortController();
     const tick = async () => {
-      if (!alive || busy) return;
-      busy = true;
+      if (!alive || reading) return;
+      reading = true;
       clearTimeout(timer);
       const wasClosed = closed?.() === true;
       try {
-        const answer = await askVia(slug, "GET");
+        const answer = await askVia(slug, "GET", reads.signal);
         if (!alive) return;
         trouble = false;
         if (answer.status === "connected") { void finishVia(slug); return; }
-        if (wasClosed) { failVia(slug, "cancelled"); return; }
+        if (wasClosed || gaveUp) { failVia(slug, "cancelled"); return; }
         flowOf(slug, { step: "waiting", url, since, ...(back ? { note: "notYet" as const } : {}) });
       } catch (cause) {
         if (!alive) return;
         const failure = classifyViaError(cause);
         if (failure.kind === "signedOut") { failVia(slug, "signedOut"); return; }
         if (failure.kind === "refused") { failVia(slug, "refused", failure.message); return; }
+        if (gaveUp) { failVia(slug, "offline"); return; }
         trouble = true;
         flowOf(slug, { step: "waiting", url, since, note: "trouble" });
       } finally {
-        busy = false;
+        reading = false;
       }
       if (!alive) return;
       if (Date.now() - since >= VIA_DEADLINE_MS) { failVia(slug, trouble ? "offline" : "timeout"); return; }
       attempt += 1;
       timer = setTimeout(() => void tick(), viaDelay(attempt));
     };
-    const onFocus = () => { if (document.visibilityState === "hidden") return; back = true; attempt = 0; void tick(); };
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onFocus);
+    const unwatch = watchReturn(() => { back = true; attempt = 0; void tick(); }, () => { gaveUp = true; void tick(); });
+    const deadline = setTimeout(() => { if (alive) failVia(slug, trouble ? "offline" : "timeout"); }, Math.max(0, since + VIA_DEADLINE_MS - Date.now()));
     timer = setTimeout(() => void tick(), viaDelay(0));
     viaPolls.current.set(slug, () => {
       alive = false;
       clearTimeout(timer);
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onFocus);
+      clearTimeout(deadline);
+      reads.abort();
+      unwatch();
     });
   };
 
-  // a reload or a restart mid sign-in: pick the wait up again once Composio Connect is known to be signed in
+  // a reload or a restart mid sign-in: once Composio Connect is known to be signed in, ask Composio (reading only)
+  // whether the sign-in is still out before showing it; a finished, dropped or expired one is not a wait any more
   useEffect(() => {
     if (!via?.signedIn) return;
+    const idle = (slug: string) => mounted.current && !viaPolls.current.has(slug) && !opening.current.has(slug);
     for (const [slug, entry] of Object.entries(readPendingVia())) {
-      if (viaPolls.current.has(slug)) continue;
-      flowOf(slug, { step: "waiting", url: entry.url, since: entry.since });
-      pollVia(slug, entry.url, entry.since);
+      if (!idle(slug)) continue;
+      void askVia(slug, "GET").then((answer) => {
+        if (!idle(slug)) return;
+        if (answer.status === "connected") { void finishVia(slug); return; }
+        if (answer.status !== "waiting") { keepPendingVia(slug, null); return; }
+        flowOf(slug, { step: "waiting", url: entry.url, since: entry.since });
+        pollVia(slug, entry.url, entry.since);
+      }, () => {
+        if (!idle(slug)) return;
+        // could not tell: the wait goes on, with its deadline and a Cancel
+        flowOf(slug, { step: "waiting", url: entry.url, since: entry.since, note: "trouble" });
+        pollVia(slug, entry.url, entry.since);
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [via?.signedIn]);
 
+  // the tab reserved on the click, and a way to stop its request, for the one app it is for
+  const begin = (slug: string, launch: ConnectionPage) => {
+    opening.current.set(slug, launch);
+    const request = new AbortController();
+    requests.current.set(slug, request);
+    markBusy(slug, true);
+    return request.signal;
+  };
+  const end = (slug: string, launch: ConnectionPage) => {
+    if (opening.current.get(slug) !== launch) return;
+    opening.current.delete(slug);
+    requests.current.delete(slug);
+    markBusy(slug, false);
+  };
+
   const connectVia = async (slug: string, launch: ConnectionPage) => {
-    if (opening.current) { launch.cancel(); return; }
-    opening.current = launch;
-    setBusySlug(slug);
+    if (opening.current.has(slug)) { launch.cancel(); return; }
+    const signal = begin(slug, launch);
     setError(null);
     stopVia(slug);
     try {
-      const answer = await askVia(slug, "POST");
-      if (opening.current !== launch) return;
+      const answer = await askVia(slug, "POST", signal);
+      if (opening.current.get(slug) !== launch) return;
       if (answer.status === "connected") { await finishVia(slug); return; }
       if (answer.status === "failed") { failVia(slug, "refused", answer.message); return; }
       const url = answer.status === "started" ? mcpSignInLink(answer.url) : null;
@@ -384,29 +438,27 @@ export function useConnectors(): Connectors {
       keepPendingVia(slug, { url, since });
       setKeyFor(null);
       const opened = await launch.open(url);
+      if (opening.current.get(slug) !== launch) return;
       pollVia(slug, url, since, launch.closed);
-      if (!opened && opening.current === launch) setError({ key: "connectors.popupBlockedContinue" });
+      if (!opened) setError({ key: "connectors.popupBlockedContinue" });
     } catch (cause) {
-      if (opening.current !== launch) return;
+      if (opening.current.get(slug) !== launch) return;
       const failure = classifyViaError(cause);
       failVia(slug, failure.kind === "trouble" ? "offline" : failure.kind, failure.kind === "refused" ? failure.message : undefined);
     } finally {
       launch.cancel();
-      if (opening.current === launch) {
-        opening.current = null;
-        setBusySlug(null);
-      }
+      end(slug, launch);
     }
   };
 
-  const signInComposio = async (launch: ConnectionPage): Promise<boolean> => {
+  const signInComposio = async (launch: ConnectionPage, signal: AbortSignal): Promise<boolean> => {
     try {
       const name = viaNow.current?.added ? viaNow.current.name ?? COMPOSIO_CONNECT_NAME : COMPOSIO_CONNECT_NAME;
       if (!viaNow.current?.added) {
         await api("/api/mcp/servers", { method: "POST", body: JSON.stringify({ name, type: "http", url: COMPOSIO_CONNECT_URL, enabled: false }) });
       }
-      const result = await runMcpSignIn(name, { api, open: async (url) => { await launch.open(url); } });
-      if (result.phase !== "succeeded") return false;
+      const result = await runMcpSignIn(name, { api, open: async (url) => { await launch.open(url); }, signal });
+      if (result.phase !== "succeeded" || signal.aborted) return false;
       await api(`/api/mcp/servers/${encodeURIComponent(name)}`, { method: "PATCH", body: JSON.stringify({ enabled: true }) });
       const next = await api("/api/connectors/composio-connect") as ComposioConnect;
       viaNow.current = next;
@@ -418,13 +470,29 @@ export function useConnectors(): Connectors {
   };
 
   const authorizeComposio = async (slug: string) => {
-    if (busySlug || opening.current || viaFlow[slug]?.step === "authorizing") return;
+    if (busy[slug] || authorizing.current?.slug === slug) return;
+    // one Composio sign-in at a time: another app's unfinished one gives way rather than freezing this row
+    authorizing.current?.cancel();
     // composio's page opens in the tab reserved on this click
     const launch = reserveConnectionPage();
+    const controller = new AbortController();
+    let gaveUp = false;
+    const giveUp = () => { gaveUp = true; controller.abort(); };
+    // back here a while without finishing, or never finished at all: Retry, not a spinner
+    const unwatch = watchReturn(() => {}, giveUp);
+    const deadline = setTimeout(giveUp, VIA_DEADLINE_MS);
+    const mine = { slug, cancel: () => { controller.abort(); flowOf(slug, null); } };
+    authorizing.current = mine;
     flowOf(slug, { step: "authorizing" });
     setError(null);
     let ok = false;
-    try { ok = await signInComposio(launch); } catch { ok = false; }
+    try { ok = await signInComposio(launch, controller.signal); } catch { ok = false; } finally {
+      unwatch();
+      clearTimeout(deadline);
+      if (authorizing.current === mine) authorizing.current = null;
+    }
+    // cancelled: the row is back to Authorize already
+    if (controller.signal.aborted && !gaveUp) return;
     // step two waits for its own click: its page needs one, and the person sees the step they are on
     if (ok) flowOf(slug, null); else failVia(slug, "authorize");
   };
@@ -432,12 +500,17 @@ export function useConnectors(): Connectors {
   const reopenVia = (slug: string) => {
     const flow = viaFlow[slug];
     if (flow?.step !== "waiting") { void connect(slug); return; }
-    if (opening.current) return;
+    if (opening.current.has(slug)) return;
     const launch = reserveConnectionPage();
+    opening.current.set(slug, launch);
     void launch.open(flow.url).then((opened) => {
+      if (opening.current.get(slug) !== launch) return;
       if (!opened) setError({ key: "connectors.popupBlockedContinue" });
       else pollVia(slug, flow.url, flow.since, launch.closed);
-    }).finally(() => launch.cancel());
+    }).finally(() => {
+      launch.cancel();
+      if (opening.current.get(slug) === launch) opening.current.delete(slug);
+    });
   };
 
   const checkVia = (slug: string) => {
@@ -456,9 +529,8 @@ export function useConnectors(): Connectors {
 
   const runOnce = async (slug: string, launch: ConnectionPage, alias: string | undefined, replacing: ConnectorAccount | undefined, goVia: () => void) => {
     let viaNext = false;
-    opening.current = launch;
+    begin(slug, launch);
     generations.current.set(slug, (generations.current.get(slug) ?? 0) + 1);
-    setBusySlug(slug);
     setError(null);
     try {
       const createdAt = Date.now();
@@ -466,7 +538,7 @@ export function useConnectors(): Connectors {
       const request: RequestInit = { method: "POST" };
       if (alias) request.body = JSON.stringify({ alias });
       const result = await api(`/api/connectors/${slug}/authorize`, request);
-      if (opening.current !== launch) return;
+      if (opening.current.get(slug) !== launch) return;
       const url = mcpSignInLink(typeof result.url === "string" ? result.url : null);
       if (!url) throw new Error(t("connectors.invalidAuthorizationUrl"));
       setPendingUrls((current) => ({ ...current, [slug]: { url, createdAt } }));
@@ -475,9 +547,9 @@ export function useConnectors(): Connectors {
       setKeyFor(null);
       setSetupFor((current) => current === slug ? null : current);
       startPolling(slug, status[slug]);
-      if (!await launch.open(url) && opening.current === launch) setError({ key: "connectors.popupBlockedContinue" });
+      if (!await launch.open(url) && opening.current.get(slug) === launch) setError({ key: "connectors.popupBlockedContinue" });
     } catch (cause) {
-      if (opening.current !== launch) return;
+      if (opening.current.get(slug) !== launch) return;
       const message = cause instanceof Error ? cause.message : String(cause);
       if (needsComposioAuthConfig(message) && modeNow.current === "managed") {
         // the broker's project cannot sign in to it; Composio Connect, or the person's own key, can
@@ -496,10 +568,7 @@ export function useConnectors(): Connectors {
       }
     } finally {
       launch.cancel();
-      if (opening.current === launch) {
-        opening.current = null;
-        setBusySlug(null);
-      }
+      end(slug, launch);
       if (viaNext) goVia();
     }
   };
@@ -508,27 +577,26 @@ export function useConnectors(): Connectors {
     if (viaFlow[slug]) { reopenVia(slug); return; }
     const url = reusableConnectionUrl(pendingUrls[slug]);
     if (!url) { void connect(slug); return; }
-    if (opening.current) return;
+    if (opening.current.has(slug)) return;
     const launch = reserveConnectionPage();
-    opening.current = launch;
+    opening.current.set(slug, launch);
     setError(null);
     void launch.open(url)
-      .then((opened) => { if (!opened && opening.current === launch) setError({ key: "connectors.popupBlockedContinue" }); })
+      .then((opened) => { if (!opened && opening.current.get(slug) === launch) setError({ key: "connectors.popupBlockedContinue" }); })
       .catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)))
       .finally(() => {
         launch.cancel();
-        if (opening.current === launch) opening.current = null;
+        if (opening.current.get(slug) === launch) opening.current.delete(slug);
       });
   };
 
   const continueAfterKey = async (slug: string, launch: ConnectionPage) => {
-    if (busySlug || opening.current) { launch.cancel(); return; }
-    opening.current = launch;
-    setBusySlug(slug);
+    if (busy[slug] || opening.current.has(slug)) { launch.cancel(); return; }
+    begin(slug, launch);
     let goOn = false;
     try {
       const [answer, inventory] = await Promise.all([reloadConnectorCatalog(), preloadConnectedApps(true)]);
-      if (opening.current !== launch) return;
+      if (opening.current.get(slug) !== launch) return;
       setLive(answer.cards ?? []);
       setSource(answer.source);
       setConfigured(Boolean(answer.configured));
@@ -542,40 +610,58 @@ export function useConnectors(): Connectors {
       // the key's project may have the app connected already: then there is nothing to sign in to
       goOn = !hasActiveConnection(inventory.services[slug]);
     } catch (cause) {
-      if (opening.current === launch) setError(cause instanceof Error ? cause.message : String(cause));
+      if (opening.current.get(slug) === launch) setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
-      if (opening.current === launch && !goOn) {
+      if (!goOn) {
         launch.cancel();
-        opening.current = null;
-        setBusySlug(null);
+        end(slug, launch);
       }
     }
-    if (goOn) await run(slug, launch);
+    if (goOn && opening.current.get(slug) === launch) await run(slug, launch);
   };
 
   const disconnect = (slug: string, accountId: string): Promise<boolean> => {
-    setBusySlug(slug);
+    markBusy(slug, true);
     return api(`/api/connectors/${slug}/accounts/${encodeURIComponent(accountId)}`, { method: "DELETE" })
       .then(() => refreshStatus([slug]).then(() => true))
       .catch(() => false)
-      .finally(() => setBusySlug(null));
+      .finally(() => markBusy(slug, false));
+  };
+
+  const cancel = (slug: string) => {
+    const launch = opening.current.get(slug);
+    opening.current.delete(slug);
+    launch?.cancel();
+    requests.current.get(slug)?.abort();
+    requests.current.delete(slug);
+    markBusy(slug, false);
+    if (authorizing.current?.slug === slug) { authorizing.current.cancel(); authorizing.current = null; }
+    stopVia(slug);
+    keepPendingVia(slug, null);
+    flowOf(slug, null);
+    polls.current.get(slug)?.();
+    polls.current.delete(slug);
+    setPendingUrls((current) => current[slug] ? Object.fromEntries(Object.entries(current).filter(([key]) => key !== slug)) : current);
   };
 
   const phaseOf = (card: ToolkitCard, policyBlocked: string | null): ConnectorPhase => {
     const state = status[card.slug];
     const failed = Boolean(state?.status && /^(expired|failed)$/i.test(state.status));
     const pending = Boolean(state?.pending && !failed);
+    // an unfinished account is a sign-in in progress only while this window started it and its link still works: one left
+    // from an abandoned try (before a restart, another device) is Connect again, not Connecting… forever
+    const live = reusableConnectionUrl(pendingUrls[card.slug]);
     const unavailable = policyBlocked ?? (managedConnectorUnavailableReason(mode, card.slug) ? t("connectors.selfHostOnlyReason") : null);
     if (unavailable) return { kind: "unavailable", reason: unavailable };
     if (card.noAuth === true || (state?.connected === true && !state.accounts?.length && !pending && !failed)) return { kind: "included" };
-    if (busySlug === card.slug) return { kind: "connecting" };
+    if (busy[card.slug]) return { kind: "connecting" };
     const flow = viaFlow[card.slug];
     if (flow?.step === "authorizing") return { kind: "connecting" };
     if (flow?.step === "waiting") return { kind: "continue", url: flow.url };
     if (flow?.step === "failed") return { kind: "failed", why: flow.why, ...(flow.message ? { message: flow.message } : {}) };
     if ((flow?.step === "done" || viaApps[card.slug]) && !hasActiveConnection(state)) return { kind: "connected" };
     if (phase === "loading") return { kind: "checking" };
-    if (pending) return { kind: "continue", url: reusableConnectionUrl(pendingUrls[card.slug]) };
+    if (pending && live) return { kind: "continue", url: live };
     const reconnect = accountToReconnect(state);
     if (reconnect) return { kind: "reconnect", account: reconnect };
     if (hasActiveConnection(state)) return { kind: "connected" };
@@ -589,7 +675,7 @@ export function useConnectors(): Connectors {
     viaRoute: (slug) => !configured || unmanaged.current.has(slug) || keyFor === slug, authorizeComposio, reopenVia, checkVia,
     setError, askAlias: setAliasFor, askKey: setKeyFor, phaseOf,
     isConnected: (slug) => hasActiveConnection(status[slug]) || viaApps[slug] === true,
-    connect, continueAfterKey, resume, disconnect,
+    connect, cancel, continueAfterKey, resume, disconnect,
     reload: () => setReloads((count) => count + 1),
   };
 }

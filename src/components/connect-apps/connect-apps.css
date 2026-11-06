@@ -637,6 +637,9 @@
 }
 .ca-link:hover:not(:disabled) { color: var(--color-ink); }
 .ca-link[data-tone="danger"]:hover { color: var(--color-danger); }
+/* beside a Connecting… pill or button: sized to it, never wrapping */
+.ca-cancel { flex-shrink: 0; font-size: 12px; line-height: 16px; white-space: nowrap; }
+.ca-detail-header > .ca-cancel { font-size: 14px; line-height: 20px; }
 .ca-alias {
   display: flex;
   align-items: center;

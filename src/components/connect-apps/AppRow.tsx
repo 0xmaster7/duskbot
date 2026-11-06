@@ -23,7 +23,7 @@ export function GlyphTile({ name, size, paint }: { name: GrokIconName; size: num
 
 /** What sits at a row's end: a Connect pill that keeps its width through Connecting…, or the quiet Connected mark. */
 export type RowAction =
-  | { kind: "button"; label: string; busy?: boolean; pending?: boolean; disabled?: boolean; title?: string; onClick: () => void }
+  | { kind: "button"; label: string; busy?: boolean; pending?: boolean; disabled?: boolean; title?: string; onClick: () => void; onCancel?: () => void }
   | { kind: "connected" }
   | { kind: "status"; label: string; tone: "connected" | "attention" | "quiet" }
   | { kind: "none" };
@@ -37,24 +37,32 @@ export function ConnectedMark() {
   );
 }
 
+/** Stops an app's connect where it is: anything that says Connecting… can always be left. */
+export function CancelLink({ onCancel }: { onCancel: () => void }) {
+  return <button type="button" className="ca-link ca-cancel" data-cancel="" onClick={onCancel}>{t("common.cancel")}</button>;
+}
+
 export function RowPill({ action, name }: { action: Extract<RowAction, { kind: "button" }>; name: string }) {
   const labels = [action.label, t("connectApps.connecting")];
   const shown = action.busy || action.pending ? labels[1] : labels[0];
   return (
-    <button
-      type="button"
-      data-size="sm"
-      className="ca-pill"
-      disabled={action.busy || action.disabled}
-      data-pending={action.pending ? "" : undefined}
-      aria-busy={action.busy || action.pending || undefined}
-      aria-label={shown !== labels[0] ? undefined : action.label === t("connectors.action.connect") ? t("connectApps.connectAria", { name })
-        : action.label === t("connectApps.authorize") ? t("connectApps.authorizeAria", { name }) : undefined}
-      title={action.title}
-      onClick={action.onClick}
-    >
-      {labels.map((label) => <span key={label} aria-hidden={label === shown ? undefined : true}>{label}</span>)}
-    </button>
+    <>
+      {action.onCancel && (action.busy || action.pending) && <CancelLink onCancel={action.onCancel} />}
+      <button
+        type="button"
+        data-size="sm"
+        className="ca-pill"
+        disabled={action.busy || action.disabled}
+        data-pending={action.pending ? "" : undefined}
+        aria-busy={action.busy || action.pending || undefined}
+        aria-label={shown !== labels[0] ? undefined : action.label === t("connectors.action.connect") ? t("connectApps.connectAria", { name })
+          : action.label === t("connectApps.authorize") ? t("connectApps.authorizeAria", { name }) : undefined}
+        title={action.title}
+        onClick={action.onClick}
+      >
+        {labels.map((label) => <span key={label} aria-hidden={label === shown ? undefined : true}>{label}</span>)}
+      </button>
+    </>
   );
 }
 

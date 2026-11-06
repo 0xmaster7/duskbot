@@ -156,6 +156,27 @@ describe("the Connect Apps window", () => {
     expect(fixture.opened).toEqual(["https://connect.example/asana"]);
   });
 
+  it("one app stuck connecting never holds the others, and Cancel puts it back", async () => {
+    fixture.api.mockImplementation(async (path: string) => {
+      if (path === "/api/connectors/asana/authorize") return new Promise(() => {});
+      if (path.endsWith("/authorize")) return { url: "https://connect.example/linear" };
+      return { services: {} };
+    });
+    const row = (slug: string) => dialog().querySelector<HTMLElement>(`[data-app-row="${slug}"]`)!;
+    const pill = (slug: string) => row(slug).querySelector<HTMLButtonElement>(".ca-pill")!;
+    await act(async () => { pill("asana").click(); });
+    expect(pill("asana").disabled).toBe(true);
+    expect(row("asana").querySelector("[data-cancel]")?.textContent).toBe("Cancel");
+    await act(async () => { pill("linear").click(); });
+    await flush();
+    expect(fixture.api).toHaveBeenCalledWith("/api/connectors/linear/authorize", { method: "POST" });
+    expect(fixture.opened).toEqual(["https://connect.example/linear"]);
+    await act(async () => { row("asana").querySelector<HTMLButtonElement>("[data-cancel]")!.click(); });
+    expect(pill("asana").disabled).toBe(false);
+    expect(pill("asana").getAttribute("aria-label")).toBe("Connect Asana");
+    expect(row("asana").querySelector("[data-cancel]")).toBeNull();
+  });
+
   it("lists every Composio app the live catalog lacks, with what it can do and how you sign in on its page", async () => {
     expect(dialog().querySelector('[data-app-row="attio"] .ca-row-subtitle')?.textContent).toBe("A CRM built for you");
     await act(async () => { dialog().querySelector<HTMLButtonElement>('[data-app-row="attio"] .ca-row-open')!.click(); });
@@ -314,12 +335,12 @@ describe("the Connect Apps window", () => {
         expect(dialog().textContent).toContain("Now sign in to Attio on Composio's page.");
         await act(async () => { primary()!.click(); });
         await flush();
-        expect(fixture.api).toHaveBeenCalledWith("/api/connectors/composio-connect/apps/attio", { method: "POST" });
+        expect(fixture.api).toHaveBeenCalledWith("/api/connectors/composio-connect/apps/attio", expect.objectContaining({ method: "POST" }));
         expect(fixture.opened).toEqual(["https://connect.composio.dev/link/ln_attio"]);
         expect(shownLabel()).toBe("Open page again");
         expect(line()).toBe("Finish signing in on Composio's page. This updates by itself.");
         await act(async () => { await vi.advanceTimersByTimeAsync(2_100); });
-        expect(fixture.api, "waiting only reads").toHaveBeenCalledWith("/api/connectors/composio-connect/apps/attio", { method: "GET" });
+        expect(fixture.api, "waiting only reads").toHaveBeenCalledWith("/api/connectors/composio-connect/apps/attio", expect.objectContaining({ method: "GET" }));
         expect(fixture.api.mock.calls.filter(([path, init]) => path === "/api/connectors/composio-connect/apps/attio" && init?.method === "POST")).toHaveLength(1);
         connected = true;
         await act(async () => { window.dispatchEvent(new Event("focus")); });
@@ -343,7 +364,7 @@ describe("the Connect Apps window", () => {
       // the live harness on 2026-11-07: signed in, the server left off
       viaApi({ signedIn: true, enabled: false }, () => ({ status: "connected" }));
       await remountAt(5);
-      expect(fixture.api).not.toHaveBeenCalledWith("/api/connectors/composio-connect/apps/attio", { method: "POST" });
+      expect(fixture.api).not.toHaveBeenCalledWith("/api/connectors/composio-connect/apps/attio", expect.objectContaining({ method: "POST" }));
       expect(fixture.opened).toEqual([]);
       expect(JSON.parse(kept.get("omb.composioConnect.apps") ?? "{}")).toEqual({ attio: true });
       expect(primary(), "connected: nothing left to click").toBeNull();
@@ -441,6 +462,60 @@ describe("the Connect Apps window", () => {
         await remountAt(8);
         expect(shownLabel()).toBe("Open page again");
         expect(line()).toBe("Finish signing in on Composio's page. This updates by itself.");
+      });
+
+      it("a saved wait is checked before it shows: one Composio no longer has, or one past its deadline, is dropped", async () => {
+        const kept = keep();
+        kept.set("omb.composioConnect.pending", JSON.stringify({
+          attio: { url: "https://connect.composio.dev/link/ln_attio", since: Date.now() - 60_000 },
+          asana: { url: "https://connect.composio.dev/link/ln_asana", since: Date.now() - 11 * 60_000 },
+        }));
+        await remount({ kind: "detail", id: "attio" }, "unavailable");
+        viaApi({ signedIn: true }, () => ({ status: "none" }));
+        await remountAt(9);
+        await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+        expect(fixture.api, "only read").not.toHaveBeenCalledWith("/api/connectors/composio-connect/apps/attio", expect.objectContaining({ method: "POST" }));
+        expect(fixture.api, "past its deadline: not even asked").not.toHaveBeenCalledWith("/api/connectors/composio-connect/apps/asana", expect.anything());
+        expect(shownLabel()).toBe("Connect Attio");
+        expect(line()).toBeUndefined();
+        expect(JSON.parse(kept.get("omb.composioConnect.pending") ?? "{}")).toEqual({});
+      });
+
+      it("Cancel stops the wait at once and says Connect again", async () => {
+        await waitingThen(() => ({ status: "waiting" }), 0);
+        expect(shownLabel()).toBe("Open page again");
+        const cancel = dialog().querySelector<HTMLButtonElement>("[data-app-page] .ca-detail-header [data-cancel]")!;
+        expect(cancel.textContent).toBe("Cancel");
+        await act(async () => { cancel.click(); });
+        expect(shownLabel()).toBe("Connect Attio");
+        expect(line()).toBeUndefined();
+        expect(dialog().querySelector("[data-cancel]")).toBeNull();
+        const reads = fixture.api.mock.calls.length;
+        await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+        expect(fixture.api.mock.calls.length, "no more polling").toBe(reads);
+      });
+
+      it("an authorize left unfinished: back here a while without it, it fails with Retry instead of spinning", async () => {
+        await remount({ kind: "detail", id: "attio" }, "unavailable");
+        const base = fixture.api.getMockImplementation()!;
+        fixture.api.mockImplementation(async (path: string, init?: RequestInit) => {
+          if (path === "/api/connectors/composio-connect") return { added: false, name: null, signedIn: false, enabled: false };
+          if (path === "/api/mcp/servers" && init?.method === "POST") return { servers: [] };
+          if (path === "/api/mcp/servers/composio-connect/sign-in") return { auth: { phase: "waiting", flowId: "f1", authorizationUrl: "https://connect.composio.dev/oauth/f1" } };
+          if (path === "/api/mcp/servers/composio-connect/sign-in/f1") return init?.method === "DELETE" ? {} : { auth: { phase: "waiting", flowId: "f1", authorizationUrl: null } };
+          return base(path, init);
+        });
+        await act(async () => { primary()!.click(); });
+        await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+        expect(shownLabel()).toBe("Waiting for Composio…");
+        await act(async () => { window.dispatchEvent(new Event("blur")); });
+        await act(async () => { await vi.advanceTimersByTimeAsync(5 * 60_000); });
+        expect(shownLabel(), "away on the sign-in page: still waiting").toBe("Waiting for Composio…");
+        await act(async () => { window.dispatchEvent(new Event("focus")); });
+        await act(async () => { await vi.advanceTimersByTimeAsync(76_000); });
+        expect(line()).toBe("Composio wasn't authorized. Try again.");
+        expect(shownLabel()).toBe("Retry");
+        expect(fixture.api, "the sign-in is called off").toHaveBeenCalledWith("/api/mcp/servers/composio-connect/sign-in/f1", { method: "DELETE" });
       });
     });
 

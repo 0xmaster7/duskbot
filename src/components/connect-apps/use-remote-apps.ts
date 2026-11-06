@@ -8,6 +8,7 @@ import { t } from "@/lib/i18n";
 import type { DirectoryAnswer, DirectoryApp } from "../../../shared/connector-directory";
 import { isRemoteMcpListing, type McpServerListing, type RemoteMcpListing } from "../mcp-draft";
 import type { Connection } from "./catalog";
+import { VIA_DEADLINE_MS, watchReturn } from "./via-flow";
 
 let directory: Promise<DirectoryApp[]> | null = null;
 // kept across opens, so the window's first frame already has them
@@ -59,13 +60,16 @@ export interface RemoteApps {
   apps: DirectoryApp[];
   /** The directory and the servers have answered (or failed): the list will not grow on its own any more. */
   settled: boolean;
-  busy: string | null;
+  /** Apps signing in right now, each on its own: one slow sign-in never holds another row. */
+  busy: Record<string, true>;
   error: string | null;
   clearError: () => void;
   connection: (id: string) => Connection;
   /** True when this MCP server is one of these apps, so Your apps lists it once. */
   ownsServer: (name: string) => boolean;
   connect: (app: DirectoryApp) => Promise<void>;
+  /** Stops the app's sign-in where it is and puts its row back to Connect. */
+  cancel: (id: string) => void;
 }
 
 /** Adds the vendor's server and signs in with the person's own account, the same flow as Add MCP server's Sign in.
@@ -75,9 +79,9 @@ export function useRemoteApps(options: { needsPanel: () => boolean; openPanel: (
   const [appsSettled, setAppsSettled] = useState(() => directoryApps !== null);
   const [servers, setServersNow] = useState<McpServerListing[] | null>(() => serverList);
   const setServers = useCallback((next: McpServerListing[]) => { serverList = next; setServersNow(next); }, []);
-  const [busy, setBusy] = useState<string | null>(null);
+  const [busy, setBusy] = useState<Record<string, true>>({});
   const [error, setError] = useState<string | null>(null);
-  const signIn = useRef<AbortController | null>(null);
+  const signIns = useRef(new Map<string, AbortController>());
   const latest = useRef(options);
   latest.current = options;
 
@@ -92,18 +96,30 @@ export function useRemoteApps(options: { needsPanel: () => boolean; openPanel: (
     let alive = true;
     loadRemoteApps().then((list) => { if (alive) setApps(list); }).catch(() => {}).finally(() => { if (alive) setAppsSettled(true); });
     api("/api/mcp/servers").then((answer) => { if (alive) setServers(answer.servers ?? []); }).catch(() => { if (alive) setServers([]); });
-    return () => { alive = false; signIn.current?.abort(); };
+    const running = signIns.current;
+    return () => { alive = false; for (const controller of running.values()) controller.abort(); running.clear(); };
   }, [setServers]);
 
   const serverOf = (app: DirectoryApp) => servers?.find((server): server is RemoteMcpListing =>
     isRemoteMcpListing(server) && server.type === "http" && sameEndpoint(server.url, app.url!));
 
+  const mark = (id: string, on: boolean) => setBusy((current) => {
+    const next: Record<string, true> = { ...current };
+    if (on) next[id] = true; else delete next[id];
+    return next;
+  });
+
   const connect = async (app: DirectoryApp) => {
-    if (busy) return;
-    setBusy(app.id);
-    setError(null);
+    if (signIns.current.has(app.id)) return;
     const controller = new AbortController();
-    signIn.current = controller;
+    signIns.current.set(app.id, controller);
+    mark(app.id, true);
+    setError(null);
+    // left unfinished (back here a while, or past the link's life): it ends with a line to retry, never a spinner
+    let gaveUp = false;
+    const giveUp = () => { gaveUp = true; controller.abort(); };
+    const unwatch = watchReturn(() => {}, giveUp);
+    const deadline = setTimeout(giveUp, VIA_DEADLINE_MS);
     try {
       let server = serverOf(app);
       const name = server?.name ?? freeServerName(app.id, servers ?? []);
@@ -115,17 +131,28 @@ export function useRemoteApps(options: { needsPanel: () => boolean; openPanel: (
       if (app.auth === "oauth" && server.auth !== "signed-in") {
         if (latest.current.needsPanel()) { latest.current.openPanel(); return; }
         const result = await runMcpSignIn(name, { api, open: openExternalLink, signal: controller.signal });
+        if (gaveUp) throw new Error(t("mcp.auth.failed"));
         if (result.phase === "cancelled" || controller.signal.aborted) return;
         if (result.phase !== "succeeded") throw new Error(result.message || t("mcp.auth.failed"));
       }
       if (!server.enabled || app.auth === "oauth") listed((await api(`/api/mcp/servers/${encodeURIComponent(name)}`, { method: "PATCH", body: JSON.stringify({ enabled: true }) })).servers);
     } catch (cause) {
-      if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : String(cause));
+      if (!controller.signal.aborted || gaveUp) setError(cause instanceof Error ? cause.message : String(cause));
       void reload().catch(() => {});
     } finally {
-      if (signIn.current === controller) signIn.current = null;
-      setBusy(null);
+      unwatch();
+      clearTimeout(deadline);
+      if (signIns.current.get(app.id) === controller) {
+        signIns.current.delete(app.id);
+        mark(app.id, false);
+      }
     }
+  };
+
+  const cancel = (id: string) => {
+    signIns.current.get(id)?.abort();
+    signIns.current.delete(id);
+    mark(id, false);
   };
 
   const byId = new Map(apps.map((app) => [app.id, app]));
@@ -136,5 +163,6 @@ export function useRemoteApps(options: { needsPanel: () => boolean; openPanel: (
     connection: (id) => { const app = byId.get(id); return app && servers ? remoteConnection(app, serverOf(app)) : "unknown"; },
     ownsServer: (name) => apps.some((app) => serverOf(app)?.name === name),
     connect,
+    cancel,
   };
 }

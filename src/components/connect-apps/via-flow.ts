@@ -12,6 +12,10 @@ export type ViaFlow =
   | { step: "failed"; why: ViaFailure; message?: string };
 
 export const VIA_DEADLINE_MS = 10 * 60_000;
+/** back in mausbot this long without the sign-in done: the attempt was left, so it fails with retry instead of spinning */
+export const VIA_GRACE_MS = 75_000;
+/** one status read never holds the wait up longer than this */
+export const VIA_READ_MS = 40_000;
 const DELAYS = [2_000, 3_000, 5_000, 8_000, 13_000, 15_000];
 
 /** Waits between status checks: quick at first, then every 15 s. */
@@ -34,7 +38,7 @@ type Pending = Record<string, { url: string; since: number }>;
 export function readPendingVia(now = Date.now()): Pending {
   try {
     const raw = JSON.parse(localStorage.getItem(PENDING) ?? "{}") as Pending;
-    return Object.fromEntries(Object.entries(raw).filter(([, entry]) => typeof entry?.url === "string" && typeof entry.since === "number" && now - entry.since < VIA_DEADLINE_MS));
+    return Object.fromEntries(Object.entries(raw).filter(([, entry]) => typeof entry?.url === "string" && typeof entry.since === "number" && entry.since <= now && now - entry.since < VIA_DEADLINE_MS));
   } catch {
     return {};
   }
@@ -46,4 +50,25 @@ export function keepPendingVia(slug: string, entry: { url: string; since: number
     if (entry) next[slug] = entry; else delete next[slug];
     localStorage.setItem(PENDING, JSON.stringify(next));
   } catch { /* private mode */ }
+}
+
+/** Calls `onBack` each time the person comes back to this window, and `onGiveUp` once they have stayed back for
+ * `graceMs` without the sign-in finishing. Going away again (to the sign-in page) stops that clock. */
+export function watchReturn(onBack: () => void, onGiveUp: () => void, graceMs = VIA_GRACE_MS): () => void {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const away = () => { clearTimeout(timer); timer = undefined; };
+  const back = () => {
+    if (document.visibilityState === "hidden") { away(); return; }
+    onBack();
+    timer ??= setTimeout(() => { timer = undefined; onGiveUp(); }, graceMs);
+  };
+  window.addEventListener("focus", back);
+  window.addEventListener("blur", away);
+  document.addEventListener("visibilitychange", back);
+  return () => {
+    away();
+    window.removeEventListener("focus", back);
+    window.removeEventListener("blur", away);
+    document.removeEventListener("visibilitychange", back);
+  };
 }
