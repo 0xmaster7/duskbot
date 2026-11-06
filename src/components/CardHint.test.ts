@@ -6,8 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setLocale } from "@/lib/i18n";
 import { EMPTY_ONBOARDING, WELCOME_VERSION } from "@/lib/onboarding";
 
-const f = vi.hoisted(() => ({ advanced: false, api: vi.fn(), dispatch: vi.fn() }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => f.advanced }));
+const f = vi.hoisted(() => ({ api: vi.fn(), dispatch: vi.fn() }));
 const StoreContext = vi.hoisted(() => ({ current: null as null | import("react").Context<unknown> }));
 vi.mock("@/state/store", async () => {
   const { createContext, useContext } = await import("react");
@@ -30,7 +29,6 @@ const show = async (id: "spot.approval" | "spot.connector", hintsSeen: string[] 
 
 beforeEach(() => {
   setLocale("en");
-  f.advanced = false;
   f.api.mockReset();
   f.api.mockResolvedValue({ ok: true });
   host = document.createElement("div");
@@ -43,13 +41,6 @@ afterEach(async () => {
 });
 
 describe("a card's first-time hint", () => {
-  it("stays out of Advanced mode, whose spotlights explain the cards (first: a hint shows once per launch)", async () => {
-    f.advanced = true;
-    await show("spot.approval", []);
-    expect(host.textContent).toBe("");
-    expect(f.api).not.toHaveBeenCalled();
-  });
-
   it("says one plain line on the first approval card, and marks it seen as the spotlight did", async () => {
     await show("spot.approval");
     expect(host.textContent).toBe("Bots ask before doing anything important.");

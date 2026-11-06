@@ -140,15 +140,9 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
     expect(html).not.toContain('aria-label="Advanced mode"');
   });
 
-  it("offers the Advanced mode switch in Builder Controls only while it is on, so it can be turned off", () => {
+  it("has no Advanced mode switch in Builder Controls: there is one layout", () => {
     fixture.section = "builder";
     expect(render()).not.toContain('aria-label="Advanced mode"');
-    fixture.advancedMode = true;
-    render();
-    const toggle = fixture.switches.find((props) => props["aria-label"] === "Advanced mode")!;
-    expect(toggle.checked).toBe(true);
-    toggle.onClick!({} as never);
-    expect(fixture.setAdvancedMode).toHaveBeenCalledWith(false);
   });
 
   it("groups skins, pins and tool-call display in Looks, with no dead thread or run card switches", () => {

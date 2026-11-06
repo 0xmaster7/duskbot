@@ -1,7 +1,6 @@
 // @vitest-environment happy-dom
-// MausBot's first messages. Simple mode: three short bubbles, a follow-up once it has looked around (written once by
-// the server, as a real message) and chips for only what is still missing. Advanced mode: the one bubble with asks it
-// always had.
+// MausBot's first messages: three short bubbles, a follow-up once it has looked around (written once by the server, as
+// a real message) and chips for only what is still missing.
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -11,7 +10,7 @@ import type { Bot, InstanceInfo, Message } from "@/state/store";
 import type { HelperFollowupFacts } from "../../shared/helper-followup";
 
 const f = vi.hoisted(() => ({
-  state: {} as Record<string, unknown>, dispatch: vi.fn(), advanced: false, local: false, reduced: false,
+  state: {} as Record<string, unknown>, dispatch: vi.fn(), local: false, reduced: false,
   services: {} as Record<string, { connected: boolean }>, phones: [] as unknown[], found: null as unknown, detect: vi.fn(),
   followups: [] as unknown[], saves: true, bots: 0, routines: 0,
 }));
@@ -32,7 +31,7 @@ vi.mock("./PluginsPanel", () => ({ preloadConnectedApps: async () => ({ services
 vi.mock("./bot-settings/useBotApps", () => ({ loadAppCards: async () => new Map([["gmail", { label: "Gmail" }], ["github", { label: "GitHub" }]]) }));
 vi.mock("./Avatar", () => ({ BotAvatar: () => null }));
 vi.mock("./mascot-clock", () => ({ usePrefersReducedMotion: () => f.reduced }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => f.advanced }));
+vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => false }));
 vi.mock("./onboarding/ConnectAi", async () => {
   const { createElement: h } = await import("react");
   return { ConnectAiDialog: ({ onClose }: { onClose: () => void }) => h("div", { "data-connect-ai": "", onClick: onClose }) };
@@ -48,7 +47,7 @@ vi.mock("@/lib/setup-import", () => ({
 const { HelperIntro } = await import("./HelperIntro");
 const { followupLine, INTRO_TIMING, introLines, whoConnectsAi } = await import("./SimpleHelperIntro");
 const { setTeamPeople } = await import("@/state/team-people");
-const { chipAction, setupAction } = await import("./HelperSetup");
+const { chipAction } = await import("./HelperSetup");
 const { SIMPLE_BOT_BUBBLE } = await import("./chat-bubble");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -78,7 +77,6 @@ beforeEach(() => {
   f.dispatch.mockReset();
   f.detect.mockReset();
   analytics.track.mockReset();
-  f.advanced = false;
   f.local = false;
   f.reduced = false;
   f.services = {};
@@ -279,34 +277,5 @@ describe("as a first run lands in the chat", () => {
     expect(f.followups).toHaveLength(1);
     expect(lines()).toHaveLength(4);
     expect(chips()).toEqual(["apps", "phone", "cloud"]);
-  });
-});
-
-describe("in Advanced mode", () => {
-  beforeEach(() => { f.advanced = true; });
-
-  it("is the one bubble it always was: who it is, the setup still to do, and asks", async () => {
-    await show();
-    expect(host.textContent).toContain(t("helperIntro.title", { name: "MausBot" }));
-    expect(host.textContent).toContain(t("helperIntro.chief"));
-    expect(host.querySelector('[data-helper-ask="helperIntro.ask.overview"]')).not.toBeNull();
-    expect(chips()).toEqual(["bots", "apps", "phone", "cloud"]);
-    expect(host.querySelector("[data-helper-line]"), "no Simple bubbles").toBeNull();
-    expect(f.followups).toEqual([]);
-  });
-
-  it("drops the asks and setup once they were answered or dismissed, keeping what it said", async () => {
-    await show(true);
-    expect(host.querySelector('[data-helper-intro="intro"]')).not.toBeNull();
-    expect(host.querySelector("[data-helper-ask]")).toBeNull();
-    expect(chips()).toEqual([]);
-  });
-
-  it("opens the app's own flow for each setup step", () => {
-    expect(setupAction("ai")).toEqual({ type: "toggleAppSettings", open: true, section: "engines" });
-    expect(setupAction("bots")).toEqual({ type: "newBot" });
-    expect(setupAction("apps")).toEqual({ type: "togglePlugins", open: true, surface: "apps" });
-    expect(setupAction("phone")).toMatchObject({ type: "toggleAppSettings", section: "companion", phonePairing: true });
-    expect(setupAction("cloud")).toEqual({ type: "openCloudAdd", source: "app_onboarding" });
   });
 });

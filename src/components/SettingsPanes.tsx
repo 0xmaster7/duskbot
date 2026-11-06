@@ -5,7 +5,6 @@ import { ADVANCED_PAGES, type AdvancedPage } from "@/lib/open-settings";
 import { t } from "@/lib/i18n";
 import { FEEDBACK_URL, HELP_CENTER_URL, appVersion, openExternalLink } from "@/lib/app-links";
 import { builtInBrowserEnabled, skillsLibraryEnabled } from "@/lib/feature-flags";
-import { useAdvancedMode } from "@/lib/interface-mode";
 import { useCloudFilesReady } from "@/lib/cloud-files";
 import { setColorUserBubbles, useColorUserBubbles } from "@/lib/user-bubble-preference";
 import { SKINS, applySkin, resolveSkin } from "@/lib/skins";
@@ -67,7 +66,7 @@ import { UsageMeterCard } from "./native/UsageMeter";
 import { reportsUsage, useEngineLimits } from "@/lib/limit-resets";
 import { openInbox } from "@/state/inbox";
 import {
-  AdvancedModeRow, ExperimentalFeaturesRow, LanguageRow, PinnedCirclesRow,
+  ExperimentalFeaturesRow, LanguageRow, PinnedCirclesRow,
   ReplayTourRows, SendKeyRow, ToolCallsRow, UniversalPinsRow, UpdatesRow,
 } from "./AppSettingsRows";
 
@@ -542,7 +541,6 @@ function FieldDialogRow({ title, value, children, ...rest }: { title: string; va
 }
 
 function BuilderPage() {
-  const advanced = useAdvancedMode();
   const { at } = useSubPage();
   const { state } = useStore();
   const minutes = (value: number | undefined) => (value ? `${value} ${t("settings.roomTurns.minutes")}` : undefined);
@@ -551,7 +549,6 @@ function BuilderPage() {
   return (
     <SettingsGroup block="builder">
       <SettingsRows>
-        {advanced && <AdvancedModeRow simple />}
         <SavedStepsRow />
         <FieldDialogRow data-settings-open="room-turns" title={t("settings.w6c.roomTurns.label")} value={minutes(state.config?.rooms?.turnTimeoutMinutes)}>
           <RoomTurnTimeoutSettings />
