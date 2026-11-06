@@ -1,5 +1,5 @@
 import { useMemo, useState, type JSX } from "react";
-import { Bug, Copy, Cpu, Download, Gauge, ListChecks, Monitor, MoreHorizontal, Search, Share, UserRound } from "lucide-react";
+import { Copy, Cpu, Download, Gauge, ListChecks, Monitor, MoreHorizontal, Search, Share, UserRound } from "lucide-react";
 import { currentTaskBot, useStore, visibleMessages, type Bot } from "@/state/store";
 import { useAdvancedMode } from "@/lib/interface-mode";
 import { requestChatFind, useChatFindOpen } from "@/lib/chat-find";
@@ -106,17 +106,9 @@ export function useChatMoreItems(profile: Bot, phoneHeader = false): { items: Si
       active: state.activityOpen,
       separatorBefore: !usage,
       onSelect: () => dispatch({ type: "toggleActivity" }),
-    } satisfies SidebarMenuItem, {
-      key: "inspector",
-      label: t("chat.inspector"),
-      icon: <Bug size={16} />,
-      active: state.inspectorOpen,
-      // Simple mode keeps Activity and Inspector together, as the panel's menu draws them.
-      separatorBefore: advanced,
-      onSelect: () => dispatch({ type: "toggleInspector" }),
     } satisfies SidebarMenuItem]),
   ];
-  return { items, on: findOpen || state.inspectorOpen || state.activityOpen };
+  return { items, on: findOpen || state.activityOpen };
 }
 
 function RoundChatMoreMenu({ bot, phoneHeader }: { bot: Bot; phoneHeader: boolean }) {
@@ -147,7 +139,7 @@ function RoundChatMoreMenu({ bot, phoneHeader }: { bot: Bot; phoneHeader: boolea
 
 /**
  * The chat's ⋯ menu as a round button, for a spot outside the chat such as the bot panel's top bar: find in
- * conversation (opens the chat's find bar), threads the sidebar hides, share, usage, activity and the inspector.
+ * conversation (opens the chat's find bar), threads the sidebar hides, share, usage and activity.
  */
 export function ChatMoreMenu({ bot, phoneHeader = false }: { bot: Bot; phoneHeader?: boolean }): JSX.Element {
   // Keyed by thread so a "Copied" note never follows the panel into another conversation.

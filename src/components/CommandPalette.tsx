@@ -8,6 +8,8 @@ import { imeComposing } from "@/lib/send-key";
 import { botUnreadCount } from "@/lib/bot-unread";
 import { shortcutBots, shownBotIds } from "@/lib/sidebar-shortcut-order";
 import { applySkinChoice, THEME_SKINS } from "@/lib/skins";
+import { openNewGroup } from "@/lib/new-group-request";
+import { t } from "@/lib/i18n";
 import { BotAvatar } from "./Avatar";
 import { openCreateBot } from "./CreateBotDialog";
 import { GrokIcon, type GrokIconName } from "./GrokIcon";
@@ -24,6 +26,8 @@ type PaletteEntry =
   | { kind: "command"; command: Command };
 
 const OPEN_EVENT = "omb:open-command-palette";
+
+const IDLE_COMMANDS = new Set(["new-bot", "new-group", "shortcuts", "settings-general", "settings-texting", "settings-computer", "settings-permissions"]);
 
 export function openCommandPalette() {
   window.dispatchEvent(new Event(OPEN_EVENT));
@@ -142,10 +146,10 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
   // Settings stays its own lazy chunk: its pane map is read once the command is picked.
   const settingsPane = (pane: "models" | "usage" | "advanced") => () =>
     void import("./SettingsModal").then(({ openSettings }) => dispatch(openSettings(pane))).catch(() => dispatch(settings("general")));
-  const updater = window.ogb?.updater;
   const currentBot = state.bots.find((entry) => entry.id === state.selectedId);
   const commands: Command[] = [
     { id: "new-bot", name: "New Bot", icon: "plus", run: () => openCreateBot() },
+    { id: "new-group", name: t("sidebar.newChannel.title"), icon: "people", run: () => openNewGroup() },
     { id: "shortcuts", name: "Keyboard shortcuts", detail: "Help", icon: "keyboard", run: () => dispatch({ type: "toggleShortcuts", open: true }) },
     { id: "settings-general", name: "Settings: General", detail: "Settings", icon: "settings-gear", run: () => dispatch(settings("general")) },
     { id: "settings-texting", name: "Settings: Texting", detail: "Settings", icon: "chat-bubbles", run: () => dispatch(settings("texting")) },
@@ -160,10 +164,9 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
     { id: "theme-system", name: "Theme: System", detail: "Settings · Appearance", icon: "display", run: () => applySkinChoice("system") },
     { id: "theme-dark", name: "Theme: Dark", detail: "Settings · Appearance", icon: "moon", run: () => applySkinChoice(THEME_SKINS.dark) },
     { id: "theme-light", name: "Theme: Light", detail: "Settings · Appearance", icon: "sun", run: () => applySkinChoice(THEME_SKINS.light) },
-    ...(updater ? [{ id: "check-updates", name: "Check for Updates", detail: "Updates", icon: "refresh" as const, run: () => void updater.check().catch(() => {}) }] : []),
   ];
-  // With nothing typed: the bots, those with news first, then what to do; settings and themes wait for a query.
-  const shownCommands = q ? ranked(commands, (command) => command.name, q) : commands.filter((command) => !command.id.startsWith("theme-") && command.id !== "connect-apps" && command.id !== "check-updates" && command.id !== "settings-updates" && command.id !== "settings-permissions" && !["settings-models", "settings-usage", "settings-advanced", "bot-settings"].includes(command.id));
+  // With nothing typed: the bots, those with news first, then grok's short list; the rest wait for a query.
+  const shownCommands = q ? ranked(commands, (command) => command.name, q) : commands.filter((command) => IDLE_COMMANDS.has(command.id));
   // The sidebar's order, as ⌘1 to ⌘9 count it, so each row names the shortcut that opens it from anywhere.
   const liveBots = shortcutBots(state.bots.filter((b) => !b.hidden), shownBotIds(document.querySelector("[data-sidebar-root]")));
   const slot = new Map(liveBots.slice(0, 9).map((bot, index) => [bot.id, index + 1]));

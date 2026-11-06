@@ -871,7 +871,6 @@
   "chat.stop": "Arrêter",
   "chat.stopTurn": "Arrêter ce tour",
   "chat.computer": "Écran du bot",
-  "chat.inspector": "Inspecteur",
   "chat.inspectorHint": "Inspecteur — événements d'exécution et protocole brut de ce fil",
   "chat.conversationWith": "Conversation avec {name}",
   "chat.showEarlier": "Afficher les messages précédents ({count} de plus)",

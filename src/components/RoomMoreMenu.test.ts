@@ -81,10 +81,10 @@ describe("RoomMoreMenu, the Room panel's round ⋯", () => {
     expect(item(room(), "find").active).toBe(true);
   });
 
-  it("offers find, share and the time per turn, and usage once the room has some", () => {
-    expect(menuOf(room()).items.map((entry) => entry.key)).toEqual(["find", "copy", "download", "turn-limit"]);
+  it("offers find and share alone: time per turn and usage live in the panel's own tabs", () => {
+    expect(menuOf(room()).items.map((entry) => entry.key)).toEqual(["find", "copy", "download"]);
     const used = room({ usage: { input: 1200, output: 300, costUsd: 0.42, turns: 2 } });
-    expect(menuOf(used).items.map((entry) => entry.key)).toEqual(["find", "copy", "download", "turn-limit", "usage"]);
+    expect(menuOf(used).items.map((entry) => entry.key)).toEqual(["find", "copy", "download"]);
     expect(menuOf(room()).items.find((entry) => entry.key === "copy")).toMatchObject({ label: "Copy as Markdown", heading: "Share", separatorBefore: true });
   });
 
@@ -110,36 +110,5 @@ describe("RoomMoreMenu, the Room panel's round ⋯", () => {
     expect(fixture.download).toHaveBeenCalledWith("desk-hq", "# Desk HQ (room)");
     expect(item(room({ messages: [] }), "copy").disabled).toBe(true);
     expect(item(room({ messages: [] }), "download").disabled).toBe(true);
-  });
-
-  it("sets the conversation's time per turn from a submenu, as the header's turn limit does", () => {
-    const limit = item(room(), "turn-limit");
-    expect(limit).toMatchObject({ label: "Time per turn", value: "5 min" });
-    expect(limit.submenu!.map((entry) => [entry.label, Boolean(entry.active)])).toEqual([
-      ["Default (5 min)", true],
-      ["30 min", false],
-      ["1 hour", false],
-      ["2 hours", false],
-    ]);
-    for (const entry of limit.submenu!) entry.onSelect();
-    expect(fixture.dispatch.mock.calls.map(([action]) => action)).toEqual([null, 30, 60, 120].map((minutes) => ({
-      type: "setConversationTurnLimit", groupId: "desk", threadId: "launch", minutes, dm: false,
-    })));
-  });
-
-  it("shows the open conversation's own limit, a custom one included", () => {
-    const withLimit = (minutes: number) => room({ tasks: [task("launch", "Launch plan", 3, { turnTimeoutMinutes: minutes })] });
-    expect(item(withLimit(120), "turn-limit").value).toBe("2 hours");
-    expect(item(withLimit(120), "turn-limit").submenu!.find((entry) => entry.active)?.label).toBe("2 hours");
-    expect(item(withLimit(45), "turn-limit").value).toBe("45 min");
-    expect(item(withLimit(45), "turn-limit").submenu!.some((entry) => entry.active)).toBe(false);
-  });
-
-  it("shows the room's usage with the same short text as the header chip", () => {
-    const usage = item(room({ usage: { input: 1200, output: 300, costUsd: 0.42, turns: 2 } }), "usage");
-    expect(usage.label).toBe("Usage");
-    const markup = renderToStaticMarkup(createElement("div", null, usage.trailing));
-    expect(markup).toContain(">$0.42</span>");
-    expect(markup).toContain('title="This chat:');
   });
 });

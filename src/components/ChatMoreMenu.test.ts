@@ -79,19 +79,18 @@ describe("ChatMoreMenu, the round ⋯ for the bot panel", () => {
     expect(menuOf(createElement(ChatMoreMenu, { bot })).trigger).toMatch(/class="[^"]*\bsize-8\b[^"]*\brounded-full\b[^"]*\bbg-raised\/50\b/);
   });
 
-  it("offers no thread items in Simple mode, and Usage and the Inspector unlocked", () => {
+  it("offers no thread items and no developer inspector, everything unlocked", () => {
     const menu = menuOf(createElement(ChatMoreMenu, { bot }));
-    expect(keys(menu.items)).toEqual(["find", "copy", "download", "activity", "inspector"]);
+    expect(keys(menu.items)).toEqual(["find", "copy", "download", "activity"]);
     for (const item of menu.items) {
       expect(item.disabled, item.key).toBeFalsy();
       expect(item.heading ?? "", item.key).not.toBe("In Advanced mode");
     }
-    expect(menu.items.find((item) => item.key === "inspector")?.separatorBefore).toBe(false);
   });
 
   it("draws the same items for a bot with one conversation", () => {
     const single = { ...bot, threadId: "main", tasks: [task("main", "Our chat", 1), task("routine", "Morning digest", 5, { routineRunId: "run-1" })] };
-    expect(keys(menuOf(createElement(ChatMoreMenu, { bot: single })).items)).toEqual(["find", "copy", "download", "activity", "inspector"]);
+    expect(keys(menuOf(createElement(ChatMoreMenu, { bot: single })).items)).toEqual(["find", "copy", "download", "activity"]);
     expect(keys(menuOf(createElement(ChatMoreMenu, { bot: { ...bot, tasks: undefined } })).items)).not.toContain("threads");
   });
 
@@ -101,8 +100,7 @@ describe("ChatMoreMenu, the round ⋯ for the bot panel", () => {
     expect(fixture.find).toHaveBeenCalledWith("side");
   });
 
-  it("shows Usage when the thread has some, and opens the inspector from Simple mode", () => {
-    fixture.inspectorOpen = true;
+  it("shows Usage when the thread has some", () => {
     const withUsage: Bot = { ...bot, tasks: bot.tasks!.map((entry) => entry.threadId === "side"
       ? { ...entry, usage: { input: 1200, output: 300, costUsd: null, turns: 2 } }
       : entry) };
@@ -110,11 +108,6 @@ describe("ChatMoreMenu, the round ⋯ for the bot panel", () => {
     const usage = menu.items.find((item) => item.key === "usage");
     expect(usage?.disabled).toBeFalsy();
     expect(usage?.heading).toBeUndefined();
-    const inspector = menu.items.find((item) => item.key === "inspector")!;
-    expect(inspector.active).toBe(true);
-    inspector.onSelect();
-    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "toggleInspector" });
-    expect(menu.trigger).toContain("text-accent");
   });
 });
 
@@ -129,8 +122,7 @@ describe("ChatHeaderMenu, Advanced mode's header ⋯", () => {
   it("keeps main's items, trigger and hover menu below the header", () => {
     fixture.advanced = true;
     const menu = menuOf(createElement(ChatHeaderMenu, { bot }));
-    expect(keys(menu.items)).toEqual(["find", "copy", "download", "activity", "inspector"]);
-    expect(menu.items.find((item) => item.key === "inspector")).toMatchObject({ separatorBefore: true });
+    expect(keys(menu.items)).toEqual(["find", "copy", "download", "activity"]);
     expect(menu.items.every((item) => !item.disabled && item.heading !== "In Advanced mode")).toBe(true);
     expect(menu).toMatchObject({ placement: "below", openOnHover: true });
     expect(menu.trigger).toMatch(/data-testid="chat-more" class="flex size-8 items-center justify-center rounded-full /);

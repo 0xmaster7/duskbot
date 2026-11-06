@@ -1,5 +1,4 @@
-import { Code, Copy, Eye, Pencil, Pin, PinOff, RefreshCw, Square, Volume2 } from "lucide-react";
-import { copyText } from "@/lib/copy-text";
+import { Pencil, Pin, PinOff, RefreshCw, Square, Volume2 } from "lucide-react";
 import { t } from "@/lib/i18n";
 import type { ConfigStatus, Group, Message, useStore } from "@/state/store";
 import { ACTION_ICON, type MessageMenuItem } from "@/components/MessageActions";
@@ -28,10 +27,6 @@ function pinItem(pin: PinAction | undefined): MessageMenuItem[] {
   }];
 }
 
-function idItem(messageId: string): MessageMenuItem {
-  return { key: "copy-id", icon: <Copy {...ACTION_ICON} />, label: t("chat.copyMessageId"), onSelect: () => { void copyText(messageId); } };
-}
-
 export function useBotMessageMenu({
   text,
   botId,
@@ -40,8 +35,6 @@ export function useBotMessageMenu({
   tts,
   localVoice,
   canSpeak,
-  viewRaw,
-  onToggleRaw,
   onRegenerate,
   pin,
 }: {
@@ -52,8 +45,6 @@ export function useBotMessageMenu({
   tts: ConfigStatus["tts"];
   localVoice: boolean;
   canSpeak: boolean;
-  viewRaw: boolean;
-  onToggleRaw: () => void;
   onRegenerate?: () => void;
   pin?: PinAction;
 }): MessageMenuItem[] {
@@ -69,23 +60,14 @@ export function useBotMessageMenu({
       onSelect: speak.toggle,
     });
   }
-  if (text) {
-    items.push({
-      key: "raw",
-      icon: viewRaw ? <Eye {...ACTION_ICON} /> : <Code {...ACTION_ICON} />,
-      label: t(viewRaw ? "chat.showRenderedMarkdown" : "chat.showRawMarkdown"),
-      onSelect: onToggleRaw,
-    });
-  }
   if (onRegenerate) items.push({ key: "regenerate", icon: <RefreshCw {...ACTION_ICON} />, label: t("chat.regenerate"), onSelect: onRegenerate });
-  items.push(...pinItem(pin), idItem(messageId));
+  items.push(...pinItem(pin));
   return items;
 }
 
-export function userMessageMenu({ messageId, onEdit, pin }: { messageId: string; onEdit?: () => void; pin?: PinAction }): MessageMenuItem[] {
+export function userMessageMenu({ onEdit, pin }: { onEdit?: () => void; pin?: PinAction }): MessageMenuItem[] {
   return [
     ...(onEdit ? [{ key: "edit", icon: <Pencil {...ACTION_ICON} />, label: t("chat.editMessage"), onSelect: onEdit, idleOnly: true }] : []),
     ...pinItem(pin),
-    idItem(messageId),
   ];
 }

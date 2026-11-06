@@ -88,7 +88,7 @@ describe("room message actions", () => {
     expect(closed).toMatch(/<span role="img" aria-label="Thumbs up: yes, go ahead: Ada"/);
   });
 
-  it("puts read aloud, raw markdown and pin in a room reply's more menu", () => {
+  it("puts read aloud and pin in a room reply's more menu, with no developer items", () => {
     vi.unstubAllGlobals();
     const messages = [text("a", "bot", "The build is green")];
     flushSync(() => root.render(createElement(Transcript, {
@@ -96,7 +96,7 @@ describe("room message actions", () => {
     })));
     flushSync(() => host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click());
     const items = [...host.querySelectorAll<HTMLButtonElement>("[role=menuitem]")];
-    expect(items.map((item) => item.textContent)).toEqual(expect.arrayContaining(["Read this aloud", "Show raw markdown", "Pin message", "Copy message ID"]));
+    expect(items.map((item) => item.textContent)).toEqual(["Read this aloud", "Pin message"]);
     const speak = items.find((item) => item.textContent === "Read this aloud");
     expect(speak?.title).toBe("Add an ElevenLabs key in an agent profile to read messages aloud");
     expect(speak?.disabled).toBe(true);

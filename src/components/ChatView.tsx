@@ -363,8 +363,6 @@ const Bubble = memo(function Bubble({
     tts,
     localVoice,
     canSpeak: message.kind === "text" && !peer,
-    viewRaw,
-    onToggleRaw: () => setViewRaw((raw) => !raw),
     onRegenerate: !busy ? onRegenerate : undefined,
     pin: remoteClient ? undefined : {
       pinned,
@@ -454,7 +452,6 @@ const Bubble = memo(function Bubble({
             menu={[
               ...(simple ? copyItem(visibleText) : []),
               ...userMessageMenu({
-                messageId: message.id,
                 onEdit: !speaker && message.kind === "text" && !webhookView && !hasAttachments && !message.id.startsWith("optimistic-")
                   ? () => onStartEdit(message.id) : undefined,
                 pin: remoteClient ? undefined : { pinned, onToggle: togglePin },

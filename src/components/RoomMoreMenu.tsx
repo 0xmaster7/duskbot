@@ -1,5 +1,5 @@
 import { useState, type JSX } from "react";
-import { Copy, Download, Gauge, MoreHorizontal, Search, Timer } from "lucide-react";
+import { Copy, Download, MoreHorizontal, Search } from "lucide-react";
 
 import { requestChatFind, useChatFindOpen } from "@/lib/chat-find";
 import { cn } from "@/lib/cn";
@@ -11,25 +11,15 @@ import {
 } from "@/lib/export-transcript";
 import { t } from "@/lib/i18n";
 import type { Group } from "@/state/store";
-import { PRESET_TURN_LIMITS, useConversationTurnLimit } from "./ConversationTurnLimit";
-import { groupUsageSummary } from "./GroupUsageChip";
 import { ShortcutHint } from "./ShortcutHint";
 import { SidebarPopoverMenu, type SidebarMenuItem } from "./SidebarPopoverMenu";
 
-function turnLimitLabel(minutes: number): string {
-  if (minutes === 60) return t("room.panel.hour");
-  if (minutes % 60 === 0) return t("room.panel.hours", { hours: minutes / 60 });
-  return t("room.panel.minutes", { minutes });
-}
-
 function useRoomMoreItems(group: Group): { items: SidebarMenuItem[]; on: boolean } {
   const findOpen = useChatFindOpen(group.threadId);
-  const limit = useConversationTurnLimit(group);
   const [copyStatus, setCopyStatus] = useState<"copied" | "failed" | null>(null);
   const messages = group.messages;
   const hasMessages = messages.length > 0;
   const transcript = () => formatTranscriptMarkdown({ title: group.name, messages, isGroup: true });
-  const usage = groupUsageSummary(group.usage);
   const items: SidebarMenuItem[] = [
     {
       key: "find",
@@ -57,36 +47,6 @@ function useRoomMoreItems(group: Group): { items: SidebarMenuItem[]; on: boolean
       disabled: !hasMessages,
       onSelect: () => downloadMarkdownTranscript(slugifyTranscriptFilename(group.name), transcript()),
     },
-    {
-      key: "turn-limit",
-      label: t("room.panel.turnLimit"),
-      icon: <Timer size={16} />,
-      separatorBefore: true,
-      value: turnLimitLabel(limit.saved ?? limit.globalMinutes),
-      submenu: [
-        {
-          key: "turn-limit:default",
-          label: t("room.turnLimit.default", { minutes: limit.globalMinutes }),
-          active: limit.saved === null,
-          onSelect: () => limit.save(null),
-        },
-        ...PRESET_TURN_LIMITS.map((minutes) => ({
-          key: `turn-limit:${minutes}`,
-          label: turnLimitLabel(minutes),
-          active: limit.saved === minutes,
-          onSelect: () => limit.save(minutes),
-        })),
-      ],
-      onSelect: () => {},
-    },
-    ...(usage ? [{
-      key: "usage",
-      label: t("chat.usage.menu"),
-      icon: <Gauge size={16} />,
-      keepOpen: true,
-      trailing: <span title={usage.title} data-testid="group-usage-chip" className="tabular-nums text-[12px] text-ink-secondary">{usage.short}</span>,
-      onSelect: () => {},
-    } satisfies SidebarMenuItem] : []),
   ];
   return { items, on: findOpen };
 }

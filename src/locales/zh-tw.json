@@ -1482,7 +1482,6 @@
   "chat.stopTurn": "停止這個回合",
   "chat.computer": "機器人的畫面",
   "chat.advancedOnly": "在進階模式中",
-  "chat.inspector": "檢視器",
   "chat.inspectorHint": "檢視器 — 這個對話的執行階段事件與原始協定",
   "chat.more": "更多",
   "chat.export.heading": "分享",

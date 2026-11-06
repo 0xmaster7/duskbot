@@ -195,8 +195,6 @@ function RoomTextMessage({
     tts: state.config?.tts,
     localVoice: localSystemVoiceActive(),
     canSpeak: true,
-    viewRaw,
-    onToggleRaw: () => setViewRaw((raw) => !raw),
     pin,
   });
   const replyGroup = useMemo(() => !user && botText.trim() ? replyAttachmentGroup(botText, m.attachments) : null, [user, botText, m.attachments]);
@@ -217,7 +215,7 @@ function RoomTextMessage({
       {mediaRow && attachments && <AttachmentGallery images={attachments.images} files={attachments.files} message={{ threadId: group.threadId, messageId: m.id }} eager={eager} align="end" className={display.trim() ? "mb-1" : undefined} />}
       <div data-own-row={simple && user ? "" : undefined} className={cn("flex w-full gap-1.5", simple ? "items-center" : "items-end", user ? "justify-end" : "justify-start")}>
         {user && (
-          <MessageActions side="user" menu={userMessageMenu({ messageId: m.id, pin })}>
+          <MessageActions side="user" menu={userMessageMenu({ pin })}>
             <ReplyAction onReply={() => onReply(m)} />
             {Boolean(display.trim()) && <CopyButton text={display} className={messageActionClass} />}
           </MessageActions>

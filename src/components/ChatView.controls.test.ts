@@ -129,17 +129,14 @@ describe("the header's right side", () => {
     expect(controls).toContain('title="Stop this turn"');
   });
 
-  it("leaves Advanced mode's model, computer and ⋯ exactly as they were, the inspector unlocked", () => {
+  it("leaves Advanced mode's model, computer and ⋯ exactly as they were, without the developer inspector", () => {
     fixture.advanced = true;
     const { markup } = header();
     expect(markup).toContain("data-test-model-control");
     expect(markup).toContain('data-tour="computer"');
     expect(markup).toContain('data-testid="chat-more"');
     const more = fixture.menus.find((menu) => menu.ariaLabel === "More")!;
-    expect(more.items.map((item) => item.key)).toEqual(["find", "copy", "download", "activity", "inspector"]);
-    const inspector = more.items.find((item) => item.key === "inspector")!;
-    expect(inspector.disabled).toBeFalsy();
-    expect(inspector.heading).toBeUndefined();
+    expect(more.items.map((item) => item.key)).toEqual(["find", "copy", "download", "activity"]);
   });
 });
 
