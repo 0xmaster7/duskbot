@@ -38,7 +38,10 @@ it("names the command that starts a server only in a developer's build, while no
 
 it("the app's main area says what loadingLine says, and the command only when it says so", () => {
   const app = readFileSync(join(process.cwd(), "src", "App.tsx"), "utf8");
-  expect(app).toContain("{t(loading.text)}");
-  expect(app).toMatch(/\{loading\.command && \(\s*<div[^]*?pnpm dev:server/u);
+  expect(app).toContain("<AppEmptyMain loading={loading}");
   expect(app).not.toContain("app.loading.noBots");
+  const main = readFileSync(join(process.cwd(), "src", "components", "AppEmptyMain.tsx"), "utf8");
+  expect(main).toContain("{t(loading.text)}");
+  expect(main).toMatch(/\{loading\.command && \(\s*<p[^]*?pnpm dev:server/u);
+  expect(main).not.toContain("app.loading.noBots");
 });
