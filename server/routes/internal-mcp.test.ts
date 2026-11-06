@@ -49,7 +49,7 @@ interface Options {
 
 function fixture(options: Options = {}) {
   const dataDir = mkdtempSync(join(tmpdir(), "omb-internal-mcp-"));
-  const cfg: Pick<AppConfig, "mcpServers" | "postiz"> = { mcpServers: structuredClone(options.servers ?? {}) };
+  const cfg: Pick<AppConfig, "mcpServers"> = { mcpServers: structuredClone(options.servers ?? {}) };
   const mcpOAuth = new McpOAuthManager({ file: join(dataDir, "mcp-oauth.json") });
   let busy = false;
   const config = createMcpConfig({

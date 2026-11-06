@@ -6,7 +6,6 @@ import { connectorDescription } from "@/lib/app-catalog";
 import { listLogins } from "@/lib/logins";
 import { connectorStatusMemory, preloadConnectedApps } from "@/lib/connected-apps";
 import { useMcpServers } from "@/lib/mcp-servers";
-import { POSTIZ_SERVER } from "../../../shared/postiz";
 import { HOSTED_MCP_APPS, type HostedConnections, type HostedMcpAppId } from "@/lib/hosted-mcp-apps";
 import { managedConnectorUnavailableReason } from "../../../shared/connector-availability";
 import { hasActiveConnection } from "@/lib/connector-status";
@@ -17,8 +16,6 @@ import { AppsSection } from "../AppsSection";
 import { McpServersPanel } from "../McpServersPanel";
 import { XCard } from "../XCard";
 import { EmailCard } from "../EmailCard";
-import { HighLevelCard } from "../HighLevelCard";
-import { PostizCard } from "../PostizCard";
 import { openKeySettings } from "../keys/key-focus";
 import { botsUsingService } from "../PluginsPanel";
 import { AppRow, AppTile, GlyphTile, type RowAction } from "./AppRow";
@@ -41,8 +38,8 @@ import type { DirectoryApp } from "../../../shared/connector-directory";
 import type { ToolkitCard } from "../ServiceIcon";
 import "./connect-apps.css";
 
-type NativeId = "x" | "email" | "highlevel" | "postiz";
-const NATIVE_IDS: readonly NativeId[] = ["email", "x", "highlevel", "postiz"];
+type NativeId = "x" | "email";
+const NATIVE_IDS: readonly NativeId[] = ["email", "x"];
 const RECOMMENDED = "recommended";
 const CONNECTED = "connected";
 /** Any MCP server by its URL, kept with the MCP servers Settings has. */
@@ -60,7 +57,7 @@ const memory: {
   hosted: HostedConnections | null;
   onePassword: OnePasswordStatus | null;
   skills: SkillsLibrarySkillWire[] | null;
-} = { natives: { x: null, email: null, highlevel: null, postiz: null }, hosted: null, onePassword: null, skills: null };
+} = { natives: { x: null, email: null }, hosted: null, onePassword: null, skills: null };
 // a row keeps the place it was first drawn in for the whole session, whichever source answers later
 const rowOrder = new Map<string, number>();
 
@@ -98,9 +95,7 @@ function nativeEntries(): AppEntry[] {
     { id: "1password", kind: "logins", label: "1Password", description: t("connectApps.onePassword.description"), categories: ["credentials"], icon: logoIcon("1password"), website: "1password.com", keywords: "password vault logins" },
     { id: "email", kind: "native", label: t("email.title"), description: t("email.description"), categories: ["communication"], icon: { glyph: "envelope", glyphPaint: "rgb(229 47 139)" }, keywords: "email mail imap smtp mailbox" },
     { id: "x", kind: "native", label: t("apps.x.title"), description: t("apps.x.description"), categories: ["marketing"], icon: logoIcon("x"), website: "x.com", keywords: "x twitter posts" },
-    { id: "highlevel", kind: "native", label: t("highlevel.title"), description: t("highlevel.description"), categories: ["sales"], icon: logoIcon("highlevel"), website: "gohighlevel.com", keywords: "highlevel high level growably crm" },
     { id: CUSTOM_MCP, kind: "native", label: t("connectApps.customMcp"), description: t("connectApps.customMcp.description"), categories: ["code"], icon: { glyph: "plug" }, keywords: "custom mcp server url remote http headers oauth" },
-    { id: "postiz", kind: "native", label: "Postiz", description: t("postiz.description"), categories: ["marketing"], icon: logoIcon("postiz"), website: "postiz.com", keywords: "postiz social media posts schedule" },
     ...HOSTED_MCP_APPS.map((app): AppEntry => ({
       id: app.id, kind: "hosted", label: app.label, description: t(app.description), categories: ["finance"],
       icon: "image" in app.icon ? { image: app.icon.image } : { glyph: "credit-card", glyphPaint: "rgb(48 49 54)" }, website: new URL(app.url).hostname.replace(/^mcp\./, ""), keywords: app.keywords,
@@ -178,7 +173,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     return () => clearTimeout(timer);
   }, []);
   useEffect(() => {
-    if (natives.x !== null || natives.email !== null || natives.highlevel !== null || natives.postiz !== null) memory.natives = natives;
+    if (natives.x !== null || natives.email !== null) memory.natives = natives;
     if (hosted) memory.hosted = hosted;
     if (onePassword) memory.onePassword = onePassword;
     if (skills) memory.skills = skills;
@@ -226,7 +221,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
       }));
     // a custom MCP server lists like any app once added; its page is Custom MCP, where it is edited or removed
     const custom = (mcpServers ?? [])
-      .filter((server) => !server.bot && server.name !== POSTIZ_SERVER && !remote.ownsServer(server.name) && !HOSTED_MCP_APPS.some((app) => server.name === app.id || server.name.startsWith(`${app.id}-`)))
+      .filter((server) => !server.bot && !remote.ownsServer(server.name) && !HOSTED_MCP_APPS.some((app) => server.name === app.id || server.name.startsWith(`${app.id}-`)))
       .map((server): AppEntry => ({ id: `mcp:${server.name}`, kind: "custom", label: server.name, description: t("connectApps.mcpServer"), categories: [], icon: { glyph: "server" }, keywords: "mcp custom" }));
     // one row per app: our card, composio's listings and the vendor's own server fold together
     const merged = [...mergeEntries([...own, ...catalog, ...vendors]), ...custom];
@@ -506,7 +501,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
       return <AppPage model={model} />;
     }
     if (page.kind === "yours") {
-      const servers = (mcpServers ?? []).filter((server) => server.name !== POSTIZ_SERVER && !byId.has(`mcp:${server.name}`) && !remote.ownsServer(server.name) && !HOSTED_MCP_APPS.some((app) => server.name === app.id || server.name.startsWith(`${app.id}-`)));
+      const servers = (mcpServers ?? []).filter((server) => !byId.has(`mcp:${server.name}`) && !remote.ownsServer(server.name) && !HOSTED_MCP_APPS.some((app) => server.name === app.id || server.name.startsWith(`${app.id}-`)));
       const serverEntry = (name: string): AppEntry => ({ id: `mcp:${name}`, kind: "native", label: name, description: t("connectApps.mcpServer"), categories: [], icon: { glyph: "server" } });
       return (
         <div className="ca-yours @container">
@@ -691,8 +686,6 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
                   </div>
                   <div className={nativeCardsShown === "x" ? "contents" : "hidden"}><XCard onConnection={nativeSetters.x} /></div>
                   <div className={nativeCardsShown === "email" ? "contents" : "hidden"}><EmailCard onConnection={nativeSetters.email} /></div>
-                  <div className={nativeCardsShown === "highlevel" ? "contents" : "hidden"}><HighLevelCard onConnection={nativeSetters.highlevel} /></div>
-                  <div className={nativeCardsShown === "postiz" ? "contents" : "hidden"}><PostizCard onConnection={nativeSetters.postiz} /></div>
                   {onePasswordShown && <OnePasswordBody status={onePassword} onChange={setOnePassword} onManage={() => leaveFor(SETTINGS("logins"))} />}
                 </div>
                 {detailEntry && detailEntry.kind !== "composio" && detailEntry.id !== CUSTOM_MCP && (

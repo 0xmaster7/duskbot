@@ -42,7 +42,7 @@ describe("the Talking style row", () => {
     await show();
     expect(host.textContent).toContain("Talking style");
     expect(select().getAttribute("aria-label")).toBe("Talking style");
-    expect([...select().options].map((option) => [option.value, option.textContent])).toEqual([["casual", "Casual"], ["warm", "Warm"], ["native", "Neutral"]]);
+    expect([...select().options].map((option) => [option.value, option.textContent])).toEqual([["casual", "Casual"], ["warm", "Warm"], ["native", "Native"]]);
     expect(select().value).toBe("warm");
   });
 

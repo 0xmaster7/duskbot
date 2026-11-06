@@ -31,10 +31,7 @@ import { SidebarPopoverMenu } from "./SidebarPopoverMenu";
 import { appCategoryLabel, CATEGORY_SECTION_SIZE, catalogSections, connectorDescription, inCategory, rankCategories } from "@/lib/app-catalog";
 import { McpServersPanel } from "./McpServersPanel";
 import { HOSTED_MCP_APPS, type HostedApp, type HostedConnections } from "@/lib/hosted-mcp-apps";
-import { HighLevelCard } from "./HighLevelCard";
 import { EmailCard } from "./EmailCard";
-import { PostizCard } from "./PostizCard";
-import { POSTIZ_CATALOG_CARD, POSTIZ_SEARCH } from "@/lib/postiz";
 import { X_CARD_SEARCH, XCard } from "./XCard";
 import { mergeCompleteConnectorStatus, mergeCurrentConnectorStatus, onlyLatestConnectorResponses } from "@/lib/connector-status-merge";
 import { openBotSettings } from "./bot-panel/panel-link";
@@ -155,9 +152,7 @@ export function PluginsPanel() {
   const [cardsRefresh, setCardsRefresh] = useState(0);
   const [category, setCategory] = useState<string | null>(null);
   // Appended after the older state so tests that seed state by call order keep their indices.
-  const [highLevelConnected, setHighLevelConnected] = useState<boolean | null>(null);
   const [xConnected, setXConnected] = useState<boolean | null>(null);
-  const [postizConnected, setPostizConnected] = useState<boolean | null>(null);
   const [emailConnected, setEmailConnected] = useState<boolean | null>(null);
 
   const polls = useRef(new Map<string, () => void>());
@@ -405,17 +400,14 @@ export function PluginsPanel() {
   const isConnected = (slug: string) => Boolean(status[slug]?.connected || status[slug]?.accounts?.length);
   const filter: AppsFilter = surface === "mcp" ? "mcp" : tab === "connected" ? "connected" : "all";
   const shownHosted = new Set(HOSTED_MCP_APPS.filter((app) => hostedShown(app, search, filter, hostedConnected)).map((app) => app.id));
-  const highLevelMatches = !search || `highlevel high level growably crm ${t("highlevel.description")}`.toLowerCase().includes(search.toLowerCase().trim());
-  const showHighLevel = highLevelMatches && (filter === "all" || (filter === "connected" && highLevelConnected !== false));
   const showEmail = (!search || `email mail imap smtp mailbox ${t("email.description")}`.toLowerCase().includes(search.toLowerCase().trim())) && (filter === "all" || (filter === "connected" && emailConnected !== false));
   const showX = (!search || `${X_CARD_SEARCH} ${t("apps.x.description")}`.toLowerCase().includes(search.toLowerCase().trim())) && (filter === "all" || (filter === "connected" && xConnected !== false));
-  const showPostiz = (!search || `${POSTIZ_SEARCH} ${t("postiz.description")}`.toLowerCase().includes(search.toLowerCase().trim())) && (filter === "all" || (filter === "connected" && postizConnected !== false));
   const visible = (filter === "connected" ? matching.filter((card) => isConnected(card.slug)) : matching)
     .map((card, index) => ({ card, index }))
     .sort((a, b) => Number(isConnected(b.card.slug)) - Number(isConnected(a.card.slug)) || a.index - b.index)
     .map(({ card }) => card);
   const connectedHosted = HOSTED_MCP_APPS.filter((app) => hostedConnected?.[app.id]);
-  const connectedCount = Object.values(status).filter(hasActiveConnection).length + connectedHosted.length + Number(highLevelConnected === true) + Number(emailConnected === true) + Number(xConnected === true) + Number(postizConnected === true);
+  const connectedCount = Object.values(status).filter(hasActiveConnection).length + connectedHosted.length + Number(emailConnected === true) + Number(xConnected === true);
   const connectedEmptyCopy = connectedInventoryCopy(inventoryPhase);
   const close = () => dispatch({ type: "togglePlugins", open: false });
   const setupNotice = connectorSetupNotice({ configured, stale, setup, remoteClient });
@@ -432,12 +424,11 @@ export function PluginsPanel() {
     if (surface !== "apps") dispatch({ type: "togglePlugins", open: true, surface: "apps" });
   };
 
-  const ranked = rankCategories([...(cards ?? []), POSTIZ_CATALOG_CARD], undefined, POSTIZ_CATALOG_CARD.categories);
+  const ranked = rankCategories(cards ?? []);
   const moreCategories = ranked.more;
   const categoryInMore = category !== null && moreCategories.includes(category);
   const inCategoryView = filter === "all" && category !== null;
-  const postizHere = showPostiz && (!inCategoryView || inCategory(POSTIZ_CATALOG_CARD, category));
-  const nativeCardsShown = (!inCategoryView && (shownHosted.size > 0 || showHighLevel || showEmail || showX)) || postizHere;
+  const nativeCardsShown = !inCategoryView && (shownHosted.size > 0 || showEmail || showX);
   const categoryCards = inCategoryView ? visible.filter((card) => inCategory(card, category)) : visible;
   const sectioned = filter === "all" && !search && category === null;
   const sections = sectioned ? catalogSections(visible, isConnected, ranked.inline) : [];
@@ -734,10 +725,6 @@ export function PluginsPanel() {
                 <McpServersPanel hostedCards={{ shown: (id) => !inCategoryView && shownHosted.has(id), onConnections: setHostedConnected }} refreshKey={cardsRefresh} />
                 <div data-native-card="x" className={showX && !inCategoryView ? "contents" : "hidden"}><XCard refreshKey={cardsRefresh} onConnection={setXConnected} /></div>
                 <div data-native-card="email" className={showEmail && !inCategoryView ? "contents" : "hidden"}><EmailCard refreshKey={cardsRefresh} onConnection={setEmailConnected} /></div>
-                <div data-native-card="highlevel" className={showHighLevel && !inCategoryView ? "contents" : "hidden"}>
-                  <HighLevelCard refreshKey={cardsRefresh} onConnection={setHighLevelConnected} />
-                </div>
-                <div data-native-card="postiz" className={postizHere ? "contents" : "hidden"}><PostizCard refreshKey={cardsRefresh} onConnection={setPostizConnected} /></div>
                 {allShown.map((card) => renderTile(card))}
               </AppsSection>
             </div>

@@ -164,7 +164,6 @@ describe("Add your VPS", () => {
     await act(async () => { root.render(createElement(AddVpsFlow, { onClose: () => {} })); });
     await stageShown(2);
     expect(fake.bridge.start).not.toHaveBeenCalled();
-    expect(text()).toContain("4 of 11");
     expect(text()).toContain("Installing Node");
   });
 });

@@ -124,8 +124,6 @@ function delayBefore(text: string, index: number): number {
   return text.startsWith("$ ") ? 360 + jitter * 6 : 40 + jitter;
 }
 
-const clock = (at: number) => new Date(at).toTimeString().slice(0, 8);
-
 /** The server's terminal as lines: the command each step ran, what it printed, then [ok], [skip] or [fail]. A step that
  * is still running pours its lines out one by one; under reduced motion they all land at once. */
 function useTerminal(steps: StepOutput[], command: string | null, start: number): TermLine[] {
@@ -197,7 +195,6 @@ function Mirror({ view, start, live, className }: { view: VpsLinkView; start: nu
         {lines.map((line) => line.kind === "log"
           ? <pre key={line.key} className="vps-term-log m-0 whitespace-pre-wrap [overflow-wrap:anywhere]">{line.text}</pre>
           : <div key={line.key} data-vps-line={line.kind} className="flex gap-2 whitespace-pre">
-              <span className="vps-term-dim shrink-0 tabular-nums">{clock(line.at)}</span>
               {line.kind === "cmd"
                 ? <span className="min-w-0 truncate"><span className="vps-term-dim">$ </span><span className="vps-term-cmd">{line.text}</span></span>
                 : line.kind === "out"
@@ -205,7 +202,6 @@ function Mirror({ view, start, live, className }: { view: VpsLinkView; start: nu
                   : <span className="min-w-0 truncate"><span className={`vps-term-${line.kind}`}>{TAG[line.kind]}</span> <span className="vps-term-out">{line.text}</span></span>}
             </div>)}
         <div className="flex gap-2 whitespace-pre" aria-hidden="true">
-          <span className="w-[8ch] shrink-0" />
           <span><span className="vps-term-dim">$ </span><span className={cn("vps-term-cursor", live && "vps-caret")} /></span>
         </div>
       </div>
@@ -240,7 +236,6 @@ export function InstallScreen({ view, onRetry }: { view: VpsLinkView; onRetry: (
       <div className={cn(centered, "top-[calc(50%-40px)] flex flex-col gap-2.5")}>
         <div className="flex items-baseline gap-3">
           <p role="status" className={cn("m-0 min-w-0 flex-1 truncate text-[15px] leading-5", failed ? "text-danger" : "text-ink")}>{label}</p>
-          <span className="shrink-0 text-[12px] leading-4 tabular-nums text-ink/56">{t("vpsLink.install.count", { done: finished, total: view.steps.length })}</span>
           <span aria-label={t("vpsLink.install.elapsedAria")} className="shrink-0 font-mono text-[12px] leading-4 tabular-nums text-ink/56">{formatElapsed(now - start)}</span>
         </div>
         <ProgressBar value={progress} label={t("vpsLink.install.progressAria")} tone={failed ? "danger" : undefined} />
@@ -253,7 +248,7 @@ export function InstallScreen({ view, onRetry }: { view: VpsLinkView; onRetry: (
             </div>
             <Mirror view={view} start={start} live={false} className={cn(centered, "top-[calc(50%+96px)] h-[92px]")} />
           </>
-        : <Mirror view={view} start={start} live className={cn(centered, "top-[calc(50%+4px)] h-[172px]")} />}
+        : <Mirror view={view} start={start} live className={cn(centered, "top-[calc(50%+4px)] h-[112px]")} />}
       <Footer>
         {view.error && <ErrorNote>{view.error}</ErrorNote>}
         {failed || view.error

@@ -68,7 +68,7 @@ export function appTool(name: string): AppTool | null {
   if (name.startsWith("mcp__")) {
     const [, server = "", ...rest] = name.split("__");
     const action = rest.join("__");
-    if (isConnectedAppsServer(server) || server === "highlevel") return appTool(action);
+    if (isConnectedAppsServer(server)) return appTool(action);
     if (OWN_SERVERS.has(server) || !action) return null;
     const app = words(server.replace(/^claude_ai_/, "")).join("");
     const tokens = words(action);

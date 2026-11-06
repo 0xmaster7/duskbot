@@ -1,6 +1,5 @@
 import { xResearchAction } from "@/lib/cloud-plan";
 import { cn } from "@/lib/cn";
-import { HIGHLEVEL_SLUG } from "@/lib/highlevel-sign-in";
 import { t } from "@/lib/i18n";
 import { mcpServersForBot, mcpServersOfBot, useMcpServers } from "@/lib/mcp-servers";
 import { useStore, type Bot } from "@/state/store";
@@ -25,7 +24,7 @@ export function ToolsSheet({ bot, derived }: { bot: Bot; derived: Derived }) {
   const at = sub.stack?.length ? sub.stack.at(-1)!.id : sub.at;
   const apps = useBotApps(bot);
   const selection = useToolSelection(bot, derived.engine?.driverKind);
-  const grantSlugs = apps.connectedSlugs.filter((slug) => slug !== HIGHLEVEL_SLUG);
+  const grantSlugs = apps.connectedSlugs;
   if (at?.startsWith(GRANT_PAGE)) return <ConnectorGrantPage bot={bot} patch={derived.patch} slug={at.slice(GRANT_PAGE.length)} slugs={grantSlugs} />;
   switch (at) {
     case "apps": return <AppLimitsPage bot={bot} derived={derived} apps={apps} />;
@@ -88,7 +87,7 @@ function AppLimitsPage({ bot, derived, apps }: { bot: Bot; derived: Derived; app
   const limited = scopes !== undefined;
   const slugs = [...new Set([...apps.connectedSlugs, ...Object.keys(scopes?.apps ?? {})])].sort();
   const labels = Object.fromEntries(apps.apps.map((app) => [app.slug, app.label]));
-  const grantSlugs = apps.connectedSlugs.filter((slug) => slug !== HIGHLEVEL_SLUG);
+  const grantSlugs = apps.connectedSlugs;
   const setScope = (slug: string, scope: ConnectorScope | null) => {
     const next = { ...scopes?.apps };
     if (scope) next[slug] = scope;

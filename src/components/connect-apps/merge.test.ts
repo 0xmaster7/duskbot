@@ -14,9 +14,7 @@ const OWN: AppEntry[] = [
   entry("1password", "logins", "1Password", { categories: ["credentials"], website: "1password.com", icon: { image: "1password.svg" } }),
   entry("email", "native", "Email"),
   entry("x", "native", "X", { website: "x.com" }),
-  entry("highlevel", "native", "HighLevel", { website: "gohighlevel.com" }),
   entry("custom-mcp", "native", "Custom MCP"),
-  entry("postiz", "native", "Postiz", { website: "postiz.com" }),
   entry("whop", "hosted", "Whop", { website: "whop.com" }),
   entry("agentcard", "hosted", "Agentcard", { website: "agentcard.sh" }),
 ];
@@ -67,7 +65,6 @@ describe("one row per app across our cards, Composio and the vendors' own server
     expect(twice).toEqual([]);
     expect(before - rows.length).toBeGreaterThan(70);
     expect(rows.find((row) => row.id === "1password")?.composio).toBe("_1password");
-    expect(rows.find((row) => row.id === "postiz")?.composio).toBe("postiz_mcp");
     expect(rows.find((row) => row.id === "notion")).toMatchObject({ kind: "composio", remote: "notion", aliases: ["notion_mcp"] });
   });
 });

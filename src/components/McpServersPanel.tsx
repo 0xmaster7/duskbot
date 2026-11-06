@@ -33,7 +33,6 @@ import type { McpMessage } from "./McpResultBudgetField";
 import { McpServerEditor, type McpServerSubmission } from "./McpServerEditor";
 import { isRemoteMcpListing, type McpServerListing } from "./mcp-draft";
 import { HOSTED_MCP_APPS, hostedConnections, hostedMcpApp, hostedServerName, type HostedApp, type HostedConnections, type HostedMcpAppId } from "@/lib/hosted-mcp-apps";
-import { POSTIZ_SERVER } from "../../shared/postiz";
 import { CHAT_TOOL_LIMIT, chatToolBudgetFit } from "../../shared/tool-budget";
 import { openBotSettings } from "./bot-panel/panel-link";
 import { closeConnectApps } from "./connect-apps/open";
@@ -105,7 +104,7 @@ export interface HostedCardsProps {
 }
 
 /** `hostedCards`: render the one-click card of each hosted MCP app (one instance, one server load, one sign-in at a time)
- * instead of the server list. `hideHosted`: leave hosted apps' servers (and Postiz's) out of the list, since their cards show them. */
+ * instead of the server list. `hideHosted`: leave hosted apps' servers out of the list, since their cards show them. */
 export function McpServersPanel({ embedded = false, rows = false, hostedCards, hideHosted = false, refreshKey = 0 }: {
   embedded?: boolean;
   /** Settings: Grok's card of rows, each server one row with its pills and switch. */
@@ -536,7 +535,7 @@ export function McpServersPanel({ embedded = false, rows = false, hostedCards, h
     return <>{HOSTED_MCP_APPS.map((app) => <div key={app.id} className={hostedCards.shown(app.id) ? "contents" : "hidden"}>{renderHostedCard(app)}</div>)}</>;
   }
 
-  const visibleServers = servers?.filter((server) => !hideHosted || !isRemoteMcpListing(server) || !(hostedMcpApp(server) || server.name === POSTIZ_SERVER));
+  const visibleServers = servers?.filter((server) => !hideHosted || !isRemoteMcpListing(server) || !hostedMcpApp(server));
 
   if (rows) {
     // one quiet line under a server's row

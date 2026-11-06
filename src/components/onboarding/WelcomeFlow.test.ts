@@ -241,7 +241,7 @@ describe("the talking style screen", () => {
     expect([...host.querySelectorAll("[data-talking-style-option]")].map((row) => row.querySelector("span")?.textContent)).toEqual([
       "CasualYep, moved your 3pm to 4. Way better slot tbh.",
       "WarmNo problem, your 3pm is now at 4. Everyone got the update.",
-      "NeutralMoved your 3pm to 4pm. The attendees were notified.",
+      "NativeMoved your 3pm to 4pm. The attendees were notified.",
     ]);
     expect(talkChoice("warm").checked, "warm is preselected").toBe(true);
     expect(saved(), "nothing is saved for the default").toEqual([]);
