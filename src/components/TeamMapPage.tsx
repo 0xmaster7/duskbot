@@ -20,7 +20,7 @@ import { MapModeToggle, TeamOrgChart, useMapMode } from "./TeamOrgChart";
 import { useTeamPeople } from "@/state/team-people";
 import { TeamDialog } from "./TeamDialog";
 import { TeamMemoryDialog } from "./TeamMemoryDialog";
-import { ConfirmDialog } from "./ConfirmDialog";
+import { askConfirm, ConfirmDialog } from "./ConfirmDialog";
 import { GrokIcon } from "./GrokIcon";
 import { formBodyCls, formCloseCls, formFooterCls, formHeaderCls, formSheetCls, formTitleCls, mdPrimaryCls, mdSecondaryCls, rowHintCls, textAreaCls } from "./ui/GrokDialog";
 import { t } from "@/lib/i18n";
@@ -98,8 +98,9 @@ function SectionContextDialog({ section, label, onClose }: { section: string; la
 
   const requestClose = useCallback(() => {
     if (savingRef.current) return;
-    if (dirtyRef.current && !window.confirm(t("team.instructionsDiscard"))) return;
-    onCloseRef.current();
+    if (!dirtyRef.current) { onCloseRef.current(); return; }
+    void askConfirm({ title: t("confirm.discardTitle"), body: t("confirm.discardBody"), confirmLabel: t("confirm.discard") })
+      .then((discard) => { if (discard) onCloseRef.current(); });
   }, []);
 
   useEffect(() => {
@@ -412,7 +413,7 @@ export function TeamMapPage() {
       {teamEditor && <TeamDialog {...teamEditor} onClose={() => setTeamEditor(null)} />}
       {memoryEditor && <TeamMemoryDialog key={memoryEditor.section} {...memoryEditor} onClose={() => setMemoryEditor(null)} />}
       <ConfirmDialog open={pendingMove !== null} tone="neutral" title={t("canvas.moveConfirmTitle", { name: pendingMove?.bot.name ?? t("canvas.bot"), team: pendingMove?.destination || t("settings.section.general") })}
-        body={t("canvas.moveConfirmBody")}
+        body={t("confirm.canvasMove")}
         confirmLabel={t("canvas.moveConfirm") } onCancel={cancelMove} onConfirm={() => {
           const move = pendingMoveRef.current;
           if (!move) return;
@@ -420,7 +421,7 @@ export function TeamMapPage() {
           void moveBot(move.bot, move.destination).then(() => move.resolve(true), () => move.resolve(false));
         }} />
       <ConfirmDialog open={deletingTeam !== null} title={t("team.deleteTitle", { name: deletingTeam ?? "" })}
-        body={t("team.deleteKeepBotsDescription")}
+        body={t("confirm.departmentDelete")}
         confirmLabel={t("team.delete")} onCancel={() => setDeletingTeam(null)} onConfirm={() => {
           const name = deletingTeam;
           setDeletingTeam(null);

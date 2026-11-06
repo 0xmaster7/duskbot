@@ -249,11 +249,12 @@
   box-sizing: border-box;
   height: 32px;
   padding: 0 8px 0 12px;
-  border: 1px solid var(--ca-ink-8);
   border-radius: 9999px;
-  background: var(--color-menu);
+  background: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  transition: background-color 120ms ease;
 }
-.ca-field:focus-within { border-color: var(--ca-ink-24); }
+/* borderless, as the composer: focus only deepens the fill */
+.ca-field:focus-within { background: color-mix(in srgb, var(--color-ink) 7%, transparent); }
 .ca-field[data-filled] { padding-inline-end: 3px; }
 .ca-field > i { color: var(--ca-ink-56); }
 .ca-field input {
@@ -726,16 +727,16 @@
   line-height: 16px;
   letter-spacing: 0.0065em;
 }
-/* grok's form field (Vault > New login): 32px, 1px ink/12, 10px corners, 9px in; focus only darkens the edge */
+/* grok's form field (Vault > New login): 32px, 10px corners, 9px in; borderless with a soft fill that deepens on focus */
 .ca-kit-field > input,
 .ca-kit-input {
   box-sizing: border-box;
   width: 100%;
   height: 32px;
   padding: 0 9px;
-  border: 1px solid var(--ca-ink-12);
+  border: 0;
   border-radius: 10px;
-  background: var(--color-menu);
+  background: color-mix(in srgb, var(--color-ink) 4%, transparent);
   color: var(--color-ink);
   font: inherit;
   line-height: 18px;
@@ -743,7 +744,7 @@
   outline: none;
 }
 .ca-kit-field > input:focus,
-.ca-kit-input:focus { border-color: color-mix(in srgb, var(--color-ink) 40%, transparent); }
+.ca-kit-input:focus { background: color-mix(in srgb, var(--color-ink) 7%, transparent); }
 .ca-kit-field > input::placeholder { color: var(--ca-ink-56); opacity: 1; }
 .ca-kit-actions {
   display: flex;

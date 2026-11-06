@@ -38,17 +38,17 @@ const type = (value: string) => {
 };
 
 describe("the Instructions dialog", () => {
-  it("is one calm card under the prompt, Save at its bottom right, with no counter or rule", () => {
+  it("is one calm card under the prompt in a pane of the sheet, Save at its bottom right, with no counter or rule", () => {
     mount({});
-    expect(sheet().getAttribute("role")).toBe("dialog");
-    expect(sheet().querySelector("h3")!.textContent).toBe("How should Scout work? What should it always or never do?");
+    expect(sheet().getAttribute("role")).toBeNull();
+    expect(sheet().querySelector("h2")!.textContent).toBe("Instructions");
+    expect(sheet().querySelector("[data-instructions-card]")!.previousElementSibling!.textContent).toBe("How should Scout work? What should it always or never do?");
     const card = sheet().querySelector<HTMLElement>("[data-instructions-card]")!;
-    expect(card.className).toContain("rounded-[14px]");
-    expect(card.className).toContain("outline-ink/8");
+    expect(card.className).toContain("rounded-[12px]");
+    expect(card.className).toContain("border-edge");
     expect(card.contains(field())).toBe(true);
     expect(card.lastElementChild!.lastElementChild).toBe(save());
     expect(sheet().querySelector("[data-instructions-count], .border-b, .border-t")).toBeNull();
-    expect(document.activeElement).toBe(field());
   });
 
   it("saves only a changed draft and stays open", () => {
@@ -70,13 +70,12 @@ describe("the Instructions dialog", () => {
     expect(save().disabled).toBe(true);
   });
 
-  it("leaves the instructions as they were on Escape or the close button", () => {
-    const { patch, onClose } = mount({});
+  it("leaves the instructions as they were when the pane goes without Save", () => {
+    const { patch } = mount({});
     type("Something else");
-    flushSync(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
-    flushSync(() => sheet().querySelector<HTMLButtonElement>('button[aria-label="Close"]')!.click());
-    expect(onClose).toHaveBeenCalledTimes(2);
+    flushSync(() => root!.unmount());
     expect(patch).not.toHaveBeenCalled();
+    root = null;
   });
 
   it("keeps an unsaved draft for the session when it closes, and drops it once saved", () => {

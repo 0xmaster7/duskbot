@@ -1,0 +1,486 @@
+import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode, type Ref } from "react";
+import { ChevronRight, type LucideIcon } from "lucide-react";
+
+import { cn } from "@/lib/cn";
+import { t } from "@/lib/i18n";
+import { GrokIcon } from "./GrokIcon";
+import { DialogPane, GrokDialog, mdPrimaryCls, mdSecondaryCls, rowButtonCls } from "./ui/GrokDialog";
+import { SelectPill, type SelectPillOption } from "./ui/SelectPill";
+import { Toggle } from "./ui/Toggle";
+
+/* The one row list the side panel, Settings and the settings sheets all draw: a small grey label over a white 12px card,
+   30px rows inside it with the name on the left in ink, the value on the right in secondary ink, a small chevron, and a
+   soft rounded pill on hover. Nothing else sits in a row; anything bigger opens a menu, a page or a small form. */
+
+export const rowCls = "flex min-h-[30px] items-center gap-2 rounded-lg px-2 py-1.5";
+const focusCls = "outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus";
+const titleCls = "text-[13px] leading-[18px] tracking-[0.015em] text-ink";
+const hintCls = "text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary";
+const valueCls = "min-w-0 max-w-[50%] shrink-0 truncate text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary";
+
+/** Grok's elevated 36px icon button (Share, Close): a white circle on a hairline, a 6% ink wash laid over it on hover. */
+export const roundButtonCls = "flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-[0.5px] border-edge bg-composer text-ink/[0.92] transition-[background-color,color] duration-[120ms] ease-[ease-out] hover:bg-linear-to-b hover:from-ink/[0.06] hover:to-ink/[0.06] aria-expanded:bg-linear-to-b aria-expanded:from-ink/[0.06] aria-expanded:to-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
+/** The quiet 30px pill, and the ink one for the single action that commits. */
+export const pillCls = rowButtonCls;
+export const pillPrimaryCls = cn(rowButtonCls, "bg-ink text-app shadow-none enabled:hover:bg-[color-mix(in_srgb,var(--color-ink)_88.5%,var(--color-menu))] disabled:bg-ink/15 disabled:text-ink/30");
+
+export const sectionGapCls = (labelled: boolean) => (labelled ? "mt-[22px]" : "mt-3");
+
+export function CardLabel({ children, action, id }: { children: ReactNode; action?: ReactNode; id?: string }) {
+  return (
+    <div className="mb-2.5 flex min-h-[18px] items-center justify-between gap-1 px-3 text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">
+      <span id={id} className="min-w-0 truncate">{children}</span>
+      {action}
+    </div>
+  );
+}
+
+export function LabelAction({ children, onClick, ...rest }: { children: ReactNode; onClick: () => void; "aria-label"?: string; "data-panel-action"?: string; "data-panel-page"?: string }) {
+  return (
+    <button type="button" {...rest} onClick={onClick} className="-my-px shrink-0 rounded-md px-1.5 py-px text-[13px] leading-[18px] text-ink-secondary transition-colors duration-100 hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+      {children}
+    </button>
+  );
+}
+
+const InSections = createContext(false);
+
+/** A page's sections in Grok's one rhythm: 22px between each, whatever it is (a card, a labelled card, an empty line). The
+ * cards inside drop their own margins; a wrapper of several cards passes them through with `contents`. */
+export function PanelSections({ children, className, ...rest }: { children: ReactNode; className?: string; "data-panel-tabpanel"?: string }) {
+  return (
+    <InSections.Provider value={true}>
+      <div {...rest} data-panel-sections="" className={cn("flex flex-col gap-[22px]", className)}>{children}</div>
+    </InSections.Provider>
+  );
+}
+
+/** A labelled white card of rows. */
+export function Card({ label, action, anchor, footnote, className, children, ...rest }: {
+  label?: ReactNode;
+  action?: ReactNode;
+  anchor?: string;
+  footnote?: ReactNode;
+  className?: string;
+  children: ReactNode;
+  "data-settings-block"?: string;
+  "data-sheet-group"?: string;
+}) {
+  const inSections = useContext(InSections);
+  const labelId = useId();
+  return (
+    <section
+      {...rest}
+      data-panel-card={anchor}
+      aria-labelledby={typeof label === "string" ? labelId : undefined}
+      className={cn("scroll-mt-4", !inSections && cn(sectionGapCls(Boolean(label)), "first:mt-0"), className)}
+    >
+      {label && <CardLabel id={labelId} action={action}>{label}</CardLabel>}
+      <div data-panel-card-surface="" className="flex flex-col overflow-hidden rounded-[12px] border-[0.5px] border-edge bg-composer p-1">
+        {children}
+      </div>
+      {footnote && <p className="mt-2 px-3 text-[12px] leading-4 tracking-[0.01em] text-ink-tertiary">{footnote}</p>}
+    </section>
+  );
+}
+
+/** Grok's empty tab: centred 13/18 copy at 56% ink, right under the tabs and 16px in from each side. */
+export function PanelEmpty({ children, ...rest }: { children: ReactNode; "data-panel-empty"?: string }) {
+  return (
+    <div {...rest} className="flex flex-col gap-2.5 px-4 py-4">
+      <p className="text-pretty text-center text-[13px] leading-[18px] tracking-[0.015em] text-ink/[0.56]">{children}</p>
+    </div>
+  );
+}
+
+export function RowText({ title, hint, tone }: { title: ReactNode; hint?: ReactNode; tone?: "danger" | "warn" }) {
+  return (
+    <div className="min-w-0 flex-1">
+      <div className={cn(titleCls, tone === "danger" && "text-danger", tone === "warn" && "text-warning")}>{title}</div>
+      {hint && <div className={cn(hintCls, "truncate")}>{hint}</div>}
+    </div>
+  );
+}
+
+export function RowIcon({ icon: Icon }: { icon: LucideIcon }) {
+  return (
+    <span className="flex size-6 shrink-0 items-center justify-center rounded-md text-ink-secondary" aria-hidden="true">
+      <Icon size={15} />
+    </span>
+  );
+}
+
+function RowValue({ value }: { value?: ReactNode }) {
+  if (value === undefined || value === null || value === "" || value === false) return null;
+  return <span data-panel-value="" className={valueCls}>{value}</span>;
+}
+
+/** A row that goes somewhere or does one thing: the name, its value, a chevron (or an out arrow for a web page). */
+export function NavRow({ title, hint, value, icon, onClick, drill = true, external = false, danger = false, disabled, tooltip, ...rest }: {
+  title: ReactNode;
+  hint?: ReactNode;
+  value?: ReactNode;
+  icon?: LucideIcon;
+  onClick: () => void;
+  drill?: boolean;
+  external?: boolean;
+  danger?: boolean;
+  disabled?: boolean;
+  tooltip?: string;
+  ref?: Ref<HTMLButtonElement>;
+  "aria-label"?: string;
+  "aria-expanded"?: boolean;
+  "data-panel-row"?: string;
+  "data-panel-page"?: string;
+  "data-panel-gear"?: boolean;
+  "data-settings-open"?: string;
+  "data-settings-advanced"?: string;
+  "data-sheet-row"?: string;
+}) {
+  return (
+    <button
+      type="button"
+      {...rest}
+      disabled={disabled}
+      title={tooltip}
+      onClick={onClick}
+      className={cn(rowCls, focusCls, "w-full cursor-pointer text-left transition-[background-color] duration-100 ease-[ease] enabled:hover:bg-ink/[0.06] enabled:active:bg-ink/[0.08] disabled:cursor-default disabled:opacity-45")}
+    >
+      {icon && <RowIcon icon={icon} />}
+      <RowText title={title} hint={hint} tone={danger ? "danger" : undefined} />
+      <RowValue value={value} />
+      {external
+        ? <GrokIcon name="link-external" size={12} className="shrink-0 text-ink-tertiary" />
+        : drill && <ChevronRight size={14} className="-mr-0.5 shrink-0 text-ink-tertiary rtl:-scale-x-100" aria-hidden="true" />}
+    </button>
+  );
+}
+
+/** A row that only shows something: the name and its value, or a control of its own on the right. */
+export function ItemRow({ title, hint, value, icon, tone, children, ...rest }: {
+  title: ReactNode;
+  hint?: ReactNode;
+  value?: ReactNode;
+  icon?: LucideIcon;
+  tone?: "danger" | "warn";
+  children?: ReactNode;
+  "data-panel-row"?: string;
+  "data-sheet-row"?: string;
+}) {
+  return (
+    <div {...rest} className={rowCls}>
+      {icon && <RowIcon icon={icon} />}
+      <RowText title={title} hint={hint} tone={tone} />
+      <RowValue value={value} />
+      {children}
+    </div>
+  );
+}
+
+/** A plain on/off: the name, and Grok's switch on the right (a bot's own colours when given). */
+export function SwitchRow({ title, hint, checked, onChange, disabled, tone, label, tooltip, extra, ...rest }: {
+  title: ReactNode;
+  hint?: ReactNode;
+  checked: boolean;
+  onChange: () => void;
+  disabled?: boolean;
+  tone?: { on: string; hover: string };
+  label?: string;
+  tooltip?: string;
+  extra?: ReactNode;
+  "data-panel-row"?: string;
+  "data-sheet-row"?: string;
+}) {
+  return (
+    <div {...rest} className={rowCls}>
+      <RowText title={title} hint={hint} />
+      {extra}
+      <Toggle
+        tone={tone}
+        checked={checked}
+        disabled={disabled}
+        title={tooltip}
+        aria-label={label ?? (typeof title === "string" ? title : undefined)}
+        onClick={onChange}
+        className="disabled:cursor-not-allowed"
+      />
+    </div>
+  );
+}
+
+/** A pick-one value: the whole row opens the panel's menu under its right edge, the value and a small chevron on the right. */
+export function SelectRow<V extends string>({ title, hint, value, options, onChange, disabled, label, tooltip, ...rest }: {
+  title: ReactNode;
+  hint?: ReactNode;
+  value: V;
+  options: readonly SelectPillOption<V>[];
+  onChange: (value: V) => void;
+  disabled?: boolean;
+  label?: string;
+  tooltip?: string;
+  "data-panel-row"?: string;
+  "data-panel-select"?: string;
+  "data-sheet-row"?: string;
+}) {
+  return (
+    <div
+      data-panel-row={rest["data-panel-row"]}
+      data-sheet-row={rest["data-sheet-row"]}
+      data-select-row=""
+      className={cn(
+        rowCls,
+        "relative transition-[background-color] duration-100 ease-[ease] has-[[role=combobox]:enabled:hover]:bg-ink/[0.06] has-[[aria-expanded=true]]:bg-ink/[0.06]",
+        "has-[[role=combobox]:focus-visible]:outline-2 has-[[role=combobox]:focus-visible]:-outline-offset-2 has-[[role=combobox]:focus-visible]:outline-focus has-[[role=combobox]:disabled]:opacity-45",
+      )}
+    >
+      <RowText title={title} hint={hint} />
+      <SelectPill
+        data-panel-select={rest["data-panel-select"]}
+        aria-label={label ?? (typeof title === "string" ? title : "")}
+        title={tooltip}
+        value={value}
+        options={options}
+        disabled={disabled}
+        onChange={onChange}
+        className={cn(
+          "static my-0 mr-0 h-auto max-w-[50%] gap-1.5 rounded-none border-0 bg-transparent p-0 text-ink-secondary",
+          "hover:bg-transparent aria-expanded:bg-transparent focus-visible:ring-0 disabled:opacity-100",
+          "after:absolute after:inset-0 after:rounded-lg after:content-['']",
+        )}
+      />
+    </div>
+  );
+}
+
+/** One of several to choose: the name, and Grok's small check on the right only when chosen. */
+export function CheckRow({ title, hint, leading, checked, onClick, disabled, role = "checkbox", ...rest }: {
+  title: ReactNode;
+  hint?: ReactNode;
+  leading?: ReactNode;
+  checked: boolean;
+  onClick: () => void;
+  disabled?: boolean;
+  role?: "checkbox" | "radio" | "option";
+  "data-panel-choice"?: string;
+  "data-sheet-row"?: string;
+  "data-bot-id"?: string;
+  "aria-label"?: string;
+}) {
+  return (
+    <button
+      type="button"
+      {...rest}
+      role={role}
+      aria-checked={role === "option" ? undefined : checked}
+      aria-selected={role === "option" ? checked : undefined}
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(rowCls, focusCls, "w-full cursor-pointer text-left transition-[background-color] duration-100 ease-[ease] enabled:hover:bg-ink/[0.06] enabled:active:bg-ink/[0.08] disabled:cursor-default disabled:opacity-45")}
+    >
+      {leading}
+      <RowText title={title} hint={hint} />
+      <span className="flex w-3 shrink-0 justify-end text-ink">{checked && <GrokIcon name="check" size={12} />}</span>
+    </button>
+  );
+}
+
+export function NoteRow({ children, tone, ...rest }: { children: ReactNode; tone?: "warn" | "danger"; "data-sheet-row"?: string }) {
+  return (
+    <div {...rest} role={tone ? "alert" : undefined} className={rowCls}>
+      <div className={cn("min-w-0 text-[13px] leading-[18px] tracking-[0.015em] [overflow-wrap:anywhere]", tone === "danger" ? "text-danger" : tone === "warn" ? "text-warning" : "text-ink-secondary")}>{children}</div>
+    </div>
+  );
+}
+
+/* pages inside a pane: a row opens one, it slides in over the list with a back chevron in the header */
+
+export interface SubPage { id: string; title: string }
+interface SubPageNav { at: string | undefined; open: (id: string, title: string) => void; back: () => void }
+
+export const SubPageContext = createContext<SubPageNav>({ at: undefined, open: () => {}, back: () => {} });
+
+/** The page of the pane this is drawn in (undefined on the pane's own list), and the way into another or back out. */
+export function useSubPage(): SubPageNav {
+  return useContext(SubPageContext);
+}
+
+const WIPE_MS = 200;
+const reducedMotion = () => document.documentElement.dataset.reducedMotion === "true" || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+
+/** Grok's in-dialog push between a list and a page of it (200ms, the app "out" curve): the incoming layer slides over the
+ * outgoing one on push, the outgoing slides off it on pop. A change of `group` (another pane) swaps without motion. The
+ * outgoing copy is drawn by `layer(at, false)`, inert and without ids. */
+export function WipeStack({ at, depth, group, layer }: { at: string; depth: number; group: string; layer: (at: string, live: boolean) => ReactNode }) {
+  const [shown, setShown] = useState({ at, depth, group });
+  const [wipe, setWipe] = useState<{ direction: "push" | "pop"; from: string; scrollTop: number; id: number } | null>(null);
+  const live = useRef<HTMLDivElement>(null);
+  if (at !== shown.at) {
+    setShown({ at, depth, group });
+    const within = group === shown.group && depth !== shown.depth;
+    const scroller = live.current?.querySelector<HTMLElement>("[data-wipe-scroll]");
+    setWipe(within && !reducedMotion() ? { direction: depth > shown.depth ? "push" : "pop", from: shown.at, scrollTop: scroller?.scrollTop ?? 0, id: (wipe?.id ?? 0) + 1 } : null);
+  }
+  useLayoutEffect(() => {
+    if (shown.group !== group) return;
+    live.current?.querySelector<HTMLElement>("[data-wipe-scroll]")?.scrollTo({ top: 0 });
+  }, [at, group, shown.group]);
+  useEffect(() => {
+    if (!wipe) return;
+    // focus left with the old layer: it lands on the new heading
+    const active = document.activeElement;
+    const heading = live.current?.querySelector<HTMLElement>("[data-wipe-heading]");
+    if (heading && (!active || active === document.body || active.closest("[inert]"))) {
+      heading.setAttribute("tabindex", "-1");
+      heading.focus({ preventScroll: true });
+      heading.addEventListener("blur", () => heading.removeAttribute("tabindex"), { once: true });
+    }
+    const timer = window.setTimeout(() => setWipe((current) => (current?.id === wipe.id ? null : current)), WIPE_MS + 50);
+    return () => window.clearTimeout(timer);
+  }, [wipe]);
+  return (
+    <div className="settings-wipe">
+      <div ref={live} className="settings-wipe-layer" data-wipe={wipe?.direction}>{layer(at, true)}</div>
+      {wipe && (
+        <div
+          key={`out:${wipe.id}`}
+          aria-hidden="true"
+          inert
+          className="settings-wipe-layer"
+          data-wipe={wipe.direction}
+          data-wipe-out=""
+          ref={(element) => {
+            const scroller = element?.querySelector<HTMLElement>("[data-wipe-scroll]");
+            if (scroller) scroller.scrollTop = wipe.scrollTop;
+          }}
+          onAnimationEnd={(event) => { if (event.target === event.currentTarget) setWipe((current) => (current?.id === wipe.id ? null : current)); }}
+        >
+          {layer(wipe.from, false)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function BackButton({ onBack, label = t("common.back") }: { onBack: () => void; label?: string }) {
+  return (
+    <button
+      type="button"
+      data-settings-back=""
+      onClick={onBack}
+      aria-label={label}
+      title={label}
+      className={cn(
+        "-ms-1 inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-ink/[0.56] transition-colors duration-150 ease-[ease] hover:bg-ink/[0.06] hover:text-ink-secondary",
+        "outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus",
+      )}
+    >
+      <GrokIcon name="chevron-left" size={14} className="rtl:-scale-x-100" />
+    </button>
+  );
+}
+
+/** A pane's header: its title, or a page's title behind a back chevron. */
+export function PaneHeader({ title, onBack, backLabel, headingId, children }: { title: ReactNode; onBack?: () => void; backLabel?: string; headingId?: string; children?: ReactNode }) {
+  return (
+    <header className="settings-pane-header">
+      <div className="flex min-w-0 items-center gap-1.5">
+        {onBack && <BackButton onBack={onBack} label={backLabel} />}
+        <h2 id={headingId} data-wipe-heading="" className={cn("settings-pane-title truncate outline-none", onBack && "ps-0")}>{title}</h2>
+      </div>
+      {children}
+    </header>
+  );
+}
+
+/** One pane of a railed settings sheet (a bot's, a room's): Settings' header and scrolling list, and pages a row opens
+ * sliding in over it. The page component reads `useSubPage().at` to draw the list or the page it is on. */
+export function SheetPane({ title, footer, children, ...rest }: { title: string; footer?: ReactNode; children: ReactNode; "data-panel-modal"?: string }) {
+  const [stack, setStack] = useState<SubPage[]>([]);
+  const titleId = useId();
+  const at = JSON.stringify(stack);
+  const layer = (key: string, live: boolean) => {
+    const pages = JSON.parse(key) as SubPage[];
+    const top = pages.at(-1);
+    const nav: SubPageNav = {
+      at: top?.id,
+      open: (id, pageTitle) => setStack([...pages, { id, title: pageTitle }]),
+      back: () => setStack(pages.slice(0, -1)),
+    };
+    return (
+      <>
+        <PaneHeader title={top?.title ?? title} headingId={live ? titleId : undefined} onBack={top ? nav.back : undefined} />
+        <div data-wipe-scroll="" className="settings-scroll">
+          <div className="settings-pane">
+            <SubPageContext.Provider value={nav}>
+              <PanelSections>{children}</PanelSections>
+            </SubPageContext.Provider>
+            {footer && !top && <div className="flex shrink-0 items-center justify-end gap-2">{footer}</div>}
+          </div>
+        </div>
+      </>
+    );
+  };
+  return (
+    <section {...rest} aria-labelledby={titleId} className="flex min-h-0 flex-1 flex-col">
+      <WipeStack at={at} depth={stack.length} group="" layer={layer} />
+    </section>
+  );
+}
+
+/** Grok's compact form dialog for typing something in (a name, a key, a login): fields, then a quiet Cancel and an ink
+ * Save on the right. Always its own sheet, even when opened from inside a railed sheet's pane. */
+export function FormDialog({ title, description, saveLabel, cancelLabel, canSave = true, busy = false, error, width = 400, onSave, onClose, children, ...rest }: {
+  title: ReactNode;
+  description?: ReactNode;
+  saveLabel?: string;
+  cancelLabel?: string;
+  canSave?: boolean;
+  busy?: boolean;
+  error?: ReactNode;
+  width?: number;
+  /** without it the dialog has only a Done that closes it, for fields that save as they change */
+  onSave?: () => void | Promise<unknown>;
+  onClose: () => void;
+  children: ReactNode;
+  "data-panel-modal"?: string;
+}) {
+  const formId = useId();
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (!onSave) { onClose(); return; }
+    if (!canSave || busy) return;
+    void onSave();
+  };
+  return (
+    <DialogPane.Provider value={false}>
+      <GrokDialog
+        {...rest}
+        title={title}
+        description={description}
+        width={width}
+        onClose={onClose}
+        footer={(
+          <>
+            {onSave && <button type="button" className={mdSecondaryCls} onClick={onClose}>{cancelLabel ?? t("common.cancel")}</button>}
+            <button type="submit" form={formId} disabled={Boolean(onSave) && (!canSave || busy)} className={mdPrimaryCls}>{onSave ? saveLabel ?? t("common.save") : t("common.done")}</button>
+          </>
+        )}
+      >
+        <form id={formId} onSubmit={submit} className="flex flex-col gap-3">
+          {children}
+          {error && <p role="alert" className="m-0 text-[12px] leading-4 text-danger">{error}</p>}
+        </form>
+      </GrokDialog>
+    </DialogPane.Provider>
+  );
+}
+
+/** A labelled field inside a FormDialog. */
+export function FormField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[11px] leading-4 tracking-[0.01em] text-ink/68">{label}</span>
+      {children}
+    </label>
+  );
+}

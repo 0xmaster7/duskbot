@@ -8,7 +8,6 @@ import { GrokIcon, type GrokIconName } from "../GrokIcon";
 import { DialogPane, useDialogKeys } from "../ui/GrokDialog";
 import { RoomAboutModal, RoomFolderModal, RoomInstructionsModal, RoomResponderModal, type RoomDialog } from "./RoomModals";
 import "../../styles/settings.css";
-import "../bot-panel/modals/bot-sheet.css";
 
 const PAGES: readonly RoomDialog[] = ["instructions", "responder", "folder", "about"];
 

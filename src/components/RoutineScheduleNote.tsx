@@ -2,6 +2,7 @@ import { brandStatus } from "@/lib/brand";
 import { buyOfferAllowed, type CloudPlanView } from "@/lib/cloud-plan";
 import { t } from "@/lib/i18n";
 import { useStore } from "@/state/store";
+import { askConfirm } from "./ConfirmDialog";
 import { localDesktopPage } from "./onboarding/WelcomeGate";
 import { useCloudPlan } from "./ProIntroduction";
 
@@ -23,7 +24,8 @@ export function RoutineScheduleNote() {
   const place = schedulePlace({ cloudHome: state.config?.cloudHome === true, local, plan: plan?.view ?? null,
     ready: plan?.account?.machine?.status === "ready", offersAllowed: brandStatus().source !== "file" });
   const link = "text-left underline underline-offset-2 hover:text-ink";
-  const openCloud = () => { if (window.confirm(t("routines.scheduleNote.leave"))) void window.ogb?.cloudAccount?.connectHome().catch(() => {}); };
+  const openCloud = () => void askConfirm({ title: t("confirm.leaveRoutineTitle"), body: t("confirm.leaveRoutineBody"), confirmLabel: t("confirm.leaveRoutineAction"), tone: "neutral" })
+    .then((open) => { if (open) void window.ogb?.cloudAccount?.connectHome().catch(() => {}); });
   return <p data-routine-schedule-note={place.kind === "local" ? place.next ?? "local" : place.kind} className="text-[11px] leading-relaxed text-ink-secondary">
     {place.kind === "cloud" ? t("routines.scheduleNote.cloud") : place.kind === "server" ? t("routines.scheduleNote.server") : <>
       {t("routines.scheduleNote.local")}

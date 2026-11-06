@@ -225,12 +225,10 @@ describe("connected-app status races", () => {
   });
 
   it("names the exact account and limits disconnect confirmation to that account", () => {
-    expect(disconnectAccountConfirmation("Gmail", { id: "ca_work", alias: "work" })).toBe(
-      "Disconnect “work” (ca_work) from Gmail? Only this Gmail account will be revoked. Your other Gmail accounts will stay connected.",
-    );
-    expect(disconnectAccountConfirmation("GitHub", { id: "ca_personal" })).toContain(
-      "Disconnect “ca_personal” from GitHub? Only this GitHub account will be revoked.",
-    );
+    expect(disconnectAccountConfirmation("Gmail", { id: "ca_work", alias: "work" })).toEqual({
+      title: "Disconnect “work” (ca_work)?", body: "Only this Gmail account is revoked.", confirmLabel: "Disconnect",
+    });
+    expect(disconnectAccountConfirmation("GitHub", { id: "ca_personal" }).title).toBe("Disconnect “ca_personal”?");
   });
 
   it("recognizes the existing-account alias guard and ignores unrelated errors", () => {

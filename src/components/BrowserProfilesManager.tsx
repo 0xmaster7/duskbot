@@ -4,6 +4,7 @@ import { api, ApiError, useStore, type Bot, type BotAnnouncement, type BrowserPr
 import { browserProfileDeletionBlockReason, browserProfilesMutation, newBrowserProfileId } from "@/lib/browser-profiles";
 import { isOwnerOrAdmin, readSessionState } from "@/lib/session";
 import { t } from "@/lib/i18n";
+import { askConfirm } from "./ConfirmDialog";
 import { SignedInSites } from "./SignedInSites";
 import { Select } from "./Select";
 import { browserScope } from "@/lib/team-browser";
@@ -98,8 +99,8 @@ export function BrowserProfilesManager({ bot, onProfileChanged, disabled = false
     const blocked = browserProfileDeletionBlockReason(bots, profile.id);
     if (blocked) return setError(blocked);
     const users = bots.filter((candidate) => candidate.browserProfile === profile.id);
-    const summary = users.length ? ` ${t("settings.profiles.deleteUsers", { names: users.map((candidate) => candidate.name).join(", ") })}` : "";
-    if (!window.confirm(t("settings.profiles.confirm", { name: profile.name, bots: summary }))) return;
+    const summary = users.length ? `${t("settings.profiles.deleteUsers", { names: users.map((candidate) => candidate.name).join(", ") })} ` : "";
+    if (!(await askConfirm({ title: t("memory.confirmDelete", { name: profile.name }), body: summary + t("confirm.profileDeleteBody"), confirmLabel: t("common.delete") }))) return;
     setBusy(true);
     setError("");
     try {

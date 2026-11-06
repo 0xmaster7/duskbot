@@ -64,6 +64,24 @@
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-ink) 6%, transparent);
 }
 
+.chat-link-favicon[data-brand] {
+  border-radius: 5px;
+}
+.chat-link-favicon[data-brand] > img {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border-radius: 5px;
+  box-shadow: none;
+}
+@container style(--code-color-scheme: dark) {
+  .chat-link-favicon[data-plated] > img {
+    box-sizing: border-box;
+    padding: 2px;
+    background-color: #fff;
+  }
+}
+
 /* lists sit tight, one line height apart, with markers a step quieter than the words */
 [data-chat-bubble="simple"] .chat-md :is(ul, ol) > li {
   margin-block: 0;

@@ -1,7 +1,8 @@
 import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
+import { createRoot } from "react-dom/client";
 
-import { mdDangerCls, mdPrimaryCls, mdSecondaryCls } from "./ui/GrokDialog";
+import { confirmCancelCls, mdDangerCls, mdPrimaryCls } from "./ui/GrokDialog";
 
 export type ConfirmTone = "danger" | "neutral";
 
@@ -13,7 +14,6 @@ export interface ConfirmDialogProps {
   /** The way out, "Cancel" unless given. */
   cancelLabel?: string;
   tone?: ConfirmTone;
-  icon?: ReactNode;
   onCancel: () => void;
   onConfirm: () => void;
   /** A gentler way to the same end, offered beside the confirm button ("Archive instead"). */
@@ -25,19 +25,20 @@ export interface ConfirmDialogProps {
 }
 
 /**
- * Cancel is focused by default so a stray Enter never confirms. Portalled to <body>: the sidebar's translate below md
- * would become the containing block.
+ * Grok's confirmation modal: the confirm button takes focus, so Enter confirms and Escape cancels, and Tab moves to
+ * Cancel. While pending, focus parks on the dialog. Portalled to <body>: the sidebar's translate below md would become
+ * the containing block.
  */
 export function ConfirmDialog(props: ConfirmDialogProps) {
   const { open, onCancel, returnFocusRef } = props;
   const dialogRef = useRef<HTMLDivElement>(null);
-  const cancelRef = useRef<HTMLButtonElement>(null);
+  const confirmRef = useRef<HTMLButtonElement>(null);
   const cancelAction = useRef(onCancel);
   cancelAction.current = onCancel;
   useEffect(() => {
     if (!open) return;
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    cancelRef.current?.focus();
+    confirmRef.current?.focus();
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -70,7 +71,7 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
   useEffect(() => {
     if (!open) return;
     if (props.pending) dialogRef.current?.focus();
-    else cancelRef.current?.focus();
+    else confirmRef.current?.focus();
   }, [open, props.pending]);
 
   if (!open) return null;
@@ -81,7 +82,7 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
       onMouseDown={(event) => event.target === event.currentTarget && onCancel()}
     >
       <div aria-hidden="true" className="ui-dialog-scrim pointer-events-none absolute inset-0" />
-      <ConfirmDialogCard ref={dialogRef} cancelRef={cancelRef} {...props} />
+      <ConfirmDialogCard ref={dialogRef} confirmRef={confirmRef} {...props} />
     </div>,
     document.body,
   );
@@ -89,20 +90,19 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
 
 export function ConfirmDialogCard({
   ref,
-  cancelRef,
+  confirmRef,
   title,
   body,
   confirmLabel,
   cancelLabel = "Cancel",
   tone = "danger",
-  icon,
   onCancel,
   onConfirm,
   alternative,
   pending = false,
 }: ConfirmDialogProps & {
   ref?: React.Ref<HTMLDivElement>;
-  cancelRef?: React.Ref<HTMLButtonElement>;
+  confirmRef?: React.Ref<HTMLButtonElement>;
 }) {
   const danger = tone === "danger";
   return (
@@ -118,24 +118,42 @@ export function ConfirmDialogCard({
       className="ui-dialog relative flex w-full max-w-[320px] flex-col outline-none"
     >
       <div className="flex flex-col gap-1 px-4 py-3">
-        <h2 id="confirm-dialog-title" className="m-0 flex items-center gap-2 text-[14px] font-semibold leading-[22px] tracking-[-0.15px] text-ink">
-          {icon && <span aria-hidden="true" className="flex shrink-0 text-ink/56">{icon}</span>}
-          <span className="min-w-0">{title}</span>
+        <h2 id="confirm-dialog-title" className="m-0 min-w-0 text-[14px] font-semibold leading-[22px] tracking-[-0.15px] text-ink">
+          {title}
         </h2>
         <div id="confirm-dialog-body" className="text-[14px] leading-[22px] tracking-[-0.15px] text-ink/56 text-pretty">
           {body}
         </div>
       </div>
       <div className="flex flex-wrap gap-2 py-3 pl-4 pr-3">
-        <button ref={cancelRef} type="button" onClick={onCancel} disabled={pending} className={`${mdSecondaryCls} flex-1`}>
+        <button type="button" onClick={onCancel} disabled={pending} className={`${confirmCancelCls} flex-1`}>
           {cancelLabel}
         </button>
         {alternative && <button type="button" data-confirm-alternative onClick={alternative.onClick} disabled={pending}
-          className={`${mdSecondaryCls} flex-1`}>{alternative.label}</button>}
-        <button type="button" onClick={onConfirm} disabled={pending} className={`${danger ? mdDangerCls : mdPrimaryCls} flex-1`}>
+          className={`${confirmCancelCls} flex-1`}>{alternative.label}</button>}
+        <button ref={confirmRef} type="button" onClick={onConfirm} disabled={pending} className={`${danger ? mdDangerCls : mdPrimaryCls} flex-1`}>
           {confirmLabel}
         </button>
       </div>
     </div>
   );
+}
+
+export type ConfirmRequest = Pick<ConfirmDialogProps, "title" | "body" | "confirmLabel" | "cancelLabel" | "tone">;
+
+/** The same dialog asked from an event handler, in place of `window.confirm`: true once confirmed, false on Cancel or
+ * Escape. Mounts its own root on <body> and removes it when answered. */
+export function askConfirm(request: ConfirmRequest): Promise<boolean> {
+  if (typeof document === "undefined") return Promise.resolve(false);
+  return new Promise((resolve) => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    const answer = (value: boolean) => {
+      root.unmount();
+      host.remove();
+      resolve(value);
+    };
+    root.render(<ConfirmDialog open {...request} onCancel={() => answer(false)} onConfirm={() => answer(true)} />);
+  });
 }

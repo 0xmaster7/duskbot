@@ -21,14 +21,13 @@ describe("delete all threads", () => {
     expect(rows.find((row) => row.threadId === "open")).toMatchObject({ busy: true, activity: "working" });
   });
 
-  it("says a new empty conversation starts only when nothing is running, and counts pinned threads", () => {
+  it("says a new empty chat starts only when nothing is running, in one line", () => {
     const idle = deleteAllThreadsCopy(allThreadRows(bot));
     expect(idle.title).toBe("Delete all threads (2)?");
     expect(idle.confirmLabel).toBe("Delete 2");
-    expect(idle.body).toContain("Pinned threads included: 1.");
-    expect(idle.body).toContain("a new empty conversation will be started");
+    expect(idle.body).toBe("Their messages go too. A new empty chat starts.");
     const running = deleteAllThreadsCopy(allThreadRows({ ...bot, busy: true, activity: "working" }));
-    expect(running.body).not.toContain("a new empty conversation will be started");
+    expect(running.body).toBe("Their messages go too. Project files are kept.");
   });
 
   it("sends every thread, running ones too, and says plainly which were kept", async () => {

@@ -17,7 +17,8 @@ afterEach(() => setTeamPeople(null));
 it("names each teammate's MausBot for its person in a picker, and the viewer's own as it is", () => {
   setTeamPeople(team);
   const html = renderToStaticMarkup(createElement(BotPickerList, { bots, picked: new Set<string>(), onToggle: () => {}, emptyHint: "" }));
-  expect(html.match(/role="checkbox" aria-label="[^"]*"/g)?.map((match) => match.slice(match.indexOf("aria-label")))).toEqual(['aria-label="MausBot"', 'aria-label="MausBot · Ada"', 'aria-label="MausBot · Ben"']);
+  const labels = html.match(/<button[^>]*role="checkbox"[^>]*>/g)?.map((tag) => tag.match(/aria-label="[^"]*"/)?.[0]);
+  expect(labels).toEqual(['aria-label="MausBot"', 'aria-label="MausBot · Ada"', 'aria-label="MausBot · Ben"']);
 });
 
 it("names a MausBot whose person is not in the list by their address", () => {

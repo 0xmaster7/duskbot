@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Archive, Loader2, Trash2, X } from "lucide-react";
+import { Loader2, Trash2, X } from "lucide-react";
 
 import { t } from "@/lib/i18n";
 import { useShowThreads } from "@/lib/thread-preferences";
@@ -17,13 +17,13 @@ export function botConfirmCopy(kind: BotConfirmKind, name: string, chief = false
   return kind === "archive"
     ? {
         title: t("sidebar.confirm.archiveTitle", { name }),
-        body: t("sidebar.confirm.archiveBody", { name }),
+        body: t("confirm.botArchive"),
         confirmLabel: t("sidebar.bot.archive"),
         tone: "neutral" as const,
       }
     : {
         title: t("sidebar.confirm.deleteTitle", { name }),
-        body: t(chief ? "sidebar.confirm.deleteChiefBody" : "sidebar.confirm.deleteBody", { name }),
+        body: t(chief ? "confirm.botDeleteChief" : "confirm.botDelete"),
         confirmLabel: t("common.delete"),
         tone: "danger" as const,
       };
@@ -39,7 +39,6 @@ export function botConfirmProps(confirm: { kind: BotConfirmKind; bot: Bot } | nu
   return {
     open: confirm !== null,
     ...(confirm ? botConfirmCopy(confirm.kind, confirm.bot.name, Boolean(chief)) : botConfirmCopy("archive", "")),
-    icon: confirm?.kind === "delete" ? <Trash2 size={18} /> : <Archive size={18} />,
     alternative: chief ? { label: t("sidebar.confirm.archiveInstead"), onClick: () => act.archiveInstead(chief) } : undefined,
     onConfirm: () => {
       if (!confirm) return;
@@ -52,7 +51,7 @@ export function botConfirmProps(confirm: { kind: BotConfirmKind; bot: Bot } | nu
 export function archivedDeleteAllCopy() {
   return {
     title: t("sidebar.archived.deleteAllTitle"),
-    body: t("sidebar.archived.deleteAllBody"),
+    body: t("confirm.archivedDeleteAll"),
     confirmLabel: t("sidebar.archived.deleteAll"),
     tone: "danger" as const,
   };
@@ -256,7 +255,6 @@ export function ArchivedBotsPanel({
         {...(pendingDelete === "all"
           ? archivedDeleteAllCopy()
           : botConfirmCopy("delete", pendingDelete?.name ?? ""))}
-        icon={<Trash2 size={18} />}
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => {
           if (!pendingDelete) return;

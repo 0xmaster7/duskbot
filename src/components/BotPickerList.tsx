@@ -1,9 +1,12 @@
-import { Check } from "lucide-react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { Bot } from "@/state/store";
 import { teamBotName, useTeamPeople } from "@/state/team-people";
 import { BotAvatar } from "./Avatar";
+import { CheckRow } from "./ListRows";
 import { cn } from "@/lib/cn";
 
+/** Bots to pick as rows: the face, the name and Grok's small check on the chosen ones. A long list scrolls without a bar,
+ * fading out at the edge that has more. */
 export function BotPickerList({
   bots,
   picked,
@@ -16,30 +19,38 @@ export function BotPickerList({
   emptyHint: string;
 }) {
   const team = useTeamPeople();
+  const list = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState({ above: false, below: false });
+  const measure = () => {
+    const element = list.current;
+    if (!element) return;
+    const above = element.scrollTop > 1;
+    const below = element.scrollTop + element.clientHeight < element.scrollHeight - 1;
+    setMore((current) => (current.above === above && current.below === below ? current : { above, below }));
+  };
+  useLayoutEffect(measure, [bots.length]);
   return (
-    <div className="flex max-h-64 flex-col gap-0.5 overflow-y-auto">
+    <div
+      ref={list}
+      onScroll={measure}
+      className={cn(
+        "flex max-h-64 flex-col overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        more.below && !more.above && "[mask-image:linear-gradient(to_bottom,black_calc(100%-32px),transparent)]",
+        more.above && !more.below && "[mask-image:linear-gradient(to_top,black_calc(100%-32px),transparent)]",
+        more.above && more.below && "[mask-image:linear-gradient(to_bottom,transparent,black_32px,black_calc(100%-32px),transparent)]",
+      )}
+    >
       {bots.length === 0 && <div className="px-2 py-4 text-center text-[13px] leading-[18px] text-ink/68">{emptyHint}</div>}
       {bots.map((b) => (
-        <button
+        <CheckRow
           key={b.id}
-          onClick={() => onToggle(b.id)}
-          role="checkbox"
+          data-bot-id={b.id}
           aria-label={teamBotName(b, team)}
-          aria-checked={picked.has(b.id)}
-          type="button"
-          className="flex h-8 shrink-0 items-center gap-2 rounded-[8px] px-2 text-left transition-[background-color] duration-[120ms] ease-[ease] hover:bg-ink/5 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
-        >
-          <BotAvatar bot={b} state="happy" size={20} animated={false} />
-          <span className="min-w-0 flex-1 truncate text-[13px] leading-[18px] text-ink">{teamBotName(b, team)}</span>
-          <span
-            className={cn(
-              "flex size-4 shrink-0 items-center justify-center rounded-full border transition-colors duration-[120ms] ease-[ease]",
-              picked.has(b.id) ? "border-ink bg-ink text-app" : "border-ink/24",
-            )}
-          >
-            {picked.has(b.id) && <Check size={10} strokeWidth={3} />}
-          </span>
-        </button>
+          leading={<BotAvatar bot={b} state="happy" size={20} animated={false} />}
+          title={<span className="block truncate">{teamBotName(b, team)}</span>}
+          checked={picked.has(b.id)}
+          onClick={() => onToggle(b.id)}
+        />
       ))}
     </div>
   );

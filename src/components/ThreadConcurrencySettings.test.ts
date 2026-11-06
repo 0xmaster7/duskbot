@@ -13,21 +13,19 @@ describe("ThreadConcurrencySettings", () => {
   it("shows three until the first answer arrives, and offers one through sixteen", () => {
     fixture.limit = undefined;
     const markup = renderToStaticMarkup(createElement(ThreadConcurrencySettings));
-    expect(markup).toContain('value="3" selected=""');
-    expect(markup.match(/<option /g)).toHaveLength(16);
-    expect(markup).toContain('value="16"');
+    expect(markup).toMatch(/role="combobox"[^>]*>.*>3<\/span>/);
     expect(markup).toContain("Tasks at once per bot");
   });
   it("shows Starter's one thread per bot as a plan limit it cannot raise", () => {
     fixture.limit = 1; fixture.cloudStarter = true;
     const markup = renderToStaticMarkup(createElement(ThreadConcurrencySettings));
     fixture.cloudStarter = undefined;
-    expect(markup).toContain('value="1" selected=""');
+    expect(markup).toMatch(/>1<\/span>/);
     expect(markup).toContain("disabled");
     expect(markup).toContain("Starter runs one thread at a time per bot");
   });
   it("shows the confirmed server value", () => {
     fixture.limit = 10;
-    expect(renderToStaticMarkup(createElement(ThreadConcurrencySettings))).toContain('value="10" selected=""');
+    expect(renderToStaticMarkup(createElement(ThreadConcurrencySettings))).toMatch(/>10<\/span>/);
   });
 });

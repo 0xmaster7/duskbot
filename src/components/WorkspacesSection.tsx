@@ -263,7 +263,7 @@ export function WorkspacesSection({ load = fetchFleet }: { load?: () => Promise<
       <ConfirmDialog
         open={confirm !== null}
         title={t("workspaces.deleteTitle", { slug: confirm?.slug ?? "" })}
-        body={t(confirm?.keepData ? "workspaces.deleteKeepHint" : "workspaces.deleteHint")}
+        body={t(confirm?.keepData ? "confirm.workspaceDeleteKeep" : "confirm.workspaceDelete")}
         confirmLabel={t("workspaces.delete")}
         onCancel={() => setConfirm(null)}
         onConfirm={() => void remove()}

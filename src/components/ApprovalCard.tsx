@@ -1,5 +1,5 @@
 import { useContext, useState, type ReactNode } from "react";
-import { Check, Clock3, ShieldCheck, Undo2, X } from "lucide-react";
+import { Check, Clock3, ShieldCheck, X } from "lucide-react";
 import { api, ApiError, StoreContext, type Bot, type Message, type OptionCardData } from "@/state/store";
 import { shareLearnedSkillsMode } from "@/lib/feature-flags";
 import { cn } from "@/lib/cn";
@@ -17,6 +17,10 @@ import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { yourComputerAsk } from "@/lib/your-computer";
 import { computerAskWords } from "@/lib/computer-ask";
 import { TriggerCard } from "./TriggerCard";
+import { EventChip, EventLabel, EventLine } from "./EventLine";
+import { GrokIcon, type GrokIconName } from "./GrokIcon";
+import { BotAvatar } from "./Avatar";
+import { openBotSettings } from "./bot-panel/panel-link";
 import { CardHint } from "./CardHint";
 
 interface ToolLabels {
@@ -200,6 +204,78 @@ export function appliedChange(card: OptionCardData, name: string): { line: strin
   return undefined;
 }
 
+const ROUTINE_EVENT = {
+  create: "chat.event.routineCreated",
+  update: "chat.event.routineUpdated",
+  pause: "chat.event.routinePaused",
+  resume: "chat.event.routineResumed",
+  run_now: "chat.event.routineRan",
+  delete: "chat.event.routineDeleted",
+} as const satisfies Record<string, LocaleKey>;
+const WAIT_EVENT = {
+  waiting: "chat.event.waiting",
+  fired: "chat.event.waitFired",
+  expired: "chat.event.waitExpired",
+  cancelled: "chat.event.waitCancelled",
+} as const satisfies Record<string, LocaleKey>;
+
+interface AppliedEvent {
+  label: string;
+  chip?: { icon: GrokIconName; name: string; title?: string; routinesOf?: string | null };
+  forBot?: { name: string; botId?: string };
+}
+
+/** An applied change as grok's transcript events read it: what happened, then the thing it happened to. */
+export function appliedEvent(card: OptionCardData): AppliedEvent | undefined {
+  const routine = card.routineRequest;
+  if (routine) {
+    const operation = routine.operation;
+    const name = routine.undo?.name ?? (operation.action === "create" ? operation.routine.name : "");
+    const when = routine.undo?.schedule && operation.action !== "pause" && operation.action !== "delete" && operation.action !== "run_now"
+      ? plainWhen(routine.undo.schedule) : "";
+    return {
+      label: t(ROUTINE_EVENT[operation.action]),
+      ...(name ? { chip: { icon: "clock" as const, name, title: when ? `${name}, ${when}` : name, routinesOf: operation.action === "delete" ? null : operation.forBot?.botId ?? "" } } : {}),
+      ...(operation.forBot ? { forBot: { name: operation.forBot.name, botId: operation.forBot.botId } } : {}),
+    };
+  }
+  const wait = card.waitRequest;
+  if (wait) return { label: t(WAIT_EVENT[wait.settled ?? "waiting"]), chip: { icon: "hourglass", name: wait.label } };
+  const webhook = card.webhookRequest;
+  if (webhook) {
+    const name = webhook.undo?.name ?? "";
+    return {
+      label: t(ROUTINE_EVENT[webhook.operation.action]),
+      ...(name ? { chip: { icon: "lightning" as const, name, routinesOf: webhook.operation.action === "delete" ? null : webhook.operation.forBot?.botId ?? "" } } : {}),
+      ...(webhook.operation.forBot ? { forBot: { name: webhook.operation.forBot.name, botId: webhook.operation.forBot.botId } } : {}),
+    };
+  }
+  const skill = card.skillRequest;
+  if (skill) return { label: t(skill.action === "create" ? "chat.event.skillAdded" : "chat.event.skillUpdated"), chip: { icon: "skills", name: skill.name } };
+  const profile = card.profileRequest;
+  if (profile) {
+    return { label: t("chat.event.settingsUpdated"), ...(profile.targetBotId !== profile.botId ? { forBot: { name: profile.targetName, botId: profile.targetBotId } } : {}) };
+  }
+  const model = card.modelRequest;
+  if (model) {
+    return {
+      label: t("chat.event.modelChanged"), chip: { icon: "chip", name: model.selection.model },
+      ...(model.targetBotId !== model.botId ? { forBot: { name: model.targetName, botId: model.targetBotId } } : {}),
+    };
+  }
+  const setup = card.teamSetupRequest;
+  if (setup?.deletion) return { label: t("chat.event.botDeleted"), chip: { icon: "robot", name: setup.deletion.name } };
+  if (setup?.result) {
+    const names = setup.result.bots.filter((bot) => bot.action === "created" || bot.action === "updated").map((bot) => bot.name).join(", ");
+    return { label: t("chat.event.teamSetUp"), ...(names ? { chip: { icon: "people" as const, name: names } } : {}) };
+  }
+  if (card.teamMemoryRequest) {
+    const title = card.subtitle.split(" — ")[0] ?? "";
+    return { label: t("chat.event.teamMemorySaved"), ...(title ? { chip: { icon: "brain" as const, name: title } } : {}) };
+  }
+  return undefined;
+}
+
 function AppliedChangeLine({
   card,
   name,
@@ -211,13 +287,13 @@ function AppliedChangeLine({
   threadId?: string;
   summary: { line: string; canUndo: boolean; cancels?: boolean; detail?: string };
 }) {
-  const [open, setOpen] = useState(false);
   const [undoing, setUndoing] = useState(false);
   const [error, setError] = useState<string>();
   const [sharing, setSharing] = useState(false);
   // Kept until the card's own patch arrives, so the Share button cannot come back in between.
   const [sharedNow, setSharedNow] = useState<{ requestId: string; shared: SkillShareRecord }>();
-  const config = useContext(StoreContext)?.state.config ?? null;
+  const store = useContext(StoreContext);
+  const config = store?.state.config ?? null;
   const reviewsTeamMemory = useOwnerOrAdmin() !== false;
   const canUndo = summary.canUndo && (!card.teamMemoryRequest || reviewsTeamMemory);
   const undone = card.undone === true;
@@ -255,64 +331,73 @@ function AppliedChangeLine({
       })
       .finally(() => setUndoing(false));
   };
+  const event = appliedEvent(card);
+  const forBot = event?.forBot && store?.state.bots.find((bot) => bot.id === event.forBot!.botId || bot.name === event.forBot!.name);
+  const chip = event?.chip;
   return (
-    <div className="w-full max-w-[840px] text-[13px] text-ink-tertiary" data-applied-change={name}>
-      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 leading-5">
-        {undone ? <Undo2 size={13} className="shrink-0 self-center" /> : <Check size={13} className="shrink-0 self-center text-success/80" />}
-        <span className="min-w-0 break-words">
-          {summary.line}
-          {shared && !undone && (
-            <span> · {sharedNames.length ? t("approval.applied.sharedSkill", { names: sharedNames.join(", ") }) : t("approval.applied.sharedSkillNobody")}</span>
-          )}
-          {undone && !cancels && <span> · {t("approval.applied.undone")}</span>}
-        </span>
-        {!undone && canUndo && threadId && (
-          <button
-            type="button"
-            onClick={undo}
-            disabled={undoing}
-            className={cn(TEXT_ACTION, "text-accent disabled:opacity-60")}
+    <div className="flex w-full flex-col items-center gap-1" data-applied-change={name}>
+      <EventLine>
+        <EventLabel>{event?.label ?? summary.line}</EventLabel>
+        {chip && (
+          <EventChip
+            leading={<GrokIcon name={chip.icon} size={12} />}
+            title={chip.title ?? chip.name}
+            {...(chip.routinesOf !== undefined && chip.routinesOf !== null && store
+              ? {
+                  onClick: () => openBotSettings(store.dispatch, "routines", chip.routinesOf ? { botId: chip.routinesOf } : {}),
+                  "aria-label": t("chat.event.openRoutine", { name: chip.name }),
+                }
+              : {})}
           >
+            {chip.name}
+          </EventChip>
+        )}
+        {event?.forBot && (
+          <>
+            <EventLabel tone="tertiary">{t("chat.event.for")}</EventLabel>
+            <EventChip wideGap title={event.forBot.name} leading={<BotAvatar bot={forBot ?? { name: event.forBot.name, color: "blue" }} state="happy" size={16} motion="none" motionKey={0} animated={false} />}>
+              {event.forBot.name}
+            </EventChip>
+          </>
+        )}
+        {shared && !undone && (
+          <EventLabel tone="tertiary">· {sharedNames.length ? t("approval.applied.sharedSkill", { names: sharedNames.join(", ") }) : t("approval.applied.sharedSkillNobody")}</EventLabel>
+        )}
+        {undone && !cancels && <EventLabel tone="tertiary">· {t("approval.applied.undone")}</EventLabel>}
+        {!undone && canUndo && threadId && (
+          <EventChip onClick={undo} disabled={undoing} className="disabled:opacity-60">
             {cancels ? t(undoing ? "approval.applied.cancelling" : "common.cancel") : t(undoing ? "approval.applied.undoing" : "approval.applied.undo")}
-          </button>
+          </EventChip>
         )}
         {canShare && (
-          <button
-            type="button"
-            onClick={share}
-            disabled={sharing}
-            className="rounded-md px-1.5 py-0.5 font-medium text-accent hover:bg-inset disabled:opacity-60"
-          >
+          <EventChip onClick={share} disabled={sharing} className="disabled:opacity-60">
             {sharing ? t("approval.applied.sharingSkill") : t("approval.applied.shareSkill")}
-          </button>
+          </EventChip>
         )}
-        <button
-          type="button"
-          aria-expanded={open}
-          onClick={() => setOpen((value) => !value)}
-          className={cn(TEXT_ACTION, "text-ink-tertiary hover:text-ink-secondary")}
-        >
-          {open ? t("approval.applied.hideDetails") : t("approval.applied.details")}
-        </button>
-      </div>
+      </EventLine>
       {shared && !undone && skippedNames.length > 0 && (
-        <div className="mt-1 text-[13px] text-ink-tertiary">{t("approval.applied.shareSkipped", { names: skippedNames.join(", ") })}</div>
+        <div className="text-center text-[12px] leading-4 text-ink-tertiary">{t("approval.applied.shareSkipped", { names: skippedNames.join(", ") })}</div>
       )}
       {!error && !shared && !undone && skill?.shareError && (
-        <div className="mt-1 text-[13px] text-warning">{t("approval.applied.shareFailed", { error: skill.shareError })}</div>
+        <div className="text-center text-[12px] leading-4 text-warning">{t("approval.applied.shareFailed", { error: skill.shareError })}</div>
       )}
-      {error && <div role="alert" className="mt-1 text-[13px] text-warning">{error}</div>}
-      {open && (
-        <pre
-          tabIndex={0}
-          aria-label={t("approval.aria.appliedDetails")}
-          className="mt-1.5 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-2xl bg-inset px-4 py-3 font-mono text-[13px] leading-relaxed text-ink"
-        >
-          {[summary.detail, card.subtitle].filter(Boolean).join("\n\n")}
-        </pre>
-      )}
+      {error && <div role="alert" className="text-center text-[12px] leading-4 text-warning">{error}</div>}
     </div>
   );
+}
+
+/** Whether a settled card left a change grok would show as a transcript event. */
+export function showsSettledChange(card: OptionCardData | undefined): card is OptionCardData {
+  return Boolean(card && card.answered === "allow" && !card.held && !card.expired && card.requestId && appliedEvent(card) && appliedChange(card, ""));
+}
+
+/** A settled change, in a chat that talks in bubbles: one event line. Only a change that applied on its own can be undone here. */
+export function SettledChangeEvent({ bot, message, threadId }: { bot?: Pick<Bot, "name">; message: Message; threadId?: string }) {
+  const card = message.card;
+  if (!showsSettledChange(card)) return null;
+  const name = bot?.name ?? t("approval.someone");
+  const summary = appliedChange(card, name)!;
+  return <AppliedChangeLine card={card} name={name} threadId={threadId} summary={card.autoApplied ? summary : { ...summary, canUndo: false }} />;
 }
 
 export const APPROVAL_CODE_CHIP =

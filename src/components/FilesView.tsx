@@ -147,10 +147,10 @@ function FilesPage({ bridge }: { bridge: CloudFilesBridge }) {
     {ask?.kind === "share" && (ask.check.refusal
       ? <FilesDialog label={refusalText(ask.check.refusal)} onClose={close}
         actions={<button type="button" autoFocus className="ui-button ui-button-primary" onClick={close}>{t("files.ok")}</button>} />
-      : <ConfirmDialog open tone="neutral" icon={<FolderOpen size={18} />} title={t("files.share.title", { name: ask.check.name })}
-        body={t("files.share.body", { size: folderSize(ask.check) })} confirmLabel={t("files.share.confirm")}
+      : <ConfirmDialog open tone="neutral" title={t("files.share.title", { name: ask.check.name })}
+        body={t("confirm.filesShare", { size: folderSize(ask.check) })} confirmLabel={t("files.share.confirm")}
         onCancel={close} onConfirm={() => share([ask.check.token])} />)}
-    {ask?.kind === "stop" && <ConfirmDialog open title={t("files.stop.title", { name: ask.folder.name })} body={t("files.stop.body")}
+    {ask?.kind === "stop" && <ConfirmDialog open title={t("files.stop.title", { name: ask.folder.name })} body={t("confirm.filesStop")}
       confirmLabel={t("files.stop")} onCancel={close} onConfirm={() => { close(); void run(() => bridge.stopSharing(ask.folder.id)); }} />}
     {ask?.kind === "suggest" && <FilesDialog label={t("files.suggest.title")} onClose={close} actions={<>
       <button type="button" autoFocus className="ui-button" onClick={close}>{t("files.cancel")}</button>

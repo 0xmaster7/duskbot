@@ -1022,9 +1022,7 @@ export function ModelPicker({
       <ConfirmDialog
         open={pendingSwitch !== null}
         title={t("model.providerSwitch.title")}
-        body={t(pendingSwitch?.updateBotDefault ? "model.providerSwitch.botBody" : "model.providerSwitch.threadBody", {
-          model: pendingSwitch?.name ?? "",
-        })}
+        body={t(pendingSwitch?.updateBotDefault ? "confirm.modelSwitchBot" : "confirm.modelSwitchThread")}
         tone="neutral"
         confirmLabel={t("model.providerSwitch.confirm")}
         onCancel={() => setPendingSwitch(null)}

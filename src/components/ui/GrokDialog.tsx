@@ -13,7 +13,10 @@ const sizeSm = "h-6 px-2 text-[12px] leading-4 tracking-[0.01em]";
 const primaryTone = "bg-ink text-app enabled:hover:bg-[color-mix(in_srgb,var(--color-ink)_88.5%,var(--color-menu))] disabled:bg-ink/15 disabled:text-ink/30";
 const secondaryTone = "bg-ink/6 text-ink shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_6%,transparent)] enabled:hover:bg-ink/10 disabled:text-ink/30";
 
-const dangerTone = "bg-danger text-danger-ink enabled:hover:bg-[color-mix(in_srgb,var(--color-danger)_88%,black)] disabled:opacity-50";
+/** Grok's kit danger: #e72e3b (sand-bg-danger, brighter than the danger text) under a 0.5px white/15 inset, #c82532 on hover. */
+const dangerTone = "bg-danger text-danger-ink shadow-[inset_0_0_0_0.5px_rgb(255_255_255/0.15)] enabled:hover:bg-[color-mix(in_srgb,var(--color-danger)_88%,black)] in-data-[skin=grok]:bg-[#e72e3b] in-data-[skin=grok]:enabled:hover:bg-[#c82532] disabled:opacity-50";
+/** A kit dialog's secondary (a confirm's Cancel): the same ink/6 fill on a firmer 0.5px ink/15 inset. */
+const kitSecondaryTone = "bg-ink/6 text-ink shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_15%,transparent)] enabled:hover:bg-ink/10 disabled:text-ink/30";
 
 export const dialogPrimaryCls = cn(buttonBase, sizeLg, primaryTone);
 export const dialogSecondaryCls = cn(buttonBase, sizeLg, secondaryTone);
@@ -21,6 +24,7 @@ export const dialogSecondaryCls = cn(buttonBase, sizeLg, secondaryTone);
 export const mdPrimaryCls = cn(buttonBase, sizeMd, primaryTone);
 export const mdSecondaryCls = cn(buttonBase, sizeMd, secondaryTone);
 export const mdDangerCls = cn(buttonBase, sizeMd, dangerTone);
+export const confirmCancelCls = cn(buttonBase, sizeMd, kitSecondaryTone);
 export const rowButtonCls = cn(buttonBase, sizeRow, secondaryTone);
 export const smallButtonCls = cn(buttonBase, sizeSm, secondaryTone);
 
@@ -29,10 +33,11 @@ export const rowHintCls = "text-[13px] leading-[18px] tracking-[-0.08px] text-in
 export const footnoteCls = "m-0 pl-2 text-[12px] leading-4 tracking-[0.01em] text-ink/56";
 export const listCardCls = "flex flex-col rounded-[14px] bg-menu py-2 outline-1 -outline-offset-1 outline-ink/8 [outline-style:solid]";
 export const listRowCls = "flex min-h-12 items-center gap-x-5 px-3.5 py-2.5";
-/** Grok's text field (Vault's New login): 32px, white, a 1px ink/12 edge at 10px corners that darkens on focus, no ring. */
-export const textFieldCls = "block h-8 w-full min-w-0 rounded-[10px] border border-ink/12 bg-menu px-[9px] text-[13px] leading-[18px] tracking-[0.195px] text-ink outline-none transition-[border-color] duration-[120ms] ease-[ease] placeholder:text-ink/40 focus:border-ink/40 disabled:opacity-50";
+/** A text field: Grok's 32px box at 10px corners, borderless like the composer, a soft ink/4 fill that deepens to ink/7
+ * on focus (with the caret, the focus cue), no ring. */
+export const textFieldCls = "block h-8 w-full min-w-0 rounded-[10px] bg-ink/4 px-[9px] text-[13px] leading-[18px] tracking-[0.195px] text-ink outline-none transition-[background-color] duration-[120ms] ease-[ease] placeholder:text-ink/40 focus:bg-ink/7 disabled:opacity-50";
 /** The same field grown into a few lines. */
-export const textAreaCls = "block w-full resize-none rounded-[10px] border border-ink/12 bg-menu px-[9px] py-[7px] text-[13px] leading-[18px] tracking-[0.195px] text-ink outline-none transition-[border-color] duration-[120ms] ease-[ease] [scrollbar-width:thin] placeholder:text-ink/40 focus:border-ink/40! disabled:opacity-50";
+export const textAreaCls = "block w-full resize-none rounded-[10px] bg-ink/4 px-[9px] py-[7px] text-[13px] leading-[18px] tracking-[0.195px] text-ink outline-none transition-[background-color] duration-[120ms] ease-[ease] [scrollbar-width:thin] placeholder:text-ink/40 focus:bg-ink/7 disabled:opacity-50";
 /** A field's label, 4px over it; an "(Optional)" beside it reads ink/40. */
 export const fieldLabelCls = "text-[11px] leading-4 tracking-[0.01em] text-ink/68";
 
@@ -205,7 +210,7 @@ export function DialogSkeleton({ lines = 2 }: { lines?: number }) {
   );
 }
 
-/** Grok's filled field (the Vault and Connect Apps search): a 32px pill tinted ink/4 that darkens its edge on focus,
+/** Grok's filled field (the Vault and Connect Apps search): a borderless 32px pill tinted ink/4, ink/7 while focused,
  * with a leading glyph and an Add that wakes once there is something to add. */
 export function FilledField({ icon = "plus", value, placeholder, label, disabled, busy, submitLabel, onChange, onSubmit, inputRef, ...rest }: {
   icon?: GrokIconName;
@@ -229,7 +234,7 @@ export function FilledField({ icon = "plus", value, placeholder, label, disabled
         if (ready) onSubmit();
       }}
       className={cn(
-        "flex h-8 items-center gap-1.5 rounded-[9999px] border border-ink/12 bg-ink/4 pl-[11px] pr-1 transition-[border-color] duration-[120ms] ease-[ease] focus-within:border-ink/24",
+        "flex h-8 items-center gap-1.5 rounded-[9999px] bg-ink/4 pl-3 pr-1 transition-[background-color] duration-[120ms] ease-[ease] focus-within:bg-ink/7",
         disabled && "opacity-50",
       )}
     >

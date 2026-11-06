@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { t } from "@/lib/i18n";
 import { needsReconnect } from "@/lib/connector-status";
+import { askConfirm } from "../ConfirmDialog";
 import { connectorSetupNotice, disconnectAccountConfirmation } from "../PluginsPanel";
 import type { ToolkitCard } from "../ServiceIcon";
 import { AppTile } from "./AppRow";
@@ -102,7 +103,7 @@ export function AppPage({ model }: { model: AppPageModel }) {
                   )}
                   <button type="button" className="ca-link" data-tone="danger" disabled={phase?.kind === "connecting"}
                     aria-label={t("connectors.disconnectAria", { account: account.alias || account.id, service: entry.label })}
-                    onClick={() => { if (window.confirm(disconnectAccountConfirmation(entry.label, account))) connectors.disconnect(slug, account.id); }}>
+                    onClick={() => void askConfirm(disconnectAccountConfirmation(entry.label, account)).then((yes) => { if (yes) connectors.disconnect(slug, account.id); })}>
                     {t("connectors.disconnect")}
                   </button>
                 </div>

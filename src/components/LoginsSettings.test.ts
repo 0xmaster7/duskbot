@@ -39,17 +39,17 @@ async function render() {
   await act(async () => root.render(createElement(LoginsSettings)));
   await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
 }
-const button = (label: string) => [...host.querySelectorAll("button")].find((candidate) => (candidate.getAttribute("aria-label") ?? candidate.textContent) === label)!;
+const button = (label: string) => [...document.body.querySelectorAll("button")].find((candidate) => (candidate.getAttribute("aria-label") ?? candidate.textContent) === label)!;
 async function click(label: string) { await act(async () => button(label).click()); }
 async function type(name: string, value: string) {
-  const input = host.querySelector<HTMLInputElement>(`input[name="${name}"]`)!;
+  const input = document.body.querySelector<HTMLInputElement>(`input[name="${name}"]`)!;
   await act(async () => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, value);
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
 }
 async function submit() {
-  await act(async () => { host.querySelector<HTMLFormElement>("[data-login-form]")!.requestSubmit(); });
+  await act(async () => { document.body.querySelector<HTMLFormElement>("[data-login-form]")!.requestSubmit(); });
   await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
 }
 
@@ -58,7 +58,7 @@ describe("Settings → Logins", () => {
     fixture.api.mockResolvedValueOnce({ logins: [CARD_LOGIN, SHARED_LOGIN, TENANT_LOGIN], onePassword: OFF });
     await render();
     expect(fixture.api).toHaveBeenCalledWith("/api/logins");
-    const rows = [...host.querySelectorAll("[data-login-row]")].map((row) => row.textContent);
+    const rows = [...document.body.querySelectorAll("[data-login-row]")].map((row) => row.textContent);
     expect(rows[0]).toContain("example.com");
     expect(rows[0]).toContain("alice@example.com");
     expect(rows[0]).toContain("Also signs in on login.microsoftonline.com");
@@ -67,23 +67,23 @@ describe("Settings → Logins", () => {
     expect(rows[1]).toContain("Added here · All bots · Not used yet");
     expect(rows[1]).toContain("Also signs in on crm.example.org");
     expect(rows[2]).toContain("Only on acme.okta.com");
-    expect(host.querySelector("[data-logins-list]")!.querySelectorAll("input")).toHaveLength(0);
+    expect(document.body.querySelector("[data-logins-list]")!.querySelectorAll("input")).toHaveLength(0);
   });
 
   it("adds a login for the bots chosen, and keeps nothing it was typed once saved", async () => {
     fixture.api.mockResolvedValueOnce({ logins: [], onePassword: OFF }).mockResolvedValueOnce({ login: SHARED_LOGIN }).mockResolvedValueOnce({ logins: [SHARED_LOGIN], onePassword: OFF });
     await render();
-    expect(host.textContent).toContain("No saved logins yet.");
+    expect(document.body.textContent).toContain("No saved logins yet.");
     await click("Add login");
     await type("site", "crm.example.org");
     await type("username", "team");
     await type("password", "fake-typed-pass");
-    await act(async () => { [...host.querySelectorAll<HTMLInputElement>('input[type="radio"]')][1]!.click(); });
-    await act(async () => { host.querySelector<HTMLInputElement>('fieldset input[type="checkbox"]')!.click(); });
+    await act(async () => { [...document.body.querySelectorAll<HTMLInputElement>('input[type="radio"]')][1]!.click(); });
+    await act(async () => { document.body.querySelector<HTMLInputElement>('fieldset input[type="checkbox"]')!.click(); });
     await submit();
     expect(fixture.api).toHaveBeenNthCalledWith(2, "/api/logins", { method: "POST", body: JSON.stringify({ site: "crm.example.org", username: "team", password: "fake-typed-pass", bots: ["pepper"] }) });
-    expect(host.querySelector("[data-login-form]")).toBeNull();
-    expect(host.innerHTML).not.toContain("fake-typed-pass");
+    expect(document.body.querySelector("[data-login-form]")).toBeNull();
+    expect(document.body.innerHTML).not.toContain("fake-typed-pass");
   });
 
   it("keeps a new login to its exact address when asked", async () => {
@@ -92,7 +92,7 @@ describe("Settings → Logins", () => {
     await click("Add login");
     await type("site", "acme.okta.com");
     await type("password", "fake-tenant-pass");
-    const exact = host.querySelector<HTMLInputElement>('input[name="exactHost"]')!;
+    const exact = document.body.querySelector<HTMLInputElement>('input[name="exactHost"]')!;
     expect(exact.checked).toBe(false);
     expect(exact.closest("label")!.textContent).toBe("Only on this exact address, not elsewhere on its site");
     await act(async () => { exact.click(); });
@@ -104,9 +104,9 @@ describe("Settings → Logins", () => {
     fixture.api.mockResolvedValueOnce({ logins: [CARD_LOGIN], onePassword: OFF }).mockResolvedValueOnce({ login: CARD_LOGIN }).mockResolvedValueOnce({ logins: [CARD_LOGIN], onePassword: OFF });
     await render();
     await click("Change the login for example.com");
-    expect(host.querySelector<HTMLInputElement>('input[name="password"]')!.value).toBe("");
+    expect(document.body.querySelector<HTMLInputElement>('input[name="password"]')!.value).toBe("");
     await type("password", "fake-new-pass");
-    await act(async () => { host.querySelector<HTMLInputElement>('input[type="radio"]')!.click(); });
+    await act(async () => { document.body.querySelector<HTMLInputElement>('input[type="radio"]')!.click(); });
     await submit();
     expect(fixture.api).toHaveBeenNthCalledWith(2, "/api/logins/l1", { method: "PATCH", body: JSON.stringify({ password: "fake-new-pass", bots: "all" }) });
   });
@@ -115,7 +115,7 @@ describe("Settings → Logins", () => {
     fixture.api.mockResolvedValueOnce({ logins: [CARD_LOGIN], onePassword: OFF }).mockResolvedValueOnce({ login: CARD_LOGIN }).mockResolvedValueOnce({ logins: [CARD_LOGIN], onePassword: OFF });
     await render();
     await click("Change the login for example.com");
-    const exact = host.querySelector<HTMLInputElement>('input[name="exactHost"]')!;
+    const exact = document.body.querySelector<HTMLInputElement>('input[name="exactHost"]')!;
     expect(exact.closest("label")!.textContent).toBe("Only on example.com, login.microsoftonline.com, not elsewhere on example.com");
     await act(async () => { exact.click(); });
     await submit();
@@ -125,6 +125,7 @@ describe("Settings → Logins", () => {
   it("deletes only on a second click", async () => {
     fixture.api.mockResolvedValueOnce({ logins: [CARD_LOGIN], onePassword: OFF }).mockResolvedValueOnce({ ok: true }).mockResolvedValueOnce({ logins: [], onePassword: OFF });
     await render();
+    await click("Change the login for example.com");
     await click("Delete the login for example.com");
     expect(fixture.api).toHaveBeenCalledTimes(1);
     await click("Delete for good");
@@ -140,22 +141,24 @@ describe("Settings → Logins", () => {
       .mockResolvedValueOnce({ onePassword: OFF })
       .mockResolvedValueOnce({ logins: [], onePassword: OFF });
     await render();
-    expect(host.querySelector("[data-onepassword]")!.textContent).toContain("service account that reads one vault");
-    const field = host.querySelector<HTMLInputElement>('input[name="onePasswordToken"]')!;
+    expect(document.body.querySelector("[data-onepassword]")!.textContent).toContain("service account that reads one vault");
+    await act(async () => document.body.querySelector<HTMLButtonElement>('[data-settings-open="onepassword"]')!.click());
+    const field = document.body.querySelector<HTMLInputElement>('input[name="onePasswordToken"]')!;
     expect(field.type).toBe("password");
     await type("onePasswordToken", "ops_fake-typed-token");
     await click("Connect 1Password");
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
     expect(fixture.api).toHaveBeenNthCalledWith(2, "/api/logins/1password", { method: "POST", body: JSON.stringify({ token: "ops_fake-typed-token" }) });
-    expect(host.querySelector("[data-onepassword]")!.textContent).toContain("Connected to Shared with OMB · 1 logins with a website");
-    expect(host.innerHTML).not.toContain("ops_fake-typed-token");
-    const row = host.querySelector('[data-login-row="example.com"]')!;
+    expect(document.body.querySelector("[data-onepassword]")!.textContent).toContain("Connected to Shared with OMB · 1 logins with a website");
+    expect(document.body.innerHTML).not.toContain("ops_fake-typed-token");
+    const row = document.body.querySelector('[data-login-row="example.com"]')!;
     expect(row.textContent).toContain("From 1Password · All bots");
     expect(row.querySelectorAll("button")).toHaveLength(0);
     await click("Disconnect");
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
     expect(fixture.api).toHaveBeenNthCalledWith(4, "/api/logins/1password", { method: "DELETE" });
-    expect(host.querySelector<HTMLInputElement>('input[name="onePasswordToken"]')!.value).toBe("");
+    await act(async () => document.body.querySelector<HTMLButtonElement>('[data-settings-open="onepassword"]')!.click());
+    expect(document.body.querySelector<HTMLInputElement>('input[name="onePasswordToken"]')!.value).toBe("");
   });
 
   it("keeps a 1Password vault to the bots chosen for it, on the same screen", async () => {
@@ -167,7 +170,7 @@ describe("Settings → Logins", () => {
       .mockResolvedValueOnce({ onePassword: narrowed })
       .mockResolvedValueOnce({ logins: [{ ...VAULT_LOGIN, bots: ["quill"] }], onePassword: narrowed });
     await render();
-    const row = () => host.querySelector('[data-vault="Shared with OMB"]')!;
+    const row = () => document.body.querySelector('[data-vault="Shared with OMB"]')!;
     expect(row().textContent).toContain("2 logins · All bots");
     await click("Change who can use Shared with OMB");
     await act(async () => { [...row().querySelectorAll<HTMLInputElement>('input[type="radio"]')][1]!.click(); });
@@ -176,36 +179,37 @@ describe("Settings → Logins", () => {
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
     expect(fixture.api).toHaveBeenNthCalledWith(2, "/api/logins/1password/vaults/v1", { method: "PATCH", body: JSON.stringify({ bots: ["quill"] }) });
     expect(row().textContent).toContain("2 logins · Quill");
-    expect(host.querySelector('[data-login-row="example.com"]')!.textContent).toContain("From 1Password · Quill");
+    expect(document.body.querySelector('[data-login-row="example.com"]')!.textContent).toContain("From 1Password · Quill");
   });
 
   it("says why 1Password refused a token", async () => {
     fixture.api.mockResolvedValueOnce({ logins: [], onePassword: OFF }).mockRejectedValueOnce(new Error("1Password did not accept the token."));
     await render();
+    await act(async () => document.body.querySelector<HTMLButtonElement>('[data-settings-open="onepassword"]')!.click());
     await type("onePasswordToken", "ops_fake-wrong");
     await click("Connect 1Password");
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
-    expect(host.querySelector("[data-onepassword] [role=alert]")!.textContent).toBe("1Password did not accept the token.");
+    expect(document.body.querySelector('[data-panel-modal="onepassword"] [role=alert]')!.textContent).toBe("1Password did not accept the token.");
   });
 
   it("is for admins only", async () => {
     fixture.admin = false;
     await render();
     expect(fixture.api).not.toHaveBeenCalled();
-    expect(host.textContent).toContain("Only an admin of this installation can see and change saved logins.");
+    expect(document.body.textContent).toContain("Only an admin of this installation can see and change saved logins.");
   });
 });
 
 describe("Settings → Logins with My Cloud", () => {
   afterEach(() => { delete (window as { ogb?: unknown }).ogb; });
-  const where = (site: string) => host.querySelector(`[data-login-row="${site}"] [data-login-where]`)?.textContent;
+  const where = (site: string) => document.body.querySelector(`[data-login-row="${site}"] [data-login-where]`)?.textContent;
 
   it("without My Cloud says nothing of sides; on My Cloud itself says its logins are its own and sends nothing", async () => {
     (window as { ogb?: unknown }).ogb = { cloudLogins: { state: vi.fn().mockResolvedValue({ cloud: null }), send: vi.fn() } };
     fixture.api.mockResolvedValueOnce({ logins: [SHARED_LOGIN], onePassword: OFF });
     await render();
-    expect(host.querySelector("[data-logins-sides]")).toBeNull();
-    expect(host.querySelector("[data-also-cloud]")).toBeNull();
+    expect(document.body.querySelector("[data-logins-sides]")).toBeNull();
+    expect(document.body.querySelector("[data-also-cloud]")).toBeNull();
     expect(where("example.org")).toBeUndefined();
     act(() => root.unmount());
     root = createRoot(host);
@@ -213,7 +217,7 @@ describe("Settings → Logins with My Cloud", () => {
     fixture.config = { cloudHome: true };
     fixture.api.mockResolvedValueOnce({ logins: [SHARED_LOGIN], onePassword: OFF });
     await render();
-    expect(host.querySelector("[data-logins-cloud-own]")!.textContent).toContain("come here by themselves");
-    expect(host.querySelector("[data-also-cloud]")).toBeNull();
+    expect(document.body.querySelector("[data-logins-cloud-own]")!.textContent).toContain("come here by themselves");
+    expect(document.body.querySelector("[data-also-cloud]")).toBeNull();
   });
 });

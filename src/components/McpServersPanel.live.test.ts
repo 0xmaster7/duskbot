@@ -10,6 +10,7 @@ vi.mock("@/state/store", () => ({
   api,
   useStore: () => ({ state: { config: null }, dispatch: vi.fn() }),
 }));
+vi.mock("./ConfirmDialog", () => ({ askConfirm: async () => true }));
 import { publishLiveFrame } from "@/lib/live-events";
 import { McpServersPanel } from "./McpServersPanel";
 
@@ -22,7 +23,6 @@ beforeEach(async () => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   api.mockReset();
   api.mockImplementation(async () => ({ servers: listing }));
-  vi.stubGlobal("confirm", () => true);
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);

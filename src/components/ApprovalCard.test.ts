@@ -638,13 +638,15 @@ describe("ApprovalCard for a change that applied on its own", () => {
   const update = { action: "update" as const, routineId: "routine-1", expectedUpdatedAt: 1, changes: { name: "Renamed" } };
   const before = { ...createRoutineOperation.routine, enabled: true };
 
-  it("reads as one plain line with Undo instead of the approval box", () => {
+  it("reads as one event line with Undo instead of the approval box", () => {
     const at = new Date();
     at.setHours(14, 30, 0, 0);
     const markup = render(routineCard(update, { name: "Check before dentist", schedule: { type: "once", at: at.getTime() }, appliedUpdatedAt: 2, before }));
-    expect(markup).toMatch(/Scout changed an automation: Check before dentist, today 2:30/);
+    expect(markup).toContain(">Updated routine<");
+    expect(markup).toContain(">Check before dentist<");
+    expect(markup).toMatch(/title="Check before dentist, today 2:30/);
     expect(markup).toContain(">Undo<");
-    expect(markup).toContain(">Details<");
+    expect(markup).not.toContain(">Details<");
     expect(markup).not.toContain("30 14 * * 3");
     expect(markup).not.toContain("Waiting for your confirmation");
     expect(markup).not.toContain("schedule_routine");
@@ -655,7 +657,7 @@ describe("ApprovalCard for a change that applied on its own", () => {
       { ...update, changes: { schedule: { type: "cron", expression: "*/7 3-5 * * 1", timeZone: "UTC" } } },
       { name: "Odd hours", schedule: { type: "cron", expression: "*/7 3-5 * * 1", timeZone: "UTC" } },
     ));
-    expect(markup).toContain("Scout changed an automation: Odd hours");
+    expect(markup).toContain(">Odd hours<");
     expect(markup).not.toContain("*/7");
   });
 
@@ -663,11 +665,13 @@ describe("ApprovalCard for a change that applied on its own", () => {
     const undone = { ...routineCard(update, { name: "Backlog review", appliedUpdatedAt: 2, before }) };
     undone.card = { ...undone.card!, undone: true };
     const markup = render(undone);
-    expect(markup).toContain("Scout changed an automation: Backlog review");
-    expect(markup).toContain(" · Undone");
+    expect(markup).toContain(">Updated routine<");
+    expect(markup).toContain(">Backlog review<");
+    expect(markup).toContain("· Undone");
     expect(markup).not.toContain(">Undo<");
     const run = render(routineCard({ action: "run_now", routineId: "routine-1", expectedUpdatedAt: 1 }, { name: "Backlog review" }));
-    expect(run).toContain("Scout ran an automation: Backlog review");
+    expect(run).toContain(">Ran routine<");
+    expect(run).toContain(">Backlog review<");
     expect(run).not.toContain(">Undo<");
   });
 
@@ -680,7 +684,7 @@ describe("ApprovalCard for a change that applied on its own", () => {
         expectedRevision: "r", undo: { appliedRevision: "r2" },
       },
     }));
-    expect(profile).toMatch(/updated its settings<\/span>/);
+    expect(profile).toContain(">Updated settings<");
     expect(profile).not.toContain("title, standing instructions");
     expect(profile).toContain(">Undo<");
     const model = render(applied({
@@ -690,7 +694,8 @@ describe("ApprovalCard for a change that applied on its own", () => {
         createdAt: 1, reason: "asked", selection: { instanceId: "codex", model: "gpt-fixture" }, before: { instanceId: "claude", model: "sonnet" },
       },
     }));
-    expect(model).toContain("Scout changed its default model: gpt-fixture");
+    expect(model).toContain(">Changed model to<");
+    expect(model).toContain(">gpt-fixture<");
     const skill = render(applied({
       tool: "stage_skill",
       skillRequest: {
@@ -698,7 +703,8 @@ describe("ApprovalCard for a change that applied on its own", () => {
         name: "file-expense", gist: "Files an expense.", warnings: [], createdAt: 1,
       },
     }));
-    expect(skill).toContain("Scout added a skill: file-expense");
+    expect(skill).toContain(">Added skill<");
+    expect(skill).toContain(">file-expense<");
   });
 
   it("reads team setup and team memory as one line, with Undo except for a deletion", () => {
@@ -706,15 +712,18 @@ describe("ApprovalCard for a change that applied on its own", () => {
     const team = render(applied({ tool: "set_up_team", teamSetupRequest: { ...setup, operations: [], resumed: true,
       result: { state: "applied", newTeams: [], bots: [{ id: "b2", name: "Mira", action: "created" }, { id: "b3", name: "Ada", action: "updated" }] },
       undo: { created: ["b2"], before: [], revisions: {} } } }));
-    expect(team).toContain("Scout set up the team: added @Mira; updated @Ada");
+    expect(team).toContain(">Set up the team<");
+    expect(team).toContain(">Mira, Ada<");
     expect(team).toContain(">Undo<");
     const deleted = render(applied({ tool: "delete_bot", teamSetupRequest: { ...setup, operations: [], deletion: { botId: "b3", name: "Ada", expectedRevision: "r" },
       result: { state: "applied", newTeams: [], bots: [{ id: "b3", name: "Ada", action: "deleted" }] } } }));
-    expect(deleted).toContain("Scout deleted @Ada");
+    expect(deleted).toContain(">Deleted<");
+    expect(deleted).toContain(">Ada<");
     expect(deleted).not.toContain(">Undo<");
     const memory = render(applied({ tool: "propose_team_memory", subtitle: "Person: Ada Lovelace — Runs the payroll review.",
       teamMemoryRequest: { section: "", entryId: "e", kind: "person", revision: "v1" } }));
-    expect(memory).toContain("Scout saved to department memory: Person: Ada Lovelace");
+    expect(memory).toContain(">Saved to department memory<");
+    expect(memory).toContain(">Person: Ada Lovelace<");
     expect(memory).toContain(">Undo<");
     expect(memory).not.toContain("Remember");
   });
@@ -837,12 +846,13 @@ describe("one approval, one card", () => {
     const render = (settled?: "fired" | "expired" | "cancelled") =>
       renderToStaticMarkup(createElement(ApprovalCard, { bot: { name: "Pepper" }, message: message(settled), threadId: "t1" })).replace(/&#x27;/g, "'");
     const open = render();
-    expect(open).toContain("Pepper is waiting for the build");
+    expect(open).toContain(">Waiting for<");
+    expect(open).toContain(">the build<");
     expect(open).toContain(">Cancel<");
-    for (const [settled, line] of [["fired", "Pepper finished waiting for the build"], ["expired", "Pepper stopped waiting for the build"], ["cancelled", "Pepper's wait for the build was cancelled"]] as const) {
+    for (const [settled, line] of [["fired", ">Finished waiting for<"], ["expired", ">Stopped waiting for<"], ["cancelled", ">Cancelled waiting for<"]] as const) {
       const ended = render(settled);
       expect(ended, settled).toContain(line);
-      expect(ended, settled).not.toMatch(/>Cancel<|is waiting for|Undone/);
+      expect(ended, settled).not.toMatch(/>Cancel<|>Waiting for<|Undone/);
     }
   });
 });

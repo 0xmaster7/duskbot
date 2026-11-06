@@ -4,8 +4,8 @@ import { cn } from "@/lib/cn";
 import { useCopyFeedback } from "@/lib/copy-text";
 import { t } from "@/lib/i18n";
 
-/** Grok's settings card: white, 14px corners, a half-pixel inset edge drawn as an outline so it takes no room, 8px in. */
-export const SIMPLE_CARD = "rounded-[14px] bg-(--settings-card,var(--color-menu)) py-2 outline-[0.5px] outline-offset-[-0.5px] outline-(--settings-edge,var(--color-edge)) [outline-style:solid]";
+/** The panel's card: white, 12px corners on a half-pixel edge, 4px in, its rows drawing their own hover pill. */
+export const SIMPLE_CARD = "flex flex-col rounded-[12px] border-[0.5px] border-edge bg-composer p-1";
 /** Grok's buttons inside a settings row: a 30px pill on the faint fill and a half-pixel inset edge, the danger one red. */
 export const SIMPLE_BUTTONS = cn(
   "[&_.ui-button]:h-[30px] [&_.ui-button]:gap-1 [&_.ui-button]:rounded-full [&_.ui-button]:border-0 [&_.ui-button]:px-3 [&_.ui-button]:py-1.5 [&_.ui-button]:text-[13px] [&_.ui-button]:leading-[18px] [&_.ui-button]:tracking-[0.015em] [&_.ui-button]:font-normal [&_.ui-button]:whitespace-nowrap [&_.ui-button]:transition-[background-color,color] [&_.ui-button]:duration-[120ms] [&_.ui-button]:ease-[ease-out]",
@@ -59,10 +59,10 @@ export function Card({
   children?: React.ReactNode;
 }) {
   return (
-    <div data-card="" className="rounded-xl bg-card p-4 max-md:rounded-2xl in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:flex-col in-data-[settings-look=simple]:gap-2 in-data-[settings-look=simple]:rounded-none in-data-[settings-look=simple]:bg-transparent in-data-[settings-look=simple]:p-0">
-      {title && <div className="text-[16px] font-semibold text-ink in-data-[settings-look=simple]:pl-3.5 in-data-[settings-look=simple]:text-[12px] in-data-[settings-look=simple]:leading-4 in-data-[settings-look=simple]:font-normal in-data-[settings-look=simple]:tracking-[0.01em] in-data-[settings-look=simple]:text-(--settings-secondary,var(--color-ink-secondary))">{title}</div>}
+    <div data-card="" className="rounded-xl bg-card p-4 max-md:rounded-2xl in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:flex-col in-data-[settings-look=simple]:gap-2.5 in-data-[settings-look=simple]:rounded-none in-data-[settings-look=simple]:bg-transparent in-data-[settings-look=simple]:p-0">
+      {title && <div className="text-[16px] font-semibold text-ink in-data-[settings-look=simple]:px-3 in-data-[settings-look=simple]:text-[13px] in-data-[settings-look=simple]:leading-[18px] in-data-[settings-look=simple]:font-normal in-data-[settings-look=simple]:tracking-[0.015em] in-data-[settings-look=simple]:text-ink-secondary">{title}</div>}
       {(subtitle || children) && (
-        <div className={cn(title && (subtitle ? "mt-0.5" : "mt-4"), "in-data-[settings-look=simple]:mt-0", "in-data-[settings-look=simple]:rounded-[14px] in-data-[settings-look=simple]:bg-(--settings-card,var(--color-menu)) in-data-[settings-look=simple]:px-3.5 in-data-[settings-look=simple]:py-3 in-data-[settings-look=simple]:outline-[0.5px] in-data-[settings-look=simple]:outline-offset-[-0.5px] in-data-[settings-look=simple]:outline-(--settings-edge,var(--color-edge)) in-data-[settings-look=simple]:[outline-style:solid]")}>
+        <div className={cn(title && (subtitle ? "mt-0.5" : "mt-4"), "in-data-[settings-look=simple]:mt-0", "in-data-[settings-look=simple]:rounded-[12px] in-data-[settings-look=simple]:border-[0.5px] in-data-[settings-look=simple]:border-edge in-data-[settings-look=simple]:bg-composer in-data-[settings-look=simple]:px-3 in-data-[settings-look=simple]:py-2.5")}>
           {subtitle && <div className="text-[13px] leading-relaxed text-ink-secondary in-data-[settings-look=simple]:leading-[18px] in-data-[settings-look=simple]:tracking-[-0.08px]">{subtitle}</div>}
           {children && <div className={subtitle ? "mt-4 in-data-[settings-look=simple]:mt-3" : undefined}>{children}</div>}
         </div>
@@ -85,14 +85,15 @@ export function SettingRow({
   className?: string;
 }) {
   const titleId = useId();
+  // in Settings it is the panel's row: the name (and a short line) on the left, its value or control on the right
   return (
-    <div role="group" aria-labelledby={titleId} className={cn("px-4 in-data-[settings-look=simple]:px-3.5 in-data-[settings-look=simple]:py-2.5", className)}>
-      <div className="grid min-w-0 grid-cols-1 items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-6 in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:min-h-7 in-data-[settings-look=simple]:flex-wrap in-data-[settings-look=simple]:justify-between in-data-[settings-look=simple]:gap-x-5 in-data-[settings-look=simple]:gap-y-2">
-        <div className="min-w-0 in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:max-w-max in-data-[settings-look=simple]:shrink in-data-[settings-look=simple]:grow in-data-[settings-look=simple]:basis-[min-content] in-data-[settings-look=simple]:flex-col in-data-[settings-look=simple]:gap-0.5 in-data-[settings-look=simple]:[overflow-wrap:break-word]">
-          <div id={titleId} className="text-[14px] font-medium text-ink in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:min-h-5 in-data-[settings-look=simple]:items-center in-data-[settings-look=simple]:text-[13px] in-data-[settings-look=simple]:font-normal in-data-[settings-look=simple]:leading-[18px] in-data-[settings-look=simple]:tracking-[-0.08px]">{title}</div>
-          {subtitle && <div className="mt-1 text-[12px] leading-relaxed text-pretty text-ink-secondary in-data-[settings-look=simple]:-mt-0.5 in-data-[settings-look=simple]:text-[13px] in-data-[settings-look=simple]:leading-[18px] in-data-[settings-look=simple]:tracking-[-0.08px]">{subtitle}</div>}
+    <div role="group" aria-labelledby={titleId} data-setting-row="" className={cn("px-4 in-data-[settings-look=simple]:rounded-lg in-data-[settings-look=simple]:px-2 in-data-[settings-look=simple]:py-1.5", className)}>
+      <div className="grid min-w-0 grid-cols-1 items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-6 in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:min-h-[18px] in-data-[settings-look=simple]:flex-wrap in-data-[settings-look=simple]:justify-between in-data-[settings-look=simple]:gap-x-2 in-data-[settings-look=simple]:gap-y-1.5">
+        <div className="min-w-0 in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:shrink in-data-[settings-look=simple]:grow in-data-[settings-look=simple]:basis-[min-content] in-data-[settings-look=simple]:flex-col in-data-[settings-look=simple]:[overflow-wrap:break-word]">
+          <div id={titleId} className="text-[14px] font-medium text-ink in-data-[settings-look=simple]:text-[13px] in-data-[settings-look=simple]:font-normal in-data-[settings-look=simple]:leading-[18px] in-data-[settings-look=simple]:tracking-[0.015em]">{title}</div>
+          {subtitle && <div className="mt-1 text-[12px] leading-relaxed text-pretty text-ink-secondary in-data-[settings-look=simple]:mt-0 in-data-[settings-look=simple]:text-[13px] in-data-[settings-look=simple]:leading-[18px] in-data-[settings-look=simple]:tracking-[0.015em]">{subtitle}</div>}
         </div>
-        <div className="min-w-0 sm:max-w-[240px] in-data-[settings-look=simple]:ml-auto in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:max-w-max in-data-[settings-look=simple]:shrink-0 in-data-[settings-look=simple]:grow in-data-[settings-look=simple]:basis-[max-content] in-data-[settings-look=simple]:flex-col in-data-[settings-look=simple]:items-end in-data-[settings-look=simple]:sm:max-w-max">{children}</div>
+        <div className="min-w-0 sm:max-w-[240px] in-data-[settings-look=simple]:ml-auto in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:max-w-[60%] in-data-[settings-look=simple]:shrink-0 in-data-[settings-look=simple]:flex-col in-data-[settings-look=simple]:items-end in-data-[settings-look=simple]:sm:max-w-[60%]">{children}</div>
       </div>
       {message && <div className="mt-2 text-[12px]">{message}</div>}
     </div>
@@ -111,22 +112,22 @@ export function SettingsGroup({ label, block, actions, footnote, children }: {
     <section
       data-settings-block={block}
       aria-labelledby={label ? labelId : undefined}
-      className="flex scroll-mt-4 flex-col gap-2 has-[>[data-settings-rows]:empty]:hidden has-[>[data-settings-rows]>:only-child:empty]:hidden"
+      className="flex scroll-mt-4 flex-col gap-2.5 has-[>[data-settings-rows]:empty]:hidden has-[>[data-settings-rows]>:only-child:empty]:hidden"
     >
       {(label || actions) && (
-        <div className="flex min-h-4 items-center justify-between gap-3 pl-3.5 pr-1">
-          {label && <h3 id={labelId} className="text-[12px] leading-4 font-normal tracking-[0.01em] text-(--settings-secondary,var(--color-ink-secondary))">{label}</h3>}
+        <div className="flex min-h-[18px] items-center justify-between gap-3 px-3">
+          {label && <h3 id={labelId} className="text-[13px] leading-[18px] font-normal tracking-[0.015em] text-ink-secondary">{label}</h3>}
           {actions}
         </div>
       )}
       {children}
-      {footnote && <p className="-mt-0.5 pl-3.5 text-[12px] leading-4 text-ink-tertiary empty:hidden">{footnote}</p>}
+      {footnote && <p className="-mt-0.5 px-3 text-[12px] leading-4 text-ink-tertiary empty:hidden">{footnote}</p>}
     </section>
   );
 }
 
 /** One Grok card around several SettingsRows, as if they were one list of rows. */
-export const MERGED_ROWS = cn(SIMPLE_CARD, "flex flex-col empty:hidden [&>[data-settings-rows]]:rounded-none [&>[data-settings-rows]]:bg-transparent [&>[data-settings-rows]]:py-0 [&>[data-settings-rows]]:outline-none");
+export const MERGED_ROWS = cn(SIMPLE_CARD, "empty:hidden [&>[data-settings-rows]]:rounded-none [&>[data-settings-rows]]:border-0 [&>[data-settings-rows]]:bg-transparent [&>[data-settings-rows]]:p-0");
 
 export function SettingsRows({ children }: { children: ReactNode }) {
   return <div data-settings-rows="" className={cn(SIMPLE_CARD, "flex flex-col empty:hidden")}>{children}</div>;
@@ -144,26 +145,26 @@ export function SettingsDisclosureRow({ id, title, subtitle, trailing, block, op
 }) {
   const regionId = useId();
   return (
-    <section data-settings-disclosure={id} data-settings-block={block} className="flex scroll-mt-4 flex-col gap-3">
+    <section data-settings-disclosure={id} data-settings-block={block} className="flex scroll-mt-4 flex-col gap-[22px]">
       <div className={SIMPLE_CARD}>
         <button
           type="button"
           aria-expanded={open}
           aria-controls={regionId}
           onClick={onToggle}
-          className="group flex min-h-12 w-full cursor-pointer flex-wrap items-center gap-x-5 gap-y-2 px-3.5 py-2.5 text-left outline-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
+          className="group flex min-h-[30px] w-full cursor-pointer flex-wrap items-center gap-x-2 gap-y-1 rounded-lg px-2 py-1.5 text-left outline-none transition-[background-color] duration-100 hover:bg-ink/[0.06] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
         >
           <span className="flex min-w-[min(100%,15rem)] flex-1 flex-col gap-0.5">
-            <span className="text-[13px] leading-[18px] tracking-[-0.08px] text-ink">{title}</span>
-            {subtitle && <span className="text-[13px] leading-[18px] tracking-[-0.08px] text-ink-secondary">{subtitle}</span>}
+            <span className="text-[13px] leading-[18px] tracking-[0.015em] text-ink">{title}</span>
+            {subtitle && <span className="text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{subtitle}</span>}
           </span>
-          <span className="ml-auto flex shrink-0 items-center gap-3">
+          <span className="ml-auto flex shrink-0 items-center gap-2 text-ink-secondary">
             {trailing}
-            <ChevronRight size={14} aria-hidden="true" className={cn("text-ink-secondary transition-transform motion-reduce:transition-none", open && "rotate-90")} />
+            <ChevronRight size={14} aria-hidden="true" className={cn("text-ink-tertiary transition-transform motion-reduce:transition-none", open && "rotate-90")} />
           </span>
         </button>
       </div>
-      <div id={regionId} hidden={!open} className="flex flex-col gap-4">{children}</div>
+      <div id={regionId} hidden={!open} className="flex flex-col gap-[22px]">{children}</div>
     </section>
   );
 }

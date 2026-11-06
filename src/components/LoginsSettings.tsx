@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import type { LoginBots, LoginSummary, OnePasswordStatus, OnePasswordVault } from "../../shared/logins";
 import { t } from "@/lib/i18n";
@@ -8,8 +8,9 @@ import { relativeTime } from "@/lib/memory";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { useStore } from "@/state/store";
 import { LoginBotPicker, LoginForm } from "./LoginForm";
-import { Card, SettingRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
-import { textFieldCls } from "./ui/GrokDialog";
+import { ItemRow, NavRow, NoteRow } from "./ListRows";
+import { Card, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
+import { DialogPane, GrokDialog, mdPrimaryCls, mdSecondaryCls, textFieldCls } from "./ui/GrokDialog";
 import { cn } from "@/lib/cn";
 
 // Security: a row never shows the password, which no route returns.
@@ -20,8 +21,6 @@ const SOURCE_KEYS = {
   "1password": "settings.logins.source.1password",
 } as const;
 
-const ROW = "flex min-h-12 flex-wrap items-center gap-x-5 gap-y-2 px-3.5 py-2.5";
-const SECONDARY = "text-[13px] leading-[18px] tracking-[-0.08px] text-ink-secondary";
 
 export function LoginsSettings() {
   const { state } = useStore();
@@ -72,96 +71,93 @@ export function LoginsSettings() {
   const remove = async (id: string) => {
     if (deleting !== id) { setDeleting(id); return; }
     setBusy(true);
-    try { await deleteLogin(id); setDeleting(null); await load(); }
+    try { await deleteLogin(id); setDeleting(null); setEditing(null); await load(); }
     catch (cause) { setError(cause instanceof Error && cause.message ? cause.message : t("settings.logins.deleteError")); }
     finally { setBusy(false); }
   };
 
-  const loginForm = (form: ReactNode) => <div className="px-3.5 pb-3 pt-1">{form}</div>;
+  const loginForm = (title: string, onClose: () => void, form: ReactNode) => (
+    <DialogPane.Provider value={false}>
+      <GrokDialog data-panel-modal="login" title={title} description={t("logins.private")} onClose={onClose}>{form}</GrokDialog>
+    </DialogPane.Provider>
+  );
+  const editingLogin = logins?.find((login) => login.id === editing);
 
   return (
     <>
-      <SettingsGroup label={t("settings.section.logins")} block="logins" footnote={adding || editing ? t("logins.private") : undefined}>
-        {state.config?.cloudHome === true && <p className="pl-3.5 text-[12px] leading-4 text-ink-tertiary" data-logins-cloud-own>{t("settings.logins.cloudOwn")}</p>}
+      <SettingsGroup label={t("settings.section.logins")} block="logins">
+        {state.config?.cloudHome === true && <p className="px-3 text-[12px] leading-4 text-ink-tertiary" data-logins-cloud-own>{t("settings.logins.cloudOwn")}</p>}
         <SettingsRows>
           <div aria-busy={logins === null || busy} className="flex flex-col">
-            {logins === null && !error && <SettingRow title={t("settings.logins.loading")}>{null}</SettingRow>}
-            {logins?.length === 0 && !adding && <p className="px-3.5 py-2.5 text-[13px] leading-[18px] text-ink-secondary">{t("settings.w6c.logins.empty")}</p>}
+            {logins === null && !error && <NoteRow>{t("settings.logins.loading")}</NoteRow>}
+            {logins?.length === 0 && <NoteRow>{t("settings.w6c.logins.empty")}</NoteRow>}
             {!!logins?.length && (
               <ul className="flex flex-col" data-logins-list>
-                {logins.map((login) => (
-                  <li key={login.id} className="flex flex-col" data-login-row={login.site}>
-                    <div className={ROW}>
-                      <div className="min-w-0 flex-1 basis-48">
-                        <div dir="ltr" className="truncate text-[13px] leading-[18px] tracking-[-0.08px] text-ink" title={login.site}>
-                          {login.site}{login.hasTotp && <span className="text-ink-secondary"> · {t("settings.logins.twoFactor")}</span>}
-                        </div>
-                        <div dir="auto" className={SECONDARY}>
-                          {[login.username || t("settings.logins.noUsername"), t(SOURCE_KEYS[login.source]), botNames(login.bots),
-                            login.lastUsedAt ? t("settings.logins.used", { when: relativeTime(login.lastUsedAt) }) : t("settings.logins.neverUsed")].join(" · ")}
-                        </div>
-                        {signInHostsLine(login) && <div dir="ltr" className={SECONDARY} data-login-hosts>{signInHostsLine(login)}</div>}
-                      </div>
-                      {login.source !== "1password" && (
-                        <div className="ms-auto flex shrink-0 gap-2">
-                          <button type="button" className="ui-button" disabled={busy} onClick={() => startEdit(login)}
-                            aria-label={t("settings.logins.changeFor", { site: login.site })}>{t("settings.logins.change")}</button>
-                          <button type="button" className={cn("ui-button", deleting === login.id && "ui-button-danger")} disabled={busy} onClick={() => void remove(login.id)}
-                            aria-label={deleting === login.id ? t("settings.logins.deleteConfirm") : t("settings.logins.deleteFor", { site: login.site })}>
-                            {deleting === login.id ? t("settings.logins.deleteConfirm") : t("settings.logins.delete")}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    {editing === login.id && loginForm(
-                      <LoginForm username={false} replacing compact submitLabel={t("settings.logins.saveChange")} autoFocus
-                        onCancel={() => setEditing(null)}
-                        onSubmit={async (fields) => {
-                          await changeLogin(login.id, { password: fields.password, totp: fields.totp, removeTotp, bots: editBots, ...(editExact === login.exactHost ? {} : { exactHost: editExact }) });
-                          setEditing(null);
-                          await load();
-                        }}>
-                        {login.hasTotp && (
-                          <label className="flex items-center gap-2 text-[13px] leading-[18px] text-ink">
-                            <input type="checkbox" checked={removeTotp} onChange={(event) => setRemoveTotp(event.target.checked)} />
-                            {t("settings.logins.removeTotp")}
-                          </label>
-                        )}
-                        <ExactHostChoice checked={editExact} onChange={setEditExact}
-                          label={t("settings.logins.exactHostFor", { hosts: login.hosts.join(", "), site: login.site })} />
-                        <LoginBotPicker value={editBots} onChange={setEditBots} bots={bots} />
-                      </LoginForm>,
-                    )}
-                  </li>
-                ))}
+                {logins.map((login) => {
+                  const details = [login.username || t("settings.logins.noUsername"), t(SOURCE_KEYS[login.source]), botNames(login.bots),
+                    login.lastUsedAt ? t("settings.logins.used", { when: relativeTime(login.lastUsedAt) }) : t("settings.logins.neverUsed")].join(" · ");
+                  const hosts = signInHostsLine(login);
+                  const title = <span dir="ltr">{login.site}{login.hasTotp && <span className="text-ink-secondary"> · {t("settings.logins.twoFactor")}</span>}</span>;
+                  const hint = <span dir="auto">{details}{hosts && <span data-login-hosts> · {hosts}</span>}</span>;
+                  return (
+                    <li key={login.id} className="flex flex-col" data-login-row={login.site}>
+                      {login.source === "1password"
+                        ? <ItemRow title={title} hint={hint} />
+                        : <NavRow title={title} hint={hint} disabled={busy} aria-label={t("settings.logins.changeFor", { site: login.site })} onClick={() => startEdit(login)} />}
+                    </li>
+                  );
+                })}
               </ul>
             )}
-            {adding ? loginForm(
-              <LoginForm site={{ value: site, onChange: setSite }} compact submitLabel={t("settings.logins.save")} autoFocus
-                onCancel={() => setAdding(false)}
-                onSubmit={async (fields) => {
-                  await addLogin(site, fields, addBots, addExact);
-                  setAdding(false);
-                  setSite("");
-                  setAddBots("all");
-                  setAddExact(false);
-                  await load();
-                }}>
-                <ExactHostChoice checked={addExact} onChange={setAddExact} label={t("settings.logins.exactHost")} />
-                <LoginBotPicker value={addBots} onChange={setAddBots} bots={bots} />
-              </LoginForm>,
-            ) : (
-              <div className="flex justify-end px-3.5 py-2.5">
-                <button type="button" className="ui-button" disabled={logins === null}
-                  onClick={() => { setEditing(null); setDeleting(null); setAdding(true); }}>
-                  <Plus size={13} />{t("settings.logins.add")}
-                </button>
-              </div>
-            )}
+            <NavRow data-settings-open="add-login" title={t("settings.logins.add")} disabled={logins === null}
+              onClick={() => { setEditing(null); setDeleting(null); setAdding(true); }} />
           </div>
         </SettingsRows>
-        {error && <p role="alert" className="pl-3.5 text-[12px] leading-4 text-danger">{error}</p>}
+        {error && <p role="alert" className="px-3 text-[12px] leading-4 text-danger">{error}</p>}
       </SettingsGroup>
+      {adding && loginForm(t("settings.logins.add"), () => setAdding(false),
+        <LoginForm site={{ value: site, onChange: setSite }} compact submitLabel={t("settings.logins.save")} autoFocus
+          onCancel={() => setAdding(false)}
+          onSubmit={async (fields) => {
+            await addLogin(site, fields, addBots, addExact);
+            setAdding(false);
+            setSite("");
+            setAddBots("all");
+            setAddExact(false);
+            await load();
+          }}>
+          <ExactHostChoice checked={addExact} onChange={setAddExact} label={t("settings.logins.exactHost")} />
+          <LoginBotPicker value={addBots} onChange={setAddBots} bots={bots} />
+        </LoginForm>,
+      )}
+      {editingLogin && loginForm(editingLogin.site, () => setEditing(null),
+        <>
+          <LoginForm username={false} replacing compact submitLabel={t("settings.logins.saveChange")} autoFocus
+            onCancel={() => setEditing(null)}
+            onSubmit={async (fields) => {
+              await changeLogin(editingLogin.id, { password: fields.password, totp: fields.totp, removeTotp, bots: editBots, ...(editExact === editingLogin.exactHost ? {} : { exactHost: editExact }) });
+              setEditing(null);
+              await load();
+            }}>
+            {editingLogin.hasTotp && (
+              <label className="flex items-center gap-2 text-[13px] leading-[18px] text-ink">
+                <input type="checkbox" checked={removeTotp} onChange={(event) => setRemoveTotp(event.target.checked)} />
+                {t("settings.logins.removeTotp")}
+              </label>
+            )}
+            <ExactHostChoice checked={editExact} onChange={setEditExact}
+              label={t("settings.logins.exactHostFor", { hosts: editingLogin.hosts.join(", "), site: editingLogin.site })} />
+            <LoginBotPicker value={editBots} onChange={setEditBots} bots={bots} />
+          </LoginForm>
+          <div className="mt-3 flex justify-start">
+            <button type="button" className={cn(mdSecondaryCls, deleting === editingLogin.id && "bg-danger text-danger-ink enabled:hover:bg-danger")} disabled={busy}
+              onClick={() => void remove(editingLogin.id)}
+              aria-label={deleting === editingLogin.id ? t("settings.logins.deleteConfirm") : t("settings.logins.deleteFor", { site: editingLogin.site })}>
+              {deleting === editingLogin.id ? t("settings.logins.deleteConfirm") : t("settings.logins.delete")}
+            </button>
+          </div>
+        </>,
+      )}
       <OnePasswordConnection status={onePassword} disabled={logins === null} bots={bots} botNames={botNames}
         onChange={async (next) => { setOnePassword(next); await load(); }} />
     </>
@@ -204,18 +200,11 @@ function VaultAccess({ vault, bots, botNames, disabled, onChange }: {
   };
   return (
     <li className="flex flex-col" data-vault={vault.title}>
-      <div className={ROW}>
-        <div className="min-w-0 flex-1 basis-48">
-          <div className="truncate text-[13px] leading-[18px] tracking-[-0.08px] text-ink">{vault.title}</div>
-          <div className={SECONDARY}>{t("settings.logins.onePassword.vaultUse", { count: String(vault.items), who: botNames(vault.bots) })}</div>
-        </div>
-        {!editing && (
-          <button type="button" className="ui-button ms-auto" disabled={disabled || busy} onClick={() => { setValue(vault.bots); setEditing(true); }}
-            aria-label={t("settings.logins.onePassword.changeVault", { vault: vault.title })}>{t("settings.logins.change")}</button>
-        )}
-      </div>
+      <NavRow title={vault.title} hint={t("settings.logins.onePassword.vaultUse", { count: String(vault.items), who: botNames(vault.bots) })}
+        disabled={disabled || busy} aria-expanded={editing} aria-label={t("settings.logins.onePassword.changeVault", { vault: vault.title })}
+        onClick={() => { setValue(vault.bots); setEditing(!editing); }} />
       {editing && (
-        <div className="flex flex-col gap-2 px-3.5 pb-3">
+        <div className="flex flex-col gap-2 px-2 pb-2 pt-1">
           <LoginBotPicker value={value} onChange={setValue} bots={bots} disabled={busy} />
           {error && <p role="alert" className="text-[12px] text-danger">{error}</p>}
           <div className="flex flex-wrap justify-end gap-2">
@@ -237,12 +226,13 @@ function OnePasswordConnection({ status, disabled, bots, botNames, onChange }: {
 }) {
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState<"connect" | "refresh" | "disconnect" | null>(null);
+  const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const run = async (kind: NonNullable<typeof busy>, work: () => Promise<OnePasswordStatus>) => {
     if (busy) return;
     setBusy(kind);
     setError(null);
-    try { await onChange(await work()); if (kind === "connect") setToken(""); }
+    try { await onChange(await work()); if (kind === "connect") { setToken(""); setConnecting(false); } }
     catch (cause) { setError(cause instanceof Error && cause.message ? cause.message : t("settings.logins.onePassword.error")); }
     finally { setBusy(null); }
   };
@@ -256,48 +246,45 @@ function OnePasswordConnection({ status, disabled, bots, botNames, onChange }: {
         <SettingsRows>
           {status.connected ? (
             <>
-              <div className={ROW}>
-                <div className="min-w-0 flex-1 basis-48">
-                  <div className="text-[13px] leading-[18px] tracking-[-0.08px] text-ink">{t("settings.logins.onePassword.title")}</div>
-                  <div className={SECONDARY}>
-                    {t("settings.logins.onePassword.connected", { vaults: (status.vaults ?? []).map((vault) => vault.title).join(", ") || "—", count: String(status.items ?? 0) })}
-                  </div>
-                </div>
-                <div className="ms-auto flex shrink-0 gap-2">
-                  <button type="button" className="ui-button" disabled={disabled || busy !== null} onClick={() => void run("refresh", refreshOnePassword)}>
-                    {busy === "refresh" && <Loader2 size={13} className="animate-spin" />}{t("settings.logins.onePassword.refresh")}
-                  </button>
-                  <button type="button" className="ui-button" disabled={disabled || busy !== null} onClick={() => void run("disconnect", disconnectOnePassword)}>
-                    {t("settings.logins.onePassword.disconnect")}
-                  </button>
-                </div>
-              </div>
-              {status.error && <p role="alert" className="px-3.5 pb-2.5 text-[13px] leading-[18px] text-danger">{status.error}</p>}
+              <ItemRow title={t("settings.logins.onePassword.title")}
+                hint={t("settings.logins.onePassword.connected", { vaults: (status.vaults ?? []).map((vault) => vault.title).join(", ") || "-", count: String(status.items ?? 0) })} />
+              {status.error && <NoteRow tone="danger">{status.error}</NoteRow>}
               {!!status.vaults?.length && (
                 <ul className="flex flex-col" aria-label={t("settings.logins.onePassword.vaults")}>
                   {status.vaults.map((vault) => <VaultAccess key={vault.id} vault={vault} bots={bots} botNames={botNames} disabled={disabled} onChange={onChange} />)}
                 </ul>
               )}
+              <NavRow drill={false} disabled={disabled || busy !== null} title={t("settings.logins.onePassword.refresh")}
+                value={busy === "refresh" ? <Loader2 size={13} className="animate-spin" /> : undefined} onClick={() => void run("refresh", refreshOnePassword)} />
+              <NavRow drill={false} disabled={disabled || busy !== null} title={t("settings.logins.onePassword.disconnect")} onClick={() => void run("disconnect", disconnectOnePassword)} />
             </>
           ) : (
-            <form className={ROW} onSubmit={connect}>
-              <div className="min-w-0 flex-1 basis-48">
-                <div className="text-[13px] leading-[18px] tracking-[-0.08px] text-ink">{t("settings.logins.onePassword.title")}</div>
-                <div className={SECONDARY}>{t("settings.w6c.logins.onePasswordGuide")}</div>
-              </div>
-              <div className="ms-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
-                <input name="onePasswordToken" type="password" autoComplete="off" spellCheck={false} maxLength={8192} value={token}
-                  onChange={(event) => setToken(event.target.value)} disabled={disabled || busy !== null}
-                  aria-label={t("settings.logins.onePassword.token")} placeholder={t("settings.logins.onePassword.token")}
-                  className={cn(textFieldCls, "w-56")} />
-                <button type="submit" className="ui-button" disabled={disabled || busy !== null || !token.trim()}>
-                  {busy === "connect" && <Loader2 size={13} className="animate-spin" />}{t("settings.logins.onePassword.connect")}
-                </button>
-              </div>
-            </form>
+            <>
+              <NavRow data-settings-open="onepassword" title={t("settings.logins.onePassword.title")} hint={t("settings.w6c.logins.onePasswordGuide")}
+                disabled={disabled} onClick={() => setConnecting(true)} />
+              {connecting && (
+                <DialogPane.Provider value={false}>
+                  <GrokDialog data-panel-modal="onepassword" title={t("settings.logins.onePassword.title")} description={t("settings.w6c.logins.onePasswordGuide")} onClose={() => setConnecting(false)}>
+                    <form className="flex flex-col gap-3" onSubmit={connect}>
+                      <input name="onePasswordToken" type="password" autoComplete="off" spellCheck={false} maxLength={8192} value={token} data-autofocus
+                        onChange={(event) => setToken(event.target.value)} disabled={disabled || busy !== null}
+                        aria-label={t("settings.logins.onePassword.token")} placeholder={t("settings.logins.onePassword.token")}
+                        className={textFieldCls} />
+                      {error && <p role="alert" className="m-0 text-[12px] leading-4 text-danger">{error}</p>}
+                      <div className="flex justify-end gap-2">
+                        <button type="button" className={mdSecondaryCls} onClick={() => setConnecting(false)}>{t("common.cancel")}</button>
+                        <button type="submit" className={mdPrimaryCls} disabled={disabled || busy !== null || !token.trim()}>
+                          {busy === "connect" && <Loader2 size={13} className="animate-spin" />}{t("settings.logins.onePassword.connect")}
+                        </button>
+                      </div>
+                    </form>
+                  </GrokDialog>
+                </DialogPane.Provider>
+              )}
+            </>
           )}
         </SettingsRows>
-        {error && <p role="alert" className="mt-2 pl-3.5 text-[12px] leading-4 text-danger">{error}</p>}
+        {error && !connecting && <p role="alert" className="mt-2 px-3 text-[12px] leading-4 text-danger">{error}</p>}
       </section>
     </SettingsGroup>
   );

@@ -2,7 +2,7 @@
 // ?state=memory|stopped|disk|tip|trial|upgraded|restarting|confirm&layout=desktop|phone&skin=midnight|daylight&lang=de
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { Bot, CalendarClock, Gauge, LayoutGrid, MessageSquare, Plus, Search, Settings } from "lucide-react";
+import { Bot, CalendarClock, LayoutGrid, MessageSquare, Plus, Search, Settings } from "lucide-react";
 import type { CloudRoom, CloudUsage } from "../electron/cloud-home.mjs";
 import { InitialsAvatar } from "@/components/Avatar";
 import { ConfirmDialogCard } from "@/components/ConfirmDialog";
@@ -79,7 +79,7 @@ function Confirm({ layout }: { layout: string }) {
   return <div className="relative h-full">
     {layout === "phone" ? <Phone state="memory" /> : <Desktop state="memory" />}
     <div className="absolute inset-0 flex items-center justify-center bg-black/55 p-6">
-      <ConfirmDialogCard open tone="neutral" icon={<Gauge size={18} className="text-accent" />} title={t("usageMeter.confirm.title", { plan: cloudPlanLabel("pro") })}
+      <ConfirmDialogCard open tone="neutral" title={t("usageMeter.confirm.title", { plan: cloudPlanLabel("pro") })}
         body={upgradeConfirmBody(preview)} confirmLabel={t("usageMeter.confirm.action", { plan: cloudPlanLabel("pro") })} cancelLabel={t("usageMeter.confirm.cancel")}
         onCancel={noop} onConfirm={noop} />
     </div>

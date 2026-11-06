@@ -9,6 +9,7 @@ import { useUpdaterState } from "@/lib/updater";
 import { productName } from "../lib/brand";
 import { BrowserProfilesManager } from "./BrowserProfilesManager";
 import { NewBrowserSettings } from "./BrowserSettingsRows";
+import { NavRow } from "./ListRows";
 import { Card, SettingRow, Switch } from "./SettingsPrimitives";
 import { LearnedSkillsSettings } from "./ShareLearnedSkillsSettings";
 import { effortLabel } from "./ModelPicker";
@@ -124,55 +125,34 @@ export function NewBotEffortRow() {
   );
 }
 
-function ReplayAppTourButton() {
+/** The two tours as rows of Help: the app tour (marking onboarding done if it was not) and the welcome tour. */
+export function ReplayTourRows() {
   const { state, dispatch } = useStore();
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
+  const replayApp = () => {
+    setSaving(true);
+    setFailed(false);
+    void api("/api/config", {
+      method: "PUT",
+      body: JSON.stringify({ onboarding: {
+        ...(!state.config?.onboarding?.completedAt ? completionPatch().onboarding : {}),
+        hintsSeen: withTourReset(state.config?.onboarding),
+      } }),
+      signal: AbortSignal.timeout(10_000),
+    })
+      .then((config) => {
+        dispatch({ type: "configStatus", config });
+        dispatch({ type: "toggleTour", open: true });
+      })
+      .catch(() => setFailed(true))
+      .finally(() => setSaving(false));
+  };
   return (
-    <div>
-      <button
-        disabled={saving}
-        onClick={() => {
-          setSaving(true);
-          setFailed(false);
-          void api("/api/config", {
-            method: "PUT",
-            body: JSON.stringify({ onboarding: {
-              ...(!state.config?.onboarding?.completedAt ? completionPatch().onboarding : {}),
-              hintsSeen: withTourReset(state.config?.onboarding),
-            } }),
-            signal: AbortSignal.timeout(10_000),
-          })
-            .then((config) => {
-              dispatch({ type: "configStatus", config });
-              dispatch({ type: "toggleTour", open: true });
-            })
-            .catch(() => setFailed(true))
-            .finally(() => setSaving(false));
-        }}
-        className="ui-button"
-      >
-        {t("settings.welcome.appTour")}
-      </button>
-      {failed && <p role="alert" className="mt-2 text-[13px] text-danger">{t("onboarding.tour.error")}</p>}
-    </div>
-  );
-}
-
-export function ReplayTourRow() {
-  const { dispatch } = useStore();
-  return (
-    <SettingRow title={t("settings.welcome.title")}>
-      <div className="flex flex-wrap justify-end gap-2">
-        <ReplayAppTourButton />
-        <button
-          onClick={() => dispatch({ type: "toggleWelcome", open: true })}
-          className="ui-button"
-        >
-          {t("settings.welcome.replay")}
-        </button>
-      </div>
-    </SettingRow>
+    <>
+      <NavRow data-settings-open="app-tour" drill={false} disabled={saving} title={t("settings.welcome.appTour")} hint={failed ? t("onboarding.tour.error") : undefined} onClick={replayApp} />
+      <NavRow data-settings-open="welcome-tour" drill={false} title={t("settings.welcome.replay")} onClick={() => dispatch({ type: "toggleWelcome", open: true })} />
+    </>
   );
 }
 

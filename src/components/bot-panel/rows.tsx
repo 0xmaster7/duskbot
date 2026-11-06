@@ -1,16 +1,15 @@
-import { createContext, useContext, type ReactNode, type Ref } from "react";
+import type { ReactNode } from "react";
 import { Check, ChevronLeft, ChevronRight, Trash2, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/cn";
-import { useAdvancedMode } from "@/lib/interface-mode";
 import type { MausColor } from "@/lib/mascot";
+import { rowCls, RowText, SwitchRow as ListSwitchRow } from "../ListRows";
 import { Toggle } from "../ui/Toggle";
 
-export const rowCls = "flex min-h-[30px] items-center gap-2 rounded-lg px-2 py-1.5";
-/** Grok's elevated 36px icon button (Share, Close): a white circle on a hairline, a 6% ink wash laid over it on hover. */
-export const roundButtonCls = "flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-[0.5px] border-edge bg-composer text-ink/[0.92] transition-[background-color,color] duration-[120ms] ease-[ease-out] hover:bg-linear-to-b hover:from-ink/[0.06] hover:to-ink/[0.06] aria-expanded:bg-linear-to-b aria-expanded:from-ink/[0.06] aria-expanded:to-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
-const titleCls = "text-[13px] leading-[18px] tracking-[0.015em] text-ink";
-const hintCls = "text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary";
+export {
+  Card, CardLabel, ItemRow, LabelAction, NavRow, NoteRow, PanelEmpty, PanelSections, RowIcon, RowText, roundButtonCls, rowCls, sectionGapCls,
+} from "../ListRows";
+
 export const buttonCls =
   "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-[9px] bg-control px-3.5 text-[13px] font-medium text-ink hover:bg-raised-hover disabled:cursor-not-allowed disabled:opacity-50";
 export const chipCls = (on: boolean) =>
@@ -18,84 +17,6 @@ export const chipCls = (on: boolean) =>
     "rounded-full px-2.5 py-1 text-[12px] transition-colors disabled:cursor-not-allowed disabled:opacity-50",
     on ? "bg-ink/[0.15] text-ink" : "bg-ink/[0.04] text-ink-secondary enabled:hover:text-ink",
   );
-
-export const sectionGapCls = (labelled: boolean) => (labelled ? "mt-[22px]" : "mt-3");
-
-export function CardLabel({ children, action }: { children: ReactNode; action?: ReactNode }) {
-  return (
-    <div className="mb-2.5 flex min-h-[18px] items-center justify-between gap-1 px-3 text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">
-      <span className="min-w-0 truncate">{children}</span>
-      {action}
-    </div>
-  );
-}
-
-export function LabelAction({ children, onClick, ...rest }: { children: ReactNode; onClick: () => void; "aria-label"?: string; "data-panel-action"?: string; "data-panel-page"?: string }) {
-  return (
-    <button type="button" {...rest} onClick={onClick} className="-my-px shrink-0 rounded-md px-1.5 py-px text-[13px] leading-[18px] text-ink-secondary transition-colors duration-100 hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
-      {children}
-    </button>
-  );
-}
-
-const InSections = createContext(false);
-
-/** A tab's sections in Grok's one rhythm: 22px between each, whatever it is (a card, a labelled card, an empty line). The
- * cards inside drop their own margins; a wrapper of several cards passes them through with `contents`. */
-export function PanelSections({ children, ...rest }: { children: ReactNode; "data-panel-tabpanel"?: string }) {
-  return (
-    <InSections.Provider value={true}>
-      <div {...rest} data-panel-sections="" className="flex flex-col gap-[22px]">{children}</div>
-    </InSections.Provider>
-  );
-}
-
-export function Card({ label, action, anchor, className, children }: { label?: ReactNode; action?: ReactNode; anchor?: string; className?: string; children: ReactNode }) {
-  const advanced = useAdvancedMode();
-  const inSections = useContext(InSections);
-  return (
-    <section data-panel-card={anchor} className={cn(!inSections && cn(sectionGapCls(Boolean(label)), "first:mt-0"), className)}>
-      {label && <CardLabel action={action}>{label}</CardLabel>}
-      <div
-        data-panel-card-surface=""
-        className={cn(
-          "overflow-hidden",
-          advanced
-            ? "divide-y divide-ink/[0.05] rounded-[14px] border border-ink/[0.04] bg-ink/[0.03] max-md:rounded-[20px] max-md:border-hairline max-md:bg-card"
-            : "flex flex-col rounded-[12px] border-[0.5px] border-edge bg-composer p-1",
-        )}
-      >
-        {children}
-      </div>
-    </section>
-  );
-}
-
-/** Grok's empty tab: centred 13/18 copy at 56% ink, right under the tabs and 16px in from each side. */
-export function PanelEmpty({ children, ...rest }: { children: ReactNode; "data-panel-empty"?: string }) {
-  return (
-    <div {...rest} className="flex flex-col gap-2.5 px-4 py-4">
-      <p className="text-pretty text-center text-[13px] leading-[18px] tracking-[0.015em] text-ink/[0.56]">{children}</p>
-    </div>
-  );
-}
-
-export function RowText({ title, hint }: { title: ReactNode; hint?: ReactNode }) {
-  return (
-    <div className="min-w-0 flex-1">
-      <div className={titleCls}>{title}</div>
-      {hint && <div className={hintCls}>{hint}</div>}
-    </div>
-  );
-}
-
-export function RowIcon({ icon: Icon }: { icon: LucideIcon }) {
-  return (
-    <span className="flex size-6 shrink-0 items-center justify-center rounded-md text-ink-secondary" aria-hidden="true">
-      <Icon size={15} />
-    </span>
-  );
-}
 
 /** Grok's per-hue switch colours (`bg/<hue>-primary`, `-primary-hover`); a colour Grok has no hue for keeps the accent. */
 const SWITCH_TONE: Partial<Record<MausColor, { on: string; hover: string }>> = {
@@ -116,98 +37,12 @@ export function BotSwitch({ color, ...props }: Parameters<typeof Toggle>[0] & { 
   return <Toggle {...props} tone={SWITCH_TONE[color]} />;
 }
 
-export function SwitchRow({ title, hint, checked, onChange, disabled, color, label, tooltip, extra, ...rest }: {
-  title: ReactNode;
-  hint?: ReactNode;
-  checked: boolean;
-  onChange: () => void;
-  disabled?: boolean;
-  color: MausColor;
-  label?: string;
-  tooltip?: string;
-  extra?: ReactNode;
-  "data-panel-row"?: string;
-}) {
-  return (
-    <div {...rest} className={rowCls}>
-      <RowText title={title} hint={hint} />
-      {extra}
-      <BotSwitch
-        color={color}
-        checked={checked}
-        disabled={disabled}
-        title={tooltip}
-        aria-label={label ?? (typeof title === "string" ? title : undefined)}
-        onClick={onChange}
-        className="disabled:cursor-not-allowed"
-      />
-    </div>
-  );
-}
-
-export function NavRow({ title, hint, value, icon, onClick, drill = true, danger = false, disabled, tooltip, ...rest }: {
-  title: ReactNode;
-  hint?: ReactNode;
-  value?: ReactNode;
-  icon?: LucideIcon;
-  onClick: () => void;
-  drill?: boolean;
-  danger?: boolean;
-  disabled?: boolean;
-  tooltip?: string;
-  ref?: Ref<HTMLButtonElement>;
-  "data-panel-row"?: string;
-  "data-panel-page"?: string;
-  "data-panel-gear"?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      {...rest}
-      disabled={disabled}
-      title={tooltip}
-      onClick={onClick}
-      className={cn(rowCls, "w-full text-left enabled:hover:bg-ink/[0.06] disabled:cursor-default disabled:opacity-45")}
-    >
-      {icon && <RowIcon icon={icon} />}
-      <div className="min-w-0 flex-1">
-        <div className={cn(titleCls, danger && "text-danger")}>{title}</div>
-        {hint && <div className={hintCls}>{hint}</div>}
-      </div>
-      {value !== undefined && value !== null && value !== "" && (
-        <span data-panel-value="" className="min-w-0 max-w-[50%] shrink-0 truncate text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{value}</span>
-      )}
-      {drill && <ChevronRight size={14} className="-mr-0.5 shrink-0 text-ink-tertiary" aria-hidden="true" />}
-    </button>
-  );
-}
-
-export function ItemRow({ title, hint, icon, children, ...rest }: {
-  title: ReactNode;
-  hint?: ReactNode;
-  icon?: LucideIcon;
-  children?: ReactNode;
-  "data-panel-row"?: string;
-}) {
-  return (
-    <div {...rest} className={rowCls}>
-      {icon && <RowIcon icon={icon} />}
-      <RowText title={title} hint={hint} />
-      {children}
-    </div>
-  );
+export function SwitchRow({ color, ...props }: Omit<Parameters<typeof ListSwitchRow>[0], "tone"> & { color: MausColor }) {
+  return <ListSwitchRow {...props} tone={SWITCH_TONE[color]} />;
 }
 
 export function ColRow({ children, ...rest }: { children: ReactNode; "data-panel-row"?: string }) {
   return <div {...rest} className={cn(rowCls, "flex-col items-stretch gap-[9px]")}>{children}</div>;
-}
-
-export function NoteRow({ children, tone }: { children: ReactNode; tone?: "warn" }) {
-  return (
-    <div className={rowCls}>
-      <div className={cn("text-[13px] leading-[1.35]", tone === "warn" ? "text-warning" : "text-ink-secondary")}>{children}</div>
-    </div>
-  );
 }
 
 export function LinkRow({ children, onClick, icon: Icon = ChevronRight, ...rest }: {

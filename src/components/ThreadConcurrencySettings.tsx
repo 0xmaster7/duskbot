@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { t } from "@/lib/i18n";
-import { Select } from "./Select";
+import { SettingRow } from "./SettingsPrimitives";
+import { SettingsSelect } from "./SettingsSelect";
 
 export function ThreadConcurrencySettings() {
   const { state, dispatch } = useStore();
@@ -29,18 +30,19 @@ export function ThreadConcurrencySettings() {
     }
   };
   return (
-    <div className="px-3.5 py-2.5">
-      <div className="flex min-h-7 flex-wrap items-center justify-between gap-x-5 gap-y-2">
-        <label htmlFor="thread-concurrency" className="min-w-0 flex-1 text-[13px] leading-[18px] text-ink">{t("settings.w6c.threads.label")}</label>
-        <Select id="thread-concurrency" value={pending ?? confirmed} disabled={pending !== null || oneThreadPerBot}
-          aria-describedby={oneThreadPerBot ? "thread-concurrency-help" : undefined}
-          onChange={(event) => void save(Number(event.target.value))}>
-          {Array.from({ length: 16 }, (_, i) => i + 1).map((limit) => <option key={limit} value={limit}>{limit}</option>)}
-        </Select>
-      </div>
-      {oneThreadPerBot && <p id="thread-concurrency-help" className="mt-2 text-[12px] leading-relaxed text-ink-secondary">{t("settings.threads.starter")}</p>}
-      {pending !== null && <p role="status" className="mt-2 text-[12px] text-ink-secondary">{t("settings.threads.saving")}</p>}
-      {error && <p role="alert" className="mt-2 text-[12px] text-danger">{error}</p>}
-    </div>
+    <SettingRow
+      title={t("settings.w6c.threads.label")}
+      subtitle={oneThreadPerBot ? t("settings.threads.starter") : pending !== null ? t("settings.threads.saving") : undefined}
+      message={error ? <p role="alert" className="text-danger">{error}</p> : null}
+    >
+      <SettingsSelect
+        data-settings-select="thread-concurrency"
+        value={String(pending ?? confirmed)}
+        disabled={pending !== null || oneThreadPerBot}
+        aria-label={t("settings.w6c.threads.label")}
+        options={Array.from({ length: 16 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }))}
+        onChange={(event) => void save(Number(event.target.value))}
+      />
+    </SettingRow>
   );
 }

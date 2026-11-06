@@ -22,6 +22,7 @@ import { completeMcpSignIn, mcpSignInLink, runMcpSignIn, type McpSignInStatus } 
 import { listenLiveFrames } from "@/lib/live-events";
 import { api, useStore } from "@/state/store";
 
+import { askConfirm } from "./ConfirmDialog";
 import { McpAppsSwitch } from "./McpAppsSwitch";
 import { SettingRow, SettingsRows, Switch } from "./SettingsPrimitives";
 import { ClaudeCodeSwitches } from "./ClaudeCodeSwitches";
@@ -437,7 +438,7 @@ export function McpServersPanel({ embedded = false, rows = false, hostedCards, h
   useEffect(() => () => signInAbort.current?.abort(), []);
 
   const remove = async (server: McpServerListing) => {
-    if (!window.confirm(t("mcp.removeConfirm", { name: server.name }))) return;
+    if (!(await askConfirm({ title: t("confirm.mcpRemoveTitle", { name: server.name }), body: t("confirm.mcpRemoveBody"), confirmLabel: t("confirm.remove") }))) return;
     setBusy(`delete:${server.name}`);
     loadGeneration.current += 1;
     setError(null);

@@ -69,7 +69,7 @@ import { VoiceNoteBubble, type VoiceNoteAttachment } from "./VoiceNoteBubble";
 import { OptionCard } from "./OptionCard";
 import { GroupCallOverlay } from "./GroupCallView";
 
-import { ApprovalCard } from "./ApprovalCard";
+import { ApprovalCard, SettledChangeEvent, showsSettledChange } from "./ApprovalCard";
 import { isQuestionCard, QuestionCard } from "./QuestionCard";
 import { ManageMembersPanel } from "./ManageMembersPanel";
 import { groupActivityRuns, isStatusActivity, roomTurnFolds } from "@/lib/activity-runs";
@@ -88,6 +88,8 @@ import { useTranscriptViewport } from "@/hooks/use-transcript-viewport";
 import { useUnreadDivider } from "@/hooks/use-unread-divider";
 import { unreadMessageIds } from "@/lib/unread-divider";
 import { NewMessagesDivider } from "./NewMessagesDivider";
+import { PeerExchangeLine } from "./PeerExchangeLine";
+import { useExchangeRows } from "@/hooks/use-exchange-runs";
 import { appendDraftAttachments, useReplyDraft } from "@/lib/drafts";
 import { citationPreviewText, splitTranscriptCitations, type CitationAttachment } from "@/lib/citations";
 import { highlightCitationSource } from "@/lib/citations-dom";
@@ -322,6 +324,11 @@ function RoomTextMessage({
 const NO_JOIN: BubbleJoin = { above: false, below: false };
 const NO_FOLDS: ReturnType<typeof roomTurnFolds> = { byTerminalId: new Map(), hiddenIds: new Set() };
 
+type RoomItem = { kind: "message"; message: Message } | { kind: "run"; messages: Message[] };
+const roomItemRows = (item: RoomItem): readonly Message[] => item.kind === "run" ? item.messages : [item.message];
+const noneTransparent = () => false;
+const hiddenRuns = (item: RoomItem) => item.kind === "run";
+
 export const Transcript = memo(function Transcript({
   group,
   members,
@@ -391,6 +398,7 @@ export const Transcript = memo(function Transcript({
   const focus = state.focusMessage;
   const focusedId = focus && !focus.consumed && focus.threadId === group.threadId ? focus.messageId : null;
   const unreadIds = useMemo(() => unreadMessageIds(messages, unreadDividerId), [messages, unreadDividerId]);
+  const exchanges = useExchangeRows(messages, items, roomItemRows, showToolCalls ? noneTransparent : hiddenRuns);
   let dividerPlaced = false;
   const dividerAbove = (rows: readonly Message[]) => {
     if (!unreadIds || dividerPlaced || !rows.some((row) => unreadIds.has(row.id))) return null;
@@ -408,7 +416,9 @@ export const Transcript = memo(function Transcript({
     const canRetryRoom = m.id === retryableId && retryRequest !== null && !roomBusy;
     // simple mode talks in bubbles: stops and settled cards leave no technical rows behind
     if (isCancelledTranscriptRow(m)) return simple ? null : <CancelledTurnRow onRetry={canRetryRoom ? retryRoom : undefined} />;
-    if (simple && m.kind === "options" && m.card && (m.card.answered || m.card.dismissed)) return null;
+    if (simple && m.kind === "options" && m.card && (m.card.answered || m.card.dismissed)) {
+      return showsSettledChange(m.card) ? <SettledChangeEvent bot={memberOf(m.from?.botId)} message={m} threadId={group.threadId} /> : null;
+    }
     return m.kind === "secret" && m.secret && m.from?.botId ? (
       <SecretRequestCard botId={m.from.botId} color={m.from.color} threadId={group.threadId} message={m} />
     ) : m.kind === "signin" && m.signIn && m.from?.botId ? (
@@ -499,17 +509,32 @@ export const Transcript = memo(function Transcript({
 
   return (
     <>
-      {rows.map(({ item, first, newDay, divider, slot }, i) => {
+      {rows.map(({ item, first, newDay, divider: own, slot }, i) => {
         const place = places[i]!;
-        const stamp = newDay && <DaySeparator at={first.at} today={today} simple={simple} />;
+        const run = exchanges.runAt.get(i);
+        const collapsed = run !== undefined && !exchanges.isOpen(run);
+        if (run && i !== run.start && collapsed) return null;
+        let lead: ReactNode = null;
+        if (run && i === run.start) {
+          lead = (
+            <>
+              {run.items.map((_, offset) => rows[run.start + offset]!.divider).find(Boolean)}
+              {newDay && <DaySeparator at={first.at} today={today} simple={simple} />}
+              <PeerExchangeLine summary={run.summary} bots={state.bots} expanded={!collapsed} onToggle={() => exchanges.toggle(run)} />
+            </>
+          );
+          if (collapsed) return <div key={run.id} className="contents" data-mid={first.id}>{lead}</div>;
+        }
+        const divider = run ? null : own;
+        const stamp = lead ?? (newDay && <DaySeparator at={first.at} today={today} simple={simple} />);
         const label = place.label && first.from && <ClusterLabel bot={memberOf(first.from.botId)} name={first.from.name} color={first.from.color} />;
         const labelled = (row: ReactNode) => label ? <div className="flex w-full flex-col gap-1">{label}{row}</div> : row;
         if (item.kind === "run") {
-          if (!slot) return divider && <div key={item.id} className="contents">{divider}</div>;
+          if (!slot) return (stamp || divider) && <div key={item.id} className="contents">{lead}{divider}</div>;
           return (
             <div key={item.id} className="contents" data-tuck={place.tuck ? "" : undefined}>
-              {stamp}
               {divider}
+              {stamp}
               {labelled(
                 <ActivityRun messages={item.messages} forceOpen={item.messages.some((step) => step.id === focusedId)}>
                   {item.messages.map((step) => (
@@ -524,13 +549,13 @@ export const Transcript = memo(function Transcript({
         }
         const m = item.message;
         const row = slot ? messageRow(m, place.join) : null;
-        if (!row) return divider && <div key={m.id} className="contents">{divider}</div>;
+        if (!row) return (lead || divider) && <div key={m.id} className="contents">{lead}{divider}</div>;
         const fold = folds.byTerminalId.get(m.id);
         return (
           // a send keeps its row when the server's copy replaces the optimistic one, so it never mounts or rises twice
           <div key={m.sendId ? `send:${m.sendId}` : m.id} className="contents" data-mid={m.id} data-tuck={place.tuck ? "" : undefined}>
-            {stamp}
             {divider}
+            {stamp}
             {fold && (
               <TurnNarrationRun
                 label={fold.label}

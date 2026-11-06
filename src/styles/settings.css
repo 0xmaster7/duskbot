@@ -214,7 +214,7 @@
 .settings-pane {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 22px;
   box-sizing: border-box;
   padding: 22px 32px 28px;
 }
@@ -407,3 +407,38 @@
   background-color: color-mix(in srgb, var(--color-ink) 4%, transparent);
 }
 [data-settings-look] .settings-pane dd.text-\[20px\] { font-size: 17px; line-height: 24px; font-weight: var(--font-weight-normal, 425); }
+
+/* the panel's row anatomy for a setting whose only control is a select: the whole row opens its menu, the value in
+   secondary ink and a small chevron on the right, the row's soft pill on hover and while the menu is open */
+[data-settings-look] [data-setting-row]:has([data-settings-select]):not(:has(:is(button:not([data-settings-select]), input, textarea, a, [role="switch"]))) {
+  position: relative;
+  transition: background-color 100ms ease;
+}
+[data-settings-look] [data-setting-row]:has([data-settings-select]:enabled:hover, [data-settings-select][aria-expanded="true"]):not(:has(:is(button:not([data-settings-select]), input, textarea, a, [role="switch"]))) {
+  background-color: color-mix(in srgb, var(--color-ink) 6%, transparent);
+}
+[data-settings-look] [data-setting-row]:not(:has(:is(button:not([data-settings-select]), input, textarea, a, [role="switch"]))) [data-settings-select] {
+  position: static;
+  height: auto;
+  max-width: 100%;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-ink-secondary);
+  letter-spacing: 0.015em;
+}
+[data-settings-look] [data-setting-row]:not(:has(:is(button:not([data-settings-select]), input, textarea, a, [role="switch"]))) [data-settings-select]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+}
+[data-settings-look] [data-setting-row]:not(:has(:is(button:not([data-settings-select]), input, textarea, a, [role="switch"]))) [data-settings-select]:focus-visible {
+  outline: none;
+}
+[data-settings-look] [data-setting-row]:not(:has(:is(button:not([data-settings-select]), input, textarea, a, [role="switch"]))) [data-settings-select]:focus-visible::after {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}

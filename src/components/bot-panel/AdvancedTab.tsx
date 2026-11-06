@@ -10,7 +10,7 @@ import { LibrarySection } from "./LibraryTab";
 import { BotSheet } from "./modals/BotSheet";
 import { takePanelModalRequest, usePanelModalRequest, type SheetPage } from "./modals/panel-modal";
 import type { SimplePageId } from "./page-registry";
-import { Card, NavRow, PanelSections } from "./rows";
+import { Card, NavRow, PanelSections } from "../ListRows";
 import { SettingsPage } from "./SettingsPage";
 
 /** Every native per-bot feature Grok's Details tab has no room for, in Grok's list language: what the bot made, its voice

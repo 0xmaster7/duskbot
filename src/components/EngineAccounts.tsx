@@ -30,9 +30,9 @@ function accountState(instance: InstanceInfo): AccountState {
   return instance.snapshot.authenticated === true ? "signedIn" : instance.snapshot.authenticated === false ? "signedOut" : "unknown";
 }
 
-const COPY: Record<AccountGroup, Record<"title" | "add" | "removeBody", LocaleKey>> = {
-  claude: { title: "accounts.claude", add: "accounts.addClaude", removeBody: "accounts.removeBodyClaude" },
-  chatgpt: { title: "accounts.chatgpt", add: "accounts.addChatgpt", removeBody: "accounts.removeBodyChatgpt" },
+const COPY: Record<AccountGroup, Record<"title" | "add", LocaleKey>> = {
+  claude: { title: "accounts.claude", add: "accounts.addClaude" },
+  chatgpt: { title: "accounts.chatgpt", add: "accounts.addChatgpt" },
 };
 
 /** What an account's menu offers. Only accounts added here can be removed; each provider's first account stays. */
@@ -129,7 +129,7 @@ function AccountMenu({ group, instance, onRename }: { group: AccountGroup; insta
       <ConfirmDialog
         open={confirm === "signOut"}
         title={t("accounts.signOutTitle", { name: instance.displayName })}
-        body={t("accounts.signOutBody")}
+        body={t("confirm.signOut")}
         confirmLabel={t("accounts.signOut")}
         onCancel={() => setConfirm(null)}
         onConfirm={() => void run("signOut")}
@@ -137,7 +137,7 @@ function AccountMenu({ group, instance, onRename }: { group: AccountGroup; insta
       <ConfirmDialog
         open={confirm === "remove"}
         title={t("accounts.removeTitle", { name: instance.displayName })}
-        body={t(COPY[group].removeBody)}
+        body={t("confirm.accountRemove")}
         confirmLabel={t("accounts.remove")}
         tone="neutral"
         onCancel={() => setConfirm(null)}

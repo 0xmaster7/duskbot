@@ -276,8 +276,8 @@ export function CanvasComputers({ open, createRequest, drop, sections, onClose, 
     </div>, document.body)}
     <ConfirmDialog open={assignment !== null} tone="neutral" title={assignment?.section === null ? t("canvasComputers.unassignTitle", { name: assignment?.computer.name ?? t("canvasComputers.computer") }) : t("canvasComputers.assignTitle", { name: assignment?.computer.name ?? t("canvasComputers.computer"), team: assignment?.section || t("settings.section.general") })}
       body={assignment?.section === null
-        ? t("canvasComputers.unassignBody")
-        : t("canvasComputers.assignBody")}
+        ? t("confirm.computerUnassign")
+        : t("confirm.computerAssign")}
       confirmLabel={assignment?.section === null ? t("canvasComputers.unassign") : t("canvasComputers.assign")} onCancel={cancelAssignment} onConfirm={() => {
         const target = assignment;
         if (!target) return;

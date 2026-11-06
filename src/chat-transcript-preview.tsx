@@ -1,6 +1,6 @@
 // Dev-only gallery of a Simple mode transcript, served at /chat-transcript-preview.html; not in the packaged app. It
 // mounts the real ChatView over a fixed store, with no server behind it.
-// ?state=done|working|question|approval|empty|grok|grok-md|answered|cards|setup&skin=grok|grok-dark|midnight&tools=1&bot=amy&error=words
+// ?state=done|working|question|approval|empty|grok|grok-md|answered|cards|setup|events&skin=grok|grok-dark|midnight&tools=1&bot=amy&error=words
 // state=grok mirrors the grok sandbox's Amy chat line for line, so the two can be compared pixel for pixel.
 import { StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -54,6 +54,25 @@ function grokRows(): Message[] {
   return list.map((one, index, all) => ({ ...one, parentId: all[index - 1]?.id }));
 }
 
+// state=events: grok's transcript events: the New line, bot-to-bot runs, an applied routine change, and linked services
+const GHOSTY = { botId: "ghosty", name: "Ghosty", color: "silver" } as const;
+const LINKS = "**Overnight**\n\n- Mujahid shared the [organic reel first cut](https://www.notion.so/team/organic-reel-1a2b) in the board.\n- The [UK event vlog cut](https://f.io/tA6rvMnc) is waiting on your review.\n- Script notes are in [the doc](https://docs.google.com/document/d/abc) and the fix is in [pull 412](https://github.com/acme/site/pull/412).\n\n**Still open**\n\n- The FTC disclosure fixes.";
+function eventRows(): Message[] {
+  const day = 86_400_000;
+  const list: Message[] = [
+    message("y1", -day / 60_000, { role: "user", text: "Can you keep an eye on the Notion board overnight?" }),
+    message("y2", -day / 60_000 + 1, { text: "Will do. I'll check it every hour and tell you what moved.", turnId: "y", turnTerminal: true }),
+    message("p1", -544, { role: "user", text: "[From @Ghosty (bot) · message · reply expected] Did the reel cut land yet?", peerAsk: { botId: GHOSTY.botId, name: GHOSTY.name } }),
+    message("p2", -543.5, { text: "Not yet, Mujahid says by morning.", requestMessageId: "p1", turnId: "p", turnTerminal: true }),
+    message("p3", -543, { role: "user", text: "[From @Ghosty (bot) · message · reply expected] Thanks, ping me when it does.", peerAsk: { botId: GHOSTY.botId, name: GHOSTY.name } }),
+    message("r1", -542, { kind: "options", text: "", card: { title: "", subtitle: "", options: [], answered: "allow", dismissed: true, autoApplied: true, requestId: "rr", tool: "manage_routine",
+      routineRequest: { operation: { action: "update", routineId: "nb", expectedUpdatedAt: 1, changes: { name: "Notion board watch" } }, resultId: "nb", undo: { name: "Notion board watch", appliedUpdatedAt: 2 } } } as unknown as Message["card"] }),
+    message("s1", -541, { kind: "activity", tool: { name: "Sent to Ghosty", ok: true }, from: { botId: "jordan", name: botName, color: "red" }, threadRef: { botId: GHOSTY.botId, threadId: "g", title: "Reel" } }),
+    message("a1", 0, { text: LINKS, turnId: "a", turnTerminal: true }),
+  ];
+  return list.map((one, index, all) => ({ ...one, parentId: all[index - 1]?.id }));
+}
+
 // state=cards: grok's Amy sandbox chat, its images, file cards, link, voice memo and a reaction
 function cardRows(): Message[] {
   const id = (name: string) => `123e4567-e89b-12d3-a456-4266141740${name}`;
@@ -74,6 +93,7 @@ function cardRows(): Message[] {
 
 function rows(): Message[] {
   if (stateName === "cards") return cardRows();
+  if (stateName === "events") return eventRows();
   // state=setup: a new bot's greeting and its first-run question card
   if (stateName === "setup") return [message("hi", 0, { text: `Hi, I'm ${botName}. What would you like me to do?`, setupOffer: true, turnId: "s", turnTerminal: true })];
   if (stateName === "grok" || stateName === "grok-md" || stateName === "answered") return grokRows();
@@ -104,7 +124,8 @@ const bot: Bot = {
   tasks: [{ threadId: "main", title: botName, createdAt: AT - 86_400_000 }],
 } as Bot;
 
-const state: AppState = { ...initialState, bots: [bot], selectedId: bot.id, connected: true, error: params.get("error"), instances: [{ instanceId: "claude", capabilities: { agentsMcp: true } }] as unknown as AppState["instances"],
+const ghostyBot = { ...bot, id: "ghosty", name: "Ghosty", color: "silver", messages: [], tasks: [] } as Bot;
+const state: AppState = { ...initialState, bots: [bot], selectedId: bot.id, ...(stateName === "events" ? { unreadDivider: { threadId: "main", messageId: "p1" } } : {}), connected: true, error: params.get("error"), instances: [{ instanceId: "claude", capabilities: { agentsMcp: true } }] as unknown as AppState["instances"],
   config: { features: { showToolCalls: params.get("tools") === "1" } } as unknown as AppState["config"] };
 const value = { state, dispatch: () => {}, flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} };
 
@@ -119,7 +140,7 @@ function Live() {
     }, 1500);
     return () => clearTimeout(timer);
   }, []);
-  const live = useMemo(() => ({ ...value, state: { ...state, bots: [shown] } }), [shown]);
+  const live = useMemo(() => ({ ...value, state: { ...state, bots: stateName === "events" ? [shown, ghostyBot] : [shown] } }), [shown]);
   return (
     <StoreContext.Provider value={live}>
       <div className="flex h-dvh w-full overflow-hidden bg-app text-ink"><div className="flex min-w-0 flex-1 flex-col"><ChatView bot={shown} /></div></div>

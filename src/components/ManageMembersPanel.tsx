@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import { track } from "@/lib/analytics";
+import { cn } from "@/lib/cn";
+import { t } from "@/lib/i18n";
+import { GrokIcon } from "./GrokIcon";
+import { formCloseCls, formFooterCls, formHeaderCls, formSheetCls, formTitleCls, mdPrimaryCls, mdSecondaryCls } from "./ui/GrokDialog";
 import { useStore, type Group } from "@/state/store";
 import { BotPickerList } from "./BotPickerList";
 import { nextMemberIds } from "@/lib/room-members";
@@ -80,7 +85,7 @@ export function ManageMembersPanel({
     const rosterChanged =
       opened.length !== group.memberIds.length || opened.some((id, index) => id !== group.memberIds[index]);
     if (rosterChanged) {
-      setSaveError("This group's members changed while the panel was open. Close it and try again.");
+      setSaveError(t("sheet.rows.members.changed"));
       return;
     }
     if (changed) {
@@ -94,43 +99,40 @@ export function ManageMembersPanel({
     onClose();
   };
 
-  return (
-    <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/40"
-      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
-    >
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <div aria-hidden="true" data-modal-scrim className="ui-dialog-scrim absolute inset-0" onMouseDown={onClose} />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={`Manage members of ${group.name}`}
-        className="w-[340px] rounded-2xl border border-hairline/50 bg-card p-4 shadow-2xl"
+        style={{ maxWidth: "min(360px, calc(100vw - 32px))" }}
+        className={formSheetCls}
       >
-        <div className="mb-1 text-[15px] font-semibold text-ink">Manage Members</div>
-        <div className="mb-3 truncate text-[13px] text-ink-secondary">{group.name}</div>
-        <BotPickerList bots={bots} picked={picked} onToggle={toggle} emptyHint="Create a bot first — groups are made of bots." />
-        {!memberIds.length && <div className="mt-2 text-[12px] text-ink-secondary">A group needs at least one bot.</div>}
-        {saveError && (
-          <div role="alert" className="mt-2 text-[12px] text-danger">
-            {saveError}
+        <header className={formHeaderCls}>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <h2 className={formTitleCls}>{t("room.members.manage")}</h2>
+            <p className="m-0 truncate text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{group.name}</p>
           </div>
+          <button type="button" aria-label={t("common.close")} onClick={onClose} className={formCloseCls}>
+            <GrokIcon name="close" size={16} />
+          </button>
+        </header>
+        <div className="flex min-h-0 flex-col px-3 pb-1">
+          <BotPickerList bots={bots} picked={picked} onToggle={toggle} emptyHint={t("sheet.rows.members.empty")} />
+        </div>
+        {(!memberIds.length || saveError) && (
+          <p role={saveError ? "alert" : undefined} className={cn("m-0 px-4 pt-1 text-[12px] leading-4 tracking-[0.01em]", saveError ? "text-danger" : "text-ink-secondary")}>
+            {saveError ?? t("sheet.rows.members.needOne")}
+          </p>
         )}
-        <div className="mt-3 flex gap-2">
-          <button
-            onClick={onClose}
-            className="flex-1 rounded-lg bg-raised py-2 text-[14px] font-medium text-ink hover:brightness-110"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={save}
-            disabled={!memberIds.length}
-            className="flex-1 rounded-lg bg-accent py-2 text-[14px] font-medium text-white hover:brightness-110 disabled:opacity-40"
-          >
-            Save{memberIds.length ? ` · ${memberIds.length} ${memberIds.length === 1 ? "bot" : "bots"}` : ""}
-          </button>
+        <div className={formFooterCls}>
+          <button type="button" onClick={onClose} className={mdSecondaryCls}>{t("common.cancel")}</button>
+          <button type="button" onClick={save} disabled={!memberIds.length} className={mdPrimaryCls}>{t("sheet.rows.members.save")}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

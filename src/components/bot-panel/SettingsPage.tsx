@@ -13,7 +13,7 @@ import { usePlaceChoices } from "./ComputerTab";
 import { BotConversations } from "./Conversations";
 import { panelMemoryNotes } from "./memory-notes";
 import type { SheetPage } from "./modals/panel-modal";
-import { Card, NavRow } from "./rows";
+import { Card, NavRow } from "../ListRows";
 import { useMemoryDoc } from "./use-memory-doc";
 
 type Derived = ReturnType<typeof useBotSettingsDerived>;

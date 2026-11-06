@@ -129,10 +129,10 @@ export function SettingsSelect({ value, onChange, options: given, children, disa
           }
         }}
         className={cn(
-          "group inline-flex h-7 min-w-0 max-w-[240px] shrink-0 cursor-pointer items-center gap-1 rounded-[10px] border border-ink/[0.06] bg-transparent py-1 pl-[7px] pr-[5px] text-[13px] leading-[18px] tracking-[-0.08px] text-ink",
-          "[transition:color_100ms_ease,background-color_100ms_ease,transform_50ms_cubic-bezier(0.165,0.84,0.44,1)] hover:bg-ink/[0.06] active:bg-ink/[0.06] aria-expanded:bg-ink/[0.06]",
+          "group inline-flex h-7 min-w-0 max-w-[240px] shrink-0 cursor-pointer items-center gap-1 rounded-[10px] bg-ink/4 py-1 pl-[7px] pr-[5px] text-[13px] leading-[18px] tracking-[-0.08px] text-ink",
+          "[transition:color_100ms_ease,background-color_100ms_ease,transform_50ms_cubic-bezier(0.165,0.84,0.44,1)] hover:bg-ink/[0.07] active:bg-ink/[0.07] aria-expanded:bg-ink/[0.07]",
           "outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus",
-          "disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent",
+          "disabled:cursor-default disabled:opacity-50 disabled:hover:bg-ink/4",
           className,
         )}
       >

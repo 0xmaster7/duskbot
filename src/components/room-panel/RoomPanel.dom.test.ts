@@ -175,16 +175,20 @@ describe("the tabs", () => {
 });
 
 describe("Name and description", () => {
-  it("open their own dialog from Advanced and save together", () => {
+  it("are rows on their page, edited together in one small form", () => {
     render(room());
     click($('[data-panel-tab="advanced"]'));
     click($('[data-panel-page="about"]'));
-    const [name, description] = [...modal("about")!.querySelectorAll("input")];
+    expect(words(modal("about")!.querySelector('[data-sheet-row="name"]'))).toBe("NameDesk HQ");
+    click(modal("about")!.querySelector('[data-sheet-row="name"]'));
+    const form = modal("room-about-form")!;
+    const [name, description] = [...form.querySelectorAll("input")];
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(name, "Desk Two");
     flushSync(() => name!.dispatchEvent(new Event("input", { bubbles: true })));
     expect(description!.value).toBe("The recruiting desk");
-    click(modal("about")!.querySelector('[data-modal-action="save"]'));
+    flushSync(() => form.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
     expect(patches()).toEqual([{ type: "patchGroup", groupId: "desk", patch: { name: "Desk Two", description: "The recruiting desk" } }]);
+    expect(modal("room-about-form")).toBeNull();
     expect(modal("about")).not.toBeNull();
   });
 });

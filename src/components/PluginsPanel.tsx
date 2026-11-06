@@ -25,6 +25,7 @@ import {
   type ConnectorInventoryPhase,
   type ConnectorStatus,
 } from "@/lib/connector-status";
+import { askConfirm } from "./ConfirmDialog";
 import { BotAvatar } from "./Avatar";
 import { SidebarPopoverMenu } from "./SidebarPopoverMenu";
 import { appCategoryLabel, CATEGORY_SECTION_SIZE, catalogSections, connectorDescription, inCategory, rankCategories } from "@/lib/app-catalog";
@@ -49,7 +50,7 @@ export function disconnectAccountConfirmation(
   account: { id: string; alias?: string },
 ) {
   const identity = account.alias ? `“${account.alias}” (${account.id})` : `“${account.id}”`;
-  return t("connectors.disconnectConfirm", { identity, service });
+  return { title: t("confirm.disconnectTitle", { identity }), body: t("confirm.disconnectBody", { service }), confirmLabel: t("confirm.disconnect") };
 }
 
 export function botsMissingConnectedApps(bots: Bot[], instances: InstanceInfo[]): Bot[] {
@@ -527,7 +528,7 @@ export function PluginsPanel() {
           <p className="mt-0.5 text-[13px] leading-5 text-ink-secondary">{t("apps.subtitle")}</p>
           </div>
           <div className="flex items-center gap-2">
-            <label className="flex h-9 min-w-0 flex-1 items-center gap-2.5 rounded-full bg-control/70 px-3.5 focus-within:ring-1 focus-within:ring-accent">
+            <label className="flex h-9 min-w-0 flex-1 items-center gap-2.5 rounded-full bg-ink/4 px-3.5 transition-[background-color] duration-[120ms] focus-within:bg-ink/7">
               <Search size={15} className="shrink-0 text-ink-secondary" />
               <input
                 value={search}
@@ -893,8 +894,7 @@ export function PluginsPanel() {
                       type="button"
                       disabled={busy}
                       onClick={() => {
-                        if (!window.confirm(disconnectAccountConfirmation(card.label, account))) return;
-                        disconnectAccount(card.slug, account.id);
+                        void askConfirm(disconnectAccountConfirmation(card.label, account)).then((yes) => { if (yes) disconnectAccount(card.slug, account.id); });
                       }}
                       className={cn("shrink-0 rounded-full px-2 text-[12px] font-medium leading-5 text-ink-secondary transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-40", !reconnectable && "ms-auto")}
                       aria-label={t("connectors.disconnectAria", {

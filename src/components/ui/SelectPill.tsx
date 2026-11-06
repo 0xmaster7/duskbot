@@ -120,10 +120,10 @@ export function SelectPill<V extends string>({ value, options, onChange, disable
           }
         }}
         className={cn(
-          "-my-[3px] -mr-[5px] inline-flex h-6 min-w-0 max-w-[160px] shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-ink/[0.06] py-0.5 pl-1.5 pr-1 text-[13px] leading-[18px] tracking-[-0.08px] text-ink",
-          "transition-[color,background-color] duration-100 hover:bg-ink/[0.06] aria-expanded:bg-ink/[0.06]",
+          "-my-[3px] -mr-[5px] inline-flex h-6 min-w-0 max-w-[160px] shrink-0 cursor-pointer items-center gap-1 rounded-lg bg-ink/4 py-0.5 pl-1.5 pr-1 text-[13px] leading-[18px] tracking-[-0.08px] text-ink",
+          "transition-[color,background-color] duration-100 hover:bg-ink/[0.07] aria-expanded:bg-ink/[0.07]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-          "disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent",
+          "disabled:cursor-default disabled:opacity-50 disabled:hover:bg-ink/4",
           className,
         )}
       >

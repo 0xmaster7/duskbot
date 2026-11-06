@@ -38,11 +38,8 @@ describe("plugins modal translation", () => {
   it("keeps the account identity verbatim inside the translated confirmation", () => {
     setLocale("pt-br");
     const confirmation = disconnectAccountConfirmation("Gmail", { id: "ca_work", alias: "work" });
-    expect(confirmation).toContain("“work” (ca_work)");
-    expect(confirmation).toBe(
-      t("connectors.disconnectConfirm", { identity: "“work” (ca_work)", service: "Gmail" }),
-    );
-    expect(confirmation).not.toContain("Disconnect");
+    expect(confirmation.title).toContain("“work” (ca_work)");
+    expect(confirmation.title).toBe(t("confirm.disconnectTitle", { identity: "“work” (ca_work)" }));
   });
 
   it("translates an MCP environment parse error without touching the offending line", () => {

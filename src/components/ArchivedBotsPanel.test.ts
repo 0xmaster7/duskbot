@@ -44,7 +44,7 @@ describe("ArchivedBotRow", () => {
   it("spells out that Delete all permanently removes every archived bot", () => {
     const copy = archivedDeleteAllCopy();
     expect(copy.title).toBe("Delete all archived bots?");
-    expect(copy.body).toMatch(/permanently/i);
+    expect(copy.body).toMatch(/can't be undone/i);
     expect(copy.confirmLabel).toBe("Delete all");
     expect(copy.tone).toBe("danger");
   });

@@ -10,10 +10,8 @@ import { DEFAULT_OUTBOUND_POLICY, type OutboundPolicy } from "../../../../shared
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
 import { CommandAllowlistDialog } from "../../CommandAllowlistDialog";
 import { LocalComputerAutoWarning } from "../../LocalComputerAutoWarning";
-import { Switch } from "../../SettingsPrimitives";
+import { Card, CheckRow, FormDialog, FormField, NavRow, NoteRow, pillCls, SelectRow, SwitchRow, useSubPage } from "../../ListRows";
 import { textFieldCls } from "../../ui/GrokDialog";
-import { SelectPill } from "../../ui/SelectPill";
-import { Group, LinkRow, Pill, Row } from "./sheet-kit";
 
 type Derived = ReturnType<typeof useBotSettingsDerived>;
 
@@ -21,6 +19,7 @@ type Derived = ReturnType<typeof useBotSettingsDerived>;
 export function PermissionsSheet({ bot, derived }: { bot: Bot; derived: Derived }) {
   const { patch, engine, canCoordinate, approvalMode, trustedModesAvailable, sectionName } = derived;
   const { state, dispatch } = useStore();
+  const { at, open } = useSubPage();
   const team = useTeamPeople();
   const ownerOrAdmin = useOwnerOrAdmin();
   const [localAutoWarning, setLocalAutoWarning] = useState<string | null>(null);
@@ -35,69 +34,78 @@ export function PermissionsSheet({ bot, derived }: { bot: Bot; derived: Derived 
     else patch({ approvalMode: mode });
   };
   const peerNames = Array.isArray(bot.peers) ? bot.peers.flatMap((id) => state.bots.find((other) => other.id === id && !other.hidden)?.name ?? []) : null;
+  const led = bot.managedSections?.length ?? 0;
+
+  if (at === "teams" && !team && bot.chiefOfStaff) {
+    return (
+      // a saved change remounts the list, so another bot's old selection can never be saved from it
+      <ChiefTeams
+        key={bot.id + JSON.stringify(bot.managedSections ?? [])}
+        ownTeam={bot.section?.trim() || ""}
+        teams={["", ...(state.sections ?? []), ...[...state.bots, ...state.groups].map((member) => member.section?.trim() || "")]}
+        allowed={bot.managedSections ?? []}
+        onSave={(managedSections) => patch({ managedSections, acknowledgePeerScope: true })}
+      />
+    );
+  }
 
   return (
     <>
       {!team && (
-        <Group label={t("permissions.chief.title")} data-sheet-group="chief">
-          <Row
+        <Card label={t("permissions.chief.title")} data-sheet-group="chief">
+          <SwitchRow
             title={t("botPanel.sheet.chiefRow", { section })}
             hint={canCoordinate ? undefined : t("botPanel.sheet.chiefNoModel")}
-            tone={canCoordinate ? undefined : "warn"}
-          >
-            <Switch
-              checked={Boolean(bot.chiefOfStaff)}
-              aria-label={t("permissions.chief.title")}
-              disabled={!bot.chiefOfStaff && !canCoordinate}
-              onClick={() => patch({ chiefOfStaff: !bot.chiefOfStaff })}
+            label={t("permissions.chief.title")}
+            checked={Boolean(bot.chiefOfStaff)}
+            disabled={!bot.chiefOfStaff && !canCoordinate}
+            onChange={() => patch({ chiefOfStaff: !bot.chiefOfStaff })}
+          />
+          {bot.chiefOfStaff && (
+            <NavRow
+              data-sheet-row="chief-teams"
+              title={t("botAccess.teams.title")}
+              value={led ? t("botPanel.sheet.chosen", { count: led }) : t("botPanel.none")}
+              onClick={() => open("teams", t("botAccess.teams.title"))}
             />
-          </Row>
-        </Group>
+          )}
+        </Card>
       )}
-      {!team && bot.chiefOfStaff && (
-        // a saved change remounts the list, so another bot's old selection can never be saved from it
-        <ChiefTeams
-          key={bot.id + JSON.stringify(bot.managedSections ?? [])}
-          ownTeam={bot.section?.trim() || ""}
-          teams={["", ...(state.sections ?? []), ...[...state.bots, ...state.groups].map((member) => member.section?.trim() || "")]}
-          allowed={bot.managedSections ?? []}
-          onSave={(managedSections) => patch({ managedSections, acknowledgePeerScope: true })}
+
+      <Card label={t("botPanel.sheet.peers")} data-sheet-group="peers">
+        <SwitchRow
+          title={t("botPanel.sheet.peersRow")}
+          label={t("permissions.peers.title")}
+          checked={Boolean(bot.approvePeerComms)}
+          disabled={!bot.approvePeerComms && !canCoordinate}
+          onChange={() => patch({ approvePeerComms: !bot.approvePeerComms })}
         />
-      )}
-
-      <Group label={t("botPanel.sheet.peers")} data-sheet-group="peers">
-        <Row title={t("botPanel.sheet.peersRow")}>
-          <Switch
-            checked={Boolean(bot.approvePeerComms)}
-            aria-label={t("permissions.peers.title")}
-            disabled={!bot.approvePeerComms && !canCoordinate}
-            onClick={() => patch({ approvePeerComms: !bot.approvePeerComms })}
-          />
-        </Row>
         {peerNames && (
-          <Row title={peerNames.length ? t("botPanel.sheet.peersOnly", { names: peerNames.join(", ") }) : t("permissions.peers.none")}>
-            <Pill onClick={() => patch({ peers: null, acknowledgePeerScope: true })}>{t("botPanel.sheet.allowAll")}</Pill>
-          </Row>
-        )}
-      </Group>
-
-      <Group label={t("permissions.approval.title")} data-sheet-group="approval">
-        <Row title={t("botPanel.sheet.approvalRow")}>
-          <SelectPill
-            aria-label={t("permissions.approval.title")}
-            disabled={Boolean(bot.busy) || approvalModeSelectionRequiresLocalDesktop(approvalMode, trustedModesAvailable)}
-            value={shownApprovalMode(driverKind, approvalMode)}
-            options={approvalModeOptionsFor(driverKind, trustedModesAvailable).map((option) => ({ value: option.mode, label: option.label }))}
-            onChange={setApprovalMode}
+          <NavRow
+            drill={false}
+            data-sheet-row="peers-only"
+            title={peerNames.length ? t("botPanel.sheet.peersOnly", { names: peerNames.join(", ") }) : t("permissions.peers.none")}
+            value={t("botPanel.sheet.allowAll")}
+            onClick={() => patch({ peers: null, acknowledgePeerScope: true })}
           />
-        </Row>
-        {approvalMode === "full" && (
-          <Row title={t("botPanel.sheet.fullEverywhere")}>
-            <Pill onClick={applyFullEverywhere}>{t("botPanel.sheet.apply")}</Pill>
-          </Row>
         )}
-        {ownerOrAdmin === true && <LinkRow data-sheet-row="allowlist" title={t("botPanel.sheet.allowlist")} onClick={() => setAllowlistOpen(true)} />}
-      </Group>
+      </Card>
+
+      <Card label={t("permissions.approval.title")} data-sheet-group="approval">
+        <SelectRow
+          data-sheet-row="approval"
+          title={t("botPanel.sheet.approvalRow")}
+          label={t("permissions.approval.title")}
+          disabled={Boolean(bot.busy) || approvalModeSelectionRequiresLocalDesktop(approvalMode, trustedModesAvailable)}
+          value={shownApprovalMode(driverKind, approvalMode)}
+          options={approvalModeOptionsFor(driverKind, trustedModesAvailable).map((option) => ({ value: option.mode, label: option.label }))}
+          onChange={setApprovalMode}
+        />
+        {approvalMode === "full" && (
+          <NavRow drill={false} data-sheet-row="full-everywhere" title={t("botPanel.sheet.fullEverywhere")} value={t("botPanel.sheet.apply")} onClick={applyFullEverywhere} />
+        )}
+        {ownerOrAdmin === true && <NavRow data-sheet-row="allowlist" title={t("botPanel.sheet.allowlist")} onClick={() => setAllowlistOpen(true)} />}
+      </Card>
 
       <Sending key={bot.id} bot={bot} onChange={(outbound) => patch({ outbound })} />
 
@@ -125,38 +133,37 @@ function ChiefTeams({ ownTeam, teams, allowed, onSave }: {
   const choices = [...new Set([...teams, ...allowed])].filter((team) => team !== ownTeam).sort();
   const changed = JSON.stringify([...selected].sort()) !== JSON.stringify([...allowed].sort());
   return (
-    <Group label={t("botAccess.teams.title")} data-sheet-group="chief-teams">
-      {choices.length === 0 && <Row title={t("botAccess.teams.empty")} />}
-      {choices.map((team) => {
-        const name = team === "General" || !team ? t("botAccess.teams.general") : team;
-        return (
-          <label key={team} className="flex min-h-12 cursor-pointer items-center gap-5 px-3.5 py-2.5 text-[13px] leading-[18px] tracking-[-0.08px] text-ink">
-            <span className="min-w-0 flex-1">{name}</span>
-            <input
-              type="checkbox"
+    <>
+      <Card data-sheet-group="chief-teams">
+        {choices.length === 0 && <NoteRow>{t("botAccess.teams.empty")}</NoteRow>}
+        {choices.map((team) => {
+          const name = team === "General" || !team ? t("botAccess.teams.general") : team;
+          return (
+            <CheckRow
+              key={team}
               aria-label={name}
-              className="size-4 shrink-0 cursor-pointer accent-[var(--color-ink)]"
+              title={name}
               checked={selected.includes(team)}
-              onChange={(event) => setSelected((current) => (event.target.checked ? [...current, team] : current.filter((value) => value !== team)))}
+              onClick={() => setSelected((current) => (current.includes(team) ? current.filter((value) => value !== team) : [...current, team]))}
             />
-          </label>
-        );
-      })}
+          );
+        })}
+      </Card>
       {choices.length > 0 && (
-        <Row title={changed ? t("botPanel.sheet.unsaved") : t("botPanel.sheet.chosen", { count: selected.length })}>
-          <Pill aria-label={t("botAccess.teams.save")} disabled={!changed} onClick={() => onSave(selected)}>{t("botPanel.sheet.save")}</Pill>
-        </Row>
+        <div className="-mt-2.5 flex items-center justify-end gap-3 px-3">
+          <span className="mr-auto text-[12px] leading-4 tracking-[0.01em] text-ink-secondary">{changed ? t("botPanel.sheet.unsaved") : t("botPanel.sheet.chosen", { count: selected.length })}</span>
+          <button type="button" aria-label={t("botAccess.teams.save")} disabled={!changed} onClick={() => onSave(selected)} className={pillCls}>{t("botPanel.sheet.save")}</button>
+        </div>
       )}
-    </Group>
+    </>
   );
 }
 
 function Sending({ bot, onChange }: { bot: Bot; onChange: (policy: OutboundPolicy) => void }) {
   const policy = bot.outbound ?? DEFAULT_OUTBOUND_POLICY;
   const [today, setToday] = useState<number | null>(null);
-  const [cap, setCap] = useState(String(policy.dailyCap));
+  const [editing, setEditing] = useState(false);
 
-  useEffect(() => setCap(String(policy.dailyCap)), [policy.dailyCap]);
   useEffect(() => {
     let alive = true;
     void fetch(`/api/bots/${bot.id}/outbound`)
@@ -170,39 +177,48 @@ function Sending({ bot, onChange }: { bot: Bot; onChange: (policy: OutboundPolic
     };
   }, [bot.id, bot.outbound]);
 
-  const commit = () => {
-    const parsed = Number(cap);
-    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 1000) setCap(String(policy.dailyCap));
-    else if (parsed !== policy.dailyCap) onChange({ policy: policy.policy, dailyCap: parsed });
-  };
-
   return (
-    <Group label={t("permissions.outbound.title")} data-sheet-group="sending">
-      <Row title={t("botPanel.sheet.sendingRow")}>
-        <SelectPill
-          aria-label={t("permissions.outbound.title")}
-          value={policy.policy}
-          options={[{ value: "ask", label: t("permissions.outbound.ask") }, { value: "allow", label: t("permissions.outbound.allow") }]}
-          onChange={(value) => onChange({ policy: value, dailyCap: policy.dailyCap })}
-        />
-      </Row>
+    <Card label={t("permissions.outbound.title")} data-sheet-group="sending">
+      <SelectRow
+        data-sheet-row="sending"
+        title={t("botPanel.sheet.sendingRow")}
+        label={t("permissions.outbound.title")}
+        value={policy.policy}
+        options={[{ value: "ask", label: t("permissions.outbound.ask") }, { value: "allow", label: t("permissions.outbound.allow") }]}
+        onChange={(value) => onChange({ policy: value, dailyCap: policy.dailyCap })}
+      />
       {policy.policy === "allow" && (
-        <Row title={t("botPanel.sheet.perDay")} hint={today === null ? undefined : t("permissions.outbound.usedToday", { today, cap: policy.dailyCap })}>
-          <input
-            type="number"
-            min={1}
-            max={1000}
-            value={cap}
-            aria-label={t("permissions.outbound.dailyLimit")}
-            onChange={(event) => setCap(event.target.value)}
-            onBlur={commit}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") event.currentTarget.blur();
-            }}
-            className={`${textFieldCls} w-20 text-right tabular-nums`}
-          />
-        </Row>
+        <NavRow
+          data-sheet-row="per-day"
+          title={t("botPanel.sheet.perDay")}
+          hint={today === null ? undefined : t("permissions.outbound.usedToday", { today, cap: policy.dailyCap })}
+          value={String(policy.dailyCap)}
+          onClick={() => setEditing(true)}
+        />
       )}
-    </Group>
+      {editing && <DailyCapDialog cap={policy.dailyCap} onClose={() => setEditing(false)} onSave={(dailyCap) => { onChange({ policy: policy.policy, dailyCap }); setEditing(false); }} />}
+    </Card>
+  );
+}
+
+function DailyCapDialog({ cap, onSave, onClose }: { cap: number; onSave: (cap: number) => void; onClose: () => void }) {
+  const [value, setValue] = useState(String(cap));
+  const parsed = Number(value);
+  const valid = Number.isInteger(parsed) && parsed >= 1 && parsed <= 1000;
+  return (
+    <FormDialog data-panel-modal="per-day" title={t("botPanel.sheet.perDay")} canSave={valid && parsed !== cap} onSave={() => onSave(parsed)} onClose={onClose}>
+      <FormField label={t("permissions.outbound.dailyLimit")}>
+        <input
+          data-autofocus
+          type="number"
+          min={1}
+          max={1000}
+          value={value}
+          aria-label={t("permissions.outbound.dailyLimit")}
+          onChange={(event) => setValue(event.target.value)}
+          className={`${textFieldCls} tabular-nums`}
+        />
+      </FormField>
+    </FormDialog>
   );
 }

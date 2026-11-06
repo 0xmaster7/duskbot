@@ -64,7 +64,7 @@ export function useDeleteAllThreads(simple = false) {
     setPending(true);
     void deleteAllThreads(bot, dispatch).finally(() => { setPending(false); setBotId(null); });
   };
-  const dialog = <ConfirmDialog open={bot !== undefined} {...deleteAllThreadsCopy(bot ? allThreadRows(bot) : [], simple)} icon={<Trash2 size={18} />}
+  const dialog = <ConfirmDialog open={bot !== undefined} {...deleteAllThreadsCopy(bot ? allThreadRows(bot) : [], simple)}
     pending={pending} onCancel={() => { if (!pending) setBotId(null); }} onConfirm={run} />;
   return { ask: setBotId, dialog };
 }

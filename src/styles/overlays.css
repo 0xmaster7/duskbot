@@ -104,12 +104,13 @@
 }
 
 /* A notice card or toast in the corner: the popover tone and lift, rising 8px as it arrives. */
+/* Grok's banner: 1px ink/12 at 18px corners on the inline lift */
 .ui-toast {
-  border: 0.5px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
-  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+  border-radius: 18px;
   background: var(--color-menu);
   color: var(--color-ink);
-  box-shadow: var(--shadow-popover);
+  box-shadow: 0 4px 12px -1px rgb(28 28 28 / 0.08), 0 2px 4px -2px rgb(28 28 28 / 0.06);
   animation: overlay-toast-in var(--overlay-normal) var(--ease-sharp);
 }
 
@@ -168,4 +169,28 @@
 :root:is([data-skin="grok"]) [data-settings-look] .glass-surface {
   border: 0.5px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
   box-shadow: var(--shadow-modal);
+}
+
+/* An inline error still drawn as a red tint reads as Grok's banner: a white card on a 1px ink/12 edge and the inline
+   lift, ink words, and one small red glyph (exclamation-circle, filled) carrying the tone. */
+[role="alert"]:is([class*="bg-danger/"], [class*="border-danger"]):not(.ui-notice) {
+  border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+  border-radius: 14px;
+  background-color: var(--color-menu);
+  color: var(--color-ink);
+  box-shadow: 0 4px 12px -1px rgb(28 28 28 / 0.08), 0 2px 4px -2px rgb(28 28 28 / 0.06);
+}
+[role="alert"]:is([class*="bg-danger/"], [class*="border-danger"]):not(.ui-notice)::before {
+  content: "\f3aa";
+  display: inline-block;
+  margin-inline-end: 8px;
+  color: var(--color-danger);
+  font-family: "Grok Icons";
+  font-size: 14px;
+  font-style: normal;
+  line-height: 1;
+  vertical-align: -2px;
+}
+[role="alert"]:is([class*="bg-danger/"], [class*="border-danger"]):not(.ui-notice) .text-danger {
+  color: var(--color-ink);
 }

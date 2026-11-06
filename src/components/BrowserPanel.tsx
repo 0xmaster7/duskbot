@@ -4,6 +4,7 @@ import { browserUnavailableReason } from "@/lib/feature-flags";
 import { t } from "@/lib/i18n";
 import { usePageVisible } from "@/lib/page-visible";
 import { api, useStore, type Bot } from "@/state/store";
+import { askConfirm } from "./ConfirmDialog";
 import { BrowserProfilesManager } from "./BrowserProfilesManager";
 import { ChromeRow, type BrowserNav, type BrowserTab } from "./browser/ChromeRow";
 import { MoreMenu } from "./browser/MoreMenu";
@@ -250,8 +251,8 @@ export function LiveBrowser({ bot, signIn, page }: { bot: Bot; signIn?: BrowserS
     return () => window.removeEventListener("keydown", onKey, true);
   }, [maximized, fullscreen]);
 
-  const restart = () => {
-    if (!window.confirm(t("browser.panel.confirmRestart"))) return;
+  const restart = async () => {
+    if (!(await askConfirm({ title: t("confirm.browserRestartTitle"), body: t("confirm.browserRestartBody"), confirmLabel: t("confirm.restart"), tone: "neutral" }))) return;
     setError("");
     if (!clientRef.current?.send({ type: "restart" })) setError("The browser view is not connected. Reconnect it, then try again.");
   };

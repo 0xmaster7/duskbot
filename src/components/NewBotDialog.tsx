@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { NavRow } from "./ListRows";
 import { Loader2, Plus, Trash2, X } from "lucide-react";
 import { api, BotEditorStore, useStore, type Bot } from "@/state/store";
 import { BotCreationDraft, EMPTY_BOT_DEFAULTS } from "@/lib/bot-creation-draft";
@@ -357,18 +358,10 @@ function DraftRoutines({ draft }: { draft: BotCreationDraft }) {
 export function DefaultBotSettings() {
   const [open, setOpen] = useState(false);
   const [sharing, setSharing] = useState(false);
-
-    const content = <>
-      <div className="flex shrink-0 gap-2">
-        <button type="button" onClick={() => setSharing(true)} className="ui-button">{t("newBot.sharePreset")}</button>
-        <button type="button" onClick={() => setOpen(true)} className="ui-button">{t("newBot.edit")}</button>
-      </div>
-      {open && <NewBotDialog defaultsMode onClose={() => setOpen(false)} />}
-      {sharing && <SharePresetDialog onClose={() => setSharing(false)} />}
-    </>
-
   return <>
-    <SettingRow title={t("newBot.defaults")} children={content} />
-
+    <NavRow data-settings-open="bot-defaults" title={t("newBot.defaults")} value={t("newBot.edit")} onClick={() => setOpen(true)} />
+    <NavRow data-settings-open="share-preset" drill={false} title={t("newBot.sharePreset")} onClick={() => setSharing(true)} />
+    {open && <NewBotDialog defaultsMode onClose={() => setOpen(false)} />}
+    {sharing && <SharePresetDialog onClose={() => setSharing(false)} />}
   </>;
 }

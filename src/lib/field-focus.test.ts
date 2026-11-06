@@ -1,4 +1,4 @@
-// styles.css strips the outline from text fields (Chromium matches :focus-visible on click), so each field must show focus itself (WCAG 2.4.7).
+// styles.css strips the outline from text fields (Chromium matches :focus-visible on click) and draws them borderless, so a field shows focus as a deeper fill (WCAG 2.4.7).
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, relative } from "node:path";
@@ -45,15 +45,24 @@ describe("text field focus", () => {
     expect(css).toMatch(/:is\(input(?::not\([^)]*\))?, textarea, select\):focus-visible\s*\{\s*outline:\s*none;/);
   });
 
-  it("paints a focused field's own border in the focus colour, above every utility", () => {
-    const rule = unlayered(css).match(/:is\(input, textarea, select\):focus-visible(?::not\([^)]*\))?\s*\{([^}]*)\}/g) ?? [];
-    expect(rule.join("\n")).toMatch(/border-color:\s*color-mix\(in srgb, var\(--color-ink\) 52%, transparent\)/);
+  it("draws a bordered field borderless with a soft fill, above every utility", () => {
+    const rules = [...unlayered(css).matchAll(/([^{}]+)\{([^}]*)\}/g)].filter(([, selector]) => selector.includes('[class~="border"]'));
+    const rest = rules.find(([selector]) => !selector.includes(":focus"));
+    expect(rest?.[2]).toMatch(/border-color:\s*transparent/);
+    expect(rest?.[2]).toMatch(/background-color:\s*color-mix\(in srgb, var\(--color-ink\) 4%, transparent\)/);
+    expect(rest?.[1]).toMatch(/:has\(> :is\(input/);
   });
 
-  it("leaves a field that reports an error in its error colour while focused", () => {
-    const selectors = [...unlayered(css).matchAll(/([^{}]+)\{[^}]*border-color:\s*color-mix\(in srgb, var\(--color-ink\) 52%, transparent\)[^}]*\}/g)].map((match) => match[1].trim());
-    expect(selectors.length).toBeGreaterThan(0);
-    for (const selector of selectors) expect(selector).toContain(':not([aria-invalid="true"])');
+  it("shows focus as a deeper fill, never a border or a ring", () => {
+    const body = unlayered(css);
+    const focused = [...body.matchAll(/([^{}]+)\{([^}]*)\}/g)].filter(([selector]) => selector.includes('[class~="border"]') && selector.includes(":focus"));
+    expect(focused.length).toBeGreaterThan(0);
+    for (const [, , declarations] of focused) {
+      expect(declarations).toMatch(/background-color:\s*color-mix\(in srgb, var\(--color-ink\) 7%, transparent\)/);
+      expect(declarations).not.toMatch(/border-color:\s*(?!transparent)/);
+    }
+    expect(body).toMatch(/textarea, select\):focus\s*\{\s*--tw-ring-shadow: 0 0 #0000;/);
+    expect(body).not.toMatch(/:focus-visible:not\(\[aria-invalid="true"\]\)\s*\{\s*border-color/);
   });
 
   it("never fades focus to the resting hairline", () => {

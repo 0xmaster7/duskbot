@@ -1,6 +1,5 @@
-import { useState } from "react";
-
 import { xResearchAction } from "@/lib/cloud-plan";
+import { cn } from "@/lib/cn";
 import { HIGHLEVEL_SLUG } from "@/lib/highlevel-sign-in";
 import { t } from "@/lib/i18n";
 import { mcpServersForBot, mcpServersOfBot, useMcpServers } from "@/lib/mcp-servers";
@@ -11,95 +10,237 @@ import { useToolSelection } from "../../bot-settings/ToolSelectionCard";
 import { useBotApps } from "../../bot-settings/useBotApps";
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
 import { openKeySettings } from "../../keys/key-focus";
+import { Card, NavRow, NoteRow, pillCls, rowCls, SelectRow, SwitchRow, useSubPage } from "../../ListRows";
 import { useCloudPlan } from "../../ProIntroduction";
-import { Switch } from "../../SettingsPrimitives";
-import { textAreaCls } from "../../ui/GrokDialog";
-import { SelectPill } from "../../ui/SelectPill";
-import { Choices, FieldRow, Group, LinkRow, Pill, Row } from "./sheet-kit";
+import { RowIconButton } from "../../ui/GrokDialog";
+import { FieldCard, sheetAreaCls } from "./sheet-kit";
 
 type Derived = ReturnType<typeof useBotSettingsDerived>;
 
-/** The bot's apps, MCP servers, tool selection, web research and always-allowed tools, as rows. */
+/** The bot's apps and tools as rows; app limits, MCP servers, a custom selection and always-allowed tools each open their
+ * own page. */
 export function ToolsSheet({ bot, derived }: { bot: Bot; derived: Derived }) {
+  const { at } = useSubPage();
+  const apps = useBotApps(bot);
+  const selection = useToolSelection(bot, derived.engine?.driverKind);
+  switch (at) {
+    case "apps": return <AppLimitsPage bot={bot} derived={derived} apps={apps} />;
+    case "grants": return <Card><div className="px-2 py-1.5"><ConnectorToolsGrants bot={bot} patch={derived.patch} slugs={apps.connectedSlugs.filter((slug) => slug !== HIGHLEVEL_SLUG)} /></div></Card>;
+    case "servers": return <ServersPage bot={bot} patch={derived.patch} />;
+    case "selection": return <SelectionPage bot={bot} selection={selection} />;
+    case "always": return <AlwaysPage bot={bot} patch={derived.patch} />;
+  }
   return (
     <>
-      <AppsGroup bot={bot} derived={derived} />
-      <ServersGroup bot={bot} patch={derived.patch} />
-      <SelectionGroup bot={bot} engineKind={derived.engine?.driverKind} />
-      <ResearchGroup bot={bot} patch={derived.patch} />
-      <AlwaysGroup bot={bot} patch={derived.patch} />
+      <AppsCard bot={bot} derived={derived} apps={apps} />
+      <ToolsCard bot={bot} derived={derived} selection={selection} />
     </>
   );
 }
 
-function AppsGroup({ bot, derived }: { bot: Bot; derived: Derived }) {
+type Apps = ReturnType<typeof useBotApps>;
+type Selection = ReturnType<typeof useToolSelection>;
+
+function AppsCard({ bot, derived, apps }: { bot: Bot; derived: Derived; apps: Apps }) {
   const { dispatch } = useStore();
+  const { open } = useSubPage();
   const { patch, canUseConnectedApps, connectedAppsConfigured, connectedAppsEnabled, connectorGrantState } = derived;
-  const apps = useBotApps(bot);
-  const [grantsOpen, setGrantsOpen] = useState(false);
+  const shown = connectedAppsEnabled && apps.phase === "ready";
+  const chosen = Object.values(bot.connectorScopes?.apps ?? {}).length;
+  const hint = !connectedAppsConfigured ? t("botPanel.sheet.appsConnectFirst")
+    : !canUseConnectedApps ? t("botPanel.sheet.appsNoModel")
+      : connectedAppsEnabled && connectorGrantState === "partial" ? t("botPanel.sheet.appsSome")
+        : connectedAppsEnabled && connectorGrantState === "none" ? t("botPanel.sheet.appsNoTools") : undefined;
+
+  return (
+    <Card label={t("botPanel.sheet.apps")} data-sheet-group="apps">
+      <SwitchRow
+        title={t("botPanel.sheet.appsRow")}
+        hint={hint}
+        label={t("botAccess.apps.allow")}
+        checked={connectedAppsEnabled}
+        disabled={!connectedAppsEnabled && (!connectedAppsConfigured || !canUseConnectedApps)}
+        onChange={() => patch({ composio: !connectedAppsEnabled })}
+      />
+      {shown && (
+        <NavRow
+          data-sheet-row="app-limits"
+          title={t("sheet.rows.whichApps")}
+          value={bot.connectorScopes ? t("sheet.rows.appsChosen", { count: chosen }) : t("sheet.rows.allApps")}
+          onClick={() => open("apps", t("sheet.rows.whichApps"))}
+        />
+      )}
+      {connectedAppsConfigured && (
+        <NavRow data-sheet-row="add-app" title={t("botPanel.sheet.addApp")} onClick={() => dispatch({ type: "togglePlugins", open: true, surface: "apps" })} />
+      )}
+    </Card>
+  );
+}
+
+function AppLimitsPage({ bot, derived, apps }: { bot: Bot; derived: Derived; apps: Apps }) {
+  const { open } = useSubPage();
+  const { patch } = derived;
   const scopes = bot.connectorScopes;
   const limited = scopes !== undefined;
   const slugs = [...new Set([...apps.connectedSlugs, ...Object.keys(scopes?.apps ?? {})])].sort();
   const labels = Object.fromEntries(apps.apps.map((app) => [app.slug, app.label]));
   const grantSlugs = apps.connectedSlugs.filter((slug) => slug !== HIGHLEVEL_SLUG);
-  const shown = connectedAppsEnabled && apps.phase === "ready";
-  const hint = !connectedAppsConfigured ? t("botPanel.sheet.appsConnectFirst")
-    : !canUseConnectedApps ? t("botPanel.sheet.appsNoModel")
-      : !connectedAppsEnabled ? t("botPanel.sheet.off")
-        : connectorGrantState === "partial" ? t("botPanel.sheet.appsSome")
-          : connectorGrantState === "none" ? t("botPanel.sheet.appsNoTools") : t("botPanel.sheet.on");
   const setScope = (slug: string, scope: ConnectorScope | null) => {
     const next = { ...scopes?.apps };
     if (scope) next[slug] = scope;
     else delete next[slug];
     patch({ connectorScopes: { apps: next } });
   };
+  const levels = [
+    { value: "off", label: t("botAccess.scopes.off"), title: t("botAccess.scopes.offHint") },
+    { value: "read", label: t("botAccess.scopes.read"), title: t("botAccess.scopes.readHint") },
+    { value: "write", label: t("botAccess.scopes.readWrite"), title: t("botAccess.scopes.readWriteHint") },
+  ] as const;
 
   return (
-    <Group label={t("botPanel.sheet.apps")} data-sheet-group="apps">
-      <Row title={t("botPanel.sheet.appsRow")} hint={hint}>
-        <Switch
-          checked={connectedAppsEnabled}
-          aria-label={t("botAccess.apps.allow")}
-          disabled={!connectedAppsEnabled && (!connectedAppsConfigured || !canUseConnectedApps)}
-          onClick={() => patch({ composio: !connectedAppsEnabled })}
+    <>
+      <Card>
+        <SwitchRow
+          title={t("botPanel.sheet.onlyChosen")}
+          label={t("botAccess.scopes.limitLabel")}
+          checked={limited}
+          onChange={() => patch({ connectorScopes: limited ? null : { apps: {} } })}
         />
-      </Row>
-      {shown && (
-        <Row title={t("botPanel.sheet.onlyChosen")}>
-          <Switch checked={limited} aria-label={t("botAccess.scopes.limitLabel")} onClick={() => patch({ connectorScopes: limited ? null : { apps: {} } })} />
-        </Row>
+      </Card>
+      {limited && (
+        <Card label={t("botPanel.sheet.apps")} data-sheet-group="app-scopes">
+          {slugs.length === 0 && <NoteRow>{t("botAccess.scopes.empty")}</NoteRow>}
+          {slugs.map((slug) => (
+            <SelectRow
+              key={slug}
+              data-sheet-row={`scope:${slug}`}
+              title={labels[slug] ?? slug}
+              hint={apps.connectedSlugs.includes(slug) ? undefined : t("botAccess.scopes.notConnected")}
+              label={t("botAccess.scopes.accessLabel", { app: labels[slug] ?? slug })}
+              value={scopes?.apps[slug] ?? "off"}
+              options={levels}
+              onChange={(value) => setScope(slug, value === "off" ? null : value)}
+            />
+          ))}
+        </Card>
       )}
-      {shown && limited && slugs.map((slug) => (
-        <Row key={slug} title={labels[slug] ?? slug} hint={apps.connectedSlugs.includes(slug) ? undefined : t("botAccess.scopes.notConnected")}>
-          <Choices
-            label={t("botAccess.scopes.accessLabel", { app: labels[slug] ?? slug })}
-            value={scopes?.apps[slug] ?? null}
-            onChange={(scope) => setScope(slug, scope)}
-            options={[
-              [null, t("botAccess.scopes.off"), t("botAccess.scopes.offHint")],
-              ["read", t("botAccess.scopes.read"), t("botAccess.scopes.readHint")],
-              ["write", t("botAccess.scopes.readWrite"), t("botAccess.scopes.readWriteHint")],
-            ]}
-          />
-        </Row>
-      ))}
-      {shown && grantSlugs.length > 0 && (
-        <LinkRow data-sheet-row="grants" title={t("botAccess.grants.header")} open={grantsOpen} onClick={() => setGrantsOpen((open) => !open)} />
+      {grantSlugs.length > 0 && (
+        <Card>
+          <NavRow data-sheet-row="grants" title={t("botAccess.grants.header")} onClick={() => open("grants", t("botAccess.grants.header"))} />
+        </Card>
       )}
-      {shown && grantsOpen && (
-        <div className="-mt-3 px-3.5 pb-2.5">
-          <ConnectorToolsGrants bot={bot} patch={patch} slugs={grantSlugs} />
-        </div>
-      )}
-      {connectedAppsConfigured && (
-        <LinkRow data-sheet-row="add-app" title={t("botPanel.sheet.addApp")} onClick={() => dispatch({ type: "togglePlugins", open: true, surface: "apps" })} />
-      )}
-    </Group>
+    </>
   );
 }
 
-function ServersGroup({ bot, patch }: { bot: Bot; patch: Derived["patch"] }) {
+function ToolsCard({ bot, derived, selection }: { bot: Bot; derived: Derived; selection: Selection }) {
+  const { open } = useSubPage();
+  const { servers: all, error } = useMcpServers();
+  const servers = all ? mcpServersOfBot(all, bot.id) : null;
+  const mounted = servers ? mcpServersForBot(servers, bot.mcpServers, bot.id).length : 0;
+  const always = bot.alwaysAllow?.length ?? 0;
+  const busy = Boolean(bot.busy);
+  const serversValue = error ? t("botPanel.sheet.serversError") : servers === null ? t("mcp.loading")
+    : servers.length === 0 ? t("sheet.rows.noServers") : t("sheet.rows.serversOn", { on: mounted, count: servers.length });
+
+  return (
+    <Card label={t("sheet.rows.tools")} footnote={busy ? t("botAccess.tools.busy") : undefined} data-sheet-group="tools">
+      <NavRow data-sheet-row="servers" title={t("connectors.tab.mcp")} value={serversValue} onClick={() => open("servers", t("connectors.tab.mcp"))} />
+      <SelectionRow bot={bot} selection={selection} />
+      {selection.fields.custom && (
+        <NavRow data-sheet-row="selection" title={t("botAccess.tools.custom")} value={selection.saving ? t("botAccess.tools.saving") : selection.status} onClick={() => open("selection", t("botAccess.tools.custom"))} />
+      )}
+      <ResearchRow bot={bot} patch={derived.patch} />
+      <NavRow
+        data-sheet-row="always"
+        title={t("botAccess.always.title")}
+        value={always ? String(always) : t("botPanel.sheet.nothingYet")}
+        onClick={() => open("always", t("botAccess.always.title"))}
+      />
+    </Card>
+  );
+}
+
+/** All tools or a custom selection: choosing Custom opens the lists to fill in. */
+function SelectionRow({ bot, selection }: { bot: Bot; selection: Selection }) {
+  const { at, open } = useSubPage();
+  const { saved, fields, saving, status, change, clear } = selection;
+  return (
+    <SelectRow
+      data-sheet-row="tool-selection"
+      title={t("botPanel.sheet.toolsRow")}
+      hint={!saved.ok ? status : saving && !fields.custom ? t("botAccess.tools.saving") : undefined}
+      label={t("botAccess.tools.title")}
+      disabled={saving || Boolean(bot.busy)}
+      value={fields.custom ? "custom" : "all"}
+      options={[{ value: "all", label: t("botPanel.sheet.toolsAll") }, { value: "custom", label: t("botPanel.sheet.toolsCustom") }]}
+      onChange={(value) => {
+        if (value === "all") { void clear(); return; }
+        change({ custom: true, onlyListed: true });
+        if (at !== "selection") open("selection", t("botAccess.tools.custom"));
+      }}
+    />
+  );
+}
+
+function SelectionPage({ bot, selection }: { bot: Bot; selection: Selection }) {
+  const { draft, fields, parsed, support, unavailable, saving, error, change, save, example, status, empty } = selection;
+  const locked = saving || Boolean(bot.busy);
+  return (
+    <>
+      <Card footnote={bot.busy ? t("botAccess.tools.busy") : undefined} data-sheet-group="tools">
+        <SelectionRow bot={bot} selection={selection} />
+        {fields.custom && (
+          <SwitchRow title={t("botAccess.tools.onlyListed")} checked={fields.onlyListed} disabled={locked} onChange={() => change({ onlyListed: !fields.onlyListed })} />
+        )}
+      </Card>
+      {fields.custom && (
+        <>
+          <FieldCard label={t("botAccess.tools.allow")}>
+            <textarea
+              aria-label={t("botAccess.tools.allow")}
+              disabled={locked || !fields.onlyListed}
+              rows={4}
+              spellCheck={false}
+              placeholder={example}
+              value={fields.allow}
+              onChange={(event) => change({ allow: event.target.value })}
+              className={sheetAreaCls}
+            />
+          </FieldCard>
+          <FieldCard label={t("botAccess.tools.exclude")}>
+            <textarea
+              aria-label={t("botAccess.tools.exclude")}
+              disabled={locked}
+              rows={2}
+              spellCheck={false}
+              placeholder="mcp:mail:send"
+              value={fields.deny}
+              onChange={(event) => change({ deny: event.target.value })}
+              className={sheetAreaCls}
+            />
+          </FieldCard>
+          <div className="-mt-2.5 flex items-center justify-end gap-3 px-3">
+            <span role="status" className="mr-auto min-w-0 truncate text-[12px] leading-4 tracking-[0.01em] text-ink-secondary">{saving ? t("botAccess.tools.saving") : status}</span>
+            <button type="button" aria-label={t("botAccess.tools.save")} disabled={locked || !draft || !parsed.ok} onClick={() => void save()} className={pillCls}>
+              {t("botPanel.sheet.save")}
+            </button>
+          </div>
+          {(empty || unavailable || !parsed.ok) && (
+            <Card>
+              {empty && <NoteRow tone="warn">{t("botAccess.tools.emptyHint")}</NoteRow>}
+              {unavailable && <NoteRow tone="danger">{t(support === "mcp" ? "botAccess.tools.nativeUnsupported" : "botAccess.tools.unsupported")}</NoteRow>}
+              {!parsed.ok && <NoteRow tone="danger">{parsed.error}</NoteRow>}
+            </Card>
+          )}
+        </>
+      )}
+      {error && <Card><NoteRow tone="danger">{error}</NoteRow></Card>}
+    </>
+  );
+}
+
+function ServersPage({ bot, patch }: { bot: Bot; patch: Derived["patch"] }) {
   const { dispatch } = useStore();
   const { servers: all, error, refresh } = useMcpServers();
   const servers = all ? mcpServersOfBot(all, bot.id) : null;
@@ -111,132 +252,67 @@ function ServersGroup({ bot, patch }: { bot: Bot; patch: Derived["patch"] }) {
     const current = usesAll ? servers.filter((server) => server.enabled).map((server) => server.name) : [...(bot.mcpServers ?? [])];
     patch({ mcpServers: current.includes(name) ? current.filter((item) => item !== name) : [...current, name] });
   };
-  const add = (
-    <Pill aria-label={t("botAccess.mcpAdd")} onClick={() => dispatch({ type: "togglePlugins", open: true, surface: "mcp" })}>
-      {t("botPanel.sheet.add")}
-    </Pill>
-  );
 
   return (
-    <Group label={t("connectors.tab.mcp")} footnote={busy ? t("botPanel.sheet.busy") : undefined} data-sheet-group="mcp">
-      {error && <Row title={t("botPanel.sheet.serversError")} tone="warn"><Pill onClick={() => void refresh()}>{t("connectors.action.retry")}</Pill></Row>}
-      {servers === null ? !error && <Row title={t("mcp.loading")} />
-        : servers.length === 0 ? <Row title={t("botPanel.sheet.noServers")}>{add}</Row>
-          : (
-            <>
-              {servers.map((server) => (
-                <Row
-                  key={server.name}
-                  title={server.name}
-                  hint={!server.enabled ? t("botPanel.sheet.serverOff") : server.offFor?.includes(bot.id) ? t("botPanel.sheet.serverOffHere") : undefined}
-                >
-                  <Switch
-                    checked={mounted.has(server.name)}
-                    disabled={!server.enabled || busy || Boolean(error)}
-                    aria-label={t("botAccess.mcpAllow", { name: server.name })}
-                    onClick={() => toggle(server.name)}
-                  />
-                </Row>
-              ))}
-              <Row title={t("botPanel.sheet.addServer")}>
-                {!usesAll && <Pill disabled={busy || Boolean(error)} onClick={() => patch({ mcpServers: null })}>{t("botPanel.sheet.useAll")}</Pill>}
-                {add}
-              </Row>
-            </>
-          )}
-    </Group>
+    <>
+      <Card footnote={busy ? t("botPanel.sheet.busy") : undefined} data-sheet-group="mcp">
+        {error && <NavRow drill={false} title={t("botPanel.sheet.serversError")} value={t("connectors.action.retry")} onClick={() => void refresh()} />}
+        {servers === null ? !error && <NoteRow>{t("mcp.loading")}</NoteRow>
+          : servers.length === 0 ? <NoteRow>{t("botPanel.sheet.noServers")}</NoteRow>
+            : servers.map((server) => (
+              <SwitchRow
+                key={server.name}
+                title={server.name}
+                hint={!server.enabled ? t("botPanel.sheet.serverOff") : server.offFor?.includes(bot.id) ? t("botPanel.sheet.serverOffHere") : undefined}
+                label={t("botAccess.mcpAllow", { name: server.name })}
+                checked={mounted.has(server.name)}
+                disabled={!server.enabled || busy || Boolean(error)}
+                onChange={() => toggle(server.name)}
+              />
+            ))}
+      </Card>
+      <Card>
+        <NavRow data-sheet-row="add-server" aria-label={t("botAccess.mcpAdd")} title={t("botPanel.sheet.addServer")} onClick={() => dispatch({ type: "togglePlugins", open: true, surface: "mcp" })} />
+        {servers && servers.length > 0 && !usesAll && (
+          <NavRow drill={false} data-sheet-row="use-all" disabled={busy || Boolean(error)} title={t("botPanel.sheet.useAll")} onClick={() => patch({ mcpServers: null })} />
+        )}
+      </Card>
+    </>
   );
 }
 
-function SelectionGroup({ bot, engineKind }: { bot: Bot; engineKind?: string }) {
-  const { saved, draft, fields, parsed, support, unavailable, saving, error, change, save, clear, example, status, empty } = useToolSelection(bot, engineKind);
-  const busy = Boolean(bot.busy);
-  const locked = saving || busy;
-
-  return (
-    <Group label={t("botAccess.tools.title")} footnote={busy ? t("botAccess.tools.busy") : undefined} data-sheet-group="tools">
-      <Row title={t("botPanel.sheet.toolsRow")} hint={saving ? t("botAccess.tools.saving") : status} tone={saved.ok ? undefined : "danger"}>
-        <SelectPill
-          aria-label={t("botAccess.tools.title")}
-          disabled={locked}
-          value={fields.custom ? "custom" : "all"}
-          options={[{ value: "all", label: t("botPanel.sheet.toolsAll") }, { value: "custom", label: t("botPanel.sheet.toolsCustom") }]}
-          onChange={(value) => (value === "all" ? void clear() : change({ custom: true, onlyListed: true }))}
-        />
-      </Row>
-      {fields.custom && (
-        <>
-          <Row title={t("botAccess.tools.onlyListed")}>
-            <Switch checked={fields.onlyListed} disabled={locked} aria-label={t("botAccess.tools.onlyListed")} onClick={() => change({ onlyListed: !fields.onlyListed })} />
-          </Row>
-          <FieldRow label={t("botAccess.tools.allow")}>
-            <textarea
-              aria-label={t("botAccess.tools.allow")}
-              disabled={locked || !fields.onlyListed}
-              rows={3}
-              spellCheck={false}
-              placeholder={example}
-              value={fields.allow}
-              onChange={(event) => change({ allow: event.target.value })}
-              className={`${textAreaCls} font-mono text-[12px]`}
-            />
-          </FieldRow>
-          <FieldRow label={t("botAccess.tools.exclude")}>
-            <textarea
-              aria-label={t("botAccess.tools.exclude")}
-              disabled={locked}
-              rows={2}
-              spellCheck={false}
-              placeholder="mcp:mail:send"
-              value={fields.deny}
-              onChange={(event) => change({ deny: event.target.value })}
-              className={`${textAreaCls} font-mono text-[12px]`}
-            />
-          </FieldRow>
-          <Row title={t("botPanel.sheet.toolsSyntax")}>
-            <Pill aria-label={t("botAccess.tools.save")} disabled={locked || !draft || !parsed.ok} onClick={() => void save()}>
-              {t("botPanel.sheet.save")}
-            </Pill>
-          </Row>
-          {empty && <Row title={t("botAccess.tools.emptyHint")} tone="warn" />}
-          {unavailable && <Row title={t(support === "mcp" ? "botAccess.tools.nativeUnsupported" : "botAccess.tools.unsupported")} tone="danger" />}
-          {!parsed.ok && <Row title={parsed.error} tone="danger" />}
-        </>
-      )}
-      {error && <Row title={error} tone="danger" />}
-    </Group>
-  );
-}
-
-function ResearchGroup({ bot, patch }: { bot: Bot; patch: Derived["patch"] }) {
+function ResearchRow({ bot, patch }: { bot: Bot; patch: Derived["patch"] }) {
   const { state, dispatch } = useStore();
   const connecting = xResearchAction(useCloudPlan()?.view ?? null) === "connecting" && state.config?.xResearch?.unavailable !== true;
   const available = state.config?.treg?.configured === true || state.config?.xResearch?.included === true;
   const on = bot.xResearch !== false;
-  const hint = !available ? t(connecting ? "botPanel.sheet.researchSetup" : "botPanel.sheet.researchKey") : t(on ? "botPanel.sheet.on" : "botPanel.sheet.off");
+  if (!available && !connecting) {
+    return <NavRow data-sheet-row="research" title={t("botPanel.sheet.researchRow")} value={t("botPanel.sheet.researchKey")} onClick={() => dispatch(openKeySettings("treg"))} />;
+  }
   return (
-    <Group label={t("botPanel.sheet.research")} data-sheet-group="research">
-      <Row title={t("botPanel.sheet.researchRow")} hint={hint}>
-        {!available && !connecting
-          ? <Pill onClick={() => dispatch(openKeySettings("treg"))}>{t("botPanel.sheet.addKey")}</Pill>
-          : <Switch checked={available && on} disabled={!available} aria-label={t("research.switch")} onClick={() => patch({ xResearch: !on })} />}
-      </Row>
-    </Group>
+    <SwitchRow
+      data-sheet-row="research"
+      title={t("botPanel.sheet.researchRow")}
+      hint={available ? undefined : t("botPanel.sheet.researchSetup")}
+      label={t("research.switch")}
+      checked={available && on}
+      disabled={!available}
+      onChange={() => patch({ xResearch: !on })}
+    />
   );
 }
 
-function AlwaysGroup({ bot, patch }: { bot: Bot; patch: Derived["patch"] }) {
+function AlwaysPage({ bot, patch }: { bot: Bot; patch: Derived["patch"] }) {
   const entries = bot.alwaysAllow ?? [];
   return (
-    <Group label={t("botAccess.always.title")} data-sheet-group="always">
-      {entries.length === 0 && <Row title={t("botPanel.sheet.nothingYet")} />}
+    <Card footnote={t("botAccess.always.description")} data-sheet-group="always">
+      {entries.length === 0 && <NoteRow>{t("botAccess.always.empty")}</NoteRow>}
       {entries.map((entry) => (
-        <Row key={entry} title={entry} mono>
-          <Pill aria-label={t("botAccess.always.remove", { entry })} onClick={() => patch({ alwaysAllow: entries.filter((key) => key !== entry) })}>
-            {t("botPanel.sheet.remove")}
-          </Pill>
-        </Row>
+        <div key={entry} className={cn(rowCls, "group/row py-0.5 pr-0.5")}>
+          <span className="min-w-0 flex-1 truncate font-mono text-[12px] leading-4 text-ink">{entry}</span>
+          <RowIconButton reveal icon="trash" label={t("botAccess.always.remove", { entry })} onClick={() => patch({ alwaysAllow: entries.filter((key) => key !== entry) })} />
+        </div>
       ))}
-    </Group>
+    </Card>
   );
 }

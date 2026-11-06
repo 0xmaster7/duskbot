@@ -1,83 +1,109 @@
+import { useEffect, useState } from "react";
+
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { Bot } from "@/state/store";
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
-import { DialogSection, DialogSkeleton, FilledField, footnoteCls, GrokDialog, listRowCls, RowIconButton, rowHintCls, rowTitleCls, useInPane } from "../../ui/GrokDialog";
-import { Switch } from "../../SettingsPrimitives";
+import { Card, FormDialog, FormField, NavRow, NoteRow, rowCls, SheetPane, SwitchRow, useSubPage } from "../../ListRows";
+import { RowIconButton, textAreaCls } from "../../ui/GrokDialog";
 import { useMemoryEditor } from "./use-memory-editor";
 
-/** What the bot remembers: memory on or off, its notes with a forget on each, and a line to add one. */
-export function MemoryModal({ bot, derived, onClose }: {
+/** What the bot remembers: memory on or off, its notes on a page of their own with a forget on each, and a small form to
+ * add one. */
+export function MemoryModal({ bot, derived }: {
   bot: Bot;
   derived: ReturnType<typeof useBotSettingsDerived>;
   onClose: () => void;
 }) {
-  const { memoryOn, readError, notes, index, draft, setDraft, saving, error, forget, add } = useMemoryEditor(bot);
-  const count = notes?.length ?? 0;
-  const label = notes === null || count === 0 ? "Notes" : count === 1 ? t("botPanel.memory.note") : t("botPanel.memory.notes", { count });
+  return (
+    <SheetPane data-panel-modal="memory" title={t("botPanel.memoryRow")}>
+      <MemoryRows bot={bot} derived={derived} />
+    </SheetPane>
+  );
+}
+
+function MemoryRows({ bot, derived }: { bot: Bot; derived: ReturnType<typeof useBotSettingsDerived> }) {
+  const editor = useMemoryEditor(bot);
+  const { memoryOn, readError, notes, index, saving, error, forget } = editor;
+  const { at, open } = useSubPage();
+  const [adding, setAdding] = useState(false);
   const editable = bot.yourAccess !== "view";
-  const inPane = useInPane();
+  const count = notes?.length ?? 0;
+  const value = readError ? t("botPanel.library.memoryError") : notes === null ? t("common.checking")
+    : count === 0 ? t("botPanel.sheet.noNotes") : count === 1 ? t("botPanel.memory.note") : t("botPanel.memory.notes", { count });
+
+  if (at === "notes") {
+    return (
+      <>
+        <Card data-sheet-group="notes">
+          {readError ? <NoteRow tone="warn">{t("botPanel.library.memoryError")}</NoteRow>
+            : notes === null ? <NoteRow>{t("common.checking")}</NoteRow>
+              : notes.length === 0 ? <NoteRow>{t("botPanel.sheet.noNotes")}</NoteRow>
+                : notes.map((note) => (
+                  <div key={`${note.path}:${note.line}:${note.text}`} data-memory-note={note.line ?? note.path} className={cn(rowCls, "group/row py-0.5 pr-0.5")}>
+                    <span className="min-w-0 flex-1 py-1 text-[13px] leading-[18px] tracking-[0.015em] text-pretty text-ink">{note.text}</span>
+                    {editable && <RowIconButton reveal icon="trash" data-modal-action="forget" label={t("botPanel.memory.forget")} disabled={saving} onClick={() => forget(note)} />}
+                  </div>
+                ))}
+          {error && <NoteRow tone="warn">{error}</NoteRow>}
+        </Card>
+        {editable && (
+          <Card>
+            <NavRow data-sheet-row="add-note" disabled={index === null} title={t("sheet.rows.addNote")} onClick={() => setAdding(true)} />
+          </Card>
+        )}
+        {adding && <AddNoteDialog bot={bot} editor={editor} onClose={() => setAdding(false)} />}
+      </>
+    );
+  }
 
   return (
-    <GrokDialog
-      data-panel-modal="memory"
-      title={t("botPanel.memoryRow")}
-      description={`What ${bot.name} keeps in mind between chats.`}
+    <>
+      <Card data-sheet-group="memory">
+        <SwitchRow
+          title={t("memory.enable")}
+          hint={memoryOn ? t("botPanel.sheet.memoryOn") : t("botPanel.sheet.off")}
+          checked={memoryOn}
+          disabled={Boolean(bot.busy) || !editable}
+          onChange={() => derived.patch({ memoryEnabled: !memoryOn })}
+        />
+        {memoryOn && <NavRow data-sheet-row="notes" title={t("sheet.rows.notes")} value={value} onClick={() => open("notes", t("sheet.rows.notes"))} />}
+        {memoryOn && editable && <NavRow data-sheet-row="add-note" disabled={index === null} title={t("sheet.rows.addNote")} onClick={() => setAdding(true)} />}
+      </Card>
+      {error && <Card><NoteRow tone="warn">{error}</NoteRow></Card>}
+      {adding && <AddNoteDialog bot={bot} editor={editor} onClose={() => setAdding(false)} />}
+    </>
+  );
+}
+
+function AddNoteDialog({ bot, editor, onClose }: { bot: Bot; editor: ReturnType<typeof useMemoryEditor>; onClose: () => void }) {
+  const { draft, setDraft, saving, error, add } = editor;
+  const [sent, setSent] = useState(false);
+  useEffect(() => {
+    if (sent && !saving && !error && draft === "") onClose();
+  }, [sent, saving, error, draft, onClose]);
+  return (
+    <FormDialog
+      data-panel-modal="memory-add"
+      title={t("sheet.rows.addNote")}
+      saveLabel={t("common.add")}
+      canSave={Boolean(draft.trim())}
+      busy={saving}
+      error={sent ? error : null}
+      onSave={() => { setSent(true); return add(); }}
       onClose={onClose}
     >
-      <div className="flex flex-col gap-7">
-        <DialogSection label="Memory">
-          <div data-modal-row="memory-on" className={listRowCls}>
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className={rowTitleCls}>{t("memory.enable")}</span>
-              <span className={rowHintCls}>{memoryOn ? t("botPanel.sheet.memoryOn") : t("botPanel.sheet.off")}</span>
-            </div>
-            <Switch
-              checked={memoryOn}
-              disabled={Boolean(bot.busy) || !editable}
-              aria-label={t("memory.enable")}
-              onClick={() => derived.patch({ memoryEnabled: !memoryOn })}
-            />
-          </div>
-        </DialogSection>
-
-        {memoryOn && (
-          <div className="flex flex-col gap-2.5">
-            <DialogSection label={label} data-modal-group="notes">
-              {readError ? (
-                <p role="alert" className={cn(listRowCls, rowHintCls, "m-0 text-warning")}>{t("botPanel.library.memoryError")}</p>
-              ) : notes === null ? (
-                <DialogSkeleton />
-              ) : notes.length === 0 ? (
-                <p data-modal-empty className={cn(listRowCls, rowTitleCls, "m-0")}>{t("botPanel.sheet.noNotes")}</p>
-              ) : (
-                <ul aria-label={label} className={cn("m-0 flex list-none flex-col p-0", !inPane && "max-h-[min(300px,calc(100dvh-420px))] overflow-y-auto [scrollbar-width:thin]")}>
-                  {notes.map((note) => (
-                    <li key={`${note.path}:${note.line}:${note.text}`} data-memory-note={note.line ?? note.path} className={cn("group/row", listRowCls, "min-h-9 gap-x-3 py-1.5 pr-2.5")}>
-                      <span className={cn(rowTitleCls, "min-w-0 flex-1 text-pretty")}>{note.text}</span>
-                      {editable && <RowIconButton reveal icon="trash" data-modal-action="forget" label={t("botPanel.memory.forget")} disabled={saving} onClick={() => forget(note)} />}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </DialogSection>
-            {editable && (
-              <FilledField
-                data-panel-form="memory-add"
-                value={draft}
-                placeholder={t("botPanel.memory.addPlaceholder", { name: bot.name })}
-                label={t("botPanel.memory.addPlaceholder", { name: bot.name })}
-                disabled={index === null}
-                busy={saving}
-                submitLabel={t("common.add")}
-                onChange={setDraft}
-                onSubmit={() => void add()}
-              />
-            )}
-          </div>
-        )}
-        {error && <p role="alert" className={cn(footnoteCls, "-mt-4 text-warning")}>{error}</p>}
-      </div>
-    </GrokDialog>
+      <FormField label={t("botPanel.memory.addPlaceholder", { name: bot.name })}>
+        <textarea
+          data-autofocus
+          data-panel-form="memory-add"
+          rows={3}
+          value={draft}
+          aria-label={t("botPanel.memory.addPlaceholder", { name: bot.name })}
+          onChange={(event) => setDraft(event.target.value)}
+          className={textAreaCls}
+        />
+      </FormField>
+    </FormDialog>
   );
 }

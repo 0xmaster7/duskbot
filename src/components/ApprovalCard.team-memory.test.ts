@@ -23,7 +23,8 @@ beforeEach(() => { fixture.admin = false; });
 
 it("offers no Undo on a department memory notice to a session that may not review team memory", () => {
   const html = render();
-  expect(html).toContain("Luna saved to department memory: Person: Ada Lovelace");
+  expect(html).toContain(">Saved to department memory<");
+  expect(html).toContain(">Person: Ada Lovelace<");
   expect(html).not.toContain(">Undo<");
 });
 

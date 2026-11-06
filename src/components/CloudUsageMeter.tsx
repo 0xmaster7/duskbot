@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from "react";
-import { ArrowUpRight, Gauge, Loader2, X } from "lucide-react";
+import { ArrowUpRight, Loader2, X } from "lucide-react";
 
 import type { CloudPlanBridge, CloudPlanSnapshot, CloudUpgradePreview, CloudUpgradeRefusal } from "../../electron/cloud-account.mjs";
 import type { CloudUsage, CloudUsageMeter } from "../../electron/cloud-home.mjs";
@@ -127,7 +127,6 @@ export function useUpgrade(bridge: CloudPlanBridge | undefined, usage: CloudUsag
     <ConfirmDialog
       open={preview !== null}
       tone="neutral"
-      icon={<Gauge size={18} className="text-accent" />}
       title={preview ? t("usageMeter.confirm.title", { plan: cloudPlanLabel(preview.plan) }) : ""}
       body={preview ? upgradeConfirmBody(preview, { trialEndsAt: usage?.trialEndsAt }) : ""}
       confirmLabel={preview ? t("usageMeter.confirm.action", { plan: cloudPlanLabel(preview.plan) }) : ""}

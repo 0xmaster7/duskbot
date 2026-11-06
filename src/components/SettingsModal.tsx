@@ -19,15 +19,13 @@ import { workspacesAvailable } from "./WorkspacesSection";
 import { GrokIcon } from "./GrokIcon";
 import { SIMPLE_BUTTONS } from "./SettingsPrimitives";
 import { SettingsSelect } from "./SettingsSelect";
+import { PaneHeader, PanelSections, SubPageContext, WipeStack, type SubPage } from "./ListRows";
 import {
-  AdvancedIndex, AdvancedPageView, BackButton, ComputerPane, GeneralPane, ModelsPane, PermissionsPane, TextingPane, UpdatesPane, UsagePane, VaultPane,
+  AdvancedIndex, AdvancedPageView, SECTION_PAGES, ComputerPane, GeneralPane, ModelsPane, PermissionsPane, TextingPane, UpdatesPane, UsagePane, VaultPane,
   advancedTitle, type AdvancedPage, type Disclose, type RemoteAccessCards,
 } from "./SettingsPanes";
 import { ADVANCED_PAGES, SETTINGS_PANES, settingsLocation, type SettingsPane } from "@/lib/open-settings";
 import "../styles/settings.css";
-
-const WIPE_MS = 200;
-const prefersReducedMotion = () => document.documentElement.dataset.reducedMotion === "true" || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 
 export { openSettings, settingsLocation, SETTINGS_PANES, type SettingsLocation, type SettingsPane } from "@/lib/open-settings";
 
@@ -109,46 +107,39 @@ export function SettingsModal() {
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const headingRef = useRef<HTMLHeadingElement>(null);
 
-  // Grok's wipe between Advanced features and one of its pages: the page slides in over the list, and back out
-  const where = pane === "advanced" ? `advanced:${page ?? ""}` : pane;
-  const [shownAt, setShownAt] = useState(where);
-  const [wipe, setWipe] = useState<{ direction: "push" | "pop"; from: AdvancedPage | undefined; scrollTop: number; id: number } | null>(null);
-  if (where !== shownAt) {
-    setShownAt(where);
-    const fromPage = shownAt.startsWith("advanced:") ? (shownAt.slice(9) || undefined) as AdvancedPage | undefined : null;
-    const within = fromPage !== null && pane === "advanced" && (fromPage === undefined) !== (page === undefined);
-    setWipe(within && !prefersReducedMotion()
-      ? { direction: page ? "push" : "pop", from: fromPage, scrollTop: scrollRef.current?.scrollTop ?? 0, id: (wipe?.id ?? 0) + 1 }
-      : null);
+  // a pane's own pages (and Advanced features' pages) slide in over its list with Grok's wipe; another pane swaps at once
+  const paneKey = `${pane}:${page ?? ""}`;
+  const linkedPage = (section: AppSettingsSection): SubPage[] => {
+    const target = SECTION_PAGES[section];
+    const place = settingsLocation(section);
+    const home = place.page ? ADVANCED_PAGES.find((entry) => entry.id === place.page)?.sections : SETTINGS_PANES.find((entry) => entry.id === place.pane)?.sections;
+    // the rail and Advanced's rows open a pane or page by its first section: that is its list, not one of its pages
+    if (!target || !has(section) || home?.find(has) === section) return [];
+    return [{ id: target.id, title: t(target.title) }];
+  };
+  const [sub, setSub] = useState<{ key: string; stack: SubPage[] }>(() => ({ key: paneKey, stack: linkedPage(requested) }));
+  // a link to a section that lives on a pane's page lands on that page
+  const [linked, setLinked] = useState(requested);
+  if (linked !== requested) {
+    setLinked(requested);
+    setSub({ key: paneKey, stack: linkedPage(requested) });
   }
-  useEffect(() => {
-    if (!wipe) return;
-    // focus left with the old layer: it lands on the new heading, as Grok's wipe does
-    const active = document.activeElement;
-    const heading = headingRef.current;
-    if (heading && (!active || active === document.body || active.closest("[inert]"))) {
-      heading.setAttribute("tabindex", "-1");
-      heading.focus({ preventScroll: true });
-      heading.addEventListener("blur", () => heading.removeAttribute("tabindex"), { once: true });
-    }
-    const timer = window.setTimeout(() => setWipe((current) => (current?.id === wipe.id ? null : current)), WIPE_MS + 50);
-    return () => window.clearTimeout(timer);
-  }, [wipe]);
-  const thumb = useScrollThumb(scrollRef, `${pane}:${page ?? ""}`);
+  const stack = sub.key === paneKey ? sub.stack : [];
+  const thumb = useScrollThumb(scrollRef, `${paneKey}:${stack.length}`);
 
   const [folds, setFolds] = useState<Record<string, boolean>>({});
   const keyFocus = useKeyFocus();
   const disclose: Disclose = (id) => {
-    const open = folds[id] ?? (id === "computer-elsewhere" && (requested === "remote" || requested === "desktopWorkspaces"));
+    const open = folds[id] ?? false;
     return { id, open, onToggle: () => setFolds((current) => ({ ...current, [id]: !open })) };
   };
 
   useEffect(() => {
     const scroller = scrollRef.current;
     if (!scroller) return;
-    const lead = paneEntry.sections.find(has) === requested || (page !== undefined && ADVANCED_PAGES.find((entry) => entry.id === page)?.sections.find(has) === requested);
+    const lead = paneEntry.sections.find(has) === requested || (page !== undefined && ADVANCED_PAGES.find((entry) => entry.id === page)?.sections.find(has) === requested)
+      || SECTION_PAGES[requested] !== undefined;
     revealSettingsBlock(scroller, requested === "remote" ? "remote" : requested, lead && !keyFocus);
   }, [requested, pane, page, paneEntry, keyFocus]);
 
@@ -206,11 +197,11 @@ export function SettingsModal() {
     switch (pane) {
       case "general": return <GeneralPane has={has} remoteActive={remoteActive} />;
       case "texting": return <TextingPane has={has} remoteAccess={remoteAccess} />;
-      case "computer": return <ComputerPane has={has} remoteAccess={remoteAccess} servers={<ConnectedWorkspacesSettings />} disclose={disclose} />;
+      case "computer": return <ComputerPane has={has} remoteAccess={remoteAccess} servers={<ConnectedWorkspacesSettings />} />;
       case "permissions": return <PermissionsPane has={has} />;
       case "vault": return <VaultPane />;
       case "models": return <ModelsPane has={has} disclose={disclose} connections={<AdminOnly><KeysPage /></AdminOnly>} />;
-      case "usage": return <UsagePane has={has} disclose={disclose} cloudAccount={cloudAccount} />;
+      case "usage": return <UsagePane has={has} cloudAccount={cloudAccount} />;
       case "updates": return <UpdatesPane remoteActive={remoteActive} />;
       case "advanced": return at
         ? <AdvancedPageView page={at} has={has} remoteActive={remoteActive} peopleOpen={requested === "people"} />
@@ -220,38 +211,48 @@ export function SettingsModal() {
 
   const headingId = `settings-panel-${pane}-heading`;
   // one pane's header and scrolling body; the outgoing copy of a wipe is drawn without ids, refs or focus
-  const paneView = (at: AdvancedPage | undefined, live: boolean) => (
-    <>
-      <header className="settings-pane-header">
-        <div className="flex min-w-0 items-center gap-1.5">
-          {at && <BackButton onBack={() => go("advanced")} />}
-          <h2 ref={live ? headingRef : undefined} id={live ? headingId : undefined}
-            className={cn("settings-pane-title truncate outline-none", at && "ps-0")}>{at ? advancedTitle(at) : t(paneEntry.labelKey)}</h2>
-        </div>
-        <div className="w-full sm:hidden">
-          <SettingsSelect
-            value={pane}
-            aria-label={t("settings.pane.picker")}
-            options={panes.map((entry) => ({ value: entry.id, label: t(entry.labelKey) }))}
-            onChange={(event) => { const next = panes.find((entry) => entry.id === event.target.value); if (next) go(next.sections.find(has)!); }}
-          />
-        </div>
-      </header>
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div ref={live ? scrollRef : (element) => { if (element && wipe) element.scrollTop = wipe.scrollTop; }} data-settings-scroll={live ? "" : undefined} className="settings-scroll">
-          <div className={cn("settings-pane", SIMPLE_BUTTONS, "[&_.uppercase]:normal-case [&_.uppercase]:tracking-normal")}>
-            {live && <LicenseExpiryBanner config={state.config} />}
-            {renderBody(at)}
+  const layer = (key: string, live: boolean) => {
+    const { at, pages } = JSON.parse(key) as { at: AdvancedPage | null; pages: SubPage[] };
+    const top = pages.at(-1);
+    const nav = {
+      at: top?.id,
+      open: (id: string, title: string) => setSub({ key: paneKey, stack: [...pages, { id, title }] }),
+      back: () => setSub({ key: paneKey, stack: pages.slice(0, -1) }),
+    };
+    const onBack = top ? nav.back : at ? () => go("advanced") : undefined;
+    return (
+      <>
+        <PaneHeader
+          title={top?.title ?? (at ? advancedTitle(at) : t(paneEntry.labelKey))}
+          headingId={live ? headingId : undefined}
+          onBack={onBack}
+          backLabel={!top && at ? t("settings.advanced.back") : undefined}
+        >
+          <div className="w-full sm:hidden">
+            <SettingsSelect
+              value={pane}
+              aria-label={t("settings.pane.picker")}
+              options={panes.map((entry) => ({ value: entry.id, label: t(entry.labelKey) }))}
+              onChange={(event) => { const next = panes.find((entry) => entry.id === event.target.value); if (next) go(next.sections.find(has)!); }}
+            />
           </div>
-        </div>
-        {live && thumb && (
-          <div role="presentation" className="settings-scrollbar" data-scrolling={thumb.scrolling ? "" : undefined}>
-            <div style={{ top: thumb.top, height: thumb.height }} />
+        </PaneHeader>
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div ref={live ? scrollRef : undefined} data-wipe-scroll="" data-settings-scroll={live ? "" : undefined} className="settings-scroll">
+            <div className={cn("settings-pane", SIMPLE_BUTTONS, "[&_.uppercase]:normal-case [&_.uppercase]:tracking-normal")}>
+              {live && !top && <LicenseExpiryBanner config={state.config} />}
+              <SubPageContext.Provider value={nav}><PanelSections className="contents">{renderBody(at ?? undefined)}</PanelSections></SubPageContext.Provider>
+            </div>
           </div>
-        )}
-      </div>
-    </>
-  );
+          {live && thumb && (
+            <div role="presentation" className="settings-scrollbar" data-scrolling={thumb.scrolling ? "" : undefined}>
+              <div style={{ top: thumb.top, height: thumb.height }} />
+            </div>
+          )}
+        </div>
+      </>
+    );
+  };
 
   return (
     <div className="settings-scrim" data-settings-sheet data-settings-look="simple" onMouseDown={(event) => event.target === event.currentTarget && close()}>
@@ -280,15 +281,7 @@ export function SettingsModal() {
             <button type="button" onClick={close} aria-label={t("settings.grok.close")} className="settings-close">
               <GrokIcon name="close" size={14} />
             </button>
-            <div className="settings-wipe">
-              <div className="settings-wipe-layer" data-wipe={wipe?.direction}>{paneView(page, true)}</div>
-              {wipe && (
-                <div key={`out:${wipe.id}`} aria-hidden="true" inert className="settings-wipe-layer" data-wipe={wipe.direction} data-wipe-out=""
-                  onAnimationEnd={(event) => { if (event.target === event.currentTarget) setWipe((current) => (current?.id === wipe.id ? null : current)); }}>
-                  {paneView(wipe.from, false)}
-                </div>
-              )}
-            </div>
+            <WipeStack at={JSON.stringify({ at: page ?? null, pages: stack })} depth={(page ? 1 : 0) + stack.length} group={pane} layer={layer} />
           </section>
         </div>
       </div>

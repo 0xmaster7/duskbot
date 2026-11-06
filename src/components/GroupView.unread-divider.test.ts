@@ -57,7 +57,7 @@ describe("the New divider in a room", () => {
 });
 
 describe("NewMessagesDivider", () => {
-  it("draws two accent hairlines around a small label, named for screen readers", () => {
+  it("draws two solid accent hairlines at 20% around a small label, named for screen readers", () => {
     const html = renderToStaticMarkup(createElement(NewMessagesDivider, { fading: false }));
     expect(html).toContain('role="separator"');
     expect(html).toContain('aria-label="New messages"');
@@ -65,8 +65,8 @@ describe("NewMessagesDivider", () => {
     expect(html).toContain(">New<");
     expect(html).toContain("text-[11px]");
     expect(html).toContain("text-accent-text");
-    expect(html.match(/h-px flex-1/g)).toHaveLength(2);
-    expect(html).toContain("rtl:bg-linear-to-l");
+    expect(html.match(/h-px min-w-0 flex-1/g)).toHaveLength(2);
+    expect(html).toContain("bg-accent-text/20");
     expect(html).toContain("motion-reduce:transition-none");
     expect(html).toContain("grid-rows-[1fr]");
   });

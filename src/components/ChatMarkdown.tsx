@@ -27,6 +27,8 @@ import { ThreadLink, ThreadRefsContext, threadLinkFromProps, type ThreadRefsValu
 import { MarkdownTable } from "./MarkdownTable";
 import { CodeBlock, CodePlate, codeHash } from "./CodeBlock";
 import { GrokIcon } from "./GrokIcon";
+import { appLogo } from "./connect-apps/logos";
+import { linkBrand, PLATED_LOGOS } from "@/lib/link-brand";
 export { CodeBlock, HIGHLIGHT_CACHE_MAX, HIGHLIGHT_CACHE_MAX_CHARS, HIGHLIGHT_MAX_CHARS, type CodeBlockProps } from "./CodeBlock";
 import { FilePreviewButton } from "./FilePreviewButton";
 import { SaveIconButton, useHtmlPreview } from "./HtmlFilePreview";
@@ -641,15 +643,23 @@ export function bareUrlLabel(href: string, children: ReactNode): ReactNode {
   }
 }
 
+/** Google's favicon service answers a site it has no icon for with a 404 whose body is its 16px default globe, and
+ * Chromium draws that body; a real icon comes back at the 32px asked for. */
+const googleDefaultIcon = (image: HTMLImageElement) => image.naturalWidth < 32;
+
 function LinkWithFavicon({ href, children: given }: { href: string; children?: ReactNode }) {
   const children = bareUrlLabel(href, given);
   const host = faviconHost(href);
+  const brand = linkBrand(href);
+  const logo = brand ? appLogo(brand) : undefined;
   const [failed, setFailed] = useState(false);
   return (
     <span className="chat-link-lead">
-      <span aria-hidden="true" data-copy-skip="" className="chat-link-favicon">
-        {host && !failed
-          ? <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=32`} alt="" width={14} height={14} loading="lazy" draggable={false} referrerPolicy="no-referrer" onError={() => setFailed(true)} />
+      <span aria-hidden="true" data-copy-skip="" className="chat-link-favicon" data-brand={logo ? brand! : undefined} data-plated={logo && PLATED_LOGOS.has(brand!) ? "" : undefined}>
+        {logo
+          ? <img src={logo.src} alt="" width={18} height={18} draggable={false} />
+          : host && !failed
+          ? <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=32`} alt="" width={14} height={14} loading="lazy" draggable={false} referrerPolicy="no-referrer" onError={() => setFailed(true)} onLoad={(event) => googleDefaultIcon(event.currentTarget) && setFailed(true)} />
           : <GrokIcon name="globe" size={16} />}
       </span>
       <span className="chat-link-text">{children}</span>

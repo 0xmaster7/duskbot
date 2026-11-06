@@ -53,9 +53,10 @@ const enabled = process.env.OMB_UI_E2E === "1" || Boolean(resolveAgentBrowserBin
     await expect.poll(snapshot, { timeout: 15_000 }).toContain("Actions for Clive");
     await clickRole("button", /^Clive(?:,|$)/);
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Open Clive's profile");
-    // Panel > Advanced > Permissions opens the bot's settings sheet there; the departments list is open under Chief of Staff.
+    // Panel > Advanced > Permissions opens the bot's settings sheet there; Also in charge of opens the departments list.
     await openBotSheet(ui, "Clive", "permissions");
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Also in charge of");
+    await ui("eval", "--js", "document.querySelector('[data-bot-sheet] [data-sheet-row=chief-teams]').click(); true");
     await clickRole("checkbox", "Engineering");
     await clickRole("checkbox", "Research");
     await clickRole("checkbox", "Empty delivery");

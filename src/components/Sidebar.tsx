@@ -69,7 +69,6 @@ import { GrokIcon } from "./GrokIcon";
 import { NeedsYouButton, OwnerPickerHost, pickOwnerOf } from "./TeamOwner"; import { SidebarPeople } from "./SidebarPeople"; import { SidebarInboxRow } from "./SidebarInboxRow"; import { setAttentionPinned, useAttentionPinned } from "./inbox/attention-pinned";
 import { showWhoReportsToWhom, TeamMenuItems } from "./SidebarTeamMenu";
 import { MENU_ITEM, MENU_ITEM_SEPARATOR, MENU_SHEET } from "./menu-recipe";
-import { ELEVATED_CONTROL } from "./elevated";
 import { useTeamPeople } from "@/state/team-people";
 export { TeamMenuItems };
 import { SidebarResizeHandle, useSidebarWidth } from "./SidebarResizeHandle";
@@ -1186,7 +1185,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
       {density === "icons" && !rail && <DesktopWorkspaceSwitcher compact cloudHome={state.config?.cloudHome === true} place={state.config?.team?.name} owner={cloudOwner} howTo={state.cloudHowTo} onMenuClosed={endHowTo} />}
       <OrganizationIdentity compact={density === "icons"} />
       {phone ? null : simple ? searchShown && <SidebarSearchPill query={query} onQuery={setQuery} onClose={closeSearch} /> : <div className={cn("pt-1 pb-3", density === "icons" ? "hidden" : "px-3")}>
-        <div className={cn("flex h-8 items-center gap-2 rounded-full px-3 focus-within:inset-ring-focus", ELEVATED_CONTROL)}>
+        <div className="flex h-8 items-center gap-2 rounded-full bg-ink/4 px-3 transition-[background-color] duration-[120ms] focus-within:bg-ink/7">
           <Search size={15} className="shrink-0 text-ink-secondary" />
           <input
             value={query}
@@ -1457,7 +1456,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
         })()}
       </div>, document.body)}
       <ConfirmDialog open={deletingTeam !== null} title={simpleDesk ? t("sidebar.grok.deleteSectionTitle", { name: deletingTeam ?? "" }) : t("team.deleteTitle", { name: deletingTeam ?? "" })}
-        body={simpleDesk ? t("sidebar.grok.deleteSectionBody") : t(advanced ? "team.deleteKeepBotsDescription" : "team.deleteKeepBotsSimple")} confirmLabel={simpleDesk ? t("sidebar.grok.delete") : t("team.delete")} returnFocusRef={sidebarRef}
+        body={simpleDesk ? t("sidebar.grok.deleteSectionBody") : t("confirm.departmentDelete")} confirmLabel={simpleDesk ? t("sidebar.grok.delete") : t("team.delete")} returnFocusRef={sidebarRef}
         pending={teamDeletePending}
         onCancel={() => { if (!teamDeleteRunning.current) setDeletingTeam(null); }} onConfirm={() => {
           const name = deletingTeam;
@@ -1493,7 +1492,6 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
       <ConfirmDialog
         open={deletingRoom !== undefined}
         {...roomDeleteCopy(deletingRoom ?? { name: "" })}
-        icon={<Trash2 size={18} />}
         returnFocusRef={sidebarRef}
         onCancel={() => setDeletingRoomId(null)}
         onConfirm={() => {

@@ -8,13 +8,15 @@ import { useStore, type Bot } from "@/state/store";
 import { GrokIcon } from "../../GrokIcon";
 import { InstanceProviderMark } from "../../ProviderIcons";
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
-import { DialogEmpty, DialogSection, footnoteCls, GrokDialog, listRowCls, RowIconButton, rowHintCls, rowTitleCls } from "../../ui/GrokDialog";
+import { Card, NoteRow, rowCls, SheetPane } from "../../ListRows";
+import { RowIconButton } from "../../ui/GrokDialog";
 import { BackupChooser, MAX_BACKUPS, modelKey, type Backup } from "../BackupAis";
 
-const chooserRowCls = "mx-1.5 flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-[10px] px-2 text-left transition-[background-color] duration-[120ms] ease-[ease] hover:bg-ink/5 aria-expanded:bg-ink/6 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus disabled:cursor-default";
+const chooserRowCls = cn(rowCls, "min-w-0 flex-1 cursor-pointer text-left outline-none transition-[background-color] duration-100 ease-[ease] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus disabled:cursor-default");
+const textCls = "text-[13px] leading-[18px] tracking-[0.015em]";
 
 /** The bot's backup AIs as an ordered list under its own: change one, move it up or down, remove it, add another. */
-export function BackupsModal({ bot, derived, onClose }: {
+export function BackupsModal({ bot, derived }: {
   bot: Bot;
   derived: ReturnType<typeof useBotSettingsDerived>;
   onClose: () => void;
@@ -46,95 +48,86 @@ export function BackupsModal({ bot, derived, onClose }: {
     : <span className="size-4 shrink-0 rounded-full bg-ink/8" aria-hidden="true" />;
 
   return (
-    <GrokDialog
-      data-panel-modal="backups"
-      title={t("botPanel.backups.title")}
-      description={`If ${bot.name}'s AI hits its limit or can't start, the first one here takes over.`}
-      onClose={onClose}
-    >
-      <div className="flex flex-col gap-7">
-        <DialogSection label="Main AI">
-          <div data-backup-main title={t("botPanel.backups.hint", { name: bot.name })} className={cn(listRowCls, "gap-x-2.5")}>
-            {mark(main.instance)}
-            <span className={cn(rowTitleCls, "min-w-0 flex-1 truncate")}>{main.short}</span>
-            {main.instance && <span className={cn(rowHintCls, "min-w-0 shrink truncate")}>{main.instance.displayName}</span>}
-          </div>
-        </DialogSection>
-
-        <div className="flex flex-col gap-2.5">
-          <DialogSection label={chain.length ? "Backups, in order" : "Backups"}>
-            {chain.length === 0 && !(editable && chain.length < MAX_BACKUPS) && <DialogEmpty>No backups yet.</DialogEmpty>}
-            {chain.length > 0 && (
-              <ol aria-label={t("botPanel.backups.title")} className="m-0 flex list-none flex-col p-0">
-                {chain.map((entry, index) => {
-                  const { instance, name, short } = describe(entry);
-                  return (
-                    <li key={modelKey(entry.instanceId, entry.model)} data-backup={entry.instanceId} className="group/row flex min-h-11 items-center pr-2.5">
-                      <BackupChooser
-                        bot={bot}
-                        current={entry}
-                        exclude={others(index)}
-                        onPick={(picked) => onChange(chain.map((candidate, at) => (at === index ? picked : candidate)))}
-                        label={t("botPanel.backups.row", { position: index + 1, model: name })}
-                        title={instance ? `${instance.displayName}: ${name}` : name}
-                        data-panel-action="backup-change"
-                        className={chooserRowCls}
-                      >
-                        <span className="w-4 shrink-0 text-center text-[12px] tabular-nums text-ink/40" aria-hidden="true">{index + 1}</span>
-                        {mark(instance)}
-                        <span className={cn(rowTitleCls, "min-w-0 truncate")}>{short}</span>
-                        {instance
-                          ? <span className={cn(rowHintCls, "min-w-0 shrink truncate")}>{instance.displayName}</span>
-                          : <span className="shrink-0 text-[12px] text-warning">{t("model.simple.unavailable")}</span>}
-                        <span aria-hidden="true" className="ml-auto flex shrink-0 text-ink/40"><GrokIcon name="chevron-down-small" size={14} /></span>
-                      </BackupChooser>
-                      {editable && (
-                        <span className="flex shrink-0 items-center">
-                          {chain.length > 1 && (
-                            <>
-                              <RowIconButton reveal icon="arrow-up" data-modal-action="backup-up" label={`Move ${name} up`} disabled={index === 0} onClick={() => move(index, index - 1)} />
-                              <RowIconButton reveal icon="arrow-down" data-modal-action="backup-down" label={`Move ${name} down`} disabled={index === chain.length - 1} onClick={() => move(index, index + 1)} />
-                            </>
-                          )}
-                          <RowIconButton
-                            reveal
-                            icon="trash"
-                            data-modal-action="backup-remove"
-                            label={t("botPanel.backups.remove", { model: name })}
-                            onClick={() => {
-                              onChange(chain.filter((_, at) => at !== index));
-                              addRef.current?.focus({ preventScroll: true });
-                            }}
-                          />
-                        </span>
-                      )}
-                    </li>
-                  );
-                })}
-              </ol>
-            )}
-            {editable && chain.length < MAX_BACKUPS && (
-              <div className="flex">
-                <BackupChooser
-                  bot={bot}
-                  current={null}
-                  exclude={others(null)}
-                  onPick={(picked) => onChange([...chain, picked])}
-                  label={t("model.fallback.add")}
-                  buttonRef={addRef}
-                  data-panel-action="backup-add"
-                  className={cn(chooserRowCls, "text-[13px] leading-[18px] tracking-[-0.08px] text-ink")}
-                >
-                  <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center rounded-full bg-ink/6 text-ink/80"><GrokIcon name="plus" size={12} /></span>
-                  {t("model.fallback.add")}
-                </BackupChooser>
-              </div>
-            )}
-          </DialogSection>
-          {chain.length > 0 && chain.length < MAX_BACKUPS && <p className={footnoteCls}>{t("botPanel.sheet.backupsHint")}</p>}
-          {chain.length >= MAX_BACKUPS && <p className={footnoteCls}>That's the most a bot can keep.</p>}
+    <SheetPane data-panel-modal="backups" title={t("botPanel.backups.title")}>
+      <Card label={t("botPanel.sheet.mainAi")} data-sheet-group="main">
+        <div data-backup-main title={t("botPanel.backups.hint", { name: bot.name })} className={rowCls}>
+          {mark(main.instance)}
+          <span className={cn(textCls, "min-w-0 flex-1 truncate text-ink")}>{main.short}</span>
+          {main.instance && <span className={cn(textCls, "min-w-0 max-w-[50%] shrink-0 truncate text-ink-secondary")}>{main.instance.displayName}</span>}
         </div>
-      </div>
-    </GrokDialog>
+      </Card>
+
+      <Card
+        label={t("botPanel.sheet.backups")}
+        data-sheet-group="backups"
+        footnote={chain.length >= MAX_BACKUPS ? t("sheet.rows.backupsFull") : t("botPanel.sheet.backupsHint")}
+      >
+        {chain.length === 0 && !(editable && chain.length < MAX_BACKUPS) && <NoteRow>{t("botPanel.sheet.noBackups")}</NoteRow>}
+        {chain.length > 0 && (
+          <ol aria-label={t("botPanel.backups.title")} className="m-0 flex list-none flex-col p-0">
+            {chain.map((entry, index) => {
+              const { instance, name, short } = describe(entry);
+              return (
+                <li key={modelKey(entry.instanceId, entry.model)} data-backup={entry.instanceId} className="group/row flex items-center rounded-lg transition-[background-color] duration-100 has-[>button:first-child:hover]:bg-ink/[0.06] has-[>button[aria-expanded=true]]:bg-ink/[0.06]">
+                  <BackupChooser
+                    bot={bot}
+                    current={entry}
+                    exclude={others(index)}
+                    onPick={(picked) => onChange(chain.map((candidate, at) => (at === index ? picked : candidate)))}
+                    label={t("botPanel.backups.row", { position: index + 1, model: name })}
+                    title={instance ? `${instance.displayName}: ${name}` : name}
+                    data-panel-action="backup-change"
+                    className={chooserRowCls}
+                  >
+                    <span className="w-3 shrink-0 text-center text-[12px] tabular-nums text-ink-tertiary" aria-hidden="true">{index + 1}</span>
+                    {mark(instance)}
+                    <span className={cn(textCls, "min-w-0 flex-1 truncate text-ink")}>{short}</span>
+                    {instance
+                      ? <span className={cn(textCls, "min-w-0 max-w-[45%] shrink-0 truncate text-ink-secondary")}>{instance.displayName}</span>
+                      : <span className="shrink-0 text-[12px] text-warning">{t("model.simple.unavailable")}</span>}
+                    <span aria-hidden="true" className="flex shrink-0 text-ink-tertiary"><GrokIcon name="chevron-down-small" size={14} /></span>
+                  </BackupChooser>
+                  {editable && (
+                    <span className="flex shrink-0 items-center pr-0.5">
+                      {chain.length > 1 && (
+                        <>
+                          <RowIconButton reveal icon="arrow-up" data-modal-action="backup-up" label={`Move ${name} up`} disabled={index === 0} onClick={() => move(index, index - 1)} />
+                          <RowIconButton reveal icon="arrow-down" data-modal-action="backup-down" label={`Move ${name} down`} disabled={index === chain.length - 1} onClick={() => move(index, index + 1)} />
+                        </>
+                      )}
+                      <RowIconButton
+                        reveal
+                        icon="trash"
+                        data-modal-action="backup-remove"
+                        label={t("botPanel.backups.remove", { model: name })}
+                        onClick={() => {
+                          onChange(chain.filter((_, at) => at !== index));
+                          addRef.current?.focus({ preventScroll: true });
+                        }}
+                      />
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        )}
+        {editable && chain.length < MAX_BACKUPS && (
+          <BackupChooser
+            bot={bot}
+            current={null}
+            exclude={others(null)}
+            onPick={(picked) => onChange([...chain, picked])}
+            label={t("model.fallback.add")}
+            buttonRef={addRef}
+            data-panel-action="backup-add"
+            className={cn(chooserRowCls, "flex-none hover:bg-ink/[0.06] aria-expanded:bg-ink/[0.06]")}
+          >
+            <span className={cn(textCls, "min-w-0 flex-1 text-ink")}>{t("model.fallback.add")}</span>
+            <span aria-hidden="true" className="flex shrink-0 text-ink-tertiary"><GrokIcon name="chevron-down-small" size={14} /></span>
+          </BackupChooser>
+        )}
+      </Card>
+    </SheetPane>
   );
 }

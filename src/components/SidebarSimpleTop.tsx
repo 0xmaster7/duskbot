@@ -1,9 +1,7 @@
 import { Search, X } from "lucide-react";
 import type { Ref } from "react";
 
-import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { ELEVATED_CONTROL } from "./elevated";
 import { GrokIcon } from "./GrokIcon";
 
 /** Grok's keyboard focus: a 2px #1e86fc ring, 1px off a control's edge, drawn inside a row's. The mouse leaves none. */
@@ -51,7 +49,7 @@ export function SidebarSearchToggle({ open, onToggle, corner = false, ref }: { o
 export function SidebarSearchPill({ query, onQuery, onClose }: { query: string; onQuery: (query: string) => void; onClose: () => void }) {
   return (
     <div data-sidebar-search-pill className="px-3 pb-2 pt-0.5">
-      <div className={cn("flex h-[34px] items-center gap-2 rounded-full pl-3 pr-1.5 text-ink-secondary focus-within:inset-ring-focus", ELEVATED_CONTROL)}>
+      <div className="flex h-[34px] items-center gap-2 rounded-full bg-ink/4 pl-3 pr-1.5 text-ink-secondary transition-[background-color] duration-[120ms] focus-within:bg-ink/7">
         <Search size={15} aria-hidden="true" className="shrink-0" />
         <input
           autoFocus

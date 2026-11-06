@@ -1,103 +1,128 @@
-import type { ReactNode } from "react";
+import { useState } from "react";
 
+import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";
 import { BOT_PROFILE_LIMITS } from "../../../../shared/bot-profile";
 import { PackageProvenance } from "../../bot-settings/PackageProvenance";
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
 import { showDefaultBot } from "../../DefaultBotControls";
-import { GrokDialog, textAreaCls, textFieldCls } from "../../ui/GrokDialog";
+import { GrokIcon } from "../../GrokIcon";
+import { Card, FormDialog, FormField, NavRow, rowCls, RowText, SheetPane } from "../../ListRows";
+import { textAreaCls, textFieldCls } from "../../ui/GrokDialog";
 import { PermissionsSheet } from "./PermissionsSheet";
-import { FieldRow, Group, LinkRow, Row, SheetBody } from "./sheet-kit";
 import { ToolsSheet } from "./ToolsSheet";
 
 type Derived = ReturnType<typeof useBotSettingsDerived>;
 
-function SectionPane({ page, section, title, onClose, children }: {
-  page: string;
-  section: string;
-  title: string;
-  onClose: () => void;
-  children: ReactNode;
-}) {
+export function ToolsModal({ bot, derived }: { bot: Bot; derived: Derived; onClose: () => void }) {
   return (
-    <GrokDialog data-panel-modal={page} title={title} onClose={onClose}>
-      <div data-bot-settings-section={section} className="contents">
-        <SheetBody>{children}</SheetBody>
-      </div>
-    </GrokDialog>
-  );
-}
-
-export function ToolsModal({ bot, derived, onClose }: { bot: Bot; derived: Derived; onClose: () => void }) {
-  return (
-    <SectionPane page="tools" section="access" title={t("botPanel.page.tools")} onClose={onClose}>
+    <SheetPane data-panel-modal="tools" title={t("botPanel.page.tools")}>
       <ToolsSheet bot={bot} derived={derived} />
-    </SectionPane>
+    </SheetPane>
   );
 }
 
-export function PermissionsModal({ bot, derived, onClose }: { bot: Bot; derived: Derived; onClose: () => void }) {
+export function PermissionsModal({ bot, derived }: { bot: Bot; derived: Derived; onClose: () => void }) {
   return (
-    <SectionPane page="permissions" section="permissions" title={t("botSettings.sections.permissions")} onClose={onClose}>
+    <SheetPane data-panel-modal="permissions" title={t("botSettings.sections.permissions")}>
       <PermissionsSheet bot={bot} derived={derived} />
-    </SectionPane>
+    </SheetPane>
   );
 }
 
-export function IdentityModal({ bot, derived, onClose }: { bot: Bot; derived: Derived; onClose: () => void }) {
+type ProfileField = "name" | "title" | "description";
+
+export function IdentityModal({ bot, derived }: { bot: Bot; derived: Derived; onClose: () => void }) {
   const { dispatch } = useStore();
-  const { patch } = derived;
+  const [editing, setEditing] = useState<ProfileField | null>(null);
+  const editable = bot.yourAccess !== "view";
+  const rows: { field: ProfileField; title: string; value: string }[] = [
+    { field: "name", title: t("botSettings.identity.name"), value: bot.name },
+    { field: "title", title: t("botSettings.identity.title"), value: bot.title?.trim() || t("botPanel.none") },
+    { field: "description", title: t("botPanel.sheet.blurb"), value: bot.description?.trim() || t("botPanel.none") },
+  ];
   return (
-    <SectionPane page="identity" section="identity" title={t("botSettings.sections.identity")} onClose={onClose}>
-      <Group label={t("botPanel.sheet.profile")} data-sheet-group="profile">
-        <Row title={t("botSettings.identity.name")}>
-          <input
-            aria-label={t("botSettings.identity.name")}
-            maxLength={BOT_PROFILE_LIMITS.name}
-            value={bot.name}
-            onChange={(event) => patch({ name: event.target.value })}
-            className={`${textFieldCls} w-56`}
-          />
-        </Row>
-        <Row title={t("botSettings.identity.title")}>
-          <input
-            aria-label={t("botSettings.identity.title")}
-            maxLength={BOT_PROFILE_LIMITS.title}
-            placeholder={t("botSettings.identity.titlePlaceholder")}
-            value={bot.title}
-            onChange={(event) => patch({ title: event.target.value })}
-            className={`${textFieldCls} w-56`}
-          />
-        </Row>
-        <FieldRow label={t("botPanel.sheet.blurb")}>
-          <textarea
-            aria-label={t("botSettings.identity.blurb")}
-            rows={3}
-            maxLength={BOT_PROFILE_LIMITS.description}
-            placeholder={t("botPanel.sheet.blurbHint")}
-            value={bot.description}
-            onChange={(event) => patch({ description: event.target.value })}
-            className={textAreaCls}
-          />
-        </FieldRow>
-        {bot.defaultBot && !bot.sidebarHidden && (
-          <LinkRow data-sheet-row="default-bot-hide" title={t("defaultBot.hide")} onClick={() => showDefaultBot(dispatch, bot, false)} />
-        )}
-      </Group>
+    <SheetPane data-panel-modal="identity" title={t("botSettings.sections.identity")}>
+      <Card label={t("botPanel.sheet.profile")} data-sheet-group="profile">
+        {rows.map((row) => (
+          <NavRow key={row.field} data-sheet-row={row.field} disabled={!editable} title={row.title} value={row.value} onClick={() => setEditing(row.field)} />
+        ))}
+      </Card>
+      {bot.defaultBot && !bot.sidebarHidden && (
+        <Card>
+          <NavRow drill={false} data-sheet-row="default-bot-hide" title={t("defaultBot.hide")} onClick={() => showDefaultBot(dispatch, bot, false)} />
+        </Card>
+      )}
       <PackageProvenance bot={bot} />
-    </SectionPane>
+      {editing && <ProfileDialog bot={bot} focus={editing} onSave={(patch) => { derived.patch(patch); setEditing(null); }} onClose={() => setEditing(null)} />}
+    </SheetPane>
   );
 }
 
-export function SlackModal({ managementUrl, onClose }: { managementUrl: string; onClose: () => void }) {
+function ProfileDialog({ bot, focus, onSave, onClose }: {
+  bot: Bot;
+  focus: ProfileField;
+  onSave: (patch: Partial<Pick<Bot, ProfileField>>) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(bot.name);
+  const [title, setTitle] = useState(bot.title ?? "");
+  const [description, setDescription] = useState(bot.description ?? "");
+  const patch: Partial<Pick<Bot, ProfileField>> = {};
+  if (name.trim() && name !== bot.name) patch.name = name;
+  if (title !== (bot.title ?? "")) patch.title = title;
+  if (description !== (bot.description ?? "")) patch.description = description;
   return (
-    <SectionPane page="slack" section="slack" title={t("botPanel.page.slack")} onClose={onClose}>
-      <Group label={t("botPanel.page.slack")} data-sheet-group="slack">
-        <Row title={t("botPanel.sheet.slack")} hint={t("botPanel.sheet.slackHint")}>
-          <a href={managementUrl} target="_blank" rel="noopener noreferrer" className="ui-button hover:bg-ink/10">{t("botSlack.manage")}</a>
-        </Row>
-      </Group>
-    </SectionPane>
+    <FormDialog data-panel-modal="identity-form" title={t("botPanel.sheet.profile")} canSave={Boolean(name.trim()) && Object.keys(patch).length > 0} onSave={() => onSave(patch)} onClose={onClose}>
+      <FormField label={t("botSettings.identity.name")}>
+        <input data-autofocus={focus === "name" || undefined} aria-label={t("botSettings.identity.name")} maxLength={BOT_PROFILE_LIMITS.name} value={name} onChange={(event) => setName(event.target.value)} className={textFieldCls} />
+      </FormField>
+      <FormField label={t("botSettings.identity.title")}>
+        <input
+          data-autofocus={focus === "title" || undefined}
+          aria-label={t("botSettings.identity.title")}
+          maxLength={BOT_PROFILE_LIMITS.title}
+          placeholder={t("botSettings.identity.titlePlaceholder")}
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          className={textFieldCls}
+        />
+      </FormField>
+      <FormField label={t("botPanel.sheet.blurb")}>
+        <textarea
+          data-autofocus={focus === "description" || undefined}
+          aria-label={t("botSettings.identity.blurb")}
+          rows={3}
+          maxLength={BOT_PROFILE_LIMITS.description}
+          placeholder={t("botPanel.sheet.blurbHint")}
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          className={textAreaCls}
+        />
+      </FormField>
+    </FormDialog>
+  );
+}
+
+export function SlackModal({ managementUrl }: { managementUrl: string; onClose: () => void }) {
+  return (
+    <SheetPane data-panel-modal="slack" title={t("botPanel.page.slack")}>
+      <div data-bot-settings-section="slack" className="contents">
+        <Card data-sheet-group="slack">
+          <a
+            href={managementUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-sheet-row="slack"
+            className={cn(rowCls, "cursor-pointer outline-none transition-[background-color] duration-100 ease-[ease] hover:bg-ink/[0.06] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus")}
+          >
+            <RowText title={t("botPanel.sheet.slack")} hint={t("botPanel.sheet.slackHint")} />
+            <span className="shrink-0 text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{t("botSlack.manage")}</span>
+            <GrokIcon name="link-external" size={12} className="shrink-0 text-ink-tertiary" />
+          </a>
+        </Card>
+      </div>
+    </SheetPane>
   );
 }

@@ -56,6 +56,11 @@ describe("bot setup and tools in the real renderer", () => {
     const snapshot = async () => (await ui("snapshot")).snapshot as string;
     // Panel > Advanced > Tools: the bot's settings sheet at its tools (apps, MCP servers, tool selection).
     const openTools = async () => openBotSheet(ui, created[0].name, "tools");
+    // its MCP servers row opens their page of the sheet: each server's switch and Add
+    const openServers = async () => {
+      await openTools();
+      await evaluate("document.querySelector('[data-bot-sheet] [data-sheet-row=servers]').click(); true");
+    };
     const reviewReadyBot = async (name: string, title: string) => {
       await openTemplates(ui);
       await expect.poll(snapshot, { timeout: 20_000 }).toContain(`Add ${name}, ${title}`);
@@ -129,7 +134,7 @@ describe("bot setup and tools in the real renderer", () => {
     await ui("screenshot", "--out", `${info.logPath}.settings.png`);
     await press("Escape");
     await expect.poll(() => evaluate("[...document.querySelectorAll('[role=dialog] h2')].some(heading => heading.textContent.trim() === 'Usage & Billing')"), { timeout: 10_000 }).toBe(false);
-    await openTools();
+    await openServers();
     await click("Add an MCP server…");
     // The registry loads on mount; Add MCP server is disabled until it finishes.
     await expect.poll(() => evaluate("[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Add MCP server')?.disabled"), { timeout: 10_000 }).toBe(false);
@@ -164,12 +169,12 @@ describe("bot setup and tools in the real renderer", () => {
       await expect.poll(connectApps, { timeout: 2_000 }).toBe(false).catch(() => {});
     }
     expect(await connectApps()).toBe(false);
-    await openTools();
+    await openServers();
     await expect.poll(() => evaluate("document.querySelector('[aria-label=\"Let this bot use fixture\"]')?.getAttribute('aria-checked')"), { timeout: 10_000 }).toBe("true");
     await click("Let this bot use fixture");
     await expect.poll(async () => (await bots()).find((bot) => bot.id === created[0].id)?.mcpServers, { timeout: 10_000 }).toEqual([]);
     await press("Escape");
-    await openTools();
+    await openServers();
     await expect.poll(() => evaluate("document.querySelector('[aria-label=\"Let this bot use fixture\"]')?.getAttribute('aria-checked')"), { timeout: 10_000 }).toBe("false");
 
     // New bot from above settings puts the new bot's chat in front: no

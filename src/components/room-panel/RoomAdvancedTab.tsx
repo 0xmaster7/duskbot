@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import { Trash2 } from "lucide-react";
 
 import { requestChatFind } from "@/lib/chat-find";
 import { copyTranscriptToClipboard, downloadMarkdownTranscript, formatTranscriptMarkdown, slugifyTranscriptFilename } from "@/lib/export-transcript";
@@ -87,7 +86,6 @@ export function RoomAdvancedTab(props: RoomRowsProps) {
       <ConfirmDialog
         open={deleting}
         {...roomDeleteCopy(group)}
-        icon={<Trash2 size={18} />}
         returnFocusRef={deleteRef}
         onCancel={() => setDeleting(false)}
         onConfirm={() => {

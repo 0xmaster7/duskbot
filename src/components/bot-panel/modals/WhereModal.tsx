@@ -1,22 +1,12 @@
-import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { openPlaceAction, placeHasIssue } from "@/lib/place-view";
 import { useStore, type Bot } from "@/state/store";
-import type { GrokIconName } from "../../GrokIcon";
 import { usePlaceViews } from "../../PlaceChip";
 import type { useBotSettingsDerived } from "../../bot-settings/useBotSettingsDerived";
-import { DialogChoice, DialogSection, footnoteCls, GrokDialog, smallButtonCls } from "../../ui/GrokDialog";
+import { Card, CheckRow, NavRow, SheetPane } from "../../ListRows";
+import { footnoteCls } from "../../ui/GrokDialog";
 import type { PlaceActionId } from "../../../../shared/place-view";
 import { usePlacePicker, type PlaceChoice } from "../ComputerTab";
-
-const PLACE_ICON: Record<PlaceChoice, GrokIconName> = {
-  auto: "sparkle",
-  local: "device-desktop",
-  browser: "browser",
-  cloud: "cloud",
-  vm: "lock",
-  off: "minus",
-};
 
 const PLACE_LINE: Partial<Record<PlaceChoice, (name: string) => string>> = {
   auto: (name) => `${name} picks the right place for each task`,
@@ -44,49 +34,35 @@ export function WhereModal({ bot, derived, onClose }: {
     ? cloud.view.action : null;
 
   return (
-    <GrokDialog
-      data-panel-modal="where"
-      title={title}
-      description={`The computer ${bot.name} uses for apps and files.`}
-      onClose={onClose}
-      footer={usingNow && <span data-panel-using-now className="mr-auto truncate pl-2 text-[12px] leading-4 tracking-[0.01em] text-ink/56">{t("computer.simple.usingNow", { place: usingNow })}</span>}
-    >
-      <div className="flex flex-col gap-2.5">
-        <DialogSection>
-          <div role="radiogroup" aria-label={title} className="flex flex-col">
-            {rows.map((option) => (
-              <DialogChoice
-                key={option.value}
-                data-panel-choice={option.value}
-                icon={PLACE_ICON[option.value]}
-                title={option.label}
-                hint={option.hint ?? PLACE_LINE[option.value]?.(bot.name)}
-                checked={current === option.value}
-                disabled={option.disabled || !editable}
-                onSelect={() => choosePlace(option.value)}
-              >
-                {option.value === "cloud" && setup && editable && (
-                  <div className="flex pb-1.5 pl-[46px]">
-                    <button
-                      type="button"
-                      data-panel-cloud-setup={setup.id}
-                      className={smallButtonCls}
-                      onClick={() => {
-                        onClose();
-                        openPlaceAction(setup.id, { botId: bot.id, threadId: bot.threadId, place: "cloud" }, dispatch);
-                      }}
-                    >
-                      {setup.label}
-                    </button>
-                  </div>
-                )}
-              </DialogChoice>
-            ))}
-          </div>
-        </DialogSection>
-        {!editable && <p className={cn(footnoteCls)}>Only people who can edit {bot.name} can change this.</p>}
-        {warning}
-      </div>
-    </GrokDialog>
+    <SheetPane data-panel-modal="where" title={title}>
+      <Card data-sheet-group="where" footnote={usingNow ? <span data-panel-using-now>{t("computer.simple.usingNow", { place: usingNow })}</span> : undefined}>
+        <div role="radiogroup" aria-label={title} className="contents">
+          {rows.map((option) => (
+            <CheckRow
+              key={option.value}
+              role="radio"
+              data-panel-choice={option.value}
+              title={option.label}
+              hint={option.hint ?? PLACE_LINE[option.value]?.(bot.name)}
+              checked={current === option.value}
+              disabled={option.disabled || !editable}
+              onClick={() => choosePlace(option.value)}
+            />
+          ))}
+        </div>
+        {setup && editable && (
+          <NavRow
+            data-sheet-row={`cloud-setup:${setup.id}`}
+            title={setup.label}
+            onClick={() => {
+              onClose();
+              openPlaceAction(setup.id, { botId: bot.id, threadId: bot.threadId, place: "cloud" }, dispatch);
+            }}
+          />
+        )}
+      </Card>
+      {!editable && <p className={footnoteCls}>Only people who can edit {bot.name} can change this.</p>}
+      {warning}
+    </SheetPane>
   );
 }

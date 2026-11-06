@@ -109,7 +109,7 @@ import { effectivePlace, toolPlace, type EffectivePlace } from "@/lib/place";
 import { cn } from "@/lib/cn";
 import { activeLocale, t } from "@/lib/i18n";
 import { COMPACT_BUBBLE } from "@/lib/compact-chip";
-import { groupTranscript, isStatusActivity, turnDurations, workedLabel } from "@/lib/activity-runs";
+import { groupTranscript, isStatusActivity, turnDurations, workedLabel, type TranscriptItem } from "@/lib/activity-runs";
 import { StatusActivityRow } from "@/components/StatusActivityRow";
 import { CancelledTurnRow } from "./CancelledTurnRow";
 import { ActivityRun } from "./ActivityRun";
@@ -123,6 +123,8 @@ import { GlassBar, GlassScrollFrame } from "./GlassScrollFrame";
 import { useTranscriptViewport } from "@/hooks/use-transcript-viewport";
 import { useUnreadDivider } from "@/hooks/use-unread-divider";
 import { NewMessagesDivider } from "./NewMessagesDivider";
+import { PeerExchangeLine } from "./PeerExchangeLine";
+import { useExchangeRows } from "@/hooks/use-exchange-runs";
 import { unreadMessageIds } from "@/lib/unread-divider";
 import { appendComposerDraft, appendDraftAttachments, useReplyDraft } from "@/lib/drafts";
 import { localDay, transcriptLookups, type TranscriptLookups } from "@/lib/transcript-derivations"; import { DaySeparator } from "./DaySeparator";
@@ -135,6 +137,7 @@ import { formattedReplyWidth, isFormattedReply, splitReplyBlocks } from "@/lib/f
 import { otherSpeaker } from "@/lib/own-profile";
 import { latestFailure, latestReply, type TranscriptSnapshot } from "@/lib/transcript-announcer";
 import { pendingApprovals } from "./PendingApproval";
+import { SettledChangeEvent, showsSettledChange } from "./ApprovalCard";
 import { TranscriptAnnouncer } from "./TranscriptAnnouncer";
 import { JumpToLatestButton } from "./JumpToLatestButton";
 import { UsageBanner } from "./native/UsageMeter";
@@ -716,6 +719,10 @@ export function useFirstPaintRows(key: string, rows: Message[], hold: boolean, s
   return useMemo(() => (count >= rows.length ? rows : rows.slice(-count)), [count, rows]);
 }
 
+const transcriptRows = (item: TranscriptItem): readonly Message[] => item.kind === "message" ? [item.message] : item.messages;
+const noneTransparent = () => false;
+const hiddenSteps = (item: TranscriptItem) => item.kind !== "message";
+
 const MessagesList = memo(function MessagesList({
   messages,
   transcript,
@@ -758,7 +765,7 @@ const MessagesList = memo(function MessagesList({
   /** The bubble the working line hangs under: its bottom corner pinches as if another bubble followed, as grok's does. */
   seamId?: string | null;
 }) {
-  const { botId, threadId, botName, botColor, bots, hasMore, focus, showToolCalls, locale, simple = false } = useChatRows(), busy = use(ChatBusyContext);
+  const { botId, threadId, botName, botColor, bots, hasMore, focus, showToolCalls, locale, simple = false, bubbleStyle } = useChatRows(), busy = use(ChatBusyContext);
   // A finished turn keeps the bot's progress lines and folds only its tool steps under "Worked for", in both modes.
   const items = useMemo(() => groupTranscript(messages), [messages, locale]);
   const newestMessageId = messages.at(-1)?.id;
@@ -776,10 +783,13 @@ const MessagesList = memo(function MessagesList({
     return at < 0 ? layout.joins : layout.joins.map((join, index) => index === at ? { ...join, below: true } : join);
   }, [layout, items, seamId]);
   const durations = useMemo(() => simple ? turnDurations(messages) : null, [messages, simple]);
+  const exchanges = useExchangeRows(messages, items, transcriptRows, showToolCalls ? noneTransparent : hiddenSteps, botId);
+  const rowJoins = useMemo(() => joins?.map((join, index) => exchanges.closedBelow(index) || exchanges.closedAbove(index)
+    ? { ...join, ...(exchanges.closedBelow(index) ? { below: false } : {}), ...(exchanges.closedAbove(index) ? { above: false } : {}) } : join), [joins, exchanges]);
   const dividerAbove = (rows: readonly Message[]) => {
     if (!unreadIds || dividerPlaced || !rows.some((row) => unreadIds.has(row.id))) return null;
     dividerPlaced = true;
-    return <NewMessagesDivider fading={unreadDividerFading} />;
+    return <NewMessagesDivider fading={unreadDividerFading} tint={bubbleStyle ? `var(--identity-${botColor})` : undefined} />;
   };
   return (
     <>
@@ -787,16 +797,31 @@ const MessagesList = memo(function MessagesList({
         const previous = items[i - 1];
         const prev = previous && (previous.kind === "message" ? previous.message : previous.messages.at(-1));
         const first = item.kind === "message" ? item.message : item.messages[0];
+        const run = exchanges.runAt.get(i);
+        const collapsed = run !== undefined && !exchanges.isOpen(run);
+        if (run && i !== run.start && collapsed) return null;
+        const leads = run !== undefined && i === run.start;
         const newDay = needsStamp(prev, first, simple);
-        const divider = dividerAbove(item.kind === "message" ? [item.message] : item.messages);
+        const divider = dividerAbove(leads ? run.items.flatMap(transcriptRows) : transcriptRows(item));
+        const lead = leads && (
+          <>
+            {divider}
+            {newDay && <DaySeparator at={first.at} today={today} simple={simple} />}
+            <PeerExchangeLine summary={run.summary} bots={bots} expanded={!collapsed} onToggle={() => exchanges.toggle(run)} />
+          </>
+        );
+        if (lead && collapsed) return <div key={run.id} className="contents" data-mid={first.id}>{lead}</div>;
+        const stamp = !lead && newDay && <DaySeparator at={first.at} today={today} simple={simple} />;
+        const dividerRow = lead ? null : divider;
         if (item.kind === "turn" || item.kind === "run") {
-          if (!showToolCalls) return divider && <div key={item.id} className="contents">{divider}</div>;
+          if (!showToolCalls) return (lead || dividerRow) && <div key={item.id} className="contents">{lead}{dividerRow}</div>;
           const forceOpen = item.messages.some((step) => step.id === focusedId);
           const steps = item.messages.map((step) => <div key={step.id} className="contents" data-mid={step.id}><ActivityChip message={step} place={place} /></div>);
           return (
             <div key={item.id} className="contents">
-              {newDay && <DaySeparator at={first.at} today={today} simple={simple} />}
-              {divider}
+              {lead}
+              {dividerRow}
+              {stamp}
               {item.kind === "turn"
                 ? <TurnNarrationRun label={item.label} title={t("chat.run.showSteps")} forceOpen={forceOpen}>{steps}</TurnNarrationRun>
                 : <ActivityRun messages={item.messages} forceOpen={forceOpen}>{steps}</ActivityRun>}
@@ -822,7 +847,7 @@ const MessagesList = memo(function MessagesList({
             case "connector":
               return m.connector ? <ConnectorCard botId={botId} color={botColor} threadId={threadId} message={m} /> : null;
             case "options":
-              if (simple && m.card && (m.card.answered || m.card.dismissed)) return null;
+              if (simple && m.card && (m.card.answered || m.card.dismissed)) return showsSettledChange(m.card) ? <SettledChangeEvent bot={{ name: botName }} message={m} threadId={threadId} /> : null;
               return optionsCardRow({ message: m, transcript, botId, botName, botColor: bots.find((one) => one.id === m.inbox?.from.botId)?.color ?? botColor, threadId, asker: bots.find((one) => one.id === (m.inbox?.from.botId ?? botId)) });
             case "widget":
             case "app":
@@ -864,8 +889,8 @@ const MessagesList = memo(function MessagesList({
                   message={m}
                   emerging={m.id === emergingId}
                   eagerAttachments={m.id === newestMessageId || m.id === newestUserMessageId}
-                  joinAbove={joins?.[i]?.above}
-                  joinBelow={joins?.[i]?.below}
+                  joinAbove={rowJoins?.[i]?.above}
+                  joinBelow={rowJoins?.[i]?.below}
                   workedFor={durations?.get(m.id)}
                   editing={editingId === m.id}
                   pinned={m.id === pinnedMessageId}
@@ -881,12 +906,14 @@ const MessagesList = memo(function MessagesList({
             }
           }
         })();
-        if (!row) return divider && <div key={m.id} className="contents">{divider}</div>;
+        if (!row) return (lead || dividerRow) && <div key={m.id} className="contents">{lead}{dividerRow}</div>;
+        const tucked = layout?.tucks[i] && !exchanges.closedAbove(i);
         return (
           // a send keeps its row when the server's copy replaces the optimistic one, so it never mounts or rises twice
-          <div key={m.sendId ? `send:${m.sendId}` : m.id} className="contents" data-mid={m.id} data-tuck={layout?.tucks[i] ? "" : undefined}>
-            {newDay && <DaySeparator at={m.at} today={today} simple={simple} />}
-            {divider}
+          <div key={m.sendId ? `send:${m.sendId}` : m.id} className="contents" data-mid={m.id} data-tuck={tucked ? "" : undefined}>
+            {lead}
+            {dividerRow}
+            {stamp}
             {m.automation && <AutomationCaption message={m} line={m.automation} botId={botId} />}{m.inbox && <InboxCaption message={m} />}
             {row}{m.inbox?.answers && <InboxAnswers message={m} />}{m.inbox && <InboxCardSlot threadId={threadId} messageId={m.id} />}{m.setupOffer && <SetupOffer botId={botId} threadId={threadId} message={m} transcript={transcript} />}{m.savedSteps && <SavedStepsChip botId={botId} message={m} />}
           </div>

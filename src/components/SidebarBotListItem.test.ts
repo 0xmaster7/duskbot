@@ -363,10 +363,7 @@ describe("archive / delete confirmation", () => {
     const copy = botConfirmCopy("delete", "Willow");
 
     expect(copy.title).toContain("Willow");
-    expect(copy.body).toMatch(/permanently/i);
-    expect(copy.body).toMatch(/any desktop it owns/i);
-    expect(copy.body).toMatch(/files and browser sign-ins/i);
-    expect(copy.body).toMatch(/shared department desktops stay/i);
+    expect(copy.body).toBe("Its chats, memory, files and private desktop go too. This can't be undone.");
     expect(copy.tone).toBe("danger");
   });
 

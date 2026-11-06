@@ -3,7 +3,7 @@
 // sidebar, which opens it in the team. Main runs the move (electron/team-move-main.mjs); the teams come from the
 // MausBot Cloud sign-in it verified, never from this page.
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowRightLeft, Loader2, Users } from "lucide-react";
+import { ArrowRightLeft, Loader2 } from "lucide-react";
 import type { TeamMoveView } from "../../electron/team-move.mjs";
 import type { Bot } from "@/state/store";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -57,14 +57,9 @@ export function useMoveToTeam({ blocked }: { blocked: (bot: Bot) => string | und
     dialog: <ConfirmDialog
       open={asked !== null}
       tone="neutral"
-      icon={<Users size={18} />}
       title={t("teamMove.title", names)}
-      body={<span className="flex flex-col gap-2" data-team-move-confirm>
-        <span>{t("teamMove.everyone", names)}</span>
-        <span>{t("teamMove.goes", names)}</span>
-        <span>{t("teamMove.private", names)}</span>
-        <span>{t("teamMove.staysOnMyCloud", names)}</span>
-        <span data-team-move-final className="font-medium text-ink">{t("teamMove.noWayBack", names)}</span>
+      body={<span className="flex flex-col gap-1" data-team-move-confirm>
+        <span>{t("confirm.teamMove", names)}</span>
         {error && <span role="alert" className="text-danger">{error}</span>}
       </span>}
       confirmLabel={t("teamMove.confirm", names)}

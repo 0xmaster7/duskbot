@@ -59,7 +59,7 @@ describe("archive / delete confirmation copy", () => {
     expect(archive.confirmLabel).toBe("Arquivar");
 
     const remove = botConfirmCopy("delete", "Willow");
-    expect(remove.body).toContain("Willow");
+    expect(remove.title).toContain("Willow");
     expect(remove.confirmLabel).toBe("Excluir");
     setLocale("zh");
     expect(botConfirmCopy("delete", "Willow").title).toBe("删除 Willow？");
@@ -67,14 +67,10 @@ describe("archive / delete confirmation copy", () => {
 });
 
 describe("room delete confirmation copy", () => {
-  it("names the group chat and says what goes and what stays", () => {
+  it("names the group chat and says in one line what goes and what stays", () => {
     const copy = roomDeleteCopy({ name: "Launch plan" });
     expect(copy.title).toBe("Delete Launch plan?");
-    expect(copy.body).toContain("Launch plan group chat");
-    expect(copy.body).toMatch(/every thread in it/);
-    expect(copy.body).toMatch(/routines/);
-    expect(copy.body).toMatch(/bots in it are not deleted/);
-    expect(copy.body).toMatch(/cannot be undone/);
+    expect(copy.body).toBe("Its messages, threads and routines go too. The bots stay.");
     expect(copy.confirmLabel).toBe(t("sidebar.room.deleteChannel"));
     expect(copy.tone).toBe("danger");
   });
@@ -82,7 +78,7 @@ describe("room delete confirmation copy", () => {
   it("calls a bot-to-bot room a chat, never a thread", () => {
     const copy = roomDeleteCopy({ name: "Pen ⇄ Ink", dm: true });
     expect(copy.title).toBe("Delete Pen ⇄ Ink?");
-    expect(copy.body).toContain("Pen ⇄ Ink chat");
+    expect(copy.body).toBe("Its messages go too. The bots stay.");
     expect(copy.body).not.toMatch(/thread/);
     expect(copy.body).not.toMatch(/group chat/);
     expect(copy.confirmLabel).toBe(t("sidebar.room.deleteBotChat"));

@@ -30,7 +30,7 @@ vi.mock("../XCard", () => ({ XCard: () => null }));
 vi.mock("../EmailCard", () => ({ EmailCard: () => null }));
 vi.mock("../HighLevelCard", () => ({ HighLevelCard: () => null }));
 vi.mock("../PostizCard", () => ({ PostizCard: () => null }));
-vi.mock("../PluginsPanel", () => ({ botsUsingService: () => [], connectorSetupNotice: () => null, disconnectAccountConfirmation: () => "" }));
+vi.mock("../PluginsPanel", () => ({ botsUsingService: () => [], connectorSetupNotice: () => null, disconnectAccountConfirmation: () => ({ title: "", body: "", confirmLabel: "" }) }));
 
 import { ConnectAppsWindow } from "./ConnectAppsWindow";
 
