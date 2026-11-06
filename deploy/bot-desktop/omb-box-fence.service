@@ -1,0 +1,13 @@
+[Unit]
+Description=OpenMausBot bot box network fence (host-fence.sh)
+After=docker.service
+PartOf=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# no ExecStop: the fence never comes down on its own, not even while docker restarts
+ExecStart=/usr/local/sbin/omb-host-fence
+
+[Install]
+WantedBy=multi-user.target docker.service

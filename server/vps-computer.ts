@@ -1,4 +1,4 @@
-// BYO Linux VPS: Docker's SSH transport reaches the user's daemon; one Cua MCP container per bot.
+// BYO Linux VPS: Docker's SSH transport reaches the user's daemon; one Cua Driver desktop container per bot.
 import { createHash, randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
 import { createConnection, createServer, type AddressInfo } from "node:net";
@@ -22,6 +22,10 @@ import {
   MANAGED_LABEL,
 } from "./container-computer.ts";
 import { PIDS_LIMIT, raisePidsLimit } from "./container-limits.ts";
+import {
+  BOT_DESKTOP_IMAGE, botDesktopIsHardened, botDesktopLabelsMatch, botDesktopMountsAreSafe, botDesktopNetworkIsPrivate,
+  containerBotDesktopMode, containerDesktopKind, preferredVpsDesktop, provisionBotDesktop, type VpsDesktopKind,
+} from "./bot-desktop.ts";
 import { DATA_DIR, isValidSshAlias, vpsSshAlias, type AppConfig } from "./config.ts";
 import { augmentedPath } from "./env-path.ts";
 import { killCliTree, spawnCli } from "./procs.ts";
@@ -123,6 +127,8 @@ export function vpsUnavailableHint(input: { automationSource?: string; autoStart
 
 export interface VpsComputerStatus {
   configured: boolean;
+  /** What this bot's container is (or a new one would be): the bot desktop, or the Cua XFCE fallback. */
+  desktop: VpsDesktopKind;
   sshAlias: string | null;
   daemonUp: boolean;
   image: boolean;
@@ -382,9 +388,10 @@ export function defaultRunner(args: string[], options: VpsCommandOptions = {}): 
   });
 }
 
-function emptyStatus(botId: string, alias: string | null): VpsComputerStatus {
+function emptyStatus(botId: string, alias: string | null, desktop = preferredVpsDesktop()): VpsComputerStatus {
   return {
     configured: Boolean(alias),
+    desktop,
     sshAlias: alias,
     daemonUp: false,
     image: false,
@@ -398,7 +405,7 @@ function emptyStatus(botId: string, alias: string | null): VpsComputerStatus {
     desktop_error: null,
     ready: false,
     problem: alias ? "Docker over SSH is not reachable" : "Configure a VPS SSH alias in Settings → API keys",
-    image_ref: VPS_IMAGE,
+    image_ref: desktop === "cua" ? VPS_IMAGE : BOT_DESKTOP_IMAGE,
     base_image_ref: BASE_IMAGE,
     driver_version: CUA_DRIVER_VERSION,
     container_name: vpsContainerName(botId),
@@ -466,7 +473,11 @@ function hasNoPublishedPorts(config: {
 function statusProblem(status: VpsComputerStatus): string | null {
   if (!status.configured) return "Configure a VPS SSH alias in Settings → API keys";
   if (!status.daemonUp) return "Docker over SSH could not reach the VPS; check the SSH alias and Docker on the VPS";
-  if (!status.image) return `Prepare the pinned OpenMausBot Cua image on the VPS (Driver ${CUA_DRIVER_VERSION})`;
+  if (!status.image) {
+    return status.desktop === "cua"
+      ? `Prepare the pinned OpenMausBot Cua image on the VPS (Driver ${CUA_DRIVER_VERSION})`
+      : `Prepare the OpenMausBot bot desktop image on the VPS (${BOT_DESKTOP_IMAGE})`;
+  }
   if (status.container === "missing") return "No OpenMausBot container exists for this bot on the VPS";
   if (!status.imageMatches) return "The VPS container uses an incompatible or untrusted OpenMausBot image";
   if (!status.managed) return "The VPS container name is occupied by a container OpenMausBot did not create";
@@ -483,9 +494,10 @@ async function computeVpsComputerStatus(
   cfg: AppConfig,
   botId: string,
   runner: VpsCommandRunner,
+  prefer = preferredVpsDesktop(),
 ): Promise<VpsComputerStatus> {
   const alias = vpsSshAlias(cfg);
-  const status = emptyStatus(botId, alias);
+  const status = emptyStatus(botId, alias, prefer);
   if (!alias) return status;
   viewerConnections.delete(`${alias}:${status.container_name}`);
   const run = (args: string[], timeoutMs = 10_000, input?: string) =>
@@ -501,34 +513,38 @@ async function computeVpsComputerStatus(
   };
 
   let inspectedImageId: string | null = null;
-  try {
-    const inspected = JSON.parse((await inspect(["image", "inspect", VPS_IMAGE])).stdout) as Array<{
-      Id?: string;
-      id?: string;
-      Config?: { Labels?: Record<string, string> };
-      config?: { Labels?: Record<string, string>; labels?: Record<string, string> };
-    }>;
-    status.daemonUp = true;
-    const image = inspected[0];
-    const labels = image?.Config?.Labels ?? image?.config?.Labels ?? image?.config?.labels;
-    const imageId = image?.Id ?? image?.id;
-    inspectedImageId = imageId && IMAGE_ID.test(imageId) ? imageId : null;
-    status.image_id = inspectedImageId;
-    status.image = Boolean(inspectedImageId) && imageLabelsMatch(labels);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (!isMissingObjectMessage(message)) {
-      status.problem = transportFailure(message);
-      return status;
+  // false only on a transport failure, with the problem already set
+  const inspectImage = async (desktop: VpsDesktopKind): Promise<boolean> => {
+    Object.assign(status, { desktop, image_ref: desktop === "cua" ? VPS_IMAGE : BOT_DESKTOP_IMAGE, image: false, image_id: null });
+    inspectedImageId = null;
+    try {
+      const inspected = JSON.parse((await inspect(["image", "inspect", status.image_ref])).stdout) as Array<{
+        Id?: string;
+        id?: string;
+        Config?: { Labels?: Record<string, string> };
+        config?: { Labels?: Record<string, string>; labels?: Record<string, string> };
+      }>;
+      const image = inspected[0];
+      const labels = image?.Config?.Labels ?? image?.config?.Labels ?? image?.config?.labels;
+      const imageId = image?.Id ?? image?.id;
+      inspectedImageId = imageId && IMAGE_ID.test(imageId) ? imageId : null;
+      status.image_id = inspectedImageId;
+      status.image = Boolean(inspectedImageId) && (desktop === "cua" ? imageLabelsMatch(labels) : botDesktopLabelsMatch(labels));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!isMissingObjectMessage(message)) { status.problem = transportFailure(message); return false; }
     }
     status.daemonUp = true;
-    status.image = false;
-  }
+    return true;
+  };
+  if (!(await inspectImage(prefer))) return status;
 
   try {
     const inspected = JSON.parse((await inspect(["inspect", status.container_name])).stdout) as Array<{
       Config?: { Image?: string; Labels?: Record<string, string>; Env?: string[] };
       HostConfig?: DockerHardeningConfig & {
+        ReadonlyRootfs?: boolean;
+        Runtime?: string;
         Binds?: string[] | null;
         VolumesFrom?: string[] | null;
         NetworkMode?: string;
@@ -544,16 +560,22 @@ async function computeVpsComputerStatus(
     }>;
     const detail = inspected[0];
     const labels = detail?.Config?.Labels;
+    // an existing container is judged as what it was made from, whatever new ones get today
+    if (containerDesktopKind(labels) !== status.desktop && !(await inspectImage(containerDesktopKind(labels)))) {
+      status.daemonUp = false;
+      return status;
+    }
+    const cua = status.desktop === "cua";
     const containerId = detail?.Id ?? detail?.id;
     status.container_id = containerId && CONTAINER_ID.test(containerId) ? containerId : null;
     status.container = detail?.State?.Running ? "running" : "stopped";
     status.imageMatches =
       status.image &&
       Boolean(status.container_id) &&
-      (detail?.Config?.Image === VPS_IMAGE || detail?.Config?.Image === inspectedImageId) &&
+      (detail?.Config?.Image === status.image_ref || detail?.Config?.Image === inspectedImageId) &&
       Boolean(inspectedImageId) &&
       detail?.Image === inspectedImageId &&
-      imageLabelsMatch(labels) &&
+      (cua ? imageLabelsMatch(labels) : botDesktopLabelsMatch(labels)) &&
       labels?.[VPS_VIEWER_LABEL] === VIEWER_VERSION;
     const environmentLabel = labels?.[VPS_ENVIRONMENT_LABEL];
     status.managed =
@@ -561,11 +583,13 @@ async function computeVpsComputerStatus(
       labels?.[VPS_CONTAINER_LABEL] === status.container_name &&
       (environmentLabel === undefined || environmentLabel === vpsEnvironmentId());
     if (status.managed && status.container_id) raisePidsLimit(status.container_id, detail?.HostConfig?.PidsLimit, run);
-    status.network = hasNoPublishedPorts(detail?.HostConfig, detail?.NetworkSettings?.Networks) ? "private" : "unsafe";
-    status.mounts = hasNoHostMounts(detail ?? {}) ? "none" : "unsafe";
-    status.security = dockerSecurityIsHardened(detail?.HostConfig, { restartPolicy: "any" })
-      ? "hardened"
-      : "unsafe";
+    const networks = detail?.NetworkSettings?.Networks;
+    status.network = (cua ? hasNoPublishedPorts : botDesktopNetworkIsPrivate)(detail?.HostConfig, networks) ? "private" : "unsafe";
+    // the bot desktop's one mount is its own home volume, so "none" here means no host mounts
+    status.mounts = (cua ? hasNoHostMounts(detail ?? {}) : botDesktopMountsAreSafe(status.container_name, detail ?? {})) ? "none" : "unsafe";
+    status.security = (cua ? dockerSecurityIsHardened(detail?.HostConfig, { restartPolicy: "any" })
+      : botDesktopIsHardened(detail?.HostConfig, containerBotDesktopMode(labels, detail?.Config?.Env)))
+      ? "hardened" : "unsafe";
 
     const connectionKey = `${alias}:${status.container_name}`;
     const privateIp = Object.values(detail?.NetworkSettings?.Networks ?? {})[0]?.IPAddress;
@@ -819,6 +843,12 @@ export async function listManagedVpsComputers(
   return { configured: true, available: scans.every((scan) => scan.available), vpsAliases: scanning, problem, instances };
 }
 
+/** Ownership labels every managed VPS container carries, whichever desktop it runs. */
+function vpsOwnershipLabels(containerName: string): string[] {
+  return [`${VPS_MANAGED_LABEL}=1`, `${VPS_CONTAINER_LABEL}=${containerName}`, `${VPS_ENVIRONMENT_LABEL}=${vpsEnvironmentId()}`, `${VPS_VIEWER_LABEL}=${VIEWER_VERSION}`];
+}
+
+/** The Cua XFCE fallback's flags; the bot desktop's are botDesktopRunArgs. */
 export function vpsContainerRunArgs(
   containerName: string,
   imageRef = VPS_IMAGE,
@@ -828,54 +858,17 @@ export function vpsContainerRunArgs(
     throw new Error("invalid managed VPS container or image reference");
   }
   if (!/^[A-Za-z0-9_-]{8,128}$/.test(viewerSecret)) throw new Error("invalid managed VPS viewer secret");
+  const labels = [
+    ...vpsOwnershipLabels(containerName), `${MANAGED_LABEL}=1`, `${DRIVER_LABEL}=${CUA_DRIVER_VERSION}`,
+    `${BASE_IMAGE_LABEL}=${BASE_IMAGE_DIGEST}`, `${IMAGE_LAYER_LABEL}=${IMAGE_LAYER_VERSION}`,
+  ];
   return [
-    "run",
-    "-d",
-    "--name",
-    containerName,
-    "--label",
-    `${VPS_MANAGED_LABEL}=1`,
-    "--label",
-    `${VPS_CONTAINER_LABEL}=${containerName}`,
-    "--label",
-    `${VPS_ENVIRONMENT_LABEL}=${vpsEnvironmentId()}`,
-    "--label",
-    `${VPS_VIEWER_LABEL}=${VIEWER_VERSION}`,
-    "--label",
-    `${MANAGED_LABEL}=1`,
-    "--label",
-    `${DRIVER_LABEL}=${CUA_DRIVER_VERSION}`,
-    "--label",
-    `${BASE_IMAGE_LABEL}=${BASE_IMAGE_DIGEST}`,
-    "--label",
-    `${IMAGE_LAYER_LABEL}=${IMAGE_LAYER_VERSION}`,
-    "--memory",
-    "4g",
-    "--memory-swap",
-    "4g",
-    "--cpus",
-    "2",
-    "--pids-limit", String(PIDS_LIMIT),
-    "--network",
-    "bridge",
-    "--ipc",
-    "private",
-    "--cgroupns",
-    "private",
-    "--cap-drop",
-    "ALL",
-    "--cap-add",
-    "SETUID",
-    "--cap-add",
-    "SETGID",
-    "--shm-size",
-    "512m",
+    "run", "-d", "--name", containerName, ...labels.flatMap((label) => ["--label", label]),
+    "--memory", "4g", "--memory-swap", "4g", "--cpus", "2", "--pids-limit", String(PIDS_LIMIT),
+    "--network", "bridge", "--ipc", "private", "--cgroupns", "private",
+    "--cap-drop", "ALL", "--cap-add", "SETUID", "--cap-add", "SETGID", "--shm-size", "512m",
     // Without a restart policy Docker leaves the container down after a VPS reboot; unless-stopped still honors Stop.
-    "--restart",
-    "unless-stopped",
-    "-e",
-    `VNC_PW=${viewerSecret}`,
-    imageRef,
+    "--restart", "unless-stopped", "-e", `VNC_PW=${viewerSecret}`, imageRef,
   ];
 }
 
@@ -1084,14 +1077,21 @@ export async function vpsComputerAction(
 
       const containerRef = before.container_id ?? before.container_name;
       if (action === "provision") {
+        const botDesktop = () => provisionBotDesktop((args, timeoutMs) => run(args, timeoutMs), {
+          containerName: before.container_name, imageId: before.image ? before.image_id : null,
+          labels: vpsOwnershipLabels(before.container_name), viewerSecret: randomBytes(18).toString("base64url"),
+        });
         if (before.container === "missing") {
-          let imageRef = before.image ? before.image_id : null;
-          if (!before.image) {
-            await prepareVpsImage(alias, runner);
-            imageRef = (await computeVpsComputerStatus(cfg, botId, runner)).image_id;
+          // the bot desktop when its image can be had, else the Cua desktop: the registry may not carry it yet
+          if (before.desktop === "cua" || !(await botDesktop())) {
+            let imageRef = before.image && before.desktop === "cua" ? before.image_id : null;
+            if (!imageRef) {
+              await prepareVpsImage(alias, runner);
+              imageRef = (await computeVpsComputerStatus(cfg, botId, runner, "cua")).image_id;
+            }
+            if (!imageRef) throw Object.assign(new Error("The prepared VPS image could not be identified"), { status: 409 });
+            await run(vpsContainerRunArgs(before.container_name, imageRef));
           }
-          if (!imageRef) throw Object.assign(new Error("The prepared VPS image could not be identified"), { status: 409 });
-          await run(vpsContainerRunArgs(before.container_name, imageRef));
         } else {
           assertUsableContainer(before);
           if (before.container === "stopped") await run(["start", containerRef]);

@@ -1,0 +1,24 @@
+#!/bin/sh
+# pid 1, as root only long enough to prepare the box; the desktop session always runs as uid 1000.
+#   OMB_MODE=free    the host fences this box's network (host-fence.sh); the bot may sudo inside it.
+#   OMB_MODE=strict  the box fences itself with NET_ADMIN once, then drops to uid 1000 under no_new_privs, which
+#                    also makes sudo inert, so nothing the bot runs can undo the firewall. the default.
+set -eu
+mode="${OMB_MODE:-strict}"
+
+if [ "$(id -u)" = 0 ]; then
+  # public resolvers, straight from the box: docker's embedded dns would forward to the host's own resolver, which on
+  # many clouds is the metadata address the fence refuses (and gVisor does not see its redirect at all)
+  dns="${OMB_DNS:-1.1.1.1 9.9.9.9}"
+  # (strict mounts it read-only; there docker's resolver forwards to the same servers, from --dns)
+  { { for server in $dns; do echo "nameserver $server"; done; echo "options timeout:2 attempts:2"; } > /etc/resolv.conf; } 2>/dev/null || true
+  if [ "$mode" = free ]; then
+    exec setpriv --reuid=1000 --regid=1000 --init-groups --inh-caps=-all \
+      env HOME=/home/cua USER=cua LOGNAME=cua /usr/bin/tini -s -g -- /usr/local/bin/omb-session
+  fi
+  /usr/local/bin/omb-firewall || { echo "omb-init: the network firewall could not be applied; refusing to start" >&2; exit 70; }
+  exec setpriv --reuid=1000 --regid=1000 --clear-groups --inh-caps=-all --no-new-privs \
+    env HOME=/home/cua USER=cua LOGNAME=cua /usr/bin/tini -s -g -- /usr/local/bin/omb-session
+fi
+echo "omb-init: started as uid $(id -u): no firewall of its own, so only use this behind host-fence.sh" >&2
+exec /usr/bin/tini -s -g -- /usr/local/bin/omb-session

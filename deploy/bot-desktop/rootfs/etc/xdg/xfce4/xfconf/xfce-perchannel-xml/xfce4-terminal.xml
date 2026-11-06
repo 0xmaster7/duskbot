@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-terminal" version="1.0">
+  <property name="font-use-system" type="bool" value="false"/>
+  <property name="font-name" type="string" value="JetBrains Mono 10"/>
+  <property name="misc-menubar-default" type="bool" value="false"/>
+  <property name="misc-toolbar-default" type="bool" value="false"/>
+  <property name="misc-borders-default" type="bool" value="true"/>
+  <property name="misc-cursor-blinks" type="bool" value="false"/>
+  <property name="misc-cursor-shape" type="string" value="TERMINAL_CURSOR_SHAPE_BLOCK"/>
+  <property name="misc-default-geometry" type="string" value="96x28"/>
+  <property name="misc-confirm-close" type="bool" value="false"/>
+  <property name="misc-show-unsafe-paste-dialog" type="bool" value="false"/>
+  <property name="misc-tab-close-buttons" type="bool" value="true"/>
+  <property name="scrolling-bar" type="string" value="TERMINAL_SCROLLBAR_NONE"/>
+  <property name="scrolling-lines" type="uint" value="10000"/>
+  <property name="title-mode" type="string" value="TERMINAL_TITLE_REPLACE"/>
+  <property name="title-initial" type="string" value="Terminal"/>
+  <property name="color-use-theme" type="bool" value="false"/>
+  <property name="color-foreground" type="string" value="#c8c8c8"/>
+  <property name="color-background" type="string" value="#111111"/>
+  <property name="color-cursor-use-default" type="bool" value="false"/>
+  <property name="color-cursor" type="string" value="#c8c8c8"/>
+  <property name="color-cursor-foreground" type="string" value="#111111"/>
+  <property name="color-selection-use-default" type="bool" value="false"/>
+  <property name="color-selection" type="string" value="#f0f0f0"/>
+  <property name="color-selection-background" type="string" value="#3a3a3a"/>
+  <property name="color-bold-is-bright" type="bool" value="false"/>
+  <property name="color-palette" type="string" value="#1c1c1c;#e06c60;#98c379;#e5a550;#6f9fd8;#b48ead;#6fb8b0;#c8c8c8;#4a4a4a;#f07a6e;#a9d28b;#f0b866;#86b0e2;#c59fc0;#84c9c1;#f0f0f0"/>
+  <property name="color-bold-use-default" type="bool" value="true"/>
+  <property name="tab-activity-color" type="string" value="#e5a550"/>
+</channel>

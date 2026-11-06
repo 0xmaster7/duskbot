@@ -1,0 +1,66 @@
+#!/bin/sh
+# the desktop session, as uid 1000: X + VNC, the window manager, dock, viewer bridge and Cua Driver. no compositor.
+set -eu
+
+geometry="${OMB_RESOLUTION:-1280x800}"
+case "$geometry" in [0-9]*x[0-9]*) ;; *) geometry=1280x800 ;; esac
+export DISPLAY=:1 XDG_RUNTIME_DIR=/run/user/1000 HOME=/home/cua
+export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+logs=/tmp/omb-log
+
+mkdir -p /run/omb "$XDG_RUNTIME_DIR" "$logs" "$HOME/.config" "$HOME/.cache" "$HOME/Downloads"
+chmod 0700 "$XDG_RUNTIME_DIR"
+# first boot of a home volume: defaults the person or bot may change later
+[ -e "$HOME/.config/gtk-3.0/gtk.css" ] || { mkdir -p "$HOME/.config/gtk-3.0"; cp /usr/share/omb-desktop/skel/.config/gtk-3.0/gtk.css "$HOME/.config/gtk-3.0/gtk.css"; }
+[ -s /run/omb/machine-id ] || tr -d '-' < /proc/sys/kernel/random/uuid > /run/omb/machine-id
+
+# a profile copied from another container (or a crash) leaves singleton locks that stop the browser from opening
+# a stopped box is a crashed browser as far as chromium knows; it should just open, without a restore prompt
+sed -i 's/"exit_type":"Crashed"/"exit_type":"Normal"/' "$HOME/.config/chromium/Default/Preferences" 2>/dev/null || true
+rm -f "$HOME/.config/chromium/SingletonLock" "$HOME/.config/chromium/SingletonSocket" "$HOME/.config/chromium/SingletonCookie"
+
+# viewer password: the harness passes VNC_PW; never written anywhere but this tmpfs
+if [ -n "${VNC_PW:-}" ]; then
+  printf '%s\n' "$VNC_PW" | vncpasswd -f > "$XDG_RUNTIME_DIR/vncpasswd"
+  chmod 0600 "$XDG_RUNTIME_DIR/vncpasswd"
+  security="-SecurityTypes VncAuth -PasswordFile $XDG_RUNTIME_DIR/vncpasswd"
+else
+  security="-SecurityTypes None"
+fi
+unset VNC_PW
+
+# keep a service alive: restart it a second after it exits, log to the tmpfs
+keep() {
+  name="$1"; shift
+  ( while :; do "$@" >>"$logs/$name.log" 2>>"$logs/$name.error.log" || true; sleep 1; done ) &
+}
+
+# shellcheck disable=SC2086
+keep xvnc Xvnc :1 -geometry "$geometry" -depth 24 -rfbport 5901 -localhost -AlwaysShared \
+  -AcceptSetDesktopSize=0 -FrameRate 30 -CompareFB 1 -nolisten tcp $security
+attempt=0
+until [ -S /tmp/.X11-unix/X1 ]; do
+  attempt=$((attempt + 1))
+  [ "$attempt" -lt 200 ] || { echo "omb-session: X display :1 did not start" >&2; exit 1; }
+  sleep 0.05
+done
+
+dbus-daemon --session --address="$DBUS_SESSION_BUS_ADDRESS" --nofork --nopidfile --syslog-only >>"$logs/dbus.log" 2>&1 &
+# the built-in wallpaper is already screen-sized, so it is centered unscaled; a person's own picture is cover-scaled
+own="$(ls "$HOME"/.config/omb/wallpaper.* 2>/dev/null | head -n 1 || true)"
+if [ -n "$own" ]; then hsetroot -cover "$own" >/dev/null 2>&1 || true
+else hsetroot -solid '#000000' -center /usr/share/omb-desktop/wallpaper.png >/dev/null 2>&1 || true
+fi
+
+keep openbox openbox --config-file /etc/xdg/openbox/rc.xml
+keep tint2 tint2 -c /etc/xdg/tint2/tint2rc
+keep websockify websockify --web /usr/share/novnc 0.0.0.0:6901 127.0.0.1:5901
+keep cua-driver env CUA_DRIVER_BROWSER_NO_SANDBOX=1 CUA_DRIVER_INSTALL_CHANNEL=python_package \
+  CUA_DRIVER_RS_TELEMETRY_ENABLED=0 CUA_DRIVER_WINDOW_CHANGE_TIMEOUT_MS=200 NO_COLOR=1 \
+  /usr/local/libexec/openmausbot/cua-driver serve --socket "$XDG_RUNTIME_DIR/openmausbot-cua.sock" \
+  --permission-mode standard --cursor-reduced-motion on
+
+[ "${OMB_BROWSER_AT_START:-on}" = off ] || (sleep 0.3; exec chromium "${OMB_START_URL:-https://www.google.com}" >>"$logs/chromium.log" 2>&1) &
+
+echo "omb-session: desktop ready on :1 ($geometry)"
+wait

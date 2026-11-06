@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "node:events";
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -52,6 +52,10 @@ import {
   reuseVps,
   type VpsCommandRunner,
 } from "./vps-computer.ts";
+
+// these fixtures are the Cua XFCE desktop; the bot desktop has its own in bot-desktop.test.ts
+beforeAll(() => { vi.stubEnv("OPENMAUSBOT_VPS_DESKTOP", "cua"); });
+afterAll(() => { vi.unstubAllEnvs(); });
 
 const BOT_ID = "bot-1234-abcd";
 const CONFIG: AppConfig = { vps: { sshAlias: "production-vps" } };

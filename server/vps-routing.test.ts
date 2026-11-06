@@ -244,6 +244,8 @@ createServer(socket => socket.end()).listen(port, '127.0.0.1');
       FAKE_DOCKER_DIR: fakeBin,
       FAKE_DOCKER_LOG: dockerLog,
       OMB_COMPUTER_CALL_WAIT_MS: String(CALL_WAIT_MS),
+      // the fake daemon speaks the Cua desktop; the bot desktop's own route is covered in bot-desktop.test.ts
+      OPENMAUSBOT_VPS_DESKTOP: "cua",
     };
     if (process.env.PATH) env.PATH = process.env.PATH;
     if (process.env.SystemRoot) env.SystemRoot = process.env.SystemRoot;

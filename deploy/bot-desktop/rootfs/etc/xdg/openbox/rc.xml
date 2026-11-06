@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- one desktop, no menus, no panels: windows, a dock, and the keys people expect -->
+<openbox_config xmlns="http://openbox.org/3.4/rc">
+  <resistance><strength>10</strength><screen_edge_strength>20</screen_edge_strength></resistance>
+  <focus><focusNew>yes</focusNew><followMouse>no</followMouse><raiseOnFocus>no</raiseOnFocus></focus>
+  <placement><policy>Smart</policy><center>yes</center><monitor>Primary</monitor></placement>
+  <theme>
+    <name>OMB</name>
+    <titleLayout>LIMC</titleLayout>
+    <keepBorder>no</keepBorder>
+    <animateIconify>no</animateIconify>
+    <font place="ActiveWindow"><name>JetBrains Mono</name><size>8</size><weight>Normal</weight><slant>Normal</slant></font>
+    <font place="InactiveWindow"><name>JetBrains Mono</name><size>8</size><weight>Normal</weight><slant>Normal</slant></font>
+    <font place="MenuHeader"><name>JetBrains Mono</name><size>8</size><weight>Normal</weight><slant>Normal</slant></font>
+    <font place="MenuItem"><name>JetBrains Mono</name><size>8</size><weight>Normal</weight><slant>Normal</slant></font>
+    <font place="OnScreenDisplay"><name>JetBrains Mono</name><size>8</size><weight>Normal</weight><slant>Normal</slant></font>
+  </theme>
+  <desktops><number>1</number><firstdesk>1</firstdesk><popupTime>0</popupTime></desktops>
+  <resize><drawContents>yes</drawContents><popupShow>Never</popupShow></resize>
+  <margins><top>0</top><bottom>0</bottom><left>0</left><right>0</right></margins>
+  <keyboard>
+    <keybind key="A-Tab"><action name="NextWindow"><dialog>none</dialog><bar>no</bar><raise>yes</raise></action></keybind>
+    <keybind key="A-S-Tab"><action name="PreviousWindow"><dialog>none</dialog><bar>no</bar><raise>yes</raise></action></keybind>
+    <keybind key="A-F4"><action name="Close"/></keybind>
+    <keybind key="C-A-t"><action name="Execute"><command>xfce4-terminal</command></action></keybind>
+    <keybind key="W-Up"><action name="ToggleMaximize"/></keybind>
+  </keyboard>
+  <mouse>
+    <dragThreshold>3</dragThreshold>
+    <doubleClickTime>400</doubleClickTime>
+    <context name="Frame">
+      <mousebind button="A-Left" action="Press"><action name="Focus"/><action name="Raise"/></mousebind>
+      <mousebind button="A-Left" action="Drag"><action name="Move"/></mousebind>
+      <mousebind button="A-Right" action="Drag"><action name="Resize"/></mousebind>
+    </context>
+    <context name="Titlebar">
+      <mousebind button="Left" action="Drag"><action name="Move"/></mousebind>
+      <mousebind button="Left" action="DoubleClick"><action name="ToggleMaximize"/></mousebind>
+    </context>
+    <context name="Titlebar Top Right Bottom Left TLCorner TRCorner BRCorner BLCorner">
+      <mousebind button="Left" action="Press"><action name="Focus"/><action name="Raise"/></mousebind>
+    </context>
+    <context name="Top"><mousebind button="Left" action="Drag"><action name="Resize"><edge>top</edge></action></mousebind></context>
+    <context name="Left"><mousebind button="Left" action="Drag"><action name="Resize"><edge>left</edge></action></mousebind></context>
+    <context name="Right"><mousebind button="Left" action="Drag"><action name="Resize"><edge>right</edge></action></mousebind></context>
+    <context name="Bottom"><mousebind button="Left" action="Drag"><action name="Resize"><edge>bottom</edge></action></mousebind></context>
+    <context name="TRCorner BRCorner TLCorner BLCorner"><mousebind button="Left" action="Drag"><action name="Resize"/></mousebind></context>
+    <context name="Client">
+      <mousebind button="Left" action="Press"><action name="Focus"/><action name="Raise"/></mousebind>
+      <mousebind button="Middle" action="Press"><action name="Focus"/><action name="Raise"/></mousebind>
+      <mousebind button="Right" action="Press"><action name="Focus"/><action name="Raise"/></mousebind>
+    </context>
+    <context name="Close"><mousebind button="Left" action="Click"><action name="Close"/></mousebind></context>
+    <context name="Maximize"><mousebind button="Left" action="Click"><action name="ToggleMaximize"/></mousebind></context>
+    <context name="Iconify"><mousebind button="Left" action="Click"><action name="Iconify"/></mousebind></context>
+  </mouse>
+  <applications>
+    <application class="Chromium" role="browser" type="normal">
+      <position force="no"><x>center</x><y>10</y></position>
+      <size><width>1000</width><height>712</height></size>
+      <focus>yes</focus>
+    </application>
+    <application class="Xfce4-terminal" type="normal">
+      <position force="no"><x>center</x><y>90</y></position>
+      <size><width>820</width><height>500</height></size>
+      <focus>yes</focus>
+    </application>
+    <application class="Thunar" type="normal">
+      <position force="no"><x>center</x><y>70</y></position>
+      <size><width>900</width><height>560</height></size>
+      <focus>yes</focus>
+    </application>
+  </applications>
+</openbox_config>

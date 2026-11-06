@@ -1,0 +1,69 @@
+#!/bin/sh
+# this container's own network namespace: public internet out, nothing private, local or link-local, and only the
+# docker host may reach the viewer port. fails closed: any rule that does not load stops the container.
+set -eu
+export XTABLES_LOCKFILE=/tmp/xtables.lock
+
+gateway="$(ip -4 route show default | awk '{ print $3; exit }')"
+case "$gateway" in
+  *.*.*.*) ;;
+  *) echo "omb-firewall: no IPv4 default route" >&2; exit 1 ;;
+esac
+
+# ranges a bot must never reach: this host, its docker bridges and other containers, LANs, CGNAT, cloud metadata.
+blocked4="0.0.0.0/8 10.0.0.0/8 100.64.0.0/10 127.0.0.0/8 169.254.0.0/16 172.16.0.0/12 192.0.0.0/24 192.0.2.0/24
+192.168.0.0/16 198.18.0.0/15 198.51.100.0/24 203.0.113.0/24 224.0.0.0/4 240.0.0.0/4 ${gateway}/32"
+blocked6="::/128 ::1/128 ::ffff:0:0/96 64:ff9b::/96 64:ff9b:1::/48 100::/64 2001:db8::/32 fc00::/7 fe80::/10 ff00::/8"
+# extra addresses the harness knows belong to the host (its public IPs), comma or space separated
+extra="$(printf '%s' "${OMB_BLOCK_EXTRA:-}" | tr ',' ' ')"
+
+rules() {
+  family="$1" reject="$2"
+  echo "*filter"
+  echo ":INPUT DROP [0:0]"
+  echo ":FORWARD DROP [0:0]"
+  echo ":OUTPUT ACCEPT [0:0]"
+  echo "-A INPUT -i lo -j ACCEPT"
+  echo "-A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT"
+  echo "-A OUTPUT -o lo -j ACCEPT"
+  echo "-A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT"
+  if [ "$family" = 4 ]; then
+    echo "-A INPUT -s ${gateway}/32 -p tcp --dport 6901 -j ACCEPT"
+    for net in $blocked4; do echo "-A OUTPUT -d $net -j $reject"; done
+  else
+    for net in $blocked6; do echo "-A OUTPUT -d $net -j $reject"; done
+  fi
+  for net in $extra; do
+    case "$net" in
+      *:*) [ "$family" = 6 ] && echo "-A OUTPUT -d $net -j $reject" ;;
+      *.*) [ "$family" = 4 ] && echo "-A OUTPUT -d $net -j $reject" ;;
+    esac
+  done
+  echo "COMMIT"
+}
+
+load() {
+  family="$1"
+  cmd=iptables
+  [ "$family" = 6 ] && cmd=ip6tables
+  # nftables on a normal kernel; the legacy ABI is what gVisor's netstack implements. REJECT fails fast, DROP is the floor.
+  for backend in nft legacy; do
+    for reject in REJECT DROP; do
+      if rules "$family" "$reject" | "$cmd-$backend-restore" 2>/dev/null; then
+        echo "omb-firewall: IPv$family rules loaded ($backend, $reject)"
+        return 0
+      fi
+    done
+  done
+  return 1
+}
+
+load 4
+if ! load 6; then
+  # no ip6tables is only acceptable when the namespace has no IPv6 route out at all
+  if ip -6 route show default 2>/dev/null | grep -q . || ip -6 addr show scope global 2>/dev/null | grep -q inet6; then
+    echo "omb-firewall: IPv6 is routed but its rules did not load" >&2
+    exit 1
+  fi
+  echo "omb-firewall: no IPv6 in this namespace"
+fi

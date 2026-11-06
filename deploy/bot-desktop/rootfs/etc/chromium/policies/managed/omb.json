@@ -1,0 +1,12 @@
+{
+  "CommandLineFlagSecurityWarningsEnabled": false,
+  "DefaultBrowserSettingEnabled": false,
+  "MetricsReportingEnabled": false,
+  "PromotionsEnabled": false,
+  "BackgroundModeEnabled": false,
+  "ShowHomeButton": true,
+  "HomepageLocation": "https://www.google.com",
+  "HomepageIsNewTabPage": false,
+  "PrivacySandboxPromptEnabled": false,
+  "TranslateEnabled": false
+}

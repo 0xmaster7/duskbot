@@ -1,0 +1,2 @@
+/* user priority: vte sets its own 1px padding at application priority, so only this level can give the terminal room */
+vte-terminal { padding: 4px 6px; }

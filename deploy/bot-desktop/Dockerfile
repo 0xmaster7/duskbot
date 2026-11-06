@@ -1,0 +1,100 @@
+# OpenMausBot bot desktop: a small dark Linux desktop for one bot, driven by Cua Driver and viewed through noVNC.
+# Multi-arch (linux/amd64, linux/arm64). Build: deploy/bot-desktop/build.sh
+ARG DEBIAN=debian:trixie-slim
+
+# art: the wallpaper and dock icons are rendered once here, so no image tooling ships in the desktop.
+# wallpaper/wallpaper.* (one file, swap it to change the desktop) is cover-scaled onto black at exactly the screen size
+# with a sharp filter, so the session can place it pixel for pixel.
+FROM ${DEBIAN} AS art
+ARG RESOLUTION=1280x800
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends imagemagick librsvg2-bin \
+ && rm -rf /var/lib/apt/lists/*
+COPY wallpaper/ /src/wallpaper/
+COPY icons/ /src/icons/
+RUN set -eux; mkdir -p /out/icons; \
+    src="$(ls /src/wallpaper/wallpaper.* | head -n 1)"; \
+    magick "$src" -background black -alpha remove -alpha off -filter Lanczos -resize "${RESOLUTION}^" \
+      -gravity center -extent "${RESOLUTION}" -colorspace Gray /out/wallpaper.png; \
+    for icon in browser tools terminal; do rsvg-convert -w 34 -h 34 "/src/icons/$icon.svg" -o "/out/icons/$icon.png"; done
+
+FROM ${DEBIAN}
+ARG TARGETARCH
+ARG CUA_DRIVER_VERSION=0.37.0
+ARG BOT_DESKTOP_VERSION=1
+ENV DEBIAN_FRONTEND=noninteractive LANG=C.UTF-8 LC_ALL=C.UTF-8
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+      tigervnc-standalone-server tigervnc-tools python3-websockify \
+      openbox tint2 hsetroot \
+      chromium xfce4-terminal thunar \
+      dbus dbus-x11 at-spi2-core libxtst6 libxkbcommon0 \
+      adwaita-icon-theme fonts-inter fonts-jetbrains-mono fonts-dejavu-core fonts-liberation2 \
+      fonts-noto-core fonts-noto-color-emoji fonts-wqy-microhei \
+      python3-pil iptables iproute2 tini \
+      ca-certificates curl git jq less nano unzip procps sudo; \
+    apt-get purge -y --auto-remove; \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/* /usr/share/doc/* /usr/share/man/* /usr/share/info/* \
+      /usr/share/applications/*openbox* /usr/share/xsessions; \
+    find /usr/share/locale -mindepth 1 -maxdepth 1 ! -name 'en*' -exec rm -rf {} +
+
+# noVNC's web client only (Debian's package pulls in Node.js for its tooling), pinned by SHA-256.
+RUN set -eux; \
+    curl -fsSL https://github.com/novnc/noVNC/archive/refs/tags/v1.6.0.tar.gz -o /tmp/novnc.tgz; \
+    echo '5066103959ef4e9b10f37e5a148627360dd8414e4cf8a7db92bdbd022e728aaa  /tmp/novnc.tgz' | sha256sum -c -; \
+    install -d /usr/share/novnc; \
+    tar -xzf /tmp/novnc.tgz -C /usr/share/novnc --strip-components=1 noVNC-1.6.0/app noVNC-1.6.0/core \
+      noVNC-1.6.0/vendor noVNC-1.6.0/vnc.html noVNC-1.6.0/vnc_lite.html noVNC-1.6.0/LICENSE.txt; \
+    rm -f /tmp/novnc.tgz
+
+# Cua Driver: the exact wheel the harness pins, checked by SHA-256, only its binary kept.
+RUN set -eux; \
+    case "${TARGETARCH:-$(dpkg --print-architecture)}" in \
+      amd64) url='https://files.pythonhosted.org/packages/3b/b0/97f6d8828b8a6ca3649ad7150ddbc23addde56f014c9bd407876484ecb8d/cua_driver-0.37.0-py3-none-manylinux_2_31_x86_64.whl'; sha='e530ee36226d99516ef7ec696ba31d516e487ae5e5effdd5e2610c56af3eee19' ;; \
+      arm64) url='https://files.pythonhosted.org/packages/dc/33/81e2531353837f80358fbf56629a74f50d7f097af4b5f67626b0afce2d61/cua_driver-0.37.0-py3-none-manylinux_2_31_aarch64.whl'; sha='1a0103fd7fa5e9d51ee3ce26d502eb4187702282b3f4bcf1e9c09c6ce9f9d558' ;; \
+      *) echo "unsupported architecture" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "$url" -o /tmp/cua.whl; \
+    echo "$sha  /tmp/cua.whl" | sha256sum -c -; \
+    python3 -c 'import sys, zipfile; z = zipfile.ZipFile(sys.argv[1]); open(sys.argv[2], "wb").write(z.read("cua_driver/bin/cua-driver"))' /tmp/cua.whl /tmp/cua-driver; \
+    install -D -m 0755 /tmp/cua-driver /usr/local/libexec/openmausbot/cua-driver; \
+    rm -f /tmp/cua.whl /tmp/cua-driver; \
+    test "$(/usr/local/libexec/openmausbot/cua-driver --version)" = "cua-driver ${CUA_DRIVER_VERSION}"
+
+# The harness's screenshot transfer runs /opt/venv/bin/python with Pillow; the system python has it.
+# Two modes (omb-init): "free" (the host fences the network, the bot has sudo and a writable root) and "strict" (the box
+# fences itself, read-only root, no sudo). Runtime state points into /run, /tmp or the home volume in both.
+RUN set -eux; \
+    install -d /opt/venv/bin; ln -s /usr/bin/python3 /opt/venv/bin/python; \
+    useradd --uid 1000 --user-group --create-home --shell /bin/bash cua; \
+    install -d -o cua -g cua -m 0700 /home/cua/Downloads /home/cua/workspace; \
+    printf '%s\n' "PS1='\\[\\e[38;5;208m\\]\\h-cloud\\[\\e[0m\\]:\\w\\$ '" >> /home/cua/.bashrc; \
+    rm -rf /var/log/supervisor; ln -s /tmp/omb-log /var/log/supervisor; \
+    rm -f /etc/machine-id /var/lib/dbus/machine-id; ln -s /run/omb/machine-id /etc/machine-id; \
+    ln -s /run/omb/machine-id /var/lib/dbus/machine-id; \
+    printf '%s\n' 'cua ALL=(ALL:ALL) NOPASSWD: ALL' > /etc/sudoers.d/cua; chmod 0440 /etc/sudoers.d/cua; \
+    find / -xdev -type f -perm /6000 ! -path /usr/bin/sudo -exec chmod a-s {} +; \
+    fc-cache -f
+
+COPY --from=art /out/wallpaper.png /usr/share/omb-desktop/wallpaper.png
+COPY --from=art /out/icons/ /usr/share/omb-desktop/icons/
+COPY rootfs/ /
+COPY host-fence.sh /usr/local/bin/omb-host-fence
+RUN chmod 0755 /usr/local/bin/omb-* && chmod 0644 /etc/chromium.d/omb
+
+LABEL com.openmausbot.bot-desktop="${BOT_DESKTOP_VERSION}" \
+      com.openmausbot.cua-driver="${CUA_DRIVER_VERSION}" \
+      org.opencontainers.image.title="omb-bot-desktop" \
+      org.opencontainers.image.description="OpenMausBot bot computer: a sandboxed dark Linux desktop" \
+      org.opencontainers.image.source="https://github.com/SiddDevZ/OpenMausBot"
+
+ENV HOME=/home/cua USER=cua DISPLAY=:1 XDG_RUNTIME_DIR=/run/user/1000 XDG_CONFIG_HOME=/home/cua/.config \
+    XCURSOR_THEME=Adwaita XCURSOR_SIZE=24 NO_AT_BRIDGE=0 \
+    DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+WORKDIR /home/cua
+EXPOSE 6901
+STOPSIGNAL SIGTERM
+# root only to prepare the box, then the session runs as uid 1000
+ENTRYPOINT ["/usr/local/bin/omb-init"]

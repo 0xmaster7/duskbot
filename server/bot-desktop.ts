@@ -1,0 +1,269 @@
+// The bot computer (deploy/bot-desktop): a Debian desktop that speaks the same Cua Driver as the Cua image, so
+// screenshots, input, AT-SPI and Chromium's CDP reach bots unchanged. Only the box around it differs.
+//   free    the host fences the box's network (deploy/bot-desktop/host-fence.sh) and gVisor or user-namespace remapping
+//           guards the kernel, so the bot gets sudo and a writable, persistent root: apt, servers, anything, inside.
+//   strict  the host has neither: the box fences itself, the root is read-only and sudo is inert (no_new_privs).
+import {
+  BOT_DESKTOP_BRIDGE,
+  BOT_DESKTOP_HOME,
+  BOT_DESKTOP_IMAGE,
+  BOT_DESKTOP_LABEL,
+  BOT_DESKTOP_MODE_LABEL,
+  BOT_DESKTOP_NETWORK,
+  BOT_DESKTOP_NETWORK_LABEL,
+  BOT_DESKTOP_VERSION,
+} from "../shared/bot-desktop.ts";
+import { CUA_DRIVER_VERSION, DRIVER_LABEL, dockerSecurityIsHardened, type DockerHardeningConfig } from "./container-computer.ts";
+import { PIDS_LIMIT } from "./container-limits.ts";
+
+export { BOT_DESKTOP_IMAGE, BOT_DESKTOP_LABEL, BOT_DESKTOP_NETWORK, BOT_DESKTOP_VERSION };
+
+export type VpsDesktopKind = "bot-desktop" | "cua";
+export type BotDesktopMode = "free" | "strict";
+
+/** New VPS computers get the bot desktop; OPENMAUSBOT_VPS_DESKTOP=cua keeps making Cua XFCE containers. */
+export function preferredVpsDesktop(env: NodeJS.ProcessEnv = process.env): VpsDesktopKind {
+  return env.OPENMAUSBOT_VPS_DESKTOP === "cua" ? "cua" : "bot-desktop";
+}
+
+/** A container's own labels say what it was made from, whichever kind new ones get today. */
+export function containerDesktopKind(labels: Record<string, string> | undefined): VpsDesktopKind {
+  return labels?.[BOT_DESKTOP_LABEL] ? "bot-desktop" : "cua";
+}
+
+export function botDesktopLabelsMatch(labels: Record<string, string> | undefined): boolean {
+  return labels?.[BOT_DESKTOP_LABEL] === BOT_DESKTOP_VERSION && labels?.[DRIVER_LABEL] === CUA_DRIVER_VERSION;
+}
+
+export function botDesktopVolume(containerName: string): string {
+  return `${containerName}-home`;
+}
+
+/** strict: NET_ADMIN once for the box's own firewall, SETUID/SETGID to become uid 1000. */
+export const STRICT_CAPABILITIES = ["NET_ADMIN", "SETGID", "SETUID"] as const;
+/** free: what apt, dpkg and sudo need as root inside the box. Never NET_ADMIN or NET_RAW (no touching the network or
+ * spoofing on the bridge), MKNOD, SYS_ADMIN, SYS_PTRACE, SYS_MODULE or anything else that reaches the host. */
+export const FREE_CAPABILITIES = [
+  "AUDIT_WRITE", "CHOWN", "DAC_OVERRIDE", "FOWNER", "FSETID", "KILL", "NET_BIND_SERVICE", "SETGID", "SETUID", "SYS_CHROOT",
+] as const;
+
+export const BOT_DESKTOP_DNS = ["1.1.1.1", "9.9.9.9"] as const;
+
+/** The flags the harness starts a bot desktop with. */
+export function botDesktopRunArgs(input: {
+  containerName: string;
+  imageRef: string;
+  viewerSecret: string;
+  labels: string[];
+  mode: BotDesktopMode;
+  runtime?: "runsc" | null;
+  blockedHostAddresses?: string[];
+}): string[] {
+  const free = input.mode === "free";
+  const blocked = (input.blockedHostAddresses ?? []).filter(isHostAddress);
+  return [
+    "run", "-d", "--name", input.containerName, "--hostname", "bot",
+    ...input.labels.flatMap((label) => ["--label", label]),
+    "--label", `${BOT_DESKTOP_LABEL}=${BOT_DESKTOP_VERSION}`,
+    "--label", `${BOT_DESKTOP_MODE_LABEL}=${input.mode}`,
+    "--label", `${DRIVER_LABEL}=${CUA_DRIVER_VERSION}`,
+    ...(input.runtime === "runsc" ? ["--runtime", "runsc"] : []),
+    "--network", BOT_DESKTOP_NETWORK,
+    // public resolvers: docker's own would forward to the host's, which on many clouds is the fenced metadata address
+    ...BOT_DESKTOP_DNS.flatMap((server) => ["--dns", server]),
+    // free keeps what the bot installs in the container's own layer until the box is recreated
+    ...(free ? [] : ["--read-only"]),
+    "--tmpfs", "/tmp:rw,nosuid,nodev,size=1g",
+    "--tmpfs", "/run:rw,nosuid,nodev,size=64m,uid=1000,gid=1000,mode=0755",
+    "--mount", `type=volume,source=${botDesktopVolume(input.containerName)},target=${BOT_DESKTOP_HOME}`,
+    "--cap-drop", "ALL",
+    ...(free ? FREE_CAPABILITIES : STRICT_CAPABILITIES).flatMap((cap) => ["--cap-add", cap]),
+    // sudo is setuid, so no-new-privileges would make it inert; free leans on the host fence and gVisor/userns instead
+    ...(free ? [] : ["--security-opt", "no-new-privileges"]),
+    "--ipc", "private",
+    "--cgroupns", "private",
+    "--memory", "4g", "--memory-swap", "4g", "--cpus", "2",
+    "--pids-limit", String(PIDS_LIMIT),
+    "--shm-size", "512m",
+    "--restart", "unless-stopped",
+    "-e", `OMB_MODE=${input.mode}`,
+    "-e", `VNC_PW=${input.viewerSecret}`,
+    ...(!free && blocked.length ? ["-e", `OMB_BLOCK_EXTRA=${blocked.join(",")}`] : []),
+    input.imageRef,
+  ];
+}
+
+/** One bridge with a fixed interface name, so host-fence.sh can key its rules on it; inter-container traffic off. */
+export function botDesktopNetworkCreateArgs(): string[] {
+  return [
+    "network", "create", "--driver", "bridge",
+    "--opt", "com.docker.network.bridge.enable_icc=false",
+    "--opt", `com.docker.network.bridge.name=${BOT_DESKTOP_BRIDGE}`,
+    "--label", `${BOT_DESKTOP_NETWORK_LABEL}=1`,
+    BOT_DESKTOP_NETWORK,
+  ];
+}
+
+// host probes run the desktop image itself for one command; --userns host because host networking needs it under remapping
+const probe = (imageRef: string, extra: string[], entrypoint: string, args: string[]) => [
+  "run", "--rm", "--network", "host", "--userns", "host", "--cap-drop", "ALL", ...extra, "--read-only",
+  "--entrypoint", entrypoint, imageRef, ...args,
+];
+
+/** The host's own addresses, so a strict box refuses them too: a service on the host's public address stays unreachable. */
+export function hostAddressProbeArgs(imageRef: string): string[] {
+  return probe(imageRef, ["--user", "1000:1000", "--security-opt", "no-new-privileges"], "ip", ["-o", "addr", "show", "scope", "global"]);
+}
+
+/** Whether host-fence.sh's rules are in the host's netfilter: reading them needs NET_ADMIN, nothing is changed. */
+export function hostFenceProbeArgs(imageRef: string): string[] {
+  return probe(imageRef, ["--cap-add", "NET_ADMIN", "--security-opt", "no-new-privileges"], "/usr/local/bin/omb-host-fence", ["--check"]);
+}
+
+export function parseHostAddresses(output: string): string[] {
+  const found = new Set<string>();
+  for (const line of output.split(/\r?\n/)) {
+    const match = /\binet6?\s+([0-9a-f.:]+)\//i.exec(line);
+    if (match && isHostAddress(match[1]!)) found.add(match[1]!.toLowerCase());
+  }
+  return [...found].slice(0, 32);
+}
+
+function isHostAddress(value: string): boolean {
+  if (/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.test(value)) return value.split(".").every((part) => Number(part) <= 255);
+  return /^[0-9a-f:]+$/i.test(value) && value.includes(":") && value.length <= 39;
+}
+
+export interface HostIsolation {
+  runtime: "runsc" | null;
+  userns: boolean;
+}
+
+/** From `docker info --format '{{json .}}'`: gVisor under Runtimes, remapping under SecurityOptions.
+ * OPENMAUSBOT_VPS_GVISOR=off skips gVisor even when installed. */
+export function hostIsolation(infoJson: string, env: NodeJS.ProcessEnv = process.env): HostIsolation {
+  try {
+    const info = JSON.parse(infoJson) as { Runtimes?: Record<string, unknown> | null; SecurityOptions?: unknown } | null;
+    const runsc = Boolean(info?.Runtimes && typeof info.Runtimes === "object" && "runsc" in info.Runtimes);
+    const options = Array.isArray(info?.SecurityOptions) ? info.SecurityOptions : [];
+    return {
+      runtime: runsc && env.OPENMAUSBOT_VPS_GVISOR !== "off" ? "runsc" : null,
+      userns: options.some((option) => typeof option === "string" && /(^|,)name=userns(,|$)/.test(option)),
+    };
+  } catch {
+    return { runtime: null, userns: false };
+  }
+}
+
+/** free only when the host fences the network and something stronger than plain runc guards the kernel. */
+export function botDesktopMode(fenced: boolean, isolation: HostIsolation, env: NodeJS.ProcessEnv = process.env): BotDesktopMode {
+  if (env.OPENMAUSBOT_VPS_BOX === "strict") return "strict";
+  return fenced && (isolation.runtime === "runsc" || isolation.userns) ? "free" : "strict";
+}
+
+type HostConfig = DockerHardeningConfig & { ReadonlyRootfs?: boolean; Runtime?: string };
+const RUNTIMES = ["", "runc", "io.containerd.runc.v2", "runsc", undefined];
+const caps = (config: HostConfig) => (config.CapAdd ?? []).map((cap) => cap.toLowerCase().replace(/^cap_/, "")).sort();
+const unsafeOption = (config: HostConfig) => (config.SecurityOpt ?? []).some((option) => /(?:^|=)(?:unconfined|disable)$/i.test(option));
+
+export function botDesktopIsHardened(config: HostConfig | undefined, mode: BotDesktopMode | undefined): boolean {
+  if (!config || !RUNTIMES.includes(config.Runtime)) return false;
+  if (mode === "free") {
+    return (config.CapDrop ?? []).some((cap) => cap.toLowerCase() === "all") &&
+      caps(config).join(",") === FREE_CAPABILITIES.map((cap) => cap.toLowerCase()).join(",") &&
+      config.Privileged === false && !config.PidMode && config.IpcMode === "private" && !config.UTSMode &&
+      !config.Devices?.length && !config.DeviceRequests?.length && !unsafeOption(config) && !config.UsernsMode &&
+      config.CgroupnsMode === "private" && config.AutoRemove !== true;
+  }
+  if (mode !== "strict" || config.ReadonlyRootfs !== true) return false;
+  if (!(config.SecurityOpt ?? []).some((option) => /^no-new-privileges(?::true|=true)?$/i.test(option))) return false;
+  if (!caps(config).includes("net_admin")) return false;
+  return dockerSecurityIsHardened({ ...config, CapAdd: caps(config).filter((cap) => cap !== "net_admin") }, { restartPolicy: "any" });
+}
+
+export function botDesktopNetworkIsPrivate(
+  config: { NetworkMode?: string; PortBindings?: Record<string, unknown> | null; PublishAllPorts?: boolean } | undefined,
+  networks: Record<string, unknown> | null | undefined,
+): boolean {
+  if (!config || config.NetworkMode !== BOT_DESKTOP_NETWORK) return false;
+  const attached = Object.keys(networks ?? {});
+  return attached.length === 1 && attached[0] === BOT_DESKTOP_NETWORK && config.PublishAllPorts !== true &&
+    !Object.values(config.PortBindings ?? {}).some((value) => Array.isArray(value) && value.length > 0);
+}
+
+/** Exactly one mount, the bot's own home volume; never a bind, never another container's volumes. */
+export function botDesktopMountsAreSafe(containerName: string, detail: {
+  Mounts?: unknown;
+  HostConfig?: { Binds?: string[] | null; VolumesFrom?: string[] | null };
+}): boolean {
+  if (detail.HostConfig?.Binds?.length || detail.HostConfig?.VolumesFrom?.length || !Array.isArray(detail.Mounts)) return false;
+  if (detail.Mounts.length !== 1) return false;
+  const mount = detail.Mounts[0] as { Type?: string; Name?: string; Destination?: string; Driver?: string };
+  return mount.Type === "volume" && mount.Name === botDesktopVolume(containerName) && mount.Destination === BOT_DESKTOP_HOME &&
+    (mount.Driver === undefined || mount.Driver === "local");
+}
+
+/** A container's mode label and environment must agree; anything else is not a box this app made. */
+export function containerBotDesktopMode(labels: Record<string, string> | undefined, env: string[] | undefined): BotDesktopMode | undefined {
+  const mode = labels?.[BOT_DESKTOP_MODE_LABEL];
+  if (mode !== "free" && mode !== "strict") return undefined;
+  const envMode = env?.find((entry) => entry.startsWith("OMB_MODE="))?.slice("OMB_MODE=".length) ?? "strict";
+  return envMode === mode ? mode : undefined;
+}
+
+type DockerRun = (args: string[], timeoutMs?: number) => Promise<{ stdout: string }>;
+const IMAGE_ID = /^sha256:[a-f0-9]{64}$/i;
+
+function missing(error: unknown): boolean {
+  return /no such (object|image|network)|not found/i.test(error instanceof Error ? error.message : String(error));
+}
+
+/** Pulls the image when absent, makes the network, picks the mode the host allows, and starts this bot's box. Returns
+ * false only when the image cannot be had (registry unreachable or not published yet) so the caller can fall back to the
+ * Cua desktop; anything else throws. */
+export async function provisionBotDesktop(run: DockerRun, input: {
+  containerName: string;
+  imageId: string | null;
+  labels: string[];
+  viewerSecret: string;
+}): Promise<BotDesktopMode | false> {
+  let imageId = input.imageId;
+  if (!imageId) {
+    try {
+      await run(["pull", BOT_DESKTOP_IMAGE], 15 * 60_000);
+    } catch {
+      return false;
+    }
+    const [image] = JSON.parse((await run(["image", "inspect", BOT_DESKTOP_IMAGE], 20_000)).stdout) as Array<{
+      Id?: string;
+      Config?: { Labels?: Record<string, string> };
+    }>;
+    if (!image?.Id || !IMAGE_ID.test(image.Id) || !botDesktopLabelsMatch(image.Config?.Labels)) {
+      throw Object.assign(new Error(`${BOT_DESKTOP_IMAGE} is not the bot desktop this app expects (version ${BOT_DESKTOP_VERSION})`), { status: 409 });
+    }
+    imageId = image.Id;
+  }
+  try {
+    const network = JSON.parse((await run(["network", "inspect", BOT_DESKTOP_NETWORK, "--format", "{{json .}}"], 20_000)).stdout) as {
+      Labels?: Record<string, string> | null;
+      Options?: Record<string, string> | null;
+    };
+    if (network.Labels?.[BOT_DESKTOP_NETWORK_LABEL] !== "1" || network.Options?.["com.docker.network.bridge.name"] !== BOT_DESKTOP_BRIDGE) {
+      throw Object.assign(new Error(`The VPS has a Docker network named ${BOT_DESKTOP_NETWORK} that OpenMausBot did not create`), { status: 409 });
+    }
+  } catch (error) {
+    if (!missing(error)) throw error;
+    // two bots provisioning at once both see it missing; the second create finding it there is fine
+    await run(botDesktopNetworkCreateArgs(), 30_000).catch((created: unknown) => {
+      if (!/already exists/i.test(created instanceof Error ? created.message : String(created))) throw created;
+    });
+  }
+  const isolation = hostIsolation((await run(["info", "--format", "{{json .}}"], 20_000).catch(() => ({ stdout: "" }))).stdout);
+  const fenced = await run(hostFenceProbeArgs(imageId), 30_000).then(() => true, () => false);
+  const mode = botDesktopMode(fenced, isolation);
+  const hostAddresses = mode === "strict"
+    ? parseHostAddresses((await run(hostAddressProbeArgs(imageId), 30_000).catch(() => ({ stdout: "" }))).stdout)
+    : [];
+  await run(botDesktopRunArgs({ ...input, imageRef: imageId, mode, runtime: isolation.runtime, blockedHostAddresses: hostAddresses }), 2 * 60_000);
+  return mode;
+}

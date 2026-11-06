@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=Terminal
+Exec=xfce4-terminal
+Icon=/usr/share/omb-desktop/icons/terminal.png

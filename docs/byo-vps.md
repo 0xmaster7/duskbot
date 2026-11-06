@@ -2,13 +2,14 @@
 
 OpenMausBot can turn a Linux server you already own into a bot's computer. The agent process stays on your
 machine; Docker's own SSH transport reaches the daemon on the VPS, and each bot gets one managed, hardened
-Cua container there — a Linux desktop it can see and control. SSH is the only credential involved and the
+bot desktop container there — a Linux desktop it can see and control. SSH is the only credential involved and the
 only surface exposed: OpenMausBot never opens a public port on the VPS, never stores your SSH key or
 passphrase, and never runs an agent remotely.
 
 ## What works
 
-- A per-bot Linux desktop in a managed container on your VPS, driven through the official Cua tools.
+- A per-bot Linux desktop in a managed container on your VPS (the bot desktop image, `deploy/bot-desktop`), driven
+  through the official Cua tools. If its image cannot be pulled yet, the app builds the Cua XFCE desktop instead.
 - Live screen preview in the Computer panel and in transcripts, same as a Boat.
 - Explicit **Cloud** with the **Self-hosted VPS** backend provisions or starts the container. **Auto** reuses
   a ready container by default; an off-by-default **Start VPS automatically** switch lets that bot prepare
@@ -24,7 +25,10 @@ passphrase, and never runs an agent remotely.
 
 - **Locally:** a `docker` CLI, version 18.09 or newer (that is when `docker -H ssh://` shipped). The Docker
   daemon does not need to run locally — only the CLI is used.
-- **On the VPS:** a running Docker daemon (`dockerd`) on x86_64 Linux.
+- **On the VPS:** a running Docker daemon (`dockerd`) on arm64 or x86_64 Linux. For a box the bot can fully use
+  (sudo, installs, servers), also gVisor or user-namespace remapping and the network fence: see
+  [the bot desktop's host setup](../deploy/bot-desktop/README.md#host-setup-the-box-expects-for-the-installer).
+  Without them the box still works, in its strict mode (read-only, no sudo, fenced from inside).
 - **The SSH user** must be in the `docker` group on the VPS, so `docker info` works without sudo.
 
 Be clear-eyed about that last point: membership in the `docker` group is root-equivalent on that machine.
@@ -119,16 +123,17 @@ policies, including the legacy `no` policy. OpenMausBot does not reset those set
 container to enforce its defaults. Restart behavior follows the chosen Docker policy; for example,
 `always` can wake a slept container after a Docker daemon restart.
 
-- **Provision** (choosing **Cloud** for the bot, or the panel's button): builds the pinned Cua image on the
-  VPS if needed, creates the container if missing, starts it if stopped, and waits until the desktop answers.
+- **Provision** (choosing **Cloud** for the bot, or the panel's button): pulls the bot desktop image on
+  the VPS if needed (or builds the pinned Cua image when it cannot), creates the container if missing, starts it if stopped, and waits until the desktop answers.
 - **Start** only wakes an existing stopped container; it never creates one.
 - **Sleep** stops the container. The VPS stops spending CPU on it; the filesystem stays put.
 - **Remove** is yours, done by hand when a bot no longer needs the server:
   `docker -H ssh://my-vps rm -f <container>`. OpenMausBot never deletes a container on its own.
 
 What survives what: sleep/start preserves the container's filesystem; removal — including the recreate that
-follows a Cua image upgrade, since a container pinned to an old image is refused rather than reused — wipes
-it. Treat the container filesystem as **disposable**: anything a bot must keep should leave the VPS (pushed,
+follows an image upgrade, since a container pinned to an old image is refused rather than reused — wipes
+it. A bot desktop keeps the bot's home (`/home/cua`: saved files, browser profile) in the named volume
+`<container>-home`, which outlives removal until you `docker volume rm` it. Treat the rest as **disposable**: anything a bot must keep should leave the VPS (pushed,
 uploaded, or pasted back into chat) before the container is removed.
 
 A bot set to **Auto** is lifecycle-read-only by default. It attaches only when the container is already
