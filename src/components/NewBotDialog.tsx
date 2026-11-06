@@ -31,7 +31,6 @@ import { inputCls } from "./bot-settings/field";
 import { RoutineEditor } from "./RoutinesPage";
 import { LocalComputerAutoWarning } from "./LocalComputerAutoWarning";
 import { SharePresetDialog } from "./SharePresetDialog";
-import { SettingRow } from "./SettingsPrimitives";
 import { Select } from "./Select";
 import { formCloseCls, formFooterCls, formHeaderCls, formTitleCls, mdPrimaryCls, mdSecondaryCls } from "./ui/GrokDialog";
 

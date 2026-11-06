@@ -29,7 +29,7 @@ export const sectionGapCls = (labelled: boolean) => (labelled ? "mt-[22px]" : "m
 export function CardLabel({ children, action, id }: { children: ReactNode; action?: ReactNode; id?: string }) {
   return (
     <div className="mb-2.5 flex min-h-[18px] items-center justify-between gap-1 px-3 text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">
-      <span id={id} className="min-w-0 truncate">{children}</span>
+      <h3 id={id} className="m-0 min-w-0 truncate text-[13px] font-normal leading-[18px]">{children}</h3>
       {action}
     </div>
   );
@@ -328,7 +328,7 @@ export function WipeStack({ at, depth, group, layer }: { at: string; depth: numb
     if (!wipe) return;
     // focus left with the old layer: it lands on the new heading
     const active = document.activeElement;
-    const heading = live.current?.querySelector<HTMLElement>("[data-wipe-heading]");
+    const heading = live.current?.querySelector<HTMLElement>(".settings-pane-title");
     if (heading && (!active || active === document.body || active.closest("[inert]"))) {
       heading.setAttribute("tabindex", "-1");
       heading.focus({ preventScroll: true });
@@ -385,7 +385,7 @@ export function PaneHeader({ title, onBack, backLabel, headingId, children }: { 
     <header className="settings-pane-header">
       <div className="flex min-w-0 items-center gap-1.5">
         {onBack && <BackButton onBack={onBack} label={backLabel} />}
-        <h2 id={headingId} data-wipe-heading="" className={cn("settings-pane-title truncate outline-none", onBack && "ps-0")}>{title}</h2>
+        <h2 id={headingId} className={cn("settings-pane-title truncate outline-none", onBack && "ps-0")}>{title}</h2>
       </div>
       {children}
     </header>

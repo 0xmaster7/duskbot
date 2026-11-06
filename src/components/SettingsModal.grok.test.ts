@@ -95,7 +95,9 @@ describe("Settings, drawn as Grok Bot's", () => {
   it("opens General as Account, Appearance, System, Notifications and Grok's Import, with Theme, Accent and Language as selects", () => {
     const html = open("general");
     expect(groups(html)).toEqual(["Account", "Appearance", "System", "Notifications", "Import"]);
-    expect(markers(html)).toEqual(["import"]);
+    expect(markers(html)).toEqual([]);
+    expect(html).toContain('data-panel-page="import"');
+    expect(markers(open("import"))).toEqual(["import"]);
     for (const label of ["Theme", "Accent", "Language"]) expect(html).toContain(`role="combobox" aria-label="${label}`);
     expect(html).toContain("Play Sound for Notifications");
     expect(html).toContain('aria-label="Notification Sound"');
@@ -131,7 +133,11 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(current(html)).toBe("models");
     expect(title(html)).toBe("Models");
     expect(html).not.toContain("data-settings-back");
-    expect(markers(html)).toEqual(["engines", "apiKeys", "decisionModel"]);
+    expect(markers(html)).toEqual(["engines"]);
+    expect(html).toContain('data-panel-page="keys"');
+    expect(html).toContain('data-panel-page="decision"');
+    expect(markers(open("connections"))).toEqual(["apiKeys"]);
+    expect(markers(open("decisionModel"))).toEqual(["decisionModel"]);
   });
 
   it("opens Usage & Billing as Grok's pane: the limits, an empty state when none report, then the plan", () => {
@@ -144,7 +150,7 @@ describe("Settings, drawn as Grok Bot's", () => {
   });
 
   it("homes the features Grok has no place for inside Advanced, and help under Updates", () => {
-    expect(markers(open("apps"))).toContain("mcp");
+    expect(open("apps")).toContain('data-panel-page="mcp"');
     expect(current(open("about"))).toBe("updates");
     expect(open("about")).toContain('data-settings-open="shortcuts"');
     expect(open("looks")).toContain('data-settings-block="looks"');
@@ -156,18 +162,19 @@ describe("Settings, drawn as Grok Bot's", () => {
   it("puts the phone on Phone, the bots' computer and servers on Computer, and logins in the Vault", () => {
     expect(markers(open("companion"))).toEqual(["pairing", "companion"]);
     expect(current(open("companion"))).toBe("texting");
-    expect(markers(open("computer"))).toContain("computer");
+    expect(open("computer")).toContain('data-panel-page="computers"');
     expect(markers(open("desktopWorkspaces"))).toContain("desktopWorkspaces");
     expect(markers(open("logins"))).toEqual(["logins"]);
     expect(current(open("logins"))).toBe("vault");
   });
 
   it("gives a team's admins Bot access on Permissions, and hides the pane when it would be empty", () => {
-    expect(markers(open("permissions"))).not.toContain("botAccess");
+    expect(markers(open("botAccess"))).not.toContain("botAccess");
     expect(panes(open("general"))).not.toContain("permissions");
     fixture.config = { ...fixture.config, team: { name: "Acme" } };
     fixture.ownerOrAdmin = true;
-    expect(markers(open("permissions"))).toContain("botAccess");
+    expect(open("permissions")).toContain('data-panel-page="botAccess"');
+    expect(markers(open("botAccess"))).toContain("botAccess");
     expect(panes(open("general"))).toContain("permissions");
   });
 

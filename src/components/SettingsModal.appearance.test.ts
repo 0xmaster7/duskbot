@@ -154,7 +154,7 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
   it("groups skins, pins and tool-call display in Looks, with no dead thread or run card switches", () => {
     fixture.section = "looks";
     const html = render();
-    expect(html).toContain("Midnight");
+    expect(html).toContain('role="combobox" aria-label="Skin"');
     expect(html).not.toContain('aria-label="Show threads"');
     expect(html).not.toContain('aria-label="Show the run card"');
     expect(html).toContain('aria-label="Pinned bots as circles"');
@@ -268,7 +268,7 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
     fixture.section = "looks";
     vi.stubGlobal("window", { ogb: { remoteClient: { active: true } } });
     const html = render();
-    expect(html).toContain("Midnight");
+    expect(html).toContain('role="combobox" aria-label="Skin"');
     expect(html).toContain('aria-label="Pinned bots as circles"');
     expect(html).not.toContain('aria-label="Show tool calls in chat"');
     expect(html).not.toContain('data-settings-page="updates"');
@@ -325,11 +325,11 @@ describe("Settings → General → Appearance, and Advanced → Looks", () => {
   it("offers optional Organisation settings only through the local desktop bridge", () => {
     fixture.section = "organization";
     vi.stubGlobal("window", { ogb: { organization: {} } });
-    expect(render()).toContain("personal and local models");
+    expect(render()).toContain('data-panel-page="organization"');
     vi.stubGlobal("window", {});
-    expect(render()).not.toContain("personal and local models");
+    expect(render()).not.toContain('data-panel-page="organization"');
     vi.stubGlobal("window", { ogb: { organization: {}, remoteClient: { active: true } } });
-    expect(render()).not.toContain("personal and local models");
+    expect(render()).not.toContain('data-panel-page="organization"');
   });
 
   it("offers personal Cloud in Usage and Billing, only through the local desktop bridge", () => {

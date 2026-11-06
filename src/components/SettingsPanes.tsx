@@ -48,7 +48,7 @@ import { ProfileFields } from "./ProfileSettings";
 import { RoomTurnTimeoutSettings } from "./RoomTurnTimeoutSettings";
 import { SavedStepsRow } from "./SavedStepsRow";
 import { SettingRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
-import { Card as RowsCard, FormDialog, NavRow, SelectRow, SwitchRow, useSubPage } from "./ListRows";
+import { Card as RowsCard, FormDialog, NavRow, SwitchRow, useSubPage } from "./ListRows";
 import { SettingsSelect } from "./SettingsSelect";
 import { useServerUpdateItem } from "./SidebarProfileMenu";
 import { SkillsSection } from "./SkillsSection";
@@ -399,13 +399,15 @@ function LooksPage({ remoteActive }: { remoteActive: boolean }) {
   return (
     <>
       <RowsCard data-settings-block="looks">
-        <SelectRow
-          data-panel-row="skin"
-          title={t("settings.skin.title")}
-          value={active}
-          options={SKINS.map((skin) => ({ value: skin.id, label: skin.name, title: skin.tagline }))}
-          onChange={(id) => applySkin(id)}
-        />
+        <SettingRow title={t("settings.skin.title")}>
+          <SettingsSelect
+            data-settings-select="skin"
+            value={active}
+            aria-label={t("settings.skin.title")}
+            options={SKINS.map((skin) => ({ value: skin.id, label: skin.name }))}
+            onChange={(event) => { const skin = SKINS.find((entry) => entry.id === event.target.value); if (skin) applySkin(skin.id); }}
+          />
+        </SettingRow>
         {active === "halloween" && <SwitchRow title={t("settings.skin.dressUp.title")} checked={dressed} onChange={() => setDressUp(!dressed)} />}
       </RowsCard>
       <SettingsGroup label={t("settings.section.appearance")} block="appearance-more">

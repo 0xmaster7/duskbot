@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { BANNER_ACCEPT, bannerSrc, prepareBanner, removeBanner, uploadBanner, type BannerProblem, type BannerSummary } from "@/lib/place-banner";
-import { SettingRow } from "./SettingsPrimitives";
+import { NavRow } from "./ListRows";
 
 const PROBLEM: Readonly<Record<BannerProblem | "animated" | "failed", LocaleKey>> = {
   format: "placeLook.imageFormat", read: "placeLook.imageRead", size: "placeLook.imageSize", animated: "placeLook.imageMoving", failed: "placeLook.imageFailed",
@@ -31,16 +31,11 @@ export function PlacePicture({ banner, canChange, subtitle }: { banner: BannerSu
   };
   const message = problem ? <p role="alert" className="text-danger">{t(problem)}</p>
     : canChange ? null : <p className="text-ink-secondary">{t("placeLook.imageAdmins")}</p>;
-  return <div data-place-picture={src ? "set" : "none"}>
-    <SettingRow title={t("placeLook.sidebarPicture")} subtitle={subtitle} message={message}>
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        {src && <img src={src} alt={t("placeLook.currentImage")} className="h-8 w-14 rounded-md border border-ink/10 object-cover" />}
-        <button type="button" className="ui-button" disabled={!canChange || busy} onClick={() => input.current?.click()}>
-          {busy ? t("placeLook.imageSaving") : t(src ? "placeLook.changeImage" : "placeLook.useImage")}
-        </button>
-        {src && <button type="button" className="ui-button" disabled={!canChange || busy} onClick={() => void run(removeBanner)}>{t("placeLook.removeImage")}</button>}
-        <input ref={input} type="file" accept={BANNER_ACCEPT} hidden data-place-picture-input onChange={(event) => chosen(event.target.files?.[0])} />
-      </div>
-    </SettingRow>
+  return <div data-place-picture={src ? "set" : "none"} className="flex flex-col">
+    <NavRow drill={false} disabled={!canChange || busy} title={t("placeLook.sidebarPicture")} hint={problem ? undefined : subtitle}
+      value={busy ? t("placeLook.imageSaving") : t(src ? "placeLook.changeImage" : "placeLook.useImage")} onClick={() => input.current?.click()} />
+    {src && <NavRow drill={false} disabled={!canChange || busy} title={t("placeLook.removeImage")} onClick={() => void run(removeBanner)} />}
+    {message && <div className="px-2 pb-1.5 text-[12px]">{message}</div>}
+    <input ref={input} type="file" accept={BANNER_ACCEPT} hidden data-place-picture-input onChange={(event) => chosen(event.target.files?.[0])} />
   </div>;
 }
