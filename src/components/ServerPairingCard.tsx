@@ -206,7 +206,7 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
           )}
           <ItemRow title={t("settings.w6.pairing.title")} hint={pairingCodes ? cloudHome ? t("settings.w6a.phone.cloudPersonal") : undefined : t("settings.w6a.phone.portal")}>
             {pairingCodes ? (
-              <button type="button" data-phone-pairing-action onClick={() => void create()} disabled={busy} className="ui-button">
+              <button type="button" data-phone-pairing-action onClick={() => void create()} disabled={busy} className="ui-button ui-button-sm">
                 {busy ? t("remote.serverPairing.creating") : t("settings.simple.computer.createCode")}
               </button>
             ) : null}

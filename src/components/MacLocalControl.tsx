@@ -59,12 +59,12 @@ export function MacLocalControl() {
   if (capabilities.localComputer.available) return null;
 
   return (
-    <section className="mt-4 rounded-xl border border-warning/25 bg-warning/10 p-4">
+    <section className="mt-4 rounded-[14px] border border-ink/[0.08] bg-menu p-3">
       <div className="flex items-start gap-3">
-        <Shield size={16} className="mt-0.5 shrink-0 text-warning" />
+        <Shield size={15} className="mt-0.5 shrink-0 text-ink/[0.56]" />
         <div className="min-w-0 flex-1">
-          <div className="text-[14px] font-medium text-ink">Allow control of this computer</div>
-          <p className="mt-1 text-[13px] leading-relaxed text-ink-secondary">
+          <div className="text-[13px] font-medium leading-[18px] text-ink">Allow control of this computer</div>
+          <p className="mt-0.5 text-[12px] leading-4 text-ink/[0.56]">
             {permissionMessage ?? t("computer.mac.permission.generic")}
           </p>
           {reason && <details className="mt-2 text-[12px] text-ink-secondary"><summary className="cursor-pointer">{t("computer.mac.permission.driverDetail")}</summary><p className="mt-1 break-words">{reason}</p></details>}
@@ -74,14 +74,14 @@ export function MacLocalControl() {
               <span>{error}</span>
             </div>
           )}
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
             {permissionMessage && reason && <MacCuaRecoveryActions reason={reason} />}
             {!permissionMessage && (
               <button
                 type="button"
                 onClick={() => void openSettings()}
                 disabled={pending}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[13px] font-medium text-white hover:brightness-110 disabled:opacity-50"
+                className="ui-button ui-button-sm ui-button-primary"
               >
                 Open System Settings
               </button>
@@ -90,7 +90,7 @@ export function MacLocalControl() {
               type="button"
               onClick={() => void retry()}
               disabled={pending}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-hairline/50 px-3 py-1.5 text-[13px] font-medium text-ink hover:bg-raised disabled:opacity-50"
+              className="ui-button ui-button-sm"
             >
               {pending && <Loader2 size={13} className="animate-spin" />}
               Retry

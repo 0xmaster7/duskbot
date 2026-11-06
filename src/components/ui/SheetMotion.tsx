@@ -1,6 +1,5 @@
 import { motion, useReducedMotion, type HTMLMotionProps } from "motion/react";
 
-import { REDUCED, SCRIM, SHEET } from "@/lib/motion-presets";
 
 /** The app's reduced-motion choice or the system's. */
 export function useMotionReduced(): boolean {
@@ -29,16 +28,13 @@ export function MotionSpan(props: HTMLMotionProps<"span">) {
   return live() ? <motion.span {...props} /> : <span {...(rest(props) as React.HTMLAttributes<HTMLSpanElement>)} />;
 }
 
-const FADE = { initial: { opacity: 0 }, animate: { opacity: 1, transition: REDUCED }, exit: { opacity: 0, transition: REDUCED } };
 
-/** A centered sheet's own box: bencho's modal entrance (and exit, under AnimatePresence); a fade alone when motion is reduced. */
+/** A centered sheet's own box. Dialogs open and close raw, in one frame, like the rest of the app's windows. */
 export function SheetMotion(props: HTMLMotionProps<"div">) {
-  const reduced = useMotionReduced();
-  return <MotionDiv {...(reduced ? FADE : SHEET)} {...props} />;
+  return <MotionDiv initial={false} {...props} />;
 }
 
-/** The dimmed backdrop behind a sheet, fading in and out. */
+/** The dimmed backdrop behind a sheet, there at once. */
 export function ScrimMotion(props: HTMLMotionProps<"div">) {
-  const reduced = useMotionReduced();
-  return <MotionDiv {...(reduced ? FADE : SCRIM)} {...props} />;
+  return <MotionDiv initial={false} {...props} />;
 }
