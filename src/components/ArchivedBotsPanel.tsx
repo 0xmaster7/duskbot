@@ -73,17 +73,17 @@ export function ArchivedBotRow({
   onDelete: () => void;
 }) {
   return (
-    <div className="flex min-h-[82px] items-center gap-3 border-b border-hairline/35 px-1 py-3">
-      <BotAvatar bot={bot} state="happy" size={42} animated={false} />
+    <div className="flex min-h-[48px] items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-ink/[0.035]">
+      <BotAvatar bot={bot} state="happy" size={32} animated={false} />
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[14px] font-medium text-ink">{bot.name}</div>
-        <div className="mt-0.5 truncate text-[13px] text-ink-secondary">{bot.title || t("sidebar.archived.botFallback")}</div>
+        <div className="truncate text-[13px] leading-[18px] text-ink">{bot.name}</div>
+        <div className="truncate text-[13px] leading-[18px] text-ink/[0.68]">{bot.title || t("sidebar.archived.botFallback")}</div>
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
         <button
           onClick={onRestore}
           disabled={disabled || deleting}
-          className="flex min-w-[78px] items-center justify-center gap-2 rounded-full bg-raised h-7 px-3.5 text-[13px] font-medium leading-4 text-ink hover:bg-raised-hover disabled:opacity-40"
+          className="flex min-w-[78px] items-center justify-center gap-2 h-7 cursor-pointer rounded-full bg-ink/6 px-2.5 text-[13px] leading-[18px] text-ink shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_6%,transparent)] hover:bg-ink/10 disabled:opacity-40"
         >
           {restoring && <Loader2 size={13} className="animate-spin" />}
           {t("sidebar.archived.restore")}
@@ -205,7 +205,7 @@ export function ArchivedBotsPanel({
               <button
                 onClick={() => void restoreAll()}
                 disabled={locked}
-                className="flex items-center gap-2 rounded-full bg-raised h-7 px-3.5 text-[13px] font-medium leading-4 text-ink hover:bg-raised-hover disabled:opacity-40"
+                className="flex items-center gap-2 h-7 cursor-pointer rounded-full bg-ink/6 px-2.5 text-[13px] leading-[18px] text-ink shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_6%,transparent)] hover:bg-ink/10 disabled:opacity-40"
               >
                 {restoringAll && <Loader2 size={13} className="animate-spin" />}
                 {t("sidebar.archived.restoreAll")}

@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { cn } from "@/lib/cn";
 import { FolderOpen, Plus } from "lucide-react";
 
 import { appSwitchPatch } from "@/lib/bot-app-access";
@@ -19,7 +20,7 @@ import { useOpenComputer, WherePage } from "./ComputerTab";
 import { ApiPage, BackupsPage, InstructionsPage, SettingsPage, ThreadsPage } from "./SettingsPage";
 import { LibraryPage } from "./LibraryTab";
 import type { SimplePageId } from "./page-registry";
-import { BotSwitch, buttonCls, Card, LinkRow, NoteRow, RadioRow, rowCls, SwitchRow, TextRow, TrashButton } from "./rows";
+import { BotSwitch, buttonCls, Card, fieldCls, LinkRow, NoteRow, RadioRow, rowCls, SwitchRow, TextRow, TrashButton } from "./rows";
 import { useMemoryEditor } from "./modals/use-memory-editor";
 import { useSkillActions } from "./modals/use-skill-actions";
 
@@ -98,11 +99,9 @@ export function RoutinesPage({ bot, derived }: PageContext) {
         onOpen={setEditing}
         onLogs={(routine) => dispatch({ type: "showRoutines", section: "logs", botId: bot.id, routineId: routine.id })}
         onToggle={(routine) => dispatch({ type: "updateRoutine", routineId: routine.id, patch: { enabled: !routine.enabled } })}
+        footer={<LinkRow data-panel-action="new-routine" icon={Plus} onClick={() => setEditing("new")}>{t("botPanel.routines.add")}</LinkRow>}
+        footnote={t("botPanel.routines.ask", { name: bot.name })}
       />
-      <Card>
-        <LinkRow data-panel-action="new-routine" icon={Plus} onClick={() => setEditing("new")}>{t("botPanel.routines.add")}</LinkRow>
-      </Card>
-      <p className="mx-1 text-[13px] leading-normal text-ink-secondary">{t("botPanel.routines.ask", { name: bot.name })}</p>
       {editing && (
         <RoutineEditor
           key={bot.id}
@@ -251,7 +250,7 @@ export function FolderPage({ bot }: PageContext) {
         <Card>
           {canPick ? (
             <div className={rowCls}>
-              <div className="min-w-0 flex-1 truncate rounded-lg border border-hairline/40 bg-inset px-3 py-2 font-mono text-[13px] text-ink" title={bot.cwd}>
+              <div className="min-w-0 flex-1 truncate px-0.5 font-mono text-[13px] leading-[18px] text-ink" title={bot.cwd}>
                 {bot.cwd ? shortPath(bot.cwd, home) : <span className="text-ink-secondary">{t("botAccess.folder.private")}</span>}
               </div>
               <button type="button" data-panel-action="pick-folder" disabled={saving} onClick={() => void pick()} className={buttonCls}>
@@ -274,7 +273,7 @@ export function FolderPage({ bot }: PageContext) {
                 placeholder={t("botAccess.folder.placeholder")}
                 aria-label={t("botAccess.folder.title")}
                 onChange={(event) => setDraft(event.target.value)}
-                className="h-8 min-w-0 flex-1 rounded-lg border border-hairline bg-inset px-2.5 font-mono text-[13px] text-ink outline-none placeholder:text-ink-tertiary focus:border-accent-border"
+                className={cn(fieldCls, "font-mono")}
               />
               <button type="submit" disabled={saving || draft === null} className={buttonCls}>{t("botAccess.folder.save")}</button>
             </form>

@@ -137,12 +137,12 @@ export function NotificationsPanel() {
       aria-label={t("notifications.title")}
       className="flex h-full w-[300px] max-w-full shrink-0 flex-col border-l border-hairline/40 bg-panel max-md:absolute max-md:inset-y-0 max-md:right-0 max-md:z-30"
     >
-      <div className="flex items-center gap-1.5 border-b border-hairline/40 px-3.5 py-2.5">
-        <span className="flex-1 text-[13px] font-medium text-ink">
+      <div className="flex items-center gap-1.5 px-3 py-2.5">
+        <span className="flex-1 text-[13px] font-medium leading-[18px] text-ink">
           {t("notifications.title")}
           {unreadCount > 0 && <span className="ml-1.5 text-[12px] font-normal text-accent">· {t("notifications.unread", { count: unreadCount })}</span>}
         </span>
-        <button type="button" onClick={markAllRead} className="shrink-0 whitespace-nowrap text-[12px] text-accent hover:underline">
+        <button type="button" onClick={markAllRead} className="h-6 shrink-0 cursor-pointer whitespace-nowrap rounded-full px-2 text-[12px] leading-4 text-ink-secondary hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus">
           {t("notifications.markAllRead")}
         </button>
         <button
@@ -152,7 +152,7 @@ export function NotificationsPanel() {
           aria-pressed={state.notificationsPinned}
           title={state.notificationsPinned ? t("notifications.unpin") : t("notifications.pin")}
           className={cn(
-            "flex size-[26px] shrink-0 items-center justify-center rounded-md text-ink-secondary hover:bg-raised hover:text-ink",
+            "flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink-secondary hover:bg-ink/[0.06] hover:text-ink",
             state.notificationsPinned && "text-accent",
           )}
         >
@@ -163,7 +163,7 @@ export function NotificationsPanel() {
           onClick={() => dispatch({ type: "toggleNotifications", open: false })}
           aria-label={t("notifications.close")}
           title={t("notifications.close")}
-          className="flex size-[26px] shrink-0 items-center justify-center rounded-md text-ink-secondary hover:bg-raised hover:text-ink"
+          className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink-secondary hover:bg-ink/[0.06] hover:text-ink"
         >
           <X size={14} />
         </button>
@@ -180,7 +180,7 @@ export function NotificationsPanel() {
           ))}
         </Select>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto px-1.5">
         {visible.length === 0 && (
           <div className="px-3.5 py-6 text-[13px] text-ink-secondary">{state.notifications.length === 0 ? t("notifications.empty") : t("notifications.emptyForBot")}</div>
         )}
@@ -203,8 +203,7 @@ function NotificationRow({ entry, now, bot, threadName, onOpen }: { entry: Notif
       onClick={onOpen}
       title={entry.title}
       className={cn(
-        "flex w-full gap-2.5 border-b border-hairline/20 px-3.5 py-2.5 text-left hover:bg-raised/60",
-        !entry.read && "bg-accent/5",
+        "flex w-full cursor-pointer gap-2 rounded-lg px-2 py-1.5 text-left outline-none hover:bg-ink/[0.035] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus",
       )}
     >
       {bot ? (
@@ -213,7 +212,7 @@ function NotificationRow({ entry, now, bot, threadName, onOpen }: { entry: Notif
         <Icon size={16} aria-hidden="true" className={cn("mt-0.5 shrink-0", className)} />
       )}
       <span className="min-w-0 flex-1">
-        <span className="flex items-baseline gap-1.5 text-[13px] font-medium text-ink">
+        <span className="flex items-baseline gap-1.5 text-[13px] leading-[18px] text-ink">
           {!entry.read && <span className="size-1.5 shrink-0 rounded-full bg-accent" aria-hidden="true" />}
           {threadName ? (
             <>
@@ -224,10 +223,10 @@ function NotificationRow({ entry, now, bot, threadName, onOpen }: { entry: Notif
           ) : (
             <span className="min-w-0 flex-1 truncate">{entry.title}</span>
           )}
-          <span className={cn("shrink-0 text-[11px] font-medium", className)}>{t(status)}</span>
+          <span className={cn("shrink-0 text-[12px] leading-4", className)}>{t(status)}</span>
         </span>
-        {entry.body && <span className="mt-0.5 block truncate text-[12px] text-ink-secondary">{entry.body}</span>}
-        <span className="mt-0.5 block text-[11px] text-ink-tertiary">{threadUpdatedLabel(entry.at, now)}</span>
+        {entry.body && <span className="block truncate text-[13px] leading-[18px] text-ink/[0.68]">{entry.body}</span>}
+        <span className="block text-[12px] leading-4 text-ink/[0.56]">{threadUpdatedLabel(entry.at, now)}</span>
       </span>
     </button>
   );

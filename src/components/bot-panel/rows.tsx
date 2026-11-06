@@ -10,8 +10,12 @@ export {
   Card, CardLabel, ItemRow, LabelAction, NavRow, NoteRow, PanelEmpty, PanelSections, RowIcon, RowText, roundButtonCls, rowCls, sectionGapCls,
 } from "../ListRows";
 
+/** the panel's small row pill: 28px, an ink/6 wash, a hairline inset, ink/10 on hover */
 export const buttonCls =
-  "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-[9px] bg-control px-3.5 text-[13px] font-medium text-ink hover:bg-raised-hover disabled:cursor-not-allowed disabled:opacity-50";
+  "omb-press inline-flex h-7 shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-full bg-ink/6 px-2.5 text-[13px] leading-[18px] text-ink shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_6%,transparent)] enabled:hover:bg-ink/10 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-50";
+/** a field with no fill and one quiet hairline that stays put on hover and focus */
+export const fieldCls =
+  "h-7 min-w-0 flex-1 rounded-lg border-[0.5px] border-ink/12 bg-transparent px-2 text-[13px] leading-[18px] text-ink outline-none placeholder:text-ink/40 disabled:opacity-50";
 export const chipCls = (on: boolean) =>
   cn(
     "rounded-full px-2.5 py-1 text-[12px] transition-colors disabled:cursor-not-allowed disabled:opacity-50",
@@ -52,7 +56,7 @@ export function LinkRow({ children, onClick, icon: Icon = ChevronRight, ...rest 
   "data-panel-link"?: string;
 }) {
   return (
-    <button type="button" {...rest} onClick={onClick} className="flex min-h-[30px] w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] leading-[18px] text-ink-secondary hover:bg-ink/[0.06] hover:text-ink">
+    <button type="button" {...rest} onClick={onClick} className="flex min-h-[30px] w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary outline-none hover:bg-ink/[0.035] hover:text-ink focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus">
       <span className="min-w-0 flex-1">{children}</span>
       <Icon size={14} className="shrink-0" aria-hidden="true" />
     </button>
@@ -149,7 +153,7 @@ export function TrashButton({ label, onClick, disabled, ...rest }: {
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className="flex size-7 shrink-0 items-center justify-center rounded-lg text-ink-tertiary hover:bg-ink/[0.05] hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink/[0.56] hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-50"
     >
       <Trash2 size={14} aria-hidden="true" />
     </button>
@@ -172,7 +176,7 @@ export function RadioRow({ title, hint, checked, onClick, disabled, ...rest }: {
       aria-checked={checked}
       disabled={disabled}
       onClick={onClick}
-      className={cn(rowCls, "w-full text-left enabled:hover:bg-ink/[0.06] disabled:cursor-not-allowed disabled:opacity-50")}
+      className={cn(rowCls, "w-full cursor-pointer text-left outline-none enabled:hover:bg-ink/[0.035] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-50")}
     >
       <RowText title={title} hint={hint} />
       <span className="flex w-4 shrink-0 text-ink">{checked && <Check size={16} aria-hidden="true" />}</span>
@@ -205,7 +209,7 @@ export function TextRow({ value, placeholder, label, action, disabled, onChange,
         aria-label={label}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="h-8 min-w-0 flex-1 rounded-lg border border-hairline bg-inset px-2.5 text-[13px] text-ink outline-none placeholder:text-ink-tertiary focus:border-accent-border disabled:opacity-50"
+        className={fieldCls}
       />
       <button type="submit" disabled={disabled || !value.trim()} className={buttonCls}>{action}</button>
     </form>

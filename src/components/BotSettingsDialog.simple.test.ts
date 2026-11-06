@@ -891,7 +891,9 @@ describe("the drill-in pages", () => {
     expect(rendered.html).toContain("Or just ask Scout in chat: “every weekday at 8, send me a summary”.");
     expect(rendered.html).not.toContain("Open schedules");
     expect(has(rendered, "data-panel-action", "routine-logs")).toBe(false);
-    click(find(rendered, "data-panel-action", "new-routine"));
+    const add = list.props.footer as Node;
+    expect(add.props["data-panel-action"]).toBe("new-routine");
+    click(add);
     expect(ofType(body("routines"), RoutineEditor)!.props).toMatchObject({ lockedBotId: "scout", routine: undefined });
   });
 
