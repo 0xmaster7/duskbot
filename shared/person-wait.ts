@@ -17,7 +17,7 @@ export interface PersonWait {
   tool?: string;
 }
 
-/** A first-hour offer to connect an app is the product suggesting something; no work waits on it. */
+/** The offer to connect an app that older Clouds' first hour posted is the product suggesting something; no work waits on it. */
 export const FIRST_HOUR_OFFER_KEY = "first-hour-";
 
 type WaitRow = Pick<WireMessage, "id" | "at" | "kind" | "card" | "secret" | "signIn" | "connector" | "from" | "inbox">;

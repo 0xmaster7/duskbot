@@ -4,8 +4,7 @@ Every bot reaches every other bot, in any department, with nothing to set up:
 departments are folders, not walls. What a department decides is authority. A
 Chief's own department is always its own; in its profile, open **Permissions →
 Also in charge of**, select named departments and choose **Save departments**
-to put it in charge of them too: it supervises their bots, gets their incidents
-and escalations, retries their threads and proposes setup changes there.
+to put it in charge of them too: it supervises their bots, retries their threads and proposes setup changes there.
 Selection alone changes nothing before Save. Specialists do not inherit their
 Chief's authority or permissions. Persisted empty departments are selectable
 too, as is General. A new grant must name an existing department exactly.

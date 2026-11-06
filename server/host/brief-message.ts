@@ -28,8 +28,6 @@ export interface BriefFacts {
   routines: BriefRow[];
   /** From the nightly dream: suggestions, never news, so they are left out of what notifies. */
   ideas?: BriefRow[];
-  /** The morning brief's first line: what was done while the person was away, already in their words. */
-  overnight?: string;
 }
 
 export interface BuiltMessage {
@@ -42,7 +40,7 @@ export const BRIEF_ROWS = 6;
 /** Meetings named in the day's line, and the other rows under "Also worth a look". */
 const DAY_MEETINGS = 4;
 const ALSO_ROWS = 4;
-const TEXT = { line: 120, note: 160, sender: 40, title: 60, overnight: 320, link: 600 } as const;
+const TEXT = { line: 120, note: 160, sender: 40, title: 60, link: 600 } as const;
 const SUMMARY_MAX = 140;
 
 const ENTITY: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;" };
@@ -121,7 +119,6 @@ export function briefMessage(facts: BriefFacts): BuiltMessage {
   const waiting = facts.waiting === true ? w.waitingMany : facts.waiting ? w.waitingCount(facts.waiting) : undefined;
   const day = dayLine(meetings, facts, w);
   const blocks = [
-    facts.overnight ? plain(oneLine(facts.overnight, TEXT.overnight)) : undefined,
     facts.intro ? plain(w.intro) : undefined,
     needs.length ? [plain(w.needsLead(needs.length)), ...capped(needs, BRIEF_ROWS, w)].join("\n") : plain(w.nothingNeedsYou),
     day,

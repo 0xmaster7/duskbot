@@ -57,15 +57,6 @@ describe("a Cloud home's memory pressure in its health report", () => {
   });
 });
 
-describe("a new Cloud's first hour in its health report", () => {
-  it("carries the milestones and the Chief's counts, and null where there are none", () => {
-    expect(world().health.report(undefined)).toMatchObject({ firstHour: null, value: null });
-    const firstHour = { startedAt: START, ms: { firstMessage: 40_000, firstApp: 95_000 }, apps: ["gmail" as const] };
-    const value = { sorted: 3, drafted: 1, prepped: 0, routines: 0, minutes: 8 };
-    expect(world({ firstHour: () => ({ firstHour, value }) }).health.report(undefined)).toMatchObject({ firstHour, value });
-  });
-});
-
 describe("the failure code a Cloud home reports", () => {
   it("names a place that could not be used by its state", () => {
     const w = world();

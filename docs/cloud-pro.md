@@ -1218,9 +1218,8 @@ provider outage. So on a Cloud home (`server/engine-memory.ts`):
   so after "no activity for 20 minutes". The health report counts both as
   `out_of_memory`.
 - **The work starts again when there is room.** A routine run gets its one
-  automatic retry, and a teammate's thread its Chief's; any other run stopped
-  for memory (the Chief's own chat, a bot without a Chief) starts once more by
-  itself 30 s later (`server/host/chief-notices.ts`), as a continuation of the
+  automatic retry; any other run stopped for memory starts once more by
+  itself 30 s later (`server/host/failure-notices.ts`), as a continuation of the
   same request, and the memory gate holds it until it fits. The person hears
   of it only if that run fails too.
 - **The day's pressure is reported** (`room` in the health report, below):
@@ -1572,9 +1571,6 @@ wait for the next read, `truncated: true`):
   "browser": { "available": true, "installing": false, "interrupted": 0 },
   "system": { "totalBytes": 4294967296, "availableBytes": 2147483648, "rssBytes": 314572800, "load1": 0.4, "cpus": 2,
     "disk": { "totalBytes": 10737418240, "freeBytes": 8589934592 }, "eventLogWritable": true },
-  "firstHour": { "startedAt": 1790000000000, "apps": ["gmail"], "look": "delivered",
-    "ms": { "seen": 41000, "firstMessage": 52000, "offered": 61000, "firstApp": 118000, "firstLook": 171000, "briefOn": 172000, "phoneOffered": 172000 } },
-  "value": { "sorted": 40, "drafted": 6, "prepped": 4, "routines": 0, "minutes": 110 },
   "room": { "waits": 3, "waitMs": 360000, "stopped": 1, "killed": 1, "stallMinutes": 2 }
 }
 ```
@@ -1586,22 +1582,6 @@ time so far), how many turns were stopped for memory (`stopped`), how many
 processes the kernel stopped (`killed`), and in how many minutes the machine
 stalled on memory. Counted in memory since boot, so a restart starts them
 again.
-
-**`firstHour`** is there on a personal Cloud that began with its first hour
-(`server/host/first-hour.ts`), else `null`: `startedAt` is the first boot,
-and each milestone in `ms` is how long after it that step happened, present
-once it has: the person first opened the app (`seen`), wrote (`firstMessage`),
-was offered Gmail and Google Calendar (`offered`), connected one (`firstApp`)
-or set the offer aside (`declined`), got the first look (`firstLook`), was
-told the 8:00 morning brief is on (`briefOn`), was offered the phone
-(`phoneOffered`), paired it (`phonePaired`), and got the day-two recap
-(`recap`). `apps` names the apps connected when the first look began (whether or not it
-ran), and `look` says whether
-it was `delivered`, `failed`, or left to the person's own task (`own-task`).
-**`value`** is on any personal Cloud: what its Chief really did, counted when
-it happened (`server/host/value-ledger.ts`): emails sorted, reply drafts
-written, meetings prepared, routine results posted since the first hour
-began, and the minutes that adds up to at 1, 5, 10 and 3 minutes each.
 
 **Incidents** come from one tap on the store: every failed-turn row
 (`shared/failed-turn.ts`, the only way a server writes one) is counted in a

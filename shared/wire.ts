@@ -588,8 +588,8 @@ export interface WireMessage extends HelperIntroField, SetupCardFields, WaitLine
   /** On a "Sent to" hand-off row: the done_when the sender set, redacted, so the chip can show what counts as finished. */
   doneWhen?: string;
   /** Set on the user-role line another bot delivered into this bot's own
-   * conversation (coordinate_bots, start_thread). `incident`: the line is a
-   * Team incidents report or Team escalations notice about that bot's thread
+   * conversation (coordinate_bots, start_thread). `incident`: kept on older
+   * lines, a failure notice an earlier version gave a Chief about the thread
    * in `threadId`, not its words; `notified`: the person was already buzzed. */
   peerAsk?: { botId: string; name: string; unattended?: boolean; incident?: { threadId: string; notified?: boolean } };
   /** One reaction per person (shared/reactions.ts REACTIONS). `by` is "user"

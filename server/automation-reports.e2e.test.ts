@@ -62,10 +62,6 @@ async function server(env: NodeJS.ProcessEnv = {}) {
   const savedBot = async () => (await api("GET", "/api/bots")).bots.find((candidate: any) => candidate.id === bot.id);
   const notified = () => events!.frames.filter((frame) => frame.kind === "notify").map((frame) => frame.notification as { kind: string; threadId: string; body: string });
   const header = (name: string) => `Routine ${JSON.stringify(name)} — do this now:`;
-  /** Rows about these conversations in the workspace Chief's incidents and escalations conversations. */
-  const chiefRows = async (...threadIds: string[]) => (await Promise.all((await api("GET", "/api/bots")).bots
-    .flatMap((each: any) => (each.tasks ?? []).filter((task: any) => task.title === "Problems to look at" || task.title === "Team escalations"))
-    .map(async (task: any) => (await messages(task.threadId)).filter((message) => threadIds.includes(message.threadRef?.threadId))))).flat();
   /** Whether the turn the script answered with `key` was told that only its last reply leaves the run. */
   const toldOnlyReplyLeaves = (key: string) => {
     const turns = readFileSync(`${planPath}.evidence.jsonl`, "utf8").trim().split("\n").map((line) => JSON.parse(line) as { planKey?: string; system?: string; prompt?: unknown });
@@ -73,7 +69,7 @@ async function server(env: NodeJS.ProcessEnv = {}) {
     expect(turn, `no turn answered with ${key}`).toBeTruthy();
     return `${turn!.system}\n${JSON.stringify(turn!.prompt)}`.includes(AUTOMATION_REPLY_PROMPT.trim());
   };
-  return { url, dataDir, api, cli, bot, main, script, messages, lines, runs, run, routine, runNow, settled, reported, savedBot, notified, header, chiefRows, toldOnlyReplyLeaves };
+  return { url, dataDir, api, cli, bot, main, script, messages, lines, runs, run, routine, runNow, settled, reported, savedBot, notified, header, toldOnlyReplyLeaves };
 }
 
 /** The run's permission broker, reached the way the CLI's proxy reaches it; what it answers lands in the returned list. */
@@ -311,20 +307,6 @@ it("reports an outside event's run into the main chat too, from a conversation o
   expect(existsSync(join(s.dataDir, "room-plan.json"))).toBe(true);
 }, 120_000);
 
-it("asks once, in the chat, when Chief escalations are on: a run's question is not escalated as well", async () => {
-  const s = await server();
-  await s.api("PATCH", "/api/config", { features: { chiefEscalations: true } });
-  s.script([{ key: "run", match: [s.header("Acme replies")], reply: "NEEDS INPUT: Should I send the reply to Acme?" }]);
-  const id = await s.runNow(await s.routine("Acme replies"));
-  await s.reported(id, "posted");
-  const { threadId } = await s.run(id);
-  await expect.poll(() => s.notified().some((notification) => notification.kind === "question" && notification.threadId === s.main), { timeout: 20_000 }).toBe(true);
-  // Neither told to the person a second time nor handed to the workspace's Chief as an escalation.
-  await new Promise((resolve) => setTimeout(resolve, 1_000));
-  expect(s.notified().filter((notification) => notification.threadId === threadId || notification.kind === "incident")).toEqual([]);
-  expect(await s.chiefRows(threadId, s.main)).toEqual([]);
-}, 120_000);
-
 it("still reports the person's own failed turn in a chat a run once continued", async () => {
   const s = await server();
   s.script([
@@ -341,9 +323,8 @@ it("still reports the person's own failed turn in a chat a run once continued", 
   expect(s.toldOnlyReplyLeaves("continue")).toBe(false);
   await s.cli("send", "--bot", s.bot.id, "--task", s.main, "--text", "Plan the launch.");
   await s.cli("wait", "--bot", s.bot.id, "--task", s.main, "--timeout", "20");
-  // The failure is filed: with the workspace's Chief, as a row in its incidents conversation; without one, to the person.
-  const filed = async () => s.notified().some((notification) => notification.kind === "incident" && notification.threadId === s.main) ||
-    (await s.chiefRows(s.main)).length > 0;
+  // The failure is told to the person.
+  const filed = () => s.notified().some((notification) => notification.kind === "incident" && notification.threadId === s.main);
   await expect.poll(filed, { timeout: 20_000 }).toBe(true);
 }, 120_000);
 

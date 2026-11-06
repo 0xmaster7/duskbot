@@ -105,8 +105,8 @@ async function launch() {
   return { api, control, messages, play, told, handOff, close };
 }
 
-it("reports an account's weekly limit with its reset to the person and the Chief, never as setup or an update", async () => {
-  const { api, control, messages, play, told, close } = await launch();
+it("reports an account's weekly limit with its reset to the person, never as setup or an update", async () => {
+  const { api, control, messages, play, close } = await launch();
   try {
     const chief = (await control(["new-bot", "--name", "Tango", "--section", "Ops"])).bot;
     await api("PATCH", `/api/bots/${chief.id}`, { chiefOfStaff: true });
@@ -122,13 +122,6 @@ it("reports an account's weekly limit with its reset to the person and the Chief
     expect(failed[0].tool).not.toHaveProperty("setup");
     expect(failed[0].tool).not.toHaveProperty("claudeUpdate");
     expect(thread.some((m) => m.role === "bot" && m.kind === "text" && /hit your weekly limit/.test(m.text ?? ""))).toBe(false);
-
-    await expect.poll(async () => (await api("GET", "/api/bots")).bots.find((b: any) => b.id === chief.id)?.tasks?.some((t: any) => t.title === "Problems to look at"), { timeout: 20_000 }).toBe(true);
-    const incidents = (await api("GET", "/api/bots")).bots.find((b: any) => b.id === chief.id).tasks.find((t: any) => t.title === "Problems to look at");
-    await expect.poll(async () => (await messages(incidents.threadId)).find((m) => m.kind === "activity" && (m.tool?.name ?? "").includes(" hit a problem: "))?.tool.name, { timeout: 20_000 })
-      .toMatch(/^Pesto hit a problem: its run .+ failed: "This Claude account has reached its weekly limit, which resets /);
-    await expect.poll(() => told(incidents.threadId, chief.id), { timeout: 20_000 }).toMatch(LIMIT_WITH_RESET);
-    expect(told(incidents.threadId, chief.id)).not.toMatch(/stop_sequence|update_required|"quota"/);
   } finally {
     await close();
   }

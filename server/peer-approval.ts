@@ -31,7 +31,6 @@ export interface ApprovalBus {
   broadcast: (payload: Record<string, unknown>) => void;
   notify?: (notification: Notification | null) => void;
   autoApply?: (botId: string, threadId: string) => boolean;
-  onPeerApprovalPending?: (from: BotRecord, target: PeerApprovalTarget, action: PeerAction, sourceThreadId: string, message: string) => void;
 }
 
 interface Pending {
@@ -143,11 +142,6 @@ export function requestPeerApproval(
       messageId: card.id,
       bus,
     });
-    try {
-      bus.onPeerApprovalPending?.(from, target, action, sourceThreadId, message);
-    } catch (error) {
-      console.warn(`peer approval ${requestId}: pending hook failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
   });
 }
 

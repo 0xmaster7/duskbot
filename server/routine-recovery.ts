@@ -2,7 +2,6 @@
 // second start could only repeat or undo it (a stall the turn watchdog stopped, a stop someone pressed or typed, a
 // refusal, a spent cap); a busy target is waited for, a usage limit with a known reset is waited out, and what only the
 // owner can fix fails at once and is told to them once per bot and cause, until one of that bot's runs completes.
-// A teammate's failed thread takes the same verdict (host/chief-notices.ts).
 import type { RuntimeEvent } from "../shared/runtime-events.ts";
 import type { RoutineRetryCause } from "../shared/routines.ts";
 import { engineFailureKind } from "./drivers/engine-errors.ts";
@@ -107,11 +106,6 @@ export function dispatchRefusal(error: unknown): RoutineFailureFacts {
   if (typeof code === "string" && BUSY_CODES.has(code)) return { cause: "busy" };
   if (code === "spend_cap") return { cause: "cap" };
   return typeof code === "string" || (typeof status === "number" && status >= 400 && status < 500) ? { cause: "refused" } : {};
-}
-
-/** Whether OpenMausBot runs a failed teammate thread once more by itself before its Chief hears of it. */
-export function retriesTeammateThread(failure: string, facts: RoutineFailureFacts = {}): boolean {
-  return classifyRoutineFailure(failure, facts).kind === "retry";
 }
 
 export function engineFacts({ setup, stalled, trialCredit, limitResetsAt, limit, partial }: RuntimeEvent & { type: "runtime.error" }): RoutineFailureFacts {

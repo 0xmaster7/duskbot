@@ -142,8 +142,6 @@ export function createPhones(deps: PhonesDeps) {
     handle: host.handle,
     toolListing: host.toolListing,
     routes: createPhoneRoutes({ registry, jobs, owner: ownerOf, isAdmin: deps.ownerOrAdmin, live: (auth) => auth.kind !== "session" || deps.sessions.isLive(auth.session.id) }),
-    /** How many phones run the phone app here. */
-    paired: (): number => registry.list(null, () => false).length,
     /** Routines written before records were kept are the owner's on a single-person desktop: record them once. */
     adoptRoutines() {
       if (!routineAuthors) return;

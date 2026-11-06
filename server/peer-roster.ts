@@ -31,7 +31,7 @@ export function peerAccessHelp(from: Pick<RosterMember, "name" | "peers">): stri
   return `${name} is set to talk only to certain bots, so list_bots shows just those. Tell the person in one plain sentence; they can let ${name} talk to every bot in ${name}'s settings, under Permissions. Never use computer control to get around this.`;
 }
 
-// Authority (supervising, incidents, escalations, setup changes, automations, a person's brief) follows departments,
+// Authority (supervising, setup changes, automations, a person's brief) follows departments,
 // a Chief's managedSections and Team Cloud ownership. Reach below never widens it.
 
 /** A title, peer id, imported persona or room membership is not a grant; invalid saved grants fail closed. */

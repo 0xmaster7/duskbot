@@ -108,7 +108,7 @@ it("stamps askedAt where a person writes, never for a routine, a webhook, start_
   }
 }, 120_000);
 
-it("moves no main thread for a teammate's work or results or a team incident; results and incidents are news where they land", async () => {
+it("moves no main thread for a teammate's work or results; results are news where they land", async () => {
   const { fixture, dataDir, api, cli, wire, tasks, stamps, thread, idle, said, replied } = await launch();
   try {
     await api("PUT", "/api/config", { threads: { maxConcurrentPerBot: 1 } });
@@ -127,7 +127,6 @@ it("moves no main thread for a teammate's work or results or a team incident; re
         { key: "books", match: ["BOOKS: check the books."], reply: "The books balance." },
         { key: "crash", match: ["Reconcile the invoices."], fail: true },
       ] },
-      [chief.id]: { script: [{ key: "incident", match: ["incident report"], reply: "Incident noted." }] },
     }));
 
     await cli("send", "--bot", asker.id, "--task", asker.activeTaskId, "--text", "Open a side job that asks Teammate.");
@@ -138,8 +137,7 @@ it("moves no main thread for a teammate's work or results or a team incident; re
     await idle(teammate.id);
 
     await cli("send", "--bot", teammate.id, "--task", teammate.activeTaskId, "--text", "Reconcile the invoices.");
-    const incidents = await thread(chief.id, "Problems to look at");
-    await replied(chief.id, incidents.threadId, "Incident noted.");
+    await idle(teammate.id);
 
     expect(Object.keys(stamps(asker.id))).toEqual([asker.activeTaskId]);
     expect(Object.keys(stamps(teammate.id))).toEqual([teammate.activeTaskId]);
@@ -148,7 +146,6 @@ it("moves no main thread for a teammate's work or results or a team incident; re
     expect((await wire(teammate.id)).mainThreadId).toBe(teammate.activeTaskId);
     expect((await wire(chief.id)).mainThreadId).toBe(chief.activeTaskId);
     expect((await tasks(asker.id)).find((task) => task.threadId === side.threadId).unread).toBe(true);
-    expect((await tasks(chief.id)).find((task) => task.threadId === incidents.threadId).unread).toBe(true);
   } finally {
     await fixture.close();
   }

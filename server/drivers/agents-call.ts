@@ -701,7 +701,7 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     const botId = String(args.bot_id ?? "").trim();
     const threadId = String(args.thread_id ?? "").trim();
     const note = typeof args.note === "string" ? args.note.trim() : "";
-    if (!botId || !threadId) return { text: "retry_thread needs bot_id and thread_id — both are in the incident report.", isError: true };
+    if (!botId || !threadId) return { text: "retry_thread needs bot_id and thread_id: find them with list_bots and list_threads.", isError: true };
     const r = await api("/api/internal/retry-thread", {
       method: "POST",
       body: JSON.stringify({ fromBotId: BOT_ID, fromThreadId: THREAD_ID, toBotId: botId, toThreadId: threadId, ...(note ? { note } : {}) }),

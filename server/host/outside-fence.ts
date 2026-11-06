@@ -10,7 +10,6 @@ const EXACT: ReadonlySet<string> = new Set([
   "GET /api/internal/tool-result",
   "POST /api/internal/tool-result",
   "POST /api/internal/options-card",
-  "POST /api/internal/escalate",
   // In its own conversation, where a place's inbox labels a guest's words and keeps them from the owner's; a team refuses it.
   "POST /api/internal/people/message",
   "POST /api/internal/attach-file",

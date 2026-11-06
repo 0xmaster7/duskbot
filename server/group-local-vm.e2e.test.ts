@@ -1104,16 +1104,6 @@ describe("Group Local VM ownership on the real isolated server", () => {
             String(m.tool?.name ?? "").startsWith("error: computer unavailable — the Local VM could not be claimed for this turn"));
       }, Boolean);
       await idle(auto.id);
-      const incidents = await until(async () => {
-        const state = await api("GET", "/api/bots?messages=0");
-        const thread = state.bots.find((b: any) => b.id === chief.id)?.tasks?.find((t: any) => t.title === "Problems to look at");
-        return thread ? (await api("GET", `/api/threads/${thread.threadId}/messages?limit=100`)).messages : null;
-      }, (msgs: any) => Array.isArray(msgs) && msgs.some((m: any) =>
-        m.kind === "activity" && String(m.tool?.name ?? "").includes(" hit a problem: ")));
-      const chips = incidents.filter((m: any) => m.kind === "activity" && String(m.tool?.name ?? "").includes(" hit a problem: "));
-      expect(chips).toHaveLength(1);
-      expect(String(chips[0]?.tool?.name)).toContain("computer unavailable — the Local VM could not be claimed for this turn");
-      expect(chips[0]?.threadRef?.botId).toBe(auto.id);
       expect((await gate(autoComputer)).status).toBe(401);
     } finally {
       writeFileSync(finishFile, "finish");
