@@ -899,6 +899,11 @@ export interface WireGroup {
   heldMessages?: Record<string, RoomHeldMessage[]>;
   /** transient: who waits in each of the room's threads, and on whom; absent or empty when nobody waits. */
   queue?: RoomQueueEntry[];
+  /** transient: every member answering in the active conversation now, earliest start first. Several at once when a
+   * person's message went to everyone; `busyBotId` is the first of them. Always present (empty when nobody answers). */
+  speakers?: Array<{ botId: string; since?: number }>;
+  /** transient: the ids in `speakers`, in the same order: every member with a running turn in the active conversation. */
+  busyBotIds?: string[];
 }
 
 export interface RoomQueueEntry {

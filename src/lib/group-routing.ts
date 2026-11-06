@@ -17,7 +17,7 @@ export function effectiveDefaultResponder(
   if (value?.kind === "auto") {
     return value.fallbackBotId && members.some((member) => member.id === value.fallbackBotId) ? value : { kind: "auto" };
   }
-  return members[0] ? { kind: "member", botId: members[0].id } : { kind: "mentions" };
+  return members.length ? { kind: "everyone" } : { kind: "mentions" };
 }
 
 export function defaultResponderName(group: Group, members: Bot[]): string | null {

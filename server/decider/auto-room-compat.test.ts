@@ -30,9 +30,9 @@ describe("stored rooms", () => {
     expect(normalizeGroupDefaultResponder({ kind: "auto" }, IDS, true)).toEqual({ kind: "mentions" });
   });
 
-  it("old rooms without the field, and unknown kinds, get today's default lead", () => {
-    expect(normalizeGroupDefaultResponder(undefined, IDS)).toEqual({ kind: "member", botId: "maya" });
-    expect(normalizeGroupDefaultResponder({ kind: "round-robin" }, IDS)).toEqual({ kind: "member", botId: "maya" });
+  it("old rooms without the field, and unknown kinds, get today's default: everyone at once", () => {
+    expect(normalizeGroupDefaultResponder(undefined, IDS)).toEqual({ kind: "everyone" });
+    expect(normalizeGroupDefaultResponder({ kind: "round-robin" }, IDS)).toEqual({ kind: "everyone" });
     expect(normalizeGroupDefaultResponder({ kind: "member", botId: "ravi" }, IDS)).toEqual({ kind: "member", botId: "ravi" });
   });
 
@@ -118,11 +118,11 @@ describe("team backups", () => {
     expect(result.groups[0]!.defaultResponder).toEqual({ kind: "auto", fallbackBotId: importedBea.id });
   });
 
-  it("restores an unknown kind as the first member leading", () => {
-    const { store, routines, ada } = setup({ kind: "everyone" });
+  it("restores an unknown kind as everyone at once", () => {
+    const { store, routines } = setup({ kind: "mentions" });
     const backup = JSON.parse(JSON.stringify(createTeamBackup(store, routines.listRoutines(), "Team")));
     backup.groups[0].defaultResponder = { kind: "round-robin" };
-    expect(parseTeamBackup(backup).groups[0]!.defaultResponder).toEqual({ kind: "member", botId: ada.id });
+    expect(parseTeamBackup(backup).groups[0]!.defaultResponder).toEqual({ kind: "everyone" });
   });
 });
 

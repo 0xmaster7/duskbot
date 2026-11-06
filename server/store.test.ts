@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { soulFile, soulHash } from "./bot-folder.ts";
 import { flushProfileHistory, readHistory, recordProfileChange } from "./profile-versions.ts";
 import { DATA_DIR } from "./config.ts";
+import { memberRunThreadId } from "./room-member-runs.ts";
 import {
   beginMemoryTurn,
   endMemoryTurn,
@@ -114,7 +115,7 @@ describe("Store", () => {
     expect(allowsTool((restored as unknown as { toolScope: unknown }).toolScope, { kind: "native", name: "read" })).toBe(false);
   });
 
-  it("takes a deleted bot out of every room it was in and passes its lead role on", () => {
+  it("takes a deleted bot out of every room it was in and hands its lead role to everyone", () => {
     const store = new Store(selection);
     const [ada, ben, cleo] = [store.createBot({}), store.createBot({}), store.createBot({})];
     const room = store.createGroup("Launch team", [ada.id, ben.id, cleo.id], false);
@@ -124,7 +125,7 @@ describe("Store", () => {
     store.onChange((change) => changes.push(change));
 
     expect(store.deleteBot(ben.id)).toBe(true);
-    expect(store.group(room.id)).toMatchObject({ memberIds: [ada.id, cleo.id], defaultResponder: { kind: "member", botId: ada.id } });
+    expect(store.group(room.id)).toMatchObject({ memberIds: [ada.id, cleo.id], defaultResponder: { kind: "everyone" } });
     expect(store.group(room.id)?.turnStartedAt).toBeUndefined();
     expect(store.group(pair.id)?.memberIds).toEqual([ada.id, ben.id]);
     expect(changes).toContainEqual({ type: "group", groupId: room.id });
@@ -160,7 +161,7 @@ describe("Store", () => {
     writeFileSync(groupsFile, JSON.stringify(saved));
 
     const restarted = new Store(selection);
-    expect(restarted.group(room.id)).toMatchObject({ memberIds: [ada.id, cleo.id], defaultResponder: { kind: "member", botId: ada.id } });
+    expect(restarted.group(room.id)).toMatchObject({ memberIds: [ada.id, cleo.id], defaultResponder: { kind: "everyone" } });
     const persisted = JSON.parse(readFileSync(groupsFile, "utf8")).find((g: { id: string }) => g.id === room.id);
     expect(persisted.memberIds).toEqual([ada.id, cleo.id]);
   });
@@ -628,7 +629,7 @@ describe("Store", () => {
       const restored = new Store(selection);
       expect(restored.bot(bot.id)?.tasks?.[0].threadId).toBe(bot.threadId);
       expect(restored.group(group.id)?.tasks?.[0].threadId).toBe(group.threadId);
-      expect(restored.group(group.id)?.defaultResponder).toEqual({ kind: "member", botId: bot.id });
+      expect(restored.group(group.id)?.defaultResponder).toEqual({ kind: "everyone" });
       expect(restored.messagesFor(bot.threadId)).toEqual(botMessages);
       expect(restored.messagesFor(group.threadId)).toEqual(groupMessages);
       expect(JSON.parse(readFileSync(join(DATA_DIR, "bots.json"), "utf8"))[0].tasks).toHaveLength(1);
@@ -959,18 +960,20 @@ describe("Store", () => {
     expect(first.color).not.toBe(second.color);
   });
 
-  it("defaults a room to its first member and repairs the lead when membership changes", () => {
+  it("defaults a room to everyone at once, keeps a chosen first member, and goes back to everyone when the lead leaves", () => {
     const store = new Store(selection);
     const first = store.createBot();
     const second = store.createBot();
     const group = store.createGroup("Team", [first.id, second.id]);
 
-    expect(group.defaultResponder).toEqual({ kind: "member", botId: first.id });
+    expect(group.defaultResponder).toEqual({ kind: "everyone" });
+    store.patchGroup(group.id, { defaultResponder: { kind: "member", botId: first.id } });
+    expect(new Store(selection).group(group.id)?.defaultResponder).toEqual({ kind: "member", botId: first.id });
     store.patchGroup(group.id, { memberIds: [second.id] });
-    expect(group.defaultResponder).toEqual({ kind: "member", botId: second.id });
+    expect(group.defaultResponder).toEqual({ kind: "everyone" });
 
     const reloaded = new Store(selection);
-    expect(reloaded.group(group.id)?.defaultResponder).toEqual({ kind: "member", botId: second.id });
+    expect(reloaded.group(group.id)?.defaultResponder).toEqual({ kind: "everyone" });
   });
 
   it("persists a channel's context when it is created", () => {
@@ -1004,18 +1007,50 @@ describe("Store", () => {
     });
   });
 
-  it("migrates old rooms without routing to their first member", () => {
+  it("migrates old rooms on the old first-member default to everyone at once, once, and keeps other choices", () => {
     const store = new Store(selection);
     const first = store.createBot();
     const second = store.createBot();
-    const group = store.createGroup("Legacy team", [first.id, second.id]);
+    const unset = store.createGroup("No routing", [first.id, second.id]);
+    const oldDefault = store.createGroup("Old default", [first.id, second.id]);
+    const chosen = store.createGroup("Chosen lead", [first.id, second.id]);
+    const mentions = store.createGroup("Mentions only", [first.id, second.id]);
     const groupsFile = join(DATA_DIR, "groups.json");
-    const saved = JSON.parse(readFileSync(groupsFile, "utf8"));
-    delete saved[0].defaultResponder;
+    const saved = JSON.parse(readFileSync(groupsFile, "utf8")) as Array<Record<string, unknown>>;
+    const legacy = (id: string, defaultResponder?: unknown) => {
+      const record = saved.find((group) => group.id === id)!;
+      delete record.respondersAtOnce;
+      if (defaultResponder) record.defaultResponder = defaultResponder;
+      else delete record.defaultResponder;
+    };
+    legacy(unset.id);
+    legacy(oldDefault.id, { kind: "member", botId: first.id });
+    legacy(chosen.id, { kind: "member", botId: second.id });
+    legacy(mentions.id, { kind: "mentions" });
     writeFileSync(groupsFile, JSON.stringify(saved));
 
     const reloaded = new Store(selection);
-    expect(reloaded.group(group.id)?.defaultResponder).toEqual({ kind: "member", botId: first.id });
+    expect(reloaded.group(unset.id)?.defaultResponder).toEqual({ kind: "everyone" });
+    expect(reloaded.group(oldDefault.id)?.defaultResponder).toEqual({ kind: "everyone" });
+    expect(reloaded.group(chosen.id)?.defaultResponder).toEqual({ kind: "member", botId: second.id });
+    expect(reloaded.group(mentions.id)?.defaultResponder).toEqual({ kind: "mentions" });
+
+    reloaded.patchGroup(oldDefault.id, { defaultResponder: { kind: "member", botId: first.id } });
+    expect(new Store(selection).group(oldDefault.id)?.defaultResponder).toEqual({ kind: "member", botId: first.id });
+  });
+
+  it("files a member run's messages in its room conversation", () => {
+    const store = new Store(selection);
+    const bot = store.createBot();
+    const room = store.createGroup("Runs", [bot.id]);
+    const run = memberRunThreadId(room.threadId, bot.id);
+
+    const message = store.appendMessage(run, { role: "bot", kind: "text", text: "from the run" });
+    expect(store.messagesFor(room.threadId).map((m) => m.id)).toContain(message.id);
+    expect(store.messagesFor(run)).toBe(store.messagesFor(room.threadId));
+    expect(store.groupByThread(run)?.id).toBe(room.id);
+    expect(store.groupTaskByThread(room.id, run)?.threadId).toBe(room.threadId);
+    expect(store.roomThreadOf(memberRunThreadId("no-such-thread", bot.id))).toBe(memberRunThreadId("no-such-thread", bot.id));
   });
 
   it("persists bots and messages across a restart, resetting busy", () => {

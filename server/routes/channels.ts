@@ -35,6 +35,7 @@ import { bulkDeleteThreadIds, type BulkDeleteRefusal } from "./bulk-delete.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 import { sawThread } from "../thread-presence.ts";
 import { readThreadNotifications } from "./notifications.ts";
+import { memberRunThreadId } from "../room-member-runs.ts";
 
 export type MessagePage = { messages: Array<Message | Record<string, unknown>>; hasMore?: boolean; activeLeafId: string | null };
 
@@ -590,7 +591,8 @@ export function createChannelRoutes(deps: ChannelRouteDeps): RouteHandler {
         : activeOperations.length > 0
           ? [...new Set(activeOperations.map((operation) => operation.threadId))]
           : [group.threadId];
-      const interruptTargets = targetThreadIds.map((threadId) => {
+      const memberRuns = targetThreadIds.flatMap((threadId) => group.memberIds.map((botId) => memberRunThreadId(threadId, botId)));
+      const interruptTargets = [...targetThreadIds, ...memberRuns].map((threadId) => {
         const speaker = groupSpeakers.get(threadId);
         const busy = speaker
           ? store.bot(speaker.botId)

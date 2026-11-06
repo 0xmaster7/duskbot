@@ -41,6 +41,7 @@ import { sameModelSelection } from "../shared/thread-model.ts";
 import { initialGreetingMessage } from "./initial-greeting.ts"; import { createDefaultBot, defaultBotRefusal, type DefaultBotIntro } from "./default-bot.ts";
 import { appsFromCreator } from "./inherited-apps.ts";
 import { ThreadCache, type ThreadState } from "./thread-cache.ts";
+import { parseMemberRun } from "./room-member-runs.ts";
 export type {
   BotActivity, GroupDefaultResponder, OptionCardData,
   SecretRequestCardData, Surface, TaskClosedBy, TaskOpenedBy, TaskUsage,
@@ -57,8 +58,8 @@ export interface GroupPackageStamp {
   parts: Record<RoomPart, PartPair>;
 }
 
-export type GroupRecord = Omit<WireGroup, "working" | "usage"> & { installedPackage?: GroupPackageStamp };
-export type GroupWirePrivateKeys = "installedPackage";
+export type GroupRecord = Omit<WireGroup, "working" | "usage"> & { installedPackage?: GroupPackageStamp; respondersAtOnce?: true };
+export type GroupWirePrivateKeys = "installedPackage" | "respondersAtOnce";
 export type GroupWireProjection = Omit<GroupRecord, GroupWirePrivateKeys> & Pick<WireGroup, "usage"> & { working: boolean };
 export type GroupWireProjectionIsExact = AssertExact<WireGroup, GroupWireProjection> & AssertSameKeys<WireGroup, GroupWireProjection>;
 export const groupWireProjectionIsExact: GroupWireProjectionIsExact = true;
@@ -235,7 +236,15 @@ export function normalizeGroupDefaultResponder(
     }
   }
   if (memberIds.length === 0) return { kind: "mentions" };
-  return { kind: "member", botId: memberIds[0] };
+  return { kind: "everyone" };
+}
+
+/** Rooms from before everyone answered at once: the first member was the default, so that choice becomes everyone. */
+export function migratedDefaultResponder(group: Pick<GroupRecord, "dm" | "memberIds" | "defaultResponder" | "respondersAtOnce">): GroupDefaultResponder {
+  const value = group.defaultResponder as GroupDefaultResponder | undefined;
+  if (group.dm || group.respondersAtOnce) return value ?? { kind: "mentions" };
+  if (!value || (value.kind === "member" && value.botId === group.memberIds[0])) return { kind: "everyone" };
+  return value;
 }
 
 export function roomResponders<T extends { id: string; name: string; hidden?: boolean }>(
@@ -474,6 +483,11 @@ export class Store {
       delete g.turnStartedAt;
       if (botsLoaded && !g.dm && g.memberIds.some((id) => !botIds.has(id))) {
         g.memberIds = g.memberIds.filter((id) => botIds.has(id));
+        groupsMigrated = true;
+      }
+      if (!g.dm && !g.respondersAtOnce) {
+        g.defaultResponder = migratedDefaultResponder(g);
+        g.respondersAtOnce = true;
         groupsMigrated = true;
       }
       const normalized = normalizeGroupDefaultResponder(g.defaultResponder, g.memberIds, Boolean(g.dm));
@@ -832,7 +846,16 @@ export class Store {
     return this.groups.find((g) => g.id === id);
   }
 
+  /** A member run's messages and room records are its room conversation's. */
+  roomThreadOf(threadId: string): string {
+    const run = parseMemberRun(threadId);
+    if (!run) return threadId;
+    const owned = this.groups.some((group) => !group.dm && (group.threadId === run.threadId || group.tasks?.some((task) => task.threadId === run.threadId)));
+    return owned ? run.threadId : threadId;
+  }
+
   groupByThread(threadId: string): GroupRecord | undefined {
+    threadId = this.roomThreadOf(threadId);
     return this.groups.find(
       (group) => group.threadId === threadId || group.tasks?.some((task) => task.threadId === threadId),
     );
@@ -866,6 +889,7 @@ export class Store {
       dm: dm || undefined,
       busyBotId: null,
       section,
+      ...(dm ? {} : { respondersAtOnce: true as const }),
     };
     if (!dm) {
       group.tasks = [{ threadId, title: UNTITLED_TASK, createdAt, updatedAt: createdAt }];
@@ -996,6 +1020,7 @@ export class Store {
   }
 
   groupTaskByThread(groupId: string, threadId: string): GroupTaskRecord | undefined {
+    threadId = this.roomThreadOf(threadId);
     const group = this.group(groupId);
     if (!group || group.dm) return undefined;
     return group.tasks?.find((task) => task.threadId === threadId);
@@ -1029,6 +1054,7 @@ export class Store {
   }
 
   patchGroupTask(groupId: string, threadId: string, patch: GroupTaskPatch): GroupTaskRecord | null {
+    threadId = this.roomThreadOf(threadId);
     const group = this.group(groupId);
     const task = this.groupTaskByThread(groupId, threadId);
     if (!group || !task) return null;
@@ -1043,6 +1069,7 @@ export class Store {
   }
 
   titleGroupTaskFromFirstMessage(groupId: string, text: string, threadId?: string): GroupTaskRecord | null {
+    if (threadId) threadId = this.roomThreadOf(threadId);
     const group = this.group(groupId);
     const task = threadId ? this.groupTaskByThread(groupId, threadId) : this.activeGroupTask(groupId);
     if (!group || !task || task.titleFromFirstMessage || task.title !== UNTITLED_TASK) return null;
@@ -1055,6 +1082,7 @@ export class Store {
   }
 
   retitleGroupTask(groupId: string, threadId: string, machineTitle: string, title: string): GroupTaskRecord | null {
+    threadId = this.roomThreadOf(threadId);
     const task = this.groupTaskByThread(groupId, threadId);
     if (!task || task.title !== machineTitle) return null;
     return this.patchGroupTask(groupId, threadId, { title: threadTitleFrom(title) });
@@ -1086,6 +1114,7 @@ export class Store {
   }
 
   setReaction(threadId: string, messageId: string, by: string, reaction: Omit<NonNullable<Message["reactions"]>[number], "by"> | null): Message | null {
+    threadId = this.roomThreadOf(threadId);
     const existing = this.messagesFor(threadId).find((m) => m.id === messageId);
     if (!existing) return null;
     const next = [...(existing.reactions ?? []).filter((r) => r.by !== by), ...(reaction ? [{ ...reaction, by }] : [])];
@@ -1109,11 +1138,13 @@ export class Store {
   }
 
   messagesFor(threadId: string): Message[] {
+    threadId = this.roomThreadOf(threadId);
     return this.thread(threadId).messages;
   }
 
   /** Legacy rows without a parentId chain only on a full load, so a bounded page missing that context falls back to one. */
   messagesTail(threadId: string, limit: number): { messages: Message[]; hasMore: boolean; activeLeafId: string | null } {
+    threadId = this.roomThreadOf(threadId);
     let state = this.threads.get(threadId);
     if (!state) {
       const tail = mdb.readThreadTail(threadId, messagesFile(threadId), limit);
@@ -1143,10 +1174,12 @@ export class Store {
   }
 
   activeLeaf(threadId: string): string | null {
+    threadId = this.roomThreadOf(threadId);
     return this.thread(threadId).activeLeafId;
   }
 
   activePath(threadId: string): Message[] {
+    threadId = this.roomThreadOf(threadId);
     const t = this.thread(threadId);
     const byId = new Map(t.messages.map((m) => [m.id, m]));
     const path: Message[] = [];
@@ -1159,6 +1192,7 @@ export class Store {
   }
 
   markTerminalAssistantMessage(threadId: string, turnId: string): Message | null {
+    threadId = this.roomThreadOf(threadId);
     const path = this.activePath(threadId);
     for (let i = path.length - 1; i >= 0; i -= 1) {
       const message = path[i];
@@ -1171,6 +1205,7 @@ export class Store {
   }
 
   appendMessage(threadId: string, message: Omit<Message, "id" | "at"> & { at?: number }, command?: Command): Message {
+    threadId = this.roomThreadOf(threadId);
     const t = this.thread(threadId);
     const full: Message = { id: newId(), at: Date.now(), parentId: t.activeLeafId, ...redactBotAuthored(message) };
     const persist = () => { mdb.appendMessage(threadId, full); return full; };
@@ -1191,6 +1226,7 @@ export class Store {
   }
 
   insertMessageAfter(threadId: string, anchorId: string | undefined, message: Omit<Message, "id" | "at">): Message {
+    threadId = this.roomThreadOf(threadId);
     const t = this.thread(threadId);
     const anchorExists = anchorId !== undefined && t.messages.some((m) => m.id === anchorId);
     if (!anchorExists || t.activeLeafId === anchorId) return this.appendMessage(threadId, message);
@@ -1212,6 +1248,7 @@ export class Store {
   }
 
   dismissOnboardingCard(threadId: string): Message | null {
+    threadId = this.roomThreadOf(threadId);
     const t = this.thread(threadId);
     const card = t.messages.find(
       (message) => message.kind === "options" && message.card && !message.card.requestId && !message.card.dismissed,
@@ -1236,6 +1273,7 @@ export class Store {
   }
 
   branchMessage(threadId: string, sourceId: string, text: string, sendId?: string, sender?: Message["sender"], dataContext?: Message["dataContext"]): Message | null {
+    threadId = this.roomThreadOf(threadId);
     const t = this.thread(threadId);
     const source = t.messages.find((m) => m.id === sourceId);
     if (!source) return null;
@@ -1263,6 +1301,7 @@ export class Store {
   }
 
   setActiveLeaf(threadId: string, messageId: string): string | null {
+    threadId = this.roomThreadOf(threadId);
     const t = this.thread(threadId);
     if (!t.messages.some((m) => m.id === messageId)) return null;
     let cur = messageId;
@@ -1278,6 +1317,7 @@ export class Store {
   }
 
   patchMessage(threadId: string, messageId: string, patch: Partial<Message>, command?: Command): Message | null {
+    threadId = this.roomThreadOf(threadId);
     const t = this.thread(threadId);
     const idx = t.messages.findIndex((m) => m.id === messageId);
     if (idx === -1) return null;
@@ -1924,6 +1964,7 @@ export class Store {
 
   /** Pinned, not read live: engines key their sessions and files to the folder a thread starts in. */
   pinGroupCwd(groupId: string, threadId?: string): string | null {
+    if (threadId) threadId = this.roomThreadOf(threadId);
     const group = this.group(groupId);
     if (!group) return null;
     const task = threadId ? this.groupTaskByThread(groupId, threadId) : this.activeGroupTask(groupId);

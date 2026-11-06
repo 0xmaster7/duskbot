@@ -1,7 +1,7 @@
 # In-chat team coordination
 
 Independent bot conversations now dispatch as soon as a handoff is accepted;
-speakers in the same group chat still serialize (and say so; with parallel room jobs on, several room jobs run side by side, see below). A Chief waiting for returned
+handed-off jobs in the same group chat still serialize (and say so; with parallel room jobs on, several room jobs run side by side, see below), while a person's message goes to every responder at once (see below). A Chief waiting for returned
 results exposes `waitingForTeammates: true`, not a fake active `busy` turn.
 The chat header shows **Teammates working**, leaves the composer usable and
 retains Stop. Explicit command-line `wait` still waits for the whole result.
@@ -193,6 +193,41 @@ waiting does not hold a provider session or block another independent
 conversation.
 
 ## Repeatable checks
+
+### A person's message goes to everyone at once
+
+A room's default responder is **Everyone at once** (`defaultResponder:
+{ kind: "everyone" }`). A person's own line in the room (sent from the app,
+not a bare loopback `api` call) with two or more responders, the room's
+default or several @mentions, starts every responder's turn together. Each
+member runs in a member run (`server/room-member-runs.ts`): the engine, its
+events and every per-turn map key on `<thread>--member--<bot>`, while the
+store files its messages, cards and room records in the room's one
+conversation. Replies land as each turn finishes. The room payload's
+`speakers` (`[{ botId, since }]`) and `busyBotIds` list every member answering
+now; `busyBotId` is the first of them.
+
+- An @mention targets only the named members. A member's reply that
+  @mentions a teammate brings in only that teammate (once per message), on
+  the teammate's own run; a bot's reply never fans out to the room.
+- Stop (`POST /api/groups/:id/interrupt`) stops every member run in the
+  conversation. Each member's cards answer in its own run.
+- Each member still runs one turn at a time (busy elsewhere: it waits), and
+  per-turn spend caps and turn limits apply to each run.
+- Team Cloud, My Cloud, hosted workspaces, guest-driven and proactively
+  fenced rooms, and loopback `api` sends keep the one-at-a-time round.
+- Existing rooms move once: no responder, or the first member (the old
+  default), becomes Everyone at once; any other choice stays. The headless
+  `create_channel` tool still defaults to the first member as lead.
+
+```sh
+pnpm exec vitest run server/room-everyone-at-once.e2e.test.ts server/store.test.ts
+```
+
+The e2e holds three fake-Claude replies behind a gate, checks all three
+members are speaking at once with start times before the first reply, a
+two-member @mention, Stop ending every run, each member's own card answered
+mid-turn, and a mid-round @mention bringing in one teammate only.
 
 ### Same-room jobs take turns, and say so
 

@@ -79,17 +79,17 @@ const connectorTools = z.record(
   z.object({ tools: z.union([z.literal("*"), z.array(z.string().regex(CONNECTOR_TOOL_NAME_PATTERN)).min(1).max(500)]) }),
 );
 
-/** A responder kind from a newer release restores as the room's first
- * member as lead (what a room without one does) instead of refusing the
- * whole backup. Malformed values still fail the schema. */
+/** A responder kind from a newer release restores as everyone at once
+ * (what a room without one does) instead of refusing the whole backup.
+ * Malformed values still fail the schema. */
 function knownRoomResponder(value: unknown): unknown {
   if (!value || typeof value !== "object" || Array.isArray(value)) return value;
   const group = value as { memberIds?: unknown; defaultResponder?: unknown };
   const kind = group.defaultResponder && typeof group.defaultResponder === "object"
     ? (group.defaultResponder as { kind?: unknown }).kind : undefined;
   if (typeof kind !== "string" || ["member", "everyone", "mentions", "auto"].includes(kind)) return value;
-  const first = Array.isArray(group.memberIds) && typeof group.memberIds[0] === "string" ? group.memberIds[0] : undefined;
-  return { ...group, defaultResponder: first ? { kind: "member", botId: first } : { kind: "mentions" } };
+  const members = Array.isArray(group.memberIds) && group.memberIds.length > 0;
+  return { ...group, defaultResponder: members ? { kind: "everyone" } : { kind: "mentions" } };
 }
 
 const backupSchema = z.object({
