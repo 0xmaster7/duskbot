@@ -33,7 +33,7 @@ export function Toggle({ checked, className, tone, style, ...props }: Omit<Compo
         aria-hidden="true"
         className={cn(
           "pointer-events-none absolute left-0.5 top-0.5 size-4 rounded-full bg-white shadow-[0_1px_3px_0_rgb(28_28_28/0.12)]",
-          "[transition:translate_450ms_var(--omb-ease-thumb),scale_160ms_var(--omb-ease-out)] group-active/switch:scale-x-[1.11] group-active/switch:scale-y-[0.9] motion-reduce:transition-none motion-reduce:group-active/switch:scale-100",
+          "[transition:translate_120ms_ease,scale_120ms_ease] group-active/switch:scale-x-[1.11] group-active/switch:scale-y-[0.9] motion-reduce:transition-none motion-reduce:group-active/switch:scale-100",
           checked ? "translate-x-3 origin-right" : "origin-left",
         )}
       />

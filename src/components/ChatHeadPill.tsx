@@ -2,7 +2,6 @@ import { localizedTaskTitle } from "@/lib/task-title";
 import { Lock, UserRound, Users } from "lucide-react";
 import type { ComponentProps, MouseEvent, ReactNode } from "react";
 
-import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";
 import { awayFromMainThread } from "@/state/thread-navigation";
@@ -29,13 +28,8 @@ function privacyLabelOf(privacy: ChatHeadPrivacy): string | null {
 }
 
 // grok's pill: a half-pixel ink/8 edge; under the pointer or keyboard a 6% ink tint fades in over 120ms
-const CHAT_HEAD_PILL = "chat-head-pill group relative isolate flex min-w-0 max-w-full items-center gap-2 rounded-full border-[0.5px] border-ink/[0.08] bg-composer py-[7.5px] pl-[7.5px] pr-[13.5px] text-ink shadow-(--shadow-float) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-[inherit] before:bg-ink/[0.06] before:opacity-0 before:transition-opacity before:duration-[120ms] before:ease-[ease] before:content-[''] hover:before:opacity-100 focus-visible:before:opacity-100 motion-reduce:before:transition-none";
+const CHAT_HEAD_PILL = "chat-head-pill group relative isolate flex min-w-0 max-w-full items-center gap-2 rounded-full border-[0.5px] border-ink/[0.08] bg-composer py-[7.5px] pl-[7.5px] pr-[13.5px] text-ink shadow-(--shadow-float) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-[inherit] before:bg-ink/[0.035] before:opacity-0 before:content-[''] hover:before:opacity-100 focus-visible:before:opacity-100 motion-reduce:before:transition-none";
 
-/** grok's reveal chevron: with the panel shut, the pill grows a small chevron after the name under the pointer, 8px over
- * 140ms, the glyph sliding the last 6px in; with the panel open it stays tucked away. */
-const REVEAL = "flex max-w-0 shrink-0 items-center overflow-hidden text-ink-tertiary opacity-0 -ms-2 transition-[max-width,opacity,margin] duration-[140ms] ease-[cubic-bezier(.22,1,.36,1)] motion-reduce:transition-none";
-const REVEAL_SHOWN = "group-hover:max-w-2 group-hover:opacity-100 group-hover:ms-0 group-focus-visible:max-w-2 group-focus-visible:opacity-100 group-focus-visible:ms-0";
-const REVEAL_GLYPH = "shrink-0 -translate-x-1.5 rtl:translate-x-1.5 rtl:-scale-x-100 transition-transform duration-[140ms] ease-[cubic-bezier(.22,1,.36,1)] group-hover:translate-x-0 group-focus-visible:translate-x-0 motion-reduce:transition-none";
 
 /** A room in the pill: its members' faces where a bot's face goes, its name, and whether its panel is open. */
 export interface ChatHeadRoom {
@@ -96,9 +90,6 @@ export function ChatHeadPill({ bot, avatar, privacy = null, room, onToggle }: Ch
       {elsewhere > 0 && (
         <span role="img" data-chathead-elsewhere aria-label={t("task.otherActivity", { count: elsewhere })} className="size-1.5 shrink-0 rounded-full bg-accent" />
       )}
-      <span aria-hidden="true" data-chathead-reveal="" className={cn(REVEAL, !open && REVEAL_SHOWN)}>
-        <GrokIcon name="chevron-right" size={12} className={REVEAL_GLYPH} />
-      </span>
     </button>
   );
 }

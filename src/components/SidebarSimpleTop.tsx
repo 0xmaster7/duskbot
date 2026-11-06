@@ -13,7 +13,7 @@ export const SIMPLE_ROW_FOCUS = "focus-visible:outline-2 focus-visible:-outline-
 
 const SIMPLE_TOP = "flex size-9 shrink-0 items-center justify-center rounded-full border border-ink/[0.08] bg-composer text-ink/[0.92] transition-[background-color,color] duration-[120ms] ease-out";
 /** grok lays its hover over the fill as a 6% ink image, at once, with no fade */
-export const GROK_HOVER_TINT = "hover:bg-[linear-gradient(rgba(28,28,28,0.06),rgba(28,28,28,0.06))]";
+export const GROK_HOVER_TINT = "hover:bg-[linear-gradient(rgba(28,28,28,0.035),rgba(28,28,28,0.035))]";
 const SIMPLE_TOP_TINT = GROK_HOVER_TINT;
 const SIMPLE_TOP_FOCUS = GROK_FOCUS;
 export const SIMPLE_TOP_BUTTON = `${SIMPLE_TOP} ${SIMPLE_TOP_TINT} aria-expanded:bg-[linear-gradient(rgba(28,28,28,0.06),rgba(28,28,28,0.06))] ${SIMPLE_TOP_FOCUS}`;

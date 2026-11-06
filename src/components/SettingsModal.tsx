@@ -5,7 +5,7 @@ import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { scrollWithin } from "@/lib/scroll-within";
 import { useMediaQuery } from "@/lib/use-media-query";
-import { PHONE_SHEET, REDUCED, SCRIM, SHEET, SPRING_PART, SWAP, WIPE } from "@/lib/motion-presets";
+import { PHONE_SHEET, REDUCED, SCRIM, WIPE } from "@/lib/motion-presets";
 import { MotionDiv, MotionSpan, useMotionReduced } from "./ui/SheetMotion";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { currentPhonePairingTarget, phonePairingSettingsAction } from "@/lib/phone-pairing";
@@ -282,7 +282,7 @@ export function SettingsModal() {
     );
   };
 
-  // the chosen pane's fill is one layer under the rail that travels to the pane picked next
+  // the chosen pane's fill is one layer under the rail; it jumps to the pane picked next, raw like the sidebar
   const railRef = useRef<HTMLDivElement>(null);
   const [fill, setFill] = useState<{ top: number; height: number } | null>(null);
   useLayoutEffect(() => {
@@ -307,7 +307,7 @@ export function SettingsModal() {
             initial={false}
             animate={{ y: fill.top }}
             style={{ height: fill.height }}
-            transition={reduced ? { duration: 0 } : SPRING_PART}
+            transition={{ duration: 0 }}
           />
         )}
         {panes.map((entry) => {
@@ -338,8 +338,8 @@ export function SettingsModal() {
       </button>
       <MotionDiv
         key={pane}
-        initial={reduced ? { opacity: 0 } : SWAP.initial}
-        animate={reduced ? { opacity: 1, transition: REDUCED } : SWAP.animate}
+        // raw like the sidebar: a pane swaps in the same frame
+        initial={false}
         className="flex min-h-0 flex-1 flex-col"
       >
         <WipeStack at={JSON.stringify({ at: page ?? null, pages: stack })} depth={(page ? 1 : 0) + stack.length} group={pane} layer={layer} />
@@ -373,9 +373,7 @@ export function SettingsModal() {
       <MotionDiv
         aria-hidden="true"
         className="settings-backdrop"
-        initial={SCRIM.initial}
-        animate={SCRIM.animate}
-        exit={SCRIM.exit}
+        {...(phone ? { initial: SCRIM.initial, animate: SCRIM.animate, exit: SCRIM.exit } : { initial: false })}
         onMouseDown={close}
       />
       <MotionDiv
@@ -386,9 +384,10 @@ export function SettingsModal() {
         tabIndex={-1}
         data-phone-view={phone ? (listShown ? "list" : "pane") : undefined}
         className="settings-dialog"
-        {...(reduced
+        // on a desktop the sheet opens and closes raw, in one frame; a phone keeps its sheet slide
+        {...(!phone ? { initial: false } : reduced
           ? { initial: { opacity: 0 }, animate: { opacity: 1, transition: REDUCED }, exit: { opacity: 0, transition: REDUCED } }
-          : phone ? PHONE_SHEET : SHEET)}
+          : PHONE_SHEET)}
       >
         <div className="settings-layout">
           {phone ? (

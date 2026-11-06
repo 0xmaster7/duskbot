@@ -69,15 +69,10 @@ export function useSidebarApps(): SidebarApps {
 
 /** Grok's footer logo: the 16px app tile on an 18px white square, 6px round, so overlapping tiles read apart. */
 // under the pointer grok fans its three logos: the outer two tilt 8deg away, the middle one lifts a pixel
-const FAN = [
-  "group-hover/apps:[transform:translateX(-3px)_rotate(-8deg)] rtl:group-hover/apps:[transform:translateX(3px)_rotate(8deg)]",
-  "group-hover/apps:[transform:translateY(-1px)]",
-  "group-hover/apps:[transform:translateX(3px)_rotate(8deg)] rtl:group-hover/apps:[transform:translateX(-3px)_rotate(-8deg)]",
-];
 
-function AppFaceIcon({ face, index, className }: { face: AppFace; index: number; className?: string }) {
+function AppFaceIcon({ face, className }: { face: AppFace; className?: string }) {
   return (
-    <span data-app-face={face.slug} className={cn("flex size-[18px] shrink-0 items-center justify-center rounded-[6px] bg-white p-px transition-transform duration-300 ease-(--composer-spring) motion-reduce:transition-none", FAN[index], className)}>
+    <span data-app-face={face.slug} className={cn("flex size-[18px] shrink-0 items-center justify-center rounded-[6px] bg-white p-px", className)}>
       <ServiceTile card={face} size={16} />
     </span>
   );
@@ -116,7 +111,7 @@ export function ConnectAppsButton({ circle, apps: { faces, connected }, engaged 
       onFocus={(event) => { preloadConnectApps(); if (event.currentTarget.matches(":focus-visible")) onEngage?.(true); }}
       onBlur={() => onEngage?.(false)}
       onClick={() => openConnectApps()}
-      className={circle ? cn(SIMPLE_TOP_BUTTON, "group/apps h-9 min-w-9 w-auto text-[14px] font-medium leading-5 text-ink transition-[background-color,flex-grow,padding] duration-300 ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none", engaged ? "grow pl-4 pr-3" : "grow-0 px-2") : cn("group/apps flex h-9 min-w-0 flex-1 items-center justify-center rounded-full border border-ink/[0.08] bg-composer px-4 text-[14px] font-medium leading-5 tracking-[0.01em] text-ink transition-[background-color,flex-grow,padding] duration-300 ease-[cubic-bezier(.2,0,0,1)]", GROK_HOVER_TINT, GROK_FOCUS)}
+      className={circle ? cn(SIMPLE_TOP_BUTTON, "group/apps h-9 min-w-9 w-auto text-[14px] font-medium leading-5 text-ink transition-[flex-grow,padding] duration-300 ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none", engaged ? "grow pl-4 pr-3" : "grow-0 px-2") : cn("group/apps flex h-9 min-w-0 flex-1 items-center justify-center rounded-full border border-ink/[0.08] bg-composer px-4 text-[14px] font-medium leading-5 tracking-[0.01em] text-ink transition-[flex-grow,padding] duration-300 ease-[cubic-bezier(.2,0,0,1)]", GROK_HOVER_TINT, GROK_FOCUS)}
     >
       {circle ? <>
         {/* grok's widened pill trades the grid glyph for the label and the app logos */}
@@ -126,12 +121,12 @@ export function ConnectAppsButton({ circle, apps: { faces, connected }, engaged 
           engaged ? cn(!logos.length && "ms-1.5", "max-w-[200px] opacity-100 [transition-duration:300ms,150ms,300ms] [transition-delay:0ms,120ms,0ms]") : "ms-0 max-w-0 opacity-0")}>{t("sidebar.connectApps")}</span>
         {logos.length > 0 && <span aria-hidden="true" data-connect-apps-faces="" className={cn("flex shrink-0 items-center overflow-hidden transition-[max-width,opacity,margin] duration-300 ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none",
           engaged ? "ms-[4.5px] max-w-[60px] opacity-100 [transition-duration:300ms,150ms,300ms] [transition-delay:0ms,120ms,0ms]" : "ms-0 max-w-0 opacity-0")}>
-          {logos.map((face, index) => <AppFaceIcon key={face.slug} face={face} index={index} className={cn(index > 0 && "-ms-[6px]")} />)}
+          {logos.map((face, index) => <AppFaceIcon key={face.slug} face={face} className={cn(index > 0 && "-ms-[6px]")} />)}
         </span>}
       </> : <>
         <span className="min-w-0 truncate">{label}</span>
         <span aria-hidden="true" className="ms-[4.5px] flex shrink-0 items-center">
-          {faces.map((face, index) => <AppFaceIcon key={face.slug} face={face} index={index} className={cn(index > 0 && "-ms-[6px]")} />)}
+          {faces.map((face, index) => <AppFaceIcon key={face.slug} face={face} className={cn(index > 0 && "-ms-[6px]")} />)}
         </span>
       </>}
     </button>

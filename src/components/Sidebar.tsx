@@ -517,7 +517,7 @@ function RowGazeAvatar(props: Omit<React.ComponentProps<typeof BotAvatar>, "gaze
 
 /** grok's row geometry moves on its 200ms curve; bencho's feel on top: the fill eases in over 150ms and a press sinks the
  * row to .985, the barely-there press a list hit all day can take. Reduced motion keeps the fill, drops the sink. */
-export const ROW_PRESS = "[--row-ease:cubic-bezier(.22,1,.36,1)] [transition:transform_200ms_var(--row-ease),width_200ms_var(--row-ease),padding_200ms_var(--row-ease),scale_160ms_var(--row-ease),background-color_150ms_ease] active:scale-[.985] motion-reduce:active:scale-100";
+export const ROW_PRESS = "[--row-ease:cubic-bezier(.22,1,.36,1)] [transition:transform_200ms_var(--row-ease),width_200ms_var(--row-ease),padding_200ms_var(--row-ease),scale_160ms_var(--row-ease)] active:scale-[.985] motion-reduce:active:scale-100";
 
 export const BotListItem = memo(function BotListItem(props: BotRowProps) {
   const advanced = useAdvancedMode();
@@ -547,7 +547,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
   const title = bot.title.trim();
   const details = [title, bot.chiefOfStaff ? t("sidebar.bot.chiefOfStaff") : ""].filter(Boolean);
   const rowClass = cn(
-    "flex w-full items-center rounded-xl text-left", !simpleRow && "transition-colors duration-150", SIMPLE_ROW_FOCUS,
+    "flex w-full items-center rounded-xl text-left", SIMPLE_ROW_FOCUS,
     iconOnly
       ? railTile ? "h-[54px] justify-center" : "justify-center px-1 py-1.5"
       : simpleRow ? cn("gap-2.5 rounded-[12px] p-2 leading-[normal] tracking-[0.24px] md:h-[54px]", ROW_PRESS)

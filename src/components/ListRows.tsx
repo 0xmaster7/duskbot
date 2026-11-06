@@ -149,7 +149,7 @@ export function NavRow({ title, hint, value, icon, onClick, drill = true, extern
       disabled={disabled}
       title={tooltip}
       onClick={onClick}
-      className={cn(rowCls, focusCls, "w-full cursor-pointer text-left transition-[background-color] duration-100 ease-[ease] enabled:hover:bg-ink/[0.06] enabled:active:bg-ink/[0.08] disabled:cursor-default disabled:opacity-45")}
+      className={cn(rowCls, focusCls, "w-full cursor-pointer text-left enabled:hover:bg-ink/[0.035] enabled:active:bg-ink/[0.05] disabled:cursor-default disabled:opacity-45")}
     >
       {icon && <RowIcon icon={icon} />}
       <RowText title={title} hint={hint} tone={danger ? "danger" : undefined} titleId={`${id}-title`} hintId={`${id}-hint`} />
@@ -234,7 +234,7 @@ export function SelectRow<V extends string>({ title, hint, value, options, onCha
       data-select-row=""
       className={cn(
         rowCls,
-        "relative transition-[background-color] duration-100 ease-[ease] has-[[role=combobox]:enabled:hover]:bg-ink/[0.06] has-[[aria-expanded=true]]:bg-ink/[0.06]",
+        "relative has-[[role=combobox]:enabled:hover]:bg-ink/[0.035] has-[[aria-expanded=true]]:bg-ink/[0.035]",
         "has-[[role=combobox]:focus-visible]:outline-2 has-[[role=combobox]:focus-visible]:-outline-offset-2 has-[[role=combobox]:focus-visible]:outline-focus has-[[role=combobox]:disabled]:opacity-45",
       )}
     >
@@ -280,7 +280,7 @@ export function CheckRow({ title, hint, leading, checked, onClick, disabled, rol
       aria-selected={role === "option" ? checked : undefined}
       disabled={disabled}
       onClick={onClick}
-      className={cn(rowCls, focusCls, "w-full cursor-pointer text-left transition-[background-color] duration-100 ease-[ease] enabled:hover:bg-ink/[0.06] enabled:active:bg-ink/[0.08] disabled:cursor-default disabled:opacity-45")}
+      className={cn(rowCls, focusCls, "w-full cursor-pointer text-left enabled:hover:bg-ink/[0.035] enabled:active:bg-ink/[0.05] disabled:cursor-default disabled:opacity-45")}
     >
       {leading}
       <RowText title={title} hint={hint} />

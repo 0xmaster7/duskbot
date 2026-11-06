@@ -14,8 +14,8 @@
   --settings-field-edge: color-mix(in srgb, var(--color-ink) 12%, transparent);
   --settings-secondary: var(--color-ink-secondary);
   --settings-selected: color-mix(in srgb, var(--color-ink) 8%, transparent);
-  --settings-hover: color-mix(in srgb, var(--color-ink) 6%, transparent);
-  --settings-row-hover: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  --settings-hover: color-mix(in srgb, var(--color-ink) 3.5%, transparent);
+  --settings-row-hover: color-mix(in srgb, var(--color-ink) 3%, transparent);
   --settings-pill: color-mix(in srgb, var(--color-ink) 6%, transparent);
   --settings-pill-hover: color-mix(in srgb, var(--color-ink) 10%, transparent);
   --settings-switch-off: color-mix(in srgb, var(--color-ink) 6%, transparent);
@@ -543,7 +543,7 @@
   transition: background-color 120ms ease-out, color 120ms ease-out, scale 200ms var(--omb-ease-release, ease-out);
 }
 :root .settings-dialog .settings-pane .ui-button:enabled:active { scale: 0.96; transition-duration: 120ms, 120ms, 160ms; transition-timing-function: ease-out, ease-out, var(--omb-ease-out, ease-out); }
-.settings-nav-item { transition: background-color 0.12s ease, color 0.12s ease, scale 0.16s var(--omb-ease-out, ease-out); }
+.settings-nav-item { transition: scale 0.16s var(--omb-ease-out, ease-out); }
 .settings-nav-item:active { scale: 0.985; }
 @media (prefers-reduced-motion: reduce) {
   :root .settings-dialog .settings-pane .ui-button:enabled:active, .settings-nav-item:active { scale: none; }

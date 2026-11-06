@@ -25,7 +25,6 @@ const notActions: Array<{ file: string; snippet: string; why: string }> = [
   { file: "components/routines/CalendarEventCard.tsx", snippet: "cursor-ns-resize", why: "mouse drag-resize handle for call events" },
   { file: "components/ComputerPanel.tsx", snippet: "opacity-80", why: "already visible at 80% without hover" },
   { file: "components/ChatView.tsx", snippet: "-ml-2.5 w-0 shrink-0 text-ink-secondary", why: "decorative chevron in the Simple bot pill; the whole pill is the tap target" },
-  { file: "components/ChatHeadPill.tsx", snippet: "group-hover:max-w-2 group-hover:opacity-100", why: "aria-hidden reveal chevron in the chat head pill; the whole pill is the tap target" },
   { file: "components/PlacesRail.tsx", snippet: "h-2 opacity-0 group-hover/tile:opacity-100", why: "decorative pill beside a rail tile on hover; the tile is the tap target and has its own focus ring" },
 ];
 
