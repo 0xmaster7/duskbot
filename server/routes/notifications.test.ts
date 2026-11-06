@@ -19,9 +19,10 @@ async function serve(
   entries: NotificationLogEntry[] = [sample],
   shown?: (auth: RequestAuth) => (threadId: string) => boolean,
   reaches?: (auth: RequestAuth, entry: NotificationLogEntry) => boolean,
+  broadcast: (payload: Record<string, unknown>) => void = () => {},
 ) {
   const deps = { recent: vi.fn(() => entries), markRead: vi.fn() };
-  const routes = [createNotificationRoutes(deps, shown, reaches)];
+  const routes = [createNotificationRoutes(deps, shown, reaches, broadcast)];
   const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
     const handled = await dispatchRoutes(routes, {
@@ -68,6 +69,22 @@ describe("notification routes", () => {
       expect((await fetch(`${base}/api/notifications/${id}/read`, { method: "POST" })).status, id).toBe(404);
     }
     expect(deps.markRead).toHaveBeenCalledTimes(1);
+  });
+
+  it("tells the person's other devices, one frame per conversation, and only about entries that were unread", async () => {
+    const frames: Array<Record<string, unknown>> = [];
+    const entries = [sample, { ...sample, id: "n2" }, { ...sample, id: "n3", threadId: "t2" }, { ...sample, id: "n4", read: true }];
+    const { base } = await serve(entries, undefined, undefined, (payload) => frames.push(payload));
+    await fetch(`${base}/api/notifications/n4/read`, { method: "POST" });
+    expect(frames).toEqual([]);
+    await fetch(`${base}/api/notifications/n3/read`, { method: "POST" });
+    expect(frames).toEqual([{ kind: "notifications.read", threadId: "t2", ids: ["n3"] }]);
+    frames.length = 0;
+    await fetch(`${base}/api/notifications/read-all`, { method: "POST" });
+    expect(frames).toEqual([
+      { kind: "notifications.read", threadId: "t1", ids: ["n1", "n2"] },
+      { kind: "notifications.read", threadId: "t2", ids: ["n3"] },
+    ]);
   });
 
   it("leaves other paths and methods to the next handler", async () => {

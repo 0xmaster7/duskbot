@@ -25,6 +25,11 @@ describe("buildNotification", () => {
       .toBe("Scout couldn't start");
   });
 
+  it("keeps an archived bot's finished work quiet, but still asks for what needs the person", () => {
+    expect(buildNotification("done", { ...bot, hidden: true }, "thread-1", "pushed the branch")).toBeNull();
+    expect(buildNotification("approval", { ...bot, hidden: true }, "thread-1", "rm -rf ./build")?.kind).toBe("approval");
+  });
+
   it("announces a delegation settle as a resume with results", () => {
     expect(buildNotification("delegation-settled", bot, "thread-1", "Results in from Atlas")).toMatchObject({
       kind: "delegation-settled",

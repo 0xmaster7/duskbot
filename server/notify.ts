@@ -14,6 +14,8 @@ export interface NotifyBot {
   name: string;
   threadId: string;
   notifications?: boolean;
+  /** Archived: its finished work stays in its chat without a ping, since the app has no row to open it from. */
+  hidden?: boolean;
 }
 
 export function buildSpendNotification(
@@ -61,6 +63,7 @@ export function buildNotification(
       : serverLine(language, TITLE[kind] ?? "server.notify.done", { who });
 
   if ((kind === "done" || kind === "mention") && !body) return null;
+  if (kind === "done" && bot.hidden) return null;
 
   const notification: Notification = { kind, botId: bot.id, botName: bot.name, threadId, title, body };
   if (extra?.avatarUrl) notification.avatarUrl = extra.avatarUrl;
