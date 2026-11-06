@@ -140,6 +140,36 @@ Try the screen without a server (writes nothing, needs no root, runs on a Mac to
 OMB_INSTALL_DEMO=1 sh link-service/install.sh        # OMB_INSTALL_DEMO=fail shows a failure
 ```
 
+## Uninstall
+
+```
+curl -fsSL https://link.apps.siddz.com/uninstall | sh                 # shows what it removes, asks on the terminal
+curl -fsSL https://link.apps.siddz.com/uninstall | sh -s -- --yes     # no question (or OMB_UNINSTALL_YES=1)
+```
+
+`GET /uninstall` (also `/uninstall.sh`) serves `uninstall.sh` to anyone, no session, with the base baked in. It puts
+the server back the way install.sh found it, in the same five-phase screen: Unlinking from your app (deletes the
+tunnel at the service with the server's own tunnel token, so the app reads "unlinked"), Stopping OpenMausBot (every
+unit install.sh wrote), Clearing the bot computers (our containers, their home volumes, the `openmausbot-desktops`
+network, our images, the host fence and its iptables rules, and `/etc/docker/daemon.json` back from install.sh's
+`.omb-before` copy or with only our keys taken out; Docker restarts only when that file changed), Removing your bots'
+home (a 0600 tarball of `~maus/.openmausbot` to `/root/openmausbot-backup-<date>.tgz` first unless `--no-backup`,
+then the `maus` account, `/opt`, `/var/lib`, `/var/log` files and Caddy site) and Removing what it installed. It ends
+with a check of what is left (systemctl, `docker ps -a` and friends, the account, the paths, the fence, daemon.json).
+
+It asks before changing anything, on `/dev/tty`, so the `curl | sh` line works. With no terminal and no `--yes` it only
+shows what it would remove; `--dry-run` does that on purpose. It is safe to run again, and when nothing or only part is
+installed. A failed backup stops it before anything of the bots is removed.
+
+install.sh writes `/var/lib/openmausbot/install-manifest`: every package its apt calls added (dependencies too), the
+apt sources and keyrings it created, whether it made `daemon.json` or which keys it added, what it did to the
+Caddyfile, the ufw ports it opened and whether it made the `maus` account. A plain uninstall keeps Docker, Node, Caddy
+and gVisor (and the `pkg`/`file` lines of the manifest, so a later `--all` still knows them). `--all` also purges
+those packages: it marks them automatic and purges only the ones apt would then autoremove, so anything installed
+later that needs one keeps it; it never removes `curl` or `ca-certificates`, and it clears Docker's build cache. When
+Docker is one of them, purging it also empties `/var/lib/docker` (every container and volume, not only ours), and the
+plan says so before it asks. Docker's socket unit is stopped first so a later install's Docker starts cleanly.
+
 ## Run it
 
 ```

@@ -35,6 +35,9 @@ SVC_HOME=/home/maus
 STATE=/var/lib/openmausbot-link
 LOGS=/var/log/openmausbot-link
 LOGS_SHOWN=$LOGS
+# what this script added that was not here before (packages, apt sources, config it replaced), one line each, so
+# uninstall.sh puts back exactly that. kept apart from $STATE: a plain uninstall leaves it for a later --all.
+MANIFEST=/var/lib/openmausbot/install-manifest
 AGENT=/opt/openmausbot-link/agent.mjs
 PORT=8799
 UNITS=/etc/systemd/system
@@ -298,6 +301,22 @@ retry() {
   done
 }
 
+manifest_add() { # line
+  [ -n "$DEMO" ] && return 0
+  install -d -m 0755 "${MANIFEST%/*}"
+  grep -qxF "$1" "$MANIFEST" 2>/dev/null || printf '%s\n' "$1" >> "$MANIFEST"
+}
+# a file this script creates, recorded only when it was not there before
+new_file() { [ -e "$1" ] || manifest_add "file $1"; }
+installed_pkgs() { dpkg-query -W -f '${db:Status-Abbrev} ${Package}\n' 2>/dev/null | awk '$1 ~ /^ii/ { print $2 }' | sort -u; }
+# apt-get install, recording every package it added (dependencies too) in the manifest
+apt_get_install() { # args...
+  installed_pkgs > "$TMP/pkgs.before"
+  if retry apt-get -y -q -o DPkg::Lock::Timeout=300 -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold install "$@"; then _rc=0; else _rc=1; fi
+  installed_pkgs | comm -13 "$TMP/pkgs.before" - | while read -r _p; do manifest_add "pkg $_p"; done
+  return "$_rc"
+}
+
 APT_UPDATED=0
 apt_update() {
   [ "$APT_UPDATED" = 1 ] && return 0
@@ -309,7 +328,7 @@ apt_install() {
   [ -z "$missing" ] && return 0
   apt_update
   # shellcheck disable=SC2086
-  retry apt-get -y -q -o DPkg::Lock::Timeout=300 -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold install --no-install-recommends $missing
+  apt_get_install --no-install-recommends $missing
 }
 fetch() { retry curl -fsSL --connect-timeout 15 -m 300 "$1" -o "$2"; }
 
@@ -563,6 +582,7 @@ do_docker() {
 
 do_user() {
   if ! id "$SVC_USER" >/dev/null 2>&1; then
+    manifest_add "user $SVC_USER"
     x useradd --create-home --home-dir "$SVC_HOME" --shell /bin/bash "$SVC_USER"
   fi
   # the docker group is root-equivalent; the server is the person's own, and the bot desktop needs it
@@ -579,12 +599,13 @@ do_node() {
   if [ -n "$major" ] && [ "$major" -ge 24 ]; then node_version_line; return 0; fi
   install -d -m 0755 /etc/apt/keyrings
   fetch https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key "$TMP/nodesource.key"
+  new_file /etc/apt/keyrings/nodesource.gpg; new_file /etc/apt/sources.list.d/nodesource.list
   x gpg --dearmor --yes -o /etc/apt/keyrings/nodesource.gpg "$TMP/nodesource.key"
   chmod 0644 /etc/apt/keyrings/nodesource.gpg
   echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_24.x nodistro main" > /etc/apt/sources.list.d/nodesource.list
   APT_UPDATED=0
   apt_update
-  retry apt-get -y -q -o DPkg::Lock::Timeout=300 install nodejs
+  apt_get_install nodejs
   major=$(node_major)
   [ -n "$major" ] && [ "$major" -ge 24 ] || { echo "node 24 did not install"; return 1; }
   node_version_line
@@ -756,6 +777,7 @@ caddy_setup() { # host
   if ! command -v caddy >/dev/null 2>&1; then
     apt_install debian-keyring debian-archive-keyring apt-transport-https
     fetch https://dl.cloudsmith.io/public/caddy/stable/gpg.key "$TMP/caddy.key"
+    new_file /usr/share/keyrings/caddy-stable-archive-keyring.gpg; new_file /etc/apt/sources.list.d/caddy-stable.list
     x gpg --dearmor --yes -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg "$TMP/caddy.key"
     chmod 0644 /usr/share/keyrings/caddy-stable-archive-keyring.gpg
     fetch https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt /etc/apt/sources.list.d/caddy-stable.list
@@ -784,13 +806,17 @@ EOF
   put_file /etc/caddy/openmausbot.caddy 0644 || true
   main=/etc/caddy/Caddyfile
   if [ ! -f "$main" ] || grep -q "managed by openmausbot-link" "$main" || grep -q "/usr/share/caddy" "$main"; then
+    if [ ! -f "$main" ]; then manifest_add "caddyfile new"
+    elif ! grep -q "managed by openmausbot-link" "$main"; then [ -f "$main.omb-before" ] || cp -p "$main" "$main.omb-before"; manifest_add "caddyfile replaced"; fi
     printf '# managed by openmausbot-link\nimport /etc/caddy/openmausbot.caddy\n' > "$main"
   elif ! grep -q "import /etc/caddy/openmausbot.caddy" "$main"; then
     # someone else's caddy: add our site, never replace theirs
     printf '\nimport /etc/caddy/openmausbot.caddy\n' >> "$main"
+    manifest_add "caddyfile appended"
   fi
   x caddy validate --adapter caddyfile --config "$main"
   if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then
+    for _port in 80/tcp 443/tcp; do ufw status 2>/dev/null | grep -q "^$_port " || manifest_add "ufw $_port"; done
     ufw allow 80/tcp && ufw allow 443/tcp
   fi
   systemctl enable caddy >/dev/null 2>&1
@@ -884,6 +910,7 @@ daemon_merge() { # gvisor | userns
   conf=/etc/docker/daemon.json
   install -d -m 0755 /etc/docker
   [ -f "$conf" ] && [ ! -f "$conf.omb-before" ] && cp -p "$conf" "$conf.omb-before"
+  [ -f "$conf" ] || manifest_add "daemon-json new"
   [ -f "$conf" ] && cp -p "$conf" "$TMP/daemon.json.old"
   /usr/bin/node -e '
     const fs = require("fs"), [file, what, out] = process.argv.slice(1);
@@ -896,7 +923,7 @@ daemon_merge() { # gvisor | userns
   if [ -f "$conf" ] && cmp -s "$TMP/daemon.json.new" "$conf"; then echo "daemon.json already has it"; return 0; fi
   install -m 0644 "$TMP/daemon.json.new" "$conf"
   echo "daemon.json: added $1; restarting docker"
-  x systemctl restart docker && docker_wait && return 0
+  x systemctl restart docker && docker_wait && { manifest_add "daemon-key $1"; return 0; }
   echo "docker would not start with the new daemon.json; putting the old one back"
   if [ -f "$TMP/daemon.json.old" ]; then install -m 0644 "$TMP/daemon.json.old" "$conf"; else rm -f "$conf"; fi
   systemctl reset-failed docker >/dev/null 2>&1 || true
@@ -908,6 +935,7 @@ docker_wait() { i=0; while [ "$i" -lt 60 ]; do docker info >/dev/null 2>&1 && re
 gvisor_install() {
   command -v runsc >/dev/null 2>&1 && return 0
   fetch https://gvisor.dev/archive.key "$TMP/gvisor.key"
+  new_file /usr/share/keyrings/gvisor-archive-keyring.gpg; new_file /etc/apt/sources.list.d/gvisor.list
   x gpg --dearmor --yes -o /usr/share/keyrings/gvisor-archive-keyring.gpg "$TMP/gvisor.key"
   chmod 0644 /usr/share/keyrings/gvisor-archive-keyring.gpg
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/gvisor-archive-keyring.gpg] https://storage.googleapis.com/gvisor/releases release main" \

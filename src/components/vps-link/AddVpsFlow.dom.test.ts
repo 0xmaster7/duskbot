@@ -183,6 +183,24 @@ describe("Settings > Transfer", () => {
     expect(confirm).toHaveBeenCalledWith(expect.stringContaining("A backup is saved first"));
     expect(fake.bridge.moveBack).toHaveBeenCalledTimes(1);
   });
+
+  it("shows the line that takes OpenMausBot off the server, only when asked", async () => {
+    const fake = fakeBridge();
+    const UNINSTALL = "curl -fsSL https://link.apps.siddz.com/uninstall | sh";
+    fake.bridge.where.mockImplementation(async () => ({ place: "vps" as const, server: SERVER, uninstall: UNINSTALL }));
+    vi.stubGlobal("ogb", { platform: "darwin", vpsLink: fake.bridge, confirm: vi.fn(async () => true) });
+    await act(async () => { root.render(createElement(TransferSettings)); });
+    await settle();
+    expect(text()).not.toContain(UNINSTALL);
+    const row = button("Remove from this server");
+    expect(row?.getAttribute("aria-expanded")).toBe("false");
+    await click(row);
+    expect(row?.getAttribute("aria-expanded")).toBe("true");
+    expect(document.querySelector('[data-copy-row="uninstall"] code')?.textContent).toBe(UNINSTALL);
+    expect(text()).toContain("Paste this on My VPS");
+    expect(text()).toContain("Forget My VPS");
+    expect(fake.bridge.forget).not.toHaveBeenCalled();
+  });
 });
 
 describe("the move waiting to try again", () => {

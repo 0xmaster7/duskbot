@@ -1,8 +1,9 @@
-// Settings > Transfer: where the bots live now, moving them back to this computer, and the backups a move keeps
+// Settings > Transfer: where the bots live now, moving them back to this computer, taking OpenMausBot off the server, and
+// the backups a move keeps
 import { useEffect, useRef, useState } from "react";
 import { t } from "@/lib/i18n";
 import { formatBytes, openAddVps, vpsLinkBridge, type VpsBackup, type VpsWhere } from "@/lib/vps-link";
-import { Card, ItemRow, NavRow, NoteRow } from "../ListRows";
+import { Card, CopyRow, ItemRow, NavRow, NoteRow } from "../ListRows";
 import { smallButtonCls } from "../ui/GrokDialog";
 import { deviceWord, message } from "./parts";
 
@@ -25,6 +26,7 @@ export function TransferSettings() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
+  const [removing, setRemoving] = useState(false);
   const alive = useRef(true);
   const device = deviceWord();
 
@@ -65,6 +67,14 @@ export function TransferSettings() {
           ? <>
               <NavRow title={t("vpsLink.transfer.moveBack", { device })} hint={t("vpsLink.transfer.moveBackHint", { name: server.name, device })} disabled={busy}
                 onClick={() => void perform(t("vpsLink.transfer.moveBackConfirm", { name: server.name, device }), () => bridge.moveBack(), t("vpsLink.transfer.moveBackStarted"))} />
+              {where.uninstall && <>
+                <NavRow title={t("vpsLink.transfer.remove")} hint={t("vpsLink.transfer.removeHint", { name: server.name })} drill={false}
+                  aria-expanded={removing} onClick={() => setRemoving((open) => !open)} />
+                {removing && <>
+                  <CopyRow title={t("vpsLink.transfer.removePaste", { name: server.name })} text={where.uninstall} data-copy-row="uninstall" />
+                  <NoteRow>{t("vpsLink.transfer.removeNote")}</NoteRow>
+                </>}
+              </>}
               <NavRow title={t("vpsLink.transfer.forget", { name: server.name })} hint={t("vpsLink.transfer.forgetHint")} danger drill={false} disabled={busy}
                 onClick={() => void perform(t("vpsLink.transfer.forgetConfirm", { name: server.name }), () => bridge.forget())} />
             </>

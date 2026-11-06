@@ -65,6 +65,21 @@ describe("setup sessions", () => {
     expect((await fetch(`${base}/i/ABCDEFGHIJ-abcdefghijklmnopqrstuvwxyz`)).status).toBe(404);
   });
 
+  it("serves the uninstall script to anyone, with the base baked in, and it parses", async () => {
+    for (const path of ["/uninstall", "/uninstall.sh"]) {
+      const response = await fetch(`${base}${path}`);
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("text/plain");
+      const script = await response.text();
+      expect(script.startsWith("#!/bin/sh")).toBe(true);
+      if (script.includes("__LINK_BASE__")) throw new Error("placeholder left in the served uninstall script");
+      expect(script).toContain('BAKED_BASE="http://link.test"');
+    }
+    const file = join(dir, "uninstall.sh");
+    writeFileSync(file, await (await fetch(`${base}/uninstall`)).text());
+    await run("sh", ["-n", file]);
+  });
+
   it("runs a whole setup: claim, steps, result; the relay keeps only verifiers and the command is one-time", async () => {
     const relay = createRelayClient({ base });
     const keys = newLinkKeys();
@@ -276,4 +291,21 @@ describe("relay tunnel", () => {
     expect(await running).toBe("unlinked");
     await proxy.close();
   }, 20_000);
+
+  it("can be ended from the server too (uninstall.sh), with its own token and nothing else", async () => {
+    const relay = createRelayClient({ base });
+    const keys = newLinkKeys();
+    const made = await relay.create({ verifier: keys.verifier, appPub: keys.pub });
+    const vpsToken = vpsTokenOf(keys.secret);
+    await post(`/v1/sessions/${made.id}/claim`, vpsToken, {});
+    const tunnel = { vps: "w".repeat(43), app: "b".repeat(43) };
+    await post(`/v1/sessions/${made.id}/result`, vpsToken, { sealed: seal(Buffer.alloc(32), made.id, Buffer.from("{}")), vpsPub: keys.pub, tunnel: { vps: sha256hex(tunnel.vps), app: sha256hex(tunnel.app) } });
+    const drop = (token) => fetch(`${base}/v1/tunnels/${made.id}`, { method: "DELETE", headers: { authorization: `Bearer ${token}` } });
+    expect((await drop("x".repeat(43))).status).toBe(404);
+    expect((await drop(vpsToken)).status).toBe(404);
+    expect((await drop(tunnel.vps)).status).toBe(200);
+    // gone for the app too: its reads say unlinked
+    expect((await fetch(`${base}/v1/tunnels/${made.id}/to-app`, { headers: { authorization: `Bearer ${tunnel.app}` } })).status).toBe(404);
+    expect((await drop(tunnel.vps)).status).toBe(404);
+  });
 });

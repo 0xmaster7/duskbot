@@ -56,7 +56,8 @@ export interface VpsBackup {
   summary: { bots: number; chats: number; skills: number; routines: number } | null;
   reason: "before-move" | "before-restore" | "manual" | "from-server";
 }
-export interface VpsWhere { place: "mac" | "vps"; server: VpsServer | null }
+/** `uninstall`: the line to paste on the server to take OpenMausBot off it (older apps leave it out). */
+export interface VpsWhere { place: "mac" | "vps"; server: VpsServer | null; uninstall?: string }
 
 export interface VpsLinkBridge {
   state(): Promise<VpsLinkView>;

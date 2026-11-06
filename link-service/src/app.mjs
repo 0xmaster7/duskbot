@@ -1,11 +1,11 @@
 // the link service: (1) one-time setup sessions the app opens and the vps install script reports into, (2) the install
-// script and agent, (3) a relay tunnel of frames both ends seal, so it never reads a request, a reply or a credential.
+// and uninstall scripts and the agent, (3) a relay tunnel of frames both ends seal, so it never reads a request, a reply or a credential.
 //
 // trust: the app holds the secrets. the relay stores only sha256 verifiers of bearer tokens and passes sealed blobs on.
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { createReadStream, readFileSync, statSync } from "node:fs";
 import { isIP } from "node:net";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { pipeline } from "node:stream/promises";
 
 import { createPackages } from "./packages.mjs";
@@ -113,6 +113,7 @@ function frameQueue() {
  *   base: string,
  *   dataDir?: string | null,
  *   scriptPath: string,
+ *   uninstallPath?: string,
  *   agentPath: string,
  *   packagesDir?: string | null,
  *   trustProxy?: boolean,
@@ -121,7 +122,7 @@ function frameQueue() {
  *   log?: (line: string) => void,
  * }} options
  */
-export function createLinkService({ base, dataDir = null, scriptPath, agentPath, packagesDir, trustProxy = true, now = Date.now, fetch: fetchImpl = fetch, log = () => {} }) {
+export function createLinkService({ base, dataDir = null, scriptPath, uninstallPath = join(dirname(scriptPath), "uninstall.sh"), agentPath, packagesDir, trustProxy = true, now = Date.now, fetch: fetchImpl = fetch, log = () => {} }) {
   const store = createStore({ dir: dataDir, now });
   const packages = createPackages(packagesDir !== undefined ? packagesDir : dataDir ? join(dataDir, "packages") : null);
   const sessionWaiters = new Map();
@@ -221,7 +222,9 @@ export function createLinkService({ base, dataDir = null, scriptPath, agentPath,
   }
   function tunnelFor(req, res, id, role) {
     const tunnel = ID.test(id) ? store.tunnels.get(id) : null;
-    if (!tunnel || !sameHash(bearer(req), role === "vps" ? tunnel.vpsVerifier : tunnel.appVerifier)) { fail(res, 404, "not found", "not_found"); return null; }
+    const token = bearer(req);
+    const ok = tunnel && (role === "either" ? sameHash(token, tunnel.vpsVerifier) || sameHash(token, tunnel.appVerifier) : sameHash(token, role === "vps" ? tunnel.vpsVerifier : tunnel.appVerifier));
+    if (!ok) { fail(res, 404, "not found", "not_found"); return null; }
     return tunnel;
   }
 
@@ -251,6 +254,11 @@ export function createLinkService({ base, dataDir = null, scriptPath, agentPath,
       if (token) script = script.replaceAll("__LINK_TOKEN__", token);
       res.writeHead(200, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
       return res.end(script);
+    }
+    // the undo: public like /i (nothing secret in it), no session needed
+    if (method === "GET" && (path === "/uninstall" || path === "/uninstall.sh")) {
+      res.writeHead(200, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
+      return res.end(file(uninstallPath).replaceAll("__LINK_BASE__", base));
     }
     if (method === "GET" && path === "/agent.mjs") {
       res.writeHead(200, { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
@@ -406,8 +414,9 @@ export function createLinkService({ base, dataDir = null, scriptPath, agentPath,
 
     if ((parts = /^\/v1\/tunnels\/([a-z2-7]{10})(?:\/(to-vps|to-app|status))?$/.exec(path))) {
       const [, id, action] = parts;
+      // either end may end it: the app forgetting the server, or uninstall.sh on the server with the vps token
       if (!action && method === "DELETE") {
-        const tunnel = tunnelFor(req, res, id, "app");
+        const tunnel = tunnelFor(req, res, id, "either");
         if (!tunnel) return;
         store.tunnels.delete(id);
         store.save();

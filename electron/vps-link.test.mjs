@@ -253,7 +253,7 @@ describe("Add your VPS", () => {
     await second.move();
     await until(() => second.view().stage === "moved");
     expect(fine.calls).not.toContain("POST /api/move/forget");
-    expect(second.where()).toEqual({ place: "vps", server: { id: "env-9", name: "box", origin: "https://203-0-113-5.sslip.io" } });
+    expect(second.where()).toEqual({ place: "vps", server: { id: "env-9", name: "box", origin: "https://203-0-113-5.sslip.io" }, uninstall: expect.stringMatching(/^curl -fsSL https?:\/\/\S+\/uninstall \| sh$/) });
     await stubbed.close();
     await second.close();
   });

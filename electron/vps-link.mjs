@@ -562,8 +562,11 @@ export function createVpsLink(deps) {
     return view();
   }
 
+  /** the line that takes OpenMausBot off the server again (link-service/uninstall.sh), from the service it was linked through */
+  function uninstallLine() { return `curl -fsSL ${currentLink()?.base ?? base}/uninstall | sh`; }
+
   function where() {
-    if (ownHome.away()) { const home = ownHome.home(); return { place: "vps", server: home ? { id: home.id, name: home.name, origin: home.origin } : null }; }
+    if (ownHome.away()) { const home = ownHome.home(); return { place: "vps", server: home ? { id: home.id, name: home.name, origin: home.origin } : null, uninstall: uninstallLine() }; }
     return { place: "mac", server: null };
   }
 
