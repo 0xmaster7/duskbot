@@ -13,7 +13,6 @@ const fixture = vi.hoisted(() => ({
   advanced: false,
   dispatch: vi.fn(),
   call: null as Record<string, unknown> | null,
-  groupCall: null as Record<string, unknown> | null,
   liveCall: null as unknown,
 }));
 const ENGINE = "claude-3f0c2b1e-9d1a-4c55-8a51-0a3a6f1e2b7c";
@@ -31,10 +30,6 @@ vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => true }));
 vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => fixture.advanced, setAdvancedMode: vi.fn() }));
 vi.mock("./CallView", () => ({ CallButton: (props: Record<string, unknown>) => {
   fixture.call = props;
-  return null;
-} }));
-vi.mock("./GroupCallView", () => ({ GroupCallButton: (props: Record<string, unknown>) => {
-  fixture.groupCall = props;
   return null;
 } }));
 
@@ -73,7 +68,6 @@ beforeEach(() => {
   fixture.liveCall = null;
   setCallMode("turns");
   fixture.call = null;
-  fixture.groupCall = null;
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
   vi.spyOn(HTMLElement.prototype, "scrollIntoView").mockImplementation(() => {});
   for (const id of [`bot:${bot.id}:${bot.threadId}`, `group:${room.id}:${room.threadId}`]) restoreComposerDraft(id, { text: "", attachments: [] });

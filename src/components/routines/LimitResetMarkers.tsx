@@ -9,7 +9,7 @@ export const BOT_DRAG_TYPE = "application/x-openmaus-bot";
 export const EVENT_DRAG_TYPE = "application/x-openmaus-calendar-event";
 
 /** What was dropped on a reset marker: a bot from the sidebar, or an automation already on the calendar. */
-export type ResetDrop = { botId: string } | { event: { kind: "routine" | "call"; id: string; at: number } };
+export type ResetDrop = { botId: string } | { event: { kind: "routine"; id: string; at: number } };
 
 const accepts = (event: DragEvent) => event.dataTransfer.types.includes(BOT_DRAG_TYPE) || event.dataTransfer.types.includes(EVENT_DRAG_TYPE);
 
@@ -18,7 +18,7 @@ function dropped(event: DragEvent): ResetDrop | null {
   if (botId) return { botId };
   try {
     const item = JSON.parse(event.dataTransfer.getData(EVENT_DRAG_TYPE)) as { kind?: unknown; id?: unknown; at?: unknown };
-    return (item.kind === "routine" || item.kind === "call") && typeof item.id === "string" && typeof item.at === "number"
+    return item.kind === "routine" && typeof item.id === "string" && typeof item.at === "number"
       ? { event: { kind: item.kind, id: item.id, at: item.at } } : null;
   } catch {
     return null;

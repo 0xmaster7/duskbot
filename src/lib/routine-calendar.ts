@@ -1,4 +1,3 @@
-import type { CalendarCall } from "./calendar-calls";
 import type { Routine, RoutineRun, RoutineSchedule } from "./routines";
 import { nextCronRuns } from "../../shared/routine-schedule";
 
@@ -280,31 +279,4 @@ export function calendarRangeLabel(from: number, days: number): string {
     return `${start.toLocaleDateString([], { month: "long" })} ${start.getDate()} – ${end.getDate()}, ${end.getFullYear()}`;
   }
   return `${start.toLocaleDateString([], { month: "short", day: "numeric" })} – ${end.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}`;
-}
-
-export type CallOccurrence = {
-  id: string;
-  at: number;
-  durationMinutes: number;
-  call: CalendarCall;
-};
-
-export function projectCalls(calls: CalendarCall[], from: number, to: number): CallOccurrence[] {
-  const items: CallOccurrence[] = [];
-  for (const call of calls) {
-    if (call.schedule.type === "once") {
-      if (call.schedule.at >= from && call.schedule.at < to) {
-        items.push({ id: `call-${call.id}-${call.schedule.at}`, at: call.schedule.at, durationMinutes: call.durationMinutes, call });
-      }
-      continue;
-    }
-    for (let day = startOfDay(from); day < to; day = addDays(day, 1)) {
-      if (!call.schedule.weekdays.includes(new Date(day).getDay())) continue;
-      const at = atLocalTime(day, call.schedule.time);
-      if (at >= from && at < to && at >= call.createdAt) {
-        items.push({ id: `call-${call.id}-${at}`, at, durationMinutes: call.durationMinutes, call });
-      }
-    }
-  }
-  return items.sort((left, right) => left.at - right.at);
 }

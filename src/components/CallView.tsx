@@ -162,9 +162,7 @@ export function CallTargetButton({
         : !configured
           ? "Set up ElevenLabs, Fish Audio, Chatterbox, or a built-in Mac voice so the bot can speak during calls."
           : !voiceReady
-            ? voices.length > 1
-              ? "Give every group member a voice before starting a group call."
-              : "Choose a voice before starting a call."
+            ? "Choose a voice before starting a call."
             : "";
 
   const closePopovers = useCallback(() => {

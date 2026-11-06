@@ -36,7 +36,7 @@ const missed: RoutineRun = { ...failed, id: "missed-run", routineId: "stale", ro
 const completed: RoutineRun = { ...failed, id: "fine-run", routineId: "fine", routineName: "Fine brief", status: "completed" };
 
 function markupOf() {
-  function Capture() { return RoutinesPage({ onBack: vi.fn(), onOpenRoom: vi.fn() }); }
+  function Capture() { return RoutinesPage({ onBack: vi.fn() }); }
   return renderToStaticMarkup(createElement(Capture));
 }
 

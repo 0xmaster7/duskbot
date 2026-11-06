@@ -456,8 +456,8 @@ the Cloud's address.
 - **Take turns stays on This computer.** Take-turns calls listen in the
   desktop app (on-device on a Mac, through Fish Audio on Windows and Linux),
   which a Cloud's page can't use. On a Cloud,
-  the call with one bot is a Live call, and a room has no call
-  (`effectiveCallMode` in `src/lib/call-mode.ts`, `GroupCallButton`).
+  the call with one bot is a Live call
+  (`effectiveCallMode` in `src/lib/call-mode.ts`). Rooms have no call.
 
 ### Open in the app: `openmausbot://cloud`
 

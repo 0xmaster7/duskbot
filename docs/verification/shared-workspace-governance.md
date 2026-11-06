@@ -185,8 +185,6 @@ above; not production qualification.
   `PATCH /api/groups/:id {resetAudience: true}` (admin) widens it, recorded
   as `room.audience-reset` ("never widens a room because a restricted bot
   left it; only an admin's reset does").
-- **Calendar calls** refuse mixed audiences on create, update and when their
-  room opens.
 - **Recording** is decided on the state before or after the request
   (revoking the last chat-only phone is kept); an open chat-only pairing
   code counts as shared.

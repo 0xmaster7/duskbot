@@ -17,7 +17,6 @@ const fixture = vi.hoisted(() => ({
   agentsMcp: true,
   dispatch: vi.fn(),
   call: null as Record<string, unknown> | null,
-  groupCall: null as Record<string, unknown> | null,
   liveCall: null as unknown,
   config: undefined as unknown,
 }));
@@ -37,10 +36,6 @@ vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => true }));
 vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => fixture.advanced, setAdvancedMode: vi.fn() }));
 vi.mock("./CallView", () => ({ CallButton: (props: Record<string, unknown>) => {
   fixture.call = props;
-  return null;
-} }));
-vi.mock("./GroupCallView", () => ({ GroupCallButton: (props: Record<string, unknown>) => {
-  fixture.groupCall = props;
   return null;
 } }));
 
@@ -92,7 +87,6 @@ beforeEach(() => {
   fixture.config = undefined;
   setCallMode("turns");
   fixture.call = null;
-  fixture.groupCall = null;
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
   vi.spyOn(HTMLElement.prototype, "scrollIntoView").mockImplementation(() => {});
   for (const id of [`bot:${bot.id}:${bot.threadId}`, `group:${room.id}:${room.threadId}`]) restoreComposerDraft(id, { text: "", attachments: [] });
@@ -276,7 +270,6 @@ describe("the Simple composer in a group chat", () => {
     render({ group: room, members: [bot, peer] });
     expect(container.querySelector("[data-goal-chip]")).toBeNull();
     expect(container.querySelector("textarea")!.getAttribute("placeholder")).toBe("Message Launch planning");
-    expect(fixture.groupCall).toMatchObject({ group: { id: "room" }, placement: "composer", fill: "var(--color-accent)", ink: "var(--color-accent-ink)" });
     restoreComposerDraft(`group:${room.id}:${room.threadId}`, { text: "hello room", attachments: [] });
     render({ group: room, members: [bot, peer] });
     const send = sendButton()!;
@@ -354,11 +347,10 @@ describe("the Advanced composer", () => {
     expect(sendButton()!.style.backgroundColor).toBe("var(--color-accent)");
   });
 
-  it("keeps the room's Goal chip and its header call button", () => {
+  it("keeps the room's Goal chip", () => {
     fixture.advanced = true;
     render({ group: room, members: [bot, peer] });
     expect(container.querySelector('[aria-label="Finish together"]')?.getAttribute("aria-pressed")).toBe("false");
-    expect(fixture.groupCall).toBeNull();
   });
 
   describe("with a message longer than one line", () => {

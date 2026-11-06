@@ -7,7 +7,7 @@ import { dirname, join, resolve } from "node:path";
 import { writeFileAtomic } from "./atomic.ts";
 import { INSTRUCTION_FILE, restorePaths } from "./workspace-backup-paths.ts";
 
-const DEFINITIONS = ["bots.json", "groups.json", "config.json", "routines.json", "calendar-calls.json"];
+const DEFINITIONS = ["bots.json", "groups.json", "config.json", "routines.json"];
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const MAX_FILE_BYTES = 16 * 1024 ** 2;
 // The folder a desktop keeps its data in by default, <home>\.openmausbot or <home>/.openmausbot, where a path ends.

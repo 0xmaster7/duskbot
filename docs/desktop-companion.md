@@ -47,7 +47,7 @@ The Computer panel also shows a periodically refreshed VPS screenshot. Preview a
 
 Remote clients can preview, open, and close the viewer only. VPS provisioning, replacement, sleep, removal, SSH aliases, Local VM controls, and host browser surfaces remain available only on the host.
 
-The client Calendar supports scheduled routines end to end: create, edit, move, resize, pause, delete, run now, cancel an active run, and acknowledge failures. Scheduled calls and webhooks remain host-only and are omitted from client mode.
+The client Calendar supports scheduled routines end to end: create, edit, move, resize, pause, delete, run now, cancel an active run, and acknowledge failures. Webhooks remain host-only and are omitted from client mode.
 
 The remote Computer panel includes the host panel's per-agent **Scheduled tasks** card. It lists that agent's next routines and active run, opens the full schedule view, and creates a new schedule already assigned to the agent.
 

@@ -33,9 +33,8 @@ it("preserves conversations and scheduled work when deletion cannot save, then s
   const schedules = async () => ({
     routines: (await api("GET", "/api/routines")).routines,
     webhooks: (await api("GET", "/api/webhooks")).webhooks,
-    calls: (await api("GET", "/api/calendar-calls")).calls,
   });
-  const scheduleDiskHashes = () => Object.fromEntries(["routines.json", "webhooks.json", "calendar-calls.json"].map(name =>
+  const scheduleDiskHashes = () => Object.fromEntries(["routines.json", "webhooks.json"].map(name =>
     [name, createHash("sha256").update(readFileSync(join(dataDir, name))).digest("hex")]));
   try {
     const bot = (await control("new-bot", "--name", "Deletion failure fixture")).bot;
@@ -48,10 +47,6 @@ it("preserves conversations and scheduled work when deletion cannot save, then s
       prompt: "Prepare the fixture report.", enabled: true, schedule: { type: "interval", everyMinutes: 60, anchorAt: later } }, 201);
     const { webhook } = await api("POST", "/api/webhooks", { name: "Retain this webhook", botId: bot.id,
       prompt: "Summarize the fixture event.", enabled: true }, 201);
-    const { call: solo } = await api("POST", "/api/calendar-calls", { name: "Retain this solo call", botIds: [bot.id],
-      schedule: { type: "once", at: later }, durationMinutes: 10 }, 201);
-    const { call: shared } = await api("POST", "/api/calendar-calls", { name: "Retain this shared call", botIds: [bot.id, guest.id],
-      schedule: { type: "once", at: later }, durationMinutes: 10 }, 201);
     const before = await schedules();
     expect(before.routines.find((item: any) => item.id === routine.id)?.enabled).toBe(true);
     expect(before.webhooks.find((item: any) => item.id === webhook.id)?.enabled).toBe(true);
@@ -84,8 +79,6 @@ it("preserves conversations and scheduled work when deletion cannot save, then s
     // A deleted bot's automations go with it.
     expect(afterRetry.routines.some((item: any) => item.id === routine.id)).toBe(false);
     expect(afterRetry.webhooks.some((item: any) => item.id === webhook.id)).toBe(false);
-    expect(afterRetry.calls.some((item: any) => item.id === solo.id)).toBe(false);
-    expect(afterRetry.calls.find((item: any) => item.id === shared.id)?.botIds).toEqual([guest.id]);
     evidence.push({ retryApplied: true, afterRetry, survivingGuest: guest.id });
   } finally {
     restoreBotsFile();

@@ -56,7 +56,7 @@ let old: { id: string; threadId: string };
 let plan: { threadId: string };
 let room: { id: string; threadId: string };
 let project = "";
-let routineId = "", callId = "", webhookId = "", appEventId = "";
+let routineId = "", webhookId = "", appEventId = "";
 let webhookHere: { endpointId: string; secret: string };
 let finishedRun = "";
 let longRow = "";
@@ -133,7 +133,7 @@ it("a move carries the automations, files, memory, fields and skills, and its ch
   mkdirSync(join(dataDir("cloud"), "workspaces", nova.id), { recursive: true });
   writeFileSync(join(dataDir("cloud"), "workspaces", nova.id, "notes.md"), "Notes My Cloud wrote.\n");
 
-  // Automations: a routine naming this computer's folder with a finished run, a scheduled call, a webhook and an app event.
+  // Automations: a routine naming this computer's folder with a finished run, a webhook and an app event.
   const routine = (await local("POST", "/api/routines", { name: "Morning report", prompt: `Read ${dataDir("desktop")}/workspaces/${nova.id}/notes.md and report.`,
     botId: nova.id, schedule: { type: "daily", time: "09:00", weekdays: [1, 2, 3, 4, 5] }, durationMinutes: 15 })).body;
   routineId = (routine.routine ?? routine).id;
@@ -142,7 +142,6 @@ it("a move carries the automations, files, memory, fields and skills, and its ch
     .find((run) => run.routineId === routineId && run.status === "completed")?.id ?? "", { timeout: 60_000, interval: 250 }).not.toBe("");
   finishedRun = ((await local("GET", "/api/routines")).body.runs as Array<{ routineId: string; status: string; id: string }>).find((run) => run.routineId === routineId && run.status === "completed")!.id;
   await expect.poll(() => idle(local), { timeout: 30_000, interval: 100 }).toBe(true);
-  callId = (await local("POST", "/api/calendar-calls", { name: "Weekly sync", botIds: [nova.id], schedule: { type: "daily", time: "10:00", weekdays: [1] } })).body.call.id;
   const webhook = (await local("POST", "/api/webhooks", { name: "Orders", prompt: "File the order.", botId: nova.id })).body;
   webhookId = webhook.webhook.id;
   webhookHere = { endpointId: webhook.webhook.endpointId, secret: webhook.credential.secret };
@@ -175,7 +174,6 @@ it("a move carries the automations, files, memory, fields and skills, and its ch
   const owner = (await rows(onCloud, plan.threadId)).find((row) => row.role === "user")!.sender!.id!;
   expect(owner).toMatch(/^p_/u);
   expect(JSON.parse(readFileSync(join(dataDir("cloud"), "lending-routines.json"), "utf8")).writers[routineId]).toBe(owner);
-  expect(((await onCloud("GET", "/api/calendar-calls")).body.calls as Array<{ id: string; nextRunAt: number | null }>).find((call) => call.id === callId)).toMatchObject({ nextRunAt: null });
   const hooks = (await onCloud("GET", "/api/webhooks")).body.webhooks as Array<{ id: string; enabled: boolean; endpointId: string }>;
   const hookThere = hooks.find((hook) => hook.id === webhookId)!;
   expect(hookThere.enabled).toBe(false);

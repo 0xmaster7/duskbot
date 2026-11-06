@@ -87,7 +87,7 @@ function capture(render: () => ReactNode): Node[] {
   renderToStaticMarkup(createElement(Capture));
   return tree;
 }
-const page = () => capture(() => RoutinesPage({ onBack: vi.fn(), onOpenRoom: vi.fn() }));
+const page = () => capture(() => RoutinesPage({ onBack: vi.fn() }));
 function buttons(tree: Node[]): Map<string, Node["props"]> {
   const map = new Map<string, Node["props"]>();
   for (const node of tree) {
@@ -105,7 +105,7 @@ function markup(element: ReactElement): string {
 const click = (props: Node["props"] | undefined) => (props!.onClick as () => void)();
 
 function details(item: Parameters<typeof EventDetails>[0]["item"]) {
-  const props = { item, bots: [bot], onClose: vi.fn(), onEdit: vi.fn(), onCallChanged: vi.fn(), onOpenRoom: vi.fn(), onOpenRun: vi.fn() };
+  const props = { item, bots: [bot], onClose: vi.fn(), onEdit: vi.fn(), onOpenRoom: vi.fn(), onOpenRun: vi.fn() };
   return { props, tree: capture(() => EventDetails(props)), html: markup(createElement(EventDetails, props)) };
 }
 const routineItem = (definition: Routine, run: RoutineRun | null = null) =>
@@ -134,7 +134,7 @@ describe("Automations page", () => {
   });
 
   it("lists each automation as one sentence with a plain status line and a switch", () => {
-    const html = markup(createElement(RoutinesPage, { onBack: vi.fn(), onOpenRoom: vi.fn() }));
+    const html = markup(createElement(RoutinesPage, { onBack: vi.fn() }));
     expect(html).toContain("Every day at 6:30 AM, Runner summarises my inbox and calendar".replace("my inbox", "your inbox"));
     expect(html).toMatch(/On · last ran [^<]+ · next: [^<]+/);
     expect(html).not.toMatch(/Latest: |Not run yet|runs OK this week|Run logs/);
@@ -142,7 +142,7 @@ describe("Automations page", () => {
 
   it("puts Needs you first, with its plain reason and the one button that fixes it", () => {
     fixture.state = { ...fixture.state!, routines: [routine, inbox], routineRuns: [...runs, failing] };
-    const html = markup(createElement(RoutinesPage, { onBack: vi.fn(), onOpenRoom: vi.fn() }));
+    const html = markup(createElement(RoutinesPage, { onBack: vi.fn() }));
     expect(html.indexOf('data-automation-status="needs-you"')).toBeGreaterThan(-1);
     expect(html.indexOf('data-automation-status="needs-you"')).toBeLessThan(html.indexOf('data-automation-status="working"'));
     expect(html).toContain("Needs you: It&#x27;s signed out. Sign in again so it can run.");
@@ -203,7 +203,7 @@ describe("Automations page", () => {
 
   it("greets an empty list, and its example fills the New box", () => {
     fixture.state = { ...fixture.state!, hydrated: true, routines: [], webhooks: [], routineRuns: [], routinesLoadState: "ready" };
-    const html = markup(createElement(RoutinesPage, { onBack: vi.fn(), onOpenRoom: vi.fn() }));
+    const html = markup(createElement(RoutinesPage, { onBack: vi.fn() }));
     expect(html).toContain("Your bots can do things on their own.");
     expect(html).toContain("Try: every morning, summarize my inbox");
     click(buttons(page()).get("Try: every morning, summarize my inbox"));
@@ -268,7 +268,7 @@ describe("routine drawer", () => {
 describe("routine editor", () => {
   const editor = (routineToEdit?: Routine) => markup(createElement(EventEditor, {
     seed: { kind: "routine", at: Date.now() + 3_600_000, durationMinutes: 30, botIds: [bot.id], routine: routineToEdit },
-    bots: [bot], onClose: vi.fn(), onSavedCall: vi.fn(),
+    bots: [bot], onClose: vi.fn(),
   }));
   const hidden = ['<select aria-label="Repeat"', "Routine safety limit", "Runs the whole job on the bot&#x27;s cloud desktop", "Add attachment", "Post results to", "Routine type"];
 
@@ -316,7 +316,7 @@ describe("routine editor", () => {
     expect(html).not.toContain("Create a group from the sidebar first");
 
     fixture.values = [];
-    const props = { seed: { kind: "routine" as const, at: Date.now() + 3_600_000, durationMinutes: 30, botIds: [bot.id], routine: ownGoal }, bots: [bot], onClose: vi.fn(), onSavedCall: vi.fn() };
+    const props = { seed: { kind: "routine" as const, at: Date.now() + 3_600_000, durationMinutes: 30, botIds: [bot.id], routine: ownGoal }, bots: [bot], onClose: vi.fn() };
     click(buttons(capture(() => EventEditor(props))).get("Save"));
     const [, init] = fixture.api.mock.calls.at(-1) as unknown as [string, { body: string }];
     expect(JSON.parse(init.body)).toMatchObject({ target: "room-goal", botId: bot.id, groupId: null });
@@ -329,7 +329,7 @@ describe("routine editor", () => {
   it("saves the switch with the routine, and turning it off saves false", () => {
     const props = {
       seed: { kind: "routine" as const, at: Date.now() + 3_600_000, durationMinutes: 30, botIds: [bot.id], routine },
-      bots: [bot], onClose: vi.fn(), onSavedCall: vi.fn(),
+      bots: [bot], onClose: vi.fn(),
     };
     fixture.values = [];
     let tree = capture(() => EventEditor(props));
@@ -356,7 +356,7 @@ describe("routine editor", () => {
   it("turns a one-time routine that already happened back on when it is saved with a new time, and leaves any other's switch alone", async () => {
     const save = async (saved: Routine) => {
       fixture.values = [];
-      const props = { seed: { kind: "routine" as const, at: Date.now() + 3_600_000, durationMinutes: 30, botIds: [bot.id], routine: saved }, bots: [bot], onClose: vi.fn(), onSavedCall: vi.fn() };
+      const props = { seed: { kind: "routine" as const, at: Date.now() + 3_600_000, durationMinutes: 30, botIds: [bot.id], routine: saved }, bots: [bot], onClose: vi.fn() };
       click(buttons(capture(() => EventEditor(props))).get("Save"));
       await vi.waitFor(() => expect(fixture.api).toHaveBeenCalled());
       const [, init] = fixture.api.mock.calls.at(-1) as unknown as [string, { body: string }];

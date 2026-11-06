@@ -47,7 +47,7 @@ nothing there.
 `server/cloud-send-kinds.e2e.test.ts` runs what only a move carries, then the
 check, then the move again: a routine naming this computer's folder, with a
 finished run, arrives switched off under its id, as the owner's, naming My
-Cloud's folder; a scheduled call arrives unscheduled; a webhook arrives off
+Cloud's folder; a webhook arrives off
 with an address and secret of its own; an app event goes only in the final
 pass, and this computer stops collecting it. Bot files arrive by path and
 bytes, a file My Cloud has another version of is kept beside it, and nothing

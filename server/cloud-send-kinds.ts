@@ -1,5 +1,5 @@
 // What only the one-time move to the person's own Cloud carries, each under its own id: automations (routines with
-// their finished runs, scheduled calls, webhooks, app events), imported and library skills, and the bot fields My Cloud
+// their finished runs, webhooks, app events), imported and library skills, and the bot fields My Cloud
 // sets over this route. GET /api/cloud-send/kind?key= answers one item's record from this computer; PUT has My Cloud take
 // it under the same id, switched off, as its owner's, with this computer's folder named as its own; DELETE lets this
 // computer go of an app event My Cloud now collects. Admin scope; My Cloud takes an item only over its owner's session.
@@ -16,7 +16,6 @@ import { isSkillName } from "../shared/skill-md.ts";
 import type { InstalledPlaybook, InstalledPackageMetadata } from "../shared/wire.ts";
 import type { WebhookTrigger } from "../shared/webhooks.ts";
 import type { AppTriggerManager } from "./app-triggers.ts";
-import type { CalendarCall, CalendarCallManager } from "./calendar-calls.ts";
 import type { CloudOwner } from "./cloud-owner-lines.ts";
 import type { CloudSendItem } from "./cloud-send.ts";
 import { retireUnusedStarter, takeArrivingDefaultBot } from "./default-bot.ts";
@@ -37,7 +36,6 @@ const FINISHED = new Set(["completed", "failed", "cancelled", "missed"]);
 const KIND_BODY_MAX = 8 * 1024 * 1024;
 const ROUTINE_FIELDS = ["name", "prompt", "target", "botId", "groupId", "runOn", "schedule", "durationMinutes", "timeoutMinutes", "attachments", "continuity",
   "overlap", "runOnStartup", "sourceThreadId", "resultsThreadId", "createdAt", "checks", "access", "deliver"] as const;
-const CALL_FIELDS = ["name", "description", "botIds", "schedule", "durationMinutes", "attachments", "roomId", "createdAt"] as const;
 const WEBHOOK_FIELDS = ["name", "prompt", "botId", "runOn", "delivery", "groupId", "eventTypes", "maxPendingRuns", "resultsThreadId", "createdAt"] as const;
 const APP_EVENT_FIELDS = ["name", "prompt", "botId", "runOn", "app", "event", "accountId", "config", "filter", "sourceThreadId"] as const;
 /** Prose that may name this computer's data folder. */
@@ -48,7 +46,6 @@ export interface MoveKindsDeps {
   dataDir: string;
   store: Pick<Store, "bots" | "bot" | "group" | "patchBot" | "setChiefOfStaff" | "appendMessage" | "messagesFor">;
   routines(): Pick<RoutineManager, "listRoutines" | "listRuns" | "adopt"> | null;
-  calls(): Pick<CalendarCallManager, "list" | "adopt"> | null;
   webhooks(): Pick<WebhookManager, "list" | "adopt"> | null;
   appEvents(): Pick<AppTriggerManager, "list" | "adopt" | "remove" | "service"> | null;
   /** The person's Claude Code skills while this server uses them where they are; a move keeps them as imported skills. */
@@ -143,7 +140,7 @@ export function moveBotParts(bot: BotRecord, hash: (value: unknown) => string): 
 
 /** This server's automations and skill extras, as a move compares them: automations only of the bots it carries, and a
  * definition apart from its switch, its address and its counts. `only`: a move of that one bot into a team carries its
- * own routines and the library skills it uses; its calls, webhooks and app events, and the person's imported skills,
+ * own routines and the library skills it uses; its webhooks and app events, and the person's imported skills,
  * stay. */
 export function moveItems(deps: MoveKindsDeps, bots: ReadonlySet<string>, only?: Pick<BotRecord, "id" | "assignedSkills">): CloudSendItem[] {
   const items: CloudSendItem[] = [];
@@ -159,9 +156,6 @@ export function moveItems(deps: MoveKindsDeps, bots: ReadonlySet<string>, only?:
     const uses = new Set(only.assignedSkills ?? []);
     for (const { entry } of librarySkills()) if (uses.has(entry.name)) add("library-skill", entry.name, entry.name, { text: entry.sha256.slice(0, 24) || EMPTY, state: entry.reviewState });
     return items;
-  }
-  for (const call of deps.calls()?.list() ?? []) {
-    if (call.botIds.every((id) => bots.has(id))) add("call", call.id, call.name, { def: definitionHash(call, CALL_FIELDS, deps.dataDir) }, call.botIds[0]);
   }
   for (const webhook of deps.webhooks()?.list() ?? []) {
     if (bots.has(webhook.botId)) add("webhook", webhook.id, webhook.name, { def: definitionHash(webhook, WEBHOOK_FIELDS, deps.dataDir) }, webhook.botId);
@@ -185,7 +179,6 @@ export function automationSwitches(deps: MoveKindsDeps, bot?: string): Array<{ k
   if (bot !== undefined) return (deps.routines()?.listRoutines() ?? []).filter((routine) => routine.botId === bot && routine.target === "bot").map((routine) => ({ key: itemKey.moved("routine", routine.id), on: routine.enabled }));
   return [
     ...(deps.routines()?.listRoutines() ?? []).map((routine) => ({ key: itemKey.moved("routine", routine.id), on: routine.enabled })),
-    ...(deps.calls()?.list() ?? []).map((call) => ({ key: itemKey.moved("call", call.id), on: call.nextRunAt !== null })),
     ...(deps.webhooks()?.list() ?? []).map((webhook) => ({ key: itemKey.moved("webhook", webhook.id), on: webhook.enabled })),
     ...(deps.appEvents()?.list() ?? []).map((trigger) => ({ key: itemKey.moved("app-event", trigger.id), on: trigger.enabled })),
   ];
@@ -217,7 +210,8 @@ export function kindRecord(deps: MoveKindsDeps, kind: Kind, id: string): { recor
     // Its switch goes along for the switch that turns on there what was on here; My Cloud takes it switched off.
     return routine ? { record: { id, ...pick(routine, ROUTINE_FIELDS), enabled: routine.enabled }, runs: finishedRuns(routines!, id), changedAt: routine.updatedAt } : null;
   }
-  if (kind === "call") { const call = deps.calls()?.list().find((candidate) => candidate.id === id); return call ? { record: call } : null; }
+  // scheduled calls were removed; the kind stays readable for computers that still send it
+  if (kind === "call") return null;
   if (kind === "webhook") { const webhook = deps.webhooks()?.list().find((candidate) => candidate.id === id); return webhook ? { record: webhook } : null; }
   if (kind === "app-event") { const trigger = deps.appEvents()?.list().find((candidate) => candidate.id === id); return trigger ? { record: trigger } : null; }
   if (kind === "imported-skill") { const skill = importedSkills(deps).find((candidate) => candidate.name === id); return skill ? { record: skill } : null; }
@@ -332,12 +326,8 @@ async function adopt(deps: MoveKindsDeps, kind: Kind, id: string, raw: unknown, 
   if (kind === "bot") return applyBotFields(deps, id, raw);
   if (kind === "routine") return adoptRoutine(deps, raw, runs, from, owner);
   if (!same(raw) && kind !== "imported-skill" && kind !== "library-skill") refuse(400, "the record names another item");
-  if (kind === "call") {
-    const calls = deps.calls() ?? refuse(503, "My Cloud's calls are not ready yet.");
-    try { calls.adopt({ ...rebased(raw as unknown as CalendarCall, from, deps.dataDir), id }); }
-    catch (error) { refuse(409, (error as Error).message); }
-    return;
-  }
+  // a scheduled call from a computer that still has them: nothing here runs it, so it arrives as nothing
+  if (kind === "call") return;
   if (kind === "webhook") {
     const webhooks = deps.webhooks() ?? refuse(503, "My Cloud's webhooks are not ready yet.");
     webhooks.adopt({ ...rebased(raw as unknown as WebhookTrigger, from, deps.dataDir), id });

@@ -3,7 +3,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { itemKey } from "../electron/cloud-send-parts.mjs";
-import { CalendarCallManager } from "./calendar-calls.ts";
 import { importedSkillHash, kindRecord, moveItems, moveKindsRoute, type MoveKindsDeps } from "./cloud-send-kinds.ts";
 import { readImportedSkills } from "./imported-skills.ts";
 import type { Routine, RoutineRun } from "./routines.ts";
@@ -36,7 +35,7 @@ function deps(dataDir: string, over: Partial<MoveKindsDeps> = {}): MoveKindsDeps
     store: { bots: [...bots.values()] as never, bot: (id: string) => bots.get(id) as never, group: () => undefined,
       patchBot: (id: string, patch: object) => { patched.push([id, patch]); Object.assign(bots.get(id)!, patch); return bots.get(id) as never; },
       setChiefOfStaff: (id: string | null) => { chief.push(String(id)); return []; } } as never,
-    routines: () => null, calls: () => null, webhooks: () => null, appEvents: () => null, claudeCodeSkills: () => [],
+    routines: () => null, webhooks: () => null, appEvents: () => null, claudeCodeSkills: () => [],
     instanceExists: (id) => id === "claude", owner: () => OWNER, ownRoutine: (r, person) => owned.push([r.id, person]),
     ...over,
   };
@@ -152,14 +151,12 @@ describe("My Cloud takes a webhook and a call", () => {
     expect(there.currentSecret(arrived.id, false)!.secret).toBe(secret);
   });
 
-  it("a scheduled call starts unscheduled until it is switched on there", async () => {
+  it("a scheduled call from a computer that still has them is taken as nothing, so the move goes on", async () => {
     const dir = mkdtempSync(join(tmpdir(), "omb-kinds-"));
-    const calls = new CalendarCallManager({ file: join(dir, "calls.json"), botExists: (id) => id === "b1" });
     const call = { id: "c1", name: "Sync", description: "", botIds: ["b1"], schedule: { type: "daily" as const, time: "10:00", weekdays: [1] }, durationMinutes: 30,
       attachments: [], nextRunAt: 999, createdAt: 1, updatedAt: 2 };
-    expect((await take(deps(dir, { calls: () => calls }), itemKey.moved("call", "c1"), call)).status).toBe(200);
-    expect(calls.get("c1")).toMatchObject({ id: "c1", nextRunAt: null, createdAt: 1 });
-    expect((await take(deps(dir, { calls: () => calls }), itemKey.moved("call", "c1"), { ...call, botIds: ["gone"] })).status).toBe(409);
+    expect((await take(deps(dir), itemKey.moved("call", "c1"), call)).status).toBe(200);
+    expect(kindRecord(deps(dir), "call", "c1")).toBeNull();
   });
 });
 

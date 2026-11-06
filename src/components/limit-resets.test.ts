@@ -279,7 +279,7 @@ describe("the calendar", () => {
   const marker = { engine: "claude", name: "Claude", at: RESET };
   const grid = (onDropOnReset = vi.fn(), onCreate = vi.fn()) => mount(createElement(CalendarGrid, {
     anchor: new Date(2026, 9, 19).getTime(), days: 1, items: [], bots: [bot], groups: [], markers: [marker],
-    onOpen: vi.fn(), onCreate, onMove: vi.fn(), onResize: vi.fn(), onDropOnReset,
+    onOpen: vi.fn(), onCreate, onMove: vi.fn(), onDropOnReset,
   }));
   const drop = (target: Element, type: string, value: string) => {
     const transfer = { types: [type], getData: (asked: string) => asked === type ? value : "", dropEffect: "none" };

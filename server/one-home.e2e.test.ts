@@ -57,7 +57,7 @@ async function moveUntilDone(killed: { at: string | null }, rounds = 240): Promi
 }
 
 let scout: { id: string; threadId: string }, ember: { id: string; threadId: string };
-let morning = "", paused = "", startup = "", soon = "", soonAt = 0, callId = "", webhookId = "";
+let morning = "", paused = "", startup = "", soon = "", soonAt = 0, webhookId = "";
 let hook: { endpointId: string; secret: string };
 
 it("a new buyer: every phase, the app killed at each one, ends with home on My Cloud, everything checked there, and nothing run twice", async () => {
@@ -82,7 +82,7 @@ it("a new buyer: every phase, the app killed at each one, ends with home on My C
   const cloudScout = (await onCloud("POST", "/api/bots", { name: "Scout" })).body.bot as { id: string };
   const cloudy = (await onCloud("POST", "/api/bots", { name: "Cloudy" })).body.bot as { id: string };
 
-  // Automations: one on, one off, one that runs at every start, one due soon, a scheduled call and a webhook.
+  // Automations: one on, one off, one that runs at every start, one due soon and a webhook.
   const add = async (body: Record<string, unknown>) => { const made = (await local("POST", "/api/routines", body)).body; return (made.routine ?? made).id as string; };
   morning = await add({ name: "Morning report", prompt: "Report.", botId: scout.id, schedule: { type: "daily", time: "09:00", weekdays: [1, 2, 3, 4, 5] }, durationMinutes: 15 });
   paused = await add({ name: "Paused one", prompt: "Wait.", botId: scout.id, schedule: { type: "daily", time: "10:00", weekdays: [1] }, durationMinutes: 15 });
@@ -90,7 +90,6 @@ it("a new buyer: every phase, the app killed at each one, ends with home on My C
   startup = await add({ name: "At every start", prompt: "Say hello.", botId: scout.id, runOnStartup: true, schedule: { type: "interval", everyMinutes: 1_440, anchorAt: Date.now() + 86_400_000 }, durationMinutes: 15 });
   soonAt = Date.now() + 150_000;
   soon = await add({ name: "Soon", prompt: "Say the time.", botId: scout.id, schedule: { type: "interval", everyMinutes: 1_440, anchorAt: soonAt }, durationMinutes: 15 });
-  callId = (await local("POST", "/api/calendar-calls", { name: "Weekly sync", botIds: [scout.id], schedule: { type: "daily", time: "11:00", weekdays: [1] } })).body.call.id;
   const webhook = (await local("POST", "/api/webhooks", { name: "Orders", prompt: "File the order.", botId: scout.id })).body;
   webhookId = webhook.webhook.id;
   hook = { endpointId: webhook.webhook.endpointId, secret: webhook.credential.secret };
@@ -131,7 +130,6 @@ it("a new buyer: every phase, the app killed at each one, ends with home on My C
   const there = await routines(onCloud);
   const on = (id: string) => there.routines.find((routine) => routine.id === id);
   expect([on(morning)?.enabled, on(paused)?.enabled, on(startup)?.enabled, on(soon)?.enabled]).toEqual([true, false, true, true]);
-  expect(((await onCloud("GET", "/api/calendar-calls")).body.calls as Array<{ id: string; nextRunAt: number | null }>).find((call) => call.id === callId)?.nextRunAt).not.toBeNull();
   const hooksThere = (await onCloud("GET", "/api/webhooks")).body.webhooks as Array<{ id: string; enabled: boolean }>;
   expect(hooksThere.find((entry) => entry.id === webhookId)?.enabled).toBe(true);
   // Scout says once, in its own chat, that its webhook has a new address; the address itself stays on its card.

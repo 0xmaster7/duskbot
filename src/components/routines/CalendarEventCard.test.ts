@@ -18,12 +18,9 @@ const commitCheck: CalendarEventItem = {
     schedule: { type: "interval", everyMinutes: 360 }, durationMinutes: 30, nextRunAt: at, createdAt: 0, updatedAt: 0,
   },
 } as CalendarEventItem;
-const call = (minutes: number): CalendarEventItem => ({
-  kind: "call", id: `call-${minutes}`, at, durationMinutes: minutes,
-  call: { id: "c", name: "Weekly planning", description: "", botIds: [hazel.id], schedule: { type: "once" }, durationMinutes: minutes, attachments: [], nextRunAt: at, createdAt: 0, updatedAt: 0 },
-} as unknown as CalendarEventItem);
+const lasting = (minutes: number): CalendarEventItem => ({ ...commitCheck, id: `next-streak-${minutes}`, durationMinutes: minutes } as CalendarEventItem);
 const render = (item: CalendarEventItem) => renderToStaticMarkup(createElement(CalendarEventCard, {
-  item, bots: [hazel], groups: [], compact: true, layout: { column: 0, columns: 1 }, onOpen: () => {}, onResize: () => {},
+  item, bots: [hazel], groups: [], compact: true, layout: { column: 0, columns: 1 }, onOpen: () => {},
 }));
 const visibleText = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
@@ -45,12 +42,12 @@ describe("a calendar card's fit", () => {
     expect(/title="([^"]*)"/.exec(html)?.[1]).toMatch(/^Daily GitHub commit-streak check · 11:31.* · Hazel · Every 6 hr$/);
   });
 
-  it("keeps the second line for an hour-long call, and only the title for a 15-minute one", () => {
-    const hour = render(call(60));
+  it("keeps the second line for an hour-long automation, and only the title for a 15-minute one", () => {
+    const hour = render(lasting(60));
     expect(hour).toContain('data-event-fit="roomy"');
-    expect(visibleText(hour)).toMatch(/Weekly planning .* · 1 bot/);
-    const quarter = render(call(15));
+    expect(visibleText(hour)).toMatch(/Daily GitHub commit-streak check .* · Hazel · Every 6 hr/);
+    const quarter = render(lasting(15));
     expect(quarter).toContain('data-event-fit="tiny"');
-    expect(visibleText(quarter)).toBe("Weekly planning");
+    expect(visibleText(quarter)).toBe("Daily GitHub commit-streak check");
   });
 });

@@ -177,34 +177,6 @@ describe("setting up a voice from the call button", () => {
     expect(render().html).not.toContain("data-voice-setup-stub");
   });
 
-  it("does the same from a room's header button, member by member", () => {
-    const room: Props = {
-      targetId: "room-1",
-      targetName: "Standup",
-      voices: [undefined, undefined],
-      setupBotId: "pepper",
-      requireExplicitVoices: true,
-      onStart: () => fixture.track("group_call_started", { memberCount: 2 }),
-    };
-    fixture.config = { tts: { configured: true, ready: true } };
-    const opened = openVoiceSetup(room);
-    expect(String(find(opened, "data-call-button").props.className).split(" ")).toContain("size-9");
-    expect(fixture.dialog).toMatchObject({ bot: pepper, callName: "Standup", ready: false });
-
-    room.voices = ["voice-2", undefined];
-    room.setupBotId = "basil";
-    render(room);
-    expect(fixture.dialog).toMatchObject({ bot: basil, ready: false });
-
-    room.voices = ["voice-2", "voice-3"];
-    room.setupBotId = "pepper";
-    render(room);
-    expect(fixture.dialog).toMatchObject({ bot: basil, ready: true });
-    (fixture.dialog!.onStartCall as () => void)();
-    expect(fixture.track).toHaveBeenCalledWith("group_call_started", { memberCount: 2 });
-    expect(fixture.startCall).toHaveBeenCalledWith("room-1");
-  });
-
   it("opens the remote agent settings instead on a desktop paired to another computer", () => {
     vi.stubGlobal("window", { ogb: { speechStart: () => {}, remoteClient: { active: true } } });
     fixture.config = { tts: { configured: true, ready: false } };

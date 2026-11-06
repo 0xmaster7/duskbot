@@ -67,7 +67,6 @@ import { goalCoordinatorForComposer, jevRoomRoutingOn, openTaskWorking, roomRout
 import { composerPlaceholder, pendingQuestion, sendLabels, SIMPLE_COMPOSER, SIMPLE_CONTROL, slotColors } from "./composer-simple"; import { ComposerSendButton } from "./ComposerSendButton"; import { GrokIcon } from "./GrokIcon";
 import { PendingApprovalActions, PendingApprovalPanel, pendingApprovals } from "./PendingApproval";
 import { CallButton } from "./CallView";
-import { GroupCallButton } from "./GroupCallView";
 import { ApprovalChip, ComposerPlusMenu, GoalToggle, TeachTaskButton } from "./ComposerPlusMenu";
 import { PhonePlus } from "./PhonePlus";
 import { useThreadApproval } from "./thread-approval";
@@ -537,7 +536,7 @@ export function Composer({
   const hasContent = Boolean(effectiveText.trim()) || attachments.length > 0;
   const onCall = useOnCall();
   const media = useLiveMedia();
-  const callTarget = group?.id ?? bot?.id;
+  const callTarget = group ? undefined : bot?.id;
   const calling = callTarget !== undefined && (onCall === callTarget || (isLiveCallRunning(media.phase) && media.botId === callTarget));
   const stoppable = busy || Boolean(!group && bot?.waitingForTeammates);
   // Simple mode's round button is the call, Send while there is text, and Stop while the bot works.
@@ -557,7 +556,7 @@ export function Composer({
   const slotGlyph: SlotGlyph | null = !simpleDock || calling || locked ? null
     : hasContent ? (busy && !steersNow ? null : "arrow-up")
     : stopInSlot ? "stop"
-    : callShown && (group ? !advanced : Boolean(bot)) ? "waveform" : null;
+    : callShown && bot && !group ? "waveform" : null;
   const [glyphs, setGlyphs] = useState({ shape: glyphShape, swapped: false, glyph: slotGlyph, from: null as SlotGlyph | null, swaps: 0 });
   if (glyphs.shape !== glyphShape) setGlyphs({ shape: glyphShape, swapped: true, glyph: slotGlyph, from: glyphs.glyph, swaps: glyphs.swaps + 1 });
   const ghostGlyph = glyphs.swapped && glyphs.from && slotGlyph && glyphs.from !== slotGlyph ? glyphs.from : null;
@@ -979,7 +978,6 @@ export function Composer({
           </button>
         )}
         {callShown && bot && !group && <CallButton bot={bot} placement="composer" fill={advanced || singleRow ? undefined : slot.fill} ink={slot.ink} inverse={singleRow} />}
-        {callShown && group && !advanced && <GroupCallButton group={group} members={members ?? []} placement="composer" fill={slot.fill} ink={slot.ink} />}
         {hasContent && !locked && (
           <ComposerSendButton compact={simpleDock} waits={busy && !steersNow} label={sendNames.label} title={sendNames.title} look={slot.button}
             disabled={attachmentPending} onSend={(alternate) => send(followUpFor(alternate))} onChoose={send}

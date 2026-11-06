@@ -276,9 +276,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
     }
     dispatch({ type: "select", id: state.selectedId });
   }, [dispatch, state.selectedId, state.webPanelId]);
-  const openCalendarRoom = useCallback((id: string) => {
-    dispatch({ type: "select", id });
-  }, [dispatch]);
 
   const nativeViewOverlayOpen =
     drawerOpen ||
@@ -367,7 +364,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       ) : state.activeView === "web-panel" ? (
         <WebPanelPage />
       ) : state.activeView === "routines" ? (
-        <TriggersPage onBack={closeCalendar} onOpenRoom={openCalendarRoom} />
+        <TriggersPage onBack={closeCalendar} />
       ) : !remoteClient && localVmWorkspaceBotId ? (
         <LocalVmWorkspace
           primaryBotId={localVmWorkspaceBotId}

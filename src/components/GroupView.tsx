@@ -67,7 +67,6 @@ import { GoalRunCard } from "./GoalRunCard";
 import { AttachmentGallery, MessageAttachmentGallery, replyAttachmentGroup } from "./AttachmentGallery";
 import { VoiceNoteBubble, type VoiceNoteAttachment } from "./VoiceNoteBubble";
 import { OptionCard } from "./OptionCard";
-import { GroupCallOverlay } from "./GroupCallView";
 
 import { ApprovalCard, SettledChangeEvent, showsSettledChange } from "./ApprovalCard";
 import { isQuestionCard, QuestionCard } from "./QuestionCard";
@@ -1042,12 +1041,11 @@ export function GroupView({ group }: { group: Group }) {
 
   return (
     <main className="relative flex h-full min-w-0 flex-1 flex-col bg-app">
-      <GroupCallOverlay group={group} members={members} />
       {membersOpen && !remoteClient && !group.dm && (
         <ManageMembersPanel group={group} onClose={closeMembers} triggerRef={membersTriggerRef} />
       )}
       <GlassScrollFrame className="flex-1 [--glass-tint:var(--color-app)]">
-      {/* z-[25]: above the room set-up card (z-20), below the GroupCallOverlay (z-30). */}
+      {/* z-[25]: above the room set-up card (z-20). */}
       <GlassBar edge="top" fade={!advancedMode && !remoteClient} className="z-[25]">
       <RoomHeader
         group={group}

@@ -544,15 +544,6 @@ posixOnly("per-bot visibility on a shared workspace", () => {
     const added = await api("PATCH", `/api/groups/${ids.roomPub}`, { memberIds: [ids.pub, ids.board] }, BOSS);
     expect(added.status).toBe(400);
     expect(added.body.error).toMatch(/Bots in one room must be visible to the same people/);
-    const later = Date.now() + 86_400_000;
-    const call = await api("POST", "/api/calendar-calls", { name: "Comp committee", botIds: [ids.pub, ids.hr], schedule: { type: "once", at: later }, durationMinutes: 10 }, BOSS);
-    expect(call.status).toBe(400);
-    expect(call.body.error).toMatch(/Bots in one room must be visible to the same people/);
-    const solo = await api("POST", "/api/calendar-calls", { name: "Helpdesk standup", botIds: [ids.pub], schedule: { type: "once", at: later }, durationMinutes: 10 }, BOSS);
-    expect(solo.status, JSON.stringify(solo.body)).toBe(201);
-    const moved = await api("PATCH", `/api/calendar-calls/${solo.body.call.id}`, { botIds: [ids.pub, ids.hr] }, BOSS);
-    expect(moved.status).toBe(400);
-    await api("DELETE", `/api/calendar-calls/${solo.body.call.id}`, undefined, BOSS);
   }, 90_000);
 
   it("gives a bot a restricted Chief creates the Chief's own audience", async () => {

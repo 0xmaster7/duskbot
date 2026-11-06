@@ -723,7 +723,7 @@ function prepareRestore(dataDir: string, id: string, manifest: Manifest): string
     paths.definitions(value);
     if (Array.isArray(value)) for (const group of value) if (record(group) && typeof group.bulletin === "string") group.bulletin = paths.text(group.bulletin);
   });
-  for (const name of ["config.json", "routines.json", "calendar-calls.json"]) changeJson(name, (value) => paths.definitions(value));
+  for (const name of ["config.json", "routines.json"]) changeJson(name, (value) => paths.definitions(value));
   for (const entry of installed) {
     if (entry.type !== "file" || entry.size > MAX_METADATA_BYTES || !INSTRUCTION_FILE.test(entry.path)) continue;
     const before = readFileSync(join(prepared, entry.path), "utf8");
@@ -779,10 +779,6 @@ function prepareRestore(dataDir: string, id: string, manifest: Manifest): string
       webhook.secretHash = kept ? previous.secretHash : randomBytes(32).toString("hex");
       if (kept && typeof previous.sealedSecret === "string" && previous.sealedSecret) webhook.sealedSecret = previous.sealedSecret;
     }
-  });
-  changeJson("calendar-calls.json", (value) => {
-    if (!record(value)) throw new Error("Invalid calendar definitions in workspace backup.");
-    if (Array.isArray(value.calls)) for (const call of value.calls) if (record(call)) call.nextRunAt = null;
   });
   changeJson("app-triggers.json", (value) => {
     if (!record(value)) throw new Error("Invalid app automations in workspace backup.");

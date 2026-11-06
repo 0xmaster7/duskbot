@@ -1,11 +1,9 @@
-import { useEffect, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Video } from "lucide-react";
+
 
 import { BotAvatar } from "@/components/Avatar";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { MAUS_COLORS, type MausState } from "@/lib/mascot";
-import { CALENDAR_SLOT_MINUTES } from "@/lib/routine-calendar";
 import { partlyDone, routineHeldNote, routineRunLabel } from "@/lib/routine-display";
 import type { RoutineRunStatus } from "@/lib/routines";
 import { intervalLabel, niceTime } from "@/lib/schedule-label";
@@ -39,7 +37,6 @@ export function CalendarEventCard({
   layout,
   selected = false,
   onOpen,
-  onResize,
 }: {
   item: CalendarEventItem;
   bots: Bot[];
@@ -48,62 +45,31 @@ export function CalendarEventCard({
   layout: { column: number; columns: number };
   selected?: boolean;
   onOpen: () => void;
-  onResize: (minutes: number) => void;
 }) {
-  const isCall = item.kind === "call";
-  const routine = item.kind === "routine" ? item.routine : null;
-  const run = item.kind === "routine" ? item.run : null;
-  const isRoomGoal = !isCall && (run?.target ?? routine?.target) === "room-goal";
+  const routine = item.routine;
+  const run = item.run;
+  const isRoomGoal = (run?.target ?? routine?.target) === "room-goal";
   const roomId = isRoomGoal ? run?.groupId ?? routine?.groupId : undefined;
   const room = roomId ? groups.find((candidate) => candidate.id === roomId) ?? { name: t("routines.group") } : undefined;
-  const ownerIds = isCall ? item.call.botIds : [run?.botId ?? routine?.botId ?? ""];
+  const ownerIds = [run?.botId ?? routine?.botId ?? ""];
   const ownerBots = ownerIds.flatMap((id) => bots.find((bot) => bot.id === id) ?? []);
   const primary = ownerBots[0];
-  const name = isCall ? item.call.name : run?.routineName ?? routine?.name ?? "Automation";
-  const color = isCall ? "var(--color-accent)" : primary ? MAUS_COLORS[primary.color] : "var(--color-ink-tertiary)";
+  const name = run?.routineName ?? routine?.name ?? "Automation";
+  const color = primary ? MAUS_COLORS[primary.color] : "var(--color-ink-tertiary)";
   const paused = Boolean(routine && !run && !routine.enabled);
-  const [previewDuration, setPreviewDuration] = useState(item.durationMinutes);
-  useEffect(() => setPreviewDuration(item.durationMinutes), [item.durationMinutes]);
-  const status = run?.status, attention = status === "failed" || status === "missed" || status === "waiting" || (item.kind === "routine" && !run && item.needsYou === true);
+  const status = run?.status, attention = status === "failed" || status === "missed" || status === "waiting" || (!run && item.needsYou === true);
   const statusLabel = run ? routineRunLabel(run) : undefined;
-  const canMove = isCall || Boolean(routine && !run && !paused && routine.schedule.type !== "cron");
-  const schedule = isCall ? item.call.schedule : routine?.schedule;
-  const recurring = Boolean(schedule && schedule.type !== "once");
+  const canMove = Boolean(routine && !run && !paused && routine.schedule.type !== "cron");
+  const schedule = routine?.schedule;
   const intervalCadence = schedule?.type === "interval" ? intervalLabel(schedule.everyMinutes) : null;
-  const height = Math.max(16, (previewDuration / 60) * HOUR_HEIGHT);
+  const height = Math.max(16, (item.durationMinutes / 60) * HOUR_HEIGHT);
   const fit = cardLayout(height);
-  const who = isCall ? t(ownerBots.length === 1 ? "routines.botCountOne" : "routines.botCountMany", { count: ownerBots.length }) : room ? room.name : primary?.name;
+  const who = room ? room.name : primary?.name;
   const details = [name, niceTime(item.at), who, intervalCadence, paused ? (routine && routineHeldNote(routine)) ?? t("routines.pausedSchedule") : statusLabel].filter(Boolean).join(" · ");
   const cronHint = routine?.schedule.type === "cron" ? "Open this automation to change its repeating schedule and time zone." : "";
 
-  const beginResize = (event: ReactPointerEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const startY = event.clientY;
-    const startDuration = previewDuration;
-    let next = startDuration;
-    const move = (pointer: PointerEvent) => {
-      next = Math.max(CALENDAR_SLOT_MINUTES, Math.min(240, Math.round((startDuration + ((pointer.clientY - startY) / HOUR_HEIGHT) * 60) / CALENDAR_SLOT_MINUTES) * CALENDAR_SLOT_MINUTES));
-      setPreviewDuration(next);
-    };
-    const up = () => {
-      document.removeEventListener("pointermove", move);
-      document.removeEventListener("pointerup", up);
-      if (next === item.durationMinutes) return;
-      if (recurring && !window.confirm("Resize this entire recurring series?")) {
-        setPreviewDuration(item.durationMinutes);
-        return;
-      }
-      onResize(next);
-    };
-    document.addEventListener("pointermove", move);
-    document.addEventListener("pointerup", up, { once: true });
-  };
-
-  const dot = !isCall && <span data-event-status={paused ? "paused" : attention ? "needs-you" : "working"} className={cn("size-1.5 shrink-0 rounded-full", paused ? "bg-ink-tertiary" : attention ? "bg-warning" : "bg-success")} />;
-  const avatar = (size: number) => isCall
-    ? <Video size={13} className="mt-0.5 shrink-0" />
-    : primary ? <BotAvatar bot={primary} state={status ? statusState(status) : paused ? "sleeping" : "idle"} size={size} animated={status === "running" || status === "waiting"} /> : null;
+  const dot = <span data-event-status={paused ? "paused" : attention ? "needs-you" : "working"} className={cn("size-1.5 shrink-0 rounded-full", paused ? "bg-ink-tertiary" : attention ? "bg-warning" : "bg-success")} />;
+  const avatar = (size: number) => primary ? <BotAvatar bot={primary} state={status ? statusState(status) : paused ? "sleeping" : "idle"} size={size} animated={status === "running" || status === "waiting"} /> : null;
 
   return (
     <button
@@ -115,7 +81,7 @@ export function CalendarEventCard({
       onDragStart={(event) => {
         if (!canMove) return event.preventDefault();
         event.dataTransfer.effectAllowed = "move";
-        event.dataTransfer.setData(EVENT_DRAG_TYPE, JSON.stringify({ kind: item.kind, id: isCall ? item.call.id : routine!.id, at: item.at }));
+        event.dataTransfer.setData(EVENT_DRAG_TYPE, JSON.stringify({ kind: item.kind, id: routine!.id, at: item.at }));
       }}
       onClick={(event) => { event.stopPropagation(); onOpen(); }}
       aria-pressed={selected}
@@ -144,13 +110,12 @@ export function CalendarEventCard({
           {avatar(compact ? 18 : 22)}
           <div className="min-w-0 flex-1">
             <div className="truncate text-[11px] font-semibold leading-tight">{name}</div>
-            <div className="mt-0.5 flex min-w-0 items-center gap-1 text-[10px] opacity-80">{dot}<span className="truncate">{niceTime(item.at)} · {intervalCadence && !room && !isCall ? `${who ?? ""} · ${intervalCadence}` : who}</span></div>
+            <div className="mt-0.5 flex min-w-0 items-center gap-1 text-[10px] opacity-80">{dot}<span className="truncate">{niceTime(item.at)} · {intervalCadence && !room ? `${who ?? ""} · ${intervalCadence}` : who}</span></div>
           </div>
           {ownerBots.length > 1 && <span className="rounded bg-inset/60 px-1 py-0.5 text-[8px]">+{ownerBots.length - 1}</span>}
         </div>
       ) : fit === "compact" ? (
         <div className="flex h-full min-w-0 items-center gap-1">
-          {isCall && <Video size={11} className="shrink-0" />}
           <span className="min-w-0 flex-1 truncate text-[11px] font-semibold leading-none">{name}</span>
           {dot}
           <span className="shrink-0 text-[10px] leading-none tabular-nums opacity-80">{niceTime(item.at)}</span>
@@ -158,7 +123,6 @@ export function CalendarEventCard({
       ) : (
         <div className="flex h-full min-w-0 items-center truncate text-[10px] font-semibold leading-none">{name}</div>
       )}
-      {isCall && <div onPointerDown={beginResize} className="absolute inset-x-1 bottom-0 h-1.5 cursor-ns-resize rounded-full opacity-0 transition group-hover:opacity-100" aria-label="Resize event"><div className="mx-auto mt-0.5 h-0.5 w-5 rounded-full bg-current opacity-50" /></div>}
     </button>
   );
 }

@@ -239,7 +239,8 @@ describe("encrypted full workspace backups", () => {
       expect(readJson(join(target, "webhooks.json"))).toMatchObject({ webhooks: [{ enabled: false }], deliveries: [{ id: "delivery" }] });
       expect(readJson(join(target, "webhooks.json")).webhooks[0].secretHash).toMatch(/^[a-f0-9]{64}$/);
       expect(readJson(join(target, "webhooks.json")).webhooks[0].secretHash).not.toBe("a".repeat(64));
-      expect(readJson(join(target, "calendar-calls.json")).calls[0].nextRunAt).toBeNull();
+      // scheduled calls were removed: an old backup's file restores untouched and nothing reads it
+      expect(readJson(join(target, "calendar-calls.json")).calls[0].nextRunAt).toBe(100);
       expect(readJson(join(target, "app-triggers.json")).triggers).toEqual([{ id: "trigger", botId: "bot", enabled: false }]);
       expect(readJson(join(target, "delegations.json"))).toEqual({});
       expect(existsSync(join(target, "runtime.db-wal"))).toBe(false);

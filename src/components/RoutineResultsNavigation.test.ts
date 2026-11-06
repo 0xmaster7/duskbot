@@ -80,7 +80,7 @@ function details(receipt: RoutineRun | null = run, definition: Routine | null = 
   const onClose = vi.fn();
   const buttons = buttonsFrom(() => EventDetails({
     item: { kind: "routine", id: receipt?.id ?? definition!.id, at: 100, durationMinutes: 30, routine: definition, run: receipt },
-    bots: fixture.state!.bots, onClose, onEdit: vi.fn(), onCallChanged: vi.fn(), onOpenRoom: vi.fn(),
+    bots: fixture.state!.bots, onClose, onEdit: vi.fn(), onOpenRoom: vi.fn(),
   }));
   return { buttons, onClose };
 }

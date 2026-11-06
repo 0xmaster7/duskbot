@@ -93,9 +93,9 @@ bot stays, the completed cleanup is not rolled back, and a retry safely
 rediscovers and removes what remains. The deletion write-failure fixture has no
 owned external computer: it obstructs the exact temporary `bots.json`
 destination, exercises the real DELETE lifecycle, and checks that the complete
-bot, conversations, routines, webhooks and solo/shared calendar calls are
+bot, conversations, routines and webhooks are
 unchanged in memory and on disk. It restores that fixture file and retries
-successfully; unrelated call guests remain. No production fault hook is used.
+successfully; an unrelated bot remains. No production fault hook is used.
 Later cleanup failure is reported distinctly from a failed/unapplied setup.
 
 ## Recorded app and real-model checks — 2026-09-13

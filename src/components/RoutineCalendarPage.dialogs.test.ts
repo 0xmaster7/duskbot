@@ -80,7 +80,7 @@ describe.each([
 describe("calendar event details drawer", () => {
   const drawer = (onClose: () => void) => EventDetails({
     item: { kind: "routine", id: routine.id, at: 1, durationMinutes: 30, routine, run: null },
-    bots: [bot], onClose, onEdit: vi.fn(), onCallChanged: vi.fn(), onOpenRoom: vi.fn(),
+    bots: [bot], onClose, onEdit: vi.fn(), onOpenRoom: vi.fn(),
   });
 
   it("is a labelled drawer beside the calendar, not a focus-trapping modal", () => {
@@ -94,7 +94,7 @@ describe("calendar event details drawer", () => {
     const ownGoal: Routine = { ...routine, target: "room-goal" };
     const html = renderToStaticMarkup(createElement(() => EventDetails({
       item: { kind: "routine", id: ownGoal.id, at: 1, durationMinutes: 30, routine: ownGoal, run: null },
-      bots: [bot], onClose: vi.fn(), onEdit: vi.fn(), onCallChanged: vi.fn(), onOpenRoom: vi.fn(),
+      bots: [bot], onClose: vi.fn(), onEdit: vi.fn(), onOpenRoom: vi.fn(),
     })));
     expect(html).toContain(t("routines.drawer.lead"));
     expect(html).toContain("Runner");
@@ -108,7 +108,7 @@ describe("calendar event details drawer", () => {
     const run: RoutineRun = { id: "run", routineId: roomGoal.id, routineName: roomGoal.name, target: "room-goal", botId: bot.id, runOn: "maus", scheduledFor: 1, status: "running", manual: false, createdAt: 1 };
     const html = renderToStaticMarkup(createElement(() => EventDetails({
       item: { kind: "routine", id: roomGoal.id, at: 1, durationMinutes: 30, routine: roomGoal, run },
-      bots: [bot], onClose: vi.fn(), onEdit: vi.fn(), onCallChanged: vi.fn(), onOpenRoom: vi.fn(),
+      bots: [bot], onClose: vi.fn(), onEdit: vi.fn(), onOpenRoom: vi.fn(),
     })));
     expect(html).toContain("Runner");
     expect(html).not.toContain("Group unavailable");
@@ -128,7 +128,7 @@ describe("calendar event editor", () => {
     const orphaned: Routine = { ...routine, target: "room-goal", groupId: "gone" };
     const html = renderToStaticMarkup(createElement(() => EventEditor({
       seed: { kind: "routine", at: 1, durationMinutes: 30, botIds: [bot.id], routine: orphaned },
-      bots: [bot], onClose: vi.fn(), onSavedCall: vi.fn(),
+      bots: [bot], onClose: vi.fn(),
     })));
     expect(html).toContain("Room no longer exists");
     expect(html).toMatch(/<button[^>]*\bdisabled=""[^>]*>(?:(?!<\/button>).)*Save<\/button>/s);

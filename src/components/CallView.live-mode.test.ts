@@ -48,14 +48,6 @@ describe("call modes", () => {
     expect(live).not.toContain("bg-warning");
   });
 
-  it("keeps group calls on the take-turns path", () => {
-    setCallMode("live");
-    const group = render(createElement(CallTargetButton, {
-      targetId: "room", targetName: "Room", voices: [undefined], requireExplicitVoices: true, onStart: vi.fn(),
-    }));
-    expect(group).toContain('aria-label="Checking call availability"');
-  });
-
   it("puts a call mode chevron next to a one-to-one call button, not a room's", () => {
     const one = render(createElement(CallButton, { bot }));
     expect(one).toContain('aria-label="Call mode"');

@@ -186,11 +186,11 @@ describe("the Automations list switch", () => {
   let container: HTMLElement;
   /** The page, re-rendered from the store each time it changes, as the app's provider would. */
   function mountPage() {
-    container = mount(createElement(TriggersPage, { onBack: vi.fn(), onOpenRoom: vi.fn() }));
+    container = mount(createElement(TriggersPage, { onBack: vi.fn() }));
     fixture.dispatch.mockImplementation((action: { type: string; routine?: { id: string }; webhook?: { id: string } }) => {
       if (action.type === "routinePatched") fixture.state.routines = (fixture.state.routines as Array<{ id: string }>).map((item) => item.id === action.routine!.id ? action.routine : item);
       if (action.type === "webhookPatched") fixture.state.webhooks = (fixture.state.webhooks as Array<{ id: string }>).map((item) => item.id === action.webhook!.id ? action.webhook : item);
-      flushSync(() => root!.render(createElement(TriggersPage, { onBack: vi.fn(), onOpenRoom: vi.fn() })));
+      flushSync(() => root!.render(createElement(TriggersPage, { onBack: vi.fn() })));
     });
   }
   const toggle = (name: string) => container.querySelector<HTMLButtonElement>(`[role=switch][aria-label="Turn “${name}” on or off"]`)!;
@@ -293,7 +293,7 @@ describe("the calendar", () => {
     const failedAt = at - 8 * 86_400_000;
     fixture.state.routineRuns = [{ id: "run-1", routineId: "failing", botId: "bot-a", status: "failed", error: "Claude is signed out", scheduledFor: failedAt, startedAt: failedAt, createdAt: failedAt }];
     fixture.state.groups = [];
-    const container = mount(createElement(AutomationsCalendar, { botFilter: "all", onOpenAutomation: vi.fn(), onOpenRoom: vi.fn() }));
+    const container = mount(createElement(AutomationsCalendar, { botFilter: "all", onOpenAutomation: vi.fn() }));
     const dots = (name: string) => [...container.querySelectorAll(`[data-event-card][aria-label^="${name}"] [data-event-status]`)].map((dot) => (dot as HTMLElement).dataset.eventStatus);
     expect(dots("Sales inbox check")).toContain("needs-you");
     expect(dots("Morning summary").length).toBeGreaterThan(0);

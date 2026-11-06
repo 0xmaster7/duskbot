@@ -8,7 +8,7 @@ Check that the next three dates are all on the 1st, then save, reload and edit
 the title without changing its expression or zone. Switch to Custom cron and
 try `0 9 31 2 *`: the inline error must disable Save and leave the stored rule
 untouched. Check `0 9 L * *` and `0 9 * * MON#2` for real month-end/nth-weekday
-previews. Calendar calls deliberately retain their existing scheduling choices.
+previews.
 
 The automated cron tool fixture calls the real MCP proxy through a disposable
 server, confirms the resulting card, and verifies list/update/pause/resume,

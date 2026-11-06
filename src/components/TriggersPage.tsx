@@ -27,7 +27,7 @@ import { WebhookEditor } from "./WebhookTrigger";
 const FILTER_FROM = 9;
 
 /** Automations: every schedule and every "when another app sends something", each as one plain sentence. */
-export function TriggersPage({ onBack, onOpenRoom }: { onBack: () => void; onOpenRoom: (id: string) => void }) {
+export function TriggersPage({ onBack }: { onBack: () => void }) {
   const { state, dispatch } = useStore();
   const { capabilities } = useDesktopCapabilities();
   const actions = useAllAutomationActions();
@@ -96,7 +96,7 @@ export function TriggersPage({ onBack, onOpenRoom }: { onBack: () => void; onOpe
       </header>
 
       <div className="relative flex min-h-0 flex-1">
-        {view === "calendar" ? <AutomationsCalendar botFilter={botFilter} selectedAutomationId={openId} onOpenAutomation={setOpenId} onOpenRoom={onOpenRoom} /> : (
+        {view === "calendar" ? <AutomationsCalendar botFilter={botFilter} selectedAutomationId={openId} onOpenAutomation={setOpenId} /> : (
           <div className="min-h-0 flex-1 overflow-y-auto">
             <div className="mx-auto w-full max-w-3xl p-4 sm:p-6">
               <LimitWarnings botFilter={showFilter ? botFilter : "all"} />

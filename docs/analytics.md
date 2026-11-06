@@ -132,7 +132,6 @@ use their own Boat key, and how many bots run on cloud computers, without sendin
 | `onboarding_cloud` | You tap Try Cloud under MausBot's first messages, which opens Add a Cloud | `action`: `start_trial` |
 | `message_sent` | You send a message | To a bot: `driver`: engine; `queued`: true/false. To a room: `room`: true; `mode`: `chat`, `goal`; `queued`: true/false |
 | `call_started` | You start a call with a bot | `driver`: engine; `mode`: `turns`, `live` |
-| `group_call_started` | You start a call with a room | `memberCount`: count |
 | `room_created` | You create a room | `members`: count; `context`: true/false (it was put in a team) |
 | `room_members_changed` | You change who is in a room | `members`, `added`, `removed`: counts |
 | `team_imported` | You import a team | `members`: count; `source`: `library`, `file`, `github`, `organization`, `scout`; `mode`: `add`, `project`; `format`: `team`, `package`, `backup` |
