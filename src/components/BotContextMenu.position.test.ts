@@ -115,7 +115,7 @@ describe("bot actions menu viewport placement", () => {
     fixture.advanced = true;
     const html = render();
     for (const key of ["task.newShort", "folder.new", "task.deleteAll"] as const) expect(html, key).not.toContain(t(key));
-    for (const key of ["sidebar.bot.pin", "sidebar.bot.makeChief", "sidebar.bot.moveToSection", "sidebar.bot.markUnread", "sidebar.bot.editProfile", "sidebar.bot.duplicate", "sidebar.copyConversationId", "sidebar.bot.archive", "common.delete"] as const) {
+    for (const key of ["sidebar.bot.pin", "sidebar.bot.makeChief", "sidebar.grok.moveTo", "sidebar.bot.markUnread", "sidebar.bot.editProfile", "sidebar.bot.duplicate", "sidebar.copyConversationId", "sidebar.bot.archive", "common.delete"] as const) {
       expect(html, key).toContain(t(key));
     }
     expect(html).not.toContain(t("sidebar.bot.more"));

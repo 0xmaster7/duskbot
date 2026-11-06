@@ -7,14 +7,13 @@ import { orgCardAction, orgPackagePreview, type OrgLibraryListing, type OrgLibra
 import type { PackageDocument } from "../../shared/package-format";
 import type { Routine } from "@/lib/routines";
 import { api, useStore, type Bot, type Group } from "@/state/store";
-import { ArrowLeft, Check, Compass, ExternalLink, FolderOpen, Github, Loader2, Search, Share2, UploadCloud, Users, X } from "lucide-react";
+import { ArrowLeft, Check, Compass, ExternalLink, FolderOpen, Github, Loader2, Search, UploadCloud, Users, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { catalogCopy, catalogMatches, type TeamCatalog, type TeamCatalogEntry } from "@/lib/team-catalog";
 
 import { TEAM_GLYPHS, TeamImportDetails } from "./TeamImportDetails";
 import { ReadyBotGallery } from "./ReadyBotGallery";
-import { ShareTeamDialog } from "./ShareTeamDialog";
 import { OrgLibraryTab } from "./TeamLibraryPanelOrg";
 import { MAX_TEAM_BACKUP_BYTES } from "../../shared/team-backup";
 import { takeImportName } from "../../shared/import-name";
@@ -30,7 +29,7 @@ export interface TeamImportResult {
 }
 
 type ImportSource = "library" | "file" | "github";
-type TeamTab = "org" | "explore" | "import" | "scout" | "share";
+type TeamTab = "org" | "explore" | "import" | "scout";
 
 interface ScoutResult {
   profile: { name: string; summary: string; stacks: string[] };
@@ -62,18 +61,6 @@ async function openExternal(url: string): Promise<void> {
   }
   const opened = window.open(url, "_blank", "noopener,noreferrer");
   if (opened) opened.opener = null;
-}
-
-export function shareableTeamList(sections: readonly string[], bots: ReadonlyArray<Pick<Bot, "section" | "hidden">>): Array<{ name: string; bots: number }> {
-  const counts = new Map<string, number>();
-  for (const bot of bots) {
-    if (bot.hidden) continue;
-    const team = bot.section?.trim() ?? "";
-    counts.set(team, (counts.get(team) ?? 0) + 1);
-  }
-  const order = [...new Set([...sections.map((section) => section.trim()).filter(Boolean), ...counts.keys()])]
-    .filter((name) => name !== "");
-  return [...order, ""].flatMap((name) => (counts.get(name) ? [{ name, bots: counts.get(name)! }] : []));
 }
 
 function TeamGlyph({ index }: { index: number }) {
@@ -120,7 +107,6 @@ export function TeamLibraryPanel({
   const [pickedDirectory, setPickedDirectory] = useState<Set<string>>(new Set());
   const [roomName, setRoomName] = useState("");
   const [creating, setCreating] = useState(false);
-  const [sharing, setSharing] = useState<string | null>(null);
   const [nestedDialog, setNestedDialog] = useState(false);
   const [orgListing, setOrgListing] = useState<OrgLibraryListing | null>(null);
   const [orgBusy, setOrgBusy] = useState<string | null>(null);
@@ -132,7 +118,6 @@ export function TeamLibraryPanel({
   const scoutRequest = useRef(0);
 
   const currentBotCount = state.bots.filter((bot) => !bot.hidden).length;
-  const shareableTeams = shareableTeamList(state.sections ?? [], state.bots);
   const takenNames = new Set(state.bots.map((bot) => bot.name.trim().toLowerCase()));
   const importedNames = pending?.members.map((member) => takeImportName(member.name, takenNames)) ?? [];
 
@@ -175,7 +160,7 @@ export function TeamLibraryPanel({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (sharing !== null || nestedDialog) return;
+      if (nestedDialog) return;
       if (event.key === "Escape" && !importing) {
         event.preventDefault();
         event.stopPropagation();
@@ -205,7 +190,7 @@ export function TeamLibraryPanel({
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [importing, onClose, pending, sharing, nestedDialog]);
+  }, [importing, onClose, pending, nestedDialog]);
 
   const previewManifest = (preview: PendingTeamImport, nextSource: ImportSource) => {
     setPending(preview);
@@ -618,21 +603,6 @@ export function TeamLibraryPanel({
                 >
                   {t("templates.fromFolder")}
                 </button>
-                <button
-                  role="tab"
-                  aria-selected={tab === "share"}
-                  onClick={() => {
-                    tabChosen.current = true;
-                    setTab("share");
-                    setError("");
-                  }}
-                  className={cn(
-                    "rounded-full px-2.5 py-1 text-[13px] leading-[18px] tracking-[0.015em] transition-[background-color,color] duration-[120ms] ease-[ease]",
-                      tab === "share" ? "bg-ink/6 text-ink" : "text-ink/68 hover:bg-ink/6 hover:text-ink",
-                  )}
-                >
-                  {t("teamLibrary.shareTab")}
-                </button>
               </div>
               {tab === "explore" && (
                 <label className="flex h-8 w-full items-center gap-1.5 rounded-full border border-ink/10 bg-transparent px-[11px]  sm:w-[280px]">
@@ -782,35 +752,6 @@ export function TeamLibraryPanel({
                 </div>
               )}
 
-              {tab === "share" && (
-                <div>
-                  <p className="max-w-2xl text-[13px] leading-relaxed text-ink-secondary">{t("teamLibrary.shareIntro")}</p>
-                  {shareableTeams.length === 0 ? (
-                    <p className="mt-6 text-[13px] text-ink-secondary">{t("teamLibrary.shareEmpty")}</p>
-                  ) : (
-                    <div className="mt-4 grid grid-cols-1 gap-x-10 md:grid-cols-2">
-                      {shareableTeams.map((team, index) => (
-                        <article key={team.name || "general"} className="flex min-h-[84px] items-center gap-3 border-b border-hairline/35 px-1 py-4">
-                          <TeamGlyph index={index} />
-                          <div className="min-w-0 flex-1">
-                            <h3 className="truncate text-[14px] font-medium text-ink">{team.name || t("teamLibrary.general")}</h3>
-                            <p className="mt-0.5 text-[13px] text-ink-secondary">{t("teamLibrary.shareBots", { count: team.bots })}</p>
-                          </div>
-                          <button
-                            onClick={() => setSharing(team.name)}
-                            aria-label={t("teamLibrary.shareTeamAria", { name: team.name || t("teamLibrary.general") })}
-                            className="flex items-center gap-1.5 rounded-full bg-raised px-3.5 py-2 text-[13px] text-ink hover:bg-raised-hover"
-                          >
-                            <Share2 size={13} />
-                            {t("teamLibrary.shareTeam")}
-                          </button>
-                        </article>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
               {tab === "scout" && (
                 <div>
                   <div className="mb-3 text-[12px] font-medium text-ink-secondary">{t("templates.startFolder")}</div>
@@ -955,7 +896,6 @@ export function TeamLibraryPanel({
           </>
         )}
       </div>
-      {sharing !== null && <ShareTeamDialog team={sharing} onClose={() => setSharing(null)} />}
     </div>,
     document.body,
   );

@@ -77,7 +77,7 @@ function press(target: unknown) {
 }
 
 const menus = [
-  { name: "New or share", label: "New or share", item: "Create department" },
+  { name: "New or share", label: "New or share", item: "Templates" },
 ];
 const text = (tree: ReactElement<Props>[]) => tree.map((node) => Children.toArray(node.props.children).filter((child) => typeof child === "string").join(" ")).join(" ");
 

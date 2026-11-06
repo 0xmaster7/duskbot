@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { Bug, Users } from "lucide-react";
+import { Bug } from "lucide-react";
 import type { Bot } from "@/state/store";
 import type { TeamPerson } from "@/state/team-people";
 import { cn } from "@/lib/cn";
@@ -13,8 +13,8 @@ import { PersonFace } from "./TeamOwner";
 import { DEVS_TAG } from "../../shared/devs-mention";
 import "@/styles/composer.css";
 
-/** One row of the @ list: a bot, a teammate on a Team Cloud, a whole team, everyone, or the MausBot team (@devs). */
-export type MentionChoice = { id: string; name: string; bot?: Bot; person?: TeamPerson; team?: { count: number }; all?: { count: number }; devs?: true };
+/** One row of the @ list: a bot, a teammate on a Team Cloud, everyone, or the MausBot team (@devs). */
+export type MentionChoice = { id: string; name: string; bot?: Bot; person?: TeamPerson; all?: { count: number }; devs?: true };
 
 /** The last row of every @ list: a message that tags it is a bug report the app sends to the MausBot team. */
 export const DEVS_CHOICE: MentionChoice = { id: "__devs__", name: DEVS_TAG, devs: true };
@@ -51,8 +51,7 @@ export function MentionMenu({ listRef, motion, choices, highlight, everyoneCount
     >
       {choices.map((choice, i) => {
         const description = choice.person ? "" : choice.devs ? t("composer.mention.devsDesc") : mentionRowDescription(choice.bot ? { kind: "bot", title: choice.bot.title.trim() || (choice.bot.chiefOfStaff ? t("chat.chiefOfStaff") : "") }
-          : choice.team ? { kind: "team", count: choice.team.count }
-            : choice.all ? { kind: "all", count: choice.all.count } : { kind: "everyone", count: everyoneCount });
+          : choice.all ? { kind: "all", count: choice.all.count } : { kind: "everyone", count: everyoneCount });
         return (
           <ComposerMenuRow
             key={choice.id}
@@ -72,12 +71,12 @@ export function MentionMenu({ listRef, motion, choices, highlight, everyoneCount
               />
             ) : choice.person ? <PersonFace person={choice.person} size={16} /> : (
               <span className={MENU_GLYPH}>
-                {choice.devs ? <Bug size={10} strokeWidth={2.25} aria-hidden="true" /> : choice.team ? <Users size={10} strokeWidth={2.25} aria-hidden="true" /> : "@"}
+                {choice.devs ? <Bug size={10} strokeWidth={2.25} aria-hidden="true" /> : "@"}
               </span>
             )}
             name={choice.name}
             description={description || undefined}
-            kind={choice.bot ? t("composer.mention.agent") : choice.person ? t("composer.mention.person") : choice.devs ? t("composer.mention.devs") : choice.team ? t("composer.mention.team") : t("composer.mention.channel")}
+            kind={choice.bot ? t("composer.mention.agent") : choice.person ? t("composer.mention.person") : choice.devs ? t("composer.mention.devs") : t("composer.mention.channel")}
           />
         );
       })}

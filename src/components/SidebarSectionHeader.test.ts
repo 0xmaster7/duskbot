@@ -26,13 +26,12 @@ describe("SidebarSectionHeader", () => {
     expect(html).not.toContain("uppercase");
   });
 
-  it.each([false, true])("keeps delete separate from collapse and the context menu, collapsed=%s", (collapsed) => {
+  it.each([false, true])("keeps collapse and the context menu, with no trash button, collapsed=%s", (collapsed) => {
     const onContextMenu = () => {};
     const element = SidebarSectionHeader({
       name: "Work",
       collapsed,
       onToggle: () => {},
-      onDelete: () => {},
       onContextMenu,
       reorderable: true,
       dragging: false,
@@ -41,10 +40,9 @@ describe("SidebarSectionHeader", () => {
 
     expect(element.props.onContextMenu).toBe(onContextMenu);
     expect(html).toContain('tabindex="-1"');
-    expect(html).toContain('aria-label="Delete Work department"');
+    expect(html).not.toContain("Delete");
     expect(html).toContain(`aria-expanded="${!collapsed}"`);
-    expect(html.match(/<button\b/g)).toHaveLength(2);
-    expect(html.indexOf("</button>")).toBeLessThan(html.indexOf('aria-label="Delete Work department"'));
+    expect(html.match(/<button\b/g)).toHaveLength(1);
   });
 
   it("renders collapsed attention signals in the heading", () => {
@@ -97,27 +95,27 @@ describe("SidebarSectionHeader as a Simple-mode line", () => {
     name: "Work", collapsed: false, onToggle: () => {}, reorderable: true, dragging: false, line: true, ...props,
   }) as ReactElement<Props>;
 
-  it("draws a quiet 12px name with no hairline, and a ⋯ team menu button out of the line's flow for the keyboard, with no trash or grip", () => {
+  it("draws a quiet 12px name with no hairline, and a ⋯ section menu button out of the line's flow for the keyboard, with no trash or grip", () => {
     const onMenu = vi.fn();
-    const element = line({ onMenu, onDelete: () => {} });
+    const element = line({ onMenu });
     const html = renderToStaticMarkup(element);
     expect(html).toContain('data-sidebar-section-line=""');
     expect(html).toMatch(/text-\[12px\][^"]*text-ink-secondary/);
     expect(html).not.toContain("bg-hairline");
-    expect(html).toContain('aria-label="Actions for Work department" title="Actions for Work department" aria-haspopup="menu" aria-expanded="false"');
-    expect(html).toMatch(/aria-label="Actions for Work department"[^>]*class="absolute [^"]*\bpointer-events-none\b[^"]*\bopacity-0\b[^"]*\bgroup-has-\[:focus-visible\]\/section:opacity-100\b[^"]*\btouch:opacity-100\b/);
-    expect(html).not.toMatch(/aria-label="Actions for Work department"[^>]*class="[^"]*\bgroup-hover\//);
+    expect(html).toContain('aria-label="Actions for Work" title="Actions for Work" aria-haspopup="menu" aria-expanded="false"');
+    expect(html).toMatch(/aria-label="Actions for Work"[^>]*class="absolute [^"]*\bpointer-events-none\b[^"]*\bopacity-0\b[^"]*\bgroup-has-\[:focus-visible\]\/section:opacity-100\b[^"]*\btouch:opacity-100\b/);
+    expect(html).not.toMatch(/aria-label="Actions for Work"[^>]*class="[^"]*\bgroup-hover\//);
     expect(html).not.toContain("Delete Work department");
     expect(html).not.toContain("lucide-grip-vertical");
     expect(html).not.toContain("lucide-trash");
     expect(html).toMatch(/<span class="absolute flex h-4 w-3 items-center justify-center text-ink-secondary opacity-0 transition-opacity duration-\[120ms\] ease-out group-hover\/section:opacity-100 group-focus-within\/section:opacity-100 touch:opacity-100 -right-px rotate-90"><i class="grok-icon" data-icon-name="chevron-right"/);
-    expect(html.indexOf(">Work</span>")).toBeLessThan(html.indexOf("Actions for Work department"));
+    expect(html.indexOf(">Work</span>")).toBeLessThan(html.indexOf("Actions for Work"));
     const button = { id: "dots" };
-    const dots = nodes(element.props.children).find((node) => node.props["aria-label"] === "Actions for Work department")!;
+    const dots = nodes(element.props.children).find((node) => node.props["aria-label"] === "Actions for Work")!;
     (dots.props.onClick as (event: { currentTarget: unknown }) => void)({ currentTarget: button });
     expect(onMenu).toHaveBeenCalledExactlyOnceWith(button);
     expect(renderToStaticMarkup(line({ onMenu, menuOpen: true }))).toContain('aria-haspopup="menu" aria-expanded="true"');
-    expect(renderToStaticMarkup(line())).not.toContain("Actions for Work department");
+    expect(renderToStaticMarkup(line())).not.toContain("Actions for Work");
   });
 
   it("shows how many rows a collapsed section holds, crossfading to the chevron on hover or focus, and no count while open", () => {

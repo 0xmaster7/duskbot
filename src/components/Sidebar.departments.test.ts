@@ -46,11 +46,10 @@ vi.mock("@/state/store", async (importOriginal) => {
 import { initialState } from "@/state/store";
 import { BOTS_SECTION_ID, CHANNELS_SECTION_ID, userSectionId } from "@/lib/sidebar-layout";
 import { PHONE_LAYOUT } from "@/lib/use-media-query";
-import { BotContextMenu, BotListItem, Sidebar, TeamMenuItems } from "./Sidebar";
+import { BotContextMenu, BotListItem, Sidebar } from "./Sidebar";
 import { NEW_DEPARTMENT } from "./SidebarBotDrag";
 import { SidebarSectionHeader } from "./SidebarSectionHeader";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { TeamDialog } from "./TeamDialog";
 
 const bot = (id: string, extra: Partial<Bot> = {}): Bot => ({
   id, threadId: `${id}-thread`, name: id, title: "", description: "", notifications: true,
@@ -200,7 +199,7 @@ describe("dragging a bot in Advanced's list", () => {
     expect(rows().every((props) => !props.botDrop && !props.botDragging)).toBe(true);
   });
 
-  it("onto the middle of a bot puts both in a new department, named in place, and Enter keeps the name", () => {
+  it("onto the middle of a bot puts both in a new section, named in place, and Enter keeps the name", () => {
     drag("cleo");
     row("atlas").botDrag!.row("atlas").onDragOver(at() as never);
     expect(row("atlas").botDrop).toBe("group");
@@ -208,22 +207,22 @@ describe("dragging a bot in Advanced's list", () => {
     expect(actions()).toEqual([]);
     expect(sections()).toEqual([CHANNELS_SECTION_ID, BOTS_SECTION_ID, userSectionId("Work"), userSectionId(NEW_DEPARTMENT)]);
     const naming = header(NEW_DEPARTMENT).naming!;
-    expect(naming.value).toBe("New department");
-    expect(naming.label).toBe("New department name");
+    expect(naming.value).toBe("New section");
+    expect(naming.label).toBe("New section");
     expect(listed()).toEqual(["bea", "dodo", "echo", "atlas", "cleo"]);
     naming.onCommit("  ");
     expect(actions()).toEqual([
-      { type: "updateBot", botId: "atlas", patch: { section: "New department" } },
-      { type: "updateBot", botId: "cleo", patch: { section: "New department" } },
+      { type: "updateBot", botId: "atlas", patch: { section: "New section" } },
+      { type: "updateBot", botId: "cleo", patch: { section: "New section" } },
     ]);
     expect(sections()).not.toContain(userSectionId(NEW_DEPARTMENT));
   });
 
-  it("gives a new department the first free name, and Escape puts the bots back", () => {
-    fixture.state = { ...fixture.state, sections: ["Work", "New department"] };
+  it("gives a new section the first free name, and Escape puts the bots back", () => {
+    fixture.state = { ...fixture.state, sections: ["Work", "New section"] };
     drag("cleo");
     row("bea").botDrag!.row("bea").onDrop(at() as never);
-    expect(header(NEW_DEPARTMENT).naming!.value).toBe("New department 2");
+    expect(header(NEW_DEPARTMENT).naming!.value).toBe("New section 2");
     drag("atlas");
     const over = at();
     section(userSectionId(NEW_DEPARTMENT)).onDragOver(over as never);
@@ -385,7 +384,7 @@ describe("who may drag a bot: whoever the bot menu offers Move to department", (
   });
 });
 
-describe("a department's menu in Simple", () => {
+describe("a section's menu", () => {
   const words = (node: ReactElement<Props>): string => Children.toArray(node.props.children).map((part) => typeof part === "string" ? part : isValidElement<Props>(part) ? words(part) : "").join("");
   const openMenu = (name: string) => {
     const button = { getBoundingClientRect: () => ({ left: 20, right: 280, bottom: 300 }), focus: vi.fn(), isConnected: true } as unknown as HTMLButtonElement;
@@ -403,7 +402,6 @@ describe("a department's menu in Simple", () => {
 
   it("renames it in place", async () => {
     openMenu("Work")["Rename"]!.onClick();
-    expect(render().some((node) => node.type === TeamDialog)).toBe(false);
     const naming = header("Work").naming!;
     expect([naming.value, naming.label]).toEqual(["Work", "Rename section"]);
     naming.onCommit("Clients");
@@ -417,14 +415,11 @@ describe("a department's menu in Simple", () => {
     expect([dialog.props.title, dialog.props.body, dialog.props.confirmLabel]).toEqual(["Delete \u201cWork\u201d", "Its Bots move to Unassigned. No Bots are deleted.", "Delete"]);
   });
 
-  it("keeps Advanced's rename dialog", () => {
+  it("is the same menu in Advanced, from a right-click on its name", () => {
     fixture.advanced = true;
     const button = { getBoundingClientRect: () => ({ right: 280, bottom: 300 }), focus: vi.fn(), isConnected: true } as unknown as HTMLButtonElement;
-    const work = render().find((node) => node.type === SidebarSectionHeader && (node.props as unknown as HeaderProps).name === "Work")!.props as unknown as HeaderProps;
-    work.onContextMenu!({ preventDefault: () => {}, clientX: 10, clientY: 10, currentTarget: { querySelector: () => button } } as never);
-    (render().find((node) => node.type === TeamMenuItems)!.props as unknown as Parameters<typeof TeamMenuItems>[0]).onRename();
-    expect(render().some((node) => node.type === TeamDialog)).toBe(true);
-    expect(header("Work").naming).toBeUndefined();
+    header("Work").onContextMenu!({ preventDefault: () => {}, clientX: 10, clientY: 10, currentTarget: { querySelector: () => button } } as never);
+    expect(render().filter((node) => node.props.role === "menuitem").map(words)).toEqual(["Rename", "Move up", "Move down", "Delete"]);
   });
 });
 

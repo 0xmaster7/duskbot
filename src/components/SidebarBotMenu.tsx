@@ -360,7 +360,7 @@ export function BotContextMenu({
     >
       {team && mayChangeOwner(bot, team) && item(<Users size={16} className="text-ink-secondary" />, ownerMenuLabel(bot, team), () => pickOwnerOf([bot], team, shown))}
       {remoteClient ? [
-        mayMove && item(<FolderPlus size={16} className="text-ink-secondary" />, t("sidebar.bot.moveToSection"), () => {
+        mayMove && item(<FolderPlus size={16} className="text-ink-secondary" />, t("sidebar.grok.moveTo"), () => {
           onClose();
           onMoveToSection(bot.id);
         }),
@@ -378,7 +378,7 @@ export function BotContextMenu({
           () => dispatch({ type: "updateBot", botId: bot.id, patch: { pinned: !bot.pinned } }),
         ),
         team ? null : chiefItem(),
-        mayMove && item(<FolderPlus size={16} className="text-ink-secondary" />, t("sidebar.bot.moveToSection"), () => {
+        mayMove && item(<FolderPlus size={16} className="text-ink-secondary" />, t("sidebar.grok.moveTo"), () => {
           onClose();
           onMoveToSection(bot.id);
         }),

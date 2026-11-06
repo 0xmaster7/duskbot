@@ -142,7 +142,7 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
     else setReturning(true);
     dropped.current = false;
   };
-  const startNew = (botIds: string[]) => setNaming({ kind: "new", botIds, name: unusedName(t(grok.current ? "sidebar.grok.newSection" : "sidebar.section.newName"), latest.current.taken) });
+  const startNew = (botIds: string[]) => setNaming({ kind: "new", botIds, name: unusedName(t("sidebar.grok.newSection"), latest.current.taken) });
   const apply = (botId: string, move: BotMove, keyboard: boolean) => {
     if (move.kind === "group") return startNew(move.botIds);
     const { lists, bots } = latest.current;
@@ -307,7 +307,7 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
         }),
         slot: active !== null && mainIds.length === 0 && botListOf(lists, active) !== ""
           ? <div data-bot-drop-slot="" className={cn("mx-2 flex h-10 items-center justify-center rounded-[10px] border border-dashed text-[13px] leading-[18px]",
-            shown?.kind === "end" && shown.list === "" ? "border-accent bg-accent/10 text-ink" : "border-ink/20 text-ink-secondary")}>{t("sidebar.section.removeFromDepartment")}</div>
+            shown?.kind === "end" && shown.list === "" ? "border-accent bg-accent/10 text-ink" : "border-ink/20 text-ink-secondary")}>{t("sidebar.grok.unassigned")}</div>
           : null,
         naming: (name: string | null): SectionNaming | undefined => {
           if (!naming || name === null) return undefined;
@@ -315,7 +315,7 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
           if (value === null) return undefined;
           return {
             value,
-            label: simple ? t("sidebar.grok.renameSection") : naming.kind === "new" ? t("sidebar.section.newContextAria") : t("team.renameAria", { name }),
+            label: naming.kind === "new" ? t("sidebar.grok.newSection") : t("sidebar.grok.renameSection"),
             onCommit: (draft) => finishNaming(naming, draft),
             onCancel: () => { setNaming(null); if (naming.kind === "rename") onNamed(naming.section); else onCancelled(); },
           };

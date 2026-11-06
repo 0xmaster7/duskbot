@@ -9,7 +9,6 @@ import { fieldLabelCls, GrokDialog, mdPrimaryCls, mdSecondaryCls, textFieldCls }
 export function NewRoomPanel({ onClose }: { onClose: () => void }) {
   const { state, dispatch } = useStore();
   const [name, setName] = useState("");
-  const [section, setSection] = useState("");
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const bots = state.bots.filter((b) => !b.hidden);
   const toggle = (id: string) =>
@@ -25,9 +24,8 @@ export function NewRoomPanel({ onClose }: { onClose: () => void }) {
       type: "createGroup",
       memberIds: [...picked],
       name: name.trim() || undefined,
-      section: section.trim() || undefined,
     });
-    track("room_created", { members: picked.size, context: Boolean(section.trim()) });
+    track("room_created", { members: picked.size, context: false });
     onClose();
   };
   const onKey = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -47,10 +45,6 @@ export function NewRoomPanel({ onClose }: { onClose: () => void }) {
         <label className="flex flex-col gap-1">
           <span className={fieldLabelCls}>{t("sidebar.newChannel.nameLabel")}</span>
           <input data-autofocus autoFocus maxLength={100} value={name} onChange={(event) => setName(event.target.value)} onKeyDown={onKey} placeholder={t("sidebar.newChannel.namePlaceholder")} className={textFieldCls} />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className={fieldLabelCls}>{t("sidebar.newChannel.departmentLabel")} <span className="text-ink/40">{t("sidebar.newChannel.optional")}</span></span>
-          <input maxLength={60} value={section} onChange={(event) => setSection(event.target.value)} onKeyDown={onKey} className={textFieldCls} />
         </label>
         <div className="flex flex-col gap-1">
           <span className={fieldLabelCls}>{t("sidebar.newChannel.botsLabel")}</span>

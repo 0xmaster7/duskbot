@@ -62,7 +62,7 @@ export function SectionPicker({
       className={cn("fixed z-40 w-[236px] overflow-hidden", MENU_SHEET, motion.className)} {...motion.exitProps}
     >
       <div className={MENU_HEADING}>
-        {t("sidebar.section.moveToContext")}
+        {t("sidebar.grok.moveTo")}
       </div>
       {sections.length > 0 && (
         <div className="flex flex-col gap-1">
@@ -94,8 +94,8 @@ export function SectionPicker({
           maxLength={60}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder={t("sidebar.section.newContext")}
-          aria-label={t("sidebar.section.newContextAria")}
+          placeholder={t("sidebar.grok.newSection")}
+          aria-label={t("sidebar.grok.newSection")}
           className="w-full rounded-md bg-ink/[0.05] px-2 py-1.5 text-[13px] text-ink placeholder:text-ink-tertiary focus:outline-none"
         />
         <button
@@ -114,7 +114,7 @@ export function SectionPicker({
             className={cn(MENU_ITEM, "text-danger hover:bg-menu-hover")}
           >
             <FolderMinus size={16} />
-            {t("sidebar.section.removeFromContext")}
+            {t("sidebar.grok.unassigned")}
           </button>
         </>
       )}

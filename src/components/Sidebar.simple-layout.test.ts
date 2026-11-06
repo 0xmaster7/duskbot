@@ -113,7 +113,6 @@ describe("Simple-mode sidebar layout", () => {
     expect(listedBots(tree)).toEqual(["dodo", "atlas", "bea"]);
     const lines = headers(tree);
     expect(lines.map((header) => [header.props.name, header.props.line, header.props.count])).toEqual([["Work", true, 1], ["Unassigned", true, 2], ["Group chats", true, 1]]);
-    expect(lines[0]!.props.onDelete).toBeUndefined();
     expect(lines[0]!.props.onMenu).toBeTypeOf("function");
     expect(lines[1]!.props.onMenu).toBeTypeOf("function");
     expect(lines[2]!.props.onMenu).toBeUndefined();
@@ -172,26 +171,23 @@ describe("Simple-mode sidebar layout", () => {
     expect(footer(advanced.tree)).toBe(false);
   });
 
-  it("still offers Add bots under an empty team", () => {
+  it("shows an empty section with no Add bots button", () => {
     fixture.state = { ...fixture.state, sections: ["Work", "Empty"] };
     const { tree } = render();
     expect(headers(tree).map((header) => header.props.name)).toEqual(["Work", "Empty", "Unassigned", "Group chats"]);
-    expect(labelled(tree, "Add bots to Empty")).toBe(true);
+    expect(labelled(tree, "Add bots to Empty")).toBe(false);
     expect(labelled(tree, "Add or remove bots in Work")).toBe(false);
   });
 
-  it("keeps Advanced's headings, trash button and order", () => {
+  it("keeps Advanced's headings and order, with grok's section menu on a named section", () => {
     fixture.advanced = true;
     const { tree } = render();
     expect(sectionOrder(tree)).toEqual([CHANNELS_SECTION_ID, BOTS_SECTION_ID, userSectionId("Work")]);
     const all = headers(tree);
     expect(all.map((header) => header.props.name)).toEqual(["Group chats", "Bots", "Work"]);
-    for (const header of all) {
-      expect(header.props.line).toBe(false);
-      expect(header.props.onMenu).toBeUndefined();
-    }
-    expect(all[2]!.props.onDelete).toBeTypeOf("function");
-    expect(labelled(tree, "Add or remove bots in Work")).toBe(true);
+    for (const header of all) expect(header.props.line).toBe(false);
+    expect(all.map((header) => typeof header.props.onMenu)).toEqual(["undefined", "function", "function"]);
+    expect(labelled(tree, "Add or remove bots in Work")).toBe(false);
   });
 
   it("opens grok's section menu from the line's ⋯ button, under it: Rename, Move up, Move down, Delete", () => {
@@ -335,7 +331,7 @@ describe("Simple-mode sidebar layout", () => {
       return (label: string) => tree.find((node) => node.type === "button" && nodes(node.props.children).concat(node).some((part) => Children.toArray(part.props.children).includes(label)));
     };
     const item = openMenu();
-    expect(item("Create department")).toBeDefined();
+    expect(item("Create department")).toBeUndefined();
     expect(item("Templates")).toBeDefined();
     (item("New Bot")!.props.onClick as () => void)();
     expect(fixture.dispatch.mock.calls.map(([action]) => action)).toEqual([{ type: "newBot" }]);

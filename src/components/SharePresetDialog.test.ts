@@ -9,9 +9,7 @@ vi.mock("./DesktopCapabilities", () => ({
 }));
 
 import { teamImportPreview } from "@/lib/team-import";
-import type { ShareResponse } from "@/lib/team-share";
 import { presetShareBody, SharePresetContents, type PresetShareResponse } from "./SharePresetDialog";
-import { ShareTeamContents } from "./ShareTeamDialog";
 import { TeamImportDetails } from "./TeamLibraryPanel";
 import { packageSummary, parsePackageDocument } from "../../shared/package-format";
 
@@ -40,15 +38,6 @@ describe("Share as preset", () => {
       "Removed what looked like a key or password from: Support agent · standing instructions",
       "Support agent · skill · follow-up — a bot in the department has a different skill with this name",
     ]) expect(words).toContain(line);
-  });
-
-  it("counts preset bots in a team file", () => {
-    const document = parsePackageDocument(fixture("full-team.v2.json"));
-    const preview: ShareResponse = { document, filename: "f", summary: packageSummary(document), choices: { skills: [] }, redacted: [], skipped: [] };
-    expect(text(renderToStaticMarkup(createElement(ShareTeamContents, { preview, includeMemory: true, localSkips: [] })))).toContain("Preset bots 1 · Support agent");
-    const withoutPresets = parsePackageDocument({ ...fixture("full-team.v2.json"), package: { ...fixture("full-team.v2.json").package, presets: undefined } });
-    const plain: ShareResponse = { ...preview, document: withoutPresets, summary: packageSummary(withoutPresets) };
-    expect(text(renderToStaticMarkup(createElement(ShareTeamContents, { preview: plain, includeMemory: true, localSkips: [] })))).not.toContain("Preset bots");
   });
 
   it("previews a preset file's import as preset bots for New bot, with no team members", () => {

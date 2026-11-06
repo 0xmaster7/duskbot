@@ -337,13 +337,11 @@ describe("sidebar head and foot", () => {
       const list = at('data-scroll-fade-frame=""');
       const foot = at('data-glass-bar="bottom"');
       const automations = at('data-sidebar-nav="automations"');
-      const places = at('data-sidebar-nav="team-map"');
       expect(head).toBeLessThan(topRow);
       expect(topRow).toBeLessThan(search);
       expect(search).toBeLessThan(list);
       expect(list).toBeLessThan(foot);
       expect(foot).toBeLessThan(automations);
-      expect(automations).toBeLessThan(places);
       expect(html.match(/data-sidebar-nav="automations"/g)).toHaveLength(1);
       expect(html.match(/data-glass-frame=""/g)).toHaveLength(1);
       expect(at("data-glass-frame")).toBeLessThan(head);
@@ -352,7 +350,7 @@ describe("sidebar head and foot", () => {
 });
 
 describe("sidebar foot in Simple mode", () => {
-  it("puts grok's foot in Simple: with nothing connected, the avatar and the Connect apps pill with three app tiles, and no Automations or Team map rows", () => {
+  it("puts grok's foot in Simple: with nothing connected, the avatar and the Connect apps pill with three app tiles, and no Automations row", () => {
     fixture.advanced = false;
     const html = render();
     const foot = html.slice(html.indexOf('data-glass-bar="bottom"'));
