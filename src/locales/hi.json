@@ -2917,7 +2917,6 @@
   "vpsLink.move.failed": "ले जाना रुक गया।",
   "vpsLink.move.nothingRemoved": "ले जाना रुक गया। इस {device} से कुछ नहीं हटाया गया।",
   "vpsLink.move.open": "{name} खोलें",
-  "vpsLink.transfer.pane": "ट्रांसफ़र",
   "vpsLink.transfer.desktopOnly": "बॉट को ले जाना डेस्कटॉप ऐप में होता है।",
   "vpsLink.transfer.whereTitle": "आपके बॉट कहाँ रहते हैं",
   "vpsLink.transfer.loading": "लोड हो रहा है…",

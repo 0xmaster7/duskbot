@@ -6262,7 +6262,6 @@
   "vpsLink.move.failed": "A mudança parou.",
   "vpsLink.move.nothingRemoved": "A mudança parou. Nada foi removido deste {device}.",
   "vpsLink.move.open": "Abrir {name}",
-  "vpsLink.transfer.pane": "Transferência",
   "vpsLink.transfer.desktopOnly": "Mudar seus bots funciona no app para desktop.",
   "vpsLink.transfer.whereTitle": "Onde seus bots moram",
   "vpsLink.transfer.loading": "Carregando…",

@@ -7130,7 +7130,6 @@
   "vpsLink.move.failed": "搬家停下了。",
   "vpsLink.move.nothingRemoved": "搬家停下了。这台{device}上什么都没删除。",
   "vpsLink.move.open": "打开 {name}",
-  "vpsLink.transfer.pane": "迁移",
   "vpsLink.transfer.desktopOnly": "在桌面应用中才能搬移机器人。",
   "vpsLink.transfer.whereTitle": "你的机器人住在哪里",
   "vpsLink.transfer.loading": "加载中…",

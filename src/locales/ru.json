@@ -6418,7 +6418,6 @@
   "vpsLink.move.failed": "Переезд остановился.",
   "vpsLink.move.nothingRemoved": "Переезд остановился. С этого устройства ({device}) ничего не удалено.",
   "vpsLink.move.open": "Открыть {name}",
-  "vpsLink.transfer.pane": "Перенос",
   "vpsLink.transfer.desktopOnly": "Перенос ботов работает в настольном приложении.",
   "vpsLink.transfer.whereTitle": "Где живут ваши боты",
   "vpsLink.transfer.loading": "Загрузка…",

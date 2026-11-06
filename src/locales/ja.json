@@ -6440,7 +6440,6 @@
   "vpsLink.move.failed": "引っ越しが止まりました。",
   "vpsLink.move.nothingRemoved": "引っ越しが止まりました。この {device} からは何も消していません。",
   "vpsLink.move.open": "{name} を開く",
-  "vpsLink.transfer.pane": "引っ越し",
   "vpsLink.transfer.desktopOnly": "ボットの引っ越しはデスクトップアプリで行えます。",
   "vpsLink.transfer.whereTitle": "ボットの住まい",
   "vpsLink.transfer.loading": "読み込み中…",

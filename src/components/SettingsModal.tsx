@@ -249,8 +249,7 @@ export function SettingsModal() {
     switch (pane) {
       case "general": return <GeneralPane has={has} remoteActive={remoteActive} />;
       case "texting": return <TextingPane has={has} remoteAccess={remoteAccess} />;
-      case "computer": return <ComputerPane has={has} remoteAccess={remoteAccess} servers={<ConnectedWorkspacesSettings />} />;
-      case "transfer": return <TransferSettings />;
+      case "computer": return <ComputerPane has={has} remoteAccess={remoteAccess} servers={<ConnectedWorkspacesSettings />} transfer={has("transfer") ? <TransferSettings /> : null} />;
       case "permissions": return <PermissionsPane has={has} />;
       case "vault": return <VaultPane />;
       case "models": return <ModelsPane has={has} disclose={disclose} connections={<AdminOnly><KeysPage /></AdminOnly>} />;

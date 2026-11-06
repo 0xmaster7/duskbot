@@ -6223,7 +6223,6 @@
   "vpsLink.move.failed": "Lo spostamento si è fermato.",
   "vpsLink.move.nothingRemoved": "Lo spostamento si è fermato. Da questo {device} non è stato tolto nulla.",
   "vpsLink.move.open": "Apri {name}",
-  "vpsLink.transfer.pane": "Trasferimento",
   "vpsLink.transfer.desktopOnly": "Spostare i bot funziona nell'app desktop.",
   "vpsLink.transfer.whereTitle": "Dove vivono i tuoi bot",
   "vpsLink.transfer.loading": "Caricamento…",

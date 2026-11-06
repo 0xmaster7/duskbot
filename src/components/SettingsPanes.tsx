@@ -247,7 +247,7 @@ export function TextingPane({ has, remoteAccess }: { has: Has; remoteAccess: Rem
   );
 }
 
-export function ComputerPane({ has, remoteAccess, servers }: { has: Has; remoteAccess: RemoteAccessCards; servers: ReactNode }) {
+export function ComputerPane({ has, remoteAccess, servers, transfer }: { has: Has; remoteAccess: RemoteAccessCards; servers: ReactNode; transfer?: ReactNode }) {
   const { at } = useSubPage();
   const { state } = useStore();
   if (at === "computers" || at === PRIVATE_SETUP_PAGE) return <div data-settings-block="computer" className="flex flex-col gap-5"><AdminOnly><LocalComputerSection /></AdminOnly></div>;
@@ -279,6 +279,7 @@ export function ComputerPane({ has, remoteAccess, servers }: { has: Has; remoteA
           </SettingsRows>
         </SettingsGroup>
       )}
+      {transfer}
       {(has("companion") || has("desktopWorkspaces")) && (
         <RowsCard data-settings-block="remote">
           <PageRow page="elsewhere" title={t("settings.simple.computer.elsewhere")} hint={t("settings.hint.elsewhere")} />

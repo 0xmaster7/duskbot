@@ -5661,7 +5661,6 @@
   "vpsLink.move.failed": "La mudanza se detuvo.",
   "vpsLink.move.nothingRemoved": "La mudanza se detuvo. No se quitó nada de este {device}.",
   "vpsLink.move.open": "Abrir {name}",
-  "vpsLink.transfer.pane": "Traslado",
   "vpsLink.transfer.desktopOnly": "Mover tus bots funciona en la app de escritorio.",
   "vpsLink.transfer.whereTitle": "Dónde viven tus bots",
   "vpsLink.transfer.loading": "Cargando…",

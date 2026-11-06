@@ -2921,7 +2921,6 @@
   "vpsLink.move.failed": "Le déplacement s'est arrêté.",
   "vpsLink.move.nothingRemoved": "Le déplacement s'est arrêté. Rien n'a été retiré de ce {device}.",
   "vpsLink.move.open": "Ouvrir {name}",
-  "vpsLink.transfer.pane": "Transfert",
   "vpsLink.transfer.desktopOnly": "Le déplacement des bots se fait dans l'app de bureau.",
   "vpsLink.transfer.whereTitle": "Où vivent vos bots",
   "vpsLink.transfer.loading": "Chargement…",

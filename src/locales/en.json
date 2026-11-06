@@ -7984,7 +7984,6 @@
   "vpsLink.move.failed": "The move stopped.",
   "vpsLink.move.nothingRemoved": "The move stopped. Nothing was removed from this {device}.",
   "vpsLink.move.open": "Open {name}",
-  "vpsLink.transfer.pane": "Transfer",
   "vpsLink.transfer.desktopOnly": "Moving your bots works in the desktop app.",
   "vpsLink.transfer.whereTitle": "Where your bots live",
   "vpsLink.transfer.loading": "Loading…",

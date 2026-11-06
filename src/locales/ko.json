@@ -6913,7 +6913,6 @@
   "vpsLink.move.failed": "이사가 멈췄어요.",
   "vpsLink.move.nothingRemoved": "이사가 멈췄어요. 이 {device}에서는 아무것도 지우지 않았어요.",
   "vpsLink.move.open": "{name} 열기",
-  "vpsLink.transfer.pane": "이사",
   "vpsLink.transfer.desktopOnly": "봇 옮기기는 데스크톱 앱에서 할 수 있어요.",
   "vpsLink.transfer.whereTitle": "봇이 지내는 곳",
   "vpsLink.transfer.loading": "불러오는 중…",

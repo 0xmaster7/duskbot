@@ -5156,7 +5156,6 @@
   "vpsLink.move.failed": "Taşıma durdu.",
   "vpsLink.move.nothingRemoved": "Taşıma durdu. Bu {device} üzerinden hiçbir şey silinmedi.",
   "vpsLink.move.open": "{name} aç",
-  "vpsLink.transfer.pane": "Taşıma",
   "vpsLink.transfer.desktopOnly": "Botları taşımak masaüstü uygulamasında çalışır.",
   "vpsLink.transfer.whereTitle": "Botların nerede yaşıyor",
   "vpsLink.transfer.loading": "Yükleniyor…",

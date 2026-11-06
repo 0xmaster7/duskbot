@@ -3007,7 +3007,6 @@
   "vpsLink.move.failed": "Der Umzug wurde angehalten.",
   "vpsLink.move.nothingRemoved": "Der Umzug wurde angehalten. Von diesem {device} wurde nichts entfernt.",
   "vpsLink.move.open": "{name} öffnen",
-  "vpsLink.transfer.pane": "Umzug",
   "vpsLink.transfer.desktopOnly": "Bots umziehen geht in der Desktop-App.",
   "vpsLink.transfer.whereTitle": "Wo deine Bots leben",
   "vpsLink.transfer.loading": "Wird geladen…",

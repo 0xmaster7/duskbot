@@ -6381,7 +6381,6 @@
   "vpsLink.move.failed": "Przenosiny się zatrzymały.",
   "vpsLink.move.nothingRemoved": "Przenosiny się zatrzymały. Z tego urządzenia ({device}) nic nie usunięto.",
   "vpsLink.move.open": "Otwórz {name}",
-  "vpsLink.transfer.pane": "Przenosiny",
   "vpsLink.transfer.desktopOnly": "Przenoszenie botów działa w aplikacji na komputer.",
   "vpsLink.transfer.whereTitle": "Gdzie mieszkają Twoje boty",
   "vpsLink.transfer.loading": "Wczytuję…",

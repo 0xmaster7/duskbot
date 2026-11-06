@@ -4602,7 +4602,6 @@
   "vpsLink.move.failed": "搬家停下來了。",
   "vpsLink.move.nothingRemoved": "搬家停下來了。這台{device}上什麼都沒刪除。",
   "vpsLink.move.open": "開啟 {name}",
-  "vpsLink.transfer.pane": "轉移",
   "vpsLink.transfer.desktopOnly": "在桌面 App 中才能搬移機器人。",
   "vpsLink.transfer.whereTitle": "你的機器人住在哪裡",
   "vpsLink.transfer.loading": "載入中…",

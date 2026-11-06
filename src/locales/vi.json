@@ -5156,7 +5156,6 @@
   "vpsLink.move.failed": "Việc chuyển đã dừng.",
   "vpsLink.move.nothingRemoved": "Việc chuyển đã dừng. Không có gì bị xóa khỏi {device} này.",
   "vpsLink.move.open": "Mở {name}",
-  "vpsLink.transfer.pane": "Chuyển dữ liệu",
   "vpsLink.transfer.desktopOnly": "Chuyển bot chỉ làm được trong ứng dụng máy tính.",
   "vpsLink.transfer.whereTitle": "Bot của bạn đang sống ở đâu",
   "vpsLink.transfer.loading": "Đang tải…",
