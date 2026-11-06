@@ -60,7 +60,7 @@ function ShimmerPhrase({ text, className }: { text: string; className?: string }
 
 /** The status label rules: like grok, the mark comes alone first and its words follow after a short wait drawn per
  * turn (so it never feels timed), then each step shows one phrase and keeps it at least 800ms before the next. */
-export const STATUS_QUIET_MS = { min: 450, max: 1400 } as const;
+export const STATUS_QUIET_MS = { min: 900, max: 1600 } as const;
 export const STATUS_HOLD_MS = 800;
 const TYPING_PHASE = "friendly:chat.typing";
 

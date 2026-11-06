@@ -2,7 +2,7 @@ import { spring } from "motion/react";
 import { useLayoutEffect, useRef, type RefObject } from "react";
 
 import { usePrefersReducedMotion } from "@/components/mascot-clock";
-import { MSG_FADE, SPRING_SETTLE, SWAP_BLUR_PX } from "@/lib/motion-presets";
+import { MSG_FADE, SPRING_SETTLE } from "@/lib/motion-presets";
 
 const ROW = "[data-message-row]";
 const SLOT = ".turn-status-slot";
@@ -11,11 +11,12 @@ const COMPOSER = '[data-tour="composer"]';
 
 /** How far below its place the person's own bubble starts: from the composer's top edge, kept within these bounds. */
 export const RISE_PX = [64, 140] as const;
-/** The status line's hand-off to a bubble: it fades out as the bubble fades in at its spot, and if it still has work to
- * report, it comes back in its slot once the bubble has risen clear (ms). */
-const LINE_OUT_MS = 160;
-const LINE_BACK_AT_MS = 300;
-const LINE_BACK_MS = 160;
+/** A bot's reply is there at once: the transcript jumps to it in the same frame and the bubble pops in lightly (ms). */
+export const REPLY_IN_MS = 140;
+/** The status line gives way to a reply fast, and if it still has work to report it comes back in its slot (ms). */
+const LINE_OUT_MS = 100;
+const LINE_BACK_AT_MS = 220;
+const LINE_BACK_MS = 140;
 
 let timing: { duration: number; easing: string } | null = null;
 
@@ -73,14 +74,14 @@ function remaining(mover: Mover): number {
   return mover.from * (1 - (typeof progress === "number" ? progress : 1));
 }
 
-/** Rows that arrive while the conversation is open move as one, and the scroll never takes part.
+/** Rows that arrive while the conversation is open, and the scroll never fighting them.
  *
- * While the transcript follows its end, the scroll jumps once to the new end before the frame paints; whatever that moved
- * (rows added, a row grown, the composer settling) is drawn back where it was by a transform on the column, and one spring
- * carries it home. A wrapper clips the column vertically while it moves, so the transform never stretches the scroll range
- * and nothing follows a moving end. The person's own bubble starts at the composer's top edge and rises with everything
- * else; a bot's bubble fades in where its status line was as the line fades out, and a line with more to report comes back
- * in its slot below. Scrolled up, nothing on screen moves. Under reduced motion new rows only fade in. */
+ * The person's own message: the scroll jumps once to the new end before the frame paints, whatever that moved is drawn
+ * back where it was by a transform on the column, and one spring carries it home with the bubble rising from the
+ * composer's top edge. A wrapper clips the column vertically while it moves, so the transform never stretches the scroll
+ * range and nothing follows a moving end. A bot's reply is there at once: the transcript is at its end in the same frame,
+ * the bubble pops in over 140ms, and the status line gives way fast (coming back below if it still has work). Scrolled up,
+ * nothing on screen moves. Under reduced motion new rows only fade in. */
 export function useArrivalFlow({
   scrollRef,
   clipRef,
@@ -150,18 +151,18 @@ export function useArrivalFlow({
     const atEnd = scroller.scrollTop >= Math.min(before.max, max) - 2;
     const anchorAt = before.anchor?.isConnected ? offsetIn(before.anchor, column) : null;
     const delta = anchorAt === null ? 0 : end - anchorAt - before.anchorFromEnd;
-    // only a live arrival (or the composer settling under one still moving) glides: history, a thread's snapshot and a
-    // chat that just opened land in place
-    const live = arrivals.length > 0 || movers.current.size > 0;
-    const glide = live && following && atEnd && !reduced && Math.abs(delta) >= 0.5 && Math.abs(delta) <= scroller.clientHeight * 1.5;
-
     const lastArrival = arrivals.at(-1);
-    const own = lastArrival?.dataset.arrival === "end";
-    const botArrived = Boolean(lastArrival) && !own;
+    const own = arrivals.some((row) => row.dataset.arrival === "end");
+    const botArrived = Boolean(lastArrival) && lastArrival?.dataset.arrival !== "end";
+    // only the person's own message (or the composer settling under it) glides; a bot's reply, history, a thread's
+    // snapshot and a chat that just opened land in place, the transcript already at its end
+    const live = own || (arrivals.length === 0 && movers.current.size > 0);
+    const glide = live && following && atEnd && !reduced && Math.abs(delta) >= 0.5 && Math.abs(delta) <= scroller.clientHeight * 1.5;
+    if (!glide && botArrived && following && atEnd) scroller.scrollTop = max;
     const slot = column.querySelector<HTMLElement>(SLOT);
     const slotAt = slot ? offsetIn(slot, column) : null;
 
-    // the bubble's own entrance: the person's from the composer, a bot's out of its status line
+    // the bubble's own entrance: the person's rises from the composer, a bot's pops in where it lands
     const timingNow = settleTiming();
     const offsets = new Map<HTMLElement, number>();
     if (glide) offsets.set(column, delta);
@@ -184,34 +185,18 @@ export function useArrivalFlow({
         if (rise > 0) offsets.set(row, rise);
         row.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MSG_FADE.duration * 1000, easing: "ease-out" });
       } else {
-        row.style.transformOrigin = getComputedStyle(row).direction === "rtl" ? "100% 0" : "0 0";
-        row.animate([{ transform: "scale(0.97)" }, { transform: "none" }], { duration: timingNow.duration, easing: timingNow.easing });
-        row.animate([{ opacity: 0, filter: `blur(${SWAP_BLUR_PX}px)` }, { opacity: 1, filter: "blur(0px)" }], { duration: MSG_FADE.duration * 1000, easing: "ease-out" });
+        row.style.transformOrigin = getComputedStyle(row).direction === "rtl" ? "100% 100%" : "0 100%";
+        row.animate([{ opacity: 0, transform: "scale(0.96)" }, { opacity: 1, transform: "none" }], { duration: REPLY_IN_MS, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
       }
     }
 
-    if (slot && slotAt !== null && before.slot === slot && !reduced) {
-      if (botArrived) {
-        // the line stays where it was while the bubble takes its place, then settles into its slot below
-        const slotShift = (end - slotAt) - before.slotFromEnd;
-        const hold = slotShift - (glide ? delta : 0);
-        if (Math.abs(hold) >= 0.5) offsets.set(slot, hold);
-      } else if (own && rise > 0) {
-        // the slot rides under the person's bubble, so a line that starts meanwhile is never under it
-        offsets.set(slot, rise);
-      }
-    }
+    // the slot rides under the person's bubble, so a line that starts meanwhile is never under it
+    if (slot && slotAt !== null && before.slot === slot && !reduced && own && rise > 0) offsets.set(slot, rise);
     if (slot && botArrived && canAnimate(slot)) {
       const total = LINE_BACK_AT_MS + LINE_BACK_MS;
+      // opacity only: the slot may still be riding under the person's bubble on a transform
       slot.animate(
-        reduced
-          ? [{ opacity: 1, easing: "ease-out" }, { opacity: 0, offset: LINE_OUT_MS / total }, { opacity: 0, offset: LINE_BACK_AT_MS / total, easing: "ease-out" }, { opacity: 1 }]
-          : [
-              { opacity: 1, filter: "blur(0px)", easing: "ease-out" },
-              { opacity: 0, filter: `blur(${SWAP_BLUR_PX}px)`, offset: LINE_OUT_MS / total },
-              { opacity: 0, filter: "blur(0px)", offset: LINE_BACK_AT_MS / total, easing: "ease-out" },
-              { opacity: 1, filter: "none" },
-            ],
+        [{ opacity: 1, easing: "ease-out" }, { opacity: 0, offset: LINE_OUT_MS / total }, { opacity: 0, offset: LINE_BACK_AT_MS / total, easing: "ease-out" }, { opacity: 1 }],
         { duration: total },
       );
     }

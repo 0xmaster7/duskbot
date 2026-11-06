@@ -107,7 +107,7 @@ import { LiveCallBar } from "./LiveCallBar";
 import { LiveCallChip } from "./LiveCallPill";
 import { effectivePlace, toolPlace, type EffectivePlace } from "@/lib/place";
 import { cn } from "@/lib/cn";
-import { usePacedArrivals } from "@/hooks/use-paced-arrivals";
+import { usePacedArrivals } from "@/hooks/use-paced-arrivals"; import { useThinkingMoment } from "@/hooks/use-thinking-moment";
 import { activeLocale, t } from "@/lib/i18n";
 import { COMPACT_BUBBLE } from "@/lib/compact-chip";
 import { groupTranscript, isStatusActivity, turnDurations, workedLabel, type TranscriptItem } from "@/lib/activity-runs";
@@ -688,8 +688,6 @@ export function useLingering(on: boolean, ms: number): boolean {
 
 /** Simple mode's room under the last row, above the composer's own clearance: grok's last bubble ends 54px over the composer. */
 export const SIMPLE_TRAILING_GAP = 34;
-const TYPING_PHASE = "friendly:chat.typing";
-const TYPING_PHRASES = () => [t("chat.typing")];
 /** The status line's 36px row and the 4px it sits under a bubble: the part of that room its slot takes. */
 export const SIMPLE_STATUS_SLOT = 40;
 
@@ -1081,6 +1079,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const typingHeld = !advanced && heldReplies.length > 0;
   const statusMarkState = bot.busy ? turnMarkState({ running: true, composing: streamingReply, activity: live.status?.activity ?? null, awaiting: bot.activity === "waiting-on-you", settled: null }, Date.now()) : statusMarkFor({ busy: false, waitingOnYou: bot.activity === "waiting-on-you", answering: streamingReply || typingHeld, live: live.status?.activity, failed: lastMessage?.kind === "activity" && lastMessage.tool?.ok === false });
   const presenceVisible = waiting || teammatesWorking || typingHeld;
+  useThinkingMoment(markRef, !advanced && waiting && !teammatesWorking);
   // the bubble the line hangs under keeps its pinched corner until the line has finished leaving, as grok's does
   const presenceShown = useLingering(presenceVisible, 140);
   const paintedMessages = useFirstPaintRows(transcriptKey, arrivedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef);
@@ -1373,8 +1372,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             label={teammatesWorking ? t("chat.teammatesWorking") : undefined}
             visible={presenceVisible}
             {...now}
-            phrases={teammatesWorking ? undefined : typingHeld ? TYPING_PHRASES() : now.phrases}
-            phase={typingHeld ? TYPING_PHASE : now.phase}
+            phrases={teammatesWorking ? undefined : now.phrases}
+            phase={now.phase}
             seed={`${bot.id}:${bot.threadId ?? ""}:${busySince ?? ""}`}
             since={busySince}
           />

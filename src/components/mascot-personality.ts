@@ -6,7 +6,7 @@ import { OMB_CLIPS } from "./mascot-clips";
 export type IdleAct =
   | "blink" | "doubleBlink" | "glance" | "lookAround" | "curious" | "fidget" | "stretch" | "yawn" | "hop" | "wiggle" | "nod";
 
-export type MarkReaction = "hop" | "greet" | "startle" | "cheer" | "nod" | "spin" | "wiggle";
+export type MarkReaction = "hop" | "greet" | "startle" | "cheer" | "nod" | "spin" | "wiggle" | "lookAround";
 
 /** What the persona asks of the mark. The controller maps these onto Grok's animator. */
 export interface PersonaBody {
@@ -150,6 +150,7 @@ export function createPersona(seed: number, body: PersonaBody, clip: (name: stri
         case "greet": return body.play(OMB_CLIPS.Greet);
         case "startle": return body.play(OMB_CLIPS.Startle);
         case "wiggle": return body.play(OMB_CLIPS.Wiggle);
+        case "lookAround": return body.play(OMB_CLIPS.LookAround);
         case "cheer": body.poke("spin"); return body.poke("bounce");
         case "nod": return body.poke("nod");
         case "spin": return body.poke("spin");

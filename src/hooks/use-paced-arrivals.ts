@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
 /** How long the first reply waits after the status line, and the gap between replies that land together, in ms. */
-export const PACE_FIRST_MS = [150, 300] as const;
-export const PACE_GAP_MS = [250, 700] as const;
+export const PACE_FIRST_MS = [0, 80] as const;
+export const PACE_GAP_MS = [120, 250] as const;
 /** A reply that lands this soon after the last one shown waits a gap, not the first wait. */
 const BURST_MS = 1200;
 /** Past this many fresh replies waiting at once, the oldest show at once so the line never runs minutes behind. */
@@ -32,7 +32,7 @@ interface PaceState {
 
 /** The rows a transcript draws now. Rows already there when it opens (and older history loaded later) draw at once;
  * replies that arrive live come in one at a time, the first a short beat after it lands and each next one a seeded
- * 250 to 700 ms after the one before, so several at once read as a conversation. The person's own message never
+ * 120 to 250 ms after the one before, so several at once read as a conversation. The person's own message never
  * waits: it brings every row before it along, so nothing is ever drawn out of order. `held` is what still waits. */
 export function usePacedArrivals<T extends Arrival>(key: string, rows: T[], paced: (row: T) => boolean, now: () => number = Date.now): { shown: T[]; held: T[] } {
   const [, wake] = useState(0);

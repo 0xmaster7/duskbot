@@ -77,21 +77,27 @@ describe("useArrivalFlow", () => {
     expect(Math.max(...points)).toBeLessThan(1.01);
   });
 
-  it("draws the column back by what a bot's reply added and holds the status line where it was", () => {
+  it("puts a bot's reply on screen at once: the transcript is at its end in the same frame, nothing glides", () => {
     draw(true, 0);
-    // a 60px bubble lands above the slot: the slot keeps its distance to the end, the old rows move up 60
+    // a 60px bubble lands above the slot
     const reply = addRow(900, "start");
     place(slot, 960, column);
     scrollHeight = 1060;
     draw(true, 1);
 
     expect(scroller.scrollTop).toBe(scrollHeight - CLIENT);
-    expect(clip.style.overflowY).toBe("clip");
-    expect(moved(column)[0]?.keyframes[0]?.transform).toBe("translateY(60px)");
-    // the slot's own move cancels the column's, so the line does not move while the bubble takes its place
-    expect(moved(slot)[0]?.keyframes[0]?.transform).toBe("translateY(-60px)");
-    expect(recorded.some((r) => r.el === reply && r.keyframes[0]?.opacity === 0)).toBe(true);
-    expect(recorded.some((r) => r.el === slot && r.keyframes[1]?.opacity === 0)).toBe(true);
+    expect(moved(column)).toHaveLength(0);
+    expect(moved(slot)).toHaveLength(0);
+    expect(clip.style.overflowY).toBe("");
+    // a quick pop: opacity and a tiny scale, no blur, well under 200ms
+    const pop = recorded.find((r) => r.el === reply);
+    expect(pop?.keyframes[0]).toMatchObject({ opacity: 0, transform: "scale(0.96)" });
+    expect(pop?.keyframes[0]?.filter).toBeUndefined();
+    expect(Number(pop?.options.duration)).toBeLessThanOrEqual(160);
+    // the status line gives way fast, on opacity alone
+    const line = recorded.find((r) => r.el === slot);
+    expect(line?.keyframes[1]?.opacity).toBe(0);
+    expect(line?.keyframes.every((frame) => frame.transform === undefined)).toBe(true);
   });
 
   it("starts the person's bubble below its place and rides the slot with it", () => {
