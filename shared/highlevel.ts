@@ -62,9 +62,6 @@ export const HIGHLEVEL_TOOL_GROUPS: Record<HighLevelToolGroup, { label: string; 
   },
 };
 
-/** The default grant for a new bot: contacts and notes. */
-export const HIGHLEVEL_DEFAULT_GROUPS: readonly HighLevelToolGroup[] = ["contacts"];
-
 export function highlevelToolsForGroups(groups: readonly HighLevelToolGroup[]): HighLevelToolName[] {
   const names = new Set<HighLevelToolName>();
   for (const group of groups) for (const tool of HIGHLEVEL_TOOL_GROUPS[group].tools) names.add(tool);

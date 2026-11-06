@@ -249,6 +249,3 @@ export const DATA_ROUTES = {
   /** Server-rendered chart image for phones, Slack and email. */
   image: (botId: string, cardId: string) => `/api/bots/${encodeURIComponent(botId)}/data/cards/${encodeURIComponent(cardId)}/image`,
 } as const;
-
-/** The tab's id in the Computer panel and the storage key suffix. */
-export const DATA_PANEL_VIEW = "data" as const;

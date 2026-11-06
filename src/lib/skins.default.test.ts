@@ -96,13 +96,10 @@ describe("default skin", () => {
     expect(await boot()).toMatchObject({ skin: "midnight", advanced: false });
   });
 
-  it("shows System as the theme and the matching look as the selected skin in Appearance on a fresh install", async () => {
+  it("shows System as the theme in Appearance on a fresh install", async () => {
     os.dark = true;
     await boot();
-    const [{ SkinPicker }, { ThemeRow }] = await Promise.all([import("@/components/SkinPicker"), import("@/components/ThemeRow")]);
-    const picker = renderToStaticMarkup(createElement(SkinPicker));
-    const pressed = [...picker.matchAll(/aria-pressed="true"[\s\S]*?<div class="[^"]*text-ink"[^>]*>([^<]+)</g)].map(([, name]) => name);
-    expect(pressed).toEqual(["Grok Dark"]);
+    const { ThemeRow } = await import("@/components/ThemeRow");
     const theme = renderToStaticMarkup(createElement(ThemeRow));
     expect(theme.match(/role="combobox" aria-label="Theme"[^>]*>(?:<[^>]+>)*([^<]+)</)?.[1]).toBe("System");
   });

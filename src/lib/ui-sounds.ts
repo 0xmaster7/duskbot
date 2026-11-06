@@ -52,7 +52,3 @@ export function play(name: UiSoundName = chosenSound(), { force = false, volume 
   audio.volume = volume;
   audio.play().catch(() => {});
 }
-
-export function stop(): void {
-  audio?.pause();
-}

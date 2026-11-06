@@ -795,56 +795,6 @@ const BLINK = {
   "powering-down": null
 } satisfies Record<CursorState, [number, number] | null>
 
-export const STATE_GROUPS = {
-  "Cycle de vie": [
-    "sleeping",
-    "waking",
-    "idle",
-    "listening",
-    "thinking",
-    "searching",
-    "working"
-  ],
-  "Réactions": [
-    "excited",
-    "surprised",
-    "suspicious",
-    "angry",
-    "drowsy",
-    "happy",
-    "curious",
-    "confused",
-    "bored",
-    "proud",
-    "shy",
-    "sad",
-    "laughing",
-    "scared",
-    "playful",
-    "celebrate"
-  ],
-  "Morphes agent": [
-    "orbit",
-    "radar",
-    "progress"
-  ],
-  "Cycle produit": [
-    "spawning",
-    "humming",
-    "loading",
-    "dictating",
-    "writing",
-    "sending",
-    "receiving",
-    "uploading",
-    "notifying",
-    "alerting",
-    "dragging",
-    "bouncing",
-    "powering-down"
-  ]
-} satisfies Record<string, CursorState[]>
-
 const isCursorState = (state: string): state is CursorState => state in POOLS
 export const CURSOR_STATES = Object.keys(POOLS).filter(isCursorState)
 

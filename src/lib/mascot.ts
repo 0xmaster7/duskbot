@@ -11,7 +11,7 @@ export { MAUS_COLOR_NAMES, type MausColor } from "../../shared/wire";
 export type MausState = CursorState | MarkState;
 export const MAUS_STATES = CURSOR_STATES;
 
-/** CursorAvatar ships French group labels; these mirror its STATE_GROUPS memberships exactly. */
+/** The mascot states grouped for the preview page. */
 export const STATE_GROUPS = {
   Lifecycle: ["sleeping", "waking", "idle", "listening", "thinking", "searching", "working"],
   Reactions: [
@@ -92,7 +92,6 @@ export const MASCOT_INK = {
 } satisfies Record<MausColor, string>;
 
 export const CHROME_GRADIENT: [string, string, string] = ["#F1F4F7", "#AEB8C3", "#66717E"];
-export const CHROME_EYES = "#1E2833";
 
 export function colorSwatch(color: MausColor): string {
   if (color !== "chrome") return MASCOT_INK[color];

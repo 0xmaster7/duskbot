@@ -476,8 +476,6 @@ export function resetOpenCodeModelCache() {
   paidModels.clear();
 }
 
-export const resetOpenCodeGoModelCache = resetOpenCodeModelCache;
-
 /** Provider keys come from the server's env only when it is the person's own shell: never on a Cloud
  * home, hosted team, managed desktop or open sign-in list, where every bot would bill the operator's key. */
 export function openCodeProviderKeysAllowed(state: {
@@ -917,8 +915,6 @@ export function classifyOpenCodeError(error: unknown): ProviderErrorCode | undef
   return undefined;
 }
 
-export const classifyOpenCodeGoError = classifyOpenCodeError;
-
 /** Its status says `freeFallback` while only Zen's free no-login models make it ready (contracts.ts). */
 export function createOpenCodeDriver(loadCatalog: OpenCodeCatalogLoader = discoverOpenCodeModels): ProviderDriver<AcpConfig> {
   const ownAccess = new Map<string, boolean>();
@@ -939,6 +935,4 @@ export function createOpenCodeDriver(loadCatalog: OpenCodeCatalogLoader = discov
   };
 }
 
-export const createOpenCodeGoDriver = createOpenCodeDriver;
 export const OpenCodeDriver = createOpenCodeDriver();
-export const OpenCodeGoDriver = OpenCodeDriver;

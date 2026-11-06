@@ -2,9 +2,7 @@ import { api } from "@/state/store";
 import { t } from "@/lib/i18n";
 import { toolStepLabel } from "@/lib/tool-step-label";
 import { formatUsd, hasFiniteCost } from "@/lib/usage";
-import type {
-  TraceDetail, TraceGroup, TraceList, TraceNode, TraceStep, TraceTokens, TraceTool, TraceTurn,
-} from "../../shared/usage-trace.ts";
+import type { TraceDetail, TraceGroup, TraceList, TraceNode, TraceTool, TraceTurn } from "../../shared/usage-trace.ts";
 
 export type UsagePeriod = "today" | "week" | "month" | "lastMonth" | "days30";
 export const USAGE_PERIODS: readonly UsagePeriod[] = ["today", "week", "month", "lastMonth", "days30"];
@@ -98,12 +96,6 @@ export function costOf(node: TraceNode): number | null {
   return total;
 }
 
-export function tokensOf(node: TraceNode): TraceTokens | null {
-  if (node.kind === "turn") return node.tokens;
-  if (node.kind === "step") return node.tokens ?? null;
-  return null;
-}
-
 const ACTION_PREFIX = /^(?:mcp__.+?__|[a-z][a-z0-9_-]{0,31}__)?(?:agent_browser_|browser_|computer_)?/i;
 const sentence = (words: string) => words ? words[0]!.toLocaleUpperCase() + words.slice(1) : words;
 
@@ -175,18 +167,3 @@ export function traceBadges(turns: readonly TraceTurn[], now: number): { slowest
   return { ...(slowest ? { slowest: slowest.node.id } : {}), ...(costliest ? { costliest: costliest.node.id } : {}) };
 }
 
-export function threadsOf(turns: readonly TraceTurn[]): Set<string> {
-  const threads = new Set<string>();
-  const visit = (node: TraceNode) => {
-    if (node.kind === "turn") {
-      threads.add(node.threadId);
-      node.children.forEach(visit);
-    }
-  };
-  turns.forEach(visit);
-  return threads;
-}
-
-export function isStep(node: TraceNode): node is TraceStep {
-  return node.kind === "step";
-}

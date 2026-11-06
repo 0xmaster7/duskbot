@@ -23,11 +23,6 @@ export function MotionDiv(props: HTMLMotionProps<"div">) {
   return live() ? <motion.div {...props} /> : <div {...(rest(props) as React.HTMLAttributes<HTMLDivElement>)} />;
 }
 
-/** A motion span where there is a window to animate in, a plain span at rest elsewhere. */
-export function MotionSpan(props: HTMLMotionProps<"span">) {
-  return live() ? <motion.span {...props} /> : <span {...(rest(props) as React.HTMLAttributes<HTMLSpanElement>)} />;
-}
-
 
 /** A centered sheet's own box. Dialogs open and close raw, in one frame, like the rest of the app's windows. */
 export function SheetMotion(props: HTMLMotionProps<"div">) {

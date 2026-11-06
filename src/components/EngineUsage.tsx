@@ -159,13 +159,6 @@ export function UsageBars({ engine, compact = false, hover = true, className }: 
 /** Widens the narrow header's square model button to fit the bars while they warn. */
 export const USAGE_WARN_WIDENS = "@max-4xl/chathead:has-[[data-usage-warn]]:w-auto @max-4xl/chathead:has-[[data-usage-warn]]:gap-1.5 @max-4xl/chathead:has-[[data-usage-warn]]:px-2";
 
-/** The rows at the top of the open model menu. */
-export function UsageMenuRows({ engine }: { engine: string | undefined }) {
-  const limit = useEngineUsage(engine);
-  if (!limit) return null;
-  return <div data-usage-menu className="shrink-0 border-b-[0.5px] border-ink/10 px-3.5 py-2.5"><UsageRows limit={limit} /></div>;
-}
-
 /** A phone's header has no model button: near or at the limit, the bars stand alone and open the bot's model. */
 export function UsageAlert({ engine }: { engine: string | undefined }) {
   const { dispatch } = useStore();

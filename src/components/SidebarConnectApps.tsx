@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { useStore, type Action } from "@/state/store";
+import { useStore } from "@/state/store";
 
 import { loadAppCards } from "./bot-settings/useBotApps";
 import { preloadConnectedApps } from "@/lib/connected-apps";
@@ -79,11 +79,6 @@ function AppFaceIcon({ face, className }: { face: AppFace; className?: string })
   );
 }
 
-
-/** The footer grid's click: the Connect Apps window. `dispatch` stays for callers that pass it. */
-export function openSidebarApps(_dispatch?: (action: Action) => void): void {
-  openConnectApps();
-}
 
 /** `circle` is the collapsed rail's round button. */
 export function SidebarConnectApps({ circle = false }: { circle?: boolean }) {

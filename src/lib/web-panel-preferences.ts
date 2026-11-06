@@ -56,17 +56,6 @@ function subscribe(listener: () => void): () => void {
   };
 }
 
-export function setWebPanels(panels: readonly WebPanel[]): void {
-  const raw = JSON.stringify(panels);
-  sessionPanels = parseWebPanels(raw);
-  try {
-    storage()?.setItem(WEB_PANELS_KEY, raw);
-  } catch {
-    // Kept for this session when storage is full or blocked.
-  }
-  notify();
-}
-
 export function useWebPanels(): WebPanel[] {
   return useSyncExternalStore(subscribe, readPanels, () => NONE);
 }

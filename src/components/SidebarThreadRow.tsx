@@ -1,7 +1,7 @@
-import { memo, useEffect, useRef, useState, type Dispatch, type ReactNode } from "react";
+import { memo, useEffect, useRef, useState, type Dispatch } from "react";
 import { createPortal } from "react-dom";
-import { Archive, ArchiveRestore, BellOff, Check, ChevronRight, Clock, Clock3, FolderInput, Link2, Link2Off, Loader2, MoreHorizontal, Pencil, Pin, PinOff, RefreshCw, Trash2 } from "lucide-react";
-import type { Action, AppState, BotProject, Task } from "@/state/store";
+import { Archive, ArchiveRestore, BellOff, Check, Clock, Clock3, FolderInput, Link2, Link2Off, Loader2, MoreHorizontal, Pencil, Pin, PinOff, RefreshCw, Trash2 } from "lucide-react";
+import type { Action, BotProject, Task } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { MENU_SHEET } from "./menu-recipe";
 import { useHeldMenuMotion } from "./MenuMotion";
@@ -106,21 +106,6 @@ export function partitionHelperThreads<T extends ThreadRowTask>(tasks: T[], acti
   return { own, helpers };
 }
 
-export function HelperThreadGroup<T>({ tasks, renderThread }: { tasks: T[]; renderThread: (task: T) => ReactNode }) {
-  const [open, setOpen] = useState(false);
-  if (tasks.length === 0) return null;
-  const label = t("task.helperGroup");
-  return <div data-sidebar-helper-threads="">
-    <button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)} aria-label={t(open ? "task.collapseNamed" : "task.expandNamed", { name: label })}
-      className="flex min-h-8 w-full items-center gap-1.5 rounded-md py-1 pl-1.5 pr-3 text-left text-[12px] text-ink-secondary hover:bg-raised/30 hover:text-ink">
-      <ChevronRight aria-hidden="true" size={11} className={cn("shrink-0 transition-transform", open && "rotate-90")} />
-      <span className="truncate">{label}</span>
-      <span className="shrink-0 text-[10px] opacity-50">{tasks.length}</span>
-    </button>
-    {open && <div role="group" aria-label={label}>{tasks.map(renderThread)}</div>}
-  </div>;
-}
-
 export function visibleSidebarThreads<T extends ThreadRowTask>(tasks: T[], activeId: string, query = "", folders: BotProject[] = [], showAll = false): T[] {
   const needle = query.trim().toLowerCase();
   if (needle) {
@@ -152,14 +137,6 @@ export function useSnoozeExpiry(tasks: readonly Pick<Task, "snoozedUntil">[]): v
     const id = window.setTimeout(() => rerender((count) => count + 1), Math.max(1, Math.min(2_147_483_647, next - Date.now() + 1)));
     return () => window.clearTimeout(id);
   }, [next, tick]);
-}
-
-export function useRevealedThreadRow(reveal: AppState["revealThread"], currentThreadId: string | null) {
-  useEffect(() => {
-    if (!reveal || reveal.threadId !== currentThreadId) return;
-    const row = document.querySelector<HTMLElement>(`[data-sidebar-thread-row="${CSS.escape(reveal.threadId)}"]`);
-    row?.scrollIntoView({ block: "nearest" });
-  }, [reveal, currentThreadId]);
 }
 
 export function useRelativeNow(): number {

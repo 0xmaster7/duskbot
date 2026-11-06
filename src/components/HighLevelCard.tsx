@@ -18,15 +18,6 @@ import { forgetHighLevelStatus, rememberHighLevelStatus } from "@/lib/highlevel-
 import { KitActions, KitBody, KitButton, KitField, KitLink, KitStatus, KitText } from "./connect-apps/detail-kit";
 
 
-export function HighLevelIcon() {
-  return (
-    <svg viewBox="0 0 40 40" className="size-10 shrink-0 rounded-[10px]" aria-hidden="true">
-      <rect width="40" height="40" rx="10" fill="#1b5e9b" />
-      <path d="M11 11h4.5v7h9v-7H29v18h-4.5v-7h-9v7H11z" fill="#fff" />
-    </svg>
-  );
-}
-
 /** HighLevel on its Connect Apps page: one connection per installation, set up by signing in. */
 export function HighLevelCard({ refreshKey = 0, onConnection }: {
   refreshKey?: number;

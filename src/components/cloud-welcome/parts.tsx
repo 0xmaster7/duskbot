@@ -25,10 +25,6 @@ export function CardIcon({ icon: Icon }: { icon: LucideIcon }) {
   </span>;
 }
 
-export function Chip({ children }: { children: ReactNode }) {
-  return <span className="ui-chip border border-hairline/50 bg-panel text-ink-secondary tabular-nums">{children}</span>;
-}
-
 export function Footer({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn("flex flex-wrap items-center gap-2", className)}>{children}</div>;
 }

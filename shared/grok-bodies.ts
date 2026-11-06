@@ -7,14 +7,10 @@
  * resampled to 48-point rings in face-box units so the shared face engine can blink, look and morph them.
  */
 
-import { z } from "zod";
-
 /** Every Grok-style body id, in the order the picker shows them. */
 export const GROK_BODY_IDS = ["blob", "tablet", "cloud", "flower", "sparkle", "wedge", "heart", "fruit", "squircle", "clover", "star", "square", "teardrop", "pebble", "bean", "egg", "capsule", "cylinder", "hex", "gem", "crystal", "shield", "dome", "arch", "leaf", "house"] as const;
 
 export type GrokBodyId = (typeof GROK_BODY_IDS)[number];
-
-export const grokBodySchema = z.enum(GROK_BODY_IDS);
 
 export interface GrokBody {
   id: GrokBodyId;

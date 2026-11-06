@@ -66,20 +66,6 @@ export interface PreviewStreamControl {
   readonly owned?: boolean;
 }
 
-/** Status line shown above a viewer; `null` control means the socket is not connected. */
-export const previewStreamControlLabel = (control: PreviewStreamControl | null): string =>
-  !control
-    ? "Connecting..."
-    : !control.canOperate
-      ? "Read-only"
-      : control.controller === "you"
-        ? "You have control"
-        : control.controller === "agent"
-          ? "Bot has control"
-          : control.controller === "another-viewer"
-            ? "Another viewer has control"
-            : "Watching";
-
 const isPreviewStreamDialog = (value: unknown): value is PreviewStreamControl["dialog"] =>
   value === null ||
   (typeof value === "object" &&

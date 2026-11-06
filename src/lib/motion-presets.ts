@@ -7,26 +7,14 @@ export const SPRING_SNAP = { type: "spring", stiffness: 1000, damping: 63, mass:
 /** a menu, popover or panel arriving: Grok's default UI spring */
 export const SPRING_UI = { type: "spring", stiffness: 175, damping: 26, mass: 1 } as const;
 
-/** a larger surface settling (a sheet, a card moving into place) */
-export const SPRING_SOFT = { type: "spring", stiffness: 100, damping: 20, mass: 1 } as const;
-
 /** entering or leaving; the same curve as the --animate-* tokens in styles.css */
 export const EASE_OUT = [0.22, 1, 0.36, 1] as const;
-
-/** movement on screen; Grok's 300ms tween curve */
-export const EASE_IN_OUT = [0.2, 0, 0, 1] as const;
 
 /** seconds, as motion takes them */
 export const DURATION = { fast: 0.12, base: 0.2, slow: 0.3 } as const;
 
 /** Grok's reduced-motion stand-in: a short fade, no travel */
 export const REDUCED = { duration: 0.12, ease: "easeOut" } as const;
-
-/** a pill or reaction chip popping in: Grok's 500ms overshoot curve (peaks at 1.078), fitted */
-export const SPRING_POP = { type: "spring", stiffness: 466, damping: 27, mass: 1 } as const;
-
-/** a lively settle with a small overshoot */
-export const SPRING_LIVELY = { type: "spring", stiffness: 175, damping: 18.5, mass: 1 } as const;
 
 /** Grok's cubic-bezier set, as motion arrays */
 export const EASE = {
@@ -64,56 +52,12 @@ export const GROK_DURATION = {
   drawer: 0.5,
 } as const;
 
-/** menus, popovers, tooltips: 100ms in from 2px toward the anchor at 98% scale */
-export const POPUP = {
-  initial: { opacity: 0, scale: 0.98 },
-  animate: { opacity: 1, scale: 1, x: 0, y: 0 },
-  exit: { opacity: 0, scale: 0.98 },
-  transition: { duration: GROK_DURATION.fast, ease: EASE.sharp },
-  offset: 2,
-} as const;
-
-/** the ui kit's centered dialog: 200ms fade and scale from 0.97. Grok's app turns it off (`animation-name: none` on
- * dialog and backdrop), so app dialogs, confirms, Settings and Create New Bot open and close with no motion; keep
- * this only for a surface Grok itself animates. */
-export const DIALOG = {
-  initial: { opacity: 0, scale: 0.97 },
-  animate: { opacity: 1, scale: 1 },
-  exit: { opacity: 0, scale: 0.97 },
-  transition: { duration: GROK_DURATION.slow, ease: EASE.sharp },
-} as const;
-
-/** a bot pinned into the grid: from 85% scale on the snap spring, fades on 300ms standard */
-export const PIN_TILE = {
-  initial: { opacity: 0, scale: 0.85 },
-  animate: { opacity: 1, scale: 1 },
-  exit: { opacity: 0, scale: 0.85 },
-  transition: { layout: SPRING_SNAP, scale: SPRING_SNAP, opacity: { duration: 0.3, ease: EASE.standard } },
-} as const;
-
-/** a sidebar row lifted for dragging, and the drop back */
-export const DRAG_LIFT = { scale: 1.04, opacity: 0.9, drop: { duration: 0.3, ease: EASE.drop } } as const;
-
-/** list rows entering or leaving the sidebar: height and 4px rise on the snap spring, 240ms */
-export const ROW_ENTER = {
-  initial: { opacity: 0, height: 0, y: -4 },
-  animate: { opacity: 1, height: "auto", y: 0 },
-  exit: { opacity: 0, height: 0, y: -4 },
-  transition: { ...SPRING_SNAP },
-} as const;
-
 /** pane push and pop: incoming slides 100% (pop: -30%), outgoing leaves -30% (pop: 100%), 200ms */
 export const WIPE = { duration: 0.2, ease: EASE.out, pushFrom: "100%", popFrom: "-30%" } as const;
 
 /** tooltips, measured in Grok's renderer (ms): first hover waits 300; leaving holds 100, then the exit runs 100.
  * a trigger reached while one is still up, or by keyboard focus, shows at once with no enter animation. */
 export const TOOLTIP = { openDelay: 300, closeDelay: 100, exit: GROK_DURATION.fast * 1000 } as const;
-
-/** onboarding step change: the old step fades out over 100ms ease-in while the new one fades in over 200ms ease-out */
-export const STEP = { out: { duration: 0.1, ease: "easeIn" }, in: { duration: 0.2, ease: "easeOut" } } as const;
-
-/** surfaces Grok swaps with no motion at all: switching chats, the command palette, every menu, popover and dialog */
-export const INSTANT = { duration: 0 } as const;
 
 // bencho.dev's small token set (ref/BENCHO-MOTION.md): grok's look, bencho's feel. springs near critical damping for
 // overlays, opacity on its own 160ms clock, tiny distances, exits shorter than entrances.
@@ -153,15 +97,6 @@ export const SPRING_SETTLE = { ...BENCHO.spring.settle, mass: 1 } as const;
 
 /** a message's own fade while it settles (bencho msg-in), and the blur that masks a swap of one thing for another */
 export const MSG_FADE = { duration: BENCHO.dur.fast, ease: EASE_OUT } as const;
-export const SWAP_BLUR_PX = 3;
-
-/** a centered sheet (Settings, a dialog, a confirm): bencho's modal, up 10px from 97%, out 8px at 98% in about two
- * thirds the time */
-export const SHEET = {
-  initial: { opacity: 0, y: 10, scale: 0.97 },
-  animate: { opacity: 1, y: 0, scale: 1, transition: withFade(BENCHO.spring.modal) },
-  exit: { opacity: 0, y: 8, scale: 0.98, transition: { duration: BENCHO.dur.fast, ease: BENCHO.ease.out } },
-} as const;
 
 /** content swapped in place (a settings pane, a panel tab): bencho's step-swap entrance, 6px up over 220ms; the old
  * content goes at once so a switch is never waited on */
@@ -169,9 +104,6 @@ export const SWAP = {
   initial: { opacity: 0, y: 6 },
   animate: { opacity: 1, y: 0, transition: { duration: BENCHO.dur.base, ease: BENCHO.ease.out } },
 } as const;
-
-/** a selected fill travelling between places (the Settings rail) */
-export const SPRING_PART = BENCHO.spring.popover;
 
 /** the person's sent bubble rising from the composer to its place: a little visible settle (about 3% overshoot) */
 export const SPRING_SEND = { type: "spring", stiffness: 400, damping: 30, mass: 1 } as const;

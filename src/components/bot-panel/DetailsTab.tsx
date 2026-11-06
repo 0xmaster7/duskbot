@@ -2,14 +2,10 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { CALL_MODES, callModeHint, effectiveCallMode, setCallMode, useCallMode, type CallMode } from "@/lib/call-mode";
-import { callCapabilityHelp } from "@/lib/call-capability";
 import type { Routine } from "@/lib/routines";
 import { routineFinished, routineScheduleState } from "@/lib/routine-display";
 import { niceTime, scheduleLabel } from "@/lib/schedule-label";
-import { fishListeningReady, listensHere, speechBridge } from "@/lib/speech";
 import { api, useStore, type Bot } from "@/state/store";
-import { useDesktopCapabilities } from "../DesktopCapabilities";
 import { PackageProvenance } from "../bot-settings/PackageProvenance";
 import type { useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
 import { SelectPill } from "../ui/SelectPill";
@@ -149,30 +145,6 @@ export function VoiceChatCard({ bot, patch }: { bot: Bot; patch: Derived["patch"
         />
       </VoiceChatRow>
     </Card>
-  );
-}
-
-/** How a call with the bot runs, as the call button does: where this device cannot listen in turns, a call is always Live. */
-export function CallModeRow() {
-  const { state } = useStore();
-  const { capabilities, ready } = useDesktopCapabilities();
-  const storedCallMode = useCallMode();
-  const turnsHere = !ready || listensHere(capabilities, state.config);
-  const callMode = effectiveCallMode(storedCallMode, { turnsHere, canLive: true });
-  const turnsHelp = turnsHere ? null : callCapabilityHelp(capabilities, Boolean(speechBridge()?.speechStart), fishListeningReady(state.config));
-  const title = t("call.mode.menu");
-  return (
-    <div data-panel-row="call-mode" className={cn(rowCls, "gap-1.5")}>
-      <RowText title={title} hint={t("botPanel.call.hint")} />
-      <SelectPill
-        data-panel-select="call-mode"
-        aria-label={title}
-        title={callMode === "turns" ? callModeHint("turns") : t("call.mode.liveHint")}
-        value={callMode}
-        onChange={(mode: CallMode) => setCallMode(mode)}
-        options={CALL_MODES.map((entry) => ({ value: entry.id, label: t(entry.label), disabled: entry.id === "turns" && turnsHelp !== null }))}
-      />
-    </div>
   );
 }
 

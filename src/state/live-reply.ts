@@ -96,14 +96,6 @@ function subscribe(threadId: string | null | undefined, listener: () => void): (
   };
 }
 
-export function useLiveReply(threadId: string | null | undefined): LiveReply | null {
-  return useSyncExternalStore(
-    (listener) => subscribe(threadId, listener),
-    () => liveReply(threadId),
-    () => liveReply(threadId),
-  );
-}
-
 /** Whether the thread is streaming a reply, for a parent that must not re-render on every delta. */
 export function useLiveReplyActive(threadId: string | null | undefined): boolean {
   return useSyncExternalStore(

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useId, useRef, type FormEvent, type ReactNode, type Ref, type RefObject } from "react";
+import { createContext, useContext, useEffect, useId, useRef, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/cn";
@@ -20,7 +20,6 @@ const dangerTone = "bg-danger text-danger-ink shadow-[inset_0_0_0_0.5px_rgb(255_
 const kitSecondaryTone = "bg-ink/6 text-ink shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_15%,transparent)] enabled:hover:bg-ink/10 disabled:text-ink/30";
 
 export const dialogPrimaryCls = cn(buttonBase, sizeLg, primaryTone);
-export const dialogSecondaryCls = cn(buttonBase, sizeLg, secondaryTone);
 /** Grok's 32px kit buttons: a confirm's Cancel and Delete, a pane's Save. */
 export const mdPrimaryCls = cn(buttonBase, sizeMd, primaryTone);
 export const mdSecondaryCls = cn(buttonBase, sizeMd, secondaryTone);
@@ -55,10 +54,6 @@ const FOCUSABLE = "button:not([disabled]), input:not([disabled]), textarea:not([
 
 /** Set by a sheet with a rail (the bot's settings): a dialog inside it draws as that sheet's pane instead of its own sheet. */
 export const DialogPane = createContext(false);
-
-export function useInPane(): boolean {
-  return useContext(DialogPane);
-}
 
 /** Focus into the dialog on open and back to the opener on close, Escape to close, Tab kept inside. A nested dialog
  * handles its own keys. */
@@ -173,86 +168,6 @@ function SheetView({ title, description, width = 440, onClose, footer, children,
   );
 }
 
-/** A labelled section of a dialog: Grok's 12px label 14px in, 8px over its white card. */
-export function DialogSection({ label, action, children, bare = false, className, ...rest }: {
-  label?: ReactNode;
-  action?: ReactNode;
-  children: ReactNode;
-  bare?: boolean;
-  className?: string;
-  "data-modal-group"?: string;
-}) {
-  return (
-    <section {...rest} className={cn("flex flex-col gap-2", className)}>
-      {(label || action) && (
-        <div className="flex min-h-4 items-center justify-between gap-3 pl-3.5 pr-1">
-          {label && <h3 className="m-0 text-[12px] font-normal leading-4 tracking-[0.01em] text-ink/68">{label}</h3>}
-          {action}
-        </div>
-      )}
-      {bare ? children : <div className={listCardCls}>{children}</div>}
-    </section>
-  );
-}
-
-/** Grok's empty line: one plain centred sentence that names the next step. */
-export function DialogEmpty({ children }: { children: ReactNode }) {
-  return <p data-modal-empty className={cn(rowHintCls, "m-0 px-6 py-3 text-center text-pretty")}>{children}</p>;
-}
-
-export function DialogSkeleton({ lines = 2 }: { lines?: number }) {
-  return (
-    <div aria-busy="true" className="flex flex-col gap-2.5 px-3.5 py-3.5">
-      {Array.from({ length: lines }, (_, index) => (
-        <span key={index} className={cn("h-3 rounded-full bg-ink/6", index % 2 ? "w-1/2" : "w-3/4")} />
-      ))}
-    </div>
-  );
-}
-
-/** Grok's filled field (the Vault and Connect Apps search): a borderless 32px pill tinted ink/4, ink/7 while focused,
- * with a leading glyph and an Add that wakes once there is something to add. */
-export function FilledField({ icon = "plus", value, placeholder, label, disabled, busy, submitLabel, onChange, onSubmit, inputRef, ...rest }: {
-  icon?: GrokIconName;
-  value: string;
-  placeholder: string;
-  label: string;
-  disabled?: boolean;
-  busy?: boolean;
-  submitLabel: string;
-  onChange: (value: string) => void;
-  onSubmit: () => void;
-  inputRef?: Ref<HTMLInputElement>;
-  "data-panel-form"?: string;
-}) {
-  const ready = Boolean(value.trim()) && !disabled && !busy;
-  return (
-    <form
-      {...rest}
-      onSubmit={(event: FormEvent) => {
-        event.preventDefault();
-        if (ready) onSubmit();
-      }}
-      className={cn(
-        "flex h-8 items-center gap-1.5 rounded-[9999px] border border-ink/10 bg-transparent pl-3 pr-1",
-        disabled && "opacity-50",
-      )}
-    >
-      <span aria-hidden="true" className="flex shrink-0 text-ink/56"><GrokIcon name={icon} size={14} /></span>
-      <input
-        ref={inputRef}
-        value={value}
-        placeholder={placeholder}
-        aria-label={label}
-        disabled={disabled || busy}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-5 min-w-0 flex-1 bg-transparent text-[13px] leading-[18px] tracking-[0.195px] text-ink outline-none placeholder:text-ink/56"
-      />
-      <button type="submit" disabled={!ready} className={cn(smallButtonCls, "disabled:bg-transparent disabled:shadow-none")}>{submitLabel}</button>
-    </form>
-  );
-}
-
 /** A small action on a row, shown on hover, on touch and whenever the row holds focus. */
 export function RowIconButton({ icon, label, onClick, disabled, reveal = false, ...rest }: {
   icon: GrokIconName;
@@ -276,33 +191,6 @@ export function RowIconButton({ icon, label, onClick, disabled, reveal = false, 
       )}
     >
       <GrokIcon name={icon} size={14} />
-    </button>
-  );
-}
-
-/** A row that opens something elsewhere: a glyph, the name over a line, a chevron. */
-export function DialogLinkRow({ icon, title, hint, onClick, ...rest }: {
-  icon: GrokIconName;
-  title: string;
-  hint: string;
-  onClick: () => void;
-  "data-panel-link"?: string;
-}) {
-  return (
-    <button
-      type="button"
-      {...rest}
-      onClick={onClick}
-      className="mx-1.5 flex min-h-12 cursor-pointer items-center gap-3 rounded-[10px] px-2 py-2.5 text-left transition-[background-color] duration-[120ms] ease-[ease] hover:bg-ink/5 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
-    >
-      <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center text-ink/68">
-        <GrokIcon name={icon} size={16} />
-      </span>
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className={rowTitleCls}>{title}</span>
-        <span className={cn(rowHintCls, "truncate")}>{hint}</span>
-      </span>
-      <span aria-hidden="true" className="flex shrink-0 text-ink/40"><GrokIcon name="chevron-right" size={14} /></span>
     </button>
   );
 }

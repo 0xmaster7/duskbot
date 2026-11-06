@@ -242,12 +242,6 @@ export function useCloudUsageSettings(): { usage: CloudUsage | null; upgrade: Up
   return { usage: shown, upgrade: { busy: upgrade.busy, note: upgrade.note, onUpgrade: upgrade.start }, dialog: upgrade.dialog };
 }
 
-export function CloudUsageSettings() {
-  const { usage, upgrade, dialog } = useCloudUsageSettings();
-  if (!usage) return null;
-  return <CloudUsageSettingsView usage={usage} upgrade={upgrade}>{dialog}</CloudUsageSettingsView>;
-}
-
 export function UpgradeButton({ usage, upgrade, className }: { usage: CloudUsage; upgrade: UpgradeUi; className?: string }) {
   const path = upgradePath(usage), target = nextPlan(usage);
   if (path === "top") return null;

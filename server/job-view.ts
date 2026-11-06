@@ -4,7 +4,6 @@ import type { Assignment } from "./runtime/types.ts";
 
 export type JobScope = "job" | "turn";
 export type JobState = "running" | "needs-input" | "completed" | "failed" | "stalled" | "idle";
-export const FINAL_JOB_STATES: ReadonlySet<JobState> = new Set(["needs-input", "completed", "failed", "stalled", "idle"]);
 
 export interface ConversationState {
   kind: "bot" | "room";

@@ -3,15 +3,7 @@ import { useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEve
 import { useStore, type Bot } from "@/state/store";
 import { imageAttachmentFromFile } from "@/lib/composer-attachments";
 import { useOrganizationBranding } from "@/lib/use-organization-branding";
-import {
-  AVATAR_FOCUS_CENTER,
-  AVATAR_ZOOM_MAX,
-  AVATAR_ZOOM_MIN,
-  botAvatarUrlFromStoredPath,
-  clampAvatarFocus,
-  clampAvatarZoom,
-  type BotAvatarCrop,
-} from "../../shared/bot-avatar";
+import { AVATAR_FOCUS_CENTER, AVATAR_ZOOM_MAX, AVATAR_ZOOM_MIN, botAvatarUrlFromStoredPath, clampAvatarFocus, clampAvatarZoom } from "../../shared/bot-avatar";
 import { BotAvatar } from "./Avatar";
 import { useBotEditor } from "./bot-settings/BotEditorContext";
 
@@ -20,13 +12,6 @@ export type AvatarPatch = Partial<
 >;
 
 export const RESET_MASCOT_PATCH: AvatarPatch = { avatarCrop: "mascot", color: "green", mascotExpression: null, mascotBody: "cursor", mascotFaceColor: null };
-
-export const CROP_LABEL = {
-  mascot: "Mascot",
-  circle: "Circle",
-  rounded: "Rounded",
-  square: "Square",
-} satisfies Record<BotAvatarCrop, string>;
 
 const FRAME_SIZE = 168;
 

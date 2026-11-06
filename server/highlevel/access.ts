@@ -33,11 +33,6 @@ export function highlevelAllowedFor(bot: HighLevelBot): boolean {
   return true;
 }
 
-/** tools/list shows only what a call would be allowed to run. */
-export function highlevelToolVisible(bot: HighLevelBot, name: string): boolean {
-  return highlevelAccess(bot, name).ok;
-}
-
 /** The verdict for one call, with the decision rows the handler writes. */
 export function highlevelAccess(bot: HighLevelBot, name: string): HighLevelAccess {
   const rows: HighLevelDecisionRow[] = [];

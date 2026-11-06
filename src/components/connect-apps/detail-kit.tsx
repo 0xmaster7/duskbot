@@ -13,14 +13,6 @@ export function KitText({ children, tone }: { children: ReactNode; tone?: "dange
   return <span className="ca-kit-text" data-tone={tone} role={tone ? "alert" : undefined}>{children}</span>;
 }
 
-export function KitSteps({ steps }: { steps: ReactNode[] }) {
-  return (
-    <ol className="ca-kit-steps">
-      {steps.map((step, index) => <li key={index}><span aria-hidden="true">{index + 1}</span><span>{step}</span></li>)}
-    </ol>
-  );
-}
-
 export function KitField({ label, ...input }: { label: string } & InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label className="ca-kit-field">

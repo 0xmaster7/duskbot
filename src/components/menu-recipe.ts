@@ -10,11 +10,6 @@ export const GROK_ROW_FILL = "isolate rounded-none before:pointer-events-none be
 /** Grok's row label: 18px lines in the 32px row. */
 export const GROK_LABEL = "leading-[18px]";
 
-/** A whole Grok menu row: 32px, 6px 8px inside, the ::before fill, an 18px icon slot (GROK_MENU_ICON) 6px before its
- * label; wrap the label in GROK_LABEL. */
-export const GROK_MENU_ROW = `flex min-h-8 w-full shrink-0 items-center gap-1.5 whitespace-nowrap px-2 py-1.5 text-left text-[14px] leading-5 tracking-[0.01em] text-ink touch:min-h-10 ${GROK_ROW_FILL}`;
-export const GROK_MENU_ICON = "flex size-[18px] shrink-0 items-center justify-center text-ink/[0.66]";
-
 /** Grok's danger row: the row's ink stays; its label takes the danger red and its glyph a brighter one. */
 export const GROK_DANGER = "text-danger";
 export const GROK_DANGER_ICON = "text-[#e72e3b]";

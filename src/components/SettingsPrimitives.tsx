@@ -1,10 +1,5 @@
 import { useId, type ComponentProps, type ReactNode } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { EASE_OUT } from "@/lib/motion-presets";
-import { Check, ChevronRight, Copy, X } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { useCopyFeedback } from "@/lib/copy-text";
-import { t } from "@/lib/i18n";
 import { useOptimisticSwitch } from "./ui/optimistic-switch";
 
 /** The panel's card: white, 12px corners on a half-pixel edge, 4px in, its rows drawing their own hover pill. */
@@ -136,94 +131,12 @@ export function SettingsGroup({ label, block, actions, footnote, children }: {
   );
 }
 
-/** One Grok card around several SettingsRows, as if they were one list of rows. */
-export const MERGED_ROWS = cn(SIMPLE_CARD, "empty:hidden [&>[data-settings-rows]]:rounded-none [&>[data-settings-rows]]:border-0 [&>[data-settings-rows]]:bg-transparent [&>[data-settings-rows]]:p-0");
-
 export function SettingsRows({ children }: { children: ReactNode }) {
   return <div data-settings-rows="" className={cn(SIMPLE_CARD, "flex flex-col empty:hidden")}>{children}</div>;
-}
-
-export function SettingsDisclosureRow({ id, title, subtitle, trailing, block, open, onToggle, children }: {
-  id: string;
-  title: string;
-  subtitle?: ReactNode;
-  trailing?: ReactNode;
-  block?: string;
-  open: boolean;
-  onToggle: () => void;
-  children: ReactNode;
-}) {
-  const regionId = useId();
-  return (
-    <section data-settings-disclosure={id} data-settings-block={block} className="flex scroll-mt-4 flex-col gap-[22px]">
-      <div className={SIMPLE_CARD}>
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-controls={regionId}
-          onClick={onToggle}
-          className="group flex min-h-[30px] w-full cursor-pointer flex-wrap items-center gap-x-2 gap-y-1 rounded-lg px-2 py-1.5 text-left outline-none transition-[background-color] duration-100 hover:bg-ink/[0.06] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
-        >
-          <span className="flex min-w-[min(100%,15rem)] flex-1 flex-col gap-0.5">
-            <span className="text-[13px] leading-[18px] tracking-[0.015em] text-ink">{title}</span>
-            {subtitle && <span className="text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{subtitle}</span>}
-          </span>
-          <span className="ml-auto flex shrink-0 items-center gap-2 text-ink-secondary">
-            {trailing}
-            <ChevronRight size={14} aria-hidden="true" className={cn("text-ink-tertiary transition-transform motion-reduce:transition-none", open && "rotate-90")} />
-          </span>
-        </button>
-      </div>
-      <div id={regionId} hidden={!open} className="flex flex-col gap-[22px]">{children}</div>
-    </section>
-  );
-}
-
-export function CommandLine({ command, copyLabel = "Copy command" }: { command: string; copyLabel?: string }) {
-  const { state, copy } = useCopyFeedback(command);
-
-  return (
-    <div className="flex items-center gap-2 rounded-lg bg-inset px-3 py-2">
-      <code className="min-w-0 flex-1 select-all overflow-x-auto whitespace-nowrap font-mono text-[12px] text-ink">
-        {command}
-      </code>
-      <button
-        type="button"
-        onClick={copy}
-        aria-label={state === "failed" ? t("common.copyFailed") : copyLabel}
-        className="ui-icon-button shrink-0"
-      >
-        {state === "copied" ? <Check size={13} className="text-success" /> : state === "failed" ? <X size={13} className="text-danger" /> : <Copy size={13} />}
-      </button>
-    </div>
-  );
 }
 
 /** The app's reduced-motion choice or the system's, read safely where there is no window. */
 export function prefersReducedMotion(): boolean {
   if (typeof document !== "undefined" && document.documentElement?.dataset?.reducedMotion === "true") return true;
   return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
-/** Content a row opens in place: its height grows from nothing and settles without a jump (opacity only when motion is
- * reduced), and closing shrinks it back before it leaves. */
-export function SettingsExpand({ open, children }: { open: boolean; children: ReactNode }) {
-  const reduced = prefersReducedMotion();
-  return (
-    <AnimatePresence initial={false}>
-      {open && (
-        <motion.div
-          key="expand"
-          data-settings-expand=""
-          initial={reduced ? { opacity: 0 } : { height: 0, opacity: 0 }}
-          animate={reduced ? { opacity: 1 } : { height: "auto", opacity: 1 }}
-          exit={reduced ? { opacity: 0 } : { height: 0, opacity: 0 }}
-          transition={{ duration: reduced ? 0.12 : 0.24, ease: EASE_OUT }}
-          className="overflow-hidden"
-        >
-          {children}
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
 }

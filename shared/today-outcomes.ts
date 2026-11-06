@@ -82,11 +82,6 @@ export function appTool(name: string): AppTool | null {
     : { app: tokens[0]!, action: tokens.slice(1) };
 }
 
-/** Composio's toolkit name for display: GOOGLESHEETS stays one word, the rest read as written. */
-export function appName(name: string): string | null {
-  return appTool(name)?.app ?? null;
-}
-
 function classifyAction({ app, action }: AppTool, name: string): OutcomeCategory | null {
   if (app === "COMPOSIO") return COMPOSIO_META.has(name) ? null : "other";
   const first = action[0] ?? "";

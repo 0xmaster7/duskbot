@@ -3,7 +3,7 @@
 import { z } from "zod";
 
 import { DEFAULT_MASCOT_BODY, MASCOT_BODY_IDS, type MascotBodyId } from "./mascot-bodies.ts";
-import { GROK_BODIES, GROK_BODY_IDS, type GrokBody, type GrokBodyId } from "./grok-bodies.ts";
+import { GROK_BODIES, GROK_BODY_IDS, type GrokBodyId } from "./grok-bodies.ts";
 import { HALLOWEEN_BODY_IDS, type HalloweenBodyId } from "./halloween-bodies.ts";
 import type { MausColor } from "./wire.ts";
 
@@ -46,10 +46,6 @@ export function grokBodyFor(value: unknown): GrokBodyId {
   if (typeof value === "string" && Object.hasOwn(GROK_BODIES, value)) return value as GrokBodyId;
   if (typeof value === "string" && LEGACY_IDS.includes(value)) return GROK_LOOK_FOR_LEGACY[value as MascotBodyId];
   return GROK_LOOK_FOR_LEGACY[DEFAULT_MASCOT_BODY];
-}
-
-export function grokBody(value: unknown): GrokBody {
-  return GROK_BODIES[grokBodyFor(value)];
 }
 
 /** Whether a bot wearing `current` draws as `id`, so a picker can mark "cursor" as the tablet it now looks like. */

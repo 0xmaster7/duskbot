@@ -25,16 +25,6 @@ export type ProviderErrorCode =
   | "upstream_outage"
   | "model_catalog_outage";
 
-export class ProviderError extends Error {
-  readonly code: ProviderErrorCode;
-
-  constructor(code: ProviderErrorCode, message: string, options?: { cause?: unknown }) {
-    super(message, options);
-    this.name = "ProviderError";
-    this.code = code;
-  }
-}
-
 /** The attempt never reached a prompt or client-side action and its process stopped, so the harness may recover it. */
 export class TurnNotStartedError extends Error {
   readonly turnId: TurnId;

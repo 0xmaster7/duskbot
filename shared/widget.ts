@@ -3,8 +3,6 @@
 // Model input is normalised here once; every renderer reads canonical trees only.
 import type { JsonValue } from "./json.ts";
 
-export const WIDGET_VERSION = 1;
-
 /** Past any of these, model input is refused with the path of the problem. */
 export const WIDGET_LIMITS = {
   bytes: 32_000,
@@ -58,8 +56,6 @@ export function threadActionTarget(action: WidgetAction): { botId?: string; grou
   if (typeof groupId === "string" && THREAD_ID.test(groupId) && botId === undefined) return { groupId, threadId };
   return undefined;
 }
-
-export const isThreadAction = (action: WidgetAction): boolean => threadActionTarget(action) !== undefined;
 
 /** `open_phone_pairing` opens the app's own phone pairing (the QR code and link) on the device. */
 export const PHONE_PAIRING_ACTION = "open_phone_pairing";

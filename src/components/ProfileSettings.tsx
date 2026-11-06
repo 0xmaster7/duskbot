@@ -1,6 +1,6 @@
 import { cn } from "@/lib/cn";
 import { textFieldCls } from "./ui/GrokDialog";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { t } from "@/lib/i18n";
 import { saveTeamProfile } from "@/lib/own-profile";
@@ -217,37 +217,5 @@ export function ProfileAvatar({ profile, small = false }: { profile?: { name?: s
       {photo ? <img src={photo} alt="" onError={() => setFailed(photo)} className="size-full object-cover" />
         : initials !== "?" ? initials : <User size={small ? 14 : 20} aria-hidden="true" />}
     </span>
-  );
-}
-
-export function ProfileSummaryRow() {
-  const { state } = useStore();
-  const [editing, setEditing] = useState(false);
-  const profile = state.config?.profile;
-  const name = profile?.name?.trim() ?? "";
-  const email = profile?.email?.trim() ?? "";
-  const fieldsId = useId();
-  const fields = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (editing) fields.current?.querySelector<HTMLInputElement>("input:not([type=file])")?.focus();
-  }, [editing]);
-  return (
-    <div data-profile-summary="" className="px-4 py-[13px]">
-      <div className="flex min-w-0 items-center gap-3">
-        <ProfileAvatar profile={profile} />
-        <div className="min-w-0 flex-1">
-          {name || email ? <>
-            <div className="truncate text-[14px] leading-5 text-ink">{name || email}</div>
-            {name && email && <div className="truncate text-[13px] leading-[18px] text-ink-secondary">{email}</div>}
-          </> : <div className="truncate text-[14px] leading-5 text-ink-secondary">{t("settings.simple.account.noName")}</div>}
-        </div>
-        <button type="button" aria-expanded={editing} aria-controls={fieldsId} className="ui-button shrink-0" onClick={() => setEditing(!editing)}>
-          {editing ? t("common.done") : t(name || email ? "settings.simple.account.edit" : "settings.simple.account.add")}
-        </button>
-      </div>
-      <div id={fieldsId} ref={fields} hidden={!editing} className="mt-4">
-        {editing && <ProfileFields />}
-      </div>
-    </div>
   );
 }

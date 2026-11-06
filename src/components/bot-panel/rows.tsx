@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Check, ChevronLeft, ChevronRight, Trash2, type LucideIcon } from "lucide-react";
+import { Check, ChevronRight, Trash2, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import type { MausColor } from "@/lib/mascot";
@@ -16,11 +16,6 @@ export const buttonCls =
 /** a field with no fill and one quiet hairline that stays put on hover and focus */
 export const fieldCls =
   "h-7 min-w-0 flex-1 rounded-lg border-[0.5px] border-ink/12 bg-transparent px-2 text-[13px] leading-[18px] text-ink outline-none placeholder:text-ink/40 disabled:opacity-50";
-export const chipCls = (on: boolean) =>
-  cn(
-    "rounded-full px-2.5 py-1 text-[12px] transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-    on ? "bg-ink/[0.15] text-ink" : "bg-ink/[0.04] text-ink-secondary enabled:hover:text-ink",
-  );
 
 /** Grok's per-hue switch colours (`bg/<hue>-primary`, `-primary-hover`); a colour Grok has no hue for keeps the accent. */
 const SWITCH_TONE: Partial<Record<MausColor, { on: string; hover: string }>> = {
@@ -125,20 +120,6 @@ export function Segmented<V extends string>({ options, value, onChange, label, a
   );
 }
 
-export function SegmentedRow<V extends string>({ title, hint, footer, ...segmented }: Parameters<typeof Segmented<V>>[0] & {
-  title?: ReactNode;
-  hint?: ReactNode;
-  footer?: ReactNode;
-}) {
-  return (
-    <ColRow data-panel-row={segmented.attr}>
-      {(title || hint) && <RowText title={title} hint={hint} />}
-      <Segmented {...segmented} />
-      {footer}
-    </ColRow>
-  );
-}
-
 export function TrashButton({ label, onClick, disabled, ...rest }: {
   label: string;
   onClick: () => void;
@@ -213,23 +194,5 @@ export function TextRow({ value, placeholder, label, action, disabled, onChange,
       />
       <button type="submit" disabled={disabled || !value.trim()} className={buttonCls}>{action}</button>
     </form>
-  );
-}
-
-export function PageHeader({ back, title, intro, onBack }: { back: string; title: string; intro?: ReactNode; onBack: () => void }) {
-  return (
-    <div>
-      <button
-        type="button"
-        data-panel-back
-        onClick={onBack}
-        className="mt-0.5 inline-flex items-center gap-0.5 rounded-[7px] py-1 pl-0.5 pr-2 text-[13px] text-ink-secondary hover:bg-ink/[0.04] hover:text-ink"
-      >
-        <ChevronLeft size={15} aria-hidden="true" />
-        <span>{back}</span>
-      </button>
-      <h3 className="mx-1 mt-1.5 text-[18px] font-semibold text-ink">{title}</h3>
-      {intro && <p className="mx-1 mt-1.5 text-[13px] leading-normal text-ink-secondary">{intro}</p>}
-    </div>
   );
 }

@@ -1,26 +1,7 @@
 // Grok Bot's mark controller (its `p_` and the GrokBotMark policy around it), driven by the shared mascot clock instead of
 // one requestAnimationFrame loop per mark. The motion itself (clips, springs, gaze, blinks, body geometry) is Grok's own
 // engine in mascot-motion-engine.js; this file decides when it plays, rests, sleeps and draws.
-import {
-  MARK_FILL,
-  MARK_RECIPES,
-  createAnimator,
-  createStateDriver,
-  gazeFromPointer,
-  markAppearance,
-  markClip,
-  markFillScale,
-  markShapeFor,
-  markTree,
-  morphSeconds,
-  patchMark,
-  type MarkAnimator,
-  type MarkClip,
-  type MarkGaze,
-  type MarkNode,
-  type MarkPoke,
-  type MarkStateDriver,
-} from "./mascot-motion-engine";
+import { MARK_FILL, MARK_RECIPES, createAnimator, createStateDriver, gazeFromPointer, markAppearance, markClip, markFillScale, markShapeFor, markTree, patchMark, type MarkAnimator, type MarkClip, type MarkGaze, type MarkNode, type MarkPoke, type MarkStateDriver } from "./mascot-motion-engine";
 import { nextFrameAt } from "./mascot-motion";
 import { createPersona, type MarkReaction } from "./mascot-personality";
 import { OMB_CLIPS } from "./mascot-clips";
@@ -36,8 +17,6 @@ export type MarkState =
   | "confused" | "sad" | "drowsy" | "bored" | "scared" | "celebrate" | "approving" | "orbit" | "radar" | "progress"
   | "spawning" | "loading" | "dictating" | "sending" | "receiving" | "uploading" | "writing" | "alerting" | "bouncing"
   | "powering-down" | "humming" | "notifying" | "dragging" | "logo" | "showcase" | "turntable";
-
-export const isMarkState = (value: unknown): value is MarkState => typeof value === "string" && Object.hasOwn(MARK_RECIPES, value);
 
 /** Grok's sand_marks_60fps rate: its default 30 steps visibly on a 60 or 120 Hz display. */
 export const MARK_FRAME_RATE = 60;
@@ -58,8 +37,6 @@ const STILL_STEP_S = 0.1;
 export const HOVER_GAZE_RANGE = 0.5;
 /** The status line's tap cycles these. */
 export const MARK_POKES: MarkPoke[] = ["spin", "bounce", "nod"];
-/** How long `spawning` holds before the status line hands over to the turn's own state. */
-export const SPAWN_MS = morphSeconds("spawning") * 1000;
 
 /** Our 26 Grok-style body ids as the engine names them. Fruit is Grok's pumpkin, painted stem and all. */
 export function markShape(body: string): string {
