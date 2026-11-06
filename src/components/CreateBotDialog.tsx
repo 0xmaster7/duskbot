@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type FocusEvent as ReactFocusEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { GROK_BODIES, type GrokBodyId } from "../../shared/grok-bodies";
 import { isMausColor, type MausColor } from "../../shared/wire";
 import { useStore } from "@/state/store";
@@ -6,9 +6,10 @@ import { CREATE_BOT_EVENT, openCreateBot, takeCreateBotSection } from "@/lib/cre
 import { openNewGroup } from "@/lib/new-group-request";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
-import { MausAvatar } from "./Avatar";
+import { MausAvatar, type MausAvatarHandle } from "./Avatar";
 import { GrokIcon } from "./GrokIcon";
 import { VIEW_SPAN } from "./mascot-motion";
+import { hoverGaze } from "./mascot-motion-mark";
 
 /** Grok Bot's Create New Bot shapes, in its rows of five, five and three. */
 const SHAPES: GrokBodyId[][] = [
@@ -20,7 +21,8 @@ const SHAPES: GrokBodyId[][] = [
 /** Grok Bot's eleven colours, each painted as its swatch shows it, and the bot colour it makes. Brown has no bot colour
  * here yet, so its dot waits until one exists. */
 const COLORS: { label: string; dot: string; color: string }[] = [
-  { label: "Black", dot: "#000000", color: "chrome" },
+  // grok's black follows the skin's ink, white in dark, as the chrome body it makes does
+  { label: "Black", dot: "var(--color-ink)", color: "chrome" },
   { label: "Brown", dot: "#a06b39", color: "brown" },
   { label: "Red", dot: "#fb2b3e", color: "red" },
   { label: "Orange", dot: "#fd690f", color: "orange" },
@@ -62,9 +64,31 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
   const [body, setBody] = useState<GrokBodyId>(() => pick(SHAPES.flat()));
   const [color, setColor] = useState<MausColor>(() => pick(SWATCHES).color);
   const dialog = useRef<HTMLDivElement>(null);
+  const mascot = useRef<MausAvatarHandle>(null);
+  const preview = useRef<HTMLSpanElement>(null);
+  // the preview watches whichever shape or colour the pointer or focus is on
+  const [look, setLook] = useState<{ x: number; y: number }>(FACING);
   const titleId = useId();
   const pending = state.botCreationPending === true;
   const canCreate = name.trim().length > 0 && !pending;
+
+  const lookAt = (target: HTMLElement) => {
+    const mark = preview.current?.getBoundingClientRect();
+    if (!mark) return;
+    const tile = target.getBoundingClientRect();
+    setLook(hoverGaze(mark, tile.left + tile.width / 2, tile.top + tile.height / 2));
+  };
+  const watch = {
+    onPointerEnter: (event: ReactPointerEvent<HTMLElement>) => lookAt(event.currentTarget),
+    onFocus: (event: ReactFocusEvent<HTMLElement>) => { if (event.currentTarget.matches(":focus-visible")) lookAt(event.currentTarget); },
+  };
+  const rest = () => setLook(FACING);
+  const pickBody = (id: GrokBodyId) => { if (id !== body) { setBody(id); mascot.current?.react?.("hop"); } };
+  const pickColor = (next: MausColor) => { if (next !== color) { setColor(next); mascot.current?.react?.("wiggle"); } };
+  const rename = (next: string) => {
+    if (!name.trim() && next.trim()) mascot.current?.react?.("greet");
+    setName(next);
+  };
 
   const create = () => {
     if (!canCreate) return;
@@ -109,7 +133,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
           type="button"
           aria-label="Close dialog"
           onClick={onClose}
-          className="absolute right-2.5 top-2.5 z-[1] flex size-8 items-center justify-center rounded-[9999px] text-ink-secondary transition-[color,background-color,border-color] duration-150 ease-[ease] hover:bg-ink/6 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus"
+          className="absolute right-2.5 top-2.5 z-[1] flex size-8 items-center justify-center rounded-[9999px] text-ink-secondary hover:bg-ink/6 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus"
         >
           <GrokIcon name="close" size={14} />
         </button>
@@ -118,8 +142,8 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
         </div>
         <div className="min-h-0 w-full overflow-auto p-4 leading-[18px] tracking-[-0.08px]">
           <div className="flex flex-col gap-3">
-            <span className="flex self-center" data-create-bot-preview>
-              <MausAvatar bodyId={body} color={color} size={96} gaze={FACING} />
+            <span ref={preview} className="flex self-center" data-create-bot-preview>
+              <MausAvatar ref={mascot} bodyId={body} color={color} size={96} gaze={look} />
             </span>
             <input
               autoFocus
@@ -128,28 +152,29 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
               placeholder="Name your Bot"
               value={name}
               maxLength={80}
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) => rename(event.target.value)}
               onKeyDown={(event) => { if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); create(); } }}
               className="my-1 h-9 w-full rounded-[10px] border border-ink/10 bg-transparent px-2.5 py-2 text-center text-[13px] tracking-[0.195px] text-ink outline-none placeholder:text-ink/56 focus:border-ink/12!"
             />
             <div className="flex flex-col gap-3">
-              <div role="group" aria-label="Character shape" className="flex flex-col gap-2 py-1.5">
+              <div role="group" aria-label="Character shape" className="flex flex-col gap-2 py-1.5" onPointerLeave={rest} onBlur={rest}>
                 {SHAPES.map((row) => (
                   <div key={row[0]} className="flex justify-center gap-x-[clamp(0px,calc((100%-240px)/4),8px)]">
                     {row.map((id) => (
-                      <ShapeTile key={id} id={id} color={color} selected={id === body} onPick={() => setBody(id)} />
+                      <ShapeTile key={id} id={id} color={color} selected={id === body} onPick={() => pickBody(id)} {...watch} />
                     ))}
                   </div>
                 ))}
               </div>
-              <div role="group" aria-label="Character color" className="flex max-w-[232px] flex-wrap items-center justify-center gap-2 self-center py-2">
+              <div role="group" aria-label="Character color" className="flex max-w-[232px] flex-wrap items-center justify-center gap-2 self-center py-2" onPointerLeave={rest} onBlur={rest}>
                 {SWATCHES.map((swatch) => (
                   <button
                     key={swatch.label}
                     type="button"
                     aria-label={`${swatch.label} character color`}
                     aria-pressed={swatch.color === color}
-                    onClick={() => setColor(swatch.color)}
+                    onClick={() => pickColor(swatch.color)}
+                    {...watch}
                     className="flex size-8 cursor-pointer items-center justify-center rounded-[50%] border border-transparent p-0 text-black outline-none hover:border-ink/12 focus-visible:shadow-[0_0_0_2px_var(--color-focus)] focus-visible:outline-none!"
                   >
                     <span
@@ -197,7 +222,10 @@ const FACING = { x: 0, y: 0 } as const;
 
 /** A shape to pick, in the chosen colour. Hovered, focused or chosen, a 1px ring follows its outline 3px out, as Grok's
  * tiles do: faint on hover, darker once chosen. */
-function ShapeTile({ id, color, selected, onPick }: { id: GrokBodyId; color: MausColor; selected: boolean; onPick: () => void }) {
+function ShapeTile({ id, color, selected, onPick, onPointerEnter, onFocus }: {
+  id: GrokBodyId; color: MausColor; selected: boolean; onPick: () => void;
+  onPointerEnter: (event: ReactPointerEvent<HTMLElement>) => void; onFocus: (event: ReactFocusEvent<HTMLElement>) => void;
+}) {
   const ring = useId().replace(/:/g, "");
   const shape = GROK_BODIES[id];
   const d = /\sd="([^"]+)"/.exec(shape.clip)?.[1] ?? "";
@@ -209,6 +237,8 @@ function ShapeTile({ id, color, selected, onPick }: { id: GrokBodyId; color: Mau
       aria-label={`${id} character shape`}
       aria-pressed={selected}
       onClick={onPick}
+      onPointerEnter={onPointerEnter}
+      onFocus={onFocus}
       className="group/shape relative inline-flex size-12 cursor-pointer appearance-none items-center justify-center border-0 bg-transparent p-0 text-black outline-none focus-visible:outline-none!"
     >
       <MausAvatar bodyId={id} color={color} size={MARK} animated={false} trackPointer={false} />

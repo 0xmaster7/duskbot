@@ -9,6 +9,10 @@ import { api, openBot, useStore, type Bot } from "@/state/store";
 import { BotAvatar } from "./Avatar";
 import { archivableChief } from "./bot-archive";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { cn } from "@/lib/cn";
+import { footnoteCls, formBodyCls, formCloseCls, formHeaderCls, formSheetCls, formTitleCls, rowHintCls, smallButtonCls } from "./ui/GrokDialog";
+
+const dangerSmallCls = "omb-press inline-flex h-6 shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-full px-2 text-[12px] leading-4 tracking-[0.01em] text-danger outline-none hover:bg-danger/10 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-default disabled:opacity-40";
 
 export type BotConfirmKind = "archive" | "delete";
 
@@ -73,19 +77,20 @@ export function ArchivedBotRow({
   onDelete: () => void;
 }) {
   return (
-    <div className="flex min-h-[48px] items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-ink/[0.035]">
+    <div className="flex min-w-0 items-center gap-3 rounded-[10px] px-2 py-2 hover:bg-ink/[0.035]">
       <BotAvatar bot={bot} state="happy" size={32} animated={false} />
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[13px] leading-[18px] text-ink">{bot.name}</div>
-        <div className="truncate text-[13px] leading-[18px] text-ink/[0.68]">{bot.title || t("sidebar.archived.botFallback")}</div>
+      <div className="flex min-w-0 flex-1 flex-col gap-px">
+        <div className="truncate text-[13px] font-medium leading-[18px] text-ink">{bot.name}</div>
+        <div className="truncate text-[13px] leading-[18px] text-ink/68">{bot.title || t("sidebar.archived.botFallback")}</div>
       </div>
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-1">
         <button
+          type="button"
           onClick={onRestore}
           disabled={disabled || deleting}
-          className="flex min-w-[78px] items-center justify-center gap-2 h-7 cursor-pointer rounded-full bg-ink/6 px-2.5 text-[13px] leading-[18px] text-ink shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_6%,transparent)] hover:bg-ink/10 disabled:opacity-40"
+          className={smallButtonCls}
         >
-          {restoring && <Loader2 size={13} className="animate-spin" />}
+          {restoring && <Loader2 size={12} className="animate-spin" />}
           {t("sidebar.archived.restore")}
         </button>
         <button
@@ -93,9 +98,9 @@ export function ArchivedBotRow({
           onClick={onDelete}
           disabled={disabled || deleting}
           aria-label={t("sidebar.archived.deleteAria", { name: bot.name })}
-          className="flex items-center justify-center gap-2 rounded-full h-7 px-3.5 text-[13px] font-medium leading-4 text-danger hover:bg-danger/10 disabled:opacity-40"
+          className={dangerSmallCls}
         >
-          {deleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+          {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
           {t("common.delete")}
         </button>
       </div>
@@ -184,30 +189,32 @@ export function ArchivedBotsPanel({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px] sm:p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onMouseDown={(event) => event.target === event.currentTarget && !locked && onClose()}
     >
+      <div aria-hidden="true" className="ui-dialog-scrim pointer-events-none absolute inset-0" />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="archived-bots-title"
         tabIndex={-1}
-        className="flex max-h-[min(680px,calc(100dvh-2rem))] w-full max-w-[760px] flex-col overflow-hidden rounded-2xl border border-hairline/50 bg-panel shadow-2xl shadow-black/50 outline-none"
+        className={cn(formSheetCls, "max-h-[min(640px,calc(100dvh-32px))] max-w-[560px]")}
       >
-        <header className="flex items-start justify-between gap-4 px-6 pb-4 pt-6 sm:px-8 sm:pt-7">
-          <div>
-            <h2 id="archived-bots-title" className="text-[22px] font-semibold tracking-[-0.01em] text-ink">{t("sidebar.archived.title")}</h2>
-            <p className="mt-1 text-[13px] text-ink-secondary">{t("sidebar.archived.subtitle")}</p>
+        <header className={formHeaderCls}>
+          <div className="min-w-0 flex-1">
+            <h2 id="archived-bots-title" className={formTitleCls}>{t("sidebar.archived.title")}</h2>
+            <p className={cn(rowHintCls, "m-0")}>{t("sidebar.archived.subtitle")}</p>
           </div>
           <div className="flex items-center gap-1">
             {bots.length > 1 && (
               <button
+                type="button"
                 onClick={() => void restoreAll()}
                 disabled={locked}
-                className="flex items-center gap-2 h-7 cursor-pointer rounded-full bg-ink/6 px-2.5 text-[13px] leading-[18px] text-ink shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_6%,transparent)] hover:bg-ink/10 disabled:opacity-40"
+                className={smallButtonCls}
               >
-                {restoringAll && <Loader2 size={13} className="animate-spin" />}
+                {restoringAll && <Loader2 size={12} className="animate-spin" />}
                 {t("sidebar.archived.restoreAll")}
               </button>
             )}
@@ -216,25 +223,26 @@ export function ArchivedBotsPanel({
                 type="button"
                 onClick={() => setPendingDelete("all")}
                 disabled={locked}
-                className="flex items-center gap-2 rounded-full h-7 px-3.5 text-[13px] font-medium leading-4 text-danger hover:bg-danger/10 disabled:opacity-40"
+                className={dangerSmallCls}
               >
-                <Trash2 size={13} />
+                <Trash2 size={12} />
                 {t("sidebar.archived.deleteAll")}
               </button>
             )}
             <button
+              type="button"
               onClick={onClose}
               disabled={locked}
-              className="flex size-10 items-center justify-center rounded-lg text-ink-secondary hover:bg-raised hover:text-ink disabled:opacity-40"
+              className={cn(formCloseCls, "disabled:opacity-40")}
               aria-label={t("sidebar.archived.close")}
             >
-              <X size={21} />
+              <X size={16} />
             </button>
           </div>
         </header>
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-7 pt-3 sm:px-8">
-          <div className="mb-3 text-[12px] font-medium text-ink-secondary">{t("sidebar.archived.count", { count: bots.length })}</div>
-          <div className="grid grid-cols-1 gap-x-8 md:grid-cols-2">
+        <div className={cn(formBodyCls, "px-2 pb-3")}>
+          <div className={cn(footnoteCls, "pb-1")}>{t("sidebar.archived.count", { count: bots.length })}</div>
+          <div className="flex flex-col">
             {bots.map((bot) => (
               <ArchivedBotRow
                 key={bot.id}
@@ -247,7 +255,7 @@ export function ArchivedBotsPanel({
               />
             ))}
           </div>
-          {error && <div role="alert" className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-[13px] text-danger">{error}</div>}
+          {error && <p role="alert" className="m-0 px-2 pt-2 text-[12px] leading-4 text-danger">{error}</p>}
         </div>
       </div>
       <ConfirmDialog

@@ -32,7 +32,7 @@ import { RoutineEditor } from "./RoutinesPage";
 import { LocalComputerAutoWarning } from "./LocalComputerAutoWarning";
 import { SharePresetDialog } from "./SharePresetDialog";
 import { Select } from "./Select";
-import { formCloseCls, formFooterCls, formHeaderCls, formTitleCls, mdPrimaryCls, mdSecondaryCls } from "./ui/GrokDialog";
+import { formCloseCls, formFooterCls, formHeaderCls, formTitleCls, mdPrimaryCls, mdSecondaryCls, rowButtonCls } from "./ui/GrokDialog";
 
 const SECTIONS = ["Identity", "Soul", "Skills", "Memory", "Routines", "Access", "Model", "Permissions", "Voice & alerts"] as const;
 type Section = typeof SECTIONS[number];
@@ -181,7 +181,7 @@ export function NewBotDialog({ defaultsMode = false, onClose, onCreated, readyBo
                 onChange={(event) => setPeople(event.target.value)}
                 placeholder={t("botSettings.visibility.peoplePlaceholder")}
                 aria-label={t("botSettings.visibility.peopleLabel")}
-                className="h-7 min-w-[16rem] flex-1 rounded-[10px] border border-ink/12 bg-menu px-[9px] text-[13px] leading-[18px] text-ink outline-none transition-[border-color] duration-[120ms] ease-[ease] placeholder:text-ink/40 focus:border-ink/40"
+                className="h-7 min-w-[16rem] flex-1 rounded-[10px] border border-ink/10 bg-transparent px-[9px] text-[13px] leading-[18px] text-ink outline-none placeholder:text-ink/40"
               />
             )}
           </div>
@@ -189,7 +189,7 @@ export function NewBotDialog({ defaultsMode = false, onClose, onCreated, readyBo
       <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
         <nav aria-label={t("newBot.sections")} className="flex shrink-0 gap-0.5 overflow-x-auto border-b border-ink/8 px-3 py-2 sm:w-44 sm:flex-col sm:border-b-0 sm:border-r">
           {sections.map(label => <button key={label} type="button" onClick={() => setActive(label)} aria-current={active === label ? "page" : undefined}
-            className={cn("flex h-8 shrink-0 cursor-pointer items-center rounded-[8px] px-[9px] text-left text-[13px] leading-[18px] tracking-[0.195px] text-ink transition-[background-color] duration-[120ms] ease-[ease] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus", active === label ? "bg-ink/8" : "hover:bg-ink/6")}>{t(SECTION_KEYS[label])}</button>)}
+            className={cn("flex h-8 shrink-0 cursor-pointer items-center rounded-[8px] px-[9px] text-left text-[13px] leading-[18px] tracking-[0.195px] text-ink focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus", active === label ? "bg-ink/6" : "hover:bg-ink/[0.035]")}>{t(SECTION_KEYS[label])}</button>)}
         </nav>
         <div className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-3 sm:px-6 sm:py-4">
           {!ready && !error && <div role="status" className="flex items-center gap-2 text-[13px] leading-[18px] text-ink/68"><Loader2 size={14} className="animate-spin" />{t("newBot.loading")}</div>}
@@ -317,10 +317,10 @@ function StartingRole({ draft, defaultsMode }: { draft: BotCreationDraft; defaul
         {presets.length ? <optgroup label={t("newBot.builtInRoles")}>{roles}</optgroup> : roles}
       </Select>
     </label>
-    {chosen && <div className="mt-2 space-y-1 rounded-lg bg-card px-3 py-2.5 text-[13px] text-ink-secondary" data-new-bot-preset>
+    {chosen && <div className="mt-2 space-y-1 px-1 text-[13px] leading-[18px] text-ink/68" data-new-bot-preset>
       {presetSummaryLines(chosen).map((line, index) => <p key={index} className="break-words">{line}</p>)}
       {chosen.source === "file" && <button type="button" onClick={() => void remove(chosen)}
-        className="mt-1 rounded-md px-2 py-1 text-[12px] text-ink-secondary hover:bg-control hover:text-ink">{t("newBot.presetRemove")}</button>}
+        className="mt-1 inline-flex h-6 cursor-pointer items-center rounded-full px-2 text-[12px] leading-4 text-ink/68 hover:bg-ink/[0.035] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus">{t("newBot.presetRemove")}</button>}
     </div>}
     {error && <p role="alert" className="mt-2 text-[13px] text-danger">{error}</p>}
   </div>;
@@ -335,8 +335,8 @@ function DraftMemory({ draft }: { draft: BotCreationDraft }) {
     </Select>
     <textarea className={cn(inputCls, "min-h-72 font-mono")} aria-label={t("memory.contents")} value={draft.template.memory[path] ?? ""} onChange={event => draft.setMemory(path, event.target.value)} />
     <div className="flex gap-2"><input className={inputCls} aria-label={t("memory.newTopicLabel")} placeholder={t("memory.newTopicLabel")} value={name} onChange={event => setName(event.target.value)} />
-      <button type="button" aria-label={t("memory.addTopic")} disabled={!/^[a-zA-Z0-9_-]+$/.test(name)} className="rounded-lg bg-control px-3 disabled:opacity-40" onClick={() => { const next = `memory/${name}.md`; if (!(next in draft.template.memory)) draft.setMemory(next, ""); setPath(next); setName(""); }}><Plus size={16} /></button>
-      {path !== "MEMORY.md" && <button type="button" aria-label={t("memory.removeTopic")} className="rounded-lg bg-control px-3" onClick={() => { draft.setMemory(path, null); setPath("MEMORY.md"); }}><Trash2 size={16} /></button>}
+      <button type="button" aria-label={t("memory.addTopic")} disabled={!/^[a-zA-Z0-9_-]+$/.test(name)} className={cn(rowButtonCls, "h-9 disabled:opacity-40")} onClick={() => { const next = `memory/${name}.md`; if (!(next in draft.template.memory)) draft.setMemory(next, ""); setPath(next); setName(""); }}><Plus size={16} /></button>
+      {path !== "MEMORY.md" && <button type="button" aria-label={t("memory.removeTopic")} className={cn(rowButtonCls, "h-9")} onClick={() => { draft.setMemory(path, null); setPath("MEMORY.md"); }}><Trash2 size={16} /></button>}
     </div>
   </div>;
 }
@@ -344,11 +344,11 @@ function DraftMemory({ draft }: { draft: BotCreationDraft }) {
 function DraftRoutines({ draft }: { draft: BotCreationDraft }) {
   const [editing, setEditing] = useState<Routine | "new" | null>(null);
   return <div className="space-y-3">
-    <button type="button" className="rounded-lg bg-accent px-3 py-2 text-[13px] text-white" onClick={() => setEditing("new")}>{t("computer.routines.create")}</button>
-    {draft.routines.map(routine => <div key={routine.id} className="flex items-center gap-2 rounded-lg bg-card p-3">
+    <button type="button" className={rowButtonCls} onClick={() => setEditing("new")}>{t("computer.routines.create")}</button>
+    {draft.routines.map(routine => <div key={routine.id} className="flex items-center gap-2 rounded-[10px] px-2 py-1.5 hover:bg-ink/[0.035]">
       <button type="button" className="min-w-0 flex-1 text-left text-[13px]" onClick={() => setEditing(routine)}>{routine.name}</button>
       <label className="flex items-center gap-1.5 text-[12px] text-ink-secondary"><input type="checkbox" checked={routine.enabled} onChange={event => draft.setRoutineEnabled(routine.id, event.target.checked)} />{t("newBot.enabled")}</label>
-      <button type="button" aria-label={t("newBot.removeRoutine", { name: routine.name })} onClick={() => draft.removeRoutine(routine.id)} className="rounded p-1.5 hover:bg-control"><Trash2 size={15} /></button>
+      <button type="button" aria-label={t("newBot.removeRoutine", { name: routine.name })} onClick={() => draft.removeRoutine(routine.id)} className="flex size-7 cursor-pointer items-center justify-center rounded-full text-ink/68 hover:bg-ink/6 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus"><Trash2 size={15} /></button>
     </div>)}
     {editing && <RoutineEditor routine={editing === "new" ? undefined : editing} bots={[draft.bot]} lockedBotId={draft.id} onClose={() => setEditing(null)} />}
   </div>;

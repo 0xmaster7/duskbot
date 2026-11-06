@@ -8,7 +8,13 @@ const opened = vi.hoisted(() => ({ props: null as null | { readyBotId?: string; 
 vi.mock("./lazy-screens", () => ({
   NewBotDialog: (props: NonNullable<typeof opened.props>) => { opened.props = props; return null; },
 }));
-vi.mock("@/state/store", () => ({ useStore: () => ({ dispatch: opened.dispatch, state: opened.state }) }));
+const made = vi.hoisted(() => ({ defaults: { profile: {}, memory: {}, skills: [], routines: [] } as { profile: Record<string, unknown>; memory: object; skills: unknown[]; routines: unknown[] }, create: vi.fn() }));
+vi.mock("@/state/store", () => ({
+  useStore: () => ({ dispatch: opened.dispatch, state: opened.state }),
+  api: vi.fn(async () => ({ defaults: made.defaults, suggestedName: "Nova", modelSelection: { instanceId: "", model: "" } })),
+}));
+vi.mock("@/lib/create-configured-bot", () => ({ createConfiguredBot: made.create }));
+vi.mock("@/lib/new-bot", async (actual) => ({ ...await actual<typeof import("@/lib/new-bot")>(), announceNewBot: vi.fn() }));
 
 const { ReadyBotGallery } = await import("./ReadyBotGallery");
 const { READY_BOTS } = await import("@/lib/ready-bots");
@@ -32,6 +38,9 @@ beforeEach(() => {
   opened.props = null;
   opened.state = { config: null, bots: [] };
   opened.dispatch.mockReset();
+  made.defaults = { profile: {}, memory: {}, skills: [], routines: [] };
+  made.create.mockReset();
+  made.create.mockImplementation(async (draft: { bot: { name: string } }) => ({ bot: { id: "new-bot", name: draft.bot.name }, warnings: [] }));
   onDialog.mockClear();
   onAdded.mockClear();
 });
@@ -62,10 +71,22 @@ describe("ready-made bots gallery", () => {
     expect(host.querySelector("section")).toBeNull();
   });
 
-  it("opens New bot filled in with the chosen bot, and tells Templates to step aside", () => {
+  it("makes the chosen bot in one click, filled in from it", async () => {
     render();
     flushSync(() => button("Add Fern, Plant care log").click());
-    expect(opened.props?.readyBotId).toBe("plant-care");
+    await vi.waitFor(() => expect(onAdded).toHaveBeenCalledWith({ id: "new-bot", name: "Fern" }));
+    expect(opened.props).toBeNull();
+    expect(onDialog).not.toHaveBeenCalled();
+    expect(opened.dispatch).toHaveBeenCalledWith({ type: "botCreationPending", on: true });
+    expect(opened.dispatch).toHaveBeenLastCalledWith({ type: "botCreationPending", on: false });
+  });
+
+  it("opens the review when the bot would approve its own work on this computer, and steps Templates aside", async () => {
+    made.defaults = { profile: { approvalMode: "auto", computer: "local" }, memory: {}, skills: [], routines: [] };
+    render();
+    flushSync(() => button("Add Fern, Plant care log").click());
+    await vi.waitFor(() => expect(opened.props?.readyBotId).toBe("plant-care"));
+    expect(made.create).not.toHaveBeenCalled();
     expect(onDialog).toHaveBeenLastCalledWith(true);
     opened.props!.onCreated!({ id: "new-bot" });
     expect(onAdded).toHaveBeenCalledWith({ id: "new-bot" });
@@ -80,9 +101,11 @@ describe("ready-made bots gallery", () => {
     expect(opened.dispatch).toHaveBeenCalledWith({ type: "newBot", onCreated: onAdded });
   });
 
-  it("gives Templates its keys back when New bot is closed without creating", () => {
+  it("gives Templates its keys back when the review is closed without creating", async () => {
+    made.defaults = { profile: { approvalMode: "auto", computer: "local" }, memory: {}, skills: [], routines: [] };
     render();
     flushSync(() => button("Add Echo, Humanizer").click());
+    await vi.waitFor(() => expect(opened.props).not.toBeNull());
     flushSync(() => opened.props!.onClose!());
     expect(onDialog).toHaveBeenLastCalledWith(false);
     expect(onAdded).not.toHaveBeenCalled();
@@ -94,7 +117,7 @@ describe("ready-made bots gallery", () => {
     render();
     flushSync(() => button("Add Fern, Plant care log").click());
     expect(opened.props).toBeNull();
-    expect(onDialog).not.toHaveBeenCalled();
+    expect(made.create).not.toHaveBeenCalled();
     expect(botLimitShown()).toBe(true);
     closeBotLimit();
   });

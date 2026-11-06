@@ -105,7 +105,7 @@ export function AvatarFraming({
             type="button"
             disabled={disabled}
             onClick={() => onPatch({ avatarZoom: AVATAR_ZOOM_MIN, avatarFocusX: AVATAR_FOCUS_CENTER, avatarFocusY: AVATAR_FOCUS_CENTER })}
-            className="h-6 shrink-0 cursor-pointer rounded-full bg-ink/6 px-2 text-[12px] leading-4 text-ink transition-colors duration-[120ms] ease-[ease] hover:bg-ink/10 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:opacity-50"
+            className="h-6 shrink-0 cursor-pointer rounded-full bg-ink/6 px-2 text-[12px] leading-4 text-ink hover:bg-ink/10 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:opacity-50"
           >
             Reset framing
           </button>
@@ -121,7 +121,7 @@ export function OrganizationAvatarIcons({ busy, onUpload }: { busy: boolean; onU
   return (
     <div className="mb-3 flex flex-col gap-2">
       <div className="text-[12px] leading-4 tracking-[0.01em] text-ink/68">{organization.name} icons</div>
-      <div className="flex flex-wrap gap-2">{organization.icons.map(icon => <button key={icon.id} type="button" disabled={busy} title={icon.name} aria-label={`Use ${icon.name} icon`} className="flex size-12 cursor-pointer items-center justify-center rounded-[10px] border border-ink/8 transition-colors duration-[120ms] ease-[ease] hover:bg-ink/5 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:opacity-50" onClick={() => {
+      <div className="flex flex-wrap gap-2">{organization.icons.map(icon => <button key={icon.id} type="button" disabled={busy} title={icon.name} aria-label={`Use ${icon.name} icon`} className="flex size-12 cursor-pointer items-center justify-center rounded-[10px] border border-ink/8 hover:bg-ink/[0.035] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:opacity-50" onClick={() => {
         const bytes = Uint8Array.from(atob(icon.image.slice(22)), byte => byte.charCodeAt(0));
         onUpload(new File([bytes], `${icon.id}.png`, { type: "image/png" }));
       }}><img src={icon.image} alt="" className="size-10 rounded-md object-contain" /></button>)}</div>

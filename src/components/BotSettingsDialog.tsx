@@ -29,6 +29,7 @@ import { BOT_PANEL_ID, sidePanelCls } from "./bot-panel/side-panel";
 import { HistoryRollbackDialog, useBotHistory, useBotOverview } from "./bot-settings/useBotOverview";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { ShareBotButton, useTeamName } from "./bot-access/ShareBotButton";
+import { formCloseCls } from "./ui/GrokDialog";
 
 /** Where the Library's memory, skills and folder rows lead in Advanced settings. */
 
@@ -104,7 +105,7 @@ export function BotSettingsDialog({ bot, overlay = false }: {
     switch (id) {
       case "overview":
         return overview === null && overviewError ? (
-          <div className="rounded-xl bg-card p-4 text-[13px] text-ink-secondary">Couldn’t load the overview.</div>
+          <div className="py-4 text-[13px] leading-[18px] text-ink/68">Couldn’t load the overview.</div>
         ) : (
           <OverviewSection
             overview={overview}
@@ -151,7 +152,7 @@ export function BotSettingsDialog({ bot, overlay = false }: {
         return <VisibilitySection bot={bot} />;
       case "history":
         return history.rows === null && history.error ? (
-          <div className="rounded-xl bg-card p-4 text-[13px] text-ink-secondary">Couldn’t load history.</div>
+          <div className="py-4 text-[13px] leading-[18px] text-ink/68">Couldn’t load history.</div>
         ) : (
           <HistorySection
             bot={bot}
@@ -191,14 +192,14 @@ export function BotSettingsDialog({ bot, overlay = false }: {
             {bot.name}
           </span>
           <span className="flex shrink-0 items-center gap-1">
-            <ShareBotButton bot={bot} className="rounded-md p-1 text-ink-secondary hover:bg-control hover:text-ink" />
+            <ShareBotButton bot={bot} className={formCloseCls} />
             <button
               type="button"
               onClick={() => dispatch({ type: "toggleSettings", open: false })}
               aria-label="Close settings"
-              className="rounded-md p-1 text-ink-secondary hover:bg-control hover:text-ink"
+              className={formCloseCls}
             >
-              <X size={18} className="pointer-events-none" />
+              <X size={16} className="pointer-events-none" />
             </button>
           </span>
         </div>
@@ -254,7 +255,7 @@ export function BotSettingsDialog({ bot, overlay = false }: {
                   aria-expanded={open}
                   className={cn(
                     "flex w-full shrink-0 items-center gap-2.5 px-4 py-2.5 text-left text-[14px]",
-                    open ? "bg-control/60 text-ink" : "text-ink-secondary hover:bg-control/40 hover:text-ink",
+                    open ? "bg-ink/6 text-ink" : "text-ink/68 hover:bg-ink/[0.035] hover:text-ink",
                   )}
                 >
                   <Icon size={15} className="shrink-0" />
