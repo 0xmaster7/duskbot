@@ -1,10 +1,4 @@
-/* a row that arrives while the conversation is open rises 12px into place; the rows already there never move */
-@keyframes chat-row-in {
-  from { transform: translateY(12px); }
-}
-.chat-row-in {
-  animation: chat-row-in 0.24s cubic-bezier(0.23, 1, 0.32, 1) backwards;
-}
+/* rows arriving in an open conversation move in use-arrival-flow.ts; reduced motion's status line borrows this fade */
 @keyframes chat-row-fade {
   from { opacity: 0; }
 }
@@ -258,7 +252,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .chat-row-in { animation: chat-row-fade 0.12s cubic-bezier(0.23, 1, 0.32, 1) backwards; }
   .chat-link-text { transition: none; }
 }
 

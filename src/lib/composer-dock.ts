@@ -17,7 +17,13 @@ export function useComposerDockPad(ref: RefObject<HTMLElement | null>) {
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const apply = () => setHeight(el.getBoundingClientRect().height);
+    // the pill springs between one row and several; the transcript keeps the height it is settling to, so it moves once
+    // instead of on every frame of the spring
+    const apply = () => {
+      const pill = el.querySelector<HTMLElement>(".composer-pill");
+      const settling = pill?.style.height ? parseFloat(pill.style.height) - pill.getBoundingClientRect().height : 0;
+      setHeight(el.getBoundingClientRect().height + (Number.isFinite(settling) ? settling : 0));
+    };
     apply();
     const observer = new ResizeObserver(apply);
     observer.observe(el);

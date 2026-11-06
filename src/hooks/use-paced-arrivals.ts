@@ -1,7 +1,4 @@
-import { animate } from "motion/react";
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
-
-import { usePrefersReducedMotion } from "@/components/mascot-clock";
+import { useEffect, useRef, useState } from "react";
 
 /** How long the first reply waits after the status line, and the gap between replies that land together, in ms. */
 export const PACE_FIRST_MS = [150, 300] as const;
@@ -85,48 +82,4 @@ export function usePacedArrivals<T extends Arrival>(key: string, rows: T[], pace
   }, [due]);
 
   return head >= rows.length ? { shown: rows, held: [] } : { shown: rows.slice(0, head), held: rows.slice(head) };
-}
-
-/** iMessage's lift: a soft spring with a whisper of overshoot. */
-const LIFT = { type: "spring", stiffness: 420, damping: 34, mass: 1 } as const;
-const FADE = { duration: 0.12, ease: "easeOut" } as const;
-
-/** A row that unmounts mid-entrance cancels its animation; that is not an error. */
-const settle = (run: { then: (resolve: () => void, reject?: () => void) => unknown }) => void run.then(() => {}, () => {});
-
-/** While the transcript follows its end, a row added there makes everything glide up into place from where it was,
- * the new row rising from the composer, instead of the scroll snapping it into view. One transform on the column.
- * Only a row that arrived after the conversation opened glides: opening a chat, or its history loading, lands in place. */
-export function useArrivalGlide(columnRef: RefObject<HTMLElement | null>, last: { id: string; at: number } | undefined, following: boolean, openedAt: number): void {
-  const reduced = usePrefersReducedMotion();
-  const height = useRef<{ id: string | undefined; px: number } | null>(null);
-  const lastId = last?.id;
-  const live = Boolean(last && last.at > openedAt);
-  useLayoutEffect(() => {
-    const column = columnRef.current;
-    if (!column) return;
-    const px = column.offsetHeight;
-    const before = height.current;
-    height.current = { id: lastId, px };
-    if (!before || before.id === lastId || !following || reduced || !live) return;
-    const grew = px - before.px;
-    if (grew <= 0 || grew > window.innerHeight) return;
-    settle(animate(column, { y: [grew, 0] }, LIFT));
-  }, [columnRef, lastId, following, reduced, live]);
-}
-
-/** A row that arrives while the conversation is open grows into place: the person's bubble from the composer side, a
- * bot's bubble out of its status line at the start edge. Under reduced motion it only fades in. */
-export function useArrivalMotion(rowRef: RefObject<HTMLElement | null>, fresh: boolean, side: "start" | "end"): void {
-  const reduced = usePrefersReducedMotion();
-  const played = useRef(false);
-  useLayoutEffect(() => {
-    const row = rowRef.current;
-    if (!row || !fresh || played.current) return;
-    played.current = true;
-    row.style.transformOrigin = side === "end" ? "100% 100%" : "0% 100%";
-    if (reduced) settle(animate(row, { opacity: [0, 1] }, FADE));
-    else if (side === "end") settle(animate(row, { scale: [0.96, 1] }, LIFT));
-    else settle(animate(row, { opacity: [0, 1], scale: [0.9, 1] }, { opacity: { duration: 0.16, ease: "easeOut" }, scale: LIFT }));
-  }, [rowRef, fresh, side, reduced]);
 }

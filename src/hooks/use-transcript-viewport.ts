@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type DependencyList,
+  type RefObject,
   type PointerEvent,
   type TouchEvent,
   type WheelEvent,
@@ -21,6 +22,7 @@ import {
   tailWindowStart,
 } from "@/lib/transcript-window";
 import { reducedMotion } from "@/lib/onboarding";
+import { useArrivalFlow } from "@/hooks/use-arrival-flow";
 import { useStore } from "@/state/store";
 
 export const AUTO_EXPAND_TOP_THRESHOLD = 250;
@@ -34,6 +36,7 @@ export function useTranscriptViewport<T extends { id: string; role?: string }>({
   pinOn,
   transcriptShown = true,
   hasMore = false,
+  composerRef,
 }: {
   ownerId: string;
   threadId: string;
@@ -41,10 +44,14 @@ export function useTranscriptViewport<T extends { id: string; role?: string }>({
   pinOn: DependencyList;
   transcriptShown?: boolean;
   hasMore?: boolean;
+  /** the composer dock: a person's sent bubble rises from its top edge */
+  composerRef?: RefObject<HTMLElement | null>;
 }) {
   const { state, dispatch } = useStore();
   const scrollRef = useRef<HTMLDivElement>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
+  // wraps the transcript column: it clips the column while arrivals move it, so the scroll range never includes them
+  const clipRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
 
   // Follow breaks only on an upward user gesture: content growth flickers "at bottom" false for a frame.
@@ -287,8 +294,11 @@ export function useTranscriptViewport<T extends { id: string; role?: string }>({
     },
   };
 
+  useArrivalFlow({ scrollRef, clipRef, columnRef: transcriptRef, composerRef, transcriptKey, following: follow });
+
   return {
     scrollRef,
+    clipRef,
     transcriptRef,
     topSentinelRef,
     transcriptKey,

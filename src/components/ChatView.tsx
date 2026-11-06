@@ -107,7 +107,7 @@ import { LiveCallBar } from "./LiveCallBar";
 import { LiveCallChip } from "./LiveCallPill";
 import { effectivePlace, toolPlace, type EffectivePlace } from "@/lib/place";
 import { cn } from "@/lib/cn";
-import { useArrivalGlide, useArrivalMotion, usePacedArrivals } from "@/hooks/use-paced-arrivals";
+import { usePacedArrivals } from "@/hooks/use-paced-arrivals";
 import { activeLocale, t } from "@/lib/i18n";
 import { COMPACT_BUBBLE } from "@/lib/compact-chip";
 import { groupTranscript, isStatusActivity, turnDurations, workedLabel, type TranscriptItem } from "@/lib/activity-runs";
@@ -408,9 +408,6 @@ const Bubble = memo(function Bubble({
     if (focusedSearch && collapsible) setExpanded(true);
   }, [focusedSearch, collapsible, focus?.nonce]);
 
-  const arrivalRef = useRef<HTMLDivElement>(null);
-  useArrivalMotion(arrivalRef, Boolean(fresh), user ? "end" : "start");
-
   if (user && editing && !webhookView && !hasAttachments) {
     return (
       <div className="flex w-full justify-end">
@@ -446,7 +443,7 @@ const Bubble = memo(function Bubble({
   );
 
   return (
-    <div ref={arrivalRef} {...{ [MESSAGE_ROW]: "" }} className={cn("group flex w-full flex-col", simple && "relative", (reactionsOnBubble || (mediaReactions && !group)) && "pt-[26px]", user ? "items-end" : "items-start", simple && join?.above && SIMPLE_STACKED)}>
+    <div {...{ [MESSAGE_ROW]: "" }} data-arrival={fresh ? (user ? "end" : "start") : undefined} className={cn("group flex w-full flex-col", simple && "relative", (reactionsOnBubble || (mediaReactions && !group)) && "pt-[26px]", user ? "items-end" : "items-start", simple && join?.above && SIMPLE_STACKED)}>
       {message.relay ? <RelayLabel message={message} /> : peer && <PeerLabel peer={peer} />}
       {speaker && <div className="mb-0.5 px-1 text-[12px] font-medium text-ink-secondary">{speaker}</div>}
       {imagesAbove && <AttachmentGallery images={imagesAbove.images} files={imagesAbove.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} align="end" className="mb-1" />}
@@ -985,6 +982,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
 
   const {
     scrollRef,
+    clipRef,
     transcriptRef,
     topSentinelRef,
     transcriptKey,
@@ -1002,6 +1000,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
     messages,
     pinOn: [bot.busy, composerDock.pad],
     hasMore: bot.hasMore,
+    composerRef: composerDockRef,
   });
   useTimestampPeek(scrollRef, !advanced);
 
@@ -1086,7 +1085,6 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const presenceShown = useLingering(presenceVisible, 140);
   const paintedMessages = useFirstPaintRows(transcriptKey, arrivedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef);
   const lastShownRow = arrivedMessages.findLast((message) => !quietRow(message, showToolCalls));
-  useArrivalGlide(transcriptRef, paintedMessages.at(-1), following, openedAt);
   const lastRowIsBubble = Boolean(lastShownRow && isBotTextRow(lastShownRow, bot.id));
   const presenceUnderBubble = lastRowIsBubble;
   // grok keeps the status line's slot at the end of the conversation whether it shows or not, so it never moves a row
@@ -1287,6 +1285,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
         style={advanced ? undefined : { scrollPaddingBottom: composerDock.pad }}
         {...scrollHandlers}
       >
+        <div ref={clipRef}>
         <div
           ref={transcriptRef}
           // Simple mode spaces groups 16px apart, Advanced 12px.
@@ -1380,6 +1379,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             since={busySince}
           />
           </div>
+        </div>
         </div>
       </div>
 

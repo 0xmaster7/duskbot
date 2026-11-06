@@ -76,7 +76,7 @@ import { groupActivityRuns, isStatusActivity, roomTurnFolds } from "@/lib/activi
 import { TurnNarrationRun } from "./TurnNarrationRun";
 import { ActivityRun } from "./ActivityRun";
 import { cn } from "@/lib/cn";
-import { useArrivalGlide, useArrivalMotion, usePacedArrivals } from "@/hooks/use-paced-arrivals";
+import { usePacedArrivals } from "@/hooks/use-paced-arrivals";
 import { useMenuMotion } from "./MenuMotion";
 import { useLiveToolIds } from "@/hooks/use-live-tool-ids";
 import { roomNeedsSetup } from "@/lib/room-setup";
@@ -211,10 +211,8 @@ function RoomTextMessage({
       {botText && speaking && <SpeakButton text={botText} botId={speakerBot?.id} messageId={m.id} voiceId={speakerBot?.voice} tts={state.config?.tts} localVoice={localSystemVoiceActive()} className={cn(messageActionClass, "text-accent")} />}
     </MessageActions>
   );
-  const arrivalRef = useRef<HTMLDivElement>(null);
-  useArrivalMotion(arrivalRef, Boolean(fresh), user ? "end" : "start");
   return (
-    <div ref={arrivalRef} {...{ [MESSAGE_ROW]: "" }} className={cn("group flex w-full flex-col", simple && "relative", user ? "items-end" : "items-start", simple && join.above && SIMPLE_STACKED)}>
+    <div {...{ [MESSAGE_ROW]: "" }} data-arrival={fresh ? (user ? "end" : "start") : undefined} className={cn("group flex w-full flex-col", simple && "relative", user ? "items-end" : "items-start", simple && join.above && SIMPLE_STACKED)}>
       {speaker && <div className="mb-0.5 px-1 text-[12px] font-medium text-ink-secondary">{speaker}</div>}
       {mediaRow && attachments && <AttachmentGallery images={attachments.images} files={attachments.files} message={{ threadId: group.threadId, messageId: m.id }} eager={eager} align="end" className={display.trim() ? "mb-1" : undefined} />}
       <div data-own-row={simple && user ? "" : undefined} className={cn("flex w-full gap-1.5", simple ? "items-center" : "items-end", user ? "justify-end" : "justify-start")}>
@@ -1012,6 +1010,7 @@ export function GroupView({ group }: { group: Group }) {
 
   const {
     scrollRef,
+    clipRef,
     transcriptRef,
     topSentinelRef,
     transcriptKey,
@@ -1030,13 +1029,12 @@ export function GroupView({ group }: { group: Group }) {
     pinOn: [group.busyBotId, group.working, composerDock.pad],
     transcriptShown: !setupPending,
     hasMore: group.hasMore,
+    composerRef: composerDockRef,
   });
   useTimestampPeek(scrollRef, !advancedMode);
   // the status line keeps its slot at the end of the room whether it shows or not, so it never moves a row
   const statusSlot = !advancedMode && (windowedMessages.length > 0 || threadWorking);
-  const openedAt = useThreadOpenedAt(group.threadId);
   const { shown: arrivedMessages, held: heldReplies } = usePacedArrivals(transcriptKey, windowedMessages, pacedRoomRow);
-  useArrivalGlide(transcriptRef, arrivedMessages.at(-1), following, openedAt);
   // a member whose reply landed but waits its turn is still typing until its bubble takes over
   const typingIds = [...new Set(heldReplies.flatMap((m) => (m.from?.botId ? [m.from.botId] : [])))];
   const unreadDivider = useUnreadDivider({ threadId: group.threadId, messages: group.messages, following });
@@ -1140,6 +1138,7 @@ export function GroupView({ group }: { group: Group }) {
             <RoomSetup group={group} members={members} />
           </div>
         ) : (
+        <div ref={clipRef}>
         <div
           ref={transcriptRef}
           data-simple-rows={advancedMode ? undefined : ""}
@@ -1208,6 +1207,7 @@ export function GroupView({ group }: { group: Group }) {
             slot={statusSlot}
           />
           {advancedMode && <RoomQueueList group={group} members={members} />}
+        </div>
         </div>
         )}
       </div>

@@ -27,6 +27,10 @@
 .composer-press:active:not(:disabled) {
   transform: scale(0.98);
 }
+/* the send button presses deeper, as bencho's primary buttons do */
+.composer-press[data-composer-send]:active:not(:disabled) {
+  transform: scale(0.96);
+}
 
 [data-glyph-swap] .composer-glyph {
   animation: composer-glyph-in 200ms var(--composer-glyph-ease);
@@ -53,7 +57,7 @@
     transition-duration: 120ms, 120ms, 150ms;
     transition-timing-function: ease;
   }
-  .composer-press:active:not(:disabled) { transform: none; }
+  .composer-press:active:not(:disabled), .composer-press[data-composer-send]:active:not(:disabled) { transform: none; }
   [data-glyph-swap] .composer-glyph { animation-name: composer-glyph-fade; }
   .composer-pill[data-snap] { transition-duration: 0s, 120ms, 150ms; }
   .composer-glyph-out { animation-name: composer-glyph-fade-out; }
@@ -62,7 +66,8 @@
   transition-duration: 120ms, 120ms, 150ms;
   transition-timing-function: ease;
 }
-:root[data-reduced-motion="true"] .composer-press:active:not(:disabled) { transform: none; }
+:root[data-reduced-motion="true"] .composer-press:active:not(:disabled),
+:root[data-reduced-motion="true"] .composer-press[data-composer-send]:active:not(:disabled) { transform: none; }
 :root[data-reduced-motion="true"] [data-glyph-swap] .composer-glyph { animation-name: composer-glyph-fade; }
 :root[data-reduced-motion="true"] .composer-pill[data-snap] { transition-duration: 0s, 120ms, 150ms; }
 :root[data-reduced-motion="true"] .composer-glyph-out { animation-name: composer-glyph-fade-out; }

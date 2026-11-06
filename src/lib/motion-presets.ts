@@ -154,3 +154,10 @@ export const PALETTE = {
   animate: { opacity: 1, y: 0 },
   transition: withFade(BENCHO.spring.panel),
 } as const;
+
+/** bencho's settle spring: a message landing, a container mounting; about 0.2% overshoot */
+export const SPRING_SETTLE = { ...BENCHO.spring.settle, mass: 1 } as const;
+
+/** a message's own fade while it settles (bencho msg-in), and the blur that masks a swap of one thing for another */
+export const MSG_FADE = { duration: BENCHO.dur.fast, ease: EASE_OUT } as const;
+export const SWAP_BLUR_PX = 3;
