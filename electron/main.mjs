@@ -34,6 +34,7 @@ import { createOrganizationEntry, isOrganizationDeepLink, takeOrganizationDeepLi
 import { FRAME_BY_DEFAULT, widenedBounds, windowBackground, windowChromeOptions } from "./window-chrome.mjs";
 import { createAllWindowsClosedQuit } from "./window-all-closed.mjs";
 import { createStartupScreen } from "./startup-screen.mjs";
+import { createDevServerChild, devOwnServerWanted, devServerConflictMessage, watchServerSource } from "./dev-server-child.mjs";
 import { createSystemTray } from "./system-tray.mjs";
 import { createLendingIndicator } from "./lending-indicator.mjs";
 import { createLendingDialogs } from "./lending-dialogs.mjs";
@@ -133,6 +134,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // vite binds IPv4; a bare "localhost" can resolve to ::1.
 const DEV_URL = process.env.ELECTRON_START_URL ?? "http://127.0.0.1:5199";
 let SERVER_PORT = 8799;
+let devServer = null;
 const APP_ICON = path.join(__dirname, "resources/app-icon.png");
 let desktopViewerWindow = null;
 let desktopViewerOwner = null;
@@ -1232,6 +1234,37 @@ async function startServerPackaged() {
   }
   serverStartConflictOnly = everyPortForeignOwned;
   return false;
+}
+
+async function startDevServer() {
+  SERVER_PORT = Number(process.env.OMB_PORT || process.env.OGB_PORT || 8799);
+  const root = app.getAppPath();
+  devServer = createDevServerChild({
+    fork: (entry, args, options) => utilityProcess.fork(entry, args, options),
+    entry: path.join(root, "server", "dev-server.ts"),
+    env: { ...process.env, OMB_PORT: String(SERVER_PORT) },
+    port: SERVER_PORT,
+    grant: grantLocalComputer,
+    conflict: (port) => {
+      const message = devServerConflictMessage(port);
+      console.error(`[dev-server] ${message}`);
+      dialog.showErrorBox("The dev server port is taken", message);
+    },
+    gaveUp: (times) => {
+      console.error(`[dev-server] stopped after ${times} quick exits; save a server file to try again`);
+      dialog.showErrorBox("The dev server keeps stopping", `It exited ${times} times right after starting. See the terminal running \`pnpm dev:app\`, then save a server file or restart.`);
+    },
+    log: (line) => console.log(`[dev-server] ${line}`),
+  });
+  if (!(await devServer.start())) return false;
+  if (process.env.OMB_DEV_SERVER_WATCH !== "0") {
+    const unwatch = watchServerSource({ watch: fs.watch, dirs: [path.join(root, "server"), path.join(root, "shared")], restart: () => {
+      console.log("[dev-server] source changed, restarting");
+      devServer.restart();
+    } });
+    app.once("will-quit", unwatch);
+  }
+  return true;
 }
 
 function syncManagedComposioCredentials() {
@@ -3069,6 +3102,11 @@ app.whenReady().then(async () => {
       serverReady = false;
       slog(`desktop companion relay failed: ${error?.message ?? error}`);
     }
+  } else if (devOwnServerWanted(process.env, app.isPackaged)) {
+    if (!(await startDevServer())) {
+      app.quit();
+      return;
+    }
   } else if (app.isPackaged) {
     const booted = await startServerPackaged();
     if (!booted && !desktopShutdownStarted && bootDataDir !== desktopDataDir()) {
@@ -3212,7 +3250,7 @@ app.on("before-quit", (e) => {
   if (cuaCleanedUp) return;
   e.preventDefault();
   // Cancel a scheduled recovery before yielding.
-  const stoppingServer = serverSupervisor.shutdown();
+  const stoppingServer = Promise.all([serverSupervisor.shutdown(), devServer?.stop() ?? true]).then((all) => all.every(Boolean));
   syncCompanionKeepAwake(false, false);
   routineWake.stop();
   try {
