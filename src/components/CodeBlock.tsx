@@ -1,15 +1,13 @@
 // Security: Shiki's output is generator-escaped; nothing else reaches the DOM as HTML.
 import { useEffect, useMemo, useState } from "react";
 import type { HighlighterCore } from "shiki/core";
-import { Check, Copy, Download, WrapText, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 
 import { GROK_LIGHT_THEME } from "./code-theme-grok";
 import { GrokIcon } from "./GrokIcon";
 import { cn } from "@/lib/cn";
 import { useCopyFeedback } from "@/lib/copy-text";
 import { t } from "@/lib/i18n";
-import { useAdvancedMode } from "@/lib/interface-mode";
-import { countLines, downloadSnippetFile, formatLineCount, getLanguageDisplayName, getSnippetFileName } from "../lib/code-block";
 import { SidebarPopoverMenu, type SidebarMenuItem } from "./SidebarPopoverMenu";
 
 const highlightCache = new Map<string, string>();
@@ -174,7 +172,7 @@ const PLATE_BUTTON_SMALL = "composer-press inline-flex size-5 items-center justi
 /** Grok's copy-code button: a 24px white key with a hairline and a small drop, top right of the block. */
 const PLATE_BUTTON = "composer-press inline-flex size-6 items-center justify-center rounded-[6px] border border-ink/[0.08] bg-composer text-ink/[0.66] shadow-[0_1px_3px_rgb(28_28_28/0.12)] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
 
-/** Simple mode's hover plate on a code block or diagram: Copy, and a ⋯ menu for the rest. It shows on hover, on
+/** The hover plate on a code block or diagram: Copy, and a ⋯ menu for the rest. It shows on hover, on
  * keyboard focus and always on touch screens, and stays while its menu is open. */
 export function CodePlate({ copied, onCopy, copyLabel, items, small = false, expand }: {
   copied: "idle" | "copied" | "failed";
@@ -208,17 +206,13 @@ export function CodePlate({ copied, onCopy, copyLabel, items, small = false, exp
 }
 
 export function CodeBlock({ code, lang, initialWrap = false }: CodeBlockProps) {
-  const simple = !useAdvancedMode();
-  // simple mode leaves a fence with no language plain, in the bubble's grey, as grok does
-  const highlightable = code.length <= HIGHLIGHT_MAX_CHARS && (!simple || Boolean(lang.trim()));
+  // a fence with no language stays plain, in the bubble's grey, as grok does
+  const highlightable = code.length <= HIGHLIGHT_MAX_CHARS && Boolean(lang.trim());
   const [html, setHtml] = useState<string | null>(() => highlightable ? highlightCache.get(highlightKey(lang, code)) ?? null : null);
   // React compares dangerouslySetInnerHTML by identity: a fresh object each render rebuilds the highlighted DOM.
   const markup = useMemo(() => (html ? { __html: html } : null), [html]);
   const { state: copied, copy } = useCopyFeedback(code);
-  const [wrapLines, setWrapLines] = useState(initialWrap);
-  useEffect(() => {
-    setWrapLines(initialWrap);
-  }, [initialWrap]);
+  const wrapLines = initialWrap;
 
   useEffect(() => {
     if (!highlightable) return setHtml(null);
@@ -239,13 +233,6 @@ export function CodeBlock({ code, lang, initialWrap = false }: CodeBlockProps) {
     };
   }, [code, lang, highlightable]);
 
-  const download = () => {
-    const filename = getSnippetFileName(lang);
-    downloadSnippetFile(filename, code);
-  };
-
-  const displayLanguage = getLanguageDisplayName(lang);
-  const lineCount = countLines(code);
   const body = (pad: string, plainInk: string) => markup ? (
     <div
       className={cn(`text-[13px] [&_pre]:!bg-transparent [&_pre]:m-0 ${pad}`, wrapLines
@@ -259,73 +246,11 @@ export function CodeBlock({ code, lang, initialWrap = false }: CodeBlockProps) {
     </pre>
   );
 
-  if (simple) {
-    return (
-      <div dir="ltr" data-lang={lang.trim() || undefined} className="chat-code-block group/code relative my-2.5 overflow-hidden rounded-lg bg-ink/[0.04]">
-        {/* grok's code block offers copy alone */}
-        <CodePlate copied={copied} onCopy={copy} copyLabel={t("code.copyTitle")} small={Boolean(lang.trim())} items={[]} />
-        {body("leading-5 [&_pre]:px-3 [&_pre]:py-2", "text-ink-secondary")}
-      </div>
-    );
-  }
-
   return (
-    <div dir="ltr" className="chat-code-block my-2 overflow-hidden rounded-lg border border-hairline/40 bg-inset">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline/30 bg-raised/30 px-3 py-1.5 text-xs">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <span title={displayLanguage} className="min-w-0 truncate rounded border border-hairline/40 bg-raised px-1.5 py-0.5 text-[11px] font-medium tracking-wide text-ink select-none">
-            {displayLanguage}
-          </span>
-          {lineCount > 0 && (
-            <span className="shrink-0 whitespace-nowrap text-[11px] text-ink-secondary select-none">
-              {formatLineCount(lineCount)}
-            </span>
-          )}
-        </div>
-        <div className="chat-code-actions flex shrink-0 items-center gap-1 whitespace-nowrap">
-          <button
-            type="button"
-            onClick={() => setWrapLines((w) => !w)}
-            className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] transition-colors ${
-              wrapLines
-                ? "bg-accent/15 text-accent font-medium"
-                : "text-ink-secondary hover:bg-raised hover:text-ink"
-            }`}
-            title={wrapLines ? t("code.unwrapLong") : t("code.wrapLong")}
-            aria-label={wrapLines ? t("code.unwrapLong") : t("code.wrapLong")}
-            aria-pressed={wrapLines}
-          >
-            <WrapText size={12} aria-hidden="true" />
-            <span>{wrapLines ? t("code.unwrap") : t("code.wrap")}</span>
-          </button>
-          <button
-            type="button"
-            onClick={download}
-            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-ink-secondary hover:bg-raised hover:text-ink transition-colors"
-            title={t("code.saveTitle")}
-            aria-label={t("code.saveTitle")}
-          >
-            <Download size={12} aria-hidden="true" />
-            <span>{t("code.save")}</span>
-          </button>
-          <button
-            type="button"
-            onClick={copy}
-            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-ink-secondary hover:bg-raised hover:text-ink transition-colors"
-            title={copied === "copied" ? t("code.copiedTitle") : copied === "failed" ? t("common.copyFailed") : t("code.copyTitle")}
-            aria-label={copied === "copied" ? t("code.copiedAria") : copied === "failed" ? t("common.copyFailed") : t("code.copyAria")}
-          >
-            {copied === "failed" ? <X size={12} className="text-danger" aria-hidden="true" />
-              : copied === "copied" ? <Check size={12} className="text-success" aria-hidden="true" />
-                : <Copy size={12} aria-hidden="true" />}
-            <span aria-hidden="true" className="hidden max-sm:inline touch:inline">{t("code.copy")}</span>
-            <span role="status" className={`max-sm:sr-only touch:sr-only ${copied === "failed" ? "text-danger font-medium" : copied === "copied" ? "text-success font-medium" : ""}`}>
-              {copied === "failed" ? t("common.copyFailed") : copied === "copied" ? t("code.copied") : t("code.copy")}
-            </span>
-          </button>
-        </div>
-      </div>
-      {body("leading-relaxed [&_pre]:p-3", "text-ink")}
+    <div dir="ltr" data-lang={lang.trim() || undefined} className="chat-code-block group/code relative my-2.5 overflow-hidden rounded-lg bg-ink/[0.04]">
+      {/* grok's code block offers copy alone */}
+      <CodePlate copied={copied} onCopy={copy} copyLabel={t("code.copyTitle")} small={Boolean(lang.trim())} items={[]} />
+      {body("leading-5 [&_pre]:px-3 [&_pre]:py-2", "text-ink-secondary")}
     </div>
   );
 }

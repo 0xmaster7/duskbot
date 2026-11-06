@@ -41,13 +41,13 @@ export function NowCard({ steps, tail, onOpenActivity }: { steps: readonly NowSt
   );
 }
 
-/** Everything the working line of a bot's chat shows: what is happening now, in each mode's words, how a long step is
+/** Everything the working line of a bot's chat shows: what is happening now, in friendly words, how a long step is
  * doing, and the card it unfolds. */
-export function useTurnNow(bot: Pick<Bot, "id" | "name" | "threadId">, messages: readonly Message[], lastMessage: Message | undefined, live: TurnLive, advanced: boolean) {
+export function useTurnNow(bot: Pick<Bot, "id" | "name" | "threadId">, messages: readonly Message[], lastMessage: Message | undefined, live: TurnLive) {
   const { dispatch } = useStore();
   const status = live.status;
   const exact = turnNowPhrases(status, lastMessage);
-  const shown = advanced ? exact : friendlyNowPhrases(status, lastMessage);
+  const shown = friendlyNowPhrases(status, lastMessage);
   const steps = useMemo(() => nowSteps(messages, status), [messages, status]);
   const quiet = status && "quiet" in status ? status.quiet : undefined;
   const tail = status?.activity === "command" && "tail" in status ? status.tail : undefined;
@@ -61,7 +61,7 @@ export function useTurnNow(bot: Pick<Bot, "id" | "name" | "threadId">, messages:
     phrases: shown?.phrases,
     phase: shown?.phase,
     size: shown?.size,
-    detail: advanced ? undefined : exact?.phrases[0],
+    detail: exact?.phrases[0],
     hover: exact?.hover,
     quiet,
     cardLabel: t("chat.now.title", { name: bot.name }),

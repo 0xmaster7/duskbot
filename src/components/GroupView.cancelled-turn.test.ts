@@ -5,11 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bot, Group, Message } from "@/state/store";
 
-const fixture = vi.hoisted(() => ({ dispatch: vi.fn(), advanced: true }));
-vi.mock("@/lib/interface-mode", async (importOriginal) => ({
-  ...await importOriginal<typeof import("@/lib/interface-mode")>(),
-  useAdvancedMode: () => fixture.advanced,
-}));
+const fixture = vi.hoisted(() => ({ dispatch: vi.fn() }));
 vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();
   return { ...original, useStore: () => ({
@@ -48,7 +44,6 @@ const retry = () => [...host.querySelectorAll("button")].find((button) => button
 
 beforeEach(() => {
   fixture.dispatch.mockClear();
-  fixture.advanced = true;
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
@@ -59,61 +54,11 @@ afterEach(() => {
 });
 
 describe("a cancelled turn in a room", () => {
-  it("leaves no row behind in the room's simple view, as a 1:1 chat does", () => {
-    fixture.advanced = false;
+  it("leaves no row behind, as a 1:1 chat does", () => {
     render([ask, cancel]);
     expect(host.textContent).toContain("Try the new model");
     expect(host.textContent).not.toContain("Stopped");
     expect(host.textContent).not.toContain(CANCELLED);
-    expect(retry()).toBeUndefined();
-  });
-
-  it("renders a muted stop and resends the same message on the room's send path", () => {
-    render([ask, cancel]);
-    expect(host.textContent).toContain("Stopped");
-    expect(host.textContent).not.toContain(CANCELLED);
-    expect(host.innerHTML).not.toContain("border-danger");
-    flushSync(() => retry()!.click());
-    expect(fixture.dispatch).toHaveBeenCalledWith({
-      type: "sendGroup",
-      groupId: "room",
-      text: "Try the new model",
-      threadId: "room-thread",
-      mode: "chat",
-    });
-  });
-
-  it("retries the request the stopped turn answered, files included, not an earlier text line", () => {
-    const withFile: Message = {
-      id: "with-file", role: "user", kind: "text", at: 3, replyToId: "ask",
-      text: 'Read this\n\n<attached-file path="/tmp/brief.txt" name="brief.txt" />',
-      attachments: [{ kind: "image", path: "/tmp/shot.png", mime: "image/png" }],
-      channelMode: "goal",
-    };
-    render([ask, { ...cancel, id: "first-answer", text: "Sure." }, withFile, { ...cancel, id: "cancel-2", at: 4 }]);
-    flushSync(() => retry()!.click());
-    expect(fixture.dispatch).toHaveBeenCalledWith({
-      type: "sendGroup",
-      groupId: "room",
-      text: 'Read this\n\n<attached-file path="/tmp/brief.txt" name="brief.txt" />\n\n<attached-image path="/tmp/shot.png" name="shot.png" />',
-      threadId: "room-thread",
-      mode: "goal",
-      replyToId: "ask",
-    });
-  });
-
-  it("offers no Retry when a bot's line started the stopped turn", () => {
-    const peer: Message = { id: "peer", role: "user", kind: "text", at: 3, text: "Check the logs", peerAsk: { botId: "lead", name: "Lead" } };
-    render([ask, peer, { ...cancel, id: "cancel-2", at: 4 }]);
-    expect(host.textContent).toContain("Stopped");
-    expect(retry()).toBeUndefined();
-  });
-
-  it("hides Retry while the room is busy and after a newer message", () => {
-    render([ask, cancel], { ...room, busyBotId: "lead" });
-    expect(host.textContent).toContain("Stopped");
-    expect(retry()).toBeUndefined();
-    render([ask, cancel, { id: "next", role: "user", kind: "text", at: 3, text: "Something else" }]);
     expect(retry()).toBeUndefined();
   });
 });

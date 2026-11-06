@@ -1,6 +1,6 @@
 import type { Bot, Group, Message } from "@/state/store";
 import { isQuestionCard } from "@/lib/question-card";
-import { effectiveDefaultResponder, groupComposerHint } from "@/lib/group-routing";
+import { effectiveDefaultResponder } from "@/lib/group-routing";
 import { t } from "@/lib/i18n";
 import type { CSSProperties } from "react";
 import { BOT_BUTTON, botButtonStyle, botButtonTone, type BotButton } from "@/lib/bot-button";
@@ -29,8 +29,7 @@ export function slotColors(color: Bot["color"] | undefined, room: boolean): { fi
   return { fill: grok ? `var(--grok-cta, ${tone.fill})` : tone.fill, ink: tone.ink, button: { className: cn(BOT_BUTTON, grok && "grok-cta"), style: { ...botButtonStyle(own), ...vars } }, vars };
 }
 
-export function composerPlaceholder({ simple, locked, approval, attaching, attached = false, listening, replying, busy, canSteer, queued, busyName, sendLabel, group, members, jevOn, goal, botName, setupHint, question = false }: {
-  simple: boolean;
+export function composerPlaceholder({ locked, approval, attaching, attached = false, listening, replying, busy, group, members, goal, botName, setupHint, question = false }: {
   /** A question card waits for the person's answer: grok says the field answers it, or talks past it. */
   question?: boolean;
   locked: boolean;
@@ -40,13 +39,8 @@ export function composerPlaceholder({ simple, locked, approval, attaching, attac
   listening: boolean;
   replying: boolean;
   busy: boolean;
-  canSteer: boolean;
-  queued: boolean;
-  busyName: string;
-  sendLabel: string;
   group?: Group;
   members: Bot[];
-  jevOn: boolean;
   goal: boolean;
   botName: string;
   setupHint: string | null | undefined;
@@ -56,44 +50,25 @@ export function composerPlaceholder({ simple, locked, approval, attaching, attac
   if (attaching) return t("composer.placeholder.attaching");
   if (listening) return t("composer.placeholder.listening");
   if (replying && !busy) return t("composer.placeholder.reply");
-  if (simple) {
-    if (question) return t("composer.placeholder.question");
-    if (attached) return t("composer.placeholder.attached");
-    if (!busy && goal) return group ? t("composer.placeholder.goal", { name: group.name }) : t("composer.placeholder.goalSolo", { name: botName });
-    if (!busy && !group && setupHint) return setupHint;
-    if (group && !group.dm && effectiveDefaultResponder(group, members).kind === "mentions") {
-      return t("composer.placeholder.group", { name: group.name, hint: t("composer.hint.mentions") });
-    }
-    return t("composer.placeholder.bot", { name: group ? group.name : botName });
+  if (question) return t("composer.placeholder.question");
+  if (attached) return t("composer.placeholder.attached");
+  if (!busy && goal) return group ? t("composer.placeholder.goal", { name: group.name }) : t("composer.placeholder.goalSolo", { name: botName });
+  if (!busy && !group && setupHint) return setupHint;
+  if (group && !group.dm && effectiveDefaultResponder(group, members).kind === "mentions") {
+    return t("composer.placeholder.group", { name: group.name, hint: t("composer.hint.mentions") });
   }
-  if (busy && canSteer) {
-    return queued
-      ? t("composer.placeholder.steerQueued", { name: busyName, key: sendLabel })
-      : t("composer.placeholder.steer", { name: busyName, key: sendLabel });
-  }
-  if (busy) {
-    return group
-      ? t("composer.placeholder.queueGroup", { name: busyName, key: sendLabel })
-      : t("composer.placeholder.queue", { name: busyName });
-  }
-  if (group) {
-    return goal
-      ? t("composer.placeholder.goal", { name: group.name })
-      : t("composer.placeholder.group", { name: group.name, hint: groupComposerHint(group, members, { jevOn }) });
-  }
-  return setupHint ?? t(goal ? "composer.placeholder.goalSolo" : "composer.placeholder.bot", { name: botName });
+  return t("composer.placeholder.bot", { name: group ? group.name : botName });
 }
 
-/** The round Send button's name: what pressing it does now. Simple mode says it in the bot's terms. */
-export function sendLabels({ simple, busy, canSteer, name, sendLabel }: { simple: boolean; busy: boolean; canSteer: boolean; name: string; sendLabel: string }): { label: string; title: string } {
+/** The round Send button's name: what pressing it does now, in the bot's terms. */
+export function sendLabels({ busy, canSteer, name, sendLabel }: { busy: boolean; canSteer: boolean; name: string; sendLabel: string }): { label: string; title: string } {
   if (busy && canSteer) {
-    const steer = simple ? t("composer.send.steerSimple", { name }) : t("composer.send.steer");
+    const steer = t("composer.send.steerSimple", { name });
     return { label: steer, title: steer };
   }
   if (busy) {
-    return simple
-      ? { label: t("composer.send.queueSimple", { name }), title: t("composer.send.queueSimple", { name }) }
-      : { label: t("composer.send.queue"), title: t("composer.send.queueHint") };
+    const queue = t("composer.send.queueSimple", { name });
+    return { label: queue, title: queue };
   }
   return { label: t("composer.send.message"), title: `${t("chat.send")} (${sendLabel})` };
 }

@@ -1253,11 +1253,6 @@
   src: local("Noto Sans Hebrew"), local("Arial Hebrew"), local("SF Hebrew");
   unicode-range: U+0590-05FF, U+FB1D-FB4F;
 }
-/* A reply with a table is as wide as the message; its prose keeps the reading width. */
-.chat-wide .chat-md > :not(.chat-table) {
-  max-width: var(--chat-prose-max);
-}
-
 /* A reply's long unbroken text (a URL, a run of letters) wraps inside its bubble instead of running past the window.
    Code blocks keep scrolling sideways; table cells keep their widths. */
 .chat-md :is(p, li, h1, h2, h3, h4, blockquote) { overflow-wrap: anywhere; }
@@ -1978,16 +1973,6 @@ body {
 @keyframes msg-in {
   from { transform: translateY(4px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
-}
-.reply-bubble {
-  width: fit-content;
-  max-width: min(100%, 36rem);
-  border-radius: 20px;
-  padding: 10px 16px;
-  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
-  font-size: 16px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
 }
 @keyframes bubble-in {
   from { transform: translateY(6px); opacity: 0; }

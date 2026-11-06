@@ -37,17 +37,6 @@ export function groupResponseHint(group: Group, members: Bot[], { jevOn = true }
   return t("room.hint.lead", { name });
 }
 
-export function groupComposerHint(group: Group, members: Bot[], { jevOn = true }: { jevOn?: boolean } = {}): string {
-  if (group.dm) return t("composer.hint.dm");
-  const value = effectiveDefaultResponder(group, members);
-  if (value.kind === "everyone") return t("composer.hint.everyone");
-  if (value.kind === "mentions") return t("composer.hint.mentions");
-  if (value.kind === "auto" && jevOn) return t("composer.hint.auto");
-  return t("composer.hint.responder", {
-    name: defaultResponderName(group, members) ?? t("composer.hint.lead"),
-  });
-}
-
 export function openTaskWorking(group: Pick<Group, "threadId" | "working" | "tasks">): boolean {
   const task = group.tasks?.find((candidate) => candidate.threadId === group.threadId);
   return task ? Boolean(task.working) : Boolean(group.working);

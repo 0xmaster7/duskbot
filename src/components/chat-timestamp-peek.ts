@@ -25,10 +25,10 @@ function scrollsSideways(target: EventTarget | null, root: HTMLElement): boolean
   return false;
 }
 
-export function useTimestampPeek(ref: RefObject<HTMLElement | null>, enabled: boolean): void {
+export function useTimestampPeek(ref: RefObject<HTMLElement | null>): void {
   useEffect(() => {
     const el = ref.current;
-    if (!enabled || !el) return;
+    if (!el) return;
     let peek = 0;
     let mode: "idle" | "list" | "peek" | "scroller" = "idle";
     let dx = 0;
@@ -115,5 +115,5 @@ export function useTimestampPeek(ref: RefObject<HTMLElement | null>, enabled: bo
       el.style.removeProperty("--chat-ts-progress");
       el.removeAttribute("data-peeking");
     };
-  }, [ref, enabled]);
+  }, [ref]);
 }

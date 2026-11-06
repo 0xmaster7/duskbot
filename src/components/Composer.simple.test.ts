@@ -13,7 +13,6 @@ import { userBubbleTone } from "@/lib/user-bubble-tone";
 import { BOT_BUTTON, botButtonTone } from "@/lib/bot-button";
 
 const fixture = vi.hoisted(() => ({
-  advanced: false,
   agentsMcp: true,
   dispatch: vi.fn(),
   call: null as Record<string, unknown> | null,
@@ -33,7 +32,6 @@ vi.mock("@/state/store", async (importOriginal) => {
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
 vi.mock("@/lib/cloud-guest", async (importOriginal) => ({ ...await importOriginal<typeof import("@/lib/cloud-guest")>(), useReactor: () => "user" }));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => true }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => fixture.advanced, setAdvancedMode: vi.fn() }));
 vi.mock("./CallView", () => ({ CallButton: (props: Record<string, unknown>) => {
   fixture.call = props;
   return null;
@@ -81,7 +79,6 @@ function openPlus() {
 }
 
 beforeEach(() => {
-  fixture.advanced = false;
   fixture.agentsMcp = true;
   fixture.liveCall = null;
   fixture.config = undefined;
@@ -296,63 +293,22 @@ describe("the Simple composer in a group chat", () => {
   });
 });
 
-describe("the Advanced composer", () => {
-  it("keeps the paperclip, the approval shield and the split call button, with no +, on Simple's floating surface", () => {
-    fixture.advanced = true;
-    render({ bot });
-    expect(plus()).toBeNull();
-    expect(container.querySelector('[data-tour="composer"]')!.className.split(" ")).toEqual(expect.arrayContaining(["rounded-2xl", "bg-composer", "ring-[0.5px]", "shadow-(--shadow-float)"]));
-    expect(container.querySelector('button[aria-label="Attach a file"]')).not.toBeNull();
-    expect(container.querySelector('[aria-haspopup="menu"][aria-label$="for Claude"]')).not.toBeNull();
-    expect(fixture.call).toMatchObject({ placement: "composer" });
-    expect(fixture.call?.fill).toBeUndefined();
-    expect(container.querySelector("[data-composer-backdrop]")!.className.split(" ")).toContain("top-1/2");
-  });
-
-  it("offers Teach a task as its own button, which starts a /learn draft ahead of anything typed", () => {
-    fixture.advanced = true;
-    restoreComposerDraft(`bot:${bot.id}:${bot.threadId}`, { text: "how I file expenses", attachments: [] });
-    render({ bot });
-    const teach = container.querySelector<HTMLButtonElement>('button[aria-label="Teach a task"]');
-    expect(teach).not.toBeNull();
-    click(teach);
-    expect(container.querySelector("textarea")!.value).toBe("/learn how I file expenses");
-  });
-
-  it("leaves Teach a task out when skill authoring is off", () => {
-    fixture.advanced = true;
+describe("Teach a task in the +", () => {
+  it("is left out when skill authoring is off", () => {
     fixture.config = { features: { skillAuthoring: false } };
     render({ bot });
-    expect(container.querySelector('button[aria-label="Teach a task"]')).toBeNull();
+    // with attaching its only row, the + is the file picker itself
+    expect(container.querySelector('button[aria-label="Attach files"]')).not.toBeNull();
   });
 
-  it("leaves Teach a task out when the bot's engine can't run agents", () => {
-    fixture.advanced = true;
+  it("is left out when the bot's engine can't run agents", () => {
     fixture.agentsMcp = false;
     render({ bot });
-    expect(container.querySelector('button[aria-label="Teach a task"]')).toBeNull();
+    expect(container.querySelector('button[aria-label="Attach files"]')).not.toBeNull();
   });
+});
 
-  it("sends with the bot's own button too, and keeps the accent in a room", () => {
-    fixture.advanced = true;
-    restoreComposerDraft(`bot:${bot.id}:${bot.threadId}`, { text: "hello", attachments: [] });
-    render({ bot: { ...bot, color: "teal" } });
-    const send = sendButton()!;
-    expect(send.className.split(" ")).toContain("size-8");
-    expectBotButton(send, "teal");
-    expect(send.className).not.toMatch(/\bbg-accent\b|text-white/);
-    restoreComposerDraft(`group:${room.id}:${room.threadId}`, { text: "hello room", attachments: [] });
-    render({ group: room, members: [bot, peer] });
-    expect(sendButton()!.className.split(" ")).not.toContain(BOT_BUTTON);
-    expect(sendButton()!.style.backgroundColor).toBe("var(--color-accent)");
-  });
-
-  it("keeps the room's Goal chip", () => {
-    fixture.advanced = true;
-    render({ group: room, members: [bot, peer] });
-    expect(container.querySelector('[aria-label="Finish together"]')?.getAttribute("aria-pressed")).toBe("false");
-  });
-
+describe("the composer", () => {
   describe("with a message longer than one line", () => {
     const type = (value: string) => {
       const field = container.querySelector("textarea")!;
@@ -367,37 +323,8 @@ describe("the Advanced composer", () => {
     const wrapPast20 = () => vi.spyOn(HTMLTextAreaElement.prototype, "scrollHeight", "get")
       .mockImplementation(function (this: HTMLTextAreaElement) { return this.value.length > 20 ? 48 : 24; });
 
-    it("gives the text the full width above the buttons, and puts it back beside them on one line", () => {
-      fixture.advanced = true;
-      render({ bot });
-      expect(stacked()).toBe(false);
-      type("Okay I have done my outreach.\nAnother line of text.");
-      expect(classes(".mention-editor")).toEqual(expect.arrayContaining(["order-first", "basis-full"]));
-      expect(classes("[data-composer-row]")).toContain("flex-wrap");
-      expect(classes("[data-composer-actions]")).toContain("ml-auto");
-      type("Okay I have done my outreach.");
-      expect(stacked()).toBe(false);
-      expect(classes("[data-composer-row]")).not.toContain("flex-wrap");
-    });
-
-    it("stacks once the text wraps beside the buttons, and stays stacked until it is shorter than where it wrapped", () => {
-      wrapPast20();
-      fixture.advanced = true;
-      render({ bot });
-      type("a".repeat(25));
-      expect(stacked()).toBe(true);
-      // Wider on its own line, it would fit on one row there; it still must not flip back and forth.
-      type("a".repeat(30));
-      expect(stacked()).toBe(true);
-      type("a".repeat(24));
-      expect(stacked()).toBe(true);
-      type("a".repeat(10));
-      expect(stacked()).toBe(false);
-    });
-
     it("measures each new message afresh, so a wrap from a narrower composer does not stick", () => {
       const wrap = wrapPast20();
-      fixture.advanced = true;
       render({ bot });
       type("a".repeat(25));
       expect(stacked()).toBe(true);
@@ -410,12 +337,11 @@ describe("the Advanced composer", () => {
 
     it("never stacks an empty field, even when its placeholder wraps", () => {
       vi.spyOn(HTMLTextAreaElement.prototype, "scrollHeight", "get").mockReturnValue(48);
-      fixture.advanced = true;
       render({ bot });
       expect(stacked()).toBe(false);
     });
 
-    it("gives Simple's text the pill's full width above the + and the round button too", () => {
+    it("gives the text the pill's full width above the + and the round button", () => {
       wrapPast20();
       render({ bot });
       type("a".repeat(25) + "\nb");

@@ -1,7 +1,6 @@
 import { useMemo, useState, type JSX } from "react";
 import { Copy, Cpu, Download, Gauge, ListChecks, Monitor, MoreHorizontal, Search, Share, UserRound } from "lucide-react";
 import { currentTaskBot, useStore, visibleMessages, type Bot } from "@/state/store";
-import { useAdvancedMode } from "@/lib/interface-mode";
 import { requestChatFind, useChatFindOpen } from "@/lib/chat-find";
 import { usageSummary } from "@/lib/chat-usage-summary";
 import {
@@ -25,7 +24,6 @@ export function useChatMoreItems(profile: Bot, phoneHeader = false): { items: Si
   const bot = useMemo(() => currentTaskBot(profile), [profile]);
   const messages = useMemo(() => visibleMessages(bot), [bot]);
   const { state, dispatch } = useStore();
-  const advanced = useAdvancedMode();
   const findOpen = useChatFindOpen(bot.threadId);
   const [copyStatus, setCopyStatus] = useState<"copied" | "failed" | null>(null);
   const remoteClient = window.ogb?.remoteClient?.active === true;
@@ -97,7 +95,7 @@ export function useChatMoreItems(profile: Bot, phoneHeader = false): { items: Si
       icon: <Gauge size={16} />,
       separatorBefore: true,
       trailing: <span title={usage.detail} data-testid="usage-chip" className={cn("tabular-nums text-[12px]", usage.tone === "danger" ? "text-danger" : usage.tone === "warning" ? "text-warning" : "text-ink-secondary")}>{usage.short}</span>,
-      onSelect: () => advanced ? openBotSettings(dispatch, "usage") : dispatch({ type: "toggleAppSettings", open: true, section: "usage" }),
+      onSelect: () => dispatch({ type: "toggleAppSettings", open: true, section: "usage" }),
     } satisfies SidebarMenuItem] : []),
     ...(remoteClient ? [] : [{
       key: "activity",
@@ -113,7 +111,6 @@ export function useChatMoreItems(profile: Bot, phoneHeader = false): { items: Si
 
 function RoundChatMoreMenu({ bot, phoneHeader }: { bot: Bot; phoneHeader: boolean }) {
   const { items, on } = useChatMoreItems(bot, phoneHeader);
-  const advanced = useAdvancedMode();
   return (
     <SidebarPopoverMenu
       items={items}
@@ -125,7 +122,7 @@ function RoundChatMoreMenu({ bot, phoneHeader }: { bot: Bot; phoneHeader: boolea
           data-testid="chat-more"
           className={cn(
             "flex size-8 items-center justify-center rounded-full",
-            advanced ? "bg-raised/50 transition-colors hover:bg-raised" : cn(ELEVATED_CONTROL, ELEVATED_HOVER, open && ELEVATED_OPEN),
+            ELEVATED_CONTROL, ELEVATED_HOVER, open && ELEVATED_OPEN,
             "max-md:size-10 max-md:border max-md:border-hairline max-md:bg-card",
             open || on ? "text-accent" : "text-ink",
           )}
@@ -185,7 +182,7 @@ function ShareMenu({ bot, className }: { bot: Bot; className: string }) {
   );
 }
 
-/** The same menu as the chat header's plain ⋯ in Advanced mode, opening on hover below the header. */
+/** The same menu as the remote client chat header's plain ⋯, opening on hover below the header. */
 export function ChatHeaderMenu({ bot }: { bot: Bot }): JSX.Element {
   const { items, on } = useChatMoreItems(bot);
   return (

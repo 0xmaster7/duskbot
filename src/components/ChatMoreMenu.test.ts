@@ -7,8 +7,6 @@ import type { SidebarMenuItem } from "./SidebarPopoverMenu";
 const fixture = vi.hoisted(() => {
   vi.stubGlobal("window", {});
   return {
-    advanced: false,
-    threadsChosen: true,
     menus: [] as { ariaLabel: string; items: SidebarMenuItem[]; placement?: string; openOnHover?: boolean; trigger: string }[],
     dispatch: vi.fn(),
     find: vi.fn(),
@@ -18,8 +16,7 @@ vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();
   return { ...original, useStore: () => ({ state: original.initialState, dispatch: fixture.dispatch }) };
 });
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => fixture.advanced, setAdvancedMode: vi.fn() }));
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => fixture.advanced && fixture.threadsChosen }));
+vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => false }));
 vi.mock("@/lib/chat-find", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/chat-find")>(),
   requestChatFind: fixture.find,
@@ -60,21 +57,17 @@ function menuOf(element: ReturnType<typeof createElement>) {
 const keys = (items: SidebarMenuItem[]) => items.map((item) => item.key);
 
 beforeEach(() => {
-  fixture.advanced = false;
-  fixture.threadsChosen = true;
   fixture.dispatch.mockClear();
   fixture.find.mockClear();
 });
 
 describe("ChatMoreMenu, the round ⋯ for the bot panel", () => {
-  it("is a round 32px button labelled More, on the raised surface in Simple mode", () => {
+  it("is a round 32px button labelled More, on the raised surface", () => {
     const menu = menuOf(createElement(ChatMoreMenu, { bot }));
     expect(menu.ariaLabel).toBe("More");
     expect(menu.placement).toBeUndefined();
     expect(menu.trigger).toContain('data-testid="chat-more"');
     expect(menu.trigger).toMatch(/class="[^"]*\bsize-8\b[^"]*\brounded-full\b[^"]*\bbg-composer\b[^"]*\binset-ring\b/);
-    fixture.advanced = true;
-    expect(menuOf(createElement(ChatMoreMenu, { bot })).trigger).toMatch(/class="[^"]*\bsize-8\b[^"]*\brounded-full\b[^"]*\bbg-raised\/50\b/);
   });
 
   it("offers no thread items and no developer inspector, everything unlocked", () => {
@@ -116,18 +109,12 @@ describe("ChatShareMenu, the bot panel's Share", () => {
   });
 });
 
-describe("ChatHeaderMenu, Advanced mode's header ⋯", () => {
+describe("ChatHeaderMenu, a remote client's header ⋯", () => {
   it("keeps main's items, trigger and hover menu below the header", () => {
-    fixture.advanced = true;
     const menu = menuOf(createElement(ChatHeaderMenu, { bot }));
     expect(keys(menu.items)).toEqual(["find", "copy", "download", "activity"]);
     expect(menu.items.every((item) => !item.disabled && item.heading !== "In Advanced mode")).toBe(true);
     expect(menu).toMatchObject({ placement: "below", openOnHover: true });
     expect(menu.trigger).toMatch(/data-testid="chat-more" class="flex size-8 items-center justify-center rounded-full /);
-  });
-
-  it("has no thread items even if rendered by ChatMoreMenu in Advanced mode", () => {
-    fixture.advanced = true;
-    expect(keys(menuOf(createElement(ChatMoreMenu, { bot })).items)).not.toContain("threads");
   });
 });

@@ -10,8 +10,6 @@ type Chrome = "mac-inset" | "win-caption" | "native";
 const PLATFORM: Record<Chrome, string> = { "mac-inset": "darwin", "win-caption": "win32", native: "linux" };
 const fixture = { chrome: "native" as Chrome };
 
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => true, setAdvancedMode: () => {} }));
-
 const { ChatView } = await import("./ChatView");
 const { GroupView } = await import("./GroupView");
 const { DesktopCapabilitiesProvider, WindowDragStrip, captionChrome, windowFramed } = await import("./DesktopCapabilities");
@@ -101,7 +99,7 @@ describe.each([
     expect(header.hasAttribute("data-window-drag")).toBe(true);
     expect(region(header)).toBe("drag");
     const controls = [...header.querySelectorAll(CONTROLS)];
-    expect(controls.length).toBeGreaterThan(1);
+    expect(controls.length).toBeGreaterThan(0);
     for (const control of controls) expect(cutOut(control, header), control.outerHTML.slice(0, 120)).toBe(true);
     expect(region(header.querySelector("[data-chathead-identity], [data-roomhead-identity]"))).toBe("no-drag");
   });

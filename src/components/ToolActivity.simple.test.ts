@@ -1,36 +1,25 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, describe, expect, it, vi } from "vitest";
-
-const mode = vi.hoisted(() => ({ advanced: false }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => mode.advanced }));
+import { describe, expect, it } from "vitest";
 
 const { ToolActivity } = await import("./ToolActivity");
 const { ActivityRun } = await import("./ActivityRun");
 
 const render = (tool: Parameters<typeof ToolActivity>[0]["tool"]) => renderToStaticMarkup(createElement(ToolActivity, { tool }));
 
-afterEach(() => {
-  mode.advanced = false;
-});
-
-describe("ToolActivity in Simple mode", () => {
+describe("ToolActivity", () => {
   it("names the step in plain words and keeps the tool's own name in the details", () => {
     const html = render({ name: "mcp__omb__computer_batch", ok: true, input: '{"actions":[]}' });
     expect(html).toContain("Use the screen · Completed · Tool details");
-    expect(html).toMatch(/<span class="min-w-0 max-w-\[30rem\] truncate leading-5 font-medium">Use the screen<\/span>/);
+    expect(html).toMatch(/<span class="min-w-0 max-w-\[30rem\] truncate font-medium leading-5">Use the screen<\/span>/);
     expect(html).toContain('data-testid="tool-name"');
     expect(html).toContain("mcp__omb__computer_batch");
   });
 
-  it("shows the line the harness wrote for an MCP server change, in both modes, with the tool's name in the details", () => {
-    const tool = { name: "mcp__agents__mcp_server", label: "Added MCP server linear · Turned on · Test: needs sign-in", ok: true };
-    for (const advanced of [false, true]) {
-      mode.advanced = advanced;
-      const html = render(tool);
-      expect(html, `advanced ${advanced}`).toContain("Added MCP server linear · Turned on · Test: needs sign-in · Completed · Tool details");
-      expect(html, `advanced ${advanced}`).toMatch(/data-testid="tool-name">mcp__agents__mcp_server</);
-    }
+  it("shows the line the harness wrote for an MCP server change, with the tool's name in the details", () => {
+    const html = render({ name: "mcp__agents__mcp_server", label: "Added MCP server linear · Turned on · Test: needs sign-in", ok: true });
+    expect(html).toContain("Added MCP server linear · Turned on · Test: needs sign-in · Completed · Tool details");
+    expect(html).toMatch(/data-testid="tool-name">mcp__agents__mcp_server</);
   });
 
   it("keeps a command off the row, where it reads as a plain step", () => {
@@ -44,17 +33,6 @@ describe("ToolActivity in Simple mode", () => {
   });
 });
 
-describe("ToolActivity in Advanced mode", () => {
-  it("shows the tool name and command on the row, as before", () => {
-    mode.advanced = true;
-    const html = render({ name: "Bash", ok: true, summary: "pnpm test", input: "pnpm test" });
-    expect(html).toContain("Bash · Completed · Tool details");
-    expect(html).toMatch(/truncate leading-5 font-mono">Bash<\/span>/);
-    expect(html).toContain('title="pnpm test"');
-    expect(html).not.toContain('data-testid="tool-name"');
-  });
-});
-
 describe("ActivityRun", () => {
   const steps = [
     { id: "a", at: 1, role: "bot" as const, kind: "activity" as const, tool: { name: "Bash", ok: true, summary: "ls" } },
@@ -62,15 +40,9 @@ describe("ActivityRun", () => {
     { id: "c", at: 3, role: "bot" as const, kind: "activity" as const, tool: { name: "mcp__omb__screenshot", ok: true } },
   ];
 
-  it("sums a folded run up in plain words in Simple mode", () => {
+  it("sums a folded run up in plain words", () => {
     const html = renderToStaticMarkup(createElement(ActivityRun, { messages: steps, children: null }));
     expect(html).toContain("3 steps · Run a command ×2, Look at the screen");
-  });
-
-  it("keeps the tool names in Advanced mode", () => {
-    mode.advanced = true;
-    const html = renderToStaticMarkup(createElement(ActivityRun, { messages: steps, children: null }));
-    expect(html).toContain("3 steps · Bash, ls -la /tmp, mcp__omb__screenshot");
   });
 });
 

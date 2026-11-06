@@ -1,14 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-// Advanced mode's table chrome; Simple mode's table card has its own tests below.
-const mode = vi.hoisted(() => ({ advanced: true }));
-vi.mock("@/lib/interface-mode", async (importOriginal) => ({
-  ...await importOriginal<typeof import("@/lib/interface-mode")>(),
-  useAdvancedMode: () => mode.advanced,
-  readAdvancedMode: () => mode.advanced,
-}));
 import { RichTable } from "./RichTable";
 import { ChatMarkdown } from "./ChatMarkdown";
 import { AttachedFileChip } from "./AttachmentPreview";
@@ -25,8 +18,8 @@ describe("rich table rendering", () => {
     expect(html).not.toContain("<script>");
     expect(html).toContain('scope="col"');
   });
-  it("gives a short table its actions without the search box and row count a long one needs", () => {
-    const table = (length: number) => renderToStaticMarkup(createElement(RichTable, { columns: [{ text: "ID" }], rows: Array.from({ length }, (_, i) => [{ text: String(i) }]) }));
+  it("gives a short table outside a card its actions without the search box and row count a long one needs", () => {
+    const table = (length: number) => renderToStaticMarkup(createElement(RichTable, { columns: [{ text: "ID" }], rows: Array.from({ length }, (_, i) => [{ text: String(i) }]), card: false }));
     const short = table(8);
     expect(short).not.toContain('aria-label="Search all rows…"');
     expect(short).not.toContain("8 of 8 rows");
@@ -57,18 +50,11 @@ describe("rich table rendering", () => {
   });
 });
 
-describe("Simple mode's table card", () => {
-  const card = (rows: number) => {
-    mode.advanced = false;
-    try {
-      return renderToStaticMarkup(createElement(RichTable, {
-        columns: [{ text: "Sender" }, { text: "Emails" }],
-        rows: Array.from({ length: rows }, (_, index) => [{ text: `Sender ${index}` }, { text: String(index) }]),
-      }));
-    } finally {
-      mode.advanced = true;
-    }
-  };
+describe("a reply's table card", () => {
+  const card = (rows: number) => renderToStaticMarkup(createElement(RichTable, {
+    columns: [{ text: "Sender" }, { text: "Emails" }],
+    rows: Array.from({ length: rows }, (_, index) => [{ text: `Sender ${index}` }, { text: String(index) }]),
+  }));
 
   it("draws a short table as a card with a hover plate, plain header names as grok has, and no footer", () => {
     const html = card(3);

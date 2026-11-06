@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { describeRun, groupActivityRuns, groupTranscript, isRecoveryActivity, isToolStep, roomTurnFolds, statusActivity } from "./activity-runs";
+import { describeRun, groupActivityRuns, groupTranscript, isRecoveryActivity, isToolStep, statusActivity } from "./activity-runs";
 import type { Message } from "@/state/store";
 
 let seq = 0;
@@ -267,14 +267,6 @@ describe("groupTranscript", () => {
     const final = assistant("Done.", "turn-3", true);
     const items = groupTranscript([ok, failed, final]);
     expect(items.map((item) => item.kind === "message" ? item.message.id : item.kind)).toEqual(["turn", failed.id, final.id]);
-  });
-
-  it("folds a room member's working notes, so a room still reads as answers", () => {
-    const first = assistant("I'm checking connected apps.", "turn-r", false, 2_000);
-    const final = assistant("You have three tasks.", "turn-r", true, 5_000);
-    const { byTerminalId, hiddenIds } = roomTurnFolds([first, final]);
-    expect([...hiddenIds]).toEqual([first.id]);
-    expect(byTerminalId.get(final.id)).toMatchObject({ messages: [first] });
   });
 
   it("keeps every message visible until the turn settles", () => {

@@ -6,12 +6,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppState, Bot, Group } from "@/state/store";
 
-const fixture = vi.hoisted(() => ({ advanced: false, state: null as Partial<AppState> | null, dispatch: vi.fn(), chrome: undefined as unknown }));
+const fixture = vi.hoisted(() => ({ state: null as Partial<AppState> | null, dispatch: vi.fn(), chrome: undefined as unknown }));
 vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();
   return { ...original, useStore: () => ({ state: { ...original.initialState, ...fixture.state }, dispatch: fixture.dispatch }) };
 });
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => fixture.advanced, readAdvancedMode: () => fixture.advanced, setAdvancedMode: vi.fn() }));
 vi.mock("./DesktopCapabilities", async (importOriginal) => {
   const original = await importOriginal<typeof import("./DesktopCapabilities")>();
   return {
@@ -66,14 +65,13 @@ const shown = (markup: string) => Object.entries(CONTROLS).filter(([, mark]) => 
 const BULLETIN = "Desk HQ: the recruiting desk&#x27;s room.";
 
 beforeEach(() => {
-  fixture.advanced = false;
   fixture.state = { bots };
   fixture.chrome = undefined;
   fixture.dispatch.mockReset();
 });
 afterEach(() => closeRoomPanel());
 
-describe("the room header in Simple mode", () => {
+describe("the room header", () => {
   it("is one centred pill: up to three faces with +N, then the room's name", () => {
     const markup = view(room());
     const head = header(markup);
@@ -101,14 +99,6 @@ describe("the room header in Simple mode", () => {
     }));
     expect(head.match(/role="img" aria-label="([^"]+)"/)?.[1]).toBe("Submission Writer");
     expect(head).toMatch(/data-grok-state="working"[^>]*role="img" aria-label="Submission Writer"/);
-  });
-
-  it("keeps every control and the instructions line in Advanced mode", () => {
-    fixture.advanced = true;
-    const markup = view(room());
-    expect(shown(header(markup))).toEqual(Object.keys(CONTROLS).filter((key) => key !== "threads"));
-    expect(header(markup)).not.toContain("data-room-name");
-    expect(markup).toContain(BULLETIN);
   });
 
   it("keeps today's header on a remote client, which cannot open the Room panel", () => {

@@ -14,12 +14,10 @@ vi.mock("./DesktopCapabilities", async (importOriginal) => ({
   useDesktopCapabilities: () => ({ capabilities: { dictation: { available: false }, host: { packaged: true, platform: "other" }, localComputer: { available: false } }, ready: true }),
 }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
-vi.mock("@/lib/interface-mode", () => import("@/testing/advanced-mode"));
 vi.mock("@/lib/cloud-guest", () => ({ useCanWriteIn: () => true, useReactor: () => "user" }));
 vi.mock("./ModelPicker", () => ({ ModelPicker: () => null }));
 
 const { ChatView } = await import("./ChatView");
-const { setAdvancedMode } = await import("@/lib/interface-mode");
 const { BotEditorStore, initialState } = await import("@/state/store");
 
 const reply = "Found it.\n\n```ts\nconst a = 1;\n\nconst b = 2;\n```\n\nWant me to run it?";
@@ -113,19 +111,10 @@ describe("conversational replies", () => {
     expect(items).not.toContain("Reply");
   });
 
-  it("puts a formatted reply in the bot's bubble in Simple mode, and on the open page in Advanced", async () => {
+  it("puts a formatted reply in the bot's bubble", async () => {
     const bubbleOf = () => document.querySelector("[data-mid='m2'] [data-chat-bubble]")!;
     await draw(profile({}));
     expect(bubbleOf().getAttribute("data-chat-bubble")).toBe("simple");
     expect([...bubbleOf().classList]).toEqual(expect.arrayContaining(["chat-bubble-bot", "rounded-[18px]"]));
-    setAdvancedMode(true);
-    try {
-      await draw(profile({}));
-      expect(bubbleOf().getAttribute("data-chat-bubble")).toBe("");
-      expect(bubbleOf().classList).not.toContain("chat-bubble-bot");
-      expect(bubbleOf().className).toContain("max-w-[min(var(--chat-prose-max),var(--chat-card-pct))]");
-    } finally {
-      setAdvancedMode(false);
-    }
   });
 });

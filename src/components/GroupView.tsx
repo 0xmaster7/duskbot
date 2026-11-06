@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { formattedReplyWidth, isFormattedReply, splitReplyBlocks } from "@/lib/formatted-reply";
+import { splitReplyBlocks } from "@/lib/formatted-reply";
 import { activeLocale, t } from "@/lib/i18n";
 import { useShowThreads } from "@/lib/thread-preferences";
 import { useReactor } from "@/lib/cloud-guest";
@@ -24,7 +24,7 @@ import { ToolActivity } from "./ToolActivity";
 import { ThreadRefText } from "./ThreadRefs";
 import { RoomWorkingLines, roomWorkingIds } from "./RoomWorkingLines";
 import { showToolCallsEnabled } from "@/lib/feature-flags";
-import { CompactionChip, DigestChip } from "./DigestChip";
+import { DigestChip } from "./DigestChip";
 import { roomActivityVisible } from "@/lib/room-activity";
 import { StatusActivityRow } from "@/components/StatusActivityRow"; import { BugReportNote } from "@/components/BugReportNote";
 import { normalizeState } from "@/lib/mascot";
@@ -39,7 +39,6 @@ import { useTimestampPeek } from "./chat-timestamp-peek";
 import { useTurnNow } from "./NowCard";
 import { useLiveReplyActive } from "@/state/live-reply";
 import { ReplyBlocks } from "./ReplyBlocks";
-import { useAdvancedMode } from "@/lib/interface-mode";
 import { CopyButton, MESSAGE_ROW, MessageActions, messageActionClass, ReplyAction } from "./MessageActions";
 import { ReactAction, ReactionChips, useCanReact } from "./Reactions";
 import { ClusterLabel } from "./RoomClusterLabel";
@@ -48,9 +47,7 @@ import { RawMarkdownView, RawToggleAction } from "./RawMarkdownToggle";
 import { SpeakButton } from "./SpeakButton";
 import { useSpeech } from "@/lib/tts/useSpeech";
 import { localSystemVoiceActive } from "@/lib/local-voice";
-import { CancelledTurnRow } from "./CancelledTurnRow";
 import { isCancelledTranscriptRow } from "../../shared/client-cancel";
-import { roomRetryRequest } from "@/lib/room-retry";
 import { botEngine, failedTurnCause } from "@/lib/failed-turn";
 import { CitationSelectionToolbar, SentCitations } from "./CitationUI";
 import { RoomComposer } from "./bot-access/RoomComposer";
@@ -71,8 +68,7 @@ import { OptionCard } from "./OptionCard";
 import { ApprovalCard, SettledChangeEvent, showsSettledChange } from "./ApprovalCard";
 import { isQuestionCard, QuestionCard } from "./QuestionCard";
 import { ManageMembersPanel } from "./ManageMembersPanel";
-import { groupActivityRuns, isStatusActivity, roomTurnFolds } from "@/lib/activity-runs";
-import { TurnNarrationRun } from "./TurnNarrationRun";
+import { groupActivityRuns, isStatusActivity } from "@/lib/activity-runs";
 import { ActivityRun } from "./ActivityRun";
 import { cn } from "@/lib/cn";
 import { usePacedArrivals } from "@/hooks/use-paced-arrivals";
@@ -99,7 +95,6 @@ import { DataResultChip } from "./DataResultChip"; import { PublishedPageCard } 
 import { TranscriptAnnouncer } from "./TranscriptAnnouncer";
 import { localDay } from "@/lib/transcript-derivations";
 import { roomThreadWorking } from "@/lib/room-threads";
-import { RoomQueueList, RoutedByLine } from "./RoomQueueList";
 import { JumpToLatestButton } from "./JumpToLatestButton";
 import { HandoffChip } from "./HandoffReply"; import { TeammateChip } from "./TeammateChip"; import { useTeammates } from "@/state/team-people";
 import { RoomWorkingFolder } from "./RoomWorkingFolder";
@@ -181,8 +176,7 @@ function RoomTextMessage({
   const focusedSearch = focus?.messageId === m.id && Boolean(focus.matchText) && focus.threadId === group.threadId;
   const collapsible = user && !expanded && (display.length > USER_COLLAPSE_CHARS || display.split("\n").length > USER_COLLAPSE_LINES);
   useEffect(() => { if (focusedSearch && collapsible) setExpanded(true); }, [focusedSearch, collapsible, focus?.nonce]);
-  const simple = !useAdvancedMode();
-  const mediaRow = simple && Boolean(attachments && (attachments.images.length || attachments.files.length));
+  const mediaRow = Boolean(attachments && (attachments.images.length || attachments.files.length));
   const speakerBot = members.find((member) => member.id === m.from?.botId);
   const botText = rawText; const teammates = useTeammates(); const peers = useMemo(() => [...members, ...teammates.peers], [members, teammates]);
   const pin = roomPin(group, m, dispatch);
@@ -197,7 +191,7 @@ function RoomTextMessage({
     pin,
   });
   const replyGroup = useMemo(() => !user && botText.trim() ? replyAttachmentGroup(botText, m.attachments) : null, [user, botText, m.attachments]);
-  const blocks = useMemo(() => simple && !user && !viewRaw && botText.trim() ? splitReplyBlocks(botText) : null, [simple, user, viewRaw, botText]);
+  const blocks = useMemo(() => !user && !viewRaw && botText.trim() ? splitReplyBlocks(botText) : null, [user, viewRaw, botText]);
   const tabled = Boolean(blocks?.some((block) => block.kind === "table"));
   const botActions = !user && (
     <MessageActions side="bot" forceOpen={viewRaw || speaking} menu={botMenu}>
@@ -209,10 +203,10 @@ function RoomTextMessage({
     </MessageActions>
   );
   return (
-    <div {...{ [MESSAGE_ROW]: "" }} data-arrival={fresh ? (user ? "end" : "start") : undefined} className={cn("group flex w-full flex-col", simple && "relative", user ? "items-end" : "items-start", simple && join.above && SIMPLE_STACKED)}>
+    <div {...{ [MESSAGE_ROW]: "" }} data-arrival={fresh ? (user ? "end" : "start") : undefined} className={cn("group relative flex w-full flex-col", user ? "items-end" : "items-start", join.above && SIMPLE_STACKED)}>
       {speaker && <div className="mb-0.5 px-1 text-[12px] font-medium text-ink-secondary">{speaker}</div>}
       {mediaRow && attachments && <AttachmentGallery images={attachments.images} files={attachments.files} message={{ threadId: group.threadId, messageId: m.id }} eager={eager} align="end" className={display.trim() ? "mb-1" : undefined} />}
-      <div data-own-row={simple && user ? "" : undefined} className={cn("flex w-full gap-1.5", simple ? "items-center" : "items-end", user ? "justify-end" : "justify-start")}>
+      <div data-own-row={user ? "" : undefined} className={cn("flex w-full items-center gap-1.5", user ? "justify-end" : "justify-start")}>
         {user && (
           <MessageActions side="user" menu={userMessageMenu({ pin })}>
             <ReplyAction onReply={() => onReply(m)} />
@@ -220,21 +214,18 @@ function RoomTextMessage({
           </MessageActions>
         )}
         <div
-          data-chat-bubble={simple ? "simple" : ""}
+          data-chat-bubble="simple"
           className={cn(
             tabled ? "w-full" : "w-fit",
-            simple ? cn(!tabled && SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT) : "max-w-[min(var(--chat-bubble-max),var(--chat-bubble-pct))] rounded-2xl text-[15px] leading-relaxed",
+            !tabled && SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT,
             !user && emerging && "turn-answer",
-            simple && !tabled && joinedCorners(user ? "end" : "start", join),
+            !tabled && joinedCorners(user ? "end" : "start", join),
             tabled || (!user && !m.text?.trim() && !m.replyToId && m.attachments?.length) || (mediaRow && !display.trim() && !m.replyToId)
               ? "text-ink"
-              : !simple && !user && isFormattedReply(m.text ?? "")
-                ? cn(formattedReplyWidth(m.text ?? ""), "px-1 text-ink")
-                : user
-                  ? cn("chat-text whitespace-pre-wrap [overflow-wrap:anywhere] text-ink", simple ? SIMPLE_USER_BUBBLE : "bg-bubble-user px-4 py-2.5")
-                  : simple ? SIMPLE_BOT_BUBBLE : "bg-card px-4 py-2.5 text-ink",
+              : user
+                ? cn("chat-text whitespace-pre-wrap [overflow-wrap:anywhere] text-ink", SIMPLE_USER_BUBBLE)
+                : SIMPLE_BOT_BUBBLE,
           )}
-          title={simple ? undefined : new Date(m.at).toLocaleString()}
         >
           {m.replyToId && (() => {
             const target = transcript.find((candidate) => candidate.id === m.replyToId);
@@ -308,21 +299,14 @@ function RoomTextMessage({
           )}
         </div>
         {!tabled && botActions}
-        {!simple && (
-          <span className="self-end pb-1 text-[11px] tabular-nums text-ink-tertiary opacity-0 transition-opacity group-hover:opacity-100">
-            {formatTime(m.at)}
-          </span>
-        )}
       </div>
-      {simple && <time dateTime={new Date(m.at).toISOString()} className="chat-row-ts" aria-label={new Date(m.at).toLocaleTimeString()}>{formatTime(m.at)}</time>}
+      <time dateTime={new Date(m.at).toISOString()} className="chat-row-ts" aria-label={new Date(m.at).toLocaleTimeString()}>{formatTime(m.at)}</time>
       <ReactionChips threadId={group.threadId} message={m} bots={members} align={user ? "end" : "start"} canReact={canReact} />
-      {!simple && !user && m.routedBy && <RoutedByLine routedBy={m.routedBy} />}
     </div>
   );
 }
 
 const NO_JOIN: BubbleJoin = { above: false, below: false };
-const NO_FOLDS: ReturnType<typeof roomTurnFolds> = { byTerminalId: new Map(), hiddenIds: new Set() };
 
 type RoomItem = { kind: "message"; message: Message } | { kind: "run"; messages: Message[] };
 const roomItemRows = (item: RoomItem): readonly Message[] => item.kind === "run" ? item.messages : [item.message];
@@ -356,45 +340,17 @@ export const Transcript = memo(function Transcript({
   const { state, dispatch } = useStore();
   const showThreads = useShowThreads();
   const showToolCalls = showToolCallsEnabled(state.config);
-  const simple = !useAdvancedMode();
   const openedAt = useThreadOpenedAt(group.threadId);
   const today = localDay(Date.now());
   const canReact = useCanReact(group.threadId);
   const memberOf = (id?: string) => members.find((b) => b.id === id);
-  // simple mode keeps a turn's progress lines as bubbles, as a 1:1 chat does; Advanced folds them under the reply
-  const folds = useMemo(() => simple ? NO_FOLDS : roomTurnFolds(messages), [simple, messages, locale]);
+  // a turn's progress lines stay bubbles, as a 1:1 chat's do
   const items = useMemo(() => groupActivityRuns(messages.filter(message =>
-    !folds.hiddenIds.has(message.id) &&
-    (message.kind !== "activity" || roomActivityVisible(message, showToolCalls)))), [messages, showToolCalls, folds]);
+    message.kind !== "activity" || roomActivityVisible(message, showToolCalls))), [messages, showToolCalls, locale]);
   const newestMessageId = messages.at(-1)?.id;
   const newestUserMessageId = [...messages].reverse().find((message) => message.role === "user")?.id;
   const roomBusy = roomThreadWorking(group, group.threadId);
-  let retryableId: string | undefined;
-  let retryableIndex = -1;
-  for (let index = transcript.length - 1; index >= 0; index -= 1) {
-    const candidate = transcript[index];
-    if (candidate && candidate.kind !== "digest" && candidate.kind !== "compaction") {
-      retryableId = candidate.id;
-      retryableIndex = index;
-      break;
-    }
-  }
-  const retryRequest = useMemo(() => {
-    const newest = transcript[retryableIndex];
-    return newest && isCancelledTranscriptRow(newest) ? roomRetryRequest(transcript, retryableIndex) : null;
-  }, [transcript, retryableIndex]);
   const liveTools = useLiveToolIds(transcript, { busy: roomBusy, turnStartedAt: group.turnStartedAt });
-  const retryRoom = useCallback(() => {
-    if (!retryRequest || roomBusy) return;
-    dispatch({
-      type: "sendGroup",
-      groupId: group.id,
-      text: retryRequest.text,
-      threadId: group.threadId,
-      mode: retryRequest.mode,
-      ...(retryRequest.replyToId ? { replyToId: retryRequest.replyToId } : {}),
-    });
-  }, [dispatch, group.id, group.threadId, retryRequest, roomBusy]);
   const focus = state.focusMessage;
   const focusedId = focus && !focus.consumed && focus.threadId === group.threadId ? focus.messageId : null;
   const unreadIds = useMemo(() => unreadMessageIds(messages, unreadDividerId), [messages, unreadDividerId]);
@@ -413,10 +369,9 @@ export const Transcript = memo(function Transcript({
     const routineTarget = routineOwner && hasRoutineExecutionTask(routineOwner.tasks, routineExecutionThreadId)
       ? { botId: routineOwner.id, threadId: routineExecutionThreadId }
       : undefined;
-    const canRetryRoom = m.id === retryableId && retryRequest !== null && !roomBusy;
-    // simple mode talks in bubbles: stops and settled cards leave no technical rows behind
-    if (isCancelledTranscriptRow(m)) return simple ? null : <CancelledTurnRow onRetry={canRetryRoom ? retryRoom : undefined} />;
-    if (simple && m.kind === "options" && m.card && (m.card.answered || m.card.dismissed)) {
+    // the room talks in bubbles: stops and settled cards leave no technical rows behind
+    if (isCancelledTranscriptRow(m)) return null;
+    if (m.kind === "options" && m.card && (m.card.answered || m.card.dismissed)) {
       return showsSettledChange(m.card) ? <SettledChangeEvent bot={memberOf(m.from?.botId)} message={m} threadId={group.threadId} /> : null;
     }
     return m.kind === "secret" && m.secret && m.from?.botId ? (
@@ -463,7 +418,7 @@ export const Transcript = memo(function Transcript({
     ) : m.kind === "screen" ? (
       <ScreenFrame threadId={group.threadId} message={m} />
     ) : m.kind === "compaction" ? (
-      simple ? null : <CompactionChip message={m} />
+      null
     ) : m.kind === "digest" ? (
       showToolCalls ? <DigestChip message={m} /> : null
     ) : m.publishedPage ? <PublishedPageCard message={m} /> : m.kind === "text" && (m.text || m.attachments?.length) ? (
@@ -478,7 +433,7 @@ export const Transcript = memo(function Transcript({
           onReply={onReply}
           canReact={canReact}
           join={join}
-          fresh={simple && m.id !== emergingId && m.at > openedAt}
+          fresh={m.id !== emergingId && m.at > openedAt}
         />
       )
     ) : null;
@@ -489,7 +444,7 @@ export const Transcript = memo(function Transcript({
     const previous = items[i - 1];
     const prev = previous && (previous.kind === "run" ? previous.messages.at(-1) : previous.message);
     const first = item.kind === "run" ? item.messages[0]! : item.message;
-    const newDay = needsStamp(prev, first, simple);
+    const newDay = needsStamp(prev, first);
     const divider = dividerAbove(item.kind === "run" ? item.messages : [item.message]);
     const drawn = item.kind === "run" ? showToolCalls : messageRow(item.message, NO_JOIN) !== null;
     const m = item.kind === "message" ? item.message : null;
@@ -519,14 +474,14 @@ export const Transcript = memo(function Transcript({
           lead = (
             <>
               {run.items.map((_, offset) => rows[run.start + offset]!.divider).find(Boolean)}
-              {newDay && <DaySeparator at={first.at} today={today} simple={simple} />}
+              {newDay && <DaySeparator at={first.at} today={today} />}
               <PeerExchangeLine summary={run.summary} bots={state.bots} expanded={!collapsed} onToggle={() => exchanges.toggle(run)} />
             </>
           );
           if (collapsed) return <div key={run.id} className="contents" data-mid={first.id}>{lead}</div>;
         }
         const divider = run ? null : own;
-        const stamp = lead ?? (newDay && <DaySeparator at={first.at} today={today} simple={simple} />);
+        const stamp = lead ?? (newDay && <DaySeparator at={first.at} today={today} />);
         const label = place.label && first.from && <ClusterLabel bot={memberOf(first.from.botId)} name={first.from.name} color={first.from.color} />;
         const labelled = (row: ReactNode) => label ? <div className="flex w-full flex-col gap-1">{label}{row}</div> : row;
         if (item.kind === "run") {
@@ -550,33 +505,11 @@ export const Transcript = memo(function Transcript({
         const m = item.message;
         const row = slot ? messageRow(m, place.join) : null;
         if (!row) return (lead || divider) && <div key={m.id} className="contents">{lead}{divider}</div>;
-        const fold = folds.byTerminalId.get(m.id);
         return (
           // a send keeps its row when the server's copy replaces the optimistic one, so it never mounts or rises twice
           <div key={m.sendId ? `send:${m.sendId}` : m.id} className="contents" data-mid={m.id} data-tuck={place.tuck ? "" : undefined}>
             {divider}
             {stamp}
-            {fold && (
-              <TurnNarrationRun
-                label={fold.label}
-                forceOpen={fold.messages.some((note) => note.id === focusedId)}
-              >
-                {fold.messages.map((note) => (
-                  <div key={note.id} className="contents" data-mid={note.id}>
-                    <RoomTextMessage
-                      group={group}
-                      message={note}
-                      members={members}
-                      transcript={transcript}
-                      emerging={false}
-                      eager={false}
-                      onReply={onReply}
-                      canReact={canReact}
-                    />
-                  </div>
-                ))}
-              </TurnNarrationRun>
-            )}
             {labelled(row)}
           </div>
         );
@@ -974,8 +907,7 @@ export function GroupView({ group }: { group: Group }) {
   const speaker = members.find((b) => b.id === group.busyBotId);
   const threadWorking = roomThreadWorking(group, group.threadId);
   const setupPending = !remoteClient && roomNeedsSetup(group);
-  const advancedMode = useAdvancedMode();
-  const simpleHeader = simpleRoomHeader({ advanced: advancedMode, remoteClient, group, setupPending });
+  const simpleHeader = simpleRoomHeader({ remoteClient, group, setupPending });
 
   const lastGroupMessage = group.messages.at(-1);
   const live = useTurnLive(group.threadId);
@@ -999,7 +931,7 @@ export function GroupView({ group }: { group: Group }) {
   const presenceSpeaker = speaker ?? awaited ?? members[0];
   const now = useTurnNow(
     { id: presenceSpeaker?.id ?? group.id, name: presenceSpeaker?.name ?? group.name, threadId: group.threadId },
-    group.messages, lastGroupMessage, live, advancedMode,
+    group.messages, lastGroupMessage, live,
   );
   const streamingReply = useLiveReplyActive(group.threadId);
   const statusMarkState = statusMarkFor({ busy: threadWorking, waitingOnYou: false, answering: streamingReply, live: live.status?.activity, failed: lastGroupMessage?.kind === "activity" && lastGroupMessage.tool?.ok === false });
@@ -1028,9 +960,9 @@ export function GroupView({ group }: { group: Group }) {
     hasMore: group.hasMore,
     composerRef: composerDockRef,
   });
-  useTimestampPeek(scrollRef, !advancedMode);
+  useTimestampPeek(scrollRef);
   // the status line keeps its slot at the end of the room whether it shows or not, so it never moves a row
-  const statusSlot = !advancedMode && (windowedMessages.length > 0 || threadWorking);
+  const statusSlot = windowedMessages.length > 0 || threadWorking;
   const { shown: arrivedMessages, held: heldReplies } = usePacedArrivals(transcriptKey, windowedMessages, pacedRoomRow);
   // a member whose reply landed but waits its turn is still typing until its bubble takes over
   const typingIds = [...new Set(heldReplies.flatMap((m) => (m.from?.botId ? [m.from.botId] : [])))];
@@ -1046,7 +978,7 @@ export function GroupView({ group }: { group: Group }) {
       )}
       <GlassScrollFrame className="flex-1 [--glass-tint:var(--color-app)]">
       {/* z-[25]: above the room set-up card (z-20). */}
-      <GlassBar edge="top" fade={!advancedMode && !remoteClient} className="z-[25]">
+      <GlassBar edge="top" fade={!remoteClient} className="z-[25]">
       <RoomHeader
         group={group}
         members={members}
@@ -1061,7 +993,6 @@ export function GroupView({ group }: { group: Group }) {
       />
 
       {findOpen && <ChatFindBar threadId={group.threadId} onClose={() => setFindOpen(false)} />}
-      {advancedMode && <ChatErrorBanner message={state.error} onDismiss={() => dispatch({ type: "error", message: null })} />}
       <ChatNotice notice={state.notice} />
       {!setupPending && <RoomContextWarnings group={group} members={members} />}
 
@@ -1125,8 +1056,8 @@ export function GroupView({ group }: { group: Group }) {
 
       <div
         ref={scrollRef}
-        className={cn("glass-scroller h-full overflow-x-hidden overflow-y-auto [overflow-anchor:none]", advancedMode ? "px-5" : "overscroll-y-contain px-4")}
-        style={advancedMode ? undefined : { scrollPaddingBottom: composerDock.pad }}
+        className="glass-scroller h-full overflow-x-hidden overflow-y-auto overscroll-y-contain px-4 [overflow-anchor:none]"
+        style={{ scrollPaddingBottom: composerDock.pad }}
         {...scrollHandlers}
       >
         {setupPending ? (
@@ -1137,10 +1068,10 @@ export function GroupView({ group }: { group: Group }) {
         <div ref={clipRef}>
         <div
           ref={transcriptRef}
-          data-simple-rows={advancedMode ? undefined : ""}
-          className="glass-scroller-content chat-column relative flex w-full flex-col gap-3 rounded-[18px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus data-[simple-rows]:gap-4"
-          style={{ paddingBottom: advancedMode ? composerDock.pad : `calc(${composerDock.pad} + ${SIMPLE_TRAILING_GAP + USAGE_ROW_GAP - (statusSlot ? SIMPLE_STATUS_SLOT : 0)}px)` }}
-          tabIndex={advancedMode ? undefined : 0}
+          data-simple-rows=""
+          className="glass-scroller-content chat-column relative flex w-full flex-col gap-4 rounded-[18px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          style={{ paddingBottom: `calc(${composerDock.pad} + ${SIMPLE_TRAILING_GAP + USAGE_ROW_GAP - (statusSlot ? SIMPLE_STATUS_SLOT : 0)}px)` }}
+          tabIndex={0}
           role="log"
           aria-live="off"
           aria-label={t("room.aria", { name: group.name })}
@@ -1202,7 +1133,6 @@ export function GroupView({ group }: { group: Group }) {
             speaker={{ bot: presenceSpeaker, visible: presenceVisible, markState: statusMarkState, phrases: now.phrases, phase: now.phase, since: speaker ? group.turnStartedAt ?? null : null }}
             slot={statusSlot}
           />
-          {advancedMode && <RoomQueueList group={group} members={members} />}
         </div>
         </div>
         )}
@@ -1210,13 +1140,13 @@ export function GroupView({ group }: { group: Group }) {
 
       <TranscriptAnnouncer threadKey={transcriptKey} snapshot={announcement} />
 
-      <div ref={composerDockRef} data-grok-inset={advancedMode ? undefined : ""} className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] chat-column-dock">
+      <div ref={composerDockRef} data-grok-inset="" className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] chat-column-dock">
       {!following && (
         <div className="relative">
           <JumpToLatestButton onClick={jumpToLatest} className="pointer-events-auto bottom-2" />
         </div>
       )}
-      {!advancedMode && <div className="pointer-events-auto"><ChatErrorBanner message={state.error} onDismiss={() => dispatch({ type: "error", message: null })} /></div>}
+      <div className="pointer-events-auto"><ChatErrorBanner message={state.error} onDismiss={() => dispatch({ type: "error", message: null })} /></div>
       <RoomComposer
         key={group.threadId}
         group={group}

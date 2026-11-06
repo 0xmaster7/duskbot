@@ -11,7 +11,6 @@ vi.mock("./DesktopCapabilities", async (importOriginal) => ({
   useDesktopCapabilities: () => ({ capabilities: { dictation: { available: false }, host: { packaged: true, platform: "other" }, localComputer: { available: false } }, ready: true }),
 }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
-vi.mock("@/lib/interface-mode", () => import("@/testing/advanced-mode"));
 vi.mock("@/lib/cloud-guest", () => ({ useCanWriteIn: () => true, useReactor: () => viewer.reactor }));
 vi.mock("./ModelPicker", () => ({ ModelPicker: () => null }));
 
@@ -19,7 +18,6 @@ const { ChatView } = await import("./ChatView");
 const { setColorUserBubbles } = await import("@/lib/user-bubble-preference");
 const { BotEditorStore, initialState } = await import("@/state/store");
 const { t } = await import("@/lib/i18n");
-const { setAdvancedMode } = await import("@/lib/interface-mode");
 
 let root: Root;
 let container: HTMLDivElement;
@@ -68,12 +66,10 @@ it("says a member's own MausBot is theirs, not everyone's", () => {
   expect(container.textContent).toContain(t("team.ownHelperHeader"));
 });
 
-it.each([[false, "[data-chathead-privacy='shared']"], [true, "[data-chathead-shared]"]])("names who can read a bot's shared chat from the bot's own sharing (Advanced: %s)", (advanced, shown) => {
-  setAdvancedMode(advanced);
-  const said = () => container.querySelector(shown)?.getAttribute("title");
+it("names who can read a bot's shared chat from the bot's own sharing", () => {
+  const said = () => container.querySelector("[data-chathead-privacy='shared']")?.getAttribute("title");
   draw(luna([]));
   expect(said()).toBe(t("team.sharedHeader", { team: "Acme" }));
   draw(luna([], { onlyPeopleAdded: true }));
   expect(said()).toBe(t("team.sharedHeaderPeople"));
-  setAdvancedMode(false);
 });

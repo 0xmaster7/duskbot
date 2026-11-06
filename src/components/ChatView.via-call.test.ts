@@ -19,7 +19,6 @@ vi.mock("./DesktopCapabilities", async (importOriginal) => ({
   useDesktopCapabilities: () => ({ capabilities: { dictation: { available: false }, host: { packaged: true, platform: "other" }, localComputer: { available: false, reasonCode: "cua-driver-unavailable", message: "" } }, ready: true }),
 }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => true, setAdvancedMode: vi.fn() }));
 // the thread controls are not what this test is about
 vi.mock("./ModelPicker", () => ({ ModelPicker: () => createElement("span") }));
 vi.mock("./ApprovalModeSelector", () => ({ ApprovalModeSelector: () => createElement("span") }));
@@ -96,12 +95,12 @@ describe("a call's record at the end of a chat that is still working", () => {
   it("shows no working line for a reply that settled just before the call ended, once the turn has ended", () => {
     const settled = [spoken, message("b1", "All tests pass.", { role: "bot", requestMessageId: "m1" }), record];
     resetTurnLive();
-    expect(drawWorking(settled), "the turn has not ended yet: the reply may be words mid-turn").toContain("thinking-shimmer");
+    expect(drawWorking(settled), "the turn has not ended yet: the reply may be words mid-turn").toContain("data-turn-status");
     noteTurnEvent({ eventId: "end", provider: "claudeAgent", threadId: "t1", createdAt: "2026-10-23T12:00:00.000Z", turnId: "u1", type: "turn.completed", ok: true });
     const markup = drawWorking(settled);
     resetTurnLive();
     expect(markup).toContain("All tests pass.");
-    expect(markup).not.toContain("thinking-shimmer");
+    expect(markup).not.toContain("data-turn-status");
   });
 
   it("draws a step with no outcome as running while the chat works, and not once it stops", () => {
@@ -119,7 +118,7 @@ describe("a call's record at the end of a chat that is still working", () => {
 
   it("still shows the working line for a request nobody has answered yet", () => {
     const markup = drawWorking([spoken, record]);
-    expect(markup).toContain("thinking-shimmer");
+    expect(markup).toContain("data-turn-status");
   });
 });
 

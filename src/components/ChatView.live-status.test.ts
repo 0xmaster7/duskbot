@@ -28,8 +28,6 @@ vi.mock("@/lib/thread-preferences", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/thread-preferences")>(),
   useShowThreads: () => true,
 }));
-const mode = vi.hoisted(() => ({ advanced: true }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => mode.advanced, setAdvancedMode: vi.fn() }));
 vi.mock("./SidebarPopoverMenu", async (importOriginal) => ({
   ...await importOriginal<typeof import("./SidebarPopoverMenu")>(),
   SidebarPopoverMenu: (props: { renderTrigger: (state: { open: boolean }) => unknown }) => props.renderTrigger({ open: false }),
@@ -44,7 +42,6 @@ vi.mock("./ApprovalModeSelector", () => ({ ApprovalModeSelector: (_props: Compon
 
 const { ChatView } = await import("./ChatView");
 const { noteTurnEvent, resetTurnLive } = await import("@/state/turn-status");
-const { useActivityFocus } = await import("@/lib/activity-focus");
 
 const THREAD = "selected";
 const started = Date.UTC(2026, 9, 23, 12, 0, 0);
@@ -83,16 +80,14 @@ beforeEach(() => {
   root = createRoot(host);
 });
 afterEach(() => {
-  mode.advanced = true;
   act(() => root.unmount());
   host.remove();
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
 
-describe("Simple mode's working line", () => {
+describe("the working line", () => {
   it("is the bot's 28px mark and one quiet friendly phrase, with the timer and size kept in its tooltip", () => {
-    mode.advanced = false;
     engine({ type: "turn.started" });
     render(busyBot([ask]));
     expect(mascot()).not.toBeNull();
@@ -116,7 +111,6 @@ describe("Simple mode's working line", () => {
   });
 
   it("says Teammates working while the bot waits on its teammates", () => {
-    mode.advanced = false;
     const waiting = busyBot([ask, intro], false);
     render({ ...waiting, waitingForTeammates: true, tasks: waiting.tasks!.map((task) => ({ ...task, waitingForTeammates: true })) });
     act(() => void vi.advanceTimersByTime(STATUS_QUIET_MS.max));
@@ -125,61 +119,6 @@ describe("Simple mode's working line", () => {
 });
 
 describe("the mascot and its status line through a long turn", () => {
-  it("stays after the bot's words while the engine writes a file, saying what and how much", () => {
-    engine({ type: "turn.started" });
-    engine({ type: "item.completed", itemType: "assistant_text", text: intro.text! } as Partial<RuntimeEvent>);
-    render(busyBot([ask, intro]));
-    expect(mascot(), "the bot said a sentence mid-turn: the mascot must not vanish").not.toBeNull();
-    expect(statusLine()).toBe("Working · 1m 12s");
-
-    engine({ type: "turn.progress", activity: "write", itemId: "toolu_write", bytes: 0 } as Partial<RuntimeEvent>);
-    engine({ type: "turn.progress", activity: "write", itemId: "toolu_write", file: "index.html", bytes: 14 * 1024 + 300 } as Partial<RuntimeEvent>);
-    expect(statusLine()).toBe("Working · 1m 12s · Writing index.html · 14 KB");
-
-    // Ten silent minutes: no frame, no row. Nothing times the mascot out.
-    act(() => void vi.advanceTimersByTime(10 * 60_000));
-    expect(mascot()).not.toBeNull();
-    expect(statusLine()).toBe("Working · 11m 12s · Writing index.html · 14 KB");
-  });
-
-  it("stays through a long silent tool, keeping the call's own words while it runs", () => {
-    const bash: Message = { id: "bash", role: "bot", kind: "activity", at: started + 6_000, turnId: "t1", tool: { name: "Bash", itemId: "toolu_bash" } };
-    engine({ type: "turn.progress", activity: "command", itemId: "toolu_bash", bytes: 20 } as Partial<RuntimeEvent>);
-    engine({ type: "item.started", itemType: "tool", itemId: "toolu_bash", title: "Bash" } as Partial<RuntimeEvent>);
-    render(busyBot([ask, intro, bash]));
-    expect(statusLine()).toBe("Working · 1m 12s · Running a command");
-    for (let beat = 0; beat < 20; beat++) {
-      act(() => void vi.advanceTimersByTime(30_000));
-      engine({ type: "item.updated", itemType: "tool" } as Partial<RuntimeEvent>);
-    }
-    expect(mascot()).not.toBeNull();
-    // The phrase may rest on its alternate by now; the call is still the one running.
-    expect(statusLine()).toMatch(/^Working · 11m 12s · (Running a command|Checking the output)$/);
-
-    engine({ type: "item.completed", itemType: "tool", itemId: "toolu_bash", ok: true } as Partial<RuntimeEvent>);
-    render(busyBot([ask, intro, { ...bash, tool: { ...bash.tool!, ok: true } }]));
-    expect(statusLine(), "with nothing reported, the line is its timer alone").toBe("Working · 11m 12s");
-  });
-
-  it("clears when the turn ends, even before busy winds down", () => {
-    engine({ type: "turn.progress", activity: "write", itemId: "toolu_write", file: "index.html", bytes: 15_000 } as Partial<RuntimeEvent>);
-    render(busyBot([ask, intro]));
-    expect(mascot()).not.toBeNull();
-
-    const done: Message = { id: "done", role: "bot", kind: "text", at: started + 80_000, text: "Done: index.html is ready.", turnId: "t1" };
-    engine({ type: "item.started", itemType: "tool", itemId: "toolu_write", title: "Write" } as Partial<RuntimeEvent>);
-    engine({ type: "item.completed", itemType: "tool", itemId: "toolu_write", ok: true } as Partial<RuntimeEvent>);
-    engine({ type: "item.completed", itemType: "assistant_text", text: done.text! } as Partial<RuntimeEvent>);
-    render(busyBot([ask, intro, done]));
-    engine({ type: "turn.completed", ok: true } as Partial<RuntimeEvent>);
-    act(() => void vi.advanceTimersByTime(600));
-    expect(mascot(), "the reply settled and the turn ended: busy is still on, the mascot is not").toBeNull();
-    expect(statusLine()).toBeNull();
-
-    render(busyBot([ask, intro, done], false));
-    expect(mascot()).toBeNull();
-  });
-
   it("hides while the bot waits on the person, and the next turn starts clean", () => {
     engine({ type: "turn.progress", activity: "edit", itemId: "toolu_edit", file: "app.ts", bytes: 2048 } as Partial<RuntimeEvent>);
     const asking = busyBot([ask, intro]);
@@ -189,10 +128,7 @@ describe("the mascot and its status line through a long turn", () => {
     engine({ type: "turn.completed", ok: true } as Partial<RuntimeEvent>);
     const next: Message = { id: "next", role: "user", kind: "text", at: started + 90_000, text: "Add a chart" };
     render(busyBot([ask, intro, next]));
-    expect(statusLine(), "a new prompt shows the line before the new turn's first frame").toBe("Working · 1m 12s");
-    engine({ type: "turn.started", turnId: "t2" } as Partial<RuntimeEvent>);
-    engine({ type: "content.delta", turnId: "t2", streamKind: "reasoning_text", delta: "Plan the chart" } as Partial<RuntimeEvent>);
-    expect(statusLine()).toBe("Working · 1m 12s · Thinking");
+    expect(mascot(), "a new prompt shows the line before the new turn's first frame").not.toBeNull();
   });
 });
 
@@ -204,40 +140,7 @@ describe("what the bot is doing right now", () => {
   const toggle = () => host.querySelector<HTMLButtonElement>(".turn-presence button[aria-expanded]");
   const steps = () => [...host.querySelectorAll("[data-now-step]")].map((step) => `${step.getAttribute("data-now-step")}: ${step.querySelector("[dir=auto]")?.textContent}`);
 
-  it("names the step, says how it is doing, and unfolds the ask's steps with a way into the Activity panel at this run", () => {
-    engine({ type: "turn.started" });
-    engine({ type: "item.started", itemType: "tool", itemId: "b1", title: "Bash" } as Partial<RuntimeEvent>);
-    engine({ type: "turn.progress", activity: "command", itemId: "b1", target: "scrape.py", detail: "python3 scrape.py --pages 40", quiet: { kind: "busy" } } as Partial<RuntimeEvent>);
-    render(busyBot([ask, search, bash]));
-    expect(statusLine()).toBe("Working · 1m 12s · Running scrape.py · busy, no output yet");
-    expect(host.querySelector("[data-turn-now]")?.getAttribute("title")).toBe("python3 scrape.py --pages 40");
-    expect(toggle()?.getAttribute("aria-label")).toBe("What Pepper is doing");
-    expect(host.querySelector("[data-now-card]")).toBeNull();
-
-    act(() => toggle()!.click());
-    expect(steps()).toEqual(["done: Searched the web for “Acme construction leads”", "now: Running scrape.py"]);
-    const seen: Array<ReturnType<typeof useActivityFocus>> = [];
-    const probe = createRoot(document.createElement("div"));
-    act(() => probe.render(createElement(() => { seen.push(useActivityFocus("bot")); return null; })));
-    act(() => [...host.querySelectorAll<HTMLButtonElement>("[data-now-card] button")].find((button) => button.textContent === "Open activity")!.click());
-    expect(dispatch).toHaveBeenCalledWith({ type: "toggleActivity", open: true });
-    expect(seen.at(-1)).toEqual({ botId: "bot", threadId: THREAD, turnId: "t1" });
-    act(() => probe.unmount());
-  });
-
-  it("shows a running command's last lines of output in the card, and the time since they came on the line", () => {
-    engine({ type: "turn.started" });
-    engine({ type: "item.started", itemType: "tool", itemId: "b1", title: "Bash" } as Partial<RuntimeEvent>);
-    engine({ type: "turn.progress", activity: "command", itemId: "b1", target: "scrape.py", quiet: { kind: "output", at: started + 72_000 - 125_000 },
-      tail: ["page 39 of 40", "page 40 of 40"] } as Partial<RuntimeEvent>);
-    render(busyBot([ask, bash]));
-    expect(statusLine()).toBe("Working · 1m 12s · Running scrape.py · last output 2 min ago");
-    act(() => toggle()!.click());
-    expect(host.querySelector("[data-now-output]")?.textContent).toBe("page 39 of 40\npage 40 of 40");
-  });
-
-  it("is the same calm line in Simple mode, where the card unfolds too", () => {
-    mode.advanced = false;
+  it("is one calm line, where the card unfolds too", () => {
     engine({ type: "turn.started" });
     engine({ type: "item.started", itemType: "tool", itemId: "b1", title: "Bash" } as Partial<RuntimeEvent>);
     engine({ type: "turn.progress", activity: "command", itemId: "b1", target: "scrape.py", quiet: { kind: "idle" } } as Partial<RuntimeEvent>);

@@ -31,7 +31,6 @@ vi.mock("./PluginsPanel", () => ({ preloadConnectedApps: async () => ({ services
 vi.mock("./bot-settings/useBotApps", () => ({ loadAppCards: async () => new Map([["gmail", { label: "Gmail" }], ["github", { label: "GitHub" }]]) }));
 vi.mock("./Avatar", () => ({ BotAvatar: () => null }));
 vi.mock("./mascot-clock", () => ({ usePrefersReducedMotion: () => f.reduced }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => false }));
 vi.mock("./onboarding/ConnectAi", async () => {
   const { createElement: h } = await import("react");
   return { ConnectAiDialog: ({ onClose }: { onClose: () => void }) => h("div", { "data-connect-ai": "", onClick: onClose }) };

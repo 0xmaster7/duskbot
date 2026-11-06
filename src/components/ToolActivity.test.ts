@@ -1,9 +1,8 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { setLocale } from "@/lib/i18n";
 
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => true }));
 const { ToolActivity } = await import("./ToolActivity");
 
 describe("ToolActivity", () => {
@@ -11,7 +10,7 @@ describe("ToolActivity", () => {
     const html = renderToStaticMarkup(createElement(ToolActivity, { tool: { name: "Bash", ok: true, input: "echo hi", output: "<script>unsafe()</script>" } }));
     expect(html).toContain("<details");
     expect(html).not.toContain(" open=");
-    expect(html).toContain("Bash · Completed · Tool details");
+    expect(html).toContain("Run a command · Completed · Tool details");
     expect(html).toContain('role="button"');
     expect(html).toContain('aria-expanded="false"');
     expect(html).toContain("echo hi");

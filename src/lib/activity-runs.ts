@@ -42,9 +42,6 @@ function foldable(message: Message): boolean {
 
 type TurnFold = Extract<TranscriptItem, { kind: "turn" }>;
 
-const isNarration = (message: Message, turnId: string) =>
-  message.role === "bot" && message.kind === "text" && message.turnId === turnId && !message.turnTerminal;
-
 /** A turn starts with the person's last message before its first row, or with that row when nobody wrote first. */
 function turnStartedAt(messages: readonly Message[], firstIndex: number, fallback: number): number {
   for (let i = firstIndex - 1; i >= 0; i -= 1) if (messages[i]!.role === "user") return messages[i]!.at;
@@ -99,31 +96,9 @@ function settledTurnFolds(messages: Message[], folded: (message: Message, turnId
   return { byAnchorId, hiddenIds };
 }
 
-/** A room shows a member's answer, not its working notes. */
-function assistantTurnFolds(messages: Message[]) {
-  return settledTurnFolds(messages, isNarration);
-}
-
 /** A conversation keeps the bot's own progress lines and folds only its finished tool steps. */
 function toolStepFolds(messages: Message[]) {
   return settledTurnFolds(messages, (message, turnId) => message.turnId === turnId && foldable(message));
-}
-
-export function roomTurnFolds(messages: Message[]): {
-  byTerminalId: Map<string, TurnFold>;
-  hiddenIds: Set<string>;
-} {
-  const { byAnchorId, hiddenIds } = assistantTurnFolds(messages);
-  const terminals = new Map<string, string>();
-  for (const message of messages) {
-    if (message.role === "bot" && message.kind === "text" && message.turnId && message.turnTerminal) terminals.set(message.turnId, message.id);
-  }
-  const byTerminalId = new Map<string, TurnFold>();
-  for (const fold of byAnchorId.values()) {
-    const terminalId = terminals.get(fold.turnId);
-    if (terminalId) byTerminalId.set(terminalId, fold);
-  }
-  return { byTerminalId, hiddenIds };
 }
 
 function group(messages: Message[], foldAssistantTurns: boolean): TranscriptItem[] {

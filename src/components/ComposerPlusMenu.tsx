@@ -8,7 +8,6 @@ import {
   shownApprovalMode,
   simpleApprovalName,
 } from "@/lib/approval-mode-options";
-import { useAdvancedMode } from "@/lib/interface-mode";
 import { CALL_MODES, effectiveCallMode, useCallMode } from "@/lib/call-mode";
 import { callCapabilityHelp } from "@/lib/call-capability";
 import { fishListeningReady, listensHere, speechBridge } from "@/lib/speech";
@@ -69,17 +68,16 @@ export function GoalToggle({ on, onToggle, solo = false, compact = false }: { on
 
 const check = <Check size={15} className="shrink-0 text-accent" aria-hidden="true" />;
 
-/** The thread's approval level, the same choices the Advanced composer's shield offers: the level shown and its menu.
- * Simple mode names the levels as the bot panel does. */
-function approvalMenu(choice: ApprovalChoice, simple: boolean) {
+/** The thread's approval level: the level shown and its menu, the levels named as the bot panel names them. */
+function approvalMenu(choice: ApprovalChoice) {
   const trusted = choice.trustedModesAvailable ?? true;
   const mode = shownApprovalMode(choice.driverKind, approvalModeFor({ approvalMode: choice.approvalMode, autoApprove: choice.autoApprove }));
   const all = approvalModeOptions();
   const shown = approvalModeOptionsFor(choice.driverKind).find((option) => option.mode === mode)
     ?? all.find((option) => option.mode === mode)
     ?? all[0];
-  const name = (option: typeof shown) => simple ? simpleApprovalName(option.mode, choice.driverKind) : option.label;
-  const current = simple ? { ...shown, label: name(shown), chip: name(shown) } : shown;
+  const name = (option: typeof shown) => simpleApprovalName(option.mode, choice.driverKind);
+  const current = { ...shown, label: name(shown), chip: name(shown) };
   const localOnly = approvalModeSelectionRequiresLocalDesktop(mode, trusted);
   return {
     current,
@@ -109,8 +107,8 @@ function approvalMenu(choice: ApprovalChoice, simple: boolean) {
   };
 }
 
-function approvalItem(name: string, choice: ApprovalChoice, simple: boolean): SidebarMenuItem {
-  const { current, note, items } = approvalMenu(choice, simple);
+function approvalItem(name: string, choice: ApprovalChoice): SidebarMenuItem {
+  const { current, note, items } = approvalMenu(choice);
   const CurrentIcon = current.Icon;
   return {
     key: "approval",
@@ -126,22 +124,8 @@ function approvalItem(name: string, choice: ApprovalChoice, simple: boolean): Si
 
 /** The thread's approval level as a small pill that opens its choices: in the Simple composer while it is not the
  * default, and on the bot panel's Details. */
-export function TeachTaskButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={t("composer.teachTask")}
-      title={t("composer.teachTask")}
-      className="flex size-8 shrink-0 items-center justify-center rounded-full text-ink-secondary hover:bg-control hover:text-ink"
-    >
-      <GraduationCap size={16} strokeWidth={1.75} absoluteStrokeWidth />
-    </button>
-  );
-}
-
 export function ApprovalChip({ choice, quiet = false }: { choice: ApprovalChoice; quiet?: boolean }) {
-  const { current, note, items } = approvalMenu(choice, !useAdvancedMode());
+  const { current, note, items } = approvalMenu(choice);
   const CurrentIcon = current.Icon;
   return (
     <SidebarPopoverMenu
@@ -167,22 +151,20 @@ export function ApprovalChip({ choice, quiet = false }: { choice: ApprovalChoice
 
 /**
  * The composer's round +: attach files, Work until done (Finish together in a group) and Teach a task. A phone's + also
- * holds what its narrow composer has no room for: the thread's approval level, the call mode and where the bot works,
- * each running the handler its Advanced button runs. With attaching the only choice, the + opens the file picker.
+ * holds what its narrow composer has no room for: the thread's approval level and the call mode. With attaching the
+ * only choice, the + opens the file picker.
  */
 /** Grok's Teach a task mark: a red record button, as teaching records what you do. */
 function TeachMark() {
   return <span className="flex size-3.5 items-center justify-center rounded-full border-[1.5px] border-danger"><span className="size-1.5 rounded-full bg-danger" /></span>;
 }
 
-export function ComposerPlusMenu({ onAttach, attachChoices, goal, teach, approval, callBotId, extraItems = [], circle = false }: {
+export function ComposerPlusMenu({ onAttach, attachChoices, goal, teach, approval, callBotId, circle = false }: {
   onAttach: () => void;
   /** A phone or touch screen: the photo library and the camera beside Files (ComposerFilePickers). */
   attachChoices?: AttachChoices;
   /** Starts a /learn draft in the field, where the composer offers /learn. */
   teach?: () => void;
-  /** Entries a phone composer moves here from its hidden buttons, such as where the bot works. */
-  extraItems?: SidebarMenuItem[];
   /** The phone dock: a round button of its own beside the field, not a small chip inside it. */
   circle?: boolean;
   goal?: { on: boolean; onToggle: () => void; solo?: boolean };
@@ -201,7 +183,6 @@ export function ComposerPlusMenu({ onAttach, attachChoices, goal, teach, approva
   // As the call button, which hides while Live is the mode and its line is held on another device.
   const lineHeldElsewhere = callMode === "live" && liveLineHeldElsewhere(media, state.liveCall);
   const calling = callBotId !== undefined && (onCall === callBotId || isLiveCallRunning(media.phase) || lineHeldElsewhere);
-  const simple = !useAdvancedMode();
   const items: SidebarMenuItem[] = [
     ...(attachChoices ? [
       { key: "attach:photos", label: t("composer.attach.photos"), icon: <Images size={16} />, onSelect: attachChoices.photos },
@@ -218,8 +199,7 @@ export function ComposerPlusMenu({ onAttach, attachChoices, goal, teach, approva
       onSelect: goal.onToggle,
     } satisfies SidebarMenuItem] : []),
     ...(teach ? [{ key: "teach", label: t("composer.teachTask"), icon: circle ? <GraduationCap size={16} /> : <TeachMark />, onSelect: teach } satisfies SidebarMenuItem] : []),
-    ...extraItems,
-    ...(approval ? [approvalItem(approval.name, approval.choice, simple)] : []),
+    ...(approval ? [approvalItem(approval.name, approval.choice)] : []),
     ...(callBotId === undefined ? [] : CALL_MODES.map((entry, index): SidebarMenuItem => {
       const unavailable = entry.id === "turns" ? turnsHelp : null;
       return {

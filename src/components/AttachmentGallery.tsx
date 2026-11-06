@@ -2,9 +2,8 @@
 // authorization.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fromMarkdown } from "mdast-util-from-markdown";
-import { ChevronDown, ChevronUp, Download, Film, LoaderCircle, Music, Play, X } from "lucide-react";
+import { Download, Film, LoaderCircle, Music, Play, X } from "lucide-react";
 import { attachmentBasename, FILE_MAX_BYTES, type TranscriptFileAttachment, type TranscriptImageAttachment } from "@/lib/composer-attachments";
-import { useAdvancedMode } from "@/lib/interface-mode";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { windowsPathDestinations } from "../../shared/markdown-windows-paths";
@@ -404,7 +403,6 @@ export function AttachmentGallery({ images = [], files = [], message, eager = fa
 }) {
   const [expanded, setExpanded] = useState(false);
   const [selected, setSelected] = useState<PreviewImage | null>(null);
-  const simple = !useAdvancedMode() && !beneath;
   const items = useMemo(() => {
     const seen = new Set<string>();
     const result: GalleryItem[] = [];
@@ -429,8 +427,8 @@ export function AttachmentGallery({ images = [], files = [], message, eager = fa
     return result;
   }, [images, files, message]);
   if (!items.length) return null;
-  const simpleImages = simple ? items.filter((item) => item.kind === "image") : [];
-  const listed = simple ? items.filter((item) => item.kind !== "image") : items;
+  const simpleImages = beneath ? [] : items.filter((item) => item.kind === "image");
+  const listed = beneath ? items : items.filter((item) => item.kind !== "image");
   const limit = beneath ? BENEATH_LIMIT : simpleImages.length ? 3 : 4;
   const shown = expanded ? listed : listed.slice(0, limit);
   const media = shown.filter((item) => item.kind === "image" || item.kind === "video");
@@ -480,51 +478,19 @@ export function AttachmentGallery({ images = [], files = [], message, eager = fa
     );
   }
 
-  if (simple) {
-    const rowImages = simpleImages.flatMap((item) => item.kind === "image" ? [item.image] : []);
-    return (
-      <section aria-label={label} className={cn("flex w-full max-w-full flex-col gap-3 text-left whitespace-normal", align === "end" ? "items-end" : "items-start", className)}>
-        {rowImages.length > 0 && <ImageRow images={rowImages} align={align} eager={eager} onOpen={(index) => setSelected(rowImages[index] ?? null)} />}
-        {media.map((item) => item.kind === "video" && message ? (
-          <div key={item.key} className="w-[min(34rem,70vw)] max-w-full"><VideoAttachment key={`${message.threadId}:${message.messageId}:${item.key}`} file={item.file} message={message} /></div>
-        ) : null)}
-        {documents.map((item) => item.kind === "audio" && message
-          ? <AudioAttachment key={`${message.threadId}:${message.messageId}:${item.key}`} file={item.file} message={message} />
-          : item.kind === "file" && <AttachedFileChip key={item.key} file={item.file} linked={item.file.linked} message={message} card />)}
-        {listed.length > limit && (
-          <button type="button" onClick={() => setExpanded(!expanded)} aria-expanded={expanded} className="inline-flex h-7 items-center rounded-full px-2.5 text-[13px] leading-none text-ink-secondary transition-colors hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
-            {expanded ? t("attach.showLess") : t("attach.showMore", { count: listed.length - limit })}
-          </button>
-        )}
-        {dialog}
-      </section>
-    );
-  }
-
+  const rowImages = simpleImages.flatMap((item) => item.kind === "image" ? [item.image] : []);
   return (
-    <section aria-label={label} className={cn("mb-1.5 w-[min(34rem,70vw)] max-w-full space-y-1.5 text-left whitespace-normal", className)}>
-      {media.length > 0 && (
-        <div className={cn("grid gap-2", media.length === 1 ? "grid-cols-1" : "grid-cols-2")}>
-          {media.map((item) => item.kind === "image" ? (
-            <div key={item.key} className="min-w-0" title={item.image.name}>
-              <AttachmentThumbnail key={item.image.src} image={item.image} eager={eager} onPreview={() => setSelected(item.image)} className="max-h-72 rounded-2xl border-0 bg-transparent" />
-            </div>
-          ) : item.kind === "video" && message ? (
-            <VideoAttachment key={`${message.threadId}:${message.messageId}:${item.key}`} file={item.file} message={message} />
-          ) : null)}
-        </div>
-      )}
-      {documents.length > 0 && (
-        <div className="flex flex-col items-start gap-1.5">
-          {documents.map((item) => item.kind === "audio" && message
-            ? <AudioAttachment key={`${message.threadId}:${message.messageId}:${item.key}`} file={item.file} message={message} />
-            : item.kind === "file" && <AttachedFileChip key={item.key} file={item.file} linked={item.file.linked} message={message} className="max-w-none rounded-xl border-hairline/25 bg-transparent" />)}
-        </div>
-      )}
-      {items.length > limit && (
-        <button type="button" onClick={() => setExpanded(!expanded)} aria-expanded={expanded} className="flex min-h-8 items-center gap-1 rounded-lg px-1 py-1 text-[11px] text-ink-secondary transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60">
-          {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-          {expanded ? t("attach.showLess") : t("attach.showMore", { count: items.length - limit })}
+    <section aria-label={label} className={cn("flex w-full max-w-full flex-col gap-3 text-left whitespace-normal", align === "end" ? "items-end" : "items-start", className)}>
+      {rowImages.length > 0 && <ImageRow images={rowImages} align={align} eager={eager} onOpen={(index) => setSelected(rowImages[index] ?? null)} />}
+      {media.map((item) => item.kind === "video" && message ? (
+        <div key={item.key} className="w-[min(34rem,70vw)] max-w-full"><VideoAttachment key={`${message.threadId}:${message.messageId}:${item.key}`} file={item.file} message={message} /></div>
+      ) : null)}
+      {documents.map((item) => item.kind === "audio" && message
+        ? <AudioAttachment key={`${message.threadId}:${message.messageId}:${item.key}`} file={item.file} message={message} />
+        : item.kind === "file" && <AttachedFileChip key={item.key} file={item.file} linked={item.file.linked} message={message} card />)}
+      {listed.length > limit && (
+        <button type="button" onClick={() => setExpanded(!expanded)} aria-expanded={expanded} className="inline-flex h-7 items-center rounded-full px-2.5 text-[13px] leading-none text-ink-secondary transition-colors hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+          {expanded ? t("attach.showLess") : t("attach.showMore", { count: listed.length - limit })}
         </button>
       )}
       {dialog}

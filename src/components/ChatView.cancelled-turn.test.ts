@@ -28,7 +28,6 @@ vi.mock("@/lib/thread-preferences", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/thread-preferences")>(),
   useShowThreads: () => true,
 }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => true, setAdvancedMode: vi.fn() }));
 vi.mock("./SidebarPopoverMenu", async (importOriginal) => ({
   ...await importOriginal<typeof import("./SidebarPopoverMenu")>(),
   SidebarPopoverMenu: (props: { renderTrigger: (state: { open: boolean }) => unknown }) => props.renderTrigger({ open: false }),
@@ -74,38 +73,14 @@ afterEach(() => {
 describe("a cancelled turn", () => {
   const ask = { id: "ask", role: "user" as const, kind: "text" as const, at: 1, text: "Try the new model" };
 
-  it("renders the provider sentence as a muted stop with Retry, and resends that message", () => {
+  it("leaves no row behind for the provider's stop sentence or a legacy stop row", () => {
     render({ ...bot, messages: [ask, { id: "cancel", role: "bot", kind: "text", at: 2, text: CANCELLED }] });
-    const notice = host.querySelector("[role=status]:not([data-chathead-status])");
-    expect(notice?.textContent).toContain("Stopped");
-    expect(notice?.className).toContain("flex-wrap");
-    expect(notice?.className).not.toMatch(/\b(?:ml-|mr-|left-|right-|text-left|text-right)/);
+    expect(host.textContent).toContain("Try the new model");
     expect(host.textContent).not.toContain(CANCELLED);
-    expect(host.innerHTML).not.toContain("border-danger");
-    const button = retry();
-    expect(button).toBeTruthy();
-    flushSync(() => button!.click());
-    expect(fixture.dispatch).toHaveBeenCalledWith({
-      type: "editMessage",
-      botId: "bot",
-      threadId: "selected",
-      messageId: "ask",
-      text: "Try the new model",
-    });
-  });
-
-  it("reads a legacy error row and a stored stop the same way", () => {
+    expect(retry()).toBeUndefined();
     render({ ...bot, messages: [ask, { id: "cancel", role: "bot", kind: "activity", at: 2, tool: { name: `error: ${CANCELLED}`, ok: false } }] });
-    expect(host.textContent).toContain("Stopped");
     expect(host.textContent).not.toContain(CANCELLED);
-    expect(host.innerHTML).not.toContain("border-danger");
-    flushSync(() => root.render(createElement(ChatView, { bot: { ...bot, messages: [
-      ask,
-      { id: "cancel", role: "bot", kind: "activity", at: 2, tool: { name: "stopped: Stopped", ok: true } },
-    ] } })));
-    expect(host.textContent).toContain("Stopped");
-    expect(host.textContent).not.toContain("stopped:");
-    expect(retry()).toBeTruthy();
+    expect(retry()).toBeUndefined();
   });
 
   it("keeps a real error, including one that only mentions cancellation", () => {
@@ -115,23 +90,5 @@ describe("a cancelled turn", () => {
     expect(host.querySelector("[data-chat-error][role=alert]"), "a real error keeps the danger card").not.toBeNull();
     expect(host.textContent).not.toContain("Stopped");
     expect(retry()).toBeTruthy();
-  });
-
-  it("offers Retry only on the latest turn, and not while the bot is busy", () => {
-    const task = bot.tasks![0]!;
-    render({
-      ...bot,
-      busy: true,
-      tasks: [{ ...task, busy: true, activity: "working" }],
-      messages: [ask, { id: "cancel", role: "bot", kind: "text", at: 2, text: CANCELLED }],
-    });
-    expect(host.textContent).toContain("Stopped");
-    expect(retry()).toBeUndefined();
-    render({ ...bot, messages: [
-      ask,
-      { id: "cancel", role: "bot", kind: "text", at: 2, text: CANCELLED },
-      { id: "next", role: "user", kind: "text", at: 3, text: "A different request" },
-    ] });
-    expect(retry()).toBeUndefined();
   });
 });

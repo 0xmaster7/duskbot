@@ -10,7 +10,6 @@ import { failedComposerSends, rememberFailedComposerSend, restoreComposerDraft }
 import { setCallMode } from "@/lib/call-mode";
 
 const fixture = vi.hoisted(() => ({
-  advanced: false,
   dispatch: vi.fn(),
   call: null as Record<string, unknown> | null,
   liveCall: null as unknown,
@@ -27,7 +26,6 @@ vi.mock("@/state/store", async (importOriginal) => {
 });
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => true }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => fixture.advanced, setAdvancedMode: vi.fn() }));
 vi.mock("./CallView", () => ({ CallButton: (props: Record<string, unknown>) => {
   fixture.call = props;
   return null;
@@ -63,7 +61,6 @@ function openPlus() {
 }
 
 beforeEach(() => {
-  fixture.advanced = false;
   vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("max-width: 767.98px"), addEventListener() {}, removeEventListener() {} }));
   fixture.liveCall = null;
   setCallMode("turns");
@@ -85,24 +82,11 @@ afterEach(() => {
 });
 
 describe("the phone composer", () => {
-  it("shows only the + and the pill in Simple mode, with an inverse voice button", () => {
+  it("shows only the + and the pill, with an inverse voice button", () => {
     render({ bot });
     expect(plus()).not.toBeNull();
     expect(fixture.call).toMatchObject({ placement: "composer", inverse: true });
     expect(fixture.call?.fill).toBeUndefined();
-  });
-
-  it("moves Advanced mode's row of buttons into the +", () => {
-    fixture.advanced = true;
-    render({ bot });
-    expect(container.querySelector('button[aria-label="Attach a file"]')).toBeNull();
-    expect(container.querySelector('[aria-label^="Ask for approval for"]')).toBeNull();
-    expect(container.querySelector('[data-testid="place-chip"]')).toBeNull();
-    expect(fixture.call).toMatchObject({ inverse: true });
-    openPlus();
-    const keys = [...menu()!.querySelectorAll("[data-menu-key]")].map((row) => row.getAttribute("data-menu-key"));
-    expect(keys).toEqual(expect.arrayContaining(["attach", "teach", "place", "approval", "call:turns", "call:live"]));
-    expect(item("place")?.textContent).toContain("Works on");
   });
 
   it("offers the photo library, the camera and files from the +, each its own picker", () => {
@@ -143,12 +127,9 @@ describe("the phone composer", () => {
     expect(container.querySelector("[data-failed-send]")).toBeNull();
   });
 
-  it("keeps Advanced mode's buttons in a row on a wider screen", () => {
+  it("keeps one file picker on a wider screen", () => {
     vi.stubGlobal("matchMedia", (query: string) => ({ matches: !query.includes("max-width"), addEventListener() {}, removeEventListener() {} }));
-    fixture.advanced = true;
     render({ bot });
-    expect(container.querySelector('button[aria-label="Attach a file"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="place-chip"]')).not.toBeNull();
     expect(fixture.call?.inverse).toBe(false);
     expect(container.querySelectorAll('input[type="file"]')).toHaveLength(1);
     expect(container.querySelector("input[capture]")).toBeNull();

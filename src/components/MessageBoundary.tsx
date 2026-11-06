@@ -3,7 +3,7 @@ import { Component, type ReactNode } from "react";
 import { plainBotBubble } from "./chat-bubble";
 
 function FallbackBubble({ text }: { text: string }) {
-  return <div data-chat-bubble="simple" className={plainBotBubble(true)}>{text}</div>;
+  return <div data-chat-bubble="simple" className={plainBotBubble()}>{text}</div>;
 }
 
 export class MessageBoundary extends Component<{ children: ReactNode; fallbackText: string }, { failed: boolean }> {

@@ -3,7 +3,6 @@ import { ChevronRight, Check } from "lucide-react";
 import type { Message } from "@/state/store";
 import { describeRun } from "@/lib/activity-runs";
 import { t } from "@/lib/i18n";
-import { useAdvancedMode } from "@/lib/interface-mode";
 import { toolStepLabel } from "@/lib/tool-step-label";
 
 /** A finished run of tool steps reads as one quiet line, the way the bot's working line did, not as a button. */
@@ -19,8 +18,7 @@ export function ActivityRun({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(forceOpen);
-  const advanced = useAdvancedMode();
-  const summary = advanced ? describeRun(messages) : describeRun(messages, toolStepLabel);
+  const summary = describeRun(messages, toolStepLabel);
   useEffect(() => {
     if (forceOpen) setOpen(true);
   }, [forceOpen]);

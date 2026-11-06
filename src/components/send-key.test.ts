@@ -21,7 +21,6 @@ vi.mock("./DesktopCapabilities", async (importOriginal) => ({
   useDesktopCapabilities: () => ({ capabilities: { dictation: { available: false }, host: { packaged: true, platform: "other" }, localComputer: { available: false, reasonCode: "x", message: "" } }, ready: true }),
 }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
-vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => true, setAdvancedMode: vi.fn() }));
 vi.mock("@/lib/cloud-guest", () => ({ useCanWriteIn: () => null, useReactor: () => "user" }));
 vi.mock("./CitationUI", async (importOriginal) => ({
   ...await importOriginal<typeof import("./CitationUI")>(),
@@ -45,7 +44,6 @@ const { GuidedTour } = await import("./onboarding/GuidedTour");
 const { setSendKey } = await import("@/lib/send-key");
 const { setFollowUpDefault } = await import("@/lib/follow-up");
 const { setPendingIntent } = await import("@/lib/cloud-intent");
-const { setLocale } = await import("@/lib/i18n");
 const { api } = await import("@/state/store");
 
 const bot: Bot = {
@@ -210,7 +208,7 @@ describe("an input method in the composer's menus", () => {
 });
 
 describe("the send key in hints", () => {
-  it("names the key on the send button and in the busy composer", () => {
+  it("names the key on the send button", () => {
     fixture.instances = [{ instanceId: "test", driverKind: "codex", displayName: "Test", capabilities: { queueing: true } } as unknown as InstanceInfo];
     render(createElement(Composer, { bot }));
     type(textarea(), "hi");
@@ -219,24 +217,6 @@ describe("the send key in hints", () => {
     expect(host.querySelector('button[aria-label="Send message"]')?.getAttribute("title")).toBe("Send (Shift+Enter)");
     flushSync(() => setSendKey("mod-enter"));
     expect(host.querySelector('button[aria-label="Send message"]')?.getAttribute("title")).toBe("Send (Ctrl+Enter)");
-
-    type(textarea(), "");
-    render(createElement(Composer, { bot: { ...bot, busy: true, tasks: [{ ...bot.tasks![0]!, busy: true }] } }));
-    expect(textarea().placeholder).toBe("Pepper is working. Ctrl+Enter sends this into the running turn");
-    render(createElement(Composer, { group: { ...room, busyBotId: "bot" }, members: [{ ...bot, modelSelection: { instanceId: "none", model: "x" } }] }));
-    expect(textarea().placeholder).toBe("Pepper is working. Ctrl+Enter queues your message");
-  });
-
-  it("names the key in Japanese hints too", () => {
-    fixture.instances = [{ instanceId: "test", driverKind: "codex", displayName: "Test", capabilities: { queueing: true } } as unknown as InstanceInfo];
-    setSendKey("mod-enter");
-    setLocale("ja");
-    try {
-      render(createElement(Composer, { bot: { ...bot, busy: true, tasks: [{ ...bot.tasks![0]!, busy: true }] } }));
-      expect(textarea().placeholder).toBe("Pepper が作業中です — Ctrl+Enter で実行中のターンに送ります");
-    } finally {
-      setLocale("en");
-    }
   });
 
   it.each([
@@ -277,7 +257,7 @@ describe("a message sent while a one-to-one bot works", () => {
       expect(sends().at(-1), JSON.stringify(init)).toMatchObject({ type: "send", text: "words", followUp });
     }
     type(textarea(), "clicked");
-    expect(sendButton().getAttribute("title")).toBe("Send into the running turn · Ctrl+Enter: Queue");
+    expect(sendButton().getAttribute("title")).toBe("Add this to what Pepper is doing · Ctrl+Enter: Queue");
     flushSync(() => sendButton().click());
     type(textarea(), "ctrl-clicked");
     flushSync(() => sendButton().dispatchEvent(new MouseEvent("click", { bubbles: true, ctrlKey: true })));
@@ -288,7 +268,6 @@ describe("a message sent while a one-to-one bot works", () => {
     fixture.instances = [steers];
     setFollowUpDefault("queue");
     render(createElement(Composer, { bot: working }));
-    expect(textarea().placeholder).toBe("Pepper is working. Sends when this turn finishes");
     type(textarea(), "later");
     press(textarea());
     type(textarea(), "now");
