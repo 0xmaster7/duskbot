@@ -41,7 +41,6 @@ import { PhoneAppDialog } from "./PhoneAppDialog";
 import { PlaceLookRows } from "./PlaceLookCard";
 import { PlanUsageSummary } from "./PlanUsage";
 import { ProfileAvatar, ProfileFields } from "./ProfileSettings";
-import { SavedStepsRow } from "./SavedStepsRow";
 import { SettingRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
 import { Card as RowsCard, FormDialog, ItemRow, NavRow, SwitchRow, useSubPage } from "./ListRows";
 import { SettingsSelect } from "./SettingsSelect";
@@ -55,6 +54,7 @@ import { UpdatesConsentRow } from "./UpdatesConsent";
 import { UsageSection } from "./UsageSection";
 import { WorkspaceBackupSettings } from "./WorkspaceBackupSettings";
 import { WorkspacesSection } from "./WorkspacesSection";
+import { WebhooksSettingsRow } from "./WebhooksSettingsRow";
 import { UsageMeterCard } from "./native/UsageMeter";
 import { reportsUsage, useEngineLimits } from "@/lib/limit-resets";
 import {
@@ -482,11 +482,14 @@ function DataPage({ has }: { has: Has }) {
 /** Features still being built, and the way back to the Simple look while Advanced is on. */
 function BuilderPage() {
   return (
-    <SettingsGroup block="builder">
-      <div data-settings-block="experimental" className="contents">
-        <ExperimentalFeaturesRow lead={<SavedStepsRow />} />
-      </div>
-    </SettingsGroup>
+    <>
+      <SettingsGroup block="builder">
+        <div data-settings-block="experimental" className="contents">
+          <ExperimentalFeaturesRow />
+        </div>
+      </SettingsGroup>
+      <WebhooksSettingsRow />
+    </>
   );
 }
 

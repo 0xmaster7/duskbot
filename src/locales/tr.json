@@ -2233,6 +2233,8 @@
   "engineSetup.needsNode": "Node.js ve {npm} gerektirir.",
   "engineSetup.viewGuide": "Kurulum kılavuzunu görüntüle",
   "settings.experimental.title": "Deneysel özellikler",
+  "settings.webhooks.title": "Webhook'lar",
+  "settings.webhooks.hint": "Diğer uygulamalar bir botun işini başlatabilsin. Otomasyonlar'dan ayarla.",
   "settings.experimental.subtitle": "Erken aşamadaki özellikler biz onları test ederken değişebilir. Her birinde varsayılan olarak açık mı kapalı mı olduğu belirtilir.",
   "settings.experimental.error": "Deneysel özellik ayarı kaydedilemedi.",
   "settings.experimental.skillAuthoring": "Botlar kendi becerilerini yazabilir",

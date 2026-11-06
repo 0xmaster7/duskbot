@@ -2947,6 +2947,8 @@
   "engineSetup.needsNode": "Node.js와 {npm}이(가) 필요해요.",
   "engineSetup.viewGuide": "설정 안내 보기",
   "settings.experimental.title": "실험 기능",
+  "settings.webhooks.title": "웹훅",
+  "settings.webhooks.hint": "다른 앱이 봇의 작업을 시작하게 해요. 자동화에서 설정하세요.",
   "settings.experimental.subtitle": "초기 기능은 테스트하는 동안 바뀔 수 있어요. 기능마다 기본으로 켜져 있는지 꺼져 있는지 표시돼요.",
   "settings.experimental.error": "실험 기능 설정을 저장하지 못했어요.",
   "settings.experimental.skillAuthoring": "봇이 직접 스킬을 쓸 수 있음",

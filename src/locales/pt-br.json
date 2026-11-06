@@ -2670,6 +2670,8 @@
   "engineSetup.needsNode": "Requer Node.js e {npm}.",
   "engineSetup.viewGuide": "Ver o guia de configuração",
   "settings.experimental.title": "Recursos experimentais",
+  "settings.webhooks.title": "Webhooks",
+  "settings.webhooks.hint": "Deixe outros apps iniciarem o trabalho de um bot. Configure em Automações.",
   "settings.experimental.subtitle": "Recursos iniciais podem mudar enquanto os testamos. Cada um diz se começa ligado ou desligado.",
   "settings.experimental.error": "Não foi possível salvar a preferência do recurso experimental.",
   "settings.experimental.skillAuthoring": "Bots podem escrever as próprias habilidades",

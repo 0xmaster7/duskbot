@@ -1270,6 +1270,8 @@
   "engineSetup.needsNode": "Nécessite Node.js et {npm}.",
   "engineSetup.viewGuide": "Voir le guide d'installation",
   "settings.experimental.title": "Fonctionnalités expérimentales",
+  "settings.webhooks.title": "Webhooks",
+  "settings.webhooks.hint": "Laissez d'autres apps lancer le travail d'un bot. À configurer dans Automatisations.",
   "settings.experimental.error": "Impossible d'enregistrer le réglage de la fonctionnalité expérimentale.",
   "settings.experimental.browser": "Navigateur intégré",
   "settings.experimental.browserOff": "Désactivé par défaut. Activez-le pour que les bots compatibles utilisent un onglet que vous pouvez suivre et reprendre.",

@@ -2779,6 +2779,8 @@
   "engineSetup.needsNode": "Node.js と {npm} が必要です。",
   "engineSetup.viewGuide": "セットアップガイドを見る",
   "settings.experimental.title": "実験的機能",
+  "settings.webhooks.title": "Webhook",
+  "settings.webhooks.hint": "ほかのアプリからボットの作業を始められます。設定は「オートメーション」で。",
   "settings.experimental.subtitle": "試験中の機能は変更される場合があります。各機能に、最初からオンかオフかを表示しています。",
   "settings.experimental.error": "実験的機能の設定を保存できませんでした。",
   "settings.experimental.skillAuthoring": "ボットが自分のスキルを作成できるようにする",

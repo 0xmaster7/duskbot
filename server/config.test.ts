@@ -52,6 +52,10 @@ const reloaded = (patch: object, cfg: AppConfig = {}) =>
   changedInstanceIds(engineLaunches(instanceConfigs(cfg), {}), engineLaunches(instanceConfigs({ ...cfg, ...patch } as AppConfig), {}));
 
 describe("configuration boundaries", () => {
+  it("still loads a config saved with the removed saved-steps switch, dropping it", () => {
+    expect(parseStoredConfig({ features: { savedSteps: false, browser: true } })).toEqual({ features: { browser: true } });
+  });
+
   it("requires an explicit backup to opt into automatic recovery without reloading engines", () => {
     expect(parseStoredConfig({}).automaticRecovery).toBeUndefined();
     expect(parseConfigPatch({ automaticRecovery: { enabled: false } })).toEqual({ automaticRecovery: { enabled: false } });

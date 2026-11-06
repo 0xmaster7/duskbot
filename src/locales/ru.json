@@ -2750,6 +2750,8 @@
   "engineSetup.needsNode": "Требуются Node.js и {npm}.",
   "engineSetup.viewGuide": "Открыть руководство по настройке",
   "settings.experimental.title": "Экспериментальные функции",
+  "settings.webhooks.title": "Вебхуки",
+  "settings.webhooks.hint": "Другие приложения могут запускать работу бота. Настройте их в разделе «Автоматизации».",
   "settings.experimental.subtitle": "Ранние функции могут меняться во время тестирования. Для каждой указано, включена ли она по умолчанию.",
   "settings.experimental.error": "Не удалось сохранить настройку экспериментальной функции.",
   "settings.experimental.skillAuthoring": "Боты могут писать собственные навыки",

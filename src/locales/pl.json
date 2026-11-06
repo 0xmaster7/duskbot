@@ -2725,6 +2725,8 @@
   "engineSetup.needsNode": "Wymaga Node.js i {npm}.",
   "engineSetup.viewGuide": "Zobacz przewodnik konfiguracji",
   "settings.experimental.title": "Funkcje eksperymentalne",
+  "settings.webhooks.title": "Webhooki",
+  "settings.webhooks.hint": "Pozwól innym aplikacjom uruchamiać pracę bota. Skonfiguruj je w Automatyzacjach.",
   "settings.experimental.subtitle": "Wczesne funkcje mogą się zmieniać, gdy je testujemy. Przy każdej jest napisane, czy domyślnie jest włączona, czy wyłączona.",
   "settings.experimental.error": "Nie udało się zapisać ustawienia funkcji eksperymentalnej.",
   "settings.experimental.skillAuthoring": "Boty mogą pisać własne umiejętności",

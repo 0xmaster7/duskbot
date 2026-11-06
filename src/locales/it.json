@@ -2653,6 +2653,8 @@
   "engineSetup.needsNode": "Richiede Node.js e {npm}.",
   "engineSetup.viewGuide": "Vedi la guida di configurazione",
   "settings.experimental.title": "Funzionalità sperimentali",
+  "settings.webhooks.title": "Webhook",
+  "settings.webhooks.hint": "Lascia che altre app avviino il lavoro di un bot. Configurali in Automazioni.",
   "settings.experimental.subtitle": "Le funzionalità in anteprima possono cambiare mentre le proviamo. Ognuna indica se parte attiva o disattivata.",
   "settings.experimental.error": "Impossibile salvare l'impostazione della funzionalità sperimentale.",
   "settings.experimental.skillAuthoring": "I bot possono scrivere le proprie abilità",

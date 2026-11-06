@@ -57,7 +57,6 @@ const EXACT: ReadonlySet<string> = new Set([
   "POST /api/internal/computer/mcp",
   "GET /api/internal/computer-control",
   "POST /api/internal/computer-control",
-  "POST /api/internal/computer/journal",
   "POST /api/internal/connectors/mcp",
   "POST /api/internal/connectors/request",
   "POST /api/internal/data/mcp",

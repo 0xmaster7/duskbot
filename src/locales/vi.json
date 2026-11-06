@@ -2233,6 +2233,8 @@
   "engineSetup.needsNode": "Yêu cầu Node.js và {npm}.",
   "engineSetup.viewGuide": "Xem hướng dẫn thiết lập",
   "settings.experimental.title": "Tính năng thử nghiệm",
+  "settings.webhooks.title": "Webhook",
+  "settings.webhooks.hint": "Cho ứng dụng khác bắt đầu việc của bot. Thiết lập trong Tự động hóa.",
   "settings.experimental.subtitle": "Các tính năng thử nghiệm sớm có thể thay đổi trong quá trình phát triển. Mỗi tính năng đều cho biết trạng thái mặc định là bật hay tắt.",
   "settings.experimental.error": "Không thể lưu cài đặt tính năng thử nghiệm.",
   "settings.experimental.skillAuthoring": "Bot có thể tự viết kỹ năng",
