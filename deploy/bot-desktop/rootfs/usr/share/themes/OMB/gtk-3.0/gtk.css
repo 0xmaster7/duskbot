@@ -1,5 +1,5 @@
 /* Adwaita dark underneath, flattened: near-black surfaces, 1px #2a2a2a lines, square corners, no gradients or glow,
-   monochrome symbolic icons, mono menus. Covers the file manager, file dialogs (Chromium's too) and context menus. */
+   Papirus-Dark color icons, Inter throughout. Covers the file manager, file dialogs (Chromium's too) and context menus. */
 @import url("resource:///org/gtk/libgtk/theme/Adwaita/gtk-contained-dark.css");
 
 @define-color theme_bg_color #121212;
@@ -13,7 +13,7 @@
 @define-color accent_color #d4d4d4;
 @define-color accent_bg_color #2e2e2e;
 
-* { -gtk-icon-style: symbolic; outline-color: #6a6a6a; }
+* { outline-color: #6a6a6a; }
 
 window, .background, dialog { background-color: #121212; color: #d4d4d4; }
 
@@ -40,17 +40,17 @@ entry:focus { border-color: #5a5a5a; box-shadow: none; }
 menu, .menu, .context-menu, menubar, popover.background, popover.menu, tooltip.background {
   background-color: #141414; border: 1px solid #2a2a2a; border-radius: 0; box-shadow: none; padding: 2px 0;
 }
-menuitem, modelbutton, .menuitem { font-family: "JetBrains Mono"; font-size: 9pt; color: #d0d0d0; padding: 3px 10px; }
+menuitem, modelbutton, .menuitem { color: #d0d0d0; padding: 3px 10px; }
 menuitem:hover, modelbutton:hover { background-color: #262626; color: #f2f2f2; }
 menuitem:disabled { color: #555555; }
 separator { background-color: #2a2a2a; min-height: 1px; min-width: 1px; }
-tooltip, tooltip * { color: #d0d0d0; font-family: "JetBrains Mono"; font-size: 9pt; }
+tooltip, tooltip * { color: #d0d0d0; }
 
 .view, treeview.view, iconview, list, row { background-color: #0e0e0e; color: #d4d4d4; }
 .view:selected, row:selected, treeview.view:selected, iconview:selected, *:selected {
   background-color: #2e2e2e; color: #f2f2f2;
 }
-treeview.view header button { background-color: #121212; border-width: 0 1px 1px 0; font-family: "JetBrains Mono"; font-size: 9pt; }
+treeview.view header button { background-color: #121212; border-width: 0 1px 1px 0; }
 
 .sidebar, placessidebar, placessidebar list, stacksidebar { background-color: #121212; border-color: #2a2a2a; }
 paned > separator { background-color: #2a2a2a; }

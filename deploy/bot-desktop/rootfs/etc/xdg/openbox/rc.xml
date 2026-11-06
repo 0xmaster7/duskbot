@@ -9,11 +9,11 @@
     <titleLayout>LIMC</titleLayout>
     <keepBorder>no</keepBorder>
     <animateIconify>no</animateIconify>
-    <font place="ActiveWindow"><name>JetBrains Mono</name><size>8</size><weight>Normal</weight><slant>Normal</slant></font>
-    <font place="InactiveWindow"><name>JetBrains Mono</name><size>8</size><weight>Normal</weight><slant>Normal</slant></font>
-    <font place="MenuHeader"><name>JetBrains Mono</name><size>8</size><weight>Normal</weight><slant>Normal</slant></font>
-    <font place="MenuItem"><name>JetBrains Mono</name><size>8</size><weight>Normal</weight><slant>Normal</slant></font>
-    <font place="OnScreenDisplay"><name>JetBrains Mono</name><size>8</size><weight>Normal</weight><slant>Normal</slant></font>
+    <font place="ActiveWindow"><name>Inter</name><size>9</size><weight>Normal</weight><slant>Normal</slant></font>
+    <font place="InactiveWindow"><name>Inter</name><size>9</size><weight>Normal</weight><slant>Normal</slant></font>
+    <font place="MenuHeader"><name>Inter</name><size>9</size><weight>Normal</weight><slant>Normal</slant></font>
+    <font place="MenuItem"><name>Inter</name><size>9</size><weight>Normal</weight><slant>Normal</slant></font>
+    <font place="OnScreenDisplay"><name>Inter</name><size>9</size><weight>Normal</weight><slant>Normal</slant></font>
   </theme>
   <desktops><number>1</number><firstdesk>1</firstdesk><popupTime>0</popupTime></desktops>
   <resize><drawContents>yes</drawContents><popupShow>Never</popupShow></resize>

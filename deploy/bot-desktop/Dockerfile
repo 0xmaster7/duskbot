@@ -4,7 +4,8 @@ ARG DEBIAN=debian:trixie-slim
 
 # art: the wallpaper and dock icons are rendered once here, so no image tooling ships in the desktop.
 # wallpaper/wallpaper.* (one file, swap it to change the desktop) is cover-scaled onto black at exactly the screen size
-# with a sharp filter, so the session can place it pixel for pixel.
+# with a sharp filter, so the session can place it pixel for pixel. dock icons are rendered at 2x with real alpha (tint2
+# scales them to 34px), from flat svgs with no shadow layers (icons/README.md).
 FROM ${DEBIAN} AS art
 ARG RESOLUTION=1280x800
 RUN apt-get update \
@@ -16,7 +17,7 @@ RUN set -eux; mkdir -p /out/icons; \
     src="$(ls /src/wallpaper/wallpaper.* | head -n 1)"; \
     magick "$src" -background black -alpha remove -alpha off -filter Lanczos -resize "${RESOLUTION}^" \
       -gravity center -extent "${RESOLUTION}" -colorspace Gray /out/wallpaper.png; \
-    for icon in browser tools terminal; do rsvg-convert -w 34 -h 34 "/src/icons/$icon.svg" -o "/out/icons/$icon.png"; done
+    for icon in browser tools terminal; do rsvg-convert -w 68 -h 68 "/src/icons/$icon.svg" -o "/out/icons/$icon.png"; done
 
 FROM ${DEBIAN}
 ARG TARGETARCH
@@ -31,14 +32,21 @@ RUN set -eux; \
       openbox tint2 hsetroot \
       chromium xfce4-terminal thunar \
       dbus dbus-x11 at-spi2-core libxtst6 libxkbcommon0 \
-      adwaita-icon-theme fonts-inter fonts-jetbrains-mono fonts-dejavu-core fonts-liberation2 \
+      adwaita-icon-theme papirus-icon-theme librsvg2-common gtk-update-icon-cache fonts-inter fonts-jetbrains-mono fonts-dejavu-core fonts-liberation2 \
       fonts-noto-core fonts-noto-color-emoji fonts-wqy-microhei \
       python3-pil iptables iproute2 tini \
       ca-certificates curl git jq less nano unzip procps sudo; \
     apt-get purge -y --auto-remove; \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/* /usr/share/doc/* /usr/share/man/* /usr/share/info/* \
       /usr/share/applications/*openbox* /usr/share/xsessions; \
-    find /usr/share/locale -mindepth 1 -maxdepth 1 ! -name 'en*' -exec rm -rf {} +
+    find /usr/share/locale -mindepth 1 -maxdepth 1 ! -name 'en*' -exec rm -rf {} +; \
+    # papirus-dark (svg icons: librsvg2-common is the pixbuf loader) with its default blue folders only
+    rm -rf /usr/share/icons/Papirus-Light /usr/share/icons/ePapirus /usr/share/icons/ePapirus-Dark; \
+    find /usr/share/icons/Papirus /usr/share/icons/Papirus-Dark -path '*/places/*' -regextype posix-extended \
+      -regex '.*/(folder|user)-(adwaita|black|bluegrey|breeze|brown|carmine|cyan|darkcyan|deeporange|green|grey|indigo|magenta|nordic|orange|palebrown|paleorange|pink|red|teal|violet|white|yaru|yellow)(-[^/]*)?\.svg' \
+      -delete; \
+    find /usr/share/icons/Papirus /usr/share/icons/Papirus-Dark -xtype l -delete; \
+    for t in Papirus Papirus-Dark hicolor Adwaita; do gtk-update-icon-cache -q -f "/usr/share/icons/$t"; done
 
 # noVNC's web client only (Debian's package pulls in Node.js for its tooling), pinned by SHA-256.
 RUN set -eux; \

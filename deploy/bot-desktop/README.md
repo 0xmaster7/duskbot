@@ -14,12 +14,12 @@ linux/amd64.
 | Base | Debian 13 trixie slim | current, multi-arch, security updates for Chromium |
 | Display | TigerVNC `Xvnc` :1, 1280x800 | X server and VNC in one process, no polling, low CPU |
 | Viewer | noVNC 1.6.0 web client + websockify on :6901 | the harness's existing path (`vnc.html`, `/websockify`, `VNC_PW`) |
-| Windows | Openbox, theme `OMB` | flat square 1px frames, JetBrains Mono titles, no menus |
+| Windows | Openbox, theme `OMB` | flat square 1px frames, Inter titles, no menus |
 | Compositor | none | no rounded corners, shadows or fades: less CPU, still frames for VNC |
-| Dock | tint2, launchers only | three monochrome line icons (`icons/*.svg`, ours), no shelf, no taskbar |
+| Dock | tint2, launchers only | three color app icons (`icons/*.svg` from Papirus, see `icons/README.md`), no shelf, no taskbar |
 | Browser | Chromium (both arches) | Google Chrome has no Linux arm64 build; one browser everywhere |
 | Terminal | xfce4-terminal | software-rendered VTE (kitty/alacritty need GL), no menubar, `#111111`, block cursor |
-| Files | Thunar | behind the middle dock icon |
+| Files | Thunar | behind the middle dock icon; Papirus-Dark icons here and in every GTK file dialog |
 | Control | Cua Driver 0.37.0 (pinned wheel, SHA-256 checked) | the harness speaks it already, nothing changes for bots |
 
 Wayland (labwc, sway) was ruled out: Cua Driver's capture and input paths here are X11 (XTest, AT-SPI over X), and

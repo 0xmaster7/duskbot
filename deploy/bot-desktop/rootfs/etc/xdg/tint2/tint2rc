@@ -1,4 +1,4 @@
-# the dock: three small line icons centered at the bottom, nothing behind them. no shelf, taskbar, clock or tray.
+# the dock: three small app icons (full color, full alpha) centered at the bottom, nothing behind them. no shelf, taskbar, clock or tray.
 # 1: nothing
 rounded = 0
 border_width = 0
@@ -46,7 +46,7 @@ launcher_padding = 0 0 10
 launcher_background_id = 0
 launcher_icon_background_id = 2
 launcher_icon_size = 34
-launcher_icon_asb = 80 0 0
+launcher_icon_asb = 100 0 0
 launcher_icon_theme_override = 0
 startup_notifications = 0
 launcher_tooltip = 1
@@ -59,4 +59,4 @@ tooltip_hide_timeout = 0.1
 tooltip_padding = 8 4
 tooltip_background_id = 3
 tooltip_font_color = #d0d0d0 100
-tooltip_font = JetBrains Mono 8
+tooltip_font = Inter 9
