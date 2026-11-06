@@ -101,6 +101,6 @@ describe("default skin", () => {
     await boot();
     const { ThemeRow } = await import("@/components/ThemeRow");
     const theme = renderToStaticMarkup(createElement(ThemeRow));
-    expect(theme.match(/role="combobox" aria-label="Theme"[^>]*>(?:<[^>]+>)*([^<]+)</)?.[1]).toBe("System");
+    expect(theme.match(/role="combobox" aria-label="Theme"[^>]*>(?:<[^>]+>)*([^<]+)</)?.[1]).toBe("Follow System");
   });
 });
