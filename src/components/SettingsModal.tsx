@@ -127,6 +127,9 @@ export function SettingsModal() {
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // the sheet opens raw on its first pane; every later pane eases in
+  const openedOn = useRef(pane);
+  const paneSwapped = pane !== openedOn.current;
 
   // a pane's own pages (and Advanced features' pages) slide in over its list with Grok's wipe; another pane swaps at once
   const paneKey = `${pane}:${page ?? ""}`;
@@ -195,8 +198,10 @@ export function SettingsModal() {
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const dialog = dialogRef.current;
     dialog?.focus();
-    const nested = () => Boolean(dialog && [...dialog.querySelectorAll<HTMLElement>('[role="dialog"], [role="alertdialog"], [aria-modal="true"]')]
-      .some((child) => child !== dialog && child.getClientRects().length));
+    // a form dialog a row opens is portaled to the body, so a modal over the sheet counts too
+    const nested = () => Boolean(dialog && ([...dialog.querySelectorAll<HTMLElement>('[role="dialog"], [role="alertdialog"], [aria-modal="true"]')]
+      .some((child) => child !== dialog && child.getClientRects().length)
+      || [...document.querySelectorAll<HTMLElement>('[aria-modal="true"]')].some((other) => !other.contains(dialog) && !dialog.contains(other) && other.getClientRects().length)));
     const onKey = (event: KeyboardEvent) => {
       // a child editor or menu owns Escape and its focus trap, including while saving
       if (event.defaultPrevented || nested()) return;
@@ -327,8 +332,8 @@ export function SettingsModal() {
       <button type="button" onClick={close} aria-label={t("settings.grok.close")} className="settings-close">
         <GrokIcon name="close" size={14} />
       </button>
-      {/* raw like the sidebar: a pane swaps in the same frame */}
-      <div key={pane} className="flex min-h-0 flex-1 flex-col">
+      {/* a pane switch is one short fade and rise of the new pane; the rail's highlight and the sheet stay raw */}
+      <div key={pane} className={cn("flex min-h-0 flex-1 flex-col", paneSwapped && !phone && "settings-pane-swap")}>
         <WipeStack at={JSON.stringify({ at: page ?? null, pages: stack })} depth={(page ? 1 : 0) + stack.length} group={pane} layer={layer} />
       </div>
     </section>

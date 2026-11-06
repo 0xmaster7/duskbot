@@ -338,13 +338,14 @@ const reducedMotion = () => document.documentElement.dataset.reducedMotion === "
  * outgoing copy is drawn by `layer(at, false)`, inert and without ids. */
 export function WipeStack({ at, depth, group, layer }: { at: string; depth: number; group: string; layer: (at: string, live: boolean) => ReactNode }) {
   const [shown, setShown] = useState({ at, depth, group });
-  const [wipe, setWipe] = useState<{ direction: "push" | "pop"; from: string; scrollTop: number; id: number } | null>(null);
+  const [wipe, setWipe] = useState<{ direction: "push" | "pop" | "fade"; from: string; scrollTop: number; id: number } | null>(null);
   const live = useRef<HTMLDivElement>(null);
   if (at !== shown.at) {
     setShown({ at, depth, group });
     const within = group === shown.group && depth !== shown.depth;
     const scroller = live.current?.querySelector<HTMLElement>("[data-wipe-scroll]");
-    setWipe(within && !reducedMotion() ? { direction: depth > shown.depth ? "push" : "pop", from: shown.at, scrollTop: scroller?.scrollTop ?? 0, id: (wipe?.id ?? 0) + 1 } : null);
+    // with reduced motion the page only fades in, no slide
+    setWipe(within ? { direction: reducedMotion() ? "fade" : depth > shown.depth ? "push" : "pop", from: shown.at, scrollTop: scroller?.scrollTop ?? 0, id: (wipe?.id ?? 0) + 1 } : null);
   }
   useLayoutEffect(() => {
     if (shown.group !== group) return;

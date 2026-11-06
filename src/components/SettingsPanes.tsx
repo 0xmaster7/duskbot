@@ -33,7 +33,8 @@ import { EnginesSettings } from "./EnginesSettings";
 import { ImportSettings } from "./ImportSettings";
 import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal";
 import { LocalComputerSection } from "./LocalComputerSection";
-import { PHONE_ADVANCED_PAGE, PRIVATE_SETUP_PAGE, PROFILE_PAGE } from "./settings-page-ids";
+import { CLOUD_SETUP_PAGE, PHONE_ADVANCED_PAGE, PRIVATE_SETUP_PAGE, PROFILE_PAGE } from "./settings-page-ids";
+import { CloudDesktopKeys } from "./keys/KeysPage";
 import { LoginsSettings } from "./LoginsSettings";
 import { McpCallTimeoutSettings } from "./McpCallTimeoutSettings";
 import { McpServersPanel } from "./McpServersPanel";
@@ -251,6 +252,7 @@ export function ComputerPane({ has, remoteAccess, servers }: { has: Has; remoteA
   const { at } = useSubPage();
   const { state } = useStore();
   if (at === "computers" || at === PRIVATE_SETUP_PAGE) return <div data-settings-block="computer" className="flex flex-col gap-5"><AdminOnly><LocalComputerSection /></AdminOnly></div>;
+  if (at === CLOUD_SETUP_PAGE) return <AdminOnly><CloudDesktopKeys /></AdminOnly>;
   if (at === "profiles" || at?.startsWith(PROFILE_PAGE)) return <BrowserProfilesManager />;
   if (at === "elsewhere") {
     return (

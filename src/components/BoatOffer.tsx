@@ -7,6 +7,9 @@ import { brandStatus } from "@/lib/brand";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { LinkButton, NoticeCard, NotNowButton, PRIMARY_BUTTON } from "./NoticeCard";
+import { FormDialog } from "./ListRows";
+import { smallButtonCls } from "./ui/GrokDialog";
+import { KeyPlainRow, KeyRowMark } from "./keys/KeyRow";
 
 export type BoatOfferAction = "get_boat" | "claim" | "not_now" | "close";
 type BoatOfferPlace = "card" | "settings";
@@ -24,10 +27,10 @@ function BoatOfferWords() {
 
 const CLAIM_BUTTON = "ui-button min-h-9 gap-1.5 px-3 py-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
-function ClaimButton({ onOpened, className }: { onOpened?: () => void; className?: string }) {
+function ClaimButton({ onOpened, className, small = false }: { onOpened?: () => void; className?: string; small?: boolean }) {
   const [failed, setFailed] = useState(false);
   return <div>
-    <button type="button" data-boat-claim className={cn(CLAIM_BUTTON, className)} onClick={() => {
+    <button type="button" data-boat-claim className={small ? className : cn(CLAIM_BUTTON, className)} onClick={() => {
       setFailed(false);
       void openEmailDraft(boatClaimMailto()).then(onOpened, () => setFailed(true));
     }}>
@@ -48,17 +51,26 @@ export function BoatOfferCard({ onDone }: { onDone: (action: BoatOfferAction) =>
   </NoticeCard>;
 }
 
-export function BoatOfferPanel() {
+/** Settings' quiet row for Boat's credit while it runs: Claim opens the offer's words and its two actions. */
+export function BoatOfferRow() {
   const titleId = useId();
+  const [open, setOpen] = useState(false);
   if (!boatOfferRuns(Date.now()) || brandStatus().source === "file") return null;
-  return <section data-boat-offer aria-labelledby={titleId} className="rounded-lg bg-ink/[0.04] p-3">
-    <h3 id={titleId} className="flex items-center gap-1.5 text-[13px] font-semibold leading-[18px] text-ink">
-      <Gift size={14} aria-hidden="true" className="shrink-0 text-ink-secondary" />{t("boatOffer.title")}
-    </h3>
-    <BoatOfferWords />
-    <div className="mt-3 flex flex-wrap items-start gap-2">
-      <LinkButton url={BOAT_OFFER.url} label={t("boatOffer.get")} onOpened={() => reportBoatOffer("get_boat", "settings")} />
-      <ClaimButton onOpened={() => reportBoatOffer("claim", "settings")} />
-    </div>
-  </section>;
+  const name = t("boatOffer.row");
+  return (
+    <KeyPlainRow data-boat-offer="" titleId={titleId} mark={<KeyRowMark icon={Gift} />} title={name}
+      actions={<button type="button" data-boat-offer-open="" className={smallButtonCls} aria-label={`${t("boatOffer.claimShort")}: ${name}`} onClick={() => setOpen(true)}>{t("boatOffer.claimShort")}</button>}>
+      {open && (
+        <FormDialog data-panel-modal="boat-offer" title={t("boatOffer.title")} description={t("boatOffer.body")} onClose={() => setOpen(false)}>
+          <div data-boat-offer-dialog="" className="flex flex-col gap-3">
+            <p data-boat-offer-yourself className="m-0 text-[13px] leading-[18px] text-ink">{t("boatOffer.yourself")}</p>
+            <div className="flex flex-wrap items-start gap-1.5">
+              <LinkButton url={BOAT_OFFER.url} label={t("boatOffer.get")} className={cn(smallButtonCls, "[&_svg]:size-3")} onOpened={() => reportBoatOffer("get_boat", "settings")} />
+              <ClaimButton small className={cn(smallButtonCls, "[&_svg]:size-3")} onOpened={() => reportBoatOffer("claim", "settings")} />
+            </div>
+          </div>
+        </FormDialog>
+      )}
+    </KeyPlainRow>
+  );
 }

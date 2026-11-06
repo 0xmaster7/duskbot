@@ -205,10 +205,17 @@
 .settings-wipe-layer[data-wipe="push"][data-wipe-out] { animation-name: omb-wipe-push-out; }
 .settings-wipe-layer[data-wipe="pop"]:not([data-wipe-out]) { animation-name: omb-wipe-pop-in; }
 .settings-wipe-layer[data-wipe="pop"][data-wipe-out] { z-index: 1; animation-name: omb-wipe-pop-out; }
+.settings-wipe-layer[data-wipe="fade"]:not([data-wipe-out]) { animation-name: omb-fade-in; animation-duration: 150ms; }
+.settings-wipe-layer[data-wipe="fade"][data-wipe-out] { display: none; }
 @media (prefers-reduced-motion: reduce) {
-  .settings-wipe-layer { animation: none; }
+  .settings-wipe-layer:not([data-wipe="fade"]) { animation: none; }
   .settings-wipe-layer[data-wipe-out] { display: none; }
 }
+/* another pane from the rail: the new pane fades in on a 4px rise (opacity alone with the app's reduced motion; the
+   system setting stops every animation) */
+.settings-pane-swap { animation: omb-pane-swap 180ms var(--omb-ease-out) backwards; }
+@keyframes omb-pane-swap { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+:root[data-reduced-motion="true"] .settings-pane-swap { animation-name: omb-fade-in; animation-duration: 150ms; }
 
 .settings-scroll {
   position: relative;

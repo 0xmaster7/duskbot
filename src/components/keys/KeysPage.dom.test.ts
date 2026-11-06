@@ -50,6 +50,12 @@ const page = () => render(() => createElement(KeysPage, { key: "page" }));
 const row = (id: string) => host.querySelector<HTMLElement>(`[data-key-row="${id}"]`);
 const rowsShown = () => [...host.querySelectorAll<HTMLElement>("[data-key-row]")].filter((element) => !element.closest("[hidden]")).map((element) => element.dataset.keyRow);
 const section = (id: string) => host.querySelector<HTMLElement>(`[data-keys-section="${id}"]`)!;
+// a row's field and extra settings open in a compact dialog, drawn over the page from the body
+const dialog = (id: string) => document.querySelector<HTMLElement>(`[data-key-dialog="${id}"]`);
+const openDialog = (id: string) => {
+  flushSync(() => row(id)!.querySelector<HTMLButtonElement>("[data-key-add], [data-key-replace], [data-key-open]")!.click());
+  return dialog(id)!;
+};
 const expanded = (id: string) => section(id).querySelector("button[aria-expanded]")!.getAttribute("aria-expanded");
 
 function type(input: HTMLInputElement, value: string) {
@@ -106,10 +112,11 @@ describe("the keys page", () => {
   it("offers the Live calls service, OpenAI or Azure OpenAI, on the separate live key row", () => {
     setConfig({ ...fx.config, live: { configured: false, provider: "azure", voice: "", readTypedReplies: true, idleMinutes: 5 } });
     page();
-    const select = row("liveKey")!.querySelector<HTMLSelectElement>("select")!;
+    expect(row("liveKey")!.querySelector("select")).toBeNull();
+    const select = openDialog("liveKey").querySelector<HTMLSelectElement>("select")!;
     expect([...select.options].map((option) => option.value)).toEqual(["openai", "azure"]);
     expect(select.value).toBe("azure");
-    expect(row("liveKey")!.querySelector('input[type="url"]')).not.toBeNull();
+    expect(dialog("liveKey")!.querySelector('input[type="url"]')).not.toBeNull();
   });
 
   it("with Azure chosen, the Live key row asks for an Azure key: required, no OpenAI wording, and no row saying Live uses the OpenAI key", () => {
@@ -122,15 +129,16 @@ describe("the keys page", () => {
     expect(azure.textContent).not.toContain("Optional");
     expect(azure.textContent).not.toContain("Separate key");
     expect(azure.textContent).not.toContain("instead of your OpenAI key");
-    expect([...azure.querySelectorAll("input")].map((input) => input.placeholder)).not.toContain("sk-…");
-    expect(azure.querySelector<HTMLAnchorElement>('a[href*="platform.openai.com"]')).toBeNull();
+    const azureDialog = openDialog("liveKey");
+    expect([...azureDialog.querySelectorAll("input")].map((input) => input.placeholder)).not.toContain("sk-…");
+    expect(azureDialog.querySelector<HTMLAnchorElement>('a[href*="platform.openai.com"]')).toBeNull();
     expect(row("liveCalls")).toBeNull();
 
     setConfig({ ...fx.config, live });
     page();
     const openAi = row("liveKey")!;
     expect(openAi.textContent).toContain("Optional");
-    expect([...openAi.querySelectorAll("input")].map((input) => input.placeholder)).toContain("sk-…");
+    expect([...dialog("liveKey")!.querySelectorAll("input")].map((input) => input.placeholder)).toContain("sk-…");
     expect(row("liveCalls")).not.toBeNull();
   });
 
@@ -161,11 +169,12 @@ describe("the keys page", () => {
     const button = [...host.querySelectorAll("button")].find((candidate) => candidate.textContent === "Open API keys")!;
     flushSync(() => button.click());
     expect(fx.dispatch).toHaveBeenCalledWith({ type: "toggleAppSettings", open: true, section: "connections" });
-    const live = () => row("liveCalls")!.querySelector<HTMLInputElement>("[data-key-input]")!;
+    const live = () => row("liveCalls")!.querySelector<HTMLButtonElement>("[data-key-add]")!;
     await vi.waitFor(() => expect(document.activeElement).toBe(live()));
     expect(expanded("voice")).toBe("true");
     expect(row("liveCalls")!.hasAttribute("data-key-highlight")).toBe(true);
-    expect(live().getAttribute("aria-label")).toBe("OpenAI API key");
+    flushSync(() => live().click());
+    expect(dialog("liveCalls")!.querySelector("[data-key-input]")!.getAttribute("aria-label")).toBe("OpenAI API key");
     expect(row("liveCalls")!.textContent).toContain("Live calls use the same key as OpenAI's models");
   });
 
@@ -173,15 +182,15 @@ describe("the keys page", () => {
     page();
     type(host.querySelector<HTMLInputElement>("[data-keys-search]")!, "fish");
     flushSync(() => { openKeySettings("box"); });
-    await vi.waitFor(() => expect(document.activeElement).toBe(row("box")!.querySelector("[data-key-input]")));
+    await vi.waitFor(() => expect(document.activeElement).toBe(row("box")!.querySelector("[data-key-add]")));
     expect(host.querySelector<HTMLInputElement>("[data-keys-search]")!.value).toBe("");
   });
 
   it("warns, and saves nothing, when a pasted key looks like another provider's", () => {
     page();
-    const input = row("openai")!.querySelector<HTMLInputElement>("[data-key-input]")!;
+    const input = openDialog("openai").querySelector<HTMLInputElement>("[data-key-input]")!;
     paste(input, "  sk-ant-api03-abcdefghijklmnop\n");
-    expect(row("openai")!.textContent).toContain("That looks like the Anthropic API key, not this one.");
+    expect(dialog("openai")!.textContent).toContain("That looks like the Anthropic API key, not this one.");
     expect(input.value).toBe("sk-ant-api03-abcdefghijklmnop");
     expect(fx.api).not.toHaveBeenCalled();
   });
@@ -191,13 +200,13 @@ describe("the keys page", () => {
       ? { ...fx.config, openai: { configured: true, last4: "a1b2" } }
       : { ok: false, reason: "rejected" });
     page();
-    paste(row("openai")!.querySelector<HTMLInputElement>("[data-key-input]")!, "sk-proj-abcdefghijklmnopa1b2");
+    paste(openDialog("openai").querySelector<HTMLInputElement>("[data-key-input]")!, "sk-proj-abcdefghijklmnopa1b2");
     await vi.waitFor(() => expect(row("openai")!.textContent).toContain("Didn't work: The provider rejected this key."));
     expect(fx.api.mock.calls.map(([path]) => path)).toEqual(["/api/config", "/api/keys/test"]);
     expect(JSON.parse(fx.api.mock.calls[0]![1].body)).toEqual({ openai: { key: "sk-proj-abcdefghijklmnopa1b2" } });
     const masked = row("openai")!.querySelector("[data-key-masked]")!;
     expect(masked.textContent).toContain("••••••••a1b2");
-    expect(row("openai")!.querySelector("[data-key-input]")).toBeNull();
+    expect(dialog("openai")).toBeNull();
     expect(row("openai")!.querySelector("[data-key-replace]")).not.toBeNull();
   });
 
@@ -206,20 +215,22 @@ describe("the keys page", () => {
     setConfig({ ...fx.config });
     page();
     flushSync(() => section("computers").querySelector<HTMLButtonElement>("button[aria-expanded]")!.click());
-    const input = row("box")!.querySelector<HTMLInputElement>("[data-key-input]")!;
+    const input = openDialog("box").querySelector<HTMLInputElement>("[data-key-input]")!;
     type(input, "boat_dummy_fixture_key_c3d4");
     flushSync(() => input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
     await vi.waitFor(() => expect(row("box")!.querySelector("[data-key-masked]")?.textContent).toContain("••••••••c3d4"));
     expect(row("box")!.textContent).toContain("Connected");
+    expect(dialog("box")).toBeNull();
     expect(fx.api).toHaveBeenCalledOnce();
   });
 });
 
 describe("the OpenAI-compatible server row", () => {
   it("offers the reply wait for the built-in server once its base URL is set, such as a local Ollama", () => {
-    const waitFor = () => host.querySelector('select[aria-label="How long to wait for Other (OpenAI-compatible) to reply"]');
+    const waitFor = () => document.querySelector('select[aria-label="How long to wait for Other (OpenAI-compatible) to reply"]');
     fx.instances = [{ instanceId: "openaiCompat", driverKind: "openai-compat", displayName: "Other (OpenAI-compatible)", snapshot: { state: "available" } }];
     page();
+    openDialog("openaiCompat");
     expect(waitFor()).toBeNull();
     flushSync(() => setConfig({ ...fx.config, openaiCompat: { url: "http://localhost:11434/v1" } }));
     expect(row("openaiCompat")).not.toBeNull();
@@ -230,8 +241,12 @@ describe("the OpenAI-compatible server row", () => {
 });
 
 describe("Boat's credit offer on the Boat card", () => {
-  const offer = () => row("box")!.querySelector<HTMLElement>("[data-boat-offer]");
-  const buttons = () => [...offer()!.querySelectorAll<HTMLButtonElement>("button")];
+  const offer = () => host.querySelector<HTMLElement>("[data-boat-offer]");
+  const offerDialog = () => {
+    if (!document.querySelector("[data-boat-offer-dialog]")) flushSync(() => offer()!.querySelector<HTMLButtonElement>("[data-boat-offer-open]")!.click());
+    return document.querySelector<HTMLElement>("[data-boat-offer-dialog]")!;
+  };
+  const buttons = () => [...offerDialog().querySelectorAll<HTMLButtonElement>("button")];
   const openComputers = () => flushSync(() => section("computers").querySelector<HTMLButtonElement>("button[aria-expanded]")!.click());
   afterEach(() => {
     BOAT_OFFER.until = null;
@@ -246,7 +261,8 @@ describe("Boat's credit offer on the Boat card", () => {
       setConfig({ ...fx.config, box });
       expect(offer(), JSON.stringify(box)).not.toBeNull();
       expect(offer()!.closest("[hidden]")).toBeNull();
-      const words = offer()!.textContent!;
+      expect(offer()!.textContent).toContain("$50 Boat credit");
+      const words = offerDialog().closest('[role="dialog"]')!.textContent!;
       for (const text of ["$50 of Boat credit for you", "Boat runs the cloud computers behind MausBot.", "You claim it yourself: it isn't automatic."]) {
         expect(words).toContain(text);
       }

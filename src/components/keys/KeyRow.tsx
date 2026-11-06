@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { Check, CircleAlert, ExternalLink, Eye, EyeOff, Loader2, TriangleAlert } from "lucide-react";
+import { Check, CircleAlert, ExternalLink, Eye, EyeOff, Loader2, TriangleAlert, type LucideIcon } from "lucide-react";
 import { useStore } from "@/state/store";
 import { installCommandFor } from "@/state/engine-install";
 import { cn } from "@/lib/cn";
@@ -9,7 +9,8 @@ import { keyRemoved, keySaved, keySaveFailure, savedKeyResult } from "@/lib/prod
 import { InstanceProviderMark } from "../ProviderIcons";
 import { keyEntry, keyForInstance, looksLikeOtherKey, savedState, shownKeyEntry, type KeyEntry, type KeyId, type SavedState } from "./key-catalog";
 import { checkKey, cleanKey, looksLikeKey, saveKey } from "./key-save";
-import { CopyRow } from "../ListRows";
+import { CopyRow, FormDialog } from "../ListRows";
+import { fieldLabelCls, smallButtonCls } from "../ui/GrokDialog";
 
 /** A key field: the panel's quiet hairline box, no fill, unchanged on hover and focus (the caret marks it). */
 export const KEY_FIELD = "h-7 w-full min-w-0 rounded-lg border border-ink/10 bg-transparent px-2.5 font-mono text-[12px] leading-7 text-ink placeholder:font-sans placeholder:text-ink-tertiary outline-none disabled:opacity-60";
@@ -77,6 +78,41 @@ export function RowHeading({ entry, status, titleId, purpose = true, hint }: { e
   );
 }
 
+/** Settings' plain key row: a mark, the name over one quiet line, an optional value and small pills; anything more opens a dialog. */
+export function KeyPlainRow({ mark, title, hint, value, actions, titleId, className, children, ...rest }: {
+  mark: ReactNode;
+  title: ReactNode;
+  hint?: ReactNode;
+  value?: ReactNode;
+  actions?: ReactNode;
+  titleId: string;
+  className?: string;
+  children?: ReactNode;
+  role?: "group";
+  "aria-labelledby"?: string;
+  [data: `data-${string}`]: string | undefined;
+}) {
+  return (
+    <div role="group" aria-labelledby={titleId} {...rest} className={cn(KEY_ROW, "gap-0", className)}>
+      <div className="flex min-h-[36px] items-center gap-2.5">
+        <span className="flex size-5 shrink-0 items-center justify-center">{mark}</span>
+        <div className="min-w-0 flex-1">
+          <div id={titleId} data-row-title="" className="truncate text-[13px] leading-[18px] text-ink">{title}</div>
+          {hint && <div data-row-hint="" className="truncate text-[13px] leading-[18px] text-ink-secondary">{hint}</div>}
+        </div>
+        {value && <span data-panel-value="" className="min-w-0 max-w-[40%] truncate text-[13px] leading-[18px] text-ink-secondary">{value}</span>}
+        {actions && <span className="flex shrink-0 items-center gap-1.5">{actions}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** A plain row's mark when it has no key entry of its own. */
+export function KeyRowMark({ icon: Icon }: { icon: LucideIcon }) {
+  return <Icon size={16} aria-hidden="true" className="shrink-0 text-ink-tertiary transition-colors group-hover:text-ink-secondary group-focus-within:text-ink-secondary" />;
+}
+
 function errorText(cause: unknown): string {
   return cause instanceof Error ? cause.message.replace(/^Error invoking remote method '[^']*': (?:\w+: )?/, "") : String(cause);
 }
@@ -88,6 +124,9 @@ export function KeyRow({
   onSaved,
   bare = false,
   quiet = false,
+  compact = false,
+  setUp = false,
+  title,
   rejected: rejectedHere,
   className,
   children,
@@ -98,6 +137,11 @@ export function KeyRow({
   onSaved?: (configured: boolean) => void;
   bare?: boolean;
   quiet?: boolean;
+  /** Settings' plain row: the name, whether it's connected and small pills; the field opens in a compact dialog */
+  compact?: boolean;
+  /** the row also holds settings of its own (shown in its dialog), so it offers Set up rather than Add key */
+  setUp?: boolean;
+  title?: string;
   rejected?: boolean;
   className?: string;
   children?: ReactNode;
@@ -108,6 +152,7 @@ export function KeyRow({
   const [shown, setShown] = useState(false);
   const [replacing, setReplacing] = useState(false);
   const [ownKey, setOwnKey] = useState(false);
+  const [dialog, setDialog] = useState(false);
   const [busy, setBusy] = useState<"saving" | "checking" | "removing" | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -149,7 +194,7 @@ export function KeyRow({
   const rejected = !works && (rejectedHere ?? (saved.configured && engineRejected));
   const failure = problem ?? (rejected && !busy ? t("keys.testRejected") : null);
   const editing = !saved.configured || replacing;
-  const fieldShown = editing && (!saved.included || saved.configured || ownKey);
+  const fieldShown = compact ? dialog : editing && (!saved.included || saved.configured || ownKey);
   const other = fieldShown && draft ? looksLikeOtherKey(row, draft) : null;
 
   const status: KeyStatus = busy === "saving" ? { tone: "busy", text: t("keys.row.saving") }
@@ -201,6 +246,7 @@ export function KeyRow({
       setShown(false);
       setReplacing(false);
       setOwnKey(false);
+      if (compact && now.configured) setDialog(false);
       if (hadFocus) focusAfter.current = now.configured ? "replace" : "input";
       if (!now.configured) setProblem(t("keys.row.notKept"));
       onSaved?.(now.configured);
@@ -298,7 +344,7 @@ export function KeyRow({
             if (event.key === "Enter") {
               event.preventDefault();
               void save(draft);
-            } else if (event.key === "Escape" && replacing) {
+            } else if (event.key === "Escape" && replacing && !compact) {
               event.preventDefault();
               event.stopPropagation();
               cancelReplace();
@@ -307,9 +353,11 @@ export function KeyRow({
           disabled={busy === "saving"}
           placeholder={replacing ? t("keys.row.newKey") : target.placeholderKey ? t(target.placeholderKey) : target.placeholder}
           aria-label={label}
+          data-autofocus={compact ? "" : undefined}
+          id={compact ? `${titleId}-field` : undefined}
           autoComplete="off"
           spellCheck={false}
-          className={cn(KEY_FIELD, "pr-9")}
+          className={cn(KEY_FIELD, "pr-9", compact && "h-8 rounded-[10px] text-[13px] leading-8")}
         />
         <button
           type="button"
@@ -321,12 +369,12 @@ export function KeyRow({
           {shown ? <EyeOff size={14} aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
         </button>
       </div>
-      <span className="flex shrink-0 items-center gap-2">
+      {!compact && <span className="flex shrink-0 items-center gap-2">
         <button type="button" data-key-save className="ui-button ui-button-primary" disabled={!draft.trim() || busy !== null} onClick={() => void save(draft)}>
           {t("common.save")}
         </button>
         {replacing && <button type="button" className="ui-button" onClick={cancelReplace}>{t("common.cancel")}</button>}
-      </span>
+      </span>}
     </div>
   );
 
@@ -415,6 +463,105 @@ export function KeyRow({
     "aria-labelledby": bare ? undefined : titleId,
     role: "group",
   } as const;
+
+  if (compact) {
+    const openDialog = () => {
+      setDialog(true);
+      setReplacing(saved.configured);
+      setOwnKey(!saved.configured && saved.included === true);
+      setDraft("");
+      setNotice(null);
+      setProblem(null);
+      setVerdict(null);
+    };
+    const closeDialog = () => {
+      if (busy === "saving") return;
+      setDialog(false);
+      setReplacing(false);
+      setOwnKey(false);
+      setDraft("");
+      setShown(false);
+      setNotice(null);
+      setProblem(null);
+    };
+    const name = title ?? t(row.labelKey);
+    const purposeLine = !quiet ? t(row.purposeKey) : null;
+    const bad = failure && saved.configured && !dialog;
+    const masked = saved.configured && <><span aria-hidden="true"> · </span><span data-key-masked className="font-mono text-[12px]">
+      <span aria-hidden="true">{MASK}{saved.last4 ?? ""}</span>
+      <span className="sr-only">{saved.last4 ? t("keys.row.endsIn", { label, last4: saved.last4 }) : t("keys.row.savedKey", { label })}</span>
+    </span></>;
+    const stateLine = busy && !dialog ? <span className="inline-flex items-center gap-1"><Loader2 size={11} aria-hidden="true" className="animate-spin" />{status?.text}</span>
+      : bad ? <><span className="inline-flex items-center gap-1 align-[-2px] text-danger"><CircleAlert size={12} aria-hidden="true" />{t("keys.row.didntWork")}</span>{masked}</>
+        : saved.configured ? <>{status?.text ?? t("keys.connected")}{masked}</>
+          : saved.included ? t("keys.includedWithCloudPro") : t("keys.row.notConnected");
+    const action = saved.configured ? t("keys.row.change") : saved.included ? t("keys.row.useOwn") : setUp ? t("keys.row.setUp") : t("keys.row.add");
+    const rowMessages = !dialog && (failure && saved.configured || verdict || (installCommand && missingEngine)) ? messages : null;
+    return (
+      <KeyPlainRow {...attributes} titleId={titleId} className={className} mark={<KeyMarkIcon entry={row} />} title={name}
+        hint={<span aria-live="polite">{purposeLine ?? stateLine}</span>} value={purposeLine ? stateLine : undefined}
+        actions={<>
+          <button ref={replaceRef} type="button" {...(saved.configured ? { "data-key-replace": "" } : { "data-key-add": "" })} className={smallButtonCls}
+            disabled={busy !== null && !dialog} onClick={openDialog} aria-label={`${action}: ${name}`}>{action}</button>
+          {saved.configured && !pointer && (
+            <button type="button" data-key-remove className={smallButtonCls} disabled={busy !== null} onClick={() => void remove()} aria-label={`${t("keys.row.remove")}: ${name}`}>{t("keys.row.remove")}</button>
+          )}
+        </>}
+      >
+        {rowMessages && <div className="flex flex-col gap-1.5 ps-[30px] pt-1">{rowMessages}</div>}
+        {dialog && (
+          <FormDialog
+            data-panel-modal="key"
+            title={label}
+            description={t(row.purposeKey)}
+            canSave={Boolean(draft.trim())}
+            busy={busy !== null}
+            onSave={() => save(draft)}
+            onClose={closeDialog}
+            cancelLabel={children ? t("common.done") : undefined}
+          >
+            <div data-key-dialog={row.id} className="flex flex-col gap-3">
+              {saved.configured && (
+                <div className="flex min-w-0 items-center gap-2 text-[13px] leading-[18px] text-ink-secondary">
+                  <span className="shrink-0">{t("keys.row.current")}</span>
+                  <span className="min-w-0 truncate font-mono text-[12px]" aria-hidden="true">{MASK}{saved.last4 ?? ""}</span>
+                  {target.test && (
+                    <button type="button" data-key-check className="ms-auto shrink-0 cursor-pointer text-ink-secondary transition-colors hover:text-ink disabled:opacity-50" disabled={busy !== null} onClick={() => void recheck()}>
+                      {busy === "checking" ? t("common.checking") : t("common.checkAgain")}
+                    </button>
+                  )}
+                </div>
+              )}
+              <div className="flex flex-col gap-1">
+                <label htmlFor={`${titleId}-field`} className={fieldLabelCls}>{replacing ? t("keys.row.newKey") : label}</label>
+                {field}
+              </div>
+              {(notice || failure || other || note || verdict || target.href) && (
+                <div className="flex flex-col gap-1.5 text-[12px] leading-4">
+                  {notice && <p role="alert" className="m-0 text-danger">{notice}</p>}
+                  {failure && (
+                    <p role="alert" className="m-0 flex gap-1.5 text-danger">
+                      <CircleAlert size={13} aria-hidden="true" className="mt-px shrink-0" />
+                      <span>{t("keys.row.failed", { reason: failure })}</span>
+                    </p>
+                  )}
+                  {other && <p className="m-0 text-ink-secondary">{t("keys.row.looksLike", { label: t(other.labelKey) })}</p>}
+                  {note && <p className="m-0 text-ink-secondary">{note}</p>}
+                  {verdict && <p role="status" className="m-0 whitespace-pre-line text-ink-secondary">{verdict}</p>}
+                  {target.href && (
+                    <a href={target.href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 self-start rounded-sm text-ink-secondary transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus">
+                      {t("keys.row.getKey")}<ExternalLink size={11} aria-hidden="true" />
+                    </a>
+                  )}
+                </div>
+              )}
+              {children}
+            </div>
+          </FormDialog>
+        )}
+      </KeyPlainRow>
+    );
+  }
 
   if (quiet && !bare) {
     return (

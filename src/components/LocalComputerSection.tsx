@@ -7,12 +7,11 @@ import { SettingRow } from "./SettingsPrimitives";
 import { Card as RowsCard, FormDialog, FormField, ItemRow, NavRow, NoteRow, useSubPage } from "./ListRows";
 import { textFieldCls } from "./ui/GrokDialog";
 import { MacLocalControl } from "./MacLocalControl";
-import { PRIVATE_SETUP_PAGE } from "./settings-page-ids";
+import { CLOUD_SETUP_PAGE, PRIVATE_SETUP_PAGE } from "./settings-page-ids";
 import { SettingsSelect } from "./SettingsSelect";
 import { useCopyFeedback } from "@/lib/copy-text";
 import { cn } from "@/lib/cn";
 import { useStore } from "@/state/store";
-import { openKeySettings } from "./keys/key-focus";
 import { VpsComputersCard, inventoryCount } from "./VpsComputersCard";
 
 type Action = "pull" | "run" | "start" | "stop" | "remove" | "recreate";
@@ -342,11 +341,11 @@ export function confirmComputerAction(
   return plan.request;
 }
 
-/** The one way in to a cloud desktop: the Boat key, the same step the Computer tab's "Add cloud desktop" takes. */
+/** The one way in to a cloud desktop: a page of this one with the Boat key, Boat's credit and your own server. */
 function AddCloudDesktopRow() {
-  const { dispatch } = useStore();
+  const sub = useSubPage();
   if (typeof window !== "undefined" && window.ogb?.remoteClient?.active === true) return null;
-  return <NavRow data-keys-link="box" data-settings-open="add-cloud-desktop" title={t("settings.w6.computer.addCloud")} onClick={() => dispatch(openKeySettings("box"))} />;
+  return <NavRow data-panel-page={CLOUD_SETUP_PAGE} data-settings-open="add-cloud-desktop" title={t("settings.w6.computer.addCloud")} onClick={() => sub.open(CLOUD_SETUP_PAGE, t("settings.w6.computer.addCloud"))} />;
 }
 
 /** A computer's state as the row's quiet value: green while it works, grey asleep or stopped, amber otherwise. */

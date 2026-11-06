@@ -1,10 +1,13 @@
-import { useEffect, useRef, useState } from "react";
-import { Loader2, TriangleAlert } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
+import { ExternalLink, Loader2, TriangleAlert } from "lucide-react";
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { Switch } from "../SettingsPrimitives";
-import { KEY_FIELD } from "./KeyRow";
+import { FormDialog } from "../ListRows";
+import { fieldLabelCls, smallButtonCls, textFieldCls } from "../ui/GrokDialog";
+import type { KeyEntry } from "./key-catalog";
+import { KEY_FIELD, KeyMarkIcon, KeyPlainRow } from "./KeyRow";
 import { cleanKey, looksLikeKey } from "./key-save";
 
 /** Security: write-only; the server returns names, never keys, and hands the keys to OpenCode alone. */
@@ -137,18 +140,25 @@ export function AnthropicEveryClaudeBot() {
   );
 }
 
-/** Non-secret Docker-over-SSH target. Keys and passwords stay with SSH. */
-export function VpsConnection() {
+/** Non-secret Docker-over-SSH target. Keys and passwords stay with SSH. The row shows the alias; Set up opens its field. */
+export function VpsRow({ entry }: { entry: KeyEntry }) {
   const { state, dispatch } = useStore();
+  const titleId = useId();
+  const savedAlias = state.config?.vps?.sshAlias ?? "";
+  const configured = Boolean(state.config?.vps?.configured);
+  const [open, setOpen] = useState(false);
   const [alias, setAlias] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const configured = Boolean(state.config?.vps?.configured);
   const clearing = !alias.trim() && configured;
+  const name = t(entry.labelKey);
+  const action = configured ? t("keys.row.change") : t("keys.row.setUp");
 
-  useEffect(() => {
-    setAlias(state.config?.vps?.sshAlias ?? "");
-  }, [state.config?.vps?.sshAlias]);
+  const start = () => {
+    setAlias(savedAlias);
+    setError(null);
+    setOpen(true);
+  };
 
   const save = () => {
     if (saving || (!alias.trim() && !configured)) return;
@@ -157,45 +167,43 @@ export function VpsConnection() {
     api("/api/config", { method: "PUT", body: JSON.stringify({ vps: { sshAlias: alias.trim() } }) })
       .then((status: ConfigStatus) => {
         dispatch({ type: "configStatus", config: status });
-        setAlias(status.vps?.sshAlias ?? "");
+        setOpen(false);
       })
       .catch((e) => setError(e.message))
       .finally(() => setSaving(false));
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-[12px] leading-4 text-ink-secondary">
-        {t("settings.w6b.vps.desc")}{" "}
-        <a href="https://github.com/milind-soni/OpenMausBot/blob/main/docs/byo-vps.md" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
-          {t("settings.w6b.vps.guide")}
-        </a>
-      </p>
-      <div className="flex flex-wrap items-center gap-2">
-        <input
-          type="text"
-          data-key-input
-          value={alias}
-          onChange={(e) => setAlias(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && save()}
-          placeholder="my-vps"
-          aria-label={t("keys.vps.aria")}
-          autoComplete="off"
-          spellCheck={false}
-          className={cn(KEY_FIELD, "w-auto min-w-[min(100%,12rem)] flex-1")}
-        />
-        <button
-          type="button"
-          onClick={save}
-          disabled={saving || (!alias.trim() && !configured) || alias.trim() === (state.config?.vps?.sshAlias ?? "")}
-          className={cn("ui-button shrink-0", !clearing && "ui-button-primary")}
-          title={clearing ? t("keys.vps.removeAlias") : undefined}
-        >
-          {saving ? <Loader2 size={13} className="animate-spin" aria-hidden="true" /> : clearing ? t("keys.row.remove") : t("common.save")}
-        </button>
-      </div>
-      {error && <div role="alert" className="text-[12px] leading-4 text-danger">{error}</div>}
-    </div>
+    <KeyPlainRow data-key-row={entry.id} titleId={titleId} mark={<KeyMarkIcon entry={entry} />} title={name}
+      hint={configured ? t("keys.connected") : t("keys.row.notConnected")} value={configured ? savedAlias : undefined}
+      actions={<button type="button" data-key-open="" className={smallButtonCls} aria-label={`${action}: ${name}`} onClick={start}>{action}</button>}>
+      {open && (
+        <FormDialog data-panel-modal="vps" title={name} description={t("settings.w6b.vps.desc")}
+          saveLabel={clearing ? t("keys.row.remove") : t("common.save")}
+          canSave={(Boolean(alias.trim()) || configured) && alias.trim() !== savedAlias}
+          busy={saving} error={error} onSave={save} onClose={() => { if (!saving) setOpen(false); }}>
+          <div data-key-dialog={entry.id} className="flex flex-col gap-1">
+            <label htmlFor={`${titleId}-alias`} className={fieldLabelCls}>{t("keys.vps.aria")}</label>
+            <input
+              id={`${titleId}-alias`}
+              type="text"
+              data-key-input
+              data-autofocus=""
+              value={alias}
+              onChange={(e) => setAlias(e.target.value)}
+              placeholder="my-vps"
+              autoComplete="off"
+              spellCheck={false}
+              className={textFieldCls}
+            />
+          </div>
+          <a href="https://github.com/milind-soni/OpenMausBot/blob/main/docs/byo-vps.md" target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 self-start rounded-sm text-[12px] leading-4 text-ink-secondary transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus">
+            {t("settings.w6b.vps.guide")}<ExternalLink size={11} aria-hidden="true" />
+          </a>
+        </FormDialog>
+      )}
+    </KeyPlainRow>
   );
 }
 

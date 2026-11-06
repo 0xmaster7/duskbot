@@ -4,13 +4,16 @@ import { useStore, type ConfigStatus } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { scrollParent, scrollWithin } from "@/lib/scroll-within";
 import { t } from "@/lib/i18n";
-import { BoatOfferPanel } from "../BoatOffer";
+import { BoatOfferRow } from "../BoatOffer";
+import { Card as RowsCard, FormDialog } from "../ListRows";
+import { footnoteCls, smallButtonCls } from "../ui/GrokDialog";
+import type { LocaleKey } from "@/locales";
 import { LiveProviderSettings } from "../LiveProviderSettings";
 import { BuiltInReplyWait, LmStudioServer, OtherOpenAiCompatServers } from "../OpenAiCompatServers";
 import { KEY_CATALOG, KEY_SECTIONS, keyMatches, savedState, type KeyEntry, type KeyId, type KeySectionId } from "./key-catalog";
 import { finishKeyFocus, useKeyFocus, type KeyFocusRequest } from "./key-focus";
-import { AnthropicEveryClaudeBot, OpenAiCompatUrl, OpenCodeProviderKeys, VpsConnection } from "./KeyPanels";
-import { KEY_ROW, KeyRow, MaskedKey, RowHeading, type KeyStatus } from "./KeyRow";
+import { AnthropicEveryClaudeBot, OpenAiCompatUrl, OpenCodeProviderKeys, VpsRow } from "./KeyPanels";
+import { KeyMarkIcon, KeyPlainRow, KeyRow } from "./KeyRow";
 import { SIMPLE_CARD } from "../SettingsPrimitives";
 
 const HIGHLIGHT_MS = 1600;
@@ -21,15 +24,16 @@ const quiet = (entry: KeyEntry) => !PURPOSE_SHOWN.has(entry.id);
 const PANELS: Partial<Record<KeyId, () => ReactNode>> = {
   opencodeProviders: () => <OpenCodeProviderKeys />,
   lmStudio: () => <LmStudioServer heading={false} />,
-  vps: () => <VpsConnection />,
 };
 
 const EXTRAS: Partial<Record<KeyId, () => ReactNode>> = {
   anthropic: () => <AnthropicEveryClaudeBot />,
   openaiCompat: () => <><OpenAiCompatUrl /><BuiltInReplyWait /><OtherOpenAiCompatServers /></>,
-  box: () => <BoatOfferPanel />,
   liveKey: () => <LiveProviderSettings />,
 };
+// rows whose dialog holds settings of their own besides the key
+const SET_UP: ReadonlySet<KeyId> = new Set<KeyId>(["openaiCompat", "liveKey"]);
+const TITLES: Partial<Record<KeyId, LocaleKey>> = { box: "keys.boat.row" };
 
 function connected(entry: KeyEntry, config: ConfigStatus | null | undefined): boolean {
   if (entry.kind === "uses") return false;
@@ -37,16 +41,24 @@ function connected(entry: KeyEntry, config: ConfigStatus | null | undefined): bo
   return saved.configured || saved.included === true;
 }
 
+/** A row of settings that aren't one key: its state on the quiet line, Set up opens them in a dialog. */
 function PanelRow({ entry }: { entry: KeyEntry }) {
   const { state } = useStore();
   const titleId = useId();
+  const [open, setOpen] = useState(false);
   const saved = savedState(entry, state.config);
-  const status: KeyStatus = saved.configured ? { tone: "ok", text: t("keys.connected") } : null;
+  const name = t(entry.labelKey);
+  const hint = entry.status ? (saved.configured ? t("keys.connected") : t("keys.row.notConnected")) : t(entry.purposeKey);
+  const action = saved.configured ? t("keys.row.change") : t("keys.row.setUp");
   return (
-    <div data-key-row={entry.id} role="group" aria-labelledby={titleId} className={KEY_ROW}>
-      <RowHeading entry={entry} status={status} titleId={titleId} purpose={!quiet(entry)} />
-      <div className="flex flex-col gap-1.5 ps-[30px]">{PANELS[entry.id]?.()}</div>
-    </div>
+    <KeyPlainRow data-key-row={entry.id} titleId={titleId} mark={<KeyMarkIcon entry={entry} />} title={name} hint={hint}
+      actions={<button type="button" data-key-open="" className={smallButtonCls} aria-label={`${action}: ${name}`} onClick={() => setOpen(true)}>{action}</button>}>
+      {open && (
+        <FormDialog data-panel-modal="key-panel" title={name} description={t(entry.purposeKey)} onClose={() => setOpen(false)}>
+          <div data-key-dialog={entry.id} className="flex flex-col gap-2">{PANELS[entry.id]?.()}</div>
+        </FormDialog>
+      )}
+    </KeyPlainRow>
   );
 }
 
@@ -55,30 +67,41 @@ function ElsewhereRow({ entry }: { entry: KeyEntry }) {
   const titleId = useId();
   const opens = entry.opens;
   const saved = savedState(entry, state.config);
-  const status: KeyStatus = saved.configured ? { tone: "ok", text: t("keys.connected") } : null;
+  const name = t(entry.labelKey);
   return (
-    <div data-key-row={entry.id} role="group" aria-labelledby={titleId} className={KEY_ROW}>
-      <RowHeading entry={entry} status={status} titleId={titleId} purpose={!quiet(entry)} />
-      <div className="flex flex-col gap-1.5 ps-[30px]">
-        {saved.configured && <div className="flex"><MaskedKey saved={saved} label={t(entry.labelKey)} /></div>}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          {entry.whereKey && <span className="min-w-0 flex-1 text-[12px] leading-4 text-ink-secondary">{t(entry.whereKey)}</span>}
-          {opens && (
-            <button type="button" data-key-open className="ui-button shrink-0" onClick={() => dispatch({ type: "toggleAppSettings", open: true, section: opens })}>
-              {t("keys.row.open")}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+    <KeyPlainRow data-key-row={entry.id} titleId={titleId} mark={<KeyMarkIcon entry={entry} />} title={name}
+      hint={saved.configured ? t("keys.connected") : entry.whereKey ? t(entry.whereKey) : undefined}
+      actions={opens && (
+        <button type="button" data-key-open className={smallButtonCls} aria-label={`${t("keys.row.open")}: ${name}`}
+          onClick={() => dispatch({ type: "toggleAppSettings", open: true, section: opens })}>
+          {t("keys.row.open")}
+        </button>
+      )} />
   );
 }
 
 export function KeyCatalogRow({ entry }: { entry: KeyEntry }) {
-  if (entry.kind === "uses" && entry.uses) return <KeyRow id={entry.uses} row={entry.id} quiet={quiet(entry)} />;
+  if (entry.kind === "uses" && entry.uses) return <KeyRow id={entry.uses} row={entry.id} quiet={quiet(entry)} compact />;
+  if (entry.id === "vps") return <VpsRow entry={entry} />;
   if (entry.kind === "panel") return <PanelRow entry={entry} />;
   if (entry.kind === "elsewhere") return <ElsewhereRow entry={entry} />;
-  return <KeyRow id={entry.id} quiet={quiet(entry)}>{EXTRAS[entry.id]?.()}</KeyRow>;
+  const title = TITLES[entry.id];
+  return (
+    <>
+      <KeyRow id={entry.id} quiet={quiet(entry)} compact setUp={SET_UP.has(entry.id)} title={title ? t(title) : undefined}>{EXTRAS[entry.id]?.()}</KeyRow>
+      {entry.id === "box" && <BoatOfferRow />}
+    </>
+  );
+}
+
+/** Cloud desktops in one place: the Boat key, Boat's credit, your own server, and what Boat costs under them. */
+export function CloudDesktopKeys() {
+  const rows = KEY_CATALOG.filter((entry) => entry.id === "box" || entry.id === "vps");
+  return (
+    <RowsCard data-settings-block="cloud-desktop-keys" footnote={t("keys.boat.warning")}>
+      {rows.map((entry) => <KeyCatalogRow key={entry.id} entry={entry} />)}
+    </RowsCard>
+  );
 }
 
 function KeySection({ id, rows, open, onToggle }: { id: KeySectionId; rows: KeyEntry[]; open: boolean; onToggle: () => void }) {
@@ -102,6 +125,7 @@ function KeySection({ id, rows, open, onToggle }: { id: KeySectionId; rows: KeyE
       </button>
       <div id={bodyId} hidden={!open} className="flex flex-col gap-0.5 pb-1">
         {rows.map((entry) => <KeyCatalogRow key={entry.id} entry={entry} />)}
+        {rows.some((entry) => entry.id === "box") && <p data-keys-footnote="" className={cn(footnoteCls, "px-2 pb-1 pt-0.5")}>{t("keys.boat.warning")}</p>}
       </div>
     </section>
   );
@@ -113,7 +137,7 @@ function landOn(page: HTMLElement | null, request: KeyFocusRequest, section: Key
   const scroller = scrollParent(row);
   if (scroller) scrollWithin(scroller, row, request.row ? "center" : "start", 16);
   if (!request.row) return true;
-  row.querySelector<HTMLElement>("[data-key-input], [data-key-replace], [data-key-own], [data-key-open], input, button")?.focus({ preventScroll: true });
+  row.querySelector<HTMLElement>("[data-key-add], [data-key-input], [data-key-replace], [data-key-own], [data-key-open], input, button")?.focus({ preventScroll: true });
   row.setAttribute("data-key-highlight", "");
   window.setTimeout(() => row.removeAttribute("data-key-highlight"), HIGHLIGHT_MS);
   return true;

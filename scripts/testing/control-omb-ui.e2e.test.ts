@@ -172,18 +172,25 @@ describe("control-omb ui drives the real renderer", () => {
       openaiCompat: { key: "fixture-saved-key", url: "http://127.0.0.1:1/v1" },
     });
     const evaluate = async (js: string) => (await ui("eval", info.ui, "--js", js)).result;
-    const click = (name: string) => ui("click", info.ui, "--name", name);
     const row = `document.querySelector('[data-api-key-row="openaiCompat"]')`;
-    const input = `${row}?.querySelector('[data-key-input]')`;
-    const verdict = () => evaluate(`${row}.querySelector('[role="status"]')?.textContent`);
-    const rowText = () => evaluate(`${row}.textContent`);
+    // the row's Change opens a compact dialog with the field, drawn over Settings from the body
+    const dialog = `document.querySelector('[data-key-dialog="openaiCompat"]')`;
+    const input = `${dialog}?.querySelector('[data-key-input]')`;
+    const verdict = () => evaluate(`(${dialog} ?? ${row}).querySelector('[role="status"]')?.textContent`);
+    const rowText = () => evaluate(`${row}.textContent + (${dialog}?.textContent ?? '')`);
     const masked = () => evaluate(`${row}.querySelector('[data-key-masked]')?.textContent ?? null`);
-    const replace = () => evaluate(`${row}.querySelector('[data-key-replace]').click(); true`);
+    const replace = async () => {
+      await evaluate(`${row}.querySelector('[data-key-replace]').click(); true`);
+      await expect.poll(() => evaluate(`Boolean(${input})`), { timeout: 10_000 }).toBe(true);
+    };
+    const focusField = () => evaluate(`${input}.focus(); ${input}.select(); true`);
     const type = async (text: string) => {
-      await click("OpenAI-compatible API key");
-      await evaluate(`${input}.select(); true`);
+      await focusField();
       await ui("press", info.ui, "--keys", "Backspace");
-      if (text) await ui("type", info.ui, "--name", "OpenAI-compatible API key", "--text", text);
+      if (!text) return;
+      const [field] = refsNamed(await ui("snapshot", info.ui), "OpenAI-compatible API key", "textbox");
+      expect(field).toBeDefined();
+      await ui("type", info.ui, "--ref", field!, "--text", text);
     };
     const enter = () => ui("press", info.ui, "--keys", "Enter");
     await evaluate(`(() => {
@@ -211,12 +218,12 @@ describe("control-omb ui drives the real renderer", () => {
     // The servers section opens on its own, because a key is saved there.
     await expect.poll(masked, { timeout: 10_000 }).toContain("••••••••-key");
 
-    await expect.poll(() => evaluate(`${row}.querySelector('[data-key-check]')?.disabled ?? null`), { timeout: 10_000 }).toBe(false);
-    await evaluate(`${row}.querySelector('[data-key-check]').click(); true`);
+    await replace();
+    await expect.poll(() => evaluate(`${dialog}.querySelector('[data-key-check]')?.disabled ?? null`), { timeout: 10_000 }).toBe(false);
+    await evaluate(`${dialog}.querySelector('[data-key-check]').click(); true`);
     await expect.poll(() => evaluate("window.keyTests")).toEqual([{ provider: "openaiCompat" }]);
     await expect.poll(verdict).toBe("Saved key: Model catalog reachable: fixture-model. Authentication and chat not verified.");
 
-    await replace();
     await type("  fixture-draft-key  ");
     await enter();
     await expect.poll(() => evaluate(`${input} ?? null`), { timeout: 10_000 }).toBe(null);
@@ -238,7 +245,7 @@ describe("control-omb ui drives the real renderer", () => {
     await expect.poll(rowText, { timeout: 10_000 }).toContain("Didn't work: Fixture save rejected");
     await expect.poll(() => evaluate(`${input}?.value ?? null`), { timeout: 10_000 }).toBe("fixture-replacement-key");
     await evaluate("window.rejectKeySave = false");
-    await click("OpenAI-compatible API key");
+    await focusField();
     await enter();
     await expect.poll(() => evaluate(`${input} ?? null`), { timeout: 10_000 }).toBe(null);
     await expect.poll(() => evaluate("window.keyTests.length")).toBe(3);

@@ -45,6 +45,8 @@ const EN_ALLOWED: Record<string, string> = {
   "boatOffer.title": "Boat's credit offer names Boat, whose credit and plan it is",
   "boatOffer.body": "Boat's credit offer names Boat, whose credit and plan it is",
   "boatOffer.get": "Boat's credit offer names Boat, whose credit and plan it is",
+  "boatOffer.row": "Boat's credit offer names Boat, whose credit and plan it is",
+  "keys.boat.row": "the API keys row for a person's own Boat key, named by its provider like every other key row",
 };
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
