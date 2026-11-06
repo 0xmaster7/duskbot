@@ -127,7 +127,7 @@ describe("the Room panel's card", () => {
     expect(rowValue('[data-panel-page="responder"]')).toBe("MausBot decides");
     expect(rowValue('[data-panel-page="folder"]')).toBe("recruiting");
     render(room({ defaultResponder: { kind: "everyone" } }));
-    expect(rowValue('[data-panel-page="responder"]')).toBe("Everyone");
+    expect(rowValue('[data-panel-page="responder"]')).toBe("Everyone at once");
     render(room({ defaultResponder: { kind: "mentions" }, bulletin: "" }));
     expect(rowValue('[data-panel-page="responder"]')).toBe("Only who I @mention");
     expect(rowValue('[data-panel-page="instructions"]')).toBe("None");
@@ -230,7 +230,7 @@ describe("Who responds", () => {
       ["member:paper", "Paperwork", "false"],
       ["member:match", "Matcher", "false"],
       ["auto", "Let MausBot choose", "false"],
-      ["everyone", "Everyone", "false"],
+      ["everyone", "Everyone at once", "false"],
       ["mentions", "Only who I @mention", "false"],
     ]);
     click($('[data-panel-choice="auto"]'));

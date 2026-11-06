@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import "@/testing/quiet-canceled-animations";
 
 import { phraseAt, phraseHoldMs } from "@/lib/live-activity";
 import { STATUS_QUIET_MS, TurnPresence } from "./TurnPresence";

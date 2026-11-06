@@ -4687,5 +4687,9 @@
   "botApi.call.failed": "機器人無法回答",
   "botApi.starter": "Bot API 包含在更高的方案中。",
   "botApi.password": "金鑰就像密碼:持有它的人可以讀取此機器人能讀取的內容。",
-  "botApi.cantTake": "此機器人的 AI 無法接收 Bot API 呼叫。請選擇其他 AI 來使用。"
+  "botApi.cantTake": "此機器人的 AI 無法接收 Bot API 呼叫。請選擇其他 AI 來使用。",
+  "composer.hint.everyone": "大家同時回覆",
+  "room.responder.everyone": "一般訊息會同時傳給所有成員，大家並行回覆；@提及優先",
+  "room.panel.responder.everyone": "大家同時",
+  "room.hint.everyone": "除非你 @提及特定機器人，否則大家會同時回覆。"
 }

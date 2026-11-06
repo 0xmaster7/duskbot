@@ -6682,5 +6682,9 @@
   "botApi.call.failed": "ボットは返事できませんでした",
   "botApi.starter": "Bot API は上位プランで使えます。",
   "botApi.password": "キーはパスワードと同じです。持っている人は、このボットが読めるものを読めます。",
-  "botApi.cantTake": "このボットの AI は Bot API の呼び出しを受けられません。使うには別の AI を選んでください。"
+  "botApi.cantTake": "このボットの AI は Bot API の呼び出しを受けられません。使うには別の AI を選んでください。",
+  "composer.hint.everyone": "全員が同時に返信",
+  "room.responder.everyone": "通常のメッセージは全メンバーに同時に届き、並行して返信します。@メンションが優先されます",
+  "room.panel.responder.everyone": "全員同時に",
+  "room.hint.everyone": "特定のボットを@メンションしない限り、全員が同時に返信します。"
 }

@@ -2,6 +2,7 @@
 import { act, createElement, type ComponentProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import "@/testing/quiet-canceled-animations";
 import type { Bot, InstanceInfo, Message } from "@/state/store";
 import type { RuntimeEvent } from "../../shared/runtime-events";
 import type { ApprovalModeSelector } from "./ApprovalModeSelector";

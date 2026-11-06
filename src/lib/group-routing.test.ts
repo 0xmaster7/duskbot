@@ -139,7 +139,7 @@ describe("composer hint, in the reader's language", () => {
       ({ defaultResponder, dm: false }) as Parameters<typeof groupComposerHint>[0];
 
     setLocale("pt-br");
-    expect(groupComposerHint(room({ kind: "everyone" }), members)).toBe("todos respondem");
+    expect(groupComposerHint(room({ kind: "everyone" }), members)).toBe("todos respondem ao mesmo tempo");
     expect(groupComposerHint(room({ kind: "mentions" }), members)).toBe("@ para chamar um bot");
     // Select the non-first member so fallback routing cannot satisfy the assertion.
     expect(groupComposerHint(room({ kind: "member", botId: "lead" }), members)).toBe("Atlas responde");
@@ -148,6 +148,6 @@ describe("composer hint, in the reader's language", () => {
     );
 
     setLocale("ja");
-    expect(groupComposerHint(room({ kind: "everyone" }), members)).toBe("全員が応答します");
+    expect(groupComposerHint(room({ kind: "everyone" }), members)).toBe("全員が同時に返信");
   });
 });

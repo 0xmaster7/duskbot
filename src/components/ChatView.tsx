@@ -107,6 +107,7 @@ import { LiveCallBar } from "./LiveCallBar";
 import { LiveCallChip } from "./LiveCallPill";
 import { effectivePlace, toolPlace, type EffectivePlace } from "@/lib/place";
 import { cn } from "@/lib/cn";
+import { useArrivalGlide, useArrivalMotion, usePacedArrivals } from "@/hooks/use-paced-arrivals";
 import { activeLocale, t } from "@/lib/i18n";
 import { COMPACT_BUBBLE } from "@/lib/compact-chip";
 import { groupTranscript, isStatusActivity, turnDurations, workedLabel, type TranscriptItem } from "@/lib/activity-runs";
@@ -407,6 +408,9 @@ const Bubble = memo(function Bubble({
     if (focusedSearch && collapsible) setExpanded(true);
   }, [focusedSearch, collapsible, focus?.nonce]);
 
+  const arrivalRef = useRef<HTMLDivElement>(null);
+  useArrivalMotion(arrivalRef, Boolean(fresh), user ? "end" : "start");
+
   if (user && editing && !webhookView && !hasAttachments) {
     return (
       <div className="flex w-full justify-end">
@@ -442,7 +446,7 @@ const Bubble = memo(function Bubble({
   );
 
   return (
-    <div {...{ [MESSAGE_ROW]: "" }} className={cn("group flex w-full flex-col", simple && "relative", (reactionsOnBubble || (mediaReactions && !group)) && "pt-[26px]", user ? "items-end" : "items-start", fresh && "chat-row-in", simple && join?.above && SIMPLE_STACKED)}>
+    <div ref={arrivalRef} {...{ [MESSAGE_ROW]: "" }} className={cn("group flex w-full flex-col", simple && "relative", (reactionsOnBubble || (mediaReactions && !group)) && "pt-[26px]", user ? "items-end" : "items-start", simple && join?.above && SIMPLE_STACKED)}>
       {message.relay ? <RelayLabel message={message} /> : peer && <PeerLabel peer={peer} />}
       {speaker && <div className="mb-0.5 px-1 text-[12px] font-medium text-ink-secondary">{speaker}</div>}
       {imagesAbove && <AttachmentGallery images={imagesAbove.images} files={imagesAbove.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} align="end" className="mb-1" />}
@@ -687,6 +691,8 @@ export function useLingering(on: boolean, ms: number): boolean {
 
 /** Simple mode's room under the last row, above the composer's own clearance: grok's last bubble ends 54px over the composer. */
 export const SIMPLE_TRAILING_GAP = 34;
+const TYPING_PHASE = "friendly:chat.typing";
+const TYPING_PHRASES = () => [t("chat.typing")];
 /** The status line's 36px row and the 4px it sits under a bubble: the part of that room its slot takes. */
 export const SIMPLE_STATUS_SLOT = 40;
 
@@ -1070,12 +1076,17 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const [markEmphasized, setMarkEmphasized] = useState(false);
   // the reply is written whole; while the engine types it the mark only looks like it is answering
   const streamingReply = useLiveReplyActive(bot.threadId);
-  const statusMarkState = bot.busy ? turnMarkState({ running: true, composing: streamingReply, activity: live.status?.activity ?? null, awaiting: bot.activity === "waiting-on-you", settled: null }, Date.now()) : statusMarkFor({ busy: false, waitingOnYou: bot.activity === "waiting-on-you", answering: streamingReply, live: live.status?.activity, failed: lastMessage?.kind === "activity" && lastMessage.tool?.ok === false });
-  const presenceVisible = waiting || teammatesWorking;
+  const pacedRow = useCallback((message: Message) => message.role === "bot" && !quietRow(message, showToolCalls), [showToolCalls]);
+  const { shown: arrivedMessages, held: heldReplies } = usePacedArrivals(transcriptKey, windowedMessages, pacedRow);
+  // a reply that landed but waits its turn keeps the line typing until its bubble takes over
+  const typingHeld = !advanced && heldReplies.length > 0;
+  const statusMarkState = bot.busy ? turnMarkState({ running: true, composing: streamingReply, activity: live.status?.activity ?? null, awaiting: bot.activity === "waiting-on-you", settled: null }, Date.now()) : statusMarkFor({ busy: false, waitingOnYou: bot.activity === "waiting-on-you", answering: streamingReply || typingHeld, live: live.status?.activity, failed: lastMessage?.kind === "activity" && lastMessage.tool?.ok === false });
+  const presenceVisible = waiting || teammatesWorking || typingHeld;
   // the bubble the line hangs under keeps its pinched corner until the line has finished leaving, as grok's does
   const presenceShown = useLingering(presenceVisible, 140);
-  const paintedMessages = useFirstPaintRows(transcriptKey, windowedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef);
-  const lastShownRow = windowedMessages.findLast((message) => !quietRow(message, showToolCalls));
+  const paintedMessages = useFirstPaintRows(transcriptKey, arrivedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef);
+  const lastShownRow = arrivedMessages.findLast((message) => !quietRow(message, showToolCalls));
+  useArrivalGlide(transcriptRef, paintedMessages.at(-1)?.id, following);
   const lastRowIsBubble = Boolean(lastShownRow && isBotTextRow(lastShownRow, bot.id));
   const presenceUnderBubble = lastRowIsBubble;
   // grok keeps the status line's slot at the end of the conversation whether it shows or not, so it never moves a row
@@ -1363,7 +1374,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             label={teammatesWorking ? t("chat.teammatesWorking") : undefined}
             visible={presenceVisible}
             {...now}
-            phrases={teammatesWorking ? undefined : now.phrases}
+            phrases={teammatesWorking ? undefined : typingHeld ? TYPING_PHRASES() : now.phrases}
+            phase={typingHeld ? TYPING_PHASE : now.phase}
             seed={`${bot.id}:${bot.threadId ?? ""}:${busySince ?? ""}`}
             since={busySince}
           />

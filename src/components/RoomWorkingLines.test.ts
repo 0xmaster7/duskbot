@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import { loadLocale } from "@/lib/i18n";
 import type { Bot, Message } from "@/state/store";
-import { RoomWorkingLines, roomWorkingIds } from "./RoomWorkingLines";
+import { RoomWorkingLines, roomStatusPhrase, roomWorkingIds } from "./RoomWorkingLines";
 
 await loadLocale("en");
 
@@ -24,7 +24,15 @@ describe("who works in a room", () => {
   });
 });
 
-describe("the room's working lines", () => {
+describe("the room's working phrase", () => {
+  it("names two or three bots as a list and calls more of them several", () => {
+    expect(roomStatusPhrase(["Nova", "Quill"], "typing")).toBe("Nova and Quill are typing…");
+    expect(roomStatusPhrase(["Nova", "Quill", "Rivet"], "working")).toBe("Nova, Quill, and Rivet are working…");
+    expect(roomStatusPhrase(["Nova", "Quill", "Rivet", "Echo"], "working")).toBe("Several bots are working…");
+  });
+});
+
+describe("the room's working line", () => {
   const draw = (workingIds: string[], speakerVisible = true) => {
     const host = document.createElement("div");
     document.body.append(host);
@@ -39,14 +47,19 @@ describe("the room's working lines", () => {
     return { host, done: () => { flushSync(() => root.unmount()); host.remove(); } };
   };
 
-  it("stacks one quiet line per working bot, each with its name, and no steps to unfold", () => {
+  it("is one line for several bots: their faces in a stack and one phrase that names them, with nothing to unfold", () => {
     const { host, done } = draw(["echo", "nova", "moss"]);
-    const lines = [...host.querySelectorAll("[data-room-working-line]")].map((line) => line.getAttribute("data-room-working-line"));
-    expect(lines).toEqual(["Echo", "Nova", "Moss"]);
-    expect([...host.querySelectorAll("[data-turn-name]")].map((name) => name.textContent)).toEqual(["Echo", "Nova", "Moss"]);
+    expect(host.querySelectorAll(".turn-presence")).toHaveLength(1);
+    expect([...host.querySelectorAll("[data-bot-faces] [role=img]")].map((face) => face.getAttribute("aria-label"))).toEqual(["Echo", "Nova", "Moss"]);
+    expect(host.querySelector(".turn-presence > div")?.getAttribute("title"), "no timer, step or tool name").toBe("Echo, Nova, and Moss are typing…");
     expect(host.querySelector("button[aria-expanded]")).toBeNull();
-    expect(host.querySelector("[data-turn-quiet], .tabular-nums")).toBeNull();
-    expect(host.querySelector(".turn-status-slot")).not.toBeNull();
+    done();
+  });
+
+  it("keeps one bot at work on the plain 1:1 line", () => {
+    const { host, done } = draw(["echo"]);
+    expect(host.querySelectorAll("[data-bot-faces] [role=img]")).toHaveLength(1);
+    expect(host.innerHTML).toMatch(/width(="|: )28px/);
     done();
   });
 

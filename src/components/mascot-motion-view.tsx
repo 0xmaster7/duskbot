@@ -12,6 +12,10 @@ import { GROK_BODY_IDS } from "../../shared/grok-bodies";
 const WARM_SIZE = 36;
 let warmScheduled = false;
 
+/** A mark this small reads the same at half Grok's frame rate, and a room full of them at work costs half as much. */
+const SMALL_MARK_PX = 24;
+const SMALL_MARK_FPS = 30;
+
 /** How long a mark keeps looking at the composer after the last keystroke. */
 const WATCH_MS = 1400;
 const COMPOSER_GAZE = { x: 0.15, y: 0.75 };
@@ -81,6 +85,7 @@ export const GrokMark = forwardRef<GrokMarkHandle, GrokMarkProps>(function GrokM
     isEmphasized: emphasized,
     isReducedMotion: reduced,
     hasPersonality: personality,
+    maxFrameRate: size <= SMALL_MARK_PX ? SMALL_MARK_FPS : undefined,
   };
   const mark = useRef<Mark | null>(null);
   mark.current ??= createMark(options, { clock: mascotClock(), now: () => performance.now() });

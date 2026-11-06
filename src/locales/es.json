@@ -5812,5 +5812,9 @@
   "botApi.call.failed": "El bot no pudo responder",
   "botApi.starter": "Bot API viene con un plan superior.",
   "botApi.password": "Una clave es como una contraseña: quien la tenga puede leer lo que este bot puede leer.",
-  "botApi.cantTake": "La IA de este bot no puede recibir llamadas de Bot API. Elige otra IA para usarlas."
+  "botApi.cantTake": "La IA de este bot no puede recibir llamadas de Bot API. Elige otra IA para usarlas.",
+  "composer.hint.everyone": "todos responden a la vez",
+  "room.responder.everyone": "Los mensajes normales llegan a todos los miembros a la vez y responden en paralelo; las @menciones tienen prioridad",
+  "room.panel.responder.everyone": "Todos a la vez",
+  "room.hint.everyone": "Todos responden a la vez, salvo que @menciones bots concretos."
 }

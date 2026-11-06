@@ -5295,5 +5295,9 @@
   "botApi.call.failed": "Bot yanıtlayamadı",
   "botApi.starter": "Bot API daha yüksek bir planla gelir.",
   "botApi.password": "Anahtar parola gibidir: ona sahip olan, bu botun okuyabildiğini okuyabilir.",
-  "botApi.cantTake": "Bu botun yapay zekâsı Bot API çağrılarını alamaz. Kullanmak için başka bir yapay zekâ seçin."
+  "botApi.cantTake": "Bu botun yapay zekâsı Bot API çağrılarını alamaz. Kullanmak için başka bir yapay zekâ seçin.",
+  "composer.hint.everyone": "herkes aynı anda yanıtlar",
+  "room.responder.everyone": "Normal mesajlar tüm üyelere aynı anda gider ve hepsi birlikte yanıtlar; @bahsetmeler önceliklidir",
+  "room.panel.responder.everyone": "Herkes aynı anda",
+  "room.hint.everyone": "Belirli botları @bahsetmediğin sürece herkes aynı anda yanıtlar."
 }

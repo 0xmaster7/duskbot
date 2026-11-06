@@ -1,5 +1,8 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
+import { AnimatePresence, motion, useIsPresent } from "motion/react";
+import { EASE_OUT, REDUCED } from "@/lib/motion-presets";
+import { usePrefersReducedMotion } from "./mascot-clock";
 import { cn } from "@/lib/cn";
 import { WorkingTimer } from "@/components/WorkingIndicator";
 import { phraseAt, phraseHoldMs } from "@/lib/live-activity";
@@ -110,6 +113,25 @@ function StatusShimmer({ text }: { text: string }) {
   return <span className="status-shimmer">{text}</span>;
 }
 
+/** One step's words crossfading with the next; the leaving words are no longer part of the line. */
+function StepPhrase({ text, hover, reduced }: { text: string; hover?: string; reduced: boolean }) {
+  const present = useIsPresent();
+  return (
+    <motion.span
+      className={cn("flex min-w-0 items-center [grid-area:1/1]", !present && "turn-phrase-out")}
+      title={hover}
+      aria-hidden={present ? undefined : true}
+      data-turn-now={present ? "" : undefined}
+      initial={{ opacity: 0, y: reduced ? 0 : 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: reduced ? 0 : -4 }}
+      transition={reduced ? REDUCED : { duration: 0.18, ease: EASE_OUT }}
+    >
+      <StatusShimmer text={text} />
+    </motion.span>
+  );
+}
+
 const NOTHING: readonly string[] = [];
 // The spaces keep copied text readable; the flex gap does the spacing on screen.
 const Dot = () => <span aria-hidden="true" className="text-[12px] text-ink-tertiary"> · </span>;
@@ -130,8 +152,7 @@ function QuietPart({ quiet }: { quiet: StepQuiet }) {
  * timer stay for the whole turn; `phrases` say what is happening now and rotate through their alternates; `size` is how
  * much of the file is written; `quiet` is how a long step is doing. With nothing to say the line is the lead and the timer
  * alone. The part that is live shimmers. `simple` draws Simple mode's quiet line instead: the avatar and one phrase for
- * what is happening now. With a `card`, the line is a button that unfolds it underneath. `name` is a room's line for one
- * of its bots: the name and the friendly phrase alone, with no steps to unfold, timer or tooltip. */
+ * what is happening now. With a `card`, the line is a button that unfolds it underneath. */
 export function TurnPresence({
   avatar,
   visible,
@@ -148,7 +169,6 @@ export function TurnPresence({
   quiet,
   card,
   cardLabel,
-  name,
   className,
 }: {
   avatar: ReactNode;
@@ -168,9 +188,9 @@ export function TurnPresence({
   quiet?: StepQuiet;
   card?: ReactNode;
   cardLabel?: string;
-  name?: string;
   className?: string;
 }) {
+  const reduced = usePrefersReducedMotion();
   const [mounted, setMounted] = useState(visible);
   const [presencePhase, setPhase] = useState<"think" | "answer" | "out">(answering ? "answer" : "think");
   const [open, setOpen] = useState(false);
@@ -202,7 +222,7 @@ export function TurnPresence({
   const showWorking = presencePhase === "think";
   // grok's line leaves with the words it was saying
   const simpleStatus = simple && (showWorking || presencePhase === "out");
-  const expandable = Boolean(card) && showWorking && !name;
+  const expandable = Boolean(card) && showWorking;
   useEffect(() => {
     if (!expandable) setOpen(false);
   }, [expandable]);
@@ -226,13 +246,14 @@ export function TurnPresence({
   if (!mounted) return null;
   const status = simpleStatus ? (
     <span id={statusId} className="turn-label-slot flex h-[22px] min-w-0 items-center gap-x-1.5 text-[14px] leading-[22px]" data-turn-status>
-      {name && <span dir="auto" className="shrink-0 font-medium text-ink-secondary" data-turn-name="">{name}</span>}
-      {step && (
-        <span key={step.key} className="turn-label-in flex min-w-0 items-center" title={name ? undefined : hover} data-turn-now="">
-          <StatusShimmer text={step.text} />
-        </span>
-      )}
-      {step && quiet && !name && <QuietPart quiet={quiet} />}
+      <span className="grid min-w-0">
+        <AnimatePresence initial={false}>
+          {step && (
+            <StepPhrase key={step.key} text={step.text} hover={hover} reduced={reduced} />
+          )}
+        </AnimatePresence>
+      </span>
+      {step && quiet && <QuietPart quiet={quiet} />}
     </span>
   ) : showWorking ? (
     <span id={statusId} className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-1 leading-none" data-turn-status>
@@ -268,7 +289,7 @@ export function TurnPresence({
   return (
     <div ref={root} className={cn("turn-presence flex min-w-0 max-w-full flex-col items-start", className)}>
       <div
-        title={simple && showWorking && !name ? [lead, since !== null ? formatElapsed(Date.now() - since) : null, detail ?? (now ? current : null), size].filter(Boolean).join(" · ") : undefined}
+        title={simple && showWorking ? [lead, since !== null ? formatElapsed(Date.now() - since) : null, detail ?? (now ? current : null), size].filter(Boolean).join(" · ") : undefined}
         className={cn(
           simple ? "flex h-9 min-w-0 max-w-full items-center gap-[8.5px] ps-2" : "flex min-w-0 max-w-full items-center gap-2",
           presencePhase === "think" && (simple ? "turn-status-in" : "turn-mascot-in"),

@@ -3012,5 +3012,9 @@
   "teamMemory.you": "vous",
   "teamSettings.general": "Général",
   "canvas.botCount": "{count} bots",
-  "canvas.botCountOne": "1 bot"
+  "canvas.botCountOne": "1 bot",
+  "composer.hint.everyone": "tout le monde répond en même temps",
+  "room.responder.everyone": "Les messages simples vont à tous les membres en même temps et ils répondent en parallèle ; les @mentions ont la priorité",
+  "room.panel.responder.everyone": "Tout le monde en même temps",
+  "room.hint.everyone": "Tout le monde répond en même temps, sauf si vous @mentionnez des bots précis."
 }

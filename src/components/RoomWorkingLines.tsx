@@ -1,23 +1,16 @@
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 
 import { friendlyNowPhrases } from "@/lib/friendly-activity";
-import { EASE_OUT, REDUCED } from "@/lib/motion-presets";
+import { activeLocale, t } from "@/lib/i18n";
 import type { Bot, Group, Message } from "@/state/store";
-import { BotAvatar } from "./Avatar";
+import { BotFaces } from "./BotFaces";
 import type { MarkState } from "./mascot-motion-mark";
 import { TurnPresence } from "./TurnPresence";
 
-/** Grok's status row. */
-const LINE_PX = 36;
-/** Grok's status line leaves in 140ms and grows in over 180ms. */
-const ENTER = { duration: 0.18, ease: EASE_OUT };
-const LEAVE = { duration: 0.14, ease: EASE_OUT };
+type RoomWork = Pick<Group, "busyBotId" | "threadId" | "tasks" | "busyBotIds">;
 
-type RoomWork = Pick<Group, "busyBotId" | "threadId" | "tasks"> & { busyBotIds?: readonly string[] | null };
-
-/** Every member running a turn in the room's open thread, speaker first: the busy speaker, each member a parallel turn
- * reports, and a member whose tool call is still out. */
+/** Every member running a turn in the room's open thread, speaker first: the busy speaker, each member the server lists
+ * as answering, and a member whose tool call is still out. */
 export function roomWorkingIds(group: RoomWork, lastMessage: Message | undefined): string[] {
   const task = group.tasks?.find((candidate) => candidate.threadId === group.threadId);
   const inFlight = lastMessage?.kind === "activity" && lastMessage.tool && lastMessage.tool.ok === undefined ? lastMessage.from?.botId : undefined;
@@ -25,13 +18,7 @@ export function roomWorkingIds(group: RoomWork, lastMessage: Message | undefined
   return [...new Set(ids.filter((id): id is string => typeof id === "string" && id.length > 0))];
 }
 
-/** Bots working alongside the speaker each say a different one of the working phrases. */
-function sidePhrase(index: number): { phrases: string[]; phase: string } {
-  const pool = friendlyNowPhrases(null);
-  return { phrases: [pool.phrases[index % pool.phrases.length]!], phase: `${pool.phase}:${index}` };
-}
-
-/** Ids in the order they first showed up, so a line never trades places with another while both work. */
+/** Ids in the order they first showed up, so faces never trade places while they work. */
 function useArrivalOrder(ids: readonly string[]): string[] {
   const order = useRef<string[]>([]);
   const kept = order.current.filter((id) => ids.includes(id));
@@ -39,6 +26,22 @@ function useArrivalOrder(ids: readonly string[]): string[] {
   if (next.length !== order.current.length || next.some((id, index) => id !== order.current[index])) order.current = next;
   return order.current;
 }
+
+export type RoomVerb = "typing" | "working" | "thinking";
+
+const NAMED = { typing: "room.status.typing", working: "room.status.working", thinking: "room.status.thinking" } as const;
+const SEVERAL = { typing: "room.status.severalTyping", working: "room.status.severalWorking", thinking: "room.status.severalThinking" } as const;
+/** Up to this many bots are named; more are "Several bots". */
+const MAX_NAMED = 3;
+
+/** "Nova and Quill are typing…", "Nova, Quill and Rivet are working…", "Several bots are working…". */
+export function roomStatusPhrase(names: readonly string[], verb: RoomVerb): string {
+  if (names.length > MAX_NAMED) return t(SEVERAL[verb]);
+  const list = new Intl.ListFormat(activeLocale(), { style: "long", type: "conjunction" }).format(names);
+  return t(NAMED[verb], { names: list });
+}
+
+const TYPING_PHASE = "friendly:chat.typing";
 
 export interface RoomSpeakerLine {
   bot: Bot | undefined;
@@ -49,91 +52,57 @@ export interface RoomSpeakerLine {
   since: number | null;
 }
 
-/** The room's live status lines under the transcript, one quiet line per working bot like the sidebar's working rows:
- * its mark at work, its name and a friendly phrase. The speaker's phrase follows the thread's live step; a bot working
- * alongside it says one of the working phrases. The first line sits in the slot the room keeps at its end, a row's gap
- * under whichever bubble is last, so it never moves a row; each further one grows in under it and folds away when that
- * bot is done. */
-export function RoomWorkingLines({ group, members, workingIds, speaker, slot }: {
+/** The room's one live status line in the slot it keeps at its end. One bot at work is the 1:1 chat's line: its mark and
+ * a friendly phrase. Several share it: their faces in a small stack, joining and leaving as each starts and finishes,
+ * and one phrase that names them ("Nova and Quill are typing…") or, past three, "Several bots are working…". A member
+ * whose reply has landed but waits its turn (`typingIds`) still counts as typing until its bubble takes over. */
+export function RoomWorkingLines({ group, members, workingIds, typingIds = [], speaker, slot }: {
   group: Pick<Group, "id" | "turnStartedAt">;
   members: readonly Bot[];
   workingIds: readonly string[];
+  typingIds?: readonly string[];
   speaker: RoomSpeakerLine;
   slot: boolean;
 }) {
-  const reduce = useReducedMotion();
   const speakerId = speaker.bot?.id;
-  const ids = [...(speaker.visible && speakerId ? [speakerId] : []), ...workingIds.filter((id) => id !== speakerId)]
-    .filter((id) => members.some((member) => member.id === id));
+  // the speaker's turn shows only while its own line would: its settled reply at the tail ends it before busy clears
+  const ids = [...(speaker.visible && speakerId ? [speakerId] : []), ...workingIds.filter((id) => id !== speakerId), ...typingIds]
+    .filter((id, index, all) => all.indexOf(id) === index && members.some((member) => member.id === id));
   const ordered = useArrivalOrder(ids);
+  // the line leaves still showing who it was about
+  const last = useRef<string[]>([]);
+  if (ordered.length > 0) last.current = ordered;
+  const bots = last.current.map((id) => members.find((member) => member.id === id)).filter((bot): bot is Bot => Boolean(bot));
+  const typing = new Set(typingIds);
+  const verb: RoomVerb = typing.size > 0 || speaker.phase === TYPING_PHASE ? "typing" : speaker.phase === "friendly:thinking" ? "thinking" : "working";
+  const several = bots.length > 1;
+  const solo = bots[0];
+  const soloTyping = solo ? typing.has(solo.id) : false;
+  const words = several
+    ? { label: roomStatusPhrase(bots.map((bot) => bot.name), verb) }
+    : soloTyping ? { phrases: [t("chat.typing")], phase: TYPING_PHASE }
+    : solo?.id === speakerId ? { phrases: speaker.phrases, phase: speaker.phase }
+    : friendlyNowPhrases(null);
+  const stateOf = (bot: Bot): MarkState => typing.has(bot.id) ? "streaming" : bot.id === speakerId ? speaker.markState : "working";
   return (
-    <div className={slot ? "turn-status-slot flex min-h-9 shrink-0 flex-col" : "contents"} data-room-working-lines="">
-      <AnimatePresence initial={false}>
-        {ordered.map((id, index) => {
-          const bot = members.find((member) => member.id === id)!;
-          const isSpeaker = id === speakerId;
-          const words = isSpeaker ? speaker : sidePhrase(index);
-          return (
-            <motion.div
-              key={id}
-              data-room-working-line={bot.name}
-              className="shrink-0 overflow-visible"
-              style={{ transformOrigin: `0 ${LINE_PX / 2}px` }}
-              initial={{ height: 0 }}
-              animate={{ height: LINE_PX, opacity: 1, scale: 1 }}
-              exit={reduce ? { height: 0, opacity: 0 } : { height: 0, opacity: 0, scale: 0.92 }}
-              transition={reduce ? { height: { duration: 0 }, opacity: REDUCED } : { height: ENTER, default: LEAVE }}
-            >
-              <WorkingLine
-                named={ordered.length > 1}
-                bot={bot}
-                state={isSpeaker ? speaker.markState : "working"}
-                phrases={words.phrases}
-                phase={words.phase}
-                since={isSpeaker ? speaker.since : null}
-                seed={`${group.id}:${group.turnStartedAt ?? ""}:${id}`}
-              />
-            </motion.div>
-          );
-        })}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function WorkingLine({ bot, named, state, phrases, phase, since, seed }: {
-  bot: Bot;
-  named: boolean;
-  state: MarkState;
-  phrases?: readonly string[];
-  phase?: string;
-  since: number | null;
-  seed: string;
-}) {
-  const [emphasized, setEmphasized] = useState(false);
-  return (
-    <div onMouseEnter={() => setEmphasized(true)} onMouseLeave={() => setEmphasized(false)}>
+    <div className={slot ? "turn-status-slot h-9 shrink-0" : "contents"} data-room-working-lines="" data-room-working-count={ordered.length}>
       <TurnPresence
         avatar={
-          <BotAvatar
-            bot={bot}
-            state={state}
-            size={28}
+          <BotFaces
+            members={bots}
+            size={several ? 22 : 28}
+            working={new Set(bots.map((bot) => bot.id))}
+            stateOf={stateOf}
             eyeInk="var(--color-app)"
-            emphasized={emphasized}
-            forward={false}
-            lookAround={1}
-            trackPointer={false}
+            overlap={several ? 6 : 0}
+            motion
           />
         }
         simple
-        visible
-        // one bot keeps the plain 1:1 line; names only tell several apart
-        name={named ? bot.name : undefined}
-        phrases={phrases}
-        phase={phase}
-        seed={seed}
-        since={since}
+        visible={ordered.length > 0}
+        {...words}
+        seed={`${group.id}:${group.turnStartedAt ?? ""}:${last.current.join(",")}`}
+        since={speaker.since}
       />
     </div>
   );

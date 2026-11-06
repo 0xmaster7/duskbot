@@ -3098,5 +3098,9 @@
   "teamMemory.you": "du",
   "teamSettings.general": "Allgemein",
   "canvas.botCount": "{count} Bots",
-  "canvas.botCountOne": "1 Bot"
+  "canvas.botCountOne": "1 Bot",
+  "composer.hint.everyone": "alle antworten gleichzeitig",
+  "room.responder.everyone": "Normale Nachrichten gehen gleichzeitig an alle Mitglieder, die nebeneinander antworten; @Erwähnungen haben Vorrang",
+  "room.panel.responder.everyone": "Alle gleichzeitig",
+  "room.hint.everyone": "Alle antworten gleichzeitig, außer du @erwähnst bestimmte Bots."
 }

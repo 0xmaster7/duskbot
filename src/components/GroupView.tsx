@@ -31,7 +31,7 @@ import { normalizeState } from "@/lib/mascot";
 import { defaultResponderName, groupResponseHint, jevRoomRoutingOn } from "@/lib/group-routing";
 import { ChatMarkdown } from "./ChatMarkdown";
 import { FailedTurnRow, MessageBoundary, SIMPLE_STATUS_SLOT, SIMPLE_TRAILING_GAP, statusMarkFor } from "./ChatView";
-import { joinedCorners, needsStamp, SIMPLE_BOT_BUBBLE, SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT, SIMPLE_STACKED, SIMPLE_USER_BUBBLE, type BubbleJoin } from "./chat-bubble";
+import { joinedCorners, needsStamp, quietRow, SIMPLE_BOT_BUBBLE, SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT, SIMPLE_STACKED, SIMPLE_USER_BUBBLE, type BubbleJoin } from "./chat-bubble";
 import { roomRowLayout, type RoomSlot } from "./room-row-layout";
 import { DaySeparator } from "./DaySeparator";
 import { useThreadOpenedAt } from "./ConversationalReply";
@@ -76,6 +76,7 @@ import { groupActivityRuns, isStatusActivity, roomTurnFolds } from "@/lib/activi
 import { TurnNarrationRun } from "./TurnNarrationRun";
 import { ActivityRun } from "./ActivityRun";
 import { cn } from "@/lib/cn";
+import { useArrivalGlide, useArrivalMotion, usePacedArrivals } from "@/hooks/use-paced-arrivals";
 import { useMenuMotion } from "./MenuMotion";
 import { useLiveToolIds } from "@/hooks/use-live-tool-ids";
 import { roomNeedsSetup } from "@/lib/room-setup";
@@ -210,8 +211,10 @@ function RoomTextMessage({
       {botText && speaking && <SpeakButton text={botText} botId={speakerBot?.id} messageId={m.id} voiceId={speakerBot?.voice} tts={state.config?.tts} localVoice={localSystemVoiceActive()} className={cn(messageActionClass, "text-accent")} />}
     </MessageActions>
   );
+  const arrivalRef = useRef<HTMLDivElement>(null);
+  useArrivalMotion(arrivalRef, Boolean(fresh), user ? "end" : "start");
   return (
-    <div {...{ [MESSAGE_ROW]: "" }} className={cn("group flex w-full flex-col", simple && "relative", user ? "items-end" : "items-start", fresh && "chat-row-in", simple && join.above && SIMPLE_STACKED)}>
+    <div ref={arrivalRef} {...{ [MESSAGE_ROW]: "" }} className={cn("group flex w-full flex-col", simple && "relative", user ? "items-end" : "items-start", simple && join.above && SIMPLE_STACKED)}>
       {speaker && <div className="mb-0.5 px-1 text-[12px] font-medium text-ink-secondary">{speaker}</div>}
       {mediaRow && attachments && <AttachmentGallery images={attachments.images} files={attachments.files} message={{ threadId: group.threadId, messageId: m.id }} eager={eager} align="end" className={display.trim() ? "mb-1" : undefined} />}
       <div data-own-row={simple && user ? "" : undefined} className={cn("flex w-full gap-1.5", simple ? "items-center" : "items-end", user ? "justify-end" : "justify-start")}>
@@ -939,6 +942,8 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
  * distance from the composer by adding it. */
 const USAGE_ROW_GAP = 8;
 
+const pacedRoomRow = (m: Message) => m.role === "bot" && m.kind !== "activity" && m.kind !== "compaction" && !quietRow(m, false);
+
 export function GroupView({ group }: { group: Group }) {
   const { state, dispatch } = useStore();
   const remoteClient = window.ogb?.remoteClient?.active === true;
@@ -1029,6 +1034,10 @@ export function GroupView({ group }: { group: Group }) {
   useTimestampPeek(scrollRef, !advancedMode);
   // the status line keeps its slot at the end of the room whether it shows or not, so it never moves a row
   const statusSlot = !advancedMode && (windowedMessages.length > 0 || threadWorking);
+  const { shown: arrivedMessages, held: heldReplies } = usePacedArrivals(transcriptKey, windowedMessages, pacedRoomRow);
+  useArrivalGlide(transcriptRef, arrivedMessages.at(-1)?.id, following);
+  // a member whose reply landed but waits its turn is still typing until its bubble takes over
+  const typingIds = [...new Set(heldReplies.flatMap((m) => (m.from?.botId ? [m.from.botId] : [])))];
   const unreadDivider = useUnreadDivider({ threadId: group.threadId, messages: group.messages, following });
 
   useEffect(() => setFolderOpen(false), [group.id]);
@@ -1173,7 +1182,7 @@ export function GroupView({ group }: { group: Group }) {
             group={group}
             members={members}
             locale={activeLocale()}
-            messages={windowedMessages}
+            messages={arrivedMessages}
             transcript={group.messages}
             unreadDividerId={unreadDivider.messageId}
             unreadDividerFading={unreadDivider.fading}
@@ -1193,6 +1202,7 @@ export function GroupView({ group }: { group: Group }) {
             group={group}
             members={members}
             workingIds={workingIds}
+            typingIds={typingIds}
             speaker={{ bot: presenceSpeaker, visible: presenceVisible, markState: statusMarkState, phrases: now.phrases, phase: now.phase, since: speaker ? group.turnStartedAt ?? null : null }}
             slot={statusSlot}
           />

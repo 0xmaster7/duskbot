@@ -5295,5 +5295,9 @@
   "botApi.call.failed": "Bot không trả lời được",
   "botApi.starter": "Bot API có trong gói cao hơn.",
   "botApi.password": "Khóa giống như mật khẩu: ai giữ khóa đều đọc được những gì bot này đọc được.",
-  "botApi.cantTake": "AI của bot này không nhận được lượt gọi Bot API. Hãy chọn AI khác để dùng."
+  "botApi.cantTake": "AI của bot này không nhận được lượt gọi Bot API. Hãy chọn AI khác để dùng.",
+  "composer.hint.everyone": "mọi người trả lời cùng lúc",
+  "room.responder.everyone": "Tin nhắn thường đến mọi thành viên cùng lúc và họ trả lời song song; @nhắc tên được ưu tiên",
+  "room.panel.responder.everyone": "Mọi người cùng lúc",
+  "room.hint.everyone": "Mọi người trả lời cùng lúc, trừ khi bạn @nhắc tên bot cụ thể."
 }

@@ -6598,5 +6598,9 @@
   "botApi.call.failed": "Bot nie mógł odpowiedzieć",
   "botApi.starter": "Bot API jest dostępne w wyższym planie.",
   "botApi.password": "Klucz jest jak hasło: kto go ma, może czytać to, co może czytać ten bot.",
-  "botApi.cantTake": "AI tego bota nie może przyjmować wywołań Bot API. Wybierz inne AI, aby z nich korzystać."
+  "botApi.cantTake": "AI tego bota nie może przyjmować wywołań Bot API. Wybierz inne AI, aby z nich korzystać.",
+  "composer.hint.everyone": "wszyscy odpowiadają naraz",
+  "room.responder.everyone": "Zwykłe wiadomości trafiają naraz do wszystkich członków, którzy odpowiadają równolegle; @wzmianki mają pierwszeństwo",
+  "room.panel.responder.everyone": "Wszyscy naraz",
+  "room.hint.everyone": "Wszyscy odpowiadają naraz, chyba że @wspomnisz konkretne boty."
 }
