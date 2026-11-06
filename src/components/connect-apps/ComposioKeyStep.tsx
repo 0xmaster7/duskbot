@@ -7,6 +7,7 @@ import { reserveConnectionPage } from "@/lib/connector-oauth";
 import { GrokIcon } from "../GrokIcon";
 import { cleanKey, saveCredential } from "../keys/key-save";
 import type { Connectors } from "./use-connectors";
+import type { ViaFailure, ViaFlow } from "./via-flow";
 
 /** Composio's own sign-up / log-in, then the project page that lists its API keys
  * (https://docs.composio.dev/reference/authenticating-to-composio). */
@@ -19,34 +20,36 @@ export function keyProblem(cause: unknown): LocaleKey {
   return /rejected|start with ak_|\b40[13]\b|unauthori[sz]ed|invalid/i.test(message) ? "connectApps.key.rejected" : "connectApps.key.offline";
 }
 
-/** Connect's own Composio step: one line on why, then Sign in with Composio, which adds Composio Connect, opens
- * Composio's own sign-in (or sign-up) page and comes back connected, so no key is copied anywhere; the app's Connect then
- * goes on by itself. A person who wants their own quota can paste their own project key instead, behind a small link:
- * the server verifies it on save, it is kept the way Settings keeps it, and the Connect goes on the same way. */
+/** The sentence for where an app's Composio Connect sign-in stands, when there is one to say. */
+export function viaLine(flow: ViaFlow | undefined, name: string): { text: string; tone: "status" | "alert" | "done" } | null {
+  if (!flow) return null;
+  if (flow.step === "done") return { text: t("connectApps.via.connected", { name }), tone: "done" };
+  if (flow.step === "waiting") {
+    const key: LocaleKey = flow.note === "trouble" ? "connectApps.via.trouble" : flow.note === "notYet" ? "connectApps.via.notYet" : "connectApps.via.waiting";
+    return { text: t(key, { name }), tone: "status" };
+  }
+  if (flow.step !== "failed") return null;
+  const key: Record<ViaFailure, LocaleKey> = {
+    authorize: "connectApps.via.authorizeFailed", cancelled: "connectApps.via.cancelled", timeout: "connectApps.via.timeout",
+    signedOut: "connectApps.via.signedOut", offline: "connectApps.via.offline", refused: "connectApps.via.refused",
+  };
+  return { text: t(key[flow.why], { name, message: flow.message ?? "" }), tone: "alert" };
+}
+
+/** Connecting an app through Composio, in two steps that say what they do: Authorize Composio (once, on Composio's own
+ * page, no key copied anywhere), then Connect the app on Composio's page. Each step shows done with a check; the page's
+ * main button is the step you are on. Someone who wants their own quota can paste their own project key instead, behind
+ * a small link: the server verifies it on save, it is kept the way Settings keeps it, and the Connect goes on the same way. */
 export function ComposioKeyStep({ slug, name, connectors }: { slug: string; name: string; connectors: Connectors }) {
   const { dispatch } = useStore();
   const [draft, setDraft] = useState("");
-  const [busy, setBusy] = useState<"sign-in" | "key" | null>(null);
+  const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<LocaleKey | null>(null);
   const [ownKey, setOwnKey] = useState(false);
-  const own = connectors.mode === "managed";
-
-  const signIn = async () => {
-    if (busy) return;
-    // composio's page opens in the tab reserved on this click
-    const launch = reserveConnectionPage();
-    setBusy("sign-in");
-    setProblem(null);
-    let ok = false;
-    try {
-      ok = await connectors.signInComposio(launch);
-    } catch {
-      ok = false;
-    }
-    setBusy(null);
-    if (!ok) { setProblem("connectApps.signIn.failed"); return; }
-    await connectors.connect(slug);
-  };
+  const flow = connectors.viaFlow[slug];
+  const authorized = connectors.via?.signedIn === true;
+  const connected = flow?.step === "done";
+  const line = viaLine(flow, name);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -55,47 +58,56 @@ export function ComposioKeyStep({ slug, name, connectors }: { slug: string; name
     if (!/^ak_\S+$/.test(key)) { setProblem("connectApps.key.shape"); return; }
     // the sign-in tab is reserved on this click, before saving uses up the browser's user activation
     const launch = reserveConnectionPage();
-    setBusy("key");
+    setBusy(true);
     setProblem(null);
     try {
       dispatch({ type: "configStatus", config: await saveCredential("composio", key, true) });
     } catch (cause) {
       launch.cancel();
-      setBusy(null);
+      setBusy(false);
       setProblem(keyProblem(cause));
       return;
     }
     setDraft("");
     await connectors.continueAfterKey(slug, launch);
-    setBusy(null);
+    setBusy(false);
   };
+
+  const steps = [
+    { key: "authorize", done: authorized, current: !authorized, title: t(authorized ? "connectApps.via.authorized" : "connectApps.via.authorize"), sub: null },
+    { key: "connect", done: connected, current: authorized && !connected, title: t("connectApps.connectApp", { name }), sub: t("connectApps.via.connectLine", { name }) },
+  ];
 
   return (
     <section data-composio-key="" aria-labelledby="ca-key-title">
-      <h3 id="ca-key-title" className="ca-group-label">{t("connectApps.key.title")}</h3>
+      <h3 id="ca-key-title" className="ca-group-label">{t("connectApps.via.title", { name })}</h3>
       <div className="ca-card">
-        <p className="ca-card-row ca-key-why">{t(own ? "connectApps.key.whyOwn" : "connectApps.key.why", { name })}</p>
+        <p className="ca-card-row ca-key-why">{t("connectApps.via.why", { name })}</p>
         {!ownKey && (
-          <>
-            <ol className="ca-key-steps">
-              <li className="ca-card-row">
-                <span data-step="" aria-hidden="true">1</span>
-                <span>{t("connectApps.signIn.step1")}</span>
+          <ol className="ca-key-steps">
+            {steps.map((step, index) => (
+              <li key={step.key} className="ca-card-row" data-via-step={step.key} data-state={step.done ? "done" : step.current ? "current" : "next"}
+                aria-current={step.current ? "step" : undefined}>
+                <span data-step="" aria-hidden="true">{step.done ? <GrokIcon name="check" size={11} /> : index + 1}</span>
+                <span>
+                  {step.title}
+                  {step.sub && !step.done && <span className="ca-key-sub">{step.sub}</span>}
+                </span>
               </li>
-              <li className="ca-card-row">
-                <span data-step="" aria-hidden="true">2</span>
-                <span>{t("connectApps.signIn.step2", { name })}</span>
-              </li>
-            </ol>
-            <div className="ca-card-row">
-              <button type="button" className="ca-primary" data-composio-sign-in="" disabled={busy !== null} aria-busy={busy === "sign-in" || undefined} onClick={() => void signIn()}>
-                {[t("connectApps.signIn.button"), t("connectApps.signIn.waiting")].map((label, index) => (
-                  <span key={label} aria-hidden={(index === 1) === (busy === "sign-in") ? undefined : true}>{label}</span>
-                ))}
-              </button>
-              <button type="button" className="ca-link" onClick={() => { setOwnKey(true); setProblem(null); }}>{t("connectApps.signIn.ownKey")}</button>
-            </div>
-          </>
+            ))}
+          </ol>
+        )}
+        {line && (
+          <p role={line.tone === "alert" ? "alert" : "status"} className="ca-card-row ca-key-line" data-tone={line.tone} data-via-line="">
+            <GrokIcon name={line.tone === "alert" ? "exclamation-circle" : line.tone === "done" ? "check" : "clock"} size={13} />
+            <span>{line.text}</span>
+          </p>
+        )}
+        {!ownKey && !authorized && (
+          <p className="ca-card-row ca-key-why">
+            {t("connectApps.via.shares", { name })}{" "}
+            <button type="button" className="ca-link" onClick={() => { setOwnKey(true); setProblem(null); }}>{t("connectApps.signIn.ownKey")}</button>
+          </p>
         )}
         {ownKey && (
           <>
@@ -123,9 +135,9 @@ export function ComposioKeyStep({ slug, name, connectors }: { slug: string; name
               <input type="password" value={draft} autoFocus autoComplete="off" spellCheck={false} placeholder="ak_…"
                 aria-label={t("connectApps.key.label")} aria-invalid={problem ? true : undefined} aria-describedby={problem ? "ca-key-problem" : undefined}
                 onChange={(event) => { setDraft(event.target.value); setProblem(null); }} />
-              <button type="submit" className="ca-primary" disabled={busy !== null || !draft.trim()} aria-busy={busy === "key" || undefined}>
-                {[t("connectors.action.connect"), t("connectApps.connecting")].map((label, index) => (
-                  <span key={label} aria-hidden={(index === 1) === (busy === "key") ? undefined : true}>{label}</span>
+              <button type="submit" className="ca-primary" disabled={busy || !draft.trim()} aria-busy={busy || undefined}>
+                {[t("connectApps.connectApp", { name }), t("connectApps.connecting")].map((label, index) => (
+                  <span key={label} aria-hidden={(index === 1) === busy ? undefined : true}>{label}</span>
                 ))}
               </button>
             </form>

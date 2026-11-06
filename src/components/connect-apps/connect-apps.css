@@ -676,6 +676,14 @@
 .ca-key-steps [data-step] + span { flex: 1 1 auto; min-width: 0; }
 a.ca-pill { color: inherit; text-decoration: none; }
 .ca-key-problem { gap: 6px; color: var(--color-danger); }
+/* the two composio steps: done ones show a check, the next one waits in grey */
+.ca-key-steps [data-state="done"] > [data-step] { border-color: transparent; color: var(--color-success); }
+.ca-key-steps [data-state="done"] { color: var(--ca-ink-56); }
+.ca-key-steps [data-state="next"] { color: var(--ca-ink-56); }
+.ca-key-sub { display: block; color: var(--ca-ink-56); font-size: 12px; }
+.ca-key-line { gap: 6px; color: var(--ca-ink-68); }
+.ca-key-line[data-tone="alert"] { color: var(--color-danger); }
+.ca-key-line[data-tone="done"] > i { color: var(--color-success); }
 .ca-card-row > .ca-primary:first-child,
 .ca-card-row > .ca-pill:first-child { flex: 0 0 auto; }
 /* grok's accounts: a name, a needs-reconnect mark, Disconnect that asks once more in place */

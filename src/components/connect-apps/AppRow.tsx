@@ -48,7 +48,8 @@ export function RowPill({ action, name }: { action: Extract<RowAction, { kind: "
       disabled={action.busy || action.disabled}
       data-pending={action.pending ? "" : undefined}
       aria-busy={action.busy || action.pending || undefined}
-      aria-label={action.label === t("connectors.action.connect") && shown === labels[0] ? t("connectApps.connectAria", { name }) : undefined}
+      aria-label={shown !== labels[0] ? undefined : action.label === t("connectors.action.connect") ? t("connectApps.connectAria", { name })
+        : action.label === t("connectApps.authorize") ? t("connectApps.authorizeAria", { name }) : undefined}
       title={action.title}
       onClick={action.onClick}
     >

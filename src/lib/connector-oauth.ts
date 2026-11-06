@@ -45,5 +45,9 @@ export function reserveConnectionPage() {
       cancelled = true;
       if (!navigated && page && !page.closed) page.close();
     },
+    /** The page we navigated was closed by the person; false when it went to the system browser, where we cannot tell. */
+    closed(): boolean {
+      return navigated && page !== null && page.closed;
+    },
   };
 }

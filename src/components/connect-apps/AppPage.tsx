@@ -42,14 +42,14 @@ export interface AppPageModel {
   remote?: { open: boolean; busy: boolean; onConnect: () => void; onManage: () => void };
 }
 
-interface Primary { label: string; busy?: boolean; disabled?: boolean; quiet?: boolean; onClick?: () => void }
+interface Primary { label: string; busy?: boolean; busyLabel?: string; disabled?: boolean; quiet?: boolean; signIn?: boolean; onClick?: () => void }
 
 function PrimaryButton({ primary }: { primary: Primary }) {
-  const labels = [primary.label, t("connectApps.connecting")];
+  const labels = [primary.label, primary.busyLabel ?? t("connectApps.connecting")];
   const shown = primary.busy ? labels[1] : labels[0];
   return (
     <button type="button" className="ca-primary" data-tone={primary.quiet ? "quiet" : undefined} disabled={primary.busy || primary.disabled}
-      aria-busy={primary.busy || undefined} onClick={primary.onClick}>
+      aria-busy={primary.busy || undefined} data-composio-sign-in={primary.signIn ? "" : undefined} onClick={primary.onClick}>
       {labels.map((label) => <span key={label} aria-hidden={label === shown ? undefined : true}>{label}</span>)}
     </button>
   );
@@ -70,6 +70,10 @@ export function AppPage({ model }: { model: AppPageModel }) {
   const askingKey = composio && !model.remoteClient && !viaSignedIn
     && (connectors.keyFor === slug || (!ways && !connectors.configured && !connectors.stale && connectors.setup === "needs-setup"));
   const setup = composio && !askingKey && !viaSignedIn && !ways ? connectorSetupNotice({ configured: connectors.configured, stale: connectors.stale, setup: connectors.setup, remoteClient: model.remoteClient }) : null;
+  const flow = composio ? connectors.viaFlow[slug] : undefined;
+  // through Composio Connect: two steps, Authorize Composio then Connect the app, and the main button is the one you are on
+  const viaSteps = askingKey || (composio && !model.remoteClient && viaSignedIn && connectors.viaRoute(slug)
+    && (flow !== undefined || (!ways && model.connection !== "connected")));
   const askingAlias = composio && connectors.aliasFor === slug;
   const aliasError = askingAlias && connectors.error ? (typeof connectors.error === "string" ? connectors.error : t(connectors.error.key)) : null;
 
@@ -81,14 +85,26 @@ export function AppPage({ model }: { model: AppPageModel }) {
         ? { label: t("connectApps.remote.manage"), quiet: true, onClick: model.remote.onManage }
         : { label: t("connectors.action.connect"), busy: model.remote.busy, disabled: model.connection === "unknown", onClick: model.remote.onConnect };
     }
-    if (!composio || !phase || askingKey) return null;
+    if (!composio || !phase) return null;
+    const connect: Primary = { label: t("connectApps.connectApp", { name: entry.label }), onClick: () => void connectors.connect(slug) };
+    if (viaSteps) {
+      const authorize: Primary = { label: t("connectApps.via.authorize"), signIn: true, disabled: model.remoteClient, onClick: () => void connectors.authorizeComposio(slug) };
+      if (flow?.step === "authorizing") return { ...authorize, busy: true, busyLabel: t("connectApps.signIn.waiting") };
+      if (flow?.step === "failed" && flow.why === "signedOut") return { ...authorize, label: t("connectApps.via.authorizeAgain") };
+      if (!viaSignedIn) return flow?.step === "failed" ? { ...authorize, label: t("connectors.action.retry") } : authorize;
+      if (flow?.step === "waiting") return { label: t("connectApps.via.openAgain"), onClick: () => connectors.reopenVia(slug) };
+      if (flow?.step === "failed") return { label: t("connectors.action.retry"), onClick: () => void connectors.connect(slug) };
+      if (flow?.step === "done" || model.connection === "connected") return null;
+      return phase.kind === "connecting" ? { ...connect, busy: true, busyLabel: t("connectApps.signIn.waiting") } : connect;
+    }
+    if (askingKey) return null;
     if (ways && model.connection === "connected" && phase.kind === "connect") return null;
-    const connect: Primary = { label: t("connectors.action.connect"), onClick: () => void connectors.connect(slug) };
     if (!connectors.configured && !viaSignedIn) return { ...connect, disabled: model.remoteClient, onClick: () => connectors.askKey(slug) };
     switch (phase.kind) {
       case "checking": return { ...connect, disabled: true };
       case "connecting": return { ...connect, busy: true };
-      case "continue": return { label: t("connectors.action.continue"), onClick: () => connectors.resume(slug) };
+      case "continue": return { label: t("connectApps.via.openAgain"), onClick: () => connectors.resume(slug) };
+      case "failed": return { label: t("connectors.action.retry"), onClick: () => void connectors.connect(slug) };
       case "reconnect": return { label: t("connectors.action.reconnect"), onClick: () => void connectors.connect(slug, phase.account.alias, phase.account) };
       // grok keeps Add Account with the accounts it adds to
       case "connected": return accounts.length || connectors.viaApps[slug] ? null : { label: t("connectors.action.addAccount"), quiet: true, onClick: () => { setAlias(""); connectors.askAlias(slug); } };
@@ -108,7 +124,7 @@ export function AppPage({ model }: { model: AppPageModel }) {
         <header className="ca-detail-header">
           <AppTile entry={entry} size={56} />
           <h3 className="ca-detail-name" data-detail-hero-title="">{entry.label}</h3>
-          {primary && <PrimaryButton primary={primary} />}
+          {primary ? <PrimaryButton primary={primary} /> : (entry.kind === "composio" || entry.kind === "remote") && model.connection === "connected" && <ConnectedMark />}
         </header>
         <p className="ca-detail-desc">{entry.description}</p>
       </div>
@@ -142,7 +158,7 @@ export function AppPage({ model }: { model: AppPageModel }) {
           </div>
         )}
         {model.remote && !ways && <p className="ca-notice">{t(model.remote.open ? "connectApps.remote.open" : "connectApps.remote.note", { name: entry.label })}</p>}
-        {askingKey && <ComposioKeyStep slug={slug} name={entry.label} connectors={connectors} />}
+        {viaSteps && <ComposioKeyStep slug={slug} name={entry.label} connectors={connectors} />}
         {composio && (accounts.length > 0 || askingAlias) && (
           <div data-accounts="">
             <h3 className="ca-group-label">{t("connectApps.accounts")}</h3>

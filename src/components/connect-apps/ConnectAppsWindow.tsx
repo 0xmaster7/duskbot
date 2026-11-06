@@ -313,6 +313,12 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   }, [connectors.setupFor, connectors.keyFor]);
 
   const composioReady = connectors.configured || connectors.via?.signedIn === true;
+  // an app page through Composio Connect asks Composio once, reading only, whether it is connected already
+  const detailSlug = page.kind === "detail" ? (byId.get(page.id)?.kind === "composio" ? byId.get(page.id)!.id : byId.get(page.id)?.composio) : undefined;
+  useEffect(() => {
+    if (detailSlug && connectors.via?.signedIn && connectors.viaRoute(detailSlug)) connectors.checkVia(detailSlug);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailSlug, connectors.via?.signedIn]);
   const composioSlug = (entry: AppEntry) => entry.kind === "composio" ? entry.id : entry.composio;
   const composioPhase = (slug: string | undefined): ConnectorPhase | null => {
     const card = slug ? cards.get(slug) : undefined;
@@ -334,14 +340,19 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     if (entry.kind === "custom") return connection(entry.id) === "connected" ? { kind: "connected" } : { kind: "status", label: t("connectApps.off"), tone: "quiet" };
     if (connection(entry.id) === "connected" && (entry.kind !== "composio" || !connectors.isConnected(entry.id))) return { kind: "connected" };
     const phase = phaseOf(entry);
-    const connect: RowAction = { kind: "button", label: t("connectors.action.connect"), onClick: () => startConnect(entry) };
+    // the next step said for what it is: Authorize when Composio must be authorized first, Connect when it signs in to the app
+    const authorizeFirst = entry.kind === "composio" && !composioReady;
+    const connect: RowAction = { kind: "button", label: t(authorizeFirst ? "connectApps.authorize" : "connectors.action.connect"), onClick: () => startConnect(entry) };
     const vendor = vendorOf(entry);
     if (vendor) return { ...connect, busy: remote.busy === vendor.id };
     if (!phase) return connect;
     switch (phase.kind) {
       case "connected": case "included": return { kind: "connected" };
       case "connecting": return { ...connect, busy: true };
-      case "continue": return { ...connect, pending: true, title: t("connectors.finishSetup"), onClick: () => connectors.resume(entry.id) };
+      case "continue": return { ...connect, label: t("connectApps.via.openAgain"), pending: true, title: t("connectors.finishSetup"), onClick: () => connectors.resume(entry.id) };
+      case "failed": return phase.why === "signedOut"
+        ? { ...connect, label: t("connectApps.authorize"), onClick: () => go({ kind: "detail", id: entry.id }) }
+        : { ...connect, label: t("connectors.action.retry"), onClick: () => void connectors.connect(entry.id) };
       case "setup": return { ...connect, label: t("common.checkAgain"), onClick: () => void connectors.connect(entry.id) };
       case "reconnect": return { kind: "button", label: t("connectors.action.reconnect"), onClick: () => void connectors.connect(entry.id, phase.account.alias, phase.account) };
       case "unavailable": return { ...connect, disabled: true, title: phase.reason };
@@ -470,10 +481,10 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
           action: { kind: "button", label: t("connectors.action.connect"), busy: remote.busy === vendor.id, disabled: remote.connection(vendor.id) === "unknown", onClick: () => void remote.connect(vendor) } });
       }
       if (slug && card) {
-        const connect = { kind: "button" as const, label: t("connectors.action.connect"), onClick: () => composioReady ? void connectors.connect(slug) : connectors.askKey(slug) };
+        const connect = { kind: "button" as const, label: t(composioReady ? "connectors.action.connect" : "connectApps.authorize"), onClick: () => composioReady ? void connectors.connect(slug) : connectors.askKey(slug) };
         ways.push({ key: "composio", label: t("connectApps.way.composio"), connected: composioConnected(detailEntry),
           action: phase?.kind === "connecting" ? { ...connect, busy: true }
-            : phase?.kind === "continue" ? { ...connect, pending: true, title: t("connectors.finishSetup"), onClick: () => connectors.resume(slug) }
+            : phase?.kind === "continue" ? { ...connect, label: t("connectApps.via.openAgain"), pending: true, title: t("connectors.finishSetup"), onClick: () => connectors.resume(slug) }
               : phase?.kind === "unavailable" ? { ...connect, disabled: true, title: phase.reason }
                 : { ...connect, disabled: !composioReady && window.ogb?.remoteClient?.active === true } });
       }
