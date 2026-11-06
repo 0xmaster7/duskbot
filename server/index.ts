@@ -15297,6 +15297,11 @@ const pruneDecisionLog = () => {
 };
 pruneDecisionLog();
 setInterval(pruneDecisionLog, 6 * 60 * 60_000).unref();
+const useThisServerComputers = (): void => {
+  if (store.useThisServerComputers()) for (const bot of store.bots) broadcast({ kind: "bot", bot: wireBot(bot) });
+};
+useThisServerComputers();
+setInterval(useThisServerComputers, 15_000).unref();
 workspaceAccess = createWorkspaceAccess({ sessions, cookieName: SESSION_COOKIE, closeSessionStreams });
 // With the bridge's five-second deadline, this bounds stale portal access on quiet streams to fifteen seconds.
 const workspaceAccessTimer = workspaceAccess ? setInterval(() => {

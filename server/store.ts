@@ -12,6 +12,7 @@ import { removeBotFolder, soulFile, soulHash, writeSoulMirror } from "./bot-fold
 import type { BotProfilePatch } from "./bot-profile.ts";
 import { peerAllowKey, type PeerAction } from "./peer-approval-key.ts";
 import { DATA_DIR, EVENTS_DIR, NATIVE_DIR, loadBrowserProfileIdAliases } from "./config.ts";
+import { vpsIsThisServer } from "./vps-local.ts";
 import * as mdb from "./message-db.ts";
 import { forgetBotMemoryJournal, journalFile } from "./memory-journal.ts";
 import { runCommand, type Command } from "./commands.ts";
@@ -647,6 +648,15 @@ export class Store {
     for (const task of groupTasks) if (repair(task)) groupsDirty = true;
     if (botsDirty) this.saveBots();
     if (groupsDirty) this.saveGroups();
+  }
+
+  /** On a linked VPS there is no Boat: every bot's computer is this server's own sandbox. */
+  useThisServerComputers(): boolean {
+    if (!vpsIsThisServer()) return false;
+    const moved = this.bots.filter((bot) => bot.cloudBackend !== "vps");
+    for (const bot of moved) bot.cloudBackend = "vps";
+    if (moved.length) this.saveBots();
+    return moved.length > 0;
   }
 
   private fillTaskAskedAts(): void {
@@ -1382,6 +1392,7 @@ export class Store {
       createdAt: Date.now(),
     };
     if (section) bot.section = section;
+    if (vpsIsThisServer()) bot.cloudBackend = "vps";
     if (profile.createdBy?.trim()) bot.createdBy = ownerEmail(profile.createdBy);
     if (profile.reportsTo?.trim()) bot.reportsTo = ownerEmail(profile.reportsTo);
     if (profile.cwd) bot.cwd = profile.cwd;
