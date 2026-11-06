@@ -11,7 +11,8 @@ function guide(style: TalkingStyle): string {
   if (cached !== undefined) return cached;
   const here = dirname(fileURLToPath(import.meta.url));
   const path = [join(here, "prompts", "talking-style", `${style}.md`), join(here, "..", "prompts", "talking-style", `${style}.md`)].find((file) => existsSync(file));
-  if (!path) throw new Error(`the ${style} talking-style guide is missing`);
+  // a build without the guides still talks, just without the style section
+  if (!path) return "";
   const text = readFileSync(path, "utf8").trim();
   guides.set(style, text);
   return text;
@@ -19,5 +20,7 @@ function guide(style: TalkingStyle): string {
 
 /** The person's chosen guide (warm when none), in the stable half: a change reaches the next turn the way a SOUL.md edit does. */
 export function talkingStylePrompt(style: TalkingStyle | undefined): string {
-  return `\n\nHow you talk (the person's choice for all their bots; their standing instructions win where they differ):\n${guide(talkingStyleOf(style))}\n`;
+  const text = guide(talkingStyleOf(style));
+  if (!text) return "";
+  return `\n\nHow you talk (the person's choice for all their bots; their standing instructions win where they differ):\n${text}\n`;
 }
