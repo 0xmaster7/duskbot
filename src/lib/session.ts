@@ -28,7 +28,19 @@ export function profileForSession(profile: SessionProfile | undefined, sessionSt
   return profile?.email?.trim().toLowerCase() === email.trim().toLowerCase() ? profile : { email };
 }
 
-export async function readSessionState(fetchImpl: typeof fetch = fetch): Promise<SessionState> {
+let inflight: { fetchImpl: typeof fetch; read: Promise<SessionState> } | null = null;
+
+/** Reads the session. Calls made while one read is on its way share its answer: launch asks from a dozen places at once. */
+export function readSessionState(fetchImpl: typeof fetch = fetch): Promise<SessionState> {
+  if (inflight?.fetchImpl === fetchImpl) return inflight.read;
+  const read = fetchSessionState(fetchImpl).finally(() => {
+    if (inflight?.read === read) inflight = null;
+  });
+  inflight = { fetchImpl, read };
+  return read;
+}
+
+async function fetchSessionState(fetchImpl: typeof fetch): Promise<SessionState> {
   let res: Response;
   try {
     res = await fetchImpl("/api/auth/session", { credentials: "same-origin" });
