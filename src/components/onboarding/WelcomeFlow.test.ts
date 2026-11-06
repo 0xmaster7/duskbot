@@ -47,13 +47,16 @@ const key = async (name: string) => {
 const show = async (extra: Record<string, unknown> = {}) => {
   await act(async () => { root.render(createElement(WelcomeFlow, { onDone: f.onDone, ...extra })); });
 };
-/** Grok Bot's second and third screens: the bot's own computer, then a job for each Bot. */
+/** Grok Bot's second and third screens: the bot's own computer, then a job for each Bot; then how they talk. */
 const throughGrokScreens = async () => {
   expect(text()).toContain("has its own computer and works just like you");
   await press("Next");
   expect(text()).toContain("Give each Bot a job");
   await press("Next");
+  expect(host.querySelector("h1")?.textContent).toBe("How should your Bots talk?");
+  await press("Next");
 };
+const talkChoice = (style: string) => host.querySelector<HTMLInputElement>(`[data-talking-style-option="${style}"] input`)!;
 /** Next and the two screens after it, to the chat. */
 const throughAll = async () => {
   await press("Next");
@@ -225,6 +228,40 @@ describe("with no AI working yet", () => {
     await act(async () => { host.querySelector("[data-connect-ai]")!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
     await key("Escape");
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
+  });
+});
+
+describe("the talking style screen", () => {
+  it("asks last how every bot talks, warm picked, and saves another pick as it is made", async () => {
+    await show();
+    await press("Next");
+    await press("Next");
+    await press("Next");
+    expect(host.querySelector('[role="radiogroup"]')?.getAttribute("aria-labelledby")).toBe("welcome-title");
+    expect([...host.querySelectorAll("[data-talking-style-option]")].map((row) => row.querySelector("span")?.textContent)).toEqual([
+      "CasualYep, moved your 3pm to 4. Way better slot tbh.",
+      "WarmNo problem, your 3pm is now at 4. Everyone got the update.",
+      "NeutralMoved your 3pm to 4pm. The attendees were notified.",
+    ]);
+    expect(talkChoice("warm").checked, "warm is preselected").toBe(true);
+    expect(saved(), "nothing is saved for the default").toEqual([]);
+    await act(async () => { talkChoice("casual").click(); });
+    expect(talkChoice("casual").checked).toBe(true);
+    expect(talkChoice("warm").checked).toBe(false);
+    expect(saved()).toEqual([{ talkingStyle: "casual" }]);
+    await press("Back");
+    expect(text()).toContain("Give each Bot a job");
+    await press("Next");
+    expect(talkChoice("casual").checked, "the pick stays while going back and forth").toBe(true);
+    await press("Next");
+    expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
+  });
+
+  it("starts from a style already chosen", async () => {
+    f.state = { ...f.state, config: { ...(f.state.config as object), talkingStyle: "native" } };
+    await show();
+    for (let screen = 0; screen < 3; screen += 1) await press("Next");
+    expect(talkChoice("native").checked).toBe(true);
   });
 });
 

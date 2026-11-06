@@ -144,6 +144,10 @@ if (existsSync(join(root, "enterprise", "server", "index.ts"))) {
 // Copied, not bundled: esbuild would inline index.js into it.
 copyFileSync(join(root, "scripts", "desktop-server-entry.mjs"), join(root, "dist-server", "desktop-entry.mjs"));
 
+// The talking-style guides (server/talking-style.ts) are read from prompts/talking-style beside the bundle.
+mkdirSync(join(root, "dist-server", "prompts", "talking-style"), { recursive: true });
+for (const style of ["casual", "warm", "native"]) copyFileSync(join(server, "prompts", "talking-style", `${style}.md`), join(root, "dist-server", "prompts", "talking-style", `${style}.md`));
+
 // The model catalog snapshot (server/model-catalog/catalog.ts) is read from
 // disk, not inlined: 1.5 MB of JSON has no place in index.js. The bundle looks
 // for it under model-catalog/ beside itself. Its MIT notice is inside the file.

@@ -5,7 +5,8 @@ import { chiefFor, chiefStepFits, createChiefPatch, myDefaultBot, stageIntro, us
 import { beatsFor, completionPatch, firstRunPatch, markWelcomeFinished, resumeBeat, showWelcome, type BeatId } from "@/lib/onboarding";
 import { clearWelcomeDraft, readWelcomeDraft, saveWelcomeDraft } from "@/lib/welcome-draft";
 import { api, useStore } from "@/state/store";
-import { ComputerStep, JobsStep } from "./GrokSteps";
+import { ComputerStep, JobsStep, TalkStep } from "./GrokSteps";
+import { talkingStyleOf, type TalkingStyle } from "../../../shared/talking-style";
 import { MeetScreen } from "./MeetScreen";
 import { localDesktopPage } from "./WelcomeGate";
 import "../../styles/onboarding.css";
@@ -48,7 +49,7 @@ function trapTab(event: ReactKeyboardEvent<HTMLElement>, root: HTMLElement | nul
 }
 
 /** The first run, as Grok Bot's: meeting the app (with an AI to connect when none works), the bot's own computer, a job
- * for each Bot. Its end is the chat (`onDone`): MausBot's, made the Chief of Staff where no other bot is one. */
+ * for each Bot, then how they all talk. Its end is the chat (`onDone`): MausBot's, made the Chief of Staff where no other bot is one. */
 export function WelcomeFlow({
   onDone,
   replay = false,
@@ -82,6 +83,13 @@ export function WelcomeFlow({
     leaveTimer.current = window.setTimeout(() => setLeavingPage(null), STEP_OUT_MS);
   };
   useEffect(() => () => window.clearTimeout(leaveTimer.current), []);
+  // the last screen's pick is saved as it is made, as Settings saves it; warm until then
+  const [talk, setTalk] = useState<TalkingStyle>(() => talkingStyleOf(state.config?.talkingStyle));
+  const pickTalk = (style: TalkingStyle) => {
+    setTalk(style);
+    void api<NonNullable<Config>>("/api/config", { method: "PUT", body: JSON.stringify({ talkingStyle: style }), signal: AbortSignal.timeout(10_000) })
+      .then((config) => dispatch({ type: "configStatus", config })).catch(() => {});
+  };
   const root = useRef<HTMLDivElement>(null);
   const finishing = useRef(false);
   const record = useRef(state.config?.onboarding);
@@ -150,7 +158,9 @@ export function WelcomeFlow({
     ? <MeetScreen hosted={hosted} onNext={() => goPage(1)} />
     : index === 1
       ? <ComputerStep onNext={() => goPage(2)} onBack={() => goPage(0)} />
-      : <JobsStep onNext={next} onBack={() => goPage(1)} />;
+      : index === 2
+        ? <JobsStep onNext={() => goPage(3)} onBack={() => goPage(1)} />
+        : <TalkStep value={talk} onChange={pickTalk} onNext={next} onBack={() => goPage(2)} />;
 
   return (
     <div

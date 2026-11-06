@@ -18,6 +18,7 @@ import { parseSendKey, SEND_KEYS, sendKeyLabel, setSendKey, useSendKey } from "@
 import { alternateSendLabel, parseFollowUpDefault, setFollowUpDefault, useFollowUpDefault } from "@/lib/follow-up";
 import { effectiveLanguage, setLanguageChoice, useLanguageChoice } from "@/lib/language-preference";
 import { SettingsSelect } from "./SettingsSelect";
+import { TALKING_STYLES, talkingStyleOf } from "../../shared/talking-style";
 
 export function UpdatesRow({ title = t("settings.updates.title") }: { title?: string }) {
   const s = useUpdaterState();
@@ -118,6 +119,38 @@ export function NewBotEffortRow() {
           </option>
         ))}
       </SettingsSelect>
+    </SettingRow>
+  );
+}
+
+/** How every bot talks, the choice the first run offers: casual, warm (the default) or native. */
+export function TalkingStyleRow() {
+  const { state, dispatch } = useStore();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const save = async (value: string) => {
+    if (saving) return;
+    setSaving(true);
+    setError("");
+    try {
+      const config: ConfigStatus = await api("/api/config", { method: "PATCH", body: JSON.stringify({ talkingStyle: talkingStyleOf(value) }) });
+      dispatch({ type: "configStatus", config });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t("settings.talkingStyle.error"));
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <SettingRow title={t("settings.talkingStyle.title")} message={error ? <p role="alert" className="text-danger">{error}</p> : null}>
+      <SettingsSelect
+        value={talkingStyleOf(state.config?.talkingStyle)}
+        disabled={saving}
+        aria-label={t("settings.talkingStyle.title")}
+        data-settings-select="talking-style"
+        options={TALKING_STYLES.map((style) => ({ value: style, label: t(`settings.talkingStyle.${style}`) }))}
+        onChange={(event) => void save(event.target.value)}
+      />
     </SettingRow>
   );
 }

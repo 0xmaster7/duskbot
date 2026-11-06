@@ -8,6 +8,7 @@ import { launchVerificationServer, runControlOmb } from "../scripts/control-omb.
 import { CAPTURE_MARKER } from "./memory-capture.ts";
 import { TIDY_MARKER } from "./memory-tidy.ts";
 import { REPLY_HABITS_PROMPT } from "./reply-habits.ts";
+import { talkingStylePrompt } from "./talking-style.ts";
 import { REMEMBER_AND_FORGET } from "./workspace.ts";
 
 type Step = { tool: string; arguments: Record<string, unknown> };
@@ -61,6 +62,13 @@ it("remembers at once, learns only what the person said, forgets everywhere, and
     // Every bot is told how to talk: the preview and a real turn's prompt both carry it, with the memory habits.
     const preview = await api<{ sections: Array<{ id: string; text: string }> }>(`/api/bots/${bot.id}/system-prompt`);
     expect(preview.sections.find((section) => section.id === "reply-habits")?.text).toBe(REPLY_HABITS_PROMPT);
+    // and in the talking style the person chose, warm until they pick another; the next prompt follows the pick
+    expect(preview.sections.find((section) => section.id === "talking-style")?.text).toBe(talkingStylePrompt("warm"));
+    expect((await api<{ talkingStyle: string }>("/api/config")).talkingStyle).toBe("warm");
+    expect((await api<{ talkingStyle: string }>("/api/config", "PATCH", { talkingStyle: "casual" })).talkingStyle).toBe("casual");
+    const casual = await api<{ sections: Array<{ id: string; text: string }> }>(`/api/bots/${bot.id}/system-prompt`);
+    expect(casual.sections.find((section) => section.id === "talking-style")?.text).toBe(talkingStylePrompt("casual"));
+    await api("/api/config", "PATCH", { talkingStyle: "warm" });
 
     // 1. Questions and tasks are not facts about the person.
     const asked = await turn(bot, "What are the 3 best AI meeting note-takers for a 10-person startup right now? Price and a one-line verdict each.", [],

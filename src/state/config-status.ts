@@ -127,6 +127,8 @@ export interface ConfigStatus {
   language?: string;
   /** What a paired phone calls this computer; "" uses the default. */
   computerName?: string;
+  /** How every bot talks; the server sends warm when none was chosen. */
+  talkingStyle?: import("../../shared/talking-style").TalkingStyle;
   /** Opt-in flags. Absent means off. */
   features?: { skillAuthoring: boolean; skillReview?: boolean; skillReviewSteps?: number; showToolCalls?: boolean; browser?: boolean; sharedComputers?: boolean; claudeUserMcp?: boolean; llmThreadTitles?: boolean; skillsLibrary?: boolean; shareLearnedSkills?: "off" | "ask" | "auto"; roomMemoryCapture?: boolean; savedSteps?: boolean; savedStepsHere?: boolean };
   /** First-run progress: whether the welcome tour was finished and which

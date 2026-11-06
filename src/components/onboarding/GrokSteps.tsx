@@ -4,6 +4,8 @@ import { cn } from "@/lib/cn";
 import { productName } from "@/lib/brand";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
+import { GrokIcon } from "@/components/GrokIcon";
+import { TALKING_STYLES, type TalkingStyle } from "../../../shared/talking-style";
 import { PILL } from "./SignInPill";
 import "../../styles/onboarding.css";
 
@@ -116,6 +118,30 @@ export function JobsStep({ onNext, onBack }: { onNext: () => void; onBack: () =>
           </li>
         ))}
       </ul>
+      <StepFooter onNext={onNext} onBack={onBack} />
+    </div>
+  );
+}
+
+/** Screen 4: how every bot talks, a name and a sample message each; warm until another is picked. */
+export function TalkStep({ value, onChange, onNext, onBack }: { value: TalkingStyle; onChange: (style: TalkingStyle) => void; onNext: () => void; onBack: () => void }) {
+  return (
+    <div className="onboarding-step-in relative h-full min-h-[600px] w-full">
+      <StepHeading>{t("onboarding.talk.title")}</StepHeading>
+      <div role="radiogroup" aria-labelledby="welcome-title" data-talking-style=""
+        className="absolute left-1/2 top-[calc(50%-150px)] w-[360px] max-w-[calc(100%-32px)] -translate-x-1/2 divide-y divide-hairline/40 overflow-hidden rounded-xl border border-hairline/40 text-left">
+        {TALKING_STYLES.map((style) => (
+          <label key={style} data-talking-style-option={style}
+            className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-ink/[0.035] has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-focus">
+            <input type="radio" name="welcome-talking-style" value={style} checked={value === style} onChange={() => onChange(style)} className="sr-only" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-medium leading-5 text-ink">{t(`settings.talkingStyle.${style}`)}</span>
+              <span className="mt-0.5 block text-[13px] leading-[18px] text-ink-secondary">{t(`onboarding.talk.${style}`)}</span>
+            </span>
+            {value === style && <GrokIcon name="check" size={12} className="shrink-0 text-ink" />}
+          </label>
+        ))}
+      </div>
       <StepFooter onNext={onNext} onBack={onBack} />
     </div>
   );
