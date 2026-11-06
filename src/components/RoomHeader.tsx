@@ -20,9 +20,8 @@ import { GroupUsageChip } from "./GroupUsageChip";
 import { PlaceIcon } from "./PlaceIcon";
 import { roomMemberQueueTitle } from "./RoomQueueList";
 import { RoomWorkingFolderChip } from "./RoomWorkingFolder";
-import { roomWorkingIds } from "./RoomWorkingLines";
 import { ChatHeadPill } from "./ChatHeadPill";
-import { BotFaces } from "./BotFaces";
+import { GroupAvatar, useGroupYou } from "./GroupAvatar";
 import { Select } from "./Select";
 
 export function DefaultResponderSelect({ group, members }: { group: Group; members: Bot[] }) {
@@ -121,8 +120,6 @@ function memberMauses(group: Group, members: Bot[]) {
   });
 }
 
-const PILL_FACES = 3;
-
 /** Simple mode's whole room header: the bot chat's pill with the members' faces, opening and closing the Room panel. */
 function RoomHeadPill({ group, members, dragProps, noDragStyle }: {
   group: Group;
@@ -133,7 +130,7 @@ function RoomHeadPill({ group, members, dragProps, noDragStyle }: {
   const { state, dispatch } = useStore();
   const openRoom = useRoomPanel();
   const expanded = state.settingsOpen || openRoom === group.id;
-  const working = new Set(roomWorkingIds(group, group.messages.at(-1)));
+  const you = useGroupYou();
   return (
     <div {...dragProps} className="px-5 pt-2.5 pb-2.5 max-md:pl-14 max-md:pr-3">
       <div data-roomhead-row className="flex min-w-0 items-center justify-center">
@@ -143,7 +140,7 @@ function RoomHeadPill({ group, members, dragProps, noDragStyle }: {
               name: group.name,
               label: t("room.panel.openAria", { name: group.name }),
               expanded,
-              faces: <BotFaces members={members} size={24} max={PILL_FACES} working={working} overlap={4} ground="var(--color-composer)" />,
+              faces: <GroupAvatar members={members} you={you} size={24} />,
             }}
             onToggle={(event) => {
               if (expanded) {

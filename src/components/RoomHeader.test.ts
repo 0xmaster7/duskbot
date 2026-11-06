@@ -72,7 +72,7 @@ beforeEach(() => {
 afterEach(() => closeRoomPanel());
 
 describe("the room header", () => {
-  it("is one centred pill: up to three faces with +N, then the room's name", () => {
+  it("is one centred pill: grok's group grid of up to four faces, then the room's name", () => {
     const markup = view(room());
     const head = header(markup);
     expect(shown(head)).toEqual([]);
@@ -81,24 +81,15 @@ describe("the room header", () => {
     expect(head).toContain("chat-head-pill");
     expect(head).toContain('aria-label="Open settings for Desk HQ"');
     expect(head).toMatch(/data-roomhead-row="true" class="[^"]*justify-center/);
-    expect(head.match(/role="img" aria-label="(?:Desk Manager|Vendor Bench|Job Board Sourcer|Paperwork|Phone Screener|Matcher|Interview Coordinator|Submission Writer|Timesheets)"/g)).toHaveLength(3);
-    expect(head).toMatch(/>\s*\+(?:<!-- -->)?6\s*<\/span>/);
+    expect(head).toMatch(/data-group-avatar="" aria-hidden="true" class="[^"]*" style="width:24px;height:24px"/);
+    expect(head.match(/data-group-avatar-cell=/g)).toHaveLength(4);
+    expect(head).not.toMatch(/>\s*\+(?:<!-- -->)?\d/);
     expect(markup).not.toContain(BULLETIN);
   });
 
-  it("draws no +N while every member has a face", () => {
+  it("fills the grid with what it has", () => {
     const head = header(view(room({ memberIds: ["bot-0", "bot-1", "bot-2"] })));
-    expect(head.match(/role="img" aria-label="(?:Desk Manager|Vendor Bench|Job Board Sourcer)"/g)).toHaveLength(3);
-    expect(head).not.toMatch(/>\+(?:<!-- -->)?\d/);
-  });
-
-  it("puts the members at work first in the stack, playing their working state", () => {
-    const head = renderToStaticMarkup(createElement(RoomHeader, {
-      group: room({ busyBotId: "bot-7", working: true }), members: bots, simple: true, setupPending: false, remoteClient: false, findOpen: false,
-      onToggleFind: vi.fn(), onToggleFolder: vi.fn(), onOpenMembers: vi.fn(), membersTriggerRef: { current: null },
-    }));
-    expect(head.match(/role="img" aria-label="([^"]+)"/)?.[1]).toBe("Submission Writer");
-    expect(head).toMatch(/data-grok-state="working"[^>]*role="img" aria-label="Submission Writer"/);
+    expect(head.match(/data-group-avatar-cell=/g)).toHaveLength(3);
   });
 
   it("keeps today's header on a remote client, which cannot open the Room panel", () => {

@@ -11,6 +11,7 @@ import { applySkinChoice, THEME_SKINS } from "@/lib/skins";
 import { openNewGroup } from "@/lib/new-group-request";
 import { t } from "@/lib/i18n";
 import { BotAvatar } from "./Avatar";
+import { GroupAvatar, useGroupYou } from "./GroupAvatar";
 import { openCreateBot } from "./CreateBotDialog";
 import { GrokIcon, type GrokIconName } from "./GrokIcon";
 import { botPreview, groupPreview } from "./sidebar-preview";
@@ -63,6 +64,7 @@ function Marked({ text, query }: { text: string; query: string }) {
 
 export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean) => void }) {
   const { state, dispatch } = useStore();
+  const you = useGroupYou();
   const showThreads = useShowThreads();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -305,7 +307,8 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
                 }
                 if (entry.kind === "room") {
                   const { group } = entry;
-                  return row(`room:${group.id}`, index, entry, tile("people"), <Marked text={group.name} query={q} />,
+                  const members = group.memberIds.map((id) => state.bots.find((bot) => bot.id === id)).filter((bot): bot is Bot => Boolean(bot));
+                  return row(`room:${group.id}`, index, entry, <GroupAvatar members={members} you={you} size={24} />, <Marked text={group.name} query={q} />,
                     group.description || groupPreview(group, state.bots, state.instances, false), "Group chat",
                     group.unread ? <span role="img" aria-label="Unread activity" className="flex size-2 shrink-0 items-center"><span className="size-2 rounded-full bg-accent-text" /></span> : undefined);
                 }

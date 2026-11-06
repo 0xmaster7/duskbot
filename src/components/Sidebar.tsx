@@ -22,7 +22,7 @@ import { copyText } from "@/lib/copy-text";
 import type { LocaleKey } from "@/locales";
 import { ConfirmDialog } from "./ConfirmDialog";
  
-import { StackedMauses } from "./StackedMauses";
+import { GroupAvatar, useGroupYou } from "./GroupAvatar";
 import { nextRename } from "@/lib/rename";
 import { useDesktopCapabilities, windowFramed } from "./DesktopCapabilities";
 import { MIN_QUERY, SearchResults } from "./SearchResults";
@@ -147,6 +147,7 @@ export function GroupListItem({
   const members = group.memberIds
     .map((id) => state.bots.find((b) => b.id === id))
     .filter((b): b is Bot => Boolean(b));
+  const you = useGroupYou();
   const last = group.messages.at(-1);
   return (
     <div className={cn("group relative", railTile && "mx-auto w-[54px]")}>
@@ -174,7 +175,7 @@ export function GroupListItem({
       title={density === "icons" ? group.name : undefined}
       aria-label={density === "icons" ? group.name : undefined}
     >
-      <StackedMauses members={members} density={railTile ? "comfortable" : density} large={simpleRow || railTile} />
+      <GroupAvatar members={members} you={you} size={density === "icons" && !railTile ? 44 : simpleRow || railTile ? 36 : 32} className={density === "icons" && !railTile ? "m-0.5" : undefined} />
       <div className={cn("min-w-0 flex-1", density === "icons" && "hidden")}>
         <div className={cn("flex items-baseline justify-between gap-2", simpleRow && "pr-7")}>
           <span className={cn("truncate text-[14px] text-ink", simpleRow ? "font-medium leading-5" : "font-semibold")}>{group.name}</span>
