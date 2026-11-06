@@ -1878,8 +1878,9 @@ body {
    in the focus colour.
    A field reporting an error (aria-invalid) keeps its danger border, so the
    red does not vanish while the user is fixing it. */
+/* grok paints it in grey ink, not blue; 52% ink still clears 3:1 on white */
 :is(input, textarea, select):focus-visible:not([aria-invalid="true"]) {
-  border-color: var(--color-focus);
+  border-color: color-mix(in srgb, var(--color-ink) 52%, transparent);
 }
 
 ::selection {

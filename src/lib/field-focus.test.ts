@@ -47,11 +47,11 @@ describe("text field focus", () => {
 
   it("paints a focused field's own border in the focus colour, above every utility", () => {
     const rule = unlayered(css).match(/:is\(input, textarea, select\):focus-visible(?::not\([^)]*\))?\s*\{([^}]*)\}/g) ?? [];
-    expect(rule.join("\n")).toMatch(/border-color:\s*var\(--color-focus\)/);
+    expect(rule.join("\n")).toMatch(/border-color:\s*color-mix\(in srgb, var\(--color-ink\) 52%, transparent\)/);
   });
 
   it("leaves a field that reports an error in its error colour while focused", () => {
-    const selectors = [...unlayered(css).matchAll(/([^{}]+)\{[^}]*border-color:\s*var\(--color-focus\)[^}]*\}/g)].map((match) => match[1].trim());
+    const selectors = [...unlayered(css).matchAll(/([^{}]+)\{[^}]*border-color:\s*color-mix\(in srgb, var\(--color-ink\) 52%, transparent\)[^}]*\}/g)].map((match) => match[1].trim());
     expect(selectors.length).toBeGreaterThan(0);
     for (const selector of selectors) expect(selector).toContain(':not([aria-invalid="true"])');
   });
