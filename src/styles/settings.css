@@ -462,37 +462,30 @@
 }
 :root .settings-dialog .settings-pane [data-panel-value] { color: color-mix(in srgb, var(--color-ink) 56%, transparent); }
 
-/* a select is the row's quiet value: secondary ink, a small chevron, the whole row its target and its pill on hover */
+/* a select is grok's small outlined pill on the row's right: value in ink, a quiet chevron, a light instant tint on hover */
 :root .settings-dialog :is(.settings-pane :is([data-settings-select], [data-select-row] [role="combobox"], [data-panel-row="model"] [data-tour="model"]), [data-settings-header-actions] [data-settings-select]) {
-  position: static;
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: 20px;
+  height: 28px;
   max-width: 220px;
   margin: 0;
-  padding: 0 0 0 4px;
-  border: 0;
-  border-radius: 0;
+  padding: 0 8px 0 10px;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
+  border-radius: 10px;
   background: transparent;
-  color: color-mix(in srgb, var(--color-ink) 56%, transparent);
+  color: var(--color-ink);
   font-size: 13px;
   line-height: 18px;
   letter-spacing: -0.08px;
   transition: none;
 }
-:root .settings-dialog [data-settings-header-actions] [data-settings-select] { position: relative; height: 26px; padding: 0 6px 0 8px; border-radius: 8px; }
-:root .settings-dialog [data-settings-header-actions] [data-settings-select]:enabled:hover { background-color: color-mix(in srgb, var(--color-ink) 3.5%, transparent); }
-:root .settings-dialog .settings-pane :is([data-settings-select], [data-select-row] [role="combobox"])::after { content: ""; display: block; position: absolute; inset: 0; border-radius: 8px; }
-:root .settings-dialog .settings-pane :is([data-setting-row], [data-select-row]):has(:is([data-settings-select], [role="combobox"])) { position: relative; }
-:root .settings-dialog .settings-pane :is([data-setting-row], [data-select-row]):has(:is([data-settings-select], [role="combobox"]):enabled:hover, :is([data-settings-select], [role="combobox"])[aria-expanded="true"]) {
-  background-color: color-mix(in srgb, var(--color-ink) 3.5%, transparent) !important;
+:root .settings-dialog :is(.settings-pane :is([data-settings-select], [data-select-row] [role="combobox"]), [data-settings-header-actions] [data-settings-select]):is(:enabled:hover, [aria-expanded="true"]) {
+  background-color: color-mix(in srgb, var(--color-ink) 3.5%, transparent);
 }
-:root .settings-dialog .settings-pane :is([data-settings-select], [data-select-row] [role="combobox"]):enabled:hover { color: var(--color-ink); }
-:root .settings-dialog .settings-pane :is([data-settings-select], [data-select-row] [role="combobox"]):focus-visible { outline: none; }
-:root .settings-dialog .settings-pane :is([data-settings-select], [data-select-row] [role="combobox"]):focus-visible::after { outline: 2px solid var(--color-focus); outline-offset: -2px; }
-/* a row whose control is a switch or a pill keeps its own target, so another control in it stays reachable */
-:root .settings-dialog .settings-pane [data-setting-row]:has(:is(button:not([data-settings-select]), input, textarea, a, [role="switch"])) :is([data-settings-select])::after { inset: auto; }
+:root .settings-dialog .settings-pane :is([data-settings-select], [data-select-row] [role="combobox"]) svg { color: color-mix(in srgb, var(--color-ink) 56%, transparent); }
+:root .settings-dialog .settings-pane :is([data-settings-select], [data-select-row] [role="combobox"]):focus-visible { outline: 2px solid var(--color-focus); outline-offset: 1px; }
 :root .settings-dialog [role="switch"] { cursor: pointer; }
 :root .settings-dialog [role="switch"]:disabled { cursor: default; }
 
@@ -670,7 +663,6 @@
   }
   :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) > :is(button, a, [data-select-row], [data-setting-row]) { background-color: var(--color-menu); }
   :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) > :is(button, a):enabled:active { background-color: color-mix(in srgb, var(--color-ink) 4%, var(--color-menu)); }
-  :root .settings-dialog .settings-pane [data-setting-row]:has([data-settings-select]) { background-color: var(--color-menu) !important; }
 
   /* phone type: 15/20 rows, 13/18 secondary lines */
   .settings-dialog .settings-pane :is(.text-\[13px\], [data-row-title]) { font-size: 15px; line-height: 20px; }
