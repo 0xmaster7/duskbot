@@ -1,102 +1,156 @@
-// Add your VPS: one sheet, four screens (copy the line, installing, sign in to your AI, move everything). The sheet opens
-// raw; only the move from one screen to the next slides.
-import { useEffect, useRef, useState } from "react";
-import { Check } from "lucide-react";
-import { cn } from "@/lib/cn";
+// Add your VPS, as Grok Bot's first run is drawn: the whole window, one idea per screen, the pills under the middle. The
+// picture of this Mac, the server and the mascot between them stays put while the screens change under it. The window
+// opens raw; only the change from one screen to the next eases.
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { GrokIcon } from "@/components/GrokIcon";
 import { t } from "@/lib/i18n";
-import type { LocaleKey } from "@/locales";
+import type { MausState } from "@/lib/mascot";
 import { EASE, REDUCED } from "@/lib/motion-presets";
-import { useVpsLink, vpsStage, type VpsLinkBridge, type VpsLinkView } from "@/lib/vps-link";
-import { GrokDialog } from "../ui/GrokDialog";
+import { useVpsLink, vpsStage, type VpsLinkView, type VpsMovePreview } from "@/lib/vps-link";
+import { useStore } from "@/state/store";
+import { useDialogKeys } from "../ui/GrokDialog";
 import { MotionDiv, useMotionReduced } from "../ui/SheetMotion";
-import { CommandStage, InstallStage } from "./CommandStage";
-import { MoveStage } from "./MoveStage";
-import { SignInStage } from "./SignInStage";
+import { CommandScreen, InstallScreen } from "./CommandStage";
+import { moveProgress, movePhase, MoveScreen } from "./MoveStage";
+import { deviceWord, Footer, Heading, Lead, message, PILL, TITLE_ID } from "./parts";
+import { Scene, type SceneBot, type SceneHandle, type SceneMode } from "./Scene";
+import { SignInScreen } from "./SignInStage";
 
-const STAGES: ReadonlyArray<[1 | 2 | 3 | 4, LocaleKey]> = [
-  [1, "vpsLink.stage.copy"], [2, "vpsLink.stage.install"], [3, "vpsLink.stage.signIn"], [4, "vpsLink.stage.move"],
-];
-const message = (error: unknown) => String((error as Error)?.message ?? error).replace(/^Error invoking remote method '[^']*':\s*(?:Error:\s*)?/, "");
+type Screen = "command" | "install" | "connected" | "signin" | "preview" | "moving" | "paused" | "moved";
 
-function StageDots({ at }: { at: 1 | 2 | 3 | 4 }) {
+const SCENE: Record<Screen, { mode: SceneMode; mascot: MausState }> = {
+  command: { mode: "waiting", mascot: "listening" },
+  install: { mode: "working", mascot: "working" },
+  connected: { mode: "linked", mascot: "celebrate" },
+  signin: { mode: "linked", mascot: "excited" },
+  preview: { mode: "linked", mascot: "happy" },
+  moving: { mode: "moving", mascot: "working" },
+  paused: { mode: "stuck", mascot: "surprised" },
+  moved: { mode: "moved", mascot: "celebrate" },
+};
+
+function ConnectedScreen({ view, onNext }: { view: VpsLinkView; onNext: () => void }) {
+  const name = view.server?.name ?? t("vpsLink.yourServer");
   return (
-    <ol aria-label={t("vpsLink.stage.aria")} className="m-0 mb-4 flex list-none items-center gap-1.5 p-0">
-      {STAGES.map(([index, key]) => {
-        const done = index < at, current = index === at;
-        return (
-          <li key={index} aria-current={current ? "step" : undefined} className="flex items-center gap-1.5">
-            {index > 1 && <span aria-hidden="true" className={cn("h-px w-4", done || current ? "bg-ink/30" : "bg-ink/12")} />}
-            <span className={cn("flex h-6 items-center gap-1 rounded-full border px-2 text-[12px] leading-4",
-              current ? "border-ink/30 text-ink" : done ? "border-transparent text-ink/68" : "border-transparent text-ink/40")}>
-              {done ? <Check size={11} strokeWidth={2.5} aria-hidden="true" /> : <span aria-hidden="true" className="tabular-nums">{index}</span>}
-              {t(key)}
-            </span>
-          </li>
-        );
-      })}
-    </ol>
+    <>
+      <Heading>{t("vpsLink.connected.title")}</Heading>
+      <Lead className="top-[calc(50%-36px)]">{t("vpsLink.connected.hint", { name, device: deviceWord() })}</Lead>
+      <Footer>
+        <button type="button" data-primary="" data-autofocus="" className={PILL} onClick={onNext}>{t("vpsLink.signIn.title")}</button>
+      </Footer>
+    </>
   );
-}
-
-/** The screen for one view; `starting` while main makes the command. */
-function StageBody({ at, view, bridge, starting, retry, signedIn, move }: {
-  at: 1 | 2 | 3 | 4; view: VpsLinkView; bridge: VpsLinkBridge; starting: boolean; retry: () => void; signedIn: () => void; move: () => void;
-}) {
-  if (at === 1) return <CommandStage view={view} starting={starting} onRetry={retry} />;
-  if (at === 2) return <InstallStage view={view} onRetry={retry} />;
-  if (at === 3) return <SignInStage bridge={bridge} server={view.server} onDone={signedIn} />;
-  return <MoveStage view={view} bridge={bridge} onMove={move} />;
 }
 
 export function AddVpsFlow({ onClose }: { onClose: () => void }) {
   const { view, bridge, set } = useVpsLink();
+  const { state } = useStore();
   const [starting, setStarting] = useState(false);
+  // nothing but the picture draws until main has said where the link is
+  const [ready, setReady] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [cheered, setCheered] = useState(false);
   const [error, setError] = useState("");
+  const [preview, setPreview] = useState<VpsMovePreview | null>(null);
+  const [previewError, setPreviewError] = useState("");
   const reduced = useMotionReduced();
   const asked = useRef(false);
-  // the screen the sheet opened on draws raw, like the sheet itself
-  const first = useRef<number | null>(null);
+  const root = useRef<HTMLDivElement>(null);
+  const mascot = useRef<SceneHandle>(null);
+  // the screen the window opened on draws raw, like the window itself
+  const first = useRef<Screen | null>(null);
+  // the cheer only plays for a link made while watching; a window reopened on a linked server goes to the sign-in
+  const sawSetup = useRef(false);
+  // a window opened once every AI is signed in skips the sign-in, once
+  const autoSkip = useRef(true);
+  useDialogKeys(root, onClose);
 
   const run = async (work: () => Promise<VpsLinkView>) => {
     setError("");
     try { set(await work()); }
     catch (cause) { setError(message(cause)); }
   };
-  // a fresh sheet asks for a command once; one already under way is picked up where it is
+  // a fresh window asks for a command once; one already under way is picked up where it is
   useEffect(() => {
     if (!bridge || asked.current) return;
     asked.current = true;
     void bridge.state().then((current) => {
       set(current);
+      setReady(true);
       if (current.stage !== "idle") return;
       setStarting(true);
       return run(() => bridge.start()).finally(() => setStarting(false));
-    }, (cause) => setError(message(cause)));
+    }, (cause) => { setError(message(cause)); setReady(true); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bridge]);
 
-  if (!bridge) return null;
   const shown: VpsLinkView = error ? { ...view, error } : view;
-  const at = vpsStage(shown, signedIn);
-  first.current ??= at;
+  const at = bridge ? vpsStage(shown, signedIn) : 1;
+  if (ready && at < 3) sawSetup.current = true;
+  const screen: Screen = at === 1 ? "command" : at === 2 ? "install"
+    : at === 3 ? (sawSetup.current && !cheered ? "connected" : "signin")
+      : movePhase(shown);
+  if (ready) first.current ??= screen;
+
+  // what moves is counted once the move screen is near, and kept for the move itself, so its bots can travel
+  const loadPreview = useCallback(() => {
+    if (!bridge) return;
+    setPreviewError("");
+    void bridge.preview().then(setPreview, (cause) => setPreviewError(message(cause)));
+  }, [bridge]);
+  const wantPreview = at === 4 && !preview;
+  useEffect(() => { if (wantPreview) loadPreview(); }, [wantPreview, loadPreview]);
+
+  // the mascot cheers as the server links and again when everything has moved
+  useEffect(() => {
+    if (screen === "connected" || screen === "moved") mascot.current?.react("cheer");
+  }, [screen]);
+  const copied = useCallback(() => mascot.current?.react("cheer"), []);
+  // each screen starts keyboard focus on its one action, else on the window, so Tab never starts from a screen that left
+  useEffect(() => {
+    if (!ready) return;
+    const box = root.current;
+    (box?.querySelector<HTMLElement>("[data-autofocus]:not([disabled])") ?? box)?.focus({ preventScroll: true });
+  }, [ready, screen]);
+
+  if (!bridge) return null;
   const retry = () => {
     setStarting(true);
     void run(async () => { await bridge.reset(); return bridge.start(); }).finally(() => setStarting(false));
   };
   const move = () => void run(() => bridge.move());
-  // the next screen slides in from the side as the old one goes at once; under reduced motion it only fades
+
+  const bots: SceneBot[] = preview?.bots ?? state.bots?.map((bot) => ({ id: bot.id, name: bot.name })) ?? [];
+  const { arrived } = moveProgress(shown.move, bots.length);
+  const stuck = screen === "install" && (shown.steps.some((step) => step.status === "failed") || Boolean(shown.error));
+  const scene = stuck ? SCENE.paused : SCENE[screen];
+  // the next screen rises a few pixels into place as the old one goes at once; under reduced motion it only fades
   const motion = reduced
     ? { initial: { opacity: 0 }, animate: { opacity: 1, transition: REDUCED } }
-    : { initial: { opacity: 0, x: 16 }, animate: { opacity: 1, x: 0, transition: { duration: 0.22, ease: EASE.out } } };
-  return (
-    <GrokDialog title={t("vpsLink.title")} width={560} onClose={onClose} data-panel-modal="add-vps">
-      <div data-vps-stage={at} className="flex min-h-[340px] flex-col pb-2">
-        <StageDots at={at} />
-        <MotionDiv key={at} {...(at === first.current ? {} : motion)}>
-          <StageBody at={at} view={shown} bridge={bridge} starting={starting} retry={retry} signedIn={() => setSignedIn(true)} move={move} />
-        </MotionDiv>
+    : { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0, transition: { duration: 0.24, ease: EASE.out } } };
+
+  return createPortal(
+    <div ref={root} role="dialog" aria-modal="true" aria-labelledby={TITLE_ID} tabIndex={-1} data-panel-modal="add-vps" data-vps-stage={at} data-vps-screen={screen}
+      className="fixed inset-0 z-[60] overflow-y-auto bg-app text-ink outline-none">
+      <button type="button" onClick={onClose} aria-label={t("common.close")}
+        className="omb-press fixed end-4 top-4 z-10 flex size-8 items-center justify-center rounded-full text-ink-secondary outline-none hover:bg-ink/6 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus [-webkit-app-region:no-drag]">
+        <GrokIcon name="close" size={14} />
+      </button>
+      <div className="relative h-full min-h-[700px] w-full">
+        <Scene ref={mascot} mode={scene.mode} mascot={scene.mascot} bots={bots}
+          arrived={screen === "moved" ? bots.length : arrived} className="absolute left-1/2 top-[calc(50%-214px)] -translate-x-1/2" />
+        {ready && <MotionDiv key={screen} {...(screen === first.current ? {} : motion)} className="pointer-events-none absolute inset-0 [&>*]:pointer-events-auto">
+          {screen === "command" && <CommandScreen view={shown} starting={starting} onRetry={retry} onCopied={copied} />}
+          {screen === "install" && <InstallScreen view={shown} onRetry={retry} />}
+          {screen === "connected" && <ConnectedScreen view={shown} onNext={() => setCheered(true)} />}
+          {screen === "signin" && <SignInScreen bridge={bridge} server={shown.server} autoSkip={first.current === "signin" && autoSkip.current}
+            onDone={() => { autoSkip.current = false; setSignedIn(true); }} />}
+          {at === 4 && <MoveScreen view={shown} preview={preview} previewError={previewError} onReload={loadPreview} bridge={bridge} onMove={move}
+            onBack={() => { setSignedIn(false); setCheered(true); }} />}
+        </MotionDiv>}
       </div>
-    </GrokDialog>
+    </div>,
+    document.body,
   );
 }

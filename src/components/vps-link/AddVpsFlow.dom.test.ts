@@ -87,14 +87,16 @@ describe("Add your VPS", () => {
     await act(async () => { root.render(createElement(AddVpsFlow, { onClose: () => {} })); });
     await settle();
 
-    // 1: a fresh sheet asks main for a line once and shows it
+    // 1: a fresh window asks main for a line once and shows it in one pill, with no stepper
     await stageShown(1);
     expect(fake.bridge.start).toHaveBeenCalledTimes(1);
     expect(document.querySelector("[data-vps-command]")?.textContent).toBe(COMMAND);
     expect(text()).toContain("Paste one line on your server");
     expect(text()).toContain("Open your server's terminal");
+    expect(text()).not.toContain("Sign in");
+    expect(document.querySelector("[data-vps-scene]")?.getAttribute("data-vps-scene")).toBe("waiting");
 
-    // 2: the relay's steps arrive; a failed one says so in words and shows its log tail and the same line again
+    // 2: the steps arrive in the live mirror; a failed one says so in words, shows its log tail and the same line again
     await fake.emit({ ...fake.view(), stage: "installing", steps: steps(1, { at: 1, log: "E: Unable to locate package curl" }) });
     await stageShown(2);
     expect(text()).toContain("Checking your server");
@@ -102,10 +104,17 @@ describe("Add your VPS", () => {
     expect(text()).toContain("Something got stuck");
     expect(document.querySelector("pre")?.textContent).toContain("Unable to locate package curl");
     expect(document.querySelectorAll("[data-vps-command]").length).toBe(1);
+    expect(text()).toContain("Getting the basics didn't work");
+    expect(document.querySelector("[data-vps-scene]")?.getAttribute("data-vps-scene")).toBe("stuck");
+    expect(button("Copy log")).toBeTruthy();
 
-    // 3: linked: sign in to the AI on this Mac, a pasted code goes back through main
+    // 3: linked while watching: a small cheer first, then sign in to the AI on this Mac; a pasted code goes back through main
     await fake.emit({ ...fake.view(), stage: "linked", steps: steps(VPS_STEP_IDS.length), server: SERVER });
     await stageShown(3);
+    expect(text()).toContain("Connected!");
+    expect(document.querySelector("[data-vps-scene]")?.getAttribute("data-vps-scene")).toBe("linked");
+    await click(button("Sign in to your AI"));
+    expect(document.querySelector("[data-vps-screen]")?.getAttribute("data-vps-screen")).toBe("signin");
     expect(text()).toContain("Sign in to your AI");
     expect(text()).toContain("on this Mac");
     expect(text()).toContain("My VPS");
@@ -120,22 +129,26 @@ describe("Add your VPS", () => {
     expect(text()).toContain("Paste the code from the page");
     await click(button("Skip for now"));
 
-    // 4: what moves, then the move's steps, then done
+    // 4: what moves, then the bots travelling with the current step, then done
     await stageShown(4);
     expect(text()).toContain("Move everything to My VPS");
     expect(text()).toContain("Pixel");
-    expect(text()).toContain("14 · 420 messages");
+    expect(text()).toContain("420");
+    expect(text()).toContain("Messages");
     expect(text()).toContain("50 MB");
     await click(button("Move everything here"));
     expect(fake.bridge.move).toHaveBeenCalledTimes(1);
     await settle();
-    expect(text()).toContain("Saving a backup on this Mac first");
+    expect(text()).toContain("Copying your bots");
     expect(text()).toContain("3 of 14 chats");
+    expect(document.querySelector("[data-vps-scene]")?.getAttribute("data-vps-scene")).toBe("moving");
+    expect(document.querySelector("[data-vps-traveler]")?.getAttribute("data-vps-traveler")).toBe("b1");
     await fake.emit({ ...fake.view(), move: { step: "verify", status: "failed", error: "Two chats did not arrive." } });
     expect(text()).toContain("Two chats did not arrive.");
     expect(text()).toContain("Nothing was removed from this Mac");
     await fake.emit({ ...fake.view(), stage: "moved", move: { step: "done", status: "done", kept: true } });
-    expect(text()).toContain("Your bots live on My VPS now");
+    expect(text()).toContain("All moved. Your Mac is free.");
+    expect(text()).toContain("A backup stays on this Mac");
     expect(text()).toContain("this Mac kept its copy too");
     await click(button("Open My VPS"));
     expect(fake.bridge.open).toHaveBeenCalledTimes(1);
@@ -150,7 +163,8 @@ describe("Add your VPS", () => {
     await act(async () => { root.render(createElement(AddVpsFlow, { onClose: () => {} })); });
     await stageShown(2);
     expect(fake.bridge.start).not.toHaveBeenCalled();
-    expect(text()).toContain("4 of 11 done");
+    expect(text()).toContain("4 of 11");
+    expect(text()).toContain("Installing Node");
   });
 });
 
@@ -162,7 +176,6 @@ describe("Settings > Transfer", () => {
     await act(async () => { root.render(createElement(TransferSettings)); });
     await settle();
     expect(text()).toContain("My VPS");
-    expect(text()).toContain("Restore last backup");
     expect(text()).toContain("2 bots, 14 chats, 3 skills, 2 routines · 1.0 MB");
     expect(text()).toContain("Before a move");
     await click(button("Move to this Mac"));

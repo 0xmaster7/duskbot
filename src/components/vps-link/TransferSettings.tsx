@@ -3,9 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import { t } from "@/lib/i18n";
 import { formatBytes, openAddVps, vpsLinkBridge, type VpsBackup, type VpsWhere } from "@/lib/vps-link";
 import { Card, ItemRow, NavRow, NoteRow } from "../ListRows";
-import { deviceWord } from "./parts";
+import { smallButtonCls } from "../ui/GrokDialog";
+import { deviceWord, message } from "./parts";
 
-const message = (error: unknown) => String((error as Error)?.message ?? error).replace(/^Error invoking remote method '[^']*':\s*(?:Error:\s*)?/, "");
 const confirmAction = (text: string) => (window.ogb?.confirm ? window.ogb.confirm(text) : Promise.resolve(window.confirm(text)));
 
 function backupWhen(at: number): string {
@@ -53,7 +53,6 @@ export function TransferSettings() {
     } catch (cause) { if (alive.current) setError(message(cause)); }
     finally { if (alive.current) { setBusy(false); load(); } }
   };
-  const latest = backups?.[0];
   const server = where?.place === "vps" ? where.server : null;
   return (
     <>
@@ -72,15 +71,13 @@ export function TransferSettings() {
           : <NavRow title={t("vpsLink.add")} hint={t("vpsLink.addHint")} onClick={openAddVps} />)}
       </Card>
       <Card label={t("vpsLink.transfer.backupsTitle")} footnote={t("vpsLink.transfer.backupsNote", { device })}>
-        {latest && <NavRow title={t("vpsLink.transfer.restoreLast")} hint={`${backupWhen(latest.at)} · ${backupContents(latest)}`} disabled={busy}
-          onClick={() => void perform(t("vpsLink.transfer.restoreConfirm", { when: backupWhen(latest.at) }), () => bridge.restore(latest.id))} />}
         {backups === null
           ? <NoteRow>{t("vpsLink.transfer.loading")}</NoteRow>
           : backups.length === 0
             ? <NoteRow>{t("vpsLink.transfer.noBackups")}</NoteRow>
             : backups.map((backup) => (
               <ItemRow key={backup.id} title={backupWhen(backup.at)} hint={`${t(`vpsLink.transfer.reason.${backup.reason}`)} · ${backupContents(backup)}`}>
-                <button type="button" className="ui-button" disabled={busy} aria-label={t("vpsLink.transfer.restoreAria", { when: backupWhen(backup.at) })}
+                <button type="button" className={smallButtonCls} disabled={busy} aria-label={t("vpsLink.transfer.restoreAria", { when: backupWhen(backup.at) })}
                   onClick={() => void perform(t("vpsLink.transfer.restoreConfirm", { when: backupWhen(backup.at) }), () => bridge.restore(backup.id))}>
                   {t("vpsLink.transfer.restore")}
                 </button>

@@ -1,20 +1,23 @@
-// stage 3: sign in to Claude and ChatGPT here, and the sign-in goes to the server privately
+// sign in to Claude and ChatGPT here, one click each, and the sign-in goes to the server privately
 import { useEffect, useRef, useState } from "react";
+import { Check, LoaderCircle } from "lucide-react";
+import { ClaudeMark, CodexMark } from "@/components/ProviderIcons";
+import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { VpsEngine, VpsLinkBridge, VpsServer, VpsSignIn } from "@/lib/vps-link";
-import { mdPrimaryCls, mdSecondaryCls, rowButtonCls, textFieldCls } from "../ui/GrokDialog";
-import { deviceWord, ErrorNote, StageHead, StatusMark } from "./parts";
+import { smallButtonCls, textFieldCls } from "../ui/GrokDialog";
+import { centered, deviceWord, ErrorNote, Footer, Heading, Lead, message, PILL, SOFT_PILL } from "./parts";
 
 const POLL_MS = 2000;
-const message = (error: unknown) => String((error as Error)?.message ?? error).replace(/^Error invoking remote method '[^']*':\s*(?:Error:\s*)?/, "");
+const CARD = "flex w-[236px] max-w-full flex-col items-center gap-1.5 rounded-[16px] border border-ink/10 px-4 py-3.5 text-center";
 
-function EngineRow({ engine, bridge, onSignedIn }: { engine: VpsEngine; bridge: VpsLinkBridge; onSignedIn: () => void }) {
+function EngineCard({ engine, bridge, onSignedIn }: { engine: VpsEngine; bridge: VpsLinkBridge; onSignedIn: () => void }) {
   const [flow, setFlow] = useState<VpsSignIn | null>(null);
   const [busy, setBusy] = useState(false);
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const alive = useRef(true);
-  useEffect(() => () => { alive.current = false; }, []);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   // a waiting sign-in is asked about every two seconds until it is not waiting any more
   useEffect(() => {
     if (!flow || flow.phase !== "waiting" || !flow.flowId) return;
@@ -52,64 +55,101 @@ function EngineRow({ engine, bridge, onSignedIn }: { engine: VpsEngine; bridge: 
     finally { if (alive.current) setBusy(false); }
   };
   const signedIn = engine.signedIn || flow?.phase === "succeeded";
-  const waiting = flow?.phase === "waiting";
+  const waiting = flow?.phase === "waiting" && !signedIn;
+  const name = engine.kind === "claude" ? t("vpsLink.signIn.claude") : t("vpsLink.signIn.chatgpt");
+  const logo = engine.kind === "claude" ? <ClaudeMark size={28} /> : <CodexMark size={28} />;
   const codeId = `vps-code-${engine.instanceId}`;
+  const face = (
+    <>
+      <span aria-hidden="true" className="flex size-9 items-center justify-center">{logo}</span>
+      <span className="text-[15px] font-medium leading-5 text-ink">{name}</span>
+    </>
+  );
+
+  if (!signedIn && !waiting) {
+    return (
+      <li data-vps-engine={engine.kind} className="flex w-[236px] max-w-full shrink flex-col items-center gap-2">
+        <button type="button" disabled={busy} onClick={() => void start()}
+          className={cn(CARD, "omb-press cursor-pointer outline-none enabled:hover:bg-ink/[0.035] enabled:active:bg-ink/[0.05] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-default")}>
+          {face}
+          <span className={cn("mt-1 inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-[13px] leading-[18px]", busy ? "text-ink/56" : "bg-ink text-app")}>
+            {busy && <LoaderCircle size={13} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />}
+            {t("vpsLink.signIn.action")}
+          </span>
+        </button>
+        {error && <ErrorNote>{error}</ErrorNote>}
+      </li>
+    );
+  }
   return (
-    <li data-vps-engine={engine.kind} className="flex flex-col">
-      <div className="flex min-h-[38px] items-center gap-2.5 px-2 py-1">
-        <StatusMark status={signedIn ? "done" : waiting ? "running" : "waiting"} />
-        <div className="min-w-0 flex-1">
-          <div className="text-[13px] leading-[18px] text-ink">{engine.kind === "claude" ? t("vpsLink.signIn.claude") : t("vpsLink.signIn.chatgpt")}</div>
-          <div className="text-[12px] leading-4 text-ink/56">{signedIn ? t("vpsLink.signIn.ready") : waiting ? flow?.message ?? t("vpsLink.signIn.finishInBrowser") : engine.name}</div>
-        </div>
-        {!signedIn && !waiting && <button type="button" className={rowButtonCls} disabled={busy} onClick={() => void start()}>{t("vpsLink.signIn.action")}</button>}
-        {waiting && flow?.authorizationUrl && <button type="button" className={rowButtonCls} onClick={() => void bridge.openUrl(flow.authorizationUrl!)}>{t("vpsLink.signIn.again")}</button>}
-      </div>
-      {waiting && flow?.userCode && <div className="mb-1 ml-[34px] mr-2 flex items-center gap-2">
-        <span className="text-[12px] leading-4 text-ink/68">{t("vpsLink.signIn.enterCode")}</span>
-        <code className="select-all rounded-[6px] border border-ink/10 px-1.5 py-0.5 font-mono text-[13px] leading-[18px] tracking-[0.08em] text-ink">{flow.userCode}</code>
-      </div>}
-      {waiting && flow?.needsCode && <form className="mb-1 ml-[34px] mr-2 flex items-end gap-2" onSubmit={(event) => { event.preventDefault(); void sendCode(); }}>
-        <label htmlFor={codeId} className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className="text-[11px] leading-4 text-ink/68">{t("vpsLink.signIn.pasteCode")}</span>
-          <input id={codeId} value={code} disabled={busy} onChange={(event) => setCode(event.target.value)} autoComplete="off" spellCheck={false} className={textFieldCls} />
-        </label>
-        <button type="submit" disabled={busy || !code.trim()} className={mdPrimaryCls}>{t("vpsLink.continue")}</button>
-      </form>}
-      {error && <div className="mb-1 ml-[34px] mr-2"><ErrorNote onRetry={() => void start()}>{error}</ErrorNote></div>}
+    <li data-vps-engine={engine.kind} data-signed-in={signedIn ? "" : undefined} className={CARD}>
+      {face}
+      {signedIn
+        ? <span role="status" className="vps-land mt-1 inline-flex h-7 items-center gap-1.5 text-[13px] leading-[18px] text-success">
+            <Check size={14} strokeWidth={2.5} aria-hidden="true" />{t("vpsLink.signIn.ready")}
+          </span>
+        : <>
+            <span role="status" className="inline-flex items-center gap-1.5 text-[13px] leading-[18px] text-ink/68">
+              <LoaderCircle size={13} className="shrink-0 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+              <span className="min-w-0">{flow?.message ?? t("vpsLink.signIn.finishInBrowser")}</span>
+            </span>
+            {flow?.userCode && <span className="text-[12px] leading-4 text-ink/56">{t("vpsLink.signIn.enterCode")}</span>}
+            <span className="flex items-center gap-1.5">
+              {flow?.userCode && <code className="select-all whitespace-nowrap rounded-[8px] border border-ink/10 px-2 py-0.5 font-mono text-[14px] leading-5 tracking-[0.08em] text-ink">{flow.userCode}</code>}
+              {flow?.authorizationUrl && <button type="button" className={smallButtonCls} onClick={() => void bridge.openUrl(flow.authorizationUrl!)}>{t("vpsLink.signIn.again")}</button>}
+            </span>
+            {flow?.needsCode && <form className="flex w-full flex-col gap-1 text-start" onSubmit={(event) => { event.preventDefault(); void sendCode(); }}>
+              <label htmlFor={codeId} className="text-[12px] leading-4 text-ink/68">{t("vpsLink.signIn.pasteCode")}</label>
+              <span className="flex gap-1.5">
+                <input id={codeId} value={code} disabled={busy} onChange={(event) => setCode(event.target.value)} autoComplete="off" spellCheck={false} className={textFieldCls} />
+                <button type="submit" disabled={busy || !code.trim()} className="ui-button ui-button-pill ui-button-primary shrink-0 px-3 text-[13px]">{t("vpsLink.continue")}</button>
+              </span>
+            </form>}
+            {error && <ErrorNote>{error}</ErrorNote>}
+          </>}
     </li>
   );
 }
 
-export function SignInStage({ bridge, server, onDone }: { bridge: VpsLinkBridge; server: VpsServer | null; onDone: () => void }) {
+export function SignInScreen({ bridge, server, autoSkip, onDone }: { bridge: VpsLinkBridge; server: VpsServer | null; autoSkip: boolean; onDone: () => void }) {
   const [engines, setEngines] = useState<VpsEngine[] | null>(null);
   const [error, setError] = useState("");
   const [signed, setSigned] = useState<Set<string>>(new Set());
   const load = () => {
     setError("");
-    void bridge.engines().then(setEngines, (cause) => setError(message(cause)));
+    void bridge.engines().then((list) => {
+      setEngines(list);
+      // a sheet reopened after every AI was signed in goes straight on to the move
+      if (autoSkip && list.length > 0 && list.every((engine) => engine.signedIn)) onDone();
+    }, (cause) => setError(message(cause)));
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(load, [bridge]);
   const name = server?.name ?? t("vpsLink.yourServer");
   const anyReady = Boolean(engines?.some((engine) => engine.signedIn || signed.has(engine.instanceId)));
   return (
-    <div className="flex flex-col gap-3">
-      <StageHead mascot="excited" title={t("vpsLink.signIn.title")} hint={t("vpsLink.signIn.hint", { name, device: deviceWord() })} />
-      {error
-        ? <ErrorNote onRetry={load}>{error}</ErrorNote>
-        : <ul aria-label={t("vpsLink.signIn.listAria")} className="m-0 flex list-none flex-col p-0">
-            {engines === null
-              ? <li className="px-2 py-2 text-[13px] leading-[18px] text-ink/56">{t("vpsLink.signIn.loading")}</li>
-              : engines.length === 0
-                ? <li className="px-2 py-2 text-[13px] leading-[18px] text-ink/56">{t("vpsLink.signIn.none")}</li>
-                : engines.map((engine) => <EngineRow key={engine.instanceId} engine={engine} bridge={bridge}
+    <>
+      <Heading>{t("vpsLink.signIn.title")}</Heading>
+      <Lead className="top-[calc(50%-58px)]">{t("vpsLink.signIn.hint", { name, device: deviceWord() })}</Lead>
+      <div className={cn(centered, "top-[calc(50%-6px)] flex justify-center")}>
+        {error
+          ? <div className="flex flex-col items-center gap-3"><ErrorNote>{error}</ErrorNote><button type="button" className={SOFT_PILL} onClick={load}>{t("vpsLink.tryAgain")}</button></div>
+          : engines === null
+            ? <ul aria-busy="true" aria-label={t("vpsLink.signIn.listAria")} className="m-0 flex list-none gap-3 p-0">
+                {[0, 1].map((slot) => <li key={slot} className={cn(CARD, "h-[124px]")}><span className="size-10 rounded-full bg-ink/6" /><span className="h-3 w-20 rounded-full bg-ink/6" /></li>)}
+                <li className="sr-only">{t("vpsLink.signIn.loading")}</li>
+              </ul>
+            : engines.length === 0
+              ? <p className="m-0 text-[13px] leading-[18px] text-ink/56">{t("vpsLink.signIn.none")}</p>
+              : <ul aria-label={t("vpsLink.signIn.listAria")} className="m-0 flex list-none items-start justify-center gap-3 p-0">
+                  {engines.map((engine) => <EngineCard key={engine.instanceId} engine={engine} bridge={bridge}
                     onSignedIn={() => setSigned((current) => new Set(current).add(engine.instanceId))} />)}
-          </ul>}
-      <div className="mt-1 flex items-center justify-end gap-2">
-        <button type="button" className={mdSecondaryCls} onClick={onDone}>{t("vpsLink.signIn.skip")}</button>
-        <button type="button" className={mdPrimaryCls} disabled={!anyReady} onClick={onDone}>{t("vpsLink.continue")}</button>
+                </ul>}
       </div>
-    </div>
+      <Footer>
+        <button type="button" data-primary="" className={PILL} disabled={!anyReady} onClick={onDone}>{t("vpsLink.continue")}</button>
+        <button type="button" className={SOFT_PILL} onClick={onDone}>{t("vpsLink.signIn.skip")}</button>
+      </Footer>
+    </>
   );
 }

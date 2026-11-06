@@ -1,116 +1,156 @@
-// stage 4: what moves, then backup, copy, check, switch and clear, then the server is home
-import { useEffect, useState } from "react";
-import { BotAvatar, MausAvatar } from "@/components/Avatar";
-import { t } from "@/lib/i18n";
+// the move: what goes, the bots travelling to the server one by one, then a free Mac with its backup kept
+import { Check, LoaderCircle } from "lucide-react";
+import { cn } from "@/lib/cn";
+import { activeLocale, t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
-import { formatBytes, type VpsLinkBridge, type VpsLinkView, type VpsMovePreview, type VpsMoveStep } from "@/lib/vps-link";
-import { useStore } from "@/state/store";
-import { mdPrimaryCls } from "../ui/GrokDialog";
-import { deviceWord, ErrorNote, StageHead, StepRow, type RowStatus } from "./parts";
+import { formatBytes, type VpsLinkBridge, type VpsLinkMove, type VpsLinkView, type VpsMovePreview } from "@/lib/vps-link";
+import { BotFace } from "./Scene";
+import { centered, deviceWord, ErrorNote, Footer, Heading, Lead, PILL, ProgressBar, SOFT_PILL } from "./parts";
 
-// the switch to the server happens as the check finishes, so it has no row of its own
-const MOVE_STEPS: ReadonlyArray<Exclude<VpsMoveStep, "done">> = ["backup", "copy", "verify", "empty"];
-const MOVE_TITLE: Record<Exclude<VpsMoveStep, "done">, LocaleKey> = {
-  backup: "vpsLink.move.step.backup", copy: "vpsLink.move.step.copy", verify: "vpsLink.move.step.verify", empty: "vpsLink.move.step.empty",
-};
 const SHOWN_BOTS = 6;
-const message = (error: unknown) => String((error as Error)?.message ?? error).replace(/^Error invoking remote method '[^']*':\s*(?:Error:\s*)?/, "");
 
-function stepStatus(step: Exclude<VpsMoveStep, "done">, move: NonNullable<VpsLinkView["move"]>): RowStatus {
-  if (move.step === "done") return "done";
-  const at = MOVE_STEPS.indexOf(move.step), index = MOVE_STEPS.indexOf(step);
-  if (index < at) return "done";
-  if (index > at) return "waiting";
-  return move.status;
+export type MovePhase = "preview" | "moving" | "paused" | "moved";
+export function movePhase(view: VpsLinkView): MovePhase {
+  if (view.stage === "moved" || view.move?.step === "done") return "moved";
+  if (view.move) return view.move.status === "failed" ? "paused" : "moving";
+  return "preview";
 }
 
-function Preview({ preview, name }: { preview: VpsMovePreview; name: string }) {
-  const { state } = useStore();
+/** How far the move is, and how many bots are on the server already: the backup first, the chats as they copy (each
+ * bot lands as its share of them arrives), then the check and the clear. */
+export function moveProgress(move: VpsLinkMove | null, bots: number): { value: number; arrived: number } {
+  if (!move) return { value: 0, arrived: 0 };
+  if (move.step === "done") return { value: 1, arrived: bots };
+  if (move.step === "backup") return { value: move.status === "done" ? 0.1 : 0.05, arrived: 0 };
+  if (move.step === "copy") {
+    const share = move.chats && move.chats.total > 0 ? move.chats.done / move.chats.total : 0.4;
+    return { value: 0.1 + 0.7 * share, arrived: Math.min(bots, Math.floor(share * bots)) };
+  }
+  return { value: move.step === "verify" ? 0.86 : 0.95, arrived: bots };
+}
+
+const STEP_WORD: Record<"backup" | "copy" | "verify" | "empty", LocaleKey> = {
+  backup: "vpsLink.move.step.backup", copy: "vpsLink.move.step.copy", verify: "vpsLink.move.step.verify", empty: "vpsLink.move.step.empty",
+};
+
+function Bots({ preview, arrived, moving }: { preview: VpsMovePreview; arrived: number | null; moving: boolean }) {
   const shown = preview.bots.slice(0, SHOWN_BOTS), more = preview.bots.length - shown.length;
-  const counts: Array<[LocaleKey, string | null]> = [
-    ["vpsLink.move.count.chats", preview.messages !== null ? t("vpsLink.move.chatsAndMessages", { chats: preview.chats, messages: preview.messages }) : String(preview.chats)],
-    ["vpsLink.move.count.skills", String(preview.skills)],
-    ["vpsLink.move.count.memories", preview.memories === null ? null : String(preview.memories)],
-    ["vpsLink.move.count.routines", String(preview.routines)],
-    ["vpsLink.move.count.apps", preview.apps === null ? null : String(preview.apps)],
-    ["vpsLink.move.count.files", preview.bytes === null ? null : formatBytes(preview.bytes)],
-  ];
+  if (preview.bots.length === 0) return <p className="m-0 text-center text-[13px] leading-[18px] text-ink/56">{t("vpsLink.move.noBots")}</p>;
   return (
-    <div className="flex flex-col gap-3">
-      <ul aria-label={t("vpsLink.move.botsAria")} className="m-0 flex list-none flex-wrap gap-x-4 gap-y-2 p-0 px-2">
-        {shown.map((bot) => {
-          const known = state.bots.find((entry) => entry.id === bot.id);
-          return (
-            <li key={bot.id} className="flex items-center gap-2">
-              {known ? <BotAvatar bot={known} size={24} /> : <MausAvatar color="green" size={24} animated={false} />}
-              <span className="max-w-[140px] truncate text-[13px] leading-[18px] text-ink">{bot.name}</span>
-            </li>
-          );
-        })}
-        {more > 0 && <li className="self-center text-[13px] leading-[18px] text-ink/56">{t("vpsLink.move.moreBots", { count: more })}</li>}
-        {preview.bots.length === 0 && <li className="text-[13px] leading-[18px] text-ink/56">{t("vpsLink.move.noBots")}</li>}
-      </ul>
-      <dl className="m-0 grid grid-cols-2 gap-x-4 gap-y-1 px-2">
-        {counts.filter(([, value]) => value !== null).map(([key, value]) => (
-          <div key={key} className="flex items-baseline justify-between gap-2 border-b border-ink/6 py-1">
-            <dt className="text-[13px] leading-[18px] text-ink/68">{t(key)}</dt>
-            <dd className="m-0 font-mono text-[12px] leading-[18px] tabular-nums text-ink">{value}</dd>
-          </div>
-        ))}
-      </dl>
-      <p className="m-0 px-2 text-[12px] leading-4 text-ink/56 text-pretty">{t("vpsLink.move.safety", { name, device: deviceWord() })}</p>
-    </div>
+    <ul aria-label={t("vpsLink.move.botsAria")} className="m-0 flex list-none flex-wrap justify-center gap-x-5 gap-y-3 p-0">
+      {shown.map((bot, index) => {
+        const status = arrived === null ? null : index < arrived ? "moved" : moving && index === arrived ? "moving" : "waiting";
+        return (
+          <li key={bot.id} data-vps-bot={status ?? ""} className="flex w-[64px] flex-col items-center gap-1.5">
+            <span className={cn("flex transition-opacity duration-200", status === "waiting" && "opacity-45")}><BotFace bot={bot} index={index} size={36} /></span>
+            <span className="w-full truncate text-center text-[12px] leading-4 text-ink">{bot.name}</span>
+            {status && <span className={cn("inline-flex items-center gap-1 text-[11px] leading-[14px]", status === "moved" ? "text-success" : "text-ink/56")}>
+              {status === "moved" ? <Check size={11} strokeWidth={2.5} aria-hidden="true" /> : status === "moving" ? <LoaderCircle size={11} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> : null}
+              {t(status === "moved" ? "vpsLink.move.botMoved" : status === "moving" ? "vpsLink.move.botMoving" : "vpsLink.move.botWaiting")}
+            </span>}
+          </li>
+        );
+      })}
+      {more > 0 && <li className="flex h-9 items-center text-[13px] leading-[18px] text-ink/56">{t("vpsLink.move.moreBots", { count: more })}</li>}
+    </ul>
   );
 }
 
-export function MoveStage({ view, bridge, onMove }: { view: VpsLinkView; bridge: VpsLinkBridge; onMove: () => void }) {
-  const [preview, setPreview] = useState<VpsMovePreview | null>(null);
-  const [error, setError] = useState("");
-  const name = view.server?.name ?? t("vpsLink.yourServer");
-  const move = view.move;
-  const load = () => { setError(""); void bridge.preview().then(setPreview, (cause) => setError(message(cause))); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (!move) load(); }, [bridge, Boolean(move)]);
-
-  if (view.stage === "moved" || move?.step === "done") {
-    return (
-      <div role="status" className="flex flex-col items-center gap-3 py-4 text-center">
-        <MausAvatar color="green" state="celebrate" size={64} />
-        <h3 className="m-0 text-[15px] font-medium leading-5 text-ink">{t("vpsLink.move.doneTitle", { name })}</h3>
-        <p className="m-0 max-w-[340px] text-[13px] leading-[18px] text-ink/68 text-pretty">{t("vpsLink.move.doneHint", { device: deviceWord() })}</p>
-        {move?.kept && <p className="m-0 max-w-[340px] text-[12px] leading-4 text-warning text-pretty">{t("vpsLink.move.kept", { device: deviceWord() })}</p>}
-        <button type="button" data-autofocus="" className={mdPrimaryCls} onClick={() => void bridge.open()}>{t("vpsLink.move.open", { name })}</button>
-      </div>
-    );
-  }
-  if (move) {
-    const failed = move.status === "failed";
-    return (
-      <div className="flex flex-col gap-3">
-        <StageHead mascot={failed ? "surprised" : "working"} title={t("vpsLink.move.movingTitle", { name })} hint={failed ? t("vpsLink.move.nothingRemoved", { device: deviceWord() }) : t("vpsLink.move.movingHint")} />
-        <ol aria-label={t("vpsLink.move.listAria")} className="m-0 flex list-none flex-col p-0">
-          {MOVE_STEPS.map((step) => {
-            const status = stepStatus(step, move);
-            const detail = step === "copy" && status === "running" && move.chats
-              ? t("vpsLink.move.chatsProgress", { done: move.chats.done, total: move.chats.total })
-              : status === "running" && move.waitingFor ? t("vpsLink.move.waitingFor", { name: move.waitingFor }) : undefined;
-            return <StepRow key={step} status={status} title={t(MOVE_TITLE[step], { name, device: deviceWord() })} detail={detail} />;
-          })}
-        </ol>
-        {failed && <ErrorNote onRetry={onMove}>{move.error ?? view.error ?? t("vpsLink.move.failed")}</ErrorNote>}
-      </div>
-    );
-  }
+function Counts({ preview }: { preview: VpsMovePreview }) {
+  const count = (value: number) => value.toLocaleString(activeLocale());
+  const counts: Array<[LocaleKey, string | null]> = [
+    ["vpsLink.move.count.chats", count(preview.chats)],
+    ["vpsLink.move.count.messages", preview.messages === null ? null : count(preview.messages)],
+    ["vpsLink.move.count.skills", count(preview.skills)],
+    ["vpsLink.move.count.memories", preview.memories === null ? null : count(preview.memories)],
+    ["vpsLink.move.count.routines", count(preview.routines)],
+    ["vpsLink.move.count.apps", preview.apps === null ? null : count(preview.apps)],
+    ["vpsLink.move.count.files", preview.bytes === null ? null : formatBytes(preview.bytes)],
+  ];
   return (
-    <div className="flex flex-col gap-4">
-      <StageHead mascot="idle" title={t("vpsLink.move.title", { name })} hint={t("vpsLink.move.hint", { device: deviceWord() })} />
-      {error ? <ErrorNote onRetry={load}>{error}</ErrorNote>
-        : preview ? <Preview preview={preview} name={name} />
-          : <p className="m-0 px-2 text-[13px] leading-[18px] text-ink/56">{t("vpsLink.move.counting")}</p>}
-      {view.error && <ErrorNote onRetry={onMove}>{view.error}</ErrorNote>}
-      <div className="flex justify-end">
-        <button type="button" className={mdPrimaryCls} disabled={!preview} onClick={onMove}>{t("vpsLink.move.action")}</button>
+    <dl aria-label={t("vpsLink.move.statsAria")} className="m-0 flex w-[640px] max-w-[calc(100vw-32px)] shrink-0 flex-wrap justify-center gap-x-6 gap-y-2">
+      {counts.filter(([, value]) => value !== null).map(([key, value]) => (
+        <div key={key} className="flex flex-col items-center">
+          <dd className="m-0 text-[17px] font-medium leading-[22px] tabular-nums text-ink">{value}</dd>
+          <dt className="order-last text-[12px] leading-4 text-ink/56">{t(key)}</dt>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+export function MoveScreen({ view, preview, previewError, onReload, bridge, onMove, onBack }: {
+  view: VpsLinkView; preview: VpsMovePreview | null; previewError: string; onReload: () => void; bridge: VpsLinkBridge; onMove: () => void; onBack: () => void;
+}) {
+  const name = view.server?.name ?? t("vpsLink.yourServer");
+  const device = deviceWord();
+  const phase = movePhase(view);
+  const move = view.move;
+
+  if (phase === "moved") {
+    return (
+      <>
+        <Heading>{t("vpsLink.move.allMoved", { device })}</Heading>
+        <div role="status" className={cn(centered, "top-[calc(50%-36px)] flex flex-col items-center gap-2 text-center")}>
+          <p className="m-0 text-[14px] leading-5 text-ink/68 text-pretty">{t("vpsLink.move.allMovedHint", { name, device })}</p>
+          {move?.kept && <p className="m-0 text-[13px] leading-[18px] text-warning text-pretty">{t("vpsLink.move.kept", { device })}</p>}
+        </div>
+        {preview && <div className={cn(centered, "top-[calc(50%+40px)] flex justify-center")}><Counts preview={preview} /></div>}
+        <Footer note={<p className="m-0 text-[12px] leading-4 text-ink/56 text-pretty">{t("vpsLink.move.backupNote", { device })}</p>}>
+          <button type="button" data-primary="" data-autofocus="" className={PILL} onClick={() => void bridge.open()}>{t("vpsLink.move.open", { name })}</button>
+        </Footer>
+      </>
+    );
+  }
+
+  if (move) {
+    const paused = phase === "paused";
+    const { value, arrived } = moveProgress(move, preview?.bots.length ?? 0);
+    const step = move.step === "done" ? "empty" : move.step;
+    const detail = move.step === "copy" && move.chats ? t("vpsLink.move.chatsProgress", { done: move.chats.done, total: move.chats.total })
+      : move.waitingFor ? t("vpsLink.move.waitingFor", { name: move.waitingFor }) : null;
+    return (
+      <>
+        <Heading>{paused ? t("vpsLink.move.pausedTitle") : t("vpsLink.move.movingTitle", { name })}</Heading>
+        <div className={cn(centered, "top-[calc(50%-40px)] flex flex-col gap-2.5")}>
+          <div className="flex items-baseline gap-3">
+            <p role="status" className={cn("m-0 min-w-0 flex-1 truncate text-[15px] leading-5", paused ? "text-danger" : "text-ink")}>{t(STEP_WORD[step], { name, device })}</p>
+            {detail && <span className="shrink-0 text-[12px] leading-4 tabular-nums text-ink/56">{detail}</span>}
+          </div>
+          <ProgressBar value={value} label={t("vpsLink.move.progressAria")} tone={paused ? "danger" : undefined} />
+        </div>
+        <div className={cn(centered, "top-[calc(50%+24px)]")}>
+          {preview && <Bots preview={preview} arrived={arrived} moving={!paused} />}
+        </div>
+        <Footer>
+          {paused
+            ? <>
+                <ErrorNote>{move.error ?? view.error ?? t("vpsLink.move.failed")}</ErrorNote>
+                <p className="m-0 text-[13px] leading-[18px] text-ink/68">{t("vpsLink.move.nothingRemoved", { device })}</p>
+                <button type="button" data-primary="" className={PILL} onClick={onMove}>{t("vpsLink.tryAgain")}</button>
+              </>
+            : <p className="m-0 text-[13px] leading-[18px] text-ink/56">{t("vpsLink.move.movingHint")}</p>}
+        </Footer>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Heading>{t("vpsLink.move.title", { name })}</Heading>
+      <Lead className="top-[calc(50%-52px)]">{t("vpsLink.move.hint", { device })}</Lead>
+      <div className={cn(centered, "top-[calc(50%-12px)] flex flex-col items-center gap-6")}>
+        {previewError
+          ? <><ErrorNote>{previewError}</ErrorNote><button type="button" className={SOFT_PILL} onClick={onReload}>{t("vpsLink.tryAgain")}</button></>
+          : preview
+            ? <><Bots preview={preview} arrived={null} moving={false} /><Counts preview={preview} /></>
+            : <p role="status" className="m-0 text-[13px] leading-[18px] text-ink/56">{t("vpsLink.move.counting")}</p>}
       </div>
-    </div>
+      <Footer note={<p className="m-0 max-w-[320px] text-[12px] leading-4 text-ink/56 text-pretty">{t("vpsLink.move.safety", { name, device })}</p>}>
+        {view.error && <ErrorNote>{view.error}</ErrorNote>}
+        <button type="button" data-primary="" className={PILL} disabled={!preview} onClick={onMove}>{t("vpsLink.move.action")}</button>
+        <button type="button" className={SOFT_PILL} onClick={onBack}>{t("onboarding.step.back")}</button>
+      </Footer>
+    </>
   );
 }
