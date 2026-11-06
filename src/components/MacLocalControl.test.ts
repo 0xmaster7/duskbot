@@ -22,7 +22,7 @@ describe("Mac local computer status", () => {
     expect(markup).toContain("Open Accessibility Settings");
     expect(markup).toContain("Relaunch MausBot");
     expect(markup).not.toContain("Open Screen Recording Settings");
-    expect(markup).toContain("Driver detail");
+    expect(markup, "the driver detail shows inline, not folded").not.toContain("<details");
   });
 
   it("does not turn a missing reason into a claimed permission diagnosis", () => {
