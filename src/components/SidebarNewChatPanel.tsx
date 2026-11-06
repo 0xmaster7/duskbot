@@ -132,7 +132,7 @@ export function SidebarNewChatPanel({
       onKeyDown={onKeyDown}
       style={{ ...style, left: place.left, width: place.width }}
       className={cn(
-        "fixed top-0 z-40 flex animate-panel-in flex-col",
+        "fixed top-0 z-40 flex flex-col",
         !place.floating && "bottom-0 border-e border-hairline/40 bg-app shadow-2xl shadow-black/40",
       )}
     >

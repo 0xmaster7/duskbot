@@ -1,13 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
-
-/** The longest overlay exit in styles/overlays.css: a dialog's 150ms (a menu is gone after 50ms). */
-export const MENU_MOTION_MS = 150;
-
-function reducedMotion(): boolean {
-  if (typeof document === "undefined") return false;
-  if (document.documentElement.dataset.reducedMotion === "true") return true;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
+import { useRef } from "react";
 
 export interface MenuMotion {
   shown: boolean;
@@ -16,32 +7,10 @@ export interface MenuMotion {
   exitProps: { inert?: boolean; "aria-hidden"?: boolean };
 }
 
+/** Grok's menus, popovers and listboxes open and close raw: there on the render they open, gone on the render they
+ * close. `raw-popup` only marks the surface for overlays.css (a menu draws no focus ring of its own). */
 export function useMenuMotion(open: boolean): MenuMotion {
-  const [mounted, setMounted] = useState(open);
-
-  useLayoutEffect(() => {
-    if (open) {
-      setMounted(true);
-      return;
-    }
-    if (!mounted) return;
-    if (reducedMotion()) {
-      setMounted(false);
-      return;
-    }
-    const timer = window.setTimeout(() => setMounted(false), MENU_MOTION_MS);
-    return () => window.clearTimeout(timer);
-  }, [open, mounted]);
-
-  // Read `open` itself, not only the trailing state, so the menu shows on the render its trigger flips and goes inert
-  // on the render it closes.
-  const closing = !open && mounted;
-  return {
-    shown: open || mounted,
-    closing,
-    className: closing ? "animate-pop-out pointer-events-none" : "animate-pop-in",
-    exitProps: closing ? { inert: true, "aria-hidden": true } : {},
-  };
+  return { shown: open, closing: false, className: "raw-popup", exitProps: {} };
 }
 
 export function useHeldMenuMotion<T>(value: T | null): MenuMotion & { value: T | null } {

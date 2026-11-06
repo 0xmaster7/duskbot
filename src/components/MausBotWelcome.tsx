@@ -20,8 +20,6 @@ import { usePrefersReducedMotion } from "./mascot-clock";
 
 const LOOK = ["name", "color", "mascotBody", "avatarUrl", "avatarCrop", "avatarZoom", "avatarFocusX", "avatarFocusY"] as const;
 export type WelcomeDraft = Pick<Bot, (typeof LOOK)[number]>;
-const RECEDE_MS = 240;
-const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 export const welcomeName = (name: string): string => name.trim().slice(0, BOT_PROFILE_LIMITS.name) || DEFAULT_BOT_NAME;
 
@@ -89,7 +87,6 @@ export function MausBotWelcomeCard({ bot, onClose }: { bot: Bot; onClose: () => 
   const [draft, setDraft] = useState<WelcomeDraft>(() => draftOf(bot));
   const [editing, setEditing] = useState(false);
   const [leaving, setLeaving] = useState(false);
-  const overlayRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLSpanElement>(null);
   const pictureRef = useRef<HTMLButtonElement>(null);
@@ -102,12 +99,8 @@ export function MausBotWelcomeCard({ bot, onClose }: { bot: Bot; onClose: () => 
   useEffect(() => { dialogRef.current?.focus(); }, []);
   useEffect(() => { if (editing) nameRef.current?.focus(); }, [editing]);
 
-  const recede = () => {
-    const motion = reduced ? [{ opacity: 1 }, { opacity: 0 }] : [{ opacity: 1, transform: "scale(1)" }, { opacity: 0, transform: "scale(0.97)" }];
-    const fade = dialogRef.current?.animate(motion, { duration: reduced ? 150 : RECEDE_MS, easing: EASE, fill: "forwards" });
-    overlayRef.current?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: reduced ? 150 : RECEDE_MS, easing: "linear", fill: "forwards" });
-    if (fade) { fade.onfinish = onClose; fade.oncancel = onClose; } else onClose();
-  };
+  // the card goes raw, like grok's dialogs; only the mascot's flight to its row moves
+  const recede = () => onClose();
 
   const choose = (add: boolean) => {
     if (leaving) return;
@@ -137,7 +130,7 @@ export function MausBotWelcomeCard({ bot, onClose }: { bot: Bot; onClose: () => 
   };
 
   return (
-    <div ref={overlayRef} className={cn("fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-6 pb-6 pt-[min(6vh,48px)]", advanced ? "bg-black/55" : "ui-scrim", leaving && "pointer-events-none")} data-mausbot-welcome="">
+    <div className={cn("fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-6 pb-6 pt-[min(6vh,48px)]", advanced ? "bg-black/55" : "ui-scrim", leaving && "pointer-events-none")} data-mausbot-welcome="">
       <div
         ref={dialogRef}
         role="dialog"
@@ -150,7 +143,7 @@ export function MausBotWelcomeCard({ bot, onClose }: { bot: Bot; onClose: () => 
           event.preventDefault();
           if (editing && panelRef.current?.contains(event.target as Node)) { setEditing(false); pictureRef.current?.focus(); } else dismiss();
         }}
-        className={cn("animate-pop-in w-full max-w-[460px] rounded-2xl px-6 pb-5 pt-5", advanced ? "border border-hairline/50 bg-panel shadow-2xl" : "ui-modal border-0")}
+        className={cn("w-full max-w-[460px] rounded-2xl px-6 pb-5 pt-5", advanced ? "border border-hairline/50 bg-panel shadow-2xl" : "ui-modal border-0")}
       >
         <div className="flex flex-col items-center text-center">
           <button

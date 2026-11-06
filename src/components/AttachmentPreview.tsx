@@ -622,7 +622,7 @@ export function AttachmentPreviewDialog({
             onPointerUp={() => { drag.current = null; setDragging(false); }}
             style={{
               transform: `translate(${zoom.x}px, ${zoom.y}px) scale(${zoom.scale})`,
-              transition: dragging ? "none" : "transform 200ms cubic-bezier(0.23, 1, 0.32, 1), opacity 160ms cubic-bezier(0.22, 1, 0.36, 1)",
+              transition: dragging ? "none" : "transform 200ms cubic-bezier(0.23, 1, 0.32, 1)",
             }}
             className={cn(
               "block max-h-full max-w-full rounded-[8px] object-contain select-none motion-reduce:!transition-none",

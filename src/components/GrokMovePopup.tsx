@@ -46,7 +46,7 @@ export function GrokMovePopup({ onDone }: { onDone: (action: GrokMovePopupAction
   return (
     <div className="ui-scrim fixed inset-0 z-50 flex items-center justify-center p-4 motion-reduce:animate-none">
       <div role="dialog" aria-modal="true" aria-labelledby={TITLE} aria-describedby={BODY} data-grok-move-popup=""
-        className="ui-modal animate-pop-in relative flex w-[min(380px,calc(100vw-32px))] flex-col items-center border-0 px-6 pb-3 pt-8 text-center text-ink motion-reduce:animate-none">
+        className="ui-modal relative flex w-[min(380px,calc(100vw-32px))] flex-col items-center border-0 px-6 pb-3 pt-8 text-center text-ink">
         <div aria-hidden="true" className="flex items-center gap-5">
           <GrokBotMark size={44} />
           <MausAvatar color="chrome" size={52} state="idle" animated={false} />

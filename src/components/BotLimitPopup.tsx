@@ -71,7 +71,7 @@ function BotLimitDialog({ onClose }: { onClose: () => void }) {
     {!confirming && (
       <div className={cn("ui-scrim fixed inset-0 flex items-center justify-center p-4 motion-reduce:animate-none", LAYER)}>
         <div role="dialog" aria-modal="true" aria-labelledby={TITLE} aria-describedby={settled ? undefined : BODY} data-bot-limit-popup=""
-          className="ui-modal animate-pop-in relative flex w-[min(380px,calc(100vw-32px))] flex-col items-center border-0 px-6 pb-3 pt-8 text-center text-ink motion-reduce:animate-none">
+          className="ui-modal relative flex w-[min(380px,calc(100vw-32px))] flex-col items-center border-0 px-6 pb-3 pt-8 text-center text-ink">
           <div aria-hidden="true"><MausAvatar color="chrome" size={52} state="idle" animated={false} /></div>
           <h2 id={TITLE} className="mt-5 text-[19px] font-semibold leading-6 tracking-[-0.012em] [text-wrap:balance]">{title}</h2>
           {!settled && <p id={BODY} className="mt-1.5 text-[14px] leading-5 text-ink-secondary [text-wrap:pretty]">{t(inApp ? "botLimit.body" : "botLimit.bodyElsewhere")}</p>}

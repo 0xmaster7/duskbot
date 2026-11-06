@@ -112,7 +112,7 @@ export const TOOLTIP = { openDelay: 300, closeDelay: 100, exit: GROK_DURATION.fa
 /** onboarding step change: the old step fades out over 100ms ease-in while the new one fades in over 200ms ease-out */
 export const STEP = { out: { duration: 0.1, ease: "easeIn" }, in: { duration: 0.2, ease: "easeOut" } } as const;
 
-/** surfaces Grok swaps with no motion at all: switching chats, settings panes, the command palette and its results */
+/** surfaces Grok swaps with no motion at all: switching chats, the command palette, every menu, popover and dialog */
 export const INSTANT = { duration: 0 } as const;
 
 // bencho.dev's small token set (ref/BENCHO-MOTION.md): grok's look, bencho's feel. springs near critical damping for
@@ -148,13 +148,6 @@ export const DRAWER = {
   closeVelocity: 500,
 } as const;
 
-/** the command palette: up from 6px on the panel spring, opacity on the 160ms fade (bencho's panel-morph) */
-export const PALETTE = {
-  initial: { opacity: 0, y: -6 },
-  animate: { opacity: 1, y: 0 },
-  transition: withFade(BENCHO.spring.panel),
-} as const;
-
 /** bencho's settle spring: a message landing, a container mounting; about 0.2% overshoot */
 export const SPRING_SETTLE = { ...BENCHO.spring.settle, mass: 1 } as const;
 
@@ -170,25 +163,11 @@ export const SHEET = {
   exit: { opacity: 0, y: 8, scale: 0.98, transition: { duration: BENCHO.dur.fast, ease: BENCHO.ease.out } },
 } as const;
 
-/** the dimmed backdrop behind a sheet */
-export const SCRIM = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1, transition: { duration: 0.18, ease: BENCHO.ease.out } },
-  exit: { opacity: 0, transition: { duration: 0.18, ease: BENCHO.ease.out } },
-} as const;
-
 /** content swapped in place (a settings pane, a panel tab): bencho's step-swap entrance, 6px up over 220ms; the old
  * content goes at once so a switch is never waited on */
 export const SWAP = {
   initial: { opacity: 0, y: 6 },
   animate: { opacity: 1, y: 0, transition: { duration: BENCHO.dur.base, ease: BENCHO.ease.out } },
-} as const;
-
-/** the phone's full-screen Settings: up from the bottom edge on the panel spring, down quicker */
-export const PHONE_SHEET = {
-  initial: { y: "100%" },
-  animate: { y: 0, transition: BENCHO.spring.panel },
-  exit: { y: "100%", transition: { duration: BENCHO.dur.base, ease: EASE.drawer } },
 } as const;
 
 /** a selected fill travelling between places (the Settings rail) */

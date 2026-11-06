@@ -101,7 +101,7 @@ export function WhatsNewPopup({ view, report, onBuy, onDone }: {
 
   return <div className="ui-scrim fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" onMouseDown={event => { if (event.target === event.currentTarget) end("close"); }}>
     <div role="dialog" aria-modal="true" aria-labelledby={titleId(slide)} data-whats-new={slide} tabIndex={-1}
-      className={cn(SHEET, "group/sheet animate-pop-in relative flex max-h-full w-full max-w-[520px] flex-col overflow-hidden outline-none")}>
+      className={cn(SHEET, "group/sheet relative flex max-h-full w-full max-w-[520px] flex-col overflow-hidden outline-none")}>
       <div className="grid min-h-0 overflow-y-auto overflow-x-hidden">
         {view.slides.map((of, index) => {
           const here = index === at;

@@ -5,7 +5,7 @@ import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { scrollWithin } from "@/lib/scroll-within";
 import { useMediaQuery } from "@/lib/use-media-query";
-import { PHONE_SHEET, REDUCED, SCRIM, WIPE } from "@/lib/motion-presets";
+import { REDUCED, WIPE } from "@/lib/motion-presets";
 import { MotionDiv, useMotionReduced } from "./ui/SheetMotion";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { currentPhonePairingTarget, phonePairingSettingsAction } from "@/lib/phone-pairing";
@@ -365,7 +365,7 @@ export function SettingsModal() {
       <MotionDiv
         aria-hidden="true"
         className="settings-backdrop"
-        {...(phone ? { initial: SCRIM.initial, animate: SCRIM.animate, exit: SCRIM.exit } : { initial: false })}
+        initial={false}
         onMouseDown={close}
       />
       <MotionDiv
@@ -376,10 +376,8 @@ export function SettingsModal() {
         tabIndex={-1}
         data-phone-view={phone ? (listShown ? "list" : "pane") : undefined}
         className="settings-dialog"
-        // on a desktop the sheet opens and closes raw, in one frame; a phone keeps its sheet slide
-        {...(!phone ? { initial: false } : reduced
-          ? { initial: { opacity: 0 }, animate: { opacity: 1, transition: REDUCED }, exit: { opacity: 0, transition: REDUCED } }
-          : PHONE_SHEET)}
+        // the sheet opens and closes raw, in one frame, on a phone too; only its drill-in slides
+        initial={false}
       >
         <div className="settings-layout">
           {phone ? (

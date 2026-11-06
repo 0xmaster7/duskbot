@@ -156,13 +156,13 @@ export function Spotlight({
       aria-live="polite"
     >
       <div
-        className="absolute inset-0 bg-black/55 transition-[clip-path] duration-[320ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+        className="absolute inset-0 bg-black/55"
         style={{ clipPath: cutout(settled ? rect : null) }}
         aria-hidden="true"
       />
       {rect && (
         <div
-          className="absolute ring-2 ring-accent transition-opacity duration-300"
+          className="absolute ring-2 ring-accent"
           style={{
             left: rect.x,
             top: rect.y,
@@ -176,10 +176,10 @@ export function Spotlight({
           aria-hidden="true"
         />
       )}
-      {/* Outer layer positions (transition), inner layer enters (keyframes): the two never fight over transform. */}
+      {/* the card is placed and shown raw, like grok's overlays */}
       <div
         data-tour-card
-        className="pointer-events-auto absolute left-0 top-0 w-[320px] transition-transform duration-[320ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+        className="pointer-events-auto absolute left-0 top-0 w-[320px]"
         style={{ transform, width: cardWidth }}
       >
         <div
@@ -193,7 +193,7 @@ export function Spotlight({
                   ? "origin-top-left"
                   : "origin-bottom-left"
               : "origin-center",
-            settled ? "animate-spot-in motion-reduce:animate-none" : "opacity-0",
+            !settled && "opacity-0",
           )}
         >
           <div className="shrink-0 drop-shadow-[0_6px_14px_rgba(0,0,0,0.35)]">
@@ -206,7 +206,7 @@ export function Spotlight({
           </div>
           <div
             key={anchor ?? "centre"}
-            className="min-w-0 flex-1 animate-rise motion-reduce:animate-none"
+            className="min-w-0 flex-1"
           >
             <div className="text-[14px] leading-relaxed text-ink">
               {children}

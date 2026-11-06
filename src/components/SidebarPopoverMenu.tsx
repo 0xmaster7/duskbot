@@ -414,7 +414,7 @@ export function SidebarPopoverMenu({
       onFocus={() => setEngaged(true)}
       onBlur={(event) => { if (!(event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget))) setEngaged(false); }}
       style={{ position: "fixed", left: subPosition?.left ?? 0, top: subPosition?.top ?? 0, minWidth: grok ? 160 : 200, width: "max-content", maxWidth: `min(${MENU_MAX_WIDTH}px, calc(100vw - ${EDGE_MARGIN * 2}px))`, maxHeight: `calc(100vh - ${EDGE_MARGIN * 2}px)`, visibility: subPosition ? undefined : "hidden" }}
-      className={cn(sheetClass, "z-[61] overflow-y-auto", !grok && "animate-pop-in")}
+      className={cn(sheetClass, "z-[61] overflow-y-auto")}
     >
       <MenuRows
         grok={grok}

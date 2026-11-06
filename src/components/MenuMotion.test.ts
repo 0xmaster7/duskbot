@@ -63,66 +63,41 @@ vi.mock("react", async (importOriginal) => ({
   useLayoutEffect: react.useLayoutEffect,
 }));
 
-const { MENU_MOTION_MS, useHeldMenuMotion, useMenuMotion } = await import("./MenuMotion");
+const { useHeldMenuMotion, useMenuMotion } = await import("./MenuMotion");
 
-let reduced = false;
 beforeEach(() => {
   vi.useFakeTimers();
-  reduced = false;
-  vi.stubGlobal("window", {
-    setTimeout: (run: () => void, ms: number) => setTimeout(run, ms),
-    clearTimeout: (id: ReturnType<typeof setTimeout>) => clearTimeout(id),
-    matchMedia: () => ({ matches: reduced }),
-  });
-  vi.stubGlobal("document", { documentElement: { dataset: {} } });
 });
 afterEach(() => {
   react.reset();
   vi.useRealTimers();
-  vi.unstubAllGlobals();
 });
 
 describe("menu motion", () => {
-  it("shows a menu on the render it opens and pops it in", () => {
+  it("shows a menu on the render it opens, raw, with no pop", () => {
     expect(react.render(() => useMenuMotion(false))).toMatchObject({ shown: false, closing: false });
     const open = react.render(() => useMenuMotion(true));
-    expect(open).toMatchObject({ shown: true, closing: false, className: "animate-pop-in", exitProps: {} });
+    expect(open).toMatchObject({ shown: true, closing: false, className: "raw-popup", exitProps: {} });
+    expect(open.className).not.toMatch(/animate-/);
   });
 
-  it("keeps a closing menu on screen for the pop, but out of reach and out of the accessibility tree", () => {
+  it("drops a menu on the render it closes, as grok's do", () => {
     react.render(() => useMenuMotion(true));
-    const closing = react.render(() => useMenuMotion(false));
-    expect(closing.shown).toBe(true);
-    expect(closing.closing).toBe(true);
-    expect(closing.className).toBe("animate-pop-out pointer-events-none");
-    expect(closing.exitProps).toEqual({ inert: true, "aria-hidden": true });
-    vi.advanceTimersByTime(MENU_MOTION_MS - 1);
-    expect(react.render(() => useMenuMotion(false)).shown).toBe(true);
-    vi.advanceTimersByTime(1);
-    expect(react.changed).toBe(true);
-    expect(react.render(() => useMenuMotion(false))).toMatchObject({ shown: false, closing: false, exitProps: {} });
+    const closed = react.render(() => useMenuMotion(false));
+    expect(closed).toMatchObject({ shown: false, closing: false, exitProps: {} });
+    expect(vi.getTimerCount()).toBe(0);
   });
 
-  it("closes at once under reduced motion", () => {
-    reduced = true;
-    react.render(() => useMenuMotion(true));
-    expect(react.render(() => useMenuMotion(false))).toMatchObject({ shown: false, closing: false, exitProps: {} });
-  });
-
-  it("reopens a menu that is still closing as a live menu", () => {
+  it("reopens at once", () => {
     react.render(() => useMenuMotion(true));
     react.render(() => useMenuMotion(false));
-    const reopened = react.render(() => useMenuMotion(true));
-    expect(reopened).toMatchObject({ shown: true, closing: false, className: "animate-pop-in", exitProps: {} });
-    vi.advanceTimersByTime(MENU_MOTION_MS * 2);
-    expect(react.render(() => useMenuMotion(true)).shown).toBe(true);
+    expect(react.render(() => useMenuMotion(true))).toMatchObject({ shown: true, closing: false, exitProps: {} });
   });
 
-  it("holds the last payload while a positioned menu closes", () => {
+  it("keeps the last payload of a positioned menu", () => {
     const anchor = { x: 10, y: 20 };
     react.render(() => useHeldMenuMotion(anchor));
-    const closing = react.render(() => useHeldMenuMotion<typeof anchor>(null));
-    expect(closing).toMatchObject({ shown: true, closing: true, value: anchor });
-    expect(closing.exitProps).toEqual({ inert: true, "aria-hidden": true });
+    const closed = react.render(() => useHeldMenuMotion<typeof anchor>(null));
+    expect(closed).toMatchObject({ shown: false, closing: false, value: anchor });
   });
 });

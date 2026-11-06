@@ -10,7 +10,7 @@ import { useStore, type Bot } from "@/state/store";
 
 /** Clicks, Enter and Space wait this long after the dialog opens, so a double click on Next never presses Create. */
 export const CHIEF_GUARD_MS = 300;
-/** The dialog and its scrim fade out (opacity only), and a reduced-motion landing crossfades, over this long. */
+/** How long the flow waits after the dialog goes, and how long a reduced-motion landing crossfades. */
 export const CHIEF_FADE_MS = 150;
 const AVATAR_SIZE = 64;
 const SECONDARY = "ui-button ui-button-pill";
@@ -67,11 +67,11 @@ export function ChiefIntro({ replay, onDone, onLeave }: { replay: boolean; onDon
     event.stopPropagation();
   };
 
-  // Opacity only; a timer moves on, since a hidden window runs no animation to its end.
+  // the card goes raw, like grok's dialogs; a timer moves on once the mascot's flight is done
   const leave = (botId: string | null, after: number) => {
     setLeaving(true);
     onLeave?.();
-    dialog.current?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: CHIEF_FADE_MS, fill: "forwards" });
+    if (dialog.current) dialog.current.style.opacity = "0";
     setTimeout(() => onDone(botId), after);
   };
 
@@ -126,7 +126,7 @@ export function ChiefIntro({ replay, onDone, onLeave }: { replay: boolean; onDon
       onClickCapture={early}
       onKeyDownCapture={(event) => (event.key === "Enter" || event.key === " ") && early(event)}
       data-chief-intro={choosing ? "choose" : "intro"}
-      className={cn("ui-modal animate-pop-in w-[min(440px,calc(100vw-32px))] border-0 outline-none", leaving && "pointer-events-none")}
+      className={cn("ui-modal w-[min(440px,calc(100vw-32px))] border-0 outline-none", leaving && "pointer-events-none")}
     >
       {choosing ? (
         <div className="p-4">

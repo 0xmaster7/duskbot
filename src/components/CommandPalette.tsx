@@ -1,5 +1,4 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { motion, useReducedMotion } from "motion/react";
 import { api, openBot, useStore, visibleMessages, type Action, type AppSettingsSection, type Bot, type Group } from "@/state/store";
 import { useShowThreads } from "@/lib/thread-preferences";
 import { cn } from "@/lib/cn";
@@ -14,7 +13,6 @@ import { openCreateBot } from "./CreateBotDialog";
 import { GrokIcon, type GrokIconName } from "./GrokIcon";
 import { botPreview, groupPreview } from "./sidebar-preview";
 import { openBotSettingsPage } from "./bot-panel/panel-link";
-import { BENCHO, PALETTE } from "@/lib/motion-presets";
 
 /** What a row does once picked: what it opens, or what it changes. */
 type Command = { id: string; name: string; detail?: string; icon: GrokIconName; run: () => void };
@@ -133,7 +131,6 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
   }, [open, q]);
 
   useEffect(() => setCursor(0), [q]);
-  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     selectedRef.current?.scrollIntoView({ block: "nearest" });
@@ -251,18 +248,14 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
 
   return (
     <div className="fixed inset-0 z-50" onKeyDown={onKeyDown}>
-      <motion.div aria-hidden initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: BENCHO.dur.fast }}
-        className="absolute inset-0 bg-black/50" onMouseDown={() => setOpen(false)} />
-      {/* opened often, so only bencho's panel-morph arrival: up from 6px on the panel spring, a 160ms fade; it closes at once */}
+      <div aria-hidden className="absolute inset-0 bg-black/50" onMouseDown={() => setOpen(false)} />
+      {/* opened often, so it opens and closes raw, as grok's does */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-      <motion.div
+      <div
         role="dialog"
         aria-modal="true"
         aria-label="Search"
         data-command-palette
-        initial={reduceMotion ? { opacity: 0 } : PALETTE.initial}
-        animate={PALETTE.animate}
-        transition={PALETTE.transition}
         className="pointer-events-auto relative flex h-[455px] max-h-[calc(100vh-32px)] w-[min(560px,calc(100vw-32px))] flex-col overflow-hidden rounded-[18px] border border-ink/12 bg-menu text-[13px] text-ink"
       >
         <div className="flex shrink-0 items-center gap-2.5 border-b-[0.5px] border-ink/8 py-3.5 pl-4 pr-2.5">
@@ -327,7 +320,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
             </div>
           </div>
         )}
-      </motion.div>
+      </div>
       </div>
     </div>
   );
