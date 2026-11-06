@@ -106,6 +106,18 @@
 :root:is([data-skin="grok"], [data-skin="grok-dark"]) [data-chat-bubble="simple"] {
   --grok-bubble: var(--grok-bubble-fill);
 }
+/* grok in the dark: a 4% wash, the gloss and its hairlines down to 3% white, the edge to 4% ink */
+:root[data-skin="grok-dark"] [data-chat-bubble="simple"].chat-bubble-bot {
+  background-color: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  background-image: linear-gradient(rgb(255 255 255 / 0.03), transparent);
+}
+:root[data-skin="grok-dark"] [data-chat-bubble="simple"]:is(.chat-bubble-bot, .chat-bubble-user) {
+  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.03), inset 0 -0.5px 0 rgb(255 255 255 / 0.03),
+    inset 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 4%, transparent);
+}
+:root[data-skin="grok-dark"] [data-chat-bubble="simple"].chat-bubble-user {
+  background-image: linear-gradient(rgb(255 255 255 / 0.01), transparent);
+}
 
 /* every chat type style carries its own 0.01em, as grok's kit text does, instead of the body's inherited pixels */
 :where([data-chat-bubble="simple"], [data-chat-bubble="simple"] *, [data-ask-card], [data-ask-card] *, [data-chathead-pill], [data-chathead-pill] *, [data-day-stamp]) {

@@ -25,8 +25,8 @@ export function slotColors(color: Bot["color"] | undefined, room: boolean): { fi
   const own = color ?? "green";
   const tone = botButtonTone(own);
   const grok = GROK_BOT_FILLS[own];
-  // on the grok skins the round button wears grok's own colour for the bot, darkening to its bubble's on hover (chat.css)
-  const vars = grok ? { "--grok-cta-fill": grok.button, "--grok-cta-hover": grok.bubble } as CSSProperties : undefined;
+  // on the grok skins the round button wears grok's own colour for the bot, with grok's hover shade (chat.css)
+  const vars = grok ? { "--grok-cta-fill": grok.button, "--grok-cta-hover": grok.hover } as CSSProperties : undefined;
   return { fill: grok ? `var(--grok-cta, ${tone.fill})` : tone.fill, ink: tone.ink, button: { className: cn(BOT_BUTTON, grok && "grok-cta"), style: { ...botButtonStyle(own), ...vars } }, vars };
 }
 

@@ -889,42 +889,45 @@
 }
 
 /* ── Grok dark ─────────────────────────────────────────────────────────────
-   Grok in the dark: Midnight's ground and ink (sampled from Grok's dark
-   theme upstream) in the XVF faces. Unlike Midnight it clears AA on its
-   fills: the accent is the same pressed blue as light, and danger carries
-   dark ink, as the other dark skins do.
+   Grok Bot's dark theme, read from its --sand-* tokens and computed styles
+   (theme dark) in the XVF faces: Midnight's ground and ink, Grok's dark
+   accent, status inks and translucent edges. Danger and success carry dark
+   ink, as the other dark skins do. It sets color-scheme too, so native
+   controls and every light-dark() (file glyphs, grok's per-colour fills)
+   take their dark side.
    ───────────────────────────────────────────────────────────────────────── */
 [data-skin="grok-dark"] {
+  color-scheme: dark;
   --code-color-scheme: dark;
   --color-app: #121212;
   --color-panel: #0e0e0e;
   --color-raised: #202020;
   --color-raised-hover: #2c2c2c;
   --color-composer: #1f1f1f;
-  --color-composer-ring: #2a2a2a;
+  --color-composer-ring: #f5f5f51a; /* the composer frame at rest, ink/10 */
   --color-card: #1f1f1f;
   --color-menu: #1f1f1f;
   --color-menu-hover: #f5f5f50f;
   --color-menu-active: #f5f5f514;
   --color-inset: #1b1b1b;
   --color-control: #282828;
-  --color-hairline: #383838;
+  --color-hairline: #f5f5f538;    /* sand-border-primary-translucent */
   --color-ink: #f5f5f5;
   --color-ink-secondary: #f5f5f5a8;
-  --color-ink-tertiary: #f5f5f591;
-  --color-accent: #126fd4;
-  --color-accent-border: #459ffe;
-  --color-accent-text: #7fc0ff;
-  --color-focus: #459ffe;
+  --color-ink-tertiary: #f5f5f58a; /* sand-text-tertiary */
+  --color-accent: #116dd2;        /* sand-bg-accent-primary */
+  --color-accent-border: #116dd2; /* the switch blue, as in light */
+  --color-accent-text: #4d9bff;   /* sand-text-accent-primary */
+  --color-focus: #1984fc;         /* cursor-focus */
   --color-accent-ink: #ffffff;
-  --color-bubble-user: #5a5a5a;
+  --color-bubble-user: #3b3b3b;   /* sand-fill-bubble-user (#f5f5f52e) on the thread */
   --color-bubble-user-ink: #f5f5f5;
-  --color-success: #38d591;
-  --color-danger: #ff5667;
+  --color-success: #00ba69;       /* sand-text-success-primary */
+  --color-danger: #ff6463;        /* sand-text-danger-primary */
   --color-danger-ink: #1e0b0e;
   --color-success-ink: #072114;
-  --color-warning: #ff9800;
-  --color-scrollbar: #3d3d3d;
+  --color-warning: #e28600;       /* sand-text-warn-primary */
+  --color-scrollbar: #393939;     /* text-quaternary at 45% */
   --color-maus-line: #f5f5f5;
 
   --color-edge: #f5f5f50f;
@@ -1153,6 +1156,10 @@
 }
 :root:is([data-skin="midnight"], [data-skin="grok-dark"]) .popover-surface {
   box-shadow: none;
+}
+/* grok's dark menus edge in ink/10 */
+:root[data-skin="grok-dark"] .popover-surface {
+  border-color: color-mix(in srgb, var(--color-ink) 10%, transparent);
 }
 :root:is([data-skin="daylight"], [data-skin="grok"]) .popover-surface {
   box-shadow: 0 10px 20px -3px rgb(28 28 28 / 0.1), 0 4px 6px -4px rgb(28 28 28 / 0.1);
@@ -1673,6 +1680,9 @@ body {
   backdrop-filter: none;
   border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
   box-shadow: none;
+}
+:root[data-skin="grok-dark"] [data-settings-look] .glass-surface {
+  border-color: color-mix(in srgb, var(--color-ink) 10%, transparent);
 }
 :root:is([data-skin="midnight"], [data-skin="daylight"], [data-skin="grok"], [data-skin="grok-dark"]) [data-settings-look] .glass-rail {
   background: transparent;

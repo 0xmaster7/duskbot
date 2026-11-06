@@ -15,6 +15,16 @@
     --shadow-inline: 0 4px 12px -1px rgb(0 0 0 / 0.35), 0 2px 4px -2px rgb(0 0 0 / 0.25);
   }
 }
+/* grok's dark theme lifts nothing: every shadow token there is transparent, the edge alone draws the surface */
+:root[data-skin="grok-dark"] body {
+  --shadow-popover: 0 0 #0000;
+  --shadow-modal: 0 0 #0000;
+  --shadow-inline: 0 0 #0000;
+}
+:root[data-skin="grok-dark"] :is(.ui-dialog, .ui-toast) {
+  border-color: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  box-shadow: none;
+}
 
 /* Grok's overlays open and close raw: a menu, listbox, popover, tooltip or toast is there the frame it opens and gone the
    frame it closes. A surface still carrying the general pop utility is held still here. */
