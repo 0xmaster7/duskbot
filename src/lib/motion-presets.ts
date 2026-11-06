@@ -193,3 +193,9 @@ export const PHONE_SHEET = {
 
 /** a selected fill travelling between places (the Settings rail) */
 export const SPRING_PART = BENCHO.spring.popover;
+
+/** the person's sent bubble rising from the composer to its place: a little visible settle (about 3% overshoot) */
+export const SPRING_SEND = { type: "spring", stiffness: 400, damping: 30, mass: 1 } as const;
+
+/** a bot's reply settling in where it lands: soft, about 250ms, no overshoot to speak of */
+export const SPRING_REPLY = { type: "spring", stiffness: 420, damping: 36, mass: 1 } as const;

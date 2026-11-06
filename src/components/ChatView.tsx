@@ -688,8 +688,9 @@ export function useLingering(on: boolean, ms: number): boolean {
 
 /** Simple mode's room under the last row, above the composer's own clearance: grok's last bubble ends 54px over the composer. */
 export const SIMPLE_TRAILING_GAP = 34;
-/** The status line's 36px row and the 4px it sits under a bubble: the part of that room its slot takes. */
-export const SIMPLE_STATUS_SLOT = 40;
+/** The part of that room the status line's slot takes: its 36px row and the 4px it sits under a bubble, less 10px it keeps
+ * clear below the line so a reply has room to land. */
+export const SIMPLE_STATUS_SLOT = 30;
 
 /** How many of a window's newest rows an opened chat paints in its first frame, and how many older ones each later step adds. */
 export const FIRST_PAINT_ROWS = 16;

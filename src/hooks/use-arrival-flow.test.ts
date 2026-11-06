@@ -3,7 +3,20 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { settleTiming, useArrivalFlow } from "./use-arrival-flow";
+// motion's animate is recorded too; its moves stay in flight until a test settles them
+type Lifted = { el: Element; keyframes: Record<string, unknown[]>; options: Record<string, unknown> };
+const lifted = vi.hoisted(() => ({ calls: [] as unknown[], settle: [] as (() => void)[] }));
+vi.mock("motion/react", async (original) => ({
+  ...await original<typeof import("motion/react")>(),
+  animate: (el: Element, keyframes: Record<string, unknown[]>, options: Record<string, unknown>) => {
+    lifted.calls.push({ el, keyframes, options });
+    return { finished: new Promise<void>((resolve) => lifted.settle.push(resolve)) };
+  },
+}));
+const lifts = (el: Element) => (lifted.calls as Lifted[]).filter((call) => call.el === el);
+
+import { RISE_PX, settleTiming, useArrivalFlow } from "./use-arrival-flow";
+import { SPRING_REPLY, SPRING_SEND } from "@/lib/motion-presets";
 
 // happy-dom has no layout: each element reports the offsets the test gives it, and animations are recorded
 type Recorded = { el: Element; keyframes: Keyframe[]; options: KeyframeAnimationOptions };
@@ -39,6 +52,8 @@ const moved = (el: Element) => recorded.filter((r) => r.el === el && String(r.ke
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   recorded = [];
+  lifted.calls = [];
+  lifted.settle = [];
   vi.spyOn(HTMLElement.prototype, "animate").mockImplementation(function (this: HTMLElement, keyframes, options) {
     recorded.push({ el: this, keyframes: keyframes as Keyframe[], options: options as KeyframeAnimationOptions });
     return fakeAnimation() as unknown as Animation;
@@ -77,7 +92,7 @@ describe("useArrivalFlow", () => {
     expect(Math.max(...points)).toBeLessThan(1.01);
   });
 
-  it("puts a bot's reply on screen at once: the transcript is at its end in the same frame, nothing glides", () => {
+  it("puts a bot's reply on screen at once and lets it settle in softly while the status line fades", () => {
     draw(true, 0);
     // a 60px bubble lands above the slot
     const reply = addRow(900, "start");
@@ -87,30 +102,55 @@ describe("useArrivalFlow", () => {
 
     expect(scroller.scrollTop).toBe(scrollHeight - CLIENT);
     expect(moved(column)).toHaveLength(0);
-    expect(moved(slot)).toHaveLength(0);
-    expect(clip.style.overflowY).toBe("");
-    // a quick pop: opacity and a tiny scale, no blur, well under 200ms
-    const pop = recorded.find((r) => r.el === reply);
-    expect(pop?.keyframes[0]).toMatchObject({ opacity: 0, transform: "scale(0.96)" });
-    expect(pop?.keyframes[0]?.filter).toBeUndefined();
-    expect(Number(pop?.options.duration)).toBeLessThanOrEqual(160);
-    // the status line gives way fast, on opacity alone
+    const [entrance] = lifts(reply);
+    expect(entrance?.keyframes).toMatchObject({ transform: ["translateY(7px) scale(0.98)", "translateY(0px) scale(1)"], opacity: [0, 1] });
+    expect(entrance?.options.transform).toBe(SPRING_REPLY);
+    // its first frame is on the element before the browser paints
+    expect(reply.style.transform).toBe("translateY(7px) scale(0.98)");
     const line = recorded.find((r) => r.el === slot);
     expect(line?.keyframes[1]?.opacity).toBe(0);
     expect(line?.keyframes.every((frame) => frame.transform === undefined)).toBe(true);
   });
 
-  it("starts the person's bubble below its place and rides the slot with it", () => {
+  it("jumps the view to its end at once on a send and moves only the new bubble, from the composer, on a spring", () => {
     draw(true, 0);
     const mine = addRow(900, "end");
     place(slot, 956, column);
     scrollHeight = 1056;
     draw(true, 1);
 
-    expect(moved(column)[0]?.keyframes[0]?.transform).toBe("translateY(56px)");
-    const rise = moved(mine)[0]?.keyframes[0]?.transform;
-    expect(rise).toMatch(/^translateY\(\d+(\.\d+)?px\)$/);
-    expect(moved(slot)[0]?.keyframes[0]?.transform).toBe(rise);
+    expect(scroller.scrollTop).toBe(scrollHeight - CLIENT);
+    // the rows already there do not move: no transform on the column
+    expect(moved(column)).toHaveLength(0);
+    expect(clip.style.overflowY).toBe("clip");
+    const [rise] = lifts(mine);
+    const from = Number(/translateY\(([\d.]+)px\)/.exec(String(rise?.keyframes.transform?.[0]))?.[1]);
+    expect(from).toBeGreaterThanOrEqual(RISE_PX[0]);
+    expect(from).toBeLessThanOrEqual(RISE_PX[1]);
+    expect(rise?.keyframes.opacity).toEqual([0, 1]);
+    expect(rise?.options.transform).toBe(SPRING_SEND);
+    // the slot rides under it on the same move
+    expect(lifts(slot)[0]?.keyframes.transform).toEqual(rise?.keyframes.transform);
+    // settled: the transform is handed back and the clip comes off
+    act(() => lifted.settle.forEach((resolve) => resolve()));
+    return Promise.resolve().then(() => {
+      expect(mine.style.transform).toBe("");
+      expect(clip.style.overflowY).toBe("");
+    });
+  });
+
+  it("follows the composer settling under a bubble still rising, instead of jumping", () => {
+    draw(true, 0);
+    addRow(900, "end");
+    place(slot, 956, column);
+    scrollHeight = 1056;
+    draw(true, 1);
+    // a long draft closes back to one row: the transcript's end pad shrinks by 40px while the bubble is still rising
+    place(slot, 956, column);
+    scrollHeight = 1016;
+    scroller.scrollTop = scrollHeight - CLIENT;
+    draw(true, 2);
+    expect(moved(column)[0]?.keyframes[0]?.transform).toBe("translateY(-40px)");
   });
 
   it("moves nothing on screen for a reader scrolled up", () => {

@@ -1,8 +1,8 @@
-import { spring } from "motion/react";
+import { animate, spring } from "motion/react";
 import { useLayoutEffect, useRef, type RefObject } from "react";
 
 import { usePrefersReducedMotion } from "@/components/mascot-clock";
-import { MSG_FADE, SPRING_SETTLE } from "@/lib/motion-presets";
+import { MSG_FADE, SPRING_REPLY, SPRING_SEND, SPRING_SETTLE } from "@/lib/motion-presets";
 
 const ROW = "[data-message-row]";
 const SLOT = ".turn-status-slot";
@@ -11,12 +11,10 @@ const COMPOSER = '[data-tour="composer"]';
 
 /** How far below its place the person's own bubble starts: from the composer's top edge, kept within these bounds. */
 export const RISE_PX = [64, 140] as const;
-/** A bot's reply is there at once: the transcript jumps to it in the same frame and the bubble pops in lightly (ms). */
-export const REPLY_IN_MS = 140;
-/** The status line gives way to a reply fast, and if it still has work to report it comes back in its slot (ms). */
-const LINE_OUT_MS = 100;
-const LINE_BACK_AT_MS = 220;
-const LINE_BACK_MS = 140;
+/** The status line fades out as a reply fades in, and if it still has work to report it comes back in its slot (ms). */
+const LINE_OUT_MS = 160;
+const LINE_BACK_AT_MS = 300;
+const LINE_BACK_MS = 160;
 
 let timing: { duration: number; easing: string } | null = null;
 
@@ -74,13 +72,28 @@ function remaining(mover: Mover): number {
   return mover.from * (1 - (typeof progress === "number" ? progress : 1));
 }
 
+/** One element's entrance on motion: the first frame is written to its style before the browser paints (motion starts on
+ * its next frame), and the style is handed back when it settles, so no transform outlives the move. */
+function lift(el: HTMLElement, transform: [string, string], opacity: [number, number] | null, transition: object, done: () => void): void {
+  el.style.transform = transform[0];
+  if (opacity) el.style.opacity = String(opacity[0]);
+  const finish = () => {
+    el.style.transform = "";
+    if (opacity) el.style.opacity = "";
+    done();
+  };
+  const keyframes = opacity ? { transform, opacity } : { transform };
+  const options = opacity ? { transform: transition, opacity: { duration: MSG_FADE.duration, ease: "easeOut" as const } } : { transform: transition };
+  animate(el, keyframes, options).finished.then(finish, finish);
+}
+
 /** Rows that arrive while the conversation is open, and the scroll never fighting them.
  *
- * The person's own message: the scroll jumps once to the new end before the frame paints, whatever that moved is drawn
- * back where it was by a transform on the column, and one spring carries it home with the bubble rising from the
- * composer's top edge. A wrapper clips the column vertically while it moves, so the transform never stretches the scroll
- * range and nothing follows a moving end. A bot's reply is there at once: the transcript is at its end in the same frame,
- * the bubble pops in over 140ms, and the status line gives way fast (coming back below if it still has work). Scrolled up,
+ * Any arrival puts the view at its end at once, in the frame it lands, and nothing already on screen moves. The person's
+ * own bubble alone travels: it starts at the composer's top edge and springs up to its place (SPRING_SEND). A bot's reply
+ * settles in softly where it lands (opacity, 7px and 0.98 scale on SPRING_REPLY) while its status line fades out, coming
+ * back below if it still has work. A wrapper clips the column vertically while anything moves, so a transform never
+ * stretches the scroll range. The composer settling under a bubble still rising is followed on a spring. Scrolled up,
  * nothing on screen moves. Under reduced motion new rows only fade in. */
 export function useArrivalFlow({
   scrollRef,
@@ -100,6 +113,8 @@ export function useArrivalFlow({
   const reduced = usePrefersReducedMotion();
   const snapshot = useRef<Snapshot | null>(null);
   const movers = useRef(new Map<HTMLElement, Mover>());
+  /** the person's bubbles (and the slot under them) still on their spring */
+  const risers = useRef(new Set<HTMLElement>());
   const played = useRef(new WeakSet<Element>());
 
   const take = (key: string): void => {
@@ -124,15 +139,18 @@ export function useArrivalFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- take reads refs only
   }, [scrollRef, columnRef, transcriptKey]);
 
+  // a conversation left (or the transcript gone) drops whatever was still moving
   useLayoutEffect(() => {
     const all = movers.current;
     const clip = clipRef.current;
     return () => {
       for (const mover of all.values()) mover.anim.cancel();
       all.clear();
+      risers.current.clear();
       if (clip) clip.style.overflowY = "";
     };
-  }, [clipRef, transcriptKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the ref object is stable; only the conversation matters
+  }, [transcriptKey]);
 
   useLayoutEffect(() => {
     const scroller = scrollRef.current, column = columnRef.current, clip = clipRef.current;
@@ -147,51 +165,75 @@ export function useArrivalFlow({
 
     const end = scroller.scrollHeight;
     const max = end - scroller.clientHeight;
-    // only a transcript resting at its end glides; mid-scroll (a jump to the latest in progress) is left alone
+    // a transcript resting at its end stays there; mid-scroll (a jump to the latest in progress) is left alone
     const atEnd = scroller.scrollTop >= Math.min(before.max, max) - 2;
     const anchorAt = before.anchor?.isConnected ? offsetIn(before.anchor, column) : null;
     const delta = anchorAt === null ? 0 : end - anchorAt - before.anchorFromEnd;
     const lastArrival = arrivals.at(-1);
-    const own = arrivals.some((row) => row.dataset.arrival === "end");
     const botArrived = Boolean(lastArrival) && lastArrival?.dataset.arrival !== "end";
-    // only the person's own message (or the composer settling under it) glides; a bot's reply, history, a thread's
-    // snapshot and a chat that just opened land in place, the transcript already at its end
-    const live = own || (arrivals.length === 0 && movers.current.size > 0);
-    const glide = live && following && atEnd && !reduced && Math.abs(delta) >= 0.5 && Math.abs(delta) <= scroller.clientHeight * 1.5;
-    if (!glide && botArrived && following && atEnd) scroller.scrollTop = max;
-    const slot = column.querySelector<HTMLElement>(SLOT);
-    const slotAt = slot ? offsetIn(slot, column) : null;
+    const clipOn = () => {
+      if (clip) clip.style.overflowY = "clip";
+    };
+    const clipOffIfIdle = () => {
+      if (clip && movers.current.size === 0 && risers.current.size === 0) clip.style.overflowY = "";
+    };
 
-    // the bubble's own entrance: the person's rises from the composer, a bot's pops in where it lands
-    const timingNow = settleTiming();
-    const offsets = new Map<HTMLElement, number>();
-    if (glide) offsets.set(column, delta);
-    let rise = 0;
+    // any arrival: the view is at its end at once, in this frame, and nothing already on screen moves
+    if (arrivals.length > 0 && following && atEnd) {
+      clipOn();
+      scroller.scrollTop = max;
+    }
+    // the composer settling under a bubble still rising (a long draft closing back to one row) is the one thing the column
+    // follows on a spring, so neither the rows nor the rising bubble jump with it
+    const settle = arrivals.length === 0 && (risers.current.size > 0 || movers.current.size > 0) && following && atEnd && !reduced
+      && Math.abs(delta) >= 0.5 && Math.abs(delta) <= scroller.clientHeight * 1.5;
+    if (settle && canAnimate(column)) {
+      clipOn();
+      scroller.scrollTop = max;
+      const timingNow = settleTiming();
+      const current = movers.current.get(column);
+      const from = (current ? remaining(current) : 0) + delta;
+      current?.anim.cancel();
+      const anim = column.animate([{ transform: `translateY(${from}px)` }, { transform: "translateY(0px)" }], { duration: timingNow.duration, easing: timingNow.easing });
+      const mover = { anim, from };
+      movers.current.set(column, mover);
+      anim.addEventListener("finish", () => {
+        if (movers.current.get(column) === mover) movers.current.delete(column);
+        clipOffIfIdle();
+      });
+    }
+
+    const slot = column.querySelector<HTMLElement>(SLOT);
     for (const row of arrivals) {
-      if (!canAnimate(row)) continue;
       if (reduced) {
-        row.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MSG_FADE.duration * 1000, easing: "ease-out" });
+        if (canAnimate(row)) row.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MSG_FADE.duration * 1000, easing: "ease-out" });
         continue;
       }
       if (row.dataset.arrival === "end") {
+        // the person's bubble alone travels: from the composer's top edge up to its place, on a spring with a little settle
         const rowAt = offsetIn(row, column);
         const composer = composerRef?.current?.querySelector<HTMLElement>(COMPOSER) ?? composerRef?.current ?? null;
         const moving = movers.current.get(column);
-        const columnTop = column.getBoundingClientRect().top - (moving ? remaining(moving) : 0) + scroller.scrollTop - (following ? max : scroller.scrollTop);
-        const finalTop = rowAt === null ? null : columnTop + rowAt;
+        const finalTop = rowAt === null ? null : column.getBoundingClientRect().top - (moving ? remaining(moving) : 0) + rowAt;
         const fromComposer = composer && finalTop !== null ? composer.getBoundingClientRect().top - finalTop : RISE_PX[0];
-        const total = Math.min(RISE_PX[1], Math.max(RISE_PX[0], fromComposer));
-        rise = Math.max(0, total - (glide ? delta : 0));
-        if (rise > 0) offsets.set(row, rise);
-        row.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MSG_FADE.duration * 1000, easing: "ease-out" });
+        const rise = Math.min(RISE_PX[1], Math.max(RISE_PX[0], fromComposer));
+        clipOn();
+        const riders = [row, ...(slot && slot.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_PRECEDING ? [slot] : [])];
+        // the slot rides under the bubble, so a status line that starts meanwhile is never under it
+        for (const el of riders) {
+          risers.current.add(el);
+          lift(el, [`translateY(${rise}px)`, "translateY(0px)"], el === row ? [0, 1] : null, SPRING_SEND, () => {
+            risers.current.delete(el);
+            clipOffIfIdle();
+          });
+        }
       } else {
+        // a bot's reply: already in view, it settles in softly while its status line fades out
         row.style.transformOrigin = getComputedStyle(row).direction === "rtl" ? "100% 100%" : "0 100%";
-        row.animate([{ opacity: 0, transform: "scale(0.96)" }, { opacity: 1, transform: "none" }], { duration: REPLY_IN_MS, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
+        lift(row, ["translateY(7px) scale(0.98)", "translateY(0px) scale(1)"], [0, 1], SPRING_REPLY, () => {});
       }
     }
 
-    // the slot rides under the person's bubble, so a line that starts meanwhile is never under it
-    if (slot && slotAt !== null && before.slot === slot && !reduced && own && rise > 0) offsets.set(slot, rise);
     if (slot && botArrived && canAnimate(slot)) {
       const total = LINE_BACK_AT_MS + LINE_BACK_MS;
       // opacity only: the slot may still be riding under the person's bubble on a transform
@@ -200,32 +242,7 @@ export function useArrivalFlow({
         { duration: total },
       );
     }
-
-    if (offsets.size > 0) {
-      // the clip goes on before anything moves, so the scroll range never includes a transform
-      if (clip) clip.style.overflowY = "clip";
-      if (glide) scroller.scrollTop = max;
-      // every mover restarts on one clock from where it is now, so the column and the rows inside it never drift apart
-      const all = movers.current;
-      for (const el of all.keys()) if (!offsets.has(el)) offsets.set(el, 0);
-      for (const [el, add] of offsets) {
-        const current = all.get(el);
-        const from = (current ? remaining(current) : 0) + add;
-        current?.anim.cancel();
-        all.delete(el);
-        if (Math.abs(from) < 0.5 || !canAnimate(el)) continue;
-        const anim = el.animate([{ transform: `translateY(${from}px)` }, { transform: "translateY(0px)" }], { duration: timingNow.duration, easing: timingNow.easing });
-        const mover = { anim, from };
-        all.set(el, mover);
-        const done = () => {
-          if (all.get(el) !== mover) return;
-          all.delete(el);
-          if (all.size === 0 && clip) clip.style.overflowY = "";
-        };
-        anim.addEventListener("finish", done);
-      }
-      if (all.size === 0 && clip) clip.style.overflowY = "";
-    }
+    clipOffIfIdle();
     take(transcriptKey);
   });
 }
