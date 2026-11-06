@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { phraseAt, phraseHoldMs } from "@/lib/live-activity";
-import { TurnPresence } from "./TurnPresence";
+import { STATUS_QUIET_MS, TurnPresence } from "./TurnPresence";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -134,6 +134,8 @@ describe("a long step's quiet part", () => {
 
   it("says it in Simple mode too, after the one phrase", () => {
     render({ simple: true, phrases: ["Running scrape.py"], phase: "step", quiet: { kind: "network" } });
+    expect(line() ?? "", "the mark comes alone first, as grok's does").toBe("");
+    act(() => void vi.advanceTimersByTime(STATUS_QUIET_MS.max));
     expect(line()).toBe("Running scrape.py · waiting on the network");
   });
 });
@@ -182,6 +184,7 @@ describe("the Now card", () => {
     render({ label: "Working", since: Date.now(), phrases: ["Thinking"], phase: "think" });
     expect(toggle()).toBeNull();
     open({ simple: true });
+    act(() => void vi.advanceTimersByTime(STATUS_QUIET_MS.max));
     act(() => toggle()!.click());
     expect(card()).not.toBeNull();
     render({ visible: false, card: createElement("p", null, "steps"), cardLabel: "What Ledger is doing" });

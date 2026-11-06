@@ -6,6 +6,7 @@ import type { Bot, InstanceInfo, Message } from "@/state/store";
 import type { RuntimeEvent } from "../../shared/runtime-events";
 import type { ApprovalModeSelector } from "./ApprovalModeSelector";
 import type { ModelPicker } from "./ModelPicker";
+import { STATUS_QUIET_MS } from "./TurnPresence";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -117,6 +118,7 @@ describe("Simple mode's working line", () => {
     mode.advanced = false;
     const waiting = busyBot([ask, intro], false);
     render({ ...waiting, waitingForTeammates: true, tasks: waiting.tasks!.map((task) => ({ ...task, waitingForTeammates: true })) });
+    act(() => void vi.advanceTimersByTime(STATUS_QUIET_MS.max));
     expect(statusLine()).toBe("Teammates working");
   });
 });

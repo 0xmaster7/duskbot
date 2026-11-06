@@ -55,15 +55,16 @@ function ShimmerPhrase({ text, className }: { text: string; className?: string }
   );
 }
 
-/** The status label rules: the mark never shows without words, each step shows one phrase drawn for it and keeps it
- * at least 800ms before the next step may replace it. */
-export const STATUS_QUIET_MS = { working: 0, thinking: 0 } as const;
+/** The status label rules: like grok, the mark comes alone first and its words follow after a short wait drawn per
+ * turn (so it never feels timed), then each step shows one phrase and keeps it at least 800ms before the next. */
+export const STATUS_QUIET_MS = { min: 450, max: 1400 } as const;
 export const STATUS_HOLD_MS = 800;
 const TYPING_PHASE = "friendly:chat.typing";
 
-function quietFor(phase: string): number {
-  if (phase === "friendly:thinking") return STATUS_QUIET_MS.thinking;
-  return phase === "friendly:generic" ? STATUS_QUIET_MS.working : 0;
+function quietFor(seed: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < seed.length; i++) hash = Math.imul(hash ^ seed.charCodeAt(i), 16777619);
+  return STATUS_QUIET_MS.min + ((hash >>> 0) % (STATUS_QUIET_MS.max - STATUS_QUIET_MS.min));
 }
 
 function drawn(phrases: readonly string[], seed: string): string {
@@ -80,7 +81,7 @@ export function useStatusLabel(phrases: readonly string[] | null, phase: string,
   const now = Date.now();
   if (!active) firstSeen.current = null;
   else firstSeen.current ??= now;
-  const quietUntil = (since ?? firstSeen.current ?? now) + quietFor(phase);
+  const quietUntil = (since ?? firstSeen.current ?? now) + quietFor(`${seed}|quiet`);
   let next: { key: string; text: string } | null = phrases && phrases.length > 0 && now >= quietUntil
     ? { key: phase, text: drawn(phrases, `${seed}|${phase}`) }
     : null;
