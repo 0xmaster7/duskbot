@@ -7,7 +7,8 @@ import { WIPE } from "@/lib/motion-presets";
 import { closeRoomPanel } from "@/lib/room-panel";
 import type { LocaleKey } from "@/locales";
 import { useStore, type Bot, type Group } from "@/state/store";
-import { BotAvatar } from "../Avatar";
+import { BotFaces } from "../BotFaces";
+import { roomWorkingIds } from "../RoomWorkingLines";
 import { useCaptionChrome } from "../DesktopCapabilities";
 import { GrokIcon } from "../GrokIcon";
 import { ManageMembersPanel } from "../ManageMembersPanel";
@@ -31,13 +32,11 @@ const PAGES: Record<RoomPage, { title: LocaleKey }> = {
 const moreTriggerCls = "[&_[data-testid=room-more]]:size-9! [&_[data-testid=room-more]]:border-[0.5px]! [&_[data-testid=room-more]]:border-edge! [&_[data-testid=room-more]]:bg-composer! [&_[data-testid=room-more]]:text-ink/[0.92] [&_[data-testid=room-more]:hover]:bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_6%)]!";
 
 function RoomHero({ group, members }: { group: Group; members: Bot[] }) {
-  const faces = members.slice(0, 3);
+  const working = new Set(roomWorkingIds(group, group.messages.at(-1)));
   return (
     <div className="flex flex-col items-center text-center">
-      <div data-room-panel-faces className="flex h-16 items-center -space-x-4">
-        {faces.map((member) => (
-          <BotAvatar key={member.id} bot={member} state="happy" size={faces.length > 1 ? 52 : 64} animated={false} />
-        ))}
+      <div data-room-panel-faces className="flex h-16 items-center">
+        <BotFaces members={members} size={members.length > 1 ? 52 : 64} working={working} rest="happy" overlap={16} />
       </div>
       <div data-panel-name-row className="mt-4 flex max-w-full flex-col items-center gap-1">
         <h2 className="max-w-full truncate rounded-lg border border-transparent px-2.5 py-0.5 text-[17px] font-medium leading-6 tracking-[0.01em] text-ink">{group.name}</h2>

@@ -76,7 +76,7 @@ export interface PanelTarget {
   anchor?: string;
   /** Opens the Instructions editor in place on the Bot settings page. */
   editInstructions?: boolean;
-  /** A page of the bot's settings sheet to open over the Advanced tab. */
+  /** A page of the bot's settings to open in Settings' Bots page. */
   sheet?: SheetPage;
 }
 

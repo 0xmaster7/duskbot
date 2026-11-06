@@ -63,7 +63,7 @@ interface SavedBot { id: string; name: string; toolScope?: { allow?: string[]; d
       })()`);
     };
     const scope = async (id = first.id) => (await bots()).find(bot => bot.id === id)?.toolScope;
-    // Settings open the bot's panel; Advanced > Tools opens its settings sheet at Tools.
+    // Settings open the bot's panel; Advanced > Tools opens its settings at Tools.
     await selectBot(first.name); await click("Open settings"); await openBotSheet(ui, first.name, "tools");
     expect(await snapshot()).toContain("All current tools");
     await mode("custom");

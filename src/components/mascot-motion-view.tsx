@@ -5,6 +5,7 @@ import { MARK_CANVAS_PERCENT, MARK_POKES, createMark, prewarmMarkShapes, type Ma
 import type { MarkPoke } from "./mascot-motion-engine";
 import type { MarkReaction } from "./mascot-personality";
 import { onMascotCue } from "./mascot-events";
+import { opticalTransform } from "./mascot-optics";
 import { GROK_BODY_IDS } from "../../shared/grok-bodies";
 
 /** The sidebar's and Create New Bot's mark size: their bodies get built ahead, in idle time. */
@@ -154,7 +155,7 @@ export const GrokMark = forwardRef<GrokMarkHandle, GrokMarkProps>(function GrokM
     >
       <span
         ref={canvas}
-        style={{ position: "absolute", left: "50%", top: "50%", width: `${MARK_CANVAS_PERCENT}%`, height: `${MARK_CANVAS_PERCENT}%`, transform: "translate(-50%, -50%)", pointerEvents: "none" }}
+        style={{ position: "absolute", left: "50%", top: "50%", width: `${MARK_CANVAS_PERCENT}%`, height: `${MARK_CANVAS_PERCENT}%`, transform: opticalTransform(body), pointerEvents: "none" }}
         dangerouslySetInnerHTML={firstPaint}
       />
     </span>

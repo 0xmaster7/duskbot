@@ -130,7 +130,8 @@ function QuietPart({ quiet }: { quiet: StepQuiet }) {
  * timer stay for the whole turn; `phrases` say what is happening now and rotate through their alternates; `size` is how
  * much of the file is written; `quiet` is how a long step is doing. With nothing to say the line is the lead and the timer
  * alone. The part that is live shimmers. `simple` draws Simple mode's quiet line instead: the avatar and one phrase for
- * what is happening now. With a `card`, the line is a button that unfolds it underneath. */
+ * what is happening now. With a `card`, the line is a button that unfolds it underneath. `name` is a room's line for one
+ * of its bots: the name and the friendly phrase alone, with no steps to unfold, timer or tooltip. */
 export function TurnPresence({
   avatar,
   visible,
@@ -147,6 +148,7 @@ export function TurnPresence({
   quiet,
   card,
   cardLabel,
+  name,
   className,
 }: {
   avatar: ReactNode;
@@ -166,6 +168,7 @@ export function TurnPresence({
   quiet?: StepQuiet;
   card?: ReactNode;
   cardLabel?: string;
+  name?: string;
   className?: string;
 }) {
   const [mounted, setMounted] = useState(visible);
@@ -199,7 +202,7 @@ export function TurnPresence({
   const showWorking = presencePhase === "think";
   // grok's line leaves with the words it was saying
   const simpleStatus = simple && (showWorking || presencePhase === "out");
-  const expandable = Boolean(card) && showWorking;
+  const expandable = Boolean(card) && showWorking && !name;
   useEffect(() => {
     if (!expandable) setOpen(false);
   }, [expandable]);
@@ -223,12 +226,13 @@ export function TurnPresence({
   if (!mounted) return null;
   const status = simpleStatus ? (
     <span id={statusId} className="turn-label-slot flex h-[22px] min-w-0 items-center gap-x-1.5 text-[14px] leading-[22px]" data-turn-status>
+      {name && <span dir="auto" className="shrink-0 font-medium text-ink-secondary" data-turn-name="">{name}</span>}
       {step && (
-        <span key={step.key} className="turn-label-in flex min-w-0 items-center" title={hover} data-turn-now="">
+        <span key={step.key} className="turn-label-in flex min-w-0 items-center" title={name ? undefined : hover} data-turn-now="">
           <StatusShimmer text={step.text} />
         </span>
       )}
-      {step && quiet && <QuietPart quiet={quiet} />}
+      {step && quiet && !name && <QuietPart quiet={quiet} />}
     </span>
   ) : showWorking ? (
     <span id={statusId} className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-1 leading-none" data-turn-status>
@@ -264,7 +268,7 @@ export function TurnPresence({
   return (
     <div ref={root} className={cn("turn-presence flex min-w-0 max-w-full flex-col items-start", className)}>
       <div
-        title={simple && showWorking ? [lead, since !== null ? formatElapsed(Date.now() - since) : null, detail ?? (now ? current : null), size].filter(Boolean).join(" · ") : undefined}
+        title={simple && showWorking && !name ? [lead, since !== null ? formatElapsed(Date.now() - since) : null, detail ?? (now ? current : null), size].filter(Boolean).join(" · ") : undefined}
         className={cn(
           simple ? "flex h-9 min-w-0 max-w-full items-center gap-[8.5px] ps-2" : "flex min-w-0 max-w-full items-center gap-2",
           presencePhase === "think" && (simple ? "turn-status-in" : "turn-mascot-in"),

@@ -442,3 +442,92 @@
   outline: 2px solid var(--color-focus);
   outline-offset: -2px;
 }
+
+/* Grok's settings pane, measured live from Grok Bot (sand-settings-*): groups 28px apart, a 12/16 label at ink/68 14px
+   in, 8px over a white 14px card that is 8px tall at each end; rows of 48px at 10px by 14px, no hover pill and no
+   divider, 20px between the words and the control; outlined 28px selects (1px ink/6, 10px corners) and 32px quiet
+   pills (14/20). The bot panel keeps its own denser rows: everything here is scoped to the Settings sheet. */
+:root .settings-dialog .settings-pane,
+:root .settings-dialog .settings-pane [data-panel-sections] { gap: 28px; }
+:root .settings-dialog .settings-pane section[data-settings-block],
+:root .settings-dialog .settings-pane [data-settings-block]:is(section) { gap: 8px; }
+:root .settings-dialog .settings-pane [data-settings-heading] {
+  padding-inline: 14px 4px;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: color-mix(in srgb, var(--color-ink) 68%, transparent);
+}
+:root .settings-dialog .settings-pane section > div:has(> [data-settings-heading]) { margin-bottom: 8px; padding-inline: 0; }
+:root .settings-dialog .settings-pane section:has(> div > [data-settings-heading]) { gap: 0; }
+:root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) {
+  padding: 8px 0;
+  border-radius: 14px;
+}
+:root .settings-dialog .settings-pane [data-settings-rows] [data-settings-rows] { padding: 0; border: 0; border-radius: 0; }
+:root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) > :is(button, a, div, label):not(.contents, [hidden], [data-settings-rows]) {
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: 0;
+  column-gap: 20px;
+}
+:root .settings-dialog .settings-pane [data-settings-rows] > [data-setting-row] > div:first-child { min-height: 28px; align-items: center; column-gap: 20px; }
+:root .settings-dialog .settings-pane [data-settings-rows] > div:not([data-setting-row]):has(> [data-setting-row]:only-child) { display: block; }
+:root .settings-dialog .settings-pane [data-settings-rows] > div > [data-setting-row]:only-child { padding: 0; }
+:root .settings-dialog .settings-pane [data-settings-rows] > div > [data-setting-row]:only-child > div:first-child { min-height: 28px; align-items: center; column-gap: 20px; }
+:root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) > :is(button, [data-select-row], [data-setting-row]) { background-color: transparent; }
+:root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) :is(button[data-panel-page], button[data-settings-open], button[data-settings-advanced], button[data-panel-row], li > button):enabled:is(:hover, :active) { background-color: transparent; }
+:root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) button:enabled:hover > svg:last-child { color: var(--color-ink); }
+:root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) button:enabled:hover [data-panel-value] { color: var(--color-ink); }
+:root .settings-dialog .settings-pane [data-row-hint] { white-space: normal; overflow: visible; text-overflow: clip; color: color-mix(in srgb, var(--color-ink) 68%, transparent); }
+
+/* every select is Grok's outlined pill */
+:root .settings-dialog :is(.settings-pane :is([data-settings-select], [data-select-row] [role="combobox"], [data-panel-row="model"] [data-tour="model"]), [data-settings-header-actions] [data-settings-select]) {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  max-width: 260px;
+  margin: 0;
+  padding: 4px 5px 4px 7px;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 6%, transparent);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-ink);
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: 0;
+}
+:root .settings-dialog .settings-pane :is([data-settings-select], [data-select-row] [role="combobox"])::after { display: none; }
+:root .settings-dialog .settings-pane :is([data-settings-select], [data-select-row] [role="combobox"], [data-panel-row="model"] [data-tour="model"]):enabled:hover,
+:root .settings-dialog .settings-pane :is([data-settings-select], [data-select-row] [role="combobox"])[aria-expanded="true"] {
+  background-color: color-mix(in srgb, var(--color-ink) 6%, transparent);
+}
+:root .settings-dialog .settings-pane :is([data-settings-select], [data-select-row] [role="combobox"]):focus-visible { outline: 2px solid var(--color-focus); outline-offset: 1px; }
+:root .settings-dialog .settings-pane [data-setting-row]:has([data-settings-select]) { background-color: transparent !important; }
+
+/* the quiet pill a row ends in: Start Import, Manage Plan, Sign Out */
+:root .settings-dialog .settings-pane .ui-button {
+  height: 32px;
+  padding: 6px 12px;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0;
+}
+:root .settings-dialog .settings-pane [data-settings-rows] > [data-settings-account] { column-gap: 12px; min-height: 64px; }
+
+/* pills answer a press: a small inward scale, back on a quick ease (none when motion is reduced) */
+:root .settings-dialog .settings-pane .ui-button { transition: background-color 120ms ease, color 120ms ease, transform 160ms cubic-bezier(0.22, 1, 0.36, 1); }
+:root .settings-dialog .settings-pane .ui-button:enabled:active { transform: scale(0.97); }
+@media (prefers-reduced-motion: reduce) {
+  :root .settings-dialog .settings-pane .ui-button:enabled:active { transform: none; }
+}
+
+/* another pane comes in with a short fade and a slight slide; a page of the same pane wipes in over it instead */
+.settings-pane-in { animation: settings-pane-in 180ms var(--omb-ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both; }
+@keyframes settings-pane-in { from { opacity: 0; transform: translateX(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .settings-pane-in { animation-name: settings-pane-fade; animation-duration: 120ms; }
+  @keyframes settings-pane-fade { from { opacity: 0; } to { opacity: 1; } }
+}

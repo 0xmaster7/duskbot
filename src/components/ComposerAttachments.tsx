@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import { ClipboardPaste, File as FileIcon, Image as ImageIcon, LoaderCircle, MessageSquareText, Paperclip, X } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { ClipboardPaste, LoaderCircle, MessageSquareText, X } from "lucide-react";
+import { GrokIcon } from "./GrokIcon";
 import { cn } from "@/lib/cn";
 import {
   attachmentImageUrl,
@@ -11,7 +13,10 @@ import {
   type Attachment,
   type PasteAttachment,
 } from "@/lib/composer-attachments";
-import { AttachmentPreviewDialog, previewImage, type PreviewImage } from "./AttachmentPreview";
+import { AttachmentPreviewDialog, FileGlyph, previewImage, type PreviewImage } from "./AttachmentPreview";
+import { movesLess } from "./composer-wrap";
+import { rememberImageSize } from "./ImageRow";
+import { t } from "@/lib/i18n";
 import { CitationBadge } from "./CitationUI";
 import type { CitationAttachment } from "@/lib/citations";
 
@@ -20,14 +25,11 @@ export function pathForFile(file: File): string {
   return window.ogb?.getPathForFile?.(file) ?? "";
 }
 
+/** Drag and drop onto the window: grok's drop overlay over the chat pane, and the files go to the composer. */
 export function ComposerAttachments({
   items,
   onAdd,
-  onRemove,
-  onChangeCitation,
-  onDisplayInChatBox,
   allowImages = true,
-  notice,
   onNotice,
   onPendingChange,
   onDraggingChange,
@@ -35,18 +37,15 @@ export function ComposerAttachments({
 }: {
   items: Attachment[];
   onAdd: (attachments: Attachment[]) => void;
-  onRemove: (id: string) => void;
-  onChangeCitation: (citation: CitationAttachment) => void;
-  onDisplayInChatBox: (attachment: PasteAttachment) => void;
   allowImages?: boolean;
-  notice: string | null;
   onNotice: (notice: string | null) => void;
   onPendingChange?: (pending: boolean) => void;
   onDraggingChange?: (dragging: boolean) => void;
   uploadImage: (file: File) => Promise<Attachment | null>;
 }) {
   const [dragging, setDragging] = useState(false);
-  const [preview, setPreview] = useState<PreviewImage | null>(null);
+  const anchor = useRef<HTMLSpanElement>(null);
+  const [pane, setPane] = useState<DOMRect | null>(null);
   // dragenter/dragleave fire once per element crossed, so the overlay tracks depth.
   const depth = useRef(0);
   // A drop past the images the message can still take is left out with a notice.
@@ -65,6 +64,7 @@ export function ComposerAttachments({
     const onEnter = (e: DragEvent) => {
       if (!carriesFiles(e)) return;
       depth.current += 1;
+      setPane(anchor.current?.closest("main")?.getBoundingClientRect() ?? null);
       setDragging(true);
     };
     const onLeave = (e: DragEvent) => {
@@ -114,149 +114,123 @@ export function ComposerAttachments({
 
   return (
     <>
-      {dragging && (
-        <div className="composer-drop pointer-events-none fixed inset-2 z-50 flex flex-col items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-dashed border-accent bg-[color-mix(in_srgb,var(--color-app)_88%,transparent)] backdrop-blur-md">
+      <span ref={anchor} hidden />
+      {dragging && createPortal(
+        <div
+          style={pane ? { top: pane.top + 8, left: pane.left + 8, width: pane.width - 16, height: pane.height - 16 } : undefined}
+          className={cn("composer-drop pointer-events-none fixed z-[60] flex flex-col items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-dashed border-accent bg-[color-mix(in_srgb,var(--color-app)_88%,transparent)] backdrop-blur-md", !pane && "inset-2")}
+        >
           <span className="absolute inset-0 rounded-[inherit] bg-accent/[0.09]" aria-hidden="true" />
           <span className="relative flex rounded-xl bg-composer p-2.5 text-accent shadow-[inset_0_0_0_0.5px_rgb(28_28_28/0.08)]" aria-hidden="true">
-            <Paperclip size={24} strokeWidth={1.75} absoluteStrokeWidth />
+            <span className="flex size-[22px] items-center justify-center"><GrokIcon name="camera" size={18} /></span>
           </span>
-          <span className="relative text-[14px] font-medium tracking-[0.01em] text-ink">Drop to attach</span>
-        </div>
+          <span className="relative text-[14px] leading-5 font-semibold text-accent">{t("composer.dropToAttach")}</span>
+        </div>,
+        document.body,
       )}
-
-      {notice && (
-        <div className="mb-2 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-[12px] text-warning">
-          <span className="min-w-0 flex-1">{notice}</span>
-          <button
-            onClick={() => onNotice(null)}
-            aria-label="Dismiss"
-            className="shrink-0 rounded p-0.5"
-          >
-            <X size={12} />
-          </button>
-        </div>
-      )}
-
-      {items.length > 0 && (
-        <div className="mb-2 flex flex-wrap gap-2">
-          {items.map((a) =>
-            a.kind === "citation" ? (
-              <CitationBadge
-                key={a.id}
-                citation={a}
-                onChange={onChangeCitation}
-                onRemove={() => onRemove(a.id)}
-              />
-            ) : a.kind === "paste" ? (
-              <Chip
-                key={a.id}
-                label="PASTED"
-                title={a.text.slice(0, 4000)}
-                onRemove={() => onRemove(a.id)}
-              >
-                <div className="relative h-[76px] overflow-hidden">
-                  <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-[1.45] text-ink-secondary">
-                    {a.text.slice(0, 400)}
-                  </pre>
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-b from-transparent to-raised" />
-                </div>
-                <div className="mt-1 text-[11px] text-ink-tertiary">{pasteSummary(a)}</div>
-                <button
-                  type="button"
-                  onClick={() => onDisplayInChatBox(a)}
-                  className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-accent/25 bg-accent/5 px-2 py-1.5 text-[11px] font-medium text-accent-text transition-colors hover:border-accent/50 hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/60"
-                  aria-label="Display pasted text in chat box"
-                  title="Display in chat box"
-                >
-                  <MessageSquareText size={12} aria-hidden="true" />
-                  <span>Display in chat box</span>
-                </button>
-              </Chip>
-            ) : a.kind === "image" ? (
-              <Chip key={a.id} label="IMAGE" title={a.name} onRemove={() => onRemove(a.id)}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const image = previewImage(a.path, a.name);
-                    const src = image?.src ?? a.previewUrl;
-                    if (src) setPreview(image ?? { src, name: a.name });
-                  }}
-                  disabled={!attachmentImageUrl(a.path) && !a.previewUrl}
-                  aria-busy={a.uploading || undefined}
-                  className="relative flex h-[76px] w-full items-center justify-center overflow-hidden rounded-lg bg-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 disabled:cursor-default"
-                  aria-label={`Preview ${a.name}`}
-                >
-                  <img
-                    src={attachmentImageUrl(a.path) ?? a.previewUrl}
-                    alt={a.name}
-                    loading="eager"
-                    fetchPriority="high"
-                    className="max-h-[76px] max-w-full object-contain"
-                  />
-                  {a.uploading && (
-                    <span className="absolute bottom-1.5 right-1.5 flex size-6 items-center justify-center rounded-full bg-black/65 text-white shadow-sm">
-                      <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
-                    </span>
-                  )}
-                </button>
-                <div className="mt-1 truncate text-[11px] text-ink-tertiary">
-                  {a.uploading ? "Uploading…" : formatSize(a.size)}
-                </div>
-              </Chip>
-            ) : (
-              <Chip key={a.id} label="FILE" title={a.path} onRemove={() => onRemove(a.id)}>
-                <div className="flex h-[76px] items-center gap-2">
-                  <FileIcon size={16} className="shrink-0 text-ink-secondary" />
-                  <div className="min-w-0">
-                    <div className="truncate text-[12px] text-ink">{a.name}</div>
-                    <div className="text-[11px] text-ink-tertiary">{formatSize(a.size)}</div>
-                  </div>
-                </div>
-              </Chip>
-            ),
-          )}
-        </div>
-      )}
-      {preview && <AttachmentPreviewDialog image={preview} onClose={() => setPreview(null)} />}
     </>
   );
 }
 
-function Chip({
-  children,
-  label,
-  title,
-  onRemove,
-}: {
-  children: React.ReactNode;
-  label: "PASTED" | "FILE" | "IMAGE";
-  title: string;
-  onRemove: () => void;
+const TILE_REMOVE = "opacity-0 transition-[opacity,background-color] duration-[120ms] ease-[ease] group-hover/tile:opacity-100 focus-visible:opacity-100 touch:opacity-100";
+const CARD = "group/tile relative flex h-14 w-[calc(50%-4px)] min-w-[220px] max-w-[354px] shrink-0 items-center gap-2 rounded-[10px] bg-composer p-2 shadow-[0_0_0_0.5px_rgb(28_28_28/0.08),0_1px_4px_rgb(28_28_28/0.07),0_6px_12px_rgb(28_28_28/0.035)]";
+
+/**
+ * grok's attachments inside the composer: 56px tiles 8px apart in one scrolling row above the field, files as
+ * cards, and a one-line notice above them. The row rides the pill's top edge while the pill opens.
+ */
+export function ComposerAttachmentStrip({ items, onRemove, onChangeCitation, onDisplayInChatBox, notice, onNotice }: {
+  items: Attachment[];
+  onRemove: (id: string) => void;
+  onChangeCitation: (citation: CitationAttachment) => void;
+  onDisplayInChatBox: (attachment: PasteAttachment) => void;
+  notice: string | null;
+  onNotice: (notice: string | null) => void;
 }) {
-  const Icon = label === "PASTED" ? ClipboardPaste : label === "IMAGE" ? ImageIcon : FileIcon;
+  const [preview, setPreview] = useState<{ images: PreviewImage[]; index: number } | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+  const shown = items.length > 0 || Boolean(notice);
+  useEffect(() => { if (!items.length) onNotice(null); }, [items.length, onNotice]);
+  useLayoutEffect(() => {
+    const strip = ref.current;
+    const content = strip?.parentElement;
+    const shell = content?.parentElement;
+    if (!shown || !strip || !content || !shell || shell.dataset.snap !== undefined || movesLess() || typeof strip.animate !== "function") return;
+    const style = getComputedStyle(shell);
+    const grow = content.offsetHeight + (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0) - shell.offsetHeight;
+    if (grow <= 0) return;
+    const easing = getComputedStyle(document.documentElement).getPropertyValue("--composer-spring").trim() || "ease-out";
+    strip.animate([{ transform: `translateY(${grow}px)` }, { transform: "none" }], { duration: 300, easing });
+  }, [shown]);
+  if (!shown) return null;
+  const images = items.flatMap((a) => {
+    if (a.kind !== "image") return [];
+    const image = previewImage(a.path, a.name);
+    const src = image?.src ?? a.previewUrl;
+    return src ? [{ id: a.id, image: image ?? { src, name: a.name } }] : [];
+  });
+  const remove = (id: string) => { onNotice(null); onRemove(id); };
   return (
-    <div
-      title={title}
-      className={cn(
-        "group relative w-[172px] rounded-[12px] border-[0.5px] border-ink/[0.08] bg-composer px-2.5 py-2",
-        "shadow-[0_4px_12px_-1px_rgb(28_28_28/0.08),0_2px_4px_-2px_rgb(28_28_28/0.06)] transition-colors hover:border-ink/[0.16]",
+    <div ref={ref} data-composer-strip className="mt-0.5 mb-0.5 flex min-w-0 flex-col gap-1">
+      {notice && <p role="status" className="px-0.5 text-[11px] leading-[14px] text-ink/56">{notice}</p>}
+      {items.length > 0 && (
+        <div data-composer-attachments role="list" aria-label={t("attach.gallery")} className="pointer-events-none -mx-[9px] -mt-1.5 -mb-[18px] flex min-w-0 flex-nowrap gap-2 overflow-x-auto px-[9px] pt-1.5 pb-[18px] [scrollbar-width:none] *:pointer-events-auto">
+          {items.map((a) => a.kind === "citation" ? (
+            <div key={a.id} role="listitem" className="shrink-0"><CitationBadge citation={a} onChange={onChangeCitation} onRemove={() => remove(a.id)} /></div>
+          ) : a.kind === "image" ? (
+            <div key={a.id} role="listitem" aria-label={a.name} data-composer-attachment aria-busy={a.uploading || undefined}
+              className="group/tile relative size-14 shrink-0 overflow-hidden rounded-[10px] border-[0.5px] border-ink/12 bg-composer">
+              <button
+                type="button"
+                onClick={() => {
+                  const index = images.findIndex((entry) => entry.id === a.id);
+                  if (index >= 0) setPreview({ images: images.map((entry) => entry.image), index });
+                }}
+                aria-label={t("attach.openFullScreen")}
+                className="block size-full rounded-[inherit] transition-[filter] duration-[160ms] ease-[ease] hover:brightness-[1.04] focus-visible:outline-none focus-visible:inset-ring-2 focus-visible:inset-ring-focus"
+              >
+                <img src={attachmentImageUrl(a.path) ?? a.previewUrl} alt="" loading="eager" fetchPriority="high"
+                  onLoad={(event) => rememberImageSize(event.currentTarget.getAttribute("src") ?? "", { width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })}
+                  className={cn("block size-full object-cover transition-opacity duration-[180ms] ease-[ease]", a.uploading && "opacity-60")} />
+              </button>
+              {a.uploading && (
+                <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-white" aria-hidden="true">
+                  <LoaderCircle size={16} className="animate-spin drop-shadow" />
+                </span>
+              )}
+              <button type="button" onClick={() => remove(a.id)} aria-label={t("attach.removeNamed", { name: a.name })}
+                className={cn("absolute end-0.5 top-0.5 flex size-5 items-center justify-center rounded-full bg-ink text-app hover:bg-[color-mix(in_srgb,var(--color-ink),white_12%)]", TILE_REMOVE)}>
+                <GrokIcon name="close" size={12} />
+              </button>
+            </div>
+          ) : (
+            <div key={a.id} role="listitem" aria-label={a.kind === "paste" ? t("composer.pastedText") : a.name} title={a.kind === "paste" ? a.text.slice(0, 4000) : a.path} data-composer-attachment className={CARD}>
+              <span className="flex size-10 shrink-0 items-center justify-center">
+                {a.kind === "paste" ? (
+                  <span className="chat-file-glyph flex h-10 w-8 items-center justify-center rounded-[6px] bg-composer text-ink/40" aria-hidden="true"><ClipboardPaste size={14} strokeWidth={1.75} /></span>
+                ) : <FileGlyph name={a.name} />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[14px] leading-5 font-medium text-ink">{a.kind === "paste" ? t("composer.pastedText") : a.name}</span>
+                <span className="block truncate text-[13px] leading-[18px] text-ink/68">{a.kind === "paste" ? pasteSummary(a) : formatSize(a.size)}</span>
+              </span>
+              <span className={cn("flex shrink-0 items-center", TILE_REMOVE)}>
+                {a.kind === "paste" && (
+                  <button type="button" onClick={() => onDisplayInChatBox(a)} aria-label={t("composer.displayPasted")} title={t("composer.displayPasted")}
+                    className="flex size-8 items-center justify-center rounded-full text-ink/66 transition-colors duration-[120ms] ease-out hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+                    <MessageSquareText size={16} strokeWidth={1.75} aria-hidden="true" />
+                  </button>
+                )}
+                <button type="button" onClick={() => remove(a.id)} aria-label={t("attach.removeNamed", { name: a.kind === "paste" ? t("composer.pastedText") : a.name })}
+                  className="flex size-8 items-center justify-center rounded-full text-ink/66 transition-colors duration-[120ms] ease-out hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+                  <X size={16} strokeWidth={1.75} aria-hidden="true" />
+                </button>
+              </span>
+            </div>
+          ))}
+        </div>
       )}
-    >
-      {children}
-      <div className="mt-1 flex items-center gap-1">
-        <Icon size={11} className="text-ink-tertiary" />
-        <span className="rounded border border-hairline/60 px-1 py-px text-[10px] font-medium tracking-wide text-ink-secondary">
-          {label}
-        </span>
-      </div>
-      {/* Not `hidden`: that would take the only way to remove a chip out of the keyboard's reach. */}
-      <button
-        onClick={onRemove}
-        aria-label={`Remove ${label === "PASTED" ? "pasted text" : "file"}`}
-        className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-ink text-app opacity-0 transition-opacity hover:bg-ink/85 focus-visible:opacity-100 group-hover:opacity-100 touch:opacity-100"
-      >
-        <X size={11} strokeWidth={2.25} />
-      </button>
+      {preview && <AttachmentPreviewDialog image={preview.images[preview.index]!} images={preview.images} initialIndex={preview.index} onClose={() => setPreview(null)} />}
     </div>
   );
 }

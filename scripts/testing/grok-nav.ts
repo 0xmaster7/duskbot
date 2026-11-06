@@ -69,11 +69,27 @@ export async function openSettings(ui: Ui, pane?: string): Promise<void> {
   await dismissNotices(ui);
   await clickByName(ui, "You", "button");
   await clickByName(ui, "Settings", "menuitem");
-  if (pane) await clickByName(ui, pane, "button");
+  if (!pane) return;
+  // the rail's own item: a bot panel open under Settings can hold a row of the same name
+  const item = `[...document.querySelectorAll('[data-settings-sheet] .settings-nav-item')].find((entry) => entry.querySelector('span')?.textContent.trim() === ${JSON.stringify(pane)})`;
+  await expect.poll(async () => (await ui("eval", "--js", `Boolean(${item})`)).result, { timeout: 10_000, message: `rail item ${pane}` }).toBe(true);
+  await settled(ui);
+  await ui("eval", "--js", `${item}.click(); true`);
 }
 
-/** Settings > Advanced features > one of its pages: "Bots", "Apps and tools", "Privacy and data"... */
+/** Settings > Advanced features > one of its pages: "Apps and tools", "Privacy and data"... "Bots" is its own pane now,
+ * opened on new bots' defaults. */
 export async function openAdvancedSettings(ui: Ui, page: string): Promise<void> {
+  if (page === "Bots") {
+    await openSettings(ui);
+    const rail = "document.querySelector('[data-settings-sheet] [data-settings-page=bots]')";
+    await expect.poll(async () => (await ui("eval", "--js", `Boolean(${rail})`)).result, { timeout: 10_000 }).toBe(true);
+    await ui("eval", "--js", `${rail}.click(); true`);
+    await settled(ui);
+    await clickByName(ui, "Bot", "combobox");
+    await clickByName(ui, "New bots", "option");
+    return;
+  }
   await openSettings(ui, "Advanced features");
   await clickByName(ui, new RegExp(`^${page.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?: |$)`), "button");
 }
@@ -108,8 +124,11 @@ export async function openBotPanel(ui: Ui, botName: string): Promise<void> {
   await expect.poll(async () => (await ui("eval", "--js", "Boolean(document.getElementById('bot-panel'))")).result, { timeout: 10_000 }).toBe(true);
 }
 
-/** Panel > Advanced > a row of the bot's settings ("tools", "permissions", "identity", "slack"...): its settings sheet,
- * open at that page. A row's name carries its value, so the row is found by its page. */
+/** The bot's settings page now open on Settings' Bots pane ("tools", "permissions", "identity"...), or null. */
+export const BOT_PAGE = "document.querySelector('[data-settings-sheet] .settings-wipe-layer:not([data-wipe-out]) [data-bot-page]')?.dataset.botPage ?? null";
+
+/** Panel > Advanced > a row of the bot's settings ("tools", "permissions", "identity", "slack"...): Settings' Bots pane
+ * on this bot, open at that row's page. A row's name carries its value, so the row is found by its page. */
 export async function openBotSheet(ui: Ui, botName: string, page: string): Promise<void> {
   await openBotPanel(ui, botName);
   await clickByName(ui, "Advanced", "tab");
@@ -117,14 +136,14 @@ export async function openBotSheet(ui: Ui, botName: string, page: string): Promi
   await expect.poll(async () => (await ui("eval", "--js", `Boolean(${row})`)).result, { timeout: 10_000, message: `${page} row` }).toBe(true);
   await settled(ui);
   await ui("eval", "--js", `${row}.click(); true`);
-  await expect.poll(async () => (await ui("eval", "--js", `document.querySelector('[data-bot-sheet] [data-bot-sheet-page][aria-current=page]')?.dataset.botSheetPage ?? null`)).result, { timeout: 10_000 }).toBe(page);
+  await expect.poll(async () => (await ui("eval", "--js", BOT_PAGE)).result, { timeout: 10_000 }).toBe(page);
 }
 
-/** The bot's settings sheet closed, and the panel with it. */
+/** Settings closed, and the bot's panel with it. */
 export async function closeBotPanel(ui: Ui): Promise<void> {
-  if ((await ui("eval", "--js", "Boolean(document.querySelector('[data-bot-sheet]'))")).result === true) {
-    await ui("eval", "--js", "document.querySelector('[data-bot-sheet] .settings-close').click(); true");
-    await expect.poll(async () => (await ui("eval", "--js", "Boolean(document.querySelector('[data-bot-sheet]'))")).result).toBe(false);
+  if ((await ui("eval", "--js", "Boolean(document.querySelector('[data-settings-sheet]'))")).result === true) {
+    await ui("eval", "--js", "document.querySelector('[data-settings-sheet] .settings-close').click(); true");
+    await expect.poll(async () => (await ui("eval", "--js", "Boolean(document.querySelector('[data-settings-sheet]'))")).result).toBe(false);
   }
   if ((await ui("eval", "--js", "Boolean(document.getElementById('bot-panel'))")).result === true) {
     await ui("eval", "--js", "document.querySelector('#bot-panel button[aria-label=\"Close\"]').click(); true");
@@ -140,8 +159,17 @@ export async function openPanelMenu(ui: Ui, botName: string): Promise<void> {
   await settled(ui);
 }
 
-/** Another page of the open settings sheet, from its rail. */
+/** Another of the bot's settings pages: back to its rows on the Bots pane, then that row. */
 export async function sheetPage(ui: Ui, page: string): Promise<void> {
-  await ui("eval", "--js", `document.querySelector('[data-bot-sheet] [data-bot-sheet-page=${JSON.stringify(page)}]').click(); true`);
-  await expect.poll(async () => (await ui("eval", "--js", `document.querySelector('[data-bot-sheet] [data-bot-sheet-page][aria-current=page]')?.dataset.botSheetPage ?? null`)).result, { timeout: 10_000 }).toBe(page);
+  // the page shown is the wipe's live layer; an outgoing copy may still sit under it for 200ms
+  const live = "document.querySelector('[data-settings-sheet] .settings-wipe-layer:not([data-wipe-out])')";
+  for (let step = 0; step < 4; step++) {
+    if ((await ui("eval", "--js", `Boolean(${live}?.querySelector('[data-bot-page]'))`)).result !== true) break;
+    await ui("eval", "--js", `${live}.querySelector('[data-settings-back]').click(); true`);
+    await settled(ui);
+  }
+  const row = `${live}?.querySelector('[data-panel-page=${JSON.stringify(page)}]')`;
+  await expect.poll(async () => (await ui("eval", "--js", `Boolean(${row})`)).result, { timeout: 10_000 }).toBe(true);
+  await ui("eval", "--js", `${row}.click(); true`);
+  await expect.poll(async () => (await ui("eval", "--js", BOT_PAGE)).result, { timeout: 10_000 }).toBe(page);
 }

@@ -27,8 +27,6 @@ import { CloudPlanFootnote, CloudPlanRow, useCloudPlan } from "./ProIntroduction
 import { CloudUsageDetails, CloudUsageSummaryView, useCloudUsageSettings } from "./CloudUsageMeter";
 import { CompanyBackupSettings } from "./CompanyBackupSettings";
 import { DecisionModelSettings } from "./DecisionModelSettings";
-import { DefaultBotSidebarRow } from "./DefaultBotControls";
-import { DefaultBotSettings } from "./NewBotDialog";
 import { DiagnosticsRow } from "./DiagnosticsRow";
 import { EnginesSettings } from "./EnginesSettings";
 import { ImportSettings } from "./ImportSettings";
@@ -44,10 +42,10 @@ import { PeopleSection } from "./PeopleSection";
 import { PhoneAppDialog } from "./PhoneAppDialog";
 import { PlaceLookRows } from "./PlaceLookCard";
 import { PlanUsageSummary } from "./PlanUsage";
-import { ProfileFields } from "./ProfileSettings";
+import { ProfileAvatar, ProfileFields } from "./ProfileSettings";
 import { RoomTurnTimeoutSettings } from "./RoomTurnTimeoutSettings";
 import { SavedStepsRow } from "./SavedStepsRow";
-import { SettingRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
+import { SettingRow, SettingsExpand, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
 import { Card as RowsCard, FormDialog, NavRow, SwitchRow, useSubPage } from "./ListRows";
 import { SettingsSelect } from "./SettingsSelect";
 import { useServerUpdateItem } from "./SidebarProfileMenu";
@@ -66,7 +64,7 @@ import { UsageMeterCard } from "./native/UsageMeter";
 import { reportsUsage, useEngineLimits } from "@/lib/limit-resets";
 import { openInbox } from "@/state/inbox";
 import {
-  AdvancedModeRow, ExperimentalFeaturesRow, FollowUpRow, LanguageRow, NewBotEffortRow, PinnedCirclesRow,
+  AdvancedModeRow, ExperimentalFeaturesRow, LanguageRow, PinnedCirclesRow,
   ReplayTourRows, SendKeyRow, ToolCallsRow, UniversalPinsRow, UpdatesRow,
 } from "./AppSettingsRows";
 
@@ -99,7 +97,8 @@ function PageRow({ page, title, value, hint, ...rest }: { page: string; title: s
   return <NavRow {...rest} data-panel-page={page} title={title} value={value} hint={hint} onClick={() => sub.open(page, title)} />;
 }
 
-/** The person: their name and photo in a small form, the account they are signed in with, signing out. */
+/** Grok's account card: the person's initials or photo, their name and the account they are signed in with, then Add
+ * account and Sign Out as pills (or Add, for a name, where nobody signs in); the name opens a small form. */
 export function AccountRows() {
   const { state } = useStore();
   const accounts = useAccounts();
@@ -111,15 +110,22 @@ export function AccountRows() {
   const email = active?.email ?? profile?.email?.trim() ?? "";
   return (
     <>
-      <NavRow data-settings-open="profile" title={t("settings.profile.name")} value={name || t("settings.simple.account.noName")} onClick={() => setEditing(true)} />
-      {active ? (
-        <>
-          <NavRow data-settings-open="account" title={t("settings.rows.account")} value={email} drill={Boolean(accounts.openSheet)}
-            onClick={() => (accounts.openSheet ? accounts.openSheet() : undefined)} />
-          {window.ogb?.accounts && accounts.noRail && <NavRow title={t("settings.grok.account.add")} onClick={() => setAdding(true)} />}
-          <NavRow data-settings-open="sign-out" drill={false} title={t("settings.grok.account.signOut")} onClick={() => accounts.signOut(active.id)} />
-        </>
-      ) : email ? <NavRow title={t("settings.rows.email")} value={email} onClick={() => setEditing(true)} /> : null}
+      <div data-settings-account="" className="flex min-w-0 items-center gap-3">
+        <button type="button" data-settings-open="profile" aria-label={t("settings.w6.group.aboutYou")} onClick={() => setEditing(true)}
+          className="shrink-0 cursor-pointer rounded-full outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+          <ProfileAvatar profile={{ ...profile, name, email }} />
+        </button>
+        <div className="min-w-0 flex-1">
+          <div data-row-title="" className="truncate text-[14px] leading-5 text-ink">{name || t("settings.simple.account.noName")}</div>
+          {email && <div data-row-hint="" className="truncate text-[13px] leading-[18px] text-ink-secondary">{email}</div>}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {!active && <button type="button" className="ui-button" onClick={() => setEditing(true)}>{t(name ? "settings.simple.account.edit" : "settings.simple.account.add")}</button>}
+          {window.ogb?.accounts && (accounts.noRail || !active) && <button type="button" data-settings-open="add-account" className="ui-button" onClick={() => setAdding(true)}>{t("settings.grok.account.add")}</button>}
+          {active && accounts.openSheet && <button type="button" data-settings-open="account" className="ui-button" onClick={() => accounts.openSheet?.()}>{t("settings.rows.account")}</button>}
+          {active && <button type="button" data-settings-open="sign-out" className="ui-button" onClick={() => accounts.signOut(active.id)}>{t("settings.grok.account.signOut")}</button>}
+        </div>
+      </div>
       {editing && (
         <FormDialog data-panel-modal="profile" title={t("settings.w6.group.aboutYou")} width={460} onClose={() => setEditing(false)}>
           <div data-settings-look="simple" className="-mx-2 flex flex-col"><ProfileFields /></div>
@@ -184,24 +190,48 @@ export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boo
         <SettingsRows><NotificationRows simple /></SettingsRows>
       </SettingsGroup>
       {has("import") && (
-        <RowsCard label={t("settings.section.import")} data-settings-block="import">
-          <PageRow page="import" title={t("settings.import.grokTitle")} />
-        </RowsCard>
+        <SettingsGroup label={t("settings.section.import")} block="import">
+          <SettingsRows><ImportRow /></SettingsRows>
+        </SettingsGroup>
       )}
     </>
   );
 }
 
+/** Grok's Import row: what it brings and Start Import, which opens the import page. */
+function ImportRow() {
+  const sub = useSubPage();
+  return (
+    <SettingRow title={t("settings.import.grokTitle")} subtitle={t("settings.w6c.import.appsSubtitle")}>
+      <button type="button" data-panel-page="import" className="ui-button" onClick={() => sub.open("import", t("settings.import.grokTitle"))}>{t("settings.w6c.import.start")}</button>
+    </SettingRow>
+  );
+}
+
+/** The phone: get the app, then pair it here with a code that opens in place; the paired phones and their access below. */
 export function TextingPane({ has, remoteAccess }: { has: Has; remoteAccess: RemoteAccessCards }) {
   const { at } = useSubPage();
   const [phoneApp, setPhoneApp] = useState(false);
+  const [pairing, setPairing] = useState(false);
   if (at === "pairing") return <div data-settings-block="companion" className="flex flex-col gap-[22px]">{remoteAccess.pairing}{remoteAccess.companion}</div>;
   return (
     <>
-      <RowsCard data-settings-block="phone-app">
-        {has("companion") && <PageRow page="pairing" title={t("settings.w6.pairing.title")} />}
-        <NavRow data-settings-open="phone-app" title={t("settings.texting.phoneApp.title")} onClick={() => setPhoneApp(true)} />
-      </RowsCard>
+      <SettingsGroup label={t("settings.texting.phoneApp.title")} block="phone-app">
+        <SettingsRows>
+          <SettingRow title={t("settings.phone.use.title")} subtitle={t("settings.phone.use.hint")}>
+            <button type="button" data-settings-open="phone-app" className="ui-button" onClick={() => setPhoneApp(true)}>{t("settings.phone.use.action")}</button>
+          </SettingRow>
+          {has("companion") && (
+            <SettingRow title={t("settings.w6.pairing.title")} subtitle={t("settings.phone.pair.hint")}
+              message={<SettingsExpand open={pairing}><div data-settings-block="companion-pairing" className="pt-2">{remoteAccess.pairing}</div></SettingsExpand>}>
+              <button type="button" data-panel-page="pairing" aria-expanded={pairing} className="ui-button" onClick={() => setPairing(!pairing)}>
+                {pairing ? t("common.done") : t("settings.phone.pair.action")}
+              </button>
+            </SettingRow>
+          )}
+        </SettingsRows>
+      </SettingsGroup>
+      {has("companion") && remoteAccess.companion && <div data-settings-block="companion" className="contents">{remoteAccess.companion}</div>}
       <PhoneAppDialog open={phoneApp} onClose={() => setPhoneApp(false)} />
     </>
   );
@@ -226,7 +256,7 @@ export function ComputerPane({ has, remoteAccess, servers }: { has: Has; remoteA
     <>
       {has("computer") && (
         <RowsCard data-settings-block="computer">
-          <PageRow page="computers" title={t("settings.rows.desktops")} />
+          <PageRow page="computers" title={t("settings.rows.desktops")} hint={t("settings.hint.desktops")} />
         </RowsCard>
       )}
       {has("computer") && (
@@ -234,13 +264,13 @@ export function ComputerPane({ has, remoteAccess, servers }: { has: Has; remoteA
           <SettingsRows>
             <BuiltInBrowserRow />
             <ServerSitesRow />
-            {showProfiles && <PageRow page="profiles" title={t("settings.profiles.title")} value={profiles.length || undefined} />}
+            {showProfiles && <PageRow page="profiles" title={t("settings.profiles.title")} hint={t("settings.hint.profiles")} value={profiles.length || undefined} />}
           </SettingsRows>
         </SettingsGroup>
       )}
       {(has("companion") || has("desktopWorkspaces")) && (
         <RowsCard data-settings-block="remote">
-          <PageRow page="elsewhere" title={t("settings.simple.computer.elsewhere")} />
+          <PageRow page="elsewhere" title={t("settings.simple.computer.elsewhere")} hint={t("settings.hint.elsewhere")} />
         </RowsCard>
       )}
     </>
@@ -253,8 +283,8 @@ export function PermissionsPane({ has }: { has: Has }) {
   if (at === "activity") return <div data-settings-block="activity" className="contents"><ActivitySection /></div>;
   return (
     <RowsCard data-settings-block="permissions">
-      {has("botAccess") && <PageRow page="botAccess" title={t("settings.section.botAccess")} />}
-      {has("activity") && <PageRow page="activity" title={t("settings.section.activity")} />}
+      {has("botAccess") && <PageRow page="botAccess" title={t("settings.section.botAccess")} hint={t("settings.hint.botAccess")} />}
+      {has("activity") && <PageRow page="activity" title={t("settings.section.activity")} hint={t("settings.hint.activity")} />}
     </RowsCard>
   );
 }
@@ -302,7 +332,7 @@ function HelpGroup({ remoteActive }: { remoteActive: boolean }) {
       <NavRow data-settings-open="help" title={t("settings.advanced.about.help")} external onClick={() => void openExternalLink(HELP_CENTER_URL)} />
       <NavRow data-settings-open="feedback" title={t("settings.advanced.about.feedback")} external onClick={() => void openExternalLink(FEEDBACK_URL)} />
       {!remoteActive && <ReplayTourRows />}
-      <PageRow data-settings-open="diagnostics" page="diagnostics" title={t("settings.diagnostics.title")} />
+      <PageRow data-settings-open="diagnostics" page="diagnostics" title={t("settings.diagnostics.title")} hint={t("settings.hint.diagnostics")} />
       <AboutDialog open={about} onClose={() => setAbout(false)} />
       <KeyboardShortcutsModal open={shortcuts} onClose={() => setShortcuts(false)} />
     </RowsCard>
@@ -313,7 +343,6 @@ export { ADVANCED_PAGES, type AdvancedPage } from "@/lib/open-settings";
 
 const ADVANCED_TITLES: Record<AdvancedPage, LocaleKey> = {
   apps: "settings.w6.apps.title",
-  bots: "settings.advanced.bots.title",
   looks: "settings.advanced.looks.title",
   team: "settings.w6.team.title",
   data: "settings.w6.data.title",
@@ -321,6 +350,14 @@ const ADVANCED_TITLES: Record<AdvancedPage, LocaleKey> = {
 };
 
 export const advancedTitle = (page: AdvancedPage) => t(ADVANCED_TITLES[page]);
+
+const ADVANCED_HINTS: Record<AdvancedPage, LocaleKey> = {
+  apps: "settings.hint.appsPage",
+  looks: "settings.hint.looks",
+  team: "settings.hint.team",
+  data: "settings.hint.data",
+  builder: "settings.hint.builder",
+};
 
 /** The first screen of Advanced features: the places Grok keeps off its sidebar open straight away, then the rarer settings. */
 export function AdvancedIndex({ pages, remoteActive, onOpen }: { pages: readonly AdvancedPage[]; remoteActive: boolean; onOpen: (page: AdvancedPage) => void }) {
@@ -335,16 +372,16 @@ export function AdvancedIndex({ pages, remoteActive, onOpen }: { pages: readonly
     <>
       {!remoteActive && (
         <RowsCard label={t("settings.w6.group.yourBots")} data-settings-block="advanced-bots">
-          <NavRow data-settings-open="inbox" title={t("settings.advanced.bots.inbox")} onClick={() => { dispatch({ type: "toggleAppSettings", open: false }); openInbox(); }} />
-          <NavRow data-settings-open="automations" title={t("settings.advanced.bots.automations")} onClick={() => leave({ type: "showRoutines", view: "list" })} />
-          <NavRow data-settings-open="team-map" title={t("settings.advanced.bots.teamMap")} onClick={() => leave({ type: "showTeamMap" })} />
-          {files && <NavRow data-settings-open="files" title={t("settings.advanced.bots.files")} onClick={() => leave({ type: "showFiles" })} />}
-          {archived.length > 0 && <NavRow data-settings-open="archived" title={t("settings.advanced.bots.archived")} value={archived.length} onClick={() => setArchivedOpen(true)} />}
+          <NavRow data-settings-open="inbox" title={t("settings.advanced.bots.inbox")} hint={t("settings.hint.inbox")} onClick={() => { dispatch({ type: "toggleAppSettings", open: false }); openInbox(); }} />
+          <NavRow data-settings-open="automations" title={t("settings.advanced.bots.automations")} hint={t("settings.hint.automations")} onClick={() => leave({ type: "showRoutines", view: "list" })} />
+          <NavRow data-settings-open="team-map" title={t("settings.advanced.bots.teamMap")} hint={t("settings.hint.teamMap")} onClick={() => leave({ type: "showTeamMap" })} />
+          {files && <NavRow data-settings-open="files" title={t("settings.advanced.bots.files")} hint={t("settings.hint.files")} onClick={() => leave({ type: "showFiles" })} />}
+          {archived.length > 0 && <NavRow data-settings-open="archived" title={t("settings.advanced.bots.archived")} hint={t("settings.hint.archived")} value={archived.length} onClick={() => setArchivedOpen(true)} />}
         </RowsCard>
       )}
       <RowsCard label={remoteActive ? undefined : t("settings.w6.group.more")} data-settings-block="advanced-pages">
         {ADVANCED_PAGES.filter((page) => pages.includes(page.id)).map((page) => (
-          <NavRow key={page.id} data-settings-advanced={page.id} title={advancedTitle(page.id)} value={page.id === "looks" ? skin : undefined} onClick={() => onOpen(page.id)} />
+          <NavRow key={page.id} data-settings-advanced={page.id} title={advancedTitle(page.id)} hint={t(ADVANCED_HINTS[page.id])} value={page.id === "looks" ? skin : undefined} onClick={() => onOpen(page.id)} />
         ))}
       </RowsCard>
       {archivedOpen && <ArchivedBotsPanel bots={archived} onClose={() => setArchivedOpen(false)} onRestored={() => {}} />}
@@ -360,36 +397,10 @@ function AppsPage({ has }: { has: Has }) {
   if (at === "skills") return <div data-settings-block="skills" className="contents"><SkillsSection /></div>;
   return (
     <RowsCard data-settings-block="apps">
-      <NavRow data-settings-open="apps" title={t("settings.advanced.apps.connected.title")} onClick={() => dispatch({ type: "togglePlugins", open: true, surface: "apps" })} />
-      <PageRow page="mcp" title={t("settings.advanced.apps.mcp")} />
-      {skills && <PageRow page="skills" title={t("settings.section.skills")} />}
+      <NavRow data-settings-open="apps" title={t("settings.advanced.apps.connected.title")} hint={t("settings.hint.apps")} onClick={() => dispatch({ type: "togglePlugins", open: true, surface: "apps" })} />
+      <PageRow page="mcp" title={t("settings.advanced.apps.mcp")} hint={t("settings.hint.mcp")} />
+      {skills && <PageRow page="skills" title={t("settings.section.skills")} hint={t("settings.hint.skills")} />}
     </RowsCard>
-  );
-}
-
-function BotsPage() {
-  const { state } = useStore();
-  const [editing, setEditing] = useState(false);
-  const name = state.config?.profile?.name?.trim();
-  return (
-    <>
-      <RowsCard label={t("settings.w6.group.aboutYou")} data-settings-block="profile">
-        <NavRow data-settings-open="profile" title={t("settings.profile.name")} value={name || t("settings.simple.account.noName")} onClick={() => setEditing(true)} />
-      </RowsCard>
-      <SettingsGroup label={t("settings.advanced.bots.defaults")} block="bot-defaults">
-        <SettingsRows>
-          <DefaultBotSidebarRow simple />
-          <FollowUpRow simple />
-          <NewBotEffortRow />
-          <DefaultBotSettings />
-        </SettingsRows>
-      </SettingsGroup>
-      {editing && (
-        <FormDialog data-panel-modal="profile" title={t("settings.w6.group.aboutYou")} width={460} onClose={() => setEditing(false)}>
-          <div data-settings-look="simple" className="-mx-2 flex flex-col"><ProfileFields /></div>
-        </FormDialog>
-      )}
-    </>
   );
 }
 
@@ -461,7 +472,7 @@ export function UsagePane({ has, cloudAccount }: { has: Has; cloudAccount: React
       {usage && <div data-settings-block="cloudUsage" className="scroll-mt-4"><CloudUsageSummaryView usage={usage} upgrade={upgrade}>{dialog}</CloudUsageSummaryView></div>}
       {(usage || has("usage")) && (
         <RowsCard>
-          <PageRow page="breakdown" title={t("settings.usage.breakdown")} />
+          <PageRow page="breakdown" title={t("settings.usage.breakdown")} hint={t("settings.hint.breakdown")} />
         </RowsCard>
       )}
       {has("cloudAccount") && (
@@ -483,9 +494,9 @@ function TeamPage({ has, peopleOpen }: { has: Has; peopleOpen: boolean }) {
   if (at === "workspaces") return <div data-settings-block="workspaces" className="contents"><WorkspacesSection /></div>;
   return (
     <RowsCard data-settings-block="team">
-      {has("organization") && <PageRow page="organization" title={t("settings.section.organization")} />}
-      {has("people") && <PageRow page="people" title={t("settings.section.people")} />}
-      {has("workspaces") && <PageRow page="workspaces" title={t("settings.section.workspaces")} />}
+      {has("organization") && <PageRow page="organization" title={t("settings.section.organization")} hint={t("settings.hint.organization")} />}
+      {has("people") && <PageRow page="people" title={t("settings.section.people")} hint={t("settings.hint.people")} />}
+      {has("workspaces") && <PageRow page="workspaces" title={t("settings.section.workspaces")} hint={t("settings.hint.workspaces")} />}
     </RowsCard>
   );
 }
@@ -500,9 +511,9 @@ function DataPage({ has }: { has: Has }) {
       <SettingsGroup block="data">
         <SettingsRows>
           <AnalyticsRow simple />
-          <PageRow page="attachments" title={t("settings.attachments.title")} />
-          <PageRow page="thread-cleanup" title={t("settings.threadCleanup.title")} />
-          {has("backups") && <PageRow page="backups" title={t("settings.section.backups")} />}
+          <PageRow page="attachments" title={t("settings.attachments.title")} hint={t("settings.hint.attachments")} />
+          <PageRow page="thread-cleanup" title={t("settings.threadCleanup.title")} hint={t("settings.hint.threadCleanup")} />
+          {has("backups") && <PageRow page="backups" title={t("settings.section.backups")} hint={t("settings.hint.backups")} />}
         </SettingsRows>
       </SettingsGroup>
     </>
@@ -539,8 +550,8 @@ function BuilderPage() {
           <McpCallTimeoutSettings />
         </FieldDialogRow>
         <ThreadConcurrencySettings />
-        <PageRow page="recovery" title={t("settings.recovery.title")} />
-        <PageRow page="experimental" title={t("settings.experimental.title")} />
+        <PageRow page="recovery" title={t("settings.recovery.title")} hint={t("settings.hint.recovery")} />
+        <PageRow page="experimental" title={t("settings.experimental.title")} hint={t("settings.hint.experimental")} />
       </SettingsRows>
     </SettingsGroup>
   );
@@ -557,8 +568,8 @@ export function ModelsPane({ has, disclose, connections }: { has: Has; disclose:
       {has("engines") && <div data-settings-block="engines" className="flex scroll-mt-4 flex-col gap-[22px]"><AdminOnly><EnginesSettings simple more={disclose("ai-more")} /></AdminOnly></div>}
       {(has("connections") || has("decisionModel")) && (
         <RowsCard label={t("settings.rows.more")} data-settings-block="models-more">
-          {has("connections") && <PageRow page="keys" title={t("settings.section.connections")} />}
-          {has("decisionModel") && <PageRow page="decision" title={t("settings.section.decisionModel")} />}
+          {has("connections") && <PageRow page="keys" title={t("settings.section.connections")} hint={t("settings.hint.keys")} />}
+          {has("decisionModel") && <PageRow page="decision" title={t("settings.section.decisionModel")} hint={t("settings.hint.decision")} />}
         </RowsCard>
       )}
     </>
@@ -573,7 +584,6 @@ export function AdvancedPageView({ page, has, remoteActive, peopleOpen }: {
 }) {
   switch (page) {
     case "apps": return <AppsPage has={has} />;
-    case "bots": return <BotsPage />;
     case "looks": return <LooksPage remoteActive={remoteActive} />;
     case "team": return <TeamPage has={has} peopleOpen={peopleOpen} />;
     case "data": return <DataPage has={has} />;

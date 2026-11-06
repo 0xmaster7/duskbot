@@ -26,7 +26,7 @@ function useMemoryLine(bot: Bot): string {
 }
 
 /** The bot's settings as Grok-style list rows: what it knows, then what it can reach, each row opening its page of the
- * bot's settings sheet; then its rare actions. The Advanced tab draws it; the model lives on Details. */
+ * bot's settings in Settings (its Bots page); then its rare actions. The Advanced tab draws it; the model lives on Details. */
 export function SettingsPage({ bot, onOpen, slackUrl = null }: {
   bot: Bot;
   derived?: Derived;

@@ -108,7 +108,6 @@ afterEach(() => {
 // icon-font glyphs sit in the private use planes; read only the words
 const words = (element: Element | null) => element?.textContent?.replace(/[\u{E000}-\u{F8FF}\u{F0000}-\u{10FFFD}]/gu, "") ?? null;
 const modal = (name: string) => $(`[data-panel-modal="${name}"]`);
-const closeModal = () => click(document.querySelector('[role="dialog"][aria-modal="true"] [aria-label="Close"]'));
 
 describe("the Room panel's card", () => {
   it("shows the room's faces and name, then who responds, the folder, the instructions and the members as plain rows", () => {
@@ -174,11 +173,38 @@ describe("the tabs", () => {
   });
 });
 
-describe("Name and description", () => {
-  it("are rows on their page, edited together in one small form", () => {
+const { RoomAboutModal, RoomFolderModal, RoomInstructionsModal, RoomResponderModal } = await import("./RoomModals");
+const { useBotTarget } = await import("@/lib/open-settings");
+const target = { current: null as ReturnType<typeof useBotTarget> };
+function TargetProbe() {
+  target.current = useBotTarget();
+  return null;
+}
+// a page of the room's settings, as Settings' Bots page draws it for this group chat
+const renderPage = (element: ReturnType<typeof createElement>) => flushSync(() => root.render(element));
+
+describe("the room's settings pages", () => {
+  it("open Settings' Bots pane on this group chat, at the row's page", async () => {
     render(room());
+    flushSync(() => root.render([createElement(RoomPanel, { key: "panel", group: room() }), createElement(TargetProbe, { key: "target" })]));
+    for (const row of ["responder", "folder", "instructions"] as const) {
+      fixture.dispatch.mockClear();
+      click($(`[data-panel-page="${row}"]`));
+      await settle();
+      expect(fixture.dispatch).toHaveBeenCalledWith({ type: "toggleAppSettings", open: true, section: "bots" });
+      expect(target.current).toMatchObject({ kind: "group", id: "desk", row });
+    }
     click($('[data-panel-tab="advanced"]'));
     click($('[data-panel-page="about"]'));
+    await settle();
+    expect(target.current).toMatchObject({ kind: "group", id: "desk", row: "about" });
+    expect(document.querySelector('[role="dialog"][aria-modal="true"]')).toBeNull();
+  });
+});
+
+describe("Name and description", () => {
+  it("are rows on their page, edited together in one small form", () => {
+    renderPage(createElement(RoomAboutModal, { group: room(), onClose: vi.fn() }));
     expect(words(modal("about")!.querySelector('[data-sheet-row="name"]'))).toBe("NameDesk HQ");
     click(modal("about")!.querySelector('[data-sheet-row="name"]'));
     const form = modal("room-about-form")!;
@@ -194,9 +220,8 @@ describe("Name and description", () => {
 });
 
 describe("Who responds", () => {
-  it("lists each member, then MausBot choosing, everyone and mentions only, in its own dialog", () => {
-    render(room());
-    click($('[data-panel-page="responder"]'));
+  it("lists each member, then MausBot choosing, everyone and mentions only", () => {
+    renderPage(createElement(RoomResponderModal, { group: room(), members: fixtureBots, onClose: vi.fn() }));
     expect(modal("responder")).not.toBeNull();
     const choices = [...modal("responder")!.querySelectorAll("[data-panel-choice]")].map((row) => [row.getAttribute("data-panel-choice"), words(row), row.getAttribute("aria-checked")]);
     expect(choices).toEqual([
@@ -223,25 +248,21 @@ describe("Who responds", () => {
 
   it("says who answers instead while Jev is off", () => {
     fixture.config = jev(false);
-    render(room({ defaultResponder: { kind: "auto", fallbackBotId: "paper" } }));
-    click($('[data-panel-page="responder"]'));
+    renderPage(createElement(RoomResponderModal, { group: room({ defaultResponder: { kind: "auto", fallbackBotId: "paper" } }), members: fixtureBots, onClose: vi.fn() }));
     expect(words($('[data-panel-choice="auto"]'))).toBe("Let MausBot chooseJev is off, so plain messages go to Paperwork; @mentions override this");
     expect($('[data-panel-choice="auto"]')?.getAttribute("aria-checked")).toBe("true");
   });
 });
 
 describe("Working folder", () => {
-  it("opens its own dialog of plain choices, with the lock line only once the folder is fixed", () => {
-    render(room());
-    click($('[data-panel-page="folder"]'));
+  it("offers plain choices, with the lock line only once the folder is fixed", () => {
+    renderPage(createElement(RoomFolderModal, { key: "a", group: room(), onClose: vi.fn() }));
     expect(modal("folder")).not.toBeNull();
     expect([...modal("folder")!.querySelectorAll("[data-panel-choice]")].map((row) => [row.getAttribute("data-panel-choice"), row.getAttribute("aria-checked")]))
       .toEqual([["own", "true"], ["pick", "false"]]);
     expect($("[data-folder-locked]")).toBeNull();
     expect(modal("folder")!.querySelector(".font-mono")).toBeNull();
-    closeModal();
-    render(room({ cwd: "/Users/ada/code/recruiting", pinnedCwd: "/Users/ada/code/recruiting" }));
-    click($('[data-panel-page="folder"]'));
+    renderPage(createElement(RoomFolderModal, { key: "b", group: room({ cwd: "/Users/ada/code/recruiting", pinnedCwd: "/Users/ada/code/recruiting" }), onClose: vi.fn() }));
     expect($('[data-panel-choice="pick"]')?.textContent).toContain("~/code/recruiting");
     expect($('[data-panel-choice="pick"]')?.getAttribute("aria-checked")).toBe("true");
     expect($("[data-folder-locked]")?.textContent).toBe("Fixed for this group chat after its first turn.");
@@ -251,14 +272,13 @@ describe("Working folder", () => {
 describe("Instructions", () => {
   const field = () => $<HTMLTextAreaElement>('[data-panel-modal="instructions"] textarea');
 
-  it("edit in their own dialog, keep the draft when closed, and save with Save", () => {
-    render(room());
-    click($('[data-panel-page="instructions"]'));
+  it("keep the draft when the page closes, and save with Save", () => {
+    renderPage(createElement(RoomInstructionsModal, { key: "a", group: room(), onClose: vi.fn() }));
     expect(field()?.value).toBe("Hand out the work here.\nKeep it short.");
     type(field()!, "Draft brief");
-    closeModal();
+    renderPage(createElement("div", { key: "gone" }));
     expect(patches()).toEqual([]);
-    click($('[data-panel-page="instructions"]'));
+    renderPage(createElement(RoomInstructionsModal, { key: "b", group: room(), onClose: vi.fn() }));
     expect(field()?.value).toBe("Draft brief");
     click($('[data-panel-modal="instructions"] [data-modal-action="save"]'));
     expect(patches()).toEqual([{ type: "patchGroup", groupId: "desk", patch: { bulletin: "Draft brief" } }]);

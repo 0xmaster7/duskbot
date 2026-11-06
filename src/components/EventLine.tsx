@@ -20,7 +20,7 @@ export function EventLabel({ children, tone = "secondary" }: { children: ReactNo
 
 const CHIP = "inline-flex min-w-0 shrink items-center rounded-full py-1 pr-1.5 pl-1 tracking-[0.015em] text-ink-secondary";
 const CHIP_INTERACTIVE =
-  "cursor-pointer transition-[background-color,color] duration-[120ms] ease-out hover:bg-menu-hover hover:text-ink active:bg-menu-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus motion-reduce:transition-none";
+  "cursor-pointer transition-[background-color,color] duration-[120ms] ease-out hover:bg-menu-hover hover:text-ink active:bg-menu-active focus-visible:outline-none focus-visible:inset-ring-2 focus-visible:inset-ring-focus motion-reduce:transition-none";
 
 type ChipProps = { leading?: ReactNode; wideGap?: boolean; children: ReactNode; title?: string };
 

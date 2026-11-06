@@ -7,7 +7,7 @@ import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
-import { openTeamMap } from "./grok-nav.ts";
+import { BOT_PAGE, openTeamMap } from "./grok-nav.ts";
 import { fixtureApi } from "./preview-fixture.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
@@ -182,16 +182,20 @@ type BotRecord = {
       card.dispatchEvent(new PointerEvent('pointerout', { ...options, relatedTarget: document.body }));
       return true;
     })()`);
+    // Edit opens Ben's panel, and Settings' Bots pane over it at Ben's identity; Escape leaves the panel.
     await click("Edit Ben");
+    await expect.poll(() => evaluate(BOT_PAGE)).toBe("identity");
+    await ui("press", "--keys", "Escape");
+    await expect.poll(() => evaluate("Boolean(document.querySelector('[data-settings-sheet]'))")).toBe(false);
     await expect.poll(snapshot).toContain('dialog "Ben"');
     expect(await evaluate("Boolean(document.querySelector('[data-team-canvas]'))")).toBe(true);
     await expect.poll(() => evaluate("[...document.querySelectorAll('[data-team-canvas] [aria-label^=\"Desktop for \"]')].map(button => button.getAttribute('aria-label'))"))
       .toEqual(["Desktop for Ben"]);
-    // The bot's computer opens its settings sheet at Where Ben works, over its panel.
+    // The bot's computer opens Settings' Bots page at Where Ben works.
     await click("Desktop for Ben");
-    await expect.poll(() => evaluate("document.querySelector('[data-bot-sheet] [aria-current=page]')?.dataset.botSheetPage ?? null")).toBe("where");
+    await expect.poll(() => evaluate(BOT_PAGE)).toBe("where");
     await ui("press", "--keys", "Escape");
-    await expect.poll(() => evaluate("Boolean(document.querySelector('[data-bot-sheet]'))")).toBe(false);
+    await expect.poll(() => evaluate("Boolean(document.querySelector('[data-settings-sheet]'))")).toBe(false);
     await click("Close");
     await expect.poll(() => evaluate("document.querySelectorAll('[data-team-canvas] [aria-label^=\"Desktop for \"]').length")).toBe(0);
     await click("Change default model for Ben");

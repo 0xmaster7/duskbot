@@ -208,7 +208,7 @@ export function ProfileFields() {
   );
 }
 
-function ProfileAvatar({ profile }: { profile?: { name?: string; email?: string; avatarUrl?: string } }) {
+export function ProfileAvatar({ profile }: { profile?: { name?: string; email?: string; avatarUrl?: string } }) {
   const [failed, setFailed] = useState<string | null>(null);
   const initials = profileInitials(profile);
   const photo = profile?.avatarUrl && failed !== profile.avatarUrl ? profile.avatarUrl : null;

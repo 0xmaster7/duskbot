@@ -1,4 +1,6 @@
 import { useId, type ComponentProps, type ReactNode } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { EASE_OUT } from "@/lib/motion-presets";
 import { Check, ChevronRight, Copy, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useCopyFeedback } from "@/lib/copy-text";
@@ -186,5 +188,34 @@ export function CommandLine({ command, copyLabel = "Copy command" }: { command: 
         {state === "copied" ? <Check size={13} className="text-success" /> : state === "failed" ? <X size={13} className="text-danger" /> : <Copy size={13} />}
       </button>
     </div>
+  );
+}
+
+/** The app's reduced-motion choice or the system's, read safely where there is no window. */
+export function prefersReducedMotion(): boolean {
+  if (typeof document !== "undefined" && document.documentElement?.dataset?.reducedMotion === "true") return true;
+  return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/** Content a row opens in place: its height grows from nothing and settles without a jump (opacity only when motion is
+ * reduced), and closing shrinks it back before it leaves. */
+export function SettingsExpand({ open, children }: { open: boolean; children: ReactNode }) {
+  const reduced = prefersReducedMotion();
+  return (
+    <AnimatePresence initial={false}>
+      {open && (
+        <motion.div
+          key="expand"
+          data-settings-expand=""
+          initial={reduced ? { opacity: 0 } : { height: 0, opacity: 0 }}
+          animate={reduced ? { opacity: 1 } : { height: "auto", opacity: 1 }}
+          exit={reduced ? { opacity: 0 } : { height: 0, opacity: 0 }}
+          transition={{ duration: reduced ? 0.12 : 0.24, ease: EASE_OUT }}
+          className="overflow-hidden"
+        >
+          {children}
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

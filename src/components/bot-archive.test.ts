@@ -68,7 +68,7 @@ describe("archiving a bot", () => {
     expect(archivableChief([chief], "chief"), "the last active bot stays").toBeUndefined();
     expect(archivableChief([mausbot, scout], "mausbot"), "the place's own MausBot is never deleted or archived").toBeUndefined();
     expect(archivableChief([chief, scout], "scout"), "only a Chief is offered this").toBeUndefined();
-    expect(botConfirmCopy("delete", "Chief", true).body).toContain("Archive it instead to keep every conversation");
+    expect(botConfirmCopy("delete", "Chief", true).body).toContain("Archive it instead to keep its chats");
     expect(botConfirmCopy("delete", "Scout").body).not.toContain("Archive it instead");
     fixture.api.mockResolvedValue({ bot: { ...chief, hidden: true, chiefOfStaff: false } });
     await archiveBotWithNotice(chief, { bots: [chief, scout], selectedId: "scout", dispatch: fixture.dispatch, showThreads: true, notify: vi.fn() });

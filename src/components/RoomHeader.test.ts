@@ -74,22 +74,33 @@ beforeEach(() => {
 afterEach(() => closeRoomPanel());
 
 describe("the room header in Simple mode", () => {
-  it("shows only the room's name and up to three faces with +N", () => {
+  it("is one centred pill: up to three faces with +N, then the room's name", () => {
     const markup = view(room());
     const head = header(markup);
-    expect(shown(head)).toEqual(["members"]);
+    expect(shown(head)).toEqual([]);
+    expect(head.match(/<button/g)).toHaveLength(1);
     expect(head).toContain("data-room-name=");
+    expect(head).toContain("chat-head-pill");
     expect(head).toContain('aria-label="Open settings for Desk HQ"');
-    expect(head).toContain("The recruiting desk");
-    expect(head.match(/data-held|title="(?:Desk Manager|Vendor Bench|Job Board Sourcer|Paperwork|Phone Screener|Matcher|Interview Coordinator|Submission Writer|Timesheets)"/g)).toHaveLength(3);
-    expect(head).toContain(">+6</span>");
+    expect(head).toMatch(/data-roomhead-row="true" class="[^"]*justify-center/);
+    expect(head.match(/role="img" aria-label="(?:Desk Manager|Vendor Bench|Job Board Sourcer|Paperwork|Phone Screener|Matcher|Interview Coordinator|Submission Writer|Timesheets)"/g)).toHaveLength(3);
+    expect(head).toMatch(/>\s*\+(?:<!-- -->)?6\s*<\/span>/);
     expect(markup).not.toContain(BULLETIN);
   });
 
   it("draws no +N while every member has a face", () => {
     const head = header(view(room({ memberIds: ["bot-0", "bot-1", "bot-2"] })));
-    expect(head.match(/title="(?:Desk Manager|Vendor Bench|Job Board Sourcer)"/g)).toHaveLength(3);
-    expect(head).not.toMatch(/>\+\d/);
+    expect(head.match(/role="img" aria-label="(?:Desk Manager|Vendor Bench|Job Board Sourcer)"/g)).toHaveLength(3);
+    expect(head).not.toMatch(/>\+(?:<!-- -->)?\d/);
+  });
+
+  it("puts the members at work first in the stack, playing their working state", () => {
+    const head = renderToStaticMarkup(createElement(RoomHeader, {
+      group: room({ busyBotId: "bot-7", working: true }), members: bots, simple: true, setupPending: false, remoteClient: false, findOpen: false,
+      onToggleFind: vi.fn(), onToggleFolder: vi.fn(), onOpenMembers: vi.fn(), membersTriggerRef: { current: null },
+    }));
+    expect(head.match(/role="img" aria-label="([^"]+)"/)?.[1]).toBe("Submission Writer");
+    expect(head).toMatch(/data-grok-state="working"[^>]*role="img" aria-label="Submission Writer"/);
   });
 
   it("keeps every control and the instructions line in Advanced mode", () => {
@@ -147,15 +158,21 @@ describe("the Simple header's buttons", () => {
     host.remove();
   });
 
-  it("opens the Room panel from the room's name, and Manage members from the faces", () => {
+  it("opens the Room panel from the pill, and closes it again like the bot pill", () => {
     draw();
-    flushSync(() => host.querySelector<HTMLButtonElement>("[data-room-name]")!.click());
+    const pill = () => host.querySelector<HTMLButtonElement>("[data-room-name] button[data-chathead-pill]")!;
+    expect(pill().getAttribute("aria-expanded")).toBe("false");
+    flushSync(() => pill().click());
     expect(opened.id).toBe("desk");
-    flushSync(() => host.querySelector<HTMLButtonElement>("[data-room-faces]")!.click());
-    expect(onOpenMembers).toHaveBeenCalledTimes(1);
+    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "toggleSettings", open: true });
+    draw();
+    expect(pill().getAttribute("aria-expanded")).toBe("true");
+    flushSync(() => pill().click());
+    expect(opened.id).toBeNull();
+    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "toggleSettings", open: false });
   });
 
-  it("cuts both buttons out of the window's drag region", () => {
+  it("cuts the pill out of the window's drag region", () => {
     fixture.chrome = captionChrome("mac-inset");
     // Read off the markup: happy-dom's CSSStyleDeclaration drops the Electron-only property.
     const markup = renderToStaticMarkup(createElement(RoomHeader, {
@@ -163,8 +180,7 @@ describe("the Simple header's buttons", () => {
       onToggleFind: vi.fn(), onToggleFolder: vi.fn(), onOpenMembers, membersTriggerRef: { current: null },
     }));
     expect(markup).toMatch(/^<div data-window-drag="" style="-webkit-app-region:drag"/);
-    const buttons = markup.match(/<button[^>]*>/g)!;
-    expect(buttons).toHaveLength(2);
-    for (const button of buttons) expect(button).toContain('style="-webkit-app-region:no-drag"');
+    expect(markup.match(/<button[^>]*>/g)).toHaveLength(1);
+    expect(markup).toMatch(/<div data-roomhead-identity="true"[^>]*style="-webkit-app-region:no-drag"[^>]*>\s*<button/);
   });
 });

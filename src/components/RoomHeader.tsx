@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { ChevronRight, Pause, Plus, Search } from "lucide-react";
+import { Pause, Plus, Search } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import { roomContextWarnings } from "@/lib/context-warning";
@@ -7,7 +7,7 @@ import { effectiveDefaultResponder, jevRoomRoutingOn } from "@/lib/group-routing
 import { t } from "@/lib/i18n";
 import { normalizeState } from "@/lib/mascot";
 import { effectivePlace, placeLabelKey } from "@/lib/place";
-import { openRoomPanel } from "@/lib/room-panel";
+import { closeRoomPanel, openRoomPanel, useRoomPanel } from "@/lib/room-panel";
 import { chosenResponder, responderChoice, responderTitle } from "@/lib/room-responder";
 import { roomSpeakerIds } from "@/lib/room-threads";
 import { useStore, type Bot, type Group } from "@/state/store";
@@ -21,6 +21,9 @@ import { GroupUsageChip } from "./GroupUsageChip";
 import { PlaceIcon } from "./PlaceIcon";
 import { roomMemberQueueTitle } from "./RoomQueueList";
 import { RoomWorkingFolderChip } from "./RoomWorkingFolder";
+import { roomWorkingIds } from "./RoomWorkingLines";
+import { ChatHeadPill } from "./ChatHeadPill";
+import { BotFaces } from "./BotFaces";
 import { Select } from "./Select";
 
 export function DefaultResponderSelect({ group, members }: { group: Group; members: Bot[] }) {
@@ -119,7 +122,45 @@ function memberMauses(group: Group, members: Bot[]) {
   });
 }
 
-const SIMPLE_FACES = 3;
+const PILL_FACES = 3;
+
+/** Simple mode's whole room header: the bot chat's pill with the members' faces, opening and closing the Room panel. */
+function RoomHeadPill({ group, members, dragProps, noDragStyle }: {
+  group: Group;
+  members: Bot[];
+  dragProps: ReturnType<typeof useCaptionChrome>["dragProps"];
+  noDragStyle: ReturnType<typeof useCaptionChrome>["noDragStyle"];
+}) {
+  const { state, dispatch } = useStore();
+  const openRoom = useRoomPanel();
+  const expanded = state.settingsOpen || openRoom === group.id;
+  const working = new Set(roomWorkingIds(group, group.messages.at(-1)));
+  return (
+    <div {...dragProps} className="px-5 pt-2.5 pb-2.5 max-md:pl-14 max-md:pr-3">
+      <div data-roomhead-row className="flex min-w-0 items-center justify-center">
+        <div data-roomhead-identity data-room-name className="flex min-w-0 max-w-full justify-center" style={noDragStyle}>
+          <ChatHeadPill
+            room={{
+              name: group.name,
+              label: t("room.panel.openAria", { name: group.name }),
+              expanded,
+              faces: <BotFaces members={members} size={24} max={PILL_FACES} working={working} overlap={4} ground="bg-composer" />,
+            }}
+            onToggle={(event) => {
+              if (expanded) {
+                closeRoomPanel();
+                dispatch({ type: "toggleSettings", open: false });
+                return;
+              }
+              openRoomPanel(group.id, event.currentTarget);
+              dispatch({ type: "toggleSettings", open: true });
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function RoomHeader({
   group,
@@ -144,61 +185,12 @@ export function RoomHeader({
   onOpenMembers: () => void;
   membersTriggerRef: RefObject<HTMLButtonElement | null>;
 }) {
-  const { dispatch } = useStore();
   const { dragProps: headerDragProps, noDragStyle: headerNoDragStyle } = useCaptionChrome();
   const faces = memberMauses(group, members);
   const membersLabel = members.length === 1
     ? t("room.members.ariaOne")
     : t("room.members.ariaMany", { count: members.length });
-  if (simple) {
-    const more = members.length - SIMPLE_FACES;
-    return (
-      <div {...headerDragProps} className="@container/roomhead px-5 py-3 pl-11 md:pl-5">
-        <div data-roomhead-row className="flex items-center justify-between gap-3">
-          <div data-roomhead-identity className="flex min-w-0 flex-col items-start" style={headerNoDragStyle}>
-            <button
-              type="button"
-              data-room-name
-              onClick={(event) => {
-                openRoomPanel(group.id, event.currentTarget);
-                dispatch({ type: "toggleSettings", open: true });
-              }}
-              title={t("room.panel.open")}
-              aria-label={t("room.panel.openAria", { name: group.name })}
-              aria-haspopup="dialog"
-              style={headerNoDragStyle}
-              className="group -mx-2 flex min-w-0 max-w-[calc(100%+1rem)] items-center gap-1 rounded-lg px-2 py-0.5 hover:bg-raised/60 focus-visible:bg-raised/60"
-            >
-              <span className="truncate text-[15px] font-semibold text-ink">{group.name}</span>
-              <ChevronRight size={14} aria-hidden="true" className="-ml-1 w-0 shrink-0 text-ink-secondary opacity-0 transition-[width,margin,opacity] duration-150 group-hover:ml-0 group-hover:w-3.5 group-hover:opacity-100 group-focus-visible:ml-0 group-focus-visible:w-3.5 group-focus-visible:opacity-100" />
-            </button>
-            {group.description && <p className="max-w-full truncate text-[12px] leading-4 text-ink-secondary">{group.description}</p>}
-          </div>
-          <div data-roomhead-controls className="flex shrink-0 items-center">
-            <button
-              ref={membersTriggerRef}
-              type="button"
-              data-room-faces
-              onClick={onOpenMembers}
-              title={t("room.members.manage")}
-              aria-label={membersLabel}
-              style={headerNoDragStyle}
-              className="flex items-center rounded-full py-0.5 pl-1 pr-1.5 hover:bg-raised/60"
-            >
-              <span className="flex items-center -space-x-1.5">
-                {faces.slice(0, SIMPLE_FACES)}
-                {more > 0 && (
-                  <span className="relative flex h-6 min-w-6 items-center justify-center rounded-full border border-app bg-raised px-1 text-[11px] font-medium tabular-nums text-ink-secondary">
-                    +{more}
-                  </span>
-                )}
-              </span>
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (simple) return <RoomHeadPill group={group} members={members} dragProps={headerDragProps} noDragStyle={headerNoDragStyle} />;
   return (
       <div
         {...headerDragProps}

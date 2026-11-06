@@ -11,8 +11,6 @@ import {
 import { createPortal } from "react-dom";
 import {
   Check,
-  ChevronLeft,
-  ChevronRight,
   Download,
   ExternalLink,
   Eye,
@@ -20,9 +18,7 @@ import {
   FolderOpen,
   ImageOff,
   LoaderCircle,
-  Maximize2,
   RotateCcw,
-  X,
 } from "lucide-react";
 
 import {
@@ -36,6 +32,7 @@ import { t } from "@/lib/i18n";
 import { FilePreviewButton } from "./FilePreviewButton";
 import { chipNameAction, SaveIconButton, useHtmlPreview } from "./HtmlFilePreview";
 import { ImageLoading } from "./ImageLoading";
+import { GrokIcon } from "./GrokIcon";
 
 export interface PreviewImage {
   src: string;
@@ -455,6 +452,10 @@ export function OutsideWorkspaceFile({ filePath }: { filePath: string }) {
   );
 }
 
+const VIEWER_BUTTON = "flex size-8 items-center justify-center rounded-full border border-[rgb(245_245_245/0.06)] bg-[rgb(245_245_245/0.04)] text-[rgb(245_245_245/0.66)] transition-colors duration-[120ms] ease-out hover:bg-[rgb(245_245_245/0.1)] hover:text-[rgb(245_245_245/0.9)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60";
+const ZOOMED = 2.5;
+
+/** grok's media viewer: the whole window, no entrance motion, a caption and a filmstrip under the image. */
 export function AttachmentPreviewDialog({
   image,
   images,
@@ -474,6 +475,9 @@ export function AttachmentPreviewDialog({
   const [loadedSources, setLoadedSources] = useState<Set<string>>(() => new Set());
   const [failedSource, setFailedSource] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [zoom, setZoom] = useState<{ scale: number; x: number; y: number }>({ scale: 1, x: 0, y: 0 });
+  const drag = useRef<{ x: number; y: number; from: { x: number; y: number } } | null>(null);
+  const [dragging, setDragging] = useState(false);
 
   useLayoutEffect(() => {
     closeRef.current = onClose;
@@ -482,7 +486,14 @@ export function AttachmentPreviewDialog({
   const navigate = useCallback((step: -1 | 1) => {
     setIndex((value) => wrappedImageIndex(value, step, items.length));
     setFailedSource(null);
+    setZoom({ scale: 1, x: 0, y: 0 });
   }, [items.length]);
+
+  const show = (next: number) => {
+    setIndex(next);
+    setFailedSource(null);
+    setZoom({ scale: 1, x: 0, y: 0 });
+  };
 
   useEffect(() => {
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -535,119 +546,119 @@ export function AttachmentPreviewDialog({
     });
     setAttempt((value) => value + 1);
   };
+  const toggleZoom = (event: React.MouseEvent<HTMLImageElement>) => {
+    if (zoom.scale > 1) return setZoom({ scale: 1, x: 0, y: 0 });
+    const box = event.currentTarget.getBoundingClientRect();
+    const dx = event.clientX - (box.left + box.width / 2);
+    const dy = event.clientY - (box.top + box.height / 2);
+    setZoom({ scale: ZOOMED, x: -dx * (ZOOMED - 1), y: -dy * (ZOOMED - 1) });
+  };
+  const strip = items.length > 1;
+  const caption = strip ? `${current.name} · ${index + 1} / ${items.length}` : current.name;
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6"
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t("attach.previewAria", { name: current.name })}
+      tabIndex={-1}
+      data-media-viewer
+      className="fixed inset-0 z-[70] bg-black/95 outline-none"
       onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
+      <div className="absolute end-3 top-3 z-[1] flex items-center gap-2">
+        {current.downloadUrl && (
+          <a
+            href={current.downloadUrl}
+            download={current.downloadName ?? canonicalDownloadFilename({ fallback: current.name, source: current.downloadUrl })}
+            className={VIEWER_BUTTON}
+            aria-label={t("attach.downloadAria", { name: current.name })}
+            title={t("attach.download")}
+          >
+            <Download size={16} strokeWidth={1.75} />
+          </a>
+        )}
+        {current.openUrl && (
+          <a href={current.openUrl} target="_blank" rel="noreferrer" className={VIEWER_BUTTON}
+            aria-label={t("attach.openOriginalAria", { name: current.name })} title={t("attach.openOriginal")}>
+            <ExternalLink size={16} strokeWidth={1.75} />
+          </a>
+        )}
+        <button type="button" onClick={onClose} className={VIEWER_BUTTON} aria-label={t("attach.close")}>
+          <GrokIcon name="close" size={18} />
+        </button>
+      </div>
       <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={t("attach.previewAria", { name: current.name })}
-        tabIndex={-1}
-        className="animate-pop-in flex h-full max-h-[900px] w-full max-w-[1200px] flex-col overflow-hidden rounded-2xl border border-white/15 bg-black/70 shadow-2xl outline-none"
+        className={cn("absolute inset-x-0 top-11 flex items-center justify-center overflow-hidden px-[38px] pt-[38px]", strip ? "bottom-[132px]" : "bottom-[68px]")}
+        onMouseDown={(event) => event.target === event.currentTarget && onClose()}
       >
-        <header className="flex shrink-0 items-center justify-between gap-4 border-b border-white/10 bg-black/45 px-4 py-3">
-          <div className="min-w-0">
-            <div className="truncate text-[13px] font-medium text-white">{current.name}</div>
-            <div className="text-[11px] text-white/50">
-              {items.length > 1
-                ? t("attach.position", { index: index + 1, count: items.length })
-                : t("attach.imagePreview")}
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-1">
-            {current.downloadUrl && (
-              <a
-                href={current.downloadUrl}
-                download={current.downloadName ?? canonicalDownloadFilename({
-                  fallback: current.name,
-                  source: current.downloadUrl,
-                })}
-                className="flex size-9 items-center justify-center rounded-lg text-white/65 hover:bg-white/10 hover:text-white"
-                aria-label={t("attach.downloadAria", { name: current.name })}
-                title={t("attach.download")}
-              >
-                <Download size={17} />
-              </a>
-            )}
-            {current.openUrl && (
-              <a
-                href={current.openUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="flex size-9 items-center justify-center rounded-lg text-white/65 hover:bg-white/10 hover:text-white"
-                aria-label={t("attach.openOriginalAria", { name: current.name })}
-                title={t("attach.openOriginal")}
-              >
-                <ExternalLink size={17} />
-              </a>
-            )}
-            <button
-              onClick={onClose}
-              className="flex size-9 items-center justify-center rounded-lg text-white/65 hover:bg-white/10 hover:text-white"
-              aria-label={t("attach.close")}
-            >
-              <X size={19} />
+        {!loaded && !failed && (
+          <span className="absolute inset-0 flex items-center justify-center text-[rgb(245_245_245/0.54)]" role="status" aria-label={t("attach.loadingImage")}>
+            <LoaderCircle size={18} className="animate-spin" aria-hidden="true" />
+          </span>
+        )}
+        {failed ? (
+          <div className="flex flex-col items-center gap-3 text-[rgb(245_245_245/0.66)]" role="alert">
+            <ImageOff size={28} />
+            <span className="text-[13px]">{t("attach.imageUnavailable")}</span>
+            <button type="button" onClick={retry} className="flex h-7 items-center gap-1.5 rounded-full border border-[rgb(245_245_245/0.1)] bg-[rgb(245_245_245/0.06)] px-3 text-[12px] text-[rgb(245_245_245/0.9)] hover:bg-[rgb(245_245_245/0.12)]">
+              <RotateCcw size={13} /> {t("chat.retry")}
             </button>
           </div>
-        </header>
-        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-4 sm:p-8">
-          {!loaded && !failed && (
-            <div className="absolute inset-4 flex animate-pulse items-center justify-center rounded-xl bg-white/[0.055] sm:inset-8" role="status">
-              <span className="flex items-center gap-2 text-[13px] text-white/55">
-                <LoaderCircle size={17} className="animate-spin" /> Loading image…
-              </span>
-            </div>
-          )}
-          {failed ? (
-            <div className="flex flex-col items-center gap-3 text-white/60" role="alert">
-              <ImageOff size={34} />
-              <span className="text-[13px]">This image could not be loaded.</span>
+        ) : (
+          <img
+            key={`${current.src}:${attempt}`}
+            src={current.src}
+            alt={current.name}
+            draggable={false}
+            onLoad={() => setLoadedSources((sources) => new Set(sources).add(current.src))}
+            onError={() => setFailedSource(current.src)}
+            onDoubleClick={toggleZoom}
+            onPointerDown={(event) => {
+              if (zoom.scale === 1) return;
+              drag.current = { x: event.clientX, y: event.clientY, from: { x: zoom.x, y: zoom.y } };
+              event.currentTarget.setPointerCapture(event.pointerId);
+              setDragging(true);
+            }}
+            onPointerMove={(event) => {
+              const start = drag.current;
+              if (start) setZoom({ scale: zoom.scale, x: start.from.x + event.clientX - start.x, y: start.from.y + event.clientY - start.y });
+            }}
+            onPointerUp={() => { drag.current = null; setDragging(false); }}
+            style={{
+              transform: `translate(${zoom.x}px, ${zoom.y}px) scale(${zoom.scale})`,
+              transition: dragging ? "none" : "transform 200ms cubic-bezier(0.23, 1, 0.32, 1)",
+            }}
+            className={cn(
+              "block max-h-full max-w-full rounded-[8px] object-contain select-none motion-reduce:!transition-none",
+              zoom.scale > 1 ? (dragging ? "cursor-grabbing" : "cursor-grab") : "cursor-zoom-in",
+              loaded ? "opacity-100" : "opacity-0",
+            )}
+          />
+        )}
+      </div>
+      <div className="absolute inset-x-0 bottom-5 flex flex-col items-center gap-4">
+        <span className="flex h-8 max-w-[80vw] items-center truncate text-[12px] leading-4 text-[rgb(245_245_245/0.54)]">{caption}</span>
+        {strip && (
+          <div className="flex max-w-[90vw] gap-2 overflow-x-auto [scrollbar-width:none]">
+            {items.map((item, itemIndex) => (
               <button
+                key={`${itemIndex}:${item.src}`}
                 type="button"
-                onClick={retry}
-                className="flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/10 px-3 py-1.5 text-[12px] text-white hover:bg-white/15"
+                onClick={() => show(itemIndex)}
+                aria-label={t("attach.viewMedia", { index: itemIndex + 1, count: items.length })}
+                aria-current={itemIndex === index || undefined}
+                className={cn(
+                  "size-12 shrink-0 overflow-hidden rounded-[8px] transition-opacity duration-150 ease-[ease] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60",
+                  itemIndex === index ? "border-2 border-[rgb(245_245_245)] p-0.5" : "border border-[rgb(245_245_245/0.1)] opacity-50 hover:opacity-80",
+                )}
               >
-                <RotateCcw size={13} /> Retry
+                <img src={item.src} alt="" className={cn("size-full object-cover", itemIndex === index ? "rounded-[4px]" : "rounded-[7.5px]")} />
               </button>
-            </div>
-          ) : (
-            <img
-              key={`${current.src}:${attempt}`}
-              src={current.src}
-              alt={current.name}
-              onLoad={() => setLoadedSources((sources) => new Set(sources).add(current.src))}
-              onError={() => setFailedSource(current.src)}
-              className={cn(
-                "block max-h-full max-w-full rounded-lg object-contain shadow-2xl transition-opacity duration-150",
-                loaded ? "opacity-100" : "opacity-0",
-              )}
-            />
-          )}
-          {items.length > 1 && (
-            <>
-              <button
-                type="button"
-                onClick={() => navigate(-1)}
-                aria-label={t("attach.previous")}
-                className="absolute left-2 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white/80 backdrop-blur-sm hover:bg-black/75 hover:text-white sm:left-4"
-              >
-                <ChevronLeft size={21} />
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate(1)}
-                aria-label={t("attach.next")}
-                className="absolute right-2 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white/80 backdrop-blur-sm hover:bg-black/75 hover:text-white sm:right-4"
-              >
-                <ChevronRight size={21} />
-              </button>
-            </>
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>,
     document.body,
@@ -660,12 +671,16 @@ export function AttachmentThumbnail({
   className,
   eager = false,
   explainRefusal = false,
+  label,
+  onSize,
 }: {
   image: PreviewImage;
   onPreview: () => void;
   className?: string;
   eager?: boolean;
   explainRefusal?: boolean;
+  label?: string;
+  onSize?: (size: { width: number; height: number }) => void;
 }) {
   // Callers key this by src: resetting in an effect races a cached image's onLoad, which can fire before the effect
   // runs.
@@ -726,8 +741,8 @@ export function AttachmentThumbnail({
               onPreview();
             }
           }}
-          className="absolute inset-0 block size-full cursor-pointer text-left focus-visible:outline-none focus-visible:inset-ring-2 focus-visible:inset-ring-accent/60 aria-disabled:cursor-default"
-          aria-label={t("attach.previewImageAria", { name: image.name })}
+          className="absolute inset-0 block size-full cursor-pointer text-left transition-[filter] duration-[160ms] ease-[ease] hover:brightness-[1.04] focus-visible:outline-none focus-visible:inset-ring-2 focus-visible:inset-ring-accent/60 aria-disabled:cursor-default"
+          aria-label={label ?? t("attach.previewImageAria", { name: image.name })}
           title={t("attach.previewAria", { name: image.name })}
         >
           <img
@@ -738,7 +753,10 @@ export function AttachmentThumbnail({
             fetchPriority={eager ? "high" : undefined}
             onLoad={(event) => {
               const { naturalWidth, naturalHeight } = event.currentTarget;
-              if (naturalWidth > 0 && naturalHeight > 0) setRatio(Math.min(Math.max(naturalWidth / naturalHeight, 0.6), 2.4));
+              if (naturalWidth > 0 && naturalHeight > 0) {
+                setRatio(Math.min(Math.max(naturalWidth / naturalHeight, 0.6), 2.4));
+                onSize?.({ width: naturalWidth, height: naturalHeight });
+              }
               setState("ready");
             }}
             onError={() => {
@@ -746,13 +764,10 @@ export function AttachmentThumbnail({
               if (explainRefusal) void messageImageOutsideWorkspace(image.src).then(setOutsideWorkspace);
             }}
             className={cn(
-              "block size-full object-cover transition duration-200 group-hover/image:scale-[1.015]",
+              "block size-full object-cover transition-opacity duration-[180ms] ease-[ease]",
               state === "ready" ? "opacity-100" : "opacity-0",
             )}
           />
-          <span className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-black/55 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover/image:opacity-100 group-focus-within/image:opacity-100">
-            <Maximize2 size={13} />
-          </span>
         </span>
       )}
     </span>
@@ -901,6 +916,17 @@ function fileBand(name: string): string {
   return "rgb(28 28 28 / 0.24)";
 }
 
+export function FileGlyph({ name }: { name: string }) {
+  return (
+    <span aria-hidden="true" className="chat-file-glyph pointer-events-none relative flex h-10 w-8 shrink-0 flex-col overflow-hidden rounded-[6px] bg-composer">
+      <span className="mx-1 mt-1 h-1 rounded-[2px] bg-ink/[0.18]" />
+      <span className="mx-1 mt-[3px] h-1 w-[11px] rounded-[2px] bg-ink/[0.18]" />
+      <span className="mx-1 mt-[3px] h-1 w-[11px] rounded-[2px] bg-ink/[0.18]" />
+      <span className="mt-auto h-3 w-full" style={{ backgroundColor: fileBand(name) }} />
+    </span>
+  );
+}
+
 /** Grok's file card: a white 72px card with a small paper glyph, the name with its extension kept, and a round action. */
 function FileCard({ file, message, save, preview, retryable, className }: {
   file: TranscriptFileAttachment;
@@ -920,12 +946,7 @@ function FileCard({ file, message, save, preview, retryable, className }: {
       title={save.state === "saved" && save.savedTo ? t("attach.savedTo", { path: save.savedTo }) : file.name}>
       <button type="button" {...chipNameAction(preview, save, file.name, retryable)}
         className="absolute inset-0 rounded-[22px] focus-visible:outline-none focus-visible:inset-ring-2 focus-visible:inset-ring-focus disabled:cursor-wait" />
-      <span aria-hidden="true" className="chat-file-glyph pointer-events-none relative flex h-10 w-8 shrink-0 flex-col overflow-hidden rounded-[6px] bg-composer">
-        <span className="mx-1 mt-1 h-1 rounded-[2px] bg-ink/[0.18]" />
-        <span className="mx-1 mt-[3px] h-1 w-[11px] rounded-[2px] bg-ink/[0.18]" />
-        <span className="mx-1 mt-[3px] h-1 w-[11px] rounded-[2px] bg-ink/[0.18]" />
-        <span className="mt-auto h-3 w-full" style={{ backgroundColor: fileBand(file.name) }} />
-      </span>
+      <FileGlyph name={file.name} />
       <span className="pointer-events-none flex min-w-0 flex-1 flex-col">
         <span className="flex min-w-0 text-[14px] font-medium leading-5 text-ink"><span className="min-w-0 truncate">{base}</span><span className="shrink-0">{ext}</span></span>
         <span role={failed ? "alert" : save.state === "idle" ? undefined : "status"} className={cn("truncate text-[13px] leading-[18px]", failed ? "text-danger" : "text-ink-secondary")}>{meta}</span>

@@ -54,12 +54,12 @@ describe("bot setup and tools in the real renderer", () => {
     const press = (keys: string) => ui("press", "--keys", keys);
     const bots = async (): Promise<SavedBot[]> => (await fetch(`${info.url}/api/bots`).then((response) => response.json())).bots;
     const snapshot = async () => (await ui("snapshot")).snapshot as string;
-    // Panel > Advanced > Tools: the bot's settings sheet at its tools (apps, MCP servers, tool selection).
+    // Panel > Advanced > Tools: Settings' Bots pane at its tools (apps, MCP servers, tool selection).
     const openTools = async () => openBotSheet(ui, created[0].name, "tools");
     // its MCP servers row opens their page of the sheet: each server's switch and Add
     const openServers = async () => {
       await openTools();
-      await evaluate("document.querySelector('[data-bot-sheet] [data-sheet-row=servers]').click(); true");
+      await evaluate("document.querySelector('[data-settings-sheet] [data-sheet-row=servers]').click(); true");
     };
     const reviewReadyBot = async (name: string, title: string) => {
       await openTemplates(ui);
@@ -121,7 +121,7 @@ describe("bot setup and tools in the real renderer", () => {
     await openTools();
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("No servers");
     await press("Escape");
-    await expect.poll(() => evaluate("Boolean(document.querySelector('[data-bot-sheet]'))"), { timeout: 10_000 }).toBe(false);
+    await expect.poll(() => evaluate("Boolean(document.querySelector('[data-settings-sheet]'))"), { timeout: 10_000 }).toBe(false);
     // The panel's Share menu shows this chat's cost; its Usage opens Settings at Usage & Billing.
     await openPanelMenu(ui, created[0].name);
     const state = await ui("snapshot", "--interactive");

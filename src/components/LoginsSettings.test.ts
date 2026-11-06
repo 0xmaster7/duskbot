@@ -10,7 +10,7 @@ vi.mock("@/state/store", async (importOriginal) => ({
   useStore: () => ({ state: { bots: [{ id: "pepper", name: "Pepper" }, { id: "quill", name: "Quill" }], config: fixture.config }, dispatch: vi.fn() }),
 }));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => fixture.admin }));
-const { LoginsSettings } = await import("./LoginsSettings");
+const { LoginsSettings, VaultNewItem } = await import("./LoginsSettings");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let host: HTMLDivElement;
@@ -36,7 +36,7 @@ afterEach(() => {
 });
 
 async function render() {
-  await act(async () => root.render(createElement(LoginsSettings)));
+  await act(async () => root.render([createElement(VaultNewItem, { key: "new" }), createElement(LoginsSettings, { key: "list" })]));
   await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
 }
 const button = (label: string) => [...document.body.querySelectorAll("button")].find((candidate) => (candidate.getAttribute("aria-label") ?? candidate.textContent) === label)!;
@@ -74,6 +74,7 @@ describe("Settings → Logins", () => {
     fixture.api.mockResolvedValueOnce({ logins: [], onePassword: OFF }).mockResolvedValueOnce({ login: SHARED_LOGIN }).mockResolvedValueOnce({ logins: [SHARED_LOGIN], onePassword: OFF });
     await render();
     expect(document.body.textContent).toContain("No saved logins yet.");
+    await click("New item");
     await click("Add login");
     await type("site", "crm.example.org");
     await type("username", "team");
@@ -89,6 +90,7 @@ describe("Settings → Logins", () => {
   it("keeps a new login to its exact address when asked", async () => {
     fixture.api.mockResolvedValueOnce({ logins: [], onePassword: OFF }).mockResolvedValueOnce({ login: TENANT_LOGIN }).mockResolvedValueOnce({ logins: [TENANT_LOGIN], onePassword: OFF });
     await render();
+    await click("New item");
     await click("Add login");
     await type("site", "acme.okta.com");
     await type("password", "fake-tenant-pass");

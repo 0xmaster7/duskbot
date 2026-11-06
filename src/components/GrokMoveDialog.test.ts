@@ -196,7 +196,7 @@ describe("a file dragged over the dialog, with the chat box behind it", () => {
   const DRAGS = ["dragenter", "dragover", "dragleave", "drop"];
   const noop = () => {};
   const render = (dialog: boolean) => act(async () => root.render(createElement("div", null,
-    createElement(ComposerAttachments, { items: [], onAdd, onRemove: noop, onChangeCitation: noop, onDisplayInChatBox: noop, notice: null, onNotice: noop, uploadImage: async () => null }),
+    createElement(ComposerAttachments, { items: [], onAdd, onNotice: noop, uploadImage: async () => null }),
     dialog ? createElement(GrokMoveDialog, { onClose: noop }) : null)));
   const fileOf = (text: string, name = "grok-bot-export-x.json") => {
     const file = new File([text], name, { type: "application/json" });
@@ -229,7 +229,7 @@ describe("a file dragged over the dialog, with the chat box behind it", () => {
     await tick();
     const first = fileOf(EXPORT);
     await drag("dragenter", first);
-    expect(shown()).not.toContain(OVERLAY);
+    expect(document.body.textContent).not.toContain(OVERLAY);
     expect((await drag("dragover", first)).defaultPrevented).toBe(true);
     await drag("dragleave", first);
     expect((await drag("drop", first)).defaultPrevented).toBe(true);
@@ -244,7 +244,7 @@ describe("a file dragged over the dialog, with the chat box behind it", () => {
     await importIt();
     const onReport = fileOf(QUIET);
     await drag("dragenter", onReport);
-    expect(shown()).not.toContain(OVERLAY);
+    expect(document.body.textContent).not.toContain(OVERLAY);
     expect((await drag("drop", onReport)).defaultPrevented).toBe(true);
     expect(onReport.text).not.toHaveBeenCalled();
     expect(step()).toBe("report");
@@ -271,9 +271,9 @@ describe("a file dragged over the dialog, with the chat box behind it", () => {
     expect(step()).toBeUndefined();
     const note = fileOf("An ordinary note.", "note.txt");
     await drag("dragenter", note);
-    expect(shown()).toContain(OVERLAY);
+    expect(document.body.textContent).toContain(OVERLAY);
     await drag("dragleave", note);
-    expect(shown()).not.toContain(OVERLAY);
+    expect(document.body.textContent).not.toContain(OVERLAY);
     await drag("drop", note);
     await vi.waitFor(() => expect(onAdd).toHaveBeenCalledOnce());
     expect(onAdd.mock.calls[0]![0][0]).toMatchObject({ name: "note.txt" });

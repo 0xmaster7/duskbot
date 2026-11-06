@@ -28,7 +28,7 @@ const LINES: Record<string, number> = {
   "src/components/ComputerPanel.tsx": 1867,
   "src/components/RoutineCalendarPage.tsx": 1623,
   "server/config.ts": 1274,
-  "src/components/ChatView.tsx": 1432,
+  "src/components/ChatView.tsx": 1434,
   "server/routine-requests.ts": 1484,
   "src/components/GroupView.tsx": 1256,
   "src/components/LocalComputerSection.tsx": 1475,
@@ -43,7 +43,7 @@ const LINES: Record<string, number> = {
   "src/components/ModelPicker.tsx": 1046,
   "src/components/PhoneSetupFlow.tsx": 1146,
   "server/cli.ts": 1080,
-  "src/components/AttachmentPreview.tsx": 1086,
+  "src/components/AttachmentPreview.tsx": 1107,
   "src/components/Composer.tsx": 1038,
   "src/components/grok-icon-glyphs.ts": 1234,
 };

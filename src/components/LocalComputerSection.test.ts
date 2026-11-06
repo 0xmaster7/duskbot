@@ -560,7 +560,7 @@ describe("Settings → Computers on an OMB Cloud home", () => {
   const cards = () => [...renderToStaticMarkup(createElement(LocalComputerSection)).matchAll(/<(?:div|h3) (?:id="[^"]*" )?class="(?:text-\[(?:16px\] font-semibold|14px\] font-medium) text-ink|text-\[12px\] leading-4)[^"]*">([^<]+)<\/(?:div|h3)>/g)].map((match) => match[1]);
 
   it("sets up a Local VM on a desktop or self-hosted server", () => {
-    expect(cards()).toEqual(expect.arrayContaining(["Cloud desktops", "Private desktop", "Setup"]));
+    expect(cards()).toEqual(expect.arrayContaining(["Cloud desktops", "Private desktop", "Isolation"]));
   });
 
   it("shows no Local VM, and no steps to install one, where it cannot exist", () => {

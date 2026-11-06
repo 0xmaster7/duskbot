@@ -34,7 +34,7 @@ import {
 import { DEVS_CHOICE, MentionMenu, teammateChoices, type MentionChoice } from "./MentionMenu"; import { useTeammates } from "@/state/team-people"; import { hiddenFromSidebar, useViewerEmail } from "@/lib/default-bot";
 import { SlashCommandMenu } from "./SlashCommandMenu";
 import { MentionTextarea } from "./MentionTextarea";
-import { ComposerAttachments, pathForFile } from "./ComposerAttachments";
+import { ComposerAttachments, ComposerAttachmentStrip, pathForFile } from "./ComposerAttachments";
 import { PointedChips } from "./app/PointedChips"; import { SetupRequestChip, setupRequestPlaceholder } from "./SetupOffer";
 import { takePointedChips } from "@/lib/pointed-chips";
 import { splitTranscriptCitations, type CitationAttachment } from "@/lib/citations";
@@ -238,8 +238,9 @@ export function Composer({
   const [dismissedAt, setDismissedAt] = useState<number | null>(null);
   const [dismissedSlashAt, setDismissedSlashAt] = useState<number | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const stacked = useStackedField(inputRef, !singleRow, text, simpleDock);
-  // grok's expanded composer: the text above the buttons, or a reply strip; its corners and height change together
+  const [attachmentNotice, setAttachmentNotice] = useState<string | null>(null);
+  const stacked = useStackedField(inputRef, !singleRow, text, simpleDock) || (simpleDock && (attachments.length > 0 || Boolean(attachmentNotice)));
+  // grok's expanded composer: the text above the buttons, attachments or a reply strip; corners and height change together
   const multiline = simpleDock && (stacked || Boolean(replyTo));
   const [composing, setComposing] = useState(false);
   const pillContentRef = useRef<HTMLDivElement>(null);
@@ -490,7 +491,6 @@ export function Composer({
     return () => window.clearTimeout(timeout);
   }, [busy, pendingCount, steering]);
   const fileInput = useRef<HTMLInputElement>(null);
-  const [attachmentNotice, setAttachmentNotice] = useState<string | null>(null);
   const modeBot = group ? undefined : bot;
   const { choice: approvalChoice, dialogs: approvalDialogs } = useThreadApproval(modeBot);
   const uploadImage = useCallback(async (file: File): Promise<Attachment | null> => {
@@ -782,11 +782,7 @@ export function Composer({
         <ComposerAttachments
           items={attachments}
           onAdd={addAttachments}
-          onRemove={removeAttachment}
-          onChangeCitation={(citation: CitationAttachment) => editAttachments((current) => current.map((attachment) => attachment.id === citation.id ? citation : attachment))}
-          onDisplayInChatBox={displayPasteInChatBox}
           allowImages={engineSupportsImages}
-          notice={attachmentNotice}
           onNotice={setAttachmentNotice}
           onPendingChange={(pending) => changeDraftAttachmentPending(draftId, pending)}
           onDraggingChange={setDragOver}
@@ -834,7 +830,7 @@ export function Composer({
           </div>
         )}
         <div ref={pillContentRef} className={singleRow ? cn("min-w-0 flex-1 rounded-[26px] px-3 py-1.5", ELEVATED_FLOAT) : simpleDock ? "flex shrink-0 flex-col" : "contents"}>
-        {replyTo && <ComposerReplyStrip message={replyTo} fallbackName={bot?.name} onClear={onClearReply} />}
+        {replyTo && <ComposerReplyStrip message={replyTo} fallbackName={bot?.name} onClear={onClearReply} />}<ComposerAttachmentStrip items={attachments} onRemove={removeAttachment} onChangeCitation={(citation: CitationAttachment) => editAttachments((current) => current.map((attachment) => attachment.id === citation.id ? citation : attachment))} onDisplayInChatBox={displayPasteInChatBox} notice={attachmentNotice} onNotice={setAttachmentNotice} />
         <div data-composer-row data-glyph-swap={glyphs.swapped ? "" : undefined} style={simpleDock ? slot.vars : undefined} className={cn("flex items-end", simpleDock ? cn("gap-2", stacked && "gap-y-2") : "gap-1", !singleRow && !simpleDock && "@max-[30rem]/composer:flex-wrap", stacked && "flex-wrap")}>
           <input
             ref={fileInput}
@@ -967,7 +963,7 @@ export function Composer({
           disabled={blocking || locked}
           aria-busy={bot?.awaitingThreadSnapshot || undefined}
           placeholder={composerPlaceholder({
-            simple: !advanced, locked: setupLocked, approval: blocking, attaching: attachmentPending, listening: recording,
+            simple: !advanced, locked: setupLocked, approval: blocking, attaching: attachmentPending, attached: attachments.length > 0, listening: recording,
             replying: Boolean(replyTo), busy, canSteer: steersNow, queued: pendingCount > 0, busyName, sendLabel, group, members: members ?? [],
             jevOn: jevRoomRoutingOn(state.config), goal: channelMode === "goal", botName: bot?.name ?? "",
             setupHint: group ? null : setupRequestPlaceholder(bot, threadId),

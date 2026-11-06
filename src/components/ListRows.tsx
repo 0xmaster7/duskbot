@@ -93,11 +93,11 @@ export function PanelEmpty({ children, ...rest }: { children: ReactNode; "data-p
   );
 }
 
-export function RowText({ title, hint, tone }: { title: ReactNode; hint?: ReactNode; tone?: "danger" | "warn" }) {
+export function RowText({ title, hint, tone, titleId, hintId }: { title: ReactNode; hint?: ReactNode; tone?: "danger" | "warn"; titleId?: string; hintId?: string }) {
   return (
     <div className="min-w-0 flex-1">
-      <div className={cn(titleCls, tone === "danger" && "text-danger", tone === "warn" && "text-warning")}>{title}</div>
-      {hint && <div className={cn(hintCls, "truncate")}>{hint}</div>}
+      <div id={titleId} data-row-title="" className={cn(titleCls, tone === "danger" && "text-danger", tone === "warn" && "text-warning")}>{title}</div>
+      {hint && <div id={hintId} data-row-hint="" className={cn(hintCls, "truncate")}>{hint}</div>}
     </div>
   );
 }
@@ -110,9 +110,9 @@ export function RowIcon({ icon: Icon }: { icon: LucideIcon }) {
   );
 }
 
-function RowValue({ value }: { value?: ReactNode }) {
+function RowValue({ value, id }: { value?: ReactNode; id?: string }) {
   if (value === undefined || value === null || value === "" || value === false) return null;
-  return <span data-panel-value="" className={valueCls}>{value}</span>;
+  return <span id={id} data-panel-value="" className={valueCls}>{value}</span>;
 }
 
 /** A row that goes somewhere or does one thing: the name, its value, a chevron (or an out arrow for a web page). */
@@ -137,9 +137,14 @@ export function NavRow({ title, hint, value, icon, onClick, drill = true, extern
   "data-settings-advanced"?: string;
   "data-sheet-row"?: string;
 }) {
+  // the row's name is its title and value; the grey line under the title describes it
+  const id = useId();
+  const named = value !== undefined && value !== null && value !== "" && value !== false;
   return (
     <button
       type="button"
+      aria-labelledby={rest["aria-label"] ? undefined : named ? `${id}-title ${id}-value` : `${id}-title`}
+      aria-describedby={hint ? `${id}-hint` : undefined}
       {...rest}
       disabled={disabled}
       title={tooltip}
@@ -147,8 +152,8 @@ export function NavRow({ title, hint, value, icon, onClick, drill = true, extern
       className={cn(rowCls, focusCls, "w-full cursor-pointer text-left transition-[background-color] duration-100 ease-[ease] enabled:hover:bg-ink/[0.06] enabled:active:bg-ink/[0.08] disabled:cursor-default disabled:opacity-45")}
     >
       {icon && <RowIcon icon={icon} />}
-      <RowText title={title} hint={hint} tone={danger ? "danger" : undefined} />
-      <RowValue value={value} />
+      <RowText title={title} hint={hint} tone={danger ? "danger" : undefined} titleId={`${id}-title`} hintId={`${id}-hint`} />
+      <RowValue value={value} id={`${id}-value`} />
       {external
         ? <GrokIcon name="link-external" size={12} className="shrink-0 text-ink-tertiary" />
         : drill && <ChevronRight size={14} className="-mr-0.5 shrink-0 text-ink-tertiary rtl:-scale-x-100" aria-hidden="true" />}
@@ -295,7 +300,7 @@ export function NoteRow({ children, tone, ...rest }: { children: ReactNode; tone
 /* pages inside a pane: a row opens one, it slides in over the list with a back chevron in the header */
 
 export interface SubPage { id: string; title: string }
-interface SubPageNav { at: string | undefined; open: (id: string, title: string) => void; back: () => void }
+interface SubPageNav { at: string | undefined; open: (id: string, title: string) => void; back: () => void; stack?: readonly SubPage[] }
 
 export const SubPageContext = createContext<SubPageNav>({ at: undefined, open: () => {}, back: () => {} });
 
@@ -392,9 +397,28 @@ export function PaneHeader({ title, onBack, backLabel, headingId, children }: { 
   );
 }
 
-/** One pane of a railed settings sheet (a bot's, a room's): Settings' header and scrolling list, and pages a row opens
- * sliding in over it. The page component reads `useSubPage().at` to draw the list or the page it is on. */
+/** Inside Settings, the depth of Settings' page stack a sheet pane was opened at: its own pages go on that stack, under
+ * Settings' header, instead of a header and stack of its own. */
+export const SheetInSettings = createContext<number | null>(null);
+
+/** One pane of a bot's or a room's settings: Settings' header and scrolling list, and pages a row opens sliding in over
+ * it. The page component reads `useSubPage().at` to draw the list or the page it is on. */
 export function SheetPane({ title, footer, children, ...rest }: { title: string; footer?: ReactNode; children: ReactNode; "data-panel-modal"?: string }) {
+  const base = useContext(SheetInSettings);
+  const outer = useContext(SubPageContext);
+  if (base !== null) {
+    const nav: SubPageNav = { at: outer.stack?.[base]?.id, open: outer.open, back: outer.back, stack: outer.stack?.slice(base) };
+    return (
+      <section {...rest} className="contents">
+        <SubPageContext.Provider value={nav}>{children}</SubPageContext.Provider>
+        {footer && !nav.at && <div className="flex shrink-0 items-center justify-end gap-2">{footer}</div>}
+      </section>
+    );
+  }
+  return <OwnSheetPane title={title} footer={footer} {...rest}>{children}</OwnSheetPane>;
+}
+
+function OwnSheetPane({ title, footer, children, ...rest }: { title: string; footer?: ReactNode; children: ReactNode; "data-panel-modal"?: string }) {
   const [stack, setStack] = useState<SubPage[]>([]);
   const titleId = useId();
   const at = JSON.stringify(stack);

@@ -1,13 +1,31 @@
 import { useSyncExternalStore } from "react";
 
+import { t } from "@/lib/i18n";
+import type { Bot } from "@/state/store";
+
 /** The bot's own settings that open as a centred dialog over the panel instead of a page inside it. */
 export const MODAL_PAGES = ["instructions", "memory", "skills", "folder", "where", "backups"] as const;
 export type ModalPage = (typeof MODAL_PAGES)[number];
 
-/** Every page of the bot's settings sheet: the dialog pages, then the bot's tools, permissions, identity and Slack, which
+/** Every page of the bot's settings (in Settings' Bots page): the dialog pages, then the bot's tools, permissions, identity and Slack, which
  * only the sheet draws. */
 export const SHEET_PAGES = ["instructions", "memory", "skills", "identity", "tools", "permissions", "folder", "where", "backups", "slack"] as const;
 export type SheetPage = (typeof SHEET_PAGES)[number];
+
+export function sheetLabel(page: SheetPage, bot: Pick<Bot, "name">): string {
+  switch (page) {
+    case "instructions": return t("botSettings.simple.instructions");
+    case "memory": return t("botPanel.memoryRow");
+    case "skills": return t("botSettings.simple.skills");
+    case "identity": return t("botSettings.sections.identity");
+    case "tools": return t("botPanel.page.tools");
+    case "permissions": return t("botSettings.sections.permissions");
+    case "folder": return t("computer.files.folder");
+    case "where": return t("computer.simple.whereWorks", { name: bot.name });
+    case "backups": return t("botPanel.page.backups");
+    case "slack": return t("botPanel.page.slack");
+  }
+}
 
 export function isModalPage(page: string | undefined): page is ModalPage {
   return page !== undefined && (MODAL_PAGES as readonly string[]).includes(page);

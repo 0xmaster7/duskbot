@@ -50,7 +50,7 @@ vi.mock("./ActivitySection", () => ({ ActivitySection: marker("activity") }));
 vi.mock("./UsageSection", () => ({ UsageSection: marker("usage") }));
 vi.mock("./McpServersPanel", () => ({ McpServersPanel: marker("mcp") }));
 vi.mock("./SkillsSection", () => ({ SkillsSection: marker("skills") }));
-vi.mock("./LoginsSettings", () => ({ LoginsSettings: marker("logins") }));
+vi.mock("./LoginsSettings", () => ({ LoginsSettings: marker("logins"), VaultNewItem: () => null }));
 vi.mock("./bot-access/AccessOverview", () => ({ AccessOverview: marker("botAccess") }));
 vi.mock("./WorkspaceBackupSettings", () => ({ WorkspaceBackupSettings: marker("backups") }));
 vi.mock("./CompanyBackupSettings", () => ({ CompanyBackupSettings: () => null }));
@@ -83,7 +83,7 @@ const title = (html: string) => html.match(/<h2 id="[^"]*" class="settings-pane-
 describe("Settings, drawn as Grok Bot's", () => {
   it("rails Grok's panes with Phone and Models, then Advanced features last", () => {
     const html = open("general");
-    expect(panes(html)).toEqual(["general", "texting", "computer", "vault", "models", "usage", "updates", "advanced"]);
+    expect(panes(html)).toEqual(["general", "texting", "computer", "vault", "models", "bots", "usage", "updates", "advanced"]);
     expect(html).toContain('data-icon-name="vault"');
     expect(html).toContain('data-icon-name="chart-bars"');
     expect(html).toContain('data-icon-name="settings-gear"');
@@ -116,7 +116,7 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(groups(html)).toEqual(["Your bots", "More settings"]);
     expect([...html.matchAll(/data-settings-open="([^"]+)"/g)].map((match) => match[1])).toEqual(["inbox", "automations", "team-map"]);
     expect([...html.matchAll(/data-settings-advanced="([^"]+)"/g)].map((match) => match[1]))
-      .toEqual(["apps", "bots", "looks", "team", "data", "builder"]);
+      .toEqual(["apps", "looks", "team", "data", "builder"]);
     expect(markers(html)).toEqual([]);
     expect(html).not.toContain("data-settings-back");
   });

@@ -75,7 +75,7 @@ describe("trust controls in the real renderer", () => {
     await clickByName(ui, "Sending on your behalf", "combobox");
     await clickByName(ui, "Allow a daily amount", "option");
     // the daily amount is a row that opens a small form
-    await ui("eval", "--js", "document.querySelector('[data-bot-sheet] [data-sheet-row=per-day]').click(); true");
+    await ui("eval", "--js", "document.querySelector('[data-settings-sheet] [data-sheet-row=per-day]').click(); true");
     await type("Daily outbound limit", "7");
     await clickByName(ui, "Save", "button");
     await expect.poll(async () => (await saved()).outbound, { timeout: 10_000 }).toEqual({ policy: "allow", dailyCap: 7 });
@@ -97,8 +97,8 @@ describe("trust controls in the real renderer", () => {
     })()`);
     await sheetPage(ui, "tools");
     // Which apps opens the app limits as a page of the sheet; each app's access is a menu on its row
-    await expect.poll(() => evaluate("Boolean(document.querySelector('[data-bot-sheet] [data-sheet-row=app-limits]'))"), { timeout: 10_000 }).toBe(true);
-    await evaluate("document.querySelector('[data-bot-sheet] [data-sheet-row=app-limits]').click(); true");
+    await expect.poll(() => evaluate("Boolean(document.querySelector('[data-settings-sheet] [data-sheet-row=app-limits]'))"), { timeout: 10_000 }).toBe(true);
+    await evaluate("document.querySelector('[data-settings-sheet] [data-sheet-row=app-limits]').click(); true");
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Limit this bot to specific apps");
     await click("Limit this bot to specific apps");
     await expect.poll(async () => (await saved()).connectorScopes, { timeout: 10_000 }).toEqual({ apps: {} });

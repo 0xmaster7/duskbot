@@ -102,7 +102,7 @@ export function useStackedField(inputRef: RefObject<HTMLTextAreaElement | null>,
   return stacked;
 }
 
-function movesLess(): boolean {
+export function movesLess(): boolean {
   if (document.documentElement.dataset.reducedMotion === "true") return true;
   return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 }

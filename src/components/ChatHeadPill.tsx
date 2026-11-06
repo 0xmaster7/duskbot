@@ -1,6 +1,6 @@
 import { localizedTaskTitle } from "@/lib/task-title";
 import { Lock, UserRound, Users } from "lucide-react";
-import type { ComponentProps } from "react";
+import type { ComponentProps, MouseEvent, ReactNode } from "react";
 
 import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";
@@ -27,38 +27,52 @@ function privacyLabelOf(privacy: ChatHeadPrivacy): string | null {
   }
 }
 
+const CHAT_HEAD_PILL = "chat-head-pill group relative flex min-w-0 max-w-full items-center gap-2 rounded-full border border-ink/[0.08] bg-composer py-[7.5px] pl-[7.5px] pr-[13.5px] text-ink shadow-(--shadow-float) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
+
+/** A room in the pill: its members' faces where a bot's face goes, its name, and whether its panel is open. */
+export interface ChatHeadRoom {
+  name: string;
+  faces: ReactNode;
+  label: string;
+  expanded: boolean;
+}
+
+/** A bot's chat passes `bot`, `avatar` and `privacy`; a room passes `room` alone. */
+interface ChatHeadPillProps {
+  bot?: Bot;
+  avatar?: Pick<ComponentProps<typeof BotAvatar>, "state" | "motion" | "motionKey" | "animated">;
+  privacy?: ChatHeadPrivacy;
+  room?: ChatHeadRoom;
+  onToggle: (event: MouseEvent<HTMLButtonElement>) => void;
+}
+
 /** Simple mode's whole chat header: the bot's face and name in one pill, which opens and closes the bot panel. Away from
  * the bot's main conversation it also names the one on screen. A dot says another of the bot's conversations needs a
- * look; a team chat says who can read it with one quiet glyph. */
-export function ChatHeadPill({ bot, avatar, privacy, onToggle }: {
-  bot: Bot;
-  avatar: Pick<ComponentProps<typeof BotAvatar>, "state" | "motion" | "motionKey" | "animated">;
-  privacy: ChatHeadPrivacy;
-  onToggle: () => void;
-}) {
+ * look; a team chat says who can read it with one quiet glyph. A room's header is the same pill with its members' faces. */
+export function ChatHeadPill({ bot, avatar, privacy = null, room, onToggle }: ChatHeadPillProps) {
   const { state } = useStore();
-  const open = state.settingsOpen;
-  const elsewhere = sidebarBotActivityTasks(bot, state.pendingQueued).filter((task) => task.threadId !== bot.threadId).length;
+  const open = room ? room.expanded : state.settingsOpen;
+  const elsewhere = bot ? sidebarBotActivityTasks(bot, state.pendingQueued).filter((task) => task.threadId !== bot.threadId).length : 0;
   const privacyLabel = privacyLabelOf(privacy);
   const PrivacyIcon = privacy ? PRIVACY_ICONS[privacy.kind] : Users;
-  const title = bot.tasks?.find((task) => task.threadId === bot.threadId)?.title;
+  const title = bot?.tasks?.find((task) => task.threadId === bot.threadId)?.title;
   // Simple mode calls an untitled conversation what it is, never a "thread".
-  const conversation = !awayFromMainThread(bot, false) ? (privacy?.kind === "shared" ? t("task.sharedChat") : null)
+  const conversation = !bot ? null : !awayFromMainThread(bot, false) ? (privacy?.kind === "shared" ? t("task.sharedChat") : null)
     : !title || title === UNTITLED ? t("task.untitledConversation") : localizedTaskTitle(title);
-  const label = t("chat.openProfileAria", { name: bot.name });
+  const label = room ? room.label : t("chat.openProfileAria", { name: bot?.name ?? "" });
   return (
     <button
       type="button"
       data-chathead-pill
-      data-tour="bot-pill"
+      data-tour={bot ? "bot-pill" : undefined}
       onClick={onToggle}
       aria-label={conversation ? `${label}, ${conversation}` : label}
       aria-expanded={open}
-      aria-controls={open ? BOT_PANEL_ID : undefined}
-      className="chat-head-pill group relative flex min-w-0 max-w-full items-center gap-2 rounded-full border border-ink/[0.08] bg-composer py-[7.5px] pl-[7.5px] pr-[13.5px] text-ink shadow-(--shadow-float) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      aria-controls={open && bot ? BOT_PANEL_ID : undefined}
+      className={CHAT_HEAD_PILL}
     >
-      <BotAvatar bot={bot} size={24} {...avatar} />
-      <span dir="auto" className="min-w-0 truncate text-[14px] font-medium leading-5">{bot.name}</span>
+      {room ? room.faces : bot && <BotAvatar bot={bot} size={24} {...avatar} />}
+      <span dir="auto" className="min-w-0 truncate text-[14px] font-medium leading-5">{room ? room.name : bot?.name}</span>
       {conversation && (
         <>
           <GrokIcon name="chevron-right" size={12} className="shrink-0 text-ink/[0.56]" />

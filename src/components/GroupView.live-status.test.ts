@@ -4,7 +4,7 @@ import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import type { Bot, Group, Message } from "@/state/store";
 
 const fixture = vi.hoisted(() => {
-  vi.stubGlobal("window", {});
+  vi.stubGlobal("window", { addEventListener() {}, removeEventListener() {} });
   vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => {} });
   return { bots: [] as Bot[] };
 });
@@ -45,7 +45,8 @@ describe("a room's speaker through a long turn", () => {
     const writing = draw([ask, said]);
     expect(writing, "the 1:1 status line: a friendly phrase").toContain("Writing some code");
     const line = /data-turn-status="true">(.*?)<\/span><\/span><\/span>/.exec(writing)?.[1]?.replace(/<[^>]+>/g, "");
-    expect(line, "the line says the phrase alone: no file name, size, timer or lead word").toBe("Writing some code");
+    expect(line, "the line says who and the phrase alone: no file name, size, timer or lead word").toBe("AdaWriting some code");
+    expect(writing).toMatch(/data-turn-name="">Ada</);
     expect(writing).not.toContain("room-stop-member");
     engine("turn.completed");
     expect(draw([ask, said]), "the turn ended: her settled reply needs no mascot").not.toContain("turn-presence");

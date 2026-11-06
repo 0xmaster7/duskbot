@@ -40,7 +40,7 @@ describe("Slack management in agent settings", () => {
     const ui = (verb: string, ...args: string[]) => runControlOmb(["ui", verb, "--ui", fixture.ui, ...args]) as Promise<Record<string, any>>;
     const evaluate = async (js: string) => (await ui("eval", "--js", js)).result;
     const snapshot = async () => (await ui("snapshot")).snapshot as string;
-    // The Slack page of the bot's settings sheet, and its row on the panel's Advanced tab.
+    // The Slack page of the bot's settings, and its row on the panel's Advanced tab.
     const link = () => evaluate("document.querySelector('[data-bot-settings-section=slack] a')?.getAttribute('href') ?? null");
     const row = () => evaluate("Boolean(document.querySelector('#bot-panel [data-panel-page=slack]'))");
     const openProfile = async () => {
@@ -57,7 +57,7 @@ describe("Slack management in agent settings", () => {
     const openSlack = async () => {
       await settled(ui);
       await evaluate("document.querySelector('#bot-panel [data-panel-page=slack]').click(); true");
-      await expect.poll(() => evaluate("document.querySelector('[data-bot-sheet-page][aria-current=page]')?.dataset.botSheetPage ?? null"), { timeout: 10_000 }).toBe("slack");
+      await expect.poll(() => evaluate("document.querySelector('[data-settings-sheet] [data-bot-page]')?.dataset.botPage ?? null"), { timeout: 10_000 }).toBe("slack");
     };
     // Availability is read when the Advanced tab opens, so each mode reopens the panel.
     const reopen = async (mode: string) => {
@@ -106,12 +106,12 @@ describe("Slack management in agent settings", () => {
     expect(await evaluate("document.querySelectorAll('[data-bot-settings-section=slack] a').length")).toBe(1);
     expect(await evaluate("document.querySelectorAll('[data-bot-settings-section=slack] button, [data-bot-settings-section=slack] input').length")).toBe(0);
 
-    // Anything but an available answer removes the row and the sheet's page, even though Slack was the open page.
+    // Anything but an available answer removes the panel's row and the Bots page's row, even though Slack was the open page.
     for (const mode of ["unavailable", "denied", "error"]) {
       await reopen(mode);
       expect(await row(), mode).toBe(false);
       expect(await link(), mode).toBeNull();
-      expect(await evaluate("Boolean(document.querySelector('[data-bot-sheet-page=slack]'))"), mode).toBe(false);
+      expect(await evaluate("Boolean(document.querySelector('[data-settings-sheet] [data-settings-action=slack]'))"), mode).toBe(false);
     }
 
     // An old response ignores AbortSignal deliberately: it must not surface

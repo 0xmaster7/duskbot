@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AppState, Bot, Group, Message } from "@/state/store";
 
 const fixture = vi.hoisted(() => {
-  vi.stubGlobal("window", {});
+  vi.stubGlobal("window", { addEventListener() {}, removeEventListener() {} });
   vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => {} });
   return { state: null as Partial<AppState> | null, dispatch: vi.fn() };
 });
@@ -46,6 +46,11 @@ const render = (members: Bot[], g: Group) => {
   fixture.state = { bots: members };
   return renderToStaticMarkup(createElement(GroupView, { group: g }));
 };
+// the simple header is one pill of faces; the member row with its place badges is the full header a remote client keeps
+const renderFullHeader = (members: Bot[], g: Group) => {
+  vi.stubGlobal("window", { addEventListener() {}, removeEventListener() {}, ogb: { remoteClient: { active: true } } });
+  return render(members, g);
+};
 
 describe("GroupView: computer/browser session visibility", () => {
   it("loads a screenshot message through the image route, matching the 1:1 ChatView", () => {
@@ -71,22 +76,22 @@ describe("GroupView: computer/browser session visibility", () => {
   });
 
   it("marks a busy member working a concrete place (e.g. browser) with that place's icon", () => {
-    const markup = render([bot({ busy: true, computer: "browser" })], group({ busyBotId: "aleta" }));
+    const markup = renderFullHeader([bot({ busy: true, computer: "browser" })], group({ busyBotId: "aleta" }));
     expect(markup).toMatch(/width="9"[^>]*height="9"/);
   });
 
   it("gives the place badge an accessible label naming the place", () => {
-    const markup = render([bot({ busy: true, computer: "browser" })], group({ busyBotId: "aleta" }));
+    const markup = renderFullHeader([bot({ busy: true, computer: "browser" })], group({ busyBotId: "aleta" }));
     expect(markup).toContain('aria-label="Where this conversation works: Browser"');
   });
 
   it("falls back to the plain working dot when the busy member's place is Auto", () => {
-    const markup = render([bot({ busy: true })], group({ busyBotId: "aleta" }));
+    const markup = renderFullHeader([bot({ busy: true })], group({ busyBotId: "aleta" }));
     expect(markup).not.toMatch(/width="9"[^>]*height="9"/);
   });
 
   it("shows no place badge at all for an idle member", () => {
-    const markup = render([bot({ computer: "browser" })], group({ busyBotId: null }));
+    const markup = renderFullHeader([bot({ computer: "browser" })], group({ busyBotId: null }));
     expect(markup).not.toMatch(/width="9"[^>]*height="9"/);
   });
 });

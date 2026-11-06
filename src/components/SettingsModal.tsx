@@ -24,10 +24,12 @@ import {
   AdvancedIndex, AdvancedPageView, SECTION_PAGES, ComputerPane, GeneralPane, ModelsPane, PermissionsPane, TextingPane, UpdatesPane, UsagePane, VaultPane,
   advancedTitle, type AdvancedPage, type Disclose, type RemoteAccessCards,
 } from "./SettingsPanes";
-import { ADVANCED_PAGES, SETTINGS_PANES, settingsLocation, type SettingsPane } from "@/lib/open-settings";
+import { ADVANCED_PAGES, SETTINGS_PANES, consumeBotTarget, settingsLocation, useBotTarget, type SettingsPane } from "@/lib/open-settings";
+import { VaultNewItem } from "./LoginsSettings";
+import { BotsPane, BotsScopePicker, chooseBotsScope, scopeOf, targetPage } from "./SettingsBots";
 import "../styles/settings.css";
 
-export { openSettings, settingsLocation, SETTINGS_PANES, type SettingsLocation, type SettingsPane } from "@/lib/open-settings";
+export { openBotSettings, openSettings, settingsLocation, SETTINGS_PANES, type SettingsLocation, type SettingsPane } from "@/lib/open-settings";
 
 const REMOTE_SECTIONS: readonly AppSettingsSection[] = ["appearance", "companion", "desktopWorkspaces", "looks", "advanced"];
 
@@ -110,7 +112,14 @@ export function SettingsModal() {
 
   // a pane's own pages (and Advanced features' pages) slide in over its list with Grok's wipe; another pane swaps at once
   const paneKey = `${pane}:${page ?? ""}`;
+  const botTarget = useBotTarget();
+  const botPages = (): SubPage[] => {
+    const bot = botTarget?.kind === "bot" ? state.bots.find((entry) => entry.id === botTarget.id) : undefined;
+    const top = targetPage(botTarget, bot);
+    return top ? [top] : [];
+  };
   const linkedPage = (section: AppSettingsSection): SubPage[] => {
+    if (section === "bots") return botPages();
     const target = SECTION_PAGES[section];
     const place = settingsLocation(section);
     const home = place.page ? ADVANCED_PAGES.find((entry) => entry.id === place.page)?.sections : SETTINGS_PANES.find((entry) => entry.id === place.pane)?.sections;
@@ -126,6 +135,16 @@ export function SettingsModal() {
     setLinked(requested);
     setSub({ key: paneKey, stack: linkedPage(requested) });
   }
+  // a bot or group chat asked for from its panel: the Bots pane on it, at its row's page
+  const [seenBot, setSeenBot] = useState(0);
+  if (botTarget && botTarget.nonce !== seenBot) {
+    setSeenBot(botTarget.nonce);
+    chooseBotsScope(scopeOf(botTarget));
+    if (pane === "bots") setSub({ key: paneKey, stack: botPages() });
+  }
+  useEffect(() => {
+    if (botTarget) consumeBotTarget();
+  }, [botTarget]);
   const stack = sub.key === paneKey ? sub.stack : [];
   const thumb = useScrollThumb(scrollRef, `${paneKey}:${stack.length}`);
 
@@ -202,6 +221,7 @@ export function SettingsModal() {
       case "permissions": return <PermissionsPane has={has} />;
       case "vault": return <VaultPane />;
       case "models": return <ModelsPane has={has} disclose={disclose} connections={<AdminOnly><KeysPage /></AdminOnly>} />;
+      case "bots": return <BotsPane />;
       case "usage": return <UsagePane has={has} cloudAccount={cloudAccount} />;
       case "updates": return <UpdatesPane remoteActive={remoteActive} />;
       case "advanced": return at
@@ -217,6 +237,7 @@ export function SettingsModal() {
     const top = pages.at(-1);
     const nav = {
       at: top?.id,
+      stack: pages,
       open: (id: string, title: string) => setSub({ key: paneKey, stack: [...pages, { id, title }] }),
       back: () => setSub({ key: paneKey, stack: pages.slice(0, -1) }),
     };
@@ -229,6 +250,8 @@ export function SettingsModal() {
           onBack={onBack}
           backLabel={!top && at ? t("settings.advanced.back") : undefined}
         >
+          {pane === "bots" && !top && <div data-settings-header-actions="" className="max-sm:hidden"><BotsScopePicker /></div>}
+          {pane === "vault" && !top && <div data-settings-header-actions=""><VaultNewItem /></div>}
           <div className="w-full sm:hidden">
             <SettingsSelect
               value={pane}
@@ -282,7 +305,9 @@ export function SettingsModal() {
             <button type="button" onClick={close} aria-label={t("settings.grok.close")} className="settings-close">
               <GrokIcon name="close" size={14} />
             </button>
-            <WipeStack at={JSON.stringify({ at: page ?? null, pages: stack })} depth={(page ? 1 : 0) + stack.length} group={pane} layer={layer} />
+            <div key={pane} className="settings-pane-in flex min-h-0 flex-1 flex-col">
+              <WipeStack at={JSON.stringify({ at: page ?? null, pages: stack })} depth={(page ? 1 : 0) + stack.length} group={pane} layer={layer} />
+            </div>
           </section>
         </div>
       </div>

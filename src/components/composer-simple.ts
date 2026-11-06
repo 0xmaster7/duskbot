@@ -29,13 +29,14 @@ export function slotColors(color: Bot["color"] | undefined, room: boolean): { fi
   return { fill: grok ? `var(--grok-cta, ${tone.fill})` : tone.fill, ink: tone.ink, button: { className: cn(BOT_BUTTON, grok && "grok-cta"), style: { ...botButtonStyle(own), ...vars } }, vars };
 }
 
-export function composerPlaceholder({ simple, locked, approval, attaching, listening, replying, busy, canSteer, queued, busyName, sendLabel, group, members, jevOn, goal, botName, setupHint, question = false }: {
+export function composerPlaceholder({ simple, locked, approval, attaching, attached = false, listening, replying, busy, canSteer, queued, busyName, sendLabel, group, members, jevOn, goal, botName, setupHint, question = false }: {
   simple: boolean;
   /** A question card waits for the person's answer: grok says the field answers it, or talks past it. */
   question?: boolean;
   locked: boolean;
   approval: boolean;
   attaching: boolean;
+  attached?: boolean;
   listening: boolean;
   replying: boolean;
   busy: boolean;
@@ -57,6 +58,7 @@ export function composerPlaceholder({ simple, locked, approval, attaching, liste
   if (replying && !busy) return t("composer.placeholder.reply");
   if (simple) {
     if (question) return t("composer.placeholder.question");
+    if (attached) return t("composer.placeholder.attached");
     if (!busy && goal) return group ? t("composer.placeholder.goal", { name: group.name }) : t("composer.placeholder.goalSolo", { name: botName });
     if (!busy && !group && setupHint) return setupHint;
     if (group && !group.dm && effectiveDefaultResponder(group, members).kind === "mentions") {

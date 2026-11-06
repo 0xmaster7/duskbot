@@ -22,7 +22,7 @@ import { RoomHoldsBanner } from "./RoomHoldsBanner";
 import { ThreadChip } from "./ThreadChip";
 import { ToolActivity } from "./ToolActivity";
 import { ThreadRefText } from "./ThreadRefs";
-import { TurnPresence } from "./TurnPresence";
+import { RoomWorkingLines, roomWorkingIds } from "./RoomWorkingLines";
 import { showToolCallsEnabled } from "@/lib/feature-flags";
 import { CompactionChip, DigestChip } from "./DigestChip";
 import { roomActivityVisible } from "@/lib/room-activity";
@@ -30,8 +30,8 @@ import { StatusActivityRow } from "@/components/StatusActivityRow"; import { Bug
 import { normalizeState } from "@/lib/mascot";
 import { defaultResponderName, groupResponseHint, jevRoomRoutingOn } from "@/lib/group-routing";
 import { ChatMarkdown } from "./ChatMarkdown";
-import { FailedTurnRow, MessageBoundary, SIMPLE_STATUS_SLOT, SIMPLE_TRAILING_GAP, statusMarkFor, useLingering } from "./ChatView";
-import { joinedCorners, needsStamp, quietRow, SIMPLE_BOT_BUBBLE, SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT, SIMPLE_STACKED, SIMPLE_USER_BUBBLE, type BubbleJoin } from "./chat-bubble";
+import { FailedTurnRow, MessageBoundary, SIMPLE_STATUS_SLOT, SIMPLE_TRAILING_GAP, statusMarkFor } from "./ChatView";
+import { joinedCorners, needsStamp, SIMPLE_BOT_BUBBLE, SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT, SIMPLE_STACKED, SIMPLE_USER_BUBBLE, type BubbleJoin } from "./chat-bubble";
 import { roomRowLayout, type RoomSlot } from "./room-row-layout";
 import { DaySeparator } from "./DaySeparator";
 import { useThreadOpenedAt } from "./ConversationalReply";
@@ -182,6 +182,7 @@ function RoomTextMessage({
   const collapsible = user && !expanded && (display.length > USER_COLLAPSE_CHARS || display.split("\n").length > USER_COLLAPSE_LINES);
   useEffect(() => { if (focusedSearch && collapsible) setExpanded(true); }, [focusedSearch, collapsible, focus?.nonce]);
   const simple = !useAdvancedMode();
+  const mediaRow = simple && Boolean(attachments && (attachments.images.length || attachments.files.length));
   const speakerBot = members.find((member) => member.id === m.from?.botId);
   const botText = rawText; const teammates = useTeammates(); const peers = useMemo(() => [...members, ...teammates.peers], [members, teammates]);
   const pin = roomPin(group, m, dispatch);
@@ -212,6 +213,7 @@ function RoomTextMessage({
   return (
     <div {...{ [MESSAGE_ROW]: "" }} className={cn("group flex w-full flex-col", simple && "relative", user ? "items-end" : "items-start", fresh && "chat-row-in", simple && join.above && SIMPLE_STACKED)}>
       {speaker && <div className="mb-0.5 px-1 text-[12px] font-medium text-ink-secondary">{speaker}</div>}
+      {mediaRow && attachments && <AttachmentGallery images={attachments.images} files={attachments.files} message={{ threadId: group.threadId, messageId: m.id }} eager={eager} align="end" className={display.trim() ? "mb-1" : undefined} />}
       <div data-own-row={simple && user ? "" : undefined} className={cn("flex w-full gap-1.5", simple ? "items-center" : "items-end", user ? "justify-end" : "justify-start")}>
         {user && (
           <MessageActions side="user" menu={userMessageMenu({ messageId: m.id, pin })}>
@@ -226,7 +228,7 @@ function RoomTextMessage({
             simple ? cn(!tabled && SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT) : "max-w-[min(var(--chat-bubble-max),var(--chat-bubble-pct))] rounded-2xl text-[15px] leading-relaxed",
             !user && emerging && "turn-answer",
             simple && !tabled && joinedCorners(user ? "end" : "start", join),
-            tabled || (!user && !m.text?.trim() && !m.replyToId && m.attachments?.length)
+            tabled || (!user && !m.text?.trim() && !m.replyToId && m.attachments?.length) || (mediaRow && !display.trim() && !m.replyToId)
               ? "text-ink"
               : !simple && !user && isFormattedReply(m.text ?? "")
                 ? cn(formattedReplyWidth(m.text ?? ""), "px-1 text-ink")
@@ -253,7 +255,7 @@ function RoomTextMessage({
           })()}
           {user ? (
             <>
-              {attachments && <AttachmentGallery images={attachments.images} files={attachments.files} message={{ threadId: group.threadId, messageId: m.id }} eager={eager} className={!attachments.display ? "mb-0" : undefined} />}
+              {attachments && !mediaRow && <AttachmentGallery images={attachments.images} files={attachments.files} message={{ threadId: group.threadId, messageId: m.id }} eager={eager} className={!attachments.display ? "mb-0" : undefined} />}
               <div
                 className={cn(collapsible && "max-h-40 overflow-hidden [mask-image:linear-gradient(to_bottom,black_60%,transparent)]")}
                 data-citation-source={m.id}
@@ -976,7 +978,6 @@ export function GroupView({ group }: { group: Group }) {
   const simpleHeader = simpleRoomHeader({ advanced: advancedMode, remoteClient, group, setupPending });
 
   const lastGroupMessage = group.messages.at(-1);
-  const toolInFlight = lastGroupMessage?.kind === "activity" && lastGroupMessage.tool?.ok === undefined;
   const live = useTurnLive(group.threadId);
   const awaited = members.find(
     (b) => b.id === awaitedMemberId(threadWorking, group.busyBotId, lastGroupMessage),
@@ -984,7 +985,6 @@ export function GroupView({ group }: { group: Group }) {
   // the speaker's mark and its status line stay for the whole turn; only its end hides them
   const presenceVisible =
     Boolean(speaker && showWorkingDots(true, group.messages.at(-1), speaker.id, live.ended)) || awaited !== undefined;
-  const presenceShown = useLingering(presenceVisible, 140);
   const announcement = useMemo((): TranscriptSnapshot => {
     const approval = pendingApprovals(group.messages)[0];
     return {
@@ -1003,8 +1003,7 @@ export function GroupView({ group }: { group: Group }) {
   );
   const streamingReply = useLiveReplyActive(group.threadId);
   const statusMarkState = statusMarkFor({ busy: threadWorking, waitingOnYou: false, answering: streamingReply, live: live.status?.activity, failed: lastGroupMessage?.kind === "activity" && lastGroupMessage.tool?.ok === false });
-  const [markEmphasized, setMarkEmphasized] = useState(false);
-  const showToolCalls = showToolCallsEnabled(state.config);
+  const workingIds = roomWorkingIds(group, lastGroupMessage);
 
   const {
     scrollRef,
@@ -1028,10 +1027,6 @@ export function GroupView({ group }: { group: Group }) {
     hasMore: group.hasMore,
   });
   useTimestampPeek(scrollRef, !advancedMode);
-  const lastShownRow = windowedMessages.findLast((m) => !quietRow(m, showToolCalls) && !isCancelledTranscriptRow(m) && m.kind !== "compaction");
-  // the working line hangs under its speaker's last bubble, as one more message from it
-  const presenceUnderBubble = Boolean(!advancedMode && lastShownRow?.role === "bot" && lastShownRow.kind === "text" && !lastShownRow.publishedPage
-    && (!presenceVisible || lastShownRow.from?.botId === presenceSpeaker?.id));
   // the status line keeps its slot at the end of the room whether it shows or not, so it never moves a row
   const statusSlot = !advancedMode && (windowedMessages.length > 0 || threadWorking);
   const unreadDivider = useUnreadDivider({ threadId: group.threadId, messages: group.messages, following });
@@ -1183,7 +1178,6 @@ export function GroupView({ group }: { group: Group }) {
             unreadDividerId={unreadDivider.messageId}
             unreadDividerFading={unreadDivider.fading}
             onReply={selectReply}
-            seamId={presenceUnderBubble && presenceShown ? lastShownRow?.id ?? null : null}
           />
           {laterCount > 0 && (
             <div className="flex justify-center">
@@ -1195,31 +1189,13 @@ export function GroupView({ group }: { group: Group }) {
               </button>
             </div>
           )}
-          <div
-            className={statusSlot ? cn("turn-status-slot h-9 shrink-0", presenceUnderBubble && SIMPLE_STACKED) : "contents"}
-            onMouseEnter={() => setMarkEmphasized(true)}
-            onMouseLeave={() => setMarkEmphasized(false)}
-          >
-            <TurnPresence
-              avatar={
-                <BotAvatar
-                  bot={presenceSpeaker ?? { color: "green" }}
-                  state={advancedMode ? (toolInFlight && !awaited ? "working" : "thinking") : statusMarkState}
-                  size={advancedMode ? 36 : 28}
-                  eyeInk={advancedMode ? undefined : "var(--color-app)"}
-                  emphasized={!advancedMode && markEmphasized}
-                  forward={false}
-                  lookAround={1}
-                  trackPointer={false}
-                />
-              }
-              simple={!advancedMode}
-              visible={presenceVisible}
-              {...now}
-              seed={`${group.id}:${group.turnStartedAt ?? ""}:${speaker?.id ?? ""}`}
-              since={speaker ? group.turnStartedAt ?? null : null}
-            />
-          </div>
+          <RoomWorkingLines
+            group={group}
+            members={members}
+            workingIds={workingIds}
+            speaker={{ bot: presenceSpeaker, visible: presenceVisible, markState: statusMarkState, phrases: now.phrases, phase: now.phase, since: speaker ? group.turnStartedAt ?? null : null }}
+            slot={statusSlot}
+          />
           {advancedMode && <RoomQueueList group={group} members={members} />}
         </div>
         )}

@@ -1,23 +1,23 @@
 // where each setting lives and the action that opens Settings there: kept apart from the Settings screens so a link to
 // Settings from the chat or the panel never pulls those screens into the launch bundle
+import { useSyncExternalStore } from "react";
 import type { LocaleKey } from "@/locales";
 import type { Action, AppSettingsSection } from "@/state/store";
 import type { GrokIconName } from "@/components/GrokIcon";
 
-export type AdvancedPage = "apps" | "bots" | "looks" | "team" | "data" | "builder";
+export type AdvancedPage = "apps" | "looks" | "team" | "data" | "builder";
 
 export const ADVANCED_PAGES: ReadonlyArray<{ id: AdvancedPage; icon: GrokIconName; sections: AppSettingsSection[] }> = [
   { id: "apps", icon: "plug", sections: ["apps", "skills"] },
-  { id: "bots", icon: "robot", sections: ["bots"] },
   { id: "looks", icon: "palette", sections: ["looks"] },
   { id: "team", icon: "building", sections: ["organization", "people", "workspaces"] },
   { id: "data", icon: "database", sections: ["data", "backups"] },
   { id: "builder", icon: "sliders", sections: ["builder", "experimental"] },
 ];
 
-export type SettingsPane = "general" | "texting" | "computer" | "permissions" | "vault" | "models" | "usage" | "updates" | "advanced";
+export type SettingsPane = "general" | "texting" | "computer" | "permissions" | "vault" | "models" | "bots" | "usage" | "updates" | "advanced";
 
-/** Grok's panes, with Phone, Models and Advanced features for what Grok has no pane for. */
+/** Grok's panes, with Phone, Models, Bots and Advanced features for what Grok has no pane for. */
 export const SETTINGS_PANES: ReadonlyArray<{ id: SettingsPane; labelKey: LocaleKey; icon: GrokIconName; sections: readonly AppSettingsSection[] }> = [
   { id: "general", labelKey: "settings.section.general", icon: "settings-gear", sections: ["general", "appearance", "import"] },
   { id: "texting", labelKey: "settings.grok.group.phone", icon: "chat-bubbles", sections: ["texting", "companion", "remote"] },
@@ -25,6 +25,7 @@ export const SETTINGS_PANES: ReadonlyArray<{ id: SettingsPane; labelKey: LocaleK
   { id: "permissions", labelKey: "settings.pane.permissions", icon: "shield", sections: ["permissions", "botAccess", "activity"] },
   { id: "vault", labelKey: "settings.w6.pane.vault", icon: "vault", sections: ["logins"] },
   { id: "models", labelKey: "settings.pane.models", icon: "sparkle", sections: ["engines", "connections", "decisionModel"] },
+  { id: "bots", labelKey: "settings.pane.bots", icon: "robot", sections: ["bots"] },
   { id: "usage", labelKey: "settings.pane.usage", icon: "chart-bars", sections: ["usage", "cloudAccount"] },
   { id: "updates", labelKey: "settings.simple.page.updates", icon: "cloud-download", sections: ["updates", "about"] },
   { id: "advanced", labelKey: "settings.pane.advanced", icon: "sliders", sections: ["advanced", ...ADVANCED_PAGES.flatMap((page) => page.sections)] },
@@ -49,4 +50,36 @@ export function openSettings(target: SettingsPane | AdvancedPage | keyof typeof 
   const page = ADVANCED_PAGES.find((entry) => entry.id === target);
   const section = pane ? pane.sections[0]! : page ? page.sections[0]! : (target as AppSettingsSection);
   return { type: "toggleAppSettings", open: true, section };
+}
+
+/** A row of a bot's settings on the Bots pane, each opening its page there; or a group chat's. */
+export type BotSettingsRow = "instructions" | "memory" | "skills" | "identity" | "tools" | "permissions" | "folder" | "where" | "backups" | "slack";
+export type RoomSettingsRow = "instructions" | "responder" | "folder" | "about";
+
+export type SettingsBotTarget =
+  | { kind: "bot"; id: string; row?: BotSettingsRow; nonce: number }
+  | { kind: "group"; id: string; row?: RoomSettingsRow; nonce: number };
+
+let botTarget: SettingsBotTarget | null = null;
+let nonce = 0;
+const watchers = new Set<() => void>();
+const notify = () => { for (const watch of Array.from(watchers)) watch(); };
+const subscribe = (watch: () => void) => { watchers.add(watch); return () => { watchers.delete(watch); }; };
+
+/** Open Settings on the Bots pane with this bot (or group chat) picked, at one of its rows' pages when given. */
+export function openBotSettings(target: { kind: "bot"; id: string; row?: BotSettingsRow } | { kind: "group"; id: string; row?: RoomSettingsRow }): Action {
+  botTarget = { ...target, nonce: ++nonce } as SettingsBotTarget;
+  notify();
+  return { type: "toggleAppSettings", open: true, section: "bots" };
+}
+
+/** The bot or group chat asked for, until Settings has acted on it. */
+export function useBotTarget(): SettingsBotTarget | null {
+  return useSyncExternalStore(subscribe, () => botTarget, () => botTarget);
+}
+
+export function consumeBotTarget(): void {
+  if (!botTarget) return;
+  botTarget = null;
+  notify();
 }
