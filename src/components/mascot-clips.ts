@@ -169,6 +169,88 @@ export const OMB_CLIPS = {
       position: still(3.2),
     },
   })),
+  // the click and open answers (mascot-click.ts): small, from the rest pose, each with its own face
+  BlinkSmile: clip(fromRest({
+    name: "BlinkSmile",
+    duration: 1.1,
+    squashAnchor: -1,
+    tracks: {
+      squash: [{ t: 0, v: [1, 1] }, { t: 0.42, v: [1.03, 0.97] }, { t: 0.62, v: [0.99, 1.01] }, { t: 0.9, v: [1, 1] }],
+      expression: [{ t: 0.04, v: "blink" }, { t: 0.32, v: "blink" }, { t: 0.44, v: "happy", cut: false }, { t: 0.98, v: "neutral", cut: false }],
+    },
+  })),
+  Curious: clip(fromRest({
+    name: "Curious",
+    duration: 1.4,
+    tracks: {
+      rotation: [{ t: 0, v: [0, 0, 0] }, { t: 0.3, v: [-5, 8, 10], ease: OUT }, { t: 1, v: [-5, 8, 9] }, { t: 1.35, v: [0, 0, 0] }, { t: 1.4, v: [0, 0, 0] }],
+      position: [{ t: 0, v: [0, 0] }, { t: 0.3, v: [0.03, 0.01], ease: OUT }, { t: 1, v: [0.03, 0.01] }, { t: 1.35, v: [0, 0] }],
+      expression: [{ t: 0.08, v: "inspecting", cut: false }, { t: 0.72, v: "blink" }, { t: 1.15, v: "neutral", cut: false }],
+    },
+  })),
+  Tilt: clip(fromRest({
+    name: "Tilt",
+    duration: 1.2,
+    tracks: {
+      rotation: [
+        { t: 0, v: [0, 0, 0] }, { t: 0.25, v: [0, 0, -13], ease: OUT }, { t: 0.55, v: [0, 0, -11] }, { t: 0.76, v: [0, 0, 4] },
+        { t: 0.95, v: [0, 0, -1] }, { t: 1.2, v: [0, 0, 0] },
+      ],
+      position: [{ t: 0, v: [0, 0] }, { t: 0.25, v: [-0.03, 0.02], ease: OUT }, { t: 0.6, v: [-0.02, 0.01] }, { t: 0.95, v: [0, 0] }],
+      expression: [{ t: 0.1, v: "confused", cut: false }, { t: 0.62, v: "blink" }, { t: 1.05, v: "neutral", cut: false }],
+    },
+  })),
+  Squish: clip(fromRest({
+    name: "Squish",
+    duration: 0.9,
+    squashAnchor: -1,
+    tracks: {
+      squash: [
+        { t: 0, v: [1, 1] }, { t: 0.1, v: [1.16, 0.84], ease: OUT }, { t: 0.26, v: [0.92, 1.1] }, { t: 0.42, v: [1.05, 0.96] },
+        { t: 0.58, v: [0.99, 1.01] }, { t: 0.75, v: [1, 1] },
+      ],
+      expression: [{ t: 0, v: "squinted", cut: true }, { t: 0.5, v: "blink" }, { t: 0.72, v: "neutral", cut: false }],
+    },
+  })),
+  // a softer startle: it perks up, wide-eyed, and blinks it off
+  Perk: clip(fromRest({
+    name: "Perk",
+    duration: 0.95,
+    squashAnchor: -1,
+    tracks: {
+      position: [{ t: 0, v: [0, 0] }, { t: 0.1, v: [0, 0.08], ease: OUT }, { t: 0.3, v: [0, 0] }, { t: 0.95, v: [0, 0] }],
+      squash: [{ t: 0, v: [1, 1] }, { t: 0.04, v: [0.94, 1.07] }, { t: 0.32, v: [1.04, 0.97] }, { t: 0.5, v: [1, 1] }],
+      rotation: [{ t: 0, v: [0, 0, 0] }, { t: 0.12, v: [6, 0, 0], ease: OUT }, { t: 0.6, v: [3, 0, 0] }, { t: 0.9, v: [0, 0, 0] }],
+      expression: [{ t: 0, v: "surprised", cut: true }, { t: 0.55, v: "blink" }, { t: 0.85, v: "neutral", cut: false }],
+    },
+  })),
+  // clicked again and again: it wobbles, a little dizzy
+  Dizzy: clip(fromRest({
+    name: "Dizzy",
+    duration: 1.6,
+    squashAnchor: -1,
+    tracks: {
+      rotation: [
+        { t: 0, v: [0, 0, 0] }, { t: 0.15, v: [0, -10, 10] }, { t: 0.4, v: [0, 10, -10] }, { t: 0.65, v: [0, -8, 8] },
+        { t: 0.9, v: [0, 6, -6] }, { t: 1.15, v: [0, -3, 3] }, { t: 1.4, v: [0, 0, 0] }, { t: 1.6, v: [0, 0, 0] },
+      ],
+      squash: [{ t: 0, v: [1, 1] }, { t: 0.3, v: [1.04, 0.97] }, { t: 0.7, v: [0.98, 1.02] }, { t: 1.1, v: [1, 1] }],
+      expression: [{ t: 0.05, v: "squinted", cut: false }, { t: 0.5, v: "confused", cut: false }, { t: 1, v: "blink" }, { t: 1.3, v: "neutral", cut: false }],
+    },
+  })),
+  // a dozing mark that gets clicked: heavy lids, a long stretch, then it is with you
+  SleepyStretch: clip(fromRest({
+    name: "SleepyStretch",
+    duration: 2,
+    squashAnchor: -1,
+    tracks: {
+      lids: [{ t: 0, v: [0.75] }, { t: 0.5, v: [0.5] }, { t: 1.1, v: [0.15] }, { t: 1.5, v: [0] }],
+      squash: [{ t: 0, v: [1, 1] }, { t: 0.55, v: [0.9, 1.14] }, { t: 1.05, v: [0.9, 1.15] }, { t: 1.35, v: [1.05, 0.96] }, { t: 1.6, v: [1, 1] }],
+      rotation: [{ t: 0, v: [10, 0, 3] }, { t: 0.6, v: [-4, 0, 0] }, { t: 1.1, v: [-4, 0, 0] }, { t: 1.5, v: [0, 0, 0] }, { t: 2, v: [0, 0, 0] }],
+      position: [{ t: 0, v: [0, -0.03] }, { t: 0.6, v: [0, 0.02] }, { t: 1.5, v: [0, 0] }],
+      expression: [{ t: 0.05, v: "sleepy", cut: false }, { t: 0.9, v: "calm", cut: false }, { t: 1.45, v: "blink" }, { t: 1.7, v: "neutral", cut: false }],
+    },
+  })),
   Wake: clip({
     name: "Wake",
     duration: 1.2,

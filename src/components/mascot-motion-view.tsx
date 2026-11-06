@@ -200,7 +200,7 @@ export const GrokMark = forwardRef<GrokMarkHandle, GrokMarkProps>(function GrokM
       role={label ? "img" : undefined}
       aria-label={label ?? undefined}
       aria-hidden={label ? undefined : true}
-      onDoubleClick={everLive.current ? () => mark.current?.react("spin") : undefined}
+      onDoubleClick={everLive.current ? () => mark.current?.react("tap") : undefined}
       style={{ display: "inline-block", position: "relative", flexShrink: 0, width: size, height: size, lineHeight: 0, ...style }}
     >
       <span

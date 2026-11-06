@@ -3,11 +3,14 @@
 // of their own and the eyes wander between acts, after threebot's character (MIT): see BLINK_GAP_MS and the peek act.
 import { seededRandom, type MarkClip, type MarkPoke } from "./mascot-motion-engine";
 import { OMB_CLIPS, type OmbClipName } from "./mascot-clips";
+import { createClickReactor, type ClickReaction } from "./mascot-click";
 
 export type IdleAct =
   | "peek" | "glance" | "lookAround" | "curious" | "fidget" | "stretch" | "yawn" | "hop" | "wiggle" | "nod";
 
-export type MarkReaction = "hop" | "greet" | "startle" | "cheer" | "nod" | "spin" | "wiggle" | "lookAround";
+export type MarkReaction = "hop" | "greet" | "startle" | "cheer" | "nod" | "spin" | "wiggle" | "lookAround" | ClickReaction;
+
+const isClick = (kind: MarkReaction): kind is ClickReaction => kind === "open" || kind === "tap";
 
 /** What the persona asks of the mark. The controller maps these onto Grok's animator. */
 export interface PersonaBody {
@@ -62,8 +65,9 @@ export interface ReactionMove {
   pokes?: MarkPoke[];
 }
 
-/** Each reaction picks a weighted move, never the one it played last time, so the same moment reads fresh. */
-export const REACTION_MOVES: Record<MarkReaction, ReactionMove[]> = {
+/** Each reaction picks a weighted move, never the one it played last time, so the same moment reads fresh. Clicks and
+ * opens have a pool of their own in mascot-click.ts. */
+export const REACTION_MOVES: Record<Exclude<MarkReaction, ClickReaction>, ReactionMove[]> = {
   hop: [{ weight: 3, clip: "Hop" }, { weight: 2, pokes: ["bounce"] }, { weight: 1, clip: "Greet" }],
   greet: [{ weight: 3, clip: "Greet" }, { weight: 1, clip: "Hop" }],
   startle: [{ weight: 3, clip: "Startle" }, { weight: 2, clip: "Wince" }],
@@ -139,6 +143,16 @@ export function createPersona(seed: number, body: PersonaBody, clip: (name: stri
   };
 
   const lastMove = new Map<MarkReaction, ReactionMove>();
+  const clicks = createClickReactor(seed, {
+    blink: () => body.blink(),
+    play: (clip) => body.play(clip),
+    poke: (kind, turns) => body.poke(kind, turns),
+    peek: (gaze, holdMs) => {
+      looks = [{ at: clickAt + holdMs, gaze: null }];
+      lookNow(gaze);
+    },
+  });
+  let clickAt = 0;
   let lastIdle: IdleAct | null = null;
   let lastFidget: string | null = null;
   const off = (name: string, cooldownMs: number, now: number) => now - (lastAt.get(name) ?? -Infinity) >= cooldownMs;
@@ -158,7 +172,7 @@ export function createPersona(seed: number, body: PersonaBody, clip: (name: stri
     lastFidget = pool[Math.floor(random() * pool.length)]!;
     return lastFidget;
   };
-  const move = (kind: MarkReaction) => {
+  const move = (kind: Exclude<MarkReaction, ClickReaction>) => {
     const all = REACTION_MOVES[kind];
     const last = lastMove.get(kind);
     const pool = all.length > 1 ? all.filter((option) => option !== last) : all;
@@ -184,12 +198,12 @@ export function createPersona(seed: number, body: PersonaBody, clip: (name: stri
       case "nod": return body.poke("nod");
     }
   };
-  const wake = () => {
+  const wake = (clip: MarkClip = OMB_CLIPS.Wake) => {
     if (!dozing) return;
     blinkAt = null;
     dozing = false;
     body.holdFace(null);
-    body.play(OMB_CLIPS.Wake);
+    body.play(clip);
     lastAct = "wake";
   };
 
@@ -263,6 +277,16 @@ export function createPersona(seed: number, body: PersonaBody, clip: (name: stri
       return Math.min(blinkAt, secondBlinkAt ?? Infinity);
     },
     react(kind, now) {
+      if (isClick(kind)) {
+        if (clicks.isEcho(now)) return;
+        const wasDozing = dozing;
+        // clicked awake, it stretches instead of starting
+        if (wasDozing) wake(OMB_CLIPS.SleepyStretch);
+        this.touch(now);
+        clickAt = now;
+        lastAct = clicks.react(kind, now, wasDozing);
+        return;
+      }
       if (!off(`react:${kind}`, REACTION_COOLDOWN_MS, now)) return;
       lastAt.set(`react:${kind}`, now);
       const wasDozing = dozing;

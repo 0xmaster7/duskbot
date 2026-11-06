@@ -29,7 +29,7 @@ interface MotionFaces
 
 const MOTION_FACE: MotionFaces = {
   arrive: { state: "spawning", spin: 900 },
-  switch: { react: "greet" },
+  switch: { react: "open" },
   customize: { state: "proud", blink: true },
   alert: { state: "alerting" },
   thinking: { state: "thinking" },

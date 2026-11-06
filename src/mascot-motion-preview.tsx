@@ -17,7 +17,7 @@ const COLORS = MAUS_COLOR_NAMES as readonly MausColor[];
 const ink = (index: number) => MASCOT_INK[COLORS[index % COLORS.length]!] ?? MASCOT_INK.green;
 const GROK_CLIPS = [...MARK_CLIPS.values()].map((clip) => ({ name: clip.name, duration: clip.duration, ours: false }));
 const OUR_CLIPS = Object.values(OMB_CLIPS).map((clip) => ({ name: clip.name, duration: clip.duration, ours: true }));
-const REACTIONS: Array<MarkReaction | "watch"> = ["hop", "greet", "cheer", "startle", "wiggle", "nod", "spin", "watch"];
+const REACTIONS: Array<MarkReaction | "watch"> = ["open", "tap", "hop", "greet", "cheer", "startle", "wiggle", "nod", "spin", "watch"];
 const CUE = "preview-bodies";
 
 function ClipTile({ name, duration, ours, body, color }: { name: string; duration: number; ours: boolean; body: string; color: string }) {
@@ -58,7 +58,7 @@ function Preview() {
 
       <section className="flex flex-col gap-3" aria-labelledby="bodies-title">
         <h2 id="bodies-title" className="text-[14px] font-semibold leading-5">Every body, living idle</h2>
-        <p className="text-[12px] leading-4 text-ink-secondary">Each blinks, glances, stretches and dozes on its own seeded schedule. Hover one to wake it, double-click to spin.</p>
+        <p className="text-[12px] leading-4 text-ink-secondary">Each blinks, glances, stretches and dozes on its own seeded schedule. Hover one to wake it, double-click to poke it.</p>
         <div className="flex flex-wrap gap-4" data-bodies>
           {GROK_BODY_IDS.map((id, index) => (
             <GrokMark key={id} ref={(handle) => { if (handle) bodies.current.set(id, handle); else bodies.current.delete(id); }}
