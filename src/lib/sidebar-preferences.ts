@@ -3,12 +3,8 @@ import { z } from "zod";
 
 /** The sidebar as it is, or "icons": the column of avatars the person dragged its edge down to. */
 export type SidebarDensity = "comfortable" | "icons";
-export type SidebarToolsLayout = "rows" | "toolbar";
-
-export const SIDEBAR_TOOLS_LAYOUTS: readonly SidebarToolsLayout[] = ["rows", "toolbar"];
 
 export const SIDEBAR_DENSITY_KEY = "openmausbot.sidebarDensity";
-export const SIDEBAR_TOOLS_LAYOUT_KEY = "openmausbot.sidebarToolsLayout";
 export const SIDEBAR_WIDTH_KEY = "openmausbot.sidebarWidth";
 export const SIMPLE_SIDEBAR_WIDTH_KEY = "openmausbot.sidebarWidth.simple";
 export const SIDEBAR_ATTENTION_PINNED_KEY = "openmausbot.sidebarAttentionPinned.v1";
@@ -43,36 +39,6 @@ export function saveSidebarDensity(
   try {
     const target = storage === undefined ? (globalThis.localStorage ?? null) : storage;
     target?.setItem(SIDEBAR_DENSITY_KEY, density === "icons" ? AVATARS : density);
-  } catch {
-  }
-}
-
-export function parseSidebarToolsLayout(value: string | null): SidebarToolsLayout {
-  switch (value) {
-    case "rows":
-    case "toolbar":
-      return value;
-    default:
-      return "rows";
-  }
-}
-
-export function loadSidebarToolsLayout(storage?: Pick<Storage, "getItem"> | null): SidebarToolsLayout {
-  try {
-    const target = storage === undefined ? (globalThis.localStorage ?? null) : storage;
-    return parseSidebarToolsLayout(target?.getItem(SIDEBAR_TOOLS_LAYOUT_KEY) ?? null);
-  } catch {
-    return "rows";
-  }
-}
-
-export function saveSidebarToolsLayout(
-  layout: SidebarToolsLayout,
-  storage?: Pick<Storage, "setItem"> | null,
-): void {
-  try {
-    const target = storage === undefined ? (globalThis.localStorage ?? null) : storage;
-    target?.setItem(SIDEBAR_TOOLS_LAYOUT_KEY, layout);
   } catch {
   }
 }
@@ -120,51 +86,6 @@ export function setSidebarDensity(density: SidebarDensity): void {
 
 export function useSidebarDensity(): SidebarDensity {
   return useSyncExternalStore(subscribeDensity, currentSidebarDensity, () => "comfortable");
-}
-
-let toolsLayoutSessionChoice: SidebarToolsLayout | undefined;
-const toolsLayoutListeners = new Set<() => void>();
-
-function currentSidebarToolsLayout(): SidebarToolsLayout {
-  return toolsLayoutSessionChoice ?? loadSidebarToolsLayout();
-}
-
-function notifyToolsLayout() {
-  for (const listener of toolsLayoutListeners) listener();
-}
-
-function onToolsLayoutStorage(event: StorageEvent) {
-  if (event.key !== SIDEBAR_TOOLS_LAYOUT_KEY && event.key !== null) return;
-  try {
-    if (event.storageArea && event.storageArea !== globalThis.localStorage) return;
-  } catch {
-    return;
-  }
-  toolsLayoutSessionChoice = undefined;
-  notifyToolsLayout();
-}
-
-export function subscribeSidebarToolsLayout(listener: () => void): () => void {
-  toolsLayoutListeners.add(listener);
-  if (toolsLayoutListeners.size === 1 && typeof window !== "undefined") {
-    window.addEventListener("storage", onToolsLayoutStorage);
-  }
-  return () => {
-    toolsLayoutListeners.delete(listener);
-    if (toolsLayoutListeners.size === 0 && typeof window !== "undefined") {
-      window.removeEventListener("storage", onToolsLayoutStorage);
-    }
-  };
-}
-
-export function setSidebarToolsLayout(layout: SidebarToolsLayout): void {
-  toolsLayoutSessionChoice = layout;
-  saveSidebarToolsLayout(layout);
-  notifyToolsLayout();
-}
-
-export function useSidebarToolsLayout(): SidebarToolsLayout {
-  return useSyncExternalStore(subscribeSidebarToolsLayout, currentSidebarToolsLayout, () => "rows");
 }
 
 /** The narrowest the open sidebar gets. */

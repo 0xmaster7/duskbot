@@ -369,21 +369,4 @@ describe("routine editor", () => {
     expect(await save({ ...routine, enabled: false })).not.toHaveProperty("enabled");
   });
 
-  it("shows a routine with no thread of its own reporting into the bot's main thread", () => {
-    fixture.advanced = true;
-    const { resultsThreadId: _chosen, ...unchosen } = routine;
-    const destination = (html: string) => html.slice(html.indexOf("Post results to")).match(/^[\s\S]*?<\/select>/)![0];
-    expect(destination(editor(unchosen))).toContain('<option value="new" selected="">The bot&#x27;s main thread</option>');
-    expect(destination(editor(routine))).toContain('<option value="brief-thread" selected="">Morning briefs</option>');
-  });
-
-  it("leaves the Advanced editor as it was", () => {
-    fixture.advanced = true;
-    const html = editor();
-    for (const text of ['placeholder="Add title"', '<select aria-label="Repeat"', "Assign a bot", "Runs the whole job on the bot&#x27;s cloud desktop", "Post results to", "Routine type", "New event"]) {
-      expect(html, text).toContain(text);
-    }
-    expect(html).not.toContain("More options");
-    expect(html).not.toContain("What should happen?");
-  });
 });

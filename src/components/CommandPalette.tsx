@@ -298,7 +298,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
                   const unread = botUnreadCount(bot) > 0;
                   const key = slot.get(bot.id);
                   return row(`bot:${bot.id}`, index, entry, <BotAvatar bot={bot} size={24} animated={false} trackPointer={false} />,
-                    <Marked text={bot.name} query={q} />, botPreview(bot, visibleMessages(bot), state.instances, false), "Bot",
+                    <Marked text={bot.name} query={q} />, botPreview(bot, visibleMessages(bot), state.instances), "Bot",
                     <>
                       {unread && <span role="img" aria-label="Unread activity" className="flex size-2 shrink-0 items-center"><span className="size-2 rounded-full bg-accent-text" /></span>}
                       {/* grok's rows carry no keycap; the shortcut stays, read out only */}
@@ -309,7 +309,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
                   const { group } = entry;
                   const members = group.memberIds.map((id) => state.bots.find((bot) => bot.id === id)).filter((bot): bot is Bot => Boolean(bot));
                   return row(`room:${group.id}`, index, entry, <GroupAvatar members={members} you={you} size={24} />, <Marked text={group.name} query={q} />,
-                    group.description || groupPreview(group, state.bots, state.instances, false), "Group chat",
+                    group.description || groupPreview(group, state.bots, state.instances), "Group chat",
                     group.unread ? <span role="img" aria-label="Unread activity" className="flex size-2 shrink-0 items-center"><span className="size-2 rounded-full bg-accent-text" /></span> : undefined);
                 }
                 if (entry.kind === "message") {

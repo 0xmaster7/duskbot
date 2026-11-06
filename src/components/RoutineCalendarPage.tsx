@@ -37,7 +37,6 @@ import { ResultsDestination } from "@/components/routines/ResultsDestination";
 import { CronScheduleFields, CronSchedulePreview } from "@/components/routines/CronScheduleFields";
 import { cronChoiceFor, cronDraftFor, cronEditorValue, isCronChoice, type CronChoice } from "@/components/routines/cron-editor";
 import { partlyDone, routineRunLabel, routineRunsOn, routineRunTime, routineScheduleState } from "@/lib/routine-display";
-import { useAdvancedMode } from "@/lib/interface-mode";
 import { useShowThreads } from "@/lib/thread-preferences";
 import { t } from "@/lib/i18n";
 import { useModalDialog } from "@/hooks/use-modal-dialog";
@@ -514,7 +513,6 @@ export function EventEditor({
     && !intervalEndInvalid
     && !cron?.error,
   );
-  const advanced = useAdvancedMode() && !plain;
   const [moreOpen, setMoreOpen] = useState(() => !(["none", "daily", "weekdays", "weekly"] as RecurrenceChoice[]).includes(recurrence)
     || routineTarget === "room-goal"
     || attachments.length > 0
@@ -526,7 +524,7 @@ export function EventEditor({
   useModalDialog(dialogRef, onClose);
 
   const routineTypeControl = !lockedBotId && (
-            <div className={cn(advanced && "ml-10")}>
+            <div>
               <div className={cn(fieldLabelCls, "mb-1")}>{t("routines.editor.type")}</div>
               <div className="grid gap-2 sm:grid-cols-2">
                 <button
@@ -752,7 +750,7 @@ export function EventEditor({
                 </details>
               );
   const continuityControl = !isRoomGoal && recurrence !== "none" && (
-          <label className={cn("flex items-start gap-2.5", advanced && "ml-8")}>
+          <label className="flex items-start gap-2.5">
             <input type="checkbox" aria-label={t("routines.continuityLabel")} checked={continuity} onChange={(event) => setContinuity(event.target.checked)} className="mt-0.5 accent-ink" />
             <span className="flex flex-col gap-0.5">
               <span className="text-[13px] leading-[18px] text-ink">{t("routines.continuityLabel")}</span>
@@ -760,7 +758,7 @@ export function EventEditor({
             </span>
           </label>
         );
-  const resultsControl = !isRoomGoal && <div className={cn(advanced && "ml-8")}>
+  const resultsControl = !isRoomGoal && <div>
             <ResultsDestination bot={bots.find((bot) => bot.id === botIds[0])} value={resultsThreadId} allowCurrent={Boolean(existingRoutine)} onChange={setResultsThreadId} />
           </div>;
   const attachmentsRow = (
@@ -798,9 +796,7 @@ export function EventEditor({
               </div>
             </div>
           );
-  const headerTitle = !advanced
-    ? t(plain ? (existingRoutine ? "automations.editor.edit" : "automations.editor.new") : existingRoutine ? "routines.editor.edit" : "routines.editor.new")
-    : existingRoutine ? "Edit event" : "New event";
+  const headerTitle = t(plain ? (existingRoutine ? "automations.editor.edit" : "automations.editor.new") : existingRoutine ? "routines.editor.edit" : "routines.editor.new");
   const repeatChoices = [
     ["none", "routines.repeat.once"],
     ["daily", "routines.repeat.daily"],
@@ -811,32 +807,19 @@ export function EventEditor({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div aria-hidden="true" className="ui-dialog-scrim absolute inset-0" onMouseDown={onClose} />
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={existingRoutine ? "Edit calendar event" : "Create calendar event"} tabIndex={-1} style={{ maxWidth: advanced ? "min(640px, calc(100vw - 32px))" : "min(460px, calc(100vw - 32px))" }} className={formSheetCls}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={existingRoutine ? "Edit calendar event" : "Create calendar event"} tabIndex={-1} style={{ maxWidth: "min(460px, calc(100vw - 32px))" }} className={formSheetCls}>
         <header className={formHeaderCls}>
           <h2 className={formTitleCls}>{headerTitle}</h2>
           <button type="button" onClick={onClose} className={formCloseCls} aria-label="Close"><GrokIcon name="close" size={16} /></button>
         </header>
 
         <div className={cn(formBodyCls, "flex flex-col gap-3 pb-2")}>
-          {advanced && routineTypeControl}
-
           <label className="flex flex-col gap-1">
             <span className={fieldLabelCls}>{t("routines.editor.titleLabel")}</span>
-            <input autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder={advanced ? "Add title" : t("routines.editor.titlePlaceholder")} className={textFieldCls} />
+            <input autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder={t("routines.editor.titlePlaceholder")} className={textFieldCls} />
           </label>
 
-          {advanced ? (
-            <div className="flex items-start gap-4">
-              <Clock3 size={18} className="mt-2.5 shrink-0 text-ink-secondary" />
-              <div className="min-w-0 flex-1 space-y-3">
-                {whenControls}
-                {repeatSelect}
-                {scheduleNote}
-                {repeatDetails}
-                {runLimitControls}
-              </div>
-            </div>
-          ) : (
+          {(
             <div className="flex flex-col gap-1">
               <div className={fieldLabelCls}>{t("routines.editor.when")}</div>
               <div className="flex min-w-0 flex-col gap-2">
@@ -860,7 +843,6 @@ export function EventEditor({
           )}
 
           <div className="flex items-start gap-4">
-            {advanced && (isRoomGoal ? <UsersRound size={18} className="mt-2.5 shrink-0 text-ink-secondary" /> : <UserRoundPlus size={18} className="mt-2.5 shrink-0 text-ink-secondary" />)}
             <div className="min-w-0 flex-1">
               {isRoomGoal ? (
                 <div className="space-y-3">
@@ -885,7 +867,7 @@ export function EventEditor({
                 </div>
               ) : (
                 <>
-                  <div className={cn(fieldLabelCls, "mb-1")}>{advanced ? "Assign a bot" : t("routines.editor.who")}</div>
+                  <div className={cn(fieldLabelCls, "mb-1")}>{t("routines.editor.who")}</div>
                   {bots.length > 0 ? (
                 <>
                   <BotPicker bots={bots} selected={botIds} locked={Boolean(lockedBotId)} onChange={selectBots} />
@@ -898,18 +880,13 @@ export function EventEditor({
             </div>
           </div>
 
-          {advanced && resultsControl}
           <label className="flex flex-col gap-1">
             <span className={fieldLabelCls}>{t("routines.editor.descriptionLabel")}</span>
-            <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={4} placeholder={isRoomGoal ? "What should the team accomplish?" : advanced ? "Add instructions for the bot" : t("routines.editor.instructionsPlaceholder")} className={cn(textAreaCls, "resize-y")} />
+            <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={4} placeholder={isRoomGoal ? "What should the team accomplish?" : t("routines.editor.instructionsPlaceholder")} className={cn(textAreaCls, "resize-y")} />
           </label>
           {continuityControl}
 
-          {advanced && attachmentsRow}
-
-          {advanced && runOnRow}
-
-          {!advanced && (
+          {(
             <div>
               <button
                 type="button"
@@ -1213,7 +1190,6 @@ export function EventDetails({
   onOpenRun?: (run: RoutineRun) => void;
 }) {
   const { state, dispatch } = useStore();
-  const advanced = useAdvancedMode();
   const showThreads = useShowThreads();
   const [working, setWorking] = useState(false);
   const runNowPending = useRef(false);
@@ -1239,7 +1215,6 @@ export function EventDetails({
   const title = run?.routineName ?? routine?.name ?? "Routine";
   const description = run?.prompt ?? routine?.prompt ?? "";
   const attachments = run?.attachments ?? routine?.attachments ?? [];
-  const safetyLimit = run ? run.timeoutMinutes : routine?.timeoutMinutes;
 
   const openRunTask = () => {
     if (!executionThreadId) return;
@@ -1350,7 +1325,6 @@ export function EventDetails({
         </DrawerField>
         {!isRoomGoal && <DrawerField label={t("routines.results.label")}><div className="text-[13px] text-ink">{resultsTitle}</div></DrawerField>}
         {attachments.length > 0 && <DrawerField label="Attachments"><AttachmentChips attachments={attachments} /></DrawerField>}
-        {advanced && <DrawerField label={t("routines.drawer.runLimit")}><div className="text-[13px] text-ink">{safetyLimit == null ? "No time limit" : `Stops if still running after ${durationLabel(safetyLimit)}`}</div></DrawerField>}
         <DrawerField label={t("routines.logs")} action={routine && <button type="button" onClick={() => { dispatch({ type: "showRoutines", section: "logs", routineId: routine.id, botId: routine.botId }); onClose(); }} className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-accent-text hover:bg-raised"><FileText size={11} />{t("routines.drawer.allRuns")}</button>}>
           {recentRuns.length === 0
             ? <div className="text-[12px] text-ink-secondary">{t("routines.drawer.noRuns")}</div>

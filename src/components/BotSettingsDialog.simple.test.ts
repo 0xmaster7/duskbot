@@ -132,8 +132,6 @@ const { SegmentedTabs } = await import("./ui/SegmentedTabs");
 const { PanelShareMenu } = await import("./bot-panel/PanelShareMenu");
 const { VOICE_LANGUAGES, VOICE_SPEEDS } = await import("./bot-panel/voice-prefs");
 const { LocalComputerAutoWarning } = await import("./LocalComputerAutoWarning");
-const { ThreadModelsLine } = await import("./ThreadModelsLine");
-const { ModelSection } = await import("./bot-settings/ModelSection");
 const { RoutineList } = await import("./routines/RoutineList");
 const { RoutineEditor } = await import("./RoutinesPage");
 const { SignedInSites } = await import("./SignedInSites");
@@ -1046,63 +1044,6 @@ describe("the bot settings dialog", () => {
     expect(ofType(dialog(makeBot()), BotPanel)!.props.linkedSection).toBeNull();
   });
 
-  it("leaves Advanced mode on the full accordion", () => {
-    fixture.advanced = true;
-    const rendered = dialog(makeBot());
-    expect(ofType(rendered, BotPanel)).toBeUndefined();
-    expect(rendered.html).not.toContain('id="bot-panel"');
-    expect(rendered.html).toContain("Search settings");
-    for (const label of ["Overview", "Identity", "Soul", "Skills", "Memory", "Routines", "Access", "Model", "Permissions", "Voice &amp; alerts", "History", "Usage"]) {
-      expect(rendered.html).toContain(`>${label}</span>`);
-    }
-    // The accordion keeps the Memory and Access sections, where the memory, upkeep, browser and record-steps switches live.
-    for (const section of ["memory", "access", "model", "permissions"]) expect(rendered.html).toContain(`data-bot-settings-section="${section}"`);
-  });
-
-  it("a stored section opens expanded in the full view", () => {
-    fixture.advanced = true;
-    fixture.storeState = {
-      settingsOpen: true, botSettingsSection: "model", botSettingsExpandAccordion: true,
-      botSettingsSectionStored: true, botSettingsExpandRemembered: true,
-    };
-    const rowOpen = (rendered: Rendered, id: string) =>
-      (Children.toArray(find(rendered, "data-bot-settings-section", id).props.children)[0] as Node).props["aria-expanded"] === true;
-    expect(rowOpen(dialog(makeBot()), "model")).toBe(true);
-    const search = find(dialog(makeBot()), "aria-label", "Search settings");
-    change(search, "model");
-    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "toggleSettings", open: true });
-    fixture.storeState = { ...fixture.storeState, botSettingsExpandAccordion: false, botSettingsExpandRemembered: false };
-    expect(rowOpen(dialog(makeBot()), "model")).toBe(false);
-  });
-
-  it("one click on a remembered-expanded row collapses it", () => {
-    fixture.advanced = true;
-    fixture.storeState = {
-      settingsOpen: true, botSettingsSection: "model", botSettingsExpandAccordion: true,
-      botSettingsSectionStored: true, botSettingsExpandRemembered: true,
-    };
-    const row = find(dialog(makeBot()), "data-bot-settings-section", "model");
-    click(Children.toArray(row.props.children)[0] as Node);
-    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "toggleSettings", open: true });
-  });
-
-  it("shows Switch them too in the full Model section, and its button switches them", () => {
-    fixture.advanced = true;
-    fixture.storeState = { settingsOpen: true, botSettingsSection: "model", botSettingsExpandAccordion: true };
-    const opus = { instanceId: "claude", model: "claude-opus-5-5" };
-    const tasks = [
-      { threadId: "thread-scout", title: "Follows", createdAt: 1, modelSelection: opus, followsBotModel: true },
-      ...[0, 1, 2].map((index) => ({ threadId: `own-${index}`, title: `Own ${index}`, createdAt: 1, modelSelection: { instanceId: "codex", model: "gpt-5.6" }, followsBotModel: false })),
-    ];
-    const rendered = dialog(makeBot({ tasks }));
-    expect(rendered.html).toContain("3 threads use their own model.");
-    expect(rendered.html).toContain("Switch them too");
-    fresh();
-    const section = capture(() => ModelSection({ bot: makeBot({ tasks }) }));
-    const line = ofType(section, ThreadModelsLine)!;
-    click(capture(() => ThreadModelsLine(line.props as never)).nodes.find((node) => node.props["data-switch-them-too"] !== undefined)!);
-    expect(fixture.dispatch).toHaveBeenLastCalledWith(expect.objectContaining({ type: "followBotModel", botId: "scout" }));
-  });
 });
 
 describe("the panel's switches", () => {

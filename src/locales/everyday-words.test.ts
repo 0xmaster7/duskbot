@@ -14,7 +14,7 @@ const EVERYDAY_PREFIXES: Record<string, readonly string[]> = {
   "the rail of Clouds and its ＋": ["rail."],
   "a place's color, in Settings": ["placeLook."],
   "the bot panel": [
-    "botPanel.", "botApi.", "botSettings.simple.", "botAccess.tools.", "botAccess.browser.", "memory.learnFromRooms.", "memory.upkeep.",
+    "botPanel.", "botApi.", "botSettings.simple.", "botAccess.tools.", "botAccess.browser.",
   ],
   "the Screen panel and where a bot works": [
     "place.", "computer.tab.", "computer.simple.", "computer.phase.", "computer.cloud.", "computer.badge.", "computer.problem.",
@@ -42,7 +42,6 @@ const EVERYDAY_KEYS: Record<string, readonly string[]> = {
     "vm.stopped.idle",
   ],
   "the bot panel": [
-    "botOverview.line.computer", "botOverview.line.privateWorkspace", "botOverview.preference.cloud", "botOverview.preference.vm",
     "botSettings.replyStyle.conversationalHint", "voice.engine",
   ],
   "adding and sharing a bot": ["newBot.presetKeeps", "presetShare.never"],

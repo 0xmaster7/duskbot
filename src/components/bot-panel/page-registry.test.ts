@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import en from "@/locales/en.json";
-import { BOT_SECTIONS } from "../bot-settings/sections";
+import { BOT_SETTINGS_SECTION_IDS } from "@/lib/last-bot-section";
 import { MODAL_PAGES, pendingPanelModal, takePanelModalRequest } from "./modals/panel-modal";
 import { isSimplePage, PAGE_IDS, PAGES, PANEL_TABS, resolveTarget, sectionTarget, SIMPLE_PAGES, TAB_LABEL } from "./page-registry";
 
@@ -11,7 +11,7 @@ describe("the bot panel's page registry", () => {
   });
 
   it("lands every settings section on a tab, and on a Simple page that lives on that tab", () => {
-    for (const { id } of BOT_SECTIONS) {
+    for (const id of BOT_SETTINGS_SECTION_IDS) {
       const target = sectionTarget(id);
       expect(PANEL_TABS).toContain(target.tab);
       if (target.page) {

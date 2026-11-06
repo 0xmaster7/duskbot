@@ -6,7 +6,6 @@ import { StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ChatView } from "@/components/ChatView";
 import { loadLocale } from "@/lib/i18n";
-import { setAdvancedMode } from "@/lib/interface-mode";
 import { applySkinChoice, SKIN_IDS, type SkinId } from "@/lib/skins";
 import { initialState, StoreContext, type AppState, type Bot, type Message } from "@/state/store";
 import "./font-faces";
@@ -15,7 +14,6 @@ import "./styles.css";
 const params = new URLSearchParams(location.search);
 const stateName = params.get("state") ?? "done";
 const skin = params.get("skin") ?? "grok";
-setAdvancedMode(false);
 applySkinChoice(SKIN_IDS.includes(skin as SkinId) ? (skin as SkinId) : "midnight");
 await loadLocale("en");
 

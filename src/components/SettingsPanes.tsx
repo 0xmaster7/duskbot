@@ -202,7 +202,7 @@ export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boo
         </SettingsGroup>
       )}
       <SettingsGroup label={t("notifications.title")} block="notifications">
-        <SettingsRows><NotificationRows simple /></SettingsRows>
+        <SettingsRows><NotificationRows /></SettingsRows>
       </SettingsGroup>
       {has("import") && (
         <SettingsGroup label={t("settings.section.import")} block="import">

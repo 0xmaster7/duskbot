@@ -84,7 +84,7 @@ it("says plainly when the move can't start", async () => {
 it("is on the team's Bring your stuff in the desktop app, and nowhere else", async () => {
   page([ATLAS, BEACON]);
   const bring = async (team: boolean, desktop: boolean) => {
-    await act(async () => { root.render(createElement(WelcomeBring, { name: "Acme", desktop, cloudHasWork: true, team, headingRef: { current: null }, onTeam: () => {}, onFinish: () => {} })); });
+    await act(async () => { root.render(createElement(WelcomeBring, { name: "Acme", desktop, cloudHasWork: true, team, headingRef: { current: null }, onFinish: () => {} })); });
     await act(async () => {});
     return Boolean(host.querySelector("[data-bring-my-cloud]"));
   };

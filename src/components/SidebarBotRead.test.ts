@@ -29,7 +29,7 @@ const onRename = vi.fn();
 const dispatch = (action: Action) => { state = reducer(state, action); draw(); };
 const draw = () => flushSync(() => root.render(createElement(BotEditorStore, {
   value: { state, dispatch, flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} },
-  children: createElement(BotContextMenu, { menu, onClose, onArchive: vi.fn(), onDelete: vi.fn(), onMoveToSection: vi.fn(), onRename }),
+  children: createElement(BotContextMenu, { menu, onClose, onArchive: vi.fn(), onDelete: vi.fn(), onRename }),
 })));
 // grok icons draw a private-use glyph, which is no part of a row's words
 const text = (node: Node) => (node.textContent ?? "").replace(/[\uE000-\uF8FF\u{F0000}-\u{FFFFD}]/gu, "");
@@ -49,60 +49,6 @@ beforeEach(() => {
 afterEach(() => { flushSync(() => root.unmount()); container.remove(); vi.unstubAllGlobals(); delete window.ogb; setLocale("en"); });
 
 describe("bot menu bulk reads", () => {
-  it("remains available with the full thread tree hidden, including Portuguese copy", () => {
-    setLocale("pt-br"); draw();
-    expect(button("Marcar todas as conversas como lidas").disabled).toBe(false);
-  });
-
-  it("disables the action when there is no unread conversation", () => {
-    state.bots[0]!.tasks!.forEach((task) => { task.unread = false; }); draw();
-    expect(button().disabled).toBe(true);
-  });
-
-  it("guards repeat clicks, shows progress and closes only after the last read is confirmed", async () => {
-    let release: () => void = () => {};
-    const gate = new Promise<void>((resolve) => { release = resolve; });
-    const fetch = vi.fn(async (_url: unknown, init?: RequestInit) => {
-      const { threadId } = JSON.parse(String(init?.body));
-      await gate; return response(threadId);
-    });
-    vi.stubGlobal("fetch", fetch); draw();
-    const trigger = button(); flushSync(() => { trigger.click(); trigger.click(); });
-    expect(fetch).toHaveBeenCalledTimes(1);
-    expect(button("Marking conversations as read…").disabled).toBe(true);
-    expect(onClose).not.toHaveBeenCalled();
-    release();
-    await expect.poll(() => onClose.mock.calls.length).toBe(1);
-    expect(fetch).toHaveBeenCalledTimes(2);
-    expect(state.selectedId).toBe("another-bot");
-    expect(state.bots[0]!.threadId).toBe("selected");
-    expect(state.bots[0]!.tasks!.every((task) => !task.unread)).toBe(true);
-  });
-
-  it("shows a recoverable failure, retains confirmed reads, and retries only the unread remainder", async () => {
-    const fetch = vi.fn(async (_url: unknown, init?: RequestInit) => response(JSON.parse(String(init?.body)).threadId));
-    fetch.mockImplementationOnce(async () => response("background"));
-    fetch.mockImplementationOnce(async () => new Response(JSON.stringify({ error: "Fixture read failed" }), { status: 500 }));
-    vi.stubGlobal("fetch", fetch); draw(); flushSync(() => button().click());
-    await expect.poll(() => document.querySelector('[role="alert"]')?.textContent).toContain("Completed reads were kept");
-    expect(document.querySelector('[role="alert"]')?.textContent).toContain("Fixture read failed");
-    expect(onClose).not.toHaveBeenCalled();
-    expect(state.bots[0]!.tasks!.find((task) => task.threadId === "background")?.unread).toBe(false);
-    expect(state.bots[0]!.tasks!.find((task) => task.threadId === "next")?.unread).toBe(true);
-    flushSync(() => button().click()); await expect.poll(() => onClose.mock.calls.length).toBe(1);
-    expect(fetch).toHaveBeenCalledTimes(3);
-    expect(JSON.parse(String(fetch.mock.calls[2]![1]?.body)).threadId).toBe("next");
-  });
-
-  it("does not close a different menu opened while a read is in flight", async () => {
-    let release: () => void = () => {};
-    const gate = new Promise<void>((resolve) => { release = resolve; });
-    const fetch = vi.fn(async (_url: unknown, init?: RequestInit) => { await gate; return response(JSON.parse(String(init?.body)).threadId); });
-    vi.stubGlobal("fetch", fetch); draw(); flushSync(() => button().click());
-    menu = { botId: bot.id, x: 60, y: 60 }; draw(); release();
-    await expect.poll(() => state.bots[0]!.tasks!.every((task) => !task.unread)).toBe(true);
-    expect(onClose).not.toHaveBeenCalled();
-  });
 
   it("does not expose bulk sibling reads to thread-pinned remote clients", () => {
     window.ogb = { remoteClient: { active: true } } as typeof window.ogb;
@@ -145,7 +91,7 @@ describe("Simple mode's bot menu", () => {
     const onNewSection = vi.fn();
     const render = () => flushSync(() => root.render(createElement(BotEditorStore, {
       value: { state, dispatch, flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} },
-      children: createElement(BotContextMenu, { menu, onClose, onArchive: vi.fn(), onDelete: vi.fn(), onMoveToSection: vi.fn(), onRename, onNewSection }),
+      children: createElement(BotContextMenu, { menu, onClose, onArchive: vi.fn(), onDelete: vi.fn(), onRename, onNewSection }),
     })));
     render();
     expect(words().slice(0, 3)).toEqual(["Pin", "Move to new section", "Mark as Read"]);

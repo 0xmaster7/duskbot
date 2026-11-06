@@ -26,16 +26,14 @@ import { apiKeysLabel, ClaudeAccountSelect, engineStatus, FollowBotModelRow, Mod
 import { MENU_LABEL, MENU_LINE, MENU_ROW, MENU_SEPARATOR, MENU_STROKE, MENU_TRAILING } from "./menu-recipe";
 import { modelMenuKey, modelMenuPointerMove } from "./model-menu-keys";
 import { offersReasoning, useRefocusAfterPick, variantChoices } from "./model-picker-reasoning";
-import { useAdvancedMode } from "@/lib/interface-mode";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 
 import { t } from "@/lib/i18n";
-import { COMPACT_SQUARE } from "@/lib/compact-chip";
 import { useAiSwitch } from "@/lib/ai-switch";
 import { usePickerPane } from "@/lib/model-picker-pane";
 import { threadsOnOwnModel } from "../../shared/thread-model";
 import { ThreadModelsLine } from "./ThreadModelsLine";
-import { USAGE_WARN_WIDENS, UsageBars } from "./EngineUsage";
+import { UsageBars } from "./EngineUsage";
 import { Select } from "./Select";
 
 const COMPACT_MODEL_COUNT = 5;
@@ -236,7 +234,6 @@ export function ModelPicker({
   const [probing, setProbing] = useState<ReadonlySet<string>>(() => new Set());
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
   const [scope, setScope] = useState<"bot" | "thread">("thread");
-  const advanced = useAdvancedMode();
   const ownerOrAdmin = useOwnerOrAdmin();
   // A guest changes only their own conversation's model, never the shared bot's default; thread-only until authority loads.
   const simpleUpdatesBotDefault = ownerOrAdmin === true;
@@ -257,7 +254,7 @@ export function ModelPicker({
   const inside = useRef({ contains: (target: unknown) => [rootRef.current, menuRef.current].some((node) => node?.contains(target as Node)) });
 
   const floating = typeof document !== "undefined";
-  const simpleView = !advanced && !fullView;
+  const simpleView = !fullView;
   const popoverWidth = simpleView ? SIMPLE_POPOVER_WIDTH : POPOVER_WIDTH;
   useLayoutEffect(() => {
     if (!open) return;
@@ -310,8 +307,6 @@ export function ModelPicker({
   const openaiAccounts = pickerInstances.filter((instance) => signInFamily(instance) === "openai");
   const openaiRailInstance = openaiAccounts.find((instance) => instance.instanceId === lastOpenaiIdRef.current)
     ?? openaiAccounts.find((instance) => instance.instanceId === selection.instanceId) ?? openaiAccounts[0];
-  const multipleClaudeAccounts = state.instances.filter(isClaudeAccount).length > 1;
-  const showActiveAccount = (multipleClaudeAccounts && isClaudeAccount(active)) || Boolean(active?.snapshot.chatgptPlan);
   const claudeRailInstance = claudeAccounts.find((instance) => instance.instanceId === lastClaudeIdRef.current)
     ?? claudeAccounts.find((instance) => instance.instanceId === selection.instanceId) ?? claudeAccounts[0];
   const railInstance =
@@ -567,7 +562,7 @@ export function ModelPicker({
       setQuery("");
       refocusAfterPick();
     } else if (!simpleView && pane === "custom" && canReturnToOfficial) setPane("main");
-    else if (fullView && !advanced) backToList(true);
+    else if (fullView) backToList(true);
     else close(true);
   };
 
@@ -580,10 +575,10 @@ export function ModelPicker({
     ? `${active.displayName} · ${modelLabel(active, selection.model)}${
         modelProvider(active, selection.model) ? ` · ${modelProvider(active, selection.model)}` : ""
       }${selectedVariantLabel ? ` · ${selectedVariantLabel}` : selection.effort
-        ? ` · ${t(advanced ? "model.effort.summary" : "model.simple.thinkingSummary", { level: effortLabel(selection.effort) })}` : ""}`
+        ? ` · ${t("model.simple.thinkingSummary", { level: effortLabel(selection.effort) })}` : ""}`
     : selection.model;
   const followLine = follows === true ? `\n${t("model.followsBot", { name: profile.name })}` : follows === false ? `\n${t("model.ownModel")}` : "";
-  const attentionLine = !advanced && attention ? `\n${attention}` : "";
+  const attentionLine = attention ? `\n${attention}` : "";
   const busyLine = bot.busy ? `\n${t(threadId ? "model.threadBusy" : "model.busy")}` : "";
 
   const triggerProps = {
@@ -608,52 +603,7 @@ export function ModelPicker({
     title: `${summary}${followLine}${attentionLine}${busyLine}`,
   };
 
-  const trigger = advanced ? (
-    <button
-      {...triggerProps}
-      className={cn(
-        "group flex items-center gap-1.5 rounded-full py-1 pl-2 pr-2.5 text-[13px] text-ink disabled:cursor-not-allowed",
-        contained
-          ? "hover:bg-ink/[0.06] aria-expanded:bg-ink/[0.08] disabled:opacity-50 disabled:hover:bg-transparent"
-          : cn(ELEVATED_FLOAT, ELEVATED_HOVER, "disabled:text-ink-tertiary disabled:hover:bg-composer"),
-        !contained && active && !showActiveAccount && cn(COMPACT_SQUARE, USAGE_WARN_WIDENS),
-      )}
-    >
-      {active && (contained
-        ? <InstanceProviderMark instance={active} size={14} subtle />
-        : <span className="flex shrink-0 group-disabled:opacity-50"><InstanceProviderMark instance={active} size={14} subtle /></span>)}
-      {!contained && active && showActiveAccount && (
-        <span data-model-account-compact className="hidden max-w-20 truncate @max-4xl/chathead:inline">{active.displayName}</span>
-      )}
-      <span className={cn("flex min-w-0 items-center gap-1", !contained && active && "@max-4xl/chathead:hidden")}>
-        <span className="max-w-[160px] truncate">
-          {active && showActiveAccount && (
-            <span data-model-account className="text-ink-secondary">{active.displayName} · </span>
-          )}
-          {modelLabel(active, selection.model)}
-          {active && modelProvider(active, selection.model) && (
-            <span className="text-ink-secondary"> · {modelProvider(active, selection.model)}</span>
-          )}
-        </span>
-        {selectedVariantLabel !== undefined ? (
-          <span data-model-variant className="max-w-[120px] truncate text-ink-secondary">· {selectedVariantLabel}</span>
-        ) : selection.effort && (
-          <span data-model-effort className="shrink-0 text-ink-secondary">
-            · {effortLabel(selection.effort)}
-          </span>
-        )}
-      </span>
-      <UsageBars engine={selection.instanceId} compact={!contained} />
-      <ChevronDown
-        size={12}
-        className={cn(
-          "text-ink-tertiary transition-transform",
-          open && "rotate-180",
-          !contained && active && "@max-4xl/chathead:hidden",
-        )}
-      />
-    </button>
-  ) : (
+  const trigger = (
     <button
       {...triggerProps}
       className={cn(
@@ -691,7 +641,7 @@ export function ModelPicker({
 
   const fullPane = (
     <>
-      {fullView && !advanced && (
+      {fullView && (
         <div className="shrink-0 border-b-[0.5px] border-ink/10 p-1.5">
           <button type="button" data-menu-row data-model-back onClick={(event) => backToList(event.detail === 0)} className={cn(MENU_ROW, "text-ink-secondary hover:text-ink")}>
             <ChevronLeft size={16} strokeWidth={MENU_STROKE} className="shrink-0 rtl:-scale-x-100" aria-hidden="true" />
@@ -797,7 +747,7 @@ export function ModelPicker({
                 </div>
               ) : blocked ? (
                 <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3 pt-1">
-                  <EngineSetup instance={railInstance} intent={pane === "custom" ? "inject" : "cloud"} quiet={!advanced} onHost={remote} />
+                  <EngineSetup instance={railInstance} intent={pane === "custom" ? "inject" : "cloud"} quiet onHost={remote} />
                   {!remote && railInstance.claudeAccount && needsSignIn(railInstance) && pane !== "custom" && (
                     <p className="mt-2 px-1.5 text-[12px] leading-4 text-ink-tertiary">
                       {railInstance.claudeAccount.signInShell === "powershell" && `${t("engines.account.powershell")} `}

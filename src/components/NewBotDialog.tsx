@@ -11,7 +11,6 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
-import { useAdvancedMode } from "@/lib/interface-mode";
 import { announceNewBot, reportsToFor, startingTemplate, type BotDefaultsAnswer } from "@/lib/new-bot";
 import { useShowThreads } from "@/lib/thread-preferences";
 import { openServerMenu } from "./DesktopWorkspaceSwitcher";
@@ -22,7 +21,6 @@ import { IdentitySection } from "./bot-settings/IdentitySection";
 import { SoulSection } from "./bot-settings/SoulSection";
 import { SkillsSection } from "./bot-settings/SkillsSection";
 import { AccessSection } from "./bot-settings/AccessSection";
-import { ModelSection } from "./bot-settings/ModelSection";
 import { PermissionsSection } from "./bot-settings/PermissionsSection";
 import { VoiceSection } from "./bot-settings/VoiceSection";
 import { useBotSettingsDerived } from "./bot-settings/useBotSettingsDerived";
@@ -34,12 +32,12 @@ import { SharePresetDialog } from "./SharePresetDialog";
 import { Select } from "./Select";
 import { formCloseCls, formFooterCls, formHeaderCls, formTitleCls, mdPrimaryCls, mdSecondaryCls, rowButtonCls } from "./ui/GrokDialog";
 
-const SECTIONS = ["Identity", "Soul", "Skills", "Memory", "Routines", "Access", "Model", "Permissions", "Voice & alerts"] as const;
+const SECTIONS = ["Identity", "Soul", "Skills", "Memory", "Routines", "Access", "Permissions", "Voice & alerts"] as const;
 type Section = typeof SECTIONS[number];
 const SECTION_KEYS: Record<Section, LocaleKey> = {
   Identity: "botSettings.sections.identity", Soul: "botSettings.sections.soul", Skills: "botSettings.sections.skills",
   Memory: "botSettings.sections.memory", Routines: "botSettings.sections.routines", Access: "botSettings.sections.access",
-  Model: "botSettings.sections.model", Permissions: "botSettings.sections.permissions", "Voice & alerts": "botSettings.sections.voice",
+  Permissions: "botSettings.sections.permissions", "Voice & alerts": "botSettings.sections.voice",
 };
 
 /** The bot editor over the New bot defaults: saving them (`defaultsMode`), or a ready-made bot from Templates to review
@@ -67,7 +65,6 @@ export function NewBotDialog({ defaultsMode = false, onClose, onCreated, readyBo
   const [chosenOwner, setChosenOwner] = useState<string | null>(null);
   const ownerOrAdmin = useOwnerOrAdmin();
   const showThreads = useShowThreads();
-  const sections = useAdvancedMode() ? SECTIONS : SECTIONS.filter((section) => section !== "Model");
   const choosesVisibility = !defaultsMode && typeof window !== "undefined" && !window.ogb && ownerOrAdmin === true;
   const dialog = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
@@ -188,7 +185,7 @@ export function NewBotDialog({ defaultsMode = false, onClose, onCreated, readyBo
         )}
       <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
         <nav aria-label={t("newBot.sections")} className="flex shrink-0 gap-0.5 overflow-x-auto border-b border-ink/8 px-3 py-2 sm:w-44 sm:flex-col sm:border-b-0 sm:border-r">
-          {sections.map(label => <button key={label} type="button" onClick={() => setActive(label)} aria-current={active === label ? "page" : undefined}
+          {SECTIONS.map(label => <button key={label} type="button" onClick={() => setActive(label)} aria-current={active === label ? "page" : undefined}
             className={cn("flex h-8 shrink-0 cursor-pointer items-center rounded-[8px] px-[9px] text-left text-[13px] leading-[18px] tracking-[0.195px] text-ink focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus", active === label ? "bg-ink/6" : "hover:bg-ink/[0.035]")}>{t(SECTION_KEYS[label])}</button>)}
         </nav>
         <div className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-3 sm:px-6 sm:py-4">
@@ -245,7 +242,6 @@ function DraftSection({ active, draft, defaultsMode, owner }: { active: Section;
   if (active === "Memory") return <DraftMemory draft={draft} />;
   if (active === "Routines") return <DraftRoutines draft={draft} />;
   if (active === "Access") return <AccessSection bot={bot} derived={derived} />;
-  if (active === "Model") return <ModelSection bot={bot} />;
   if (active === "Permissions") return <PermissionsSection bot={bot} derived={derived} />;
   return <VoiceSection bot={bot} derived={derived} />;
 }

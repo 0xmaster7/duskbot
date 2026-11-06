@@ -30,21 +30,9 @@ afterEach(() => vi.unstubAllGlobals());
 
 const render = (bot: Bot) => renderToStaticMarkup(createElement(BotContextMenu, {
   menu: { botId: bot.id, x: 10, y: 10 }, onClose: vi.fn(), onArchive: vi.fn(), onDelete: vi.fn(),
-  onMoveToSection: vi.fn(),
 }));
 
 describe("a team bot's actions for a session without the admin scope", () => {
-  it("offers nothing it would refuse and says why the crown is greyed", () => {
-    const html = render(scout);
-    for (const refused of [">Archive</button>", ">Delete</span></button>", "Duplicate", "Move to</button>", "Delete all threads"]) expect(html).not.toContain(refused);
-    expect(html).toContain('title="Only an admin of this installation can choose the Chief of Staff."');
-    expect(html).not.toContain("Choose Claude or an ACP model provider first");
-  });
-
-  it("does not offer to remove a Chief of Staff", () => {
-    const html = render(chief);
-    expect(html).toMatch(/<button[^>]*disabled=""[^>]*title="Only an admin of this installation can choose the Chief of Staff\."[^>]*>.*Remove Chief of Staff/);
-  });
 
   it("leaves Archive, Delete and Move to department out of the simple menu", () => {
     fixture.advanced = false;
@@ -52,10 +40,4 @@ describe("a team bot's actions for a session without the admin scope", () => {
     for (const refused of [">Archive</button>", ">Delete</span></button>", "Move to</button>"]) expect(html).not.toContain(refused);
   });
 
-  it("keeps every action for an admin", () => {
-    fixture.admin = true;
-    const html = render(scout);
-    for (const offered of [">Archive</button>", ">Delete</span></button>", "Duplicate", "Move to</button>"]) expect(html).toContain(offered);
-    expect(html).toContain("Choose Claude or an ACP model provider first");
-  });
 });

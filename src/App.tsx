@@ -24,7 +24,6 @@ import {
   ActivityPanel, BotSettingsDialog, CloudAddDialog, ComputerPanel, FilesView, KeyboardShortcutsModal, LocalVmWorkspace,
   preloadScreens, RemoteAgentSettingsPanel, RemoteDesktopPanel, RoomPanel, SettingsModal, TriggersPage,
 } from "@/components/lazy-screens";
-import { useAdvancedMode } from "@/lib/interface-mode";
 import { useRoomPanelShown } from "@/lib/room-panel";
 import { WorkspaceBackupRecovery } from "@/components/WorkspaceBackupSettings";
 import { NotificationRail, NotificationsPanel } from "@/components/NotificationsPanel";
@@ -73,7 +72,6 @@ import { loadingLine } from "@/lib/app-loading";
 import { useAiSwitchKeeper } from "@/lib/ai-switch";
 import { SESSION_ENDED_REASON, useSessionEnded } from "@/lib/session-ended";
 import { PairPage } from "./pair/PairPage";
-import { WebPanelPage } from "@/components/WebPanelPage";
 
 /** Grok Bot's sidebar (280), the chat's floor beside a panel (424) and the panel's own (280). */
 const BOT_PANEL_DOCKS_AT = 280 + CHAT_MIN_WIDTH + 280;
@@ -151,14 +149,11 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   cloudAddOpened.current ||= Boolean(state.cloudAdd);
   const [localVmWorkspaceBotId, setLocalVmWorkspaceBotId] = useState<string | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
-  const previousViewRef = useRef(state.activeView);
-  const calendarOriginRef = useRef<"chat" | "web-panel">("chat");
   const loading = loadingLine({ connected: state.connected, hydrated: state.hydrated === true, developer: import.meta.env.DEV });
   const group = state.groups.find((g) => g.id === state.selectedId);
   const bot = group ? undefined : (state.bots.find((b) => b.id === state.selectedId) ?? state.bots[0]);
   const notificationFeed = useNotificationFeed() && !remoteClient;
-  const advanced = useAdvancedMode();
-  const roomPanelOpen = useRoomPanelShown({ group, state, simple: !advanced && !remoteClient });
+  const roomPanelOpen = useRoomPanelShown({ group, state, simple: !remoteClient });
   const roomPanelOverlay = notificationFeed && state.notificationsOpen && !twoSidePanelsFit;
   // The sidebar only folds when the person folds it: a side panel opening beside it never collapses it, as in Grok Bot.
   const calendarFocus = state.activeView === "routines" && state.routinesFocus.view === "calendar";
@@ -243,13 +238,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   }, [state.selectedId, bot?.threadId, group?.threadId, state.activeView, state.pluginsOpen, state.settingsOpen]);
 
   useEffect(() => {
-    if (state.activeView === "routines" && previousViewRef.current !== "routines") {
-      calendarOriginRef.current = previousViewRef.current === "web-panel" ? "web-panel" : "chat";
-    }
-    previousViewRef.current = state.activeView;
-  }, [state.activeView]);
-
-  useEffect(() => {
     if (
       localVmWorkspaceBotId &&
       (state.activeView !== "chat" || state.selectedId !== localVmWorkspaceBotId)
@@ -270,12 +258,8 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   };
 
   const closeCalendar = useCallback(() => {
-    if (calendarOriginRef.current === "web-panel" && state.webPanelId) {
-      dispatch({ type: "showWebPanel", id: state.webPanelId });
-      return;
-    }
     dispatch({ type: "select", id: state.selectedId });
-  }, [dispatch, state.selectedId, state.webPanelId]);
+  }, [dispatch, state.selectedId]);
 
   const nativeViewOverlayOpen =
     drawerOpen ||
@@ -361,8 +345,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       />}
       {state.activeView === "files" ? (
         <FilesView />
-      ) : state.activeView === "web-panel" ? (
-        <WebPanelPage />
       ) : state.activeView === "routines" ? (
         <TriggersPage onBack={closeCalendar} />
       ) : !remoteClient && localVmWorkspaceBotId ? (

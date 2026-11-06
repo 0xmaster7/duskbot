@@ -83,7 +83,7 @@ export function BotConversations({ bot }: { bot: Bot }) {
   const recent = useRecentMessages(bot, [...(needle || expanded ? conversations : collapsed), ...(showArchived ? archived : [])]);
   const preview = (threadId: string) => {
     const messages = recent(threadId);
-    return messages ? lastLine(currentTaskBot(bot, threadId), messages, state.instances, false) : undefined;
+    return messages ? lastLine(currentTaskBot(bot, threadId), messages, state.instances) : undefined;
   };
   const byTitle = filterTasks(conversations, needle);
   const matches = needle

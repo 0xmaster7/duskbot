@@ -258,13 +258,7 @@ describe("OpenCode model variants", () => {
 });
 
 describe("ModelPicker trigger", () => {
-  const renderTrigger = (effort?: EffortLevel) => {
-    fixture.instances = [engine(["low", "high"])];
-    return renderToStaticMarkup(createElement(ModelPicker, { bot: bot(effort) }));
-  };
 
-  const effortChip = (markup: string) =>
-    markup.match(/<span data-model-effort[^>]*>(.*?)<\/span>/s)?.[1].replace(/<!--.*?-->/g, "").trim();
 
   /** React HTML-escapes the apostrophe and may encode the newline numerically; both are undone here. */
   const tooltipLines = (markup: string): string[] => {
@@ -289,46 +283,6 @@ describe("ModelPicker trigger", () => {
     }
   });
 
-  it("puts the current model and effort above the busy advisory", () => {
-    fixture.instances = [engine(["low", "high"])];
-    const markup = renderToStaticMarkup(createElement(ModelPicker, { bot: { ...bot("high"), busy: true }, threadId: "independent-thread" }));
-    expect(tooltipLines(markup)).toEqual([
-      "Codex · GPT-5.6 · High effort",
-      "Stop this thread's turn before changing its model",
-    ]);
-  });
-
-  it("shows the model and its effort together in the header", () => {
-    const markup = renderTrigger("high");
-
-    expect(markup).toContain("GPT-5.6");
-    expect(effortChip(markup)).toBe("· High");
-    expect(markup).toContain("Codex · GPT-5.6 · High effort");
-  });
-
-  it("says nothing about effort when the bot sends no level", () => {
-    const markup = renderTrigger();
-
-    expect(markup).toContain("GPT-5.6");
-    expect(effortChip(markup)).toBeUndefined();
-    expect(markup).not.toContain("effort");
-    expect(markup).toContain("@max-4xl/chathead:size-[30px]");
-    expect(markup).not.toContain("data-model-account-compact");
-  });
-
-  it("visibly identifies the selected account when Claude has multiple instances", () => {
-    fixture.instances = [
-      { ...engine(), instanceId: "claude-personal", driverKind: "claudeAgent", displayName: "Personal" },
-      { ...engine(), instanceId: "claude-work", driverKind: "claudeAgent", displayName: "Work" },
-    ];
-    const markup = renderToStaticMarkup(createElement(ModelPicker, {
-      bot: { ...bot(), modelSelection: { instanceId: "claude-work", model: "gpt-5.6" } },
-    }));
-    expect(markup).toMatch(/<span data-model-account[^>]*>Work · <\/span>/);
-    expect(markup).not.toMatch(/<span data-model-account[^>]*>Personal/);
-    expect(markup).toMatch(/<span data-model-account-compact="true" class="hidden max-w-20 truncate @max-4xl\/chathead:inline">Work<\/span><span class="[^"]*@max-4xl\/chathead:hidden"/);
-    expect(markup).not.toContain("@max-4xl/chathead:size-[30px]");
-  });
 });
 
 describe("OpenAI sign-ins in the rail", () => {

@@ -28,13 +28,13 @@ export function botEngine(bot: Bot | undefined, instances: InstanceInfo[]): Inst
   return bot && instances.find((instance) => instance.instanceId === bot.modelSelection.instanceId);
 }
 
-export function activityPreview(tool: ActivityTool, engine: InstanceInfo | undefined, dataResult?: Message["dataResult"], advanced = false): string {
+export function activityPreview(tool: ActivityTool, engine: InstanceInfo | undefined, dataResult?: Message["dataResult"]): string {
   if (dataResult) return dataResult.title;
   if (isStoppedTurnName(tool.name)) return t("chat.turnStopped");
   const cause = failedTurnCause(tool.name);
   if (cause !== null && isClientCancellation(cause)) return t("chat.turnStopped");
   if (cause !== null && tool.partial) return t("chat.error.partialPreview");
-  if (cause === null) return advanced ? tool.name : STATUS_MARKER.test(tool.name) ? tool.name.replace(STATUS_MARKER, "") : toolStepLabel(tool);
+  if (cause === null) return STATUS_MARKER.test(tool.name) ? tool.name.replace(STATUS_MARKER, "") : toolStepLabel(tool);
   const signedOut = signedOutEngine(tool, engine);
   return signedOut ? t("sidebar.preview.signedOut", { name: signedOut.displayName }) : plainErrorLine(cause) ?? cause;
 }

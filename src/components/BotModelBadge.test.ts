@@ -78,14 +78,6 @@ describe("sidebar bot row", () => {
 
   // Every density puts the badge on the avatar's bottom-left: the status dots own the bottom-right, and a mark at the
   // row's end sat under the hover actions (+, new folder, …) without lining up with them.
-  it.each<[SidebarDensity, string]>([["comfortable", "absolute -bottom-0.5 -left-0.5"], ["icons", "absolute -bottom-0.5 -left-0.5"]])(
-    "shows the model once in a %s row", (density, placement) => {
-      const found = badges(render(bot("claude", "opus"), density));
-      expect(found).toHaveLength(1);
-      expect(found[0]).toContain('aria-label="Model: Opus 4.1 (Claude)"');
-      expect(found[0]).toContain(placement);
-    });
-
   // simple mode keeps to the avatar, as grok does: its rail tile and comfortable row show no model mark.
   it("shows no model mark in a Simple mode icons row", () => {
     fixture.advanced = false;

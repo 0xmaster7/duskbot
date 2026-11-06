@@ -82,22 +82,6 @@ afterEach(() => { vi.unstubAllGlobals(); });
 describe.each([false])("with threads shown: %s", (shown) => {
   beforeEach(() => { fixture.showThreads = shown; });
 
-  it("opens another bot behind Edit profile as its row does, and keeps the bot on screen where it is", () => {
-    fixture.state = { ...initialState, bots: [left("scout"), left("atlas")], selectedId: "scout", activeView: "chat" };
-    const menu = (botId: string) => render(() => BotContextMenu({
-      menu: { botId, x: 0, y: 0 }, onClose: vi.fn(), onArchive: vi.fn(), onDelete: vi.fn(), onMoveToSection: vi.fn(),
-    })).find((node) => node.props.role === "menuitem" && label(node) === "Edit Profile")!;
-    menu("atlas").props.onClick!();
-    expect(actions()).toEqual([opened("atlas"), { type: "toggleSettings", open: true }]);
-    fixture.dispatch.mockReset();
-    menu("scout").props.onClick!();
-    expect(actions()).toEqual([{ type: "select", id: "scout" }, { type: "toggleSettings", open: true }]);
-    fixture.dispatch.mockReset();
-    fixture.state = { ...fixture.state, settingsOpen: true };
-    menu("atlas").props.onClick!();
-    expect(actions()).toEqual([opened("atlas")]);
-  });
-
   it("opens the next bot after archiving the one on screen, and the archived one again on Undo", async () => {
     fixture.state = { ...initialState, bots: [left("scout"), left("atlas")], selectedId: "scout", activeView: "chat" };
     fixture.api.mockImplementation(async (_path: string, init: RequestInit) => ({ bot: { ...left("scout"), ...JSON.parse(String(init.body)) } }));

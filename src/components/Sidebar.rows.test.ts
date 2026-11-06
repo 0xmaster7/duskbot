@@ -97,7 +97,6 @@ const update = (next: (current: AppState) => AppState) => async () => {
   state = next(state);
   await draw();
 };
-const bot = (id: string) => state.bots.find((candidate) => candidate.id === id)!;
 
 beforeAll(async () => {
   vi.useFakeTimers({ toFake: ["Date", "setInterval", "clearInterval"] });
@@ -128,32 +127,4 @@ describe("sidebar rows", () => {
       .toEqual({ bots: {}, threads: {} });
   });
 
-  it("renders only the row of the bot that changed", async () => {
-    expect(await rowRendersAfter(update((current) => reducer(current, { type: "botPatched", bot: { ...bot("scout"), busy: true } }))))
-      .toEqual({ bots: { Scout: 1 }, threads: {} });
-  });
-
-  it("renders only that bot's row for a new message", async () => {
-    const message = { ...reply("a3", "a2", "One more thing."), at: NOW };
-    const changed = await rowRendersAfter(update((current) => reducer(current, { type: "messageAdded", threadId: "atlas-now", message })));
-    expect(changed).toEqual({ bots: { Atlas: 1 }, threads: {} });
-  });
-
-  it("moves the selection with exactly the two rows it changes", async () => {
-    const changed = await rowRendersAfter(update((current) => reducer(current, { type: "select", id: "scout" })));
-    expect(changed.bots).toEqual({ Atlas: 1, Scout: 1 });
-    expect(document.querySelector('[data-sidebar-bot-row="scout"]')?.getAttribute("aria-current")).toBe("page");
-  });
-
-  it("re-renders every row when the app language changes", async () => {
-    try {
-      setLocale("de");
-      const changed = await rowRendersAfter(draw);
-      expect(changed.bots).toEqual({ Atlas: 1, Scout: 1, Pepper: 1 });
-      expect(changed.threads).toEqual({});
-    } finally {
-      setLocale("en");
-      await draw();
-    }
-  });
 });

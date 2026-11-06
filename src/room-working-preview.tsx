@@ -7,7 +7,6 @@ import { GroupView } from "@/components/GroupView";
 import { BotAvatar } from "@/components/Avatar";
 import { RoomPanel } from "@/components/room-panel/RoomPanel";
 import { loadLocale } from "@/lib/i18n";
-import { setAdvancedMode } from "@/lib/interface-mode";
 import { applySkinChoice } from "@/lib/skins";
 import { noteTurnEvent } from "@/state/turn-status";
 import { initialState, StoreContext, type AppState, type Bot, type Group, type Message } from "@/state/store";
@@ -17,7 +16,6 @@ import "./styles.css";
 
 const params = new URLSearchParams(location.search);
 const working = Number(params.get("working") ?? "0");
-setAdvancedMode(false);
 applySkinChoice("grok");
 await loadLocale("en");
 

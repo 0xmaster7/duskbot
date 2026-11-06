@@ -52,7 +52,7 @@ vi.mock("@/state/store", async (importOriginal) => ({
 }));
 
 const { ModelPicker, ModelVariantRow, SIMPLE_POPOVER_WIDTH } = await import("./ModelPicker");
-const { FollowBotModelRow, ModelEngineRail, ModelRow } = await import("./ModelPickerFull");
+const { ModelEngineRail, ModelRow } = await import("./ModelPickerFull");
 const { SimpleModelMenu } = await import("./SimpleModelMenu");
 const { EngineSetup } = await import("./EngineSetup");
 
@@ -376,23 +376,12 @@ describe("the model picker in Simple mode", () => {
     expect(markup).not.toContain("@max-4xl/chathead");
     expect(markup).toContain('<span class="min-w-0 max-w-[160px] truncate">Opus 5.5</span>');
     expect(markup).toContain("opacity-60");
-    fixture.advanced = true;
-    const advanced = render(bot("high")).nodes.find((node) => node.props["data-tour"] === "model")!;
-    expect(renderToStaticMarkup(advanced)).toContain("· High");
-    expect(String(advanced.props.title)).toContain("High effort");
   });
 
   it("puts the header chip on an opaque surface, so scrolled transcript text cannot read through it", () => {
     const classes = () => String(render(bot()).nodes.find((node) => node.props["data-tour"] === "model")!.props.className);
     expect(classes().split(" ")).toEqual(expect.arrayContaining(["bg-composer", "ring-[0.5px]", "shadow-(--shadow-float)"]));
     expect(classes()).not.toMatch(/hover:bg-ink|aria-expanded:bg-ink/);
-    fixture.advanced = true;
-    try {
-      expect(classes().split(" ")).toEqual(expect.arrayContaining(["bg-composer", "shadow-(--shadow-float)"]));
-      expect(classes()).not.toMatch(/hover:bg-ink|aria-expanded:bg-ink/);
-    } finally {
-      fixture.advanced = false;
-    }
   });
 
   it("leaves a contained picker on its settings row unchanged, with no floating surface", () => {
@@ -466,18 +455,6 @@ describe("the model picker in Simple mode", () => {
     expect(fixture.dispatch).toHaveBeenLastCalledWith(expect.objectContaining({ updateBotDefault: true }));
   });
 
-  it("does not reuse the full picker's bot scope for a Cloud guest's Simple choice", () => {
-    fixture.cloudHome = true;
-    fixture.ownerOrAdmin = false;
-    fixture.advanced = true;
-    const forBot = bot();
-    const full = open(forBot);
-    click(full.nodes.find((node) => node.type === "button" && node.props.children === "Thread + bot default"));
-    fixture.advanced = false;
-    pane(render(forBot))!.props.onPick(instance("claude"), "claude-sonnet-5-5");
-    expect(fixture.dispatch).toHaveBeenLastCalledWith(expect.objectContaining({ updateBotDefault: false }));
-  });
-
   it.each([false, null, true])("uses the Cloud owner's actual authority for named-variant defaults (%s)", (ownerOrAdmin) => {
     fixture.cloudHome = true;
     fixture.ownerOrAdmin = ownerOrAdmin;
@@ -491,13 +468,6 @@ describe("the model picker in Simple mode", () => {
       ...(ownerOrAdmin === true ? { updateBotDefault: true } : {}),
       selection: { instanceId: "claude", model: "claude-opus-5-5", variant: "high" },
     });
-  });
-
-  it("keeps the Advanced picker's own scope choice (this thread unless asked)", () => {
-    fixture.advanced = true;
-    const opened = open(bot());
-    expect(pane(opened)).toBeUndefined();
-    expect(opened.html).toContain("Only this thread");
   });
 
   it("opens the same floating menu from bot settings' Default model, without a second Thinking control, and edits the bot's default", () => {
@@ -846,13 +816,6 @@ describe("the model picker in Simple mode", () => {
     expect(plain).not.toContain("data-simple-thinking");
   });
 
-  it("leaves Advanced mode on the full picker", () => {
-    fixture.advanced = true;
-    const opened = open(bot());
-    expect(pane(opened)).toBeUndefined();
-    expect(opened.nodes.some((node) => node.type === ModelEngineRail)).toBe(true);
-    expect(opened.html).not.toContain("data-model-back");
-  });
 });
 
 describe("a thread's picker and its bot's model", () => {
@@ -889,15 +852,6 @@ describe("a thread's picker and its bot's model", () => {
     expect(list(opened).current!.meta).toBe("Scout's model");
     expect(menu(opened.html)).not.toContain("data-follow-bot-model");
     expect(render(scout(null)).nodes.find((node) => node.props["data-tour"] === "model")!.props.title).toContain("Uses Scout's model");
-  });
-
-  it("keeps the full picker's follow row for Advanced", () => {
-    fixture.advanced = true;
-    const opened = open(scout(null));
-    const row = opened.nodes.find((node) => node.type === FollowBotModelRow)!;
-    expect(row.props.follows).toBe(true);
-    (row.props.onPick as () => void)();
-    expect(fixture.dispatch).not.toHaveBeenCalled();
   });
 
   it("offers nothing a server too old to say whether a thread follows its bot could not do", () => {
@@ -1007,7 +961,7 @@ describe("every capability of the picker stays reachable", () => {
     expect(list(onMissing).current).toMatchObject({ meta: "Setup required", warning: true });
   });
 
-  it.each([false, true])("on a paired desktop (Advanced: %s), still picks models but leaves provider settings to the host", (advanced) => {
+  it.each([false])("on a paired desktop (Advanced: %s), still picks models but leaves provider settings to the host", (advanced) => {
     fixture.advanced = advanced;
     fixture.instances = rich();
     const forBot = followed();
@@ -1029,27 +983,4 @@ describe("every capability of the picker stays reachable", () => {
     }
   });
 
-  it("in Advanced mode, from the chip and the full picker", () => {
-    fixture.advanced = true;
-    fixture.instances = [updated, signedOutWork, codex, plan, managed, local];
-    const forBot = followed();
-    const chipHtml = renderToStaticMarkup(render(forBot).nodes.find((node) => node.props["data-tour"] === "model")!);
-    const opened = open(forBot);
-    const html = menu(opened.html);
-    const checks = {
-      "chip shows account, model and effort": chipHtml.includes("data-model-account") && chipHtml.includes("data-model-effort"),
-      "use the bot's model, checked while following": opened.nodes.some((node) => node.type === FollowBotModelRow),
-      "engine rail with Cloud, API keys and Local, and a way to add keys": html.includes(">Cloud<") && html.includes(">API keys<") && html.includes(">Local<") && html.includes("data-rail-add-api-key"),
-      "a managed engine stays on the rail, dimmed": html.includes("Managed by Acme") && html.includes("opacity-40"),
-      "this thread or the bot's default": html.includes("Only this thread"),
-      "engine name, refresh and version": html.includes("data-model-refresh") && html.includes("2.1.300"),
-      "the Claude account select": html.includes('aria-label="Account"'),
-      "the engine's update notice": html.includes("Update Claude"),
-      "suggested models, the default and the bot's model tagged": html.includes(">Suggested<") && html.includes("(bot&#x27;s model)"),
-      "effort select": html.includes('aria-label="Reasoning effort"'),
-      "local models": html.includes("data-model-local-entry") && html.includes("1 available"),
-      "providers and accounts, and API keys": html.includes("Model providers and accounts") && html.includes("data-model-add-api-keys"),
-    };
-    expect(missingFrom(checks)).toEqual([]);
-  });
 });

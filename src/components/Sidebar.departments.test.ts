@@ -47,7 +47,6 @@ import { initialState } from "@/state/store";
 import { BOTS_SECTION_ID, CHANNELS_SECTION_ID, userSectionId } from "@/lib/sidebar-layout";
 import { PHONE_LAYOUT } from "@/lib/use-media-query";
 import { BotContextMenu, BotListItem, Sidebar } from "./Sidebar";
-import { NEW_DEPARTMENT } from "./SidebarBotDrag";
 import { SidebarSectionHeader } from "./SidebarSectionHeader";
 import { ConfirmDialog } from "./ConfirmDialog";
 
@@ -92,9 +91,6 @@ function transfer() {
 let carried = transfer();
 /** The bot rows a section's drop zone finds under it, each 54px tall from `top`. */
 let rowElements: Array<{ dataset: { sidebarBotRow: string }; getBoundingClientRect: () => { top: number; bottom: number; height: number } }> = [];
-const laidOut = (...ids: string[]) => {
-  rowElements = ids.map((id, index) => ({ dataset: { sidebarBotRow: id }, getBoundingClientRect: () => ({ top: 30 + index * 56, bottom: 84 + index * 56, height: 54 }) }));
-};
 /** A drag event `offset` pixels into a 54px row. */
 const at = (offset = 27) => ({
   dataTransfer: carried, clientX: 100, clientY: offset, currentTarget: { getBoundingClientRect: () => ({ top: 0, left: 12, height: 54 }), querySelectorAll: () => rowElements },
@@ -188,100 +184,6 @@ describe("dragging a bot in Simple, as grok does", () => {
 
 describe("dragging a bot in Advanced's list", () => {
   beforeEach(() => { fixture.advanced = true; });
-  it("shows a line where it lands and saves the new order", () => {
-    drag("cleo");
-    expect(row("cleo").botDragging).toBe(true);
-    row("atlas").botDrag!.row("atlas").onDragOver(at(5) as never);
-    expect(row("atlas").botDrop).toBe("before");
-    row("atlas").botDrag!.row("atlas").onDrop(at(5) as never);
-    expect(actions()).toEqual([{ type: "botsOrdered", botIds: ["cleo", "atlas", "bea"] }]);
-    expect(fixture.requests).toEqual([{ path: "/api/bots/order", method: "PUT", body: { botIds: ["cleo", "atlas", "bea"] } }]);
-    expect(rows().every((props) => !props.botDrop && !props.botDragging)).toBe(true);
-  });
-
-  it("onto the middle of a bot puts both in a new section, named in place, and Enter keeps the name", () => {
-    drag("cleo");
-    row("atlas").botDrag!.row("atlas").onDragOver(at() as never);
-    expect(row("atlas").botDrop).toBe("group");
-    row("atlas").botDrag!.row("atlas").onDrop(at() as never);
-    expect(actions()).toEqual([]);
-    expect(sections()).toEqual([CHANNELS_SECTION_ID, BOTS_SECTION_ID, userSectionId("Work"), userSectionId(NEW_DEPARTMENT)]);
-    const naming = header(NEW_DEPARTMENT).naming!;
-    expect(naming.value).toBe("New section");
-    expect(naming.label).toBe("New section");
-    expect(listed()).toEqual(["bea", "dodo", "echo", "atlas", "cleo"]);
-    naming.onCommit("  ");
-    expect(actions()).toEqual([
-      { type: "updateBot", botId: "atlas", patch: { section: "New section" } },
-      { type: "updateBot", botId: "cleo", patch: { section: "New section" } },
-    ]);
-    expect(sections()).not.toContain(userSectionId(NEW_DEPARTMENT));
-  });
-
-  it("gives a new section the first free name, and Escape puts the bots back", () => {
-    fixture.state = { ...fixture.state, sections: ["Work", "New section"] };
-    drag("cleo");
-    row("bea").botDrag!.row("bea").onDrop(at() as never);
-    expect(header(NEW_DEPARTMENT).naming!.value).toBe("New section 2");
-    drag("atlas");
-    const over = at();
-    section(userSectionId(NEW_DEPARTMENT)).onDragOver(over as never);
-    expect(over.preventDefault).not.toHaveBeenCalled();
-    expect(header(NEW_DEPARTMENT).dropInto).toBe(false);
-    header(NEW_DEPARTMENT).naming!.onCancel();
-    expect(listed()).toEqual(["atlas", "bea", "cleo", "dodo", "echo"]);
-    expect(actions()).toEqual([]);
-  });
-
-  it("into a department over its heading, or between its rows", () => {
-    drag("atlas");
-    section(userSectionId("Work")).onDragOver(at() as never);
-    expect(header("Work").dropInto).toBe(true);
-    section(userSectionId("Work")).onDrop(at() as never);
-    expect(actions()).toEqual([{ type: "updateBot", botId: "atlas", patch: { section: "Work" } }, { type: "botsOrdered", botIds: ["dodo", "echo", "atlas"] }]);
-    fixture.dispatch.mockClear();
-    drag("bea");
-    row("echo").botDrag!.row("echo").onDragOver(at(26) as never);
-    expect(row("echo").botDrop).toBe("before");
-    row("echo").botDrag!.row("echo").onDrop(at(26) as never);
-    expect(actions()).toEqual([
-      { type: "updateBot", botId: "bea", patch: { section: "Work" } },
-      { type: "botsOrdered", botIds: ["dodo", "bea", "echo"] },
-    ]);
-  });
-
-  it("between rows or under the last one, by the nearest row; over a department's heading, into it", () => {
-    drag("atlas");
-    laidOut("dodo", "echo");
-    section(userSectionId("Work")).onDragOver(at(10) as never);
-    expect(header("Work").dropInto).toBe(true);
-    section(userSectionId("Work")).onDragOver(at(85) as never);
-    expect([header("Work").dropInto, row("echo").botDrop]).toEqual([false, "before"]);
-    section(userSectionId("Work")).onDragOver(at(400) as never);
-    expect(row("echo").botDrop).toBe("after");
-    section(userSectionId("Work")).onDrop(at(85) as never);
-    expect(actions()).toEqual([{ type: "updateBot", botId: "atlas", patch: { section: "Work" } }, { type: "botsOrdered", botIds: ["dodo", "atlas", "echo"] }]);
-    fixture.dispatch.mockClear();
-    drag("cleo");
-    laidOut("atlas", "bea", "cleo");
-    section(BOTS_SECTION_ID).onDragOver(at(85) as never);
-    expect(row("bea").botDrop).toBe("before");
-    section(BOTS_SECTION_ID).onDragOver(at(170) as never);
-    expect(rows().some((props) => props.botDrop)).toBe(false);
-  });
-
-  it("out of a department to the end of the main list, or a place in it", () => {
-    drag("echo");
-    section(BOTS_SECTION_ID).onDragOver(at() as never);
-    expect(row("cleo").botDrop).toBe("after");
-    section(BOTS_SECTION_ID).onDrop(at() as never);
-    expect(actions()).toEqual([{ type: "updateBot", botId: "echo", patch: { section: "" } }]);
-    expect(fixture.requests).toEqual([]);
-    fixture.dispatch.mockClear();
-    drag("dodo");
-    row("bea").botDrag!.row("bea").onDrop(at(50) as never);
-    expect(actions()).toEqual([{ type: "updateBot", botId: "dodo", patch: { section: "" } }, { type: "botsOrdered", botIds: ["atlas", "bea", "dodo", "cleo"] }]);
-  });
 
   it("offers a place to drop it out when every row is in a department", () => {
     fixture.state = { ...fixture.state, bots: fixture.state.bots.map((candidate) => ({ ...candidate, section: "Work" })) };
@@ -339,18 +241,6 @@ describe("bots that are working or waiting on the person", () => {
     expect(listed()).toEqual(["dodo", "echo", "cleo", "atlas", "bea"]);
   });
 
-  it("never store the shown order: Alt+Up/Down and drops use the person's own order", () => {
-    fixture.advanced = true;
-    busy("cleo", { busy: true });
-    row("atlas").botDrag!.step("atlas", 1);
-    expect(actions()).toEqual([{ type: "botsOrdered", botIds: ["bea", "atlas", "cleo"] }]);
-    fixture.dispatch.mockClear();
-    // A drop on the list itself finds its row in the shown order (cleo first) and places it by the person's own order.
-    drag("atlas");
-    laidOut("cleo", "atlas", "bea");
-    section(BOTS_SECTION_ID).onDrop(at(190) as never);
-    expect(actions()).toEqual([{ type: "botsOrdered", botIds: ["bea", "atlas", "cleo"] }]);
-  });
 });
 
 describe("who may drag a bot: whoever the bot menu offers Move to department", () => {
@@ -426,7 +316,7 @@ describe("a section's menu", () => {
 describe("a bot's menu in Simple", () => {
   type MenuProps = Parameters<typeof BotContextMenu>[0];
   const menuProps = (botId: string, extra: Partial<MenuProps> = {}): MenuProps => ({
-    menu: { botId, x: 0, y: 0 }, onClose: vi.fn(), onArchive: vi.fn(), onDelete: vi.fn(), onMoveToSection: vi.fn(),
+    menu: { botId, x: 0, y: 0 }, onClose: vi.fn(), onArchive: vi.fn(), onDelete: vi.fn(),
     onNewSection: vi.fn(), ...extra,
   });
   const open = (props: MenuProps) => {

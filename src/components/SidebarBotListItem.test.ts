@@ -44,55 +44,6 @@ afterEach(() => {
 });
 
 describe("BotListItem", () => {
-  it("makes a bot waiting for you louder than a preview", () => {
-    const opening = (markup: string, testId: string) => {
-      const tag = markup.match(new RegExp(`<span[^>]*data-testid="${testId}"[^>]*>`))?.[0];
-      expect(tag, testId).toBeTruthy();
-      return tag ?? "";
-    };
-    const waiting = renderRow(bot({ activity: "waiting-on-you" }));
-    const badge = opening(waiting, "waiting-dot");
-    expect(badge).toContain('role="status"');
-    expect(badge).toContain('aria-label="Waiting for you…"');
-    expect(badge).toContain('title="Waiting for you…"');
-    expect(badge).toContain("size-4");
-    expect(badge).toContain("bg-warning");
-    expect(badge).toContain("border-2");
-    expect(badge).toContain("border-panel");
-    expect(badge).not.toContain("size-2.5");
-    expect(badge).not.toContain("size-3");
-    expect(waiting).toContain('aria-hidden="true">!</span>');
-    expect(waiting).toContain('class="flex min-w-0 items-center gap-1.5 truncate text-[13px] leading-[18px] font-semibold text-warning"');
-    expect(waiting).toContain('class="truncate">Waiting for you…</span>');
-
-    const icons = opening(renderRow(bot({ activity: "waiting-on-you" }), "icons"), "waiting-dot");
-    expect(icons).toContain("size-5");
-    expect(icons).toContain("bg-warning");
-    expect(icons).not.toContain("size-4");
-    expect(icons).not.toContain("size-2.5");
-
-    const teammate = renderRow(bot({ waitingForTeammates: true }));
-    const teammateDot = opening(teammate, "teammate-wait-dot");
-    expect(teammateDot).toContain("size-2.5");
-    expect(teammateDot).not.toContain("size-4");
-    expect(teammate).toContain('class="truncate">Waiting on a teammate…</span>');
-    expect(teammate).toContain("truncate text-[13px] leading-[18px] text-ink-secondary");
-    expect(teammate).not.toContain("font-semibold text-warning");
-
-    const working = renderRow(bot({ busy: true }));
-    expect(opening(working, "working-dot")).toContain("size-2.5");
-    expect(working).not.toContain("waiting-dot");
-    expect(working).not.toContain("font-semibold text-warning");
-
-    const preview = renderRow(bot({
-      messages: [{ id: "b1", role: "bot", kind: "text", text: "Created notes.txt", at: 2 }] as Bot["messages"],
-    }));
-    expect(preview).toContain('class="truncate">Created notes.txt</span>');
-    expect(preview).toContain("truncate text-[13px] leading-[18px] text-ink-secondary");
-    expect(preview).not.toContain("text-warning");
-    expect(preview).not.toContain("waiting-dot");
-  });
-
   it("previews the last reply, not the digest receipt that follows it", () => {
     const markup = renderRow(bot({
       messages: [
@@ -141,18 +92,6 @@ describe("BotListItem", () => {
       expect(markup).not.toContain(formatTime(at(2)));
     });
 
-    it("names the step the bot is on while it works, when the call ended under it", () => {
-      const markup = draw(bot({
-        busy: true,
-        tasks: [{ threadId: "thread-atlas", title: "Current", createdAt: 2, busy: true, activity: "working" }, { threadId: "thread-earlier", title: "Earlier", createdAt: 1 }],
-        messages: [
-          { ...spoken, text: "run the tests" },
-          { id: "a1", role: "bot", kind: "activity", at: at(1), requestMessageId: "u1", tool: { name: "Bash", spoken: "running the tests" } },
-          record,
-        ] as Bot["messages"],
-      }), { query: "current" });
-      expect(markup).toContain("Running the tests");
-    });
   });
 
   it("previews a failed turn without its error marker", () => {
@@ -209,48 +148,6 @@ describe("BotListItem", () => {
     expect(markup).not.toContain('aria-label="Archive Atlas"');
   });
 
-  it("marks the Chief of Staff with one crown after the name, not a line of its own", () => {
-    const markup = renderRow(bot({ chiefOfStaff: true, title: "Developer" }));
-    expect(markup).toContain('data-testid="chief-crown"');
-    expect(markup).toContain('aria-label="Chief of Staff"');
-    expect(markup.indexOf('data-testid="chief-crown"')).toBeGreaterThan(markup.indexOf(">Atlas<"));
-    expect(markup.indexOf('data-testid="bot-role"')).toBeGreaterThan(markup.indexOf('data-testid="chief-crown"'));
-    expect(markup).not.toContain("Chief of Staff</span>");
-    expect(markup).toContain('title="Atlas · Developer · Chief of Staff"');
-
-    expect(renderRow(bot())).not.toContain("Chief of Staff");
-  });
-
-  it("keeps the title in an icons-only row's name and tooltip", () => {
-    const icons = renderRow(bot({ chiefOfStaff: true, title: "  Developer " }), "icons");
-    expect(icons).toContain('aria-label="Atlas · Developer · Chief of Staff"');
-    expect(icons).toContain('title="Atlas · Developer"');
-    const untitled = renderRow(bot(), "icons");
-    expect(untitled).toContain('aria-label="Atlas"');
-    expect(untitled).toContain('title="Atlas"');
-  });
-
-  const titleLine = /<div class="truncate text-\[11px\][^"]*">([^<]*)<\/div>/;
-  const roleOf = (markup: string) => /<span data-testid="bot-role"[^>]*><span title="([^"]*)" class="([^"]*)"><span class="sr-only">, <\/span>([^<]*)<\/span>/.exec(markup);
-
-  it("shows the bot's role beside its name as one muted, truncated line, read out after the name", () => {
-    const markup = renderRow(bot({ title: "  Developer ", messages: [{ id: "b1", role: "bot", kind: "text", text: "All set.", at: 1 }] as Bot["messages"] }));
-    const role = roleOf(markup);
-    expect(role?.[1]).toBe("Developer");
-    expect(role?.[3]).toBe("Developer");
-    expect(role?.[2].split(" ")).toEqual(expect.arrayContaining(["truncate", "text-[13px]", "font-normal", "text-ink-secondary"]));
-    expect(markup.indexOf('data-testid="bot-role"')).toBeGreaterThan(markup.indexOf(">Atlas<"));
-    expect(markup.indexOf('data-testid="bot-role"')).toBeLessThan(markup.indexOf(">All set.<"));
-    expect(titleLine.test(markup)).toBe(false);
-    expect(markup).toContain('title="Atlas · Developer"');
-    expect(markup).toContain('title="Double-click to rename"');
-  });
-
-  it("gives way to the name: the role takes only the room left and steps aside below a word's width", () => {
-    const wrapper = /<span data-testid="bot-role" class="([^"]*)"/.exec(renderRow(bot({ title: "Developer" })))?.[1].split(" ");
-    expect(wrapper).toEqual(expect.arrayContaining(["@container", "min-w-0", "grow"]));
-    expect(roleOf(renderRow(bot({ title: "Developer" })))?.[2]).toContain("@max-[3rem]:sr-only");
-  });
 
   it("draws no role for a bot without one", () => {
     for (const title of ["", "  "]) {
@@ -269,12 +166,6 @@ describe("BotListItem", () => {
     expect(rowClass(chief)).toBe(rowClass(plain));
   });
 
-  it("reads the name at 15px semibold and the preview at 13px", () => {
-    const markup = renderRow(bot({ messages: [{ id: "b1", role: "bot", kind: "text", text: "All set.", at: 1 }] as Bot["messages"] }));
-    expect(markup).toMatch(/class="[^"]*text-\[15px\] font-semibold[^"]*"/);
-    expect(markup).toMatch(/class="[^"]*truncate text-\[13px\][^"]*text-ink-secondary[^"]*"/);
-  });
-
   it("previews the last reply as plain text, without its markdown", () => {
     const markup = renderRow(bot({
       messages: [{ id: "b1", role: "bot", kind: "text", text: "I read **[Prudctual/OpenMausBot](https://github.com/Prudctual/OpenMausBot)**. Run `pnpm install` first.", at: 1 }] as Bot["messages"],
@@ -282,20 +173,6 @@ describe("BotListItem", () => {
     expect(markup).toContain(">I read Prudctual/OpenMausBot. Run pnpm install first.<");
     expect(markup).not.toContain("**");
     expect(markup).not.toContain("](https://");
-  });
-
-  it("says what the bot is doing in place of its preview text while it works, in a line as tall as the preview", () => {
-    const markup = renderRow(bot({ busy: true, messages: [{ id: "b1", role: "bot", kind: "text", text: "hello", at: 1 }] as Bot["messages"] }));
-
-    expect(markup).toContain('<span dir="auto" data-sidebar-working-phrase="" class="truncate">Thinking</span>');
-    expect(markup).not.toContain(">hello<");
-    expect(markup).not.toContain("animate-status-pulse");
-  });
-
-  it("marks the avatar with a green presence dot only while the bot works", () => {
-    expect(renderRow(bot({ busy: true }))).toContain('data-testid="working-dot"');
-    expect(renderRow(bot())).not.toContain('data-testid="working-dot"');
-    expect(renderRow(bot({ busy: true, activity: "waiting-on-you" }))).not.toContain('data-testid="working-dot"');
   });
 
   it("marks the bot this window is on a Live call with by a green phone badge", () => {
@@ -324,20 +201,6 @@ describe("BotListItem", () => {
     expect(markup).toContain("Waiting on a teammate…");
   });
 
-  it("keeps real sibling work visible while another thread waits for a teammate", () => {
-    const markup = renderRow(bot({ waitingForTeammates: true, busy: true, activity: "working" }));
-    expect(markup).toContain('data-testid="working-dot"');
-    expect(markup).not.toContain('data-testid="teammate-wait-dot"');
-  });
-
-  it("keeps Archive in the Actions menu and reveals quiet row controls on focus as well as hover", () => {
-    const markup = renderRow(bot());
-    expect(markup).not.toContain('aria-label="Archive Atlas"');
-    expect(markup).toContain('aria-label="Actions for Atlas"');
-    expect(markup).toContain("group-focus-within:opacity-100");
-    expect(markup).toContain("group-hover:pointer-events-auto");
-    expect(markup).not.toContain("pr-[92px]");
-  });
 });
 
 describe("archive / delete confirmation", () => {

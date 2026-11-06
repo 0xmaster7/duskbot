@@ -193,7 +193,7 @@ export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: 
         tabIndex={-1}
         data-room-panel
         onKeyDown={onKeyDown}
-        className={sidePanelCls(overlay, true)}
+        className={sidePanelCls(overlay)}
       >
         <span id="room-panel-title" className="sr-only">{group.name}</span>
         <span aria-hidden="true" data-panel-edge className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[0.5px] bg-edge max-md:hidden" />

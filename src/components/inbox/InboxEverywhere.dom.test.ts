@@ -14,14 +14,12 @@ vi.mock("../../state/api", () => ({
 }));
 
 import { initialState, StoreContext, type AppState, type Bot } from "@/state/store";
-import { closeInbox, currentInboxPanel, openInbox, readInboxLine, refreshInbox, setInboxView } from "@/state/inbox";
+import { closeInbox, openInbox, readInboxLine, setInboxView } from "@/state/inbox";
 import { setTeamPeople } from "@/state/team-people";
 import type { InboxRow, InboxView } from "../../../shared/inbox";
-import { NeedsYouButton } from "../TeamOwner";
-import { SidebarInboxRow } from "../SidebarInboxRow";
 import { setAttentionPinned } from "./attention-pinned";
 import { InboxPanel } from "./InboxPanel";
-import { senderLabel, waitingCount } from "./inbox-view";
+import { senderLabel } from "./inbox-view";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -41,8 +39,6 @@ const news: InboxRow = {
   origin: { botId: "noa", threadId: "noa-main", title: "Noa", messageId: "line-n" }, text: "The report is ready.",
 };
 const roomNews: InboxRow = { ...news, id: "line-r", origin: { botId: "noa", threadId: "room-thread", groupId: "room", title: "Launch room", messageId: "line-r" } };
-const read: InboxRow = { ...news, id: "line-read", unread: false };
-const settled: InboxRow = { ...news, id: "line-done", tab: "done", unread: false };
 const placeView = (rows: InboxRow[]): InboxView => ({ botId: null, threadId: null, rows, anchor: null });
 
 let root: Root;
@@ -53,8 +49,6 @@ const mount = (child: ReactElement, bots: Bot[] = []) => act(async () => {
     { value: { state: { ...initialState, bots } as AppState, dispatch, flushBotPatches: vi.fn(), refreshInstances: vi.fn(), refreshModels: vi.fn() } as never }, child));
 });
 const click = (selector: string) => act(async () => { document.querySelector<HTMLElement>(selector)!.click(); });
-const row = (props: Partial<Parameters<typeof SidebarInboxRow>[0]> = {}) => createElement(SidebarInboxRow, { icons: false, large: false, running: false, ...props });
-const inboxButton = () => document.querySelector<HTMLElement>("[data-sidebar-inbox]");
 
 beforeEach(() => {
   root = createRoot(document.body.appendChild(document.createElement("div")));
@@ -72,85 +66,6 @@ afterEach(() => {
   setTeamPeople(null);
   document.body.innerHTML = "";
   vi.useRealTimers();
-});
-
-describe("the Inbox row", () => {
-  it("counts what waits on the person, not news they read or anything settled", async () => {
-    setInboxView(placeView([approval, question, news, read, settled]));
-    await mount(row());
-    expect(document.querySelector("[data-inbox-count]")?.textContent).toBe("3");
-    expect(inboxButton()!.getAttribute("aria-label")).toBe("Inbox, 3 waiting");
-    expect(waitingCount(placeView([approval, question, news, read, settled]))).toBe(3);
-  });
-
-  it("stays with no count when nothing waits, and before the list arrives", async () => {
-    await mount(row());
-    expect(inboxButton()!.textContent).toContain("Inbox");
-    expect(document.querySelector("[data-inbox-count]")).toBeNull();
-    setInboxView(placeView([read, settled]));
-    await mount(row());
-    expect(inboxButton()!.getAttribute("aria-label")).toBe("Inbox");
-    expect(document.querySelector("[data-inbox-count]")).toBeNull();
-  });
-
-  it("opens and closes the inbox, and shows a dot while a bot is at work", async () => {
-    setInboxView(placeView([]));
-    await mount(row({ running: true }));
-    expect(document.querySelector("[data-inbox-running]")).not.toBeNull();
-    await click("[data-sidebar-inbox]");
-    expect(currentInboxPanel().open).toBe(true);
-    await click("[data-sidebar-inbox]");
-    expect(currentInboxPanel().open).toBe(false);
-    await mount(row({ running: false }));
-    expect(document.querySelector("[data-inbox-running]")).toBeNull();
-  });
-
-  it("is a tile with the same count among the avatars", async () => {
-    setInboxView(placeView([approval]));
-    await mount(row({ icons: true }));
-    expect(document.querySelector("[data-inbox-count]")?.textContent).toBe("1");
-    setInboxView(placeView(Array.from({ length: 12 }, (_, index) => ({ ...approval, id: `a${index}` }))));
-    await mount(row({ icons: true }));
-    expect(document.querySelector("[data-inbox-count]")?.textContent).toBe("9+");
-  });
-
-  it("counts what a team's person has to fix, except what the inbox lists already", async () => {
-    setInboxView(placeView([question]));
-    setTeamPeople({ people: [], me: null, admin: true, needsYou: [
-      { kind: "signed-out", id: "s", at: AT, instanceId: "claude", botIds: ["eli"] },
-      { kind: "question", id: "same", at: AT, botId: "eli", threadId: "eli-launch", text: "Which page?" },
-      { kind: "question", id: "own", at: AT, botId: "eli", threadId: "eli-main", text: "In their own chat" },
-      { kind: "message", id: "m", at: AT, botId: "eli", threadId: "t", from: "Ada", text: "An inbox line" },
-    ] });
-    await mount(row());
-    expect(document.querySelector("[data-inbox-count]")?.textContent).toBe("3");
-    server.answer = placeView([question]);
-    openInbox();
-    await mount(createElement(InboxPanel), [bot({})]);
-    expect(document.querySelector("[data-inbox-fixes]")?.textContent).toContain("Eli needs a fix");
-    expect(document.querySelector("[data-inbox-fixes]")?.textContent).toContain("In their own chat");
-    expect(document.querySelector("[data-inbox-fixes]")?.textContent).not.toContain("Which page?");
-  });
-});
-
-describe("an older server, with no inbox off a team", () => {
-  beforeEach(() => { server.refusal = { status: 404 }; });
-
-  it("falls back to the Needs you it showed before, and is not asked again", async () => {
-    await refreshInbox();
-    await mount(row());
-    expect(inboxButton(), "no row where there is no inbox").toBeNull();
-    setTeamPeople({ people: [], me: null, admin: true, needsYou: [{ kind: "question", id: "q", at: AT, botId: "eli", threadId: "t", text: "Which?" }] });
-    await mount(createElement(NeedsYouButton));
-    expect(document.querySelector("[data-needs-you]"), "Needs you stays on an older team's Cloud").not.toBeNull();
-  });
-
-  it("keeps the row when the server merely can't be reached", async () => {
-    server.refusal = { status: 503 };
-    await refreshInbox();
-    await mount(row());
-    expect(inboxButton()).not.toBeNull();
-  });
 });
 
 describe("a place's inbox in the panel", () => {

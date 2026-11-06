@@ -98,13 +98,10 @@ export function CloudWelcome() {
   }, [view]);
 
   const anchor = useRef<string | null>(null);
-  const reanchor = useRef(false);
   useEffect(() => {
     if (!state.selectedId) return;
-    if (anchor.current === null || reanchor.current) {
-      anchor.current = state.selectedId;
-      reanchor.current = false;
-    } else if (state.selectedId !== anchor.current) stepAsideWelcome();
+    if (anchor.current === null) anchor.current = state.selectedId;
+    else if (state.selectedId !== anchor.current) stepAsideWelcome();
   }, [state.selectedId]);
 
   // This computer's things come over by themselves: the welcome moves on at once, with nothing to choose or press, and
@@ -156,7 +153,6 @@ export function CloudWelcome() {
   if (view === "bring" && asking) content = null;
   else if (view === "bring") {
     content = <WelcomeBring name={name} team={Boolean(state.config?.team)} desktop={Boolean(sendBridge)} older={older} cloudHasWork={cloudHasWork} sent={sent && { state: sent.state, arrived: sent.state === "sent" && sent.last ? countedList(sent.last.sent) : null }} headingRef={heading}
-      onTeam={() => { reanchor.current = true; }}
       onFinish={finishBring} />;
   } else if (view === "engine") content = <WelcomeEngine name={name} headingRef={heading} onFinish={() => finish("engine")} />;
   else if (view === "files") content = <WelcomeFiles name={name} headingRef={heading} onFinish={() => finish("files")} />;

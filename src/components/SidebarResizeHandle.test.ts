@@ -4,7 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { setLocale } from "@/lib/i18n";
-import { SIDEBAR_WIDTH_KEY } from "@/lib/sidebar-preferences";
+import { SIMPLE_SIDEBAR_WIDTH_KEY as SIDEBAR_WIDTH_KEY } from "@/lib/sidebar-preferences";
 import { AVATARS_BELOW, nextEdgeDrag, SidebarResizeHandle, useSidebarWidth } from "./SidebarResizeHandle";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -17,7 +17,7 @@ let seen: boolean[];
 function Harness({ avatars: startAvatars }: { avatars: boolean }) {
   const sidebarRef = useRef<HTMLElement>(null);
   const [avatars, setAvatars] = useState(startAvatars);
-  const sizing = useSidebarWidth({ simple: false, sidePanelOpen: false, sidebarRef });
+  const sizing = useSidebarWidth({ sidePanelOpen: false, sidebarRef });
   return createElement("aside", { ref: sidebarRef, "data-sidebar": "", style: { "--sidebar-width": `${sizing.width}px` } },
     createElement(SidebarResizeHandle, { sizing, sidebarRef, avatars, avatarsWidth: 80, onAvatars: (next: boolean) => { seen.push(next); setAvatars(next); } }));
 }

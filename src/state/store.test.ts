@@ -2528,13 +2528,6 @@ describe("activity panel", () => {
     expect(reducer(suggested, { type: "showFiles", suggest: [] }).filesSuggest).toBeNull();
   });
 
-  it("a pinned web panel replaces the main view like files, and chat comes back", () => {
-    const open = { ...initialState, activityOpen: true, computerOpen: true, settingsOpen: true };
-    const panel = reducer(open, { type: "showWebPanel", id: "panel-1" });
-    expect(panel).toMatchObject({ activeView: "web-panel", webPanelId: "panel-1", activityOpen: false, computerOpen: false, settingsOpen: false });
-    expect(reducer(panel, { type: "showFiles" })).toMatchObject({ activeView: "files", webPanelId: "panel-1" });
-    expect(reducer(panel, { type: "showChat" }).activeView).toBe("chat");
-  });
 });
 
 describe("live config frames", () => {

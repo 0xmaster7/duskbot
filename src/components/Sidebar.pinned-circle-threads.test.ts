@@ -155,14 +155,6 @@ describe("pinned circle order", () => {
     vi.unstubAllGlobals();
   });
 
-  it("lists pinned bots in the saved order in the circle grid, the pinned rows and the thread section", () => {
-    expect(names(renderToStaticMarkup(roster(true)))).toEqual(["Atlas", "Beacon", "Comet"]);
-    setPinnedCircleOrder(["comet", "atlas"]);
-    expect(names(renderToStaticMarkup(roster(true)))).toEqual(["Comet", "Atlas", "Beacon"]);
-    expect(names(renderToStaticMarkup(roster(false)))).toEqual(["Comet", "Atlas", "Beacon"]);
-    expect(names(renderThreads(false, [atlas, beacon, comet]))).toEqual(["Comet", "Atlas", "Beacon"]);
-  });
-
   it("drags a circle onto another, or moves it with Alt+Up and Alt+Down", () => {
     vi.stubGlobal("document", { documentElement: { dir: "ltr" } });
     const drag = { reorder: vi.fn(), setDragging: vi.fn(), setDrop: vi.fn() };

@@ -118,22 +118,6 @@ describe("bot draft dialog", () => {
     expect(render().html).toMatch(/^<div[^>]* hidden/);
     expect(render(true).html).not.toMatch(/^<div[^>]* hidden/);
   });
-  it("opens immediately with all sections and no creation request", () => {
-    const result = render();
-    expect(result.html).toContain('role="dialog"');
-    for (const section of ["Identity", "Soul", "Skills", "Memory", "Routines", "Access", "Model", "Permissions", "Voice &amp; alerts"]) {
-      expect(result.html).toContain(section);
-    }
-    fixture.advanced = false;
-    const simple = render().html;
-    expect(simple, "Simple mode picks no model: new bots use the default").not.toContain(">Model<");
-    expect(simple).toContain(">Permissions<");
-    fixture.effects[0]();
-    expect(fixture.api).toHaveBeenCalledExactlyOnceWith("/api/bot-defaults");
-    expect(fixture.dispatch).not.toHaveBeenCalled();
-    const submit = result.nodes.find(node => node.type === "button" && node.props.disabled)!;
-    expect(submit.props.disabled).toBe(true);
-  });
 
   it.each([undefined, null, { instanceId: "", model: "" }])("fills an unselected saved default from the available model (%j)", async selection => {
     const available = { instanceId: "openrouter", model: "fixture-model" };

@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { BOT_SECTIONS } from "../bot-settings/sections";
+import { BOT_SETTINGS_SECTION_IDS } from "@/lib/last-bot-section";
 import { resolveTarget, sectionTarget } from "./page-registry";
 import { pendingPanelModal, takePanelModalRequest } from "./modals/panel-modal";
 import { linkTarget, openBotSettings, openBotSettingsPage, usePanelLink, type PanelLink } from "./panel-link";
@@ -45,7 +45,7 @@ describe("named links into a bot's settings", () => {
   });
 
   it("never applies a link's page to another section, and falls back to the section's own place", () => {
-    for (const { id } of BOT_SECTIONS) {
+    for (const id of BOT_SETTINGS_SECTION_IDS) {
       expect(linkTarget(id, null)).toEqual(sectionTarget(id));
       if (id !== "access") expect(linkTarget(id, link({ section: "access", page: "apps" }))).toEqual(sectionTarget(id));
     }

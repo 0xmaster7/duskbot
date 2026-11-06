@@ -45,8 +45,6 @@ const busyBot = {
 let host: HTMLDivElement;
 let root: Root;
 const trigger = () => host.querySelector<HTMLButtonElement>('[data-tour="model"]')!;
-const buttonNamed = (name: string) => Array.from(document.querySelectorAll<HTMLButtonElement>("button"))
-  .find((button) => button.getAttribute("aria-label") === name || button.textContent?.includes(name));
 
 beforeEach(() => {
   fixture.advanced = true;
@@ -76,15 +74,6 @@ describe("the header model chip and Switch AI", () => {
     expect(document.querySelector("[data-model-picker-content]")).not.toBeNull();
   });
 
-  it("stops that turn, not the store's model, when another AI is picked", () => {
-    act(() => requestAiSwitch({ botId: "maus", threadId: "thread-1", turnId: "turn-1", place: "header" }));
-    // Codex sits on the rail as its sign-in family, OpenAI.
-    act(() => buttonNamed("OpenAI")!.click());
-    act(() => buttonNamed("GPT-5.6")!.click());
-    expect(api).toHaveBeenCalledWith("/api/bots/maus/interrupt", { method: "POST", body: JSON.stringify({ threadId: "thread-1", turnId: "turn-1" }) });
-    expect(vi.mocked(fixture.dispatch).mock.calls.filter(([action]) => (action as { type: string }).type === "setModel")).toEqual([]);
-  });
-
   it("opens the bot panel's picker for Switch AI in Simple mode, where the panel's own Thinking row is the only effort control", () => {
     fixture.advanced = false;
     fixture.instances = [{ ...opencode, capabilities: { effortLevels: ["low", "high"] } }, codex];
@@ -104,20 +93,6 @@ describe("the header model chip and Switch AI", () => {
     expect(document.querySelector("[data-simple-effort]")).toBeNull();
     show({ ...busyBot, busy: false });
     expect(document.querySelector("[data-simple-effort]")).not.toBeNull();
-  });
-
-  it("asks before a thread-only switch when the thread, not the bot, is on Custom permissions", () => {
-    const bot = { ...busyBot, busy: false, approvalMode: "ask",
-      tasks: [{ threadId: "thread-1", approvalMode: "custom", modelSelection: busyBot.modelSelection }] } as unknown as Bot;
-    act(() => root.render(createElement(ModelPicker, { bot, threadId: "thread-1" })));
-    act(() => trigger().click());
-    act(() => buttonNamed("OpenAI")!.click());
-    act(() => buttonNamed("GPT-5.6")!.click());
-    expect(document.body.textContent).toContain("Switch model with Ask permissions?");
-    const setModels = () => vi.mocked(fixture.dispatch).mock.calls.filter(([action]) => (action as { type: string }).type === "setModel");
-    expect(setModels()).toEqual([]);
-    act(() => buttonNamed("Switch with Ask")!.click());
-    expect(setModels()).toEqual([[expect.objectContaining({ threadId: "thread-1", resetApprovalToAsk: true })]]);
   });
 
   it("ignores an intent for another place", () => {
@@ -162,26 +137,4 @@ describe("a picker that opens before its engine has listed its models", () => {
     expect(text()).not.toContain("Back to Claude models");
   });
 
-  it("offers local models once the read finds none of the engine's own", async () => {
-    fixture.instances = [claude([]), codex];
-    readList([]);
-    act(() => root.render(createElement(ModelPicker, { bot: onClaude, threadId: "thread-1" })));
-    act(() => requestAiSwitch({ botId: "maus", threadId: "thread-1", turnId: "turn-1", place: "header" }));
-    await act(async () => arrive());
-    expect(text()).toContain("No local models found");
-    expect(text()).not.toContain("Loading Claude models");
-  });
-
-  it("opens Switch AI on the bot's own engine, not the one the picker was last left on", () => {
-    fixture.instances = [claude([sonnet]), codex];
-    act(() => root.render(createElement(ModelPicker, { bot: { ...onClaude, busy: false }, threadId: "thread-1" })));
-    act(() => trigger().click());
-    act(() => buttonNamed("OpenAI")!.click());
-    act(() => { window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })); });
-    expect(trigger().getAttribute("aria-expanded")).toBe("false");
-    act(() => root.render(createElement(ModelPicker, { bot: onClaude, threadId: "thread-1" })));
-    act(() => requestAiSwitch({ botId: "maus", threadId: "thread-1", turnId: "turn-1", place: "header" }));
-    expect(text()).toContain("Claude Sonnet 5");
-    expect(text()).not.toContain("GPT-5.6");
-  });
 });

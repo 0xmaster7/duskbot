@@ -229,32 +229,6 @@ describe("choosing a model with the keyboard", () => {
   });
 });
 
-describe("the full picker's search and the rows around it", () => {
-  it("goes from the search to its first result and back, and up to the row above it, so Enter picks what was searched", async () => {
-    fixture.advanced = true;
-    fixture.instances = [claude(numbered(14))];
-    render(ownModelThread("model-1", "model-0"));
-    await openWith("click");
-    const search = document.querySelector<HTMLInputElement>("[data-menu-search]")!;
-    expect(focused()).toBe(search);
-    type(search, "model 5");
-    press("ArrowDown", search);
-    expect(focused()?.textContent).toContain("Model 5");
-    press("ArrowUp");
-    expect(focused()).toBe(search);
-    press("ArrowUp", search);
-    expect(focused()?.hasAttribute("data-follow-bot-model")).toBe(true);
-    press("ArrowDown");
-    expect(focused()).toBe(search);
-    press("ArrowDown", search);
-    press("Enter");
-    await settle();
-    expect(fixture.dispatch).toHaveBeenLastCalledWith({
-      type: "setModel", botId: "scout", threadId: "thread-scout", updateBotDefault: false,
-      selection: { instanceId: "claude", model: "model-5" },
-    });
-  });
-});
 
 describe("an OpenCode model typed by hand", () => {
   const typed = "venice/deepseek-v4-1-flash-uncensored";
@@ -265,7 +239,7 @@ describe("an OpenCode model typed by hand", () => {
   };
   const onOpenCode = (model: string): Bot => ({ ...scout(), modelSelection: { instanceId: "opencode", model } });
 
-  it.each([false, true])("is picked from the search box (advanced: %s) and then named as typed by hand", async (advanced) => {
+  it.each([false])("is picked from the search box (advanced: %s) and then named as typed by hand", async (advanced) => {
     fixture.advanced = advanced;
     fixture.instances = [opencode];
     render(onOpenCode("opencode/big-pickle"));
@@ -281,7 +255,7 @@ describe("an OpenCode model typed by hand", () => {
 });
 
 describe("picking a model that has reasoning levels", () => {
-  for (const advanced of [false, true]) {
+  for (const advanced of [false]) {
     it(`keeps the ${advanced ? "full" : "Simple"} menu open on the new model so its level can be set next, and Escape still closes it`, async () => {
       fixture.advanced = advanced;
       render();
@@ -380,7 +354,7 @@ describe("a model the organization turned off", () => {
   const blockedThree: Option[] = three.map((option) => option.id === "claude-sonnet-5-5" ? { ...option, orgBlocked: true } : option);
   const row = () => document.querySelector<HTMLButtonElement>("[data-org-blocked]")!;
 
-  for (const advanced of [false, true]) {
+  for (const advanced of [false]) {
     const name = advanced ? "the full picker" : "the Simple menu";
     it(`${name} keeps it visible, disabled, with the reason, and it cannot be picked`, async () => {
       fixture.advanced = advanced;
@@ -426,12 +400,4 @@ describe("a model the organization turned off", () => {
     expect(fixture.dispatch).not.toHaveBeenCalled();
   });
 
-  it("the full picker opens on a row it can focus when the selection is the blocked one", async () => {
-    fixture.advanced = true;
-    fixture.instances = [claude(blockedThree)];
-    render(scout("claude-sonnet-5-5"));
-    await openWith("ArrowDown");
-    expect(focused()?.hasAttribute("data-menu-row")).toBe(true);
-    expect((focused() as HTMLButtonElement).disabled).toBe(false);
-  });
 });

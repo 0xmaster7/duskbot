@@ -96,16 +96,6 @@ describe("the model button's usage bars", () => {
     expect(chip().textContent).toBe("Claude Sonnet 5");
   });
 
-  it("hide in the narrow header while there is room, and widen its square to warn", () => {
-    fixture.advanced = true;
-    render();
-    expect(chip().className).toContain("@max-4xl/chathead:has-[[data-usage-warn]]:w-auto");
-    expect(chip().querySelector("[data-usage-glyph]")?.getAttribute("class")).toContain("@max-4xl/chathead:hidden");
-    remember([usage(95)]);
-    expect(chip().querySelector("[data-usage-warn]")).not.toBeNull();
-    expect(chip().querySelector("[data-usage-glyph]")?.getAttribute("class")).not.toContain("@max-4xl/chathead:hidden");
-  });
-
   it("keep showing in the bot panel, which has no narrow header", () => {
     fixture.advanced = true;
     render(true);

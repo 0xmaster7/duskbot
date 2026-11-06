@@ -29,7 +29,7 @@ async function page(rail: ChromeRailBridge | undefined) {
   const { ChromeRailToggle } = await import("./ChromeRailToggle");
   root = createRoot(host);
   await act(async () => {
-    root!.render(createElement("div", null, createElement(ChromeRailToggle, { advanced: true, icons: false })));
+    root!.render(createElement("div", null, createElement(ChromeRailToggle, {})));
   });
   await act(async () => { await Promise.resolve(); });
 }

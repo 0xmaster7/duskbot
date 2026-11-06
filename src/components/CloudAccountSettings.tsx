@@ -12,7 +12,6 @@ import { AccountsSheet } from "./AccountMenu";
 import { Card } from "./SettingsPrimitives";
 import { CloudCancelPlan, type CloudRenewalActions } from "./CloudCancelPlan";
 import { StagingMark } from "./cloud-buy/parts";
-import { CloudKeepHere } from "./CloudKeepHere";
 import { CloudSetupSteps } from "./CloudSetupSteps";
 import { useCloudSendNotice } from "./CloudSendStrip";
 import { OpenFilesButton } from "./OpenFilesButton";
@@ -253,7 +252,6 @@ export function CloudAccountSettings({ linkRequest = 0, cloudHome = false, teamH
     return <>
       {cloudHome && teamHome ? <TeamPeopleCard team={teamHome} />
         : plan ? <CloudPlanOnCloud bridge={plan} onConnectPhone={onConnectPhone} /> : <p className="text-[13px] text-ink-secondary">{t("cloudAccount.desktopOnly")}</p>}
-      {plan && !teamHome && <CloudKeepHere bridge={window.ogb?.cloudSendPage} />}
     </>;
   }
   const view = cloudPlanView(account);
@@ -322,6 +320,5 @@ export function CloudAccountSettings({ linkRequest = 0, cloudHome = false, teamH
       ? cloudHomeCard({ machine, busy, failed: homeFailed, onConnect: () => { if (team) openTeam(team.id); }, team: { name: team?.name ?? null } })
       : cloudHomeCard({ machine, busy, failed: homeFailed, onConnect: connectHome, trial: Boolean(account?.trial), waking: account?.waking === true, moving }))}
     {signed && view.kind === "paid" && !onTeamPlan && cloudPhoneCard({ ready: machine?.status === "ready", busy, failed: phoneFailed, onUse: openOnPhone })}
-    <CloudKeepHere bridge={window.ogb?.cloudSendPage} />
   </>;
 }
