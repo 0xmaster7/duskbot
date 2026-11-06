@@ -35,6 +35,7 @@ const include = [
   "evals/**/*.test.ts",
   "server/**/*.test.ts",
   "electron/**/*.test.mjs",
+  "link-service/**/*.test.mjs",
   "src/**/*.test.ts",
   "shared/**/*.test.ts",
   "companion/**/*.test.ts",

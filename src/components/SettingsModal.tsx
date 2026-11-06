@@ -18,6 +18,8 @@ import { CustomDomainSettings } from "./CustomDomainSettings";
 import { RemoteComputerSection } from "./RemoteComputerSection";
 import { ConnectedWorkspacesSettings } from "./ConnectedWorkspacesSettings";
 import { CloudAccountSettings } from "./CloudAccountSettings";
+import { TransferSettings } from "./vps-link/TransferSettings";
+import { vpsLinkAvailable } from "@/lib/vps-link";
 import { LicenseExpiryBanner } from "./LicenseExpiryBanner";
 import { workspacesAvailable } from "./WorkspacesSection";
 import { GrokIcon } from "./GrokIcon";
@@ -99,7 +101,7 @@ export function SettingsModal() {
   const offered: Record<AppSettingsSection, boolean> = {
     general: true, appearance: true, texting: true, companion: true, remote: true, computer: true, logins: true, updates: true,
     advanced: true, apps: true, looks: true, bots: true, data: true, builder: true, about: true, engines: true, connections: true, decisionModel: true,
-    skills: true, usage: true, backups: true, import: true, experimental: true,
+    skills: true, usage: true, backups: true, import: true, experimental: true, transfer: vpsLinkAvailable(),
     desktopWorkspaces: Boolean(window.ogb?.environments),
     organization: Boolean(window.ogb?.organization),
     cloudAccount: Boolean(window.ogb?.cloudAccount || (window.ogb?.cloudPlan && cloudHome)),
@@ -248,6 +250,7 @@ export function SettingsModal() {
       case "general": return <GeneralPane has={has} remoteActive={remoteActive} />;
       case "texting": return <TextingPane has={has} remoteAccess={remoteAccess} />;
       case "computer": return <ComputerPane has={has} remoteAccess={remoteAccess} servers={<ConnectedWorkspacesSettings />} />;
+      case "transfer": return <TransferSettings />;
       case "permissions": return <PermissionsPane has={has} />;
       case "vault": return <VaultPane />;
       case "models": return <ModelsPane has={has} disclose={disclose} connections={<AdminOnly><KeysPage /></AdminOnly>} />;

@@ -1,13 +1,14 @@
 import { t } from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
-import { Card as RowsCard, CopyRow, FormDialog, FormField, ItemRow, NavRow, NoteRow, SwitchRow, pillCls } from "./ListRows";
+import { Card as RowsCard, FormDialog, FormField, ItemRow, NavRow, NoteRow, SwitchRow, pillCls } from "./ListRows";
 import { ComputerSharingSettings } from "./ComputerSharingSettings";
 import { CloudTile } from "./cloud-buy/parts";
 import { cloudColor } from "@/lib/cloud-look";
 import { textFieldCls } from "./ui/GrokDialog";
 import { useStore } from "@/state/store";
 import { sharedComputersEnabled } from "@/lib/feature-flags";
+import { openAddVps, vpsLinkAvailable } from "@/lib/vps-link";
 
 type SavedWorkspaces = Awaited<ReturnType<NonNullable<NonNullable<Window["ogb"]>["environments"]>["state"]>>;
 type SavedEntry = SavedWorkspaces["environments"][number] | { id: string; name: string; origin: string; color: undefined };
@@ -113,8 +114,8 @@ export function ConnectedWorkspacesSettings() {
             {entry.id !== "local" && forgetButton(t("settings.s2.servers.forget", { name: entry.name }), () => void perform(() => bridge.forget(entry.id)))}
           </ItemRow>;
         })}
-      <NavRow data-settings-open="connect-server" title={t("settings.s2.servers.connect")} hint={t("settings.s2.servers.connectHint")} onClick={() => { setError(""); setAdding(true); }} />
-      <CopyRow title={t("settings.s2.servers.command")} text="npx openmausbot pair" />
+      {vpsLinkAvailable() && <NavRow data-settings-open="add-vps" title={t("vpsLink.add")} hint={t("vpsLink.addHint")} onClick={openAddVps} />}
+      <NavRow data-settings-open="connect-server" title={t("vpsLink.connectByAddress")} hint={t("settings.s2.servers.connectHint")} onClick={() => { setError(""); setAdding(true); }} />
       {error && saved && !adding && <NoteRow tone="danger">{error}</NoteRow>}
     </RowsCard>
     {sharingOffered && computerWorkspace && <ComputerSharingSettings key={computerWorkspace.id} workspace={computerWorkspace} onClose={() => setComputerId(null)} />}

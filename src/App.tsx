@@ -51,6 +51,7 @@ import { CloudEngineSignIn } from "@/components/CloudEngineSignIn";
 import { CloudIntent } from "@/components/CloudIntent";
 import { cloudIntentDue, cloudIntentShown, useCloudIntent } from "@/lib/cloud-intent";
 import { CloudSetup } from "@/components/CloudSetup";
+import { AddVpsHost } from "@/components/vps-link/AddVpsHost";
 import { CloudWelcome } from "@/components/cloud-welcome/CloudWelcome";
 import { WelcomeKeeper } from "@/components/cloud-welcome/WelcomeKeeper";
 import { cloudFirstRun, cloudWelcomeVisible, useCloudWelcome } from "@/lib/cloud-welcome";
@@ -422,6 +423,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       <CloudSetup viewer={viewer} welcomeShown={welcomeOnScreen} />
       <WelcomeKeeper viewer={viewer} />
       <ConnectAppsHost />
+      <AddVpsHost />
       {state.shortcutsOpen && (
         <KeyboardShortcutsModal
           open={state.shortcutsOpen}

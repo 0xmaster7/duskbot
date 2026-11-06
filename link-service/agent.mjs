@@ -1,0 +1,351 @@
+// the openmausbot link agent on a person's vps. the install script runs it as:
+//   node agent.mjs probe    (root)  can the link service reach this server directly on port 80? exit 0 yes, 3 no
+//   node agent.mjs link     (maus)  mint a pairing code, seal it for the app, report the result, write tunnel.json
+//   node agent.mjs tunnel   (maus)  the steady-state relay: requests from the app, sealed end to end, to 127.0.0.1:8799
+// standalone on purpose: node's own modules only, one file the link service serves at /agent.mjs.
+import { createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes } from "node:crypto";
+import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { createServer, request as httpRequest } from "node:http";
+import { connect as tlsConnect } from "node:tls";
+import { homedir, hostname } from "node:os";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+export const SERVER = { host: "127.0.0.1", port: Number(process.env.LINK_SERVER_PORT) || 8799 };
+const FRAME_SKEW_MS = 5 * 60_000;
+const CHUNK = 128 * 1024;
+/** one post stays well under a proxy's usual 1 MB body limit (nginx's default) */
+const BATCH_BYTES = 700 * 1024;
+export function takeBatch(outbox) {
+  let size = 0, count = 0;
+  while (count < outbox.length && count < 64 && (count === 0 || size + outbox[count].length <= BATCH_BYTES)) size += outbox[count++].length;
+  return outbox.splice(0, count);
+}
+/** hop-by-hop headers never cross the tunnel */
+const HOP = new Set(["connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailer", "transfer-encoding", "upgrade", "content-length", "x-forwarded-for", "x-forwarded-proto", "x-forwarded-host", "forwarded"]);
+
+// ---- crypto shared with electron/vps-link-protocol.mjs (keep both in step; a test checks they interoperate) ----
+export const sha256hex = (value) => createHash("sha256").update(value).digest("hex");
+export const vpsTokenOf = (secret) => sha256hex(`omb-link-v1|vps|${secret}`);
+export function x25519Pair() {
+  const { publicKey, privateKey } = generateKeyPairSync("x25519");
+  return { pub: publicKey.export({ format: "jwk" }).x, priv: privateKey.export({ format: "jwk" }).d };
+}
+export function sealKeyOf(myPriv, myPub, theirPub, id) {
+  const privateKey = createPrivateKey({ key: { kty: "OKP", crv: "X25519", d: myPriv, x: myPub }, format: "jwk" });
+  const publicKey = createPublicKey({ key: { kty: "OKP", crv: "X25519", x: theirPub }, format: "jwk" });
+  return Buffer.from(hkdfSync("sha256", diffieHellman({ privateKey, publicKey }), `omb-link-v1|${id}`, "seal", 32));
+}
+export function seal(key, aad, plaintext) {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  cipher.setAAD(Buffer.from(aad));
+  const body = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+  return Buffer.concat([iv, body, cipher.getAuthTag()]).toString("base64url");
+}
+export function open(key, aad, sealed) {
+  const raw = Buffer.from(sealed, "base64url");
+  if (raw.length < 29) throw new Error("sealed value too short");
+  const decipher = createDecipheriv("aes-256-gcm", key, raw.subarray(0, 12));
+  decipher.setAAD(Buffer.from(aad));
+  decipher.setAuthTag(raw.subarray(raw.length - 16));
+  return Buffer.concat([decipher.update(raw.subarray(12, raw.length - 16)), decipher.final()]);
+}
+/** frames carry their time and are refused twice or when stale, so a relay cannot replay an old request */
+export function frameGuard(now = Date.now) {
+  const seen = new Map();
+  return (iv, ts) => {
+    const t = now();
+    if (typeof ts !== "number" || Math.abs(t - ts) > FRAME_SKEW_MS) return false;
+    if (seen.has(iv)) return false;
+    seen.set(iv, t);
+    if (seen.size > 5000) for (const [key, at] of seen) if (t - at > 2 * FRAME_SKEW_MS) seen.delete(key);
+    return true;
+  };
+}
+export function sealFrame(key, id, dir, frame) {
+  return seal(key, `${id}|${dir}`, Buffer.from(JSON.stringify({ ...frame, ts: Date.now() })));
+}
+export function openFrame(key, id, dir, sealed, guard) {
+  const value = JSON.parse(open(key, `${id}|${dir}`, sealed).toString("utf8"));
+  if (guard && !guard(sealed.slice(0, 16), value.ts)) return null;
+  return value;
+}
+// ---- end shared crypto ----
+
+const configDir = () => join(homedir(), ".config", "openmausbot-link");
+const tunnelFile = () => join(configDir(), "tunnel.json");
+const enginesFile = () => join(homedir(), ".config", "openmausbot", "engines.env");
+const codexAuthFile = () => join(process.env.CODEX_HOME || join(homedir(), ".codex"), "auth.json");
+
+function writePrivate(path, text) {
+  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+  const tmp = `${path}.${process.pid}.tmp`;
+  writeFileSync(tmp, text, { mode: 0o600 });
+  chmodSync(tmp, 0o600);
+  renameSync(tmp, path);
+}
+
+function env(name) {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is not set`);
+  return value;
+}
+
+async function relay(base, route, token, init = {}) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      const response = await fetch(`${base}${route}`, {
+        ...init,
+        headers: { authorization: `Bearer ${token}`, ...(init.body ? { "content-type": "application/json" } : {}), ...init.headers },
+        signal: init.signal ?? AbortSignal.timeout(40_000),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (response.status >= 500 && attempt < 3) throw new Error(`link service answered ${response.status}`);
+      return { status: response.status, body };
+    } catch (error) {
+      if (init.signal?.aborted || attempt >= 3) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 1000 * 2 ** attempt));
+    }
+  }
+}
+
+function local(method, path, body) {
+  return new Promise((resolve, reject) => {
+    const payload = body === undefined ? null : Buffer.from(JSON.stringify(body));
+    const req = httpRequest({ ...SERVER, method, path, headers: { accept: "application/json", "x-openmausbot-cli": "1", ...(payload ? { "content-type": "application/json", "content-length": payload.length } : {}) }, timeout: 15_000 }, (res) => {
+      const chunks = [];
+      res.on("data", (chunk) => chunks.push(chunk));
+      res.on("end", () => {
+        let parsed = null;
+        try { parsed = JSON.parse(Buffer.concat(chunks).toString("utf8")); } catch { /* not json */ }
+        resolve({ status: res.statusCode ?? 0, body: parsed });
+      });
+    });
+    req.on("timeout", () => req.destroy(new Error("OpenMausBot on this server did not answer")));
+    req.on("error", reject);
+    req.end(payload ?? undefined);
+  });
+}
+
+/** the leaf certificate's public key as the app pins it: sha256 of the spki der, base64 */
+export function spkiOf(host, port = 443) {
+  return new Promise((resolve, reject) => {
+    const socket = tlsConnect({ host, port, servername: host, rejectUnauthorized: true, timeout: 10_000 }, () => {
+      const cert = socket.getPeerCertificate();
+      socket.end();
+      if (!cert?.pubkey) return reject(new Error("no certificate"));
+      resolve(createHash("sha256").update(cert.pubkey).digest("base64"));
+    });
+    socket.on("timeout", () => socket.destroy(new Error("timed out")));
+    socket.on("error", reject);
+  });
+}
+
+async function probe() {
+  const base = env("LINK_BASE"), id = env("LINK_ID"), token = env("LINK_TOKEN");
+  const nonce = randomBytes(16).toString("hex");
+  let server = null;
+  try {
+    server = await new Promise((resolve, reject) => {
+      const listening = createServer((req, res) => {
+        if (req.url === `/.well-known/omb-link/${nonce}`) { res.writeHead(200, { "content-type": "text/plain" }); res.end(nonce); }
+        else { res.writeHead(404); res.end(); }
+      });
+      listening.once("error", reject);
+      listening.listen(80, "0.0.0.0", () => resolve(listening));
+    });
+  } catch (error) {
+    console.error(`port 80 is busy here (${error.code ?? error.message}), so the app will reach this server through the link service`);
+  }
+  const answer = await relay(base, `/v1/sessions/${id}/probe`, token, { method: "POST", body: JSON.stringify({ nonce }) });
+  server?.close();
+  if (answer.body?.ip) console.log(`ip=${answer.body.ip}`);
+  return server && answer.status === 200 && answer.body?.reachable === true ? 0 : 3;
+}
+
+async function link() {
+  const base = env("LINK_BASE"), id = env("LINK_ID"), token = env("LINK_TOKEN");
+  const mode = process.env.LINK_MODE === "direct" ? "direct" : "relay";
+  const name = (process.env.LINK_NAME || hostname()).slice(0, 60);
+  let saved = null;
+  try { saved = JSON.parse(readFileSync(tunnelFile(), "utf8")); } catch { /* not linked yet */ }
+  const claimed = await relay(base, `/v1/sessions/${id}/claim`, token, { method: "POST", body: JSON.stringify({}) });
+  if (claimed.status === 410 && saved?.id) return 4;
+  if (claimed.status !== 200) throw new Error(claimed.body?.error ?? `the link service answered ${claimed.status}`);
+  const appPub = claimed.body.appPub;
+  const [pairing, environment] = await Promise.all([
+    local("POST", "/api/auth/pairing", { label: claimed.body.label || "OpenMausBot app" }),
+    local("GET", "/.well-known/openmausbot/environment"),
+  ]);
+  if (pairing.status !== 200 || typeof pairing.body?.code !== "string") throw new Error(`OpenMausBot here would not make a pairing code (${pairing.status})`);
+  const origin = mode === "direct" ? `https://${env("LINK_HOST")}` : null;
+  const spki = mode === "direct" ? await spkiOf(env("LINK_HOST")) : null;
+  const tunnel = { key: randomBytes(32).toString("base64url"), vps: randomBytes(32).toString("base64url"), app: randomBytes(32).toString("base64url") };
+  const mine = x25519Pair();
+  const payload = {
+    v: 1, mode, origin, spki, name,
+    environmentId: typeof environment.body?.environmentId === "string" ? environment.body.environmentId : null,
+    pairing: { code: pairing.body.code, expiresAt: pairing.body.expiresAt ?? null },
+    tunnel: { id, key: tunnel.key, token: tunnel.app },
+  };
+  const sealed = seal(sealKeyOf(mine.priv, mine.pub, appPub, id), id, Buffer.from(JSON.stringify(payload)));
+  writePrivate(tunnelFile(), JSON.stringify({ v: 1, base, id, key: tunnel.key, token: tunnel.vps, mode, origin }));
+  const result = await relay(base, `/v1/sessions/${id}/result`, token, {
+    method: "POST", body: JSON.stringify({ sealed, vpsPub: mine.pub, tunnel: { vps: sha256hex(tunnel.vps), app: sha256hex(tunnel.app) } }),
+  });
+  if (result.status !== 200) throw new Error(result.body?.error ?? `the link service answered ${result.status}`);
+  return 0;
+}
+
+// ---- tunnel ----
+
+function setEnvLine(text, key, value) {
+  const lines = text.split("\n").filter((line) => line && !line.startsWith(`${key}=`));
+  if (value !== null) lines.push(`${key}=${value}`);
+  return `${lines.join("\n")}\n`;
+}
+
+/** what the app may ask of this agent directly, never of the server: credentials it signed in for on the mac */
+export async function control(op, data) {
+  if (op === "ping") return { ok: true };
+  if (op === "pair") {
+    // a fresh one-time code for the app's own sign-in here, when its session lapsed (sessions end after 180 days)
+    const answer = await local("POST", "/api/auth/pairing", { label: typeof data?.label === "string" ? data.label.slice(0, 60) : "OpenMausBot app" });
+    if (answer.status !== 200 || typeof answer.body?.code !== "string") throw new Error("OpenMausBot here would not make a pairing code");
+    return { code: answer.body.code };
+  }
+  if (op === "claude-token") {
+    const value = typeof data?.token === "string" ? data.token.trim() : "";
+    if (!/^[A-Za-z0-9._~+/=-]{20,4096}$/.test(value)) throw new Error("that is not a Claude token");
+    let current = "";
+    try { current = readFileSync(enginesFile(), "utf8"); } catch { /* none yet */ }
+    // the path unit restarts openmausbot when this file changes, so the server's engines see the token
+    writePrivate(enginesFile(), setEnvLine(current, "CLAUDE_CODE_OAUTH_TOKEN", value));
+    return { ok: true };
+  }
+  if (op === "codex-auth") {
+    const text = typeof data?.auth === "string" ? data.auth : "";
+    let parsed;
+    try { parsed = JSON.parse(text); } catch { throw new Error("that is not a ChatGPT sign-in"); }
+    if (!parsed || typeof parsed !== "object" || text.length > 64 * 1024) throw new Error("that is not a ChatGPT sign-in");
+    writePrivate(codexAuthFile(), text);
+    return { ok: true };
+  }
+  if (op === "freeze" || op === "thaw") {
+    const answer = op === "freeze"
+      ? await local("POST", "/api/move/freeze", typeof data?.place === "string" ? { place: data.place.slice(0, 120) } : {})
+      : await local("DELETE", "/api/move/freeze", undefined);
+    if (answer.status !== 200) throw new Error(answer.body?.error ?? `OpenMausBot here answered ${answer.status}`);
+    return { ok: true };
+  }
+  throw new Error("unknown request");
+}
+
+export function createTunnelAgent({ base, id, key: keyText, token, server = SERVER, fetchImpl = fetch, log = (line) => console.error(line) }) {
+  const key = Buffer.from(keyText, "base64url");
+  const guard = frameGuard();
+  const pending = new Map();
+  let outbox = [];
+  let flushing = null;
+  let stopped = false;
+  const abort = new AbortController();
+
+  const post = async (frames) => {
+    for (let attempt = 0; !stopped; attempt += 1) {
+      try {
+        const response = await fetchImpl(`${base}/v1/tunnels/${id}/to-app`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ frames }), signal: AbortSignal.timeout(60_000) });
+        if (response.ok) return;
+        if (response.status === 404) { stopped = true; return; }
+      } catch { /* retried below */ }
+      await new Promise((resolve) => setTimeout(resolve, Math.min(5000, 200 * 2 ** attempt)));
+    }
+  };
+  function emit(frame) {
+    outbox.push(sealFrame(key, id, "to-app", frame));
+    if (!flushing) flushing = (async () => {
+      await new Promise((resolve) => setTimeout(resolve, 15));
+      while (outbox.length) await post(takeBatch(outbox));
+      flushing = null;
+    })();
+  }
+
+  function startRequest(frame) {
+    const headers = {};
+    for (const [name, value] of Object.entries(frame.headers ?? {})) if (!HOP.has(name.toLowerCase())) headers[name] = value;
+    // marks every tunnelled request as remote (server/request-auth.ts isProxied): it needs a paired session, never loopback trust
+    headers["x-forwarded-for"] = "192.0.2.10";
+    headers["x-forwarded-proto"] = "http";
+    if (headers.host) headers["x-forwarded-host"] = headers.host;
+    const req = httpRequest({ ...server, method: frame.method, path: frame.path, headers }, (res) => {
+      const out = {};
+      for (const [name, value] of Object.entries(res.headers)) if (!HOP.has(name)) out[name] = value;
+      emit({ t: "head", r: frame.r, status: res.statusCode ?? 502, headers: out });
+      res.on("data", (chunk) => { for (let at = 0; at < chunk.length; at += CHUNK) emit({ t: "data", r: frame.r, d: chunk.subarray(at, at + CHUNK).toString("base64") }); });
+      res.on("end", () => { pending.delete(frame.r); emit({ t: "end", r: frame.r }); });
+      res.on("error", () => { pending.delete(frame.r); emit({ t: "err", r: frame.r, message: "reply cut off" }); });
+    });
+    req.on("error", () => { if (pending.delete(frame.r)) emit({ t: "err", r: frame.r, message: "OpenMausBot on the server did not answer" }); });
+    pending.set(frame.r, req);
+    if (frame.end) req.end();
+  }
+
+  async function handle(frame) {
+    if (frame.t === "req" && typeof frame.r === "string" && typeof frame.path === "string" && frame.path.startsWith("/")) return startRequest(frame);
+    if (frame.t === "body") {
+      const req = pending.get(frame.r);
+      if (!req) return;
+      if (frame.d) req.write(Buffer.from(frame.d, "base64"));
+      if (frame.end) req.end();
+      return;
+    }
+    if (frame.t === "cancel") { pending.get(frame.r)?.destroy(); pending.delete(frame.r); return; }
+    if (frame.t === "ctl") {
+      try { emit({ t: "ctl", r: frame.r, ok: true, data: await control(frame.op, frame.data) }); }
+      catch (error) { emit({ t: "ctl", r: frame.r, ok: false, error: error?.message ?? String(error) }); }
+    }
+  }
+
+  async function run() {
+    let failures = 0;
+    while (!stopped) {
+      try {
+        const response = await fetchImpl(`${base}/v1/tunnels/${id}/to-vps?wait=25`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.any([abort.signal, AbortSignal.timeout(40_000)]) });
+        if (response.status === 404) { log("link: this server was unlinked in the app; the tunnel stops"); stopped = true; return "unlinked"; }
+        if (!response.ok) throw new Error(`link service answered ${response.status}`);
+        const { frames = [] } = await response.json();
+        failures = 0;
+        for (const sealed of frames) {
+          let frame = null;
+          try { frame = openFrame(key, id, "to-vps", sealed, guard); } catch { log("link: dropped a frame that did not open"); }
+          if (frame) void handle(frame);
+        }
+      } catch (error) {
+        if (stopped) break;
+        failures += 1;
+        if (failures === 1 || failures % 20 === 0) log(`link: tunnel retrying (${error?.message ?? error})`);
+        await new Promise((resolve) => setTimeout(resolve, Math.min(30_000, 500 * 2 ** Math.min(failures, 6))));
+      }
+    }
+    return "stopped";
+  }
+  return { run, stop: () => { stopped = true; abort.abort(); for (const req of pending.values()) req.destroy(); } };
+}
+
+async function tunnel() {
+  let saved;
+  try { saved = JSON.parse(readFileSync(tunnelFile(), "utf8")); } catch { console.error("link: not linked yet; nothing to do"); return 0; }
+  const agent = createTunnelAgent(saved);
+  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { agent.stop(); process.exit(0); });
+  const how = await agent.run();
+  // unlinked: stay quiet instead of letting systemd restart a tunnel that no longer exists
+  if (how === "unlinked") { setInterval(() => {}, 1 << 30); await new Promise(() => {}); }
+  return 0;
+}
+
+const main = { probe, link, tunnel };
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  const command = main[process.argv[2]];
+  if (!command) { console.error("usage: node agent.mjs probe|link|tunnel"); process.exit(2); }
+  command().then((code) => process.exit(code ?? 0), (error) => { console.error(error?.message ?? String(error)); process.exit(1); });
+}

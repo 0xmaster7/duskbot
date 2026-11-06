@@ -522,6 +522,34 @@ const bridge = {
       return () => ipcRenderer.removeListener("two-places:changed", handler);
     },
   },
+  // This computer's page only (never in REMOTE_SAFE, and main refuses any other): Add your VPS, its AI sign-in, the move
+  // there and back, and the backups made on the way. No secret ever comes through here.
+  vpsLink: {
+    state: () => ipcRenderer.invoke("vps-link:state"),
+    start: () => ipcRenderer.invoke("vps-link:start"),
+    cancel: () => ipcRenderer.invoke("vps-link:cancel"),
+    reset: () => ipcRenderer.invoke("vps-link:reset"),
+    engines: () => ipcRenderer.invoke("vps-link:engines"),
+    signIn: id => ipcRenderer.invoke("vps-link:signIn", String(id)),
+    signInStatus: (id, flowId) => ipcRenderer.invoke("vps-link:signInStatus", String(id), String(flowId)),
+    signInCode: (id, flowId, code) => ipcRenderer.invoke("vps-link:signInCode", String(id), String(flowId), String(code)),
+    signInCancel: (id, flowId) => ipcRenderer.invoke("vps-link:signInCancel", String(id), String(flowId)),
+    openUrl: url => ipcRenderer.invoke("vps-link:openUrl", String(url)),
+    preview: () => ipcRenderer.invoke("vps-link:preview"),
+    move: () => ipcRenderer.invoke("vps-link:move"),
+    open: () => ipcRenderer.invoke("vps-link:open"),
+    where: () => ipcRenderer.invoke("vps-link:where"),
+    backups: () => ipcRenderer.invoke("vps-link:backups"),
+    backupNow: () => ipcRenderer.invoke("vps-link:backupNow"),
+    restore: id => ipcRenderer.invoke("vps-link:restore", String(id)),
+    moveBack: () => ipcRenderer.invoke("vps-link:moveBack"),
+    forget: () => ipcRenderer.invoke("vps-link:forget"),
+    onChange: cb => {
+      const handler = (_event, view) => cb(view);
+      ipcRenderer.on("vps-link:changed", handler);
+      return () => ipcRenderer.removeListener("vps-link:changed", handler);
+    },
+  },
   // Who is signed in on this device: this app's own pages only (main checks the sender). No token ever comes through here.
   accounts: process.argv.includes("--omb-company-desktop=1") ? {
     list: () => ipcRenderer.invoke("accounts:list"),

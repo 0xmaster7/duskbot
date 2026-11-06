@@ -1,0 +1,11 @@
+{
+  "name": "openmausbot-link",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Links a person's VPS to their OpenMausBot app: one-time setup sessions, the install script, and an end-to-end sealed relay tunnel.",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/server.mjs"
+  }
+}

@@ -282,7 +282,7 @@ describe("Settings → General → Appearance", () => {
     fixture.section = "desktopWorkspaces";
     vi.stubGlobal("window", { ogb: { environments: {} } });
     const local = render();
-    expect(local).toContain("Connect to a server");
+    expect(local).toContain("Connect by address");
     expect(local).toContain("Your servers");
     fixture.section = "computer";
     vi.stubGlobal("window", { ogb: { workspaces: {} } });

@@ -3,6 +3,9 @@
 import { StrictMode, useReducer } from "react";
 import { createRoot } from "react-dom/client";
 import { SettingsModal } from "@/components/SettingsModal";
+import { AddVpsHost } from "@/components/vps-link/AddVpsHost";
+import { previewVpsBridge } from "@/components/vps-link/preview-bridge";
+import { openAddVps } from "@/lib/vps-link";
 import { loadLocale } from "@/lib/i18n";
 import { applySkinChoice, SKIN_IDS, type SkinId } from "@/lib/skins";
 import { initialState, reducer, StoreContext, type AppSettingsSection, type AppState } from "@/state/store";
@@ -63,6 +66,13 @@ if (companionMode) {
   });
 }
 
+// ?vps=command|installing|failed|linked|moving|moved: Add your VPS over a fake desktop side (&flow=1 opens its sheet)
+const vpsStage = params.get("vps");
+if (vpsStage) {
+  Object.assign((window as unknown as { ogb: object }).ogb ?? Object.assign(window, { ogb: {} }).ogb, { platform: "darwin", vpsLink: previewVpsBridge(vpsStage) });
+  if (params.get("flow") === "1") openAddVps();
+}
+
 const DAY = 86_400_000;
 const LIMITS = params.get("limits") === "1" ? { checkedAt: Date.now(), engines: [
   { engine: "claude", name: "Claude", driver: "claude", window: "weekly", usedPercent: 62, resetsAt: Date.now() + 4 * DAY, blocked: false,
@@ -83,7 +93,7 @@ window.fetch = async (input, init) => {
 const start: AppState = {
   ...initialState,
   connected: true,
-  appSettingsOpen: true,
+  appSettingsOpen: params.get("flow") !== "1",
   appSettingsSection: (params.get("section") ?? "general") as AppSettingsSection,
   config: { ...initialState.config, profile: { name: "siddharth", email: "siddharth@example.com", aboutMe: "" } } as AppState["config"],
 };
@@ -95,6 +105,7 @@ function Preview() {
     <StoreContext.Provider value={value as never}>
       <div className="h-screen bg-app" />
       {state.appSettingsOpen && <SettingsModal />}
+      <AddVpsHost />
     </StoreContext.Provider>
   );
 }
