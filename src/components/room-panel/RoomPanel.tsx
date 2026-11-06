@@ -3,7 +3,8 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { t } from "@/lib/i18n";
-import { WIPE } from "@/lib/motion-presets";
+import { SWAP, WIPE } from "@/lib/motion-presets";
+import { MotionDiv } from "../ui/SheetMotion";
 import { closeRoomPanel } from "@/lib/room-panel";
 import type { LocaleKey } from "@/locales";
 import { useStore, type Bot, type Group } from "@/state/store";
@@ -69,14 +70,18 @@ export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: 
   );
   const closeMembers = useCallback(() => setMembersOpen(false), []);
 
+  // only a tab picked from the tabs swaps in; coming back from a page, the list is simply there under the wipe
+  const [tabSwapped, setTabSwapped] = useState(false);
   const openTab = (next: PanelTab) => {
     setTab(next);
+    setTabSwapped(true);
     bodyRef.current?.scrollTo({ top: 0 });
   };
   const [dialog, setDialog] = useState<RoomDialog | null>(null);
   const open = (target: RoomTarget) => (target === "models" ? setPage(target) : setDialog(target));
   const back = () => {
     leftPage.current = page;
+    setTabSwapped(false);
     setPage(null);
   };
 
@@ -138,11 +143,16 @@ export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: 
           />
         </div>
       </div>
-      <div role="tabpanel" aria-label={t(TAB_LABEL[tab])} className="pt-2.5">
+      <MotionDiv
+        key={tab}
+        role="tabpanel" aria-label={t(TAB_LABEL[tab])} className="pt-2.5"
+        initial={reduced || !tabSwapped ? false : SWAP.initial}
+        animate={SWAP.animate}
+      >
         {tab === "details" && <RoomDetailsTab {...rowProps} />}
         {tab === "computer" && <RoomComputerTab members={members} />}
         {tab === "advanced" && <RoomAdvancedTab {...rowProps} />}
-      </div>
+      </MotionDiv>
     </>
   );
 
@@ -186,7 +196,7 @@ export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: 
         className={sidePanelCls(overlay, true)}
       >
         <span id="room-panel-title" className="sr-only">{group.name}</span>
-        <span aria-hidden="true" data-panel-edge className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[0.5px] bg-edge" />
+        <span aria-hidden="true" data-panel-edge className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[0.5px] bg-edge max-md:hidden" />
         <div {...dragProps} className="relative flex h-[60px] shrink-0 items-center gap-2 p-3">
           {page === null ? (
             <span className={`ms-auto flex ${moreTriggerCls}`}>

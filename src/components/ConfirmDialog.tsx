@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
 
 import { confirmCancelCls, mdDangerCls, mdPrimaryCls } from "./ui/GrokDialog";
+import { ScrimMotion, SheetMotion } from "./ui/SheetMotion";
 
 export type ConfirmTone = "danger" | "neutral";
 
@@ -81,8 +82,8 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
       className={`fixed inset-0 ${props.layer ?? "z-50"} flex items-center justify-center p-6`}
       onMouseDown={(event) => event.target === event.currentTarget && onCancel()}
     >
-      <div aria-hidden="true" className="ui-dialog-scrim pointer-events-none absolute inset-0" />
-      <ConfirmDialogCard ref={dialogRef} confirmRef={confirmRef} {...props} />
+      <ScrimMotion aria-hidden="true" className="ui-dialog-scrim pointer-events-none absolute inset-0" />
+      <ConfirmDialogCard ref={dialogRef} confirmRef={confirmRef} animated {...props} />
     </div>,
     document.body,
   );
@@ -100,13 +101,17 @@ export function ConfirmDialogCard({
   onConfirm,
   alternative,
   pending = false,
+  animated = false,
 }: ConfirmDialogProps & {
   ref?: React.Ref<HTMLDivElement>;
   confirmRef?: React.Ref<HTMLButtonElement>;
+  /** eases in as bencho's modal does; a card drawn inside another surface stays put */
+  animated?: boolean;
 }) {
   const danger = tone === "danger";
+  const Root = animated ? SheetMotion : "div";
   return (
-    <div
+    <Root
       ref={ref}
       role="alertdialog"
       tabIndex={-1}
@@ -135,7 +140,7 @@ export function ConfirmDialogCard({
           {confirmLabel}
         </button>
       </div>
-    </div>
+    </Root>
   );
 }
 

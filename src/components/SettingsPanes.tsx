@@ -110,14 +110,14 @@ export function AccountRows() {
   const email = active?.email ?? profile?.email?.trim() ?? "";
   return (
     <>
-      <div data-settings-account="" className="flex min-w-0 items-center gap-3">
+      <div data-settings-account="" className="flex min-w-0 items-center gap-3.5">
         <button type="button" data-settings-open="profile" aria-label={t("settings.w6.group.aboutYou")} onClick={() => setEditing(true)}
           className="shrink-0 cursor-pointer rounded-full outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
           <ProfileAvatar profile={{ ...profile, name, email }} />
         </button>
         <div className="min-w-0 flex-1">
-          <div data-row-title="" className="truncate text-[14px] leading-5 text-ink">{name || t("settings.simple.account.noName")}</div>
-          {email && <div data-row-hint="" className="truncate text-[13px] leading-[18px] text-ink-secondary">{email}</div>}
+          <div data-row-title="" className="truncate text-[13px] font-medium leading-[18px] text-ink">{name || t("settings.simple.account.noName")}</div>
+          {email && <div data-row-hint="" className="mt-0.5 truncate text-[13px] leading-[18px] text-ink-secondary">{email}</div>}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {!active && <button type="button" className="ui-button" onClick={() => setEditing(true)}>{t(name ? "settings.simple.account.edit" : "settings.simple.account.add")}</button>}

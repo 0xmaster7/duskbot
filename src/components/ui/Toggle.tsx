@@ -2,7 +2,8 @@ import type { ComponentProps, CSSProperties } from "react";
 
 import { cn } from "@/lib/cn";
 
-/** Grok's switch: a 32 by 20 track, a 16px knob on a 120ms ease transition, the switch blue when on. */
+/** Grok's switch: a 32 by 20 track, the switch blue when on, its colours on a 120ms ease; the 16px knob travels on
+ * bencho's thumb spring and stretches along its travel while pressed. */
 export function Toggle({ checked, className, tone, style, ...props }: Omit<ComponentProps<"button">, "children" | "role" | "aria-checked"> & {
   checked: boolean;
   /** A bot's own switch colours, as Grok paints a bot's switches in its `bg/<hue>-primary` and `-primary-hover`. */
@@ -17,7 +18,7 @@ export function Toggle({ checked, className, tone, style, ...props }: Omit<Compo
       aria-checked={checked}
       data-ui-toggle=""
       className={cn(
-        "relative inline-flex h-5 w-8 shrink-0 cursor-pointer items-center rounded-full shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_6%,transparent)] transition-[background-color] duration-[120ms] ease-[ease] motion-reduce:transition-none",
+        "group/switch relative inline-flex h-5 w-8 shrink-0 cursor-pointer items-center rounded-full shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_6%,transparent)] transition-[background-color] duration-[120ms] ease-[ease] motion-reduce:transition-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-app",
         "disabled:cursor-not-allowed disabled:opacity-50",
         checked
@@ -31,8 +32,9 @@ export function Toggle({ checked, className, tone, style, ...props }: Omit<Compo
       <span
         aria-hidden="true"
         className={cn(
-          "pointer-events-none absolute left-0.5 top-0.5 size-4 rounded-full bg-white shadow-[0_1px_3px_0_rgb(28_28_28/0.12)] transition-transform duration-[120ms] ease-[ease] motion-reduce:transition-none",
-          checked && "translate-x-3",
+          "pointer-events-none absolute left-0.5 top-0.5 size-4 rounded-full bg-white shadow-[0_1px_3px_0_rgb(28_28_28/0.12)]",
+          "[transition:translate_450ms_var(--omb-ease-thumb),scale_160ms_var(--omb-ease-out)] group-active/switch:scale-x-[1.11] group-active/switch:scale-y-[0.9] motion-reduce:transition-none motion-reduce:group-active/switch:scale-100",
+          checked ? "translate-x-3 origin-right" : "origin-left",
         )}
       />
     </button>

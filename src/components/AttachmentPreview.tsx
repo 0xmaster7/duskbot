@@ -1,14 +1,8 @@
 // Security: model text never turns an arbitrary local path into a browser request; transcript paths resolve through
 // attachmentImageUrl.
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { ScrimMotion, SheetMotion } from "./ui/SheetMotion";
 import {
   Check,
   Download,
@@ -455,7 +449,7 @@ export function OutsideWorkspaceFile({ filePath }: { filePath: string }) {
 const VIEWER_BUTTON = "flex size-8 items-center justify-center rounded-full border border-[rgb(245_245_245/0.06)] bg-[rgb(245_245_245/0.04)] text-[rgb(245_245_245/0.66)] transition-colors duration-[120ms] ease-out hover:bg-[rgb(245_245_245/0.1)] hover:text-[rgb(245_245_245/0.9)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60";
 const ZOOMED = 2.5;
 
-/** grok's media viewer: the whole window, no entrance motion, a caption and a filmstrip under the image. */
+/** grok's media viewer: the whole window fading in, the image rising into place, a caption and a filmstrip under it. */
 export function AttachmentPreviewDialog({
   image,
   images,
@@ -557,7 +551,7 @@ export function AttachmentPreviewDialog({
   const caption = strip ? `${current.name} · ${index + 1} / ${items.length}` : current.name;
 
   return createPortal(
-    <div
+    <ScrimMotion
       ref={dialogRef}
       role="dialog"
       aria-modal="true"
@@ -589,7 +583,7 @@ export function AttachmentPreviewDialog({
           <GrokIcon name="close" size={18} />
         </button>
       </div>
-      <div
+      <SheetMotion
         className={cn("absolute inset-x-0 top-11 flex items-center justify-center overflow-hidden px-[38px] pt-[38px]", strip ? "bottom-[132px]" : "bottom-[68px]")}
         onMouseDown={(event) => event.target === event.currentTarget && onClose()}
       >
@@ -628,7 +622,7 @@ export function AttachmentPreviewDialog({
             onPointerUp={() => { drag.current = null; setDragging(false); }}
             style={{
               transform: `translate(${zoom.x}px, ${zoom.y}px) scale(${zoom.scale})`,
-              transition: dragging ? "none" : "transform 200ms cubic-bezier(0.23, 1, 0.32, 1)",
+              transition: dragging ? "none" : "transform 200ms cubic-bezier(0.23, 1, 0.32, 1), opacity 160ms cubic-bezier(0.22, 1, 0.36, 1)",
             }}
             className={cn(
               "block max-h-full max-w-full rounded-[8px] object-contain select-none motion-reduce:!transition-none",
@@ -637,7 +631,7 @@ export function AttachmentPreviewDialog({
             )}
           />
         )}
-      </div>
+      </SheetMotion>
       <div className="absolute inset-x-0 bottom-5 flex flex-col items-center gap-4">
         <span className="flex h-8 max-w-[80vw] items-center truncate text-[12px] leading-4 text-[rgb(245_245_245/0.54)]">{caption}</span>
         {strip && (
@@ -660,7 +654,7 @@ export function AttachmentPreviewDialog({
           </div>
         )}
       </div>
-    </div>,
+    </ScrimMotion>,
     document.body,
   );
 }

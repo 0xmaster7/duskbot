@@ -10,7 +10,7 @@ import { MENU_ITEM, MENU_SHEET } from "./menu-recipe";
 export const ACTION_ICON = { size: 16, strokeWidth: 1.6 } as const;
 
 export const messageActionClass =
-  "inline-flex size-6 items-center justify-center rounded-[8px] text-ink-secondary transition-colors duration-[120ms] hover:bg-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent pointer-coarse:size-9";
+  "omb-press inline-flex size-6 items-center justify-center rounded-[8px] text-ink-secondary hover:bg-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent pointer-coarse:size-9";
 
 export type MessageMenuItem = {
   key: string;
@@ -168,7 +168,7 @@ export function MessageActions({
     <div
       ref={rootRef}
       className={cn(
-        "relative flex items-center gap-0.5 self-center transition-opacity duration-150",
+        "relative flex items-center gap-0.5 self-center transition-opacity duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
         mirrored && "flex-row-reverse",
         shown ? "opacity-100" : "pointer-events-none opacity-0",
         className,

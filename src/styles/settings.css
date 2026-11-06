@@ -1,6 +1,7 @@
 /* Settings, drawn as Grok Bot's settings dialog: a 900 by 700 sheet on a half-black scrim, a 198px rail of panes and a
-   scrolling pane of labelled white cards. It opens, closes and switches panes without motion, as Grok's does; only a
-   page inside Advanced features wipes in and out, with Grok's in-dialog push (200ms, the app "out" curve). */
+   scrolling pane of labelled white cards. The sheet eases in and out, the rail's fill follows the chosen pane and a pane
+   settles in with a short rise (motion/react, SettingsModal); a page inside a pane wipes in and out, with Grok's in-dialog
+   push (200ms, the app "out" curve). On a phone it is a full-screen stack: the list of panes, then a pane pushed over it. */
 
 /* The one set of Settings colours, measured from Grok Bot's light settings sheet (#fcfcfc sheet, white cards on an ink/8
    edge, ink/68 secondary, ink/8 selected, ink/6 hover, ink/6 switch track that is ink/10 on hover, the accent when on).
@@ -29,10 +30,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.settings-scrim[data-leaving] { pointer-events: none; }
+.settings-backdrop {
+  position: absolute;
+  inset: 0;
   background: rgb(0 0 0 / 0.5);
 }
 @container style(--code-color-scheme: dark) {
-  .settings-scrim { background: rgb(0 0 0 / 0.7); }
+  .settings-backdrop { background: rgb(0 0 0 / 0.7); }
 }
 
 /* centred by the scrim, not by a transform, so a dialog opened from a pane can still sit fixed over the window */
@@ -75,7 +81,10 @@
   border-inline-end: 0.5px solid var(--settings-edge);
 }
 .settings-nav::-webkit-scrollbar { display: none; }
+.settings-nav-list { display: flex; flex-direction: column; gap: 2px; }
+.settings-phone-head, .settings-nav-chevron { display: none; }
 .settings-nav-item {
+  position: relative;
   display: flex;
   flex-shrink: 0;
   align-items: center;
@@ -90,7 +99,7 @@
   font: inherit;
   font-size: 13px;
   line-height: 18px;
-  letter-spacing: 0.015em;
+  letter-spacing: normal;
   text-align: start;
   cursor: pointer;
   outline: none;
@@ -98,6 +107,18 @@
 }
 .settings-nav-item:hover { background: var(--settings-hover); }
 .settings-nav-item[aria-current="page"] { background: var(--settings-selected); }
+/* the chosen pane's fill is one layer under the rail, so it can travel from the last pane to this one */
+.settings-nav-list { position: relative; isolation: isolate; }
+.settings-nav-list:has(> .settings-nav-fill) > .settings-nav-item[aria-current="page"] { background: transparent; }
+.settings-nav-fill {
+  position: absolute;
+  top: 0;
+  inset-inline: 0;
+  z-index: -1;
+  border-radius: 8px;
+  background: var(--settings-selected);
+  pointer-events: none;
+}
 .settings-nav-item:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
 /* a bot's sheet: Grok's ink/6 hover reads as a second selection beside its ink/8, so hover stays at half of it */
 [data-bot-sheet] .settings-nav-item:not([aria-current="page"]):hover { background: color-mix(in srgb, var(--color-ink) 4%, transparent); }
@@ -159,7 +180,7 @@
   font-size: 17px;
   font-weight: 500;
   line-height: 24px;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.008em;
 }
 
 /* the wipe viewport: the incoming layer slides over the outgoing one on push, the outgoing slides off it on pop */
@@ -243,22 +264,6 @@
 .settings-scrollbar > div:active { opacity: 1; }
 .settings-scrollbar > div:hover,
 .settings-scrollbar > div:active { background: color-mix(in srgb, var(--color-ink) 12%, transparent); }
-
-/* The phone fallback: one column, the panes in a picker under the title. */
-@media (max-width: 639.98px) {
-  .settings-scrim { align-items: flex-end; }
-  .settings-dialog {
-    width: 100%;
-    max-width: none;
-    max-height: none;
-    height: calc(100dvh - 44px);
-    border-radius: 14px 14px 0 0;
-  }
-  .settings-layout { height: 100%; }
-  .settings-nav { display: none; }
-  .settings-pane-header { padding: 16px 54px 6px 16px; }
-  .settings-pane { padding: 16px 16px 28px; }
-}
 
 /* Native selects left inside a pane's own panel take the select pill's frame, so they sit in a row like Grok's. */
 [data-settings-look] .settings-pane select:not([data-settings-select]) {
@@ -458,13 +463,28 @@
   letter-spacing: 0;
   color: color-mix(in srgb, var(--color-ink) 68%, transparent);
 }
-:root .settings-dialog .settings-pane section > div:has(> [data-settings-heading]) { margin-bottom: 8px; padding-inline: 0; }
+:root .settings-dialog .settings-pane section > div:has(> [data-settings-heading]) { min-height: 16px; margin-bottom: 8px; padding-inline: 0; }
+/* a group's footer (sand-settings-section-footer): 11/16 at ink/40, 14px in, 6px under its card */
+:root .settings-dialog .settings-pane [data-settings-footnote] {
+  margin: 6px 0 0;
+  padding-inline: 14px 4px;
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.005em;
+  color: color-mix(in srgb, var(--color-ink) 40%, transparent);
+}
 :root .settings-dialog .settings-pane section:has(> div > [data-settings-heading]) { gap: 0; }
 :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) {
   padding: 8px 0;
+  border: 0;
+  outline: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
+  outline-offset: -1px;
   border-radius: 14px;
+  letter-spacing: -0.08px;
 }
-:root .settings-dialog .settings-pane [data-settings-rows] [data-settings-rows] { padding: 0; border: 0; border-radius: 0; }
+/* a card's words sit at Grok's -0.08px tracking (body2), whatever tracking the row's own class carries */
+:root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) [class*="tracking-"] { letter-spacing: -0.08px; }
+:root .settings-dialog .settings-pane [data-settings-rows] [data-settings-rows] { padding: 0; border: 0; outline: 0; border-radius: 0; }
 :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) > :is(button, a, div, label):not(.contents, [hidden], [data-settings-rows]) {
   min-height: 48px;
   padding: 10px 14px;
@@ -497,7 +517,7 @@
   color: var(--color-ink);
   font-size: 13px;
   line-height: 18px;
-  letter-spacing: 0;
+  letter-spacing: -0.08px;
 }
 :root .settings-dialog .settings-pane :is([data-settings-select], [data-select-row] [role="combobox"])::after { display: none; }
 :root .settings-dialog .settings-pane :is([data-settings-select], [data-select-row] [role="combobox"], [data-panel-row="model"] [data-tour="model"]):enabled:hover,
@@ -515,19 +535,177 @@
   line-height: 20px;
   letter-spacing: 0;
 }
-:root .settings-dialog .settings-pane [data-settings-rows] > [data-settings-account] { column-gap: 12px; min-height: 64px; }
+:root .settings-dialog .settings-pane [data-settings-rows] > [data-settings-account][data-settings-account] { column-gap: 14px; min-height: 72px; padding: 14px 16px; }
 
-/* pills answer a press: a small inward scale, back on a quick ease (none when motion is reduced) */
-:root .settings-dialog .settings-pane .ui-button { transition: background-color 120ms ease, color 120ms ease, transform 160ms cubic-bezier(0.22, 1, 0.36, 1); }
-:root .settings-dialog .settings-pane .ui-button:enabled:active { transform: scale(0.97); }
-@media (prefers-reduced-motion: reduce) {
-  :root .settings-dialog .settings-pane .ui-button:enabled:active { transform: none; }
+/* pills answer a press as every button does (bencho's press, .omb-press); the rail and a card's rows, pressed many times
+   a day, barely move (press-soft) */
+:root .settings-dialog .settings-pane .ui-button {
+  transition: background-color 120ms ease-out, color 120ms ease-out, scale 200ms var(--omb-ease-release, ease-out);
 }
-
-/* another pane comes in with a short fade and a slight slide; a page of the same pane wipes in over it instead */
-.settings-pane-in { animation: settings-pane-in 180ms var(--omb-ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both; }
-@keyframes settings-pane-in { from { opacity: 0; transform: translateX(6px); } to { opacity: 1; transform: none; } }
+:root .settings-dialog .settings-pane .ui-button:enabled:active { scale: 0.96; transition-duration: 120ms, 120ms, 160ms; transition-timing-function: ease-out, ease-out, var(--omb-ease-out, ease-out); }
+.settings-nav-item { transition: background-color 0.12s ease, color 0.12s ease, scale 0.16s var(--omb-ease-out, ease-out); }
+.settings-nav-item:active { scale: 0.985; }
 @media (prefers-reduced-motion: reduce) {
-  .settings-pane-in { animation-name: settings-pane-fade; animation-duration: 120ms; }
-  @keyframes settings-pane-fade { from { opacity: 0; } to { opacity: 1; } }
+  :root .settings-dialog .settings-pane .ui-button:enabled:active, .settings-nav-item:active { scale: none; }
+}
+:root[data-reduced-motion="true"] :is(.settings-dialog .settings-pane .ui-button, .settings-nav-item):active { scale: none; }
+
+/* the close button: bencho's icon press, the hover disc growing in from 86% behind a glyph that leans in */
+.settings-close::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--color-ink) 11%, transparent);
+  opacity: 0;
+  scale: 0.86;
+  transition: opacity 0.15s ease, scale 0.26s cubic-bezier(0.3, 1.12, 0.4, 1);
+}
+.settings-close { isolation: isolate; }
+.settings-close > .grok-icon { transition: scale 0.26s cubic-bezier(0.3, 1.12, 0.4, 1); }
+.settings-close:hover { background: transparent; }
+.settings-close:hover::before, .settings-close:focus-visible::before { opacity: 1; scale: 1; }
+.settings-close:hover > .grok-icon { scale: 1.04; }
+.settings-close:active > .grok-icon { scale: 0.96; transition-duration: 90ms; }
+
+
+/* The phone: a full-screen grey page. The list of panes and each pane are one screen each, under a 56px header (a back or
+   close button and a 20px title); groups are stacks of white segments 2px apart, 16px corners outside and 4px inside, as
+   Grok's phone settings draw them. */
+@media (max-width: 639.98px) {
+  .settings-scrim { align-items: stretch; }
+  .settings-backdrop { display: none; }
+  .settings-dialog {
+    --settings-phone-page: color-mix(in srgb, var(--color-ink) 5%, var(--color-app));
+    width: 100%;
+    max-width: none;
+    max-height: none;
+    height: 100dvh;
+    border: 0;
+    border-radius: 0;
+    background: var(--settings-phone-page);
+  }
+  .settings-layout { position: relative; height: 100%; overflow: hidden; }
+  .settings-phone-view {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--settings-phone-page);
+  }
+  .settings-nav {
+    width: 100%;
+    flex: 1 1 auto;
+    gap: 0;
+    padding: 0 16px calc(28px + env(safe-area-inset-bottom));
+    border: 0;
+  }
+  .settings-phone-head {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 6px;
+    min-height: 56px;
+    margin-inline: -8px;
+    padding-top: env(safe-area-inset-top);
+  }
+  .settings-phone-title, .settings-dialog .settings-pane-title {
+    margin: 0;
+    padding: 0;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 26px;
+    letter-spacing: 0;
+  }
+  .settings-phone-title { order: 1; }
+  .settings-phone-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 9999px;
+    background: transparent;
+    color: var(--color-ink);
+    cursor: pointer;
+    outline: none;
+  }
+  .settings-phone-close:active { background: var(--settings-hover); }
+  .settings-phone-close:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
+  .settings-nav-list { gap: 2px; margin-top: 8px; }
+  .settings-nav-item {
+    gap: 14px;
+    min-height: 52px;
+    padding: 0 14px 0 16px;
+    border-radius: 4px;
+    background: var(--color-menu);
+    font-size: 16px;
+    line-height: 22px;
+    letter-spacing: 0;
+    transition: background-color 0.12s ease;
+  }
+  .settings-nav-item:first-child { border-top-left-radius: 16px; border-top-right-radius: 16px; }
+  .settings-nav-item:last-child { border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; }
+  .settings-nav-item:hover { background: var(--color-menu); }
+  .settings-nav-item:active { background: color-mix(in srgb, var(--color-ink) 4%, var(--color-menu)); }
+  .settings-nav-item > .grok-icon:not(.settings-nav-chevron) { color: color-mix(in srgb, var(--color-ink) 68%, transparent); }
+  .settings-nav-chevron { display: block; flex-shrink: 0; margin-inline-start: auto; color: color-mix(in srgb, var(--color-ink) 40%, transparent); }
+  .settings-close { display: none; }
+  .settings-panel { height: 100%; }
+  .settings-wipe { background-color: var(--settings-phone-page); }
+  .settings-pane-header {
+    flex-wrap: nowrap;
+    min-height: 56px;
+    padding: env(safe-area-inset-top) 16px 0 8px;
+  }
+  .settings-pane-header [data-settings-back] { width: 44px; height: 44px; margin: 0; border-radius: 9999px; color: var(--color-ink); }
+  .settings-pane { padding: 8px 16px calc(32px + env(safe-area-inset-bottom)); }
+  :root .settings-dialog .settings-pane,
+  :root .settings-dialog .settings-pane [data-panel-sections] { gap: 24px; }
+
+  /* group labels and footnotes: 14px grey, 16px in */
+  :root .settings-dialog .settings-pane [data-settings-heading] {
+    padding-inline: 16px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+    color: color-mix(in srgb, var(--color-ink) 60%, transparent);
+  }
+  :root .settings-dialog .settings-pane [data-settings-footnote] { margin-top: 10px; padding-inline: 16px; font-size: 15px; line-height: 20px; color: color-mix(in srgb, var(--color-ink) 56%, transparent); }
+
+  /* a group's card becomes a stack of segments */
+  :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) {
+    gap: 2px;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+  }
+  :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) > :is(button, a, div, label):not(.contents, [hidden], [data-settings-rows]) {
+    min-height: 52px;
+    padding: 12px 16px;
+    border-radius: 4px;
+    background-color: var(--color-menu);
+  }
+  :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) > :is(button, a, div, label):not(.contents, [hidden], [data-settings-rows]):first-child {
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+  }
+  :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) > :is(button, a, div, label):not(.contents, [hidden], [data-settings-rows]):last-child {
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+  }
+  :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) > :is(button, a, [data-select-row], [data-setting-row]) { background-color: var(--color-menu); }
+  :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) > :is(button, a):enabled:active { background-color: color-mix(in srgb, var(--color-ink) 4%, var(--color-menu)); }
+  :root .settings-dialog .settings-pane [data-setting-row]:has([data-settings-select]) { background-color: var(--color-menu) !important; }
+
+  /* phone type: 15/20 rows, 13/18 secondary lines */
+  .settings-dialog .settings-pane :is(.text-\[13px\], [data-row-title]) { font-size: 15px; line-height: 20px; }
+  .settings-dialog .settings-pane :is(.text-\[12px\], [data-row-hint]) { font-size: 13px; line-height: 18px; }
 }

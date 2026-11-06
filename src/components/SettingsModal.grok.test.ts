@@ -76,7 +76,7 @@ afterEach(() => {
 const open = (section: AppSettingsSection) => { fixture.section = section; return renderToStaticMarkup(createElement(SettingsModal)); };
 const panes = (html: string) => [...html.matchAll(/data-settings-page="([^"]+)"/g)].map((match) => match[1]);
 const current = (html: string) => html.match(/data-settings-page="([^"]+)" aria-current="page"/)?.[1];
-const groups = (html: string) => [...html.matchAll(/<h3 id="[^"]*" class="[^"]*">([^<]+)<\/h3>/g)].map((match) => match[1]);
+const groups = (html: string) => [...html.matchAll(/<h3 id="[^"]*"[^>]*>([^<]+)<\/h3>/g)].map((match) => match[1]);
 const markers = (html: string) => [...html.matchAll(/MARKER:([^;]+);/g)].map((match) => match[1]);
 const title = (html: string) => html.match(/<h2 id="[^"]*" class="settings-pane-title[^"]*">([^<]+)<\/h2>/)?.[1];
 

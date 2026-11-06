@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, Loader2, Menu } from "lucide-react";
+import { AnimatePresence } from "motion/react";
 import { CLOUD_LINK_SETTINGS, openBot, StoreProvider, useStore } from "@/state/store";
 import { nextShortcutBot, shortcutBots, shownBotIds } from "@/lib/sidebar-shortcut-order";
 import { useShowThreads } from "@/lib/thread-preferences";
@@ -437,7 +438,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       {notificationFeed && !calendarFocus && <NotificationRail />}
       </div>
       </div>
-      {state.appSettingsOpen && <SettingsModal />}
+      <AnimatePresence>{state.appSettingsOpen && <SettingsModal key="settings" />}</AnimatePresence>
       {cloudAddOpened.current && <CloudAddDialog />}
       <CloudHowTo />
       <CloudSetup viewer={viewer} welcomeShown={welcomeOnScreen} />

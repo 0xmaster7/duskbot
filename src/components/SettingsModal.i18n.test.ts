@@ -61,9 +61,9 @@ describe("Settings → General", () => {
     expect(html).toContain('aria-label="Language"');
   });
 
-  it("offers a labeled compact pane picker without removing the rail", async () => {
+  it("keeps the rail, which a phone shows as its own list of panes under a titled header", async () => {
     const html = await renderSettings();
-    expect(html).toMatch(/<div class="[^"]*sm:hidden[^"]*"><button[^>]*role="combobox"[^>]*aria-label="Settings section"/);
-    expect(html).toMatch(/<nav aria-label="Settings sections" class="settings-nav">/);
+    expect(html).toMatch(/<nav aria-label="Settings sections" class="settings-nav"><div class="settings-phone-head"><h2 class="settings-phone-title">Settings<\/h2><button type="button" aria-label="Close"/);
+    expect(html).not.toContain('aria-label="Settings section"');
   });
 });

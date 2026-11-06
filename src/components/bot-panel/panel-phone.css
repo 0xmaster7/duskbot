@@ -1,0 +1,46 @@
+/* The bot's and the room's panel on a phone, as Grok's phone screens draw a page: a light grey page, group labels at
+   14px semibold grey 16px in, and each group a stack of white segments 2px apart (16px outer corners, 4px inner), rows
+   52px tall at 15px type. The docked desktop panel keeps its own cards. */
+@media (max-width: 767.98px) {
+  .side-panel {
+    --panel-phone-page: color-mix(in srgb, var(--color-ink) 5%, var(--color-app));
+    background-color: var(--panel-phone-page);
+  }
+  .side-panel :is(.overflow-y-auto.bg-app, [data-panel-tabs]) { background-color: var(--panel-phone-page); }
+  .side-panel [data-panel-tabs]::after { display: none; }
+
+  .side-panel [data-panel-card] [data-settings-heading] {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+    color: color-mix(in srgb, var(--color-ink) 60%, transparent);
+  }
+  .side-panel [data-panel-card] > div:has(> [data-settings-heading]) { padding-inline: 16px; margin-bottom: 8px; }
+  .side-panel [data-panel-card] [data-settings-footnote] { padding-inline: 16px; font-size: 13px; line-height: 18px; }
+
+  .side-panel [data-panel-card-surface] {
+    gap: 2px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    overflow: visible;
+  }
+  .side-panel [data-panel-card-surface] > :is(button, a, div, label):not(.contents, [hidden]) {
+    min-height: 52px;
+    padding-inline: 16px;
+    border-radius: 4px;
+    background-color: var(--color-menu);
+    font-size: 15px;
+    line-height: 20px;
+  }
+  .side-panel [data-panel-card-surface] > :is(button, a, div, label):not(.contents, [hidden]):first-child { border-top-left-radius: 16px; border-top-right-radius: 16px; }
+  .side-panel [data-panel-card-surface] > :is(button, a, div, label):not(.contents, [hidden]):last-child { border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; }
+  .side-panel [data-panel-card-surface] > :is(button, a):active { background-color: color-mix(in srgb, var(--color-ink) 4%, var(--color-menu)); }
+  .side-panel [data-panel-card-surface] :is(.text-\[13px\]) { font-size: 15px; line-height: 20px; }
+}
+
+@media (max-width: 767.98px) {
+  /* the bot's screen sits on the page as one white segment */
+  .side-panel [data-panel-screen]:not([data-stage="live"]) { border-radius: 16px; background-color: var(--color-menu); }
+}

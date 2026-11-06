@@ -9,6 +9,7 @@ import { initialState, reducer, StoreContext, type AppSettingsSection, type AppS
 import "./font-faces";
 import "./styles.css";
 import "./styles/overlays.css";
+import "./styles/motion.css";
 
 const params = new URLSearchParams(location.search);
 const skin = params.get("skin") ?? "grok";

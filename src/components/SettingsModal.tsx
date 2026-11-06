@@ -1,8 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { AnimatePresence, useIsPresent } from "motion/react";
 import { useStore, type AppSettingsSection } from "@/state/store";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { scrollWithin } from "@/lib/scroll-within";
+import { useMediaQuery } from "@/lib/use-media-query";
+import { PHONE_SHEET, REDUCED, SCRIM, SHEET, SPRING_PART, SWAP, WIPE } from "@/lib/motion-presets";
+import { MotionDiv, MotionSpan, useMotionReduced } from "./ui/SheetMotion";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { currentPhonePairingTarget, phonePairingSettingsAction } from "@/lib/phone-pairing";
 import { AdminOnly } from "./AdminOnly";
@@ -18,7 +22,6 @@ import { LicenseExpiryBanner } from "./LicenseExpiryBanner";
 import { workspacesAvailable } from "./WorkspacesSection";
 import { GrokIcon } from "./GrokIcon";
 import { SIMPLE_BUTTONS } from "./SettingsPrimitives";
-import { SettingsSelect } from "./SettingsSelect";
 import { PaneHeader, PanelSections, SubPageContext, WipeStack, type SubPage } from "./ListRows";
 import {
   AdvancedIndex, AdvancedPageView, SECTION_PAGES, ComputerPane, GeneralPane, ModelsPane, PermissionsPane, TextingPane, UpdatesPane, UsagePane, VaultPane,
@@ -77,6 +80,7 @@ function useScrollThumb(scroller: React.RefObject<HTMLDivElement | null>, key: s
 
 export function SettingsModal() {
   const { state, dispatch } = useStore();
+  const present = useIsPresent();
   const remoteActive = window.ogb?.remoteClient?.active === true;
   const ownerOrAdmin = useOwnerOrAdmin();
   const cloudHome = state.config?.cloudHome === true;
@@ -129,11 +133,15 @@ export function SettingsModal() {
     return [{ id: target.id, title: t(target.title) }];
   };
   const [sub, setSub] = useState<{ key: string; stack: SubPage[] }>(() => ({ key: paneKey, stack: linkedPage(requested) }));
+  // on a phone Settings opens on its list of panes, unless it was asked for a particular place
+  const phone = useMediaQuery(PHONE_SETTINGS);
+  const [phoneList, setPhoneList] = useState(() => requested === "general");
   // a link to a section that lives on a pane's page lands on that page
   const [linked, setLinked] = useState(requested);
   if (linked !== requested) {
     setLinked(requested);
     setSub({ key: paneKey, stack: linkedPage(requested) });
+    setPhoneList(false);
   }
   // a bot or group chat asked for from its panel: the Bots pane on it, at its row's page
   const [seenBot, setSeenBot] = useState(0);
@@ -164,7 +172,11 @@ export function SettingsModal() {
   }, [requested, pane, page, paneEntry, keyFocus]);
 
   const close = () => dispatch({ type: "toggleAppSettings", open: false });
-  const go = (section: AppSettingsSection) => dispatch({ type: "toggleAppSettings", open: true, section });
+  const go = (section: AppSettingsSection) => {
+    setPhoneList(false);
+    dispatch({ type: "toggleAppSettings", open: true, section });
+  };
+  const reduced = useMotionReduced();
 
   useEffect(() => {
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -241,25 +253,17 @@ export function SettingsModal() {
       open: (id: string, title: string) => setSub({ key: paneKey, stack: [...pages, { id, title }] }),
       back: () => setSub({ key: paneKey, stack: pages.slice(0, -1) }),
     };
-    const onBack = top ? nav.back : at ? () => go("advanced") : undefined;
+    const onBack = top ? nav.back : at ? () => go("advanced") : phone ? () => setPhoneList(true) : undefined;
     return (
       <>
         <PaneHeader
           title={top?.title ?? (at ? advancedTitle(at) : t(paneEntry.labelKey))}
           headingId={live ? headingId : undefined}
           onBack={onBack}
-          backLabel={!top && at ? t("settings.advanced.back") : undefined}
+          backLabel={!top && at ? t("settings.advanced.back") : !top && phone ? t("settings.title") : undefined}
         >
           {pane === "bots" && !top && <div data-settings-header-actions="" className="max-sm:hidden"><BotsScopePicker /></div>}
           {pane === "vault" && !top && <div data-settings-header-actions=""><VaultNewItem /></div>}
-          <div className="w-full sm:hidden">
-            <SettingsSelect
-              value={pane}
-              aria-label={t("settings.pane.picker")}
-              options={panes.map((entry) => ({ value: entry.id, label: t(entry.labelKey) }))}
-              onChange={(event) => { const next = panes.find((entry) => entry.id === event.target.value); if (next) go(next.sections.find(has)!); }}
-            />
-          </div>
         </PaneHeader>
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
           <div ref={live ? scrollRef : undefined} data-wipe-scroll="" data-settings-scroll={live ? "" : undefined} className="settings-scroll">
@@ -278,39 +282,138 @@ export function SettingsModal() {
     );
   };
 
-  return (
-    <div className="settings-scrim" data-settings-sheet data-settings-look="simple" onMouseDown={(event) => event.target === event.currentTarget && close()}>
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={t("settings.title")} tabIndex={-1} className="settings-dialog">
-        <div className="settings-layout">
-          <nav aria-label={t("settings.grok.navAria")} className="settings-nav">
-            {panes.map((entry) => {
-              const current = entry.id === pane;
-              return (
-                <button
-                  key={entry.id}
-                  type="button"
-                  data-settings-page={entry.id}
-                  aria-current={current ? "page" : undefined}
-                  aria-controls={current ? `settings-panel-${entry.id}` : undefined}
-                  onClick={() => go(entry.sections.find(has)!)}
-                  className="settings-nav-item"
-                >
-                  <GrokIcon name={entry.icon} size={15} />
-                  <span>{t(entry.labelKey)}</span>
-                </button>
-              );
-            })}
-          </nav>
-          <section id={`settings-panel-${pane}`} aria-labelledby={headingId} className="settings-panel">
-            <button type="button" onClick={close} aria-label={t("settings.grok.close")} className="settings-close">
-              <GrokIcon name="close" size={14} />
-            </button>
-            <div key={pane} className="settings-pane-in flex min-h-0 flex-1 flex-col">
-              <WipeStack at={JSON.stringify({ at: page ?? null, pages: stack })} depth={(page ? 1 : 0) + stack.length} group={pane} layer={layer} />
-            </div>
-          </section>
-        </div>
+  // the chosen pane's fill is one layer under the rail that travels to the pane picked next
+  const railRef = useRef<HTMLDivElement>(null);
+  const [fill, setFill] = useState<{ top: number; height: number } | null>(null);
+  useLayoutEffect(() => {
+    const item = railRef.current?.querySelector<HTMLElement>('[aria-current="page"]');
+    setFill(item ? { top: item.offsetTop, height: item.offsetHeight } : null);
+  }, [pane, phone, panes.length]);
+  const listShown = phone && phoneList;
+  const nav = (
+    <nav aria-label={t("settings.grok.navAria")} className="settings-nav">
+      <div className="settings-phone-head">
+        <h2 className="settings-phone-title">{t("settings.title")}</h2>
+        <button type="button" onClick={close} aria-label={t("settings.grok.close")} className="settings-phone-close">
+          <GrokIcon name="close" size={18} />
+        </button>
       </div>
+      <div ref={railRef} className="settings-nav-list">
+        {!phone && fill && (
+          <MotionSpan
+            aria-hidden="true"
+            data-settings-nav-fill=""
+            className="settings-nav-fill"
+            initial={false}
+            animate={{ y: fill.top }}
+            style={{ height: fill.height }}
+            transition={reduced ? { duration: 0 } : SPRING_PART}
+          />
+        )}
+        {panes.map((entry) => {
+          const current = entry.id === pane && !phone;
+          return (
+            <button
+              key={entry.id}
+              type="button"
+              data-settings-page={entry.id}
+              aria-current={current ? "page" : undefined}
+              aria-controls={current ? `settings-panel-${entry.id}` : undefined}
+              onClick={() => go(entry.sections.find(has)!)}
+              className="settings-nav-item"
+            >
+              <GrokIcon name={entry.icon} size={phone ? 20 : 15} />
+              <span>{t(entry.labelKey)}</span>
+              <GrokIcon name="chevron-right" size={14} className="settings-nav-chevron" />
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+  const panel = (
+    <section id={`settings-panel-${pane}`} aria-labelledby={headingId} className="settings-panel">
+      <button type="button" onClick={close} aria-label={t("settings.grok.close")} className="settings-close">
+        <GrokIcon name="close" size={14} />
+      </button>
+      <MotionDiv
+        key={pane}
+        initial={reduced ? { opacity: 0 } : SWAP.initial}
+        animate={reduced ? { opacity: 1, transition: REDUCED } : SWAP.animate}
+        className="flex min-h-0 flex-1 flex-col"
+      >
+        <WipeStack at={JSON.stringify({ at: page ?? null, pages: stack })} depth={(page ? 1 : 0) + stack.length} group={pane} layer={layer} />
+      </MotionDiv>
+    </section>
+  );
+  // on a phone the list and a pane are one screen each: a pane pushes in from the end, the list comes back from the start
+  const phoneView = (view: "list" | "pane") => (
+    <MotionDiv
+      key={view}
+      custom={view === "pane" ? 1 : -1}
+      variants={reduced ? PHONE_FADE : PHONE_PUSH}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      className="settings-phone-view"
+    >
+      {view === "list" ? nav : panel}
+    </MotionDiv>
+  );
+
+  return (
+    <div
+      className="settings-scrim"
+      data-settings-sheet
+      data-settings-look="simple"
+      data-leaving={present ? undefined : ""}
+      inert={!present}
+      onMouseDown={(event) => event.target === event.currentTarget && close()}
+    >
+      <MotionDiv
+        aria-hidden="true"
+        className="settings-backdrop"
+        initial={SCRIM.initial}
+        animate={SCRIM.animate}
+        exit={SCRIM.exit}
+        onMouseDown={close}
+      />
+      <MotionDiv
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("settings.title")}
+        tabIndex={-1}
+        data-phone-view={phone ? (listShown ? "list" : "pane") : undefined}
+        className="settings-dialog"
+        {...(reduced
+          ? { initial: { opacity: 0 }, animate: { opacity: 1, transition: REDUCED }, exit: { opacity: 0, transition: REDUCED } }
+          : phone ? PHONE_SHEET : SHEET)}
+      >
+        <div className="settings-layout">
+          {phone ? (
+            <AnimatePresence initial={false} custom={listShown ? -1 : 1}>
+              {phoneView(listShown ? "list" : "pane")}
+            </AnimatePresence>
+          ) : <>{nav}{panel}</>}
+        </div>
+      </MotionDiv>
     </div>
   );
 }
+
+const PHONE_SETTINGS = "(max-width: 639.98px)";
+
+const PHONE_PUSH = {
+  enter: (direction: number) => ({ x: direction > 0 ? WIPE.pushFrom : WIPE.popFrom, zIndex: direction > 0 ? 1 : 0 }),
+  center: { x: "0%", transition: { duration: WIPE.duration + 0.06, ease: WIPE.ease } },
+  exit: (direction: number) => (direction > 0
+    ? { x: WIPE.popFrom, zIndex: 0, transition: { duration: WIPE.duration + 0.06, ease: WIPE.ease } }
+    : { x: WIPE.pushFrom, zIndex: 1, transition: { duration: WIPE.duration + 0.06, ease: WIPE.ease } }),
+};
+
+const PHONE_FADE = {
+  enter: { opacity: 0 },
+  center: { opacity: 1, transition: REDUCED },
+  exit: { opacity: 0, transition: REDUCED },
+};

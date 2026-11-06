@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
-import { WIPE } from "@/lib/motion-presets";
+import { SWAP, WIPE } from "@/lib/motion-presets";
+import { MotionDiv } from "../ui/SheetMotion";
 import { t } from "@/lib/i18n";
 import type { Bot, BotSettingsSection } from "@/state/store";
 import { GrokIcon } from "../GrokIcon";
@@ -53,7 +54,12 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
     setEditingInstructions(Boolean(target.editInstructions));
     scrollTop();
   };
-  const openTab = (next: PanelTab) => go({ tab: next });
+  // only a tab picked from the tabs swaps in; coming back from a page, the list is simply there under the wipe
+  const [tabSwapped, setTabSwapped] = useState(false);
+  const openTab = (next: PanelTab) => {
+    go({ tab: next });
+    setTabSwapped(true);
+  };
   const openPage = (next: SimplePageId) => {
     if (next === "settings") return go({ tab: "advanced" });
     setStack((current) => [...current, next]);
@@ -67,6 +73,7 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
     editorRef.current?.querySelector<HTMLElement>("[data-panel-avatar]")?.focus();
   };
   const back = () => {
+    setTabSwapped(false);
     setStack((current) => current.slice(0, -1));
     scrollTop();
   };
@@ -139,11 +146,16 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
           />
         </div>
       </div>
-      <div role="tabpanel" aria-label={t(TAB_LABEL[tab])} className="pt-2.5">
+      <MotionDiv
+        key={tab}
+        role="tabpanel" aria-label={t(TAB_LABEL[tab])} className="pt-2.5"
+        initial={reduced || !tabSwapped ? false : SWAP.initial}
+        animate={SWAP.animate}
+      >
         {tab === "details" && <DetailsTab bot={bot} derived={derived} onOpen={openPage} />}
         {tab === "computer" && <ComputerTab bot={bot} derived={derived} onOpen={openPage} />}
         {tab === "advanced" && <AdvancedTab bot={bot} derived={derived} onOpen={openPage} />}
-      </div>
+      </MotionDiv>
     </>
   );
 
@@ -186,7 +198,7 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
   return (
     <div className="relative flex min-h-0 flex-1 flex-col" onKeyDown={onKeyDown}>
       <span id="bot-settings-title" className="sr-only">{bot.name}</span>
-      <span aria-hidden="true" data-panel-edge className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[0.5px] bg-edge" />
+      <span aria-hidden="true" data-panel-edge className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[0.5px] bg-edge max-md:hidden" />
       <div {...dragProps} className="relative flex h-[60px] shrink-0 items-center gap-2 p-3">
         {page === null ? (
           <span className="ms-auto">

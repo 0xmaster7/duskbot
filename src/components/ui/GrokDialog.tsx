@@ -4,8 +4,9 @@ import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { GrokIcon, type GrokIconName } from "../GrokIcon";
+import { ScrimMotion, SheetMotion } from "./SheetMotion";
 
-const buttonBase = "inline-flex shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-[9999px] font-normal outline-none transition-[background-color,color] duration-[120ms] ease-[ease] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-default enabled:active:scale-[0.98] motion-reduce:enabled:active:scale-100";
+const buttonBase = "omb-press inline-flex shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-[9999px] font-normal outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-default";
 const sizeLg = "h-9 px-4 text-[14px] leading-5 tracking-[0.01em]";
 const sizeMd = "h-8 px-3 text-[14px] leading-5 tracking-[0.01em]";
 const sizeRow = "h-[30px] px-3 text-[13px] leading-[18px] tracking-[0.195px]";
@@ -100,8 +101,7 @@ export function useDialogKeys(sheet: RefObject<HTMLElement | null>, onClose: () 
   return close;
 }
 
-/** On its own, Grok's form dialog (New login); inside a railed sheet, that sheet's pane. Either way it appears and goes
- * at once, as Grok's app dialogs do. */
+/** On its own, Grok's form dialog (New login), easing in as bencho's modal does; inside a railed sheet, that sheet's pane. */
 export function GrokDialog(props: DialogProps) {
   return useContext(DialogPane) ? <PaneView {...props} /> : <SheetView {...props} />;
 }
@@ -144,8 +144,8 @@ function SheetView({ title, description, width = 440, onClose, footer, children,
 
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div aria-hidden="true" data-modal-scrim className="ui-dialog-scrim absolute inset-0" onMouseDown={() => close.current()} />
-      <div
+      <ScrimMotion aria-hidden="true" data-modal-scrim className="ui-dialog-scrim absolute inset-0" onMouseDown={() => close.current()} />
+      <SheetMotion
         ref={sheet}
         {...rest}
         role="dialog"
@@ -167,7 +167,7 @@ function SheetView({ title, description, width = 440, onClose, footer, children,
           {children}
         </div>
         {footer && <div className={formFooterCls}>{footer}</div>}
-      </div>
+      </SheetMotion>
     </div>,
     document.body,
   );

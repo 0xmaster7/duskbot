@@ -295,12 +295,12 @@ export function settledAnswer(answer: string, choices: readonly string[]): React
  * each script's font metrics push text off center.
  */
 const ASK_SHAPE =
-  "inline-flex h-7 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[13px] font-medium leading-5 transition-colors [&>svg]:shrink-0 disabled:cursor-not-allowed pointer-coarse:h-9";
+  "omb-press inline-flex h-7 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[13px] font-medium leading-5 [&>svg]:shrink-0 disabled:cursor-not-allowed pointer-coarse:h-9";
 /** A card's answers: at least 36px tall, 44 on a touch screen, and a label that wraps rather than being cut. */
 export const ASK_BUTTON_SHAPE =
-  "inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-full px-4 py-1.5 text-center text-[14px] font-medium leading-5 transition-colors [&>svg]:shrink-0 disabled:cursor-not-allowed pointer-coarse:min-h-11";
+  "omb-press inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-full px-4 py-1.5 text-center text-[14px] font-medium leading-5 [&>svg]:shrink-0 disabled:cursor-not-allowed pointer-coarse:min-h-11";
 const ASK_ROW_SEND_SHAPE = "inline-flex size-6 shrink-0 items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed pointer-coarse:size-9";
-export const ASK_ICON_SHAPE = "inline-flex size-8 shrink-0 items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed pointer-coarse:size-9";
+export const ASK_ICON_SHAPE = "omb-press inline-flex size-8 shrink-0 items-center justify-center rounded-full disabled:cursor-not-allowed pointer-coarse:size-9";
 const ASK_LOOK = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-40";
 const ASK_CONTROL = `${ASK_SHAPE} ${ASK_LOOK}`;
 const ASK_PRIMARY_LOOK = `${ASK_LOOK} ui-button-primary bg-accent text-accent-ink hover:brightness-110`;
@@ -318,7 +318,7 @@ export const ASK_SECONDARY_BUTTON = `${ASK_BUTTON_SHAPE} ${ASK_LOOK} bg-ink/[0.0
 export const ASK_QUIET_ANSWER = `${ASK_BUTTON_SHAPE.replace("font-medium", "font-normal")} ${ASK_LOOK} text-ink-secondary enabled:hover:bg-ink/[0.06] enabled:hover:text-ink enabled:active:bg-ink/[0.1]`;
 
 /** Grok's option row: 40 tall, a 1px clear edge, its fill and edge easing in over 140ms. */
-export const ASK_CHOICE = `flex min-h-10 w-full items-center gap-2.5 rounded-[16px] border border-transparent p-[7px] pe-3 text-start text-[14px] leading-5 text-ink transition-[background-color,border-color,color] duration-[140ms] ease-[cubic-bezier(.16,1,.3,1)] ${ASK_LOOK} disabled:cursor-default pointer-coarse:min-h-11`;
+export const ASK_CHOICE = `omb-press-soft flex min-h-10 w-full items-center gap-2.5 rounded-[16px] border border-transparent p-[7px] pe-3 text-start text-[14px] leading-5 text-ink ${ASK_LOOK} disabled:cursor-default pointer-coarse:min-h-11`;
 
 export const ASK_CHIP = `${ASK_CONTROL} max-w-full border`;
 export const ASK_CHIP_IDLE = "border-transparent bg-ink/[0.07] text-ink hover:bg-ink/[0.12]";

@@ -1,8 +1,7 @@
-/* Overlays: menus, popovers, dialogs, tooltips and toasts, timed as Grok Bot's are (measured live in its renderer).
-   Imported after styles.css and unlayered, so these win over the `animate-pop-*` utilities for overlay surfaces
-   only; a reaction chip or a jump button keeps the general pop. Anchored surfaces (menus, listboxes, popovers,
-   tooltips) come in from 2px toward their trigger at .98 over 100ms on --ease-sharp and leave the same way. Centred
-   dialogs and their scrim have no motion at all: Grok's app sets `animation-name: none` on its kit dialog. */
+/* Overlays: menus, popovers, dialogs, tooltips and toasts in Grok Bot's look. Imported after styles.css and unlayered,
+   so these win over the `animate-pop-*` utilities for overlay surfaces only; a reaction chip or a jump button keeps the
+   general pop. Anchored surfaces (menus, listboxes, popovers) move as bencho's menu does; tooltips keep Grok's 100ms
+   2px rise. Centred dialogs animate in motion/react (ui/SheetMotion), so their CSS animation stays off here. */
 
 :root {
   --ease-sharp: cubic-bezier(0.165, 0.84, 0.44, 1);
@@ -55,6 +54,10 @@
 :is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"]:not([aria-modal="true"], .ui-modal, .ui-dialog)).animate-pop-out {
   animation: overlay-menu-out 80ms var(--ease-out-bencho) forwards;
 }
+/* a menu or listbox holds focus only to steer its highlighted row (Grok moves focus onto the row instead), so the
+   container draws no ring of its own; the highlighted row is the cue */
+:is([role="menu"], [role="listbox"]):is(.animate-pop-in, .animate-pop-out, .fixed):focus-visible { outline: none; }
+
 /* centred surfaces: a dialog is simply there, and gone the moment it closes */
 :is([role="alertdialog"], [aria-modal="true"], .ui-modal, .ui-dialog):not(.popover-surface, .menu-surface).animate-pop-in,
 .ui-dialog {

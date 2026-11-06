@@ -28,8 +28,8 @@ export const sectionGapCls = (labelled: boolean) => (labelled ? "mt-[22px]" : "m
 
 export function CardLabel({ children, action, id }: { children: ReactNode; action?: ReactNode; id?: string }) {
   return (
-    <div className="mb-2.5 flex min-h-[18px] items-center justify-between gap-1 px-3 text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">
-      <h3 id={id} className="m-0 min-w-0 truncate text-[13px] font-normal leading-[18px]">{children}</h3>
+    <div className="mb-2.5 flex min-h-[18px] items-center justify-between gap-1 px-3 text-[13px] leading-[18px] tracking-normal text-ink-secondary">
+      <h3 id={id} data-settings-heading="" className="m-0 min-w-0 truncate text-[13px] font-normal leading-[18px]">{children}</h3>
       {action}
     </div>
   );
@@ -79,7 +79,7 @@ export function Card({ label, action, anchor, footnote, className, children, ...
       <div data-panel-card-surface="" className="flex flex-col overflow-hidden rounded-[12px] border-[0.5px] border-edge bg-composer p-1">
         {children}
       </div>
-      {footnote && <p className="mt-2 px-3 text-[12px] leading-4 tracking-[0.01em] text-ink-tertiary">{footnote}</p>}
+      {footnote && <p data-settings-footnote="" className="mt-2 px-3 text-[12px] leading-4 tracking-[0.01em] text-ink-tertiary">{footnote}</p>}
     </section>
   );
 }
@@ -379,7 +379,8 @@ export function BackButton({ onBack, label = t("common.back") }: { onBack: () =>
         "outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus",
       )}
     >
-      <GrokIcon name="chevron-left" size={14} className="rtl:-scale-x-100" />
+      <GrokIcon name="chevron-left" size={14} className="rtl:-scale-x-100 max-sm:in-[.settings-pane-header]:hidden" />
+      <GrokIcon name="arrow-left" size={22} className="hidden rtl:-scale-x-100 max-sm:in-[.settings-pane-header]:inline-flex" />
     </button>
   );
 }

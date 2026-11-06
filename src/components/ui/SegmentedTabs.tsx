@@ -43,7 +43,7 @@ export function SegmentedTabs<V extends string>({ tabs, value, onChange, label, 
             {...(attr ? { [attr]: tab.value } : {})}
             onClick={() => onChange(tab.value)}
             className={cn(
-              "h-[26px] min-w-0 shrink truncate rounded-full px-2 py-1 text-[13px] leading-[18px] tracking-[0.015em]",
+              "h-[26px] min-w-0 shrink truncate rounded-full px-2 py-1 text-[13px] leading-[18px] tracking-normal",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
               selected ? "bg-ink/[0.06] text-ink" : "text-ink-secondary hover:bg-ink/[0.06]",
             )}

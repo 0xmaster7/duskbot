@@ -29,7 +29,7 @@ export function Switch({
       role="switch"
       aria-checked={checked}
       className={cn(
-        "relative cursor-pointer h-6 w-11 shrink-0 rounded-full transition-colors enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none",
+        "group/switch relative cursor-pointer h-6 w-11 shrink-0 rounded-full transition-colors enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none",
         "in-data-[settings-look=simple]:h-5 in-data-[settings-look=simple]:w-8 in-data-[settings-look=simple]:transition-[background-color] in-data-[settings-look=simple]:duration-[120ms] in-data-[settings-look=simple]:ease-[ease] in-data-[settings-look=simple]:enabled:hover:brightness-100",
         "in-data-[settings-look=simple]:shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_6%,transparent)] in-data-[settings-look=simple]:outline-none in-data-[settings-look=simple]:focus-visible:outline-2 in-data-[settings-look=simple]:focus-visible:outline-offset-1 in-data-[settings-look=simple]:focus-visible:outline-focus",
         checked
@@ -40,9 +40,10 @@ export function Switch({
     >
       <span
         className={cn(
-          "absolute top-[3px] h-[18px] w-[18px] rounded-full bg-white transition-[left] motion-reduce:transition-none",
-          "in-data-[settings-look=simple]:top-0.5 in-data-[settings-look=simple]:size-4 in-data-[settings-look=simple]:shadow-[0_1px_3px_0_rgb(28_28_28/0.12)] in-data-[settings-look=simple]:duration-[120ms] in-data-[settings-look=simple]:ease-[ease]",
-          checked ? "left-[21px] in-data-[settings-look=simple]:left-[14px]" : "left-[3px] in-data-[settings-look=simple]:left-0.5",
+          "absolute left-[3px] top-[3px] h-[18px] w-[18px] rounded-full bg-white",
+          "[transition:translate_450ms_var(--omb-ease-thumb),scale_160ms_var(--omb-ease-out)] group-active/switch:scale-x-[1.11] group-active/switch:scale-y-[0.9] motion-reduce:transition-none motion-reduce:group-active/switch:scale-100",
+          "in-data-[settings-look=simple]:left-0.5 in-data-[settings-look=simple]:top-0.5 in-data-[settings-look=simple]:size-4 in-data-[settings-look=simple]:shadow-[0_1px_3px_0_rgb(28_28_28/0.12)]",
+          checked ? "origin-right translate-x-[18px] in-data-[settings-look=simple]:translate-x-3" : "origin-left",
         )}
       />
     </button>
@@ -118,12 +119,12 @@ export function SettingsGroup({ label, block, actions, footnote, children }: {
     >
       {(label || actions) && (
         <div className="flex min-h-[18px] items-center justify-between gap-3 px-3">
-          {label && <h3 id={labelId} className="text-[13px] leading-[18px] font-normal tracking-[0.015em] text-ink-secondary">{label}</h3>}
+          {label && <h3 id={labelId} data-settings-heading="" className="text-[13px] leading-[18px] font-normal tracking-[0.015em] text-ink-secondary">{label}</h3>}
           {actions}
         </div>
       )}
       {children}
-      {footnote && <p className="-mt-0.5 px-3 text-[12px] leading-4 text-ink-tertiary empty:hidden">{footnote}</p>}
+      {footnote && <p data-settings-footnote="" className="-mt-0.5 px-3 text-[12px] leading-4 text-ink-tertiary empty:hidden">{footnote}</p>}
     </section>
   );
 }

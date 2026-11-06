@@ -161,3 +161,35 @@ export const SPRING_SETTLE = { ...BENCHO.spring.settle, mass: 1 } as const;
 /** a message's own fade while it settles (bencho msg-in), and the blur that masks a swap of one thing for another */
 export const MSG_FADE = { duration: BENCHO.dur.fast, ease: EASE_OUT } as const;
 export const SWAP_BLUR_PX = 3;
+
+/** a centered sheet (Settings, a dialog, a confirm): bencho's modal, up 10px from 97%, out 8px at 98% in about two
+ * thirds the time */
+export const SHEET = {
+  initial: { opacity: 0, y: 10, scale: 0.97 },
+  animate: { opacity: 1, y: 0, scale: 1, transition: withFade(BENCHO.spring.modal) },
+  exit: { opacity: 0, y: 8, scale: 0.98, transition: { duration: BENCHO.dur.fast, ease: BENCHO.ease.out } },
+} as const;
+
+/** the dimmed backdrop behind a sheet */
+export const SCRIM = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1, transition: { duration: 0.18, ease: BENCHO.ease.out } },
+  exit: { opacity: 0, transition: { duration: 0.18, ease: BENCHO.ease.out } },
+} as const;
+
+/** content swapped in place (a settings pane, a panel tab): bencho's step-swap entrance, 6px up over 220ms; the old
+ * content goes at once so a switch is never waited on */
+export const SWAP = {
+  initial: { opacity: 0, y: 6 },
+  animate: { opacity: 1, y: 0, transition: { duration: BENCHO.dur.base, ease: BENCHO.ease.out } },
+} as const;
+
+/** the phone's full-screen Settings: up from the bottom edge on the panel spring, down quicker */
+export const PHONE_SHEET = {
+  initial: { y: "100%" },
+  animate: { y: 0, transition: BENCHO.spring.panel },
+  exit: { y: "100%", transition: { duration: BENCHO.dur.base, ease: EASE.drawer } },
+} as const;
+
+/** a selected fill travelling between places (the Settings rail) */
+export const SPRING_PART = BENCHO.spring.popover;
