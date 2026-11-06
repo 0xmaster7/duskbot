@@ -153,7 +153,7 @@ a disconnected computer still shows a paused daily schedule with its off
 switch, and an overdue backup waits 15 minutes after the connection returns;
 the saved policy is re-sent before any network call; a rotated token is
 adopted only once stored; room turns refuse a disallowed place before
-provisioning, the shared-computer lease honours "this computer", and room LLM
+provisioning, and room LLM
 titles skip a disallowed engine. Turning the companion on is refused inside
 `startDesktopCompanion` itself (switch, Tailscale "Turn on and check" and
 launch auto-start); that Electron main path is checked by inspection only.

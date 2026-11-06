@@ -2,31 +2,20 @@ import { t } from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { Card as RowsCard, FormDialog, FormField, ItemRow, NavRow, NoteRow, SwitchRow, pillCls } from "./ListRows";
-import { ComputerSharingSettings } from "./ComputerSharingSettings";
 import { CloudTile } from "./cloud-buy/parts";
 import { cloudColor } from "@/lib/cloud-look";
 import { textFieldCls } from "./ui/GrokDialog";
-import { useStore } from "@/state/store";
-import { sharedComputersEnabled } from "@/lib/feature-flags";
 import { openAddVps, vpsLinkAvailable } from "@/lib/vps-link";
 
 type SavedWorkspaces = Awaited<ReturnType<NonNullable<NonNullable<Window["ogb"]>["environments"]>["state"]>>;
-type SavedEntry = SavedWorkspaces["environments"][number] | { id: string; name: string; origin: string; color: undefined };
-
-/** My Cloud, or another Cloud of the person's own: this computer is lent to it by itself, never through Computer access. */
-const ownCloud = (entry: SavedEntry) => ("home" in entry && entry.home === true) || ("cloud" in entry && Boolean(entry.cloud));
 
 export function ConnectedWorkspacesSettings() {
   const bridge = window.ogb?.environments;
-  // Security: the desktop bridge alone is not enough; never offer access the server refuses.
-  const { state } = useStore();
-  const sharingOffered = sharedComputersEnabled(state.config) && Boolean(window.ogb?.computerSharing);
   const [saved, setSaved] = useState<SavedWorkspaces | null>(null);
   const [address, setAddress] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [computerId, setComputerId] = useState<string | null>(() => new URLSearchParams(window.location?.search ?? "").get("share-computer"));
   const [envName, setEnvName] = useState("");
   const [envDir, setEnvDir] = useState("");
   const [envForget, setEnvForget] = useState<string | null>(null);
@@ -41,16 +30,6 @@ export function ConnectedWorkspacesSettings() {
     void bridge?.state().then((state) => { if (generation.current === current) setSaved(state); })
       .catch(() => { if (generation.current === current) setError(t("settings.s2.servers.loadError")); });
     return () => { generation.current++; };
-  }, [bridge]);
-  useEffect(() => {
-    const consume = (id?: string | null) => {
-      if (id) setComputerId(id);
-      const url = new URL(window.location.href);
-      url.searchParams.delete("share-computer");
-      window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
-    };
-    consume();
-    return bridge?.onOpenSettings?.(consume);
   }, [bridge]);
   const perform = async (action: () => Promise<unknown>, fail: (message: string) => void = setError) => {
     if (pending.current || !bridge) return;
@@ -72,8 +51,6 @@ export function ConnectedWorkspacesSettings() {
   };
   if (!bridge) return <RowsCard><NoteRow>{t("settings.s2.servers.desktopOnly")}</NoteRow></RowsCard>;
   const confirmAction = (message: string) => window.ogb?.confirm ? window.ogb.confirm(message) : window.confirm(message);
-  const connected = saved?.environments.find(entry => entry.id === computerId);
-  const computerWorkspace = connected?.origin && !connected.home ? { id: connected.id, name: connected.name, origin: connected.origin } : undefined;
   const locals = saved?.environments.filter(entry => entry.kind === "local") ?? [];
   const forgetEntry = locals.find(entry => entry.id === envForget);
   // a quiet trash button at the end of a row, named for what it forgets
@@ -110,7 +87,6 @@ export function ConnectedWorkspacesSettings() {
             hint={entry.origin || t("settings.s2.servers.local")}>
             {active ? current : <button type="button" className="ui-button" disabled={busy} aria-label={t("settings.s2.servers.switchTo", { name: entry.name })}
               onClick={() => void perform(async () => { await bridge.switch(entry.id); return true; })}>{t("connectedWorkspaces.switch")}</button>}
-            {entry.id !== "local" && !ownCloud(entry) && sharingOffered && <button type="button" className="ui-button" disabled={busy} aria-label={t("settings.s2.servers.accessFor", { name: entry.name })} onClick={() => setComputerId(entry.id)}>{t("settings.s2.servers.access")}</button>}
             {entry.id !== "local" && forgetButton(t("settings.s2.servers.forget", { name: entry.name }), () => void perform(() => bridge.forget(entry.id)))}
           </ItemRow>;
         })}
@@ -118,7 +94,6 @@ export function ConnectedWorkspacesSettings() {
       <NavRow data-settings-open="connect-server" title={t("vpsLink.connectByAddress")} hint={t("settings.s2.servers.connectHint")} onClick={() => { setError(""); setAdding(true); }} />
       {error && saved && !adding && <NoteRow tone="danger">{error}</NoteRow>}
     </RowsCard>
-    {sharingOffered && computerWorkspace && <ComputerSharingSettings key={computerWorkspace.id} workspace={computerWorkspace} onClose={() => setComputerId(null)} />}
     {adding && <FormDialog data-panel-modal="connect-server" title={t("settings.s2.servers.connect")} description={t("settings.s2.servers.commandNote")}
       saveLabel={t("settings.s2.servers.connectAction")} canSave={Boolean(address.trim())} busy={busy} error={error || undefined}
       onSave={() => perform(async () => { const done = await bridge.addFromLink(address.trim(), name.trim()); setAdding(false); return done; })}

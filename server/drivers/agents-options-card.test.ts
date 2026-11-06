@@ -7,7 +7,7 @@ import { availableTools, fullInputSchema, type CatalogProfile } from "./agents-c
 function profile(overrides: Partial<CatalogProfile> = {}): CatalogProfile {
   return {
     skillAuthoring: false,
-    sharedComputers: false,
+   
     voiceNotes: false,
     cloudHome: false,
     chief: false,
@@ -22,7 +22,7 @@ function context(overrides: Partial<ToolCallContext> = {}): ToolCallContext {
     threadId: "thread-watcher",
     depth: 0,
     externalRuntime: false,
-    sharedComputers: false,
+   
     client: {
       api: async () => ({}),
       apiResponse: async () => ({ ok: true, status: 200, body: {} }),

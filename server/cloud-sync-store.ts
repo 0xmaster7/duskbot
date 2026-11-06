@@ -20,8 +20,8 @@ export interface SyncFolder {
   threadId?: string;
   /** A bot folder: when it last changed (the folder and what sits directly in it). */
   newestMs?: number;
-  /** A copy of a folder lent to My Cloud: kept in the data folder, out of every bot's box, so only shared_computer
-   * reaches it, with lending's own rules (server/lent-copies.ts). */
+  /** A copy of a folder once lent to My Cloud (computer lending is retired): kept in the data folder, out of every bot's
+   * box, so no bot reaches it. */
   lent?: boolean;
   createdAt?: number;
 }
@@ -83,8 +83,8 @@ export function readFolders(dataDir: string): SyncFolder[] {
   } catch { return []; }
 }
 
-/** For the Cloud prompt: each synced PC folder bots read where it is, and where that is here. A lent folder's copy is not
- * one: bots reach it through shared_computer. */
+/** For the Cloud prompt: each synced PC folder bots read where it is, and where that is here. A once-lent folder's copy is not
+ * one: no bot reaches it. */
 export function syncedFolders(dataDir: string): Array<{ computerName: string; pcPath: string; cloudPath: string }> {
   return readFolders(dataDir).filter((folder) => folder.lent !== true)
     .map((folder) => ({ computerName: folder.computerName ?? "", pcPath: folder.pcPath ?? "", cloudPath: folder.cloudPath }));

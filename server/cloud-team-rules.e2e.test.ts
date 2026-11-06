@@ -1,7 +1,6 @@
 // A Team Cloud with its team's rules, from the Admin's signed answer to the turn. A stand-in Admin holds the document and
-// checks each request's signature. A chat turn, a routine, one bot asking another, a person connecting something and
-// a lent computer all meet the same refusal, for an Admin as for a User, and all pass again once the rule lifts, with no
-// restart. Disposable homes, a synthetic Claude CLI; nothing leaves this machine.
+// checks each request's signature. A chat turn, a routine, one bot asking another and a person connecting something all
+// meet the same refusal, for an Admin as for a User, and all pass again once the rule lifts, with no restart. Disposable homes, a synthetic Claude CLI; nothing leaves this machine.
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
@@ -229,7 +228,7 @@ it("a connected app the rules don't allow: its tools and its sign-in are refused
   expect(await call("SLACK_SEND_MESSAGE")).not.toContain("Acme does not allow");
 }, hostTimeout(60_000));
 
-it("a blocked cloud desktop is refused for a chat turn and a routine; a lent computer is refused too; both lift", async () => {
+it("a blocked cloud desktop is refused for a chat turn and a routine, and lifts", async () => {
   const setComputer = await team.as(owner, "PATCH", `/api/bots/${botId}`, { computer: "cloud" });
   expect(setComputer.status, JSON.stringify(setComputer.body)).toBe(200);
   await rules({ allowedComputers: ["vps"] });
@@ -237,12 +236,6 @@ it("a blocked cloud desktop is refused for a chat turn and a routine; a lent com
   expect(`${JSON.stringify(sent.body)} ${messages}`).toMatch(/Acme does not allow bots to use cloud computers\. Ask a team admin\./);
   const routine = await routineRun("Blocked computer");
   expect(routine.words).toMatch(/Acme does not allow bots to use cloud computers/);
-
-  const thread = await team.as(owner, "POST", `/api/bots/${botId}/tasks`, { title: "lent" });
-  const capability = await team.capability(botId, thread.body.task.threadId);
-  const lent = await fetch(`${team.base}/api/internal/shared-computers`, { method: "POST", headers: { authorization: `Bearer ${capability}`, "content-type": "application/json" }, body: JSON.stringify({ action: "list_files", computer_id: "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f" }) });
-  const lentBody = await lent.json() as { error?: string };
-  expect([lent.status, lentBody.error]).toEqual([403, "Acme does not allow bots to use a member's own computer. Ask a team admin."]);
 
   await rules(null);
   const after = await dumped(owner, "computer allowed again", () => engineRan());

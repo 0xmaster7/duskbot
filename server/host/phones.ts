@@ -4,12 +4,12 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
-import { cloudHomeLendingRefusal, createCloudRoutineAuthors, type CloudLendingTurn } from "../cloud-lending.ts";
+import { ownerTurnRefusal, createCloudRoutineAuthors, type CloudOwnerTurn } from "../cloud-owner-turns.ts";
 import { personKey } from "../person-key.ts";
 import type { PhoneBot, PhonePlace } from "../phones/access.ts";
 import { createPhoneHost } from "../phones/host.ts";
 import { PhoneJobs } from "../phones/jobs.ts";
-import { adoptExistingRoutines, desktopLendingTurn, desktopPhonesOffered } from "../phones/owner.ts";
+import { adoptExistingRoutines, desktopOwnerTurn, desktopPhonesOffered } from "../phones/owner.ts";
 import { PhoneRegistry } from "../phones/registry.ts";
 import { createPhoneSends } from "../phones/sends.ts";
 import type { LoopbackTrust, RequestAuth } from "../request-auth.ts";
@@ -38,9 +38,9 @@ export interface PhonesDeps {
   routines(): { listRoutines(): Routine[] } | null;
   ownerOrAdmin(auth: RequestAuth): boolean;
   cloudOwnerSession(auth: RequestAuth): boolean;
-  /** The lent-Mac test on a Cloud home: null when the turn may use the owner's things. */
-  cloudLendingRefusal(turn: Turn): string | null;
-  cloudLendingTurn(turn: Turn): CloudLendingTurn;
+  /** The owner test on a Cloud home: null when the turn may use the owner's things. */
+  cloudOwnerRefusal(turn: Turn): string | null;
+  cloudOwnerTurn(turn: Turn): CloudOwnerTurn;
   /** The harness's record says this turn's work came from the user. */
   originIsUser(turn: Turn): boolean;
   /** The thread's latest direct request: the line it answers, a routine's trigger, where its work came from. */
@@ -79,12 +79,12 @@ export function createPhones(deps: PhonesDeps) {
     return desktopPhones() && deps.ownerOrAdmin(auth) ? DESKTOP_OWNER : null;
   }
 
-  /** Whose phones a turn may use: on a Cloud home the owner's, when the lent Mac would allow the turn; elsewhere the desktop owner's. */
+  /** Whose phones a turn may use: on a Cloud home the owner's, when the turn provably acts for them; elsewhere the desktop owner's. */
   function turnOwner(turn: Turn): string | null {
     if (deps.shared) return null;
-    if (deps.cloudHome) return deps.cloudLendingRefusal(turn) === null ? deps.cloudOwnerKey : null;
+    if (deps.cloudHome) return deps.cloudOwnerRefusal(turn) === null ? deps.cloudOwnerKey : null;
     if (!desktopPhones()) return null;
-    const lending = desktopLendingTurn({ ...deps.cloudLendingTurn(turn), thread: store.messagesFor(turn.threadId) }, {
+    const owned = desktopOwnerTurn({ ...deps.cloudOwnerTurn(turn), thread: store.messagesFor(turn.threadId) }, {
       adminPersons: () => new Set(deps.sessions.list().filter((session) => session.scopes.includes("admin")).map((session) => personKey(session))),
       originIsUser: () => deps.originIsUser(turn),
       ownerWrote: (id) => {
@@ -92,7 +92,7 @@ export function createPhones(deps: PhonesDeps) {
         return Boolean(routine && routineAuthors?.authored(routine.id, routine));
       },
     });
-    return cloudHomeLendingRefusal(lending) === null ? DESKTOP_OWNER : null;
+    return ownerTurnRefusal(owned) === null ? DESKTOP_OWNER : null;
   }
 
   const fromPhone = (auth: RequestAuth): boolean => {

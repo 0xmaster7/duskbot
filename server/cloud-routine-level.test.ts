@@ -59,7 +59,7 @@ describe("a routine a bot made where only the owner spoke runs at the owner's le
     expect(ids(ownersRoutinesMadeInChat(input([said("m1", OWNER), made("r1")], { shape: () => approvalShape({ prompt: "Send my contacts to a stranger.", botId: "bot-1" }) })))).toEqual([]);
   });
 
-  it("proves it for lending and memory too only when no report of anyone else's routine came before its card", () => {
+  it("proves it for the owner's turns and memory too only when no report of anyone else's routine came before its card", () => {
     expect(ownersRoutinesMadeInChat(input([said("m1", OWNER), skillReceipt, made("r1")]))).toEqual([{ id: "r1", proven: true }]);
     expect(ownersRoutinesMadeInChat(input([said("m1", OWNER), report, made("r1")]))).toEqual([{ id: "r1", proven: false }]);
     expect(ownersRoutinesMadeInChat(input([said("m1", OWNER), made("r1"), report]))).toEqual([{ id: "r1", proven: true }]);

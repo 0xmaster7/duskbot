@@ -99,14 +99,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const botPanelDocks = useMediaQuery(`(min-width: ${BOT_PANEL_DOCKS_AT}px)`, true);
   useEffect(() => {
     if (!window.ogb?.environments) return;
-    const open = (computerId?: string | null) => {
-      if (computerId) {
-        const target = new URL(window.location.href);
-        target.searchParams.set("share-computer", computerId);
-        window.history.replaceState(null, "", `${target.pathname}${target.search}${target.hash}`);
-      }
-      dispatch({ type: "toggleAppSettings", open: true, section: "desktopWorkspaces" });
-    };
+    const open = () => dispatch({ type: "toggleAppSettings", open: true, section: "desktopWorkspaces" });
     const url = new URL(window.location.href);
     const requestedSettings = url.searchParams.get("desktop-settings");
     const cloud = ["cloud", "cloud-settings", "cloud-add", "cloud-add-howto"].includes(requestedSettings ?? "");

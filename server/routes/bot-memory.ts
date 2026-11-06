@@ -30,13 +30,6 @@ export interface BotMemoryRouteDeps {
   /** The caller's About me: the server's profile's, or on a Team Cloud the signed-in person's own. */
   aboutMe(auth: RequestAuth): string;
   saveAboutMe(text: string, auth: RequestAuth): void;
-  /** Cloud home only. A review may come only from one of the owner's own devices (`owner`). */
-  lendingReview?: {
-    needed(botId: string): { token: string; changed: string[] } | null;
-    accept(botId: string, token: string): boolean;
-    owner(auth: RequestAuth): boolean;
-  };
-  ownersWrite?: <T>(auth: RequestAuth, botId: string, write: () => T) => T;
   /** Team Cloud only: the signed-in person's own layer of this bot's memory (`/memory/mine`); null for anyone else. */
   ownLayer?(auth: RequestAuth, botId: string): string | null;
 }
@@ -59,7 +52,7 @@ export function createBotMemoryRoutes(deps: BotMemoryRouteDeps): RouteHandler {
 
   return async ({ req, res, url, path, method, auth, json, readBody }) => {
     let m: RegExpMatchArray | null = null;
-    const write = <T>(botId: string, change: () => T): T => deps.ownersWrite ? deps.ownersWrite(auth, botId, change) : change();
+    const write = <T>(_botId: string, change: () => T): T => change();
     /** One memory file of `id`, a bot's own folder or a layer of it. */
     const serveFile = async (id: string, guarded: <T>(change: () => T) => T) => {
       if (method === "GET") {
@@ -99,9 +92,7 @@ export function createBotMemoryRoutes(deps: BotMemoryRouteDeps): RouteHandler {
       try {
         const overview = memoryOverview(m[1]);
         // `text` and `truncated` stay one release for clients of the old whole-file shape.
-        const review = deps.lendingReview?.needed(m[1]);
-        return json(res, 200, { ...overview, text: readMemoryDoc(m[1], MEMORY_INDEX).text, truncated: overview.index.truncated,
-          ...(review ? { lendingReview: review } : {}) });
+        return json(res, 200, { ...overview, text: readMemoryDoc(m[1], MEMORY_INDEX).text, truncated: overview.index.truncated });
       } catch (error) {
         return replyMemoryError(res, error);
       }
@@ -120,21 +111,6 @@ export function createBotMemoryRoutes(deps: BotMemoryRouteDeps): RouteHandler {
         if (error instanceof MemoryStoreError && error.code === "too-large") return json(res, 400, { error: error.message });
         return replyMemoryError(res, error);
       }
-    }
-    m = path.match(/^\/api\/bots\/([\w-]+)\/memory\/reviewed$/);
-    if (m && method === "POST" && deps.lendingReview) {
-      if (!deps.bot(m[1])) return json(res, 404, { error: "no such bot" });
-      if (!deps.lendingReview.owner(auth)) {
-        return json(res, 403, { error: "Only the owner of this Cloud can review this bot's memory, from one of their own devices." });
-      }
-      // Bound to what the owner was shown: anything changed since is shown again.
-      const parsed = z.object({ token: z.string().regex(/^[a-f0-9]{64}$/) }).safeParse(await readBody(req));
-      if (!parsed.success) return json(res, 400, { error: "token is required: the lendingReview token the Memory panel was shown" });
-      if (!deps.lendingReview.accept(m[1], parsed.data.token)) {
-        return json(res, 409, { error: "This bot's memory changed since you looked. Review it again.", code: "changed",
-          lendingReview: deps.lendingReview.needed(m[1]) });
-      }
-      return json(res, 200, { ok: true, lendingReview: false });
     }
     m = path.match(/^\/api\/bots\/([\w-]+)\/memory\/file$/);
     if (m && ["GET", "PUT", "DELETE"].includes(method)) {

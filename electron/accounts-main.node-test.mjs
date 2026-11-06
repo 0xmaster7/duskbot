@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 import { accountPlace, accountPlaces, clearPlaceStorage, createPlaceStash, withoutAccountPlaces, withoutPlaces, withPlacesBack } from "./account-places.mjs";
 import { accountsView, createAccountLeave, createDesktopRing, installAccounts } from "./accounts-main.mjs";
@@ -160,7 +159,7 @@ test("an account's places wait with it and come back as they were: same ids, so 
 /** The ring on real stash and leave code, with a sign-in that says who is in use. */
 function desktopRing({ environments = places.environments, order = [], activeId = "a", mine = "https://home-a.test" } = {}) {
   let saved = { activeId: "cloud-a", environments }, state = { status: "connected", account: { id: activeId, email: `${activeId}@example.test` } };
-  const stash = memoryFile(), lent = [];
+  const stash = memoryFile();
   const tokens = (id) => ({ origin: "https://admin.test", token: `omc_${id.repeat(43)}`, account: { id, email: `${id}@example.test` }, device: { id: `d-${id}` }, expiresAt: Date.now() + 86_400_000 });
   const files = { active: tokens(activeId), saved: { v: 1, accounts: [tokens("b")] } };
   const store = (key) => ({ read: async () => files[key], write: async (value) => { files[key] = value; } });
@@ -171,8 +170,8 @@ function desktopRing({ environments = places.environments, order = [], activeId 
     saved: () => saved, persist: (next) => { saved = next; order.push("persist"); }, session: () => ({ clearStorageData: async ({ origin }) => { order.push(`clear:${origin}`); } }), mine: () => (quiet ? null : mine), leaveWindow: async () => order.push("window"),
     // A quiet sign-in says nothing of its Clouds: what the rail keeps is read before that.
     rows: () => (quiet ? [] : [{ id: "home-a", name: "My Cloud", color: "green", kind: "cloud", opens: true, active: true, progress: 0.5, attention: true, paint: { swatch: "green" } }, { id: "by-hand", name: "By hand", kind: "server", opens: true, forget: true }, { id: "local", name: "This computer", kind: "computer", opens: true }]),
-    holding: () => null, letGo: (id) => order.push(`let-go:${id}`), lendingDone: async () => { order.push("lending-done"); }, settled: async () => order.push("settled"), forgetLending: (place) => lent.push(place.id), tell: () => order.push("tell"), log: () => {} });
-  return { ring, order, lent, saved: () => saved, files };
+    holding: () => null, letGo: (id) => order.push(`let-go:${id}`), settled: async () => order.push("settled"), tell: () => order.push("tell"), log: () => {} });
+  return { ring, order, saved: () => saved, files };
 }
 
 test("a switch keeps the rail's rows for the account leaving, without their live state, and brings the other's places back", async () => {
@@ -191,7 +190,7 @@ test("a switch keeps the rail's rows for the account leaving, without their live
   assert.deepEqual(f.ring.waiting()[0].id, "b");
 });
 
-test("signing out the last account: the sign-in ends before its sessions go, since lending's last answers can re-issue a cookie", async () => {
+test("signing out the last account: the sign-in ends before its sessions go", async () => {
   const order = [];
   const f = desktopRing({ order });
   await f.ring().start();
@@ -199,8 +198,7 @@ test("signing out the last account: the sign-in ends before its sessions go, sin
   await f.ring().start();
   assert.equal((await f.ring().signOut("a")).outcome, "signed-out");
   const steps = order.filter((step) => !step.startsWith("clear:") || step === "clear:https://home-a.test");
-  assert.deepEqual(steps.slice(steps.indexOf("let-go:a")), ["let-go:a", "client-sign-out", "persist", "window", "lending-done", "clear:https://home-a.test", "settled", "tell"]);
-  assert.deepEqual(f.lent.sort(), ["cloud-a", "home-a", "team-a"], "what was lent to its places is forgotten with it");
+  assert.deepEqual(steps.slice(steps.indexOf("let-go:a")), ["let-go:a", "client-sign-out", "persist", "window", "clear:https://home-a.test", "settled", "tell"]);
   assert.deepEqual(f.ring.waiting(), []);
 });
 
@@ -211,11 +209,6 @@ test("signing out one of two: only its group goes, and the other account takes o
   assert.deepEqual(f.ring.waiting(), [], "nothing of it kept");
   assert.equal(f.files.active.account.id, "b");
   assert.deepEqual(f.saved().environments.map((entry) => entry.id), ["by-hand", "local-2"], "servers saved by hand stay");
-});
-
-test("the app waits for lending's last answers before it clears an account's sessions", () => {
-  const main = readFileSync(new URL("./main.mjs", import.meta.url), "utf8");
-  assert.match(main, /createDesktopRing\(\{[^\n]*lendingDone: \(\) => computerSharing\?\.goodbyesDone\(\)/);
 });
 
 test("a My Cloud saved by hand is the account's only while the sign-in names it; what left is removed by id, so a list that changed meanwhile loses nothing else", () => {

@@ -1,7 +1,7 @@
 // An OMB Cloud home is personal: only the owner's devices connect, each with an admin session. Every other stored session
 // is revoked at every boot, its key recorded first, so no crash can ever make it the owner's. Earlier keys settle once
 // (and after a restore): `adopted` keys keep who opened a conversation, its level and folder; only `proven` keys (a still
-// paired admin session, or one that answered a card) feed lending, memory and recall. Routines are the owner's only with proof.
+// paired admin session, or one that answered a card) feed the owner's turns, memory and recall. Routines are the owner's only with proof.
 import { lstatSync, readFileSync } from "node:fs";
 import { z } from "zod";
 import { writeFileAtomic } from "./atomic.ts";
@@ -63,7 +63,7 @@ export interface CloudOwnershipOptions {
 export interface CloudOwnership {
   /** Earlier keys that opened, wrote or answered: the owner's for who opened a conversation, its level and its folder. */
   adopted: ReadonlySet<string>;
-  /** Earlier keys proven the owner's: also for lending and memory. */
+  /** Earlier keys proven the owner's: also for the owner's turns and memory. */
   proven: ReadonlySet<string>;
   /** Every non-owner session's key this machine ever revoked. */
   revoked: ReadonlySet<string>;

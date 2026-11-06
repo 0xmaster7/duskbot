@@ -1,12 +1,9 @@
 // A server of the person's own made their bots' home, end to end: this computer's server and two servers of the person's own
 // (scripts/testing/own-home-fixture.ts), one theirs alone and one with other people on it, with main's own wiring for the
-// move (electron/own-home-main.mjs) and this computer's real lending (electron/computer-sharing.mjs). Disposable homes; no
-// network.
-import { mkdirSync, mkdtempSync, readFileSync } from "node:fs";
+// move (electron/own-home-main.mjs). Disposable homes; no network.
+import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, expect, it } from "vitest";
-import { createComputerSharing } from "../electron/computer-sharing.mjs";
-import { createLendingTarget } from "../electron/lending-target.mjs";
 import { launchOwnHomeFixture, type OwnHomeFixture, type OwnServer } from "../scripts/testing/own-home-fixture.ts";
 import { hostTimeout } from "./testing/host-timeout.ts";
 import { movedRefusal } from "./move-freeze.ts";
@@ -119,8 +116,7 @@ it("Make Garage server my home: bots, chats, memory and routines arrive, this co
   expect(webhook.webhook.id).toBeTruthy();
   expect((await local("GET", "/api/move/freeze")).body).toMatchObject({ frozen: true, cloud: garage.base, place: "Garage server" });
 
-  // This computer is lent with Scout's project folder to Garage server, its phone link stops, and the window opens Garage server.
-  expect(fx.spies.lent).toEqual([{ projects: [project], place: garage.base }]);
+  // Its phone link stops, and the window opens Garage server.
   expect(fx.spies.phoneStops).toBe(1);
   expect(fx.spies.opened).toEqual([garage.base]);
   expect(fx.main.offers(garage.place), "home is there: nothing more to offer").toBe(false);
@@ -138,24 +134,3 @@ it("Make Garage server my home: bots, chats, memory and routines arrive, this co
   expect(here.runs.filter((run) => run.routineId === soon)).toEqual([]);
   expect(home.runs.filter((run) => run.routineId === soon && run.scheduledFor === soonAt)).toHaveLength(1);
 }, hostTimeout(900_000));
-
-it("this computer then works for Garage server by itself, and never for the server it shares with others", async () => {
-  const places: Array<{ id: string; name: string; origin: string }> = [garage.place, family.place];
-  const target = createLendingTarget({ account: () => null, environments: () => places, ownHome: () => fx.main.home() });
-  expect(target.places().map((place) => place.origin)).toEqual([garage.base]);
-  expect(target.cloud(family.place)).toBeNull();
-  const lent = mkdtempSync(join(fx.root, "lent-"));
-  const sharing = createComputerSharing({ file: join(fx.root, "computer-sharing.json"), fetch: fx.windowFetch, environments: () => places,
-    home: lent, cloud: target.cloud, myCloud: target.environment, ownClouds: target.places, screen: () => false, cuaConnection: async () => null });
-  try {
-    sharing.start({ maintainer: false });
-    await expect.poll(async () => ((await garage.as("GET", "/api/shared-computers")).body?.computers ?? []).length, { timeout: 30_000, interval: 250 }).toBe(1);
-    expect(sharing.cloudState(garage.place)).toMatchObject({ enabled: true, terminal: false });
-    expect(sharing.state(family.place.id).enabled).toBe(false);
-    expect((await family.as("GET", "/api/shared-computers")).status, "nothing is lent where others sign in").not.toBe(200);
-    // Pause: Garage server stops using this computer, until Resume.
-    sharing.pause();
-    await expect.poll(async () => ((await garage.as("GET", "/api/shared-computers")).body?.computers ?? []).filter((computer: { online?: boolean; connected?: boolean }) => computer.online !== false && computer.connected !== false).length,
-      { timeout: 30_000, interval: 250 }).toBe(0);
-  } finally { sharing.close(); }
-}, hostTimeout(120_000));

@@ -8,7 +8,6 @@ import { DEVS_TOOL_DEFINITIONS } from "./agents-devs-tools.ts";
 import { HELPER_TOOL_DEFINITIONS } from "./agents-helper-tools.ts";
 import { USAGE_LIMITS_TOOL_DEFINITION } from "./agents-usage-tool.ts";
 import { WAIT_TOOL_DEFINITIONS, WAIT_TOOL_NAMES } from "./agents-wait-tools.ts";
-import { COMPUTER_ASK_TOOL_DEFINITIONS, COMPUTER_ASK_TOOL_NAMES } from "./agents-computer-ask-tool.ts";
 import { MAUSBOT_TOOL_DEFINITIONS } from "./agents-mausbot-tools.ts";
 import { PERSON_TOOL_DEFINITIONS } from "./agents-person-tools.ts";
 import { RESEARCH_TOOL_DEFINITIONS, RESEARCH_TOOL_NAMES, X_TOOL_NAMES } from "./agents-research-tools.ts";
@@ -198,21 +197,6 @@ const TOOL_DEFINITIONS = [
       },
       required: ["id"],
     },
-  },
-  {
-    name: "list_shared_computers",
-    description: "List online desktop computers explicitly shared with this workspace, and their allowed folders/capabilities. These are the user's computers, not this server. An offline or unshared computer cannot be accessed. Folder paths use opaque folder IDs and relative paths.",
-    inputSchema: { type: "object", properties: {}, additionalProperties: false },
-  },
-  {
-    name: "shared_computer",
-    description: "Use a desktop the user explicitly shared. Get computer_id and folder_id from list_shared_computers. File actions stay in chosen folders; paths are relative. read_file returns sha256, needed as expected_sha256 to overwrite or delete_file. edit_file swaps old_text (once) for new_text; append_file adds content. Binary files: base64 encoding. run_command requires a SEPARATE unrestricted terminal grant and stops after timeout_seconds (default 120, at most 900), returning what it printed so far: run longer jobs in the background with output to a file, then read it. computer_tools lists the native computer-control tools; computer_call invokes one with arguments and needs a SEPARATE computer-control grant. To browse there, open pages with launch_app urls (the person's own browser) and use get_window_state, click and type_text: the browser_* tools need a DevTools endpoint most browsers lack. Never substitute the server's filesystem when this desktop is offline. Actions are not retried: inspect an uncertain outcome before retrying.",
-    inputSchema: { type: "object", additionalProperties: false, properties: {
-      computer_id: { type: "string" }, action: { type: "string", enum: ["list_files", "read_file", "write_file", "edit_file", "append_file", "delete_file", "run_command", "computer_tools", "computer_call"] },
-      folder_id: { type: "string" }, path: { type: "string" }, content: { type: "string" }, encoding: { type: "string", enum: ["utf8", "base64"] }, expected_sha256: { type: "string" },
-      old_text: { type: "string" }, new_text: { type: "string" },
-      command: { type: "string" }, timeout_seconds: { type: "integer", minimum: 1, maximum: 900 }, tool_name: { type: "string" }, arguments: { type: "object", additionalProperties: true },
-    }, required: ["computer_id", "action"] },
   },
   {
     name: "list_room_targets",
@@ -650,7 +634,6 @@ const TOOL_DEFINITIONS = [
     },
   },
   ...WAIT_TOOL_DEFINITIONS,
-  ...COMPUTER_ASK_TOOL_DEFINITIONS,
   {
     name: "propose_profile",
     description:
@@ -851,7 +834,6 @@ const TOOL_DEFINITIONS = [
 
 const SKILL_TOOL_NAMES = new Set(["skills_list", "skill_manage"]);
 // Never advertised when sharing is off: a model shown a tool it cannot use spends turns finding out.
-export const SHARED_COMPUTER_TOOL_NAMES = new Set(["list_shared_computers", "shared_computer"]);
 const VOICE_TOOL_NAMES = new Set(["send_voice_note"]);
 const CHIEF_ONLY_TOOL_NAMES = new Set([
   "create_bot", "list_team_setup", "list_team_library", "propose_team_setup", "propose_bot_deletion", "manage_room", "retry_thread",
@@ -893,13 +875,9 @@ function catalogTools(profile: CatalogProfile) {
   const AUTHORING_TOOLS = profile.skillAuthoring
     ? BOT_SCOPED_TOOLS
     : BOT_SCOPED_TOOLS.filter((tool) => !SKILL_TOOL_NAMES.has(tool.name));
-  const SHAREABLE_TOOLS = (profile.sharedComputers
-    ? AUTHORING_TOOLS
-    : AUTHORING_TOOLS.filter((tool) => !SHARED_COMPUTER_TOOL_NAMES.has(tool.name)))
-    .filter((tool) => (profile.sharedComputers && profile.cloudHome && profile.team !== true) || !COMPUTER_ASK_TOOL_NAMES.has(tool.name));
   const VOICE_READY_TOOLS = profile.voiceNotes
-    ? SHAREABLE_TOOLS
-    : SHAREABLE_TOOLS.filter((tool) => !VOICE_TOOL_NAMES.has(tool.name));
+    ? AUTHORING_TOOLS
+    : AUTHORING_TOOLS.filter((tool) => !VOICE_TOOL_NAMES.has(tool.name));
   const RESEARCH_READY_TOOLS = VOICE_READY_TOOLS.filter((tool) => !RESEARCH_TOOL_NAMES.has(tool.name) ||
     (profile.xResearch === true && (profile.research === true || X_TOOL_NAMES.has(tool.name))));
   const ROLE_TOOLS = profile.chief

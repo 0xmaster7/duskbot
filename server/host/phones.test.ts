@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { CloudLendingTurn } from "../cloud-lending.ts";
+import type { CloudOwnerTurn } from "../cloud-owner-turns.ts";
 import { PHONE_PLACE_PROMPT } from "../phones/instructions.ts";
 import type { RequestAuth } from "../request-auth.ts";
 import type { SessionRecord } from "../sessions.ts";
@@ -39,9 +39,9 @@ function world(overrides: Partial<PhonesDeps> = {}) {
     dataDir: dir, shared: false, cloudHome: false, cloudOwnerKey: null, loopbackTrust: "owner", sharedMembership: () => false,
     store: { messagesFor: () => lines, bot: () => chief, groupByThread: () => undefined, appendMessage: () => {} } as unknown as PhonesDeps["store"],
     sessions: { list: () => [], isLive: () => true, onSessionRevoked: () => () => {} }, routines: () => null, ownerOrAdmin: (auth) => auth.scopes.includes("admin"), cloudOwnerSession: () => false,
-    cloudLendingRefusal: () => null,
-    cloudLendingTurn: () => ({ thread: lines, request: { ...requests.get(THREAD), generations: new Set([TURN.generation]) }, generation: TURN.generation, starters: [], reportsFromOthers: false,
-      ownerPerson: () => true, cardAnswerer: () => undefined, routineRun: () => null }) as unknown as CloudLendingTurn,
+    cloudOwnerRefusal: () => null,
+    cloudOwnerTurn: () => ({ thread: lines, request: { ...requests.get(THREAD), generations: new Set([TURN.generation]) }, generation: TURN.generation, starters: [], reportsFromOthers: false,
+      ownerPerson: () => true, cardAnswerer: () => undefined, routineRun: () => null }) as unknown as CloudOwnerTurn,
     originIsUser: () => true, request: (threadId) => requests.get(threadId), nudge: () => {}, mint: () => "turn-token",
     harnessUrl: "http://127.0.0.1:1", active: () => true,
     ...overrides,
@@ -135,9 +135,9 @@ describe("whose phones", () => {
     }
   });
 
-  it("on a Cloud home only the owner's session holds a phone, and only a turn the lent Mac would allow reaches it", () => {
+  it("on a Cloud home only the owner's session holds a phone, and only a turn that acts for the owner reaches it", () => {
     let refusal: string | null = null;
-    const { phones } = world({ cloudHome: true, cloudOwnerKey: "owner", cloudOwnerSession: (auth) => auth.kind === "session" && auth.session.id === PHONE_SESSION.id, cloudLendingRefusal: () => refusal });
+    const { phones } = world({ cloudHome: true, cloudOwnerKey: "owner", cloudOwnerSession: (auth) => auth.kind === "session" && auth.session.id === PHONE_SESSION.id, cloudOwnerRefusal: () => refusal });
     expect(phones.turnOwner(TURN)).toBe("owner");
     refusal = "someone-else";
     expect(phones.turnOwner(TURN)).toBeNull();

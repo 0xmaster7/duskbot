@@ -685,20 +685,6 @@ describe("the product-updates question after the update", () => {
   });
 });
 
-describe("no Use my Mac popup", () => {
-  it("the page never asks main for one, whatever an older main would answer, and the cards go on as before", async () => {
-    const asked: unknown[] = [];
-    desk.handlers.set("cloud-lending:due", async () => true);
-    desk.handlers.set("cloud-lending:ask", (_event: unknown, language: unknown) => { asked.push(language); return Promise.resolve(); });
-    returning(); storage.set(CLOUD_INTRO, "1");
-    expect(await launch()).toContain(STAR);
-    snapshot = { status: "none" }; viewer = { hosted: false, canSave: true, cloudHome: true }; f.state.config.cloudHome = true;
-    f.state.config.onboarding.hintsSeen = [...withTourFinished(undefined), "cloud-setup-hidden"]; showWindow(MY_CLOUD);
-    await launch();
-    expect(asked, "on this computer's page and on My Cloud's own page").toEqual([]);
-  });
-});
-
 describe("bots in two places", () => {
   const GARAGE = { key: "server:https://garage.example.test", name: "Garage server", kind: "server" as const };
   const BODY = "Your bots live in two places, so they can&#x27;t work together. Bring them together on Garage server?";

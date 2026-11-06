@@ -51,7 +51,7 @@ entries and 16 MiB of UTF-8 text total, with at most 16 entries and 2 MiB per
 bot/conversation; expired entries are swept on access. JavaScript string memory
 and bookkeeping can exceed the UTF-8 accounting size, but remain bounded.
 
-External MCP trimming, structured shared-computer results, shell command
+External MCP trimming, shell command
 semantics, automatic retries, provider fallback, model/account selection and
 permissions are unchanged. The new read tool is annotated as a local read,
 but still requires the live turn's scoped capability. This fixture verifies

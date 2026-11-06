@@ -35,15 +35,14 @@ export function createAccountLeave({ saved, persist, session, mine, leaveWindow,
  *   allowed(): boolean, active(): any, savedStore(): any, stash(): { read(): unknown, write(value: unknown): void }, client(): any, origin: string,
  *   makeClient(options: { store: any, onState(state: any): void }): any,
  *   saved(): any, persist(next: unknown): void, session(): any, mine(): string | null, leaveWindow(): unknown, rows(): any[],
- *   holding(): string | null, letGo(accountId: string | null): void, lendingDone(): Promise<unknown>, settled(): Promise<unknown>, forgetLending(place: any): void, tell(): void, log?(line: string): void,
- * }} deps `letGo(id)`: what runs for that account in the window and for lending stops; `lendingDone`: lending's last requests have
- * been answered; `rows`: the rail as it is now, kept for while the account waits; `forgetLending(place)`: that place is off this
- * device with its account.
+ *   holding(): string | null, letGo(accountId: string | null): void, settled(): Promise<unknown>, tell(): void, log?(line: string): void,
+ * }} deps `letGo(id)`: what runs for that account in the window stops; `rows`: the rail as it is now, kept for while the
+ * account waits.
  */
 export function createDesktopRing(deps) {
   let made = null, stash = null, leavingNow = null;
   const places = () => (stash ??= createPlaceStash(deps.stash()));
-  const leave = createAccountLeave({ saved: deps.saved, persist: deps.persist, session: deps.session, mine: deps.mine, leaveWindow: deps.leaveWindow, settled: deps.lendingDone, log: deps.log });
+  const leave = createAccountLeave({ saved: deps.saved, persist: deps.persist, session: deps.session, mine: deps.mine, leaveWindow: deps.leaveWindow, log: deps.log });
   const ring = () => {
     if (!deps.allowed()) return null;
     return made ??= createCloudAccounts({ active: deps.active(), saved: deps.savedStore(), client: deps.client, makeClient: deps.makeClient, origin: deps.origin, holding: deps.holding, settled: deps.settled, changed: deps.tell, log: deps.log,
@@ -56,7 +55,7 @@ export function createDesktopRing(deps) {
         await leave.finish(left);
       },
       arriving: async (id) => { deps.persist(withPlacesBack(deps.saved(), places().take(id).places)); },
-      removed: async (id) => { for (const place of places().take(id).places) deps.forgetLending(place); } });
+      removed: async (id) => { places().take(id); } });
   };
   /** The accounts that wait, with their places as they were kept: for the rail's own page only. */
   ring.waiting = () => (ring()?.others() ?? []).map((row) => ({ ...row, ...places().peek(row.id) }));

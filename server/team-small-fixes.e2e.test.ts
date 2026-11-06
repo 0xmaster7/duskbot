@@ -1,10 +1,9 @@
 // The small team fixes, end to end on a Team Cloud with the synthetic Claude CLI playing scripted plans through the real
-// agents tools: a bot that cannot reach a bot shared with other people is told who looks after it; a lent computer is
-// refused in the team's one honest line; a personal place takes the person's team as a place its bots can name; a rule
+// agents tools: a bot that cannot reach a bot shared with other people is told who looks after it; a personal place takes the person's team as a place its bots can name; a rule
 // blocking an MCP server applies to the next thing each bot does; the Owner's export carries nothing of a member's alone; and
 // a question left for a day is mentioned in the person's inbox chat, on a fake clock. It proves what the engine was sent and
 // what each person sees, not a model's judgement.
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { createServer, type Server } from "node:http";
@@ -22,7 +21,6 @@ import { stagedWorkspaceData, stageWorkspaceBackup } from "./workspace-backup.ts
 const ADA = { email: "ada@acme.test", role: "owner" as const };
 const MIRA = { email: "mira@acme.test", role: "member" as const };
 const ENGINE = `process.env.FAKE_CLAUDE_ROOM_PLAN = process.env.FAKE_CLAUDE_FIXTURE_DIR + "/plan.json";`;
-const TEAM_LINE = "Acme's bots never use anyone's own computer; they use Acme's cloud computer.";
 const SECRET = "Zebrafinch42";
 const SHARED = "Okapi77";
 const PASSWORD = "correct horse battery staple";
@@ -144,29 +142,6 @@ it("a bot shared with other people: Support is told that Ada looks after Sales, 
   expect(((await team.as(mira, "GET", "/api/bots?messages=0")).body.bots as Bot[]).map((bot) => bot.name)).not.toContain("Sales");
   expect((await rows(mira, mirasChat)).some((row) => row.role === "bot" && row.text === reply)).toBe(true);
 }, hostTimeout(120_000));
-
-it("a lent computer: a team's bot hears the team's one line, not a personal Cloud's words", async () => {
-  const bearer = await team.capability(support.id, mirasChat);
-  const seen = await fetch(`${team.base}/api/internal/shared-computers`, { headers: { authorization: `Bearer ${bearer}` } });
-  expect(seen.status).toBe(200);
-  const body = (await seen.json()) as { computers: unknown[]; unavailable?: string; say?: string };
-  expect(body.computers).toEqual([]);
-  expect(body.say).toBe(TEAM_LINE);
-  expect(body.unavailable).toBe(TEAM_LINE);
-
-  const environment = await fetch(`${team.base}/.well-known/openmausbot/environment`, { headers: fx.edge });
-  const environmentId = ((await environment.json()) as { environmentId: string }).environmentId;
-  const lent = await team.as(ada, "POST", "/api/shared-computers/connect",
-    { id: randomUUID(), name: "Ada's Mac", environmentId, folders: [], terminal: true, computer: true, platform: "darwin" },
-    { "x-omb-computer-secret": createHash("sha256").update("ada-mac").digest("hex") });
-  expect(lent.status, JSON.stringify(lent.body)).toBe(200);
-  const used = await fetch(`${team.base}/api/internal/shared-computers`, { method: "POST", headers: { authorization: `Bearer ${bearer}`, "content-type": "application/json" },
-    body: JSON.stringify({ action: "list_files", computer_id: randomUUID(), path: "/" }) });
-  const answer = await used.text();
-  expect(used.status, answer).toBe(403);
-  expect(answer).toContain(TEAM_LINE);
-  expect(answer).not.toMatch(/conversations you start|your Mac/);
-}, hostTimeout(60_000));
 
 it("a personal place takes the person's team as a place whose bots it can name; a team's place takes no such word", async () => {
   const told = { v: 1, self: { name: "This computer", kind: "computer" }, places: [{ name: "Acme", kind: "team", bots: ["Sales", "Support"] }] };

@@ -631,13 +631,8 @@ const bridge = {
       return () => ipcRenderer.removeListener("company-backups:state-changed", handler);
     },
   } : undefined,
-  computerSharing: {
-    state: id => ipcRenderer.invoke("sharing:state", id),
-    chooseFolder: () => ipcRenderer.invoke("sharing:folder"),
-    save: (id, grant) => ipcRenderer.invoke("sharing:save", id, grant),
-    revoke: id => ipcRenderer.invoke("sharing:revoke", id),
-    activity: id => ipcRenderer.invoke("sharing:activity", id),
-  },
+  // lending this computer to a server is gone: a stub until pages of the last two releases stop calling it (bridge-contract.json).
+  computerSharing: Object.fromEntries(["state", "chooseFolder", "save", "revoke", "activity"].map(name => [name, () => Promise.reject(new Error("Lending this computer is no longer available."))])),
   confirm: message => ipcRenderer.invoke("dialog:confirm", message),
   /** The window onto My Cloud once it is the person's home: this computer's screen while My Cloud can't be opened, and
    * on My Cloud's own page a new session when its own has ended. */

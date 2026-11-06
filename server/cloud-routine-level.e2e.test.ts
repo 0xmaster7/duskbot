@@ -267,7 +267,7 @@ it("a Full access bot's routine from the owner's chat runs at Full access after 
   await idle(codex.id);
 }, hostTimeout(90_000));
 
-it("keeps the conversation's level when an old report means the chat can't be proven the owner's alone, without proving the routine for lending", async () => {
+it("keeps the conversation's level when an old report means the chat can't be proven the owner's alone, without proving the routine the owner's", async () => {
   const bot = await newBot("Reporter", "claude");
   const old = await api("POST", "/api/routines", { token: owner, body: { name: "Old check", prompt: "Check the site.", botId: bot.id, enabled: false,
     schedule: { type: "interval", everyMinutes: 60, anchorAt: Date.now() + 3_600_000 } } });
@@ -301,7 +301,7 @@ it("gives the owner back a routine their bot made in their chat that an earlier 
   await boot();
 
   expect(authors().writers).toMatchObject({ [made]: OWNER_KEY, [guests.body.routine.id]: CLOUD_NOBODY_KEY });
-  // Only the owner spoke in that chat up to its card, so it is proven theirs again, lending and memory included.
+  // Only the owner spoke in that chat up to its card, so it is proven theirs again, memory included.
   expect(Object.keys(authors().routines)).toContain(made);
   const healed = await claudeRun(made);
   expect(after(healed.argv, "--permission-mode")).toBe("bypassPermissions");

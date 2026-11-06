@@ -154,7 +154,7 @@ export function Composer({
   const approvals = pendingApprovals(group ? group.messages : bot ? visibleMessages(bot) : []);
   const approval = approvals[0];
   // A Turn on card can wait while the person walks to their computer: they can still write meanwhile.
-  const blocking = Boolean(approval && !approval.message.card?.computerAsk);
+  const blocking = Boolean(approval);
   const approvalBot = group
     ? members?.find((member) => member.id === approval?.message.from?.botId) ??
       members?.find((member) => member.id === groupBusyBotId)

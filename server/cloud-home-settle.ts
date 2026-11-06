@@ -1,7 +1,7 @@
 // Settles a Cloud home's people before anything is served or any routine runs: who the owner is (cloud-owner.ts),
 // which routines a bot made from outside, which an earlier version left nobody's, and whether anyone but the owner has
 // ever used it (cloud-sharing.ts).
-import type { createCloudRoutineAuthors } from "./cloud-lending.ts";
+import type { createCloudRoutineAuthors } from "./cloud-owner-turns.ts";
 import { recordCloudSharing, settleCloudOwnership, type CloudOwnership, type CloudOwnershipOptions } from "./cloud-owner.ts";
 import { approvalShape, createdShape, ownersRoutinesMadeInChat, routinesKeptAtSharing, type OwnersRoutinesInput } from "./cloud-routine-level.ts";
 import { CLOUD_OUTSIDE_KEY, cloudShared } from "./cloud-sharing.ts";
@@ -27,7 +27,7 @@ export interface CloudHomeSettleDeps {
   lastRestore?: string;
   /** Runs as soon as earlier owners are settled, before anything below asks who the owner is. */
   settled(ownership: CloudOwnership): void;
-  /** Proven the owner's, as lending and memory require. */
+  /** Proven the owner's, as the owner's turns and memory require. */
   provenPerson(person: string | undefined): boolean;
   /** The owner's key, a current admin device's, or a marker that names no person. */
   ownersOrNone(key: string): boolean;

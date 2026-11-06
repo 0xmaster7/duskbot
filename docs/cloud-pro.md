@@ -202,14 +202,14 @@ keys named until then are settled, in two tiers:
   their folder. A device that only ever wrote a line counts too.
 - **Proven:** only a key with proof it was the owner's: a device of theirs
   still paired at that start, or one that answered a card (on a Cloud home
-  only the owner's devices can). Only proven keys' words reach the lent Mac,
-  memory capture, recall and the recent-work brief.
+  only the owner's devices can). Only proven keys' words reach memory capture,
+  recall and the recent-work brief.
 
 This is honest about what cannot be known. A guest the owner unpaired before
 the upgrade (or whose session expired) cannot be told apart from an owner's
 old device, so their conversations are adopted: they run at the bot's level,
-in its folder. Their lines never reach lending or memory, though, and any
-conversation holding one is kept out of both. A guest still paired at the
+in its folder. Their lines never reach memory, though, and any
+conversation holding one is kept out of it. A guest still paired at the
 upgrade is revoked and stays nobody's.
 
 Routines fail closed. A routine is the owner's only with proof: the owner's
@@ -224,8 +224,7 @@ a conversation the owner opened can be.
 
 A webhook is the owner's: only their own devices can create, edit or rotate
 one, so its runs work at the bot's own level, in its project folder, with its
-shell, as on the desktop. What a webhook brings in still never reaches the
-lent Mac, whether it starts a run or posts to chat (below).
+shell, as on the desktop.
 
 The routines a revoked session wrote are paused at that start, and the
 conversations it opened lose their working folder: their next turn works in
@@ -270,7 +269,7 @@ only the owner spoke (it was opened, written in and answered only by proven
 keys, the owner's own devices, and nothing came in by webhook; what bots
 posted there, such as receipts and routine reports, does not count) is the
 owner's for its level, so its runs keep the bot's own level, Full access
-included. It is proven for lending and memory only when that conversation also
+included. It is proven for memory only when that conversation also
 holds no report of anyone else's routine. One a bot creates or changes at once
 from any other conversation (someone else's line or answer, an adopted key's,
 another bot's message, a webhook's post or run) is nobody's, like anyone
@@ -288,10 +287,7 @@ its results conversation, so a nobody's routine's run is confined to a
 folder of its own.
 
 A key that is adopted but not proven still costs something: its lines keep
-that conversation out of lending and memory, and if a turn there changes the
-bot's memory files, the bot as a whole cannot use the Mac until the owner
-reviews the change (the bot's **Memory** panel, **Mark reviewed**). Starting
-new conversations avoids it.
+that conversation out of memory. Starting new conversations avoids it.
 
 At the first personal start the log also says to review **Settings → Remote
 access → Paired devices**, which now shows only admin devices, and to sign
@@ -362,8 +358,7 @@ A job counts as given the moment it is sent, before the Cloud's record
 answers, so no step flickers back. When the main pane already shows the step that leads (the question, or the
 sign-in in the chat view), the card says **You're on this step** instead of
 repeating it. With every listed step done but no turn finished yet, the card says the bot
-is setting itself up in the chat. Lending this Mac to the Cloud is not a step:
-it happens by itself (see "This computer works for your Clouds").
+is setting itself up in the chat.
 
 **Hide setup** is the only dismiss. The Cloud keeps it (`cloud-setup-hidden`
 in its onboarding record), so it holds on every device and after browser
@@ -383,21 +378,16 @@ Cloud · always on**; in a browser, a plain label says the same.
 A Cloud home is a headless Linux server, so its bots have two places: the
 built-in browser and cloud computers. It never offers **This computer** (that
 would be the server itself) or a **Local VM** (a Fly machine has no container
-runtime). The person's own computer is reached only while it lends itself to
-the Cloud (see "This computer works for your Clouds"), through the
-shared-computer tools.
+runtime). The person's own computer is never reached from the Cloud.
 
 - Neither place is listed in the Computer panel, the composer's place chip, a
   bot's Works on setting or Settings → Computers (the config answers
   `"cloudHome": true`), nor in `select_computer`, which also drops `vm_exec`.
   Auto never lands on either.
 - A bot still set to either (an older or imported setting) has each task
-  refused with a sentence saying so, suggesting Auto, Cloud or Browser and,
-  for This computer, the person's own computer while OpenMausBot is open on it.
+  refused with a sentence saying so, suggesting Auto, Cloud or Browser.
 - Every turn's system prompt says the bot runs in the cloud. Asked about the
-  person's own computer, a bot with the shared-computer tools checks for a lent
-  Mac and, finding none, says so and asks them to open OpenMausBot on it; a bot
-  without them says it cannot reach it. Either offers the browser and cloud computers, never a
+  person's own computer, a bot says it cannot reach it from the Cloud. Either offers the browser and cloud computers, never a
   place that cannot exist.
 - The built-in browser is on unless the person switches it off in Settings.
   The desktop turns it on in its first-run welcome, which a Cloud home skips.
@@ -575,487 +565,14 @@ The web UI's pages are sent with `Content-Security-Policy: frame-ancestors
 (`serveStatic`, `server/index.ts`): no other page can frame them. Nothing
 frames the web UI: the desktop app shows it in its own window.
 
-## This computer works for your Clouds
+## Where a Cloud bot works
 
-The Cloud is home: bots and chats live there. The person's Mac or PC is a computer
-the Cloud uses while it is awake: its folders, its screen and apps, its home
-internet connection and their Chrome. There is no setting for it. Every Cloud of
-the person's own uses this computer by itself while the desktop app runs and is
-signed in as them (`lendAutomatically` in `electron/computer-sharing.mjs`): My
-Cloud and each other Cloud the verified session lists as theirs
-(`createLendingTarget` in `electron/lending-target.mjs`), never a Team Cloud and
-never a server that only signed in with their account. A server of the person's
-own that they made their bots' home (**Make <server> my home**, docs/self-hosting.md)
-is lent the same way, last, once the move is done and while that server says it
-is theirs alone. Other users (desktop only, self-hosted, hosted team workspaces)
-keep computer sharing exactly as before: off unless a maintainer sets
-`features.sharedComputers` by hand.
-
-### What each Cloud gets
-
-The grant (`automaticGrant`) is the same for every Cloud of the person's own:
-
-- **Internet connection**: the sites that turn away data centres (Instagram,
-  YouTube, Google sign-in) open for the bots' browser on that Cloud through this
-  computer, so they see the person's home connection; every other site loads
-  straight from the Cloud (see "The internet connection" below).
-- **Your Chrome**: bots whose browser profile is **My Chrome** act inside Chrome
-  on this computer, signed in as the person, in their own conversations and
-  routines only (see "Your Chrome" below). Chrome needs remote debugging on
-  (`chrome://inspect/#remote-debugging`) and asks the person to allow the
-  connection. Activity lists it as **Used your Chrome**.
-- **The home folder, to read and edit.** A write overwrites a file only after
-  reading its current version (checked against its hash), and nothing is ever
-  deleted. A read takes a file of up to 2 MiB (text whose escaping would not fit
-  the Cloud's 4 MB request body is refused with "read it as base64"); a write is
-  at most 256 KiB. No symbolic or hard links. The places that hold keys,
-  passwords and sign-ins stay private inside it (see "What folders never reach"
-  below), and a write through it never reaches its own hidden files and folders,
-  `Library` (macOS) or `AppData` (Windows), where shell start-up files, git's
-  configuration and apps' settings live (`insideHomeSettings`). Folders lent to
-  that Cloud before (the move's project folders, a folder the Files page shared,
-  a drive) stay lent as they were, by the same ids, so Files keeps their copies
-  (`docs/files.md`); one deleted since is left out.
-- **Apps and screen**, once computer control works here: on macOS once the
-  person allowed OpenMausBot Accessibility and Screen Recording. macOS asks
-  through the app's own permission flow: at start-up, from Settings' Retry, and
-  the first time a Cloud's bot needs apps and screen, when main starts computer
-  control again (at most every 10 minutes), which asks macOS for what it never
-  asked. So that first request can reach it, a Mac that lacks only those
-  permissions lends apps and screen, and the bot is told to have the person
-  allow both in System Settings → Privacy & Security. Windows needs nothing;
-  Linux lends them once its local control is on. Apps and screen follow
-  computer control as it starts and stops.
-- **Never the terminal**: no command runs on this computer for a Cloud, and a
-  bot that asks is told not to run it another way.
-
-Nothing asks for a confirmation: each bot's own approval level (Ask first or
-Just do it) governs what it does with this computer, as with any tool. The move
-to My Cloud lends each moved bot's own project folder with editing on top
-(`lendProjects`); while lending is paused, or before My Cloud is signed in, the
-move tries again later.
-
-### The menu bar
-
-While this computer is lent to a Cloud of the person's own, or paused with one
-to resume, a menu-bar item (the notification area on Windows) shows it
-(`electron/lending-indicator.mjs`):
-
-- **In use**: "Client A is using this Mac" beside the icon and as the menu's first
-  line, naming each Cloud running something on it or browsing through it (two
-  names at most beside the icon, then "3 Clouds"). Otherwise the line says which
-  Clouds can use it, and nothing shows beside the icon.
-- **Pause** stops every Cloud at once: each is told the computer is no longer
-  lent, a running action is cancelled (the computer-control transport is closed
-  and the screen lease released) and nothing more runs, after a restart too
-  (`automatic.paused` in `computer-sharing.json`). An action an app had already
-  started may still finish. While paused the item reads **Paused** with
-  **Resume**, which lends every Cloud again. Files keeps copying lent folders
-  while paused, but bots' changes made on My Cloud wait there until Resume, as
-  they do while this computer is away.
-- **See activity** opens this computer's own record of what its Clouds did here
-  (`electron/lending-activity-window.mjs`): every request, refused ones
-  included, and each website opened through its internet connection (**Opened a
-  website** with its name, once per site and outcome every 10 minutes, so a
-  page's many connections are one line). Main draws it as a static page in the
-  app's language (`electron/lending-words.mjs`, held equal to `src/locales` by a
-  test): every value escaped, no script, nothing loaded.
-
-There is no other control: no switch, no Which Cloud, no lending card in this
-computer's Settings or on a Cloud's page, no popup, and no lending step in a
-Cloud's welcome (its folders card says, in the app on a Cloud of the person's
-own, that the bots use this computer's files by themselves). A **Use my Mac**
-link in an older bot message shows as plain text. There are no analytics events
-for lending: product events are sent from the app's page, and the menu-bar item
-lives in main.
-
-While a Cloud can use it, the app opens at login, out of sight
-(`electron/open-at-login.mjs`: a login item on macOS and Windows, an XDG
-autostart entry on Linux; only one this app added is ever removed, and only such
-a launch starts hidden). Lending runs while the app is open: quitting it (or the
-computer sleeping) only pauses it until the app runs again. When this app's
-session on a Cloud has ended (unused for a month, or signed out there), main
-signs the window back in to that Cloud with a fresh one-time code, at most every
-15 minutes. A saved Cloud sign-in still being read at startup waits; it never
-counts as a sign-out.
-
-Each Cloud is checked at its own address and sleeps on a gate of its own, so one
-asleep never holds another's lending. My Cloud sleeps by the Admin's word and
-its own, on the gate this app shares with Files; another Cloud by its own "going
-to sleep" answer alone. The grant calls nothing itself: it reaches a Cloud the
-way any grant does, once that Cloud is awake, so a sleeping Cloud is never woken
-for it.
-
-### From the switches
-
-Someone who had said no before lending was automatic starts **Paused**
-(`saidNo`, read once from what `computer-sharing.json` kept): their own Off
-(`stopped.reason` "you", or an Off kept from before the reason was) or an
-unticked internet connection, for any Cloud of their own. Nobody is opened up
-after saying no: Resume is theirs, and a Resume is kept, so the old Off never
-pauses again. A **Not now** to the old popup was no Off: lending had only the
-internet connection then, and becomes automatic like anyone else's.
-
-Anyone else gets the automatic grant at the next start. A grant kept from before
-keeps its folders, gains the home folder, the internet connection and Chrome, and
-keeps a terminal it had: when every grant of one account lent the terminal and
-nobody said no to lending, **Let Clouds run commands on this Mac** starts on for
-that account and no other; a **Settings → Servers → Computer access** grant kept for
-a Cloud's own entry gives way to it. Only a kept grant that already lends what it
-should runs as it is: one that doesn't never connects, even for a moment.
-
-### The internet connection
-
-Every bot browser on a Cloud home already connects through its per-session
-SOCKS egress gate (`server/browser/egress/gate.ts`). While the owner's lent
-computer is online with the internet connection on, the gate has one more way
-out for the sites that turn away data centres, the computer itself
-(`server/device-links.ts`, offered by `server/browser/egress/registry.ts` for
-the names in `server/browser/egress/home-sites.ts`):
-
-- **The device link.** One WebSocket per lent computer, opened by the desktop's
-  main process to `wss://<My Cloud>/api/shared-computers/<id>/link` with the
-  same sign-in as the poll (the session cookie plus the grant's secret). It
-  carries open, data, credit, end and close frames for many TCP streams, each
-  side sending a stream's bytes only while the other has room (a 256 KiB
-  window per stream, at most 128 streams), with pings both ways: a link that
-  goes silent is dropped within seconds on either side. The Cloud advertises
-  `capabilities.deviceLink`; a desktop never dials an older Cloud. The path is
-  held like the poll, so it never keeps My Cloud awake, and the desktop never
-  dials it while My Cloud sleeps: it waits on the same power gate, and My
-  Cloud closes it as asleep (code 4001) the moment it agrees to sleep.
-- **What goes through it.** Reddit is refused first, as before. A name for
-  this machine (`localhost`) and every address that is not on the public
-  internet stay on the Cloud's own way, under its own policy (a bot's dev
-  server here still loads; the local network and metadata stay refused). Only
-  the sites that turn away data centres become a stream on the link, and the
-  computer resolves the name itself: Instagram (its 429), YouTube with its
-  videos, which play only for the address that asked for them
-  (`googlevideo.com`) and its player's check (`jnn-pa.googleapis.com`), and all
-  of Google in every country (sign-in refuses a data centre and search answers
-  it with "unusual traffic"; a Google account signed in from home stays on
-  home). Every other site loads straight from My Cloud: through a home
-  connection on the other side of the world it is much slower (measured in
-  PR #3201: in India with My Cloud in Frankfurt, BBC News took 58 s instead of
-  2 s and the Python docs 3.6 s instead of 0.6 s), and a site that answers a
-  data centre gains nothing from it. The list is My Cloud's alone, so a new
-  site needs only a Cloud update.
-- **The computer's own check** (`electron/device-egress.mjs`, with the one
-  address list both sides use, `electron/egress-addresses.mjs`): only ports 80
-  and 443; never loopback, the computer itself, the networks it sits on (its
-  own IPv6 prefix included), the private ranges (100.64/10 and fc00::/7
-  included), the home's own public address (the address My Cloud sees the link
-  come from), link-local, metadata or reserved addresses, after unwrapping NAT64
-  and 6to4; every address a name resolves to must pass, and it connects only to
-  the addresses it checked. A refusal reaches the bot's page-health line ("the
-  person's own computer or home network", "a port other than 80 and 443").
-- **When the computer is away**, those sites load from My Cloud's own
-  connection at once, a connection in flight ends with the link, and the bot
-  is told once, the first time one of them loads that way: "The person's Mac is
-  away, so sites that turn away data centres, such as Instagram, YouTube and
-  Google sign-in, load from My Cloud's own connection for now and may refuse…".
-
-### Your Chrome
-
-A browser profile set to **My Chrome** on My Cloud uses the person's own Chrome
-on the computer that lends it, over the same device link as the internet
-connection. Only a personal Cloud home advertises `capabilities.myChromeLink`,
-and a desktop sends its Chrome only to a Cloud that does; on a Team
-Cloud every profile stays built-in.
-
-- **One door per browser session** (`server/browser/lent-chrome.ts`). The
-  profile's agent-browser attaches to `ws://127.0.0.1:<port>/devtools/browser/<token>`,
-  a loopback listener with a 32-byte token. Each connection is checked against
-  who may use the lent computer, then opened as a Chrome stream on the newest
-  online link of a computer that lends Chrome. My Cloud never names a host or a
-  port for Chrome.
-- **The computer finds Chrome itself** (`electron/device-chrome.mjs`). It reads
-  `DevToolsActivePort` from Chrome's own data folders (Google Chrome, Chrome
-  Canary, Brave), connects to `127.0.0.1` on that port only, and lets through
-  one WebSocket upgrade to Chrome's browser or a page, with Chrome's own browser
-  path and Host and no Origin; anything else gets 403. It opens a Chrome stream
-  only while its own grant lends Chrome, whatever My Cloud asks.
-- **Who may use it**: exactly the turns that may use the lent computer, so the
-  person's own conversations and routines. agent-browser keeps its connection
-  across turns, so when a turn that may not lend takes the browser, the open
-  connection is dropped, and each of its calls gets "Someone else wrote in this
-  conversation, so it can't use your Chrome. Start a new conversation to use it."
-- **When it can't**, the call says why in one line the bot can pass on: the
-  computer is offline, no computer lends Chrome (open OpenMausBot there), Chrome
-  isn't open with remote debugging on, or Chrome did not accept the connection
-  (it may be waiting for Allow). It never falls back to the built-in browser,
-  whose sign-ins differ. A connection no bot has used for the desktop's browser
-  idle time (10 minutes by default) is closed, so Chrome stops showing it as
-  controlled; the next call connects again by itself.
-
-### How it is enforced
-
-On the Mac (the authority; `electron/computer-sharing.mjs`,
-`electron/shared-computer-access.mjs`):
-
-- **Outbound only.** Electron main dials the Cloud's HTTPS address with this
-  app's own session cookie and a per-grant 256-bit secret; there is no
-  listening port. The Cloud can only answer the Mac's long poll.
-- **Bound to the account and the machine.** The grant records the Cloud
-  account id and the machine's origin from the verified Cloud session
-  (`cloud-account.mjs`), and the Cloud home's environment id on first contact.
-  Signing out of OMB Cloud, another account signing in, the Cloud moving to
-  another machine, or another server answering at that address ends that
-  grant; a new one is made only once the verified session lists that Cloud as
-  the person's own again. A Cloud
-  sign-in that must be renewed pauses lending; a minute's re-verification or an
-  unreachable Admin does not. The server must say it is a Cloud home
-  (`cloudHome: true`) and this Mac's session there must be one of the owner's
-  admin devices. Lending never reads the maintainer flag and it never goes to
-  any other server.
-- **Every operation is checked against the grant here**, whatever the server
-  says: the folder must be lent, writes need a folder lent with editing, screen
-  actions need apps and screen. Jobs are validated against the server's schema first.
-- **What folders never reach**, read-only or not, and through the home folder
-  too: this app's data and grants, keys and sign-in stores (`~/.ssh`,
-  `~/.gnupg`, `~/.aws`, `~/.config/gh`, `~/.git-credentials`, `~/.gitconfig`,
-  `~/.claude`, `~/.codex`, `~/.cua`, keychains, browser profiles and cookies…;
-  on Windows also Chrome's, Edge's and Brave's user data, Mozilla, the
-  credential store and vault with their Protect keys), the shell start-up files
-  that often export API keys (`.profile`, `.bashrc`, `.bash_profile`,
-  `.bash_login`, `.bash_logout`, `.zshenv`, `.zprofile`, `.zshrc`, `.zlogin`,
-  `.zlogout`) and places that run code (`~/Library/LaunchAgents`, the Windows
-  Startup folder, PowerShell's profiles, git and fish configuration,
-  `~/.local/bin`), decided by filesystem identity rather than spelling. Writes
-  inside any `.git` directory are refused, and a write through the home folder
-  never reaches its hidden files and folders, `Library` or `AppData`.
-- **Screen tools and their arguments are an allow-list**
-  (`electron/lent-screen-tools.mjs`), derived from the local driver's own
-  schemas: observation and input only. The driver's tools that work outside
-  the screen (uploading a file by path, recording or replaying to a path,
-  configuration, installing, DevTools, killing a process, raising permission
-  prompts) are refused and hidden, and so is every argument that names a path,
-  a command line or a port: screenshots come back inline (never
-  `screenshot_out_file` or `debug_image_out`), `launch_app` takes no extra
-  arguments or inspector port and opens only `http`/`https` addresses, and a
-  cursor image cannot be read from a path. Any other argument is refused, and
-  the tool list the Cloud sees shows only what is accepted. Chrome's DevTools
-  are never reached through the screen: Chrome is lent only over the device
-  link, to the port this computer finds itself (see "Your Chrome" above).
-- **Activity log**: `lending-activity.jsonl` in the app's data folder, owner
-  only: time, action, folder and relative path, tool name or website name, and
-  whether it ran (a refused website keeps the computer's reason). Never contents, output or typed text. The app only ever appends to it
-  (never through a link); a full file of 500 entries is moved to
-  `lending-activity.jsonl.1` intact. No folder or screen argument reaches it.
-
-On the Cloud home (`server/shared-computers.ts`, `server/index.ts`):
-
-- Lending is on for every Cloud home, with no maintainer flag.
-- Only the owner's admin sessions (the Admin's signed pairing gives the
-  desktop one) can lend.
-- **What it remembers** (`server/lent-computers.ts`, `lent-computers.json`):
-  for each computer lent to it, by name, its platform (sent by desktops once
-  the Cloud advertises `lendingDetails`), how many folders it lends and whether
-  apps and screen or a terminal, when it was last online (written at most once
-  a minute) and last used (a page opened through its internet connection
-  counts, at most once a minute), and whether it stopped lending (paused there,
-  or signed out of MausBot Cloud). Never a
-  folder name or path, a secret or anything a job carried; kept 90 days.
-- **What bots are told.** `list_shared_computers` lists online computers with
-  their `device` ("PC", "Mac" or "computer"). When none is online it adds
-  `offline` and a `say` sentence naming the computer, its kind and when it was
-  last online ("Their PC ASH-PC is lent to My Cloud but offline (last online
-  …)"), or that it no longer lends itself (paused there, or signed out of
-  MausBot Cloud, and how to resume). The Cloud prompt names the
-  person's computer the same way and tells bots never to call a PC a Mac; an
-  offline `shared_computer` call says the same.
-- The server refuses operations outside the scopes the Mac registered before
-  queuing them, never retries an operation with an unknown outcome, and never
-  substitutes its own files for an offline Mac.
-- Only turns that provably act for the owner may use the lent Mac
-  (`server/cloud-lending.ts`): a conversation the owner started from one of
-  their own devices (a live session with admin scope), a room member's turn
-  answering the owner's own line in that room (the run that line started,
-  members it mentions included: `requestMessageId` on the room's turn
-  operation, checked per turn generation), a scheduled run of a
-  routine the owner wrote or last rewrote from one of those devices, or a run
-  of it the owner started by hand. Never a webhook-started run (its payload
-  comes from outside), a guest's conversation or routine (a device paired
-  with chat-only access), a routine someone else rewrote, a room's goal run or
-  any room turn no line of the owner's started, a turn a
-  teammate handed a bot (`coordinate_bots`), a local process on the Cloud, a
-  team Cloud's room, or anything the harness cannot trace. A conversation qualifies only while the owner opened
-  it and it holds nobody else's words, anywhere in it, before or during the
-  turn: one line from a guest, a teammate bot or a local process (sent,
-  queued, steered or handed in, or history imported with a move), one card
-  answer from someone else, one report of a routine the owner did not
-  write, or one message a webhook posted (a webhook that posts to chat
-  writes into the bot's Updates conversation), takes that conversation out
-  of lending for good, because a resumed session carries everything said in
-  it. A conversation a bot opened (a hand-off's work thread, one a bot
-  started itself, a Chief's notices) starts with that bot's words, which are
-  no line in it, so it is never the owner's either: not for the Mac, and not
-  for memory capture, the daily log, recall or the brief. A conversation a guest opened (and
-  named) is never the owner's, whoever writes in it. Whenever a computer is lent but a turn can't use it,
-  `list_shared_computers` answers why in `unavailable` and `say` (`cloudLendingRefusalText` in
-  `server/cloud-lending.ts`), and a refused `shared_computer` call answers the same, so the bot says the reason instead
-  of asking the person to open OpenMausBot: lines from before My Cloud carried the owner's name, someone else's words ("Someone else
-  wrote in this conversation, so it can't use your Mac. Start a new conversation to use it."; in a room, "Start a new
-  thread in this group chat to use it."), a webhook's or another's routine's post where no other person wrote, a changed memory, a room turn no line of the owner's started, or any other
-  turn that isn't provably the owner's. A move marks the lines and answers the owner wrote in a room as theirs, as in
-  a bot conversation (`stampOwner`, `stampHeld`); a room moved before that keeps naming nobody, so a new thread in it
-  is the way to use the Mac there. The owner's own edits count as theirs,
-  and the harness's own automatic card settlements do not count. A
-  routine stops being the owner's once anyone else edits it in any way (its
-  instructions, schedule, results destination or whether it is on); the
-  owner rewriting its instructions makes it theirs again. A bot whose
-  **Computer** setting is off cannot use lent apps and screen.
-- On a Cloud home only the owner's own devices (admin sessions) can answer a
-  card or remember an approval; a guest can read along but never answer.
-- A guest writes only in conversations it opened: it cannot send into the
-  owner's conversations (not even steer a line into a running turn), and it
-  renames, edits, compacts, switches versions of or deletes only its own. Only
-  the owner's own devices change a bot's name, title, description, standing
-  instructions or notifications (a guest keeps its picture and voice), rename
-  the owner's rooms or change their bulletin, change a conversation's approval
-  level or a bot's default model, or point a routine's results at the owner's
-  conversations. On a guest's device (or one of the owner's paired with
-  chat-only access) the composer of any other conversation is replaced by a
-  **New conversation** button.
-- A conversation a guest opened (or a guest's routine opened for its
-  results, or a room a guest opened) runs in Ask whatever the bot's own
-  level: no Auto reviewer, no Full access, no saved command answers for it
-  (judged by the conversation the turn runs in, a room's for a room turn,
-  never by whichever of the bot's conversations is active).
-  So does a room turn whose latest line from a person is a guest's, and any
-  work a guest's turn hands a teammate (`coordinate_bots`: work, a question
-  with `consult`, a room hand-off), however deep — every hand-off is an
-  assignment on the job runtime with the guest's outside lineage
-  (docs/runtime-contract.md §4, §9). Work or a question for a teammate runs
-  in the work thread the guest's conversation has with that teammate, opened
-  as the guest's, never in the owner's conversation with it, and is never
-  folded into a turn running there. Such a turn reaches no conversation or room
-  of the owner's at all (`retry_thread`, `post_to_room`, `coordinate_bots` with a
-  thread or a room, an answer to a question there), and what it writes to a
-  room's bulletin waits on the owner's card; of the server's own routes it reaches only those
-  `server/host/outside-fence.ts` lists. It works in a folder of its own, never the bot's
-  project folder the owner's conversations share, and a card it raises
-  never offers "always allow". One that already ran in another folder keeps
-  it, except a conversation a revoked session opened: it is unpinned at boot,
-  so its next turn works in a folder of its own.
-- A guest's turn gets no shell and reads nothing outside its own folder, on
-  every engine; an engine that cannot run it that way refuses it with one
-  line, before anything is recorded. On a personal Cloud that line speaks to
-  the owner, since only what came before is confined: for a routine, "This
-  routine was made before this update. Open it and save it once to run it
-  with full access."; for a conversation, that it is from before the Cloud
-  was only theirs, and to start a new one:
-
-  | Engine | A guest's turn |
-  | --- | --- |
-  | Claude Code (2.1.257 or newer) | `--restricted` and only Read, Grep, Glob, Edit, Write and WebSearch: no Bash, PowerShell or WebFetch; reads outside its folder refused outright (`blockReadsOutsideWorkingDirectories`, plus deny rules); the folder's own `.mcp.json` and settings never load; only the harness's own MCP tools are pre-allowed, every other call asks the owner. The session's `init` must list no command-running tool, or the turn stops. An older Claude Code refuses. |
-  | Codex / ChatGPT (codex-cli 0.159) | no environment (`environments: []`: no `exec_command`, `apply_patch` or `view_image`, and calls to them are refused), `features.shell_tool`, `unified_exec` and `view_image` off and web search disabled, proven in `config/read` before the turn starts, or the turn refuses. |
-  | API models (OpenAI-compatible, MiniMax, Mistral, Grok API) | no shell or file tool on the machine at all; only the harness's own agents tools are pre-allowed, every other MCP call asks the owner, and no owner's "Always allow this session" applies or is kept. |
-  | Cursor, Qwen, Gemini, Hermes, Pi, OpenCode, Grok Build, Antigravity, Droid, Kimi, a custom ACP engine, Boat | refused: each runs its own shell or reads files outside its folder without asking in Ask (Qwen, Gemini, OpenCode and Pi could have it switched off; that needs a separate process per guest conversation, a follow-up). |
-- Everything the owner's own devices write carries one owner identity, so
-  pairing a device again (or revoking one) never makes the owner's earlier
-  conversations someone else's. A guest never carries it.
-- On a Cloud home a request from the machine itself without a session (a
-  bot's shell, any local process) is only a service, whatever
-  `OMB_LOOPBACK_TRUST` says: it may reach the health check, the Slack
-  worker's guarded routes and a turn's own capability routes, decline a card
-  and nothing else. It cannot open a pairing window, change a setting or a
-  bot, answer a card or review memory.
-- A bot's memory and its other conversations reach every one of its turns,
-  so on a Cloud home nothing a conversation the owner did not write produces
-  flows into them (`server/lending-memory.ts`):
-  - memory capture skips such conversations, and they leave no line in the
-    bot's daily log;
-  - the bot's memory tools (`memory_update`, `memory_log`) refuse to write from
-    them;
-  - recall, the recent-work brief and, in a turn that may use the Mac, the
-    session tools (`session_search`, reading a message included, and `list_threads`) draw
-    only on conversations the owner alone opened and wrote in (a title is
-    words too);
-  - a change while such a turn runs flags the bot: to MEMORY.md, a topic file
-    or a daily log, or to an instruction file its engine reads in the folder
-    of a conversation the owner opened, the bot's own folder, or a folder
-    above one (`CLAUDE.md`, `AGENTS.md`, `.mcp.json`,
-    `.claude/settings.json`, skills, agents and commands). The folder of a
-    new conversation and the skill links the harness makes in it are not a
-    change: a link counts for nothing only when it is named for a skill and
-    points exactly where the harness would point it, a skill the bot has
-    switched on or one from the person's computer, and each switched-on skill's
-    `SKILL.md` counts once, whatever links to it. Anything else there is
-    judged as above, a real folder under a skill's name included. A skill
-    going away from a bot's own folder or a conversation's flags nothing: it
-    plants nothing, and the harness takes back links this way. A guest's own
-    folder is not watched: nothing there reaches the owner's turns. A skills,
-    agents or commands folder of more than 200 entries is judged as a whole
-    (any entry added or removed there, or an edit to an entry or its
-    `SKILL.md`, is a change). A working folder, `.claude` folder or skills
-    folder that is a link is read through it, and a folder that could not be
-    read is looked at again next time. A
-    line someone else steers into the owner's running turn makes that turn
-    count as theirs from then on. A link is judged by where it points, and
-    on a Cloud home memory is never read through one. A flagged bot's turns
-    cannot use the Mac, and the bot says "This bot's memory was changed in a
-    conversation you didn't write, so it can't use your Mac. In this bot's
-    settings, open Memory, check what changed and tap Mark reviewed, then ask
-    again here." A refusal checks every gate first and names only ways out
-    that work: where the conversation is refused too, it says to review and
-    then start a new conversation, never the new conversation alone. What a
-    refused call answers also tells the bot only the person can change this,
-    so it stops instead of trying again, opening a conversation itself or
-    handing the work on. When the turn answers the owner's own line, the refusal
-    raises a card in the chat instead (`server/host/lending-lifts.ts`): it
-    shows what changed, and **Allow** does what **Mark reviewed** does, for
-    exactly what it showed; if anything changed since, the card shows that and
-    waits. It is one card per line of theirs, written by the harness, answered
-    only on screen from one of the owner's own devices (not by a Live call, a
-    reaction or a process on the Cloud), and counted only while it records
-    the owner as its answerer; the request goes on by itself once they allow
-    it (in a group chat they ask again). **Not now** is
-    not asked again for that line. A webhook's or a routine's run, or a line a
-    bot handed in, never raises one. The same card lets the owner's own line
-    through the work a bot opened a conversation with, for that line alone:
-    work a bot hands into it after they allowed it (made or run then) shuts it
-    again. The same card lets a line of the owner's
-    through what a webhook or a routine they didn't write posted in that
-    conversation, for that line alone: another post, another person's words or
-    their next line shuts it again, what that turn says still feeds no memory, and if it changes the
-    bot's memory the bot is flagged as above. The bot's **Memory** panel shows the same notice,
-    lists the files that changed, and **Mark reviewed** (one click, only from one of the
-    owner's own devices, never a local process) accepts exactly what was
-    shown: if anything changed since, the panel shows it again. The owner's
-    own turns, their edits in the Memory panel (save, delete, undo), upkeep
-    on their conversations and the tidy-up never flag it. A damaged record
-    (`lending-memory.json`) flags every bot that existed when it was found
-    until the owner reviews each; a bot created later starts clean.
-- What this cannot stop: any conversation whose bot can run commands without
-  the owner approving (Auto or Full access, or a remembered command), a
-  guest's included, controls the Cloud machine: it can change other bots'
-  files and these records.
-- Not covered yet: a bot whose memory changed can still pass its words to
-  other bots through rooms and `coordinate_bots`, and a turn that may use
-  the Mac can still read room names and routine listings through its tools.
-
-### What the Cloud can see: `GET /api/shared-computers`
-
-For the Cloud UI and the next step (placing a step on the Mac, "Waiting for
-your Mac"). Client scope; on a Cloud home only the owner's own devices (admin
-sessions) see the lent Mac and a guest sees an empty list; elsewhere a session
-sees only its own person's. No secrets, no local paths.
-
-```json
-{ "computers": [ {
-  "id": "5b3e…", "name": "MacBook-Pro",
-  "online": true, "busy": false, "lastSeenAt": 1790000000000,
-  "scopes": { "folders": [ { "id": "9f1c…", "name": "Plans", "write": false } ], "terminal": false, "screen": true }
-} ] }
-```
-
-`online` is false once the Mac has not polled for 40 seconds (asleep, app
-closed, offline); the entry stays until lending is stopped, the Mac's session
-ends, or 14 days pass. The list is in memory and empty after the Cloud
-restarts, until the Mac registers again (within seconds of being online).
-Server code can call `sharedComputers.status(principal)` directly. Bots use
-the `list_shared_computers` and `shared_computer` tools.
+The Cloud is home: bots and chats live there, and they work on the Cloud's own
+places (its built-in browser and each bot's own sandboxed bot computer). A bot on a
+VPS works on that VPS. The person's own Mac or PC is never lent to a Cloud: the
+desktop app's computer control is for the bots that run on that computer. Old
+desktop files from computer sharing (`computer-sharing.json`, `lending-activity.jsonl`)
+and old Cloud files (`lent-computers.json`, `lending-memory.json`) are ignored.
 
 ## The image
 
@@ -1639,7 +1156,7 @@ judge a pending timer by a wall-clock time stored when it was set.
   engine or browser install, a provider sign-in) and no request in progress;
 - nobody used the home for 10 minutes (the Admin may ask for another window).
   A use is an authenticated request, except the event stream, `/api/health`,
-  `/api/sync/…`, `/api/shared-computers/…` and requests the page marks
+  `/api/sync/…` and requests the page marks
   `x-omb-background: 1` (its own polls). A request with no mark counts, so an
   older client can only keep a home awake, never let it sleep under someone;
 - work ended 2 minutes ago, the home has been awake 2 minutes, and the next
@@ -1686,9 +1203,8 @@ resume, someone's use, or 120 s (a sleep the Admin never carried out):
   waits until the page shows again, one per path (`src/state/api.ts`), so a
   hidden tab whose stream dropped (the laptop slept) can't wake a sleeping home
   every minute;
-- held `GET /api/sync/changes` and `POST /api/shared-computers/<id>/poll`
-  answer `503 {"error":"asleep"}` with `x-omb-cloud-power: asleep`, and new
-  ones get the same, so the desktop's Files sync and lending pause instead of
+- a held `GET /api/sync/changes` answers `503 {"error":"asleep"}` with `x-omb-cloud-power: asleep`, and new
+  ones get the same, so the desktop's Files sync pauses instead of
   waking it;
 - `cloud-sleep.json` in the data folder marks the sleep. A boot that finds it
   (the machine was stopped, not suspended) is a wake, not a startup: "run on
@@ -1807,7 +1323,7 @@ without them works as before; a malformed one is dropped, never the machine):
   renewsAt, endsAt, keptDays, team?}` without the Cloud's id, which stays in
   main. See [Cancel trial / Cancel plan](#cancel-trial--cancel-plan). And each
   Ready Cloud's `power` (additive, as `cloud.power`, for a plan that sleeps):
-  lending to another Cloud of the person's own, the window's version check
+  the window's version check
   and the quiet updater never reach a Cloud the Admin says is asleep, and go on
   at the next session read that says it is awake (`electron/cloud-account.mjs`
   `powerOf`).
@@ -2010,10 +1526,10 @@ A plan may let My Cloud sleep when idle (the Admin suspends its machine; Fly sta
 its proxy). The session's `cloud.power` (additive, only for such a plan) says `{state: "awake"|"asleep"|"waking", since,
 sleeps: true}`; `cloud.state` stays `ready`. Without `cloud.power`, nothing below happens (`electron/cloud-power.mjs`).
 
-- **Files sync and lending pause** while the session says `asleep`, and also at once when My Cloud answers a held poll
-  `503` with `x-omb-cloud-power: asleep` (it does just before it sleeps). They make no request to My Cloud then, not even
-  a retry, and the session is read every 15 s instead of 60 s while they wait. They resume when it says awake. Files and
-  lending show "My Cloud is asleep" meanwhile.
+- **Files sync pauses** while the session says `asleep`, and also at once when My Cloud answers a held poll
+  `503` with `x-omb-cloud-power: asleep` (it does just before it sleeps). It makes no request to My Cloud then, not even
+  a retry, and the session is read every 15 s instead of 60 s while they wait. They resume when it says awake. Files shows
+  "My Cloud is asleep" meanwhile.
 - **Opening My Cloud while it sleeps** asks the Admin to wake it first (`POST /api/cloud/desktop/wake`), shows "Waking
   your Cloud…" after 1.5 s, and gives its sign-in check 30 s instead of 5 (a stopped machine takes about 20 s), so a slow
   wake never causes a needless new pairing.
@@ -2230,9 +1746,6 @@ tests.
   engine. Every model call uses the person's own sign-in or key.
 - A volume binds to one machine and is never adopted by another.
 - Each customer's app lives in its own Fly private network.
-- A lent Mac is reached only through its own outbound connection, within what
-  it lends by itself, which the Mac itself enforces (see "This computer works
-  for your Clouds").
 
 ## Published image
 

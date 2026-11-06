@@ -15,7 +15,6 @@ import type { SkillShareRecord } from "../../shared/skill-request";
 import { cardAutomation } from "@/lib/automations";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { yourComputerAsk } from "@/lib/your-computer";
-import { computerAskWords } from "@/lib/computer-ask";
 import { TriggerCard } from "./TriggerCard";
 import { EventChip, EventLabel, EventLine } from "./EventLine";
 import { GrokIcon, type GrokIconName } from "./GrokIcon";
@@ -76,7 +75,7 @@ const PROFILE_FIELD_LABEL: Record<ProfileRequestField, LocaleKey> = {
 const staleRoutineCard = (card: OptionCardData) => Boolean(card.routineRequest && !card.answered);
 
 /** The card brings its own question and answer words (its title and first option): team setup and MCP server changes. */
-export const titledCard = (card: OptionCardData | undefined) => Boolean(card?.teamSetupRequest || card?.mcpRequest || card?.lendingLift);
+export const titledCard = (card: OptionCardData | undefined) => Boolean(card?.teamSetupRequest || card?.mcpRequest);
 
 export function approvalCardOutcome(card: OptionCardData): string | undefined {
   const isProposal = Boolean(card.routineRequest || card.skillRequest || card.profileRequest || card.modelRequest || titledCard(card));
@@ -563,17 +562,6 @@ export function ApprovalCard({
         })
     : undefined;
 
-  const turnOn = computerAskWords(card, bot?.name ?? t("approval.someone"));
-  if (turnOn) {
-    const state = card.computerAsk?.state;
-    const waiting = state === "asking" || state === "failed";
-    return (
-      <div data-computer-ask={state} className="w-full">
-        <CompactApprovalRow header={turnOn.line} summary={waiting ? turnOn.reason : undefined} detail="" showDetailInline={false} outcome={turnOn.outcome}
-          allowed={state === "on" || state === "turning-on"} byVoice={byVoice} waiting={waiting} answeredBelow={waiting && !card.dismissed} />
-      </div>
-    );
-  }
   if (!isRoutineRequest && !isSkillRequest && !isProfileRequest && !titled && !card.modelRequest) {
     const waiting = !settled && !expired;
     const ask = yourComputerAsk(card, bot?.name ?? t("approval.someone"));

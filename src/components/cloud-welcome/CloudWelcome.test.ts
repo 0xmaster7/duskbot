@@ -258,16 +258,6 @@ describe("CloudWelcome", () => {
     expect(checks).toEqual(["claude", "codex", "codex"]);
   });
 
-  it("in the app on a Cloud of the person's own, the folders card says this computer's files are used by themselves, with nothing to press", async () => {
-    fixture.state.config.onboarding = { ...EMPTY_ONBOARDING, hintsSeen: [welcomeStepHint("bring"), welcomeStepHint("engine")] };
-    fixture.plan = { status: "paid", tier: "pro", home: true };
-    render();
-    await vi.waitFor(() => expect(text()).toContain("Welcome to Studio Cloud"));
-    const folders = host.querySelector('[data-welcome-files="folders"]')!;
-    expect(folders.textContent).toContain("Bots on Studio Cloud use the files on this computer by themselves while it's awake and MausBot is open. There's nothing to set up.");
-    expect(folders.querySelector("button")).toBeNull();
-  });
-
   it("from a browser, or on a Team Cloud, the folders card says the desktop app shares folders through Files", async () => {
     fixture.state.config.onboarding = { ...EMPTY_ONBOARDING, hintsSeen: [welcomeStepHint("bring"), welcomeStepHint("engine")] };
     const desktopText = "Bots on Studio Cloud can read folders you share from your computer, even when it's off. Share them from the desktop app, under Files.";

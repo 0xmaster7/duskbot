@@ -23,7 +23,7 @@ export function createInternalThreadRoutes(deps: {
   from: BotRecord;
   fromThreadId: string;
   ownsThread(botId: string, threadId: string): boolean;
-  /** A turn that may use the lent Mac sees only owner-only conversations: a title is words too. */
+  /** A turn that acts for the owner sees only owner-only conversations: a title is words too. */
   shown(threadId: string): boolean;
   threadBusy(botId: string, threadId: string): boolean;
   queuedThreadPosition(botId: string, threadId: string): number | null;

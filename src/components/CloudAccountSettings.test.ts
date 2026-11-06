@@ -283,14 +283,6 @@ it("while the bots move to My Cloud, says how the move goes, with nothing to ope
   f.values = []; view = await moving();
   all(view.html, [">Open the Cloud</button>", "Switch back to This computer", "The Cloud is ready"]); none(view.html, ["data-cloud-moving", "Moving"]);
 });
-it("this computer's Settings has no lending card: no switch, no Which Cloud, nothing to choose, whatever the Cloud's state", async () => {
-  for (const machine of [{ status: "ready", origin }, { status: "provisioning" }, { status: "stopped", origin }] as const) {
-    f.values = [];
-    await ready({ ...pro, machine });
-    const html = render().html;
-    none(html, ["data-cloud-lending", "data-lending-for", "data-lend-this-computer", "Let my bots use this", "Which Cloud", "role=\"switch\""]);
-  }
-});
 it("says why a ready Cloud can't be reached when the Admin knows, with no button that can't reach it", async () => {
   const since = Date.UTC(2026, 9, 16, 9);
   await ready({ ...pro, machine: { status: "ready", origin, unreachable: { cause: "host", since } } });
@@ -461,8 +453,6 @@ it("on the Cloud itself, opens this Cloud's phone pairing directly; never where 
   const onCloud = render({ cloudHome: true, onConnectPhone }).nodes as unknown as Array<ReactElement<{ onConnectPhone?: () => void }>>;
   const card = onCloud.find(node => node.type === CloudPlanOnCloud);
   expect(card!.props.onConnectPhone).toBe(onConnectPhone);
-  const cloudPage = render({ cloudHome: true, onConnectPhone }).html;
-  for (const lending of ["data-lent-computers", "data-lend-this-computer", "Computers shared with the Cloud", "Let my bots use this", "role=\"switch\""]) expect(cloudPage).not.toContain(lending);
   expect(view({}).html).not.toContain(PHONE);
   plan.state.mockRejectedValueOnce(new Error("cloud-plan:state is only available in this app's window")); f.values = []; view({ onConnectPhone }); f.effects[0](); await flush();
   expect(view({ onConnectPhone }).nodes.some(node => node.type === "button")).toBe(false);

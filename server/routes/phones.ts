@@ -3,7 +3,6 @@
 import { phoneJobOutcome, type PhoneJobs } from "../phones/jobs.ts";
 import { phoneRegistration, type PhoneRegistry } from "../phones/registry.ts";
 import type { RequestAuth } from "../request-auth.ts";
-import { responseGone } from "../shared-computers.ts";
 import { PASS, type RouteContext, type RouteHandler } from "./table.ts";
 
 const SELF_ONLY = "Only a paired phone can register its apps, and only for itself.";
@@ -18,7 +17,7 @@ export function phoneKey(auth: RequestAuth): string | null {
 
 /** Long polls are held open on purpose, so the idle-timeout check exempts them. */
 export function isLongPollPath(path: string): boolean {
-  return path.startsWith("/api/shared-computers/") || path === "/api/phones/self/jobs";
+  return path === "/api/phones/self/jobs";
 }
 
 export interface PhoneRouteDeps {
@@ -96,4 +95,11 @@ export function createPhoneRoutes(deps: PhoneRouteDeps): RouteHandler {
     }
     return json(res, 404, { error: "not found" });
   };
+}
+
+/** Aborts when the client goes away before the response ends. */
+function responseGone(res: { once(event: "close", listener: () => void): unknown; readonly writableEnded: boolean }): AbortSignal {
+  const gone = new AbortController();
+  res.once("close", () => { if (!res.writableEnded) gone.abort(); });
+  return gone.signal;
 }

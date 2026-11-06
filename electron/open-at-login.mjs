@@ -1,6 +1,5 @@
-// While this computer is lent, the app starts with the person's session, out of sight, so My Cloud's bots can use it
-// again after a restart without anyone opening it. Lending only ever removes a login item it added, and only such a
-// launch starts hidden: one the person set up themselves, here or in the system's settings, opens the window.
+// The person's own login item, which opens the window. Lending a computer to a Cloud once added a hidden one of its own;
+// `follow(false)` at startup removes only such an item, and only such a launch starts hidden.
 import fs from "node:fs";
 import path from "node:path";
 

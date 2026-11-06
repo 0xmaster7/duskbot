@@ -80,18 +80,6 @@ describe("Shared with the Cloud", () => {
     expect(bridge.answerDeletes).toHaveBeenLastCalledWith("f-confirm-deletes", true);
   });
 
-  it("says in its one line, for a week, when a bot's change met the person's own: both kept, and where", async () => {
-    const kept = [{ path: "todo.md", beside: "todo (new from My Cloud, 27 Oct 2026).md", at: Date.now() - 60_000 }];
-    await mount({ ...base, shared: [folder("synced", { lent: true, kept })] });
-    expect(row("synced").textContent).toContain("Kept both versions of “todo.md”: yours, and the bot's as “todo (new from My Cloud, 27 Oct 2026).md”.");
-    expect(row("synced").textContent).not.toContain("Up to date");
-    await mount({ ...base, shared: [folder("synced", { lent: true, kept: [{ ...kept[0]!, at: Date.now() - 8 * 24 * 60 * 60_000 }] })] });
-    expect(row("synced").textContent).toContain("Up to date");
-    // Something to do comes first.
-    await mount({ ...base, shared: [folder("missing", { lent: true, kept })] });
-    expect(row("missing").textContent).toContain("Can't find this folder. Was it moved?");
-  });
-
   it("finds a moved folder, or stops sharing it after saying what that does", async () => {
     bridge.locate.mockResolvedValue({ ...base, shared: [folder("missing")] });
     await mount({ ...base, shared: [folder("missing")] });

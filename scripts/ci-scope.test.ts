@@ -123,7 +123,7 @@ describe("CI path scope", () => {
     expect(selectCiScope([file])).toEqual({ areas: ["server"], checks: checks("server") });
   });
 
-  it.each([["electron/cua.mjs"], ["electron/shared-computer-access.mjs"], ["electron/capabilities.cjs"], ["electron/screen-status.mjs"]])(
+  it.each([["electron/cua.mjs"], ["electron/capabilities.cjs"], ["electron/paced-typing.mjs"]])(
     "runs the Windows computer-control smokes too for %j, which they start as the installed app does", (file) => {
       expect(selectCiScope([file])).toEqual({ areas: ["windows-computer-control"], checks: checks("server", "windows-computer-control") });
       expect(selectCiScope([file]).checks).toContain("windows-cua");

@@ -1,9 +1,9 @@
 // A conversation that comes to the person's own Cloud from their computer, over the owner's own session: the lines its
-// owner wrote there name nobody, and on a Cloud home a conversation with a line that names nobody can never use the lent
-// Mac or feed memory (cloud-lending.ts), so each such line, and each card answered there, is stamped as the owner's.
+// owner wrote there name nobody, and on a Cloud home a conversation with a line that names nobody can never act for the
+// owner or feed memory (cloud-owner-turns.ts), so each such line, and each card answered there, is stamped as the owner's.
 import type { CardAnswerer, WireMessage as Message } from "../shared/wire.ts";
 import { BLOCK_OPEN as APP_EVENT_DATA } from "./app-events.ts";
-import { answeredByPerson } from "./cloud-lending.ts";
+import { answeredByPerson } from "./cloud-owner-turns.ts";
 import { routinePrompt } from "./routine-execution.ts";
 import { WEBHOOK_EVENT_DATA } from "./webhooks.ts";
 

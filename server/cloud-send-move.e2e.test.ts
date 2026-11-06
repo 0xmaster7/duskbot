@@ -2,15 +2,12 @@
 // (scripts/testing/cloud-send-fixture.ts) with main's own wiring between them, the move run and checked as main runs and
 // checks it, the connected-apps service with a fake Composio behind it and a fake sign-in server for an MCP server's own
 // account. Disposable homes; no network.
-import { randomBytes, randomUUID } from "node:crypto";
-import { spawn, type ChildProcess } from "node:child_process";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { randomBytes } from "node:crypto";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createInterface } from "node:readline";
 import { afterAll, beforeAll, expect, it } from "vitest";
-import { createComputerSharing } from "../electron/computer-sharing.mjs";
 import { itemKey } from "../electron/cloud-send-parts.mjs";
 import { launchCloudSendFixture, type CloudSendFixture } from "../scripts/testing/cloud-send-fixture.ts";
 import { startBrokerFake, type BrokerFake } from "./testing/broker-fake.ts";
@@ -35,7 +32,6 @@ let tokenEndpoint = "";
 let scratch = "";
 /** While it is missing, a turn on My Cloud waits; a test removes it to hold one there. */
 let release = "";
-const proxies: ChildProcess[] = [];
 
 beforeAll(async () => {
   scratch = mkdtempSync(join(tmpdir(), "omb-cloud-move-"));
@@ -60,7 +56,6 @@ if (process.argv[2] !== "--version") { process.env.FAKE_CLAUDE_DUMP = ${JSON.str
   tokenEndpoint = `http://127.0.0.1:${(signIns.address() as { port: number }).port}/token`;
 }, hostTimeout(90_000));
 afterAll(async () => {
-  for (const proxy of proxies) proxy.kill();
   await fx?.close();
   await broker?.close();
   await new Promise((resolve) => signIns?.close(resolve));
@@ -262,69 +257,21 @@ it("a move run again changes nothing on My Cloud, and its check still finds ever
   expect(everythingArrived(await fx.check())).toBe(true);
 }, hostTimeout(300_000));
 
-/** The latest turn on My Cloud of a bot in a conversation: its agents tools, as the engine got them. */
-async function agentsFor(botId: string, threadId: string, seen: Set<string>) {
-  const agents = (await turnDump(botId, threadId, seen)).mcpConfig!.mcpServers!.agents!;
-  const proxy = spawn(agents.command, agents.args, { env: { PATH: process.env.PATH, HOME: scratch, ...agents.env }, stdio: ["pipe", "pipe", "pipe"] });
-  proxies.push(proxy);
-  const replies = new Map<number, (value: any) => void>();
-  createInterface({ input: proxy.stdout! }).on("line", (line) => { const message = JSON.parse(line); replies.get(message.id)?.(message.result); replies.delete(message.id); });
-  let next = 0;
-  const request = (method: string, params: unknown): Promise<any> => new Promise((resolve) => {
-    const id = ++next; replies.set(id, resolve);
-    proxy.stdin!.write(`${JSON.stringify({ jsonrpc: "2.0", id, method, params })}\n`);
-  });
-  await request("initialize", { protocolVersion: "2024-11-05" });
-  return (name: string, args: unknown = {}) => request("tools/call", { name, arguments: args });
-}
-
-it("a moved conversation may use the lent Mac and feeds its bot's memory on My Cloud", async () => {
-  const folderPath = realpathSync(mkdtempSync(join(tmpdir(), "omb-moved-lent-")));
-  writeFileSync(join(folderPath, "plan.md"), "from the Mac");
-  const env = { id: "my-cloud", name: "My Cloud", origin: fx.cloudBase };
-  const connector = createComputerSharing({
-    file: join(scratch, "desktop-profile", "computer-sharing.json"), environments: () => [env], cuaConnection: async () => null, enabled: async () => false,
-    cloud: () => ({ status: "connected", accountId: "acct_fixture", origin: fx.cloudBase }), home: join(scratch, "mac-home"),
-    fetch: (url: string, init: RequestInit) => fetch(url, { ...init, headers: { ...init.headers as Record<string, string>, ...fx.edge, authorization: `Bearer ${fx.owner}` } }),
-  });
+it("a moved conversation feeds its bot's memory on My Cloud", async () => {
+  // Pip's conversation came with the move: its owner goes on there, and once the turn ends it feeds the bot's memory there,
+  // as only the owner's own conversations do.
+  rmSync(release, { force: true });
   try {
-    const folder = { id: randomUUID(), name: "Plans", path: folderPath, write: false };
-    await connector.saveCloud(env, { folders: [folder], screen: false });
-    await expect.poll(() => connector.cloudState(env).connected, { timeout: 10_000 }).toBe(true);
-    const lent = (await fx.onCloud("GET", "/api/shared-computers")).body.computers;
-    expect(lent).toHaveLength(1);
-
-    // Pip's conversation came with the move: its owner goes on there, and the turn may read the lent Mac.
-    rmSync(release, { force: true });
     const seen = new Set(readdirSync(join(scratch, "turns")));
-    expect((await fx.onCloud("POST", `/api/bots/${pip.id}/messages`, { text: "Read plan.md from my Mac.", threadId: pip.threadId })).status).toBe(202);
-    const call = await agentsFor(pip.id, pip.threadId, seen);
-    const listing = JSON.parse((await call("list_shared_computers")).content[0].text);
-    expect(listing.unavailable).toBeUndefined();
-    expect(listing.computers.map((entry: { id: string }) => entry.id)).toEqual([lent[0].id]);
-    const read = await call("shared_computer", { computer_id: lent[0].id, folder_id: folder.id, action: "read_file", path: "plan.md" });
-    expect(JSON.parse(read.content[0].text).content).toBe("from the Mac");
-
-    // ...and once it ends, it feeds the bot's memory there, as only the owner's own conversations do.
+    expect((await fx.onCloud("POST", `/api/bots/${pip.id}/messages`, { text: "Note what we planned.", threadId: pip.threadId })).status).toBe(202);
+    await turnDump(pip.id, pip.threadId, seen);
     writeFileSync(release, "");
     const logs = async () => ((await fx.onCloud("GET", `/api/bots/${pip.id}/memory`)).body?.logs ?? []) as Array<{ path: string }>;
     await expect.poll(async () => (await logs()).length, { timeout: 30_000, interval: 250 }).toBeGreaterThan(0);
     const today = (await fx.onCloud("GET", `/api/bots/${pip.id}/memory/file?path=${encodeURIComponent((await logs())[0]!.path)}`)).body.text as string;
     expect(today.trim().length).toBeGreaterThan(0);
-
-    // Kai's conversation, there before My Cloud kept its owner's lines as theirs, may use the lent Mac too.
-    rmSync(release, { force: true });
-    const seenBefore = new Set(readdirSync(join(scratch, "turns")));
-    expect((await fx.onCloud("POST", `/api/bots/${kai.id}/messages`, { text: "Read plan.md from my Mac.", threadId: kai.threadId })).status).toBe(202);
-    const kaiCall = await agentsFor(kai.id, kai.threadId, seenBefore);
-    const kaiListing = JSON.parse((await kaiCall("list_shared_computers")).content[0].text);
-    expect(kaiListing.unavailable).toBeUndefined();
-    expect(kaiListing.computers.map((entry: { id: string }) => entry.id)).toEqual([lent[0].id]);
-    writeFileSync(release, "");
   } finally {
-    connector.close();
     writeFileSync(release, "");
-    rmSync(folderPath, { recursive: true, force: true });
   }
 }, hostTimeout(180_000));
 

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { DATA_DIR } from "./config.ts";
-import { ownerOnlyConversation } from "./cloud-lending.ts";
+import { ownerOnlyConversation } from "./cloud-owner-turns.ts";
 import { stampOwner } from "./cloud-owner-lines.ts";
 import {
   DREAM_CONVERSATION_BYTES, DREAM_MARKER, DREAM_TOTAL_BYTES, MAX_IDEAS, MAX_LEARNED,

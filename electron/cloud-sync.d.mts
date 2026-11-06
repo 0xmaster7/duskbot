@@ -10,10 +10,6 @@ export type SharedFolderStatus = "copying" | "synced" | "waiting" | "confirm-del
 export interface SharedFolder {
   id: string; name: string; pcPath: string; status: SharedFolderStatus;
   files: number; done: number; waitingBytes: number; pendingDeletes: number; problem: string | null;
-  /** A folder lent to My Cloud: bots use it live while this computer is on, and this copy while it is away. */
-  lent?: boolean;
-  /** Bots' changes from while this computer was away that met a change of the person's: theirs kept, the bot's beside it. */
-  kept?: Array<{ path: string; beside: string; at: number }>;
 }
 export interface CloudFilesState {
   /** "unavailable": no Ready My Cloud for this app; "signed-out": sign in again; "offline": My Cloud can't be reached;

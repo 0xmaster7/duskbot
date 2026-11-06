@@ -30,7 +30,7 @@ export const AREA_CHECKS = {
   "script-tests": ["linux-tests", "host-tests", "ui-smoke", "browser-identity"],
   server: SERVER_CHECKS,
   desktop: SERVER_CHECKS,
-  // The Windows CUA job starts these the way the installed app does, then lends the PC's screen through them.
+  // The Windows CUA job starts these the way the installed app does.
   "windows-computer-control": [...SERVER_CHECKS, "windows-cua"],
   "control-plane": ["control-plane"],
   everything: EVERY_CHECK,
@@ -86,7 +86,7 @@ const AREAS = [
   [/^src\/locales\/(?:(?!en\.json$)[^/]+\.json|[^/]+\.test\.ts)$/, "locales"],
   [/^(?:src|public)\/|^[^/]+-preview\.html$/, "web"],
   [/^(?:server|shared|enterprise|companion|evals|skills|deploy|cloudflare\/composio-broker)\/|^(?:Dockerfile|\.dockerignore|compose\.yaml)$/, "server"],
-  [/^electron\/(?:cua|cua-failure|cua-connection|capabilities|screen-status|shared-cua-connection|shared-computer-access|lent-screen-tools|lent-screen-failures|paced-typing)\.[cm]js$/, "windows-computer-control"],
+  [/^electron\/(?:cua|cua-failure|cua-connection|capabilities|paced-typing)\.[cm]js$/, "windows-computer-control"],
   [/^(?:electron|build)\/|^(?:electron-builder\.yml|index\.html|rail\.html)$/, "desktop"],
   [/^cloudflare\/control-plane\//, "control-plane"],
 ];

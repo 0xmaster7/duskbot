@@ -1,8 +1,8 @@
 // On a Cloud home a routine runs at the level of the conversation it was made in. A routine a bot made where only the
-// owner spoke is the owner's, so its runs keep the bot's own level. Lending and memory also need that conversation to
+// owner spoke is the owner's, so its runs keep the bot's own level. The owner's turns and memory also need that conversation to
 // hold no report of anyone else's routine (the routine fingerprint).
 import type { RoutineRequestCardData } from "../shared/routine-request.ts";
-import { answeredByPerson, type ownerOnlyConversation } from "./cloud-lending.ts";
+import { answeredByPerson, type ownerOnlyConversation } from "./cloud-owner-turns.ts";
 import type { asSchedule } from "./routine-requests.ts";
 
 type Card = Parameters<typeof ownerOnlyConversation>[0][number]["card"] & { routineRequest?: RoutineRequestCardData };
@@ -25,7 +25,7 @@ export interface OwnersRoutinesInput {
   recorded(id: string): boolean;
   thread(threadId: string): readonly Line[];
   starters(threadId: string): readonly (string | undefined)[];
-  /** A key proven the owner's, as lending and memory require. */
+  /** A key proven the owner's, as the owner's turns and memory require. */
   ownerPerson(person: string | undefined): boolean;
   reportFromOthers(line: Line): boolean;
   cardAnswerer(card: NonNullable<Card>): string | undefined;

@@ -85,11 +85,6 @@ describe("the home's idle verdict", () => {
     const done = h.power.begin("/api/sync/folders/f1/uploads");
     expect(h.power.begin("/api/sync/changes")).toBeTypeOf("function");
     h.power.begin("/api/events");
-    h.power.begin("/api/shared-computers/abc/poll");
-    // A lent computer's device link stays open by design, like its poll: it never keeps the home awake.
-    h.power.begin("/api/shared-computers/abc/link");
-    // Its asks poll stays open the same way, for as long as the computer is lent.
-    h.power.begin("/api/shared-computers/asks");
     expect(h.power.report().busy).toEqual(["maintenance"]);
     done(); done();
     expect(h.power.report().busy).toEqual(["recent-work"]);
@@ -167,10 +162,10 @@ describe("what woke the home", () => {
   });
 
   it("names each kind of request by its path alone", () => {
-    const paths = ["/api/events", "/api/sync/changes", "/api/shared-computers/abc/poll", "/.well-known/openmausbot/environment", "/api/phones/self/jobs",
+    const paths = ["/api/events", "/api/sync/changes", "/.well-known/openmausbot/environment", "/api/phones/self/jobs",
       "/api/presence/active", "/api/auth/session", "/api/auth/pair", "/pair", "/api/cloud/pairing", "/api/health", "/hooks", "/mcp-oauth/callback",
       "/api/bots/b1/read", "/", "/assets/index.js"];
-    expect(paths.map(wakeCode)).toEqual(["events", "sync", "lending", "version", "phone", "presence", "session", "pair", "pair", "admin", "health", "webhook",
+    expect(paths.map(wakeCode)).toEqual(["events", "sync", "version", "phone", "presence", "session", "pair", "pair", "admin", "health", "webhook",
       "sign-in", "api", "page", "page"]);
   });
 });

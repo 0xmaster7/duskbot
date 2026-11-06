@@ -4,7 +4,7 @@ import { freshLook } from "../bot-look.ts";
 import { validateBotCwd } from "../bot-cwd.ts";
 import { parseBotProfilePatch } from "../bot-profile.ts";
 import { parseVisibility } from "../bot-visibility.ts";
-import type { createCloudRoutineAuthors } from "../cloud-lending.ts";
+import type { createCloudRoutineAuthors } from "../cloud-owner-turns.ts";
 import type { AppConfig } from "../config.ts";
 import type { ModelSelection } from "../contracts.ts";
 import type { hostedModelPolicy } from "../hosted-models.ts";

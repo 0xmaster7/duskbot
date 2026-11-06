@@ -61,11 +61,9 @@ export function WelcomeEngine({ name, headingRef, onFinish }: { name: string; he
   </section>;
 }
 
-/** "folders": in the app on a Cloud of the person's own, this computer is lent to it by itself; from a browser or on a
- * Team Cloud, the desktop app shares folders through Files. */
+/** "folders": the desktop app shares folders through Files. */
 export function WelcomeFiles({ name, headingRef, onFinish }: { name: string; headingRef: Ref<HTMLHeadingElement>; onFinish: () => void }) {
-  const { state, dispatch } = useStore();
-  const lent = Boolean(window.ogb?.cloudPlan) && !state.config?.team;
+  const { dispatch } = useStore();
   const card = (id: string, icon: typeof Plug, title: string, body: string, action?: { label: string; run: () => void }) =>
     <div data-welcome-files={id} className={cn(CARD, CARD_IDLE)}>
       <CardIcon icon={icon} />
@@ -76,7 +74,7 @@ export function WelcomeFiles({ name, headingRef, onFinish }: { name: string; hea
   return <section aria-labelledby="cloud-welcome-step" data-welcome-step="files" className="flex flex-col gap-5">
     <StepHeading headingRef={headingRef} title={t("cloudWelcome.files.title")} aside={t("cloudWelcome.files.optional")} sub={t("cloudWelcome.files.sub")} />
     <div className="grid gap-3 @lg/step:grid-cols-2">
-      {card("folders", FolderOpen, t("cloudWelcome.files.folders"), t(lent ? "cloudWelcome.files.foldersLent" : "cloudWelcome.files.foldersDesktop", { name }))}
+      {card("folders", FolderOpen, t("cloudWelcome.files.folders"), t("cloudWelcome.files.foldersDesktop", { name }))}
       {card("apps", Plug, t("cloudWelcome.files.apps"), t("cloudWelcome.files.appsHint"),
         { label: t("cloudWelcome.files.appsAction"), run: () => dispatch({ type: "togglePlugins", open: true, surface: "apps" }) })}
     </div>

@@ -1,5 +1,5 @@
 // Where an automation's runs report: the chat a routine chose, else the bot's main chat. On a Cloud home a chat the
-// owner writes in never gets words they did not choose, so a Mac they lend stays theirs there: a routine someone else
+// owner writes in never gets words they did not choose, so it stays theirs: a routine someone else
 // wrote, and every outside event, report into a chat of their own.
 import { CLOUD_OUTSIDE_KEY } from "./cloud-sharing.ts";
 import type { Routine, RoutineRun } from "./routines.ts";

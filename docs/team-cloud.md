@@ -114,7 +114,7 @@ process restarts without what is now blocked.
   and every "Managed by" screen already reads. Nothing restricted: no object at all, as on a team with no rules. Admins are not exempt.
 - **What passes through it.** Every turn start, direct or in a group chat, whoever or whatever asked: a person, a routine, a
   webhook, another bot, a retry, a backup engine and every side job meet `policyModelRefusal`. Every computer claim meets
-  `bindTurnComputer`, and a lent computer's request is refused too (nobody's Mac serves a team anyway). A turn's MCP servers
+  `bindTurnComputer`. A turn's MCP servers
   all come through `mcpServersHost.mounted`, which drops what isn't allowed, whoever connected it; adding or signing in to one is
   refused. `allowedMcpServers: "team"` is the plain form: admins add servers as ever, a bot can't add one, a bot's own doesn't
   start and an engine's own user settings aren't read. Every connected-apps tool crosses `POST /api/internal/connectors/mcp`, which refuses a tool of an app that isn't
@@ -138,7 +138,7 @@ the usual Cloud home contract (`OMB_CLOUD_MACHINE_ID`, `OMB_CLOUD_ADMIN_URL`, `O
 `/api/cloud/power`, `/api/cloud/box`), the launcher, the box, the broker, `OMB_CLOUD_EXPORT_ONLY=1`.
 
 What the role turns off: the personal settlement (`cloud-owner.ts`: no session is revoked at boot, no owner key, no
-earlier-owner adoption), lending a Mac (nobody's Mac serves a team), the guest confinement of a My Cloud (a member's turn
+earlier-owner adoption), the guest confinement of a My Cloud (a member's turn
 runs at the bot's own level inside the box; only what came in from outside, a webhook, runs confined), and the "only the
 owner" card rule (whoever started a conversation, or an Admin, answers its cards, as on a hosted workspace).
 

@@ -301,7 +301,6 @@ describe("a team bot shared with a level per person", () => {
       ["POST", "/api/internal/browser/mcp", {}],
       ["POST", "/api/internal/connectors/mcp", {}],
       ["POST", "/api/internal/phone/claim", {}],
-      ["GET", "/api/internal/shared-computers"],
       ["POST", "/api/internal/vm-exec", { command: "id" }],
       ["POST", "/api/internal/team-setup-requests", {}],
     ];

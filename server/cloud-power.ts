@@ -56,15 +56,15 @@ const TICK_MS = 5_000, RESUME_JUMP_MS = 15_000;
 export const WOKE_BY_MS = 30_000;
 /** Each kind of request, as a fixed code, by its path: never more of the request than that. Anything else is a page. */
 const WAKE_CODES: readonly [RegExp, string][] = [
-  [/^\/api\/events$/, "events"], [/^\/api\/sync(\/|$)/, "sync"], [/^\/api\/shared-computers(\/|$)/, "lending"],
+  [/^\/api\/events$/, "events"], [/^\/api\/sync(\/|$)/, "sync"],
   [/^\/\.well-known\/openmausbot\/environment$/, "version"], [/^\/api\/phones(\/|$)/, "phone"], [/^\/api\/presence(\/|$)/, "presence"],
   [/^\/api\/auth\/session$/, "session"], [/^\/(?:api\/)?(?:auth\/)?pair(?:ing)?(?:\/|$)/, "pair"], [/^\/api\/cloud\//, "admin"],
   [/^\/api\/health$/, "health"], [/^\/hooks(\/|$)/, "webhook"], [/^\/mcp-oauth\//, "sign-in"], [/^\/api\//, "api"],
 ];
 /** A request's kind (`wokeBy`): "events" (a page's live stream), "version" (the desktop's version check), "api" and so on. */
 export const wakeCode = (path: string) => WAKE_CODES.find(([pattern]) => pattern.test(path))?.[1] ?? "page";
-/** Paths that never count as someone using the home: the event stream, the public probe, Files and lending loops,
- * and the Admin's own power reads. */
+/** Paths that never count as someone using the home: the event stream, the public probe, Files loops, the Admin's own
+ * power reads, and the polls of an older desktop that still lends its computer (lending is retired; those get a 404). */
 const BACKGROUND = [/^\/api\/events$/, /^\/api\/health$/, /^\/api\/sync(\/|$)/, /^\/api\/shared-computers(\/|$)/, /^\/api\/cloud\/power(\/|$)/];
 export const CLOUD_POWER_PATH = "/api/cloud/power";
 export const CLOUD_POWER_SLEEP_PATH = "/api/cloud/power/sleep";
@@ -72,9 +72,9 @@ export const CLOUD_BACKGROUND_HEADER = "x-omb-background";
 export const CLOUD_POWER_HEADER = "x-omb-cloud-power";
 const MARKER = "cloud-sleep.json";
 /** Long-polls and streams that stay open by design: never "in flight" work. */
-const HELD = [/^\/api\/events$/, /^\/api\/sync\/changes$/, /^\/api\/shared-computers\/asks$/, /^\/api\/shared-computers\/[\w-]+\/(?:poll|link)$/];
+const HELD = [/^\/api\/events$/, /^\/api\/sync\/changes$/];
 
-/** The answer a held poll (Files sync, lending) gets once the home agreed to sleep: the desktop pauses until it wakes. */
+/** The answer a held poll (Files sync) gets once the home agreed to sleep: the desktop pauses until it wakes. */
 export function answerAsleep(res: ServerResponse, json: (res: ServerResponse, status: number, body: unknown) => void) {
   res.setHeader(CLOUD_POWER_HEADER, "asleep");
   json(res, 503, { error: "asleep" });

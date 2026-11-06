@@ -1,6 +1,6 @@
 // The first run, an ordinary self-hosted server, stands in for a v0.1.91 Cloud home where every device had its own key:
 // the owner's old phone and a friend unpaired before the upgrade cannot be told apart, so both are adopted, and only
-// proven keys reach lending and memory.
+// proven keys reach the owner's turns and memory.
 import { createHash, randomBytes } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { spawn, type ChildProcess } from "node:child_process";
@@ -370,7 +370,7 @@ async function settleAll(token: string) {
   }, "every bot to settle", 30_000);
 }
 
-it("a friend unpaired before the upgrade: their conversation keeps its level, but their words never reach lending, memory or recall", async () => {
+it("a friend unpaired before the upgrade: their conversation keeps its level, but their words never reach the owner's turns, memory or recall", async () => {
   const owner = await adminPairing();
   await settleAll(owner);
   const theirs = await turn(async () => expect((await api("POST", `/api/bots/${before.bot.id}/messages`, { token: owner, body: { text: "Carry on.", threadId: before.friends } })).status).toBe(202));

@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { settleCloudHome, type CloudHomeSettleDeps } from "./cloud-home-settle.ts";
-import { createCloudRoutineAuthors } from "./cloud-lending.ts";
+import { createCloudRoutineAuthors } from "./cloud-owner-turns.ts";
 import { CLOUD_OUTSIDE_KEY } from "./cloud-sharing.ts";
 import { asSchedule } from "./routine-requests.ts";
 import { ThreadStarters } from "./thread-starters.ts";

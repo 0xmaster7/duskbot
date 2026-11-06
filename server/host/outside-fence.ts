@@ -49,8 +49,6 @@ const EXACT: ReadonlySet<string> = new Set([
   "POST /api/internal/skills/stage",
   "POST /api/internal/mcp-servers",
   "GET /api/internal/mcp-servers",
-  "GET /api/internal/shared-computers",
-  "POST /api/internal/shared-computers",
   // A tool on one of these reaches here only after the engine asked a person: none is pre-allowed in a confined turn.
   "POST /api/internal/browser/mcp",
   "POST /api/internal/computer/mcp",

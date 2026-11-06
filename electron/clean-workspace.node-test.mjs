@@ -5,8 +5,6 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { cleanWorkspaceConfig, cleanWorkspaceDir, createCleanWorkspace } from "./clean-workspace.mjs";
-import { cloudLendingVerdict } from "./computer-sharing.mjs";
-import { createLendingTarget } from "./lending-target.mjs";
 import { installOneHome } from "./one-home-main.mjs";
 import { WELCOME_VERSION } from "./onboarding-record.mjs";
 
@@ -269,19 +267,4 @@ test("nothing pops up to bring bots here beside a line saying they're safe in th
   const popup = /GROK_MOVE_NOTICE = "([^"]+)"/u.exec(notices)?.[1];
   assert.ok(popup);
   assert.equal(cleanWorkspaceConfig().onboarding.hintsSeen.includes(popup), true);
-});
-
-test("no lending from the clean workspace: nothing is lent or asked while it runs, and a grant only pauses, so it goes on after", async (t) => {
-  const w = computer(t);
-  const env = { id: "c", origin: CLOUD, cloud: { id: "c" } };
-  const state = { status: "connected", account: owner, machine: { status: "ready", origin: CLOUD } };
-  const target = createLendingTarget({ account: () => (w.clean.active() ? null : { state: () => state, isOwnCloud: () => true, ownClouds: () => [] }), environments: () => [env] });
-  const grant = { accountId: owner.id, origin: CLOUD };
-  assert.deepEqual(cloudLendingVerdict(grant, target.cloud(env), env), { allow: true });
-  await w.clean.enter();
-  assert.equal(target.environment(), null);
-  assert.deepEqual(target.places(), []);
-  assert.deepEqual(cloudLendingVerdict(grant, target.cloud(env), env), { pause: "unverified" });
-  await w.clean.leave();
-  assert.deepEqual(cloudLendingVerdict(grant, target.cloud(env), env), { allow: true });
 });

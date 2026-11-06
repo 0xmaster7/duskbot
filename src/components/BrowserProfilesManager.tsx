@@ -24,8 +24,6 @@ export function BrowserProfilesManager({ bot, onProfileChanged, disabled = false
   const { state, dispatch, flushBotPatches } = useStore();
   const profiles = state.config?.browserProfiles ?? [];
   const myChrome = state.config?.browserEngine?.myChrome === true;
-  const myChromeOn = state.config?.browserEngine?.myChromeOn;
-  const myChromeLendable = state.config?.browserEngine?.myChromeLendable === true;
   const bots = state.bots ?? [];
   const currentBot = bot ? bots.find((candidate) => candidate.id === bot.id) ?? bot : undefined;
   const [canManage, setCanManage] = useState<boolean | null>(null);
@@ -162,13 +160,8 @@ export function BrowserProfilesManager({ bot, onProfileChanged, disabled = false
   const selected = currentBot?.browserProfile ?? "";
   const selectedProfile = profiles.find((profile) => profile.id === selected);
   const usersOf = (profileId: string) => bots.filter((candidate) => candidate.browserProfile === profileId).map((candidate) => candidate.name);
-  // On My Cloud a My Chrome profile keeps waiting for a lent Chrome, so it has no built-in sign-ins to list.
-  const usesMyChrome = (profile: BrowserProfile | undefined) => profile?.browser === "chrome" && (myChrome || myChromeLendable);
-  const chromeNote = <>
-    <p className="text-[11px] leading-relaxed text-ink-secondary">{t("settings.profiles.myChromeHint")}</p>
-    {myChromeOn && <p className="text-[11px] leading-relaxed text-ink-secondary">{t("settings.profiles.myChromeLent", { name: myChromeOn.name, device: myChromeOn.device })}</p>}
-    {myChromeOn?.online === false && <p className="text-[11px] leading-relaxed text-ink-secondary">{t("settings.profiles.myChromeLentOffline", { name: myChromeOn.name })}</p>}
-  </>;
+  const usesMyChrome = (profile: BrowserProfile | undefined) => profile?.browser === "chrome" && myChrome;
+  const chromeNote = <p className="text-[11px] leading-relaxed text-ink-secondary">{t("settings.profiles.myChromeHint")}</p>;
   // In Settings (no bot): the shared profiles as rows, each opening its own page; names are typed in a small form
   if (!currentBot) {
     const errorRow = error ? <NoteRow tone="danger">{error}</NoteRow> : null;
@@ -203,9 +196,7 @@ export function BrowserProfilesManager({ bot, onProfileChanged, disabled = false
           {chrome ? (
             <RowsCard>
               <NoteRow>{t("settings.profiles.myChromeHint")}</NoteRow>
-              {myChromeOn && <NoteRow>{t("settings.profiles.myChromeLent", { name: myChromeOn.name, device: myChromeOn.device })}</NoteRow>}
-              {myChromeOn?.online === false && <NoteRow>{t("settings.profiles.myChromeLentOffline", { name: myChromeOn.name })}</NoteRow>}
-              {!myChrome && <NoteRow>{t(myChromeLendable ? "settings.profiles.myChromeShare" : "settings.profiles.myChromeUnavailable")}</NoteRow>}
+              {!myChrome && <NoteRow>{t("settings.profiles.myChromeUnavailable")}</NoteRow>}
             </RowsCard>
           ) : (
             <RowsCard label={t("settings.sites.title")}>
@@ -225,7 +216,7 @@ export function BrowserProfilesManager({ bot, onProfileChanged, disabled = false
       <div className="contents" aria-busy={busy}>
         <RowsCard data-settings-block="browser-profiles"
           footnote={profiles.length >= 20 ? t("settings.profiles.limit")
-            : !myChrome && profiles.length > 0 ? t(myChromeLendable ? "settings.profiles.myChromeShare" : "settings.profiles.myChromeUnavailable") : undefined}>
+            : !myChrome && profiles.length > 0 ? t("settings.profiles.myChromeUnavailable") : undefined}>
           {!profiles.length && <NoteRow>{t("settings.profiles.sharedEmpty")}</NoteRow>}
           {profiles.map((profile) => {
             const users = usersOf(profile.id);
@@ -272,10 +263,7 @@ export function BrowserProfilesManager({ bot, onProfileChanged, disabled = false
           <p className="text-[11px] leading-relaxed text-ink-secondary">
             {currentBot.busy ? t("settings.profiles.stopToSwitch") : selected === "guest" ? t("settings.profiles.temporaryHint") : t("settings.profiles.sharedHint")}
           </p>
-          {usesMyChrome(selectedProfile) ? <>
-            {chromeNote}
-            {!myChrome && <p className="text-[11px] leading-relaxed text-ink-secondary">{t("settings.profiles.myChromeShare")}</p>}
-          </>
+          {usesMyChrome(selectedProfile) ? chromeNote
             : (selected === "" || selectedProfile) && (
               <SignedInSites key={`${currentBot.id}:${selected}`} target={{ bot: currentBot.id }} scope={browserScope(state.config?.team, bot?.threadId)} sharedBy={selected ? usersOf(selected) : [currentBot.name]} disabled={locked} />
             )}
@@ -290,7 +278,7 @@ export function BrowserProfilesManager({ bot, onProfileChanged, disabled = false
             <button type="submit" disabled={locked || !name.trim() || profiles.length >= 20} className={`${buttonClass} flex items-center gap-1`}><Plus size={13} />{t("settings.profiles.create")}</button>
           </form>
           {profiles.length >= 20 && <p className="text-[11px] text-ink-secondary">{t("settings.profiles.limit")}</p>}
-          {!myChrome && profiles.length > 0 && <p className="text-[11px] leading-relaxed text-ink-secondary">{t(myChromeLendable ? "settings.profiles.myChromeShare" : "settings.profiles.myChromeUnavailable")}</p>}
+          {!myChrome && profiles.length > 0 && <p className="text-[11px] leading-relaxed text-ink-secondary">{t("settings.profiles.myChromeUnavailable")}</p>}
           {!profiles.length && <p className="text-[12px] text-ink-secondary">{t("settings.profiles.sharedEmpty")}</p>}
           <div className="divide-y divide-hairline/30">
             {profiles.map((profile) => {

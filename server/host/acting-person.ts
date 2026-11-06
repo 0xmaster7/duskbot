@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import { z } from "zod";
 
 import { writeFileAtomic } from "../atomic.ts";
-import { answeredByPerson } from "../cloud-lending.ts";
+import { answeredByPerson } from "../cloud-owner-turns.ts";
 import type { WorkOrigin } from "../peer-provenance.ts";
 
 export const HANDED_PEOPLE_FILE = "handed-people.json";
@@ -32,7 +32,7 @@ export type DirectRequest = {
 };
 /** Handed-on work a room member does: whom it acts for, and since when the room's words count against it. */
 export type HandedRun = { person: string; since: number };
-/** A room run (index.ts GroupTurnOperation, server/host/cloud-lending-turns.ts): the person's line it answers, the queued
+/** A room run (index.ts GroupTurnOperation, server/host/cloud-owner-turns.ts): the person's line it answers, the queued
  * lines it joined, or the handed-on work it does. */
 export type RoomRun = { requestMessageId?: string; cancelled: boolean; queuedQueueIds?: readonly string[]; handedFor?: HandedRun };
 

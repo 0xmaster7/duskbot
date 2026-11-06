@@ -28,7 +28,6 @@ import { cacheUntilConfigChanges,
   showToolCallsEnabled,
   saveConfig,
   skillAuthoringEnabled,
-  sharedComputersEnabled,
   builtInBrowserEnabled,
   browserProfilePartitionId,
   browserProfilePartitionTarget,
@@ -628,18 +627,10 @@ describe("configuration boundaries", () => {
     expect(() => parseConfigPatch({ features: { shareLearnedSkills: "always" } })).toThrow("features.shareLearnedSkills");
   });
 
-  it("keeps computer sharing off unless config.json explicitly turns it on", () => {
-    expect(sharedComputersEnabled({})).toBe(false);
-    expect(sharedComputersEnabled({ features: {} })).toBe(false);
-    expect(sharedComputersEnabled({ features: { skillAuthoring: true } })).toBe(false);
-    expect(sharedComputersEnabled({ features: { sharedComputers: false } })).toBe(false);
-    expect(sharedComputersEnabled({ features: { sharedComputers: true } })).toBe(true);
-    expect(parseConfigPatch({ features: { sharedComputers: true } })).toEqual({
-      features: { sharedComputers: true },
+  it("drops the retired computer sharing switch instead of refusing the config", () => {
+    expect(parseConfigPatch({ features: { sharedComputers: true, showToolCalls: true } })).toEqual({
+      features: { showToolCalls: true },
     });
-    expect(() => parseConfigPatch({ features: { sharedComputers: "yes" } })).toThrow(
-      "features.sharedComputers",
-    );
   });
 
   it("drops the retired routines-in-conversation switch instead of refusing the config", () => {
