@@ -10,6 +10,7 @@ import { GrokIcon } from "../GrokIcon";
 import { AppTile } from "./AppRow";
 import type { AppEntry, Connection } from "./catalog";
 import type { ConnectorPhase, Connectors } from "./use-connectors";
+import { COMPOSIO_AUTH_CONFIGS_URL } from "../../../shared/connector-availability";
 import { composioPage, loadToolkitActions, type SnapshotToolkit, type ToolkitActions } from "./composio-snapshot";
 
 export interface AppPageModel {
@@ -70,6 +71,7 @@ export function AppPage({ model }: { model: AppPageModel }) {
       case "reconnect": return { label: t("connectors.action.reconnect"), onClick: () => void connectors.connect(slug, phase.account.alias, phase.account) };
       case "connected": return { label: t("connectors.action.addAccount"), quiet: true, onClick: () => { setAlias(""); connectors.askAlias(slug); } };
       case "included": return { label: t("connectors.action.included"), quiet: true, disabled: true };
+      case "setup": return { ...connect, label: t("common.checkAgain") };
       case "unavailable": return { ...connect, disabled: true };
       default: return connect;
     }
@@ -96,6 +98,14 @@ export function AppPage({ model }: { model: AppPageModel }) {
           </p>
         )}
         {phase?.kind === "unavailable" && <p className="ca-notice">{phase.reason}</p>}
+        {phase?.kind === "setup" && (
+          <p className="ca-notice" data-composio-setup="">
+            {/* the official broker's project cannot use the person's own auth config, their own key can */}
+            {t(connectors.mode === "managed" ? "connectApps.composioSetupKey" : "connectApps.composioSetup", { name: entry.label })}{" "}
+            <a className="ca-link" href={COMPOSIO_AUTH_CONFIGS_URL} target="_blank" rel="noopener noreferrer">{t("connectApps.openComposio")}</a>
+            {connectors.mode === "managed" && !model.remoteClient && <>{" "}<button type="button" className="ca-link" onClick={model.onOpenKeys}>{t("connectors.openSettings")}</button></>}
+          </p>
+        )}
         {model.remote && <p className="ca-notice">{t(model.remote.open ? "connectApps.remote.open" : "connectApps.remote.note", { name: entry.label })}</p>}
         {composio && (accounts.length > 0 || askingAlias) && (
           <div>

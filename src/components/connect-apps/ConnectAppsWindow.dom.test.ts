@@ -49,6 +49,12 @@ vi.mock("../PostizCard", () => ({ PostizCard: () => null }));
 vi.mock("../PluginsPanel", () => ({ botsUsingService: () => [], connectorSetupNotice: () => null, disconnectAccountConfirmation: () => ({ title: "", body: "", confirmLabel: "" }) }));
 
 import { ConnectAppsWindow } from "./ConnectAppsWindow";
+import { ApiError } from "@/state/api";
+import { managedCustomAuthReason } from "../../../shared/connector-availability";
+
+// server/composio-project.ts noAuthConfigReason, as an app with its own Composio key hears it
+const noAuthConfigReason = 'attio has no Composio-managed sign-in. In your Composio project, create an auth config for "attio" '
+  + "(Auth Configs → Create) with your own app credentials, then click Connect again.";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -152,6 +158,53 @@ describe("the Connect Apps window", () => {
       .toEqual(["Create record", "Find person", "See all 40 on Composio"]);
     expect(page.querySelector<HTMLAnchorElement>('[data-toolkit-group="actions"] a')?.href).toBe("https://docs.composio.dev/toolkits/attio");
     expect(page.textContent).toContain("Your account, API key");
+  });
+
+  it("sends an app Composio has no managed sign-in for to Composio to set up, then Check again connects it", async () => {
+    let made = false;
+    fixture.api.mockImplementation(async (path: string) => {
+      if (path !== "/api/connectors/attio/authorize") return { services: {} };
+      if (made) return { url: "https://connect.example/attio" };
+      throw new ApiError(noAuthConfigReason, 400, { error: noAuthConfigReason });
+    });
+    await act(async () => { dialog().querySelector<HTMLButtonElement>('[data-app-row="attio"] .ca-pill')!.click(); });
+    await flush();
+    expect(fixture.opened).toEqual(["https://dashboard.composio.dev/~/project/auth-configs"]);
+    const page = dialog().querySelector("[data-app-page]")!;
+    expect(page.getAttribute("data-app-page"), "a row's Connect lands on the page that says what to do").toBe("attio");
+    const line = page.querySelector("[data-composio-setup]")!;
+    expect(line.textContent).toContain("Attio is set up on Composio: click Create Auth Config there, pick Attio, then check again.");
+    expect(line.querySelector("a")?.getAttribute("href")).toBe("https://dashboard.composio.dev/~/project/auth-configs");
+    expect(line.textContent).not.toContain("Open settings");
+    expect(dialog().textContent, "no dead-end toast").not.toContain("has no Composio-managed sign-in");
+    const again = page.querySelector<HTMLButtonElement>(".ca-primary")!;
+    expect(again.textContent).toContain("Check again");
+    made = true;
+    await act(async () => { again.click(); });
+    await flush();
+    expect(fixture.opened.at(-1)).toBe("https://connect.example/attio");
+    expect(dialog().querySelector("[data-composio-setup]")).toBeNull();
+  });
+
+  it("with the managed broker says the project's key goes in Settings too", async () => {
+    act(() => root.unmount());
+    fixture.api.mockImplementation(async (path: string) => {
+      if (path === "/api/connectors/catalog") return { configured: true, mode: "managed", setup: "ready", source: "api", cards: CARDS };
+      if (path === "/api/connectors/attio/authorize") throw new ApiError(managedCustomAuthReason("attio"), 409, { error: managedCustomAuthReason("attio") });
+      return { services: {} };
+    });
+    const { loadConnectorCatalog } = await import("./use-connectors");
+    await loadConnectorCatalog();
+    root = createRoot(document.body.appendChild(document.createElement("div")));
+    await act(async () => { root.render(createElement(ConnectAppsWindow, { page: { kind: "detail", id: "attio" }, nonce: 3, onClose, onTemplates: vi.fn() })); });
+    await flush();
+    await act(async () => { dialog().querySelector<HTMLButtonElement>("[data-app-page] .ca-primary")!.click(); });
+    await flush();
+    expect(fixture.opened).toEqual(["https://dashboard.composio.dev/~/project/auth-configs"]);
+    const line = dialog().querySelector("[data-composio-setup]")!;
+    expect(line.textContent).toContain("add that project's key in Settings, then check again.");
+    await act(async () => { [...line.querySelectorAll("button")].find((element) => element.textContent === "Open settings")!.click(); });
+    expect(onClose).toHaveBeenCalled();
   });
 
   it("without a broker or a key still lists the whole catalog, and Connect leads to the Composio key in Settings", async () => {

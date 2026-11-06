@@ -248,6 +248,12 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     setTrail((past) => past.slice(0, -1));
   };
   const leaveFor = (action: Action) => { onClose(); dispatch(action); };
+  // a row's Connect that opened Composio lands on the app's page, which says what to do there
+  useEffect(() => {
+    const slug = connectors.setupFor;
+    if (slug && !(page.kind === "detail" && page.id === slug)) go({ kind: "detail", id: slug });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connectors.setupFor]);
 
   const phaseOf = (entry: AppEntry): ConnectorPhase | null => {
     const card = cards.get(entry.id);
@@ -269,6 +275,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
       case "connected": case "included": return { kind: "connected" };
       case "connecting": return { ...connect, busy: true };
       case "continue": return { ...connect, pending: true, title: t("connectors.finishSetup"), onClick: () => connectors.resume(entry.id) };
+      case "setup": return { ...connect, label: t("common.checkAgain"), onClick: () => void connectors.connect(entry.id) };
       case "reconnect": return { kind: "button", label: t("connectors.action.reconnect"), onClick: () => void connectors.connect(entry.id, phase.account.alias, phase.account) };
       case "unavailable": return { ...connect, disabled: true, title: phase.reason };
       default: return connect;

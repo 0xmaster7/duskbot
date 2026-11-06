@@ -12,7 +12,8 @@ import {
   relayMcp,
   setManagedBrokerAccess,
 } from "./composio.ts";
-import { forgetProjectAuthConfigs } from "./composio-project.ts";
+import { forgetProjectAuthConfigs, noAuthConfigReason } from "./composio-project.ts";
+import { needsComposioAuthConfig } from "../shared/connector-availability.ts";
 
 // Composio's own wording for a toolkit it has no managed sign-in for (Xero, Buffer) when the Session names no auth config.
 const NO_MANAGED_AUTH = (toolkit: string) =>
@@ -428,6 +429,11 @@ describe("OpenMausBot's managed connected apps", () => {
   it("answers a toolkit that needs the person's own OAuth app with one plain line instead of Composio's error", async () => {
     setManagedBrokerAccess({ url: `${origin}/broker`, token: "c".repeat(64) });
     await expect(authorizeService(managed, "xero")).rejects.toMatchObject({ status: 409, message: plainLine });
+    // Connect apps reads these answers as "set it up on Composio" and opens the dashboard instead of a dead-end toast
+    expect(needsComposioAuthConfig(plainLine)).toBe(true);
+    expect(needsComposioAuthConfig(noAuthConfigReason("xero"))).toBe(true);
+    expect(needsComposioAuthConfig(NO_MANAGED_AUTH("xero"))).toBe(true);
+    expect(needsComposioAuthConfig("Composio would not use your xero auth config. Check it is enabled in your Composio project.")).toBe(false);
 
     const before = calls.length;
     await expect(prepareConnectionAuthConfigs(managed, [{ slug: "xero", authConfigId: "ac_xero_newest" }]))

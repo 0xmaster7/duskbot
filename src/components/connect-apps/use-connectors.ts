@@ -12,7 +12,7 @@ import { connectorConnect } from "@/lib/product-events";
 import { lacksAdminScope } from "@/lib/admin-scope";
 import { accountAliasTaken, accountToReconnect, hasActiveConnection, requiresAccountAlias, type ConnectorAccount, type ConnectorInventoryPhase, type ConnectorStatus } from "@/lib/connector-status";
 import { mergeCompleteConnectorStatus, mergeCurrentConnectorStatus, onlyLatestConnectorResponses } from "@/lib/connector-status-merge";
-import { managedConnectorUnavailableReason } from "../../../shared/connector-availability";
+import { COMPOSIO_AUTH_CONFIGS_URL, managedConnectorUnavailableReason, needsComposioAuthConfig } from "../../../shared/connector-availability";
 import type { ToolkitCard } from "../ServiceIcon";
 import { cachedComposioSnapshot, loadComposioSnapshot, mergeCatalog } from "./composio-snapshot";
 
@@ -28,6 +28,8 @@ export type ConnectorPhase =
   | { kind: "reconnect"; account: ConnectorAccount }
   | { kind: "connected" }
   | { kind: "included" }
+  /** Its sign-in is set up on Composio first; Connect opened that page, and connecting again picks it up. */
+  | { kind: "setup" }
   | { kind: "unavailable"; reason: string };
 
 export interface Connectors {
@@ -41,6 +43,8 @@ export interface Connectors {
   error: ConnectorError;
   /** The app whose next Connect needs a name for the new account. */
   aliasFor: string | null;
+  /** The app whose last Connect opened Composio to set its sign-in up. */
+  setupFor: string | null;
   setError: (error: ConnectorError) => void;
   askAlias: (slug: string | null) => void;
   phaseOf: (card: ToolkitCard, policyBlocked: string | null) => ConnectorPhase;
@@ -80,6 +84,7 @@ export function useConnectors(): Connectors {
   const [pendingUrls, setPendingUrls] = useState<Record<string, PendingAuthorization>>({});
   const [busySlug, setBusySlug] = useState<string | null>(null);
   const [aliasFor, setAliasFor] = useState<string | null>(null);
+  const [setupFor, setSetupFor] = useState<string | null>(null);
   const [error, setError] = useState<ConnectorError>(null);
   const [reloads, setReloads] = useState(0);
 
@@ -195,12 +200,17 @@ export function useConnectors(): Connectors {
       setPendingUrls((current) => ({ ...current, [slug]: { url, createdAt } }));
       setStatus((current) => ({ ...current, [slug]: { ...current[slug], connected: current[slug]?.connected ?? false, pending: true, status: "INITIATED" } }));
       setAliasFor(null);
+      setSetupFor((current) => current === slug ? null : current);
       startPolling(slug, status[slug]);
       if (!await launch.open(url) && opening.current === launch) setError({ key: "connectors.popupBlockedContinue" });
     } catch (cause) {
       if (opening.current !== launch) return;
       const message = cause instanceof Error ? cause.message : String(cause);
-      if (requiresAccountAlias(message)) {
+      if (needsComposioAuthConfig(message)) {
+        // no dead end: the tab reserved on the click opens where the person sets it up, and the page says so
+        setSetupFor(slug);
+        await launch.open(COMPOSIO_AUTH_CONFIGS_URL);
+      } else if (requiresAccountAlias(message)) {
         setAliasFor(slug);
         setError({ key: "connectors.aliasNeeded" });
         void refreshStatus([slug]);
@@ -253,11 +263,11 @@ export function useConnectors(): Connectors {
     const reconnect = accountToReconnect(state);
     if (reconnect) return { kind: "reconnect", account: reconnect };
     if (hasActiveConnection(state)) return { kind: "connected" };
-    return { kind: "connect" };
+    return setupFor === card.slug ? { kind: "setup" } : { kind: "connect" };
   };
 
   return {
-    cards, configured, mode, setup, stale, phase, status, error, aliasFor,
+    cards, configured, mode, setup, stale, phase, status, error, aliasFor, setupFor,
     setError, askAlias: setAliasFor, phaseOf,
     isConnected: (slug) => hasActiveConnection(status[slug]),
     connect, resume, disconnect,
