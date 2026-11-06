@@ -11,13 +11,12 @@ const fixture = vi.hoisted(() => {
     threadsChosen: true,
     menus: [] as { ariaLabel: string; items: SidebarMenuItem[]; placement?: string; openOnHover?: boolean; trigger: string }[],
     dispatch: vi.fn(),
-    inspectorOpen: false,
     find: vi.fn(),
   };
 });
 vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();
-  return { ...original, useStore: () => ({ state: { ...original.initialState, inspectorOpen: fixture.inspectorOpen }, dispatch: fixture.dispatch }) };
+  return { ...original, useStore: () => ({ state: original.initialState, dispatch: fixture.dispatch }) };
 });
 vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => fixture.advanced, setAdvancedMode: vi.fn() }));
 vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => fixture.advanced && fixture.threadsChosen }));
@@ -63,7 +62,6 @@ const keys = (items: SidebarMenuItem[]) => items.map((item) => item.key);
 beforeEach(() => {
   fixture.advanced = false;
   fixture.threadsChosen = true;
-  fixture.inspectorOpen = false;
   fixture.dispatch.mockClear();
   fixture.find.mockClear();
 });

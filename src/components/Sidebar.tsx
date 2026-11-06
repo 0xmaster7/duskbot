@@ -820,7 +820,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
   const simple = !advanced && density !== "icons";
   const simpleDesk = simple && !phone;
   const rail = !advanced && density === "icons";
-  const sidePanelOpen = state.computerOpen || state.inspectorOpen;
+  const sidePanelOpen = state.computerOpen;
   const sizing = useSidebarWidth({ simple: !advanced, sidePanelOpen, sidebarRef });
   const [searchOpen, setSearchOpen] = useState(false);
   const searchShown = searchOpen || query !== "";

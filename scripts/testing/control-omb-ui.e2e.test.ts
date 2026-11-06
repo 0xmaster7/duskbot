@@ -7,13 +7,13 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterAll, describe, expect, it, vi } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 
 import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { removeTempDir, waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlOmb } from "../control-omb.ts";
 import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
-import { clickByName, openPanelMenu, openSettings } from "./grok-nav.ts";
+import { clickByName, openSettings } from "./grok-nav.ts";
 import { fixtureApi } from "./preview-fixture.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
@@ -376,46 +376,5 @@ describe("control-omb ui drives the real renderer", () => {
     expect(existsSync(info.dataDir)).toBe(false);
     expect(existsSync(info.logPath)).toBe(true);
     await expect(ui("snapshot", info.ui)).rejects.toThrow("could not read the ui handle");
-  }, LAUNCH_TIMEOUT_MS + 120_000);
-
-  // The Inspector lives in the bot panel's Share menu. The thread-only model scope is gone with threads (one thread per
-  // bot), and the This run card with Save as skill was drawn only by the removed Advanced chat, so neither is checked.
-  run("opens the Inspector from the bot panel's Share menu with the run's log, events and raw protocol", async () => {
-    launched = await launch(["--tool-calls", TOOL_CALLS]);
-    const { info } = launched;
-    await ui("flag", info.ui, "--set", "features.showToolCalls=true");
-    await ui("type", info.ui, "--name", "Message Pepper", "--text", "hello");
-    await ui("press", info.ui, "--keys", "Enter");
-    await ui("wait-settle", info.ui, "--timeout", "60");
-    mkdirSync(evidenceDir, { recursive: true });
-    const nav = (verb: string, ...args: string[]) => ui(verb, info.ui, ...args);
-    await openPanelMenu(nav, "Pepper");
-    await clickByName(nav, /^Inspector/, "menuitem");
-    // A local page fetches a screen when it opens, so the panel arrives just after the click.
-    const inspected = await vi.waitFor(async () => {
-      const snapshot = await ui("snapshot", info.ui);
-      expect(snapshot.snapshot).toContain('complementary "Inspector"');
-      return snapshot;
-    }, { timeout: 5_000, interval: 100 });
-    const runLog = (inspected.snapshot as string).slice((inspected.snapshot as string).indexOf('complementary "Inspector"'));
-    expect(runLog).toContain('tab "Run Log" [selected');
-    expect(runLog).toContain("pnpm control:omb doctor");
-    expect(runLog).toContain("pnpm control:omb ui click --name Missing");
-    expect(runLog).toContain('StaticText "Failed"');
-    expect(runLog).toContain("Copy redacted run log");
-    await ui("screenshot", info.ui, "--out", join(evidenceDir, "run-log.png"));
-
-    const [eventsTab] = refsNamed(inspected, "Events", "tab");
-    expect(eventsTab).toBeDefined();
-    await ui("click", info.ui, "--ref", eventsTab);
-    const events = await ui("snapshot", info.ui);
-    expect(events.snapshot).toContain("turn.started");
-    const [rawTab] = refsNamed(events, "Raw", "tab");
-    await ui("click", info.ui, "--ref", rawTab);
-    expect((await ui("snapshot", info.ui)).snapshot).toContain('tab "Raw" [selected');
-    await ui("click", info.ui, "--name", "Close the Inspector");
-    expect((await ui("snapshot", info.ui)).snapshot).not.toContain('complementary "Inspector"');
-
-    await waitForExit(launched.child, { signal: "SIGINT", graceMs: 30_000 });
   }, LAUNCH_TIMEOUT_MS + 120_000);
 });

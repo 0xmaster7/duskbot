@@ -26,7 +26,7 @@ interface Entry {
 }
 
 const SHARE_KEYS = ["copy", "download"];
-const MORE_ICON: Record<string, GrokIconName> = { usage: "gauge", activity: "list-checks", inspector: "bug" };
+const MORE_ICON: Record<string, GrokIconName> = { usage: "gauge", activity: "list-checks" };
 
 /** Grok's icon tile: a 36px elevated circle in a 40px slot. */
 function IconTile({ name }: { name: GrokIconName }) {
@@ -40,7 +40,7 @@ function IconTile({ name }: { name: GrokIconName }) {
 }
 
 /** Grok's Share on the panel, one menu of rich items under the button's right edge: share the bot (a copy, or on a team
- * who can use it) and this chat (copy, download), then the chat's usage, Activity and the Inspector. */
+ * who can use it) and this chat (copy, download), then the chat's usage and Activity. */
 export function PanelShareMenu({ bot }: { bot: Bot }) {
   // a "Copied" note never follows the panel into another conversation
   return <ShareMenu key={bot.threadId} bot={bot} />;
@@ -98,7 +98,7 @@ function ShareMenu({ bot }: { bot: Bot }) {
     key: item.key,
     title: item.label,
     hint: item.key === "usage" ? <>{status("usage")}{" · "}{t("botPanel.share.usageHint")}</>
-      : t(item.key === "activity" ? "botPanel.share.activityHint" : "botPanel.share.inspectorHint", { name: bot.name }),
+      : t("botPanel.share.activityHint", { name: bot.name }),
     tile: <IconTile name={MORE_ICON[item.key]!} />,
     onSelect: item.onSelect,
   }));

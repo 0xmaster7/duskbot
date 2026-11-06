@@ -11,7 +11,6 @@ vi.mock("./DesktopCapabilities", async (importOriginal) => ({
   useCaptionChrome: () => ({ padClass: undefined }),
 }));
 
-const { InspectorPanel } = await import("./InspectorPanel");
 const { ActivityPanel } = await import("./ActivityPanel");
 const { BotEditorStore, initialState } = await import("@/state/store");
 const { publishLiveFrame, publishMissedFrames } = await import("@/lib/live-events");
@@ -39,7 +38,7 @@ const missed = () => publishMissedFrames();
 const fetched: string[] = [];
 let root: Root;
 const settle = async () => { for (let i = 0; i < 5; i++) await new Promise((resolve) => setTimeout(resolve, 0)); };
-async function mount(panel: typeof InspectorPanel | typeof ActivityPanel) {
+async function mount(panel: typeof ActivityPanel) {
   const state: AppState = { ...initialState, bots: [bot], selectedId: bot.id };
   const value = { state, dispatch: vi.fn(), flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} };
   const container = document.createElement("div");
@@ -57,38 +56,13 @@ beforeEach(() => {
   vi.stubGlobal("EventSource", SpyEventSource);
   vi.stubGlobal("fetch", (path: string) => {
     fetched.push(path);
-    const body = path.startsWith("/api/threads/") ? { entries: [], total: { runtime: 0, native: 0 } } : { rows: [] };
-    return Promise.resolve(new Response(JSON.stringify(body)));
+    return Promise.resolve(new Response(JSON.stringify({ rows: [] })));
   });
 });
 afterEach(() => {
   root.unmount();
   document.body.replaceChildren();
   vi.unstubAllGlobals();
-});
-
-describe("Inspector on the app's live stream", () => {
-  it("shows this thread's runtime events and opens no stream of its own", async () => {
-    await mount(InspectorPanel);
-    const events = [...document.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find((tab) => tab.textContent === "events")!;
-    flushSync(() => events.click());
-    flushSync(() => {
-      frame(runtime("e1", { type: "item.started", itemType: "tool", title: "List the files" }));
-      frame(runtime("e2", { type: "item.started", itemType: "tool", title: "Somebody else's step" }, "other-thread"));
-    });
-    await settle();
-    expect(document.body.textContent).toContain("tool: List the files");
-    expect(document.body.textContent).not.toContain("Somebody else's step");
-    expect(opened).not.toHaveBeenCalled();
-  });
-
-  it("reloads from disk when the stream missed frames it could not replay", async () => {
-    await mount(InspectorPanel);
-    expect(fetched).toEqual(["/api/threads/thread/events?limit=400"]);
-    missed();
-    await settle();
-    expect(fetched).toEqual(["/api/threads/thread/events?limit=400", "/api/threads/thread/events?limit=400"]);
-  });
 });
 
 describe("Activity on the app's live stream", () => {

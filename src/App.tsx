@@ -21,7 +21,7 @@ import { usePhoneViewport } from "@/lib/phone-viewport";
 import { preloadConnectedApps } from "@/lib/connected-apps";
 import { ConnectAppsHost, connectAppsPageFor, openConnectApps } from "@/components/connect-apps";
 import {
-  ActivityPanel, BotSettingsDialog, CloudAddDialog, ComputerPanel, FilesView, InspectorPanel, KeyboardShortcutsModal, LocalVmWorkspace,
+  ActivityPanel, BotSettingsDialog, CloudAddDialog, ComputerPanel, FilesView, KeyboardShortcutsModal, LocalVmWorkspace,
   preloadScreens, RemoteAgentSettingsPanel, RemoteDesktopPanel, RoomPanel, SettingsModal, TriggersPage,
 } from "@/components/lazy-screens";
 import { useAdvancedMode } from "@/lib/interface-mode";
@@ -285,7 +285,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
     paletteOpen ||
     state.settingsOpen ||
     state.computerOpen ||
-    state.inspectorOpen ||
     state.activityOpen ||
     state.appSettingsOpen ||
     state.pluginsOpen;
@@ -322,7 +321,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
     });
   }, [dispatch]);
 
-  const settingsOverlay = !botPanelDocks || ((state.inspectorOpen || state.computerOpen || (notificationFeed && state.notificationsOpen)) && !twoSidePanelsFit);
+  const settingsOverlay = !botPanelDocks || ((state.computerOpen || (notificationFeed && state.notificationsOpen)) && !twoSidePanelsFit);
   const framed = windowFramed(capabilities);
   const strips = <>
     <UpdateBanner sidebarIndicator={framed || (!calendarFocus && (sidebarInline || drawerOpen))} />
@@ -410,7 +409,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
         )
       )}
       {roomPanelOpen && group && roomPanelOverlay && <RoomPanel key={`room:${group.id}`} group={group} overlay />}
-      {!remoteClient && state.inspectorOpen && bot && <InspectorPanel key={bot.threadId} bot={bot} />}
       {!remoteClient && state.activityOpen && bot && <ActivityPanel key={`activity:${bot.id}`} bot={bot} />}
       {inboxShown && <InboxPanel />}
       {notificationFeed && !calendarFocus && state.notificationsOpen && <NotificationsPanel />}

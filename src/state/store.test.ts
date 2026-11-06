@@ -2313,12 +2313,11 @@ describe("bot settings section", () => {
     expect(next.botSettingsExpandAccordion).toBe(true);
   });
 
-  it("toggleSettings leaves the computer panel and inspector open, closes app settings", () => {
-    const withPanels = { ...initialState, computerOpen: true, inspectorOpen: true, appSettingsOpen: true };
+  it("toggleSettings leaves the computer panel open, closes app settings", () => {
+    const withPanels = { ...initialState, computerOpen: true, appSettingsOpen: true };
     const next = reducer(withPanels, { type: "toggleSettings", open: true });
     expect(next.settingsOpen).toBe(true);
     expect(next.computerOpen).toBe(true);
-    expect(next.inspectorOpen).toBe(true);
     expect(next.appSettingsOpen).toBe(false);
   });
 
@@ -2505,18 +2504,16 @@ describe("activity panel", () => {
   });
 
   it("toggleActivity opens it and closes the other side panels", () => {
-    const withPanels = { ...initialState, computerOpen: true, inspectorOpen: true, appSettingsOpen: true };
+    const withPanels = { ...initialState, computerOpen: true, appSettingsOpen: true };
     const next = reducer(withPanels, { type: "toggleActivity" });
     expect(next.activityOpen).toBe(true);
     expect(next.computerOpen).toBe(false);
-    expect(next.inspectorOpen).toBe(false);
     expect(next.appSettingsOpen).toBe(false);
     expect(reducer(next, { type: "toggleActivity" }).activityOpen).toBe(false);
   });
 
-  it("opening the inspector or the computer closes the activity panel", () => {
+  it("opening the computer closes the activity panel", () => {
     const open = { ...initialState, activityOpen: true };
-    expect(reducer(open, { type: "toggleInspector", open: true }).activityOpen).toBe(false);
     expect(reducer(open, { type: "toggleComputer", open: true }).activityOpen).toBe(false);
   });
 
@@ -3141,11 +3138,10 @@ describe("notifications feed", () => {
     expect(afterSwitch.notificationsOpen).toBe(true);
   });
 
-  it("pinned, the feed survives Computer/Inspector/Activity/AppSettings opening", () => {
+  it("pinned, the feed survives Computer/Activity/AppSettings opening", () => {
     const open = { ...reducer(initialState, { type: "toggleNotifications", open: true }), notificationsPinned: true };
     for (const action of [
       { type: "toggleComputer", open: true } as const,
-      { type: "toggleInspector", open: true } as const,
       { type: "toggleActivity", open: true } as const,
       { type: "toggleAppSettings", open: true } as const,
     ]) {
@@ -3153,12 +3149,11 @@ describe("notifications feed", () => {
     }
   });
 
-  it("unpinned, the three side panels still close it, the settings modal does not (regression guard)", () => {
+  it("unpinned, the side panels still close it, the settings modal does not (regression guard)", () => {
     const open = reducer(initialState, { type: "toggleNotifications", open: true });
     expect(open.notificationsPinned).toBe(false);
     for (const action of [
       { type: "toggleComputer", open: true } as const,
-      { type: "toggleInspector", open: true } as const,
       { type: "toggleActivity", open: true } as const,
     ]) {
       expect(reducer(open, action).notificationsOpen).toBe(false);
