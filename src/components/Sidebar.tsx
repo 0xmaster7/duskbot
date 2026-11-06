@@ -1,5 +1,6 @@
 import { OrganizationIdentity } from "./OrganizationIdentity";
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type Dispatch } from "react";
+import { motion, type MotionStyle } from "motion/react";
 import { createPortal } from "react-dom";
 import { Archive, Bot as BotIcon, Check, ClipboardCopy, Crown, FolderPlus, Library, Loader2, MessageSquarePlus, MoreHorizontal, Pencil, Phone, Pin, Plus, Search, TextQuote, Trash2, Users, X } from "lucide-react";
 import { api, useStore, formatTime, visibleMessages, botOpensTo, openBot, openThread, type Action, type AppState, type Bot, type Group, type InstanceInfo, type Message } from "@/state/store";
@@ -9,6 +10,7 @@ import { llmThreadTitlesEnabled } from "@/lib/feature-flags";
 
 import { BotAvatar } from "./Avatar";
 import { hoverGaze } from "./mascot-motion-mark";
+import { usePhoneDrawer } from "./SidebarDrawer";
 import { BotModelBadge, botTooltip } from "./BotModelBadge"; import { SidebarBotRole } from "./BotRole";
 import { useBotMarkState } from "./mascot-presence";
 import { cn } from "@/lib/cn";
@@ -171,7 +173,7 @@ export function GroupListItem({
       className={cn(
         "relative flex w-full items-center rounded-md text-left", SIMPLE_ROW_FOCUS,
         density === "icons" ? (railTile ? "h-[54px] justify-center" : "justify-center px-1 py-1.5") : simpleRow
-          ? "gap-2.5 rounded-[12px] p-2 md:h-[54px] md:py-0" : "gap-2 py-1.5 pl-2.5 pr-3",
+          ? cn("gap-2.5 rounded-[12px] p-2 md:h-[54px] md:py-0", ROW_PRESS) : "gap-2 py-1.5 pl-2.5 pr-3",
         simpleRow ? rowSurface(selected) : selected ? "bg-raised" : "hover:bg-raised/50",
       )}
       title={density === "icons" ? group.name : undefined}
@@ -513,6 +515,10 @@ function RowGazeAvatar(props: Omit<React.ComponentProps<typeof BotAvatar>, "gaze
   );
 }
 
+/** grok's row geometry moves on its 200ms curve; bencho's feel on top: the fill eases in over 150ms and a press sinks the
+ * row to .985, the barely-there press a list hit all day can take. Reduced motion keeps the fill, drops the sink. */
+export const ROW_PRESS = "[--row-ease:cubic-bezier(.22,1,.36,1)] [transition:transform_200ms_var(--row-ease),width_200ms_var(--row-ease),padding_200ms_var(--row-ease),scale_160ms_var(--row-ease),background-color_150ms_ease] active:scale-[.985] motion-reduce:active:scale-100";
+
 export const BotListItem = memo(function BotListItem(props: BotRowProps) {
   const advanced = useAdvancedMode();
   const { bot, selected, deleting, mascotMotion, pendingQueued, instances, liveCall, density, dispatch, onMenu, renameRequest, botDrag: drag, botDrop: drop, botDragging: dragging, main = false, tabStop } = props;
@@ -544,7 +550,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
     "flex w-full items-center rounded-xl text-left", !simpleRow && "transition-colors duration-150", SIMPLE_ROW_FOCUS,
     iconOnly
       ? railTile ? "h-[54px] justify-center" : "justify-center px-1 py-1.5"
-      : simpleRow ? "gap-2.5 rounded-[12px] p-2 leading-[normal] tracking-[0.24px] transition-[transform,width,padding] duration-200 ease-[cubic-bezier(.22,1,.36,1)] md:h-[54px]"
+      : simpleRow ? cn("gap-2.5 rounded-[12px] p-2 leading-[normal] tracking-[0.24px] md:h-[54px]", ROW_PRESS)
         : "gap-3 py-2 pl-2.5 pr-9",
     !iconOnly && "max-md:rounded-2xl max-md:py-2.5",
     simpleRow ? rowSurface(selected) : selected ? "bg-raised" : "hover:bg-raised/50",
@@ -734,7 +740,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
       )}
       {!renaming && !deleting && !iconOnly && <>
         <button type="button" data-bot-actions={bot.id} aria-label={t("sidebar.bot.actions", { name: bot.name })} title={t("sidebar.bot.actions", { name: bot.name })} aria-haspopup="menu" onClick={(event) => { const rect = event.currentTarget.getBoundingClientRect(); onMenu({ botId: bot.id, x: rect.left, y: rect.bottom }); }}
-          className={cn("absolute right-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded text-ink-secondary hover:bg-raised hover:text-ink", simpleRow && "right-2 top-1 translate-y-0 rounded-lg",
+          className={cn("absolute right-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded text-ink-secondary transition-[opacity,background-color,color] duration-[180ms] ease-out hover:bg-raised hover:text-ink", simpleRow && "right-2 top-1 translate-y-0 rounded-lg",
             simpleRow ? "pointer-events-none opacity-0 group-has-[:focus-visible]:pointer-events-auto group-has-[:focus-visible]:opacity-100 aria-expanded:pointer-events-auto aria-expanded:opacity-100 max-md:pointer-events-auto max-md:opacity-70 touch:pointer-events-auto touch:opacity-70"
               : selected ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 max-md:pointer-events-auto max-md:opacity-70 touch:pointer-events-auto touch:opacity-70")}><MoreHorizontal size={15} /></button>
       </>}
@@ -764,6 +770,10 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
   const phone = useMediaQuery(PHONE_LAYOUT, false);
   const importReturnRef = useRef<HTMLButtonElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
+  const drawer = usePhoneDrawer({ phone, open, onClose, ref: sidebarRef });
+  // a plain aside on a wide screen; only the phone's drawer is a motion element, which follows a drag
+  // SAFETY: off a phone no motion prop is passed (drawer.props is null), so the plain aside sees only DOM props
+  const Aside = (phone ? motion.aside : "aside") as typeof motion.aside;
   const [confirm, setConfirm] = useState<{ kind: BotConfirmKind; bot: Bot } | null>(null);
   const cancelConfirm = useCallback(() => setConfirm(null), []);
   const [menu, setMenu] = useState<MenuState | null>(null);
@@ -1107,7 +1117,9 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
   );
 
   return (
-    <aside
+    <Aside
+      {...drawer.props}
+      onClickCapture={drawer.guardClick}
       ref={sidebarRef} data-sidebar-root={!phone || open ? "" : undefined}
       tabIndex={-1}
       aria-label={t("sidebar.aria")}
@@ -1117,17 +1129,17 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
         // The phone's list covers the whole screen: choosing the bot that is already open has to dismiss it too.
         if (phone && open && event.target instanceof Element && !(event.target instanceof HTMLInputElement) && event.target.closest("[data-sidebar-bot-row], [data-sidebar-hero]")) onClose();
       }}
-      style={{ "--sidebar-width": `${sizing.width}px` } as CSSProperties}
+      style={{ ...drawer.props?.style, ["--sidebar-width" as string]: `${sizing.width}px` } as MotionStyle}
       className={cn(
         "relative flex h-full shrink-0 flex-col border-r-[0.5px] border-edge bg-panel max-md:[--scroll-fade-surface:var(--color-app)]",
-        sizing.resizing && !sizing.snapping ? "transition-none" : "transition-[width] duration-200 motion-reduce:transition-none",
+        sizing.resizing && !sizing.snapping ? "transition-none" : "transition-[width] duration-200 ease-[cubic-bezier(.22,1,.36,1)] motion-reduce:transition-none",
         density === "icons" ? rail ? "w-[92px]" : "w-[80px]" : advanced ? "w-[320px] md:w-[var(--sidebar-width)]" : "w-[280px] md:w-[var(--sidebar-width)]",
         sidePanelOpen ? advanced ? "md:max-w-[320px]" : "md:max-w-[280px]" : "md:max-w-[calc(100vw-320px)]",
         // max-md: rather than an md: cancel: Tailwind v4 emits the native `translate`, and any value but `none` makes
         // this a containing block for its `fixed` descendants.
         "max-md:absolute max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:w-full max-md:bg-app",
-        "max-md:transition-transform max-md:duration-200",
-        open ? "max-md:translate-x-0" : "max-md:-translate-x-full",
+        // the phone's drawer is placed by usePhoneDrawer; until the layout is known a closed list stays off screen
+        !phone && !open && "max-md:-translate-x-full",
       )}
     >
       <GlassScrollFrame className={cn("flex-1", simpleDesk && "[&_[data-scroll-fade-edge=bottom]]:h-12")} fade><PlaceTint />
@@ -1578,6 +1590,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
           </div>,
           document.body,
         )}
-    </aside>
+      {drawer.scrim && createPortal(drawer.scrim, document.body)}
+    </Aside>
   );
 }

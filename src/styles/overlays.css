@@ -6,6 +6,8 @@
 
 :root {
   --ease-sharp: cubic-bezier(0.165, 0.84, 0.44, 1);
+  --ease-menu-in: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-bencho: cubic-bezier(0.22, 1, 0.36, 1);
   --overlay-fast: 100ms;
   --overlay-normal: 150ms;
   --shadow-popover: 0 10px 20px -3px rgb(28 28 28 / 0.1), 0 4px 6px -4px rgb(28 28 28 / 0.1), 0 0 0 1px rgb(28 28 28 / 0.004);
@@ -21,12 +23,13 @@
   }
 }
 
-/* Grok's popup: in from 2px toward the trigger at .98 over 100ms; out it reverses over the same 100ms */
+/* bencho's menu: in from 4px toward the trigger at .97 over 120ms, out 2px at .98 over 80ms. A menu that opens above its
+   trigger sets --menu-shift to a positive value, and its transform-origin to the trigger, so it grows out of it. */
 @keyframes overlay-menu-in {
-  from { opacity: 0; transform: translate3d(0, -2px, 0) scale(0.98); }
+  from { opacity: 0; transform: translate3d(0, calc(var(--menu-shift, -4px)), 0) scale(0.97); }
 }
 @keyframes overlay-menu-out {
-  to { opacity: 0; transform: translate3d(0, -2px, 0) scale(0.98); }
+  to { opacity: 0; transform: translate3d(0, calc(var(--menu-shift, -4px) / 2), 0) scale(0.98); }
 }
 @keyframes overlay-fade-in {
   from { opacity: 0; }
@@ -40,16 +43,17 @@
 @keyframes overlay-tooltip-out {
   to { opacity: 0; transform: translate3d(0, var(--tooltip-shift, -2px), 0) scale(0.98); }
 }
+/* bencho's toast arrival: up from 24px with the fade, about 240ms on the out curve */
 @keyframes overlay-toast-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(24px); }
 }
 
 /* anchored surfaces: a menu, listbox or popover grows out of its trigger; a non-modal dialog is a popover */
 :is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"]:not([aria-modal="true"], .ui-modal, .ui-dialog)).animate-pop-in {
-  animation: overlay-menu-in var(--overlay-fast) var(--ease-sharp);
+  animation: overlay-menu-in 120ms var(--ease-menu-in);
 }
 :is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"]:not([aria-modal="true"], .ui-modal, .ui-dialog)).animate-pop-out {
-  animation: overlay-menu-out var(--overlay-fast) var(--ease-sharp) forwards;
+  animation: overlay-menu-out 80ms var(--ease-out-bencho) forwards;
 }
 /* centred surfaces: a dialog is simply there, and gone the moment it closes */
 :is([role="alertdialog"], [aria-modal="true"], .ui-modal, .ui-dialog):not(.popover-surface, .menu-surface).animate-pop-in,
@@ -103,7 +107,7 @@
   color: var(--color-danger-ink);
 }
 
-/* A notice card or toast in the corner: the popover tone and lift, rising 8px as it arrives. */
+/* A notice card or toast in the corner: the popover tone and lift, rising 24px as it arrives. */
 /* Grok's banner: 1px ink/12 at 18px corners on the inline lift */
 .ui-toast {
   border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
@@ -111,7 +115,7 @@
   background: var(--color-menu);
   color: var(--color-ink);
   box-shadow: 0 4px 12px -1px rgb(28 28 28 / 0.08), 0 2px 4px -2px rgb(28 28 28 / 0.06);
-  animation: overlay-toast-in var(--overlay-normal) var(--ease-sharp);
+  animation: overlay-toast-in 240ms var(--ease-out-bencho);
 }
 
 /* A tooltip, as Grok Bot's: white on the inline lift, 12/16 text, 6px corners. Its edge is drawn inside it, a half-pixel

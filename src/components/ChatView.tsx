@@ -1086,7 +1086,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const presenceShown = useLingering(presenceVisible, 140);
   const paintedMessages = useFirstPaintRows(transcriptKey, arrivedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef);
   const lastShownRow = arrivedMessages.findLast((message) => !quietRow(message, showToolCalls));
-  useArrivalGlide(transcriptRef, paintedMessages.at(-1)?.id, following);
+  useArrivalGlide(transcriptRef, paintedMessages.at(-1), following, openedAt);
   const lastRowIsBubble = Boolean(lastShownRow && isBotTextRow(lastShownRow, bot.id));
   const presenceUnderBubble = lastRowIsBubble;
   // grok keeps the status line's slot at the end of the conversation whether it shows or not, so it never moves a row

@@ -16,7 +16,8 @@ import { parseComputerHelp } from "@/lib/computer-control";
 import { Sidebar } from "@/components/Sidebar";
 import { ChatView } from "@/components/ChatView";
 import { GroupView } from "@/components/GroupView";
-import { SIDEBAR_INLINE, TWO_SIDE_PANELS_FIT, useMediaQuery } from "@/lib/use-media-query";
+import { PHONE_LAYOUT, SIDEBAR_INLINE, TWO_SIDE_PANELS_FIT, useMediaQuery } from "@/lib/use-media-query";
+import { useEdgeSwipeOpen } from "@/components/SidebarDrawer";
 import { preloadConnectedApps } from "@/lib/connected-apps";
 import { ConnectAppsHost, connectAppsPageFor, openConnectApps } from "@/components/connect-apps";
 import {
@@ -164,6 +165,8 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const roomPanelOverlay = notificationFeed && state.notificationsOpen && !twoSidePanelsFit;
   // The sidebar only folds when the person folds it: a side panel opening beside it never collapses it, as in Grok Bot.
   const calendarFocus = state.activeView === "routines" && state.routinesFocus.view === "calendar";
+  const phoneLayout = useMediaQuery(PHONE_LAYOUT, false);
+  useEdgeSwipeOpen(phoneLayout && !drawerOpen && !calendarFocus, () => setDrawerOpen(true));
 
   const noEngines =
     state.connected &&
@@ -352,13 +355,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
         <Menu size={18} className="max-md:hidden" />
         <ChevronLeft size={20} aria-hidden="true" className="hidden max-md:block" />
       </button>}
-      {drawerOpen && !calendarFocus && (
-        <div
-          aria-hidden
-          onMouseDown={(e) => e.target === e.currentTarget && setDrawerOpen(false)}
-          className="absolute inset-0 z-30 bg-black/50 md:hidden"
-        />
-      )}
       {!calendarFocus && <PlacesRail />}
       {/* A framed window shows the app, its sidebar and the chat or page, as one square pane under the top bar and beside
           the window's rail, running to the window's right and bottom edges. */}

@@ -1034,8 +1034,9 @@ export function GroupView({ group }: { group: Group }) {
   useTimestampPeek(scrollRef, !advancedMode);
   // the status line keeps its slot at the end of the room whether it shows or not, so it never moves a row
   const statusSlot = !advancedMode && (windowedMessages.length > 0 || threadWorking);
+  const openedAt = useThreadOpenedAt(group.threadId);
   const { shown: arrivedMessages, held: heldReplies } = usePacedArrivals(transcriptKey, windowedMessages, pacedRoomRow);
-  useArrivalGlide(transcriptRef, arrivedMessages.at(-1)?.id, following);
+  useArrivalGlide(transcriptRef, arrivedMessages.at(-1), following, openedAt);
   // a member whose reply landed but waits its turn is still typing until its bubble takes over
   const typingIds = [...new Set(heldReplies.flatMap((m) => (m.from?.botId ? [m.from.botId] : [])))];
   const unreadDivider = useUnreadDivider({ threadId: group.threadId, messages: group.messages, following });

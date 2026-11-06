@@ -95,21 +95,24 @@ const FADE = { duration: 0.12, ease: "easeOut" } as const;
 const settle = (run: { then: (resolve: () => void, reject?: () => void) => unknown }) => void run.then(() => {}, () => {});
 
 /** While the transcript follows its end, a row added there makes everything glide up into place from where it was,
- * the new row rising from the composer, instead of the scroll snapping it into view. One transform on the column. */
-export function useArrivalGlide(columnRef: RefObject<HTMLElement | null>, lastId: string | undefined, following: boolean): void {
+ * the new row rising from the composer, instead of the scroll snapping it into view. One transform on the column.
+ * Only a row that arrived after the conversation opened glides: opening a chat, or its history loading, lands in place. */
+export function useArrivalGlide(columnRef: RefObject<HTMLElement | null>, last: { id: string; at: number } | undefined, following: boolean, openedAt: number): void {
   const reduced = usePrefersReducedMotion();
   const height = useRef<{ id: string | undefined; px: number } | null>(null);
+  const lastId = last?.id;
+  const live = Boolean(last && last.at > openedAt);
   useLayoutEffect(() => {
     const column = columnRef.current;
     if (!column) return;
     const px = column.offsetHeight;
     const before = height.current;
     height.current = { id: lastId, px };
-    if (!before || before.id === lastId || !following || reduced) return;
+    if (!before || before.id === lastId || !following || reduced || !live) return;
     const grew = px - before.px;
     if (grew <= 0 || grew > window.innerHeight) return;
     settle(animate(column, { y: [grew, 0] }, LIFT));
-  }, [columnRef, lastId, following, reduced]);
+  }, [columnRef, lastId, following, reduced, live]);
 }
 
 /** A row that arrives while the conversation is open grows into place: the person's bubble from the composer side, a

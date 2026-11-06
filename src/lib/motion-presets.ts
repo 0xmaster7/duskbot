@@ -114,3 +114,43 @@ export const STEP = { out: { duration: 0.1, ease: "easeIn" }, in: { duration: 0.
 
 /** surfaces Grok swaps with no motion at all: switching chats, settings panes, the command palette and its results */
 export const INSTANT = { duration: 0 } as const;
+
+// bencho.dev's small token set (ref/BENCHO-MOTION.md): grok's look, bencho's feel. springs near critical damping for
+// overlays, opacity on its own 160ms clock, tiny distances, exits shorter than entrances.
+export const BENCHO = {
+  dur: { fast: 0.16, base: 0.22, slow: 0.42, long: 0.6 },
+  ease: {
+    out: [0.22, 1, 0.36, 1],
+    pop: [0.24, 1.34, 0.38, 1],
+    release: [0.28, 1.4, 0.36, 1],
+    menuIn: [0.16, 1, 0.3, 1],
+  },
+  spring: {
+    settle: { type: "spring", stiffness: 380, damping: 34 },
+    lively: { type: "spring", stiffness: 500, damping: 18 },
+    modal: { type: "spring", stiffness: 340, damping: 30, mass: 0.8 },
+    popover: { type: "spring", stiffness: 420, damping: 34, mass: 0.7 },
+    panel: { type: "spring", stiffness: 320, damping: 32, mass: 0.7 },
+  },
+} as const;
+
+/** a spring for the transform, with opacity on bencho's short 160ms fade */
+export function withFade<T extends object>(spring: T): T & { opacity: { duration: number } } {
+  return { ...spring, opacity: { duration: BENCHO.dur.fast } };
+}
+
+/** the phone's bot list: slides in from the start edge on the critically damped panel spring, follows a drag and keeps
+ * its velocity on release; a fling past either threshold closes it */
+export const DRAWER = {
+  transition: withFade(BENCHO.spring.panel),
+  scrim: { duration: 0.18 },
+  closeFraction: 0.33,
+  closeVelocity: 500,
+} as const;
+
+/** the command palette: up from 6px on the panel spring, opacity on the 160ms fade (bencho's panel-morph) */
+export const PALETTE = {
+  initial: { opacity: 0, y: -6 },
+  animate: { opacity: 1, y: 0 },
+  transition: withFade(BENCHO.spring.panel),
+} as const;

@@ -309,7 +309,7 @@ export function BotContextMenu({
           more.leaveMenu();
         }}
         style={{ top: shown.y, left: shown.x }}
-        className={cn("fixed z-40 max-h-[calc(100dvh-16px)] w-max min-w-[200px] max-w-[min(320px,calc(100vw-16px))] overflow-y-auto overscroll-contain", MENU_SHEET, motion.className)} {...motion.exitProps}
+        className={cn("fixed z-40 origin-top-left rtl:origin-top-right max-h-[calc(100dvh-16px)] w-max min-w-[200px] max-w-[min(320px,calc(100vw-16px))] overflow-y-auto overscroll-contain", MENU_SHEET, motion.className)} {...motion.exitProps}
       >
         {groups.flatMap((group, index) => (index > 0 ? [divider(`group-${index}`), ...group] : group))}
         {readError?.botId === bot.id && <p role="alert" className="px-2 py-1.5 text-[12px] text-danger">{readError.message}</p>}
@@ -356,7 +356,7 @@ export function BotContextMenu({
       aria-label={t("sidebar.bot.actions", { name: bot.name })}
       onKeyDown={navigateThreadMenu}
       style={{ top: shown.y, left: shown.x }}
-      className={cn("fixed z-40 max-h-[calc(100dvh-16px)] w-max min-w-[198px] max-w-[calc(100vw-16px)] overflow-y-auto overscroll-contain", MENU_SHEET, motion.className)} {...motion.exitProps}
+      className={cn("fixed z-40 origin-top-left rtl:origin-top-right max-h-[calc(100dvh-16px)] w-max min-w-[198px] max-w-[calc(100vw-16px)] overflow-y-auto overscroll-contain", MENU_SHEET, motion.className)} {...motion.exitProps}
     >
       {team && mayChangeOwner(bot, team) && item(<Users size={16} className="text-ink-secondary" />, ownerMenuLabel(bot, team), () => pickOwnerOf([bot], team, shown))}
       {remoteClient ? [

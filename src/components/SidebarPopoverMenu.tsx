@@ -46,6 +46,14 @@ type Box = { left: number; right: number; top: number; bottom: number };
 type Size = { width: number; height: number };
 
 /** `start`: above the trigger on its start edge. `end`: below it on its end edge, for a choice at the end of a row. */
+/** Where an anchored menu grows from: the trigger's centre on the near edge, so it scales out of the trigger; and the
+ * side it travels in from, up when it opens below the trigger and down when it opens above. */
+export function menuOrigin(anchor: Box, place: { left: number; top: number }, menu: Size): { transformOrigin: string; "--menu-shift": string } {
+  const x = Math.min(Math.max((anchor.left + anchor.right) / 2 - place.left, 0), menu.width);
+  const above = place.top + menu.height <= anchor.top + 1;
+  return { transformOrigin: `${Math.round(x)}px ${above ? "100%" : "0"}`, "--menu-shift": above ? "4px" : "-4px" };
+}
+
 export function anchoredMenuPosition(anchor: Box, menu: Size, viewport: Size, rtl = false, align: "start" | "end" = "start"): { left: number; top: number } {
   const maxLeft = Math.max(EDGE_MARGIN, viewport.width - menu.width - EDGE_MARGIN);
   const startsOnRight = align === "end" ? !rtl : rtl;
@@ -206,7 +214,7 @@ export function SidebarPopoverMenu({
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(false);
   const [submenu, setSubmenu] = useState<string | null>(null);
-  const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
+  const [position, setPosition] = useState<{ left: number; top: number; origin?: ReturnType<typeof menuOrigin> } | null>(null);
   const [subPosition, setSubPosition] = useState<{ left: number; top: number } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -276,7 +284,11 @@ export function SidebarPopoverMenu({
       const trigger = triggerRef.current, menu = menuRef.current;
       if (!trigger || !menu) return;
       const viewport = { width: window.innerWidth, height: window.innerHeight };
-      if (anchored) setPosition(anchoredMenuPosition(trigger.getBoundingClientRect(), { width: menu.offsetWidth, height: menu.offsetHeight }, viewport, isRtl(trigger), align));
+      if (anchored) {
+        const box = trigger.getBoundingClientRect(), size = { width: menu.offsetWidth, height: menu.offsetHeight };
+        const place = anchoredMenuPosition(box, size, viewport, isRtl(trigger), align);
+        setPosition({ ...place, origin: menuOrigin(box, place, size) });
+      }
       const sub = subRef.current, row = subRowRef.current;
       if (sub && row) {
         setSubPosition(submenuPosition(menu.getBoundingClientRect(), row.getBoundingClientRect(), { width: sub.offsetWidth, height: sub.offsetHeight }, viewport, isRtl(trigger)));
@@ -367,11 +379,11 @@ export function SidebarPopoverMenu({
       onKeyDown={(event) => onMenuKey(event, false)}
       onPointerMove={(event) => intent.move({ x: event.clientX, y: event.clientY }, Boolean(submenu && subRowRef.current?.contains(event.target as Node)))}
       onPointerLeave={() => intent.leaveMenu()}
-      style={anchored ? { position: "fixed", left: position?.left ?? 0, top: position?.top ?? 0, minWidth: grok ? 200 : MENU_MIN_WIDTH, width: "max-content", maxWidth: `min(${MENU_MAX_WIDTH}px, calc(100vw - ${EDGE_MARGIN * 2}px))`, maxHeight: `calc(100vh - ${EDGE_MARGIN * 2}px)`, visibility: position ? undefined : "hidden" } : undefined}
+      style={anchored ? { ...position?.origin, position: "fixed", left: position?.left ?? 0, top: position?.top ?? 0, minWidth: grok ? 200 : MENU_MIN_WIDTH, width: "max-content", maxWidth: `min(${MENU_MAX_WIDTH}px, calc(100vw - ${EDGE_MARGIN * 2}px))`, maxHeight: `calc(100vh - ${EDGE_MARGIN * 2}px)`, visibility: position ? undefined : "hidden" } : undefined}
       className={cn(
         sheetClass,
         anchored ? "z-[60] overflow-y-auto" : "absolute z-40",
-        placement === "below" && "top-full right-0 mt-1 w-72 max-w-[calc(100vw-2rem)]",
+        placement === "below" && "top-full right-0 mt-1 w-72 max-w-[calc(100vw-2rem)] origin-top-right",
         motion.className,
       )}
     >
