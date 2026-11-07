@@ -99,6 +99,7 @@ import type { BotDesktopProgress } from "./bot-desktop.ts";
 import { createVpsLifecycleHost } from "./vps-lifecycle-host.ts";
 import type { VpsLifecycleResource, VpsLifecycleTarget, VpsLifecycleStage } from "./vps-lifecycle.ts";
 import { closeVpsBrowser } from "./vps-browser-close.ts";
+import { NO_EXEC_COMPUTER, VPS_EXEC_CHANGED, vpsContainerExec, withVpsGuestFile } from "./vps-exec.ts";
 import { closeVpsBrowserConnections } from "./vps-connections.ts";
 import { compareVpsContainerStarts } from "./vps-container-start.ts";
 import { createSharedScreenBroker, independentScreenExecArgs, type IndependentScreenLease, type ScreenContainer } from "./shared-desktop-screens.ts";
@@ -11287,6 +11288,15 @@ function messageFileRootsForThread(senderId: string, threadId: string): string[]
   });
 }
 
+/** The turn's VPS desktop for attach_file, once this turn may use it. */
+async function vpsTurnFiles(capability: InternalCapability): Promise<{ alias: string; containerId: string } | undefined> {
+  const remote = turnVpsTargets.get(capability.threadId);
+  if (remote?.generation !== capability.generation) return undefined;
+  const gate = await computerCallGate(capability);
+  if (gate.held) throw Object.assign(new Error(controlRefusal(gate)), { status: 409 });
+  return { alias: vpsSshAlias(remote.config)!, containerId: remote.containerId };
+}
+
 async function attachmentVmForTurn(capability: InternalCapability): Promise<LocalVmTarget | undefined> {
   const slot = autoVmClaims.get(capability.threadId);
   if (!localVmThreadTargets.has(capability.threadId) &&
@@ -13400,14 +13410,14 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         const requestedName = typeof body.name === "string" ? body.name : undefined;
         try {
           const vm = await attachmentVmForTurn(internalCapability);
-          const outcome = await attachForTurn(internalCapability, MAX_ATTACHED_FILES_PER_TURN, {
+          const outcome = await withVpsGuestFile(async () => vm ? undefined : vpsTurnFiles(internalCapability), requestedPath, (vpsGuest) => attachForTurn(internalCapability, MAX_ATTACHED_FILES_PER_TURN, {
             save: () => {
               return saveBotAttachment({
                 path: requestedPath,
                 name: requestedName,
                 // The attachment store is not a source: only the bot's own files are.
                 roots: messageFileRootsForThread(from.id, threadId).filter((root) => root !== ATTACHMENTS_DIR),
-                ...(vm ? { guest: { root: VM_WORKSPACE_GUEST, host: vm.workspaceDir } } : {}),
+                ...(vm ? { guest: { root: VM_WORKSPACE_GUEST, host: vm.workspaceDir } } : vpsGuest ? { guest: vpsGuest } : {}),
                 // Saved outside those folders this turn, never from the data dir, which holds every bot's memory and the app's state.
                 ...(internalCapability.deliversSavedFiles && internalCapability.turnStartedAt !== undefined
                   ? { savedThisTurn: { since: internalCapability.turnStartedAt, refuse: [DATA_DIR] } }
@@ -13426,7 +13436,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
               });
             },
             discard: (saved) => deleteAttachment(saved.attachment.path),
-          });
+          }));
           if (outcome.status === "limit") {
             return json(res, 429, { error: `You already attached ${MAX_ATTACHED_FILES_PER_TURN} files this turn. Put the rest in one document or archive summary instead.` });
           }
@@ -13454,7 +13464,17 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         const body = await readInternalBody();
         try {
           const vm = await attachmentVmForTurn(internalCapability);
-          if (!vm) return json(res, 409, { error: "You have no Local VM desktop in this turn, so there is nowhere to run a command." });
+          if (!vm) {
+            const remote = turnVpsTargets.get(threadId);
+            if (remote?.generation !== internalCapability.generation) return json(res, 409, { error: NO_EXEC_COMPUTER });
+            const gate = await computerCallGate(internalCapability);
+            requireActiveInternalCapability();
+            if (gate.held) return json(res, 409, { error: controlRefusal(gate) });
+            if (turnVpsTargets.get(threadId) !== remote || (remote.screenLease && !remote.screenLease.live())) return json(res, 409, { error: VPS_EXEC_CHANGED });
+            const result = await vpsContainerExec(vpsSshAlias(remote.config)!, remote.containerId, body.command, { timeoutSeconds: typeof body.timeout_seconds === "number" ? body.timeout_seconds : undefined, display: remote.screenLease?.target.display ?? 1 });
+            noteVpsTurnActivity(internalCapability);
+            return json(res, 200, result);
+          }
           const runtime = (await containerRuntimeStatus()).runtime;
           requireActiveInternalCapability();
           if (!runtime || !internalCapabilityIsActive({ ...internalCapability, localVmTarget: vm }) ||
