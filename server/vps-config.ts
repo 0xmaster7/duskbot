@@ -13,7 +13,7 @@ export interface VpsConfig {
   mode?: "shared" | "per-bot";
   /** Permit initializing or waking the selected computer when a bot needs it; default true. */
   autoStart?: boolean;
-  /** Separate bot displays and Chromium profiles inside the shared computer; default true. Files still share a home. */
+  /** Separate bot displays and Chromium profiles inside the shared computer; default true. Files still share a home, and every screen runs as the same desktop user, so screens are separate sign-ins, not private from each other. */
   independentScreens?: boolean;
   /** Maximum active bot displays, from 1 to 20; default 20. Screens are allocated on demand. */
   maxScreens?: number;
