@@ -2,6 +2,7 @@
 import { api, type ConfigStatus } from "@/state/store";
 import { t } from "@/lib/i18n";
 import { keyTestResult } from "@/lib/product-events";
+import { putConfig } from "@/lib/sealed-send";
 import type { KeyResult } from "@/lib/analytics-allowlist";
 import { keyEntry, type KeyId, type KeyTarget, type TestableProvider } from "./key-catalog";
 
@@ -11,7 +12,7 @@ import { keyEntry, type KeyId, type KeyTarget, type TestableProvider } from "./k
 export function saveKey(target: KeyTarget, value: string, firstKey: boolean): Promise<ConfigStatus> {
   return window.ogb?.setCredential && target.slot
     ? window.ogb.setCredential(target.slot, value)
-    : api("/api/config", { method: "PUT", body: JSON.stringify(target.patch(value, firstKey)) });
+    : putConfig(target.patch(value, firstKey));
 }
 
 export function saveCredential(id: KeyId, value: string, firstKey: boolean): Promise<ConfigStatus> {

@@ -25,6 +25,8 @@ vi.mock("@/state/store", async (original) => {
     },
   };
 });
+// sealing has its own tests (src/lib/sealed-send.test.ts): here the patch the row asked to save is what the server gets
+vi.mock("@/lib/sealed-send", () => ({ putConfig: (patch: unknown) => fx.api("/api/config", { method: "PUT", body: JSON.stringify(patch) }) }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
 vi.mock("@/lib/live-call-media", () => ({ dismissLiveNotice: vi.fn() }));
 

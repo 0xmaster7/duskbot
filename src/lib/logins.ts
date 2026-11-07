@@ -1,5 +1,6 @@
-import type { LoginBots, LoginSummary, OnePasswordStatus } from "../../shared/logins";
+import { loginSealTarget, normalizeLoginHost, type LoginBots, type LoginSummary, type OnePasswordStatus } from "../../shared/logins";
 import type { ComputerHelpRef } from "../../shared/wire";
+import { sendSealed } from "@/lib/sealed-send";
 import { api } from "@/state/store";
 
 /** What the person typed into a login form. Kept only until it is sent. */
@@ -13,9 +14,11 @@ export async function listLogins(): Promise<{ logins: LoginSummary[]; onePasswor
   return await api<{ logins: LoginSummary[]; onePassword: OnePasswordStatus }>("/api/logins");
 }
 
-/** The server checks the token reaches 1Password before keeping it, and never sends it back. */
+/** The server checks the token reaches 1Password before keeping it, and never sends it back. A password, a 2FA key or
+ * the token leaves this app only sealed for the server (src/lib/sealed-send.ts). */
 export async function connectOnePassword(token: string): Promise<OnePasswordStatus> {
-  return (await api<{ onePassword: OnePasswordStatus }>("/api/logins/1password", { method: "POST", body: JSON.stringify({ token }) })).onePassword;
+  return (await sendSealed("onepassword.connect", [], { token: token.trim() }, (sealed) =>
+    api<{ onePassword: OnePasswordStatus }>("/api/logins/1password", { method: "POST", body: JSON.stringify(sealed ? { sealed } : { token }) }))).onePassword;
 }
 
 export async function refreshOnePassword(): Promise<OnePasswordStatus> {
@@ -26,23 +29,28 @@ export async function disconnectOnePassword(): Promise<OnePasswordStatus> {
   return (await api<{ onePassword: OnePasswordStatus }>("/api/logins/1password", { method: "DELETE" })).onePassword;
 }
 
+const loginSecrets = (password: string | undefined, totp: string | undefined): Record<string, string> =>
+  ({ ...(password ? { password } : {}), ...(totp?.trim() ? { totp } : {}) });
+
 export async function addLogin(site: string, fields: LoginFieldsInput, bots: LoginBots, exactHost = false): Promise<LoginSummary> {
-  return (await api<{ login: LoginSummary }>("/api/logins", {
+  const target = loginSealTarget(normalizeLoginHost(site) ?? site.trim(), fields.username);
+  return (await sendSealed("login.create", target, loginSecrets(fields.password, fields.totp), (sealed) => api<{ login: LoginSummary }>("/api/logins", {
     method: "POST",
-    body: JSON.stringify({ site, username: fields.username, password: fields.password, ...(fields.totp.trim() ? { totp: fields.totp } : {}), bots, ...(exactHost ? { exactHost } : {}) }),
-  })).login;
+    body: JSON.stringify({ site, username: fields.username, ...(sealed ? { sealed } : {}), bots, ...(exactHost ? { exactHost } : {}) }),
+  }))).login;
 }
 
 export async function changeLogin(id: string, change: { password?: string; totp?: string; removeTotp?: boolean; bots?: LoginBots; exactHost?: boolean }): Promise<LoginSummary> {
-  return (await api<{ login: LoginSummary }>(`/api/logins/${encodeURIComponent(id)}`, {
-    method: "PATCH",
-    body: JSON.stringify({
-      ...(change.password ? { password: change.password } : {}),
-      ...(change.removeTotp ? { totp: null } : change.totp?.trim() ? { totp: change.totp } : {}),
-      ...(change.bots ? { bots: change.bots } : {}),
-      ...(change.exactHost === undefined ? {} : { exactHost: change.exactHost }),
-    }),
-  })).login;
+  return (await sendSealed("login.update", [id], loginSecrets(change.password, change.removeTotp ? undefined : change.totp), (sealed) =>
+    api<{ login: LoginSummary }>(`/api/logins/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        ...(sealed ? { sealed } : {}),
+        ...(change.removeTotp ? { totp: null } : {}),
+        ...(change.bots ? { bots: change.bots } : {}),
+        ...(change.exactHost === undefined ? {} : { exactHost: change.exactHost }),
+      }),
+    }))).login;
 }
 
 /** Which bots may use the logins in one 1Password vault. */
@@ -68,8 +76,8 @@ export async function cardSaveTarget(ref: CardRef): Promise<{ site: string; sign
 }
 
 export async function saveLoginFromCard(ref: CardRef, fields: LoginFieldsInput, signInHost?: string): Promise<void> {
-  await api(cardSavePath(ref), {
+  await sendSealed("login.card", [ref.botId, ref.threadId, ref.messageId], loginSecrets(fields.password, fields.totp), (sealed) => api(cardSavePath(ref), {
     method: "POST",
-    body: JSON.stringify({ threadId: ref.threadId, username: fields.username, password: fields.password, ...(fields.totp.trim() ? { totp: fields.totp } : {}), ...(signInHost ? { signInHost } : {}) }),
-  });
+    body: JSON.stringify({ threadId: ref.threadId, username: fields.username, ...(sealed ? { sealed } : {}), ...(signInHost ? { signInHost } : {}) }),
+  }));
 }

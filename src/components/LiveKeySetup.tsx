@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 
-import { api, useStore, type ConfigStatus } from "@/state/store";
+import { useStore, type ConfigStatus } from "@/state/store";
 import { liveDisclosure } from "@/lib/call-mode";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
+import { putConfig } from "@/lib/sealed-send";
 
 export function LiveKeySetup({ onSaved, compact = false }: { onSaved: () => void; compact?: boolean }) {
   const { state, dispatch } = useStore();
@@ -24,7 +25,7 @@ export function LiveKeySetup({ onSaved, compact = false }: { onSaved: () => void
     try {
       const status: ConfigStatus = window.ogb?.setCredential
         ? await window.ogb.setCredential("openaiLiveKey", value)
-        : await api("/api/config", { method: "PUT", body: JSON.stringify({ live: { key: value } }) });
+        : await putConfig({ live: { key: value } });
       dispatch({ type: "configStatus", config: status });
       // The save may finish after the prompt was dismissed; never turn it into a call the user already cancelled.
       if (!mounted.current) return;
