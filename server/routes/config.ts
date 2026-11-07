@@ -224,7 +224,8 @@ export function createConfigRoutes(deps: ConfigRouteDeps): RouteHandler {
         : vpsSshAlias({ ...cfg, vps: mergeVpsConfig(cfg.vps, patch.vps) });
       const changingVpsAlias = patch.vps !== undefined && nextVpsAlias !== currentVpsAlias;
       const changingVpsMode = patch.vps?.mode !== undefined && patch.vps.mode !== (cfg.vps?.mode ?? "shared");
-      const changingVpsScreens = patch.vps?.independentScreens !== undefined && patch.vps.independentScreens !== (cfg.vps?.independentScreens ?? false);
+      const changingVpsScreens = (patch.vps?.independentScreens !== undefined && patch.vps.independentScreens !== (cfg.vps?.independentScreens ?? true)) ||
+        (patch.vps?.maxScreens !== undefined && patch.vps.maxScreens !== (cfg.vps?.maxScreens ?? 20));
       const transitioningProviders: RemoteComputerProvider[] = changingVpsAlias || changingVpsMode || changingVpsScreens || vpsSharingChanged(patch) ? ["vps"] : [];
       providerConfigBusy.set(true);
       const changingLocalVmMode = patch.localVm?.mode !== undefined && patch.localVm.mode !== localVmMode(cfg);

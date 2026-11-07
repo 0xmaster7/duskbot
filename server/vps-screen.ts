@@ -1,4 +1,4 @@
-import { independentScreenExecArgs, type IndependentScreenTarget, type ScreenContainer } from "./shared-desktop-screens.ts";
+import { INDEPENDENT_DISPLAYS, independentScreenExecArgs, type IndependentScreenTarget, type ScreenContainer } from "./shared-desktop-screens.ts";
 import { defaultRunner, vpsDockerArgs, type VpsCommandRunner } from "./vps-computer.ts";
 
 const VERSION_TIMEOUT_MS = 5_000;
@@ -33,7 +33,7 @@ export function createVpsScreenRuntime({ runner = defaultRunner }: { runner?: Vp
       try {
         const version = parsed((await run(pinned, "version", undefined, VERSION_TIMEOUT_MS, signal)).stdout);
         const displays = version.displays;
-        if (version.version !== 1 || !Array.isArray(displays) || displays.length !== 4 || [2, 3, 4, 5].some(display => !displays.includes(display))) throw unavailable();
+        if (version.version !== 2 || !Array.isArray(displays) || displays.length !== INDEPENDENT_DISPLAYS.length || INDEPENDENT_DISPLAYS.some(display => !displays.includes(display))) throw unavailable();
         if (signal.aborted) throw cancelled();
         await run(pinned, "reset", undefined, RESET_TIMEOUT_MS, signal);
         if (signal.aborted) throw cancelled();
@@ -49,7 +49,7 @@ export function createVpsScreenRuntime({ runner = defaultRunner }: { runner?: Vp
       try {
         const ready = parsed((await run(pinned, "ensure", screen, START_TIMEOUT_MS, signal)).stdout);
         if (signal.aborted) throw cancelled();
-        if (ready.version !== 1 || ready.ready !== true || ready.display !== screen.display || ready.botHash !== screen.botHash || ready.generation !== screen.generation) {
+        if (ready.version !== 2 || ready.ready !== true || ready.display !== screen.display || ready.botHash !== screen.botHash || ready.generation !== screen.generation) {
           throw Object.assign(new Error("The independent screen did not confirm its bot and generation. Retry screen setup."), { status: 409 });
         }
       } catch (error) {

@@ -13,7 +13,7 @@ case "$screen" in
     cdp_port=9222
     logs=/tmp/omb-log
     ;;
-  2|3|4|5)
+  2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21)
     [ "${OMB_SCREEN_MANAGED:-}" = 1 ] || exit 64
     hash="${OMB_SCREEN_BOT_HASH:-}"
     generation="${OMB_SCREEN_GENERATION:-}"
@@ -24,6 +24,7 @@ case "$screen" in
     runtime="/run/user/1000/omb-screens/$screen"
     cua_socket="$runtime/cua.sock"
     profile="/home/cua/.config/omb/screens/$hash/chromium"
+    export XDG_STATE_HOME="/home/cua/.local/state/omb/screens/$hash"
     cdp_port=$((9222 + screen))
     logs="$runtime/logs"
     ;;

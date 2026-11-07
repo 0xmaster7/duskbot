@@ -1,6 +1,6 @@
 // A server that "Add your VPS" installed runs on the VPS itself: its bots' VPS computers live on this machine's own
 // Docker (the install gave the service user the docker group, gVisor and the host fence), with no SSH in between.
-import { independentScreenExecArgs, type IndependentScreenTarget } from "./shared-desktop-screens.ts";
+import { independentScreenExecArgs, isManagedScreenViewerPort, type IndependentScreenTarget } from "./shared-desktop-screens.ts";
 import type { ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import { createConnection, createServer, type AddressInfo, type Socket } from "node:net";
@@ -50,7 +50,7 @@ export async function forwardViewer(
   remotePort = 6901,
 ): Promise<ViewerLink> {
   if (!/^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)\d{1,3}\.\d{1,3}(\.\d{1,3})?$/.test(privateIp)) throw new Error("invalid VPS private container address");
-  if (!Number.isInteger(remotePort) || remotePort < 6901 || remotePort > 6905) throw new Error("invalid VPS viewer port");
+  if (!isManagedScreenViewerPort(remotePort)) throw new Error("invalid VPS viewer port");
   const connect = dial ?? (() => createConnection({ host: privateIp, port: remotePort }));
   const sockets = new Set<Socket>();
   let open = true;

@@ -66,3 +66,24 @@ OMB_VERIFY_DESKTOP_IMAGE=<imageID> node --experimental-strip-types scripts/verif
 
 It checks persistent HTTP cookies across Docker stop/start, including a browser
 reopened through the app relay, and shutdown before a browser is running.
+
+The resource benchmark requires an image with 20 lazy independent screens:
+
+```sh
+OMB_VERIFY_DESKTOP_IMAGE=<imageID> node --experimental-strip-types scripts/benchmark-bot-desktop-screens.mjs --counts=1,4,20
+OMB_VERIFY_DESKTOP_IMAGE=<imageID> node --experimental-strip-types scripts/benchmark-bot-desktop-screens.mjs --counts=20 --forms --browser-limit=4 --admission-stress
+```
+
+It uses 2 CPUs, 4 GiB memory without swap, 4,096 processes, 64 MiB runtime storage
+and an owned disk-backed home volume. Idle samples include one primary blank
+browser. Active samples run app browser and native CUA forms in bounded batches,
+close browsers while retaining profiles, then recheck independent cookies.
+The admission probe opens managed blank browsers sequentially until the guest
+declines or every provisioned screen has one. It never bypasses admission.
+
+Evidence includes cgroup memory, cache, CPU and OOM counters, summed RSS and PSS,
+startup and workflow timings, generation checks and cleanup. RSS counts shared
+pages repeatedly; cgroup cache charges also vary between cold and warm starts.
+Compare anonymous/shared memory and PSS alongside total memory. These are guest
+container measurements with lightweight local HTML; the host server, tool-host
+processes, Docker and real websites require additional resources.

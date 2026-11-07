@@ -16,7 +16,8 @@ export function sharedVpsDefaults(cfg: AppConfig, privacy: VpsWorkspacePrivacy) 
   return {
     mode,
     autoStart: cfg.vps?.autoStart ?? true,
-    independentScreens: cfg.vps?.independentScreens ?? false,
+    independentScreens: cfg.vps?.independentScreens ?? true,
+    maxScreens: cfg.vps?.maxScreens ?? 20,
     idleTimeoutMinutes: vpsIdleTimeoutMinutes(cfg),
     sharingAllowed,
     workspaceShared: mode === "shared" && sharingAllowed,

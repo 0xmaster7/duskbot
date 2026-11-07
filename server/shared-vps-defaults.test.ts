@@ -11,7 +11,7 @@ afterEach(() => rmSync(path, { force: true }));
 
 describe("personal workspace computer defaults", () => {
   it("defaults to one shared desktop, automatic start, and ten-minute idle stop", () => {
-    expect(sharedVpsDefaults({}, personal)).toEqual({ mode: "shared", sharingAllowed: true, workspaceShared: true, autoStart: true, independentScreens: false, idleTimeoutMinutes: 10 });
+    expect(sharedVpsDefaults({}, personal)).toEqual({ mode: "shared", sharingAllowed: true, workspaceShared: true, autoStart: true, independentScreens: true, maxScreens: 20, idleTimeoutMinutes: 10 });
     expect(vpsIdleTimeoutMinutes({})).toBe(10);
   });
   it.each([
@@ -23,8 +23,8 @@ describe("personal workspace computer defaults", () => {
     expect(sharedVpsDefaults({ vps: { mode: "shared" } }, privacy)).toMatchObject({ mode: "shared", workspaceShared: false, sharingAllowed: false });
   });
   it("keeps private mode and explicit manual power preferences", () => {
-    expect(sharedVpsDefaults({ vps: { mode: "per-bot", autoStart: false, idleTimeoutMinutes: 0 } }, personal)).toEqual({
-      mode: "per-bot", workspaceShared: false, sharingAllowed: true, autoStart: false, independentScreens: false, idleTimeoutMinutes: 0,
+    expect(sharedVpsDefaults({ vps: { mode: "per-bot", autoStart: false, independentScreens: false, maxScreens: 20, idleTimeoutMinutes: 0 } }, personal)).toEqual({
+      mode: "per-bot", workspaceShared: false, sharingAllowed: true, autoStart: false, independentScreens: false, maxScreens: 20, idleTimeoutMinutes: 0,
     });
   });
 });
@@ -57,4 +57,19 @@ describe("VPS preferences and existing host configuration", () => {
     saveConfig({ vps: { sshAlias: "" } });
     expect(loadConfig().vps).toEqual({ mode: "per-bot", autoStart: false, idleTimeoutMinutes: 5 });
   });
+  it.each([1, 7, 15, 20])("accepts a configured active screen capacity of %i", maxScreens => {
+    expect(parseConfigPatch({ vps: { maxScreens } })).toEqual({ vps: { maxScreens } });
+    expect(sharedVpsDefaults({ vps: { maxScreens } }, personal).maxScreens).toBe(maxScreens);
+  });
+  it.each([0, 21, -1, 1.5, "20"])("rejects invalid active screen capacity %j", maxScreens => {
+    expect(() => parseConfigPatch({ vps: { maxScreens } } as unknown as JsonValue)).toThrow();
+  });
+  it("retains an explicit shared-screen choice and capacity through independent preference saves", () => {
+    mkdirSync(DATA_DIR, { recursive: true });
+    saveConfig({ vps: { independentScreens: false, maxScreens: 15 } });
+    saveConfig({ vps: { idleTimeoutMinutes: 5 } });
+    const loaded = loadConfig();
+    expect(sharedVpsDefaults(loaded, personal)).toMatchObject({ independentScreens: false, maxScreens: 15, idleTimeoutMinutes: 5 });
+  });
+
 });

@@ -24,7 +24,7 @@ class Handler(BaseHTTPRequestHandler):
         elif parsed.path == "/observe":
             value = self.headers.get("Cookie", "")
             screen = parse_qs(parsed.query).get("screen", ["primary"])[0]
-            if screen not in ("2", "3", "4", "5"):
+            if not screen.isdigit() or not 2 <= int(screen) <= 21:
                 screen = "primary"
             Path("/tmp/cookie-" + screen + ".json").write_text(json.dumps({"cookie": value}))
             content = "<!doctype html><title>Cookie observed</title><h1>Cookie observed " + escape(value) + "</h1>"

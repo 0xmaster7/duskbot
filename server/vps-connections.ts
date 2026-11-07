@@ -10,6 +10,12 @@ export const desktopTunnels = new Map<
 
 
 export const boxChromes = new Map<string, { alias: string; containerId: string; url: string; close: () => void }>();
+export function evictVpsBoxChrome(key: string, url: string): void {
+  const cached = boxChromes.get(key);
+  if (cached?.url !== url) return;
+  boxChromes.delete(key);
+  cached.close();
+}
 
 export interface VpsScreenConnection { containerId: string; target: IndependentScreenTarget; live?: () => boolean }
 const retiredScreenConnections = new Set<string>();

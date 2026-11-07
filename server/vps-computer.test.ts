@@ -102,6 +102,7 @@ function fixture({
   cgroupnsMode,
   imageLabelsMatch = true,
   environmentId = null,
+  startedAt,
 }: {
   image?: boolean;
   container?: boolean;
@@ -130,6 +131,7 @@ function fixture({
   cgroupnsMode?: string;
   imageLabelsMatch?: boolean;
   environmentId?: string | null;
+  startedAt?: unknown;
 } = {}) {
   const name = vpsContainerName(BOT_ID);
   const provisioningArgs = vpsContainerRunArgs(name);
@@ -139,7 +141,7 @@ function fixture({
     return provisioningArgs.find((arg) => arg.startsWith(`${flag}=`))?.slice(flag.length + 1) ?? "";
   };
   const calls: Array<{ args: string[]; options?: { input?: string; timeoutMs?: number } }> = [];
-  const state = { image, container, running, imageLabelsMatch, inspectedImageId, containerImageId };
+  const state = { image, container, running, imageLabelsMatch, inspectedImageId, containerImageId, startedAt };
   const runner: VpsCommandRunner = async (args, options) => {
     calls.push({ args, options });
     const command = args[2];
@@ -210,7 +212,7 @@ function fixture({
             Networks: { [networkMode === "default" ? "bridge" : networkMode]: { IPAddress: "172.17.0.5" } },
           },
           Mounts: mounts ? [{ Source: "/host", Destination: "/container" }] : [],
-          State: { Running: state.running },
+          State: { Running: state.running, StartedAt: state.startedAt },
         }]),
         stderr: "",
       };
@@ -308,6 +310,8 @@ describe("VPS computer", () => {
     const args = vpsSshTunnelArgs("production-vps", 45678, "172.17.0.5");
     expect(args).toContain("127.0.0.1:45678:172.17.0.5:6901");
     expect(args.at(-1)).toBe("production-vps");
+    expect(vpsSshTunnelArgs("production-vps", 45678, "172.17.0.5", null, 6921)).toContain("127.0.0.1:45678:172.17.0.5:6921");
+    for (const port of [6900, 6922, 6921.5]) expect(() => vpsSshTunnelArgs("production-vps", 45678, "172.17.0.5", null, port)).toThrow(/port/);
     expect(args).toContain("ExitOnForwardFailure=yes");
     expect(vpsSshTunnelArgs("production-vps", 45678, "172.17.0.5", "/data/ssh/config").slice(0, 3)).toEqual(["-F", "/data/ssh/config", "-N"]);
     expect(vpsSshTunnelArgs("production-vps", 45678, "172.17.0.5", null)[0]).toBe("-N");
@@ -1345,7 +1349,7 @@ describe("remote desktop tunnel ownership", () => {
 
 describe("independent screen transport", () => {
   it("pins MCP and screenshot to the canonical bot socket", async () => {
-    const target = independentScreenTarget("screen-bot", 3);
+    const target = independentScreenTarget("screen-bot", 21);
     const screen = { containerId: CONTAINER_ID, target };
     const mcp = vpsComputerMcp(CONFIG, BOT_ID, CONTAINER_ID, screen);
     expect(JSON.parse(mcp.args.at(-1)!)).toEqual(target);
@@ -1376,5 +1380,38 @@ it("refreshes a cached awake status when an out-of-band stop is discovered on vi
     await expect(vpsComputerJoin(cfg, BOT_ID)).rejects.toMatchObject({ status: 409 });
     await expect(vpsComputerStatus(cfg, BOT_ID)).resolves.toMatchObject({ ready: false, container: "stopped" });
     expect(fake.calls.some(({ args }) => args.includes("start") || args.includes("run"))).toBe(false);
+  } finally { spawnMock.mockReset(); }
+});
+
+it("reports the container boot identity even when an external restart retains its Docker id", async () => {
+  const first = "2026-11-07T10:00:00.123456789Z";
+  const second = "2026-11-07T10:01:00.123456789Z";
+  const fake = fixture({ startedAt: first });
+  const before = await vpsComputerStatus(CONFIG, BOT_ID, fake.runner);
+  fake.state.startedAt = second;
+  const after = await vpsComputerStatus(CONFIG, BOT_ID, fake.runner);
+  expect(before.container_id).toBe(after.container_id);
+  expect(before.container_started_at).toBe(first);
+  expect(after.container_started_at).toBe(second);
+});
+
+it.each([undefined, "", "not-a-date", "2026-02-30T10:00:00Z", "2026-11-07T10:00:00+05:30", "x".repeat(10000)])("omits an invalid container start timestamp %#", async startedAt => {
+  const fake = fixture({ startedAt });
+  expect((await vpsComputerStatus(CONFIG, BOT_ID, fake.runner)).container_started_at).toBeUndefined();
+});
+
+it("coalesces fresh boot inspection and replaces a stale awake cache before screen selection", async () => {
+  const fake = fixture({ startedAt: "2026-11-07T10:00:00Z" });
+  const cfg = { vps: { sshAlias: "fresh-boot-fixture" } };
+  mockTransport(fake.runner);
+  try {
+    expect((await vpsComputerStatus(cfg, BOT_ID)).container_started_at).toBe("2026-11-07T10:00:00Z");
+    fake.state.startedAt = "2026-11-07T10:01:00Z";
+    expect((await vpsComputerStatus(cfg, BOT_ID)).container_started_at).toBe("2026-11-07T10:00:00Z");
+    const before = fake.calls.filter(({ args }) => args[2] === "image").length;
+    const receipts = await Promise.all([vpsComputerStatus(cfg, BOT_ID, undefined, { fresh: true }), vpsComputerStatus(cfg, BOT_ID, undefined, { fresh: true })]);
+    expect(receipts.every(status => status.container_started_at === "2026-11-07T10:01:00Z")).toBe(true);
+    expect(fake.calls.filter(({ args }) => args[2] === "image").length - before).toBe(1);
+    expect((await vpsComputerStatus(cfg, BOT_ID)).container_started_at).toBe("2026-11-07T10:01:00Z");
   } finally { spawnMock.mockReset(); }
 });

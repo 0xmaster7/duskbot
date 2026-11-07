@@ -42,10 +42,11 @@ describe("a server on its own linked VPS", () => {
   it("pipes one loopback port to a container's private address, and stops every socket when closed", async () => {
     await expect(forwardViewer("127.0.0.1")).rejects.toThrow(/private container address/);
     await expect(forwardViewer("8.8.8.8")).rejects.toThrow(/private container address/);
+    for (const port of [6900, 6922, 6921.5]) await expect(forwardViewer("172.18.0.2", undefined, port)).rejects.toThrow(/port/);
     const echo = createServer((socket) => socket.pipe(socket));
     await new Promise<void>((resolve) => echo.listen(0, "127.0.0.1", resolve));
     const echoPort = (echo.address() as AddressInfo).port;
-    const link = await forwardViewer("172.18.0.2", () => createConnection({ host: "127.0.0.1", port: echoPort }));
+    const link = await forwardViewer("172.18.0.2", () => createConnection({ host: "127.0.0.1", port: echoPort }), 6921);
     const client = createConnection({ host: "127.0.0.1", port: link.port });
     const got = await new Promise<string>((resolve) => { client.once("data", (data) => resolve(data.toString())); client.write("RFB 003.008\n"); });
     expect(got).toBe("RFB 003.008\n");
@@ -76,9 +77,9 @@ describe("a server on its own linked VPS", () => {
 });
 
 it("uses the generation-locked guest relay for an independent browser", () => {
-  const target = independentScreenTarget("screen-bot", 4);
+  const target = independentScreenTarget("screen-bot", 21);
   const id = "a".repeat(64);
-  expect(boxChromeExecArgs(id, target)).toEqual(["exec", "-i", "-u", "cua", id, "/usr/local/bin/omb-screen", "relay", "4", target.botHash, target.generation]);
+  expect(boxChromeExecArgs(id, target)).toEqual(["exec", "-i", "-u", "cua", id, "/usr/local/bin/omb-screen", "relay", "21", target.botHash, target.generation]);
   expect(() => boxChromeExecArgs(id, { ...target, cdpPort: 9222 })).toThrow(/identity changed/);
 });
 

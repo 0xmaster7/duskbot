@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
-import { independentScreenTarget, type ScreenContainer } from "./shared-desktop-screens.ts";
+import { INDEPENDENT_DISPLAYS, independentScreenTarget, type ScreenContainer } from "./shared-desktop-screens.ts";
 import type { VpsCommandRunner } from "./vps-computer.ts";
 import { createVpsScreenRuntime } from "./vps-screen.ts";
 
 const container: ScreenContainer = { sshAlias: "workspace-vps", ownerId: "computer_workspace", containerId: "a".repeat(64) };
 const screen = independentScreenTarget("bot-a", 2);
 const output = (value: unknown) => ({ stdout: JSON.stringify(value), stderr: "" });
-const version = { version: 1, displays: [2, 3, 4, 5] };
-const ready = { version: 1, ready: true, display: screen.display, botHash: screen.botHash, generation: screen.generation };
+const version = { version: 2, displays: [...INDEPENDENT_DISPLAYS] };
+const ready = { version: 2, ready: true, display: screen.display, botHash: screen.botHash, generation: screen.generation };
 const deferred = () => { let resolve!: () => void; const promise = new Promise<void>(done => { resolve = done; }); return { promise, resolve }; };
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
@@ -23,7 +23,7 @@ describe("VPS independent screen runtime", () => {
     expect(runner.mock.calls.map(([, options]) => options?.timeoutMs)).toEqual([5000, 20000]);
     expect(runner.mock.calls.every(([, options]) => options?.signal === abort.signal)).toBe(true);
   });
-  it.each([{ version: 2, displays: [2, 3, 4, 5] }, { version: 1, displays: [1, 2, 3, 4] }, { version: 1, displays: [2, 2, 3, 4] }])("fails closed for an unsupported image protocol: %o", async descriptor => {
+  it.each([{ version: 1, displays: [2, 3, 4, 5] }, { version: 2, displays: [1, 2, 3, 4] }, { version: 2, displays: [...INDEPENDENT_DISPLAYS.slice(1), 3] }])("fails closed for an unsupported image protocol: %o", async descriptor => {
     const runner = vi.fn<VpsCommandRunner>().mockResolvedValue(output(descriptor));
     await expect(createVpsScreenRuntime({ runner }).reset(container, new AbortController().signal)).rejects.toThrow(/Update the bot desktop image/);
     expect(runner).toHaveBeenCalledTimes(1);

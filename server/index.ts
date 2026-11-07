@@ -96,6 +96,7 @@ import { TeamComputers, teamComputerOwner, type TeamComputerRecord } from "./tea
 import { teamComputerVpsTarget } from "./team-computer-vps.ts";
 import { sharedVpsDefaults, vpsIdleTimeoutMinutes } from "./shared-vps-defaults.ts";
 import { createVpsIdleManager, type VpsIdleTarget } from "./vps-idle.ts";
+import { compareVpsContainerStarts } from "./vps-container-start.ts";
 import { createSharedScreenBroker, type IndependentScreenLease, type ScreenContainer } from "./shared-desktop-screens.ts";
 import { createVpsScreenRuntime } from "./vps-screen.ts";
 import { isEffortLevel, type CardAnswerer, type ResolvedSender, type SignInRequestCardData, type WireBot, type WireGroup, type WireTask } from "../shared/wire.ts";
@@ -5652,11 +5653,13 @@ type BotScreen = { container: ScreenContainer; lease: IndependentScreenLease };
 const botScreens = new Map<string, BotScreen>();
 const humanScreenLeases = new Map<string, IndependentScreenLease>();
 const screenRuntime = createVpsScreenRuntime();
-const vpsScreens = createSharedScreenBroker({ ...screenRuntime, revoke: (container, target) => {
+const vpsScreens = createSharedScreenBroker({ ...screenRuntime, maxScreens: () => vpsDefaults().maxScreens, idleTimeoutMs: () => vpsIdleTimeoutMinutes(cfg) * 60_000,
+  onError: error => console.warn(`Independent screen cleanup failed: ${redactSecretsInText(error instanceof Error ? error.message : String(error))}`), revoke: (container, target) => {
   const current = botScreens.get(target.botId);
   if (current?.container.containerId === container.containerId && current.lease.target.generation === target.generation) botScreens.delete(target.botId);
   const held = humanScreenLeases.get(target.botId);
   if (held?.target.generation === target.generation) { held.release(); humanScreenLeases.delete(target.botId); }
+  computerStateChanged(container.ownerId, container.sshAlias, "stopped", undefined, target.botId);
   desktopViewer.recheck();
   vps.closeVpsScreenConnections(container.ownerId, { containerId: container.containerId, target });
 } });
@@ -5667,8 +5670,10 @@ function screenConnection(botId: string, ownerId: string, alias: string): vps.Vp
     ? { containerId: current.container.containerId, target: current.lease.target, live: () => current.lease.live() } : undefined;
 }
 
-async function ensureBotScreen(botId: string, container: ScreenContainer, kind: "turn" | "watch" | "hold", current: () => boolean): Promise<IndependentScreenLease> {
+async function ensureBotScreen(botId: string, container: ScreenContainer, kind: "turn" | "watch" | "hold", current: () => boolean, response?: ServerResponse): Promise<IndependentScreenLease> {
   const abort = new AbortController();
+  const disconnected = () => { if (!response?.writableEnded) abort.abort(); };
+  response?.once("close", disconnected);
   const timer = setInterval(() => { if (!current()) abort.abort(); }, 100); timer.unref();
   let acquired: IndependentScreenLease | undefined;
   try {
@@ -5683,8 +5688,9 @@ async function ensureBotScreen(botId: string, container: ScreenContainer, kind: 
       const watch = await vpsScreens.acquire(container, botId, { kind: "watch", signal: abort.signal });
       previous?.lease.release(); botScreens.set(botId, { container: { ...container }, lease: watch });
     }
+    if (!previous || previous.lease.target.generation !== lease.target.generation) computerStateChanged(container.ownerId, container.sshAlias, "ready", undefined, botId);
     return lease;
-  } catch (error) { acquired?.release(); throw error; } finally { clearInterval(timer); }
+  } catch (error) { acquired?.release(); throw error; } finally { clearInterval(timer); response?.off("close", disconnected); }
 }
 
 function mountedVpsResource(target: { ownerId: string; config: AppConfig; screenLease?: IndependentScreenLease }): string {
@@ -5692,7 +5698,8 @@ function mountedVpsResource(target: { ownerId: string; config: AppConfig; screen
   return target.screenLease ? `${resource}:screen:${target.screenLease.target.botId}` : resource;
 }
 
-const knownVpsComputers = new Map<string, VpsIdleTarget>();
+const knownVpsComputers = new Map<string, VpsIdleTarget & { startedAt?: string }>();
+const vpsStatusObservations = new Map<string, Promise<void>>();
 const vpsResourceKey = (ownerId: string, alias: string) => `computer:vps:${alias}:${ownerId}`;
 const vpsIdleKey = (ownerId: string, alias: string) => JSON.stringify([alias, ownerId]);
 const vpsIdleWindowMs = () => vpsIdleTimeoutMinutes(cfg) * 60_000;
@@ -5711,11 +5718,13 @@ function vpsGuiBusy(target: VpsIdleTarget): boolean {
     (turn.resource === resource || turn.resource.startsWith(`${resource}:screen:`)) && turnResources.owns(turn.resource, turn.owner));
 }
 
-function computerStateChanged(ownerId: string, alias: string, state: "starting" | "ready" | "stopped" | "failed", problem?: string): void {
+function computerStateChanged(ownerId: string, alias: string, state: "starting" | "ready" | "stopped" | "failed", problem?: string, initiator?: string): void {
   for (const bot of store.bots) {
     const shared = inheritedTeamComputer(bot);
     const target = shared ? teamComputerVpsTarget(cfg, shared) : { ownerId: bot.id, config: vpsConfigForBot(cfg, bot) };
     if (target.ownerId === ownerId && vpsSshAlias(target.config) === alias) {
+      if (initiator && bot.id !== initiator) continue;
+      if (shared && vpsDefaults().independentScreens && (state === "starting" || state === "ready") && !screenConnection(bot.id, ownerId, alias) && bot.id !== initiator) continue;
       broadcast({ kind: "computer-state", botId: bot.id, resourceKey: vpsResourceKey(ownerId, alias), state, ...(problem ? { problem } : {}) }, { adminOnly: true });
     }
   }
@@ -5753,7 +5762,8 @@ const vpsIdles = createVpsIdleManager({
 });
 onConfigSaved((before, after) => {
   vpsIdles.configure();
-  const policy = (config: AppConfig) => { const defaults = vpsDefaultsFor(config); return JSON.stringify([vpsSshAlias(config), defaults.mode, defaults.independentScreens, defaults.workspaceShared]); };
+  vpsScreens.configure();
+  const policy = (config: AppConfig) => { const defaults = vpsDefaultsFor(config); return JSON.stringify([vpsSshAlias(config), defaults.mode, defaults.independentScreens, defaults.maxScreens, defaults.workspaceShared]); };
   if (policy(before) === policy(after)) return;
   const containers = new Map<string, ScreenContainer>();
   for (const [botId, screen] of botScreens) {
@@ -5765,12 +5775,34 @@ onConfigSaved((before, after) => {
   for (const container of containers.values()) void vpsScreens.closeContainer(container).catch(error => console.warn(`Independent screen cleanup failed: ${redactSecretsInText(error instanceof Error ? error.message : String(error))}`));
 });
 
-function rememberVpsReady(ownerId: string, status: vps.VpsComputerStatus, activity = false): void {
-  if (!status.ready || !status.sshAlias || !status.container_id) return;
-  const target = { ownerId, sshAlias: status.sshAlias, containerId: status.container_id };
-  knownVpsComputers.set(vpsIdleKey(ownerId, status.sshAlias), target);
-  if (activity) vpsIdles.activity(target); else vpsIdles.observe(target);
-  if (activity) computerStateChanged(ownerId, status.sshAlias, "ready");
+async function rememberVpsReady(ownerId: string, status: vps.VpsComputerStatus, activity = false): Promise<void> {
+  const alias = status.sshAlias;
+  if (!alias) return;
+  const key = vpsIdleKey(ownerId, alias);
+  const previous = vpsStatusObservations.get(key);
+  const observation = (previous ?? Promise.resolve()).catch(() => {}).then(async () => {
+    const known = knownVpsComputers.get(key);
+    const startedAt = status.container_started_at;
+    const bootOrder = known?.startedAt && startedAt ? compareVpsContainerStarts(startedAt, known.startedAt) : undefined;
+    if (known?.containerId === status.container_id && bootOrder !== undefined && bootOrder < 0) {
+      throw Object.assign(new Error("The VPS computer restarted during this status check; retry"), { status: 409 });
+    }
+    const replaced = known && status.container_id && known.containerId !== status.container_id;
+    const restarted = bootOrder !== undefined && bootOrder !== 0;
+    if (known && (replaced || restarted || status.container === "stopped" || status.container === "missing")) {
+      vpsIdles.cancel(known);
+      await vpsScreens.closeContainer(known);
+      if (knownVpsComputers.get(key) === known) knownVpsComputers.delete(key);
+    }
+    if (!status.ready || !status.container_id) return;
+    const target = { ownerId, sshAlias: alias, containerId: status.container_id, ...(startedAt ? { startedAt } : {}) };
+    knownVpsComputers.set(key, target);
+    if (activity) vpsIdles.activity(target); else vpsIdles.observe(target);
+    if (activity) computerStateChanged(ownerId, alias, "ready");
+  });
+  vpsStatusObservations.set(key, observation);
+  try { await observation; }
+  finally { if (vpsStatusObservations.get(key) === observation) vpsStatusObservations.delete(key); }
 }
 
 function noteVpsTurnActivity(turn: { threadId: string; generation: string }): void {
@@ -5914,17 +5946,17 @@ async function mountTeamVps(computer: TeamComputerRecord, botId: string, owner: 
   let remote: vps.VpsComputerStatus;
   try {
     remote = canStart
-      ? await vps.vpsComputerAction("provision", target.config, target.ownerId, undefined, { stillAllowed: () => teamComputerTurns.get(owner.threadId) === turn && activeInternalGenerationByThread.get(owner.threadId) === owner.generation, onStarting: () => computerStateChanged(target.ownerId, vpsSshAlias(target.config)!, "starting") })
-      : await vps.vpsComputerStatus(target.config, target.ownerId);
+      ? await vps.vpsComputerAction("provision", target.config, target.ownerId, undefined, { stillAllowed: () => teamComputerTurns.get(owner.threadId) === turn && activeInternalGenerationByThread.get(owner.threadId) === owner.generation, onStarting: () => computerStateChanged(target.ownerId, vpsSshAlias(target.config)!, "starting", undefined, botId) })
+      : await vps.vpsComputerStatus(target.config, target.ownerId, undefined, { fresh: true });
     requireCurrent();
   } catch (error) {
-    computerStateChanged(target.ownerId, vpsSshAlias(target.config)!, "failed", error instanceof Error ? error.message : String(error));
+    computerStateChanged(target.ownerId, vpsSshAlias(target.config)!, "failed", error instanceof Error ? error.message : String(error), botId);
     throw error;
   }
   if (!remote.ready || !remote.sshAlias) throw new Error(remote.problem ?? "The team's VPS computer is not ready");
   requireCurrent();
   const targetCfg = { vps: { sshAlias: remote.sshAlias } };
-  rememberVpsReady(target.ownerId, remote, true);
+  await rememberVpsReady(target.ownerId, remote, true);
   if (!remote.container_id) throw new Error("The shared VPS computer identity could not be verified");
   const screenLease = vpsDefaults().independentScreens ? await ensureBotScreen(botId, { ownerId: target.ownerId, sshAlias: remote.sshAlias, containerId: remote.container_id }, "turn", () => teamComputerTurns.get(owner.threadId) === turn && activeInternalGenerationByThread.get(owner.threadId) === owner.generation && !remoteComputerLifecycleBusyOwners.has(target.ownerId)) : undefined;
   const mounted = { generation: owner.generation, botId, ownerId: target.ownerId, config: targetCfg, containerId: remote.container_id, ...(screenLease ? { screenLease } : {}) };
@@ -5978,7 +6010,7 @@ async function mountBotVps(
   const remote = await (opts.start ? vps.vpsComputerAction("provision", botVpsConfig, bot.id, undefined, { stillAllowed: () => activeInternalGenerationByThread.get(owner.threadId) === owner.generation, onStarting: () => computerStateChanged(bot.id, vpsSshAlias(botVpsConfig)!, "starting") }) : vps.inspectVpsForAuto(botVpsConfig, bot.id));
   if (!remote?.ready || !remote.sshAlias) return { problem: remote?.problem ?? null, reachable: remote?.daemonUp === true, outdated: vpsDesktopOutdated(remote) };
   const targetCfg = { vps: { sshAlias: remote.sshAlias } };
-  rememberVpsReady(bot.id, remote, opts.start);
+  await rememberVpsReady(bot.id, remote, opts.start);
   if (!remote.container_id) throw new Error("The VPS computer identity could not be verified");
   turnVpsTargets.set(owner.threadId, { generation: owner.generation, botId: bot.id, ownerId: bot.id, config: targetCfg, containerId: remote.container_id });
   const vpsMcp = vps.vpsComputerMcp(targetCfg, bot.id, remote.container_id);
@@ -15121,10 +15153,10 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       const teamComputer = inheritedTeamComputer(bot);
       const target = teamComputer ? teamComputerVpsTarget(cfg, teamComputer) : { ownerId: bot.id, config: vpsConfigForBot(cfg, bot) };
       const status = await vps.vpsComputerStatus(target.config, target.ownerId);
-      rememberVpsReady(target.ownerId, status);
+      await rememberVpsReady(target.ownerId, status);
       const screen = teamComputer && vpsDefaults().independentScreens ? screenConnection(bot.id, target.ownerId, vpsSshAlias(target.config) ?? "") : undefined;
       return json(res, 200, { surface, backend: "vps", resourceKey: vpsResourceKey(target.ownerId, vpsSshAlias(target.config) ?? ""), ...(teamComputer ? { teamComputer: { id: teamComputer.id, name: teamComputer.name, ...(teamComputer.scope ? { scope: teamComputer.scope } : {}) } } : {}), ...status, ...(teamComputer && vpsDefaults().independentScreens ? { ready: status.ready && Boolean(screen), viewerKey: screen?.target.generation ?? "unallocated" } : {}),
-        ...(vps.vpsComputerPreparing(target.config, target.ownerId) ? { state: "starting" } : status.ready ? { state: "ready" } : status.container === "stopped" ? { state: "stopped" } : {}) });
+        ...(vps.vpsComputerPreparing(target.config, target.ownerId) ? { state: "starting" } : status.ready ? { state: teamComputer && vpsDefaults().independentScreens && !screen ? "stopped" : "ready" } : status.container === "stopped" ? { state: "stopped" } : {}) });
     }
     // The person's take and release; the bot has no verb here, only a sign-in request its card settles.
     m = path.match(/^\/api\/bots\/([\w-]+)\/computer\/control$/);
@@ -15156,7 +15188,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           const shared = inheritedTeamComputer(currentBot)!; const target = teamComputerVpsTarget(cfg, shared);
           const known = knownVpsComputers.get(vpsIdleKey(target.ownerId, vpsSshAlias(target.config) ?? ""));
           if (!known || !screenConnection(bot.id, target.ownerId, known.sshAlias)) return json(res, 409, { error: "Wake and connect this bot screen before taking control" });
-          const lease = await ensureBotScreen(bot.id, known, "hold", () => Boolean(store.bot(bot.id)) && !remoteComputerLifecycleBusyOwners.has(target.ownerId) && !computerProviderConfigTransitions.has("vps") && (auth.kind === "loopback" || sessions.isLive(auth.session.id)));
+          const lease = await ensureBotScreen(bot.id, known, "hold", () => Boolean(store.bot(bot.id)) && !res.destroyed && !remoteComputerLifecycleBusyOwners.has(target.ownerId) && !computerProviderConfigTransitions.has("vps") && (auth.kind === "loopback" || sessions.isLive(auth.session.id)), res);
           humanScreenLeases.get(bot.id)?.release(); humanScreenLeases.set(bot.id, lease);
         }
         if (action === "take" && controlLeaseId) {
@@ -15235,9 +15267,10 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           const remote = auth.kind !== "loopback" || url.searchParams.get("viewer") === "proxy";
           let screen: vps.VpsScreenConnection | undefined;
           if (shared && vpsDefaults().independentScreens) {
-            const status = await vps.vpsComputerStatus(target.config, ownerId);
+            const status = await vps.vpsComputerStatus(target.config, ownerId, undefined, { fresh: true });
+            await rememberVpsReady(ownerId, status);
             if (!status.ready || !status.container_id || !status.sshAlias) throw Object.assign(new Error(status.problem ?? "Wake this computer before opening its screen"), { status: 409 });
-            await ensureBotScreen(bot.id, { ownerId, sshAlias: status.sshAlias, containerId: status.container_id }, "watch", () => (auth.kind === "loopback" || sessions.isLive(auth.session.id)) && !res.destroyed && !computerProviderConfigTransitions.has("vps"));
+            await ensureBotScreen(bot.id, { ownerId, sshAlias: status.sshAlias, containerId: status.container_id }, "watch", () => (auth.kind === "loopback" || sessions.isLive(auth.session.id)) && !res.destroyed && !computerProviderConfigTransitions.has("vps"), res);
             screen = screenConnection(bot.id, ownerId, status.sshAlias);
             if (!screen) throw Object.assign(new Error("This bot screen was reassigned; reconnect it"), { status: 409 });
           }
@@ -15250,17 +15283,17 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           if (action !== "provision") { const known = knownVpsComputers.get(vpsIdleKey(ownerId, alias)); if (known) await vpsScreens.closeContainer(known); }
           const status = await vps.vpsComputerAction(action === "provision" ? "provision" : action === "remove" ? "remove" : "stop", target.config, ownerId, undefined, {
             stillAllowed: () => (auth.kind === "loopback" || sessions.isLive(auth.session.id)) && !computerProviderConfigTransitions.has("vps"),
-            onStarting: () => computerStateChanged(ownerId, alias, "starting"),
+            onStarting: () => computerStateChanged(ownerId, alias, "starting", undefined, bot.id),
           });
           if (action === "provision" && !status.ready) throw Object.assign(new Error(status.problem ?? "The VPS computer did not become ready; retry when the connection recovers"), { status: 503 });
           if (action === "provision") {
-            if (shared && vpsDefaults().independentScreens && status.container_id) await ensureBotScreen(bot.id, { ownerId, sshAlias: alias, containerId: status.container_id }, "watch", () => (auth.kind === "loopback" || sessions.isLive(auth.session.id)) && !res.destroyed && !computerProviderConfigTransitions.has("vps"));
-            rememberVpsReady(ownerId, status, true);
+            await rememberVpsReady(ownerId, status, true);
+            if (shared && vpsDefaults().independentScreens && status.container_id) await ensureBotScreen(bot.id, { ownerId, sshAlias: alias, containerId: status.container_id }, "watch", () => (auth.kind === "loopback" || sessions.isLive(auth.session.id)) && !res.destroyed && !computerProviderConfigTransitions.has("vps"), res);
           }
           else { vpsIdles.cancel({ ownerId, sshAlias: alias }); knownVpsComputers.delete(vpsIdleKey(ownerId, alias)); computerStateChanged(ownerId, alias, "stopped"); }
           return json(res, 200, { surface: "cloud", backend: "vps", ...status, ...(shared && vpsDefaults().independentScreens ? { viewerKey: screenConnection(bot.id, ownerId, alias)?.target.generation ?? "unallocated" } : {}), resourceKey: vpsResourceKey(ownerId, alias), ...(shared ? { teamComputer: { id: shared.id, name: shared.name, ...(shared.scope ? { scope: shared.scope } : {}) } } : {}) });
         } catch (error) {
-          if (action === "provision") computerStateChanged(ownerId, alias, "failed", error instanceof Error ? error.message : String(error));
+          if (action === "provision") computerStateChanged(ownerId, alias, "failed", error instanceof Error ? error.message : String(error), bot.id);
           throw error;
         }
       } finally {

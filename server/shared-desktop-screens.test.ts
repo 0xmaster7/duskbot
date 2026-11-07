@@ -13,6 +13,7 @@ function fixture(extra: Partial<SharedScreenHooks> = {}) {
     stop: vi.fn(async (_container, target) => { events.push(`stop:${target.botId}:${target.display}`); }),
     revoke: vi.fn((_container, target) => { events.push(`revoke:${target.botId}:${target.display}`); }),
     now: () => ++time,
+    maxScreens: () => 4,
     ...extra,
   };
   return { broker: createSharedScreenBroker(hooks), hooks, events };
@@ -41,7 +42,7 @@ describe("independent shared-computer screen targets", () => {
   });
 });
 
-describe("four-screen shared-computer broker", () => {
+describe("configured shared-computer screen broker", () => {
   it("starts different bot screens concurrently after one reset, queues a fifth active bot, and admits it after release", async () => {
     const gates = new Map<string, ReturnType<typeof deferred>>();
     const { broker, hooks } = fixture({ start: vi.fn(async (_container, target) => {
@@ -52,8 +53,12 @@ describe("four-screen shared-computer broker", () => {
     const fifth = broker.acquire(container, "five", { kind: "turn" }).then(lease => { fifthReady = true; return lease; });
     await tick();
     expect(hooks.reset).toHaveBeenCalledTimes(1);
-    expect([...gates.keys()]).toEqual(["one", "two", "three", "four"]);
+    expect([...gates.keys()]).toEqual(["one", "two"]);
     for (const gate of gates.values()) gate.resolve();
+    await tick();
+    expect([...gates.keys()]).toEqual(["one", "two", "three", "four"]);
+    gates.get("three")!.resolve();
+    gates.get("four")!.resolve();
     const leases = await Promise.all(first);
     expect(new Set(leases.map(lease => lease.target.display)).size).toBe(4);
     expect(fifthReady).toBe(false);

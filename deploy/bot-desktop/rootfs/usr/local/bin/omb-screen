@@ -1,6 +1,7 @@
 #!/usr/bin/python3 -I
 import base64
 import contextlib
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import fcntl
 import json
@@ -19,17 +20,18 @@ import urllib.request
 from urllib.parse import urlparse
 
 
-DISPLAYS = (2, 3, 4, 5)
+DISPLAYS = tuple(range(2, 22))
 ROOT = Path("/run/user/1000/omb-screens")
 PROFILE_ROOT = Path("/home/cua/.config/omb/screens")
 PRIMARY = Path("/run/user/1000/omb-primary")
 HASH = re.compile(r"[a-f0-9]{64}\Z")
 GENERATION = re.compile(r"[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}\Z")
 DRIVER = "/usr/local/libexec/openmausbot/cua-driver"
+LOW_MEMORY = "This computer is low on memory. Close an unused browser or use a larger computer, then retry."
 
 
 def answer(**values):
-    print(json.dumps({"version": 1, **values}, separators=(",", ":")), flush=True)
+    print(json.dumps({"version": 2, **values}, separators=(",", ":")), flush=True)
 
 
 def directory(path, create=True):
@@ -41,6 +43,54 @@ def directory(path, create=True):
         raise RuntimeError("The screen directory is not owned by the desktop user")
     if create:
         path.chmod(0o700)
+
+
+def available_memory(cgroup=Path("/sys/fs/cgroup"), meminfo=Path("/proc/meminfo")):
+    host = None
+    try:
+        values = dict(line.split(":", 1) for line in meminfo.read_text().splitlines())
+        host = int(values["MemAvailable"].split()[0]) * 1024
+    except (OSError, ValueError, KeyError, IndexError):
+        pass
+    try:
+        raw_limit = (cgroup / "memory.max").read_text().strip()
+        limit = None if raw_limit == "max" else int(raw_limit)
+    except (OSError, ValueError):
+        limit = None
+    if limit is not None:
+        try:
+            current = int((cgroup / "memory.current").read_text())
+        except (OSError, ValueError):
+            return 0
+        if current < 0 or current > limit:
+            return 0
+        reclaimable = 0
+        try:
+            values = dict(line.split() for line in (cgroup / "memory.stat").read_text().splitlines())
+            reclaimable = max(0, min(current, int(values.get("inactive_file", "0"))))
+        except (OSError, ValueError):
+            pass
+        available = max(0, limit - current + reclaimable)
+        return min(available, host) if host is not None else available
+    if host is not None:
+        return host
+    raise RuntimeError("The computer's available memory could not be determined")
+
+
+def require_memory(mebibytes):
+    if available_memory() < mebibytes * 1024 * 1024:
+        raise RuntimeError(LOW_MEMORY)
+
+
+def require_running_primary():
+    path = PRIMARY / "stopping.json"
+    if not path.exists():
+        return
+    if path.is_symlink() or path.stat().st_uid != 1000 or path.stat().st_size > 4096:
+        raise RuntimeError("Invalid primary shutdown state")
+    owner = json.loads(path.read_text())
+    if isinstance(owner.get("pid"), int) and process_identity(owner["pid"]) == owner:
+        raise RuntimeError("The computer is shutting down. Retry after it starts again.")
 
 
 @contextlib.contextmanager
@@ -94,14 +144,18 @@ def process(pid):
         return None
 
 
-def processes(display):
+def managed_processes():
     found = []
     for path in Path("/proc").iterdir():
         if path.name.isdigit() and int(path.name) != os.getpid():
             entry = process(int(path.name))
-            if entry and entry["display"] == display:
+            if entry:
                 found.append(entry)
     return found
+
+
+def processes(display):
+    return [entry for entry in managed_processes() if entry["display"] == display]
 
 
 def matches(current, expected):
@@ -120,11 +174,24 @@ def send(entry, signum):
         pass
 
 
-def close_browser(display, entries):
+def owned_descendant(pid, entries):
+    owners = {entry["pid"]: entry for entry in entries}
+    for _ in range(64):
+        current = process_identity(pid)
+        if not current:
+            return False
+        if pid in owners:
+            return all(current[key] == owners[pid][key] for key in current)
+        try:
+            fields = (Path("/proc") / str(pid) / "stat").read_text().rsplit(")", 1)[1].split()
+            pid = int(fields[1])
+        except (OSError, ValueError, IndexError):
+            return False
+    return False
+
+
+def browser_listeners(port, entries, native=False):
     groups = {(entry["group"], entry["session"]) for entry in entries}
-    if not groups:
-        return
-    port = 9222 if display == 1 else 9222 + display
     inodes = set()
     for name in ("tcp", "tcp6"):
         for line in Path(f"/proc/net/{name}").read_text().splitlines()[1:]:
@@ -136,13 +203,20 @@ def close_browser(display, entries):
         if not path.name.isdigit():
             continue
         identity = process_identity(int(path.name))
-        if not identity or (identity["group"], identity["session"]) not in groups:
+        if not identity or ((identity["group"], identity["session"]) not in groups and
+                            not (native and identity["session"] in {entry["session"] for entry in entries} and owned_descendant(identity["pid"], entries))):
             continue
         try:
             if any(os.readlink(fd) in inodes for fd in (path / "fd").iterdir()):
                 browsers.append(identity)
         except OSError:
             pass
+    return bool(inodes), browsers
+
+
+def close_browser(display, entries, port=None, native=False):
+    port = port if port is not None else (9222 if display == 1 else 9222 + display)
+    _, browsers = browser_listeners(port, entries, native)
     if not browsers:
         return
     deadline = time.monotonic() + 4
@@ -187,13 +261,43 @@ def close_browser(display, entries):
         pass
     while time.monotonic() < deadline and any(process_identity(entry["pid"]) == entry for entry in browsers):
         time.sleep(0.05)
-    return not any(process_identity(entry["pid"]) == entry for entry in browsers)
+    remaining = [entry for entry in browsers if process_identity(entry["pid"]) == entry]
+    for entry in remaining:
+        if native and entry["group"] == entry["pid"]:
+            try:
+                os.killpg(entry["group"], signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+    return not remaining
+
+
+def browser_targets(display, entries):
+    targets = [(display, entries, None)]
+    roots = [Path("/home/cua/.local/state/cua-driver/browser-profiles")] if display == 1 else []
+    roots.extend(Path("/home/cua/.local/state/omb/screens") / bot / "cua-driver/browser-profiles"
+                 for bot in {entry["botHash"] for entry in entries if "botHash" in entry})
+    for root in roots:
+        if not root.exists():
+            continue
+        directory(root, create=False)
+        for path in root.glob("*/DevToolsActivePort"):
+            if path.resolve() != path or path.stat().st_uid != 1000 or path.stat().st_size > 4096:
+                raise RuntimeError("Invalid managed browser endpoint")
+            lines = path.read_text().splitlines()
+            if lines and lines[0].isdigit() and 1024 <= int(lines[0]) <= 65535:
+                targets.append((display, entries, int(lines[0]), True))
+    return targets
+
+
+def close_browser_targets(targets):
+    with ThreadPoolExecutor(max_workers=min(32, len(targets))) as executor:
+        return list(executor.map(lambda target: close_browser(*target), targets))
 
 
 def stop_processes(display, generation=None, bot=None):
     def targets():
         return [entry for entry in processes(display) if (generation is None or entry["generation"] == generation) and (bot is None or entry["botHash"] == bot)]
-    close_browser(display, targets())
+    close_browser_targets(browser_targets(display, targets()))
     for entry in targets():
         send(entry, signal.SIGTERM)
     deadline = time.monotonic() + 2
@@ -214,7 +318,7 @@ def read_state(display):
         if path.is_symlink() or path.stat().st_size > 4096:
             raise RuntimeError("Invalid managed screen state")
         value = json.loads(path.read_text())
-        if value.get("version") != 1 or value.get("display") != display or not HASH.fullmatch(value.get("botHash", "")) or not GENERATION.fullmatch(value.get("generation", "")):
+        if value.get("version") != 2 or value.get("display") != display or not HASH.fullmatch(value.get("botHash", "")) or not GENERATION.fullmatch(value.get("generation", "")):
             raise RuntimeError("Invalid managed screen state")
         return value
     except FileNotFoundError:
@@ -282,19 +386,19 @@ def ready(state):
         health = json.loads(result.stdout)
         if str(health.get("schema_version")) != "1" or health.get("overall") not in ("ok", "degraded") or not isinstance(health.get("checks"), list):
             return False
-        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-        with opener.open(f"http://127.0.0.1:{9222 + state['display']}/json/version", timeout=0.5) as response:
-            browser = json.loads(response.read(65536))
-        endpoint = urlparse(browser.get("webSocketDebuggerUrl", ""))
-        return endpoint.scheme == "ws" and endpoint.hostname in ("127.0.0.1", "localhost") and endpoint.port == 9222 + state["display"] and bool(browser.get("Browser"))
+        for port in (5900 + state["display"], 6900 + state["display"]):
+            with socket.create_connection(("127.0.0.1", port), timeout=0.5):
+                pass
+        return True
     except (OSError, ValueError, subprocess.SubprocessError):
         return False
 
 
 def ensure(display, bot, generation):
+    require_running_primary()
     runtime = ROOT / str(display)
     directory(runtime)
-    if any(entry["botHash"] == bot for slot in DISPLAYS if slot != display for entry in processes(slot)):
+    if any(entry["botHash"] == bot and entry["display"] != display for entry in managed_processes()):
         raise RuntimeError("This bot already has another managed screen")
     previous = read_state(display)
     if previous and previous["botHash"] == bot and previous["generation"] == generation and ready(previous):
@@ -302,18 +406,21 @@ def ensure(display, bot, generation):
     stop_processes(display)
     clear_runtime(display)
     free_display(display)
+    require_memory(64)
+    require_running_primary()
     directory(PROFILE_ROOT / bot / "chromium")
     env = dict(os.environ, OMB_SCREEN_MANAGED="1", OMB_SCREEN_DISPLAY=str(display),
-               OMB_SCREEN_BOT_HASH=bot, OMB_SCREEN_GENERATION=generation, OMB_BROWSER_AT_START="on")
+               OMB_SCREEN_BOT_HASH=bot, OMB_SCREEN_GENERATION=generation, OMB_BROWSER_AT_START="off", OMB_START_URL="about:blank")
     log_fd = os.open(runtime / "session.log", os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
     with os.fdopen(log_fd, "wb") as log:
         child = subprocess.Popen(["/bin/sh", "/usr/local/bin/omb-session"], env=env, stdin=subprocess.DEVNULL,
                                  stdout=log, stderr=log, start_new_session=True, close_fds=True)
-    state = {"version": 1, "display": display, "botHash": bot, "generation": generation,
+    state = {"version": 2, "display": display, "botHash": bot, "generation": generation,
              "pid": child.pid, "start": None}
     try:
         deadline = time.monotonic() + 25
         while time.monotonic() < deadline:
+            require_running_primary()
             current = process(child.pid)
             if current:
                 state["start"] = current["start"]
@@ -326,6 +433,7 @@ def ensure(display, bot, generation):
             temporary = Path(output.name)
         temporary.replace(runtime / "state.json")
         while time.monotonic() < deadline:
+            require_running_primary()
             if ready(state):
                 return
             if child.poll() is not None:
@@ -338,7 +446,62 @@ def ensure(display, bot, generation):
         raise
 
 
-def relay(display):
+def browser_ready(state):
+    display = state["display"]
+    entries = [entry for entry in processes(display) if entry["botHash"] == state["botHash"] and entry["generation"] == state["generation"]]
+    listening, browsers = browser_listeners(9222 + display, entries)
+    if not listening:
+        return False
+    if not browsers:
+        raise RuntimeError("The browser endpoint does not belong to this independent screen")
+    try:
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        with opener.open(f"http://127.0.0.1:{9222 + display}/json/version", timeout=0.5) as response:
+            value = json.loads(response.read(65536))
+        endpoint = urlparse(value.get("webSocketDebuggerUrl", ""))
+        return endpoint.scheme == "ws" and endpoint.hostname in ("localhost", "127.0.0.1") and endpoint.port == 9222 + display and bool(value.get("Browser"))
+    except (OSError, ValueError):
+        return False
+
+
+def ensure_browser(state):
+    display = state["display"]
+    runtime = ROOT / str(display)
+    with locked(runtime / ".browser.lock"), locked(ROOT / ".browser-start.lock", wait_seconds=30):
+        require_running_primary()
+        if read_state(display) != state or not matches(process(state["pid"]), state):
+            raise RuntimeError("The independent screen lease changed")
+        if browser_ready(state):
+            require_running_primary()
+            return
+        existing = [entry for entry in processes(display) if entry["botHash"] == state["botHash"] and entry["generation"] == state["generation"] and entry["pid"] == entry["group"] == entry["session"] and entry["pid"] != state["pid"]]
+        child = None
+        if not existing:
+            require_memory(384)
+            env = dict(os.environ, OMB_SCREEN_MANAGED="1", OMB_SCREEN_DISPLAY=str(display),
+                       OMB_SCREEN_BOT_HASH=state["botHash"], OMB_SCREEN_GENERATION=state["generation"],
+                       DISPLAY=f":{display}", HOME="/home/cua", XDG_RUNTIME_DIR=str(runtime),
+                       DBUS_SESSION_BUS_ADDRESS=f"unix:path={runtime}/bus",
+                       OMB_CHROMIUM_PROFILE=str(PROFILE_ROOT / state["botHash"] / "chromium"), OMB_CDP_PORT=str(9222 + display))
+            log_fd = os.open(runtime / "browser.log", os.O_WRONLY | os.O_CREAT | os.O_APPEND | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+            with os.fdopen(log_fd, "ab") as log:
+                child = subprocess.Popen(["/bin/sh", "-c", "chromium about:blank & wait"], env=env,
+                                         stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True, close_fds=True)
+        deadline = time.monotonic() + 15
+        while time.monotonic() < deadline:
+            require_running_primary()
+            if browser_ready(state):
+                require_running_primary()
+                return
+            if child and child.poll() is not None:
+                break
+            time.sleep(0.1)
+        raise RuntimeError("The independent browser did not become ready")
+
+
+def relay(state):
+    display = state["display"]
+    ensure_browser(state)
     with socket.create_connection(("127.0.0.1", 9222 + display), timeout=2) as peer:
         peer.settimeout(None)
         peer.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -429,6 +592,7 @@ def primary_browser_ensure():
             if json.loads(closing.read_text()) == parent:
                 raise RuntimeError("The primary desktop session is shutting down")
         if primary_browser_ready():
+            require_running_primary()
             answer(primaryBrowserReady=True)
             return
         browser = primary_browser_state(parent)
@@ -447,7 +611,9 @@ def primary_browser_ensure():
             temporary.replace(PRIMARY / "browser.json")
         deadline = time.monotonic() + 3
         while time.monotonic() < deadline:
+            require_running_primary()
             if primary_browser_ready():
+                require_running_primary()
                 answer(primaryBrowserReady=True)
                 return
             if process_identity(browser["pid"]) != browser:
@@ -462,19 +628,29 @@ def close_primary():
         raise RuntimeError("Primary shutdown requires its own desktop session")
     os.setpgid(0, 0)
     directory(PRIMARY)
-    with locked(PRIMARY / ".lock", wait_seconds=4):
-        with tempfile.NamedTemporaryFile(mode="w", dir=PRIMARY, prefix=".stopping-", delete=False) as output:
-            output.write(json.dumps(parent))
-            temporary = Path(output.name)
-        temporary.replace(PRIMARY / "stopping.json")
+    with tempfile.NamedTemporaryFile(mode="w", dir=PRIMARY, prefix=".stopping-", delete=False) as output:
+        output.write(json.dumps(parent))
+        temporary = Path(output.name)
+    temporary.replace(PRIMARY / "stopping.json")
+    with locked(PRIMARY / ".lock", wait_seconds=1):
         browser = primary_browser_state(parent)
-        closed = close_browser(1, [parent, *([browser] if browser else [])])
-        if process_identity(parent["pid"]) != parent:
-            raise RuntimeError("The primary desktop session changed during shutdown")
-        if browser and process_identity(browser["pid"]) == browser:
-            os.killpg(browser["group"], signal.SIGTERM)
-        os.killpg(parent["group"], signal.SIGTERM)
-        answer(primaryClosed=True, browserClosed=bool(closed))
+        directory(ROOT)
+        with locked(ROOT / ".browser-start.lock", wait_seconds=4):
+            managed = managed_processes()
+            targets = browser_targets(1, [parent, *([browser] if browser else [])])
+            for display in DISPLAYS:
+                entries = [entry for entry in managed if entry["display"] == display]
+                if entries:
+                    targets.extend(browser_targets(display, entries))
+            closed = close_browser_targets(targets)
+            if process_identity(parent["pid"]) != parent:
+                raise RuntimeError("The primary desktop session changed during shutdown")
+            for entry in managed:
+                send(entry, signal.SIGTERM)
+            if browser and process_identity(browser["pid"]) == browser:
+                os.killpg(browser["group"], signal.SIGTERM)
+            os.killpg(parent["group"], signal.SIGTERM)
+            answer(primaryClosed=True, browserClosed=bool(closed[0]), managedBrowsersClosed=sum(bool(value) for value in closed[1:]))
 
 
 def main():
@@ -490,17 +666,17 @@ def main():
         return
     if args == ["reset"]:
         display = bot = generation = None
-    elif len(args) == 4 and args[0] in ("ensure", "stop", "check", "relay") and args[1] in tuple(map(str, DISPLAYS)) and HASH.fullmatch(args[2]) and GENERATION.fullmatch(args[3]):
+    elif len(args) == 4 and args[0] in ("ensure", "stop", "check", "relay", "browser-close", "browser-ensure") and args[1] in tuple(map(str, DISPLAYS)) and HASH.fullmatch(args[2]) and GENERATION.fullmatch(args[3]):
         display, bot, generation = int(args[1]), args[2], args[3]
     else:
-        raise ValueError("Use version, reset, or ensure/stop/check/relay with display 2..5, a bot hash and a generation UUID")
+        raise ValueError("Use version, reset, or ensure/stop/check/relay/browser-close/browser-ensure with display 2..21, a bot hash and a generation UUID")
     if os.geteuid() == 0:
         os.setgroups([])
         os.setgid(1000)
         os.setuid(1000)
     if os.geteuid() != 1000:
         raise RuntimeError("Independent screens run only as the desktop user")
-    readonly = args[0] in ("check", "relay")
+    readonly = args[0] in ("check", "relay", "browser-close", "browser-ensure")
     directory(ROOT, create=not readonly)
     with locked(ROOT / ".lock", shared=display is not None, create=not readonly):
         if display is None:
@@ -520,11 +696,22 @@ def main():
                     return
                 previous = read_state(display)
                 matches_generation = previous and previous["botHash"] == bot and previous["generation"] == generation
-                if args[0] in ("check", "relay"):
+                if args[0] in ("check", "relay", "browser-close", "browser-ensure"):
                     if not matches_generation or not ready(previous):
                         raise RuntimeError("The independent screen lease is no longer ready")
                     if args[0] == "relay":
-                        relay(display)
+                        relay(previous)
+                    elif args[0] == "browser-ensure":
+                        ensure_browser(previous)
+                        answer(display=display, botHash=bot, generation=generation, browserReady=True)
+                    elif args[0] == "browser-close":
+                        with locked(ROOT / str(display) / ".browser.lock"), locked(ROOT / ".browser-start.lock", wait_seconds=30):
+                            if read_state(display) != previous:
+                                raise RuntimeError("The independent screen lease changed")
+                            close_browser(display, processes(display))
+                            if browser_ready(previous):
+                                raise RuntimeError("The independent browser did not close")
+                            answer(display=display, botHash=bot, generation=generation, browserClosed=True)
                     else:
                         answer(display=display, botHash=bot, generation=generation, ready=True)
                     return

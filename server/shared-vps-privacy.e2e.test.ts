@@ -14,7 +14,7 @@ it.skipIf(process.platform === "win32")("never implicitly shares the personal de
   try {
     fixture = await launchVerificationServer({}, undefined, vps.localVm);
     const api = fixtureApi(fixture.info.url);
-    await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "shared" }, signIn: { admins: ["owner@example.test"], members: [] } });
+    await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "shared", independentScreens: false }, signIn: { admins: ["owner@example.test"], members: [] } });
     const auto = (await api("POST", "/api/bots", { name: "Unowned Auto bot" })).bot;
     const explicit = (await api("POST", "/api/bots", { name: "Unowned VPS bot", settings: { computer: "cloud" } })).bot;
     const status = (id: string) => api("GET", `/api/bots/${id}/computer`);
@@ -51,7 +51,7 @@ it.skipIf(process.platform === "win32")("keeps a running shared turn and human c
     fixture = await launchVerificationServer({ FAKE_CLAUDE_MODE: "hang" }, undefined, vps.localVm);
     const api = fixtureApi(fixture.info.url);
     const signIn = { admins: ["owner@example.test"], members: [] as string[] };
-    await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "shared" }, signIn });
+    await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "shared", independentScreens: false }, signIn });
     const bot = (await api("POST", "/api/bots", { name: "Held shared turn", settings: { computer: "cloud" } })).bot;
     const target = await api("GET", `/api/bots/${bot.id}/computer`);
     expect(target.teamComputer?.id).toBeTypeOf("string");

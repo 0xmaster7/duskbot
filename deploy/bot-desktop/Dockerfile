@@ -101,7 +101,7 @@ COPY rootfs/ /
 COPY host-fence.sh /usr/local/bin/omb-host-fence
 RUN chmod 0755 /usr/local/bin/omb-* && chmod 0644 /etc/chromium.d/omb
 
-ARG BOT_DESKTOP_VERSION=2
+ARG BOT_DESKTOP_VERSION=3
 LABEL com.openmausbot.bot-desktop="${BOT_DESKTOP_VERSION}" \
       com.openmausbot.cua-driver="${CUA_DRIVER_VERSION}" \
       org.opencontainers.image.title="omb-bot-desktop" \

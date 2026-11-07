@@ -1,6 +1,6 @@
 // The bot computer image (deploy/bot-desktop). One line each: deploy/bot-desktop/build.sh reads these two constants.
-export const BOT_DESKTOP_VERSION = "2";
-export const BOT_DESKTOP_IMAGE = "ghcr.io/sidddevz/omb-bot-desktop:v2";
+export const BOT_DESKTOP_VERSION = "3";
+export const BOT_DESKTOP_IMAGE = "ghcr.io/sidddevz/omb-bot-desktop:v3";
 
 /** Image label carrying BOT_DESKTOP_VERSION; containers made from the image carry it too. */
 export const BOT_DESKTOP_LABEL = "com.openmausbot.bot-desktop";

@@ -21,6 +21,10 @@ import {
 import { CUA_DRIVER_VERSION, DRIVER_LABEL } from "./container-computer.ts";
 import type { AppConfig } from "./config.ts";
 import { vpsBoxChrome, vpsComputerAction, vpsComputerStatus, vpsContainerName, type VpsCommandRunner } from "./vps-computer.ts";
+import { independentScreenTarget } from "./shared-desktop-screens.ts";
+import { SCREEN_BROWSER_LOW_MEMORY } from "./vps-browser-ready.ts";
+import * as vpsLocal from "./vps-local.ts";
+import { boxChromes, closeVpsScreenConnections, evictVpsBoxChrome, screenKey } from "./vps-connections.ts";
 
 const NAME = "openmausbot-vps-bot1-0123456789ab";
 const IMAGE_ID = `sha256:${"c".repeat(64)}`;
@@ -394,5 +398,43 @@ describe("bot desktop on the VPS path", () => {
     } finally {
       await vpsBoxChrome({}, BOT, undefined, fake.runner);
     }
+  });
+  it("surfaces low-memory browser admission before creating any relay", async () => {
+    const fake = daemon();
+    await vpsComputerAction("provision", CONFIG, BOT, fake.runner);
+    const target = independentScreenTarget(BOT, 21);
+    const screen = { containerId: "d".repeat(64), target };
+    const relay = vi.spyOn(vpsLocal, "boxChromeRelay");
+    const runner: VpsCommandRunner = async (args, options) => {
+      if (args.includes("browser-ensure")) throw new Error(`omb-screen: ${SCREEN_BROWSER_LOW_MEMORY}`);
+      return fake.runner(args, options);
+    };
+    try {
+      await expect(vpsBoxChrome(CONFIG, BOT, screen.containerId, runner, screen)).rejects.toMatchObject({ status: 429, message: SCREEN_BROWSER_LOW_MEMORY });
+      expect(relay).not.toHaveBeenCalled();
+      expect(boxChromes.has(screenKey(BOT, screen))).toBe(false);
+    } finally { relay.mockRestore(); closeVpsScreenConnections(BOT, screen); }
+  });
+  it("preflights only new independent relays and retries admission after their exact cache entry fails", async () => {
+    const fake = daemon();
+    await vpsComputerAction("provision", CONFIG, BOT, fake.runner);
+    const target = independentScreenTarget(BOT, 2);
+    const screen = { containerId: "d".repeat(64), target };
+    let checks = 0;
+    const runner: VpsCommandRunner = async (args, options) => {
+      if (!args.includes("browser-ensure")) return fake.runner(args, options);
+      checks += 1;
+      if (checks > 1) throw new Error(SCREEN_BROWSER_LOW_MEMORY);
+      return { stdout: JSON.stringify({ version: 2, browserReady: true, display: target.display, botHash: target.botHash, generation: target.generation }), stderr: "" };
+    };
+    try {
+      const url = await vpsBoxChrome(CONFIG, BOT, screen.containerId, runner, screen);
+      expect(url).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
+      expect(await vpsBoxChrome(CONFIG, BOT, screen.containerId, runner, screen)).toBe(url);
+      expect(checks).toBe(1);
+      evictVpsBoxChrome(screenKey(BOT, screen), url!);
+      await expect(vpsBoxChrome(CONFIG, BOT, screen.containerId, runner, screen)).rejects.toMatchObject({ status: 429 });
+      expect(checks).toBe(2);
+    } finally { closeVpsScreenConnections(BOT, screen); }
   });
 });

@@ -13,8 +13,10 @@ export interface VpsConfig {
   mode?: "shared" | "per-bot";
   /** Permit initializing or waking the selected computer when a bot needs it; default true. */
   autoStart?: boolean;
-  /** Separate bot displays and Chromium profiles inside the shared computer; default false. Files still share a home. */
+  /** Separate bot displays and Chromium profiles inside the shared computer; default true. Files still share a home. */
   independentScreens?: boolean;
+  /** Maximum active bot displays, from 1 to 20; default 20. Screens are allocated on demand. */
+  maxScreens?: number;
   /** Stop an unused desktop after this many minutes; zero disables automatic idle stop. Default 10. */
   idleTimeoutMinutes?: 0 | 5 | 10 | 30;
 }
@@ -24,6 +26,7 @@ export const vpsConfigSchema = z.object({
   mode: z.enum(["shared", "per-bot"]).optional(),
   autoStart: z.boolean().optional(),
   independentScreens: z.boolean().optional(),
+  maxScreens: z.number().int().min(1).max(20).optional(),
   idleTimeoutMinutes: z.union([z.literal(0), z.literal(5), z.literal(10), z.literal(30)]).optional(),
 });
 

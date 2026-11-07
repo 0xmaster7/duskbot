@@ -145,7 +145,7 @@ it.skipIf(process.platform === "win32")("keeps sends, cancellation and stale cap
 it.skipIf(process.platform === "win32")("leaves ordinary Auto chats off Docker, then shares the selected VPS without mixing caller capabilities", async () => {
   const h = await harness();
   try {
-    expect((await h.api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "shared" } })).status).toBe(200);
+    expect((await h.api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "shared", independentScreens: false } })).status).toBe(200);
     const before = 0;
     const first = (await h.api("POST", "/api/bots", { name: "Shared first" })).body.bot;
     const second = (await h.api("POST", "/api/bots", { name: "Shared second" })).body.bot;
@@ -230,7 +230,7 @@ it.skipIf(process.platform === "win32")("withdraws a cancelled shared setup befo
 }, 60_000);
 
 it.skipIf(process.platform === "win32")("provisions a missing shared VPS only after a live tool selection and releases its preparation after Stop", async () => {
-  const h = await harness({ missingInitially: true });
+  const h = await harness({ missingInitially: true, screens: true });
   try {
     expect((await h.api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "shared", autoStart: true } })).status).toBe(200);
     const before = readFileSync(h.vps.calls, "utf8").length;
@@ -376,7 +376,7 @@ it.skipIf(process.platform === "win32")("keeps independent bot screens parallel,
     return { status: response.status, body: await response.json() as any };
   };
   try {
-    expect((await h.api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "shared", independentScreens: true, idleTimeoutMinutes: 0 } })).status).toBe(200);
+    expect((await h.api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "shared", independentScreens: true, maxScreens: 4, idleTimeoutMinutes: 0 } })).status).toBe(200);
     const bots: any[] = [];
     const mounted: any[] = [];
     const screens: any[] = [];
@@ -455,4 +455,50 @@ it.skipIf(process.platform === "win32")("keeps independent bot screens parallel,
     for (const bot of [bots[1], bots[3], sixth]) await h.stop(bot.id, bot.threadId);
     expect((await h.api("PATCH", "/api/config", { vps: { independentScreens: false } })).status).toBe(200);
   } finally { viewer?.terminate(); await h.close(); }
+}, 90_000);
+
+it.skipIf(process.platform === "win32")("defaults to twenty independent screens in one computer and bounds a cancelled twenty-first request", async () => {
+  const h = await harness({ screens: true });
+  let stream: Awaited<ReturnType<typeof openSse>> | undefined;
+  try {
+    const saved = await h.api("PATCH", "/api/config", { vps: { sshAlias: "fixture-vps", idleTimeoutMinutes: 0 } });
+    expect(saved.body.vps).toMatchObject({ independentScreens: true, maxScreens: 20 });
+    const untouched = (await h.api("POST", "/api/bots", { name: "Unopened screen" })).body.bot;
+    stream = await openSse(h.fixture.info.url + "/api/events");
+    const bots: any[] = [];
+    const wakes: any[] = [];
+    for (let i = 0; i < 20; i++) {
+      const bot = (await h.api("POST", "/api/bots", { name: `Twenty screens ${i + 1}` })).body.bot;
+      bots.push(bot);
+      expect((await h.api("PATCH", `/api/bots/${bot.id}`, { computer: "cloud" })).status).toBe(200);
+      const awake = await h.api("POST", `/api/bots/${bot.id}/computer/provision`, {});
+      expect(awake.status, JSON.stringify(awake.body)).toBe(200);
+      wakes.push(awake.body);
+      expect((await h.api("POST", `/api/bots/${bot.id}/computer/control`, { action: "take" })).body.held).toBe(true);
+    }
+    expect(new Set(wakes.map(wake => wake.resourceKey)).size).toBe(1);
+    expect(new Set(wakes.map(wake => wake.viewerKey)).size).toBe(20);
+    expect((await h.api("GET", `/api/bots/${untouched.id}/computer`)).body).toMatchObject({ ready: false, state: "stopped" });
+    expect(stream.frames.some(frame => frame.kind === "computer-state" && frame.botId === untouched.id && ["starting", "ready"].includes(frame.state))).toBe(false);
+    expect((await h.api("PATCH", "/api/config", { vps: { maxScreens: 15 } })).status).toBe(409);
+    const overflow = (await h.api("POST", "/api/bots", { name: "Twenty-first screen" })).body.bot;
+    await h.api("PATCH", `/api/bots/${overflow.id}`, { computer: "cloud" });
+    const probes = readFileSync(h.vps.calls, "utf8").split("\n").filter(line => line.includes("health_report")).length;
+    const cancel = new AbortController();
+    const pending = fetch(`${h.fixture.info.url}/api/bots/${overflow.id}/computer/provision`, {
+      method: "POST", headers: { "content-type": "application/json", origin: h.fixture.info.url }, body: "{}", signal: cancel.signal,
+    });
+    void pending.catch(() => {});
+    await expect.poll(() => readFileSync(h.vps.calls, "utf8").split("\n").filter(line => line.includes("health_report")).length, { timeout: 5_000, interval: 30 }).toBeGreaterThan(probes);
+    await expect.poll(async () => (await h.api("GET", `/api/bots/${overflow.id}/computer`)).body.state, { timeout: 5_000, interval: 30 }).toBe("stopped");
+    cancel.abort();
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    for (const bot of bots) expect((await h.api("POST", `/api/bots/${bot.id}/computer/control`, { action: "release" })).body.held).toBe(false);
+    await expect.poll(async () => (await h.api("PATCH", "/api/config", { vps: { maxScreens: 15 } })).status, { timeout: 5_000, interval: 40 }).toBe(200);
+    expect((await h.api("GET", "/api/config")).body.vps).toMatchObject({ independentScreens: true, maxScreens: 15 });
+    const calls = readFileSync(h.vps.calls, "utf8").trim().split("\n").filter(Boolean).map(line => JSON.parse(line) as string[]);
+    const ensured = calls.filter(args => args.includes("ensure"));
+    expect(ensured).toHaveLength(20);
+    expect(ensured.map(args => Number(args[args.indexOf("ensure") + 1])).sort((a, b) => a - b)).toEqual(Array.from({ length: 20 }, (_, i) => i + 2));
+  } finally { stream?.close(); await h.close(); }
 }, 90_000);

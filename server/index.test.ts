@@ -10690,7 +10690,7 @@ describe("harness HTTP API", () => {
 
     const saved = await api("PUT", "/api/config", { vps: { sshAlias: "production-vps" } });
     expect(saved.status).toBe(200);
-    expect(saved.body.vps).toMatchObject({ configured: true, sshAlias: "production-vps", mode: "shared", autoStart: true, idleTimeoutMinutes: 10, independentScreens: false, sharingAllowed: true, workspaceShared: true });
+    expect(saved.body.vps).toMatchObject({ configured: true, sshAlias: "production-vps", mode: "shared", autoStart: true, idleTimeoutMinutes: 10, independentScreens: true, maxScreens: 20, sharingAllowed: true, workspaceShared: true });
     expect(JSON.stringify(saved.body)).not.toContain("privateKey");
 
     const patched = await api("PATCH", `/api/bots/${bot.id}`, { cloudBackend: "vps" });

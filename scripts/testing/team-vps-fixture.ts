@@ -86,11 +86,11 @@ else if (['start','stop','rm'].includes(args[0])) {
     const file=path.join(screens,display+'.json');
     const current=()=>fs.existsSync(file)?JSON.parse(fs.readFileSync(file,'utf8')):null;
     const valid=()=>{const row=current();return row?.botHash===botHash && row?.generation===generation;};
-    if(action==='version')out={version:1,displays:[2,3,4,5]};
+    if(action==='version')out={version:2,displays:Array.from({length:20},(_,i)=>i+2)};
     else if(action==='reset'){for(const name of fs.readdirSync(screens))fs.unlinkSync(path.join(screens,name));out={};}
     else if(action==='ensure') {
-      if(![2,3,4,5].includes(display) || !/^[a-f0-9]{64}$/.test(botHash) || !/^[a-f0-9-]{36}$/.test(generation))process.exit(64);
-      out={version:1,ready:true,display,botHash,generation};fs.writeFileSync(file,JSON.stringify(out));
+      if(!Number.isInteger(display) || display<2 || display>21 || !/^[a-f0-9]{64}$/.test(botHash) || !/^[a-f0-9-]{36}$/.test(generation))process.exit(64);
+      out={version:2,ready:true,display,botHash,generation};fs.writeFileSync(file,JSON.stringify(out));
     } else if(action==='stop'){if(valid())fs.unlinkSync(file);out={};}
     else if(action==='check'){if(!valid())process.exit(1);out={ready:true};}
     else if(action==='relay') {
