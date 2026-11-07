@@ -158,7 +158,7 @@ export function BotPage({ id }: { id?: string }) {
       <Link to="/bots" className="mb-4 inline-flex h-8 items-center gap-1.5 text-13 text-ink-3 hover:text-ink"><ArrowLeft size={14} strokeWidth={STROKE} aria-hidden />Bots</Link>
       <header className="flex flex-wrap items-center gap-4 pb-6">
         <Mascot color={bot.color} body={bot.body} size={64} state="happy" label={bot.name} track />
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[180px] flex-1">
           <h1 className="text-24 font-semibold tracking-[-0.4px]">{bot.name}</h1>
           <p className="mt-1 flex flex-wrap items-center gap-2 text-14 text-ink-3">{bot.role && <span>{bot.role}</span>}<span>{bot.engine}, {bot.model}</span><CoverageTag coverage={bot.engineCoverage} /></p>
         </div>

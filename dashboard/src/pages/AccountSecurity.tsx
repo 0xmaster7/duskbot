@@ -125,7 +125,7 @@ export function SecurityPage() {
         </Card>
       </div>
 
-      <Card id="sessions" className="mt-4 scroll-mt-6">
+      <Card id="sessions" className="mt-4">
         <CardHead title="Where you're signed in"><Button size="sm" onClick={() => { set((x) => ({ ...x, sessions: x.sessions.filter((s) => s.current) })); toast("Signed out everywhere else"); }}>Sign out everywhere else</Button></CardHead>
         <ul className="px-4 pb-2">
           {a.sessions.map((s) => {
@@ -141,7 +141,7 @@ export function SecurityPage() {
         </ul>
       </Card>
 
-      <Card id="tokens" className="mt-4 scroll-mt-6">
+      <Card id="tokens" className="mt-4">
         <CardHead icon={KeyRound} title="API tokens"><Button size="sm" icon={Plus} onClick={() => setTokenOpen(true)}>New token</Button></CardHead>
         {a.tokens.length === 0 ? <div className="flex flex-col items-center px-6 py-8 text-center"><Mascot color="silver" body="squircle" size={40} state="curious" /><p className="mt-3 text-13 text-ink-3">No tokens. Make one to let Shortcuts or Home Assistant talk to your bots.</p></div> : (
           <div className="scroll-x">

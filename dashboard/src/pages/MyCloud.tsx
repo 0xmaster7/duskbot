@@ -85,7 +85,7 @@ export function MyCloudPage() {
     <>
       <header className="flex flex-wrap items-center gap-4 pb-6">
         <span className="flex size-14 items-center justify-center rounded-card border border-line bg-surface shadow-card"><Mascot color="blue" body="cloud" size={40} state="humming" label="My Cloud" /></span>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[180px] flex-1">
           <h1 className="flex items-center gap-2 text-24 font-semibold tracking-[-0.4px]">My Cloud <Pill tone="good" dot>Running</Pill></h1>
           <p className="mt-1 truncate font-mono text-12 text-ink-3">{m.host}</p>
         </div>

@@ -23,12 +23,16 @@ export function Heatmap({ turns, bots, now, metric, weekStart, botId, onPick }: 
   const [anchor, setAnchor] = useState<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const [CELL, setCell] = useState(11);
+  const [width, setWidth] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
   useEffect(() => {
     const node = scroller.current;
     if (!node) return;
     const observer = new ResizeObserver(([entry]) => {
       const fit = Math.floor((entry!.contentRect.width - 32) / map.weeks.length) - GAP;
       setCell(Math.max(11, Math.min(16, fit)));
+      setWidth(entry!.contentRect.width);
+      setScrollLeft(node.scrollLeft);
     });
     observer.observe(node);
     return () => observer.disconnect();
@@ -67,10 +71,19 @@ export function Heatmap({ turns, bots, now, metric, weekStart, botId, onPick }: 
 
   const tip = shown !== null ? flat[shown] : null;
   const tipCol = shown !== null ? Math.floor(shown / 7) : 0;
+  const tipRow = shown !== null ? shown % 7 : 0;
 
   return (
-    <div>
-      <div ref={scroller} className="scroll-x -mx-1 px-1 pb-1">
+    <div className="relative">
+          {tip && !tip.future && (
+            <div role="tooltip" className="pointer-events-none absolute z-20 w-max max-w-[260px] -translate-y-full rounded-[10px] bg-black px-3 py-2 text-12 text-[#f2f2f2] shadow-pop"
+              style={{ left: Math.min(Math.max(0, 32 + tipCol * (CELL + GAP) - scrollLeft - 110), Math.max(0, width - 250)), top: 20 + tipRow * (CELL + GAP) - 6 }}>
+              <p className="font-medium text-[#fafafa]">{dateLong(tip.t)}: {tip.value > 0 ? unit(metric, tip.value) : "no activity"}</p>
+              {tip.byBot.length > 0 && <p className="mt-0.5 text-[#c9c9c9]">{tip.byBot.slice(0, 4).map((b) => `${name(b.botId)} ${b.turns}`).join(", ")}</p>}
+              {tip.turns > 0 && <p className="mt-0.5 text-[#c9c9c9]">{usd(tip.paid)} paid, {hours(tip.hours)} computer time</p>}
+            </div>
+          )}
+      <div ref={scroller} onScroll={(e) => setScrollLeft(e.currentTarget.scrollLeft)} className="scroll-x -mx-1 px-1 pb-1">
         <div className="relative inline-block min-w-max" onMouseLeave={() => setShown(null)}>
           <div className="flex ps-8 text-12 text-ink-3" aria-hidden style={{ gap: GAP }}>
             {months.map((m, i) => <span key={i} className="h-5 overflow-visible whitespace-nowrap" style={{ width: CELL }}>{m}</span>)}
@@ -95,14 +108,6 @@ export function Heatmap({ turns, bots, now, metric, weekStart, botId, onPick }: 
               })}
             </div>
           </div>
-          {tip && !tip.future && (
-            <div role="tooltip" className="pointer-events-none absolute bottom-full z-20 mb-1 w-max max-w-[260px] rounded-[10px] bg-black px-3 py-2 text-12 text-[#f2f2f2] shadow-pop"
-              style={{ left: Math.min(Math.max(0, 32 + tipCol * (CELL + GAP) - 110), 32 + map.weeks.length * (CELL + GAP) - 250) }}>
-              <p className="font-medium text-[#fafafa]">{dateLong(tip.t)}: {tip.value > 0 ? unit(metric, tip.value) : "no activity"}</p>
-              {tip.byBot.length > 0 && <p className="mt-0.5 text-[#c9c9c9]">{tip.byBot.slice(0, 4).map((b) => `${name(b.botId)} ${b.turns}`).join(", ")}</p>}
-              {tip.turns > 0 && <p className="mt-0.5 text-[#c9c9c9]">{usd(tip.paid)} paid, {hours(tip.hours)} computer time</p>}
-            </div>
-          )}
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-12 text-ink-3">

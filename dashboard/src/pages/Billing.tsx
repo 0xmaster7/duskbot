@@ -26,7 +26,7 @@ function PlanCard() {
   const [cancel, setCancel] = useState(false);
   const [pick, setPick] = useState<string>(b.plan.tier);
   return (
-    <Card id="plan" className="scroll-mt-6 flex flex-col">
+    <Card id="plan" className="flex flex-col">
       <CardHead icon={ShieldCheck} title="Plan" />
       <div className="flex flex-1 flex-col px-4 pb-4">
         <p className="flex items-baseline gap-2"><span className="text-24 font-semibold">{b.plan.label}</span><span className="num text-14 text-ink-3">{usd(b.plan.priceUsd)} a month</span></p>
@@ -77,7 +77,7 @@ function BalanceCard() {
   const auto = b.autoTopUp;
   const card = b.methods.find((m) => m.isDefault);
   return (
-    <Card id="balance" className="scroll-mt-6 flex flex-col">
+    <Card id="balance" className="flex flex-col">
       <CardHead icon={Wallet} title="Balance"><Button size="sm" variant="primary" icon={Plus} onClick={() => setAdding(true)}>Add funds</Button></CardHead>
       <div className="flex flex-1 flex-col px-4 pb-4">
         <p className="num text-24 font-semibold">{usd(b.balanceUsd)}</p>
@@ -151,7 +151,7 @@ function LimitsCard() {
   const edit = (which: "ai" | "cloud") => { setValue(String(b.caps[which].limitUsd)); setEditing(which); };
   const alerts = (which: "ai" | "cloud") => (a: number[]) => set((x) => ({ ...x, caps: { ...x.caps, [which]: { ...x.caps[which], alerts: a } } }));
   return (
-    <Card id="limits" className="mt-4 scroll-mt-6">
+    <Card id="limits" className="mt-4">
       <CardHead title="Caps" />
       <div className="grid divide-y divide-row md:grid-cols-2 md:divide-x md:divide-y-0">
         <CapColumn title="AI cap" spent={spentAi} cap={b.caps.ai} onEdit={() => edit("ai")} onAlerts={alerts("ai")}
@@ -181,7 +181,7 @@ function PaymentCard() {
   const { b, set, toast } = useBilling();
   const remove = (m: PaymentMethod) => set((x) => ({ ...x, methods: x.methods.filter((y) => y.id !== m.id) }));
   return (
-    <Card id="payment" className="scroll-mt-6">
+    <Card id="payment">
       <CardHead icon={CreditCard} title="Payment methods"><Button size="sm" icon={Plus} onClick={() => toast("Opening secure checkout to add a card")}>Add</Button></CardHead>
       {b.methods.length === 0 ? <EmptyState title="No payment method" state="curious">Add a card or Link to pay for your plan and top-ups.</EmptyState> : (
         <ul className="px-4 pb-2">
@@ -209,7 +209,7 @@ function DetailsCard() {
   const emailBad = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) ? null : "Enter an email address like name@example.com.";
   const field = (key: keyof typeof form) => ({ value: form[key], onChange: (e: { target: { value: string } }) => setForm((f) => ({ ...f, [key]: e.target.value })) });
   return (
-    <Card id="details" className="scroll-mt-6">
+    <Card id="details">
       <CardHead title="Billing details" />
       <form className="grid gap-3 px-4 pb-4 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); if (emailBad) return; set((x) => ({ ...x, details: form })); toast("Billing details saved"); }}>
         <Field label="Name or company">{(id) => <Input id={id} autoComplete="organization" {...field("name")} />}</Field>
@@ -232,7 +232,7 @@ function InvoicesCard() {
   const rows = b.invoices.filter((i) => (!month || monthYear(i.at) === month) && (!status || i.status === status));
   const tone: Record<Invoice["status"], "good" | "warn" | "bad" | "neutral"> = { paid: "good", open: "warn", failed: "bad", refunded: "neutral" };
   return (
-    <Card id="invoices" className="mt-4 scroll-mt-6">
+    <Card id="invoices" className="mt-4">
       <CardHead title="Invoices">
         <FilterSelect label="Month" value={month} onChange={setMonth} options={[{ value: "", label: "All" }, ...months.map((m) => ({ value: m, label: m }))]} />
         <FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "", label: "All" }, { value: "paid", label: "Paid" }, { value: "open", label: "Due" }, { value: "refunded", label: "Refunded" }]} />

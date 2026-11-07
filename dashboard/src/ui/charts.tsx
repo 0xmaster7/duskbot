@@ -71,7 +71,7 @@ export function LineChart({ series, labels, height = 160, format, axis = format,
               <text x={pad.l - 6} y={y(max * f) + 4} textAnchor="end" className="fill-ink-4 text-[11px]">{axis(max * f)}</text>
             </g>
           ))}
-          {labels.map((l, i) => ((i % tickEvery === 0 && n - 1 - i > tickEvery * 0.6) || i === n - 1) && i > 0 ? <text key={i} x={x(i)} y={height - 6} textAnchor={i === n - 1 ? "end" : "middle"} className="fill-ink-4 text-[11px]">{l}</text> : null)}
+          {labels.map((l, i) => ((i % tickEvery === 0 && x(n - 1) - x(i) >= 72) || i === n - 1) && i > 0 ? <text key={i} x={x(i)} y={height - 6} textAnchor={i === n - 1 ? "end" : "middle"} className="fill-ink-4 text-[11px]">{l}</text> : null)}
           {series.map((s) => (
             <path key={s.label} d={path(s.values)} fill="none" stroke={s.color ?? (s.dotted ? "#b9b9b6" : "var(--color-accent)")} strokeWidth={s.dotted ? 1.25 : 1.5} strokeDasharray={s.dotted ? "1.5 3.5" : undefined} strokeLinecap="round" strokeLinejoin="round" />
           ))}
