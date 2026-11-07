@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { createElement } from "react";
+import { createElement, Fragment, StrictMode } from "react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,12 +13,13 @@ vi.mock("@/state/store", async (original) => ({
   ...await original<typeof import("@/state/store")>(),
   useStore: () => ({ state: { bots: [], config: {} }, dispatch: vi.fn() }),
 }));
-import { EMPTY_VIEW, VPS_STEP_IDS, type VpsEngine, type VpsLinkBridge, type VpsLinkView, type VpsMovePreview, type VpsSignIn } from "@/lib/vps-link";
+import { closeAddVps, EMPTY_VIEW, useAddVpsOpen, VPS_STEP_IDS, type VpsEngine, type VpsLinkBridge, type VpsLinkView, type VpsMovePreview, type VpsSignIn } from "@/lib/vps-link";
 import { AddVpsFlow } from "./AddVpsFlow";
 import { MoveScreen, retryClock } from "./MoveStage";
 import { TransferSettings } from "./TransferSettings";
 import { SignInScreen } from "./SignInStage";
 import { InstallScreen } from "./CommandStage";
+import { VpsProgressStrip } from "./VpsProgressStrip";
 
 const COMMAND = "curl -fsSL https://link.apps.siddz.com/i/ab3d7fgh2k-q4mxw7e2r5t6y7u8i9o2p3a4s5 | sh";
 const SERVER = { id: "vps-1", name: "My VPS", origin: "http://vps-ab3d7fgh2k.localhost:47811" };
@@ -68,7 +69,7 @@ beforeEach(() => {
   setLocale("en");
   container = document.createElement("div"); document.body.append(container); root = createRoot(container);
 });
-afterEach(async () => { await act(async () => root.unmount()); container.remove(); document.body.innerHTML = ""; vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+afterEach(async () => { await act(async () => root.unmount()); closeAddVps(); container.remove(); document.body.innerHTML = ""; vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 const settle = async () => { for (let i = 0; i < 6; i++) await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); }); };
 const text = () => document.body.textContent ?? "";
@@ -85,6 +86,54 @@ const stageShown = async (stage: number) => {
 };
 
 describe("Add your VPS", () => {
+  it("shares one state read and subscription through the app's strict-mode mount probe", async () => {
+    const fake = fakeBridge();
+    fake.bridge.state.mockResolvedValue({ ...EMPTY_VIEW, stage: "linked", server: SERVER });
+    vi.stubGlobal("ogb", { platform: "darwin", vpsLink: fake.bridge });
+    await act(async () => { root.render(createElement(StrictMode, null, createElement(VpsProgressStrip, { connected: true, hydrated: true }))); });
+    await settle();
+    expect(fake.bridge.state).toHaveBeenCalledTimes(1);
+    expect(fake.bridge.onChange).toHaveBeenCalledTimes(1);
+    expect(text()).toContain("VPS linked");
+  });
+
+  it("keeps one live subscription while the top strip reopens the same setup journey", async () => {
+    const fake = fakeBridge();
+    fake.bridge.state.mockResolvedValue({ ...EMPTY_VIEW, stage: "linked", server: SERVER });
+    vi.stubGlobal("ogb", { platform: "darwin", vpsLink: fake.bridge });
+    function Host() {
+      const open = useAddVpsOpen();
+      return createElement(Fragment, null, createElement(VpsProgressStrip, { connected: true, hydrated: true }), open && createElement(AddVpsFlow, { onClose: closeAddVps }));
+    }
+    await act(async () => { root.render(createElement(Host)); });
+    await settle();
+    await click(document.querySelector("[data-vps-progress-strip] button"));
+    await click(button("Skip for now"));
+    expect(document.querySelector("[data-vps-screen]")?.getAttribute("data-vps-screen")).toBe("preview");
+    await click(button("Close"));
+    expect(document.querySelector("[data-vps-screen]")).toBeNull();
+    await click(document.querySelector("[data-vps-progress-strip] button"));
+    expect(document.querySelector("[data-vps-screen]")?.getAttribute("data-vps-screen")).toBe("preview");
+    expect(fake.bridge.state).toHaveBeenCalledTimes(1);
+    expect(fake.bridge.onChange).toHaveBeenCalledTimes(1);
+    expect(fake.bridge.engines).toHaveBeenCalledTimes(1);
+    expect(fake.bridge.start).not.toHaveBeenCalled();
+    expect(fake.bridge.cancel).not.toHaveBeenCalled();
+  });
+
+  it("keeps real install progress and failures visible after the journey closes", async () => {
+    const fake = fakeBridge();
+    fake.bridge.state.mockResolvedValue({ ...EMPTY_VIEW, stage: "installing", steps: [{ id: "app", status: "running", progress: { kind: "download", receivedBytes: 50, totalBytes: 100 } }] });
+    vi.stubGlobal("ogb", { platform: "darwin", vpsLink: fake.bridge });
+    await act(async () => { root.render(createElement(VpsProgressStrip, { connected: true, hydrated: true })); });
+    await settle();
+    expect(text()).toContain("50 B of 100 B");
+    expect(document.querySelector("[role='progressbar']")?.getAttribute("aria-valuenow")).toBe("50");
+    await fake.emit({ ...EMPTY_VIEW, stage: "installing", steps: [{ id: "app", status: "failed", log: "Package checksum did not match." }] });
+    expect(text()).toContain("Package checksum did not match.");
+    expect(document.querySelector("[data-vps-progress-strip] button")?.getAttribute("aria-label")).toContain("Open server setup");
+  });
+
   it("reads the initial state once and keeps progress that arrives before that snapshot", async () => {
     const fake = fakeBridge();
     let snapshot!: (view: VpsLinkView) => void;
@@ -356,6 +405,31 @@ describe("VPS install output", () => {
     expect(document.querySelector("[data-vps-term]")?.textContent).toContain("SHA256 verified");
     expect(document.querySelector("[data-vps-term]")?.textContent).toContain("Installing OpenMausBot · Done");
   });
+
+  it("keeps unknown progress indeterminate and reports quiet time despite healthy heartbeats", async () => {
+    const now = Date.now();
+    const view: VpsLinkView = { ...EMPTY_VIEW, stage: "installing", steps: [{ id: "app", status: "running", progress: { kind: "download", receivedBytes: 20 } }], activity: { updatedAt: now, progressAt: now - 45_000 } };
+    await act(async () => { root.render(createElement(InstallScreen, { view, onRetry: () => {} })); });
+    expect(document.querySelector("[role='progressbar']")?.hasAttribute("aria-valuenow")).toBe(false);
+    expect(text()).toContain("20 B downloaded");
+    expect(text()).toContain("No progress update for 0:45");
+    const moved = { ...EMPTY_VIEW, stage: "moving" as const, server: SERVER, activity: view.activity, move: { step: "backup" as const, status: "running" as const } };
+    const fake = fakeBridge();
+    await act(async () => { root.render(createElement(MoveScreen, { view: moved, preview: null, previewError: "", onReload: () => {}, bridge: fake.bridge, onMove: () => {}, onBack: () => {} })); });
+    expect(document.querySelector("[role='progressbar']")?.hasAttribute("aria-valuenow")).toBe(false);
+    expect(text()).toContain("No progress update for 0:45");
+  });
+
+  it("uses the existing remote connection state without exposing the local setup bridge", async () => {
+    const fake = fakeBridge();
+    vi.stubGlobal("ogb", { platform: "darwin", app: { ownPage: false }, vpsLink: fake.bridge });
+    await act(async () => { root.render(createElement(VpsProgressStrip, { connected: true, hydrated: true })); });
+    expect(text()).toBe("Connected");
+    expect(fake.bridge.state).not.toHaveBeenCalled();
+    expect(fake.bridge.onChange).not.toHaveBeenCalled();
+    await act(async () => { root.render(createElement(VpsProgressStrip, { connected: false, hydrated: true })); });
+    expect(text()).toBe("Reconnecting");
+  });
 });
 
 describe("Settings > Transfer", () => {
@@ -408,6 +482,16 @@ describe("Settings > Transfer", () => {
 });
 
 describe("the move waiting to try again", () => {
+  it("shows a copy error without a retry deadline and reports a failed manual retry", async () => {
+    const fake = fakeBridge();
+    fake.bridge.retryMove.mockRejectedValueOnce(new Error("The desktop connection is unavailable."));
+    const view: VpsLinkView = { ...EMPTY_VIEW, stage: "moving", server: SERVER, move: { step: "copy", status: "running", error: "The destination stopped answering." } };
+    await act(async () => { root.render(createElement(MoveScreen, { view, preview: null, previewError: "", onReload: () => {}, bridge: fake.bridge, onMove: () => {}, onBack: () => {} })); });
+    expect(text()).toContain("The destination stopped answering.");
+    await click(button("Try now"));
+    expect(text()).toContain("The desktop connection is unavailable.");
+  });
+
   it("says what went wrong and when it tries again, counting down, and Try now asks main to go again", async () => {
     const fake = fakeBridge();
     const view: VpsLinkView = { ...EMPTY_VIEW, stage: "moving", server: SERVER,

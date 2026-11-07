@@ -1,12 +1,12 @@
 // the move: what goes, the bots travelling to the server one by one, then a free Mac with its backup kept
-import { Check, LoaderCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { activeLocale, t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { formatBytes, type VpsLinkBridge, type VpsLinkMove, type VpsLinkView, type VpsMovePreview } from "@/lib/vps-link";
 import { BotFace } from "./Scene";
-import { centered, deviceWord, ErrorNote, Footer, Heading, Lead, PILL, ProgressBar, SOFT_PILL } from "./parts";
+import { centered, deviceWord, ErrorNote, Footer, formatElapsed, Heading, Lead, message, PILL, ProgressBar, SOFT_PILL } from "./parts";
+import { progressQuietFor, QUIET_AFTER_MS, vpsProgress } from "./progress";
 
 const SHOWN_BOTS = 6;
 
@@ -17,17 +17,15 @@ export function movePhase(view: VpsLinkView): MovePhase {
   return "preview";
 }
 
-/** How far the move is, and how many bots are on the server already: the backup first, the chats as they copy (each
- * bot lands as its share of them arrives), then the check and the clear. */
-export function moveProgress(move: VpsLinkMove | null, bots: number): { value: number; arrived: number } {
-  if (!move) return { value: 0, arrived: 0 };
+export function moveProgress(move: VpsLinkMove | null, bots: number): { value: number | null; arrived: number } {
+  if (!move) return { value: null, arrived: 0 };
   if (move.step === "done") return { value: 1, arrived: bots };
-  if (move.step === "backup") return { value: move.status === "done" ? 0.1 : 0.05, arrived: 0 };
+  if (move.step === "backup") return { value: move.bytes?.total ? move.bytes.done / move.bytes.total : null, arrived: 0 };
   if (move.step === "copy") {
-    const share = move.chats && move.chats.total > 0 ? move.chats.done / move.chats.total : 0.4;
-    return { value: 0.1 + 0.7 * share, arrived: Math.min(bots, Math.floor(share * bots)) };
+    const share = move.chats && move.chats.total > 0 ? Math.max(0, Math.min(1, move.chats.done / move.chats.total)) : null;
+    return { value: share, arrived: 0 };
   }
-  return { value: move.step === "verify" ? 0.86 : 0.95, arrived: bots };
+  return { value: null, arrived: 0 };
 }
 
 /** "3:42" until the next try. */
@@ -37,14 +35,14 @@ export function retryClock(ms: number): string {
 }
 
 /** The time now, once a second while there is a time (`until`) to count down to. */
-function useNow(until: number | null): number {
+function useNow(until: number | null, active: boolean): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    if (until === null) return;
+    if (until === null && !active) return;
     setNow(Date.now());
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [until]);
+  }, [until, active]);
   return now;
 }
 
@@ -52,21 +50,16 @@ const STEP_WORD: Record<"backup" | "copy" | "verify" | "empty", LocaleKey> = {
   backup: "vpsLink.move.step.backup", copy: "vpsLink.move.step.copy", verify: "vpsLink.move.step.verify", empty: "vpsLink.move.step.empty",
 };
 
-function Bots({ preview, arrived, moving }: { preview: VpsMovePreview; arrived: number | null; moving: boolean }) {
+function Bots({ preview }: { preview: VpsMovePreview }) {
   const shown = preview.bots.slice(0, SHOWN_BOTS), more = preview.bots.length - shown.length;
   if (preview.bots.length === 0) return <p className="m-0 text-center text-[13px] leading-[18px] text-ink/56">{t("vpsLink.move.noBots")}</p>;
   return (
     <ul aria-label={t("vpsLink.move.botsAria")} className="m-0 flex list-none flex-wrap justify-center gap-x-5 gap-y-3 p-0">
       {shown.map((bot, index) => {
-        const status = arrived === null ? null : index < arrived ? "moved" : moving && index === arrived ? "moving" : "waiting";
         return (
-          <li key={bot.id} data-vps-bot={status ?? ""} className="flex w-[64px] flex-col items-center gap-1.5">
-            <span className={cn("flex transition-opacity duration-200", status === "waiting" && "opacity-45")}><BotFace bot={bot} index={index} size={36} /></span>
+          <li key={bot.id} data-vps-bot="" className="flex w-[64px] flex-col items-center gap-1.5">
+            <span className="flex"><BotFace bot={bot} index={index} size={36} /></span>
             <span className="w-full truncate text-center text-[12px] leading-4 text-ink">{bot.name}</span>
-            {status && <span className={cn("inline-flex items-center gap-1 text-[11px] leading-[14px]", status === "moved" ? "text-success" : "text-ink/56")}>
-              {status === "moved" ? <Check size={11} strokeWidth={2.5} aria-hidden="true" /> : status === "moving" ? <LoaderCircle size={11} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> : null}
-              {t(status === "moved" ? "vpsLink.move.botMoved" : status === "moving" ? "vpsLink.move.botMoving" : "vpsLink.move.botWaiting")}
-            </span>}
           </li>
         );
       })}
@@ -102,9 +95,19 @@ export function MoveScreen({ view, preview, previewError, onReload, bridge, onMo
   const device = deviceWord();
   const phase = movePhase(view);
   const move = view.move;
+  const [retryError, setRetryError] = useState("");
+  const [retrying, setRetrying] = useState(false);
+  const alive = useRef(true);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  const retry = () => {
+    if (retrying) return;
+    setRetryError(""); setRetrying(true);
+    void bridge.retryMove().catch((cause) => { if (alive.current) setRetryError(message(cause)); }).finally(() => { if (alive.current) setRetrying(false); });
+  };
   // a failed copy waits for its next try: the error, a countdown and Try now, in place of the hint
   const retryAt = phase === "moving" && move?.error && typeof move.retryAt === "number" ? move.retryAt : null;
-  const now = useNow(retryAt);
+  const now = useNow(retryAt, phase === "moving");
+  const quietFor = progressQuietFor(view, now);
 
   if (phase === "moved") {
     return (
@@ -124,9 +127,9 @@ export function MoveScreen({ view, preview, previewError, onReload, bridge, onMo
 
   if (move) {
     const paused = phase === "paused";
-    const { value, arrived } = moveProgress(move, preview?.bots.length ?? 0);
+    const { value } = moveProgress(move, preview?.bots.length ?? 0);
     const step = move.step === "done" ? "empty" : move.step;
-    const detail = move.step === "copy" && move.chats ? t("vpsLink.move.chatsProgress", { done: move.chats.done, total: move.chats.total })
+    const detail = move.step === "backup" ? vpsProgress(view).detail : move.step === "copy" && move.chats ? t("vpsLink.move.chatsProgress", { done: move.chats.done, total: move.chats.total })
       : move.waitingFor ? t("vpsLink.move.waitingFor", { name: move.waitingFor }) : null;
     return (
       <>
@@ -136,12 +139,13 @@ export function MoveScreen({ view, preview, previewError, onReload, bridge, onMo
             <p role="status" className={cn("m-0 min-w-0 flex-1 truncate text-[15px] leading-5", paused ? "text-danger" : "text-ink")}>{t(STEP_WORD[step], { name, device })}</p>
             {detail && <span className="shrink-0 text-[12px] leading-4 tabular-nums text-ink/56">{detail}</span>}
           </div>
-          <ProgressBar value={value} label={t("vpsLink.move.progressAria")} tone={paused ? "danger" : undefined} />
+          <ProgressBar value={value} detail={detail} label={t(STEP_WORD[step], { name, device })} tone={paused ? "danger" : undefined} />
         </div>
         <div className={cn(centered, "top-[calc(50%+24px)]")}>
-          {preview && <Bots preview={preview} arrived={arrived} moving={!paused} />}
+          {preview && <Bots preview={preview} />}
         </div>
         <Footer>
+          {retryError && <ErrorNote>{retryError}</ErrorNote>}
           {paused
             ? <>
                 <ErrorNote>{move.error ?? view.error ?? t("vpsLink.move.failed")}</ErrorNote>
@@ -154,9 +158,12 @@ export function MoveScreen({ view, preview, previewError, onReload, bridge, onMo
                   <p role="timer" data-vps-retry="" className="m-0 text-[13px] leading-[18px] tabular-nums text-ink/56">
                     {retryAt > now ? t("vpsLink.move.retryIn", { time: retryClock(retryAt - now) }) : t("vpsLink.move.retrying")}
                   </p>
-                  <button type="button" className={SOFT_PILL} onClick={() => void bridge.retryMove().catch(() => {})}>{t("vpsLink.move.retryNow")}</button>
+                  <button type="button" className={SOFT_PILL} disabled={retrying} onClick={retry}>{t("vpsLink.move.retryNow")}</button>
                 </>
-              : <p className="m-0 text-[13px] leading-[18px] text-ink/56">{t("vpsLink.move.movingHint")}</p>}
+              : <>
+                  {(move.error || view.error) && <><ErrorNote>{move.error ?? view.error}</ErrorNote><button type="button" className={SOFT_PILL} disabled={retrying} onClick={retry}>{t("vpsLink.move.retryNow")}</button></>}
+                  <p role="status" className={cn("m-0 text-[13px] leading-[18px]", quietFor >= QUIET_AFTER_MS ? "text-warning" : "text-ink/56")}>{quietFor >= QUIET_AFTER_MS ? t("vpsLink.progress.quiet", { time: formatElapsed(quietFor) }) : t("vpsLink.move.movingHint")}</p>
+                </>}
         </Footer>
       </>
     );
@@ -170,7 +177,7 @@ export function MoveScreen({ view, preview, previewError, onReload, bridge, onMo
         {previewError
           ? <><ErrorNote>{previewError}</ErrorNote><button type="button" className={SOFT_PILL} onClick={onReload}>{t("vpsLink.tryAgain")}</button></>
           : preview
-            ? <><Bots preview={preview} arrived={null} moving={false} /><Counts preview={preview} /></>
+            ? <><Bots preview={preview} /><Counts preview={preview} /></>
             : <p role="status" className="m-0 text-[13px] leading-[18px] text-ink/56">{t("vpsLink.move.counting")}</p>}
       </div>
       <Footer note={<p className="m-0 max-w-[320px] text-[12px] leading-4 text-ink/56 text-pretty">{t("vpsLink.move.safety", { name, device })}</p>}>

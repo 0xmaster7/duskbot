@@ -202,12 +202,46 @@ describe("setup sessions", () => {
     const keys = newLinkKeys();
     const made = await relay.create({ verifier: keys.verifier, appPub: keys.pub });
     await relay.cancel(made.id, made.watch);
-    expect((await post(`/v1/sessions/${made.id}/claim`, vpsTokenOf(keys.secret), {})).status).toBe(410);
+    const cancelled = await post(`/v1/sessions/${made.id}/claim`, vpsTokenOf(keys.secret), {});
+    expect(cancelled.status).toBe(410);
+    expect((await cancelled.json()).code).toBe("cancelled");
     const unknown = await post("/v1/sessions/aaaaaaaaaa/claim", vpsTokenOf(keys.secret), {});
     expect(unknown.status).toBe(404);
     expect((await unknown.json()).code).toBe("expired");
     // the watch token of one session reads no other
     expect((await fetch(`${base}/v1/sessions/aaaaaaaaaa/events`, { headers: { authorization: `Bearer ${made.watch}` } })).status).toBe(404);
+  });
+
+  it("keeps bounded real progress and quiet heartbeats without evicting completed steps", async () => {
+    const relay = createRelayClient({ base });
+    const keys = newLinkKeys();
+    const made = await relay.create({ verifier: keys.verifier, appPub: keys.pub });
+    const token = vpsTokenOf(keys.secret);
+    const route = `/v1/sessions/${made.id}/events`;
+    await post(`/v1/sessions/${made.id}/claim`, token, {});
+    await post(route, token, { step: "node", status: "done" });
+    const progress = { kind: "download", receivedBytes: 123, totalBytes: 1000, label: "archive\nname" };
+    const activity = { elapsedMs: 5000, quietMs: 3000 };
+    expect((await post(route, token, { step: "app", status: "running", progress, activity })).status).toBe(200);
+    const first = (await relay.watch(made.id, made.watch, 0)).events.at(-1);
+    expect(first.progress).toEqual({ ...progress, label: "archivename" });
+    expect(first.activity).toEqual(activity);
+    expect(first.at).toBeTypeOf("number");
+    for (const bad of [
+      { progress: { kind: "download", receivedBytes: -1 } },
+      { progress: { kind: "layers", completed: 4, total: 3 } },
+      { progress: { kind: "build", completed: 0.5, total: 3 } },
+      { progress: { kind: "download", receivedBytes: Number.MAX_SAFE_INTEGER + 1 } },
+      { activity: { elapsedMs: 5, quietMs: 6 } },
+      { heartbeat: "yes" },
+    ]) expect((await post(route, token, { step: "app", status: "running", ...bad })).status).toBe(400);
+    for (let i = 0; i < 152; i += 1) {
+      expect((await post(route, token, { step: "app", status: "running", heartbeat: true, activity: { elapsedMs: 5000 + i, quietMs: 3000 + i } })).status).toBe(200);
+    }
+    const events = (await relay.watch(made.id, made.watch, 0)).events;
+    expect(events.filter((event) => event.heartbeat || event.progress || event.activity)).toHaveLength(150);
+    expect(events.find((event) => event.step === "node")).toMatchObject({ status: "done" });
+    expect(events.at(-1)).toMatchObject({ heartbeat: true, activity: { elapsedMs: 5151, quietMs: 3151 } });
   });
 
   it("probes only a public address: a private one is never fetched", async () => {
@@ -225,6 +259,37 @@ describe("setup sessions", () => {
 });
 
 describe("the private server build", () => {
+  it("resumes authenticated downloads using exact open byte ranges", async () => {
+    const bytes = Buffer.from("range fixture ".repeat(100));
+    const sha = sha256hex(bytes);
+    const packages = join(dir, "data", "packages");
+    mkdirSync(packages, { recursive: true });
+    writeFileSync(join(packages, `${sha}.tgz`), bytes);
+    writeFileSync(join(packages, "current.json"), JSON.stringify({ sha256: sha, version: "fixture" }));
+    const relay = createRelayClient({ base });
+    const keys = newLinkKeys();
+    const made = await relay.create({ verifier: keys.verifier, appPub: keys.pub });
+    const token = vpsTokenOf(keys.secret);
+    const url = `${base}/pkg/${made.id}/${sha}.tgz`;
+    const get = (range, authorized = true) => fetch(url, { headers: { range, ...(authorized ? { authorization: `Bearer ${token}` } : {}) } });
+    expect((await get("bytes=100-")).status).toBe(409);
+    await post(`/v1/sessions/${made.id}/claim`, token, {});
+    expect((await get("bytes=100-", false)).status).toBe(401);
+    const resumed = await get("bytes=100-");
+    expect(resumed.status).toBe(206);
+    expect(resumed.headers.get("content-range")).toBe(`bytes 100-${bytes.length - 1}/${bytes.length}`);
+    expect(resumed.headers.get("content-length")).toBe(String(bytes.length - 100));
+    expect(resumed.headers.get("accept-ranges")).toBe("bytes");
+    expect(Buffer.from(await resumed.arrayBuffer())).toEqual(bytes.subarray(100));
+    for (const range of [`bytes=${bytes.length}-`, "bytes=-5", "bytes=0-5", "bytes=00-", "bytes=9007199254740992-"]) {
+      const invalid = await get(range);
+      expect(invalid.status).toBe(416);
+      expect(invalid.headers.get("content-range")).toBe(`bytes */${bytes.length}`);
+    }
+    await relay.cancel(made.id, made.watch);
+    expect((await get("bytes=100-")).status).toBe(410);
+  });
+
   it("is handed only to a claimed session with its own token, by sha256, a few times, and never after linking", async () => {
     const tgz = Buffer.from("pretend tarball ".repeat(4096));
     const sha = sha256hex(tgz);

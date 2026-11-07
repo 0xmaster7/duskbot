@@ -70,12 +70,12 @@ const STATUS_WORD: Record<RowStatus, Parameters<typeof t>[0]> = {
 export const statusWord = (status: RowStatus) => t(STATUS_WORD[status]);
 
 /** One thin bar, filled on transform. */
-export function ProgressBar({ value, label, tone }: { value: number; label: string; tone?: "danger" }) {
-  const clamped = Math.max(0, Math.min(1, value));
+export function ProgressBar({ value, label, detail, tone }: { value: number | null; label: string; detail?: string | null; tone?: "danger" }) {
+  const clamped = value === null ? null : Math.max(0, Math.min(1, value));
   return (
-    <div role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(clamped * 100)}
+    <div role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={clamped === null ? undefined : Math.round(clamped * 100)} aria-valuetext={detail ?? undefined}
       className="h-1 w-full overflow-hidden rounded-full bg-ink/8">
-      <div className={cn("vps-bar h-full w-full rounded-full", tone === "danger" ? "bg-danger" : "bg-ink")} style={{ transform: `scaleX(${clamped})` }} />
+      <div className={cn("vps-bar h-full w-full origin-left rounded-full transition-transform duration-300 ease-out motion-reduce:transition-none rtl:origin-right", clamped === null && "animate-pulse motion-reduce:animate-none opacity-30", tone === "danger" ? "bg-danger" : "bg-ink")} style={{ transform: clamped === null ? undefined : `scaleX(${clamped})` }} />
     </div>
   );
 }

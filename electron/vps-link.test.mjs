@@ -108,7 +108,7 @@ function localServer({ exportFails = false } = {}) {
   return { calls, localRequest };
 }
 
-function controller({ local, ownHome, store }) {
+function controller({ local, ownHome, store, onChange = () => {} }) {
   const saved = [];
   const link = createVpsLink({
     base,
@@ -140,6 +140,7 @@ function controller({ local, ownHome, store }) {
     },
     relaunch: () => {},
     pollMs: 10,
+    onChange,
   });
   return { link, saved };
 }
@@ -153,7 +154,8 @@ describe("Add your VPS", () => {
     let phase = null;
     const started = [];
     const ownHome = { start: async (id) => { started.push(id); phase = { phase: "copy", chats: { done: 1, total: 3 } }; }, view: () => phase, away: () => phase?.phase === "done", home: () => null, chosen: () => null };
-    const { link, saved } = controller({ local, ownHome, store: memoryStore() });
+    const progressViews = [];
+    const { link, saved } = controller({ local, ownHome, store: memoryStore(), onChange: (view) => progressViews.push(view) });
 
     const first = await link.start();
     expect(first.stage).toBe("command");
@@ -178,6 +180,14 @@ describe("Add your VPS", () => {
     const mirrored = await until(() => { const seen = link.view(); return seen.terminal.length === 2 && seen; });
     expect(mirrored.terminal[1]).toEqual({ step: "node", text: "Setting up nodejs (24.11.0) ..." });
     expect(mirrored.steps.find((step) => step.id === "node")).toMatchObject({ status: "done", cmd: "apt-get -y install nodejs", lines: ["$ apt-get -y install nodejs", "Setting up nodejs (24.11.0) ..."] });
+
+    await post(`/v1/sessions/${id}/events`, vpsToken, { step: "app", status: "running", progress: { kind: "download", receivedBytes: 25, totalBytes: 100 }, activity: { elapsedMs: 1000, quietMs: 0 } });
+    const downloading = await until(() => { const seen = link.view(); return seen.steps.find((step) => step.id === "app").progress?.receivedBytes === 25 && seen; });
+    const lastProgress = downloading.activity.progressAt;
+    await post(`/v1/sessions/${id}/events`, vpsToken, { step: "app", status: "running", heartbeat: true, activity: { elapsedMs: 46_000, quietMs: 45_000 } });
+    const heartbeat = await until(() => { const seen = link.view(); return seen.activity.updatedAt > downloading.activity.updatedAt && seen; });
+    expect(heartbeat.activity.progressAt).toBe(lastProgress);
+    expect(heartbeat.steps.find((step) => step.id === "app").progress).toEqual({ kind: "download", receivedBytes: 25, totalBytes: 100 });
 
     // the agent finishes the setup on the server and keeps the tunnel open
     await run(process.execPath, [agentPath, "link"], { env: { ...process.env, HOME: home, LINK_BASE: base, LINK_ID: id, LINK_TOKEN: vpsToken, LINK_MODE: "relay", LINK_NAME: "oracle-arm", LINK_SERVER_PORT: String(vpsPort) } });
@@ -210,6 +220,7 @@ describe("Add your VPS", () => {
     });
 
     await link.move();
+    expect(progressViews.some((view) => view.move?.step === "backup" && view.move.bytes?.done === 22 && view.move.bytes?.total === 22)).toBe(true);
     expect(started).toEqual(["env-1"]);
     expect(local.calls.indexOf("POST /api/workspace-backup/export")).toBeLessThan(local.calls.length);
     expect(link.backups()).toEqual([expect.objectContaining({ reason: "before-move", bytes: 22, summary: expect.objectContaining({ bots: 2, chats: 3 }) })]);

@@ -71,20 +71,29 @@ install.sh posts every step to `POST /v1/sessions/<id>/events` (bearer: the VPS 
 - Before anything is written to a log or sent, bearer tokens, the link secret and VPS token, `sk-...` keys and
   `token`/`password`/`secret`/`*_KEY` values are replaced with `[redacted]`.
 - The service keeps up to 60 lines and 16 KB per event (the newest), `cmd` up to 300 characters, and the newest 150
-  line events per session; status events are never dropped for line events. Steps the app does not know
+  line, progress and heartbeat events per session; status events are never dropped for those events. Steps the app does not know
   (`sandbox`, `fence`) are reported as `desktop`.
 - In the app, `electron/vps-link.mjs` keeps them in memory only and puts them on the view it already sends:
   `steps[i].cmd`, `steps[i].lines` (last 200 per step) and `terminal` (last 400 lines overall, in order, each
   `{ "step": "node", "text": "..." }`). A late batch never moves a finished step back to running.
+- Running events may include `progress`: downloads report `kind: "download"`, `receivedBytes` and `totalBytes`;
+  Docker reports `kind: "layers"` or `"build"`, `completed` and `total`, and known transfer bytes. Build totals count
+  observed operations and can grow; only `DONE` or `CACHED` operations count as complete.
+- Running events include `activity: { elapsedMs, quietMs }`. A heartbeat is sent about every two seconds without
+  output; `heartbeat: true` means no new log bytes or progress were observed. It proves contact, never progress.
+  Closing the app's setup modal keeps installation running. Explicit cancellation stops the installer's children,
+  keeps installed files and cached download bytes, and requires a new setup command to resume.
 
 ## The server build
 
 The VPS installs our own server, built from this repo, not the upstream `openmausbot` npm package. That build is
 private: the service hands it only to a claimed install session, at `/pkg/<session>/<sha256>.tgz`, with the session's
-own bearer token, while the session is still installing, at most 6 times. There is no public url for it.
+own bearer token, while the session is still installing, at most 10 times across both archives. There is no public url for it.
 
 - The claim reply names the build: `"package": {"sha256", "size", "version", "path"}`. install.sh downloads it (the
   terminal shows a progress bar), checks the sha256, and installs it with `npm install -g <file>` as the `maus` user.
+  Interrupted downloads retain `.part` files and resume with an authenticated `Range: bytes=<offset>-` request.
+  A checksum mismatch discards that partial file and retries from zero; a verified cache needs no download.
   Its three native dependencies (DuckDB, resvg, the 1Password SDK) still come from the npm registry, per platform.
 - No build published means no `package` in the claim, and the install stops at "Installing OpenMausBot" with "the link
   service has no OpenMausBot build to hand out yet".
@@ -100,7 +109,7 @@ own bearer token, while the session is still installing, at most 6 times. There 
   - **Fencing their network**: `host-fence.sh` to `/usr/local/sbin/omb-host-fence`, `omb-box-fence.service`
     enabled and started, then `omb-host-fence --check`.
   - **Building the bot computer**: nothing if the image is already there, a `docker pull` if a registry copy exists,
-    else the kit's `build.sh` (needs `docker-buildx`, which the Docker step adds), with a bar for its build steps.
+    else the kit's `build.sh` (installs `docker-buildx` only for that fallback), reporting completed build operations.
   Each of these that fails is shown in amber and the install goes on: bots work without a bot computer, boxes fall
   back to strict mode without the sandbox or fence, and the app builds the image on first use.
 

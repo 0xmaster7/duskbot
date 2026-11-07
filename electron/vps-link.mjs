@@ -14,6 +14,21 @@ const SKILL_KINDS = new Set(["skill", "imported-skill", "library-skill"]);
 const ROUTINE_KINDS = new Set(["routine", "call", "webhook", "app-event"]);
 const CLAUDE_TOKEN = /sk-ant-oat01-[A-Za-z0-9_-]{20,}/;
 
+function installProgress(value) {
+  if (!record(value)) return null;
+  const label = typeof value.label === "string" ? value.label.slice(0, 120) : undefined;
+  if (value.kind === "download" && Number.isFinite(value.receivedBytes) && value.receivedBytes >= 0) {
+    return { kind: value.kind, receivedBytes: value.receivedBytes,
+      ...(Number.isFinite(value.totalBytes) && value.totalBytes > 0 ? { totalBytes: value.totalBytes } : {}), ...(label ? { label } : {}) };
+  }
+  if (["layers", "build"].includes(value.kind) && Number.isFinite(value.completed) && value.completed >= 0 && Number.isFinite(value.total) && value.total > 0) {
+    return { kind: value.kind, completed: value.completed, total: value.total,
+      ...(Number.isFinite(value.receivedBytes) && value.receivedBytes >= 0 ? { receivedBytes: value.receivedBytes } : {}),
+      ...(Number.isFinite(value.totalBytes) && value.totalBytes > 0 ? { totalBytes: value.totalBytes } : {}), ...(label ? { label } : {}) };
+  }
+  return null;
+}
+
 /** a plain sentence for a person, never a stack or a status code alone */
 const plain = (error, fallback) => {
   const message = typeof error?.message === "string" ? error.message.trim() : "";
@@ -75,16 +90,19 @@ export function createVpsLink(deps) {
   const currentLink = () => state.links.find((link) => link.id === state.current) ?? null;
 
   // the install's live terminal: lines each step streams while it runs. kept in memory only, never in the store
-  let live = { id: null, steps: {}, feed: [] };
+  const emptyLive = (id) => ({ id, steps: {}, feed: [], updatedAt: 0, progressAt: 0, error: null });
+  let live = emptyLive(null);
   const LIVE_STEP_LINES = 200;
   const LIVE_FEED = 400;
-  function liveFor(id) { if (live.id !== id) live = { id, steps: {}, feed: [] }; return live; }
+  function liveFor(id) { if (live.id !== id) live = emptyLive(id); return live; }
   function steps() {
     const seen = state.pending?.steps ?? (currentLink() ? Object.fromEntries(STEP_IDS.map((id) => [id, { status: "done" }])) : {});
     const lines = state.pending && live.id === state.pending.id ? live.steps : {};
     return STEP_IDS.map((id) => ({
       id, status: seen[id]?.status ?? "waiting", ...(seen[id]?.log ? { log: seen[id].log } : {}),
       ...(lines[id]?.cmd ? { cmd: lines[id].cmd } : {}), ...(lines[id]?.lines?.length ? { lines: lines[id].lines } : {}),
+      ...(lines[id]?.progress ? { progress: lines[id].progress } : {}),
+      ...(lines[id]?.activity ? { activity: lines[id].activity } : {}),
     }));
   }
   function view() {
@@ -102,10 +120,12 @@ export function createVpsLink(deps) {
       expiresAt: pending?.expiresAt ?? null,
       steps: steps(),
       terminal: state.pending && live.id === state.pending.id ? live.feed : [],
+      ...(pending && live.id === pending.id && live.updatedAt ? { activity: { updatedAt: live.updatedAt, progressAt: live.progressAt, ...(live.error ? { error: live.error } : {}) } }
+        : move ? { activity: { updatedAt: move.updatedAt ?? move.startedAt, progressAt: move.progressAt ?? move.startedAt } } : {}),
       server: link ? { id: link.envId, name: link.name, origin: link.origin } : null,
       mode: link?.mode ?? null,
       error: lastError,
-      move: move ? { step: move.step, status: move.status, ...(move.chats ? { chats: move.chats } : {}), ...(move.waitingFor ? { waitingFor: move.waitingFor } : {}), ...(move.error ? { error: move.error } : {}), ...(move.retryAt ? { retryAt: move.retryAt } : {}), ...(move.backupId ? { backupId: move.backupId } : {}), ...(move.kept ? { kept: true } : {}) } : null,
+      move: move ? { step: move.step, status: move.status, ...(move.chats ? { chats: move.chats } : {}), ...(move.bytes ? { bytes: move.bytes } : {}), ...(move.waitingFor ? { waitingFor: move.waitingFor } : {}), ...(move.error ? { error: move.error } : {}), ...(move.retryAt ? { retryAt: move.retryAt } : {}), ...(move.backupId ? { backupId: move.backupId } : {}), ...(move.kept ? { kept: true } : {}) } : null,
     };
   }
 
@@ -196,9 +216,26 @@ export function createVpsLink(deps) {
           failures = 0;
           let changed = false;
           let streamed = false;
+          const contact = liveFor(pending.id);
+          const recovered = Boolean(contact.error);
+          contact.updatedAt = now();
+          contact.error = null;
           for (const event of got.events ?? []) {
             pending.after = Math.max(pending.after, event.seq);
             if (!STATUSES.has(event.status) || typeof event.step !== "string") continue;
+            const at = Number.isFinite(event.at) ? Math.min(now(), event.at) : now();
+            const quietMs = Number.isFinite(event.activity?.quietMs) && event.activity.quietMs >= 0 ? event.activity.quietMs : 0;
+            if (record(event.activity) || event.heartbeat !== true) contact.progressAt = Math.max(contact.progressAt, at - quietMs);
+            const progress = installProgress(event.progress);
+            if (Number.isFinite(event.activity?.elapsedMs) && event.activity.elapsedMs >= 0) {
+              (contact.steps[event.step] ??= { lines: [] }).activity = { elapsedMs: event.activity.elapsedMs, quietMs, at };
+            }
+            if (progress) {
+              (contact.steps[event.step] ??= { lines: [] }).progress = progress;
+              streamed = true;
+            }
+            if (record(event.activity) || event.heartbeat === true) streamed = true;
+            if (event.heartbeat === true) continue;
             if (Array.isArray(event.lines) || typeof event.cmd === "string") {
               const mirror = liveFor(pending.id);
               const lines = (Array.isArray(event.lines) ? event.lines : []).filter((line) => typeof line === "string").map((line) => line.slice(0, 400));
@@ -211,7 +248,11 @@ export function createVpsLink(deps) {
               if (event.status === "running" && pending.steps[event.step]) continue;
             }
             if (!STEP_IDS.includes(event.step)) continue;
-            pending.steps[event.step] = { status: event.status, ...(event.status === "failed" && typeof event.log === "string" ? { log: event.log.slice(-4000) } : {}) };
+            if (event.status === "running" && (progress || record(event.activity)) && ["done", "skipped", "failed"].includes(pending.steps[event.step]?.status)) continue;
+            const previous = pending.steps[event.step];
+            const nextLog = event.status === "failed" && typeof event.log === "string" ? event.log.slice(-4000) : undefined;
+            if (previous?.status === event.status && previous?.log === nextLog) continue;
+            pending.steps[event.step] = { status: event.status, ...(nextLog ? { log: nextLog } : {}) };
             changed = true;
           }
           if (got.state === "installing" && pending.state === "waiting") { pending.state = "installing"; changed = true; }
@@ -223,11 +264,15 @@ export function createVpsLink(deps) {
             break;
           }
           if (changed) write();
-          else if (streamed) onChange(view());
+          else if (streamed || recovered) onChange(view());
         } catch (error) {
           if (abort.signal.aborted) break;
           if (error?.status === 404) { state.pending = null; lastError = "This command expired. Make a new one."; write(); break; }
           failures += 1;
+          const contact = liveFor(pending.id);
+          contact.error = "Setup updates paused. Reconnecting to your server.";
+          if (!contact.updatedAt) contact.updatedAt = now();
+          onChange(view());
           await sleep(Math.min(15_000, 500 * 2 ** Math.min(failures, 5)), undefined, { signal: abort.signal }).catch(() => {});
         }
       }
@@ -504,7 +549,21 @@ export function createVpsLink(deps) {
       : await localRequest(`/api/workspace-backup/download/${encodeURIComponent(made.id)}`, { signal: AbortSignal.timeout(30 * 60_000) });
     if (!response.ok || !response.body) throw new Error("The backup could not be saved.");
     const at = now();
-    const saved = await deps.backups.save(`${at}-${made.id}.ombbackup`, response.body);
+    const moving = reason === "before-move" && state.move?.step === "backup" ? state.move : null;
+    let received = 0, reportedAt = 0;
+    const report = (force = false) => {
+      if (!moving || state.move !== moving) return;
+      moving.bytes = { done: received, ...(Number.isFinite(made.bytes) && made.bytes >= 0 ? { total: made.bytes } : {}) };
+      if (received > 0) moving.progressAt = now();
+      moving.updatedAt = now();
+      if (force || now() - reportedAt >= 200) { reportedAt = now(); onChange(view()); }
+    };
+    report(true);
+    const body = moving ? response.body.pipeThrough(new TransformStream({
+      transform(chunk, controller) { received += chunk.byteLength; report(); controller.enqueue(chunk); },
+    })) : response.body;
+    const saved = await deps.backups.save(`${at}-${made.id}.ombbackup`, body);
+    report(true);
     if (typeof made.bytes === "number" && saved.bytes !== made.bytes) throw new Error("The backup was cut off while saving. Nothing was changed.");
     const entry = {
       id: made.id, at, bytes: saved.bytes, file: saved.file, reason, passwordP: await protect(password), ...(from ? { from: from.name } : {}),
@@ -544,7 +603,11 @@ export function createVpsLink(deps) {
 
   /** a running step keeps an error and its next try only when they are said again with it */
   function moveTo(step, status, extra = {}) {
+    const progressed = step !== state.move?.step || (extra.chats && JSON.stringify(extra.chats) !== JSON.stringify(state.move?.chats));
     state.move = { ...state.move, step, status, ...extra };
+    state.move.updatedAt = now();
+    if (progressed) state.move.progressAt = now();
+    if (step !== "backup") delete state.move.bytes;
     if (!("error" in extra) && status !== "failed") delete state.move.error;
     if (!("retryAt" in extra)) delete state.move.retryAt;
     write();

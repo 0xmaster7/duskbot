@@ -2,7 +2,7 @@
 // the backups a move keeps
 import { useCallback, useEffect, useRef, useState } from "react";
 import { t } from "@/lib/i18n";
-import { formatBytes, openAddVps, vpsLinkBridge, type VpsBackup, type VpsWhere } from "@/lib/vps-link";
+import { formatBytes, openAddVps, useVpsLink, type VpsBackup, type VpsWhere } from "@/lib/vps-link";
 import { Card, CopyRow, ItemRow, NavRow, NoteRow } from "../ListRows";
 import { smallButtonCls } from "../ui/GrokDialog";
 import { deviceWord, message } from "./parts";
@@ -20,7 +20,7 @@ function backupContents(backup: VpsBackup): string {
 }
 
 export function TransferSettings() {
-  const bridge = vpsLinkBridge();
+  const { bridge, view, ready } = useVpsLink();
   const [where, setWhere] = useState<VpsWhere | null>(null);
   const [backups, setBackups] = useState<VpsBackup[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -39,18 +39,12 @@ export function TransferSettings() {
       setWhere(place); setBackups(list);
     }, (cause) => { if (alive.current && sequence === loadSequence.current) setError(message(cause)); });
   }, [bridge]);
+  const refreshKey = JSON.stringify([view.stage, view.server?.id, view.move?.step, view.move?.status, view.move?.backupId]);
   useEffect(() => {
     alive.current = true;
-    load();
-    let previous = "";
-    const unsubscribe = bridge?.onChange((view) => {
-      const revision = JSON.stringify([view.stage, view.server?.id, view.move?.step, view.move?.status, view.move?.backupId]);
-      if (revision === previous) return;
-      previous = revision;
-      load();
-    });
-    return () => { alive.current = false; loadSequence.current++; unsubscribe?.(); };
-  }, [bridge, load]);
+    if (ready) load();
+    return () => { alive.current = false; loadSequence.current++; };
+  }, [load, ready, refreshKey]);
 
   if (!bridge) return <Card><NoteRow>{t("vpsLink.transfer.desktopOnly")}</NoteRow></Card>;
   const perform = async (ask: string | null, work: () => Promise<unknown>, done?: string) => {

@@ -1,16 +1,22 @@
 // "Add your VPS" (electron/vps-link.mjs): the one command a person pastes on their server, the install's live steps, the AI
 // sign-in sent from this computer, and the move. Only this computer's own page in the desktop app has the bridge.
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 export const VPS_STEP_IDS = ["check", "basics", "docker", "user", "node", "app", "engines", "service", "address", "desktop", "link"] as const;
 export type VpsStepId = (typeof VPS_STEP_IDS)[number];
 export type VpsStepStatus = "waiting" | "running" | "done" | "failed" | "skipped";
-export interface VpsLinkStep { id: VpsStepId; status: VpsStepStatus; log?: string; cmd?: string; lines?: string[] }
+export type VpsInstallProgress = { kind: "download"; receivedBytes: number; totalBytes?: number; label?: string }
+  | { kind: "layers" | "build"; completed: number; total: number; receivedBytes?: number; totalBytes?: number; label?: string };
+export interface VpsLinkStep {
+  id: VpsStepId; status: VpsStepStatus; log?: string; cmd?: string; lines?: string[]; progress?: VpsInstallProgress;
+  activity?: { elapsedMs: number; quietMs: number; at: number };
+}
 export type VpsMoveStep = "backup" | "copy" | "verify" | "empty" | "done";
 export interface VpsLinkMove {
   step: VpsMoveStep;
   status: "running" | "done" | "failed";
   chats?: { done: number; total: number };
+  bytes?: { done: number; total?: number };
   waitingFor?: string;
   error?: string;
   /** The copy failed and goes again by itself at this time (ms since epoch). */
@@ -27,6 +33,8 @@ export interface VpsLinkView {
   steps: VpsLinkStep[];
   /** Live installer output in arrival order, omitted by older desktop builds. */
   terminal?: Array<{ step: string; text: string }>;
+  /** Last relay contact and real installer activity. Heartbeats update contact without implying forward progress. */
+  activity?: { updatedAt: number; progressAt: number; error?: string };
   server: VpsServer | null;
   error: string | null;
   move: VpsLinkMove | null;
@@ -99,41 +107,66 @@ export const EMPTY_VIEW: VpsLinkView = {
   stage: "idle", command: null, expiresAt: null, steps: VPS_STEP_IDS.map((id) => ({ id, status: "waiting" })), server: null, error: null, move: null,
 };
 
-/** Main's view of the link, kept fresh by its change events. */
+type LinkSnapshot = { view: VpsLinkView; ready: boolean };
+const NO_LINK: LinkSnapshot = { view: EMPTY_VIEW, ready: false };
+const linkStores = new WeakMap<VpsLinkBridge, ReturnType<typeof createLinkStore>>();
+
+function createLinkStore(bridge: VpsLinkBridge) {
+  let snapshot = NO_LINK;
+  let revision = 0;
+  let releaseGeneration = 0;
+  let unsubscribe: (() => void) | null = null;
+  const listeners = new Set<() => void>();
+  const publish = (next: LinkSnapshot) => { snapshot = next; for (const listen of listeners) listen(); };
+  const start = () => {
+    let active = true;
+    const before = revision;
+    const stop = bridge.onChange((view) => { if (active) { revision++; publish({ view, ready: true }); } });
+    unsubscribe = () => { active = false; stop(); };
+    void bridge.state().then((view) => {
+      if (active && before === revision) publish({ view, ready: true });
+    }, (cause) => {
+      if (active && before === revision) publish({ view: { ...snapshot.view, error: String((cause as Error)?.message ?? cause) }, ready: true });
+    });
+  };
+  return {
+    read: () => snapshot,
+    subscribe(listen: () => void) {
+      releaseGeneration++;
+      listeners.add(listen);
+      if (!unsubscribe) start();
+      return () => {
+        listeners.delete(listen);
+        if (listeners.size > 0) return;
+        const generation = ++releaseGeneration;
+        queueMicrotask(() => {
+          if (listeners.size > 0 || generation !== releaseGeneration) return;
+          revision++;
+          unsubscribe?.();
+          unsubscribe = null;
+          snapshot = { ...snapshot, ready: false };
+        });
+      };
+    },
+    async update(work: () => Promise<VpsLinkView>) {
+      const before = revision;
+      const view = await work();
+      if (before === revision && unsubscribe) publish({ view, ready: true });
+    },
+  };
+}
+
+const subscribeToNothing = () => () => {};
+const noLink = () => NO_LINK;
+
+/** Main's view is shared by the status strip, Settings and the setup journey. */
 export function useVpsLink(): { view: VpsLinkView; bridge: VpsLinkBridge | undefined; ready: boolean; update(work: () => Promise<VpsLinkView>): Promise<void> } {
   const bridge = vpsLinkBridge();
-  const [view, setView] = useState<VpsLinkView>(EMPTY_VIEW);
-  const [ready, setReady] = useState(false);
-  const revision = useRef(0);
-  useEffect(() => {
-    if (!bridge) return;
-    let alive = true;
-    let changed = false;
-    setReady(false);
-    const unsubscribe = bridge.onChange((next) => {
-      if (!alive) return;
-      changed = true;
-      revision.current++;
-      setView(next);
-      setReady(true);
-    });
-    void bridge.state().then((next) => {
-      if (!alive) return;
-      if (!changed) setView(next);
-      setReady(true);
-    }, (cause) => {
-      if (!alive) return;
-      if (!changed) setView({ ...EMPTY_VIEW, error: String((cause as Error)?.message ?? cause) });
-      setReady(true);
-    });
-    return () => { alive = false; revision.current++; unsubscribe(); };
-  }, [bridge]);
-  const update = useCallback(async (work: () => Promise<VpsLinkView>) => {
-    const before = revision.current;
-    const next = await work();
-    if (before === revision.current) setView(next);
-  }, []);
-  return { view, bridge, ready, update };
+  let store = bridge ? linkStores.get(bridge) : undefined;
+  if (bridge && !store) { store = createLinkStore(bridge); linkStores.set(bridge, store); }
+  const snapshot = useSyncExternalStore(store?.subscribe ?? subscribeToNothing, store?.read ?? noLink, noLink);
+  const update = useCallback(async (work: () => Promise<VpsLinkView>) => { await store?.update(work); }, [store]);
+  return { ...snapshot, bridge, update };
 }
 
 // whether the flow's sheet is open: one tiny store, so Settings and any other entry point open the same sheet

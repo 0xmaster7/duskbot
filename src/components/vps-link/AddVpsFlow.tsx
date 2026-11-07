@@ -7,7 +7,7 @@ import { GrokIcon } from "@/components/GrokIcon";
 import { t } from "@/lib/i18n";
 import type { MausState } from "@/lib/mascot";
 import { EASE, REDUCED } from "@/lib/motion-presets";
-import { useVpsLink, vpsStage, type VpsLinkView, type VpsMovePreview } from "@/lib/vps-link";
+import { useVpsLink, vpsStage, type VpsLinkBridge, type VpsLinkView, type VpsMovePreview } from "@/lib/vps-link";
 import { useStore } from "@/state/store";
 import { useDialogKeys } from "../ui/GrokDialog";
 import { MotionDiv, useMotionReduced } from "../ui/SheetMotion";
@@ -19,6 +19,8 @@ import { SignInScreen } from "./SignInStage";
 
 type Screen = "command" | "install" | "connected" | "signin" | "preview" | "moving" | "paused" | "moved";
 const PREVIEW_MAX_AGE_MS = 5000;
+type Journey = { serverKey: string | null; signedIn: boolean; cheered: boolean };
+const journeys = new WeakMap<VpsLinkBridge, Journey>();
 
 const SCENE: Record<Screen, { mode: SceneMode; mascot: MausState }> = {
   command: { mode: "waiting", mascot: "listening" },
@@ -47,9 +49,20 @@ function ConnectedScreen({ view, onNext }: { view: VpsLinkView; onNext: () => vo
 export function AddVpsFlow({ onClose }: { onClose: () => void }) {
   const { view, bridge, ready, update } = useVpsLink();
   const { state } = useStore();
+  const serverKey = view.server ? `${view.server.id}:${view.server.origin}` : null;
+  const [, journeyChanged] = useState(0);
+  const savedJourney = bridge ? journeys.get(bridge) : undefined;
+  const journey = savedJourney?.serverKey === serverKey ? savedJourney : { serverKey, signedIn: false, cheered: false };
+  const { signedIn, cheered } = journey;
+  const setJourney = (change: Partial<Omit<Journey, "serverKey">>) => {
+    if (!bridge) return;
+    const saved = journeys.get(bridge);
+    journeys.set(bridge, { ...(saved?.serverKey === serverKey ? saved : { serverKey, signedIn: false, cheered: false }), ...change });
+    journeyChanged((value) => value + 1);
+  };
+  const setSignedIn = (signedIn: boolean) => setJourney({ signedIn });
+  const setCheered = (cheered: boolean) => setJourney({ cheered });
   const [starting, setStarting] = useState(false);
-  const [signedIn, setSignedIn] = useState(false);
-  const [cheered, setCheered] = useState(false);
   const [error, setError] = useState("");
   const [preview, setPreview] = useState<VpsMovePreview | null>(null);
   const [previewError, setPreviewError] = useState("");
@@ -67,7 +80,6 @@ export function AddVpsFlow({ onClose }: { onClose: () => void }) {
   const sawSetup = useRef(false);
   // a window opened once every AI is signed in skips the sign-in, once
   const autoSkip = useRef(true);
-  const serverKey = view.server ? `${view.server.id}:${view.server.origin}` : null;
   useDialogKeys(root, onClose);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   useEffect(() => {
@@ -76,8 +88,6 @@ export function AddVpsFlow({ onClose }: { onClose: () => void }) {
     previewAt.current = 0;
     setPreview(null);
     setPreviewError("");
-    setSignedIn(false);
-    setCheered(false);
     autoSkip.current = true;
   }, [bridge, serverKey]);
 
