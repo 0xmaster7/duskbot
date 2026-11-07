@@ -56,7 +56,8 @@ import { TurnPresence } from "./TurnPresence";
 import { showToolCallsEnabled } from "@/lib/feature-flags";
 import { normalizeState } from "@/lib/mascot";
 import { peerLine, peerRequest, type PeerLine } from "@/lib/peer-message";
-import { showWorkingDots } from "@/lib/turn-tail";
+import { replyHidesLine, showWorkingDots } from "@/lib/turn-tail";
+import { useLandedReply } from "@/hooks/use-landed-reply";
 import { lastNonReceipt } from "@/lib/receipts";
 import { useTurnLive } from "@/state/turn-status"; import { useLiveReplyActive } from "@/state/live-reply"; import { useTurnNow } from "./NowCard"; import { useThreadRoutineRun } from "@/state/older-routine-runs";
 import { ChatMarkdown } from "./ChatMarkdown";
@@ -1028,8 +1029,10 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
 
   const lastMessage = lastNonReceipt(messages);
   const live = useTurnLive(bot.threadId), now = useTurnNow(bot, messages, lastMessage, live);
-  // The mascot and its status line stay for the whole turn; only its end hides them, never a timer.
-  const waiting = Boolean(bot.busy && bot.activity !== "waiting-on-you" && showWorkingDots(bot.busy, lastMessage, undefined, live.ended));
+  // The mascot and its status line stay for the turn; its end, or its reply landing, hides them.
+  const landed = useLandedReply(`${bot.id}:${bot.threadId ?? ""}`, messages);
+  const waiting = Boolean(bot.busy && bot.activity !== "waiting-on-you" && showWorkingDots(bot.busy, lastMessage, undefined, live.ended))
+    && !replyHidesLine(landed.sinceMs, now.phase);
   const teammatesWorking = !bot.busy && Boolean(bot.waitingForTeammates);
   const markRef = useRef<MausAvatarHandle>(null);
   const [markEmphasized, setMarkEmphasized] = useState(false);
@@ -1037,6 +1040,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const streamingReply = useLiveReplyActive(bot.threadId);
   const statusMarkState = bot.busy ? turnMarkState({ running: true, composing: streamingReply, activity: live.status?.activity ?? null, awaiting: bot.activity === "waiting-on-you", settled: null }, Date.now()) : statusMarkFor({ busy: false, waitingOnYou: bot.activity === "waiting-on-you", answering: streamingReply, live: live.status?.activity, failed: lastMessage?.kind === "activity" && lastMessage.tool?.ok === false });
   const presenceVisible = waiting || teammatesWorking;
+  // under the bot's words the line leaves at once, with no exit left to play
+  const presenceMounted = presenceVisible || !landed.reply;
   useThinkingMoment(markRef, waiting && !teammatesWorking);
   // the bubble the line hangs under keeps its pinched corner until the line has finished leaving, as grok's does
   const presenceShown = useLingering(presenceVisible, 140);
@@ -1277,7 +1282,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             </div>
           )}
           <div className={statusSlot ? cn("turn-status-slot h-9 shrink-0", presenceUnderBubble && SIMPLE_STACKED) : "contents"} onMouseEnter={() => setMarkEmphasized(true)} onMouseLeave={() => setMarkEmphasized(false)} onClick={() => markRef.current?.poke?.()}>
-          <TurnPresence
+          {presenceMounted && <TurnPresence
             avatar={
               <StatusMark
                 ref={markRef}
@@ -1300,7 +1305,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             phase={now.phase}
             seed={`${bot.id}:${bot.threadId ?? ""}:${busySince ?? ""}`}
             since={busySince}
-          />
+          />}
           </div>
         </div>
         </div>

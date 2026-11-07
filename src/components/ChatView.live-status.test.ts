@@ -42,6 +42,7 @@ vi.mock("./ApprovalModeSelector", () => ({ ApprovalModeSelector: (_props: Compon
 
 const { ChatView } = await import("./ChatView");
 const { noteTurnEvent, resetTurnLive } = await import("@/state/turn-status");
+const { resetLandedReplies } = await import("@/hooks/use-landed-reply");
 
 const THREAD = "selected";
 const started = Date.UTC(2026, 9, 23, 12, 0, 0);
@@ -74,6 +75,7 @@ const statusLine = () => {
 beforeEach(() => {
   vi.useFakeTimers({ now: started + 72_000 });
   resetTurnLive();
+  resetLandedReplies();
   vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 200, headers: { "content-type": "application/json" } })));
   host = document.createElement("div");
   document.body.append(host);
@@ -98,16 +100,32 @@ describe("the working line", () => {
     expect([...row.classList]).toEqual(expect.arrayContaining(["h-9", "ps-2", "gap-[8.5px]"]));
     expect(row.title).toMatch(/^Working · /);
     expect(mascot()!.querySelector("[data-turn-status] .status-shimmer")).not.toBeNull();
-    const slot = () => mascot()!.closest(".turn-status-slot")!;
+    const slot = () => host.querySelector(".turn-status-slot")!;
     expect(slot().classList).not.toContain("-mt-3");
 
     engine({ type: "item.completed", itemType: "assistant_text", text: intro.text! } as Partial<RuntimeEvent>);
     render(busyBot([ask, intro]));
     expect(slot().classList, "under the bot's own bubble it sits close, as one more part of the reply").toContain("-mt-3");
+    expect(mascot(), "the reply takes the line's place in the frame it lands").toBeNull();
     engine({ type: "turn.progress", activity: "write", itemId: "toolu_write", file: "index.html", bytes: 14 * 1024 + 300 } as Partial<RuntimeEvent>);
-    expect(statusLine(), "a step keeps its words 800ms before the next replaces them, as grok's line does").toBe(first);
-    act(() => void vi.advanceTimersByTime(800));
-    expect(statusLine()).toBe("Writing some code");
+    expect(statusLine(), "the turn goes on with a named step: the line comes back saying it").toBe("Writing some code");
+  });
+
+  it("never stays under the reply that ended its wait, and comes back if the turn goes on", () => {
+    const reply: Message = { id: "reply", role: "bot", kind: "text", at: started + 9_000, text: "Fair, quiet day", turnId: "t1" };
+    engine({ type: "turn.started" });
+    render(busyBot([ask]));
+    engine({ type: "content.delta", streamKind: "assistant_text", delta: "Fair" } as Partial<RuntimeEvent>);
+    expect(mascot()).not.toBeNull();
+    render(busyBot([ask, reply]));
+    expect(mascot(), "gone in the same frame, though the engine still says it is typing and the turn has not ended").toBeNull();
+    act(() => void vi.advanceTimersByTime(1_000));
+    expect(mascot()).toBeNull();
+    act(() => void vi.advanceTimersByTime(600));
+    expect(mascot(), "a turn still running after its reply has more to do").not.toBeNull();
+    engine({ type: "turn.completed", ok: true } as Partial<RuntimeEvent>);
+    render(busyBot([ask, reply], false));
+    expect(mascot()).toBeNull();
   });
 
   it("says Teammates working while the bot waits on its teammates", () => {
