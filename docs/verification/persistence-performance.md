@@ -177,7 +177,7 @@ or a customer's network.
 
 ```sh
 node scripts/bench-send.mjs
-pnpm exec vitest run src/state/send-confirmation.test.ts src/state/lost-send.test.ts server/send-confirmation.e2e.test.ts src/components/live-reply-arrival.test.ts
+pnpm exec vitest run src/state/send-confirmation.test.ts src/state/lost-send.test.ts scripts/testing/send-confirmation.e2e.test.ts src/components/live-reply-arrival.test.ts
 ```
 
 The renderer benchmark uses a disposable fake-engine server and synthetic

@@ -4,19 +4,20 @@ import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { performance } from "node:perf_hooks";
 import { expect, it, vi } from "vitest";
-import { launchVerificationServer, runControlOmb } from "../scripts/control-omb.ts";
-import { publishLiveFrame } from "../src/lib/live-events.ts";
-import { sendReconciled } from "../src/state/optimistic-send.ts";
-import { openSse } from "./testing/sse.ts";
+import { launchVerificationServer, runControlOmb } from "../control-omb.ts";
+import { publishLiveFrame } from "../../src/lib/live-events.ts";
+import { sendReconciled } from "../../src/state/optimistic-send.ts";
+import type { WireBot, WireMessage } from "../../shared/wire.ts";
+import { openSse } from "../../server/testing/sse.ts";
 
 it("confirms a send through SSE while its relay response is held, without stopping or duplicating the real turn", async () => {
   const fixture = await launchVerificationServer({});
-  const api = async (path: string, init?: RequestInit) => {
+  const api = async <T = unknown>(path: string, init?: RequestInit): Promise<T> => {
     const response = await fetch(fixture.info.url + path, { ...init,
       headers: { origin: fixture.info.url, "content-type": "application/json" }, signal: AbortSignal.timeout(15_000) });
     const body = await response.json();
     expect(response.ok, JSON.stringify(body)).toBe(true);
-    return body;
+    return body as T;
   };
   let release!: () => void;
   const held = new Promise<void>((resolve) => { release = resolve; });
@@ -44,7 +45,7 @@ it("confirms a send through SSE while its relay response is held, without stoppi
   let stream: Awaited<ReturnType<typeof openSse>> | undefined;
   const evidence: Record<string, unknown> = { fixture: fixture.info };
   try {
-    const { bots } = await api("/api/bots?messages=0");
+    const { bots } = await api<{ bots: WireBot[] }>("/api/bots?messages=0");
     const bot = bots[0];
     await api(`/api/bots/${bot.id}`, { method: "PATCH", body: JSON.stringify({ computer: "off", browser: false }) });
     stream = await openSse(`${fixture.info.url}/api/events?screens=off`, { origin: fixture.info.url });
@@ -68,9 +69,9 @@ it("confirms a send through SSE while its relay response is held, without stoppi
     const settled = await runControlOmb(["wait", "--bot", bot.id, "--task", bot.threadId, "--timeout", "15", "--url", fixture.info.url]) as { status: string };
     expect(settled.status).toBe("settled");
     const post = { method: "POST", body: JSON.stringify({ text, threadId: bot.threadId, sendId }) };
-    const duplicates = await Promise.all(Array.from({ length: 10 }, () => api(`/api/bots/${bot.id}/messages`, post)));
+    const duplicates = await Promise.all(Array.from({ length: 10 }, () => api<{ message?: WireMessage }>(`/api/bots/${bot.id}/messages`, post)));
     expect(duplicates.every((receipt) => receipt.message?.id === canonical.message.id)).toBe(true);
-    const { messages } = await api(`/api/threads/${bot.threadId}/messages?limit=200`);
+    const { messages } = await api<{ messages: WireMessage[] }>(`/api/threads/${bot.threadId}/messages?limit=200`);
     expect(messages.filter((message: { sendId?: string }) => message.sendId === sendId)).toHaveLength(1);
     expect(messages.some((message: { text?: string }) => message.text === "hello from fake claude")).toBe(true);
     expect(requests).toBe(1);
