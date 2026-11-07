@@ -972,7 +972,6 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
     messages,
     pinOn: [bot.busy, composerDock.pad],
     hasMore: bot.hasMore,
-    composerRef: composerDockRef,
   });
   useTimestampPeek(scrollRef);
 

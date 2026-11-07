@@ -996,7 +996,6 @@ export function GroupView({ group: room }: { group: Group }) {
     pinOn: [group.busyBotId, group.working, composerDock.pad],
     transcriptShown: !setupPending,
     hasMore: group.hasMore,
-    composerRef: composerDockRef,
   });
   useTimestampPeek(scrollRef);
   // the status line keeps its slot at the end of the room whether it shows or not, so it never moves a row

@@ -2,17 +2,23 @@ import { animate, spring } from "motion/react";
 import { useLayoutEffect, useRef, type RefObject } from "react";
 
 import { usePrefersReducedMotion } from "@/components/mascot-clock";
-import { MSG_FADE, SPRING_REPLY, SPRING_SEND, SPRING_SETTLE } from "@/lib/motion-presets";
+import { EASE_OUT, MSG_FADE, SPRING_SETTLE } from "@/lib/motion-presets";
 
 const ROW = "[data-message-row]";
 const SLOT = ".turn-status-slot";
 const ARRIVAL = "[data-arrival]";
 const STATUS_LINE = ".turn-presence > div";
 const BOT_BUBBLE = ".chat-bubble-bot";
-const COMPOSER = '[data-tour="composer"]';
 
-/** How far below its place the person's own bubble starts: from the composer's top edge, kept within these bounds. */
-export const RISE_PX = [64, 140] as const;
+/** How far below its place the person's own bubble starts, and how long it takes to glide up while it fades in (ms). */
+export const SEND_RISE_PX = 24;
+export const SEND_MS = 220;
+/** One easing for every arrival: entering, it starts fast and lands with no overshoot. */
+export const ARRIVAL_EASE = `cubic-bezier(${EASE_OUT.join(", ")})`;
+/** A reply's reveal takes longer the taller it is, within these bounds (ms), so a long answer opens rather than snaps. */
+export const REVEAL_MS = [260, 520] as const;
+const REVEAL_SHORT_PX = 36;
+const REVEAL_TALL_PX = 480;
 /** The status line fades out as a reply fades in, and if it still has work to report it comes back in its slot (ms). */
 const LINE_OUT_MS = 160;
 const LINE_BACK_AT_MS = 300;
@@ -45,9 +51,13 @@ export function settleTiming(): Timing {
   return springTiming(SPRING_SETTLE);
 }
 
-export function replyTiming(): Timing {
-  return springTiming(SPRING_REPLY);
+/** How long a reply `height` px tall takes to open, on the arrival ease. */
+export function revealTiming(height: number): Timing {
+  const share = Math.min(1, Math.max(0, (height - REVEAL_SHORT_PX) / (REVEAL_TALL_PX - REVEAL_SHORT_PX)));
+  return { duration: Math.round(REVEAL_MS[0] + share * (REVEAL_MS[1] - REVEAL_MS[0])), easing: ARRIVAL_EASE };
 }
+
+const sendTiming = (): Timing => ({ duration: SEND_MS, easing: ARRIVAL_EASE });
 
 interface Snapshot {
   key: string;
@@ -97,23 +107,25 @@ function lineBox(column: HTMLElement): Box | null {
 }
 
 /** The reply's bubble grows out of the working line it replaces: it starts clipped to the line's box where the line was
- * drawn, and opens to its own size on the reply spring while its words fade in. The line is already gone in this frame. */
-function growFromLine(bubble: HTMLElement, from: Box, column: HTMLElement): boolean {
+ * drawn and opens to its own size, for longer the taller it is, while its words fade in a beat behind the shape, so they
+ * never show squeezed into a box still opening. The line is already gone in this frame. Returns the timing it used. */
+function growFromLine(bubble: HTMLElement, from: Box, column: HTMLElement): Timing | null {
   const to = boxIn(bubble, column);
-  if (!to || !canAnimate(bubble)) return false;
+  if (!to || !canAnimate(bubble)) return null;
   const rtl = getComputedStyle(bubble).direction === "rtl";
   const dx = rtl ? from.x + from.width - (to.x + to.width) : from.x - to.x;
   const end = Math.max(0, to.width - from.width), bottom = Math.max(0, to.height - from.height);
   const radius = Math.min(from.height, to.height) / 2;
-  const timing = replyTiming();
+  const timing = revealTiming(to.height);
   bubble.animate([
     { transform: `translate(${dx}px, ${from.y - to.y}px)`, clipPath: `inset(0px ${rtl ? 0 : end}px ${bottom}px ${rtl ? end : 0}px round ${radius}px)` },
     { transform: "translate(0px, 0px)", clipPath: `inset(0px 0px 0px 0px round ${radius}px)` },
   ], timing);
+  const words = { delay: Math.round(timing.duration * 0.3), duration: Math.round(timing.duration * 0.6), easing: ARRIVAL_EASE, fill: "backwards" as const };
   for (const child of Array.from(bubble.children)) {
-    if (canAnimate(child)) (child as HTMLElement).animate([{ opacity: 0 }, { opacity: 1 }], { duration: MSG_FADE.duration * 1000, easing: "ease-out" });
+    if (canAnimate(child)) (child as HTMLElement).animate([{ opacity: 0, transform: "translateY(4px)" }, { opacity: 1, transform: "translateY(0px)" }], words);
   }
-  return true;
+  return timing;
 }
 
 const canAnimate = (el: Element) => typeof (el as HTMLElement).animate === "function";
@@ -127,7 +139,7 @@ function remaining(mover: Mover): number {
 
 /** One element's entrance on motion: the first frame is written to its style before the browser paints (motion starts on
  * its next frame), and the style is handed back when it settles, so no transform outlives the move. */
-function lift(el: HTMLElement, transform: [string, string], opacity: [number, number] | null, transition: object, done: () => void): void {
+function lift(el: HTMLElement, transform: [string, string], opacity: [number, number] | null, timing: Timing, done: () => void): void {
   el.style.transform = transform[0];
   if (opacity) el.style.opacity = String(opacity[0]);
   const finish = () => {
@@ -136,38 +148,37 @@ function lift(el: HTMLElement, transform: [string, string], opacity: [number, nu
     done();
   };
   const keyframes = opacity ? { transform, opacity } : { transform };
-  const options = opacity ? { transform: transition, opacity: { duration: MSG_FADE.duration, ease: "easeOut" as const } } : { transform: transition };
+  const transition = { duration: timing.duration / 1000, ease: EASE_OUT };
+  const options = opacity ? { transform: transition, opacity: { duration: Math.min(timing.duration / 1000, MSG_FADE.duration), ease: EASE_OUT } } : { transform: transition };
   animate(el, keyframes, options).finished.then(finish, finish);
 }
 
 /** Rows that arrive while the conversation is open, and the scroll never fighting them.
  *
- * Any arrival puts the view at its end at once, in the frame it lands, and nothing already on screen moves. The person's
- * own bubble alone travels: it starts at the composer's top edge and springs up to its place (SPRING_SEND). A bot's reply
- * settles in softly where it lands (opacity, 7px and 0.98 scale on SPRING_REPLY) while its status line fades out, coming
- * back below if it still has work; a reply that takes the place of the working line grows out of the line's box instead,
- * with the view gliding up to make room for it. A wrapper clips the column vertically while anything moves, so a transform never
- * stretches the scroll range. The composer settling under a bubble still rising is followed on a spring. Scrolled up,
- * nothing on screen moves. Under reduced motion new rows only fade in. */
+ * Any arrival puts the scroll at its end in the frame it lands, and the column glides from where it was on screen, so
+ * nothing jumps. The person's own bubble rises a short way into place as it fades in (SEND_MS, one ease-out). A bot's reply
+ * settles in softly where it lands while its status line fades out, coming back below if it still has work; a reply that
+ * takes the place of the working line grows out of the line's box instead, for longer the taller it is (REVEAL_MS), its words
+ * fading in a beat behind the shape, with the view gliding on the same curve. A wrapper clips the column vertically while
+ * anything moves, so a transform never stretches the scroll range. The composer settling under a bubble still rising is
+ * followed on a spring. Scrolled up, nothing on screen moves. Under reduced motion new rows only fade in. */
 export function useArrivalFlow({
   scrollRef,
   clipRef,
   columnRef,
-  composerRef,
   transcriptKey,
   following,
 }: {
   scrollRef: RefObject<HTMLElement | null>;
   clipRef: RefObject<HTMLElement | null>;
   columnRef: RefObject<HTMLElement | null>;
-  composerRef?: RefObject<HTMLElement | null>;
   transcriptKey: string;
   following: boolean;
 }): void {
   const reduced = usePrefersReducedMotion();
   const snapshot = useRef<Snapshot | null>(null);
   const movers = useRef(new Map<HTMLElement, Mover>());
-  /** the person's bubbles (and the slot under them) still on their spring */
+  /** the person's bubbles (and the slot under them) still rising */
   const risers = useRef(new Set<HTMLElement>());
   const played = useRef(new WeakSet<Element>());
 
@@ -274,34 +285,35 @@ export function useArrivalFlow({
         continue;
       }
       if (row.dataset.arrival === "end") {
-        // the person's bubble alone travels: from the composer's top edge up to its place, on a spring with a little settle
-        const rowAt = offsetIn(row, column);
-        const composer = composerRef?.current?.querySelector<HTMLElement>(COMPOSER) ?? composerRef?.current ?? null;
-        const moving = movers.current.get(column);
-        const finalTop = rowAt === null ? null : column.getBoundingClientRect().top - (moving ? remaining(moving) : 0) + rowAt;
-        const fromComposer = composer && finalTop !== null ? composer.getBoundingClientRect().top - finalTop : RISE_PX[0];
-        const rise = Math.min(RISE_PX[1], Math.max(RISE_PX[0], fromComposer));
+        // the person's bubble glides up a short way into its place as it fades in, and the view glides with it to make room,
+        // both on one curve, so nothing jumps
         clipOn();
+        const shift = scroller.scrollTop - before.scrollTop;
+        if (following && atEnd && shift >= 0.5 && shift <= scroller.clientHeight * 1.5) glide(shift, sendTiming());
         const riders = [row, ...(slot && slot.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_PRECEDING ? [slot] : [])];
         // the slot rides under the bubble, so a status line that starts meanwhile is never under it
         for (const el of riders) {
           risers.current.add(el);
-          lift(el, [`translateY(${rise}px)`, "translateY(0px)"], el === row ? [0, 1] : null, SPRING_SEND, () => {
+          lift(el, [`translateY(${SEND_RISE_PX}px)`, "translateY(0px)"], el === row ? [0, 1] : null, sendTiming(), () => {
             risers.current.delete(el);
             clipOffIfIdle();
           });
         }
       } else {
         const bubble = growFrom ? row.querySelector<HTMLElement>(BOT_BUBBLE) : null;
-        if (bubble && growFrom && growFromLine(bubble, growFrom, column)) {
+        const grown = bubble && growFrom ? growFromLine(bubble, growFrom, column) : null;
+        if (grown) {
           growFrom = null;
+          // the view follows the opening bubble on the same curve and clock
           const shift = scroller.scrollTop - before.scrollTop;
-          if (shift >= 0.5 && shift <= scroller.clientHeight * 1.5) glide(shift, replyTiming());
+          if (shift >= 0.5 && shift <= scroller.clientHeight * 1.5) glide(shift, grown);
           continue;
         }
-        // a bot's reply: already in view, it settles in softly while its status line fades out
+        // a bot's reply: already in view, it settles in softly while its status line fades out; a tall one barely scales
+        const height = row.offsetHeight || REVEAL_SHORT_PX;
+        const scale = Math.max(0.98, 1 - 6 / height);
         row.style.transformOrigin = getComputedStyle(row).direction === "rtl" ? "100% 100%" : "0 100%";
-        lift(row, ["translateY(7px) scale(0.98)", "translateY(0px) scale(1)"], [0, 1], SPRING_REPLY, () => {});
+        lift(row, [`translateY(7px) scale(${scale})`, "translateY(0px) scale(1)"], [0, 1], revealTiming(height), () => {});
       }
     }
 
