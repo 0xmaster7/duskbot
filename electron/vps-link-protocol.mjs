@@ -30,6 +30,8 @@ export function createOutbox({ seal: sealRaw, post, delayMs, signal, onError = (
   let flushing = null, queued = 0, seq = 0, nudge = null;
   const release = () => { const waiting = [...drains]; drains.clear(); for (const resume of waiting) resume(); };
   const clear = () => { streams.clear(); queued = 0; };
+  // 0: frames pushed in the same turn share a post and nothing waits longer (a timer would add a millisecond or more)
+  const settle = () => (delayMs > 0 ? sleep(delayMs, undefined, { signal }) : new Promise((resolve) => setImmediate(resolve)));
   signal?.addEventListener("abort", () => { clear(); release(); }, { once: true });
   function stream(r) {
     let items = streams.get(r);
@@ -69,7 +71,7 @@ export function createOutbox({ seal: sealRaw, post, delayMs, signal, onError = (
     if (flushing || signal?.aborted) return;
     flushing = (async () => {
       try {
-        await sleep(delayMs, undefined, { signal });
+        await settle();
         const out = new Set();
         let failed = null;
         while ((streams.size || out.size) && !signal?.aborted) {
@@ -84,7 +86,7 @@ export function createOutbox({ seal: sealRaw, post, delayMs, signal, onError = (
             // new frames while posts are out go in a free slot without waiting for one of them to come back
             const nudged = await new Promise((resolve) => { nudge = () => resolve(true); for (const sending of out) void sending.then(() => resolve(false)); });
             nudge = null;
-            if (nudged) await sleep(delayMs, undefined, { signal });
+            if (nudged) await settle();
           }
           if (failed) throw failed;
         }
@@ -377,7 +379,7 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
     }
     return false;
   }
-  const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-vps", r, bytes), post, delayMs: 5, signal: abort.signal, parallel: () => (ordered ? POSTS_IN_FLIGHT : 1), onError: () => fail("The link service did not answer.") });
+  const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-vps", r, bytes), post, delayMs: 0, signal: abort.signal, parallel: () => (ordered ? POSTS_IN_FLIGHT : 1), onError: () => fail("The link service did not answer.") });
   const relayPath = {
     push: (frame) => { if (frame.t === "cancel") outbox.discard(frame.r); outbox.push(sealFrame(key, id, "to-vps", frame), frame.r); },
     bytes: outbox.bytes, onDrain: outbox.onDrain, discard: outbox.discard,

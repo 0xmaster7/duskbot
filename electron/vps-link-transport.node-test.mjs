@@ -148,6 +148,22 @@ test("a successful POST wakes a failed poll's retry delay for new controls", { t
   }
 });
 
+for (const [side, factory] of [["app", createOutbox], ["VPS", createAgentOutbox]]) {
+  test(`${side} outbox posts one turn's frames together in the next turn, without waiting on a timer`, { timeout: 2000 }, async () => {
+    const abort = new AbortController();
+    const posts = [];
+    const outbox = factory({ seal: (r, chunk) => `${r}:${chunk.length}`, delayMs: 0, signal: abort.signal, post: async (frames) => { posts.push(frames); return true; } });
+    outbox.push("head", "aaaaaaaaaaaa");
+    outbox.bytes("aaaaaaaaaaaa", Buffer.alloc(10));
+    outbox.push("end", "aaaaaaaaaaaa");
+    await tick();
+    await tick();
+    try {
+      assert.deepEqual(posts, [["head", "aaaaaaaaaaaa:10", "end"]]);
+    } finally { abort.abort(); }
+  });
+}
+
 test("outbox cancellation clears queued bytes and releases a paused producer without posting", async () => {
   const abort = new AbortController();
   let posted = false, resumed = false;

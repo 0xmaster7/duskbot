@@ -42,6 +42,8 @@ export function createOutbox({ seal: sealRaw, post, delayMs, signal, onError = (
   let flushing = null, queued = 0, seq = 0, nudge = null;
   const release = () => { const waiting = [...drains]; drains.clear(); for (const resume of waiting) resume(); };
   const clear = () => { streams.clear(); queued = 0; };
+  // 0: frames pushed in the same turn share a post and nothing waits longer (a timer would add a millisecond or more)
+  const settle = () => (delayMs > 0 ? delay(delayMs, undefined, { signal }) : new Promise((resolve) => setImmediate(resolve)));
   signal?.addEventListener("abort", () => { clear(); release(); }, { once: true });
   function stream(r) {
     let items = streams.get(r);
@@ -81,7 +83,7 @@ export function createOutbox({ seal: sealRaw, post, delayMs, signal, onError = (
     if (flushing || signal?.aborted) return;
     flushing = (async () => {
       try {
-        await delay(delayMs, undefined, { signal });
+        await settle();
         const out = new Set();
         let failed = null;
         while ((streams.size || out.size) && !signal?.aborted) {
@@ -96,7 +98,7 @@ export function createOutbox({ seal: sealRaw, post, delayMs, signal, onError = (
             // new frames while posts are out go in a free slot without waiting for one of them to come back
             const nudged = await new Promise((resolve) => { nudge = () => resolve(true); for (const sending of out) void sending.then(() => resolve(false)); });
             nudge = null;
-            if (nudged) await delay(delayMs, undefined, { signal });
+            if (nudged) await settle();
           }
           if (failed) throw failed;
         }
@@ -1136,8 +1138,8 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
     }
     return false;
   };
-  // 5 ms: a websocket's replies (the live desktop) are felt; posts are one at a time, so more coalesce while one is out
-  const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-app", r, bytes), post, delayMs: 5, signal: abort.signal, parallel: () => (ordered ? POSTS_IN_FLIGHT : 1), onError: () => { log("link: reply queue failed; restarting the tunnel"); stop(); } });
+  // no wait: what arrives in one turn goes in one post at once, and more coalesce while posts are out
+  const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-app", r, bytes), post, delayMs: 0, signal: abort.signal, parallel: () => (ordered ? POSTS_IN_FLIGHT : 1), onError: () => { log("link: reply queue failed; restarting the tunnel"); stop(); } });
   const emit = (frame) => { if (!stopped) outbox.push(sealFrame(key, id, "to-app", frame), frame.r); };
   const serving = createServing({
     server, stopped: () => stopped, context: { id },
