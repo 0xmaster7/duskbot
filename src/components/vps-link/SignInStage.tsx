@@ -1,5 +1,5 @@
 // sign in to Claude and ChatGPT here, one click each, and the sign-in goes to the server privately
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, LoaderCircle } from "lucide-react";
 import { ClaudeMark, CodexMark } from "@/components/ProviderIcons";
 import { cn } from "@/lib/cn";
@@ -17,22 +17,36 @@ function EngineCard({ engine, bridge, onSignedIn }: { engine: VpsEngine; bridge:
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const alive = useRef(true);
+  const openedUrl = useRef<string | null>(null);
+  const signedInCallback = useRef(onSignedIn);
+  signedInCallback.current = onSignedIn;
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
-  // a waiting sign-in is asked about every two seconds until it is not waiting any more
+  const flowId = flow?.flowId;
+  const phase = flow?.phase;
   useEffect(() => {
-    if (!flow || flow.phase !== "waiting" || !flow.flowId) return;
-    const timer = setTimeout(() => {
-      void bridge.signInStatus(engine.instanceId, flow.flowId!).then((next) => {
-        if (!alive.current) return;
-        // a sign-in that falls back to the server's own page brings its link in a later answer: open it once
-        if (next.phase === "waiting" && next.authorizationUrl && next.authorizationUrl !== flow.authorizationUrl) void bridge.openUrl(next.authorizationUrl);
+    if (phase !== "waiting" || !flowId) return;
+    let active = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      let waiting = true;
+      try {
+        const next = await bridge.signInStatus(engine.instanceId, flowId);
+        if (!active) return;
         setFlow(next);
-        if (next.phase === "succeeded") onSignedIn();
+        setError("");
+        waiting = next.phase === "waiting";
+        if (next.phase === "succeeded") signedInCallback.current();
         else if (next.phase !== "waiting") setError(next.message ?? t("vpsLink.signIn.didNotWork"));
-      }, (cause) => { if (alive.current) setError(message(cause)); });
-    }, POLL_MS);
-    return () => clearTimeout(timer);
-  }, [flow, bridge, engine.instanceId, onSignedIn]);
+        if (waiting && next.authorizationUrl && next.authorizationUrl !== openedUrl.current) {
+          await bridge.openUrl(next.authorizationUrl);
+          if (active) openedUrl.current = next.authorizationUrl;
+        }
+      } catch (cause) { if (active) setError(message(cause)); }
+      finally { if (active && waiting) timer = setTimeout(() => void poll(), POLL_MS); }
+    };
+    timer = setTimeout(() => void poll(), POLL_MS);
+    return () => { active = false; clearTimeout(timer); };
+  }, [flowId, phase, bridge, engine.instanceId]);
 
   const start = async () => {
     setBusy(true); setError(""); setCode("");
@@ -41,7 +55,10 @@ function EngineCard({ engine, bridge, onSignedIn }: { engine: VpsEngine; bridge:
       if (!alive.current) return;
       setFlow(next);
       if (next.phase === "succeeded") onSignedIn();
-      else if (next.authorizationUrl) await bridge.openUrl(next.authorizationUrl);
+      else if (next.authorizationUrl) {
+        await bridge.openUrl(next.authorizationUrl);
+        if (alive.current) openedUrl.current = next.authorizationUrl;
+      }
     } catch (cause) { if (alive.current) setError(message(cause)); }
     finally { if (alive.current) setBusy(false); }
   };
@@ -50,7 +67,7 @@ function EngineCard({ engine, bridge, onSignedIn }: { engine: VpsEngine; bridge:
     setBusy(true); setError("");
     try {
       await bridge.signInCode(engine.instanceId, flow.flowId, code.trim());
-      if (alive.current) setFlow({ ...flow, needsCode: false });
+      if (alive.current) setFlow((current) => current?.flowId === flow.flowId && current.phase === "waiting" ? { ...current, needsCode: false } : current);
     } catch (cause) { if (alive.current) setError(message(cause)); }
     finally { if (alive.current) setBusy(false); }
   };
@@ -115,16 +132,27 @@ export function SignInScreen({ bridge, server, autoSkip, onDone }: { bridge: Vps
   const [engines, setEngines] = useState<VpsEngine[] | null>(null);
   const [error, setError] = useState("");
   const [signed, setSigned] = useState<Set<string>>(new Set());
-  const load = () => {
+  const alive = useRef(true);
+  const loadSequence = useRef(0);
+  const done = useRef(onDone);
+  done.current = onDone;
+  const serverId = server?.id;
+  const load = useCallback(() => {
+    const sequence = ++loadSequence.current;
     setError("");
     void bridge.engines().then((list) => {
+      if (!alive.current || sequence !== loadSequence.current) return;
       setEngines(list);
-      // a sheet reopened after every AI was signed in goes straight on to the move
-      if (autoSkip && list.length > 0 && list.every((engine) => engine.signedIn)) onDone();
-    }, (cause) => setError(message(cause)));
-  };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(load, [bridge]);
+      if (autoSkip && list.length > 0 && list.every((engine) => engine.signedIn)) done.current();
+    }, (cause) => { if (alive.current && sequence === loadSequence.current) setError(message(cause)); });
+  }, [bridge, autoSkip]);
+  useEffect(() => {
+    alive.current = true;
+    setEngines(null);
+    setSigned(new Set());
+    load();
+    return () => { alive.current = false; loadSequence.current++; };
+  }, [load, serverId]);
   const name = server?.name ?? t("vpsLink.yourServer");
   const anyReady = Boolean(engines?.some((engine) => engine.signedIn || signed.has(engine.instanceId)));
   return (
@@ -142,7 +170,7 @@ export function SignInScreen({ bridge, server, autoSkip, onDone }: { bridge: Vps
             : engines.length === 0
               ? <p className="m-0 text-[13px] leading-[18px] text-ink/56">{t("vpsLink.signIn.none")}</p>
               : <ul aria-label={t("vpsLink.signIn.listAria")} className="m-0 flex list-none items-stretch justify-center gap-3 p-0">
-                  {engines.map((engine) => <EngineCard key={engine.instanceId} engine={engine} bridge={bridge}
+                  {engines.map((engine) => <EngineCard key={`${serverId}:${engine.instanceId}`} engine={engine} bridge={bridge}
                     onSignedIn={() => setSigned((current) => new Set(current).add(engine.instanceId))} />)}
                 </ul>}
       </div>

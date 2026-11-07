@@ -1,11 +1,11 @@
 // "Add your VPS" (electron/vps-link.mjs): the one command a person pastes on their server, the install's live steps, the AI
 // sign-in sent from this computer, and the move. Only this computer's own page in the desktop app has the bridge.
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 export const VPS_STEP_IDS = ["check", "basics", "docker", "user", "node", "app", "engines", "service", "address", "desktop", "link"] as const;
 export type VpsStepId = (typeof VPS_STEP_IDS)[number];
 export type VpsStepStatus = "waiting" | "running" | "done" | "failed" | "skipped";
-export interface VpsLinkStep { id: VpsStepId; status: VpsStepStatus; log?: string }
+export interface VpsLinkStep { id: VpsStepId; status: VpsStepStatus; log?: string; cmd?: string; lines?: string[] }
 export type VpsMoveStep = "backup" | "copy" | "verify" | "empty" | "done";
 export interface VpsLinkMove {
   step: VpsMoveStep;
@@ -25,6 +25,8 @@ export interface VpsLinkView {
   command: string | null;
   expiresAt: number | null;
   steps: VpsLinkStep[];
+  /** Live installer output in arrival order, omitted by older desktop builds. */
+  terminal?: Array<{ step: string; text: string }>;
   server: VpsServer | null;
   error: string | null;
   move: VpsLinkMove | null;
@@ -98,18 +100,40 @@ export const EMPTY_VIEW: VpsLinkView = {
 };
 
 /** Main's view of the link, kept fresh by its change events. */
-export function useVpsLink(): { view: VpsLinkView; bridge: VpsLinkBridge | undefined; set(view: VpsLinkView): void } {
+export function useVpsLink(): { view: VpsLinkView; bridge: VpsLinkBridge | undefined; ready: boolean; update(work: () => Promise<VpsLinkView>): Promise<void> } {
   const bridge = vpsLinkBridge();
   const [view, setView] = useState<VpsLinkView>(EMPTY_VIEW);
+  const [ready, setReady] = useState(false);
+  const revision = useRef(0);
   useEffect(() => {
     if (!bridge) return;
     let alive = true;
-    const unsubscribe = bridge.onChange((next) => { if (alive) setView(next); });
-    void bridge.state().then((next) => { if (alive) setView(next); }, () => {});
-    return () => { alive = false; unsubscribe(); };
+    let changed = false;
+    setReady(false);
+    const unsubscribe = bridge.onChange((next) => {
+      if (!alive) return;
+      changed = true;
+      revision.current++;
+      setView(next);
+      setReady(true);
+    });
+    void bridge.state().then((next) => {
+      if (!alive) return;
+      if (!changed) setView(next);
+      setReady(true);
+    }, (cause) => {
+      if (!alive) return;
+      if (!changed) setView({ ...EMPTY_VIEW, error: String((cause as Error)?.message ?? cause) });
+      setReady(true);
+    });
+    return () => { alive = false; revision.current++; unsubscribe(); };
   }, [bridge]);
-  const set = useCallback((next: VpsLinkView) => setView(next), []);
-  return { view, bridge, set };
+  const update = useCallback(async (work: () => Promise<VpsLinkView>) => {
+    const before = revision.current;
+    const next = await work();
+    if (before === revision.current) setView(next);
+  }, []);
+  return { view, bridge, ready, update };
 }
 
 // whether the flow's sheet is open: one tiny store, so Settings and any other entry point open the same sheet

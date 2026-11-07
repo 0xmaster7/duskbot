@@ -18,6 +18,7 @@ import { Scene, type SceneBot, type SceneHandle, type SceneMode } from "./Scene"
 import { SignInScreen } from "./SignInStage";
 
 type Screen = "command" | "install" | "connected" | "signin" | "preview" | "moving" | "paused" | "moved";
+const PREVIEW_MAX_AGE_MS = 5000;
 
 const SCENE: Record<Screen, { mode: SceneMode; mascot: MausState }> = {
   command: { mode: "waiting", mascot: "listening" },
@@ -44,11 +45,9 @@ function ConnectedScreen({ view, onNext }: { view: VpsLinkView; onNext: () => vo
 }
 
 export function AddVpsFlow({ onClose }: { onClose: () => void }) {
-  const { view, bridge, set } = useVpsLink();
+  const { view, bridge, ready, update } = useVpsLink();
   const { state } = useStore();
   const [starting, setStarting] = useState(false);
-  // nothing but the picture draws until main has said where the link is
-  const [ready, setReady] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [cheered, setCheered] = useState(false);
   const [error, setError] = useState("");
@@ -56,6 +55,10 @@ export function AddVpsFlow({ onClose }: { onClose: () => void }) {
   const [previewError, setPreviewError] = useState("");
   const reduced = useMotionReduced();
   const asked = useRef(false);
+  const previewPending = useRef(false);
+  const previewGeneration = useRef(0);
+  const previewAt = useRef(0);
+  const alive = useRef(true);
   const root = useRef<HTMLDivElement>(null);
   const mascot = useRef<SceneHandle>(null);
   // the screen the window opened on draws raw, like the window itself
@@ -64,26 +67,33 @@ export function AddVpsFlow({ onClose }: { onClose: () => void }) {
   const sawSetup = useRef(false);
   // a window opened once every AI is signed in skips the sign-in, once
   const autoSkip = useRef(true);
+  const serverKey = view.server ? `${view.server.id}:${view.server.origin}` : null;
   useDialogKeys(root, onClose);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  useEffect(() => {
+    previewGeneration.current++;
+    previewPending.current = false;
+    previewAt.current = 0;
+    setPreview(null);
+    setPreviewError("");
+    setSignedIn(false);
+    setCheered(false);
+    autoSkip.current = true;
+  }, [bridge, serverKey]);
 
-  const run = async (work: () => Promise<VpsLinkView>) => {
+  const run = useCallback(async (work: () => Promise<VpsLinkView>) => {
     setError("");
-    try { set(await work()); }
-    catch (cause) { setError(message(cause)); }
-  };
+    try { await update(work); }
+    catch (cause) { if (alive.current) setError(message(cause)); }
+  }, [update]);
   // a fresh window asks for a command once; one already under way is picked up where it is
   useEffect(() => {
-    if (!bridge || asked.current) return;
+    if (!bridge || !ready || asked.current) return;
     asked.current = true;
-    void bridge.state().then((current) => {
-      set(current);
-      setReady(true);
-      if (current.stage !== "idle") return;
-      setStarting(true);
-      return run(() => bridge.start()).finally(() => setStarting(false));
-    }, (cause) => { setError(message(cause)); setReady(true); });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bridge]);
+    if (view.stage !== "idle" || view.error) return;
+    setStarting(true);
+    void run(() => bridge.start()).finally(() => { if (alive.current) setStarting(false); });
+  }, [bridge, ready, view, run]);
 
   const shown: VpsLinkView = error ? { ...view, error } : view;
   const at = bridge ? vpsStage(shown, signedIn) : 1;
@@ -95,11 +105,20 @@ export function AddVpsFlow({ onClose }: { onClose: () => void }) {
 
   // what moves is counted once the move screen is near, and kept for the move itself, so its bots can travel
   const loadPreview = useCallback(() => {
-    if (!bridge) return;
+    if (!bridge || previewPending.current) return;
+    previewPending.current = true;
+    const generation = ++previewGeneration.current;
+    setPreview(null);
     setPreviewError("");
-    void bridge.preview().then(setPreview, (cause) => setPreviewError(message(cause)));
-  }, [bridge]);
-  const wantPreview = at === 4 && !preview;
+    void bridge.preview().then((next) => {
+      if (!alive.current || generation !== previewGeneration.current) return;
+      previewAt.current = Date.now();
+      setPreview(next);
+    }, (cause) => {
+      if (alive.current && generation === previewGeneration.current) setPreviewError(message(cause));
+    }).finally(() => { if (generation === previewGeneration.current) previewPending.current = false; });
+  }, [bridge, serverKey]);
+  const wantPreview = ready && at >= 3 && !shown.move && !previewError && (!preview || (at === 4 && Date.now() - previewAt.current >= PREVIEW_MAX_AGE_MS));
   useEffect(() => { if (wantPreview) loadPreview(); }, [wantPreview, loadPreview]);
 
   // the mascot cheers as the server links and again when everything has moved
