@@ -35,7 +35,7 @@ function cookieFetch() {
   const jar = new Map();
   return (url, init = {}) => new Promise((resolve, reject) => {
     const target = new URL(url);
-    const headers = { ...(init.headers ?? {}), host: target.host, ...(jar.get(target.hostname) ? { cookie: jar.get(target.hostname) } : {}) };
+    const headers = { ...init.headers, host: target.host, ...(jar.get(target.hostname) ? { cookie: jar.get(target.hostname) } : {}) };
     const req = httpRequest({ host: "127.0.0.1", port: target.port, path: `${target.pathname}${target.search}`, method: init.method ?? "GET", headers }, (res) => {
       const chunks = [];
       res.on("data", (chunk) => chunks.push(chunk));

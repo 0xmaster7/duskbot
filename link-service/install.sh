@@ -575,8 +575,6 @@ do_docker() {
     echo "docker is installed but not running here; bots still work, the bot desktop will not"
     return 10
   fi
-  # the bot computer's Dockerfile needs BuildKit (TARGETARCH); Ubuntu ships it as docker-buildx
-  docker buildx version >/dev/null 2>&1 || apt_install docker-buildx || echo "no buildx; the bot computer can't be built here"
   docker --version
 }
 
@@ -1005,6 +1003,8 @@ do_desktop() {
   if pull_with_progress "$BOT_DESKTOP_IMAGE"; then state_set desktop pulled; echo "pulled $BOT_DESKTOP_IMAGE"; return 0; fi
   echo "no registry copy of $BOT_DESKTOP_IMAGE; building it here"
   get_kit || { echo "no kit, the app builds it on first use"; return 11; }
+  # the bot computer's Dockerfile needs BuildKit (TARGETARCH); Ubuntu ships it as docker-buildx
+  docker buildx version >/dev/null 2>&1 || apt_install docker-buildx || echo "no buildx; the bot computer can't be built here"
   if build_with_progress "$BOT_DESKTOP_IMAGE" "$KIT/deploy/bot-desktop" && docker image inspect "$BOT_DESKTOP_IMAGE" >/dev/null 2>&1; then
     state_set desktop built
     return 0
