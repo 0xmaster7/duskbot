@@ -1429,6 +1429,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
         expect(argv).not.toContain("bot-own");
         expect(argv).toContain(`mcp_servers.agents.default_tools_approval_mode="approve"`);
         expect(argv).toContain("mcp_servers.agents.tool_timeout_sec=960");
+        expect(argv).toContain("mcp_servers.agents.supports_parallel_tool_calls=true");
         expect(seenAuth.every((value) => value === "Bearer turn-secret-token")).toBe(true);
       } finally {
         harness.closeAllConnections();
@@ -1448,6 +1449,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
       const argv = JSON.parse(readFileSync(dump, "utf8")).argv.join(" ");
       expect(argv).toContain("agents-proxy");
       expect(argv).not.toContain("mcp_servers.agents.url");
+      expect(argv).not.toContain("supports_parallel_tool_calls");
     });
 
     it("keeps a tool selection's gate in front of the connector", async () => {
