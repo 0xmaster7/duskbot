@@ -78,7 +78,7 @@ import { RoomTurnDeadline, RoomTurnStallRegistry, effectiveRoomTurnTimeoutMinute
 import { roomTurnEnd, type RoomClaimEnd } from "./room-turn-end.ts";
 import { applyHoldDirective, classifyHoldDirective, heldMemberLine, rememberHeldMessage, stopWordPlacement } from "./room-holds.ts";
 import { createPersonStop } from "./host/person-stop.ts"; import { createTurnOrder } from "./host/turn-order.ts"; import { createQueuedNotes, createWaitWords } from "./host/wait-words.ts"; import { settleParkedFiles, type ParkedTurnAttachment } from "./host/turn-attachments.ts"; import type { DirectSendInput, DirectSendReceipt } from "./direct-send.ts";
-import { finishedWithoutSummaryLine, ROOM_SUMMARY_REASK, roomTurnNarrationIds, roomTurnReply } from "./room-reply.ts";
+import { finishedWithoutSummaryLine, ROOM_SUMMARY_REASK, roomTurnNarrationIds, roomTurnReply } from "./room-reply.ts"; import { cleanBotVoice, roomTalkRules, roomTurnVoiceNote } from "./group-voice.ts";
 import { pickComputer } from "./computer-selection.ts";
 import { keyHint, keyStatus, nestedKeyStatus, withoutKeyHints } from "./key-hint.ts";
 import { chartRenderer, compileChart, dataEngine, validateVegaLite } from "./data/deps.ts";
@@ -4964,7 +4964,7 @@ function requestBehavior(value: unknown): "allow" | "deny" | "answer" | null {
   return value === "allow" || value === "deny" || value === "answer" ? value : null;
 }
 
-const lastReply = new Map<string, string>();
+const lastReply = new Map<string, string>(); /** Turns whose reply tagged the person before the tag was rewritten. */ const personTaggedTurns = new Map<string, string>();
 const stoppedTurns = new Map<string, string | undefined>(), personStops = new PersonStops();
 // The turn each thread runs, from its start to its end, and nothing once the thread is idle: what Stop and the rescue check.
 const liveTurns = new LiveTurns((threadId) => { const owner = store.botByThread(threadId); return owner ? threadBusy(owner.id, threadId) : groupSpeakers.has(threadId); });
@@ -6668,8 +6668,9 @@ bus.subscribe((event: RuntimeEvent) => {
       pushStoppedTurn(turnId);
       return;
     }
-    pushMessage({ role: "bot", kind: "text", text: spoken.text, turnId });
-    lastReply.set(event.threadId, spoken.text);
+    const voiced = cleanBotVoice(spoken.text, (speaker ?? bot)?.name); if (voiced.taggedLine && turnId && group && !personTaggedTurns.has(`${event.threadId}:${turnId}`)) personTaggedTurns.set(`${event.threadId}:${turnId}`, voiced.taggedLine);
+    pushMessage({ role: "bot", kind: "text", text: voiced.text, turnId });
+    lastReply.set(event.threadId, voiced.text);
   };
   const landParkedFiles = (stopped: boolean) => {
     const key = turnAttachmentKey(event.threadId, event.turnId);
@@ -7157,7 +7158,7 @@ bus.subscribe((event: RuntimeEvent) => {
           });
         }
         liveTurnByThread.delete(event.threadId);
-        if (event.ok && !stopped && speakingBot) notify(buildMentionNotification(store, speakingBot, group, { threadId: event.threadId, turnId: completedTurnId, reply, profileName: CLOUD_TEAM ? undefined : cfg.profile?.name }));
+        if (event.ok && !stopped && speakingBot) notify(buildMentionNotification(store, speakingBot, group, { threadId: event.threadId, turnId: completedTurnId, reply, profileName: CLOUD_TEAM ? undefined : cfg.profile?.name, tagged: personTaggedTurns.get(`${event.threadId}:${completedTurnId}`) })); personTaggedTurns.delete(`${event.threadId}:${completedTurnId}`);
       }
       if (speaker) {
         releaseTurnResources(turnResourceOwners.get(event.threadId));
@@ -10334,7 +10335,7 @@ async function runClaimedGroupMemberTurn(
   const roomHandoff = orchestration?.roomHandoffId ? coordinator.node(orchestration.roomHandoffId) : undefined;
   const roomRequester = roomHandoff?.parentId ? store.bot(coordinator.node(roomHandoff.parentId)?.botId ?? "")?.name : undefined;
   const requesterRule = roomRequester
-    ? ` Don't use coordinate_bots toward @${roomRequester} or whoever assigned its work; to ask @${roomRequester} something, end your turn with the question — it is resumed with your reply.`
+    ? ` Don't use coordinate_bots toward @${roomRequester} or whoever assigned its work; to ask @${roomRequester} something, end your turn with the question; it is resumed with your reply.`
     : "";
   const outsideRoom = integrations.agents && orchestration && !orchestration.roomHandoffId
     ? reachablePeers(store.bots, bot).filter((peer) => !readyGroup.memberIds.includes(peer.id))
@@ -10345,12 +10346,12 @@ async function runClaimedGroupMemberTurn(
     bot.description && `About: ${bot.description}`,
     `Room members: ${roster}, and ${typeof userName === "string" ? `${userName} (the human)` : roomPeople(threadId, userName)}.`,
     readyGroup.bulletin.trim() && `Room bulletin (shared instructions for everyone):\n${readyGroup.bulletin.trim()}`,
-    `Reply as yourself, briefly and conversationally. To bring a teammate in, mention them like @Name — they'll see the conversation and respond.${readyGroup.dm ? "" : ` To get ${typeof userName === "string" ? `${userName}'s` : "a person's"} attention or ask them something blocking, write @you.`} A "[reacted 👍 to …]" line is that person's whole reply to the message it names: 👍 means yes, go ahead, and 👎 means no.`,
+    roomTalkRules({ person: personNameIn(threadId), dm: readyGroup.dm }),
     outsideRoom.length > 0 && roomPeerRosterSystemPrompt(outsideRoom), sharedNamesNote(roomMembers.filter((member) => member.id !== bot.id), Boolean(integrations.agents)),
     integrations.agents && (CREDENTIAL_PROMPT + (orchestration && !orchestration.roomHandoffId ? THREADS_PROMPT : "")).trim(),
     integrations.agents && (!orchestration || orchestration.roomHandoffId) && "For actual OpenMausBot teamwork, discover IDs with list_room_targets and use coordinate_bots for advice or work in this or another room. Do not substitute native coding helpers for these named bots. Consult only when needed to make a decision; no discussion step is mandatory. Give concrete responsibilities, exact accessible paths and acceptance checks. End your turn after assigning; busy teammates queue and results automatically resume you. When they return, finish the requested verification and give the user one final answer. Native helper names are not evidence that an OpenMausBot teammate participated. Plain @mentions are only for conversational replies in this room." + requesterRule,
     integrations.agents && roomLeaderId(readyGroup) === bot.id && !roomHandoff?.parentId
-      && leaderSystemNote(bot, roomMembers, typeof userName === "string" ? userName : "The person"),
+      && leaderSystemNote(bot, roomMembers, personNameIn(threadId) ?? "The person"),
     roomHandoff?.parentId && roomLeaderId(readyGroup) === coordinator.node(roomHandoff.parentId)?.botId && roomRequester
       && memberSystemNote(roomRequester, readyGroup.name),
     integrations.agents && TRIGGER_PROMPT.trim(),
@@ -10380,7 +10381,8 @@ async function runClaimedGroupMemberTurn(
       : "");
   const liveRosterBlock = !orchestration?.liveRoster || orchestration.resumed ? "" : `\n\n${orchestration.liveRoster}`;
   const heldReplay = heldReplayFor(group.id, conversationOfRun(threadId), bot.id, userName, roomContext);
-  const roomTail = `\n\n(Reply to the conversation above as ${bot.name}.)${learnBlock}${heldReplay.block}${cardContinuation ? `\n\n${cardContinuation}` : ""}${coordinationReminder}${liveRosterBlock}`;
+  const alsoAnswering = parseMemberRun(threadId) && operation ? [...operation.botIds].filter((id) => id !== bot.id).map((id) => store.bot(id)?.name ?? "") : [];
+  const roomTail = `\n\n(Reply to the conversation above as ${bot.name}. ${roomTurnVoiceNote({ alsoAnswering })})${learnBlock}${heldReplay.block}${cardContinuation ? `\n\n${cardContinuation}` : ""}${coordinationReminder}${liveRosterBlock}`;
   const text = roomContext + roomTail;
 
   const worksInWorkspace = supportsWorkspaceFiles(instance.driverKind);

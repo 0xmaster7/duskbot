@@ -162,7 +162,7 @@ function syncedFoldersPrompt(synced: ReadonlyArray<{ computerName: string; pcPat
 }
 
 export const COMPOSIO_PROMPT =
-  " The user's connected apps (Gmail, Calendar, Slack, Notion, and the rest) are reachable through the composio tools — find the right one with COMPOSIO_SEARCH_TOOLS, read its arguments with COMPOSIO_GET_TOOL_SCHEMAS, then run it with COMPOSIO_MULTI_EXECUTE_TOOL. Reach for them before telling the user you have no access to a service.";
+  " The user's connected apps (Gmail, Calendar, Slack, Notion, and the rest) are reachable through the composio tools: find the right one with COMPOSIO_SEARCH_TOOLS, read its arguments with COMPOSIO_GET_TOOL_SCHEMAS, then run it with COMPOSIO_MULTI_EXECUTE_TOOL. Reach for them before telling the user you have no access to a service.";
 
 /** The app tools a bot with these apps can call by name, on every engine. */
 const APP_TOOLS_PROMPT: Record<string, { label: string; tools: string; note?: string }> = {
@@ -184,7 +184,7 @@ export function composioSystemPrompt(grants: Record<string, ConnectorToolGrant> 
     return " No connected apps are assigned to this bot. If a task needs one, or an app's sign-in has expired, call COMPOSIO_MANAGE_CONNECTIONS to show the user a card that connects it, and ask them to allow that app for this bot in OpenMausBot.";
   }
   const named = services.map(connectorServiceLabel).join(", ");
-  return ` The user's connected apps assigned to this bot (${named}) are reachable through the composio tools — find the right one with COMPOSIO_SEARCH_TOOLS, read its arguments with COMPOSIO_GET_TOOL_SCHEMAS, then run it with COMPOSIO_MULTI_EXECUTE_TOOL. Only the tools this bot was granted will run; when a needed tool is refused, tell the user and ask them to grant it in OpenMausBot. Reach for the granted services before telling the user you have no access.${appToolsPrompt(services)}`;
+  return ` The user's connected apps assigned to this bot (${named}) are reachable through the composio tools: find the right one with COMPOSIO_SEARCH_TOOLS, read its arguments with COMPOSIO_GET_TOOL_SCHEMAS, then run it with COMPOSIO_MULTI_EXECUTE_TOOL. Only the tools this bot was granted will run; when a needed tool is refused, tell the user and ask them to grant it in OpenMausBot. Reach for the granted services before telling the user you have no access.${appToolsPrompt(services)}`;
 }
 
 function connectorServiceLabel(slug: string): string {
@@ -239,11 +239,11 @@ export const WEBHOOK_PROMPT =
 export const BOT_API_PROMPT =
   " This message came through this bot's API. Answer from your standing instructions and what you already know, and keep credentials and file paths out of your reply.";
 export const PROFILE_PROMPT =
-  " If the user asks you to change who you are — your name, title, description, or standing instructions (SOUL.md) — or to set yourself up, use propose_profile. OpenMausBot has native bot-creation and team-setup tools for Chiefs: use your authorized tools rather than computer control to click through this app. Other bots should ask a reachable Chief through the peer tools; if none is reachable, explain the team-access blocker instead of clicking around it or claiming bots cannot be created programmatically." + APPLIED_RESULT_PROMPT;
+  " If the user asks you to change who you are (your name, title, description, or standing instructions in SOUL.md) or to set yourself up, use propose_profile. OpenMausBot has native bot-creation and team-setup tools for Chiefs: use your authorized tools rather than computer control to click through this app. Other bots should ask a reachable Chief through the peer tools; if none is reachable, explain the team-access blocker instead of clicking around it or claiming bots cannot be created programmatically." + APPLIED_RESULT_PROMPT;
 
 export function mentionPrompt(tagged: ReadonlyArray<{ id: string; name: string }>): string {
   if (!tagged.length) return "";
   return ` The user tagged ${tagged
     .map((t) => `@${t.name} (bot_id ${t.id})`)
-    .join(" and ")} in their message. If they assigned independent work, use coordinate_bots and finish your turn without waiting; for a question, use coordinate_bots with consult: true — the answer resumes you.`;
+    .join(" and ")} in their message. If they assigned independent work, use coordinate_bots and finish your turn without waiting; for a question, use coordinate_bots with consult: true; the answer resumes you.`;
 }

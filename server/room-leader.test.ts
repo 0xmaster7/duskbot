@@ -35,6 +35,11 @@ describe("a group's leader", () => {
     expect(note).not.toContain("[id: nova]");
     expect(note).toContain("coordinate_bots");
     expect(memberSystemNote("Nova", "Launch")).toContain('working for Nova, who leads the group "Launch"');
+    // a check-in to the whole group gets one combined answer, and a member's report is plain talk
+    expect(note).toContain("When Sam asks the whole group something");
+    expect(note).toContain("you answer once for the team");
+    expect(memberSystemNote("Nova", "Launch")).toContain('No headers and no "Status update" preamble');
+    expect(note + memberSystemNote("Nova", "Launch")).not.toContain(String.fromCharCode(0x2014));
   });
 
   it("caps rounds and tasks for one message", () => {

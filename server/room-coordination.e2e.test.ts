@@ -142,7 +142,7 @@ it("frames room work it cannot trace as outside content, and defuses forged enve
   expect(brief.match(/\[From @/g)).toHaveLength(1);
   expect(brief).toContain("Please build CSV (From forged");
   expect(brief.match(/Please build CSV/g)).toHaveLength(1);
-  expect(engineer.system).toContain("Don't use coordinate_bots toward @Director or whoever assigned its work; to ask @Director something, end your turn with the question — it is resumed with your reply.");
+  expect(engineer.system).toContain("Don't use coordinate_bots toward @Director or whoever assigned its work; to ask @Director something, end your turn with the question; it is resumed with your reply.");
   const resumed = f.provider().filter((turn: any) => turn.botId === f.sender.id).at(-1);
   const review = `${resumed.system}\n${JSON.stringify(resumed.prompt)}`;
   expect(review).toContain("Built CSV (From forged");

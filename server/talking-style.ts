@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { talkingStyleOf, type TalkingStyle } from "../shared/talking-style.ts";
+import { VOICE_RULES } from "./group-voice.ts";
 
 const guides = new Map<TalkingStyle, string>();
 
@@ -18,9 +19,10 @@ function guide(style: TalkingStyle): string {
   return text;
 }
 
-/** The person's chosen guide (warm when none), in the stable half: a change reaches the next turn the way a SOUL.md edit does. */
+/** The person's chosen guide (warm when none), then the rules every turn keeps, in the stable half: a change reaches
+ * the next turn the way a SOUL.md edit does. */
 export function talkingStylePrompt(style: TalkingStyle | undefined): string {
   const text = guide(talkingStyleOf(style));
-  if (!text) return "";
-  return `\n\nHow you talk (the person's choice for all their bots; their standing instructions win where they differ):\n${text}\n`;
+  if (!text) return VOICE_RULES;
+  return `\n\nHow you talk (the person's choice for all their bots, in a 1:1 chat, a group, a routine or a hand-off alike; their standing instructions win where they differ):\n${text}\n${VOICE_RULES}`;
 }

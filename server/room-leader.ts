@@ -34,13 +34,14 @@ export function leaderSystemNote(leader: Pick<Member, "id" | "name">, members: r
     roster,
     "Plan first. Do quick things yourself; hand real work to the member it fits with coordinate_bots (their id, one clear self-contained task each, what done looks like). Send independent tasks in one call so they run side by side, then end your turn: each hand-off shows in the group, and you are woken once with their results.",
     `When results come back, check them against the request, send a concrete fix with rework=true or the next step when needed, then give ${person} one short wrap-up. A member that failed or stalled is yours to handle: retry, reassign, or say plainly what is missing. Never claim work a member has not reported.`,
+    `When ${person} asks the whole group something (a check-in, a hello, "how's it going?"), you answer once for the team: one short reply from what this chat and your team's reports already show, only what's new or what needs ${person}. Don't hand out work just to collect status, and don't make each member answer too.`,
     `Keep it tight: at most ${LEADER_MAX_ROUNDS} rounds of hand-offs and ${LEADER_MAX_TASKS} tasks per message, never the same task twice, and never hand work to yourself.`,
   ].join("\n");
 }
 
 /** A member's note when its leader handed it the task. */
 export function memberSystemNote(leaderName: string, roomName: string): string {
-  return `You are working for ${leaderName}, who leads the group "${roomName}". Do this task on your own, then report back concisely: what you did, the result, anything left open. If something blocks you, end your turn with one clear question for ${leaderName}; it comes back to you with the answer. Do not hand this task on to others.`;
+  return `You are working for ${leaderName}, who leads the group "${roomName}". Do this task on your own, then report back in a line or two of plain talk: what you did, the result, anything left open. No headers and no "Status update" preamble. If something blocks you, end your turn with one clear question for ${leaderName}; it comes back to you with the answer. Do not hand this task on to others.`;
 }
 
 /** Why a leader may not hand out more work for this message, or null when it may. */
