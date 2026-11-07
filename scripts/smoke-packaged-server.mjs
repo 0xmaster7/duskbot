@@ -254,7 +254,8 @@ if (listening) {
   try {
     const doctor = await runCli(["doctor", "--json"]);
     const bots = await runCli(["bots", "--json"]);
-    headlessReport = { doctor: { code: doctor.code, body: JSON.parse(doctor.stdout), stderr: doctor.stderr }, bots: { code: bots.code, body: JSON.parse(bots.stdout) } };
+    const vps = await runCli(["vps", "--help"]);
+    headlessReport = { doctor: { code: doctor.code, body: JSON.parse(doctor.stdout), stderr: doctor.stderr }, bots: { code: bots.code, body: JSON.parse(bots.stdout) }, vps: { code: vps.code, help: vps.stdout.includes("openmausbot vps logs") } };
   } catch (error) {
     headlessReport = { error: String((error && error.message) || error) };
   }
@@ -452,7 +453,8 @@ if (
 }
 
 if (!headlessReport || headlessReport.error || headlessReport.doctor.body?.server?.capabilities?.jobs !== true ||
-  headlessReport.bots.code !== 0 || !Array.isArray(headlessReport.bots.body?.bots)) {
+  headlessReport.bots.code !== 0 || !Array.isArray(headlessReport.bots.body?.bots) ||
+  headlessReport.vps.code !== 0 || !headlessReport.vps.help) {
   console.error("the packaged openmausbot command's headless verbs failed:");
   console.error(JSON.stringify(headlessReport, null, 2));
   process.exit(1);
@@ -466,7 +468,7 @@ if (!backupReport?.ok) {
 console.log(`packaged server started with no node_modules in reach (port ${port}) ✓`);
 console.log(`all ${count} spawned proxy paths resolve inside the packaged server dir ✓`);
 console.log("packaged MCP stdio server reached the API and flushed its final frames ✓");
-console.log("packaged openmausbot doctor and bots answered from the bundle ✓");
+console.log("packaged openmausbot doctor, bots and VPS help answered from the bundle ✓");
 console.log("packaged backup worker exported an encrypted archive ✓");
 if (launcherReport) console.log("packaged container launcher ran the server as its child and stopped it cleanly ✓");
 if (desktopEntryReport) console.log(`packaged desktop entry started the server twice on its compile cache (${desktopEntryReport.starts[0].cached.length} entries) ✓`);
