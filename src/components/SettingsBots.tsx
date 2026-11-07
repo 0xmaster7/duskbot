@@ -88,27 +88,6 @@ export function useBotsScope(): { scope: BotsScope; bot?: Bot; group?: Group } {
   return bot || group ? { scope, bot, group } : { scope: "defaults" };
 }
 
-/** The pane's picker in its header, where Grok's Vault keeps New item: new bots, each bot, then each group chat. */
-export function BotsScopePicker() {
-  const { state } = useStore();
-  const { scope } = useBotsScope();
-  const bots = state.bots.filter((bot) => !bot.hidden && !bot.movedTo);
-  const groups = (state.groups ?? []).filter((group) => !group.dm);
-  return (
-    <SettingsSelect
-      data-settings-select="bot-scope"
-      aria-label={t("settings.bots.picker")}
-      value={scope}
-      options={[
-        { value: "defaults", label: t("settings.bots.newBots") },
-        ...bots.map((bot) => ({ value: `bot:${bot.id}`, label: bot.name })),
-        ...groups.map((group) => ({ value: `group:${group.id}`, label: group.name })),
-      ]}
-      onChange={(event) => chooseBotsScope(event.target.value as BotsScope)}
-    />
-  );
-}
-
 /** The Bots pane: the picked bot's settings as Grok's rows, a row with more to it opening its page under the pane's header. */
 export function BotsPane() {
   const { scope, bot, group } = useBotsScope();
@@ -118,10 +97,11 @@ export function BotsPane() {
   if (group && top?.startsWith("room:")) return <RoomPage key={top} group={group} page={top.slice(5) as RoomSettingsRow} onDone={sub.back} />;
   if (bot) return <BotRows key={scope} bot={bot} />;
   if (group) return <RoomRows key={scope} group={group} />;
-  return <DefaultsRows />;
+  return <BotDefaultsRows />;
 }
 
-function DefaultsRows() {
+/** Defaults for new bots: on the Models pane, the only part of Bots that is not one bot's own. */
+export function BotDefaultsRows() {
   return (
     <SettingsGroup label={t("settings.advanced.bots.defaults")} block="bot-defaults">
       <SettingsRows>

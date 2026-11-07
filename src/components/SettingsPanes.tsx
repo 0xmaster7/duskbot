@@ -13,6 +13,7 @@ import { productName } from "../lib/brand";
 import { AccountsSheet, useAccounts } from "./AccountMenu";
 import { AboutDialog } from "./AboutDialog";
 import { AdminOnly } from "./AdminOnly";
+import { BotDefaultsRows } from "./SettingsBots";
 import { ActivitySection } from "./ActivitySection";
 import { ArchivedBotsPanel } from "./ArchivedBotsPanel";
 import { AttachmentStorageSettings } from "./AttachmentStorageSettings";
@@ -498,6 +499,7 @@ export function ModelsPane({ has, disclose, connections }: { has: Has; disclose:
           <PageRow page="recovery" title={t("settings.recovery.title")} hint={t("settings.hint.recovery")} />
         </RowsCard>
       )}
+      {has("bots") && <BotDefaultsRows />}
     </>
   );
 }

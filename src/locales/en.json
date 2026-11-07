@@ -7120,8 +7120,6 @@
   "sheet.rows.members.empty": "Create a bot first. Groups are made of bots.",
   "sheet.rows.members.save": "Save",
   "settings.pane.bots": "Bots",
-  "settings.bots.picker": "Bot",
-  "settings.bots.newBots": "New bots",
   "settings.vault.newItem": "New item",
   "settings.vault.all": "All",
   "settings.vault.search": "Search Vault",

@@ -31,7 +31,7 @@ import {
 } from "./SettingsPanes";
 import { ADVANCED_PAGES, SETTINGS_PANES, consumeBotTarget, settingsLocation, useBotTarget, type SettingsPane } from "@/lib/open-settings";
 import { VaultNewItem } from "./LoginsSettings";
-import { BotsPane, BotsScopePicker, chooseBotsScope, scopeOf, targetPage } from "./SettingsBots";
+import { BotsPane, chooseBotsScope, scopeOf, targetPage } from "./SettingsBots";
 import "../styles/settings.css";
 
 export { openBotSettings, openSettings, settingsLocation, SETTINGS_PANES, type SettingsLocation, type SettingsPane } from "@/lib/open-settings";
@@ -116,6 +116,7 @@ export function SettingsModal() {
 
   const paneShown = (pane: SettingsPane) => !remoteActive || pane === "general" || pane === "texting" || pane === "computer";
   const panes = SETTINGS_PANES.filter((pane) => paneShown(pane.id) && pane.sections.some(has));
+  const railPanes = panes.filter((pane) => pane.rail !== false);
   const advancedPages = ADVANCED_PAGES.filter((page) => page.sections.some(has)).map((page) => page.id);
 
   // moving between panes and pages stays inside Settings: a store update would re-render the whole app under the sheet
@@ -273,7 +274,8 @@ export function SettingsModal() {
       open: (id: string, title: string) => setSub({ key: paneKey, stack: [...pages, { id, title }] }),
       back: () => setSub({ key: paneKey, stack: pages.slice(0, -1) }),
     };
-    const onBack = top ? nav.back : at ? () => go("advanced") : phone ? () => setPhoneList(true) : undefined;
+    // a bot's page opened from its panel goes back to the panel, not to a second list of the bot's settings
+    const onBack = top && pane === "bots" && pages.length === 1 ? close : top ? nav.back : at ? () => go("advanced") : phone ? () => setPhoneList(true) : undefined;
     return (
       <>
         <PaneHeader
@@ -282,7 +284,6 @@ export function SettingsModal() {
           onBack={onBack}
           backLabel={!top && at ? t("settings.advanced.back") : !top && phone ? t("settings.title") : undefined}
         >
-          {pane === "bots" && !top && <div data-settings-header-actions="" className="max-sm:hidden"><BotsScopePicker /></div>}
           {pane === "vault" && !top && <div data-settings-header-actions=""><VaultNewItem /></div>}
         </PaneHeader>
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -308,7 +309,7 @@ export function SettingsModal() {
         </button>
       </div>
       <div className="settings-nav-list">
-        {panes.map((entry) => {
+        {railPanes.map((entry) => {
           const current = entry.id === pane && !phone;
           return (
             <button

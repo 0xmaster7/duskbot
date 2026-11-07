@@ -78,9 +78,9 @@ const markers = (html: string) => [...html.matchAll(/MARKER:([^;]+);/g)].map((ma
 const title = (html: string) => html.match(/<h2 id="[^"]*" class="settings-pane-title[^"]*">([^<]+)<\/h2>/)?.[1];
 
 describe("Settings, drawn as Grok Bot's", () => {
-  it("rails Grok's panes with Phone and Models, then Advanced features last", () => {
+  it("rails Grok's panes with Phone and Models, then Advanced features last, and no Bots pane beside the bot panel", () => {
     const html = open("general");
-    expect(panes(html)).toEqual(["general", "texting", "computer", "vault", "models", "bots", "usage", "updates", "advanced"]);
+    expect(panes(html)).toEqual(["general", "texting", "computer", "vault", "models", "usage", "updates", "advanced"]);
     expect(html).toContain('data-icon-name="vault"');
     expect(html).toContain('data-icon-name="chart-bars"');
     expect(html).toContain('data-icon-name="settings-gear"');
@@ -152,7 +152,7 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(open("about")).toContain('data-settings-open="shortcuts"');
     expect(current(open("looks"))).toBe("general");
     expect(open("looks")).toContain('data-settings-block="appearance"');
-    expect(open("bots")).toContain('data-settings-block="bot-defaults"');
+    expect(open("engines")).toContain('data-settings-block="bot-defaults"');
     expect(markers(open("backups"))).toEqual(["backups"]);
   });
 
