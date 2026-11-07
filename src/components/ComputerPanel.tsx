@@ -1146,7 +1146,7 @@ export function ComputerPanel({
   const wakingView = (cover = false) => <ComputerWaking bot={bot} cover={cover} />;
   const remoteFrame = (liveHere || livePreview) && liveTarget ? (
       <Suspense fallback={inline ? wakingView() : null}>
-        <LiveDesktop key={viewerConnectionKey} waking={wakingView} onScreenSize={(width, height) => setScreenAspect(width / height)}
+        <LiveDesktop key={viewerConnectionKey} waking={(expanded) => wakingView(expanded || Boolean(fullscreen))} onScreenSize={(width, height) => setScreenAspect(width / height)}
           target={liveTarget} threadId={bot.threadId} name={bot.name} poster={frameSrc} viewOnly={!liveHere}
           expanded={takeover.expanded} onExpandedChange={(expanded) => {
             if (!expanded && inline && takeover.here) void handBack(); else takeover.setExpanded(expanded);
