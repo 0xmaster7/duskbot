@@ -8,6 +8,8 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
+import { createMacControlHost } from "./mac-control.mjs";
+import { createMacExecutor } from "./mac-control-tools.mjs";
 import { newDirectKey, sshConnector } from "./vps-link-direct.mjs";
 import { createEgressDialer, createEgressEndpoint, seenAsCache } from "./vps-link-egress.mjs";
 import { createVpsLink } from "./vps-link.mjs";
@@ -129,6 +131,10 @@ export function installVpsLink(deps) {
 
   const base = (deps.base || process.env.OMB_LINK_BASE || DEFAULT_LINK_BASE).replace(/\/+$/, "");
   // the link service tells this computer the public address it connects from, so its home router stays out of reach
+  // the linked server's bots reach this mac through the app's own session there (mac-control.mjs)
+  const macHost = process.env.OMB_MAC_CONTROL === "off" ? null
+    : createMacControlHost({ fetch: (...args) => session.defaultSession.fetch(...args), name: deps.label, execute: createMacExecutor({ log }), log });
+  const followMac = (view) => macHost?.follow(view?.server?.origin ?? null);
   const seenAs = seenAsCache(async () => (await (await fetch(`${base}/v1/ip`, { signal: AbortSignal.timeout(5000) })).json())?.ip, { log });
   const link = createVpsLink({
     base,
@@ -183,7 +189,7 @@ export function installVpsLink(deps) {
     dataSize: async () => { const dir = deps.dataDir(); return dir ? folderSize(dir) : null; },
     // the direct path to a relay-linked server (vps-link-direct.mjs); OMB_LINK_DIRECT=off keeps every link on the relay
     ...(process.env.OMB_LINK_DIRECT === "off" ? {} : { direct: { newKey: newDirectKey, connector: sshConnector } }),
-    onChange: (view) => deps.tell(view),
+    onChange: (view) => { deps.tell(view); followMac(view); },
     log,
   });
 
@@ -221,6 +227,8 @@ export function installVpsLink(deps) {
     // (powerMonitor only works once electron is ready)
     for (const event of ["resume", "unlock-screen"]) deps.powerMonitor?.on(event, () => link.nudge());
     return link.resume();
-  }).catch((error) => log(`vps link: ${error?.message ?? error}`));
+  }).then(() => followMac(link.view())).catch((error) => log(`vps link: ${error?.message ?? error}`));
+  const closeLink = link.close;
+  link.close = () => { macHost?.close(); return closeLink(); };
   return link;
 }
