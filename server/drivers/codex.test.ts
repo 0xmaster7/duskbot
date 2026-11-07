@@ -2236,7 +2236,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
     await expect.poll(() => recorder.events.filter((e) => e.type === "turn.completed").length, { timeout: 30_000 }).toBe(10);
     for (const { turnId } of turns) expect(recorder.events.find((e) => e.type === "turn.completed" && e.turnId === turnId)).toMatchObject({ ok: true });
     expect(recorder.events.filter((e) => e.type === "turn.started")).toHaveLength(10);
-    expect(recorder.events.filter((e) => e.type === "runtime.notice" && e.message.startsWith("Waiting for a free Codex slot")).length).toBeGreaterThanOrEqual(8);
+    expect(recorder.events.some((e) => e.type === "runtime.notice")).toBe(false);
     const entries = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line) as { pid: number; at: number; event: string });
     const spans = [...new Set(entries.map((entry) => entry.pid))].flatMap((pid) => {
       const start = entries.find((entry) => entry.pid === pid && entry.event === "initialize");
@@ -2256,7 +2256,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
     await expect.poll(() => recorder.events.filter((e) => e.type === "request.opened").length, { timeout: 15_000 }).toBe(2);
     await instance.adapter.sendTurn({ threadId: "t-slot-held-3", text: "one" });
     await instance.adapter.sendTurn({ threadId: "t-slot-held-4", text: "one" });
-    await recorder.until((e) => e.type === "runtime.notice" && e.threadId === "t-slot-held-4");
+    await recorder.until((e) => e.type === "turn.started" && e.threadId === "t-slot-held-4");
     expect(instance.adapter.hasSession("t-slot-held-4")).toBe(true);
     await instance.adapter.interruptTurn("t-slot-held-4");
     await expect(recorder.until((e) => e.type === "turn.completed" && e.threadId === "t-slot-held-4")).resolves.toMatchObject({ ok: false, stopReason: "interrupted" });

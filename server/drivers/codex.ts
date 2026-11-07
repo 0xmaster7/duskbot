@@ -19,7 +19,7 @@ import { cloudHomeConfigured } from "../cloud-home.ts";
 import { serverVersion } from "../environment.ts";
 import { ChatGptPlanAuthController } from "./chatgpt-plan-auth.ts";
 import { captureCliTree, cliVersionReader, describeSpawnFailure, execCli, killCliTree, spawnCli, waitForExit } from "../procs.ts";
-import { codexLaunch, codexLaunchesStarting, codexLaunchSlot, codexRpcTimeoutMs, keepStopping, RELAUNCH_EXIT_WAIT_MS, spawnHoldingSlot, tryCodexLaunchSlot } from "./codex-process.ts";
+import { codexLaunch, codexLaunchSlot, codexRpcTimeoutMs, keepStopping, RELAUNCH_EXIT_WAIT_MS, spawnHoldingSlot, tryCodexLaunchSlot } from "./codex-process.ts";
 import { isReservedMcpEnvEntry } from "../mcp-registry.ts";
 
 import type {
@@ -560,7 +560,6 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         active.set(threadId, waiting);
         if (attempt === 0) emit({ ...base(threadId, turnId), type: "turn.started" });
         announced = true;
-        emit({ ...base(threadId, turnId), type: "runtime.notice", message: `Waiting for a free Codex slot: ${codexLaunchesStarting()} Codex runs are starting on this computer. This one starts on its own.` });
         const slot = await codexLaunchSlot(stopSignal.signal);
         if (slot && !stopRequested) return slot;
         slot?.();
