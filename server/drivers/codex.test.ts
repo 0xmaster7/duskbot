@@ -3,6 +3,9 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSy
 import { once } from "node:events";
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { ownMcpHttpRoutes } from "../routes/own-mcp-http.ts";
+import { SPAWNED_PROXIES } from "../proxy-paths.ts";
 import { tmpdir } from "node:os";
 import { dirname, join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -1326,6 +1329,58 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
         expect(JSON.parse(readFileSync(dump, "utf8")).mcpStartup.voluum).toEqual({ status: "ready", tools: ["report", "campaigns"] });
       }
       expect(strict.seenHeaders.at(-1)?.authorization).toBe("Bearer tok-refreshed");
+    });
+
+    it("mounts OpenMausBot's own agents server as this server's endpoint on a Codex that takes it, with no proxy process", async () => {
+      const seenAuth: Array<string | undefined> = [];
+      const harness = createServer(async (req, res) => {
+        const url = new URL(req.url ?? "/", "http://fixture");
+        seenAuth.push(req.headers.authorization);
+        const json = (response: ServerResponse, status: number, body: unknown) => { response.writeHead(status, { "content-type": "application/json" }); response.end(JSON.stringify(body)); };
+        const readBody = async (request: IncomingMessage) => { let text = ""; for await (const chunk of request) text += chunk; return JSON.parse(text); };
+        await ownMcpHttpRoutes({ req, res, path: url.pathname, method: req.method ?? "GET", json, readBody } as never);
+      });
+      await new Promise<void>((resolve) => harness.listen(0, "127.0.0.1", resolve));
+      try {
+        const port = (harness.address() as { port: number }).port;
+        process.env.FAKE_CODEX_MCP_START = "1";
+        process.env.FAKE_CODEX_VERSION = "codex-cli 0.167.0";
+        await create();
+        await instance.snapshot();
+        const dump = join(scratch, "own-http.json");
+        process.env.FAKE_CODEX_DUMP = dump;
+        const agents = { command: process.execPath, args: [SPAWNED_PROXIES.agents],
+          env: { OMB_HARNESS_URL: `http://127.0.0.1:${port}`, OMB_COMMS_TOKEN: "turn-secret-token", OMB_BOT_ID: "bot-own", OMB_THREAD_ID: "t-own-http", OMB_TURN_DEPTH: "0" } };
+        await instance.adapter.sendTurn({ threadId: "t-own-http", text: "go", integrations: { agents } });
+        expect(await recorder.until((event) => event.type === "turn.completed")).toMatchObject({ ok: true });
+        const seen = JSON.parse(readFileSync(dump, "utf8"));
+        expect(seen.mcpStartup.agents).toMatchObject({ status: "ready", tools: expect.arrayContaining(["list_bots"]) });
+        const argv = seen.argv.join(" ");
+        expect(argv).toContain(`mcp_servers.agents.url="http://127.0.0.1:${port}/api/internal/mcp-http/agents"`);
+        expect(argv).not.toContain("agents-proxy");
+        expect(argv).not.toContain("turn-secret-token");
+        expect(argv).not.toContain("bot-own");
+        expect(argv).toContain(`mcp_servers.agents.default_tools_approval_mode="approve"`);
+        expect(argv).toContain("mcp_servers.agents.tool_timeout_sec=960");
+        expect(seenAuth.every((value) => value === "Bearer turn-secret-token")).toBe(true);
+      } finally {
+        harness.closeAllConnections();
+        await new Promise<void>((resolve) => harness.close(() => resolve()));
+      }
+    });
+
+    it("keeps the agents proxy process on a Codex older than the endpoint was checked against", async () => {
+      process.env.FAKE_CODEX_VERSION = "codex-cli 0.166.0";
+      await create();
+      await instance.snapshot();
+      const dump = join(scratch, "own-stdio.json");
+      process.env.FAKE_CODEX_DUMP = dump;
+      const agents = { command: process.execPath, args: [SPAWNED_PROXIES.agents], env: { OMB_HARNESS_URL: "http://127.0.0.1:9", OMB_COMMS_TOKEN: "t", OMB_TURN_DEPTH: "0" } };
+      await instance.adapter.sendTurn({ threadId: "t-own-stdio", text: "go", integrations: { agents } });
+      await recorder.until((event) => event.type === "turn.completed");
+      const argv = JSON.parse(readFileSync(dump, "utf8")).argv.join(" ");
+      expect(argv).toContain("agents-proxy");
+      expect(argv).not.toContain("mcp_servers.agents.url");
     });
 
     it("keeps a tool selection's gate in front of the connector", async () => {
