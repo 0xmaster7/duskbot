@@ -17,6 +17,13 @@ export function lastPreviewable<T extends { kind: string }>(messages: readonly T
   return messages?.findLast((message) => !isReceipt(message) && message.kind !== "screen");
 }
 
+export function sidebarPreviewMessages(owner: { messages: Message[]; previewMessages?: Message[]; transcriptLoaded?: boolean }): Message[] {
+  if (owner.transcriptLoaded !== false || !owner.previewMessages?.length) return owner.messages;
+  const rows = new Map(owner.previewMessages.map((message) => [message.id, message]));
+  for (const message of owner.messages) rows.set(message.id, message);
+  return [...rows.values()];
+}
+
 export function botPreview(bot: Bot, visible: Message[], instances: InstanceInfo[]): string {
   if (bot.activity === "waiting-on-you") return t("sidebar.preview.waiting");
   if (bot.waitingForTeammates) return t("sidebar.preview.waitingOnTeammate");
@@ -79,9 +86,10 @@ export function groupPreview(group: Group, bots: Bot[], instances: InstanceInfo[
   const working = roomWorkingPreview(group, (botId) => bots.find((b) => b.id === botId)?.name);
   if (working) return working;
   if (group.working) return t("sidebar.preview.teamWorking");
-  const newest = lastPreviewable(group.messages);
+  const messages = sidebarPreviewMessages(group);
+  const newest = lastPreviewable(messages);
   if (!newest) return t("sidebar.preview.noMessages");
-  const last = quotedLine(group.messages, newest);
+  const last = quotedLine(messages, newest);
   if (last.kind === "text" && last.role !== "user" && isClientCancellation(last.text ?? "")) {
     const stopped = t("chat.turnStopped");
     return last.from ? `${last.from.name}: ${stopped}` : stopped;

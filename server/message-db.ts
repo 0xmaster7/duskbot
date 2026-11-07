@@ -10,9 +10,11 @@ import type { Message } from "./store.ts";
 import type { UsageTrigger } from "./usage-ledger.ts";
 import { ensureMemoryIndex } from "./message-db-memory-index.ts";
 import { MessageSearchWorker } from "./message-search-worker.ts";
+import { rowToMessage, threadPreviewRows, type ThreadRows, type ThreadTailRows } from "./message-db-rows.ts";
 import { searchMessagesInDatabase, type SearchHit } from "./message-search-query.ts";
 import type { Notification, NotificationLogEntry } from "../shared/notification.ts";
 export type { SearchHit } from "./message-search-query.ts";
+export type { ThreadRows, ThreadTailRows } from "./message-db-rows.ts";
 
 const DB_FILE = () => join(DATA_DIR, "messages.db");
 /** The rows the Today page reads, and among them the failed tool calls. JSON.stringify escapes every quote inside a
@@ -375,12 +377,7 @@ export function cancelledChatFollowup(kind: ChatFollowup["kind"], ownerId: strin
   ).get(kind, ownerId, threadId, sendId));
 }
 
-const rowToMessage = (row: { json: string }): Message => JSON.parse(row.json) as Message;
-
-export interface ThreadRows {
-  messages: Message[];
-  activeLeafId: string | null;
-}
+export const readThreadPreview = (threadId: string, limit: number): Message[] => threadPreviewRows(db(), threadId, limit);
 
 export function readThread(threadId: string, legacyFile: string): ThreadRows {
   const rows = prepared("SELECT json FROM messages WHERE thread_id = ? ORDER BY rowid").all(threadId) as Array<{ json: string }>;
@@ -394,10 +391,6 @@ export function readThread(threadId: string, legacyFile: string): ThreadRows {
 export function readMessage(threadId: string, messageId: string): Message | null {
   const row = db().prepare("SELECT json FROM messages WHERE thread_id = ? AND id = ?").get(threadId, messageId);
   return row ? rowToMessage(row as { json: string }) : null;
-}
-
-export interface ThreadTailRows extends ThreadRows {
-  hasMore?: boolean;
 }
 
 export function readThreadTail(threadId: string, legacyFile: string, limit: number): ThreadTailRows {

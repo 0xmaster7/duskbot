@@ -16,7 +16,7 @@ import { useBotMarkState } from "./mascot-presence";
 import { cn } from "@/lib/cn";
 import { useHeldMenuMotion, useMenuMotion } from "./MenuMotion";
 import { lastNonReceipt } from "@/lib/receipts";
-import { botPreview, groupPreview, lastLine, waitingLine } from "./sidebar-preview";
+import { botPreview, groupPreview, lastLine, sidebarPreviewMessages, waitingLine } from "./sidebar-preview";
 import { activeLocale, t } from "@/lib/i18n";
 import { copyText } from "@/lib/copy-text";
 import type { LocaleKey } from "@/locales";
@@ -450,8 +450,8 @@ export function botRowProps(
 }
 
 export function useVisibleMessages(bot: Bot): Message[] {
-  const { messages, activeLeafId } = bot;
-  return useMemo(() => visibleMessages({ messages, activeLeafId }), [messages, activeLeafId]);
+  const { messages, activeLeafId, previewMessages, transcriptLoaded } = bot;
+  return useMemo(() => transcriptLoaded === false ? sidebarPreviewMessages(bot) : visibleMessages({ messages, activeLeafId }), [messages, activeLeafId, previewMessages, transcriptLoaded]);
 }
 
 /** grok's waiting row names what it waits on: "Waiting for you: send the reply?" */

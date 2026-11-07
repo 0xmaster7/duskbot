@@ -142,3 +142,33 @@ timeouts or assertions; no request retries were added.
 
 No live deployment, provider speedup, fleet-size promise or Windows/Linux
 native verification is implied by the local macOS measurements.
+
+## Selective startup history
+
+```sh
+pnpm exec vitest run server/selective-snapshot.e2e.test.ts server/message-db-rows.test.ts src/state/startup-hydration.test.ts src/state/startup-transcripts.test.ts src/components/sidebar-preview.test.ts
+```
+
+The HTTP fixture launches a disposable server with the fake engine and imports
+13 synthetic bots, each with two 220-message conversations, plus a room with
+two conversations. It compares the existing `messages=200` response with
+`messages=200&selected=<bot-or-room-id>`. The selected conversation keeps its
+200-message page; other conversations carry one canonical preview row and at
+most four sidebar summary rows. Legacy clients retain the existing response.
+
+On macOS arm64 with Node 26.7.0, this fixture measured 3,417,487 bytes for the
+full snapshot and 312,561 bytes for the selective snapshot, a 91% reduction.
+This measures synthetic JSON payload size, not elapsed app startup or live VPS
+latency. The fixture retains its server log and an adjacent
+`.selective-snapshot.json` evidence file, then removes its temporary data.
+
+The same HTTP fixture checks on-demand history, earlier pages, room selection,
+sibling thread switches, a fake-engine send and settled reply, and sidebar text
+after a receipt. Renderer tests check that slow settings/routine reads do not
+hold live replies, startup reads have deadlines and cancel on unmount, rapid
+selections share one history read, streamed edits survive delayed responses,
+and replacement snapshots invalidate cached transcripts. They also cover
+branch-update contention, earlier-page requests during initial loading, and
+unread dividers whose cursor was absent from the preview. These renderer
+checks use in-process synthetic transports; they do not prove native Electron
+or a customer's network.
