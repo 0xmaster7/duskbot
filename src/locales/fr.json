@@ -2870,5 +2870,11 @@
   "settings.vault.noneHere": "Rien ici pour l'instant.",
   "server.botDesktop.building": "Configuration de l'ordinateur du bot sur ton serveur. Cela se fait une fois par mise à jour et prend en général quelques minutes.",
   "computer.botWaking": "{name} se réveille",
-  "seal.untrusted": "Ce serveur n'a pas pu prouver qu'il est celui que cette app a associé, donc rien n'a été envoyé. Si tu l'as réinstallé, associe-le à nouveau."
+  "seal.untrusted": "Ce serveur n'a pas pu prouver qu'il est celui que cette app a associé, donc rien n'a été envoyé. Si tu l'as réinstallé, associe-le à nouveau.",
+  "routeTraffic.title": "Faire passer le trafic par cet ordinateur",
+  "routeTraffic.titleWeb": "Faire passer le trafic par ton ordinateur",
+  "routeTraffic.hint": "Fait passer le trafic réseau de l'ordinateur du bot par ton ordinateur de bureau plutôt que par le cloud. S'applique aux nouvelles connexions.",
+  "routeTraffic.through": "Par ton ordinateur. S'applique aux nouvelles connexions.",
+  "routeTraffic.offline": "Réseau du serveur utilisé, ton ordinateur est hors ligne",
+  "routeTraffic.error": "Ce n'est pas enregistré. Réessaie."
 }

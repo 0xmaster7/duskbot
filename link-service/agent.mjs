@@ -685,7 +685,7 @@ export function createEgressProxy({
     async stop() {
       stopped = true;
       clearInterval(timer);
-      for (const r of [...streams.keys()]) forget(r, false);
+      for (const r of streams.keys()) forget(r, false);
       if (server) await new Promise((resolve) => server.close(() => resolve()));
       server = null;
       listening = null;

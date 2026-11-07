@@ -6501,5 +6501,11 @@
   "settings.vault.noneHere": "아직 아무것도 없어요.",
   "server.botDesktop.building": "서버에 봇의 컴퓨터를 준비하고 있어요. 업데이트마다 한 번이며 보통 몇 분 걸려요.",
   "computer.botWaking": "{name}이(가) 깨어나는 중이에요",
-  "seal.untrusted": "이 서버가 이 앱이 연결한 서버임을 증명하지 못해 아무것도 보내지 않았습니다. 다시 설치했다면 다시 연결하세요."
+  "seal.untrusted": "이 서버가 이 앱이 연결한 서버임을 증명하지 못해 아무것도 보내지 않았습니다. 다시 설치했다면 다시 연결하세요.",
+  "routeTraffic.title": "이 컴퓨터를 통해 트래픽 전송",
+  "routeTraffic.titleWeb": "내 컴퓨터를 통해 트래픽 전송",
+  "routeTraffic.hint": "봇 컴퓨터의 네트워크 트래픽을 클라우드 대신 내 데스크톱 컴퓨터를 통해 보냅니다. 새 연결부터 적용됩니다.",
+  "routeTraffic.through": "내 컴퓨터를 통해 전송 중. 새 연결부터 적용됩니다.",
+  "routeTraffic.offline": "서버 네트워크 사용 중, 내 컴퓨터가 오프라인입니다",
+  "routeTraffic.error": "저장되지 않았어요. 다시 시도해 주세요."
 }

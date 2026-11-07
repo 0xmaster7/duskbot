@@ -7531,5 +7531,11 @@
   "vpsLink.progress.paused": "Setup needs attention",
   "vpsLink.progress.continue": "Continue setup",
   "server.botDesktop.building": "Setting up the bot's computer on your server. This happens once per update and usually takes a few minutes.",
-  "seal.untrusted": "This server couldn't prove it's the one this app linked, so nothing was sent. If you reinstalled it, link it again."
+  "seal.untrusted": "This server couldn't prove it's the one this app linked, so nothing was sent. If you reinstalled it, link it again.",
+  "routeTraffic.title": "Route traffic through this computer",
+  "routeTraffic.titleWeb": "Route traffic through your computer",
+  "routeTraffic.hint": "Route network traffic from the bot's computer through your local desktop computer instead of the cloud. Applies to new connections.",
+  "routeTraffic.through": "Through your computer. Applies to new connections.",
+  "routeTraffic.offline": "Using the server's network, your computer is offline",
+  "routeTraffic.error": "That didn't save. Try again."
 }

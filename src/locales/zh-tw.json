@@ -4471,5 +4471,11 @@
   "settings.vault.noneHere": "這裡還沒有內容。",
   "server.botDesktop.building": "正在你的伺服器上設定機器人的電腦。每次更新只需一次，通常需要幾分鐘。",
   "computer.botWaking": "{name} 正在醒來",
-  "seal.untrusted": "這台伺服器無法證明它就是此 App 連結的那台，所以沒有傳送任何內容。如果你重新安裝了它，請再連結一次。"
+  "seal.untrusted": "這台伺服器無法證明它就是此 App 連結的那台，所以沒有傳送任何內容。如果你重新安裝了它，請再連結一次。",
+  "routeTraffic.title": "透過這台電腦傳送流量",
+  "routeTraffic.titleWeb": "透過你的電腦傳送流量",
+  "routeTraffic.hint": "讓機器人電腦的網路流量經由你的桌上型電腦傳送，而不是經由雲端。適用於新的連線。",
+  "routeTraffic.through": "經由你的電腦。適用於新的連線。",
+  "routeTraffic.offline": "正在使用伺服器的網路，你的電腦已離線",
+  "routeTraffic.error": "沒有儲存成功，請再試一次。"
 }

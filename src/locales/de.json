@@ -2948,5 +2948,11 @@
   "settings.vault.noneHere": "Hier ist noch nichts.",
   "server.botDesktop.building": "Der Computer des Bots wird auf deinem Server eingerichtet. Das passiert einmal pro Update und dauert meist ein paar Minuten.",
   "computer.botWaking": "{name} wacht auf",
-  "seal.untrusted": "Dieser Server konnte nicht beweisen, dass er der ist, den diese App verbunden hat, darum wurde nichts gesendet. Wenn du ihn neu installiert hast, verbinde ihn erneut."
+  "seal.untrusted": "Dieser Server konnte nicht beweisen, dass er der ist, den diese App verbunden hat, darum wurde nichts gesendet. Wenn du ihn neu installiert hast, verbinde ihn erneut.",
+  "routeTraffic.title": "Datenverkehr über diesen Computer leiten",
+  "routeTraffic.titleWeb": "Datenverkehr über deinen Computer leiten",
+  "routeTraffic.hint": "Leitet den Netzwerkverkehr vom Computer des Bots über deinen eigenen Desktop-Computer statt über die Cloud. Gilt für neue Verbindungen.",
+  "routeTraffic.through": "Über deinen Computer. Gilt für neue Verbindungen.",
+  "routeTraffic.offline": "Nutzt das Netzwerk des Servers, dein Computer ist offline",
+  "routeTraffic.error": "Das wurde nicht gespeichert. Versuch es noch einmal."
 }

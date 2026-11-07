@@ -205,7 +205,7 @@ export function createEgressEndpoint({
       closed = true;
       clearInterval(hello);
       send({ t: "egress", v: 1, ready: false });
-      for (const r of [...streams.keys()]) forget(r, false);
+      for (const r of streams.keys()) forget(r, false);
     },
   };
 }

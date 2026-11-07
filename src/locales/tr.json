@@ -4950,5 +4950,11 @@
   "settings.vault.noneHere": "Burada henüz bir şey yok.",
   "server.botDesktop.building": "Botun bilgisayarı sunucunda kuruluyor. Bu her güncellemede bir kez olur ve genellikle birkaç dakika sürer.",
   "computer.botWaking": "{name} uyanıyor",
-  "seal.untrusted": "Bu sunucu, bu uygulamanın bağladığı sunucu olduğunu kanıtlayamadı, bu yüzden hiçbir şey gönderilmedi. Yeniden kurduysan tekrar bağla."
+  "seal.untrusted": "Bu sunucu, bu uygulamanın bağladığı sunucu olduğunu kanıtlayamadı, bu yüzden hiçbir şey gönderilmedi. Yeniden kurduysan tekrar bağla.",
+  "routeTraffic.title": "Trafiği bu bilgisayar üzerinden yönlendir",
+  "routeTraffic.titleWeb": "Trafiği bilgisayarın üzerinden yönlendir",
+  "routeTraffic.hint": "Botun bilgisayarındaki ağ trafiğini bulut yerine kendi masaüstü bilgisayarın üzerinden yönlendirir. Yeni bağlantılar için geçerlidir.",
+  "routeTraffic.through": "Bilgisayarın üzerinden. Yeni bağlantılar için geçerlidir.",
+  "routeTraffic.offline": "Sunucunun ağı kullanılıyor, bilgisayarın çevrimdışı",
+  "routeTraffic.error": "Kaydedilmedi. Tekrar dene."
 }

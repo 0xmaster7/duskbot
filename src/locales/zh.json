@@ -6682,5 +6682,11 @@
   "settings.vault.noneHere": "这里还没有内容。",
   "server.botDesktop.building": "正在你的服务器上设置机器人的电脑。每次更新只需一次，通常需要几分钟。",
   "computer.botWaking": "{name} 正在醒来",
-  "seal.untrusted": "此服务器无法证明它就是此应用关联的那台，所以没有发送任何内容。如果你重新安装了它，请重新关联。"
+  "seal.untrusted": "此服务器无法证明它就是此应用关联的那台，所以没有发送任何内容。如果你重新安装了它，请重新关联。",
+  "routeTraffic.title": "通过这台电脑传输流量",
+  "routeTraffic.titleWeb": "通过你的电脑传输流量",
+  "routeTraffic.hint": "让机器人电脑的网络流量经由你的台式电脑传输，而不是经由云端。适用于新的连接。",
+  "routeTraffic.through": "经由你的电脑。适用于新的连接。",
+  "routeTraffic.offline": "正在使用服务器的网络，你的电脑已离线",
+  "routeTraffic.error": "没有保存成功，请再试一次。"
 }
