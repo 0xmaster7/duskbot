@@ -5,6 +5,9 @@ import { useBotSettingsDerived } from "./bot-settings/useBotSettingsDerived";
 import { BotPanel } from "./bot-panel/PanelShell";
 import { BOT_PANEL_ID, sidePanelCls } from "./bot-panel/side-panel";
 
+/** What the panel that just unmounted would have handed focus back to, taken by the next bot's panel when it mounts. */
+let focusHandoff: HTMLElement | null = null;
+
 export function BotSettingsDialog({ bot, overlay = false }: {
   bot: Bot;
   overlay?: boolean;
@@ -23,7 +26,9 @@ export function BotSettingsDialog({ bot, overlay = false }: {
   }, [collapsed, section]);
 
   useEffect(() => {
-    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const inherited = focusHandoff;
+    focusHandoff = null;
+    const previousFocus = inherited ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     const dialog = dialogRef.current;
     dialog?.focus();
 
@@ -42,7 +47,15 @@ export function BotSettingsDialog({ bot, overlay = false }: {
     window.addEventListener("keydown", onKey);
     return () => {
       window.removeEventListener("keydown", onKey);
-      previousFocus?.focus();
+      // swapped for the next bot's panel, it hands its return target on; a close returns focus only if it left with the
+      // panel, since refocusing a row the person clicked away from scrolls the sidebar back to it
+      focusHandoff = previousFocus;
+      queueMicrotask(() => {
+        if (focusHandoff !== previousFocus) return;
+        focusHandoff = null;
+        const active = document.activeElement;
+        if (!active || active === document.body || dialog?.contains(active)) previousFocus?.focus();
+      });
     };
   }, [dispatch]);
 
