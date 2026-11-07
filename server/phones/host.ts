@@ -61,6 +61,14 @@ const notAllowed = (phone: string, name: PhoneToolName): PhoneRefusal =>
 const denied = (name: string, text: string, rule: string, summary: string): PhoneAccess =>
   ({ ok: false, text, rows: [{ tool: name, summary, decision: "auto-denied", rule }] });
 
+/** The device MCP server's mount: the owner's phones and their Mac share it. */
+export function deviceMount(mint: () => string, harnessUrl: string): { command: string; args: string[]; env: Record<string, string> } {
+  return {
+    command: process.execPath, args: [SPAWNED_PROXIES.harnessMcp, PHONE_MCP_SERVER],
+    env: { ...AGENTS_NODE_FLAG, [harnessMcpTokenEnv("device")]: mint(), OMB_HARNESS_URL: harnessUrl },
+  };
+}
+
 export function createPhoneHost(deps: PhoneHostDeps): PhoneHost {
   const { registry, jobs } = deps;
   /** The owner's phones that allow at least one app, in default order. */
@@ -78,14 +86,7 @@ export function createPhoneHost(deps: PhoneHostDeps): PhoneHost {
   const prompt = (bot: PhoneBot, owner: string | null) => (owner === null ? "" : phoneSystemPrompt(bot, phonesOf(owner).map(({ registration }) => registration)));
   return {
     mounts,
-    integration(bot, owner, mint, harnessUrl) {
-      if (!mounts(bot, owner)) return null;
-      const token = mint();
-      return {
-        command: process.execPath, args: [SPAWNED_PROXIES.harnessMcp, PHONE_MCP_SERVER],
-        env: { ...AGENTS_NODE_FLAG, [harnessMcpTokenEnv("device")]: token, OMB_HARNESS_URL: harnessUrl },
-      };
-    },
+    integration: (bot, owner, mint, harnessUrl) => (mounts(bot, owner) ? deviceMount(mint, harnessUrl) : null),
     prompt,
     parts(bot, owner, place) {
       const text = prompt(bot, owner);

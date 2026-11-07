@@ -17,7 +17,7 @@ export function phoneKey(auth: RequestAuth): string | null {
 
 /** Long polls are held open on purpose, so the idle-timeout check exempts them. */
 export function isLongPollPath(path: string): boolean {
-  return path === "/api/phones/self/jobs";
+  return path === "/api/phones/self/jobs" || path === "/api/mac/self/jobs";
 }
 
 export interface PhoneRouteDeps {

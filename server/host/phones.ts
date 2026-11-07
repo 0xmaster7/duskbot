@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { ownerTurnRefusal, createCloudRoutineAuthors, type CloudOwnerTurn } from "../cloud-owner-turns.ts";
 import { personKey } from "../person-key.ts";
 import type { PhoneBot, PhonePlace } from "../phones/access.ts";
-import { createPhoneHost } from "../phones/host.ts";
+import { createPhoneHost, deviceMount } from "../phones/host.ts";
 import { PhoneJobs } from "../phones/jobs.ts";
 import { adoptExistingRoutines, desktopOwnerTurn, desktopPhonesOffered } from "../phones/owner.ts";
 import { PhoneRegistry } from "../phones/registry.ts";
@@ -129,6 +129,9 @@ export function createPhones(deps: PhonesDeps) {
     integration(bot: BotRecord, turn: { threadId: string; generation: string }) {
       return host.integration(bot, turnOwner({ botId: bot.id, ...turn }), () => deps.mint(bot.id, turn), deps.harnessUrl);
     },
+    mounts: (bot: PhoneBot, turn: Turn) => host.mounts(bot, turnOwner(turn)),
+    /** The device server's mount whatever the phones allow, for a turn that mounts it for the Mac. */
+    deviceMount: (bot: BotRecord, turn: { threadId: string; generation: string }) => deviceMount(() => deps.mint(bot.id, turn), deps.harnessUrl),
     /** A turn's phone parts: what it may use and where the person is, or (unmounted) why the owner's phone is not here. */
     promptParts(bot: PhoneBot, input: { mounted: boolean; offered: boolean; turn: Turn; place: PhonePlace }): PromptPart[] {
       if (input.mounted) return host.parts(bot, turnOwner(input.turn), input.place);

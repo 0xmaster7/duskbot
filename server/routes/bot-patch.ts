@@ -280,6 +280,11 @@ export function createBotPatchRoutes(deps: BotPatchRouteDeps): RouteHandler {
         if (typeof body.xResearch !== "boolean") return json(res, 400, { error: "xResearch must be true or false" });
         patch.xResearch = body.xResearch;
       }
+      // Remote control of the owner's Mac: an admin decision too.
+      if (body.macControl !== undefined) {
+        if (typeof body.macControl !== "boolean") return json(res, 400, { error: "macControl must be true or false" });
+        patch.macControl = body.macControl;
+      }
       if (body.memoryEnabled !== undefined) {
         if (typeof body.memoryEnabled !== "boolean") return json(res, 400, { error: "memoryEnabled must be true or false" });
         if (existingBot && (existingBot.busy || activeGroupTurnForBot(existingBot.id)) &&
