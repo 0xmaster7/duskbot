@@ -85,7 +85,7 @@ import { chartRenderer, compileChart, dataEngine, validateVegaLite } from "./dat
 import { BUILT_IN_DATA_SYSTEM_PROMPT } from "./data/instructions.ts";
 import { DATA_INTERNAL_MCP_PATH, dataRpc } from "./data/rpc.ts";
 import { createEmailRoutes } from "./routes/email.ts"; import { createEmailHost, EMAIL_INTERNAL_MCP_PATH } from "./email/host.ts"; import { createEmailService } from "./email/service.ts";
-import { createPhones } from "./host/phones.ts"; import { withMacControl } from "./host/devices.ts"; import { createMacControl } from "./mac-control/host.ts"; import { botFile as macBotFile, computerFile as macComputerFile } from "./mac-control/files.ts";
+import { createPhones } from "./host/phones.ts"; import { createDevices } from "./host/devices.ts";
 import { desktopPhonesOffered, NOT_THE_OWNER } from "./phones/owner.ts";
 import { PHONE_INTERNAL_MCP_PATH } from "./phones/rpc.ts";
 import { isLongPollPath } from "./routes/phones.ts";
@@ -2801,18 +2801,10 @@ const phoneHost = createPhones({
   mint: (botId, turn) => mintInternalCapability({ botId, ...turn, kind: "device", depth: 0, skillAuthoring: false, createdBots: 0, openedThreads: 0 }),
   active: (turn) => internalCapabilityIsActive(turn as InternalCapability),
 });
-const phones = withMacControl(phoneHost, createMacControl({
-  dataDir: DATA_DIR, offered: () => !HOSTED_WORKSPACE && !CLOUD_HOME && desktopPhonesOffered({ sharedMembership: sharedMembership(), loopbackTrust: LOOPBACK.trust }),
-  enabled: () => cfg.vps?.macControl !== false, setEnabled: (enabled) => { saveConfig({ vps: { macControl: enabled } }); Object.assign(cfg, loadConfig()); },
-  ownerOrAdmin, live: (auth) => auth.kind !== "session" || sessions.isLive(auth.session.id), bot: (id) => store.bot(id), turnOwner: phoneHost.turnOwner,
-  active: (turn) => internalCapabilityIsActive(turn as InternalCapability), log: (line) => console.warn(line),
-  openFile: (turn, source) => macBotFile({ roots: messageFileRootsForThread(turn.botId, turn.threadId), attachmentsDir: ATTACHMENTS_DIR, attachmentInThread: (path) => attachmentNameInThread(turn.threadId, path) !== null }, source),
-  computerFile: (botId, source) => {
-    const bot = store.bot(botId), team = bot ? inheritedTeamComputer(bot) : undefined, alias = !bot ? undefined : team ? vpsSshAlias(cfg) : vpsSshAliasForBot(cfg, bot);
-    if (!bot || !alias) return Promise.reject(new Error("this bot has no cloud computer"));
-    return macComputerFile((args) => vps.defaultRunner(vps.vpsDockerArgs(alias, args), { timeoutMs: 90_000 }), team ? teamComputerVpsTarget(cfg, team).containerName : vps.vpsContainerName(bot.id), source);
-  },
-}), (id) => store.bot(id));
+const phones = createDevices({ phones: phoneHost, dataDir: DATA_DIR, offered: () => !HOSTED_WORKSPACE && !CLOUD_HOME && desktopPhonesOffered({ sharedMembership: sharedMembership(), loopbackTrust: LOOPBACK.trust }), enabled: () => cfg.vps?.macControl !== false, setEnabled: (enabled) => { saveConfig({ vps: { macControl: enabled } }); Object.assign(cfg, loadConfig()); },
+  ownerOrAdmin, sessions, bot: (id) => store.bot(id), active: (turn) => internalCapabilityIsActive(turn as InternalCapability), log: (line) => console.warn(line), fileRoots: messageFileRootsForThread, attachmentsDir: ATTACHMENTS_DIR, attachmentInThread: (threadId, path) => attachmentNameInThread(threadId, path) !== null,
+  computer: (bot) => { const team = inheritedTeamComputer(bot), alias = team ? vpsSshAlias(cfg) : vpsSshAliasForBot(cfg, bot); return alias ? { dockerArgs: (args) => vps.vpsDockerArgs(alias, args), container: team ? teamComputerVpsTarget(cfg, team).containerName : vps.vpsContainerName(bot.id) } : null; },
+  run: (args, timeoutMs) => vps.defaultRunner(args, { timeoutMs }) });
 const cloudPlanTier = createCloudPlanTier({ dataDir: DATA_DIR, cloudHome: Boolean(CLOUD_HOME), changed: () => broadcast({ kind: "config", ...configStatus() }) }); const botLimit = createBotLimit({ starter: () => cloudPlanTier.starter(), bots: () => store.bots }); let cloudPower: CloudPower | null = null; // The sleep handshake of a plan that sleeps (server/cloud-power.ts), made just before the server listens.
 const { cloudHealth, cloudSigned } = createCloudSignedHost({ cloudHome: CLOUD_HOME, sessions, power: () => cloudPower, box: () => botBox.report(), teamAdmin: teamAdminHost(), policyChanged: nudgeCloudTeamPolicy, plan: (cancelled) => routineHolds?.plan(cancelled), planTier: (tier) => cloudPlanTier.set(tier), memberLeft: (email) => leaveTeam ? leaveTeam(email).then((result) => { botApi.manager.revokeMintedBy(personKey({ id: "", email })); teamOwners.left(email); teamMessages.inbox.forget(personKey({ id: "", email })); forgetSetupPresser(store, personKey({ id: "", email })); devsReports.forget(personKey({ id: "", email })); return result; }) : Promise.reject(new Error("not a team")), health: { store, bus, dataDir: DATA_DIR, eventsDir: EVENTS_DIR, version: serverVersion(), image: process.env.OMB_CLOUD_IMAGE,
   engines: () => registry.instances().map((instance) => ({ instanceId: instance.instanceId, driverKind: instance.driverKind, snapshot: registry.knownSnapshot(instance.instanceId) })),

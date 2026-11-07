@@ -29,8 +29,8 @@ it("a VPS bot runs a command and writes a file on the linked Mac, hears when it 
     const { token } = await api("POST", "/api/auth/pair", { code: opened.code, label: "Sid's MacBook" });
     expect(typeof token).toBe("string");
     host.current = createMacControlHost({
-      fetch: (input, init) => fetch(input, { ...init, headers: { ...init?.headers as Record<string, string>, authorization: `Bearer ${token}` } }),
-      name: () => "Sid's MacBook", execute: createMacExecutor({ home, shell: "/bin/sh" }),
+      fetch: (input: string, init?: RequestInit) => fetch(input, { ...init, headers: { ...init?.headers as Record<string, string>, authorization: `Bearer ${token}` } }),
+      name: () => "Sid's MacBook", execute: createMacExecutor({ home, shell: "/bin/sh" }) as (job: unknown, io: { download(path: string): Promise<Response> }) => Promise<unknown>,
     });
     host.current.follow(base);
     await expect.poll(async () => (await api("GET", "/api/mac")).online, { timeout: 10_000 }).toBe(true);

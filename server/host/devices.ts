@@ -2,14 +2,44 @@
 // (server/mac-control/host.ts). Same shape as the phones alone, so a turn mounts, prompts and answers both through it.
 import type { PhoneBot, PhonePlace } from "../phones/access.ts";
 import { PHONE_INSTRUCTIONS } from "../phones/instructions.ts";
-import type { MacControl } from "../mac-control/host.ts";
+import { botFile, computerFile } from "../mac-control/files.ts";
+import { createMacControl, type MacControl, type MacControlDeps } from "../mac-control/host.ts";
 import { MAC_INSTRUCTIONS } from "../mac-control/instructions.ts";
+import type { SessionRegistry } from "../sessions.ts";
 import type { BotRecord } from "../store.ts";
 import { PASS } from "../routes/table.ts";
 import type { PromptPart } from "../system-prompt.ts";
 import type { Phones } from "./phones.ts";
 
 type Turn = { botId: string; threadId: string; generation: string };
+
+export interface DevicesDeps extends Pick<MacControlDeps, "dataDir" | "offered" | "enabled" | "setEnabled" | "ownerOrAdmin" | "active" | "log"> {
+  phones: Phones;
+  sessions: Pick<SessionRegistry, "isLive">;
+  bot(id: string): BotRecord | null | undefined;
+  fileRoots(botId: string, threadId: string): string[];
+  attachmentsDir: string;
+  attachmentInThread(threadId: string, path: string): boolean;
+  /** Where the bot's cloud computer runs: the docker arguments that reach it and its container. */
+  computer(bot: BotRecord): { dockerArgs(args: string[]): string[]; container: string } | null;
+  run(args: string[], timeoutMs: number): Promise<{ stdout: string }>;
+}
+
+/** The phones with the owner's Mac beside them, wired from server/index.ts. */
+export function createDevices(deps: DevicesDeps): Devices {
+  const mac = createMacControl({
+    ...deps, bot: deps.bot, turnOwner: deps.phones.turnOwner,
+    live: (auth) => auth.kind !== "session" || deps.sessions.isLive(auth.session.id),
+    openFile: (turn, source) => botFile({ roots: deps.fileRoots(turn.botId, turn.threadId), attachmentsDir: deps.attachmentsDir, attachmentInThread: (path) => deps.attachmentInThread(turn.threadId, path) }, source),
+    computerFile: (botId, source) => {
+      const bot = deps.bot(botId);
+      const place = bot ? deps.computer(bot) : null;
+      if (!place) return Promise.reject(new Error("this bot has no cloud computer"));
+      return computerFile((args) => deps.run(place.dockerArgs(args), 90_000), place.container, source);
+    },
+  });
+  return withMacControl(deps.phones, mac, deps.bot);
+}
 
 export type Devices = Omit<Phones, "handle"> & { handle(body: unknown, capability: Turn, assertActive: () => void): Promise<unknown> };
 
