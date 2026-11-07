@@ -1166,7 +1166,7 @@ esac
     expect(fake.calls.some(({ args }) => args[2] === "exec" && args.includes("tail"))).toBe(true);
   });
 
-  it("waits for readiness with a cheap driver probe and backoff, not full re-inspections", async () => {
+  it("waits for readiness with a cheap driver probe, not full re-inspections", async () => {
     vi.useFakeTimers();
     try {
       const fake = fixture({ container: false });
@@ -1190,6 +1190,48 @@ esac
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("polls the driver every few hundred ms after a start without re-inspecting until it answers", async () => {
+    vi.useFakeTimers();
+    try {
+      const fake = fixture({ running: false });
+      let started = false, driverAnswersAt = Infinity, readyAt = Infinity;
+      const runner: VpsCommandRunner = async (args, options) => {
+        if (args[2] === "start") { started = true; driverAnswersAt = Date.now() + 2_000; }
+        if (args[2] === "exec" && (args.includes("status") || args.includes("omb-desktop-probe")) && Date.now() < driverAnswersAt) throw new Error("driver not up yet");
+        return fake.runner(args, options);
+      };
+      const pending = vpsComputerAction("provision", CONFIG, BOT_ID, runner).then((status) => { readyAt = Date.now(); return status; });
+      const startedAt = Date.now();
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect((await pending).ready).toBe(true);
+      expect(started).toBe(true);
+      expect(readyAt - startedAt).toBeLessThanOrEqual(2_200);
+      const afterStart = fake.calls.slice(fake.calls.findIndex(({ args }) => args[2] === "start"));
+      expect(afterStart.filter(({ args }) => args[2] === "inspect")).toHaveLength(1);
+      expect(afterStart.filter(({ args }) => args.includes("omb-desktop-probe"))).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("opens a viewer right after a wake without repeating the desktop probe, and probes again once stale", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      const fake = fixture();
+      const probes = () => fake.calls.filter(({ args }) => args.includes("omb-desktop-probe")).length;
+      expect((await vpsComputerStatus(CONFIG, BOT_ID, fake.runner)).ready).toBe(true);
+      expect(probes()).toBe(1);
+      const status = await vpsComputerStatus(CONFIG, BOT_ID, fake.runner);
+      expect(status.ready).toBe(true);
+      expect(probes()).toBe(2);
+      await vpsComputerJoin(CONFIG, BOT_ID, fake.runner, true).catch(() => {});
+      expect(probes()).toBe(2);
+      vi.setSystemTime(Date.now() + 10_001);
+      await vpsComputerJoin(CONFIG, BOT_ID, fake.runner, true).catch(() => {});
+      expect(probes()).toBe(3);
+    } finally { closeAllVpsDesktopTunnels(); vi.useRealTimers(); }
   });
 
   it("bounds readiness checks including slow desktop failures and final diagnostics", async () => {
