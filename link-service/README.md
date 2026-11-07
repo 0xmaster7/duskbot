@@ -193,6 +193,26 @@ note the first time it falls back. It applies to new connections only.
 - Settings show the row only on a linked VPS, with the route new connections take now: through your computer, or the
   server's network while your computer is offline. Bots are told about it in their prompt while it is on.
 
+## Phone channels and typed codes
+
+Each phone has its own channel and bearer verifier under a VPS tunnel, separate from the Mac's queues.
+The VPS token authorizes `PUT /v1/tunnels/:id/channels {channels:[{id,verifier,kind,expiresAt?}]}` to replace
+its whole set (up to 32): `grant` expires within 24 hours; `device` has no expiry. Omitted channels are revoked;
+changing a verifier ends old readers and clears queued frames. Channel verifiers persist in `state.json`; frames do not.
+
+- Phone token: `POST /v1/channels/:cid/to-vps {frames,epoch?,seq?}`,
+  `GET /v1/channels/:cid/to-app?wait=25&stream=1`, `DELETE /v1/channels/:cid`.
+- VPS token: `POST /v1/tunnels/:id/channels/:cid/to-app {frames,epoch?,seq?}`,
+  `GET /v1/tunnels/:id/channels/to-vps?wait=25&stream=1`. The aggregated stream starts with `{frames:[]}`,
+  then emits `{channel,frames}` batches round robin, with one reader per tunnel. Without `stream=1`, it returns
+  `{batches:[{channel,frames}]}`. Deleting the tunnel also removes its channels.
+- Phone limits per channel: 50 posts/s with a burst of 400, 64 MiB of frame text per rolling minute,
+  and 240 reads per rolling minute. A limit returns `429 {error,code:"rate_limited"}`.
+- Public typed-code storage: `POST /v1/lookups {id,sealed,ttlS,deleteVerifier?}` (32 lowercase hex id,
+  base64url sealed text up to 16384 characters, TTL 30-900 seconds), `GET /v1/lookups/:id` returns
+  `{sealed,expiresAt}`. Optional `DELETE /v1/lookups/:id` requires the token matching `deleteVerifier`.
+  Lookups stay in memory only, up to 5000 live entries; per IP, 30 creations and 60 misses per hour.
+
 ## Step events
 
 install.sh posts every step to `POST /v1/sessions/<id>/events` (bearer: the VPS token); the app reads them from

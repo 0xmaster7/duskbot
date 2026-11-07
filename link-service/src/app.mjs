@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 import { pipeline } from "node:stream/promises";
 
 import { createPackages } from "./packages.mjs";
-import { MAX_EVENTS, MAX_SESSIONS, MAX_TUNNELS, SESSION_LIFE_MS, createStore } from "./store.mjs";
+import { MAX_CHANNELS_PER_TUNNEL, MAX_EVENTS, MAX_SESSIONS, MAX_TUNNELS, SESSION_LIFE_MS, createStore } from "./store.mjs";
 
 const B32 = "abcdefghijklmnopqrstuvwxyz234567";
 export const ID = /^[a-z2-7]{10}$/;
@@ -37,6 +37,15 @@ const HELD_POSTS = 8;
 const GAP_MS = 5000;
 const EPOCH = /^[a-z2-7]{12}$/;
 const CREATE_PER_HOUR = 30;
+const CHANNEL_GRANT_MS = 24 * 60 * 60_000;
+const PHONE_POSTS_PER_SECOND = 50;
+const PHONE_POST_BURST = 400;
+const PHONE_BYTES_PER_MINUTE = 64 * 1024 * 1024;
+const PHONE_READS_PER_MINUTE = 240;
+const LOOKUP_ID = /^[0-9a-f]{32}$/;
+const LOOKUP_CREATE_PER_HOUR = 30;
+const LOOKUP_MISSES_PER_HOUR = 60;
+const MAX_LOOKUPS = 5000;
 /** downloads (server build and desktop kit together) one install session may make; install.sh retries three times */
 const PACKAGE_DOWNLOADS = 10;
 const nonnegativeInteger = (value) => Number.isSafeInteger(value) && value >= 0;
@@ -98,9 +107,9 @@ export function publicIp(ip) {
 }
 
 /** queues of sealed frames, one per direction per tunnel, with long-poll waiters. never persisted. */
-function frameQueue() {
+function frameQueue(onPush = () => {}) {
   const frames = [];
-  let bytes = 0, reader = 0, gap = null;
+  let bytes = 0, reader = 0, gap = null, reading = null;
   const waiters = new Set();
   const order = { epoch: null, next: 0, held: new Map(), retired: [] };
   function drainHeld() {
@@ -126,6 +135,7 @@ function frameQueue() {
       bytes += size;
       for (const wake of waiters) wake();
       waiters.clear();
+      onPush();
       return true;
     },
     take(max = 256, maxBytes = 4 * 1024 * 1024) {
@@ -170,9 +180,10 @@ function frameQueue() {
       return true;
     },
     /** one streamed reader per queue: a newer one (the same end, reconnected) ends the older */
-    claim() { reader += 1; for (const wake of waiters) wake(); waiters.clear(); return reader; },
+    claim() { reading?.abort(); reading = new AbortController(); reader += 1; for (const wake of waiters) wake(); waiters.clear(); return reader; },
+    get signal() { return reading?.signal; },
     holds: (turn) => turn === reader,
-    close() { clearTimeout(gap); gap = null; order.held.clear(); },
+    close() { clearTimeout(gap); gap = null; order.held.clear(); reading?.abort(); reader += 1; queue.wakeAll(); },
   };
   return queue;
 }
@@ -193,12 +204,20 @@ function frameQueue() {
  * }} options
  */
 export function createLinkService({ base, dataDir = null, scriptPath, uninstallPath = join(dirname(scriptPath), "uninstall.sh"), agentPath, gatePath = join(dirname(agentPath), "docker-gate.mjs"), packagesDir, trustProxy = true, now = Date.now, fetch: fetchImpl = fetch, log = () => {} }) {
-  const store = createStore({ dir: dataDir, now });
+  const store = createStore({ dir: dataDir, now, onChannelDelete: clearChannel });
   const packages = createPackages(packagesDir !== undefined ? packagesDir : dataDir ? join(dataDir, "packages") : null);
   const sessionWaiters = new Map();
   const queues = new Map();
   const created = new Map();
   const cache = new Map();
+  const channelReaders = new Map();
+  const channelRates = new Map();
+  const channelSeen = new Map();
+  const lookups = new Map();
+  const lookupCreated = new Map();
+  const lookupMisses = new Map();
+  const sweepStore = store.sweep;
+  store.sweep = () => { sweepStore(); sweepLookups(); };
 
   function file(path) {
     const mtime = statSync(path).mtimeMs;
@@ -226,7 +245,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", ...headers });
     res.end(text);
   }
-  const fail = (res, status, error, code) => send(res, status, { error, ...(code ? { code } : {}) });
+  const fail = (res, status, error, code, extra = {}) => send(res, status, { error, ...(code ? { code } : {}), ...extra });
 
   async function readJson(req, limit = MAX_SMALL_BODY) {
     if (!/^application\/json\b/i.test(String(req.headers["content-type"] ?? ""))) throw Object.assign(new Error("send json"), { status: 415 });
@@ -272,8 +291,108 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   function queue(tunnelId, dir) {
     const key = `${tunnelId}:${dir}`;
     let found = queues.get(key);
-    if (!found) queues.set(key, (found = frameQueue()));
+    if (!found) queues.set(key, (found = frameQueue(() => {
+      const channel = store.channels.get(tunnelId);
+      if (dir === "to-vps" && channel) channelReaders.get(channel.tunnel)?.wakeAll();
+    })));
     return found;
+  }
+
+  function clearQueues(id) {
+    for (const dir of ["to-vps", "to-app"]) {
+      const key = `${id}:${dir}`, q = queues.get(key);
+      if (q) { q.wakeAll(); q.close(); queues.delete(key); }
+    }
+  }
+  function clearChannel(channel) {
+    clearQueues(channel.id);
+    channelRates.delete(channel.id);
+    channelSeen.delete(channel.id);
+    channelReaders.get(channel.tunnel)?.wakeAll();
+  }
+  function deleteChannel(channel) {
+    store.channels.delete(channel.id);
+    clearChannel(channel);
+    store.save();
+  }
+  function liveChannel(id) {
+    const channel = store.channels.get(id);
+    if (channel && ((channel.expiresAt != null && channel.expiresAt <= now()) || !store.tunnels.has(channel.tunnel))) { deleteChannel(channel); return null; }
+    return channel;
+  }
+  function channelFor(req, res, id, tunnel = null) {
+    const channel = liveChannel(id);
+    if (!channel || (tunnel === null ? !sameHash(bearer(req), channel.verifier) : channel.tunnel !== tunnel)) {
+      fail(res, 404, "not found", "not_found"); return null;
+    }
+    return channel;
+  }
+  function channelReader(id) {
+    let q = channelReaders.get(id);
+    if (!q) { q = frameQueue(); q.after = null; channelReaders.set(id, q); }
+    return q;
+  }
+  function channelBatch(id, reader) {
+    const list = [...store.channels.values()].filter((channel) => channel.tunnel === id);
+    const start = (list.findIndex((channel) => channel.id === reader.after) + 1) % (list.length || 1);
+    for (let i = 0; i < list.length; i += 1) {
+      const channel = list[(start + i) % list.length];
+      if (!liveChannel(channel.id)) continue;
+      const q = queues.get(`${channel.id}:to-vps`);
+      if (q?.length) { reader.after = channel.id; return { channel: channel.id, frames: q.take() }; }
+    }
+    return null;
+  }
+  function recent(map, id, ms) {
+    const list = (map.get(id) ?? []).filter((at) => now() - at < ms);
+    map.set(id, list);
+    return list;
+  }
+  function phoneRate(res, channel, method, size = 0) {
+    const t = now();
+    let rate = channelRates.get(channel.id);
+    if (!rate) { rate = { at: t, tokens: PHONE_POST_BURST, posts: [], reads: [] }; channelRates.set(channel.id, rate); }
+    let ok;
+    if (method === "POST") {
+      rate.tokens = Math.min(PHONE_POST_BURST, rate.tokens + Math.max(0, t - rate.at) * PHONE_POSTS_PER_SECOND / 1000);
+      rate.at = t;
+      ok = rate.tokens >= 1;
+      if (ok) rate.tokens -= 1;
+    } else if (method === "BYTES") {
+      rate.posts = rate.posts.filter((post) => t - post.at < 60_000);
+      ok = rate.posts.reduce((sum, post) => sum + post.size, 0) + size <= PHONE_BYTES_PER_MINUTE;
+      if (ok) rate.posts.push({ at: t, size });
+    } else {
+      rate.reads = rate.reads.filter((at) => t - at < 60_000);
+      ok = rate.reads.length < PHONE_READS_PER_MINUTE;
+      if (ok) rate.reads.push(t);
+    }
+    if (!ok) fail(res, 429, "too many channel requests", "rate_limited");
+    return ok;
+  }
+  function sweepLookups() {
+    const t = now();
+    for (const [id, lookup] of lookups) if (lookup.expiresAt <= t) lookups.delete(id);
+    for (const map of [lookupCreated, lookupMisses]) {
+      for (const [ip, list] of map) {
+        const kept = list.filter((at) => t - at < 3_600_000);
+        if (kept.length) map.set(ip, kept); else map.delete(ip);
+      }
+    }
+  }
+  async function postFrames(req, res, id, dir, authorize, phone = false) {
+    const body = await readJson(req, MAX_BODY);
+    const channel = authorize();
+    if (!channel) return;
+    const frames = body?.frames;
+    if (!Array.isArray(frames) || frames.length === 0 || frames.length > 256 || frames.some((frame) => typeof frame !== "string" || frame.length > FRAME_MAX || !B64URL.test(frame))) {
+      return fail(res, 400, "frames must be 1-256 base64url strings");
+    }
+    if (phone && !phoneRate(res, channel, "BYTES", frames.reduce((sum, frame) => sum + frame.length, 0))) return;
+    const ordered = typeof body.epoch === "string" && EPOCH.test(body.epoch) && Number.isSafeInteger(body.seq) && body.seq >= 0;
+    const q = queue(id, dir);
+    if (!(ordered ? q.pushInOrder(frames, body.epoch, body.seq) : q.push(frames))) return fail(res, 429, "the other side is behind; try again", "queue_full");
+    return send(res, 200, { ok: true, ordered: true });
   }
 
   function vpsSession(req, res, id) {
@@ -336,6 +455,42 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       return res.end(file(path === "/agent.mjs" ? agentPath : gatePath));
     }
 
+    if (path === "/v1/lookups" || (parts = /^\/v1\/lookups\/([0-9a-f]{32})$/.exec(path))) {
+      sweepLookups();
+      const id = parts?.[1], ip = clientIp(req);
+      if (!id && method === "POST") {
+        if (recent(lookupCreated, ip, 3_600_000).length >= LOOKUP_CREATE_PER_HOUR) return fail(res, 429, "too many lookups", "rate_limited");
+        const body = await readJson(req);
+        if (typeof body?.id !== "string" || !LOOKUP_ID.test(body.id) || typeof body.sealed !== "string" || !B64URL.test(body.sealed) || body.sealed.length > 16_384
+          || !Number.isInteger(body.ttlS) || body.ttlS < 30 || body.ttlS > 900 || (body.deleteVerifier !== undefined && (typeof body.deleteVerifier !== "string" || !HEX64.test(body.deleteVerifier)))) {
+          return fail(res, 400, "invalid lookup");
+        }
+        sweepLookups();
+        const list = recent(lookupCreated, ip, 3_600_000);
+        if (list.length >= LOOKUP_CREATE_PER_HOUR) return fail(res, 429, "too many lookups", "rate_limited");
+        if (lookups.has(body.id)) return fail(res, 409, "lookup id is taken", "taken");
+        if (lookups.size >= MAX_LOOKUPS) return fail(res, 503, "The link service is busy. Try again in a minute.", "busy");
+        const expiresAt = now() + body.ttlS * 1000;
+        lookups.set(body.id, { sealed: body.sealed, expiresAt, deleteVerifier: body.deleteVerifier });
+        list.push(now());
+        return send(res, 201, { ok: true, expiresAt });
+      }
+      const lookup = lookups.get(id);
+      if (id && method === "GET") {
+        if (lookup) return send(res, 200, { sealed: lookup.sealed, expiresAt: lookup.expiresAt });
+        const list = recent(lookupMisses, ip, 3_600_000);
+        if (list.length >= LOOKUP_MISSES_PER_HOUR) return fail(res, 429, "too many lookup misses", "rate_limited");
+        list.push(now());
+        return fail(res, 404, "not found", "not_found");
+      }
+      if (id && method === "DELETE") {
+        if (!lookup || !sameHash(bearer(req), lookup.deleteVerifier)) return fail(res, 404, "not found", "not_found");
+        lookups.delete(id);
+        return send(res, 200, { ok: true });
+      }
+      return fail(res, 405, "method not allowed");
+    }
+
     if (method === "POST" && path === "/v1/sessions") {
       const ip = clientIp(req);
       const t = now();
@@ -348,7 +503,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       if (typeof body?.appPub !== "string" || !B64URL.test(body.appPub) || body.appPub.length > 64) return fail(res, 400, "appPub must be a base64url x25519 key");
       const label = typeof body?.label === "string" ? body.label.replace(/[^\p{L}\p{N} ._'-]/gu, "").slice(0, 60) : "";
       let id;
-      do id = randomB32(10); while (store.sessions.has(id) || store.tunnels.has(id));
+      do id = randomB32(10); while (store.sessions.has(id) || store.tunnels.has(id) || store.channels.has(id));
       const watch = randomBytes(32).toString("base64url");
       store.sessions.set(id, { id, createdAt: t, state: "waiting", vpsVerifier: body.verifier, watchVerifier: sha256hex(watch), appPub: body.appPub, label, events: [], seq: 0 });
       recent.push(t);
@@ -498,6 +653,103 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       return;
     }
 
+    if ((parts = /^\/v1\/tunnels\/([a-z2-7]{10})\/channels(?:\/(to-vps)|\/([a-z2-7]{10})\/to-app)?$/.exec(path))) {
+      const [, id, aggregate, cid] = parts;
+      if (!tunnelFor(req, res, id, "vps")) return;
+      if (!aggregate && !cid && method === "PUT") {
+        const body = await readJson(req);
+        if (!tunnelFor(req, res, id, "vps")) return;
+        const list = body?.channels, t = now(), ids = new Set();
+        if (!Array.isArray(list) || list.length > MAX_CHANNELS_PER_TUNNEL) return fail(res, 400, "invalid channels");
+        for (const channel of list) {
+          if (typeof channel?.id !== "string" || !ID.test(channel.id) || ids.has(channel.id) || typeof channel.verifier !== "string" || !HEX64.test(channel.verifier)
+            || (channel.kind !== "grant" && channel.kind !== "device")
+            || (channel.kind === "grant" ? !Number.isSafeInteger(channel.expiresAt) || channel.expiresAt <= t || channel.expiresAt > t + CHANNEL_GRANT_MS : channel.expiresAt != null)) {
+            return fail(res, 400, "invalid channel");
+          }
+          ids.add(channel.id);
+        }
+        for (const channel of list) {
+          if (store.sessions.has(channel.id) || store.tunnels.has(channel.id) || (store.channels.has(channel.id) && store.channels.get(channel.id).tunnel !== id)) {
+            return fail(res, 409, "channel id is taken", "taken", { id: channel.id });
+          }
+        }
+        for (const channel of store.channels.values()) if (channel.tunnel === id && !ids.has(channel.id)) deleteChannel(channel);
+        for (const channel of list) {
+          const kept = store.channels.get(channel.id);
+          if (kept) {
+            if (kept.verifier !== channel.verifier) clearQueues(channel.id);
+            Object.assign(kept, { verifier: channel.verifier, kind: channel.kind, expiresAt: channel.expiresAt ?? null });
+          } else store.channels.set(channel.id, { id: channel.id, tunnel: id, verifier: channel.verifier, kind: channel.kind, expiresAt: channel.expiresAt ?? null, createdAt: t, seenAt: null });
+        }
+        store.save();
+        channelReaders.get(id)?.wakeAll();
+        return send(res, 200, { ok: true, channels: list.length });
+      }
+      if (cid && method === "POST") {
+        const authorize = () => tunnelFor(req, res, id, "vps") && channelFor(req, res, cid, id);
+        if (!channelFor(req, res, cid, id)) return;
+        return postFrames(req, res, cid, "to-app", authorize);
+      }
+      if (aggregate && method === "GET") {
+        const wait = Math.min(MAX_WAIT_S, Math.max(0, Number.parseInt(url.searchParams.get("wait") ?? "0", 10) || 0));
+        const abort = new AbortController();
+        res.on("close", () => abort.abort());
+        const reader = channelReader(id), turn = reader.claim();
+        if (wait && url.searchParams.get("stream") === "1") return streamChannels(res, id, reader, turn, wait * 1000, abort.signal);
+        const until = Date.now() + wait * 1000;
+        let batch;
+        while (!abort.signal.aborted && reader.holds(turn) && store.tunnels.has(id) && !(batch = channelBatch(id, reader))) {
+          const left = until - Date.now();
+          if (left <= 0) break;
+          await reader.wait(left, abort.signal);
+        }
+        if (abort.signal.aborted) return;
+        if (!store.tunnels.has(id)) return fail(res, 404, "not found", "not_found");
+        const batches = [];
+        if (batch) {
+          batches.push(batch);
+          const seen = new Set([batch.channel]);
+          for (const channel of store.channels.values()) {
+            if (channel.tunnel !== id || seen.has(channel.id) || !liveChannel(channel.id)) continue;
+            const q = queues.get(`${channel.id}:to-vps`);
+            if (q?.length) batches.push({ channel: channel.id, frames: q.take() });
+          }
+        }
+        return send(res, 200, { batches });
+      }
+      return fail(res, 405, "method not allowed");
+    }
+
+    if ((parts = /^\/v1\/channels\/([a-z2-7]{10})(?:\/(to-vps|to-app))?$/.exec(path))) {
+      const [, id, action] = parts;
+      const channel = channelFor(req, res, id);
+      if (!channel) return;
+      if (!action && method === "DELETE") { deleteChannel(channel); return send(res, 200, { ok: true }); }
+      if (action === "to-vps" && method === "POST") {
+        if (!phoneRate(res, channel, "POST")) return;
+        return postFrames(req, res, id, action, () => channelFor(req, res, id), true);
+      }
+      if (action === "to-app" && method === "GET") {
+        if (!phoneRate(res, channel, "GET")) return;
+        const t = now();
+        channel.seenAt = t;
+        if (!channelSeen.has(id) || t - channelSeen.get(id) >= 60_000) { channelSeen.set(id, t); store.save(); }
+        const wait = Math.min(MAX_WAIT_S, Math.max(0, Number.parseInt(url.searchParams.get("wait") ?? "0", 10) || 0));
+        const ms = Math.min(wait * 1000, channel.expiresAt == null ? Infinity : Math.max(0, channel.expiresAt - t));
+        const abort = new AbortController();
+        res.on("close", () => abort.abort());
+        const q = queue(id, action), verifier = channel.verifier;
+        const alive = () => liveChannel(id)?.verifier === verifier;
+        if (wait && url.searchParams.get("stream") === "1") return streamFrames(res, id, q, ms, abort.signal, alive);
+        if (wait && q.length === 0) await q.wait(ms, abort.signal);
+        if (abort.signal.aborted) return;
+        if (!alive() || queues.get(`${id}:${action}`) !== q) return fail(res, 404, "not found", "not_found");
+        return send(res, 200, { frames: q.take() });
+      }
+      return fail(res, 405, "method not allowed");
+    }
+
     if ((parts = /^\/v1\/tunnels\/([a-z2-7]{10})(?:\/(to-vps|to-app|status))?$/.exec(path))) {
       const [, id, action] = parts;
       // either end may end it: the app forgetting the server, or uninstall.sh on the server with the vps token
@@ -505,8 +757,11 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         const tunnel = tunnelFor(req, res, id, "either");
         if (!tunnel) return;
         store.tunnels.delete(id);
+        for (const channel of store.channels.values()) if (channel.tunnel === id) deleteChannel(channel);
+        channelReaders.get(id)?.close();
+        channelReaders.delete(id);
         store.save();
-        for (const dir of ["to-vps", "to-app"]) { queue(id, dir).wakeAll(); queue(id, dir).close(); queues.delete(`${id}:${dir}`); }
+        clearQueues(id);
         return send(res, 200, { ok: true });
       }
       if (action === "status" && method === "GET") {
@@ -549,13 +804,14 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   }
 
   /** a long poll that stays open: each batch of frames goes out as one json line the moment it is queued */
-  async function streamFrames(res, id, q, ms, signal) {
+  async function streamFrames(res, id, q, ms, signal, alive = () => store.tunnels.has(id)) {
     const turn = q.claim();
+    signal = AbortSignal.any([signal, q.signal, AbortSignal.timeout(ms)]);
     const until = Date.now() + ms;
     res.writeHead(200, { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "x-accel-buffering": "no" });
     let first = true;
     try {
-      while (!signal.aborted && q.holds(turn) && store.tunnels.has(id)) {
+      while (!signal.aborted && q.holds(turn) && alive() && Date.now() < until) {
         if (!first && q.length === 0) {
           const left = until - Date.now();
           if (left <= 0) break;
@@ -563,11 +819,33 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
           continue;
         }
         first = false;
-        if (!res.write(`${JSON.stringify({ frames: q.take() })}\n`)) {
-          await new Promise((resolve) => { res.once("drain", resolve); signal.addEventListener("abort", resolve, { once: true }); });
-        }
+        await writeLine(res, { frames: q.take() }, signal);
       }
     } finally { res.end(); }
+  }
+
+  async function streamChannels(res, id, reader, turn, ms, signal) {
+    signal = AbortSignal.any([signal, reader.signal, AbortSignal.timeout(ms)]);
+    const until = Date.now() + ms;
+    res.writeHead(200, { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "x-accel-buffering": "no" });
+    try {
+      await writeLine(res, { frames: [] }, signal);
+      while (!signal.aborted && reader.holds(turn) && store.tunnels.has(id) && Date.now() < until) {
+        const batch = channelBatch(id, reader);
+        if (batch) await writeLine(res, batch, signal);
+        else await reader.wait(Math.max(1, until - Date.now()), signal);
+      }
+    } finally { res.end(); }
+  }
+  async function writeLine(res, body, signal) {
+    if (!res.write(`${JSON.stringify(body)}\n`)) {
+      await new Promise((resolve) => {
+        const done = () => { res.off("drain", done); signal.removeEventListener("abort", done); resolve(); };
+        res.once("drain", done);
+        signal.addEventListener("abort", done, { once: true });
+        if (signal.aborted) done();
+      });
+    }
   }
 
   async function streamSession(res, session, after, signal) {
@@ -604,6 +882,6 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         else res.end();
       }
     },
-    close() { store.close(); },
+    close() { for (const q of queues.values()) q.close(); for (const q of channelReaders.values()) q.close(); store.close(); },
   };
 }
