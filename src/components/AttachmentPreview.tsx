@@ -5,6 +5,8 @@ import { createPortal } from "react-dom";
 import { ScrimMotion, SheetMotion } from "./ui/SheetMotion";
 import {
   Check,
+  ChevronLeft,
+  ChevronRight,
   Download,
   ExternalLink,
   Eye,
@@ -539,6 +541,18 @@ export function AttachmentPreviewDialog({
           />
         )}
       </SheetMotion>
+      {strip && (
+        <>
+          <button type="button" onClick={() => navigate(-1)} className={cn(VIEWER_BUTTON, "absolute start-3 top-1/2 z-[1] size-10 -translate-y-1/2")}
+            aria-label={t("attach.previous")} title={t("attach.previous")} data-viewer-step="previous">
+            <ChevronLeft size={20} strokeWidth={1.75} />
+          </button>
+          <button type="button" onClick={() => navigate(1)} className={cn(VIEWER_BUTTON, "absolute end-3 top-1/2 z-[1] size-10 -translate-y-1/2")}
+            aria-label={t("attach.next")} title={t("attach.next")} data-viewer-step="next">
+            <ChevronRight size={20} strokeWidth={1.75} />
+          </button>
+        </>
+      )}
       <div className="absolute inset-x-0 bottom-5 flex flex-col items-center gap-4">
         <span className="flex h-8 max-w-[80vw] items-center truncate text-[12px] leading-4 text-[rgb(245_245_245/0.54)]">{caption}</span>
         {strip && (
