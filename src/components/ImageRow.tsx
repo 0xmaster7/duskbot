@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { MESSAGE_ROW } from "./MessageActions";
 import { AttachmentThumbnail, type PreviewImage } from "./AttachmentPreview";
+import { knownImageSize, rememberImageSize } from "@/lib/image-cache";
 
 // grok's image row (MH.plan): one justified row, 192px tall at most, 6px apart; past what fits, up to three tiles
 // and the last one carries "+N" for the rest
@@ -58,26 +59,17 @@ export function planImageRow(sizes: Array<ImageSize | null>, available: number, 
   return { height: first, widths: widthsAt(aspects, Math.min(1, count), first, available), folded: count > 1 ? count : 0 };
 }
 
-const sizes = new Map<string, ImageSize | null>();
-const probing = new Set<string>();
-const listeners = new Set<() => void>();
-let version = 0;
-export function rememberImageSize(src: string, size: ImageSize | null) {
-  probing.delete(src);
-  if (sizes.has(src)) return;
-  sizes.set(src, size);
-  version++;
-  listeners.forEach((listener) => listener());
+/** Each tile's size as it was when the row first drew it: a size learned on load never re-plans a row on screen. */
+function useReservedSizes(images: PreviewImage[]): Array<ImageSize | null> {
+  const seen = useRef(new Map<string, ImageSize | null>());
+  return images.map((image) => {
+    if (!seen.current.has(image.src)) {
+      const size = image.size ?? knownImageSize(image.src);
+      seen.current.set(image.src, size ? { width: size.w, height: size.h } : null);
+    }
+    return seen.current.get(image.src)!;
+  });
 }
-function probe(src: string) {
-  if (sizes.has(src) || probing.has(src) || typeof Image === "undefined") return;
-  probing.add(src);
-  const image = new Image();
-  image.onload = () => rememberImageSize(src, { width: image.naturalWidth, height: image.naturalHeight });
-  image.onerror = () => rememberImageSize(src, null);
-  image.src = src;
-}
-const subscribe = (listener: () => void) => { listeners.add(listener); return () => listeners.delete(listener); };
 
 function useRowWidth(ref: React.RefObject<HTMLDivElement | null>): number {
   const [width, setWidth] = useState(0);
@@ -105,10 +97,7 @@ export function ImageRow({ images, align = "start", eager = false, onOpen, class
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const rowWidth = useRowWidth(ref);
-  useSyncExternalStore(subscribe, () => version, () => version);
-  const sources = images.map((image) => image.src).join("\n");
-  useEffect(() => { for (const src of sources.split("\n")) probe(src); }, [sources]);
-  const known = images.map((image) => sizes.get(image.src) ?? null);
+  const known = useReservedSizes(images);
   const plan = planImageRow(known, rowWidth > 0 ? imageRowWidth(rowWidth) : 560);
   return (
     <div ref={ref} data-image-row className={cn("flex min-w-0 max-w-full flex-nowrap items-start gap-1.5", align === "end" && "justify-end", className)}>
@@ -119,7 +108,7 @@ export function ImageRow({ images, align = "start", eager = false, onOpen, class
           <div key={`${index}:${image.src}`} title={image.name} data-image-tile style={{ width, height: plan.height }}
             className={cn("relative shrink-0 overflow-hidden rounded-[12px]", align === "end" && "shadow-[0_0_0_0.5px_rgb(28_28_28/0.08)]")}>
             <AttachmentThumbnail image={image} eager={eager} onPreview={() => onOpen(index)}
-              onSize={(size) => rememberImageSize(image.src, size)}
+              onSize={(size) => rememberImageSize(image.src, size)} fit={known[index] ? "cover" : "contain"}
               label={last ? t("attach.openRemaining", { count: plan.folded }) : t("attach.openFullScreen")}
               className="size-full rounded-none border-0 bg-transparent" />
             {last && (

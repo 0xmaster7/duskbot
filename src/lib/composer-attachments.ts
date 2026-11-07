@@ -1,4 +1,5 @@
 import { isCitationAttachment, serializeCitation, type CitationAttachment } from "./citations.ts";
+import { noteMediaSizes, type MediaSize } from "./media-sizes.ts";
 import { randomUuid } from "./random-uuid.ts";
 export { dataContextFor, type DataContext, type DataViewContext } from "../../shared/data-context.ts";
 
@@ -317,7 +318,7 @@ export async function imageAttachmentFromFile(
   if (file.size > IMAGE_MAX_BYTES) throw Object.assign(new Error(`${file.name} exceeds 10 MB`), { status: 413 });
   const bytes = new Uint8Array(await file.arrayBuffer());
   const uploadId = newUploadId();
-  const saved = await uploadWithRetry<{ path: string; mime: string; bytes: number }>(
+  const saved = await uploadWithRetry<{ path: string; mime: string; bytes: number; media?: MediaSize }>(
     `/api/attachments?uploadId=${encodeURIComponent(uploadId)}`,
     {
       method: "POST",
@@ -325,6 +326,7 @@ export async function imageAttachmentFromFile(
       body: bytes,
     },
   );
+  if (saved.media) noteMediaSizes({ [attachmentBasename(saved.path)]: saved.media });
   return {
     kind: "image",
     id: optimistic?.id ?? newId(),

@@ -789,8 +789,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
   const simple = density !== "icons";
   const simpleDesk = simple && !phone;
   const rail = density === "icons";
-  const sidePanelOpen = state.computerOpen;
-  const sizing = useSidebarWidth({ sidePanelOpen, sidebarRef });
+  const sizing = useSidebarWidth({ sidePanelOpen: false, sidebarRef });
   const [searchOpen, setSearchOpen] = useState(false);
   const searchShown = searchOpen || query !== "";
   const searchToggleRef = useRef<HTMLButtonElement>(null);
@@ -1048,7 +1047,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
         "relative flex h-full shrink-0 flex-col border-r-[0.5px] border-edge bg-panel max-md:[--scroll-fade-surface:var(--color-app)]",
         sizing.resizing && !sizing.snapping ? "transition-none" : "transition-[width] duration-200 ease-[cubic-bezier(.22,1,.36,1)] motion-reduce:transition-none",
         rail ? "w-[92px]" : "w-[280px] md:w-[var(--sidebar-width)]",
-        sidePanelOpen ? "md:max-w-[280px]" : "md:max-w-[calc(100vw-320px)]",
+        "md:max-w-[calc(100vw-320px)]",
         // max-md: rather than an md: cancel: Tailwind v4 emits the native `translate`, and any value but `none` makes
         // this a containing block for its `fixed` descendants.
         "max-md:absolute max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:w-full max-md:border-r-0 max-md:bg-app",

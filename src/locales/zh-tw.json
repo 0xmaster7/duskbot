@@ -1539,7 +1539,6 @@
   "task.switchWithUsage": "所有對話 · {label}（輸入 {input} · 輸出 {output}）",
   "task.switchWithUsageDetail": "所有對話 · {label}（{detail}）",
   "task.switch": "所有對話",
-  "task.otherActivity": "其他活動（{count}）",
   "task.workingElsewhere": "其他對話進行中：{count}",
   "attention.title": "進行中的對話",
   "attention.empty": "沒有進行中的對話",
@@ -4473,5 +4472,12 @@
   "server.botDesktop.building": "正在你的伺服器上設定機器人的電腦。每次更新只需一次，通常需要幾分鐘。",
   "computer.botWaking": "{name} 正在醒來",
   "seal.untrusted": "這台伺服器無法證明它就是此 App 連結的那台，所以沒有傳送任何內容。如果你重新安裝了它，請再連結一次。",
+  "signIn.actionNeeded": "需要操作",
+  "signIn.instruction": "登入 {site}",
+  "signIn.skip": "略過",
+  "signIn.skipHint": "取消此請求，不執行這一步。{name} 會繼續進行。",
+  "signIn.takeOver": "接管",
+  "signIn.skipped": "已略過",
+  "signIn.status.saved": "登入資訊已儲存",
   "server.connect.loginNote": "{bot} 會替你在網站上輸入，且永遠看不到密碼。"
 }

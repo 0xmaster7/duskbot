@@ -6,7 +6,6 @@ import { t } from "@/lib/i18n";
 import type { MausColor } from "@/lib/mascot";
 import type { Bot } from "@/state/store";
 import { BotAvatar } from "./Avatar";
-import { ELEVATED_FLOAT } from "./elevated";
 
 /** The bot a card asks for: its face and name lead the card. */
 export type Asker = Pick<Bot, "name" | "color"> & Partial<Pick<Bot, "avatarUrl" | "avatarCrop" | "avatarZoom" | "avatarFocusX" | "avatarFocusY" | "mascotBody" | "mascotFaceColor">>;
@@ -28,6 +27,7 @@ export function AskHeader({ asker, line, origin }: { asker: Asker; line: string;
 
 export function AskCard({
   header,
+  source,
   icon,
   title,
   meta,
@@ -43,6 +43,8 @@ export function AskCard({
 }: {
   /** An AskHeader: who asks, above the question. */
   header?: ReactNode;
+  /** Grok's titlebar: where the ask comes from, an icon in a small tile and a name, above the title. */
+  source?: { icon: ReactNode; label: ReactNode };
   icon?: ReactNode;
   title: ReactNode;
   meta?: ReactNode;
@@ -57,6 +59,36 @@ export function AskCard({
   /** Work rests on this card and the person's answer alone moves it: it stays in view however far the chat scrolls. */
   stays?: boolean;
 }) {
+  const dismiss = onDismiss && dismissLabel ? (
+    <button
+      type="button"
+      onClick={onDismiss}
+      aria-label={dismissLabel}
+      title={dismissLabel}
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-full text-ink-tertiary hover:bg-ink/[0.07] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus pointer-coarse:size-9",
+        source ? "-me-1 size-6" : "-me-1.5 size-7",
+        !source && (header ? "-mt-7" : "-mt-0.5"),
+      )}
+    >
+      <X size={source ? 14 : 15} />
+    </button>
+  ) : null;
+  // stays: work rests on the answer, so the card holds in view however far the chat scrolls
+  const frame = cn("w-full max-w-[560px] rounded-[24px] text-start", ASK_CARD_RING, ASK_CARD_LIFT, stays && "sticky top-[60px] bottom-[72px] z-10");
+  if (source) {
+    return (
+      <div role="group" aria-label={ariaLabel} data-tour={tour} data-ask-card="pending" onKeyDown={onKeyDown} className={frame}>
+        <CardTitlebar icon={source.icon} label={source.label} trailing={dismiss} />
+        <div className="px-5 py-1">
+          <p className="break-words text-[15px] font-semibold leading-[22px] text-ink"><bdi dir="auto">{title}</bdi></p>
+          {explanation && <div className="break-words text-[14px] leading-5 text-ink-secondary">{explanation}</div>}
+        </div>
+        {children ? <div className="p-4">{children}</div> : !footer && <div className="pb-4" />}
+        {footer && <div className={cn("flex flex-wrap items-center justify-end gap-2 px-4 pb-4", children ? "pt-0" : "pt-2.5")}>{footer}</div>}
+      </div>
+    );
+  }
   return (
     <div
       role="group"
@@ -64,7 +96,7 @@ export function AskCard({
       data-tour={tour}
       data-ask-card="pending"
       onKeyDown={onKeyDown}
-      className={cn("w-full max-w-[560px] rounded-[24px] px-4 pt-3.5 text-start", footer ? "pb-3" : "pb-2", stays ? `sticky top-[60px] bottom-[72px] z-10 ${ELEVATED_FLOAT}` : cn(ASK_CARD_RING, ASK_CARD_LIFT))}
+      className={cn(frame, "px-4 pt-3.5", footer ? "pb-3" : "pb-2")}
     >
       {header && <div className="mb-1.5 pe-6">{header}</div>}
       <div className="flex min-w-0 items-start gap-2">
@@ -73,24 +105,84 @@ export function AskCard({
           <bdi dir="auto">{title}</bdi>
         </div>
         {meta && <span className="mt-0.5 shrink-0 text-[12px] tabular-nums text-ink-tertiary">{meta}</span>}
-        {onDismiss && dismissLabel && (
-          <button
-            type="button"
-            onClick={onDismiss}
-            aria-label={dismissLabel}
-            title={dismissLabel}
-            className={cn(
-              "-me-1.5 flex size-7 shrink-0 items-center justify-center rounded-full text-ink-tertiary hover:bg-ink/[0.07] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus pointer-coarse:size-9",
-              header ? "-mt-7" : "-mt-0.5",
-            )}
-          >
-            <X size={15} />
-          </button>
-        )}
+        {dismiss}
       </div>
       {explanation && <div className="mt-1 text-[14px] leading-5 text-ink-secondary">{explanation}</div>}
       {children && <div className="mt-3">{children}</div>}
       {footer && <div className="mt-3 flex flex-wrap items-center justify-end gap-2">{footer}</div>}
+    </div>
+  );
+}
+
+/** Grok's card titlebar: the source's icon in a 20px tile, its name in medium 13px, anything else at the end. */
+export function CardTitlebar({ icon, label, trailing }: { icon: ReactNode; label: ReactNode; trailing?: ReactNode }) {
+  return (
+    <div className="flex min-h-[52px] min-w-0 items-center gap-2 px-4 py-3.5">
+      <CardSourceIcon>{icon}</CardSourceIcon>
+      <span dir="auto" className="min-w-0 truncate text-[13px] font-medium leading-[18px] text-ink">{label}</span>
+      {trailing && <span className="ms-auto flex shrink-0 items-center">{trailing}</span>}
+    </div>
+  );
+}
+
+export function CardSourceIcon({ children }: { children: ReactNode }) {
+  return (
+    <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center overflow-hidden rounded-[6px] border border-ink/[0.06] bg-ink/[0.06] text-ink-secondary">
+      {children}
+    </span>
+  );
+}
+
+/**
+ * Grok's settled card: the same raised frame folded to one 52px row, the source then one grey line of what happened.
+ * With more to say it opens in place to a title and that detail.
+ */
+export function CardSettledRow({ icon, label, summary, tone = "done", title, detail, action, ariaLabel }: {
+  icon: ReactNode;
+  label: ReactNode;
+  summary: ReactNode;
+  tone?: AskSettledTone | "failed";
+  /** The opened card's heading; with detail, the row opens to show both. */
+  title?: ReactNode;
+  detail?: ReactNode;
+  /** A retry beside the summary, outside the toggle. */
+  action?: ReactNode;
+  ariaLabel?: string;
+}) {
+  // a failure stays open, so what went wrong is read without a click
+  const [open, setOpen] = useState(tone === "failed");
+  const opens = Boolean(title || detail);
+  const row = (
+    <>
+      <CardSourceIcon>{icon}</CardSourceIcon>
+      <span className="shrink-0 font-medium text-ink">{label}</span>
+      <span dir="auto" aria-live="polite" className={cn("min-w-0 truncate", tone === "failed" ? "text-danger" : "text-ink-tertiary")}>{summary}</span>
+    </>
+  );
+  const rowClass = "flex min-h-[52px] min-w-0 flex-1 items-center gap-2 px-4 py-3.5 text-start text-[13px] leading-[18px]";
+  return (
+    <div
+      role="group"
+      aria-label={ariaLabel}
+      data-ask-card="settled"
+      data-tone={tone}
+      className={cn("w-full max-w-[560px]", ASK_CARD_RING, ASK_CARD_LIFT, open ? "rounded-[24px]" : "rounded-[18px]")}
+    >
+      <div className="flex min-w-0 items-center">
+        {opens ? (
+          <button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)}
+            className={cn(rowClass, "rounded-[18px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus")}>
+            {row}
+          </button>
+        ) : <div className={rowClass}>{row}</div>}
+        {action && <span className="flex shrink-0 items-center pe-3">{action}</span>}
+      </div>
+      {open && opens && (
+        <div className="px-5 pb-4 pt-1">
+          {title && <p className="break-words text-[15px] font-semibold leading-[22px] text-ink">{title}</p>}
+          {detail && <div className="break-words text-[14px] leading-5 text-ink-secondary">{detail}</div>}
+        </div>
+      )}
     </div>
   );
 }
@@ -104,8 +196,8 @@ export function AskDetail({ text, mono = false, label }: { text: string; mono?: 
       <div
         dir="auto"
         aria-label={label}
-        className={cn("rounded-xl bg-ink/[0.045] px-3 py-2 text-ink-secondary [overflow-wrap:anywhere]",
-          mono ? "font-mono text-[12px] leading-[18px] whitespace-pre-wrap" : "whitespace-pre-wrap text-[13px] leading-5",
+        className={cn("rounded-[12px] border border-ink/[0.06] bg-ink/[0.04] px-3 py-2 [overflow-wrap:anywhere]",
+          mono ? "font-mono text-[13px] leading-[18px] whitespace-pre-wrap text-ink" : "whitespace-pre-wrap text-[13px] leading-5 text-ink-secondary",
           long && !open && "line-clamp-3")}
       >
         {text}
@@ -307,10 +399,21 @@ const ASK_PRIMARY_LOOK = `${ASK_LOOK} ui-button-primary bg-accent text-accent-in
 
 export const ASK_PRIMARY_BUTTON = `${ASK_SHAPE} ${ASK_PRIMARY_LOOK}`;
 
-/** The answer a card waits for, in the asking bot's own button; the plain primary when no single bot asked. */
-export function askPrimary(color: MausColor | undefined, shape = ASK_BUTTON_SHAPE): BotButton {
-  return botButton(color, shape, ASK_PRIMARY_LOOK);
+/** The answer a card waits for: grok's ink pill whoever asks; a bot's colour stays in its face and its answered letter. */
+export function askPrimary(_color: MausColor | undefined, shape = ASK_BUTTON_SHAPE): BotButton {
+  return botButton(undefined, shape, ASK_PRIMARY_LOOK);
 }
+
+/**
+ * Grok's card buttons: 36px for a card's own answer (I'm done, Submit), 32px for a permission's three (Allow once, Always
+ * allow, Never), 44 on a touch screen. Primary ink, secondary a 6% ink fill, tertiary bare regular text.
+ */
+const CARD_BUTTON = "omb-press inline-flex shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-full text-[14px] leading-5 [&>svg]:shrink-0 disabled:cursor-not-allowed pointer-coarse:h-11";
+export const CARD_BUTTON_LG = `${CARD_BUTTON} h-9 px-4`;
+export const CARD_BUTTON_MD = `${CARD_BUTTON} h-8 px-3.5`;
+export const cardPrimary = (size: string = CARD_BUTTON_LG): BotButton => botButton(undefined, `${size} font-medium`, ASK_PRIMARY_LOOK);
+export const cardSecondary = (size: string = CARD_BUTTON_LG) => `${size} ${ASK_LOOK} font-medium bg-ink/[0.06] text-ink enabled:hover:bg-ink/[0.1] enabled:active:bg-ink/[0.14]`;
+export const cardTertiary = (size: string = CARD_BUTTON_LG) => `${size} ${ASK_LOOK} font-normal text-ink-secondary enabled:hover:bg-ink/[0.06] enabled:hover:text-ink enabled:active:bg-ink/[0.1]`;
 
 /** A card's other answers: Deny, Cancel, Not now. */
 export const ASK_SECONDARY_BUTTON = `${ASK_BUTTON_SHAPE} ${ASK_LOOK} bg-ink/[0.07] text-ink enabled:hover:bg-ink/[0.11] enabled:active:bg-ink/[0.15]`;
@@ -326,6 +429,10 @@ export const ASK_CHIP_PICKED = "border-accent bg-accent/15 text-ink";
 
 export const ASK_SMALL_PILL = ASK_CONTROL;
 export const ASK_QUIET_BUTTON = `${ASK_SMALL_PILL} -my-1 text-ink-tertiary hover:bg-ink/[0.07] hover:text-ink-secondary`;
+
+/** Grok's card field: no fill, one 12% hairline, 32 tall, 10px corners; focus only deepens the hairline. */
+export const CARD_FIELD =
+  "h-8 rounded-[10px] border border-ink/[0.12] bg-transparent px-3 text-[14px] leading-5 text-ink outline-none placeholder:text-ink-tertiary focus:border-ink/[0.28] disabled:opacity-60 pointer-coarse:h-11";
 
 export const ASK_FIELD =
   "h-7 rounded-full border border-hairline/60 bg-inset px-3 text-[13px] leading-5 text-ink outline-none placeholder:text-ink-tertiary focus:border-accent disabled:opacity-60 pointer-coarse:h-9";

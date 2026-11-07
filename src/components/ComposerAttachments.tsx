@@ -15,7 +15,7 @@ import {
 } from "@/lib/composer-attachments";
 import { AttachmentPreviewDialog, FileGlyph, previewImage, type PreviewImage } from "./AttachmentPreview";
 import { movesLess } from "./composer-wrap";
-import { rememberImageSize } from "./ImageRow";
+import { rememberImageSize } from "@/lib/image-cache";
 import { t } from "@/lib/i18n";
 import { CitationBadge } from "./CitationUI";
 import type { CitationAttachment } from "@/lib/citations";

@@ -35,9 +35,12 @@
 }
 :root[data-reduced-motion="true"] .computer-watch-hint { animation: none; opacity: 0.7; }
 
-/* the person's own pointer stays visible over a bot's screen: noVNC paints the guest's cursor, and a bot desktop
-   hides it (cursor: none), so watching shows the plain arrow and control falls back to it */
-[data-live-desktop-screen][data-watching] canvas,
-[data-live-desktop-screen] canvas[style*="cursor: none"] {
-  cursor: default !important;
+/* the person's pointer over a bot's screen is its own shape, so it never reads as their normal arrow: a hollow ring
+   while watching (look, don't touch), a ring with a dot while in control. noVNC sets the guest's cursor inline (a bot
+   desktop hides it), so these win with !important; plain arrow and crosshair are the fallbacks */
+[data-live-desktop-screen][data-watching] canvas {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='10' r='6' fill='none' stroke='rgba(0,0,0,0.55)' stroke-width='3.5'/%3E%3Ccircle cx='10' cy='10' r='6' fill='none' stroke='white' stroke-width='1.5'/%3E%3C/svg%3E") 10 10, default !important;
+}
+[data-live-desktop-screen]:not([data-watching]) canvas {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='10' r='6' fill='none' stroke='rgba(0,0,0,0.55)' stroke-width='3.5'/%3E%3Ccircle cx='10' cy='10' r='6' fill='none' stroke='white' stroke-width='1.5'/%3E%3Ccircle cx='10' cy='10' r='2.25' fill='white' stroke='rgba(0,0,0,0.55)' stroke-width='1'/%3E%3C/svg%3E") 10 10, crosshair !important;
 }

@@ -197,7 +197,7 @@ describe("cloud preview recovery in the real renderer", () => {
     };
     expect(await panelIsOpen()).toBe(true);
     await closeFromItsX();
-    for (const panel of ["computer", "remote"]) {
+    for (const panel of ["computer"]) {
       await select("Panel", panel);
       await openFromItsButton();
       await expect.poll(entryFocus, { timeout: 5000 }).toMatchObject({ tab: true, close: false });

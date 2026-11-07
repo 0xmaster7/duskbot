@@ -2872,5 +2872,12 @@
   "server.botDesktop.building": "Configuration de l'ordinateur du bot sur ton serveur. Cela se fait une fois par mise à jour et prend en général quelques minutes.",
   "computer.botWaking": "{name} se réveille",
   "seal.untrusted": "Ce serveur n'a pas pu prouver qu'il est celui que cette app a associé, donc rien n'a été envoyé. Si tu l'as réinstallé, associe-le à nouveau.",
+  "signIn.actionNeeded": "Action requise",
+  "signIn.instruction": "Connectez-vous à {site}",
+  "signIn.skip": "Passer",
+  "signIn.skipHint": "Annuler cette demande sans faire l’étape. {name} continue sans elle.",
+  "signIn.takeOver": "Prendre la main",
+  "signIn.skipped": "Passé",
+  "signIn.status.saved": "Identifiants enregistrés",
   "server.connect.loginNote": "{bot} le saisit sur le site pour vous et ne voit jamais le mot de passe."
 }

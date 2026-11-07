@@ -15,20 +15,26 @@ afterEach(() => setTeamChats(null));
 describe("what a bot's row or tile is marked for", () => {
   it("is what waits on the person first, then an unread reply, then work under way", () => {
     const working = { threadId: "work", busy: true }, unread = { threadId: "reply", unread: true }, waiting = { threadId: "ask", activity: "waiting-on-you" };
-    expect(markedThread(chief([working]), false)).toBe("work");
-    expect(markedThread(chief([working, unread]), false)).toBe("reply");
+    expect(markedThread(chief([working]), true)).toBe("work");
+    expect(markedThread(chief([working, unread]), true)).toBe("reply");
+    expect(markedThread(chief([working, unread, waiting]), true)).toBe("ask");
+  });
+
+  it("is only a question waiting on the person while threads are hidden, the bot being one conversation", () => {
+    const working = { threadId: "work", busy: true }, unread = { threadId: "reply", unread: true }, waiting = { threadId: "ask", activity: "waiting-on-you" };
+    expect(markedThread(chief([working, unread]), false)).toBeNull();
     expect(markedThread(chief([working, unread, waiting]), false)).toBe("ask");
   });
 
   it("is the newest of equals, unless the thread the bot opens to is one of them", () => {
     const older = { threadId: "older", unread: true, updatedAt: 5 }, newer = { threadId: "newer", unread: true, updatedAt: 9 };
-    expect(markedThread(chief([older, newer]), false)).toBe("newer");
-    expect(markedThread({ ...chief([older, newer]), tasks: [{ threadId: "main", unread: true, createdAt: 1 }, older, newer] }, false)).toBe("main");
+    expect(markedThread(chief([older, newer]), true)).toBe("newer");
+    expect(markedThread({ ...chief([older, newer]), tasks: [{ threadId: "main", unread: true, createdAt: 1 }, older, newer] }, true)).toBe("main");
   });
 
   it("is never a routine's run, nor an archived thread unless it waits on the person, as the row's own dot reads them", () => {
-    expect(markedThread(chief([{ threadId: "run", busy: true, routineRunId: "r" }]), false)).toBeNull();
-    expect(markedThread(chief([{ threadId: "put-away", unread: true, archivedAt: 1 }]), false)).toBeNull();
+    expect(markedThread(chief([{ threadId: "run", busy: true, routineRunId: "r" }]), true)).toBeNull();
+    expect(markedThread(chief([{ threadId: "put-away", unread: true, archivedAt: 1 }]), true)).toBeNull();
     expect(markedThread(chief([{ threadId: "put-away", activity: "waiting-on-you", archivedAt: 0 }]), false)).toBe("put-away");
   });
 
@@ -41,18 +47,17 @@ describe("what a bot's row or tile is marked for", () => {
 describe("a click on a bot's row or tile", () => {
   const work = { threadId: "work", unread: true };
 
-  it("lands on the thread the dot is about, by the switch alone so the thread left behind stays unread", () => {
-    expect(opened(chief([work]), false)).toEqual([{ type: "switchTask", botId: "cos", threadId: "work" }]);
+  it("opens the bot's one conversation while threads are hidden, whatever another of its threads is marked for", () => {
+    expect(opened(chief([work]), false)).toEqual([{ type: "select", id: "cos" }]);
+    expect(opened(chief([{ threadId: "work", busy: true }]), false)).toEqual([{ type: "select", id: "cos" }]);
   });
 
   it("selects first while threads are shown, as every thread opener does there", () => {
     expect(opened(chief([work]), true)).toEqual([{ type: "select", id: "cos" }, { type: "switchTask", botId: "cos", threadId: "work" }]);
   });
 
-  it("lands on a thread a teammate's work is running in, and a second click comes back to the main chat", () => {
-    const running = { threadId: "work", busy: true };
-    expect(opened(chief([running]), false)).toEqual([{ type: "switchTask", botId: "cos", threadId: "work" }]);
-    expect(opened(chief([running], "work"), false, true)).toEqual([{ type: "switchTask", botId: "cos", threadId: "main" }]);
+  it("comes back to the main chat from another thread while threads are hidden", () => {
+    expect(opened(chief([{ threadId: "work", busy: true }], "work"), false, true)).toEqual([{ type: "switchTask", botId: "cos", threadId: "main" }]);
   });
 
   it("opens the bot as ever when nothing is marked, or when the main chat itself is what is marked", () => {

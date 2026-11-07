@@ -20,6 +20,7 @@ import {
 } from "@/state/store";
 import { BotAvatar } from "./Avatar";
 import { ScreenFrame } from "./ScreenFrame";
+import { noteMediaSizes } from "@/lib/image-cache";
 import { RoomHoldsBanner } from "./RoomHoldsBanner";
 import { ThreadChip } from "./ThreadChip";
 import { ToolActivity } from "./ToolActivity";
@@ -196,6 +197,7 @@ function RoomTextMessage({
     canSpeak: true,
     pin,
   });
+  noteMediaSizes(m.media);
   const replyGroup = useMemo(() => !user && botText.trim() ? replyAttachmentGroup(botText, m.attachments) : null, [user, botText, m.attachments]);
   const blocks = useMemo(() => !user && !viewRaw && botText.trim() ? splitReplyBlocks(botText) : null, [user, viewRaw, botText]);
   const tabled = Boolean(blocks?.some((block) => block.kind === "table"));
@@ -211,7 +213,7 @@ function RoomTextMessage({
   return (
     <div {...{ [MESSAGE_ROW]: "" }} data-arrival={fresh ? (user ? "end" : "start") : undefined} className={cn("group relative flex w-full flex-col", user ? "items-end" : "items-start", join.above && SIMPLE_STACKED)}>
       {speaker && <div className="mb-0.5 px-1 text-[12px] font-medium text-ink-secondary">{speaker}</div>}
-      {mediaRow && attachments && <AttachmentGallery images={attachments.images} files={attachments.files} message={{ threadId: group.threadId, messageId: m.id }} eager={eager} align="end" className={display.trim() ? "mb-1" : undefined} />}
+      {mediaRow && attachments && <AttachmentGallery media={m.media} images={attachments.images} files={attachments.files} message={{ threadId: group.threadId, messageId: m.id }} eager={eager} align="end" className={display.trim() ? "mb-1" : undefined} />}
       <div data-own-row={user ? "" : undefined} className={cn("flex w-full items-center gap-1.5", user ? "justify-end" : "justify-start")}>
         {user && (
           <MessageActions side="user" menu={userMessageMenu({ pin })}>
@@ -250,7 +252,7 @@ function RoomTextMessage({
           })()}
           {user ? (
             <>
-              {attachments && !mediaRow && <AttachmentGallery images={attachments.images} files={attachments.files} message={{ threadId: group.threadId, messageId: m.id }} eager={eager} className={!attachments.display ? "mb-0" : undefined} />}
+              {attachments && !mediaRow && <AttachmentGallery media={m.media} images={attachments.images} files={attachments.files} message={{ threadId: group.threadId, messageId: m.id }} eager={eager} className={!attachments.display ? "mb-0" : undefined} />}
               <div
                 className={cn(collapsible && "max-h-40 overflow-hidden [mask-image:linear-gradient(to_bottom,black_60%,transparent)]")}
                 data-citation-source={m.id}
@@ -291,7 +293,7 @@ function RoomTextMessage({
                   ))}
                 </div>
               )}
-              {!botText.trim() && <MessageAttachmentGallery text={botText} attachments={m.attachments} message={{ threadId: group.threadId, messageId: m.id }} className={m.text ? undefined : "mb-0"} eager={eager} />}
+              {!botText.trim() && <MessageAttachmentGallery media={m.media} text={botText} attachments={m.attachments} message={{ threadId: group.threadId, messageId: m.id }} className={m.text ? undefined : "mb-0"} eager={eager} />}
               {viewRaw && botText ? (
                 <div data-citation-source={m.id} data-citation-owner-type="group" data-citation-owner={group.id} data-citation-thread={group.threadId}><RawMarkdownView text={botText} /></div>
               ) : tabled && blocks ? (
@@ -300,7 +302,7 @@ function RoomTextMessage({
               ) : botText ? (
                 <div data-citation-source={m.id} data-citation-owner-type="group" data-citation-owner={group.id} data-citation-thread={group.threadId}><ChatMarkdown text={botText} mentionPeers={peers} everyone={!group.dm} mentionPerson={{ profileName: state.config?.profile?.name }} message={{ threadId: group.threadId, messageId: m.id }} delivered={replyGroup?.delivered} /></div>
               ) : null}
-              {replyGroup && <AttachmentGallery images={replyGroup.images} files={replyGroup.files} message={{ threadId: group.threadId, messageId: m.id }} eager={eager} beneath />}
+              {replyGroup && <AttachmentGallery media={m.media} images={replyGroup.images} files={replyGroup.files} message={{ threadId: group.threadId, messageId: m.id }} eager={eager} beneath />}
             </MessageBoundary>
           )}
         </div>
@@ -422,7 +424,7 @@ export const Transcript = memo(function Transcript({
         m.dataResult ? <DataResultChip message={m} /> : isStatusActivity(m) ? <StatusActivityRow message={m} /> : <RoomToolChip message={m} roomId={group.id} threadId={group.threadId} live={liveTools.has(m.id)} />
       ) : null
     ) : m.kind === "screen" ? (
-      <ScreenFrame threadId={group.threadId} message={m} />
+      showToolCalls ? <ScreenFrame threadId={group.threadId} message={m} /> : null
     ) : m.kind === "compaction" ? (
       null
     ) : m.kind === "digest" ? (

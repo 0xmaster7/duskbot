@@ -1,11 +1,18 @@
 type UnreadBot = {
   unread?: boolean;
-  tasks?: ReadonlyArray<{ unread?: boolean; routineRunId?: string; archivedAt?: number; openAsks?: number }> | null;
+  threadId?: string;
+  mainThreadId?: string;
+  tasks?: ReadonlyArray<{ threadId?: string; unread?: boolean; routineRunId?: string; archivedAt?: number; openAsks?: number }> | null;
 };
 
+/** Whether the one conversation a bot's chat shows (its main thread, else its current one) has a reply not yet read.
+ * Threads are not listed, so an unread line in another of its threads is not one the person could open and clear. */
 export function botShowsUnread(bot: UnreadBot): boolean {
   if (!bot.tasks?.length) return Boolean(bot.unread);
-  return bot.tasks.some((task) => Boolean(task.unread) && !task.routineRunId && task.archivedAt === undefined);
+  const home = bot.mainThreadId && bot.tasks.some((task) => task.threadId === bot.mainThreadId) ? bot.mainThreadId : bot.threadId;
+  const shown = home === undefined ? undefined : bot.tasks.find((task) => task.threadId === home);
+  if (!shown) return bot.tasks.some((task) => Boolean(task.unread) && !task.routineRunId && task.archivedAt === undefined);
+  return Boolean(shown.unread) && !shown.routineRunId && shown.archivedAt === undefined;
 }
 
 /** The asks waiting on the person in a bot's conversations: on a team, the ones in their inbox. */

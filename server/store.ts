@@ -21,7 +21,7 @@ import type { Destination } from "./surface.ts";
 import { newId, type ModelSelection } from "./contracts.ts";
 import { pickBotName } from "./names.ts";
 import { rotationColor } from "./bot-look.ts";
-import { redactBotAuthored } from "./message-redaction.ts";
+import { redactBotAuthored } from "./message-redaction.ts"; import { missingMediaSizes, withMediaSizes } from "./media-size.ts";
 import { AVATAR_FOCUS_CENTER, AVATAR_ZOOM_MIN, botAvatarProfile, clampAvatarFocus, clampAvatarZoom } from "../shared/bot-avatar.ts";
 import { approvalModeFor, isApprovalMode, modelSwitchNeedsAsk, threadApproval, type ApprovalMode } from "../shared/approval-mode.ts";
 import { lastChangeRequestUrl } from "../shared/thread-link.ts";
@@ -1091,6 +1091,45 @@ export class Store {
     return this.thread(threadId).messages;
   }
 
+  /** `messages` with every picture size that can be measured filled in; a size found now is kept on the stored row
+   * (and the loaded copy) without a patch event, since it changes nothing a client already shows. */
+  withMediaSizes<T extends Message>(threadId: string, messages: T[]): T[] {
+    let out: T[] | null = null;
+    messages.forEach((message, index) => {
+      const media = missingMediaSizes(message);
+      if (!media) return;
+      this.keepMediaSizes(threadId, message.id, media);
+      (out ??= [...messages])[index] = { ...message, media };
+    });
+    return out ?? messages;
+  }
+
+  private keepMediaSizes(threadId: string, messageId: string, media: NonNullable<Message["media"]>): void {
+    threadId = this.roomThreadOf(threadId);
+    mdb.setMessageMediaSizes(threadId, messageId, media);
+    const loaded = this.threads.get(threadId)?.messages;
+    const index = loaded?.findIndex((message) => message.id === messageId) ?? -1;
+    if (loaded && index >= 0) loaded[index] = { ...loaded[index]!, media };
+  }
+
+  /** One pass over stored rows that show pictures without sizes, a batch per macrotask so requests keep flowing. */
+  async backfillMediaSizes(batch = 200): Promise<number> {
+    let after = 0;
+    let filled = 0;
+    for (;;) {
+      const rows = mdb.messagesMissingMediaSizes(after, batch);
+      if (!rows.length) return filled;
+      for (const row of rows) {
+        after = row.rowid;
+        const media = missingMediaSizes(row.message);
+        if (!media) continue;
+        this.keepMediaSizes(row.threadId, row.message.id, media);
+        filled += 1;
+      }
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+  }
+
   messagesPreview(threadId: string, limit: number): Message[] {
     this.messagesTail(threadId, 1);
     return mdb.readThreadPreview(this.roomThreadOf(threadId), limit);
@@ -1161,7 +1200,7 @@ export class Store {
   appendMessage(threadId: string, message: Omit<Message, "id" | "at"> & { at?: number }, command?: Command): Message {
     threadId = this.roomThreadOf(threadId);
     const t = this.thread(threadId);
-    const full: Message = { id: newId(), at: Date.now(), parentId: t.activeLeafId, ...redactBotAuthored(message) };
+    const full: Message = withMediaSizes({ id: newId(), at: Date.now(), parentId: t.activeLeafId, ...redactBotAuthored(message) });
     const persist = () => { mdb.appendMessage(threadId, full); return full; };
     const committed = command ? runCommand(command, persist) : persist();
     if (committed.id !== full.id) return committed;
@@ -1184,7 +1223,7 @@ export class Store {
     const t = this.thread(threadId);
     const anchorExists = anchorId !== undefined && t.messages.some((m) => m.id === anchorId);
     if (!anchorExists || t.activeLeafId === anchorId) return this.appendMessage(threadId, message);
-    const full: Message = { id: newId(), at: Date.now(), ...redactBotAuthored(message), parentId: anchorId };
+    const full: Message = withMediaSizes({ id: newId(), at: Date.now(), ...redactBotAuthored(message), parentId: anchorId });
     const children = t.messages.filter((m) => m.parentId === anchorId);
     t.messages.push(full);
     mdb.insertMessage(threadId, full);
@@ -1244,6 +1283,7 @@ export class Store {
       ...(sender ? { sender } : {}),
       ...(dataContext ? { dataContext } : {}),
     };
+    Object.assign(full, withMediaSizes(full));
     t.messages.push(full);
     t.activeLeafId = full.id;
     mdb.appendMessage(threadId, full);
@@ -1275,7 +1315,8 @@ export class Store {
     const t = this.thread(threadId);
     const idx = t.messages.findIndex((m) => m.id === messageId);
     if (idx === -1) return null;
-    const next = { ...t.messages[idx], ...patch, card: patch.card ?? t.messages[idx].card };
+    const merged = { ...t.messages[idx], ...patch, card: patch.card ?? t.messages[idx].card };
+    const next = "text" in patch || "attachments" in patch ? withMediaSizes(merged) : merged;
     // Persist before memory: a failed write must not mark a card answered that a restart shows pending.
     let applied = false;
     const persist = () => { mdb.updateMessage(threadId, next); applied = true; return next; };

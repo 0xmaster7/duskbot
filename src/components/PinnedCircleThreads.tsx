@@ -3,6 +3,7 @@ import { openBotRow, type Bot } from "@/state/store";
 import { avatarCropRadius, botAvatarProfile } from "../../shared/bot-avatar";
 import { BotAvatar } from "./Avatar";
 import { useBotMarkState } from "./mascot-presence";
+import { botShowsUnread } from "@/lib/bot-unread";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { sidebarBotActivityTasks } from "./SidebarBotActivity";
@@ -127,7 +128,7 @@ export const PinnedBotCircle = memo(function PinnedBotCircle({
   const activityTasks = sidebarBotActivityTasks(bot, pendingQueued);
   const waiting = bot.activity === "waiting-on-you" || activityTasks.some((task) => task.activity === "waiting-on-you");
   const working = !waiting && (Boolean(bot.busy) || activityTasks.some((task) => task.busy || task.activity === "working"));
-  const unread = bot.unread || activityTasks.some((task) => task.unread);
+  const unread = botShowsUnread(bot);
   const radius = avatarCropRadius(botAvatarProfile(bot).avatarCrop);
   return (
     <div className="flex w-full min-w-0 flex-col items-center">

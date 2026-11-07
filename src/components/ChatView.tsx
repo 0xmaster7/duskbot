@@ -11,7 +11,6 @@ import { useBotMessageMenu, userMessageMenu } from "@/components/message-menu";
 import { useSpeech } from "@/lib/tts/useSpeech";
 import { localSystemVoiceActive } from "@/lib/local-voice";
 import { computerStartLine, useScreensWhile } from "@/lib/computer-start";
-import { rememberComputerPanelOpen } from "@/lib/computer-panel-focus";
 import { useCaptionChrome, useDesktopCapabilities } from "@/components/DesktopCapabilities";
 import {
   currentTaskBot,
@@ -88,6 +87,7 @@ import { AutomationCaption, RoutineRunRow } from "./RoutineRunCard"; import { In
 import { CallRecordRow } from "./CallRecordRow";
 import { AttachmentGallery, collectMessageFiles, replyAttachmentGroup, splitMessageAttachments } from "./AttachmentGallery";
 import { ScreenFrame } from "./ScreenFrame";
+import { noteMediaSizes } from "@/lib/image-cache";
 import { DigestChip } from "./DigestChip";
 import { ChatHeadRole, chiefOfStaffBadge } from "./BotRole";
 import { ChatHeadPill } from "./ChatHeadPill"; import { useStoreRef } from "@/state/store-ref";
@@ -360,6 +360,7 @@ const Bubble = memo(function Bubble({
       onToggle: () => dispatch({ type: "updateTask", botId, threadId, patch: { pinnedMessageId: pinned ? "" : message.id } }),
     },
   });
+  noteMediaSizes(message.media);
   const attached = useMemo(() => splitMessageAttachments(message.attachments), [message.attachments]);
   const generatedPaths = attached.images;
   const linkedFiles = useMemo(
@@ -432,7 +433,7 @@ const Bubble = memo(function Bubble({
     <div {...{ [MESSAGE_ROW]: "" }} data-arrival={fresh ? (user ? "end" : "start") : undefined} className={cn("group relative flex w-full flex-col", (reactionsOnBubble || (mediaReactions && !group)) && "pt-[26px]", user ? "items-end" : "items-start", join?.above && SIMPLE_STACKED)}>
       {message.relay ? <RelayLabel message={message} /> : peer && <PeerLabel peer={peer} />}
       {speaker && <div className="mb-0.5 px-1 text-[12px] font-medium text-ink-secondary">{speaker}</div>}
-      {imagesAbove && <AttachmentGallery images={imagesAbove.images} files={imagesAbove.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} align="end" className="mb-1" />}
+      {imagesAbove && <AttachmentGallery media={message.media} images={imagesAbove.images} files={imagesAbove.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} align="end" className="mb-1" />}
       <div data-own-row={user ? "" : undefined} className={cn("flex w-full items-center gap-1.5", user ? "justify-end" : "justify-start")}>
         {user && (
           <MessageActions
@@ -495,7 +496,7 @@ const Bubble = memo(function Bubble({
             </div>
           ) : user ? (
             <>
-              {attachments && !imagesAbove && <AttachmentGallery images={attachments.images} files={attachments.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} align="end" className={!visibleText ? "mb-0" : undefined} />}
+              {attachments && !imagesAbove && <AttachmentGallery media={message.media} images={attachments.images} files={attachments.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} align="end" className={!visibleText ? "mb-0" : undefined} />}
               {visibleText && (
                 <div
                   className={cn("chat-text", collapsible && "max-h-40 overflow-hidden [mask-image:linear-gradient(to_bottom,black_60%,transparent)]")}
@@ -538,8 +539,8 @@ const Bubble = memo(function Bubble({
                 </div>
               )}
               {!group && (mediaChips && (generatedPaths.length + linkedFiles.length > 0)
-                ? <div className="relative">{mediaChips}<AttachmentGallery images={generatedPaths} files={linkedFiles} message={{ threadId, messageId: message.id }} eager={eagerAttachments} /></div>
-                : <AttachmentGallery images={generatedPaths} files={linkedFiles} message={{ threadId, messageId: message.id }} eager={eagerAttachments} />)}
+                ? <div className="relative">{mediaChips}<AttachmentGallery media={message.media} images={generatedPaths} files={linkedFiles} message={{ threadId, messageId: message.id }} eager={eagerAttachments} /></div>
+                : <AttachmentGallery media={message.media} images={generatedPaths} files={linkedFiles} message={{ threadId, messageId: message.id }} eager={eagerAttachments} />)}
               {split ? (
                 <ConversationalReply join={join} segments={reply.segments} firstNew={reply.firstNew} citation={{ messageId: message.id, botId, threadId }}
                   renderSegment={(segment) => <ChatMarkdown text={segment} mentionPeers={mentionPeers} mentionPerson={mentionPerson} message={{ threadId, messageId: message.id }} delivered={group?.delivered} />} />
@@ -555,8 +556,8 @@ const Bubble = memo(function Bubble({
                 <div data-citation-source={message.id} data-citation-owner-type="bot" data-citation-owner={botId} data-citation-thread={threadId}><ChatMarkdown text={text} mentionPeers={mentionPeers} mentionPerson={mentionPerson} message={{ threadId, messageId: message.id }} delivered={group?.delivered} /></div>
               ) : null}
               {group && (mediaChips
-                ? <div className="relative mt-[26px]">{mediaChips}<AttachmentGallery images={group.images} files={group.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} /></div>
-                : <AttachmentGallery images={group.images} files={group.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} />)}
+                ? <div className="relative mt-[26px]">{mediaChips}<AttachmentGallery media={message.media} images={group.images} files={group.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} /></div>
+                : <AttachmentGallery media={message.media} images={group.images} files={group.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} />)}
             </MessageBoundary>
           )}
           {reactionsOnBubble && <ReactionChips float threadId={threadId} message={message} bots={bots} align={user ? "end" : "start"} canReact={canReact} />}
@@ -674,7 +675,7 @@ export const MOUNT_STEP_ROWS = 24;
 /** A chat opened on a long window paints its newest rows first, then mounts the older ones above them a step at a time in
  * interruptible renders, so switching into it never blocks a frame. A search jump or a window off the latest rows
  * (`hold`) mounts whole, since it scrolls to a row that may sit above the tail. */
-export function useFirstPaintRows(key: string, rows: Message[], hold: boolean, scrollRef?: RefObject<HTMLElement | null>): Message[] {
+export function useFirstPaintRows(key: string, rows: Message[], hold: boolean, scrollRef?: RefObject<HTMLElement | null>, pinned = false): Message[] {
   const [shown, setShown] = useState({ key, count: FIRST_PAINT_ROWS });
   if (shown.key !== key) setShown({ key, count: FIRST_PAINT_ROWS });
   // a chat whose rows all showed once keeps showing all of them as it grows, without another render to say so
@@ -688,6 +689,12 @@ export function useFirstPaintRows(key: string, rows: Message[], hold: boolean, s
     if (!el || count >= total || el.scrollHeight > el.clientHeight + 1) return;
     setShown({ key, count: count + MOUNT_STEP_ROWS >= total ? Infinity : count + MOUNT_STEP_ROWS });
   }, [key, count, total, scrollRef]);
+  // older rows mount above the ones on screen: a chat held at its newest row stays there in the same frame, rather than
+  // a frame later when the transcript's resize is noticed, which would show the rows jumping down and back
+  useLayoutEffect(() => {
+    const el = scrollRef?.current;
+    if (el && pinned) el.scrollTop = el.scrollHeight;
+  }, [count, pinned, scrollRef]);
   useEffect(() => {
     if (count >= total) {
       whole.current = key;
@@ -851,7 +858,7 @@ const MessagesList = memo(function MessagesList({
             case "compaction":
               return null;
             case "screen":
-              return <ScreenFrame threadId={threadId} message={m} />;
+              return showToolCalls ? <ScreenFrame threadId={threadId} message={m} /> : null;
             default: {
               if (m.publishedPage) return <PublishedPageCard message={m} />;
               const peer = peerLine(m) ?? peerRequest(m, botId);
@@ -1032,7 +1039,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   useThinkingMoment(markRef, waiting && !teammatesWorking);
   // the bubble the line hangs under keeps its pinched corner until the line has finished leaving, as grok's does
   const presenceShown = useLingering(presenceVisible, 140);
-  const paintedMessages = useFirstPaintRows(transcriptKey, windowedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef);
+  const paintedMessages = useFirstPaintRows(transcriptKey, windowedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef, following);
   const lastShownRow = windowedMessages.findLast((message) => !quietRow(message, showToolCalls));
   const lastRowIsBubble = Boolean(lastShownRow && isBotTextRow(lastShownRow, bot.id));
   const presenceUnderBubble = lastRowIsBubble;
@@ -1152,11 +1159,11 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           {/* Grok's header is the bot's pill alone: the pill opens the panel, whose Computer tab shows the bot's screen. */}
           {!phoneMenu && !simpleHead && <button
             data-tour="computer"
-            onClick={(event) => { if (!state.computerOpen) rememberComputerPanelOpen({ botId: bot.id, opener: event.currentTarget, tabs: event.detail === 0 }); dispatch({ type: "toggleComputer" }); }}
+            onClick={() => dispatch({ type: "toggleComputer", open: true })}
             className={cn(
               "relative",
               "flex size-8 items-center justify-center rounded-full transition-colors hover:bg-ink/[0.06]",
-              state.computerOpen ? "text-accent" : "text-ink-secondary hover:text-ink",
+              "text-ink-secondary hover:text-ink",
             )}
             title={t("chat.computer")} aria-label={busy && place === "browser" ? `${t("chat.computer")}, ${t("place.live")}` : t("chat.computer")}
           >

@@ -154,6 +154,23 @@ describe("the live desktop", () => {
     root = createRoot(container);
   });
 
+  it("opens on click the moment the screen shows, before its first frame, and spins Take control while it is asked", () => {
+    const open = vi.fn();
+    draw({ originalViewer: true, viewOnly: true, onOpenPreview: open, onTakeControl: vi.fn() });
+    // still connecting: the screen is clickable already
+    expect(button("Open")!.disabled).toBe(false);
+    flushSync(() => button("Open")!.click());
+    expect(open).toHaveBeenCalledTimes(1);
+    flushSync(() => fixture.attempts[0]!.events.connected());
+    draw({ expanded: true, taking: true });
+    const take = button("Take control")!;
+    expect(take.disabled).toBe(true);
+    expect(take.querySelector("[data-computer-taking]")).not.toBeNull();
+    draw({ taking: false });
+    expect(button("Take control")!.disabled).toBe(false);
+    expect(document.querySelector("[data-computer-taking]")).toBeNull();
+  });
+
   it("opens the original viewer read-only and enables input only through its control button", () => {
     const open = vi.fn();
     const take = vi.fn();
@@ -226,7 +243,7 @@ describe("the live desktop", () => {
     expect(document.querySelector<HTMLElement>("[data-computer-frame]")!.style.aspectRatio).toMatch(/^1\.6\b/);
   });
 
-  it("marks the screen while watching so the person's own pointer stays visible over it", () => {
+  it("marks the screen while watching so the person's pointer takes its own watching or control shape over it", () => {
     const screen = () => document.querySelector<HTMLElement>("[data-live-desktop-screen]")!;
     draw({ viewOnly: true });
     expect(screen().hasAttribute("data-watching")).toBe(true);
@@ -234,7 +251,9 @@ describe("the live desktop", () => {
     expect(screen().hasAttribute("data-watching")).toBe(false);
     const rule = readFileSync("src/components/computer-fullscreen.css", "utf8");
     expect(rule).toContain("[data-live-desktop-screen][data-watching] canvas");
-    expect(rule).toContain('[data-live-desktop-screen] canvas[style*="cursor: none"]');
+    expect(rule).toContain("[data-live-desktop-screen]:not([data-watching]) canvas");
+    // both are custom ring cursors centred on their hotspot, with a plain fallback
+    expect(rule.match(/url\("data:image\/svg\+xml,[^"]*"\) 10 10, (default|crosshair) !important/g)).toHaveLength(2);
   });
 
   it("pastes the person's clipboard into the desktop in control, and never while watching", () => {

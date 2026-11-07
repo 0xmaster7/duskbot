@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from "react";
-import { ExternalLink, KeyRound, Loader2, LockKeyhole, RefreshCw } from "lucide-react";
+import { ExternalLink, Loader2, LockKeyhole, RefreshCw } from "lucide-react";
 
 import { CUSTOM_SECRET_TARGET, credentialResumeOutcome, credentialSaveRequest, desktopCredentialSlot, isConfigCredentialTarget, isCredentialTargetId } from "../../shared/credential-request";
 import { credentialProvider } from "@/lib/analytics-allowlist";
@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { keySaved, keySaveFailure, savedKeyResult } from "@/lib/product-events";
 import { api, useStore, type Bot, type ConfigStatus, type Message } from "@/state/store";
-import { ASK_FIELD, askPrimary, ASK_QUIET_BUTTON, AskCard, returnFocusToComposer } from "./AskCard";
+import { ASK_QUIET_BUTTON, AskCard, CARD_FIELD, CardSettledRow, cardPrimary, returnFocusToComposer } from "./AskCard";
 import { EmailServerInputs } from "./EmailCard";
 import type { EmailServerFields } from "../../shared/email";
 import { productName } from "@/lib/brand";
@@ -18,7 +18,7 @@ import { GrokIcon } from "./GrokIcon";
 // Security: the value goes straight to the host's settings, never into the chat. A custom secret leaves this app only
 // sealed for the server that keeps it, so a relay between them (the VPS tunnel, a Cloud's proxy) never reads it.
 
-/** Grok's settled secret line: a key in a small rounded square, "Secrets", then one grey line with what happened. */
+/** Grok's settled secret card: one row, the key in its tile, "Secrets", then one grey line with what happened. */
 export function SecretSettledRow({ label, status, tone = "done", title, action, detail }: {
   label: string;
   status: string;
@@ -28,23 +28,13 @@ export function SecretSettledRow({ label, status, tone = "done", title, action, 
   detail?: ReactNode;
 }) {
   return (
-    <div role="group" aria-label={label} data-ask-card="settled" data-secret-row={tone} className="w-full max-w-[560px] text-start text-[13px] leading-[18px]">
-      <div className="flex min-w-0 items-center gap-2">
-        <span aria-hidden="true" className="flex size-6 shrink-0 items-center justify-center rounded-md border-[0.5px] border-ink/10 text-ink-secondary">
-          <GrokIcon name="key" size={14} />
-        </span>
-        <span className="shrink-0 text-ink">{t("secretCard.title")}</span>
-        <span dir="auto" aria-live="polite" title={title} className={cn("min-w-0 truncate", tone === "failed" ? "text-danger" : "text-ink-tertiary")}>{status}</span>
-        {action}
-      </div>
-      {detail}
-    </div>
+    <CardSettledRow ariaLabel={label} icon={<GrokIcon name="key" size={12} />} label={t("secretCard.title")} summary={status}
+      tone={tone === "off" ? "closed" : tone} title={title || detail ? label : undefined} detail={title || detail ? <>{title}{detail}</> : undefined} action={action} />
   );
 }
 
 export function SecretRequestCard({
   botId,
-  color,
   threadId,
   message,
 }: {
@@ -214,19 +204,21 @@ export function SecretRequestCard({
     return (
       <SecretSettledRow
         label={secret.label}
-        tone={declined ? "off" : "done"}
+        tone={error && !secret.resumed && !stopped ? "failed" : declined ? "off" : "done"}
         title={description}
         status={status}
         action={retry}
-        detail={error && <p role="alert" className="ms-8 mt-1 text-[12px] text-danger">{t("secretCard.resumeFailed")}: {error}</p>}
+        detail={error && <span role="alert" className="mt-1 block text-[13px] leading-[18px] text-danger">{t("secretCard.resumeFailed")}: {error}</span>}
       />
     );
   }
 
+  const submit = cardPrimary();
+  const note = !custom ? `Stored securely by ${productName()} and never added to chat.` : email ? t("secretCard.email") : login ? t("secretCard.login") : secret.delivery === "file" ? t("secretCard.file") : t("secretCard.ref");
   return (
     <AskCard
       ariaLabel={secret.label}
-      icon={<KeyRound size={15} />}
+      source={{ icon: <GrokIcon name="key" size={12} />, label: t("secretCard.title") }}
       title={secret.label}
       explanation={description}
       onDismiss={dismiss}
@@ -241,61 +233,59 @@ export function SecretRequestCard({
         <form onSubmit={(event) => void save(event)}>
           {email && (
             <div className="mb-2 flex flex-col gap-2">
-              <input type="email" autoComplete="off" spellCheck={false} dir="ltr" value={address} onChange={(event) => setAddress(event.target.value)} placeholder={t("email.address")} disabled={saving} aria-label={t("email.address")} className={cn(ASK_FIELD, "w-full")} />
-              {needsServer && <EmailServerInputs value={server} onChange={setServer} className={cn(ASK_FIELD, "w-full")} />}
+              <input type="email" autoComplete="off" spellCheck={false} dir="ltr" value={address} onChange={(event) => setAddress(event.target.value)} placeholder={t("email.address")} disabled={saving} aria-label={t("email.address")} className={cn(CARD_FIELD, "w-full")} />
+              {needsServer && <EmailServerInputs value={server} onChange={setServer} className={cn(CARD_FIELD, "w-full")} />}
             </div>
           )}
           {login && (
             <input type="text" name="username" autoComplete="off" spellCheck={false} dir="ltr" value={username} onChange={(event) => setUsername(event.target.value)}
-              placeholder={t("logins.username")} disabled={saving} aria-label={t("logins.username")} maxLength={512} className={cn(ASK_FIELD, "mb-2 w-full")} />
+              placeholder={t("logins.username")} disabled={saving} aria-label={t("logins.username")} maxLength={512} className={cn(CARD_FIELD, "mb-2 w-full")} />
           )}
-          <div className="flex flex-wrap gap-2">
-            <input
-              type="password"
-              autoComplete="new-password"
-              spellCheck={false}
-              dir="ltr"
-              value={value}
-              onChange={(event) => setValue(event.target.value)}
-              placeholder={login ? t("logins.password") : secret.placeholder}
-              disabled={saving || savedLocally}
-              aria-label={login ? t("logins.password") : secret.label}
-              className={cn(ASK_FIELD, "min-w-[10rem] flex-1")}
-            />
-            <button type="submit" disabled={saving || (!value.trim() && !savedLocally) || (email && !address.trim())} {...askPrimary(color)}>
-              {saving ? <Loader2 size={14} className="animate-spin" /> : <LockKeyhole size={14} />}
+          <input
+            type="password"
+            autoComplete="new-password"
+            spellCheck={false}
+            dir="ltr"
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            placeholder={login ? t("logins.password") : secret.placeholder}
+            disabled={saving || savedLocally}
+            aria-label={login ? t("logins.password") : secret.label}
+            className={cn(CARD_FIELD, "w-full")}
+          />
+          {login && (
+            <input type="password" name="totp" autoComplete="off" spellCheck={false} dir="ltr" value={totp} onChange={(event) => setTotp(event.target.value)}
+              placeholder={t("logins.totp")} disabled={saving} aria-label={t("logins.totp")} title={t("logins.totpHint")} maxLength={2048} className={cn(CARD_FIELD, "mt-2 w-full")} />
+          )}
+          {((custom && !email) || secret.helpUrl) && (
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] leading-4 text-ink-tertiary">
+              {custom && !email && (
+                <label className="inline-flex cursor-pointer items-center gap-1.5 text-ink-secondary" data-secret-remember="">
+                  <input type="checkbox" checked={remember} disabled={saving} onChange={(event) => setRemember(event.target.checked)} className="size-3.5 accent-current" />
+                  {t("secretCard.saveToVault")}
+                </label>
+              )}
+              {secret.helpUrl && (
+                <a href={secret.helpUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-accent-text hover:underline">
+                  Where to get this key <ExternalLink size={11} />
+                </a>
+              )}
+            </div>
+          )}
+          {error && <p role="alert" className="mt-2 text-[13px] leading-[18px] text-danger">{error}</p>}
+          <div className="-mx-4 -mb-4 mt-4 flex items-center gap-3 px-4 pb-4 pt-2.5">
+            <span className="flex min-w-0 flex-1 items-center gap-1.5 text-[12px] leading-4 text-ink-tertiary">
+              <LockKeyhole size={12} aria-hidden="true" className="shrink-0" />
+              <span className="min-w-0">{note}</span>
+            </span>
+            <button type="submit" disabled={saving || (!value.trim() && !savedLocally) || (email && !address.trim())} className={submit.className} style={submit.style}>
+              {saving && <Loader2 size={14} className="animate-spin" />}
               {savedLocally ? "Continue task" : custom ? t("secretCard.submit") : "Save securely"}
             </button>
           </div>
-          {login && (
-            <input type="password" name="totp" autoComplete="off" spellCheck={false} dir="ltr" value={totp} onChange={(event) => setTotp(event.target.value)}
-              placeholder={t("logins.totp")} disabled={saving} aria-label={t("logins.totp")} title={t("logins.totpHint")} maxLength={2048} className={cn(ASK_FIELD, "mt-2 w-full")} />
-          )}
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-tertiary">
-            <span className="flex items-center gap-1">
-              <LockKeyhole size={11} />{" "}
-              {!custom ? `Stored securely by ${productName()} and never added to chat.` : email ? t("secretCard.email") : login ? t("secretCard.login") : secret.delivery === "file" ? t("secretCard.file") : t("secretCard.ref")}
-            </span>
-            {custom && !email && (
-              <label className="ms-auto inline-flex cursor-pointer items-center gap-1.5 text-ink-secondary" data-secret-remember="">
-                <input type="checkbox" checked={remember} disabled={saving} onChange={(event) => setRemember(event.target.checked)} className="size-3.5 accent-current" />
-                {t("secretCard.saveToVault")}
-              </label>
-            )}
-            {secret.helpUrl && (
-              <a
-                href={secret.helpUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-accent-text hover:underline"
-              >
-                Where to get this key <ExternalLink size={11} />
-              </a>
-            )}
-          </div>
         </form>
       )}
-      {error && <p role="alert" className="mt-2 text-[12px] text-danger">{error}</p>}
+      {onlyOnHost && error && <p role="alert" className="mt-2 text-[13px] leading-[18px] text-danger">{error}</p>}
     </AskCard>
   );
 }

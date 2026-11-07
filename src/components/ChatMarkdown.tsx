@@ -1,5 +1,5 @@
 // Security: model output never reaches the DOM as raw HTML (no rehype-raw); Shiki's output is generator-escaped.
-import { createContext, memo, use, useContext, useEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode } from "react";
+import { createContext, memo, use, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import Markdown, { defaultUrlTransform, type Components, type ExtraProps, type Options as MarkdownOptions } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -20,6 +20,7 @@ import { githubRefFromProps, remarkGithubRefs } from "@/lib/github-refs";
 import { GITHUB_REF_ICONS, LinkHoverCard } from "@/components/LinkHoverCard";
 import { useThreadLinkMenu } from "@/components/ThreadLinkMenu";
 import { looksLikeThreadRefUrl, parseThreadRefUrl, resolveThreadRefAddress, remarkThreadRefs } from "../lib/thread-refs";
+import { knownImageSize, rememberRenderedSize, renderedSize } from "@/lib/image-cache";
 import { MarkdownImagePreview, MessageFolderFiles, OutsideWorkspaceFile, saveFailureText, useLocalFileSave, type MessageAttachmentContext } from "./AttachmentPreview";
 import { ThreadLink, ThreadRefsContext, threadLinkFromProps, type ThreadRefsValue } from "./ThreadRefs";
 import { MarkdownTable } from "./MarkdownTable";
@@ -196,6 +197,8 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
   const [showSource, setShowSource] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const { state: copied, copy } = useCopyFeedback(code);
+  const sizeKey = `mermaid:${codeHash(code)}`;
+  const [reserved] = useState(() => renderedSize(sizeKey));
   const expand = svg && !error ? { label: t("mermaid.expandAria"), onClick: () => setExpanded(true) } : undefined;
   const viewer = expanded && svg && <MermaidViewer svg={svg} onClose={() => setExpanded(false)} />;
 
@@ -248,6 +251,16 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
     };
   }, [code, skinEpoch]);
 
+  useLayoutEffect(() => {
+    const drawn = svg && frame.current?.querySelector("svg");
+    if (!drawn) return;
+    const box = drawn.viewBox?.baseVal;
+    const width = Number.parseFloat(drawn.style.maxWidth) || box?.width || 0;
+    const height = box && box.width > 0 ? width * (box.height / box.width) : 0;
+    if (width > 0 && height > 0) rememberRenderedSize(sizeKey, { w: Math.round(width), h: Math.round(height) });
+  }, [svg, sizeKey]);
+
+  const waiting = !svg && !error && !showSource && reserved;
   const diagram = <>
     {error && (
       <p role="alert" className="px-3 pt-2 text-[12px] text-danger">
@@ -255,7 +268,8 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
       </p>
     )}
     {markup && <div className="overflow-x-auto p-3 [&_svg]:!max-w-full" dangerouslySetInnerHTML={markup} />}
-    {(showSource || !svg || error) && (
+    {waiting && <div className="p-3"><div data-mermaid-reserved style={{ width: `min(100%, ${reserved.w}px)`, aspectRatio: `${reserved.w} / ${reserved.h}` }} /></div>}
+    {(showSource || (!svg && !waiting) || error) && (
       <pre className="overflow-x-auto px-3 py-2 text-[13px] leading-5 text-ink-secondary">{code}</pre>
     )}
   </>;
@@ -548,15 +562,17 @@ function MarkdownCode({ node, children }: BlockProps) {
 }
 
 function MarkdownImage(props: ComponentProps<"img"> & ExtraProps) {
-  const { message, imageOffsets } = useContext(MessageScopeContext);
+  const { message, imageOffsets, delivered } = useContext(MessageScopeContext);
   const { src, alt } = props;
   if (!src) {
     return <span className="text-[12px] text-danger" role="alert">{t("attach.imageUnavailable")}</span>;
   }
   const filePath = localFilePath(src) ?? undefined;
   const sourceOffset = props.node?.position?.start.offset;
+  const copy = filePath && delivered && Object.hasOwn(delivered, fileName(filePath)) ? delivered[fileName(filePath)] : undefined;
   return (
     <MarkdownImagePreview
+      size={knownImageSize(copy ?? filePath ?? src)}
       src={src}
       name={markdownImageName(src, alt)}
       openUrl={markdownImageOpenUrl(typeof (props as Record<string, unknown>)["data-open-url"] === "string" ? String((props as Record<string, unknown>)["data-open-url"]) : src)}
