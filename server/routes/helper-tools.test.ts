@@ -10,6 +10,7 @@ import type { Decider } from "../decider/index.ts";
 import type { Extractor } from "../extractor/index.ts";
 import { createHelperToolRoutes, HELPER_MESSAGES, type HelperToolContext } from "./helper-tools.ts";
 import { openMessageFile } from "../message-file.ts";
+import { pdfFixture } from "../testing/pdf-fixture.ts";
 import { PASS } from "./table.ts";
 
 const home = mkdtempSync(join(tmpdir(), "omb-helper-tools-"));
@@ -147,12 +148,23 @@ describe("extract", () => {
   it("other paths and methods pass through", async () => {
     expect((await call("/api/internal/x/search", {})).outcome).toBe(PASS);
   });
-  it("refuses oversized text instead of silently dropping the end of a file", async () => {
-    writeFileSync(join(work, "long.txt"), "x".repeat(200_001));
-    const result = await call("/api/internal/helpers/extract", { fields: FIELDS, file: "long.txt" }, { extract: answered });
-    expect(result.status).toBe(400);
-    expect(result.payload?.error).toContain("at most 200000");
-    expect(result.extract).not.toHaveBeenCalled();
+  it.each([
+    ["a long text file", "long.txt", () => writeFileSync(join(work, "long.txt"), "x".repeat(200_001)), 200_000],
+    ["a text file whose characters take two bytes", "wide.txt", () => writeFileSync(join(work, "wide.txt"), "é".repeat(150_000)), undefined],
+    ["a PDF with more text than one extraction", "long.pdf", () => writeFileSync(join(work, "long.pdf"),
+      pdfFixture(Array.from({ length: 55 }, () => Array.from({ length: 60 }, () => "x".repeat(70)).join("\n")))), 200_000],
+  ])("reads the start of %s and tells the model the rest was cut", async (_name, file, write, chars) => {
+    write();
+    const result = await call("/api/internal/helpers/extract", { fields: FIELDS, file }, { extract: answered });
+    expect(result.status).toBe(200);
+    const sent = result.extract.mock.calls[0]![2].text!;
+    if (chars !== undefined) expect(sent).toHaveLength(chars);
+    expect(Buffer.byteLength(JSON.stringify({ fields: FIELDS, input: { text: sent } }))).toBeLessThanOrEqual(256 * 1024);
+    expect(result.payload?.text).toContain(`only its first ${sent.length.toLocaleString("en-US")} characters were read`);
+  });
+  it("says nothing was cut when a file fits whole", async () => {
+    const result = await call("/api/internal/helpers/extract", { fields: FIELDS, file: "invoice.txt" }, { extract: answered });
+    expect(result.payload?.text).not.toContain("too long");
   });
   it("bounds PDF input before starting a parser or model", async () => {
     const file = join(work, "oversize.pdf");

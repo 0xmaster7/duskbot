@@ -29,9 +29,11 @@ Scanned documents need page images; this does not provide OCR.
 The parser starts only when called, in a dedicated worker: at most two jobs,
 25 MiB input, 500 pages, 256 KiB decoded text, a ten-second deadline and V8 heap
 limits of 128 MiB old generation plus 16 MiB young generation. The helper's
-normal text/schema/body limits still apply. Oversized text is refused instead
-of silently dropping its end. Cancellation terminates the worker before its
-slot is released.
+normal text/schema/body limits still apply: text past 200,000 characters or the
+256 KB request body is cut, and the tool's answer tells the model only the
+start was read. A PDF whose decoded text passes 256 KiB is refused, since its
+parser stops there. Cancellation terminates the worker before its slot is
+released.
 
 The packaged smoke copies the built server outside the repository, with no
 `node_modules` reachable. Its real worker reads both PDF pages and a separate
