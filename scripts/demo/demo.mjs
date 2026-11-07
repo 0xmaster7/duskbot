@@ -156,7 +156,7 @@ async function seed() {
   writeJson(join(DEMO_DIR, "config.json"), {
     onboarding: {
       completedAt: new Date().toISOString(), version: 1, reelSeen: true,
-      hintsSeen: ["met-chief-v1", "grok-move-2026-11", "boat-credit-2026-11"],
+      hintsSeen: ["met-chief-v1", "grok-move-2026-11"],
     },
     defaultModelSelection: { instanceId, model },
   });

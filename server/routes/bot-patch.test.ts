@@ -84,6 +84,13 @@ function fixture() {
 }
 
 describe("PATCH /api/bots/:id vpsAlias relocation guard", () => {
+  it("accepts legacy backend input as the user's VPS without moving its files", async () => {
+    const { bot, patch } = fixture();
+    const result = await patch(bot.id, { cloudBackend: "box" });
+    expect(result.status).toBe(200);
+    expect(result.body.bot.cloudBackend).toBe("vps");
+    expect(scan).not.toHaveBeenCalled();
+  });
   it("skips the guard when pinning a bot to the host it already uses", async () => {
     const { bot, patch } = fixture();
 

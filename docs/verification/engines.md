@@ -21,6 +21,25 @@ pnpm control:omb models --url http://127.0.0.1:PORT
 `doctor.ok` is true only when the endpoint is OpenMausBot and at least one
 engine is available. The isolated fixture should expose `claude`.
 
+## Startup engine discovery
+
+```sh
+pnpm exec vitest run server/harness/registry-start-read.test.ts server/harness/registry.test.ts server/startup-model-catalog.test.ts server/startup-engine-list.e2e.test.ts
+```
+
+The restart fixture adds two offline engines whose status probes wait on files
+inside its disposable home. The engine list must answer within its three-second
+request deadline while those probes are blocked. Unrecorded engines report
+`Checking engine status`; they are provisional, never a basis for selecting a
+turn's engine. A previously ready bot must still answer a fake-engine turn.
+Releasing the first probe must publish a config event and expose that engine's
+real status while the second remains blocked. Releasing the second must make
+its real status visible too. The registry tests also prove that listing engines
+does not start the queued CLI probes out of order.
+
+These checks measure isolated startup behavior, not a real provider's CLI
+latency, sign-in state or the desktop's model-picker rendering.
+
 ## Named Claude accounts
 
 Run the offline API fixture and driver regressions:

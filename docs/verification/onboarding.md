@@ -1,59 +1,34 @@
 # Welcome flow and guided tour
 
-The first run is two screens, then the chat (Oct 27 2026): "Meet OpenMausBot"
-(a composer typing one sentence and Next; with no AI working, the same pill
-signs one in, with "Other ways to connect · Set up later" under it), then
-"Introducing your Chief of Staff" over an empty app (Create Chief of Staff, and
-Choose an existing bot where the person has bots). The Chief step shows only
-for a MausBot not yet introduced where no other bot is the Chief. It lands in
-the Chief's chat, where MausBot's three lines, its follow-up (written once by
-the server, `POST /api/bots/:id/helper-followup`) and chips offer only what is
-still missing. The app tour starts only from Settings → Replay app tour.
+The current first run introduces MausBot, its computer, jobs and the shared
+talking style, then opens the chat. It offers AI sign-in when no engine has
+passed its test. MausBot becomes Chief only when there is no existing Chief;
+there is no separate Chief selection screen. The app tour starts only from
+Settings → Replay app tour.
 
-Launch the isolated full-app fixture following [Chat UI](chat-ui.md):
+The current offline checks are:
+
+```sh
+pnpm exec vitest run src/components/onboarding/WelcomeFlow.test.ts src/components/onboarding/WelcomeGate.test.ts src/components/onboarding/GuidedTour.test.ts src/components/onboarding/ConnectAi.test.ts src/components/HelperIntro.test.ts src/lib/default-bot.test.ts server/routes/helper-followup.test.ts electron/system-name.test.mjs src/components/CardHint.test.ts
+```
+
+They cover navigation, AI readiness and sign-in errors, talking-style saves,
+Chief assignment without replacement, replay, hosted-session gating and the
+rule that the app tour never starts automatically. The helper tests cover
+first-message chips and a follow-up written once for the helper's own person.
+These use synthetic accounts and do not prove real provider authentication or
+native Electron permissions.
+
+For a manual renderer pass, launch the isolated full-app fixture following
+[Chat UI](chat-ui.md):
 
 ```sh
 node --experimental-strip-types scripts/control-omb.ts ui launch
 ```
 
-In a second terminal, pass its exact printed handle:
-
-```sh
-node --experimental-strip-types scripts/verify-onboarding-ui.ts /tmp/openmausbot-verify-data-XXXXXX/ui.json
-```
-
-Use a fresh fixture. The recipe clears only its browser storage, then enables
-first-run onboarding through the fixture-only `?onboarding=1` entry. It uses
-the real renderer and fake-engine server. No provider login, real phone
-pairing, native permissions or user workspace is involved.
-
-Assertions cover the two screens: no field, step count, Back or Skip on the
-first; a reload on the second coming back to it; Create landing in the Chief's
-chat with its first messages and one saved follow-up even when the completion
-save fails, and the next browser without this one's mark seeing the welcome
-again, without the Chief step MausBot already had, and saving it (with
-`met-chief-v1`); no app tour after the welcome or a reload; automatic
-starter-model selection and a successful first composer message without opening
-the model picker; every app tour step from Settings, persistence after reload,
-Settings replay, skipping while Next is saving, closing a welcome replay while
-its save is pending, and replay on legacy installs with a failed-save retry.
-Screenshots are retained in `.omb-scratch/verify-evidence/onboarding/` with a
-PASS line for each workflow. Actual provider authentication and native Electron
-permissions remain covered by their separate platform recipes, not this browser
-fixture.
-
-Stop the launcher with Ctrl-C; it owns and removes only its disposable home.
-
-The rules behind it run offline:
-
-```sh
-pnpm exec vitest run src/components/onboarding/WelcomeFlow.test.ts src/components/onboarding/ChiefIntro.test.ts src/components/onboarding/ConnectAi.test.ts src/components/HelperIntro.test.ts src/lib/default-bot.test.ts server/routes/helper-followup.test.ts electron/system-name.test.mjs src/components/CardHint.test.ts
-```
-
-They cover when the Chief step shows, its 300 ms input guard, the Cloud Pro
-popup settled by a first run that could offer the Cloud, the chips' order and
-cap, the follow-up written once and only by MausBot's own person, the default
-profile name's guards, and the Advanced intro and spotlights kept as they were.
+Use only its printed handle and preview URL. The older standalone onboarding
+browser script still names the retired welcome screens; it is not current
+acceptance evidence. Stop the fixture launcher with Ctrl-C when finished.
 
 ## Providers connected after first launch
 
@@ -79,11 +54,11 @@ What each first-run surface depends on, and how it was checked:
 
 | Who opens the app | What they get | Checked by |
 |---|---|---|
-| Desktop app, own server (full bridge, `remoteClient` present) | The two-screen first run, decided without a new request | `src/components/onboarding/WelcomeGate.test.ts`, `src/components/onboarding/WelcomeFlow.test.ts` |
+| Desktop app, own server (full bridge, `remoteClient` present) | The current first run, decided without a new request | `src/components/onboarding/WelcomeGate.test.ts`, `src/components/onboarding/WelcomeFlow.test.ts` |
 | Hosted workspace opened inside the desktop app (reduced bridge, no `remoteClient`) | Treated like a browser: the server is asked | `src/components/onboarding/WelcomeGate.test.ts` |
 | Packaged desktop with the organization bridge | An optional "Using OpenMausBot at work?" row under Other ways in Connect an AI; a signed-in Company engine counts as ready | `src/components/onboarding/beats/OrganisationRow.test.ts`, `src/components/onboarding/ConnectAi.test.ts` (fake bridge) |
 | Browser, admin of a hosted workspace | The first screen only, with the shared-workspace line, then the chat | `src/components/onboarding/WelcomeGate.test.ts`, `src/components/onboarding/WelcomeFlow.test.ts`, `src/lib/onboarding.test.ts` |
-| Browser, hosted member (no admin scope) | No welcome flow; one dismissible note kept in browser storage; no first-conversation spotlights | `src/components/onboarding/WelcomeGate.test.ts`, `src/components/onboarding/FirstConversationTour.test.ts` |
+| Browser, hosted member (no admin scope) | No welcome flow; one dismissible note kept in browser storage; no first-conversation spotlights | `src/components/onboarding/WelcomeGate.test.ts`, `src/components/onboarding/GuidedTour.test.ts` |
 | Browser, client-scope session on a server that is not hosted | Nothing new: the flow does not open itself (it could not be saved); Settings replay and spotlights as before | `src/components/onboarding/WelcomeGate.test.ts`, `src/lib/onboarding.test.ts` |
 
 `GET /api/auth/session` adds `hosted: true` for a session on a hosted
@@ -165,39 +140,13 @@ and with their result, are covered in Settings by
 `src/components/HelperIntro.test.ts`. Not covered here: the packaged Electron
 window itself.
 
-## Two screens, then the chat (Oct 27 2026)
+## First-run state and tour checks
 
 ```sh
-pnpm exec vitest run src/lib/onboarding.test.ts src/lib/welcome-draft.test.ts src/lib/default-bot.test.ts src/lib/corner-popup.test.ts src/components/onboarding src/components/HelperIntro.test.ts src/components/AppNotices.test.ts src/components/MausBotWelcome.gate.test.ts
+pnpm exec vitest run src/lib/onboarding.test.ts src/lib/welcome-draft.test.ts src/lib/default-bot.test.ts src/components/onboarding src/components/HelperIntro.test.ts src/components/AppNotices.test.ts
 ```
 
-- `src/components/onboarding/WelcomeFlow.test.ts` renders the flow in
-  happy-dom: two screens with an AI working (Next, then Create, landing in the
-  Chief's chat with its first messages staged); with none, the first screen
-  holding Connect an AI, Next held until one connects and Later moving on;
-  Escape and Enter; a reload on the second screen; a hosted admin's one screen;
-  a replay saving nothing about a first chat.
-- `src/components/onboarding/ChiefIntro.test.ts` covers Create (MausBot made the
-  Chief only where there is none, an existing Chief never replaced), Choose with
-  its radio list and Confirm (a bot whose AI cannot lead held back), Escape
-  leaving only the list, and the choice finishing in a window that runs no
-  animation frames.
-- `src/components/onboarding/ConnectAi.test.ts` covers the recommended sign-in,
-  Other ways and the failed check.
-- `src/components/HelperIntro.test.ts` covers MausBot's first messages: the
-  three bubbles, the look around, chips for only what is missing, and the
-  staged arrival.
-- `src/lib/corner-popup.test.ts` and `src/components/AppNotices.test.ts` keep
-  every corner notice out of the first conversation until a reply;
-  `src/components/onboarding/FirstConversationTour.test.ts` keeps its
-  spotlights off; `src/components/MausBotWelcome.gate.test.ts` keeps MausBot's
-  first-launch card for older installs only.
-- `src/components/onboarding/GuidedTour.test.ts` and
-  `src/components/onboarding/WelcomeGate.test.ts` check the app tour never
-  starts by itself, also after a reload.
-
-`verify-onboarding-ui.ts` passed end to end on a fresh `ui launch` fixture (Oct
-27 2026). That fixture's fake engine always reports a signed-in account, so the
-no-AI first screen, the Chief screen with bots to choose and narrow windows were
-checked in `onboarding-preview.html` (`?ai=0`, `?screen=chief&bots=3`,
-`?w=840&h=620`) in Midnight and Daylight.
+The current flow and tour components cover first-run state and replay. The
+retired Chief selector, first-conversation spotlight component and Meet
+MausBot popup have no current renderer fixture; their removed tests must not
+be treated as acceptance evidence.

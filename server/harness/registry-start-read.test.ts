@@ -115,6 +115,31 @@ describe("the start-up read", () => {
     expect(probes()).toEqual({ stuck: 1, b: 1 });
   });
 
+  it("lists unrecorded engines immediately without starting the cold probes out of order", async () => {
+    const [a, b] = [gate(), gate()];
+    const { registry, probes } = await engines({ a: { holdSnapshot: a.promise }, b: { holdSnapshot: b.promise } });
+    const progress = vi.fn();
+    const read = registry.readAtStart(["a"], () => {}, progress);
+    const listed = await registry.describe({ known: true });
+    expect(listed.map((engine) => engine.snapshot)).toEqual(["a", "b"].map(() => ({ state: "unavailable", reason: "Checking engine status" })));
+    expect(registry.provisional(listed)).toBe(true);
+    expect(probes()).toEqual({ a: 1, b: 0 });
+
+    a.open();
+    await settle();
+    expect(progress).toHaveBeenCalledTimes(1);
+    expect(probes()).toEqual({ a: 1, b: 1 });
+    expect((await registry.describe({ known: true }))[0].snapshot).toEqual(AVAILABLE);
+    expect(registry.engineRead("b")).not.toBeNull();
+    b.open();
+    const { changed } = await read;
+    expect(progress).toHaveBeenCalledTimes(2);
+    expect(changed).toBe(true);
+    expect(registry.provisional()).toBe(false);
+    expect((await registry.describe({ known: true })).map((engine) => engine.snapshot)).toEqual([AVAILABLE, AVAILABLE]);
+    expect(probes()).toEqual({ a: 1, b: 1 });
+  });
+
   it("answers the engine list from the last run's status until it reaches an engine, and never decides from that status", async () => {
     const file = statusFile();
     const options: FakeDriverOptions = {};

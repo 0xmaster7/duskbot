@@ -24,6 +24,7 @@ let desktopPort: number;
 let admin: ReturnType<SessionRegistry["issue"]>;
 let member: ReturnType<SessionRegistry["issue"]>;
 let vpsTarget: DesktopTarget | undefined;
+let vpsThreads: Array<string | undefined>;
 let inspected: string[];
 let seenHeaders: IncomingHttpHeaders;
 let seenPath: string | undefined;
@@ -83,6 +84,7 @@ beforeEach(async () => {
   member = sessions.issue({ label: "Member", scopes: ["client"] });
   inspected = []; touched = []; statusOverrides = {}; inspection = undefined; seenPath = undefined;
   vpsTarget = undefined;
+  vpsThreads = [];
   targetLookups = 0; handled = () => {};
   leases = new Set();
   targets = [SHARED_LOCAL_VM_TARGET, perBotLocalVmTarget("test-bot"), poolLocalVmTarget(1)];
@@ -98,9 +100,9 @@ beforeEach(async () => {
   });
   desktopPort = await listen(desktop);
   viewer = createDesktopViewer({
-    target: id => {
+    target: (id, threadId) => {
       targetLookups++;
-      if (id === "vps/test-bot") return vpsTarget;
+      if (id === "vps/test-bot") { vpsThreads.push(threadId); return vpsTarget; }
       const target = targets.find(target => viewerTargetId(target) === id);
       return target && localDesktopTarget(target, {
         status: async target => {
@@ -224,7 +226,7 @@ it("rechecks access after asynchronous container inspection", async () => {
   expect(seenPath).toBeUndefined();
 });
 
-it.each(["shutdown", "revocation"])("closes a pending upgrade immediately on %s", async action => {
+it.each(["shutdown", "revocation", "target revocation"])("closes a pending upgrade immediately on %s", async action => {
   let inspectedDone!: () => void;
   inspection = new Promise(resolve => { inspectedDone = resolve; });
   const accepted = once(app, "connection");
@@ -234,7 +236,8 @@ it.each(["shutdown", "revocation"])("closes a pending upgrade immediately on %s"
   const [socket] = await accepted;
   try {
     if (action === "shutdown") viewer.closeAll();
-    else sessions.revoke(admin.session.id);
+    else if (action === "revocation") sessions.revoke(admin.session.id);
+    else { targets = []; expect(viewer.recheck()).toBe(1); }
     await expect.poll(() => socket.destroyed, { timeout: 1000 }).toBe(true);
     await rejected;
   } finally {
@@ -330,6 +333,53 @@ it("uses the same authenticated proxy for VPS and releases only its own connecti
   sessions.revoke(admin.session.id);
   await closed;
   expect(holds).toBe(0);
+});
+
+it("closes VPS viewers immediately when their shared membership or destination is revoked", async () => {
+  let holds = 0;
+  const resolve = async () => ({ port: desktopPort, password: "fixture-secret", retain: () => {
+    holds++;
+    return () => { holds--; };
+  } });
+  vpsTarget = { key: "team-a:ssh-a", resolve };
+  const first = (await open("/api/desktop-viewer/vps/test-bot/websockify")).socket!;
+  const unrelated = (await open()).socket!;
+  expect(holds).toBe(1);
+  const closed = once(first, "close");
+  vpsTarget = { key: "team-b:ssh-a", resolve };
+  expect(viewer.recheck()).toBe(1);
+  await closed;
+  expect(holds).toBe(0);
+  expect(unrelated.destroyed).toBe(false);
+  const replacement = (await open("/api/desktop-viewer/vps/test-bot/websockify")).socket!;
+  const revoked = once(replacement, "close");
+  vpsTarget = undefined;
+  expect(viewer.recheck()).toBe(1);
+  await revoked;
+  expect((await get("/api/desktop-viewer/vps/test-bot")).status).toBe(404);
+});
+
+it("tracks the logical bot for unbound VPS viewers when closing one owner's bot window", async () => {
+  vpsTarget = { key: "team-a:ssh-a", resolve: async () => ({ port: desktopPort, password: null }) };
+  const mine = (await open("/api/desktop-viewer/vps/test-bot/websockify")).socket!;
+  const unrelated = (await open()).socket!;
+  const closed = once(mine, "close");
+  expect(viewer.closeForOwner(admin.session.id, "test-bot")).toBe(1);
+  await closed;
+  expect(unrelated.destroyed).toBe(false);
+});
+
+it("passes validated VPS conversation context through lookup and immediate rechecks", async () => {
+  vpsTarget = { key: "team-a:thread-a", resolve: async () => ({ port: desktopPort, password: null }) };
+  const path = "/api/desktop-viewer/vps/test-bot";
+  expect((await get(`${path}?threadId=thread-a`)).status).toBe(200);
+  const socket = (await open(`${path}/websockify?threadId=thread-a`)).socket!;
+  expect(viewer.recheck()).toBe(0);
+  expect(vpsThreads.length).toBeGreaterThan(2);
+  expect(vpsThreads.every(thread => thread === "thread-a")).toBe(true);
+  expect((await get(`${path}?threadId=bad%20thread`)).status).toBe(400);
+  expect((await get(`${path}?threadId=thread-a`, { cookie: `test_session=${member.token}` })).status).toBe(403);
+  expect(socket.destroyed).toBe(false);
 });
 
 const lease = "phone-lease-0123456789";

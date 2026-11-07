@@ -3,6 +3,11 @@ import { newBotDefaultsSchema, resolveBotCreationDefaults } from "./new-bot-defa
 import { parseConfigPatch } from "./config.ts";
 
 describe("new-bot templates", () => {
+  it("normalizes legacy paid-desktop defaults to the user's VPS", () => {
+    expect(newBotDefaultsSchema.parse({ profile: { cloudBackend: "box", computer: "cloud" } }).profile)
+      .toEqual({ cloudBackend: "vps", computer: "cloud" });
+    expect(resolveBotCreationDefaults(undefined, { settings: { cloudBackend: "box" } }).profile.cloudBackend).toBe("vps");
+  });
   it("preserves restricted and empty tool defaults while allowing an explicit owner reset", () => {
     const defaults = newBotDefaultsSchema.parse({ profile: { toolScope: { allow: ["native:read", "native:read"] } } });
     expect(defaults.profile).toEqual({ toolScope: { allow: ["native:read"] } });

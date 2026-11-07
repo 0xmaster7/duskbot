@@ -8,18 +8,19 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { launchVerificationServer, runControlOmb, type VerificationServer } from "./control-omb.ts";
 import { agentBrowser, ensureUiBrowser, sessionEnv } from "./testing/control-omb-ui.ts";
-import { fixtureApi } from "./testing/preview-fixture.ts";
+import { fixtureApi, mountPreview, type MountedPreview } from "./testing/preview-fixture.ts";
 import { fakeVnc } from "./testing/fake-vnc.ts";
 import { BASE_IMAGE_DIGEST, CUA_DRIVER_VERSION, IMAGE, IMAGE_LAYER_VERSION } from "../server/container-computer.ts";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
-const scratch = mkdtempSync(join(tmpdir(), "omb-viewer-fixture-"));
+const scratch = mkdtempSync(join(process.platform === "win32" ? tmpdir() : "/tmp", "omb-viewer-fixture-"));
 const bin = join(scratch, "bin");
 mkdirSync(bin);
 mkdirSync(join(scratch, "tmp"));
 const desktop = await fakeVnc();
 let fixture: VerificationServer | undefined;
 let browser: { binary: string; env: NodeJS.ProcessEnv } | undefined;
+let preview: MountedPreview | undefined;
 try {
   // This executable answers only read-only inspection. No command can reach
   // the machine's real Docker installation, even during fixture startup.
@@ -39,7 +40,7 @@ if (args[0] === 'inspect' && /^openmausbot-vps-/.test(args[1])) result = [{
   NetworkSettings:{Networks:{bridge:{IPAddress:'172.17.0.5'}}}
 }];
 else if (args[0] === 'exec') result = args.includes('--version') ? 'cua-driver ${CUA_DRIVER_VERSION}'
-  : args.includes('health_report') ? {schema_version:'1',overall:'ok',checks:[]} : {};
+  : (args.includes('omb-desktop-probe') || args.includes('health_report')) ? {schema_version:'1',overall:'ok',checks:[]} : {};
 else if (args[0] === 'info') result = 'fixture';
 else if (args[0] === 'image' && args[1] === 'inspect') result = [{Id:imageId,Config:{Labels:labels}}];
 else if (args[0] === 'inspect' && args[1] === 'openmausbot-computer') result = [{
@@ -84,6 +85,69 @@ process.on('SIGTERM',()=>{fs.appendFileSync(log,'close ');process.exit(0)});
   // Pair through the actual HTTP endpoint in this disposable browser. The
   // resulting cookie forces both status and upgrades through session auth.
   assert.equal(await evaluate(`(async () => (await fetch('/api/auth/pair', {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:${JSON.stringify(pairing.code)},cookie:true,label:'Viewer fixture'})})).status)()`), 200);
+  const verifyLiveComputer = async (botId: string) => {
+    preview ??= await mountPreview(fixture, {
+      entry: "/scripts/testing/live-computer-preview.tsx", route: "/__live-computer.html",
+      title: "Isolated live computer", logLevel: "silent",
+    });
+    const connectedBeforeWatch = desktop.connections();
+    await command("set", "viewport", "1100", "850");
+    await command("open", `${preview.previewUrl}?bot=${botId}`);
+    await command("wait", "--fn", "document.querySelector('[data-live-desktop][data-state=connected][data-view-only=true] canvas') !== null");
+    await command("wait", "--fn", "document.querySelector('canvas').getContext('2d').getImageData(0,0,1,1).data[0] === 255");
+    assert.equal(desktop.connections(), connectedBeforeWatch + 1);
+    desktop.keys.length = 0;
+    desktop.pointers.length = 0;
+    await evaluate("document.querySelector('canvas').focus(); true");
+    await command("press", "q");
+    const point = await evaluate<{ x: number; y: number }>("(() => { const r = document.querySelector('canvas').getBoundingClientRect(); return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) }; })()");
+    await command("mouse", "move", String(point.x), String(point.y));
+    assert.equal(desktop.keys.length, 0);
+    assert.equal(desktop.pointers.length, 0);
+    const watchConnections = desktop.connections();
+    await command("click", "button[aria-label='Take control']");
+    await command("wait", "--fn", "document.querySelector('[data-live-desktop][data-state=connected]:not([data-view-only])') !== null");
+    assert.equal(desktop.connections(), watchConnections);
+    await command("press", "z");
+    await desktop.untilKey(122);
+    assert.ok(desktop.keys.includes(122));
+    const pointer = desktop.nextPointer();
+    await command("mouse", "move", String(point.x + 2), String(point.y + 2));
+    await pointer;
+    assert.ok(desktop.pointers.length > 0);
+    await evaluate("Array.from(document.querySelectorAll('button')).find(button => button.textContent.trim() === 'Hand control back').click(); true");
+    await command("wait", "--fn", "document.querySelector('[data-live-desktop][data-state=connected][data-view-only=true]') !== null");
+    assert.equal(desktop.connections(), watchConnections);
+    desktop.keys.length = 0;
+    desktop.pointers.length = 0;
+    await evaluate("document.querySelector('canvas').focus(); true");
+    await command("press", "r");
+    await command("mouse", "move", String(point.x + 4), String(point.y + 4));
+    assert.equal(desktop.keys.length, 0);
+    assert.equal(desktop.pointers.length, 0);
+    assert.equal((await api("GET", `/api/bots/${botId}/computer/control`)).held, false);
+    assert.equal(await evaluate("window.liveComputerFixture.screenshots"), 0);
+  };
+  if (process.argv.includes("--live-only")) {
+    await runControlOmb(["new-bot", "--name", "Live watch fixture", "--url", fixture.info.url]);
+    const { bots } = await api("GET", "/api/bots?messages=0");
+    const bot = bots.find((candidate: { name: string }) => candidate.name === "Live watch fixture");
+    await api("PATCH", "/api/config", { vps: { sshAlias: "viewer-fixture" } });
+    await api("PATCH", `/api/bots/${bot.id}`, { computer: "cloud", cloudBackend: "vps" });
+    const loopbackProxy = await api("POST", `/api/bots/${bot.id}/computer/join?viewer=proxy`, {});
+    assert.equal(new URL(loopbackProxy.joinUrl, fixture.info.url).pathname, "/desktop-viewer");
+    await verifyLiveComputer(bot.id);
+    await command("open", "about:blank");
+    const shared = await api("POST", "/api/team-computers", { name: "Shared live fixture", requestId: crypto.randomUUID(), acknowledgeCost: true });
+    await api("PATCH", `/api/team-computers/${shared.id}`, { section: "", acknowledgeSharedAccess: true });
+    await api("PATCH", `/api/bots/${bot.id}`, { computer: null });
+    const sharedStatus = await api("GET", `/api/bots/${bot.id}/computer?threadId=${bot.threadId}`);
+    assert.equal(sharedStatus.teamComputer.id, shared.id);
+    assert.equal(sharedStatus.ready, true);
+    assert.equal((await api("GET", `/api/bots/${bot.id}/computer/control`)).held, false);
+    await verifyLiveComputer(bot.id);
+    console.log(JSON.stringify({ ok: true, checks: ["real ComputerPanel renders synthetic RFB pixels", "view-only keyboard/pointer blocked", "take sends keyboard input after lease", "hand-back blocks input", "one RFB connection for watch/take/hand-back with zero screenshots", "loopback proxy viewer URL", "shared team desktop watches without taking control and reuses its connection for take/hand-back"], logPath: fixture.info.logPath }));
+  } else {
   await command("wait", "--fn", "document.getElementById('retry') !== null");
   let nextConnection = desktop.nextConnection();
   await command("click", "#retry");
@@ -240,6 +304,8 @@ process.on('SIGTERM',()=>{fs.appendFileSync(log,'close ');process.exit(0)});
   const vpsBot = bots.find((bot: { name: string }) => bot.name === "VPS fixture");
   await api("PATCH", "/api/config", { vps: { sshAlias: "viewer-fixture" } });
   await api("PATCH", `/api/bots/${vpsBot.id}`, { computer: "cloud", cloudBackend: "vps" });
+  const loopbackProxy = await api("POST", `/api/bots/${vpsBot.id}/computer/join?viewer=proxy`, {});
+  assert.equal(new URL(loopbackProxy.joinUrl, fixture.info.url).pathname, "/desktop-viewer");
   // Two tabs opening at once share one join instead of the second being refused.
   const [joined] = await evaluate<{joinUrl:string}[]>(`Promise.all([0, 1].map(() => fetch('/api/bots/${vpsBot.id}/computer/join',{method:'POST',headers:{'content-type':'application/json'},body:'{}'}).then(async r=>{if(!r.ok)throw new Error(await r.text());return r.json()})))`);
   const viewer = new URL(joined.joinUrl, fixture.info.url);
@@ -265,17 +331,26 @@ process.on('SIGTERM',()=>{fs.appendFileSync(log,'close ');process.exit(0)});
   await nextConnection;
   await command("wait", "--fn", "document.getElementById('status').textContent === 'Desktop connected'");
   assert.equal(readFileSync(join(scratch, "tunnels.log"), "utf8").split("open").length - 1, 1);
+  await verifyLiveComputer(vpsBot.id);
+  await command("open", `${fixture.info.url}${joined.joinUrl}`);
+  await command("wait", "--fn", "document.getElementById('status').textContent === 'Desktop connected'");
   const beforeLogout = desktop.connections();
   assert.equal(await evaluate("fetch('/api/auth/session').then(r=>r.json()).then(s=>s.kind)"), "session");
   assert.equal(await evaluate("fetch('/api/auth/logout',{method:'POST',headers:{'content-type':'application/json'},body:'{}'}).then(r=>r.status)"), 200);
   await command("wait", "--fn", "document.getElementById('status').textContent.includes('disconnected')");
   assert.ok(beforeLogout >= 2);
-  console.log(JSON.stringify({ ok: true, checks: ["built noVNC renders RFB pixels", "paired status uses app URL", "keyboard, Unicode and Ctrl-Alt-Del", "clipboard sync without Send, including clearing", "matching desktop backgrounds in both themes", "Foundry accent text", "95% fit, full-height fullscreen and fit restoration", "balanced collapsed margins and compact panel header", "native tooltips and reduced-motion panels", "phone and landscape viewports", "reconnect", "page exit aborts pending connection and restore reconnects", "VPS join, synthetic SSH forward and reconnect", "logout closes socket"], logPath: fixture.info.logPath, screenshots: [desktopScreenshot, clipboardScreenshot, phoneScreenshot, lightScreenshot, foundryScreenshot] }));
+  console.log(JSON.stringify({ ok: true, checks: ["built noVNC renders RFB pixels", "paired status uses app URL", "keyboard, Unicode and Ctrl-Alt-Del", "clipboard sync without Send, including clearing", "matching desktop backgrounds in both themes", "Foundry accent text", "95% fit, full-height fullscreen and fit restoration", "balanced collapsed margins and compact panel header", "native tooltips and reduced-motion panels", "phone and landscape viewports", "reconnect", "page exit aborts pending connection and restore reconnects", "VPS join, synthetic SSH forward and reconnect", "live ComputerPanel watch sends no input; take and handback reuse its RFB connection", "logout closes socket"], logPath: fixture.info.logPath, screenshots: [desktopScreenshot, clipboardScreenshot, phoneScreenshot, lightScreenshot, foundryScreenshot] }));
+  }
 } catch (error) {
-  if (browser) console.error(await agentBrowser(browser.binary, browser.env, ["eval", "document.body.innerText"]).catch(() => "Browser unavailable"));
+  if (browser) {
+    console.error(await agentBrowser(browser.binary, browser.env, ["console"]).catch(() => "Browser console unavailable"));
+    console.error(await agentBrowser(browser.binary, browser.env, ["errors"]).catch(() => "Browser errors unavailable"));
+    console.error(await agentBrowser(browser.binary, browser.env, ["eval", "document.body.innerText"]).catch(() => "Browser unavailable"));
+  }
   throw error;
 } finally {
   if (browser) await agentBrowser(browser.binary, browser.env, ["close"], 10_000).catch(() => {});
+  await preview?.close();
   await fixture?.close();
   await desktop.close();
   rmSync(scratch, { recursive: true, force: true });

@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BUILT_IN_BROWSER_SYSTEM_PROMPT, browserEngineStatus, clearBrowserSessionState, closeBrowserSession, runningBrowserSessionNames } from "../browser-engine.ts";
 import { CHROME_BROWSER_SYSTEM_PROMPT } from "../browser/prompt.ts";
@@ -10,7 +10,7 @@ import { browserEgress } from "../browser/egress/registry.ts";
 import type { Audience } from "../audience.ts";
 import { DATA_DIR, type AppConfig } from "../config.ts";
 import type { Store } from "../store.ts";
-import type { TurnOwner } from "../turn-resources.ts";
+import { TurnResources, type TurnOwner } from "../turn-resources.ts";
 import { audienceBrowserSuffix } from "../browser/audience.ts";
 import { chromeLauncher } from "../browser/chrome/launcher.ts";
 import type { CdpSession, Params } from "../browser/cdp/connection.ts";
@@ -39,10 +39,10 @@ afterEach(async () => { await Promise.all(hosts.splice(0).map((host) => host.bro
 
 const turn = { threadId: "thread-1", generation: "gen-1" };
 
-function setup(engine: "chrome" | "agent-browser" | undefined, { cloudHome = false, server = false, hosted = false, holder, audienceOf, bots: botIds = ["scout"], browserBox, turnResources }: {
+function setup(engine: "chrome" | "agent-browser" | undefined, { cloudHome = false, server = false, hosted = false, holder, audienceOf, bots: botIds = ["scout"], browserBox, turnResources, boxChrome, generations }: {
   cloudHome?: boolean; server?: boolean; hosted?: boolean; holder?: (resource: string) => TurnOwner | undefined;
   audienceOf?: BrowserHostDeps["audienceOf"]; bots?: string[]; browserBox?: BrowserHostDeps["browserBox"];
-  turnResources?: BrowserHostDeps["turnResources"];
+  turnResources?: BrowserHostDeps["turnResources"]; boxChrome?: BrowserHostDeps["boxChrome"]; generations?: Map<string, string>;
 } = {}) {
   const cfg = {
     features: { browser: true },
@@ -58,14 +58,14 @@ function setup(engine: "chrome" | "agent-browser" | undefined, { cloudHome = fal
     cfg,
     store: () => ({ bots, bot: (id: string) => bots.find((bot) => bot.id === id), botByThread: () => bots[0] }) as unknown as Pick<Store, "bots" | "bot" | "botByThread">,
     turnResources: turnResources ?? { free: () => true, holder: holder ?? (() => undefined), onClaim: () => () => {} },
-    activeInternalGenerationByThread: new Map([[turn.threadId, turn.generation]]),
+    activeInternalGenerationByThread: generations ?? new Map([turn.threadId, "ada-chat", "cleo-chat", "room-chat", "main-chat"].map((threadId) => [threadId, turn.generation])),
     mintInternalCapability: (capability) => { minted.push(capability); return "capability-token"; },
     DESKTOP_MANAGED: !cloudHome && !server,
     CLOUD_HOME: cloudHome ? { machineId: "m-1" } : null,
     HOSTED_WORKSPACE: hosted,
     PORT: 4100,
     audienceOf,
-    browserBox,
+    browserBox, boxChrome,
   });
   hosts.push(host);
   return { cfg, host, minted, bots };
@@ -153,6 +153,103 @@ describe("the bots' browser host with browserEngine.engine set to chrome", () =>
     host.browserEngineSwitched();
     expect(host.usedBrowserSessions.has(browser!.session)).toBe(false);
     expect(host.browserSystemPrompt(undefined)).toBe(BUILT_IN_BROWSER_SYSTEM_PROMPT);
+  });
+});
+
+describe("the browser on an assigned VPS computer", () => {
+  let previousStatus: typeof browserEngineStatus | undefined;
+  beforeEach(() => {
+    previousStatus = vi.mocked(browserEngineStatus).getMockImplementation();
+    vi.mocked(browserEngineStatus).mockReturnValue({ kind: "ready", binaryPath: "/fixture/agent-browser", version: "0.37.0", managed: true });
+  });
+  afterEach(() => { vi.mocked(browserEngineStatus).mockImplementation(previousStatus!); });
+
+  it("resolves both bots through one real shared-computer lease, retaining their own capability identities", async () => {
+    const resources = new TurnResources();
+    const second = { threadId: "thread-2", generation: "gen-2" };
+    const generations = new Map([[turn.threadId, turn.generation], [second.threadId, second.generation]]);
+    const resource = "computer:cloud:shared-fixture";
+    const endpoint = "http://127.0.0.1:49222";
+    const { host, minted } = setup("chrome", { bots: ["scout", "quill"], turnResources: resources, generations,
+      boxChrome: async (_botId, owner) => {
+        if (!owner || !resources.claim(resource, owner)) throw new Error("The assigned computer is in use.");
+        return endpoint;
+      },
+    });
+    const first = await host.browserIntegration("scout", undefined, turn);
+    expect(first?.spec.env.AGENT_BROWSER_CDP).toBe(endpoint);
+    expect((await host.browserIntegration("scout", undefined, turn))?.spec.env.AGENT_BROWSER_CDP).toBe(endpoint);
+    expect(resources.holder(resource)).toEqual(turn);
+    await expect(host.browserIntegration("quill", undefined, second)).rejects.toThrow("computer is in use");
+    expect(minted).toHaveLength(2);
+    resources.release(turn);
+    const next = await host.browserIntegration("quill", undefined, second);
+    expect(next?.spec.env.AGENT_BROWSER_CDP).toBe(endpoint);
+    expect(next?.session).not.toBe(first?.session);
+    expect(resources.holder(resource)).toEqual(second);
+    expect(minted).toEqual([
+      expect.objectContaining({ botId: "scout", ...turn }), expect.objectContaining({ botId: "scout", ...turn }),
+      expect.objectContaining({ botId: "quill", ...second }),
+    ]);
+  });
+
+  it("prepares no browser or capability while the person owns the shared computer", async () => {
+    const resources = new TurnResources();
+    const resource = "computer:cloud:shared-fixture";
+    const person = { threadId: "person-control", generation: "person-control-1" };
+    expect(resources.claim(resource, person)).toBe(true);
+    const { host, minted } = setup("chrome", { turnResources: resources, boxChrome: async (_botId, owner) => {
+      if (!owner || !resources.claim(resource, owner)) throw new Error("The person is controlling this computer.");
+      return "http://127.0.0.1:49222";
+    } });
+    await expect(host.browserIntegration("scout", undefined, turn)).rejects.toThrow("person is controlling");
+    expect(host.usedBrowserSessions.size).toBe(0);
+    expect(minted).toEqual([]);
+    expect(resources.holder(resource)).toEqual(person);
+  });
+
+  it("propagates unavailable assigned-computer errors, while an intentional no-box selection keeps the Mac fallback", async () => {
+    const unavailable = setup("chrome", { boxChrome: async () => { throw new Error("The assigned VPS computer is unavailable."); } });
+    await expect(unavailable.host.browserIntegration("scout", undefined, turn)).rejects.toThrow("VPS computer is unavailable");
+    expect(unavailable.host.usedBrowserSessions.size).toBe(0);
+    expect(unavailable.minted).toEqual([]);
+    const fallback = setup("chrome", { boxChrome: async () => null });
+    expect((await fallback.host.browserIntegration("scout", undefined, turn))?.spec.command).toBe("omb-cdp");
+  });
+
+  it("omits structured browsing on a selected VPS image without CDP instead of using a host browser", async () => {
+    const { host, minted } = setup("chrome", { boxChrome: async () => false });
+    expect(await host.browserIntegration("scout", undefined, turn)).toBeNull();
+    expect(await host.currentBrowserSpec("scout", undefined)).toBeNull();
+    expect(host.usedBrowserSessions.size).toBe(0);
+    expect(minted).toEqual([]);
+  });
+
+  it.each(["generation", "profile", "off", "deleted"])("rejects a stale %s while resolving the assigned browser", async (change) => {
+    let finish!: (url: string) => void;
+    const pending = new Promise<string>((resolve) => { finish = resolve; });
+    const generations = new Map([[turn.threadId, turn.generation]]);
+    const { host, minted, bots } = setup("chrome", { generations, boxChrome: async () => pending });
+    const connecting = host.browserIntegration("scout", undefined, turn);
+    if (change === "generation") generations.set(turn.threadId, "replacement");
+    if (change === "profile") (bots[0] as { browserProfile?: string }).browserProfile = "work";
+    if (change === "off") (bots[0] as { computer?: string }).computer = "off";
+    if (change === "deleted") bots.splice(0);
+    finish("http://127.0.0.1:49222");
+    await expect(connecting).rejects.toThrow("Browser access changed");
+    expect(host.usedBrowserSessions.size).toBe(0);
+    expect(minted).toEqual([]);
+  });
+
+  it("does not reuse an obsolete VPS CDP endpoint after switching back to the person's Chrome", async () => {
+    let endpoint: string | null = "http://127.0.0.1:49222";
+    const { host } = setup("agent-browser", { boxChrome: async () => endpoint });
+    const remote = await host.browserIntegration("scout", "mine", turn);
+    expect(remote?.spec.env.AGENT_BROWSER_CDP).toBe(endpoint);
+    endpoint = null;
+    const fallback = await host.currentBrowserSpec("scout", "mine");
+    expect(fallback?.spec.env.AGENT_BROWSER_CDP).toBeUndefined();
+    expect(fallback?.spec.env.AGENT_BROWSER_AUTO_CONNECT).toBe("1");
   });
 });
 

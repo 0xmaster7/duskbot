@@ -56,10 +56,10 @@ export interface ModelSelection {
   variant?: string;
 }
 
-/** Which cloud computer backs computer: "cloud"; absent means Boat. */
+/** The remote computer backend. Legacy "box" input is normalized to the user's VPS. */
 export type CloudBackend = "box" | "vps";
 
-/** A place a bot can act. `cloud` covers both cloud backends. */
+/** A place a bot can act. `cloud` uses the user's own VPS. */
 export type Surface = "cloud" | "vm" | "local" | "browser";
 
 export const MAUS_COLOR_NAMES = [
@@ -317,7 +317,7 @@ export interface WireBot extends DefaultBotFields, BotAccessFields {
   modelSelection: ModelSelection;
   /** where the bot works ("Works on"). Unset = auto. */
   computer?: Surface | "off";
-  /** Which cloud computer backs computer: "cloud"; absent means Boat. */
+  /** The remote computer backend. Legacy "box" input is normalized to the user's VPS. */
   cloudBackend?: CloudBackend;
   /** Auto mode may prepare/start this bot's managed VPS container. */
   autoStartVps?: boolean;

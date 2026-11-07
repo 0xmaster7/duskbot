@@ -13,7 +13,7 @@ const fixture = vi.hoisted(() => ({
   controls: [] as Array<{ action?: string; controlLeaseId?: string }>,
   posts: [] as string[],
   beacons: [] as Array<{ url: string; body: Record<string, unknown>; keepalive: boolean }>,
-  live: null as null | { target: string; expanded: boolean; onUnreachable: () => void },
+  live: null as null | { target: string; expanded: boolean; onUnreachable: () => void; viewOnly?: boolean },
 }));
 vi.mock("./DesktopCapabilities", async (importOriginal) => ({
   ...await importOriginal<typeof import("./DesktopCapabilities")>(),
@@ -32,16 +32,17 @@ vi.mock("./DesktopCapabilities", async (importOriginal) => ({
 const mode = vi.hoisted(() => ({ advanced: false }));
 vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => mode.advanced, setAdvancedMode: () => {} }));
 vi.mock("./CloudScreenPreview", () => ({
-  CloudScreenPreview: ({ onOpen }: { onOpen: () => void }) => createElement("button", { "data-preview": "", onClick: onOpen }, "preview"),
+  CloudScreenPreview: ({ onOpen, onRetry }: { onOpen: () => void; onRetry: (discard: boolean) => void }) => createElement("div", null,
+    createElement("button", { "data-preview": "", onClick: onOpen }, "preview"),
+    createElement("button", { onClick: () => onRetry(false) }, "Retry live screen")),
 }));
 vi.mock("./LiveDesktop", () => ({
-  LiveDesktop: (props: { target: string; expanded: boolean; onUnreachable: () => void }) => {
+  LiveDesktop: (props: { target: string; expanded: boolean; onUnreachable: () => void; viewOnly?: boolean }) => {
     fixture.live = props;
-    return createElement("div", { "data-live-desktop": "", "data-target": props.target, "data-expanded": String(props.expanded) });
+    return createElement("div", { "data-live-desktop": "", "data-target": props.target, "data-expanded": String(props.expanded), "data-view-only": String(props.viewOnly) });
   },
 }));
 vi.mock("./BrowserPanel", () => ({ BrowserPanel: () => null }));
-vi.mock("./CloudBackendPicker", () => ({ CloudBackendPicker: () => null }));
 vi.mock("./bot-settings/RoutinesSection", () => ({ RoutinesSection: () => null }));
 vi.mock("@/state/store", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/state/store")>(),
@@ -176,6 +177,14 @@ afterEach(() => {
 });
 
 describe("taking control of a Local VM", () => {
+  it("watches a ready desktop live without capturing screenshots or taking control", async () => {
+    await open(makeBot({ computer: "vm" }));
+    await shownLive();
+    expect(liveDesktop()?.dataset.viewOnly).toBe("true");
+    expect(fixture.controls).toEqual([]);
+    expect(fixture.posts.some((path) => path.endsWith("/screenshot"))).toBe(false);
+  });
+
   it("turns the panel's own picture into the live desktop at once; no window or tab opens", async () => {
     await open(makeBot({ computer: "vm" }));
     await press("Take control");
@@ -193,7 +202,7 @@ describe("taking control of a Local VM", () => {
     await press("Take control");
     await press("Hand control back");
     expect(fixture.controls.at(-1)).toEqual({ action: "release" });
-    expect(liveDesktop()).toBeNull();
+    expect(liveDesktop()?.dataset.viewOnly).toBe("true");
     expect(button("Take control")).toBeDefined();
   });
 
@@ -233,7 +242,7 @@ describe("taking control of a Local VM", () => {
     window.dispatchEvent(new Event("pagehide"));
     await settle();
     expect(releases(), "closing the page left the bot waiting").toHaveLength(1);
-    expect(liveDesktop()).toBeNull();
+    expect(liveDesktop()?.dataset.viewOnly).toBe("true");
   });
 
   it("never gives back a hold another device has", async () => {
@@ -260,7 +269,7 @@ describe("taking control of a Local VM", () => {
     heldElsewhere(false);
     await new Promise((resolve) => setTimeout(resolve, 1_700));
     await settle();
-    expect(liveDesktop()).toBeNull();
+    expect(liveDesktop()?.dataset.viewOnly).toBe("true");
     expect(releases(), "it was not this panel's to give back").toEqual([]);
   });
 
@@ -273,25 +282,43 @@ describe("taking control of a Local VM", () => {
     expect(releases()).toHaveLength(1);
     expect(liveDesktop()).toBeNull();
     expect(document.body.textContent).toContain("MausBot couldn't open the live desktop. Try again.");
+    expect(fixture.posts).toContain("/api/bots/scout/local-computer/screenshot");
   });
 });
 
 describe("taking control of other computers", () => {
-  it("a VPS is driven in place too, and handing back closes its viewer tunnel", async () => {
+  it("falls back after a failed watch and retries the live connection on request", async () => {
+    await open(makeBot({ computer: "cloud", cloudBackend: "vps" }));
+    await shownLive();
+    flushSync(() => fixture.live!.onUnreachable());
+    await settle();
+    expect(liveDesktop()).toBeNull();
+    expect(fixture.posts).toContain("/api/bots/scout/computer/screenshot");
+    expect(fixture.controls).toEqual([]);
+    await press("Retry live screen");
+    await shownLive();
+    expect(liveDesktop()?.dataset.viewOnly).toBe("true");
+    expect(fixture.controls).toEqual([]);
+  });
+
+  it("a VPS is driven in place and handing back keeps its live watch connected", async () => {
     await open(makeBot({ computer: "cloud", cloudBackend: "vps" }));
     await press("Take control");
     await shownLive();
     expect(liveDesktop()!.dataset.target).toBe("vps/scout");
     expect(window.ogb!.desktopViewer!.open).not.toHaveBeenCalled();
     await press("Hand control back");
-    expect(fixture.beacons.some((beacon) => beacon.url.startsWith("/api/bots/scout/computer/viewer-close"))).toBe(true);
+    expect(fixture.beacons.some((beacon) => beacon.url.startsWith("/api/bots/scout/computer/viewer-close"))).toBe(false);
+    expect(liveDesktop()?.dataset.viewOnly).toBe("true");
   });
 
-  it("a cloud computer's provider-hosted desktop still opens in the app's own viewer window", async () => {
-    await open(makeBot({ computer: "cloud" }));
-    await press("Take control");
-    expect(liveDesktop()).toBeNull();
-    expect(fixture.posts).toContain("/api/bots/scout/computer/join");
-    expect(window.ogb!.desktopViewer!.open).toHaveBeenCalledWith("https://desktop.invalid/scout", "Scout's live desktop", "scout");
+  it("a saved legacy backend opens the VPS live viewer without an external provider window", async () => {
+    await open(makeBot({ computer: "cloud", cloudBackend: "box" }));
+    expect(fixture.live?.target).toBe("vps/scout");
+    expect(fixture.live?.viewOnly).toBe(true);
+    flushSync(() => button("Take control")!.click());
+    await settle();
+    expect(fixture.live?.viewOnly).toBe(false);
+    expect(fixture.posts).not.toContain("/api/bots/scout/computer/join");
   });
 });

@@ -7,6 +7,20 @@ pnpm build
 node --experimental-strip-types scripts/verify-desktop-viewer.ts
 ```
 
+For the focused live Computer panel flow, reuse the same isolated server,
+synthetic Docker/SSH and RFB desktop:
+
+```sh
+node --experimental-strip-types scripts/verify-desktop-viewer.ts --live-only
+```
+
+This mounts the real ComputerPanel through Vite. It checks view-only keyboard
+and pointer blocking, enabled input after Take control, blocked input after
+Hand control back, one RFB connection throughout, and zero screenshot polls.
+It also checks that loopback proxy viewers use the app URL and reconnect grace.
+The same flow runs for an Auto bot using an assigned shared team desktop,
+including watching before any control hold is taken.
+
 To reuse installed browser tools, set `OMB_AGENT_BROWSER_PATH` and
 `AGENT_BROWSER_EXECUTABLE_PATH` explicitly. The fixture prints its temporary
 data directory and persistent server log. It launches the standard fake-engine
@@ -77,8 +91,7 @@ URL and Electron cookie isolation.
 
 VPS tunnel tests retain multiple viewers, release each once, preserve native
 viewer ownership and reclaim remote-only tunnels after the 30-second reconnect
-grace period. Provider-hosted Cloud URLs are outside this proxy; they can also
-use WebRTC.
+grace period. The VPS desktop uses the same authenticated proxy.
 
 The consolidated `public/novnc-NOTICE.txt` contains the source and MPL-2.0
 links plus the bundled Pako and DES notices. Vite includes this static asset

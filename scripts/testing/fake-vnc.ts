@@ -8,6 +8,7 @@ export async function fakeVnc() {
   const server = createServer((_req, res) => res.writeHead(404).end());
   const sockets = new WebSocketServer({ server, path: "/websockify" });
   const keys: number[] = [];
+  const pointers: Array<{ buttons: number; x: number; y: number }> = [];
   const events = new EventEmitter();
   let connections = 0;
   sockets.on("connection", socket => {
@@ -63,6 +64,11 @@ export async function fakeVnc() {
           keys.push(key);
           events.emit("key", key);
         }
+        else if (message[0] === 5) {
+          const pointer = { buttons: message[1]!, x: message.readUInt16BE(2), y: message.readUInt16BE(4) };
+          pointers.push(pointer);
+          events.emit("pointer", pointer);
+        }
         else if (message[0] === 6) {
           const text = message.subarray(8).toString("latin1");
           events.emit("clipboard", text);
@@ -72,7 +78,8 @@ export async function fakeVnc() {
   });
   await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
   return {
-    port: (server.address() as { port: number }).port, keys,
+    port: (server.address() as { port: number }).port, keys, pointers,
+    nextPointer: () => once(events, "pointer", { signal: AbortSignal.timeout(10_000) }),
     nextClipboard: () => once(events, "clipboard", { signal: AbortSignal.timeout(10_000) }),
     async untilKey(key: number) {
       const signal = AbortSignal.timeout(10_000);

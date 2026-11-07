@@ -50,7 +50,7 @@ and the account selected in OMB; never request the user's keys or tokens.
 ## ACP internal-error recovery
 
 ```sh
-pnpm exec vitest run server/drivers/acp/acp.test.ts server/acp-recovery.e2e.test.ts server/resume-recovery.test.ts server/delta-context.test.ts server/incidents.e2e.test.ts server/room-coordination.e2e.test.ts
+pnpm exec vitest run server/drivers/acp/acp.test.ts server/acp-recovery.e2e.test.ts server/resume-recovery.test.ts server/delta-context.test.ts server/incidents.test.ts server/room-coordination.e2e.test.ts
 ```
 
 The ACP transport fixture injects an internal RPC error, including one after
@@ -63,8 +63,9 @@ conversation history rather than only the latest message.
 The server-level fixture uses a disposable verification workspace and the fake
 ACP executable. It checks that an RPC failure releases the busy state, preserves
 the thread's transcript, and allows another message without deleting the bot or
-thread. The incident and coordination fixtures separately check Chief retries
-and failed peer completion.
+thread. The incident unit tests cover retry throttling and failure wording;
+the coordination fixture checks failed peer completion. The retired incident
+end-to-end fixture no longer proves automatic Chief retries.
 
 These checks establish recovery behavior, not the cause of a particular user's
 provider outage. OpenCode's generic `-32603` service error can cover directory,

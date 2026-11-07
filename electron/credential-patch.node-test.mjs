@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { credentialSaveError } from "./credential-patch.mjs";
+import { CREDENTIAL_PATCH, credentialSaveError } from "./credential-patch.mjs";
 
 test("a key the provider refused crosses IPC named KeyRejected, with the server's words", () => {
   const error = credentialSaveError(400, { error: "boat.dev rejected that key", code: "key_rejected" });
@@ -15,4 +15,8 @@ test("every other refusal stays a plain Error", () => {
     assert.ok(!error.toString().startsWith("KeyRejected: "));
   }
   assert.equal(credentialSaveError(503, null).message, "Could not save credential (HTTP 503)");
+});
+
+test("the desktop cannot save a paid-desktop provider key", () => {
+  assert.equal(Object.hasOwn(CREDENTIAL_PATCH, "boxToken"), false);
 });

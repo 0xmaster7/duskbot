@@ -89,21 +89,6 @@ export function isHandedWork(node: { parentId?: string; mode: string } | undefin
   return Boolean(node?.parentId && node.mode !== "consult");
 }
 
-export function handoffUsesOwnCloud(input: { plan: Pick<SurfacePlan, "computer">; handoffWork: boolean; ownCloudState: string | null | undefined }): boolean {
-  return input.handoffWork && input.plan.computer === undefined && Boolean(input.ownCloudState);
-}
-
-/** Best effort: an unreachable Boat service counts as no cloud computer after `ms`, so a handoff still starts promptly.
- * `unavailable` marks a failed or slow lookup, which is not a confirmed "no cloud computer". */
-export function ownCloudStateWithin(status: Promise<{ box?: { state?: string | null } | null }>, ms = 3_000): Promise<{ state: string | null | undefined; unavailable: boolean }> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const unavailable = { state: undefined, unavailable: true };
-  return Promise.race([
-    status.then((result) => ({ state: result.box?.state, unavailable: false }), () => unavailable),
-    new Promise<typeof unavailable>((resolve) => { timer = setTimeout(() => resolve(unavailable), ms); }),
-  ]).finally(() => clearTimeout(timer));
-}
-
 export function browserIsThePlace(plan: SurfacePlan): boolean {
   return plan.computer === "off" && plan.browser;
 }

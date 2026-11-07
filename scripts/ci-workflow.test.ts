@@ -175,7 +175,7 @@ describe("CI concurrency", () => {
     // Windows jobs when it carries the windows label.
     expect(workflow.jobs.static.permissions).toEqual({ contents: "read", actions: "read", "pull-requests": "read" });
     const scope = workflow.jobs.static.steps.find((step: { id?: string }) => step.id === "scope");
-    expect(scope.env).toEqual({ GH_TOKEN: "${{ github.token }}", OMB_CI_LINUX_IN_STATIC: "${{ runner.environment == 'self-hosted' }}" });
+    expect(scope.env).toEqual({ GH_TOKEN: "${{ github.token }}" });
     for (const [name, job] of Object.entries(workflow.jobs) as [string, { permissions?: unknown }][]) {
       if (name !== "static") expect(job.permissions, name).toBeUndefined();
     }
@@ -253,7 +253,7 @@ describe("CI concurrency", () => {
       vitest_matrix: "${{ steps.scope.outputs.vitest_matrix }}",
       packaged_server_os: "${{ steps.scope.outputs.packaged_server_os }}",
     });
-    // Only these three static steps depend on the scope's build flag; the rest always run, or run only on Boat.
+    // Only these three static steps depend on the scope's build flag.
     const built = (workflow.jobs.static.steps as { if?: string; run?: string }[]).filter((step) => step.if?.includes("outputs.build"));
     expect(built.map((step) => [step.if, step.run])).toEqual([
       ["steps.scope.outputs.build == 'true'", "pnpm typecheck"],
@@ -306,71 +306,16 @@ describe("CI concurrency", () => {
 
 type Step = { id?: string; name?: string; if?: string; run?: string; uses?: string; shell?: string; env?: Record<string, string> };
 
-/** The contexts a run's static job is routed by: a pull request from `author`, a push, a merge group or a scheduled run. */
-function runContext({ boat = "on", event = "pull_request", actor = "milind-soni", triggering = actor, author = actor, head = "milind-soni/OpenMausBot" }: {
-  boat?: string | null; event?: string; actor?: string; triggering?: string; author?: string; head?: string | null;
-} = {}) {
-  return {
-    vars: boat === null ? {} : { BOAT_CI: boat },
-    github: {
-      event_name: event, actor, triggering_actor: triggering, repository: "milind-soni/OpenMausBot", repository_owner: "milind-soni",
-      event: event === "pull_request" ? { pull_request: { user: { login: author }, head: { repo: head === null ? null : { full_name: head } } } } : {},
-    },
-  };
-}
-
-describe("CI on Boat", () => {
-  const routed = (context: ReturnType<typeof runContext>) => ({
-    runsOn: interpolate(workflow.jobs.static["runs-on"], context),
-    name: interpolate(workflow.jobs.static.name, context),
-    timeout: interpolate(String(workflow.jobs.static["timeout-minutes"]), context),
-  });
-  const boat = { runsOn: "boat-xlarge", name: "typecheck + lint + Linux tests (Boat)", timeout: 45 };
-  const github = (timeout: number) => ({ runsOn: "ubuntu-latest", name: "typecheck + lint", timeout });
-
-  it.each([
-    ["the owner's pull request", {}],
-    ["the owner's push to main", { event: "push" }],
-    ["a merge group the owner queued", { event: "merge_group" }],
-  ])("runs the static job, with the Linux work, on one Boat VM for %s", (_, run) => {
-    expect(routed(runContext(run))).toEqual(boat);
+describe("standard CI runners", () => {
+  it("runs static checks on the standard runner without redirecting Linux checks", () => {
+    expect(workflow.jobs.static["runs-on"]).toBe("ubuntu-latest");
+    expect(workflow.jobs.static.name).toBe("typecheck + lint");
+    expect(workflow.jobs.static["timeout-minutes"]).toBe(15);
+    expect(workflow.jobs.static.steps.some((step: Step) => step.env?.OMB_CI_LINUX_IN_STATIC !== undefined)).toBe(false);
+    expect(workflow.jobs.static.steps.some((step: Step) => step.run === "node scripts/ci-linux-lanes.mjs")).toBe(false);
   });
 
-  it.each([
-    ["while BOAT_CI is not set", { boat: null }, 15],
-    ["while BOAT_CI is off", { boat: "off" }, 15],
-    ["for a fork's pull request", { head: "someone/OpenMausBot", author: "someone", actor: "someone" }, 45],
-    ["for a fork's pull request the owner started", { head: "someone/OpenMausBot", author: "someone" }, 45],
-    ["for a deleted fork's pull request", { head: null }, 45],
-    ["for a teammate's pull request on this repository", { author: "teammate", actor: "teammate" }, 45],
-    ["for the owner's pull request that a teammate pushed to", { actor: "teammate" }, 45],
-    ["for the owner's pull request that a teammate re-ran", { triggering: "teammate" }, 45],
-    ["for a push a bot made", { event: "push", actor: "github-actions[bot]" }, 45],
-    ["for the nightly run", { event: "schedule" }, 45],
-    ["for a manual run, the release lane among them", { event: "workflow_dispatch" }, 45],
-  ])("keeps every job on GitHub's runners %s", (_, run, timeout) => {
-    expect(routed(runContext(run))).toEqual(github(timeout));
-  });
-
-  it("does the Linux work in the static job only where ci-scope moved it there, without Boat's extra rights or desktop", () => {
-    const steps = workflow.jobs.static.steps as Step[];
-    const boatOnly = steps.slice(steps.findIndex((step) => step.name === "production UI build") + 1);
-    expect(boatOnly.map((step) => step.if)).toEqual([
-      "steps.scope.outputs.linux_lanes", "steps.scope.outputs.linux_lanes", "steps.scope.outputs.linux_lanes",
-      "${{ !cancelled() && steps.scope.outputs.linux_lanes }}", "failure() && steps.scope.outputs.linux_lanes",
-    ]);
-    const lanes = boatOnly.find((step) => step.run === "node scripts/ci-linux-lanes.mjs")!;
-    expect(lanes.env).toMatchObject({ OMB_CI_LINUX_LANES: "${{ steps.scope.outputs.linux_lanes }}", LANG: "C.UTF-8", LC_ALL: "C.UTF-8", TZ: "UTC" });
-    expect(lanes.shell).toBe("setpriv --inh-caps=-all --ambient-caps=-all -- env -u DISPLAY -u XAUTHORITY bash --noprofile --norc -eo pipefail {0}");
-    expect(boatOnly.find((step) => step.run?.startsWith("sudo rm -f "))!.run).toContain("/usr/bin/bwrap");
-    // The same report and artifact as the vitest and behavior-evals jobs.
-    const report = (workflow.jobs.vitest.steps as Step[]).find((step) => step.run === "node scripts/testing/ci-retry-summary.mjs")!;
-    expect(boatOnly.find((step) => step.run === "node scripts/testing/ci-retry-summary.mjs")!.env).toEqual(report.env);
-    const upload = (workflow.jobs["behavior-evals"].steps as Step[]).find((step) => step.uses?.startsWith("actions/upload-artifact@"))!;
-    expect(boatOnly.at(-1)).toEqual({ ...upload, if: "failure() && steps.scope.outputs.linux_lanes" });
-  });
-
-  it("runs on Boat exactly the commands the Linux jobs run on GitHub's runners", () => {
+  it("keeps local Linux lane commands equivalent to the standard CI jobs", () => {
     const steps = (job: string) => workflow.jobs[job].steps as Step[];
     const work = (job: string) => steps(job).filter((step) => step.run && step.run !== "pnpm install --frozen-lockfile").map((step) => step.run);
     for (const entry of vitestMatrix(["ubuntu-latest"]).include.slice(0, 2)) {
@@ -385,10 +330,10 @@ describe("CI on Boat", () => {
     expect(PACKAGED_SERVER_LANE.commands).toEqual(work("packaged-server"));
   });
 
-  it("starts Boat VMs from no other workflow", () => {
+  it("starts no paid desktop-provider VM from any workflow", () => {
     const directory = new URL("../.github/workflows/", import.meta.url);
     const onBoat = readdirSync(directory).filter((file) => /\.ya?ml$/.test(file))
       .filter((file) => /runs-on:[^\n]*boat|'boat(?:-\w+)?'/.test(readFileSync(new URL(file, directory), "utf8")));
-    expect(onBoat).toEqual(["ci.yml"]);
+    expect(onBoat).toEqual([]);
   });
 });

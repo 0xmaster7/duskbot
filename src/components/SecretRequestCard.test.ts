@@ -55,6 +55,15 @@ beforeEach(() => {
 });
 
 describe("SecretRequestCard superseded requests", () => {
+  it("keeps a retired persisted request visible without accepting a credential", () => {
+    const html = view({ target: "boxToken", label: "Retired desktop key" });
+    expect(html).toContain("Retired desktop key");
+    expect(html).toContain("This credential request is no longer supported.");
+    expect(html).toContain('data-ask-card="settled"');
+    expect(html).not.toContain("<input");
+    expect(html).not.toContain("<form");
+    expect(html).not.toContain("Save securely");
+  });
   it("still offers entry while the newest request is pending", () => {
     const html = view({});
     expect(html).toContain("Save securely");
@@ -91,7 +100,7 @@ describe("SecretRequestCard on a page reached through a desktop paired to anothe
   });
 
   it("sends a key the host computer keeps in its own encrypted store to that computer", () => {
-    const html = remote({ target: "boxToken", label: "Boat token" });
+    const html = remote({ target: "ttsKey", label: "Speech key" });
     expect(html).toContain("must be saved on the host computer");
     expect(html).not.toContain('type="password"');
   });
@@ -182,23 +191,23 @@ describe("SecretRequestCard key analytics", () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it("reports a Boat key saved over the desktop bridge once, even when only the resume is retried", async () => {
-    const setCredential = vi.fn().mockResolvedValue({ box: { configured: true } });
+  it("reports a voice key saved over the desktop bridge once, even when only the resume is retried", async () => {
+    const setCredential = vi.fn().mockResolvedValue({ tts: { configured: true } });
     vi.stubGlobal("window", { ogb: { setCredential } });
     fixture.api.mockRejectedValueOnce(new Error("resume failed")).mockResolvedValueOnce({ ok: true });
-    await submit("boxToken");
-    card("boxToken").find((node) => node.type === "form")!.props.onSubmit!({ preventDefault: () => {} });
+    await submit("ttsKey");
+    card("ttsKey").find((node) => node.type === "form")!.props.onSubmit!({ preventDefault: () => {} });
     await flush();
-    expect(setCredential).toHaveBeenCalledExactlyOnceWith("boxToken", KEY);
+    expect(setCredential).toHaveBeenCalledExactlyOnceWith("ttsKey", KEY);
     expect(fixture.api).toHaveBeenCalledTimes(2);
-    expect(fixture.track.mock.calls).toEqual([["api_key_saved", { provider: "boat", via: "chat_request", result: "ok" }]]);
+    expect(fixture.track.mock.calls).toEqual([["api_key_saved", { provider: "elevenlabs", via: "chat_request", result: "ok" }]]);
     for (const fragment of [KEY, KEY.slice(0, 6), KEY.slice(-6), String(KEY.length)]) expect(JSON.stringify(fixture.track.mock.calls)).not.toContain(fragment);
   });
 
-  it("reports a Boat key boat.dev refused as rejected", async () => {
-    vi.stubGlobal("window", { ogb: { setCredential: vi.fn().mockRejectedValue(new Error("Error invoking remote method 'credential:set': KeyRejected: That doesn't look like a Boat API key")) } });
-    await submit("boxToken");
-    expect(fixture.track.mock.calls).toEqual([["api_key_saved", { provider: "boat", via: "chat_request", result: "rejected" }]]);
+  it("reports a voice key the provider refused as rejected", async () => {
+    vi.stubGlobal("window", { ogb: { setCredential: vi.fn().mockRejectedValue(new Error("Error invoking remote method 'credential:set': KeyRejected: The voice provider rejected that key")) } });
+    await submit("ttsKey");
+    expect(fixture.track.mock.calls).toEqual([["api_key_saved", { provider: "elevenlabs", via: "chat_request", result: "rejected" }]]);
   });
 
   // Even with the desktop bridge, the 1Password token goes to this server's Logins (which checks it with 1Password),

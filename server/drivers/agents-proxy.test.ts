@@ -1619,9 +1619,9 @@ describe("agents-proxy MCP surface", () => {
     expect(res.result.isError).toBeFalsy();
   });
 
-  it.each(["box", "cloud"])("maps %s execution to the explicit Boat runner without changing stored wire values", async (run_on) => {
+  it.each(["box", "cloud"])("maps %s execution to the bot's own VPS runner", async (run_on) => {
     const res = await callTool("create_trigger", { when: "schedule",
-      name: "Boat check", instructions: "Check explicitly on Boat.",
+      name: "VPS check", instructions: "Check on the connected VPS.",
       schedule: { type: "daily", time: "09:00" }, run_on,
     });
     expect(res.result.isError).toBeFalsy();
@@ -1633,11 +1633,11 @@ describe("agents-proxy MCP surface", () => {
     expect(lastRoutineRequestBody.changes.runOn).toBe("cloud");
   });
 
-  it("advertises VPS-compatible default execution separately from the Boat runner", async () => {
+  it("advertises configured and own-VPS execution without a paid provider", async () => {
     const list = await rpc("tools/list");
     const routine = list.result.tools.find((entry: { name: string }) => entry.name === "trigger");
-    expect(routine.inputSchema.properties.run_on.enum).toEqual(["maus", "box"]);
-    expect(routine.inputSchema.properties.run_on.description).toContain("INCLUDING a self-hosted VPS");
+    expect(routine.inputSchema.properties.run_on.enum).toEqual(["maus", "cloud"]);
+    expect(routine.inputSchema.properties.run_on.description).toContain("own sandboxed VPS computer");
   });
 
   it("preserves execution settings copied from list_triggers", async () => {

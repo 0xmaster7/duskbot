@@ -22,8 +22,8 @@ beforeEach(() => {
 
 describe("why a key save failed", () => {
   it("calls it rejected only when the provider refused the key", () => {
-    expect(keySaveFailure(new ApiError("boat.dev rejected that key", 400, { error: "boat.dev rejected that key", code: "key_rejected" }))).toBe("rejected");
-    expect(keySaveFailure(new Error("Error invoking remote method 'credential:set': KeyRejected: That doesn't look like a Boat API key"))).toBe("rejected");
+    expect(keySaveFailure(new ApiError("Composio rejected that key", 400, { error: "Composio rejected that key", code: "key_rejected" }))).toBe("rejected");
+    expect(keySaveFailure(new Error("Error invoking remote method 'credential:set': KeyRejected: That doesn't look like a Composio API key"))).toBe("rejected");
   });
 
   it("calls every other failure an error", () => {
@@ -53,7 +53,7 @@ describe("what a saved key's check said", () => {
   });
 
   it("is ok for keys the server checks before saving, and unverified for the rest", () => {
-    for (const provider of ["boat", "composio", "elevenlabs", "fish_audio"] as const) expect(savedKeyResult(provider)).toBe("ok");
+    for (const provider of ["composio", "elevenlabs", "fish_audio"] as const) expect(savedKeyResult(provider)).toBe("ok");
     for (const provider of ["opencode_go", "openai_image", "custom_endpoint", "xai", "other"] as const) expect(savedKeyResult(provider)).toBe("unverified");
   });
 });
@@ -62,12 +62,14 @@ describe("local event helper arguments", () => {
   it("keeps provider, via and result allowlisted for a key save", async () => {
     vi.resetModules();
     const events = await import("./product-events");
-    events.keySaved("boat", "computer_panel", "rejected");
+    events.keySaved("composio", "settings", "rejected");
     events.keyRemoved("anthropic", "settings");
+    events.keySaved("boat" as never, "settings", "ok");
     events.keySaved("sk-ant-api03-ZZtestSECRET0123456789" as never, "https://evil.example.com" as never, "ok");
     expect(ph.captured.filter(({ event }) => event.startsWith("api_key_"))).toEqual([
-      { event: "api_key_saved", props: { provider: "boat", via: "computer_panel", result: "rejected" } },
+      { event: "api_key_saved", props: { provider: "composio", via: "settings", result: "rejected" } },
       { event: "api_key_removed", props: { provider: "anthropic", via: "settings" } },
+      { event: "api_key_saved", props: { provider: "other", via: "settings", result: "ok" } },
       { event: "api_key_saved", props: { provider: "other", via: "other", result: "ok" } },
     ]);
   });

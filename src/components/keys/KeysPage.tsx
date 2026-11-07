@@ -5,8 +5,7 @@ import { cn } from "@/lib/cn";
 import { scrollParent, scrollWithin } from "@/lib/scroll-within";
 import { t } from "@/lib/i18n";
 import { Card as RowsCard, FormDialog } from "../ListRows";
-import { footnoteCls, smallButtonCls } from "../ui/GrokDialog";
-import type { LocaleKey } from "@/locales";
+import { smallButtonCls } from "../ui/GrokDialog";
 import { LiveProviderSettings } from "../LiveProviderSettings";
 import { BuiltInReplyWait, LmStudioServer, OtherOpenAiCompatServers } from "../OpenAiCompatServers";
 import { KEY_CATALOG, KEY_SECTIONS, keyMatches, savedState, type KeyEntry, type KeyId, type KeySectionId } from "./key-catalog";
@@ -32,7 +31,6 @@ const EXTRAS: Partial<Record<KeyId, () => ReactNode>> = {
 };
 // rows whose dialog holds settings of their own besides the key
 const SET_UP: ReadonlySet<KeyId> = new Set<KeyId>(["openaiCompat", "liveKey"]);
-const TITLES: Partial<Record<KeyId, LocaleKey>> = { box: "keys.boat.row" };
 
 function connected(entry: KeyEntry, config: ConfigStatus | null | undefined): boolean {
   if (entry.kind === "uses") return false;
@@ -84,19 +82,17 @@ export function KeyCatalogRow({ entry }: { entry: KeyEntry }) {
   if (entry.id === "vps") return <VpsRow entry={entry} />;
   if (entry.kind === "panel") return <PanelRow entry={entry} />;
   if (entry.kind === "elsewhere") return <ElsewhereRow entry={entry} />;
-  const title = TITLES[entry.id];
   return (
     <>
-      <KeyRow id={entry.id} quiet={quiet(entry)} compact setUp={SET_UP.has(entry.id)} title={title ? t(title) : undefined}>{EXTRAS[entry.id]?.()}</KeyRow>
+      <KeyRow id={entry.id} quiet={quiet(entry)} compact setUp={SET_UP.has(entry.id)}>{EXTRAS[entry.id]?.()}</KeyRow>
     </>
   );
 }
 
-/** Cloud desktops in one place: the Boat key, Boat's credit, your own server, and what Boat costs under them. */
 export function CloudDesktopKeys() {
-  const rows = KEY_CATALOG.filter((entry) => entry.id === "box" || entry.id === "vps");
+  const rows = KEY_CATALOG.filter((entry) => entry.id === "vps");
   return (
-    <RowsCard data-settings-block="cloud-desktop-keys" footnote={t("keys.boat.warning")}>
+    <RowsCard data-settings-block="cloud-desktop-keys">
       {rows.map((entry) => <KeyCatalogRow key={entry.id} entry={entry} />)}
     </RowsCard>
   );
@@ -123,7 +119,6 @@ function KeySection({ id, rows, open, onToggle }: { id: KeySectionId; rows: KeyE
       </button>
       <div id={bodyId} hidden={!open} className="flex flex-col gap-0.5 pb-1">
         {rows.map((entry) => <KeyCatalogRow key={entry.id} entry={entry} />)}
-        {rows.some((entry) => entry.id === "box") && <p data-keys-footnote="" className={cn(footnoteCls, "px-2 pb-1 pt-0.5")}>{t("keys.boat.warning")}</p>}
       </div>
     </section>
   );

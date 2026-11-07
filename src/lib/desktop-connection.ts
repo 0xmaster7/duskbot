@@ -21,28 +21,32 @@ export class DesktopUnreachable extends Error {
 export async function connectDesktop(screen: HTMLElement, target: string, options: {
   threadId?: string | null;
   signal: AbortSignal;
+  viewOnly?: boolean;
   events: DesktopConnectionEvents;
 }): Promise<RFB> {
   if (!DESKTOP_VIEWER_TARGET.test(target)) throw new DesktopUnreachable(true);
   const { signal: cancelled, events } = options;
   const signal = AbortSignal.any([cancelled, AbortSignal.timeout(30_000)]);
   if (target.startsWith("vps/")) {
-    const query = options.threadId ? `?${new URLSearchParams({ threadId: options.threadId })}` : "";
+    const query = `?${new URLSearchParams({ viewer: "proxy", ...(options.threadId ? { threadId: options.threadId } : {}) })}`;
     const joined = await fetch(`/api/bots/${target.slice(4)}/computer/join${query}`, {
       method: "POST", headers: { "content-type": "application/json" }, body: "{}", signal,
     });
     if (!joined.ok) throw new DesktopUnreachable();
   }
   const path = `/api/desktop-viewer/${target}`;
-  const response = await fetch(path, { signal, credentials: "same-origin", cache: "no-store" });
+  const query = target.startsWith("vps/") && options.threadId ? `?${new URLSearchParams({ threadId: options.threadId })}` : "";
+  const response = await fetch(`${path}${query}`, { signal, credentials: "same-origin", cache: "no-store" });
   if (!response.ok) throw new DesktopUnreachable();
   const config = await response.json();
   cancelled.throwIfAborted();
-  const websocket = new URL(`${path}/websockify`, location.href);
+  const websocket = new URL(`${path}/websockify${query}`, location.href);
   websocket.protocol = location.protocol === "https:" ? "wss:" : "ws:";
   const client = new RFB(screen, websocket.href, {
     credentials: { password: config.password ?? "", username: "", target: "" },
   });
+  client.viewOnly = options.viewOnly === true;
+  client.focusOnClick = !client.viewOnly;
   client.scaleViewport = true;
   client.background = "var(--color-inset)";
   let ended = false;
@@ -51,16 +55,18 @@ export async function connectDesktop(screen: HTMLElement, target: string, option
     clearTimeout(deadline);
     if (ended || cancelled.aborted) return;
     ended = true;
+    cancelled.removeEventListener("abort", abort);
     events.disconnected();
   }
-  cancelled.addEventListener("abort", () => clearTimeout(deadline), { once: true });
+  const abort = () => { clearTimeout(deadline); client.disconnect(); };
+  cancelled.addEventListener("abort", abort, { once: true });
   client.addEventListener("connect", () => {
     clearTimeout(deadline);
-    if (!cancelled.aborted) events.connected();
+    if (!cancelled.aborted && !ended) events.connected();
   });
   client.addEventListener("disconnect", end);
   client.addEventListener("clipboard", (event) => {
-    if (!cancelled.aborted) events.clipboard?.(event.detail.text);
+    if (!cancelled.aborted && !ended) events.clipboard?.(event.detail.text);
   });
   return client;
 }

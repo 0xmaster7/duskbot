@@ -10,12 +10,6 @@ export const CREDENTIAL_TARGETS = {
     placeholder: "xai-…",
     helpUrl: "https://console.x.ai/",
   },
-  boxToken: {
-    label: "Boat API key",
-    description: "Gives bots an isolated cloud computer when Boat is selected.",
-    placeholder: "Paste your Boat API key",
-    helpUrl: "https://docs.boat.dev/api-keys",
-  },
   opencodeGoApiKey: {
     label: "OpenCode API key",
     description: "Used for OpenCode Zen and Go.",
@@ -125,7 +119,6 @@ export const PROVIDER_CREDENTIAL_TARGETS = [
 export type DesktopCredentialSlot = Exclude<ConfigCredentialTargetId, (typeof PROVIDER_CREDENTIAL_TARGETS)[number]>;
 export type CredentialConfig = {
   xai?: { key?: string };
-  box?: { token?: string };
   opencodeGo?: { apiKey?: string };
   tts?: { key?: string; fishKey?: string; geminiKey?: string };
   imageGen?: { key?: string };
@@ -155,7 +148,7 @@ export function isCredentialTargetId(value: unknown): value is CredentialTargetI
 }
 
 export function isConfigCredentialTarget(id: CredentialTargetId): id is ConfigCredentialTargetId {
-  return id !== "onePasswordToken";
+  return isCredentialTargetId(id) && id !== "onePasswordToken";
 }
 
 export function isProviderCredentialTarget(id: CredentialTargetId): boolean {
@@ -170,17 +163,17 @@ export function desktopCredentialSlot(id: CredentialTargetId): DesktopCredential
 
 /** Where a card saves what the person typed: the 1Password token goes to Logins, which checks it reaches 1Password. */
 export function credentialSaveRequest(id: CredentialTargetId, value: string): { path: string; method: "PUT" | "POST"; body: object } {
+  if (!isCredentialTargetId(id)) throw new Error("This credential request is no longer supported.");
   return isConfigCredentialTarget(id)
     ? { path: "/api/config", method: "PUT", body: credentialConfigPatch(id, value) }
     : { path: "/api/logins/1password", method: "POST", body: { token: value } };
 }
 
 export function credentialConfigPatch(id: ConfigCredentialTargetId, value: string): CredentialConfig {
+  if (!isConfigCredentialTarget(id)) throw new Error("This credential request is no longer supported.");
   switch (id) {
     case "xaiApiKey":
       return { xai: { key: value } };
-    case "boxToken":
-      return { box: { token: value } };
     case "opencodeGoApiKey":
       return { opencodeGo: { apiKey: value } };
     case "ttsKey":
@@ -216,11 +209,10 @@ export function credentialConfigPatch(id: ConfigCredentialTargetId, value: strin
 }
 
 export function credentialIsConfigured(config: CredentialConfig, id: CredentialTargetId): boolean {
+  if (!isCredentialTargetId(id)) return false;
   switch (id) {
     case "xaiApiKey":
       return Boolean(config.xai?.key);
-    case "boxToken":
-      return Boolean(config.box?.token);
     case "opencodeGoApiKey":
       return Boolean(config.opencodeGo?.apiKey);
     case "ttsKey":

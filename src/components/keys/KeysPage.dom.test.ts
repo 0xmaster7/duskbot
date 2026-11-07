@@ -74,7 +74,7 @@ beforeEach(() => {
   fx.dispatch.mockImplementation((action: { type: string; config?: Record<string, unknown> }) => {
     if (action.type === "configStatus") setConfig(action.config!);
   });
-  fx.config = { composio: { configured: false }, box: { configured: false }, vps: { configured: false, sshAlias: "" } };
+  fx.config = { composio: { configured: false }, vps: { configured: false, sshAlias: "" } };
   fx.instances = [];
   host = document.createElement("div");
   document.body.append(host);
@@ -139,7 +139,7 @@ describe("the keys page", () => {
   });
 
   it("keeps a section that holds a saved key folded, and counts what is connected", () => {
-    setConfig({ ...fx.config, box: { configured: true, last4: "c3d4" } });
+    setConfig({ ...fx.config, vps: { configured: true, sshAlias: "fixture" } });
     page();
     expect(expanded("computers")).toBe("false");
     expect(section("computers").querySelector("button")!.textContent).toContain("1 connected");
@@ -151,7 +151,7 @@ describe("the keys page", () => {
     type(search, "fish");
     expect(rowsShown()).toEqual(["fishAudio"]);
     type(search, "Computers and browser");
-    expect(rowsShown()).toEqual(["box", "vps", "onePassword"]);
+    expect(rowsShown()).toEqual(["vps", "onePassword"]);
     type(search, "research");
     expect(rowsShown()).toEqual(["treg"]);
     type(search, "zzz");
@@ -177,8 +177,8 @@ describe("the keys page", () => {
   it("clears a search that would hide the row a link asks for", async () => {
     page();
     type(host.querySelector<HTMLInputElement>("[data-keys-search]")!, "fish");
-    flushSync(() => { openKeySettings("box"); });
-    await vi.waitFor(() => expect(document.activeElement).toBe(row("box")!.querySelector("[data-key-add]")));
+    flushSync(() => { openKeySettings("anthropic"); });
+    await vi.waitFor(() => expect(document.activeElement).toBe(row("anthropic")!.querySelector("[data-key-add]")));
     expect(host.querySelector<HTMLInputElement>("[data-keys-search]")!.value).toBe("");
   });
 
@@ -207,16 +207,16 @@ describe("the keys page", () => {
   });
 
   it("confirms a key the server checked on save as Connected", async () => {
-    fx.api.mockImplementation(async () => ({ ...fx.config, box: { configured: true, last4: "c3d4" } }));
+    fx.api.mockImplementation(async () => ({ ...fx.config, composio: { configured: true, last4: "c3d4" } }));
     setConfig({ ...fx.config });
     page();
-    flushSync(() => section("computers").querySelector<HTMLButtonElement>("button[aria-expanded]")!.click());
-    const input = openDialog("box").querySelector<HTMLInputElement>("[data-key-input]")!;
-    type(input, "boat_dummy_fixture_key_c3d4");
+    flushSync(() => section("apps").querySelector<HTMLButtonElement>("button[aria-expanded]")!.click());
+    const input = openDialog("composio").querySelector<HTMLInputElement>("[data-key-input]")!;
+    type(input, "ak_fixture_key_c3d4");
     flushSync(() => input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
-    await vi.waitFor(() => expect(row("box")!.querySelector("[data-key-masked]")?.textContent).toContain("••••••••c3d4"));
-    expect(row("box")!.textContent).toContain("Connected");
-    expect(dialog("box")).toBeNull();
+    await vi.waitFor(() => expect(row("composio")!.querySelector("[data-key-masked]")?.textContent).toContain("••••••••c3d4"));
+    expect(row("composio")!.textContent).toContain("Connected");
+    expect(dialog("composio")).toBeNull();
     expect(fx.api).toHaveBeenCalledOnce();
   });
 });
@@ -236,8 +236,10 @@ describe("the OpenAI-compatible server row", () => {
   });
 });
 
-it("keeps computer credentials without advertising upstream referral credit", () => {
+it("opens the VPS setup in Computer settings without a paid provider key", () => {
   page();
-  expect(row("box")).not.toBeNull();
-  expect(host.querySelector("[data-boat-offer]")).toBeNull();
+  expect(row("box")).toBeNull();
+  flushSync(() => row("vps")!.querySelector<HTMLButtonElement>("[data-key-open]")!.click());
+  expect(fx.dispatch).toHaveBeenCalledWith({ type: "toggleAppSettings", open: true, section: "computer" });
+  expect(dialog("vps")).toBeNull();
 });

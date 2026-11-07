@@ -1137,44 +1137,35 @@ describe("Store", () => {
     expect(reloaded.projectBotForTask(bot.id, sibling.threadId)?.approvalMode).toBe("full");
   });
 
-  it("on a linked vps every bot, old or new, uses this server's computer instead of boat", () => {
+  it("uses the user's VPS backend for new bots and normalizes legacy patches", () => {
     const store = new Store(selection);
-    const old = store.createBot();
+    const bot = store.createBot();
+    expect(bot.cloudBackend).toBe("vps");
+    expect(store.patchBot(bot.id, { cloudBackend: "box" })?.cloudBackend).toBe("vps");
     process.env.OPENMAUSBOT_VPS_DOCKER = "local";
     try {
-      expect(store.useThisServerComputers()).toBe(true);
-      expect(store.bot(old.id)?.cloudBackend).toBe("vps");
-      expect(store.createBot().cloudBackend).toBe("vps");
       expect(store.useThisServerComputers()).toBe(false);
+      expect(store.createBot().cloudBackend).toBe("vps");
     } finally {
       delete process.env.OPENMAUSBOT_VPS_DOCKER;
     }
   });
 
-  it("normalizes persisted cloud backends without changing valid or absent values", () => {
+  it("normalizes legacy or absent cloud backends without changing destination or team access", () => {
     const store = new Store(selection);
-    const boat = store.createBot();
-    const vps = store.createBot();
-    const invalid = store.createBot();
-    const absent = store.createBot();
+    const bot = store.createBot({ name: "Legacy", section: "Private team" });
     const raw: BotRecord[] = JSON.parse(readFileSync(join(DATA_DIR, "bots.json"), "utf8"));
-    raw.find((bot) => bot.id === boat.id)!.cloudBackend = "box";
-    raw.find((bot) => bot.id === vps.id)!.cloudBackend = "vps";
-    (raw.find((bot) => bot.id === invalid.id) as unknown as { cloudBackend: string }).cloudBackend = "daytona";
-    delete raw.find((bot) => bot.id === absent.id)!.cloudBackend;
-    writeFileSync(join(DATA_DIR, "bots.json"), JSON.stringify(raw));
-
+    const saved = raw.find((entry) => entry.id === bot.id)!;
+    saved.cloudBackend = "box";
+    saved.computer = "cloud";
+    const absent = store.createBot();
+    const all = [...raw, { ...absent, cloudBackend: undefined }];
+    writeFileSync(join(DATA_DIR, "bots.json"), JSON.stringify(all));
     const reloaded = new Store(selection);
-    expect(reloaded.bot(boat.id)?.cloudBackend).toBe("box");
-    expect(reloaded.bot(vps.id)?.cloudBackend).toBe("vps");
-    expect(reloaded.bot(invalid.id)?.cloudBackend).toBeUndefined();
-    expect(reloaded.bot(absent.id)?.cloudBackend).toBeUndefined();
-
-    const saved: BotRecord[] = JSON.parse(readFileSync(join(DATA_DIR, "bots.json"), "utf8"));
-    expect(saved.find((bot) => bot.id === boat.id)?.cloudBackend).toBe("box");
-    expect(saved.find((bot) => bot.id === vps.id)?.cloudBackend).toBe("vps");
-    expect(saved.find((bot) => bot.id === invalid.id)).not.toHaveProperty("cloudBackend");
-    expect(saved.find((bot) => bot.id === absent.id)).not.toHaveProperty("cloudBackend");
+    expect(reloaded.bot(bot.id)).toMatchObject({ cloudBackend: "vps", computer: "cloud", section: "Private team" });
+    expect(reloaded.bot(absent.id)?.cloudBackend).toBe("vps");
+    const persisted: BotRecord[] = JSON.parse(readFileSync(join(DATA_DIR, "bots.json"), "utf8"));
+    expect(persisted.every(entry => entry.cloudBackend === "vps")).toBe(true);
   });
 
   it("migrates legacy browser profile references without collapsing case-distinct accounts", () => {

@@ -341,8 +341,8 @@ export class Store {
           botsMigrated = true;
         }
       }
-      if (b.cloudBackend !== undefined && b.cloudBackend !== "box" && b.cloudBackend !== "vps") {
-        delete b.cloudBackend;
+      if (b.cloudBackend !== "vps") {
+        b.cloudBackend = "vps";
         botsMigrated = true;
       }
       if (b.autoStartVps !== undefined && b.autoStartVps !== true && b.autoStartVps !== false) {
@@ -624,7 +624,7 @@ export class Store {
     if (groupsDirty) this.saveGroups();
   }
 
-  /** On a linked VPS there is no Boat: every bot's computer is this server's own sandbox. */
+  /** Pins linked-server bots to this server's own sandbox. */
   useThisServerComputers(): boolean {
     if (!vpsIsThisServer()) return false;
     const moved = this.bots.filter((bot) => bot.cloudBackend !== "vps");
@@ -1371,7 +1371,7 @@ export class Store {
       createdAt: Date.now(),
     };
     if (section) bot.section = section;
-    if (vpsIsThisServer()) bot.cloudBackend = "vps";
+    bot.cloudBackend = "vps";
     if (profile.createdBy?.trim()) bot.createdBy = ownerEmail(profile.createdBy);
     if (profile.reportsTo?.trim()) bot.reportsTo = ownerEmail(profile.reportsTo);
     if (profile.cwd) bot.cwd = profile.cwd;
@@ -1541,6 +1541,7 @@ export class Store {
   patchBot(id: string, patch: Partial<BotRecord>): BotRecord | null {
     const bot = this.bot(id);
     if (!bot) return null;
+    if (patch.cloudBackend !== undefined) patch = { ...patch, cloudBackend: "vps" };
     if (patch.connectorTools !== undefined) {
       const parsed = parseConnectorTools(patch.connectorTools);
       if (!parsed.ok) throw new Error(parsed.error);

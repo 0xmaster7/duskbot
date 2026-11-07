@@ -153,7 +153,8 @@ export interface SendTurnInput {
     composio?: { command: string; args: string[]; env: Record<string, string> };
     /** The same bridge to a Team Cloud member's own apps, only in that member's own turns. */
     composioOwn?: { command: string; args: string[]; env: Record<string, string> };
-    /** Stdio connection to a computer MCP server. `scope` is set only for the host desktop, so host-only approval rules never apply elsewhere. */
+    /** Stdio bridge to the selected host desktop, Local VM or sandboxed VPS computer. Provider credentials stay in the harness.
+     * `scope` is set only for the host desktop, so host-only approval rules never apply elsewhere. */
     localComputer?: {
       command: string;
       args: string[];

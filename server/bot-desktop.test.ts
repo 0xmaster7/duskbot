@@ -20,7 +20,7 @@ import {
 } from "./bot-desktop.ts";
 import { CUA_DRIVER_VERSION, DRIVER_LABEL } from "./container-computer.ts";
 import type { AppConfig } from "./config.ts";
-import { vpsComputerAction, vpsComputerStatus, vpsContainerName, type VpsCommandRunner } from "./vps-computer.ts";
+import { vpsBoxChrome, vpsComputerAction, vpsComputerStatus, vpsContainerName, type VpsCommandRunner } from "./vps-computer.ts";
 
 const NAME = "openmausbot-vps-bot1-0123456789ab";
 const IMAGE_ID = `sha256:${"c".repeat(64)}`;
@@ -357,5 +357,21 @@ describe("bot desktop on the VPS path", () => {
     };
     // the Cua image never appears in this fake, so the fallback stops at identifying it: enough to prove the route
     await expect(vpsComputerAction("provision", CONFIG, BOT, runner)).rejects.toThrow(/could not be identified/);
+  });
+
+  it("pins an in-box browser to its observed container and SSH host", async () => {
+    const fake = daemon();
+    await vpsComputerAction("provision", CONFIG, BOT, fake.runner);
+    try {
+      const first = await vpsBoxChrome(CONFIG, BOT, "d".repeat(64), fake.runner);
+      expect(first).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
+      expect(await vpsBoxChrome(CONFIG, BOT, "d".repeat(64), fake.runner)).toBe(first);
+      const other = await vpsBoxChrome({ vps: { sshAlias: "another-vps" } }, BOT, "d".repeat(64), fake.runner);
+      expect(other).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
+      expect(other).not.toBe(first);
+      expect(await vpsBoxChrome(CONFIG, BOT, "e".repeat(64), fake.runner)).toBeNull();
+    } finally {
+      await vpsBoxChrome({}, BOT, undefined, fake.runner);
+    }
   });
 });

@@ -6,7 +6,9 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { AppState, Bot, InstanceInfo } from "@/state/store";
 
 const fixture = vi.hoisted(() => ({
-  boatState: null as string | null,
+  container: "missing" as string,
+  configured: true,
+  imageMatches: true,
   posts: [] as string[],
   looks: 0,
   advanced: true,
@@ -32,22 +34,22 @@ vi.mock("./CloudScreenPreview", () => ({
   CloudScreenPreview: () => createElement("div", { "data-live-screen": "" }),
 }));
 vi.mock("./BrowserPanel", () => ({ BrowserPanel: () => null }));
-vi.mock("./CloudBackendPicker", () => ({ CloudBackendPicker: () => null }));
+vi.mock("./LiveDesktop", () => ({ LiveDesktop: () => createElement("div", { "data-live-screen": "" }) }));
 vi.mock("./bot-settings/RoutinesSection", () => ({ RoutinesSection: () => null }));
 vi.mock("@/state/store", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/state/store")>(),
   api: async (path: string, init?: RequestInit) => {
     if (init?.method === "POST") fixture.posts.push(path.split("?")[0]!);
     if (path.startsWith("/api/bots/scout/computer/provision")) {
-      fixture.boatState = "ready";
-      return { boxId: "bx_23456789", state: "ready" };
+      fixture.container = "running";
+      return { ready: true, container: "running" };
     }
     if (path.startsWith("/api/bots/scout/computer/screenshot")) return { png: "FRAME", format: "jpeg" };
     if (path.startsWith("/api/bots/scout/computer/control")) return { held: false, helpReason: null };
     if (path.startsWith("/api/bots/scout/computer?")) {
       fixture.looks++;
-      return { surface: "cloud", backend: "box", configured: true,
-        box: fixture.boatState ? { boxId: "bx_23456789", state: fixture.boatState } : null };
+      return { surface: "cloud", backend: "vps", configured: fixture.configured, ready: fixture.container === "running" && fixture.imageMatches,
+        container: fixture.container, managed: fixture.container !== "missing", imageMatches: fixture.imageMatches, problem: "Fixture desktop is not running" };
     }
     return {};
   },
@@ -72,7 +74,7 @@ const makeBot = (patch: Partial<Bot> = {}): Bot => ({
 
 let root: Root | null = null;
 const value = (): Parameters<typeof BotEditorStore>[0]["value"] => ({
-  state: { ...initialState, instances: [engine], config: { box: { configured: true } } as AppState["config"] } as AppState,
+  state: { ...initialState, instances: [engine], config: { vps: { configured: true } } as AppState["config"] } as AppState,
   dispatch: vi.fn(),
   flushBotPatches: async () => null,
   refreshInstances: async () => {},
@@ -92,9 +94,9 @@ const open = async (bot: Bot) => {
 };
 const text = () => document.body.textContent ?? "";
 const spinning = () => document.querySelector(".animate-spin") !== null;
-const button = (label: string) => [...document.querySelectorAll("button")].find((candidate) => candidate.textContent?.trim() === label);
 
 beforeAll(() => {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response("{}")));
   vi.stubGlobal("ogb", undefined);
 });
 afterEach(() => {
@@ -102,82 +104,25 @@ afterEach(() => {
   root = null;
   document.body.innerHTML = "";
   fixture.posts.length = 0;
-  fixture.boatState = null;
+  fixture.container = "missing";
+  fixture.configured = true;
+  fixture.imageMatches = true;
   fixture.looks = 0;
   fixture.advanced = true;
   vi.useRealTimers();
 });
 
-describe("Computer panel on Cloud computer", () => {
-  it("opening it before the bot has a cloud computer creates nothing and says when it starts", async () => {
-    await open(makeBot({ computer: "cloud" }));
-    expect(text()).toContain("Scout gets its own cloud desktop from Boat the first time a task needs one. The first start takes about a minute.");
-    expect(button("Start it now")).toBeDefined();
-    expect(fixture.posts).toEqual([]);
-  });
-
-  it("opening it while the cloud computer sleeps wakes nothing", async () => {
-    fixture.boatState = "archived";
-    await open(makeBot({ computer: "cloud" }));
-    expect(text()).toContain("Scout's cloud desktop is asleep. It wakes in a few seconds when Scout needs it.");
-    expect(button("Wake it now")).toBeDefined();
-    expect(fixture.posts).toEqual([]);
-  });
-
-  it("choosing Cloud computer creates nothing either", async () => {
+describe("VPS computer preparation", () => {
+  it("does not create a missing computer just because an Auto screen panel opens", async () => {
     await open(makeBot());
-    await open(makeBot({ computer: "cloud" }));
-    expect(button("Start it now")).toBeDefined();
     expect(fixture.posts).toEqual([]);
+    expect(text()).toContain("Fixture desktop is not running");
   });
 
-  it("while the bot only chats, says its cloud computer starts when a task needs it", async () => {
-    await open(makeBot({ computer: "cloud", busy: true }));
-    expect(text()).toContain("Scout gets its own cloud desktop from Boat the first time a task needs one.");
-    expect(button("Start it now")).toBeUndefined();
-    expect(fixture.posts).toEqual([]);
-  });
-
-  it("starts it only when the person presses Start it now", async () => {
-    await open(makeBot({ computer: "cloud" }));
-    flushSync(() => button("Start it now")!.click());
-    await settle();
-    expect(fixture.posts.filter((path) => !path.endsWith("/screenshot"))).toEqual(["/api/bots/scout/computer/provision"]);
-    expect(document.querySelector("[data-live-screen]")).not.toBeNull();
-  });
-
-  it("says the same about a cloud computer this conversation was moved to, without a start button", async () => {
-    const moved = { tasks: [{ threadId: "thread", title: "Thread", createdAt: 1, approvalMode: "ask", surface: "cloud", surfaceAuto: true }] } as Partial<Bot>;
-    fixture.boatState = "archived";
-    await open(makeBot(moved));
-    expect(text()).toContain("Scout's cloud desktop is asleep. It wakes in a few seconds when Scout needs it.");
-    expect(button("Wake it now")).toBeUndefined();
-    expect(fixture.posts).toEqual([]);
-  });
-
-  it("in Simple mode too: opening it creates nothing, and starting it now is the person's button", async () => {
-    fixture.advanced = false;
-    await open(makeBot({ computer: "cloud" }));
-    expect(text()).toContain("Scout gets its own cloud desktop from Boat the first time a task needs one. The first start takes about a minute.");
-    expect(fixture.posts).toEqual([]);
-    flushSync(() => button("Start it now")!.click());
-    await settle();
-    expect(fixture.posts.filter((path) => !path.endsWith("/screenshot"))).toEqual(["/api/bots/scout/computer/provision"]);
-  });
-
-  it("a conversation moved to a sleeping cloud computer: no spinner or 'using it' while the bot only chats, and no polling once it stops", async () => {
+  it("leaves a stopped Auto computer asleep without a spinner or repeated polling", async () => {
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
-    const moved = (busy: boolean) => makeBot({ busy, tasks: [{ threadId: "thread", title: "Thread", createdAt: 1, approvalMode: "ask", surface: "cloud", surfaceAuto: true }] } as Partial<Bot>);
-    fixture.boatState = "archived";
-    await open(moved(true));
-    expect(text()).toContain("Scout's cloud desktop is asleep. It wakes in a few seconds when Scout needs it.");
-    expect(text()).not.toContain("Your bot is using this computer right now");
-    expect(spinning()).toBe(false);
-
-    await open(moved(false));
-    await vi.advanceTimersByTimeAsync(5_000);
-    await settle();
-    expect(text()).toContain("Scout's cloud desktop is asleep.");
+    fixture.container = "stopped";
+    await open(makeBot());
     const looks = fixture.looks;
     await vi.advanceTimersByTimeAsync(30_000);
     await settle();
@@ -186,10 +131,55 @@ describe("Computer panel on Cloud computer", () => {
     expect(fixture.posts).toEqual([]);
   });
 
-  it("still shows the screen of a cloud computer that select_computer moved this conversation to", async () => {
-    fixture.boatState = "ready";
+  it("prepares an explicitly selected VPS computer once and starts watching it", async () => {
+    await open(makeBot({ computer: "cloud" }));
+    expect(fixture.posts.filter((path) => !path.endsWith("/screenshot"))).toEqual(["/api/bots/scout/computer/provision"]);
+    await expect.poll(() => document.querySelector("[data-live-screen]")).not.toBeNull();
+    await open(makeBot({ computer: "cloud" }));
+    expect(fixture.posts.filter((path) => path.endsWith("/provision"))).toHaveLength(1);
+  });
+
+  it("starts a stopped explicitly selected VPS computer without a provider sign-in", async () => {
+    fixture.container = "stopped";
+    await open(makeBot({ computer: "cloud" }));
+    expect(fixture.posts.filter((path) => path.endsWith("/provision"))).toHaveLength(1);
+    expect(document.querySelector("[data-live-screen]")).not.toBeNull();
+    expect(text()).not.toMatch(/Boat|paid service|credits/);
+  });
+
+  it("does not provision before the VPS is configured", async () => {
+    fixture.configured = false;
+    await open(makeBot({ computer: "cloud" }));
+    expect(fixture.posts).toEqual([]);
+    expect(document.querySelector("[data-live-screen]")).toBeNull();
+  });
+
+  it("never replaces an incompatible existing computer on its own", async () => {
+    fixture.container = "running";
+    fixture.imageMatches = false;
+    await open(makeBot({ computer: "cloud" }));
+    expect(fixture.posts).toEqual([]);
+    expect(document.querySelector("[data-live-screen]")).toBeNull();
+  });
+
+  it("keeps a conversation-only cloud pin read-only while the bot chats", async () => {
+    fixture.container = "stopped";
+    await open(makeBot({ busy: true, tasks: [{ threadId: "thread", title: "Thread", createdAt: 1, approvalMode: "ask", surface: "cloud", surfaceAuto: true }] } as Partial<Bot>));
+    expect(fixture.posts).toEqual([]);
+    expect(spinning()).toBe(false);
+  });
+
+  it("watches an already running VPS computer without creating or waking it", async () => {
+    fixture.container = "running";
     await open(makeBot({ tasks: [{ threadId: "thread", title: "Thread", createdAt: 1, approvalMode: "ask", surface: "cloud", surfaceAuto: true }] } as Partial<Bot>));
     expect(document.querySelector("[data-live-screen]")).not.toBeNull();
     expect(fixture.posts.filter((path) => !path.endsWith("/screenshot"))).toEqual([]);
+  });
+
+  it("uses the same preparation behavior in Simple mode", async () => {
+    fixture.advanced = false;
+    await open(makeBot({ computer: "cloud" }));
+    expect(fixture.posts.filter((path) => path.endsWith("/provision"))).toHaveLength(1);
+    expect(document.querySelector("[data-live-screen]")).not.toBeNull();
   });
 });

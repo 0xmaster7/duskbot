@@ -52,7 +52,7 @@ const SIGN_IN_PLACES: Record<string, string> = {
   browser: "your built-in browser",
   local: "this computer",
   vm: "the Local VM",
-  cloud: "the cloud computer",
+  cloud: "your VPS computer",
 };
 
 const STATUS_WORDS: Record<string, string> = {

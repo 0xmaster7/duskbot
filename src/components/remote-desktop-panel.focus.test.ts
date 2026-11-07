@@ -9,13 +9,14 @@ import { rememberComputerPanelOpen } from "@/lib/computer-panel-focus";
 vi.mock("./DesktopCapabilities", async (importOriginal) => ({
   ...await importOriginal<typeof import("./DesktopCapabilities")>(),
   useCaptionChrome: () => ({ padClass: undefined }),
+  useDesktopCapabilities: () => ({ ready: true, capabilities: { host: { platform: "darwin", label: "Host" }, localComputer: { available: false }, screenPreview: { available: false } } }),
 }));
 vi.mock("@/lib/page-visible", () => ({ usePageVisible: () => false }));
 vi.mock("./BrowserPanel", () => ({ BrowserPanel: () => null }));
 vi.mock("./RoutinesPage", () => ({ RoutineEditor: () => null }));
 vi.mock("@/state/store", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/state/store")>(),
-  api: async () => ({}),
+  api: async () => ({ configured: false }),
 }));
 
 const { RemoteDesktopPanel } = await import("./remote-desktop-panel");
@@ -40,7 +41,7 @@ let frames: Array<{ id: number; run: FrameRequestCallback }> = [];
 let nextFrame = 1;
 
 const value = (): Parameters<typeof BotEditorStore>[0]["value"] => ({
-  state: { ...initialState, instances: [engine("claude")], config: { box: { configured: true } } as AppState["config"] } as AppState,
+  state: { ...initialState, instances: [engine("claude")], config: { vps: { configured: true } } as AppState["config"] } as AppState,
   dispatch: vi.fn(),
   flushBotPatches: async () => null,
   refreshInstances: async () => {},
@@ -67,6 +68,7 @@ beforeAll(() => {
   vi.stubGlobal("ogb", undefined);
 });
 beforeEach(() => {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response("{}")));
   frames = [];
   nextFrame = 1;
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
@@ -86,12 +88,12 @@ afterEach(() => {
 });
 
 describe("remote desktop panel entry focus", () => {
-  it("opens onto its close button, the only entry a panel without tabs has", async () => {
+  it("opens onto the shared Screen tab for keyboard entry", async () => {
     rememberComputerPanelOpen({ botId: "scout", opener: null, tabs: true });
     await open(makeBot());
     runFrames();
-    expect(document.querySelector('[role="tablist"]')).toBeNull();
-    expect(document.activeElement).toBe(panelClose());
+    expect(document.querySelector('[role="tablist"]')).not.toBeNull();
+    expect(document.activeElement).toBe(document.querySelector('[role="tab"][aria-selected="true"]'));
   });
 
   it("leaves a pointer open's focus alone", async () => {

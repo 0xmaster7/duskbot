@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { ExternalLink, KeyRound, Loader2, LockKeyhole, RefreshCw, X } from "lucide-react";
 
-import { CUSTOM_SECRET_TARGET, credentialResumeOutcome, credentialSaveRequest, desktopCredentialSlot, isConfigCredentialTarget } from "../../shared/credential-request";
+import { CUSTOM_SECRET_TARGET, credentialResumeOutcome, credentialSaveRequest, desktopCredentialSlot, isConfigCredentialTarget, isCredentialTargetId } from "../../shared/credential-request";
 import { credentialProvider } from "@/lib/analytics-allowlist";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
@@ -67,6 +67,12 @@ export function SecretRequestCard({
         ? "The key is safe; resuming failed"
         : "Waiting to resume safely";
 
+  if (!custom && !isCredentialTargetId(secret.target)) {
+    return <AskSettledLine icon={<X size={13} />} ariaLabel={secret.label}>
+      <span className="text-ink-secondary">{secret.label}</span>
+      <span> · This credential request is no longer supported.</span>
+    </AskSettledLine>;
+  }
   if (declined && (secret.resumed || !error)) return null;
 
   const notifyProvided = async () => {

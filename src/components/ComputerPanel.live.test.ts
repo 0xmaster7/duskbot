@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { createElement } from "react";
+import { createElement, useEffect } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -25,7 +25,7 @@ vi.mock("./CloudScreenPreview", () => ({
   CloudScreenPreview: ({ src }: { src: string | null }) => createElement("img", { "data-preview": "", src: src ?? "" }),
 }));
 vi.mock("./BrowserPanel", () => ({ BrowserPanel: () => null }));
-vi.mock("./CloudBackendPicker", () => ({ CloudBackendPicker: () => null }));
+vi.mock("./LiveDesktop", () => ({ LiveDesktop: ({ onUnreachable }: { onUnreachable: () => void }) => { useEffect(onUnreachable, []); return null; } }));
 vi.mock("./bot-settings/RoutinesSection", () => ({ RoutinesSection: () => null }));
 vi.mock("@/state/store", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/state/store")>(),
@@ -35,7 +35,7 @@ vi.mock("@/state/store", async (importOriginal) => ({
       return { png: "POLLED", format: "png" };
     }
     if (path.startsWith("/api/bots/bot/computer/control")) return { held: false, helpReason: null };
-    if (path.startsWith("/api/bots/bot/computer?")) return { configured: true, box: { state: "ready" } };
+    if (path.startsWith("/api/bots/bot/computer?")) return { configured: true, ready: true, managed: true, imageMatches: true, container: "running" };
     return {};
   },
 }));
@@ -81,7 +81,7 @@ beforeAll(async () => {
     bots: [bot],
     selectedId: bot.id,
     instances: [engine],
-    config: { box: { configured: true } } as AppState["config"],
+    config: { vps: { configured: true } } as AppState["config"],
   };
   value = { state, dispatch: vi.fn(), flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} };
   const container = document.createElement("div");
@@ -95,7 +95,7 @@ afterAll(() => {
   vi.useRealTimers();
 });
 
-describe("Computer panel live frames", () => {
+describe("Computer panel screenshot fallback and live frames", () => {
   it("starts from its own capture", () => {
     expect(captured.posts).toBe(1);
     expect(preview()).toBe("data:image/png;base64,POLLED");

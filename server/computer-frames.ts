@@ -1,7 +1,4 @@
-// Boat answers about 1,000 API requests a minute per IP and one screen costs two (a command, then reading the file),
-// so the Team map shares a small global frame budget and leaves the rest to the bots' own computer calls.
 import type { MapComputerState } from "../shared/map-computer.ts";
-import { SLEEPING_BOAT_STATES } from "./boat.ts";
 
 /** A cloud computer this installation manages, keyed by its owner: a bot id, or a team computer's owner key. */
 export interface FrameMachine {
@@ -47,15 +44,16 @@ export interface ComputerFramesOptions {
 }
 
 const RUNNING = new Set(["idle", "ready", "running"]);
-const STARTING = new Set(["init", "provisioning", "provisioned", "cloning"]);
-const FAILED = new Set(["error", "cancelled"]);
+const STARTING = new Set(["created", "restarting"]);
+const SLEEPING = new Set(["paused", "exited", "stopped"]);
+const FAILED = new Set(["dead", "error"]);
 const MAX_BACKOFF_MS = 120_000;
 
 export function mapComputerState(machine: FrameMachine | undefined, working: boolean): MapComputerState {
   if (!machine) return "off";
   if (RUNNING.has(machine.state)) return working ? "working" : "idle";
   if (STARTING.has(machine.state)) return "starting";
-  if (SLEEPING_BOAT_STATES.has(machine.state)) return "asleep";
+  if (SLEEPING.has(machine.state)) return "asleep";
   if (FAILED.has(machine.state)) return "problem";
   return "off";
 }

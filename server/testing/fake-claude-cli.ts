@@ -41,7 +41,7 @@
 //   FAKE_CLAUDE_TOOL_CALLS_FILE  path of the same JSON, read again each turn (a warm process's turns differ); missing: none
 //   FAKE_CLAUDE_STREAM_CADENCE  "chars:ms" (happy mode): stream each scripted reply as
 //     text_delta chunks of `chars` chars every `ms` ms before its assistant message
-//   FAKE_CLAUDE_USES_CLOUD_COMPUTER  1: first take one screenshot through the `computer` MCP server
+//   FAKE_CLAUDE_USES_CLOUD_COMPUTER  1: claim the mounted computer's control gate before continuing
 //   FAKE_CLAUDE_CONNECT_APPS  toolkits (gmail,slack): first call COMPOSIO_MANAGE_CONNECTIONS via `composio`
 //   FAKE_CLAUDE_HOOKS  1: run the --settings hooks like the CLI (PostToolUse per tool_result, PostToolUseFailure for
 //     an ok:false call with its additionalContext echoed into the reply, Stop at the end)
@@ -641,10 +641,19 @@ const useCloudComputer = () => {
   launchFiles ??= readLaunchFiles();
   const server = (launchFiles.mcpConfig as { mcpServers?: Record<string, { command?: string; args?: string[]; env?: Record<string, string> }> } | null)
     ?.mcpServers?.computer;
-  if (!server?.command || server.args?.at(-1) !== "computer" || !/harness-mcp-proxy/.test(server.args[0] ?? "")) return;
+  if (!server?.command) return;
+  const scopedGate = server.env?.OMB_CONTROL_URL && server.env?.OMB_CONTROL_TOKEN;
+  const harnessProxy = server.args?.at(-1) === "computer" && /harness-mcp-proxy/.test(server.args[0] ?? "");
+  if (!scopedGate && !harnessProxy) return;
   const id = `tu-${process.pid}-${++toolUseCount}`;
   out({ type: "assistant", message: { content: [{ type: "tool_use", id, name: "mcp__computer__screenshot", input: {} }] } });
-  const ran = spawnSync(server.command, server.args, {
+  const command = scopedGate ? process.execPath : server.command;
+  const args: string[] = scopedGate ? ["--input-type=module", "-e", `
+const response = await fetch(process.env.OMB_CONTROL_URL, { headers: { authorization: 'Bearer ' + process.env.OMB_CONTROL_TOKEN } });
+const state = await response.json();
+console.log(JSON.stringify({ result: { isError: !response.ok || state.held, content: [{ type: 'text', text: JSON.stringify(state) }] } }));
+`] : server.args ?? [];
+  const ran = spawnSync(command, args, {
     input: `${JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "screenshot", arguments: {} } })}\n`,
     env: { ...process.env, ...server.env }, encoding: "utf8", timeout: 150_000,
   });

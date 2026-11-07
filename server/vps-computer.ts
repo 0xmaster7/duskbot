@@ -1192,29 +1192,30 @@ export async function vpsComputerJoin(
   return { joinUrl, state: "running" };
 }
 
-const boxChromes = new Map<string, { containerId: string; url: string; close: () => void }>();
+const boxChromes = new Map<string, { alias: string; containerId: string; url: string; close: () => void }>();
 
-/** The CDP address a bot's browser attaches to, when its computer is a running bot desktop on this server's own Docker. */
-export async function vpsBoxChrome(cfg: AppConfig, botId: string): Promise<string | null> {
+/** Loopback CDP for one running bot desktop; the optional container id pins a turn to the computer it mounted. */
+export async function vpsBoxChrome(cfg: AppConfig, botId: string, expectedContainerId?: string, runner: VpsCommandRunner = defaultRunner): Promise<string | null> {
   const alias = vpsSshAlias(snapshotVpsConfig(cfg));
   const known = boxChromes.get(botId);
-  if (!alias || !isThisServerVps(alias)) { known?.close(); boxChromes.delete(botId); return null; }
-  const status = await vpsComputerStatus(cfg, botId);
+  if (!alias) { known?.close(); boxChromes.delete(botId); return null; }
+  const status = await vpsComputerStatus(cfg, botId, runner);
   const containerId = status.container_id;
-  if (!status.ready || status.desktop !== "bot-desktop" || !containerId) {
+  if (!status.ready || status.desktop !== "bot-desktop" || !containerId || (expectedContainerId !== undefined && containerId !== expectedContainerId)) {
     known?.close();
     boxChromes.delete(botId);
     return null;
   }
-  if (known?.containerId === containerId) return known.url;
+  if (known?.alias === alias && known.containerId === containerId) return known.url;
   known?.close();
-  const relay = await boxChromeRelay(() => spawn("docker", boxChromeExecArgs(containerId), {
-    shell: false, stdio: ["pipe", "pipe", "ignore"], windowsHide: true,
+  const relayEnv = isThisServerVps(alias) ? process.env : { ...process.env, PATH: prepareVpsSsh(DATA_DIR, augmentedPath()).path };
+  const relay = await boxChromeRelay(() => spawn("docker", vpsDockerArgs(alias, boxChromeExecArgs(containerId)), {
+    shell: false, stdio: ["pipe", "pipe", "ignore"], windowsHide: true, env: relayEnv,
   }));
   const current = boxChromes.get(botId);
-  if (current && current.containerId === containerId) { relay.close(); return current.url; }
+  if (current && current.alias === alias && current.containerId === containerId) { relay.close(); return current.url; }
   current?.close();
-  boxChromes.set(botId, { containerId, ...relay });
+  boxChromes.set(botId, { alias, containerId, ...relay });
   return relay.url;
 }
 

@@ -33,10 +33,10 @@ export function desktopViewerUrl(target: string, threadId?: string): string {
   return `/desktop-viewer#${params}`;
 }
 
-interface Viewer { socket: Socket; close: () => void; owner?: string; botId?: string }
+interface Viewer { socket: Socket; close: () => void; owner?: string; botId?: string; valid?: () => boolean }
 
 export function createDesktopViewer(deps: {
-  target: (id: string) => DesktopTarget | undefined;
+  target: (id: string, threadId?: string) => DesktopTarget | undefined;
   live: (auth: RequestAuth) => boolean;
   /** Binds a viewer to a control lease: answers only while `controlLeaseId` holds `botId`'s computer and the target is
    * that computer. Shared and pool targets are refused: a bot hold cannot reserve their desktop. */
@@ -64,11 +64,11 @@ export function createDesktopViewer(deps: {
     if ((botId === null) !== (controlLeaseId === null)) {
       return json(res, 400, { error: "botId and controlLeaseId go together" });
     }
-    if (botId !== null && (!BOT_ID.test(botId) || !CONTROL_LEASE.test(controlLeaseId!) || !deps.lease
-      || (threadId !== undefined && !BOT_ID.test(threadId)))) {
+    if ((threadId !== undefined && !BOT_ID.test(threadId)) ||
+        (botId !== null && (!BOT_ID.test(botId) || !CONTROL_LEASE.test(controlLeaseId!) || !deps.lease))) {
       return json(res, 400, { error: "botId, threadId or controlLeaseId is not valid" });
     }
-    if (botId === null && threadId !== undefined) return json(res, 400, { error: "threadId needs botId and controlLeaseId" });
+    if (botId === null && threadId !== undefined && !match[1].startsWith("vps/")) return json(res, 400, { error: "threadId needs botId and controlLeaseId" });
     // A saved or constructed socket URL must not bypass the join refusal: a bot's lease does not exclude other users of a shared desktop.
     if (botId !== null && (match[1] === "local/shared" || match[1].startsWith("local/pool-"))) {
       return json(res, 409, { error: "Phone control requires a per-bot Local VM. Select per-bot mode in Settings → Computers." });
@@ -76,20 +76,25 @@ export function createDesktopViewer(deps: {
     const bound = botId === null ? undefined : deps.lease!(match[1], botId, controlLeaseId!, threadId);
     if (botId !== null && !bound) return json(res, 409, { error: "Take control of this computer first" });
     const holds = () => bound?.() ?? true;
-    const target = deps.target(match[1]);
+    const target = deps.target(match[1], threadId);
     if (!target) return json(res, 404, { error: "Desktop not found" });
+    let connection: DesktopConnection;
+    const live = () => {
+      try { return deps.live(auth) && deps.target(match[1], threadId)?.key === target.key && (connection?.live?.() ?? true); }
+      catch { return false; }
+    };
     const pending = upgrades.pending(req);
     if (pending && stopped) { pending.socket.destroy(); return; }
     let upgrade: Viewer | undefined;
     if (pending) {
-      const viewer: Viewer = { socket: pending.socket, close: () => pending.socket.destroy() };
+      const viewer: Viewer = { socket: pending.socket, close: () => pending.socket.destroy(), valid: () => live() && holds() };
       if (auth.kind === "session") viewer.owner = auth.session.id;
       if (botId !== null) viewer.botId = botId;
+      else if (match[1].startsWith("vps/")) viewer.botId = match[1].slice(4);
       viewers.set(req, viewer);
       pending.socket.once("close", () => viewers.delete(req));
       upgrade = viewer;
     }
-    let connection: DesktopConnection;
     try { connection = await target.resolve(); }
     catch (error) {
       const status = error && typeof error === "object" && "status" in error ? error.status : 502;
@@ -98,7 +103,6 @@ export function createDesktopViewer(deps: {
     }
     // Inspection may outlive a closed tab or the handshake deadline.
     if (res.destroyed || upgrade?.socket.destroyed) return;
-    const live = () => deps.live(auth) && deps.target(match[1])?.key === target.key && (connection.live?.() ?? true);
     if (!live()) return json(res, 401, { error: "Viewer access expired" });
     if (!holds()) return json(res, 409, { error: "Take control of this computer first" });
     if (!Number.isInteger(connection.port) || connection.port < 1 || connection.port > 65535) {
@@ -117,6 +121,7 @@ export function createDesktopViewer(deps: {
       headers: { Upgrade: "websocket", Connection: "Upgrade", "Sec-WebSocket-Key": key, "Sec-WebSocket-Version": "13" },
     });
     const { socket } = upgrade;
+    socket.setNoDelay(true);
     let peer: Duplex | undefined;
     let recheck: ReturnType<typeof setInterval> | undefined;
     const release = connection.retain?.();
@@ -150,6 +155,7 @@ export function createDesktopViewer(deps: {
       }
       clearTimeout(timeout);
       peer = remote;
+      if ("setNoDelay" in remote && typeof remote.setNoDelay === "function") remote.setNoDelay(true);
       remote.once("error", upgrade.close);
       remote.once("close", upgrade.close);
       pending.release();
@@ -178,6 +184,18 @@ export function createDesktopViewer(deps: {
         if (viewer.owner !== owner || (botId !== undefined && viewer.botId !== botId)) continue;
         // A closed viewer stays listed until its socket's close event, which arrives later on Windows.
         if (viewer.socket.destroyed) continue;
+        viewer.close();
+        closed++;
+      }
+      return closed;
+    },
+    recheck: () => {
+      let closed = 0;
+      for (const viewer of viewers.values()) {
+        if (viewer.socket.destroyed) continue;
+        let valid = false;
+        try { valid = viewer.valid?.() ?? false; } catch { }
+        if (valid) continue;
         viewer.close();
         closed++;
       }

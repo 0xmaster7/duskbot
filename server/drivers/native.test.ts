@@ -24,8 +24,8 @@ describe("appendNative", () => {
             {
               name: "computer",
               env: [
-                { name: "OGB_BOX_ID", value: "boat-7" },
-                { name: "OGB_BOX_TOKEN", value: "box_live_dontlogme" },
+                { name: "OMB_CONTROL_URL", value: "http://127.0.0.1:8799" },
+                { name: "OMB_CONTROL_TOKEN", value: "fixture_control_dontlogme" },
               ],
             },
           ],
@@ -34,10 +34,10 @@ describe("appendNative", () => {
     });
 
     const log = readFileSync(join(NATIVE_DIR, "t-native.ndjson"), "utf8");
-    expect(log).not.toContain("box_live_dontlogme");
+    expect(log).not.toContain("fixture_control_dontlogme");
     expect(log).toContain("session/new");
-    expect(log).toContain("OGB_BOX_TOKEN");
-    expect(log).toContain("boat-7");
+    expect(log).toContain("OMB_CONTROL_TOKEN");
+    expect(log).toContain("http://127.0.0.1:8799");
   });
 
   it("keeps the length of inline screenshots and files, never their bytes", () => {

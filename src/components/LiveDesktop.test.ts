@@ -8,14 +8,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type Events = { connected(): void; disconnected(): void };
 const fixture = vi.hoisted(() => ({
-  attempts: [] as Array<{ target: string; events: Events; client: { focus: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> } }>,
+  attempts: [] as Array<{ target: string; events: Events; client: { focus: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn>; viewOnly: boolean; focusOnClick: boolean } }>,
   refuse: false,
   typed: [] as string[],
 }));
 vi.mock("@/lib/desktop-connection", () => ({
   connectDesktop: async (_screen: HTMLElement, target: string, options: { events: Events }) => {
     if (fixture.refuse) throw new Error("unreachable");
-    const client = { focus: vi.fn(), disconnect: vi.fn() };
+    const client = { focus: vi.fn(), disconnect: vi.fn(), viewOnly: false, focusOnClick: true };
     fixture.attempts.push({ target, events: options.events, client });
     return client;
   },
@@ -84,7 +84,7 @@ describe("the live desktop", () => {
     expect(props.onUnreachable).toHaveBeenCalledTimes(1);
   });
 
-  it("a drop mid-session reconnects once by itself, then offers Reconnect", async () => {
+  it("a drop mid-session reconnects once and reports an exhausted recovery", async () => {
     const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
     flushSync(() => fixture.attempts[0]!.events.connected());
     flushSync(() => fixture.attempts[0]!.events.disconnected());
@@ -96,9 +96,42 @@ describe("the live desktop", () => {
     flushSync(() => fixture.attempts[1]!.events.disconnected());
     await wait(1_500);
     expect(fixture.attempts, "no endless reconnect loop").toHaveLength(2);
+    expect(props.onUnreachable).toHaveBeenCalledTimes(1);
     flushSync(() => button("Reconnect")!.click());
     await settle();
     expect(fixture.attempts).toHaveLength(3);
+  });
+
+  it("watching, taking control and handing back reuse one connection without granting input while watching", async () => {
+    draw({ viewOnly: true });
+    await settle();
+    const client = fixture.attempts[0]!.client;
+    flushSync(() => fixture.attempts[0]!.events.connected());
+    expect(client.viewOnly).toBe(true);
+    expect(client.focusOnClick).toBe(false);
+    expect(client.focus).not.toHaveBeenCalled();
+    draw({ viewOnly: false });
+    expect(client.viewOnly).toBe(false);
+    expect(client.focusOnClick).toBe(true);
+    expect(client.focus).toHaveBeenCalled();
+    draw({ viewOnly: true });
+    expect(client.viewOnly).toBe(true);
+    expect(client.focusOnClick).toBe(false);
+    expect(fixture.attempts).toHaveLength(1);
+  });
+
+  it("ignores a previous desktop's late events and reports a new desktop that never answered", async () => {
+    const first = fixture.attempts[0]!;
+    flushSync(() => first.events.connected());
+    draw({ target: "vps/second", threadId: "second-thread" });
+    await settle();
+    expect(state()).toBe("connecting");
+    flushSync(() => first.events.disconnected());
+    flushSync(() => first.events.connected());
+    expect(state()).toBe("connecting");
+    expect(props.onUnreachable).not.toHaveBeenCalled();
+    flushSync(() => fixture.attempts[1]!.events.disconnected());
+    expect(props.onUnreachable).toHaveBeenCalledTimes(1);
   });
 
   it("closes its connection when it goes away", () => {

@@ -59,7 +59,7 @@ Use only mapped, tested commands:
 - [Exact command allowlist UI and saved rules](command-allowlist.md)
 - [The safety floor: a never-list no grant can allow](safety-floor.md)
 - [Peer approval denial, expiry, and cancellation](peer-approvals.md)
-- [Waiting for an occupied desktop](computer-wait.md)
+- [Shared VPS ownership, waiting and control boundaries](computer-wait.md)
 - [Chat UI, driven headlessly](chat-ui.md)
 - [Computer panel focus hand-off](computer-panel-focus.md)
 - [Taking control of a bot's computer](take-control.md)
@@ -176,8 +176,10 @@ comms capability from `external-runtimes.json` against a disposable server and
 the fake engine: scope, on-demand token reads, `coordinate_bots` roots polled
 through `assignment_status`, and immediate dispatch to a free teammate.
 
-The [cloud preview fixture](cloud-preview.md) mounts the real Computer panel
-against an isolated server for image decoding, loading, and recovery UI checks.
+The [computer preview fixture](cloud-preview.md) mounts the real Computer panel
+against an isolated server with simulated VPS transport for image decoding,
+loading, cancellation and recovery UI checks. The [shared VPS recipe](teams.md)
+also covers target isolation and private migration of retired provider settings.
 
 The [VPS recovery fixtures](vps-recovery.md) reproduce preview/startup contention
 and Docker-over-SSH timeout cleanup without contacting a real server.

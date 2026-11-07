@@ -117,7 +117,7 @@ while True:
     out.write(data)
     out.flush()
 `;
-/** Only on this server's own Docker; a remote VPS would pay an SSH round trip per DevTools connection. */
+/** The validated container id reaches only that box's loopback Chromium through Docker exec. */
 export function boxChromeExecArgs(containerId: string): string[] {
   if (!/^[a-f0-9]{12,64}$/i.test(containerId)) throw new Error("invalid VPS container");
   return ["exec", "-i", "-u", "1000:1000", containerId, "python3", "-I", "-c", BOX_CHROME_RELAY];

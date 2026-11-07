@@ -31,7 +31,7 @@ beforeAll(async () => {
   gmail = broker.account(owner.userId, "gmail", "sales");
   broker.account(owner.userId, "slack");
   fixture = await launchVerificationServer({ ...process.env, OMB_COMPOSIO_BROKER_URL: broker.url, OMB_COMPOSIO_BROKER_TOKEN: owner.token },
-    undefined, undefined, undefined, undefined, { scripted: true }, [], undefined, dist);
+    undefined, undefined, undefined, undefined, { scripted: true }, [], dist);
   const { chromium } = createRequire(join(playwrightPath!, "package.json"))("playwright-core");
   // A mock keychain keeps the test browser from asking the person's macOS keychain for anything.
   browser = await chromium.launch({ executablePath: chromiumPath, headless: true, args: ["--use-mock-keychain"] });
