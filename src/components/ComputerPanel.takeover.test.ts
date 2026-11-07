@@ -19,6 +19,9 @@ const fixture = vi.hoisted(() => ({
   inline: false,
   cloudState: "running" as "running" | "stopped",
   statusReads: 0,
+  /** holds the status reply back, as a slow first status does */
+  statusGate: null as null | Promise<void>,
+  surface: "cloud" as "cloud" | "browser",
   live: null as null | { target: string; expanded: boolean; onUnreachable: () => void; viewOnly?: boolean; onReadyChange?: (ready: boolean) => void; onTakeControl?: () => void; onOpenPreview?: () => void; originalViewer?: boolean },
 }));
 vi.mock("./DesktopCapabilities", async (importOriginal) => ({
@@ -85,7 +88,13 @@ vi.mock("@/state/store", async (importOriginal) => ({
     if (route === "/api/bots/scout/local-computer/screenshot") return { image: "data:image/png;base64,FRAME" };
     if (route === "/api/bots/scout/computer") {
       fixture.statusReads++;
-      return { configured: true, ready: fixture.cloudState === "running", managed: true, imageMatches: true, container: fixture.cloudState, problem: null };
+      if (fixture.statusGate) await fixture.statusGate;
+      if (fixture.surface !== "cloud") return { surface: fixture.surface, configured: false, backend: "vps" };
+      return { surface: "cloud", configured: true, ready: fixture.cloudState === "running", managed: true, imageMatches: true, container: fixture.cloudState, problem: null };
+    }
+    if (route === "/api/bots/scout/computer/provision") {
+      fixture.cloudState = "running";
+      return { surface: "cloud", configured: true, ready: true, managed: true, imageMatches: true, container: "running", problem: null };
     }
     if (route === "/api/bots/scout/computer/screenshot") return { png: "FRAME", format: "png" };
     if (route === "/api/bots/scout/computer/join") return { joinUrl: "https://desktop.invalid/scout" };
@@ -173,6 +182,8 @@ beforeEach(() => {
   fixture.inline = false;
   fixture.cloudState = "running";
   fixture.statusReads = 0;
+  fixture.statusGate = null;
+  fixture.surface = "cloud";
   state = { ...initialState, instances: [engine], config: { box: { configured: true } } as AppState["config"], computerControl: {} } as AppState;
   vi.stubGlobal("ogb", {
     desktopViewer: { open: vi.fn(async () => true), close: vi.fn(async () => true), onState: () => () => {}, currentState: async () => ({ open: false, contextId: null }) },
@@ -384,6 +395,49 @@ describe("taking control of other computers", () => {
     expect(fixture.controls[0]?.action).toBe("take");
     expect(window.ogb!.desktopViewer!.open).not.toHaveBeenCalled();
     expect(window.open).not.toHaveBeenCalled();
+  });
+
+  it("is a wake button from its first frame and keeps a click made before the status lands", async () => {
+    fixture.inline = true;
+    fixture.cloudState = "stopped";
+    let release!: () => void;
+    fixture.statusGate = new Promise((resolve) => { release = resolve; });
+    // Auto, the place the server resolves to the bot's own cloud computer
+    await open(makeBot({ busy: false }));
+    expect(fixture.statusReads).toBe(1);
+    const card = document.querySelector<HTMLButtonElement>("[data-inline-computer] button[aria-label='Wake computer']");
+    expect(card, document.body.innerHTML).not.toBeNull();
+    expect(card!.disabled).toBe(false);
+    expect(document.body.textContent).not.toMatch(/browser only|Checking/);
+    flushSync(() => card!.click());
+    await settle();
+    // the waking mascot shows at once, and nothing is asked of the server before it knows the place
+    expect(document.querySelector("[data-computer-waking]")).not.toBeNull();
+    expect(fixture.posts).toEqual([]);
+    release();
+    await settle();
+    expect(fixture.posts).toContain("/api/bots/scout/computer/provision");
+    await shownLive();
+    expect(fixture.controls).toEqual([]);
+  });
+
+  it("never shows a browser-only card: with no computer here it offers to add one", async () => {
+    fixture.inline = true;
+    fixture.surface = "browser";
+    await open(makeBot({ busy: false }));
+    const card = document.querySelector<HTMLButtonElement>("[data-inline-computer] button[data-panel-action='open-computer']");
+    expect(card?.textContent).toBe("Add cloud desktop…");
+    expect(card?.disabled).toBe(false);
+    expect(document.body.textContent).not.toMatch(/browser only/);
+  });
+
+  it("takes a wake clicked while the panel's code was still loading", async () => {
+    const { queueComputerWake } = await import("./bot-panel/computer-wake-queue");
+    fixture.inline = true;
+    fixture.cloudState = "stopped";
+    queueComputerWake("scout");
+    await open(makeBot({ busy: false }));
+    expect(fixture.posts).toContain("/api/bots/scout/computer/provision");
   });
 
   it("retries the inline live watch after a connection failure without taking control", async () => {

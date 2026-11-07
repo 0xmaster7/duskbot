@@ -168,11 +168,11 @@ describe("VPS computer preparation", () => {
     expect(fixture.posts).toEqual(["/api/bots/scout/computer/provision"]);
   });
 
-  it("keeps the wake frame disabled while the engine inventory is loading", async () => {
+  it("is the wake button while the engine inventory loads, and asks nothing of the server unclicked", async () => {
     fixture.instancesLoaded = false;
     await open(makeBot({ computer: "cloud" }), true);
-    expect(document.querySelector("[data-inline-computer]")?.getAttribute("data-stage")).toBe("loading");
-    expect(document.querySelector<HTMLButtonElement>("[data-panel-screen] button")?.disabled).toBe(true);
+    expect(document.querySelector("[data-inline-computer]")?.getAttribute("data-stage")).toBe("asleep");
+    expect(document.querySelector<HTMLButtonElement>("[data-panel-screen] button")?.disabled).toBe(false);
     expect(fixture.posts).toEqual([]);
     fixture.instancesLoaded = true;
     await open(makeBot({ computer: "cloud" }), true);

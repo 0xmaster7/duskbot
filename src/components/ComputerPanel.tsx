@@ -10,7 +10,8 @@ import { api, ApiError, currentTaskBot, useStore, type Bot, type ConfigStatus } 
 import { useAdvancedMode } from "@/lib/interface-mode";
 import { ComputerFullscreen, ComputerFullscreenNote, fullscreenActionCls, type ScreenControl } from "./ComputerFullscreen";
 import { MausAvatar } from "./Avatar";
-import { AsleepMascot, COMPUTER_FRAME_CLASS, COMPUTER_SCREEN_ASPECT, ComputerWaking } from "./bot-panel/ComputerScreenMascot";
+import { AsleepMascot, COMPUTER_FRAME_CLASS, COMPUTER_SCREEN_ASPECT, COMPUTER_WAKE_BUTTON_CLASS, ComputerWaking } from "./bot-panel/ComputerScreenMascot";
+import { takeQueuedComputerWake } from "./bot-panel/computer-wake-queue";
 import { effectivePlace, isComputerPlace, personPin, placeLabelKey, placeOffered } from "@/lib/place";
 import type { CloudBackend } from "../../shared/wire";
 
@@ -258,6 +259,9 @@ export function ComputerPanel({
   const [viewerOpen, setViewerOpen] = useState(false);
   const [error, setError] = useState<Error | string | null>(null);
   const errorText = panelErrorText(error);
+  // the card wakes from its first frame: a click before the status (or this code) arrived waits here for it
+  const wakeKey = `${profileBot.id}:${profileBot.threadId}`;
+  const [queuedWake, setQueuedWake] = useState<string | null>(() => inline && takeQueuedComputerWake(profileBot.id) ? wakeKey : null);
   const advanced = useAdvancedMode();
   const [storedPanelView, setPanelView] = useState<ComputerPanelView>(() => readComputerPanelView(bot.id));
   const tabsContext = { advanced, browser: storedPanelView === "browser" || profileBot.computer === "browser" };
@@ -1138,6 +1142,17 @@ export function ComputerPanel({
         ? t(pending === "vm-start" ? "vm.setup.starting" : "computer.phase.vmStopped")
         : emptyState[phase];
 
+  const wakeCloud = canManageCloud && vpsStatus?.configured && (phase === "vps-stopped" || phase === "vps-unconfigured" || phase === "error");
+  const wakeVm = canManageVm && vmResumable && vmStatus.mode !== "pool";
+  useEffect(() => {
+    if (queuedWake === null) return;
+    if (queuedWake !== wakeKey) return setQueuedWake(null);
+    if (phase === "checking" || pending !== null) return;
+    setQueuedWake(null);
+    if (wakeCloud) void run("provision");
+    else if (wakeVm) void runVmAction("vm-start");
+  });
+
   const wokeOnOpen = useRef(false);
   useEffect(() => {
     if (!fullscreen?.wake || wokeOnOpen.current || pending !== null) return;
@@ -1171,35 +1186,42 @@ export function ComputerPanel({
 
   if (inline) {
     const localPicture = phase === "local" && !isLinux && Boolean(liveLocal.stream || localFrame);
-    const waking = pending === "provision" || pending === "vm-start" || phase === "checking" || phase === "starting";
-    const wakeCloud = canManageCloud && vpsStatus?.configured && (phase === "vps-stopped" || phase === "vps-unconfigured" || phase === "error");
-    const needsAdmin = placeSeat.role !== "admin" && (phase === "vps-stopped" || phase === "vps-unconfigured" || phase === "vps-incompatible");
-    const wakeVm = canManageVm && vmResumable && vmStatus.mode !== "pool";
+    const wakeQueued = queuedWake === wakeKey;
+    // still checking looks and acts asleep: a click queues the wake instead of waiting out the status
+    const checking = phase === "checking" && pending === null;
+    const waking = pending === "provision" || pending === "vm-start" || phase === "starting" || wakeQueued;
+    // no computer to show: the bot gets its own (from the browser it was set to), or one is added; never a browser-only card
+    const noComputer = phase === "browser" || phase === "auto-unavailable" || (phase === "off" && profileBot.computer !== "off");
+    const ownComputer = noComputer && profileBot.computer === "browser" && Boolean(state.config?.vps?.configured);
+    const needsAdmin = placeSeat.role !== "admin" && (noComputer || phase === "vps-stopped" || phase === "vps-unconfigured" || phase === "vps-incompatible");
     const wake = () => {
-      if (wakeCloud) void run("provision");
+      if (checking) setQueuedWake(wakeKey);
+      else if (wakeCloud) void run("provision");
       else if (wakeVm) void runVmAction("vm-start");
-      else if (phase === "vps-unconfigured" || phase === "vps-incompatible") openConnectionSettings();
+      else if (ownComputer) { updateComputerSelection({ computer: null }); setQueuedWake(wakeKey); }
+      else if (noComputer || phase === "vps-unconfigured" || phase === "vps-incompatible") openConnectionSettings();
       else setRetry(value => value + 1);
     };
-    const frameActionLabel = waking ? t("computer.wakingUp") : wakeCloud || wakeVm ? t("botPanel.screen.wake")
-      : needsAdmin ? t("place.askAdmin") : phase === "vps-incompatible" ? t("computer.openVpsSettings") : screenLine;
+    const frameActionLabel = waking ? t("computer.wakingUp") : checking || wakeCloud || wakeVm || ownComputer ? t("botPanel.screen.wake")
+      : needsAdmin ? t("place.askAdmin") : noComputer ? t("computer.simple.addCloud")
+      : phase === "vps-incompatible" ? t("computer.openVpsSettings") : screenLine;
     const frame = remoteFrame ?? (localPicture && liveLocal.stream
       ? <LiveScreenVideo stream={liveLocal.stream} playing={pageVisible} className="absolute inset-0 size-full object-contain" />
       : !waking && frameSrc ? <img src={frameSrc} alt={t("computer.screenOf", { name: bot.name })} className="absolute inset-0 size-full object-contain" /> : null);
-    const stage = remoteFrame ? desktopDecoded ? "screen" : "loading" : frame ? "screen" : waking ? "loading" : phase === "off" ? "off" : "asleep";
+    const stage = remoteFrame ? desktopDecoded ? "screen" : "loading" : frame ? "screen" : waking ? "loading" : phase === "off" && !noComputer ? "off" : "asleep";
     // a wake the person asked for shows the bot waking up until the live screen paints itself over it; one element in
     // one place for the whole wake, so its animation never starts over
-    const wakeRequested = !frame && (pending === "provision" || pending === "vm-start" || phase === "starting");
+    const wakeRequested = !frame && waking;
     const wakingShown = wakeRequested || Boolean(remoteFrame && !desktopDecoded && !takeover.expanded);
     return (
       <div data-inline-computer="" data-stage={stage}>
         <div data-panel-screen="" aria-busy={stage === "loading" || undefined} className={COMPUTER_FRAME_CLASS} style={{ aspectRatio: String(screenAspect) }}>
           {wakeRequested ? null : frame ?? (
-            <button type="button" data-panel-action="open-computer" data-stage={stage} onClick={wake} disabled={waking || phase === "off" || needsAdmin || (phase === "error" && !vpsStatus?.configured)}
+            <button type="button" data-panel-action="open-computer" data-stage={stage} onClick={wake} disabled={waking || (phase === "off" && !noComputer) || needsAdmin || (phase === "error" && !vpsStatus?.configured)}
               aria-label={frameActionLabel}
-              className="flex size-full flex-col items-center justify-center gap-1.5 px-5 enabled:cursor-pointer enabled:transition-[background-color] enabled:duration-100 enabled:hover:bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_8%)] focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--color-ink)_22%,transparent)] disabled:cursor-default">
+              className={COMPUTER_WAKE_BUTTON_CLASS}>
               <AsleepMascot bot={bot} />
-              <span className="max-w-[80%] font-medium text-ink">{needsAdmin ? frameActionLabel : waking || phase === "vps-stopped" ? t("botPanel.screen.resting") : frameActionLabel}</span>
+              <span className="max-w-[80%] font-medium text-ink">{needsAdmin || noComputer && !ownComputer ? frameActionLabel : checking || ownComputer || phase === "vps-stopped" ? t("botPanel.screen.resting") : frameActionLabel}</span>
             </button>
           )}
           {!remoteFrame && liveTarget && livePreviewFailed === viewerConnectionKey && <button type="button"

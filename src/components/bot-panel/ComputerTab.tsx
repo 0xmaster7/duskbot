@@ -14,7 +14,8 @@ import type { BotPatch, useBotSettingsDerived } from "../bot-settings/useBotSett
 import type { PlaceActionId } from "../../../shared/place-view";
 import type { SimplePageId } from "./page-registry";
 import { Card, RadioRow } from "./rows";
-import { AsleepMascot, COMPUTER_FRAME_CLASS, COMPUTER_SCREEN_ASPECT } from "./ComputerScreenMascot";
+import { AsleepMascot, COMPUTER_FRAME_CLASS, COMPUTER_SCREEN_ASPECT, COMPUTER_WAKE_BUTTON_CLASS, ComputerWaking } from "./ComputerScreenMascot";
+import { queueComputerWake } from "./computer-wake-queue";
 import "./computer-tab.css";
 
 const ComputerPanel = lazy(() => import("../ComputerPanel").then((module) => ({ default: module.ComputerPanel })));
@@ -144,6 +145,23 @@ function useOnScreen(element: HTMLElement | null) {
   return onScreen;
 }
 
+/** The screen while the panel's code loads: already the wake button, and a click is kept for the panel to act on. */
+export function AsleepScreen({ bot, off }: { bot: Bot; off: boolean }) {
+  const [queued, setQueued] = useState(false);
+  const label = t(off ? "place.view.off.short" : "botPanel.screen.resting");
+  return (
+    <div data-panel-screen="" data-stage={off ? "off" : queued ? "loading" : "asleep"} aria-busy={queued || undefined} className={COMPUTER_FRAME_CLASS} style={{ aspectRatio: String(COMPUTER_SCREEN_ASPECT) }}>
+      {queued ? <ComputerWaking bot={bot} /> : (
+        <button type="button" data-panel-action="open-computer" disabled={off} aria-label={off ? label : t("botPanel.screen.wake")}
+          onClick={() => { queueComputerWake(bot.id); setQueued(true); }} className={COMPUTER_WAKE_BUTTON_CLASS}>
+          <AsleepMascot bot={bot} />
+          <span className="max-w-[80%] font-medium text-ink">{label}</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
 type TabChoice = PlaceChoice | "add";
 
 const CHOICE_ICON: Record<TabChoice, GrokIconName> = {
@@ -178,7 +196,7 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
   return (
     <div data-panel-tabpanel="computer">
       <div ref={setScreenBox}>
-        <Suspense fallback={<div data-panel-screen="" data-stage={current === "off" ? "off" : "asleep"} className={COMPUTER_FRAME_CLASS} style={{ aspectRatio: String(COMPUTER_SCREEN_ASPECT) }}><AsleepMascot bot={bot} /><span className="max-w-[80%] font-medium text-ink">{t(current === "off" ? "place.view.off.short" : "botPanel.screen.resting")}</span></div>}>
+        <Suspense fallback={<AsleepScreen bot={bot} off={current === "off"} />}>
           <ComputerPanel bot={bot} inline visible={onScreen} />
         </Suspense>
       </div>
