@@ -3277,6 +3277,7 @@
   "signIn.skip": "Пропустити",
   "signIn.skipHint": "Скасувати цей запит, не виконуючи крок. {name} продовжить без нього.",
   "signIn.takeOver": "Взяти керування",
+  "signIn.takeOverComputer": "Взяти керування комп’ютером",
   "signIn.skipped": "Пропущено",
   "signIn.status.saved": "Вхід збережено",
   "server.connect.loginNote": "{bot} вводить його на сайті за вас і ніколи не бачить пароль.",

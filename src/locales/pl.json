@@ -2674,6 +2674,7 @@
   "signIn.skip": "Pomiń",
   "signIn.skipHint": "Anuluj tę prośbę bez wykonania kroku. {name} kontynuuje bez niego.",
   "signIn.takeOver": "Przejmij",
+  "signIn.takeOverComputer": "Przejmij komputer",
   "signIn.skipped": "Pominięto",
   "signIn.status.saved": "Dane logowania zapisane",
   "browser.live.botBusy": "{name} używa tej przeglądarki. Widok na żywo otworzy się, gdy będzie wolna…",

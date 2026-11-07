@@ -2180,6 +2180,7 @@
   "signIn.skip": "Bỏ qua",
   "signIn.skipHint": "Hủy yêu cầu này mà không làm bước đó. {name} tiếp tục mà không có nó.",
   "signIn.takeOver": "Tiếp quản",
+  "signIn.takeOverComputer": "Tiếp quản máy tính",
   "signIn.skipped": "Đã bỏ qua",
   "signIn.status.saved": "Đã lưu đăng nhập",
   "browser.live.botBusy": "{name} đang sử dụng trình duyệt này. Chế độ xem trực tiếp sẽ mở khi trình duyệt rảnh…",

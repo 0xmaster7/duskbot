@@ -2966,7 +2966,8 @@
       "routeTraffic.hint": "0c7a340bb15856d8ee0dfd7de023fbd8067e9e05c514122f4523576c87c03293",
       "routeTraffic.through": "d747ef6df69ca9c183f176fcf0da687f52c1f4c9e4b11458d9ed50ee18e98232",
       "routeTraffic.offline": "6d6bd66e051dfc92f3e984cc965b7b62f086175dc7ffa483bd16d44add59e314",
-      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f"
+      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -8417,7 +8418,8 @@
       "routeTraffic.hint": "0c7a340bb15856d8ee0dfd7de023fbd8067e9e05c514122f4523576c87c03293",
       "routeTraffic.through": "d747ef6df69ca9c183f176fcf0da687f52c1f4c9e4b11458d9ed50ee18e98232",
       "routeTraffic.offline": "6d6bd66e051dfc92f3e984cc965b7b62f086175dc7ffa483bd16d44add59e314",
-      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f"
+      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -11306,7 +11308,8 @@
       "routeTraffic.hint": "0c7a340bb15856d8ee0dfd7de023fbd8067e9e05c514122f4523576c87c03293",
       "routeTraffic.through": "d747ef6df69ca9c183f176fcf0da687f52c1f4c9e4b11458d9ed50ee18e98232",
       "routeTraffic.offline": "6d6bd66e051dfc92f3e984cc965b7b62f086175dc7ffa483bd16d44add59e314",
-      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f"
+      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -14191,7 +14194,8 @@
       "routeTraffic.hint": "0c7a340bb15856d8ee0dfd7de023fbd8067e9e05c514122f4523576c87c03293",
       "routeTraffic.through": "d747ef6df69ca9c183f176fcf0da687f52c1f4c9e4b11458d9ed50ee18e98232",
       "routeTraffic.offline": "6d6bd66e051dfc92f3e984cc965b7b62f086175dc7ffa483bd16d44add59e314",
-      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f"
+      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -20276,7 +20280,8 @@
       "routeTraffic.hint": "0c7a340bb15856d8ee0dfd7de023fbd8067e9e05c514122f4523576c87c03293",
       "routeTraffic.through": "d747ef6df69ca9c183f176fcf0da687f52c1f4c9e4b11458d9ed50ee18e98232",
       "routeTraffic.offline": "6d6bd66e051dfc92f3e984cc965b7b62f086175dc7ffa483bd16d44add59e314",
-      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f"
+      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -26202,7 +26207,8 @@
       "routeTraffic.hint": "0c7a340bb15856d8ee0dfd7de023fbd8067e9e05c514122f4523576c87c03293",
       "routeTraffic.through": "d747ef6df69ca9c183f176fcf0da687f52c1f4c9e4b11458d9ed50ee18e98232",
       "routeTraffic.offline": "6d6bd66e051dfc92f3e984cc965b7b62f086175dc7ffa483bd16d44add59e314",
-      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f"
+      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -32902,7 +32908,8 @@
       "routeTraffic.hint": "0c7a340bb15856d8ee0dfd7de023fbd8067e9e05c514122f4523576c87c03293",
       "routeTraffic.through": "d747ef6df69ca9c183f176fcf0da687f52c1f4c9e4b11458d9ed50ee18e98232",
       "routeTraffic.offline": "6d6bd66e051dfc92f3e984cc965b7b62f086175dc7ffa483bd16d44add59e314",
-      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f"
+      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -37391,7 +37398,8 @@
       "routeTraffic.hint": "0c7a340bb15856d8ee0dfd7de023fbd8067e9e05c514122f4523576c87c03293",
       "routeTraffic.through": "d747ef6df69ca9c183f176fcf0da687f52c1f4c9e4b11458d9ed50ee18e98232",
       "routeTraffic.offline": "6d6bd66e051dfc92f3e984cc965b7b62f086175dc7ffa483bd16d44add59e314",
-      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f"
+      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -40680,7 +40688,8 @@
       "routeTraffic.hint": "0c7a340bb15856d8ee0dfd7de023fbd8067e9e05c514122f4523576c87c03293",
       "routeTraffic.through": "d747ef6df69ca9c183f176fcf0da687f52c1f4c9e4b11458d9ed50ee18e98232",
       "routeTraffic.offline": "6d6bd66e051dfc92f3e984cc965b7b62f086175dc7ffa483bd16d44add59e314",
-      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f"
+      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -45648,7 +45657,8 @@
       "routeTraffic.hint": "0c7a340bb15856d8ee0dfd7de023fbd8067e9e05c514122f4523576c87c03293",
       "routeTraffic.through": "d747ef6df69ca9c183f176fcf0da687f52c1f4c9e4b11458d9ed50ee18e98232",
       "routeTraffic.offline": "6d6bd66e051dfc92f3e984cc965b7b62f086175dc7ffa483bd16d44add59e314",
-      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f"
+      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -50616,7 +50626,8 @@
       "routeTraffic.hint": "0c7a340bb15856d8ee0dfd7de023fbd8067e9e05c514122f4523576c87c03293",
       "routeTraffic.through": "d747ef6df69ca9c183f176fcf0da687f52c1f4c9e4b11458d9ed50ee18e98232",
       "routeTraffic.offline": "6d6bd66e051dfc92f3e984cc965b7b62f086175dc7ffa483bd16d44add59e314",
-      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f"
+      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -56667,7 +56678,8 @@
       "routeTraffic.hint": "0c7a340bb15856d8ee0dfd7de023fbd8067e9e05c514122f4523576c87c03293",
       "routeTraffic.through": "d747ef6df69ca9c183f176fcf0da687f52c1f4c9e4b11458d9ed50ee18e98232",
       "routeTraffic.offline": "6d6bd66e051dfc92f3e984cc965b7b62f086175dc7ffa483bd16d44add59e314",
-      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f"
+      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -62731,7 +62743,8 @@
       "routeTraffic.hint": "0c7a340bb15856d8ee0dfd7de023fbd8067e9e05c514122f4523576c87c03293",
       "routeTraffic.through": "d747ef6df69ca9c183f176fcf0da687f52c1f4c9e4b11458d9ed50ee18e98232",
       "routeTraffic.offline": "6d6bd66e051dfc92f3e984cc965b7b62f086175dc7ffa483bd16d44add59e314",
-      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f"
+      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -68617,7 +68630,8 @@
       "routeTraffic.hint": "0c7a340bb15856d8ee0dfd7de023fbd8067e9e05c514122f4523576c87c03293",
       "routeTraffic.through": "d747ef6df69ca9c183f176fcf0da687f52c1f4c9e4b11458d9ed50ee18e98232",
       "routeTraffic.offline": "6d6bd66e051dfc92f3e984cc965b7b62f086175dc7ffa483bd16d44add59e314",
-      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f"
+      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -75136,7 +75150,8 @@
       "routeTraffic.hint": "0c7a340bb15856d8ee0dfd7de023fbd8067e9e05c514122f4523576c87c03293",
       "routeTraffic.through": "d747ef6df69ca9c183f176fcf0da687f52c1f4c9e4b11458d9ed50ee18e98232",
       "routeTraffic.offline": "6d6bd66e051dfc92f3e984cc965b7b62f086175dc7ffa483bd16d44add59e314",
-      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f"
+      "routeTraffic.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     }
   }
 }

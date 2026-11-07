@@ -28,6 +28,7 @@ export function AskHeader({ asker, line, origin }: { asker: Asker; line: string;
 export function AskCard({
   header,
   source,
+  media,
   icon,
   title,
   meta,
@@ -45,6 +46,8 @@ export function AskCard({
   header?: ReactNode;
   /** Grok's titlebar: where the ask comes from, an icon in a small tile and a name, above the title. */
   source?: { icon: ReactNode; label: ReactNode };
+  /** Edge to edge under the title, as grok's computer screen: only with a source. */
+  media?: ReactNode;
   icon?: ReactNode;
   title: ReactNode;
   meta?: ReactNode;
@@ -78,12 +81,13 @@ export function AskCard({
   const frame = cn("w-full max-w-[560px] rounded-[24px] text-start", ASK_CARD_RING, ASK_CARD_LIFT, stays && "sticky top-[60px] bottom-[72px] z-10");
   if (source) {
     return (
-      <div role="group" aria-label={ariaLabel} data-tour={tour} data-ask-card="pending" onKeyDown={onKeyDown} className={frame}>
+      <div role="group" aria-label={ariaLabel} data-tour={tour} data-ask-card="pending" onKeyDown={onKeyDown} className={cn(frame, media && "overflow-hidden")}>
         <CardTitlebar icon={source.icon} label={source.label} trailing={dismiss} />
         <div className="px-5 py-1">
           <p className="break-words text-[15px] font-semibold leading-[22px] text-ink"><bdi dir="auto">{title}</bdi></p>
           {explanation && <div className="break-words text-[14px] leading-5 text-ink-secondary">{explanation}</div>}
         </div>
+        {media && <div className="mt-4">{media}</div>}
         {children ? <div className="p-4">{children}</div> : !footer && <div className="pb-4" />}
         {footer && <div className={cn("flex flex-wrap items-center justify-end gap-2 px-4 pb-4", children ? "pt-0" : "pt-2.5")}>{footer}</div>}
       </div>
@@ -127,7 +131,7 @@ export function CardTitlebar({ icon, label, trailing }: { icon: ReactNode; label
 
 export function CardSourceIcon({ children }: { children: ReactNode }) {
   return (
-    <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center overflow-hidden rounded-[6px] border border-ink/[0.06] bg-ink/[0.06] text-ink-secondary">
+    <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center overflow-hidden rounded-[6px] border border-(--card-fill) bg-(--card-fill) text-ink-secondary">
       {children}
     </span>
   );
@@ -171,7 +175,7 @@ export function CardSettledRow({ icon, label, summary, tone = "done", title, det
       <div className="flex min-w-0 items-center">
         {opens ? (
           <button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)}
-            className={cn(rowClass, "rounded-[18px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus")}>
+            className={cn(rowClass, "rounded-[18px] focus-visible:outline-none focus-visible:inset-ring-2 focus-visible:inset-ring-focus")}>
             {row}
           </button>
         ) : <div className={rowClass}>{row}</div>}
@@ -196,7 +200,7 @@ export function AskDetail({ text, mono = false, label }: { text: string; mono?: 
       <div
         dir="auto"
         aria-label={label}
-        className={cn("rounded-[12px] border border-ink/[0.06] bg-ink/[0.04] px-3 py-2 [overflow-wrap:anywhere]",
+        className={cn("rounded-[12px] border border-(--card-code-edge) bg-(--card-code-fill) px-3 py-2 [overflow-wrap:anywhere]",
           mono ? "font-mono text-[13px] leading-[18px] whitespace-pre-wrap text-ink" : "whitespace-pre-wrap text-[13px] leading-5 text-ink-secondary",
           long && !open && "line-clamp-3")}
       >
@@ -213,10 +217,10 @@ export function AskDetail({ text, mono = false, label }: { text: string; mono?: 
 
 export type AskChoice = { label: string; description?: string };
 
-/** A question card rests a hair above the page, like the bubbles beside it. */
-export const ASK_CARD_LIFT = "shadow-[0_2px_8px_color-mix(in_srgb,var(--color-ink)_3.5%,transparent)]";
-/** Grok's card edge: a 0.5px ring at 12% ink. */
-export const ASK_CARD_RING = "bg-composer ring-[0.5px] ring-ink/[0.12]";
+/** A question card rests a hair above the page in a light skin, as grok's does; a dark one draws no lift (--card-lift). */
+export const ASK_CARD_LIFT = "shadow-[0_2px_8px_var(--card-lift)]";
+/** Grok's card edge: a 0.5px ring, 12% ink in a light skin and 10% in a dark one (--card-ring). */
+export const ASK_CARD_RING = "bg-composer ring-[0.5px] ring-(--card-ring)";
 
 /** The letter that names a choice, A to Z, then none: a long list reads by its labels. */
 export const choiceLetter = (index: number): string | null => index < 26 ? String.fromCharCode(65 + index) : null;
@@ -412,7 +416,7 @@ const CARD_BUTTON = "omb-press inline-flex shrink-0 items-center justify-center 
 export const CARD_BUTTON_LG = `${CARD_BUTTON} h-9 px-4`;
 export const CARD_BUTTON_MD = `${CARD_BUTTON} h-8 px-3.5`;
 export const cardPrimary = (size: string = CARD_BUTTON_LG): BotButton => botButton(undefined, `${size} font-medium`, ASK_PRIMARY_LOOK);
-export const cardSecondary = (size: string = CARD_BUTTON_LG) => `${size} ${ASK_LOOK} font-medium bg-ink/[0.06] text-ink enabled:hover:bg-ink/[0.1] enabled:active:bg-ink/[0.14]`;
+export const cardSecondary = (size: string = CARD_BUTTON_LG) => `${size} ${ASK_LOOK} font-medium bg-(--card-fill) text-ink enabled:hover:bg-ink/[0.1] enabled:active:bg-ink/[0.14]`;
 export const cardTertiary = (size: string = CARD_BUTTON_LG) => `${size} ${ASK_LOOK} font-normal text-ink-secondary enabled:hover:bg-ink/[0.06] enabled:hover:text-ink enabled:active:bg-ink/[0.1]`;
 
 /** A card's other answers: Deny, Cancel, Not now. */
@@ -430,9 +434,12 @@ export const ASK_CHIP_PICKED = "border-accent bg-accent/15 text-ink";
 export const ASK_SMALL_PILL = ASK_CONTROL;
 export const ASK_QUIET_BUTTON = `${ASK_SMALL_PILL} -my-1 text-ink-tertiary hover:bg-ink/[0.07] hover:text-ink-secondary`;
 
-/** Grok's card field: no fill, one 12% hairline, 32 tall, 10px corners; focus only deepens the hairline. */
+/**
+ * Grok's card field: no fill, one quiet hairline, 32 tall, 10px corners, unchanged when focused (the caret is the cue).
+ * Moving by keyboard draws the app's grey focus ring around it, never a blue one.
+ */
 export const CARD_FIELD =
-  "h-8 rounded-[10px] border border-ink/[0.12] bg-transparent px-3 text-[14px] leading-5 text-ink outline-none placeholder:text-ink-tertiary focus:border-ink/[0.28] disabled:opacity-60 pointer-coarse:h-11";
+  "h-8 rounded-[10px] border border-ink/[0.12] bg-transparent px-3 text-[14px] leading-5 text-ink outline-none placeholder:text-ink-tertiary focus-visible:ring-2 disabled:opacity-60 pointer-coarse:h-11";
 
 export const ASK_FIELD =
   "h-7 rounded-full border border-hairline/60 bg-inset px-3 text-[13px] leading-5 text-ink outline-none placeholder:text-ink-tertiary focus:border-accent disabled:opacity-60 pointer-coarse:h-9";

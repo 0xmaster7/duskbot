@@ -2606,6 +2606,7 @@
   "signIn.skip": "Salta",
   "signIn.skipHint": "Annulla questa richiesta senza fare il passaggio. {name} continua senza.",
   "signIn.takeOver": "Prendi il controllo",
+  "signIn.takeOverComputer": "Prendi il controllo del computer",
   "signIn.skipped": "Saltato",
   "signIn.status.saved": "Accesso salvato",
   "browser.live.botBusy": "{name} sta usando questo browser. La vista dal vivo si apre quando è libero…",

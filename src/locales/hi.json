@@ -2873,6 +2873,7 @@
   "signIn.skip": "छोड़ें",
   "signIn.skipHint": "यह कदम किए बिना यह अनुरोध रद्द करें। {name} इसके बिना आगे बढ़ेगा।",
   "signIn.takeOver": "नियंत्रण लें",
+  "signIn.takeOverComputer": "कंप्यूटर का नियंत्रण लें",
   "signIn.skipped": "छोड़ा गया",
   "signIn.status.saved": "लॉगिन सेव हुआ",
   "server.connect.loginNote": "{bot} इसे आपके लिए साइट में टाइप करता है और पासवर्ड कभी नहीं देखता।",

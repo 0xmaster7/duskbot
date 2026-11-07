@@ -72,7 +72,7 @@ describe("a bot's cards answer in grok's ink", () => {
     expect(classes(deny).some((name) => name.includes("danger"))).toBe(false);
     const always = button(html, t("approval.action.alwaysAllow"));
     expectPlain(always);
-    expect(classes(always)).toContain("bg-ink/[0.06]");
+    expect(classes(always)).toContain("bg-(--card-fill)");
     expect(classes(button(approval(), t("approval.action.allowOnce")))).toContain("ui-button-primary");
   });
 

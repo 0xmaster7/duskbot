@@ -3233,6 +3233,7 @@
   "signIn.skip": "Skip",
   "signIn.skipHint": "Cancel this request without doing the step. {name} continues without it.",
   "signIn.takeOver": "Take over",
+  "signIn.takeOverComputer": "Take over the computer",
   "signIn.skipped": "Skipped",
   "signIn.status.saved": "Login saved",
   "browser.live.botBusy": "{name} is using this browser. The live view opens when it’s free…",
