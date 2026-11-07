@@ -443,7 +443,7 @@ stream_lines() { # [final]
   return 0
 }
 
-OFFLINE=0
+OFFLINE=0 REPAIR=0
 report() { # step status [logfile]
   [ "$OFFLINE" = 1 ] && return 0
   [ -n "$DEMO" ] && return 0
@@ -1613,6 +1613,13 @@ main() {
   if [ -n "$DEMO" ]; then
     TOKEN="demodemoab-$(printf '%026d' 0 | tr 0 a)"
   fi
+  # `sh install.sh --repair` as root: an install that is already linked, checked and brought up to date without a line
+  if [ "$TOKEN" = "--repair" ]; then
+    [ "$(id -u)" -eq 0 ] || become_root
+    [ -f "$STATE/linked" ] && [ -f "$STATE/id" ] || { fail_line "--repair needs an install that is already linked. Paste a line from the app instead."; exit 1; }
+    TOKEN="$(cat "$STATE/id")-$(printf '%026d' 0 | tr 0 a)"
+    REPAIR=1
+  fi
   case "$TOKEN" in
     [a-z2-7][a-z2-7][a-z2-7][a-z2-7][a-z2-7][a-z2-7][a-z2-7][a-z2-7][a-z2-7][a-z2-7]-*) ;;
     *) fail_line "This line is missing its code. Copy the whole line from the app."; exit 1 ;;
@@ -1644,7 +1651,10 @@ main() {
   RUN_T0=$(now_ms)
 
   banner
-  [ -n "$DEMO" ] || claim
+  if [ "$REPAIR" = 1 ]; then
+    OFFLINE=1
+    [ -n "$BOT_DESKTOP_IMAGE" ] || BOT_DESKTOP_IMAGE=$(state_get desktop-image)
+  elif [ -z "$DEMO" ]; then claim; fi
   intro
   if [ "$OFFLINE" = 1 ]; then printf '  %sThis server is already linked. Checking everything is up to date.%s\n\n' "$DIM" "$R"; BELOW_TAG=5; fi
   checklist

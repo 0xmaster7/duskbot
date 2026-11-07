@@ -177,3 +177,36 @@ do_user > "$ROOT/out2" 2>&1 || { cat "$ROOT/out2" >&2; exit 1; }`);
     expect(await read(join(dir, "var", "lib", "omb-link", ".config", "openmausbot-link", "tunnel.json"))).toContain("abcdefghij");
   });
 });
+
+describe("sh install.sh --repair", () => {
+  async function repair(linked) {
+    const dir = await mkdtemp(join(tmpdir(), "omb-install-repair-"));
+    dirs.push(dir);
+    const file = join(dir, "fixture.sh");
+    await writeFile(file, `${script}
+STATE=$1/state; LOGS=$1/logs; mkdir -p "$STATE"
+${linked ? 'echo abcdefghij > "$STATE/id"; echo abcdefghij > "$STATE/linked"; echo img:3 > "$STATE/desktop-image"' : ""}
+id() { [ "$1" = -u ] && echo 0 || command id "$@"; }
+claim() { echo "claimed"; }
+ui_init() { :; }; banner() { :; }; intro() { :; }; checklist() { :; }; finale() { echo "finale offline=$OFFLINE image=$BOT_DESKTOP_IMAGE id=$LINK_ID"; }
+phase() { :; }; phase_end() { :; }; step() { echo "step $1"; }; start_link_service() { echo "link restarted"; }
+AGENT=$1/agent.mjs; touch "$AGENT"
+TOKEN=--repair; main --repair
+`);
+    return run("sh", [file, dir], { env: { PATH: "/usr/bin:/bin", TERM: "dumb" } }).then((result) => result.stdout, (error) => `${error.stdout}${error.stderr}`);
+  }
+
+  it("brings a linked install up to date without a line: no claim, no new link", async () => {
+    const out = await repair(true);
+    expect(out).not.toContain("claimed");
+    expect(out).toContain("step user");
+    expect(out).toContain("step service");
+    expect(out).not.toContain("step link");
+    expect(out).toContain("link restarted");
+    expect(out).toContain("finale offline=1 image=img:3 id=abcdefghij");
+  });
+
+  it("refuses on a server that was never linked", async () => {
+    expect(await repair(false)).toContain("--repair needs an install that is already linked");
+  });
+});
