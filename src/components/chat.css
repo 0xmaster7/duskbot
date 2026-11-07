@@ -133,6 +133,10 @@
 :root:is([data-skin="grok"], [data-skin="grok-dark"]) [data-chat-bubble="simple"] {
   --grok-bubble: var(--grok-bubble-fill);
 }
+/* grok's New line is always in the bot's colour, its text tone for that hue */
+:root:is([data-skin="grok"], [data-skin="grok-dark"]) [data-unread-divider] {
+  --grok-new: var(--grok-new-fill);
+}
 /* grok in the dark: a 4% wash, the gloss and its hairlines down to 3% white, the edge to 4% ink */
 :root[data-skin="grok-dark"] [data-chat-bubble="simple"].chat-bubble-bot {
   background-color: color-mix(in srgb, var(--color-ink) 4%, transparent);
