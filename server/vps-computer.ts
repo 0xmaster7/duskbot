@@ -1,4 +1,5 @@
 import { vpsContainerStartedAt } from "./vps-container-start.ts";
+import { pollVpsReadiness } from "./vps-readiness.ts";
 import { ensureVpsScreenBrowser } from "./vps-browser-ready.ts";
 import { independentScreenExecArgs, isManagedScreenViewerPort, type IndependentScreenTarget } from "./shared-desktop-screens.ts";
 import { boxChromes, desktopTunnels, evictVpsBoxChrome, NATIVE_VIEWER_LIFETIME_MS, REMOTE_VIEWER_GRACE_MS, requireLiveScreen, screenKey, stopDesktopTunnel, type VpsScreenConnection } from "./vps-connections.ts";
@@ -103,6 +104,9 @@ export function vpsComputerPreparing(cfg: AppConfig, botId: string): boolean {
 const LOCK_ACQUIRE_TIMEOUT_MS = 5_000;
 const STATUS_CACHE_TTL_MS = 3_000;
 const statusCache = new Map<string, { status: VpsComputerStatus; expiresAt: number }>();
+// the last passing desktop probe per container: opening a viewer right after a wake need not repeat it
+const verifiedDesktops = new Map<string, { containerId: string; startedAt: string | undefined; at: number }>();
+const JOIN_REUSES_PROBE_MS = 10_000;
 const pendingStatuses = new Map<string, Promise<VpsComputerStatus>>();
 const pendingFreshStatuses = new Map<string, Promise<VpsComputerStatus>>();
 const pendingProvisions = new Map<string, Promise<VpsComputerStatus>>();
@@ -448,6 +452,7 @@ async function computeVpsComputerStatus(
   botId: string,
   runner: VpsCommandRunner,
   prefer = preferredVpsDesktop(),
+  options: { reuseProbeWithinMs?: number } = {},
 ): Promise<VpsComputerStatus> {
   const alias = vpsSshAlias(cfg);
   const status = emptyStatus(botId, alias, prefer);
@@ -573,7 +578,12 @@ async function computeVpsComputerStatus(
       status.network === "private" &&
       status.mounts === "none" &&
       status.security === "hardened";
-    if (canProbe && containerRef) {
+    const verified = verifiedDesktops.get(connectionKey);
+    if (canProbe && containerRef && options.reuseProbeWithinMs && verified?.containerId === containerRef &&
+      verified.startedAt === status.container_started_at && Date.now() - verified.at < options.reuseProbeWithinMs) {
+      status.desktopReady = true;
+    } else if (canProbe && containerRef) {
+      verifiedDesktops.delete(connectionKey);
       try {
         const health = await run(vpsDesktopProbeArgs(containerRef), 20_000);
         const report = JSON.parse(health.stdout) as {
@@ -589,6 +599,7 @@ async function computeVpsComputerStatus(
           throw new Error(`Cua health report is ${report.overall ?? "invalid"}`);
         }
         status.desktopReady = true;
+        verifiedDesktops.set(connectionKey, { containerId: containerRef, startedAt: status.container_started_at, at: Date.now() });
       } catch (error) {
         status.desktopReady = false;
         status.desktop_error = error instanceof Error ? error.message.slice(0, 320) : null;
@@ -880,38 +891,12 @@ async function waitForVpsReady(
       throw error;
     }
   };
-  let status = await computeVpsComputerStatus(cfg, botId, boundedRunner);
-  let delayMs = 500;
-  while (!status.ready && alias && !budgetExpired && Date.now() < deadline) {
-    if (
-      !status.daemonUp ||
-      !status.image ||
-      !status.imageMatches ||
-      !status.managed ||
-      status.container !== "running" ||
-      status.network !== "private" ||
-      status.mounts !== "none" ||
-      status.security !== "hardened"
-    ) {
-      return status;
-    }
-    await new Promise((resolve) => {
-      const sleep = setTimeout(resolve, Math.min(delayMs, Math.max(0, deadline - Date.now())));
-      sleep.unref?.();
-    });
-    delayMs = Math.min(delayMs * 2, 4_000);
-    const container = status.container_id ?? status.container_name;
-    const driverAnswers = await boundedRunner(
-      vpsDockerArgs(alias, cuaExecArgs(["status", "--socket", CUA_SOCKET], { container })),
-      { timeoutMs: 10_000 },
-    ).then(
-      () => true,
-      () => false,
-    );
-    if (budgetExpired) break;
-    if (!driverAnswers && Date.now() < deadline) continue;
-    status = await computeVpsComputerStatus(cfg, botId, boundedRunner);
-  }
+  if (!alias) return computeVpsComputerStatus(cfg, botId, boundedRunner);
+  let status = await pollVpsReadiness({
+    deadline, expired: () => budgetExpired, inspect: () => computeVpsComputerStatus(cfg, botId, boundedRunner),
+    driverAnswers: (containerId) => boundedRunner(vpsDockerArgs(alias, cuaExecArgs(["status", "--socket", CUA_SOCKET], { container: containerId ?? vpsContainerName(botId) })), { timeoutMs: 10_000 }).then(() => true, () => false),
+  });
+  status ??= await computeVpsComputerStatus(cfg, botId, boundedRunner);
   if (budgetExpired) return {
     ...status,
     ready: false,
@@ -1037,6 +1022,7 @@ export async function vpsComputerAction(
   const operation = async () => {
     requireAllowed();
     invalidateVpsStatus(key);
+    verifiedDesktops.delete(key);
     try {
       const before = await computeVpsComputerStatus(cfg, botId, runner);
       requireAllowed();
@@ -1149,7 +1135,7 @@ export async function vpsComputerJoin(
   const tunnelKey = screenKey(botId, screen);
   // Always re-inspect: a cached IP or password may predate a container replacement.
   invalidateVpsStatus(`${alias}:${vpsContainerName(botId)}`);
-  const status = await computeVpsComputerStatus(cfg, botId, runner);
+  const status = await computeVpsComputerStatus(cfg, botId, runner, undefined, { reuseProbeWithinMs: JOIN_REUSES_PROBE_MS });
   requireLiveScreen(botId, screen);
   if (screen && status.container_id !== screen.containerId) throw Object.assign(new Error("The independent screen container changed"), { status: 409 });
   if (!status.ready) {
