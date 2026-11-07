@@ -111,19 +111,42 @@ function rows(): Message[] {
   if (stateName === "approval") {
     base.push(message("ap", 40, { kind: "options", text: "git push origin main", card: { title: "Approval needed", subtitle: "git push origin fix/pricing-page-footer", options: ["Allow", "Deny"], requestId: "ra", requestType: "permission", tool: "Bash" } }));
   }
+  base.push(...noticeRows());
   return base.map((one, index, all) => ({ ...one, parentId: all[index - 1]?.id }));
+}
+
+// state=rescue|rescue-over|notice|notice-old|stopped|partly|limit|signed-out|trial: the rows a turn that went wrong leaves
+function noticeRows(): Message[] {
+  const rescue = { botId: "jordan", threadId: "main", turnId: "t2", instanceId: "claude", ai: "Claude" };
+  const ask = message("ask2", 41, { role: "user", text: "and the one from last week?" });
+  const fail = (cause: string, flags: Partial<NonNullable<Message["tool"]>> = {}) =>
+    message("f", 42, { kind: "activity", turnId: "t2", tool: { name: `error: ${cause}`, ok: false, ...flags } });
+  const notice = (id: string, minutes: number, text: string, more: Partial<NonNullable<Message["tool"]>> = {}) =>
+    message(id, minutes, { kind: "activity", turnId: "t2", tool: { name: `notice: ${text}`, ...more } });
+  switch (stateName) {
+    case "rescue": return [ask, notice("rs", 41.5, `${botName} hasn't heard back from Claude yet.`, { rescue })];
+    case "rescue-over": return [ask, notice("rs", 41.5, `${botName} didn't hear back from Claude.`, { rescue: { ...rescue, over: true } })];
+    case "notice": return [ask, notice("n", 42, "Switched to Codex for this reply.")];
+    case "notice-old": return [ask, notice("n", 42, "Switched to Codex for this reply."), message("a2", 43, { text: "Last week's pick was the BlackRock one.", turnId: "t2", turnTerminal: true })];
+    case "stopped": return [ask, message("st", 42, { kind: "activity", turnId: "t2", tool: { name: "stopped: Stopped" } })];
+    case "partly": return [ask, message("a2", 42, { text: "Done, the doc is updated.", turnId: "t2", turnTerminal: true }), fail("Bash: permission denied", { partial: true })];
+    case "limit": return [ask, fail("You've hit your usage limit.", { reason: "usage_limit", limitResetsAt: AT + 3 * 3_600_000 })];
+    case "signed-out": return [ask, fail("Not logged in. Please run /login", { setup: true, reason: "signed_out" })];
+    case "trial": return [ask, fail("Your trial Claude credit is used up. To keep your bots working, sign in with your own Claude or ChatGPT account, or add an API key.", { partial: true })];
+    default: return [];
+  }
 }
 
 const shown = stateName === "empty" ? [] : rows();
 const bot: Bot = {
   id: amy ? "amy" : "jordan", name: botName, title: "", description: stateName === "setup" ? "" : "Writes and checks scripts for the channel.", color: amy ? "pink" : "red", notifications: true, unread: false,
-  threadId: "main", busy: stateName === "working", activity: stateName === "working" ? "working" : stateName === "question" || stateName === "approval" || stateName === "grok" || stateName === "grok-md" ? "waiting-on-you" : "idle",
+  threadId: "main", busy: stateName === "working" || stateName === "rescue", activity: stateName === "working" || stateName === "rescue" ? "working" : stateName === "question" || stateName === "approval" || stateName === "grok" || stateName === "grok-md" ? "waiting-on-you" : "idle",
   turnStartedAt: AT, messages: shown, activeLeafId: shown.at(-1)?.id, modelSelection: { instanceId: "claude", model: "claude-opus-5-5" },
   tasks: [{ threadId: "main", title: botName, createdAt: AT - 86_400_000 }],
 } as Bot;
 
 const ghostyBot = { ...bot, id: "ghosty", name: "Ghosty", color: "silver", messages: [], tasks: [] } as Bot;
-const state: AppState = { ...initialState, bots: [bot], selectedId: bot.id, ...(stateName === "events" ? { unreadDivider: { threadId: "main", messageId: "p1" } } : {}), connected: true, error: params.get("error"), instances: [{ instanceId: "claude", capabilities: { agentsMcp: true } }] as unknown as AppState["instances"],
+const state: AppState = { ...initialState, bots: [bot], selectedId: bot.id, ...(stateName === "events" ? { unreadDivider: { threadId: "main", messageId: "p1" } } : {}), connected: true, error: params.get("error"), instances: [{ instanceId: "claude", displayName: "Claude", provider: "claude", snapshot: { state: "available", authenticated: stateName !== "signed-out" }, capabilities: { agentsMcp: true } }] as unknown as AppState["instances"],
   config: { features: { showToolCalls: params.get("tools") === "1" } } as unknown as AppState["config"] };
 const value = { state, dispatch: () => {}, flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} };
 

@@ -12,6 +12,7 @@ import { ClaudeUpdatePrompt } from "./ClaudeUpdatePrompt";
 import { useDesktopCapabilities } from "./DesktopCapabilities";
 import { useLimitResetContinue } from "./EngineUsage";
 import { bugReportFixedText } from "./BugReportNote";
+import { openBotSettings } from "./bot-panel/panel-link";
 
 // a card someone closed stays closed for this run of the app; a newer failure is a new card
 const dismissed = new Set<string>();
@@ -107,6 +108,13 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
     if (canOfferSignIn(lead.kind, lead.engine) || signInNotice) actions.push({ label: t("chat.notice.signIn"), onClick: () => dispatch(openEngines) });
   } else if (lead.kind === "usage_limit") {
     if (resume) actions.push(resume);
+  } else if (lead.kind === "no_answer" && !group && tool.rescue) {
+    // the first reply never came: what the person can change is the AI, or whose subscription it runs on
+    const { rescue } = tool;
+    const ai = state.instances.find((instance) => instance.instanceId === rescue.instanceId)?.displayName || rescue.ai;
+    detail = t("chat.rescue.over", { bot: lead.bot?.name ?? "", ai });
+    actions.push({ label: t("chat.rescue.switchAi"), onClick: () => openBotSettings(dispatch, "model", { botId: rescue.botId }) });
+    actions.push({ label: t("chat.rescue.connect"), onClick: () => dispatch(openEngines) });
   } else if (lead.kind !== "credits" && retry) {
     actions.push({ label: t("failedReply.tryAgain"), onClick: retry });
   }
