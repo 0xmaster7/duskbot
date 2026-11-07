@@ -120,6 +120,7 @@
 }
 
 /* grok's bubbles: an ink wash (or the bot's colour) under a faint top gloss, with hairline highlights top and bottom */
+.reply-slot-bubble,
 [data-chat-bubble="simple"].chat-bubble-bot {
   background-color: color-mix(in srgb, var(--color-ink) var(--chat-wash), transparent);
   background-image: linear-gradient(rgb(255 255 255 / var(--chat-gloss)), transparent);
@@ -134,11 +135,11 @@
   --grok-bubble: var(--grok-bubble-fill);
 }
 /* grok in the dark: a 4% wash, the gloss and its hairlines down to 3% white, the edge to 4% ink */
-:root[data-skin="grok-dark"] [data-chat-bubble="simple"].chat-bubble-bot {
+:root[data-skin="grok-dark"] :is([data-chat-bubble="simple"].chat-bubble-bot, .reply-slot-bubble) {
   background-color: color-mix(in srgb, var(--color-ink) 4%, transparent);
   background-image: linear-gradient(rgb(255 255 255 / 0.03), transparent);
 }
-:root[data-skin="grok-dark"] [data-chat-bubble="simple"]:is(.chat-bubble-bot, .chat-bubble-user) {
+:root[data-skin="grok-dark"] :is([data-chat-bubble="simple"]:is(.chat-bubble-bot, .chat-bubble-user), .reply-slot-bubble) {
   box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.03), inset 0 -0.5px 0 rgb(255 255 255 / 0.03),
     inset 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 4%, transparent);
 }
@@ -486,3 +487,58 @@
   .status-shimmer { color: CanvasText; background-image: none; }
 }
 
+
+/* the reply slot: the bot's mark alone, then three dots in a bubble opening out of a circle around it; one element whose
+   parts cross over on transitions, so a change mid-way turns back from where it is */
+.reply-slot {
+  position: relative;
+  width: 56px;
+  height: 36px;
+  flex-shrink: 0;
+  animation: chat-row-fade 160ms var(--omb-ease-out) backwards;
+}
+.reply-slot-bubble {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  opacity: 0;
+  clip-path: inset(0 20px 0 0 round 18px);
+  transition: opacity 160ms var(--omb-ease-out), clip-path 240ms var(--omb-ease-spring);
+}
+.reply-slot-mark {
+  position: absolute;
+  inset-inline-start: 7px;
+  top: 7px;
+  display: flex;
+  transition: opacity 160ms var(--omb-ease-out), transform 240ms var(--omb-ease-spring);
+  animation: reply-slot-mark-in 240ms var(--omb-ease-out) backwards;
+}
+.reply-slot-dots {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-ink-secondary);
+  opacity: 0;
+  transition: opacity 160ms var(--omb-ease-out) 60ms;
+}
+.reply-slot[data-reply-slot="dots"] .reply-slot-bubble {
+  opacity: 1;
+  clip-path: inset(0 0 0 0 round 18px);
+}
+.reply-slot[data-reply-slot="dots"] .reply-slot-mark {
+  opacity: 0;
+  transform: scale(0.8);
+}
+.reply-slot[data-reply-slot="dots"] .reply-slot-dots {
+  opacity: 1;
+}
+@keyframes reply-slot-mark-in {
+  from { opacity: 0; transform: scale(0.9); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reply-slot-bubble { clip-path: none; transition: opacity 160ms var(--omb-ease-out); }
+  .reply-slot-mark { animation-name: chat-row-fade; transition: opacity 160ms var(--omb-ease-out); }
+  .reply-slot[data-reply-slot="dots"] .reply-slot-mark { transform: none; }
+}
