@@ -36,7 +36,7 @@ describe("bounded sidebar database rows", () => {
       { id: "person", role: "user", text: "Plan my trip" },
       { id: "question", kind: "options", card: { title: "Question", subtitle: "Which folder?", options: [], requestId: "request" } as Message["card"] },
       { id: "reply", text: "The plan is ready." },
-      { id: "closed", kind: "options", card: { title: "Old question", options: [], requestId: "closed", answered: "yes" } as Message["card"] },
+      { id: "closed", kind: "options", card: { title: "Old question", subtitle: "Already answered", options: [], requestId: "closed", answered: "yes" } as Message["card"] },
       { id: "step", kind: "activity", tool: { name: "Read", ok: true } },
     ]);
     expect(preview().map((message) => message.id)).toEqual(["person", "question", "closed", "step"]);
