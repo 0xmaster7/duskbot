@@ -34,9 +34,11 @@ import { createOrganizationEntry, isOrganizationDeepLink, takeOrganizationDeepLi
 import { FRAME_BY_DEFAULT, widenedBounds, windowBackground, windowChromeOptions } from "./window-chrome.mjs";
 import { createAllWindowsClosedQuit } from "./window-all-closed.mjs";
 import { createStartupScreen } from "./startup-screen.mjs";
+import { createStartupTrace } from "./startup-trace.mjs";
 import { createDevServerChild, devOwnServerWanted, devServerConflictMessage, watchServerSource } from "./dev-server-child.mjs";
 import { createSystemTray } from "./system-tray.mjs";
 let startupScreen = null;
+const startupTrace = createStartupTrace({ log: line => slog(line) });
 let desktopTray = null;
 import { collisionFreeDownloadPath, defaultSaveName, openHtmlCopy, openLogsFolder, revealDownloadWhenDone, revealInFolder, withSavableFile } from "./save-file.mjs";
 import { desktopViewerPermissionAllowed } from "./desktop-viewer-permissions.mjs";
@@ -455,7 +457,7 @@ function composioBrokerUrl() {
 }
 
 // Finder/Explorer launches have no usable stdio, so the server child's output goes to server.log here.
-const LOG_DIR = app.getPath("logs");
+const LOG_DIR = !app.isPackaged && process.env.OMB_LOG_DIR ? process.env.OMB_LOG_DIR : app.getPath("logs");
 const DESKTOP_CRASH_LOG = path.join(LOG_DIR, "desktop-crashes.log");
 const DESKTOP_CRASH_LOG_MAX_BYTES = 512 * 1024;
 let logStream = null;
@@ -2002,6 +2004,9 @@ function createWindow({ deferNavigation = false } = {}) {
     },
   });
   mainWindow = win; hiddenStart = false; chromeRail.attach(win);
+  startupTrace.mark("window");
+  win.webContents.once("did-finish-load", () => startupTrace.mark("loaded"));
+  win.once("show", () => startupTrace.finish("shown"));
   win.on("show", () => desktopTray?.windowShown(win));
   win.on("focus", () => { if (cloudAccount?.checkoutPending()) void cloudAccount.refresh().catch(() => {}); });
   win.on("close", (event) => {
@@ -2833,6 +2838,7 @@ setCuaStateListener((connection) => {
 });
 
 app.whenReady().then(async () => {
+  startupTrace.mark("ready");
   await evictStartupCacheOnce({
     userData: app.getPath("userData"),
     currentVersion: app.getVersion(),
@@ -2860,6 +2866,7 @@ app.whenReady().then(async () => {
     onFinished: () => { startupScreen = null; },
   });
   await startupScreen?.ready;
+  startupTrace.mark("splash");
   if (desktopShutdownStarted) return;
   session.defaultSession.on("will-download", (_event, item) => {
     item.setSavePath(collisionFreeDownloadPath(app.getPath("downloads"), item.getFilename()));
@@ -2923,6 +2930,7 @@ app.whenReady().then(async () => {
   if (app.isPackaged) await ensurePhoneSecretIdentity();
   savedSecretsKey = await ensureSavedSecretsKey(() => secureCredentialState?.read() ?? secureCredentials, (derive) => updateSecureCredentialDocument(derive));
   desktopRemoteAccess = desktopCompanionAccess(secureCredentials);
+  startupTrace.mark("credentials");
   const hostedAccount = desktopRemoteAccess ? null : ensureCompanionAccountService();
   // Display capture needs a one-shot renderer intent from the same frame/origin, no audio, and a user gesture.
   if (process.platform === "darwin" || process.platform === "linux") {
@@ -3092,6 +3100,7 @@ app.whenReady().then(async () => {
       slog(`local background server did not start: ${error?.message ?? error}`);
     } finally { localRuntimeStarting = null; }
   }
+  startupTrace.mark(serverReady ? "server" : "server-failed");
   if (desktopShutdownStarted) return;
   if (app.isPackaged && !desktopRemoteAccess) void ensureManagedDesktop().start().then(() => companyBackupSchedule.start()).catch(() => {});
   // Fresh local use never makes a Cloud request; start only restores an existing grant.
