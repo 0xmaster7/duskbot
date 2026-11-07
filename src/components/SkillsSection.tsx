@@ -235,7 +235,7 @@ export function SkillsSection() {
           : visible.length === 0 ? <NoteRow>{skills.length === 0 ? t("skills.library.empty") : t("skills.library.noMatches")}</NoteRow>
           : visible.map((skill) => (
             <div key={skill.name} className="contents">
-              <div className={cn(rowCls, "items-start")}>
+              <div className={cn(rowCls, "items-start hover:bg-ink/[0.035]")}>
                 <button type="button" onClick={() => void view(skill)} className="min-w-0 flex-1 cursor-pointer text-left" aria-label={t("skills.library.view", { skill: skill.name })}>
                   <span className="block truncate text-[13px] leading-[18px] text-ink">{skill.name}</span>
                   <span className="line-clamp-2 block text-[12px] leading-4 text-ink-secondary">{skill.description}</span>

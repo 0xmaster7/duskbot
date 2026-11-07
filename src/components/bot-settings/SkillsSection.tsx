@@ -455,7 +455,7 @@ export function SkillsSection({ bot }: { bot: Bot }) {
         ) : (
           <div className="mt-3 divide-y divide-hairline/40 overflow-hidden rounded-lg border border-hairline/40">
             {skills.map((skill) => (
-              <div key={skill.name} className="px-3 py-2.5">
+              <div key={skill.name} className="px-3 py-2.5 hover:bg-ink/[0.035]">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"

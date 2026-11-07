@@ -19,7 +19,7 @@ export class PageBoundary extends Component<{ children: ReactNode }, { error: Er
           <h1 className="text-lg font-semibold">{t("page.broken.title")}</h1>
           <p className="text-sm opacity-75">{t("page.broken.body")}</p>
           <p className="break-words text-xs opacity-60">{this.state.error.message}</p>
-          <button type="button" className="rounded-md border px-3 py-1.5 text-sm" onClick={() => location.reload()}>
+          <button type="button" className="cursor-pointer rounded-md border px-3 py-1.5 text-sm hover:bg-ink/[0.035]" onClick={() => location.reload()}>
             {t("page.broken.reload")}
           </button>
         </div>

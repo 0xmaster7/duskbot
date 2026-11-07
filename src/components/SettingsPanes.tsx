@@ -112,7 +112,7 @@ export function AccountRows() {
       {!active ? (
         // nobody signs in here: the whole row opens the name form, as a panel row does
         <button type="button" data-settings-account="" data-settings-open="profile" onClick={() => setEditing(true)}
-          className="flex w-full min-w-0 cursor-pointer items-center gap-2.5 text-start outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus">
+          className="flex w-full min-w-0 cursor-pointer items-center gap-2.5 rounded-lg text-start outline-none hover:bg-ink/[0.035] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus">
           {who}
           <span data-panel-value="" className="shrink-0 text-[13px] leading-[18px] text-ink-secondary">{t(name ? "settings.simple.account.edit" : "settings.simple.account.add")}</span>
           <ChevronRight size={14} aria-hidden="true" className="-mr-0.5 shrink-0 text-ink-tertiary rtl:-scale-x-100" />

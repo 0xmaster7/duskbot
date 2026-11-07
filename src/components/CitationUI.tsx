@@ -10,6 +10,8 @@ import {
 } from "@/lib/citations";
 import { captureCitationSelection, citationTabShortcut } from "@/lib/citations-dom";
 import { sendsMessage, useSendKey } from "@/lib/send-key";
+import { cn } from "@/lib/cn";
+import { GROK_HOVER_TINT } from "./SidebarSimpleTop";
 
 type Point = { left: number; top: number };
 
@@ -280,7 +282,7 @@ export function CitationBadge({
           <div className="mt-3 flex justify-end gap-2">
             {onNavigate && <button type="button" onClick={() => { void onNavigate().then((found) => { setUnavailable(!found); if (found) setOpen(false); }); }} className="rounded-lg border border-hairline/40 px-3 py-1.5 text-[12px] hover:bg-raised">Go to source</button>}
             {onChange && <button type="button" onClick={() => { setOpen(false); setEditing(true); }} className="rounded-lg border border-hairline/40 px-3 py-1.5 text-[12px] hover:bg-raised">Edit comment</button>}
-            <button type="button" onClick={() => { setOpen(false); restoreTriggerFocus(); }} className="rounded-lg bg-accent px-3 py-1.5 text-[12px] text-white">Close</button>
+            <button type="button" onClick={() => { setOpen(false); restoreTriggerFocus(); }} className={cn("rounded-lg bg-accent px-3 py-1.5 text-[12px] text-white", GROK_HOVER_TINT)}>Close</button>
           </div>
         </div>,
         document.body,

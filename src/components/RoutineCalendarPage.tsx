@@ -67,6 +67,7 @@ import { LimitResetFields, type LimitResetChoice } from "./routines/LimitResetFi
 import { DAY_NAMES, durationLabel, niceDate, niceTime, scheduleLabel } from "@/lib/schedule-label";
 import { Select } from "./Select";
 import { GrokIcon } from "./GrokIcon";
+import { GROK_HOVER_TINT } from "./SidebarSimpleTop";
 import { fieldLabelCls, formBodyCls, formCloseCls, formFooterCls, formHeaderCls, formSheetCls, formTitleCls, mdPrimaryCls, mdSecondaryCls, rowButtonCls, smallButtonCls, textAreaCls, textFieldCls } from "./ui/GrokDialog";
 import {
   isRoutineProblemRun,
@@ -1437,7 +1438,7 @@ export function PausedList({
                   <div className="mt-0.5 truncate text-[11px] text-ink-secondary">{room ? `${t("routines.editor.teamGoal")} · ${room.name} · ` : ""}{scheduleLabel(routine.schedule)}</div>
                 </div>
                 {room && <button onClick={() => { onOpenRoom(room.id); onClose(); }} className="rounded-lg px-2 py-1.5 text-[11px] text-ink-secondary hover:bg-inset">Group</button>}
-                <button onClick={() => dispatch({ type: "updateRoutine", routineId: routine.id, patch: { enabled: true } })} className="rounded-lg bg-accent/15 px-2.5 py-1.5 text-[11px] font-medium text-accent">Resume</button>
+                <button onClick={() => dispatch({ type: "updateRoutine", routineId: routine.id, patch: { enabled: true } })} className={cn("rounded-lg bg-accent/15 px-2.5 py-1.5 text-[11px] font-medium text-accent", GROK_HOVER_TINT)}>Resume</button>
                 <button onClick={() => onEdit(routine)} className="rounded-lg px-2 py-1.5 text-[11px] text-ink-secondary hover:bg-inset">Edit</button>
               </div>
             );

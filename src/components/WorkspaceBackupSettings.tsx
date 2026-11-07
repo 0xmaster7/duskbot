@@ -5,10 +5,11 @@ import { t } from "@/lib/i18n";
 import { applyWorkspaceClientState, collectWorkspaceClientState, WORKSPACE_RESTORE_MARKER } from "@/lib/workspace-backup-client";
 import { Card as RowsCard, CardLabel, FormDialog, FormField, ItemRow, NavRow, NoteRow } from "./ListRows";
 import { textFieldCls } from "./ui/GrokDialog";
+import { GROK_HOVER_TINT } from "./SidebarSimpleTop";
 import { cn } from "@/lib/cn";
 
 type BackupStatus = { busy: boolean; pendingRestore?: boolean; lastRestoreId?: string };
-const buttonClass = "cursor-pointer inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-[13px] font-medium text-accent-ink disabled:opacity-40";
+const buttonClass = cn("cursor-pointer inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-[13px] font-medium text-accent-ink disabled:opacity-40", GROK_HOVER_TINT);
 const validPassword = (value: string) => value.length >= 12 && value.length <= 1024;
 
 /** A renderer reload cannot apply a restore; the owning server must restart. */
@@ -250,7 +251,7 @@ export function WorkspaceBackupRecovery({ children }: { children: ReactNode }) {
     {error && <button type="button" className={buttonClass} onClick={() => { setRestartRequired(false); setAttempt((value) => value + 1); }}>{t("connectors.action.retry")}</button>}
     {error && <>
       <p className="max-w-lg text-[13px] text-ink-secondary">{t("backup.skipDraftsHint")}</p>
-      <button type="button" className="cursor-pointer rounded-lg border border-hairline/50 bg-control px-3 py-2 text-[13px] font-medium text-ink" onClick={continueWithoutDrafts}>{t("backup.skipDrafts")}</button>
+      <button type="button" className={cn("cursor-pointer rounded-lg border border-hairline/50 bg-control px-3 py-2 text-[13px] font-medium text-ink", GROK_HOVER_TINT)} onClick={continueWithoutDrafts}>{t("backup.skipDrafts")}</button>
     </>}
   </main>;
 }
