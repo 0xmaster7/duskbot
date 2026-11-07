@@ -51,7 +51,7 @@ printf 'result %s\\n' "$code" >> "$calls"
 
 describe("desktop installer work", () => {
   it("requests the new desktop image when only the retired v1 image is cached", async () => {
-    expect(currentImage).toBe("ghcr.io/sidddevz/omb-bot-desktop:v2");
+    expect(currentImage).toBe("ghcr.io/sidddevz/omb-bot-desktop:v3");
     const oldImage = "ghcr.io/sidddevz/omb-bot-desktop:v1";
     const calls = await provision("cached", currentImage, oldImage);
     expect(calls).toContain(`docker image inspect ${oldImage}`);
