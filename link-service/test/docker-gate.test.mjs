@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   FREE_CAPABILITIES, STRICT_CAPABILITIES, Tracker, checkCreate, checkExec, checkNetworkCreate, checkUpdate, decide, parseImageRef,
   parseJson, startGate,
-} from "../../deploy/bot-desktop/docker-gate.mjs";
+} from "../docker-gate.mjs";
 
 const NAME = "openmausbot-vps-abc-0123456789ab";
 const CID = "c".repeat(64);

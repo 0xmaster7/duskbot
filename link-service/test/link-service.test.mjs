@@ -129,6 +129,13 @@ describe("setup sessions", () => {
     await run("sh", ["-n", file]);
   });
 
+  it("serves the docker gate beside the agent, as install.sh fetches it", async () => {
+    const response = await fetch(`${base}/docker-gate.mjs`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/javascript");
+    expect(await response.text()).toBe(readFileSync(join(root, "docker-gate.mjs"), "utf8"));
+  });
+
   it("runs a whole setup: claim, steps, result; the relay keeps only verifiers and the command is one-time", async () => {
     const relay = createRelayClient({ base });
     const keys = newLinkKeys();
