@@ -424,7 +424,7 @@ export function TeamLibraryPanel({
   return createPortal(
     // Dim only: a full-window backdrop blur is redrawn every frame without a GPU and keeps the page laggy while it is open.
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 sm:p-6"
+      className="ui-dialog-scrim fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
       onMouseDown={(event) => event.target === event.currentTarget && !importing && onClose()}
     >
       <div
@@ -433,7 +433,7 @@ export function TeamLibraryPanel({
         aria-modal="true"
         aria-labelledby="team-library-title"
         tabIndex={-1}
-        className="flex h-[min(780px,calc(100dvh-2rem))] w-full max-w-[1040px] flex-col overflow-hidden rounded-2xl border border-hairline/50 bg-panel shadow-2xl shadow-black/50 outline-none"
+        className="flex h-[min(780px,calc(100dvh-2rem))] w-full max-w-[1040px] flex-col overflow-hidden rounded-[14px] border border-ink/12 bg-menu outline-none"
       >
         <header className="flex items-start justify-between gap-4 px-6 pb-3 pt-6 sm:px-8 sm:pt-7">
           <div className="min-w-0">

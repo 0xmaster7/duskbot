@@ -64,7 +64,7 @@ function harness({ packaged = true, appleSpeech = true, remote = false, register
     unregister: accelerator => { h.registered.delete(accelerator); },
   };
   const screen = { getCursorScreenPoint: () => ({ x: 0, y: 0 }), getDisplayNearestPoint: () => ({ workArea: { x: 0, y: 25, width: 1440, height: 875 } }) };
-  h.start = () => h.talk.start({ globalShortcut, screen, prefs: createDesktopPrefs({ read: () => null, write: () => {} }), remote: () => remote,
+  h.start = () => h.talk.start({ globalShortcut, screen, prefs: createDesktopPrefs({ read: () => ({ talkShortcut: true }), write: () => {} }), remote: () => remote,
     away: failing("away", () => h.away), starting: () => h.starting,
     localRequest: route => { h.requests.push(["local", route]); return answer(route); }, dataDir: () => "/Users/a/.openmausbot" });
   h.handle = (channel, event, ...args) => h.handlers.get(channel)(event, ...args);

@@ -621,8 +621,14 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
   const move = useAccountMove(state.config?.cloudHome === true, { onOpen: openCloudAccount, onPairPhone: () => dispatch(phonePairingSettingsAction()) });
   const accounts = useAccounts();
 
+  // one place to connect the phone to opens its pairing at once; only a choice of places asks where
+  const getApp = () => {
+    if (destinations.length > 1) setPhoneAppOpen(true);
+    else if (destinations[0]) connectTo(destinations[0]);
+    else dispatch(phonePairingSettingsAction());
+  };
   const grokItems = simple ? grokProfileMenuItems({
-    onGetApp: () => setPhoneAppOpen(true),
+    onGetApp: getApp,
     onHelp: () => void openExternalLink(HELP_CENTER_URL),
     onShortcuts: () => {
       triggerRef.current?.closest("button")?.focus();
@@ -636,7 +642,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
   }) : null;
   const items = grokItems ?? profileMenuItems({
     phone: simple
-      ? simplePhoneItems({ connected: phone.kind === "connected", onGetApp: () => setPhoneAppOpen(true) })
+      ? simplePhoneItems({ connected: phone.kind === "connected", onGetApp: getApp })
       : phoneMenuItems({
         destinations,
         connected: phone.kind === "connected",

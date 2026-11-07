@@ -196,25 +196,3 @@ export function shortcutKeysForPlatform(
   return isMac ? item.macKeys : item.winKeys;
 }
 
-export function filterShortcutGroups(
-  groups: readonly ShortcutGroup[],
-  query: string,
-  isMac: boolean = isMacPlatform(),
-): ShortcutGroup[] {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) return [...groups];
-
-  return groups
-    .map((group) => {
-      const filteredItems = group.items.filter((item) => {
-        const keys = shortcutKeysForPlatform(item, isMac).join(" ").toLowerCase();
-        return (
-          item.description.toLowerCase().includes(normalized) ||
-          group.category.toLowerCase().includes(normalized) ||
-          keys.includes(normalized)
-        );
-      });
-      return { ...group, items: filteredItems };
-    })
-    .filter((group) => group.items.length > 0);
-}

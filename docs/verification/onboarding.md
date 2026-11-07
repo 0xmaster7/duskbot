@@ -1,20 +1,18 @@
-# Welcome flow and guided tour
+# Welcome flow
 
 The current first run introduces MausBot, its computer, jobs and the shared
 talking style, then opens the chat. It offers AI sign-in when no engine has
 passed its test. MausBot becomes Chief only when there is no existing Chief;
-there is no separate Chief selection screen. The app tour starts only from
-Settings → Replay app tour.
+there is no separate Chief selection screen. There is no app tour.
 
 The current offline checks are:
 
 ```sh
-pnpm exec vitest run src/components/onboarding/WelcomeFlow.test.ts src/components/onboarding/WelcomeGate.test.ts src/components/onboarding/GuidedTour.test.ts src/components/onboarding/ConnectAi.test.ts src/components/HelperIntro.test.ts src/lib/default-bot.test.ts server/routes/helper-followup.test.ts electron/system-name.test.mjs src/components/CardHint.test.ts
+pnpm exec vitest run src/components/onboarding/WelcomeFlow.test.ts src/components/onboarding/WelcomeGate.test.ts src/components/onboarding/ConnectAi.test.ts src/components/HelperIntro.test.ts src/lib/default-bot.test.ts server/routes/helper-followup.test.ts electron/system-name.test.mjs src/components/CardHint.test.ts
 ```
 
 They cover navigation, AI readiness and sign-in errors, talking-style saves,
-Chief assignment without replacement, replay, hosted-session gating and the
-rule that the app tour never starts automatically. The helper tests cover
+Chief assignment without replacement, replay and hosted-session gating. The helper tests cover
 first-message chips and a follow-up written once for the helper's own person.
 These use synthetic accounts and do not prove real provider authentication or
 native Electron permissions.
@@ -58,7 +56,7 @@ What each first-run surface depends on, and how it was checked:
 | Hosted workspace opened inside the desktop app (reduced bridge, no `remoteClient`) | Treated like a browser: the server is asked | `src/components/onboarding/WelcomeGate.test.ts` |
 | Packaged desktop with the organization bridge | An optional "Using OpenMausBot at work?" row under Other ways in Connect an AI; a signed-in Company engine counts as ready | `src/components/onboarding/beats/OrganisationRow.test.ts`, `src/components/onboarding/ConnectAi.test.ts` (fake bridge) |
 | Browser, admin of a hosted workspace | The first screen only, with the shared-workspace line, then the chat | `src/components/onboarding/WelcomeGate.test.ts`, `src/components/onboarding/WelcomeFlow.test.ts`, `src/lib/onboarding.test.ts` |
-| Browser, hosted member (no admin scope) | No welcome flow; one dismissible note kept in browser storage; no first-conversation spotlights | `src/components/onboarding/WelcomeGate.test.ts`, `src/components/onboarding/GuidedTour.test.ts` |
+| Browser, hosted member (no admin scope) | No welcome flow; one dismissible note kept in browser storage; no first-conversation spotlights | `src/components/onboarding/WelcomeGate.test.ts` |
 | Browser, client-scope session on a server that is not hosted | Nothing new: the flow does not open itself (it could not be saved); Settings replay and spotlights as before | `src/components/onboarding/WelcomeGate.test.ts`, `src/lib/onboarding.test.ts` |
 
 `GET /api/auth/session` adds `hosted: true` for a session on a hosted
@@ -140,13 +138,13 @@ and with their result, are covered in Settings by
 `src/components/HelperIntro.test.ts`. Not covered here: the packaged Electron
 window itself.
 
-## First-run state and tour checks
+## First-run state checks
 
 ```sh
 pnpm exec vitest run src/lib/onboarding.test.ts src/lib/welcome-draft.test.ts src/lib/default-bot.test.ts src/components/onboarding src/components/HelperIntro.test.ts src/components/AppNotices.test.ts
 ```
 
-The current flow and tour components cover first-run state and replay. The
-retired Chief selector, first-conversation spotlight component and Meet
+The current flow components cover first-run state and replay. The
+retired Chief selector, app tour, first-conversation spotlight component and Meet
 MausBot popup have no current renderer fixture; their removed tests must not
 be treated as acceptance evidence.

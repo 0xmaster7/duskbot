@@ -255,7 +255,7 @@ export function SettingsModal() {
       case "models": return <ModelsPane has={has} disclose={disclose} connections={<AdminOnly><KeysPage /></AdminOnly>} />;
       case "bots": return <BotsPane />;
       case "usage": return <UsagePane has={has} cloudAccount={cloudAccount} />;
-      case "updates": return <UpdatesPane remoteActive={remoteActive} />;
+      case "updates": return <UpdatesPane />;
       case "advanced": return at
         ? <AdvancedPageView page={at} has={has} remoteActive={remoteActive} peopleOpen={requested === "people"} />
         : <AdvancedIndex pages={advancedPages} remoteActive={remoteActive} onOpen={(next) => go(ADVANCED_PAGES.find((entry) => entry.id === next)!.sections.find(has)!)} />;

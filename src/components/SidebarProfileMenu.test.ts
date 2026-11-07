@@ -2,6 +2,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("react-dom", async (importOriginal) => ({ ...await importOriginal<typeof import("react-dom")>(), createPortal: (children: unknown) => children }));
+
 import {
   cloudUsageSummary,
   phoneMenuItems,
@@ -325,6 +327,7 @@ describe("choosing where the phone connects", () => {
 describe("Phone pairing", () => {
   const render = (connect?: PhoneAppConnect[]) => {
     vi.stubGlobal("window", { addEventListener: () => {}, removeEventListener: () => {} });
+    vi.stubGlobal("document", { body: {} });
     try {
       return renderToStaticMarkup(createElement(PhoneAppDialog, { open: true, onClose: () => {}, connect }));
     } finally {

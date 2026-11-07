@@ -596,7 +596,6 @@ export interface AppState {
   cloudAdd: { source: import("@/lib/cloud-plan").CloudSource; signIn?: true } | null;
   cloudHowTo: boolean;
   welcomeOpen: boolean;
-  tourOpen: boolean;
   botSettingsSection: BotSettingsSection;
   botSettingsExpandAccordion: boolean;
   botSettingsSectionStored: boolean;
@@ -800,7 +799,6 @@ export type Action =
   | { type: "closeCloudAdd" }
   | { type: "cloudHowTo"; open: boolean }
   | { type: "toggleWelcome"; open?: boolean }
-  | { type: "toggleTour"; open?: boolean }
   | {
       type: "updateBot";
       botId: string;
@@ -1539,10 +1537,6 @@ export function reducer(state: AppState, action: Action): AppState {
       return state.cloudAdd ? { ...state, cloudAdd: null } : state;
     case "cloudHowTo":
       return state.cloudHowTo === action.open ? state : { ...state, cloudHowTo: action.open };
-    case "toggleTour": {
-      const open = action.open ?? !state.tourOpen;
-      return { ...state, tourOpen: open, appSettingsOpen: open ? false : state.appSettingsOpen };
-    }
     case "toggleWelcome": {
       const open = action.open ?? !state.welcomeOpen;
       return {
@@ -1870,7 +1864,6 @@ export const initialState: AppState = {
   cloudAdd: null,
   cloudHowTo: false,
   welcomeOpen: false,
-  tourOpen: false,
   botSettingsSection: "overview",
   botSettingsExpandAccordion: false,
   botSettingsSectionStored: false,

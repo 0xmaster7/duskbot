@@ -5,7 +5,7 @@ import { createDesktopPrefs } from "./desktop-prefs.mjs";
 import { createCallPresence, createTalkShortcut, TALK_SHORTCUT_UNAVAILABLE } from "./talk-shortcut.mjs";
 
 const memoryPrefs = () => {
-  let saved = null;
+  let saved = { talkShortcut: true };
   return createDesktopPrefs({ read: () => saved, write: value => { saved = structuredClone(value); } });
 };
 const fakeShortcuts = (taken = []) => {

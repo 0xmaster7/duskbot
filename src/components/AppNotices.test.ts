@@ -6,7 +6,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CloudAccountState, CloudPlanSnapshot } from "../../electron/cloud-account.mjs";
 import type { CloudOffer, CloudTrial } from "../../electron/cloud-home.mjs";
-import { withTourFinished } from "@/lib/guided-tour";
 import { setLocale } from "@/lib/i18n";
 import { EMPTY_ONBOARDING, LOCAL_VIEWER, MET_CHIEF_HINT, type WelcomeViewer } from "@/lib/onboarding";
 import { registerDesktopPrefs } from "../../electron/desktop-prefs.mjs";
@@ -135,7 +134,7 @@ beforeEach(() => {
   session = new Map(); f.viewerEmail = undefined;
   vi.stubGlobal("sessionStorage", { getItem: (key: string) => session.get(key) ?? null, setItem: (key: string, value: string) => session.set(key, value) });
   f.state = { connected: true, hydrated: true, bots: structuredClone(FIRST_REPLY), groups: [], routines: [], instances: [{ instanceId: "claude", snapshot: { state: "available", authenticated: true } }],
-    config: { onboarding: { ...EMPTY_ONBOARDING, completedAt: "2026-09-01", version: 1, hintsSeen: withTourFinished(undefined) } } };
+    config: { onboarding: { ...EMPTY_ONBOARDING, completedAt: "2026-09-01", version: 1, hintsSeen: [] } } };
   vi.mocked(api).mockImplementation(async (_path, init) => {
     const patch = JSON.parse(String((init as RequestInit).body));
     f.state.config.onboarding.hintsSeen = patch.onboarding.hintsSeen;
@@ -223,7 +222,7 @@ describe("the card after the update", () => {
     expect(track).toHaveBeenCalledWith("cloud_card_action", { action: "howto" });
     expect(storage.get(CLOUD_INTRO)).toBe("1");
     for (const close of ["Not now", "Dismiss for good", "Escape"]) {
-      storage.clear(); launchCardsSeen(); f.state.config.onboarding.hintsSeen = withTourFinished(undefined); now += DAY;
+      storage.clear(); launchCardsSeen(); f.state.config.onboarding.hintsSeen = []; now += DAY;
       expect(await launch(), close).toContain(INTRO);
       if (close === "Escape") {
         const card = tree().find(node => node.type === "aside")!;
@@ -251,13 +250,13 @@ describe("the card after the update", () => {
     now = NOW + 3 * DAY;
     const after = await relaunch();
     expect(after).not.toContain(INTRO); expect(after).not.toContain(STAR);
-    storage.clear(); launchCardsSeen(); f.state.config.onboarding.hintsSeen = [...withTourFinished(undefined), "pro-introduction-dismissed-v3"];
+    storage.clear(); launchCardsSeen(); f.state.config.onboarding.hintsSeen = ["pro-introduction-dismissed-v3"];
     now = NOW + 10 * DAY; expect(await relaunch()).toContain(INTRO);
     now = NOW + 11 * DAY; expect(await relaunch()).not.toContain(INTRO);
   });
 
   it("never after the welcome's Cloud step, which was this desktop's Cloud offer however it was answered", async () => {
-    returning(); f.state.config.onboarding.hintsSeen = [...withTourFinished(undefined), "onboarding-cloud-v1"];
+    returning(); f.state.config.onboarding.hintsSeen = ["onboarding-cloud-v1"];
     for (const state of [signedOut, free]) {
       account = state;
       for (let day = 0; day < 3; day++) {
@@ -274,7 +273,7 @@ describe("the card after the update", () => {
   it("never over setup, a dialog, the Add a Cloud dialog or its tip, busy work, or an update being offered", async () => {
     returning();
     const waits: Array<() => void> = [
-      () => { f.state.welcomeOpen = true; }, () => { f.state.tourOpen = true; }, () => { f.state.appSettingsOpen = true; },
+      () => { f.state.welcomeOpen = true; }, () => { f.state.appSettingsOpen = true; },
       () => { f.state.cloudAdd = { source: "app_menu" }; }, () => { f.state.cloudHowTo = true; }, () => { f.updater = { status: "downloaded" }; },
       () => { f.state.bots = [{ busy: true, tasks: [{ threadId: "t", createdAt: 1, usage: { turns: 2 } }] }]; }, () => { f.state.connected = false; },
     ];
@@ -312,7 +311,7 @@ describe("the free trial's notice, here and on My Cloud", () => {
     showWindow(MY_CLOUD);
     returning();
     snapshot = { status: "none", trial: trial("ended", { deleteAt: NOW + 3 * DAY, keep: "checkout" }), notice: "ended" };
-    f.state.config.onboarding.hintsSeen = [...withTourFinished(undefined), "cloud-setup-hidden"];
+    f.state.config.onboarding.hintsSeen = ["cloud-setup-hidden"];
     expect(await launch()).toContain("Your free trial has ended");
     f.state.instances = [{ instanceId: "claude", snapshot: { state: "available", authenticated: false } }];
     expect(await launch()).toBe("");
@@ -329,7 +328,7 @@ describe("the first conversation after meeting the Chief", () => {
   it("holds every corner notice, an account's own too, until the person has written and had a reply", async () => {
     const running = trial("active");
     account = paid({ trial: running }); snapshot = { status: "paid", tier: "pro", trial: running, notice: "active" };
-    f.state.config.onboarding.hintsSeen = [...withTourFinished(undefined), MET_CHIEF_HINT];
+    f.state.config.onboarding.hintsSeen = [MET_CHIEF_HINT];
     f.state.bots = [{ tasks: [{ threadId: "first", usage: { turns: 0 } }] }];
     expect(await launch()).toBe("");
     f.state.bots = structuredClone(FIRST_REPLY);
@@ -448,13 +447,11 @@ describe("bots in two places", () => {
     expect(await launch(), "main remembers it: never asked again").not.toContain('data-notice="two-places"');
   });
 
-  it("never during the welcome or the tour, on a Cloud's or a server's page, or when main suggests nothing", async () => {
+  it("never during the welcome, on a Cloud's or a server's page, or when main suggests nothing", async () => {
     returning();
     f.state.welcomeOpen = true;
     expect(await launch()).not.toContain('data-notice="two-places"');
-    f.state.welcomeOpen = false; f.state.tourOpen = true;
-    expect(await launch()).not.toContain('data-notice="two-places"');
-    f.state.tourOpen = false;
+    f.state.welcomeOpen = false;
     for (const origin of [MY_CLOUD, VPS]) {
       showWindow(origin);
       expect(await launch(), origin).not.toContain('data-notice="two-places"');

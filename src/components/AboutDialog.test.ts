@@ -2,12 +2,15 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("react-dom", async (importOriginal) => ({ ...await importOriginal<typeof import("react-dom")>(), createPortal: (children: unknown) => children }));
+
 import { appVersion } from "@/lib/app-links";
 import { setLocale } from "@/lib/i18n";
 import { AboutDialog, aboutVersionLines } from "./AboutDialog";
 
 function about(page: object): string {
   vi.stubGlobal("window", page);
+  vi.stubGlobal("document", { body: {} });
   return renderToStaticMarkup(createElement(AboutDialog, { open: true, onClose: () => {} }));
 }
 
@@ -17,6 +20,18 @@ afterEach(() => {
 });
 
 describe("About", () => {
+  it("is Grok's About: a close at the corner and Copy version info, no Close button under it", () => {
+    const html = about({ location: { host: "bots.example.test" } });
+    expect(html).toContain('role="dialog"');
+    expect(html).toContain('aria-label="Close"');
+    expect(html).toContain(">Copy version info</button>");
+    expect(html).not.toContain(">Close</button>");
+  });
+
+  it("draws nothing while closed", () => {
+    expect(renderToStaticMarkup(createElement(AboutDialog, { open: false, onClose: () => {} }))).toBe("");
+  });
+
   it("in the app on this computer, shows the app's own version on one line", () => {
     const html = about({ ogb: { platform: "darwin", app: { version: "0.1.127", ownPage: true } }, location: { host: "127.0.0.1:8799" } });
     expect(html).toContain(">Version 0.1.127 · macOS</p>");

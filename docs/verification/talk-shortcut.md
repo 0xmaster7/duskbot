@@ -1,6 +1,6 @@
 # Talk shortcut (hold to talk from any app)
 
-Hold ⌃⌥Space from any app, speak, let go. The words go to MausBot's "Quick asks"
+Turn on Settings → Talk to MausBot from any app (it is off until then), then hold ⌃⌥Space from any app, speak, let go. The words go to MausBot's "Quick asks"
 chat and a never-focused box at the bottom of the screen shows the reply.
 
 The real hotkey, the microphone, window focus and Spaces are macOS behavior:

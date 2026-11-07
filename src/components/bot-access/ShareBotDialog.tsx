@@ -75,11 +75,11 @@ export function ShareBotDialog({ bot, teamName, onClose, onChanged, headerMenu }
     ? <PersonRow person={team.me} you data-share-yours trailing={null} /> : null;
 
   return createPortal(
-    <div className="ui-scrim fixed inset-0 z-[60] flex items-center justify-center p-4" onMouseDown={(event) => {
+    <div className="ui-dialog-scrim fixed inset-0 z-[60] flex items-center justify-center p-4" onMouseDown={(event) => {
       if (event.target === event.currentTarget) onClose();
     }}>
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="share-bot-title" tabIndex={-1} data-share-bot={bot.id}
-        className="ui-modal flex max-h-full w-full max-w-[480px] flex-col text-ink shadow-2xl outline-none"
+        className="ui-dialog flex max-h-full w-full max-w-[480px] flex-col text-ink outline-none"
         onKeyDown={(event) => {
           event.stopPropagation();
           if (event.key === "Escape" && !event.defaultPrevented) {

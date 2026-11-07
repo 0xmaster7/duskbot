@@ -3,12 +3,9 @@ import { api, useStore, type ConfigStatus } from "@/state/store";
 import { skillAuthoringEnabled } from "@/lib/feature-flags";
 import { localeChoices } from "@/locales";
 import { activeLocale, t } from "@/lib/i18n";
-import { withTourReset } from "@/lib/guided-tour";
-import { completionPatch } from "@/lib/onboarding";
 import { useUpdaterState } from "@/lib/updater";
 import { productName } from "../lib/brand";
 import { NewBrowserSettings } from "./BrowserSettingsRows";
-import { NavRow } from "./ListRows";
 import { SIMPLE_CARD, SettingRow, Switch } from "./SettingsPrimitives";
 import { cn } from "@/lib/cn";
 import { LearnedSkillsSettings } from "./ShareLearnedSkillsSettings";
@@ -165,32 +162,6 @@ export function TalkingStyleRow() {
       />
     </SettingRow>
   );
-}
-
-/** The app tour as a row of Help, marking onboarding done if it was not. */
-export function ReplayTourRows() {
-  const { state, dispatch } = useStore();
-  const [saving, setSaving] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const replayApp = () => {
-    setSaving(true);
-    setFailed(false);
-    void api("/api/config", {
-      method: "PUT",
-      body: JSON.stringify({ onboarding: {
-        ...(!state.config?.onboarding?.completedAt ? completionPatch().onboarding : {}),
-        hintsSeen: withTourReset(state.config?.onboarding),
-      } }),
-      signal: AbortSignal.timeout(10_000),
-    })
-      .then((config) => {
-        dispatch({ type: "configStatus", config });
-        dispatch({ type: "toggleTour", open: true });
-      })
-      .catch(() => setFailed(true))
-      .finally(() => setSaving(false));
-  };
-  return <NavRow data-settings-open="app-tour" drill={false} disabled={saving} title={t("settings.welcome.appTour")} hint={failed ? t("onboarding.tour.error") : undefined} onClick={replayApp} />;
 }
 
 export function LanguageRow({ simple = false }: { simple?: boolean }) {

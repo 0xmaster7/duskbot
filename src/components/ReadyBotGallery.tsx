@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { createPortal } from "react-dom";
 import { Loader2 } from "lucide-react";
 import { stoppedAtBotLimit } from "@/lib/bot-limit";
 import { BotCreationDraft } from "@/lib/bot-creation-draft";
@@ -8,7 +7,7 @@ import { announceNewBot, reportsToFor, startingTemplate, type BotDefaultsAnswer 
 import { useShowThreads } from "@/lib/thread-preferences";
 import { useTeamPeople } from "@/state/team-people";
 import { MausAvatar } from "./Avatar";
-import { NewBotDialog } from "./lazy-screens";
+import { LocalComputerAutoWarning } from "./LocalComputerAutoWarning";
 import { READY_BOT_CATEGORIES, READY_BOTS, matchesReadyBot, readyBot, readyBotTemplate, type ReadyBotCategory } from "@/lib/ready-bots";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
@@ -22,19 +21,19 @@ const CATEGORY_KEYS: Record<ReadyBotCategory, LocaleKey> = {
 
 export function ReadyBotGallery({ search, onDialog, onAdded }: {
   search: string;
-  /** The New bot dialog is open over Templates, so Templates must leave its keys alone. */
+  /** A confirm is open over Templates, so Templates must leave its keys alone. */
   onDialog: (open: boolean) => void;
   onAdded: (bot: Bot) => void;
 }) {
   const [category, setCategory] = useState<ReadyBotCategory | null>(null);
   const { state, dispatch } = useStore();
-  const [reviewing, setReviewing] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<string | null>(null);
   const [making, setMaking] = useState<string | null>(null);
   const team = useTeamPeople();
   const showThreads = useShowThreads();
-  const review = (id: string | null) => { setReviewing(id); onDialog(id !== null); };
+  const ask = (id: string | null) => { setConfirming(id); onDialog(id !== null); };
   // one click makes the bot, as Grok's create does; it is tuned afterwards in its settings
-  const add = async (id: string) => {
+  const add = async (id: string, allowLocalAuto = false) => {
     const ready = readyBot(id);
     if (!ready || making || state.botCreationPending || stoppedAtBotLimit(state)) return;
     // a paired device may not read the host's New bot defaults the bot is filled from
@@ -46,8 +45,11 @@ export function ReadyBotGallery({ search, onDialog, onAdded }: {
       const defaults = startingTemplate(await api<BotDefaultsAnswer>("/api/bot-defaults"), true);
       draft = new BotCreationDraft(readyBotTemplate(defaults, ready), () => {});
       draft.role = ready.id;
-      // auto approvals on this computer need an explicit yes, which only the review asks for
-      if (draft.bot.approvalMode === "auto" && draft.bot.computer === "local") { review(id); return; }
+      // auto approvals on this computer need an explicit yes
+      if (draft.bot.approvalMode === "auto" && draft.bot.computer === "local") {
+        if (!allowLocalAuto) { ask(id); return; }
+        draft.consent.acknowledgeLocalAuto = true;
+      }
       const { bot, warnings } = await createConfiguredBot(draft, undefined, undefined, undefined, undefined,
         team ? reportsToFor(null, draft.bot.section, state.bots, team) ?? undefined : undefined);
       announceNewBot(dispatch, bot, warnings, { showThreads, source: "template", role: ready.id });
@@ -88,6 +90,6 @@ export function ReadyBotGallery({ search, onDialog, onAdded }: {
         </button>
       </article>)}
     </div>
-    {reviewing && createPortal(<NewBotDialog readyBotId={reviewing} onClose={() => review(null)} onCreated={(bot) => { onDialog(false); onAdded(bot); }} />, document.body)}
+    <LocalComputerAutoWarning open={confirming !== null} onCancel={() => ask(null)} onConfirm={() => { const id = confirming; ask(null); if (id) void add(id, true); }} />
   </section>;
 }
