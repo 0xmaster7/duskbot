@@ -8,6 +8,7 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
+import { newDirectKey, sshConnector } from "./vps-link-direct.mjs";
 import { createVpsLink } from "./vps-link.mjs";
 
 export const DEFAULT_LINK_BASE = "https://link.apps.siddz.com";
@@ -85,6 +86,7 @@ async function folderSize(dir, limit = 200_000) {
  *   environments(): any, persist(next: any): void, withEnvironment: Function, makeId(): string, forgetEnvironment(id: string): unknown,
  *   ownHome: any, localRequest(route: string, init?: RequestInit): Promise<Response>, switchTo(id: string): unknown, relaunch(): void,
  *   dataDir(): string | null, label(): string, tell(view: unknown): void, log(line: string): void, base?: string,
+ *   powerMonitor?: { on(event: string, listener: () => void): unknown },
  * }} deps
  */
 export function installVpsLink(deps) {
@@ -146,6 +148,8 @@ export function installVpsLink(deps) {
     },
     relaunch: deps.relaunch,
     dataSize: async () => { const dir = deps.dataDir(); return dir ? folderSize(dir) : null; },
+    // the direct path to a relay-linked server (vps-link-direct.mjs); OMB_LINK_DIRECT=off keeps every link on the relay
+    ...(process.env.OMB_LINK_DIRECT === "off" ? {} : { direct: { newKey: newDirectKey, connector: sshConnector } }),
     onChange: (view) => deps.tell(view),
     log,
   });
@@ -178,6 +182,11 @@ export function installVpsLink(deps) {
   };
   for (const method of METHODS) ipcMain.handle(`vps-link:${method}`, guard(`vps-link:${method}`, handlers[method]));
   // safeStorage only works once electron is ready, and every saved tunnel key needs it
-  void (deps.whenReady?.() ?? Promise.resolve()).then(() => link.resume()).catch((error) => log(`vps link: ${error?.message ?? error}`));
+  void (deps.whenReady?.() ?? Promise.resolve()).then(() => {
+    // a wake or an unlocked screen: sockets may be dead, so the tunnels reconnect now instead of after their timeouts
+    // (powerMonitor only works once electron is ready)
+    for (const event of ["resume", "unlock-screen"]) deps.powerMonitor?.on(event, () => link.nudge());
+    return link.resume();
+  }).catch((error) => log(`vps link: ${error?.message ?? error}`));
   return link;
 }

@@ -59,6 +59,7 @@ const plain = (error, fallback) => {
  *   relaunch(): void,
  *   dataSize?(): Promise<number | null>,
  *   proxyFactory?: typeof createTunnelProxy,
+ *   direct?: { newKey(): { privateKey: string, publicKey: string }, connector(config: { host: string, port: number, user: string, privateKey: string, hostKeys: string[] }): () => Promise<any> },
  *   now?(): number,
  *   onChange?(view: any): void,
  *   log?(line: string): void,
@@ -322,6 +323,7 @@ export function createVpsLink(deps) {
           link.port = port;
           write();
         }
+        void directFor(link, proxy);
         return proxy;
       } catch (error) {
         if (proxies.get(link.id) === proxy) proxies.delete(link.id);
@@ -333,6 +335,55 @@ export function createVpsLink(deps) {
     try { return await starting; }
     finally { if (proxyStarts.get(link.id) === starting) proxyStarts.delete(link.id); }
   }
+
+  // ---- the direct path: this app's own ssh key on the server, restricted to the agent's direct command ----
+
+  const DIRECT_RETRY_MS = 6 * 60 * 60_000;
+  const REPROVISION_MS = 60 * 60_000;
+  const directValid = (value) => record(value) && value.v === 1 && typeof value.host === "string" && /^[A-Za-z0-9.:-]{1,253}$/.test(value.host)
+    && Number.isInteger(value.port) && value.port > 0 && value.port < 65536 && typeof value.user === "string" && /^[a-z_][a-z0-9_-]{0,31}$/.test(value.user)
+    && Array.isArray(value.hostKeys) && value.hostKeys.length > 0 && value.hostKeys.length <= 6
+    && value.hostKeys.every((entry) => typeof entry === "string" && /^(ssh-ed25519|ecdsa-sha2-nistp(256|384|521)|ssh-rsa) [A-Za-z0-9+/]+={0,2}$/.test(entry));
+
+  /** asks the agent (over the sealed relay) to accept a new key, once; an older agent says no and is asked again later */
+  async function directFor(link, proxy) {
+    if (!deps.direct || closed || proxy.useDirect === undefined) return;
+    try {
+      if (!directValid(link.direct)) {
+        if (link.directRefusedAt && now() - link.directRefusedAt < DIRECT_RETRY_MS) return;
+        const pair = deps.direct.newKey();
+        const answer = await proxy.control("direct-key", { pub: pair.publicKey });
+        if (closed || !state.links.includes(link)) return;
+        const config = { v: 1, host: answer?.host, port: answer?.port, user: answer?.user, hostKeys: answer?.hostKeys };
+        if (!directValid(config)) throw new Error("the server's direct link details were not usable");
+        link.direct = { ...config, keyP: await protect(pair.privateKey), at: now() };
+        delete link.directRefusedAt;
+        write();
+      }
+      const saved = link.direct;
+      const privateKey = await unprotect(saved.keyP);
+      if (closed || proxies.get(link.id) !== proxy) return;
+      proxy.useDirect({
+        connect: deps.direct.connector({ host: saved.host, port: saved.port, user: saved.user, privateKey, hostKeys: saved.hostKeys }),
+        // the key was removed or the server was reinstalled: ask again over the sealed tunnel, at most once an hour
+        onFailure: (error) => {
+          if (error?.level !== "client-authentication" && error?.code !== "HOSTKEY") return;
+          if (saved.at && now() - saved.at < REPROVISION_MS) return;
+          if (link.direct !== saved) return;
+          log(`vps link: ${link.name}'s direct path needs a new key (${error?.message ?? error})`);
+          delete link.direct;
+          write();
+          void directFor(link, proxy);
+        },
+      });
+    } catch (error) {
+      if (/unknown request/.test(String(error?.message))) { link.directRefusedAt = now(); write(); return; }
+      log(`vps link: ${link.name} stays on the relay (${error?.message ?? error})`);
+    }
+  }
+
+  /** after a wake or a network change */
+  function nudge() { for (const proxy of proxies.values()) proxy.nudge?.(); }
 
   async function finish(pending, got, signal) {
     const active = () => !closed && !signal.aborted && state.pending === pending;
@@ -756,7 +807,7 @@ export function createVpsLink(deps) {
   }
 
   return {
-    view, start, cancel, resume, sealTrust,
+    view, start, cancel, resume, sealTrust, nudge,
     reset() { lastError = null; if (!state.pending && state.move?.step === "done") state.move = null; write(); return view(); },
     engines, signIn, signInStatus, signInCode, signInCancel,
     preview, move, retryMove, moveBack, backups, backupNow: async () => ({ id: (await backupNow("manual")).id }), restore, forget, where,

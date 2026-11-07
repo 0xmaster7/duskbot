@@ -6,6 +6,8 @@ import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
 import { Readable } from "node:stream";
 import { setTimeout as sleep } from "node:timers/promises";
 
+import { createDirectLink } from "./vps-link-direct.mjs";
+
 const B32 = "abcdefghijklmnopqrstuvwxyz234567";
 const FRAME_SKEW_MS = 5 * 60_000;
 const CHUNK = 128 * 1024;
@@ -149,21 +151,24 @@ export function sealKeyOf(myPriv, myPub, theirPub, id) {
   const publicKey = createPublicKey({ key: { kty: "OKP", crv: "X25519", x: theirPub }, format: "jwk" });
   return Buffer.from(hkdfSync("sha256", diffieHellman({ privateKey, publicKey }), `omb-link-v1|${id}`, "seal", 32));
 }
-export function seal(key, aad, plaintext) {
+/** iv, ciphertext, tag: as bytes for the direct link, as base64url for the relay's json */
+export function sealRaw(key, aad, plaintext) {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", key, iv);
   cipher.setAAD(Buffer.from(aad));
   const body = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-  return Buffer.concat([iv, body, cipher.getAuthTag()]).toString("base64url");
+  return Buffer.concat([iv, body, cipher.getAuthTag()]);
 }
+export const seal = (key, aad, plaintext) => sealRaw(key, aad, plaintext).toString("base64url");
 export function open(key, aad, sealed) {
-  const raw = Buffer.from(sealed, "base64url");
+  const raw = typeof sealed === "string" ? Buffer.from(sealed, "base64url") : sealed;
   if (raw.length < 29) throw new Error("sealed value too short");
   const decipher = createDecipheriv("aes-256-gcm", key, raw.subarray(0, 12));
   decipher.setAAD(Buffer.from(aad));
   decipher.setAuthTag(raw.subarray(raw.length - 16));
   return Buffer.concat([decipher.update(raw.subarray(12, raw.length - 16)), decipher.final()]);
 }
+/** frames carry their time and are refused twice or when stale, so a relay cannot replay an old request */
 export function frameGuard(now = Date.now) {
   const seen = new Map();
   return (iv, ts) => {
@@ -176,23 +181,24 @@ export function frameGuard(now = Date.now) {
     return true;
   };
 }
-export function sealFrame(key, id, dir, frame) {
-  return seal(key, `${id}|${dir}`, Buffer.from(JSON.stringify({ ...frame, ts: Date.now() })));
+export function sealFrame(key, id, dir, frame, raw = false) {
+  return (raw ? sealRaw : seal)(key, `${id}|${dir}`, Buffer.from(JSON.stringify({ ...frame, ts: Date.now() })));
 }
 /** a websocket's bytes travel raw, not as base64 in json: 0x01, the 12-letter stream id, the time, then the bytes */
-export function sealBytes(key, id, dir, r, bytes) {
+export function sealBytes(key, id, dir, r, bytes, raw = false) {
   const head = Buffer.alloc(21);
   head[0] = 1;
   head.write(r, 1, 12, "latin1");
   head.writeDoubleBE(Date.now(), 13);
-  return seal(key, `${id}|${dir}`, Buffer.concat([head, bytes]));
+  return (raw ? sealRaw : seal)(key, `${id}|${dir}`, Buffer.concat([head, bytes]));
 }
+/** `sealed` is base64url (relay) or bytes (direct); the guard keys on the iv either way, so one guard spans both paths */
 export function openFrame(key, id, dir, sealed, guard) {
   const plain = open(key, `${id}|${dir}`, sealed);
   const value = plain[0] === 1 && plain.length >= 21
     ? { t: "bytes", r: plain.toString("latin1", 1, 13), ts: plain.readDoubleBE(13), b: plain.subarray(21) }
     : JSON.parse(plain.toString("utf8"));
-  if (guard && !guard(sealed.slice(0, 16), value.ts)) return null;
+  if (guard && !guard(typeof sealed === "string" ? sealed.slice(0, 16) : sealed.subarray(0, 12).toString("base64url"), value.ts)) return null;
   return value;
 }
 // ---- end shared crypto ----
@@ -233,8 +239,11 @@ export function keepAliveFetch({ maxSockets = 8 } = {}) {
     });
     signal?.addEventListener("abort", stop, { once: true });
     req.once("error", (error) => { signal?.removeEventListener("abort", stop); reject(error); });
+    // a new connection's handshake can take seconds (a vpn); `onConnected` says when the request is really on its way
+    if (init.onConnected) req.once("socket", (socket) => { if (req.reusedSocket || !socket.connecting) init.onConnected(); else socket.once(url.protocol === "https:" ? "secureConnect" : "connect", init.onConnected); });
     req.end(body);
   });
+  go.connectAware = true;
   /** a spare socket stays open: nginx closes one idle for 75 s, and the long poll holds the other */
   go.warm = (base) => {
     const timer = setInterval(() => {
@@ -245,6 +254,8 @@ export function keepAliveFetch({ maxSockets = 8 } = {}) {
     return () => clearInterval(timer);
   };
   go.close = () => { for (const agent of agents.values()) agent.destroy(); agents.clear(); };
+  /** after a sleep or a network change: every socket may be dead, so the next requests open fresh ones */
+  go.reset = go.close;
   return go;
 }
 
@@ -322,11 +333,19 @@ export function createRelayClient({ base, fetch: fetchImpl = fetch }) {
   };
 }
 
+/** a relay stream still open this long after the direct path came up moves over (an event stream reconnects by itself) */
+const MOVE_AFTER_MS = 3000;
+/** a websocket (the live desktop) opened while the direct path is dialling waits this long for it before taking the relay */
+const UPGRADE_HOLD_MS = 4000;
+
 /**
- * the app's end of the relay tunnel: a loopback http server at http://vps-<id>.localhost:<port> whose requests travel to
- * the vps sealed, and whose replies stream back the same way. only that host name is served.
+ * the app's end of the tunnel: a loopback http server at http://vps-<id>.localhost:<port> whose requests travel to the
+ * vps sealed, and whose replies stream back the same way. only that host name is served. two paths carry the frames:
+ * the relay, always there, and the direct path (vps-link-direct.mjs) once `useDirect` gave it a way to connect. each
+ * request takes the best path when it starts and keeps it; a lost direct path sends a request that had no answer yet
+ * and can safely be sent again over the relay, and fails the rest.
  */
-export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS }) {
+export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS, direct: directSpec = null, directFactory = createDirectLink }) {
   const fetchImpl = given ?? keepAliveFetch();
   const stream = streamChoice();
   let unwarm = () => {};
@@ -335,7 +354,7 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
   const host = `vps-${id}.localhost`;
   const waiting = new Map();
   let server = null, server6 = null, polling = false, closed = false, listeningPort = port;
-  let successfulPosts = 0, pollRetry = null;
+  let successfulPosts = 0, pollRetry = null, pollNudge = null;
   const abort = new AbortController();
 
   const epoch = randomB32(12);
@@ -356,13 +375,52 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
     return false;
   }
   const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-vps", r, bytes), post, delayMs: 5, signal: abort.signal, parallel: () => (ordered ? POSTS_IN_FLIGHT : 1), onError: () => fail("The link service did not answer.") });
-  const emit = (frame) => {
-    if (frame.t === "cancel") outbox.discard(frame.r);
-    outbox.push(sealFrame(key, id, "to-vps", frame), frame.r);
+  const relayPath = {
+    push: (frame) => { if (frame.t === "cancel") outbox.discard(frame.r); outbox.push(sealFrame(key, id, "to-vps", frame), frame.r); },
+    bytes: outbox.bytes, onDrain: outbox.onDrain, discard: outbox.discard,
   };
+  let direct = null, moveTimer = null;
+  // a stream keeps its path while that connection lasts (a suspect one included); only new requests avoid it
+  const pathOf = (r) => (waiting.get(r)?.via === "direct" && direct?.state() === "up" ? direct : relayPath);
+  const emit = (frame) => {
+    const path = pathOf(frame.r);
+    if (frame.t === "cancel") path.discard(frame.r);
+    path.push(frame);
+  };
+  const sendBytes = (r, chunk) => pathOf(r).bytes(r, chunk);
+  const onDrain = (r, resume) => pathOf(r).onDrain(resume);
+  /** the path a new request takes */
+  const pick = () => (direct?.ready() ? "direct" : "relay");
   function fail(message) {
     for (const entry of waiting.values()) entry.fail(message);
     waiting.clear();
+  }
+
+  function directChanged({ state, lost }) {
+    if (lost) {
+      // what was on the direct path: sent again over the relay when that is safe, failed otherwise
+      for (const [r, entry] of [...waiting]) {
+        if (entry.via !== "direct") continue;
+        if (entry.replay?.()) { entry.via = "relay"; log("vps link: a request moved to the relay"); continue; }
+        waiting.delete(r);
+        entry.fail("The connection to your server changed. Try again.");
+      }
+    }
+    clearTimeout(moveTimer);
+    if (state === "up" && direct?.ready()) {
+      moveTimer = setTimeout(() => {
+        if (!direct?.ready()) return;
+        for (const [r, entry] of [...waiting]) if (entry.via === "relay" && entry.movable?.()) { waiting.delete(r); relayPath.push({ t: "cancel", r }); entry.move(); }
+      }, MOVE_AFTER_MS);
+      moveTimer.unref?.();
+    }
+  }
+  function useDirect(spec) {
+    direct?.close();
+    direct = null;
+    if (!spec || closed) return;
+    direct = directFactory({ id, key: keyText, guard, connect: spec.connect, onFrame: (frame) => deliver(frame), onChange: directChanged, onFailure: spec.onFailure ?? (() => {}), log });
+    direct.start();
   }
 
   function deliver(frame) {
@@ -386,9 +444,12 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
       const streaming = stream.wanted();
       const stall = new AbortController();
       let heard = false;
-      const stallTimer = streaming ? setTimeout(() => { if (!heard) stall.abort(); }, stallMs) : null;
+      let stallTimer = null;
+      const armStall = () => { if (streaming && !stallTimer) stallTimer = setTimeout(() => { if (!heard) stall.abort(); }, stallMs); };
+      if (!fetchImpl.connectAware) armStall();
+      const nudged = (pollNudge = new AbortController());
       try {
-        const response = await fetchImpl(`${base}/v1/tunnels/${id}/to-app?wait=25${streaming ? "&stream=1" : ""}`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.any([abort.signal, stall.signal, AbortSignal.timeout(40_000)]) });
+        const response = await fetchImpl(`${base}/v1/tunnels/${id}/to-app?wait=25${streaming ? "&stream=1" : ""}`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.any([abort.signal, stall.signal, nudged.signal, AbortSignal.timeout(40_000)]), onConnected: armStall });
         if (!response.ok) {
           await response.body?.cancel();
           if (response.status === 404) { closed = true; abort.abort(); fail("This server was unlinked."); break; }
@@ -405,6 +466,7 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
         });
       } catch (error) {
         if (closed) break;
+        if (nudged.signal.aborted) continue;
         if (stall.signal.aborted && !heard) {
           stream.stalled();
           log("vps link: the link service's streamed replies were held back; polling instead");
@@ -429,20 +491,28 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
     const r = randomB32(12);
     const headers = {};
     for (const [name, value] of Object.entries(req.headers)) if (!HOP.has(name)) headers[name] = value;
-    let timer = null;
-    const touch = () => { clearTimeout(timer); timer = setTimeout(() => { waiting.delete(r); emit({ t: "cancel", r }); answer(504, "The server took too long to answer."); }, replyTimeoutMs); };
+    let timer = null, eventStream = false;
+    const touch = () => { clearTimeout(timer); timer = setTimeout(() => { emit({ t: "cancel", r }); waiting.delete(r); answer(504, "The server took too long to answer."); }, replyTimeoutMs); };
     const answer = (status, message) => {
       clearTimeout(timer);
       if (!res.headersSent) { res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }); res.end(JSON.stringify({ error: message })); }
       else res.destroy();
     };
+    const bodyless = req.method === "GET" || req.method === "HEAD" || req.headers["content-length"] === "0";
+    const request = { t: "req", r, method: req.method, path: req.url, headers, end: bodyless };
+    const idempotent = bodyless && (req.method === "GET" || req.method === "HEAD");
     waiting.set(r, {
+      via: pick(),
       touch,
-      head: (status, out) => { res.writeHead(status, out); res.flushHeaders?.(); },
+      head: (status, out) => {
+        eventStream = /^text\/event-stream\b/i.test(String(out["content-type"] ?? ""));
+        res.writeHead(status, out);
+        res.flushHeaders?.();
+      },
       data: (chunk) => {
         if (res.writableLength + chunk.length > RECEIVE_HIGH) {
-          waiting.delete(r);
           emit({ t: "cancel", r });
+          waiting.delete(r);
           answer(502, "The response exceeded this connection's buffer limit.");
           return;
         }
@@ -451,13 +521,17 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
       end: () => { clearTimeout(timer); res.end(); },
       fail: (message) => answer(502, message),
       ctl: () => {},
+      // nothing came back yet and asking again changes nothing: the same request goes out over the relay
+      replay: () => { if (!idempotent || res.headersSent) return false; relayPath.push(request); return true; },
+      // an event stream reconnects when it ends, and then takes the direct path
+      movable: () => eventStream,
+      move: () => { clearTimeout(timer); res.end(); },
     });
     touch();
-    res.on("close", () => { clearTimeout(timer); if (waiting.delete(r)) emit({ t: "cancel", r }); });
-    const bodyless = req.method === "GET" || req.method === "HEAD" || req.headers["content-length"] === "0";
-    emit({ t: "req", r, method: req.method, path: req.url, headers, end: bodyless });
+    res.on("close", () => { clearTimeout(timer); if (waiting.has(r)) { emit({ t: "cancel", r }); waiting.delete(r); } });
+    emit(request);
     if (bodyless) return;
-    req.on("data", (chunk) => { if (waiting.has(r) && !outbox.bytes(r, chunk)) { req.pause(); outbox.onDrain(() => req.resume()); } });
+    req.on("data", (chunk) => { if (waiting.has(r) && !sendBytes(r, chunk)) { req.pause(); onDrain(r, () => req.resume()); } });
     req.on("end", () => { if (waiting.has(r)) emit({ t: "body", r, end: true }); });
   }
 
@@ -467,6 +541,14 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
     if (String(req.headers.host ?? "") !== `${host}:${listeningPort}`) { socket.end("HTTP/1.1 421 Misdirected Request\r\ncontent-length: 0\r\nconnection: close\r\n\r\n"); return; }
     if (closed) { socket.end("HTTP/1.1 502 Bad Gateway\r\ncontent-length: 0\r\nconnection: close\r\n\r\n"); return; }
     socket.setNoDelay(true);
+    // the live desktop is long-lived and moving it means a reconnect: worth a short wait for the direct path
+    const dialling = direct && !direct.ready() && ["connecting", "up"].includes(direct.state());
+    if (!dialling) { upgradeVia(req, socket, head, pick()); return; }
+    socket.pause();
+    void direct.whenUp(UPGRADE_HOLD_MS).then(() => { if (!socket.destroyed && !closed) { socket.resume(); upgradeVia(req, socket, head, pick()); } else socket.destroy(); });
+  }
+
+  function upgradeVia(req, socket, head, via) {
     const r = randomB32(12);
     const headers = {};
     for (const [name, value] of Object.entries(req.headers)) if (!HOP.has(name)) headers[name] = value;
@@ -479,9 +561,10 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
       socket.end(`HTTP/1.1 ${status} ${STATUS_CODES[status]}\r\ncontent-type: application/json; charset=utf-8\r\ncontent-length: ${Buffer.byteLength(body)}\r\nconnection: close\r\n\r\n${body}`);
     };
     // only the handshake has a deadline: an idle desktop may say nothing for a long while
-    const touch = () => { if (open) return; clearTimeout(timer); timer = setTimeout(() => { if (waiting.delete(r)) emit({ t: "cancel", r }); refuse(504, "The server took too long to answer."); }, replyTimeoutMs); };
-    const read = (chunk) => { if (waiting.has(r) && !outbox.bytes(r, chunk)) { socket.pause(); outbox.onDrain(() => socket.resume()); } };
+    const touch = () => { if (open) return; clearTimeout(timer); timer = setTimeout(() => { if (waiting.has(r)) { emit({ t: "cancel", r }); waiting.delete(r); } refuse(504, "The server took too long to answer."); }, replyTimeoutMs); };
+    const read = (chunk) => { if (waiting.has(r) && !sendBytes(r, chunk)) { socket.pause(); onDrain(r, () => socket.resume()); } };
     waiting.set(r, {
+      via,
       touch,
       head: (status, out) => {
         answered = true;
@@ -496,8 +579,8 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
       },
       data: (chunk) => {
         if (socket.writableLength + chunk.length > RECEIVE_HIGH) {
-          waiting.delete(r);
           emit({ t: "cancel", r });
+          waiting.delete(r);
           refuse(502, "The desktop exceeded this connection's buffer limit.");
           return;
         }
@@ -508,9 +591,9 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
       ctl: () => {},
     });
     touch();
-    socket.on("close", () => { clearTimeout(timer); if (waiting.delete(r)) emit({ t: "cancel", r }); });
+    socket.on("close", () => { clearTimeout(timer); if (waiting.has(r)) { emit({ t: "cancel", r }); waiting.delete(r); } });
     emit({ t: "req", r, method: req.method, path: req.url, headers, end: true, up: true });
-    if (head?.length) outbox.bytes(r, head);
+    if (head?.length) sendBytes(r, head);
   }
 
   return {
@@ -529,7 +612,19 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
       await new Promise((resolve) => { v6.once("error", () => resolve()); v6.listen(listeningPort, "::1", () => { server6 = v6; resolve(); }); });
       if (!given) unwarm = fetchImpl.warm(base);
       void poll();
+      if (directSpec) useDirect(directSpec);
       return `http://${host}:${listeningPort}`;
+    },
+    /** gives the direct path a way to connect (null: relay only); it dials in the background */
+    useDirect,
+    /** the path a request started now would take */
+    transport: () => (direct?.ready() ? "direct" : "relay"),
+    /** after a sleep or a network change: the relay reconnects at once on fresh sockets, the direct path proves itself */
+    nudge() {
+      if (closed) return;
+      fetchImpl.reset?.();
+      pollNudge?.abort();
+      direct?.nudge();
     },
     /** a request for the agent itself (credentials, pausing the server), answered over the same sealed tunnel */
     control(op, data, timeoutMs = 30_000) {
@@ -538,13 +633,18 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
       const r = randomB32(12);
       return new Promise((resolve, reject) => {
         const timer = setTimeout(() => { waiting.delete(r); reject(new Error("Your server did not answer. Is it on?")); }, timeoutMs);
-        waiting.set(r, { touch: () => {}, head: () => {}, data: () => {}, end: () => {}, fail: (message) => { clearTimeout(timer); reject(new Error(message)); },
-          ctl: (frame) => { clearTimeout(timer); if (frame.ok) resolve(frame.data ?? { ok: true }); else reject(new Error(frame.error ?? "Your server said no.")); } });
-        emit({ t: "ctl", r, op, data });
+        const frame = { t: "ctl", r, op, data };
+        waiting.set(r, { via: pick(), touch: () => {}, head: () => {}, data: () => {}, end: () => {}, fail: (message) => { clearTimeout(timer); reject(new Error(message)); },
+          ctl: (answer) => { clearTimeout(timer); if (answer.ok) resolve(answer.data ?? { ok: true }); else reject(new Error(answer.error ?? "Your server said no.")); },
+          replay: () => { relayPath.push(frame); return true; } });
+        emit(frame);
       });
     },
     async close() {
       closed = true;
+      clearTimeout(moveTimer);
+      direct?.close();
+      direct = null;
       abort.abort();
       unwarm();
       if (!given) fetchImpl.close();
