@@ -238,6 +238,23 @@ describe("spawnCli goes through the box", () => {
 });
 
 describe("BoxRunner.lend", () => {
+  it.skipIf(process.platform === "win32")("mounts only this conversation's assigned skill folders read-only and drops revoked grants", () => {
+    const dataDir = "/data/.openmausbot";
+    const setup = { dataDir, home: "/data", codeRoots: ["/app"], engineRoots: [], bridges: [] };
+    const runner = new BoxRunner({ bwrap: "/usr/bin/bwrap", bridge, setup, denyEnv: new Set() });
+    const assigned = `${dataDir}/skills-library/skills/invoice-review`;
+    const request = { command: "/usr/bin/x", args: [], cwd: `${dataDir}/task-workspaces/bot-a/thread-1`, env: {} };
+    runner.lend("bot-a", "thread-1", [], [assigned]);
+    const plan = runner.wrap(request).plan;
+    expect(visibleInBox(plan, `${assigned}/SKILL.md`)).toBe("ro");
+    expect(visibleInBox(plan, `${dataDir}/skills-library/skills/private-sibling/SKILL.md`)).toBe("none");
+    expect(visibleInBox(plan, `${dataDir}/config.json`)).toBe("none");
+    expect(visibleInBox(runner.wrap({ ...request, cwd: `${dataDir}/task-workspaces/bot-a/thread-2` }).plan, `${assigned}/SKILL.md`)).toBe("none");
+    expect(runner.readOnlyFor(request.cwd)).toEqual([assigned]);
+    runner.lend("bot-a", "thread-1", []);
+    expect(runner.readOnlyFor(request.cwd)).toEqual([]);
+    expect(visibleInBox(runner.wrap(request).plan, `${assigned}/SKILL.md`)).toBe("none");
+  });
   // A plan over the Linux box's POSIX paths, which Windows' path module would join with backslashes.
   it.skipIf(process.platform === "win32")("puts a conversation's lent folders (a memory layer) back read-write in its boxes only, until they are taken back", () => {
     const dataDir = "/data/.openmausbot";

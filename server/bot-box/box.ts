@@ -67,29 +67,38 @@ export class BoxRunner {
   private readonly options: RunnerOptions;
   /** Paths a conversation's turns may write besides the bot's own folder (a member's or a room's memory layer on a Team Cloud). */
   private readonly lent = new Map<string, readonly string[]>();
+  private readonly lentReadOnly = new Map<string, readonly string[]>();
 
   constructor(options: RunnerOptions) { this.options = options; }
 
   get setup(): BoxSetup { return this.options.setup; }
 
-  /** Lends `rw` paths to every box of this conversation until `lend` is called again with none. */
-  lend(botId: string, threadId: string, rw: readonly string[]): void {
-    if (rw.length) this.lent.set(`${botId}/${threadId}`, [...rw]); else this.lent.delete(`${botId}/${threadId}`);
+  /** Lends these read-write and read-only paths to this conversation's boxes until the next call replaces them. */
+  lend(botId: string, threadId: string, rw: readonly string[], ro: readonly string[] = []): void {
+    const key = `${botId}/${threadId}`;
+    if (rw.length) this.lent.set(key, [...rw]); else this.lent.delete(key);
+    if (ro.length) this.lentReadOnly.set(key, [...new Set(ro)].sort()); else this.lentReadOnly.delete(key);
   }
 
   lentTo(botId: string, threadId: string): readonly string[] {
     return this.lent.get(`${botId}/${threadId}`) ?? [];
   }
 
+  readOnlyFor(cwd?: string): readonly string[] {
+    const ids = cwd ? taskWorkspaceIds(cwd, this.options.setup.dataDir) : null;
+    return ids ? this.lentReadOnly.get(`${ids.botId}/${ids.threadId}`) ?? [] : [];
+  }
+
   wrap(given: BoxRequest): WrappedSpawn {
     const ids = given.cwd ? taskWorkspaceIds(given.cwd, this.options.setup.dataDir) : null;
     const lent = ids ? this.lentTo(ids.botId, ids.threadId) : [];
+    const ro = this.readOnlyFor(given.cwd);
     // Made before the box starts, so an upload a later turn adds shows up in a box that is still running.
     if (ids) try { mkdirSync(boxUploadsDir(this.options.setup.dataDir, ids.botId, ids.threadId), { recursive: true, mode: 0o700 }); } catch (error) {
       // The bind stays optional, but an upload named later would then be unreadable in this box: say so.
       console.error(`bot box: could not make the uploads folder, so uploads stay unreadable in this box: ${error instanceof Error ? error.message : String(error)}`);
     }
-    const request: BoxRequest = lent.length ? { ...given, rw: [...(given.rw ?? []), ...lent] } : given;
+    const request: BoxRequest = { ...given, ...(lent.length ? { rw: [...(given.rw ?? []), ...lent] } : {}), ...(ro.length ? { ro: [...(given.ro ?? []), ...ro] } : {}) };
     const extraFds: number[] = [];
     const seccomp = this.options.seccompFile && !this.options.setup.mutate?.has("no-seccomp") ? this.options.seccompFile : null;
     if (seccomp) extraFds.push(openSync(seccomp, "r"));
@@ -267,7 +276,8 @@ export class BotBox {
   }
 
   /** More read-write folders for one conversation's boxes (a memory layer); nothing without a runner. */
-  lend(botId: string, threadId: string, rw: readonly string[]): void { this.runner?.lend(botId, threadId, rw); }
+  lend(botId: string, threadId: string, rw: readonly string[], ro: readonly string[] = []): void { this.runner?.lend(botId, threadId, rw, ro); }
+  readOnlyFor(cwd?: string): readonly string[] { return this.runner?.readOnlyFor(cwd) ?? []; }
 
   tools(): { bwrap: string; socat: string | null } | null { return this.detection.tools; }
 

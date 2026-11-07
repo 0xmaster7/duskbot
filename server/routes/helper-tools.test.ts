@@ -1,13 +1,15 @@
 // The decide and extract tools' internal route: a plain "not set up", strict shapes, files only from the bot's own
 // folders, and typed answers. The decider and extractor are fakes: no model is called.
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, symlinkSync, truncateSync, writeFileSync } from "node:fs";
+import { EventEmitter } from "node:events";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Decider } from "../decider/index.ts";
 import type { Extractor } from "../extractor/index.ts";
-import { createHelperToolRoutes, HELPER_MESSAGES } from "./helper-tools.ts";
+import { createHelperToolRoutes, HELPER_MESSAGES, type HelperToolContext } from "./helper-tools.ts";
+import { openMessageFile } from "../message-file.ts";
 import { PASS } from "./table.ts";
 
 const home = mkdtempSync(join(tmpdir(), "omb-helper-tools-"));
@@ -23,13 +25,14 @@ writeFileSync(join(elsewhere, "secret.txt"), "not yours");
 type Ask = Decider["ask"];
 type Extract = Extractor["extract"];
 
-async function call(path: string, body: unknown, deps: { ask?: Ask; extract?: Extract } = {}) {
+async function call(path: string, body: unknown, deps: { ask?: Ask; extract?: Extract; folders?: HelperToolContext["folders"]; openAttachment?: HelperToolContext["openAttachment"] } = {}) {
   const ask = vi.fn<Ask>(deps.ask ?? (async () => ({ ok: false, reason: "disabled" } as never)));
   const extract = vi.fn<Extract>(deps.extract ?? (async () => ({ ok: false, reason: "disabled" })));
   const route = createHelperToolRoutes({ decider: { ask: ask as unknown as Ask }, extractor: { extract } });
   const json = vi.fn();
-  const res = {} as never;
-  const outcome = await route({ method: "POST", path, res, json, botId: "bot-1", readBody: async () => body, folders: async () => ({ roots: [work], vmWorkspace: null }) });
+  const res = new EventEmitter() as never;
+  const outcome = await route({ method: "POST", path, res, json, botId: "bot-1", readBody: async () => body,
+    folders: deps.folders ?? (async () => ({ roots: [work], vmWorkspace: null })), openAttachment: deps.openAttachment });
   const [, status, payload] = json.mock.calls[0] ?? [];
   return { outcome, status: status as number | undefined, payload: payload as { text?: string; error?: string } | undefined, ask, extract };
 }
@@ -115,12 +118,22 @@ describe("extract", () => {
     const image = await call("/api/internal/helpers/extract", { fields: FIELDS, file: join(work, "receipt.png") }, { extract: answered });
     expect(image.extract.mock.calls[0]![2]).toEqual({ images: [{ mime: "image/png", data: "iVBORw0KGgo=" }] });
   });
+  it("reads an authorized attachment without claiming or waiting for a desktop", async () => {
+    const opened = await openMessageFile(join(elsewhere, "secret.txt"), [elsewhere]);
+    const folders = vi.fn(async () => { throw new Error("Desktop is held by the person"); });
+    const result = await call("/api/internal/helpers/extract", { fields: FIELDS, file: "attached.txt" }, {
+      extract: answered, folders, openAttachment: async path => path === "attached.txt" ? opened : null,
+    });
+    expect(result.status).toBe(200);
+    expect(folders).not.toHaveBeenCalled();
+    expect(opened.handle.fd).toBe(-1);
+  });
 
   it.each([
     ["a file outside its folders", { file: join(elsewhere, "secret.txt") }, 400, "Only files in your working folder"],
     ["a path that escapes with ..", { file: "../elsewhere/secret.txt" }, 400, "Only files in your working folder"],
     ["a missing file", { file: "nope.txt" }, 400, "Nothing was found"],
-    ["a PDF", { file: "scan.pdf" }, 400, "PDFs aren't read directly"],
+    ["a corrupt PDF", { file: "scan.pdf" }, 400, "PDF"],
     ["no text and no file", {}, 400, "give text or an image"],
     ["a bad field", { text: "x", fieldsOverride: { "due-date": { type: "date" } } }, 400, "field name"],
   ])("refuses %s, and the model is never asked", async (_name, extra, status, error) => {
@@ -133,5 +146,30 @@ describe("extract", () => {
 
   it("other paths and methods pass through", async () => {
     expect((await call("/api/internal/x/search", {})).outcome).toBe(PASS);
+  });
+  it("refuses oversized text instead of silently dropping the end of a file", async () => {
+    writeFileSync(join(work, "long.txt"), "x".repeat(200_001));
+    const result = await call("/api/internal/helpers/extract", { fields: FIELDS, file: "long.txt" }, { extract: answered });
+    expect(result.status).toBe(400);
+    expect(result.payload?.error).toContain("at most 200000");
+    expect(result.extract).not.toHaveBeenCalled();
+  });
+  it("bounds PDF input before starting a parser or model", async () => {
+    const file = join(work, "oversize.pdf");
+    writeFileSync(file, "%PDF-1.7");
+    truncateSync(file, 25 * 1024 * 1024 + 1);
+    const result = await call("/api/internal/helpers/extract", { fields: FIELDS, file }, { extract: answered });
+    expect(result.status).toBe(400);
+    expect(result.payload?.error).toContain("over 25 MB");
+    expect(result.extract).not.toHaveBeenCalled();
+  });
+  it.skipIf(process.platform === "win32")("refuses a PDF symlink outside the bot's working roots", async () => {
+    const secret = join(elsewhere, "private.pdf");
+    writeFileSync(secret, "%PDF-1.7");
+    symlinkSync(secret, join(work, "linked.pdf"));
+    const result = await call("/api/internal/helpers/extract", { fields: FIELDS, file: "linked.pdf" }, { extract: answered });
+    expect(result.status).toBe(400);
+    expect(result.payload?.error).toContain("Only files");
+    expect(result.extract).not.toHaveBeenCalled();
   });
 });

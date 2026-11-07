@@ -37,6 +37,7 @@ import { BASH_MAX_TIMEOUT_MS } from "../system-prompt.ts";
 import { ephemeralWorkspaceTokenPath } from "../workspace-backup-policy.ts";
 import * as procs from "../procs.ts";
 import * as localInject from "./local-inject.ts";
+import { botBox } from "../bot-box/box.ts";
 
 const FAKE_CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "testing", "fake-claude-cli.ts");
 const dumpedPid = (dump: string): number => JSON.parse(readFileSync(dump, "utf8")).pid;
@@ -1664,6 +1665,27 @@ describe("ClaudeDriver turns (fake CLI)", () => {
       const changed = await turn("three");
       expect(changed.pid).not.toBe(first.pid);
       expect(changed.settings.enabledPlugins).toEqual({ "guard@team": true, "review@team": true });
+    });
+    it("restarts a warm process when its assigned read-only skill mounts change", async () => {
+      const dump = join(scratch, "library-mount-warm.json");
+      process.env.FAKE_CLAUDE_DUMP = dump;
+      await create();
+      const mount = vi.spyOn(botBox, "readOnlyFor").mockReturnValue([]);
+      const turn = async () => {
+        const { turnId } = await instance.adapter.sendTurn({ threadId: "t-library-mount", text: "Read the skill", cwd: scratch });
+        await recorder.until(e => e.type === "turn.completed" && e.turnId === turnId);
+        return dumpedPid(dump);
+      };
+      try {
+        const first = await turn();
+        expect(await turn()).toBe(first);
+        mount.mockReturnValue([join(scratch, "assigned-skill")]);
+        const assigned = await turn();
+        expect(assigned).not.toBe(first);
+        expect(await turn()).toBe(assigned);
+        mount.mockReturnValue([]);
+        expect(await turn()).not.toBe(assigned);
+      } finally { mount.mockRestore(); }
     });
   });
 

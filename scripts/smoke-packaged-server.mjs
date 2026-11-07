@@ -10,6 +10,7 @@ import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs, promisify } from "node:util";
 import { browserBundlePaths, browserBundleSpec } from "../server/browser-bundle-release.ts";
+import { pdfFixture } from "../server/testing/pdf-fixture.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const { values } = parseArgs({ options: { "browser-bundle": { type: "string" } } });
@@ -180,6 +181,28 @@ try {
 } catch (error) {
   proxyReport = { error: String((error && error.message) || error) };
 }
+
+const pdfProbe = join(staging, "server", "probe-pdf-worker.mjs");
+writeFileSync(pdfProbe, [
+  'import { Worker } from "node:worker_threads";',
+  `const data = Uint8Array.from(Buffer.from(${JSON.stringify(pdfFixture(["Built-in PDF: café €1080", "Second page: INV-2291"]).toString("base64"))}, "base64"));`,
+  'const worker = new Worker(new URL("./pdf-text.worker.js", import.meta.url), { workerData: data, execArgv: [], stdout: true, stderr: true, resourceLimits: { maxOldGenerationSizeMb: 128, maxYoungGenerationSizeMb: 16 } });',
+  'worker.stdout.resume(); worker.stderr.resume();',
+  'const timer = setTimeout(() => { void worker.terminate(); process.exitCode = 1; }, 10000);',
+  'worker.once("message", reply => { console.log(JSON.stringify(reply)); clearTimeout(timer); void worker.terminate(); });',
+  'worker.once("error", error => { clearTimeout(timer); console.error(error.message); process.exitCode = 1; });',
+].join("\n"));
+let pdfReport = null;
+const pdfRuntime = process.env.OMB_SMOKE_PDF_RUNTIME ?? process.execPath;
+const pdfEnv = { ...fixtureEnv, ELECTRON_RUN_AS_NODE: "1" };
+try {
+  const { stdout } = await promisify(execFile)(pdfRuntime, [pdfProbe], { cwd: staging, env: pdfEnv, timeout: 15_000 });
+  pdfReport = JSON.parse(stdout);
+  const unicodePdf = readFileSync(join(root, "server", "testing", "fixtures", "unicode-cmap.pdf")).toString("base64");
+  writeFileSync(pdfProbe, readFileSync(pdfProbe, "utf8").replace(pdfFixture(["Built-in PDF: café €1080", "Second page: INV-2291"]).toString("base64"), unicodePdf));
+  const unicode = await promisify(execFile)(pdfRuntime, [pdfProbe], { cwd: staging, env: pdfEnv, timeout: 15_000 });
+  pdfReport.unicode = JSON.parse(unicode.stdout).text;
+} catch (error) { pdfReport = { error: String(error) }; }
 
 // The public MCP process is a second packaged entry point. Closing stdin right
 // after a request proves shutdown lets the final JSON-RPC frame drain.
@@ -414,6 +437,11 @@ if (!process.env.OMB_SMOKE_DIST && versionReport !== repoVersion) {
 
 if (searchReport?.status !== 200 || !Array.isArray(searchReport.body?.hits)) {
   console.error("The packaged read-only search worker did not respond:", searchReport);
+  process.exit(1);
+}
+
+if (!pdfReport?.text?.includes("café €1080") || !pdfReport.text.includes("Second page: INV-2291") || !pdfReport.unicode?.includes("你好 世界")) {
+  console.error("The packaged PDF worker did not read both pages without node_modules:", pdfReport);
   process.exit(1);
 }
 

@@ -90,6 +90,29 @@ afterEach(async () => {
 });
 
 describe("ACP threads sharing one agent process", () => {
+  it("keeps distinct read-only skill grants in separate process contracts", async () => {
+    vi.spyOn(procs, "readOnlyBotFolders").mockImplementation(cwd => cwd?.endsWith("thread-a") ? ["/data/library/assigned"] : []);
+    const f = await fixture();
+    const results = await Promise.all([f.run("thread-a"), f.run("thread-b")]);
+    expect(results.every(result => result.done.type === "turn.completed" && result.done.ok)).toBe(true);
+    expect(f.spawned).toHaveLength(2);
+  });
+
+  it("restarts a persistent thread when a read-only skill assignment changes", async () => {
+    const grants = vi.spyOn(procs, "readOnlyBotFolders").mockReturnValue([]);
+    const f = await fixture({ shareProcess: false });
+    await f.run("thread-a");
+    await f.run("thread-a");
+    expect(f.spawned).toHaveLength(1);
+    grants.mockReturnValue(["/data/library/assigned"]);
+    await f.run("thread-a");
+    await f.run("thread-a");
+    expect(f.spawned).toHaveLength(2);
+    grants.mockReturnValue([]);
+    await f.run("thread-a");
+    expect(f.spawned).toHaveLength(3);
+  });
+
   it("runs threads with the same spawn contract as separate sessions of one process, each on its own thread", async () => {
     const f = await fixture();
     const [a, b] = await Promise.all([f.run("thread-a"), f.run("thread-b")]);

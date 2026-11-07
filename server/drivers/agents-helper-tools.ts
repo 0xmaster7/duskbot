@@ -31,7 +31,7 @@ export const HELPER_TOOL_DEFINITIONS = [
   },
   {
     name: "extract",
-    description: "Read typed values out of text or an image; null where it does not say. Not for long sums or table totals.",
+    description: "Read typed values out of text, a PDF's text layer or an image; null where it does not say. Not for long sums or table totals.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -42,7 +42,7 @@ export const HELPER_TOOL_DEFINITIONS = [
           additionalProperties: { type: "object" },
         },
         text: { type: "string" },
-        file: { type: "string", description: "Or a .png, .jpg, .webp or text file in your working folder." },
+        file: { type: "string", description: "Or a PDF (up to 25 MB, readable text, no password), .png, .jpg, .webp or text file in your working folder. Split large documents before extraction; scanned PDFs need page images." },
       },
       required: ["fields"],
     },

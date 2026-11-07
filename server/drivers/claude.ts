@@ -10,7 +10,7 @@ import { DATA_DIR, stripWorkspaceCredentialEnv } from "../config.ts";
 import { openStartupModelCatalog, unconfirmedModelCatalog, writeStartupModelCache } from "../startup-model-catalog.ts";
 import { writeFileAtomicIfChanged } from "../atomic.ts";
 import { augmentedPath } from "../env-path.ts";
-import { brokerSocketPath, cliVersionReader, describeSpawnFailure, execCli, killCliTree, spawnCli } from "../procs.ts";
+import { brokerSocketPath, cliVersionReader, describeSpawnFailure, execCli, killCliTree, readOnlyBotFolders, spawnCli } from "../procs.ts";
 import { claudeAuthStatus } from "./claude-auth-status.ts";
 import { projectMcpServers } from "./claude-project-mcp.ts";
 import { botSettingsFor, withBotSettings } from "./claude-bot-settings.ts";
@@ -47,7 +47,9 @@ import { engineHomes } from "../engine-homes/engine-homes.ts";
 import { TEAM_TOOLS_FAILED, failedCustomMcp, teamToolsFailed } from "./team-tools.ts";
 import { armIdleClose, engineIdleMs, sessionIdlePolicy, stopIdleClose } from "./session-idle.ts";
 import { promptHalves, withVolatileNote } from "./prompt-split.ts"; import { CLAUDE_OWN_MEMORY_OFF } from "./claude-own-memory.ts";
-import { parseVersionTriple, versionAtLeast } from "./acp/version-probe.ts";
+import { versionAtLeast } from "./acp/version-probe.ts";
+import { CLAUDE_FLAG_FLOORS, claudeCliSupports, parseClaudeCliVersion, type ClaudeCliVersion } from "./claude-cli-version.ts";
+export { CLAUDE_FLAG_FLOORS, claudeCliSupports, parseClaudeCliVersion, type ClaudeCliVersion } from "./claude-cli-version.ts";
 import {
   applyClaudeInject,
   decodeInjectId,
@@ -192,22 +194,6 @@ export function autoCompactWindow(env: NodeJS.ProcessEnv): string | null {
 
 const DEFAULT_AUTOCOMPACT_TOKENS = 200_000;
 
-/** The first Claude CLI to accept each flag; an unknown flag is a hard argument error. Checked
- * against the published binaries (the changelog never records --autocompact): --strict-mcp-config
- * 1.0.60, --setting-sources 1.0.122, --autocompact 2.1.122. */
-export const CLAUDE_FLAG_FLOORS = {
-  "--strict-mcp-config": [1, 0, 60],
-  "--setting-sources": [1, 0, 122],
-  "--autocompact": [2, 1, 122],
-  "--system-prompt-snapshot": [2, 1, 267],
-  // 2.1.248 takes --restricted; 2.1.257 honours blockReadsOutsideWorkingDirectories.
-  "--restricted": [2, 1, 257],
-  // Keep-warm pings only. Not bisected: both are in every 2.1 build checked.
-  "--fork-session": [2, 1, 0],
-  "--no-session-persistence": [2, 1, 0],
-  // Background calls. Not bisected: the guest path passes it from 2.1.257.
-  "--tools": [2, 1, 257],
-} as const satisfies Record<string, ClaudeCliVersion>;
 
 const withWhy = (refusal: string, why: string | undefined) => why ? `${refusal} ${why}` : refusal;
 
@@ -220,7 +206,6 @@ export const GUEST_CLAUDE_PERMISSIONS = {
   deny: ["Bash", "PowerShell", "WebFetch", "Read(//proc/**)"],
 } as const;
 
-export type ClaudeCliVersion = readonly [number, number, number];
 
 export const CLAUDE_CONTEXT_CONTROL_MIN_VERSION: ClaudeCliVersion = CLAUDE_FLAG_FLOORS["--system-prompt-snapshot"];
 
@@ -229,14 +214,6 @@ export const CLAUDE_CONTEXT_CONTROL_MIN_VERSION: ClaudeCliVersion = CLAUDE_FLAG_
  * tool's result, one written during the last model call only after the turn's `result`. */
 export const CLAUDE_REPLAY_FLOOR: ClaudeCliVersion = [2, 1, 282];
 
-/** `claude --version` prints "2.1.232 (Claude Code)". */
-export function parseClaudeCliVersion(stdout: string | null | undefined): ClaudeCliVersion | null {
-  return parseVersionTriple(stdout ?? "");
-}
-
-export function claudeCliSupports(version: ClaudeCliVersion | null, flag: keyof typeof CLAUDE_FLAG_FLOORS): boolean {
-  return version === null || versionAtLeast(version, CLAUDE_FLAG_FLOORS[flag]);
-}
 
 export function claudeCliUpdate(version: string | null, cli: string): ProviderSnapshot["update"] | undefined {
   const parsed = parseClaudeCliVersion(version);
@@ -1189,6 +1166,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
         system: turn.systemStable ?? turn.system ?? null,
         mcpServers,
         cwd,
+        readOnly: readOnlyBotFolders(cwd),
         model: injected.model ?? null,
         base: env.ANTHROPIC_BASE_URL ?? null,
         configDir: env.CLAUDE_CONFIG_DIR ?? null,

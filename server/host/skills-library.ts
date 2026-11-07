@@ -13,7 +13,7 @@ import {
 } from "../imported-skills.ts";
 import { nativeSkillListing, nativeSkills, readNativeSkillFile } from "../native-skills.ts";
 import { redactSecretsInText } from "../redact.ts";
-import { listLibrarySkills, readLibrarySkillFile, readSkillLibraryIndex, skillsLibraryEnabled } from "../skill-library.ts";
+import { librarySkillDirectory, skillsLibraryRoot, listLibrarySkills, readLibrarySkillFile, readSkillLibraryIndex, skillsLibraryEnabled } from "../skill-library.ts";
 import {
   conversationAssignedSkills,
   prepareShareNote,
@@ -233,6 +233,12 @@ export function createSkillsLibraryHost(deps: SkillsLibraryHostDeps) {
   }
 
   return {
+    readOnlyLibraryFolders(bot: BotRecord): string[] {
+      if (!skillsLibraryEnabled(cfg)) return [];
+      const privateNames = new Set(listSkills(bot.id).map(skill => skill.name));
+      return resolveBotSkills(bot.id, liveAssigned(bot)).filter(skill => skill.enabled && !privateNames.has(skill.name))
+        .map(skill => librarySkillDirectory(skillsLibraryRoot(), skill.name));
+    },
     listBotSkills,
     readBotSkillFile,
 

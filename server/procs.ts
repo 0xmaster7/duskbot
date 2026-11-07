@@ -169,6 +169,10 @@ export interface BoxSpawnOptions {
 }
 export type CliSpawnOptions = SpawnOptions & BoxSpawnOptions;
 
+export function readOnlyBotFolders(cwd?: string): readonly string[] {
+  return botBox.readOnlyFor(cwd);
+}
+
 /** The box for this spawn, or null when it runs as is. A spawn in an engine home has that home in place of HOME. */
 export function boxedSpawn(resolved: ResolvedSpawn, opts: CliSpawnOptions, owner: CliOwner, homed: HomedSpawn | null = null): WrappedSpawn | null {
   if (opts.box === false || (owner !== "bot" && !opts.box)) return null;
