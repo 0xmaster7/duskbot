@@ -785,6 +785,8 @@
   "sidebar.menu.about": "Über",
   "about.version": "Version {version}",
   "about.connectedTo": "Verbunden mit {name} · Version {version}",
+  "about.copyVersion": "Versionsinfo kopieren",
+  "about.copied": "Kopiert",
   "sidebar.menu.help": "Hilfecenter",
   "sidebar.menu.feedback": "Feedback senden",
   "sidebar.update.startingDownload": "Download startet…",

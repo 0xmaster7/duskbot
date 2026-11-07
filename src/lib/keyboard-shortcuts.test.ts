@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   botCycleStep,
-  filterShortcutGroups,
   isSidebarToggle,
   SHORTCUT_GROUPS,
   shortcutGroupsFor,
@@ -50,21 +49,6 @@ describe("keyboard-shortcuts", () => {
 
     expect(shortcutKeysForPlatform(sampleItem, true)).toEqual(["⌘", "K"]);
     expect(shortcutKeysForPlatform(sampleItem, false)).toEqual(["Ctrl", "K"]);
-  });
-
-  it("filters shortcut groups by search query", () => {
-    const all = filterShortcutGroups(SHORTCUT_GROUPS, "");
-    expect(all.length).toBe(SHORTCUT_GROUPS.length);
-
-    const nav = filterShortcutGroups(SHORTCUT_GROUPS, "palette");
-    expect(nav.length).toBe(1);
-    expect(nav[0]?.items[0]?.id).toBe("command-palette");
-
-    const byKey = filterShortcutGroups(SHORTCUT_GROUPS, "Esc", true);
-    expect(byKey.some((g) => g.items.some((i) => i.id === "close-panel"))).toBe(true);
-
-    const empty = filterShortcutGroups(SHORTCUT_GROUPS, "nonexistent-query-12345");
-    expect(empty.length).toBe(0);
   });
 
   it("lists the Live call chords", () => {

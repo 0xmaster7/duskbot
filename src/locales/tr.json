@@ -1236,6 +1236,8 @@
   "sidebar.menu.about": "Hakkında",
   "about.version": "Sürüm {version}",
   "about.connectedTo": "Bağlı: {name} · sürüm {version}",
+  "about.copyVersion": "Sürüm bilgisini kopyala",
+  "about.copied": "Kopyalandı",
   "sidebar.menu.shortcuts": "Klavye kısayolları",
   "sidebar.menu.support": "Yardım ve destek",
   "sidebar.menu.help": "Yardım Merkezi",

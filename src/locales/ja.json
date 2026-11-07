@@ -1638,6 +1638,8 @@
   "sidebar.menu.about": "このアプリについて",
   "about.version": "バージョン {version}",
   "about.connectedTo": "{name} に接続中 · バージョン {version}",
+  "about.copyVersion": "バージョン情報をコピー",
+  "about.copied": "コピーしました",
   "sidebar.menu.shortcuts": "キーボードショートカット",
   "sidebar.menu.support": "ヘルプとサポート",
   "sidebar.menu.help": "ヘルプセンター",

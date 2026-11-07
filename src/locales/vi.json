@@ -1236,6 +1236,8 @@
   "sidebar.menu.about": "Giới thiệu",
   "about.version": "Phiên bản {version}",
   "about.connectedTo": "Đã kết nối với {name} · phiên bản {version}",
+  "about.copyVersion": "Sao chép thông tin phiên bản",
+  "about.copied": "Đã sao chép",
   "sidebar.menu.shortcuts": "Phím tắt",
   "sidebar.menu.support": "Trợ giúp và hỗ trợ",
   "sidebar.menu.help": "Trung tâm trợ giúp",

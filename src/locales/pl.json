@@ -1588,6 +1588,8 @@
   "sidebar.menu.about": "O programie",
   "about.version": "Wersja {version}",
   "about.connectedTo": "Połączono z: {name} · wersja {version}",
+  "about.copyVersion": "Kopiuj informacje o wersji",
+  "about.copied": "Skopiowano",
   "sidebar.menu.shortcuts": "Skróty klawiszowe",
   "sidebar.menu.support": "Pomoc i wsparcie",
   "sidebar.menu.help": "Centrum pomocy",

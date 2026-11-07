@@ -2959,7 +2959,9 @@
       "routines.inline.check.mail": "6da747daa17dd7f3a2f1b48c1bbbd11586389fee9f00f17315ad623d377248fa",
       "routines.inline.check.runs": "80db5ad4a952001d585163d9aca06b5601a8b2159cfbecf22e88c024fb1b4ac9",
       "routines.inline.deleteConfirm": "9dfb093e309170ec0b16c3037d0b7e83e6a2bd19bc717b741f9ccbf9179f9cdb",
-      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91"
+      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91",
+      "about.copyVersion": "b9956773aaac0c47e538f21588c316e6d6736793b623fd4075da002ed67303f7",
+      "about.copied": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -8344,7 +8346,9 @@
       "routines.inline.check.mail": "6da747daa17dd7f3a2f1b48c1bbbd11586389fee9f00f17315ad623d377248fa",
       "routines.inline.check.runs": "80db5ad4a952001d585163d9aca06b5601a8b2159cfbecf22e88c024fb1b4ac9",
       "routines.inline.deleteConfirm": "9dfb093e309170ec0b16c3037d0b7e83e6a2bd19bc717b741f9ccbf9179f9cdb",
-      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91"
+      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91",
+      "about.copyVersion": "b9956773aaac0c47e538f21588c316e6d6736793b623fd4075da002ed67303f7",
+      "about.copied": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -11227,7 +11231,9 @@
       "routines.inline.check.mail": "6da747daa17dd7f3a2f1b48c1bbbd11586389fee9f00f17315ad623d377248fa",
       "routines.inline.check.runs": "80db5ad4a952001d585163d9aca06b5601a8b2159cfbecf22e88c024fb1b4ac9",
       "routines.inline.deleteConfirm": "9dfb093e309170ec0b16c3037d0b7e83e6a2bd19bc717b741f9ccbf9179f9cdb",
-      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91"
+      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91",
+      "about.copyVersion": "b9956773aaac0c47e538f21588c316e6d6736793b623fd4075da002ed67303f7",
+      "about.copied": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -14106,7 +14112,9 @@
       "routines.inline.check.mail": "6da747daa17dd7f3a2f1b48c1bbbd11586389fee9f00f17315ad623d377248fa",
       "routines.inline.check.runs": "80db5ad4a952001d585163d9aca06b5601a8b2159cfbecf22e88c024fb1b4ac9",
       "routines.inline.deleteConfirm": "9dfb093e309170ec0b16c3037d0b7e83e6a2bd19bc717b741f9ccbf9179f9cdb",
-      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91"
+      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91",
+      "about.copyVersion": "b9956773aaac0c47e538f21588c316e6d6736793b623fd4075da002ed67303f7",
+      "about.copied": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -20096,7 +20104,9 @@
       "routines.inline.check.mail": "6da747daa17dd7f3a2f1b48c1bbbd11586389fee9f00f17315ad623d377248fa",
       "routines.inline.check.runs": "80db5ad4a952001d585163d9aca06b5601a8b2159cfbecf22e88c024fb1b4ac9",
       "routines.inline.deleteConfirm": "9dfb093e309170ec0b16c3037d0b7e83e6a2bd19bc717b741f9ccbf9179f9cdb",
-      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91"
+      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91",
+      "about.copyVersion": "b9956773aaac0c47e538f21588c316e6d6736793b623fd4075da002ed67303f7",
+      "about.copied": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -25928,7 +25938,9 @@
       "routines.inline.check.mail": "6da747daa17dd7f3a2f1b48c1bbbd11586389fee9f00f17315ad623d377248fa",
       "routines.inline.check.runs": "80db5ad4a952001d585163d9aca06b5601a8b2159cfbecf22e88c024fb1b4ac9",
       "routines.inline.deleteConfirm": "9dfb093e309170ec0b16c3037d0b7e83e6a2bd19bc717b741f9ccbf9179f9cdb",
-      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91"
+      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91",
+      "about.copyVersion": "b9956773aaac0c47e538f21588c316e6d6736793b623fd4075da002ed67303f7",
+      "about.copied": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -32521,7 +32533,9 @@
       "routines.inline.check.mail": "6da747daa17dd7f3a2f1b48c1bbbd11586389fee9f00f17315ad623d377248fa",
       "routines.inline.check.runs": "80db5ad4a952001d585163d9aca06b5601a8b2159cfbecf22e88c024fb1b4ac9",
       "routines.inline.deleteConfirm": "9dfb093e309170ec0b16c3037d0b7e83e6a2bd19bc717b741f9ccbf9179f9cdb",
-      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91"
+      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91",
+      "about.copyVersion": "b9956773aaac0c47e538f21588c316e6d6736793b623fd4075da002ed67303f7",
+      "about.copied": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -36974,7 +36988,9 @@
       "routines.inline.check.mail": "6da747daa17dd7f3a2f1b48c1bbbd11586389fee9f00f17315ad623d377248fa",
       "routines.inline.check.runs": "80db5ad4a952001d585163d9aca06b5601a8b2159cfbecf22e88c024fb1b4ac9",
       "routines.inline.deleteConfirm": "9dfb093e309170ec0b16c3037d0b7e83e6a2bd19bc717b741f9ccbf9179f9cdb",
-      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91"
+      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91",
+      "about.copyVersion": "b9956773aaac0c47e538f21588c316e6d6736793b623fd4075da002ed67303f7",
+      "about.copied": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -40241,7 +40257,9 @@
       "routines.inline.check.mail": "6da747daa17dd7f3a2f1b48c1bbbd11586389fee9f00f17315ad623d377248fa",
       "routines.inline.check.runs": "80db5ad4a952001d585163d9aca06b5601a8b2159cfbecf22e88c024fb1b4ac9",
       "routines.inline.deleteConfirm": "9dfb093e309170ec0b16c3037d0b7e83e6a2bd19bc717b741f9ccbf9179f9cdb",
-      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91"
+      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91",
+      "about.copyVersion": "b9956773aaac0c47e538f21588c316e6d6736793b623fd4075da002ed67303f7",
+      "about.copied": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -45148,7 +45166,9 @@
       "routines.inline.check.mail": "6da747daa17dd7f3a2f1b48c1bbbd11586389fee9f00f17315ad623d377248fa",
       "routines.inline.check.runs": "80db5ad4a952001d585163d9aca06b5601a8b2159cfbecf22e88c024fb1b4ac9",
       "routines.inline.deleteConfirm": "9dfb093e309170ec0b16c3037d0b7e83e6a2bd19bc717b741f9ccbf9179f9cdb",
-      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91"
+      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91",
+      "about.copyVersion": "b9956773aaac0c47e538f21588c316e6d6736793b623fd4075da002ed67303f7",
+      "about.copied": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -50055,7 +50075,9 @@
       "routines.inline.check.mail": "6da747daa17dd7f3a2f1b48c1bbbd11586389fee9f00f17315ad623d377248fa",
       "routines.inline.check.runs": "80db5ad4a952001d585163d9aca06b5601a8b2159cfbecf22e88c024fb1b4ac9",
       "routines.inline.deleteConfirm": "9dfb093e309170ec0b16c3037d0b7e83e6a2bd19bc717b741f9ccbf9179f9cdb",
-      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91"
+      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91",
+      "about.copyVersion": "b9956773aaac0c47e538f21588c316e6d6736793b623fd4075da002ed67303f7",
+      "about.copied": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -56013,7 +56035,9 @@
       "routines.inline.check.mail": "6da747daa17dd7f3a2f1b48c1bbbd11586389fee9f00f17315ad623d377248fa",
       "routines.inline.check.runs": "80db5ad4a952001d585163d9aca06b5601a8b2159cfbecf22e88c024fb1b4ac9",
       "routines.inline.deleteConfirm": "9dfb093e309170ec0b16c3037d0b7e83e6a2bd19bc717b741f9ccbf9179f9cdb",
-      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91"
+      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91",
+      "about.copyVersion": "b9956773aaac0c47e538f21588c316e6d6736793b623fd4075da002ed67303f7",
+      "about.copied": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -61982,7 +62006,9 @@
       "routines.inline.check.mail": "6da747daa17dd7f3a2f1b48c1bbbd11586389fee9f00f17315ad623d377248fa",
       "routines.inline.check.runs": "80db5ad4a952001d585163d9aca06b5601a8b2159cfbecf22e88c024fb1b4ac9",
       "routines.inline.deleteConfirm": "9dfb093e309170ec0b16c3037d0b7e83e6a2bd19bc717b741f9ccbf9179f9cdb",
-      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91"
+      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91",
+      "about.copyVersion": "b9956773aaac0c47e538f21588c316e6d6736793b623fd4075da002ed67303f7",
+      "about.copied": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -67773,7 +67799,9 @@
       "routines.inline.check.mail": "6da747daa17dd7f3a2f1b48c1bbbd11586389fee9f00f17315ad623d377248fa",
       "routines.inline.check.runs": "80db5ad4a952001d585163d9aca06b5601a8b2159cfbecf22e88c024fb1b4ac9",
       "routines.inline.deleteConfirm": "9dfb093e309170ec0b16c3037d0b7e83e6a2bd19bc717b741f9ccbf9179f9cdb",
-      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91"
+      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91",
+      "about.copyVersion": "b9956773aaac0c47e538f21588c316e6d6736793b623fd4075da002ed67303f7",
+      "about.copied": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -74185,7 +74213,9 @@
       "routines.inline.check.mail": "6da747daa17dd7f3a2f1b48c1bbbd11586389fee9f00f17315ad623d377248fa",
       "routines.inline.check.runs": "80db5ad4a952001d585163d9aca06b5601a8b2159cfbecf22e88c024fb1b4ac9",
       "routines.inline.deleteConfirm": "9dfb093e309170ec0b16c3037d0b7e83e6a2bd19bc717b741f9ccbf9179f9cdb",
-      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91"
+      "routines.inline.open": "674f548633960a2566a8d137ca627816899ce57bcfb8cd76fabc04230cfb3b91",
+      "about.copyVersion": "b9956773aaac0c47e538f21588c316e6d6736793b623fd4075da002ed67303f7",
+      "about.copied": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
     }
   }
 }

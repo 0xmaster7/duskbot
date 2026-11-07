@@ -1941,6 +1941,8 @@
   "sidebar.menu.about": "About",
   "about.version": "Version {version}",
   "about.connectedTo": "Connected to {name} · version {version}",
+  "about.copyVersion": "Copy version info",
+  "about.copied": "Copied",
   "sidebar.menu.shortcuts": "Keyboard shortcuts",
   "sidebar.menu.support": "Help and support",
   "sidebar.menu.help": "Help Center",

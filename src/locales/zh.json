@@ -1796,6 +1796,8 @@
   "sidebar.menu.about": "关于",
   "about.version": "版本 {version}",
   "about.connectedTo": "已连接到 {name} · 版本 {version}",
+  "about.copyVersion": "复制版本信息",
+  "about.copied": "已复制",
   "sidebar.menu.shortcuts": "键盘快捷键",
   "sidebar.menu.support": "帮助与支持",
   "sidebar.menu.help": "帮助中心",

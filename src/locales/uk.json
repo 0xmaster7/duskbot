@@ -782,6 +782,8 @@
   "sidebar.menu.about": "Про застосунок",
   "about.version": "Версія {version}",
   "about.connectedTo": "Підключено до {name} · версія {version}",
+  "about.copyVersion": "Скопіювати відомості про версію",
+  "about.copied": "Скопійовано",
   "sidebar.menu.help": "Довідковий центр",
   "sidebar.menu.feedback": "Надіслати відгук",
   "sidebar.update.startingDownload": "Починаємо завантаження…",

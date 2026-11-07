@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import {
   APP_NAME,
@@ -13,7 +14,9 @@ import {
 import { productName } from "@/lib/brand";
 import { t } from "@/lib/i18n";
 import { useOtherServerName } from "@/lib/other-server";
-import { formSheetCls, mdSecondaryCls, rowHintCls } from "./ui/GrokDialog";
+import { copyText } from "@/lib/copy-text";
+import { formCloseCls, formSheetCls, mdSecondaryCls, rowHintCls, useDialogKeys } from "./ui/GrokDialog";
+import { GrokIcon } from "./GrokIcon";
 import { cn } from "@/lib/cn";
 
 /** The app's own version first; `server` (useOtherServerName: set only when the app's window shows another server) adds a
@@ -29,64 +32,53 @@ export function aboutVersionLines({ app, bundle, platform, server }: {
   return server ? [line(app.version), t("about.connectedTo", { name: server, version: bundle })] : [line(app.version)];
 }
 
+/** Grok's About: the icon, the name and version, Copy version info, and a close at the corner. */
 export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const closeRef = useRef<HTMLButtonElement>(null);
-  const server = useOtherServerName(open);
+  return open ? <AboutSheet onClose={onClose} /> : null;
+}
 
-  useEffect(() => {
-    if (!open) return;
-    closeRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+function AboutSheet({ onClose }: { onClose: () => void }) {
+  const sheet = useRef<HTMLDivElement>(null);
+  const close = useDialogKeys(sheet, onClose);
+  const server = useOtherServerName(true);
+  const [copied, setCopied] = useState(false);
+  const lines = aboutVersionLines({ app: window.ogb?.app, bundle: appVersion(), platform: platformLabel(window.ogb?.platform), server });
+  const [version, connected] = lines;
+  const copy = () => void copyText([productName(), ...lines].join("\n")).then((result) => setCopied(result === "copied"));
 
-  if (!open) return null;
-
-  const [version, connected] = aboutVersionLines({ app: window.ogb?.app, bundle: appVersion(), platform: platformLabel(window.ogb?.platform), server });
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
-    >
-      <div aria-hidden="true" className="ui-dialog-scrim pointer-events-none absolute inset-0" />
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <div aria-hidden="true" className="ui-dialog-scrim absolute inset-0" onMouseDown={() => close.current()} />
       <div
+        ref={sheet}
         role="dialog"
         aria-modal="true"
         aria-labelledby="about-dialog-title"
-        className={cn(formSheetCls, "max-w-[320px] px-4 pb-3 pt-4 text-center")}
+        tabIndex={-1}
+        className={cn(formSheetCls, "max-w-[320px] items-center px-6 pb-6 pt-8 text-center")}
       >
-        <img src="/app-icon.svg" alt="" width={40} height={40} className="mx-auto size-10" />
-        <h2 id="about-dialog-title" className="m-0 mt-2 text-[14px] font-semibold leading-5 tracking-[0.01em] text-ink">
-          {productName()}
-        </h2>
-        <p className="m-0 mt-0.5 text-[12px] leading-4 tracking-[0.01em] text-ink/56">{version}</p>
-        {connected && <p className="m-0 mt-0.5 text-[12px] leading-4 tracking-[0.01em] text-ink/56">{connected}</p>}
-        <p className={cn(rowHintCls, "m-0 mt-2 text-pretty")}>
-          A desktop home for your agents, built on {APP_NAME}: open source, Apache 2.0 licensed.
+        <button type="button" aria-label={t("common.close")} onClick={() => close.current()} className={cn(formCloseCls, "absolute right-3 top-3")}>
+          <GrokIcon name="close" size={16} />
+        </button>
+        <img src="/app-icon.svg" alt="" width={64} height={64} className="size-16" />
+        <h2 id="about-dialog-title" className="m-0 mt-2 text-[20px] font-semibold leading-7 text-ink">{productName()}</h2>
+        <p className="m-0 mt-1 text-[12px] leading-4 tracking-[0.01em] text-ink">{version}</p>
+        {connected && <p className="m-0 mt-0.5 text-[12px] leading-4 tracking-[0.01em] text-ink/68">{connected}</p>}
+        <p className={cn(rowHintCls, "m-0 mt-2 text-[11px] leading-4 text-pretty")}>
+          Built on {APP_NAME}: open source, Apache 2.0 licensed.
         </p>
-        <div className="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[13px] leading-[18px]">
+        <div className="mt-1.5 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[12px] leading-4">
           <AboutLink href={APP_REPOSITORY} label="GitHub" />
           <AboutLink href={DOCS_URL} label="Docs" />
           <AboutLink href={RELEASES_URL} label="Releases" />
           <AboutLink href={LICENSE_URL} label="License" />
         </div>
-        <button
-          ref={closeRef}
-          type="button"
-          onClick={onClose}
-          className={cn(mdSecondaryCls, "mt-4 w-full")}
-        >
-          Close
+        <button type="button" data-autofocus onClick={copy} className={cn(mdSecondaryCls, "mt-4")}>
+          {copied ? t("about.copied") : t("about.copyVersion")}
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -95,7 +87,7 @@ function AboutLink({ href, label }: { href: string; label: string }) {
     <button
       type="button"
       onClick={() => void openExternalLink(href)}
-      className="rounded-sm text-accent-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+      className="rounded-sm text-ink/68 hover:text-ink hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
     >
       {label}
     </button>

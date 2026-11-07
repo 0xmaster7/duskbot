@@ -1,9 +1,11 @@
+// @vitest-environment happy-dom
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { SendKey } from "@/lib/send-key";
 
 const fixture = vi.hoisted(() => ({ sendKey: "enter" as SendKey }));
+vi.mock("react-dom", async (importOriginal) => ({ ...await importOriginal<typeof import("react-dom")>(), createPortal: (children: unknown) => children }));
 vi.mock("@/lib/send-key", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/send-key")>(),
   useSendKey: () => fixture.sendKey,
@@ -17,12 +19,15 @@ function keys(html: string, description: string): string[] {
 }
 
 describe("KeyboardShortcutsModal", () => {
-  it("uses a labeled native dialog with search and dismiss controls", () => {
+  it("is Grok's kit dialog: titled, a close button, every group at once, no search and no footer", () => {
     const html = renderToStaticMarkup(createElement(KeyboardShortcutsModal, { open: true, onClose: vi.fn() }));
-    expect(html).toContain('<dialog aria-labelledby="shortcuts-dialog-title"');
-    expect(html).toContain('aria-label="Search shortcuts"');
-    expect(html).toContain('aria-label="Close keyboard shortcuts"');
-    expect(html).toContain("Done");
+    expect(html).toContain('role="dialog"');
+    expect(html).toMatch(/<h2 id="[^"]+"[^>]*>Keyboard shortcuts<\/h2>/);
+    expect(html).toContain('aria-label="Close"');
+    expect(html).toContain('aria-label="Navigation"');
+    expect(html).toContain('aria-label="Calls"');
+    expect(html).not.toContain("Search shortcuts");
+    expect(html).not.toContain("Done");
     expect(html).not.toContain("Double-click");
     expect(html).not.toContain("from anywhere");
   });

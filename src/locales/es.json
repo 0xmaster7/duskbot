@@ -1496,6 +1496,8 @@
   "sidebar.menu.about": "Acerca de",
   "about.version": "Versión {version}",
   "about.connectedTo": "Conectado a {name} · versión {version}",
+  "about.copyVersion": "Copiar información de versión",
+  "about.copied": "Copiado",
   "sidebar.menu.shortcuts": "Atajos de teclado",
   "sidebar.menu.support": "Ayuda y soporte",
   "sidebar.menu.help": "Centro de ayuda",
