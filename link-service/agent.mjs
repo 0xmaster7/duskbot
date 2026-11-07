@@ -223,6 +223,11 @@ export function openFrame(key, id, dir, sealed, guard) {
 /** how long a streamed read may stay silent before this end decides a proxy holds the lines back and polls instead */
 export const STREAM_STALL_MS = 5000;
 const STREAM_OFF_MS = 10 * 60_000;
+/**
+ * a streamed read lasts 25 s (wait=25). the next one goes out this long into it, so it reaches the relay first and takes
+ * over (the relay ends the older reader then): a frame never waits through a gap of a round trip between two reads
+ */
+const STREAM_AHEAD_MS = 21_000;
 const WARM_MS = 40_000;
 
 /**
@@ -1224,7 +1229,7 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
 }
 
 /** `egress`: options for createEgressProxy, which then rides this tunnel; without it the app's hellos are ignored */
-export function createTunnelAgent({ base, id, key: keyText, token, server = SERVER, fetchImpl: given, log = (line) => console.error(line), stallMs = STREAM_STALL_MS, egress: egressOptions = null }) {
+export function createTunnelAgent({ base, id, key: keyText, token, server = SERVER, fetchImpl: given, log = (line) => console.error(line), stallMs = STREAM_STALL_MS, egress: egressOptions = null, waitS = 25, aheadMs = STREAM_AHEAD_MS }) {
   const fetchImpl = given ?? relayFetch();
   const stream = streamChoice();
   const key = Buffer.from(keyText, "base64url");
@@ -1274,19 +1279,23 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
   const handle = (frame) => (egress?.handle(frame) ? undefined : serving.handle(frame));
 
   async function run() {
-    let failures = 0;
+    let failures = 0, ahead = null;
     const unwarm = given ? () => {} : fetchImpl.warm(base);
     void egress?.start();
     while (!stopped) {
       const postsBefore = successfulPosts;
-      const streaming = stream.wanted();
+      const next = ahead;
+      ahead = null;
+      const streaming = next !== null || stream.wanted();
       const stall = new AbortController();
       let heard = false;
-      let stallTimer = null;
+      let stallTimer = null, aheadTimer = null;
       const armStall = () => { if (streaming && !stallTimer) stallTimer = setTimeout(() => { if (!heard) stall.abort(); }, stallMs); };
-      if (!fetchImpl.connectAware) armStall();
+      if (!next && !fetchImpl.connectAware) armStall();
+      const read = (signal, onConnected) => fetchImpl(`${base}/v1/tunnels/${id}/to-vps?wait=${waitS}${streaming ? "&stream=1" : ""}`, { headers: { authorization: `Bearer ${token}` }, signal, onConnected });
       try {
-        const response = await fetchImpl(`${base}/v1/tunnels/${id}/to-vps?wait=25${streaming ? "&stream=1" : ""}`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.any([abort.signal, stall.signal, AbortSignal.timeout(40_000)]), onConnected: armStall });
+        const response = await (next ?? read(AbortSignal.any([abort.signal, stall.signal, AbortSignal.timeout(40_000)]), armStall));
+        if (streaming) aheadTimer = setTimeout(() => { ahead = read(AbortSignal.any([abort.signal, AbortSignal.timeout(aheadMs + 40_000)])); ahead.catch(() => {}); }, aheadMs);
         if (response.status === 404) {
           log("link: this server was unlinked in the app; the tunnel stops");
           stop("unlinked");
@@ -1317,7 +1326,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
           await delay(Math.min(30_000, 500 * 2 ** Math.min(failures, 6)), undefined, { signal: AbortSignal.any([abort.signal, pollRetry.signal]) }).catch(() => {});
           pollRetry = null;
         }
-      } finally { clearTimeout(stallTimer); }
+      } finally { clearTimeout(stallTimer); clearTimeout(aheadTimer); }
     }
     unwarm();
     return terminal;
