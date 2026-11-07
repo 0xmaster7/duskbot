@@ -1020,8 +1020,6 @@
   "composer.dictation.hint": "Диктувати",
   "composer.failed.notSent": "Не надіслано: «{text}»",
   "composer.failed.attachment": "вкладення",
-  "composer.failed.dismiss": "Приховати",
-  "composer.failed.dismissAria": "Приховати невдале повідомлення",
   "composer.commands.aria": "Команди композера",
   "composer.commands.title": "Команди",
   "composer.mention.aria": "Тегнути бота",

@@ -495,7 +495,7 @@ export function TeamLibraryPanel({
           <>
             <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-6 sm:px-8">
               <TeamImportDetails pending={pending} importedNames={importedNames} org={pendingOrg !== null} />
-              {error && <div role="alert" className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-[13px] text-danger">{error}</div>}
+              {error && <div role="alert" className="mt-4 text-[13px] text-danger">{error}</div>}
             </div>
 
             <footer className="flex flex-col gap-3 border-t border-hairline/35 px-6 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
@@ -641,7 +641,7 @@ export function TeamLibraryPanel({
                     </div>
                   )}
                   {!catalogLoading && catalogError && (
-                    <div className="rounded-xl bg-danger/10 p-4 text-[13px] text-danger">
+                    <div role="alert" className="py-2 text-[13px] text-danger">
                       <p>{catalogError}</p>
                       <button onClick={() => void loadCatalog()} className="mt-3 rounded-full bg-raised px-3.5 py-2 text-ink hover:bg-raised-hover">{t("common.tryAgain")}</button>
                     </div>
@@ -724,7 +724,7 @@ export function TeamLibraryPanel({
                       <span className="mt-1 text-[13px] text-ink-secondary">{t("templates.dropFile")}</span>
                     </button>
 
-                    <div className="flex min-h-56 flex-col justify-center rounded-2xl bg-raised/25 px-6">
+                    <div className="flex min-h-56 flex-col justify-center px-6">
                       <Github size={25} className="text-ink-secondary" />
                       <h3 className="mt-3 text-[14px] font-medium text-ink">{t("templates.loadGithub")}</h3>
                       <p className="mt-1 text-[13px] leading-relaxed text-ink-secondary">{t("templates.githubHint")}</p>
@@ -748,7 +748,7 @@ export function TeamLibraryPanel({
                       </div>
                     </div>
                   </div>
-                  {error && <div role="alert" className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-[13px] text-danger">{error}</div>}
+                  {error && <div role="alert" className="mt-4 text-[13px] text-danger">{error}</div>}
                 </div>
               )}
 
@@ -889,7 +889,7 @@ export function TeamLibraryPanel({
                       </p>
                     </div>
                   )}
-                  {error && <div role="alert" className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-[13px] text-danger">{error}</div>}
+                  {error && <div role="alert" className="mt-4 text-[13px] text-danger">{error}</div>}
                 </div>
               )}
             </div>

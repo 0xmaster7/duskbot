@@ -1608,8 +1608,6 @@
   "composer.dictation.hint": "Đọc chính tả",
   "composer.failed.notSent": "Chưa gửi: “{text}”",
   "composer.failed.attachment": "tệp đính kèm",
-  "composer.failed.dismiss": "Bỏ qua",
-  "composer.failed.dismissAria": "Bỏ qua tin nhắn gửi thất bại",
   "composer.commands.aria": "Lệnh trong khung soạn thảo",
   "composer.commands.title": "Lệnh",
   "composer.mention.aria": "Gắn thẻ bot",

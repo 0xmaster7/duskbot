@@ -883,8 +883,6 @@
   "composer.dictation.hint": "Dicter",
   "composer.failed.notSent": "Non envoyé : « {text} »",
   "composer.failed.attachment": "pièce jointe",
-  "composer.failed.dismiss": "Ignorer",
-  "composer.failed.dismissAria": "Ignorer le message en échec",
   "composer.commands.aria": "Commandes de la zone de saisie",
   "composer.commands.title": "Commandes",
   "composer.mention.aria": "Mentionner un bot",

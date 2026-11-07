@@ -475,7 +475,7 @@ export function McpServersPanel({ embedded = false, rows = false, hostedCards, h
   function renderSignIn(server: McpServerListing) {
     const hosted = hostedOf(server);
     return signingIn === server.name && (
-      <div className={cn("space-y-2 text-[12px] leading-4 text-ink-secondary", rows ? "px-2 pb-1.5" : "mt-3 rounded-lg bg-raised px-3 py-3")}>
+      <div className={cn("space-y-2 text-[12px] leading-4 text-ink-secondary", rows ? "px-2 pb-1.5" : "mt-3")}>
         <div role="status" className="flex items-center gap-2">
           <Loader2 size={13} className="animate-spin" /> {signInFlow?.phase !== "succeeded" ? t("mcp.auth.waiting") : hosted ? t("hostedMcp.loadingTools", { service: hosted.label }) : t("mcp.auth.loadingTools")}
         </div>
@@ -669,14 +669,14 @@ export function McpServersPanel({ embedded = false, rows = false, hostedCards, h
           <McpServerEditor key={`${editing}${fixingKeys ? ":keys" : ""}`} server={editingServer} fixKeys={fixingKeys} taken={(servers ?? []).map((server) => server.name)} team={Boolean(store.config?.team)}
             busy={busy !== null} onCancel={closeEditor} onSubmit={(items) => void (editing === "new" ? addServers(items) : saveEdit(items))} />
         )}
-        {error && <div role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{typeof error === "string" ? error : t(error.key, error.params)}</div>}
-        {notice && <div role="status" className="mt-3 rounded-lg bg-success/10 px-3 py-2 text-[12px] text-success">{t(notice.key, {
+        {error && <div role="alert" className="mt-3 text-[12px] text-danger">{typeof error === "string" ? error : t(error.key, error.params)}</div>}
+        {notice && <div role="status" className="mt-3 text-[12px] text-success">{t(notice.key, {
           ...notice.params,
           ...(notice.stateKey ? { state: t(notice.stateKey) } : {}),
         })}</div>}
         <ClaudeCodeSwitches />
 
-        <div className="mt-4 rounded-xl border border-hairline/50 bg-raised/35 px-4 py-3 text-[12px] leading-relaxed text-ink-secondary in-data-[settings-look=simple]:hidden in-data-[connect-apps]:rounded-[14px] in-data-[connect-apps]:border-ink/[0.08] in-data-[connect-apps]:bg-transparent in-data-[connect-apps]:px-3.5 in-data-[connect-apps]:py-2.5 in-data-[connect-apps]:leading-4 in-data-[connect-apps]:text-ink/[0.68]">
+        <div className="mt-4 px-0.5 text-[12px] leading-relaxed text-ink-secondary in-data-[settings-look=simple]:hidden in-data-[connect-apps]:rounded-[14px] in-data-[connect-apps]:border-ink/[0.08] in-data-[connect-apps]:bg-transparent in-data-[connect-apps]:px-3.5 in-data-[connect-apps]:py-2.5 in-data-[connect-apps]:leading-4 in-data-[connect-apps]:text-ink/[0.68]">
           {t("mcp.trustNotice")}
         </div>
 
@@ -763,12 +763,12 @@ export function McpServersPanel({ embedded = false, rows = false, hostedCards, h
                   </div>}
                   <McpAppsSwitch<McpServerListing> server={server} disabled={busy !== null || signingIn !== null} onSaved={(next) => { loadGeneration.current += 1; listed(next); }} />{renderSignIn(server)}
                   {connecting === server.name && !server.enabled && !result && (
-                    <div role="status" data-mcp-testing className="mt-3 flex items-center gap-2 rounded-lg bg-raised px-3 py-2 text-[12px] text-ink-secondary">
+                    <div role="status" data-mcp-testing className="mt-3 flex items-center gap-2 text-[12px] text-ink-secondary">
                       <Loader2 size={13} className="animate-spin" aria-hidden="true" /> {t("mcp.check.testingOff")}
                     </div>
                   )}
                   {result && signingIn !== server.name && (
-                    <div role="status" className={cn("mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-2 text-[12px]", result.ok ? "bg-success/10 text-success" : result.auth === "required" ? "bg-warning/10 text-warning" : "bg-danger/10 text-danger")}>
+                    <div role="status" className={cn("mt-3 flex flex-wrap items-center justify-between gap-2 text-[12px]", result.ok ? "text-success" : result.auth === "required" ? "text-warning" : "text-danger")}>
                       {result.auth === "required" ? t("mcp.auth.required") : result.ok ? (
                         <span className="flex items-start gap-2"><CheckCircle2 size={14} className="mt-px shrink-0" /> {connectedLabel(result)}</span>
                       ) : (
@@ -777,7 +777,7 @@ export function McpServersPanel({ embedded = false, rows = false, hostedCards, h
                           {(result.reason === "keys" && isRemoteMcpListing(server)) || result.reason === "unreachable" || result.reason === "timeout" ? (
                             <button type="button" disabled={busy !== null || signingIn !== null}
                               onClick={() => result.reason === "keys" ? openEditor(server.name, true) : void connect(server.name)}
-                              className="shrink-0 rounded-lg bg-card px-2.5 py-1.5 font-medium text-ink hover:bg-raised-hover disabled:opacity-40">
+                              className="shrink-0 rounded-lg bg-raised px-2.5 py-1.5 font-medium text-ink hover:bg-raised-hover disabled:opacity-40">
                               {t(result.reason === "keys" ? "mcp.check.fixKeys" : "mcp.check.tryAgain")}
                             </button>
                           ) : null}

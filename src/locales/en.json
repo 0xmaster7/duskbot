@@ -2388,8 +2388,6 @@
   "composer.dictation.hint": "Dictate",
   "composer.failed.notSent": "Not sent: “{text}”",
   "composer.failed.attachment": "attachment",
-  "composer.failed.dismiss": "Dismiss",
-  "composer.failed.dismissAria": "Dismiss failed message",
   "composer.failed.edit": "Edit",
   "composer.commands.aria": "Composer commands",
   "composer.commands.title": "Commands",

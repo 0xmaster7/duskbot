@@ -202,7 +202,7 @@ export function SignInBanner({
     finally { setPending(null); }
   };
   return (
-    <div className="mt-3 rounded-xl border border-warning/25 bg-warning/10 p-4 text-start" data-testid="sign-in-banner">
+    <div className="mt-3 text-start" data-testid="sign-in-banner">
       <div className="text-[13px] leading-relaxed text-warning">
         <b>{askerName}</b> {t("signIn.banner", { site: help.site })}
       </div>

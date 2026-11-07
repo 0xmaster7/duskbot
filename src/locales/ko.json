@@ -2119,8 +2119,6 @@
   "composer.dictation.hint": "받아쓰기",
   "composer.failed.notSent": "보내지 못함: “{text}”",
   "composer.failed.attachment": "첨부 파일",
-  "composer.failed.dismiss": "닫기",
-  "composer.failed.dismissAria": "보내지 못한 메시지 닫기",
   "composer.commands.aria": "입력창 명령",
   "composer.commands.title": "명령",
   "composer.mention.aria": "봇 태그",

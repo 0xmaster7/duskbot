@@ -93,7 +93,7 @@ export function TeamImportDetails({ pending, importedNames, org = false }: {
           </div>
         ))}
       </div>
-      <div className="mt-6 flex items-start gap-2.5 rounded-xl bg-raised/45 px-4 py-3 text-[13px] leading-relaxed text-ink-secondary">
+      <div className="mt-6 flex items-start gap-2.5 text-[13px] leading-relaxed text-ink-secondary">
         <Check size={15} className="mt-0.5 shrink-0 text-success" />
         <p>
           {pending.kind === "backup"

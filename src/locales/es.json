@@ -1868,8 +1868,6 @@
   "composer.dictation.hint": "Dictar",
   "composer.failed.notSent": "No enviado: «{text}»",
   "composer.failed.attachment": "adjunto",
-  "composer.failed.dismiss": "Descartar",
-  "composer.failed.dismissAria": "Descartar el mensaje fallido",
   "composer.commands.aria": "Comandos del cuadro de mensaje",
   "composer.commands.title": "Comandos",
   "composer.mention.aria": "Mencionar un bot",

@@ -263,7 +263,7 @@ export function EngineUpdateNotice({
   return (
     <div
       data-engine-update-notice
-      className={cn("rounded-xl border border-warning/25 bg-warning/5 p-2.5", className)}
+      className={cn("py-1", className)}
     >
       <div className="flex items-start gap-2">
         <AlertTriangle size={14} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
@@ -292,7 +292,7 @@ export function EngineWarningNotice({
   return (
     <div
       data-engine-warning-notice
-      className={cn("rounded-xl border border-warning/25 bg-warning/5 p-2.5", className)}
+      className={cn("py-1", className)}
     >
       <div className="flex items-start gap-2">
         <AlertTriangle size={14} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
@@ -678,7 +678,7 @@ export function EngineSetup({
           allowTerminal={!cloudHome}
         />
       ) : (
-        <p className="mt-3 rounded-lg bg-inset px-2.5 py-2 text-[12px] leading-relaxed text-ink-secondary">
+        <p className="mt-3 text-[12px] leading-relaxed text-ink-secondary">
           {t("engineSetup.noInstaller")}
         </p>
       )}

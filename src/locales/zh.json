@@ -2203,8 +2203,6 @@
   "composer.dictation.hint": "听写",
   "composer.failed.notSent": "未发送：「{text}」",
   "composer.failed.attachment": "附件",
-  "composer.failed.dismiss": "忽略",
-  "composer.failed.dismissAria": "忽略发送失败的消息",
   "composer.commands.aria": "输入框命令",
   "composer.commands.title": "命令",
   "composer.mention.aria": "提及机器人",

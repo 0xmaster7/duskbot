@@ -1004,8 +1004,6 @@
   "composer.dictation.hint": "Diktieren",
   "composer.failed.notSent": "Nicht gesendet: „{text}“",
   "composer.failed.attachment": "Anhang",
-  "composer.failed.dismiss": "Verwerfen",
-  "composer.failed.dismissAria": "Fehlgeschlagene Nachricht verwerfen",
   "composer.commands.aria": "Befehle im Eingabefeld",
   "composer.commands.title": "Befehle",
   "composer.mention.aria": "Einen Bot markieren",

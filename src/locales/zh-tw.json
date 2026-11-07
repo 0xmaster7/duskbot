@@ -1424,8 +1424,6 @@
   "composer.dictation.hint": "語音輸入",
   "composer.failed.notSent": "未送出：「{text}」",
   "composer.failed.attachment": "附件",
-  "composer.failed.dismiss": "關閉",
-  "composer.failed.dismissAria": "關閉傳送失敗的訊息",
   "composer.commands.aria": "輸入區指令",
   "composer.commands.title": "指令",
   "composer.mention.aria": "標記機器人",

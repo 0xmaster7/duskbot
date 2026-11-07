@@ -883,8 +883,6 @@
   "composer.dictation.hint": "बोलकर लिखें",
   "composer.failed.notSent": "नहीं भेजा गया: “{text}”",
   "composer.failed.attachment": "अटैचमेंट",
-  "composer.failed.dismiss": "हटाएँ",
-  "composer.failed.dismissAria": "विफल संदेश हटाएँ",
   "composer.commands.aria": "संदेश बॉक्स के कमांड",
   "composer.commands.title": "कमांड",
   "composer.mention.aria": "किसी बॉट को टैग करें",

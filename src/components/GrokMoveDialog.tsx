@@ -78,7 +78,7 @@ function BringBack({ local, look, found, reply, error, onReply, onFile, onFound 
         <h3 className="m-0 text-[13px] font-medium leading-[18px] text-ink">{t("grokMove.step2")}</h3>
         <p className={LINE}>{t("grokMove.step2Hint")}</p>
         {found.bots.length > 0 && (
-          <div data-grok-move-found className="mt-1 flex items-center justify-between gap-3 rounded-[10px] border border-ink/12 bg-ink/4 py-1.5 pl-[9px] pr-1.5">
+          <div data-grok-move-found className="mt-1 flex items-center justify-between gap-3 py-1.5">
             <span className="min-w-0 break-words text-[13px] leading-[18px] text-ink">{t("grokMove.found", { names: found.bots.map((bot) => bot.name).join(", ") })}</span>
             <button type="button" data-grok-move-use-found onClick={onFound} className={cn(rowButtonCls, "shrink-0")}>{t("grokMove.useFound")}</button>
           </div>

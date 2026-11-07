@@ -229,7 +229,7 @@ export function SkillReviewDialog({
           Source: {skill.source}
         </div>
         {skill.warnings.length > 0 && (
-          <div className="mt-2 rounded-lg bg-warning/10 px-3 py-2 text-[12px] text-warning">
+          <div className="mt-2 text-[12px] text-warning">
             {skill.warnings.join(" · ")}
           </div>
         )}
@@ -451,7 +451,7 @@ export function SkillsSection({ bot }: { bot: Bot }) {
         {loading ? (
           <div className="mt-3 text-[12px] text-ink-secondary">{t("skills.loading")}</div>
         ) : skills.length === 0 ? (
-          <div className="mt-3 rounded-lg bg-inset px-3 py-2 text-[12px] text-ink-secondary">{t("skills.empty")}</div>
+          <div className="mt-3 text-[12px] text-ink-secondary">{t("skills.empty")}</div>
         ) : (
           <div className="mt-3 divide-y divide-hairline/40 overflow-hidden rounded-lg border border-hairline/40">
             {skills.map((skill) => (

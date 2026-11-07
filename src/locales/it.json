@@ -1922,8 +1922,6 @@
   "composer.dictation.hint": "Detta",
   "composer.failed.notSent": "Non inviato: “{text}”",
   "composer.failed.attachment": "allegato",
-  "composer.failed.dismiss": "Chiudi",
-  "composer.failed.dismissAria": "Chiudi il messaggio non inviato",
   "composer.commands.aria": "Comandi del campo di scrittura",
   "composer.commands.title": "Comandi",
   "composer.mention.aria": "Menziona un bot",

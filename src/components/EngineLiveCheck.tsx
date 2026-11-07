@@ -40,7 +40,7 @@ export function EngineCheckLine({ name, check, onRetry }: { name: string; check:
   if (check.state === "working") return <p role="status" data-engine-check="working" className="mt-3 flex items-center gap-2 text-[13px] font-medium text-success">
     <Check size={15} strokeWidth={2.5} aria-hidden="true" className="shrink-0" />{t("engineCheck.working", { name })}
   </p>;
-  return <div role="alert" data-engine-check="failed" className="mt-3 rounded-xl bg-warning/10 px-3.5 py-3 text-[13px] leading-relaxed text-ink">
+  return <div role="alert" data-engine-check="failed" className="mt-3 text-[13px] leading-relaxed text-ink">
     <p className="flex items-start gap-2">
       <CircleAlert size={15} aria-hidden="true" className="mt-0.5 shrink-0 text-warning" />
       <span><span className="font-medium">{t("engineCheck.failed", { name })}</span> {check.error}</span>

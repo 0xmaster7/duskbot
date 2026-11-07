@@ -93,7 +93,7 @@ export function ChooseScreen({ offer, current = null, own = null, now, busy, sig
         </button>
       </NightCard>
     </div>
-    {notice && <p role="status" className="rounded-[12px] bg-ink/[0.04] px-4 py-3 text-[13px] leading-[18px] text-ink">{notice}</p>}
+    {notice && <p role="status" className="text-[13px] leading-[18px] text-ink">{notice}</p>}
     <section aria-labelledby="cloud-add-plans">
       <h3 id="cloud-add-plans" className="sr-only">{t("cloudBuy.choose")}</h3>
       <ul aria-labelledby="cloud-add-plans" className={cn("grid gap-3", COLUMNS[cards.length] ?? "md:grid-cols-3")}>

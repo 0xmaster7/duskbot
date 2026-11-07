@@ -1958,8 +1958,6 @@
   "composer.dictation.hint": "Dyktuj",
   "composer.failed.notSent": "Nie wysłano: „{text}”",
   "composer.failed.attachment": "załącznik",
-  "composer.failed.dismiss": "Odrzuć",
-  "composer.failed.dismissAria": "Odrzuć nieudaną wiadomość",
   "composer.commands.aria": "Polecenia pola wiadomości",
   "composer.commands.title": "Polecenia",
   "composer.mention.aria": "Oznacz bota",

@@ -21,13 +21,13 @@ export function TranscriptNote({ text, warning = false, details, actions, ...res
         {warning && <GrokIcon name="exclamation-circle" variant="filled" size={14} className="mt-0.5 shrink-0 text-warning" />}
         <span dir="auto" className="min-w-0 break-words">{text}</span>
       </span>
+      {actions}
       {details && (
         <details className={warning ? "basis-full ps-5" : "basis-full"}>
           <summary className={SUMMARY}>{t("chat.error.details")}</summary>
           <p dir="auto" className="mt-0.5 break-words">{details}</p>
         </details>
       )}
-      {actions}
     </div>
   );
 }

@@ -84,7 +84,7 @@ export function LinuxLocalControl() {
       </div>
 
       {waylandSafetyBlocked ? (
-        <div className="mt-3 rounded-lg border border-danger/20 bg-danger/5 p-3">
+        <div className="mt-3">
           <div className="flex gap-2 text-[12px] leading-relaxed text-ink-secondary">
             <AlertTriangle size={15} className="mt-0.5 shrink-0 text-danger" />
             <span>
@@ -95,7 +95,7 @@ export function LinuxLocalControl() {
           </div>
         </div>
       ) : !local.enabled ? (
-        <div className="mt-3 rounded-lg border border-warning/20 bg-warning/5 p-3">
+        <div className="mt-3">
           <div className="flex gap-2 text-[12px] leading-relaxed text-ink-secondary">
             <AlertTriangle size={15} className="mt-0.5 shrink-0 text-warning" />
             <span>
@@ -107,7 +107,7 @@ export function LinuxLocalControl() {
           </div>
         </div>
       ) : (
-        <div className="mt-3 rounded-lg bg-panel p-3 text-[12px] text-ink-secondary">
+        <div className="mt-3 text-[12px] text-ink-secondary">
           <div className="flex items-start gap-2">
             {ready ? (
               <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-success" />

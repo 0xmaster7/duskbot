@@ -1999,8 +1999,6 @@
   "composer.dictation.hint": "Диктовать",
   "composer.failed.notSent": "Не отправлено: «{text}»",
   "composer.failed.attachment": "вложение",
-  "composer.failed.dismiss": "Скрыть",
-  "composer.failed.dismissAria": "Скрыть недоставленное сообщение",
   "composer.commands.aria": "Команды поля ввода",
   "composer.commands.title": "Команды",
   "composer.mention.aria": "Упомянуть бота",

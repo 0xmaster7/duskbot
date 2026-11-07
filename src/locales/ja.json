@@ -2013,8 +2013,6 @@
   "composer.dictation.hint": "音声入力",
   "composer.failed.notSent": "未送信: 「{text}」",
   "composer.failed.attachment": "添付ファイル",
-  "composer.failed.dismiss": "閉じる",
-  "composer.failed.dismissAria": "送信できなかったメッセージを閉じる",
   "composer.commands.aria": "入力欄のコマンド",
   "composer.commands.title": "コマンド",
   "composer.mention.aria": "ボットをメンション",

@@ -53,7 +53,7 @@ export function ClaudeUpdatePrompt({
   );
 
   return (
-    <div className="mt-2 rounded-lg border border-hairline/30 bg-card/60 px-3 py-2.5 text-[13px] text-ink" role="group" aria-label={t("chat.claudeUpdate.aria")}>
+    <div className="mt-2 text-[13px] text-ink" role="group" aria-label={t("chat.claudeUpdate.aria")}>
       {phase.kind === "ask" && (
         <>
           <p className="leading-relaxed">{t("chat.claudeUpdate.offer")}</p>

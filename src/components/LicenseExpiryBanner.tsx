@@ -21,7 +21,7 @@ export function LicenseExpiryBanner({ config }: { config: ConfigStatus | null | 
     <div
       role="status"
       data-license-banner={notice.tone}
-      className="flex items-start gap-2.5 rounded-[14px] bg-menu px-3.5 py-2.5 outline-[0.5px] outline-offset-[-0.5px] outline-edge [outline-style:solid]"
+      className="flex items-start gap-2 px-0.5"
     >
       <AlertTriangle size={14} aria-hidden="true" className={cn("mt-0.5 shrink-0", notice.tone === "danger" ? "text-danger" : "text-warning")} />
       <span className="min-w-0 flex-1 text-[13px] leading-[18px] text-ink">{notice.text}</span>

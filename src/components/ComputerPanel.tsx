@@ -1331,7 +1331,7 @@ export function ComputerPanel({
           {signInHelp?.place === "browser" && <div className="-mt-1 mb-3">{signInBanner()}</div>}
           <BrowserPanel bot={bot} signIn={signInRequest} page={pageRequest} />
           {errorText && (
-            <div role="alert" className="mt-2 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[12px] text-danger">
+            <div role="alert" className="mt-2 text-[12px] text-danger">
               {errorText}
             </div>
           )}
@@ -1339,14 +1339,14 @@ export function ComputerPanel({
       ) : panelView === "browser" ? (
         <div {...tabPanelProps("browser")} className={cn("flex-1 overflow-y-auto px-5 pb-5", TAB_PANEL_FOCUS)} data-testid="browser-off">
           {browserSwitchRow}
-          <div className="mt-2 flex flex-col items-center gap-3 rounded-xl bg-card px-6 py-8 text-center">
+          <div className="mt-2 flex flex-col items-center gap-3 px-6 py-8 text-center">
             <Globe size={22} className="text-ink-secondary" aria-hidden="true" />
             <div className="text-[14px] font-medium text-ink">{t("computer.browserOff.title")}</div>
             <p className="text-[12px] leading-5 text-ink-secondary">
               {browserCanTurnOn ? t("computer.browserOff.body", { name: bot.name }) : browserUnavailableReason(state.config)}
             </p>
             {errorText && (
-              <div role="alert" className="w-full rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[12px] text-danger">
+              <div role="alert" className="w-full text-[12px] text-danger">
                 {errorText}
               </div>
             )}
@@ -1521,7 +1521,7 @@ export function ComputerPanel({
         </div>
 
         {errorText && (
-          <div className="mt-2 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[12px] text-danger">
+          <div className="mt-2 text-[12px] text-danger">
             {errorText}
           </div>
         )}

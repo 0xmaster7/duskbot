@@ -192,7 +192,7 @@ export function PageNotes({ version, point, share, className }: Pick<PageToolsPr
   if (state.kind === "unpublish-failed") rows.push(<p key="stuck" role="alert" className="px-1 text-[13px] text-danger">{t("chat.page.unpublishFailed")}</p>);
   if (state.kind === "refused") {
     rows.push(
-      <div key="refused" role="alert" className="flex items-center gap-2 rounded-2xl bg-inset px-3 py-2 text-[13px] text-ink-secondary">
+      <div key="refused" role="alert" className="flex items-center gap-2 px-1 text-[13px] text-ink-secondary">
         <span dir="auto" className="min-w-0 flex-1">{state.text}</span>
         {state.card?.upgrade && window.ogb?.cloudAccount && !window.ogb.remoteClient?.active && (
           <button type="button" className={ASK_PRIMARY_BUTTON} onClick={() => dispatch({ type: "openCloudAdd", source: "app_pages" })}>{t("chat.page.morePages")}</button>
@@ -200,7 +200,7 @@ export function PageNotes({ version, point, share, className }: Pick<PageToolsPr
       </div>,
     );
   }
-  if (point.pointing) rows.push(<div key="hint" role="status" className="rounded-2xl bg-accent/10 px-3 py-2 text-[13px] text-ink">{t("chat.preview.pointHint")}</div>);
+  if (point.pointing) rows.push(<div key="hint" role="status" className="px-1 text-[13px] text-ink-secondary">{t("chat.preview.pointHint")}</div>);
   return rows.length ? <div className={cn("flex flex-col gap-2", className)}>{rows}</div> : null;
 }
 

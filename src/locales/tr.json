@@ -1608,8 +1608,6 @@
   "composer.dictation.hint": "Dikte et",
   "composer.failed.notSent": "Gönderilemedi: “{text}”",
   "composer.failed.attachment": "ek",
-  "composer.failed.dismiss": "Kapat",
-  "composer.failed.dismissAria": "Başarısız mesajı kapat",
   "composer.commands.aria": "Oluşturucu komutları",
   "composer.commands.title": "Komutlar",
   "composer.mention.aria": "Bir botu etiketle",
