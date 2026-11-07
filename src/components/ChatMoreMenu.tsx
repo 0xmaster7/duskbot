@@ -1,5 +1,5 @@
 import { useMemo, useState, type JSX } from "react";
-import { Copy, Cpu, Download, Gauge, ListChecks, Monitor, MoreHorizontal, Search, Share, UserRound } from "lucide-react";
+import { Copy, Cpu, Download, Gauge, Monitor, MoreHorizontal, Search, Share, UserRound } from "lucide-react";
 import { currentTaskBot, useStore, visibleMessages, type Bot } from "@/state/store";
 import { requestChatFind, useChatFindOpen } from "@/lib/chat-find";
 import { usageSummary } from "@/lib/chat-usage-summary";
@@ -97,16 +97,8 @@ export function useChatMoreItems(profile: Bot, phoneHeader = false): { items: Si
       trailing: <span title={usage.detail} data-testid="usage-chip" className={cn("tabular-nums text-[12px]", usage.tone === "danger" ? "text-danger" : usage.tone === "warning" ? "text-warning" : "text-ink-secondary")}>{usage.short}</span>,
       onSelect: () => dispatch({ type: "toggleAppSettings", open: true, section: "usage" }),
     } satisfies SidebarMenuItem] : []),
-    ...(remoteClient ? [] : [{
-      key: "activity",
-      label: t("activity.panel.title"),
-      icon: <ListChecks size={16} />,
-      active: state.activityOpen,
-      separatorBefore: !usage,
-      onSelect: () => dispatch({ type: "toggleActivity" }),
-    } satisfies SidebarMenuItem]),
   ];
-  return { items, on: findOpen || state.activityOpen };
+  return { items, on: findOpen };
 }
 
 function RoundChatMoreMenu({ bot, phoneHeader }: { bot: Bot; phoneHeader: boolean }) {

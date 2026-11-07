@@ -21,7 +21,7 @@ import { usePhoneViewport } from "@/lib/phone-viewport";
 import { preloadConnectedApps } from "@/lib/connected-apps";
 import { ConnectAppsHost, connectAppsPageFor, openConnectApps } from "@/components/connect-apps";
 import {
-  ActivityPanel, BotSettingsDialog, CloudAddDialog, FilesView, KeyboardShortcutsModal,
+  BotSettingsDialog, CloudAddDialog, FilesView, KeyboardShortcutsModal,
   preloadScreens, RemoteAgentSettingsPanel, RoomPanel, SettingsModal,
 } from "@/components/lazy-screens";
 import { useRoomPanelShown } from "@/lib/room-panel";
@@ -331,7 +331,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
           : panelLoading ? <PanelPlaceholder onClose={() => dispatch({ type: "toggleSettings", open: false })} /> : null}
       </PanelSlot>
       {roomPanelOpen && group && roomPanelOverlay && <RoomPanel key={`room:${group.id}`} group={group} overlay />}
-      {!remoteClient && state.activityOpen && bot && <ActivityPanel key={`activity:${bot.id}`} bot={bot} />}
       {inboxShown && <InboxPanel />}
       {notificationFeed && state.notificationsOpen && <NotificationsPanel />}
       {notificationFeed && <NotificationRail />}

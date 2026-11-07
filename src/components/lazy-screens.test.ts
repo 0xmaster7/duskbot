@@ -155,7 +155,7 @@ describe("lazyScreen", () => {
   it("a screen closed before its chunk fails leaves nothing behind", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     let fail!: (error: Error) => void;
-    const Screen = lazyScreen("ActivityPanel", (): Loaded => new Promise((_, reject) => (fail = reject)));
+    const Screen = lazyScreen("RoomPanel", (): Loaded => new Promise((_, reject) => (fail = reject)));
     render(createElement(Screen, { text: "Activity" }));
     render(createElement("p", null, "chat"));
     fail(new TypeError("Failed to fetch dynamically imported module"));
@@ -168,7 +168,7 @@ describe("preloadScreens", () => {
   it("a page on this machine fetches nothing ahead: each screen loads when it opens", () => {
     vi.useFakeTimers();
     const preloads = stubPreloads();
-    expect(preloads.length).toBe(12);
+    expect(preloads.length).toBe(11);
     for (const host of ["127.0.0.1", "localhost", "[::1]"]) preloadScreens(host);
     vi.runAllTimers();
     for (const preload of preloads) expect(preload).not.toHaveBeenCalled();
@@ -278,7 +278,7 @@ describe("launch bundle", () => {
     expect(reached.has("components/bot-panel/PanelHero.tsx")).toBe(true);
     expect(reached.has("components/bot-panel/pages.tsx"), "rare panel pages stay deferred").toBe(false);
     const deferred = [
-      "ActivityPanel", "CloudAddDialog", "ComputerPanel", "KeyboardShortcutsModal",
+      "CloudAddDialog", "ComputerPanel", "KeyboardShortcutsModal",
       "NewBotDialog", "PhoneAppDialog", "PhoneSetupFlow", "RemoteAgentSettingsPanel", "RoutineCalendarPage",
       "RoutinesPage", "SettingsModal", "ShareTeamDialog", "TeamLibraryPanel", "TeamMapPage", "TriggersPage", "WebhookTrigger", "room-panel/RoomPanel",
     ].map((name) => `components/${name}.tsx`);

@@ -3,7 +3,6 @@ import { lazyScreen } from "./lazy-screen";
 export { lazyScreen, type LazyScreen } from "./lazy-screen";
 export { BotSettingsDialog } from "./BotSettingsDialog";
 
-export const ActivityPanel = lazyScreen("ActivityPanel", async () => (await import("./ActivityPanel")).ActivityPanel);
 export const FilesView = lazyScreen("FilesView", async () => (await import("./FilesView")).FilesView);
 export const KeyboardShortcutsModal = lazyScreen("KeyboardShortcutsModal", async () => (await import("./KeyboardShortcutsModal")).KeyboardShortcutsModal);
 export const NewBotDialog = lazyScreen("NewBotDialog", async () => (await import("./NewBotDialog")).NewBotDialog);
@@ -20,7 +19,7 @@ export const TeamLibraryPanel = lazyScreen("TeamLibraryPanel", async () => (awai
 
 // Most opened first: a Cloud page fetches these in this order.
 const SCREENS = [
-  SettingsModal, ActivityPanel, FilesView, KeyboardShortcutsModal,
+  SettingsModal, FilesView, KeyboardShortcutsModal,
   NewBotDialog, RemoteAgentSettingsPanel, RoomPanel,
 ];
 

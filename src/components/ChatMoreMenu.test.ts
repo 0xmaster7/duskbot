@@ -72,7 +72,7 @@ describe("ChatMoreMenu, the round ⋯ for the bot panel", () => {
 
   it("offers no thread items and no developer inspector, everything unlocked", () => {
     const menu = menuOf(createElement(ChatMoreMenu, { bot }));
-    expect(keys(menu.items)).toEqual(["find", "copy", "download", "activity"]);
+    expect(keys(menu.items)).toEqual(["find", "copy", "download"]);
     for (const item of menu.items) {
       expect(item.disabled, item.key).toBeFalsy();
       expect(item.heading ?? "", item.key).not.toBe("In Advanced mode");
@@ -81,7 +81,7 @@ describe("ChatMoreMenu, the round ⋯ for the bot panel", () => {
 
   it("draws the same items for a bot with one conversation", () => {
     const single = { ...bot, threadId: "main", tasks: [task("main", "Our chat", 1), task("routine", "Morning digest", 5, { routineRunId: "run-1" })] };
-    expect(keys(menuOf(createElement(ChatMoreMenu, { bot: single })).items)).toEqual(["find", "copy", "download", "activity"]);
+    expect(keys(menuOf(createElement(ChatMoreMenu, { bot: single })).items)).toEqual(["find", "copy", "download"]);
     expect(keys(menuOf(createElement(ChatMoreMenu, { bot: { ...bot, tasks: undefined } })).items)).not.toContain("threads");
   });
 
@@ -112,7 +112,7 @@ describe("ChatShareMenu, the bot panel's Share", () => {
 describe("ChatHeaderMenu, a remote client's header ⋯", () => {
   it("keeps main's items, trigger and hover menu below the header", () => {
     const menu = menuOf(createElement(ChatHeaderMenu, { bot }));
-    expect(keys(menu.items)).toEqual(["find", "copy", "download", "activity"]);
+    expect(keys(menu.items)).toEqual(["find", "copy", "download"]);
     expect(menu.items.every((item) => !item.disabled && item.heading !== "In Advanced mode")).toBe(true);
     expect(menu).toMatchObject({ placement: "below", openOnHover: true });
     expect(menu.trigger).toMatch(/data-testid="chat-more" class="flex size-8 items-center justify-center rounded-full /);

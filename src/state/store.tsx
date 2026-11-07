@@ -587,7 +587,6 @@ export interface AppState {
   pluginsOpen: boolean;
   pluginsSurface: "apps" | "mcp";
   botCreationPending: boolean;
-  activityOpen: boolean;
   /** Cross-bot, so a bot switch leaves it open; pinned, opening another side panel leaves it open too. */
   notificationsOpen: boolean;
   notificationsPinned: boolean;
@@ -800,7 +799,6 @@ export type Action =
   | { type: "toggleComputer"; open?: boolean; botId?: string }
   | { type: "openSignIn"; botId: string; messageId: string; url: string; site: string; place: import("../../shared/wire").Surface }
   | { type: "signInFocusConsumed"; requestId: number }
-  | { type: "toggleActivity"; open?: boolean }
   | { type: "focusMessage"; threadId: string; messageId: string; matchText?: string }
   | { type: "focusMessageConsumed"; nonce: number }
   | { type: "unreadDividerDone"; threadId: string }
@@ -1043,7 +1041,7 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         activeView: "files",
         filesSuggest: action.suggest?.length ? action.suggest : null,
-        settingsOpen: false, activityOpen: false, appSettingsOpen: false, pluginsOpen: false,
+        settingsOpen: false, appSettingsOpen: false, pluginsOpen: false,
       };
     case "routinesHydrated":
       return { ...state, routines: action.routines, routineRuns: trimRoutineRuns(action.runs), routineRunsSince: action.since ?? null, routinesLoadState: "ready" };
@@ -1477,7 +1475,6 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         selectedId,
         settingsOpen: open,
-        activityOpen: open ? false : state.activityOpen,
         botSettingsSection: action.section ?? state.botSettingsSection,
         botSettingsExpandAccordion: open ? named || (freshOpen && state.botSettingsSectionStored) : false,
         botSettingsExpandRemembered: open ? !named && freshOpen && state.botSettingsSectionStored : false,
@@ -1531,23 +1528,12 @@ export function reducer(state: AppState, action: Action): AppState {
       const shown = reducer(state, { type: "toggleSettings", open: true, section: "computer", ...(action.botId !== undefined ? { botId: action.botId } : {}) });
       return shown === state ? state : { ...shown, computerTabRequest: state.computerTabRequest + 1 };
     }
-    case "toggleActivity": {
-      const open = action.open ?? !state.activityOpen;
-      return {
-        ...state,
-        activityOpen: open,
-        settingsOpen: open ? false : state.settingsOpen,
-        appSettingsOpen: open ? false : state.appSettingsOpen,
-        notificationsOpen: open && !state.notificationsPinned ? false : state.notificationsOpen,
-      };
-    }
     case "toggleNotifications": {
       const open = action.open ?? !state.notificationsOpen;
       return {
         ...state,
         notificationsOpen: open,
         settingsOpen: open ? false : state.settingsOpen,
-        activityOpen: open ? false : state.activityOpen,
         appSettingsOpen: open ? false : state.appSettingsOpen,
       };
     }
@@ -1901,7 +1887,6 @@ export const initialState: AppState = {
   pluginsOpen: false,
   pluginsSurface: "apps",
   botCreationPending: false,
-  activityOpen: false,
   notificationsOpen: false,
   notificationsPinned: false,
   notifications: [],
