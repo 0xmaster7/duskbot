@@ -90,7 +90,7 @@ import { AttachmentGallery, collectMessageFiles, replyAttachmentGroup, splitMess
 import { ScreenFrame } from "./ScreenFrame";
 import { DigestChip } from "./DigestChip";
 import { ChatHeadRole, chiefOfStaffBadge } from "./BotRole";
-import { ChatHeadPill } from "./ChatHeadPill"; import { TranscriptSkeleton } from "./TranscriptSkeleton"; import { useStoreRef } from "@/state/store-ref";
+import { ChatHeadPill } from "./ChatHeadPill"; import { TranscriptSkeleton } from "./TranscriptSkeleton"; import { learnMessageImageSizes } from "@/lib/image-sizes"; import { useStoreRef } from "@/state/store-ref";
 import { ELEVATED_FLOAT, ELEVATED_HOVER } from "./elevated";
 import { ModelPicker } from "./ModelPicker";
 import { ChatHeaderMenu, ChatMoreMenu } from "./ChatMoreMenu"; import { TeamOwnHelperHeader, TeamPrivateFirstLine, TeamPrivateHeader, TeamSharedHeader } from "./TeamPrivateChatsLine";
@@ -933,6 +933,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const { messages: allMessages, activeLeafId } = bot;
   const messages = useMemo(() => visibleMessages({ messages: allMessages, activeLeafId }), [allMessages, activeLeafId]);
   const lookups = useMemo(() => transcriptLookups(allMessages, messages), [allMessages, messages]);
+  learnMessageImageSizes(allMessages);
   const liveTools = useLiveToolIds(messages, bot);
 
   const {

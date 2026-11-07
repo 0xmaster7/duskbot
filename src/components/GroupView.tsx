@@ -19,6 +19,7 @@ import {
   type Message,
 } from "@/state/store";
 import { TranscriptSkeleton } from "./TranscriptSkeleton";
+import { learnMessageImageSizes } from "@/lib/image-sizes";
 import { BotAvatar } from "./Avatar";
 import { ScreenFrame } from "./ScreenFrame";
 import { RoomHoldsBanner } from "./RoomHoldsBanner";
@@ -881,6 +882,7 @@ const USAGE_ROW_GAP = 8;
 
 export function GroupView({ group: room }: { group: Group }) {
   const group = useMemo(() => shownTranscript(room), [room]);
+  learnMessageImageSizes(group.messages);
   const { state, dispatch } = useStore();
   const remoteClient = window.ogb?.remoteClient?.active === true;
   const composerDockRef = useRef<HTMLDivElement>(null);

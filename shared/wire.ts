@@ -464,6 +464,9 @@ export interface WireMessage extends HelperIntroField, SetupCardFields, WaitLine
     tokensBefore: number;
     by: "person" | "harness";
   };
+  /** Pixel sizes of the stored pictures this message shows (its image attachments and `<attached-image>` tags), by
+   * stored file name, so a client holds their space before they load. Absent when none could be read. */
+  imageSizes?: Record<string, { width: number; height: number }>;
   /** Renderers receive only the allowlisted /api/attachments URL. `file`
    * entries are opened through the message-scoped file route, never by path. */
   attachments?: Array<

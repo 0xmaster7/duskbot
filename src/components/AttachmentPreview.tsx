@@ -26,6 +26,11 @@ import { t } from "@/lib/i18n";
 import { FilePreviewButton } from "./FilePreviewButton";
 import { chipNameAction, SaveIconButton, useHtmlPreview } from "./HtmlFilePreview";
 import { ImageLoading } from "./ImageLoading";
+import { knownImageSize, rememberImageSize } from "@/lib/image-sizes";
+import { cachedImageUrl, keepLoadedImage } from "@/lib/image-cache";
+
+/** The shape a picture's box takes, kept within what a chat row can hold. */
+const boxRatio = (width: number, height: number) => Math.min(Math.max(width / height, 0.6), 2.4);
 import { GrokIcon } from "./GrokIcon";
 
 export interface PreviewImage {
@@ -677,18 +682,24 @@ export function AttachmentThumbnail({
   onSize?: (size: { width: number; height: number }) => void;
 }) {
   // Callers key this by src: resetting in an effect races a cached image's onLoad, which can fire before the effect
-  // runs.
-  const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
+  // runs. A picture this page already holds decoded draws at once, with no fade.
+  const [state, setState] = useState<"loading" | "ready" | "failed">(() => cachedImageUrl(image.src) ? "ready" : "loading");
   const [attempt, setAttempt] = useState(0);
   const [outsideWorkspace, setOutsideWorkspace] = useState(false);
-  const [ratio, setRatio] = useState<number | null>(null);
+  // the box takes the picture's shape when its size is known as it first draws, and never changes after: a size learnt
+  // later would move every row under it, so an unknown picture fits a fixed box instead
+  const [ratio] = useState<number | null>(() => {
+    const size = knownImageSize(image.src);
+    return size ? boxRatio(size.width, size.height) : null;
+  });
+  const [drawn] = useState(() => cachedImageUrl(image.src) ?? image.src);
 
   return (
     <span
       style={ratio ? { aspectRatio: String(ratio) } : undefined}
       className={cn("group/image relative block aspect-[4/3] min-w-0 overflow-hidden rounded-xl border border-hairline/40 bg-inset", className)}
     >
-      {state === "loading" && <ImageLoading name={image.name} className="absolute inset-0 bg-raised/65" />}
+      {state === "loading" && <ImageLoading name={image.name} className="absolute inset-0" />}
       {state === "failed" ? (
         <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3 text-center text-ink-secondary" role="alert">
           <ImageOff size={22} />
@@ -741,14 +752,15 @@ export function AttachmentThumbnail({
         >
           <img
             key={`${image.src}:${attempt}`}
-            src={image.src}
+            src={drawn}
             alt={image.name}
             loading={eager ? "eager" : "lazy"}
             fetchPriority={eager ? "high" : undefined}
             onLoad={(event) => {
               const { naturalWidth, naturalHeight } = event.currentTarget;
               if (naturalWidth > 0 && naturalHeight > 0) {
-                setRatio(Math.min(Math.max(naturalWidth / naturalHeight, 0.6), 2.4));
+                rememberImageSize(image.src, { width: naturalWidth, height: naturalHeight });
+                if (drawn === image.src) keepLoadedImage(image.src);
                 onSize?.({ width: naturalWidth, height: naturalHeight });
               }
               setState("ready");
@@ -758,7 +770,8 @@ export function AttachmentThumbnail({
               if (explainRefusal) void messageImageOutsideWorkspace(image.src).then(setOutsideWorkspace);
             }}
             className={cn(
-              "block size-full object-cover transition-opacity duration-[180ms] ease-[ease]",
+              "block size-full transition-opacity duration-[180ms] ease-[ease]",
+              ratio === null ? "object-contain" : "object-cover",
               state === "ready" ? "opacity-100" : "opacity-0",
             )}
           />
