@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from "react";
+import { useRef } from "react";
 
 import { friendlyNowPhrases } from "@/lib/friendly-activity";
 import { activeLocale, t } from "@/lib/i18n";
@@ -55,18 +55,14 @@ export interface RoomSpeakerLine {
 /** The room's one live status line in the slot it keeps at its end. One bot at work is the 1:1 chat's line: its mark and
  * a friendly phrase. Several share it: their faces in a small stack, joining and leaving as each starts and finishes,
  * and one phrase that names them ("Nova and Quill are typing…") or, past three, "Several bots are working…". A member
- * whose reply has landed but waits its turn (`typingIds`) still counts as typing until its bubble takes over. A lone
- * speaker's `reply` slot (its mark, then its typing dots) stands in the line's place, and a speaker whose reply has
- * `landed` with nobody else at work leaves no line behind. */
-export function RoomWorkingLines({ group, members, workingIds, typingIds = [], speaker, slot, reply = null, landed = false }: {
+ * whose reply has landed but waits its turn (`typingIds`) still counts as typing until its bubble takes over. */
+export function RoomWorkingLines({ group, members, workingIds, typingIds = [], speaker, slot }: {
   group: Pick<Group, "id" | "turnStartedAt">;
   members: readonly Bot[];
   workingIds: readonly string[];
   typingIds?: readonly string[];
   speaker: RoomSpeakerLine;
   slot: boolean;
-  reply?: ReactNode;
-  landed?: boolean;
 }) {
   const speakerId = speaker.bot?.id;
   // the speaker's turn shows only while its own line would: its settled reply at the tail ends it before busy clears
@@ -90,8 +86,7 @@ export function RoomWorkingLines({ group, members, workingIds, typingIds = [], s
   const stateOf = (bot: Bot): MarkState => typing.has(bot.id) ? "streaming" : bot.id === speakerId ? speaker.markState : "working";
   return (
     <div className={slot ? "turn-status-slot h-9 shrink-0" : "contents"} data-room-working-lines="" data-room-working-count={ordered.length}>
-      {reply}
-      {!reply && !(landed && ordered.length === 0) && <TurnPresence
+      <TurnPresence
         avatar={
           <BotFaces
             members={bots}
@@ -109,7 +104,7 @@ export function RoomWorkingLines({ group, members, workingIds, typingIds = [], s
         {...words}
         seed={`${group.id}:${group.turnStartedAt ?? ""}:${last.current.join(",")}`}
         since={speaker.since}
-      />}
+      />
     </div>
   );
 }

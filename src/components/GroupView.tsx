@@ -80,8 +80,7 @@ import { useLiveToolIds } from "@/hooks/use-live-tool-ids";
 import { roomNeedsSetup } from "@/lib/room-setup";
 import { useComposerDockPad } from "@/lib/composer-dock";
 import { GlassBar, GlassScrollFrame } from "./GlassScrollFrame";
-import { awaitedMemberId } from "@/lib/turn-tail";
-import { ReplySlot, useReplySlotPhase } from "./ReplySlot";
+import { awaitedMemberId, showWorkingDots } from "@/lib/turn-tail";
 import { useTurnLive } from "@/state/turn-status";
 import { splitTranscriptAttachments } from "@/lib/composer-attachments";
 import { useTranscriptViewport } from "@/hooks/use-transcript-viewport";
@@ -925,6 +924,9 @@ export function GroupView({ group: room }: { group: Group }) {
   const awaited = members.find(
     (b) => b.id === awaitedMemberId(threadWorking, group.busyBotId, lastGroupMessage),
   );
+  // the speaker's mark and its status line stay for the whole turn; only its end hides them
+  const presenceVisible =
+    Boolean(speaker && showWorkingDots(true, group.messages.at(-1), speaker.id, live.ended)) || awaited !== undefined;
   const announcement = useMemo((): TranscriptSnapshot => {
     const approval = pendingApprovals(group.messages)[0];
     return {
@@ -942,16 +944,8 @@ export function GroupView({ group: room }: { group: Group }) {
     group.messages, lastGroupMessage, live,
   );
   const streamingReply = useLiveReplyActive(group.threadId);
-  const { phase: slotPhase, reply: speakerReply } = useReplySlotPhase({
-    scope: `${group.id}:${group.threadId}:${speaker?.id ?? ""}`, messages: group.messages, speakerId: speaker?.id, waiting: Boolean(speaker),
-    phase: now.phase, streaming: streamingReply, ended: live.ended, since: group.turnStartedAt,
-  });
   const statusMarkState = statusMarkFor({ busy: threadWorking, waitingOnYou: false, answering: streamingReply, live: live.status?.activity, failed: lastGroupMessage?.kind === "activity" && lastGroupMessage.tool?.ok === false });
   const workingIds = roomWorkingIds(group, lastGroupMessage);
-  // one bot answering gets the reply slot's mark and dots; several share the working line that names them
-  const othersWorking = workingIds.some((id) => id !== speaker?.id);
-  const replyPending = speaker && !othersWorking && (slotPhase === "mascot" || slotPhase === "dots") ? slotPhase : null;
-  const presenceVisible = slotPhase === "status" || (othersWorking && slotPhase !== "hidden") || awaited !== undefined;
   const trailing = useTrailingRows(group.messages);
   const folded = useMemo(() => foldedNoticeIds(trailing), [trailing]);
 
@@ -1147,8 +1141,6 @@ export function GroupView({ group: room }: { group: Group }) {
             typingIds={[]}
             speaker={{ bot: presenceSpeaker, visible: presenceVisible, markState: statusMarkState, phrases: now.phrases, phase: now.phase, since: speaker ? group.turnStartedAt ?? null : null }}
             slot={statusSlot}
-            reply={replyPending && speaker ? <ReplySlot phase={replyPending} bot={speaker} markState={statusMarkState} /> : null}
-            landed={Boolean(speakerReply)}
           />
         </div>
         </div>

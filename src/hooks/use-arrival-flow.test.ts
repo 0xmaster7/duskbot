@@ -112,40 +112,6 @@ describe("useArrivalFlow", () => {
     expect(line?.keyframes.every((frame) => frame.transform === undefined)).toBe(true);
   });
 
-  it("grows a reply out of the slot's typing bubble, with the view gliding up instead of jumping", () => {
-    const dots = document.createElement("div");
-    dots.dataset.replySlot = "dots";
-    place(dots, 0, slot);
-    Object.defineProperty(dots, "offsetLeft", { configurable: true, get: () => 0 });
-    Object.defineProperties(dots, { offsetWidth: { value: 56 }, offsetHeight: { value: 36 } });
-    slot.append(dots);
-    draw(true, 0);
-
-    // the typing bubble is gone in the frame the 200x58 reply lands where it was
-    dots.remove();
-    const reply = addRow(900, "start");
-    const bubble = document.createElement("div");
-    bubble.className = "chat-bubble-bot";
-    bubble.append(document.createElement("p"));
-    place(bubble, 0, reply);
-    Object.defineProperty(bubble, "offsetLeft", { configurable: true, get: () => 0 });
-    Object.defineProperty(reply, "offsetLeft", { configurable: true, get: () => 0 });
-    Object.defineProperties(bubble, { offsetWidth: { value: 200 }, offsetHeight: { value: 58 } });
-    reply.append(bubble);
-    place(slot, 962, column);
-    scrollHeight = 1062;
-    draw(true, 1);
-
-    expect(scroller.scrollTop).toBe(scrollHeight - CLIENT);
-    const grow = recorded.find((r) => r.el === bubble);
-    expect(grow?.keyframes[0]).toMatchObject({ transform: "translate(0px, 0px)", clipPath: "inset(0px 144px 22px 0px round 18px)" });
-    expect(grow?.keyframes[1]?.clipPath).toBe("inset(0px 0px 0px 0px round 18px)");
-    expect(recorded.find((r) => r.el === bubble.firstElementChild)?.keyframes).toEqual([{ opacity: 0 }, { opacity: 1 }]);
-    expect(lifts(reply), "no second entrance on the row").toHaveLength(0);
-    // the column starts where it was on screen and glides to its end
-    expect(moved(column)[0]?.keyframes[0]?.transform).toBe("translateY(62px)");
-  });
-
   it("jumps the view to its end at once on a send and moves only the new bubble, from the composer, on a spring", () => {
     draw(true, 0);
     const mine = addRow(900, "end");

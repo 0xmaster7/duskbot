@@ -7,8 +7,6 @@ import { MSG_FADE, SPRING_REPLY, SPRING_SEND, SPRING_SETTLE } from "@/lib/motion
 const ROW = "[data-message-row]";
 const SLOT = ".turn-status-slot";
 const ARRIVAL = "[data-arrival]";
-const REPLY_SLOT = "[data-reply-slot]";
-const BOT_BUBBLE = ".chat-bubble-bot";
 const COMPOSER = '[data-tour="composer"]';
 
 /** How far below its place the person's own bubble starts: from the composer's top edge, kept within these bounds. */
@@ -18,15 +16,13 @@ const LINE_OUT_MS = 160;
 const LINE_BACK_AT_MS = 300;
 const LINE_BACK_MS = 160;
 
-type Timing = { duration: number; easing: string };
-const timings = new Map<object, Timing>();
+let timing: { duration: number; easing: string } | null = null;
 
-/** A spring as a Web Animations timing, sampled every 8ms into `linear()`: the compositor runs it, it applies in the
- * frame it starts, and every mover shares one curve and clock. */
-function springTiming(preset: { stiffness: number; damping: number; mass: number }): Timing {
-  const known = timings.get(preset);
-  if (known) return known;
-  const { stiffness, damping, mass } = preset;
+/** The settle spring as a Web Animations timing, sampled every 8ms into `linear()`: the compositor runs it, it applies in
+ * the frame it starts, and every mover shares one curve and clock. */
+export function settleTiming(): { duration: number; easing: string } {
+  if (timing) return timing;
+  const { stiffness, damping, mass } = SPRING_SETTLE;
   const gen = spring({ keyframes: [0, 1], stiffness, damping, mass, restDelta: 0.0005, restSpeed: 0.005 });
   const points: number[] = [];
   let t = 0;
@@ -36,17 +32,8 @@ function springTiming(preset: { stiffness: number; damping: number; mass: number
     if (step.done) break;
   }
   points[points.length - 1] = 1;
-  const timing = { duration: t, easing: `linear(${points.join(", ")})` };
-  timings.set(preset, timing);
+  timing = { duration: t, easing: `linear(${points.join(", ")})` };
   return timing;
-}
-
-export function settleTiming(): Timing {
-  return springTiming(SPRING_SETTLE);
-}
-
-export function replyTiming(): Timing {
-  return springTiming(SPRING_REPLY);
 }
 
 interface Snapshot {
@@ -56,18 +43,8 @@ interface Snapshot {
   anchorFromEnd: number;
   slot: HTMLElement | null;
   slotFromEnd: number;
-  /** the furthest the transcript could scroll then, and where it was */
+  /** the furthest the transcript could scroll then */
   max: number;
-  scrollTop: number;
-  /** the reply slot's bubble as it was drawn, in the column's own coordinates */
-  shape: Box | null;
-}
-
-interface Box {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
 }
 
 interface Mover {
@@ -75,47 +52,15 @@ interface Mover {
   from: number;
 }
 
-/** Top (or left) of `el` inside `column`, from layout alone (offsets ignore transforms, so moves in flight never count). */
-function offsetIn(el: HTMLElement, column: HTMLElement, axis: "offsetTop" | "offsetLeft" = "offsetTop"): number | null {
-  let at = 0;
+/** Top of `el` inside `column`, from layout alone (offsetTop ignores transforms, so moves in flight never count). */
+function offsetIn(el: HTMLElement, column: HTMLElement): number | null {
+  let y = 0;
   let node: HTMLElement | null = el;
   while (node && node !== column) {
-    at += node[axis];
+    y += node.offsetTop;
     node = node.offsetParent as HTMLElement | null;
   }
-  return node === column ? at : null;
-}
-
-function boxIn(el: HTMLElement, column: HTMLElement): Box | null {
-  const y = offsetIn(el, column), x = offsetIn(el, column, "offsetLeft");
-  return x === null || y === null ? null : { x, y, width: el.offsetWidth, height: el.offsetHeight };
-}
-
-/** The reply slot's bubble: a circle around the mark until the dots come, then the full pill. */
-function slotShape(column: HTMLElement): Box | null {
-  const slot = column.querySelector<HTMLElement>(REPLY_SLOT);
-  const box = slot ? boxIn(slot, column) : null;
-  return box && slot!.dataset.replySlot !== "dots" ? { ...box, width: box.height } : box;
-}
-
-/** The reply's bubble grows out of the slot's: it starts clipped to the slot's shape where the slot was drawn, and opens
- * to its own size on the reply spring while its words fade in. The typing dots are already gone in this frame. */
-function growFromSlot(bubble: HTMLElement, from: Box, column: HTMLElement): boolean {
-  const to = boxIn(bubble, column);
-  if (!to || !canAnimate(bubble)) return false;
-  const rtl = getComputedStyle(bubble).direction === "rtl";
-  const dx = rtl ? from.x + from.width - (to.x + to.width) : from.x - to.x;
-  const end = Math.max(0, to.width - from.width), bottom = Math.max(0, to.height - from.height);
-  const radius = Math.min(from.height, to.height) / 2;
-  const timing = replyTiming();
-  bubble.animate([
-    { transform: `translate(${dx}px, ${from.y - to.y}px)`, clipPath: `inset(0px ${rtl ? 0 : end}px ${bottom}px ${rtl ? end : 0}px round ${radius}px)` },
-    { transform: "translate(0px, 0px)", clipPath: `inset(0px 0px 0px 0px round ${radius}px)` },
-  ], timing);
-  for (const child of Array.from(bubble.children)) {
-    if (canAnimate(child)) (child as HTMLElement).animate([{ opacity: 0 }, { opacity: 1 }], { duration: MSG_FADE.duration * 1000, easing: "ease-out" });
-  }
-  return true;
+  return node === column ? y : null;
 }
 
 const canAnimate = (el: Element) => typeof (el as HTMLElement).animate === "function";
@@ -147,8 +92,7 @@ function lift(el: HTMLElement, transform: [string, string], opacity: [number, nu
  * Any arrival puts the view at its end at once, in the frame it lands, and nothing already on screen moves. The person's
  * own bubble alone travels: it starts at the composer's top edge and springs up to its place (SPRING_SEND). A bot's reply
  * settles in softly where it lands (opacity, 7px and 0.98 scale on SPRING_REPLY) while its status line fades out, coming
- * back below if it still has work; a reply whose slot showed the bot's mark or typing dots grows out of that bubble instead,
- * with the view gliding up to make room for it. A wrapper clips the column vertically while anything moves, so a transform never
+ * back below if it still has work. A wrapper clips the column vertically while anything moves, so a transform never
  * stretches the scroll range. The composer settling under a bubble still rising is followed on a spring. Scrolled up,
  * nothing on screen moves. Under reduced motion new rows only fade in. */
 export function useArrivalFlow({
@@ -181,10 +125,7 @@ export function useArrivalFlow({
     const end = scroller.scrollHeight;
     const anchorAt = anchor ? offsetIn(anchor, column) : null;
     const slotAt = slot ? offsetIn(slot, column) : null;
-    snapshot.current = {
-      key, anchor: anchorAt === null ? null : anchor, anchorFromEnd: end - (anchorAt ?? 0), slot: slotAt === null ? null : slot, slotFromEnd: end - (slotAt ?? 0),
-      max: end - scroller.clientHeight, scrollTop: scroller.scrollTop, shape: slotShape(column),
-    };
+    snapshot.current = { key, anchor: anchorAt === null ? null : anchor, anchorFromEnd: end - (anchorAt ?? 0), slot: slotAt === null ? null : slot, slotFromEnd: end - (slotAt ?? 0), max: end - scroller.clientHeight };
   };
 
   // a size change outside a render (an image loading, the window resizing) moves the end without an arrival: re-measure
@@ -246,12 +187,12 @@ export function useArrivalFlow({
     // follows on a spring, so neither the rows nor the rising bubble jump with it
     const settle = arrivals.length === 0 && (risers.current.size > 0 || movers.current.size > 0) && following && atEnd && !reduced
       && Math.abs(delta) >= 0.5 && Math.abs(delta) <= scroller.clientHeight * 1.5;
-    // the column glides by `by` back to its place, on top of whatever glide it was still in
-    const glide = (by: number, timingNow: Timing) => {
-      if (!canAnimate(column)) return;
+    if (settle && canAnimate(column)) {
       clipOn();
+      scroller.scrollTop = max;
+      const timingNow = settleTiming();
       const current = movers.current.get(column);
-      const from = (current ? remaining(current) : 0) + by;
+      const from = (current ? remaining(current) : 0) + delta;
       current?.anim.cancel();
       const anim = column.animate([{ transform: `translateY(${from}px)` }, { transform: "translateY(0px)" }], { duration: timingNow.duration, easing: timingNow.easing });
       const mover = { anim, from };
@@ -260,15 +201,8 @@ export function useArrivalFlow({
         if (movers.current.get(column) === mover) movers.current.delete(column);
         clipOffIfIdle();
       });
-    };
-    if (settle && canAnimate(column)) {
-      scroller.scrollTop = max;
-      glide(delta, settleTiming());
     }
 
-    // a reply landing where its slot showed the dots grows out of that bubble, and the view glides up to make room for it
-    // instead of jumping, so the slot's bubble never moves on screen in the frame the reply takes over
-    let growFrom = !reduced && following && atEnd && botArrived ? before.shape : null;
     const slot = column.querySelector<HTMLElement>(SLOT);
     for (const row of arrivals) {
       if (reduced) {
@@ -294,13 +228,6 @@ export function useArrivalFlow({
           });
         }
       } else {
-        const bubble = growFrom ? row.querySelector<HTMLElement>(BOT_BUBBLE) : null;
-        if (bubble && growFrom && growFromSlot(bubble, growFrom, column)) {
-          growFrom = null;
-          const shift = scroller.scrollTop - before.scrollTop;
-          if (shift >= 0.5 && shift <= scroller.clientHeight * 1.5) glide(shift, replyTiming());
-          continue;
-        }
         // a bot's reply: already in view, it settles in softly while its status line fades out
         row.style.transformOrigin = getComputedStyle(row).direction === "rtl" ? "100% 100%" : "0 100%";
         lift(row, ["translateY(7px) scale(0.98)", "translateY(0px) scale(1)"], [0, 1], SPRING_REPLY, () => {});

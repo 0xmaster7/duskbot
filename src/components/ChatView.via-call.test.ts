@@ -25,7 +25,6 @@ vi.mock("./ApprovalModeSelector", () => ({ ApprovalModeSelector: () => createEle
 
 const { ChatView } = await import("./ChatView");
 const { noteTurnEvent, resetTurnLive } = await import("@/state/turn-status");
-const { resetReplySlotClocks } = await import("./ReplySlot");
 afterAll(() => vi.unstubAllGlobals());
 
 const message = (id: string, text: string, extra: Partial<Message> = {}): Message =>
@@ -80,9 +79,8 @@ describe("a call's record at the end of a chat that is still working", () => {
     call: { callId: "c1", botId: "bot", client: "ios", startedAt: 1_700_000_000_000, endedAt: 1_700_000_042_000, seconds: 42, endReason: "hung-up" },
   });
   const spoken = message("m1", "run the tests", { via: "call", callId: "c1" });
-  // each draw is a chat opened in the middle of its turn
   const drawWorking = (messages: Message[]) =>
-    resetReplySlotClocks() ?? renderToStaticMarkup(createElement(ChatView, { bot: { ...bot(messages), busy: true } }));
+    renderToStaticMarkup(createElement(ChatView, { bot: { ...bot(messages), busy: true } }));
 
   it("keeps naming the step that is running when the call ended under it", () => {
     const markup = drawWorking([
@@ -118,9 +116,9 @@ describe("a call's record at the end of a chat that is still working", () => {
     expect(stopped).not.toContain("(Running)");
   });
 
-  it("still shows the bot answering a request nobody has answered yet", () => {
+  it("still shows the working line for a request nobody has answered yet", () => {
     const markup = drawWorking([spoken, record]);
-    expect(markup).toContain('data-reply-slot="mascot"');
+    expect(markup).toContain("data-turn-status");
   });
 });
 
