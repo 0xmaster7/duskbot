@@ -11,7 +11,7 @@ import { DATA_DIR } from "../../config.ts";
 import { calibrateIdentity, chromeFingerprint, loadOrCalibrateIdentity, type CalibratedIdentity } from "./calibrate.ts";
 import { needsNoSandbox, type ChromeIdentity } from "./identity.ts";
 import { installChromeForTesting, type ChromeForTestingPin, type DownloadProgress } from "./install.ts";
-import { chromeHost, resolveChromePlan, type ChromeEngine, type ChromeHost, type ChromePlan, type FoundChrome } from "./resolve.ts";
+import { chromeHost, legacyBrowserFound, resolveChromePlan, type ChromeEngine, type ChromeHost, type ChromePlan, type FoundChrome } from "./resolve.ts";
 import { IdentitySidecars } from "./sidecar.ts";
 import { browserLanguage, browserTimeZone, languageList, launcherPath, primaryScreen, writeLauncher, type LauncherBox, type LauncherSettings, type Screen } from "./wrapper.ts";
 
@@ -107,6 +107,12 @@ export class ChromeLauncher implements BrowserLaunch {
 
   plan(): ChromePlan {
     return resolveChromePlan(this.host, this.options.engine ? this.options.engine() : this.managedEngine());
+  }
+
+  /** No Chrome agent-browser could start on this host (an ARM Linux server with none installed): its browser tools would
+   * only fail, so they are not offered for a browser of this host. */
+  hostBrowserMissing(): boolean {
+    return this.plan().kind === "legacy" && !legacyBrowserFound(this.host);
   }
 
   /** What agent-browser's environment gains: nothing while the engine keeps its own browser. */
