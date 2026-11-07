@@ -24,6 +24,7 @@ import {
   updateNoteworthy,
   updateLabel,
   updatePhase,
+  grokProfileMenuItems,
 } from "./SidebarProfileMenu";
 import { DOCS_URL, FEEDBACK_URL, HELP_CENTER_URL, platformLabel } from "@/lib/app-links";
 import { profileForSession } from "@/lib/session";
@@ -612,5 +613,27 @@ describe("the usage meta", () => {
     expect(cloudUsageSummary({ status: "paid", tier: "pro", usage } as never)).toMatchObject({ value: "85% used" });
     expect(cloudUsageSummary({ status: "paid", tier: "pro" } as never)).toBeNull();
     expect(cloudUsageSummary({ status: "none" } as never)).toBeNull();
+  });
+});
+
+describe("grok's profile menu", () => {
+  const base = {
+    onGetApp: vi.fn(), onHelp: vi.fn(), onShortcuts: vi.fn(), onFeedback: vi.fn(), onAbout: vi.fn(), onSettings: vi.fn(), onAddAccount: vi.fn(),
+    accounts: { view: null, openSheet: undefined, signOut: vi.fn(), add: vi.fn() } as never,
+  };
+
+  it("leads with the automation the avatar's red dot is for, so the dot always has somewhere to go", () => {
+    const onNeedsYou = vi.fn();
+    const items = grokProfileMenuItems({ ...base, onNeedsYou });
+    expect(items[0]).toMatchObject({ key: "needs-you", label: "Automations need you", attention: true, attentionTone: "danger" });
+    expect(items[1]).toMatchObject({ key: "mobile", separatorBefore: true });
+    items[0]!.onSelect();
+    expect(onNeedsYou).toHaveBeenCalledOnce();
+  });
+
+  it("keeps grok's own rows alone while nothing needs the person", () => {
+    const items = grokProfileMenuItems(base);
+    expect(items.map((item) => item.key)).toEqual(["mobile", "support", "settings", "add-account"]);
+    expect(items[0]!.separatorBefore).toBeUndefined();
   });
 });
