@@ -38,16 +38,7 @@ function retiredIn(text: string, boat: RegExp = BOAT): string[] {
 }
 
 const PENDING_KEY_PREFIXES: string[] = [];
-const EN_ALLOWED: Record<string, string> = {
-  "botAccess.cloud.boat": "the own-key provider picker names its two providers, Boat and a VPS",
-  "botAccess.cloud.hostedBackendDescription": "the own-key provider picker names its two providers, Boat and a VPS",
-  "botAccess.cloud.vpsAutoDescription": "the own-key provider picker's VPS line names its Cloud choice",
-  "boatOffer.title": "Boat's credit offer names Boat, whose credit and plan it is",
-  "boatOffer.body": "Boat's credit offer names Boat, whose credit and plan it is",
-  "boatOffer.get": "Boat's credit offer names Boat, whose credit and plan it is",
-  "boatOffer.row": "Boat's credit offer names Boat, whose credit and plan it is",
-  "keys.boat.row": "the API keys row for a person's own Boat key, named by its provider like every other key row",
-};
+const EN_ALLOWED: Record<string, string> = {};
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const SCANNED = ["src", "server", "electron", "shared"];
