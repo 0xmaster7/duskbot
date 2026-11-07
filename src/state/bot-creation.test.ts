@@ -81,8 +81,8 @@ describe("setup navigation", () => {
   });
 
   it("puts the new bot's chat in front of any open settings and leaves the side panels, except from a department's own dialog", () => {
-    const start = { ...initialState, settingsOpen: true, appSettingsOpen: true, pluginsOpen: true, shortcutsOpen: true, computerOpen: true };
-    expect(reducer(start, { type: "newBot" })).toMatchObject({ settingsOpen: true, appSettingsOpen: false, pluginsOpen: false, shortcutsOpen: false, computerOpen: true });
+    const start = { ...initialState, settingsOpen: true, appSettingsOpen: true, pluginsOpen: true, shortcutsOpen: true };
+    expect(reducer(start, { type: "newBot" })).toMatchObject({ settingsOpen: true, appSettingsOpen: false, pluginsOpen: false, shortcutsOpen: false });
     expect(reducer(start, { type: "newBot", section: "Sales", preserveSelection: true })).toBe(start);
   });
 

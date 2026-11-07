@@ -1,5 +1,5 @@
-// The answer a bot's card waits for is that bot's own button; Deny, Cancel and the quiet actions stay neutral, and a
-// card no single bot owns keeps the plain primary.
+// Grok's cards answer in ink whoever asks: a bot's colour stays in its face and an answered letter, never a card's
+// primary. Deny, Cancel and the quiet actions stay neutral.
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, describe, expect, it, vi } from "vitest";
@@ -16,7 +16,7 @@ vi.mock("@/state/store", async (importOriginal) => ({
   useStore: () => ({ state: {}, dispatch: fixture.dispatch }),
 }));
 
-const { BOT_BUTTON, botButtonTone } = await import("@/lib/bot-button");
+const { BOT_BUTTON } = await import("@/lib/bot-button");
 const { t } = await import("@/lib/i18n");
 const { pendingApprovals, PendingApprovalActions } = await import("./PendingApproval");
 const { QuestionCard } = await import("./QuestionCard");
@@ -27,17 +27,16 @@ const { ConnectorCard } = await import("./ConnectorCard");
 afterAll(() => vi.unstubAllGlobals());
 
 function button(html: string, label: string): string {
-  const found = (html.match(/<button[^>]*>[\s\S]*?<\/button>/g) ?? []).find((one) => one.replace(/<[^>]+>/g, "").trim() === label);
+  const found = (html.match(/<button[^>]*>[\s\S]*?<\/button>/g) ?? []).find((one) => one.replace(/<[^>]+>/g, "").replace(/&#x27;/g, "'").trim() === label);
   expect(found, label).toBeDefined();
   return found!;
 }
 const classes = (tag: string) => (/class="([^"]*)"/.exec(tag)?.[1] ?? "").split(" ");
 
-function expectOwn(tag: string, color: Bot["color"]) {
-  const tone = botButtonTone(color);
-  expect(classes(tag)).toContain(BOT_BUTTON);
-  expect(classes(tag)).not.toContain("ui-button-primary");
-  expect(tag).toContain(`--bot-button:${tone.fill};--bot-button-ink:${tone.ink};--bot-button-hover:${tone.hover};--bot-button-pressed:${tone.pressed}`);
+function expectInk(tag: string) {
+  expect(classes(tag)).toContain("ui-button-primary");
+  expect(classes(tag)).not.toContain(BOT_BUTTON);
+  expect(tag).not.toContain("--bot-button");
 }
 function expectPlain(tag: string) {
   expect(classes(tag)).not.toContain(BOT_BUTTON);
@@ -63,42 +62,43 @@ const question: Message = {
   },
 };
 
-describe("a bot's cards answer in its own colour", () => {
-  it("paints Allow once in ink like grok, while Deny is the neutral second answer and Always allow stays quiet", () => {
+describe("a bot's cards answer in grok's ink", () => {
+  it("paints Allow once in ink like grok, while Deny is bare text and Always allow a quiet fill", () => {
     const html = approval({ id: "scout", name: "Scout", color: "pink" } as Bot);
-    expect(classes(button(html, t("approval.action.allowOnce")))).toContain("ui-button-primary");
+    expectInk(button(html, t("approval.action.allowOnce")));
     const deny = button(html, t("approval.action.deny"));
     expectPlain(deny);
     expect(classes(deny)).toEqual(expect.arrayContaining(["text-ink-secondary", "enabled:hover:bg-ink/[0.06]"]));
     expect(classes(deny).some((name) => name.includes("danger"))).toBe(false);
     const always = button(html, t("approval.action.alwaysAllow"));
     expectPlain(always);
-    expect(classes(always)).toContain("text-ink-secondary");
+    expect(classes(always)).toContain("bg-ink/[0.06]");
     expect(classes(button(approval(), t("approval.action.allowOnce")))).toContain("ui-button-primary");
   });
 
-  it("sends a question's answers in the asking bot's colour, a light one included", () => {
+  it("sends a question's answers in ink, whatever colour the bot is", () => {
     const own = renderToStaticMarkup(createElement(QuestionCard, { threadId: "thread-1", asker: { name: "Scout", color: "yellow" }, message: question }));
     const submit = button(own, t("question.submitAll"));
-    expectOwn(submit, "yellow");
+    expectInk(submit);
     expect(submit).toContain("disabled");
     expectPlain(button(renderToStaticMarkup(createElement(QuestionCard, { threadId: "thread-1", message: question })), t("question.submitAll")));
   });
 
-  it("saves a key and finishes a sign-in in the asking bot's colour, and connects an app in ink", () => {
+  it("saves a key, takes over a sign-in and connects an app in ink", () => {
     const secret: Message = {
       id: "secret-1", role: "bot", kind: "secret", at: 1, text: "",
       secret: { target: "openaiImageApiKey", label: "OpenAI API key", description: "", placeholder: "sk-…", requestKey: "key-1" } as Message["secret"],
     };
-    expectOwn(button(renderToStaticMarkup(createElement(SecretRequestCard, { botId: "scout", color: "blue", threadId: "t", message: secret })), "Save securely"), "blue");
+    expectInk(button(renderToStaticMarkup(createElement(SecretRequestCard, { botId: "scout", color: "blue", threadId: "t", message: secret })), "Save securely"));
 
     const signIn: Message = {
       id: "signin-1", role: "bot", kind: "signin", at: 1, text: "",
       signIn: { url: "https://example.com/login", site: "example.com", place: "browser" } as Message["signIn"],
     };
     const signInHtml = renderToStaticMarkup(createElement(SignInRequestCard, { botId: "scout", botName: "Scout", color: "green", threadId: "t", message: signIn }));
-    expectOwn(button(signInHtml, t("signIn.done")), "green");
-    expectPlain(button(signInHtml, t("signIn.cancel")));
+    expectInk(button(signInHtml, t("signIn.takeOver")));
+    expectPlain(button(signInHtml, t("computer.done")));
+    expectPlain(button(signInHtml, t("signIn.skip")));
 
     const connector: Message = {
       id: "connector-1", role: "bot", kind: "connector", at: 1,

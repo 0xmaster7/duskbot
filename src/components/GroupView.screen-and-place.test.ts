@@ -42,8 +42,9 @@ const group = (patch: Partial<Group> = {}): Group => ({
   ...patch,
 });
 
-const render = (members: Bot[], g: Group) => {
-  fixture.state = { bots: members };
+const TOOL_CALLS_SHOWN = { features: { showToolCalls: true } } as AppState["config"];
+const render = (members: Bot[], g: Group, config?: AppState["config"]) => {
+  fixture.state = { bots: members, ...(config ? { config } : {}) };
   return renderToStaticMarkup(createElement(GroupView, { group: g }));
 };
 // the simple header is one pill of faces; the member row with its place badges is the full header a remote client keeps
@@ -53,17 +54,19 @@ const renderFullHeader = (members: Bot[], g: Group) => {
 };
 
 describe("GroupView: computer/browser session visibility", () => {
-  it("loads a screenshot message through the image route, matching the 1:1 ChatView", () => {
-    const markup = render([bot()], group({
+  it("loads a screenshot message through the image route when tool calls are shown, matching the 1:1 ChatView", () => {
+    const shot = group({
       messages: [{ id: "shot", role: "bot", kind: "screen", hasImage: true, mime: "image/png", at: 1, from: { botId: "aleta", name: "Aleta", color: "green" } }] as Message[],
-    }));
-    expect(markup).toContain('src="/api/threads/room-thread/messages/shot/image"');
+    });
+    expect(render([bot()], shot, TOOL_CALLS_SHOWN)).toContain('src="/api/threads/room-thread/messages/shot/image"');
+    // like grok, a bot's computer captures stay in its computer panel unless tool calls are shown
+    expect(render([bot()], shot)).not.toContain("/messages/shot/image");
   });
 
   it("loads inline pixels through the image route too, never as a data URL", () => {
     const markup = render([bot()], group({
       messages: [{ id: "shot", role: "bot", kind: "screen", png: "PRIVATE_BASE64_PIXELS", mime: "image/png", at: 1, from: { botId: "aleta", name: "Aleta", color: "green" } }] as Message[],
-    }));
+    }), TOOL_CALLS_SHOWN);
     expect(markup).toContain('src="/api/threads/room-thread/messages/shot/image"');
     expect(markup).not.toContain("PRIVATE_BASE64_PIXELS");
   });

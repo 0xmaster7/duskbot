@@ -1,7 +1,7 @@
 // Runs one agents tool: check arguments, call the harness, render the model's text. Stateless;
 // per-turn limits are the harness's, since one proxy can serve many turns of a warm engine.
 import { agentsCallMember, resolveAgentsCall } from "../../shared/agents-tool-names.ts";
-import { CREDENTIAL_TARGETS, isCredentialTargetId } from "../../shared/credential-request.ts";
+import { CREDENTIAL_TARGETS, isCredentialTargetId, LOGIN_CREDENTIAL } from "../../shared/credential-request.ts";
 import { EMAIL_CREDENTIAL } from "../../shared/email.ts";
 
 import { peerName } from "../peer-roster.ts";
@@ -530,6 +530,7 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     const credentialId = args.credential_id;
     if (credentialId === undefined || credentialId === "") return requestCustomSecret(args, context);
     if (credentialId === EMAIL_CREDENTIAL) return requestEmailCard(args, context);
+    if (credentialId === LOGIN_CREDENTIAL) return requestLoginCard(args, context);
     if (!isCredentialTargetId(credentialId)) {
       return { text: "request_credential needs a supported credential_id.", isError: true };
     }
@@ -852,6 +853,18 @@ async function requestEmailCard(args: Json, context: ToolCallContext): Promise<T
   if (!r.ok) return { text: String(r.body.error ?? `request_credential failed (HTTP ${r.status}).`), isError: true };
   if (r.body.alreadyConfigured === true) return { text: `${String(r.body.label)} is already connected. Use the email tools.` };
   return { text: "A secure card for the mailbox is ready in OpenMausBot, on the computer and on a freshly QR-paired phone. End this turn now and say in one line that you are waiting for it; OpenMausBot resumes you when the person connects it or declines." };
+}
+
+/** A website login on a sealed card: kept for fill_login, which types it; the bot never gets it back. */
+async function requestLoginCard(args: Json, context: ToolCallContext): Promise<ToolCallResult> {
+  const r = await context.client.apiResponse("/api/internal/request-credential", {
+    method: "POST",
+    body: JSON.stringify({ fromBotId: context.botId, fromThreadId: context.threadId, credentialId: LOGIN_CREDENTIAL, site: args.site, reason: args.reason }),
+  });
+  if (!r.ok) return { text: String(r.body.error ?? `request_credential failed (HTTP ${r.status}).`), isError: true };
+  if (typeof r.body.text === "string") return { text: r.body.text };
+  const site = typeof r.body.site === "string" ? r.body.site : "the site";
+  return { text: `A secure login card for ${site} is now in this conversation, and the person was notified. End this turn now and say in one line that you are waiting for it; OpenMausBot resumes you when they save it or decline, and then you sign in with fill_login. Never ask for the password in chat.` };
 }
 
 /** A secret OpenMausBot does not keep: the person agrees to one use, and the bot gets a secretRef or a file path back. */

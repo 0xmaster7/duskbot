@@ -4,7 +4,7 @@ const spawnSync = vi.hoisted(() => vi.fn((file: string) => ({ status: 0, stdout:
 vi.mock("node:child_process", async (original) => ({ ...await original<typeof import("node:child_process")>(), spawnSync }));
 
 import { CHROME_FOR_TESTING_VERSION, chromeForTestingExecutable, chromeForTestingPin } from "./install.ts";
-import { chromeHost, chromePolicyManaged, installedGoogleChrome, isHeadlessShell, registryData, resolveChromePlan, type ChromeHost } from "./resolve.ts";
+import { chromeHost, chromePolicyManaged, installedGoogleChrome, isHeadlessShell, legacyBrowserFound, registryData, resolveChromePlan, type ChromeHost } from "./resolve.ts";
 
 const MAC_CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
@@ -129,5 +129,19 @@ describe("which Chrome the bots' browser runs", () => {
     }
     expect(spawnSync).toHaveBeenCalledTimes(2);
     expect(spawnSync.mock.calls.map((call) => call[0])).toEqual(["reg", "reg"]);
+  });
+});
+
+describe("whether agent-browser finds a browser of its own on this host", () => {
+  it("is false on a Linux server with no Chrome anywhere, such as an ARM VPS, and true once any is there", () => {
+    const bare = host("linux", []);
+    expect(resolveChromePlan(bare, managed).kind).toBe("legacy");
+    expect(legacyBrowserFound(bare)).toBe(false);
+    for (const files of [["/usr/bin/chromium"], ["/usr/bin/google-chrome-stable"], ["/home/ada/.agent-browser/browsers/chrome-140/chrome"],
+      ["/home/ada/.cache/ms-playwright/chromium-1234/chrome-linux/chrome"], ["/home/ada/.cache/puppeteer/chrome/linux-140/chrome"]]) {
+      expect(legacyBrowserFound(host("linux", files))).toBe(true);
+    }
+    // other systems keep agent-browser's own judgement
+    expect(legacyBrowserFound(host("darwin", []))).toBe(true);
   });
 });

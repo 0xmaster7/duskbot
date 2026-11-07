@@ -14,7 +14,7 @@ import { rowToMessage, threadPreviewRows, type ThreadRows, type ThreadTailRows }
 import { searchMessagesInDatabase, type SearchHit } from "./message-search-query.ts";
 import type { Notification, NotificationLogEntry } from "../shared/notification.ts";
 export type { SearchHit } from "./message-search-query.ts";
-export type { ThreadRows, ThreadTailRows } from "./message-db-rows.ts";
+export type { ThreadRows, ThreadTailRows } from "./message-db-rows.ts"; import { missingMediaRows, setMediaRow } from "./message-media-rows.ts";
 
 const DB_FILE = () => join(DATA_DIR, "messages.db");
 /** The rows the Today page reads, and among them the failed tool calls. JSON.stringify escapes every quote inside a
@@ -472,6 +472,9 @@ export function appendMessage(threadId: string, message: Message): void {
 export function updateMessage(threadId: string, message: Message): void {
   prepared("UPDATE messages SET at = ?, role = ?, kind = ?, text = ?, json = ? WHERE thread_id = ? AND id = ?").run(message.at, message.role, message.kind, message.text ?? null, JSON.stringify(message), threadId, message.id);
 }
+
+export const messagesMissingMediaSizes = (afterRowid: number, limit: number) => missingMediaRows(db(), afterRowid, limit);
+export const setMessageMediaSizes = (threadId: string, messageId: string, media: NonNullable<Message["media"]>) => setMediaRow(db(), threadId, messageId, media);
 
 export function workingGoalRunMessages(): Array<{ threadId: string; message: Message }> {
   const rows = db()

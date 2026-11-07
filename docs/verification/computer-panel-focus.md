@@ -31,10 +31,10 @@ opener button stays mounted while its panel is up:
 OMB_UI_E2E=1 node node_modules/vitest/vitest.mjs run scripts/testing/cloud-preview.e2e.test.ts
 ```
 
-There the Computer panel lands on its active tab, and the remote-client panel —
-which has no tab row (`src/components/remote-desktop-panel.tsx`) — lands on its
-close button; closing either with **Enter** on the focused X returns focus to
-the fixture's opener button.
+There the Computer panel lands on its active tab; closing it with **Enter** on
+the focused X returns focus to the fixture's opener button. The app itself no
+longer opens a separate screen panel: a bot's computer is its bot panel's
+Computer tab, so this fixture is the only place the standalone panel mounts.
 
 `src/lib/computer-panel-focus.ts` holds the whole rule: the chat header records
 where the open came from and whether the keyboard asked for it, the panel takes
@@ -43,8 +43,7 @@ frame (the panel resolves its own tab after mount, and the panel is a lazy
 screen), and a close control hands focus back before the close is dispatched —
 by the time an unmount cleanup runs, React has already removed the panel and the
 browser has dropped focus to the body. Unit coverage lives in
-`src/lib/computer-panel-focus.test.ts`, `src/components/ComputerPanel.focus.test.ts`
-and `src/components/remote-desktop-panel.focus.test.ts`.
+`src/lib/computer-panel-focus.test.ts` and `src/components/ComputerPanel.focus.test.ts`.
 
 What this does not prove:
 

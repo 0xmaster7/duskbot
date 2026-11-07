@@ -1,26 +1,24 @@
-import { useCallback, useEffect, useRef, type Dispatch } from "react";
+import { useCallback, useEffect, useRef, useState, type Dispatch } from "react";
 import { api } from "./api";
 import type { Action, AppState, Bot, Group, Message } from "./store";
 
-/** How many of the most recently active conversations load in the background once the open one has. */
-export const PREFETCH_THREADS = 6;
-const PREFETCH_DELAY_MS = 600;
+/** How many of each conversation's newest messages the one startup read brings. */
+export const BULK_PAGE = 50;
+/** Past this many conversations the read asks for all of them rather than naming each in its URL. */
+const NAMED_THREADS = 40;
+const BULK_RETRY_MS = 3_000;
 
 type Owner = Bot | Group;
 const needsPage = (owner: Owner | undefined) => Boolean(owner && (owner.transcriptLoaded === false || owner.transcriptStale));
-const lastActive = (owner: Owner) => owner.tasks?.find((task) => task.threadId === owner.threadId)?.updatedAt ?? 0;
+type Page = { messages: Message[]; hasMore?: boolean; activeLeafId?: string | null };
 
-/** The conversations worth loading before anyone opens them: the most recently active ones without a current transcript. */
-export function prefetchOrder(state: Pick<AppState, "bots" | "groups" | "selectedId">, limit = PREFETCH_THREADS): string[] {
-  return [...state.bots.filter((bot) => !bot.hidden), ...state.groups]
-    .filter((owner) => owner.id !== state.selectedId && needsPage(owner))
-    .sort((a, b) => lastActive(b) - lastActive(a))
-    .slice(0, limit)
-    .map((owner) => owner.threadId);
+/** The conversations without a current transcript (none yet, or one held from before the last snapshot). */
+export function threadsNeedingPages(state: Pick<AppState, "bots" | "groups">): string[] {
+  return [...state.bots, ...state.groups].filter(needsPage).map((owner) => owner.threadId).sort();
 }
 
-/** Loads the newest page of the open conversation when it has no current transcript (none yet, or one cached from
- * before the last snapshot), then a few recent ones in the background, one at a time. */
+/** Loads every conversation without a current transcript in one read once the snapshot lands, so any chat opens with
+ * its messages already there; the open one also reads its own page at once if that read has not brought it yet. */
 export function useSelectedTranscript(state: AppState, dispatch: Dispatch<Action>, pageSize: number): () => void {
   const current = useRef(state);
   current.current = state;
@@ -37,31 +35,33 @@ export function useSelectedTranscript(state: AppState, dispatch: Dispatch<Action
     return () => { mounted.current = false; invalidate(); };
   }, [invalidate]);
 
-  const read = useCallback((threadId: string): Promise<void> | null => {
+  const fence = (threadId: string) => {
     const owner = [...current.current.bots, ...current.current.groups].find((candidate) => candidate.threadId === threadId);
     if (!owner || !needsPage(owner)) return null;
+    return { generation: current.current.transcriptGeneration[threadId] ?? 0, heldAtStart: owner.messages,
+      leafAtStart: "activeLeafId" in owner ? owner.activeLeafId : undefined };
+  };
+  const deliver = useCallback((threadId: string, page: Page, start: NonNullable<ReturnType<typeof fence>>) => {
+    if (!Array.isArray(page.messages)) throw new Error("Invalid conversation snapshot");
+    dispatch({ type: "transcriptSnapshot", threadId, messages: page.messages, hasMore: Boolean(page.hasMore), activeLeafId: page.activeLeafId, ...start });
+  }, [dispatch]);
+
+  const read = useCallback((threadId: string): Promise<void> | null => {
+    const start = fence(threadId);
+    if (!start) return null;
     const startedEpoch = epoch.current;
-    const generation = current.current.transcriptGeneration[threadId] ?? 0;
     const key = `${startedEpoch}:${threadId}`;
     let pending = reads.current.get(key);
     if (!pending) {
       const controller = new AbortController();
-      const heldAtStart = owner.messages;
-      const leafAtStart = "activeLeafId" in owner ? owner.activeLeafId : undefined;
-      const result = api<{ messages: Message[]; hasMore?: boolean; activeLeafId?: string | null }>(
-        `/api/threads/${threadId}/messages?limit=${pageSize}`, { signal: controller.signal, timeoutMs: 30_000 },
-      ).then((page) => {
-        if (!Array.isArray(page.messages)) throw new Error("Invalid conversation snapshot");
-        if (mounted.current && epoch.current === startedEpoch) dispatch({
-          type: "transcriptSnapshot", threadId, messages: page.messages, hasMore: Boolean(page.hasMore),
-          activeLeafId: page.activeLeafId, generation, heldAtStart, leafAtStart,
-        });
-      }).finally(() => { if (reads.current.get(key)?.result === result) reads.current.delete(key); });
+      const result = api<Page>(`/api/threads/${threadId}/messages?limit=${pageSize}`, { signal: controller.signal, timeoutMs: 30_000 })
+        .then((page) => { if (mounted.current && epoch.current === startedEpoch) deliver(threadId, page, start); })
+        .finally(() => { if (reads.current.get(key)?.result === result) reads.current.delete(key); });
       pending = { controller, result };
       reads.current.set(key, pending);
     }
     return pending.result;
-  }, [dispatch, pageSize]);
+  }, [deliver, pageSize]);
 
   const selected = state.bots.find((bot) => bot.id === state.selectedId) ?? state.groups.find((group) => group.id === state.selectedId);
   const threadId = selected?.threadId;
@@ -87,18 +87,38 @@ export function useSelectedTranscript(state: AppState, dispatch: Dispatch<Action
     return () => { stopped = true; clearTimeout(retry); };
   }, [state.hydrated, state.activeView, state.selectedId, state.transcriptGeneration, threadId, missing, read, dispatch]);
 
-  // the background reads wait for the open conversation; one that fails is left for when it is opened
-  const queue = state.hydrated && !missing ? prefetchOrder(state).join("\n") : "";
+  // one read for every conversation still without a current transcript; a conversation already asked for in this
+  // snapshot's read is not asked for again, and a failed read is tried again a moment later
+  const asked = useRef({ epoch: -1, threads: new Set<string>() });
+  const [retry, setRetry] = useState(0);
+  const missingThreads = state.hydrated ? threadsNeedingPages(state).join(",") : "";
   useEffect(() => {
-    if (!queue) return;
-    let stopped = false;
-    const timer = setTimeout(async () => {
-      for (const next of queue.split("\n")) {
-        if (stopped) return;
-        await read(next)?.catch(() => {});
-      }
-    }, PREFETCH_DELAY_MS);
-    return () => { stopped = true; clearTimeout(timer); };
-  }, [queue, read]);
+    if (!missingThreads) return;
+    if (asked.current.epoch !== epoch.current) asked.current = { epoch: epoch.current, threads: new Set() };
+    const wanted = missingThreads.split(",").filter((threadId) => !asked.current.threads.has(threadId));
+    if (!wanted.length) return;
+    for (const threadId of wanted) asked.current.threads.add(threadId);
+    const starts = new Map(wanted.flatMap((threadId) => { const start = fence(threadId); return start ? [[threadId, start] as const] : []; }));
+    const startedEpoch = epoch.current;
+    const controller = new AbortController();
+    const key = `${startedEpoch}:bulk:${wanted.join(",")}`;
+    const named = wanted.length <= NAMED_THREADS ? `&threads=${wanted.join(",")}` : "";
+    const result = api<{ threads: Array<Page & { threadId: string }> }>(`/api/transcripts?limit=${BULK_PAGE}${named}`, { signal: controller.signal, timeoutMs: 60_000 })
+      .then(({ threads }) => {
+        if (!mounted.current || epoch.current !== startedEpoch || !Array.isArray(threads)) return;
+        for (const page of threads) {
+          const start = starts.get(page.threadId);
+          if (start) deliver(page.threadId, page, start);
+        }
+      })
+      .catch(() => {
+        if (!mounted.current || epoch.current !== startedEpoch) return;
+        for (const threadId of wanted) asked.current.threads.delete(threadId);
+        setTimeout(() => setRetry((count) => count + 1), BULK_RETRY_MS);
+      })
+      .finally(() => { if (reads.current.get(key)?.result === result) reads.current.delete(key); });
+    reads.current.set(key, { controller, result });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fence reads the latest state through a ref
+  }, [missingThreads, retry, deliver]);
   return invalidate;
 }

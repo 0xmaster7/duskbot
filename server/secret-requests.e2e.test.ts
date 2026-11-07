@@ -153,7 +153,7 @@ it("keeps a file secret and a ref secret out of every record, and the bot uses e
     expect((await api("POST", `/api/bots/${bot.id}/messages`, { text: "Set up Stripe test charges and Notion's MCP." })).status).toBe(202);
   });
   const listed = (await tools.list()).tools.find((tool: any) => tool.name === "request_credential");
-  expect(Object.keys(listed.inputSchema.properties)).toEqual(["credential_id", "address", "label", "reason", "placeholder", "delivery"]);
+  expect(Object.keys(listed.inputSchema.properties)).toEqual(["credential_id", "address", "site", "label", "reason", "placeholder", "delivery"]);
   expect(listed.inputSchema.properties.credential_id.enum).toEqual(expect.arrayContaining(["composioApiKey", "openaiApiKey", "anthropicApiKey"]));
   const cards = async () => (await api("GET", `/api/threads/${bot.threadId}/messages`)).body.messages.filter((message: any) => message.kind === "secret");
   // Through a relay the app seals the value for this server first: the request never carries it in the clear.

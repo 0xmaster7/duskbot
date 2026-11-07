@@ -449,6 +449,9 @@ export type CardAnswerer = (
 /** Opens every compaction summary written without a model (recent excerpts only); the chat labels stored records by it. */
 export const EXCERPT_SUMMARY_HEADER = "Historical excerpts in chronological order; newer corrections override older requests. These excerpts may omit earlier details.";
 
+/** A picture's laid-out size in CSS pixels at 1x (EXIF orientation applied). */
+export interface MediaSize { w: number; h: number }
+
 /** One transcript line, serialized as stored. */
 export interface WireMessage extends HelperIntroField, SetupCardFields, WaitLineField, BugReportField {
   roomRequest?: { id: string; phase: "request" | "result" }; handoff?: import("./handoff-line.ts").HandoffLine;
@@ -473,6 +476,10 @@ export interface WireMessage extends HelperIntroField, SetupCardFields, WaitLine
      * collapsed transcript, never as message body, and the model's replay folds it back after `text`. */
     | { kind: "audio"; path: string; mime: string; durationMs?: number; text?: string }
   >;
+  /** Pixel sizes of the stored pictures this message shows, by stored file name (an image attachment's or an
+   * attached-image line's basename), so clients reserve each picture's box before its bytes arrive. A name missing
+   * here has no known size yet. */
+  media?: Record<string, MediaSize>;
   card?: OptionCardData;
   /** widget rows (kind "widget"): a bot-authored UI tree. `text` is its
    * readable fallback for clients that do not know the kind. */
@@ -740,7 +747,9 @@ export interface SecretRequestCardData {
   description: string;
   placeholder: string;
   helpUrl: string;
-  /** A custom secret's use: "ref", OpenMausBot's own tools only; "file", the bot's commands; "email", the Email connector, never a bot. */ delivery?: SecretDelivery | "email";
+  /** A custom secret's use: "ref", OpenMausBot's own tools only; "file", the bot's commands; "email", the Email connector, never a bot;
+   * "login", a website login fill_login types for the bot, which never receives it. */ delivery?: SecretDelivery | "email" | "login";
+  /** A login card: the site it fills on (a login page's host, or the domain the bot named). */ site?: string;
   /** An email card: the mailbox it is for, when known; off a phone the person can change it on the card. */ address?: string;
   /** A custom secret: the bot's own words on why; `description` adds what the bot may do with it, and helpUrl is empty. */
   reason?: string;

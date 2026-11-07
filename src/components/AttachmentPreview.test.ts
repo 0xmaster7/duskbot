@@ -97,7 +97,9 @@ describe("attachment preview surfaces", () => {
       }],
     }));
 
-    expect(html).toContain("aspect-[4/3]");
+    expect(html).toContain("aspect-ratio:1.3333333333333333");
+    expect(html).toContain("data-reserved=\"default\"");
+    expect(html).toContain("object-contain");
     expect(html).toContain("Loading Launch artwork.png");
     expect(html).toContain("Preview attached image Launch artwork.png");
     expect(html).toContain("/api/attachments/123e4567-e89b-12d3-a456-426614174000.png");

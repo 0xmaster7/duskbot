@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { botUnreadCount, showBrowserUnread, titleWithUnread } from "./bot-unread";
+import { botShowsUnread, botUnreadCount, showBrowserUnread, titleWithUnread } from "./bot-unread";
 
 describe("what one bot adds to the unread count", () => {
   it("adds one while it shows unread, and nothing once read, as it always did", () => {
@@ -14,6 +14,22 @@ describe("what one bot adds to the unread count", () => {
     expect(botUnreadCount({ tasks: [{ unread: false, openAsks: 2 }] })).toBe(2);
     expect(botUnreadCount({ tasks: [{ unread: true, openAsks: 1 }] })).toBe(1);
     expect(botUnreadCount({ tasks: [{ unread: false }] }), "all settled").toBe(0);
+  });
+});
+
+describe("a bot's unread dot", () => {
+  const bot = (main: boolean, work: boolean, threadId = "main") => ({ threadId, mainThreadId: "main", unread: main || work,
+    tasks: [{ threadId: "main", unread: main }, { threadId: "work", unread: work }] });
+
+  it("is about the one conversation its chat shows, its main thread, so opening that chat clears it", () => {
+    expect(botShowsUnread(bot(true, false))).toBe(true);
+    expect(botShowsUnread(bot(false, true)), "an unread line in a thread the person cannot see").toBe(false);
+    expect(botShowsUnread(bot(false, true, "work")), "while another thread is current").toBe(false);
+  });
+
+  it("falls back to its current thread, then to any thread, when it names no main one", () => {
+    expect(botShowsUnread({ threadId: "work", tasks: [{ threadId: "main", unread: true }, { threadId: "work", unread: false }] })).toBe(false);
+    expect(botShowsUnread({ tasks: [{ threadId: "main", unread: true }] })).toBe(true);
   });
 });
 

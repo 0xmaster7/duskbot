@@ -13,8 +13,8 @@ const dispatch = vi.fn();
 const bot = { id: "one", threadId: "thread", computer: "cloud", tasks: [] } as unknown as Bot;
 const host = document.createElement("div");
 let root = createRoot(host);
-function Probe(props: { selected?: Bot; open?: boolean; settings?: boolean; target?: string }) {
-  useComputerPanelActivity({ bot: props.selected ?? bot, active: true, settingsOpen: props.settings ?? false, computerOpen: props.open ?? false, targetKey: props.target, dispatch });
+function Probe(props: { selected?: Bot; settings?: boolean; target?: string }) {
+  useComputerPanelActivity({ bot: props.selected ?? bot, active: true, settingsOpen: props.settings ?? false, targetKey: props.target, dispatch });
   return null;
 }
 function draw(props: Parameters<typeof Probe>[0] = {}) { flushSync(() => root.render(createElement(Probe, props))); }
@@ -29,7 +29,7 @@ it("opens the selected bot's active desktop once per wake cycle without reopenin
   expect(dispatch).not.toHaveBeenCalled();
   state("one", "starting");
   expect(dispatch).toHaveBeenCalledWith({ type: "toggleComputer", open: true });
-  draw({ open: true });
+  draw({ settings: true });
   draw();
   state("one", "ready");
   expect(dispatch).toHaveBeenCalledTimes(1);

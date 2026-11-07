@@ -62,8 +62,8 @@ const derived = { activeState: "idle", patch: vi.fn(), botRoutines: [] } as neve
 let host: HTMLDivElement;
 let root: Root;
 // The panel sits inside BotSettingsDialog's <aside role="dialog">, as it does in the app.
-const render = (linkedSection: BotSettingsSection | null) =>
-  flushSync(() => root.render(createElement("aside", { role: "dialog" }, createElement(BotPanel, { bot, derived, linkedSection, onClose }))));
+const render = (linkedSection: BotSettingsSection | null, computerRequest = 0) =>
+  flushSync(() => root.render(createElement("aside", { role: "dialog" }, createElement(BotPanel, { bot, derived, linkedSection, computerRequest, onClose }))));
 // Passive effects and the renders they schedule.
 const settle = async () => {
   for (let i = 0; i < 3; i++) await new Promise((resolve) => setTimeout(resolve, 0));
@@ -131,6 +131,22 @@ describe("named links into the bot panel", () => {
     flushSync(() => openBotSettings(fixture.dispatch, "access"));
     await settle();
     expect(asked()).toBe("where");
+  });
+
+  it("lands on the Computer tab each time the bot's computer is asked for, even when already open", async () => {
+    render(null);
+    await settle();
+    expect(tab()).toBe("details");
+    render(null, 1);
+    await settle();
+    expect(tab()).toBe("computer");
+    click(host.querySelector('[data-panel-tab="details"]'));
+    render(null, 1);
+    await settle();
+    expect(tab()).toBe("details");
+    render(null, 2);
+    await settle();
+    expect(tab()).toBe("computer");
   });
 
   it("follows the same link again after the panel has moved on", async () => {
@@ -273,7 +289,7 @@ describe("the chat header's pill", () => {
       expect(button.getAttribute("aria-expanded")).toBe("false");
       expect(button.hasAttribute("aria-controls")).toBe(false);
       expect(header.querySelector("[data-chathead-chevron]")).toBeNull();
-      expect(header.querySelector("[data-chathead-elsewhere]")!.getAttribute("aria-label")).toBe("Other activity (1)");
+      expect(header.querySelector("[data-chathead-elsewhere]")).toBeNull();
       click(button);
       expect(onToggle).toHaveBeenCalledOnce();
     } finally {
@@ -313,7 +329,7 @@ describe("the chat header's pill", () => {
     }
   });
 
-  it("has no dot when the other conversations are quiet, and says who can read a team chat", () => {
+  it("says who can read a team chat", () => {
     const quiet = pill({ bot: { ...withTasks, tasks: withTasks.tasks!.map((task) => ({ ...task, unread: false })) }, privacy: { kind: "private" } });
     try {
       expect(quiet.header.querySelector("[data-chathead-elsewhere]")).toBeNull();

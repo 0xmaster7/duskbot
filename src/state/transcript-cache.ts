@@ -10,8 +10,8 @@ export interface CachedTranscript {
   savedAt: number;
 }
 
-export const CACHED_THREADS = 30;
-export const CACHED_BYTES = 8 * 1024 * 1024;
+export const CACHED_THREADS = 200;
+export const CACHED_BYTES = 32 * 1024 * 1024;
 export const CACHED_THREAD_BYTES = 512 * 1024;
 export const CACHED_MESSAGES = 200;
 const CACHED_TOOL_OUTPUT = 1_000;

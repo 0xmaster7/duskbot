@@ -40,7 +40,7 @@
 //     sleeps, or holds a loopback TCP connection, as the call's command would
 //   FAKE_CLAUDE_TOOL_CALLS_FILE  path of the same JSON, read again each turn (a warm process's turns differ); missing: none
 //   FAKE_CLAUDE_STREAM_CADENCE  "chars:ms" (happy mode): stream each scripted reply as
-//     text_delta chunks of `chars` chars every `ms` ms before its assistant message
+//     text_delta chunks of `chars` chars every `ms` ms before its assistant message, after FAKE_CLAUDE_TOOL_CALLS_FILE's calls
 //   FAKE_CLAUDE_USES_CLOUD_COMPUTER  1: claim the mounted computer's control gate before continuing
 //   FAKE_CLAUDE_CONNECT_APPS  toolkits (gmail,slack): first call COMPOSIO_MANAGE_CONNECTIONS via `composio`
 //   FAKE_CLAUDE_HOOKS  1: run the --settings hooks like the CLI (PostToolUse per tool_result, PostToolUseFailure for
@@ -1140,6 +1140,11 @@ const playTurn = (prompt: JsonValue, late = false) => {
     // Deterministic delta replay for the voice-latency harness: stream each
     // scripted reply part as fixed-size text_delta chunks at a fixed interval,
     // then the assistant message (the driver dedups the streamed text).
+    for (const call of process.env.FAKE_CLAUDE_TOOL_CALLS_FILE ? turnToolCalls() ?? [] : []) {
+      const id = call.id ?? `tu-${process.pid}-${++toolUseCount}`;
+      out({ type: "assistant", message: { content: [{ type: "tool_use", id, name: call.name, input: call.input }], usage } });
+      out({ type: "user", message: { content: [{ type: "tool_result", tool_use_id: id, is_error: !call.ok, content: call.output }] } });
+    }
     const emitPart = (part: number) => {
       const text = replyParts[part] ?? "";
       let at = 0;

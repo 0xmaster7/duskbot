@@ -67,10 +67,10 @@ export function GuidedTour() {
     (effect: TourEffect | undefined) => {
       switch (effect) {
         case "openComputer":
-          if (!state.computerOpen) dispatch({ type: "toggleComputer", open: true });
+          dispatch({ type: "toggleComputer", open: true });
           return;
         case "closeComputer":
-          dispatch({ type: "toggleComputer", open: false });
+          dispatch({ type: "toggleSettings", open: false });
           return;
         case "openTools": {
           const trigger = visible("tools");
@@ -93,7 +93,7 @@ export function GuidedTour() {
           return;
       }
     },
-    [dispatch, state.computerOpen],
+    [dispatch],
   );
 
   const save = useCallback(
@@ -132,12 +132,11 @@ export function GuidedTour() {
     if (closed.current) return;
     closed.current = true;
     setDismissed(true);
-    if (state.computerOpen) run("closeComputer");
     if (state.pluginsOpen) run("closeApps");
     run("backToChat");
     void save(true).catch(() => {});
     dispatch({ type: "toggleTour", open: false });
-  }, [state.computerOpen, state.pluginsOpen, run, save, dispatch]);
+  }, [state.pluginsOpen, run, save, dispatch]);
 
   // Only ever started from Settings (Replay app tour): the welcome no longer hands over to it, now or after a reload.
   const active = !dismissed && state.tourOpen && Boolean(record?.completedAt) && !state.welcomeOpen && step !== null;
