@@ -163,8 +163,8 @@ export function installVpsLink(deps) {
     },
     relaunch: deps.relaunch,
     dataSize: async () => { const dir = deps.dataDir(); return dir ? folderSize(dir) : null; },
-    // the direct path to a relay-linked server (vps-link-direct.mjs); OMB_LINK_DIRECT=off keeps every link on the relay
-    ...(process.env.OMB_LINK_DIRECT === "off" ? {} : { direct: { newKey: newDirectKey, connector: sshConnector } }),
+    // the direct path to a relay-linked server (vps-link-direct.mjs) is opt-in: OMB_LINK_DIRECT=on
+    ...(process.env.OMB_LINK_DIRECT === "on" ? { direct: { newKey: newDirectKey, connector: sshConnector } } : {}),
     onChange: (view) => deps.tell(view),
     log,
   });

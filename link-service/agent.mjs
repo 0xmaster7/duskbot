@@ -832,7 +832,7 @@ export function publicAddress({ servers = STUN, timeoutMs = 2500 } = {}) {
 }
 
 async function directKey(data, context) {
-  if (process.env.OMB_LINK_DIRECT === "off") throw new Error("direct links are off on this server");
+  if (process.env.OMB_LINK_DIRECT !== "on") throw new Error("direct links are off on this server");
   const line = directKeyLine({ pub: data?.pub, id: context.id });
   const keys = hostKeys();
   if (!keys.length) throw new Error("this server's ssh keys could not be read");
