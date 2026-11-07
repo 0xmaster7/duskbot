@@ -3184,7 +3184,7 @@
   "settings.vps.minutes": "{minutes} minutes",
   "settings.vps.saveFailed": "Could not save VPS settings.",
   "settings.vps.independentScreens": "Independent bot screens",
-  "settings.vps.independentScreensHint": "Shared files, separate screens and browser sign-ins. Screens start when needed.",
+  "settings.vps.independentScreensHint": "Shared files, separate screens and browser sign-ins. Screens start when needed. Bots on this computer can still reach each other's screens and sign-ins, so it is not private between them.",
   "settings.vps.maxScreens": "Simultaneous screens",
   "settings.vps.maxScreensHint": "Active browsers use more memory. Bots wait when every screen is busy.",
   "settings.w6a.vps.notSetUp": "Not set up",

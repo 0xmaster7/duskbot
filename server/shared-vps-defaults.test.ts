@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { DATA_DIR, loadConfig, mergeVpsConfig, normalizeVpsConfig, parseConfigPatch, parseStoredConfig, saveConfig } from "./config.ts";
 import type { JsonValue } from "./schema.ts";
-import { sharedVpsDefaults, vpsIdleTimeoutMinutes } from "./shared-vps-defaults.ts";
+import { initialVpsMode, sharedVpsDefaults, vpsIdleTimeoutMinutes } from "./shared-vps-defaults.ts";
 
 const personal = { cloudTeam: false, hostedWorkspace: false, sharedMembership: false };
 const path = join(DATA_DIR, "config.json");
@@ -72,4 +72,23 @@ describe("VPS preferences and existing host configuration", () => {
     expect(sharedVpsDefaults(loaded, personal)).toMatchObject({ independentScreens: false, maxScreens: 15, idleTimeoutMinutes: 5 });
   });
 
+});
+
+describe("the first mode this version saves", () => {
+  const evidence = { vpsConfigured: true, botsOnOwnComputers: true, workspaceComputerInUse: false };
+  it("keeps an upgraded VPS with bots on their own computers per-bot", () => {
+    expect(initialVpsMode({ vps: { sshAlias: "existing-vps" } }, evidence)).toBe("per-bot");
+  });
+  it.each([
+    { vpsConfigured: false, botsOnOwnComputers: true, workspaceComputerInUse: false },
+    { vpsConfigured: true, botsOnOwnComputers: false, workspaceComputerInUse: false },
+    { vpsConfigured: false, botsOnOwnComputers: false, workspaceComputerInUse: false },
+    { vpsConfigured: true, botsOnOwnComputers: true, workspaceComputerInUse: true },
+  ])("gives a fresh install, or one already on the workspace computer, the shared default: %o", (fresh) => {
+    expect(initialVpsMode({}, fresh)).toBe("shared");
+  });
+  it.each(["shared", "per-bot"] as const)("never overrides a saved %s choice", (mode) => {
+    expect(initialVpsMode({ vps: { sshAlias: "existing-vps", mode } }, evidence)).toBeUndefined();
+    expect(initialVpsMode({ vps: { mode } }, { ...evidence, vpsConfigured: false })).toBeUndefined();
+  });
 });
