@@ -32,8 +32,8 @@ describe("vm_exec on a VPS desktop", () => {
     const runner = vi.fn<VpsCommandRunner>().mockRejectedValue(new Error("Error response from daemon: container abc is not running"));
     await expect(vpsContainerExec("workspace-vps", id, "ls", { runner })).rejects.toMatchObject({ status: 502, message: expect.stringContaining("select_computer with surface cloud") });
     runner.mockRejectedValue(new Error("ssh: secret-host refused"));
-    const failure = await vpsContainerExec("workspace-vps", id, "ls", { runner }).catch((error: Error) => error);
-    expect(failure.message).not.toContain("secret-host");
+    const failure: unknown = await vpsContainerExec("workspace-vps", id, "ls", { runner }).catch((error: unknown) => error);
+    expect(String((failure as Error).message)).not.toContain("secret-host");
   });
   it("never claims a result whose marker was lost", async () => {
     const runner = vi.fn<VpsCommandRunner>().mockResolvedValue({ stdout: "", stderr: "" });
