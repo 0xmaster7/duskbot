@@ -2961,7 +2961,16 @@
       "linkDirect.direct": "4e256420181f1d246eeef531f4964befc6794aa53338033bd1341a026206e489",
       "linkDirect.relay": "7f00f53144234d18bf167e25053352d5da1de555cbc49eb78281517f8a14302c",
       "linkDirect.off": "e32c3b25de65d00bec2f4bb1e5ad5d0e6af4ea93833fa4839b2ed16b9b49b05e",
-      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f"
+      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f",
+      "macControl.title": "1633d0551aff443c5702892f46733acafc000109530fb5da689bb51a593ff80c",
+      "macControl.hint": "59728c4e8c0f7856c7ca7bf85c0ba2b4bf3253e0505aca17558a73d5078b5398",
+      "macControl.online": "e15ea2bf02886390c0d4544a3d46d585ec2d7b073f55307c395d4264602d3ef6",
+      "macControl.offline": "4206d58e25021ff144e5df0a0c760d5ff3c5351ad29ccf687fc995df798431d4",
+      "macControl.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
+      "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
+      "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -8348,7 +8357,16 @@
       "linkDirect.direct": "4e256420181f1d246eeef531f4964befc6794aa53338033bd1341a026206e489",
       "linkDirect.relay": "7f00f53144234d18bf167e25053352d5da1de555cbc49eb78281517f8a14302c",
       "linkDirect.off": "e32c3b25de65d00bec2f4bb1e5ad5d0e6af4ea93833fa4839b2ed16b9b49b05e",
-      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f"
+      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f",
+      "macControl.title": "1633d0551aff443c5702892f46733acafc000109530fb5da689bb51a593ff80c",
+      "macControl.hint": "59728c4e8c0f7856c7ca7bf85c0ba2b4bf3253e0505aca17558a73d5078b5398",
+      "macControl.online": "e15ea2bf02886390c0d4544a3d46d585ec2d7b073f55307c395d4264602d3ef6",
+      "macControl.offline": "4206d58e25021ff144e5df0a0c760d5ff3c5351ad29ccf687fc995df798431d4",
+      "macControl.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
+      "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
+      "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -11233,7 +11251,16 @@
       "linkDirect.direct": "4e256420181f1d246eeef531f4964befc6794aa53338033bd1341a026206e489",
       "linkDirect.relay": "7f00f53144234d18bf167e25053352d5da1de555cbc49eb78281517f8a14302c",
       "linkDirect.off": "e32c3b25de65d00bec2f4bb1e5ad5d0e6af4ea93833fa4839b2ed16b9b49b05e",
-      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f"
+      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f",
+      "macControl.title": "1633d0551aff443c5702892f46733acafc000109530fb5da689bb51a593ff80c",
+      "macControl.hint": "59728c4e8c0f7856c7ca7bf85c0ba2b4bf3253e0505aca17558a73d5078b5398",
+      "macControl.online": "e15ea2bf02886390c0d4544a3d46d585ec2d7b073f55307c395d4264602d3ef6",
+      "macControl.offline": "4206d58e25021ff144e5df0a0c760d5ff3c5351ad29ccf687fc995df798431d4",
+      "macControl.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
+      "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
+      "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -14114,7 +14141,16 @@
       "linkDirect.direct": "4e256420181f1d246eeef531f4964befc6794aa53338033bd1341a026206e489",
       "linkDirect.relay": "7f00f53144234d18bf167e25053352d5da1de555cbc49eb78281517f8a14302c",
       "linkDirect.off": "e32c3b25de65d00bec2f4bb1e5ad5d0e6af4ea93833fa4839b2ed16b9b49b05e",
-      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f"
+      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f",
+      "macControl.title": "1633d0551aff443c5702892f46733acafc000109530fb5da689bb51a593ff80c",
+      "macControl.hint": "59728c4e8c0f7856c7ca7bf85c0ba2b4bf3253e0505aca17558a73d5078b5398",
+      "macControl.online": "e15ea2bf02886390c0d4544a3d46d585ec2d7b073f55307c395d4264602d3ef6",
+      "macControl.offline": "4206d58e25021ff144e5df0a0c760d5ff3c5351ad29ccf687fc995df798431d4",
+      "macControl.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
+      "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
+      "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -20106,7 +20142,16 @@
       "linkDirect.direct": "4e256420181f1d246eeef531f4964befc6794aa53338033bd1341a026206e489",
       "linkDirect.relay": "7f00f53144234d18bf167e25053352d5da1de555cbc49eb78281517f8a14302c",
       "linkDirect.off": "e32c3b25de65d00bec2f4bb1e5ad5d0e6af4ea93833fa4839b2ed16b9b49b05e",
-      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f"
+      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f",
+      "macControl.title": "1633d0551aff443c5702892f46733acafc000109530fb5da689bb51a593ff80c",
+      "macControl.hint": "59728c4e8c0f7856c7ca7bf85c0ba2b4bf3253e0505aca17558a73d5078b5398",
+      "macControl.online": "e15ea2bf02886390c0d4544a3d46d585ec2d7b073f55307c395d4264602d3ef6",
+      "macControl.offline": "4206d58e25021ff144e5df0a0c760d5ff3c5351ad29ccf687fc995df798431d4",
+      "macControl.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
+      "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
+      "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -25940,7 +25985,16 @@
       "linkDirect.direct": "4e256420181f1d246eeef531f4964befc6794aa53338033bd1341a026206e489",
       "linkDirect.relay": "7f00f53144234d18bf167e25053352d5da1de555cbc49eb78281517f8a14302c",
       "linkDirect.off": "e32c3b25de65d00bec2f4bb1e5ad5d0e6af4ea93833fa4839b2ed16b9b49b05e",
-      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f"
+      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f",
+      "macControl.title": "1633d0551aff443c5702892f46733acafc000109530fb5da689bb51a593ff80c",
+      "macControl.hint": "59728c4e8c0f7856c7ca7bf85c0ba2b4bf3253e0505aca17558a73d5078b5398",
+      "macControl.online": "e15ea2bf02886390c0d4544a3d46d585ec2d7b073f55307c395d4264602d3ef6",
+      "macControl.offline": "4206d58e25021ff144e5df0a0c760d5ff3c5351ad29ccf687fc995df798431d4",
+      "macControl.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
+      "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
+      "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -32535,7 +32589,16 @@
       "linkDirect.direct": "4e256420181f1d246eeef531f4964befc6794aa53338033bd1341a026206e489",
       "linkDirect.relay": "7f00f53144234d18bf167e25053352d5da1de555cbc49eb78281517f8a14302c",
       "linkDirect.off": "e32c3b25de65d00bec2f4bb1e5ad5d0e6af4ea93833fa4839b2ed16b9b49b05e",
-      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f"
+      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f",
+      "macControl.title": "1633d0551aff443c5702892f46733acafc000109530fb5da689bb51a593ff80c",
+      "macControl.hint": "59728c4e8c0f7856c7ca7bf85c0ba2b4bf3253e0505aca17558a73d5078b5398",
+      "macControl.online": "e15ea2bf02886390c0d4544a3d46d585ec2d7b073f55307c395d4264602d3ef6",
+      "macControl.offline": "4206d58e25021ff144e5df0a0c760d5ff3c5351ad29ccf687fc995df798431d4",
+      "macControl.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
+      "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
+      "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -36990,7 +37053,16 @@
       "linkDirect.direct": "4e256420181f1d246eeef531f4964befc6794aa53338033bd1341a026206e489",
       "linkDirect.relay": "7f00f53144234d18bf167e25053352d5da1de555cbc49eb78281517f8a14302c",
       "linkDirect.off": "e32c3b25de65d00bec2f4bb1e5ad5d0e6af4ea93833fa4839b2ed16b9b49b05e",
-      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f"
+      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f",
+      "macControl.title": "1633d0551aff443c5702892f46733acafc000109530fb5da689bb51a593ff80c",
+      "macControl.hint": "59728c4e8c0f7856c7ca7bf85c0ba2b4bf3253e0505aca17558a73d5078b5398",
+      "macControl.online": "e15ea2bf02886390c0d4544a3d46d585ec2d7b073f55307c395d4264602d3ef6",
+      "macControl.offline": "4206d58e25021ff144e5df0a0c760d5ff3c5351ad29ccf687fc995df798431d4",
+      "macControl.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
+      "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
+      "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -40259,7 +40331,16 @@
       "linkDirect.direct": "4e256420181f1d246eeef531f4964befc6794aa53338033bd1341a026206e489",
       "linkDirect.relay": "7f00f53144234d18bf167e25053352d5da1de555cbc49eb78281517f8a14302c",
       "linkDirect.off": "e32c3b25de65d00bec2f4bb1e5ad5d0e6af4ea93833fa4839b2ed16b9b49b05e",
-      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f"
+      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f",
+      "macControl.title": "1633d0551aff443c5702892f46733acafc000109530fb5da689bb51a593ff80c",
+      "macControl.hint": "59728c4e8c0f7856c7ca7bf85c0ba2b4bf3253e0505aca17558a73d5078b5398",
+      "macControl.online": "e15ea2bf02886390c0d4544a3d46d585ec2d7b073f55307c395d4264602d3ef6",
+      "macControl.offline": "4206d58e25021ff144e5df0a0c760d5ff3c5351ad29ccf687fc995df798431d4",
+      "macControl.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
+      "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
+      "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -45168,7 +45249,16 @@
       "linkDirect.direct": "4e256420181f1d246eeef531f4964befc6794aa53338033bd1341a026206e489",
       "linkDirect.relay": "7f00f53144234d18bf167e25053352d5da1de555cbc49eb78281517f8a14302c",
       "linkDirect.off": "e32c3b25de65d00bec2f4bb1e5ad5d0e6af4ea93833fa4839b2ed16b9b49b05e",
-      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f"
+      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f",
+      "macControl.title": "1633d0551aff443c5702892f46733acafc000109530fb5da689bb51a593ff80c",
+      "macControl.hint": "59728c4e8c0f7856c7ca7bf85c0ba2b4bf3253e0505aca17558a73d5078b5398",
+      "macControl.online": "e15ea2bf02886390c0d4544a3d46d585ec2d7b073f55307c395d4264602d3ef6",
+      "macControl.offline": "4206d58e25021ff144e5df0a0c760d5ff3c5351ad29ccf687fc995df798431d4",
+      "macControl.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
+      "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
+      "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -50077,7 +50167,16 @@
       "linkDirect.direct": "4e256420181f1d246eeef531f4964befc6794aa53338033bd1341a026206e489",
       "linkDirect.relay": "7f00f53144234d18bf167e25053352d5da1de555cbc49eb78281517f8a14302c",
       "linkDirect.off": "e32c3b25de65d00bec2f4bb1e5ad5d0e6af4ea93833fa4839b2ed16b9b49b05e",
-      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f"
+      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f",
+      "macControl.title": "1633d0551aff443c5702892f46733acafc000109530fb5da689bb51a593ff80c",
+      "macControl.hint": "59728c4e8c0f7856c7ca7bf85c0ba2b4bf3253e0505aca17558a73d5078b5398",
+      "macControl.online": "e15ea2bf02886390c0d4544a3d46d585ec2d7b073f55307c395d4264602d3ef6",
+      "macControl.offline": "4206d58e25021ff144e5df0a0c760d5ff3c5351ad29ccf687fc995df798431d4",
+      "macControl.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
+      "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
+      "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -56037,7 +56136,16 @@
       "linkDirect.direct": "4e256420181f1d246eeef531f4964befc6794aa53338033bd1341a026206e489",
       "linkDirect.relay": "7f00f53144234d18bf167e25053352d5da1de555cbc49eb78281517f8a14302c",
       "linkDirect.off": "e32c3b25de65d00bec2f4bb1e5ad5d0e6af4ea93833fa4839b2ed16b9b49b05e",
-      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f"
+      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f",
+      "macControl.title": "1633d0551aff443c5702892f46733acafc000109530fb5da689bb51a593ff80c",
+      "macControl.hint": "59728c4e8c0f7856c7ca7bf85c0ba2b4bf3253e0505aca17558a73d5078b5398",
+      "macControl.online": "e15ea2bf02886390c0d4544a3d46d585ec2d7b073f55307c395d4264602d3ef6",
+      "macControl.offline": "4206d58e25021ff144e5df0a0c760d5ff3c5351ad29ccf687fc995df798431d4",
+      "macControl.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
+      "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
+      "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -62011,7 +62119,16 @@
       "linkDirect.direct": "4e256420181f1d246eeef531f4964befc6794aa53338033bd1341a026206e489",
       "linkDirect.relay": "7f00f53144234d18bf167e25053352d5da1de555cbc49eb78281517f8a14302c",
       "linkDirect.off": "e32c3b25de65d00bec2f4bb1e5ad5d0e6af4ea93833fa4839b2ed16b9b49b05e",
-      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f"
+      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f",
+      "macControl.title": "1633d0551aff443c5702892f46733acafc000109530fb5da689bb51a593ff80c",
+      "macControl.hint": "59728c4e8c0f7856c7ca7bf85c0ba2b4bf3253e0505aca17558a73d5078b5398",
+      "macControl.online": "e15ea2bf02886390c0d4544a3d46d585ec2d7b073f55307c395d4264602d3ef6",
+      "macControl.offline": "4206d58e25021ff144e5df0a0c760d5ff3c5351ad29ccf687fc995df798431d4",
+      "macControl.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
+      "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
+      "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -67807,7 +67924,16 @@
       "linkDirect.direct": "4e256420181f1d246eeef531f4964befc6794aa53338033bd1341a026206e489",
       "linkDirect.relay": "7f00f53144234d18bf167e25053352d5da1de555cbc49eb78281517f8a14302c",
       "linkDirect.off": "e32c3b25de65d00bec2f4bb1e5ad5d0e6af4ea93833fa4839b2ed16b9b49b05e",
-      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f"
+      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f",
+      "macControl.title": "1633d0551aff443c5702892f46733acafc000109530fb5da689bb51a593ff80c",
+      "macControl.hint": "59728c4e8c0f7856c7ca7bf85c0ba2b4bf3253e0505aca17558a73d5078b5398",
+      "macControl.online": "e15ea2bf02886390c0d4544a3d46d585ec2d7b073f55307c395d4264602d3ef6",
+      "macControl.offline": "4206d58e25021ff144e5df0a0c760d5ff3c5351ad29ccf687fc995df798431d4",
+      "macControl.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
+      "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
+      "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -74221,7 +74347,16 @@
       "linkDirect.direct": "4e256420181f1d246eeef531f4964befc6794aa53338033bd1341a026206e489",
       "linkDirect.relay": "7f00f53144234d18bf167e25053352d5da1de555cbc49eb78281517f8a14302c",
       "linkDirect.off": "e32c3b25de65d00bec2f4bb1e5ad5d0e6af4ea93833fa4839b2ed16b9b49b05e",
-      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f"
+      "routeTraffic.notice": "0cc09e908f195eb237a72b4973595c9870de7a220b5c8e523cff994f48e5fb3f",
+      "macControl.title": "1633d0551aff443c5702892f46733acafc000109530fb5da689bb51a593ff80c",
+      "macControl.hint": "59728c4e8c0f7856c7ca7bf85c0ba2b4bf3253e0505aca17558a73d5078b5398",
+      "macControl.online": "e15ea2bf02886390c0d4544a3d46d585ec2d7b073f55307c395d4264602d3ef6",
+      "macControl.offline": "4206d58e25021ff144e5df0a0c760d5ff3c5351ad29ccf687fc995df798431d4",
+      "macControl.error": "660b102c659bccc3ad37c696a0f47c6957f2d904d9d7f0f6c030e8487a6b872f",
+      "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
+      "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
+      "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
     }
   }
 }

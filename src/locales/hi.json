@@ -2877,5 +2877,14 @@
   "routines.inline.check.mail": "नया मेल",
   "routines.inline.check.runs": "दूसरी रूटीन के नतीजे",
   "routines.inline.deleteConfirm": "“{name}” हटाएँ",
-  "routines.inline.open": "रूटीन खोलें"
+  "routines.inline.open": "रूटीन खोलें",
+  "macControl.title": "बॉट्स को अपना Mac इस्तेमाल करने दें",
+  "macControl.hint": "बंद। इस सर्वर के बॉट्स आपके Mac पर कमांड नहीं चला सकते, कुछ खोल नहीं सकते और फ़ाइलें सेव नहीं कर सकते।",
+  "macControl.online": "चालू। बॉट्स {name} पर कमांड चला सकते हैं, चीज़ें खोल सकते हैं और फ़ाइलें सेव कर सकते हैं। वे जो भी करते हैं, चैट में दिखता है।",
+  "macControl.offline": "चालू, लेकिन आपका Mac ऑफ़लाइन है। उस पर MausBot खोलें ताकि बॉट्स उसे इस्तेमाल कर सकें।",
+  "macControl.error": "यह सेव नहीं हुआ। फिर से कोशिश करें।",
+  "botAccess.mac.title": "अपना Mac इस्तेमाल करें",
+  "botAccess.mac.on": "{name} पर कमांड चला सकता है, ऐप्स खोल सकता है और फ़ाइलें सेव कर सकता है।",
+  "botAccess.mac.off": "इस बॉट के लिए बंद।",
+  "botAccess.mac.offEverywhere": "सेटिंग्स > कंप्यूटर में सभी बॉट्स के लिए बंद।"
 }

@@ -6591,5 +6591,14 @@
   "linkDirect.direct": "通过服务器的 SSH 端口直接连接。该端口被封锁时改用中继。",
   "linkDirect.relay": "目前走中继。服务器的 SSH 端口一响应就会自动改为直连。",
   "linkDirect.off": "所有流量都走中继。开启后通过 SSH 端口直接连接服务器，中继作为备用。",
-  "routeTraffic.notice": "你的电脑已离线，机器人电脑暂时使用服务器的网络。电脑上线后会自动切回。"
+  "routeTraffic.notice": "你的电脑已离线，机器人电脑暂时使用服务器的网络。电脑上线后会自动切回。",
+  "macControl.title": "允许机器人使用你的 Mac",
+  "macControl.hint": "关闭。此服务器上的机器人无法在你的 Mac 上运行命令、打开内容或保存文件。",
+  "macControl.online": "开启。机器人可以在 {name} 上运行命令、打开内容和保存文件。它们做的一切都会显示在聊天中。",
+  "macControl.offline": "已开启，但你的 Mac 处于离线状态。在 Mac 上打开 MausBot，机器人才能使用它。",
+  "macControl.error": "没有保存成功。请重试。",
+  "botAccess.mac.title": "使用你的 Mac",
+  "botAccess.mac.on": "可以在 {name} 上运行命令、打开应用和保存文件。",
+  "botAccess.mac.off": "此机器人已关闭。",
+  "botAccess.mac.offEverywhere": "已在 设置 > 电脑 中为所有机器人关闭。"
 }

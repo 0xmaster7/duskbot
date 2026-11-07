@@ -16,6 +16,7 @@ import { openAddVps } from "@/lib/vps-link";
 import { VpsComputersCard } from "./VpsComputersCard";
 import { DirectLinkRow } from "./DirectLinkRow";
 import { RouteTrafficRow } from "./RouteTrafficRow";
+import { MacControlRow } from "./MacControlRow";
 
 type Action = "pull" | "run" | "start" | "stop" | "remove" | "recreate";
 
@@ -858,6 +859,7 @@ export function LocalComputerSection() {
         <RowsCard label={t("settings.grok.group.yourComputer")} data-settings-block="private-desktop">
           <DirectLinkRow />
           <RouteTrafficRow />
+          <MacControlRow />
           <ItemRow
             title={t("settings.w6a.private.title")}
             hint={<span aria-live="polite">{loading

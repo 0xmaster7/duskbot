@@ -4905,5 +4905,14 @@
   "linkDirect.direct": "Thẳng tới máy chủ qua cổng SSH của nó. Chuyển sang relay khi cổng đó bị chặn.",
   "linkDirect.relay": "Đang dùng relay. Tự chuyển sang trực tiếp khi cổng SSH của máy chủ phản hồi.",
   "linkDirect.off": "Mọi thứ đi qua relay. Bật để kết nối thẳng tới máy chủ qua cổng SSH, relay làm dự phòng.",
-  "routeTraffic.notice": "Máy tính của bạn đang ngoại tuyến nên máy tính của bot tạm dùng mạng của máy chủ. Chúng sẽ quay lại khi máy trực tuyến."
+  "routeTraffic.notice": "Máy tính của bạn đang ngoại tuyến nên máy tính của bot tạm dùng mạng của máy chủ. Chúng sẽ quay lại khi máy trực tuyến.",
+  "macControl.title": "Cho phép bot dùng Mac của bạn",
+  "macControl.hint": "Tắt. Bot trên máy chủ này không thể chạy lệnh, mở thứ gì hay lưu tệp trên Mac của bạn.",
+  "macControl.online": "Bật. Bot có thể chạy lệnh, mở mọi thứ và lưu tệp trên {name}. Mọi việc chúng làm đều hiện trong cuộc trò chuyện.",
+  "macControl.offline": "Bật, nhưng Mac của bạn đang ngoại tuyến. Hãy mở MausBot trên Mac để bot có thể dùng nó.",
+  "macControl.error": "Chưa lưu được. Hãy thử lại.",
+  "botAccess.mac.title": "Dùng Mac của bạn",
+  "botAccess.mac.on": "Có thể chạy lệnh, mở ứng dụng và lưu tệp trên {name}.",
+  "botAccess.mac.off": "Đã tắt cho bot này.",
+  "botAccess.mac.offEverywhere": "Đã tắt cho mọi bot trong Cài đặt > Máy tính."
 }

@@ -4905,5 +4905,14 @@
   "linkDirect.direct": "Sunucuna SSH portu üzerinden doğrudan. O port engelliyse aktarıcıya geçer.",
   "linkDirect.relay": "Şu an aktarıcı üzerinden. Sunucunun SSH portu yanıt verince kendiliğinden doğrudana geçer.",
   "linkDirect.off": "Her şey aktarıcıdan geçiyor. Sunucuna SSH portu üzerinden doğrudan ulaşmak için aç, aktarıcı yedekte kalır.",
-  "routeTraffic.notice": "Bilgisayarın çevrimdışı, bu yüzden bot bilgisayarların şimdilik sunucunun ağını kullanıyor. Çevrimiçi olunca geri dönerler."
+  "routeTraffic.notice": "Bilgisayarın çevrimdışı, bu yüzden bot bilgisayarların şimdilik sunucunun ağını kullanıyor. Çevrimiçi olunca geri dönerler.",
+  "macControl.title": "Botların Mac'ini kullanmasına izin ver",
+  "macControl.hint": "Kapalı. Bu sunucudaki botlar Mac'inde komut çalıştıramaz, bir şey açamaz ve dosya kaydedemez.",
+  "macControl.online": "Açık. Botlar {name} üzerinde komut çalıştırabilir, bir şeyler açabilir ve dosya kaydedebilir. Yaptıkları her şey sohbette görünür.",
+  "macControl.offline": "Açık, ama Mac'in çevrimdışı. Botların kullanabilmesi için üzerinde MausBot'u aç.",
+  "macControl.error": "Kaydedilmedi. Tekrar dene.",
+  "botAccess.mac.title": "Mac'ini kullan",
+  "botAccess.mac.on": "{name} üzerinde komut çalıştırabilir, uygulama açabilir ve dosya kaydedebilir.",
+  "botAccess.mac.off": "Bu bot için kapalı.",
+  "botAccess.mac.offEverywhere": "Ayarlar > Bilgisayar bölümünde tüm botlar için kapalı."
 }

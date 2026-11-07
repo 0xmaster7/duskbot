@@ -2881,5 +2881,14 @@
   "routines.inline.check.mail": "les nouveaux e-mails",
   "routines.inline.check.runs": "les résultats d’autres routines",
   "routines.inline.deleteConfirm": "Supprimer « {name} »",
-  "routines.inline.open": "Ouvrir la routine"
+  "routines.inline.open": "Ouvrir la routine",
+  "macControl.title": "Laisser les bots utiliser ton Mac",
+  "macControl.hint": "Désactivé. Les bots de ce serveur ne peuvent ni lancer de commandes, ni ouvrir quoi que ce soit, ni enregistrer de fichiers sur ton Mac.",
+  "macControl.online": "Activé. Les bots peuvent lancer des commandes, ouvrir des choses et enregistrer des fichiers sur {name}. Tout ce qu'ils font s'affiche dans le chat.",
+  "macControl.offline": "Activé, mais ton Mac est hors ligne. Ouvre MausBot dessus pour que les bots puissent l'utiliser.",
+  "macControl.error": "Ça n'a pas été enregistré. Réessaie.",
+  "botAccess.mac.title": "Utiliser ton Mac",
+  "botAccess.mac.on": "Peut lancer des commandes, ouvrir des apps et enregistrer des fichiers sur {name}.",
+  "botAccess.mac.off": "Désactivé pour ce bot.",
+  "botAccess.mac.offEverywhere": "Désactivé pour tous les bots dans Réglages > Ordinateur."
 }
