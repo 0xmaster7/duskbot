@@ -281,7 +281,7 @@ function VideoAttachment({ file, message }: { file: GalleryFile; message: Messag
           </button>
         )}
         {(preview || loading || error) && (
-          <button type="button" aria-label={t("attach.closeVideo")} onClick={close} className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-panel/90 text-ink-secondary hover:bg-raised hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60">
+          <button type="button" aria-label={t("attach.closeVideo")} onClick={close} className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-panel/90 text-ink-secondary hover:bg-raised hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
             <X size={14} />
           </button>
         )}
@@ -373,7 +373,7 @@ function AudioAttachment({ file, message }: { file: GalleryFile; message: Messag
         {src ? <Music size={14} className="shrink-0 text-accent" aria-hidden="true" />
           : (
             <button type="button" disabled={loading} onClick={() => void load()} aria-label={t("attach.previewAudio", { name: file.name })}
-              className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent transition-colors hover:bg-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 disabled:cursor-wait">
+              className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent transition-colors hover:bg-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-wait">
               {loading ? <LoaderCircle size={14} className="animate-spin" /> : <Play size={13} fill="currentColor" />}
             </button>
           )}

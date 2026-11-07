@@ -92,7 +92,7 @@ export function RichTable({ columns, rows, name = t("table.title"), expanded = f
     <label className={className}>
       <Search size={13} aria-hidden="true" />
       <input value={query} onChange={(event) => setQuery(event.target.value)} aria-label={t("table.search")}
-        placeholder={t("table.search")} className="w-full min-w-0 bg-transparent py-1 text-xs text-ink outline-none placeholder:text-ink-tertiary focus-visible:ring-1 focus-visible:ring-accent" />
+        placeholder={t("table.search")} className="w-full min-w-0 bg-transparent py-1 text-xs text-ink outline-none placeholder:text-ink-tertiary focus-visible:ring-1 focus-visible:ring-focus" />
     </label>
   );
   const sortBy = (column: number) => setSort(sort?.column !== column ? { column, descending: false } : !sort.descending ? { column, descending: true } : null);

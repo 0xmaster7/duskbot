@@ -148,7 +148,7 @@ export const PinnedBotCircle = memo(function PinnedBotCircle({
           onMenu({ botId: bot.id, x: event.clientX, y: event.clientY });
         }}
         className={cn(
-          "flex w-full min-w-0 flex-col items-center gap-1 rounded-lg px-1 py-1 text-center outline-none focus-visible:ring-1 focus-visible:ring-accent/60",
+          "flex w-full min-w-0 flex-col items-center gap-1 rounded-lg px-1 py-1 text-center outline-none focus-visible:ring-1 focus-visible:ring-focus",
           pinnedCircleDragClass({ drag, dragging, drop }),
         )}
       >
