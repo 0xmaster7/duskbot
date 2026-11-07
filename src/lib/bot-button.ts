@@ -1,26 +1,31 @@
 import type { CSSProperties } from "react";
 import { mixSrgb } from "./color-contrast";
 import type { MausColor } from "./mascot";
-import { userBubbleTone } from "./user-bubble-tone";
+import { bothSchemes, grokFill, type Scheme } from "./user-bubble-tone";
 
-/** Hover and press step the fill away from its ink, so the label only gains contrast. */
-const HOVER_MIX = 0.12;
-const PRESSED_MIX = 0.22;
+/** Pressing steps the hover fill toward black. */
+const PRESSED_MIX = 0.12;
+const WHITE = "#ffffff";
 
 export const BOT_BUTTON = "bot-button";
 
 export type BotButtonTone = { fill: string; ink: string; hover: string; pressed: string };
 
-/** A bot's own primary button: the flat fill and ink of its Simple bubble. */
-export function botButtonTone(color: MausColor): BotButtonTone {
-  const { background, ink } = userBubbleTone(color);
-  const away = ink === "#ffffff" ? "#000000" : "#ffffff";
-  return {
-    fill: background,
-    ink,
-    hover: mixSrgb(away, background, HOVER_MIX),
-    pressed: mixSrgb(away, background, PRESSED_MIX),
-  };
+/** A bot's own primary button: grok's button fill for the bot's colour under a white label. In one scheme as plain hex,
+ * or, with no scheme, as css values that follow the color-scheme. */
+export function botButtonTone(color: MausColor, scheme?: Scheme): BotButtonTone {
+  if (!scheme) {
+    const light = botButtonTone(color, "light");
+    const dark = botButtonTone(color, "dark");
+    return {
+      fill: bothSchemes(light.fill, dark.fill),
+      ink: WHITE,
+      hover: bothSchemes(light.hover, dark.hover),
+      pressed: bothSchemes(light.pressed, dark.pressed),
+    };
+  }
+  const { button, hover } = grokFill(color, scheme);
+  return { fill: button, ink: WHITE, hover, pressed: mixSrgb("#000000", hover, PRESSED_MIX) };
 }
 
 export function botButtonStyle(color: MausColor): CSSProperties {

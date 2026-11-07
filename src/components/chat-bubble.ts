@@ -1,10 +1,11 @@
 import { cn } from "@/lib/cn";
+import { grokFills, type GrokFill } from "@/lib/user-bubble-tone";
 import { failedTurnCause } from "@/lib/failed-turn";
 import { isStatusActivity } from "@/lib/activity-runs";
 import { peerLine, peerRequest } from "@/lib/peer-message";
 import { localDay } from "@/lib/transcript-derivations";
 import type { TranscriptItem } from "@/lib/activity-runs";
-import type { MausColor } from "@/lib/mascot";
+import { MAUS_COLOR_NAMES, type MausColor } from "@/lib/mascot";
 import type { Message } from "@/state/store";
 import { isCancelledTranscriptRow } from "../../shared/client-cancel";
 import { isPureLeakedSystemHarnessMessage } from "../../shared/system-message-guard.ts";
@@ -20,27 +21,10 @@ export const SIMPLE_BOT_BUBBLE = `${SIMPLE_BUBBLE_SHAPE} chat-bubble-bot text-in
 /** Simple mode's own bubble, 15/20 like grok's; the bot's colour, when on, comes from its inline style. */
 export const SIMPLE_USER_BUBBLE = `min-w-9 rounded-[18px] px-3 py-[7px] text-[15px] leading-5 chat-bubble-user bg-bubble-user font-normal`;
 
-/** Grok's per-colour fills. In light your bubble takes the darker one and the voice and send button the brighter one,
- * which darkens to the bubble's on hover; in dark (grok-dark sets color-scheme) bubble and button share grok's primary,
- * which brightens on hover. A colour grok has no match for keeps its computed tone. */
-const grokFill = (bubble: string, button: string, dark: string, darkHover: string) => ({
-  bubble: `light-dark(${bubble}, ${dark})`,
-  button: `light-dark(${button}, ${dark})`,
-  hover: `light-dark(${bubble}, ${darkHover})`,
-});
-export const GROK_BOT_FILLS: Partial<Record<MausColor, { bubble: string; button: string; hover: string }>> = {
-  blue: grokFill("#126fd4", "#1680f3", "#116dd2", "#1784fb"),
-  red: grokFill("#c82532", "#e72e3b", "#cf2b35", "#f73643"),
-  purple: grokFill("#7442d1", "#8351e4", "#7845d7", "#8e59f8"),
-  pink: grokFill("#c82779", "#e52f8b", "#cf297e", "#f63397"),
-  cyan: grokFill("#0d9381", "#10a693", "#0e9886", "#12b39f"),
-  teal: grokFill("#0d9381", "#10a693", "#0e9886", "#12b39f"),
-  orange: grokFill("#d2550a", "#ee620d", "#cd5309", "#f4650e"),
-  green: grokFill("#0d9655", "#10ab61", "#0e9f5a", "#13bb6b"),
-  yellow: grokFill("#c2730b", "#da830e", "#c8770c", "#ea8c10"),
-  silver: grokFill("#1c1c1c", "#1c1c1c", "#3b3b3b", "#474747"),
-  chrome: grokFill("#1c1c1c", "#1c1c1c", "#3b3b3b", "#474747"),
-};
+/** Grok's per-colour fills (user-bubble-tone.ts holds the table), as css values that follow the color-scheme. */
+export const GROK_BOT_FILLS: Partial<Record<MausColor, GrokFill>> = Object.fromEntries(
+  MAUS_COLOR_NAMES.map((color) => [color, grokFills(color)]),
+);
 
 /** Your bubble's fill in Simple mode on the grok skins: grok's own value for the bot's colour. */
 export function grokUserBubbleFill(color: MausColor | undefined): string | undefined {

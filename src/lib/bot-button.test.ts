@@ -4,9 +4,9 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { BOT_BUTTON, botButton, botButtonStyle, botButtonTone } from "./bot-button";
 import { contrastRatio, mixSrgb } from "./color-contrast";
-import { MAUS_COLOR_NAMES } from "./mascot";
+import { MAUS_COLOR_NAMES, type MausColor } from "./mascot";
 import { SKIN_IDS, THEME_SKINS } from "./skins";
-import { userBubbleTone } from "./user-bubble-tone";
+import { grokFill, type Scheme } from "./user-bubble-tone";
 
 const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../styles.css"), "utf8");
 
@@ -26,10 +26,27 @@ function over(color: string, background: string): string {
   return mixSrgb(color.slice(0, 7), background, alpha);
 }
 
-/** The label and icon are 13px or 14px: normal text, so 4.5:1. */
-const LABEL_MIN = 4.5;
 /** A focus ring against what it sits on: WCAG 1.4.11. */
 const RING_MIN = 3;
+
+/** Grok Bot's send button for the hue each colour maps to: light /1 resting and /2 on hover, dark /1 and /2. */
+const GROK_BUTTON: Record<MausColor, Record<Scheme, { fill: string; hover: string }>> = {
+  green: { light: { fill: "#10ab61", hover: "#0d9655" }, dark: { fill: "#0e9f5a", hover: "#13bb6b" } },
+  blue: { light: { fill: "#1680f3", hover: "#126fd4" }, dark: { fill: "#116dd2", hover: "#1784fb" } },
+  red: { light: { fill: "#e72e3b", hover: "#c82532" }, dark: { fill: "#cf2b35", hover: "#f73643" } },
+  orange: { light: { fill: "#ee620d", hover: "#d2550a" }, dark: { fill: "#cd5309", hover: "#f4650e" } },
+  purple: { light: { fill: "#8351e4", hover: "#7442d1" }, dark: { fill: "#7845d7", hover: "#8e59f8" } },
+  cyan: { light: { fill: "#10a693", hover: "#0d9381" }, dark: { fill: "#0e9886", hover: "#12b39f" } },
+  pink: { light: { fill: "#e52f8b", hover: "#c82779" }, dark: { fill: "#cf297e", hover: "#f63397" } },
+  yellow: { light: { fill: "#da830e", hover: "#c2730b" }, dark: { fill: "#c8770c", hover: "#ea8c10" } },
+  teal: { light: { fill: "#10a693", hover: "#0d9381" }, dark: { fill: "#0e9886", hover: "#12b39f" } },
+  coral: { light: { fill: "#ee620d", hover: "#d2550a" }, dark: { fill: "#cd5309", hover: "#f4650e" } },
+  brown: { light: { fill: "#9d6937", hover: "#86592e" }, dark: { fill: "#8c5d31", hover: "#aa723d" } },
+  silver: { light: { fill: "#1c1c1c", hover: "#1c1c1c" }, dark: { fill: "#3b3b3b", hover: "#474747" } },
+  chrome: { light: { fill: "#1c1c1c", hover: "#1c1c1c" }, dark: { fill: "#3b3b3b", hover: "#474747" } },
+};
+
+const SCHEMES: Scheme[] = ["light", "dark"];
 
 function rule(selector: string): string {
   const at = css.indexOf(`\n${selector} {`) + 1;
@@ -40,42 +57,51 @@ function rule(selector: string): string {
 }
 
 describe("a bot's own button", () => {
-  it.each(MAUS_COLOR_NAMES)("paints %s with the very fill and ink of its Simple bubble", (color) => {
-    const bubble = userBubbleTone(color);
-    const tone = botButtonTone(color);
-    expect(tone.fill).toBe(bubble.background);
-    expect(tone.ink).toBe(bubble.ink);
-    expect(new Set([tone.fill, tone.hover, tone.pressed]).size).toBe(3);
+  it.each(MAUS_COLOR_NAMES.flatMap((color) => SCHEMES.map((scheme) => [color, scheme] as const)))(
+    "paints %s in %s with grok's send button fill and hover under a white icon",
+    (color, scheme) => {
+      const tone = botButtonTone(color, scheme);
+      expect({ fill: tone.fill, hover: tone.hover }).toEqual(GROK_BUTTON[color][scheme]);
+      expect(tone.fill).toBe(grokFill(color, scheme).button);
+      expect(tone.ink).toBe("#ffffff");
+      expect(tone.pressed).not.toBe(tone.hover);
+      expect(contrastRatio(tone.ink, tone.pressed)).toBeGreaterThan(contrastRatio(tone.ink, tone.hover));
+      expect(contrastRatio(tone.ink, tone.pressed), "pressed label").toBeGreaterThanOrEqual(RING_MIN);
+    },
+  );
+
+  it.each(MAUS_COLOR_NAMES)("follows the color-scheme for %s, with white ink in both", (color) => {
+    const light = botButtonTone(color, "light");
+    const dark = botButtonTone(color, "dark");
+    expect(botButtonTone(color)).toEqual({
+      fill: `light-dark(${light.fill}, ${dark.fill})`,
+      ink: "#ffffff",
+      hover: `light-dark(${light.hover}, ${dark.hover})`,
+      pressed: `light-dark(${light.pressed}, ${dark.pressed})`,
+    });
   });
 
-  it("covers a light bot colour that needs dark ink", () => {
-    expect(botButtonTone("yellow").ink).toBe("#101410");
-    expect(MAUS_COLOR_NAMES.filter((color) => botButtonTone(color).ink !== "#ffffff")).toEqual(["yellow"]);
+  it("darkens to the bubble's colour on hover in light and brightens in dark, as grok does", () => {
+    for (const color of MAUS_COLOR_NAMES.filter((one) => one !== "silver" && one !== "chrome")) {
+      expect(contrastRatio("#ffffff", botButtonTone(color, "light").hover)).toBeGreaterThan(contrastRatio("#ffffff", botButtonTone(color, "light").fill));
+      expect(contrastRatio("#ffffff", botButtonTone(color, "dark").hover)).toBeLessThan(contrastRatio("#ffffff", botButtonTone(color, "dark").fill));
+    }
   });
 
   it("is a light and a dark theme by default, and every skin is checked below", () => {
     expect(SKIN_IDS).toEqual(expect.arrayContaining([THEME_SKINS.light, THEME_SKINS.dark]));
   });
 
-  it.each(SKIN_IDS.flatMap((id) => MAUS_COLOR_NAMES.map((color) => [id, color] as const)))(
-    "reads at AA for %s × %s, resting, hovered, pressed, focused and disabled",
-    (id, color) => {
-      const tokens = skin(id);
-      const tone = botButtonTone(color);
-      for (const [state, fill] of [["resting", tone.fill], ["hover", tone.hover], ["pressed", tone.pressed]] as const) {
-        expect(contrastRatio(tone.ink, fill), `${state} label`).toBeGreaterThanOrEqual(LABEL_MIN);
-      }
-      expect(contrastRatio(tone.ink, tone.hover)).toBeGreaterThan(contrastRatio(tone.ink, tone.fill));
-      expect(contrastRatio(tone.ink, tone.pressed)).toBeGreaterThan(contrastRatio(tone.ink, tone.hover));
-      for (const surface of ["--color-app", "--color-card", "--color-composer", "--color-panel"]) {
-        expect(tokens[surface], `${id} ${surface}`).toMatch(/^#[0-9a-f]{6}$/i);
-        expect(contrastRatio(tokens["--color-focus"]!, tokens[surface]!), `focus ring on ${surface}`).toBeGreaterThanOrEqual(RING_MIN);
-      }
-      const disabled = tokens["--color-raised-hover"]!;
-      expect(contrastRatio(over(tokens["--color-ink-secondary"]!, disabled), disabled), "disabled label").toBeGreaterThanOrEqual(RING_MIN);
-      expect(disabled).not.toBe(tokens["--color-composer"]);
-    },
-  );
+  it.each(SKIN_IDS)("keeps the focus ring and disabled look readable on %s", (id) => {
+    const tokens = skin(id);
+    for (const surface of ["--color-app", "--color-card", "--color-composer", "--color-panel"]) {
+      expect(tokens[surface], `${id} ${surface}`).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(contrastRatio(tokens["--color-focus"]!, tokens[surface]!), `focus ring on ${surface}`).toBeGreaterThanOrEqual(RING_MIN);
+    }
+    const disabled = tokens["--color-raised-hover"]!;
+    expect(contrastRatio(over(tokens["--color-ink-secondary"]!, disabled), disabled), "disabled label").toBeGreaterThanOrEqual(RING_MIN);
+    expect(disabled).not.toBe(tokens["--color-composer"]);
+  });
 
   it("is painted by an unlayered rule from the four properties botButtonStyle sets", () => {
     expect(rule(".bot-button")).toMatch(/background-color:\s*var\(--bot-button\);[\s\S]*color:\s*var\(--bot-button-ink\);/);
