@@ -62,8 +62,9 @@ const listen = (server, port = 0) => new Promise((resolve) => server.listen(port
 
 async function vpsThread({ relayBase, directPort, gzip, ca }) {
   const { createServer } = await import("node:http");
-  const { gzipTunnelReplies } = await import("../server/harness/tunnel-gzip.ts");
-  const { openEventStream } = await import("../server/harness/sse-gzip.ts");
+  // without --gzip the stream is written as the server wrote it before server/harness/sse-gzip.ts
+  const { gzipTunnelReplies } = gzip ? await import("../server/harness/tunnel-gzip.ts") : {};
+  const { openEventStream } = gzip ? await import("../server/harness/sse-gzip.ts") : { openEventStream: (res, headers) => { res.writeHead(200, headers); return res; } };
   const { createTunnelAgent, keepAliveFetch, openFrame, relayFetch, serveDirect } = await import("../link-service/agent.mjs");
   const key = Buffer.from(keyText, "base64url");
   const streams = new Set();
@@ -89,7 +90,7 @@ async function vpsThread({ relayBase, directPort, gzip, ca }) {
   const server = createServer(gzip ? gzipTunnelReplies(handle) : handle);
   const port = await listen(server);
   // the agent's own fetch, tapped: when each reply post leaves
-  const inner = ca ? relayFetch({ tls: { ca } }) : keepAliveFetch();
+  const inner = ca && relayFetch ? relayFetch({ tls: { ca } }) : keepAliveFetch();
   const tapped = (url, init = {}) => {
     if (init.method === "POST") {
       const t = now();
@@ -128,8 +129,8 @@ async function vpsThread({ relayBase, directPort, gzip, ca }) {
       return new Response(body, { status: response.status, headers: response.headers });
     });
   };
-  Object.assign(tapped, { connectAware: inner.connectAware, warm: inner.warm, close: inner.close, reset: inner.reset, postsInFlight: inner.postsInFlight });
-  const agent = createTunnelAgent({ base: relayBase, id, key: keyText, token: vpsToken, server: { host: "127.0.0.1", port }, fetchImpl: tapped, log: () => {} });
+  Object.assign(tapped, { connectAware: inner.connectAware, warm: inner.warm, close: inner.close, reset: inner.reset, postsInFlight: inner.postsInFlight, multiplexed: inner.multiplexed });
+  const agent = createTunnelAgent({ base: relayBase, id, key: keyText, token: vpsToken, server: { host: "127.0.0.1", port }, fetchImpl: tapped, log: () => {}, ...(workerData.aheadMs ? { aheadMs: workerData.aheadMs } : {}) });
   void agent.run();
   // the direct path's server half, as sshd would start it for each connection
   const direct = createNetServer((socket) => {
@@ -188,6 +189,8 @@ async function relayThread({ tls }) {
     void service.handler(req, res);
   };
   const server = tls ? createSecureServer({ ...tls, allowHTTP1: true }, handle) : createServer(handle);
+  // as link-service/src/server.mjs: an idle keep-alive socket is not closed under a client about to reuse it
+  server.keepAliveTimeout = 65_000;
   const port = await listen(server);
   parentPort.on("message", (message) => { if (message.t === "marks") parentPort.postMessage({ t: "marks", marks: marks.splice(0) }); });
   parentPort.postMessage({ t: "ready", port });
@@ -200,7 +203,7 @@ async function macThread({ relayBase, directTarget, path, gzip, ca }) {
   const key = Buffer.from(keyText, "base64url");
   const marks = [];
   // the app's fetch, tapped: when each streamed line of replies arrives
-  const inner = ca ? relayFetch({ tls: { ca } }) : keepAliveFetch();
+  const inner = ca && relayFetch ? relayFetch({ tls: { ca } }) : keepAliveFetch();
   const tapped = async (url, init = {}) => {
     if (init.method === "POST") {
       const t = now();
@@ -238,7 +241,7 @@ async function macThread({ relayBase, directTarget, path, gzip, ca }) {
     });
     return new Response(body, { status: response.status, headers: response.headers });
   };
-  Object.assign(tapped, { connectAware: inner.connectAware, warm: inner.warm, close: inner.close, reset: inner.reset, postsInFlight: inner.postsInFlight });
+  Object.assign(tapped, { connectAware: inner.connectAware, warm: inner.warm, close: inner.close, reset: inner.reset, postsInFlight: inner.postsInFlight, multiplexed: inner.multiplexed });
   const direct = path === "direct" ? {
     connect: () => new Promise((resolve, reject) => {
       const socket = netConnect(directTarget);
@@ -247,7 +250,7 @@ async function macThread({ relayBase, directTarget, path, gzip, ca }) {
       socket.once("error", reject);
     }),
   } : null;
-  const proxy = createTunnelProxy({ base: relayBase, id, key: keyText, token: appToken, fetch: tapped, direct, log: () => {} });
+  const proxy = createTunnelProxy({ base: relayBase, id, key: keyText, token: appToken, fetch: tapped, direct, log: () => {}, ...(workerData.aheadMs ? { aheadMs: workerData.aheadMs } : {}) });
   const origin = new URL(await proxy.start());
   if (direct) {
     const end = performance.now() + 10_000;
@@ -297,8 +300,9 @@ async function macThread({ relayBase, directTarget, path, gzip, ca }) {
 
 // ---- driver ----
 
+let aheadMs = null;
 function spawn(role, data) {
-  const worker = new Worker(new URL(import.meta.url), { workerData: { role, ...data } });
+  const worker = new Worker(new URL(import.meta.url), { workerData: { role, aheadMs, ...data } });
   const waiters = [];
   worker.on("message", (message) => { const at = waiters.findIndex((one) => one.t === message.t); if (at >= 0) waiters.splice(at, 1)[0].resolve(message); });
   worker.on("error", (error) => { console.error(`${role} thread failed:`, error); process.exit(1); });
@@ -316,9 +320,11 @@ async function main() {
   const { values } = parseArgs({ options: {
     path: { type: "string", default: "relay" }, runs: { type: "string", default: "30" },
     "vps-relay": { type: "string", default: "72" }, "mac-relay": { type: "string", default: "210" }, "mac-vps": { type: "string", default: "158" },
-    kbps: { type: "string", default: "0" }, json: { type: "string" }, burst: { type: "string", default: "12" }, gzip: { type: "boolean", default: false }, h2: { type: "boolean", default: false },
+    kbps: { type: "string", default: "0" }, json: { type: "string" }, burst: { type: "string", default: "12" }, gzip: { type: "boolean", default: false }, h2: { type: "boolean", default: false }, "ahead-ms": { type: "string" },
   } });
   const runs = Number(values.runs), kbps = Number(values.kbps);
+  // --ahead-ms: when each end asks for its next streamed read (default 21 s into a 25 s read)
+  if (values["ahead-ms"]) aheadMs = Number(values["ahead-ms"]);
   let tls = null;
   if (values.h2) {
     const { execFileSync } = await import("node:child_process");

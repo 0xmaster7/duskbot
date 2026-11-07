@@ -36,6 +36,8 @@ const POSTS_IN_FLIGHT = 3;
 /** how long a frame that comes while posts are out waits for more, per post out, and at most */
 const GATHER_MS = 2;
 const GATHER_MAX_MS = 16;
+/** over http/1.1 (three posts out) every post waits this long for company first, as it always did */
+const H1_POST_DELAY_MS = 5;
 /**
  * frames waiting for the one post in flight (kept in step with the other end of the tunnel). a stream's bytes join its
  * last waiting piece and are sealed only when sent, so a busy websocket costs a few frames per post, not one per chunk.
@@ -47,12 +49,16 @@ export function createOutbox({ seal: sealRaw, post, delayMs, signal, onError = (
   const release = () => { const waiting = [...drains]; drains.clear(); for (const resume of waiting) resume(); };
   const clear = () => { streams.clear(); queued = 0; };
   /**
-   * with nothing out, frames pushed in the same turn share a post that leaves at once (delayMs 0). frames that come while
+   * with nothing out, frames pushed in the same turn share a post that leaves at once (delay 0). frames that come while
    * posts are out wait a little for company, longer the more are out, so a burst spread over a few milliseconds (a page's
-   * twenty requests) fills a few posts instead of taking every slot and waiting a round trip for the rest
+   * twenty requests) fills a few posts instead of taking every slot and waiting a round trip for the rest. `delayMs` may
+   * be a function: with only three posts out at once (http/1.1) a fixed wait before every post keeps more slots free
    */
-  const gather = (outstanding) => (delayMs > 0 ? delay(delayMs, undefined, { signal })
-    : outstanding ? delay(Math.min(GATHER_MAX_MS, GATHER_MS * outstanding), undefined, { signal }) : new Promise((resolve) => setImmediate(resolve)));
+  const gather = (outstanding) => {
+    const fixed = typeof delayMs === "function" ? delayMs() : delayMs;
+    if (fixed > 0) return delay(fixed, undefined, { signal });
+    return outstanding ? delay(Math.min(GATHER_MAX_MS, GATHER_MS * outstanding), undefined, { signal }) : new Promise((resolve) => setImmediate(resolve));
+  };
   signal?.addEventListener("abort", () => { clear(); release(); }, { once: true });
   function stream(r) {
     let items = streams.get(r);
@@ -1268,8 +1274,8 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
     }
     return false;
   };
-  // no wait: what arrives in one turn goes in one post at once, and more coalesce while posts are out
-  const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-app", r, bytes), post, delayMs: 0, signal: abort.signal, parallel: () => (ordered ? fetchImpl.postsInFlight?.() ?? POSTS_IN_FLIGHT : 1), onError: () => { log("link: reply queue failed; restarting the tunnel"); stop(); } });
+  // over http/2 what arrives in one turn goes in one post at once, and more gather while posts are out
+  const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-app", r, bytes), post, delayMs: () => (fetchImpl.multiplexed?.() ? 0 : H1_POST_DELAY_MS), signal: abort.signal, parallel: () => (ordered ? fetchImpl.postsInFlight?.() ?? POSTS_IN_FLIGHT : 1), onError: () => { log("link: reply queue failed; restarting the tunnel"); stop(); } });
   const emit = (frame) => { if (!stopped) outbox.push(sealFrame(key, id, "to-app", frame), frame.r); };
   const serving = createServing({
     server, stopped: () => stopped, context: { id },
