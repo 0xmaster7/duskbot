@@ -1,3 +1,4 @@
+import { independentScreenTarget } from "./shared-desktop-screens.ts";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createConnection, createServer, type AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
@@ -72,4 +73,21 @@ describe("a server on its own linked VPS", () => {
     relay.close();
     await closed;
   });
+});
+
+it("uses the generation-locked guest relay for an independent browser", () => {
+  const target = independentScreenTarget("screen-bot", 4);
+  const id = "a".repeat(64);
+  expect(boxChromeExecArgs(id, target)).toEqual(["exec", "-i", "-u", "cua", id, "/usr/local/bin/omb-screen", "relay", "4", target.botHash, target.generation]);
+  expect(() => boxChromeExecArgs(id, { ...target, cdpPort: 9222 })).toThrow(/identity changed/);
+});
+
+it("reports a failed guest browser relay so readiness can be rechecked", async () => {
+  const failed = vi.fn();
+  const relay = await boxChromeRelay(() => spawn(process.execPath, ["-e", "process.exit(3)"], { stdio: ["pipe", "pipe", "ignore"] }), failed);
+  try {
+    const client = createConnection({ host: "127.0.0.1", port: Number(new URL(relay.url).port) });
+    await new Promise<void>(resolve => client.once("close", () => resolve()));
+    expect(failed).toHaveBeenCalledOnce();
+  } finally { relay.close(); }
 });

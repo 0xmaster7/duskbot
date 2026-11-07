@@ -216,6 +216,8 @@ export function verificationServerEnvironment(parentEnv: NodeJS.ProcessEnv, data
   if (parentEnv.OMB_TEST_RESUME_CLOCK === "1") childEnv.OMB_TEST_RESUME_CLOCK = "1";
   // The memory gate runs here too, on the memory a fixture file says this machine has.
   if (parentEnv.OMB_TEST_MEMORY_GATE === "1") childEnv.OMB_TEST_MEMORY_GATE = "1";
+  if (parentEnv.OMB_TEST_VPS_IDLE_CLOCK === "1") childEnv.OMB_TEST_VPS_IDLE_CLOCK = "1";
+  if (parentEnv.OMB_TEST_LOCAL_BROWSER_GUARD === "1") childEnv.OMB_TEST_LOCAL_BROWSER_GUARD = "1";
   // The first-reply rescue's delay in ms, so a check need not sit through 20 s of silence.
   if (/^\d{1,6}$/.test(parentEnv.OMB_FIRST_REPLY_NOTICE_MS ?? "")) childEnv.OMB_FIRST_REPLY_NOTICE_MS = parentEnv.OMB_FIRST_REPLY_NOTICE_MS;
   // How long a tool call may hold the person's message unread, in ms, so a check need not sit through a minute.
@@ -250,6 +252,8 @@ export function verificationServerArgs(childEnv: NodeJS.ProcessEnv): string[] {
     ...(childEnv.OMB_TEST_STALL_CLOCK === "1" ? hook("stall-clock-hooks.mjs") : []),
     ...(childEnv.OMB_TEST_RESUME_CLOCK === "1" ? hook("resume-clock-hooks.mjs") : []),
     ...(childEnv.OMB_TEST_MEMORY_GATE === "1" ? hook("memory-gate-hooks.mjs") : []),
+    ...(childEnv.OMB_TEST_VPS_IDLE_CLOCK === "1" ? hook("vps-idle-clock-hooks.mjs") : []),
+    ...(childEnv.OMB_TEST_LOCAL_BROWSER_GUARD === "1" ? hook("local-browser-guard.mjs") : []),
     join(ROOT, "server", "index.ts"),
   ];
 }
@@ -258,7 +262,7 @@ export function verificationServerArgs(childEnv: NodeJS.ProcessEnv): string[] {
 export async function launchVerificationServer(
   parentEnv: NodeJS.ProcessEnv = process.env,
   signal?: AbortSignal,
-  localVm?: { binDir: string; host: string; sshKey: string; staticDir: string },
+  localVm?: { binDir: string; host: string; sshKey: string; staticDir: string; vpsDesktop?: "cua" },
   browser?: { binaryPath: string; executablePath: string },
   /** A stand-in enterprise layer (the folder shape core loads) and the key
    * it should accept, so a recipe can prove entitled behaviour offline. */
@@ -331,6 +335,7 @@ export async function launchVerificationServer(
     CONTAINER_HOST: localVm.host,
     CONTAINER_SSHKEY: localVm.sshKey,
     OMB_STATIC_DIR: localVm.staticDir,
+    ...(localVm.vpsDesktop === "cua" ? { OPENMAUSBOT_VPS_DESKTOP: "cua" } : {}),
   });
   if (enterprise) Object.assign(childEnv, { OMB_ENTERPRISE_DIR: enterprise.dir, OMB_LICENSE_KEY: enterprise.licenseKey });
   if (browser) Object.assign(childEnv, {

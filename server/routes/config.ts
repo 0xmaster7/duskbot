@@ -17,6 +17,7 @@ import {
   loadConfig,
   localVmMode,
   mergeOpenCodeProviderKeys,
+  mergeVpsConfig,
   parseConfigPatch,
   saveConfig,
   syncCredentialEnv,
@@ -75,6 +76,7 @@ export interface ConfigRouteDeps {
   computerProviderConfigTransitions: Pick<Set<RemoteComputerProvider>, "add" | "delete">;
   managedVpsOwners(): vps.ManagedVpsOwner[];
   providerOperationConflict(provider: RemoteComputerProvider): string | null;
+  vpsSharingChanged(patch: Pick<Partial<AppConfig>, "signIn" | "vps">): boolean;
   perBotLocalVmCountForModeChange(): Promise<number | null>;
   checkedModelSelection(raw: unknown, current?: { selection: ModelSelection; busy: boolean }, requireAvailableModel?: boolean): ModelSelectionCheck;
   policyModelRefusal(instance: { instanceId: string; driverKind: string }): string | undefined;
@@ -97,7 +99,7 @@ export function createConfigRoutes(deps: ConfigRouteDeps): RouteHandler {
     store, cfg, registry, sessions, browserCleanup, browserLive, browserRuntime, usedBrowserSessions, decider,
     closeBrowser, browserEngineSwitched, hostedModels, cloudHome: CLOUD_HOME, providerConfigs,
     localVmIdleMs, localVmIdles, localVmActiveThreads, localVmLifecycleBusy, localVmImageBusy, localVmModeChangeBusy,
-    providerConfigBusy, computerProviderConfigTransitions, managedVpsOwners, providerOperationConflict,
+    providerConfigBusy, computerProviderConfigTransitions, managedVpsOwners, providerOperationConflict, vpsSharingChanged,
     perBotLocalVmCountForModeChange, checkedModelSelection, policyModelRefusal, browserSessionSpec, configStatus,
     configForAccess, resyncOpenCodeProviderKeys, revokeEngineCapabilities, reloadProviders, broadcast, drainQueuedSends, ownProfile,
   } = deps;
@@ -219,9 +221,11 @@ export function createConfigRoutes(deps: ConfigRouteDeps): RouteHandler {
       const currentVpsAlias = vpsSshAlias(cfg);
       const nextVpsAlias = patch.vps === undefined
         ? currentVpsAlias
-        : vpsSshAlias({ ...cfg, vps: patch.vps });
+        : vpsSshAlias({ ...cfg, vps: mergeVpsConfig(cfg.vps, patch.vps) });
       const changingVpsAlias = patch.vps !== undefined && nextVpsAlias !== currentVpsAlias;
-      const transitioningProviders: RemoteComputerProvider[] = changingVpsAlias ? ["vps"] : [];
+      const changingVpsMode = patch.vps?.mode !== undefined && patch.vps.mode !== (cfg.vps?.mode ?? "shared");
+      const changingVpsScreens = patch.vps?.independentScreens !== undefined && patch.vps.independentScreens !== (cfg.vps?.independentScreens ?? false);
+      const transitioningProviders: RemoteComputerProvider[] = changingVpsAlias || changingVpsMode || changingVpsScreens || vpsSharingChanged(patch) ? ["vps"] : [];
       providerConfigBusy.set(true);
       const changingLocalVmMode = patch.localVm?.mode !== undefined && patch.localVm.mode !== localVmMode(cfg);
       if (changingLocalVmMode) localVmModeChangeBusy.set(true);

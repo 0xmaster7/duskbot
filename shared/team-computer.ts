@@ -4,6 +4,8 @@ export interface TeamComputer {
   id: string;
   name: string;
   section: string | null;
+  /** The implicit computer shared only within one personal workspace. */
+  scope?: "workspace";
   state: string;
   held: boolean;
   problem?: string;

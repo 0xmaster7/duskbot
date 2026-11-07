@@ -94,6 +94,10 @@ import { DataSheetRegistry } from "./data/sheet.ts";
 import { DataFailure } from "./data/types.ts";
 import { TeamComputers, teamComputerOwner, type TeamComputerRecord } from "./team-computers.ts";
 import { teamComputerVpsTarget } from "./team-computer-vps.ts";
+import { sharedVpsDefaults, vpsIdleTimeoutMinutes } from "./shared-vps-defaults.ts";
+import { createVpsIdleManager, type VpsIdleTarget } from "./vps-idle.ts";
+import { createSharedScreenBroker, type IndependentScreenLease, type ScreenContainer } from "./shared-desktop-screens.ts";
+import { createVpsScreenRuntime } from "./vps-screen.ts";
 import { isEffortLevel, type CardAnswerer, type ResolvedSender, type SignInRequestCardData, type WireBot, type WireGroup, type WireTask } from "../shared/wire.ts";
 import { talkingStyleOf } from "../shared/talking-style.ts";
 import { isPersistentQuestionCard, shouldSettleRequestCard } from "../shared/ask-question.ts";
@@ -162,6 +166,7 @@ import {
   persistableInstanceConfigs,
   type AppConfig,
   vpsSshAlias,
+  mergeVpsConfig,
   DATA_DIR, EVENTS_DIR,
   onConfigSaved,
   CLAUDE_API_INSTANCE,
@@ -1537,6 +1542,7 @@ type InternalCapability = {
   orphanExpiresAt: number;
   localVmTarget?: LocalVmTarget;
   teamComputerId?: string;
+  screenGeneration?: string;
   browserSession?: string;
   roomHandoffId?: string;
   attachedFiles?: number;
@@ -1722,6 +1728,10 @@ function internalCapabilityIsActive(capability: InternalCapability): boolean {
     if (pinned?.computerId !== capability.teamComputerId || pinned.owner.generation !== capability.generation ||
         pinned.botId !== capability.botId) return false;
   }
+  if (capability.screenGeneration) {
+    const mounted = turnVpsTargets.get(capability.threadId);
+    if (mounted?.generation !== capability.generation || mounted.botId !== capability.botId || mounted.screenLease?.target.generation !== capability.screenGeneration || !mounted.screenLease.live()) return false;
+  }
   if (capability.localVmTarget) {
     const owner = localVmLeaseFor(capability.localVmTarget).current(localVmOwnerBusy);
     if (localVmThreadTargets.get(capability.threadId) !== capability.localVmTarget ||
@@ -1750,7 +1760,7 @@ function agentsIntegration(
   // Only advertises the tools; the routes behind them refuse regardless.
   const host = { skillAuthoring: skillAuthoringEnabled(cfg), cloudHome: Boolean(CLOUD_HOME), team: Boolean(CLOUD_TEAM),
     voiceNotes: tts.voiceReady(cfg, speaking?.voice) && speaking?.voiceNotes !== false, x: Boolean(researchCredential(cfg.treg?.key)), research: researchAvailability.available() };
-  return { ...agentsProxyLaunch(), env: agentsServerEnv({ threadId, bot: bot ?? { id: botId }, room: Boolean(store.groupByThread(threadId)), teamComputer: Boolean(bot && inheritedTeamComputer(bot)), host },
+  return { ...agentsProxyLaunch(), env: agentsServerEnv({ threadId, bot: bot ?? { id: botId }, room: Boolean(store.groupByThread(threadId)), teamComputer: Boolean(bot && inheritedTeamComputer(bot)?.scope !== "workspace" && inheritedTeamComputer(bot)), host },
     { generation, depth, skillAuthoring, roomHandoffId, ...(hostFiles && !CLOUD_HOME && !HOSTED_WORKSPACE ? { deliversSavedFiles: true } : {}) },
     (turn) => mintInternalCapability({ botId, threadId, kind: "agents", createdBots: 0, openedThreads: 0, ...turn }), `http://127.0.0.1:${PORT}`) };
 }
@@ -1981,7 +1991,7 @@ const turnResources = new TurnResources(); engineMemory.useTurnOrder(createTurnO
 const turnResourceOwners = new Map<string, TurnOwner>();
 const turnComputerResources = new Map<string, { owner: TurnOwner; resource: string }>();
 const teamComputerTurns = new Map<string, { owner: TurnOwner; computerId: string; botId: string }>();
-const turnVpsTargets = new Map<string, { generation: string; botId: string; ownerId: string; config: AppConfig; containerId: string }>();
+const turnVpsTargets = new Map<string, { generation: string; botId: string; ownerId: string; config: AppConfig; containerId: string; screenLease?: IndependentScreenLease }>();
 const turnPlaces = new Map<string, { botId: string; place: Surface }>();
 const settlingResourceOwners = new Map<string, string>();
 
@@ -2003,8 +2013,11 @@ function releaseTurnResources(owner: TurnOwner | undefined): void {
 }
 
 function releaseRemoteComputerTurn(owner: TurnOwner): void {
+  const held = turnComputerResources.get(owner.threadId);
+  if (held?.owner.generation === owner.generation && turnResources.owns(held.resource, owner)) noteVpsTurnActivity(owner);
   const target = turnVpsTargets.get(owner.threadId);
   if (target?.generation === owner.generation) {
+    target.screenLease?.release();
     vpsThreadEnded(target.ownerId, owner.threadId);
     turnVpsTargets.delete(owner.threadId);
   }
@@ -2017,9 +2030,9 @@ function releaseRemoteComputerTurn(owner: TurnOwner): void {
 }
 
 function releaseTurnComputer(owner: TurnOwner): void {
+  releaseRemoteComputerTurn(owner);
   turnResources.release(owner);
   if (turnComputerResources.get(owner.threadId)?.owner.generation === owner.generation) turnComputerResources.delete(owner.threadId);
-  releaseRemoteComputerTurn(owner);
 }
 
 function waitEventBase(threadId: string) {
@@ -2293,14 +2306,16 @@ async function botBoxChrome(botId: string, turn?: { threadId: string; generation
   if (!bot) return null;
   const mounted = turn ? turnVpsTargets.get(turn.threadId) : undefined;
   if (mounted && mounted.generation === turn!.generation && mounted.botId === botId) {
-    const url = await vps.vpsBoxChrome(mounted.config, mounted.ownerId, mounted.containerId);
+    const url = await vps.vpsBoxChrome(mounted.config, mounted.ownerId, mounted.containerId, undefined, mounted.screenLease ? { containerId: mounted.containerId, target: mounted.screenLease.target, live: () => mounted.screenLease!.live() } : undefined);
     return url ?? false;
   }
   const shared = inheritedTeamComputer(bot);
   if (bot.computer !== "cloud" && !shared) return null;
   if (turn) throw new Error("This turn has no assigned VPS computer; start a new turn after reconnecting it");
   const target = shared ? teamComputerVpsTarget(cfg, shared) : { ownerId: bot.id, config: vpsConfigForBot(cfg, bot) };
-  const url = await vps.vpsBoxChrome(target.config, target.ownerId);
+  const screen = shared && vpsDefaults().independentScreens ? screenConnection(botId, target.ownerId, vpsSshAlias(target.config) ?? "") : undefined;
+  if (shared && vpsDefaults().independentScreens && !screen) throw new Error("Wake this bot screen before opening its browser");
+  const url = await vps.vpsBoxChrome(target.config, target.ownerId, screen?.containerId, undefined, screen);
   return url ?? false;
 }
 
@@ -2310,6 +2325,7 @@ const {
   browserReady, currentBrowserSpec, loginInput, browserSystemPrompt, closeBrowser, browserEngineSwitched, eraseDeletedBrowser, engineSummary, browserSessionsOf, signedInSitesTarget, uploadPaths, eraseAudienceBrowsers,
 } = createBrowserHost({ cfg, store: () => store, boxChrome: botBoxChrome, turnResources, activeInternalGenerationByThread, mintInternalCapability: capability => mintInternalCapability({ ...capability,
   ...(teamComputerTurns.get(capability.threadId) ? { teamComputerId: teamComputerTurns.get(capability.threadId)!.computerId } : {}),
+  ...(turnVpsTargets.get(capability.threadId)?.screenLease ? { screenGeneration: turnVpsTargets.get(capability.threadId)!.screenLease!.target.generation } : {}),
 }), DESKTOP_MANAGED, CLOUD_HOME, HOSTED_WORKSPACE, PORT, engineMemory, audienceOf: teamHost.browserAudience, ...(CLOUD_TEAM ? { browserBox: (fd: number, ro: readonly string[]) => botBox.browserBox(fd, ro) } : {}) });
 
 const dataSheets = new DataSheetRegistry({
@@ -2385,8 +2401,11 @@ function setupConnectedApps(bot: Pick<BotRecord, "composio" | "connectorTools">,
   });
 }
 
+const heldVpsOwners = new Set<string>();
 const computerControlRevision = new Map<string, number>();
 const computerControl = new ComputerControl((key, snapshot) => {
+  if (snapshot.held) heldVpsOwners.add(key);
+  else if (heldVpsOwners.delete(key)) { humanScreenLeases.get(key)?.release(); humanScreenLeases.delete(key); noteVpsOwnerHandBack(key); }
   const members = key.startsWith("computer_")
     ? store.bots.filter(bot => inheritedTeamComputer(bot)?.id === key.slice("computer_".length)).map(bot => bot.id)
     : [key];
@@ -2416,6 +2435,7 @@ function controlIntegration(
       depth: 0,
       kind: "computer",
       ...(localVmTarget ? { localVmTarget } : {}),
+      ...(turnVpsTargets.get(threadId)?.screenLease ? { screenGeneration: turnVpsTargets.get(threadId)!.screenLease!.target.generation } : {}),
       ...(teamComputerTurns.get(threadId) ? { teamComputerId: teamComputerTurns.get(threadId)!.computerId } : {}),
       skillAuthoring: false,
       createdBots: 0,
@@ -4591,9 +4611,13 @@ const desktopViewer = createDesktopViewer({
       const target = shared ? teamComputerVpsTarget(cfg, shared) : { ownerId: bot!.id, config: vpsConfigForBot(cfg, bot!) };
       const alias = vpsSshAlias(target.config);
       if (!alias) return;
-      const key = JSON.stringify([id, threadId, bot?.computer, bot ? turnSurfacePlan(bot, undefined, threadId).computer : "cloud", target.ownerId, alias, shared?.section]);
+      const independent = Boolean(shared && vpsDefaults().independentScreens);
+      if (independent && !bot) return;
+      const screen = independent ? screenConnection(bot!.id, target.ownerId, alias) : undefined;
+      if (independent && !screen) return;
+      const key = JSON.stringify([id, threadId, screen?.target.generation, bot?.computer, bot ? turnSurfacePlan(bot, undefined, threadId).computer : "cloud", target.ownerId, alias, shared?.section]);
       return { key, resolve: async () => {
-        const connection = vps.vpsDesktopConnection(target.ownerId);
+        const connection = vps.vpsDesktopConnection(target.ownerId, screen);
         if (!connection) throw Object.assign(new Error("VPS viewer is not open"), { status: 409 });
         return connection;
       } };
@@ -5602,17 +5626,172 @@ const localVmIdleMs = () => localVmIdleTimeoutMinutes(cfg) * 60_000;
 const LOCAL_VM_DESKTOP_WAIT_MS = 90_000;
 const localVmIdles = new Map<string, ComputerIdleTimer>();
 
-function inheritedTeamComputer(bot: Pick<BotRecord, "section" | "computer" | "cloudBackend">): TeamComputerRecord | undefined {
-  return teamComputers.forBot(bot);
+function vpsDefaultsFor(config: AppConfig) {
+  const signIn = signInListsOf(config);
+  return sharedVpsDefaults(config, { cloudTeam: Boolean(CLOUD_TEAM), hostedWorkspace: HOSTED_WORKSPACE, sharedMembership: CLOUD_TEAM !== null || hostedWorkspaceConfiguration()?.portalMembership === true || signIn.members.length > 0 || sharedSignIn(signIn) });
+}
+
+function vpsDefaults() { return vpsDefaultsFor(cfg); }
+
+function vpsSharingChanged(patch: Pick<Partial<AppConfig>, "signIn" | "vps">): boolean {
+  const next = { ...cfg, ...patch, vps: mergeVpsConfig(cfg.vps, patch.vps ?? {}) };
+  const signIn = signInListsOf(next);
+  const privacy = {
+    cloudTeam: Boolean(CLOUD_TEAM), hostedWorkspace: HOSTED_WORKSPACE,
+    sharedMembership: CLOUD_TEAM !== null || hostedWorkspaceConfiguration()?.portalMembership === true || signIn.members.length > 0 || sharedSignIn(signIn),
+  };
+  return vpsDefaults().workspaceShared !== sharedVpsDefaults(next, privacy).workspaceShared;
+}
+
+function inheritedTeamComputer(bot: Pick<BotRecord, "section" | "computer" | "cloudBackend" | "vpsAlias" | "createdBy" | "reportsTo" | "defaultBot">): TeamComputerRecord | undefined {
+  return teamComputers.forBot(bot, { workspaceShared: vpsDefaults().workspaceShared && Boolean(vpsSshAlias(cfg)) });
+}
+
+
+type BotScreen = { container: ScreenContainer; lease: IndependentScreenLease };
+const botScreens = new Map<string, BotScreen>();
+const humanScreenLeases = new Map<string, IndependentScreenLease>();
+const screenRuntime = createVpsScreenRuntime();
+const vpsScreens = createSharedScreenBroker({ ...screenRuntime, revoke: (container, target) => {
+  const current = botScreens.get(target.botId);
+  if (current?.container.containerId === container.containerId && current.lease.target.generation === target.generation) botScreens.delete(target.botId);
+  const held = humanScreenLeases.get(target.botId);
+  if (held?.target.generation === target.generation) { held.release(); humanScreenLeases.delete(target.botId); }
+  desktopViewer.recheck();
+  vps.closeVpsScreenConnections(container.ownerId, { containerId: container.containerId, target });
+} });
+
+function screenConnection(botId: string, ownerId: string, alias: string): vps.VpsScreenConnection | undefined {
+  const current = botScreens.get(botId);
+  return current?.lease.live() && current.container.ownerId === ownerId && current.container.sshAlias === alias
+    ? { containerId: current.container.containerId, target: current.lease.target, live: () => current.lease.live() } : undefined;
+}
+
+async function ensureBotScreen(botId: string, container: ScreenContainer, kind: "turn" | "watch" | "hold", current: () => boolean): Promise<IndependentScreenLease> {
+  const abort = new AbortController();
+  const timer = setInterval(() => { if (!current()) abort.abort(); }, 100); timer.unref();
+  let acquired: IndependentScreenLease | undefined;
+  try {
+    if (!current()) throw new DirectTurnSetupCancelled("Independent screen setup cancelled");
+    const lease = await vpsScreens.acquire(container, botId, { kind, signal: abort.signal });
+    acquired = lease;
+    if (!current()) { lease.release(); throw new DirectTurnSetupCancelled("Independent screen setup cancelled"); }
+    const previous = botScreens.get(botId);
+    if (kind === "watch") {
+      previous?.lease.release(); botScreens.set(botId, { container: { ...container }, lease });
+    } else if (!previous?.lease.live() || previous.lease.target.generation !== lease.target.generation) {
+      const watch = await vpsScreens.acquire(container, botId, { kind: "watch", signal: abort.signal });
+      previous?.lease.release(); botScreens.set(botId, { container: { ...container }, lease: watch });
+    }
+    return lease;
+  } catch (error) { acquired?.release(); throw error; } finally { clearInterval(timer); }
+}
+
+function mountedVpsResource(target: { ownerId: string; config: AppConfig; screenLease?: IndependentScreenLease }): string {
+  const resource = vpsResourceKey(target.ownerId, vpsSshAlias(target.config)!);
+  return target.screenLease ? `${resource}:screen:${target.screenLease.target.botId}` : resource;
+}
+
+const knownVpsComputers = new Map<string, VpsIdleTarget>();
+const vpsResourceKey = (ownerId: string, alias: string) => `computer:vps:${alias}:${ownerId}`;
+const vpsIdleKey = (ownerId: string, alias: string) => JSON.stringify([alias, ownerId]);
+const vpsIdleWindowMs = () => vpsIdleTimeoutMinutes(cfg) * 60_000;
+
+function vpsOwnerCurrent(target: VpsIdleTarget): boolean {
+  if (knownVpsComputers.get(vpsIdleKey(target.ownerId, target.sshAlias))?.containerId !== target.containerId) return false;
+  const bot = store.bot(target.ownerId);
+  if (bot) return !inheritedTeamComputer(bot) && vpsSshAliasForBot(cfg, bot) === target.sshAlias;
+  const shared = teamComputers.list().find(computer => teamComputerOwner(computer.id) === target.ownerId);
+  return Boolean(shared && vpsSshAlias(cfg) === target.sshAlias && (shared.scope !== "workspace" || vpsDefaults().workspaceShared));
+}
+
+function vpsGuiBusy(target: VpsIdleTarget): boolean {
+  const resource = vpsResourceKey(target.ownerId, target.sshAlias);
+  return computerControl.snapshot(target.ownerId).held || [...botScreens.entries()].some(([botId, screen]) => screen.container.ownerId === target.ownerId && screen.container.sshAlias === target.sshAlias && computerControl.snapshot(botId).held) || [...turnComputerResources.values()].some(turn =>
+    (turn.resource === resource || turn.resource.startsWith(`${resource}:screen:`)) && turnResources.owns(turn.resource, turn.owner));
+}
+
+function computerStateChanged(ownerId: string, alias: string, state: "starting" | "ready" | "stopped" | "failed", problem?: string): void {
+  for (const bot of store.bots) {
+    const shared = inheritedTeamComputer(bot);
+    const target = shared ? teamComputerVpsTarget(cfg, shared) : { ownerId: bot.id, config: vpsConfigForBot(cfg, bot) };
+    if (target.ownerId === ownerId && vpsSshAlias(target.config) === alias) {
+      broadcast({ kind: "computer-state", botId: bot.id, resourceKey: vpsResourceKey(ownerId, alias), state, ...(problem ? { problem } : {}) }, { adminOnly: true });
+    }
+  }
+}
+
+const vpsIdles = createVpsIdleManager({
+  idleMs: vpsIdleWindowMs,
+  current: vpsOwnerCurrent,
+  busy: target => vpsScreens.busy(target) || vpsGuiBusy(target) || remoteComputerLifecycleBusyOwners.has(target.ownerId) || computerProviderConfigTransitions.has("vps") || workspaceMaintenance.active,
+  stop: async (target, stillIdle) => {
+    if (!vpsOwnerCurrent(target)) return "gone";
+    if (!stillIdle() || vpsScreens.busy(target) || vpsGuiBusy(target) || remoteComputerLifecycleBusyOwners.has(target.ownerId) || computerProviderConfigTransitions.has("vps") || workspaceMaintenance.active) return "busy";
+    remoteComputerLifecycleBusyOwners.add(target.ownerId);
+    try {
+      await vpsScreens.closeContainer(target);
+      await vps.vpsComputerAction("stop", { vps: { sshAlias: target.sshAlias } }, target.ownerId, undefined, {
+        expectedContainerId: target.containerId,
+        stillAllowed: () => stillIdle() && vpsOwnerCurrent(target) && !vpsGuiBusy(target) && !computerProviderConfigTransitions.has("vps") && !workspaceMaintenance.active,
+      });
+      return "stopped";
+    } catch (error) {
+      const code = (error as { code?: unknown })?.code;
+      if (code === "vps_container_changed") return "gone";
+      if (code === "vps_action_cancelled") return "busy";
+      throw error;
+    } finally { remoteComputerLifecycleBusyOwners.delete(target.ownerId); }
+  },
+  stopped: target => {
+    knownVpsComputers.delete(vpsIdleKey(target.ownerId, target.sshAlias));
+    computerStateChanged(target.ownerId, target.sshAlias, "stopped");
+  },
+  failed: (target, error, retryMs) => {
+    console.warn(`VPS computer idle stop failed (${target.ownerId}); ${retryMs === null ? "waiting for new activity" : "will retry"}: ${redactSecretsInText(error instanceof Error ? error.message : String(error))}`);
+  },
+});
+onConfigSaved((before, after) => {
+  vpsIdles.configure();
+  const policy = (config: AppConfig) => { const defaults = vpsDefaultsFor(config); return JSON.stringify([vpsSshAlias(config), defaults.mode, defaults.independentScreens, defaults.workspaceShared]); };
+  if (policy(before) === policy(after)) return;
+  const containers = new Map<string, ScreenContainer>();
+  for (const [botId, screen] of botScreens) {
+    containers.set(JSON.stringify(screen.container), screen.container);
+    vps.closeVpsScreenConnections(screen.container.ownerId, { containerId: screen.container.containerId, target: screen.lease.target });
+    screen.lease.release(); botScreens.delete(botId);
+  }
+  desktopViewer.recheck();
+  for (const container of containers.values()) void vpsScreens.closeContainer(container).catch(error => console.warn(`Independent screen cleanup failed: ${redactSecretsInText(error instanceof Error ? error.message : String(error))}`));
+});
+
+function rememberVpsReady(ownerId: string, status: vps.VpsComputerStatus, activity = false): void {
+  if (!status.ready || !status.sshAlias || !status.container_id) return;
+  const target = { ownerId, sshAlias: status.sshAlias, containerId: status.container_id };
+  knownVpsComputers.set(vpsIdleKey(ownerId, status.sshAlias), target);
+  if (activity) vpsIdles.activity(target); else vpsIdles.observe(target);
+  if (activity) computerStateChanged(ownerId, status.sshAlias, "ready");
+}
+
+function noteVpsTurnActivity(turn: { threadId: string; generation: string }): void {
+  const mounted = turnVpsTargets.get(turn.threadId);
+  if (!mounted || mounted.generation !== turn.generation) return;
+  const alias = vpsSshAlias(mounted.config);
+  if (alias) vpsIdles.activity({ ownerId: mounted.ownerId, sshAlias: alias, containerId: mounted.containerId });
+}
+
+function noteVpsOwnerHandBack(ownerId: string): void {
+  for (const target of knownVpsComputers.values()) if ((target.ownerId === ownerId || botScreens.get(ownerId)?.container.ownerId === target.ownerId) && vpsOwnerCurrent(target)) vpsIdles.activity(target);
 }
 
 function teamComputerPrompt(computer: TeamComputerRecord | undefined): string {
+  if (computer && vpsDefaults().independentScreens) return `Your team shares the cloud computer ${JSON.stringify(computer.name)}. Your bot has its own screen and browser profile. Desktop files are shared, browser logins are separate, and this is not a security boundary. Different bots can work on separate screens in parallel.`;
   return computer ? `Your team shares the cloud computer ${JSON.stringify(computer.name)}. Its desktop files and browser logins are shared with other Auto bots in your team; only one turn may drive it at a time. Structured browser tools use this same Chromium when available.` : "";
 }
 
 function botComputerControlKey(bot: BotRecord): string {
   const computer = inheritedTeamComputer(bot);
-  return computer ? teamComputerOwner(computer.id) : bot.id;
+  return computer && !vpsDefaults().independentScreens ? teamComputerOwner(computer.id) : bot.id;
 }
 
 /** Waits here up to COMPUTER_CALL_WAIT_MS; a call that waited through a person's hold, or whose turn ended, is never performed. */
@@ -5656,7 +5835,9 @@ async function computerCallGate(internalCapability: InternalCapability, signal?:
       } else if (personHeld) {
         return { held: true, helpOpen, blockedReason: CONTROL_HANDED_BACK };
       } else {
-        return Date.now() - askedAt > COMPUTER_CALL_ACT_WITHIN_MS ? { held: true, helpOpen, blockedReason: CONTROL_WAITED } : { held: false, helpOpen };
+        if (Date.now() - askedAt > COMPUTER_CALL_ACT_WITHIN_MS) return { held: true, helpOpen, blockedReason: CONTROL_WAITED };
+        noteVpsTurnActivity(internalCapability);
+        return { held: false, helpOpen };
       }
     }
     if (Date.now() >= deadline || signal?.aborted || !internalCapabilityIsActive(internalCapability)) return held;
@@ -5667,7 +5848,7 @@ async function computerCallGate(internalCapability: InternalCapability, signal?:
 function botComputerControlSnapshot(botId: string, pinnedComputerId?: string) {
   const own = computerControl.snapshot(botId);
   const bot = store.bot(botId);
-  const key = pinnedComputerId ? teamComputerOwner(pinnedComputerId) : bot ? botComputerControlKey(bot) : botId;
+  const key = pinnedComputerId && !vpsDefaults().independentScreens ? teamComputerOwner(pinnedComputerId) : bot ? botComputerControlKey(bot) : botId;
   const shared = computerControl.snapshot(key);
   return own.held ? own : shared.held || shared.helpReason ? shared : own;
 }
@@ -5676,6 +5857,7 @@ function teamComputerInUse(computer: TeamComputerRecord): boolean {
   computer = teamComputers.get(computer.id) ?? computer;
   return computerControl.snapshot(teamComputerOwner(computer.id)).held ||
     [...teamComputerTurns.values()].some(turn => turn.computerId === computer.id) ||
+    store.bots.some(bot => inheritedTeamComputer(bot)?.id === computer.id && computerControl.snapshot(bot.id).held) ||
     store.bots.some(bot => computer.section !== null && sectionKey(bot.section) === computer.section && (
       botHasActiveTurn(bot.id) || Boolean(routines?.activeRunForBot(bot.id)) || computerControl.snapshot(bot.id).held
     ));
@@ -5728,28 +5910,34 @@ async function mountTeamVps(computer: TeamComputerRecord, botId: string, owner: 
       throw new DirectTurnSetupCancelled("This computer turn ended while its machine was starting");
     }
   };
-  let remote = await vps.vpsComputerStatus(target.config, target.ownerId);
-  requireCurrent();
-  if (remote.container === "missing") throw new Error("The team's VPS computer is missing; explicitly create or retry it from the Team map");
-  if (!remote.ready && remote.container === "stopped") {
-    remote = await vps.vpsComputerAction("start", target.config, target.ownerId).catch(async error => {
-      const latest = await vps.vpsComputerStatus(target.config, target.ownerId);
-      if (!latest.ready) throw error;
-      return latest;
-    });
+  const canStart = vpsDefaults().autoStart;
+  let remote: vps.VpsComputerStatus;
+  try {
+    remote = canStart
+      ? await vps.vpsComputerAction("provision", target.config, target.ownerId, undefined, { stillAllowed: () => teamComputerTurns.get(owner.threadId) === turn && activeInternalGenerationByThread.get(owner.threadId) === owner.generation, onStarting: () => computerStateChanged(target.ownerId, vpsSshAlias(target.config)!, "starting") })
+      : await vps.vpsComputerStatus(target.config, target.ownerId);
+    requireCurrent();
+  } catch (error) {
+    computerStateChanged(target.ownerId, vpsSshAlias(target.config)!, "failed", error instanceof Error ? error.message : String(error));
+    throw error;
   }
   if (!remote.ready || !remote.sshAlias) throw new Error(remote.problem ?? "The team's VPS computer is not ready");
   requireCurrent();
   const targetCfg = { vps: { sshAlias: remote.sshAlias } };
+  rememberVpsReady(target.ownerId, remote, true);
   if (!remote.container_id) throw new Error("The shared VPS computer identity could not be verified");
-  turnVpsTargets.set(owner.threadId, { generation: owner.generation, botId, ownerId: target.ownerId, config: targetCfg, containerId: remote.container_id });
-  const mcp = vps.vpsComputerMcp(targetCfg, target.ownerId, remote.container_id);
+  const screenLease = vpsDefaults().independentScreens ? await ensureBotScreen(botId, { ownerId: target.ownerId, sshAlias: remote.sshAlias, containerId: remote.container_id }, "turn", () => teamComputerTurns.get(owner.threadId) === turn && activeInternalGenerationByThread.get(owner.threadId) === owner.generation && !remoteComputerLifecycleBusyOwners.has(target.ownerId)) : undefined;
+  const mounted = { generation: owner.generation, botId, ownerId: target.ownerId, config: targetCfg, containerId: remote.container_id, ...(screenLease ? { screenLease } : {}) };
+  turnVpsTargets.set(owner.threadId, mounted);
+  if (screenLease) computerStateChanged(target.ownerId, remote.sshAlias, "ready");
+  const screen = screenLease ? { containerId: remote.container_id, target: screenLease.target, live: () => screenLease.live() } : undefined;
+  const mcp = vps.vpsComputerMcp(targetCfg, target.ownerId, remote.container_id, screen);
   const control = controlIntegration(botId, owner.threadId, owner.generation);
-  const capture = () => vps.vpsComputerScreenshot(targetCfg, target.ownerId);
+  const capture = () => vps.vpsComputerScreenshot(targetCfg, target.ownerId, undefined, screen);
   autoVmClaims.set(owner.threadId, {
     owner, lazy: true, label: "the team's VPS computer", onRejected: opts.onRejected,
     claim: async () => {
-      await bindTurnComputer(owner, target.resource, true);
+      await bindTurnComputer(owner, mountedVpsResource(mounted), true);
       opts.onClaimed(capture);
     },
   });
@@ -5787,9 +5975,10 @@ async function mountBotVps(
 ) {
   const botVpsConfig = vpsConfigForBot(cfg, bot);
   const vpsResource = `computer:vps:${vpsSshAliasForBot(cfg, bot)}:${bot.id}`;
-  const remote = await (opts.start ? vps.vpsComputerAction("provision", botVpsConfig, bot.id) : vps.inspectVpsForAuto(botVpsConfig, bot.id));
+  const remote = await (opts.start ? vps.vpsComputerAction("provision", botVpsConfig, bot.id, undefined, { stillAllowed: () => activeInternalGenerationByThread.get(owner.threadId) === owner.generation, onStarting: () => computerStateChanged(bot.id, vpsSshAlias(botVpsConfig)!, "starting") }) : vps.inspectVpsForAuto(botVpsConfig, bot.id));
   if (!remote?.ready || !remote.sshAlias) return { problem: remote?.problem ?? null, reachable: remote?.daemonUp === true, outdated: vpsDesktopOutdated(remote) };
   const targetCfg = { vps: { sshAlias: remote.sshAlias } };
+  rememberVpsReady(bot.id, remote, opts.start);
   if (!remote.container_id) throw new Error("The VPS computer identity could not be verified");
   turnVpsTargets.set(owner.threadId, { generation: owner.generation, botId: bot.id, ownerId: bot.id, config: targetCfg, containerId: remote.container_id });
   const vpsMcp = vps.vpsComputerMcp(targetCfg, bot.id, remote.container_id);
@@ -5853,7 +6042,8 @@ function providerOperationConflict(_provider: RemoteComputerProvider): string | 
 
 /** `chosen`: the place the person set, so the browser's tools are handed the same way on every turn. */
 function turnSurfacePlan(bot: BotRecord, runOn?: RoutineRunOn, threadId?: string, chosen = false) {
-  const instance = registry.get(bot.modelSelection.instanceId), forcedRemote = runOn === "cloud" || Boolean(inheritedTeamComputer(bot));
+  const shared = inheritedTeamComputer(bot);
+  const instance = registry.get(bot.modelSelection.instanceId), forcedRemote = runOn === "cloud" || Boolean(shared && shared.scope !== "workspace");
   const task = forcedRemote || !threadId ? undefined : store.taskByThread(bot.id, threadId);
   return resolveSurface({
     destination: threadId && (proactive.fence.confines(threadId) || botApiThread(threadId)) ? "off" : forcedRemote ? "cloud" : bot.computer,
@@ -5881,6 +6071,7 @@ function computerPreviewBot(botId: string, url: URL): BotRecord | null {
 async function computerPreviewSurface(bot: BotRecord, threadId?: string) {
   const plan = turnSurfacePlan(bot, undefined, threadId);
   if (plan.computer !== undefined) return plan.computer === "off" && plan.browser ? "browser" : plan.computer;
+  if (inheritedTeamComputer(bot)) return "cloud";
   const instance = registry.get(bot.modelSelection.instanceId);
   if (vpsSshAliasForBot(cfg, bot)) {
     const remote = await vps.vpsComputerStatus(vpsConfigForBot(cfg, bot), bot.id);
@@ -5902,8 +6093,10 @@ async function selectableComputers(bot: BotRecord) {
   const instance = registry.get(bot.modelSelection.instanceId);
   const caps = instance?.adapter.capabilities;
   const off = bot.computer === "off";
+  const shared = inheritedTeamComputer(bot);
+  const remoteTarget = shared ? teamComputerVpsTarget(cfg, shared) : { ownerId: bot.id, config: vpsConfigForBot(cfg, bot) };
   const toolsLeaveOut = computerToolsRefusal(bot.toolScope, "works-on", bot.name)?.message;
-  const surfaces = (["cloud", "vm", "local", "browser"] as const).filter(surface => !CLOUD_HOME || cloudHomeOffersPlace(surface));
+  const surfaces = (["cloud", "vm", "local", "browser"] as const).filter(surface => (!(shared || (bot.computer === undefined && vpsSshAliasForBot(cfg, bot))) || surface === "cloud") && (!CLOUD_HOME || cloudHomeOffersPlace(surface)));
   let ownDesktopAwaitsUpdate = false;
   return withoutHostWhileUpdating(await Promise.all(surfaces.map(async surface => {
     let ready = false;
@@ -5916,12 +6109,12 @@ async function selectableComputers(bot: BotRecord) {
       if (off) reason = "Computer access is Off in this bot's settings.";
       else if (toolsLeaveOut && surface !== "browser") reason = toolsLeaveOut;
       else if (surface === "cloud") {
-        if (vpsSshAliasForBot(cfg, bot)) {
-          const status = canWorkOnCloud(cloudEngine(instance)) ? await vps.vpsComputerStatus(vpsConfigForBot(cfg, bot), bot.id) : null;
+        if (vpsSshAlias(remoteTarget.config)) {
+          const status = canWorkOnCloud(cloudEngine(instance)) ? await vps.vpsComputerStatus(remoteTarget.config, remoteTarget.ownerId) : null;
           ready = status?.ready === true;
-          canStart = Boolean(status?.daemonUp && status.managed && status.container === "stopped" &&
+          canStart = vpsDefaults().autoStart && Boolean(status?.daemonUp && status.managed && status.container === "stopped" &&
             status.image && status.imageMatches && status.network === "private" && status.mounts === "none" && status.security === "hardened");
-          canCreate = Boolean(status?.configured && status.daemonUp && status.container === "missing");
+          canCreate = vpsDefaults().autoStart && Boolean(status?.configured && status.daemonUp && status.container === "missing");
           ownDesktopAwaitsUpdate ||= vpsDesktopOutdated(status);
           reason = status?.problem ? `${status.problem}${vpsDesktopOutdated(status) ? `. ${VPS_OUTDATED_HINT}` : ""}` : reason;
         } else {
@@ -7604,7 +7797,7 @@ async function beginTurn(
       ...(opts?.goalRunId ? { goalRunId: opts.goalRunId } : {}) });
   }
   if (!opts?.computerSelectionContinuation && !opts?.cardContinuation && !opts?.automationSource && !opts?.unattended &&
-      !opts?.commsDepth && !opts?.coordination && !inheritedTeamComputer(bot) && bot.computer !== "off" && agentsMounted) {
+      !opts?.commsDepth && !opts?.coordination && (!inheritedTeamComputer(bot) || inheritedTeamComputer(bot)?.scope === "workspace") && bot.computer !== "off" && agentsMounted) {
     const source = store.activePath(threadId).findLast(message => message.id === userMessage?.id && message.role === "user" && !message.peerAsk);
     if (source) computerSelectionTurns.set(threadId, { generation: dispatchClaimId, botId: bot.id, source, text, dataContext: opts?.dataContext });
   }
@@ -7791,6 +7984,8 @@ async function beginTurn(
       const mountsComputerMcp = instance.adapter.capabilities.computerMcp === true;
       const mountsLocalComputer = instance.adapter.capabilities.localComputerMcp === true;
       const dispatchTask = store.taskByThread(bot.id, threadId);
+      const deferredSharedComputer = Boolean(vpsSshAliasForBot(cfg, bot)) && bot.computer === undefined && plan.computer === undefined
+        && agentsMounted && computerSelectionTurns.get(threadId)?.generation === dispatchClaimId;
       let wants: ComputerWant = computerSkipped ? "off" : plan.computer;
       const skipComputer = (error: unknown) => {
         if (!answer.incident || error instanceof DirectTurnSetupCancelled || error instanceof ComputerWaitParked) throw error;
@@ -8011,11 +8206,11 @@ async function beginTurn(
         }
 
           // Auto stays read-only on the VPS unless the person opted this bot into remote lifecycle actions.
-        if ((wants === "cloud" || (wants === undefined && managedPolicy.computerAllowed("vps"))) && !teamComputer && Boolean(vpsSshAliasForBot(cfg, bot)) &&
+        if ((wants === "cloud" || (wants === undefined && managedPolicy.computerAllowed("vps"))) && !teamComputer && !deferredSharedComputer && Boolean(vpsSshAliasForBot(cfg, bot)) &&
             canWorkOnCloud(cloudEngine(instance))) {
           vpsThreadStarted(bot.id, threadId);
           const mounted = await mountBotVps(bot, resourceOwner, {
-            start: vps.vpsStartsForTurn({ wants, autoStartVps: bot.autoStartVps, automationSource: opts?.automationSource }),
+            start: vpsDefaults().autoStart && vps.vpsStartsForTurn({ wants, autoStartVps: bot.autoStartVps ?? true, automationSource: opts?.automationSource }),
             onClaimed: (vpsCapture) => {
               pinAutoSurface("cloud");
               adoptClaimedCapture(vpsCapture);
@@ -8038,7 +8233,7 @@ async function beginTurn(
           }
         }
 
-        if (teamComputer) {
+        if (teamComputer && !deferredSharedComputer) {
           integrations.localComputer = await mountTeamVps(teamComputer, bot.id, resourceOwner, canWorkOnCloud(cloudEngine(instance)), { onClaimed: adoptClaimedCapture, onRejected: surfaceLazyClaimRejection("the team's VPS computer") });
           computerKind = "vps";
         }
@@ -8049,10 +8244,11 @@ async function beginTurn(
         skipComputer(!namedPlace || !placeSource ? error : await asPlaceFailure(error, namedPlace, placeSource, bot));
       }
 
-      // Electron owns cua-driver and its TCC attribution; the harness only reads its running connection descriptor.
-      if (wants === undefined && !integrations.localComputer && !computerPlaceRefusal("localVm") && await attachLocalVm(false)) computerKind = "vm";
+      const nativeAutoReady = wants === undefined && !vpsSshAliasForBot(cfg, bot) && !computerPlaceRefusal("thisComputer")
+        && shouldMountLocalComputer({ requested: undefined, hostPlatform: process.platform, providerSupportsLocal: mountsLocalComputer }) && Boolean(desktopComputer.connection());
+      if (wants === undefined && !nativeAutoReady && !vpsSshAliasForBot(cfg, bot) && !deferredSharedComputer && !integrations.localComputer && !computerPlaceRefusal("localVm") && await attachLocalVm(false)) computerKind = "vm";
       // An unattended run with a VPS configured never lands on the host's own desktop, nor does a bot whose own desktop awaits an update.
-      const hostBarred = (Boolean(vpsSshAliasForBot(cfg, bot)) && Boolean(opts?.automationSource)) || autoVpsOutdated || Boolean(vmUpdateNote);
+      const hostBarred = Boolean(teamComputer) || Boolean(vpsSshAliasForBot(cfg, bot)) || deferredSharedComputer || autoVpsOutdated || Boolean(vmUpdateNote);
       if (
         !integrations.localComputer &&
         wants === undefined &&
@@ -8080,7 +8276,9 @@ async function beginTurn(
           computerKind = "local";
         }
       }
-      let vpsUnavailableNote = "";
+      let vpsUnavailableNote = deferredSharedComputer
+        ? " A VPS computer is available on demand. Keep ordinary conversation computer-free. When the task needs browsing, files on that computer, or desktop actions, call select_computer with surface=cloud yourself; it prepares or wakes the shared computer and continues this request. Do not ask the person to configure a per-bot computer."
+        : "";
       if (
         wants === undefined &&
         !integrations.localComputer &&
@@ -8145,6 +8343,7 @@ async function beginTurn(
       if (
         liveBot &&
         plan.browser &&
+        !deferredSharedComputer &&
         !(plan.computer === undefined && mountedComputer && mountedComputer !== "local" && !plan.botOpened) &&
         builtInBrowserEnabled(cfg) &&
         liveBot.browser !== false &&
@@ -11337,7 +11536,7 @@ function signInPlace(bot: BotRecord, threadId: string): Surface | null {
 function signInControlKey(bot: BotRecord, threadId: string, place: Surface): string {
   if (place === "browser") return bot.id;
   const team = teamComputerTurns.get(threadId);
-  return team?.botId === bot.id ? teamComputerOwner(team.computerId) : botComputerControlKey(bot);
+  return team?.botId === bot.id && !vpsDefaults().independentScreens ? teamComputerOwner(team.computerId) : botComputerControlKey(bot);
 }
 
 /** Appends the new card first, so a failed append leaves the older one actionable. */
@@ -11545,7 +11744,7 @@ function configStatus() {
       ...(composio.connectionMode(cfg) === "self-hosted" ? keyHint(cfg.composio?.apiKey) : {}),
       configured: composio.configured(cfg), mode: composio.connectionMode(cfg),
     },
-    vps: { configured: Boolean(vpsSshAlias(cfg)), sshAlias: vpsSshAlias(cfg) ?? "" },
+    vps: { ...vpsDefaults(), configured: Boolean(vpsSshAlias(cfg)), sshAlias: vpsSshAlias(cfg) ?? "" },
     opencodeGo: { ...keyStatus(cfg.opencodeGo?.apiKey), providerKeys: Object.keys(openCodeProviderKeys(cfg)) },
     tts: tts.describeVoice(cfg),
     decider: describeDecider(cfg), helpers: describeHelpers(cfg),
@@ -12151,7 +12350,7 @@ ROUTES.push(createConfigRoutes({
   localVmImageBusy: { get: () => localVmImageBusy },
   localVmModeChangeBusy: { set: (busy) => { localVmModeChangeBusy = busy; } },
   providerConfigBusy: { get: () => providerConfigBusy, set: (busy) => { providerConfigBusy = busy; } },
-  computerProviderConfigTransitions, managedVpsOwners, providerOperationConflict, perBotLocalVmCountForModeChange,
+  computerProviderConfigTransitions, managedVpsOwners, providerOperationConflict, vpsSharingChanged, perBotLocalVmCountForModeChange,
   checkedModelSelection, policyModelRefusal, browserSessionSpec, configStatus,
   configForAccess: (status, auth) => configForAccess(status as ReturnType<typeof configStatus>, auth.scopes.includes("admin"), auth.kind === "session" ? auth.session : null),
   ...(CLOUD_TEAM ? { ownProfile: (auth: RequestAuth, profile: { name?: string; avatarUrl?: string; aboutMe?: string }) => auth.kind === "session" ? (teamHost.saveMemberProfile(auth.session, profile), true) : false } : {}),
@@ -12755,6 +12954,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         if (!internalCapabilityIsActive(internalCapability)) {
           throw Object.assign(new Error("the internal turn capability has expired"), { status: 401 });
         }
+        if (!body || typeof body !== "object" || Array.isArray(body)) throw Object.assign(new Error("Expected a JSON object"), { status: 400 });
         if (body && typeof body === "object" && !Array.isArray(body)) {
           for (const key of ["fromBotId", "botId"] as const) {
             if (body[key] !== undefined && String(body[key]) !== internalSender.id) {
@@ -12928,7 +13128,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           }
           const remote = turnVpsTargets.get(internalCapability.threadId);
           if (body.method === "tools/call" && remote?.generation === internalCapability.generation) {
-            const resource = `computer:vps:${vpsSshAlias(remote.config)}:${remote.ownerId}`;
+            const resource = mountedVpsResource(remote);
             const snapshot = botComputerControlSnapshot(bot.id, internalCapability.teamComputerId);
             if (snapshot.held || !claimTurnResource(internalCapability, resource)) throw Object.assign(new Error("This computer is held by another person or turn; wait before browsing"), { status: 409 });
           }
@@ -12936,7 +13136,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
             throw Object.assign(new Error("another thread is using this browser — pause browser work until that thread finishes"), { status: 409 });
           }
         }, stepContext(bot, internalCapability, () => liveTurnByThread.get(internalCapability.threadId) ?? null));
-        requireActiveInternalCapability(); if (body.method === "tools/call") browserSeats.used(internalCapability, browser.session);
+        requireActiveInternalCapability(); if (body.method === "tools/call") { browserSeats.used(internalCapability, browser.session); if (!(result as { isError?: boolean })?.isError) noteVpsTurnActivity(internalCapability); }
         return json(res, 200, { result });
       }
       // DuckDB runs here on the bot's own database; the agent process holds only the turn's capability.
@@ -14920,8 +15120,11 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       if (surface !== "cloud") return json(res, 200, { surface, configured: false, backend: "vps" });
       const teamComputer = inheritedTeamComputer(bot);
       const target = teamComputer ? teamComputerVpsTarget(cfg, teamComputer) : { ownerId: bot.id, config: vpsConfigForBot(cfg, bot) };
-      return json(res, 200, { surface, backend: "vps", ...(teamComputer ? { teamComputer: { id: teamComputer.id, name: teamComputer.name } } : {}),
-        ...(await vps.vpsComputerStatus(target.config, target.ownerId)) });
+      const status = await vps.vpsComputerStatus(target.config, target.ownerId);
+      rememberVpsReady(target.ownerId, status);
+      const screen = teamComputer && vpsDefaults().independentScreens ? screenConnection(bot.id, target.ownerId, vpsSshAlias(target.config) ?? "") : undefined;
+      return json(res, 200, { surface, backend: "vps", resourceKey: vpsResourceKey(target.ownerId, vpsSshAlias(target.config) ?? ""), ...(teamComputer ? { teamComputer: { id: teamComputer.id, name: teamComputer.name, ...(teamComputer.scope ? { scope: teamComputer.scope } : {}) } } : {}), ...status, ...(teamComputer && vpsDefaults().independentScreens ? { ready: status.ready && Boolean(screen), viewerKey: screen?.target.generation ?? "unallocated" } : {}),
+        ...(vps.vpsComputerPreparing(target.config, target.ownerId) ? { state: "starting" } : status.ready ? { state: "ready" } : status.container === "stopped" ? { state: "stopped" } : {}) });
     }
     // The person's take and release; the bot has no verb here, only a sign-in request its card settles.
     m = path.match(/^\/api\/bots\/([\w-]+)\/computer\/control$/);
@@ -14949,8 +15152,16 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         if (action === "take" && (remoteComputerLifecycleBusyOwners.has(bot.id) || remoteComputerLifecycleBusyOwners.has(controlKey))) {
           return json(res, 409, { error: "this bot's cloud computer is being changed — wait before taking control" });
         }
+        if (action === "take" && vpsDefaults().independentScreens && inheritedTeamComputer(currentBot)) {
+          const shared = inheritedTeamComputer(currentBot)!; const target = teamComputerVpsTarget(cfg, shared);
+          const known = knownVpsComputers.get(vpsIdleKey(target.ownerId, vpsSshAlias(target.config) ?? ""));
+          if (!known || !screenConnection(bot.id, target.ownerId, known.sshAlias)) return json(res, 409, { error: "Wake and connect this bot screen before taking control" });
+          const lease = await ensureBotScreen(bot.id, known, "hold", () => Boolean(store.bot(bot.id)) && !remoteComputerLifecycleBusyOwners.has(target.ownerId) && !computerProviderConfigTransitions.has("vps") && (auth.kind === "loopback" || sessions.isLive(auth.session.id)));
+          humanScreenLeases.get(bot.id)?.release(); humanScreenLeases.set(bot.id, lease);
+        }
         if (action === "take" && controlLeaseId) {
           const result = computerControl.acquireLease(controlKey, controlLeaseId);
+          if (!result.owned && !result.snapshot.held) { humanScreenLeases.get(bot.id)?.release(); humanScreenLeases.delete(bot.id); }
           return json(res, 200, {
             ...result.snapshot,
             owned: result.owned,
@@ -14979,14 +15190,17 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       }
       if (auth.kind === "session") desktopViewer.closeForOwner(auth.session.id, bot.id);
       const shared = inheritedTeamComputer(bot);
-      return json(res, 200, vps.closeVpsDesktopTunnel(shared ? teamComputerOwner(shared.id) : bot.id));
+      const ownerId = shared ? teamComputerOwner(shared.id) : bot.id;
+      const screen = shared && vpsDefaults().independentScreens ? screenConnection(bot.id, ownerId, vpsSshAlias(cfg) ?? "") : undefined;
+      if (shared && vpsDefaults().independentScreens && !screen) return json(res, 200, { closed: false });
+      return json(res, 200, vps.closeVpsDesktopTunnel(ownerId, screen));
     }
     m = path.match(/^\/api\/bots\/([\w-]+)\/computer\/(provision|join|sleep|exec|screenshot|remove)$/);
     if (m && method === "POST") {
       const botId = m[1];
       const action = m[2];
       const previewOnly = action === "screenshot" || action === "join";
-      const bot = previewOnly ? computerPreviewBot(botId, url) : store.bot(botId);
+      const bot = url.searchParams.has("threadId") ? computerPreviewBot(botId, url) : store.bot(botId);
       if (!bot) return json(res, 404, { error: "no such bot" });
       if (previewOnly && url.searchParams.has("threadId") && await computerPreviewSurface(bot, bot.threadId) !== "cloud") {
         return json(res, 409, { error: "This conversation is not using the VPS computer" });
@@ -15001,15 +15215,15 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       if (computerProviderConfigTransitions.has("vps")) return json(res, 409, { error: providerTransitionMessage("vps") });
       if (remoteComputerLifecycleBusyOwners.has(ownerId)) return json(res, 409, { error: "This VPS computer is being changed; wait for it to finish" });
       if (action === "exec") return json(res, 409, { error: "Use the bot's scoped computer tools for this VPS console" });
-      if (shared && (action === "provision" || action === "remove")) return json(res, 409, { error: "Manage this shared computer from the Team map" });
-      if (shared && action === "join" && url.searchParams.get("viewer") !== "proxy" && !computerControl.snapshot(ownerId).held) return json(res, 409, { error: "Take control before opening this shared desktop" });
+      if (shared && action === "remove") return json(res, 409, { error: "Manage this shared computer from the Team map" });
+      if (shared && action === "join" && url.searchParams.get("viewer") !== "proxy" && !computerControl.snapshot(botComputerControlKey(bot)).held) return json(res, 409, { error: "Take control before opening this shared desktop" });
       if (action === "screenshot") {
         res.setHeader("cache-control", "private, no-store");
-        return json(res, 200, await computerPreviews.capture(ownerId, () => vps.vpsComputerScreenshot(target.config, ownerId)));
+        const screen = shared && vpsDefaults().independentScreens ? screenConnection(bot.id, ownerId, vpsSshAlias(target.config) ?? "") : undefined;
+        if (shared && vpsDefaults().independentScreens && !screen) return json(res, 409, { error: "Wake this bot screen before previewing it" });
+        return json(res, 200, await computerPreviews.capture(screen ? `${ownerId}:${screen.target.generation}` : ownerId, () => vps.vpsComputerScreenshot(target.config, ownerId, undefined, screen)));
       }
-      if (action === "provision" && bot.computer !== "cloud" && !bot.autoStartVps) {
-        return json(res, 409, { error: "Auto may start this VPS only after Start VPS automatically is enabled" });
-      }
+      if (action === "provision" && bot.computer !== undefined && bot.computer !== "cloud") return json(res, 409, { error: "Select the VPS computer before waking it" });
       if ((action === "sleep" || action === "remove") && (shared ? teamComputerInUse(shared) : botHasActiveTurn(botId) || activeVpsThreads.has(ownerId))) {
         return json(res, 409, { error: "This VPS computer is in use; stop its work and release control first" });
       }
@@ -15019,10 +15233,36 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       try {
         if (action === "join") {
           const remote = auth.kind !== "loopback" || url.searchParams.get("viewer") === "proxy";
-          const result = await vps.vpsComputerJoin(target.config, ownerId, undefined, remote);
-          return json(res, 200, { ...result, joinUrl: remote ? desktopViewerUrl(`vps/${bot.id}`, bot.threadId) : result.joinUrl });
+          let screen: vps.VpsScreenConnection | undefined;
+          if (shared && vpsDefaults().independentScreens) {
+            const status = await vps.vpsComputerStatus(target.config, ownerId);
+            if (!status.ready || !status.container_id || !status.sshAlias) throw Object.assign(new Error(status.problem ?? "Wake this computer before opening its screen"), { status: 409 });
+            await ensureBotScreen(bot.id, { ownerId, sshAlias: status.sshAlias, containerId: status.container_id }, "watch", () => (auth.kind === "loopback" || sessions.isLive(auth.session.id)) && !res.destroyed && !computerProviderConfigTransitions.has("vps"));
+            screen = screenConnection(bot.id, ownerId, status.sshAlias);
+            if (!screen) throw Object.assign(new Error("This bot screen was reassigned; reconnect it"), { status: 409 });
+          }
+          const result = await vps.vpsComputerJoin(target.config, ownerId, undefined, remote || Boolean(screen), screen);
+          const connection = remote || screen ? vps.vpsDesktopConnection(ownerId, screen) : undefined;
+          return json(res, 200, { ...result, resourceKey: vpsResourceKey(ownerId, vpsSshAlias(target.config) ?? ""), ...(screen ? { viewerKey: screen.target.generation } : {}), ...(connection ? { viewer: { password: connection.password } } : {}), joinUrl: remote || screen ? desktopViewerUrl(`vps/${bot.id}`, bot.threadId) : result.joinUrl });
         }
-        return json(res, 200, await vps.vpsComputerAction(action === "provision" ? "provision" : action === "remove" ? "remove" : "stop", target.config, ownerId));
+        const alias = vpsSshAlias(target.config) ?? "";
+        try {
+          if (action !== "provision") { const known = knownVpsComputers.get(vpsIdleKey(ownerId, alias)); if (known) await vpsScreens.closeContainer(known); }
+          const status = await vps.vpsComputerAction(action === "provision" ? "provision" : action === "remove" ? "remove" : "stop", target.config, ownerId, undefined, {
+            stillAllowed: () => (auth.kind === "loopback" || sessions.isLive(auth.session.id)) && !computerProviderConfigTransitions.has("vps"),
+            onStarting: () => computerStateChanged(ownerId, alias, "starting"),
+          });
+          if (action === "provision" && !status.ready) throw Object.assign(new Error(status.problem ?? "The VPS computer did not become ready; retry when the connection recovers"), { status: 503 });
+          if (action === "provision") {
+            if (shared && vpsDefaults().independentScreens && status.container_id) await ensureBotScreen(bot.id, { ownerId, sshAlias: alias, containerId: status.container_id }, "watch", () => (auth.kind === "loopback" || sessions.isLive(auth.session.id)) && !res.destroyed && !computerProviderConfigTransitions.has("vps"));
+            rememberVpsReady(ownerId, status, true);
+          }
+          else { vpsIdles.cancel({ ownerId, sshAlias: alias }); knownVpsComputers.delete(vpsIdleKey(ownerId, alias)); computerStateChanged(ownerId, alias, "stopped"); }
+          return json(res, 200, { surface: "cloud", backend: "vps", ...status, ...(shared && vpsDefaults().independentScreens ? { viewerKey: screenConnection(bot.id, ownerId, alias)?.target.generation ?? "unallocated" } : {}), resourceKey: vpsResourceKey(ownerId, alias), ...(shared ? { teamComputer: { id: shared.id, name: shared.name, ...(shared.scope ? { scope: shared.scope } : {}) } } : {}) });
+        } catch (error) {
+          if (action === "provision") computerStateChanged(ownerId, alias, "failed", error instanceof Error ? error.message : String(error));
+          throw error;
+        }
       } finally {
         release();
         if (joinSettled) { vpsJoinRequests.delete(ownerId); joinSettled(); }
@@ -15192,7 +15432,7 @@ const gracefulShutdown = createGracefulShutdown({
       desktopViewer.closeAll();
       upgrades.close();
       for (const idle of localVmIdles.values()) idle.cancel();
-      vps.closeAllVpsDesktopTunnels();
+      vpsIdles.close(); vps.closeAllVpsDesktopTunnels();
       watchdog.stop();
       routines?.close(); void appTriggers.stop();
       botWaits.stop();
@@ -15202,6 +15442,7 @@ const gracefulShutdown = createGracefulShutdown({
       webhookIngress?.server.close();
       tunnelListener?.close(); stopCloudHomeConnectedApps();
     },
+    async () => { await vpsScreens.close(); },
     async () => { await managedDesktop.close(); await registry.disposeAll(); },
     async () => { await dataEngine.closeAll().catch((error) => console.warn("data: close failed", error)); },
     async () => {

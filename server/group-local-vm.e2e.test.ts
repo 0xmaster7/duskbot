@@ -76,7 +76,7 @@ beforeAll(async () => {
   vpsState();
   const data = join(fixtureHome, "data");
   const ui = join(fixtureHome, "static");
-  mkdirSync(data); mkdirSync(join(ui, "assets"), { recursive: true });
+  mkdirSync(join(data, "vm-home"), { recursive: true }); mkdirSync(join(ui, "assets"), { recursive: true });
   writeFileSync(join(ui, "index.html"), "<title>Isolated VM routing</title>");
   writeFileSync(join(ui, "assets", "test.css"), "body{}");
   const engine = {
@@ -771,7 +771,7 @@ describe("Group Local VM ownership on the real isolated server", () => {
   it("runs a channel speaker's own VPS destination on its engine, waking and reusing its computer", async () => {
     const { bots, group } = await room();
     try {
-      await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps" } });
+      await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "per-bot" } });
       await api("PATCH", `/api/bots/${bots[0].id}`, { computer: "cloud", modelSelection: VPS_MODEL });
       vpsState({ containers: { [bots[0].id]: "stopped" } });
       const onVps = (sent: any) => computer(sent)?.args?.[0] === "fixture-vps-mcp";
@@ -793,7 +793,7 @@ describe("Group Local VM ownership on the real isolated server", () => {
       await stop(group.id); await idle(bots[0].id);
       await api("PATCH", `/api/bots/${bots[0].id}`, { computer: "vm" });
       vpsState();
-      await api("PUT", "/api/config", { vps: { sshAlias: "" } });
+      await api("PUT", "/api/config", { vps: { sshAlias: "", mode: "shared" } });
     }
   }, 45_000);
 

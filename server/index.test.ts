@@ -3065,7 +3065,7 @@ describe("harness HTTP API", () => {
     if (target === "profile") expect((await api("DELETE", `/api/bots/${bot.id}`)).status).toBe(200);
   });
 
-  it("clears an explicit computer to Auto and refuses passive VPS provisioning", async () => {
+  it("clears an explicit computer to Auto, keeps status passive, and allows manual VPS wake", async () => {
     let botId = "";
     try {
       expect((await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps" } })).status).toBe(200);
@@ -3079,11 +3079,12 @@ describe("harness HTTP API", () => {
       expect(malformed.status).toBe(400);
       expect(malformed.body.error).toMatch(/computer must be null/);
       expect((await api("GET", "/api/bots?messages=0")).body.bots.find((candidate: { id: string }) => candidate.id === bot.id)).not.toHaveProperty("computer");
+      const passiveOffset = existsSync(fakeDockerLog) ? readFileSync(fakeDockerLog, "utf8").length : 0;
       const passive = await api("GET", `/api/bots/${bot.id}/computer`);
       expect(passive).toMatchObject({ status: 200, body: { backend: "vps", configured: true, ready: true } });
+      expect(readFileSync(fakeDockerLog, "utf8").slice(passiveOffset)).not.toMatch(/ (?:run|start|create|build|pull)(?: |$)/m);
       const provision = await api("POST", `/api/bots/${bot.id}/computer/provision`, {});
-      expect(provision.status).toBe(409);
-      expect(provision.body.error).toMatch(/Auto may start this VPS/);
+      expect(provision).toMatchObject({ status: 200, body: { ready: true, resourceKey: passive.body.resourceKey } });
       expect((await api("PATCH", `/api/bots/${bot.id}`, { computer: "cloud" })).status).toBe(200);
       expect((await api("POST", `/api/bots/${bot.id}/computer/provision`, {}))).toMatchObject({ status: 200, body: { ready: true } });
     } finally {
@@ -3334,17 +3335,20 @@ describe("harness HTTP API", () => {
       expect((await api("POST", `/api/groups/${roomId}/interrupt`, {})).status).toBe(200);
       await idle(botIds[1]);
 
+      expect((await api("PUT", "/api/config", { vps: { autoStart: false } })).status).toBe(200);
       writeFileSync(fakeSharedVpsFixture, JSON.stringify({ missing: true }));
       await api("POST", `/api/team-computers/${requestId}/sleep`, {});
       const missingOffset = readFileSync(fakeDockerLog, "utf8").length;
       rmSync(fakeClaudeDump, { force: true });
+      const missingPromptBaseline = claudePrompts().length;
       expect((await api("POST", `/api/bots/${botIds[0]}/messages`, { text: "do not create a replacement" })).status).toBe(202);
-      void reachForComputer();
       await expect.poll(async () => JSON.stringify((await api("GET", "/api/bots?messages=30")).body.bots.find(
         (bot: { id: string }) => bot.id === botIds[0],
-      )), { timeout: 5_000 }).toMatch(/team's VPS computer is missing/);
+      )), { timeout: 5_000 }).toMatch(/No OpenMausBot container exists for this bot on the VPS/);
       await idle(botIds[0]);
-      expect(readFileSync(fakeDockerLog, "utf8").slice(missingOffset)).not.toMatch(/ (?:run|create|build|pull) /);
+      expect(claudePrompts()).toHaveLength(missingPromptBaseline);
+      expect(existsSync(fakeClaudeDump)).toBe(false);
+      expect(readFileSync(fakeDockerLog, "utf8").slice(missingOffset)).not.toMatch(/ (?:run|start|create|build|pull)(?: |$)/m);
     } finally {
       rmSync(fakeSharedVpsFixture, { force: true });
       if (roomId) await api("POST", `/api/groups/${roomId}/interrupt`, {}).catch(() => undefined);
@@ -3353,6 +3357,7 @@ describe("harness HTTP API", () => {
       await api("PATCH", `/api/team-computers/${requestId}`, { section: null, acknowledgeSharedAccess: true }).catch(() => undefined);
       if (roomId) await api("DELETE", `/api/groups/${roomId}`).catch(() => undefined);
       for (const botId of botIds) await api("DELETE", `/api/bots/${botId}`).catch(() => undefined);
+      await api("PUT", "/api/config", { vps: { autoStart: true } }).catch(() => undefined);
       await api("PUT", "/api/config", { vps: { sshAlias: "" } }).catch(() => undefined);
       rmSync(fakeClaudeDump, { force: true });
     }
@@ -10685,7 +10690,7 @@ describe("harness HTTP API", () => {
 
     const saved = await api("PUT", "/api/config", { vps: { sshAlias: "production-vps" } });
     expect(saved.status).toBe(200);
-    expect(saved.body.vps).toEqual({ configured: true, sshAlias: "production-vps" });
+    expect(saved.body.vps).toMatchObject({ configured: true, sshAlias: "production-vps", mode: "shared", autoStart: true, idleTimeoutMinutes: 10, independentScreens: false, sharingAllowed: true, workspaceShared: true });
     expect(JSON.stringify(saved.body)).not.toContain("privateKey");
 
     const patched = await api("PATCH", `/api/bots/${bot.id}`, { cloudBackend: "vps" });

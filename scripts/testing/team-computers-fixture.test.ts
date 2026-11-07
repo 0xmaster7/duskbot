@@ -27,7 +27,7 @@ it.skipIf(process.platform === "win32")("uses the owned Docker fixture for one s
   try {
     fixture = await launchVerificationServer({}, undefined, vps.localVm);
     const api = fixtureApi(fixture.info.url);
-    await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps" } });
+    await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "per-bot" } });
     const first = (await api("POST", "/api/bots", { name: "First researcher" })).bot;
     const second = (await api("POST", "/api/bots", { name: "Second researcher" })).bot;
     const outsider = (await api("POST", "/api/bots", { name: "Other work" })).bot;

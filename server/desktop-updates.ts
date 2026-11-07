@@ -243,7 +243,10 @@ export async function recoverLocalVms(input: {
       if (shouldArmLocalVmIdle(statuses[index])) input.armIdle(target);
     });
   };
-  if (input.mode === "shared") return settle([SHARED_LOCAL_VM_TARGET]);
+  if (input.mode === "shared") {
+    if (localVmWorkspaceExists(SHARED_LOCAL_VM_TARGET)) await settle([SHARED_LOCAL_VM_TARGET]);
+    return;
+  }
   const workspaces = input.mode === "pool"
     ? Array.from({ length: input.seats }, (_, seat) => poolLocalVmTarget(seat))
     : input.bots.map((bot) => perBotLocalVmTarget(bot.id));

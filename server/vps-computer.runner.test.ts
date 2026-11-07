@@ -94,7 +94,33 @@ describe("default VPS command runner", () => {
     expect(child.stdout.destroyed && child.stderr.destroyed).toBe(true);
   });
 
-  it.skipIf(process.platform === "win32").each(["timeout", "stdin"])("reaps real SSH-like grandchildren after %s without stopping an unrelated master", async (failure) => {
+  it("refuses an already cancelled command without spawning Docker", async () => {
+    const abort = new AbortController();
+    abort.abort();
+    await expect(defaultRunner(["exec", "fixture"], { signal: abort.signal })).rejects.toMatchObject({ name: "AbortError", status: 499 });
+    expect(spawnMock).not.toHaveBeenCalled();
+  });
+
+  it("waits for owned-tree cleanup after cancellation even if Docker reports success meanwhile", async () => {
+    const child = fakeChild();
+    const abort = new AbortController();
+    let finishCleanup!: () => void;
+    stopMock.mockReturnValue(new Promise<void>(resolve => { finishCleanup = resolve; }));
+    let settled = false;
+    const result = defaultRunner(["exec", "fixture"], { signal: abort.signal });
+    void result.then(() => { settled = true; }, () => { settled = true; });
+    const rejected = expect(result).rejects.toMatchObject({ name: "AbortError", status: 499 });
+    abort.abort();
+    child.emit("close", 0, null);
+    await Promise.resolve();
+    expect(stopMock).toHaveBeenCalledWith(child, 5_000);
+    expect(settled).toBe(false);
+    finishCleanup();
+    await rejected;
+    expect(child.stdin.destroyed && child.stdout.destroyed && child.stderr.destroyed).toBe(true);
+  });
+
+  it.skipIf(process.platform === "win32").each(["timeout", "stdin", "abort"])("reaps real SSH-like grandchildren after %s without stopping an unrelated master", async (failure) => {
     const { spawn: realSpawn } = await vi.importActual<typeof import("node:child_process")>("node:child_process");
     const { killCliTree: realStop } = await vi.importActual<typeof import("./procs.ts")>("./procs.ts");
     stopMock.mockImplementation(realStop);
@@ -110,12 +136,14 @@ describe("default VPS command runner", () => {
     const masterClosed = new Promise<void>((resolve) => master.once("close", () => resolve()));
     let helper = 0;
     const alive = (pid: number) => { try { process.kill(pid, 0); return true; } catch { return false; } };
-    const result = defaultRunner(["info"], { timeoutMs: failure === "timeout" ? 1_000 : 20_000 });
-    const rejected = expect(result).rejects.toThrow(failure === "timeout" ? "command timed out" : "stdin failed");
+    const abort = new AbortController();
+    const result = defaultRunner(["info"], { timeoutMs: failure === "timeout" ? 1_000 : 20_000, signal: abort.signal });
+    const rejected = expect(result).rejects.toThrow(failure === "timeout" ? "command timed out" : failure === "abort" ? "command cancelled" : "stdin failed");
     try {
       helper = Number(await new Promise<string>((resolve) => docker.stdout!.once("data", (chunk) => resolve(String(chunk).trim()))));
       expect(alive(helper)).toBe(true);
       if (failure === "stdin") docker.stdin!.emit("error", new Error("write EPIPE"));
+      if (failure === "abort") abort.abort();
       await rejected;
       expect(alive(helper)).toBe(false);
       expect(docker.exitCode !== null || docker.signalCode !== null).toBe(true);

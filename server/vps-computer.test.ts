@@ -1,3 +1,4 @@
+import { independentScreenTarget } from "./shared-desktop-screens.ts";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "node:events";
 import { execFileSync } from "node:child_process";
@@ -563,6 +564,33 @@ esac
     expect(stopped.container).toBe("stopped");
     expect(stop.calls.some(({ args }) => args[2] === "stop" && args[3] === CONTAINER_ID)).toBe(true);
     expect(stop.calls.some(({ args }) => ["rm", "system", "reboot", "shutdown"].includes(args[2]!))).toBe(false);
+  });
+
+  it("cancels an idle stop after inspection when activity resumes or the container changed", async () => {
+    const fake = fixture();
+    let allowed = true;
+    const runner: VpsCommandRunner = async (args, options) => {
+      const result = await fake.runner(args, options);
+      if (args[2] === "inspect") allowed = false;
+      return result;
+    };
+    await expect(vpsComputerAction("stop", CONFIG, BOT_ID, runner, {
+      expectedContainerId: CONTAINER_ID, stillAllowed: () => allowed,
+    })).rejects.toMatchObject({ code: "vps_action_cancelled" });
+    expect(fake.calls.some(({ args }) => args[2] === "stop")).toBe(false);
+    await expect(vpsComputerAction("stop", CONFIG, BOT_ID, fake.runner, {
+      expectedContainerId: "e".repeat(64), stillAllowed: () => true,
+    })).rejects.toMatchObject({ code: "vps_container_changed" });
+    expect(fake.calls.some(({ args }) => args[2] === "stop")).toBe(false);
+  });
+
+  it("announces preparation only when the computer must be created or started", async () => {
+    const ready = vi.fn();
+    await vpsComputerAction("provision", CONFIG, BOT_ID, fixture().runner, { onStarting: ready });
+    expect(ready).not.toHaveBeenCalled();
+    const starting = vi.fn();
+    await vpsComputerAction("provision", CONFIG, BOT_ID, fixture({ running: false }).runner, { onStarting: starting });
+    expect(starting).toHaveBeenCalledTimes(1);
   });
 
   it("serializes concurrent provisioning for the same bot", async () => {
@@ -1313,4 +1341,40 @@ describe("remote desktop tunnel ownership", () => {
       expect(child.kill).toHaveBeenCalledTimes(1);
     } finally { closeAllVpsDesktopTunnels(); vi.useRealTimers(); }
   });
+});
+
+describe("independent screen transport", () => {
+  it("pins MCP and screenshot to the canonical bot socket", async () => {
+    const target = independentScreenTarget("screen-bot", 3);
+    const screen = { containerId: CONTAINER_ID, target };
+    const mcp = vpsComputerMcp(CONFIG, BOT_ID, CONTAINER_ID, screen);
+    expect(JSON.parse(mcp.args.at(-1)!)).toEqual(target);
+    expect(vpsContainerMcpArgs("production-vps", CONTAINER_ID, target)).toContain(target.socket);
+    expect(() => vpsContainerMcpArgs("production-vps", CONTAINER_ID, { ...target, socket: "/tmp/other.sock" })).toThrow(/identity changed/);
+    const fake = fixture();
+    await vpsComputerScreenshot(CONFIG, BOT_ID, fake.runner, screen);
+    const call = fake.calls.find(({ args }) => args.includes("--screenshot-out-file"));
+    expect(call?.args).toContain(target.socket);
+    expect(call?.args).not.toContain("/run/user/1000/cua.sock");
+  });
+
+  it("refuses a screen bound to a replaced container before capture", async () => {
+    const fake = fixture();
+    await expect(vpsComputerScreenshot(CONFIG, BOT_ID, fake.runner, { containerId: "c".repeat(64), target: independentScreenTarget("screen-bot", 2) })).rejects.toMatchObject({ status: 409 });
+    expect(fake.calls.some(({ args }) => args.includes("--screenshot-out-file"))).toBe(false);
+  });
+});
+
+it("refreshes a cached awake status when an out-of-band stop is discovered on viewer join", async () => {
+  const fake = fixture();
+  const cfg = { vps: { sshAlias: "external-stop-fixture" } };
+  mockTransport(fake.runner);
+  try {
+    await expect(vpsComputerStatus(cfg, BOT_ID)).resolves.toMatchObject({ ready: true });
+    fake.state.running = false;
+    await expect(vpsComputerStatus(cfg, BOT_ID)).resolves.toMatchObject({ ready: true });
+    await expect(vpsComputerJoin(cfg, BOT_ID)).rejects.toMatchObject({ status: 409 });
+    await expect(vpsComputerStatus(cfg, BOT_ID)).resolves.toMatchObject({ ready: false, container: "stopped" });
+    expect(fake.calls.some(({ args }) => args.includes("start") || args.includes("run"))).toBe(false);
+  } finally { spawnMock.mockReset(); }
 });

@@ -1,3 +1,6 @@
+import { independentScreenExecArgs, type IndependentScreenTarget } from "./shared-desktop-screens.ts";
+import { boxChromes, desktopTunnels, NATIVE_VIEWER_LIFETIME_MS, REMOTE_VIEWER_GRACE_MS, requireLiveScreen, screenKey, stopDesktopTunnel, type VpsScreenConnection } from "./vps-connections.ts";
+export { closeVpsScreenConnections, closeVpsDesktopTunnel, closeAllVpsDesktopTunnels, vpsDesktopConnection, type VpsScreenConnection } from "./vps-connections.ts";
 // BYO Linux VPS: Docker's SSH transport reaches the user's daemon; one Cua Driver desktop container per bot.
 import { createHash, randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
@@ -30,7 +33,7 @@ import { DATA_DIR, isValidSshAlias, vpsSshAlias, type AppConfig } from "./config
 import { augmentedPath } from "./env-path.ts";
 import { killCliTree, spawnCli } from "./procs.ts";
 import { prepareVpsSsh } from "./vps-ssh.ts";
-import { boxChromeExecArgs, boxChromeRelay, forwardViewer, isThisServerVps, type ViewerLink } from "./vps-local.ts";
+import { boxChromeExecArgs, boxChromeRelay, forwardViewer, isThisServerVps } from "./vps-local.ts";
 import { sshViewer } from "./vps-viewer.ts";
 import { loadEnvironmentId } from "./environment.ts";
 import { SPAWNED_PROXIES } from "./proxy-paths.ts";
@@ -90,8 +93,13 @@ function snapshotVpsConfig(cfg: AppConfig): AppConfig {
 export function vpsLifecycleBusy(): boolean {
   return lifecycleLocks.size > 0;
 }
+
+export function vpsComputerPreparing(cfg: AppConfig, botId: string): boolean {
+  const key = vpsLockKey(cfg, botId);
+  return key !== null && pendingProvisions.has(key);
+}
 const LOCK_ACQUIRE_TIMEOUT_MS = 5_000;
-const STATUS_CACHE_TTL_MS = 10_000;
+const STATUS_CACHE_TTL_MS = 3_000;
 const statusCache = new Map<string, { status: VpsComputerStatus; expiresAt: number }>();
 const pendingStatuses = new Map<string, Promise<VpsComputerStatus>>();
 const pendingProvisions = new Map<string, Promise<VpsComputerStatus>>();
@@ -101,12 +109,6 @@ const PREPARATION_LOCK_TIMEOUT_MS = SCREENSHOT_BUDGET_MS + LOCK_ACQUIRE_TIMEOUT_
 type VpsScreenshot = { png: string; format: "png" | "jpeg" };
 const pendingScreenshots = new Map<string, Promise<VpsScreenshot>>();
 const viewerConnections = new Map<string, { privateIp: string; password: string }>();
-const REMOTE_VIEWER_GRACE_MS = 30_000;
-const NATIVE_VIEWER_LIFETIME_MS = 8 * 60 * 60_000;
-const desktopTunnels = new Map<
-  string,
-  { link: ViewerLink; joinUrl: string; expiry: ReturnType<typeof setTimeout>; viewers: number; localViewer: boolean }
->();
 
 function invalidateVpsStatus(key: string): void {
   statusCache.delete(key);
@@ -117,6 +119,7 @@ function invalidateVpsStatus(key: string): void {
 export interface VpsCommandOptions {
   input?: string;
   timeoutMs?: number;
+  signal?: AbortSignal;
 }
 
 export type VpsCommandRunner = (
@@ -208,11 +211,12 @@ export function vpsDockerArgs(alias: string, args: string[]): string[] {
 }
 
 /** Never published by Docker: SSH forwards one loopback port to noVNC, and every caller-controlled part is validated before argv. */
-export function vpsSshTunnelArgs(alias: string, localPort: number, privateIp: string, configPath: string | null = null): string[] {
+export function vpsSshTunnelArgs(alias: string, localPort: number, privateIp: string, configPath: string | null = null, remotePort = INTERNAL_VIEWER_PORT): string[] {
   if (!isValidSshAlias(alias)) throw new Error("invalid VPS SSH config alias");
   if (!Number.isInteger(localPort) || localPort < 1024 || localPort > 65535) {
     throw new Error("invalid VPS viewer port");
   }
+  if (!Number.isInteger(remotePort) || remotePort < 6901 || remotePort > 6905) throw new Error("invalid VPS viewer port");
   if (!privateDockerIpv4(privateIp)) throw new Error("invalid VPS private container address");
   return [
     ...(configPath ? ["-F", configPath] : []),
@@ -228,59 +232,9 @@ export function vpsSshTunnelArgs(alias: string, localPort: number, privateIp: st
     "-o",
     "ServerAliveCountMax=3",
     "-L",
-    `127.0.0.1:${localPort}:${privateIp}:${INTERNAL_VIEWER_PORT}`,
+    `127.0.0.1:${localPort}:${privateIp}:${remotePort}`,
     alias,
   ];
-}
-
-function stopDesktopTunnel(botId: string): boolean {
-  const tunnel = desktopTunnels.get(botId);
-  if (!tunnel) return false;
-  desktopTunnels.delete(botId);
-  clearTimeout(tunnel.expiry);
-  tunnel.link.stop();
-  return true;
-}
-
-export function closeVpsDesktopTunnel(botId: string) {
-  const tunnel = desktopTunnels.get(botId);
-  if (tunnel?.viewers) {
-    tunnel.localViewer = false;
-    clearTimeout(tunnel.expiry);
-    return { closed: false };
-  }
-  return { closed: stopDesktopTunnel(botId) };
-}
-
-export function closeAllVpsDesktopTunnels(): void {
-  for (const botId of desktopTunnels.keys()) stopDesktopTunnel(botId);
-}
-
-export function vpsDesktopConnection(botId: string) {
-  const tunnel = desktopTunnels.get(botId);
-  if (!tunnel || !tunnel.link.alive()) return;
-  const url = new URL(tunnel.joinUrl);
-  return {
-    port: Number(url.port),
-    password: new URLSearchParams(url.hash.slice(1)).get("password"),
-    live: () => desktopTunnels.get(botId) === tunnel && tunnel.link.alive(),
-    retain: () => {
-      tunnel.viewers++;
-      if (!tunnel.localViewer) clearTimeout(tunnel.expiry);
-      let released = false;
-      return () => {
-        if (released) return;
-        released = true;
-        tunnel.viewers--;
-        if (!tunnel.viewers && !tunnel.localViewer && desktopTunnels.get(botId) === tunnel) {
-          tunnel.expiry = setTimeout(() => {
-            if (desktopTunnels.get(botId) === tunnel) stopDesktopTunnel(botId);
-          }, REMOTE_VIEWER_GRACE_MS);
-          tunnel.expiry.unref();
-        }
-      };
-    },
-  };
 }
 
 const STREAM_CAP_CHARS = 16 * 1024 * 1024;
@@ -306,6 +260,8 @@ function tailCollector() {
 }
 
 export function defaultRunner(args: string[], options: VpsCommandOptions = {}): Promise<{ stdout: string; stderr: string }> {
+  const cancelled = () => Object.assign(new Error("Docker-over-SSH command cancelled"), { name: "AbortError", status: 499 });
+  if (options.signal?.aborted) return Promise.reject(cancelled());
   return new Promise((resolve, reject) => {
     // Docker's SSH transport runs the first `ssh` on PATH: the app's shim, which shares one connection.
     const ssh = prepareVpsSsh(DATA_DIR, augmentedPath());
@@ -323,6 +279,7 @@ export function defaultRunner(args: string[], options: VpsCommandOptions = {}): 
       if (settled) return;
       settled = true;
       clearTimeout(timeout);
+      options.signal?.removeEventListener("abort", abort);
       finish();
     };
     const fail = (error: Error) => {
@@ -338,6 +295,7 @@ export function defaultRunner(args: string[], options: VpsCommandOptions = {}): 
       };
       void killCliTree(child, COMMAND_TIMEOUT_TERM_GRACE_MS).then(cleaned, cleaned);
     };
+    const abort = () => fail(cancelled());
     timeout = setTimeout(() => fail(new Error("Docker-over-SSH command timed out")), options.timeoutMs ?? 120_000);
     timeout.unref?.();
 
@@ -363,8 +321,10 @@ export function defaultRunner(args: string[], options: VpsCommandOptions = {}): 
         reject(new Error(detail || `Docker-over-SSH exited ${code ?? signal ?? "without a status"}`));
       });
     });
+    options.signal?.addEventListener("abort", abort, { once: true });
+    if (options.signal?.aborted) abort();
     try {
-      child.stdin.end(options.input);
+      if (!failure) child.stdin.end(options.input);
     } catch (error) {
       fail(new Error(`Docker-over-SSH stdin failed: ${error instanceof Error ? error.message : String(error)}`));
     }
@@ -1041,6 +1001,7 @@ export async function vpsComputerAction(
   cfg: AppConfig,
   botId: string,
   runner: VpsCommandRunner = defaultRunner,
+  guard: { expectedContainerId?: string; stillAllowed?: () => boolean; onStarting?: () => void } = {},
 ): Promise<VpsComputerStatus> {
   cfg = snapshotVpsConfig(cfg);
   const alias = vpsSshAlias(cfg);
@@ -1048,17 +1009,27 @@ export async function vpsComputerAction(
   const key = `${alias}:${vpsContainerName(botId)}`;
   const pending = action === "provision" ? pendingProvisions.get(key) : undefined;
   if (pending) return pending;
+  const requireAllowed = () => {
+    if (guard.stillAllowed?.() === false) throw Object.assign(new Error("This VPS computer action was cancelled"), { status: 409, code: "vps_action_cancelled" });
+  };
+  const guardedRunner: VpsCommandRunner = (args, options) => { requireAllowed(); return runner(args, options); };
   const operation = async () => {
+    requireAllowed();
     invalidateVpsStatus(key);
     try {
       const before = await computeVpsComputerStatus(cfg, botId, runner);
+      requireAllowed();
       if (!before.daemonUp) throw Object.assign(new Error(before.problem ?? "Docker over SSH is not reachable"), { status: 409 });
+      if (guard.expectedContainerId !== undefined && before.container_id !== guard.expectedContainerId) {
+        throw Object.assign(new Error("The VPS computer changed before this action"), { status: 409, code: "vps_container_changed" });
+      }
       if (action === "provision" && before.ready) return before;
       if (action !== "provision" || before.container !== "running") stopDesktopTunnel(botId);
-      const run = (args: string[], timeoutMs = 2 * 60_000) => runner(vpsDockerArgs(alias, args), { timeoutMs });
+      const run = (args: string[], timeoutMs = 2 * 60_000) => guardedRunner(vpsDockerArgs(alias, args), { timeoutMs });
 
       const containerRef = before.container_id ?? before.container_name;
       if (action === "provision") {
+        if (before.container === "missing" || before.container === "stopped") guard.onStarting?.();
         const botDesktop = () => provisionBotDesktop((args, timeoutMs) => run(args, timeoutMs), {
           containerName: before.container_name, imageId: before.image ? before.image_id : null, hostKey: alias,
           labels: vpsOwnershipLabels(before.container_name), viewerSecret: randomBytes(18).toString("base64url"),
@@ -1068,8 +1039,8 @@ export async function vpsComputerAction(
           if (before.desktop === "cua" || !(await botDesktop())) {
             let imageRef = before.image && before.desktop === "cua" ? before.image_id : null;
             if (!imageRef) {
-              await prepareVpsImage(alias, runner);
-              imageRef = (await computeVpsComputerStatus(cfg, botId, runner, "cua")).image_id;
+              await prepareVpsImage(alias, guardedRunner);
+              imageRef = (await computeVpsComputerStatus(cfg, botId, guardedRunner, "cua")).image_id;
             }
             if (!imageRef) throw Object.assign(new Error("The prepared VPS image could not be identified"), { status: 409 });
             await run(vpsContainerRunArgs(before.container_name, imageRef));
@@ -1082,6 +1053,7 @@ export async function vpsComputerAction(
         if (before.container === "missing") throw Object.assign(new Error("No VPS container exists for this bot"), { status: 409 });
         if (before.container === "running") throw Object.assign(new Error("The VPS container is already running"), { status: 409 });
         assertUsableContainer(before);
+        guard.onStarting?.();
         await run(["start", containerRef]);
       } else if (action === "remove") {
         // Skips the usability check (remove escapes a broken container); the ownership labels are the only gate.
@@ -1099,7 +1071,7 @@ export async function vpsComputerAction(
         assertUsableContainer(before);
         await run(["stop", containerRef]);
       }
-      return await (action === "stop" ? computeVpsComputerStatus(cfg, botId, runner) : waitForVpsReady(cfg, botId, runner));
+      return await (action === "stop" ? computeVpsComputerStatus(cfg, botId, runner) : waitForVpsReady(cfg, botId, guardedRunner));
     } finally {
       invalidateVpsStatus(key);
     }
@@ -1146,26 +1118,21 @@ export async function vpsComputerJoin(
   botId: string,
   runner: VpsCommandRunner = defaultRunner,
   remoteViewer = false,
+  screen?: VpsScreenConnection,
 ): Promise<{ joinUrl: string; state: "running" }> {
   cfg = snapshotVpsConfig(cfg);
   const alias = vpsSshAlias(cfg);
   if (!alias) throw Object.assign(new Error("VPS is not configured"), { status: 409 });
 
-  const existing = desktopTunnels.get(botId);
-  if (existing && existing.link.alive()) {
-    if (!remoteViewer) existing.localViewer = true;
-    if (!existing.viewers || existing.localViewer) {
-      clearTimeout(existing.expiry);
-      existing.expiry = setTimeout(() => stopDesktopTunnel(botId), existing.localViewer ? NATIVE_VIEWER_LIFETIME_MS : REMOTE_VIEWER_GRACE_MS);
-      existing.expiry.unref();
-    }
-    return { joinUrl: existing.joinUrl, state: "running" };
-  }
-  stopDesktopTunnel(botId);
-
+  requireLiveScreen(botId, screen);
+  const tunnelKey = screenKey(botId, screen);
   // Always re-inspect: a cached IP or password may predate a container replacement.
+  invalidateVpsStatus(`${alias}:${vpsContainerName(botId)}`);
   const status = await computeVpsComputerStatus(cfg, botId, runner);
+  requireLiveScreen(botId, screen);
+  if (screen && status.container_id !== screen.containerId) throw Object.assign(new Error("The independent screen container changed"), { status: 409 });
   if (!status.ready) {
+    stopDesktopTunnel(tunnelKey);
     throw Object.assign(new Error(status.problem ?? "The VPS computer is not ready"), { status: 409 });
   }
   const connection = viewerConnections.get(`${alias}:${status.container_name}`);
@@ -1176,69 +1143,90 @@ export async function vpsComputerJoin(
     );
   }
 
+  const identity = JSON.stringify([alias, status.container_id, connection.privateIp, screen?.target.viewerPort ?? INTERNAL_VIEWER_PORT]);
+  const existing = desktopTunnels.get(tunnelKey);
+  if (existing && existing.link.alive() && existing.identity === identity) {
+    if (!remoteViewer) existing.localViewer = true;
+    if (!existing.viewers || existing.localViewer) {
+      clearTimeout(existing.expiry);
+      existing.expiry = setTimeout(() => stopDesktopTunnel(tunnelKey), existing.localViewer ? NATIVE_VIEWER_LIFETIME_MS : REMOTE_VIEWER_GRACE_MS);
+      existing.expiry.unref();
+    }
+    return { joinUrl: existing.joinUrl, state: "running" };
+  }
+  stopDesktopTunnel(tunnelKey);
+
+
   const link = isThisServerVps(alias)
-    ? await forwardViewer(connection.privateIp)
-    : await sshViewer((localPort, configPath) => vpsSshTunnelArgs(alias, localPort, connection.privateIp, configPath), (gone) => {
-      const active = desktopTunnels.get(botId);
+    ? await forwardViewer(connection.privateIp, undefined, screen?.target.viewerPort)
+    : await sshViewer((localPort, configPath) => vpsSshTunnelArgs(alias, localPort, connection.privateIp, configPath, screen?.target.viewerPort), (gone) => {
+      const active = desktopTunnels.get(tunnelKey);
       if (active?.link === gone) {
+        invalidateVpsStatus(`${alias}:${vpsContainerName(botId)}`);
         clearTimeout(active.expiry);
-        desktopTunnels.delete(botId);
+        desktopTunnels.delete(tunnelKey);
       }
     });
+  try { requireLiveScreen(botId, screen); } catch (error) { link.stop(); throw error; }
   const joinUrl = `http://127.0.0.1:${link.port}/vnc.html#autoconnect=true&resize=scale&password=${encodeURIComponent(connection.password)}`;
-  const expiry = setTimeout(() => stopDesktopTunnel(botId), remoteViewer ? REMOTE_VIEWER_GRACE_MS : NATIVE_VIEWER_LIFETIME_MS);
+  const expiry = setTimeout(() => stopDesktopTunnel(tunnelKey), remoteViewer ? REMOTE_VIEWER_GRACE_MS : NATIVE_VIEWER_LIFETIME_MS);
   expiry.unref?.();
-  desktopTunnels.set(botId, { link, joinUrl, expiry, viewers: 0, localViewer: !remoteViewer });
+  desktopTunnels.set(tunnelKey, { link, joinUrl, identity, expiry, viewers: 0, localViewer: !remoteViewer });
   return { joinUrl, state: "running" };
 }
 
-const boxChromes = new Map<string, { alias: string; containerId: string; url: string; close: () => void }>();
 
 /** Loopback CDP for one running bot desktop; the optional container id pins a turn to the computer it mounted. */
-export async function vpsBoxChrome(cfg: AppConfig, botId: string, expectedContainerId?: string, runner: VpsCommandRunner = defaultRunner): Promise<string | null> {
+export async function vpsBoxChrome(cfg: AppConfig, botId: string, expectedContainerId?: string, runner: VpsCommandRunner = defaultRunner, screen?: VpsScreenConnection): Promise<string | null> {
   const alias = vpsSshAlias(snapshotVpsConfig(cfg));
-  const known = boxChromes.get(botId);
-  if (!alias) { known?.close(); boxChromes.delete(botId); return null; }
+  requireLiveScreen(botId, screen);
+  const cacheKey = screenKey(botId, screen);
+  const known = boxChromes.get(cacheKey);
+  if (!alias) { known?.close(); boxChromes.delete(cacheKey); return null; }
   const status = await vpsComputerStatus(cfg, botId, runner);
+  requireLiveScreen(botId, screen);
   const containerId = status.container_id;
   if (!status.ready || status.desktop !== "bot-desktop" || !containerId || (expectedContainerId !== undefined && containerId !== expectedContainerId)) {
     known?.close();
-    boxChromes.delete(botId);
+    boxChromes.delete(cacheKey);
     return null;
   }
   if (known?.alias === alias && known.containerId === containerId) return known.url;
   known?.close();
   const relayEnv = isThisServerVps(alias) ? process.env : { ...process.env, PATH: prepareVpsSsh(DATA_DIR, augmentedPath()).path };
-  const relay = await boxChromeRelay(() => spawn("docker", vpsDockerArgs(alias, boxChromeExecArgs(containerId)), {
+  const relay = await boxChromeRelay(() => spawn("docker", vpsDockerArgs(alias, boxChromeExecArgs(containerId, screen?.target)), {
     shell: false, stdio: ["pipe", "pipe", "ignore"], windowsHide: true, env: relayEnv,
-  }));
-  const current = boxChromes.get(botId);
+  }), () => invalidateVpsStatus(`${alias}:${vpsContainerName(botId)}`));
+  try { requireLiveScreen(botId, screen); } catch (error) { relay.close(); throw error; }
+  const current = boxChromes.get(cacheKey);
   if (current && current.alias === alias && current.containerId === containerId) { relay.close(); return current.url; }
   current?.close();
-  boxChromes.set(botId, { alias, containerId, ...relay });
+  boxChromes.set(cacheKey, { alias, containerId, ...relay });
   return relay.url;
 }
 
-export function vpsContainerMcpArgs(alias: string, containerName: string): string[] {
+export function vpsContainerMcpArgs(alias: string, containerName: string, screen?: IndependentScreenTarget): string[] {
   if (!isValidSshAlias(alias) || (!CONTAINER_NAME.test(containerName) && !CONTAINER_ID.test(containerName))) {
     throw new Error("invalid VPS MCP connection");
   }
+  if (screen) independentScreenExecArgs(containerName, "ensure", screen);
   return vpsDockerArgs(
     alias,
-    cuaExecArgs(["mcp", "--socket", CUA_SOCKET], { container: containerName, interactive: true }),
+    cuaExecArgs(["mcp", "--socket", screen?.socket ?? CUA_SOCKET], { container: containerName, interactive: true }),
   );
 }
 
-export function vpsComputerMcp(cfg: AppConfig, botId: string, containerRef?: string): {
+export function vpsComputerMcp(cfg: AppConfig, botId: string, containerRef?: string, screen?: VpsScreenConnection): {
   command: string;
   args: string[];
   env: Record<string, string>;
 } {
   const alias = vpsSshAlias(cfg);
   if (!alias) throw new Error("VPS is not configured — add an SSH config alias first");
+  if (screen) { screenKey(botId, screen); if (containerRef !== screen.containerId) throw new Error("Independent screen container changed"); }
   return {
     command: process.execPath,
-    args: [SPAWNED_PROXIES.vpsContainerMcp, alias, containerRef ?? vpsContainerName(botId)],
+    args: [SPAWNED_PROXIES.vpsContainerMcp, alias, containerRef ?? vpsContainerName(botId), ...(screen ? [JSON.stringify(screen.target)] : [])],
     env: { ELECTRON_RUN_AS_NODE: "1" },
   };
 }
@@ -1247,12 +1235,15 @@ export async function vpsComputerScreenshot(
   cfg: AppConfig,
   botId: string,
   runner: VpsCommandRunner = defaultRunner,
+  screen?: VpsScreenConnection,
 ): Promise<VpsScreenshot> {
   cfg = snapshotVpsConfig(cfg);
   const alias = vpsSshAlias(cfg);
   if (!alias) throw Object.assign(new Error("VPS is not configured"), { status: 409 });
   const key = `${alias}:${vpsContainerName(botId)}`;
-  const pending = pendingScreenshots.get(key);
+  requireLiveScreen(botId, screen);
+  const pendingKey = screenKey(key, screen);
+  const pending = pendingScreenshots.get(pendingKey);
   if (pending) return pending;
   const cacheable = runner === defaultRunner;
   const deadline = Date.now() + SCREENSHOT_BUDGET_MS;
@@ -1295,6 +1286,7 @@ export async function vpsComputerScreenshot(
       if (cacheable) statusCache.delete(key);
       throw timeoutError();
     }
+    if (screen && status.container_id !== screen.containerId) throw Object.assign(new Error("The independent screen container changed"), { status: 409 });
     if (!status.ready) {
       if (cacheable) statusCache.delete(key);
       throw Object.assign(new Error(status.problem ?? "The VPS computer is not ready"), { status: 409 });
@@ -1304,13 +1296,14 @@ export async function vpsComputerScreenshot(
     if (!CONTAINER_ID.test(containerRef) && !CONTAINER_NAME.test(containerRef)) {
       throw Object.assign(new Error("the VPS container reference is malformed"), { status: 409 });
     }
+    requireLiveScreen(botId, screen);
     let frame: VpsScreenshot;
     try {
       await boundedRunner(
         vpsDockerArgs(
           alias,
           cuaExecArgs(
-            ["call", "get_desktop_state", "{}", "--socket", CUA_SOCKET, "--screenshot-out-file", SCREENSHOT_PATH],
+            ["call", "get_desktop_state", "{}", "--socket", screen?.target.socket ?? CUA_SOCKET, "--screenshot-out-file", SCREENSHOT_PATH],
             { container: containerRef },
           ),
         ),
@@ -1342,9 +1335,10 @@ export async function vpsComputerScreenshot(
       }).catch(() => {});
     }
     if (cacheable) statusCache.set(key, { status, expiresAt: Date.now() + STATUS_CACHE_TTL_MS });
+    requireLiveScreen(botId, screen);
     return frame;
   });
-  pendingScreenshots.set(key, capture);
+  pendingScreenshots.set(pendingKey, capture);
   try { return await capture; }
-  finally { if (pendingScreenshots.get(key) === capture) pendingScreenshots.delete(key); }
+  finally { if (pendingScreenshots.get(pendingKey) === capture) pendingScreenshots.delete(pendingKey); }
 }

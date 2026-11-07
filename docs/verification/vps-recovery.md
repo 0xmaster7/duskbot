@@ -128,3 +128,30 @@ their existing precedence. Permission handlers are installed before navigation,
 and local utility requests wait on the shared bounded startup promise. This
 proves the removed dependency and bridge boundary, not a production cold-start
 time or the health of a real server.
+
+## Sleeping and waking an idle VPS computer
+
+```sh
+pnpm exec vitest run server/vps-idle.test.ts server/vps-idle.e2e.test.ts scripts/control-omb.test.ts
+```
+
+The default idle window is ten minutes. Settings may select five, ten or thirty
+minutes, or turn automatic sleep off. Each owned desktop has one timer keyed
+by its snapshotted SSH alias and owner, including a computer shared by several
+bots. Only computer actions, manual wake and handing control back renew it.
+Observing an already running computer arms its first window after a restart;
+later status and preview requests leave that deadline alone.
+
+Fake-clock checks cover active GUI work and human holds, changed assignments,
+activity arriving during stop inspection, replacement container identities,
+configuration changes, shutdown and bounded retries after an unreachable
+daemon. Three failed stop attempts wait for new activity before trying again.
+
+The standard isolated launcher runs the real server with owned Docker/SSH
+fixtures. Its explicit `OMB_TEST_VPS_IDLE_CLOCK=1` hook shortens nonzero windows
+to 750 ms only in a disposable home. The API fixture proves read-only status
+and screenshot traffic cannot keep a computer awake, a person's hold protects
+it until handback, Stop ends an active GUI lease, and a later bot turn or manual
+wake starts the same stopped container. It verifies no removal, rebuild or
+replacement. Server logs and bounded action/state evidence remain at the paths
+printed by the tests. These checks use no live VPS or user data.
