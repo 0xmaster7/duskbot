@@ -67,6 +67,8 @@ import { useReadShownChatOnFocus } from "@/hooks/use-read-shown-chat";
 import { usePresence } from "@/hooks/use-presence";
 import { useComputerPanelActivity } from "@/hooks/use-computer-panel-activity";
 import { AppEmptyMain } from "@/components/AppEmptyMain";
+import { BootCover } from "@/components/BootCover";
+import { t } from "@/lib/i18n";
 import { loadingLine } from "@/lib/app-loading";
 import { useAiSwitchKeeper } from "@/lib/ai-switch";
 import { SESSION_ENDED_REASON, useSessionEnded } from "@/lib/session-ended";
@@ -329,6 +331,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       </div>
       <AnimatePresence>{state.appSettingsOpen && <SettingsModal key="settings" />}</AnimatePresence>
       {cloudAddOpened.current && <CloudAddDialog />}
+      <BootCover busy={loading.busy && !bot && !group && !firstRun && !noEngines} text={t(loading.text)} />
       <CloudHowTo />
       <CloudSetup viewer={viewer} welcomeShown={welcomeOnScreen} />
       <WelcomeKeeper viewer={viewer} />
