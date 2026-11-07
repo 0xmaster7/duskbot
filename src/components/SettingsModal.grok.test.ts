@@ -158,6 +158,13 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(markers(open("backups"))).toEqual(["backups"]);
   });
 
+  it("keeps how sending works on General, and who you are only on the account row", () => {
+    expect(open("general")).toContain("Sending while a bot works");
+    const bots = open("bots");
+    expect(bots).not.toContain("Sending while a bot works");
+    expect(bots).not.toContain('data-settings-block="profile"');
+  });
+
   it("puts the phone on Phone, the bots' computer and servers on Computer, and logins in the Vault", () => {
     expect(markers(open("companion"))).toEqual(["pairing", "companion"]);
     expect(current(open("companion"))).toBe("texting");
