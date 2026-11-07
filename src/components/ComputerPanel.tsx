@@ -1150,14 +1150,16 @@ export function ComputerPanel({
     const localPicture = phase === "local" && !isLinux && Boolean(liveLocal.stream || localFrame);
     const waking = pending === "provision" || pending === "vm-start" || phase === "checking" || phase === "starting";
     const wakeCloud = canManageCloud && vpsStatus?.configured && (phase === "vps-stopped" || phase === "vps-unconfigured" || phase === "error");
-    const needsAdmin = placeSeat.role !== "admin" && (phase === "vps-stopped" || phase === "vps-unconfigured");
+    const needsAdmin = placeSeat.role !== "admin" && (phase === "vps-stopped" || phase === "vps-unconfigured" || phase === "vps-incompatible");
     const wakeVm = canManageVm && vmResumable && vmStatus.mode !== "pool";
     const wake = () => {
       if (wakeCloud) void run("provision");
       else if (wakeVm) void runVmAction("vm-start");
-      else if (phase === "vps-unconfigured") openConnectionSettings();
+      else if (phase === "vps-unconfigured" || phase === "vps-incompatible") openConnectionSettings();
       else setRetry(value => value + 1);
     };
+    const frameActionLabel = waking ? t("computer.wakingUp") : wakeCloud || wakeVm ? t("botPanel.screen.wake")
+      : needsAdmin ? t("place.askAdmin") : phase === "vps-incompatible" ? t("computer.openVpsSettings") : screenLine;
     const frame = remoteFrame ?? (localPicture && liveLocal.stream
       ? <LiveScreenVideo stream={liveLocal.stream} playing={pageVisible} className="absolute inset-0 size-full object-contain" />
       : frameSrc ? <img src={frameSrc} alt={t("computer.screenOf", { name: bot.name })} className="absolute inset-0 size-full object-contain" /> : null);
@@ -1167,10 +1169,10 @@ export function ComputerPanel({
         <div data-panel-screen="" aria-busy={stage === "loading" || undefined} className="relative aspect-video w-full overflow-hidden rounded-xl bg-card shadow-[inset_0_0_0_0.5px_var(--color-edge)]">
           {frame ?? (
             <button type="button" onClick={wake} disabled={waking || phase === "off" || needsAdmin || (phase === "error" && !vpsStatus?.configured)}
-              aria-label={waking ? t("computer.wakingUp") : wakeCloud || wakeVm ? t("botPanel.screen.wake") : needsAdmin ? t("place.askAdmin") : screenLine}
+              aria-label={frameActionLabel}
               className="flex size-full flex-col items-center justify-center gap-2 px-5 text-center text-[12px] text-ink-secondary enabled:cursor-pointer disabled:cursor-default">
               <MausAvatar color={bot.color} bodyId={bot.mascotBody ?? undefined} size={32} state={waking ? "thinking" : "sleeping"} label={bot.name} />
-              <span>{waking ? t("computer.wakingUp") : wakeCloud || wakeVm ? t("botPanel.screen.wake") : needsAdmin ? t("place.askAdmin") : screenLine}</span>
+              <span>{frameActionLabel}</span>
             </button>
           )}
           {!remoteFrame && liveTarget && livePreviewFailed === viewerConnectionKey && <button type="button"

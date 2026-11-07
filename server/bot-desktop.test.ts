@@ -189,6 +189,8 @@ describe("bot desktop isolation checks", () => {
   it("keeps build.sh's fallback tag and host-fence.sh's bridge in step with the constants", () => {
     const script = readFileSync(new URL("../deploy/bot-desktop/build.sh", import.meta.url), "utf8");
     expect(script).toContain(`image="\${image:-ghcr.io/sidddevz/omb-bot-desktop:v$version}"`);
+    expect(script).toContain(`version="\${version:-${BOT_DESKTOP_VERSION}}"`);
+    expect(readFileSync(new URL("../deploy/bot-desktop/Dockerfile", import.meta.url), "utf8")).toContain(`ARG BOT_DESKTOP_VERSION=${BOT_DESKTOP_VERSION}\n`);
     expect(BOT_DESKTOP_IMAGE).toBe(`ghcr.io/sidddevz/omb-bot-desktop:v${BOT_DESKTOP_VERSION}`);
     expect(readFileSync(new URL("../deploy/bot-desktop/host-fence.sh", import.meta.url), "utf8")).toContain("BRIDGE=omb-desk0\n");
   });
@@ -218,7 +220,7 @@ describe("bot desktop provisioning", () => {
   it("without the host fence: pulls, makes the network, and starts a strict box that fences the host's addresses itself", async () => {
     const fake = host({ runsc: true });
     expect(await provisionBotDesktop(fake.run, input)).toBe("strict");
-    expect(steps(fake.calls)).toEqual(["pull ghcr.io/sidddevz/omb-bot-desktop:v1", "image inspect", "network inspect", "network create", "info --format", "probe /usr/local/bin/omb-host-fence", "probe ip", "run -d"]);
+    expect(steps(fake.calls)).toEqual([`pull ${BOT_DESKTOP_IMAGE}`, "image inspect", "network inspect", "network create", "info --format", "probe /usr/local/bin/omb-host-fence", "probe ip", "run -d"]);
     const started = fake.calls.at(-1)!;
     expect(started.at(-1)).toBe(IMAGE_ID);
     expect(started).toEqual(expect.arrayContaining(["--read-only", "--runtime", "runsc", "OMB_MODE=strict", "OMB_BLOCK_EXTRA=198.51.100.4"]));
@@ -227,7 +229,7 @@ describe("bot desktop provisioning", () => {
   it("behind the host fence with gVisor: a free box, no address probe needed", async () => {
     const fake = host({ runsc: true, network: true, fenced: true });
     expect(await provisionBotDesktop(fake.run, input)).toBe("free");
-    expect(steps(fake.calls)).toEqual(["pull ghcr.io/sidddevz/omb-bot-desktop:v1", "image inspect", "network inspect", "info --format", "probe /usr/local/bin/omb-host-fence", "run -d"]);
+    expect(steps(fake.calls)).toEqual([`pull ${BOT_DESKTOP_IMAGE}`, "image inspect", "network inspect", "info --format", "probe /usr/local/bin/omb-host-fence", "run -d"]);
     expect(fake.calls.at(-1)).toEqual(expect.arrayContaining(["--runtime", "runsc", "OMB_MODE=free"]));
     expect(fake.calls.at(-1)).not.toContain("--read-only");
   });
@@ -287,7 +289,7 @@ describe("bot desktop on the VPS path", () => {
   const name = vpsContainerName(BOT);
 
   function daemon() {
-    const state = { image: false, container: false, running: false, secret: "" };
+    const state = { image: false, container: false, running: false, secret: "", containerImageId: IMAGE_ID, pidsLimit: undefined as number | undefined };
     const calls: string[][] = [];
     const runner: VpsCommandRunner = async (args) => {
       const docker = args.slice(2);
@@ -318,9 +320,9 @@ describe("bot desktop on the VPS path", () => {
         return {
           stdout: JSON.stringify([{
             Id: "d".repeat(64),
-            Image: IMAGE_ID,
-            Config: { Image: IMAGE_ID, Env: [`VNC_PW=${state.secret}`], Labels: (state as unknown as { labels: Record<string, string> }).labels },
-            HostConfig: hostConfig,
+            Image: state.containerImageId,
+            Config: { Image: state.containerImageId, Env: [`VNC_PW=${state.secret}`], Labels: (state as unknown as { labels: Record<string, string> }).labels },
+            HostConfig: { ...hostConfig, PidsLimit: state.pidsLimit },
             NetworkSettings: { Networks: { [BOT_DESKTOP_NETWORK]: { IPAddress: "172.30.0.2" } } },
             Mounts: _mounts,
             State: { Running: state.running },
@@ -346,6 +348,25 @@ describe("bot desktop on the VPS path", () => {
     expect(status).toMatchObject({ desktop: "bot-desktop", ready: true, network: "private", mounts: "none", security: "hardened", problem: null });
     expect(fake.calls.some((args) => args[0] === "build")).toBe(false);
     expect(fake.calls.find((args) => args[0] === "run" && args[1] === "-d")).toEqual(expect.arrayContaining(["--read-only", "--network", BOT_DESKTOP_NETWORK]));
+  });
+
+  it("refuses a managed v1 computer without changing its container, resource cap or home volume", async () => {
+    const fake = daemon();
+    await vpsComputerAction("provision", CONFIG, BOT, fake.runner);
+    const oldImage = `sha256:${"e".repeat(64)}`;
+    Object.assign(fake.state, { running: false, containerImageId: oldImage, pidsLimit: 512 });
+    (fake.state as unknown as { labels: Record<string, string> }).labels[BOT_DESKTOP_LABEL] = "1";
+    fake.calls.length = 0;
+    const status = await vpsComputerStatus(CONFIG, BOT, fake.runner);
+    expect(status).toMatchObject({ managed: true, imageMatches: false, ready: false, container: "stopped", mounts: "none" });
+    expect(status.problem).toContain("desktop version 1");
+    expect(status.problem).toContain(`requires version ${BOT_DESKTOP_VERSION}`);
+    expect(status.problem).toContain("existing home volume");
+    for (const action of ["provision", "start"] as const) await expect(vpsComputerAction(action, CONFIG, BOT, fake.runner)).rejects.toMatchObject({ status: 409 });
+    await Promise.resolve();
+    expect(fake.calls.every((args) => args[0] === "image" || args[0] === "inspect")).toBe(true);
+    expect(fake.state).toMatchObject({ container: true, running: false, containerImageId: oldImage, pidsLimit: 512 });
+    expect(inspected(name)._mounts[0].Name).toBe(botDesktopVolume(name));
   });
 
   it("falls back to building the Cua desktop when the bot desktop image cannot be pulled", async () => {

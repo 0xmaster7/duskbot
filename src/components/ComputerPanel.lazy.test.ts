@@ -3,13 +3,15 @@ import { createElement } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { AppState, Bot, InstanceInfo } from "@/state/store";
+import type { Action, AppState, Bot, InstanceInfo } from "@/state/store";
 
 const fixture = vi.hoisted(() => ({
   container: "missing" as string,
   configured: true,
   imageMatches: true,
   posts: [] as string[],
+  actions: [] as Action[],
+  shared: false,
   looks: 0,
   advanced: true,
   owner: true,
@@ -51,6 +53,7 @@ vi.mock("@/state/store", async (importOriginal) => ({
     if (path.startsWith("/api/bots/scout/computer?")) {
       fixture.looks++;
       return { surface: "cloud", backend: "vps", configured: fixture.configured, ready: fixture.container === "running" && fixture.imageMatches,
+        ...(fixture.shared ? { teamComputer: { id: "shared", name: "Shared desktop" } } : {}),
         container: fixture.container, managed: fixture.container !== "missing", imageMatches: fixture.imageMatches, problem: "Fixture desktop is not running" };
     }
     return {};
@@ -77,7 +80,7 @@ const makeBot = (patch: Partial<Bot> = {}): Bot => ({
 let root: Root | null = null;
 const value = (): Parameters<typeof BotEditorStore>[0]["value"] => ({
   state: { ...initialState, hydrated: fixture.instancesLoaded ? true : undefined, instances: fixture.instancesLoaded ? [engine] : [], config: { vps: { configured: true } } as AppState["config"] } as AppState,
-  dispatch: vi.fn(),
+  dispatch: (action) => { fixture.actions.push(action); },
   flushBotPatches: async () => null,
   refreshInstances: async () => {},
   refreshModels: async () => {},
@@ -106,6 +109,8 @@ afterEach(() => {
   root = null;
   document.body.innerHTML = "";
   fixture.posts.length = 0;
+  fixture.actions.length = 0;
+  fixture.shared = false;
   fixture.container = "missing";
   fixture.configured = true;
   fixture.imageMatches = true;
@@ -201,6 +206,23 @@ describe("VPS computer preparation", () => {
     await open(makeBot({ computer: "cloud" }));
     expect(fixture.posts).toEqual([]);
     expect(document.querySelector("[data-live-screen]")).toBeNull();
+  });
+
+  it.each([false, true])("opens settings for an incompatible inline desktop without changing it (shared=%s)", async (shared) => {
+    fixture.container = "running";
+    fixture.imageMatches = false;
+    fixture.shared = shared;
+    const external = vi.spyOn(window, "open").mockImplementation(() => null);
+    try {
+      await open(makeBot({ computer: "cloud" }), true);
+      const settings = document.querySelector<HTMLButtonElement>("[data-panel-screen] button");
+      expect(settings?.textContent).toContain("Open VPS settings");
+      flushSync(() => settings!.click());
+      await settle();
+      expect(fixture.actions).toContainEqual({ type: "toggleAppSettings", open: true, section: "computer" });
+      expect(fixture.posts).toEqual([]);
+      expect(external).not.toHaveBeenCalled();
+    } finally { external.mockRestore(); }
   });
 
   it("keeps a conversation-only cloud pin read-only while the bot chats", async () => {

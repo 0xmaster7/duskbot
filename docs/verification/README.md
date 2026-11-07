@@ -99,6 +99,7 @@ Use only mapped, tested commands:
 - [Who can see, chat with and change each team bot](team-bot-access.md)
 - [Usage ledger](usage-ledger.md)
 - [Bounded built-in tool results](tool-results.md)
+- [PDF extraction and assigned library files](pdf-extraction.md)
 - [Memory: recall, upkeep and the tidy-up](memory-layer.md)
 - [Spend cap and sell prices](spend-cap.md)
 - [Enterprise layer loading and license expiry](enterprise-license.md)
@@ -198,6 +199,8 @@ recovery, guarded resume and the stopped-to-ready Computer panel flow.
 The [local computer launch regression](local-computer-launch.md) starts the
 host CUA gate through real Electron in a disposable home, without opening the
 desktop app or controlling the user's computer.
+
+The [bot desktop interaction fixture](bot-desktop-interaction.md) exercises real CUA input and the app's structured browser tools in fresh network-none Linux desktops, with independent HTTP receipts and an accessibility flag comparison.
 
 The [remote desktop viewer fixture](desktop-viewer.md) checks the bundled
 noVNC page, authenticated WebSocket proxy, desktop input, reconnect and logout

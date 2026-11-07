@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { vpsSshAlias } from "./config.ts";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 
 import { vpsDockerArgs } from "./vps-computer.ts";
 import { THIS_SERVER_VPS, boxChromeExecArgs, boxChromeRelay, detectThisServerVps, forwardViewer } from "./vps-local.ts";
@@ -90,4 +90,42 @@ it("reports a failed guest browser relay so readiness can be rechecked", async (
     await new Promise<void>(resolve => client.once("close", () => resolve()));
     expect(failed).toHaveBeenCalledOnce();
   } finally { relay.close(); }
+});
+
+it.skipIf(process.platform === "win32").each(["managed", "legacy", "failed-managed"])("reopens primary Chromium through the %s authority", mode => {
+  const relay = boxChromeExecArgs("a".repeat(64)).at(-1)!;
+  const setup = `import atexit, json, os, socket, subprocess, time
+calls = []
+mode = ${JSON.stringify(mode)}
+atexit.register(lambda: print(json.dumps(calls)))
+os.path.exists = lambda path: mode != "legacy"
+time.sleep = lambda delay: None
+class Connection:
+    def settimeout(self, value): pass
+    def sendall(self, value): pass
+    def shutdown(self, value): pass
+    def recv(self, count): return b""
+attempts = 0
+def connect(*args):
+    global attempts
+    attempts += 1
+    if attempts == 1: raise OSError("not listening")
+    return Connection()
+socket.create_connection = connect
+def managed(args, **kwargs):
+    calls.append(["managed", args])
+    if mode == "failed-managed": raise subprocess.CalledProcessError(1, args)
+subprocess.run = managed
+subprocess.Popen = lambda args, **kwargs: calls.append(["legacy", args])
+`;
+  if (mode === "failed-managed") {
+    let failure: { status?: number; stdout?: Buffer } | undefined;
+    try { execFileSync("python3", ["-I", "-c", setup + relay], { input: "", stdio: ["pipe", "pipe", "ignore"] }); }
+    catch (error) { failure = error as typeof failure; }
+    expect(failure?.status).toBe(4);
+    expect(JSON.parse(failure!.stdout!.toString())).toEqual([["managed", ["/usr/local/bin/omb-screen", "primary-browser-ensure"]]]);
+  } else {
+    const output = execFileSync("python3", ["-I", "-c", setup + relay], { input: "", encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] });
+    expect(JSON.parse(output)).toEqual(mode === "managed" ? [["managed", ["/usr/local/bin/omb-screen", "primary-browser-ensure"]]] : [["legacy", ["chromium"]]]);
+  }
 });

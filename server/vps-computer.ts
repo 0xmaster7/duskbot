@@ -26,7 +26,7 @@ import {
 } from "./container-computer.ts";
 import { PIDS_LIMIT, raisePidsLimit } from "./container-limits.ts";
 import {
-  BOT_DESKTOP_IMAGE, botDesktopIsHardened, botDesktopLabelsMatch, botDesktopMountsAreSafe, botDesktopNetworkIsPrivate,
+  BOT_DESKTOP_IMAGE, BOT_DESKTOP_LABEL, BOT_DESKTOP_VERSION, botDesktopIsHardened, botDesktopLabelsMatch, botDesktopMountsAreSafe, botDesktopNetworkIsPrivate,
   containerBotDesktopMode, containerDesktopKind, preferredVpsDesktop, provisionBotDesktop, type VpsDesktopKind,
 } from "./bot-desktop.ts";
 import { DATA_DIR, isValidSshAlias, vpsSshAlias, type AppConfig } from "./config.ts";
@@ -414,9 +414,13 @@ function hasNoPublishedPorts(config: {
   );
 }
 
-function statusProblem(status: VpsComputerStatus): string | null {
+function statusProblem(status: VpsComputerStatus, desktopVersion?: string): string | null {
   if (!status.configured) return "Configure a VPS SSH alias in Settings → API keys";
   if (!status.daemonUp) return "Docker over SSH could not reach the VPS; check the SSH alias and Docker on the VPS";
+  if (status.managed && status.desktop === "bot-desktop" && desktopVersion && /^\d{1,4}$/.test(desktopVersion) && desktopVersion !== BOT_DESKTOP_VERSION &&
+    status.network === "private" && status.mounts === "none" && status.security === "hardened") {
+    return `This managed computer uses desktop version ${desktopVersion}; this app requires version ${BOT_DESKTOP_VERSION}. Update the image and explicitly recreate the managed computer with its existing home volume. No container or files were removed.`;
+  }
   if (!status.image) {
     return status.desktop === "cua"
       ? `Prepare the pinned OpenMausBot Cua image on the VPS (Driver ${CUA_DRIVER_VERSION})`
@@ -456,7 +460,7 @@ async function computeVpsComputerStatus(
     }
   };
 
-  let inspectedImageId: string | null = null;
+  let inspectedImageId: string | null = null, desktopVersion: string | undefined;
   // false only on a transport failure, with the problem already set
   const inspectImage = async (desktop: VpsDesktopKind): Promise<boolean> => {
     Object.assign(status, { desktop, image_ref: desktop === "cua" ? VPS_IMAGE : BOT_DESKTOP_IMAGE, image: false, image_id: null });
@@ -512,6 +516,7 @@ async function computeVpsComputerStatus(
     }>;
     const detail = inspected[0];
     const labels = detail?.Config?.Labels;
+    desktopVersion = labels?.[BOT_DESKTOP_LABEL];
     // an existing container is judged as what it was made from, whatever new ones get today
     if (containerDesktopKind(labels) !== status.desktop && !(await inspectImage(containerDesktopKind(labels)))) {
       status.daemonUp = false;
@@ -534,7 +539,7 @@ async function computeVpsComputerStatus(
       labels?.[VPS_MANAGED_LABEL] === "1" &&
       labels?.[VPS_CONTAINER_LABEL] === status.container_name &&
       (environmentLabel === undefined || environmentLabel === vpsEnvironmentId());
-    if (status.managed && status.container_id) raisePidsLimit(status.container_id, detail?.HostConfig?.PidsLimit, run);
+    if (status.managed && status.imageMatches && status.container_id) raisePidsLimit(status.container_id, detail?.HostConfig?.PidsLimit, run);
     const networks = detail?.NetworkSettings?.Networks;
     status.network = (cua ? hasNoPublishedPorts : botDesktopNetworkIsPrivate)(detail?.HostConfig, networks) ? "private" : "unsafe";
     // the bot desktop's one mount is its own home volume, so "none" here means no host mounts
@@ -602,7 +607,7 @@ async function computeVpsComputerStatus(
     }
   }
 
-  status.problem = statusProblem(status);
+  status.problem = statusProblem(status, desktopVersion);
   status.ready = status.problem === null;
   return status;
 }

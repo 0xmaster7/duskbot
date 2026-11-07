@@ -40,7 +40,6 @@ RUN set -eux; \
 FROM ${DEBIAN}
 ARG TARGETARCH
 ARG CUA_DRIVER_VERSION=0.37.0
-ARG BOT_DESKTOP_VERSION=1
 ENV DEBIAN_FRONTEND=noninteractive LANG=C.UTF-8 LC_ALL=C.UTF-8
 COPY trim-icons.py /tmp/omb-trim-icons.py
 
@@ -102,6 +101,7 @@ COPY rootfs/ /
 COPY host-fence.sh /usr/local/bin/omb-host-fence
 RUN chmod 0755 /usr/local/bin/omb-* && chmod 0644 /etc/chromium.d/omb
 
+ARG BOT_DESKTOP_VERSION=2
 LABEL com.openmausbot.bot-desktop="${BOT_DESKTOP_VERSION}" \
       com.openmausbot.cua-driver="${CUA_DRIVER_VERSION}" \
       org.opencontainers.image.title="omb-bot-desktop" \

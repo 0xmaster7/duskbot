@@ -21,6 +21,7 @@ import { CONTROL_BUSY, CONTROL_REFUSAL_PLAIN, controlRefusal, createControlClien
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 import { teamComputerOwner } from "./team-computers.ts";
 import { workerPort } from "./testing/worker-port.ts";
+import { BOT_DESKTOP_IMAGE, BOT_DESKTOP_LABEL, BOT_DESKTOP_MODE_LABEL, BOT_DESKTOP_NETWORK, BOT_DESKTOP_VERSION } from "../shared/bot-desktop.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
 const FAKE_CLI = join(SERVER_DIR, "testing", "fake-acp-cli.ts");
@@ -291,6 +292,37 @@ createServer(socket => socket.end()).listen(port, '127.0.0.1');
       expect(calls.match(/ image inspect /g)).toHaveLength(2);
       expect(calls).not.toMatch(/ssh:\/\/production-vps (run|start|stop|rm|pull|build) /);
     } finally { rmSync(marker, { force: true }); }
+  });
+
+  it("refuses a cached v1 managed desktop through the real status and provision routes without changing its home", async () => {
+    expect((await api("PUT", "/api/config", { vps: { sshAlias: "production-vps" } })).status).toBe(200);
+    const bot = (await api("POST", "/api/bots")).body.bot;
+    const imageFile = join(dirname(dockerLog), "image.json"), containerFile = join(dirname(dockerLog), "container.json.tpl");
+    const originalImage = readFileSync(imageFile, "utf8"), originalContainer = readFileSync(containerFile, "utf8");
+    const old = JSON.parse(originalContainer)[0];
+    Object.assign(old.Config.Labels, { [BOT_DESKTOP_LABEL]: "1", [BOT_DESKTOP_MODE_LABEL]: "strict" });
+    Object.assign(old.Config, { Image: "ghcr.io/sidddevz/omb-bot-desktop:v1", Env: [...old.Config.Env, "OMB_MODE=strict"] });
+    Object.assign(old, { Image: `sha256:${"e".repeat(64)}`, State: { Running: false }, Mounts: [{ Type: "volume", Name: "__NAME__-home", Destination: "/home/cua", Driver: "local" }] });
+    Object.assign(old.HostConfig, { NetworkMode: BOT_DESKTOP_NETWORK, ReadonlyRootfs: true, CapAdd: ["CAP_NET_ADMIN", "CAP_SETUID", "CAP_SETGID"], SecurityOpt: ["no-new-privileges"] });
+    old.NetworkSettings.Networks = { [BOT_DESKTOP_NETWORK]: { IPAddress: "172.30.0.2" } };
+    const configured = JSON.stringify([old]);
+    writeFileSync(imageFile, JSON.stringify([{ Id: IMAGE_ID, Config: { Labels: { [BOT_DESKTOP_LABEL]: BOT_DESKTOP_VERSION, [DRIVER_LABEL]: CUA_DRIVER_VERSION } } }]));
+    writeFileSync(containerFile, configured);
+    const offset = readFileSync(dockerLog, "utf8").length;
+    try {
+      expect((await api("PATCH", `/api/bots/${bot.id}`, { computer: "cloud", cloudBackend: "vps" })).status).toBe(200);
+      const status = await api("GET", `/api/bots/${bot.id}/computer`);
+      expect(status.status).toBe(200);
+      expect(status.body).toMatchObject({ backend: "vps", image_ref: BOT_DESKTOP_IMAGE, managed: true, ready: false, mounts: "none" });
+      expect(status.body.problem).toContain(`uses desktop version 1; this app requires version ${BOT_DESKTOP_VERSION}`);
+      const refused = await api("POST", `/api/bots/${bot.id}/computer/provision`, {});
+      expect(refused.status).toBe(409);
+      expect(refused.body.error).toContain("existing home volume");
+      expect(readFileSync(containerFile, "utf8")).toBe(configured);
+      expect(readFileSync(dockerLog, "utf8").slice(offset)).not.toMatch(/ssh:\/\/production-vps (run|start|stop|rm|pull|build|update|exec) /);
+    } finally {
+      writeFileSync(imageFile, originalImage); writeFileSync(containerFile, originalContainer);
+    }
   });
 
   it.each([

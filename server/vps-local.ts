@@ -92,8 +92,15 @@ def dial():
         return None
 s = dial()
 if s is None:
-    env = dict(os.environ, DISPLAY=":1", HOME="/home/cua", XDG_RUNTIME_DIR="/run/user/1000", DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/1000/bus")
-    subprocess.Popen(["chromium"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True, env=env)
+    controller = "/usr/local/bin/omb-screen"
+    if os.path.exists(controller):
+        try:
+            subprocess.run([controller, "primary-browser-ensure"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20, check=True)
+        except (OSError, subprocess.SubprocessError):
+            sys.exit(4)
+    else:
+        env = dict(os.environ, DISPLAY=":1", HOME="/home/cua", XDG_RUNTIME_DIR="/run/user/1000", DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/1000/bus")
+        subprocess.Popen(["chromium"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True, env=env)
     for _ in range(150):
         time.sleep(0.1)
         s = dial()

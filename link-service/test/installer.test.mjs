@@ -7,21 +7,24 @@ import { describe, expect, it } from "vitest";
 
 const run = promisify(execFile);
 const script = (await readFile(new URL("../install.sh", import.meta.url), "utf8")).replace(/\nmain "\$@"\s*$/, "\n");
+const desktopConstants = await readFile(new URL("../../shared/bot-desktop.ts", import.meta.url), "utf8");
+const currentImage = /^export const BOT_DESKTOP_IMAGE = "([^"]+)";/m.exec(desktopConstants)[1];
 
-async function provision(scenario) {
+async function provision(scenario, image = "fixture:1", cachedImage = image) {
   const dir = await mkdtemp(join(tmpdir(), "omb-install-"));
   try {
     const file = join(dir, "fixture.sh");
     await writeFile(file, `${script}
 calls=$1
 scenario=$2
-BOT_DESKTOP_IMAGE=fixture:1
+BOT_DESKTOP_IMAGE=$3
+cached_image=$4
 built=0
 docker() {
   printf 'docker %s\\n' "$*" >> "$calls"
   case "$*" in
     info|--version) return 0 ;;
-    'image inspect fixture:1') [ "$scenario" = cached ] || [ "$built" = 1 ] ;;
+    'image inspect '*) { [ "$scenario" = cached ] && [ "$3" = "$cached_image" ]; } || [ "$built" = 1 ] ;;
     'buildx version') return 1 ;;
     *) return 90 ;;
   esac
@@ -32,13 +35,14 @@ state_set() { printf 'state %s\\n' "$*" >> "$calls"; }
 pull_with_progress() { printf 'pull %s\\n' "$*" >> "$calls"; [ "$scenario" = pulled ]; }
 get_kit() { printf 'kit\\n' >> "$calls"; KIT=/fixture; [ "$scenario" != no-kit ]; }
 build_with_progress() { printf 'build %s\\n' "$*" >> "$calls"; built=1; }
+[ "$cached_image" = "$BOT_DESKTOP_IMAGE" ] || docker image inspect "$cached_image" || exit 1
 do_docker
 code=0
 do_desktop || code=$?
 printf 'result %s\\n' "$code" >> "$calls"
 `);
     const calls = join(dir, "calls");
-    await run("sh", [file, calls, scenario], { env: { PATH: "/usr/bin:/bin", TERM: "dumb" } });
+    await run("sh", [file, calls, scenario, image, cachedImage], { env: { PATH: "/usr/bin:/bin", TERM: "dumb" } });
     return (await readFile(calls, "utf8")).trim().split("\n");
   } finally {
     await rm(dir, { recursive: true, force: true });
@@ -46,6 +50,20 @@ printf 'result %s\\n' "$code" >> "$calls"
 }
 
 describe("desktop installer work", () => {
+  it("requests the new desktop image when only the retired v1 image is cached", async () => {
+    expect(currentImage).toBe("ghcr.io/sidddevz/omb-bot-desktop:v2");
+    const oldImage = "ghcr.io/sidddevz/omb-bot-desktop:v1";
+    const calls = await provision("cached", currentImage, oldImage);
+    expect(calls).toContain(`docker image inspect ${oldImage}`);
+    expect(calls).toContain(`docker image inspect ${currentImage}`);
+    expect(calls).toContain(`pull ${currentImage}`);
+    expect(calls).toContain(`build ${currentImage} /fixture/deploy/bot-desktop`);
+    expect(calls).toContain("state desktop built");
+    expect(calls).not.toContain("state desktop present");
+    expect(calls.some((line) => /docker (rm|rmi|stop|update)|volume rm/.test(line))).toBe(false);
+    expect(calls).toContain("result 0");
+  });
+
   it("reuses a cached image without installing build tools or pulling", async () => {
     const calls = await provision("cached");
     expect(calls.filter((line) => /^(apt_install|pull|build|kit)/.test(line))).toEqual([]);

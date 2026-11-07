@@ -40,3 +40,7 @@ shared/app-frame/app-host.html text eol=lf
 # Imported by a vitest test: a CRLF checkout of its first lines broke the import on Windows.
 scripts/tighten-ratchets.mjs text eol=lf
 server/testing/fixtures/*.pdf binary
+deploy/bot-desktop/Dockerfile text eol=lf
+deploy/bot-desktop/*.sh text eol=lf
+deploy/bot-desktop/rootfs/usr/local/bin/omb-* text eol=lf
+deploy/bot-desktop/rootfs/etc/chromium.d/omb text eol=lf
