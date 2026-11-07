@@ -18,7 +18,7 @@ describe("sidebar previews", () => {
     expect(waitingLine(partial, sidebarPreviewMessages(partial), [])).toBe("Which folder?");
     const patched = { ...partial, messages: [{ ...step, tool: { name: "error: Connection lost", ok: false } }] };
     expect(botPreview(patched, sidebarPreviewMessages(patched), [])).toContain("Connection lost");
-    const room = { id: "room", name: "Room", ...partial } as unknown as Group;
+    const room = { ...partial, id: "room", name: "Room" } as unknown as Group;
     expect(groupPreview(room, [bot], [])).toBe("Archived the newsletters.");
     expect(sidebarPreviewMessages({ ...partial, transcriptLoaded: true })).toBe(partial.messages);
   });
