@@ -876,7 +876,7 @@ describe("Chat MCP servers past the tool limit", () => {
     expect(session.budget).toEqual({ limit: 128, listed: 127, servers: [
       { name: "notes", tools: 124, direct: true }, { name: "extra", tools: 3, direct: false }, { name: "audit", tools: 1, direct: false },
     ] });
-    expect(chatToolNotices(session)).toEqual(['To fit the model\'s 128-tool limit, the tools of "extra" and "audit" are reached through the tool search this turn.']);
+    expect(chatToolNotices(session)).toEqual(['The tools of "extra" and "audit" are reached through tool search to keep this turn\'s tool list small and within the model\'s 128-tool limit.']);
     expect(session.definitions.at(-3)!.function.description).toContain('the MCP servers "extra", "audit"');
 
     const found = JSON.parse((await session.execute("mcp_search_tools", { query: "fixture write" }, signal)).text);
@@ -906,6 +906,42 @@ describe("Chat MCP servers past the tool limit", () => {
     expect(names).toEqual(["mcp_search_tools", "mcp_describe_tool", "mcp_call_tool"]);
     expect(session.budget).toEqual({ limit: 128, listed: 3, servers: [{ name: "big", tools: 300, direct: false }] });
     await expect(session.execute("mcp_call_tool", { name: "big_op_300", arguments: {} }, signal)).resolves.toEqual({ ok: true, text: "ran op_300" });
+  });
+
+  it("searches verbose schemas below the tool-count limit while keeping a small server direct", async () => {
+    const wide = fixture(`if (message.method === "tools/list") {
+      reply(message, {tools:Array.from({length:20}, (_, index) => ({name:"op_" + index,
+        description:"Verbose record " + "x".repeat(12_000), inputSchema:schema}))}); return;
+    }`);
+    const tiny = fixture();
+    const { session, signal, names } = await mount({ wide: wide.server, tiny: tiny.server });
+    expect(names).toEqual(["tiny_write", "mcp_search_tools", "mcp_describe_tool", "mcp_call_tool"]);
+    expect(JSON.stringify(session.definitions).length).toBeLessThan(10_000);
+    expect(session.budget.servers).toEqual([
+      { name: "wide", tools: 20, direct: false }, { name: "tiny", tools: 1, direct: true },
+    ]);
+    const args = { name: "wide_op_19", arguments: { value: "size-budget receipt" } };
+    expect(session.view("mcp_call_tool", args)).toMatchObject({ title: "wide_op_19", ask: true });
+    await expect(session.execute("mcp_call_tool", { ...args, arguments: { value: 19 } }, signal))
+      .resolves.toMatchObject({ text: expect.stringContaining("must be string") });
+    expect(wide.read().calls.some(call => call.method === "tools/call")).toBe(false);
+    await expect(session.execute("mcp_call_tool", args, signal)).resolves.toEqual({ ok: true, text: "recorded:size-budget receipt" });
+    expect(wide.read().calls.at(-1)).toMatchObject({ method: "tools/call", params: { name: "op_19", arguments: args.arguments } });
+  });
+
+  it("reserves search slots beside full built-ins when schemas exceed the size budget", async () => {
+    const wide = fixture(`if (message.method === "tools/list") {
+      reply(message, {tools:[{name:"verbose", description:"x".repeat(110_000), inputSchema:schema}]}); return;
+    }`);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const session = await mountChatTools({ agents: catalog(syntheticToolNames("agent", 127)), custom: { wide: wide.server } }, wide.controller.signal);
+      sessions.push(session);
+      expect(session.definitions).toHaveLength(127);
+      expect(session.definitions.slice(-3).map(tool => tool.function.name)).toEqual(["mcp_search_tools", "mcp_describe_tool", "mcp_call_tool"]);
+      expect(session.trimmed).toEqual([{ server: "agents", listed: 124, of: 127 }]);
+      expect(session.skipped).toEqual([]);
+    } finally { warn.mockRestore(); }
   });
 
   it("finds and runs only tools in the bot's selection through the tool search", async () => {

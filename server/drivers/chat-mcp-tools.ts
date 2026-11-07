@@ -13,7 +13,7 @@ import { killCliTree, spawnCli } from "../procs.ts";
 import { AGENTS_TOOL_ALIASES } from "../../shared/agents-tool-names.ts";
 import { bridgedCallTarget, unbridgedServer } from "./agents-bridge.ts";
 import { chatImage, type ChatImagePart } from "./chat-images.ts";
-import { CALL_TOOL, DESCRIBE_TOOL, SEARCH_TOOL, ToolDirectory, directoryCallTarget, isDirectoryTool, type CatalogTool, type DirectoryResult } from "../mcp-directory.ts";
+import { CALL_TOOL, DESCRIBE_TOOL, SEARCH_TOOL, ToolDirectory, catalogExceedsSize, directoryCallTarget, isDirectoryTool, type CatalogTool, type DirectoryResult } from "../mcp-directory.ts";
 import { AppObserver, modelVisible, withUiExtension } from "../mcp-app-observer.ts";
 import { appMountFor, mcpStdioServer } from "../mcp-gate-config.ts";
 import { REMOTE_MCP_STARTUP_MS, remoteMcpSpec } from "../mcp-http.ts";
@@ -264,7 +264,7 @@ export function searchedServersNotice(budget: ToolBudget): string | undefined {
   const names = budget.servers.filter((server) => !server.direct).map((server) => `"${server.name}"`);
   if (!names.length) return undefined;
   const listed = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
-  return `To fit the model's ${budget.limit}-tool limit, the tools of ${listed} are reached through the tool search this turn.`;
+  return `The tools of ${listed} are reached through tool search to keep this turn's tool list small and within the model's ${budget.limit}-tool limit.`;
 }
 
 /** What the person hears about a turn's MCP servers before the model runs, one line each. */
@@ -346,6 +346,7 @@ const parallelRead = (origin: ToolOrigin, tool: Record<string, unknown>): boolea
 const ARGUMENTS_MISFIT = "Tool arguments do not match the advertised input schema; use its required fields and types";
 
 function checkedTools(tools: readonly unknown[]): CheckedTool[] {
+  if (Buffer.byteLength(JSON.stringify(tools)) > CATALOG_BYTES) throw new Error("MCP tool catalog exceeds the 1MB limit");
   const names = new Set<string>();
   return tools.map((tool) => {
     if (!object(tool) || typeof tool.name !== "string" || !tool.name.trim() || names.has(tool.name)) throw new Error("MCP server advertised an invalid or duplicate tool name");
@@ -364,12 +365,12 @@ function uniqueName(base: string, taken: (name: string) => boolean): string {
 
 /** The configured servers a turn lists whole within `room` tools, in turn order. When not all fit, the tool search's own
  * tools take their place in the room first, and the rest are reached through it. */
-export function directServers(servers: ReadonlyArray<{ name: string; tools: number }>, room: number): Set<string> {
-  if (servers.reduce((sum, server) => sum + server.tools, 0) <= room) return new Set(servers.map((server) => server.name));
+export function directServers(servers: ReadonlyArray<{ name: string; tools: number; searchOnly?: boolean }>, room: number): Set<string> {
+  if (!servers.some(server => server.searchOnly) && servers.reduce((sum, server) => sum + server.tools, 0) <= room) return new Set(servers.map((server) => server.name));
   let left = room - DIRECTORY_TOOL_COUNT;
   const direct = new Set<string>();
   for (const server of servers) {
-    if (server.tools > left) continue;
+    if (server.searchOnly || server.tools > left) continue;
     direct.add(server.name);
     left -= server.tools;
   }
@@ -507,7 +508,9 @@ export async function mountChatTools(integrations: SendTurnInput["integrations"]
       catch (error) { await skip(mount.value.origin.server, error); }
     }
     const wanted = [...offered, ...configured].reduce((sum, server) => sum + server.tools.length, 0);
-    const searchRoom = configured.some((server) => server.tools.length) && wanted > MCP_TOOL_COUNT ? DIRECTORY_TOOL_COUNT : 0;
+    const configuredCatalogs = configured.map(({ origin, tools }) => ({ name: origin.server, tools: tools.length,
+      searchOnly: catalogExceedsSize(tools.map(({ tool }) => tool)) }));
+    const searchRoom = configured.some((server) => server.tools.length) && (wanted > MCP_TOOL_COUNT || configuredCatalogs.some(server => server.searchOnly)) ? DIRECTORY_TOOL_COUNT : 0;
     // The agents server keeps its whole list first; configured servers fit in what the built-ins leave.
     const shares = shareToolBudget(offered.map(({ origin, tools }, index) => ({ name: String(index), tools: tools.length, agents: origin.agents }))
       .sort((a, b) => Number(b.agents) - Number(a.agents)), MCP_TOOL_COUNT - searchRoom);
@@ -519,7 +522,7 @@ export async function mountChatTools(integrations: SendTurnInput["integrations"]
       }
       register(origin, checkedTools(tools));
     }
-    const direct = directServers(configured.map(({ origin, tools }) => ({ name: origin.server, tools: tools.length })), MCP_TOOL_COUNT - definitions.length);
+    const direct = directServers(configuredCatalogs, MCP_TOOL_COUNT - definitions.length);
     const searched: typeof configured = [];
     for (const server of configured) {
       if (signal.aborted || closed) throw aborted();

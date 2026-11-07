@@ -1486,7 +1486,7 @@ describe("a turn with the person's Windows computer, the built-in browser and th
     expect(names).toHaveLength(118);
     expect(names.slice(-4)).toEqual(["mcp_search_tools", "mcp_describe_tool", "mcp_call_tool", "ask_user"]);
     expect(f.recorder.events.filter((event) => event.type === "runtime.notice").map((event) => (event as { message: string }).message))
-      .toEqual([`To fit the model's 128-tool limit, the tools of "notes" are reached through the tool search this turn.`]);
+      .toEqual([`The tools of "notes" are reached through tool search to keep this turn's tool list small and within the model's 128-tool limit.`]);
     expect(toolBudgetOf("mira")).toEqual({ limit: 128, listed: 117, servers: [{ name: "notes", tools: 14, direct: false }] });
   });
 });
