@@ -95,7 +95,7 @@ export async function openAdvancedSettings(ui: Ui, page: string): Promise<void> 
 }
 
 /** A row of Advanced features' first card, which opens that place straight away. */
-export async function openFromBotsSettings(ui: Ui, row: "Inbox" | "Automations" | "Team map" | "Files"): Promise<void> {
+export async function openFromBotsSettings(ui: Ui, row: "Inbox" | "Team map" | "Files"): Promise<void> {
   await openSettings(ui, "Advanced features");
   await clickByName(ui, row, "button");
 }
@@ -103,10 +103,6 @@ export async function openFromBotsSettings(ui: Ui, row: "Inbox" | "Automations" 
 export async function openTeamMap(ui: Ui): Promise<void> {
   await openFromBotsSettings(ui, "Team map");
   await expect.poll(async () => (await ui("eval", "--js", "Boolean(document.querySelector('[data-team-canvas]'))")).result, { timeout: 10_000 }).toBe(true);
-}
-
-export async function openAutomations(ui: Ui): Promise<void> {
-  await openFromBotsSettings(ui, "Automations");
 }
 
 /** Connect apps > Bot templates: the Templates library with its Explore, Import, From a folder and Share tabs. */

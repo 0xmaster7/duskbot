@@ -19,11 +19,7 @@ vi.mock("@/state/store", async (importOriginal) => ({
 }));
 vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => false }));
 
-const { NewAutomation } = await import("./NewAutomation");
 const { AppEventEditor } = await import("./AppEventEditor");
-const { AutomationPanel } = await import("./AutomationPanel");
-const { automationsFrom } = await import("@/lib/automations");
-const { applyAppTriggerSnapshot } = await import("@/lib/app-triggers");
 
 const now = Date.now();
 const scout = { id: "bot-a", name: "Scout", threadId: "thread-a", hidden: false, messages: [] } as unknown as Bot;
@@ -67,16 +63,7 @@ beforeEach(() => {
 afterEach(() => { root?.unmount(); root = null; document.body.innerHTML = ""; });
 
 describe("app events, set up by the person", () => {
-  it("offers \"When something happens in an app\" under Set it up yourself", () => {
-    const onSetUpYourself = vi.fn();
-    const container = mount(createElement(NewAutomation, { onClose: vi.fn(), onSetUpYourself }));
-    flushSync(() => button(container, "Set it up yourself").click());
-    flushSync(() => button(container, "When something happens in an app").click());
-    flushSync(() => button(container, "Continue").click());
-    expect(onSetUpYourself).toHaveBeenCalledWith("app", "bot-a");
-  });
-
-  it("starts with the bot the New box chose, as the schedule and webhook editors do", async () => {
+  it("starts with the bot it was given", async () => {
     const writer = { ...scout, id: "bot-b", name: "Writer", threadId: "thread-b" } as unknown as Bot;
     fixture.api.mockResolvedValue(catalog);
     mount(createElement(AppEventEditor, { bots: [scout, writer], initialBotId: "bot-b", onClose: vi.fn() }));
@@ -109,41 +96,5 @@ describe("app events, set up by the person", () => {
     await vi.waitFor(() => expect(container.textContent).toContain("No connected app this bot may use has events yet."));
     flushSync(() => button(container, "Connect an app").click());
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "togglePlugins", open: true, surface: "apps" });
-  });
-});
-
-describe("the panel of an app-event automation", () => {
-  it("shows recent events, what was skipped today, the day's limit, and Reconnect when the connection expired", () => {
-    applyAppTriggerSnapshot({
-      triggers: [acme],
-      attempts: [{ id: "x", triggerId: "acme", eventId: "m1", at: now - 60_000, outcome: "started", runId: "r", preview: "From Ada · Order #1042" }],
-      service: { available: true, plan: "desktop", eventsPerDay: 500, eventsToday: 500 },
-    });
-    const [automation] = automationsFrom({ routines: [], webhooks: [], appTriggers: [{ ...acme, problem: { kind: "reconnect", at: now } }], runs: [] });
-    const container = mount(createElement(AutomationPanel, { automation: automation!, sentence: "When you get an email from acme.com, Scout drafts a reply", onClose: vi.fn(), onEdit: vi.fn(), onDeleted: vi.fn() }));
-    const text = container.textContent ?? "";
-    expect(text).toContain("Recent events");
-    expect(text).toContain("Started a run · From Ada · Order #1042");
-    expect(text).toContain("12 skipped today: daily limit");
-    expect(text).toContain("Up to 500 app events a day on this computer.");
-    expect(text).toContain("Gmail needs to be reconnected.");
-    flushSync(() => button(container, "Reconnect").click());
-    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "togglePlugins", open: true, surface: "apps" });
-    expect(text).not.toMatch(/webhook|endpoint|payload|composio|trigger/i);
-  });
-
-  it("pauses, tests and deletes through the app-event routes", async () => {
-    fixture.api.mockResolvedValue({ trigger: { ...acme, enabled: false } });
-    const [automation] = automationsFrom({ routines: [], webhooks: [], appTriggers: [acme], runs: [] });
-    const container = mount(createElement(AutomationPanel, { automation: automation!, sentence: "s", onClose: vi.fn(), onEdit: vi.fn(), onDeleted: vi.fn() }));
-    flushSync(() => button(container, "Pause").click());
-    await vi.waitFor(() => expect(fixture.api).toHaveBeenCalledWith("/api/app-triggers/acme", expect.objectContaining({ method: "PATCH", body: JSON.stringify({ enabled: false }) })));
-    await vi.waitFor(() => expect(button(container, "Run now").hasAttribute("disabled")).toBe(false));
-    flushSync(() => button(container, "Run now").click());
-    await vi.waitFor(() => expect(fixture.api).toHaveBeenCalledWith("/api/app-triggers/acme/test", expect.objectContaining({ method: "POST" })));
-    await vi.waitFor(() => expect(button(container, "Delete").hasAttribute("disabled")).toBe(false));
-    window.confirm = () => true;
-    flushSync(() => button(container, "Delete").click());
-    await vi.waitFor(() => expect(fixture.api).toHaveBeenCalledWith("/api/app-triggers/acme", expect.objectContaining({ method: "DELETE" })));
   });
 });

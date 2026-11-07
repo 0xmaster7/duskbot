@@ -39,6 +39,7 @@ import { PlaceLookRows } from "./PlaceLookCard";
 import { PlanUsageSummary } from "./PlanUsage";
 import { ProfileAvatar, ProfileFields } from "./ProfileSettings";
 import { SettingRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
+import { RoutineWakeRow } from "./routines/RoutineWakeRow";
 import { Card as RowsCard, FormDialog, ItemRow, NavRow, SwitchRow, useSubPage } from "./ListRows";
 import { SettingsSelect } from "./SettingsSelect";
 import { useServerUpdateItem } from "./SidebarProfileMenu";
@@ -50,7 +51,6 @@ import { ThreadCleanupSettings } from "./ThreadCleanupSettings";
 import { UsageSection } from "./UsageSection";
 import { WorkspaceBackupSettings } from "./WorkspaceBackupSettings";
 import { WorkspacesSection } from "./WorkspacesSection";
-import { WebhooksSettingsRow } from "./WebhooksSettingsRow";
 import { UsageMeterCard } from "./native/UsageMeter";
 import { reportsUsage, useEngineLimits } from "@/lib/limit-resets";
 import {
@@ -263,6 +263,7 @@ export function ComputerPane({ has, remoteAccess, servers, transfer }: { has: Ha
           <PageRow page="computers" title={t("settings.rows.desktops")} hint={t("settings.hint.desktops")} />
         </RowsCard>
       )}
+      <RoutineWakeRow />
       {has("computer") && (
         <SettingsGroup label={t("settings.grok.group.browser")} block="browser">
           <SettingsRows>
@@ -479,7 +480,6 @@ function BuilderPage() {
           <ExperimentalFeaturesRow />
         </div>
       </SettingsGroup>
-      <WebhooksSettingsRow />
     </>
   );
 }

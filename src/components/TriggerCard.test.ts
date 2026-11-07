@@ -125,9 +125,11 @@ describe("the chat card a bot-made automation leaves", () => {
     expect(fixture.api).toHaveBeenCalledWith("/api/threads/thread-1/undo", { method: "POST", body: JSON.stringify({ requestId: "request-1" }) });
   });
 
-  it("opens the automation's panel on the Automations page from the sentence itself", () => {
+  it("opens the routine in its bot's panel from the sentence itself, and Edit opens it in its form there", () => {
     click(scheduleCard, `Set up: ${sentence}`);
-    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "showRoutines", view: "list", routineId: "routine-1" });
+    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "openRoutine", routineId: "routine-1", botId: "bot-1" });
+    click(scheduleCard, "Edit");
+    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "openRoutine", routineId: "routine-1", botId: "bot-1", edit: true });
   });
 
   it("says when another app sends something, offers Copy address, and shows no address or secret on the card", () => {
@@ -153,9 +155,9 @@ describe("the chat card a bot-made automation leaves", () => {
     expect(gone).not.toContain("Pause</button>");
   });
 
-  it("opens Edit over the whole page, never inside the transcript the card sits in", async () => {
+  it("opens another app's Edit over the whole page, never inside the transcript the card sits in", async () => {
     fixture.state = { ...fixture.state, groups: [], sections: [] };
-    click(scheduleCard, "Edit");
+    click(webhookCard, "Edit");
     await vi.waitFor(() => expect(document.querySelector("[role=dialog]")).not.toBeNull(), { timeout: 5_000 });
     expect(document.querySelector("[data-trigger-card] [role=dialog]")).toBeNull();
     expect(document.querySelector("[role=dialog]")!.closest("body > div:not(:has([data-trigger-card]))")).not.toBeNull();

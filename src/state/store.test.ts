@@ -944,7 +944,7 @@ describe("notification routing", () => {
       expect(opened({ ...bot, threadId: "later-chat" }, false)).toEqual([{ type: "select", id: "bot-1" }]);
       expect(opened({ ...bot, tasks: undefined }, false)).toEqual([{ type: "select", id: "bot-1" }]);
       expect(opened({ ...bot, mainThreadId: undefined }, false)).toEqual([{ type: "select", id: "bot-1" }]);
-      const switched = reducer({ ...initialState, bots: [bot], selectedId: "other", activeView: "routines" }, opened(bot, false)[0] as Action);
+      const switched = reducer({ ...initialState, bots: [bot], selectedId: "other", activeView: "files" }, opened(bot, false)[0] as Action);
       expect(switched).toMatchObject({ selectedId: "bot-1", activeView: "chat" });
       expect(switched.bots[0]!.tasks!.find((task) => task.threadId === "routine-report")!.unread).toBe(true);
     });
@@ -1011,7 +1011,7 @@ describe("notification routing", () => {
       groups,
     })).toBe("room-thread");
     expect(visibleNotificationThread({
-      activeView: "routines",
+      activeView: "files",
       selectedId: "bot-1",
       bots,
       groups,
@@ -1149,14 +1149,14 @@ describe("config status", () => {
   });
 
   it("replaces the config without moving the person off their current view", () => {
-    const onRoutines = reducer(initialState, { type: "showRoutines" });
-    expect(onRoutines.activeView).toBe("routines");
+    const onFiles = reducer(initialState, { type: "showFiles" });
+    expect(onFiles.activeView).toBe("files");
 
-    const next = reducer(onRoutines, {
+    const next = reducer(onFiles, {
       type: "configStatus",
       config: { ...config, features: { skillAuthoring: false } },
     });
-    expect(next.activeView).toBe("routines");
+    expect(next.activeView).toBe("files");
     expect(next.config?.features).toEqual({ skillAuthoring: false });
   });
 });
@@ -1425,21 +1425,15 @@ describe("cross-client bot creation", () => {
 });
 
 describe("routine receipt retention", () => {
-  it("opens a bot's logs without retaining stale filters on a later global visit", () => {
-    const focused = reducer(initialState, { type: "showRoutines", section: "logs", view: "list", botId: "echo", routineId: "routine-1" });
-    expect(focused.activeView).toBe("routines");
-    expect(focused.routinesFocus).toEqual({ section: "logs", view: "list", botId: "echo", routineId: "routine-1", nonce: 1 });
-    const all = reducer(focused, { type: "showRoutines" });
-    expect(all.routinesFocus).toEqual({ section: undefined, view: undefined, botId: undefined, routineId: undefined, nonce: 2 });
-    const failures = reducer(focused, { type: "showRoutines", section: "logs" });
-    expect(failures.routinesFocus).toEqual({ section: "logs", view: undefined, botId: undefined, routineId: undefined, nonce: 2 });
-  });
-
-  it("carries the problems filter from the errors pill and drops it on a plain visit", () => {
-    const focused = reducer(initialState, { type: "showRoutines", section: "logs", runStatus: "problems" });
-    expect(focused.routinesFocus).toEqual({ section: "logs", view: undefined, botId: undefined, routineId: undefined, runStatus: "problems", nonce: 1 });
-    const plain = reducer(focused, { type: "showRoutines", section: "logs" });
-    expect(plain.routinesFocus).toEqual({ section: "logs", view: undefined, botId: undefined, routineId: undefined, runStatus: undefined, nonce: 2 });
+  it("opens a routine in its bot's panel, on the Details tab, and only for a bot that exists", () => {
+    const bots = [{ id: "echo", name: "Echo", threadId: "t-echo", hidden: false, messages: [] }] as unknown as AppState["bots"];
+    const routines = [{ id: "routine-1", botId: "echo" }] as unknown as AppState["routines"];
+    const focused = reducer({ ...initialState, bots, routines, activityOpen: true, activeView: "files" }, { type: "openRoutine", routineId: "routine-1" });
+    expect(focused).toMatchObject({ settingsOpen: true, selectedId: "echo", botSettingsSection: "routines", activityOpen: false, activeView: "chat" });
+    expect(focused.routinesFocus).toEqual({ routineId: "routine-1", edit: undefined, nonce: 1 });
+    const editing = reducer(focused, { type: "openRoutine", routineId: "app-1", botId: "echo", edit: true });
+    expect(editing.routinesFocus).toEqual({ routineId: "app-1", edit: true, nonce: 2 });
+    expect(reducer(focused, { type: "openRoutine", routineId: "gone" })).toBe(focused);
   });
 
   it("leaves the bulk-seen sweep to the server's emitted receipts", () => {
@@ -2537,9 +2531,8 @@ describe("activity panel", () => {
     expect(next.notificationsOpen).toBe(true);
   });
 
-  it("switching to routines or files closes the activity panel", () => {
+  it("switching to files closes the activity panel", () => {
     const open = { ...initialState, activityOpen: true };
-    expect(reducer(open, { type: "showRoutines" }).activityOpen).toBe(false);
     expect(reducer(open, { type: "showFiles" }).activityOpen).toBe(false);
   });
 
@@ -3096,11 +3089,6 @@ describe("notifications feed", () => {
     state = reducer(state, { type: "notificationRead", id: "n1" });
     state = reducer(state, { type: "notificationsHydrated", notifications: [entry("n1", 1)] });
     expect(state.notifications[0].read).toBe(false);
-  });
-
-  it("showRoutines closes the feed so its rail is reachable again", () => {
-    const open = reducer(initialState, { type: "toggleNotifications", open: true });
-    expect(reducer(open, { type: "showRoutines" }).notificationsOpen).toBe(false);
   });
 
   it("marks one or all read without touching the rest", () => {

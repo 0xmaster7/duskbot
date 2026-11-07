@@ -133,8 +133,7 @@ const { SegmentedTabs } = await import("./ui/SegmentedTabs");
 const { PanelShareMenu } = await import("./bot-panel/PanelShareMenu");
 const { VOICE_LANGUAGES, VOICE_SPEEDS } = await import("./bot-panel/voice-prefs");
 const { LocalComputerAutoWarning } = await import("./LocalComputerAutoWarning");
-const { RoutineList } = await import("./routines/RoutineList");
-const { RoutineEditor } = await import("./RoutinesPage");
+const { BotRoutines } = await import("./routines/BotRoutines");
 const { SignedInSites } = await import("./SignedInSites");
 const { AvatarImageGenerator } = await import("./AvatarImageGenerator");
 const { AvatarFraming } = await import("./avatar-editing");
@@ -590,22 +589,22 @@ describe("the Details tab", () => {
   it("says what routines are while the bot has none, in Grok's words, and lists them once it has some", () => {
     const empty = botTab(makeBot());
     expect(empty.html).toContain(">Routines are recurring tasks this Bot runs on a schedule. Ask it in chat to set one up.<");
-    fixture.derived.botRoutines = [routine()];
+    expect(empty.html).toContain('data-panel-action="new-routine"');
+    fixture.storeState = { ...fixture.storeState, routines: [routine()] };
     const some = botTab(makeBot());
     expect(some.html).not.toContain('data-panel-empty="routines"');
     expect(some.html).toContain(">Routines<");
   });
 
-  it("lists each routine in the order it was made, with its switch and Grok's schedule line, and opens the routines page from a row", () => {
-    fixture.derived.botRoutines = [routine({ id: "r2", name: "Paused one", enabled: false, createdAt: 2 }), routine(), routine({ id: "r3", name: "Another", createdAt: 3 })];
+  it("lists each routine in the order it was made, with its switch and its schedule in plain words, opened in place", () => {
+    fixture.storeState = { ...fixture.storeState, routines: [routine({ id: "r2", name: "Paused one", enabled: false, createdAt: 2 }), routine(), routine({ id: "r3", name: "Another", botId: "other", createdAt: 3 })] };
     const rendered = botTab(makeBot());
-    const rows = rendered.nodes.filter((node) => (node.props.routine as Routine | undefined)?.id !== undefined);
-    expect(rows.map((node) => (node.props.routine as Routine).id)).toEqual(["r1", "r2", "r3"]);
-    expect(switches(rendered.html)).toBe(3);
+    expect([...rendered.html.matchAll(/data-panel-routine="([^"]+)"/g)].map((match) => match[1])).toEqual(["r1", "r2"]);
+    expect(switches(rendered.html)).toBe(2);
     expect(rendered.html).toContain(">Paused<");
-    expect(rendered.html).toMatch(/>Every weekday at 9:00/);
-    (rows[0]!.props.onOpen as () => void)();
-    expect(onOpen).toHaveBeenLastCalledWith("routines");
+    expect(rendered.html).toContain(">Every weekday at 9 AM<");
+    expect(rendered.html).toContain('aria-expanded="false"');
+    expect(rendered.html).toContain('data-panel-action="new-routine"');
   });
 
   it("offers Grok's speeds and languages on the Advanced tab, kept per bot", () => {
@@ -873,22 +872,14 @@ describe("the drill-in pages", () => {
     expect(switches(cannot.html)).toBe(0);
   });
 
-  it("lists routines with switches, adds one locked to this bot, and says to ask in chat; no logs page, no schedules link", () => {
-    const morning = routine();
-    fixture.derived.botRoutines = [morning];
+  it("draws the same routines list as the Details tab, with no logs page and no schedules link", () => {
+    fixture.storeState = { ...fixture.storeState, routines: [routine()] };
     const rendered = body("routines");
-    const list = ofType(rendered, RoutineList)!;
-    expect(list.props.routines).toBe(fixture.derived.botRoutines);
-    (list.props.onToggle as (routine: Routine) => void)(morning);
-    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "updateRoutine", routineId: "r1", patch: { enabled: false } });
-    expect(rendered.html).toContain('aria-label="Run Morning brief on its schedule" type="button" role="switch" aria-checked="true"');
-    expect(rendered.html).toContain("Or just ask Scout in chat: “every weekday at 8, send me a summary”.");
+    expect(ofType(rendered, BotRoutines)!.props).toMatchObject({ label: false });
+    expect(rendered.html).toMatch(/aria-label="Pause Morning brief, Every weekday at 9 AM"[^>]*role="switch" aria-checked="true"/);
     expect(rendered.html).not.toContain("Open schedules");
     expect(has(rendered, "data-panel-action", "routine-logs")).toBe(false);
-    const add = list.props.footer as Node;
-    expect(add.props["data-panel-action"]).toBe("new-routine");
-    click(add);
-    expect(ofType(body("routines"), RoutineEditor)!.props).toMatchObject({ lockedBotId: "scout", routine: undefined });
+    expect(rendered.html).toContain('data-panel-action="new-routine"');
   });
 
   it("lists what MEMORY.md remembers, forgets one line through the memory file route, and adds one", async () => {

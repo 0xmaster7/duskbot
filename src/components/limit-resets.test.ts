@@ -32,10 +32,8 @@ vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
 const { setLocale } = await import("@/lib/i18n");
 const limits = await import("@/lib/limit-resets");
 const { automationSentence, isDone, statusLine } = await import("@/lib/automations");
-const { LimitWarnings } = await import("./automations/LimitWarnings");
 const { UsageAlert, UsageBars } = await import("./EngineUsage");
 const { FailedTurnRow } = await import("./ChatView");
-const { CalendarGrid } = await import("./RoutineCalendarPage");
 
 const NOW = new Date(2026, 9, 19, 10, 0, 0).getTime();
 const RESET = new Date(2026, 9, 19, 15, 40, 0).getTime();
@@ -123,28 +121,6 @@ describe("the words", () => {
     expect(limits.resetMarkers([claude(92), { ...claude(10), engine: "codex", name: "Codex", resetsAt: null }], NOW, NOW + 24 * HOUR, NOW))
       .toEqual([{ engine: "claude", name: "Claude", at: RESET }]);
     expect(limits.resetMarkers([claude(92)], RESET + 1, RESET + HOUR, NOW)).toEqual([]);
-  });
-});
-
-describe("the Automations page warning", () => {
-  it("shows the engine near its limit and moves just the next run of what is due before the reset", async () => {
-    fixture.state = { ...fixture.state, routines: [routine("brief", NOW + HOUR)] };
-    const moved = routine("brief", RESET + 60_000);
-    fixture.api.mockImplementation(async (path: unknown) => String(path).startsWith("/api/limit-resets/after-reset") ? { routine: moved } : { checkedAt: NOW, engines: [claude(92)] });
-    const container = mount(createElement(LimitWarnings));
-    const warning = container.querySelector('[data-limit-warning="claude"]')!;
-    expect(warning.textContent).toContain("Claude: 92% used · resets 3:40 PM");
-    expect(warning.textContent).toContain("1 automation runs before then");
-    flushSync(() => button(container, "Move to after reset").click());
-    await settle();
-    expect(fixture.api).toHaveBeenCalledWith("/api/limit-resets/after-reset", { method: "POST", body: JSON.stringify({ routineId: "brief", engine: "claude" }) });
-    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "routinePatched", routine: moved });
-  });
-
-  it("stays away while every engine has room", () => {
-    limits.rememberLimits({ checkedAt: NOW, engines: [claude(40)] });
-    fixture.api.mockImplementation(async () => ({ checkedAt: NOW, engines: [claude(40)] }));
-    expect(mount(createElement(LimitWarnings)).innerHTML).toBe("");
   });
 });
 
@@ -272,40 +248,5 @@ describe("the chat", () => {
     const passed = mount(createElement(FailedTurnRow, { tool: failedTurnTool("limit", { limitResetsAt: NOW - 1 }), engine: undefined, botId: "scout", threadId: "t-1", onRetry: vi.fn() }));
     expect(passed.textContent).toContain("Retry");
     expect(passed.textContent).not.toContain("Continue at");
-  });
-});
-
-describe("the calendar", () => {
-  const marker = { engine: "claude", name: "Claude", at: RESET };
-  const grid = (onDropOnReset = vi.fn(), onCreate = vi.fn()) => mount(createElement(CalendarGrid, {
-    anchor: new Date(2026, 9, 19).getTime(), days: 1, items: [], bots: [bot], groups: [], markers: [marker],
-    onOpen: vi.fn(), onCreate, onMove: vi.fn(), onDropOnReset,
-  }));
-  const drop = (target: Element, type: string, value: string) => {
-    const transfer = { types: [type], getData: (asked: string) => asked === type ? value : "", dropEffect: "none" };
-    for (const name of ["dragover", "drop"]) {
-      const event = new Event(name, { bubbles: true, cancelable: true });
-      Object.defineProperty(event, "dataTransfer", { value: transfer });
-      flushSync(() => target.dispatchEvent(event));
-    }
-  };
-
-  it("draws each engine's next reset as a labelled marker", () => {
-    const container = grid();
-    const shown = container.querySelector('[data-limit-marker="claude"]')!;
-    expect(shown.textContent).toBe("Claude resets 3:40 PM");
-    expect(shown.getAttribute("title")).toBe("Drop a bot or an automation here to run it when Claude's limit resets");
-  });
-
-  it("turns a bot or an automation dropped on the marker into a limit-reset automation, not a fixed time", () => {
-    const onDropOnReset = vi.fn();
-    const onCreate = vi.fn();
-    const container = grid(onDropOnReset, onCreate);
-    const shown = container.querySelector('[data-limit-marker="claude"]')!;
-    drop(shown, "application/x-openmaus-bot", "scout");
-    expect(onDropOnReset).toHaveBeenLastCalledWith({ botId: "scout" }, marker);
-    drop(shown, "application/x-openmaus-calendar-event", JSON.stringify({ kind: "routine", id: "brief", at: NOW + HOUR }));
-    expect(onDropOnReset).toHaveBeenLastCalledWith({ event: { kind: "routine", id: "brief", at: NOW + HOUR } }, marker);
-    expect(onCreate).not.toHaveBeenCalled();
   });
 });

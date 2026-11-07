@@ -190,7 +190,7 @@ function BotApiSection({ bot, webhooksLink = false, className }: { bot: Bot; web
       {webhooksLink && (
         <button
           type="button"
-          onClick={() => dispatch({ type: "showRoutines", view: "list" })}
+          onClick={() => dispatch({ type: "toggleSettings", open: true, section: "routines", botId: bot.id })}
           className="mt-3 text-[13px] text-ink-secondary hover:text-ink"
           data-testid="bot-api-webhooks"
         >

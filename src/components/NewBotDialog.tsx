@@ -26,7 +26,7 @@ import { VoiceSection } from "./bot-settings/VoiceSection";
 import { useBotSettingsDerived } from "./bot-settings/useBotSettingsDerived";
 import { BotEditorContext } from "./bot-settings/BotEditorContext";
 import { inputCls } from "./bot-settings/field";
-import { RoutineEditor } from "./RoutinesPage";
+import { RoutineForm } from "./routines/RoutineForm";
 import { LocalComputerAutoWarning } from "./LocalComputerAutoWarning";
 import { SharePresetDialog } from "./SharePresetDialog";
 import { Select } from "./Select";
@@ -340,7 +340,7 @@ function DraftRoutines({ draft }: { draft: BotCreationDraft }) {
       <label className="flex items-center gap-1.5 text-[12px] text-ink-secondary"><input type="checkbox" checked={routine.enabled} onChange={event => draft.setRoutineEnabled(routine.id, event.target.checked)} />{t("newBot.enabled")}</label>
       <button type="button" aria-label={t("newBot.removeRoutine", { name: routine.name })} onClick={() => draft.removeRoutine(routine.id)} className="flex size-7 cursor-pointer items-center justify-center rounded-full text-ink/68 hover:bg-ink/6 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus"><Trash2 size={15} /></button>
     </div>)}
-    {editing && <RoutineEditor routine={editing === "new" ? undefined : editing} bots={[draft.bot]} lockedBotId={draft.id} onClose={() => setEditing(null)} />}
+    {editing && <RoutineForm key={editing === "new" ? "new" : editing.id} bot={draft.bot} routine={editing === "new" ? undefined : editing} onDone={() => setEditing(null)} />}
   </div>;
 }
 

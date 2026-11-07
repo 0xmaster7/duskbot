@@ -42,11 +42,14 @@ export function useAutomationActions() {
     ? new Promise<void>((resolve, reject) => dispatch({ type: "runRoutine", routineId: automation.id, onStarted: () => resolve(), onError: reject }))
     : api(`/api/webhooks/${automation.id}/test`, { method: "POST", body: JSON.stringify({ event: "openmaus.test", message: "A test run from Automations" }) }));
 
-  /** Asks once (a person deleting their own automation), then deletes it. */
-  const remove = async (automation: Automation, question: string): Promise<boolean> => {
-    if (!window.confirm(question)) return false;
+  /** Asks once (a person deleting their own automation), then deletes it; `null` when the caller already asked. */
+  const remove = async (automation: Automation, question: string | null): Promise<boolean> => {
+    if (question !== null && !window.confirm(question)) return false;
     if (automation.kind === "schedule") {
-      dispatch({ type: "deleteRoutine", routineId: automation.id });
+      await attempt(`delete:${automation.id}`, async () => {
+        await api(`/api/routines/${automation.id}`, { method: "DELETE" });
+        dispatch({ type: "routineDeleted", routineId: automation.id });
+      });
       return true;
     }
     await attempt(`delete:${automation.id}`, async () => {

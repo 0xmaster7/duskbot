@@ -85,14 +85,14 @@ describe("the Room panel's open state", () => {
     expect(seen.shown).toBe(true);
     render({ ...inRoom, selectedId: "standup", settingsOpen: true }, true, { id: "standup" });
     expect(seen.shown).toBe(true);
-    render({ ...inRoom, activeView: "routines", settingsOpen: true });
+    render({ ...inRoom, activeView: "files", settingsOpen: true });
     expect(seen.shown).toBe(false);
   });
 
   it("closes when another view opens or the mode changes", () => {
     render(inRoom);
     open();
-    render({ ...inRoom, activeView: "routines" });
+    render({ ...inRoom, activeView: "files" });
     expect(seen.open).toBeNull();
 
     render(inRoom);

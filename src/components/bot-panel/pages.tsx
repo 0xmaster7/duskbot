@@ -4,17 +4,15 @@ import { FolderOpen, Plus } from "lucide-react";
 
 import { appSwitchPatch } from "@/lib/bot-app-access";
 import { t } from "@/lib/i18n";
-import type { Routine } from "@/lib/routines";
 import { shortPath } from "@/lib/short-path";
 import { useStore, type Bot } from "@/state/store";
 import { useDesktopCapabilities } from "../DesktopCapabilities";
 import { ServiceIcon } from "../ServiceIcon";
-import { RoutineEditor } from "../RoutinesPage";
 import { useWorkingFolder } from "../bot-settings/AccessSection";
 import { SkillReviewDialog } from "../bot-settings/SkillsSection";
 import { useBotApps, type BotApp } from "../bot-settings/useBotApps";
 import type { useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
-import { RoutineList } from "../routines/RoutineList";
+import { BotRoutines } from "../routines/BotRoutines";
 import { BrowserLogins } from "./browser-logins";
 import { useOpenComputer, WherePage } from "./ComputerTab";
 import { ApiPage, BackupsPage, InstructionsPage, SettingsPage, ThreadsPage } from "./SettingsPage";
@@ -86,33 +84,8 @@ export function AppsPage({ bot, derived }: PageContext) {
   );
 }
 
-export function RoutinesPage({ bot, derived }: PageContext) {
-  const { state, dispatch } = useStore();
-  const [editing, setEditing] = useState<Routine | "new" | null>(null);
-  return (
-    <>
-      <RoutineList
-        routines={derived.botRoutines}
-        runs={state.routineRuns}
-        loading={state.routinesLoadState === "loading" && derived.botRoutines.length === 0}
-        error={state.routinesLoadState === "error"}
-        onOpen={setEditing}
-        onLogs={(routine) => dispatch({ type: "showRoutines", section: "logs", botId: bot.id, routineId: routine.id })}
-        onToggle={(routine) => dispatch({ type: "updateRoutine", routineId: routine.id, patch: { enabled: !routine.enabled } })}
-        footer={<LinkRow data-panel-action="new-routine" icon={Plus} onClick={() => setEditing("new")}>{t("botPanel.routines.add")}</LinkRow>}
-        footnote={t("botPanel.routines.ask", { name: bot.name })}
-      />
-      {editing && (
-        <RoutineEditor
-          key={bot.id}
-          routine={editing === "new" ? undefined : editing}
-          bots={[bot]}
-          lockedBotId={bot.id}
-          onClose={() => setEditing(null)}
-        />
-      )}
-    </>
-  );
+export function RoutinesPage({ bot }: PageContext) {
+  return <BotRoutines bot={bot} label={false} />;
 }
 
 export function MemoryPage({ bot }: PageContext) {
