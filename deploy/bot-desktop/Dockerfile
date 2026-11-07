@@ -24,6 +24,7 @@ ARG TARGETARCH
 ARG CUA_DRIVER_VERSION=0.37.0
 ARG BOT_DESKTOP_VERSION=1
 ENV DEBIAN_FRONTEND=noninteractive LANG=C.UTF-8 LC_ALL=C.UTF-8
+COPY trim-icons.py /tmp/omb-trim-icons.py
 
 RUN set -eux; \
     apt-get update; \
@@ -46,6 +47,8 @@ RUN set -eux; \
       -regex '.*/(folder|user)-(adwaita|black|bluegrey|breeze|brown|carmine|cyan|darkcyan|deeporange|green|grey|indigo|magenta|nordic|orange|palebrown|paleorange|pink|red|teal|violet|white|yaru|yellow)(-[^/]*)?\.svg' \
       -delete; \
     find /usr/share/icons/Papirus /usr/share/icons/Papirus-Dark -xtype l -delete; \
+    python3 -I /tmp/omb-trim-icons.py /usr/share/icons /usr/share/applications; \
+    rm -f /tmp/omb-trim-icons.py; \
     for t in Papirus Papirus-Dark hicolor Adwaita; do gtk-update-icon-cache -q -f "/usr/share/icons/$t"; done
 
 # noVNC's web client only (Debian's package pulls in Node.js for its tooling), pinned by SHA-256.

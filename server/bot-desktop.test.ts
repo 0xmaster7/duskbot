@@ -241,6 +241,42 @@ describe("bot desktop provisioning", () => {
     expect(await provisionBotDesktop(fake.run, input)).toBe(false);
     expect(fake.calls).toHaveLength(1);
   });
+
+  it("shares preparation for concurrent bots on one host, then rechecks the fence on the next start", async () => {
+    const fake = host({ runsc: true, network: true, fenced: true });
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const run = async (args: string[]) => {
+      if (args[0] === "pull") await gate;
+      return fake.run(args);
+    };
+    const first = provisionBotDesktop(run, { ...input, hostKey: "shared-vps" });
+    const second = provisionBotDesktop(run, { ...input, containerName: `${NAME}-other`, hostKey: "shared-vps" });
+    release();
+    expect(await Promise.all([first, second])).toEqual(["free", "free"]);
+    expect(fake.calls.filter((args) => args[0] === "pull")).toHaveLength(1);
+    expect(fake.calls.filter((args) => args[0] === "network")).toHaveLength(1);
+    expect(fake.calls.filter((args) => args[0] === "info")).toHaveLength(1);
+    expect(fake.calls.filter((args) => args.includes("/usr/local/bin/omb-host-fence"))).toHaveLength(1);
+    const starts = fake.calls.filter((args) => args[0] === "run" && args[1] === "-d");
+    expect(starts).toHaveLength(2);
+    expect(starts.map((args) => flag(args, "--name")[0])).toEqual([NAME, `${NAME}-other`]);
+
+    const unfenced = host({ runsc: true, network: true, fenced: false });
+    expect(await provisionBotDesktop(unfenced.run, { ...input, imageId: IMAGE_ID, hostKey: "shared-vps" })).toBe("strict");
+    expect(unfenced.calls.some((args) => args.includes("/usr/local/bin/omb-host-fence"))).toBe(true);
+  });
+
+  it("keeps preparation separate across hosts and lets a failed pull retry", async () => {
+    const unavailable = host({ pull: false });
+    const available = host({ runsc: true, network: true, fenced: true });
+    expect(await Promise.all([
+      provisionBotDesktop(unavailable.run, { ...input, hostKey: "offline-vps" }),
+      provisionBotDesktop(available.run, { ...input, hostKey: "online-vps" }),
+    ])).toEqual([false, "free"]);
+    expect(await provisionBotDesktop(available.run, { ...input, hostKey: "offline-vps" })).toBe("free");
+    expect(available.calls.filter((args) => args[0] === "pull")).toHaveLength(2);
+  });
 });
 
 
@@ -294,7 +330,7 @@ describe("bot desktop on the VPS path", () => {
       }
       if (command === "exec") {
         if (docker.at(-1) === "--version") return { stdout: `cua-driver ${CUA_DRIVER_VERSION}\n`, stderr: "" };
-        if (docker.includes("health_report")) return { stdout: JSON.stringify({ schema_version: "1", overall: "ok", checks: [] }), stderr: "" };
+        if (docker.includes("omb-desktop-probe") || docker.includes("health_report")) return { stdout: JSON.stringify({ schema_version: "1", overall: "ok", checks: [] }), stderr: "" };
         return { stdout: "{}\n", stderr: "" };
       }
       throw new Error(`unexpected docker ${command}`);

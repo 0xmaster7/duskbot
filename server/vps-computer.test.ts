@@ -39,6 +39,7 @@ import {
   closeAllVpsDesktopTunnels,
   vpsComputerScreenshot,
   vpsComputerStatus,
+  vpsDesktopProbeArgs,
   vpsComputerMcp,
   vpsContainerMcpArgs,
   vpsContainerName,
@@ -219,15 +220,19 @@ function fixture({
       if (args.includes("tail")) {
         return { stdout: "X display :1 did not become ready within 45 seconds\n", stderr: "" };
       }
+      if (args.includes("omb-desktop-probe")) {
+        if (desktopProbeFails) throw new Error("driver unavailable");
+        return { stdout: JSON.stringify({ schema_version: "1", overall: "ok", checks: [] }), stderr: "" };
+      }
       if (args.at(-1) === "--version") {
         if (desktopProbeFails) throw new Error("driver unavailable");
         return { stdout: `cua-driver ${CUA_DRIVER_VERSION}\n`, stderr: "" };
       }
       if (args.includes("status")) return { stdout: "running\n", stderr: "" };
-      if (args.includes("health_report")) {
+      if ((args.includes("omb-desktop-probe") || args.includes("health_report"))) {
         return { stdout: JSON.stringify({ schema_version: "1", overall: "ok", checks: [] }), stderr: "" };
       }
-      if (args.includes("get_desktop_state")) return { stdout: "{}\n", stderr: "" };
+      if ((args.includes("omb-desktop-probe") || args.includes("get_desktop_state"))) return { stdout: "{}\n", stderr: "" };
       return { stdout: "{}\n", stderr: "" };
     }
     if (command === "pull") return { stdout: "pulled\n", stderr: "" };
@@ -330,15 +335,66 @@ describe("VPS computer", () => {
     const probes = fake.calls.filter(
       ({ args }) =>
         args[2] === "exec" &&
-        (args.at(-1) === "--version" || args.includes("status") || args.includes("health_report") || args.includes("get_desktop_state")),
+        args.includes("omb-desktop-probe"),
     );
-    expect(probes).toHaveLength(4);
+    expect(probes).toHaveLength(1);
     expect(probes.every(({ args }) => args.includes(CONTAINER_ID))).toBe(true);
     expect(probes.every(({ args }) => !args.includes(fake.name))).toBe(true);
     expect(probes.every(({ args }) => args.includes(`DISPLAY=${DISPLAY}`))).toBe(true);
     expect(probes.every(({ args }) => args.includes("CUA_DRIVER_RS_TELEMETRY_ENABLED=0"))).toBe(true);
     expect(fake.calls.some(({ args }) => args.includes("openmausbot-preview"))).toBe(false);
     expect(fake.calls.some(({ args }) => args.includes("--screenshot-out-file"))).toBe(false);
+  });
+
+  it.skipIf(process.platform === "win32")("runs every readiness check in one exec and stops at a failed check", () => {
+    const dir = mkdtempSync(join(tmpdir(), "omb-desktop-probe-"));
+    const driver = join(dir, "driver");
+    const log = join(dir, "calls");
+    const args = vpsDesktopProbeArgs(CONTAINER_ID);
+    const script = args[args.indexOf("-ec") + 1]!;
+    writeFileSync(driver, `#!/bin/sh
+printf '%s\\n' "$1 $2" >> "$PROBE_LOG"
+case "$1 $2" in
+  '--version ') [ "$PROBE_FAIL" != version ] || exit 1; echo 'cua-driver ${CUA_DRIVER_VERSION}' ;;
+  'status --socket') [ "$PROBE_FAIL" != status ] ;;
+  'call health_report') [ "$PROBE_FAIL" != health_report ] || exit 1; echo '{"schema_version":"1","overall":"ok","checks":[]}' ;;
+  'call get_desktop_state') [ "$PROBE_FAIL" != get_desktop_state ] ;;
+  *) exit 2 ;;
+esac
+`, { mode: 0o700 });
+    const run = (fail: string) => execFileSync("sh", ["-ec", script, "omb-desktop-probe", driver, `cua-driver ${CUA_DRIVER_VERSION}`, "/run/fixture.sock"], {
+      encoding: "utf8", env: { PATH: process.env.PATH, PROBE_LOG: log, PROBE_FAIL: fail }, stdio: ["ignore", "pipe", "pipe"],
+    });
+    try {
+      expect(JSON.parse(run(""))).toMatchObject({ overall: "ok" });
+      expect(readFileSync(log, "utf8").trim().split("\n")).toEqual(["--version ", "status --socket", "call health_report", "call get_desktop_state"]);
+      for (const [failure, count] of [["version", 1], ["status", 2], ["health_report", 3], ["get_desktop_state", 4]] as const) {
+        writeFileSync(log, "");
+        expect(() => run(failure)).toThrow();
+        expect(readFileSync(log, "utf8").trim().split("\n")).toHaveLength(count);
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("needs two transport round trips to validate an already-running desktop", async () => {
+    vi.useFakeTimers();
+    try {
+      const fake = fixture({ hostConfig: { PidsLimit: PIDS_LIMIT } });
+      const runner: VpsCommandRunner = async (args, options) => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return fake.runner(args, options);
+      };
+      const started = Date.now();
+      const status = vpsComputerStatus(CONFIG, BOT_ID, runner);
+      await vi.advanceTimersByTimeAsync(200);
+      expect((await status).ready).toBe(true);
+      expect(Date.now() - started).toBe(200);
+      expect(fake.calls).toHaveLength(3);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it.each([
@@ -523,7 +579,7 @@ describe("VPS computer", () => {
     const fake = fixture();
     expect((await vpsComputerAction("provision", CONFIG, BOT_ID, fake.runner)).ready).toBe(true);
     expect(fake.calls.filter(({ args }) => args[2] === "image")).toHaveLength(1);
-    expect(fake.calls.filter(({ args }) => args.includes("get_desktop_state"))).toHaveLength(1);
+    expect(fake.calls.filter(({ args }) => (args.includes("omb-desktop-probe") || args.includes("get_desktop_state")))).toHaveLength(1);
   });
 
   it("shares a slow provision instead of rejecting its second caller after five seconds", async () => {
@@ -545,7 +601,7 @@ describe("VPS computer", () => {
       const results = await Promise.all([first, second]);
       expect(results[0]).toEqual(results[1]);
       expect(fake.calls.filter(({ args }) => args[2] === "run")).toHaveLength(1);
-      expect(fake.calls.filter(({ args }) => args.includes("get_desktop_state"))).toHaveLength(1);
+      expect(fake.calls.filter(({ args }) => (args.includes("omb-desktop-probe") || args.includes("get_desktop_state")))).toHaveLength(1);
     } finally {
       release();
       await Promise.allSettled([first, second]);
@@ -655,7 +711,7 @@ describe("VPS computer", () => {
     const fake = fixture();
     const frame = await vpsComputerScreenshot(CONFIG, BOT_ID, fake.runner);
     expect(frame).toEqual({ png: screenshot.toString("base64"), format: "png" });
-    expect(fake.calls.some(({ args }) => args.includes("get_desktop_state"))).toBe(true);
+    expect(fake.calls.some(({ args }) => (args.includes("omb-desktop-probe") || args.includes("get_desktop_state")))).toBe(true);
     const transfer = fake.calls.find(({ args }) => args.includes("openmausbot-preview"))!.args;
     expect(transfer.slice(2)).toEqual([
       "exec", "-u", "cua", "-e", "HOME=/home/cua", CONTAINER_ID,
@@ -789,7 +845,7 @@ describe("VPS computer", () => {
       const first = vpsComputerScreenshot(CONFIG, BOT_ID, runner).finally(() => { settled = true; });
       const rejected = expect(first).rejects.toMatchObject({ status: 504 });
       await vi.advanceTimersByTimeAsync(35_000);
-      expect(calls.find(({ args }) => args.includes("openmausbot-preview"))?.timeoutMs).toBe(13_000);
+      expect(calls.find(({ args }) => args.includes("openmausbot-preview"))?.timeoutMs).toBe(21_000);
       expect(calls.find(({ args }) => args.includes("rm"))?.timeoutMs).toBe(4_000);
       expect(vpsLifecycleBusy()).toBe(true);
       expect(settled).toBe(false);
@@ -916,7 +972,7 @@ describe("VPS computer", () => {
     const probing = new Promise<void>((resolve) => { entered = resolve; });
     let probes = 0;
     mockTransport(async (args, options) => {
-      if (args.includes("get_desktop_state") && ++probes === 1) { entered(); await gate; }
+      if ((args.includes("omb-desktop-probe") || args.includes("get_desktop_state")) && ++probes === 1) { entered(); await gate; }
       return fake.runner(args, options);
     });
     const stale = vpsComputerStatus(cfg, BOT_ID);
@@ -946,7 +1002,7 @@ describe("VPS computer", () => {
     const diagnosing = new Promise<void>((resolve) => { enteredPoll = resolve; });
     let probes = 0;
     mockTransport(async (args, options) => {
-      if (args.includes("get_desktop_state")) {
+      if ((args.includes("omb-desktop-probe") || args.includes("get_desktop_state"))) {
         if (++probes === 1) { enteredReady(); await readyGate; }
         else if (probes === 2) throw new Error("desktop is still starting");
       }
@@ -1013,7 +1069,7 @@ describe("VPS computer", () => {
   it("bounds inspection retries and never replays a failed lifecycle command", async () => {
     const unavailable = vi.fn(async () => { throw new Error("Docker-over-SSH command timed out"); });
     const status = await vpsComputerStatus(CONFIG, BOT_ID, unavailable);
-    expect(unavailable).toHaveBeenCalledTimes(2);
+    expect(unavailable).toHaveBeenCalledTimes(4);
     expect(status).toMatchObject({ ready: false, daemonUp: false });
     expect(status.problem).toContain("Check that the VPS is online");
 
@@ -1084,7 +1140,7 @@ describe("VPS computer", () => {
       const fake = fixture({ container: false });
       let driverProbes = 0;
       const runner: VpsCommandRunner = async (args, options) => {
-        if (args[2] === "exec" && args.includes("status")) {
+        if (args[2] === "exec" && (args.includes("omb-desktop-probe") || args.includes("status"))) {
           driverProbes += 1;
           if (driverProbes < 4) throw new Error("driver not up yet");
         }
@@ -1094,9 +1150,9 @@ describe("VPS computer", () => {
       await vi.advanceTimersByTimeAsync(10_000);
       const status = await pending;
       expect(status.ready).toBe(true);
-      const desktopCalls = fake.calls.filter(({ args }) => args.includes("get_desktop_state"));
+      const desktopCalls = fake.calls.filter(({ args }) => (args.includes("omb-desktop-probe") || args.includes("get_desktop_state")));
       expect(desktopCalls).toHaveLength(1);
-      const healthCalls = fake.calls.filter(({ args }) => args.includes("health_report"));
+      const healthCalls = fake.calls.filter(({ args }) => (args.includes("omb-desktop-probe") || args.includes("health_report")));
       expect(healthCalls).toHaveLength(1);
       expect(driverProbes).toBeGreaterThanOrEqual(4);
     } finally {
@@ -1110,7 +1166,7 @@ describe("VPS computer", () => {
       const fake = fixture({ container: false });
       const desktopTimeouts: number[] = [];
       const runner: VpsCommandRunner = async (args, options) => {
-        if (args.includes("get_desktop_state")) {
+        if ((args.includes("omb-desktop-probe") || args.includes("get_desktop_state"))) {
           const timeoutMs = options?.timeoutMs ?? 120_000;
           desktopTimeouts.push(timeoutMs);
           await new Promise((resolve) => setTimeout(resolve, timeoutMs + 6_000));

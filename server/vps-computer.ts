@@ -5,6 +5,7 @@ import { spawn } from "node:child_process";
 import {
   BASE_IMAGE,
   CUA_DRIVER_VERSION,
+  CUA_EXECUTABLE,
   CUA_SOCKET,
   IMAGE as CUA_IMAGE,
   cuaExecArgs,
@@ -68,6 +69,17 @@ sys.stdout.write(base64.b64encode(output.getvalue()).decode("ascii"))' "$1" 2>/d
 const INTERNAL_VIEWER_PORT = 6901;
 const VIEWER_VERSION = "1";
 const lifecycleLocks = new Map<string, Promise<void>>();
+
+const DESKTOP_PROBE = `version="$("$1" --version)"
+[ "$version" = "$2" ] || { echo "unexpected Cua Driver version" >&2; exit 1; }
+"$1" status --socket "$3" >/dev/null
+"$1" call health_report '{}' --socket "$3"
+"$1" call get_desktop_state '{}' --socket "$3" >/dev/null`;
+
+export function vpsDesktopProbeArgs(container: string): string[] {
+  const args = cuaExecArgs([], { container });
+  return [...args.slice(0, -1), "sh", "-ec", DESKTOP_PROBE, "omb-desktop-probe", CUA_EXECUTABLE, `cua-driver ${CUA_DRIVER_VERSION}`, CUA_SOCKET];
+}
 
 /** The app config reloads in place: across awaits it could inspect one host and mutate another. */
 function snapshotVpsConfig(cfg: AppConfig): AppConfig {
@@ -509,10 +521,18 @@ async function computeVpsComputerStatus(
     status.daemonUp = true;
     return true;
   };
-  if (!(await inspectImage(prefer))) return status;
+  const [imageInspected, containerInspection] = await Promise.all([
+    inspectImage(prefer),
+    inspect(["inspect", status.container_name]).then(
+      (result) => ({ result }),
+      (error: unknown) => ({ error }),
+    ),
+  ]);
+  if (!imageInspected) return status;
 
   try {
-    const inspected = JSON.parse((await inspect(["inspect", status.container_name])).stdout) as Array<{
+    if ("error" in containerInspection) throw containerInspection.error;
+    const inspected = JSON.parse(containerInspection.result.stdout) as Array<{
       Config?: { Image?: string; Labels?: Record<string, string>; Env?: string[] };
       HostConfig?: DockerHardeningConfig & {
         ReadonlyRootfs?: boolean;
@@ -583,13 +603,7 @@ async function computeVpsComputerStatus(
       status.security === "hardened";
     if (canProbe && containerRef) {
       try {
-        const version = await run(cuaExecArgs(["--version"], { container: containerRef }));
-        if (version.stdout.trim() !== `cua-driver ${CUA_DRIVER_VERSION}`) throw new Error("unexpected Cua Driver version");
-        await run(cuaExecArgs(["status", "--socket", CUA_SOCKET], { container: containerRef }));
-        const health = await run(
-          cuaExecArgs(["call", "health_report", "{}", "--socket", CUA_SOCKET], { container: containerRef }),
-          15_000,
-        );
+        const health = await run(vpsDesktopProbeArgs(containerRef), 20_000);
         const report = JSON.parse(health.stdout) as {
           schema_version?: string;
           overall?: string;
@@ -602,10 +616,6 @@ async function computeVpsComputerStatus(
         ) {
           throw new Error(`Cua health report is ${report.overall ?? "invalid"}`);
         }
-        await run(
-          cuaExecArgs(["call", "get_desktop_state", "{}", "--socket", CUA_SOCKET], { container: containerRef }),
-          20_000,
-        );
         status.desktopReady = true;
       } catch (error) {
         status.desktopReady = false;
@@ -1050,7 +1060,7 @@ export async function vpsComputerAction(
       const containerRef = before.container_id ?? before.container_name;
       if (action === "provision") {
         const botDesktop = () => provisionBotDesktop((args, timeoutMs) => run(args, timeoutMs), {
-          containerName: before.container_name, imageId: before.image ? before.image_id : null,
+          containerName: before.container_name, imageId: before.image ? before.image_id : null, hostKey: alias,
           labels: vpsOwnershipLabels(before.container_name), viewerSecret: randomBytes(18).toString("base64url"),
         });
         if (before.container === "missing") {

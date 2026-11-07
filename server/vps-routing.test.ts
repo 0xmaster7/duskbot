@@ -130,6 +130,7 @@ case "$*" in
       exit 1
     fi
     cat "$FAKE_DOCKER_DIR/image.json" ;;
+  *" exec "*"omb-desktop-probe"*) echo '{"schema_version":"1","overall":"ok","checks":[]}' ;;
   *" exec "*"--version"*) echo "cua-driver ${CUA_DRIVER_VERSION}" ;;
   *" exec "*"--screenshot-out-file"*)
     : > "$FAKE_DOCKER_DIR/capture-started"

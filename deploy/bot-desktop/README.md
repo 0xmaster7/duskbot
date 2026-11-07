@@ -22,6 +22,12 @@ linux/amd64.
 | Files | Thunar | behind the middle dock icon; Papirus-Dark icons here and in every GTK file dialog |
 | Control | Cua Driver 0.37.0 (pinned wheel, SHA-256 checked) | the harness speaks it already, nothing changes for bots |
 
+The image keeps Papirus icons for installed applications, their symlink targets, and every file, folder and action
+icon. Unused application icons are removed at build time by `trim-icons.py`; newly installed applications can supply
+their own icons through the normal hicolor fallback. A disposable arm64 image check reduced the two Papirus themes
+from 104,082,850 to 21,207,756 bytes without leaving broken icon links. This is an icon payload measurement, not a
+compressed image size or a VPS transfer benchmark.
+
 Wayland (labwc, sway) was ruled out: Cua Driver's capture and input paths here are X11 (XTest, AT-SPI over X), and
 VNC over X is the most mature thing to stream from.
 
