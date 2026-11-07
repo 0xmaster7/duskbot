@@ -93,3 +93,38 @@ describe("desktop installer work", () => {
     expect(calls).toContain("result 11");
   });
 });
+
+describe("host memory guards", () => {
+  it("puts the server and link above bot computers and sshd out of the oom killer's reach", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "omb-install-units-"));
+    try {
+      const file = join(dir, "fixture.sh");
+      await writeFile(file, `${script}
+UNITS=$1/units
+TMP=$1
+STATE=$1/state
+mkdir -p "$UNITS"
+NAME=fixture
+AGENT=/opt/agent.mjs
+systemctl() {
+  case "$1" in
+    cat) [ "$2" = ssh.service ] ;;
+    show) echo 0 ;;
+  esac
+}
+server_unit
+helper_units
+if ssh_guard; then echo "first 0" > "$1/result"; else echo "first 1" > "$1/result"; fi
+if ssh_guard; then echo "again 0" >> "$1/result"; else echo "again 1" >> "$1/result"; fi
+`);
+      await run("sh", [file, dir], { env: { PATH: "/usr/bin:/bin", TERM: "dumb" } });
+      expect(await readFile(join(dir, "units/openmausbot.service"), "utf8")).toContain("\nOOMScoreAdjust=-800\n");
+      expect(await readFile(join(dir, "units/openmausbot-link.service"), "utf8")).toContain("\nOOMScoreAdjust=-700\n");
+      const guard = await readFile(join(dir, "units/ssh.service.d/10-openmausbot-oom.conf"), "utf8");
+      expect(guard).toContain("[Service]\nOOMScoreAdjust=-1000\nMemoryMin=64M");
+      expect(await readFile(join(dir, "result"), "utf8")).toBe("first 0\nagain 1\n");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});
