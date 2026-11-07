@@ -465,7 +465,7 @@ export const EGRESS_BRIDGE = "omb-desk0";
 export const EGRESS_PORT = Number(process.env.LINK_EGRESS_PORT) || 3129;
 /** the app says hello every 15 s while it takes streams; three missed and this server uses its own network again */
 const EGRESS_SEEN_MS = 40_000;
-const EGRESS_DIAL_MS = 8000;
+const EGRESS_DIAL_MS = 5000;
 const EGRESS_QUEUE_HIGH = 1024 * 1024;
 const EGRESS_HEAD_MAX = 8 * 1024;
 /**
@@ -586,6 +586,15 @@ export function createEgressProxy({
     if (tell) send({ t: "cancel", r });
   }
 
+  /** the app went away: its streams are dead, so their browsers see the close now instead of waiting */
+  function gone() {
+    ready = false;
+    for (const [r, entry] of streams) {
+      if (entry.settle) { const settle = entry.settle; entry.settle = null; clearTimeout(entry.timer); settle({ ok: false, code: "closed" }); }
+      else if (entry.relaying) forget(r, false);
+    }
+  }
+
   async function accept(socket, allowed) {
     socket.on("error", () => {});
     const remote = String(socket.remoteAddress ?? "").replace(/^::ffff:/, "");
@@ -598,10 +607,10 @@ export function createEgressProxy({
     const answer = await new Promise((settle) => {
       const entry = { socket, settle, endSent: false, timer: setTimeout(() => {
         // the app did not answer in time: it is asleep or gone, so new connections go direct until it says hello again
-        ready = false;
         log("egress: the app did not answer; bot computers use this server's own network until it is back");
         entry.settle = null;
         settle({ ok: false, code: "timeout" });
+        gone();
       }, dialMs) };
       streams.set(r, entry);
       send({ t: "dial", r, host: asked.host, port: asked.port });
@@ -614,6 +623,7 @@ export function createEgressProxy({
       return asked.fail(egressCode(answer.code));
     }
     stats.relayed += 1;
+    entry.relaying = true;
     asked.reply(true);
     if (asked.rest.length) bytes(r, asked.rest);
     socket.setNoDelay(true);
@@ -668,8 +678,8 @@ export function createEgressProxy({
     handle(frame) {
       if (frame?.t === "egress") {
         const was = online();
-        ready = frame.ready === true;
-        seenAt = ready ? now() : 0;
+        if (frame.ready === true) { ready = true; seenAt = now(); }
+        else { gone(); seenAt = 0; }
         if (was !== online()) { log(online() ? "egress: the app takes streams again" : "egress: the app stopped taking streams"); void tick(); }
         return true;
       }

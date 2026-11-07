@@ -237,18 +237,28 @@ test("the setting off refuses even with this computer online", { timeout: 10_000
   } finally { await target.close(); }
 });
 
-test("this computer closing says so, and the vps stops routing through it", { timeout: 10_000 }, async () => {
+test("this computer closing says goodbye: its streams close and new requests go direct at once", { timeout: 10_000 }, async () => {
   const target = await fixture();
   try {
-    assert.equal(target.agent.egress.online(), true);
+    const open = await socks(target.port, "site.example", 443);
+    assert.equal(open.reply, 0);
+    const closed = once(open.socket, "close");
     await target.proxy.close();
-    // the goodbye may not leave before the tunnel closes; the unanswered dial then marks it offline
-    const { reply } = await socks(target.port, "site.example", 443);
-    assert.notEqual(reply, 0);
+    await closed;
     assert.equal(target.agent.egress.online(), false);
     const again = performance.now();
     assert.equal((await socks(target.port, "site.example", 443)).reply, 1);
     assert.ok(performance.now() - again < 500);
+  } finally { await target.close(); }
+});
+
+test("a computer that stops answering is given up after the dial timeout", { timeout: 10_000 }, async () => {
+  const target = await fixture({ dialMs: 300, endpoint: { dialer: { open: () => new Promise(() => {}) } } });
+  try {
+    const started = performance.now();
+    assert.equal((await socks(target.port, "site.example", 443)).reply, 1);
+    assert.ok(performance.now() - started < 2000);
+    assert.equal(target.agent.egress.online(), false);
   } finally { await target.close(); }
 });
 

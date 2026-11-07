@@ -103,7 +103,7 @@ says hello again. It applies to new connections only.
 - The agent never dials anything itself (a box must not reach this host past the host fence). It listens only on the
   bridge's address, refuses the bridge's own address (so processes on the host cannot use it), and answers with a
   SOCKS failure at once when the setting is off, the app is at its stream cap, has not said hello for 40 s or did not
-  answer a dial within 8 s. Chromium (156) then falls back to a direct connection for that request and skips the proxy
+  answer a dial within 5 s (then its open streams close too). Chromium (156) then falls back to a direct connection for that request and skips the proxy
   for a few minutes; the server writes a fresh policy to undo that once the app is back. A destination the app refuses
   or cannot reach (its own DNS may block ad domains, for one) gets a SOCKS success and an immediate close instead,
   which fails only that request and keeps the proxy in use; HTTP CONNECT gets 403 or 502.

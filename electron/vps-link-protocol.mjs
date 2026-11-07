@@ -551,7 +551,8 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
       });
     },
     async close() {
-      egress?.close();
+      // the goodbye gets a moment to leave, so the vps stops routing through this computer at once
+      if (egress && !closed) { egress.close(); await sleep(300); }
       closed = true;
       abort.abort();
       unwarm();
