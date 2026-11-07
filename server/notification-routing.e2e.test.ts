@@ -298,7 +298,8 @@ describe("a reply that tags the person", () => {
         threadId: room.threadId,
         groupId: room.id,
         title: "Tagger in Spec Review mentioned you",
-        body: "@you three open questions are blocking Section 2 & 3.",
+        // the "@you" tag lands as plain words, and still reaches the person
+        body: "Three open questions are blocking Section 2 & 3.",
         id: expect.any(String),
         at: expect.any(Number),
         read: false,
@@ -326,7 +327,7 @@ describe("a reply that tags the person", () => {
           candidate.notification?.botId === bot.id,
         20_000,
       );
-      expect(frame.notification.body).toContain("@you three open questions");
+      expect(frame.notification.body).toContain("Three open questions");
       await expect.poll(async () => (await botState(bot.id))?.busy, { timeout: 20_000 }).toBeFalsy();
       const kinds = stream.frames
         .filter((candidate) => candidate.kind === "notify" && candidate.notification?.botId === bot.id)

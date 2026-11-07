@@ -80,7 +80,7 @@ export function buildMentionNotification(
   source: MentionSource,
   bot: Omit<NotifyBot, "threadId"> & { avatarUrl?: string },
   room: { id: string; name: string; dm?: boolean; memberIds: readonly string[] },
-  turn: { threadId: string; turnId?: string; reply: string; profileName?: string },
+  turn: { threadId: string; turnId?: string; reply: string; profileName?: string; tagged?: string },
 ): Notification | null {
   if (room.dm) return null;
   const texts = turn.turnId
@@ -94,5 +94,6 @@ export function buildMentionNotification(
     const excerpt = personMentionExcerpt(text, { profileName: turn.profileName, botNames });
     if (excerpt) return buildNotification("mention", { ...bot, threadId: turn.threadId }, turn.threadId, excerpt, { avatarUrl: bot.avatarUrl, group: room });
   }
-  return null;
+  // `tagged`: the line that tagged the person as "@you" before the tag was rewritten as plain words; it still reaches them
+  return turn.tagged ? buildNotification("mention", { ...bot, threadId: turn.threadId }, turn.threadId, turn.tagged, { avatarUrl: bot.avatarUrl, group: room }) : null;
 }
