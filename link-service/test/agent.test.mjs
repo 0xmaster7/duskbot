@@ -25,6 +25,32 @@ async function bounded(promise) {
 }
 
 describe("tunnel agent shutdown", () => {
+  it("a successful reply post wakes a failed poll's retry delay", async () => {
+    let retrying, release, resumed;
+    const retry = new Promise((resolve) => { retrying = resolve; });
+    const posted = new Promise((resolve) => { release = resolve; });
+    const active = new Promise((resolve) => { resumed = resolve; });
+    let polls = 0;
+    const agent = createTunnelAgent({ ...credentials, log: retrying, fetchImpl: async (_url, init) => {
+      if (init.method === "POST") { await posted; return Response.json({ ok: true }); }
+      polls += 1;
+      if (polls === 1) return Response.json({ frames: [sealFrame(key, id, "to-vps", { t: "ctl", r: "r".repeat(12), op: "ping" })] });
+      if (polls === 2) throw new Error("temporary poll disconnect");
+      resumed("resumed");
+      return pendingFetch(init.signal);
+    } });
+    const running = agent.run();
+    try {
+      await retry;
+      release();
+      expect(await bounded(active)).toBe("resumed");
+    } finally {
+      release();
+      agent.stop();
+      await running;
+    }
+  });
+
   it("aborts an in-flight reply post when stopped", async () => {
     let posted;
     const started = new Promise((resolve) => { posted = resolve; });

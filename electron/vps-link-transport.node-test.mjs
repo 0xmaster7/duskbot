@@ -5,6 +5,7 @@ import { once } from "node:events";
 import test from "node:test";
 
 import { createOutbox, createTunnelProxy, openFrame, sealBytes, sealFrame } from "./vps-link-protocol.mjs";
+import { createOutbox as createAgentOutbox } from "../link-service/agent.mjs";
 
 const deferred = () => {
   let resolve, reject;
@@ -13,6 +14,76 @@ const deferred = () => {
 };
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 const options = { base: "https://link.example.test", id: "aaaaaaaaaa", key: Buffer.alloc(32).toString("base64url"), token: "fixture-token" };
+
+for (const [side, factory] of [["app", createOutbox], ["VPS", createAgentOutbox]]) {
+  test(`${side} outbox sends a new control in the next batch despite a desktop backlog`, { timeout: 2000 }, async () => {
+    const first = deferred(), release = deferred(), control = deferred(), complete = deferred();
+    const abort = new AbortController();
+    const posts = [];
+    const bytes = Buffer.alloc(2 * 1024 * 1024);
+    for (let index = 0; index < 16; index += 1) bytes.fill(index, index * 128 * 1024, (index + 1) * 128 * 1024);
+    const outbox = factory({
+      seal: (r, chunk) => `${r}:${chunk.toString("base64url")}`, delayMs: 0, signal: abort.signal,
+      post: async (frames) => {
+        posts.push(frames);
+        if (posts.length === 1) { first.resolve(); await release.promise; }
+        if (frames.includes("control")) control.resolve(posts.length);
+        if (frames.includes("end")) complete.resolve();
+        return true;
+      },
+    });
+    try {
+      outbox.push("head", "desktop");
+      outbox.bytes("desktop", bytes);
+      outbox.push("end", "desktop");
+      await first.promise;
+      outbox.push("control", "ping");
+      release.resolve();
+      assert.equal(await control.promise, 2);
+      await complete.promise;
+      assert.deepEqual(Buffer.concat(posts.flat().filter((value) => value.startsWith("desktop:")).map((value) => Buffer.from(value.slice(8), "base64url"))), bytes);
+      assert.equal(posts[0][0], "head");
+      assert.equal(posts.at(-1).at(-1), "end");
+      assert.equal(posts.flat().filter((value) => value === "end").length, 1);
+      for (const frames of posts) assert.ok(JSON.stringify({ frames }).length < 1_000_000);
+    } finally {
+      release.resolve();
+      abort.abort();
+    }
+  });
+
+  test(`${side} outbox discards a cancelled stream's queued frames while another stream proceeds`, { timeout: 2000 }, async () => {
+    const first = deferred(), release = deferred(), complete = deferred();
+    const abort = new AbortController();
+    const posts = [];
+    let resumed = false;
+    const outbox = factory({
+      seal: (r, chunk) => `${r}:${chunk.toString("base64url")}`, delayMs: 0, signal: abort.signal,
+      post: async (frames) => {
+        posts.push(frames);
+        if (posts.length === 1) { first.resolve(); await release.promise; }
+        if (frames.includes("healthy")) complete.resolve();
+        return true;
+      },
+    });
+    try {
+      outbox.bytes("cancelled", Buffer.alloc(3 * 1024 * 1024));
+      outbox.onDrain(() => { resumed = true; });
+      await first.promise;
+      outbox.discard("cancelled");
+      outbox.push("cancel", "cancelled");
+      outbox.push("healthy", "other");
+      release.resolve();
+      await complete.promise;
+      assert.equal(posts.length, 2);
+      assert.deepEqual(posts[1], ["cancel", "healthy"]);
+      assert.equal(resumed, true);
+    } finally {
+      release.resolve();
+      abort.abort();
+    }
+  });
+}
 
 test("closing the tunnel aborts both its pending poll and its pending upload", { timeout: 2000 }, async () => {
   const uploading = deferred();
@@ -45,6 +116,36 @@ test("an unlinked tunnel refuses new requests and controls immediately", { timeo
   });
   assert.equal(response, 502);
   await proxy.close();
+});
+
+test("a successful POST wakes a failed poll's retry delay for new controls", { timeout: 2000 }, async () => {
+  const retrying = deferred();
+  const key = Buffer.from(options.key, "base64url");
+  let polls = 0, controlId;
+  const proxy = createTunnelProxy({ ...options, log: retrying.resolve, fetch: async (url, init) => {
+    if (String(url).includes("/to-vps")) {
+      controlId = openFrame(key, options.id, "to-vps", JSON.parse(init.body).frames[0]).r;
+      return Response.json({ ok: true });
+    }
+    if (++polls === 1) throw new Error("temporary poll disconnect");
+    if (controlId) {
+      const r = controlId;
+      controlId = null;
+      return Response.json({ frames: [sealFrame(key, options.id, "to-app", { t: "ctl", r, ok: true, data: { ok: true } })] });
+    }
+    return new Promise((_resolve, reject) => init.signal.addEventListener("abort", () => reject(init.signal.reason), { once: true }));
+  } });
+  let deadline;
+  try {
+    await proxy.start();
+    await retrying.promise;
+    const ping = proxy.control("ping").catch((error) => ({ error: error.message }));
+    const result = await Promise.race([ping, new Promise((resolve) => { deadline = setTimeout(() => resolve("retry delay"), 300); })]);
+    assert.deepEqual(result, { ok: true });
+  } finally {
+    clearTimeout(deadline);
+    await proxy.close();
+  }
 });
 
 test("outbox cancellation clears queued bytes and releases a paused producer without posting", async () => {
