@@ -10,6 +10,7 @@ import { writeFileAtomic } from "./atomic.ts";
 import { defaultBotThreads, MAX_CONCURRENT_BOT_THREADS } from "./bot-thread-limits.ts";
 import { anthropicKeyEnv } from "./anthropic-key-env.ts";
 import { THIS_SERVER_VPS, vpsIsThisServer } from "./vps-local.ts";
+export { vpsIsThisServer };
 import { withoutComputerEngine } from "./computer-engine-removal.ts";
 import { newBotDefaultsSchema, type NewBotDefaults } from "./new-bot-defaults.ts";
 import { replaySettings } from "./replay-settings.ts";

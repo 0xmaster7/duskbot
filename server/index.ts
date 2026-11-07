@@ -163,7 +163,7 @@ import {
   builtInBrowserEnabled,
   persistableInstanceConfigs,
   type AppConfig,
-  vpsSshAlias,
+  vpsSshAlias, vpsIsThisServer,
   DATA_DIR, EVENTS_DIR,
   onConfigSaved,
   CLAUDE_API_INSTANCE,
@@ -15297,8 +15297,13 @@ const pruneDecisionLog = () => {
 };
 pruneDecisionLog();
 setInterval(pruneDecisionLog, 6 * 60 * 60_000).unref();
+// on a linked vps there is no boat: every bot's computer is this server's own sandbox
 const useThisServerComputers = (): void => {
-  if (store.useThisServerComputers()) for (const bot of store.bots) broadcast({ kind: "bot", bot: wireBot(bot) });
+  if (!vpsIsThisServer()) return;
+  for (const bot of store.bots.filter((one) => one.cloudBackend !== "vps")) {
+    const patched = store.patchBot(bot.id, { cloudBackend: "vps" });
+    if (patched) broadcast({ kind: "bot", bot: wireBot(patched) });
+  }
 };
 useThisServerComputers();
 setInterval(useThisServerComputers, 15_000).unref();

@@ -1137,15 +1137,12 @@ describe("Store", () => {
     expect(reloaded.projectBotForTask(bot.id, sibling.threadId)?.approvalMode).toBe("full");
   });
 
-  it("on a linked vps every bot, old or new, uses this server's computer instead of boat", () => {
+  it("on a linked vps a new bot uses this server's computer instead of boat", () => {
     const store = new Store(selection);
-    const old = store.createBot();
+    expect(store.createBot().cloudBackend).toBeUndefined();
     process.env.OPENMAUSBOT_VPS_DOCKER = "local";
     try {
-      expect(store.useThisServerComputers()).toBe(true);
-      expect(store.bot(old.id)?.cloudBackend).toBe("vps");
       expect(store.createBot().cloudBackend).toBe("vps");
-      expect(store.useThisServerComputers()).toBe(false);
     } finally {
       delete process.env.OPENMAUSBOT_VPS_DOCKER;
     }
