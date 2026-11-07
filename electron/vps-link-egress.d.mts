@@ -12,6 +12,7 @@ export declare function egressNameRefusal(host: string): EgressRefusal | null;
 export declare function egressRefusal(port: number, addresses: string[], lists?: { own?: BlockList; home?: BlockList }): EgressRefusal | null;
 export declare function homeAddresses(interfaces: ReturnType<typeof networkInterfaces>, seenAs: string | null): BlockList;
 export interface EgressDialer {
+  warm?(): void;
   open(target: { host: string; port: number }): Promise<{ socket: Socket } | { refused: string } | { failed: string }>;
 }
 export declare function createEgressDialer(options?: {

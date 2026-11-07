@@ -58,6 +58,8 @@ const resolveName = (host) => lookup(host, { all: true, verbatim: true }).catch(
 /** `open({ host, port })`: `{ socket }` once connected, `{ refused }` with the reason, or `{ failed }` */
 export function createEgressDialer({ resolve = resolveName, connect = tcpConnect, interfaces = networkInterfaces, seenAs = async () => null, connectMs = CONNECT_MS } = {}) {
   return {
+    /** asks for the home's public address ahead of the first stream */
+    warm() { void seenAs().catch(() => {}); },
     async open({ host, port }) {
       if (!Number.isInteger(port)) return { refused: "reserved" };
       if (!EGRESS_PORTS.includes(port)) return { refused: "port" };
@@ -180,6 +182,7 @@ export function createEgressEndpoint({
     /** tells the vps this computer takes streams now and every `helloMs` while it does */
     start() {
       if (hello || closed) return;
+      dialer.warm?.();
       const say = () => send({ t: "egress", v: 1, ready: true, max: maxStreams });
       say();
       hello = setInterval(say, helloMs);
