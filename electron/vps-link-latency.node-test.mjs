@@ -145,3 +145,53 @@ test("a lost reply times out its mutation and recovers another request without r
     await target.close();
   }
 });
+
+test("the next streamed read takes over before the last one ends, so no frame waits through the gap", { timeout: 15_000 }, async (t) => {
+  const root = fileURLToPath(new URL("../link-service/", import.meta.url));
+  const service = createLinkService({ base: "http://fixture.invalid", scriptPath: `${root}install.sh`, agentPath: `${root}agent.mjs`, trustProxy: false });
+  const vpsToken = "v".repeat(43);
+  service.store.tunnels.set(credentials.id, { id: credentials.id, vpsVerifier: sha256hex(vpsToken), appVerifier: sha256hex(credentials.token) });
+  const relay = createServer((req, res) => void service.handler(req, res));
+  const base = `http://127.0.0.1:${await listen(relay)}`;
+  let stream = null;
+  const server = createServer((req, res) => {
+    res.writeHead(200, { "content-type": "text/event-stream" });
+    res.write(": open\n\n");
+    stream = res;
+  });
+  const port = await listen(server);
+  // every streamed read reaches the relay 150 ms after it is asked for, like a request crossing a long link
+  const late = (url, init = {}) => (init.method !== "POST" && String(url).includes("stream=1") ? delay(150).then(() => fetch(url, init)) : fetch(url, init));
+  const agent = createTunnelAgent({ ...credentials, base, token: vpsToken, server: { host: "127.0.0.1", port }, fetchImpl: late, log: () => {}, waitS: 1, aheadMs: 500 });
+  const running = agent.run();
+  const proxy = createTunnelProxy({ ...credentials, base, fetch: late, log: () => {}, waitS: 1, aheadMs: 500 });
+  try {
+    const origin = new URL(await proxy.start());
+    const lags = [];
+    const sent = new Map();
+    await new Promise((resolve, reject) => {
+      const req = request({ host: "127.0.0.1", port: origin.port, path: "/api/events", headers: { host: origin.host } }, (res) => {
+        res.setEncoding("utf8");
+        res.on("data", (chunk) => { for (const match of chunk.matchAll(/n=(\d+)/g)) lags.push(performance.now() - sent.get(Number(match[1]))); });
+        resolve();
+      });
+      req.on("error", reject);
+      req.end();
+    });
+    while (!stream) await delay(10);
+    await delay(300);
+    for (let n = 0; n < 70; n += 1) { sent.set(n, performance.now()); stream.write(`data: n=${n}\n\n`); await delay(50); }
+    await delay(300);
+    assert.equal(lags.length, 70);
+    t.diagnostic(`3.5 s of frames across ~3 read rotations a side: worst ${Math.max(...lags).toFixed(1)} ms`);
+    assert.ok(Math.max(...lags) < 100, `a frame waited ${Math.max(...lags).toFixed(1)} ms`);
+  } finally {
+    agent.stop();
+    await running;
+    await proxy.close();
+    service.close();
+    relay.closeAllConnections();
+    server.closeAllConnections();
+    await Promise.all([new Promise((resolve) => relay.close(resolve)), new Promise((resolve) => server.close(resolve))]);
+  }
+});

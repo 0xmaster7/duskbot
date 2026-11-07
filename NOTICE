@@ -91,3 +91,11 @@ The iOS companion app bundles a prebuilt WebRTC library for Live calls
 (stasel/WebRTC), built from the WebRTC project, Copyright (c) 2011, The WebRTC
 project authors, used under the BSD 3-Clause License. WebRTC includes
 third-party components under their own licenses, listed with the library.
+
+The desktop app's direct path to a linked VPS (electron/vps-link-direct.mjs)
+bundles ssh2 1.17.0 (electron/vendor/ssh2.cjs, made by scripts/bundle-ssh2.mjs),
+Copyright Brian White, used under the MIT License, with its dependencies asn1,
+Copyright (c) 2011 Mark Cavage (MIT License), bcrypt-pbkdf, Copyright 1997
+Niels Provos (BSD 3-Clause License), safer-buffer, Copyright (c) 2018 Nikita
+Skovoroda (MIT License), and tweetnacl (public domain, The Unlicense). Their
+license texts are in third_party/ssh2/.

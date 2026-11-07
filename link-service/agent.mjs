@@ -2,17 +2,21 @@
 //   node agent.mjs probe    (root)  can the link service reach this server directly on port 80? exit 0 yes, 3 no
 //   node agent.mjs link     (maus)  mint a pairing code, seal it for the app, report the result, write tunnel.json
 //   node agent.mjs tunnel   (maus)  the steady-state relay: requests from the app, sealed end to end, to 127.0.0.1:8799
+//   node agent.mjs direct   (maus)  the same frames on stdin/stdout: what the app's own ssh key may run, and nothing else
 // standalone on purpose: node's own modules only, one file the link service serves at /agent.mjs.
 // it also lends the bot computers on this server the app's own internet connection when the person turns on "route
 // traffic through this computer": a socks5 and http connect proxy on the bot computers' bridge (see createEgressProxy).
 import { createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes } from "node:crypto";
+import { createSocket } from "node:dgram";
 import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { BlockList, createServer as createTcpServer } from "node:net";
 import { Agent as HttpAgent, createServer, request as httpRequest } from "node:http";
 import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
+import { isIP, Socket } from "node:net";
 import { Readable } from "node:stream";
 import { connect as tlsConnect } from "node:tls";
-import { homedir, hostname, networkInterfaces } from "node:os";
+import { connect as http2Connect, constants as h2Constants } from "node:http2";
+import { homedir, hostname, networkInterfaces, userInfo } from "node:os";
 import { dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
@@ -29,6 +33,11 @@ const STREAM_LOW = 512 * 1024;
 const RECEIVE_HIGH = 8 * 1024 * 1024;
 /** posts out at once once the relay says it puts them back in order (one before it does) */
 const POSTS_IN_FLIGHT = 3;
+/** how long a frame that comes while posts are out waits for more, per post out, and at most */
+const GATHER_MS = 2;
+const GATHER_MAX_MS = 16;
+/** over http/1.1 (three posts out) every post waits this long for company first, as it always did */
+const H1_POST_DELAY_MS = 5;
 /**
  * frames waiting for the one post in flight (kept in step with the other end of the tunnel). a stream's bytes join its
  * last waiting piece and are sealed only when sent, so a busy websocket costs a few frames per post, not one per chunk.
@@ -39,6 +48,17 @@ export function createOutbox({ seal: sealRaw, post, delayMs, signal, onError = (
   let flushing = null, queued = 0, seq = 0, nudge = null;
   const release = () => { const waiting = [...drains]; drains.clear(); for (const resume of waiting) resume(); };
   const clear = () => { streams.clear(); queued = 0; };
+  /**
+   * with nothing out, frames pushed in the same turn share a post that leaves at once (delay 0). frames that come while
+   * posts are out wait a little for company, longer the more are out, so a burst spread over a few milliseconds (a page's
+   * twenty requests) fills a few posts instead of taking every slot and waiting a round trip for the rest. `delayMs` may
+   * be a function: with only three posts out at once (http/1.1) a fixed wait before every post keeps more slots free
+   */
+  const gather = (outstanding) => {
+    const fixed = typeof delayMs === "function" ? delayMs() : delayMs;
+    if (fixed > 0) return delay(fixed, undefined, { signal });
+    return outstanding ? delay(Math.min(GATHER_MAX_MS, GATHER_MS * outstanding), undefined, { signal }) : new Promise((resolve) => setImmediate(resolve));
+  };
   signal?.addEventListener("abort", () => { clear(); release(); }, { once: true });
   function stream(r) {
     let items = streams.get(r);
@@ -78,7 +98,7 @@ export function createOutbox({ seal: sealRaw, post, delayMs, signal, onError = (
     if (flushing || signal?.aborted) return;
     flushing = (async () => {
       try {
-        await delay(delayMs, undefined, { signal });
+        await gather(0);
         const out = new Set();
         let failed = null;
         while ((streams.size || out.size) && !signal?.aborted) {
@@ -93,7 +113,7 @@ export function createOutbox({ seal: sealRaw, post, delayMs, signal, onError = (
             // new frames while posts are out go in a free slot without waiting for one of them to come back
             const nudged = await new Promise((resolve) => { nudge = () => resolve(true); for (const sending of out) void sending.then(() => resolve(false)); });
             nudge = null;
-            if (nudged) await delay(delayMs, undefined, { signal });
+            if (nudged) await gather(out.size);
           }
           if (failed) throw failed;
         }
@@ -153,15 +173,17 @@ export function sealKeyOf(myPriv, myPub, theirPub, id) {
   const publicKey = createPublicKey({ key: { kty: "OKP", crv: "X25519", x: theirPub }, format: "jwk" });
   return Buffer.from(hkdfSync("sha256", diffieHellman({ privateKey, publicKey }), `omb-link-v1|${id}`, "seal", 32));
 }
-export function seal(key, aad, plaintext) {
+/** iv, ciphertext, tag: as bytes for the direct link, as base64url for the relay's json */
+export function sealRaw(key, aad, plaintext) {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", key, iv);
   cipher.setAAD(Buffer.from(aad));
   const body = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-  return Buffer.concat([iv, body, cipher.getAuthTag()]).toString("base64url");
+  return Buffer.concat([iv, body, cipher.getAuthTag()]);
 }
+export const seal = (key, aad, plaintext) => sealRaw(key, aad, plaintext).toString("base64url");
 export function open(key, aad, sealed) {
-  const raw = Buffer.from(sealed, "base64url");
+  const raw = typeof sealed === "string" ? Buffer.from(sealed, "base64url") : sealed;
   if (raw.length < 29) throw new Error("sealed value too short");
   const decipher = createDecipheriv("aes-256-gcm", key, raw.subarray(0, 12));
   decipher.setAAD(Buffer.from(aad));
@@ -181,23 +203,24 @@ export function frameGuard(now = Date.now) {
     return true;
   };
 }
-export function sealFrame(key, id, dir, frame) {
-  return seal(key, `${id}|${dir}`, Buffer.from(JSON.stringify({ ...frame, ts: Date.now() })));
+export function sealFrame(key, id, dir, frame, raw = false) {
+  return (raw ? sealRaw : seal)(key, `${id}|${dir}`, Buffer.from(JSON.stringify({ ...frame, ts: Date.now() })));
 }
 /** a websocket's bytes travel raw, not as base64 in json: 0x01, the 12-letter stream id, the time, then the bytes */
-export function sealBytes(key, id, dir, r, bytes) {
+export function sealBytes(key, id, dir, r, bytes, raw = false) {
   const head = Buffer.alloc(21);
   head[0] = 1;
   head.write(r, 1, 12, "latin1");
   head.writeDoubleBE(Date.now(), 13);
-  return seal(key, `${id}|${dir}`, Buffer.concat([head, bytes]));
+  return (raw ? sealRaw : seal)(key, `${id}|${dir}`, Buffer.concat([head, bytes]));
 }
+/** `sealed` is base64url (relay) or bytes (direct); the guard keys on the iv either way, so one guard spans both paths */
 export function openFrame(key, id, dir, sealed, guard) {
   const plain = open(key, `${id}|${dir}`, sealed);
   const value = plain[0] === 1 && plain.length >= 21
     ? { t: "bytes", r: plain.toString("latin1", 1, 13), ts: plain.readDoubleBE(13), b: plain.subarray(21) }
     : JSON.parse(plain.toString("utf8"));
-  if (guard && !guard(sealed.slice(0, 16), value.ts)) return null;
+  if (guard && !guard(typeof sealed === "string" ? sealed.slice(0, 16) : sealed.subarray(0, 12).toString("base64url"), value.ts)) return null;
   return value;
 }
 // ---- end shared crypto ----
@@ -206,18 +229,23 @@ export function openFrame(key, id, dir, sealed, guard) {
 /** how long a streamed read may stay silent before this end decides a proxy holds the lines back and polls instead */
 export const STREAM_STALL_MS = 5000;
 const STREAM_OFF_MS = 10 * 60_000;
+/**
+ * a streamed read lasts 25 s (wait=25). the next one goes out this long into it, so it reaches the relay first and takes
+ * over (the relay ends the older reader then): a frame never waits through a gap of a round trip between two reads
+ */
+const STREAM_AHEAD_MS = 21_000;
 const WARM_MS = 40_000;
 
 /**
  * fetch over node's own http(s) with its sockets kept open. the global fetch closes an idle socket after 4 s (undici's
  * default), so every reply after a pause paid a new tcp and tls handshake to the link service, and a cold tcp window.
  */
-export function keepAliveFetch({ maxSockets = 8 } = {}) {
+export function keepAliveFetch({ maxSockets = 8, tls = {} } = {}) {
   const agents = new Map();
   let lastUsed = 0;
   const agentFor = (protocol) => {
     let found = agents.get(protocol);
-    if (!found) agents.set(protocol, (found = new (protocol === "https:" ? HttpsAgent : HttpAgent)({ keepAlive: true, keepAliveMsecs: 15_000, maxSockets, scheduling: "lifo" })));
+    if (!found) agents.set(protocol, (found = new (protocol === "https:" ? HttpsAgent : HttpAgent)({ keepAlive: true, keepAliveMsecs: 15_000, maxSockets, scheduling: "lifo", ...(protocol === "https:" ? tls : {}) })));
     return found;
   };
   const go = (input, init = {}) => new Promise((resolve, reject) => {
@@ -238,18 +266,139 @@ export function keepAliveFetch({ maxSockets = 8 } = {}) {
     });
     signal?.addEventListener("abort", stop, { once: true });
     req.once("error", (error) => { signal?.removeEventListener("abort", stop); reject(error); });
+    // a new connection's handshake can take seconds (a vpn); `onConnected` says when the request is really on its way
+    if (init.onConnected) req.once("socket", (socket) => { if (req.reusedSocket || !socket.connecting) init.onConnected(); else socket.once(url.protocol === "https:" ? "secureConnect" : "connect", init.onConnected); });
     req.end(body);
   });
+  go.connectAware = true;
   /** a spare socket stays open: nginx closes one idle for 75 s, and the long poll holds the other */
-  go.warm = (base) => {
+  go.warm = (base, wanted = () => true) => {
     const timer = setInterval(() => {
-      if (Date.now() - lastUsed < WARM_MS - 5000) return;
+      if (!wanted() || Date.now() - lastUsed < WARM_MS - 5000) return;
       void go(`${base}/healthz`, { signal: AbortSignal.timeout(10_000) }).then((response) => response.text()).catch(() => {});
     }, WARM_MS);
     timer.unref?.();
     return () => clearInterval(timer);
   };
   go.close = () => { for (const agent of agents.values()) agent.destroy(); agents.clear(); };
+  /**
+   * after a sleep or a network change: every socket may be dead, so the next requests open fresh ones. the agents stay
+   * with their tls sessions, so those connections resume instead of a full handshake (no certificate flight: behind a
+   * vpn that drops full-size packets a full handshake to the relay took 5.5 s and a resumed one 0.8 s)
+   */
+  go.reset = () => { for (const agent of agents.values()) agent.destroy(); };
+  return go;
+}
+
+/** an http/2 stream's own window and the connection's: a whole desktop frame or download in flight at a long round trip */
+const H2_STREAM_WINDOW = 4 * 1024 * 1024;
+const H2_SESSION_WINDOW = 8 * 1024 * 1024;
+/** a request that never reached the relay: the connection was closing (goaway), gone, or refused the stream */
+const H2_UNSENT = new Set(["ERR_HTTP2_GOAWAY_SESSION", "ERR_HTTP2_INVALID_SESSION", "ERR_HTTP2_REFUSED_STREAM"]);
+/** posts out at once over http/2: as many as the relay holds while an earlier one is still on its way (HELD_POSTS) */
+const H2_POSTS_IN_FLIGHT = 8;
+const H2_DIAL_MS = 20_000;
+const until = (promise, signal) => (!signal ? promise : new Promise((resolve, reject) => {
+  const stop = () => reject(signal.reason);
+  signal.addEventListener("abort", stop, { once: true });
+  promise.then((value) => { signal.removeEventListener("abort", stop); resolve(value); }, (error) => { signal.removeEventListener("abort", stop); reject(error); });
+}));
+
+/**
+ * keepAliveFetch's api over one http/2 connection when the relay offers h2 (nginx does): the streamed read and every
+ * post share one warm tls connection, so a post never waits on a new handshake (5.5 s behind a lossy vpn, 0.3 s from a
+ * vps) and many can be out at once (`multiplexed()`). plain http, or an origin that answers without h2, goes through
+ * keepAliveFetch. `tls` is extra tls.connect options (a test's ca).
+ */
+export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8 } = {}) {
+  const h1 = keepAliveFetch({ maxSockets, tls: tlsOptions });
+  const h1Origins = new Set();
+  let session = null, opening = null, tlsSession = null, lastUsed = 0;
+  const live = (one) => Boolean(one && !one.closed && !one.destroyed);
+  const open = (url) => new Promise((resolve) => {
+    const socket = tlsConnect({ host: url.hostname, port: Number(url.port) || 443, ...(isIP(url.hostname) ? {} : { servername: url.hostname }), ALPNProtocols: ["h2", "http/1.1"], ...(tlsSession ? { session: tlsSession } : {}), ...tlsOptions });
+    socket.on("session", (value) => { tlsSession = value; });
+    const failed = () => { socket.destroy(); resolve(null); };
+    socket.once("error", failed);
+    socket.setTimeout(H2_DIAL_MS, failed);
+    socket.once("secureConnect", () => {
+      socket.off("error", failed);
+      socket.setTimeout(0);
+      socket.setNoDelay(true);
+      if (socket.alpnProtocol !== "h2") { h1Origins.add(url.origin); socket.destroy(); resolve(null); return; }
+      const next = http2Connect(url.origin, { createConnection: () => socket, settings: { initialWindowSize: H2_STREAM_WINDOW } });
+      next.on("error", () => {});
+      next.on("goaway", () => { if (session === next) session = null; });
+      next.on("close", () => { if (session === next) session = null; });
+      next.once("connect", () => { next.setLocalWindowSize(H2_SESSION_WINDOW); resolve(next); });
+    });
+  });
+  async function sessionFor(url) {
+    if (live(session)) return session;
+    opening ??= open(url).then((next) => { if (next) session = next; return next; }).finally(() => { opening = null; });
+    return opening;
+  }
+  const request = (one, url, init) => new Promise((resolve, reject) => {
+    const { signal } = init;
+    const body = init.body == null ? null : Buffer.from(init.body);
+    const headers = { ":method": init.method ?? "GET", ":path": `${url.pathname}${url.search}` };
+    for (const [name, value] of Object.entries(init.headers ?? {})) headers[name.toLowerCase()] = value;
+    if (body) headers["content-length"] = body.length;
+    let stream;
+    try { stream = one.request(headers, { endStream: !body }); } catch (error) { reject(error); return; }
+    let answered = false;
+    const stop = () => { stream.close(h2Constants.NGHTTP2_CANCEL); if (!answered) reject(signal.reason); };
+    signal?.addEventListener("abort", stop, { once: true });
+    const unanswered = (error) => {
+      if (answered) return;
+      answered = true;
+      reject(stream.rstCode === h2Constants.NGHTTP2_REFUSED_STREAM ? Object.assign(new Error("the relay refused the stream"), { code: "ERR_HTTP2_REFUSED_STREAM" }) : error ?? new Error("the relay closed the stream"));
+    };
+    stream.once("error", unanswered);
+    stream.once("close", () => { signal?.removeEventListener("abort", stop); unanswered(null); });
+    stream.once("response", (head) => {
+      if (answered) return;
+      answered = true;
+      const status = head[":status"];
+      const out = new Headers();
+      for (const [name, value] of Object.entries(head)) if (!name.startsWith(":")) for (const each of Array.isArray(value) ? value : [value]) out.append(name, String(each));
+      const empty = status === 204 || status === 205 || status === 304 || init.method === "HEAD";
+      if (empty) stream.resume();
+      resolve(new Response(empty ? null : Readable.toWeb(stream), { status, headers: out }));
+    });
+    if (body) stream.end(body);
+  });
+  const go = async (input, init = {}) => {
+    const url = new URL(input);
+    if (init.signal?.aborted) throw init.signal.reason;
+    if (url.protocol !== "https:" || h1Origins.has(url.origin)) return h1(input, init);
+    lastUsed = Date.now();
+    // a connection the relay is closing (goaway) or that died refuses a request unprocessed: once more on a fresh one
+    for (let attempt = 0; ; attempt += 1) {
+      const one = await until(sessionFor(url), init.signal);
+      if (!one) return h1(input, init);
+      init.onConnected?.();
+      try { return await request(one, url, init); }
+      catch (error) {
+        if (attempt > 0 || init.signal?.aborted || !H2_UNSENT.has(error?.code)) throw error;
+        if (session === one) { session = null; one.destroy(); }
+      }
+    }
+  };
+  go.connectAware = true;
+  /** posts may share the connection with each other and the streamed read */
+  go.multiplexed = () => live(session);
+  go.postsInFlight = () => (live(session) ? H2_POSTS_IN_FLIGHT : POSTS_IN_FLIGHT);
+  go.warm = (base) => {
+    const stopH1 = h1.warm(base, () => h1Origins.has(new URL(base).origin) || !base.startsWith("https:"));
+    // nginx closes an h2 connection idle for its keepalive timeout; the streamed read usually keeps it busy anyway
+    const timer = setInterval(() => { if (live(session) && Date.now() - lastUsed >= WARM_MS - 5000) session.ping(() => {}); }, WARM_MS);
+    timer.unref?.();
+    return () => { stopH1(); clearInterval(timer); };
+  };
+  go.close = () => { session?.close(); session = null; h1.close(); };
+  /** after a sleep or a network change: a fresh connection, resuming the tls session */
+  go.reset = () => { session?.destroy(); session = null; h1.reset(); };
   return go;
 }
 
@@ -286,6 +435,192 @@ export function streamChoice(now = Date.now) {
   return { wanted: () => now() >= offUntil, stalled: () => { offUntil = now() + STREAM_OFF_MS; } };
 }
 // ---- end relay transport ----
+
+// ---- direct transport shared with electron/vps-link-direct.mjs (keep both in step; a test checks they interoperate) ----
+/** each end writes this first; a login shell's greeting before it is skipped */
+export const DIRECT_MAGIC = Buffer.from("\0OMBD1\n", "latin1");
+export const REC_SEALED = 1;
+export const REC_ACK = 2;
+/** a stream's bytes go out in pieces this size, taking turns with the other streams */
+const DIRECT_PIECE = 16 * 1024;
+/**
+ * stream bytes sent and not yet acknowledged: what the path delivers in its round trip plus DIRECT_QUEUE_MS, measured
+ * from the acks, so a transfer fills the path and an api frame still waits at most about that long behind it
+ */
+export const DIRECT_INFLIGHT = 384 * 1024;
+const DIRECT_INFLIGHT_MIN = 384 * 1024;
+const DIRECT_INFLIGHT_MAX = 8 * 1024 * 1024;
+const DIRECT_QUEUE_MS = 250;
+const DIRECT_ACK_EVERY = 32 * 1024;
+const DIRECT_MAX_RECORD = 1024 * 1024;
+const DIRECT_HIGH = 2 * 1024 * 1024;
+const DIRECT_LOW = 512 * 1024;
+
+export function directRecord(type, payload) {
+  const head = Buffer.allocUnsafe(5);
+  head.writeUInt32BE(payload.length + 1, 0);
+  head[4] = type;
+  return Buffer.concat([head, payload]);
+}
+
+/** records out of a byte stream: [u32 length][type][payload]. throws on anything malformed */
+export function directReader(onRecord) {
+  let buf = Buffer.alloc(0), synced = false;
+  return (chunk) => {
+    buf = buf.length ? Buffer.concat([buf, chunk]) : chunk;
+    if (!synced) {
+      const at = buf.indexOf(DIRECT_MAGIC);
+      if (at < 0) {
+        if (buf.length > 64 * 1024) throw new Error("no direct link here");
+        return;
+      }
+      buf = buf.subarray(at + DIRECT_MAGIC.length);
+      synced = true;
+    }
+    while (buf.length >= 5) {
+      const length = buf.readUInt32BE(0);
+      if (length < 1 || length > DIRECT_MAX_RECORD) throw new Error("malformed record");
+      if (buf.length < 4 + length) break;
+      const type = buf[4], payload = buf.subarray(5, 4 + length);
+      buf = buf.subarray(4 + length);
+      onRecord(type, payload);
+    }
+  };
+}
+
+/**
+ * the sending half of a direct link. a frame for a stream with bytes still queued waits behind them (its order is kept);
+ * every other frame goes first. queued bytes take turns, a piece per stream, with at most DIRECT_INFLIGHT unacknowledged,
+ * so a busy desktop or a download never holds an api call back for long.
+ */
+export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, write, inflight: fixed = null, now = () => performance.now() }) {
+  const urgent = [];
+  // the path, from the acks: the smallest round trip lately and the best delivery rate lately
+  const sent = [];
+  let sentTotal = 0, ackedTotal = 0, minRtt = null, minAt = 0, rateFrom = null, rates = [];
+  let inflight = fixed ?? DIRECT_INFLIGHT;
+  function learn(count) {
+    const t = now();
+    ackedTotal += count;
+    let at = null;
+    while (sent.length && sent[0].end <= ackedTotal) at = sent.shift().at;
+    if (at !== null) {
+      const sample = t - at;
+      if (minRtt === null || sample <= minRtt || t - minAt > 10_000) { minRtt = sample; minAt = t; }
+    }
+    if (rateFrom === null) rateFrom = { t, bytes: ackedTotal - count };
+    // acks arrive in bunches: rates over a couple of round trips, averaged, and the window grows by half at most per step
+    if (minRtt !== null && t - rateFrom.t >= Math.max(2 * minRtt, 300)) {
+      rates = [...rates.slice(-3), ((ackedTotal - rateFrom.bytes) * 1000) / (t - rateFrom.t)];
+      rateFrom = { t, bytes: ackedTotal };
+      const rate = rates.reduce((sum, one) => sum + one, 0) / rates.length;
+      if (fixed === null) inflight = Math.min(DIRECT_INFLIGHT_MAX, inflight * 1.5, Math.max(DIRECT_INFLIGHT_MIN, (rate * (minRtt + DIRECT_QUEUE_MS)) / 1000));
+    }
+  }
+  const streams = new Map();
+  const drains = new Set();
+  let queued = 0, unacked = 0, received = 0, blocked = false, closed = false, scheduled = false;
+  const release = () => { const waiting = [...drains]; drains.clear(); for (const resume of waiting) resume(); };
+  function next() {
+    if (urgent.length) return urgent.shift();
+    for (const [r, items] of streams) {
+      const item = items[0];
+      if (item.record) { items.shift(); }
+      else {
+        if (unacked >= inflight) continue;
+        let need = Math.min(DIRECT_PIECE, item.size);
+        const pieces = [];
+        while (need > 0) {
+          const part = item.parts[0];
+          if (part.length <= need) { pieces.push(part); item.parts.shift(); need -= part.length; }
+          else { pieces.push(part.subarray(0, need)); item.parts[0] = part.subarray(need); need = 0; }
+        }
+        const piece = pieces.length === 1 ? pieces[0] : Buffer.concat(pieces);
+        item.size -= piece.length;
+        queued -= piece.length;
+        unacked += piece.length;
+        sentTotal += piece.length;
+        sent.push({ end: sentTotal, at: now() });
+        if (sent.length > 4096) sent.shift();
+        if (!item.size) items.shift();
+        streams.delete(r);
+        if (items.length) streams.set(r, items);
+        return directRecord(REC_SEALED, sealPiece(r, piece));
+      }
+      // a frame that waited behind its stream's bytes; the stream goes to the back of the line
+      streams.delete(r);
+      if (items.length) streams.set(r, items);
+      return item.record;
+    }
+    return null;
+  }
+  /**
+   * what is ready goes out as one write, a turn after the first of it: sshd does not set nodelay for a session without a
+   * pty, so a reply's head, bytes and end written apart would each wait for an ack (a round trip, or a delayed ack)
+   */
+  function pump() {
+    scheduled = false;
+    const out = [];
+    let size = 0;
+    while (!blocked && !closed) {
+      const record = next();
+      if (!record) break;
+      out.push(record);
+      size += record.length;
+      if (size >= 256 * 1024) { if (write(out.length === 1 ? out[0] : Buffer.concat(out)) === false) blocked = true; out.length = 0; size = 0; }
+    }
+    if (out.length && !closed && write(out.length === 1 ? out[0] : Buffer.concat(out)) === false) blocked = true;
+    if (drains.size && queued < DIRECT_LOW) release();
+  }
+  const kick = () => { if (!scheduled && !closed) { scheduled = true; setImmediate(pump); } };
+  return {
+    push(frame) {
+      if (closed) return;
+      const record = directRecord(REC_SEALED, sealOne(frame));
+      const items = frame.r ? streams.get(frame.r) : undefined;
+      if (items) items.push({ record }); else urgent.push(record);
+      kick();
+    },
+    /** false: stop reading this stream until `onDrain` calls back */
+    bytes(r, chunk) {
+      if (closed) return true;
+      let items = streams.get(r);
+      if (!items) streams.set(r, (items = []));
+      const last = items[items.length - 1];
+      if (last && !last.record) { last.parts.push(chunk); last.size += chunk.length; }
+      else items.push({ parts: [chunk], size: chunk.length });
+      queued += chunk.length;
+      kick();
+      return queued < DIRECT_HIGH;
+    },
+    onDrain(resume) { if (closed || queued < DIRECT_LOW) resume(); else drains.add(resume); },
+    discard(r) {
+      const items = streams.get(r);
+      if (!items) return;
+      for (const item of items) if (!item.record) queued -= item.size;
+      streams.delete(r);
+      if (queued < DIRECT_LOW) release();
+    },
+    /** the other end got this many stream bytes */
+    acked(count) { unacked = Math.max(0, unacked - count); learn(count); kick(); },
+    /** stream bytes that arrived here: acknowledged every so often, ahead of everything else */
+    received(count) {
+      received += count;
+      if (received < DIRECT_ACK_EVERY || closed) return;
+      const payload = Buffer.alloc(4);
+      payload.writeUInt32BE(received, 0);
+      received = 0;
+      urgent.unshift(directRecord(REC_ACK, payload));
+      kick();
+    },
+    drained() { blocked = false; kick(); },
+    close() { closed = true; urgent.length = 0; streams.clear(); queued = 0; release(); },
+    get size() { return queued; },
+    get unacked() { return unacked; },
+    get inflight() { return inflight; },
+  };
+}
+// ---- end direct transport ----
 
 const configDir = () => join(homedir(), ".config", "openmausbot-link");
 const tunnelFile = () => join(configDir(), "tunnel.json");
@@ -423,8 +758,94 @@ function setEnvLine(text, key, value) {
 }
 
 /** what the app may ask of this agent directly, never of the server: credentials it signed in for on the mac */
-export async function control(op, data) {
+// ---- the direct link: the app's own ssh key, which may only start `agent.mjs direct` ----
+const authorizedKeysFile = () => join(homedir(), ".ssh", "authorized_keys");
+const directTag = (id) => `omb-link-${id}`;
+const SAFE_PATH = /^\/[\w./+-]+$/;
+
+/** the authorized_keys line for the app's key: restrict (no shell, pty, agent or port forwarding) and one forced command */
+export function directKeyLine({ pub, id, node = process.execPath, agent = fileURLToPath(import.meta.url) }) {
+  const match = /^ssh-ed25519 ([A-Za-z0-9+/]{68})$/.exec(typeof pub === "string" ? pub.trim() : "");
+  const blob = match ? Buffer.from(match[1], "base64") : null;
+  if (!blob || blob.length !== 51 || blob.readUInt32BE(0) !== 11 || blob.toString("latin1", 4, 15) !== "ssh-ed25519" || blob.readUInt32BE(15) !== 32) throw new Error("that is not an ed25519 key");
+  if (!/^[a-z2-7]{10}$/.test(id ?? "")) throw new Error("this agent has no tunnel");
+  if (!SAFE_PATH.test(node) || !SAFE_PATH.test(agent)) throw new Error("this server's paths cannot carry a direct link");
+  return `restrict,command="${node} ${agent} direct" ssh-ed25519 ${match[1]} ${directTag(id)}`;
+}
+
+/** replaces this tunnel's line (or removes it with `line` null); every other line stays as it was */
+export function setDirectKey(id, line, file = authorizedKeysFile()) {
+  let text = "";
+  try { text = readFileSync(file, "utf8"); } catch (error) { if (error?.code !== "ENOENT") throw error; if (line === null) return; }
+  const tag = directTag(id);
+  const kept = text.split("\n").filter((entry) => entry && !entry.trimEnd().endsWith(` ${tag}`));
+  if (line !== null) kept.push(line);
+  writePrivate(file, kept.length ? `${kept.join("\n")}\n` : "");
+}
+
+/** at start: a key line written by an older node or agent path is pointed at this one (node moves on upgrades) */
+export function refreshDirectKey(id, file = authorizedKeysFile(), paths = {}) {
+  let text;
+  try { text = readFileSync(file, "utf8"); } catch { return false; }
+  const old = text.split("\n").find((entry) => entry.trimEnd().endsWith(` ${directTag(id)}`));
+  const pub = old && /(ssh-ed25519 [A-Za-z0-9+/]{68}) /.exec(old)?.[1];
+  if (!pub) return false;
+  const line = directKeyLine({ pub, id, ...paths });
+  if (line === old.trimEnd()) return false;
+  setDirectKey(id, line, file);
+  return true;
+}
+
+const HOST_KEYS = ["ed25519", "ecdsa", "rsa"].map((type) => `/etc/ssh/ssh_host_${type}_key.pub`);
+/** sshd's own public keys, which the app pins: they reach it inside the sealed tunnel, so nobody on the way can swap them */
+export function hostKeys(files = HOST_KEYS) {
+  const keys = [];
+  for (const file of files) {
+    try {
+      const [type, body] = readFileSync(file, "utf8").trim().split(/\s+/);
+      if (/^(ssh-ed25519|ecdsa-sha2-nistp(256|384|521)|ssh-rsa)$/.test(type) && /^[A-Za-z0-9+/]+={0,2}$/.test(body ?? "")) keys.push(`${type} ${body}`);
+    } catch { /* not this type */ }
+  }
+  return keys;
+}
+
+const STUN = [["stun.l.google.com", 19302], ["stun.cloudflare.com", 3478]];
+/** this server's public ipv4, as a stun server sees it (outbound udp: no port needs opening) */
+export function publicAddress({ servers = STUN, timeoutMs = 2500 } = {}) {
+  return new Promise((resolve, reject) => {
+    const socket = createSocket("udp4");
+    const tid = randomBytes(12);
+    const done = (error, address) => { clearTimeout(timer); socket.close(); if (error) reject(error); else resolve(address); };
+    const timer = setTimeout(() => done(new Error("no stun server answered")), timeoutMs);
+    socket.on("error", (error) => done(error));
+    socket.on("message", (message) => {
+      if (message.length < 20 || !message.subarray(8, 20).equals(tid)) return;
+      for (let at = 20; at + 4 <= message.length;) {
+        const type = message.readUInt16BE(at), length = message.readUInt16BE(at + 2);
+        if (type === 0x20 && length >= 8 && message[at + 5] === 1) return done(null, [0, 1, 2, 3].map((i) => message[at + 8 + i] ^ [0x21, 0x12, 0xa4, 0x42][i]).join("."));
+        at += 4 + length + ((4 - (length % 4)) % 4);
+      }
+    });
+    const request = Buffer.concat([Buffer.from([0, 1, 0, 0, 0x21, 0x12, 0xa4, 0x42]), tid]);
+    for (const [host, port] of servers) socket.send(request, port, host, () => {});
+  });
+}
+
+async function directKey(data, context) {
+  if (process.env.OMB_LINK_DIRECT === "off") throw new Error("direct links are off on this server");
+  const line = directKeyLine({ pub: data?.pub, id: context.id });
+  const keys = hostKeys();
+  if (!keys.length) throw new Error("this server's ssh keys could not be read");
+  const host = process.env.OMB_LINK_DIRECT_HOST || await publicAddress();
+  const port = Number(process.env.OMB_LINK_DIRECT_PORT) || 22;
+  setDirectKey(context.id, line);
+  return { v: 1, host, port, user: userInfo().username, hostKeys: keys };
+}
+
+export async function control(op, data, context = {}) {
   if (op === "ping") return { ok: true };
+  if (op === "direct-key") return directKey(data, context);
+  if (op === "direct-off") { if (context.id) setDirectKey(context.id, null); return { ok: true }; }
   if (op === "pair") {
     // a fresh one-time code for the app's own sign-in here, when its session lapsed (sessions end after 180 days)
     const answer = await local("POST", "/api/auth/pairing", { label: typeof data?.label === "string" ? data.label.slice(0, 60) : "OpenMausBot app" });
@@ -712,59 +1133,20 @@ export function createEgressProxy({
 
 // ---- end egress ----
 
-/** `egress`: options for createEgressProxy, which then rides this tunnel; without it the app's hellos are ignored */
-export function createTunnelAgent({ base, id, key: keyText, token, server = SERVER, fetchImpl: given, log = (line) => console.error(line), stallMs = STREAM_STALL_MS, egress: egressOptions = null }) {
-  const fetchImpl = given ?? keepAliveFetch();
-  const stream = streamChoice();
-  const key = Buffer.from(keyText, "base64url");
-  const guard = frameGuard();
+/**
+ * what the app's frames ask of this server, over either path: requests and websockets to OpenMausBot, control ops to this
+ * agent. `sink` takes the replies: push(frame), bytes(r, chunk) (false: pause), onDrain(resume), discard(r).
+ */
+export function createServing({ server = SERVER, sink, stopped = () => false, context = {} }) {
   const pending = new Map();
-  let stopped = false;
-  let terminal = "stopped";
-  let successfulPosts = 0, pollRetry = null;
-  const abort = new AbortController();
-
-  function stop(reason = "stopped") {
-    if (stopped) return;
-    stopped = true;
-    terminal = reason;
-    abort.abort();
-    void egress?.stop();
-    if (!given) fetchImpl.close();
-    for (const req of pending.values()) req.destroy();
-    pending.clear();
-  }
-
-  const wait = (ms) => delay(ms, undefined, { signal: abort.signal }).catch(() => {});
-
-  const epoch = Array.from(randomBytes(12), (byte) => "abcdefghijklmnopqrstuvwxyz234567"[byte & 31]).join("");
-  let ordered = false;
-  const post = async (frames, at) => {
-    for (let attempt = 0; !stopped; attempt += 1) {
-      try {
-        const response = await fetchImpl(`${base}/v1/tunnels/${id}/to-app`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ frames, epoch, seq: at }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(60_000)]) });
-        // read, not cancelled: a cancelled body closes the socket the next post would reuse
-        const said = await response.text().catch(() => "");
-        if (response.ok && !ordered) ordered = /"ordered":true/.test(said);
-        if (response.ok) { successfulPosts += 1; pollRetry?.abort(); return true; }
-        if (response.status === 404) { stop("unlinked"); return false; }
-      } catch { /* retried below */ }
-      if (stopped) break;
-      await wait(Math.min(5000, 200 * 2 ** attempt));
-    }
-    return false;
-  };
-  // 5 ms: a websocket's replies (the live desktop) are felt; posts are one at a time, so more coalesce while one is out
-  const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-app", r, bytes), post, delayMs: 5, signal: abort.signal, parallel: () => (ordered ? POSTS_IN_FLIGHT : 1), onError: () => { log("link: reply queue failed; restarting the tunnel"); stop(); } });
-  const emit = (frame) => { if (!stopped) outbox.push(sealFrame(key, id, "to-app", frame), frame.r); };
-  const egress = egressOptions ? createEgressProxy({ send: emit, bytes: (r, chunk) => outbox.bytes(r, chunk), queued: () => outbox.size, onDrain: (resume) => outbox.onDrain(resume), log, ...egressOptions }) : null;
+  const emit = (frame) => { if (!stopped()) sink.push(frame); };
 
   function overflow(r) {
     const entry = pending.get(r);
     if (!entry) return;
     pending.delete(r);
     entry.destroy();
-    outbox.discard(r);
+    sink.discard(r);
     emit({ t: "err", r, message: "The destination could not keep up with this transfer. Try again." });
   }
 
@@ -782,7 +1164,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
     socket.setNoDelay(true);
     pending.set(frame.r, { write: (chunk) => writeTo(frame.r, socket, chunk), end: () => socket.end(), destroy: () => socket.destroy() });
     for (const chunk of early) writeTo(frame.r, socket, chunk);
-    const read = (chunk) => { if (pending.has(frame.r) && !outbox.bytes(frame.r, chunk)) { socket.pause(); outbox.onDrain(() => socket.resume()); } };
+    const read = (chunk) => { if (pending.has(frame.r) && !sink.bytes(frame.r, chunk)) { socket.pause(); sink.onDrain(() => socket.resume()); } };
     if (head.length) read(head);
     socket.on("data", read);
     socket.on("error", () => socket.destroy());
@@ -800,15 +1182,15 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
     let reply = null;
     const req = httpRequest({ ...server, method: frame.method, path: frame.path, headers }, (res) => {
       reply = res;
-      if (!pending.has(frame.r) || stopped) { res.destroy(); return; }
+      if (!pending.has(frame.r) || stopped()) { res.destroy(); return; }
       const out = {};
       for (const [name, value] of Object.entries(res.headers)) if (!HOP.has(name)) out[name] = value;
       emit({ t: "head", r: frame.r, status: res.statusCode ?? 502, headers: out });
       res.on("data", (chunk) => {
-        if (!pending.has(frame.r) || stopped) return;
-        if (!outbox.bytes(frame.r, chunk)) {
+        if (!pending.has(frame.r) || stopped()) return;
+        if (!sink.bytes(frame.r, chunk)) {
           res.pause();
-          outbox.onDrain(() => { if (pending.has(frame.r)) res.resume(); });
+          sink.onDrain(() => { if (pending.has(frame.r)) res.resume(); });
         }
       });
       res.on("end", () => { if (pending.delete(frame.r)) emit({ t: "end", r: frame.r }); });
@@ -830,7 +1212,6 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
   }
 
   async function handle(frame) {
-    if (egress?.handle(frame)) return;
     if (frame.t === "req" && typeof frame.r === "string" && typeof frame.path === "string" && frame.path.startsWith("/")) return startRequest(frame);
     if (frame.t === "body") {
       const req = pending.get(frame.r);
@@ -840,25 +1221,87 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
       return;
     }
     if (frame.t === "bytes") { pending.get(frame.r)?.write(frame.b); return; }
-    if (frame.t === "cancel") { pending.get(frame.r)?.destroy(); pending.delete(frame.r); outbox.discard(frame.r); return; }
+    if (frame.t === "cancel") { pending.get(frame.r)?.destroy(); pending.delete(frame.r); sink.discard(frame.r); return; }
     if (frame.t === "ctl") {
-      try { emit({ t: "ctl", r: frame.r, ok: true, data: await control(frame.op, frame.data) }); }
+      try { emit({ t: "ctl", r: frame.r, ok: true, data: await control(frame.op, frame.data, context) }); }
       catch (error) { emit({ t: "ctl", r: frame.r, ok: false, error: error?.message ?? String(error) }); }
     }
   }
 
+  return {
+    handle,
+    destroyAll() { for (const req of pending.values()) req.destroy(); pending.clear(); },
+  };
+}
+
+/** `egress`: options for createEgressProxy, which then rides this tunnel; without it the app's hellos are ignored */
+export function createTunnelAgent({ base, id, key: keyText, token, server = SERVER, fetchImpl: given, log = (line) => console.error(line), stallMs = STREAM_STALL_MS, egress: egressOptions = null, waitS = 25, aheadMs = STREAM_AHEAD_MS }) {
+  const fetchImpl = given ?? relayFetch();
+  const stream = streamChoice();
+  const key = Buffer.from(keyText, "base64url");
+  const guard = frameGuard();
+  let stopped = false;
+  let terminal = "stopped";
+  let successfulPosts = 0, pollRetry = null;
+  const abort = new AbortController();
+
+  function stop(reason = "stopped") {
+    if (stopped) return;
+    stopped = true;
+    terminal = reason;
+    abort.abort();
+    void egress?.stop();
+    if (!given) fetchImpl.close();
+    serving.destroyAll();
+  }
+
+  const wait = (ms) => delay(ms, undefined, { signal: abort.signal }).catch(() => {});
+
+  const epoch = Array.from(randomBytes(12), (byte) => "abcdefghijklmnopqrstuvwxyz234567"[byte & 31]).join("");
+  let ordered = false;
+  const post = async (frames, at) => {
+    for (let attempt = 0; !stopped; attempt += 1) {
+      try {
+        const response = await fetchImpl(`${base}/v1/tunnels/${id}/to-app`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ frames, epoch, seq: at }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(60_000)]) });
+        // read, not cancelled: a cancelled body closes the socket the next post would reuse
+        const said = await response.text().catch(() => "");
+        if (response.ok && !ordered) ordered = /"ordered":true/.test(said);
+        if (response.ok) { successfulPosts += 1; pollRetry?.abort(); return true; }
+        if (response.status === 404) { stop("unlinked"); return false; }
+      } catch { /* retried below */ }
+      if (stopped) break;
+      await wait(Math.min(5000, 200 * 2 ** attempt));
+    }
+    return false;
+  };
+  // over http/2 what arrives in one turn goes in one post at once, and more gather while posts are out
+  const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-app", r, bytes), post, delayMs: () => (fetchImpl.multiplexed?.() ? 0 : H1_POST_DELAY_MS), signal: abort.signal, parallel: () => (ordered ? fetchImpl.postsInFlight?.() ?? POSTS_IN_FLIGHT : 1), onError: () => { log("link: reply queue failed; restarting the tunnel"); stop(); } });
+  const emit = (frame) => { if (!stopped) outbox.push(sealFrame(key, id, "to-app", frame), frame.r); };
+  const serving = createServing({
+    server, stopped: () => stopped, context: { id },
+    sink: { push: emit, bytes: outbox.bytes, onDrain: outbox.onDrain, discard: outbox.discard },
+  });
+  const egress = egressOptions ? createEgressProxy({ send: emit, bytes: (r, chunk) => outbox.bytes(r, chunk), queued: () => outbox.size, onDrain: (resume) => outbox.onDrain(resume), log, ...egressOptions }) : null;
+  const handle = (frame) => (egress?.handle(frame) ? undefined : serving.handle(frame));
+
   async function run() {
-    let failures = 0;
+    let failures = 0, ahead = null;
     const unwarm = given ? () => {} : fetchImpl.warm(base);
     void egress?.start();
     while (!stopped) {
       const postsBefore = successfulPosts;
-      const streaming = stream.wanted();
+      const next = ahead;
+      ahead = null;
+      const streaming = next !== null || stream.wanted();
       const stall = new AbortController();
       let heard = false;
-      const stallTimer = streaming ? setTimeout(() => { if (!heard) stall.abort(); }, stallMs) : null;
+      let stallTimer = null, aheadTimer = null;
+      const armStall = () => { if (streaming && !stallTimer) stallTimer = setTimeout(() => { if (!heard) stall.abort(); }, stallMs); };
+      if (!next && !fetchImpl.connectAware) armStall();
+      const read = (signal, onConnected) => fetchImpl(`${base}/v1/tunnels/${id}/to-vps?wait=${waitS}${streaming ? "&stream=1" : ""}`, { headers: { authorization: `Bearer ${token}` }, signal, onConnected });
       try {
-        const response = await fetchImpl(`${base}/v1/tunnels/${id}/to-vps?wait=25${streaming ? "&stream=1" : ""}`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.any([abort.signal, stall.signal, AbortSignal.timeout(40_000)]) });
+        const response = await (next ?? read(AbortSignal.any([abort.signal, stall.signal, AbortSignal.timeout(40_000)]), armStall));
+        if (streaming) aheadTimer = setTimeout(() => { ahead = read(AbortSignal.any([abort.signal, AbortSignal.timeout(aheadMs + 40_000)])); ahead.catch(() => {}); }, aheadMs);
         if (response.status === 404) {
           log("link: this server was unlinked in the app; the tunnel stops");
           stop("unlinked");
@@ -889,7 +1332,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
           await delay(Math.min(30_000, 500 * 2 ** Math.min(failures, 6)), undefined, { signal: AbortSignal.any([abort.signal, pollRetry.signal]) }).catch(() => {});
           pollRetry = null;
         }
-      } finally { clearTimeout(stallTimer); }
+      } finally { clearTimeout(stallTimer); clearTimeout(aheadTimer); }
     }
     unwarm();
     return terminal;
@@ -897,22 +1340,82 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
   return { run, stop, egress };
 }
 
+/**
+ * the direct link's server half, one per ssh connection: frames in on `input`, replies out on `output`. it says hello
+ * first (sealed, so the app knows it holds the key), answers pings, and ends with the connection.
+ */
+export function serveDirect({ input, output, id, key: keyText, server = SERVER, log = (line) => console.error(line), idleMs = 20_000 }) {
+  const key = Buffer.from(keyText, "base64url");
+  const guard = frameGuard();
+  let ended = false, heard = false, finish;
+  const done = new Promise((resolve) => { finish = (why) => {
+    if (ended) return;
+    ended = true;
+    clearTimeout(idle);
+    writer.close();
+    serving.destroyAll();
+    output.end?.();
+    resolve(why);
+  }; });
+  const writer = createDirectWriter({
+    sealFrame: (frame) => sealFrame(key, id, "to-app", frame, true),
+    sealBytes: (r, bytes) => sealBytes(key, id, "to-app", r, bytes, true),
+    write: (record) => !ended && output.write(record),
+  });
+  const serving = createServing({ server, sink: writer, stopped: () => ended, context: { id } });
+  // nothing that opens within a while: not the app, so this process does not linger
+  const idle = setTimeout(() => { if (!heard) finish("idle"); }, idleMs);
+  const read = directReader((type, payload) => {
+    if (type === REC_ACK && payload.length === 4) { writer.acked(payload.readUInt32BE(0)); return; }
+    if (type !== REC_SEALED) return;
+    let frame = null;
+    try { frame = openFrame(key, id, "to-vps", payload, guard); } catch { log("link direct: dropped a frame that did not open"); }
+    if (!frame) return;
+    heard = true;
+    if (frame.t === "bytes") writer.received(frame.b.length);
+    if (frame.t === "ping") { writer.push({ t: "pong", n: frame.n }); return; }
+    if (frame.t !== "hello") void serving.handle(frame);
+  });
+  output.on("drain", () => writer.drained());
+  output.on("error", () => finish("closed"));
+  input.on("data", (chunk) => { if (ended) return; try { read(chunk); } catch (error) { log(`link direct: ${error.message}`); finish("malformed"); } });
+  input.on("end", () => finish("closed"));
+  input.on("close", () => finish("closed"));
+  output.write(DIRECT_MAGIC);
+  writer.push({ t: "hello", v: 1 });
+  return { done, stop: () => finish("stopped") };
+}
+
+async function direct() {
+  let saved;
+  try { saved = JSON.parse(readFileSync(tunnelFile(), "utf8")); } catch { console.error("link: not linked yet"); return 1; }
+  // a socket on the pipe, not process.stdout: on linux a piped stdout writes synchronously and would stall the reads
+  const output = new Socket({ fd: 1, readable: false, writable: true });
+  const why = await serveDirect({ input: process.stdin, output, id: saved.id, key: saved.key }).done;
+  return why === "closed" || why === "stopped" ? 0 : 1;
+}
+
 async function tunnel() {
   let saved;
   try { saved = JSON.parse(readFileSync(tunnelFile(), "utf8")); } catch { console.error("link: not linked yet; nothing to do"); return 0; }
+  try { if (refreshDirectKey(saved.id)) console.error("link: the app's direct key now runs this agent"); } catch (error) { console.error(`link: the app's direct key was not refreshed (${error?.message ?? error})`); }
   const agent = createTunnelAgent({ ...saved, egress: {
     report: async (state) => { const answer = await local("POST", "/api/computer/egress/agent", state); return answer.status === 200 ? answer.body : null; },
   } });
   for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { agent.stop(); process.exit(0); });
   const how = await agent.run();
   // unlinked: stay quiet instead of letting systemd restart a tunnel that no longer exists
-  if (how === "unlinked") { setInterval(() => {}, 1 << 30); await new Promise(() => {}); }
+  if (how === "unlinked") {
+    try { setDirectKey(saved.id, null); } catch (error) { console.error(`link: the app's ssh key could not be removed (${error?.message ?? error})`); }
+    setInterval(() => {}, 1 << 30);
+    await new Promise(() => {});
+  }
   return 0;
 }
 
-const main = { probe, link, tunnel };
+const main = { probe, link, tunnel, direct };
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const command = main[process.argv[2]];
-  if (!command) { console.error("usage: node agent.mjs probe|link|tunnel"); process.exit(2); }
+  if (!command) { console.error("usage: node agent.mjs probe|link|tunnel|direct"); process.exit(2); }
   command().then((code) => process.exit(code ?? 0), (error) => { console.error(error?.message ?? String(error)); process.exit(1); });
 }

@@ -568,7 +568,7 @@ import { describeBrand, loadBrand } from "./brand.ts";
 import { deliverSseFrame, openSseHeartbeat } from "./sse-fanout.ts";
 import { PhoneSecretBridge, PhoneSecretSubmissionRegistry } from "./phone-secret.ts";
 // Keep these two last, so loading the route table leaves module start-up order as is.
-import { gzipTunnelReplies, json, onJsonBody, parsedBodyOf, readBody } from "./harness/http.ts";
+import { gzipTunnelReplies, json, onJsonBody, parsedBodyOf, readBody } from "./harness/http.ts"; import { openEventStream, type EventStreamOut } from "./harness/sse-gzip.ts";
 import { holdBodyDeadline } from "./body-deadline.ts";
 import { createNoAiNotice } from "./host/no-ai-notice.ts"; import { PASS, ROUTES, dispatchRoutes } from "./routes/table.ts"; import { createSecretCards } from "./host/secret-cards.ts"; import { createInternalCredentialRequestRoutes, createSavedSecretRoutes, createSecretCardRoutes } from "./routes/secret-cards.ts"; import { SavedSecretStore, desktopSavedSecretsKey, fileSavedSecretsKey } from "./saved-secrets.ts"; import { applyIncludedPagesMessage } from "./pages/access.ts"; import { createPublishedPages } from "./pages/service.ts"; import { createInternalToolRoutes } from "./routes/internal-tools.ts"; import { createHelperSuggestionRoutes } from "./routes/helper-suggestion.ts"; import { createXConnectorRoutes } from "./routes/x-connector.ts"; import { createMoveFreeze, switchAutomationsOff } from "./move-freeze.ts"; import { createMoveFreezeRoutes } from "./routes/move-freeze.ts"; import { createMoveWaits } from "./move-waits.ts"; import { assertBotHere, createBotMoves } from "./bot-moves.ts"; import { createBotMoveRoutes } from "./routes/bot-moves.ts"; import { createTeamMoveIn, moveInRefusal } from "./team-move-in.ts";
 import { createCardSealer, loadSealIdentity } from "./card-seal.ts"; import { createSealKeyRoutes } from "./routes/seal-key.ts";
@@ -4620,7 +4620,7 @@ function settleTrackedRequest(threadId: string, incoming: ReadonlySet<string> = 
 }
 
 interface SseClient {
-  res: ServerResponse;
+  res: EventStreamOut;
   admin: boolean;
   /** On a Team Cloud, who the stream is for: its config frames carry that person's own profile. */
   person?: SessionRecord;
@@ -14982,8 +14982,16 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
 
     if (method === "GET" && path === "/api/events") {
       const visibleNow = visibleTo(viewer);
+      // Over a tunnel or the VPS link the frames go out gzipped, each flushed as written (server/harness/sse-gzip.ts).
+      const out = openEventStream(res, {
+        "content-type": "text/event-stream",
+        "cache-control": "no-cache",
+        connection: "keep-alive",
+        // Honoured by nginx-compatible reverse proxies; harmless elsewhere.
+        "x-accel-buffering": "no",
+      });
       const client: SseClient = {
-        res,
+        res: out,
         admin: auth.scopes.includes("admin"),
         screens: url.searchParams.get("screens") !== "off",
         backpressured: false,
@@ -14993,7 +15001,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           groups: new Set(store.groups.filter((group) => visibleNow.group(group.id)).map((group) => group.id)),
         },
         // A comment frame keeps intermediaries from idling the connection; a data frame resets EventSource's own liveness watchdog. Heartbeats carry no id.
-        close: openSseHeartbeat(res, {
+        close: openSseHeartbeat(out, {
           everyMs: SSE_HEARTBEAT_MS,
           live: () => !client.sessionId || sessions.isLive(client.sessionId),
           onClose: () => sseClients.delete(client),
@@ -15001,13 +15009,6 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       };
       if (auth.kind === "session") client.sessionId = auth.session.id;
       if (CLOUD_TEAM && auth.kind === "session") client.person = auth.session;
-      res.writeHead(200, {
-        "content-type": "text/event-stream",
-        "cache-control": "no-cache",
-        connection: "keep-alive",
-        // Honoured by nginx-compatible reverse proxies; harmless elsewhere.
-        "x-accel-buffering": "no",
-      });
 
       // EventSource reconnects with a newer Last-Event-ID while the URL keeps an older ?since=: prefer the header, or the stale query replays forever.
       const since =
@@ -15020,7 +15021,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         replayBuffer.covers(since, lastSeq) &&
         // A replay is judged by today's audience and cannot withdraw what an audience change hid: snapshot instead.
         !(viewer.kind === "member" && audienceChangedAt > 0 && since <= audienceChangedAt);
-      res.write(
+      out.write(
         `data: ${JSON.stringify({
           kind: "hello",
           cursor: `${STREAM_ID}:${lastSeq}`,
@@ -15037,7 +15038,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
               : client.admin
                 ? buffered.frame
                 : buffered.clientFrame;
-          if (frame) res.write(frame);
+          if (frame) out.write(frame);
         }
       }
 

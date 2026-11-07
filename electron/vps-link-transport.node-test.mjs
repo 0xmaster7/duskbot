@@ -4,8 +4,14 @@ import { connect, Socket } from "node:net";
 import { once } from "node:events";
 import test from "node:test";
 
-import { createOutbox, createTunnelProxy, openFrame, sealBytes, sealFrame } from "./vps-link-protocol.mjs";
-import { createOutbox as createAgentOutbox } from "../link-service/agent.mjs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { createServer as createHttpsServer } from "node:https";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { createOutbox, createTunnelProxy, keepAliveFetch, openFrame, sealBytes, sealFrame } from "./vps-link-protocol.mjs";
+import { createOutbox as createAgentOutbox, keepAliveFetch as agentKeepAliveFetch } from "../link-service/agent.mjs";
 
 const deferred = () => {
   let resolve, reject;
@@ -147,6 +153,22 @@ test("a successful POST wakes a failed poll's retry delay for new controls", { t
     await proxy.close();
   }
 });
+
+for (const [side, factory] of [["app", createOutbox], ["VPS", createAgentOutbox]]) {
+  test(`${side} outbox posts one turn's frames together in the next turn, without waiting on a timer`, { timeout: 2000 }, async () => {
+    const abort = new AbortController();
+    const posts = [];
+    const outbox = factory({ seal: (r, chunk) => `${r}:${chunk.length}`, delayMs: 0, signal: abort.signal, post: async (frames) => { posts.push(frames); return true; } });
+    outbox.push("head", "aaaaaaaaaaaa");
+    outbox.bytes("aaaaaaaaaaaa", Buffer.alloc(10));
+    outbox.push("end", "aaaaaaaaaaaa");
+    await tick();
+    await tick();
+    try {
+      assert.deepEqual(posts, [["head", "aaaaaaaaaaaa:10", "end"]]);
+    } finally { abort.abort(); }
+  });
+}
 
 test("outbox cancellation clears queued bytes and releases a paused producer without posting", async () => {
   const abort = new AbortController();
@@ -366,3 +388,32 @@ test("the keep-alive fetch reuses one socket across posts", { timeout: 3000 }, a
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+for (const [side, factory] of [["app", keepAliveFetch], ["VPS", agentKeepAliveFetch]]) {
+  test(`${side} keep-alive fetch resumes its tls session after a reset`, { timeout: 10_000 }, async (t) => {
+    const dir = mkdtempSync(join(tmpdir(), "omb-tls-"));
+    try {
+      execFileSync("openssl", ["req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:prime256v1", "-nodes", "-days", "1", "-subj", "/CN=localhost", "-keyout", join(dir, "key.pem"), "-out", join(dir, "cert.pem")], { stdio: "ignore" });
+    } catch { rmSync(dir, { recursive: true, force: true }); t.skip("no openssl here"); return; }
+    const server = createHttpsServer({ key: readFileSync(join(dir, "key.pem")), cert: readFileSync(join(dir, "cert.pem")) }, (req, res) => res.end("ok"));
+    const reused = [];
+    server.on("secureConnection", (socket) => reused.push(socket.isSessionReused()));
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const before = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+    const go = factory();
+    try {
+      const url = `https://127.0.0.1:${server.address().port}/`;
+      assert.equal(await (await go(url)).text(), "ok");
+      go.reset();
+      assert.equal(await (await go(url)).text(), "ok");
+      assert.deepEqual(reused, [false, true]);
+    } finally {
+      go.close();
+      if (before === undefined) delete process.env.NODE_TLS_REJECT_UNAUTHORIZED; else process.env.NODE_TLS_REJECT_UNAUTHORIZED = before;
+      server.closeAllConnections();
+      await new Promise((resolve) => server.close(resolve));
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+}

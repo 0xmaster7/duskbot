@@ -27,12 +27,59 @@ curl -fsSL https://link.apps.siddz.com/i/<code> | sh
    pairs, saves the server, signs the AI in from this Mac, moves everything
 ```
 
-- **Relay mode** (the default, and what Oracle Cloud gets because only port 22 is open): every request and reply goes
+- **Relay mode** (the default, and what Oracle Cloud gets because only port 22 is open; see "Direct path" for how such a
+  server is still reached directly): every request and reply goes
   through the link service as AES-256-GCM frames, sealed with a key only the app and the VPS hold. The service just
   queues opaque blobs. Every frame carries a timestamp and is refused if it's stale or seen twice.
 - **Direct mode**, used only when the service can reach the VPS on port 80: Caddy gets a certificate for
   `<ip-with-dashes>.sslip.io`. The app talks HTTPS straight to it and pins the certificate's public key, which Caddy keeps
   across renewals (`reuse_private_keys`). The tunnel still runs as a private control channel.
+
+## Direct path
+
+A relay-linked server also gets a direct path, picked automatically and kept up in the background, with the relay as
+the fallback. Nothing is opened on the server and the person configures nothing: it rides the server's own sshd on port
+22, which every VPS already answers (Oracle Cloud included).
+
+```
+ app (electron main)                                         vps
+ vps-link-direct.mjs  -- ssh, tcp 22, host key pinned -->    sshd -> forced command: node agent.mjs direct (as maus)
+   same sealed frames as the relay, length-prefixed            -> http://127.0.0.1:8799 (marked remote)
+```
+
+- **Setup.** Once a link's tunnel is up, the app makes its own ed25519 key and sends the public half as the sealed
+  control op `direct-key`. The agent adds one line to `~maus/.ssh/authorized_keys`:
+  `restrict,command="<node> <agent.mjs> direct" ssh-ed25519 AAAA... omb-link-<tunnel id>` (no shell, pty, agent, X11 or
+  port/socket forwarding, so the docker socket `maus` can reach stays out of reach) and answers with sshd's public host
+  keys, its public IPv4 (from a STUN server, outbound UDP) and the user name. The private key is kept with safeStorage
+  in the link record (`links[].direct`); host keys are pinned there. `direct-off` and unlinking remove the line; the
+  tunnel agent re-points the line at its own node path on start. An older agent answers "unknown request" and is asked
+  again after 6 hours. `OMB_LINK_DIRECT=off` (agent's environment, or the app's) keeps everything on the relay;
+  `OMB_LINK_DIRECT_HOST` / `OMB_LINK_DIRECT_PORT` override the address the agent reports.
+- **Sealing and identity.** The channel carries exactly the relay's frames (AES-256-GCM with the tunnel key, AAD
+  `<id>|to-vps` / `<id>|to-app`, timestamps, one replay guard across both paths) as `[u32 length][type][iv|ct|tag]`
+  records after a `\0OMBD1\n` magic. The agent says a sealed hello first; the app uses the path only after opening it,
+  so a server without the tunnel key is never used. sshd's host key must be one the agent sent inside the sealed
+  tunnel, so neither the network nor the relay can stand in. An auth or host-key failure asks for a new key over the
+  sealed tunnel, at most once an hour.
+- **Choosing a path.** A request takes the direct path when it is up and keeps its path. When the direct path drops,
+  an unanswered GET or HEAD goes again over the relay and the rest fail (a POST is never sent twice). Event streams
+  still on the relay 3 s after the direct path came up are ended so they reconnect over it; a desktop websocket opened
+  while the direct path is dialling waits up to 4 s for it. Pings every 5 s measure the round trip; only silence
+  (nothing received at all) drops the path. A wake or an unlocked screen resets the relay's sockets and restarts its
+  read at once, and new requests take the relay until a quick ping proves the direct connection still alive.
+- **Fairness.** Control frames (requests, heads, ends, control) go first. Stream bytes take turns in 16 KB pieces, a
+  stream's own frames never overtake its bytes, and unacknowledged stream bytes are capped near what the path delivers
+  in its round trip plus 250 ms (384 KB to 8 MB, from the acks), so a download or a busy desktop delays an API reply by
+  about that much at most. What is ready goes out as one write a turn later: sshd sets no `TCP_NODELAY` for a channel
+  without a pty, so separate small writes waited for delayed acks.
+- **Why not WebRTC.** Measured on the reference setup (2026-11-07): the Mac behind its VPN maps each destination to a
+  new public port (symmetric NAT), and the VPS drops unsolicited UDP (OCI security list and host firewall), so STUN
+  hole punching delivered nothing in 25 s either way. TCP 22 is open on every VPS. A WebRTC tier could be added beside
+  this one for networks where punching works; it would not help behind such VPNs.
+- **When it cannot work.** sshd set to refuse `maus` (`AllowUsers`, `AllowGroups`, `DenyUsers`), sshd off port 22
+  without `OMB_LINK_DIRECT_PORT`, or outbound port 22 blocked on the person's network: the app logs it and stays on
+  the relay.
 
 ## Security model
 
@@ -268,4 +315,15 @@ deploy link-service --name omb-link --domain link --env-file /tmp/omb-link.env
 Requests stay under 1 MB (nginx's default body limit), and long polls are 25 s (under nginx's 60 s read timeout).
 WebSockets are not needed.
 
-Tests: `pnpm vitest run link-service electron/vps-link.test.mjs` from the repo root.
+How the two ends use it, for speed (docs/verification/wire-latency.md has the measurements):
+
+- Both reach the service over one HTTP/2 connection when it offers h2 (nginx does): the streamed read and every post
+  share one warm TLS connection, and up to eight posts are out at once (the service holds eight that overtook an
+  earlier one). A service without h2 gets keep-alive HTTP/1.1 and three posts.
+- A post leaves on the next turn of the event loop; frames that come while posts are out gather for 2 ms per post out.
+- Each end asks for its next streamed read 21 s into the current one, so the next is waiting at the service when the
+  current one ends (the service hands the queue to the newest reader): no frame waits through a round-trip gap.
+- After a sleep or a network change the connections are dropped but the TLS sessions are kept, so reconnecting
+  resumes instead of paying a full handshake.
+
+Tests: `pnpm vitest run link-service electron/vps-link.test.mjs` and `node --test electron/vps-link-*.node-test.mjs` from the repo root.
