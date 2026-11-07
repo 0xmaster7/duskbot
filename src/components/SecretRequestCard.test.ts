@@ -73,8 +73,8 @@ describe("SecretRequestCard superseded requests", () => {
 
   it("stops offering entry and names its replacement once superseded", () => {
     const html = view({ superseded: true });
-    expect(html).toContain("replaced by a newer one for the same key");
     expect(html).toContain("Replaced by a newer request · OpenAI API key");
+    expect(html).toContain('aria-expanded="false"');
     expect(html).not.toContain("Save securely");
     expect(html).not.toContain("type=\"password\"");
     expect(html).not.toContain("Not now");
