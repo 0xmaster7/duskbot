@@ -1,19 +1,20 @@
-import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { BOOT_MASCOT_CSS, bootMascotSvg } from './startup-mascot.mjs';
 
-export function startupScreenHtml(iconPath) {
-  const icon = fs.readFileSync(iconPath).toString('base64');
+/** How long a page that shows its own waiting mascot keeps the splash up before it takes over. */
+export const BOOT_SHELL_HANDOFF_MS = 600;
+
+export function startupScreenHtml() {
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'"><title>OpenMaus Bot</title><style>
   *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Segoe UI,system-ui,sans-serif;color:#f5f5f5;background:transparent}
   main{height:100%;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid #ffffff16;border-radius:20px;background:radial-gradient(ellipse at 50% 22%,#242529 0,#161719 54%,#111214 100%);-webkit-app-region:drag}
-  img{width:74px;height:74px;object-fit:contain;margin-bottom:18px;user-select:none;-webkit-user-drag:none}
+  main>svg{margin-bottom:18px}
   h1{font-size:25px;line-height:1.25;font-weight:600;letter-spacing:-.6px;margin:0 0 26px}
   .status{display:flex;align-items:center;gap:9px;color:#999da5;font-size:12px;line-height:18px}
-  .spinner{width:13px;height:13px;border-radius:50%;border:1.5px solid #ffffff21;border-top-color:#a6c9ff;animation:spin .9s linear infinite}
   button{position:absolute;right:13px;top:13px;width:30px;height:30px;display:grid;place-items:center;padding:0;color:#999da5;border:0;border-radius:7px;background:transparent;cursor:pointer;-webkit-app-region:no-drag}
   button:hover{color:#fff;background:#ffffff10}button:focus-visible{outline:2px solid #1686ff;outline-offset:2px}button svg{pointer-events:none}
-  @keyframes spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.spinner{animation:none;border-color:#a6c9ff}}
-  </style></head><body><main><button aria-label="Close" onclick="window.startupScreen.close()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button><img src="data:image/png;base64,${icon}" alt=""><h1>OpenMaus Bot</h1><div class="status" role="status"><span class="spinner" aria-hidden="true"></span>Opening your workspace…</div></main></body></html>`;
+  ${BOOT_MASCOT_CSS}
+  </style></head><body><main><button aria-label="Close" onclick="window.startupScreen.close()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>${bootMascotSvg({ size: 64, id: 'splash-mascot' })}<h1>OpenMaus Bot</h1><div class="status" role="status">Opening your workspace…</div></main></body></html>`;
 }
 
 export function createStartupScreen({
@@ -74,7 +75,7 @@ export function createStartupScreen({
   splash.webContents.on("did-finish-load", say);
   const startupFallback = setTimeout(resolveReady, 10_000);
   startupFallback.unref?.();
-  void splash.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(startupScreenHtml(iconPath)))
+  void splash.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(startupScreenHtml()))
     .catch(resolveReady);
   const attach = (win, { maximized = false } = {}) => {
     const reveal = () => {
@@ -101,6 +102,7 @@ export function createStartupScreen({
           if (root.childElementCount) { observer.disconnect(); resolve(); }
         });
         observer.observe(root, { childList: true });
+        if (document.getElementById('boot-shell')) setTimeout(resolve, ${BOOT_SHELL_HANDOFF_MS});
       })`).then(reveal).catch(reveal);
     });
     win.webContents.once("render-process-gone", reveal);

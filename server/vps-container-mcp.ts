@@ -4,6 +4,7 @@ import { vpsContainerMcpArgs, vpsDockerArgs } from "./vps-computer.ts";
 import { DATA_DIR } from "./config.ts";
 import { augmentedPath } from "./env-path.ts";
 import { prepareVpsSsh } from "./vps-ssh.ts";
+import { sandboxComputerResultLine } from "./sandbox-computer-guidance.ts";
 
 const [alias, containerName, screenJson] = process.argv.slice(2);
 const sshAlias = alias ?? "";
@@ -27,5 +28,6 @@ runMcpBridge({
   label: "VPS Cua Driver",
   // Probe the transport, not the driver: a busy desktop mid-tool-call must never look dead.
   liveness: { command: "docker", args: vpsDockerArgs(sshAlias, ["version", "--format", "{{.Server.Version}}"]) },
+  rewriteResponse: sandboxComputerResultLine,
   ...(controlUrl && controlToken ? { gate: { url: controlUrl, token: controlToken } } : {}),
 });

@@ -63,6 +63,7 @@ Use only mapped, tested commands:
 - [Chat UI, driven headlessly](chat-ui.md)
 - [Computer panel focus hand-off](computer-panel-focus.md)
 - [Taking control of a bot's computer](take-control.md)
+- [What a bot can do on its VPS desktop](vps-computer-tools.md)
 - [Native dictation retention and send-to-stop](dictation.md)
 - [Proactive routines and the brief](proactive-routines.md)
 - [Waits: tell me when, with no AI while waiting](waits.md)

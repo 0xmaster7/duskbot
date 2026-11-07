@@ -34,3 +34,10 @@
   .computer-watch-hint { animation: none; opacity: 0.7; }
 }
 :root[data-reduced-motion="true"] .computer-watch-hint { animation: none; opacity: 0.7; }
+
+/* the person's own pointer stays visible over a bot's screen: noVNC paints the guest's cursor, and a bot desktop
+   hides it (cursor: none), so watching shows the plain arrow and control falls back to it */
+[data-live-desktop-screen][data-watching] canvas,
+[data-live-desktop-screen] canvas[style*="cursor: none"] {
+  cursor: default !important;
+}

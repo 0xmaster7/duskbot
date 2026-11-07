@@ -229,7 +229,7 @@ describe("bot desktop provisioning", () => {
   it("without the host fence: pulls, makes the network, and starts a strict box that fences the host's addresses itself", async () => {
     const fake = host({ runsc: true });
     expect(await provisionBotDesktop(fake.run, input)).toBe("strict");
-    expect(steps(fake.calls)).toEqual([`pull ${BOT_DESKTOP_IMAGE}`, "image inspect", "network inspect", "network create", "info --format", "probe /usr/local/bin/omb-host-fence", "probe ip", "run -d"]);
+    expect(steps(fake.calls)).toEqual([`pull ${BOT_DESKTOP_IMAGE}`, "image inspect", "network inspect", "info --format", "probe /usr/local/bin/omb-host-fence", "network create", "probe ip", "run -d"]);
     const started = fake.calls.at(-1)!;
     expect(started.at(-1)).toBe(IMAGE_ID);
     expect(started).toEqual(expect.arrayContaining(["--read-only", "--runtime", "runsc", "OMB_MODE=strict", "OMB_BLOCK_EXTRA=198.51.100.4"]));

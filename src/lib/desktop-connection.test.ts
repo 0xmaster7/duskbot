@@ -44,7 +44,7 @@ vi.mock("@novnc/novnc", () => ({
   },
 }));
 
-const { connectDesktop, DesktopUnreachable, typeOnDesktop } = await import("./desktop-connection");
+const { connectDesktop, DesktopUnreachable, isPasteShortcut, pasteOnDesktop, typeOnDesktop } = await import("./desktop-connection");
 const asked: string[] = [];
 const events = () => ({ connected: vi.fn(), disconnected: vi.fn(), clipboard: vi.fn() });
 
@@ -152,5 +152,65 @@ describe("connecting to a desktop", () => {
     const sent: number[] = [];
     typeOnDesktop({ sendKey: (keysym: number) => sent.push(keysym) } as never, "a\n\tП");
     expect(sent).toEqual([0x61, 0xff0d, 0xff09, 0x0100041f]);
+  });
+
+  it("knows the person's paste shortcut on their own machine", () => {
+    const key = (patch: Partial<KeyboardEvent>) => ({ key: "v", code: "KeyV", metaKey: false, ctrlKey: false, altKey: false, ...patch });
+    expect(isPasteShortcut(key({ metaKey: true }), true)).toBe(true);
+    expect(isPasteShortcut(key({ ctrlKey: true }), true), "Ctrl+V on a Mac still goes to the guest").toBe(false);
+    expect(isPasteShortcut(key({ ctrlKey: true }), false)).toBe(true);
+    expect(isPasteShortcut(key({ metaKey: true, altKey: true }), true)).toBe(false);
+    expect(isPasteShortcut(key({ metaKey: true, key: "c", code: "KeyC" }), true)).toBe(false);
+  });
+
+  // what noVNC 1.7 tracks: Cmd on a Mac is held on the guest as Alt
+  const guest = (viewOnly = false) => {
+    const sent: Array<[number, string, boolean]> = [];
+    const pasted: string[] = [];
+    const keyDownList: Record<string, number> = { MetaLeft: 0xffe9 };
+    const client = {
+      viewOnly,
+      clipboardPasteFrom: (text: string) => pasted.push(text),
+      sendKey: (keysym: number, code: string, down: boolean) => sent.push([keysym, code, down]),
+      _keyboard: {
+        _keyDownList: keyDownList,
+        _sendKeyEvent(keysym: number, code: string, down: boolean) {
+          delete keyDownList[code];
+          client.sendKey(keysym, code, down);
+        },
+      },
+    };
+    return { client, sent, pasted, keyDownList };
+  };
+
+  it("pastes as the guest clipboard plus a bare Shift+Insert, releasing the shortcut's modifier first", () => {
+    const { client, sent, pasted, keyDownList } = guest();
+    pasteOnDesktop(client as never, "pasted from the mac");
+    expect(pasted).toEqual(["pasted from the mac"]);
+    expect(sent).toEqual([
+      [0xffe9, "MetaLeft", false],
+      [0xffe1, "ShiftLeft", true],
+      [0xff63, "Insert", true],
+      [0xff63, "Insert", false],
+      [0xffe1, "ShiftLeft", false],
+    ]);
+    expect(keyDownList, "the physical release later sends nothing twice").toEqual({});
+  });
+
+  it("pastes nothing while watching or when there is no text", () => {
+    const watching = guest(true);
+    pasteOnDesktop(watching.client as never, "text");
+    const empty = guest();
+    pasteOnDesktop(empty.client as never, "");
+    expect([watching.sent, watching.pasted, empty.sent, empty.pasted]).toEqual([[], [], [], []]);
+  });
+
+  it("relies on the release path noVNC itself keeps", async () => {
+    const { createRequire } = await import("node:module");
+    const rfb = createRequire(import.meta.url).resolve("@novnc/novnc");
+    const { default: Keyboard } = await import(/* @vite-ignore */ new URL("input/keyboard.js", `file://${rfb}`).href) as { default: new (target: HTMLElement) => { _keyDownList: object; _sendKeyEvent: unknown } };
+    const keyboard = new Keyboard(document.createElement("div"));
+    expect(keyboard._keyDownList).toEqual({});
+    expect(typeof keyboard._sendKeyEvent).toBe("function");
   });
 });

@@ -57,6 +57,7 @@ import { engineReady } from "@/components/EngineLibrary";
 import { CommandPalette } from "@/components/CommandPalette";
 import { CreateBotDialog, openCreateBot } from "@/components/CreateBotDialog";
 import { CHAT_MIN_WIDTH, PanelSlot } from "@/components/PanelSlot";
+import { PanelPlaceholder } from "@/components/bot-panel/PanelPlaceholder";
 import { TitleTooltips } from "@/components/TitleTooltips";
 import { botCycleStep, shouldOpenKeyboardShortcuts } from "@/lib/keyboard-shortcuts";
 import { effectiveLanguage, useLanguageChoice, usePageLanguage } from "@/lib/language-preference";
@@ -295,6 +296,8 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   }, [dispatch]);
 
   const settingsOverlay = !botPanelDocks || ((state.computerOpen || (notificationFeed && state.notificationsOpen)) && !twoSidePanelsFit);
+  // a reload with the panel open keeps its column from the first frame, not only once the bots arrive
+  const panelLoading = state.settingsOpen && !bot && !group && state.hydrated !== true && !remoteClient && !settingsOverlay;
   const framed = windowFramed(capabilities);
   const strips = <>
     <UpdateBanner sidebarIndicator={framed || (!calendarFocus && (sidebarInline || drawerOpen))} />
@@ -365,8 +368,9 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       {state.settingsOpen && bot && remoteClient && <RemoteAgentSettingsPanel bot={bot} overlay={state.computerOpen && !twoSidePanelsFit} />}
       {state.settingsOpen && bot && !remoteClient && settingsOverlay && <BotSettingsDialog key={`settings:${bot.id}`} bot={bot} overlay />}
       {/* bot and room panels share one slot, so moving between a bot and a room swaps the content without the column closing */}
-      <PanelSlot open={Boolean(state.settingsOpen && bot && !remoteClient && !settingsOverlay) || Boolean(roomPanelOpen && group && !roomPanelOverlay)}>
-        {bot ? <BotSettingsDialog key={`settings:${bot.id}`} bot={bot} /> : group ? <RoomPanel key={`room:${group.id}`} group={group} /> : null}
+      <PanelSlot open={Boolean(state.settingsOpen && bot && !remoteClient && !settingsOverlay) || Boolean(roomPanelOpen && group && !roomPanelOverlay) || panelLoading}>
+        {bot ? <BotSettingsDialog key={`settings:${bot.id}`} bot={bot} /> : group ? <RoomPanel key={`room:${group.id}`} group={group} />
+          : panelLoading ? <PanelPlaceholder onClose={() => dispatch({ type: "toggleSettings", open: false })} /> : null}
       </PanelSlot>
       {state.computerOpen && bot && (
         remoteClient ? (

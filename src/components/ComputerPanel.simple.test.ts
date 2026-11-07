@@ -274,7 +274,7 @@ describe("Choosing a place in the panel", () => {
     fixture.config = { ...fixture.config, vps: { configured: false } };
     fixture.seed = { phase: "vps-unconfigured", resolved: { botId: "scout", threadId: "thread-scout", computer: "cloud", cloudBackend: "vps" } };
     const admin = render(makeBot({ computer: "cloud" }));
-    expect(admin.html).toContain("Connect your VPS in Settings to give bots their own private desktops.");
+    expect(admin.html).toContain("Connect your own machine in Settings to give bots their own private desktops.");
     expect(admin.html).not.toMatch(/Boat|API key|paid service/);
     const action = admin.button("Add your VPS")!;
     (action.props.onClick as () => void)();

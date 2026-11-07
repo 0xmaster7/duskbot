@@ -7,6 +7,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { DurationSequencer } from "./scripts/testing/duration-sequencer.ts";
 import { hostE2eOnly, portableE2eFiles } from "./scripts/testing/host-e2e.ts";
 import { hostTimeout } from "./server/testing/host-timeout.ts";
+import { bootShellHtml } from "./electron/startup-mascot.mjs";
 
 // The About dialog's version, inlined at build time: the preload bridge is
 // absent in dev.
@@ -31,6 +32,17 @@ function railPage(): Plugin {
   };
 }
 
+/** The app page paints a waiting mascot before its script has loaded. */
+function bootShell(): Plugin {
+  return {
+    name: "boot-shell",
+    transformIndexHtml: {
+      order: "pre",
+      handler: (html, context) => (context.filename.endsWith("index.html") ? html.replace('<div id="root"></div>', `<div id="root"></div>${bootShellHtml()}`) : html),
+    },
+  };
+}
+
 const include = [
   "evals/**/*.test.ts",
   "server/**/*.test.ts",
@@ -46,7 +58,7 @@ const include = [
 ];
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), railPage()],
+  plugins: [react(), tailwindcss(), railPage(), bootShell()],
   build: {
     rollupOptions: { input: { index: page("./index.html"), rail: page("./rail.html") } },
   },
