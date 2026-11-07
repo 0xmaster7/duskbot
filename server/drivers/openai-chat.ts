@@ -18,6 +18,7 @@ import { noteToolBudget } from "../tool-budgets.ts";
 import { assertImageTransport, chatImageBudget, chatToolImages, chatUserContent, type ChatContentPart } from "./chat-images.ts";
 import { promptHalves, volatileContextNote, withContextNote } from "./prompt-split.ts";
 import { createChatToolApproval, refusal } from "./chat-tool-approval.ts";
+import { chatToolBatches } from "./chat-tool-batches.ts";
 import { ChatProtocolError, ChatReasoningDetails, ChatToolCalls, object, type ChatToolCall } from "./openai-chat-protocol.ts";
 import { completionError, httpErrorDetail, refusedToolCall, refusedToolCallFailure, rejectsReasoningReplay, rejectsToolsParameter, RejectedToolCallError, UnsupportedChatToolsError, UnsupportedReasoningReplayError, type ProviderBody } from "./openai-chat-refusals.ts";
 import { ChatRepeatGuard } from "./chat-repeat-guard.ts";
@@ -141,7 +142,6 @@ const asError = (value: unknown): Error =>
 
 const MAX_CHAT_ROUNDS = 64;
 const MAX_TURN_TOOL_CALLS = 200;
-const MAX_PARALLEL_READS = 4;
 const MAX_ANNOUNCEMENT_NUDGES = 3;
 const stoppedAfter = (count: string) =>
   `Stopped after ${count} without a final answer. The steps so far already ran, so ask only for what's left.`;
@@ -783,21 +783,9 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
           }
           if (seenCalls.size > MAX_TURN_TOOL_CALLS) throw new ChatProtocolError(stoppedAfter(`${MAX_TURN_TOOL_CALLS} tool calls`));
           messages.push(assistantReply(model, completion, completion.text || null, completion.toolCalls));
-          // A failure stays pending only until the bot runs tools again: one that went on to use more tools has read the error
-          // and reacted (a wrong guess, a bad query, then the right call), so its turn is not failed for it, on any model. The
-          // failed step still shows as failed; a failure in the last calls before the answer, or a person's no, still ends it.
           if (!denials.length) { toolFailed = false; failedCalls.length = 0; }
           const screenshotParts: ChatContentPart[] = [];
           const session = tools;
-          const parallelRead = (call: ChatToolCall): boolean => {
-            if (call.function.name === ASK_USER_TOOL) return false;
-            try {
-              const args = object(JSON.parse(call.function.arguments));
-              if (!args || !session.parallel(call.function.name, args)) return false;
-              const shown = session.view(call.function.name, args);
-              return (turn.approvalModeNow?.() ?? turn.approvalMode) === "full" || !shown.ask || approval.covered(shown.grant);
-            } catch { return false; }
-          };
           const executeCall = async (call: ChatToolCall) => {
             let result: ChatToolResult;
             let started = false;
@@ -877,15 +865,8 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
             emit({ ...base(turn.threadId, turnId), type: "item.completed", itemType: "tool", itemId: call.id, ok: result.ok, output });
             return { call, result, text, title, fatal, skipRepeatCount };
           };
-          for (let index = 0; index < completion.toolCalls.length;) {
-            abort.signal.throwIfAborted();
-            const batch = [completion.toolCalls[index++]!];
-            if (parallelRead(batch[0]!)) {
-              while (batch.length < MAX_PARALLEL_READS && index < completion.toolCalls.length && parallelRead(completion.toolCalls[index]!)) {
-                batch.push(completion.toolCalls[index++]!);
-              }
-            }
-            const results = await Promise.all(batch.map(executeCall));
+          for await (const results of chatToolBatches(completion.toolCalls, { session, signal: abort.signal,
+            full: () => (turn.approvalModeNow?.() ?? turn.approvalMode) === "full", covered: approval.covered, execute: executeCall })) {
             for (const { call, result, text, title, skipRepeatCount } of results) {
               const repeatNote = skipRepeatCount ? undefined : repeats?.noteAfter(call.function.name, call.function.arguments, result);
               if (!result.ok) { toolFailed = true; failedCalls.push(title); }

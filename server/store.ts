@@ -1,3 +1,4 @@
+import { UNTITLED_TASK, UNTITLED_THREAD, threadTitleFrom, titleFromMessage } from "./thread-title.ts";
 import { chmodSync, existsSync, readFileSync, mkdirSync, rmSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path"; import { isDeepStrictEqual } from "node:util";
 
@@ -138,34 +139,7 @@ export type StoreChange =
   | { type: "group"; groupId: string }
   | { type: "group.deleted"; groupId: string };
 
-export const UNTITLED_TASK = "New task";
-export const UNTITLED_THREAD = "New thread";
-
-/** Every title (a bot's or a person's) passes through here, so equality tells a machine-made title from a rename. */
-const TASK_TITLE_MAX = 80;
-export function threadTitleFrom(title?: string): string {
-  return title?.trim().slice(0, TASK_TITLE_MAX) || UNTITLED_THREAD;
-}
-
-export function titleFromMessage(text: string): string {
-  const line = text.trim().split("\n")[0]!.trim();
-  return line.length > 48 ? `${line.slice(0, 47)}…` : line || UNTITLED_TASK;
-}
-
-export function titleFromLlm(raw: string): string | null {
-  const line = raw
-    .trim()
-    .split("\n")[0]!
-    .replace(/^[#*\-\u2022]+/, "")
-    .replace(/^["'\u201C\u201D\u2018\u2019\u0060]+/, "")
-    .replace(/["'\u201C\u201D\u2018\u2019\u0060]+$/, "")
-    .replace(/^[#*\-\u2022]+/, "")
-    .replace(/[#*]+$/, "")
-    .replace(/[.\u3002]+$/, "")
-    .replace(/\s+/g, " ")
-    .trim();
-  return line.length >= 1 && line.length <= 48 ? line : null;
-}
+export { UNTITLED_TASK, UNTITLED_THREAD, threadTitleFrom, titleFromMessage, titleFromLlm } from "./thread-title.ts";
 
 export interface BotRecord extends Omit<WireBot, "avatarUrl" | "tasks"> {
   tasks?: TaskRecord[];
@@ -1150,6 +1124,11 @@ export class Store {
   messagesFor(threadId: string): Message[] {
     threadId = this.roomThreadOf(threadId);
     return this.thread(threadId).messages;
+  }
+
+  messagesPreview(threadId: string, limit: number): Message[] {
+    this.messagesTail(threadId, 1);
+    return mdb.readThreadPreview(this.roomThreadOf(threadId), limit);
   }
 
   /** Legacy rows without a parentId chain only on a full load, so a bounded page missing that context falls back to one. */

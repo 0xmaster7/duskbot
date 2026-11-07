@@ -290,7 +290,7 @@ export function BrowserPage({ bot, derived }: PageContext) {
   return <BrowserLogins bot={bot} browserEnabled={derived.browserEnabled} onOpenBrowser={() => openComputer("browser")} />;
 }
 
-export function PageBody({ page, onOpen, editingInstructions: _editing, onEditInstructions: _onEdit, ...context }: PageContext & {
+export function PageBody({ page, onOpen: _onOpen, editingInstructions: _editing, onEditInstructions: _onEdit, ...context }: PageContext & {
   page: SimplePageId;
   onOpen?: (page: SimplePageId) => void;
   editingInstructions?: boolean;

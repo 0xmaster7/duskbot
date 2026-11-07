@@ -128,14 +128,14 @@ describe("AccessSection always-allowed list", () => {
   it("keeps per-bot MCP changes disabled while any task is active", () => {
     fixture.servers = [{ name: "notes", enabled: true }, { name: "offline", enabled: false }];
     const markup = render(makeBot({ busy: true, mcpServers: ["notes"] }));
-    expect(markup).toMatch(/<button[^>]*aria-label="Let\ this\ bot\ use\ notes"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Let\ this\ bot\ use\ notes"/);
-    expect(markup).toMatch(/<button[^>]*aria-label="Let\ this\ bot\ use\ offline"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Let\ this\ bot\ use\ offline"/);
+    expect(markup).toMatch(/<button[^>]*aria-label="Let this bot use notes"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Let this bot use notes"/);
+    expect(markup).toMatch(/<button[^>]*aria-label="Let this bot use offline"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Let this bot use offline"/);
     expect(markup).toMatch(/<button type="button" disabled=""[^>]*>Use every enabled server<\/button>/);
     expect(markup).toContain("finishes all active tasks");
     expect(markup).toContain("Individual tool approvals depend on the model provider and approval mode.");
     const idle = render(makeBot({ mcpServers: ["notes"] }));
-    expect(idle).not.toMatch(/<button[^>]*aria-label="Let\ this\ bot\ use\ notes"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Let\ this\ bot\ use\ notes"/);
-    expect(idle).toMatch(/<button[^>]*aria-label="Let\ this\ bot\ use\ offline"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Let\ this\ bot\ use\ offline"/);
+    expect(idle).not.toMatch(/<button[^>]*aria-label="Let this bot use notes"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Let this bot use notes"/);
+    expect(idle).toMatch(/<button[^>]*aria-label="Let this bot use offline"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Let this bot use offline"/);
     expect(idle).not.toContain("finishes all active tasks");
   });
 
@@ -163,7 +163,7 @@ describe("AccessSection always-allowed list", () => {
     expect(markup).toContain("Could not refresh MCP servers.");
     expect(markup).toContain("Retry");
     expect(markup).toContain('role="alert"');
-    expect(markup).toMatch(/<button[^>]*aria-label="Let\ this\ bot\ use\ notes"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Let\ this\ bot\ use\ notes"/);
+    expect(markup).toMatch(/<button[^>]*aria-label="Let this bot use notes"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Let this bot use notes"/);
   });
 
   it("shows a placeholder when nothing is standing yet", () => {
