@@ -430,9 +430,12 @@ export const ASK_CHIP_PICKED = "border-accent bg-accent/15 text-ink";
 export const ASK_SMALL_PILL = ASK_CONTROL;
 export const ASK_QUIET_BUTTON = `${ASK_SMALL_PILL} -my-1 text-ink-tertiary hover:bg-ink/[0.07] hover:text-ink-secondary`;
 
-/** Grok's card field: no fill, one 12% hairline, 32 tall, 10px corners; focus only deepens the hairline. */
+/**
+ * Grok's card field: no fill, one quiet hairline, 32 tall, 10px corners, unchanged when focused (the caret is the cue).
+ * Moving by keyboard draws the app's grey focus ring around it, never a blue one.
+ */
 export const CARD_FIELD =
-  "h-8 rounded-[10px] border border-ink/[0.12] bg-transparent px-3 text-[14px] leading-5 text-ink outline-none placeholder:text-ink-tertiary focus:border-ink/[0.28] disabled:opacity-60 pointer-coarse:h-11";
+  "h-8 rounded-[10px] border border-ink/[0.12] bg-transparent px-3 text-[14px] leading-5 text-ink outline-none placeholder:text-ink-tertiary focus-visible:ring-2 disabled:opacity-60 pointer-coarse:h-11";
 
 export const ASK_FIELD =
   "h-7 rounded-full border border-hairline/60 bg-inset px-3 text-[13px] leading-5 text-ink outline-none placeholder:text-ink-tertiary focus:border-accent disabled:opacity-60 pointer-coarse:h-9";

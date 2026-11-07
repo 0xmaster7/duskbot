@@ -2,7 +2,7 @@ import { createElement, type KeyboardEvent } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { askPrimary, AskCard, AskChoices, AskDetail, AskHeader, AskReply, AskSettledLine, ASK_SECONDARY_BUTTON, ASK_QUIET_ANSWER, CARD_BUTTON_MD, CardSettledRow, cardPrimary, cardSecondary, cardTertiary, moveChoiceFocus, settledAnswer } from "./AskCard";
+import { askPrimary, AskCard, AskChoices, AskDetail, AskHeader, AskReply, AskSettledLine, ASK_SECONDARY_BUTTON, ASK_QUIET_ANSWER, CARD_BUTTON_MD, CARD_FIELD, CardSettledRow, cardPrimary, cardSecondary, cardTertiary, moveChoiceFocus, settledAnswer } from "./AskCard";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -110,6 +110,13 @@ describe("grok's card anatomy", () => {
     expect(html).toContain('aria-expanded="false"');
     expect(html).toMatch(/text-ink-tertiary">Saved · Stripe key</);
     expect(html).not.toContain("Saved securely.");
+  });
+
+  it("keeps a card field's hairline when focused, with only the keyboard's grey ring", () => {
+    const classes = CARD_FIELD.split(" ");
+    expect(classes).toEqual(expect.arrayContaining(["border", "bg-transparent", "rounded-[10px]", "h-8", "focus-visible:ring-2"]));
+    expect(classes.some((name) => name.startsWith("focus:"))).toBe(false);
+    expect(CARD_FIELD).not.toMatch(/ring-(accent|focus|blue)/);
   });
 
   it("sizes the answers like grok: 36 for a card's own, 32 for a permission's, ink, a 6% fill, bare text", () => {
