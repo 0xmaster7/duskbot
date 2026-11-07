@@ -451,8 +451,7 @@ export const EXCERPT_SUMMARY_HEADER = "Historical excerpts in chronological orde
 
 /** One transcript line, serialized as stored. */
 export interface WireMessage extends HelperIntroField, SetupCardFields, WaitLineField, BugReportField {
-  roomRequest?: { id: string; phase: "request" | "result" };
-  handoff?: import("./handoff-line.ts").HandoffLine;
+  roomRequest?: { id: string; phase: "request" | "result" }; handoff?: import("./handoff-line.ts").HandoffLine;
   id: string;
   role: "bot" | "user";
   kind: "text" | "options" | "activity" | "screen" | "connector" | "secret" | "signin" | "routine.run" | "goal.run" | "digest" | "compaction" | "call" | "widget" | "app";
