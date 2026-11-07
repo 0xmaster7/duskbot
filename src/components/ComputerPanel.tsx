@@ -138,8 +138,9 @@ export function ComputerPanel({
   const { panelWidth, separatorRef, separatorWidth, onSeparatorKeyDown, onResizeStart, onResizeMove, onResizeEnd } = useComputerPanelResize();
   const { state, dispatch, flushBotPatches } = useStore();
   const liveTask = profileBot.tasks?.find((task) => task.threadId === profileBot.threadId);
-  const livePlace = effectivePlace(profileBot, liveTask);
   const livePin = personPin(liveTask);
+  // a place Auto picked for an earlier turn is not a pin: the panel still shows what Auto would use now
+  const livePlace = effectivePlace(profileBot, livePin ? liveTask : null);
   const threadBot = currentTaskBot(profileBot);
   const connectionKey = `${profileBot.id}:${profileBot.threadId}:${livePlace}:vps:${threadBot.modelSelection.instanceId}:${profileBot.vpsAlias ?? ""}:${profileBot.section ?? ""}:${state.config?.vps?.sshAlias ?? ""}:${state.config?.vps?.mode ?? "shared"}:${state.config?.vps?.independentScreens ?? true}`;
   const [autoSurface, setAutoSurface] = useState<{ key: string; surface: Bot["computer"]; revision: number; status?: VpsComputerStatus } | null>(null);
