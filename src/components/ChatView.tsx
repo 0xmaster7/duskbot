@@ -90,7 +90,7 @@ import { AttachmentGallery, collectMessageFiles, replyAttachmentGroup, splitMess
 import { ScreenFrame } from "./ScreenFrame";
 import { DigestChip } from "./DigestChip";
 import { ChatHeadRole, chiefOfStaffBadge } from "./BotRole";
-import { ChatHeadPill } from "./ChatHeadPill"; import { TranscriptSkeleton } from "./TranscriptSkeleton"; import { useStoreRef } from "@/state/store-ref";
+import { ChatHeadPill } from "./ChatHeadPill"; import { useStoreRef } from "@/state/store-ref";
 import { ELEVATED_FLOAT, ELEVATED_HOVER } from "./elevated";
 import { ModelPicker } from "./ModelPicker";
 import { ChatHeaderMenu, ChatMoreMenu } from "./ChatMoreMenu"; import { TeamOwnHelperHeader, TeamPrivateFirstLine, TeamPrivateHeader, TeamSharedHeader } from "./TeamPrivateChatsLine";
@@ -1225,7 +1225,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           ) : hiddenCount > 0 || bot.hasMore ? (
             <div ref={topSentinelRef} className="h-2 w-full pointer-events-none" aria-hidden="true" />
           ) : null}
-          {transcriptPending ? <TranscriptSkeleton /> : windowedMessages.length === 0 && !bot.busy && <EmptyChat bot={bot} />}
+          {windowedMessages.length === 0 && !bot.busy && !transcriptPending && <EmptyChat bot={bot} />}
           <ChatRowsContext.Provider value={rows}><LiveToolsContext value={liveTools}><ChatBusyContext value={busy}><FoldedNoticesContext value={folded}>
             <MessagesList
               messages={paintedMessages}

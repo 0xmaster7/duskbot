@@ -24,6 +24,8 @@ import type { BotRecord, GroupRecord, Message, Store } from "../store.ts";
 import { createJobRoutes } from "./jobs.ts";
 import { PASS, type RouteContext, type RouteHandler } from "./table.ts";
 
+/** How many of each conversation's newest messages GET /api/transcripts sends when not asked for a number. */
+export const RECENT_PAGE = 50;
 const UPLOADED_NAME = /^[A-Za-z0-9-]+\.[A-Za-z0-9]{1,10}$/;
 
 export type MessagePage = { messages: Array<Message | Record<string, unknown>>; hasMore?: boolean; activeLeafId: string | null };
@@ -130,6 +132,28 @@ export function createThreadRoutes(deps: ThreadRouteDeps): RouteHandler {
         ),
         ...(selective ? { loadedThreads } : {}),
       });
+    }
+
+    if (method === "GET" && path === "/api/transcripts") {
+      // every conversation the person can open, newest page each, in one reply: what a client keeps so any chat opens at once
+      const limit = url.searchParams.has("limit") ? pageSize(url.searchParams.get("limit")) : RECENT_PAGE;
+      if (limit === null || limit === undefined) return json(res, 400, { error: "limit must be a non-negative whole number" });
+      const wanted = url.searchParams.get("threads");
+      const only = wanted ? new Set(wanted.split(",").filter(Boolean)) : null;
+      const threads: Array<{ threadId: string; messages: unknown[]; hasMore?: boolean; activeLeafId: string | null }> = [];
+      const add = (threadId: string) => {
+        if (only && !only.has(threadId)) return;
+        const page = messagePage(threadId, limit);
+        threads.push({ threadId, messages: page.messages, hasMore: page.hasMore, activeLeafId: store.activeLeaf(threadId) });
+      };
+      for (const bot of store.bots) {
+        if (!visible.bot(bot.id)) continue;
+        // narrowed first, as for the list of bots: a conversation this person may not read never goes out
+        const shown = memberBot(wireBot(bot), visible) as { threadId?: unknown };
+        if (typeof shown.threadId === "string") add(shown.threadId);
+      }
+      for (const group of store.groups) if (visible.group(group.id)) add(group.threadId);
+      return json(res, 200, { threads });
     }
 
     m = path.match(/^\/api\/threads\/([\w-]+)\/messages$/);
