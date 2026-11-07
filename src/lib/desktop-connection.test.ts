@@ -78,7 +78,8 @@ describe("connecting to a desktop", () => {
   it("opens a VPS's tunnel for this conversation first", async () => {
     await connectDesktop(document.createElement("div"), "vps/scout", { threadId: "thread", signal: new AbortController().signal, events: events() });
     expect(asked).toEqual(["POST /api/bots/scout/computer/join?viewer=proxy&threadId=thread", "GET /api/desktop-viewer/vps/scout?threadId=thread"]);
-    expect(clients[0]!.url).toBe(`ws://${location.host}/api/desktop-viewer/vps/scout/websockify?threadId=thread`);
+    // the server answers the desktop's handshake for a VPS viewer
+    expect(clients[0]!.url).toBe(`ws://${location.host}/api/desktop-viewer/vps/scout/websockify?threadId=thread&rfb=server`);
   });
 
   it("waits for decoded pixels before enabling control", async () => {
@@ -102,6 +103,16 @@ describe("connecting to a desktop", () => {
     await connectDesktop(document.createElement("div"), "vps/scout", { signal: new AbortController().signal, events: events() });
     expect(asked).toEqual(["/api/bots/scout/computer/join?viewer=proxy"]);
     expect(clients[0]!.password).toBe("fixture");
+  });
+
+  it("asks for the picture beside a wake, so the server opens it the moment the container runs", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      asked.push(url);
+      return new Response(JSON.stringify({ viewer: { password: "fixture" } }));
+    }));
+    await connectDesktop(document.createElement("div"), "vps/scout", { threadId: "thread", wake: true, signal: new AbortController().signal, events: events() });
+    expect(asked).toEqual(["/api/bots/scout/computer/join?viewer=proxy&wake=1&threadId=thread"]);
+    expect(clients[0]!.url).toBe(`ws://${location.host}/api/desktop-viewer/vps/scout/websockify?threadId=thread&rfb=server`);
   });
 
   it("refuses a target the proxy does not serve, before any request", async () => {

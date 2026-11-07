@@ -110,6 +110,8 @@ interface LocalVmStatus {
 }
 
 const FULLSCREEN_MARK = "rgb(255 255 255 / 0.88)";
+/** Readiness checks while a cloud computer starts: twenty quick ones, then every two seconds, about half a minute. */
+const STARTING_POLLS = 33;
 
 const computerControlSnapshotSchema = z.object({
   held: z.boolean().optional().default(false),
@@ -250,6 +252,8 @@ export function ComputerPanel({
     "join" | "sleep" | "provision" | "vps-replace" | "vm-start" | "vm-create" | "vm-recreate" | "vm-delete" | null
   >(null);
   const [controlPending, setControlPending] = useState(false);
+  // the person woke this computer: its picture is asked for beside the wake, keyed to the conversation it began in
+  const [wakeViewer, setWakeViewer] = useState<string | null>(null);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [error, setError] = useState<Error | string | null>(null);
   const errorText = panelErrorText(error);
@@ -513,11 +517,12 @@ export function ComputerPanel({
           setPhase("vps-stopped");
           return;
         }
-        if ((status.state === "starting" || (status.container === "running" && status.managed && status.imageMatches)) && vpsReadinessAttempts.current < 15) {
+        if ((status.state === "starting" || (status.container === "running" && status.managed && status.imageMatches)) && vpsReadinessAttempts.current < STARTING_POLLS) {
           vpsReadinessAttempts.current++;
           setError(null);
           setPhase("starting");
-          readinessTimer = window.setTimeout(() => setRetry(value => value + 1), 2000);
+          // computer-state frames usually say ready first; this only covers a missed one, briefly at first
+          readinessTimer = window.setTimeout(() => setRetry(value => value + 1), vpsReadinessAttempts.current <= 20 ? 250 : 2000);
           return;
         }
         setContainerState(status.container ?? null);
@@ -594,9 +599,10 @@ export function ComputerPanel({
     });
     return snap;
   }, [bot.id, dispatch]);
+  const wakingHere = wakeViewer === viewerConnectionKey && pending === "provision" && bot.computer === "cloud" && !vpsStatus?.teamComputer;
   const liveTarget = !computerStatusCurrent ? null
     : phase === "vm" && vmStatus?.viewer_url && vmStatus.target_key ? viewerTargetId({ key: vmStatus.target_key })
-      : cloudPreviewReady ? `vps/${bot.id}` : null;
+      : cloudPreviewReady || wakingHere ? `vps/${bot.id}` : null;
   const windowVisible = usePageVisible();
   const pageVisible = windowVisible && visible;
   const livePreview = Boolean(liveTarget) && livePreviewFailed !== viewerConnectionKey && pageVisible;
@@ -605,7 +611,8 @@ export function ComputerPanel({
     viewerClose: null,
   });
   const liveHere = takeover.here && Boolean(liveTarget);
-  useEffect(() => { if (liveTarget) void loadLiveDesktop(); }, [liveTarget]);
+  // the viewer's code is fetched while the computer sleeps, so waking it never waits on a download
+  useEffect(() => { if (liveTarget || bot.computer === "cloud" || bot.computer === "vm") void loadLiveDesktop(); }, [liveTarget, bot.computer]);
 
   const liveLocal = useLiveScreen((Boolean(fullscreen) || inline) && phase === "local" && !isLinux && computerStatusCurrent && pageVisible, inline && !takeover.expanded ? LIVE_FPS.preview : LIVE_FPS.full);
   const localStreaming = (Boolean(fullscreen) || inline) && (liveLocal.status === "live" || liveLocal.status === "starting");
@@ -865,7 +872,7 @@ export function ComputerPanel({
     if (computerAction.current) return;
     const controller = new AbortController();
     computerAction.current = controller;
-    if (kind === "provision") setPhase("starting");
+    if (kind === "provision") { setPhase("starting"); setWakeViewer(viewerConnectionKey); setLivePreviewFailed(null); }
     setPending(kind);
     setError(null);
     return api(threadPath(`computer/${kind}`), { method: "POST", signal: controller.signal })
@@ -1145,9 +1152,10 @@ export function ComputerPanel({
 
   const wakingView = (cover = false) => <ComputerWaking bot={bot} cover={cover} />;
   const remoteFrame = (liveHere || livePreview) && liveTarget ? (
-      <Suspense fallback={inline ? wakingView() : null}>
-        <LiveDesktop key={viewerConnectionKey} waking={(expanded) => wakingView(expanded || Boolean(fullscreen))} onScreenSize={(width, height) => setScreenAspect(width / height)}
-          target={liveTarget} threadId={bot.threadId} name={bot.name} poster={frameSrc} viewOnly={!liveHere}
+      <Suspense fallback={null}>
+        {/* inline, the panel itself holds the waking picture, so it plays once through the whole wake */}
+        <LiveDesktop key={viewerConnectionKey} waking={(expanded) => (inline && !expanded ? null : wakingView(expanded || Boolean(fullscreen)))} onScreenSize={(width, height) => setScreenAspect(width / height)}
+          target={liveTarget} threadId={bot.threadId} name={bot.name} poster={frameSrc} viewOnly={!liveHere} wake={wakingHere} taking={controlPending}
           expanded={takeover.expanded} onExpandedChange={(expanded) => {
             if (!expanded && inline && takeover.here) void handBack(); else takeover.setExpanded(expanded);
           }}
@@ -1178,12 +1186,14 @@ export function ComputerPanel({
       ? <LiveScreenVideo stream={liveLocal.stream} playing={pageVisible} className="absolute inset-0 size-full object-contain" />
       : !waking && frameSrc ? <img src={frameSrc} alt={t("computer.screenOf", { name: bot.name })} className="absolute inset-0 size-full object-contain" /> : null);
     const stage = remoteFrame ? desktopDecoded ? "screen" : "loading" : frame ? "screen" : waking ? "loading" : phase === "off" ? "off" : "asleep";
-    // a wake the person asked for shows the bot waking up until the live screen paints itself over it
+    // a wake the person asked for shows the bot waking up until the live screen paints itself over it; one element in
+    // one place for the whole wake, so its animation never starts over
     const wakeRequested = !frame && (pending === "provision" || pending === "vm-start" || phase === "starting");
+    const wakingShown = wakeRequested || Boolean(remoteFrame && !desktopDecoded && !takeover.expanded);
     return (
       <div data-inline-computer="" data-stage={stage}>
         <div data-panel-screen="" aria-busy={stage === "loading" || undefined} className={COMPUTER_FRAME_CLASS} style={{ aspectRatio: String(screenAspect) }}>
-          {wakeRequested ? wakingView() : frame ?? (
+          {wakeRequested ? null : frame ?? (
             <button type="button" data-panel-action="open-computer" data-stage={stage} onClick={wake} disabled={waking || phase === "off" || needsAdmin || (phase === "error" && !vpsStatus?.configured)}
               aria-label={frameActionLabel}
               className="flex size-full flex-col items-center justify-center gap-1.5 px-5 enabled:cursor-pointer enabled:transition-[background-color] enabled:duration-100 enabled:hover:bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_8%)] focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--color-ink)_22%,transparent)] disabled:cursor-default">
@@ -1196,6 +1206,7 @@ export function ComputerPanel({
             onClick={() => setLivePreviewFailed(null)} className="absolute inset-0 flex cursor-pointer items-end justify-center pb-3">
             <span className="rounded-lg bg-card/90 px-3 py-1.5 text-[12px] text-ink">{t("computer.preview.retry")}</span>
           </button>}
+          {wakingShown ? wakingView() : null}
         </div>
         {errorText && phase !== "vps-stopped" && phase !== "vps-unconfigured" && <p role="alert" className="mt-1 px-1 text-[12px] text-danger">{errorText}</p>}
       </div>

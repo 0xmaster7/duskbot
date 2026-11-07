@@ -22,14 +22,16 @@ export async function connectDesktop(screen: HTMLElement, target: string, option
   threadId?: string | null;
   signal: AbortSignal;
   viewOnly?: boolean;
+  /** The computer is being woken right now: the server opens its picture as soon as the container runs. */
+  wake?: boolean;
   events: DesktopConnectionEvents;
 }): Promise<RFB> {
   if (!DESKTOP_VIEWER_TARGET.test(target)) throw new DesktopUnreachable(true);
   const { signal: cancelled, events } = options;
-  const signal = AbortSignal.any([cancelled, AbortSignal.timeout(30_000)]);
+  const signal = AbortSignal.any([cancelled, AbortSignal.timeout(options.wake ? 75_000 : 30_000)]);
   let config: { password?: string | null } | undefined;
   if (target.startsWith("vps/")) {
-    const query = `?${new URLSearchParams({ viewer: "proxy", ...(options.threadId ? { threadId: options.threadId } : {}) })}`;
+    const query = `?${new URLSearchParams({ viewer: "proxy", ...(options.wake ? { wake: "1" } : {}), ...(options.threadId ? { threadId: options.threadId } : {}) })}`;
     const joined = await fetch(`/api/bots/${target.slice(4)}/computer/join${query}`, {
       method: "POST", headers: { "content-type": "application/json" }, body: "{}", signal,
     });
@@ -45,7 +47,9 @@ export async function connectDesktop(screen: HTMLElement, target: string, option
     config = await response.json();
   }
   cancelled.throwIfAborted();
-  const websocket = new URL(`${path}/websockify${query}`, location.href);
+  // a VPS server answers the desktop's handshake itself, so the first picture is one round trip away, not five
+  const socketQuery = target.startsWith("vps/") ? `?${new URLSearchParams({ ...(options.threadId ? { threadId: options.threadId } : {}), rfb: "server" })}` : query;
+  const websocket = new URL(`${path}/websockify${socketQuery}`, location.href);
   websocket.protocol = location.protocol === "https:" ? "wss:" : "ws:";
   const client = new RFB(screen, websocket.href, {
     credentials: { password: config?.password ?? "", username: "", target: "" },
