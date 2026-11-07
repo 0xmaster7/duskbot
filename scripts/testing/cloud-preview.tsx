@@ -41,26 +41,14 @@ const vmResumeStatus = () => ({
 // A host capture outlives an aborted renderer fetch. Keep this work pending
 // until explicitly released, so reconnects exercise real lifecycle contention.
 const transport = {
+  documentId: crypto.randomUUID(),
   resetVm: () => { vmRunning = false; vmDesktopReady = false; }, vmStarts: 0, vmReadinessReads: 0, requests: 0, aborted: 0, conflicts: 0, capturing: false,
-  joining: false, duringJoin: 0, controlCalls: 0, opened: 0, abortedJoins: 0,
-  releaseCapture: () => {}, releaseJoin: () => {},
+  controlCalls: 0,
+  releaseCapture: () => {},
   screenshot: `data:image/png;base64,${screenshot}`,
   vmScreenshot, paths: [] as string[], vmRequests: 0, vmPending: false, releaseVm: () => {},
 };
 Object.assign(window, { cloudPreviewFixture: transport });
-const viewerListeners = new Set<(state: { open: boolean; contextId: string }) => void>();
-Object.assign(window, { ogb: { desktopViewer: {
-  currentState: async () => ({ open: false, contextId: "" }),
-  onState: (listener: (state: { open: boolean; contextId: string }) => void) => {
-    viewerListeners.add(listener);
-    return () => viewerListeners.delete(listener);
-  },
-  open: async (_url: string, _title: string, contextId: string) => {
-    transport.opened++;
-    for (const listener of viewerListeners) listener({ open: true, contextId });
-    return true;
-  },
-} } });
 let turnActive = false;
 const originalFetch = window.fetch.bind(window);
 window.fetch = async (input, init) => {
@@ -70,7 +58,7 @@ window.fetch = async (input, init) => {
   const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
     status, headers: { "content-type": "application/json" },
   });
-  if (/^\/api\/bots\/[\w-]+\/computer$/.test(path)) return json({ surface: surfaceScenario === "auto-vm" ? "vm" : "cloud", configured: true, box: { state: "idle" } });
+  if (/^\/api\/bots\/[\w-]+\/computer$/.test(path)) return json({ surface: surfaceScenario === "auto-vm" ? "vm" : "cloud", backend: "vps", configured: true, ready: true, managed: true, imageMatches: true, container: "running", problem: null });
   if (path.endsWith("/local-computer/start")) {
     transport.vmStarts++;
     vmRunning = true;
@@ -96,11 +84,10 @@ window.fetch = async (input, init) => {
   // The real server refuses provision/sleep while a turn owns the boat.
   if (path.endsWith("/computer/provision")) {
     if (turnActive) return json({ error: CLOUD_COMPUTER_BUSY_ERROR }, 409);
-    return json({ state: "idle" });
+    return json({ configured: true, ready: true, managed: true, imageMatches: true, container: "running", problem: null });
   }
   if (path.endsWith("/computer/screenshot")) {
     transport.requests++;
-    if (transport.joining) transport.duringJoin++;
     const selectedMode = mode;
     if (transport.capturing || selectedMode === "contended") {
       transport.conflicts++;
@@ -139,15 +126,8 @@ window.fetch = async (input, init) => {
     transport.controlCalls++;
     return json({ held: JSON.parse(String(init.body)).action === "take", helpReason: null });
   }
-  if (path.endsWith("/computer/join")) {
-    transport.joining = true;
-    await new Promise<void>((resolve, reject) => {
-      const abort = () => { transport.joining = false; transport.abortedJoins++; reject(init?.signal?.reason); };
-      transport.releaseJoin = () => { init?.signal?.removeEventListener("abort", abort); transport.joining = false; resolve(); };
-      if (init?.signal?.aborted) abort();
-      else init?.signal?.addEventListener("abort", abort, { once: true });
-    });
-    return json({ joinUrl: "/vps-viewer/fixture/" });
+  if (path.endsWith("/computer/join") || path.startsWith("/api/desktop-viewer/")) {
+    return json({ error: "This fixture exercises screenshot fallback" }, 409);
   }
   // Never allow the fixture's lifecycle actions to reach a real provider.
   if (path.endsWith("/computer/sleep")) {
@@ -165,7 +145,7 @@ function Fixture() {
   const [scenario, setScenario] = useState("default");
   useEffect(() => {
     if (bot) {
-      dispatch({ type: "updateBot", botId: bot.id, patch: { computer: "cloud", cloudBackend: "box" } });
+      dispatch({ type: "updateBot", botId: bot.id, patch: { computer: "cloud", cloudBackend: "vps" } });
       dispatch({ type: "toggleComputer", open: true });
     }
   }, [bot?.id, dispatch]);
@@ -210,7 +190,6 @@ function Fixture() {
       <button onClick={() => setGeneration((n) => n + 1)}>Reconnect panel</button>
       <button onClick={() => { turnActive = !busy; setBusy(!busy); }}>Busy: {String(busy)}</button>
       <button onClick={() => transport.releaseCapture()}>Release held capture</button>
-      <button onClick={() => transport.releaseJoin()}>Release desktop join</button>
       <button onClick={() => transport.releaseVm()}>Release VM capture</button>
       <button onClick={() => { vmDesktopReady = true; }}>Finish VM startup</button>
       <button disabled={!fixtureBot} onClick={() => fixtureBot && publishLiveFrame({

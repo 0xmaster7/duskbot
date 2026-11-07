@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { boatCapableEngine, isActiveTurnRefusal, isRemoteScreenshotContention, remoteScreenshotSource } from "@/lib/remote-desktop";
+import { computerCapableEngine, isActiveTurnRefusal, isRemoteScreenshotContention, remoteScreenshotSource } from "@/lib/remote-desktop";
 import type { InstanceInfo } from "@/state/store";
 import { CLOUD_COMPUTER_BUSY_ERROR } from "../../shared/computer-contention";
 
 describe("remote VPS preview", () => {
-  it("runs the cloud computer on the bot's own engine, never on a swapped-in Boat runner", () => {
+  it("runs the cloud computer on the bot's own engine, never on a substituted engine", () => {
     const plain = { instanceId: "plain", driverKind: "openai-compat", snapshot: { state: "available" }, capabilities: { computerMcp: false } } as InstanceInfo;
     const tools = { ...plain, instanceId: "tools", driverKind: "claude", capabilities: { computerMcp: true } } as InstanceInfo;
-    expect(boatCapableEngine([plain, tools], "plain")).toBeUndefined();
-    expect(boatCapableEngine([plain, tools], "tools")).toBe(tools);
-    expect(boatCapableEngine([plain, { ...tools, snapshot: { state: "unavailable" } }], "tools")?.snapshot.state).toBe("unavailable");
-    expect(boatCapableEngine([plain, tools])).toBeUndefined();
+    expect(computerCapableEngine([plain, tools], "plain")).toBeUndefined();
+    expect(computerCapableEngine([plain, tools], "tools")).toBe(tools);
+    expect(computerCapableEngine([plain, { ...tools, snapshot: { state: "unavailable" } }], "tools")?.snapshot.state).toBe("unavailable");
+    expect(computerCapableEngine([plain, tools])).toBeUndefined();
   });
   it("retries only known transient contention, not permanent 409 failures", () => {
     expect(isRemoteScreenshotContention({ status: 409, message: "this bot's cloud computer is being changed — wait for it to finish" })).toBe(true);

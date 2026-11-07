@@ -142,3 +142,69 @@ timeouts or assertions; no request retries were added.
 
 No live deployment, provider speedup, fleet-size promise or Windows/Linux
 native verification is implied by the local macOS measurements.
+
+## Selective startup history
+
+```sh
+pnpm exec vitest run server/selective-snapshot.e2e.test.ts server/message-db-rows.test.ts src/state/startup-hydration.test.ts src/state/startup-transcripts.test.ts src/components/sidebar-preview.test.ts
+```
+
+The HTTP fixture launches a disposable server with the fake engine and imports
+13 synthetic bots, each with two 220-message conversations, plus a room with
+two conversations. It compares the existing `messages=200` response with
+`messages=200&selected=<bot-or-room-id>`. The selected conversation keeps its
+200-message page; other conversations carry one canonical preview row and at
+most four sidebar summary rows. Legacy clients retain the existing response.
+
+On macOS arm64 with Node 26.7.0, this fixture measured 3,417,487 bytes for the
+full snapshot and 312,561 bytes for the selective snapshot, a 91% reduction.
+This measures synthetic JSON payload size, not elapsed app startup or live VPS
+latency. The fixture retains its server log and an adjacent
+`.selective-snapshot.json` evidence file, then removes its temporary data.
+
+The same HTTP fixture checks on-demand history, earlier pages, room selection,
+sibling thread switches, a fake-engine send and settled reply, and sidebar text
+after a receipt. Renderer tests check that slow settings/routine reads do not
+hold live replies, startup reads have deadlines and cancel on unmount, rapid
+selections share one history read, streamed edits survive delayed responses,
+and replacement snapshots invalidate cached transcripts. They also cover
+branch-update contention, earlier-page requests during initial loading, and
+unread dividers whose cursor was absent from the preview. These renderer
+checks use in-process synthetic transports; they do not prove native Electron
+or a customer's network.
+
+## Send acceptance and reply rendering
+
+```sh
+node scripts/bench-send.mjs
+pnpm exec vitest run src/state/send-confirmation.test.ts src/state/lost-send.test.ts scripts/testing/send-confirmation.e2e.test.ts src/components/live-reply-arrival.test.ts
+```
+
+The renderer benchmark uses a disposable fake-engine server and synthetic
+Pepper bot with computer/browser execution disabled. `--samples=6` is the default;
+1 through 30 samples are accepted. It uses the repository's headless browser
+fixture with its own temporary HOME and reports canonical reply SSE reception to transcript DOM insertion. Each command prints a retained
+JSON evidence path next to the server log and removes its temporary app data.
+Run serially on an idle host. This is development Chrome and a local fake engine,
+not provider latency, native Electron timing, or a production capacity claim.
+
+On macOS arm64 with Node 26.7.0, six serial backend samples measured a cold HTTP
+acceptance of 65.06 ms and warm acceptance of 6.12 to 7.76 ms. Warm canonical
+user SSE arrived in 8.23 to 10.54 ms and fake replies in 9.74 to 23.80 ms. The
+renderer separately imposed reply pacing: the six observed SSE-to-DOM delays
+were 34.3, 4.5, 68, 99.9, 129 and 145.4 ms. Removing that presentation hold
+reduced them to 9.3, 8.0, 4.2, 4.1, 8.1 and 8.6 ms: median 83.95 to 8.05 ms.
+These are small local samples; setup and initial server work remain observable.
+The settings-write barrier before execution remains required and unchanged.
+
+The isolated HTTP regression holds a relay's response after forwarding a real
+send. A matching canonical user SSE receipt releases the client send while
+that HTTP response remains unavailable. Aborting the owned request transport
+still lets the fake engine settle, and ten concurrent retries with the same
+send ID leave one canonical user message. HTTP success works without SSE;
+malformed success bodies, explicit refusals, timeout, lost response, rapid
+cross-chat sends, and delivery during retry backoff have focused coverage.
+The renderer regression inserts three fresh bot replies together and checks
+that chat and room transcripts render all three without advancing timers.
+Workspace switching navigates the Electron window to a new origin, creating
+a fresh page and live bus; send confirmation retains no process-wide cache.

@@ -68,8 +68,8 @@ describe("Team map frames", () => {
 
   it("never captures a machine that is asleep, starting, gone or under a person's control", async () => {
     const machines: FrameMachine[] = [
-      { owner: "asleep", boxId: "bx_a", state: "archived" },
-      { owner: "starting", boxId: "bx_s", state: "provisioning" },
+      { owner: "asleep", boxId: "bx_a", state: "exited" },
+      { owner: "starting", boxId: "bx_s", state: "created" },
       { owner: "failed", boxId: "bx_f", state: "error" },
       { owner: "held", boxId: "bx_h", state: "running" },
       { owner: "on", boxId: "bx_o", state: "idle" },
@@ -178,8 +178,11 @@ describe("map computer state", () => {
     expect(mapComputerState(undefined, false)).toBe("off");
     expect(mapComputerState(machine("running"), true)).toBe("working");
     expect(mapComputerState(machine("idle"), false)).toBe("idle");
-    expect(mapComputerState(machine("provisioning"), false)).toBe("starting");
-    expect(mapComputerState(machine("archived"), true)).toBe("asleep");
+    expect(mapComputerState(machine("created"), false)).toBe("starting");
+    expect(mapComputerState(machine("restarting"), false)).toBe("starting");
+    expect(mapComputerState(machine("paused"), false)).toBe("asleep");
+    expect(mapComputerState(machine("dead"), false)).toBe("problem");
+    expect(mapComputerState(machine("exited"), true)).toBe("asleep");
     expect(mapComputerState(machine("error"), false)).toBe("problem");
     expect(mapComputerState(machine("removing"), false)).toBe("off");
   });

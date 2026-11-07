@@ -203,12 +203,11 @@ rollback on a failed save. The MCP fixture verifies reviewed policy changes
 and the listing through the actual tool and API, using no live accounts.
 
 The routine tool defaults to `maus` (the bot's configured model and computer,
-including VPS); `box` explicitly selects the bot's Boat cloud computer, which the
-bot's own model drives through its computer tools. Legacy `cloud`
-values remain accepted without migrating existing routines. The cron tool
-fixture checks this default and the missing-Boat-account recovery instruction.
-The VPS fixture runs an actual scheduled execution with fake ACP/SSH and checks
-that the same VPS computer tools reach the agent without a Boat key. These are
+including VPS); `cloud` explicitly selects the bot's own VPS computer with the
+same model. The retired `box` choice is refused by the tool. The cron tool
+fixture checks the default and refusal. The VPS fixture runs a real routine
+execution with fake ACP/SSH and checks that the same VPS computer tools reach
+the agent without a paid desktop account. These are
 deterministic routing checks, not a live model-choice or real VPS acceptance test.
 
 ```sh
@@ -217,7 +216,8 @@ pnpm exec vitest run server/vps-routing.test.ts server/routine-cron.e2e.test.ts
 
 ```sh
 pnpm exec vitest run server/routines.test.ts server/routines-startup.test.ts server/routine-results.e2e.test.ts server/routine-delegation.e2e.test.ts server/drivers/agents-proxy.test.ts
-pnpm exec vitest run src/components/routines/RoutineViews.test.ts src/components/routines/ResultsDestination.test.ts src/components/bot-settings/RoutinesSection.test.ts src/components/RoutineRunCard.test.ts src/components/BotProjects.test.ts src/lib/folder-read.test.ts src/lib/computer-panel-view.test.ts src/state/store.test.ts
+pnpm exec vitest run server/routine-concurrency.test.ts server/routine-parallel-approvals.e2e.test.ts
+pnpm exec vitest run src/components/routines/RoutineViews.test.ts src/components/routines/ResultsDestination.test.ts src/components/bot-settings/RoutinesSection.test.ts src/components/RoutineRunCard.test.ts src/lib/folder-read.test.ts src/lib/computer-panel-view.test.ts src/state/store.test.ts
 ```
 
 The hand-off integration tests (`server/routine-delegation.e2e.test.ts`,
@@ -233,6 +233,15 @@ turn runs again once (§5), and the one-time import of a pre-runtime
 retained server-log and JSON evidence paths. These complement the scheduler,
 proposal and renderer tests; they do not prove real-provider tool selection,
 actual desktop work, or packaged Electron behavior.
+
+The parallel-approval fixture opens two permission requests through a running
+routine's real Claude broker. Answering the first leaves the routine waiting
+for the second; their answers reach the broker independently, and cancellation
+keeps one terminal receipt. The scheduler regressions additionally cover both
+resolution orders, unknown and duplicate events, overlapping wait-time
+accounting, restart recovery, independent bot dispatch, and invalid one-time
+timestamp rejection. These requests are scripted in a disposable fake-engine
+workspace and run no external action.
 
 Webhook delivery IDs are committed atomically with their execution receipt.
 Retries keep the same run ID for seven days, independently of run-log pruning;

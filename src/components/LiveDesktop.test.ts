@@ -8,14 +8,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type Events = { connected(): void; disconnected(): void };
 const fixture = vi.hoisted(() => ({
-  attempts: [] as Array<{ target: string; events: Events; client: { focus: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> } }>,
+  attempts: [] as Array<{ target: string; events: Events; client: { focus: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn>; viewOnly: boolean; focusOnClick: boolean } }>,
   refuse: false,
   typed: [] as string[],
 }));
 vi.mock("@/lib/desktop-connection", () => ({
   connectDesktop: async (_screen: HTMLElement, target: string, options: { events: Events }) => {
     if (fixture.refuse) throw new Error("unreachable");
-    const client = { focus: vi.fn(), disconnect: vi.fn() };
+    const client = { focus: vi.fn(), disconnect: vi.fn(), viewOnly: false, focusOnClick: true };
     fixture.attempts.push({ target, events: options.events, client });
     return client;
   },
@@ -84,7 +84,7 @@ describe("the live desktop", () => {
     expect(props.onUnreachable).toHaveBeenCalledTimes(1);
   });
 
-  it("a drop mid-session reconnects once by itself, then offers Reconnect", async () => {
+  it("a drop mid-session reconnects once and reports an exhausted recovery", async () => {
     const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
     flushSync(() => fixture.attempts[0]!.events.connected());
     flushSync(() => fixture.attempts[0]!.events.disconnected());
@@ -96,9 +96,42 @@ describe("the live desktop", () => {
     flushSync(() => fixture.attempts[1]!.events.disconnected());
     await wait(1_500);
     expect(fixture.attempts, "no endless reconnect loop").toHaveLength(2);
+    expect(props.onUnreachable).toHaveBeenCalledTimes(1);
     flushSync(() => button("Reconnect")!.click());
     await settle();
     expect(fixture.attempts).toHaveLength(3);
+  });
+
+  it("watching, taking control and handing back reuse one connection without granting input while watching", async () => {
+    draw({ viewOnly: true });
+    await settle();
+    const client = fixture.attempts[0]!.client;
+    flushSync(() => fixture.attempts[0]!.events.connected());
+    expect(client.viewOnly).toBe(true);
+    expect(client.focusOnClick).toBe(false);
+    expect(client.focus).not.toHaveBeenCalled();
+    draw({ viewOnly: false });
+    expect(client.viewOnly).toBe(false);
+    expect(client.focusOnClick).toBe(true);
+    expect(client.focus).toHaveBeenCalled();
+    draw({ viewOnly: true });
+    expect(client.viewOnly).toBe(true);
+    expect(client.focusOnClick).toBe(false);
+    expect(fixture.attempts).toHaveLength(1);
+  });
+
+  it("ignores a previous desktop's late events and reports a new desktop that never answered", async () => {
+    const first = fixture.attempts[0]!;
+    flushSync(() => first.events.connected());
+    draw({ target: "vps/second", threadId: "second-thread" });
+    await settle();
+    expect(state()).toBe("connecting");
+    flushSync(() => first.events.disconnected());
+    flushSync(() => first.events.connected());
+    expect(state()).toBe("connecting");
+    expect(props.onUnreachable).not.toHaveBeenCalled();
+    flushSync(() => fixture.attempts[1]!.events.disconnected());
+    expect(props.onUnreachable).toHaveBeenCalledTimes(1);
   });
 
   it("closes its connection when it goes away", () => {
@@ -110,14 +143,47 @@ describe("the live desktop", () => {
     root = createRoot(container);
   });
 
+  it("offers inline text only in control and clears drafts on hand-back, disconnect and target change", async () => {
+    const field = () => document.querySelector<HTMLTextAreaElement>("textarea[aria-label='Text to type on the desktop']");
+    const write = (text: string) => flushSync(() => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(field(), text);
+      field()!.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    draw({ viewOnly: true });
+    flushSync(() => fixture.attempts[0]!.events.connected());
+    expect(button("Keyboard")).toBeUndefined();
+    draw({ viewOnly: false });
+    flushSync(() => button("Keyboard")!.click());
+    write("line1\nП");
+    flushSync(() => field()!.form!.requestSubmit());
+    expect(fixture.typed).toEqual(["line1\nП"]);
+    expect(fixture.attempts).toHaveLength(1);
+    write("private draft");
+    draw({ viewOnly: true });
+    expect(field()).toBeNull();
+    draw({ viewOnly: false });
+    flushSync(() => button("Keyboard")!.click());
+    expect(field()!.value).toBe("");
+    write("old target");
+    draw({ target: "vps/next" });
+    await settle();
+    flushSync(() => fixture.attempts[1]!.events.connected());
+    flushSync(() => button("Keyboard")!.click());
+    expect(field()!.value).toBe("");
+    write("disconnected draft");
+    flushSync(() => fixture.attempts[1]!.events.disconnected());
+    expect(field()).toBeNull();
+    expect(fixture.typed).toEqual(["line1\nП"]);
+  });
+
   it("full screen keeps the same connection and offers Exit, typing and Hand back", async () => {
     flushSync(() => fixture.attempts[0]!.events.connected());
     draw({ expanded: true });
     await settle();
     expect(fixture.attempts, "growing the view must not reconnect").toHaveLength(1);
-    const field = document.querySelector<HTMLInputElement>("input[aria-label='Text to type on the desktop']")!;
+    const field = document.querySelector<HTMLTextAreaElement>("textarea[aria-label='Text to type on the desktop']")!;
     flushSync(() => {
-      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+      const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!;
       setter.call(field, "hunter2");
       field.dispatchEvent(new Event("input", { bubbles: true }));
     });

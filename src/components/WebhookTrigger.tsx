@@ -7,7 +7,7 @@ import { BotAvatar } from "@/components/Avatar";
 import { useModalDialog } from "@/hooks/use-modal-dialog";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { boatCapableEngine } from "@/lib/remote-desktop";
+import { computerCapableEngine } from "@/lib/remote-desktop";
 import type { RoutineRunOn } from "@/lib/routines";
 import { WEBHOOK_DEFAULT_MAX_PENDING_RUNS, WEBHOOK_MAX_PENDING_RUNS_LIMIT, webhookActivationDefaults, webhookMaxPendingRunsInput, type WebhookCredential, type WebhookTrigger, type WebhookTriggerInput } from "@/lib/webhooks";
 import { api, useStore, type Bot } from "@/state/store";
@@ -34,7 +34,7 @@ export function WebhookEditor({ webhook, bots, initialBotId, onClose, onCredenti
   const [error, setError] = useState("");
   const dialogRef = useRef<HTMLDivElement>(null);
   useModalDialog(dialogRef, onClose);
-  const cloudReady = Boolean(state.config?.box.configured && boatCapableEngine(state.instances, bots.find((bot) => bot.id === botId)?.modelSelection.instanceId)?.snapshot.state === "available");
+  const cloudReady = Boolean(state.config?.vps?.configured && computerCapableEngine(state.instances, bots.find((bot) => bot.id === botId)?.modelSelection.instanceId)?.snapshot.state === "available");
 
   const save = async () => {
     const bot = bots.find((candidate) => candidate.id === botId);

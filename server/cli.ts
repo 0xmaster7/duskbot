@@ -1,17 +1,3 @@
-// `openmausbot` on the command line: run the server anywhere and pair devices to it.
-//
-//   openmausbot setup [--data-dir ~/.openmausbot]
-//   openmausbot start [serve options]
-//   openmausbot serve [--port 8799] [--data-dir ~/.openmausbot] [--label "cab mini"]
-//                     [--public-url https://host] [--tailscale | --tunnel | --domain HOST] [--no-pair]
-//   openmausbot pair  [--label "My MacBook"] [--client] [--public-url https://host]
-//   openmausbot sessions [revoke <id>]
-//   openmausbot status
-//   openmausbot login [--email you@example.com]
-//   openmausbot logout
-//   openmausbot run | send | wait | doctor | team apply | export | …
-//
-// This module only exports: openmausbot.ts runs main(), so bundling this file into other entries never runs it twice.
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
@@ -1004,6 +990,12 @@ export async function runOnboardingCommand(
 }
 
 export async function main(argv = process.argv.slice(2)): Promise<number> {
+  if (argv[0] === "vps") {
+    const { parseVpsOpsArgs, runVpsOps } = await import("./vps-ops.ts");
+    const options = parseVpsOpsArgs(argv.slice(1), { port: Number(process.env.OMB_PORT || 8799), dataDir: process.env.OMB_DATA_DIR || join(homedir(), ".openmausbot") });
+    if ("error" in options) { console.error(options.error); return 2; }
+    return runVpsOps(options, { log: (line) => console.log(line), error: (line) => console.error(line) });
+  }
   if (argv[0] === "sentinel") return runSentinelCli(argv.slice(1));
   if (HEADLESS_VERB_NAMES.has(argv[0] ?? "") || (argv[0] === "help" && HEADLESS_VERB_NAMES.has(argv[1] ?? ""))) return (await import("./headless/main.ts")).runHeadless(argv);
   const options = parseArgs(argv);

@@ -8,8 +8,11 @@ export async function fakeVnc() {
   const server = createServer((_req, res) => res.writeHead(404).end());
   const sockets = new WebSocketServer({ server, path: "/websockify" });
   const keys: number[] = [];
+  const pointers: Array<{ buttons: number; x: number; y: number }> = [];
   const events = new EventEmitter();
   let connections = 0;
+  let paused = false;
+  const waitingFrames = new Set<() => void>();
   sockets.on("connection", socket => {
     connections++;
     let pending: Buffer = Buffer.alloc(0);
@@ -24,6 +27,7 @@ export async function fakeVnc() {
       for (let i = 16; i < data.length; i += 4) data[i] = 255;
       socket.send(data);
     };
+    socket.on("close", () => waitingFrames.delete(frame));
     socket.on("message", raw => {
       pending = Buffer.concat([pending, Buffer.from(raw as Buffer)]);
       for (;;) {
@@ -57,11 +61,19 @@ export async function fakeVnc() {
           init[14] = 16; init[15] = 8;
           init.writeUInt32BE(name.length, 20); name.copy(init, 24);
           socket.send(init);
-        } else if (message[0] === 3 && !sentFrame) { sentFrame = true; frame(); }
+        } else if (message[0] === 3 && !sentFrame) {
+          sentFrame = true;
+          if (paused) waitingFrames.add(frame); else frame();
+        }
         else if (message[0] === 4 && message[1] === 1) {
           const key = message.readUInt32BE(4);
           keys.push(key);
           events.emit("key", key);
+        }
+        else if (message[0] === 5) {
+          const pointer = { buttons: message[1]!, x: message.readUInt16BE(2), y: message.readUInt16BE(4) };
+          pointers.push(pointer);
+          events.emit("pointer", pointer);
         }
         else if (message[0] === 6) {
           const text = message.subarray(8).toString("latin1");
@@ -72,11 +84,18 @@ export async function fakeVnc() {
   });
   await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
   return {
-    port: (server.address() as { port: number }).port, keys,
+    port: (server.address() as { port: number }).port, keys, pointers,
+    nextPointer: () => once(events, "pointer", { signal: AbortSignal.timeout(10_000) }),
     nextClipboard: () => once(events, "clipboard", { signal: AbortSignal.timeout(10_000) }),
+    async untilPointer(buttons: number) {
+      const signal = AbortSignal.timeout(10_000);
+      try { while (!pointers.some(pointer => pointer.buttons === buttons)) await once(events, "pointer", { signal }); }
+      catch { throw new Error(`Expected RFB button mask ${buttons}; received ${pointers.map(pointer => pointer.buttons).join(",")}`); }
+    },
     async untilKey(key: number) {
       const signal = AbortSignal.timeout(10_000);
-      while (!keys.includes(key)) await once(events, "key", { signal });
+      try { while (!keys.includes(key)) await once(events, "key", { signal }); }
+      catch { throw new Error(`Expected RFB key ${key}; received ${keys.join(",")}`); }
     },
     sendClipboard(text: string) {
       const bytes = Buffer.from(text, "latin1");
@@ -86,6 +105,8 @@ export async function fakeVnc() {
       bytes.copy(message, 8);
       for (const socket of sockets.clients) socket.send(message);
     },
+    pauseFrames: () => { paused = true; },
+    releaseFrames: () => { paused = false; for (const frame of waitingFrames) frame(); waitingFrames.clear(); },
     connections: () => connections,
     nextConnection: () => once(sockets, "connection", { signal: AbortSignal.timeout(10_000) }),
     async close() {

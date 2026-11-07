@@ -20,7 +20,11 @@ import {
 } from "./bot-desktop.ts";
 import { CUA_DRIVER_VERSION, DRIVER_LABEL } from "./container-computer.ts";
 import type { AppConfig } from "./config.ts";
-import { vpsComputerAction, vpsComputerStatus, vpsContainerName, type VpsCommandRunner } from "./vps-computer.ts";
+import { vpsBoxChrome, vpsComputerAction, vpsComputerStatus, vpsContainerName, type VpsCommandRunner } from "./vps-computer.ts";
+import { independentScreenTarget } from "./shared-desktop-screens.ts";
+import { SCREEN_BROWSER_LOW_MEMORY } from "./vps-browser-ready.ts";
+import * as vpsLocal from "./vps-local.ts";
+import { boxChromes, closeVpsScreenConnections, evictVpsBoxChrome, screenKey } from "./vps-connections.ts";
 
 const NAME = "openmausbot-vps-bot1-0123456789ab";
 const IMAGE_ID = `sha256:${"c".repeat(64)}`;
@@ -189,6 +193,8 @@ describe("bot desktop isolation checks", () => {
   it("keeps build.sh's fallback tag and host-fence.sh's bridge in step with the constants", () => {
     const script = readFileSync(new URL("../deploy/bot-desktop/build.sh", import.meta.url), "utf8");
     expect(script).toContain(`image="\${image:-ghcr.io/sidddevz/omb-bot-desktop:v$version}"`);
+    expect(script).toContain(`version="\${version:-${BOT_DESKTOP_VERSION}}"`);
+    expect(readFileSync(new URL("../deploy/bot-desktop/Dockerfile", import.meta.url), "utf8")).toContain(`ARG BOT_DESKTOP_VERSION=${BOT_DESKTOP_VERSION}\n`);
     expect(BOT_DESKTOP_IMAGE).toBe(`ghcr.io/sidddevz/omb-bot-desktop:v${BOT_DESKTOP_VERSION}`);
     expect(readFileSync(new URL("../deploy/bot-desktop/host-fence.sh", import.meta.url), "utf8")).toContain("BRIDGE=omb-desk0\n");
   });
@@ -218,7 +224,7 @@ describe("bot desktop provisioning", () => {
   it("without the host fence: pulls, makes the network, and starts a strict box that fences the host's addresses itself", async () => {
     const fake = host({ runsc: true });
     expect(await provisionBotDesktop(fake.run, input)).toBe("strict");
-    expect(steps(fake.calls)).toEqual(["pull ghcr.io/sidddevz/omb-bot-desktop:v1", "image inspect", "network inspect", "network create", "info --format", "probe /usr/local/bin/omb-host-fence", "probe ip", "run -d"]);
+    expect(steps(fake.calls)).toEqual([`pull ${BOT_DESKTOP_IMAGE}`, "image inspect", "network inspect", "network create", "info --format", "probe /usr/local/bin/omb-host-fence", "probe ip", "run -d"]);
     const started = fake.calls.at(-1)!;
     expect(started.at(-1)).toBe(IMAGE_ID);
     expect(started).toEqual(expect.arrayContaining(["--read-only", "--runtime", "runsc", "OMB_MODE=strict", "OMB_BLOCK_EXTRA=198.51.100.4"]));
@@ -227,7 +233,7 @@ describe("bot desktop provisioning", () => {
   it("behind the host fence with gVisor: a free box, no address probe needed", async () => {
     const fake = host({ runsc: true, network: true, fenced: true });
     expect(await provisionBotDesktop(fake.run, input)).toBe("free");
-    expect(steps(fake.calls)).toEqual(["pull ghcr.io/sidddevz/omb-bot-desktop:v1", "image inspect", "network inspect", "info --format", "probe /usr/local/bin/omb-host-fence", "run -d"]);
+    expect(steps(fake.calls)).toEqual([`pull ${BOT_DESKTOP_IMAGE}`, "image inspect", "network inspect", "info --format", "probe /usr/local/bin/omb-host-fence", "run -d"]);
     expect(fake.calls.at(-1)).toEqual(expect.arrayContaining(["--runtime", "runsc", "OMB_MODE=free"]));
     expect(fake.calls.at(-1)).not.toContain("--read-only");
   });
@@ -241,6 +247,42 @@ describe("bot desktop provisioning", () => {
     expect(await provisionBotDesktop(fake.run, input)).toBe(false);
     expect(fake.calls).toHaveLength(1);
   });
+
+  it("shares preparation for concurrent bots on one host, then rechecks the fence on the next start", async () => {
+    const fake = host({ runsc: true, network: true, fenced: true });
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const run = async (args: string[]) => {
+      if (args[0] === "pull") await gate;
+      return fake.run(args);
+    };
+    const first = provisionBotDesktop(run, { ...input, hostKey: "shared-vps" });
+    const second = provisionBotDesktop(run, { ...input, containerName: `${NAME}-other`, hostKey: "shared-vps" });
+    release();
+    expect(await Promise.all([first, second])).toEqual(["free", "free"]);
+    expect(fake.calls.filter((args) => args[0] === "pull")).toHaveLength(1);
+    expect(fake.calls.filter((args) => args[0] === "network")).toHaveLength(1);
+    expect(fake.calls.filter((args) => args[0] === "info")).toHaveLength(1);
+    expect(fake.calls.filter((args) => args.includes("/usr/local/bin/omb-host-fence"))).toHaveLength(1);
+    const starts = fake.calls.filter((args) => args[0] === "run" && args[1] === "-d");
+    expect(starts).toHaveLength(2);
+    expect(starts.map((args) => flag(args, "--name")[0])).toEqual([NAME, `${NAME}-other`]);
+
+    const unfenced = host({ runsc: true, network: true, fenced: false });
+    expect(await provisionBotDesktop(unfenced.run, { ...input, imageId: IMAGE_ID, hostKey: "shared-vps" })).toBe("strict");
+    expect(unfenced.calls.some((args) => args.includes("/usr/local/bin/omb-host-fence"))).toBe(true);
+  });
+
+  it("keeps preparation separate across hosts and lets a failed pull retry", async () => {
+    const unavailable = host({ pull: false });
+    const available = host({ runsc: true, network: true, fenced: true });
+    expect(await Promise.all([
+      provisionBotDesktop(unavailable.run, { ...input, hostKey: "offline-vps" }),
+      provisionBotDesktop(available.run, { ...input, hostKey: "online-vps" }),
+    ])).toEqual([false, "free"]);
+    expect(await provisionBotDesktop(available.run, { ...input, hostKey: "offline-vps" })).toBe("free");
+    expect(available.calls.filter((args) => args[0] === "pull")).toHaveLength(2);
+  });
 });
 
 
@@ -251,7 +293,7 @@ describe("bot desktop on the VPS path", () => {
   const name = vpsContainerName(BOT);
 
   function daemon() {
-    const state = { image: false, container: false, running: false, secret: "" };
+    const state = { image: false, container: false, running: false, secret: "", containerImageId: IMAGE_ID, pidsLimit: undefined as number | undefined };
     const calls: string[][] = [];
     const runner: VpsCommandRunner = async (args) => {
       const docker = args.slice(2);
@@ -282,9 +324,9 @@ describe("bot desktop on the VPS path", () => {
         return {
           stdout: JSON.stringify([{
             Id: "d".repeat(64),
-            Image: IMAGE_ID,
-            Config: { Image: IMAGE_ID, Env: [`VNC_PW=${state.secret}`], Labels: (state as unknown as { labels: Record<string, string> }).labels },
-            HostConfig: hostConfig,
+            Image: state.containerImageId,
+            Config: { Image: state.containerImageId, Env: [`VNC_PW=${state.secret}`], Labels: (state as unknown as { labels: Record<string, string> }).labels },
+            HostConfig: { ...hostConfig, PidsLimit: state.pidsLimit },
             NetworkSettings: { Networks: { [BOT_DESKTOP_NETWORK]: { IPAddress: "172.30.0.2" } } },
             Mounts: _mounts,
             State: { Running: state.running },
@@ -294,7 +336,7 @@ describe("bot desktop on the VPS path", () => {
       }
       if (command === "exec") {
         if (docker.at(-1) === "--version") return { stdout: `cua-driver ${CUA_DRIVER_VERSION}\n`, stderr: "" };
-        if (docker.includes("health_report")) return { stdout: JSON.stringify({ schema_version: "1", overall: "ok", checks: [] }), stderr: "" };
+        if (docker.includes("omb-desktop-probe") || docker.includes("health_report")) return { stdout: JSON.stringify({ schema_version: "1", overall: "ok", checks: [] }), stderr: "" };
         return { stdout: "{}\n", stderr: "" };
       }
       throw new Error(`unexpected docker ${command}`);
@@ -312,6 +354,25 @@ describe("bot desktop on the VPS path", () => {
     expect(fake.calls.find((args) => args[0] === "run" && args[1] === "-d")).toEqual(expect.arrayContaining(["--read-only", "--network", BOT_DESKTOP_NETWORK]));
   });
 
+  it("refuses a managed v1 computer without changing its container, resource cap or home volume", async () => {
+    const fake = daemon();
+    await vpsComputerAction("provision", CONFIG, BOT, fake.runner);
+    const oldImage = `sha256:${"e".repeat(64)}`;
+    Object.assign(fake.state, { running: false, containerImageId: oldImage, pidsLimit: 512 });
+    (fake.state as unknown as { labels: Record<string, string> }).labels[BOT_DESKTOP_LABEL] = "1";
+    fake.calls.length = 0;
+    const status = await vpsComputerStatus(CONFIG, BOT, fake.runner);
+    expect(status).toMatchObject({ managed: true, imageMatches: false, ready: false, container: "stopped", mounts: "none" });
+    expect(status.problem).toContain("desktop version 1");
+    expect(status.problem).toContain(`requires version ${BOT_DESKTOP_VERSION}`);
+    expect(status.problem).toContain("existing home volume");
+    for (const action of ["provision", "start"] as const) await expect(vpsComputerAction(action, CONFIG, BOT, fake.runner)).rejects.toMatchObject({ status: 409 });
+    await Promise.resolve();
+    expect(fake.calls.every((args) => args[0] === "image" || args[0] === "inspect")).toBe(true);
+    expect(fake.state).toMatchObject({ container: true, running: false, containerImageId: oldImage, pidsLimit: 512 });
+    expect(inspected(name)._mounts[0].Name).toBe(botDesktopVolume(name));
+  });
+
   it("falls back to building the Cua desktop when the bot desktop image cannot be pulled", async () => {
     const fake = daemon();
     const runner: VpsCommandRunner = async (args, options) => {
@@ -321,5 +382,59 @@ describe("bot desktop on the VPS path", () => {
     };
     // the Cua image never appears in this fake, so the fallback stops at identifying it: enough to prove the route
     await expect(vpsComputerAction("provision", CONFIG, BOT, runner)).rejects.toThrow(/could not be identified/);
+  });
+
+  it("pins an in-box browser to its observed container and SSH host", async () => {
+    const fake = daemon();
+    await vpsComputerAction("provision", CONFIG, BOT, fake.runner);
+    try {
+      const first = await vpsBoxChrome(CONFIG, BOT, "d".repeat(64), fake.runner);
+      expect(first).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
+      expect(await vpsBoxChrome(CONFIG, BOT, "d".repeat(64), fake.runner)).toBe(first);
+      const other = await vpsBoxChrome({ vps: { sshAlias: "another-vps" } }, BOT, "d".repeat(64), fake.runner);
+      expect(other).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
+      expect(other).not.toBe(first);
+      expect(await vpsBoxChrome(CONFIG, BOT, "e".repeat(64), fake.runner)).toBeNull();
+    } finally {
+      await vpsBoxChrome({}, BOT, undefined, fake.runner);
+    }
+  });
+  it("surfaces low-memory browser admission before creating any relay", async () => {
+    const fake = daemon();
+    await vpsComputerAction("provision", CONFIG, BOT, fake.runner);
+    const target = independentScreenTarget(BOT, 21);
+    const screen = { containerId: "d".repeat(64), target };
+    const relay = vi.spyOn(vpsLocal, "boxChromeRelay");
+    const runner: VpsCommandRunner = async (args, options) => {
+      if (args.includes("browser-ensure")) throw new Error(`omb-screen: ${SCREEN_BROWSER_LOW_MEMORY}`);
+      return fake.runner(args, options);
+    };
+    try {
+      await expect(vpsBoxChrome(CONFIG, BOT, screen.containerId, runner, screen)).rejects.toMatchObject({ status: 429, message: SCREEN_BROWSER_LOW_MEMORY });
+      expect(relay).not.toHaveBeenCalled();
+      expect(boxChromes.has(screenKey(BOT, screen))).toBe(false);
+    } finally { relay.mockRestore(); closeVpsScreenConnections(BOT, screen); }
+  });
+  it("preflights only new independent relays and retries admission after their exact cache entry fails", async () => {
+    const fake = daemon();
+    await vpsComputerAction("provision", CONFIG, BOT, fake.runner);
+    const target = independentScreenTarget(BOT, 2);
+    const screen = { containerId: "d".repeat(64), target };
+    let checks = 0;
+    const runner: VpsCommandRunner = async (args, options) => {
+      if (!args.includes("browser-ensure")) return fake.runner(args, options);
+      checks += 1;
+      if (checks > 1) throw new Error(SCREEN_BROWSER_LOW_MEMORY);
+      return { stdout: JSON.stringify({ version: 2, browserReady: true, display: target.display, botHash: target.botHash, generation: target.generation }), stderr: "" };
+    };
+    try {
+      const url = await vpsBoxChrome(CONFIG, BOT, screen.containerId, runner, screen);
+      expect(url).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
+      expect(await vpsBoxChrome(CONFIG, BOT, screen.containerId, runner, screen)).toBe(url);
+      expect(checks).toBe(1);
+      evictVpsBoxChrome(screenKey(BOT, screen), url!);
+      await expect(vpsBoxChrome(CONFIG, BOT, screen.containerId, runner, screen)).rejects.toMatchObject({ status: 429 });
+      expect(checks).toBe(2);
+    } finally { closeVpsScreenConnections(BOT, screen); }
   });
 });

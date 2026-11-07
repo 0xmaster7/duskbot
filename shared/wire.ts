@@ -56,10 +56,10 @@ export interface ModelSelection {
   variant?: string;
 }
 
-/** Which cloud computer backs computer: "cloud"; absent means Boat. */
+/** The remote computer backend. Legacy "box" input is normalized to the user's VPS. */
 export type CloudBackend = "box" | "vps";
 
-/** A place a bot can act. `cloud` covers both cloud backends. */
+/** A place a bot can act. `cloud` uses the user's own VPS. */
 export type Surface = "cloud" | "vm" | "local" | "browser";
 
 export const MAUS_COLOR_NAMES = [
@@ -317,7 +317,7 @@ export interface WireBot extends DefaultBotFields, BotAccessFields {
   modelSelection: ModelSelection;
   /** where the bot works ("Works on"). Unset = auto. */
   computer?: Surface | "off";
-  /** Which cloud computer backs computer: "cloud"; absent means Boat. */
+  /** The remote computer backend. Legacy "box" input is normalized to the user's VPS. */
   cloudBackend?: CloudBackend;
   /** Auto mode may prepare/start this bot's managed VPS container. */
   autoStartVps?: boolean;
@@ -939,28 +939,7 @@ export type SteerQueueReason = "capacity" | "group-turn";
  * `bot.queued` frame carries them: threadId → queued items. */
 export type BotQueuedMessages = Record<string, Array<{ queueId: string; text: string; reason?: SteerQueueReason; /** The reason in plain words, shown as it is. */ why?: string }>>;
 
-/** Skills library browse surface: one row per library entry, with the bots
- * currently assigned to it. Version is null for locally imported skills. */
-export interface SkillsLibrarySkillWire {
-  name: string;
-  description: string;
-  source: string;
-  enabled: boolean;
-  everyBot: boolean;
-  tags: string[];
-  version: string | null;
-  importedAt: string;
-  license?: string;
-  compatibility?: string;
-  warnings: string[];
-  assignedBots: Array<{ id: string; name: string }>;
-}
-
-/** PUT body for a bot's assignment list: the full list, applied
- * idempotently. */
-export interface BotAssignedSkillsWire {
-  skills: string[];
-}
+export type { SkillsLibrarySkillWire, BotAssignedSkillsWire } from "./skills-library-wire.ts";
 
 export type ServerFrame =
   | { kind: "sections"; sections: string[] }
@@ -992,6 +971,7 @@ export type ServerFrame =
    * one progress line until its first screen frame. `place` names a cloud
    * computer (absent: a Local VM). */
   | { kind: "computer"; botId: string; state: "provisioning" | "waking"; place?: "cloud" }
+  | { kind: "computer-state"; botId: string; resourceKey: string; state: "starting" | "ready" | "stopped" | "failed"; problem?: string }
   | { kind: "computer-control"; botId: string; held: boolean; helpReason: string | null; help?: ComputerHelpRef | null }
   /** A bot's data sheet changed. Whole sheet each time. */
   | DataBroadcast

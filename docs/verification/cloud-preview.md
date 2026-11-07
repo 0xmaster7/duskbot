@@ -9,8 +9,8 @@ node --experimental-strip-types scripts/verify-cloud-preview.ts
 Open the printed `previewUrl` in a browser or an isolated Electron window.
 The fixture starts the standard fake-engine harness in a temporary home,
 creates its own test bot through the mapped control command, and mounts the
-real `ComputerPanel`. Only the cloud transport is simulated. It never needs
-a Boat API key and never contacts a cloud provider. Ctrl-C stops both servers
+real `ComputerPanel`. The VPS transport is simulated in-page, with no SSH
+connection, paid desktop account or real container. Ctrl-C stops both servers
 and removes their temporary data; the printed harness log remains.
 
 Verify these transitions with computer use:
@@ -22,14 +22,14 @@ Verify these transitions with computer use:
    error and **Retry preview**, rather than a blank image with an Open button.
 3. Select **slow**, then **Retry preview**. The panel immediately shows
    **Connecting to the screen…**, then displays the image after 12 seconds.
-4. Select **failed**, then **Reconnect panel**. The provider error appears
+4. Select **failed**, then **Reconnect panel**. The transport error appears
    inside the preview. Select **connected**, then **Retry preview** to recover.
 5. Turn **Busy** on, then **Publish live frame**. The new live frame appears.
    Stop publishing: within 14 seconds, screenshot polling resumes and restores
    **Cloud screen connected**, even though the bot is still busy.
 6. Turn **Busy** on, then **Reconnect panel**. The fixture, like the server,
    refuses `provision` with 409 while a turn is active. The panel must still
-   connect and show the screen (it attaches to the ready boat without
+   connect and show the screen (it attaches to the ready VPS desktop without
    provisioning) — not **Couldn't reach the computer** with a red
    "being used by an active turn" alert. Turn **Busy** off: the panel stays
    connected.
@@ -81,6 +81,6 @@ and persistent server log. To reuse already installed test binaries, set
 The fixture tests actual image decoding, request cancellation, fresh frame
 selection, and renderer feedback. Host work continuing after cancellation is
 simulated in-page; `server/vps-routing.test.ts` separately covers the real HTTP
-route with fake SSH/Docker. Neither fixture proves a real VPS connection, Boat
-provisioning, native viewer windows, or account authentication. Test those
-separately with an explicitly isolated provider fixture when changing those paths.
+route with fake SSH/Docker. Neither fixture proves a real VPS connection,
+native viewer windows, or account authentication. Those require separately
+isolated acceptance checks when their paths change.

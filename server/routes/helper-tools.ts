@@ -2,17 +2,20 @@
 // after the capability bearer is checked; the bot is the capability's, never a body field. A file is read only from the
 // bot's own folders, by the same rules as a published page. The answer is the models' typed values, never a vendor body.
 import type { ServerResponse } from "node:http";
-import { readFile, stat } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import { extname } from "node:path";
 
 import type { Decider } from "../decider/index.ts";
 import { relayAccepts } from "../decider/relay.ts";
 import type { DeciderAnswer, DeciderFailure, DeciderProvider, DeciderQuestion } from "../decider/types.ts";
 import { EXTRACT_LIMITS, extractRequestProblem } from "../extractor/contract.ts";
+import { FILE_MAX_BYTES } from "../attachments.ts";
 import type { Extractor } from "../extractor/index.ts";
 import type { ExtractImage, ExtractInput, FieldSchema } from "../extractor/types.ts";
 import type { json as sendJson } from "../harness/http.ts";
 import { botFileSource, PageBundleError, type BotFolders } from "../pages/bundle.ts";
+import { openMessageFile, type OpenedMessageFile } from "../message-file.ts";
+import { pdfText, PdfTextError } from "../pdf-text.ts";
 import { PASS } from "./table.ts";
 
 export interface HelperToolDeps {
@@ -28,6 +31,8 @@ export interface HelperToolContext {
   botId: string;
   readBody: () => Promise<unknown>;
   folders: BotFolders;
+  /** Only an exact attachment referenced by this capability's conversation; the caller closes the handle. */
+  openAttachment?(path: string): Promise<OpenedMessageFile | null>;
 }
 
 const DECIDE = "/api/internal/helpers/decide";
@@ -86,29 +91,44 @@ function renderAnswer(question: DeciderQuestion, answer: DeciderAnswer): Record<
   return { yes: round(answer.p) };
 }
 
-async function readInput(body: Record<string, unknown>, folders: BotFolders): Promise<ExtractInput | string> {
+async function readInput(body: Record<string, unknown>, ctx: HelperToolContext, signal: AbortSignal): Promise<ExtractInput | string> {
   const file = text(body.file);
   if (!file) return typeof body.text === "string" ? { text: body.text } : {};
-  let target: string;
+  let opened = await ctx.openAttachment?.(file) ?? null;
+  let target = opened?.name ?? "";
+  if (!opened) {
+    try {
+      target = await botFileSource(file, ctx.folders);
+    } catch (error) {
+      if (!(error instanceof PageBundleError)) throw error;
+      return error.status === 403 ? "Only files in your working folder or attached to this conversation can be read. Save it there first." : `Nothing was found at ${file.slice(0, 200)}.`;
+    }
+  }
+  if (!opened) {
+    const info = await stat(target);
+    if (!info.isFile()) return "file must be a file, not a folder.";
+    if (info.size > FILE_MAX_BYTES) return "The file is over 25 MB. Split it into smaller files.";
+    const { roots, vmWorkspace } = await ctx.folders();
+    opened = await openMessageFile(target, vmWorkspace ? [vmWorkspace, ...roots] : roots);
+  }
   try {
-    target = await botFileSource(file, folders);
+    const extension = extname(target).toLowerCase();
+    if (extension === ".pdf") return { text: await pdfText(await opened.handle.readFile(), signal) };
+    const mime = IMAGE_TYPES[extension];
+    if (mime) {
+      if (opened.bytes > EXTRACT_LIMITS.imageBytes) return "The image is over 1 MB. Make it smaller first.";
+      return { ...(typeof body.text === "string" ? { text: body.text } : {}), images: [{ mime, data: (await opened.handle.readFile()).toString("base64") }] };
+    }
+    if (opened.bytes > TEXT_FILE_BYTES) return "The file is over 1 MB. Pass the part that matters as text.";
+    const content = (await opened.handle.readFile()).toString("utf8");
+    if (content.includes("\u0000")) return "That file is not text or a PNG, JPEG or WebP image.";
+    return { text: content };
   } catch (error) {
-    if (!(error instanceof PageBundleError)) throw error;
-    return error.status === 403 ? "Only files in your working folder can be read. Save it there first." : `Nothing was found at ${file.slice(0, 200)}.`;
+    if (error instanceof PdfTextError) return error.message;
+    throw error;
+  } finally {
+    await opened.handle.close();
   }
-  const info = await stat(target);
-  if (!info.isFile()) return "file must be a file, not a folder.";
-  const extension = extname(target).toLowerCase();
-  if (extension === ".pdf") return "PDFs aren't read directly yet: pass the text, or an image of the page.";
-  const mime = IMAGE_TYPES[extension];
-  if (mime) {
-    if (info.size > EXTRACT_LIMITS.imageBytes) return "The image is over 1 MB. Make it smaller first.";
-    return { ...(typeof body.text === "string" ? { text: body.text } : {}), images: [{ mime, data: (await readFile(target)).toString("base64") }] };
-  }
-  if (info.size > TEXT_FILE_BYTES) return "The file is over 1 MB. Pass the part that matters as text.";
-  const content = (await readFile(target)).toString("utf8");
-  if (content.includes("\u0000")) return "That file is not text or a PNG, JPEG or WebP image.";
-  return { text: content.slice(0, EXTRACT_LIMITS.text) };
 }
 
 export function createHelperToolRoutes(deps: HelperToolDeps) {
@@ -131,18 +151,29 @@ export function createHelperToolRoutes(deps: HelperToolDeps) {
         text: `${JSON.stringify({ answers, by: BY[result.provider] })}\nProbabilities, not facts: act on a choice only when it is clearly ahead.`,
       });
     }
-    const fields = body.fields as FieldSchema;
-    const input = await readInput(body, ctx.folders);
-    if (typeof input === "string") return void ctx.json(ctx.res, 400, { error: input });
-    const problem = extractRequestProblem(fields, input);
-    if (problem) return void ctx.json(ctx.res, 400, { error: problem });
-    const result = await deps.extractor.extract("botExtract", fields, input, { timeoutMs: HELPER_TOOL_TIMEOUT_MS });
-    if (!result.ok) {
-      const off = result.reason === "disabled" || result.reason === "no_key";
-      return void ctx.json(ctx.res, off ? 409 : 502, { error: off ? HELPER_MESSAGES.extractOff : FAILURE[result.reason] ?? "The extraction model's answer could not be read. Try again." });
+    const abort = new AbortController();
+    const disconnected = () => { if (!ctx.res.writableEnded) abort.abort(); };
+    ctx.res.once("close", disconnected);
+    try {
+      const fields = body.fields as FieldSchema;
+      const fieldsProblem = extractRequestProblem(fields, { text: "check" });
+      if (fieldsProblem) return void ctx.json(ctx.res, 400, { error: fieldsProblem });
+      const input = await readInput(body, ctx, abort.signal);
+      if (abort.signal.aborted) return;
+      if (typeof input === "string") return void ctx.json(ctx.res, 400, { error: input });
+      const problem = extractRequestProblem(fields, input);
+      if (problem) return void ctx.json(ctx.res, 400, { error: problem });
+      const result = await deps.extractor.extract("botExtract", fields, input, { timeoutMs: HELPER_TOOL_TIMEOUT_MS, signal: abort.signal });
+      if (abort.signal.aborted) return;
+      if (!result.ok) {
+        const off = result.reason === "disabled" || result.reason === "no_key";
+        return void ctx.json(ctx.res, off ? 409 : 502, { error: off ? HELPER_MESSAGES.extractOff : FAILURE[result.reason] ?? "The extraction model's answer could not be read. Try again." });
+      }
+      return void ctx.json(ctx.res, 200, {
+        text: `${JSON.stringify({ values: result.values, by: BY[result.provider] })}\nnull means the input did not say. Check totals and long sums yourself.`,
+      });
+    } finally {
+      ctx.res.removeListener("close", disconnected);
     }
-    return void ctx.json(ctx.res, 200, {
-      text: `${JSON.stringify({ values: result.values, by: BY[result.provider] })}\nnull means the input did not say. Check totals and long sums yourself.`,
-    });
   };
 }

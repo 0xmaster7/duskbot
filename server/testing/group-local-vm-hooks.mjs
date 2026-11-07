@@ -7,10 +7,12 @@ const actual = new URL('../container-computer.ts?actual', import.meta.url).href;
 const atomic = new URL('../atomic.ts', import.meta.url).href;
 const mock = new URL('./group-local-vm-mock.mjs', import.meta.url).href;
 const profilesMock = new URL('./group-local-vm-profiles-mock.mjs', import.meta.url).href;
+const vpsMock = new URL('./group-local-vps-mock.mjs', import.meta.url).href;
 registerHooks({
   resolve(specifier, context, nextResolve) {
     if (specifier.endsWith('/container-computer.ts')) return { url: mock, shortCircuit: true };
     if (specifier.endsWith('/local-vm-profiles.ts')) return { url: profilesMock, shortCircuit: true };
+    if (specifier.endsWith('/vps-computer.ts') && process.env.OMB_TEST_VPS_STATE) return { url: vpsMock, shortCircuit: true };
     return nextResolve(specifier, context);
   },
   load(url, context, nextLoad) {

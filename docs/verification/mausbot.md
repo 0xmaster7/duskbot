@@ -10,7 +10,7 @@ its menu's **Hide from sidebar** also turns off.
 
 ```sh
 pnpm exec vitest run server/default-bot.test.ts server/default-bot.e2e.test.ts \
-  server/team-setup-requests.test.ts src/lib/default-bot.test.ts src/components/MausBotWelcome.test.ts \
+  server/team-setup-requests.test.ts src/lib/default-bot.test.ts \
   src/lib/mausbot-landing.test.ts
 ```
 
@@ -39,11 +39,10 @@ pnpm exec vitest run server/default-bot.test.ts server/default-bot.e2e.test.ts \
   each within 2% of the same Chief's list without them.
 - `server/team-setup-requests.test.ts` ("MausBot's Chief-level team setup"):
   it adds specialists like a Chief but never changes who the Chief is.
-- `src/components/MausBotWelcome.test.ts` and `src/lib/default-bot.test.ts`:
-  the first-launch welcome shows once with its panel closed, Add pins it and Not
-  now turns the switch off, a name, colour, look or uploaded picture is saved as
-  the bot's own edit screen saves it, a renamed MausBot is still found by its
-  mark, and a new install's intro offers only the setup still to do.
+- `src/lib/default-bot.test.ts`: a renamed MausBot is found by its mark,
+  visibility follows the saved switch, and the viewer gets their own helper.
+  Current first-run UI is covered by `src/components/onboarding/WelcomeFlow.test.ts`,
+  not the removed Meet MausBot popup.
 - `src/lib/mausbot-landing.test.ts`: the rows already in the sidebar glide down
   by the new row's height, the avatar lands in the new slot and leaves nothing
   behind, reduced motion only fades the row in, and a hidden sidebar just adds it.
@@ -57,12 +56,8 @@ pnpm exec vitest run server/default-bot.test.ts server/default-bot.e2e.test.ts \
 Launch the app against an isolated fixture (`docs/verification/README.md`),
 finish the first-run welcome and its tour, then:
 
-1. The **Meet MausBot** popup appears once, with MausBot out of the sidebar
-   while it is open. Its picture opens the customise panel (name first, then
-   colour, look, **Upload a picture · Generate a picture with AI**); the title
-   and the Add button follow the name. **Add** makes the sidebar rows glide down
-   while the avatar travels into the new top slot and the row fades in; with
-   reduced motion it only fades in. Reopen the app: it does not appear again.
+1. Follow the current [welcome flow](onboarding.md) in a fresh fixture.
+   It should finish in MausBot's chat; the retired Meet MausBot popup is absent.
 2. MausBot's first message says what it does in the app's language, with
    example asks and, on a new install, only the setup steps still to do. Each
    step opens the app's own flow.

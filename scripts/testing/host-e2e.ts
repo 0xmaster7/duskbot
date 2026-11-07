@@ -22,7 +22,9 @@ export const HOST_E2E: Readonly<Record<string, string>> = {
   "server/session-credentials.e2e.test.ts": "Auto on this computer, macOS and Windows only",
   "server/setup-import.e2e.test.ts": "importing through links, which Windows makes as junctions",
   "server/surface-pins.e2e.test.ts": "the desktop's own computer connection, validated per OS and absent on Linux",
+  "server/vps-concurrency.e2e.test.ts": "native Mac Auto routing and explicit cloud refusal with an available host connection",
   "server/voice-notes.e2e.test.ts": "the built-in Mac voices",
+  "scripts/testing/local-browser.e2e.test.ts": "native Mac browsing without a VPS or container commands, with opt-in headless binaries",
 };
 
 /** True on the CI shards that run only HOST_E2E of the e2e files. */

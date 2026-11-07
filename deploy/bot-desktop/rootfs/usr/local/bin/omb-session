@@ -4,9 +4,44 @@ set -eu
 
 geometry="${OMB_RESOLUTION:-1280x800}"
 case "$geometry" in [0-9]*x[0-9]*) ;; *) geometry=1280x800 ;; esac
-export DISPLAY=:1 XDG_RUNTIME_DIR=/run/user/1000 HOME=/home/cua
+screen="${OMB_SCREEN_DISPLAY:-1}"
+case "$screen" in
+  1)
+    runtime=/run/user/1000
+    cua_socket="$runtime/openmausbot-cua.sock"
+    profile=/home/cua/.config/chromium
+    cdp_port=9222
+    logs=/tmp/omb-log
+    ;;
+  2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21)
+    [ "${OMB_SCREEN_MANAGED:-}" = 1 ] || exit 64
+    hash="${OMB_SCREEN_BOT_HASH:-}"
+    generation="${OMB_SCREEN_GENERATION:-}"
+    case "$hash" in ''|*[!0-9a-f]*) exit 64 ;; esac
+    [ "${#hash}" = 64 ] || exit 64
+    case "$generation" in ????????-????-????-????-????????????) ;; *) exit 64 ;; esac
+    case "$generation" in *[!0-9a-f-]*) exit 64 ;; esac
+    runtime="/run/user/1000/omb-screens/$screen"
+    cua_socket="$runtime/cua.sock"
+    profile="/home/cua/.config/omb/screens/$hash/chromium"
+    export XDG_STATE_HOME="/home/cua/.local/state/omb/screens/$hash"
+    cdp_port=$((9222 + screen))
+    logs="$runtime/logs"
+    ;;
+  *) exit 64 ;;
+esac
+vnc_port=$((5900 + screen))
+viewer_port=$((6900 + screen))
+export DISPLAY=":$screen" XDG_RUNTIME_DIR="$runtime" HOME=/home/cua
 export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
-logs=/tmp/omb-log
+export OMB_CHROMIUM_PROFILE="$profile" OMB_CDP_PORT="$cdp_port"
+
+shutdown_primary() {
+  trap '' TERM INT
+  /usr/local/bin/omb-screen close-primary || true
+  exit 0
+}
+if [ "$screen" = 1 ]; then trap shutdown_primary TERM INT; fi
 
 mkdir -p /run/omb "$XDG_RUNTIME_DIR" "$logs" "$HOME/.config" "$HOME/.cache" "$HOME/Downloads"
 chmod 0700 "$XDG_RUNTIME_DIR"
@@ -16,8 +51,8 @@ chmod 0700 "$XDG_RUNTIME_DIR"
 
 # a profile copied from another container (or a crash) leaves singleton locks that stop the browser from opening
 # a stopped box is a crashed browser as far as chromium knows; it should just open, without a restore prompt
-sed -i 's/"exit_type":"Crashed"/"exit_type":"Normal"/' "$HOME/.config/chromium/Default/Preferences" 2>/dev/null || true
-rm -f "$HOME/.config/chromium/SingletonLock" "$HOME/.config/chromium/SingletonSocket" "$HOME/.config/chromium/SingletonCookie"
+sed -i 's/"exit_type":"Crashed"/"exit_type":"Normal"/' "$profile/Default/Preferences" 2>/dev/null || true
+rm -f "$profile/SingletonLock" "$profile/SingletonSocket" "$profile/SingletonCookie"
 
 # viewer password: the harness passes VNC_PW; never written anywhere but this tmpfs
 if [ -n "${VNC_PW:-}" ]; then
@@ -36,12 +71,12 @@ keep() {
 }
 
 # shellcheck disable=SC2086
-keep xvnc Xvnc :1 -geometry "$geometry" -depth 24 -rfbport 5901 -localhost -AlwaysShared \
+keep xvnc Xvnc "$DISPLAY" -geometry "$geometry" -depth 24 -rfbport "$vnc_port" -localhost -AlwaysShared \
   -AcceptSetDesktopSize=0 -FrameRate 30 -CompareFB 1 -nolisten tcp $security
 attempt=0
-until [ -S /tmp/.X11-unix/X1 ]; do
+until [ -S "/tmp/.X11-unix/X$screen" ]; do
   attempt=$((attempt + 1))
-  [ "$attempt" -lt 200 ] || { echo "omb-session: X display :1 did not start" >&2; exit 1; }
+  [ "$attempt" -lt 200 ] || { echo "omb-session: X display $DISPLAY did not start" >&2; exit 1; }
   sleep 0.05
 done
 
@@ -54,13 +89,13 @@ fi
 
 keep openbox openbox --config-file /etc/xdg/openbox/rc.xml
 keep tint2 tint2 -c /etc/xdg/tint2/tint2rc
-keep websockify websockify --web /usr/share/novnc 0.0.0.0:6901 127.0.0.1:5901
+keep websockify websockify --web /usr/share/novnc "0.0.0.0:$viewer_port" "127.0.0.1:$vnc_port"
 keep cua-driver env CUA_DRIVER_BROWSER_NO_SANDBOX=1 CUA_DRIVER_INSTALL_CHANNEL=python_package \
   CUA_DRIVER_RS_TELEMETRY_ENABLED=0 CUA_DRIVER_WINDOW_CHANGE_TIMEOUT_MS=200 NO_COLOR=1 \
-  /usr/local/libexec/openmausbot/cua-driver serve --socket "$XDG_RUNTIME_DIR/openmausbot-cua.sock" \
+  /usr/local/libexec/openmausbot/cua-driver serve --socket "$cua_socket" \
   --permission-mode standard --cursor-reduced-motion on
 
 [ "${OMB_BROWSER_AT_START:-on}" = off ] || (sleep 0.3; exec chromium "${OMB_START_URL:-https://www.google.com}" >>"$logs/chromium.log" 2>&1) &
 
-echo "omb-session: desktop ready on :1 ($geometry)"
+echo "omb-session: desktop ready on $DISPLAY ($geometry)"
 wait

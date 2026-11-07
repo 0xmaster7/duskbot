@@ -190,7 +190,7 @@
               "local",
               "browser"
             ],
-            "description": "auto = suitable configured computer, cloud = the bot's cloud computer or self-hosted VPS, vm = isolated Local VM, local = user's own desktop, browser = built-in browser. Omit to list."
+            "description": "auto = suitable configured computer, cloud = the bot's sandboxed computer on your own VPS, vm = isolated Local VM, local = user's own desktop, browser = built-in browser. Omit to list."
           }
         }
       }
@@ -719,7 +719,6 @@
             "type": "string",
             "enum": [
               "xaiApiKey",
-              "boxToken",
               "opencodeGoApiKey",
               "ttsKey",
               "geminiTtsKey",
@@ -970,7 +969,7 @@
     },
     {
       "name": "extract",
-      "description": "Read typed values out of text or an image; null where it does not say. Not for long sums or table totals.",
+      "description": "Read typed values out of text, a PDF's text layer or an image; null where it does not say. Not for long sums or table totals.",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -987,7 +986,7 @@
           },
           "file": {
             "type": "string",
-            "description": "Or a .png, .jpg, .webp or text file in your working folder."
+            "description": "Or a PDF (up to 25 MB, readable text, no password), .png, .jpg, .webp or text file in your working folder. Split large documents before extraction; scanned PDFs need page images."
           }
         },
         "required": [
@@ -1377,9 +1376,9 @@
             "type": "string",
             "enum": [
               "maus",
-              "box"
+              "cloud"
             ],
-            "description": "Omit normally: maus (default) keeps the bot's model and configured computer, INCLUDING a self-hosted VPS. box runs on the bot's cloud computer, same model, once cloud computers are set up; a legacy cloud value from trigger_info means box."
+            "description": "maus (default) keeps the bot's model and configured computer. cloud uses the bot's own sandboxed VPS computer with the same model; the VPS must already be connected."
           },
           "timeout_minutes": {
             "type": "integer",

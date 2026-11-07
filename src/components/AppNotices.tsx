@@ -1,52 +1,27 @@
 import { useEffect, useState } from "react";
-import { Rocket, Star } from "lucide-react";
 import type { CloudAccountState } from "../../electron/cloud-account.mjs";
 import type { CloudOffer } from "../../electron/cloud-home.mjs";
 import { api, useStore } from "@/state/store";
-import { APP_REPOSITORY } from "@/lib/app-links";
 import { track } from "@/lib/analytics";
-import { boatOfferRuns } from "@/lib/boat-offer";
 import { brandStatus } from "@/lib/brand";
 import { buyOfferAllowed, cloudNoticeKind, cloudPlanView, cloudTrialNotice, cloudTrialView, offerTrialDays } from "@/lib/cloud-plan";
 import { jobRoutine, useCloudIntent } from "@/lib/cloud-intent";
 import { CLOUD_INTENT_GIVEN, cloudSetupStage } from "@/lib/cloud-setup";
-import { cornerPopupWaits, firstChatQuiet, firstReplyPending } from "@/lib/corner-popup";
-import { BOAT_OFFER_NOTICE, CLOUD_INTRO, CLOUD_NOTICE, CLOUD_TRIAL_NOTICE, dismissNotice, GROK_MOVE_NOTICE, introShown, introStage, launchNotice, markLaunchNotice, nextNotice, noticeSeen, PRODUCT_HUNT_NOTICE, PRODUCT_HUNT_UNTIL, PRODUCT_HUNT_URL, STAR_NOTICE, TWO_PLACES_NOTICE, UPDATES_CONSENT_NOTICE, usedBefore, WHATS_NEW_NOTICE } from "@/lib/notices";
+import { cornerPopupWaits, firstChatQuiet } from "@/lib/corner-popup";
+import { CLOUD_INTRO, CLOUD_NOTICE, CLOUD_TRIAL_NOTICE, dismissNotice, GROK_MOVE_NOTICE, introShown, introStage, launchNotice, markLaunchNotice, nextNotice, noticeSeen, TWO_PLACES_NOTICE, usedBefore, WHATS_NEW_NOTICE } from "@/lib/notices";
 import { useTwoPlaces } from "@/lib/two-places";
-import { cloudSignInDue, onboardingCloudOffered, welcomeFinishedThisLaunch, type WelcomeViewer } from "@/lib/onboarding";
+import { cloudSignInDue, onboardingCloudOffered, type WelcomeViewer } from "@/lib/onboarding";
 import { useUpdaterState } from "@/lib/updater";
 import { t } from "@/lib/i18n";
-import { BoatOfferCard, reportBoatOffer, type BoatOfferAction } from "./BoatOffer";
 import { engineReady } from "./EngineLibrary";
 import { CLOUD_NOTICE_CARD, cloudNoticeStep, CloudNoticeCard } from "./CloudNotice";
 import { CloudTrialIntroCard } from "./CloudTrialIntro";
 import { useMoveQuiet } from "./CloudSendStrip";
 import { CloudTrialNoticeCard, useCloudPlanSnapshot } from "./CloudTrialNotice";
-import { LinkButton, NoticeCard, NoticeToast, NotNowButton } from "./NoticeCard";
-import { useDesktopNotices, useOtherDialogOpen } from "./notice-dialogs";
+import { NoticeToast } from "./NoticeCard";
+import { useDesktopNotices } from "./notice-dialogs";
 import { localDesktopPage } from "./onboarding/WelcomeGate";
-import { UpdatesConsentDialog, updatesConsentBridge, useUpdatesConsent } from "./UpdatesConsent";
 import { TwoPlacesCard } from "./TwoPlacesCard";
-
-function StarCard({ onDismiss }: { onDismiss: () => void }) {
-  return <NoticeCard titleId="github-star-title" notice="github-star" icon={Star} title={t("star.title")} onDismiss={onDismiss}>
-    <p className="mb-3 mt-1 text-[13px] text-ink-secondary">{t("star.body")}</p>
-    <div className="flex flex-wrap items-center gap-3">
-      <LinkButton url={APP_REPOSITORY} label={t("star.button")} onOpened={onDismiss} />
-      <NotNowButton onClick={onDismiss} />
-    </div>
-  </NoticeCard>;
-}
-
-function ProductHuntCard({ onDone }: { onDone: (action: "upvote" | "not_now" | "close") => void }) {
-  return <NoticeCard titleId="product-hunt-title" notice="product-hunt" icon={Rocket} title={t("productHunt.title")} onDismiss={() => onDone("close")}>
-    <p className="mb-3 mt-1 text-[13px] text-ink-secondary">{t("productHunt.body")}</p>
-    <div className="flex flex-wrap items-center gap-3">
-      <LinkButton url={PRODUCT_HUNT_URL} label={t("productHunt.button")} onOpened={() => onDone("upvote")} />
-      <NotNowButton onClick={() => onDone("not_now")} />
-    </div>
-  </NoticeCard>;
-}
 
 const trialKey = (trial: { state: string; endsAt: number }) => `${trial.state}:${trial.endsAt}`;
 
@@ -69,10 +44,6 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
   const [toast, setToast] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [boatShown, setBoatShown] = useState(false);
-  const consentHere = (local || viewer?.cloudHome === true) && brandStatus().source !== "file";
-  const consent = useUpdatesConsent(consentHere ? updatesConsentBridge() : undefined);
-  const [consentDone, setConsentDone] = useState(false);
   const updater = useUpdaterState();
   const intent = useCloudIntent();
   const moving = useMoveQuiet(now);
@@ -109,10 +80,6 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
     void bridge.offer().then(answer, () => answer(null));
     return () => { active = false; };
   }, [offerKey, bridge]);
-  const consentDue = consent.state?.available === true && consent.state.due && !consentDone;
-  const consentBlocked = useOtherDialogOpen(consentDue) || Boolean(state.liveCall && state.liveCall.status !== "ended");
-  const consentFact = !consentHere || consentDone ? false : consent.state === undefined ? null : consentDue ? (consentBlocked ? null : true) : false;
-  const boatHere = boatOfferRuns(now()) && brandStatus().source !== "file";
 
   const trial = plan?.trial;
   const key = trial ? trialKey(trial) : null;
@@ -131,33 +98,18 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
     return introOpen || stage === "due" ? true : null;
   };
   const cards = Boolean(bridge || planBridge);
-  // Promotions never land on a new install's first chat: they wait for its first reply, and for a launch after the one
-  // whose welcome just finished. Account and billing notices keep their own rules.
-  // Unknown (null) until the bots have loaded, so nothing lower in the queue flashes up before them.
-  const firstChat = firstReplyPending(state);
-  const afterWelcome = welcomeFinishedThisLaunch() || firstChat;
-  const consentNow = afterWelcome === true || consentFact === false ? false : afterWelcome === null ? null : consentFact;
   const launch = launchNotice();
-  // After a closed popup only the product-updates question may follow in this launch; nothing else does. the move from
-  // grok bot and what's new popups are gone: grok bot nags with neither, and Settings > Import keeps the move.
-  const notice = waits ? null : closed ? (consentNow === true ? UPDATES_CONSENT_NOTICE : null)
+  const notice = waits || closed ? null
     : firstChatQuiet(state) ? null
-    : cards || consentHere || boatHere || twoFact !== false ? nextNotice({
+    : cards || twoFact !== false ? nextNotice({
     [GROK_MOVE_NOTICE]: false,
     [WHATS_NEW_NOTICE]: false,
-    [UPDATES_CONSENT_NOTICE]: consentNow,
     [TWO_PLACES_NOTICE]: twoFact,
-    [PRODUCT_HUNT_NOTICE]: !cards || moving || firstChat === true || brandStatus().source === "file" || now() >= PRODUCT_HUNT_UNTIL ? false
-      : organization === null || moving === null || firstChat === null ? null : !organization,
     [CLOUD_INTRO]: moving ? false : moving === null ? null : introDue(),
     [CLOUD_TRIAL_NOTICE]: planBridge && plan === null ? null : Boolean(key && (trialDue || trialOpen === key)),
     [CLOUD_NOTICE]: !view ? false : view.kind === "unknown" ? null
       : Boolean(kind && !noticeSeen(record, CLOUD_NOTICE_CARD[kind].dismissed)),
-    [BOAT_OFFER_NOTICE]: !boatHere || moving || afterWelcome === true || !usedBefore(state.bots) || desktopState?.seen.includes(BOAT_OFFER_NOTICE) ? false
-      : organization === null || moving === null || afterWelcome === null || (desktop && !desktopState) ? null : !organization,
-    [STAR_NOTICE]: !bridge || moving || brandStatus().source === "file" || !usedBefore(state.bots) ? false : moving === null ? null : true,
-  }, id => id === CLOUD_INTRO ? stage === "done" && !introOpen
-    : id === STAR_NOTICE || id === PRODUCT_HUNT_NOTICE || id === BOAT_OFFER_NOTICE ? noticeSeen(record, id) : false, launch) : null;
+  }, id => id === CLOUD_INTRO && stage === "done" && !introOpen, launch) : null;
 
   const shownKey = notice === CLOUD_TRIAL_NOTICE ? key : notice;
   useEffect(() => {
@@ -171,9 +123,7 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
     } else if (notice === CLOUD_TRIAL_NOTICE && trialOpen !== shownKey) {
       setTrialOpen(shownKey);
       void planBridge?.noticeSeen?.().catch(() => {});
-    } else if (shownKey === BOAT_OFFER_NOTICE && !boatShown) {
-      setBoatShown(true);
-      reportBoatOffer("shown", "card");
+
     }
   }, [shownKey]);
 
@@ -186,12 +136,6 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
   if (toast) return <NoticeToast text={toast} onDone={() => setToast(null)} />;
   if (!notice) return null;
 
-  if (notice === UPDATES_CONSENT_NOTICE && consent.state) {
-    const done = () => { setConsentDone(true); close(); };
-    return <UpdatesConsentDialog signedIn={consent.state.signedIn}
-      onYes={async email => { await consent.choose("opted_in", email); done(); }}
-      onNo={() => { done(); void consent.choose("declined").catch(() => {}); }} />;
-  }
   if (notice === CLOUD_INTRO && offer) {
     const done = (action: string) => { track("cloud_card_action", { action }); close(); save(CLOUD_INTRO); };
     return <CloudTrialIntroCard offer={offer}
@@ -220,16 +164,5 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
       onBring={() => { track("two_places_card", { action: "bring", kind }); return two.accept(key).then(close); }}
       onDismiss={() => { track("two_places_card", { action: "not_now", kind }); two.dismiss(key); close(); }} />;
   }
-  if (notice === PRODUCT_HUNT_NOTICE) {
-    return <ProductHuntCard onDone={action => { track("product_hunt_card", { action }); close(); save(PRODUCT_HUNT_NOTICE); }} />;
-  }
-  if (notice === BOAT_OFFER_NOTICE) {
-    const done = (action: BoatOfferAction) => {
-      reportBoatOffer(action, "card"); close(); save(BOAT_OFFER_NOTICE);
-      void desktop?.seen(BOAT_OFFER_NOTICE).catch(() => {});
-    };
-    return <BoatOfferCard onDone={done} />;
-  }
-  if (notice === STAR_NOTICE) return <StarCard onDismiss={() => { close(); save(STAR_NOTICE); }} />;
   return null;
 }

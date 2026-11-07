@@ -27,7 +27,7 @@ export type PlaceSource = "works-on" | "pin" | "auto-pin" | "routine" | "room";
  * stored row, one sentence a phone can read. */
 export const PLACE_ACTIONS = [
   "choose-model", "open-tools", "sign-in", "start", "wake", "watch", "see-plan", "manage-computers",
-  "try-again", "open-my-cloud", "add-boat-key", "turn-on-browser", "open-team-map", "open-vm-settings",
+  "try-again", "open-my-cloud", "add-vps", "turn-on-browser", "open-team-map", "open-vm-settings",
   "clear-pin", "change-routine", "open-computer-panel",
 ] as const;
 export type PlaceActionId = (typeof PLACE_ACTIONS)[number];
@@ -81,10 +81,11 @@ export interface PlaceFacts {
   bot: string;
   /** Desktop only: signed in to a paid OpenMausBot Cloud plan (the desktop bridge). */
   plan?: boolean;
-  /** Where cloud computers come from here: the plan's, the person's own Boat key, or nowhere. */
-  boat: "included" | "own-key" | "none";
-  /** The cloud computer's provider: Boat, or the person's own server. */
+  /** Legacy inputs are accepted when reading older workspace records. */
+  boat?: "included" | "own-key" | "none";
   backend?: "box" | "vps";
+  /** Whether this workspace can reach the user's own VPS. */
+  vpsConfigured?: boolean;
   engine: {
     name: string;
     model?: string;
@@ -114,11 +115,11 @@ export interface PlaceFacts {
 /** The English catalog, mirrored by en.json. */
 export const PLACE_EN = {
   "place.view.auto.short": "Chooses for you",
-  "place.view.auto.lineMyCloud": "Uses the built-in browser. In a chat, it starts its cloud desktop by itself when a task needs desktop apps.",
+  "place.view.auto.lineMyCloud": "Uses its private desktop on your VPS when a task needs a computer.",
   "place.view.auto.lineDesktop": "Uses the built-in browser, a private desktop on this computer, or this computer's screen, whichever the task needs.",
   "place.view.auto.lineLinux": "Uses the built-in browser, or a running private desktop when a task needs one.",
   "place.view.autoTeam.short": "Shared",
-  "place.view.autoTeam.line": "Uses {computer}, the cloud desktop this department shares.",
+  "place.view.autoTeam.line": "Uses {computer}, the private desktop this team shares.",
   "place.view.ccCannot.short": "Not with this model",
   "place.view.ccCannot.line": "{model} can't use a desktop. Choose a model that can, such as Claude or ChatGPT.",
   "place.view.ccToolsOff.short": "Not allowed",
@@ -127,38 +128,25 @@ export const PLACE_EN = {
   "place.view.ccSignIn.line": "Sign in to {engine} first. {bot} uses it on its cloud desktop too.",
   "place.view.ccSignIn.lineMyCloud": "Sign in to {engine} in the Cloud first. {bot} uses it on its cloud desktop too.",
   "place.view.ccNew.short": "Ready",
-  "place.view.ccNew.line": "{bot} gets its own cloud desktop from Boat the first time a task needs one. The first start takes about a minute.",
+  "place.view.ccNew.line": "{bot} gets its own private desktop on your VPS when a task needs one.",
   "place.view.ccStarting.short": "Starting…",
-  "place.view.ccStarting.line": "Starting {bot}'s cloud desktop. The first start takes about a minute.",
+  "place.view.ccStarting.line": "Starting {bot}'s private desktop on your VPS.",
   "place.view.ccWaking.short": "Waking…",
   "place.view.ccWaking.line": "Waking {bot}'s cloud desktop. This takes a few seconds.",
   "place.view.ccOn.short": "On",
-  "place.view.ccOn.line": "{bot}'s cloud desktop is on. It goes to sleep after 10 minutes without use.",
+  "place.view.ccOn.line": "{bot}'s private desktop on your VPS is running.",
   "place.view.ccAsleep.short": "Asleep",
-  "place.view.ccAsleep.line": "{bot}'s cloud desktop is asleep. It wakes in a few seconds when {bot} needs it.",
-  "place.view.ccNoHours.short": "No hours left",
-  "place.view.ccNoHours.line": "This month's {hours} cloud desktop hours are used up. They come back on 1 {month}.",
-  "place.view.ccNoHours.lineUnknown": "This month's cloud desktop hours are used up.",
-  "place.view.ccAtOnce.short": "In use",
-  "place.view.ccAtOnce.lineOne": "Your {plan} plan includes 1 cloud desktop, and {holders} has it.",
-  "place.view.ccAtOnce.lineMany": "Your {plan} plan includes {max} cloud desktops, and {holders} have them.",
-  "place.view.ccAtOnce.lineUnknown": "All the cloud desktops your plan includes are in use.",
+  "place.view.ccAsleep.line": "{bot}'s private desktop is stopped. Start it when needed.",
   "place.view.ccUnavailable.short": "Not available now",
   "place.view.ccUnavailable.line": "Cloud desktops can't start right now. It isn't anything you did.",
-  "place.view.ccEnded.short": "Plan ended",
-  "place.view.ccEnded.line": "Your MausBot Cloud plan has ended, so cloud desktops are off.",
   "place.view.ccNoStart.short": "Didn't start",
   "place.view.ccNoStart.line": "{bot}'s cloud desktop didn't start.",
   "place.view.ccClearing.short": "Clearing up",
   "place.view.ccClearing.line": "{bot}'s previous cloud desktop is still being removed.",
-  "place.view.ccProvider.short": "Couldn't start",
-  "place.view.ccProvider.line": "Your Boat account couldn't start {bot}'s cloud desktop: {words}",
-  "place.view.ccOnMyCloud.short": "For Cloud bots",
-  "place.view.ccOnMyCloud.line": "Cloud desktops from your plan work for Cloud bots for now.",
-  "place.view.ccNeedsKey.short": "Connect Boat first",
-  "place.view.ccNeedsKey.line": "Bots here can get their own cloud desktops from Boat, a paid service.",
-  "place.view.vps.short": "Your own machine",
-  "place.view.vps.line": "Uses your own Linux machine, connected over SSH.",
+  "place.view.ccNeedsKey.short": "Add your VPS",
+  "place.view.ccNeedsKey.line": "Connect your VPS in Settings to give bots their own private desktops.",
+  "place.view.vps.short": "Your VPS",
+  "place.view.vps.line": "Uses a private Linux desktop on your VPS.",
   "place.view.browser.short": "Web pages only",
   "place.view.browser.line": "Works in the built-in browser only: web pages, no desktop apps.",
   "place.view.browserOff.short": "Switched off",
@@ -187,7 +175,7 @@ export const PLACE_EN = {
   "place.action.manageComputers": "Manage cloud desktops",
   "place.action.tryAgain": "Try again",
   "place.action.openMyCloud": "Open the Cloud",
-  "place.action.addBoatKey": "Connect Boat",
+  "place.action.addVps": "Add your VPS",
   "place.action.turnOnBrowser": "Turn on the browser",
   "place.action.openTeamMap": "Open Team map",
   "place.action.openVmSettings": "Private desktop settings",
@@ -214,7 +202,7 @@ export const PLACE_WORDS: Record<PlaceActionId, string> = {
   "manage-computers": "Manage your cloud desktops in Settings → Bot desktops.",
   "try-again": "Try again.",
   "open-my-cloud": "Open My Cloud from the menu at the top of the sidebar.",
-  "add-boat-key": "Connect your Boat account in Settings → API keys.",
+  "add-vps": "Add your VPS in Settings → Computer.",
   "turn-on-browser": "Turn on the built-in browser in the Screen panel.",
   "open-team-map": "Open Team map to manage it.",
   "open-vm-settings": "Check it in Settings → Bot desktops.",
@@ -245,15 +233,15 @@ const STATE: Record<PlaceState, { key: string; action: PlaceActionId | null }> =
   "cc-waking": { key: "ccWaking", action: "watch" },
   "cc-on": { key: "ccOn", action: "watch" },
   "cc-asleep": { key: "ccAsleep", action: "wake" },
-  "cc-no-hours": { key: "ccNoHours", action: "see-plan" },
-  "cc-at-once": { key: "ccAtOnce", action: "manage-computers" },
+  "cc-no-hours": { key: "ccNeedsKey", action: "add-vps" },
+  "cc-at-once": { key: "ccNeedsKey", action: "add-vps" },
   "cc-unavailable": { key: "ccUnavailable", action: "try-again" },
-  "cc-ended": { key: "ccEnded", action: "see-plan" },
+  "cc-ended": { key: "ccNeedsKey", action: "add-vps" },
   "cc-no-start": { key: "ccNoStart", action: "try-again" },
   "cc-clearing": { key: "ccClearing", action: "try-again" },
-  "cc-provider": { key: "ccProvider", action: "try-again" },
-  "cc-on-my-cloud": { key: "ccOnMyCloud", action: "open-my-cloud" },
-  "cc-needs-key": { key: "ccNeedsKey", action: "add-boat-key" },
+  "cc-provider": { key: "ccNeedsKey", action: "add-vps" },
+  "cc-on-my-cloud": { key: "ccNeedsKey", action: "add-vps" },
+  "cc-needs-key": { key: "ccNeedsKey", action: "add-vps" },
   vps: { key: "vps", action: null },
   browser: { key: "browser", action: null },
   "browser-off": { key: "browserOff", action: "turn-on-browser" },
@@ -274,7 +262,7 @@ const PASSING: ReadonlySet<PlaceState> = new Set(["cc-unavailable", "cc-no-start
  * them, so the line ends "Ask an Admin to change it." instead. */
 const ADMIN_ONLY: ReadonlySet<PlaceActionId> = new Set([
   "choose-model", "open-tools", "sign-in", "see-plan", "manage-computers", "open-my-cloud",
-  "add-boat-key", "turn-on-browser", "open-team-map", "open-vm-settings", "change-routine",
+  "add-vps", "turn-on-browser", "open-team-map", "open-vm-settings", "change-routine",
 ]);
 /** Starting or waking a computer early: a User's own message does it, so
  * there is nothing to ask anyone for. */
@@ -291,7 +279,7 @@ const ACTION_KEY: Record<PlaceActionId, PlaceKey> = {
   "manage-computers": "place.action.manageComputers",
   "try-again": "place.action.tryAgain",
   "open-my-cloud": "place.action.openMyCloud",
-  "add-boat-key": "place.action.addBoatKey",
+  "add-vps": "place.action.addVps",
   "turn-on-browser": "place.action.turnOnBrowser",
   "open-team-map": "place.action.openTeamMap",
   "open-vm-settings": "place.action.openVmSettings",
@@ -321,24 +309,18 @@ export function placeState(facts: PlaceFacts): { state: PlaceState; params: Plac
   if (facts.place === "vm") {
     return facts.engine.computer ? { state: "vm", params: { bot } } : { state: "vm-cannot", params: { bot, model } };
   }
-  // On the person's own server (VPS) or on Boat, one rule for both.
-  const vps = facts.backend === "vps";
   if (!facts.engine.computer) return { state: "cc-cannot", params: { bot, model } };
   if (!facts.toolsAllowComputer) return { state: "cc-tools-off", params: { bot } };
   if (!facts.engine.signedIn) return { state: "cc-sign-in", params: { bot, engine: facts.engine.name } };
-  if (vps) return { state: "vps", params: { bot } };
+  if (facts.vpsConfigured === false) return { state: "cc-needs-key", params: { bot } };
   if (facts.refusal) return { state: facts.refusal.state, params: { bot, ...facts.refusal.params } };
-  if (facts.boat === "none") {
-    // My Cloud always has the plan's computers while the plan is active.
-    if (facts.server === "my-cloud") return { state: "cc-unavailable", params: { bot } };
-    return { state: facts.plan ? "cc-on-my-cloud" : "cc-needs-key", params: { bot } };
-  }
   switch (facts.computer) {
     case "starting": return { state: "cc-starting", params: { bot } };
     case "waking": return { state: "cc-waking", params: { bot } };
     case "on": return { state: "cc-on", params: { bot } };
     case "asleep": return { state: "cc-asleep", params: { bot } };
-    default: return { state: "cc-new", params: { bot } };
+    case "none": return { state: "cc-new", params: { bot } };
+    default: return { state: "vps", params: { bot } };
   }
 }
 
@@ -355,18 +337,12 @@ function sourceAction(source: PlaceSource, state: PlaceState): PlaceActionId | n
   }
 }
 
-function lineKey(state: PlaceState, params: PlaceParams, server?: ServerKind): PlaceKey {
+function lineKey(state: PlaceState, server?: ServerKind): PlaceKey {
   const segment = STATE[state].key;
   if (state === "auto") {
     return server === "my-cloud" ? "place.view.auto.lineMyCloud" : server === "linux" ? "place.view.auto.lineLinux" : "place.view.auto.lineDesktop";
   }
   if (state === "cc-sign-in" && server === "my-cloud") return "place.view.ccSignIn.lineMyCloud";
-  // A refusal read from a code alone has no numbers or names to give.
-  if (state === "cc-no-hours" && (params.hours === undefined || !params.month)) return "place.view.ccNoHours.lineUnknown";
-  if (state === "cc-at-once") {
-    if (!params.holders?.length || !params.plan || params.max === undefined) return "place.view.ccAtOnce.lineUnknown";
-    return params.max === 1 ? "place.view.ccAtOnce.lineOne" : "place.view.ccAtOnce.lineMany";
-  }
   return `place.view.${segment}.line` as PlaceKey;
 }
 
@@ -404,7 +380,7 @@ export function placeViewOf(state: PlaceState, params: PlaceParams, context: Pla
   const translate = context.translate ?? english;
   const values = templateParams(params, context.locale ?? "en");
   const segment = STATE[state].key;
-  let line = translate(lineKey(state, params, context.server), values);
+  let line = translate(lineKey(state, context.server), values);
   let action: PlaceActionId | null = context.source && PASSING.has(state) ? sourceAction(context.source, state) : STATE[state].action;
   // A failed row never offers what only the panel can do on the spot.
   if (context.source && (action === "start" || action === "wake" || action === "watch")) action = null;
@@ -454,9 +430,6 @@ export function placeRowText(row: PlaceRow, server?: ServerKind): string {
 }
 
 
-const MONTH = "(January|February|March|April|May|June|July|August|September|October|November|December)";
-const HOURS_USED = new RegExp(`Your (.+?) plan's (\\d+) cloud computer hours for \\w+ are used up\\. They reset on 1 ${MONTH}`);
-const AT_ONCE = /Your (.+?) plan includes (\d+) cloud computers? at once/;
 const PASSING_WORDS = [
   /cloud computers are busy right now/i, /temporarily unavailable/i, /can't be checked right now/i, /could not be reached/i,
   /returned an unexpected answer/i, /could not complete that request/i, /started too often/i, /woken too often/i,
@@ -469,30 +442,10 @@ const NO_START_WORDS = [
 ];
 const CLEARING_WORDS = [/is being deleted/i, /previous cloud computer deletion/i, /deletion was not confirmed/i, /deletion is still being reconciled/i];
 
-/** The Admin's own codes come first; until every refusal has one, its English
- * is read. `included`: the plan's computers, not the person's own Boat key,
- * whose provider's words are shown as they are. */
-export function cloudRefusal(failure: { message: string; code?: string; status?: number }, included: boolean): { state: PlaceState; params: PlaceParams } {
+export function cloudRefusal(failure: { message: string; code?: string; status?: number }, _included?: boolean): { state: PlaceState; params: PlaceParams } {
   const message = failure.message.trim();
-  const code = failure.code;
-  const hours = HOURS_USED.exec(message);
-  if (code === "hours_used" || hours) {
-    return { state: "cc-no-hours", params: hours ? { plan: hours[1], hours: Number(hours[2]), month: hours[3] } : {} };
-  }
-  const atOnce = AT_ONCE.exec(message);
-  if (code === "at_once" || atOnce) {
-    return { state: "cc-at-once", params: atOnce ? { plan: atOnce[1], max: Number(atOnce[2]) } : {} };
-  }
-  if (code === "subscription_inactive") return { state: "cc-ended", params: {} };
-  if (code === "too_many_starts" || code === "rate_limited" || code === "usage_unavailable" || code === "service_unavailable"
-    || code === "upstream_unavailable" || code === "invalid_response" || code === "upstream_error") {
-    return { state: "cc-unavailable", params: {} };
-  }
-  // A start that failed and left its new computer still being removed
-  // didn't start; the next attempt meets the removal.
   if (NO_START_WORDS.some((words) => words.test(message))) return { state: "cc-no-start", params: {} };
   if (CLEARING_WORDS.some((words) => words.test(message))) return { state: "cc-clearing", params: {} };
   if ((failure.status ?? 0) >= 500 || PASSING_WORDS.some((words) => words.test(message))) return { state: "cc-unavailable", params: {} };
-  if (!included && message) return { state: "cc-provider", params: { words: message.replace(/[\s.]+$/, "") + "." } };
   return { state: "cc-no-start", params: {} };
 }

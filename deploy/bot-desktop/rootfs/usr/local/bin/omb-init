@@ -14,11 +14,11 @@ if [ "$(id -u)" = 0 ]; then
   { { for server in $dns; do echo "nameserver $server"; done; echo "options timeout:2 attempts:2"; } > /etc/resolv.conf; } 2>/dev/null || true
   if [ "$mode" = free ]; then
     exec setpriv --reuid=1000 --regid=1000 --init-groups --inh-caps=-all \
-      env HOME=/home/cua USER=cua LOGNAME=cua /usr/bin/tini -s -g -- /usr/local/bin/omb-session
+      env HOME=/home/cua USER=cua LOGNAME=cua /usr/bin/tini -s -- /usr/local/bin/omb-session
   fi
   /usr/local/bin/omb-firewall || { echo "omb-init: the network firewall could not be applied; refusing to start" >&2; exit 70; }
   exec setpriv --reuid=1000 --regid=1000 --clear-groups --inh-caps=-all --no-new-privs \
-    env HOME=/home/cua USER=cua LOGNAME=cua /usr/bin/tini -s -g -- /usr/local/bin/omb-session
+    env HOME=/home/cua USER=cua LOGNAME=cua /usr/bin/tini -s -- /usr/local/bin/omb-session
 fi
 echo "omb-init: started as uid $(id -u): no firewall of its own, so only use this behind host-fence.sh" >&2
-exec /usr/bin/tini -s -g -- /usr/local/bin/omb-session
+exec /usr/bin/tini -s -- /usr/local/bin/omb-session

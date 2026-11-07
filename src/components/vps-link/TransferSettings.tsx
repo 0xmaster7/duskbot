@@ -1,8 +1,8 @@
 // Settings > Transfer: where the bots live now, moving them back to this computer, taking OpenMausBot off the server, and
 // the backups a move keeps
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { t } from "@/lib/i18n";
-import { formatBytes, openAddVps, vpsLinkBridge, type VpsBackup, type VpsWhere } from "@/lib/vps-link";
+import { formatBytes, openAddVps, useVpsLink, type VpsBackup, type VpsWhere } from "@/lib/vps-link";
 import { Card, CopyRow, ItemRow, NavRow, NoteRow } from "../ListRows";
 import { smallButtonCls } from "../ui/GrokDialog";
 import { deviceWord, message } from "./parts";
@@ -20,7 +20,7 @@ function backupContents(backup: VpsBackup): string {
 }
 
 export function TransferSettings() {
-  const bridge = vpsLinkBridge();
+  const { bridge, view, ready } = useVpsLink();
   const [where, setWhere] = useState<VpsWhere | null>(null);
   const [backups, setBackups] = useState<VpsBackup[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -28,22 +28,23 @@ export function TransferSettings() {
   const [note, setNote] = useState("");
   const [removing, setRemoving] = useState(false);
   const alive = useRef(true);
+  const loadSequence = useRef(0);
   const device = deviceWord();
 
-  const load = () => {
+  const load = useCallback(() => {
     if (!bridge) return;
+    const sequence = ++loadSequence.current;
     void Promise.all([bridge.where(), bridge.backups()]).then(([place, list]) => {
-      if (!alive.current) return;
+      if (!alive.current || sequence !== loadSequence.current) return;
       setWhere(place); setBackups(list);
-    }, (cause) => { if (alive.current) setError(message(cause)); });
-  };
+    }, (cause) => { if (alive.current && sequence === loadSequence.current) setError(message(cause)); });
+  }, [bridge]);
+  const refreshKey = JSON.stringify([view.stage, view.server?.id, view.move?.step, view.move?.status, view.move?.backupId]);
   useEffect(() => {
     alive.current = true;
-    load();
-    const unsubscribe = bridge?.onChange(() => load());
-    return () => { alive.current = false; unsubscribe?.(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bridge]);
+    if (ready) load();
+    return () => { alive.current = false; loadSequence.current++; };
+  }, [load, ready, refreshKey]);
 
   if (!bridge) return <Card><NoteRow>{t("vpsLink.transfer.desktopOnly")}</NoteRow></Card>;
   const perform = async (ask: string | null, work: () => Promise<unknown>, done?: string) => {

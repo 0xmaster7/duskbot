@@ -15,7 +15,10 @@ const { NightCard } = await import("./NightCard");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let host: HTMLDivElement, root: Root;
-const render = async (small = false) => { await act(async () => { root.render(createElement(NightCard, { small, children: createElement("h2", null, "MausBot Cloud") })); }); };
+const render = async (small = false) => {
+  await act(async () => { root.render(createElement(NightCard, { small, children: createElement("h2", null, "MausBot Cloud") })); });
+  await act(async () => { await vi.dynamicImportSettled(); });
+};
 const card = () => host.querySelector<HTMLElement>("[data-night-card]")!;
 const mascots = () => [...host.querySelectorAll<HTMLElement>("[data-maus]")];
 const animated = () => mascots().map(node => node.dataset.animated);

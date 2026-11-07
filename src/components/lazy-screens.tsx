@@ -95,6 +95,7 @@ export const RoomPanel = lazyScreen("RoomPanel", async () => (await import("./ro
 export const RemoteDesktopPanel = lazyScreen("RemoteDesktopPanel", async () => (await import("./remote-desktop-panel")).RemoteDesktopPanel);
 export const TriggersPage = lazyScreen("TriggersPage", async () => (await import("./TriggersPage")).TriggersPage);
 export const SettingsModal = lazyScreen("SettingsModal", async () => (await import("./SettingsModal")).SettingsModal);
+export const VoiceSetupDialog = lazyScreen("VoiceSetupDialog", async () => (await import("./VoiceSetupDialog")).VoiceSetupDialog);
 
 // Rarely opened, so never fetched ahead. The team library is what brings the YAML parser in.
 export const CloudAddDialog = lazyScreen("CloudAddDialog", async () => (await import("./CloudAddDialog")).CloudAddDialog);

@@ -6,13 +6,14 @@ import { Loader2 } from "lucide-react";
 import { SettingRow } from "./SettingsPrimitives";
 import { Card as RowsCard, FormDialog, FormField, ItemRow, NavRow, NoteRow, useSubPage } from "./ListRows";
 import { textFieldCls } from "./ui/GrokDialog";
-import { MacLocalControl } from "./MacLocalControl";
-import { CLOUD_SETUP_PAGE, PRIVATE_SETUP_PAGE } from "./settings-page-ids";
+import { NativeComputerSettings } from "./NativeComputerSettings";
+import { PRIVATE_SETUP_PAGE } from "./settings-page-ids";
 import { SettingsSelect } from "./SettingsSelect";
 import { useCopyFeedback } from "@/lib/copy-text";
 import { cn } from "@/lib/cn";
 import { useStore } from "@/state/store";
-import { VpsComputersCard, inventoryCount } from "./VpsComputersCard";
+import { openAddVps } from "@/lib/vps-link";
+import { VpsComputersCard } from "./VpsComputersCard";
 
 type Action = "pull" | "run" | "start" | "stop" | "remove" | "recreate";
 
@@ -70,34 +71,6 @@ interface LocalVmInventoryPayload {
   maxInstances: number;
   available: boolean;
   problem: string | null;
-}
-
-export interface CloudComputerInventoryInstance {
-  boxId: string;
-  name: string;
-  state: string;
-  ownerBotId: string | null;
-  ownerName: string | null;
-  orphaned: boolean;
-  inUse: boolean;
-}
-
-export interface CloudComputerInventoryPayload {
-  configured: boolean;
-  available: boolean;
-  problem: string | null;
-  instances: CloudComputerInventoryInstance[];
-}
-
-type CloudAction = "sleep" | "delete";
-type PendingCloudAction = { boxId: string; action: CloudAction } | null;
-export type CloudPostActionOverride = "deleted" | "deleting" | "sleeping";
-export type CloudPostActionOverrides = Record<string, CloudPostActionOverride>;
-
-const PENDING_CLOUD_DELETE_REFRESH_DELAYS_MS = [1_000, 2_000, 4_000] as const;
-
-function waitForCloudDeleteRefresh(delayMs: number): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, delayMs));
 }
 
 export interface VpsComputerInventoryInstance {
@@ -172,75 +145,6 @@ export function localVmInventoryState(instance: LocalVmInventoryInstance): strin
   return computerStateLabel(localVmInventoryStateKind(instance));
 }
 
-export function cloudComputerInventoryStateKind(
-  instance: CloudComputerInventoryInstance,
-): ComputerStateKind {
-  if (instance.inUse) return "in-use";
-  if (instance.state === "removing") return "removing";
-  if (instance.state === "archived") return "sleeping";
-  if (instance.state === "archiving") return "going-to-sleep";
-  if (["idle", "ready", "running"].includes(instance.state)) return "running";
-  if (["init", "provisioning", "provisioned", "cloning"].includes(instance.state)) return "starting";
-  return "attention";
-}
-
-export function cloudComputerInventoryState(instance: CloudComputerInventoryInstance): string {
-  return computerStateLabel(cloudComputerInventoryStateKind(instance));
-}
-
-/** Boat's account LIST is eventually consistent: an older snapshot must not undo an action the provider accepted. */
-export function reconcileCloudInventorySnapshot(
-  incoming: CloudComputerInventoryInstance[],
-  previous: CloudComputerInventoryInstance[],
-  overrides: CloudPostActionOverrides,
-): { instances: CloudComputerInventoryInstance[]; overrides: CloudPostActionOverrides } {
-  const nextOverrides = { ...overrides };
-  const incomingIds = new Set(incoming.map((instance) => instance.boxId));
-  const instances = incoming.flatMap((instance) => {
-    const override = overrides[instance.boxId];
-    if (override === "deleted") return [];
-    if (override === "deleting") return [{ ...instance, state: "removing" }];
-    if (override !== "sleeping") return [instance];
-    if (instance.state === "archived") {
-      delete nextOverrides[instance.boxId];
-      return [instance];
-    }
-    return [{ ...instance, state: "archived" }];
-  });
-
-  // A transitioning Boat can briefly disappear from LIST.
-  for (const instance of previous) {
-    if (overrides[instance.boxId] !== "sleeping" || incomingIds.has(instance.boxId)) continue;
-    instances.push({ ...instance, state: "archived" });
-  }
-  for (const [boxId, override] of Object.entries(overrides)) {
-    if ((override === "deleted" || override === "deleting") && !incomingIds.has(boxId)) {
-      delete nextOverrides[boxId];
-    }
-  }
-  return { instances, overrides: nextOverrides };
-}
-
-/** An empty list proves deletion only when Boat says the read was authoritative. */
-export function reconcileCloudInventoryPayload(
-  payload: CloudComputerInventoryPayload,
-  previous: CloudComputerInventoryInstance[],
-  overrides: CloudPostActionOverrides,
-): { instances: CloudComputerInventoryInstance[]; overrides: CloudPostActionOverrides } {
-  if (payload.configured !== true || payload.available !== true) {
-    return { instances: previous, overrides: { ...overrides } };
-  }
-  return reconcileCloudInventorySnapshot(
-    Array.isArray(payload.instances) ? payload.instances : [],
-    previous,
-    overrides,
-  );
-}
-
-function cloudComputerCanSleep(instance: CloudComputerInventoryInstance): boolean {
-  return ["idle", "ready", "running"].includes(instance.state);
-}
-
 export function vpsComputerInventoryStateKind(
   instance: VpsComputerInventoryInstance,
 ): ComputerStateKind {
@@ -262,7 +166,7 @@ export function vpsComputerShortId(name: string): string {
   return suffix ? suffix.slice(-8).toLowerCase() : "unknown";
 }
 
-type ComputerInventoryRequest = "status" | "local-vms" | "cloud" | "vps";
+type ComputerInventoryRequest = "status" | "local-vms" | "vps";
 type ComputerApiRequest = [url: string, init: RequestInit];
 export interface ComputerActionPlan {
   confirmation: string | null;
@@ -272,7 +176,6 @@ export interface ComputerActionPlan {
 const computerInventoryPaths: Record<ComputerInventoryRequest, string> = {
   status: "/api/local-computer",
   "local-vms": "/api/local-computer/instances",
-  cloud: "/api/computers/boxes",
   vps: "/api/computers/vps",
 };
 
@@ -299,25 +202,6 @@ export function perBotLocalVmDeletePlan(instance: LocalVmInventoryInstance): Com
   };
 }
 
-export function cloudComputerActionPlan(
-  action: CloudAction,
-  instance: CloudComputerInventoryInstance,
-): ComputerActionPlan {
-  return {
-    confirmation: action === "delete"
-      ? t("vm.confirm.deleteCloud", {
-          subject: instance.orphaned
-            ? t("vm.confirm.orphanCloud")
-            : t("vm.confirm.ownedCloud", { name: instance.ownerName ?? "" }),
-        })
-      : null,
-    request: jsonPostRequest(
-      `/api/computers/boxes/${encodeURIComponent(instance.boxId)}/${action}`,
-      action === "delete" ? { confirmName: instance.name } : {},
-    ),
-  };
-}
-
 export function vpsComputerRemovePlan(instance: VpsComputerInventoryInstance): ComputerActionPlan {
   const shortId = vpsComputerShortId(instance.name);
   return {
@@ -341,116 +225,12 @@ export function confirmComputerAction(
   return plan.request;
 }
 
-/** The one way in to a cloud desktop: a page of this one with the Boat key, Boat's credit and your own server. */
-function AddCloudDesktopRow() {
-  const sub = useSubPage();
-  if (typeof window !== "undefined" && window.ogb?.remoteClient?.active === true) return null;
-  return <NavRow data-panel-page={CLOUD_SETUP_PAGE} data-settings-open="add-cloud-desktop" title={t("settings.w6.computer.addCloud")} onClick={() => sub.open(CLOUD_SETUP_PAGE, t("settings.w6.computer.addCloud"))} />;
-}
-
 /** A computer's state as the row's quiet value: green while it works, grey asleep or stopped, amber otherwise. */
 export function ComputerState({ kind, label, busy = false }: { kind: "good" | "idle" | "warn"; label: string; busy?: boolean }) {
   return (
     <span data-computer-state={kind} className={cn("shrink-0 text-[13px] leading-[18px]", kind === "good" ? "text-success" : kind === "idle" ? "text-ink-secondary" : "text-warning")}>
       {busy && <Loader2 size={11} aria-hidden="true" className="me-1 inline animate-spin align-[-1px]" />}{label}
     </span>
-  );
-}
-
-export function CloudComputersCard({
-  instances,
-  configured,
-  loading,
-  pending,
-  error,
-  unavailableReason,
-  onRefresh,
-  onSleep,
-  onDelete,
-}: {
-  instances: CloudComputerInventoryInstance[];
-  configured: boolean | null;
-  loading: boolean;
-  pending: PendingCloudAction;
-  error: string | null;
-  unavailableReason: string | null;
-  onRefresh: () => void;
-  onSleep: (instance: CloudComputerInventoryInstance) => void;
-  onDelete: (instance: CloudComputerInventoryInstance) => void;
-}) {
-  const disconnected = configured === false && !loading && !unavailableReason;
-  const status = loading && instances.length === 0
-    ? t("common.checking")
-    : unavailableReason
-      ? undefined
-      : configured === false
-        ? t("settings.w6a.cloud.notConnected")
-        : configured === true
-          ? instances.length === 0 ? t("vm.cloud.noneFound") : inventoryCount(instances.length)
-          : undefined;
-  if (disconnected) return <AddCloudDesktopRow />;
-  return (
-    <>
-      <ItemRow title={t("vm.cloud.title")} hint={status}>
-        <button type="button" onClick={onRefresh} disabled={loading || pending !== null} aria-label={t("vm.cloud.refreshAria")} className="ui-button">{t("vm.refresh")}</button>
-      </ItemRow>
-
-      {error && <NoteRow tone="danger">{error}</NoteRow>}
-
-      <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-        {loading
-          ? t("vm.cloud.checking")
-          : unavailableReason
-            ? t("vm.cloud.unavailable", { reason: unavailableReason })
-            : configured === false
-              ? t("vm.cloud.notConnected")
-              : instances.length === 1
-                ? t("vm.cloud.foundOne")
-                : t("vm.cloud.foundMany", { count: instances.length })}
-      </p>
-
-      <div aria-busy={loading || pending !== null} className="contents">
-        {unavailableReason && <NoteRow tone="warn">{unavailableReason}</NoteRow>}
-        {!unavailableReason && instances.map((instance) => {
-          const kind = cloudComputerInventoryStateKind(instance);
-          const state = computerStateLabel(kind);
-          const isPending = pending?.boxId === instance.boxId;
-          const canSleep = cloudComputerCanSleep(instance);
-          const isRemoving = kind === "removing";
-          return (
-            <ItemRow
-              key={instance.boxId}
-              title={instance.orphaned ? t("vm.cloud.orphan") : instance.ownerName}
-              hint={instance.inUse
-                ? t("vm.cloud.stopFirst")
-                : <>{instance.orphaned ? t("vm.owner.gone") : t("vm.owner.owned")} · <span className="break-all">{instance.name}</span></>}
-            >
-              <ComputerState label={state} kind={instance.inUse || kind === "running" ? "good" : kind === "sleeping" || kind === "going-to-sleep" ? "idle" : "warn"} />
-              <button
-                type="button"
-                onClick={() => onSleep(instance)}
-                disabled={loading || instance.inUse || pending !== null || !canSleep}
-                aria-busy={isPending && pending?.action === "sleep" ? true : undefined}
-                title={canSleep ? t("vm.cloud.sleepTitle") : t("vm.cloud.sleepBlocked", { state: state.toLowerCase() })}
-                className="ui-button"
-              >
-                {t("vm.cloud.sleep")}
-              </button>
-              <button
-                type="button"
-                onClick={() => onDelete(instance)}
-                disabled={loading || instance.inUse || pending !== null || isRemoving}
-                aria-busy={isPending && pending?.action === "delete" ? true : undefined}
-                title={t("vm.cloud.deleteTitle")}
-                className="ui-button ui-button-danger"
-              >
-                {t("common.delete")}
-              </button>
-            </ItemRow>
-          );
-        })}
-      </div>
-    </>
   );
 }
 
@@ -677,15 +457,6 @@ export function LocalComputerSection() {
   const [inventoryUnavailableReason, setInventoryUnavailableReason] = useState<string | null>(null);
   const [deletingBotId, setDeletingBotId] = useState<string | null>(null);
   const [inventoryRefreshKey, setInventoryRefreshKey] = useState(0);
-  const [cloudInventory, setCloudInventory] = useState<CloudComputerInventoryInstance[]>([]);
-  const [cloudConfigured, setCloudConfigured] = useState<boolean | null>(null);
-  const [cloudLoading, setCloudLoading] = useState(true);
-  const [cloudError, setCloudError] = useState<string | null>(null);
-  const [cloudUnavailableReason, setCloudUnavailableReason] = useState<string | null>(null);
-  const [cloudPending, setCloudPending] = useState<PendingCloudAction>(null);
-  const [cloudRefreshKey, setCloudRefreshKey] = useState(0);
-  const cloudInventoryRef = useRef<CloudComputerInventoryInstance[]>([]);
-  const cloudOverridesRef = useRef<CloudPostActionOverrides>({});
   const [vpsInventory, setVpsInventory] = useState<VpsComputerInventoryInstance[]>([]);
   const [vpsConfigured, setVpsConfigured] = useState<boolean | null>(null);
   const [vpsAliases, setVpsAliases] = useState<string[]>([]);
@@ -715,28 +486,6 @@ export function LocalComputerSection() {
     setInventoryMax(payload.maxInstances);
     setInventoryUnavailableReason(payload.available ? null : (payload.problem ?? t("vm.err.runtimeUnavailable")));
     setInventoryError(null);
-  }, []);
-
-  const refreshCloudInventory = useCallback(async (signal?: AbortSignal) => {
-    const response = await fetch(...computerInventoryRequest("cloud", signal));
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(body.error ?? t("vm.err.cloudInventory", { code: response.status }));
-    const payload = body as CloudComputerInventoryPayload;
-    const reconciled = reconcileCloudInventoryPayload(
-      payload,
-      cloudInventoryRef.current,
-      cloudOverridesRef.current,
-    );
-    cloudOverridesRef.current = reconciled.overrides;
-    cloudInventoryRef.current = reconciled.instances;
-    setCloudInventory(reconciled.instances);
-    setCloudConfigured(payload.configured === true);
-    setCloudUnavailableReason(
-      payload.available || !payload.configured
-        ? null
-        : (payload.problem ?? t("vm.err.cloudUnavailable")),
-    );
-    setCloudError(null);
   }, []);
 
   const refreshVpsInventory = useCallback(async (signal?: AbortSignal) => {
@@ -805,21 +554,6 @@ export function LocalComputerSection() {
       });
     return () => controller.abort();
   }, [inventoryRefreshKey, refreshInventory, status?.mode]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setCloudLoading(true);
-    void refreshCloudInventory(controller.signal)
-      .catch((e) => {
-        if (!(e instanceof DOMException && e.name === "AbortError")) {
-          setCloudUnavailableReason(e instanceof Error ? e.message : String(e));
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setCloudLoading(false);
-      });
-    return () => controller.abort();
-  }, [cloudRefreshKey, refreshCloudInventory]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -953,90 +687,6 @@ export function LocalComputerSection() {
       setInventoryError(e instanceof Error ? e.message : String(e));
     } finally {
       setDeletingBotId(null);
-    }
-  };
-
-  const actOnCloudComputer = async (action: CloudAction, instance: CloudComputerInventoryInstance) => {
-    const request = confirmComputerAction(
-      cloudComputerActionPlan(action, instance),
-      (message) => window.confirm(message),
-    );
-    if (!request) return;
-    setCloudPending({ boxId: instance.boxId, action });
-    setCloudError(null);
-    setAnnouncement("");
-    try {
-      const response = await fetch(...request);
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.error ?? t(action === "delete" ? "vm.cloud.deleteError" : "vm.cloud.sleepError"));
-      const deletionPending = action === "delete" && body?.pending === true;
-      cloudOverridesRef.current = {
-        ...cloudOverridesRef.current,
-        [instance.boxId]: action === "delete"
-          ? deletionPending ? "deleting" : "deleted"
-          : "sleeping",
-      };
-      const reconciled = reconcileCloudInventorySnapshot(
-        cloudInventoryRef.current,
-        cloudInventoryRef.current,
-        cloudOverridesRef.current,
-      );
-      cloudOverridesRef.current = reconciled.overrides;
-      cloudInventoryRef.current = reconciled.instances;
-      setCloudInventory(reconciled.instances);
-      const subject = instance.orphaned
-        ? t("vm.announce.orphanCloud")
-        : t("vm.confirm.ownedCloud", { name: instance.ownerName ?? "" });
-      setAnnouncement(
-        deletionPending
-          ? `${subject}: ${t("vm.state.removing")}.`
-          : t(action === "delete" ? "vm.announce.cloudDeleted" : "vm.announce.cloudSleeping", { subject }),
-      );
-
-      if (deletionPending) {
-        // Boat may accept a background operation before the computer is gone.
-        for (const delayMs of PENDING_CLOUD_DELETE_REFRESH_DELAYS_MS) {
-          await waitForCloudDeleteRefresh(delayMs);
-          try {
-            await refreshCloudInventory();
-          } catch {
-          }
-          if (cloudOverridesRef.current[instance.boxId] !== "deleting") {
-            setAnnouncement(t("vm.announce.cloudDeleted", { subject }));
-            return;
-          }
-        }
-
-        const nextOverrides = { ...cloudOverridesRef.current };
-        delete nextOverrides[instance.boxId];
-        cloudOverridesRef.current = nextOverrides;
-        const restored = cloudInventoryRef.current.map((current) =>
-          current.boxId === instance.boxId ? { ...current, state: instance.state } : current
-        );
-        cloudInventoryRef.current = restored;
-        setCloudInventory(restored);
-        try {
-          await refreshCloudInventory();
-          if (!cloudInventoryRef.current.some((current) => current.boxId === instance.boxId)) {
-            setAnnouncement(t("vm.announce.cloudDeleted", { subject }));
-          }
-        } catch (refreshError) {
-          const detail = refreshError instanceof Error ? refreshError.message : String(refreshError);
-          setCloudError(`${subject}: ${t("vm.state.removing")}. ${detail}`);
-        }
-        return;
-      }
-
-      try {
-        await refreshCloudInventory();
-      } catch (refreshError) {
-        const detail = refreshError instanceof Error ? refreshError.message : String(refreshError);
-        setCloudError(t(action === "delete" ? "vm.cloud.deletedRefreshError" : "vm.cloud.sleepRefreshError", { subject, detail }));
-      }
-    } catch (e) {
-      setCloudError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setCloudPending(null);
     }
   };
 
@@ -1187,18 +837,9 @@ export function LocalComputerSection() {
   return (
     <>
       {announcer}
-      <RowsCard label={t("settings.w6.group.cloudDesktop")} data-settings-block="cloud-desktop">
-        <CloudComputersCard
-          instances={cloudInventory}
-          configured={cloudConfigured}
-          loading={cloudLoading}
-          pending={cloudPending}
-          error={cloudError}
-          unavailableReason={cloudUnavailableReason}
-          onRefresh={() => setCloudRefreshKey((key) => key + 1)}
-          onSleep={(instance) => void actOnCloudComputer("sleep", instance)}
-          onDelete={(instance) => void actOnCloudComputer("delete", instance)}
-        />
+      {!cloudHome && <NativeComputerSettings />}
+      <RowsCard data-settings-block="vps-desktops">
+        {vpsConfigured === false && !vpsLoading && !vpsUnavailableReason && (typeof window === "undefined" || window.ogb?.remoteClient?.active !== true) && <NavRow title={t("vpsLink.add")} hint={t("vpsLink.addHint")} onClick={openAddVps} />}
         <VpsComputersCard
           instances={vpsInventory}
           configured={vpsConfigured}
@@ -1213,7 +854,7 @@ export function LocalComputerSection() {
       </RowsCard>
 
       {!cloudHome && (
-        <RowsCard label={t("settings.grok.group.yourComputer")} data-settings-block="private-desktop">
+        <RowsCard label={t("settings.native.optionalDesktop")} data-settings-block="private-desktop">
           <ItemRow
             title={t("settings.w6a.private.title")}
             hint={<span aria-live="polite">{loading
@@ -1248,7 +889,6 @@ export function LocalComputerSection() {
           <NavRow data-panel-page={PRIVATE_SETUP_PAGE} title={t("settings.w6a.private.more")} onClick={() => sub.open(PRIVATE_SETUP_PAGE, t("settings.w6a.private.more"))} />
         </RowsCard>
       )}
-      <MacLocalControl />
     </>
   );
 }

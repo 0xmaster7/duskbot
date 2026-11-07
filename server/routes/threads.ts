@@ -13,6 +13,7 @@ import type { Coordinator } from "../coordinator.ts";
 import type { WorkspaceAccess } from "../enterprise.ts";
 import type { GroupUsageReader } from "../group-thread-usage.ts";
 import { readMessage, searchMessagesAsync } from "../message-db.ts";
+import { pageMessage } from "../host/message-pages.ts";
 import {
   listMessageFolder, messageAttachmentName, messageFileDisposition, messageFileDownloadName, messageFolderEntryName,
   messageImageTargetAt, messageReferencesFile, openMessageFile, openMessageFolderEntry, referencedFileName,
@@ -30,7 +31,7 @@ export type MessagePage = { messages: Array<Message | Record<string, unknown>>; 
 export interface ThreadRouteDeps {
   store: Pick<Store,
     | "activeLeaf" | "activePath" | "bot" | "botByThread" | "bots" | "groupByThread" | "groupTaskByThread" | "groups" | "messagesFor"
-    | "onChange" | "sections" | "taskByThread" | "tasks">;
+    | "onChange" | "sections" | "taskByThread" | "tasks" | "messagesPreview">;
   coordinator: Pick<Coordinator, "job">;
   groupThreadIsWorking(groupId: string, threadId: string): boolean;
   /** What people's lines are called in this conversation (replies.ts PersonName). */
@@ -89,19 +90,34 @@ export function createThreadRoutes(deps: ThreadRouteDeps): RouteHandler {
       if (limit === null) return json(res, 400, { error: "messages must be a non-negative whole number" });
       // tasks stays explicit: clients expect [] where wireBot() would omit the key.
       const shownBots = store.bots.filter((bot) => visible.bot(bot.id));
+      const shownGroups = store.groups.filter((group) => visible.group(group.id));
+      const selective = url.searchParams.has("selected");
+      const requested = url.searchParams.get("selected");
+      const selected = shownBots.some((bot) => bot.id === requested) || shownGroups.some((group) => group.id === requested)
+        ? requested : shownBots[0]?.id ?? shownGroups[0]?.id;
+      const loadedThreads: string[] = [];
+      const snapshotPage = (ownerId: string, threadId: string): MessagePage & { previewMessages?: Array<Message | Record<string, unknown>> } => {
+        if (!selective || ownerId === selected) {
+          loadedThreads.push(threadId);
+          return messagePage(threadId, limit);
+        }
+        const page = messagePage(threadId, Math.min(limit ?? DEFAULT_PAGE, 1));
+        const previewMessages = store.messagesPreview(threadId, limit ?? DEFAULT_PAGE).map(pageMessage);
+        return { ...page, messages: previewMessages.length ? [previewMessages.at(-1)!] : [], previewMessages };
+      };
       const queued = publicBotQueuedMessages();
       return json(res, 200, {
         bots: shownBots.map((bot) => {
           const wired = wireBot(bot);
           // Narrowed first: on a Team Cloud the selected conversation may be someone else's, and its words never go out.
           const shown = memberBot({ ...wired, tasks: wired.tasks ?? [] }, visible);
-          return { ...shown, ...(typeof shown.threadId === "string" ? messagePage(shown.threadId, limit) : { messages: [], hasMore: false, activeLeafId: null }) };
+          return { ...shown, ...(typeof shown.threadId === "string" ? snapshotPage(bot.id, shown.threadId) : { messages: [], hasMore: false, activeLeafId: null }) };
         }),
         botQueuedMessages: visible.everything ? queued : Object.fromEntries(Object.entries(queued).filter(([threadId]) => visible.thread(threadId))),
         sections: visible.sections(store.sections),
-        groups: store.groups.filter((g) => visible.group(g.id)).map((g) => {
+        groups: shownGroups.map((g) => {
           const group = publicGroupState(g);
-          const room = { ...(deps.groupFor?.(auth, group) ?? group), ...messagePage(g.threadId, limit) };
+          const room = { ...(deps.groupFor?.(auth, group) ?? group), ...snapshotPage(g.id, g.threadId) };
           return visible.everything || !visible.member ? room : memberGroup(room);
         }),
         computerControl: Object.fromEntries(
@@ -112,6 +128,7 @@ export function createThreadRoutes(deps: ThreadRouteDeps): RouteHandler {
             return [bot.id, { held: snapshot.held, helpReason: snapshot.helpReason, ...(snapshot.help ? { help: snapshot.help } : {}) }];
           }),
         ),
+        ...(selective ? { loadedThreads } : {}),
       });
     }
 

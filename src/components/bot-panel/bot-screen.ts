@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { listenLiveFrames } from "@/lib/live-events";
 import { effectivePlace, type EffectivePlace, type Place } from "@/lib/place";
@@ -36,7 +36,7 @@ export function useBotScreen(bot: Bot, { visible = true }: { visible?: boolean }
   const pageVisible = usePageVisible();
   const liveTask = bot.tasks?.find((task) => task.threadId === bot.threadId);
   const chosen = effectivePlace(bot, liveTask);
-  const autoKey = `${bot.id}:${bot.threadId}:${bot.cloudBackend ?? "box"}`;
+  const autoKey = `${bot.id}:${bot.threadId}:vps`;
   const [auto, setAuto] = useState<{ key: string; surface: Place | "off" | undefined } | null>(null);
   const place: EffectivePlace | undefined = chosen !== "auto" ? chosen : auto?.key === autoKey ? auto.surface ?? "auto" : undefined;
 
@@ -103,7 +103,7 @@ export function useBotScreen(bot: Bot, { visible = true }: { visible?: boolean }
 
   const localNow = capturesHere && local?.key === localKey ? local : null;
   const cloudNow = place === "cloud" && cloud?.key === cloudKey ? cloud.src : null;
-  const posted = [...bot.messages].reverse().find((message) => message.kind === "screen" && (message.hasImage || message.png));
+  const posted = useMemo(() => bot.messages.findLast((message) => message.kind === "screen" && (message.hasImage || message.png)), [bot.messages]);
   const postedSrc = posted ? screenFramePreview({ threadId: bot.threadId, messageId: posted.id }, posted.mime).src : null;
   // this computer always shows itself as it is now, never an older posted frame
   const stream = capturesHere && live.status === "live" ? live.stream : null;

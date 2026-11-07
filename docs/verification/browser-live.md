@@ -3,6 +3,31 @@
 Use installed native engine and Chrome binaries explicitly; the fixture never
 uses the operator's browser profiles, OMB home, provider logins, or API keys.
 
+## Native local browser without a VPS
+
+```sh
+OMB_VERIFY_BROWSER_BINARY=/absolute/path/to/agent-browser \
+OMB_VERIFY_BROWSER_CHROME=/absolute/path/to/chrome-headless-shell \
+pnpm exec vitest run scripts/testing/local-browser.e2e.test.ts
+```
+
+On macOS, this opt-in check uses the real native engine and headless Chrome
+against a loopback form, through the normal browser proxy and a scripted fake
+model turn. It navigates, fills a name, clicks Say hello and reads the resulting
+greeting. The temporary workspace has no VPS alias or computer MCP server;
+peer, browser and data tools still mount. A fixture-only subprocess guard
+records and refuses Docker or Podman launches, and the browser workflow must
+record zero attempts. Bounded action/readback evidence and the server log stay
+at the printed paths; all browser profiles and server data are disposable.
+
+This proves native browser actions, not control of arbitrary Mac applications.
+The [local computer helper checks](local-computer-launch.md) run the real
+Electron executable in Node mode against an inert driver. Actual desktop
+interaction still requires the app's macOS Accessibility and Screen Recording
+permissions and remains outside these tests.
+
+## Live browser panel fixture
+
 ```sh
 OMB_VERIFY_BROWSER_BINARY=/absolute/path/to/agent-browser \
 OMB_VERIFY_BROWSER_CHROME=/absolute/path/to/chrome-headless-shell \

@@ -2,46 +2,34 @@ import { hintSeen, hintSeenPatch, type OnboardingStatus } from "@/lib/onboarding
 
 /** The What's new popup's campaign: each person sees it once. A new id shows it once more. */
 export const WHATS_NEW_NOTICE = "whats-new-2026-11";
-export const UPDATES_CONSENT_NOTICE = "updates-consent";
 export const CLOUD_INTRO = "cloud-trial-intro-v1";
 export const CLOUD_TRIAL_NOTICE = "cloud-trial-notice";
 export const CLOUD_NOTICE = "cloud-notice";
-export const STAR_NOTICE = "github-star-dismissed";
 /** Bots on this computer and on another place of the person's (two-places.ts): dismissed per place, by main. */
 export const TWO_PLACES_NOTICE = "two-places";
-export const PRODUCT_HUNT_NOTICE = "product-hunt-launch-2026-10";
-export const PRODUCT_HUNT_URL = "https://www.producthunt.com/products/mausbot";
-export const PRODUCT_HUNT_UNTIL = Date.UTC(2026, 10, 1);
-export const BOAT_OFFER_NOTICE = "boat-credit-2026-11";
 /** The Move from Grok Bot popup: each person sees it once, first of all, after their welcome. */
 export const GROK_MOVE_NOTICE = "grok-move-2026-11";
 
 /**
- * Every notice, in the order a launch asks them: one launch shows one notice, the first one due, and only the product-updates
- * question may follow it there. The rest wait for later launches, in this order.
+ * Every notice, in the order a launch asks them: one launch shows one notice, the first one due. The rest wait for later launches, in this order.
  */
 export const NOTICES = [
   GROK_MOVE_NOTICE,
   WHATS_NEW_NOTICE,
-  UPDATES_CONSENT_NOTICE,
   TWO_PLACES_NOTICE,
-  PRODUCT_HUNT_NOTICE,
   CLOUD_INTRO,
   CLOUD_TRIAL_NOTICE,
   CLOUD_NOTICE,
-  BOAT_OFFER_NOTICE,
-  STAR_NOTICE,
 ] as const;
 
 export type NoticeId = (typeof NOTICES)[number];
 
 export type NoticeFacts = Record<NoticeId, boolean | null>;
 
-/** `launch`: the notice this launch already showed (launchNotice), the only one besides the product-updates question that
- * may show again in it. */
+/** `launch`: the notice this launch already showed (launchNotice), the only one that may show again in it. */
 export function nextNotice(facts: NoticeFacts, seen: (id: NoticeId) => boolean, launch: NoticeId | null = null): NoticeId | null {
   for (const id of NOTICES) {
-    if (seen(id) || (launch !== null && id !== launch && id !== UPDATES_CONSENT_NOTICE)) continue;
+    if (seen(id) || (launch !== null && id !== launch)) continue;
     if (facts[id] === null) return null;
     if (facts[id]) return id;
   }

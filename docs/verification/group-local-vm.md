@@ -60,30 +60,23 @@ targeted.
 Direct-turn regressions additionally send two different requests through a
 Local VM-pinned conversation while the bot default is Cloud, checking the
 actual MCP descriptor, prompt, matching preview surface, and capability expiry.
-A channel member's explicit This computer and Cloud (Boat or VPS) destinations
-mount exactly as its bot thread mounts them: the same checks, the same
-control gate, and the same consent boundary for waking or creating a cloud
-computer. The fixture proves the host descriptor reaches the speaker behind a
-working gate that closes when the turn settles, that a missing CUA driver is
-reported instead of dispatching without the promised tools, and that a Cloud
-speaker wakes its own archived Boat, runs there, and gives it back for the next
-turn. The VPS mount shares the bot-thread code path but has no channel fixture
-yet. Channels still have no conversation pin and no Auto fallback to the host.
+A channel member's explicit This computer and own-VPS destinations use the
+same target selection and control gate as its direct thread. The retained
+Local VM fixture covers the host descriptor reaching the speaker, capability
+expiry, a missing CUA driver and refusal to dispatch without promised tools.
+The removed paid-provider cases do not prove VPS room wake or provision flows.
 
-The same isolated server now covers chat-driven computer selection: the agents
-tool discovers ready, startable, and provisionable destinations without mutating
-them. Selecting one ends the old turn, immediately blocks its previous computer
-and browser capabilities, and resumes the original request with fresh tools and
-one user-history entry. Auto prefers a ready destination over creating a cloud
-computer. The fake Boat boundary verifies wake, create, reuse, and a computer
-disappearing between discovery and dispatch; no real paid computer is created.
-Stop, provider failure, Off, a new queued request, and rejected in-flight manual
-surface changes have regression coverage. The VPS fixture separately proves
-starting a stopped container and creating a missing one only after selection.
+Chat-driven selection discovers ready, startable and provisionable destinations
+without mutating them. Selecting a new target ends the old turn, blocks its
+previous capabilities and resumes the request with fresh tools. Current VPS
+selection coverage in `server/vps-routing.test.ts` checks starting a stopped
+container and creating a missing one only after selection. Shared VPS routing,
+turn locks, outsiders and human-control leases are also exercised there; see
+[shared-computer verification](computer-wait.md) for the exact scope.
 
-One limit remains explicit: a stopped Local VM is not destructively rebuilt to
-make selection succeed. Every engine keeps its own model on Cloud, with the
-Boat as its computer tools; no engine runs a turn on Boat's own agent.
+A stopped Local VM is not destructively rebuilt to make selection succeed.
+Every engine keeps its selected model while its computer tools target the
+user's own VPS; there is no paid desktop agent runner.
 
 Run the regression coverage without a container engine:
 

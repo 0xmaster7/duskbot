@@ -13,7 +13,6 @@ import { productName } from "../lib/brand";
 import { AccountsSheet, useAccounts } from "./AccountMenu";
 import { AboutDialog } from "./AboutDialog";
 import { AdminOnly } from "./AdminOnly";
-import { AnalyticsRow } from "./AnalyticsRow";
 import { ActivitySection } from "./ActivitySection";
 import { ArchivedBotsPanel } from "./ArchivedBotsPanel";
 import { AttachmentStorageSettings } from "./AttachmentStorageSettings";
@@ -28,6 +27,8 @@ import { EnginesSettings } from "./EnginesSettings";
 import { ImportSettings } from "./ImportSettings";
 import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal";
 import { LocalComputerSection } from "./LocalComputerSection";
+import { VpsComputerSettings } from "./VpsComputerSettings";
+import { NativeComputerSettings } from "./NativeComputerSettings";
 import { CLOUD_SETUP_PAGE, PHONE_ADVANCED_PAGE, PRIVATE_SETUP_PAGE, PROFILE_PAGE } from "./settings-page-ids";
 import { CloudDesktopKeys } from "./keys/KeysPage";
 import { LoginsSettings } from "./LoginsSettings";
@@ -36,7 +37,6 @@ import { NotificationRows } from "./NotificationSettingsRows";
 import { OpenAtLoginRow } from "./OpenAtLoginRow";
 import { OrganizationSettings } from "./OrganizationSettings";
 import { PeopleSection } from "./PeopleSection";
-import { PhoneAppDialog } from "./PhoneAppDialog";
 import { PlaceLookRows } from "./PlaceLookCard";
 import { PlanUsageSummary } from "./PlanUsage";
 import { ProfileAvatar, ProfileFields } from "./ProfileSettings";
@@ -49,7 +49,6 @@ import { BrowserProfilesManager } from "./BrowserProfilesManager";
 import { TalkShortcutRow } from "./TalkShortcutRow";
 import { ThemeRow, useSkinChoice } from "./ThemeRow";
 import { ThreadCleanupSettings } from "./ThreadCleanupSettings";
-import { UpdatesConsentRow } from "./UpdatesConsent";
 import { UsageSection } from "./UsageSection";
 import { WorkspaceBackupSettings } from "./WorkspaceBackupSettings";
 import { WorkspacesSection } from "./WorkspacesSection";
@@ -223,24 +222,19 @@ function ImportRow() {
   );
 }
 
-/** The phone: get the app, then pair it here with a code that opens in place; the paired phones and their access below. */
+/** Phone pairing and the paired devices' access. */
 export function TextingPane({ has, remoteAccess }: { has: Has; remoteAccess: RemoteAccessCards }) {
   const { at } = useSubPage();
-  const [phoneApp, setPhoneApp] = useState(false);
   if (at === "pairing") return <div data-settings-block="companion" className="flex flex-col gap-5">{remoteAccess.pairing}{remoteAccess.companion}</div>;
   if (at === PHONE_ADVANCED_PAGE) return <div data-settings-block="companion-advanced" className="flex flex-col gap-5">{remoteAccess.companion}</div>;
   return (
     <>
       <SettingsGroup label={t("settings.texting.phoneApp.title")} block="phone-app">
         <SettingsRows>
-          <SettingRow title={t("settings.phone.use.title")} subtitle={t("settings.phone.use.hint")}>
-            <button type="button" data-settings-open="phone-app" className="ui-button" onClick={() => setPhoneApp(true)}>{t("settings.phone.use.action")}</button>
-          </SettingRow>
           {has("companion") && <PageRow page="pairing" title={t("settings.w6.pairing.title")} hint={t("settings.phone.pair.hint")} />}
         </SettingsRows>
       </SettingsGroup>
       {has("companion") && remoteAccess.companion && <div data-settings-block="companion" className="contents">{remoteAccess.companion}</div>}
-      <PhoneAppDialog open={phoneApp} onClose={() => setPhoneApp(false)} />
     </>
   );
 }
@@ -248,7 +242,8 @@ export function TextingPane({ has, remoteAccess }: { has: Has; remoteAccess: Rem
 export function ComputerPane({ has, remoteAccess, servers, transfer }: { has: Has; remoteAccess: RemoteAccessCards; servers: ReactNode; transfer?: ReactNode }) {
   const { at } = useSubPage();
   const { state } = useStore();
-  if (at === "computers" || at === PRIVATE_SETUP_PAGE) return <div data-settings-block="computer" className="flex flex-col gap-5"><AdminOnly><LocalComputerSection /></AdminOnly></div>;
+  const remoteActive = window.ogb?.remoteClient?.active === true;
+  if (!remoteActive && (at === "computers" || at === PRIVATE_SETUP_PAGE)) return <div data-settings-block="computer" className="flex flex-col gap-5"><AdminOnly><LocalComputerSection /></AdminOnly></div>;
   if (at === CLOUD_SETUP_PAGE) return <AdminOnly><CloudDesktopKeys /></AdminOnly>;
   if (at === "profiles" || at?.startsWith(PROFILE_PAGE)) return <BrowserProfilesManager />;
   if (at === "elsewhere") {
@@ -263,12 +258,14 @@ export function ComputerPane({ has, remoteAccess, servers, transfer }: { has: Ha
   const showProfiles = builtInBrowserEnabled(state.config) || profiles.length > 0;
   return (
     <>
-      {has("computer") && (
+      {has("computer") && !remoteActive && !state.config?.cloudHome && <NativeComputerSettings />}
+      {has("computer") && <VpsComputerSettings />}
+      {has("computer") && !remoteActive && (
         <RowsCard data-settings-block="computer">
           <PageRow page="computers" title={t("settings.rows.desktops")} hint={t("settings.hint.desktops")} />
         </RowsCard>
       )}
-      {has("computer") && (
+      {has("computer") && !remoteActive && (
         <SettingsGroup label={t("settings.grok.group.browser")} block="browser">
           <SettingsRows>
             <BuiltInBrowserRow />
@@ -324,7 +321,6 @@ export function UpdatesPane({ remoteActive }: { remoteActive: boolean }) {
       <SettingsGroup label={t("settings.grok.group.version")} block="updates">
         <SettingsRows>
           {window.ogb?.updater ? <UpdatesRow title={versionTitle()} /> : <ServerUpdatesRow />}
-          <UpdatesConsentRow />
         </SettingsRows>
       </SettingsGroup>
       <HelpGroup remoteActive={remoteActive} />
@@ -467,7 +463,6 @@ function DataPage({ has }: { has: Has }) {
     <>
       <SettingsGroup block="data">
         <SettingsRows>
-          <AnalyticsRow simple />
           <PageRow page="attachments" title={t("settings.attachments.title")} hint={t("settings.hint.attachments")} />
           <PageRow page="thread-cleanup" title={t("settings.threadCleanup.title")} hint={t("settings.hint.threadCleanup")} />
           {has("backups") && <PageRow page="backups" title={t("settings.section.backups")} hint={t("settings.hint.backups")} />}

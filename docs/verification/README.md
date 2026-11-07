@@ -59,7 +59,7 @@ Use only mapped, tested commands:
 - [Exact command allowlist UI and saved rules](command-allowlist.md)
 - [The safety floor: a never-list no grant can allow](safety-floor.md)
 - [Peer approval denial, expiry, and cancellation](peer-approvals.md)
-- [Waiting for an occupied desktop](computer-wait.md)
+- [Shared VPS ownership, waiting and control boundaries](computer-wait.md)
 - [Chat UI, driven headlessly](chat-ui.md)
 - [Computer panel focus hand-off](computer-panel-focus.md)
 - [Taking control of a bot's computer](take-control.md)
@@ -99,6 +99,7 @@ Use only mapped, tested commands:
 - [Who can see, chat with and change each team bot](team-bot-access.md)
 - [Usage ledger](usage-ledger.md)
 - [Bounded built-in tool results](tool-results.md)
+- [PDF extraction and assigned library files](pdf-extraction.md)
 - [Memory: recall, upkeep and the tidy-up](memory-layer.md)
 - [Spend cap and sell prices](spend-cap.md)
 - [Enterprise layer loading and license expiry](enterprise-license.md)
@@ -176,8 +177,10 @@ comms capability from `external-runtimes.json` against a disposable server and
 the fake engine: scope, on-demand token reads, `coordinate_bots` roots polled
 through `assignment_status`, and immediate dispatch to a free teammate.
 
-The [cloud preview fixture](cloud-preview.md) mounts the real Computer panel
-against an isolated server for image decoding, loading, and recovery UI checks.
+The [computer preview fixture](cloud-preview.md) mounts the real Computer panel
+against an isolated server with simulated VPS transport for image decoding,
+loading, cancellation and recovery UI checks. The [shared VPS recipe](teams.md)
+also covers target isolation and private migration of retired provider settings.
 
 The [VPS recovery fixtures](vps-recovery.md) reproduce preview/startup contention
 and Docker-over-SSH timeout cleanup without contacting a real server.
@@ -196,6 +199,8 @@ recovery, guarded resume and the stopped-to-ready Computer panel flow.
 The [local computer launch regression](local-computer-launch.md) starts the
 host CUA gate through real Electron in a disposable home, without opening the
 desktop app or controlling the user's computer.
+
+The [bot desktop interaction fixture](bot-desktop-interaction.md) exercises real CUA input and the app's structured browser tools in fresh network-none Linux desktops, with independent HTTP receipts and an accessibility flag comparison.
 
 The [remote desktop viewer fixture](desktop-viewer.md) checks the bundled
 noVNC page, authenticated WebSocket proxy, desktop input, reconnect and logout

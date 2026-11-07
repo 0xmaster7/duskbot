@@ -12,7 +12,6 @@ import { placeFacts, placeViewFor, usePlaceSeat } from "@/lib/place-view";
 import { shortPath } from "@/lib/short-path";
 import { isOwnThreadFolder } from "../../../shared/thread-folder";
 import { useDesktopCapabilities } from "../DesktopCapabilities";
-import { CloudBackendPicker } from "../CloudBackendPicker";
 import { Switch } from "../SettingsPrimitives";
 import { PhoneAppsCard } from "./PhoneAppsCard";
 import { ProposalStatus } from "./ProposalStatus";
@@ -606,13 +605,9 @@ export function CloudPreference({ bot, patch }: { bot: Bot; patch: ReturnType<ty
           {t("botAccess.cloud.autoDescription")}
         </div>
       )}
-      <CloudBackendPicker
-        value={bot.cloudBackend ?? "box"}
-        onChange={(backend) => patch({ cloudBackend: backend })}
-      />
       {/* A saved bot only: a new bot starts on the default server, and new-bot defaults never name one. */}
-      {bot.cloudBackend === "vps" && !draft && <VpsAliasField bot={bot} />}
-      {!bot.computer && bot.cloudBackend === "vps" && (
+      {!draft && <VpsAliasField bot={bot} />}
+      {!bot.computer && (
         <div className="mt-3 flex items-center justify-between gap-4 rounded-lg bg-inset px-3 py-2.5">
           <div className="min-w-0">
             <div className="text-[13px] text-ink">{t("botAccess.cloud.startVps")}</div>

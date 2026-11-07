@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Bot, Group, Message } from "@/state/store";
-import { botPreview, groupPreview, lastPreviewable, waitingLine } from "./sidebar-preview";
+import { botPreview, groupPreview, lastPreviewable, sidebarPreviewMessages, waitingLine } from "./sidebar-preview";
 
 let at = 0;
 const message = (fields: Partial<Message>): Message => ({ id: `m${++at}`, at, role: "bot", kind: "text", ...fields }) as Message;
@@ -8,6 +8,21 @@ const screen = () => message({ kind: "screen", png: "frame", mime: "image/jpeg" 
 const bot = { id: "ada", name: "Ada", messages: [], busy: false } as unknown as Bot;
 
 describe("sidebar previews", () => {
+  it("keeps partial bot and room previews meaningful and overlays streamed updates", () => {
+    const person = message({ role: "user", text: "Tidy my inbox" });
+    const question = message({ kind: "options", card: { title: "Question", subtitle: "Which folder?", options: [], requestId: "q" } } as Partial<Message>);
+    const reply = message({ text: "Archived the newsletters." });
+    const step = message({ kind: "activity", tool: { name: "Read", ok: true } });
+    const partial = { ...bot, transcriptLoaded: false, previewMessages: [person, question, reply, step], messages: [step, screen()] };
+    expect(botPreview(partial, sidebarPreviewMessages(partial), [])).toBe("Archived the newsletters.");
+    expect(waitingLine(partial, sidebarPreviewMessages(partial), [])).toBe("Which folder?");
+    const patched = { ...partial, messages: [{ ...step, tool: { name: "error: Connection lost", ok: false } }] };
+    expect(botPreview(patched, sidebarPreviewMessages(patched), [])).toContain("Connection lost");
+    const room = { ...partial, id: "room", name: "Room" } as unknown as Group;
+    expect(groupPreview(room, [bot], [])).toBe("Archived the newsletters.");
+    expect(sidebarPreviewMessages({ ...partial, transcriptLoaded: true })).toBe(partial.messages);
+  });
+
   it("shows a bot's reply, not the screen frame its computer turn ended with", () => {
     const visible = [message({ role: "user", text: "Paint a sunset" }), message({ text: "I painted a sunset in JS Paint." }), screen()];
     expect(botPreview(bot, visible, [])).toBe("I painted a sunset in JS Paint.");

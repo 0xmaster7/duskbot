@@ -99,7 +99,7 @@ export const storedCronScheduleSchema = z.object({
 export const storedScheduleSchema = z.discriminatedUnion("type", [
   storedCronScheduleSchema,
   z.object({ type: z.literal("limit_reset"), engine: z.string().regex(ENGINE_ID), repeat: z.enum(["once", "every_reset"]) }).strict(),
-  z.object({ type: z.literal("once"), at: z.number().int().nonnegative() }).strict(),
+  z.object({ type: z.literal("once"), at: z.number().int().nonnegative().max(MAX_DATE_MS) }).strict(),
   z.object({
     type: z.literal("daily"),
     time: z.string().regex(TIME),
@@ -133,7 +133,7 @@ export const storedScheduleSchema = z.discriminatedUnion("type", [
 export const storedScheduleChangesSchema = z.discriminatedUnion("type", [
   storedCronScheduleSchema,
   z.object({ type: z.literal("limit_reset"), engine: z.string().regex(ENGINE_ID), repeat: z.enum(["once", "every_reset"]) }).strict(),
-  z.object({ type: z.literal("once"), at: z.number().int().nonnegative() }).strict(),
+  z.object({ type: z.literal("once"), at: z.number().int().nonnegative().max(MAX_DATE_MS) }).strict(),
   z.object({
     type: z.literal("daily"),
     time: z.string().regex(TIME),

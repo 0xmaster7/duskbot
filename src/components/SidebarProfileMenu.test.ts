@@ -23,7 +23,7 @@ import {
   updateLabel,
   updatePhase,
 } from "./SidebarProfileMenu";
-import { ANDROID_APK_URL, DOCS_URL, FEEDBACK_URL, HELP_CENTER_URL, IOS_APP_STORE_URL, platformLabel } from "@/lib/app-links";
+import { DOCS_URL, FEEDBACK_URL, HELP_CENTER_URL, platformLabel } from "@/lib/app-links";
 import { profileForSession } from "@/lib/session";
 import {
   cloudPhoneDestination,
@@ -35,7 +35,7 @@ import {
 } from "@/lib/phone-pairing";
 import type { CloudAccountState } from "../../electron/cloud-account.mjs";
 import type { CloudMachine } from "../../electron/cloud-home.mjs";
-import { PHONE_APPS, PhoneAppDialog, type PhoneAppConnect } from "./PhoneAppDialog";
+import { PhoneAppDialog, type PhoneAppConnect } from "./PhoneAppDialog";
 import type { UpdaterState } from "@/lib/updater";
 import type { SidebarMenuItem } from "./SidebarPopoverMenu";
 import { moveMenuItems } from "./AccountMove";
@@ -216,15 +216,14 @@ describe("the phone entries", () => {
   const ready: CloudMachine = { status: "ready", origin: "https://home-7f3k2.fly.dev" };
   const free: CloudAccountState = { ...signedIn, entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 1 } };
   const items = (target: PhonePairingTarget, access: PhonePairingAccess | null, account: CloudAccountState | null = null, connected = false) => {
-    const onConnect = vi.fn(), onGetApp = vi.fn();
+    const onConnect = vi.fn();
     const destinations = phoneDestinations(connectPhoneEntry(target, access), cloudPhoneDestination(account));
-    return { list: phoneMenuItems({ destinations, connected, onConnect, onGetApp }), onConnect, onGetApp };
+    return { list: phoneMenuItems({ destinations, connected, onConnect }), onConnect };
   };
   const shown = (...args: Parameters<typeof items>) => items(...args).list.map((item) => [item.label, item.subtitle ?? null, ...(item.note ? [item.note] : [])]);
-  const APP = ["Get the phone app", null];
 
-  it("on this computer: Connect your phone, to this computer, then Get the phone app", () => {
-    expect(shown("computer", null)).toEqual([["Connect your phone", "to this computer"], APP]);
+  it("on this computer: offers pairing without a separate download entry", () => {
+    expect(shown("computer", null)).toEqual([["Connect your phone", "to this computer"]]);
   });
 
   it("on this computer with a paid Cloud that is Ready: both, the Cloud first", () => {
@@ -232,41 +231,39 @@ describe("the phone entries", () => {
       expect(shown("computer", null, paid(tier, ready))).toEqual([
         ["Connect your phone", "to the Cloud (always on)"],
         ["Connect your phone", "to this computer"],
-        APP,
       ]);
     }
   });
 
   it("on this computer, free or signed out: only this computer", () => {
     for (const account of [free, { status: "signed-out" } as CloudAccountState, null]) {
-      expect(shown("computer", null, account)).toEqual([["Connect your phone", "to this computer"], APP]);
+      expect(shown("computer", null, account)).toEqual([["Connect your phone", "to this computer"]]);
     }
     expect(shown("computer", null, { ...paid("pro", ready), entitlement: { plan: "pro", status: "inactive", expiresAt: null, version: 2 } }))
-      .toEqual([["Connect your phone", "to this computer"], APP]);
+      .toEqual([["Connect your phone", "to this computer"]]);
     expect(shown("computer", null, { status: "unavailable", lastPlan: { tier: "pro", active: true }, machine: ready }))
-      .toEqual([["Connect your phone", "to this computer"], APP]);
+      .toEqual([["Connect your phone", "to this computer"]]);
   });
 
   it("on this computer with a paid Cloud that is not Ready: only this computer, and a hint", () => {
     for (const machine of [undefined, { status: "provisioning" }, { status: "stopped", origin: ready.origin }, { status: "failed", origin: ready.origin }] as Array<CloudMachine | undefined>) {
       expect(shown("computer", null, paid("pro", machine))).toEqual([
         ["Connect your phone", "to this computer", "The Cloud shows here once it's ready."],
-        APP,
       ]);
     }
   });
 
   it("on the person's own Cloud: unchanged, one Connect your phone to My Cloud", () => {
-    expect(shown("cloud", admin)).toEqual([["Connect your phone", "to the Cloud"], APP]);
-    expect(shown("cloud", admin, paid("max", ready))).toEqual([["Connect your phone", "to the Cloud"], APP]);
-    expect(shown("cloud", admin, paid("max"))).toEqual([["Connect your phone", "to the Cloud"], APP]);
+    expect(shown("cloud", admin)).toEqual([["Connect your phone", "to the Cloud"]]);
+    expect(shown("cloud", admin, paid("max", ready))).toEqual([["Connect your phone", "to the Cloud"]]);
+    expect(shown("cloud", admin, paid("max"))).toEqual([["Connect your phone", "to the Cloud"]]);
   });
 
   it("on another server: to this server, and gone for a session that cannot make a pairing code", () => {
-    expect(shown("server", admin, paid("pro", ready))).toEqual([["Connect your phone", "to the bots here"], APP]);
-    expect(shown("server", chatOnly)).toEqual([APP]);
-    expect(shown("server", { ...admin, pairingCodes: false })).toEqual([APP]);
-    expect(shown("cloud", chatOnly)).toEqual([APP]);
+    expect(shown("server", admin, paid("pro", ready))).toEqual([["Connect your phone", "to the bots here"]]);
+    expect(shown("server", chatOnly)).toEqual([]);
+    expect(shown("server", { ...admin, pairingCodes: false })).toEqual([]);
+    expect(shown("cloud", chatOnly)).toEqual([]);
   });
 
   it("never offers the iOS-only entry it replaced", () => {
@@ -276,14 +273,12 @@ describe("the phone entries", () => {
   });
 
   it("each line hands on its own destination", () => {
-    const { list, onConnect, onGetApp } = items("computer", null, paid("pro", ready));
+    const { list, onConnect } = items("computer", null, paid("pro", ready));
     list[0]!.onSelect();
     expect(onConnect).toHaveBeenLastCalledWith(expect.objectContaining({ id: "cloud" }));
     list[1]!.onSelect();
     expect(onConnect).toHaveBeenLastCalledWith(expect.objectContaining({ id: "here", target: "computer" }));
-    expect(onGetApp).not.toHaveBeenCalled();
-    list[2]!.onSelect();
-    expect(onGetApp).toHaveBeenCalledOnce();
+    expect(list).toHaveLength(2);
   });
 
   it("shows this computer's live phone on this computer's line only", () => {
@@ -327,13 +322,7 @@ describe("choosing where the phone connects", () => {
   });
 });
 
-describe("Get the phone app", () => {
-  it("offers iPhone and Android with the links the website and Cloud page use", () => {
-    expect(PHONE_APPS.map((app) => [app.id, app.url])).toEqual([["ios", IOS_APP_STORE_URL], ["android", ANDROID_APK_URL]]);
-    expect(IOS_APP_STORE_URL).toBe("https://apps.apple.com/in/app/mausbot/id6803387923");
-    expect(ANDROID_APK_URL).toBe("https://github.com/milind-soni/OpenMausBot/releases/download/android-v1.5.0/OpenMausBot.apk");
-  });
-
+describe("Phone pairing", () => {
   const render = (connect?: PhoneAppConnect[]) => {
     vi.stubGlobal("window", { addEventListener: () => {}, removeEventListener: () => {} });
     try {
@@ -344,17 +333,15 @@ describe("Get the phone app", () => {
   };
   const to = (key: string, subtitle: string): PhoneAppConnect => ({ key, subtitle, onSelect: () => {} });
 
-  it("draws a code to scan for each, and points on to Connect your phone where this window can pair", () => {
+  it("offers phone pairing without upstream application downloads", () => {
     const html = render([to("here", "to this computer")]);
-    expect(html).toContain('data-phone-app="ios"');
-    expect(html).toContain('data-phone-app="android"');
-    expect(html.match(/<svg/g)?.length).toBe(2);
-    expect(html).toContain("Open in the App Store");
-    expect(html).toContain("Download the APK");
     expect(html).toContain("Connect your phone");
+    expect(html).toContain("Show a one-time code to scan or type on your phone");
     expect(html).toContain("to this computer");
-    expect(render()).not.toContain("Connect your phone");
-    expect(render([])).not.toContain("Connect your phone");
+    expect(html).not.toContain("apps.apple.com");
+    expect(html).not.toContain("Download the APK");
+    expect(html).not.toContain("data-phone-app=\"ios\"");
+    expect(html).not.toContain("data-phone-app=\"android\"");
   });
 
   it("offers every destination the menu does, in the same order", () => {

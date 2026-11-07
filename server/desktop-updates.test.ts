@@ -1,12 +1,35 @@
-import { describe, expect, it } from "vitest";
+import { mkdirSync, rmSync } from "node:fs";
+import { describe, expect, it, vi } from "vitest";
 
-import type { ContainerComputerStatus, LocalVmTarget } from "./container-computer.ts";
-import { createLocalVmUpdater, localVmUpdateNeed, vpsDesktopOutdated } from "./desktop-updates.ts";
+import { SHARED_LOCAL_VM_TARGET, localVmWorkspaceExists, type ContainerComputerStatus, type LocalVmTarget } from "./container-computer.ts";
+import { createLocalVmUpdater, localVmUpdateNeed, recoverLocalVms, vpsDesktopOutdated } from "./desktop-updates.ts";
 
 const status = (over: Partial<ContainerComputerStatus>) => ({
   runtime: "docker", daemonUp: true, image: true, imageMatches: true, managed: true, container: "running",
   create_supported: true, ready: false, problem: null, ...over,
 }) as ContainerComputerStatus;
+
+describe("shared Local VM recovery", () => {
+  it("does not inspect a runtime or desktop in a fresh home that never provisioned a VM", async () => {
+    expect(localVmWorkspaceExists(SHARED_LOCAL_VM_TARGET)).toBe(false);
+    const inspect = vi.fn(async () => status({ ready: true })), note = vi.fn(), armIdle = vi.fn();
+    await recoverLocalVms({ mode: "shared", seats: 2, bots: [], seen: new Set(), status: inspect, note, armIdle });
+    expect(inspect).not.toHaveBeenCalled();
+    expect(note).not.toHaveBeenCalled();
+    expect(armIdle).not.toHaveBeenCalled();
+  });
+  it("recovers and arms idle shutdown for an existing managed shared workspace", async () => {
+    mkdirSync(SHARED_LOCAL_VM_TARGET.workspaceDir, { recursive: true });
+    const current = status({ ready: true });
+    const inspect = vi.fn(async () => current), note = vi.fn(), armIdle = vi.fn();
+    try {
+      await recoverLocalVms({ mode: "shared", seats: 2, bots: [], seen: new Set(), status: inspect, note, armIdle });
+      expect(inspect).toHaveBeenCalledExactlyOnceWith(SHARED_LOCAL_VM_TARGET);
+      expect(note).toHaveBeenCalledExactlyOnceWith(SHARED_LOCAL_VM_TARGET, current);
+      expect(armIdle).toHaveBeenCalledExactlyOnceWith(SHARED_LOCAL_VM_TARGET);
+    } finally { rmSync(SHARED_LOCAL_VM_TARGET.workspaceDir, { recursive: true, force: true }); }
+  });
+});
 
 describe("localVmUpdateNeed", () => {
   it("names the old desktops this release must update, and only those", () => {

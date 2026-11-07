@@ -44,7 +44,17 @@ export interface ConfigStatus {
   composio: SavedKey & { mode?: "managed" | "self-hosted" | "unavailable" };
   /** `included`: cloud computers come with Cloud Pro, no key is saved. */
   box: SavedKey & { included?: boolean };
-  vps: { configured: boolean; sshAlias: string };
+  vps: {
+    configured: boolean;
+    sshAlias: string;
+    mode?: "shared" | "per-bot";
+    autoStart?: boolean;
+    independentScreens?: boolean;
+    maxScreens?: number;
+    idleTimeoutMinutes?: 0 | 5 | 10 | 30;
+    sharingAllowed?: boolean;
+    workspaceShared?: boolean;
+  };
   rooms: { turnTimeoutMinutes: number };
   /** Per-call ceiling (minutes) for a bot's MCP tools. Absent from servers
    * older than the setting; read it with mcpCallTimeoutMinutes(). */

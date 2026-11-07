@@ -14,7 +14,8 @@ import { botOpensTo, openBot, openThread, visibleNotificationThread } from "./th
 import { patchGroupTask } from "./thread-edits";
 import type { EngineInstall } from "./engine-install";
 import { optimisticMessageId, optimisticUserMessage, sendArrived, sendReconciled } from "./optimistic-send";
-import { patchedGroups, roomAnswers, snapshotPatch } from "./room-frames";
+import { applySendReceipt } from "./send-receipt";
+import { foldSnapshotOntoStreamed, patchedGroups, roomAnswers, snapshotPatch } from "./room-frames";
 import { savedStateAction, type SavedOwner, type SavedSnapshot } from "./saved-state";
 import { keepBotNavigation, keepGroupNavigation, navigatedSince, visibleMessages } from "./snapshot-navigation";
 export { visibleMessages } from "./snapshot-navigation";
@@ -65,6 +66,7 @@ import { openLiveEvents, publishLiveFrame, publishMissedFrames, withoutScreenPix
 import { unlessRefused } from "@/lib/admin-scope";
 import { olderRunsSince, ROUTINE_RUNS_WINDOW_MS, trimRoutineRuns, withOlderRoutineRuns } from "./routine-runs";
 import { reconcileSnapshotQueues, rememberConsumedQueueId, replaceBotQueues } from "./queue-receipts";
+import { useSelectedTranscript } from "./use-selected-transcript";
 
 export type { MausColor } from "@/lib/mascot";
 export type { RoutineRunCardData } from "../../shared/routine-run";
@@ -156,6 +158,8 @@ export interface Message extends Pick<import("../../shared/wire").WireMessage, "
 export type GroupDefaultResponder = import("../../shared/wire").GroupDefaultResponder;
 
 export interface Group extends Pick<WireGroup, "memberContext" | "queue" | "speakers" | "busyBotIds"> {
+  transcriptLoaded?: boolean;
+  previewMessages?: Message[];
   usage?: GroupThreadUsage | null;
   id: string;
   threadId: string;
@@ -329,6 +333,8 @@ export interface Bot extends DefaultBotFields, Pick<WireBot, "mascotFaceColor" |
   messages: Message[];
   hasMore?: boolean;
   awaitingThreadSnapshot?: boolean;
+  transcriptLoaded?: boolean;
+  previewMessages?: Message[];
   /** The server announces a switch before its snapshot lands; until then this, not threadId, is on screen. */
   switchingTo?: string;
   activeLeafId?: string | null;
@@ -602,6 +608,7 @@ export interface AppState {
   signInFocus: { botId: string; messageId: string; url: string; site: string; place: import("../../shared/wire").Surface; requestId: number; consumed: boolean } | null;
   focusMessage: { threadId: string; messageId: string; matchText?: string; nonce: number; consumed: boolean } | null;
   unreadDivider: { threadId: string; messageId: string } | null;
+  unreadDividerPending?: string;
   connected: boolean;
   hydrated?: true;
   error: string | null;
@@ -634,7 +641,9 @@ export type Action =
       navigationSince?: AppState["transcriptGeneration"];
       taskIdsAtStart?: ReadonlySet<string>;
       resumeId?: string;
+      loadedThreads?: string[];
     }
+  | { type: "transcriptSnapshot"; threadId: string; messages: Message[]; hasMore: boolean; activeLeafId?: string | null; generation: number; heldAtStart: Message[]; leafAtStart?: string | null }
   | { type: "botQueues"; queues: AppState["pendingQueued"] }
   | { type: "sections"; sections: string[] }
   | { type: "botsOrdered"; botIds: string[] }
@@ -900,14 +909,15 @@ export function reducer(state: AppState, action: Action): AppState {
       const hydrated = {
         ...state,
         bots: action.bots.map((sent) => {
-          const bot = sent.messages ? sent : { ...sent, messages: [] };
+          const bot = { ...sent, messages: sent.messages ?? [], transcriptLoaded: !action.loadedThreads || action.loadedThreads.includes(sent.threadId) };
           const previous = state.bots.find((candidate) => candidate.id === bot.id);
           return keepBotNavigation(previous, previous ? { ...bot, tasks: mergeTaskStamps(previous.tasks, bot.tasks) } : bot,
             action.preserveNavigation === true && navigatedSince(previous, action.navigationSince, state.transcriptGeneration), action.taskIdsAtStart);
         }),
         groups: action.groups.map((group) => {
           const previous = state.groups.find((candidate) => candidate.id === group.id);
-          const merged = previous ? { ...group, tasks: mergeTaskStamps(previous.tasks, group.tasks) } : group;
+          const incoming = { ...group, transcriptLoaded: !action.loadedThreads || action.loadedThreads.includes(group.threadId) };
+          const merged = previous ? { ...incoming, tasks: mergeTaskStamps(previous.tasks, group.tasks) } : incoming;
           // The wire carries an explicitly-cleared description as null; client state keeps it absent.
           if (merged.description === null) merged.description = undefined;
           return keepGroupNavigation(previous, merged, action.preserveNavigation === true && navigatedSince(previous, action.navigationSince, state.transcriptGeneration), action.taskIdsAtStart);
@@ -925,6 +935,28 @@ export function reducer(state: AppState, action: Action): AppState {
         action.botQueuedMessages ? replaceBotQueues(hydrated, action.botQueuedMessages) : hydrated,
         [...action.bots, ...action.groups],
       );
+    }
+    case "transcriptSnapshot": {
+      if ((state.transcriptGeneration[action.threadId] ?? 0) !== action.generation) return state;
+      const held = new Set(action.heldAtStart);
+      const replace = <T extends { threadId: string; messages: Message[]; transcriptLoaded?: boolean }>(owner: T): T => owner.threadId !== action.threadId || owner.transcriptLoaded !== false
+        ? owner : { ...owner, messages: foldSnapshotOntoStreamed(owner.messages, held, action.messages), hasMore: action.hasMore, transcriptLoaded: true };
+      const loaded = {
+        ...state,
+        bots: state.bots.map((bot) => {
+          const loaded = replace(bot);
+          return loaded === bot ? bot : { ...loaded, activeLeafId: bot.activeLeafId === action.leafAtStart ? action.activeLeafId : bot.activeLeafId };
+        }),
+        groups: state.groups.map(replace),
+      };
+      const owner = [...loaded.bots, ...loaded.groups].find((candidate) => candidate.threadId === action.threadId);
+      if (owner && (state.unreadDivider?.threadId === action.threadId || state.unreadDividerPending === action.threadId)) {
+        const cursor = "modelSelection" in owner ? threadReadCursor(owner) : owner.lastReadMessageId;
+        const messageId = firstUnreadMessageId(owner.messages, cursor);
+        loaded.unreadDivider = messageId ? { threadId: action.threadId, messageId } : null;
+        loaded.unreadDividerPending = undefined;
+      }
+      return owner ? reconcileSnapshotQueues(loaded, [owner]) : loaded;
     }
     case "loadOlderMessages":
       return state.loadingOlder[action.threadId]
@@ -1038,7 +1070,7 @@ export function reducer(state: AppState, action: Action): AppState {
     }
     case "groupPatched": {
       const fenced = action.group.messages ? bumpTranscriptGeneration(state, action.group.threadId) : state;
-      return { ...fenced, groups: patchedGroups(state.groups, action.group) };
+      return { ...fenced, groups: patchedGroups(state.groups, action.group.messages ? { ...action.group, transcriptLoaded: true } : action.group) };
     }
     case "groupSnapshot": {
       const group = snapshotPatch(state, action);
@@ -1070,6 +1102,7 @@ export function reducer(state: AppState, action: Action): AppState {
         return {
           ...state,
           unreadDivider: openedUnreadDivider(state, room.threadId, room.unread, room.messages, room.lastReadMessageId),
+          unreadDividerPending: room.transcriptLoaded === false && room.unread ? room.threadId : undefined,
           activeView: "chat",
           selectedId: action.id,
           groups: state.groups.map((g) => (g.id === action.id ? { ...g, unread: false } : g)),
@@ -1083,6 +1116,7 @@ export function reducer(state: AppState, action: Action): AppState {
             unreadDivider: opened
               ? openedUnreadDivider(state, opened.threadId, threadOpensUnread(opened), visibleMessages(opened), threadReadCursor(opened))
               : state.unreadDivider,
+            unreadDividerPending: opened?.transcriptLoaded === false && threadOpensUnread(opened) ? opened.threadId : undefined,
             activeView: "chat",
             selectedId: action.id,
           },
@@ -1322,7 +1356,7 @@ export function reducer(state: AppState, action: Action): AppState {
           ...stamped,
           groups: stamped.groups.map((g) =>
             g.id === group.id
-              ? { ...g, messages: g.messages.map((m) => (m.id === action.message.id ? action.message : m)) }
+              ? { ...g, messages: g.messages.map((m) => (m.id === action.message.id ? action.message : m)), previewMessages: g.previewMessages?.map((m) => m.id === action.message.id ? action.message : m) }
               : g,
           ),
         };
@@ -1339,6 +1373,7 @@ export function reducer(state: AppState, action: Action): AppState {
       return updateBot(next, bot.id, (b) => ({
         ...b,
         messages: b.messages.map((m) => (m.id === action.message.id ? action.message : m)),
+        previewMessages: b.previewMessages?.map((m) => m.id === action.message.id ? action.message : m),
       }));
     }
     case "computerStart": {
@@ -1728,6 +1763,7 @@ export function reducer(state: AppState, action: Action): AppState {
         messages: action.bot.messages ?? [],
         hasMore: action.bot.hasMore,
         awaitingThreadSnapshot: false,
+        transcriptLoaded: true,
         switchingTo: undefined,
       }));
       for (const frame of state.backgroundThreadEvents[action.bot.threadId] ?? []) switched = reducer(switched, frame);
@@ -2030,16 +2066,11 @@ export async function loadSnapshotBoundary<Key extends string>(
   peripherals: readonly PeripheralSnapshotLoad<Key>[],
   onPeripheralFailure: (part: PeripheralSnapshotLoad<Key>, error: Error) => void,
 ): Promise<boolean> {
-  const [chat, ...settledPeripherals] = await Promise.allSettled([
-    loadChat(),
-    ...peripherals.map((part) => part.load()),
-  ]);
-  settledPeripherals.forEach((result, index) => {
-    if (result.status === "rejected") {
-      onPeripheralFailure(peripherals[index]!, normalizeSnapshotFailure(result.reason));
-    }
-  });
-  return chat.status === "fulfilled";
+  const chat = Promise.resolve().then(loadChat);
+  for (const part of peripherals) {
+    void Promise.resolve().then(part.load).catch((error) => onPeripheralFailure(part, normalizeSnapshotFailure(error)));
+  }
+  return chat.then(() => true, () => false);
 }
 
 export function runtimeFrameAction(event: RuntimeEvent): Action | null {
@@ -2077,6 +2108,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, rawDispatch] = useReducer(reducer, initialState, restoreBotSettingsSection);
   const stateRef = useRef(state), selectionRevision = useRef(0);
   stateRef.current = state;
+  const invalidateTranscripts = useSelectedTranscript(state, rawDispatch, MESSAGE_PAGE_SIZE);
   const showThreads = useShowThreads();
   const showThreadsRef = useRef(showThreads);
   showThreadsRef.current = showThreads;
@@ -2278,6 +2310,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (action.type !== "send") return undefined;
         return botBeforeSend ? openOnboardingCard(botBeforeSend) : undefined;
       })();
+      if (action.type === "loadOlderMessages" && [...stateRef.current.bots, ...stateRef.current.groups]
+        .some((owner) => owner.threadId === action.threadId && owner.transcriptLoaded === false)) return;
       if (
         action.type !== "cancelQueued" &&
         action.type !== "cancelGroupQueued" &&
@@ -2417,35 +2451,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const sendId = action.sendId ?? randomUuid();
           const arrived = () => sendArrived(stateRef.current.bots.find((bot) => bot.id === action.botId && bot.threadId === threadId)?.messages, sendId);
           void waitForExecutionSettings(botBeforeSend ? [botBeforeSend] : [], threadId)
-            .then(() => sendReconciled(() => api(`/api/bots/${action.botId}/messages`, {
-                method: "POST",
+            .then(() => sendReconciled((signal) => api(`/api/bots/${action.botId}/messages`, {
+                method: "POST", signal,
                 body: JSON.stringify({ text: action.text, replyToId: action.replyToId, threadId, sendId, ...(action.dataContext ? { dataContext: action.dataContext } : {}), ...(action.pointed?.length ? { pointed: action.pointed } : {}), ...(action.mode === "goal" ? { mode: "goal" } : {}), ...(action.followUp ? { followUp: action.followUp } : {}), ...(action.mentions?.length ? { mentions: action.mentions } : {}) }),
-              }), arrived))
-            .then((sent) => {
-              if (!("body" in sent)) return;
-              const body = sent.body;
-              if (body?.message && typeof body.threadId === "string") {
-                rawDispatch({ type: "messageAdded", threadId: body.threadId, message: body.message });
-              }
-              if (
-                body?.queued &&
-                typeof body.threadId === "string" &&
-                typeof body.queueId === "string"
-              ) {
-                rawDispatch({
-                  type: "optimisticMessageRemoved",
-                  threadId: body.threadId,
-                  sendId,
-                });
-                rawDispatch({
-                  type: "pendingQueued",
-                  threadId: body.threadId,
-                  queueId: body.queueId,
-                  text: action.text,
-                  reason: body.reason === "capacity" || body.reason === "group-turn" ? body.reason : undefined,
-                });
-              }
-            })
+              }), arrived, undefined, threadId ? { threadId, sendId, text: action.text, replyToId: action.replyToId, channelMode: action.mode } : undefined))
+            .then((sent) => applySendReceipt(sent, sendId, action.text, rawDispatch))
             .catch((error) => {
               if (threadId) {
                 rawDispatch({ type: "optimisticMessageRemoved", threadId, sendId });
@@ -2662,9 +2672,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const threadId =
             action.threadId ?? stateRef.current.groups.find((group) => group.id === action.groupId)?.threadId;
           const sendId = action.sendId ?? randomUuid();
+          const arrived = () => sendArrived(stateRef.current.groups.find((group) => group.id === action.groupId && group.threadId === threadId)?.messages, sendId);
           void waitForExecutionSettings(executionBotsBeforeAction)
-            .then(() => api(`/api/groups/${action.groupId}/messages`, {
-              method: "POST",
+            .then(() => sendReconciled((signal) => api(`/api/groups/${action.groupId}/messages`, {
+              method: "POST", signal,
               body: JSON.stringify({
                 text: action.text,
                 replyToId: action.replyToId,
@@ -2672,29 +2683,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 sendId,
                 mode: action.mode ?? "chat", ...(action.mentions?.length ? { mentions: action.mentions } : {}),
               }),
-            }))
-            .then((body) => {
-              if (body?.message && typeof body.threadId === "string") {
-                rawDispatch({ type: "messageAdded", threadId: body.threadId, message: body.message });
-              }
-              if (
-                body?.queued &&
-                typeof body.threadId === "string" &&
-                typeof body.queueId === "string"
-              ) {
-                rawDispatch({
-                  type: "optimisticMessageRemoved",
-                  threadId: body.threadId,
-                  sendId,
-                });
-                rawDispatch({
-                  type: "pendingQueued",
-                  threadId: body.threadId,
-                  queueId: body.queueId,
-                  text: action.text,
-                });
-              }
-            })
+            }), arrived, undefined, threadId ? { threadId, sendId, text: action.text, replyToId: action.replyToId, channelMode: action.mode } : undefined))
+            .then((sent) => applySendReceipt(sent, sendId, action.text, rawDispatch))
             .catch((error) => {
               if (threadId) {
                 rawDispatch({ type: "optimisticMessageRemoved", threadId, sendId });
@@ -2904,6 +2894,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let alive = true;
+    const lifecycle = new AbortController();
+    const readSnapshot = <T,>(path: string) => api<T>(path, { signal: lifecycle.signal, timeoutMs: 30_000 });
     type PeripheralKey = "instances" | "config" | "routines" | "webhooks" | "notifications";
     type PeripheralPart = {
       key: PeripheralKey;
@@ -2928,35 +2920,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       {
         key: "instances",
         request: async () => {
-          const answer = await unlessRefused<{ instances: InstanceInfo[] } | null>("/api/instances", async () => snapshotArrays<{ instances: InstanceInfo[] }>(await api("/api/instances"), "instances"), null);
+          const answer = await unlessRefused<{ instances: InstanceInfo[] } | null>("/api/instances", async () => snapshotArrays<{ instances: InstanceInfo[] }>(await readSnapshot("/api/instances"), "instances"), null);
           return () => { if (answer) rawDispatch({ type: "instances", instances: answer.instances }); };
         },
       },
       {
         key: "config",
         request: async () => {
-          const config = await api("/api/config");
+          const config = await readSnapshot<ConfigStatus>("/api/config");
           return () => rawDispatch({ type: "configStatus", config });
         },
       },
       {
         key: "routines",
         request: async () => {
-          const since = Date.now() - ROUTINE_RUNS_WINDOW_MS, { routines, runs } = snapshotArrays(await api(`/api/routines?since=${since}`), "routines", "runs");
+          const since = Date.now() - ROUTINE_RUNS_WINDOW_MS, { routines, runs } = snapshotArrays(await readSnapshot<{ routines: Routine[]; runs: RoutineRun[] }>(`/api/routines?since=${since}`), "routines", "runs");
           return () => rawDispatch({ type: "routinesHydrated", routines, runs, since });
         },
       },
       {
         key: "notifications",
         request: async () => {
-          const { notifications } = await api("/api/notifications");
+          const { notifications } = await readSnapshot<{ notifications: NotificationLogEntry[] }>("/api/notifications");
           return () => rawDispatch({ type: "notificationsHydrated", notifications: Array.isArray(notifications) ? notifications : [] });
         },
       },
       ...(window.ogb?.remoteClient?.active ? [] : [{
         key: "webhooks",
         request: async () => {
-          const { webhooks, attempts, ingress } = snapshotArrays(await api("/api/webhooks"), "webhooks");
+          const { webhooks, attempts, ingress } = snapshotArrays(await readSnapshot<{ webhooks: WebhookTrigger[]; attempts?: WebhookAttempt[]; ingress: WebhookIngressStatus }>("/api/webhooks"), "webhooks");
           return () =>
             rawDispatch({ type: "webhooksHydrated", webhooks, attempts: attempts ?? [], ingress });
         },
@@ -3009,6 +3001,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       for (const key of keys) refreshState(key).version += 1;
     };
     const loadAll = async (): Promise<boolean> => {
+      invalidateTranscripts();
       const navigationAtStart = selectionRevision.current;
       const navigationSince = stateRef.current.transcriptGeneration;
       const taskIdsAtStart = new Set([...stateRef.current.bots, ...stateRef.current.groups].flatMap(owner => owner.tasks?.map(task => task.threadId) ?? []));
@@ -3020,8 +3013,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (alive && answer) flushSync(() => rawDispatch({ type: "liveCallLookup", call: answer.call, since, seq }));
         })
         .catch(() => {});
+      const selected = stateRef.current.selectedId || readLastConversation() || "";
       const chat = () =>
-        api(`/api/bots?messages=${MESSAGE_PAGE_SIZE}`).then((answer) => snapshotArrays(answer, "bots")).then(({ bots, groups, sections, computerControl, botQueuedMessages }) => {
+        readSnapshot<Omit<Extract<Action, { type: "hydrate" }>, "type">>(`/api/bots?messages=${MESSAGE_PAGE_SIZE}&selected=${encodeURIComponent(selected)}`).then((answer) => snapshotArrays(answer, "bots")).then(({ bots, groups, sections, computerControl, botQueuedMessages, loadedThreads }) => {
           if (!alive) return;
           rawDispatch({
             type: "hydrate",
@@ -3030,6 +3024,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             sections: sections ?? [],
             computerControl: computerControl ?? {},
             botQueuedMessages,
+            loadedThreads,
             preserveNavigation: selectionRevision.current !== navigationAtStart,
             navigationSince,
             taskIdsAtStart,
@@ -3038,7 +3033,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         });
       const peripherals = peripheralParts.map((part) => ({
         key: part.key,
-        load: () => loadPeripheral(part, false),
+        load: () => loadPeripheral(part, true),
       }));
       const chatReady = await loadSnapshotBoundary(chat, peripherals, (failed, error) => {
         const part = partByKey.get(failed.key);
@@ -3254,6 +3249,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
     return () => {
       alive = false;
+      lifecycle.abort();
       clearTimeout(hydrationFallback);
       for (const refresh of peripheralRefresh.values()) {
         if (refresh.timer) clearTimeout(refresh.timer);

@@ -19,10 +19,11 @@ const teamComputers = [
 
 describe("map computers", () => {
   it("draws a bot's own cloud computer and one shared node per team computer", () => {
-    const machines = new Map([["gus", { owner: "gus", boxId: "bx_g", state: "archived" }]]);
+    const machines = new Map([["gus", { owner: "gus", boxId: "bx_g", state: "exited" }]]);
     const nodes = mapComputers({ bots, teamComputers, machine: (owner) => machines.get(owner), working: () => false });
     expect(nodes).toEqual([
       { id: "ada", kind: "bot", name: "Ada", botIds: ["ada"], state: "off" },
+      { id: "dee", kind: "bot", name: "Dee", botIds: ["dee"], state: "off" },
       { id: "gus", kind: "bot", name: "Gus", botIds: ["gus"], state: "asleep" },
       { id: "computer_11111111-1111-4111-8111-111111111111", kind: "team", name: "Design desktop", section: "Design", botIds: ["cy"], state: "off" },
     ]);
@@ -50,7 +51,7 @@ describe("GET /api/computers/frames", () => {
     return { out, body };
   };
 
-  it("lists computers without asking the provider when no Boat account is connected", async () => {
+  it("lists computers without inspecting containers when no VPS is connected", async () => {
     let lists = 0;
     const frames = createComputerFrames({
       listMachines: async () => { lists += 1; return []; },
@@ -60,12 +61,12 @@ describe("GET /api/computers/frames", () => {
     const handler = createComputerFramesRoutes({
       cfg: {} as any, store: { bots } as any, teamComputers: { list: () => teamComputers as any },
       computerControl: { snapshot: () => ({ held: false }) } as any, computerProviderConfigTransitions: new Set(),
-      managedBoatOwners: () => [], botHasActiveTurn: () => false, teamComputerInUse: () => false,
+      managedVpsOwners: () => [], botHasActiveTurn: () => false, teamComputerInUse: () => false,
     }, frames);
     expect((await request(handler, "/api/other")).out).toBe(PASS);
     const { body } = await request(handler);
     expect(body.configured).toBe(false);
-    expect(body.computers.map((computer: { id: string }) => computer.id)).toEqual(["ada", "computer_11111111-1111-4111-8111-111111111111"]);
+    expect(body.computers.map((computer: { id: string }) => computer.id)).toEqual(["ada", "dee", "computer_11111111-1111-4111-8111-111111111111"]);
     expect(lists).toBe(0);
     expect(frames.watching()).toBe(false);
   });

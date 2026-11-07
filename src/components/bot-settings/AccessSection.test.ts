@@ -128,14 +128,14 @@ describe("AccessSection always-allowed list", () => {
   it("keeps per-bot MCP changes disabled while any task is active", () => {
     fixture.servers = [{ name: "notes", enabled: true }, { name: "offline", enabled: false }];
     const markup = render(makeBot({ busy: true, mcpServers: ["notes"] }));
-    expect(markup).toMatch(/<button[^>]*aria-label="Let\ this\ bot\ use\ notes"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Let\ this\ bot\ use\ notes"/);
-    expect(markup).toMatch(/<button[^>]*aria-label="Let\ this\ bot\ use\ offline"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Let\ this\ bot\ use\ offline"/);
+    expect(markup).toMatch(/<button[^>]*aria-label="Let this bot use notes"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Let this bot use notes"/);
+    expect(markup).toMatch(/<button[^>]*aria-label="Let this bot use offline"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Let this bot use offline"/);
     expect(markup).toMatch(/<button type="button" disabled=""[^>]*>Use every enabled server<\/button>/);
     expect(markup).toContain("finishes all active tasks");
     expect(markup).toContain("Individual tool approvals depend on the model provider and approval mode.");
     const idle = render(makeBot({ mcpServers: ["notes"] }));
-    expect(idle).not.toMatch(/<button[^>]*aria-label="Let\ this\ bot\ use\ notes"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Let\ this\ bot\ use\ notes"/);
-    expect(idle).toMatch(/<button[^>]*aria-label="Let\ this\ bot\ use\ offline"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Let\ this\ bot\ use\ offline"/);
+    expect(idle).not.toMatch(/<button[^>]*aria-label="Let this bot use notes"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Let this bot use notes"/);
+    expect(idle).toMatch(/<button[^>]*aria-label="Let this bot use offline"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Let this bot use offline"/);
     expect(idle).not.toContain("finishes all active tasks");
   });
 
@@ -163,7 +163,7 @@ describe("AccessSection always-allowed list", () => {
     expect(markup).toContain("Could not refresh MCP servers.");
     expect(markup).toContain("Retry");
     expect(markup).toContain('role="alert"');
-    expect(markup).toMatch(/<button[^>]*aria-label="Let\ this\ bot\ use\ notes"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Let\ this\ bot\ use\ notes"/);
+    expect(markup).toMatch(/<button[^>]*aria-label="Let this bot use notes"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Let this bot use notes"/);
   });
 
   it("shows a placeholder when nothing is standing yet", () => {
@@ -207,8 +207,9 @@ describe("AccessSection Works on", () => {
     ]);
   });
 
-  it("hides the Boat or VPS choice on My Cloud, whose cloud computers are the plan's", () => {
-    expect(render(makeBot())).toContain("Cloud backend");
+  it("offers no paid provider choice on any workspace", () => {
+    expect(render(makeBot())).not.toContain("Cloud backend");
+    expect(render(makeBot())).not.toContain("Boat");
     fixture.config = { cloudHome: true } as Partial<ConfigStatus>;
     expect(render(makeBot())).not.toContain("Cloud backend");
     expect(render(makeBot({ computer: "cloud" }))).not.toContain("Boat");
@@ -252,7 +253,7 @@ describe("Research (treg) card", () => {
     expect(html).toMatch(new RegExp(`${SWITCH}[^>]*aria-checked="true"`));
     expect(html).not.toMatch(new RegExp(`${SWITCH}[^>]* disabled=""`));
     expect(html).toContain("through your treg key. Calls are billed to your treg balance.");
-    expect(html).not.toContain("Open API keys");
+    expect(html.slice(html.indexOf('data-testid="access-x-research"'))).not.toContain("Open API keys");
   });
 
   it("is on by default with a Cloud plan, and turns off for one bot with one patch", () => {
@@ -285,12 +286,13 @@ describe("a VPS bot's own server", () => {
     expect(saved).toContain("Server (SSH alias)");
     expect(saved).toContain("Leave empty to use production-vps from Settings → API keys.");
     expect(saved).toContain('value="alpha-vps"');
-    expect(render(makeBot({ computer: "cloud", cloudBackend: "box" }))).not.toContain("Server (SSH alias)");
+    expect(render(makeBot({ computer: "cloud", cloudBackend: "box" }))).toContain("Server (SSH alias)");
     const { BotEditorContext } = await import("./BotEditorContext");
     const { api } = await import("@/state/store");
     const drafted = renderToStaticMarkup(createElement(StoreProvider, null,
       createElement(BotEditorContext.Provider, { value: { request: api, draft: true } }, createElement(AccessSection, { bot: vpsBot, derived: makeDerived() }))));
-    expect(drafted).toContain("Self-hosted VPS");
+    expect(drafted).not.toContain("Cloud backend");
+    expect(drafted).not.toContain("Boat");
     expect(drafted).not.toContain("Server (SSH alias)");
   });
 });

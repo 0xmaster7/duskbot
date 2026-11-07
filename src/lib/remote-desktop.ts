@@ -7,7 +7,6 @@ export function isRemoteScreenshotContention(error: { status: number; message: s
     "this bot's cloud computer is being changed — wait for it to finish",
     "the VPS is being prepared — try again shortly",
     "VPS connection settings are being updated — wait for them to finish",
-    "Boat account settings are being updated — wait for them to finish",
   ].includes(error.message);
 }
 
@@ -30,7 +29,7 @@ export function cloudEngineOf(instance: InstanceInfo | undefined): CloudEngine {
   return { computerMcp: instance?.capabilities?.computerMcp };
 }
 
-export function boatCapableEngine(instances: readonly InstanceInfo[], selectedId?: string): InstanceInfo | undefined {
+export function computerCapableEngine(instances: readonly InstanceInfo[], selectedId?: string): InstanceInfo | undefined {
   const selected = selectedId ? instances.find(instance => instance.instanceId === selectedId) : undefined;
   return selected && canWorkOnCloud(cloudEngineOf(selected)) ? selected : undefined;
 }

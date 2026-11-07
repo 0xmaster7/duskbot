@@ -12,13 +12,14 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createLinkService, publicIp } from "../src/app.mjs";
 import { createTunnelAgent, open as agentOpen, openFrame as agentOpenFrame, sealBytes as agentSealBytes } from "../agent.mjs";
-import { createRelayClient, createTunnelProxy, frameGuard, newLinkKeys, openFrame, openResult, seal, sealBytes, sha256hex, vpsTokenOf } from "../../electron/vps-link-protocol.mjs";
+import { createRelayClient, createTunnelProxy, frameGuard, newLinkKeys, openFrame, openResult, seal, sealBytes, sealFrame, sha256hex, vpsTokenOf } from "../../electron/vps-link-protocol.mjs";
 
 const run = promisify(execFile);
 const root = fileURLToPath(new URL("..", import.meta.url));
 const listen = (server) => new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve(server.address().port)));
 
 let dir, relayServer, service, base, fakeServer, fakePort, seen, largestPost = 0;
+const binaryReply = Buffer.alloc(1024 * 1024 + 37, 0x5a);
 
 beforeAll(async () => {
   dir = mkdtempSync(join(tmpdir(), "omb-link-"));
@@ -34,6 +35,7 @@ beforeAll(async () => {
       seen.push({ method: req.method, url: req.url, headers: req.headers, body: Buffer.concat(chunks).toString("utf8") });
       if (req.url === "/api/auth/pairing") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ code: "RR8Y-BLR6-H939", expiresAt: 123 })); }
       if (req.url === "/.well-known/openmausbot/environment") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ environmentId: "6f1c2d3e-0000-4000-8000-000000000001" })); }
+      if (req.url === "/binary") { res.writeHead(200, { "content-type": "application/octet-stream" }); return res.end(binaryReply); }
       if (req.url === "/events") {
         res.writeHead(200, { "content-type": "text/event-stream" });
         res.write("data: one\n\n");
@@ -67,7 +69,7 @@ afterAll(async () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-async function openTunnel() {
+async function openTunnel({ onAgentPost } = {}) {
   const relay = createRelayClient({ base });
   const keys = newLinkKeys();
   const made = await relay.create({ verifier: keys.verifier, appPub: keys.pub });
@@ -75,7 +77,10 @@ async function openTunnel() {
   await post(`/v1/sessions/${made.id}/claim`, vpsToken, {});
   const tunnel = { key: Buffer.alloc(32, 9).toString("base64url"), vps: "w".repeat(43), app: "b".repeat(43) };
   await post(`/v1/sessions/${made.id}/result`, vpsToken, { sealed: seal(Buffer.alloc(32), made.id, Buffer.from("{}")), vpsPub: keys.pub, tunnel: { vps: sha256hex(tunnel.vps), app: sha256hex(tunnel.app) } });
-  const agent = createTunnelAgent({ base, id: made.id, key: tunnel.key, token: tunnel.vps, server: { host: "127.0.0.1", port: fakePort }, log: () => {} });
+  const agent = createTunnelAgent({ base, id: made.id, key: tunnel.key, token: tunnel.vps, server: { host: "127.0.0.1", port: fakePort }, log: () => {}, fetchImpl: (url, init) => {
+    if (init?.method === "POST") onAgentPost?.(JSON.parse(init.body).frames, made.id, Buffer.from(tunnel.key, "base64url"));
+    return fetch(url, init);
+  } });
   const running = agent.run();
   const proxy = createTunnelProxy({ base, id: made.id, key: tunnel.key, token: tunnel.app });
   const port = new URL(await proxy.start()).port;
@@ -197,12 +202,46 @@ describe("setup sessions", () => {
     const keys = newLinkKeys();
     const made = await relay.create({ verifier: keys.verifier, appPub: keys.pub });
     await relay.cancel(made.id, made.watch);
-    expect((await post(`/v1/sessions/${made.id}/claim`, vpsTokenOf(keys.secret), {})).status).toBe(410);
+    const cancelled = await post(`/v1/sessions/${made.id}/claim`, vpsTokenOf(keys.secret), {});
+    expect(cancelled.status).toBe(410);
+    expect((await cancelled.json()).code).toBe("cancelled");
     const unknown = await post("/v1/sessions/aaaaaaaaaa/claim", vpsTokenOf(keys.secret), {});
     expect(unknown.status).toBe(404);
     expect((await unknown.json()).code).toBe("expired");
     // the watch token of one session reads no other
     expect((await fetch(`${base}/v1/sessions/aaaaaaaaaa/events`, { headers: { authorization: `Bearer ${made.watch}` } })).status).toBe(404);
+  });
+
+  it("keeps bounded real progress and quiet heartbeats without evicting completed steps", async () => {
+    const relay = createRelayClient({ base });
+    const keys = newLinkKeys();
+    const made = await relay.create({ verifier: keys.verifier, appPub: keys.pub });
+    const token = vpsTokenOf(keys.secret);
+    const route = `/v1/sessions/${made.id}/events`;
+    await post(`/v1/sessions/${made.id}/claim`, token, {});
+    await post(route, token, { step: "node", status: "done" });
+    const progress = { kind: "download", receivedBytes: 123, totalBytes: 1000, label: "archive\nname" };
+    const activity = { elapsedMs: 5000, quietMs: 3000 };
+    expect((await post(route, token, { step: "app", status: "running", progress, activity })).status).toBe(200);
+    const first = (await relay.watch(made.id, made.watch, 0)).events.at(-1);
+    expect(first.progress).toEqual({ ...progress, label: "archivename" });
+    expect(first.activity).toEqual(activity);
+    expect(first.at).toBeTypeOf("number");
+    for (const bad of [
+      { progress: { kind: "download", receivedBytes: -1 } },
+      { progress: { kind: "layers", completed: 4, total: 3 } },
+      { progress: { kind: "build", completed: 0.5, total: 3 } },
+      { progress: { kind: "download", receivedBytes: Number.MAX_SAFE_INTEGER + 1 } },
+      { activity: { elapsedMs: 5, quietMs: 6 } },
+      { heartbeat: "yes" },
+    ]) expect((await post(route, token, { step: "app", status: "running", ...bad })).status).toBe(400);
+    for (let i = 0; i < 152; i += 1) {
+      expect((await post(route, token, { step: "app", status: "running", heartbeat: true, activity: { elapsedMs: 5000 + i, quietMs: 3000 + i } })).status).toBe(200);
+    }
+    const events = (await relay.watch(made.id, made.watch, 0)).events;
+    expect(events.filter((event) => event.heartbeat || event.progress || event.activity)).toHaveLength(150);
+    expect(events.find((event) => event.step === "node")).toMatchObject({ status: "done" });
+    expect(events.at(-1)).toMatchObject({ heartbeat: true, activity: { elapsedMs: 5151, quietMs: 3151 } });
   });
 
   it("probes only a public address: a private one is never fetched", async () => {
@@ -220,6 +259,37 @@ describe("setup sessions", () => {
 });
 
 describe("the private server build", () => {
+  it("resumes authenticated downloads using exact open byte ranges", async () => {
+    const bytes = Buffer.from("range fixture ".repeat(100));
+    const sha = sha256hex(bytes);
+    const packages = join(dir, "data", "packages");
+    mkdirSync(packages, { recursive: true });
+    writeFileSync(join(packages, `${sha}.tgz`), bytes);
+    writeFileSync(join(packages, "current.json"), JSON.stringify({ sha256: sha, version: "fixture" }));
+    const relay = createRelayClient({ base });
+    const keys = newLinkKeys();
+    const made = await relay.create({ verifier: keys.verifier, appPub: keys.pub });
+    const token = vpsTokenOf(keys.secret);
+    const url = `${base}/pkg/${made.id}/${sha}.tgz`;
+    const get = (range, authorized = true) => fetch(url, { headers: { range, ...(authorized ? { authorization: `Bearer ${token}` } : {}) } });
+    expect((await get("bytes=100-")).status).toBe(409);
+    await post(`/v1/sessions/${made.id}/claim`, token, {});
+    expect((await get("bytes=100-", false)).status).toBe(401);
+    const resumed = await get("bytes=100-");
+    expect(resumed.status).toBe(206);
+    expect(resumed.headers.get("content-range")).toBe(`bytes 100-${bytes.length - 1}/${bytes.length}`);
+    expect(resumed.headers.get("content-length")).toBe(String(bytes.length - 100));
+    expect(resumed.headers.get("accept-ranges")).toBe("bytes");
+    expect(Buffer.from(await resumed.arrayBuffer())).toEqual(bytes.subarray(100));
+    for (const range of [`bytes=${bytes.length}-`, "bytes=-5", "bytes=0-5", "bytes=00-", "bytes=9007199254740992-"]) {
+      const invalid = await get(range);
+      expect(invalid.status).toBe(416);
+      expect(invalid.headers.get("content-range")).toBe(`bytes */${bytes.length}`);
+    }
+    await relay.cancel(made.id, made.watch);
+    expect((await get("bytes=100-")).status).toBe(410);
+  });
+
   it("is handed only to a claimed session with its own token, by sha256, a few times, and never after linking", async () => {
     const tgz = Buffer.from("pretend tarball ".repeat(4096));
     const sha = sha256hex(tgz);
@@ -278,6 +348,35 @@ describe("the private server build", () => {
 });
 
 describe("relay tunnel", () => {
+  it("streams HTTP downloads as raw sealed bytes with one base64 layer", async () => {
+    const frames = [];
+    const tunnel = await openTunnel({ onAgentPost: (sealed, id, key) => {
+      for (const value of sealed) frames.push({ value, frame: openFrame(key, id, "to-app", value) });
+    } });
+    try {
+      const reply = await new Promise((resolve, reject) => {
+        const req = httpRequest({ host: "127.0.0.1", port: tunnel.port, path: "/binary", headers: { host: `vps-${tunnel.id}.localhost:${tunnel.port}` } }, (res) => {
+          const chunks = [];
+          res.on("data", (chunk) => chunks.push(chunk));
+          res.on("end", () => resolve(Buffer.concat(chunks)));
+          res.on("error", reject);
+        });
+        req.on("error", reject);
+        req.end();
+      });
+      expect(Buffer.compare(reply, binaryReply)).toBe(0);
+      expect(frames.some(({ frame }) => frame.t === "data")).toBe(false);
+      const body = frames.filter(({ frame }) => frame.t === "bytes");
+      expect(Buffer.compare(Buffer.concat(body.map(({ frame }) => frame.b)), binaryReply)).toBe(0);
+      const rawSize = body.reduce((sum, { value }) => sum + value.length, 0);
+      const nestedSize = body.reduce((sum, { frame }) => sum + sealFrame(Buffer.alloc(32), tunnel.id, "to-app", { t: "data", r: frame.r, d: frame.b.toString("base64") }).length, 0);
+      expect(rawSize).toBeLessThan(binaryReply.length * 1.4);
+      expect(rawSize).toBeLessThan(nestedSize * 0.76);
+    } finally {
+      await tunnel.close();
+    }
+  }, 20_000);
+
   it("carries requests, bodies, streams and control end to end, marks them remote, and stops when forgotten", async () => {
     const relay = createRelayClient({ base });
     const keys = newLinkKeys();
@@ -297,7 +396,7 @@ describe("relay tunnel", () => {
     // fetch cannot send a *.localhost host to 127.0.0.1 by name everywhere, so set the host header the browser would
     const call = (path, init = {}) => new Promise((resolve, reject) => {
       import("node:http").then(({ request }) => {
-        const req = request({ host: "127.0.0.1", port, path, method: init.method ?? "GET", headers: { host: `vps-${made.id}.localhost:${port}`, ...(init.headers ?? {}) } }, (res) => {
+        const req = request({ host: "127.0.0.1", port, path, method: init.method ?? "GET", headers: { host: `vps-${made.id}.localhost:${port}`, ...init.headers } }, (res) => {
           const chunks = [];
           res.on("data", (chunk) => { chunks.push(chunk); init.onChunk?.(chunk.toString()); });
           res.on("end", () => resolve({ status: res.statusCode, headers: res.headers, text: Buffer.concat(chunks).toString("utf8") }));

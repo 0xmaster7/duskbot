@@ -110,6 +110,7 @@ export class ProviderRegistry {
   private seedObjects = new WeakSet<ProviderSnapshot>();
   /** Engines the start-up read has not probed yet; null outside that read. */
   private unread: Set<InstanceId> | null = null;
+  private startupProgress: (() => void) | null = null;
   private snapshotGeneration = 0;
   /** Per instance object: settings that reload an engine make a new one, so its status is read afresh. */
   private readsOf = new WeakMap<ProviderInstance, { snapshot: ProviderSnapshot; at: number; generation: number }>();
@@ -230,7 +231,7 @@ export class ProviderRegistry {
    * once more, warm, before the read ends. Until the read reaches an engine, a turn on it probes that engine itself
    * (`engineRead`) and `describe({ known: true })` answers it from the last run's status.
    */
-  async readAtStart(first: readonly InstanceId[] = [], afterFirst: () => void = () => {}) {
+  async readAtStart(first: readonly InstanceId[] = [], afterFirst: () => void = () => {}, progress: () => void = () => {}) {
     const live = this.instances().map((instance) => instance.instanceId);
     for (const [instanceId, snapshot] of this.status?.read((id) => this.byId.get(id)?.live ? this.cliTarget(id) : null) ?? []) {
       this.seeds.set(instanceId, snapshot);
@@ -238,6 +239,7 @@ export class ProviderRegistry {
     }
     const seeded = new Map(this.seeds);
     this.unread = new Set(live);
+    this.startupProgress = progress;
     try {
       const withCli = new Set(live.filter((id) => this.cliTarget(id)?.cli));
       const withoutCli = this.engineRead(...live.filter((id) => !withCli.has(id)));
@@ -258,8 +260,9 @@ export class ProviderRegistry {
       afterFirst();
       this.unread = null;
       this.seeds.clear();
+      this.startupProgress = null;
     }
-    const changed = [...seeded].some(([id, seed]) => JSON.stringify(snapshotFrom(this.lastSnapshots.get(id))) !== JSON.stringify(seed));
+    const changed = live.some((id) => JSON.stringify(snapshotFrom(this.lastSnapshots.get(id))) !== JSON.stringify(seeded.get(id) ?? null));
     return { engines: await this.describeWith(async (instance) => this.lastSnapshots.get(instance.instanceId) ?? this.read(instance)), changed };
   }
 
@@ -405,8 +408,13 @@ export class ProviderRegistry {
    * and `changed` runs when that read differs. */
   describe(options: { known?: boolean; reuse?: { ms: number; changed(): void } } = {}) {
     return this.describeWith((instance) => {
-      const seed = options.known && this.unread?.has(instance.instanceId) ? this.seeds.get(instance.instanceId) : undefined;
-      if (seed) return Promise.resolve(seed);
+      if (options.known && this.unread?.has(instance.instanceId)) {
+        const seed = this.seeds.get(instance.instanceId);
+        if (seed) return Promise.resolve(seed);
+        const checking: ProviderSnapshot = { state: "unavailable", reason: "Checking engine status" };
+        this.seedObjects.add(checking);
+        return Promise.resolve(checking);
+      }
       const last = options.reuse && this.readsOf.get(instance);
       if (!options.reuse || !last || last.generation !== this.snapshotGeneration) return this.read(instance);
       if (Date.now() - last.at >= options.reuse.ms) {
@@ -429,8 +437,9 @@ export class ProviderRegistry {
     // Only while this is still the live instance: a reload may have replaced it during the read.
     if (this.byId.get(instance.instanceId)?.live === instance) {
       this.lastSnapshots.set(instance.instanceId, snapshot);
-      this.unread?.delete(instance.instanceId);
+      const firstRead = this.unread?.delete(instance.instanceId);
       this.saveStatus();
+      if (firstRead) this.startupProgress?.();
     }
     return snapshot;
   }

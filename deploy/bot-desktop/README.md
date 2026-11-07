@@ -4,7 +4,7 @@ The bot's own computer: a small dark Linux desktop in a hardened container, one 
 locally in Docker). Bots drive it through Cua Driver exactly as they drive the Cua XFCE image (screenshots, clicks,
 typing, AT-SPI, Chromium over CDP); people see it through noVNC when they take control.
 
-Image: `ghcr.io/sidddevz/omb-bot-desktop:v1` (`BOT_DESKTOP_IMAGE` in `shared/bot-desktop.ts`). linux/arm64 and
+Image: `ghcr.io/sidddevz/omb-bot-desktop:v2` (`BOT_DESKTOP_IMAGE` in `shared/bot-desktop.ts`). linux/arm64 and
 linux/amd64.
 
 ## What is inside
@@ -21,6 +21,12 @@ linux/amd64.
 | Terminal | xfce4-terminal | software-rendered VTE (kitty/alacritty need GL), no menubar, `#111111`, block cursor |
 | Files | Thunar | behind the middle dock icon; Papirus-Dark icons here and in every GTK file dialog |
 | Control | Cua Driver 0.37.0 (pinned wheel, SHA-256 checked) | the harness speaks it already, nothing changes for bots |
+
+The image keeps Papirus icons for installed applications, their symlink targets, and every file, folder and action
+icon. Unused application icons are removed at build time by `trim-icons.py`; newly installed applications can supply
+their own icons through the normal hicolor fallback. A disposable arm64 image check reduced the two Papirus themes
+from 104,082,850 to 21,207,756 bytes without leaving broken icon links. This is an icon payload measurement, not a
+compressed image size or a VPS transfer benchmark.
 
 Wayland (labwc, sway) was ruled out: Cua Driver's capture and input paths here are X11 (XTest, AT-SPI over X), and
 VNC over X is the most mature thing to stream from.
@@ -58,7 +64,7 @@ makes `sudo` inert. Read-only root filesystem; same network rules plus the host'
 
 `server/bot-desktop.ts` (`provisionBotDesktop`), over `docker -H ssh://<alias>`:
 
-1. `docker pull ghcr.io/sidddevz/omb-bot-desktop:v1` unless present. If the pull fails (not published yet,
+1. `docker pull ghcr.io/sidddevz/omb-bot-desktop:v2` unless present. If the pull fails (not published yet,
    registry down) it falls back to building the Cua XFCE desktop as before. `OPENMAUSBOT_VPS_DESKTOP=cua` forces Cua.
 2. `docker network create --driver bridge --opt com.docker.network.bridge.enable_icc=false
    --opt com.docker.network.bridge.name=omb-desk0 --label com.openmausbot.vps-network=1 openmausbot-desktops`
@@ -71,7 +77,7 @@ makes `sudo` inert. Read-only root filesystem; same network rules plus the host'
 ```sh
 docker run -d --name openmausbot-vps-<bot>-<hash> --hostname bot \
   --label com.openmausbot.vps=1 --label com.openmausbot.container=<name> --label com.openmausbot.environment=<id> \
-  --label com.openmausbot.vps-viewer=1 --label com.openmausbot.bot-desktop=1 \
+  --label com.openmausbot.vps-viewer=1 --label com.openmausbot.bot-desktop=2 \
   --label com.openmausbot.bot-desktop-mode=free --label com.openmausbot.cua-driver=0.37.0 \
   [--runtime runsc] --network openmausbot-desktops --dns 1.1.1.1 --dns 9.9.9.9 \
   --tmpfs /tmp:rw,nosuid,nodev,size=1g --tmpfs /run:rw,nosuid,nodev,size=64m,uid=1000,gid=1000,mode=0755 \

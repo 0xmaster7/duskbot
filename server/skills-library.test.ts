@@ -142,13 +142,41 @@ describe("skills library store", () => {
       const on = hostWith({ features: { skillsLibrary: true } } as AppConfig);
       expect(on.skillsIndex(record, "main")).toContain(name);
       expect(on.skillsIndex(record, undefined)).toContain(name);
+      expect(on.readOnlyLibraryFolders(record)).toContain(library.librarySkillDirectory(library.skillsLibraryRoot(), name));
       expect(on.expandSkillCommand(record, "main", `/${name}`, undefined, [], true)).toContain(`ran your ${name} skill`);
       const off = hostWith({} as AppConfig);
       expect(off.skillsIndex(record, "main")).not.toContain(name);
+      expect(off.readOnlyLibraryFolders(record)).toEqual([]);
       expect(off.expandSkillCommand(record, "main", `/${name}`, undefined, [], true)).toBe(`/${name}`);
     } finally {
       library.setLibrarySkillEveryBot(name, false);
     }
+  });
+
+  it("lends only verified current library assignments, respecting private shadows and revocation", async () => {
+    const { Store } = await import("./store.ts");
+    const { createSkillsLibraryHost } = await import("./host/skills-library.ts");
+    const store = new Store(() => ({ instanceId: "claude", model: "fixture" }));
+    const record = store.createBot();
+    const name = `assigned-${Math.random().toString(36).slice(2, 10)}`;
+    const hidden = `sibling-${Math.random().toString(36).slice(2, 10)}`;
+    for (const skill of [name, hidden]) library.installLibrarySkill({ name: skill, instructions: SKILL(skill), source: "local-import", reviewState: "approved" });
+    store.patchBot(record.id, { assignedSkills: [name] });
+    const host = createSkillsLibraryHost({ store, cfg: { features: { skillsLibrary: true } } as AppConfig, appendSkillRequestCard: () => ({ requestId: "", summary: "" }) });
+    const folder = library.librarySkillDirectory(library.skillsLibraryRoot(), name);
+    expect(host.readOnlyLibraryFolders(record)).toEqual([folder]);
+    expect(host.readOnlyLibraryFolders(record)).not.toContain(library.librarySkillDirectory(library.skillsLibraryRoot(), hidden));
+    library.setLibrarySkillReviewState(name, "disabled");
+    expect(host.readOnlyLibraryFolders(record)).toEqual([]);
+    library.setLibrarySkillReviewState(name, "approved");
+    skills.installSkill(record.id, "private:test", [{ path: "SKILL.md", content: SKILL(name) }]);
+    expect(host.readOnlyLibraryFolders(record)).toEqual([]);
+    skills.removeSkill(record.id, name);
+    expect(host.readOnlyLibraryFolders(record)).toEqual([folder]);
+    writeFileSync(join(folder, "SKILL.md"), SKILL(name, "Tampered"));
+    expect(host.readOnlyLibraryFolders(record)).toEqual([]);
+    store.patchBot(record.id, { assignedSkills: [] });
+    expect(host.readOnlyLibraryFolders(record)).toEqual([]);
   });
 
   it("defaults the feature flag off and switches on only via features.skillsLibrary", () => {

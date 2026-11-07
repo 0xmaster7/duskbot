@@ -72,10 +72,14 @@ createInterface({ input: process.stdin }).on("line", async (line) => {
   if (request.method === "initialize") {
     reply(request.id, { protocolVersion: "2024-11-05", capabilities: { tools: {} }, serverInfo: { name: "fixture", version: "1" } });
   } else if (request.method === "tools/list") {
-    reply(request.id, { tools: ["write", "wait", "fail"].map((name) => ({ name, description: "Synthetic fixture operation", inputSchema: schema })) });
+    reply(request.id, { tools: ["write", "wait", "fail", "read"].map((name) => ({ name, description: "Synthetic fixture operation", inputSchema: schema, ...(name === "read" ? { annotations: { readOnlyHint: true } } : {}) })) });
   } else if (request.method === "tools/call") {
     const { name, arguments: args } = request.params;
     await fetch(callback + "/mcp-start", { method: "POST", body: JSON.stringify({ name, args }) });
+    if (name === "read") {
+      reply(request.id, { content: [{ type: "text", text: "Read " + args.name + "=" + args.value }] });
+      return;
+    }
     if (name === "fail") {
       reply(request.id, { isError: true, content: [{ type: "text", text: "Synthetic tool failed before writing." }] });
       return;
@@ -96,6 +100,8 @@ async function fixture(script: Script, provider: Provider = "openai-compat", api
   const directory = mkdtempSync(join(tmpdir(), "omb-chat-tools-"));
   const requests: ChatRequest[] = [];
   const rpcStarted = deferred<{ name: string; args: Record<string, unknown> }>();
+  const rpcCalls: Array<{ name: string; args: Record<string, unknown> }> = [];
+  const rpcGates = new Map<string, Promise<void>>();
   const server = createServer(async (request, response) => {
     if (request.url === "/v1/models") {
       response.setHeader("content-type", "application/json");
@@ -107,7 +113,10 @@ async function fixture(script: Script, provider: Provider = "openai-compat", api
     if (request.method !== "POST") { response.writeHead(404); response.end(); return; }
     for await (const part of request) data += part.toString();
     if (request.url === "/mcp-start") {
-      rpcStarted.resolve(JSON.parse(data));
+      const call = JSON.parse(data) as { name: string; args: Record<string, unknown> };
+      rpcCalls.push(call);
+      rpcStarted.resolve(call);
+      await rpcGates.get(String(call.args.name));
       response.end("ok");
       return;
     }
@@ -147,7 +156,12 @@ async function fixture(script: Script, provider: Provider = "openai-compat", api
     ? readFileSync(join(directory, "effects.ndjson"), "utf8").trim().split("\n").map((line) => JSON.parse(line))
     : [];
   return {
-    instance, recorder, requests, threadId, directory, integrations, effects, rpcStarted,
+    instance, recorder, requests, threadId, directory, integrations, effects, rpcStarted, rpcCalls,
+    holdRpc(name: string) {
+      const gate = deferred();
+      rpcGates.set(name, gate.promise);
+      return () => gate.resolve();
+    },
     start: (input: Partial<SendTurnInput> = {}) => instance.adapter.sendTurn({
       threadId, text: "Store the synthetic receipt.", model: "fixture-model", integrations, ...input,
     }),
@@ -160,6 +174,71 @@ async function fixture(script: Script, provider: Provider = "openai-compat", api
     },
   };
 }
+
+
+describe("independent read-only tool batches", () => {
+  const readCall = (name: string, index: number) => ({ ...toolCall("audit_read", JSON.stringify({ name, value: name }), `read_${index}`), index });
+
+  it("overlaps at most four reads, retains provider result order, and runs writes as barriers", async () => {
+    const calls = [readCall("a", 0), readCall("b", 1), readCall("c", 2), readCall("d", 3), readCall("e", 4),
+      { ...toolCall("audit_write", '{"name":"write","value":"done"}', "write"), index: 5 }, readCall("f", 6)];
+    const f = await fixture((_body, response, round) => round === 1
+      ? sse(response, [chunk({ tool_calls: calls }, "tool_calls")]) : answer(response));
+    const release = ["a", "b", "c", "d", "e", "write", "f"].map((name) => f.holdRpc(name));
+    try {
+      await f.start({ approvalMode: "full" });
+      await expect.poll(() => f.rpcCalls.map((call) => call.args.name)).toEqual(["a", "b", "c", "d"]);
+      release[1]!(); release[2]!(); release[3]!();
+      await expect.poll(() => f.recorder.events.filter((event) => event.type === "item.completed" && event.itemType === "tool").length).toBe(3);
+      expect(f.rpcCalls.map((call) => call.args.name)).toEqual(["a", "b", "c", "d"]);
+      release[0]!();
+      await expect.poll(() => f.rpcCalls.map((call) => call.args.name)).toEqual(["a", "b", "c", "d", "e"]);
+      release[4]!();
+      await expect.poll(() => f.rpcCalls.map((call) => call.args.name)).toEqual(["a", "b", "c", "d", "e", "write"]);
+      expect(f.effects()).toEqual([]);
+      release[5]!();
+      await expect.poll(() => f.rpcCalls.map((call) => call.args.name)).toEqual(["a", "b", "c", "d", "e", "write", "f"]);
+      expect(f.effects()).toEqual([{ name: "write", value: "done" }]);
+      release[6]!();
+      expect(await f.completed()).toMatchObject({ ok: true });
+      expect(f.requests[1].messages.filter((message) => message.role === "tool").map((message) => message.tool_call_id))
+        .toEqual(calls.map((call) => call.id));
+    } finally { release.forEach((done) => done()); }
+  });
+
+  it("keeps read-only calls serial when each still requires a person's approval", async () => {
+    const f = await fixture((_body, response, round) => round === 1
+      ? sse(response, [chunk({ tool_calls: [readCall("first", 0), readCall("second", 1)] }, "tool_calls")]) : answer(response));
+    const release = f.holdRpc("first");
+    try {
+      await f.start({ approvalMode: "ask" });
+      await f.decide();
+      await f.rpcStarted.promise;
+      expect(f.recorder.events.filter((event) => event.type === "request.opened")).toHaveLength(1);
+      release();
+      await expect.poll(() => f.recorder.events.filter((event) => event.type === "request.opened").length).toBe(2);
+      const second = f.recorder.events.filter((event) => event.type === "request.opened")[1]!;
+      await f.instance.adapter.respondToRequest(f.threadId, second.requestId!, { behavior: "deny" });
+      expect(await f.completed()).toMatchObject({ ok: false, denials: ["audit_read"] });
+      expect(f.rpcCalls.map((call) => call.args.name)).toEqual(["first"]);
+    } finally { release(); }
+  });
+
+  it("Stop drains its active read batch and never dispatches the following write", async () => {
+    const f = await fixture((_body, response, round) => round === 1
+      ? sse(response, [chunk({ tool_calls: [readCall("first", 0), readCall("second", 1),
+        { ...toolCall(), index: 2 }] }, "tool_calls")]) : answer(response));
+    const release = ["first", "second"].map((name) => f.holdRpc(name));
+    try {
+      const { turnId } = await f.start({ approvalMode: "full" });
+      await expect.poll(() => f.rpcCalls.length).toBe(2);
+      await f.instance.adapter.interruptTurn(f.threadId, turnId);
+      expect(await f.completed()).toMatchObject({ ok: false, stopReason: "interrupted" });
+      expect(f.rpcCalls.map((call) => call.name)).toEqual(["read", "read"]);
+      expect(f.effects()).toEqual([]);
+    } finally { release.forEach((done) => done()); }
+  });
+});
 
 describe("bounded action announcement recovery", () => {
   const later = `${"The terminal output is absent; the launch receipt only confirms the process. ".repeat(7)}\n\nLet me execute the commands to create the file and read it back.`;
@@ -1407,7 +1486,7 @@ describe("a turn with the person's Windows computer, the built-in browser and th
     expect(names).toHaveLength(118);
     expect(names.slice(-4)).toEqual(["mcp_search_tools", "mcp_describe_tool", "mcp_call_tool", "ask_user"]);
     expect(f.recorder.events.filter((event) => event.type === "runtime.notice").map((event) => (event as { message: string }).message))
-      .toEqual([`To fit the model's 128-tool limit, the tools of "notes" are reached through the tool search this turn.`]);
+      .toEqual([`The tools of "notes" are reached through tool search to keep this turn's tool list small and within the model's 128-tool limit.`]);
     expect(toolBudgetOf("mira")).toEqual({ limit: 128, listed: 117, servers: [{ name: "notes", tools: 14, direct: false }] });
   });
 });

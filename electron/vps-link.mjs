@@ -3,6 +3,7 @@
 // from this mac and moves everything there (backup first, own-home move, check, switch, then this mac emptied).
 // every secret is kept protected (safeStorage in main); the link service only ever sees verifiers and sealed blobs.
 import { randomBytes } from "node:crypto";
+import { setTimeout as sleep } from "node:timers/promises";
 
 import { createRelayClient, createTunnelProxy, newLinkKeys, openResult } from "./vps-link-protocol.mjs";
 
@@ -12,6 +13,21 @@ const record = (value) => value !== null && typeof value === "object" && !Array.
 const SKILL_KINDS = new Set(["skill", "imported-skill", "library-skill"]);
 const ROUTINE_KINDS = new Set(["routine", "call", "webhook", "app-event"]);
 const CLAUDE_TOKEN = /sk-ant-oat01-[A-Za-z0-9_-]{20,}/;
+
+function installProgress(value) {
+  if (!record(value)) return null;
+  const label = typeof value.label === "string" ? value.label.slice(0, 120) : undefined;
+  if (value.kind === "download" && Number.isFinite(value.receivedBytes) && value.receivedBytes >= 0) {
+    return { kind: value.kind, receivedBytes: value.receivedBytes,
+      ...(Number.isFinite(value.totalBytes) && value.totalBytes > 0 ? { totalBytes: value.totalBytes } : {}), ...(label ? { label } : {}) };
+  }
+  if (["layers", "build"].includes(value.kind) && Number.isFinite(value.completed) && value.completed >= 0 && Number.isFinite(value.total) && value.total > 0) {
+    return { kind: value.kind, completed: value.completed, total: value.total,
+      ...(Number.isFinite(value.receivedBytes) && value.receivedBytes >= 0 ? { receivedBytes: value.receivedBytes } : {}),
+      ...(Number.isFinite(value.totalBytes) && value.totalBytes > 0 ? { totalBytes: value.totalBytes } : {}), ...(label ? { label } : {}) };
+  }
+  return null;
+}
 
 /** a plain sentence for a person, never a stack or a status code alone */
 const plain = (error, fallback) => {
@@ -52,9 +68,12 @@ export function createVpsLink(deps) {
   const relay = createRelayClient({ base, fetch: deps.fetch ?? fetch });
   const makeProxy = deps.proxyFactory ?? createTunnelProxy;
   const proxies = new Map();
+  const proxyStarts = new Map();
+  const sessionChecks = new Map();
   const signIns = new Map();
   let state = read();
   let watching = null, moveTimer = null, closed = false, lastError = null;
+  let setupGeneration = 0, setupAbort = null;
 
   function read() {
     const value = (() => { try { return store.read(); } catch { return null; } })();
@@ -71,16 +90,19 @@ export function createVpsLink(deps) {
   const currentLink = () => state.links.find((link) => link.id === state.current) ?? null;
 
   // the install's live terminal: lines each step streams while it runs. kept in memory only, never in the store
-  let live = { id: null, steps: {}, feed: [] };
+  const emptyLive = (id) => ({ id, steps: {}, feed: [], updatedAt: 0, progressAt: 0, error: null });
+  let live = emptyLive(null);
   const LIVE_STEP_LINES = 200;
   const LIVE_FEED = 400;
-  function liveFor(id) { if (live.id !== id) live = { id, steps: {}, feed: [] }; return live; }
+  function liveFor(id) { if (live.id !== id) live = emptyLive(id); return live; }
   function steps() {
     const seen = state.pending?.steps ?? (currentLink() ? Object.fromEntries(STEP_IDS.map((id) => [id, { status: "done" }])) : {});
     const lines = state.pending && live.id === state.pending.id ? live.steps : {};
     return STEP_IDS.map((id) => ({
       id, status: seen[id]?.status ?? "waiting", ...(seen[id]?.log ? { log: seen[id].log } : {}),
       ...(lines[id]?.cmd ? { cmd: lines[id].cmd } : {}), ...(lines[id]?.lines?.length ? { lines: lines[id].lines } : {}),
+      ...(lines[id]?.progress ? { progress: lines[id].progress } : {}),
+      ...(lines[id]?.activity ? { activity: lines[id].activity } : {}),
     }));
   }
   function view() {
@@ -98,42 +120,82 @@ export function createVpsLink(deps) {
       expiresAt: pending?.expiresAt ?? null,
       steps: steps(),
       terminal: state.pending && live.id === state.pending.id ? live.feed : [],
+      ...(pending && live.id === pending.id && live.updatedAt ? { activity: { updatedAt: live.updatedAt, progressAt: live.progressAt, ...(live.error ? { error: live.error } : {}) } }
+        : move ? { activity: { updatedAt: move.updatedAt ?? move.startedAt, progressAt: move.progressAt ?? move.startedAt } } : {}),
       server: link ? { id: link.envId, name: link.name, origin: link.origin } : null,
       mode: link?.mode ?? null,
       error: lastError,
-      move: move ? { step: move.step, status: move.status, ...(move.chats ? { chats: move.chats } : {}), ...(move.waitingFor ? { waitingFor: move.waitingFor } : {}), ...(move.error ? { error: move.error } : {}), ...(move.retryAt ? { retryAt: move.retryAt } : {}), ...(move.backupId ? { backupId: move.backupId } : {}), ...(move.kept ? { kept: true } : {}) } : null,
+      move: move ? { step: move.step, status: move.status, ...(move.chats ? { chats: move.chats } : {}), ...(move.bytes ? { bytes: move.bytes } : {}), ...(move.waitingFor ? { waitingFor: move.waitingFor } : {}), ...(move.error ? { error: move.error } : {}), ...(move.retryAt ? { retryAt: move.retryAt } : {}), ...(move.backupId ? { backupId: move.backupId } : {}), ...(move.kept ? { kept: true } : {}) } : null,
     };
   }
 
   // ---- setup ----
 
+  function invalidateSetup() {
+    setupGeneration += 1;
+    setupAbort?.abort();
+    setupAbort = null;
+  }
+
+  function revokeUnused(made) {
+    void relay.cancel(made.id, made.watch).catch((error) => log(`vps link: unused command could not be cancelled (${error?.message ?? error})`));
+  }
+
   async function start() {
-    if (state.pending) await cancel().catch(() => {});
+    if (closed) return view();
+    invalidateSetup();
+    const generation = setupGeneration;
+    const abort = new AbortController();
+    setupAbort = abort;
+    const active = () => !closed && !abort.signal.aborted && generation === setupGeneration;
+    if (state.pending) await cancelPending();
+    if (!active()) return view();
     lastError = null;
     const keys = newLinkKeys();
     let made;
-    try { made = await relay.create({ verifier: keys.verifier, appPub: keys.pub, label: deps.label().slice(0, 60) }); }
-    catch (error) { lastError = plain(error, "The link service did not answer. Check your internet and try again."); onChange(view()); throw new Error(lastError); }
-    const token = `${made.id}-${keys.secret}`;
-    state.pending = {
-      id: made.id, state: "waiting", after: 0, steps: {}, createdAt: now(), expiresAt: made.expiresAt,
-      command: `curl -fsSL ${made.base}/i/${token} | sh`,
-      watchP: await protect(made.watch), privP: await protect(keys.priv), pub: keys.pub,
-    };
-    state.current = null;
-    write();
-    follow();
-    return view();
+    try {
+      made = await relay.create({ verifier: keys.verifier, appPub: keys.pub, label: deps.label().slice(0, 60) }, abort.signal);
+      if (!active()) { revokeUnused(made); return view(); }
+      const [watchP, privP] = await Promise.all([protect(made.watch), protect(keys.priv)]);
+      if (!active()) { revokeUnused(made); return view(); }
+      const token = `${made.id}-${keys.secret}`;
+      state.pending = {
+        id: made.id, state: "waiting", after: 0, steps: {}, createdAt: now(), expiresAt: made.expiresAt,
+        command: `curl -fsSL ${made.base}/i/${token} | sh`, watchP, privP, pub: keys.pub,
+      };
+      state.current = null;
+      write();
+      follow();
+      return view();
+    } catch (error) {
+      if (made) revokeUnused(made);
+      if (!active()) return view();
+      lastError = plain(error, "The link service did not answer. Check your internet and try again.");
+      onChange(view());
+      throw new Error(lastError);
+    } finally {
+      if (setupAbort === abort) setupAbort = null;
+    }
   }
 
-  async function cancel() {
+  async function cancelPending() {
     const pending = state.pending;
     stopFollowing();
     if (pending) {
       state.pending = null;
       write();
-      try { await relay.cancel(pending.id, await unprotect(pending.watchP)); } catch (error) { log(`vps link: cancel did not reach the link service (${error?.message ?? error})`); }
+      void unprotect(pending.watchP).then((watch) => relay.cancel(pending.id, watch)).catch((error) => log(`vps link: cancel did not reach the link service (${error?.message ?? error})`));
+      await proxyStarts.get(pending.id)?.catch(() => {});
+      if (!state.links.some((link) => link.id === pending.id)) {
+        await proxies.get(pending.id)?.close();
+        proxies.delete(pending.id);
+      }
     }
+  }
+
+  async function cancel() {
+    invalidateSetup();
+    await cancelPending();
     return view();
   }
 
@@ -150,12 +212,30 @@ export function createVpsLink(deps) {
         const pending = state.pending;
         try {
           const got = await relay.watch(pending.id, await unprotect(pending.watchP), pending.after, AbortSignal.any([abort.signal, AbortSignal.timeout(40_000)]));
+          if (abort.signal.aborted || state.pending !== pending || closed) break;
           failures = 0;
           let changed = false;
           let streamed = false;
+          const contact = liveFor(pending.id);
+          const recovered = Boolean(contact.error);
+          contact.updatedAt = now();
+          contact.error = null;
           for (const event of got.events ?? []) {
             pending.after = Math.max(pending.after, event.seq);
             if (!STATUSES.has(event.status) || typeof event.step !== "string") continue;
+            const at = Number.isFinite(event.at) ? Math.min(now(), event.at) : now();
+            const quietMs = Number.isFinite(event.activity?.quietMs) && event.activity.quietMs >= 0 ? event.activity.quietMs : 0;
+            if (record(event.activity) || event.heartbeat !== true) contact.progressAt = Math.max(contact.progressAt, at - quietMs);
+            const progress = installProgress(event.progress);
+            if (Number.isFinite(event.activity?.elapsedMs) && event.activity.elapsedMs >= 0) {
+              (contact.steps[event.step] ??= { lines: [] }).activity = { elapsedMs: event.activity.elapsedMs, quietMs, at };
+            }
+            if (progress) {
+              (contact.steps[event.step] ??= { lines: [] }).progress = progress;
+              streamed = true;
+            }
+            if (record(event.activity) || event.heartbeat === true) streamed = true;
+            if (event.heartbeat === true) continue;
             if (Array.isArray(event.lines) || typeof event.cmd === "string") {
               const mirror = liveFor(pending.id);
               const lines = (Array.isArray(event.lines) ? event.lines : []).filter((line) => typeof line === "string").map((line) => line.slice(0, 400));
@@ -168,11 +248,16 @@ export function createVpsLink(deps) {
               if (event.status === "running" && pending.steps[event.step]) continue;
             }
             if (!STEP_IDS.includes(event.step)) continue;
-            pending.steps[event.step] = { status: event.status, ...(event.status === "failed" && typeof event.log === "string" ? { log: event.log.slice(-4000) } : {}) };
+            if (event.status === "running" && (progress || record(event.activity)) && ["done", "skipped", "failed"].includes(pending.steps[event.step]?.status)) continue;
+            const previous = pending.steps[event.step];
+            const nextLog = event.status === "failed" && typeof event.log === "string" ? event.log.slice(-4000) : undefined;
+            if (previous?.status === event.status && previous?.log === nextLog) continue;
+            if (event.status === "running" && previous && previous.status !== "running") contact.steps[event.step] = { lines: [] };
+            pending.steps[event.step] = { status: event.status, ...(nextLog ? { log: nextLog } : {}) };
             changed = true;
           }
           if (got.state === "installing" && pending.state === "waiting") { pending.state = "installing"; changed = true; }
-          if (got.state === "linked") { pending.state = "linking"; write(); await finish(pending, got); continue; }
+          if (got.state === "linked") { pending.state = "linking"; write(); await finish(pending, got, abort.signal); continue; }
           if (got.state === "expired" || got.state === "cancelled") {
             state.pending = null;
             lastError = got.state === "expired" ? "This command expired before your server used it. Make a new one." : null;
@@ -180,24 +265,28 @@ export function createVpsLink(deps) {
             break;
           }
           if (changed) write();
-          else if (streamed) onChange(view());
+          else if (streamed || recovered) onChange(view());
         } catch (error) {
           if (abort.signal.aborted) break;
           if (error?.status === 404) { state.pending = null; lastError = "This command expired. Make a new one."; write(); break; }
           failures += 1;
-          await new Promise((resolve) => setTimeout(resolve, Math.min(15_000, 500 * 2 ** Math.min(failures, 5))));
+          const contact = liveFor(pending.id);
+          contact.error = "Setup updates paused. Reconnecting to your server.";
+          if (!contact.updatedAt) contact.updatedAt = now();
+          onChange(view());
+          await sleep(Math.min(15_000, 500 * 2 ** Math.min(failures, 5)), undefined, { signal: abort.signal }).catch(() => {});
         }
       }
       if (watching === abort) watching = null;
     })();
   }
 
-  async function signInTo(origin, code) {
+  async function signInTo(origin, code, signal) {
     const response = await serverFetch(`${origin}/api/auth/pair`, {
       method: "POST", redirect: "error", credentials: "include", cache: "no-store",
       headers: { "content-type": "application/json", accept: "application/json", origin },
       body: JSON.stringify({ code, cookie: true, label: deps.label().slice(0, 60) }),
-      signal: AbortSignal.timeout(60_000),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(60_000)]) : AbortSignal.timeout(60_000),
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) throw Object.assign(new Error(typeof body?.error === "string" ? body.error : `Your server answered ${response.status}.`), { status: response.status });
@@ -205,68 +294,107 @@ export function createVpsLink(deps) {
   }
 
   async function proxyFor(link) {
-    let proxy = proxies.get(link.id);
-    if (proxy) return proxy;
-    const key = await unprotect(link.keyP), token = await unprotect(link.tokenP);
-    proxy = makeProxy({ base: link.base ?? base, id: link.id, key, token, port: link.port ?? 0, log });
-    proxies.set(link.id, proxy);
-    let origin;
-    try { origin = await proxy.start(); }
-    catch (error) {
-      if (error?.code !== "EADDRINUSE") { proxies.delete(link.id); throw error; }
-      // the port this server's address uses is taken: a new one, and the saved server follows (cookies keep, they ignore ports)
-      proxy = makeProxy({ base: link.base ?? base, id: link.id, key, token, port: 0, log });
+    if (closed) throw new Error("The app is closing.");
+    if (proxyStarts.has(link.id)) return proxyStarts.get(link.id);
+    if (proxies.has(link.id)) return proxies.get(link.id);
+    const starting = (async () => {
+      const [key, token] = await Promise.all([unprotect(link.keyP), unprotect(link.tokenP)]);
+      if (closed) throw new Error("The app is closing.");
+      let proxy = makeProxy({ base: link.base ?? base, id: link.id, key, token, port: link.port ?? 0, log });
       proxies.set(link.id, proxy);
-      origin = await proxy.start();
-    }
-    const port = Number(new URL(origin).port);
-    if (link.mode === "relay" && link.origin !== origin) {
-      if (link.origin) deps.retarget?.(link.origin, origin);
-      link.origin = origin;
-      link.port = port;
-      write();
-    }
-    return proxy;
+      let origin;
+      try {
+        try { origin = await proxy.start(); }
+        catch (error) {
+          if (error?.code !== "EADDRINUSE" || closed) throw error;
+          await proxy.close();
+          proxy = makeProxy({ base: link.base ?? base, id: link.id, key, token, port: 0, log });
+          proxies.set(link.id, proxy);
+          origin = await proxy.start();
+        }
+        if (closed) throw new Error("The app is closing.");
+        const port = Number(new URL(origin).port);
+        if (link.mode === "relay" && link.origin !== origin) {
+          if (link.origin) deps.retarget?.(link.origin, origin);
+          link.origin = origin;
+          link.port = port;
+          write();
+        }
+        return proxy;
+      } catch (error) {
+        if (proxies.get(link.id) === proxy) proxies.delete(link.id);
+        await proxy.close();
+        throw error;
+      }
+    })();
+    proxyStarts.set(link.id, starting);
+    try { return await starting; }
+    finally { if (proxyStarts.get(link.id) === starting) proxyStarts.delete(link.id); }
   }
 
-  async function finish(pending, got) {
+  async function finish(pending, got, signal) {
+    const active = () => !closed && !signal.aborted && state.pending === pending;
+    let link = null;
     try {
-      const result = openResult({ id: pending.id, priv: await unprotect(pending.privP), pub: pending.pub, vpsPub: got.vpsPub, sealed: got.sealed });
-      const link = {
+      const priv = await unprotect(pending.privP);
+      if (!active()) return;
+      const result = openResult({ id: pending.id, priv, pub: pending.pub, vpsPub: got.vpsPub, sealed: got.sealed });
+      const [keyP, tokenP] = await Promise.all([protect(result.tunnel.key), protect(result.tunnel.token)]);
+      if (!active()) return;
+      link = {
         id: pending.id, base, name: result.name, mode: result.mode, origin: result.mode === "direct" ? result.origin : null, port: null,
-        spki: result.spki ?? null, environmentId: result.environmentId ?? null, envId: null, at: now(),
-        keyP: await protect(result.tunnel.key), tokenP: await protect(result.tunnel.token),
+        spki: result.spki ?? null, environmentId: result.environmentId ?? null, envId: null, at: now(), keyP, tokenP,
       };
       if (link.mode === "direct") deps.pin?.(new URL(link.origin).host, link.spki);
-      state.links = [...state.links.filter((entry) => entry.id !== link.id), link];
       const proxy = await proxyFor(link);
+      if (!active()) return;
       let paired;
-      try { paired = await signInTo(link.origin, result.pairing.code); }
-      catch { paired = await signInTo(link.origin, (await proxy.control("pair", { label: deps.label() })).code); }
+      try { paired = await signInTo(link.origin, result.pairing.code, signal); }
+      catch {
+        if (!active()) return;
+        const minted = await proxy.control("pair", { label: deps.label() });
+        if (!active()) return;
+        paired = await signInTo(link.origin, minted.code, signal);
+      }
+      if (!active()) return;
       const environmentId = paired?.environment?.environmentId;
       if (link.environmentId && environmentId && environmentId !== link.environmentId) throw new Error("A different server answered at that address, so this app did not link to it.");
       link.envId = deps.saveServer({ origin: link.origin, name: link.name });
+      state.links = [...state.links.filter((entry) => entry.id !== link.id), link];
       state.pending = null;
       state.current = link.id;
       lastError = null;
       write();
     } catch (error) {
+      if (!active()) return;
       log(`vps link: linking failed (${error?.message ?? error})`);
       state.pending = null;
       lastError = plain(error, "Your server finished installing, but this app could not link to it. Make a new command and run it again.");
       write();
+    } finally {
+      if (link && !state.links.some((saved) => saved.id === link.id)) {
+        const proxy = proxies.get(link.id);
+        proxies.delete(link.id);
+        await proxy?.close();
+      }
     }
   }
 
   /** this app's sign-in at the server, made again through the agent when it lapsed */
   async function signedIn(link) {
-    const proxy = await proxyFor(link);
-    const response = await serverFetch(`${link.origin}/api/auth/session`, { credentials: "include", cache: "no-store", headers: { accept: "application/json" }, signal: AbortSignal.timeout(30_000) }).catch(() => null);
-    const body = response?.ok ? await response.json().catch(() => null) : null;
-    if (body?.kind === "session") return proxy;
-    const minted = await proxy.control("pair", { label: deps.label() });
-    await signInTo(link.origin, minted.code);
-    return proxy;
+    if (sessionChecks.has(link.id)) return sessionChecks.get(link.id);
+    const checking = (async () => {
+      const proxy = await proxyFor(link);
+      const response = await serverFetch(`${link.origin}/api/auth/session`, { credentials: "include", cache: "no-store", headers: { accept: "application/json" }, signal: AbortSignal.timeout(30_000) }).catch(() => null);
+      const body = response?.ok ? await response.json().catch(() => null) : null;
+      if (body?.kind === "session") return proxy;
+      const minted = await proxy.control("pair", { label: deps.label() });
+      await signInTo(link.origin, minted.code);
+      return proxy;
+    })();
+    sessionChecks.set(link.id, checking);
+    try { return await checking; }
+    finally { if (sessionChecks.get(link.id) === checking) sessionChecks.delete(link.id); }
   }
 
   async function serverCall(link, method, route, body) {
@@ -291,6 +419,10 @@ export function createVpsLink(deps) {
   async function engines() {
     const link = needLink();
     await signedIn(link);
+    return readEngines(link);
+  }
+
+  async function readEngines(link) {
     const { instances = [] } = await serverCall(link, "GET", "/api/instances?fresh=1");
     // the server names the engine in driverKind (claudeAgent, codex); older servers used driver
     const kindOf = (instance) => {
@@ -310,7 +442,7 @@ export function createVpsLink(deps) {
   async function signIn(instanceId) {
     const link = needLink();
     const proxy = await signedIn(link);
-    const all = await engines();
+    const all = await readEngines(link);
     const engine = all.find((entry) => entry.instanceId === instanceId);
     if (!engine) throw new Error("That AI is not on your server.");
     if (engine.kind === "codex") {
@@ -418,7 +550,21 @@ export function createVpsLink(deps) {
       : await localRequest(`/api/workspace-backup/download/${encodeURIComponent(made.id)}`, { signal: AbortSignal.timeout(30 * 60_000) });
     if (!response.ok || !response.body) throw new Error("The backup could not be saved.");
     const at = now();
-    const saved = await deps.backups.save(`${at}-${made.id}.ombbackup`, response.body);
+    const moving = reason === "before-move" && state.move?.step === "backup" ? state.move : null;
+    let received = 0, reportedAt = 0;
+    const report = (force = false) => {
+      if (!moving || state.move !== moving) return;
+      moving.bytes = { done: received, ...(Number.isFinite(made.bytes) && made.bytes >= 0 ? { total: made.bytes } : {}) };
+      if (received > 0) moving.progressAt = now();
+      moving.updatedAt = now();
+      if (force || now() - reportedAt >= 200) { reportedAt = now(); onChange(view()); }
+    };
+    report(true);
+    const body = moving ? response.body.pipeThrough(new TransformStream({
+      transform(chunk, controller) { received += chunk.byteLength; report(); controller.enqueue(chunk); },
+    })) : response.body;
+    const saved = await deps.backups.save(`${at}-${made.id}.ombbackup`, body);
+    report(true);
     if (typeof made.bytes === "number" && saved.bytes !== made.bytes) throw new Error("The backup was cut off while saving. Nothing was changed.");
     const entry = {
       id: made.id, at, bytes: saved.bytes, file: saved.file, reason, passwordP: await protect(password), ...(from ? { from: from.name } : {}),
@@ -458,7 +604,11 @@ export function createVpsLink(deps) {
 
   /** a running step keeps an error and its next try only when they are said again with it */
   function moveTo(step, status, extra = {}) {
+    const progressed = step !== state.move?.step || (extra.chats && JSON.stringify(extra.chats) !== JSON.stringify(state.move?.chats));
     state.move = { ...state.move, step, status, ...extra };
+    state.move.updatedAt = now();
+    if (progressed) state.move.progressAt = now();
+    if (step !== "backup") delete state.move.bytes;
     if (!("error" in extra) && status !== "failed") delete state.move.error;
     if (!("retryAt" in extra)) delete state.move.retryAt;
     write();
@@ -552,6 +702,7 @@ export function createVpsLink(deps) {
     const link = currentLink();
     if (!link) return view();
     try { await relay.forget(link.id, await unprotect(link.tokenP)); } catch (error) { log(`vps link: the link service did not forget the tunnel (${error?.message ?? error})`); }
+    await proxyStarts.get(link.id)?.catch(() => {});
     await proxies.get(link.id)?.close();
     proxies.delete(link.id);
     if (link.envId) deps.forgetServer(link.envId);
@@ -572,10 +723,10 @@ export function createVpsLink(deps) {
 
   /** at launch: every linked server's tunnel opens again, a setup in progress is followed, a move in progress watched */
   async function resume() {
-    for (const link of state.links) {
+    await Promise.all(state.links.map(async (link) => {
       if (link.mode === "direct" && link.spki && link.origin) deps.pin?.(new URL(link.origin).host, link.spki);
       await proxyFor(link).catch((error) => log(`vps link: ${link.name} tunnel did not open (${error?.message ?? error})`));
-    }
+    }));
     if (state.pending) follow();
     if (state.move && state.move.status === "running" && state.move.step !== "backup") watchMove();
     if (state.move && state.move.status === "running" && state.move.step === "backup") moveTo("backup", "failed", { error: "The app closed while saving the backup. Nothing on this Mac changed." });
@@ -587,6 +738,13 @@ export function createVpsLink(deps) {
     engines, signIn, signInStatus, signInCode, signInCancel,
     preview, move, retryMove, moveBack, backups, backupNow: async () => ({ id: (await backupNow("manual")).id }), restore, forget, where,
     open: async () => { const link = needLink(); await deps.switchTo(link.envId); },
-    async close() { closed = true; stopFollowing(); clearTimeout(moveTimer); for (const flow of signIns.values()) flow.abort?.abort(); await Promise.all([...proxies.values()].map((proxy) => proxy.close())); },
+    readyServer: async (envId) => {
+      const link = state.links.find(entry => entry.envId === envId);
+      if (!link || closed) return null;
+      if (link.mode === "direct" && link.spki && link.origin) deps.pin?.(new URL(link.origin).host, link.spki);
+      await proxyFor(link);
+      return !closed && state.links.includes(link) ? { id: envId, origin: link.origin } : null;
+    },
+    async close() { closed = true; invalidateSetup(); stopFollowing(); clearTimeout(moveTimer); for (const flow of signIns.values()) flow.abort?.abort(); await Promise.allSettled(proxyStarts.values()); await Promise.all([...proxies.values()].map((proxy) => proxy.close())); },
   };
 }

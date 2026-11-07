@@ -22,7 +22,6 @@ LINK_BASE=${LINK_BASE%/}
 if [ "$BAKED_TOKEN" = "$PLACEHOLDER_TOKEN" ]; then TOKEN="${1:-}"; else TOKEN="$BAKED_TOKEN"; fi
 
 OMB_PACKAGE="${OMB_PACKAGE:-}"
-ENGINES="@anthropic-ai/claude-code @openai/codex"
 # the bot computer: the link service names the image (BOT_DESKTOP_IMAGE in shared/bot-desktop.ts) and hands out
 # deploy/bot-desktop/ as a kit; the image is pulled when a registry copy exists, else built here. the env wins.
 BOT_DESKTOP_IMAGE="${BOT_DESKTOP_IMAGE:-}"
@@ -245,6 +244,7 @@ watch_step() {
   _i=${TICKS:-0} _tail=""
   _tw=$((COLS - TW - 16 - ${#SUBTXT} - 2))
   while [ ! -f "$TMP/rc" ]; do
+    [ ! -f "$TMP/cancelled" ] || on_stop
     _el=$(fmt_ms $(($(now_ms) - PH_T0)))
     X=""
     if [ -f "$PROGRESS" ] && read -r _kind _a _b _c 2>/dev/null <"$PROGRESS"; then
@@ -296,6 +296,7 @@ retry() {
   while :; do
     if "$@"; then return 0; fi
     [ "$n" -ge 3 ] && return 1
+    printf 'attempt %s/3 failed; retrying in %s seconds\n' "$n" "$((n * 5))"
     sleep $((n * 5))
     n=$((n + 1))
   done
@@ -317,10 +318,9 @@ apt_get_install() { # args...
   return "$_rc"
 }
 
-APT_UPDATED=0
 apt_update() {
-  [ "$APT_UPDATED" = 1 ] && return 0
-  retry apt-get -q -o DPkg::Lock::Timeout=300 update && APT_UPDATED=1
+  [ -f "$TMP/apt-updated" ] && return 0
+  retry apt-get -q -o DPkg::Lock::Timeout=300 update && : > "$TMP/apt-updated"
 }
 apt_install() {
   missing=""
@@ -336,7 +336,7 @@ as_user() { runuser -u "$SVC_USER" -- env HOME="$SVC_HOME" PATH="$SVC_HOME/.loca
 
 state_get() { [ -f "$STATE/$1" ] && cat "$STATE/$1" || true; }
 state_set() { printf '%s\n' "$2" > "$STATE/$1.tmp" && mv "$STATE/$1.tmp" "$STATE/$1"; }
-progress() { printf '%s\n' "$*" > "$PROGRESS.tmp" && mv "$PROGRESS.tmp" "$PROGRESS"; }
+progress() { rm -f "$PROGRESS.json"; printf '%s\n' "$*" > "$PROGRESS.tmp" && mv "$PROGRESS.tmp" "$PROGRESS"; }
 
 # no bearer token, link secret or api key ever leaves this script: not into a log, not to the app
 redact() {
@@ -361,25 +361,71 @@ app_step() { case "$1" in sandbox|fence) echo desktop ;; *) echo "$1" ;; esac; }
 
 # the step's new log lines (and the command they belong to) to the app every ~0.5 s while it runs: at most 40 lines
 # a batch, older ones skipped, one batch in flight at a time. "final" waits for it, so nothing lands after "done".
-SENT=0 CMD=""
+SENT=0 CMD="" STEP_T0=0 LAST_ACTIVITY=0 LAST_SIGNATURE="" LAST_POST=0
+progress_snapshot() {
+  _progress="" _progress_sig=""
+  if [ -f "$PROGRESS.json" ]; then
+    _progress=$(cat "$PROGRESS.json")
+    _progress_sig=$_progress
+  elif [ -f "$PROGRESS" ] && read -r _kind _a _b _c < "$PROGRESS"; then
+    case "$_kind" in
+      file)
+        _a=$( { wc -c < "$_a"; } 2>/dev/null | tr -cd 0-9)
+        _a=${_a:-0}
+        case "$_a:$_b" in *[!0-9:]*|:*|*:) ;; *)
+          _progress="{\"kind\":\"download\",\"receivedBytes\":$_a${_b:+,\"totalBytes\":$_b}}" ;;
+        esac ;;
+      bytes)
+        case "$_a:$_b" in *[!0-9:]*|:*|*:) ;; *) _progress="{\"kind\":\"download\",\"receivedBytes\":$_a,\"totalBytes\":$_b}" ;; esac ;;
+      count)
+        case "$_a:$_b" in *[!0-9:]*|:*|*:) ;; *)
+          case "$_c" in layers) _kind=layers ;; steps) _kind=build ;; *) _kind="" ;; esac
+          [ -z "$_kind" ] || _progress="{\"kind\":\"$_kind\",\"completed\":$_a,\"total\":$_b}" ;;
+        esac ;;
+    esac
+    _progress_sig=$_progress
+  fi
+  _size=$( { wc -c < "$LOG"; } 2>/dev/null | tr -cd 0-9)
+  _signature="${_size:-0}|$_progress_sig"
+  _now=$(now_ms)
+  _heartbeat=true
+  if [ "$_signature" != "$LAST_SIGNATURE" ]; then LAST_ACTIVITY=$_now; LAST_SIGNATURE=$_signature; _heartbeat=false; fi
+  _elapsed=$((_now - STEP_T0)) _quiet=$((_now - LAST_ACTIVITY))
+  [ "$_elapsed" -ge 0 ] || _elapsed=0
+  [ "$_quiet" -ge 0 ] || _quiet=0
+  [ "$_quiet" -le "$_elapsed" ] || _quiet=$_elapsed
+}
+
+post_event() {
+  _answer=$(curl -sS --connect-timeout 2 -m 5 -w '\n%{http_code}' -X POST -H "authorization: Bearer $VPS_TOKEN" -H "content-type: application/json" \
+    --data "$1" "$LINK_BASE/v1/sessions/$LINK_ID/events" 2>/dev/null) || return 1
+  case "$_answer" in
+    *'"code":"cancelled"'*) : > "$TMP/cancelled" ;;
+  esac
+  [ "${_answer##*
+}" = 200 ]
+}
+
 stream_lines() { # [final]
   [ "$OFFLINE" = 1 ] || [ -n "$DEMO" ] && return 0
+  progress_snapshot
   if [ "${1:-}" = final ]; then _w=0; while [ -f "$TMP/posting" ] && [ "$_w" -lt 50 ]; do sleep 0.1; _w=$((_w + 1)); done
   elif [ -f "$TMP/posting" ]; then return 0; fi
   _n=$(wc -l 2>/dev/null <"$LOG" | tr -cd 0-9); _n=${_n:-0}
-  [ "$_n" -gt "$SENT" ] || return 0
+  if [ "$_n" -le "$SENT" ] && [ "$_heartbeat" = true ] && [ $((_now - LAST_POST)) -lt 2000 ]; then return 0; fi
   _from=$((SENT + 1)) _skip=""
   if [ $((_n - SENT)) -gt 40 ]; then _from=$((_n - 39)); _skip="[$((_n - SENT - 40)) more lines]"; fi
-  _batch=$(sed -n "${_from},${_n}p" "$LOG")
+  _batch=""
+  [ "$_n" -le "$SENT" ] || _batch=$(sed -n "${_from},${_n}p" "$LOG")
   _c=$(printf '%s\n' "$_batch" | sed -n 's/^\$ //p' | tail -n 1 | cut -c1-200)
   [ -n "$_c" ] && CMD=$_c
-  _lines=$( { [ -n "$_skip" ] && printf '%s\n' "$_skip"; printf '%s\n' "$_batch"; } | json_lines)
+  _lines=$( { [ -n "$_skip" ] && printf '%s\n' "$_skip"; [ -z "$_batch" ] || printf '%s\n' "$_batch"; } | json_lines)
   SENT=$_n
+  LAST_POST=$_now
   _cmd=$(printf '%s\n' "$CMD" | json_lines)
-  _body="{\"step\":\"$(app_step "$STEP_ID")\",\"status\":\"running\",${CMD:+\"cmd\":$_cmd,}\"lines\":[$_lines]}"
+  _body="{\"step\":\"$(app_step "$STEP_ID")\",\"status\":\"running\",${CMD:+\"cmd\":$_cmd,}\"lines\":[$_lines],\"activity\":{\"elapsedMs\":$_elapsed,\"quietMs\":$_quiet},\"heartbeat\":$_heartbeat${_progress:+,\"progress\":$_progress}}"
   : > "$TMP/posting"
-  ( curl -fsS -m 15 -X POST -H "authorization: Bearer $VPS_TOKEN" -H "content-type: application/json" \
-      --data "$_body" "$LINK_BASE/v1/sessions/$LINK_ID/events" >/dev/null 2>&1; rm -f "$TMP/posting" ) &
+  ( post_event "$_body" || true; rm -f "$TMP/posting" ) &
   if [ "${1:-}" = final ]; then wait $!; fi
   return 0
 }
@@ -395,8 +441,7 @@ report() { # step status [logfile]
   else
     body="{\"step\":\"$1\",\"status\":\"$2\"}"
   fi
-  curl -fsS -m 15 --retry 2 -X POST -H "authorization: Bearer $VPS_TOKEN" -H "content-type: application/json" \
-    --data "$body" "$LINK_BASE/v1/sessions/$LINK_ID/events" >/dev/null 2>&1 || true
+  post_event "$body" || true
 }
 
 # plain words for a failed step, printed once in the terminal
@@ -478,12 +523,14 @@ phase_end() {
 
 STEP_PID="" SOFT_FAILED=""
 step() { # id function
+  [ ! -f "$TMP/cancelled" ] || on_stop
   LOG="$LOGS/$1.log"
   title=$(step_title "$1")
   SUBTXT=$title SUB="${DIM}${title}${R}  "
   : > "$LOG"
-  rm -f "$PROGRESS"
-  STEP_ID=$1 SENT=0 CMD=""
+  rm -f "$PROGRESS" "$PROGRESS.json"
+  STEP_ID=$1 SENT=0 CMD="" STEP_T0=$(now_ms) LAST_SIGNATURE="" LAST_POST=0
+  LAST_ACTIVITY=$STEP_T0
   report "$1" running &
   rpid=$!
   set +e
@@ -493,15 +540,17 @@ step() { # id function
   ( ( set -e; "$run" "$1" ) </dev/null >>"$LOG" 2>&1; echo $? > "$TMP/rc" ) &
   STEP_PID=$!
   if [ "$UI" = tty ]; then watch_step; else
-    while [ ! -f "$TMP/rc" ]; do sleep 0.5; stream_lines; done
+    while [ ! -f "$TMP/rc" ]; do [ ! -f "$TMP/cancelled" ] || on_stop; sleep 0.5; stream_lines; done
   fi
   wait "$STEP_PID"
+  [ ! -f "$TMP/cancelled" ] || on_stop
   code=$(cat "$TMP/rc" 2>/dev/null)
   # the bot computer is optional: any failure in its parts is a soft one
   case "$1" in sandbox|fence|desktop) case "$code" in 0|10) ;; *) code=11 ;; esac ;; esac
   STEP_PID=""
   wait "$rpid" 2>/dev/null
   stream_lines final
+  [ ! -f "$TMP/cancelled" ] || on_stop
   set -e
   took=$(fmt_ms $(($(now_ms) - PH_T0)))
   why=$(tail -n 1 "$LOG" 2>/dev/null | tr -cd '\40-\176' | cut -c1-$((COLS - TW - 16)))
@@ -575,8 +624,6 @@ do_docker() {
     echo "docker is installed but not running here; bots still work, the bot desktop will not"
     return 10
   fi
-  # the bot computer's Dockerfile needs BuildKit (TARGETARCH); Ubuntu ships it as docker-buildx
-  docker buildx version >/dev/null 2>&1 || apt_install docker-buildx || echo "no buildx; the bot computer can't be built here"
   docker --version
 }
 
@@ -603,7 +650,7 @@ do_node() {
   x gpg --dearmor --yes -o /etc/apt/keyrings/nodesource.gpg "$TMP/nodesource.key"
   chmod 0644 /etc/apt/keyrings/nodesource.gpg
   echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_24.x nodistro main" > /etc/apt/sources.list.d/nodesource.list
-  APT_UPDATED=0
+  rm -f "$TMP/apt-updated"
   apt_update
   apt_get_install nodejs
   major=$(node_major)
@@ -614,11 +661,52 @@ node_version_line() { echo "node $(/usr/bin/node -v), npm $(/usr/bin/npm -v 2>/d
 
 # our own server build, which the link service hands only to this claimed session; the sha256 comes with the claim
 PKG_SHA="" PKG_SIZE=0 PKG_VERSION=""
+verified_download() { # url file sha256 size timeout label
+  _url=$1 _file=$2 _sha=$3 _total=$4 _limit=$5 _label=$6
+  _part="$_file.part"
+  if [ -f "$_file" ] && [ "$(sha256sum "$_file" | cut -d' ' -f1)" = "$_sha" ]; then
+    echo "using verified cached $_label"
+    return 0
+  fi
+  rm -f "$_file"
+  _attempt=1
+  while [ "$_attempt" -le 3 ]; do
+    [ ! -f "$TMP/cancelled" ] || return 130
+    if [ -f "$_part" ]; then
+      if [ "$(sha256sum "$_part" | cut -d' ' -f1)" = "$_sha" ]; then mv "$_part" "$_file"; return 0; fi
+      _size=$(wc -c < "$_part" | tr -cd 0-9)
+      if [ "$_total" -gt 0 ] && [ "$_size" -ge "$_total" ]; then echo "discarding incomplete or damaged cached $_label"; rm -f "$_part"; fi
+    fi
+    progress file "$_part" "$_total"
+    _offset=0; [ ! -f "$_part" ] || _offset=$(wc -c < "$_part" | tr -cd 0-9)
+    echo "downloading $_label: attempt $_attempt/3, resuming at $_offset bytes"
+    show curl -fsSL --connect-timeout 15 --speed-limit 1 --speed-time 60 -m "$_limit" -C - "$_url" -o "$_part"
+    if curl -fsSL --connect-timeout 15 --speed-limit 1 --speed-time 60 -m "$_limit" -C - -H "authorization: Bearer $VPS_TOKEN" "$_url" -o "$_part"; then
+      if [ "$(sha256sum "$_part" | cut -d' ' -f1)" = "$_sha" ]; then
+        mv "$_part" "$_file"
+        rm -f "$PROGRESS" "$PROGRESS.json"
+        echo "sha256 verified: $_label"
+        return 0
+      fi
+      echo "$_label checksum did not match; the next attempt starts fresh"
+      rm -f "$_part"
+    else
+      _code=$?
+      echo "$_label download attempt $_attempt/3 failed (curl $_code); received bytes remain cached"
+      case "$_code" in 33|36) rm -f "$_part" ;; esac
+    fi
+    [ "$_attempt" -lt 3 ] || break
+    echo "retrying $_label in $((_attempt * 5)) seconds"
+    sleep $((_attempt * 5))
+    _attempt=$((_attempt + 1))
+  done
+  rm -f "$PROGRESS" "$PROGRESS.json"
+  echo "$_label could not be downloaded and verified after 3 attempts; paste the command again to resume"
+  return 1
+}
+
 get_package() { # file
-  progress file "$1" "$PKG_SIZE"
-  retry curl -fsSL --connect-timeout 15 -m 1800 -H "authorization: Bearer $VPS_TOKEN" \
-    "$LINK_BASE/pkg/$LINK_ID/$PKG_SHA.tgz" -o "$1"
-  rm -f "$PROGRESS"
+  verified_download "$LINK_BASE/pkg/$LINK_ID/$PKG_SHA.tgz" "$1" "$PKG_SHA" "$PKG_SIZE" 1800 OpenMausBot
 }
 do_app() {
   bin="$SVC_HOME/.local/bin/openmausbot"
@@ -639,25 +727,21 @@ do_app() {
   cache="$SVC_HOME/.cache/openmausbot-link"
   install -d -o "$SVC_USER" -g "$SVC_USER" -m 0700 "$cache"
   file="$cache/openmausbot-$PKG_SHA.tgz"
-  if [ ! -f "$file" ] || [ "$(sha256sum "$file" | cut -d' ' -f1)" != "$PKG_SHA" ]; then
-    rm -f "$file"
-    echo "downloading OpenMausBot $PKG_VERSION ($(fmt_mb "$PKG_SIZE") MB)"
-    get_package "$file"
-    got=$(sha256sum "$file" | cut -d' ' -f1)
-    if [ "$got" != "$PKG_SHA" ]; then rm -f "$file"; echo "the download is damaged (sha256 $got, expected $PKG_SHA)"; return 1; fi
-    echo "sha256 ok: $got"
-  fi
+  get_package "$file"
   chown "$SVC_USER:$SVC_USER" "$file"
-  find "$cache" -name 'openmausbot-*.tgz' ! -name "openmausbot-$PKG_SHA.tgz" -exec rm -f {} + 2>/dev/null || true
+  find "$cache" -name 'openmausbot-*.tgz*' ! -name "openmausbot-$PKG_SHA.tgz" ! -name "openmausbot-$PKG_SHA.tgz.part" -exec rm -f {} + 2>/dev/null || true
   retry as_user npm install --global --no-fund --no-audit --prefix "$SVC_HOME/.local" "$file"
   [ -x "$bin" ] || { echo "openmausbot is missing after install"; return 1; }
   state_set package "sha256:$PKG_SHA"
 }
 
 do_engines() {
-  if [ -x "$SVC_HOME/.local/bin/claude" ] && [ -x "$SVC_HOME/.local/bin/codex" ]; then echo "already installed"; return 0; fi
+  missing=""
+  [ -x "$SVC_HOME/.local/bin/claude" ] || missing="$missing @anthropic-ai/claude-code"
+  [ -x "$SVC_HOME/.local/bin/codex" ] || missing="$missing @openai/codex"
+  [ -n "$missing" ] || { echo "already installed"; return 0; }
   # shellcheck disable=SC2086
-  retry as_user npm install --global --no-fund --no-audit --prefix "$SVC_HOME/.local" $ENGINES
+  retry as_user npm install --global --no-fund --no-audit --prefix "$SVC_HOME/.local" $missing
 }
 
 # writes a file only when it changed; returns 0 when it wrote
@@ -781,7 +865,7 @@ caddy_setup() { # host
     x gpg --dearmor --yes -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg "$TMP/caddy.key"
     chmod 0644 /usr/share/keyrings/caddy-stable-archive-keyring.gpg
     fetch https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt /etc/apt/sources.list.d/caddy-stable.list
-    APT_UPDATED=0
+    rm -f "$TMP/apt-updated"
     apt_install caddy
   fi
   cat > "$TMP/new" <<EOF
@@ -863,19 +947,65 @@ do_address() {
   return 0
 }
 
-# docker pull with a layer count the spinner line turns into a bar
+install_output() {
+  node --input-type=module -e '
+import { once } from "node:events";
+import { writeFileSync, renameSync } from "node:fs";
+import { createInterface } from "node:readline";
+const [file, kind] = process.argv.slice(1);
+const seen = new Set(), finished = new Set(), transfers = new Map();
+let previous = "", legacyTotal = 0, legacyStep = 0;
+const bytes = (number, unit) => {
+  const units = { b: 0, kb: 1, mb: 2, gb: 3, tb: 4, pb: 5, eb: 6 };
+  const power = units[unit.toLowerCase().replace("i", "")];
+  return Math.min(Number.MAX_SAFE_INTEGER, Math.round(Number(number) * (unit.toLowerCase().includes("i") ? 1024 : 1000) ** power));
+};
+const emit = () => {
+  const value = { kind, completed: finished.size, total: legacyTotal || seen.size, label: kind === "layers" ? "Image layers" : "Reported build operations" };
+  if (!value.total) return;
+  if (transfers.size) {
+    value.receivedBytes = Math.min(Number.MAX_SAFE_INTEGER, [...transfers.values()].reduce((sum, entry) => sum + entry.received, 0));
+    value.totalBytes = Math.min(Number.MAX_SAFE_INTEGER, [...transfers.values()].reduce((sum, entry) => sum + entry.total, 0));
+  }
+  const encoded = JSON.stringify(value);
+  if (encoded === previous) return;
+  previous = encoded;
+  writeFileSync(file + ".json.tmp", encoded);
+  renameSync(file + ".json.tmp", file + ".json");
+  writeFileSync(file + ".tmp", `count ${value.completed} ${value.total} ${kind === "layers" ? "layers" : "steps"}\n`);
+  renameSync(file + ".tmp", file);
+};
+for await (const raw of createInterface({ input: process.stdin, crlfDelay: Infinity })) {
+  if (!process.stdout.write(raw + "\n")) await once(process.stdout, "drain");
+  const line = raw.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "");
+  if (kind === "layers") {
+    const layer = /^([a-f0-9]+):\s*(.*)$/i.exec(line);
+    if (!layer || !/^(Pulling fs layer|Waiting|Already exists|Downloading|Download complete|Extracting|Pull complete)/.test(layer[2])) continue;
+    const [, id, status] = layer;
+    seen.add(id);
+    if (/^(Pull complete|Already exists)/.test(status)) finished.add(id);
+    const amount = /^Downloading.*?([0-9]+(?:\.[0-9]+)?)([kMGTPE]?i?B)\s*\/\s*([0-9]+(?:\.[0-9]+)?)([kMGTPE]?i?B)/i.exec(status);
+    if (amount) transfers.set(id, { received: bytes(amount[1], amount[2]), total: bytes(amount[3], amount[4]) });
+    if (/^(Download complete|Pull complete)/.test(status) && transfers.has(id)) transfers.get(id).received = transfers.get(id).total;
+  } else {
+    const vertex = /^#([0-9]+)(?:\s|$)/.exec(line);
+    if (vertex) {
+      seen.add(vertex[1]);
+      if (/^#[0-9]+\s+(DONE|CACHED)(?:\s|$)/.test(line)) finished.add(vertex[1]);
+    }
+    const step = /^Step ([0-9]+)\/([0-9]+) :/.exec(line);
+    if (step) { legacyStep = Number(step[1]); legacyTotal = Number(step[2]); seen.add(String(legacyStep)); }
+    if (legacyStep && /^ ---> [a-f0-9]+$/.test(line)) finished.add(String(legacyStep));
+  }
+  emit();
+}
+' "$PROGRESS" "$1"
+}
+
 pull_with_progress() { # image
   rm -f "$TMP/pull.rc"
-  { show docker pull "$1"; docker pull "$1" 2>&1; echo $? > "$TMP/pull.rc"; } | {
-    total=0 done=0
-    while IFS= read -r line; do
-      printf '%s\n' "$line"
-      case "$line" in *": Pulling fs layer"*|*": Already exists"*) total=$((total + 1)) ;; esac
-      case "$line" in *": Pull complete"*|*": Already exists"*) done=$((done + 1)) ;; esac
-      if [ "$total" -gt 0 ]; then progress count "$done" "$total" layers; fi
-    done
-  }
-  rm -f "$PROGRESS"
+  { show docker pull "$1"; docker pull "$1" 2>&1; echo $? > "$TMP/pull.rc"; } | install_output layers
+  rm -f "$PROGRESS" "$PROGRESS.json"
   [ "$(cat "$TMP/pull.rc" 2>/dev/null)" = 0 ]
 }
 
@@ -886,13 +1016,12 @@ get_kit() {
   KIT="$KIT_DIR/$KIT_SHA"
   [ -f "$KIT/deploy/bot-desktop/build.sh" ] && return 0
   install -d -m 0755 "$KIT_DIR"
-  progress file "$TMP/kit.tgz" "$KIT_SIZE"
-  retry curl -fsSL --connect-timeout 15 -m 900 -H "authorization: Bearer $VPS_TOKEN" "$LINK_BASE/pkg/$LINK_ID/$KIT_SHA.tgz" -o "$TMP/kit.tgz"
-  rm -f "$PROGRESS"
-  [ "$(sha256sum "$TMP/kit.tgz" | cut -d' ' -f1)" = "$KIT_SHA" ] || { echo "the bot computer kit is damaged"; return 1; }
+  install -d -m 0700 "$KIT_DIR/.downloads"
+  archive="$KIT_DIR/.downloads/$KIT_SHA.tgz"
+  verified_download "$LINK_BASE/pkg/$LINK_ID/$KIT_SHA.tgz" "$archive" "$KIT_SHA" "$KIT_SIZE" 900 "bot computer kit" || return $?
   rm -rf "$KIT.tmp" && mkdir -p "$KIT.tmp"
-  x tar -xzf "$TMP/kit.tgz" --no-same-owner -C "$KIT.tmp"
-  find "$KIT_DIR" -mindepth 1 -maxdepth 1 ! -name "$KIT_SHA" ! -name "$KIT_SHA.tmp" -exec rm -rf {} + 2>/dev/null || true
+  x tar -xzf "$archive" --no-same-owner -C "$KIT.tmp" || return 1
+  find "$KIT_DIR" -mindepth 1 -maxdepth 1 ! -name "$KIT_SHA" ! -name "$KIT_SHA.tmp" ! -name .downloads -exec rm -rf {} + 2>/dev/null || true
   mv "$KIT.tmp" "$KIT"
   echo "kit $KIT_SHA unpacked in $KIT"
 }
@@ -940,7 +1069,7 @@ gvisor_install() {
   chmod 0644 /usr/share/keyrings/gvisor-archive-keyring.gpg
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/gvisor-archive-keyring.gpg] https://storage.googleapis.com/gvisor/releases release main" \
     > /etc/apt/sources.list.d/gvisor.list
-  APT_UPDATED=0
+  rm -f "$TMP/apt-updated"
   apt_install runsc
 }
 
@@ -979,21 +1108,10 @@ do_fence() {
   return 11
 }
 
-# docker build with its step count turned into a bar (BuildKit "[stage 4/15]" or the old "Step 4/15")
 build_with_progress() { # image dir
   rm -f "$TMP/build.rc"
-  { show IMAGE="$1" sh "$2/build.sh"; IMAGE="$1" BUILDKIT_PROGRESS=plain sh "$2/build.sh" 2>&1; echo $? > "$TMP/build.rc"; } | {
-    total=0 done=0
-    while IFS= read -r line; do
-      printf '%s\n' "$line"
-      kn=$(printf '%s\n' "$line" | sed -n -e 's/.*\[[^]]* \([0-9][0-9]*\)\/\([0-9][0-9]*\)\].*/\1 \2/p' -e 's/^Step \([0-9][0-9]*\)\/\([0-9][0-9]*\) :.*/\1 \2/p' | head -n 1)
-      [ -n "$kn" ] || continue
-      k=${kn% *} t=${kn#* }
-      if [ "$t" -gt "$total" ]; then total=$t done=$k; elif [ "$t" -eq "$total" ] && [ "$k" -gt "$done" ]; then done=$k; fi
-      progress count "$done" "$total" steps
-    done
-  }
-  rm -f "$PROGRESS"
+  { show IMAGE="$1" sh "$2/build.sh"; IMAGE="$1" BUILDKIT_PROGRESS=plain sh "$2/build.sh" 2>&1; echo $? > "$TMP/build.rc"; } | install_output build
+  rm -f "$PROGRESS" "$PROGRESS.json"
   [ "$(cat "$TMP/build.rc" 2>/dev/null)" = 0 ]
 }
 
@@ -1005,6 +1123,8 @@ do_desktop() {
   if pull_with_progress "$BOT_DESKTOP_IMAGE"; then state_set desktop pulled; echo "pulled $BOT_DESKTOP_IMAGE"; return 0; fi
   echo "no registry copy of $BOT_DESKTOP_IMAGE; building it here"
   get_kit || { echo "no kit, the app builds it on first use"; return 11; }
+  # the bot computer's Dockerfile needs BuildKit (TARGETARCH); Ubuntu ships it as docker-buildx
+  docker buildx version >/dev/null 2>&1 || apt_install docker-buildx || echo "no buildx; the bot computer can't be built here"
   if build_with_progress "$BOT_DESKTOP_IMAGE" "$KIT/deploy/bot-desktop" && docker image inspect "$BOT_DESKTOP_IMAGE" >/dev/null 2>&1; then
     state_set desktop built
     return 0
@@ -1194,10 +1314,22 @@ on_exit() {
 }
 on_stop() {
   trap '' INT TERM
-  [ -n "$STEP_PID" ] && kill "$STEP_PID" 2>/dev/null
-  # what the step started (apt, npm) ignores ^C in the background; end our whole group
-  [ -z "$DEMO" ] && kill -TERM 0 2>/dev/null
-  printf '\n\n  Stopped. Paste the line again; it picks up where it stopped.\n\n'
+  _children=$(ps -eo pid=,ppid= | awk -v root="$$" '{ parent[$1]=$2 } END { for (pid in parent) { nextpid=pid; for (n=0;n<100 && nextpid in parent;n++) { if (parent[nextpid]==root) { print pid; break; } nextpid=parent[nextpid]; } } }')
+  [ -z "$_children" ] || kill -TERM $_children 2>/dev/null || true
+  _pending=$_children _round=0
+  while [ -n "$_pending" ] && [ "$_round" -lt 10 ]; do
+    _alive=""
+    for _pid in $_pending; do kill -0 "$_pid" 2>/dev/null && _alive="$_alive $_pid"; done
+    _pending=$_alive
+    [ -z "$_pending" ] || sleep 0.1
+    _round=$((_round + 1))
+  done
+  [ -z "$_pending" ] || kill -KILL $_pending 2>/dev/null || true
+  if [ -f "$TMP/cancelled" ]; then
+    printf '\n\n  Setup was cancelled in the app. Installed files were kept. Make a new command in the app to resume.\n\n'
+  else
+    printf '\n\n  Stopped. Paste the line again; it picks up where it stopped.\n\n'
+  fi
   exit 130
 }
 

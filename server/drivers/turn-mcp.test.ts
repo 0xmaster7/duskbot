@@ -57,6 +57,31 @@ describe("OpenMausBot's own MCP servers for an engine that reaches servers by UR
   });
 });
 
+describe("a bot's own VPS computer bridge", () => {
+  const computer = {
+    command: process.execPath,
+    args: [SPAWNED_PROXIES.vpsContainerMcp, "fixture-vps", "omb-bot-fixture"],
+    env: { ELECTRON_RUN_AS_NODE: "1", OMB_CONTROL_URL: HARNESS, OMB_CONTROL_TOKEN: "turn-control-capability" },
+  };
+  const input = (toolScope?: SendTurnInput["toolScope"]): SendTurnInput => turn({
+    integrations: { localComputer: computer }, ...(toolScope ? { toolScope } : {}),
+  });
+
+  it("keeps the selected container and scoped control capability on the stdio bridge for HTTP-capable engines", () => {
+    const servers = acpMcpServers(input(), { http: true });
+    expect(servers).toEqual([{ name: "computer", command: computer.command, args: computer.args,
+      env: Object.entries(computer.env).map(([name, value]) => ({ name, value })) }]);
+  });
+
+  it("puts selected VPS tools behind the same gate and omits the bridge when excluded", () => {
+    const [server] = acpMcpServers(input({ allow: ["mcp:computer:screenshot"] }), { http: true });
+    expect(server).toMatchObject({ name: "computer", args: [SPAWNED_PROXIES.mcpGate] });
+    const env = Object.fromEntries((server && "env" in server ? server.env : []).map(({ name, value }) => [name, value]));
+    expect(JSON.parse(env.OMB_GATE_UPSTREAM!)).toEqual(computer);
+    expect(acpMcpServers(input({ allow: ["mcp:browser:*"] }), { http: true })).toEqual([]);
+  });
+});
+
 describe("the MCP servers a Kimi Code turn gets", () => {
   const env = (server: ReturnType<typeof acpMcpServers>[number]) =>
     Object.fromEntries(("env" in server ? server.env : []).map(({ name, value }) => [name, value]));

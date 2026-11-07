@@ -120,8 +120,8 @@ function parseSchedule(schedule: RoutineScheduleInput, after: number): RoutineSc
     return { type: "limit_reset", engine, repeat: schedule.repeat ?? "once", at };
   }
   if (schedule?.type === "once") {
-    const at = Number(schedule.at);
-    if (!Number.isFinite(at)) throw new Error("Choose a valid date and time");
+    const at = schedule.at;
+    if (!Number.isSafeInteger(at) || at < 0 || at > MAX_DATE_MS) throw new Error("Choose a valid date and time");
     return { type: "once", at };
   }
   if (schedule?.type === "daily") {

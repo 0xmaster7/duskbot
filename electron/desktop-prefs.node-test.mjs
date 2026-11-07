@@ -12,21 +12,20 @@ const require = createRequire(import.meta.url);
 const environments = require("./environments.cjs");
 const localOrigin = require("./local-origin.cjs");
 
-const POPUP = "whats-new-2026-11", BOAT = "boat-credit-2026-11", GROK = "grok-move-2026-11";
+const POPUP = "whats-new-2026-11", GROK = "grok-move-2026-11";
 const NOON = new Date(2026, 9, 16, 12).getTime();
 const LOCAL = "http://127.0.0.1:18799", CLOUD = "https://omb-u-1.fly.dev", VPS = "https://bots.example.test";
 
-test("a page on an older release keeps working with the longer list: its own ids record as before, and it never reads the new one", () => {
-  let saved = { seen: [POPUP, GROK, "gone-notice"] };
+test("discarded campaign ids never reappear in desktop notice state", () => {
+  let saved = { seen: [POPUP, GROK, "boat-credit-2026-11"] };
   const prefs = createDesktopPrefs({ read: () => saved, write: value => { saved = structuredClone(value); } });
   assert.deepEqual(prefs.seen(), [POPUP, GROK]);
-  prefs.markSeen(BOAT);
-  assert.deepEqual(saved.seen, [POPUP, GROK, BOAT], "the new id is kept beside the ones an older page records");
-  assert.ok(prefs.seen().includes(BOAT) && prefs.seen().includes(POPUP), "the lookups an older page makes");
+  prefs.markSeen("boat-credit-2026-11");
+  assert.deepEqual(prefs.seen(), [POPUP, GROK]);
 });
 
-test("What's new, Boat's credit offer and the Grok Bot move are the notices a page can record; seen and analytics survive a restart; a broken record never stops the app", () => {
-  assert.deepEqual([...DESKTOP_NOTICES], [POPUP, BOAT, GROK]);
+test("What's new and the Grok Bot move are the notices a page can record; seen and analytics survive a restart; a broken record never stops the app", () => {
+  assert.deepEqual([...DESKTOP_NOTICES], [POPUP, GROK]);
   let saved = null;
   const writes = [];
   const prefs = createDesktopPrefs({ read: () => saved, write: value => { writes.push(value); saved = structuredClone(value); } });
@@ -35,11 +34,11 @@ test("What's new, Boat's credit offer and the Grok Bot move are the notices a pa
   assert.equal(writes.length, 0, "nothing a page names outside the list is written");
   prefs.markSeen(POPUP); prefs.markSeen(POPUP);
   assert.deepEqual(prefs.seen(), [POPUP]); assert.equal(writes.length, 1);
-  prefs.markSeen(BOAT);
-  assert.deepEqual(prefs.seen(), [POPUP, BOAT]); assert.equal(writes.length, 2);
+  prefs.markSeen(GROK);
+  assert.deepEqual(prefs.seen(), [POPUP, GROK]); assert.equal(writes.length, 2);
   prefs.setAnalytics(false);
   const restarted = createDesktopPrefs({ read: () => saved, write: value => { saved = value; } });
-  assert.deepEqual(restarted.seen(), [POPUP, BOAT]); assert.equal(restarted.analytics(), false);
+  assert.deepEqual(restarted.seen(), [POPUP, GROK]); assert.equal(restarted.analytics(), false);
   restarted.setAnalytics("yes"); assert.equal(restarted.analytics(), false, "only true turns it on");
   restarted.setAnalytics(true); assert.equal(restarted.analytics(), true);
 

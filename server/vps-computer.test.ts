@@ -1,3 +1,4 @@
+import { independentScreenTarget } from "./shared-desktop-screens.ts";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "node:events";
 import { execFileSync } from "node:child_process";
@@ -39,6 +40,7 @@ import {
   closeAllVpsDesktopTunnels,
   vpsComputerScreenshot,
   vpsComputerStatus,
+  vpsDesktopProbeArgs,
   vpsComputerMcp,
   vpsContainerMcpArgs,
   vpsContainerName,
@@ -100,6 +102,7 @@ function fixture({
   cgroupnsMode,
   imageLabelsMatch = true,
   environmentId = null,
+  startedAt,
 }: {
   image?: boolean;
   container?: boolean;
@@ -128,6 +131,7 @@ function fixture({
   cgroupnsMode?: string;
   imageLabelsMatch?: boolean;
   environmentId?: string | null;
+  startedAt?: unknown;
 } = {}) {
   const name = vpsContainerName(BOT_ID);
   const provisioningArgs = vpsContainerRunArgs(name);
@@ -137,7 +141,7 @@ function fixture({
     return provisioningArgs.find((arg) => arg.startsWith(`${flag}=`))?.slice(flag.length + 1) ?? "";
   };
   const calls: Array<{ args: string[]; options?: { input?: string; timeoutMs?: number } }> = [];
-  const state = { image, container, running, imageLabelsMatch, inspectedImageId, containerImageId };
+  const state = { image, container, running, imageLabelsMatch, inspectedImageId, containerImageId, startedAt };
   const runner: VpsCommandRunner = async (args, options) => {
     calls.push({ args, options });
     const command = args[2];
@@ -208,7 +212,7 @@ function fixture({
             Networks: { [networkMode === "default" ? "bridge" : networkMode]: { IPAddress: "172.17.0.5" } },
           },
           Mounts: mounts ? [{ Source: "/host", Destination: "/container" }] : [],
-          State: { Running: state.running },
+          State: { Running: state.running, StartedAt: state.startedAt },
         }]),
         stderr: "",
       };
@@ -219,15 +223,19 @@ function fixture({
       if (args.includes("tail")) {
         return { stdout: "X display :1 did not become ready within 45 seconds\n", stderr: "" };
       }
+      if (args.includes("omb-desktop-probe")) {
+        if (desktopProbeFails) throw new Error("driver unavailable");
+        return { stdout: JSON.stringify({ schema_version: "1", overall: "ok", checks: [] }), stderr: "" };
+      }
       if (args.at(-1) === "--version") {
         if (desktopProbeFails) throw new Error("driver unavailable");
         return { stdout: `cua-driver ${CUA_DRIVER_VERSION}\n`, stderr: "" };
       }
       if (args.includes("status")) return { stdout: "running\n", stderr: "" };
-      if (args.includes("health_report")) {
+      if ((args.includes("omb-desktop-probe") || args.includes("health_report"))) {
         return { stdout: JSON.stringify({ schema_version: "1", overall: "ok", checks: [] }), stderr: "" };
       }
-      if (args.includes("get_desktop_state")) return { stdout: "{}\n", stderr: "" };
+      if ((args.includes("omb-desktop-probe") || args.includes("get_desktop_state"))) return { stdout: "{}\n", stderr: "" };
       return { stdout: "{}\n", stderr: "" };
     }
     if (command === "pull") return { stdout: "pulled\n", stderr: "" };
@@ -302,6 +310,8 @@ describe("VPS computer", () => {
     const args = vpsSshTunnelArgs("production-vps", 45678, "172.17.0.5");
     expect(args).toContain("127.0.0.1:45678:172.17.0.5:6901");
     expect(args.at(-1)).toBe("production-vps");
+    expect(vpsSshTunnelArgs("production-vps", 45678, "172.17.0.5", null, 6921)).toContain("127.0.0.1:45678:172.17.0.5:6921");
+    for (const port of [6900, 6922, 6921.5]) expect(() => vpsSshTunnelArgs("production-vps", 45678, "172.17.0.5", null, port)).toThrow(/port/);
     expect(args).toContain("ExitOnForwardFailure=yes");
     expect(vpsSshTunnelArgs("production-vps", 45678, "172.17.0.5", "/data/ssh/config").slice(0, 3)).toEqual(["-F", "/data/ssh/config", "-N"]);
     expect(vpsSshTunnelArgs("production-vps", 45678, "172.17.0.5", null)[0]).toBe("-N");
@@ -330,15 +340,66 @@ describe("VPS computer", () => {
     const probes = fake.calls.filter(
       ({ args }) =>
         args[2] === "exec" &&
-        (args.at(-1) === "--version" || args.includes("status") || args.includes("health_report") || args.includes("get_desktop_state")),
+        args.includes("omb-desktop-probe"),
     );
-    expect(probes).toHaveLength(4);
+    expect(probes).toHaveLength(1);
     expect(probes.every(({ args }) => args.includes(CONTAINER_ID))).toBe(true);
     expect(probes.every(({ args }) => !args.includes(fake.name))).toBe(true);
     expect(probes.every(({ args }) => args.includes(`DISPLAY=${DISPLAY}`))).toBe(true);
     expect(probes.every(({ args }) => args.includes("CUA_DRIVER_RS_TELEMETRY_ENABLED=0"))).toBe(true);
     expect(fake.calls.some(({ args }) => args.includes("openmausbot-preview"))).toBe(false);
     expect(fake.calls.some(({ args }) => args.includes("--screenshot-out-file"))).toBe(false);
+  });
+
+  it.skipIf(process.platform === "win32")("runs every readiness check in one exec and stops at a failed check", () => {
+    const dir = mkdtempSync(join(tmpdir(), "omb-desktop-probe-"));
+    const driver = join(dir, "driver");
+    const log = join(dir, "calls");
+    const args = vpsDesktopProbeArgs(CONTAINER_ID);
+    const script = args[args.indexOf("-ec") + 1]!;
+    writeFileSync(driver, `#!/bin/sh
+printf '%s\\n' "$1 $2" >> "$PROBE_LOG"
+case "$1 $2" in
+  '--version ') [ "$PROBE_FAIL" != version ] || exit 1; echo 'cua-driver ${CUA_DRIVER_VERSION}' ;;
+  'status --socket') [ "$PROBE_FAIL" != status ] ;;
+  'call health_report') [ "$PROBE_FAIL" != health_report ] || exit 1; echo '{"schema_version":"1","overall":"ok","checks":[]}' ;;
+  'call get_desktop_state') [ "$PROBE_FAIL" != get_desktop_state ] ;;
+  *) exit 2 ;;
+esac
+`, { mode: 0o700 });
+    const run = (fail: string) => execFileSync("sh", ["-ec", script, "omb-desktop-probe", driver, `cua-driver ${CUA_DRIVER_VERSION}`, "/run/fixture.sock"], {
+      encoding: "utf8", env: { PATH: process.env.PATH, PROBE_LOG: log, PROBE_FAIL: fail }, stdio: ["ignore", "pipe", "pipe"],
+    });
+    try {
+      expect(JSON.parse(run(""))).toMatchObject({ overall: "ok" });
+      expect(readFileSync(log, "utf8").trim().split("\n")).toEqual(["--version ", "status --socket", "call health_report", "call get_desktop_state"]);
+      for (const [failure, count] of [["version", 1], ["status", 2], ["health_report", 3], ["get_desktop_state", 4]] as const) {
+        writeFileSync(log, "");
+        expect(() => run(failure)).toThrow();
+        expect(readFileSync(log, "utf8").trim().split("\n")).toHaveLength(count);
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("needs two transport round trips to validate an already-running desktop", async () => {
+    vi.useFakeTimers();
+    try {
+      const fake = fixture({ hostConfig: { PidsLimit: PIDS_LIMIT } });
+      const runner: VpsCommandRunner = async (args, options) => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return fake.runner(args, options);
+      };
+      const started = Date.now();
+      const status = vpsComputerStatus(CONFIG, BOT_ID, runner);
+      await vi.advanceTimersByTimeAsync(200);
+      expect((await status).ready).toBe(true);
+      expect(Date.now() - started).toBe(200);
+      expect(fake.calls).toHaveLength(3);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it.each([
@@ -509,6 +570,33 @@ describe("VPS computer", () => {
     expect(stop.calls.some(({ args }) => ["rm", "system", "reboot", "shutdown"].includes(args[2]!))).toBe(false);
   });
 
+  it("cancels an idle stop after inspection when activity resumes or the container changed", async () => {
+    const fake = fixture();
+    let allowed = true;
+    const runner: VpsCommandRunner = async (args, options) => {
+      const result = await fake.runner(args, options);
+      if (args[2] === "inspect") allowed = false;
+      return result;
+    };
+    await expect(vpsComputerAction("stop", CONFIG, BOT_ID, runner, {
+      expectedContainerId: CONTAINER_ID, stillAllowed: () => allowed,
+    })).rejects.toMatchObject({ code: "vps_action_cancelled" });
+    expect(fake.calls.some(({ args }) => args[2] === "stop")).toBe(false);
+    await expect(vpsComputerAction("stop", CONFIG, BOT_ID, fake.runner, {
+      expectedContainerId: "e".repeat(64), stillAllowed: () => true,
+    })).rejects.toMatchObject({ code: "vps_container_changed" });
+    expect(fake.calls.some(({ args }) => args[2] === "stop")).toBe(false);
+  });
+
+  it("announces preparation only when the computer must be created or started", async () => {
+    const ready = vi.fn();
+    await vpsComputerAction("provision", CONFIG, BOT_ID, fixture().runner, { onStarting: ready });
+    expect(ready).not.toHaveBeenCalled();
+    const starting = vi.fn();
+    await vpsComputerAction("provision", CONFIG, BOT_ID, fixture({ running: false }).runner, { onStarting: starting });
+    expect(starting).toHaveBeenCalledTimes(1);
+  });
+
   it("serializes concurrent provisioning for the same bot", async () => {
     const fake = fixture({ image: false, container: false });
     const results = await Promise.all([
@@ -523,7 +611,7 @@ describe("VPS computer", () => {
     const fake = fixture();
     expect((await vpsComputerAction("provision", CONFIG, BOT_ID, fake.runner)).ready).toBe(true);
     expect(fake.calls.filter(({ args }) => args[2] === "image")).toHaveLength(1);
-    expect(fake.calls.filter(({ args }) => args.includes("get_desktop_state"))).toHaveLength(1);
+    expect(fake.calls.filter(({ args }) => (args.includes("omb-desktop-probe") || args.includes("get_desktop_state")))).toHaveLength(1);
   });
 
   it("shares a slow provision instead of rejecting its second caller after five seconds", async () => {
@@ -545,7 +633,7 @@ describe("VPS computer", () => {
       const results = await Promise.all([first, second]);
       expect(results[0]).toEqual(results[1]);
       expect(fake.calls.filter(({ args }) => args[2] === "run")).toHaveLength(1);
-      expect(fake.calls.filter(({ args }) => args.includes("get_desktop_state"))).toHaveLength(1);
+      expect(fake.calls.filter(({ args }) => (args.includes("omb-desktop-probe") || args.includes("get_desktop_state")))).toHaveLength(1);
     } finally {
       release();
       await Promise.allSettled([first, second]);
@@ -655,7 +743,7 @@ describe("VPS computer", () => {
     const fake = fixture();
     const frame = await vpsComputerScreenshot(CONFIG, BOT_ID, fake.runner);
     expect(frame).toEqual({ png: screenshot.toString("base64"), format: "png" });
-    expect(fake.calls.some(({ args }) => args.includes("get_desktop_state"))).toBe(true);
+    expect(fake.calls.some(({ args }) => (args.includes("omb-desktop-probe") || args.includes("get_desktop_state")))).toBe(true);
     const transfer = fake.calls.find(({ args }) => args.includes("openmausbot-preview"))!.args;
     expect(transfer.slice(2)).toEqual([
       "exec", "-u", "cua", "-e", "HOME=/home/cua", CONTAINER_ID,
@@ -789,7 +877,7 @@ describe("VPS computer", () => {
       const first = vpsComputerScreenshot(CONFIG, BOT_ID, runner).finally(() => { settled = true; });
       const rejected = expect(first).rejects.toMatchObject({ status: 504 });
       await vi.advanceTimersByTimeAsync(35_000);
-      expect(calls.find(({ args }) => args.includes("openmausbot-preview"))?.timeoutMs).toBe(13_000);
+      expect(calls.find(({ args }) => args.includes("openmausbot-preview"))?.timeoutMs).toBe(21_000);
       expect(calls.find(({ args }) => args.includes("rm"))?.timeoutMs).toBe(4_000);
       expect(vpsLifecycleBusy()).toBe(true);
       expect(settled).toBe(false);
@@ -916,7 +1004,7 @@ describe("VPS computer", () => {
     const probing = new Promise<void>((resolve) => { entered = resolve; });
     let probes = 0;
     mockTransport(async (args, options) => {
-      if (args.includes("get_desktop_state") && ++probes === 1) { entered(); await gate; }
+      if ((args.includes("omb-desktop-probe") || args.includes("get_desktop_state")) && ++probes === 1) { entered(); await gate; }
       return fake.runner(args, options);
     });
     const stale = vpsComputerStatus(cfg, BOT_ID);
@@ -946,7 +1034,7 @@ describe("VPS computer", () => {
     const diagnosing = new Promise<void>((resolve) => { enteredPoll = resolve; });
     let probes = 0;
     mockTransport(async (args, options) => {
-      if (args.includes("get_desktop_state")) {
+      if ((args.includes("omb-desktop-probe") || args.includes("get_desktop_state"))) {
         if (++probes === 1) { enteredReady(); await readyGate; }
         else if (probes === 2) throw new Error("desktop is still starting");
       }
@@ -1013,7 +1101,7 @@ describe("VPS computer", () => {
   it("bounds inspection retries and never replays a failed lifecycle command", async () => {
     const unavailable = vi.fn(async () => { throw new Error("Docker-over-SSH command timed out"); });
     const status = await vpsComputerStatus(CONFIG, BOT_ID, unavailable);
-    expect(unavailable).toHaveBeenCalledTimes(2);
+    expect(unavailable).toHaveBeenCalledTimes(4);
     expect(status).toMatchObject({ ready: false, daemonUp: false });
     expect(status.problem).toContain("Check that the VPS is online");
 
@@ -1084,7 +1172,7 @@ describe("VPS computer", () => {
       const fake = fixture({ container: false });
       let driverProbes = 0;
       const runner: VpsCommandRunner = async (args, options) => {
-        if (args[2] === "exec" && args.includes("status")) {
+        if (args[2] === "exec" && (args.includes("omb-desktop-probe") || args.includes("status"))) {
           driverProbes += 1;
           if (driverProbes < 4) throw new Error("driver not up yet");
         }
@@ -1094,9 +1182,9 @@ describe("VPS computer", () => {
       await vi.advanceTimersByTimeAsync(10_000);
       const status = await pending;
       expect(status.ready).toBe(true);
-      const desktopCalls = fake.calls.filter(({ args }) => args.includes("get_desktop_state"));
+      const desktopCalls = fake.calls.filter(({ args }) => (args.includes("omb-desktop-probe") || args.includes("get_desktop_state")));
       expect(desktopCalls).toHaveLength(1);
-      const healthCalls = fake.calls.filter(({ args }) => args.includes("health_report"));
+      const healthCalls = fake.calls.filter(({ args }) => (args.includes("omb-desktop-probe") || args.includes("health_report")));
       expect(healthCalls).toHaveLength(1);
       expect(driverProbes).toBeGreaterThanOrEqual(4);
     } finally {
@@ -1110,7 +1198,7 @@ describe("VPS computer", () => {
       const fake = fixture({ container: false });
       const desktopTimeouts: number[] = [];
       const runner: VpsCommandRunner = async (args, options) => {
-        if (args.includes("get_desktop_state")) {
+        if ((args.includes("omb-desktop-probe") || args.includes("get_desktop_state"))) {
           const timeoutMs = options?.timeoutMs ?? 120_000;
           desktopTimeouts.push(timeoutMs);
           await new Promise((resolve) => setTimeout(resolve, timeoutMs + 6_000));
@@ -1257,4 +1345,73 @@ describe("remote desktop tunnel ownership", () => {
       expect(child.kill).toHaveBeenCalledTimes(1);
     } finally { closeAllVpsDesktopTunnels(); vi.useRealTimers(); }
   });
+});
+
+describe("independent screen transport", () => {
+  it("pins MCP and screenshot to the canonical bot socket", async () => {
+    const target = independentScreenTarget("screen-bot", 21);
+    const screen = { containerId: CONTAINER_ID, target };
+    const mcp = vpsComputerMcp(CONFIG, BOT_ID, CONTAINER_ID, screen);
+    expect(JSON.parse(mcp.args.at(-1)!)).toEqual(target);
+    expect(vpsContainerMcpArgs("production-vps", CONTAINER_ID, target)).toContain(target.socket);
+    expect(() => vpsContainerMcpArgs("production-vps", CONTAINER_ID, { ...target, socket: "/tmp/other.sock" })).toThrow(/identity changed/);
+    const fake = fixture();
+    await vpsComputerScreenshot(CONFIG, BOT_ID, fake.runner, screen);
+    const call = fake.calls.find(({ args }) => args.includes("--screenshot-out-file"));
+    expect(call?.args).toContain(target.socket);
+    expect(call?.args).not.toContain("/run/user/1000/cua.sock");
+  });
+
+  it("refuses a screen bound to a replaced container before capture", async () => {
+    const fake = fixture();
+    await expect(vpsComputerScreenshot(CONFIG, BOT_ID, fake.runner, { containerId: "c".repeat(64), target: independentScreenTarget("screen-bot", 2) })).rejects.toMatchObject({ status: 409 });
+    expect(fake.calls.some(({ args }) => args.includes("--screenshot-out-file"))).toBe(false);
+  });
+});
+
+it("refreshes a cached awake status when an out-of-band stop is discovered on viewer join", async () => {
+  const fake = fixture();
+  const cfg = { vps: { sshAlias: "external-stop-fixture" } };
+  mockTransport(fake.runner);
+  try {
+    await expect(vpsComputerStatus(cfg, BOT_ID)).resolves.toMatchObject({ ready: true });
+    fake.state.running = false;
+    await expect(vpsComputerStatus(cfg, BOT_ID)).resolves.toMatchObject({ ready: true });
+    await expect(vpsComputerJoin(cfg, BOT_ID)).rejects.toMatchObject({ status: 409 });
+    await expect(vpsComputerStatus(cfg, BOT_ID)).resolves.toMatchObject({ ready: false, container: "stopped" });
+    expect(fake.calls.some(({ args }) => args.includes("start") || args.includes("run"))).toBe(false);
+  } finally { spawnMock.mockReset(); }
+});
+
+it("reports the container boot identity even when an external restart retains its Docker id", async () => {
+  const first = "2026-11-07T10:00:00.123456789Z";
+  const second = "2026-11-07T10:01:00.123456789Z";
+  const fake = fixture({ startedAt: first });
+  const before = await vpsComputerStatus(CONFIG, BOT_ID, fake.runner);
+  fake.state.startedAt = second;
+  const after = await vpsComputerStatus(CONFIG, BOT_ID, fake.runner);
+  expect(before.container_id).toBe(after.container_id);
+  expect(before.container_started_at).toBe(first);
+  expect(after.container_started_at).toBe(second);
+});
+
+it.each([undefined, "", "not-a-date", "2026-02-30T10:00:00Z", "2026-11-07T10:00:00+05:30", "x".repeat(10000)])("omits an invalid container start timestamp %#", async startedAt => {
+  const fake = fixture({ startedAt });
+  expect((await vpsComputerStatus(CONFIG, BOT_ID, fake.runner)).container_started_at).toBeUndefined();
+});
+
+it("coalesces fresh boot inspection and replaces a stale awake cache before screen selection", async () => {
+  const fake = fixture({ startedAt: "2026-11-07T10:00:00Z" });
+  const cfg = { vps: { sshAlias: "fresh-boot-fixture" } };
+  mockTransport(fake.runner);
+  try {
+    expect((await vpsComputerStatus(cfg, BOT_ID)).container_started_at).toBe("2026-11-07T10:00:00Z");
+    fake.state.startedAt = "2026-11-07T10:01:00Z";
+    expect((await vpsComputerStatus(cfg, BOT_ID)).container_started_at).toBe("2026-11-07T10:00:00Z");
+    const before = fake.calls.filter(({ args }) => args[2] === "image").length;
+    const receipts = await Promise.all([vpsComputerStatus(cfg, BOT_ID, undefined, { fresh: true }), vpsComputerStatus(cfg, BOT_ID, undefined, { fresh: true })]);
+    expect(receipts.every(status => status.container_started_at === "2026-11-07T10:01:00Z")).toBe(true);
+    expect(fake.calls.filter(({ args }) => args[2] === "image").length - before).toBe(1);
+    expect((await vpsComputerStatus(cfg, BOT_ID)).container_started_at).toBe("2026-11-07T10:01:00Z");
+  } finally { spawnMock.mockReset(); }
 });

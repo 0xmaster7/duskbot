@@ -1,16 +1,8 @@
 import { useEffect, useRef } from "react";
-import { QRCodeSVG } from "qrcode.react";
 
-import { ANDROID_APK_URL, IOS_APP_STORE_URL, openExternalLink } from "@/lib/app-links";
 import { t } from "@/lib/i18n";
-import type { LocaleKey } from "@/locales";
 import { cn } from "@/lib/cn";
-import { formSheetCls, formTitleCls, mdSecondaryCls, rowHintCls, smallButtonCls } from "./ui/GrokDialog";
-
-export const PHONE_APPS: ReadonlyArray<{ id: "ios" | "android"; nameKey: LocaleKey; actionKey: LocaleKey; url: string }> = [
-  { id: "ios", nameKey: "phoneApp.ios", actionKey: "phoneApp.iosAction", url: IOS_APP_STORE_URL },
-  { id: "android", nameKey: "phoneApp.android", actionKey: "phoneApp.androidAction", url: ANDROID_APK_URL },
-];
+import { formSheetCls, formTitleCls, mdSecondaryCls, rowHintCls } from "./ui/GrokDialog";
 
 export interface PhoneAppConnect {
   key: string;
@@ -49,25 +41,11 @@ export function PhoneAppDialog({ open, onClose, connect = [] }: { open: boolean;
         className={cn(formSheetCls, "max-w-[440px] overflow-y-auto px-4 pb-4 pt-3")}
       >
         <h2 id="phone-app-dialog-title" className={cn(formTitleCls, "whitespace-normal")}>
-          {t("phoneApp.title")}
+          {t("sidebar.menu.connectPhone")}
         </h2>
-        <p className={cn(rowHintCls, "m-0 mt-1 text-pretty")}>{t("phoneApp.subtitle")}</p>
-        <ul className="m-0 mt-3 grid list-none grid-cols-2 gap-2 p-0">
-          {PHONE_APPS.map((app) => (
-            <li key={app.id} data-phone-app={app.id} className="flex flex-col items-center gap-2 py-1 text-center">
-              <div className="text-[13px] leading-[18px] text-ink">{t(app.nameKey)}</div>
-              <div className="rounded-[8px] bg-white p-1.5 outline outline-[0.5px] -outline-offset-[0.5px] outline-edge">
-                <QRCodeSVG value={app.url} size={112} level="M" bgColor="#ffffff" fgColor="#111111" title={t(app.actionKey)} />
-              </div>
-              <button type="button" onClick={() => void openExternalLink(app.url)} className={smallButtonCls}>
-                {t(app.actionKey)}
-              </button>
-            </li>
-          ))}
-        </ul>
+        <p className={cn(rowHintCls, "m-0 mt-1 text-pretty")}>{t("settings.phone.pair.hint")}</p>
         {connect.length ? (
           <div className="mt-3 flex flex-col">
-            <p className={cn(rowHintCls, "m-0 px-2 pb-1 text-[12px] leading-4")}>{t("phoneApp.next")}</p>
             {connect.map((destination) => (
               <button
                 key={destination.key}

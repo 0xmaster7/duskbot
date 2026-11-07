@@ -266,6 +266,8 @@ describe("peer allow-list", () => {
       expect(systemPrompt).toContain("(Starter) [id: ");
       expect(systemPrompt).toContain("Team availability: every teammate is available.");
       expect(systemPrompt).toContain("Use coordinate_bots");
+      expect(systemPrompt).toContain("without waiting for the person to name them or tell you to contact them");
+      expect(systemPrompt).toContain("while honoring any approval the tool requires");
       expect(systemPrompt).toContain("Each recipient runs with its own model and permissions");
       expect(systemPrompt).toContain("you cannot grant them your access");
       expect(systemPrompt).not.toContain("Use delegate_bot");

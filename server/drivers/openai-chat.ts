@@ -18,6 +18,7 @@ import { noteToolBudget } from "../tool-budgets.ts";
 import { assertImageTransport, chatImageBudget, chatToolImages, chatUserContent, type ChatContentPart } from "./chat-images.ts";
 import { promptHalves, volatileContextNote, withContextNote } from "./prompt-split.ts";
 import { createChatToolApproval, refusal } from "./chat-tool-approval.ts";
+import { chatToolBatches } from "./chat-tool-batches.ts";
 import { ChatProtocolError, ChatReasoningDetails, ChatToolCalls, object, type ChatToolCall } from "./openai-chat-protocol.ts";
 import { completionError, httpErrorDetail, refusedToolCall, refusedToolCallFailure, rejectsReasoningReplay, rejectsToolsParameter, RejectedToolCallError, UnsupportedChatToolsError, UnsupportedReasoningReplayError, type ProviderBody } from "./openai-chat-refusals.ts";
 import { ChatRepeatGuard } from "./chat-repeat-guard.ts";
@@ -782,17 +783,15 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
           }
           if (seenCalls.size > MAX_TURN_TOOL_CALLS) throw new ChatProtocolError(stoppedAfter(`${MAX_TURN_TOOL_CALLS} tool calls`));
           messages.push(assistantReply(model, completion, completion.text || null, completion.toolCalls));
-          // A failure stays pending only until the bot runs tools again: one that went on to use more tools has read the error
-          // and reacted (a wrong guess, a bad query, then the right call), so its turn is not failed for it, on any model. The
-          // failed step still shows as failed; a failure in the last calls before the answer, or a person's no, still ends it.
           if (!denials.length) { toolFailed = false; failedCalls.length = 0; }
           const screenshotParts: ChatContentPart[] = [];
-          for (const call of completion.toolCalls) {
-            abort.signal.throwIfAborted();
+          const session = tools;
+          const executeCall = async (call: ChatToolCall) => {
             let result: ChatToolResult;
             let started = false;
             let fatal: Error | undefined, title = call.function.name, skipRepeatCount = false;
             try {
+              abort.signal.throwIfAborted();
               let args: unknown;
               try { args = JSON.parse(call.function.arguments); }
               catch { throw new ChatProtocolError("tool arguments are not complete JSON"); }
@@ -822,8 +821,8 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
               } else {
                 const refused = repeats?.refuses(call.function.name, call.function.arguments);
                 if (refused) { skipRepeatCount = true; throw new Error(refused); }
-                tools.validate(call.function.name, args);
-                const shown = tools.view(call.function.name, args as Record<string, unknown>); title = shown.title;
+                session.validate(call.function.name, args);
+                const shown = session.view(call.function.name, args as Record<string, unknown>); title = shown.title;
                 const shownPreview = shown.input === args ? inputPreview : preview(shown.input);
                 // This runtime has no provider reviewer, so Full access is honoured here.
                 const full = (turn.approvalModeNow?.() ?? turn.approvalMode) === "full";
@@ -836,7 +835,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
                 });
                 started = true;
                 if (allowed) {
-                  result = await tools.execute(call.function.name, args as Record<string, unknown>, abort.signal);
+                  result = await session.execute(call.function.name, args as Record<string, unknown>, abort.signal);
                   if (result.images?.length && !seesImages(turn)) {
                     const { images: _dropped, ...rest } = result;
                     result = { ...rest, text: `${rest.text}\n${TEXT_ONLY_SCREENSHOT_NOTE}` };
@@ -861,14 +860,21 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
                 : safeText(asError(error).message).slice(0, 2_000) };
             }
             if (!started) emit({ ...base(turn.threadId, turnId), type: "item.started", itemType: "tool", itemId: call.id, title: call.function.name });
-            const repeatNote = skipRepeatCount ? undefined : repeats?.noteAfter(call.function.name, call.function.arguments, result);
             const text = safeText(result.text);
             const output = preview({ ok: result.ok, result: text });
             emit({ ...base(turn.threadId, turnId), type: "item.completed", itemType: "tool", itemId: call.id, ok: result.ok, output });
-            if (!result.ok) { toolFailed = true; failedCalls.push(title); }
-            messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify({ ok: result.ok, result: repeatNote ? `${text}\n\n${repeatNote}` : text }) });
-            screenshotParts.push(...chatToolImages(call.id, result.images));
+            return { call, result, text, title, fatal, skipRepeatCount };
+          };
+          for await (const results of chatToolBatches(completion.toolCalls, { session, signal: abort.signal,
+            full: () => (turn.approvalModeNow?.() ?? turn.approvalMode) === "full", covered: approval.covered, execute: executeCall })) {
+            for (const { call, result, text, title, skipRepeatCount } of results) {
+              const repeatNote = skipRepeatCount ? undefined : repeats?.noteAfter(call.function.name, call.function.arguments, result);
+              if (!result.ok) { toolFailed = true; failedCalls.push(title); }
+              messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify({ ok: result.ok, result: repeatNote ? `${text}\n\n${repeatNote}` : text }) });
+              screenshotParts.push(...chatToolImages(call.id, result.images));
+            }
             abort.signal.throwIfAborted();
+            const fatal = results.find((result) => result.fatal)?.fatal;
             if (fatal) throw fatal;
             if (repeats?.stopped) { stopReason = "incomplete_action"; throw new ChatProtocolError(repeats.stopped); }
           }

@@ -784,9 +784,9 @@ describe("PiDriver turns (fake CLI)", () => {
     const dir = mkdtempSync(join(tmpdir(), "omb-pi-dump-"));
     const dump = join(dir, "dump.jsonl");
     // The leak path is `...process.env`, not just input.environment.
-    const savedBoat = process.env.BOX_TOKEN;
+    const savedLegacyToken = process.env.BOX_TOKEN;
     const savedXai = process.env.XAI_API_KEY;
-    process.env.BOX_TOKEN = "boat-secret-value";
+    process.env.BOX_TOKEN = "legacy-control-secret-value";
     process.env.XAI_API_KEY = "xai-secret-value";
     try {
       await create(undefined, {
@@ -796,8 +796,8 @@ describe("PiDriver turns (fake CLI)", () => {
       });
       await instance.dispose();
     } finally {
-      if (savedBoat === undefined) delete process.env.BOX_TOKEN;
-      else process.env.BOX_TOKEN = savedBoat;
+      if (savedLegacyToken === undefined) delete process.env.BOX_TOKEN;
+      else process.env.BOX_TOKEN = savedLegacyToken;
       if (savedXai === undefined) delete process.env.XAI_API_KEY;
       else process.env.XAI_API_KEY = savedXai;
     }

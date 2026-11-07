@@ -17,7 +17,6 @@ import {
 
 const MAPPINGS: Array<[ConfigCredentialTargetId, CredentialConfig]> = [
   ["xaiApiKey", { xai: { key: "secret" } }],
-  ["boxToken", { box: { token: "secret" } }],
   ["opencodeGoApiKey", { opencodeGo: { apiKey: "secret" } }],
   ["ttsKey", { tts: { key: "secret" } }],
   ["fishAudioKey", { tts: { fishKey: "secret" } }],
@@ -39,9 +38,18 @@ describe("credential request allowlist", () => {
   it("accepts only declared own ids", () => {
     expect(isCredentialTargetId("xaiApiKey")).toBe(true);
     expect(isCredentialTargetId("jevApiKey")).toBe(false);
+    expect(isCredentialTargetId("boxToken")).toBe(false);
     expect(isCredentialTargetId(CUSTOM_SECRET_TARGET)).toBe(false);
     expect(isCredentialTargetId("__proto__")).toBe(false);
     expect(isCredentialTargetId({ toString: () => "xaiApiKey" })).toBe(false);
+  });
+
+  it("refuses retired credential requests restored from old history", () => {
+    const retired = "boxToken" as never;
+    expect(desktopCredentialSlot(retired)).toBeNull();
+    expect(credentialIsConfigured({}, retired)).toBe(false);
+    expect(() => credentialSaveRequest(retired, "fixture-only")).toThrow("no longer supported");
+    expect(() => credentialConfigPatch(retired, "fixture-only")).toThrow("no longer supported");
   });
 
   it("maps each id to a fixed config location", () => {
@@ -67,13 +75,13 @@ describe("credential request allowlist", () => {
     expect(credentialIsConfigured({ tts: { key: "" } }, "ttsKey")).toBe(false);
     expect(credentialIsConfigured({ tts: { fishKey: "secret" } }, "fishAudioKey")).toBe(true);
     expect(credentialIsConfigured({ tts: { fishKey: "" } }, "fishAudioKey")).toBe(false);
-    expect(Object.keys(CREDENTIAL_TARGETS)).toHaveLength(18);
+    expect(Object.keys(CREDENTIAL_TARGETS)).toHaveLength(17);
   });
 
   // The desktop's encrypted store has a slot only for these; a provider key goes to the server's config, as Settings does.
   it("names the desktop slot a key is saved in, and none for a provider key or the 1Password token", () => {
     expect(Object.keys(CREDENTIAL_TARGETS).filter((id) => desktopCredentialSlot(id as never)).sort()).toEqual(
-      ["boxToken", "composioApiKey", "fishAudioKey", "geminiTtsKey", "openaiImageApiKey", "opencodeGoApiKey", "ttsKey", "xaiApiKey"],
+      ["composioApiKey", "fishAudioKey", "geminiTtsKey", "openaiImageApiKey", "opencodeGoApiKey", "ttsKey", "xaiApiKey"],
     );
     expect(desktopCredentialSlot("anthropicApiKey")).toBeNull();
     expect(desktopCredentialSlot("onePasswordToken")).toBeNull();

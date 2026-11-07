@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { LocalizedPanelError } from "@/lib/computer-messages";
 import { productName } from "@/lib/brand";
 
 export interface TakeoverSnapshot {
@@ -10,68 +9,11 @@ export interface TakeoverSnapshot {
 
 /** Another device's hand-back and this view's next take can arrive out of order; only a release that lasts ends a session. */
 const RELEASE_SETTLE_MS = 1_500;
-/** Past a sleeping Boat's wake (90 s) and its desktop link (bounded per request on the server). */
-const JOIN_TIMEOUT_MS = 200_000;
 
 /** `crypto.randomUUID` exists only in secure contexts, and a phone may reach the app over plain LAN http. */
 const newLeaseId = () => Array.from(crypto.getRandomValues(new Uint8Array(18)), (byte) => byte.toString(16).padStart(2, "0")).join("");
 
 type Request = (action: "take" | "release", controlLeaseId?: string) => Promise<TakeoverSnapshot>;
-
-function releaseWhenClosed(tab: Window, release: () => void): void {
-  const watch = window.setInterval(() => {
-    if (!tab.closed) return;
-    window.clearInterval(watch);
-    release();
-  }, 1_000);
-}
-
-/** A provider-hosted desktop (a Boat) ships its own viewer, so it opens in the app's viewer window or its own tab. A
- * stuck join gives the computer back instead of leaving the bot waiting. */
-export async function openProviderDesktop({ botId, title, held, request, join, current }: {
-  botId: string;
-  title: string;
-  held: boolean;
-  request: Request;
-  join: (signal: AbortSignal) => Promise<{ joinUrl?: unknown }>;
-  /** Still the conversation and computer the person asked for. */
-  current: () => boolean;
-}): Promise<void> {
-  let lease: string | null = null;
-  // Plain web opens its blank tab synchronously, inside the user gesture; the packaged app uses the Electron viewer window.
-  let fallbackTab: Window | null = null;
-  if (!window.ogb?.desktopViewer && !window.ogb?.openExternal) {
-    fallbackTab = window.open("", "_blank");
-    if (fallbackTab) fallbackTab.opener = null;
-  }
-  const changed = () => new DOMException("The selected conversation changed", "AbortError");
-  try {
-    if (!held) {
-      lease = newLeaseId();
-      if (!(await request("take", lease)).held) throw new Error(`${productName()} could not confirm computer control`);
-    }
-    if (!current()) throw changed();
-    const { joinUrl } = await join(AbortSignal.timeout(JOIN_TIMEOUT_MS));
-    const viewerUrl = typeof joinUrl === "string" && joinUrl ? joinUrl : null;
-    if (!current()) throw changed();
-    if (!viewerUrl) throw new LocalizedPanelError("computer.err.noDesktopLink");
-    if (window.ogb?.desktopViewer) {
-      if (!(await window.ogb.desktopViewer.open(viewerUrl, title, botId))) throw new LocalizedPanelError("computer.err.openDesktop");
-    } else if (fallbackTab) {
-      fallbackTab.location.replace(viewerUrl);
-      const taken = lease;
-      if (taken) releaseWhenClosed(fallbackTab, () => void request("release", taken).catch(() => {}));
-    } else if (window.ogb?.openExternal) {
-      if (!(await window.ogb.openExternal(viewerUrl))) throw new LocalizedPanelError("computer.err.openDesktopLink");
-    } else if (!window.open(viewerUrl, "_blank", "noopener")) {
-      throw new LocalizedPanelError("computer.err.popupBlocked");
-    }
-  } catch (error) {
-    fallbackTab?.close();
-    if (lease) await request("release", lease).catch(() => {});
-    throw error;
-  }
-}
 
 function post(path: string, body: unknown): void {
   void fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), keepalive: true })
@@ -96,6 +38,9 @@ export function useComputerTakeover({ botId, session, held, request, viewerClose
   const [expanded, setExpanded] = useState(false);
   const [handingBack, setHandingBack] = useState(false);
   const lease = useRef<{ id: string; viewerClose: string | null } | null>(null);
+  const target = useRef(session);
+  target.current = session;
+  const generation = useRef(0);
   const closeRef = useRef(viewerClose);
   closeRef.current = viewerClose;
 
@@ -105,6 +50,7 @@ export function useComputerTakeover({ botId, session, held, request, viewerClose
   }, []);
 
   const leave = useCallback(() => {
+    generation.current += 1;
     const mine = lease.current;
     lease.current = null;
     end();
@@ -115,14 +61,20 @@ export function useComputerTakeover({ botId, session, held, request, viewerClose
 
   const take = useCallback(async (expand = false) => {
     const id = newLeaseId();
+    const attempt = ++generation.current;
     const snap = await request("take", id);
+    if (generation.current !== attempt || target.current !== session) {
+      if (snap.owned) post(`/api/bots/${botId}/computer/control`, { action: "release", controlLeaseId: id });
+      return;
+    }
     if (!snap.held) throw new Error(`${productName()} could not confirm computer control`);
     lease.current = snap.owned ? { id, viewerClose: closeRef.current } : null;
     setHere(true);
     setExpanded(expand);
-  }, [request]);
+  }, [request, botId, session]);
 
   const handBack = useCallback(async () => {
+    generation.current += 1;
     const close = lease.current?.viewerClose ?? closeRef.current;
     lease.current = null;
     end();

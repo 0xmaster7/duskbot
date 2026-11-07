@@ -71,7 +71,7 @@ AI or ones already listed, the bin removes one, and the list keeps its order (up
 to five). There is no switch; the card says when a backup is used.
 
 ```sh
-pnpm exec vitest run src/components/bot-panel/BackupAis.dom.test.ts src/components/BotSettingsDialog.simple.test.ts src/components/bot-settings/ModelSection.test.ts
+pnpm exec vitest run src/components/bot-panel/BackupAis.dom.test.ts src/components/BotSettingsDialog.simple.test.ts
 ```
 
 These runs come from `control-omb ui launch --engine codex` (fake Claude and
@@ -79,5 +79,4 @@ fake Codex in a disposable home): adding Codex in Simple saved
 `fallback: [{ instanceId: "codex", model: "gpt-fake-default" }]` on the bot and
 left `automaticRecovery` at `{ enabled: false }`.
 
-Advanced shows the same list under Model, with words that no longer depend on
-the switch.
+The removed Advanced model section has no current renderer check.

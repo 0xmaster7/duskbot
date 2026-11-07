@@ -51,6 +51,12 @@ const reloaded = (patch: object, cfg: AppConfig = {}) =>
   changedInstanceIds(engineLaunches(instanceConfigs(cfg), {}), engineLaunches(instanceConfigs({ ...cfg, ...patch } as AppConfig), {}));
 
 describe("configuration boundaries", () => {
+  it("rejects paid desktop key writes while retaining legacy stored credentials", () => {
+    expect(parseStoredConfig({ box: { token: "legacy-fixture-token" } }).box).toEqual({ token: "legacy-fixture-token" });
+    for (const box of [{ token: "new-fixture-token" }, { token: "" }, {}, null] as JsonValue[]) {
+      expect(() => parseConfigPatch({ box })).toThrow("Paid desktop provider settings are no longer supported");
+    }
+  });
   it("still loads a config saved with the removed saved-steps switch, dropping it", () => {
     expect(parseStoredConfig({ features: { savedSteps: false, browser: true } })).toEqual({ features: { browser: true } });
   });
@@ -1483,7 +1489,7 @@ describe("credential env preference", () => {
     rmSync(join(DATA_DIR, "config.json"), { force: true });
   });
 
-  it("prefers env over the config file for every credential", () => {
+  it("prefers env for active credentials and ignores a retired provider override", () => {
     // The desktop shell hands secrets over as env and leaves the file without them: env must win over a leftover plaintext value.
     writeFileSync(
       join(DATA_DIR, "config.json"),
@@ -1503,7 +1509,7 @@ describe("credential env preference", () => {
     process.env.OMB_OPENAI_IMAGE_KEY = "env-image";
     const cfg = loadConfig();
     expect(cfg.xai).toEqual({ key: "env-xai", url: "https://api.example.test/v1" });
-    expect(cfg.box).toEqual({ token: "env-box" });
+    expect(cfg.box).toEqual({ token: "file-box" });
     expect(cfg.opencodeGo).toEqual({ apiKey: "env-ocg" });
     expect(cfg.tts).toEqual({ key: "env-tts", fishKey: "env-fish", voice: "narrator" });
     expect(cfg.imageGen).toEqual({ key: "env-image" });
@@ -1547,7 +1553,7 @@ describe("credential env preference", () => {
       }
       process.env.BOX_TOKEN = "box_own";
       process.env.OMB_TTS_KEY = "sk-own";
-      expect(loadConfig()).toMatchObject({ box: { token: "box_own" }, tts: { key: "sk-own" } });
+      expect(loadConfig()).toMatchObject({ box: { token: "" }, tts: { key: "sk-own" } });
       expect(JSON.stringify(instanceConfigs(loadConfig()))).not.toContain("box_own");
     } finally {
       vi.unstubAllEnvs();
@@ -1816,7 +1822,7 @@ describe("credential env preference", () => {
     });
     expect(process.env.XAI_API_KEY).toBe("just-saved");
     expect(process.env.COMPOSIO_API_KEY).toBe("ak_just_saved");
-    expect(process.env.BOX_TOKEN).toBeUndefined();
+    expect(process.env.BOX_TOKEN).toBe("boot-injected");
     expect(process.env.OMB_TTS_KEY).toBeUndefined();
     expect(process.env.OMB_FISH_AUDIO_API_KEY).toBeUndefined();
   });

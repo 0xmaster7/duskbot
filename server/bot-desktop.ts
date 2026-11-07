@@ -218,16 +218,16 @@ function missing(error: unknown): boolean {
   return /no such (object|image|network)|not found/i.test(error instanceof Error ? error.message : String(error));
 }
 
-/** Pulls the image when absent, makes the network, picks the mode the host allows, and starts this bot's box. Returns
- * false only when the image cannot be had (registry unreachable or not published yet) so the caller can fall back to the
- * Cua desktop; anything else throws. */
-export async function provisionBotDesktop(run: DockerRun, input: {
-  containerName: string;
-  imageId: string | null;
-  labels: string[];
-  viewerSecret: string;
-}): Promise<BotDesktopMode | false> {
-  let imageId = input.imageId;
+interface BotDesktopPreparation {
+  imageId: string;
+  mode: BotDesktopMode;
+  runtime: HostIsolation["runtime"];
+  hostAddresses: string[];
+}
+
+const pendingPreparations = new Map<string, Promise<BotDesktopPreparation | false>>();
+
+async function prepareBotDesktop(run: DockerRun, imageId: string | null): Promise<BotDesktopPreparation | false> {
   if (!imageId) {
     try {
       await run(["pull", BOT_DESKTOP_IMAGE], 15 * 60_000);
@@ -264,6 +264,30 @@ export async function provisionBotDesktop(run: DockerRun, input: {
   const hostAddresses = mode === "strict"
     ? parseHostAddresses((await run(hostAddressProbeArgs(imageId), 30_000).catch(() => ({ stdout: "" }))).stdout)
     : [];
-  await run(botDesktopRunArgs({ ...input, imageRef: imageId, mode, runtime: isolation.runtime, blockedHostAddresses: hostAddresses }), 2 * 60_000);
-  return mode;
+  return { imageId, mode, runtime: isolation.runtime, hostAddresses };
+}
+
+// Security: later starts recheck the host fence and isolation; sharing lasts only while preparation is in flight.
+export async function provisionBotDesktop(run: DockerRun, input: {
+  containerName: string;
+  imageId: string | null;
+  labels: string[];
+  viewerSecret: string;
+  hostKey?: string;
+}): Promise<BotDesktopMode | false> {
+  const key = input.hostKey ? JSON.stringify([input.hostKey, input.imageId, process.env.OPENMAUSBOT_VPS_GVISOR, process.env.OPENMAUSBOT_VPS_BOX]) : null;
+  let preparation = key ? pendingPreparations.get(key) : undefined;
+  if (!preparation) {
+    preparation = prepareBotDesktop(run, input.imageId);
+    if (key) pendingPreparations.set(key, preparation);
+  }
+  let prepared: BotDesktopPreparation | false;
+  try {
+    prepared = await preparation;
+  } finally {
+    if (key && pendingPreparations.get(key) === preparation) pendingPreparations.delete(key);
+  }
+  if (!prepared) return false;
+  await run(botDesktopRunArgs({ ...input, imageRef: prepared.imageId, mode: prepared.mode, runtime: prepared.runtime, blockedHostAddresses: prepared.hostAddresses }), 2 * 60_000);
+  return prepared.mode;
 }

@@ -30,7 +30,6 @@ describe("workspace credential migration", () => {
     expect(result.credentialsChanged).toBe(true);
     expect(result.credentials).toEqual({
       xaiApiKey: "xai-secret",
-      boxToken: "boat-secret",
       ttsKey: "tts-secret",
       fishAudioKey: "fish-secret",
       opencodeGoApiKey: "ocg-secret",
@@ -38,7 +37,7 @@ describe("workspace credential migration", () => {
     });
     expect(result.config).toEqual({
       xai: { url: "https://api.example.test/v1" },
-      box: {},
+      box: { token: "boat-secret" },
       tts: { voice: "narrator" },
       imageGen: {},
       opencodeGo: {},
@@ -73,13 +72,13 @@ describe("workspace credential migration", () => {
     expect(second.config).toEqual(first.config);
   });
 
-  it("treats a saved non-empty value as newest intent and overwrites the store", () => {
+  it("retains ignored legacy desktop credentials without updating the encrypted store", () => {
     const result = migrateWorkspaceCredentials(
       { box: { token: "box-NEW" } },
       { boxToken: "box-OLD", xaiApiKey: "xai-keep" },
     );
-    expect(result.credentials).toEqual({ boxToken: "box-NEW", xaiApiKey: "xai-keep" });
-    expect(result.config.box).toEqual({});
+    expect(result.credentials).toEqual({ boxToken: "box-OLD", xaiApiKey: "xai-keep" });
+    expect(result.config.box).toEqual({ token: "box-NEW" });
   });
 
   it("treats an empty saved value as no information and keeps the stored secret", () => {
@@ -127,8 +126,7 @@ describe("workspace credential env", () => {
     expect(
       workspaceCredentialEnv({
         xaiApiKey: "xai-secret",
-        boxToken: "boat-secret",
-        ttsKey: "tts-secret",
+          ttsKey: "tts-secret",
         fishAudioKey: "fish-secret",
         opencodeGoApiKey: "ocg-secret",
         openaiImageApiKey: "image-secret",
@@ -136,12 +134,15 @@ describe("workspace credential env", () => {
       }),
     ).toEqual({
       XAI_API_KEY: "xai-secret",
-      BOX_TOKEN: "boat-secret",
       OMB_TTS_KEY: "tts-secret",
       OMB_FISH_AUDIO_API_KEY: "fish-secret",
       OPENCODE_API_KEY: "ocg-secret",
       OMB_OPENAI_IMAGE_KEY: "image-secret",
     });
+  });
+
+  it("never injects an obsolete paid-desktop credential from a previous install", () => {
+    expect(workspaceCredentialEnv({ boxToken: "legacy-fixture-token" })).toEqual({});
   });
 
   it("emits nothing for absent or empty secrets", () => {

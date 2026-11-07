@@ -5,9 +5,31 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 
-import { verificationServerEnvironment } from "./control-omb.ts";
+import { verificationServerArgs, verificationServerEnvironment } from "./control-omb.ts";
 
 const childEnv = (parentEnv: NodeJS.ProcessEnv) => verificationServerEnvironment(parentEnv, join(tmpdir(), "omb-fixture-env"), 9100);
+
+it("loads the isolated VPS idle clock only for its explicit fixture switch", () => {
+  const enabled = childEnv({ OMB_TEST_VPS_IDLE_CLOCK: "1" });
+  expect(enabled.OMB_TEST_VPS_IDLE_CLOCK).toBe("1");
+  expect(verificationServerArgs(enabled).some((arg) => arg.endsWith("vps-idle-clock-hooks.mjs"))).toBe(true);
+  for (const value of [undefined, "true", "0"]) {
+    const disabled = childEnv({ OMB_TEST_VPS_IDLE_CLOCK: value });
+    expect(disabled).not.toHaveProperty("OMB_TEST_VPS_IDLE_CLOCK");
+    expect(verificationServerArgs(disabled).some((arg) => arg.endsWith("vps-idle-clock-hooks.mjs"))).toBe(false);
+  }
+});
+
+it("loads the no-container native browser guard only for its explicit fixture switch", () => {
+  const enabled = childEnv({ OMB_TEST_LOCAL_BROWSER_GUARD: "1" });
+  expect(enabled.OMB_TEST_LOCAL_BROWSER_GUARD).toBe("1");
+  expect(verificationServerArgs(enabled).some((arg) => arg.endsWith("local-browser-guard.mjs"))).toBe(true);
+  for (const value of [undefined, "true", "0"]) {
+    const disabled = childEnv({ OMB_TEST_LOCAL_BROWSER_GUARD: value });
+    expect(disabled).not.toHaveProperty("OMB_TEST_LOCAL_BROWSER_GUARD");
+    expect(verificationServerArgs(disabled).some((arg) => arg.endsWith("local-browser-guard.mjs"))).toBe(false);
+  }
+});
 
 describe("a fixture driven from a real browser", () => {
   it("trusts this machine's browsers as `pnpm dev` does, unless the caller tests the sign-in", () => {

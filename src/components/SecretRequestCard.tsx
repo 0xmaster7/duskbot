@@ -1,7 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { ExternalLink, KeyRound, Loader2, LockKeyhole, RefreshCw } from "lucide-react";
 
-import { CUSTOM_SECRET_TARGET, credentialResumeOutcome, credentialSaveRequest, desktopCredentialSlot, isConfigCredentialTarget } from "../../shared/credential-request";
+import { CUSTOM_SECRET_TARGET, credentialResumeOutcome, credentialSaveRequest, desktopCredentialSlot, isConfigCredentialTarget, isCredentialTargetId } from "../../shared/credential-request";
 import { credentialProvider } from "@/lib/analytics-allowlist";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
@@ -87,6 +87,7 @@ export function SecretRequestCard({
     : declined
       ? `You chose not to provide this credential. ${productName()} could not resume the bot yet.`
       : custom && secret.reason ? secret.reason : secret.description;
+  if (!custom && !isCredentialTargetId(secret.target)) return <SecretSettledRow label={secret.label} tone="off" status="This credential request is no longer supported." />;
 
   const notifyProvided = async () => {
     await api(`${endpoint}/provided`, {

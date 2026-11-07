@@ -10,7 +10,6 @@ import { cloudSignInDue, type WelcomeViewer } from "@/lib/onboarding";
 import { GuidedTour } from "@/components/onboarding/GuidedTour";
 import { LiveCallHost } from "@/components/LiveCallHost";
 import { ThreadRefsProvider } from "@/components/ThreadRefs";
-import { initAnalytics } from "@/lib/analytics";
 import { parseComputerHelp } from "@/lib/computer-control";
 import { Sidebar } from "@/components/Sidebar";
 import { ChatView } from "@/components/ChatView";
@@ -51,6 +50,7 @@ import { CloudIntent } from "@/components/CloudIntent";
 import { cloudIntentDue, cloudIntentShown, useCloudIntent } from "@/lib/cloud-intent";
 import { CloudSetup } from "@/components/CloudSetup";
 import { AddVpsHost } from "@/components/vps-link/AddVpsHost";
+import { VpsProgressStrip } from "@/components/vps-link/VpsProgressStrip";
 import { CloudWelcome } from "@/components/cloud-welcome/CloudWelcome";
 import { WelcomeKeeper } from "@/components/cloud-welcome/WelcomeKeeper";
 import { cloudFirstRun, cloudWelcomeVisible, useCloudWelcome } from "@/lib/cloud-welcome";
@@ -64,9 +64,9 @@ import { effectiveLanguage, useLanguageChoice, usePageLanguage } from "@/lib/lan
 import { botUnreadCount, showBrowserUnread } from "@/lib/bot-unread";
 import { phonePairingSettingsAction, takePhonePairingRequest } from "@/lib/phone-pairing"; import { takeConnectRequest } from "@/lib/connect-link";
 import { useDesktopNotificationOpens, useExternalChatLinks } from "@/hooks/use-external-chat-links";
-import { useUsageSnapshot } from "@/hooks/use-usage-snapshot";
 import { useReadShownChatOnFocus } from "@/hooks/use-read-shown-chat";
 import { usePresence } from "@/hooks/use-presence";
+import { useComputerPanelActivity } from "@/hooks/use-computer-panel-activity";
 import { AppEmptyMain } from "@/components/AppEmptyMain";
 import { loadingLine } from "@/lib/app-loading";
 import { useAiSwitchKeeper } from "@/lib/ai-switch";
@@ -145,6 +145,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const loading = loadingLine({ connected: state.connected, hydrated: state.hydrated === true, developer: import.meta.env.DEV });
   const group = state.groups.find((g) => g.id === state.selectedId);
   const bot = group ? undefined : (state.bots.find((b) => b.id === state.selectedId) ?? state.bots[0]);
+  useComputerPanelActivity({ bot, active: state.activeView === "chat", settingsOpen: state.settingsOpen, computerOpen: state.computerOpen, targetKey: `${bot?.vpsAlias}:${bot?.section}:${state.config?.vps?.sshAlias}:${state.config?.vps?.mode}:${state.config?.vps?.independentScreens}`, dispatch });
   const notificationFeed = useNotificationFeed() && !remoteClient;
   const roomPanelOpen = useRoomPanelShown({ group, state, simple: !remoteClient });
   const roomPanelOverlay = notificationFeed && state.notificationsOpen && !twoSidePanelsFit;
@@ -222,7 +223,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
     if (!state.connected) return;
     void preloadConnectedApps(false, true).catch(() => {}); // a background read: a reconnect is nobody using a Cloud home
   }, [state.connected]);
-  useUsageSnapshot();
 
   useEffect(() => preloadScreens(), []);
 
@@ -301,6 +301,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
     <UpdateBanner sidebarIndicator={framed || (!calendarFocus && (sidebarInline || drawerOpen))} />
     <CloudAsleepStrip />
     <LiveConnectionStrip connected={state.connected} hydrated={state.hydrated === true} />
+    <VpsProgressStrip connected={state.connected} hydrated={state.hydrated === true} />
     <CloudSendStrip cloudHome={state.config?.cloudHome === true} />
     <HomeLine />
     <AppNotices quiet={paletteOpen || drawerOpen || Boolean(localVmWorkspaceBotId)} viewer={viewer} />
@@ -421,9 +422,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
 }
 
 function Application() {
-  useEffect(() => {
-    initAnalytics();
-  }, []);
   const viewer = useWelcomeViewer();
   return (
     <DesktopCapabilitiesProvider>

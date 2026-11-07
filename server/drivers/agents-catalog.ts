@@ -130,9 +130,8 @@ const TRIGGER_FIELDS_SCHEMA = {
   },
   run_on: {
     type: "string",
-    // "box" is Boat's historical run_on destination id (agents wire contract).
-    enum: ["maus", "box"],
-    description: "Omit normally: maus (default) keeps the bot's model and configured computer, INCLUDING a self-hosted VPS. box runs on the bot's cloud computer, same model, once cloud computers are set up; a legacy cloud value from trigger_info means box.",
+    enum: ["maus", "cloud"],
+    description: "maus (default) keeps the bot's model and configured computer. cloud uses the bot's own sandboxed VPS computer with the same model; the VPS must already be connected.",
   },
   timeout_minutes: {
     type: "integer",
@@ -247,7 +246,7 @@ const TOOL_DEFINITIONS = [
       "Choose where this conversation does computer work. Call with no arguments to inspect actual available choices and the current place. For a task needing computer interaction, select the requested place, or auto to choose a suitable configured computer without asking the user to use menus. OpenMausBot reuses an existing computer first; with a configured provider it can start or provision one when needed. Do not provision for ordinary chat or just to inspect availability. A pending result means end this turn immediately: OpenMausBot updates the conversation selector and resumes the original request with that computer's real tools. Do not use the old tools after requesting a switch, repeat the task, or claim the action is done. This cannot change permissions, override Off, or switch a teammate/routine/channel.",
     inputSchema: { type: "object", additionalProperties: false, properties: {
       surface: { type: "string", enum: ["auto", "cloud", "vm", "local", "browser"],
-        description: "auto = suitable configured computer, cloud = the bot's cloud computer or self-hosted VPS, vm = isolated Local VM, local = user's own desktop, browser = built-in browser. Omit to list." },
+        description: "auto = suitable configured computer, cloud = the bot's sandboxed computer on your own VPS, vm = isolated Local VM, local = user's own desktop, browser = built-in browser. Omit to list." },
     } },
   },
   {
@@ -846,7 +845,7 @@ const LOCAL_VM_TOOL_NAMES = new Set(["vm_exec"]);
 const ROOM_REFUSED_TOOL_NAMES = new Set(["show_widget", "show_html", ...WAIT_TOOL_NAMES]);
 const CLOUD_HOME_SURFACE = {
   type: "string", enum: ["auto", "cloud", "browser"],
-  description: "auto = suitable configured computer, cloud = the bot's cloud computer, browser = built-in browser. Omit to list. This server runs in the cloud: the user's own computer and a Local VM are not places here.",
+  description: "auto = suitable configured computer, cloud = the bot's sandboxed computer on your own VPS, browser = built-in browser. Omit to list. This server runs in the cloud: the user's own computer and a Local VM are not places here.",
 };
 
 export function availableTools(profile: CatalogProfile) {

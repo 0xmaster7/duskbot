@@ -6,9 +6,7 @@ import {
   cloudPlaceRefusal,
   computerSkippedNote,
   computerToolsRefusal,
-  handoffUsesOwnCloud,
   isHandedWork,
-  ownCloudStateWithin,
   parseSurface,
   pinSource,
   placeUnavailable,
@@ -34,39 +32,6 @@ describe("isHandedWork", () => {
     expect(isHandedWork({ mode: "work" })).toBe(false);
     expect(isHandedWork({ parentId: "root-1", mode: "consult" })).toBe(false);
     expect(isHandedWork(undefined)).toBe(false);
-  });
-});
-
-describe("ownCloudStateWithin", () => {
-  it("answers with the cloud computer's state, and marks a failed or slow lookup as unavailable", async () => {
-    await expect(ownCloudStateWithin(Promise.resolve({ box: { state: "stopped" } }))).resolves.toEqual({ state: "stopped", unavailable: false });
-    await expect(ownCloudStateWithin(Promise.resolve({ box: null }))).resolves.toEqual({ state: undefined, unavailable: false });
-    await expect(ownCloudStateWithin(Promise.reject(new Error("Boat is down")))).resolves.toEqual({ state: undefined, unavailable: true });
-    const started = Date.now();
-    await expect(ownCloudStateWithin(new Promise(() => {}), 20)).resolves.toEqual({ state: undefined, unavailable: true });
-    expect(Date.now() - started).toBeLessThan(1_000);
-  });
-});
-
-describe("handoffUsesOwnCloud", () => {
-  const auto = resolveSurface({ destination: undefined, browserOn: true });
-  it("runs handed-off work on Auto on the receiving bot's own cloud computer, awake or asleep", () => {
-    expect(handoffUsesOwnCloud({ plan: auto, handoffWork: true, ownCloudState: "running" })).toBe(true);
-    expect(handoffUsesOwnCloud({ plan: auto, handoffWork: true, ownCloudState: "archived" })).toBe(true);
-  });
-  it("never creates one, and leaves a person's own turns and consults alone", () => {
-    expect(handoffUsesOwnCloud({ plan: auto, handoffWork: true, ownCloudState: null })).toBe(false);
-    expect(handoffUsesOwnCloud({ plan: auto, handoffWork: true, ownCloudState: undefined })).toBe(false);
-    expect(handoffUsesOwnCloud({ plan: auto, handoffWork: false, ownCloudState: "running" })).toBe(false);
-  });
-  it("keeps Works on and a pin as they are", () => {
-    for (const plan of [
-      resolveSurface({ destination: "browser", browserOn: true }),
-      resolveSurface({ destination: "local", browserOn: true }),
-      resolveSurface({ destination: "off", browserOn: true }),
-      resolveSurface({ destination: undefined, pinnedSurface: "browser", browserOn: true }),
-      resolveSurface({ destination: undefined, pinnedSurface: "vm", browserOn: true }),
-    ]) expect(handoffUsesOwnCloud({ plan, handoffWork: true, ownCloudState: "running" })).toBe(false);
   });
 });
 

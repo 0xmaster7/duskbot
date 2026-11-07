@@ -151,7 +151,7 @@
               "local",
               "browser"
             ],
-            "description": "auto = suitable configured computer, cloud = the bot's cloud computer or self-hosted VPS, vm = isolated Local VM, local = user's own desktop, browser = built-in browser. Omit to list."
+            "description": "auto = suitable configured computer, cloud = the bot's sandboxed computer on your own VPS, vm = isolated Local VM, local = user's own desktop, browser = built-in browser. Omit to list."
           }
         }
       }
@@ -247,7 +247,6 @@
             "type": "string",
             "enum": [
               "xaiApiKey",
-              "boxToken",
               "opencodeGoApiKey",
               "ttsKey",
               "geminiTtsKey",

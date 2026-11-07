@@ -10,6 +10,7 @@ import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs, promisify } from "node:util";
 import { browserBundlePaths, browserBundleSpec } from "../server/browser-bundle-release.ts";
+import { pdfFixture } from "../server/testing/pdf-fixture.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const { values } = parseArgs({ options: { "browser-bundle": { type: "string" } } });
@@ -181,6 +182,28 @@ try {
   proxyReport = { error: String((error && error.message) || error) };
 }
 
+const pdfProbe = join(staging, "server", "probe-pdf-worker.mjs");
+writeFileSync(pdfProbe, [
+  'import { Worker } from "node:worker_threads";',
+  `const data = Uint8Array.from(Buffer.from(${JSON.stringify(pdfFixture(["Built-in PDF: café €1080", "Second page: INV-2291"]).toString("base64"))}, "base64"));`,
+  'const worker = new Worker(new URL("./pdf-text.worker.js", import.meta.url), { workerData: data, execArgv: [], stdout: true, stderr: true, resourceLimits: { maxOldGenerationSizeMb: 128, maxYoungGenerationSizeMb: 16 } });',
+  'worker.stdout.resume(); worker.stderr.resume();',
+  'const timer = setTimeout(() => { void worker.terminate(); process.exitCode = 1; }, 10000);',
+  'worker.once("message", reply => { console.log(JSON.stringify(reply)); clearTimeout(timer); void worker.terminate(); });',
+  'worker.once("error", error => { clearTimeout(timer); console.error(error.message); process.exitCode = 1; });',
+].join("\n"));
+let pdfReport = null;
+const pdfRuntime = process.env.OMB_SMOKE_PDF_RUNTIME ?? process.execPath;
+const pdfEnv = { ...fixtureEnv, ELECTRON_RUN_AS_NODE: "1" };
+try {
+  const { stdout } = await promisify(execFile)(pdfRuntime, [pdfProbe], { cwd: staging, env: pdfEnv, timeout: 15_000 });
+  pdfReport = JSON.parse(stdout);
+  const unicodePdf = readFileSync(join(root, "server", "testing", "fixtures", "unicode-cmap.pdf")).toString("base64");
+  writeFileSync(pdfProbe, readFileSync(pdfProbe, "utf8").replace(pdfFixture(["Built-in PDF: café €1080", "Second page: INV-2291"]).toString("base64"), unicodePdf));
+  const unicode = await promisify(execFile)(pdfRuntime, [pdfProbe], { cwd: staging, env: pdfEnv, timeout: 15_000 });
+  pdfReport.unicode = JSON.parse(unicode.stdout).text;
+} catch (error) { pdfReport = { error: String(error) }; }
+
 // The public MCP process is a second packaged entry point. Closing stdin right
 // after a request proves shutdown lets the final JSON-RPC frame drain.
 let mcpReport = null;
@@ -254,7 +277,8 @@ if (listening) {
   try {
     const doctor = await runCli(["doctor", "--json"]);
     const bots = await runCli(["bots", "--json"]);
-    headlessReport = { doctor: { code: doctor.code, body: JSON.parse(doctor.stdout), stderr: doctor.stderr }, bots: { code: bots.code, body: JSON.parse(bots.stdout) } };
+    const vps = await runCli(["vps", "--help"]);
+    headlessReport = { doctor: { code: doctor.code, body: JSON.parse(doctor.stdout), stderr: doctor.stderr }, bots: { code: bots.code, body: JSON.parse(bots.stdout) }, vps: { code: vps.code, help: vps.stdout.includes("openmausbot vps logs") } };
   } catch (error) {
     headlessReport = { error: String((error && error.message) || error) };
   }
@@ -416,6 +440,11 @@ if (searchReport?.status !== 200 || !Array.isArray(searchReport.body?.hits)) {
   process.exit(1);
 }
 
+if (!pdfReport?.text?.includes("café €1080") || !pdfReport.text.includes("Second page: INV-2291") || !pdfReport.unicode?.includes("你好 世界")) {
+  console.error("The packaged PDF worker did not read both pages without node_modules:", pdfReport);
+  process.exit(1);
+}
+
 if (layerShipped && (!editionReport || editionReport.error || String(editionReport.notice ?? "").includes("no enterprise layer exists"))) {
   console.error("the packaged server ships an enterprise layer but did not find it:");
   console.error(JSON.stringify(editionReport, null, 2));
@@ -452,7 +481,8 @@ if (
 }
 
 if (!headlessReport || headlessReport.error || headlessReport.doctor.body?.server?.capabilities?.jobs !== true ||
-  headlessReport.bots.code !== 0 || !Array.isArray(headlessReport.bots.body?.bots)) {
+  headlessReport.bots.code !== 0 || !Array.isArray(headlessReport.bots.body?.bots) ||
+  headlessReport.vps.code !== 0 || !headlessReport.vps.help) {
   console.error("the packaged openmausbot command's headless verbs failed:");
   console.error(JSON.stringify(headlessReport, null, 2));
   process.exit(1);
@@ -466,7 +496,7 @@ if (!backupReport?.ok) {
 console.log(`packaged server started with no node_modules in reach (port ${port}) ✓`);
 console.log(`all ${count} spawned proxy paths resolve inside the packaged server dir ✓`);
 console.log("packaged MCP stdio server reached the API and flushed its final frames ✓");
-console.log("packaged openmausbot doctor and bots answered from the bundle ✓");
+console.log("packaged openmausbot doctor, bots and VPS help answered from the bundle ✓");
 console.log("packaged backup worker exported an encrypted archive ✓");
 if (launcherReport) console.log("packaged container launcher ran the server as its child and stopped it cleanly ✓");
 if (desktopEntryReport) console.log(`packaged desktop entry started the server twice on its compile cache (${desktopEntryReport.starts[0].cached.length} entries) ✓`);

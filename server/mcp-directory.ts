@@ -45,6 +45,10 @@ export function directoryCallTarget(name: string, args: unknown): string | undef
 
 export function searchesCatalog(tools: readonly CatalogTool[]): boolean {
   if (tools.length > LISTED_TOOLS_MAX || tools.some((tool) => isDirectoryTool(tool.name))) return true;
+  return catalogExceedsSize(tools);
+}
+
+export function catalogExceedsSize(tools: readonly CatalogTool[]): boolean {
   let chars = 0;
   for (const tool of tools) {
     chars += JSON.stringify(tool).length + 1;

@@ -35,6 +35,7 @@ if (existsSync(enterpriseBundle)) {
   }
 }
 cpSync(join(root, "LICENSE"), join(out, "LICENSE"));
+cpSync(join(root, "NOTICE"), join(out, "NOTICE"));
 
 // The bin lives next to the bundle so serverEntry() finds index.js by path.
 writeFileSync(join(out, "cli.js"), `#!/usr/bin/env node\nimport "./dist-server/openmausbot.js";\n`);
@@ -44,6 +45,7 @@ writeFileSync(
   JSON.stringify(
     {
       name: "openmausbot",
+      private: true,
       version: app.version,
       description: "Run the OpenMausBot server anywhere and pair your devices to it",
       license: "Apache-2.0",
@@ -58,10 +60,10 @@ writeFileSync(
         "@duckdb/node-api": app.dependencies["@duckdb/node-api"],
         "@resvg/resvg-js": app.dependencies["@resvg/resvg-js"],
       },
-      files: ["cli.js", "dist-server", "dist", "skills", "enterprise", "LICENSE", "README.md"],
+      files: ["cli.js", "dist-server", "dist", "skills", "enterprise", "LICENSE", "NOTICE", "README.md"],
       engines: { node: ">=24" },
-      repository: { type: "git", url: "https://github.com/milind-soni/OpenMausBot.git" },
-      homepage: "https://github.com/milind-soni/OpenMausBot#readme",
+      repository: app.repository,
+      homepage: app.homepage,
       keywords: ["openmausbot", "agents", "self-hosted", "server"],
     },
     null,
@@ -71,17 +73,19 @@ writeFileSync(
 
 writeFileSync(
   join(out, "README.md"),
-  `# openmausbot
+  `# OpenMausBot private server
 
-Your own team of AI bots, with guided terminal setup. Requires Node 24+.
+Install the reviewed private archive supplied by your operator. Requires Node 24+.
 
 \`\`\`sh
-npm install -g openmausbot
-openmausbot
+npm install --global --prefix "$HOME/.local" ./openmausbot-private.tgz
+"$HOME/.local/bin/openmausbot" setup
 \`\`\`
 
-Or run \`npx openmausbot\` without a global install. Use the same command next
-time; \`openmausbot start\` is an alias for the bare command.
+Use the installed \`openmausbot\` command on later launches. Add
+\`$HOME/.local/bin\` to PATH if needed. \`openmausbot start\` is an alias for
+the bare command. The desktop's Add your VPS flow installs this private build
+through its one-time link; app and server upgrades are operator-managed.
 
 First launch: use arrow keys and Enter (numbered choices in plain terminals) to choose
 ChatGPT/Codex, Claude Code, or an API service; sign in or paste a hidden API
@@ -121,6 +125,9 @@ openmausbot --no-pair      # suppress phone prompts and invitations
 openmausbot pair           # another phone while the HTTPS server is running
 openmausbot sessions       # list devices; sessions revoke ID signs one out
 openmausbot serve          # no onboarding prompts; explicit remote flags for services
+openmausbot vps status     # Linux service, link, computers and host resources
+openmausbot vps doctor    # status with suggested next steps
+openmausbot vps logs --service link --lines 100
 \`\`\`
 
 Stop an existing server before reconfiguring or changing access mode.
@@ -158,9 +165,9 @@ openmausbot run "Room Lead" "Rehearse the launch of https://example.com" --expor
 openmausbot help run       # every verb: doctor, run, wait, send, export, events, team, engine, connect, mcp
 \`\`\`
 
-[Setup guide](https://github.com/milind-soni/OpenMausBot/blob/main/docs/cli-onboarding.md)
-· [Scripts and CI](https://github.com/milind-soni/OpenMausBot/blob/main/docs/headless-cli.md)
-· [Hosting guide](https://github.com/milind-soni/OpenMausBot/blob/main/docs/self-hosting.md)
+[Setup guide](${app.homepage}/blob/custom/docs/cli-onboarding.md)
+· [Scripts and CI](${app.homepage}/blob/custom/docs/headless-cli.md)
+· [Hosting guide](${app.homepage}/blob/custom/docs/self-hosting.md)
 `,
 );
 console.log(`npm package assembled at ${out} (openmausbot@${app.version})`);

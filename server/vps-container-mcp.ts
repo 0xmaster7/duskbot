@@ -5,11 +5,11 @@ import { DATA_DIR } from "./config.ts";
 import { augmentedPath } from "./env-path.ts";
 import { prepareVpsSsh } from "./vps-ssh.ts";
 
-const [alias, containerName] = process.argv.slice(2);
+const [alias, containerName, screenJson] = process.argv.slice(2);
 const sshAlias = alias ?? "";
 let args: string[];
 try {
-  args = vpsContainerMcpArgs(sshAlias, containerName ?? "");
+  args = vpsContainerMcpArgs(sshAlias, containerName ?? "", screenJson ? JSON.parse(screenJson) : undefined);
 } catch {
   process.stderr.write("invalid VPS MCP connection\n");
   process.exit(2);

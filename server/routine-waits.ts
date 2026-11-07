@@ -14,6 +14,7 @@ export interface RoutineRunAsk {
   /** "to use COMPOSIO_SEARCH_TOOLS", "to run “ls”", or the question asked. */
   subject: string;
   since: number;
+  pending?: RoutineRunAsk[];
 }
 
 // ACP permission kinds and the drivers' generic names say nothing about which tool asked.
@@ -42,6 +43,35 @@ export function askOf(event: Opened, now: number): RoutineRunAsk {
   };
 }
 
+export function openAsk(run: RoutineRun, event: Opened, now: number): RoutineRunAsk {
+  if (!run.asked) return run.asked = askOf(event, now);
+  if (!event.requestId || !run.asked.requestId || event.requestId === run.asked.requestId || run.asked.pending?.some((ask) => ask.requestId === event.requestId)) return run.asked;
+  (run.asked.pending ??= []).push(askOf(event, now));
+  return run.asked;
+}
+
+export function matchesAsk(run: RoutineRun, event: Resolved): boolean {
+  const ask = run.asked;
+  return Boolean(ask && (!ask.requestId || !event.requestId || ask.requestId === event.requestId || ask.pending?.some((pending) => pending.requestId === event.requestId)));
+}
+
+export function loadAsk(value: unknown): RoutineRunAsk | undefined {
+  const basic = (candidate: unknown): RoutineRunAsk | undefined => {
+    if (!candidate || typeof candidate !== "object") return undefined;
+    const ask = candidate as Partial<RoutineRunAsk>;
+    if (typeof ask.approval !== "boolean" || typeof ask.subject !== "string" || !Number.isSafeInteger(ask.since) || ask.since! < 0) return undefined;
+    return { approval: ask.approval, subject: ask.subject.slice(0, 500), since: ask.since!, ...(typeof ask.requestId === "string" ? { requestId: ask.requestId } : {}) };
+  };
+  const ask = basic(value);
+  if (!ask) return undefined;
+  const pending = (value as RoutineRunAsk).pending;
+  if (Array.isArray(pending)) {
+    const loaded = pending.flatMap((candidate) => basic(candidate) ?? []);
+    if (loaded.length) ask.pending = loaded;
+  }
+  return ask;
+}
+
 /** What the run's card and the Routines log show while it waits. */
 export function waitingFor(ask: RoutineRunAsk): string | undefined {
   return ask.approval ? `Waiting for your approval ${ask.subject}` : ask.subject || undefined;
@@ -50,10 +80,23 @@ export function waitingFor(ask: RoutineRunAsk): string | undefined {
 /** Ends the run's wait on the person. Returns why the run stops when an approval closed with nobody's answer. */
 export function settleAsk(run: RoutineRun, event: Resolved | undefined, now: number): string | null {
   const ask = run.asked;
-  if (!ask || (event && ask.requestId && event.requestId && event.requestId !== ask.requestId)) return null;
+  if (!ask || event && !matchesAsk(run, event)) return null;
+  const all = [ask, ...ask.pending ?? []];
+  const answered = event?.requestId ? all.find((candidate) => candidate.requestId === event.requestId) ?? ask : ask;
+  const unanswered = answered.approval && event?.source === "timeout" ? `Stopped: nobody answered the approval ${answered.subject}` : null;
+  if (event && !unanswered) {
+    const remaining = all.filter((candidate) => candidate !== answered);
+    if (remaining.length) {
+      const [next, ...pending] = remaining;
+      run.asked = { ...next!, since: ask.since };
+      if (pending.length) run.asked.pending = pending;
+      else delete run.asked.pending;
+      return null;
+    }
+  }
   run.waitedMs = (run.waitedMs ?? 0) + Math.max(0, now - ask.since);
   delete run.asked;
-  return ask.approval && event?.source === "timeout" ? `Stopped: nobody answered the approval ${ask.subject}` : null;
+  return unanswered;
 }
 
 /** Time the run has worked: waiting on the person never counts toward its limit. */

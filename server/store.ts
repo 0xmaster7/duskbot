@@ -1,3 +1,4 @@
+import { UNTITLED_TASK, UNTITLED_THREAD, threadTitleFrom, titleFromMessage } from "./thread-title.ts";
 import { chmodSync, existsSync, readFileSync, mkdirSync, rmSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path"; import { isDeepStrictEqual } from "node:util";
 
@@ -11,7 +12,7 @@ import type { TeamComputers } from "./team-computers.ts";
 import { removeBotFolder, soulFile, soulHash, writeSoulMirror } from "./bot-folder.ts";
 import type { BotProfilePatch } from "./bot-profile.ts";
 import { peerAllowKey, type PeerAction } from "./peer-approval-key.ts";
-import { DATA_DIR, EVENTS_DIR, NATIVE_DIR, loadBrowserProfileIdAliases, vpsIsThisServer } from "./config.ts";
+import { DATA_DIR, EVENTS_DIR, NATIVE_DIR, loadBrowserProfileIdAliases } from "./config.ts";
 import * as mdb from "./message-db.ts";
 import { forgetBotMemoryJournal, journalFile } from "./memory-journal.ts";
 import { runCommand, type Command } from "./commands.ts";
@@ -137,34 +138,7 @@ export type StoreChange =
   | { type: "group"; groupId: string }
   | { type: "group.deleted"; groupId: string };
 
-export const UNTITLED_TASK = "New task";
-export const UNTITLED_THREAD = "New thread";
-
-/** Every title (a bot's or a person's) passes through here, so equality tells a machine-made title from a rename. */
-const TASK_TITLE_MAX = 80;
-export function threadTitleFrom(title?: string): string {
-  return title?.trim().slice(0, TASK_TITLE_MAX) || UNTITLED_THREAD;
-}
-
-export function titleFromMessage(text: string): string {
-  const line = text.trim().split("\n")[0]!.trim();
-  return line.length > 48 ? `${line.slice(0, 47)}…` : line || UNTITLED_TASK;
-}
-
-export function titleFromLlm(raw: string): string | null {
-  const line = raw
-    .trim()
-    .split("\n")[0]!
-    .replace(/^[#*\-\u2022]+/, "")
-    .replace(/^["'\u201C\u201D\u2018\u2019\u0060]+/, "")
-    .replace(/["'\u201C\u201D\u2018\u2019\u0060]+$/, "")
-    .replace(/^[#*\-\u2022]+/, "")
-    .replace(/[#*]+$/, "")
-    .replace(/[.\u3002]+$/, "")
-    .replace(/\s+/g, " ")
-    .trim();
-  return line.length >= 1 && line.length <= 48 ? line : null;
-}
+export { UNTITLED_TASK, UNTITLED_THREAD, threadTitleFrom, titleFromMessage, titleFromLlm } from "./thread-title.ts";
 
 export interface BotRecord extends Omit<WireBot, "avatarUrl" | "tasks"> {
   tasks?: TaskRecord[];
@@ -341,8 +315,8 @@ export class Store {
           botsMigrated = true;
         }
       }
-      if (b.cloudBackend !== undefined && b.cloudBackend !== "box" && b.cloudBackend !== "vps") {
-        delete b.cloudBackend;
+      if (b.cloudBackend !== "vps") {
+        b.cloudBackend = "vps";
         botsMigrated = true;
       }
       if (b.autoStartVps !== undefined && b.autoStartVps !== true && b.autoStartVps !== false) {
@@ -1117,6 +1091,11 @@ export class Store {
     return this.thread(threadId).messages;
   }
 
+  messagesPreview(threadId: string, limit: number): Message[] {
+    this.messagesTail(threadId, 1);
+    return mdb.readThreadPreview(this.roomThreadOf(threadId), limit);
+  }
+
   /** Legacy rows without a parentId chain only on a full load, so a bounded page missing that context falls back to one. */
   messagesTail(threadId: string, limit: number): { messages: Message[]; hasMore: boolean; activeLeafId: string | null } {
     threadId = this.roomThreadOf(threadId);
@@ -1354,7 +1333,7 @@ export class Store {
       unread: false,
       modelSelection: this.newBotSelection(profile.modelSelection),
       resumeCursors: {},
-      createdAt: Date.now(), ...(vpsIsThisServer() ? { cloudBackend: "vps" as const } : {}),
+      createdAt: Date.now(), cloudBackend: "vps",
     };
     if (section) bot.section = section;
     if (profile.createdBy?.trim()) bot.createdBy = ownerEmail(profile.createdBy);
@@ -1526,6 +1505,7 @@ export class Store {
   patchBot(id: string, patch: Partial<BotRecord>): BotRecord | null {
     const bot = this.bot(id);
     if (!bot) return null;
+    if (patch.cloudBackend !== undefined) patch = { ...patch, cloudBackend: "vps" };
     if (patch.connectorTools !== undefined) {
       const parsed = parseConnectorTools(patch.connectorTools);
       if (!parsed.ok) throw new Error(parsed.error);

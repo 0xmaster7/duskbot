@@ -101,7 +101,7 @@ import { LiveCallBar } from "./LiveCallBar";
 import { LiveCallChip } from "./LiveCallPill";
 import { effectivePlace, toolPlace, type EffectivePlace } from "@/lib/place";
 import { cn } from "@/lib/cn";
-import { usePacedArrivals } from "@/hooks/use-paced-arrivals"; import { useThinkingMoment } from "@/hooks/use-thinking-moment";
+import { useThinkingMoment } from "@/hooks/use-thinking-moment";
 import { activeLocale, t } from "@/lib/i18n";
 import { COMPACT_BUBBLE } from "@/lib/compact-chip";
 import { groupTranscript, isStatusActivity, type TranscriptItem } from "@/lib/activity-runs";
@@ -1025,17 +1025,13 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const [markEmphasized, setMarkEmphasized] = useState(false);
   // the reply is written whole; while the engine types it the mark only looks like it is answering
   const streamingReply = useLiveReplyActive(bot.threadId);
-  const pacedRow = useCallback((message: Message) => message.role === "bot" && !quietRow(message, showToolCalls), [showToolCalls]);
-  const { shown: arrivedMessages, held: heldReplies } = usePacedArrivals(transcriptKey, windowedMessages, pacedRow);
-  // a reply that landed but waits its turn keeps the line typing until its bubble takes over
-  const typingHeld = heldReplies.length > 0;
-  const statusMarkState = bot.busy ? turnMarkState({ running: true, composing: streamingReply, activity: live.status?.activity ?? null, awaiting: bot.activity === "waiting-on-you", settled: null }, Date.now()) : statusMarkFor({ busy: false, waitingOnYou: bot.activity === "waiting-on-you", answering: streamingReply || typingHeld, live: live.status?.activity, failed: lastMessage?.kind === "activity" && lastMessage.tool?.ok === false });
-  const presenceVisible = waiting || teammatesWorking || typingHeld;
+  const statusMarkState = bot.busy ? turnMarkState({ running: true, composing: streamingReply, activity: live.status?.activity ?? null, awaiting: bot.activity === "waiting-on-you", settled: null }, Date.now()) : statusMarkFor({ busy: false, waitingOnYou: bot.activity === "waiting-on-you", answering: streamingReply, live: live.status?.activity, failed: lastMessage?.kind === "activity" && lastMessage.tool?.ok === false });
+  const presenceVisible = waiting || teammatesWorking;
   useThinkingMoment(markRef, waiting && !teammatesWorking);
   // the bubble the line hangs under keeps its pinched corner until the line has finished leaving, as grok's does
   const presenceShown = useLingering(presenceVisible, 140);
-  const paintedMessages = useFirstPaintRows(transcriptKey, arrivedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef);
-  const lastShownRow = arrivedMessages.findLast((message) => !quietRow(message, showToolCalls));
+  const paintedMessages = useFirstPaintRows(transcriptKey, windowedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef);
+  const lastShownRow = windowedMessages.findLast((message) => !quietRow(message, showToolCalls));
   const lastRowIsBubble = Boolean(lastShownRow && isBotTextRow(lastShownRow, bot.id));
   const presenceUnderBubble = lastRowIsBubble;
   // grok keeps the status line's slot at the end of the conversation whether it shows or not, so it never moves a row

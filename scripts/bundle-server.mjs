@@ -2,7 +2,7 @@
 // packaged app ships no node_modules. Entry points keep their exact relative
 // paths under dist-server, where the server locates each proxy by path.
 import { build } from "esbuild";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { serverLocalePlugin } from "./server-locale-plugin.mjs";
@@ -36,6 +36,7 @@ const ENTRY_POINTS = [
   "openmausbot.ts",
   "pair-cli.ts",
   "workspace-backup.worker.ts",
+  "pdf-text.worker.ts",
   // the OMB Cloud Pro home image's entry point
   "cloud-home-start.ts",
   // the container image's entry point
@@ -154,6 +155,10 @@ for (const style of ["casual", "warm", "native"]) copyFileSync(join(server, "pro
 const catalogSnapshot = join(root, "dist-server", "model-catalog", "models-dev.snapshot.json");
 mkdirSync(dirname(catalogSnapshot), { recursive: true });
 copyFileSync(join(server, "model-catalog", "models-dev.snapshot.json"), catalogSnapshot);
+
+const pdfAssets = join(root, "dist-server", "pdf-assets");
+mkdirSync(pdfAssets, { recursive: true });
+for (const path of ["cmaps", "standard_fonts", "LICENSE"]) cpSync(join(root, "node_modules", "pdfjs-dist", path), join(pdfAssets, path), { recursive: true });
 
 // Pi loads this through its own jiti and supplies TypeBox. Inline our local
 // policy module so the extension also works without the source checkout;

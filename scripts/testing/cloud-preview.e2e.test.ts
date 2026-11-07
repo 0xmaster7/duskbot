@@ -23,7 +23,7 @@ describe("cloud preview recovery in the real renderer", () => {
     await preview?.close();
   });
 
-  (enabled ? it : it.skip)("retains frames, retries contention, and pauses capture during desktop opening", async () => {
+  (enabled ? it : it.skip)("retains fallback frames, retries contention, and scopes captures to the selected screen", async () => {
     let stdout = "";
     let stderr = "";
     let info: FixtureInfo;
@@ -44,7 +44,7 @@ describe("cloud preview recovery in the real renderer", () => {
     const clickTab = async (name: string) => {
       const state = await ui("snapshot", "--interactive");
       const target = Object.entries(state.refs as Record<string, { role: string; name: string }>)
-        .find(([, entry]) => entry.role === "tab" && entry.name === name);
+        .find(([, entry]) => entry.role === "tab" && (entry.name === name || entry.name.startsWith(`${name} `) || entry.name.startsWith(`${name},`)));
       expect(target).toBeDefined();
       await ui("click", "--ref", `@${target![0]}`);
     };
@@ -57,7 +57,13 @@ describe("cloud preview recovery in the real renderer", () => {
     })()`);
     const currentFrame = () => evaluate("document.querySelector('aside img, img[alt^=\"Screen of\"]')?.getAttribute('src') ?? document.querySelector('img')?.getAttribute('src') ?? null");
     const frameVisible = () => evaluate("Array.from(document.querySelectorAll('img')).some(img => img.src === window.cloudPreviewFixture.screenshot && img.complete && img.naturalWidth > 1 && getComputedStyle(img).visibility === 'visible')");
-    const stat = (key: string) => evaluate(`window.cloudPreviewFixture.${key}`);
+    let documentId = "";
+    const stat = async (key: string) => {
+      const current = await evaluate(`({ url: location.href, documentId: window.cloudPreviewFixture?.documentId, value: window.cloudPreviewFixture?.${key} })`);
+      expect(current.documentId, `fixture document disappeared at ${current.url}`).toBeTruthy();
+      if (documentId) expect(current.documentId, "the isolated preview must not reload between interactions").toBe(documentId);
+      return current.value;
+    };
     const pause = (ms: number) => evaluate(`new Promise(resolve => setTimeout(() => resolve(true), ${ms}))`);
 
     preview = await mountPreview({ info: { url: info!.url } }, {
@@ -65,6 +71,7 @@ describe("cloud preview recovery in the real renderer", () => {
     });
     await evaluate(`location.href = ${JSON.stringify(preview.previewUrl)}; true`);
     await expect.poll(frameVisible, { timeout: 20_000 }).toBe(true);
+    documentId = await stat("documentId");
 
     // A selected thread's surface and model win over its profile defaults.
     // Auto uses the server's existing VM, never an inferred host desktop.
@@ -89,13 +96,6 @@ describe("cloud preview recovery in the real renderer", () => {
     expect(await currentFrame()).toBe(await stat("screenshot"));
     expect((await stat("paths") as string[]).filter((path) => path.endsWith("/computer/provision"))).toHaveLength(provisions);
     expect((await stat("paths") as string[]).some((path) => path.endsWith("/computer/screenshot?threadId=fixture-cloud-pin"))).toBe(true);
-    await evaluate(`document.querySelector('button[aria-label$="live desktop"]')?.click(); true`);
-    await expect.poll(() => stat("joining"), { timeout: 3000 }).toBe(true);
-    await select("Conversation surface", "vm-pin");
-    await expect.poll(() => stat("abortedJoins"), { timeout: 3000 }).toBe(1);
-    await expect.poll(currentFrame, { timeout: 6000 }).toBe(await stat("vmScreenshot"));
-    await click("Release desktop join");
-    expect(await stat("opened")).toBe(0);
     await select("Conversation surface", "browser-pin");
     await expect.poll(() => evaluate('document.querySelector("[data-tour=computer-browser]")?.getAttribute("aria-selected")'), { timeout: 5000 }).toBe("true");
     await clickTab("Browser"); // Save it manually, as a real person can.
@@ -104,9 +104,9 @@ describe("cloud preview recovery in the real renderer", () => {
     expect(await evaluate('document.querySelector("[data-tour=computer-tabs] button")?.getAttribute("aria-selected")')).toBe("true");
     await select("Conversation surface", "browser-pin");
     await expect.poll(() => evaluate('document.querySelector("[data-tour=computer-browser]")?.getAttribute("aria-selected")'), { timeout: 5000 }).toBe("true");
-    await clickTab("Data");
+    await clickTab("Screen");
     await pause(200);
-    expect(await evaluate('document.querySelector("[data-tour=computer-browser]")?.getAttribute("aria-selected")')).toBe("false");
+    expect(await evaluate('document.querySelector("[data-tour=computer-browser]")?.getAttribute("aria-selected")')).not.toBe("true");
     await select("Conversation surface", "default");
     await evaluate('document.querySelector("[data-tour=computer-tabs] button")?.click(); true');
     await expect.poll(frameVisible, { timeout: 6000 }).toBe(true);
@@ -116,10 +116,10 @@ describe("cloud preview recovery in the real renderer", () => {
     await pause(200);
     expect(await frameVisible()).toBe(true);
     expect((await stat("paths") as string[]).filter((path) => path.endsWith("/computer/provision"))).toHaveLength(busyProvisions);
-    await clickTab("Data");
+    await clickTab("Screen");
     await click("Busy: true");
     await pause(200);
-    expect(await evaluate('Array.from(document.querySelectorAll("[data-tour=computer-tabs] button")).find(button => button.textContent.includes("Data"))?.getAttribute("aria-selected")')).toBe("true");
+    expect(await evaluate('Array.from(document.querySelectorAll("[data-tour=computer-tabs] button")).find(button => button.textContent.includes("Screen"))?.getAttribute("aria-selected")')).toBe("true");
     await evaluate('document.querySelector("[data-tour=computer-tabs] button")?.click(); true');
     await expect.poll(frameVisible, { timeout: 6000 }).toBe(true);
 
@@ -175,44 +175,6 @@ describe("cloud preview recovery in the real renderer", () => {
     await select("Screenshot response", "connected");
     await expect.poll(frameVisible, { timeout: 15_000 }).toBe(true);
 
-    // Desktop join/control owns the UI while it is pending. Neither panel
-    // should continue issuing screenshot polls into that operation.
-    for (const panel of ["computer", "remote"]) {
-      if (panel === "remote") {
-        await select("Panel", "remote");
-        await expect.poll(frameVisible, { timeout: 5000 }).toBe(true);
-        await select("Screenshot response", "held");
-        await expect.poll(() => stat("capturing"), { timeout: 6000 }).toBe(true);
-        const aborted = await stat("aborted");
-        const requested = await stat("requests");
-        await click("Busy: true");
-        await pause(200);
-        expect(await stat("aborted")).toBe(aborted);
-        expect(await stat("requests")).toBe(requested);
-        await click("Reconnect panel");
-        await expect.poll(() => stat("aborted"), { timeout: 3000 }).toBe(aborted + 1);
-        expect(await snapshot()).not.toContain("Preview unavailable");
-        await select("Screenshot response", "connected");
-        await click("Release held capture");
-        await expect.poll(frameVisible, { timeout: 5000 }).toBe(true);
-        await click("Busy: false");
-      }
-      await expect.poll(frameVisible, { timeout: 5000 }).toBe(true);
-      const state = await ui("snapshot", "--interactive");
-      const target = Object.entries(state.refs as Record<string, { role: string; name: string }>)
-        .find(([, entry]) => entry.role === "button" && entry.name.startsWith("Open ") && entry.name.endsWith("live desktop"));
-      expect(target).toBeDefined();
-      await ui("click", "--ref", `@${target![0]}`);
-      await expect.poll(() => stat("joining"), { timeout: 5000 }).toBe(true);
-      const before = await stat("requests");
-      await pause(4500);
-      expect(await stat("requests")).toBe(before);
-      expect(await stat("duringJoin")).toBe(0);
-      await click("Release desktop join");
-      await expect.poll(() => stat("joining")).toBe(false);
-    }
-    // Keyboard entry and hand-off, on both panel shapes: the tab row when the
-    // panel has one, otherwise its close button.
     const entryFocus = () => evaluate(`(() => {
       const active = document.activeElement;
       const tabs = document.querySelector('[data-testid="computer-tabs"]');
@@ -238,7 +200,7 @@ describe("cloud preview recovery in the real renderer", () => {
     for (const panel of ["computer", "remote"]) {
       await select("Panel", panel);
       await openFromItsButton();
-      await expect.poll(entryFocus, { timeout: 5000 }).toMatchObject(panel === "remote" ? { tab: false, close: true } : { tab: true, close: false });
+      await expect.poll(entryFocus, { timeout: 5000 }).toMatchObject({ tab: true, close: false });
       await closeFromItsX();
       await expect.poll(entryFocus, { timeout: 5000 }).toMatchObject({ opener: true, tab: false, close: false });
     }

@@ -36,6 +36,27 @@ const QUEUE_BYTES = 16 * 1024 * 1024;
 const CREATE_PER_HOUR = 30;
 /** downloads (server build and desktop kit together) one install session may make; install.sh retries three times */
 const PACKAGE_DOWNLOADS = 10;
+const nonnegativeInteger = (value) => Number.isSafeInteger(value) && value >= 0;
+
+function installerProgress(value) {
+  if (!value || typeof value !== "object") return null;
+  const label = typeof value.label === "string" ? [...value.label].filter((char) => char.charCodeAt(0) >= 32 && char.charCodeAt(0) !== 127).join("").slice(0, 100) : undefined;
+  if (value.kind === "download") {
+    if (!nonnegativeInteger(value.receivedBytes) || (value.totalBytes !== undefined && !nonnegativeInteger(value.totalBytes))) return null;
+    return { kind: value.kind, receivedBytes: value.receivedBytes, ...(value.totalBytes !== undefined ? { totalBytes: value.totalBytes } : {}), ...(label ? { label } : {}) };
+  }
+  if (value.kind !== "layers" && value.kind !== "build") return null;
+  if (!nonnegativeInteger(value.completed) || !nonnegativeInteger(value.total) || value.completed > value.total) return null;
+  const bytes = value.receivedBytes !== undefined || value.totalBytes !== undefined;
+  if (bytes && (!nonnegativeInteger(value.receivedBytes) || !nonnegativeInteger(value.totalBytes))) return null;
+  return { kind: value.kind, completed: value.completed, total: value.total,
+    ...(bytes ? { receivedBytes: value.receivedBytes, totalBytes: value.totalBytes } : {}), ...(label ? { label } : {}) };
+}
+
+function installerActivity(value) {
+  if (!value || !nonnegativeInteger(value.elapsedMs) || !nonnegativeInteger(value.quietMs) || value.quietMs > value.elapsedMs) return null;
+  return { elapsedMs: value.elapsedMs, quietMs: value.quietMs };
+}
 
 export const sha256hex = (value) => createHash("sha256").update(value).digest("hex");
 export function randomB32(length) {
@@ -211,7 +232,8 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     if (!session) { fail(res, 404, "This command expired. Make a new one in the app.", "expired"); return null; }
     if (!sameHash(bearer(req), session.vpsVerifier)) { fail(res, 401, "This command is not valid.", "unauthorized"); return null; }
     const state = store.stateOf(session);
-    if (state === "linked" || state === "cancelled") { fail(res, 410, "This command was already used. Make a new one in the app.", "used"); return null; }
+    if (state === "cancelled") { fail(res, 410, "Setup was cancelled in the app. Make a new command to resume.", "cancelled"); return null; }
+    if (state === "linked") { fail(res, 410, "This command was already used. Make a new one in the app.", "used"); return null; }
     if (state === "expired") { fail(res, 404, "This command expired. Make a new one in the app.", "expired"); return null; }
     return session;
   }
@@ -292,6 +314,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         const session = vpsSession(req, res, id);
         if (!session) return;
         const body = await readJson(req);
+        if (!vpsSession(req, res, id)) return;
         const host = body?.host && typeof body.host === "object"
           ? { arch: String(body.host.arch ?? "").slice(0, 20), os: String(body.host.os ?? "").slice(0, 60), name: String(body.host.name ?? "").slice(0, 60) } : null;
         if (session.state === "waiting") session.state = "installing";
@@ -312,7 +335,11 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         if (!session) return;
         if (session.state === "waiting") return fail(res, 409, "claim first", "not_claimed");
         const body = await readJson(req);
+        if (!vpsSession(req, res, id)) return;
         if (!STEP.test(body?.step ?? "") || !STATUSES.has(body?.status)) return fail(res, 400, "step and status are required");
+        const progress = body.progress === undefined ? undefined : installerProgress(body.progress);
+        const activity = body.activity === undefined ? undefined : installerActivity(body.activity);
+        if (progress === null || activity === null || (body.heartbeat !== undefined && typeof body.heartbeat !== "boolean")) return fail(res, 400, "invalid installer progress or activity");
         if (body.lines !== undefined && (!Array.isArray(body.lines) || body.lines.length > MAX_LINES || body.lines.some((line) => typeof line !== "string"))) {
           return fail(res, 400, `lines must be up to ${MAX_LINES} strings`);
         }
@@ -329,12 +356,13 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
           }
         }
         // line batches are the many, short-lived events: past KEEP_LINE_EVENTS the oldest go first, status events stay
-        if (lines) {
-          const kept = session.events.filter((event) => event.lines);
+        if (lines || progress || activity || body.heartbeat) {
+          const kept = session.events.filter((event) => event.lines || event.progress || event.activity || event.heartbeat);
           if (kept.length >= KEEP_LINE_EVENTS) { const drop = kept[0]; session.events.splice(session.events.indexOf(drop), 1); }
         }
         if (session.events.length >= MAX_EVENTS) session.events.splice(1, session.events.length - MAX_EVENTS + 1);
-        const event = { seq: ++session.seq, at: now(), step: body.step, status: body.status, ...(log ? { log } : {}), ...(cmd ? { cmd } : {}), ...(lines ? { lines } : {}) };
+        const event = { seq: ++session.seq, at: now(), step: body.step, status: body.status, ...(log ? { log } : {}), ...(cmd ? { cmd } : {}), ...(lines ? { lines } : {}),
+          ...(progress ? { progress } : {}), ...(activity ? { activity } : {}), ...(body.heartbeat ? { heartbeat: true } : {}) };
         session.events.push(event);
         store.save();
         wakeSession(id);
@@ -344,16 +372,20 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         const session = vpsSession(req, res, id);
         if (!session) return;
         const body = await readJson(req);
+        if (!vpsSession(req, res, id)) return;
         if (!NONCE.test(body?.nonce ?? "")) return fail(res, 400, "nonce must be 16-64 lowercase letters or digits");
         const ip = clientIp(req);
         if ((session.probes = (session.probes ?? 0) + 1) > 10) return fail(res, 429, "too many probes", "rate_limited");
-        return send(res, 200, { ip, reachable: await probe(ip, body.nonce) });
+        const reachable = await probe(ip, body.nonce);
+        if (!vpsSession(req, res, id)) return;
+        return send(res, 200, { ip, reachable });
       }
       if (action === "result" && method === "POST") {
         const session = vpsSession(req, res, id);
         if (!session) return;
         if (session.state === "waiting") return fail(res, 409, "claim first", "not_claimed");
         const body = await readJson(req);
+        if (!vpsSession(req, res, id)) return;
         if (typeof body?.sealed !== "string" || !B64URL.test(body.sealed) || body.sealed.length > 16_384) return fail(res, 400, "sealed must be base64url");
         if (typeof body?.vpsPub !== "string" || !B64URL.test(body.vpsPub) || body.vpsPub.length > 64) return fail(res, 400, "vpsPub must be base64url");
         const tunnel = body?.tunnel;
@@ -402,10 +434,15 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       if (session.state !== "installing") return fail(res, 409, "claim first", "not_claimed");
       const build = packages.find(sha);
       if (!build) return fail(res, 404, "not found", "not_found");
+      const range = req.headers.range;
+      const match = typeof range === "string" ? /^bytes=(0|[1-9][0-9]*)-$/.exec(range) : null;
+      const start = range === undefined ? 0 : match ? Number(match[1]) : NaN;
+      if (!nonnegativeInteger(start) || start >= build.size) return send(res, 416, { error: "invalid package range" }, { "content-range": `bytes */${build.size}` });
       if ((session.downloads = (session.downloads ?? 0) + 1) > PACKAGE_DOWNLOADS) return fail(res, 429, "too many downloads", "rate_limited");
       store.save();
-      res.writeHead(200, { "content-type": "application/gzip", "content-length": String(build.size), "cache-control": "no-store, private", "x-content-type-options": "nosniff" });
-      await pipeline(createReadStream(build.path), res).catch((error) => {
+      res.writeHead(range === undefined ? 200 : 206, { "content-type": "application/gzip", "content-length": String(build.size - start), "accept-ranges": "bytes",
+        ...(range === undefined ? {} : { "content-range": `bytes ${start}-${build.size - 1}/${build.size}` }), "cache-control": "no-store, private", "x-content-type-options": "nosniff" });
+      await pipeline(createReadStream(build.path, { start }), res).catch((error) => {
         // the server closing mid-download is normal (install.sh retries); anything else is ours
         if (error?.code !== "ERR_STREAM_PREMATURE_CLOSE") throw error;
       });

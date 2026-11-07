@@ -27,6 +27,7 @@ export function createCloudEntry({ reveal, open }) {
     return true;
   }
   return {
+    pending: () => pending,
     fromLaunch(argv) {
       if (takeCloudDeepLink(argv)) pending = true;
       return pending;

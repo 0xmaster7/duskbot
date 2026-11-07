@@ -2,9 +2,12 @@
 // One connection path for every in-app desktop: the panel's live desktop and the full-page viewer.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const paint = vi.hoisted(() => ({ opaque: true }));
 const clients = vi.hoisted(() => [] as Array<{
   url: string;
   password: string;
+  viewOnly: boolean;
+  focusOnClick: boolean;
   listeners: Map<string, Array<(event: { detail: { text: string } }) => void>>;
   disconnected: number;
   emit(type: string, text?: string): void;
@@ -15,11 +18,17 @@ vi.mock("@novnc/novnc", () => ({
     password: string;
     listeners = new Map<string, Array<(event: { detail: { text: string } }) => void>>();
     disconnected = 0;
+    viewOnly = false;
+    focusOnClick = true;
     scaleViewport = false;
     background = "";
-    constructor(_screen: HTMLElement, url: string, options: { credentials: { password: string } }) {
+    constructor(screen: HTMLElement, url: string, options: { credentials: { password: string } }) {
       this.url = url;
       this.password = options.credentials.password;
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 16;
+      canvas.getContext = vi.fn(() => ({ getImageData: () => ({ data: [255, 0, 0, paint.opaque ? 255 : 0] }) })) as never;
+      screen.append(canvas);
       clients.push(this);
     }
     addEventListener(type: string, listener: (event: { detail: { text: string } }) => void) {
@@ -40,6 +49,7 @@ const asked: string[] = [];
 const events = () => ({ connected: vi.fn(), disconnected: vi.fn(), clipboard: vi.fn() });
 
 beforeEach(() => {
+  paint.opaque = true;
   clients.length = 0;
   asked.length = 0;
   vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
@@ -67,7 +77,31 @@ describe("connecting to a desktop", () => {
 
   it("opens a VPS's tunnel for this conversation first", async () => {
     await connectDesktop(document.createElement("div"), "vps/scout", { threadId: "thread", signal: new AbortController().signal, events: events() });
-    expect(asked).toEqual(["POST /api/bots/scout/computer/join?threadId=thread", "GET /api/desktop-viewer/vps/scout"]);
+    expect(asked).toEqual(["POST /api/bots/scout/computer/join?viewer=proxy&threadId=thread", "GET /api/desktop-viewer/vps/scout?threadId=thread"]);
+    expect(clients[0]!.url).toBe(`ws://${location.host}/api/desktop-viewer/vps/scout/websockify?threadId=thread`);
+  });
+
+  it("waits for decoded pixels before enabling control", async () => {
+    vi.useFakeTimers();
+    paint.opaque = false;
+    const on = events();
+    await connectDesktop(document.createElement("div"), "local/shared", { signal: new AbortController().signal, events: on });
+    clients[0]!.emit("connect");
+    await vi.advanceTimersByTimeAsync(64);
+    expect(on.connected).not.toHaveBeenCalled();
+    paint.opaque = true;
+    await vi.advanceTimersByTimeAsync(32);
+    expect(on.connected).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses authenticated join credentials without a second config round trip", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      asked.push(url);
+      return new Response(JSON.stringify({ viewer: { password: "fixture" } }));
+    }));
+    await connectDesktop(document.createElement("div"), "vps/scout", { signal: new AbortController().signal, events: events() });
+    expect(asked).toEqual(["/api/bots/scout/computer/join?viewer=proxy"]);
+    expect(clients[0]!.password).toBe("fixture");
   });
 
   it("refuses a target the proxy does not serve, before any request", async () => {
@@ -89,6 +123,8 @@ describe("connecting to a desktop", () => {
     await vi.advanceTimersByTimeAsync(15_000);
     expect(clients[0]!.disconnected).toBe(1);
     expect(on.disconnected).toHaveBeenCalledTimes(1);
+    clients[0]!.emit("connect");
+    expect(on.connected).not.toHaveBeenCalled();
   });
 
   it("goes quiet once the viewer has left", async () => {
@@ -101,6 +137,15 @@ describe("connecting to a desktop", () => {
     await vi.advanceTimersByTimeAsync(20_000);
     expect(on.connected).not.toHaveBeenCalled();
     expect(on.disconnected).not.toHaveBeenCalled();
+    expect(clients[0]!.disconnected).toBe(1);
+  });
+
+  it("starts watching with keyboard and pointer input disabled", async () => {
+    await connectDesktop(document.createElement("div"), "local/shared", {
+      signal: new AbortController().signal, events: events(), viewOnly: true,
+    });
+    expect(clients[0]!.viewOnly).toBe(true);
+    expect(clients[0]!.focusOnClick).toBe(false);
   });
 
   it("types text as keysyms, Latin and not", () => {
