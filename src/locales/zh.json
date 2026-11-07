@@ -2380,7 +2380,6 @@
   "task.switchWithUsage": "全部对话 · {label}（输入 {input} · 输出 {output}）",
   "task.switchWithUsageDetail": "所有对话 · {label}（{detail}）",
   "task.switch": "全部对话",
-  "task.otherActivity": "其他活动（{count}）",
   "task.workingElsewhere": "其他话题进行中：{count}",
   "attention.title": "进行中的对话",
   "attention.titleCount": "进行中的对话，{count} 个",

@@ -2117,7 +2117,6 @@
   "task.switchWithUsage": "Wszystkie wątki · {label} ({input} wej. · {output} wyj.)",
   "task.switchWithUsageDetail": "Wszystkie wątki · {label} ({detail})",
   "task.switch": "Wszystkie wątki",
-  "task.otherActivity": "Inna aktywność ({count})",
   "task.workingElsewhere": "Praca w innych wątkach: {count}",
   "attention.title": "Aktywne wątki",
   "attention.titleCount": "Aktywne wątki: {count}",

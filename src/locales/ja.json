@@ -2172,7 +2172,6 @@
   "task.switchWithUsage": "すべてのスレッド · {label}（入力 {input} · 出力 {output}）",
   "task.switchWithUsageDetail": "すべてのスレッド · {label}（{detail}）",
   "task.switch": "すべてのスレッド",
-  "task.otherActivity": "その他のアクティビティ（{count}）",
   "task.workingElsewhere": "他のスレッドで作業中: {count}",
   "attention.title": "アクティブなスレッド",
   "attention.titleCount": "アクティブなスレッド、{count} 件",

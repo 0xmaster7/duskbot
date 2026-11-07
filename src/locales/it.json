@@ -2073,7 +2073,6 @@
   "task.switchWithUsage": "Tutte le conversazioni · {label} ({input} in ingresso · {output} in uscita)",
   "task.switchWithUsageDetail": "Tutte le conversazioni · {label} ({detail})",
   "task.switch": "Tutte le conversazioni",
-  "task.otherActivity": "Altra attività ({count})",
   "task.workingElsewhere": "Al lavoro in altre conversazioni: {count}",
   "attention.title": "Conversazioni attive",
   "attention.titleCount": "Conversazioni attive, {count}",

@@ -2287,7 +2287,6 @@
   "task.switchWithUsage": "모든 스레드 · {label}(입력 {input} · 출력 {output})",
   "task.switchWithUsageDetail": "모든 스레드 · {label}({detail})",
   "task.switch": "모든 스레드",
-  "task.otherActivity": "다른 활동({count})",
   "task.workingElsewhere": "다른 스레드에서 작업 중: {count}개",
   "attention.title": "활성 스레드",
   "attention.titleCount": "활성 스레드, {count}개",

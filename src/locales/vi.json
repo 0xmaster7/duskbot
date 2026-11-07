@@ -1760,7 +1760,6 @@
   "task.switchWithUsage": "Tất cả luồng · {label} ({input} vào · {output} ra)",
   "task.switchWithUsageDetail": "Tất cả luồng · {label} ({detail})",
   "task.switch": "Tất cả luồng",
-  "task.otherActivity": "Hoạt động khác ({count})",
   "task.workingElsewhere": "Đang làm việc trong các luồng khác: {count}",
   "attention.title": "Luồng đang hoạt động",
   "attention.titleCount": "Luồng đang hoạt động, {count}",

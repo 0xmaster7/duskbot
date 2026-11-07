@@ -14,7 +14,6 @@ const styles = readFileSync(stylesPath, "utf8");
 
 // Keyed by file and a class-string snippet, so a stale entry fails instead of silently widening.
 const notActions: Array<{ file: string; snippet: string; why: string }> = [
-  { file: "components/ScreenFrame.tsx", snippet: "group-hover/image:opacity-100", why: "aria-hidden zoom hint; the whole image is the tap target" },
   { file: "components/CreateBotDialog.tsx", snippet: "group-hover/shape:opacity-12", why: "aria-hidden ring round a shape tile; the tile itself is the tap target and shows the chosen ring" },
   { file: "components/bot-panel/AvatarEditorCard.tsx", snippet: "opacity-0 group-hover/shape:opacity-100", why: "aria-hidden ring round a shape tile; the tile itself is the tap target and shows the chosen ring" },
   { file: "components/routines/CalendarSidebar.tsx", snippet: "text-[9px]", why: "'Drag' hint badge, not a control" },
