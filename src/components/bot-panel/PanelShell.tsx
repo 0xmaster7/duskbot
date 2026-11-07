@@ -8,17 +8,19 @@ import type { Bot, BotSettingsSection } from "@/state/store";
 import { GrokIcon } from "../GrokIcon";
 import { useCaptionChrome } from "../DesktopCapabilities";
 import type { useBotSettingsDerived } from "../bot-settings/useBotSettingsDerived";
-import { AdvancedTab } from "./AdvancedTab";
-import { AvatarEditorCard } from "./AvatarEditorCard";
 import { ComputerTab } from "./ComputerTab";
-import { DetailsTab } from "./DetailsTab";
 import { PANEL_TABS, PAGES, resolveTarget, TAB_LABEL, type PanelTab, type PanelTarget, type SimplePageId } from "./page-registry";
-import { PageBody, pageSurfaceCls } from "./pages";
+import { lazyScreen } from "../lazy-screen";
 import { linkTarget, usePanelLink, type PanelLink } from "./panel-link";
 import { PanelHero } from "./PanelHero";
 import { PanelShareMenu } from "./PanelShareMenu";
 import { roundButtonCls } from "./rows";
 import { SegmentedTabs } from "../ui/SegmentedTabs";
+
+export const PanelDetailsTab = lazyScreen("BotPanelDetails", async () => (await import("./DetailsTab")).DetailsTab);
+export const PanelAdvancedTab = lazyScreen("BotPanelAdvanced", async () => (await import("./AdvancedTab")).AdvancedTab);
+export const PanelAvatarEditor = lazyScreen("BotPanelAvatar", async () => (await import("./AvatarEditorCard")).AvatarEditorCard);
+export const PanelPageBody = lazyScreen("BotPanelPages", async () => (await import("./pages")).PageBody);
 
 function initialTarget(section: BotSettingsSection | null, link: PanelLink | null): PanelTarget {
   return section ? resolveTarget(linkTarget(section, link)) : { tab: "details" };
@@ -129,7 +131,7 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
           {editorOpen && (
             <>
               <div className="fixed inset-0 z-20" aria-hidden="true" data-panel-scrim onClick={closeEditor} />
-              <AvatarEditorCard bot={bot} activeState={derived.activeState} onPatch={derived.patch} onClose={closeEditor} />
+              <PanelAvatarEditor bot={bot} activeState={derived.activeState} onPatch={derived.patch} onClose={closeEditor} />
             </>
           )}
         </div>
@@ -152,9 +154,9 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
         initial={reduced || !tabSwapped ? false : SWAP.initial}
         animate={SWAP.animate}
       >
-        {tab === "details" && <DetailsTab bot={bot} derived={derived} onOpen={openPage} />}
+        {tab === "details" && <PanelDetailsTab bot={bot} derived={derived} onOpen={openPage} />}
         {tab === "computer" && <ComputerTab bot={bot} derived={derived} onOpen={openPage} />}
-        {tab === "advanced" && <AdvancedTab bot={bot} derived={derived} onOpen={openPage} />}
+        {tab === "advanced" && <PanelAdvancedTab bot={bot} derived={derived} onOpen={openPage} />}
       </MotionDiv>
     </>
   );
@@ -162,8 +164,8 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
   const pageView = page === null ? null : (
     <div data-panel-page-view={page} className="pt-1">
       {PAGES[page].intro && <p className="mx-3 mb-2.5 text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{t(PAGES[page].intro, { name: bot.name })}</p>}
-      <div className={pageSurfaceCls}>
-        <PageBody
+      <div className="flex flex-col gap-3">
+        <PanelPageBody
           page={page}
           bot={bot}
           derived={derived}

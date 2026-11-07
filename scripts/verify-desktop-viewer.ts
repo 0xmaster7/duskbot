@@ -43,7 +43,7 @@ if (args[0] === 'inspect' && /^openmausbot-vps-/.test(args[1])) result = [{
     CgroupnsMode:'private',SecurityOpt:[],RestartPolicy:{Name:'unless-stopped',MaximumRetryCount:0}},
   NetworkSettings:{Networks:{bridge:{IPAddress:'172.17.0.5'}}}
 }];
-else if (args[0] === 'start' && (/^openmausbot-vps-/.test(args[1]) || args[1] === 'b'.repeat(64))) { fs.rmSync(stopped,{force:true}); result = args[1]; }
+else if (['start','stop'].includes(args[0]) && (/^openmausbot-vps-/.test(args[1]) || args[1] === 'b'.repeat(64))) { if(args[0]==='start') fs.rmSync(stopped,{force:true}); else fs.writeFileSync(stopped,'stopped'); result = args[1]; }
 else if (args[0] === 'exec') result = args.includes('--version') ? 'cua-driver ${CUA_DRIVER_VERSION}'
   : (args.includes('omb-desktop-probe') || args.includes('health_report')) ? {schema_version:'1',overall:'ok',checks:[]} : {};
 else if (args[0] === 'info') result = 'fixture';
@@ -104,20 +104,24 @@ process.on('SIGTERM',()=>{fs.appendFileSync(log,'close ');process.exit(0)});
     const connectedBeforeWatch = desktop.connections();
     await command("set", "viewport", "1100", "850");
     desktop.pauseFrames();
-    if (wake) writeFileSync(join(scratch, "stopped"), "stopped");
+    if (wake) await api("POST", `/api/bots/${botId}/computer/sleep`, {});
     await command("open", `${preview.previewUrl}?bot=${botId}&inline=1`);
+    await command("wait", "[data-panel-tab=computer]");
+    await command("click", "[data-panel-tab=computer]");
+    await command("wait", "--fn", "document.querySelector('[data-panel-tab=computer]').getAttribute('aria-selected') === 'true'");
     console.log(JSON.stringify({ step: "inline-open", botId, wake }));
     if (wake) {
       await command("wait", "--fn", "document.querySelector('[data-inline-computer][data-stage=asleep] button[aria-label=\"Wake computer\"]:not(:disabled)') !== null && window.liveComputerFixture.status.configured === true && window.liveComputerFixture.status.container === 'stopped'");
       assert.equal(desktop.connections(), connectedBeforeWatch);
+      await snapshot("asleep");
       console.log(JSON.stringify({ step: "inline-wake", botId }));
       await command("click", "[data-panel-screen] button");
     }
     await command("wait", "--fn", "document.querySelector('[data-live-desktop] canvas') !== null");
     assert.equal(await evaluate("document.querySelector('[data-inline-computer]').dataset.stage"), "loading");
-    assert.equal(await evaluate("document.querySelector('[data-computer-waking] [data-grok-state=working]') !== null"), true);
+    assert.equal(await evaluate("document.querySelector('[data-computer-waking] [data-asleep-mascot]') !== null"), true);
     assert.equal(await evaluate("document.querySelector('[data-live-desktop][data-expanded]') === null"), true);
-    assert.equal(await evaluate("(() => { const buttons = Array.from(document.querySelectorAll('button')).filter(button => button.getAttribute('aria-label') === 'Take control' || button.textContent.trim() === 'Take control'); return buttons.length > 0 && buttons.every(button => button.disabled); })()"), true);
+    assert.equal(await evaluate("(() => { const buttons = Array.from(document.querySelectorAll('button')).filter(button => button.getAttribute('aria-label') === 'Take control' || button.textContent.trim() === 'Take control'); return buttons.every(button => button.disabled); })()"), true);
     assert.equal((await api("GET", `/api/bots/${botId}/computer/control`)).held, false);
     await snapshot("waking");
     desktop.releaseFrames();
@@ -162,6 +166,12 @@ process.on('SIGTERM',()=>{fs.appendFileSync(log,'close ');process.exit(0)});
     await command("mouse", "move", String(point.x), String(point.y));
     await command("mouse", "down", "left");
     await command("mouse", "up", "left");
+    await command("wait", "--fn", "document.querySelector('[data-live-desktop][data-state=connected][data-expanded=true][data-view-only=true]') !== null");
+    assert.equal((await api("GET", `/api/bots/${botId}/computer/control`)).held, false);
+    assert.equal(await evaluate("document.querySelector('[data-computer-control=watching]') !== null"), true);
+    assert.equal(await evaluate("(() => { const r = document.querySelector('[data-computer-fullscreen]').getBoundingClientRect(); return r.x === 0 && r.y === 0 && r.width === innerWidth && r.height === innerHeight; })()"), true);
+    await snapshot("viewer-watching");
+    await command("find", "role", "button", "click", "--name", "Take control");
     await command("wait", "--fn", "document.querySelector('[data-live-desktop][data-state=connected][data-expanded=true]:not([data-view-only])') !== null");
     assert.equal(desktop.connections(), watchConnections);
     point = await evaluate("(() => { const r = document.querySelector('canvas').getBoundingClientRect(); return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) }; })()");
@@ -203,32 +213,12 @@ process.on('SIGTERM',()=>{fs.appendFileSync(log,'close ');process.exit(0)});
     await desktop.untilKey(0xff0d);
     await command("press", "Backspace");
     await desktop.untilKey(0xff08);
-    await command("find", "role", "button", "click", "--name", "Exit fullscreen");
-    await command("wait", "--fn", "document.querySelector('[data-live-desktop][data-expanded]') === null");
-    assert.equal(desktop.connections(), watchConnections);
-    await command("click", "button[aria-label='Keyboard']");
-    desktop.keys.length = 0;
-    await command("fill", "textarea[aria-label='Text to type on the desktop']", "line1\nП");
-    await command("click", "button[aria-label='Send text']");
-    await desktop.untilKey(0x0100041f);
-    assert.deepEqual(desktop.keys, [108, 105, 110, 101, 49, 0xff0d, 0x0100041f]);
-    assert.equal(await evaluate("document.querySelector('textarea[aria-label=\"Text to type on the desktop\"]').value"), "");
-    await command("click", "button[aria-label='Full screen']");
-    await command("wait", "--fn", "document.querySelector('[data-live-desktop][data-expanded=true]') !== null");
-    assert.equal(desktop.connections(), watchConnections);
-    await command("find", "role", "button", "click", "--name", "Exit fullscreen");
-    await command("wait", "--fn", "document.querySelector('[data-live-desktop][data-expanded]') === null");
-    assert.equal(desktop.connections(), watchConnections);
-    await command("fill", "textarea[aria-label='Text to type on the desktop']", "discard this draft");
-
-
-
-    await evaluate("Array.from(document.querySelectorAll('button')).find(button => button.textContent.trim() === 'Hand control back').click(); true");
+    await command("find", "role", "button", "click", "--name", "Stop");
     await command("wait", "--fn", "document.querySelector('[data-live-desktop][data-state=connected][data-view-only=true]') !== null");
     assert.equal(desktop.connections(), watchConnections);
     desktop.keys.length = 0;
     desktop.pointers.length = 0;
-    assert.equal(await evaluate("document.querySelector('textarea[aria-label=\"Text to type on the desktop\"]') === null"), true);
+    assert.equal(await evaluate("document.querySelector('[data-computer-control=watching]') !== null"), true);
     await evaluate("document.querySelector('canvas').focus(); true");
     await command("press", "r");
     point = await evaluate("(() => { const r = document.querySelector('canvas').getBoundingClientRect(); return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) }; })()");
@@ -261,7 +251,7 @@ process.on('SIGTERM',()=>{fs.appendFileSync(log,'close ');process.exit(0)});
     assert.equal(sharedStatus.ready, true);
     assert.equal((await api("GET", `/api/bots/${bot.id}/computer/control`)).held, false);
     await verifyLiveComputer(bot.id);
-    console.log(JSON.stringify({ ok: true, checks: ["Wake shows animated mascot then persistent live preview without fullscreen or control", "second preview click opens fullscreen and takes control on the same RFB connection", "Take control disabled until decoded RFB pixels", "real ComputerPanel renders synthetic RFB pixels", "view-only keyboard/pointer blocked", "right/middle click and vertical/horizontal wheel reach RFB only after takeover", "native canvas context menu suppressed", "Control+A/Enter/Backspace reach RFB", "inline Keyboard sends multiline Unicode without clipboard reads and clears on handback", "fullscreen preserves the connection", "take sends keyboard input after lease", "hand-back blocks input", "one RFB connection for watch/take/hand-back with zero screenshots", "loopback proxy viewer URL", "shared team desktop watches without taking control and reuses its connection for take/hand-back"], logPath: fixture.info.logPath, screenshots: inlineEvidence }));
+    console.log(JSON.stringify({ ok: true, checks: ["Wake shows animated mascot then persistent live preview without fullscreen or control", "second preview click opens the original viewer read-only; only explicit Take control enables input", "Take control disabled until decoded RFB pixels", "real ComputerPanel renders synthetic RFB pixels", "view-only keyboard/pointer blocked", "right/middle click and vertical/horizontal wheel reach RFB only after takeover", "native canvas context menu suppressed", "Control+A/Enter/Backspace reach RFB", "fullscreen preserves the connection", "take sends keyboard input after lease", "hand-back blocks input", "one RFB connection for watch/take/hand-back with zero screenshots", "loopback proxy viewer URL", "shared team desktop watches without taking control and reuses its connection for take/hand-back"], logPath: fixture.info.logPath, screenshots: inlineEvidence }));
   } else {
   await command("wait", "--fn", "document.getElementById('retry') !== null");
   let nextConnection = desktop.nextConnection();

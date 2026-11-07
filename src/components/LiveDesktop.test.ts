@@ -143,37 +143,28 @@ describe("the live desktop", () => {
     root = createRoot(container);
   });
 
-  it("offers inline text only in control and clears drafts on hand-back, disconnect and target change", async () => {
-    const field = () => document.querySelector<HTMLTextAreaElement>("textarea[aria-label='Text to type on the desktop']");
-    const write = (text: string) => flushSync(() => {
-      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(field(), text);
-      field()!.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-    draw({ viewOnly: true });
+  it("opens the original viewer read-only and enables input only through its control button", () => {
+    const open = vi.fn();
+    const take = vi.fn();
+    draw({ originalViewer: true, viewOnly: true, onOpenPreview: open, onTakeControl: take });
     flushSync(() => fixture.attempts[0]!.events.connected());
+    flushSync(() => button("Open")!.click());
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(take).not.toHaveBeenCalled();
+    draw({ expanded: true });
+    expect(document.querySelector("[data-computer-control=watching]")).not.toBeNull();
+    expect(fixture.attempts[0]!.client.viewOnly).toBe(true);
     expect(button("Keyboard")).toBeUndefined();
+    expect(document.querySelector("header")).toBeNull();
+    flushSync(() => button("Take control")!.click());
+    expect(take).toHaveBeenCalledTimes(1);
     draw({ viewOnly: false });
-    flushSync(() => button("Keyboard")!.click());
-    write("line1\nП");
-    flushSync(() => field()!.form!.requestSubmit());
-    expect(fixture.typed).toEqual(["line1\nП"]);
+    expect(fixture.attempts[0]!.client.viewOnly).toBe(false);
+    expect(document.querySelector("[data-computer-control=held]")).not.toBeNull();
     expect(fixture.attempts).toHaveLength(1);
-    write("private draft");
     draw({ viewOnly: true });
-    expect(field()).toBeNull();
-    draw({ viewOnly: false });
-    flushSync(() => button("Keyboard")!.click());
-    expect(field()!.value).toBe("");
-    write("old target");
-    draw({ target: "vps/next" });
-    await settle();
-    flushSync(() => fixture.attempts[1]!.events.connected());
-    flushSync(() => button("Keyboard")!.click());
-    expect(field()!.value).toBe("");
-    write("disconnected draft");
-    flushSync(() => fixture.attempts[1]!.events.disconnected());
-    expect(field()).toBeNull();
-    expect(fixture.typed).toEqual(["line1\nП"]);
+    expect(fixture.attempts[0]!.client.viewOnly).toBe(true);
+    expect(document.querySelector("[data-computer-control=watching]")).not.toBeNull();
   });
 
   it("full screen keeps the same connection and offers Exit, typing and Hand back", async () => {
@@ -181,9 +172,9 @@ describe("the live desktop", () => {
     draw({ expanded: true });
     await settle();
     expect(fixture.attempts, "growing the view must not reconnect").toHaveLength(1);
-    const field = document.querySelector<HTMLTextAreaElement>("textarea[aria-label='Text to type on the desktop']")!;
+    const field = document.querySelector<HTMLInputElement>("input[aria-label='Text to type on the desktop']")!;
     flushSync(() => {
-      const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!;
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
       setter.call(field, "hunter2");
       field.dispatchEvent(new Event("input", { bubbles: true }));
     });

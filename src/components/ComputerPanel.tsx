@@ -10,6 +10,7 @@ import { api, ApiError, currentTaskBot, useStore, type Bot, type ConfigStatus } 
 import { useAdvancedMode } from "@/lib/interface-mode";
 import { ComputerFullscreen, ComputerFullscreenNote, fullscreenActionCls, type ScreenControl } from "./ComputerFullscreen";
 import { MausAvatar } from "./Avatar";
+import { AsleepMascot, COMPUTER_FRAME_CLASS } from "./bot-panel/ComputerScreenMascot";
 import { effectivePlace, isComputerPlace, personPin, placeLabelKey, placeOffered } from "@/lib/place";
 import type { CloudBackend } from "../../shared/wire";
 
@@ -854,9 +855,9 @@ export function ComputerPanel({
     }
   };
 
-  const handBack = async () => {
+  const handBack = async (keepExpanded = false) => {
     setError(null);
-    await takeover.handBack().catch((cause) => setError(cause instanceof Error ? cause : String(cause)));
+    await takeover.handBack(keepExpanded).catch((cause) => setError(cause instanceof Error ? cause : String(cause)));
   };
 
   const run = (kind: "sleep" | "provision") => {
@@ -1145,11 +1146,14 @@ export function ComputerPanel({
       <Suspense fallback={null}>
         <LiveDesktop key={viewerConnectionKey}
           target={liveTarget} threadId={bot.threadId} name={bot.name} poster={frameSrc} viewOnly={!liveHere}
-          expanded={takeover.expanded} onExpandedChange={takeover.setExpanded}
-          onHandBack={() => void handBack()} handingBack={takeover.handingBack}
+          expanded={takeover.expanded} onExpandedChange={(expanded) => {
+            if (!expanded && inline && takeover.here) void handBack(); else takeover.setExpanded(expanded);
+          }}
+          originalViewer={inline} onOpenPreview={() => takeover.setExpanded(true)}
+          onHandBack={() => void handBack(inline)} handingBack={takeover.handingBack}
           onUnreachable={desktopUnreachable}
           onReadyChange={(ready) => setDecodedDesktop({ key: viewerConnectionKey, ready })}
-          onTakeControl={() => void takeControl(inline)}
+          onTakeControl={() => void takeControl(inline || takeover.expanded)}
         />
       </Suspense>
   ) : null;
@@ -1174,19 +1178,19 @@ export function ComputerPanel({
     const stage = remoteFrame ? desktopDecoded ? "screen" : "loading" : frame ? "screen" : waking ? "loading" : phase === "off" ? "off" : "asleep";
     return (
       <div data-inline-computer="" data-stage={stage}>
-        <div data-panel-screen="" aria-busy={stage === "loading" || undefined} className="relative aspect-video w-full overflow-hidden rounded-xl bg-card shadow-[inset_0_0_0_0.5px_var(--color-edge)]">
+        <div data-panel-screen="" aria-busy={stage === "loading" || undefined} className={`${COMPUTER_FRAME_CLASS} aspect-video`}>
           {frame ?? (
-            <button type="button" onClick={wake} disabled={waking || phase === "off" || needsAdmin || (phase === "error" && !vpsStatus?.configured)}
+            <button type="button" data-panel-action="open-computer" data-stage={stage} onClick={wake} disabled={waking || phase === "off" || needsAdmin || (phase === "error" && !vpsStatus?.configured)}
               aria-label={frameActionLabel}
-              className="flex size-full flex-col items-center justify-center gap-2 px-5 text-center text-[12px] text-ink-secondary enabled:cursor-pointer disabled:cursor-default">
-              <MausAvatar color={bot.color} bodyId={bot.mascotBody ?? undefined} size={32} state={waking ? "working" : "sleeping"} label={bot.name} />
-              <span>{frameActionLabel}</span>
+              className="flex size-full flex-col items-center justify-center gap-1.5 px-5 enabled:cursor-pointer enabled:transition-[background-color] enabled:duration-100 enabled:hover:bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_8%)] focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--color-ink)_22%,transparent)] disabled:cursor-default">
+              <AsleepMascot bot={bot} />
+              <span className="max-w-[80%] font-medium text-ink">{needsAdmin ? frameActionLabel : waking || phase === "vps-stopped" ? t("botPanel.screen.resting") : frameActionLabel}</span>
             </button>
           )}
           {remoteFrame && !desktopDecoded && <div data-computer-waking="" role="status"
-            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-card text-[12px] text-ink-secondary">
-            <MausAvatar color={bot.color} bodyId={bot.mascotBody ?? undefined} size={32} state="working" label={bot.name} />
-            <span>{t("computer.wakingUp")}</span>
+            className={`${COMPUTER_FRAME_CLASS} pointer-events-none absolute inset-0`}>
+            <AsleepMascot bot={bot} />
+            <span className="max-w-[80%] font-medium text-ink">{t("botPanel.screen.resting")}</span>
           </div>}
           {!remoteFrame && liveTarget && livePreviewFailed === viewerConnectionKey && <button type="button"
             aria-label={t("computer.preview.retry")} title={t("computer.preview.retry")}
@@ -1194,18 +1198,6 @@ export function ComputerPanel({
             <span className="rounded-lg bg-card/90 px-3 py-1.5 text-[12px] text-ink">{t("computer.preview.retry")}</span>
           </button>}
         </div>
-        {(desktopDecoded || liveHere || localPicture) && (
-          <div className="mt-1.5 flex items-center justify-between gap-2 px-1 text-[12px] text-ink-secondary">
-            <span>{t(liveHere || control.held ? "computer.inControl" : "computer.watching")}</span>
-            <div className="flex items-center gap-2">
-              <button type="button" onClick={() => liveHere ? void handBack() : void takeControl(true)}
-                disabled={controlPending || takeover.handingBack}
-                className="ui-button h-6 min-h-0 px-2 text-[12px]">{t(liveHere ? "computer.handBack" : "computer.takeControl")}</button>
-              {remoteFrame && <button type="button" aria-label={t("computer.fullScreen")} title={t("computer.fullScreen")}
-                onClick={() => takeover.setExpanded(true)} className="ui-icon-button size-6 min-h-0"><Maximize2 size={13} /></button>}
-            </div>
-          </div>
-        )}
         {errorText && phase !== "vps-stopped" && phase !== "vps-unconfigured" && <p role="alert" className="mt-1 px-1 text-[12px] text-danger">{errorText}</p>}
       </div>
     );

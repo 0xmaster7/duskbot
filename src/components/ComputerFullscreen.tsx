@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/cn";
@@ -34,33 +34,46 @@ function useWatchHint(active: boolean) {
 
 /** Grok's full computer view: the bot's screen on a dark cover, Exit fullscreen in the top right, and the control pill
  * under the frame. Without a frame it shows `note` (waking up, connecting, or what is in the way). */
-export function ComputerFullscreen({ label, onExit, frame, note, control, alert }: {
+export function ComputerFullscreen({ label, onExit, frame, note, control, alert, embedded = false, expanded = true }: {
   label: string;
   onExit: () => void;
   frame: ReactNode;
   note: ReactNode;
   control: ScreenControl | null;
   alert?: string | null;
+  embedded?: boolean;
+  expanded?: boolean;
 }) {
+  const inline = embedded && !expanded;
   const box = useRef<HTMLDivElement>(null);
-  const close = useDialogKeys(box, onExit);
+  const close = useRef(onExit);
+  close.current = onExit;
+  const mount = useRef<HTMLDivElement>(null);
+  const [host] = useState(() => embedded && typeof document !== "undefined" ? document.createElement("div") : null);
+  useLayoutEffect(() => {
+    if (!host) return;
+    host.style.display = "contents";
+    (inline ? mount.current : document.body)?.append(host);
+  }, [host, inline]);
+  useLayoutEffect(() => () => { host?.remove(); }, [host]);
   const { dragProps, noDragStyle } = useCaptionChrome();
   const macInset = useDesktopCapabilities().capabilities.windowChrome === "mac-inset";
   const exit = t("desktopViewer.exitFullscreen");
   const watching = Boolean(control && !control.held && control.onTake);
   const hint = useWatchHint(watching);
 
-  return createPortal(
+  const content = (
     <div
-      ref={box}
-      role="dialog"
-      aria-modal="true"
+      ref={inline ? undefined : box}
+      role={inline ? undefined : "dialog"}
+      aria-modal={inline ? undefined : true}
       aria-label={label}
       tabIndex={-1}
-      data-computer-fullscreen=""
-      className="fixed inset-0 z-[65] flex flex-col bg-[rgb(20,20,20)] outline-none"
+      data-computer-fullscreen={inline ? undefined : ""}
+      className={inline ? "relative flex size-full flex-col" : "fixed inset-0 z-[65] flex flex-col bg-[rgb(20,20,20)] outline-none"}
     >
-      <div {...dragProps} className={cn("flex h-11 shrink-0 items-center justify-end pr-2", macInset ? "pl-[88px]" : "pl-2")}>
+      {!inline && <ComputerViewerKeys box={box} onExit={onExit} />}
+      {!inline && <div {...dragProps} className={cn("flex h-11 shrink-0 items-center justify-end pr-2", macInset ? "pl-[88px]" : "pl-2")}>
         <button
           type="button"
           style={noDragStyle}
@@ -72,14 +85,14 @@ export function ComputerFullscreen({ label, onExit, frame, note, control, alert 
         >
           <GrokIcon name="arrows-contract-simple" size={14} />
         </button>
-      </div>
-      <div className="flex min-h-0 flex-1 flex-col p-2">
+      </div>}
+      <div className={cn("flex min-h-0 flex-1 flex-col", !inline && "p-2")}>
         <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center [container-type:size]">
           {frame ? (
             <div
               data-computer-frame=""
-              className="relative overflow-hidden rounded-[6px] bg-white/4"
-              style={{ width: `min(100cqw, calc((100cqh - ${control ? BAR : 0}px) * 16 / 10))`, aspectRatio: "16 / 10" }}
+              className={cn("relative overflow-hidden", inline ? "size-full" : "rounded-[6px] bg-white/4")}
+              style={inline ? undefined : { width: `min(100cqw, calc((100cqh - ${control ? BAR : 0}px) * 16 / 10))`, aspectRatio: "16 / 10" }}
               onPointerDown={watching ? hint.bump : undefined}
             >
               {frame}
@@ -87,7 +100,7 @@ export function ComputerFullscreen({ label, onExit, frame, note, control, alert 
           ) : (
             <div data-computer-note="" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 p-6 text-center">{note}</div>
           )}
-          {control && (
+          {!inline && control && (
             <div className="flex shrink-0 items-center justify-center" style={{ height: BAR }}>
               <ControlPill control={control} hint={hint} />
             </div>
@@ -95,9 +108,14 @@ export function ComputerFullscreen({ label, onExit, frame, note, control, alert 
           {alert && <p role="alert" className="absolute inset-x-0 top-2 mx-auto w-fit max-w-[80%] rounded-full bg-menu px-3 py-1 text-center text-[12px] leading-4 text-danger">{alert}</p>}
         </div>
       </div>
-    </div>,
-    document.body,
+    </div>
   );
+  return embedded ? host ? <><div ref={mount} className="size-full" />{createPortal(content, host)}</> : content : createPortal(content, document.body);
+}
+
+function ComputerViewerKeys({ box, onExit }: { box: RefObject<HTMLDivElement | null>; onExit: () => void }) {
+  useDialogKeys(box, onExit);
+  return null;
 }
 
 function ControlPill({ control, hint }: { control: ScreenControl; hint: { count: number; shown: boolean } }) {

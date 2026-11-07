@@ -19,7 +19,7 @@ const fixture = vi.hoisted(() => ({
   inline: false,
   cloudState: "running" as "running" | "stopped",
   statusReads: 0,
-  live: null as null | { target: string; expanded: boolean; onUnreachable: () => void; viewOnly?: boolean; onReadyChange?: (ready: boolean) => void; onTakeControl?: () => void },
+  live: null as null | { target: string; expanded: boolean; onUnreachable: () => void; viewOnly?: boolean; onReadyChange?: (ready: boolean) => void; onTakeControl?: () => void; onOpenPreview?: () => void; originalViewer?: boolean },
 }));
 vi.mock("./DesktopCapabilities", async (importOriginal) => ({
   ...await importOriginal<typeof import("./DesktopCapabilities")>(),
@@ -47,10 +47,10 @@ vi.mock("./CloudScreenPreview", () => ({
     createElement("button", { onClick: () => onRetry(false) }, "Retry live screen")),
 }));
 vi.mock("./LiveDesktop", () => ({
-  LiveDesktop: (props: { target: string; expanded: boolean; onUnreachable: () => void; viewOnly?: boolean; onReadyChange?: (ready: boolean) => void; onTakeControl?: () => void }) => {
+  LiveDesktop: (props: { target: string; expanded: boolean; onUnreachable: () => void; viewOnly?: boolean; onReadyChange?: (ready: boolean) => void; onTakeControl?: () => void; onOpenPreview?: () => void; originalViewer?: boolean }) => {
     fixture.live = props;
     useEffect(() => { fixture.connections++; props.onReadyChange?.(fixture.ready); }, [props.target]);
-    return createElement("div", { "data-live-desktop": "", "data-target": props.target, "data-expanded": String(props.expanded), "data-view-only": String(props.viewOnly) });
+    return createElement("div", { "data-live-desktop": "", "data-target": props.target, "data-expanded": String(props.expanded), "data-view-only": String(props.viewOnly) }, props.originalViewer && props.expanded && props.viewOnly ? createElement("button", { onClick: props.onTakeControl }, "Take control") : null);
   },
 }));
 vi.mock("./BrowserPanel", () => ({ BrowserPanel: () => null }));
@@ -346,7 +346,7 @@ describe("taking control of other computers", () => {
     fixture.cloudState = "stopped";
     flushSync(() => fixture.live!.onUnreachable());
     await settle();
-    expect(button("Wake computer"), document.body.textContent).toBeDefined();
+    expect(document.querySelector("button[aria-label='Wake computer']"), document.body.textContent).not.toBeNull();
     expect(document.querySelector("[data-inline-computer]")?.getAttribute("data-stage")).toBe("asleep");
     expect(fixture.statusReads).toBe(reads + 1);
     expect(fixture.connections).toBe(1);
@@ -356,25 +356,23 @@ describe("taking control of other computers", () => {
     expect(fixture.statusReads).toBe(reads + 1);
   });
 
-  it.each(["preview", "button"])("keeps loading and watching inline, then expands on %s control", async (trigger) => {
+  it("keeps the original mascot inline, opens the viewer read-only, then takes explicit control", async () => {
     fixture.inline = true;
     fixture.ready = false;
     await open(makeBot({ computer: "cloud" }));
     await shownLive();
-    expect(document.querySelector("[data-computer-waking] [data-grok-state=working]")).not.toBeNull();
+    expect(document.querySelector("[data-computer-waking] [data-asleep-mascot]")).not.toBeNull();
     expect(liveDesktop()?.dataset.expanded).toBe("false");
     expect(fixture.controls).toEqual([]);
     flushSync(() => fixture.live!.onReadyChange?.(true));
     await settle();
     expect(document.querySelector("[data-computer-waking]")).toBeNull();
-    expect(liveDesktop()?.dataset.expanded).toBe("false");
+    flushSync(() => fixture.live!.onOpenPreview?.());
+    await settle();
+    expect(liveDesktop()?.dataset.expanded).toBe("true");
     expect(liveDesktop()?.dataset.viewOnly).toBe("true");
     expect(fixture.controls).toEqual([]);
-    if (trigger === "preview") {
-      flushSync(() => fixture.live!.onTakeControl?.());
-      await settle();
-    } else await press("Take control");
-    expect(liveDesktop()?.dataset.expanded).toBe("true");
+    await press("Take control");
     expect(liveDesktop()?.dataset.viewOnly).toBe("false");
     expect(fixture.connections).toBe(1);
     expect(fixture.controls[0]?.action).toBe("take");

@@ -115,7 +115,8 @@ vi.mock("@/state/store", async (importOriginal) => {
 });
 
 const { BotSettingsDialog } = await import("./BotSettingsDialog");
-const { BotPanel } = await import("./bot-panel/PanelShell");
+const { BotPanel, PanelPageBody, PanelDetailsTab, PanelAdvancedTab, PanelAvatarEditor } = await import("./bot-panel/PanelShell");
+await Promise.all([PanelPageBody.preload(), PanelDetailsTab.preload(), PanelAdvancedTab.preload(), PanelAvatarEditor.preload()]);
 const { PanelHero } = await import("./bot-panel/PanelHero");
 const { AvatarEditorCard } = await import("./bot-panel/AvatarEditorCard");
 const { DetailsTab } = await import("./bot-panel/DetailsTab");
@@ -206,7 +207,8 @@ const segment = (rendered: { nodes: Node[] }, attr: string) => {
   return found.props as { value: unknown; onChange: (value: string) => void; options: Array<{ value: string; label: unknown; disabled?: boolean }> };
 };
 const has = (rendered: { nodes: Node[] }, attr: string, value: unknown = true) => rendered.nodes.some((node) => node.props[attr] === value);
-const ofType = (rendered: { nodes: Node[] }, type: unknown) => rendered.nodes.find((node) => node.type === type);
+const panelWrappers = new Map<unknown, unknown>([[DetailsTab, PanelDetailsTab], [AdvancedTab, PanelAdvancedTab], [AvatarEditorCard, PanelAvatarEditor]]);
+const ofType = (rendered: { nodes: Node[] }, type: unknown) => rendered.nodes.find((node) => node.type === type || node.type === panelWrappers.get(type));
 const click = (node: Node, detail = 1) => (node.props.onClick as (event: { detail: number }) => void)({ detail });
 const change = (node: Node, value: string) => (node.props.onChange as (event: unknown) => void)({ target: { value } });
 const submit = (node: Node) => (node.props.onSubmit as (event: unknown) => void)({ preventDefault: () => {} });
@@ -217,7 +219,7 @@ const key = (node: Node, name: string) => {
 };
 const shown = (rendered: Rendered) => ({
   tab: rendered.nodes.find((node) => node.type === SegmentedTabs)?.props.value as string | undefined,
-  page: rendered.nodes.find((node) => node.type === PageBody)?.props.page,
+  page: rendered.nodes.find((node) => node.type === PanelPageBody)?.props.page,
 });
 const selectTab = (rendered: Rendered, tab: string) => (ofType(rendered, SegmentedTabs)!.props.onChange as (tab: string) => void)(tab);
 // Bot settings is an alias of the Advanced tab now, as Grok keeps only Share and Close on top.
@@ -680,48 +682,42 @@ describe("the Computer tab", () => {
   const cloudBot = (extra: Partial<Bot> = {}) => makeBot({ computer: "cloud", ...extra });
   const placeSelect = (rendered: Rendered) => find(rendered, "data-panel-select", "place");
 
-  it("shows a computer that is not running as one quiet button that wakes it, and the caption, as Grok's Computer tab does", () => {
+  it("renders the original grey sleeping mascot and caption before the live panel module or status resolves", () => {
     const rendered = computer(cloudBot());
-    const screen = find(rendered, "data-panel-action", "open-computer");
-    expect(screen.props["aria-label"]).toBe("Wake computer");
-    expect(screen.props["data-stage"]).toBe("asleep");
+    expect(rendered.html).toContain('data-asleep-mascot=""');
+    expect(rendered.html).toContain('computer-asleep-breathe');
+    expect(rendered.html).toContain('var(--color-ink) 56%');
     expect(rendered.html).toContain(">Computer is asleep<");
     expect(rendered.html).toContain("Scout&#x27;s screen");
+    expect(rendered.html).not.toContain('animate-spin');
     for (const gone of ["where", "browser"]) expect(has(rendered, "data-panel-page", gone), gone).toBe(false);
     expect(switches(rendered.html)).toBe(0);
-    const working = computer(cloudBot({ busy: true }));
-    expect(find(working, "data-panel-action", "open-computer").props["aria-label"]).toBe("Watch: Scout's screen");
-    expect(working.html).toContain("Working on a task.");
   });
 
-  it("fills the frame with the latest screen the bot posted, which opens the full view", () => {
+  it("delegates live pixels and explicit viewer control to the inline computer panel", () => {
     const rendered = computer(cloudBot({ messages: [{ id: "m1", role: "assistant", kind: "screen", hasImage: true, mime: "image/png", text: "", at: 0 }] as unknown as Bot["messages"] }));
-    const screen = find(rendered, "data-panel-action", "open-computer");
-    expect(screen.props["data-stage"]).toBe("screen");
-    expect(screen.props["aria-label"]).toBe("Watch: Scout's screen");
-    expect(rendered.html).toContain("<img");
+    const live = rendered.nodes.find((node) => node.props.inline === true);
+    expect(live?.props.bot).toMatchObject({ id: "scout" });
+    expect(rendered.html).not.toContain("<img");
+    expect(rendered.html).not.toContain(">Take control<");
   });
 
-  it("says a bot that is Off has no screen, and shows nothing while Auto is still being asked", () => {
+  it("keeps Off truthful and shows the old asleep placeholder while Auto resolves", () => {
     const off = computer(makeBot({ computer: "off" }));
     expect(has(off, "data-panel-action", "open-computer")).toBe(false);
     expect(off.html).toContain(">No screen<");
     const auto = computer(makeBot());
-    expect(has(auto, "data-panel-action", "open-computer")).toBe(false);
-    expect(auto.html).toContain('data-stage="loading"');
+    expect(auto.html).toContain('data-asleep-mascot=""');
+    expect(auto.html).toContain(">Computer is asleep<");
   });
 
-  it("opens Grok's full view of the screen over the window, and leaves the bot panel where it is", () => {
-    const full = (rendered: Rendered) => rendered.nodes.find((node) => node.props.fullscreen !== undefined);
+  it("keeps the panel and dropdown in place while its inline viewer owns opening and control", () => {
     const rendered = computer(cloudBot());
-    expect(full(rendered)).toBeUndefined();
-    click(find(rendered, "data-panel-action", "open-computer"));
-    const opened = full(computer(cloudBot()));
-    expect(opened?.props.fullscreen).toMatchObject({ wake: false });
+    expect(rendered.nodes.find((node) => node.props.inline === true)).toBeDefined();
+    expect(placeSelect(rendered)).toBeDefined();
+    expect(rendered.nodes.some((node) => node.props.fullscreen !== undefined)).toBe(false);
     expect(fixture.dispatch).not.toHaveBeenCalledWith({ type: "toggleComputer", open: true });
     expect(fixture.dispatch).not.toHaveBeenCalledWith({ type: "toggleSettings", open: false });
-    (opened!.props.fullscreen as { onExit: () => void }).onExit();
-    expect(full(computer(cloudBot()))).toBeUndefined();
   });
 
   it("picks this computer or the cloud desktop beside the caption, and ends with adding one in Settings", () => {

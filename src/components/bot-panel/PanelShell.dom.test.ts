@@ -39,7 +39,8 @@ vi.mock("./pages", () => ({
   pageSurfaceCls: "",
 }));
 
-const { BotPanel } = await import("./PanelShell");
+const { BotPanel, PanelPageBody, PanelDetailsTab, PanelAdvancedTab, PanelAvatarEditor } = await import("./PanelShell");
+await Promise.all([PanelPageBody.preload(), PanelDetailsTab.preload(), PanelAdvancedTab.preload(), PanelAvatarEditor.preload()]);
 const { openBotSettings } = await import("./panel-link");
 const { pendingPanelModal, takePanelModalRequest } = await import("./modals/panel-modal");
 /** The dialog a link asked the Advanced tab to open, cleared as it is read. */

@@ -168,7 +168,7 @@ describe("preloadScreens", () => {
   it("a page on this machine fetches nothing ahead: each screen loads when it opens", () => {
     vi.useFakeTimers();
     const preloads = stubPreloads();
-    expect(preloads.length).toBe(18);
+    expect(preloads.length).toBe(17);
     for (const host of ["127.0.0.1", "localhost", "[::1]"]) preloadScreens(host);
     vi.runAllTimers();
     for (const preload of preloads) expect(preload).not.toHaveBeenCalled();
@@ -273,8 +273,12 @@ describe("launch bundle", () => {
     const reached = launchModules();
     expect(reached.has("App.tsx")).toBe(true);
     expect(reached.has("components/Sidebar.tsx")).toBe(true);
+    expect(reached.has("components/BotSettingsDialog.tsx"), "the saved right panel renders with the app").toBe(true);
+    expect(reached.has("components/bot-panel/PanelShell.tsx")).toBe(true);
+    expect(reached.has("components/bot-panel/PanelHero.tsx")).toBe(true);
+    expect(reached.has("components/bot-panel/pages.tsx"), "rare panel pages stay deferred").toBe(false);
     const deferred = [
-      "ActivityPanel", "BotSettingsDialog", "CloudAddDialog", "ComputerPanel", "KeyboardShortcutsModal",
+      "ActivityPanel", "CloudAddDialog", "ComputerPanel", "KeyboardShortcutsModal",
       "LocalVmWorkspace", "NewBotDialog", "PhoneAppDialog", "PhoneSetupFlow", "PluginsPanel", "RemoteAgentSettingsPanel", "remote-desktop-panel", "RoutineCalendarPage",
       "RoutinesPage", "SettingsModal", "ShareTeamDialog", "TeamLibraryPanel", "TeamMapPage", "TriggersPage", "WebhookTrigger", "room-panel/RoomPanel",
     ].map((name) => `components/${name}.tsx`);

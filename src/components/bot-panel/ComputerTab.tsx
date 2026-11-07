@@ -1,5 +1,4 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
 
 import { rememberComputerPanelOpen } from "@/lib/computer-panel-focus";
 import { writeComputerPanelView, type ComputerPanelView } from "@/lib/computer-panel-view";
@@ -16,6 +15,7 @@ import type { BotPatch, useBotSettingsDerived } from "../bot-settings/useBotSett
 import type { PlaceActionId } from "../../../shared/place-view";
 import type { SimplePageId } from "./page-registry";
 import { Card, RadioRow } from "./rows";
+import { AsleepMascot, COMPUTER_FRAME_CLASS } from "./ComputerScreenMascot";
 import "./computer-tab.css";
 
 const ComputerPanel = lazy(() => import("../ComputerPanel").then((module) => ({ default: module.ComputerPanel })));
@@ -181,7 +181,7 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
   return (
     <div data-panel-tabpanel="computer">
       <div ref={setScreenBox}>
-        <Suspense fallback={<div role="status" className="flex aspect-video items-center justify-center gap-2 rounded-xl bg-card text-[12px] text-ink-secondary" aria-busy="true"><Loader2 size={16} className="animate-spin" />{t("computer.phase.checking")}</div>}>
+        <Suspense fallback={<div data-panel-screen="" data-stage={current === "off" ? "off" : "asleep"} className={`${COMPUTER_FRAME_CLASS} aspect-video`}><AsleepMascot bot={bot} /><span className="max-w-[80%] font-medium text-ink">{t(current === "off" ? "place.view.off.short" : "botPanel.screen.resting")}</span></div>}>
           <ComputerPanel bot={bot} inline visible={onScreen} />
         </Suspense>
       </div>

@@ -1,4 +1,7 @@
 import { createRoot } from "react-dom/client";
+import { BotPanel } from "../../src/components/bot-panel/PanelShell";
+import { useBotSettingsDerived } from "../../src/components/bot-settings/useBotSettingsDerived";
+import type { Bot } from "../../src/state/store";
 import { ComputerPanel } from "../../src/components/ComputerPanel";
 import { StoreProvider, useStore } from "../../src/state/store";
 import { applySkin, readSkin } from "../../src/lib/skins";
@@ -19,12 +22,17 @@ window.fetch = (input, init) => {
   });
 };
 
+function ComputerTabFixture({ bot }: { bot: Bot }) {
+  const derived = useBotSettingsDerived(bot);
+  return <BotPanel bot={bot} derived={derived} linkedSection={null} onClose={() => {}} />;
+}
+
 function Fixture() {
   const { state } = useStore();
   const id = new URLSearchParams(location.search).get("bot");
   const bot = state.bots.find(bot => bot.id === id);
   const inline = new URLSearchParams(location.search).has("inline");
-  return bot ? <div className="mx-auto h-screen w-[420px]"><ComputerPanel bot={bot} inline={inline} /></div> : <p>Loading fixture</p>;
+  return bot ? <div className="mx-auto flex h-screen w-[420px] flex-col">{inline ? <ComputerTabFixture bot={bot} /> : <ComputerPanel bot={bot} />}</div> : <p>Loading fixture</p>;
 }
 
 applySkin(readSkin());

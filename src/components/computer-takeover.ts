@@ -73,11 +73,11 @@ export function useComputerTakeover({ botId, session, held, request, viewerClose
     setExpanded(expand);
   }, [request, botId, session]);
 
-  const handBack = useCallback(async () => {
+  const handBack = useCallback(async (keepExpanded = false) => {
     generation.current += 1;
     const close = lease.current?.viewerClose ?? closeRef.current;
     lease.current = null;
-    end();
+    if (keepExpanded) setHere(false); else end();
     setHandingBack(true);
     try {
       await request("release");
