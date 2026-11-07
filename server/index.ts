@@ -8023,7 +8023,7 @@ async function beginTurn(
       const mountsComputerMcp = instance.adapter.capabilities.computerMcp === true;
       const mountsLocalComputer = instance.adapter.capabilities.localComputerMcp === true;
       const dispatchTask = store.taskByThread(bot.id, threadId);
-      const deferredSharedComputer = Boolean(vpsSshAliasForBot(cfg, bot)) && bot.computer === undefined && plan.computer === undefined
+      const deferredSharedComputer = teamComputer?.scope === "workspace" && Boolean(vpsSshAliasForBot(cfg, bot)) && bot.computer === undefined && plan.computer === undefined
         && agentsMounted && computerSelectionTurns.get(threadId)?.generation === dispatchClaimId;
       let wants: ComputerWant = computerSkipped ? "off" : plan.computer;
       const skipComputer = (error: unknown) => {
