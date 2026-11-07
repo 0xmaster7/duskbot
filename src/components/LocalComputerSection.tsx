@@ -14,6 +14,7 @@ import { cn } from "@/lib/cn";
 import { useStore } from "@/state/store";
 import { openAddVps } from "@/lib/vps-link";
 import { VpsComputersCard } from "./VpsComputersCard";
+import { DirectLinkRow } from "./DirectLinkRow";
 import { RouteTrafficRow } from "./RouteTrafficRow";
 
 type Action = "pull" | "run" | "start" | "stop" | "remove" | "recreate";
@@ -855,6 +856,7 @@ export function LocalComputerSection() {
 
       {!cloudHome && (
         <RowsCard label={t("settings.grok.group.yourComputer")} data-settings-block="private-desktop">
+          <DirectLinkRow />
           <RouteTrafficRow />
           <ItemRow
             title={t("settings.w6a.private.title")}

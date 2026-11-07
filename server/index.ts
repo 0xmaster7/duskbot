@@ -9764,7 +9764,7 @@ ROUTES.push(appTriggers.routes); ROUTES.unshift(createMoveFreezeRoutes({ freeze:
 ROUTES.push(createLimitResetRoutes({ clock: limitClock, routines: routines!, requests: routineRequests, engineName, threadEngine: (botId, threadId) => turnSelection(botId, threadId)?.instanceId,
   threadTitle: (botId, threadId) => store.bot(botId) && !store.bot(botId)!.hidden ? store.taskByThread(botId, threadId)?.title ?? null : null,
   created: (id, auth) => cloudRoutineAuthors?.wrote(id, auth.kind === "session" ? actorKey(auth) : CLOUD_NOBODY_KEY) }));
-const computerEgress = createComputerEgress({ enabled: () => cfg.vps?.routeThroughComputer === true, log: (line) => console.warn(line),
+const computerEgress = createComputerEgress({ enabled: () => cfg.vps?.routeThroughComputer !== false, log: (line) => console.warn(line),
   docker: () => (isThisServerVps(vpsSshAlias(cfg)) ? (args, timeoutMs) => vps.defaultRunner(args, { timeoutMs }) : null) });
 ROUTES.push(createComputerEgressRoutes({ egress: computerEgress, setEnabled: (enabled) => { saveConfig({ vps: { routeThroughComputer: enabled } }); Object.assign(cfg, loadConfig()); } }));
 

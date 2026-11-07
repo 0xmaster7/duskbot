@@ -57,7 +57,8 @@ the fallback. Nothing is opened on the server and the person configures nothing:
   again after 6 hours. `OMB_LINK_DIRECT=off` (agent's environment, or the app's) keeps everything on the relay;
   `OMB_LINK_DIRECT_HOST` / `OMB_LINK_DIRECT_PORT` override the address the agent reports.
 - **Sealing and identity.** The channel carries exactly the relay's frames (AES-256-GCM with the tunnel key, AAD
-  `<id>|to-vps` / `<id>|to-app`, timestamps, one replay guard across both paths) as `[u32 length][type][iv|ct|tag]`
+  `<id>|to-vps` / `<id>|to-app`, timestamps, one replay guard across both paths in the app; on the server the tunnel and each direct session keep
+  their own, and a relay frame cannot enter a direct session without the app's key) as `[u32 length][type][iv|ct|tag]`
   records after a `\0OMBD1\n` magic. The agent says a sealed hello first; the app uses the path only after opening it,
   so a server without the tunnel key is never used. sshd's host key must be one the agent sent inside the sealed
   tunnel, so neither the network nor the relay can stand in. An auth or host-key failure asks for a new key over the
@@ -150,15 +151,16 @@ link service, the agent nor anything else that relays the request can read it:
 ## Route traffic through this computer
 
 Settings > Computer > Your computer > "Route traffic through this computer" (`PUT /api/computer/egress {enabled}`,
-saved as `vps.routeThroughComputer`, off by default) sends the bot computers' web traffic out through the person's own
+saved as `vps.routeThroughComputer`, on unless someone turned it off) sends the bot computers' web traffic out through the person's own
 computer while its app runs, so sites see a home connection instead of the VPS's data centre address. When the app is
 closed, asleep or offline, new connections use the VPS's own network, and they go back through the computer once it
-says hello again. It applies to new connections only.
+says hello again. The row says which network is in use (amber while it is the server's), and the app shows a quiet
+note the first time it falls back. It applies to new connections only.
 
 ```
  bot computer (chromium)         vps host                            the app (electron main)
  managed policy: PAC              agent.mjs createEgressProxy         vps-link-egress.mjs createEgressEndpoint
- "SOCKS5 172.18.0.1:3129; DIRECT" -> socks5 / http connect on the  -> {t:"dial", r, host, port}  ->  resolve here, check
+ "SOCKS5 172.18.0.1:3129"         -> socks5 / http connect on the  -> {t:"dial", r, host, port}  ->  resolve here, check
                                     omb-desk0 bridge only             <- {t:"dialed", r, ok, code}     every address, connect
                                                                       <-> bytes frames on the same sealed tunnel streams
 ```
@@ -177,8 +179,10 @@ says hello again. It applies to new connections only.
 - The agent never dials anything itself (a box must not reach this host past the host fence). It listens only on the
   bridge's address, refuses the bridge's own address (so processes on the host cannot use it), and answers with a
   SOCKS failure at once when the setting is off, the app is at its stream cap, has not said hello for 40 s or did not
-  answer a dial within 5 s (then its open streams close too). Chromium (156) then falls back to a direct connection for that request and skips the proxy
-  for a few minutes; the server writes a fresh policy to undo that once the app is back. A destination the app refuses
+  answer a dial within 5 s (then its open streams close too, and the agent reports at once). The policy has no
+  `DIRECT` fallback, so such a request fails instead of leaving through the server's network: a page that exhausts the
+  stream cap cannot push the browser off the proxy. The server removes the policy (every request direct) only once the
+  agent reports the app offline, and writes it again when the app is back. A destination the app refuses
   or cannot reach (its own DNS may block ad domains, for one) gets a SOCKS success and an immediate close instead,
   which fails only that request and keeps the proxy in use; HTTP CONNECT gets 403 or 502.
 - `host-fence.sh` lets the bridge reach TCP 3129 on the host (`omb-box-egress`); nothing else on the host.

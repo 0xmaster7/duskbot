@@ -49,7 +49,7 @@ export interface VpsConfig {
   idleTimeoutMinutes?: 0 | 5 | 10 | 30;
   /** Idle minutes before closing browsers, screens and the owned computer container; zero disables a stage. */
   lifecycle?: Partial<VpsLifecyclePolicy>;
-  /** The bot computers' browsers reach the web through the person's linked computer while it is online; default false. */
+  /** The bot computers' browsers reach the web through the person's linked computer while it is online; default true. */
   routeThroughComputer?: boolean;
 }
 

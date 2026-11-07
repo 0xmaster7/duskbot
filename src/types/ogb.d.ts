@@ -22,6 +22,8 @@ declare global {
 /** The package.json version, inlined by Vite's define at build time. */
 const __APP_VERSION__: string;
 
+  /** the direct ssh path of a relay-linked server: whether it is allowed, and the path a request takes now */
+  interface LinkDirectState { on: boolean; path: "direct" | "relay" }
   type DesktopCapabilities = {
     host: {
       platform: "darwin" | "linux" | "win32" | "other";
@@ -133,6 +135,8 @@ const __APP_VERSION__: string;
        * the page belongs to, pinned at linking or on first use. `pinned: false` when there is nothing to pin against (this
        * computer's own server, or a server this app did not link). Main decides the server from the page, never from it. */
       sealTrust?: { check(identity: string): Promise<{ ok: boolean; pinned: boolean }> };
+      /** A linked server's page only: the direct ssh path for that link (null where it does not apply). */
+      linkDirect?: { state(): Promise<LinkDirectState | null>; set(on: boolean): Promise<LinkDirectState | null> };
       /** This computer's page only: Add your VPS, its install, sign-in, move, and the Transfer pane (electron/vps-link.mjs). */
       vpsLink?: import("../lib/vps-link").VpsLinkBridge;
       /** Settings on the person's own Cloud: the plan, read only. */

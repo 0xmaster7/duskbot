@@ -6405,5 +6405,10 @@
   "routeTraffic.hint": "봇 컴퓨터의 네트워크 트래픽을 클라우드 대신 내 데스크톱 컴퓨터를 통해 보냅니다. 새 연결부터 적용됩니다.",
   "routeTraffic.through": "내 컴퓨터를 통해 전송 중. 새 연결부터 적용됩니다.",
   "routeTraffic.offline": "서버 네트워크 사용 중, 내 컴퓨터가 오프라인입니다",
-  "routeTraffic.error": "저장되지 않았어요. 다시 시도해 주세요."
+  "routeTraffic.error": "저장되지 않았어요. 다시 시도해 주세요.",
+  "linkDirect.title": "빠른 직접 연결",
+  "linkDirect.direct": "서버의 SSH 포트로 바로 연결해요. 그 포트가 막혀 있으면 릴레이를 써요.",
+  "linkDirect.relay": "지금은 릴레이를 쓰고 있어요. 서버의 SSH 포트가 응답하면 알아서 직접 연결로 바뀌어요.",
+  "linkDirect.off": "모든 연결이 릴레이를 거쳐요. 켜면 SSH 포트로 서버에 바로 연결하고, 릴레이는 대비용으로 남아요.",
+  "routeTraffic.notice": "컴퓨터가 오프라인이라 봇 컴퓨터가 당분간 서버 네트워크를 써요. 온라인이 되면 다시 돌아와요."
 }

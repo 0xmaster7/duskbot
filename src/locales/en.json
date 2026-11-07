@@ -7429,5 +7429,10 @@
   "routeTraffic.hint": "Route network traffic from the bot's computer through your local desktop computer instead of the cloud. Applies to new connections.",
   "routeTraffic.through": "Through your computer. Applies to new connections.",
   "routeTraffic.offline": "Using the server's network, your computer is offline",
-  "routeTraffic.error": "That didn't save. Try again."
+  "routeTraffic.error": "That didn't save. Try again.",
+  "linkDirect.title": "Fast direct connection",
+  "linkDirect.direct": "Straight to your server over its SSH port. Falls back to the relay when that port is blocked.",
+  "linkDirect.relay": "On the relay right now. Goes direct by itself once your server's SSH port answers.",
+  "linkDirect.off": "Everything goes through the relay. Turn on to reach your server straight over its SSH port, with the relay as fallback.",
+  "routeTraffic.notice": "Your computer is offline, so your bot computers use the server's network for now. They switch back once it's online."
 }

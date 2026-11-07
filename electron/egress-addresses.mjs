@@ -25,7 +25,8 @@ const RESERVED = subnets([
 ]);
 const LINK_LOCAL = subnets([["169.254.0.0", 16], ["fe80::", 10]]);
 // fc00::/7 holds Fly's private 6PN network (fdaa::/16), which links a Cloud home to other customers' machines.
-const PRIVATE = subnets([["10.0.0.0", 8], ["100.64.0.0", 10], ["172.16.0.0", 12], ["192.168.0.0", 16], ["fc00::", 7]]);
+// fec0::/10 is the deprecated site-local range (RFC 3879) some networks still route internally.
+const PRIVATE = subnets([["10.0.0.0", 8], ["100.64.0.0", 10], ["172.16.0.0", 12], ["192.168.0.0", 16], ["fc00::", 7], ["fec0::", 10]]);
 // AWS (IPv4 and IPv6), Azure, GCP and Oracle answer on 169.254.169.254; Alibaba on 100.100.100.200.
 const METADATA = new BlockList();
 for (const address of ["169.254.169.254", "fd00:ec2::254", "100.100.100.200"]) METADATA.addAddress(address, family(address));

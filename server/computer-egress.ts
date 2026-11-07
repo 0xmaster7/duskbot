@@ -45,7 +45,11 @@ export function parseEgressReport(value: unknown): EgressAgentReport | null {
   };
 }
 
-/** The PAC script: web ports on public names try the person's computer first; everything else stays direct. */
+/**
+ * The PAC script: web ports on public names go through the person's computer, with no fallback to this server's
+ * network: a refused request fails instead, so a page cannot push the browser off the proxy by exhausting it. The
+ * policy is removed (everything direct) only once the agent reports the computer offline.
+ */
 export function egressPac(proxy: { host: string; port: number }, generation: number): string {
   return [
     "function FindProxyForURL(url, host) {",
@@ -58,7 +62,7 @@ export function egressPac(proxy: { host: string; port: number }, generation: num
     "  var scheme = m ? m[1].toLowerCase() : \"\";",
     "  var port = m && m[2] ? +m[2] : scheme === \"https\" || scheme === \"wss\" ? 443 : scheme === \"http\" || scheme === \"ws\" ? 80 : 0;",
     `  if (${EGRESS_PORTS.map((one) => `port !== ${one}`).join(" && ")}) return "DIRECT";`,
-    `  return "SOCKS5 ${proxy.host}:${proxy.port}; DIRECT";`,
+    `  return "SOCKS5 ${proxy.host}:${proxy.port}";`,
     "}",
   ].join("\n");
 }

@@ -90,6 +90,23 @@ async function folderSize(dir, limit = 200_000) {
 }
 
 /**
+ * Settings > Computer "Fast direct connection", asked by a linked server's own page: main names the link from the page
+ * that asks (the main window at the active server), never from anything the page says.
+ * @param {{ ipcMain: any, pageOrigin(event: any): string | null, link: { directSetting(origin: string): unknown, setDirect(origin: string, on: boolean): Promise<unknown> } }} deps
+ */
+export function installLinkDirectIpc({ ipcMain, pageOrigin, link }) {
+  ipcMain.handle("link-direct:state", (event) => {
+    const origin = pageOrigin(event);
+    return origin ? link.directSetting(origin) : null;
+  });
+  ipcMain.handle("link-direct:set", (event, on) => {
+    const origin = pageOrigin(event);
+    if (!origin) throw new Error("This page cannot change the connection.");
+    return link.setDirect(origin, on === true);
+  });
+}
+
+/**
  * @param {{
  *   ipcMain: any, guard(channel: string, handler: Function): Function, userData: string, session: any, shell: any,
  *   encryption: { available(): Promise<boolean>, encrypt(text: string): Promise<Buffer>, decrypt(value: Buffer): Promise<string | { result: string }> },
@@ -98,6 +115,7 @@ async function folderSize(dir, limit = 200_000) {
  *   ownHome: any, localRequest(route: string, init?: RequestInit): Promise<Response>, switchTo(id: string): unknown, relaunch(): void,
  *   dataDir(): string | null, label(): string, tell(view: unknown): void, log(line: string): void, base?: string,
  *   powerMonitor?: { on(event: string, listener: () => void): unknown },
+ *   pageOrigin?(event: any): string | null,
  * }} deps
  */
 export function installVpsLink(deps) {
@@ -111,7 +129,7 @@ export function installVpsLink(deps) {
 
   const base = (deps.base || process.env.OMB_LINK_BASE || DEFAULT_LINK_BASE).replace(/\/+$/, "");
   // the link service tells this computer the public address it connects from, so its home router stays out of reach
-  const seenAs = seenAsCache(async () => (await (await fetch(`${base}/v1/ip`, { signal: AbortSignal.timeout(5000) })).json())?.ip);
+  const seenAs = seenAsCache(async () => (await (await fetch(`${base}/v1/ip`, { signal: AbortSignal.timeout(5000) })).json())?.ip, { log });
   const link = createVpsLink({
     base,
     egress: (tunnel) => createEgressEndpoint({ ...tunnel, dialer: createEgressDialer({ seenAs }) }),
@@ -163,8 +181,8 @@ export function installVpsLink(deps) {
     },
     relaunch: deps.relaunch,
     dataSize: async () => { const dir = deps.dataDir(); return dir ? folderSize(dir) : null; },
-    // the direct path to a relay-linked server (vps-link-direct.mjs) is opt-in: OMB_LINK_DIRECT=on
-    ...(process.env.OMB_LINK_DIRECT === "on" ? { direct: { newKey: newDirectKey, connector: sshConnector } } : {}),
+    // the direct path to a relay-linked server (vps-link-direct.mjs); OMB_LINK_DIRECT=off keeps every link on the relay
+    ...(process.env.OMB_LINK_DIRECT === "off" ? {} : { direct: { newKey: newDirectKey, connector: sshConnector } }),
     onChange: (view) => deps.tell(view),
     log,
   });
@@ -196,6 +214,7 @@ export function installVpsLink(deps) {
     forget: () => link.forget(),
   };
   for (const method of METHODS) ipcMain.handle(`vps-link:${method}`, guard(`vps-link:${method}`, handlers[method]));
+  installLinkDirectIpc({ ipcMain, pageOrigin: deps.pageOrigin ?? (() => null), link });
   // safeStorage only works once electron is ready, and every saved tunnel key needs it
   void (deps.whenReady?.() ?? Promise.resolve()).then(() => {
     // a wake or an unlocked screen: sockets may be dead, so the tunnels reconnect now instead of after their timeouts

@@ -24,6 +24,7 @@ const CONNECT_MS = 10_000;
 const IDLE_MS = 5 * 60_000;
 const SELF_TTL_MS = 10 * 60_000;
 const SELF_WAIT_MS = 3000;
+const SELF_RETRY_MS = 30_000;
 const LOCAL_SUFFIX = /(?:^|\.)(?:localhost|local|localdomain|internal|intranet|lan|home|corp|home\.arpa)\.?$/i;
 const HOSTNAME = /^(?=.{1,253}\.?$)(?:[a-z0-9_](?:[a-z0-9_-]{0,61}[a-z0-9])?\.)+[a-z0-9-]{2,63}\.?$/i;
 
@@ -89,11 +90,19 @@ export function createEgressDialer({ resolve = resolveName, connect = tcpConnect
 }
 
 /** the public address `fetchIp()` answers, kept for a while; null when it cannot say */
-export function seenAsCache(fetchIp, { ttlMs = SELF_TTL_MS, waitMs = SELF_WAIT_MS, now = Date.now } = {}) {
-  let value = null, at = -Infinity, pending = null;
+export function seenAsCache(fetchIp, { ttlMs = SELF_TTL_MS, retryMs = SELF_RETRY_MS, waitMs = SELF_WAIT_MS, now = Date.now, log = () => {} } = {}) {
+  let value = null, at = -Infinity, wait = ttlMs, pending = null;
   return async () => {
-    if (now() - at < ttlMs) return value;
-    pending ??= Promise.resolve().then(fetchIp).then((ip) => { value = typeof ip === "string" && isIP(ip) ? ip : null; }, () => {}).finally(() => { at = now(); pending = null; });
+    if (now() - at < wait) return value;
+    // a failed lookup keeps the last address it had and asks again soon
+    pending ??= Promise.resolve().then(fetchIp).then((ip) => {
+      if (typeof ip !== "string" || !isIP(ip)) throw new Error("no address in the answer");
+      value = ip;
+      wait = ttlMs;
+    }).catch((error) => {
+      wait = retryMs;
+      log(`egress: the home's public address is unknown (${error?.message ?? error}); asking again in ${Math.round(retryMs / 1000)} s`);
+    }).finally(() => { at = now(); pending = null; });
     await Promise.race([pending, new Promise((resolve) => setTimeout(resolve, waitMs).unref?.())]);
     return value;
   };

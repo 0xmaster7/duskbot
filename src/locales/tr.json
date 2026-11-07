@@ -4900,5 +4900,10 @@
   "routeTraffic.hint": "Botun bilgisayarındaki ağ trafiğini bulut yerine kendi masaüstü bilgisayarın üzerinden yönlendirir. Yeni bağlantılar için geçerlidir.",
   "routeTraffic.through": "Bilgisayarın üzerinden. Yeni bağlantılar için geçerlidir.",
   "routeTraffic.offline": "Sunucunun ağı kullanılıyor, bilgisayarın çevrimdışı",
-  "routeTraffic.error": "Kaydedilmedi. Tekrar dene."
+  "routeTraffic.error": "Kaydedilmedi. Tekrar dene.",
+  "linkDirect.title": "Hızlı doğrudan bağlantı",
+  "linkDirect.direct": "Sunucuna SSH portu üzerinden doğrudan. O port engelliyse aktarıcıya geçer.",
+  "linkDirect.relay": "Şu an aktarıcı üzerinden. Sunucunun SSH portu yanıt verince kendiliğinden doğrudana geçer.",
+  "linkDirect.off": "Her şey aktarıcıdan geçiyor. Sunucuna SSH portu üzerinden doğrudan ulaşmak için aç, aktarıcı yedekte kalır.",
+  "routeTraffic.notice": "Bilgisayarın çevrimdışı, bu yüzden bot bilgisayarların şimdilik sunucunun ağını kullanıyor. Çevrimiçi olunca geri dönerler."
 }

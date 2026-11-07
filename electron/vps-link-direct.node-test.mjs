@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { PassThrough } from "node:stream";
 import test from "node:test";
 
-import { createServing, directKeyLine, refreshDirectKey, serveDirect, setDirectKey } from "../link-service/agent.mjs";
+import { control, createServing, directKeyLine, refreshDirectKey, serveDirect, setDirectKey } from "../link-service/agent.mjs";
 import { DIRECT_MAGIC, createDirectWriter, directReader, loadSsh2, newDirectKey, sshConnector } from "./vps-link-direct.mjs";
 import { createTunnelProxy, openFrame, sealFrame } from "./vps-link-protocol.mjs";
 import { createVpsLink } from "./vps-link.mjs";
@@ -251,6 +251,13 @@ test("identity pinned: sshd's host key must be one the agent sent, and the app's
     const stranger = newDirectKey();
     await assert.rejects(sshConnector({ host: "127.0.0.1", port, user: "maus", privateKey: stranger.privateKey, hostKeys: [hostKey.public] })(), (error) => error.level === "client-authentication");
   } finally { await new Promise((resolve) => sshd.close(resolve)); }
+});
+
+test("OMB_LINK_DIRECT=off on the server refuses a key before touching anything", async () => {
+  const before = process.env.OMB_LINK_DIRECT;
+  process.env.OMB_LINK_DIRECT = "off";
+  try { await assert.rejects(control("direct-key", { pub: newDirectKey().publicKey }, { id: ID }), /direct links are off/); }
+  finally { if (before === undefined) delete process.env.OMB_LINK_DIRECT; else process.env.OMB_LINK_DIRECT = before; }
 });
 
 test("the agent's key line allows one forced command and nothing else, and leaves other keys alone", () => {

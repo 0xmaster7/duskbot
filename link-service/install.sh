@@ -689,6 +689,9 @@ do_user() {
     # a shell, so sshd can run the forced command on the app's restricted key
     x useradd --system --create-home --home-dir "$LINK_HOME" --shell /bin/sh "$LINK_USER"
   fi
+  # useradd leaves the password "!" (locked), and sshd without PAM refuses every key for a locked account; "*" still
+  # allows no password but lets the app's restricted direct key in (OpenSSH auth.c allowed_user)
+  if [ "$(getent shadow "$LINK_USER" | cut -d: -f2)" = "!" ]; then usermod -p '*' "$LINK_USER"; fi
   for dir in "$LINK_HOME" "$LINK_HOME/.config" "$LINK_HOME/.config/openmausbot-link" "$LINK_HOME/.ssh" "$HANDOFF"; do
     install -d -o "$LINK_USER" -g "$LINK_USER" -m 0700 "$dir"
   done

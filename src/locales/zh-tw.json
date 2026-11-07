@@ -4446,5 +4446,10 @@
   "routeTraffic.hint": "讓機器人電腦的網路流量經由你的桌上型電腦傳送，而不是經由雲端。適用於新的連線。",
   "routeTraffic.through": "經由你的電腦。適用於新的連線。",
   "routeTraffic.offline": "正在使用伺服器的網路，你的電腦已離線",
-  "routeTraffic.error": "沒有儲存成功，請再試一次。"
+  "routeTraffic.error": "沒有儲存成功，請再試一次。",
+  "linkDirect.title": "快速直連",
+  "linkDirect.direct": "透過伺服器的 SSH 連接埠直接連線。該連接埠被封鎖時改用中繼。",
+  "linkDirect.relay": "目前走中繼。伺服器的 SSH 連接埠一回應就會自動改為直連。",
+  "linkDirect.off": "所有流量都走中繼。開啟後透過 SSH 連接埠直接連線到伺服器，中繼作為備用。",
+  "routeTraffic.notice": "你的電腦已離線，機器人電腦暫時使用伺服器的網路。電腦上線後會自動切回。"
 }

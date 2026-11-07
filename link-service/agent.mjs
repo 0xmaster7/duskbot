@@ -215,7 +215,11 @@ export function sealBytes(key, id, dir, r, bytes, raw = false) {
   head.writeDoubleBE(Date.now(), 13);
   return (raw ? sealRaw : seal)(key, `${id}|${dir}`, Buffer.concat([head, bytes]));
 }
-/** `sealed` is base64url (relay) or bytes (direct); the guard keys on the iv either way, so one guard spans both paths */
+/**
+ * `sealed` is base64url (relay) or bytes (direct); the guard keys on the iv either way. the app keeps one guard for both
+ * paths; on the vps the tunnel process and each direct session keep their own, which is enough there: a relay frame
+ * cannot be replayed into a direct session without the app's ssh key, and direct frames never pass the relay
+ */
 export function openFrame(key, id, dir, sealed, guard) {
   const plain = open(key, `${id}|${dir}`, sealed);
   const value = plain[0] === 1 && plain.length >= 21
@@ -309,15 +313,16 @@ const until = (promise, signal) => (!signal ? promise : new Promise((resolve, re
  * keepAliveFetch's api over one http/2 connection when the relay offers h2 (nginx does): the streamed read and every
  * post share one warm tls connection, so a post never waits on a new handshake (5.5 s behind a lossy vpn, 0.3 s from a
  * vps) and many can be out at once (`multiplexed()`). plain http, or an origin that answers without h2, goes through
- * keepAliveFetch. `tls` is extra tls.connect options (a test's ca).
+ * keepAliveFetch. `tls` is extra tls.connect options (a test's ca); `dial(host, port)` makes the tcp socket under it.
  */
-export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8 } = {}) {
+export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null } = {}) {
   const h1 = keepAliveFetch({ maxSockets, tls: tlsOptions });
   const h1Origins = new Set();
   let session = null, opening = null, tlsSession = null, lastUsed = 0;
   const live = (one) => Boolean(one && !one.closed && !one.destroyed);
   const open = (url) => new Promise((resolve) => {
-    const socket = tlsConnect({ host: url.hostname, port: Number(url.port) || 443, ...(isIP(url.hostname) ? {} : { servername: url.hostname }), ALPNProtocols: ["h2", "http/1.1"], ...(tlsSession ? { session: tlsSession } : {}), ...tlsOptions });
+    const host = url.hostname, port = Number(url.port) || 443;
+    const socket = tlsConnect({ host, port, ...(dial ? { socket: dial(host, port) } : {}), ...(isIP(host) ? {} : { servername: host }), ALPNProtocols: ["h2", "http/1.1"], ...(tlsSession ? { session: tlsSession } : {}), ...tlsOptions });
     socket.on("session", (value) => { tlsSession = value; });
     const failed = () => { socket.destroy(); resolve(null); };
     socket.once("error", failed);
@@ -835,7 +840,7 @@ export function publicAddress({ servers = STUN, timeoutMs = 2500 } = {}) {
 }
 
 async function directKey(data, context) {
-  if (process.env.OMB_LINK_DIRECT !== "on") throw new Error("direct links are off on this server");
+  if (process.env.OMB_LINK_DIRECT === "off") throw new Error("direct links are off on this server");
   const line = directKeyLine({ pub: data?.pub, id: context.id });
   const keys = hostKeys();
   if (!keys.length) throw new Error("this server's ssh keys could not be read");
@@ -893,9 +898,9 @@ const EGRESS_DIAL_MS = 5000;
 const EGRESS_QUEUE_HIGH = 1024 * 1024;
 const EGRESS_HEAD_MAX = 8 * 1024;
 /**
- * socks5 replies. chromium 156 falls back to a direct connection on every failure reply and then skips the proxy for
- * minutes, so only "this computer cannot take it" fails that way; a destination this computer refuses or cannot reach
- * gets a success reply and an immediate close, which fails only that request.
+ * socks5 replies. the policy names no fallback, so a failure reply fails that request; it is kept for "this computer
+ * cannot take it now" (off, offline, busy, slow). a destination this computer refuses or cannot reach gets a success
+ * reply and an immediate close, which fails only that request the same way an unreachable site would.
  */
 const SOCKS = { ok: 0, failure: 1, notAllowed: 2, unreachable: 4, refused: 5, command: 7, address: 8 };
 
@@ -1035,6 +1040,7 @@ export function createEgressProxy({
         entry.settle = null;
         settle({ ok: false, code: "timeout" });
         gone();
+        void tick();
       }, dialMs) };
       streams.set(r, entry);
       send({ t: "dial", r, host: asked.host, port: asked.port });
