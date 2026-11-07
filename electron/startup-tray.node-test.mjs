@@ -193,3 +193,21 @@ test("the loading screen says what the app waits on, before its page has loaded 
   splash.status("Opening My Cloud…");
   assert.equal(ran.length, 2, "nothing after it is gone");
 });
+
+test("the ring closes before the workspace fades in over the splash", async () => {
+  const ran = [];
+  class Fading extends Window {
+    constructor(options) { super(options); this.webContents.executeJavaScript = async code => { ran.push(code); }; }
+    setOpacity(value) { this.opacity = value; }
+    isVisible() { return this.visible; }
+  }
+  const { splash, calls } = fixture({ BrowserWindow: Fading, platform: "darwin" });
+  await splash.ready;
+  const win = new Fading();
+  splash.attach(win);
+  win.webContents.emit("did-finish-load");
+  while (!splash.window.destroyed) await new Promise(resolve => setTimeout(resolve, 20));
+  assert.ok(ran.indexOf("window.ring?.done()") > ran.indexOf("window.ring?.to(0.8)"));
+  assert.equal(win.visible, true); assert.equal(win.opacity, 1); assert.equal(splash.window.opacity, 0);
+  assert.deepEqual(calls, ["finished"]);
+});
