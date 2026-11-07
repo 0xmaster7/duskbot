@@ -95,8 +95,35 @@ the fallback. Nothing is opened on the server and the person configures nothing:
 - Tunnelled requests arrive at OpenMausBot with `X-Forwarded-For` set, so the server treats them as remote: they need
   the paired session and never get loopback trust. The app's proxy serves only its own `vps-<id>.localhost:<port>` host.
 - AI credentials are made on the Mac (`claude setup-token`, Codex's `~/.codex/auth.json`). They travel only as sealed
-  control frames to the agent, which writes them with mode 0600 (`engines.env`, `~/.codex/auth.json`). They never pass
-  through OpenMausBot's HTTP API and are never logged.
+  control frames to the agent, which writes them with mode 0600 into its hand-off folder (`/var/lib/omb-link/handoff`).
+  A root unit (`openmausbot-handoff.service`, `/usr/local/lib/openmausbot/engine-handoff.sh`) reads them as `omb-link`,
+  keeps only the `CLAUDE_CODE_OAUTH_TOKEN=` line for `/etc/openmausbot/engines.env` (which only systemd reads) and
+  writes the Codex sign-in into maus's `~/.codex/auth.json` as maus. They never pass through OpenMausBot's HTTP API and
+  are never logged.
+
+### Accounts on the server
+
+Bots run shell commands, so the server is split so that no bot can reach what would give it the machine or the link:
+
+| Account | Runs | Holds | Never has |
+|---|---|---|---|
+| `maus` | `openmausbot.service` (hardened: no new privileges, no capabilities, system read-only, other homes hidden) | its home (0700) and data folder (0700) | the docker group, the link files |
+| `omb-link` | `openmausbot-link.service` and the app's restricted direct key | `/var/lib/omb-link`: `tunnel.json`, `.ssh/authorized_keys`, the hand-off folder | the server's data |
+| `omb-docker` (in `docker`) | `omb-docker-gate.service`: a Docker API filter on `/run/openmausbot-docker/docker.sock` (group `omb-dockergate`: maus only) | nothing | a shell, the network |
+
+- Every bot's turn runs in the bot box (`OMB_BOT_BOX=required`, server/bot-box): its own user, mount, pid and network
+  namespaces, HOME an engine home inside the data folder (`engine-home`) with only the engines' sign-ins bound in
+  (settings read-only), its workspace, and the internet through the box's egress gate. The server's HOME, data folder,
+  `~/.ssh`, `~/.config` and `~/.local` are never in a box, and a working folder that would contain them is refused. If
+  bubblewrap cannot run, bots' turns are refused rather than run unboxed. Ubuntu 24.04 needs the AppArmor profile
+  install.sh writes (`/etc/apparmor.d/openmausbot-bwrap`) for bubblewrap to make user namespaces.
+- The docker gate (`docker-gate.mjs`, served at `/docker-gate.mjs` like the agent) forwards only what the server's bot
+  computers need, on containers labelled as ours, with the flags it sets (gVisor, no privileged mode, no host mounts,
+  devices or namespaces, dropped capabilities). The two host probes are allowed only in their exact shape.
+- Running install.sh again on an older install moves `tunnel.json` to `omb-link`, drops the app's key from maus (the app
+  asks the agent for a new one over the sealed tunnel and connects as `omb-link`), moves the Claude token to
+  `/etc/openmausbot/engines.env`, copies the engines' sessions into the engine home, takes maus out of the docker group
+  and installs the gate and the hardened units. Nothing in the data folder moves.
 - Unlinking in the app deletes the tunnel at the service. The agent then idles and the app forgets the server.
 
 ### Secrets sealed for the server itself
