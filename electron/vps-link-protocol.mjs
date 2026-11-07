@@ -20,6 +20,9 @@ const STREAM_LOW = 512 * 1024;
 const RECEIVE_HIGH = 8 * 1024 * 1024;
 /** posts out at once once the relay says it puts them back in order (one before it does) */
 const POSTS_IN_FLIGHT = 3;
+/** how long a frame that comes while posts are out waits for more, per post out, and at most */
+const GATHER_MS = 2;
+const GATHER_MAX_MS = 16;
 /**
  * frames waiting for the one post in flight (kept in step with the other end of the tunnel). a stream's bytes join its
  * last waiting piece and are sealed only when sent, so a busy websocket costs a few frames per post, not one per chunk.
@@ -30,8 +33,13 @@ export function createOutbox({ seal: sealRaw, post, delayMs, signal, onError = (
   let flushing = null, queued = 0, seq = 0, nudge = null;
   const release = () => { const waiting = [...drains]; drains.clear(); for (const resume of waiting) resume(); };
   const clear = () => { streams.clear(); queued = 0; };
-  // 0: frames pushed in the same turn share a post and nothing waits longer (a timer would add a millisecond or more)
-  const settle = () => (delayMs > 0 ? sleep(delayMs, undefined, { signal }) : new Promise((resolve) => setImmediate(resolve)));
+  /**
+   * with nothing out, frames pushed in the same turn share a post that leaves at once (delayMs 0). frames that come while
+   * posts are out wait a little for company, longer the more are out, so a burst spread over a few milliseconds (a page's
+   * twenty requests) fills a few posts instead of taking every slot and waiting a round trip for the rest
+   */
+  const gather = (outstanding) => (delayMs > 0 ? sleep(delayMs, undefined, { signal })
+    : outstanding ? sleep(Math.min(GATHER_MAX_MS, GATHER_MS * outstanding), undefined, { signal }) : new Promise((resolve) => setImmediate(resolve)));
   signal?.addEventListener("abort", () => { clear(); release(); }, { once: true });
   function stream(r) {
     let items = streams.get(r);
@@ -71,7 +79,7 @@ export function createOutbox({ seal: sealRaw, post, delayMs, signal, onError = (
     if (flushing || signal?.aborted) return;
     flushing = (async () => {
       try {
-        await settle();
+        await gather(0);
         const out = new Set();
         let failed = null;
         while ((streams.size || out.size) && !signal?.aborted) {
@@ -86,7 +94,7 @@ export function createOutbox({ seal: sealRaw, post, delayMs, signal, onError = (
             // new frames while posts are out go in a free slot without waiting for one of them to come back
             const nudged = await new Promise((resolve) => { nudge = () => resolve(true); for (const sending of out) void sending.then(() => resolve(false)); });
             nudge = null;
-            if (nudged) await settle();
+            if (nudged) await gather(out.size);
           }
           if (failed) throw failed;
         }
@@ -215,12 +223,12 @@ const WARM_MS = 40_000;
  * fetch over node's own http(s) with its sockets kept open. the global fetch closes an idle socket after 4 s (undici's
  * default), so every reply after a pause paid a new tcp and tls handshake to the link service, and a cold tcp window.
  */
-export function keepAliveFetch({ maxSockets = 8 } = {}) {
+export function keepAliveFetch({ maxSockets = 8, tls = {} } = {}) {
   const agents = new Map();
   let lastUsed = 0;
   const agentFor = (protocol) => {
     let found = agents.get(protocol);
-    if (!found) agents.set(protocol, (found = new (protocol === "https:" ? HttpsAgent : HttpAgent)({ keepAlive: true, keepAliveMsecs: 15_000, maxSockets, scheduling: "lifo" })));
+    if (!found) agents.set(protocol, (found = new (protocol === "https:" ? HttpsAgent : HttpAgent)({ keepAlive: true, keepAliveMsecs: 15_000, maxSockets, scheduling: "lifo", ...(protocol === "https:" ? tls : {}) })));
     return found;
   };
   const go = (input, init = {}) => new Promise((resolve, reject) => {
@@ -247,9 +255,9 @@ export function keepAliveFetch({ maxSockets = 8 } = {}) {
   });
   go.connectAware = true;
   /** a spare socket stays open: nginx closes one idle for 75 s, and the long poll holds the other */
-  go.warm = (base) => {
+  go.warm = (base, wanted = () => true) => {
     const timer = setInterval(() => {
-      if (Date.now() - lastUsed < WARM_MS - 5000) return;
+      if (!wanted() || Date.now() - lastUsed < WARM_MS - 5000) return;
       void go(`${base}/healthz`, { signal: AbortSignal.timeout(10_000) }).then((response) => response.text()).catch(() => {});
     }, WARM_MS);
     timer.unref?.();
@@ -383,7 +391,7 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
     }
     return false;
   }
-  const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-vps", r, bytes), post, delayMs: 0, signal: abort.signal, parallel: () => (ordered ? POSTS_IN_FLIGHT : 1), onError: () => fail("The link service did not answer.") });
+  const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-vps", r, bytes), post, delayMs: 0, signal: abort.signal, parallel: () => (ordered ? fetchImpl.postsInFlight?.() ?? POSTS_IN_FLIGHT : 1), onError: () => fail("The link service did not answer.") });
   const relayPath = {
     push: (frame) => { if (frame.t === "cancel") outbox.discard(frame.r); outbox.push(sealFrame(key, id, "to-vps", frame), frame.r); },
     bytes: outbox.bytes, onDrain: outbox.onDrain, discard: outbox.discard,

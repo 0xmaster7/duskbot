@@ -2,7 +2,8 @@
 // (the vps), the real relay, and the real app proxy with a stand-in renderer (the mac) each run on their own thread, and
 // every network leg goes through a proxy that delays it like the real one. timestamps come from one clock.
 //   node scripts/bench-wire.mjs [--path relay|direct] [--runs 30] [--vps-relay 72] [--mac-relay 210] [--mac-vps 158]
-//                               [--kbps 0] [--json out.json]
+//                               [--kbps 0] [--gzip] [--h2] [--json out.json]
+// --h2: the relay speaks tls with http/2 (as nginx does in front of the real one), so both ends use relayFetch's h2
 // one-way delays default to the measured link (2026-11-07): vps<->relay rtt 144 ms, mac<->relay 420, mac<->vps 316.
 import { connect as netConnect, createServer as createNetServer } from "node:net";
 import { parseArgs } from "node:util";
@@ -13,6 +14,14 @@ const now = () => performance.timeOrigin + performance.now();
 const id = "abcdefghij";
 const keyText = Buffer.alloc(32, 7).toString("base64url");
 const appToken = "a".repeat(43), vpsToken = "v".repeat(43);
+
+/** frames shaped like the live ones (2026-11-07): a ~2 kB bot frame repeated with small changes, a ~360 B text delta */
+const word = () => Math.random().toString(36).slice(2, 10);
+const botBase = { id: crypto.randomUUID(), name: "Moss", threadId: crypto.randomUUID(), modelSelection: { instanceId: "codex", model: "gpt-6-astra" },
+  tasks: Array.from({ length: 8 }, () => ({ threadId: crypto.randomUUID(), title: `${word()} ${word()} ${word()}`, updatedAt: Date.now() })),
+  skills: Array.from({ length: 6 }, () => ({ name: word(), enabled: true })) };
+const botFrame = (seq) => ({ kind: "bot", bot: { ...botBase, busy: seq % 2 === 0, activity: seq % 3 ? "thinking" : "tool", lastActiveAt: Date.now() }, seq });
+const deltaFrame = (seq) => ({ kind: "runtime", event: { type: "content.delta", eventId: crypto.randomUUID(), threadId: botBase.threadId, turnId: botBase.id, streamKind: "assistant_text", delta: Array.from({ length: 8 }, word).join(" "), createdAt: new Date().toISOString() }, seq });
 
 /** seqs named in a chunk of sse text */
 const seqsIn = (text) => [...text.matchAll(/"seq":(\d+)/g)].map((match) => Number(match[1]));
@@ -51,19 +60,22 @@ const listen = (server, port = 0) => new Promise((resolve) => server.listen(port
 
 // ---- threads ----
 
-async function vpsThread({ relayBase, directPort }) {
+async function vpsThread({ relayBase, directPort, gzip, ca }) {
   const { createServer } = await import("node:http");
-  const { createTunnelAgent, keepAliveFetch, openFrame, serveDirect } = await import("../link-service/agent.mjs");
+  const { gzipTunnelReplies } = await import("../server/harness/tunnel-gzip.ts");
+  const { openEventStream } = await import("../server/harness/sse-gzip.ts");
+  const { createTunnelAgent, keepAliveFetch, openFrame, relayFetch, serveDirect } = await import("../link-service/agent.mjs");
   const key = Buffer.from(keyText, "base64url");
   const streams = new Set();
   const marks = [];
-  const server = createServer((req, res) => {
+  const handle = (req, res) => {
     const t = now();
     if (req.url.startsWith("/api/events")) {
-      res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache", "x-accel-buffering": "no" });
-      res.write(`data: ${JSON.stringify({ kind: "hello" })}\n\n`);
-      streams.add(res);
-      req.on("close", () => streams.delete(res));
+      // the real server's event stream head: gzipped for a forwarded request when --gzip (server/harness/sse-gzip.ts)
+      const out = openEventStream(res, { "content-type": "text/event-stream", "cache-control": "no-cache", "x-accel-buffering": "no" });
+      out.write(`data: ${JSON.stringify({ kind: "hello" })}\n\n`);
+      streams.add(out);
+      req.on("close", () => streams.delete(out));
       return;
     }
     const seq = Number(new URL(req.url, "http://x").searchParams.get("seq"));
@@ -73,10 +85,11 @@ async function vpsThread({ relayBase, directPort }) {
     res.writeHead(200, { "content-type": "application/json" });
     res.end(body);
     marks.push({ seq, hop: "server-out", t: now() });
-  });
+  };
+  const server = createServer(gzip ? gzipTunnelReplies(handle) : handle);
   const port = await listen(server);
   // the agent's own fetch, tapped: when each reply post leaves
-  const inner = keepAliveFetch();
+  const inner = ca ? relayFetch({ tls: { ca } }) : keepAliveFetch();
   const tapped = (url, init = {}) => {
     if (init.method === "POST") {
       const t = now();
@@ -90,9 +103,32 @@ async function vpsThread({ relayBase, directPort }) {
         }
       });
     }
-    return inner(url, init);
+    if (init.method === "POST" || !String(url).includes("/to-vps")) return inner(url, init);
+    return inner(url, init).then((response) => {
+      const reader = response.body.getReader();
+      const body = new ReadableStream({
+        async pull(controller) {
+          const { value, done } = await reader.read();
+          if (done) { controller.close(); return; }
+          const t = now();
+          const text = Buffer.from(value).toString("utf8");
+          setImmediate(() => {
+            for (const line of text.split("\n")) {
+              let parsed = null;
+              try { parsed = JSON.parse(line); } catch { continue; }
+              for (const sealed of parsed.frames ?? []) {
+                try { const frame = openFrame(key, id, "to-vps", sealed); for (const seq of seqsIn(JSON.stringify(frame).replaceAll("seq=", '"seq":'))) marks.push({ seq, hop: "agent-in", t }); } catch { /* not ours */ }
+              }
+            }
+          });
+          controller.enqueue(value);
+        },
+        cancel: (reason) => reader.cancel(reason),
+      });
+      return new Response(body, { status: response.status, headers: response.headers });
+    });
   };
-  Object.assign(tapped, { connectAware: inner.connectAware, warm: inner.warm, close: inner.close, reset: inner.reset });
+  Object.assign(tapped, { connectAware: inner.connectAware, warm: inner.warm, close: inner.close, reset: inner.reset, postsInFlight: inner.postsInFlight });
   const agent = createTunnelAgent({ base: relayBase, id, key: keyText, token: vpsToken, server: { host: "127.0.0.1", port }, fetchImpl: tapped, log: () => {} });
   void agent.run();
   // the direct path's server half, as sshd would start it for each connection
@@ -102,20 +138,23 @@ async function vpsThread({ relayBase, directPort }) {
   const directListen = await listen(direct, directPort);
   parentPort.on("message", (message) => {
     if (message.t === "emit") {
-      // one write per event, like server/sse-fanout.ts
-      for (const one of message.events) {
-        const frame = `id: s:${one.seq}\ndata: ${JSON.stringify({ kind: "runtime", seq: one.seq, event: { type: "content.delta", pad: "x".repeat(Math.max(0, one.size - 80)) } })}\n\n`;
+      // one write per event, like server/sse-fanout.ts; `gapMs` spreads them over turns of the event loop
+      const send = (one) => {
+        const frame = `id: s:${one.seq}\ndata: ${JSON.stringify(one.size > 1000 ? botFrame(one.seq) : deltaFrame(one.seq))}\n\n`;
         const t = now();
         for (const res of streams) res.write(frame);
         marks.push({ seq: one.seq, hop: "server-emit", t });
-      }
+      };
+      if (!message.gapMs) for (const one of message.events) send(one);
+      else message.events.forEach((one, index) => setTimeout(() => send(one), index * message.gapMs));
     } else if (message.t === "marks") parentPort.postMessage({ t: "marks", marks: marks.splice(0) });
   });
   parentPort.postMessage({ t: "ready", directPort: directListen });
 }
 
-async function relayThread() {
+async function relayThread({ tls }) {
   const { createServer } = await import("node:http");
+  const { createSecureServer } = await import("node:http2");
   const { fileURLToPath } = await import("node:url");
   const { createLinkService, sha256hex } = await import("../link-service/src/app.mjs");
   const { openFrame } = await import("../link-service/agent.mjs");
@@ -124,7 +163,7 @@ async function relayThread() {
   const service = createLinkService({ base: "http://fixture.invalid", scriptPath: `${root}install.sh`, agentPath: `${root}agent.mjs`, trustProxy: false });
   service.store.tunnels.set(id, { id, vpsVerifier: sha256hex(vpsToken), appVerifier: sha256hex(appToken) });
   const marks = [];
-  const server = createServer((req, res) => {
+  const handle = (req, res) => {
     // the relay's write of each streamed line to the app
     if (req.method === "GET" && req.url.includes("/to-app")) {
       const write = res.write.bind(res);
@@ -147,20 +186,30 @@ async function relayThread() {
       };
     }
     void service.handler(req, res);
-  });
+  };
+  const server = tls ? createSecureServer({ ...tls, allowHTTP1: true }, handle) : createServer(handle);
   const port = await listen(server);
   parentPort.on("message", (message) => { if (message.t === "marks") parentPort.postMessage({ t: "marks", marks: marks.splice(0) }); });
   parentPort.postMessage({ t: "ready", port });
 }
 
-async function macThread({ relayBase, directTarget, path }) {
+async function macThread({ relayBase, directTarget, path, gzip, ca }) {
   const { request } = await import("node:http");
-  const { createTunnelProxy, keepAliveFetch, openFrame } = await import("../electron/vps-link-protocol.mjs");
+  const { createGunzip } = await import("node:zlib");
+  const { createTunnelProxy, keepAliveFetch, openFrame, relayFetch } = await import("../electron/vps-link-protocol.mjs");
   const key = Buffer.from(keyText, "base64url");
   const marks = [];
   // the app's fetch, tapped: when each streamed line of replies arrives
-  const inner = keepAliveFetch();
+  const inner = ca ? relayFetch({ tls: { ca } }) : keepAliveFetch();
   const tapped = async (url, init = {}) => {
+    if (init.method === "POST") {
+      const t = now();
+      setImmediate(() => {
+        for (const sealed of JSON.parse(init.body).frames) {
+          try { const frame = openFrame(key, id, "to-vps", sealed); for (const seq of seqsIn(JSON.stringify(frame).replaceAll("seq=", '"seq":'))) marks.push({ seq, hop: "app-post", t }); } catch { /* not ours */ }
+        }
+      });
+    }
     const response = await inner(url, init);
     if (init.method === "POST" || !String(url).includes("/to-app")) return response;
     const reader = response.body.getReader();
@@ -189,7 +238,7 @@ async function macThread({ relayBase, directTarget, path }) {
     });
     return new Response(body, { status: response.status, headers: response.headers });
   };
-  Object.assign(tapped, { connectAware: inner.connectAware, warm: inner.warm, close: inner.close, reset: inner.reset });
+  Object.assign(tapped, { connectAware: inner.connectAware, warm: inner.warm, close: inner.close, reset: inner.reset, postsInFlight: inner.postsInFlight });
   const direct = path === "direct" ? {
     connect: () => new Promise((resolve, reject) => {
       const socket = netConnect(directTarget);
@@ -209,10 +258,11 @@ async function macThread({ relayBase, directTarget, path }) {
   }
   // the renderer's event stream
   await new Promise((resolve, reject) => {
-    const req = request({ host: "127.0.0.1", port: origin.port, path: "/api/events", headers: { host: origin.host, accept: "text/event-stream" } }, (res) => {
+    const req = request({ host: "127.0.0.1", port: origin.port, path: "/api/events", headers: { host: origin.host, accept: "text/event-stream", ...(gzip ? { "accept-encoding": "gzip, deflate" } : {}) } }, (res) => {
       let text = "";
-      res.setEncoding("utf8");
-      res.on("data", (chunk) => {
+      const body = res.headers["content-encoding"] === "gzip" ? res.pipe(createGunzip()) : res;
+      body.setEncoding("utf8");
+      body.on("data", (chunk) => {
         const t = now();
         text += chunk;
         let at;
@@ -238,6 +288,7 @@ async function macThread({ relayBase, directTarget, path }) {
   });
   parentPort.on("message", async (message) => {
     if (message.t === "call") { await call(message.seq, message.size); parentPort.postMessage({ t: "called", seq: message.seq }); }
+    else if (message.t === "calls") { await Promise.all(message.seqs.map((seq) => call(seq, message.size))); parentPort.postMessage({ t: "called", seq: message.seqs[0] }); }
     else if (message.t === "marks") parentPort.postMessage({ t: "marks", marks: marks.splice(0) });
     else if (message.t === "close") { await proxy.close(); parentPort.postMessage({ t: "closed" }); }
   });
@@ -265,19 +316,30 @@ async function main() {
   const { values } = parseArgs({ options: {
     path: { type: "string", default: "relay" }, runs: { type: "string", default: "30" },
     "vps-relay": { type: "string", default: "72" }, "mac-relay": { type: "string", default: "210" }, "mac-vps": { type: "string", default: "158" },
-    kbps: { type: "string", default: "0" }, json: { type: "string" }, burst: { type: "string", default: "12" },
+    kbps: { type: "string", default: "0" }, json: { type: "string" }, burst: { type: "string", default: "12" }, gzip: { type: "boolean", default: false }, h2: { type: "boolean", default: false },
   } });
   const runs = Number(values.runs), kbps = Number(values.kbps);
-  const relay = spawn("relay", {});
+  let tls = null;
+  if (values.h2) {
+    const { execFileSync } = await import("node:child_process");
+    const { mkdtempSync, readFileSync, rmSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const dir = mkdtempSync(`${tmpdir()}/bench-wire-`);
+    execFileSync("openssl", ["req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:prime256v1", "-nodes", "-days", "1", "-subj", "/CN=127.0.0.1", "-addext", "subjectAltName=IP:127.0.0.1", "-keyout", `${dir}/key.pem`, "-out", `${dir}/cert.pem`], { stdio: "ignore" });
+    tls = { key: readFileSync(`${dir}/key.pem`, "utf8"), cert: readFileSync(`${dir}/cert.pem`, "utf8") };
+    rmSync(dir, { recursive: true, force: true });
+  }
+  const scheme = tls ? "https" : "http";
+  const relay = spawn("relay", { tls });
   const { port: relayPort } = await relay.next("ready");
   const vpsSide = delayProxy({ target: { host: "127.0.0.1", port: relayPort }, oneWayMs: Number(values["vps-relay"]) });
   const macSide = delayProxy({ target: { host: "127.0.0.1", port: relayPort }, oneWayMs: Number(values["mac-relay"]), kbps });
   const [vpsRelayPort, macRelayPort] = await Promise.all([listen(vpsSide), listen(macSide)]);
-  const vps = spawn("vps", { relayBase: `http://127.0.0.1:${vpsRelayPort}`, directPort: 0 });
+  const vps = spawn("vps", { relayBase: `${scheme}://127.0.0.1:${vpsRelayPort}`, directPort: 0, gzip: values.gzip, ca: tls?.cert });
   const { directPort } = await vps.next("ready");
   const directSide = delayProxy({ target: { host: "127.0.0.1", port: directPort }, oneWayMs: Number(values["mac-vps"]), kbps });
   const directProxyPort = await listen(directSide);
-  const mac = spawn("mac", { relayBase: `http://127.0.0.1:${macRelayPort}`, directTarget: { host: "127.0.0.1", port: directProxyPort }, path: values.path });
+  const mac = spawn("mac", { relayBase: `${scheme}://127.0.0.1:${macRelayPort}`, ca: tls?.cert, directTarget: { host: "127.0.0.1", port: directProxyPort }, path: values.path, gzip: values.gzip });
   const { transport } = await mac.next("ready");
   const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   await pause(1500);
@@ -291,6 +353,22 @@ async function main() {
     bursts.push(events.map((one) => one.seq));
     vps.worker.postMessage({ t: "emit", events });
     await pause(1500);
+  }
+  // a turn's frames as the server really writes them: one every few milliseconds
+  const trickles = [];
+  for (let i = 0; i < Math.max(5, Math.round(runs / 4)); i++) {
+    const events = Array.from({ length: Number(values.burst) }, () => ({ seq: seq++, size: 2000 }));
+    trickles.push(events.map((one) => one.seq));
+    vps.worker.postMessage({ t: "emit", events, gapMs: 3 });
+    await pause(1500);
+  }
+  // a page's burst: 20 requests at once (startup asks about that many)
+  const together = [];
+  for (let i = 0; i < Math.max(3, Math.round(runs / 6)); i++) {
+    const seqs = Array.from({ length: 20 }, () => seq++);
+    together.push(...seqs);
+    await mac.ask({ t: "calls", seqs, size: 200 }, "called");
+    await pause(1000);
   }
   // (b) requests: small replies one at a time
   const calls = [];
@@ -310,9 +388,11 @@ async function main() {
     total: span(list, "server-emit", "client-event"),
   });
   const report = {
-    path: transport, runs, delays: { vpsRelay: +values["vps-relay"], macRelay: +values["mac-relay"], macVps: +values["mac-vps"], kbps },
+    path: transport, gzip: values.gzip, h2: values.h2, runs, delays: { vpsRelay: +values["vps-relay"], macRelay: +values["mac-relay"], macVps: +values["mac-vps"], kbps },
     event: transport === "direct" ? { total: span(singles, "server-emit", "client-event") } : eventHops(singles),
     burst: { lastOfBurst: stats(bursts.map((list) => get(list.at(-1), "client-event") - get(list[0], "server-emit"))) },
+    trickle: { lastOfTurn: stats(trickles.map((list) => get(list.at(-1), "client-event") - get(list.at(-1), "server-emit"))), each: span(trickles.flat(), "server-emit", "client-event"), hops: transport === "direct" ? undefined : eventHops(trickles.flat()) },
+    together: { each: span(together, "client-send", "client-reply"), "client -> server": span(together, "client-send", "server-in"), "client -> app post": span(together, "client-send", "app-post"), "app post -> agent": span(together, "app-post", "agent-in"), "agent -> server": span(together, "agent-in", "server-in"), "server -> client": span(together, "server-out", "client-reply") },
     request: {
       "client -> server": span(calls, "client-send", "server-in"),
       "server -> client": span(calls, "server-out", "client-reply"),
