@@ -97,7 +97,7 @@ describe("SignInRequestCard while it waits", () => {
     const tag = (label: string) => (html.match(/<button[^>]*>[^<]*<\/button>/g) ?? []).find((one) => one.includes(`>${label}<`))!;
     expect(tag("Take over")).toContain("ui-button-primary");
     expect(tag("Take over")).not.toContain("--bot-button");
-    expect(tag("Skip")).toContain("bg-ink/[0.06]");
+    expect(tag("Skip")).toContain("bg-(--card-fill)");
     expect(tag("Skip")).toContain('title="Cancel this request without doing the step. Pepper continues without it."');
   });
 

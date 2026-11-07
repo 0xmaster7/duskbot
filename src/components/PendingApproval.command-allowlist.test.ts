@@ -156,7 +156,7 @@ describe("remembering exact command approvals", () => {
     expect(deny).toContain("font-normal");
     expect(always).toContain("font-medium");
     expect(allow).toContain("font-medium");
-    expect(always).toContain("bg-ink/[0.06]");
+    expect(always).toContain("bg-(--card-fill)");
     expect(deny).not.toMatch(/(^|\s)bg-/);
     // grok's Discard: quiet text, no fill
     expect(deny).toContain("text-ink-secondary");

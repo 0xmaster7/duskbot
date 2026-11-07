@@ -81,7 +81,7 @@ export function SignInScreen({ path, name, onOpen, disabled }: { path: string; n
       disabled={disabled}
       aria-label={t("signIn.takeOverComputer")}
       data-sign-in-screen=""
-      className="group relative flex aspect-[16/10] w-full items-center justify-center overflow-hidden bg-[#000] text-[13px] leading-[18px] text-[rgb(245_245_245/0.66)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset disabled:cursor-default"
+      className="group relative flex aspect-[16/10] w-full items-center justify-center overflow-hidden bg-[#000] text-[13px] leading-[18px] text-[rgb(245_245_245/0.66)] focus-visible:outline-none focus-visible:inset-ring-2 disabled:cursor-default"
     >
       {frame
         ? <img src={frame} alt={t("computer.screenOf", { name })} draggable={false} className="absolute inset-0 size-full object-cover" />

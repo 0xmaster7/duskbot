@@ -481,7 +481,7 @@ function CompactApprovalRow({
         </p>
         {open && (
           <pre tabIndex={0} aria-label={t("approval.aria.details")}
-            className="mt-1.5 max-h-40 w-full max-w-[560px] overflow-auto whitespace-pre-wrap break-words rounded-[12px] border border-ink/[0.06] bg-ink/[0.04] px-3 py-2 text-start font-mono text-[13px] leading-[18px] text-ink">
+            className="mt-1.5 max-h-40 w-full max-w-[560px] overflow-auto whitespace-pre-wrap break-words rounded-[12px] border border-(--card-code-edge) bg-(--card-code-fill) px-3 py-2 text-start font-mono text-[13px] leading-[18px] text-ink">
             {detail}
           </pre>
         )}
@@ -648,7 +648,7 @@ export function ApprovalCard({
                 ? t("approval.aria.profileChange")
                 : t("approval.aria.details")
         }
-        className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-[12px] border border-ink/[0.06] bg-ink/[0.04] px-3 py-2 font-mono text-[13px] leading-[18px] text-ink"
+        className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-[12px] border border-(--card-code-edge) bg-(--card-code-fill) px-3 py-2 font-mono text-[13px] leading-[18px] text-ink"
       >
         {card.subtitle}
       </pre>

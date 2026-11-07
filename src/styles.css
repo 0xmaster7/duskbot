@@ -1867,6 +1867,23 @@ body {
   }
 }
 
+/* Grok's chat cards (AskCard and the permission card). Dark skins draw them as grok-dark does: a 10% ring, 4% fills,
+   a 2% code block on a 4% edge and no lift. Light skins as grok light: 12%, 6%, 4% on 6% and a faint 3.5% lift. */
+:root {
+  --card-ring: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  --card-fill: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  --card-code-fill: color-mix(in srgb, var(--color-ink) 2%, transparent);
+  --card-code-edge: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  --card-lift: transparent;
+}
+:root:is([data-skin="atelier"], [data-skin="lagoon"], [data-skin="linen"], [data-skin="daylight"], [data-skin="grok"], [data-skin="meadow"], [data-skin="pop"]) {
+  --card-ring: color-mix(in srgb, var(--color-ink) 12%, transparent);
+  --card-fill: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  --card-code-fill: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  --card-code-edge: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  --card-lift: color-mix(in srgb, var(--color-ink) 3.5%, transparent);
+}
+
 /* Keep focus visible after components clear the browser outline. These
    unlayered rules outrank Tailwind utilities without needing !important. */
 :focus-visible {

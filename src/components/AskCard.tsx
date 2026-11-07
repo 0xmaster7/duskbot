@@ -131,7 +131,7 @@ export function CardTitlebar({ icon, label, trailing }: { icon: ReactNode; label
 
 export function CardSourceIcon({ children }: { children: ReactNode }) {
   return (
-    <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center overflow-hidden rounded-[6px] border border-ink/[0.06] bg-ink/[0.06] text-ink-secondary">
+    <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center overflow-hidden rounded-[6px] border border-(--card-fill) bg-(--card-fill) text-ink-secondary">
       {children}
     </span>
   );
@@ -175,7 +175,7 @@ export function CardSettledRow({ icon, label, summary, tone = "done", title, det
       <div className="flex min-w-0 items-center">
         {opens ? (
           <button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)}
-            className={cn(rowClass, "rounded-[18px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus")}>
+            className={cn(rowClass, "rounded-[18px] focus-visible:outline-none focus-visible:inset-ring-2 focus-visible:inset-ring-focus")}>
             {row}
           </button>
         ) : <div className={rowClass}>{row}</div>}
@@ -200,7 +200,7 @@ export function AskDetail({ text, mono = false, label }: { text: string; mono?: 
       <div
         dir="auto"
         aria-label={label}
-        className={cn("rounded-[12px] border border-ink/[0.06] bg-ink/[0.04] px-3 py-2 [overflow-wrap:anywhere]",
+        className={cn("rounded-[12px] border border-(--card-code-edge) bg-(--card-code-fill) px-3 py-2 [overflow-wrap:anywhere]",
           mono ? "font-mono text-[13px] leading-[18px] whitespace-pre-wrap text-ink" : "whitespace-pre-wrap text-[13px] leading-5 text-ink-secondary",
           long && !open && "line-clamp-3")}
       >
@@ -217,10 +217,10 @@ export function AskDetail({ text, mono = false, label }: { text: string; mono?: 
 
 export type AskChoice = { label: string; description?: string };
 
-/** A question card rests a hair above the page, like the bubbles beside it. */
-export const ASK_CARD_LIFT = "shadow-[0_2px_8px_color-mix(in_srgb,var(--color-ink)_3.5%,transparent)]";
-/** Grok's card edge: a 0.5px ring at 12% ink. */
-export const ASK_CARD_RING = "bg-composer ring-[0.5px] ring-ink/[0.12]";
+/** A question card rests a hair above the page in a light skin, as grok's does; a dark one draws no lift (--card-lift). */
+export const ASK_CARD_LIFT = "shadow-[0_2px_8px_var(--card-lift)]";
+/** Grok's card edge: a 0.5px ring, 12% ink in a light skin and 10% in a dark one (--card-ring). */
+export const ASK_CARD_RING = "bg-composer ring-[0.5px] ring-(--card-ring)";
 
 /** The letter that names a choice, A to Z, then none: a long list reads by its labels. */
 export const choiceLetter = (index: number): string | null => index < 26 ? String.fromCharCode(65 + index) : null;
@@ -416,7 +416,7 @@ const CARD_BUTTON = "omb-press inline-flex shrink-0 items-center justify-center 
 export const CARD_BUTTON_LG = `${CARD_BUTTON} h-9 px-4`;
 export const CARD_BUTTON_MD = `${CARD_BUTTON} h-8 px-3.5`;
 export const cardPrimary = (size: string = CARD_BUTTON_LG): BotButton => botButton(undefined, `${size} font-medium`, ASK_PRIMARY_LOOK);
-export const cardSecondary = (size: string = CARD_BUTTON_LG) => `${size} ${ASK_LOOK} font-medium bg-ink/[0.06] text-ink enabled:hover:bg-ink/[0.1] enabled:active:bg-ink/[0.14]`;
+export const cardSecondary = (size: string = CARD_BUTTON_LG) => `${size} ${ASK_LOOK} font-medium bg-(--card-fill) text-ink enabled:hover:bg-ink/[0.1] enabled:active:bg-ink/[0.14]`;
 export const cardTertiary = (size: string = CARD_BUTTON_LG) => `${size} ${ASK_LOOK} font-normal text-ink-secondary enabled:hover:bg-ink/[0.06] enabled:hover:text-ink enabled:active:bg-ink/[0.1]`;
 
 /** A card's other answers: Deny, Cancel, Not now. */
