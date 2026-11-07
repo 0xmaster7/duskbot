@@ -15673,6 +15673,7 @@ server.listen(PORT, "127.0.0.1", async () => {
   drainQueuedSends();
   drainQueuedChannelSends();
   startUpkeep({ bots: () => store.bots, retentionDays: () => threadEventLogRetentionDays(cfg), busy: threadBusy, openDirectHandoff: (threadId) => coordinator.activeDirect(threadId) });
+  setTimeout(() => void store.backfillMediaSizes().then((filled) => { if (filled) console.log(`[media] measured pictures on ${filled} stored message(s)`); }, (error) => console.warn("[media] picture size backfill failed:", error)), 5_000).unref();
   if (enginesRead) {
     await enginesRead;
     if (companyShutdown) return;

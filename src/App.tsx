@@ -6,6 +6,7 @@ import { nextShortcutBot, shortcutBots, shownBotIds } from "@/lib/sidebar-shortc
 import { useShowThreads } from "@/lib/thread-preferences";
 import { useWelcomeViewer, WelcomeGate } from "@/components/onboarding/WelcomeGate";
 import { CloudTimeZoneSync } from "@/components/CloudTimeZone";
+import { useWarmChatImages } from "@/components/use-warm-chat-images";
 import { cloudSignInDue, type WelcomeViewer } from "@/lib/onboarding";
 import { GuidedTour } from "@/components/onboarding/GuidedTour";
 import { LiveCallHost } from "@/components/LiveCallHost";
@@ -86,6 +87,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const inboxShown = useInboxPanel().open && inboxReady;
   // A Switch AI pick lands once its stopped turn's chat is idle, wherever the person is by then.
   useAiSwitchKeeper({ bots: state.bots, dispatch });
+  useWarmChatImages(state.bots);
   const showThreads = useShowThreads();
   const { capabilities } = useDesktopCapabilities();
   const captionChrome = useCaptionChrome();
