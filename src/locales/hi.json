@@ -2897,5 +2897,18 @@
   "room.jev.customPlaceholder": "vendor/model",
   "keys.label.gatewayHelper": "फ़ैसलों के लिए Vercel AI Gateway कुंजी",
   "keys.purpose.gatewayHelper": "Vercel AI Gateway से तेज़ फ़ैसले",
-  "keys.where.workersAi": "अगर पहले सहेजी थी तो बनी रहती है। अब Jev सेट करने के लिए किसी ग्रुप चैट में कौन जवाब दे चुनें।"
+  "keys.where.workersAi": "अगर पहले सहेजी थी तो बनी रहती है। अब Jev सेट करने के लिए किसी ग्रुप चैट में कौन जवाब दे चुनें।",
+  "failedReply.title": "बॉट जवाब नहीं दे पाया",
+  "failedReply.titleOne": "{name} जवाब नहीं दे पाया",
+  "failedReply.titleTwo": "{first} और {second} जवाब नहीं दे पाए",
+  "failedReply.titleMore": "{first}, {second} और {count} अन्य जवाब नहीं दे पाए",
+  "failedReply.timeout": "जवाब में बहुत देर हो गई",
+  "failedReply.rateLimited": "इस अनुरोध की सीमा लग गई, थोड़ी देर में फिर कोशिश करें",
+  "failedReply.usageLimit": "आपकी उपयोग सीमा पूरी हो गई है",
+  "failedReply.overloaded": "मॉडल प्रदाता पर बहुत भार है",
+  "failedReply.credits": "आपके {engine} खाते में क्रेडिट खत्म हो गए हैं",
+  "failedReply.signedOutHere": "{engine} इस कंप्यूटर पर साइन इन नहीं है",
+  "failedReply.signedOutServer": "{engine} सर्वर पर साइन इन नहीं है",
+  "failedReply.yourAi": "आपका AI",
+  "failedReply.tryAgain": "फिर से कोशिश करें"
 }

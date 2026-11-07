@@ -31,7 +31,7 @@ export const CARD_ACTION = "ui-button ui-button-sm ui-button-pill border-transpa
 const SUMMARY = "w-fit cursor-pointer list-none rounded-sm [&::-webkit-details-marker]:hidden hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus";
 
 export function ChatErrorCard({ tone = "danger", title, details, detailsLabel, children, actions, onDismiss, className = "" }: {
-  tone?: "danger" | "warning";
+  tone?: "danger" | "warning" | "info";
   title: ReactNode;
   /** The words behind a plain title, one click away. */
   details?: string | null;

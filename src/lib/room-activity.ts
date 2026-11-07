@@ -6,5 +6,7 @@ export function roomActivityVisible(message: Message, showToolCalls: boolean): b
   const tool = message.tool;
   if (message.kind !== "activity" || !tool) return false;
   if (message.comm || message.threadRef || message.relay || message.dataResult || isStatusActivity(message)) return true;
-  return failedTurnCause(tool.name) !== null || showToolCalls;
+  // a reply that never came shows in the card above the composer, not as a row
+  if (failedTurnCause(tool.name) !== null) return tool.partial === true;
+  return showToolCalls;
 }

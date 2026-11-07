@@ -2901,5 +2901,18 @@
   "room.jev.customPlaceholder": "vendor/model",
   "keys.label.gatewayHelper": "Clé Vercel AI Gateway pour les décisions",
   "keys.purpose.gatewayHelper": "Décisions rapides via Vercel AI Gateway",
-  "keys.where.workersAi": "Conservée si vous en avez déjà enregistré une. Pour configurer Jev, choisissez-le dans Qui répond d'une discussion de groupe."
+  "keys.where.workersAi": "Conservée si vous en avez déjà enregistré une. Pour configurer Jev, choisissez-le dans Qui répond d'une discussion de groupe.",
+  "failedReply.title": "Le bot n'a pas répondu",
+  "failedReply.titleOne": "{name} n'a pas pu répondre",
+  "failedReply.titleTwo": "{first} et {second} n'ont pas pu répondre",
+  "failedReply.titleMore": "{first}, {second} et {count} autres n'ont pas pu répondre",
+  "failedReply.timeout": "La réponse a pris trop de temps",
+  "failedReply.rateLimited": "Cette demande a été limitée, réessaie dans un instant",
+  "failedReply.usageLimit": "Ta limite d'utilisation est atteinte",
+  "failedReply.overloaded": "Le fournisseur du modèle est surchargé",
+  "failedReply.credits": "Ton compte {engine} n'a plus de crédits",
+  "failedReply.signedOutHere": "{engine} n'est pas connecté sur cet ordinateur",
+  "failedReply.signedOutServer": "{engine} n'est pas connecté sur le serveur",
+  "failedReply.yourAi": "Ton IA",
+  "failedReply.tryAgain": "Réessayer"
 }

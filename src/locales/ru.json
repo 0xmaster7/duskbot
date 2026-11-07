@@ -6104,5 +6104,18 @@
   "room.jev.customPlaceholder": "vendor/model",
   "keys.label.gatewayHelper": "Ключ Vercel AI Gateway для решений",
   "keys.purpose.gatewayHelper": "Быстрые решения через Vercel AI Gateway",
-  "keys.where.workersAi": "Сохраняется, если вы уже добавили его. Jev теперь настраивается в групповом чате в разделе «Кто отвечает»."
+  "keys.where.workersAi": "Сохраняется, если вы уже добавили его. Jev теперь настраивается в групповом чате в разделе «Кто отвечает».",
+  "failedReply.title": "Бот не ответил",
+  "failedReply.titleOne": "{name} не смог ответить",
+  "failedReply.titleTwo": "{first} и {second} не смогли ответить",
+  "failedReply.titleMore": "{first}, {second} и ещё {count} не смогли ответить",
+  "failedReply.timeout": "Ответ занял слишком много времени",
+  "failedReply.rateLimited": "Запрос ограничен, попробуйте чуть позже",
+  "failedReply.usageLimit": "Лимит использования исчерпан",
+  "failedReply.overloaded": "Провайдер модели перегружен",
+  "failedReply.credits": "На аккаунте {engine} закончились кредиты",
+  "failedReply.signedOutHere": "{engine}: вход на этом компьютере не выполнен",
+  "failedReply.signedOutServer": "{engine}: вход на сервере не выполнен",
+  "failedReply.yourAi": "Ваш ИИ",
+  "failedReply.tryAgain": "Повторить"
 }

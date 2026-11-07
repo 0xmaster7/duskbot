@@ -1949,7 +1949,6 @@
   "chat.rescue.connectHint": "使用你已付费的 AI 方案登录",
   "chat.error.signedOut": "{name} 尚未登录。请在下方登录，然后重新发送你的消息。",
   "chat.notice.signIn": "登录",
-  "chat.notice.signInHint": "打开 AI 设置以重新登录",
   "chat.error.details": "详情",
   "chat.error.requestTooLarge": "这条消息对 {model} 来说太大了。请开始新的对话，或选择能接受更多内容的模型。",
   "chat.error.dismiss": "关闭",
@@ -6753,5 +6752,18 @@
   "vpsLink.move.count.messages": "消息",
   "vpsLink.move.pausedTitle": "迁移暂停了",
   "vpsLink.move.progressAria": "迁移进度",
-  "vpsLink.move.statsAria": "要搬的东西"
+  "vpsLink.move.statsAria": "要搬的东西",
+  "failedReply.title": "机器人未能回复",
+  "failedReply.titleOne": "{name} 未能回复",
+  "failedReply.titleTwo": "{first} 和 {second} 未能回复",
+  "failedReply.titleMore": "{first}、{second} 等 {count} 个未能回复",
+  "failedReply.timeout": "回复超时",
+  "failedReply.rateLimited": "此请求已被限流，请稍后再试",
+  "failedReply.usageLimit": "已达到使用上限",
+  "failedReply.overloaded": "模型服务商负载过高",
+  "failedReply.credits": "你的 {engine} 账户余额不足",
+  "failedReply.signedOutHere": "{engine} 未在这台电脑上登录",
+  "failedReply.signedOutServer": "{engine} 未在服务器上登录",
+  "failedReply.yourAi": "你的 AI",
+  "failedReply.tryAgain": "重试"
 }

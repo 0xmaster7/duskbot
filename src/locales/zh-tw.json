@@ -4505,5 +4505,18 @@
   "room.jev.customPlaceholder": "vendor/model",
   "keys.label.gatewayHelper": "用於決策的 Vercel AI Gateway 金鑰",
   "keys.purpose.gatewayHelper": "透過 Vercel AI Gateway 快速決策",
-  "keys.where.workersAi": "如果之前儲存過，會繼續保留。現在請在群組聊天的「誰來回答」中設定 Jev。"
+  "keys.where.workersAi": "如果之前儲存過，會繼續保留。現在請在群組聊天的「誰來回答」中設定 Jev。",
+  "failedReply.title": "機器人未能回覆",
+  "failedReply.titleOne": "{name} 未能回覆",
+  "failedReply.titleTwo": "{first} 和 {second} 未能回覆",
+  "failedReply.titleMore": "{first}、{second} 等 {count} 個未能回覆",
+  "failedReply.timeout": "回覆逾時",
+  "failedReply.rateLimited": "此請求已被限流，請稍後再試",
+  "failedReply.usageLimit": "已達使用上限",
+  "failedReply.overloaded": "模型供應商負載過高",
+  "failedReply.credits": "你的 {engine} 帳戶點數已用完",
+  "failedReply.signedOutHere": "{engine} 未在這台電腦上登入",
+  "failedReply.signedOutServer": "{engine} 未在伺服器上登入",
+  "failedReply.yourAi": "你的 AI",
+  "failedReply.tryAgain": "重試"
 }

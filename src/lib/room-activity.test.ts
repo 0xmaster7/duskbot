@@ -25,11 +25,13 @@ describe("roomActivityVisible", () => {
     expect(roomActivityVisible(chip({ tool: { name: "recovery: Automatic recovery: trying a backup once.", ok: true } }), false)).toBe(true);
   });
 
-  it("hides a failed step like a 1:1 chat, and always shows a failed turn", () => {
+  it("hides a failed step like a 1:1 chat, and a failed turn, which the card above the composer says", () => {
     const failedStep = chip({ tool: { name: "Ran a command", ok: false } });
     expect(roomActivityVisible(failedStep, false)).toBe(false);
     expect(roomActivityVisible(failedStep, true)).toBe(true);
-    expect(roomActivityVisible(chip({ tool: { name: "error: engine missing" } }), false)).toBe(true);
+    expect(roomActivityVisible(chip({ tool: { name: "error: engine missing" } }), false)).toBe(false);
+    expect(roomActivityVisible(chip({ tool: { name: "error: engine missing" } }), true)).toBe(false);
+    expect(roomActivityVisible(chip({ tool: { name: "error: a step failed", ok: false, partial: true } }), false)).toBe(true);
   });
 
   it("shows the same activity a 1:1 chat shows when tool calls are off", () => {

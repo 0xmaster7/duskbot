@@ -2097,7 +2097,6 @@
   "chat.rescue.connectHint": "Sign in with an AI plan you already pay for",
   "chat.error.signedOut": "{name} isn't signed in yet. Sign in below, then send your message again.",
   "chat.notice.signIn": "Sign in",
-  "chat.notice.signInHint": "Open AI settings to sign in again",
   "chat.error.details": "Details",
   "chat.error.partial": "Partly done. The reply came back, but a step didn't work, so check that step before relying on it.",
   "chat.error.partialPreview": "Partly done: a step didn't work",
@@ -7590,5 +7589,18 @@
   "vpsLink.move.count.messages": "Messages",
   "vpsLink.move.pausedTitle": "The move paused",
   "vpsLink.move.progressAria": "Move progress",
-  "vpsLink.move.statsAria": "What moves"
+  "vpsLink.move.statsAria": "What moves",
+  "failedReply.title": "Bot failed to respond",
+  "failedReply.titleOne": "{name} couldn't respond",
+  "failedReply.titleTwo": "{first} and {second} couldn't respond",
+  "failedReply.titleMore": "{first}, {second} and {count} more couldn't respond",
+  "failedReply.timeout": "The reply timed out",
+  "failedReply.rateLimited": "This request has been rate limited, try again shortly",
+  "failedReply.usageLimit": "Your usage limit has been reached",
+  "failedReply.overloaded": "Model provider is overloaded",
+  "failedReply.credits": "Your {engine} account is out of credits",
+  "failedReply.signedOutHere": "{engine} isn't signed in on this computer",
+  "failedReply.signedOutServer": "{engine} isn't signed in on the server",
+  "failedReply.yourAi": "Your AI",
+  "failedReply.tryAgain": "Try again"
 }

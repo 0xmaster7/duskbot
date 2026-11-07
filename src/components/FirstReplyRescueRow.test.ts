@@ -135,12 +135,13 @@ describe("stopped row", () => {
 describe("a notice that signing in fixes", () => {
   const notice = (name: string, setup?: true): Message => ({ id: "m-2", at: AT, role: "bot", kind: "activity", tool: { name, ok: true, ...(setup ? { setup } : {}) } } as Message);
 
-  it("offers Sign in, which opens the AI settings; other notices offer nothing", () => {
+  it("leaves a sign-out something has since followed out of the chat, and draws any other notice as a quiet card", () => {
+    // while it is the newest thing, the card above the composer says it with its Sign in (GroupView.failed-turn.test.ts)
     render(notice("notice: Claude is signed out on the Cloud. Sign in again in Settings → AI to keep using it.", true));
-    expect(host.textContent).toContain("Claude is signed out on the Cloud. Sign in again in Settings → AI to keep using it.");
-    act(() => button("Sign in")!.click());
-    expect(dispatch).toHaveBeenCalledWith({ type: "toggleAppSettings", open: true, section: "engines" });
+    expect(host.textContent).toBe("");
     render(notice("notice: continuing on Codex while Claude is signed out"));
+    expect(host.querySelector("[data-chat-error][role=status]")).not.toBeNull();
+    expect(host.textContent).toContain("continuing on Codex while Claude is signed out");
     expect(button("Sign in")).toBeUndefined();
   });
 });

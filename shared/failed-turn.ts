@@ -6,6 +6,9 @@ import type { PlaceRow } from "./place-view.ts";
 
 const MARKER = "error:";
 
+/** What stopped a reply, read by the server from the engine's own words, so the app says it in plain words. */
+export type FailedReplyReason = "signed_out" | "credits" | "usage_limit" | "rate_limit" | "overloaded" | "timeout";
+
 /** The longest cause a row keeps. Clients wrap the row and show it whole, so
  * this only bounds a pathological message (a provider's HTML body, a stack
  * trace); a sentence a person acts on fits, its next action included. */
@@ -25,12 +28,14 @@ export interface FailedTurnTool {
   limitResetsAt?: number;
   /** the turn's reply came back; only a step it ran failed or wasn't allowed */
   partial?: boolean;
+  /** what stopped it, when the server could tell */
+  reason?: FailedReplyReason;
 }
 
 /** The activity row a failed turn is stored as. */
 export function failedTurnTool(
   cause: string,
-  flags: { setup?: boolean; terminal?: boolean; claudeUpdate?: boolean; place?: PlaceRow; limitResetsAt?: number; partial?: boolean } = {},
+  flags: { setup?: boolean; terminal?: boolean; claudeUpdate?: boolean; place?: PlaceRow; limitResetsAt?: number; partial?: boolean; reason?: FailedReplyReason } = {},
 ): FailedTurnTool {
   const words = cause.length > FAILED_TURN_MAX_CHARS ? `${cause.slice(0, FAILED_TURN_MAX_CHARS - 1)}…` : cause;
   return {
@@ -42,6 +47,7 @@ export function failedTurnTool(
     ...(flags.place ? { place: flags.place } : {}),
     ...(flags.limitResetsAt ? { limitResetsAt: flags.limitResetsAt } : {}),
     ...(flags.partial ? { partial: true } : {}),
+    ...(flags.reason ? { reason: flags.reason } : {}),
   };
 }
 

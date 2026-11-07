@@ -74,7 +74,7 @@ import { ThreadRefText } from "./ThreadRefs";
 import { optionsCardRow } from "./OptionsCardRow";
 import { MessageBoundary } from "./MessageBoundary";
 import { RichMessageRow, UserLineNote, richRowKind } from "./RichMessageRow"; import { SetupOffer } from "./SetupOffer";
-import { Composer } from "./Composer";
+import { Composer } from "./Composer"; import { FailedReplyCard, FoldedNoticesContext, foldedNoticeIds, useTrailingRows } from "./FailedReplyCard";
 import { CARD_ACTION, ChatErrorBanner, ChatErrorCard, ChatNotice } from "./ChatErrorBanner";
 import { ThreadContextWarning } from "./ContextWarning";
 import { UsageAlert, useLimitResetContinue } from "./EngineUsage";
@@ -830,6 +830,8 @@ const MessagesList = memo(function MessagesList({
               if (m.dataResult) return <DataResultChip message={m} />;
               if (isStatusActivity(m)) return <StatusActivityRow message={m} />;
               if (m.tool && failedTurnCause(m.tool.name) !== null) {
+                // a reply that never came is said once, in the card above the composer
+                if (!m.tool.partial) return null;
                 return (
                   <FailedTurnRow
                     tool={m.tool}
@@ -1052,6 +1054,9 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
     setBusySince(bot.busy ? bot.turnStartedAt ?? Date.now() : null);
   }, [bot.busy, bot.id, bot.threadId, bot.turnStartedAt]);
 
+  // while the turn runs its notices stay in the chat; once it ends, what it left is one card above the composer
+  const trailing = useTrailingRows(messages, !bot.busy);
+  const folded = useMemo(() => foldedNoticeIds(trailing), [trailing]);
   const regenerate = useCallback(() => {
     if (lastUserMessage?.text && !bot.busy && !lastUserMessage.id.startsWith("optimistic-")) {
       dispatch({ type: "editMessage", botId: bot.id, threadId: bot.threadId, messageId: lastUserMessage.id, text: lastUserMessage.text });
@@ -1222,7 +1227,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             <div ref={topSentinelRef} className="h-2 w-full pointer-events-none" aria-hidden="true" />
           ) : null}
           {windowedMessages.length === 0 && !bot.busy && <EmptyChat bot={bot} />}
-          <ChatRowsContext.Provider value={rows}><LiveToolsContext value={liveTools}><ChatBusyContext value={busy}>
+          <ChatRowsContext.Provider value={rows}><LiveToolsContext value={liveTools}><ChatBusyContext value={busy}><FoldedNoticesContext value={folded}>
             <MessagesList
               messages={paintedMessages}
               transcript={messages}
@@ -1244,7 +1249,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               onReply={selectReply}
               seamId={lastRowIsBubble && presenceShown ? lastShownRow?.id ?? null : null}
             />
-          </ChatBusyContext></LiveToolsContext></ChatRowsContext.Provider>
+          </FoldedNoticesContext></ChatBusyContext></LiveToolsContext></ChatRowsContext.Provider>
           {laterCount > 0 && (
             // clear of the jump-to-latest button, which floats over the transcript's last 40px while this shows
             <div className="mb-10 flex justify-center">
@@ -1310,6 +1315,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
       )}
       {/* grok says what went wrong in one quiet line just above the message box */}
       <div className="pointer-events-auto"><ChatErrorBanner message={state.error} onDismiss={() => dispatch({ type: "error", message: null })} /></div>
+      <div className="pointer-events-auto"><FailedReplyCard rows={trailing} botId={bot.id} threadId={bot.threadId} onRetry={lastUserMessage ? regenerate : undefined} /></div>
       <LiveCallBar bot={bot} />
       {canWrite === false ? (
         <NewConversationInstead bot={bot} onNew={() => dispatch({ type: "newTask", botId: bot.id })} />

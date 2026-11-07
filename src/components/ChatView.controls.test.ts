@@ -380,9 +380,9 @@ describe("thread control placement", () => {
       { id: "digest", role: "bot", kind: "digest", at: 3, text: "no tool activity" },
     ];
     const render = () => renderToStaticMarkup(createElement(ChatView, { bot: { ...bot, busy: false, messages } }));
-    expect(render()).toContain("Retry</button>");
+    expect(render()).toContain("Try again</button>");
     messages.push({ id: "next", role: "user", kind: "text", at: 4, text: "A different request" });
-    expect(render()).not.toContain("Retry</button>");
+    expect(render()).not.toContain("Try again</button>");
   });
   it("keeps Retry on a failed turn after hanging up, when the call's record is the last row", () => {
     const messages: Bot["messages"] = [
@@ -394,10 +394,10 @@ describe("thread control placement", () => {
       },
     ];
     const render = () => renderToStaticMarkup(createElement(ChatView, { bot: { ...bot, busy: false, messages } }));
-    expect(render()).toContain("Retry</button>");
+    expect(render()).toContain("Try again</button>");
     expect(render()).toContain('data-testid="call-record"');
     messages.push({ id: "next", role: "user", kind: "text", at: 4, text: "A different request" });
-    expect(render()).not.toContain("Retry</button>");
+    expect(render()).not.toContain("Try again</button>");
   });
   it.each([false, true])("keeps recovery visible and outside tool folds when tool calls are %s", (showToolCalls) => {
     fixture.showToolCalls = showToolCalls;
@@ -411,7 +411,7 @@ describe("thread control placement", () => {
     ];
     try {
       const markup = renderToStaticMarkup(createElement(ChatView, { bot: { ...bot, busy: false, messages } }));
-      expect(markup).toContain('data-mid="recovery"><div role="status"');
+      expect(markup).toContain('data-mid="recovery"><div class="flex justify-start"><div role="status" data-chat-error=""');
       expect(markup).toContain(explanation);
       expect(markup).not.toContain(`recovery: ${explanation}`);
       expect(markup.match(/Automatic recovery:/g)).toHaveLength(1);
@@ -431,7 +431,7 @@ describe("thread control placement", () => {
     ];
     try {
       const markup = renderToStaticMarkup(createElement(ChatView, { bot: { ...bot, busy: false, messages } }));
-      expect(markup).toMatch(/data-mid="notice"[^>]*><div role="status"/);
+      expect(markup).toMatch(/data-mid="notice"[^>]*><div class="flex justify-start"><div role="status" data-chat-error=""/);
       expect(markup.match(/no longer offers/g)).toHaveLength(1);
       expect(markup).not.toContain(`notice: ${explanation}`);
       if (!showToolCalls) expect(markup).not.toContain('data-testid="tool-activity"');

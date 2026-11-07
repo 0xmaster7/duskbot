@@ -32,6 +32,11 @@ const KINDS: Array<[RegExp, LocaleKey]> = [
   [/\b5\d\d\b|internal server error|bad gateway/i, "error.plain.server"],
 ];
 
+/** Which plain-words kind a raw error reads as, whether or not it is technical; null for none of them. */
+export function plainErrorKind(raw: string): LocaleKey | null {
+  return KINDS.find(([pattern]) => pattern.test(raw))?.[1] ?? null;
+}
+
 export function isTechnicalError(raw: string): boolean {
   const text = raw.trim();
   return Boolean(text) && TECHNICAL.some((pattern) => pattern.test(text));

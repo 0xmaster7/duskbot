@@ -10,7 +10,8 @@ import { StatusActivityRow } from "./StatusActivityRow";
 
 afterEach(() => { setLocale("en"); });
 
-const text = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&#x27;/g, "'");
+// the notice card's glyph is an icon-font character, no words
+const text = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&#x27;/g, "'").replace(/[\uE000-\uF8FF]/g, "");
 const person = (bugReport?: Message["bugReport"]): Message => ({ id: "m1", role: "user", kind: "text", text: "@devs the calendar never syncs", at: 1, ...(bugReport ? { bugReport } : {}) } as Message);
 
 describe("a @devs report's status, under the message that sent it", () => {

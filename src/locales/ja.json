@@ -6125,5 +6125,18 @@
   "room.jev.customPlaceholder": "vendor/model",
   "keys.label.gatewayHelper": "判断用の Vercel AI Gateway キー",
   "keys.purpose.gatewayHelper": "Vercel AI Gateway で素早く判断",
-  "keys.where.workersAi": "以前に保存したものは残ります。Jev はグループチャットの「誰が答えるか」で設定します。"
+  "keys.where.workersAi": "以前に保存したものは残ります。Jev はグループチャットの「誰が答えるか」で設定します。",
+  "failedReply.title": "ボットが応答できませんでした",
+  "failedReply.titleOne": "{name} が応答できませんでした",
+  "failedReply.titleTwo": "{first} と {second} が応答できませんでした",
+  "failedReply.titleMore": "{first}、{second} ほか {count} 件が応答できませんでした",
+  "failedReply.timeout": "応答がタイムアウトしました",
+  "failedReply.rateLimited": "リクエストが制限されました。少し待ってからもう一度お試しください",
+  "failedReply.usageLimit": "利用上限に達しました",
+  "failedReply.overloaded": "モデルのプロバイダーが混み合っています",
+  "failedReply.credits": "{engine} アカウントのクレジットがなくなりました",
+  "failedReply.signedOutHere": "このコンピューターで {engine} にサインインしていません",
+  "failedReply.signedOutServer": "サーバーで {engine} にサインインしていません",
+  "failedReply.yourAi": "AI",
+  "failedReply.tryAgain": "もう一度試す"
 }

@@ -201,7 +201,7 @@ import { RETRY_MAX_ATTEMPTS } from "./drivers/retry.ts";
 import { recoveryCapabilityError, startupBackups } from "./automatic-recovery.ts";
 import { createQuotaSwitchHost } from "./host/quota-switch.ts"; import { quotaSwitchEnabled } from "./quota-switch.ts";
 import { decodeGeneratedImage } from "./generated-image.ts";
-import { createMcpServersHost } from "./host/mcp-servers-host.ts"; import { createLimitTakeover, signedOutStop } from "./host/limit-takeover.ts";
+import { failedReplyReason } from "./failed-reply-reason.ts"; import { createMcpServersHost } from "./host/mcp-servers-host.ts"; import { createLimitTakeover, signedOutStop } from "./host/limit-takeover.ts";
 import {
   isRemoteMcpServer,
   parseStoredMcpServer,
@@ -6636,7 +6636,7 @@ bus.subscribe((event: RuntimeEvent) => {
         break;
       }
       landParkedFiles(false); // above the failure row, which stays the last, retryable line
-      pushMessage({ role: "bot", kind: "activity", tool: failedTurnTool(event.message, event) });
+      pushMessage({ role: "bot", kind: "activity", tool: failedTurnTool(event.message, { ...event, reason: failedReplyReason(event.message, event) }) });
       if (event.setup && bot) store.setTaskActivity(bot.id, event.threadId, "dead");
       break;
     case "thread.token-usage.updated":

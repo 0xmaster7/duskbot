@@ -52,7 +52,7 @@ import { isCancelledTranscriptRow } from "../../shared/client-cancel";
 import { botEngine, failedTurnCause } from "@/lib/failed-turn";
 import { CitationSelectionToolbar, SentCitations } from "./CitationUI";
 import { RoomComposer } from "./bot-access/RoomComposer";
-import { ChatErrorBanner, ChatNotice } from "./ChatErrorBanner";
+import { ChatErrorBanner, ChatNotice } from "./ChatErrorBanner"; import { FailedReplyCard, FoldedNoticesContext, foldedNoticeIds, useTrailingRows } from "./FailedReplyCard";
 import { RoomContextWarnings } from "./ContextWarning";
 import { ChatFindBar } from "./ChatFindBar";
 import { isPureLeakedSystemHarnessMessage, stripLeakedSystemHarnessMessages } from "../../shared/system-message-guard.ts";
@@ -111,6 +111,8 @@ export function RoomToolChip({ message, roomId, threadId, live = false }: { mess
   if (!tool) return null;
   if (message.threadRef) return <ThreadChip message={message} />; if (message.relay) return <TeammateChip message={message} />;
   if (failedTurnCause(tool.name) !== null) {
+    // a reply that never came is said once, in the card above the composer
+    if (!tool.partial) return null;
     return <FailedTurnRow tool={tool} engine={botEngine(state.bots.find((b) => b.id === message.from?.botId), state.instances)} botId={message.from?.botId} />;
   }
   const comm = message.comm;
@@ -937,6 +939,8 @@ export function GroupView({ group }: { group: Group }) {
   const streamingReply = useLiveReplyActive(group.threadId);
   const statusMarkState = statusMarkFor({ busy: threadWorking, waitingOnYou: false, answering: streamingReply, live: live.status?.activity, failed: lastGroupMessage?.kind === "activity" && lastGroupMessage.tool?.ok === false });
   const workingIds = roomWorkingIds(group, lastGroupMessage);
+  const trailing = useTrailingRows(group.messages);
+  const folded = useMemo(() => foldedNoticeIds(trailing), [trailing]);
 
   const {
     scrollRef,
@@ -1106,7 +1110,7 @@ export function GroupView({ group }: { group: Group }) {
           ) : hiddenCount > 0 || group.hasMore ? (
             <div ref={topSentinelRef} className="h-2 w-full pointer-events-none" aria-hidden="true" />
           ) : null}
-          <Transcript
+          <FoldedNoticesContext value={folded}><Transcript
             group={group}
             members={members}
             locale={activeLocale()}
@@ -1115,7 +1119,7 @@ export function GroupView({ group }: { group: Group }) {
             unreadDividerId={unreadDivider.messageId}
             unreadDividerFading={unreadDivider.fading}
             onReply={selectReply}
-          />
+          /></FoldedNoticesContext>
           {laterCount > 0 && (
             <div className="flex justify-center">
               <button
@@ -1148,6 +1152,7 @@ export function GroupView({ group }: { group: Group }) {
         </div>
       )}
       <div className="pointer-events-auto"><ChatErrorBanner message={state.error} onDismiss={() => dispatch({ type: "error", message: null })} /></div>
+      <div className="pointer-events-auto"><FailedReplyCard rows={trailing} group threadId={group.threadId} /></div>
       <RoomComposer
         key={group.threadId}
         group={group}

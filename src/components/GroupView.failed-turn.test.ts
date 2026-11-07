@@ -23,7 +23,8 @@ vi.mock("./DesktopCapabilities", async (importOriginal) => ({
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
 
 const { RoomToolChip } = await import("./GroupView");
-const { FailedTurnRow } = await import("./ChatView");
+const { FailedReplyCard } = await import("./FailedReplyCard");
+const { trailingRows } = await import("@/lib/failed-reply");
 
 const claude = {
   instanceId: "claude", driverKind: "claudeAgent", displayName: "Claude",
@@ -32,50 +33,72 @@ const claude = {
   authentication: { method: "paste-code" },
   models: { default: "sonnet", options: [] },
 } as InstanceInfo;
+const NAMES = ["Echo", "Quill", "Rivet", "Nova"];
 fixture.instances = [claude];
-fixture.bots = [{ id: "lead", name: "Lead", modelSelection: { instanceId: "claude", model: "sonnet" } } as Bot];
+fixture.bots = NAMES.map((name) => ({ id: name.toLowerCase(), name, modelSelection: { instanceId: "claude", model: "sonnet" } }) as Bot);
 
-const failed = (name: string, patch: Partial<NonNullable<Message["tool"]>> = {}): Message => ({
-  id: "failed", role: "bot", kind: "activity", at: 1,
-  from: { botId: "lead", name: "Lead", color: "blue" },
-  tool: { name, ok: false, ...patch },
+const ask: Message = { id: "ask", role: "user", kind: "text", at: 1, text: "hi all" };
+const failed = (name: string, cause: string, patch: Partial<NonNullable<Message["tool"]>> = {}): Message => ({
+  id: `failed-${name}`, role: "bot", kind: "activity", at: 2,
+  from: { botId: name.toLowerCase(), name, color: "blue" },
+  tool: { name: `error: ${cause}`, ok: false, ...patch },
 });
-const room = (message: Message) => renderToStaticMarkup(createElement(RoomToolChip, { message, roomId: "room" }));
+const card = (messages: Message[], group = true) =>
+  renderToStaticMarkup(createElement(FailedReplyCard, { rows: trailingRows(messages), group, threadId: "room" }));
+const count = (markup: string, needle: string) => markup.split(needle).length - 1;
 
-describe("a member's failed turn in a room", () => {
-  const signedOut = failed("error: Not logged in · Please run /login", { setup: true });
+describe("failed replies in a room", () => {
+  const signedOut = NAMES.map((name) => failed(name, "Not logged in · Please run /login", { setup: true }));
 
-  it("says the engine is signed out and offers the sign-in, not the CLI's /login text", () => {
-    const markup = room(signedOut);
-    expect(markup).toContain("Claude isn&#x27;t signed in yet. Sign in below, then send your message again.");
-    expect(markup).toContain("Sign in to Claude");
-    expect(markup).not.toContain('data-testid="tool-activity"');
-    expect(markup).not.toContain("truncate font-mono");
-    const details = markup.indexOf("<details");
-    expect(details).toBeGreaterThan(-1);
-    expect(markup.indexOf("Not logged in")).toBeGreaterThan(details);
+  it("leaves no row in the chat", () => {
+    expect(renderToStaticMarkup(createElement(RoomToolChip, { message: signedOut[0]!, roomId: "room" }))).toBe("");
   });
 
-  it("is the very row a direct chat shows for the same failure", () => {
-    expect(room(signedOut)).toBe(renderToStaticMarkup(createElement(FailedTurnRow, { tool: signedOut.tool!, engine: claude })));
+  it("says every bot that failed in one card, the reason in plain words, with the sign-in", () => {
+    const markup = card([ask, ...signedOut]);
+    expect(count(markup, "data-chat-error")).toBe(1);
+    expect(markup).toContain("Echo, Quill and 2 more couldn&#x27;t respond");
+    expect(markup).toContain("Claude isn&#x27;t signed in on this computer");
+    expect(markup).toContain("Sign in</button>");
+    expect(markup).toContain('aria-label="Dismiss"');
+    expect(markup).not.toContain("/login");
+    expect(markup).not.toContain("Not logged in");
   });
 
-  it("shows a plan-limit refusal whole, next action included", () => {
-    const limit = "Your Pro plan includes 2 cloud computers at once. Delete one to start another.";
-    const markup = room(failed(`error: ${limit}`));
-    expect(markup).toContain(`>${limit}</span>`);
-    expect(markup).not.toContain("truncate");
-    expect(markup).not.toContain("error:");
+  it("says the most actionable reason when they differ, and never the engine's raw words", () => {
+    const markup = card([ask, failed("Echo", "API Error: 529 overloaded_error"), failed("Quill", "Not logged in · Please run /login", { setup: true })]);
+    expect(markup).toContain("Echo and Quill couldn&#x27;t respond");
+    expect(markup).toContain("Claude isn&#x27;t signed in on this computer");
+    expect(markup).not.toContain("529");
   });
 
-  it("keeps the engine's words once it is signed in again (nothing left to set up)", () => {
-    fixture.instances = [{ ...claude, snapshot: { state: "available", authenticated: true } }];
-    try {
-      const markup = room(signedOut);
-      expect(markup).toContain(">Not logged in · Please run /login</span>");
-      expect(markup).not.toContain("Sign in to Claude");
-    } finally {
-      fixture.instances = [claude];
-    }
+  it("maps a stored reason, and falls back to a short generic line", () => {
+    expect(card([ask, failed("Echo", "x", { reason: "rate_limit" })])).toContain("This request has been rate limited, try again shortly");
+    expect(card([ask, failed("Echo", "The operation timed out.")])).toContain("The reply timed out");
+    const generic = card([ask, failed("Echo", "Your Pro plan includes 2 cloud computers at once.")]);
+    expect(generic).toContain("Echo couldn&#x27;t respond");
+    expect(generic).toContain("Something went wrong. Try again.");
+    expect(generic).not.toContain("Pro plan");
+  });
+
+  it("goes away once a bot replies or the person writes again", () => {
+    const reply: Message = { id: "r", role: "bot", kind: "text", at: 3, text: "here", from: { botId: "echo", name: "Echo", color: "blue" } };
+    expect(card([ask, signedOut[0]!, reply])).toBe("");
+    expect(card([ask, ...signedOut, { ...ask, id: "again", at: 4 }])).toBe("");
+  });
+
+  it("folds a sign-out notice into the same card, one card total", () => {
+    const notice: Message = { id: "n", role: "bot", kind: "activity", at: 3, from: { botId: "echo", name: "Echo", color: "blue" },
+      tool: { name: "notice: Claude is signed out on this computer. Sign in again in Settings → AI to keep using it.", ok: true, setup: true } };
+    const rows = trailingRows([ask, signedOut[0]!, notice]);
+    expect(rows.notices.map((m) => m.id)).toEqual(["n"]);
+    const markup = card([ask, signedOut[0]!, notice]);
+    expect(count(markup, "data-chat-error")).toBe(1);
+    expect(count(markup, "Sign in</button>")).toBe(1);
+    expect(markup).not.toContain("Settings → AI");
+  });
+
+  it("titles a direct chat's card the way grok does", () => {
+    expect(card([ask, signedOut[0]!], false)).toContain("Bot failed to respond");
   });
 });
