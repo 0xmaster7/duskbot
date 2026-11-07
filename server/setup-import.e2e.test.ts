@@ -110,7 +110,7 @@ describe("bringing in another AI tool's setup through the desktop app's own serv
       expect(told.system).toContain(`- release-notes: Writes release notes from merged changes. Read ${JSON.stringify(join(copyOf("release-notes"), "SKILL.md"))}.`);
       expect(told.linked(".claude", "release-notes")).toBe(copyOf("release-notes"));
       expect(told.linked(".agents", "review-pr")).toBe(copyOf("review-pr"));
-      expect(told.argv).not.toContain("--add-dir");
+      expect(told.argv.filter((_, i) => told.argv[i - 1] === "--add-dir").some((dir) => dir.endsWith("claude-user-skills"))).toBe(false);
     }
     // The prompt preview in Bot Settings says the same.
     const preview = JSON.parse((await api("GET", `/api/bots/${later.id}/system-prompt`)).text) as { sections: Array<{ id: string; text: string }> };
@@ -137,7 +137,7 @@ describe("bringing in another AI tool's setup through the desktop app's own serv
     const starter = (JSON.parse((await api("GET", "/api/bots")).text) as { bots: Array<{ id: string; threadId: string; name: string }> }).bots
       .find((bot) => bot.name !== "Later Bot")!;
     const told = await turn(starter, "Write them again");
-    expect(told.argv).toContain("--add-dir");
+    expect(told.argv.filter((_, i) => told.argv[i - 1] === "--add-dir").some((dir) => dir.endsWith("claude-user-skills"))).toBe(true);
     expect(told.system).not.toContain("release-notes");
     expect(told.linked(".claude", "release-notes")).toBeNull();
     // Codex's skill is not in ~/.claude/skills, so Claude still gets that one from this computer.

@@ -28,12 +28,12 @@ describe("keep-warm ping shape", () => {
       "--permission-mode", "acceptEdits", "--replay-user-messages", "--strict-mcp-config", "--setting-sources", "project",
       "--system-prompt-snapshot", "off", "--model", "claude-opus-5-5", "--effort", "high",
       "--permission-prompt-tool", "mcp__ogb__approve", "--mcp-config", "/tmp/old/mcp.json", "--allowedTools", "mcp__ogb,mcp__agents",
-      "--settings", "/tmp/old/auth-settings.json", "--append-system-prompt-file", "/tmp/old/prompt.txt", "--resume", "live-session",
+      "--add-dir", "/data/workspaces/b1", "--settings", "/tmp/old/auth-settings.json", "--append-system-prompt-file", "/tmp/old/prompt.txt", "--resume", "live-session",
     ];
     expect(keepWarmArgs(launch, { sessionId: "live-session", mcpConfigPath: "/k/mcp.json", settingsPath: "/k/settings.json", systemPromptPath: "/k/prompt.txt" })).toEqual([
       "-p", "--permission-mode", "acceptEdits", "--strict-mcp-config", "--setting-sources", "project",
       "--system-prompt-snapshot", "off", "--model", "claude-opus-5-5", "--effort", "high",
-      "--permission-prompt-tool", "mcp__ogb__approve", "--allowedTools", "mcp__ogb,mcp__agents",
+      "--permission-prompt-tool", "mcp__ogb__approve", "--allowedTools", "mcp__ogb,mcp__agents", "--add-dir", "/data/workspaces/b1",
       "--output-format", "json", "--append-system-prompt-file", "/k/prompt.txt", "--mcp-config", "/k/mcp.json", "--settings", "/k/settings.json",
       "--resume", "live-session", "--fork-session", "--no-session-persistence",
     ]);

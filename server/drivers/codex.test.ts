@@ -6,7 +6,7 @@ import { createInterface } from "node:readline";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { ownMcpHttpRoutes } from "../routes/own-mcp-http.ts";
 import { SPAWNED_PROXIES } from "../proxy-paths.ts";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { dirname, join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -792,9 +792,9 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
     ["auto", "on-request", "workspace-write", "workspaceWrite"],
     ["full", "never", "danger-full-access", "dangerFullAccess"],
   ] as const)(
-    "reasserts the %s approval mode on thread start and turn start",
+    "reasserts the %s approval mode on thread start and turn start without permission profiles",
     async (approvalMode, approvalPolicy, sandbox, turnSandbox) => {
-      await create();
+      await create({ environment: { FAKE_CODEX_REJECT_PERMISSIONS: "1" } });
       const dump = join(scratch, `${approvalMode}.json`);
       process.env.FAKE_CODEX_DUMP = dump;
 
@@ -809,12 +809,12 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
         method: string;
         params: Record<string, unknown>;
       }>;
-      expect(calls.find((call) => call.method === "thread/start")?.params).toMatchObject({
+      expect(calls.findLast((call) => call.method === "thread/start")?.params).toMatchObject({
         approvalPolicy,
         approvalsReviewer: approvalMode === "auto" ? "auto_review" : "user",
         sandbox,
       });
-      expect(calls.find((call) => call.method === "turn/start")?.params).toMatchObject({
+      expect(calls.findLast((call) => call.method === "turn/start")?.params).toMatchObject({
         approvalPolicy,
         approvalsReviewer: approvalMode === "auto" ? "auto_review" : "user",
         sandboxPolicy: { type: turnSandbox },
@@ -822,8 +822,73 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
     },
   );
 
+  describe("OpenMausBot's own read profile", () => {
+    type Call = { method: string; params: Record<string, any> };
+    const turnCalls = async (threadId: string, input: Record<string, unknown>) => {
+      const dump = join(scratch, `${threadId}.json`);
+      process.env.FAKE_CODEX_DUMP = dump;
+      const { turnId } = await instance.adapter.sendTurn({ threadId, text: "continue", ...input });
+      const completed = await recorder.until((event) => event.type === "turn.completed" && event.turnId === turnId);
+      return { completed, calls: JSON.parse(readFileSync(dump, "utf8")).calls as Call[] };
+    };
+
+    it.each(["ask", "auto"] as const)("runs %s in a profile that hides the data folder but this bot's own folders", async (approvalMode) => {
+      await create({ mode: "resume" });
+      const cwd = join(DATA_DIR, "task-workspaces", "b-own", `t-${approvalMode}`);
+      for (const dir of [cwd, join(DATA_DIR, "workspaces", "b-own"), join(DATA_DIR, "workspaces", "b-other"), join(DATA_DIR, "task-workspaces", "b-other")]) mkdirSync(dir, { recursive: true });
+      for (const resumeCursor of [undefined, "codex-thread-1"]) {
+        const { completed, calls } = await turnCalls(`t-profile-${approvalMode}`, { approvalMode, cwd, botId: "b-own", ...(resumeCursor ? { resumeCursor } : {}) });
+        expect(completed).toMatchObject({ ok: true });
+        const thread = calls.find((call) => call.method === (resumeCursor ? "thread/resume" : "thread/start"))!.params;
+        expect(thread).toMatchObject({ permissions: "omb-workspace", approvalPolicy: "on-request", approvalsReviewer: approvalMode === "auto" ? "auto_review" : "user" });
+        expect(thread).not.toHaveProperty("sandbox");
+        const filesystem = thread.config.permissions["omb-workspace"].filesystem;
+        expect(filesystem).toMatchObject({ ":root": "read", ":workspace_roots": "write", ":tmpdir": "write", ":slash_tmp": "write" });
+        for (const hidden of ["config.json", "messages.db", "engine-homes", "providers", join("workspaces", "b-other"), join("task-workspaces", "b-other")]) {
+          expect(filesystem[join(DATA_DIR, hidden)]).toBe("none");
+        }
+        for (const shown of [DATA_DIR, cwd, join(DATA_DIR, "workspaces"), join(DATA_DIR, "workspaces", "b-own"), join(DATA_DIR, "task-workspaces", "b-own")]) {
+          expect(filesystem).not.toHaveProperty([shown]);
+        }
+        expect(filesystem[join(homedir(), ".ssh")]).toBe("none");
+        const turn = calls.find((call) => call.method === "turn/start")!.params;
+        expect(turn).toMatchObject({ permissions: "omb-workspace" });
+        expect(turn).not.toHaveProperty("sandboxPolicy");
+      }
+    });
+
+    it("leaves Full as it was", async () => {
+      await create();
+      const { calls } = await turnCalls("t-profile-full", { approvalMode: "full" });
+      const thread = calls.find((call) => call.method === "thread/start")!.params;
+      expect(thread).toMatchObject({ sandbox: "danger-full-access" });
+      expect(thread).not.toHaveProperty("permissions");
+      expect(thread.config?.permissions).toBeUndefined();
+    });
+
+    it("falls back to the legacy sandbox, without the profile, when Codex refuses it", async () => {
+      await create({ environment: { FAKE_CODEX_REJECT_PERMISSIONS: "1" } });
+      const { completed, calls } = await turnCalls("t-profile-fallback", { approvalMode: "ask" });
+      expect(completed).toMatchObject({ ok: true });
+      const starts = calls.filter((call) => call.method === "thread/start");
+      expect(starts).toHaveLength(2);
+      expect(starts[0]!.params).toMatchObject({ permissions: "omb-workspace" });
+      expect(starts[1]!.params).toMatchObject({ sandbox: "workspace-write", approvalPolicy: "on-request" });
+      expect(starts[1]!.params).not.toHaveProperty("permissions");
+      expect(starts[1]!.params.config?.permissions).toBeUndefined();
+      expect(calls.find((call) => call.method === "turn/start")!.params).toMatchObject({ sandboxPolicy: { type: "workspaceWrite" } });
+    });
+
+    it("refuses the turn when Codex reports full access for the profile", async () => {
+      await create({ environment: { FAKE_CODEX_RESOLVED_SANDBOX: JSON.stringify({ type: "dangerFullAccess" }) } });
+      const { completed, calls } = await turnCalls("t-profile-widened", { approvalMode: "ask" });
+      expect(completed).toMatchObject({ ok: false });
+      expect(calls.some((call) => call.method === "turn/start")).toBe(false);
+    });
+  });
+
   it.each([false, true])("preserves the complete resolved sandbox (resumed=%s)", async (resumed) => {
-    await create({ mode: "resume" });
+    await create({ mode: "resume", environment: { FAKE_CODEX_REJECT_PERMISSIONS: "1" } });
     const dump = join(scratch, "resolved-sandbox.json");
     process.env.FAKE_CODEX_DUMP = dump;
     const sandbox = {
@@ -841,7 +906,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
   });
 
   it.each([false, true].flatMap(resumed => [null, {}, { type: "dangerFullAccess" }].map(sandbox => ({ resumed, sandbox }))))("refuses an absent or mismatched resolved sandbox: %j", async ({ resumed, sandbox }) => {
-    await create({ mode: "resume" });
+    await create({ mode: "resume", environment: { FAKE_CODEX_REJECT_PERMISSIONS: "1" } });
     const dump = join(scratch, "invalid-sandbox.json");
     process.env.FAKE_CODEX_DUMP = dump;
     process.env.FAKE_CODEX_RESOLVED_SANDBOX = JSON.stringify(sandbox);
@@ -859,7 +924,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
   it.each(["gpt-5.6-sol", "gpt-5.4"])(
     "reapplies Full, Auto, and Ask across thread start and resume for %s",
     async (model) => {
-      await create({ mode: "resume", fullAuto: true });
+      await create({ mode: "resume", fullAuto: true, environment: { FAKE_CODEX_REJECT_PERMISSIONS: "1" } });
       const dump = join(scratch, "approval-transitions.json");
       process.env.FAKE_CODEX_DUMP = dump;
 
@@ -882,13 +947,13 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
           method: string;
           params: Record<string, unknown>;
         }>;
-        expect(calls.find((call) => call.method === (resumed ? "thread/resume" : "thread/start"))?.params).toMatchObject({
+        expect(calls.findLast((call) => call.method === (resumed ? "thread/resume" : "thread/start"))?.params).toMatchObject({
           ...(resumed ? { threadId: "codex-thread-1" } : { model }),
           approvalPolicy,
           approvalsReviewer: approvalMode === "auto" ? "auto_review" : "user",
           sandbox,
         });
-        expect(calls.find((call) => call.method === "turn/start")?.params).toMatchObject({
+        expect(calls.findLast((call) => call.method === "turn/start")?.params).toMatchObject({
           approvalPolicy,
           approvalsReviewer: approvalMode === "auto" ? "auto_review" : "user",
           sandboxPolicy: { type: turnSandbox },
@@ -1414,7 +1479,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
     const { turnId } = await instance.adapter.sendTurn({ threadId: "no-header-shell", text: "go" });
     await recorder.until((event) => event.type === "turn.completed" && event.turnId === turnId);
     const seen = JSON.parse(readFileSync(dump, "utf8"));
-    expect(seen.calls.find((call: { method: string }) => call.method === "thread/start").params.config).toBeUndefined();
+    expect(Object.keys(seen.calls.find((call: { method: string }) => call.method === "thread/start").params.config)).toEqual(["permissions"]);
     expect(seen.argv).not.toContain("features.shell_snapshot=false");
   });
 
@@ -1587,7 +1652,8 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
         expect(await recorder.until((event) => event.type === "turn.completed" && event.turnId === turnId)).toMatchObject({ ok: true });
         const seen = JSON.parse(readFileSync(dump, "utf8"));
         const thread = seen.calls.find((call: { method: string }) => call.method === (resumeCursor ? "thread/resume" : "thread/start"));
-        expect(thread.params.config).toEqual({ [key]: expected });
+        const { permissions: _profile, ...shell } = thread.params.config;
+        expect(shell).toEqual({ [key]: expected });
       }
     });
 
