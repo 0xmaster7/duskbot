@@ -100,6 +100,19 @@ export function agentBrowserChrome(host: ChromeHost): string | null {
   return versions.map((version) => join(browsers, version, layout)).find((candidate) => host.exists(candidate)) ?? null;
 }
 
+const LINUX_SYSTEM_CHROMES = ["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium", "/usr/bin/chromium-browser", "/snap/bin/chromium", LINUX_CHROME];
+
+/** agent-browser's own search when it keeps its own browser (a "legacy" plan): its cache, a system Chrome or Chromium,
+ * Puppeteer's and Playwright's caches. False when none is there, so the host's browser tools would only fail. */
+export function legacyBrowserFound(host: ChromeHost): boolean {
+  if (host.platform !== "linux") return true;
+  if (agentBrowserChrome(host) || LINUX_SYSTEM_CHROMES.some((path) => host.exists(path))) return true;
+  const { join } = paths(host.platform);
+  const cache = join(host.home, ".cache");
+  if (host.list(join(cache, "puppeteer")).some((name) => name.startsWith("chrome"))) return true;
+  return host.list(join(cache, "ms-playwright")).some((name) => /^chromium(?:-|_headless_shell-)\d+$/u.test(name));
+}
+
 export function resolveChromePlan(host: ChromeHost, engine: ChromeEngine | null): ChromePlan {
   const { env, platform } = host;
   if (env.OMB_BROWSER_LEGACY_SHELL?.trim() === "1") return { kind: "legacy", reason: "OMB_BROWSER_LEGACY_SHELL=1" };

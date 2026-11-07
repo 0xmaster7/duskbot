@@ -6061,6 +6061,7 @@
   "secretCard.stopped": "停止 · {label}",
   "secretCard.replaced": "新しいリクエストに置き換え · {label}",
   "secretCard.saveToVault": "ボールトに保存",
+  "secretCard.login": "あなたのサーバー向けに封印されています。サイトへの入力は代わりに行われ、ボットが見ることはありません。",
   "secretCard.submit": "送信",
   "secretCard.resumeFailed": "シークレットの保存後、ボットを再開できませんでした",
   "settings.secrets.footnote": "ボットのカードから保存したもの。値は書き込み専用で、ボットは見ることなく使います。",
@@ -6074,5 +6075,6 @@
   "settings.vault.noneHere": "まだ何もありません。",
   "server.botDesktop.building": "サーバーでボットのコンピューターを準備しています。アップデートごとに一度だけで、通常は数分かかります。",
   "computer.botWaking": "{name}が起きています",
-  "seal.untrusted": "このサーバーは、このアプリがリンクしたサーバーであることを証明できなかったため、何も送信しませんでした。再インストールした場合は、もう一度リンクしてください。"
+  "seal.untrusted": "このサーバーは、このアプリがリンクしたサーバーであることを証明できなかったため、何も送信しませんでした。再インストールした場合は、もう一度リンクしてください。",
+  "server.connect.loginNote": "{bot} がサイトに代わりに入力し、パスワードを見ることはありません。"
 }

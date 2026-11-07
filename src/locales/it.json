@@ -5862,6 +5862,7 @@
   "secretCard.stopped": "Interrotto · {label}",
   "secretCard.replaced": "Sostituito da una richiesta più recente · {label}",
   "secretCard.saveToVault": "Salva nella Cassaforte",
+  "secretCard.login": "Sigillato per il tuo server. Inserito nel sito al posto tuo; il bot non lo vede mai.",
   "secretCard.submit": "Invia",
   "secretCard.resumeFailed": "Il bot non è riuscito a riprendere dopo il salvataggio del segreto",
   "settings.secrets.footnote": "Salvati dalla scheda di un bot. I valori sono di sola scrittura: i bot li usano senza mai vederli.",
@@ -5875,5 +5876,6 @@
   "settings.vault.noneHere": "Ancora nulla qui.",
   "server.botDesktop.building": "Sto preparando il computer del bot sul tuo server. Succede una volta per aggiornamento e di solito richiede qualche minuto.",
   "computer.botWaking": "{name} si sta svegliando",
-  "seal.untrusted": "Questo server non ha potuto dimostrare di essere quello collegato da questa app, quindi non è stato inviato nulla. Se l'hai reinstallato, collegalo di nuovo."
+  "seal.untrusted": "Questo server non ha potuto dimostrare di essere quello collegato da questa app, quindi non è stato inviato nulla. Se l'hai reinstallato, collegalo di nuovo.",
+  "server.connect.loginNote": "{bot} lo inserisce nel sito al posto tuo e non vede mai la password."
 }

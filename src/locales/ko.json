@@ -6495,6 +6495,7 @@
   "secretCard.stopped": "중지됨 · {label}",
   "secretCard.replaced": "새 요청으로 대체됨 · {label}",
   "secretCard.saveToVault": "보관함에 저장",
+  "secretCard.login": "서버용으로 봉인됩니다. 사이트에 대신 입력되며 봇은 절대 보지 못합니다.",
   "secretCard.submit": "제출",
   "secretCard.resumeFailed": "시크릿을 저장한 뒤 봇을 다시 시작하지 못했어요",
   "settings.secrets.footnote": "봇의 카드에서 저장했어요. 값은 쓰기 전용이라 봇은 보지 않고 사용해요.",
@@ -6508,5 +6509,6 @@
   "settings.vault.noneHere": "아직 아무것도 없어요.",
   "server.botDesktop.building": "서버에 봇의 컴퓨터를 준비하고 있어요. 업데이트마다 한 번이며 보통 몇 분 걸려요.",
   "computer.botWaking": "{name}이(가) 깨어나는 중이에요",
-  "seal.untrusted": "이 서버가 이 앱이 연결한 서버임을 증명하지 못해 아무것도 보내지 않았습니다. 다시 설치했다면 다시 연결하세요."
+  "seal.untrusted": "이 서버가 이 앱이 연결한 서버임을 증명하지 못해 아무것도 보내지 않았습니다. 다시 설치했다면 다시 연결하세요.",
+  "server.connect.loginNote": "{bot}이(가) 사이트에 대신 입력하며 비밀번호는 절대 보지 않습니다."
 }

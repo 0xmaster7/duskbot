@@ -6027,6 +6027,7 @@
   "secretCard.stopped": "Zatrzymano · {label}",
   "secretCard.replaced": "Zastąpiono nowszą prośbą · {label}",
   "secretCard.saveToVault": "Zapisz w Sejfie",
+  "secretCard.login": "Zapieczętowane dla Twojego serwera. Wpisywane na stronie za Ciebie; bot nigdy go nie widzi.",
   "secretCard.submit": "Wyślij",
   "secretCard.resumeFailed": "Bot nie wznowił pracy po zapisaniu sekretu",
   "settings.secrets.footnote": "Zapisane z karty bota. Wartości są tylko do zapisu: boty używają ich, nigdy ich nie widząc.",
@@ -6040,5 +6041,6 @@
   "settings.vault.noneHere": "Na razie nic tu nie ma.",
   "server.botDesktop.building": "Konfiguruję komputer bota na twoim serwerze. Dzieje się to raz na aktualizację i zwykle trwa kilka minut.",
   "computer.botWaking": "{name} się budzi",
-  "seal.untrusted": "Ten serwer nie udowodnił, że jest tym, który ta aplikacja połączyła, więc nic nie zostało wysłane. Jeśli zainstalowałeś go ponownie, połącz go jeszcze raz."
+  "seal.untrusted": "Ten serwer nie udowodnił, że jest tym, który ta aplikacja połączyła, więc nic nie zostało wysłane. Jeśli zainstalowałeś go ponownie, połącz go jeszcze raz.",
+  "server.connect.loginNote": "{bot} wpisuje je na stronie za Ciebie i nigdy nie widzi hasła."
 }

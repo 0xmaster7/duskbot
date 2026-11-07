@@ -4457,6 +4457,7 @@
   "secretCard.stopped": "已停止 · {label}",
   "secretCard.replaced": "已被較新的請求取代 · {label}",
   "secretCard.saveToVault": "儲存到保險庫",
+  "secretCard.login": "已為你的伺服器密封。會替你在網站上輸入；機器人永遠看不到。",
   "secretCard.submit": "送出",
   "secretCard.resumeFailed": "儲存密鑰後機器人未能繼續",
   "settings.secrets.footnote": "從機器人的卡片中儲存。值只能寫入：機器人使用它們，但永遠看不到。",
@@ -4478,5 +4479,6 @@
   "signIn.takeOver": "接管",
   "signIn.takeOverComputer": "接管電腦",
   "signIn.skipped": "已略過",
-  "signIn.status.saved": "登入資訊已儲存"
+  "signIn.status.saved": "登入資訊已儲存",
+  "server.connect.loginNote": "{bot} 會替你在網站上輸入，且永遠看不到密碼。"
 }

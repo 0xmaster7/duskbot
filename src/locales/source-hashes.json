@@ -2959,6 +2959,8 @@
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
       "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "server.connect.loginNote": "3942eacb208f0fff3cbaaa0b65ee8ff634dbcfd365afcdb9520be2f6dbf7aa43",
+      "secretCard.login": "8075384e1723e96c7b48a61f60f2ae3f0676db3ab324b3414f67caeee46409a7",
       "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "es": {
@@ -8403,6 +8405,8 @@
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
       "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "server.connect.loginNote": "3942eacb208f0fff3cbaaa0b65ee8ff634dbcfd365afcdb9520be2f6dbf7aa43",
+      "secretCard.login": "8075384e1723e96c7b48a61f60f2ae3f0676db3ab324b3414f67caeee46409a7",
       "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "fr": {
@@ -11285,6 +11289,8 @@
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
       "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "server.connect.loginNote": "3942eacb208f0fff3cbaaa0b65ee8ff634dbcfd365afcdb9520be2f6dbf7aa43",
+      "secretCard.login": "8075384e1723e96c7b48a61f60f2ae3f0676db3ab324b3414f67caeee46409a7",
       "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "hi": {
@@ -14163,6 +14169,8 @@
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
       "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "server.connect.loginNote": "3942eacb208f0fff3cbaaa0b65ee8ff634dbcfd365afcdb9520be2f6dbf7aa43",
+      "secretCard.login": "8075384e1723e96c7b48a61f60f2ae3f0676db3ab324b3414f67caeee46409a7",
       "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "ja": {
@@ -20241,6 +20249,8 @@
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
       "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "server.connect.loginNote": "3942eacb208f0fff3cbaaa0b65ee8ff634dbcfd365afcdb9520be2f6dbf7aa43",
+      "secretCard.login": "8075384e1723e96c7b48a61f60f2ae3f0676db3ab324b3414f67caeee46409a7",
       "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "pt-br": {
@@ -26160,6 +26170,8 @@
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
       "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "server.connect.loginNote": "3942eacb208f0fff3cbaaa0b65ee8ff634dbcfd365afcdb9520be2f6dbf7aa43",
+      "secretCard.login": "8075384e1723e96c7b48a61f60f2ae3f0676db3ab324b3414f67caeee46409a7",
       "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "zh": {
@@ -32853,6 +32865,8 @@
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
       "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "server.connect.loginNote": "3942eacb208f0fff3cbaaa0b65ee8ff634dbcfd365afcdb9520be2f6dbf7aa43",
+      "secretCard.login": "8075384e1723e96c7b48a61f60f2ae3f0676db3ab324b3414f67caeee46409a7",
       "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "zh-tw": {
@@ -37335,6 +37349,8 @@
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
       "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "server.connect.loginNote": "3942eacb208f0fff3cbaaa0b65ee8ff634dbcfd365afcdb9520be2f6dbf7aa43",
+      "secretCard.login": "8075384e1723e96c7b48a61f60f2ae3f0676db3ab324b3414f67caeee46409a7",
       "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "uk": {
@@ -40617,6 +40633,8 @@
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
       "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "server.connect.loginNote": "3942eacb208f0fff3cbaaa0b65ee8ff634dbcfd365afcdb9520be2f6dbf7aa43",
+      "secretCard.login": "8075384e1723e96c7b48a61f60f2ae3f0676db3ab324b3414f67caeee46409a7",
       "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "vi": {
@@ -45578,6 +45596,8 @@
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
       "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "server.connect.loginNote": "3942eacb208f0fff3cbaaa0b65ee8ff634dbcfd365afcdb9520be2f6dbf7aa43",
+      "secretCard.login": "8075384e1723e96c7b48a61f60f2ae3f0676db3ab324b3414f67caeee46409a7",
       "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "tr": {
@@ -50539,6 +50559,8 @@
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
       "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "server.connect.loginNote": "3942eacb208f0fff3cbaaa0b65ee8ff634dbcfd365afcdb9520be2f6dbf7aa43",
+      "secretCard.login": "8075384e1723e96c7b48a61f60f2ae3f0676db3ab324b3414f67caeee46409a7",
       "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "pl": {
@@ -56583,6 +56605,8 @@
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
       "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "server.connect.loginNote": "3942eacb208f0fff3cbaaa0b65ee8ff634dbcfd365afcdb9520be2f6dbf7aa43",
+      "secretCard.login": "8075384e1723e96c7b48a61f60f2ae3f0676db3ab324b3414f67caeee46409a7",
       "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "ru": {
@@ -62640,6 +62664,8 @@
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
       "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "server.connect.loginNote": "3942eacb208f0fff3cbaaa0b65ee8ff634dbcfd365afcdb9520be2f6dbf7aa43",
+      "secretCard.login": "8075384e1723e96c7b48a61f60f2ae3f0676db3ab324b3414f67caeee46409a7",
       "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "it": {
@@ -68519,6 +68545,8 @@
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
       "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "server.connect.loginNote": "3942eacb208f0fff3cbaaa0b65ee8ff634dbcfd365afcdb9520be2f6dbf7aa43",
+      "secretCard.login": "8075384e1723e96c7b48a61f60f2ae3f0676db3ab324b3414f67caeee46409a7",
       "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "ko": {
@@ -75031,6 +75059,8 @@
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
       "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "server.connect.loginNote": "3942eacb208f0fff3cbaaa0b65ee8ff634dbcfd365afcdb9520be2f6dbf7aa43",
+      "secretCard.login": "8075384e1723e96c7b48a61f60f2ae3f0676db3ab324b3414f67caeee46409a7",
       "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     }
   }

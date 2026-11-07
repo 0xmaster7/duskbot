@@ -1,8 +1,11 @@
-import { loginPageCheck, loginPlace, loginSite, type LoginPlace } from "../shared/logins.ts";
+import { randomUUID } from "node:crypto";
+
+import { loginMatchesHost, loginPageCheck, loginPlace, loginSite, type LoginPlace } from "../shared/logins.ts";
 import type { FillCandidate } from "./login-fill.ts";
 import { receiveLoginHandoff, type ConnectionHandoffAnswer, type ConnectionHandoffWhat, type LoginHandoffResult } from "./login-handoff.ts";
 import type { LoginStore } from "./login-store.ts";
 import type { OnePasswordLogins } from "./onepassword.ts";
+import type { TotpKey } from "./totp.ts";
 import type { LoginRouteDeps } from "./routes/logins.ts";
 
 /** What the bot's browser shows while the person answers a sign-in card. */
@@ -41,14 +44,55 @@ export function cardLoginPlace(cardHost: string, observed: ObservedPage | null, 
   return loginPlace(cardHost, [onSite, ...(elsewhere && confirmedHost === elsewhere ? [elsewhere] : [])]);
 }
 
-/** Saved logins and 1Password items, as each bot may use them. */
+/** How long a login the person gave for one task only stays usable when no fill used it. */
+export const ONCE_LOGIN_MS = 60 * 60_000;
+
+type OnceLogin = LoginPlace & { id: string; botId: string; username: string; password: string; totp: TotpKey | null; until: number };
+
+/** Saved logins, 1Password items, and logins given for one task only, as each bot may use them. */
 export class BotLogins {
   readonly store: LoginStore;
   readonly onePassword: OnePasswordLogins;
+  // never written anywhere: gone once a fill used it, after an hour, or when the server stops
+  private readonly once = new Map<string, OnceLogin>();
+  private readonly now: () => number;
 
-  constructor(store: LoginStore, onePassword: OnePasswordLogins) {
+  constructor(store: LoginStore, onePassword: OnePasswordLogins, now: () => number = Date.now) {
     this.store = store;
     this.onePassword = onePassword;
+    this.now = now;
+  }
+
+  /** A login the person typed into a login card with Save to Vault off: usable by this bot until a fill succeeds with it. */
+  keepOnce(botId: string, host: string, login: { username: string; password: string; totp: TotpKey | null }): string {
+    const id = `once-${randomUUID()}`;
+    this.once.set(id, { ...loginPlace(host), id, botId, ...login, until: this.now() + ONCE_LOGIN_MS });
+    return id;
+  }
+
+  private onceFor(botId: string): OnceLogin[] {
+    const at = this.now();
+    for (const [id, login] of this.once) if (login.until <= at) this.once.delete(id);
+    return [...this.once.values()].filter((login) => login.botId === botId);
+  }
+
+  /** Where a login card's answer goes: the Vault for this bot, or, with Save off or `vault` false (a Team Cloud's member
+   * never adds to the shared Vault from a card), memory for this task only. */
+  cardLogins(options: { vault: boolean }) {
+    return {
+      has: (botId: string, host: string) => this.has(botId, host),
+      keep: (login: { botId: string; host: string; username: string; password: string; totp: TotpKey | null; remember: boolean }) => {
+        const { botId, host, username, password, totp, remember } = login;
+        if (remember && options.vault) this.store.create({ ...loginPlace(host), username, password, totp, source: "card", bots: [botId] });
+        else this.keepOnce(botId, host, { username, password, totp });
+      },
+    };
+  }
+
+  /** A login this bot may use fills on this host already. */
+  has(botId: string, host: string): boolean {
+    return this.store.usableFor(host, botId).length > 0 || this.onceFor(botId).some((login) => loginMatchesHost(login, host))
+      || this.onePassword.candidates(host, botId).length > 0;
   }
 
   /** The desktop main process's private ask for one login, for Send to My Cloud, or for a connection a move carries. */
@@ -58,7 +102,8 @@ export class BotLogins {
 
   /** Where each login the bot may use fills, with its username. */
   sitesFor(botId: string): Array<LoginPlace & { username: string }> {
-    return [...this.store.sitesFor(botId), ...this.onePassword.sitesFor(botId)];
+    const once = this.onceFor(botId).map(({ site, hosts, exactHost, username }) => ({ site, hosts: [...hosts], exactHost, username }));
+    return [...this.store.sitesFor(botId), ...once, ...this.onePassword.sitesFor(botId)];
   }
 
   /** Secrets are read only when one is filled. */
@@ -69,11 +114,16 @@ export class BotLogins {
         id: login.id, site: login.site, hosts: login.hosts, exactHost: login.exactHost, username: login.username, source: login.source,
         secrets: async () => ({ password: login.password, totp: login.totp ?? null }),
       })),
+      ...this.onceFor(botId).filter((login) => loginMatchesHost(login, pageHost)).map((login): FillCandidate => ({
+        id: login.id, site: login.site, hosts: login.hosts, exactHost: login.exactHost, username: login.username, source: "card",
+        secrets: async () => ({ password: login.password, totp: login.totp }),
+      })),
       ...this.onePassword.candidates(pageHost, botId),
     ];
   }
 
   markUsed(id: string): void {
+    if (this.once.delete(id)) return;
     this.store.markUsed(id);
     this.onePassword.markUsed(id);
   }

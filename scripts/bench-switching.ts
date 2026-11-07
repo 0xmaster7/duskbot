@@ -7,6 +7,7 @@
 //     [--dist DIR] [--out FILE] [--screenshots DIR]
 // Passes: cold (nothing cached), warm (each chat seen once), rehydrate (the same after the server restarts and the
 // app reloads its snapshot), reload (a new page load on the same browser profile), each local and with --latency ms.
+// --live instead changes chats while another is open and counts what opening them then changes (bench-switching-live.ts).
 import { execFileSync, spawn, type ChildProcess } from "node:child_process";
 import { closeSync, mkdirSync, mkdtempSync, openSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -16,6 +17,7 @@ import { parseArgs } from "node:util";
 
 import { verificationServerArgs, verificationServerEnvironment } from "./control-omb.ts";
 import { launchChrome, type Page } from "./testing/bench-desktop-page.ts";
+import { liveEngineEnvironment, livePasses, STREAM_HANDLE } from "./testing/bench-switching-live.ts";
 import { removeTempDir, waitForExit } from "../server/testing/cleanup.ts";
 import { freePortBlock } from "../server/testing/ports.ts";
 
@@ -30,6 +32,7 @@ const { values } = parseArgs({
     screenshots: { type: "string" },
     probe: { type: "string" },
     advanced: { type: "boolean", default: false },
+    live: { type: "boolean", default: false },
   },
 });
 const STORAGE = { "omb-analytics-opt-out": "1", "omb-email-gate": "skipped", "omb-simple-mode-prompt": "1", "grok-move-2026-11": "1", "omb-advanced-mode": "0" } as Record<string, string>;
@@ -58,16 +61,19 @@ const SWITCH = (botId: string, lastId: string, name: string, timeoutMs: number) 
     const log = document.querySelector("[role=log]");
     const box = scroller()?.getBoundingClientRect();
     if (!log || !box || !String(log.getAttribute("aria-label") || "").includes(${JSON.stringify(name)})) return null;
-    const visible = [...log.querySelectorAll("[data-mid]")].filter((element) => inView(element, box)).map((element) => element.getAttribute("data-mid"));
+    const rows = [...log.querySelectorAll("[data-mid]")].filter((element) => inView(element, box));
+    const visible = rows.map((element) => element.getAttribute("data-mid"));
+    // what each row in view says, so a row redrawn with new words counts as much as a row that came or went
+    const content = rows.map((element) => element.getAttribute("data-mid") + ":" + element.textContent).join("\n");
     // the conversation's own pictures; a link's site icon comes from the internet and says nothing about switching
     const pictures = [...log.querySelectorAll('img[src^="/api/attachments/"], img[src^="blob:"]')].filter((image) => inView(image, box));
     const placeholders = [...log.querySelectorAll("[role=status]")].filter((element) => inView(element, box)).length;
     const shown = pictures.every((image) => image.complete && image.naturalWidth > 0 && getComputedStyle(image).opacity === "1");
     const el = scroller();
-    return { visible: visible.join(","), hasLast: Boolean(log.querySelector('[data-mid="${lastId}"]')), shown, placeholders, gap: Math.round(el.scrollHeight - el.scrollTop - el.clientHeight) };
+    return { visible: visible.join(","), content, hasLast: Boolean(log.querySelector('[data-mid="${lastId}"]')), shown, placeholders, gap: Math.round(el.scrollHeight - el.scrollTop - el.clientHeight) };
   };
   const started = performance.now();
-  let first = null, final = null, previous = null, changes = 0, placeholderFrames = 0, frames = 0, look = null, lastChange = 0, skeletonFrames = 0;
+  let first = null, final = null, previous = null, said = null, changes = 0, contentChanges = 0, placeholderFrames = 0, frames = 0, look = null, lastChange = 0, skeletonFrames = 0;
   const step = () => {
     const now = performance.now();
     const s = sample();
@@ -78,7 +84,9 @@ const SWITCH = (botId: string, lastId: string, name: string, timeoutMs: number) 
     if (s && s.visible) {
       if (!first) first = { at: now - started, gap: s.gap, hasLast: s.hasLast };
       else if (previous !== null && s.visible !== previous) changes += 1;
+      if (said !== null && s.content !== said) contentChanges += 1;
       previous = s.visible;
+      said = s.content;
       if (s.placeholders) placeholderFrames += 1;
       if (!final && s.hasLast && s.shown && s.placeholders === 0 && s.gap < 4) final = { at: now - started, gap: s.gap };
     }
@@ -86,10 +94,10 @@ const SWITCH = (botId: string, lastId: string, name: string, timeoutMs: number) 
       observer.disconnect();
       const late = shifts.filter((shift) => shift.at >= started);
       const settled = Math.max(lastChange, ...late.map((shift) => shift.at - started));
-      const reads = performance.getEntriesByType("resource").filter((entry) => entry.startTime >= started && entry.name.includes("/api/threads/")).map((entry) => Math.round(entry.duration));
+      const reads = performance.getEntriesByType("resource").filter((entry) => entry.startTime >= started && /\/api\/threads\/|\/api\/transcripts|\/tasks\//.test(entry.name)).map((entry) => Math.round(entry.duration));
       resolve({ firstPaintMs: first ? Math.round(first.at) : null, firstGap: first?.gap ?? null, firstHadLast: first?.hasLast ?? false,
         finalMs: final ? Math.round(final.at) : null, settledMs: Math.round(settled), skeletonFrames, threadReadsMs: reads, cls: Math.round(late.reduce((sum, shift) => sum + shift.value, 0) * 10000) / 10000,
-        shifts: late.length, viewportChanges: changes, placeholderFrames, frames });
+        shifts: late.length, viewportChanges: changes, contentChanges, placeholderFrames, frames });
       return;
     }
     requestAnimationFrame(step);
@@ -118,6 +126,7 @@ function newDataDir(): string {
 async function startServer(dataDir: string, port: number, staticDir: string): Promise<() => Promise<void>> {
   const env = verificationServerEnvironment({ LANG: process.env.LANG, TZ: process.env.TZ }, dataDir, port);
   env.OMB_STATIC_DIR = staticDir;
+  if (values.live) Object.assign(env, liveEngineEnvironment(dataDir));
   const logFd = openSync(join(work, `server-${port}.log`), "a", 0o600);
   const child: ChildProcess = spawn(process.execPath, verificationServerArgs(env), { cwd: ROOT, env, stdio: ["ignore", logFd, logFd] });
   closeSync(logFd);
@@ -182,6 +191,7 @@ async function run() {
       const condition = latency ? `latency${latency}ms` : "local";
       log(`${condition}: cold page`);
       const page = await chrome.newPage({ storage: STORAGE });
+      await page.send("Page.addScriptToEvaluateOnNewDocument", { source: STREAM_HANDLE });
       await page.send("Network.enable", {});
       await page.send("Storage.clearDataForOrigin", { origin: url, storageTypes: "indexeddb,cache_storage" });
       if (latency) await page.send("Network.emulateNetworkConditions", { offline: false, latency, downloadThroughput: 2_500_000, uploadThroughput: 1_250_000 });
@@ -224,6 +234,11 @@ async function run() {
         };
       };
       await open();
+      if (values.live) {
+        result[condition] = { launches, ...await livePasses(page, url, chats, SWITCH, async () => { await stop(); stop = await startServer(dataDir, port, dist); }) };
+        await page.close();
+        continue;
+      }
       await pass("cold", true);
       await page.evaluate(`[...document.querySelectorAll('[data-sidebar-bot-row]')].find((row) => row.textContent.includes("Quiet 1"))?.click()`);
       await sleep(800);

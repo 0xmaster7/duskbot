@@ -50,6 +50,10 @@ export function SecretRequestCard({
   const [savedLocally, setSavedLocally] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const email = secret.delivery === "email";
+  // a website login: fill_login types it into the site, so the bot never receives it
+  const login = secret.delivery === "login";
+  const [username, setUsername] = useState("");
+  const [totp, setTotp] = useState("");
   const [address, setAddress] = useState(secret.address ?? "");
   const [server, setServer] = useState<EmailServerFields>({});
   const [needsServer, setNeedsServer] = useState(false);
@@ -109,11 +113,12 @@ export function SecretRequestCard({
     setLocalError(null);
     try {
       // A password goes as typed: a mailbox's can begin or end with a space.
-      const typed = email ? value : value.trim();
+      const typed = login ? JSON.stringify({ password: value, totp: totp.trim() }) : email ? value : value.trim();
       const keep = !email && remember;
       const send = async (key: CardSealKey) => {
         const sealed = await sealCardSecret(typed, key, { botId, threadId, messageId: message.id, requestKey: secret.requestKey, remember: keep });
-        return api(`${endpoint}/save`, { method: "POST", body: JSON.stringify(email ? { threadId, sealed, address: address.trim(), ...server } : { threadId, sealed, remember: keep }) });
+        return api(`${endpoint}/save`, { method: "POST", body: JSON.stringify(email ? { threadId, sealed, address: address.trim(), ...server }
+          : login ? { threadId, sealed, remember: keep, username: username.trim() } : { threadId, sealed, remember: keep }) });
       };
       const prepared = await api(`${endpoint}/save`, { method: "POST", body: JSON.stringify({ threadId, prepare: true }) }) as { sealKey: CardSealKey };
       try {
@@ -125,6 +130,7 @@ export function SecretRequestCard({
         await send(fresh);
       }
       setValue("");
+      setTotp("");
       returnFocusToComposer();
     } catch (error) {
       if ((error as { body?: { needsServer?: unknown } }).body?.needsServer === true) setNeedsServer(true);
@@ -208,7 +214,7 @@ export function SecretRequestCard({
   }
 
   const submit = cardPrimary();
-  const note = !custom ? `Stored securely by ${productName()} and never added to chat.` : email ? t("secretCard.email") : secret.delivery === "file" ? t("secretCard.file") : t("secretCard.ref");
+  const note = !custom ? `Stored securely by ${productName()} and never added to chat.` : email ? t("secretCard.email") : login ? t("secretCard.login") : secret.delivery === "file" ? t("secretCard.file") : t("secretCard.ref");
   return (
     <AskCard
       ariaLabel={secret.label}
@@ -231,6 +237,10 @@ export function SecretRequestCard({
               {needsServer && <EmailServerInputs value={server} onChange={setServer} className={cn(CARD_FIELD, "w-full")} />}
             </div>
           )}
+          {login && (
+            <input type="text" name="username" autoComplete="off" spellCheck={false} dir="ltr" value={username} onChange={(event) => setUsername(event.target.value)}
+              placeholder={t("logins.username")} disabled={saving} aria-label={t("logins.username")} maxLength={512} className={cn(CARD_FIELD, "mb-2 w-full")} />
+          )}
           <input
             type="password"
             autoComplete="new-password"
@@ -238,11 +248,15 @@ export function SecretRequestCard({
             dir="ltr"
             value={value}
             onChange={(event) => setValue(event.target.value)}
-            placeholder={secret.placeholder}
+            placeholder={login ? t("logins.password") : secret.placeholder}
             disabled={saving || savedLocally}
-            aria-label={secret.label}
+            aria-label={login ? t("logins.password") : secret.label}
             className={cn(CARD_FIELD, "w-full")}
           />
+          {login && (
+            <input type="password" name="totp" autoComplete="off" spellCheck={false} dir="ltr" value={totp} onChange={(event) => setTotp(event.target.value)}
+              placeholder={t("logins.totp")} disabled={saving} aria-label={t("logins.totp")} title={t("logins.totpHint")} maxLength={2048} className={cn(CARD_FIELD, "mt-2 w-full")} />
+          )}
           {((custom && !email) || secret.helpUrl) && (
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] leading-4 text-ink-tertiary">
               {custom && !email && (

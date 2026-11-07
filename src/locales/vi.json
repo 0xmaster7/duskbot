@@ -4944,6 +4944,7 @@
   "secretCard.stopped": "Đã dừng · {label}",
   "secretCard.replaced": "Đã được thay bằng yêu cầu mới hơn · {label}",
   "secretCard.saveToVault": "Lưu vào Kho",
+  "secretCard.login": "Được niêm phong cho máy chủ của bạn. Được nhập vào trang web cho bạn; bot không bao giờ thấy.",
   "secretCard.submit": "Gửi",
   "secretCard.resumeFailed": "Bot không thể tiếp tục sau khi lưu bí mật",
   "settings.secrets.footnote": "Được lưu từ thẻ của bot. Giá trị chỉ ghi: bot dùng chúng mà không bao giờ thấy.",
@@ -4957,5 +4958,6 @@
   "settings.vault.noneHere": "Chưa có gì ở đây.",
   "server.botDesktop.building": "Đang thiết lập máy tính của bot trên máy chủ của bạn. Việc này diễn ra một lần mỗi bản cập nhật và thường mất vài phút.",
   "computer.botWaking": "{name} đang thức dậy",
-  "seal.untrusted": "Máy chủ này không chứng minh được nó là máy chủ mà ứng dụng này đã liên kết, nên không có gì được gửi. Nếu bạn đã cài lại, hãy liên kết lại."
+  "seal.untrusted": "Máy chủ này không chứng minh được nó là máy chủ mà ứng dụng này đã liên kết, nên không có gì được gửi. Nếu bạn đã cài lại, hãy liên kết lại.",
+  "server.connect.loginNote": "{bot} nhập nó vào trang web cho bạn và không bao giờ thấy mật khẩu."
 }
