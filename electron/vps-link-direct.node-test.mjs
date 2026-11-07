@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { PassThrough } from "node:stream";
 import test from "node:test";
 
-import { createServing, directKeyLine, serveDirect, setDirectKey } from "../link-service/agent.mjs";
+import { createServing, directKeyLine, refreshDirectKey, serveDirect, setDirectKey } from "../link-service/agent.mjs";
 import { DIRECT_MAGIC, createDirectWriter, directReader, loadSsh2, newDirectKey, sshConnector } from "./vps-link-direct.mjs";
 import { createTunnelProxy, openFrame, sealFrame } from "./vps-link-protocol.mjs";
 import { createVpsLink } from "./vps-link.mjs";
@@ -271,8 +271,14 @@ test("the agent's key line allows one forced command and nothing else, and leave
     const lines = readFileSync(file, "utf8").trim().split("\n");
     assert.equal(lines.length, 2);
     assert.equal(lines[0], "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOWNERS person@laptop");
+    // node moved (an upgrade): the line follows it at the agent's next start, the key itself unchanged
+    const moved = { node: "/usr/local/bin/node", agent: "/opt/openmausbot-link/agent.mjs" };
+    assert.equal(refreshDirectKey(ID, file, moved), true);
+    assert.match(readFileSync(file, "utf8"), /command="\/usr\/local\/bin\/node \/opt\/openmausbot-link\/agent.mjs direct"/);
+    assert.equal(refreshDirectKey(ID, file, moved), false);
     setDirectKey(ID, null, file);
     assert.equal(readFileSync(file, "utf8"), "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOWNERS person@laptop\n");
+    assert.equal(refreshDirectKey(ID, file, moved), false);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

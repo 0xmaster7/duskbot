@@ -642,6 +642,19 @@ export function setDirectKey(id, line, file = authorizedKeysFile()) {
   writePrivate(file, kept.length ? `${kept.join("\n")}\n` : "");
 }
 
+/** at start: a key line written by an older node or agent path is pointed at this one (node moves on upgrades) */
+export function refreshDirectKey(id, file = authorizedKeysFile(), paths = {}) {
+  let text;
+  try { text = readFileSync(file, "utf8"); } catch { return false; }
+  const old = text.split("\n").find((entry) => entry.trimEnd().endsWith(` ${directTag(id)}`));
+  const pub = old && /(ssh-ed25519 [A-Za-z0-9+/]{68}) /.exec(old)?.[1];
+  if (!pub) return false;
+  const line = directKeyLine({ pub, id, ...paths });
+  if (line === old.trimEnd()) return false;
+  setDirectKey(id, line, file);
+  return true;
+}
+
 const HOST_KEYS = ["ed25519", "ecdsa", "rsa"].map((type) => `/etc/ssh/ssh_host_${type}_key.pub`);
 /** sshd's own public keys, which the app pins: they reach it inside the sealed tunnel, so nobody on the way can swap them */
 export function hostKeys(files = HOST_KEYS) {
@@ -981,6 +994,7 @@ async function direct() {
 async function tunnel() {
   let saved;
   try { saved = JSON.parse(readFileSync(tunnelFile(), "utf8")); } catch { console.error("link: not linked yet; nothing to do"); return 0; }
+  try { if (refreshDirectKey(saved.id)) console.error("link: the app's direct key now runs this agent"); } catch (error) { console.error(`link: the app's direct key was not refreshed (${error?.message ?? error})`); }
   const agent = createTunnelAgent(saved);
   for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { agent.stop(); process.exit(0); });
   const how = await agent.run();
