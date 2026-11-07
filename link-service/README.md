@@ -52,6 +52,27 @@ curl -fsSL https://link.apps.siddz.com/i/<code> | sh
   through OpenMausBot's HTTP API and are never logged.
 - Unlinking in the app deletes the tunnel at the service. The agent then idles and the app forgets the server.
 
+### Secrets sealed for the server itself
+
+On top of the tunnel, every password, 2FA key, 1Password service-account token and API key typed in the app is sealed
+for the OpenMausBot server process before it leaves the page (HPKE: P-256, HKDF-SHA256, AES-256-GCM), so neither the
+link service, the agent nor anything else that relays the request can read it:
+
+- The server makes a fresh sealing key each start (`GET /api/seal-key`) and signs it with its long-term identity key,
+  `seal-identity.key` (P-256, mode 0600, in the data folder, never in a workspace backup or a move). The identity is in
+  `/.well-known/openmausbot/environment` as `sealIdentity`.
+- `agent.mjs link` puts `sealIdentity` in the result it seals for the app, and the app pins it in its link record
+  (`vps-link.json`, `links[].sealIdentity`). A link made before that pins the first identity it sees, through the same
+  sealed tunnel (`sealPinnedAt` says when). The page asks main (`window.ogb.sealTrust.check`); main picks the link from
+  the page's own origin. A key signed by any other identity is refused and nothing is sent.
+- Each seal is bound to what it is for (`shared/saved-secrets.ts` `sealedValueAAD`): a login from Settings to its host
+  and username, a change to the login's id, a sign-in card's login to that bot, conversation and card, the 1Password
+  token to its connect, API keys to the settings paths they fill (`sealedPaths`). A sealed value opens once.
+- The server refuses a secret in the clear from anything but loopback with `400 {code: "seal_required", sealKey}`. The
+  desktop's own page on this computer, and its private main-process channel for keys, keep working unsealed.
+- Reinstalling OpenMausBot with a fresh data folder makes a new identity: the app then refuses to seal for it until the
+  server is linked again (run the install line from a new "Add your VPS").
+
 ## Step events
 
 install.sh posts every step to `POST /v1/sessions/<id>/events` (bearer: the VPS token); the app reads them from

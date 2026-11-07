@@ -5,6 +5,7 @@ import { api, useStore, type ConfigStatus } from "@/state/store";
 import { normalizeImageGenerationUrl, type AvatarImageProvider } from "../../shared/image-generation";
 import { Select } from "./Select";
 import { t } from "@/lib/i18n";
+import { putConfig } from "@/lib/sealed-send";
 import { productName } from "@/lib/brand";
 import { cn } from "@/lib/cn";
 import { fieldLabelCls, rowButtonCls, textFieldCls } from "./ui/GrokDialog";
@@ -78,12 +79,9 @@ export function AvatarImageGenerator({
   const saveCredential = async (key: string) => {
     const status: ConfigStatus = window.ogb?.setCredential
       ? await window.ogb.setCredential(providerInfo.credential, key)
-      : await api("/api/config", {
-          method: "PUT",
-          body: JSON.stringify(provider === "xai"
-            ? { xai: { key } }
-            : { imageGen: provider === "custom" ? { customApiKey: key } : { key } }),
-        });
+      : await putConfig(provider === "xai"
+          ? { xai: { key } }
+          : { imageGen: provider === "custom" ? { customApiKey: key } : { key } });
     dispatch({ type: "configStatus", config: status });
     setImageKey("");
   };

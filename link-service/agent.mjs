@@ -397,6 +397,8 @@ async function link() {
   const payload = {
     v: 1, mode, origin, spki, name,
     environmentId: typeof environment.body?.environmentId === "string" ? environment.body.environmentId : null,
+    // the server's long-term identity, which signs each key the app seals secrets for: the app pins it from here
+    sealIdentity: typeof environment.body?.sealIdentity === "string" ? environment.body.sealIdentity : null,
     pairing: { code: pairing.body.code, expiresAt: pairing.body.expiresAt ?? null },
     tunnel: { id, key: tunnel.key, token: tunnel.app },
   };

@@ -6,11 +6,13 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { BotLogins } from "../bot-logins.ts";
+import { createCardSealer } from "../card-seal.ts";
 import { json, readBody } from "../harness/http.ts";
 import { LoginStore } from "../login-store.ts";
 import { ONE_PASSWORD_REFUSED, OnePasswordLogins, sdkOnePasswordClient } from "../onepassword.ts";
 import { fakeOnePasswordSdk } from "../testing/fake-onepassword.ts";
 import { requiredScope, type RequestAuth } from "../request-auth.ts";
+import { sealValues } from "../../src/lib/card-seal.ts";
 import { createLoginRoutes, LOGIN_ERRORS } from "./logins.ts";
 import { dispatchRoutes } from "./table.ts";
 
@@ -27,7 +29,7 @@ afterEach(async () => {
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
-async function serve() {
+async function serve(auth: RequestAuth = { kind: "loopback", scopes: ["admin"] } as unknown as RequestAuth, sealer = createCardSealer()) {
   const dir = mkdtempSync(join(tmpdir(), "omb-login-routes-"));
   dirs.push(dir);
   const store = new LoginStore({ dataDir: dir });
@@ -36,11 +38,10 @@ async function serve() {
   ] } } });
   const onePassword = new OnePasswordLogins({ token: () => store.onePasswordToken(), grants: () => store.onePasswordGrants(), connect: (token) => sdkOnePasswordClient(sdk, token, "0.0.0") });
   const logins = new BotLogins(store, onePassword);
-  const routes = [createLoginRoutes(logins.routes((id) => ["pepper", "quill"].includes(id)))];
+  const routes = [createLoginRoutes(logins.routes((id) => ["pepper", "quill"].includes(id)), sealer)];
   const answers: string[] = [];
   const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
-    const auth = { kind: "loopback", scopes: ["admin"] } as unknown as RequestAuth;
     if (!await dispatchRoutes(routes, { req, res, url, path: url.pathname, method: req.method ?? "GET", auth, json, readBody })) json(res, 404, { from: "inline routes" });
   });
   servers.push(server);
@@ -155,5 +156,43 @@ describe("Settings → Logins routes", () => {
     const { call } = await serve();
     expect((await call("POST", "/api/logins", { site: "example.com", password: PASSWORD }, "text/plain")).status).toBe(415);
     expect((await call("POST", "/api/logins/1password", { token: TOKEN }, "text/plain")).status).toBe(415);
+  });
+});
+
+describe("Settings → Logins from an app through a relay", () => {
+  const forwarded = { kind: "session", via: "cookie", scopes: ["admin", "client"], session: { id: "s1" } } as unknown as RequestAuth;
+
+  it("adds, changes and connects 1Password only sealed, and refuses each in the clear", async () => {
+    const sealer = createCardSealer();
+    const { store, call, answers } = await serve(forwarded, sealer);
+    const key = sealer.publicKey();
+
+    const plain = await call("POST", "/api/logins", { site: "accounts.example.com", username: "alice", password: PASSWORD });
+    expect(plain).toMatchObject({ status: 400, body: { code: "seal_required", sealKey: { keyId: key.keyId } } });
+    expect(store.list()).toHaveLength(0);
+
+    const sealed = await sealValues({ password: PASSWORD, totp: KEY }, key, "login.create", ["accounts.example.com", "alice"]);
+    const added = await call("POST", "/api/logins", { site: "https://accounts.example.com/login", username: " alice ", sealed, bots: ["pepper"] });
+    expect(added).toMatchObject({ status: 201, body: { login: { site: "example.com", username: "alice", hasTotp: true } } });
+    const id = added.body.login.id;
+    expect(store.get(id)?.password).toBe(PASSWORD);
+
+    // the same sealed password, sent for another site, opens nothing
+    const moved = await sealValues({ password: PASSWORD }, key, "login.create", ["accounts.example.com", "alice"]);
+    expect((await call("POST", "/api/logins", { site: "evil.example", username: "alice", sealed: moved })).status).toBe(400);
+
+    expect(await call("PATCH", `/api/logins/${id}`, { password: NEW_PASSWORD })).toMatchObject({ status: 400, body: { code: "seal_required" } });
+    const change = await sealValues({ password: NEW_PASSWORD }, key, "login.update", [id]);
+    expect((await call("PATCH", `/api/logins/${id}`, { sealed: change, bots: "all" })).status).toBe(200);
+    expect(store.get(id)?.password).toBe(NEW_PASSWORD);
+    // a removal and a change of who may use it need no seal
+    expect((await call("PATCH", `/api/logins/${id}`, { totp: null, bots: ["quill"] })).body.login).toMatchObject({ hasTotp: false, bots: ["quill"] });
+
+    expect(await call("POST", "/api/logins/1password", { token: TOKEN })).toMatchObject({ status: 400, body: { code: "seal_required" } });
+    const token = await sealValues({ token: TOKEN }, key, "onepassword.connect", []);
+    expect(await call("POST", "/api/logins/1password", { sealed: token })).toMatchObject({ status: 200, body: { onePassword: { connected: true } } });
+    expect(store.onePasswordToken()).toBe(TOKEN);
+
+    for (const answer of answers) for (const secret of [PASSWORD, NEW_PASSWORD, KEY, TOKEN]) expect(answer).not.toContain(secret);
   });
 });

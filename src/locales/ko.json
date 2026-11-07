@@ -6500,5 +6500,6 @@
   "settings.vault.nothing": "아직 저장된 항목이 없어요. 새 항목으로 로그인을 추가하거나, 봇이 요청할 때 시크릿을 저장하세요.",
   "settings.vault.noneHere": "아직 아무것도 없어요.",
   "server.botDesktop.building": "서버에 봇의 컴퓨터를 준비하고 있어요. 업데이트마다 한 번이며 보통 몇 분 걸려요.",
-  "computer.botWaking": "{name}이(가) 깨어나는 중이에요"
+  "computer.botWaking": "{name}이(가) 깨어나는 중이에요",
+  "seal.untrusted": "이 서버가 이 앱이 연결한 서버임을 증명하지 못해 아무것도 보내지 않았습니다. 다시 설치했다면 다시 연결하세요."
 }

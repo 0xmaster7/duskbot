@@ -15,6 +15,7 @@ import { STEP_IDS, createVpsLink } from "./vps-link.mjs";
 import { vpsTokenOf } from "./vps-link-protocol.mjs";
 
 const run = promisify(execFile);
+const SEAL_ID = `${"a".repeat(43)}.${"b".repeat(43)}`;
 const agentPath = fileURLToPath(new URL("../link-service/agent.mjs", import.meta.url));
 const listen = (server) => new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve(server.address().port)));
 const until = async (check, ms = 8000) => {
@@ -67,7 +68,7 @@ beforeAll(async () => {
       const reply = (status, value, headers = {}) => { res.writeHead(status, { "content-type": "application/json", ...headers }); res.end(JSON.stringify(value)); };
       const signedIn = /omb_session=good/.test(String(req.headers.cookie ?? ""));
       if (req.url === "/api/auth/pairing") return req.headers["x-forwarded-for"] ? reply(403, { error: "remote" }) : reply(200, { code: "RR8Y-BLR6-H939", expiresAt: 1 });
-      if (req.url === "/.well-known/openmausbot/environment") return reply(200, { environmentId: "6f1c2d3e-0000-4000-8000-000000000001" });
+      if (req.url === "/.well-known/openmausbot/environment") return reply(200, { environmentId: "6f1c2d3e-0000-4000-8000-000000000001", sealIdentity: SEAL_ID });
       if (req.url === "/api/auth/pair") return JSON.parse(body).code === "RR8Y-BLR6-H939" ? reply(200, { session: {}, environment: { environmentId: "6f1c2d3e-0000-4000-8000-000000000001" } }, { "set-cookie": "omb_session=good; HttpOnly; Path=/" }) : reply(401, { error: "bad code" });
       if (req.url === "/api/auth/session") return reply(200, signedIn ? { kind: "session" } : { kind: "none" });
       if (!signedIn) return reply(403, { error: "pair this device" });
@@ -155,7 +156,8 @@ describe("Add your VPS", () => {
     const started = [];
     const ownHome = { start: async (id) => { started.push(id); phase = { phase: "copy", chats: { done: 1, total: 3 } }; }, view: () => phase, away: () => phase?.phase === "done", home: () => null, chosen: () => null };
     const progressViews = [];
-    const { link, saved } = controller({ local, ownHome, store: memoryStore(), onChange: (view) => progressViews.push(view) });
+    const linkStore = memoryStore();
+    const { link, saved } = controller({ local, ownHome, store: linkStore, onChange: (view) => progressViews.push(view) });
 
     const first = await link.start();
     expect(first.stage).toBe("command");
@@ -198,6 +200,11 @@ describe("Add your VPS", () => {
     expect(linked.server.origin).toMatch(new RegExp(`^http://vps-${id}\\.localhost:\\d+$`));
     expect(linked.mode).toBe("relay");
     expect(saved[0]).toEqual({ origin: linked.server.origin, name: "oracle-arm" });
+    // the server's identity came inside the sealed result and is pinned: a key signed by any other is refused
+    expect(linkStore.read().links[0].sealIdentity).toBe(SEAL_ID);
+    expect(link.sealTrust(linked.server.origin, SEAL_ID)).toEqual({ ok: true, pinned: true });
+    expect(link.sealTrust(linked.server.origin, `${"c".repeat(43)}.${"d".repeat(43)}`)).toEqual({ ok: false, pinned: true });
+    expect(link.sealTrust("http://elsewhere.localhost:1", SEAL_ID)).toBeNull();
     // the pairing went through the tunnel, as a remote request the server checks
     const pair = vpsSeen.find((entry) => entry.url === "/api/auth/pair");
     expect(pair.headers["x-forwarded-for"]).toBeTruthy();
@@ -267,6 +274,20 @@ describe("Add your VPS", () => {
     expect(second.where()).toEqual({ place: "vps", server: { id: "env-9", name: "box", origin: "https://203-0-113-5.sslip.io" }, uninstall: expect.stringMatching(/^curl -fsSL https?:\/\/\S+\/uninstall \| sh$/) });
     await stubbed.close();
     await second.close();
+  });
+
+  it("pins a link made before the agent sent an identity the first time it is seen, then holds to it", async () => {
+    const store = memoryStore();
+    store.write({ v: 1, current: "bbbbbbbbbb", links: [{ id: "bbbbbbbbbb", name: "old box", mode: "direct", origin: "https://203-0-113-6.sslip.io", envId: "env-8", keyP: "p:k", tokenP: "p:t" }] });
+    const old = createVpsLink({ ...linkDeps(localServer(), { start: async () => {}, view: () => null, away: () => false, home: () => null, chosen: () => null }, store), proxyFactory: () => ({ start: async () => "", control: async () => ({}), close: async () => {} }) });
+    expect(old.sealTrust("https://203-0-113-6.sslip.io", "not-an-identity")).toEqual({ ok: false, pinned: true });
+    expect(store.read().links[0].sealIdentity).toBeUndefined();
+    expect(old.sealTrust("https://203-0-113-6.sslip.io/", SEAL_ID)).toEqual({ ok: true, pinned: true });
+    expect(store.read().links[0]).toMatchObject({ sealIdentity: SEAL_ID, sealPinnedAt: expect.any(Number) });
+    // a relay that swaps in a key of its own signs it with another identity: refused, and the pin stays
+    expect(old.sealTrust("https://203-0-113-6.sslip.io", `${"e".repeat(43)}.${"f".repeat(43)}`)).toEqual({ ok: false, pinned: true });
+    expect(store.read().links[0].sealIdentity).toBe(SEAL_ID);
+    await old.close();
   });
 });
 
