@@ -4,9 +4,9 @@ import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const opened = vi.hoisted(() => ({ props: null as null | { readyBotId?: string; onClose?: () => void; onCreated?: (bot: { id: string }) => void }, dispatch: vi.fn(), state: { config: null, bots: [] } as { config: { botLimit?: number } | null; bots: object[] } }));
-vi.mock("./lazy-screens", () => ({
-  NewBotDialog: (props: NonNullable<typeof opened.props>) => { opened.props = props; return null; },
+const opened = vi.hoisted(() => ({ props: null as null | { open: boolean; onCancel: () => void; onConfirm: () => void }, dispatch: vi.fn(), state: { config: null, bots: [] } as { config: { botLimit?: number } | null; bots: object[] } }));
+vi.mock("./LocalComputerAutoWarning", () => ({
+  LocalComputerAutoWarning: (props: NonNullable<typeof opened.props>) => { opened.props = props.open ? props : null; return null; },
 }));
 const made = vi.hoisted(() => ({ defaults: { profile: {}, memory: {}, skills: [], routines: [] } as { profile: Record<string, unknown>; memory: object; skills: unknown[]; routines: unknown[] }, create: vi.fn() }));
 vi.mock("@/state/store", () => ({
@@ -81,16 +81,17 @@ describe("ready-made bots gallery", () => {
     expect(opened.dispatch).toHaveBeenLastCalledWith({ type: "botCreationPending", on: false });
   });
 
-  it("opens the review when the bot would approve its own work on this computer, and steps Templates aside", async () => {
+  it("asks in place before a bot that would approve its own work on this computer, then makes it with that yes", async () => {
     made.defaults = { profile: { approvalMode: "auto", computer: "local" }, memory: {}, skills: [], routines: [] };
     render();
     flushSync(() => button("Add Fern, Plant care log").click());
-    await vi.waitFor(() => expect(opened.props?.readyBotId).toBe("plant-care"));
+    await vi.waitFor(() => expect(opened.props?.open).toBe(true));
     expect(made.create).not.toHaveBeenCalled();
     expect(onDialog).toHaveBeenLastCalledWith(true);
-    opened.props!.onCreated!({ id: "new-bot" });
-    expect(onAdded).toHaveBeenCalledWith({ id: "new-bot" });
+    flushSync(() => opened.props!.onConfirm());
     expect(onDialog).toHaveBeenLastCalledWith(false);
+    await vi.waitFor(() => expect(onAdded).toHaveBeenCalledWith({ id: "new-bot", name: "Fern" }));
+    expect(made.create.mock.calls[0][0].consent).toEqual({ acknowledgeLocalAuto: true });
   });
 
   it("on a paired device, which cannot read the host's defaults, makes the bot at once", () => {
@@ -101,13 +102,15 @@ describe("ready-made bots gallery", () => {
     expect(opened.dispatch).toHaveBeenCalledWith({ type: "newBot", onCreated: onAdded });
   });
 
-  it("gives Templates its keys back when the review is closed without creating", async () => {
+  it("gives Templates its keys back when the question is declined, and makes nothing", async () => {
     made.defaults = { profile: { approvalMode: "auto", computer: "local" }, memory: {}, skills: [], routines: [] };
     render();
     flushSync(() => button("Add Echo, Humanizer").click());
     await vi.waitFor(() => expect(opened.props).not.toBeNull());
-    flushSync(() => opened.props!.onClose!());
+    flushSync(() => opened.props!.onCancel());
     expect(onDialog).toHaveBeenLastCalledWith(false);
+    expect(opened.props).toBeNull();
+    expect(made.create).not.toHaveBeenCalled();
     expect(onAdded).not.toHaveBeenCalled();
   });
 
