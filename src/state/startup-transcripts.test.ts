@@ -153,3 +153,25 @@ it("finds the first unread reply after expanding a preview that omitted its read
   expect(app.state().unreadDivider).toEqual({ threadId: "two-thread", messageId: "first-unread" });
   expect(app.state().unreadDividerPending).toBeUndefined();
 });
+
+it("keeps a visited transcript through a replacement snapshot and confirms it in place, never as its preview", async () => {
+  const app = await fixture();
+  await app.select("two");
+  await app.answer("two-thread", [line("two-history"), line("two-preview")]);
+  const before = app.state().bots.find((owner) => owner.id === "two")!.messages;
+  await app.select("one");
+  await app.send({ kind: "hello", resumed: false, cursor: "replacement:0" });
+  const held = app.state().bots.find((owner) => owner.id === "two")!;
+  expect(held.messages).toBe(before);
+  expect(held.transcriptLoaded).toBe(true);
+  expect(held.transcriptStale).toBe(true);
+  await app.send({ kind: "message", threadId: "two-thread", message: line("two-live") });
+  expect(app.state().bots.find((owner) => owner.id === "two")!.messages.map((message) => message.id)).toEqual(["two-history", "two-preview", "two-live"]);
+  await app.select("two");
+  await app.send({ kind: "message", threadId: "two-thread", message: line("two-during") });
+  await app.answer("two-thread", [line("two-history"), line("two-preview"), line("two-missed"), line("two-live")]);
+  const confirmed = app.state().bots.find((owner) => owner.id === "two")!;
+  expect(confirmed.messages.map((message) => message.id)).toEqual(["two-history", "two-preview", "two-missed", "two-live", "two-during"]);
+  expect(confirmed.messages[0]).toBe(before[0]);
+  expect(confirmed.transcriptStale).toBeUndefined();
+});

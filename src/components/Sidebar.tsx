@@ -450,8 +450,10 @@ export function botRowProps(
 }
 
 export function useVisibleMessages(bot: Bot): Message[] {
-  const { messages, activeLeafId, previewMessages, transcriptLoaded } = bot;
-  return useMemo(() => transcriptLoaded === false ? sidebarPreviewMessages(bot) : visibleMessages({ messages, activeLeafId }), [messages, activeLeafId, previewMessages, transcriptLoaded]);
+  const { messages, activeLeafId, previewMessages, transcriptLoaded, transcriptStale } = bot;
+  return useMemo(() => transcriptLoaded === false ? sidebarPreviewMessages(bot)
+    : transcriptStale ? sidebarPreviewMessages({ messages: visibleMessages({ messages, activeLeafId }), previewMessages, transcriptStale })
+    : visibleMessages({ messages, activeLeafId }), [messages, activeLeafId, previewMessages, transcriptLoaded, transcriptStale]);
 }
 
 /** grok's waiting row names what it waits on: "Waiting for you: send the reply?" */

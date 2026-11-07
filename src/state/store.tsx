@@ -17,8 +17,9 @@ import { optimisticMessageId, optimisticUserMessage, sendArrived, sendReconciled
 import { applySendReceipt } from "./send-receipt";
 import { foldSnapshotOntoStreamed, patchedGroups, roomAnswers, snapshotPatch } from "./room-frames";
 import { savedStateAction, type SavedOwner, type SavedSnapshot } from "./saved-state";
-import { keepBotNavigation, keepGroupNavigation, navigatedSince, visibleMessages } from "./snapshot-navigation";
-export { visibleMessages } from "./snapshot-navigation";
+import { heldTranscript, keepBotNavigation, keepGroupNavigation, navigatedSince, visibleMessages } from "./snapshot-navigation";
+import { reconcileTranscript, type CachedTranscript } from "./transcript-cache";
+export { shownTranscript, visibleMessages } from "./snapshot-navigation";
 export { awayFromMainThread, botOpensTo, markedThread, openBot, openBotRow, openBotThread, openRoomThread, openThread, visibleNotificationThread, type ThreadTarget } from "./thread-navigation";
 import type { TurnDigest } from "../../shared/digest";
 import type { ToolScope } from "../../shared/tool-scope";
@@ -159,6 +160,8 @@ export type GroupDefaultResponder = import("../../shared/wire").GroupDefaultResp
 
 export interface Group extends Pick<WireGroup, "memberContext" | "queue" | "speakers" | "busyBotIds"> {
   transcriptLoaded?: boolean;
+  /** `messages` came from this device's cache (or outlived a snapshot) and wait for the newest page to confirm them. */
+  transcriptStale?: boolean;
   previewMessages?: Message[];
   usage?: GroupThreadUsage | null;
   id: string;
@@ -334,6 +337,8 @@ export interface Bot extends DefaultBotFields, Pick<WireBot, "mascotFaceColor" |
   hasMore?: boolean;
   awaitingThreadSnapshot?: boolean;
   transcriptLoaded?: boolean;
+  /** `messages` came from this device's cache (or outlived a snapshot) and wait for the newest page to confirm them. */
+  transcriptStale?: boolean;
   previewMessages?: Message[];
   /** The server announces a switch before its snapshot lands; until then this, not threadId, is on screen. */
   switchingTo?: string;
@@ -643,6 +648,7 @@ export type Action =
       resumeId?: string;
       loadedThreads?: string[];
     }
+  | { type: "transcriptsCached"; transcripts: readonly CachedTranscript[] }
   | { type: "transcriptSnapshot"; threadId: string; messages: Message[]; hasMore: boolean; activeLeafId?: string | null; generation: number; heldAtStart: Message[]; leafAtStart?: string | null }
   | { type: "botQueues"; queues: AppState["pendingQueued"] }
   | { type: "sections"; sections: string[] }
@@ -909,14 +915,14 @@ export function reducer(state: AppState, action: Action): AppState {
       const hydrated = {
         ...state,
         bots: action.bots.map((sent) => {
-          const bot = { ...sent, messages: sent.messages ?? [], transcriptLoaded: !action.loadedThreads || action.loadedThreads.includes(sent.threadId) };
-          const previous = state.bots.find((candidate) => candidate.id === bot.id);
+          const previous = state.bots.find((candidate) => candidate.id === sent.id);
+          const bot = heldTranscript(previous, { ...sent, messages: sent.messages ?? [] }, !action.loadedThreads || action.loadedThreads.includes(sent.threadId));
           return keepBotNavigation(previous, previous ? { ...bot, tasks: mergeTaskStamps(previous.tasks, bot.tasks) } : bot,
             action.preserveNavigation === true && navigatedSince(previous, action.navigationSince, state.transcriptGeneration), action.taskIdsAtStart);
         }),
         groups: action.groups.map((group) => {
           const previous = state.groups.find((candidate) => candidate.id === group.id);
-          const incoming = { ...group, transcriptLoaded: !action.loadedThreads || action.loadedThreads.includes(group.threadId) };
+          const incoming = heldTranscript(previous, group, !action.loadedThreads || action.loadedThreads.includes(group.threadId));
           const merged = previous ? { ...incoming, tasks: mergeTaskStamps(previous.tasks, group.tasks) } : incoming;
           // The wire carries an explicitly-cleared description as null; client state keeps it absent.
           if (merged.description === null) merged.description = undefined;
@@ -939,8 +945,12 @@ export function reducer(state: AppState, action: Action): AppState {
     case "transcriptSnapshot": {
       if ((state.transcriptGeneration[action.threadId] ?? 0) !== action.generation) return state;
       const held = new Set(action.heldAtStart);
-      const replace = <T extends { threadId: string; messages: Message[]; transcriptLoaded?: boolean }>(owner: T): T => owner.threadId !== action.threadId || owner.transcriptLoaded !== false
-        ? owner : { ...owner, messages: foldSnapshotOntoStreamed(owner.messages, held, action.messages), hasMore: action.hasMore, transcriptLoaded: true };
+      const replace = <T extends { threadId: string; messages: Message[]; hasMore?: boolean; transcriptLoaded?: boolean; transcriptStale?: boolean }>(owner: T): T => {
+        if (owner.threadId !== action.threadId) return owner;
+        if (owner.transcriptLoaded === false) return { ...owner, messages: foldSnapshotOntoStreamed(owner.messages, held, action.messages), hasMore: action.hasMore, transcriptLoaded: true, transcriptStale: undefined };
+        if (!owner.transcriptStale) return owner;
+        return { ...owner, ...reconcileTranscript(owner.messages, held, action.messages, action.hasMore, owner.hasMore), transcriptStale: undefined };
+      };
       const loaded = {
         ...state,
         bots: state.bots.map((bot) => {
@@ -957,6 +967,23 @@ export function reducer(state: AppState, action: Action): AppState {
         loaded.unreadDividerPending = undefined;
       }
       return owner ? reconcileSnapshotQueues(loaded, [owner]) : loaded;
+    }
+    case "transcriptsCached": {
+      const cached = new Map(action.transcripts.map((entry) => [entry.threadId, entry]));
+      const seed = <T extends Bot | Group>(owner: T): T => {
+        const entry = owner.transcriptLoaded === false ? cached.get(owner.threadId) : undefined;
+        if (!entry?.messages.length) return owner;
+        const seeded = { ...owner, messages: entry.messages, hasMore: entry.hasMore, transcriptLoaded: true, transcriptStale: true };
+        return "modelSelection" in seeded ? { ...seeded, activeLeafId: entry.activeLeafId } : seeded;
+      };
+      const bots = state.bots.map(seed), groups = state.groups.map(seed);
+      if (bots.every((bot, index) => bot === state.bots[index]) && groups.every((group, index) => group === state.groups[index])) return state;
+      const opened = [...bots, ...groups].find((owner) => owner.id === state.selectedId);
+      const pendingDivider = opened && state.unreadDividerPending === opened.threadId && opened.transcriptLoaded !== false;
+      return {
+        ...state, bots, groups,
+        ...(pendingDivider ? { unreadDivider: openedUnreadDivider(state, opened.threadId, true, "modelSelection" in opened ? visibleMessages(opened) : opened.messages, "modelSelection" in opened ? threadReadCursor(opened) : opened.lastReadMessageId) } : {}),
+      };
     }
     case "loadOlderMessages":
       return state.loadingOlder[action.threadId]
@@ -1070,7 +1097,7 @@ export function reducer(state: AppState, action: Action): AppState {
     }
     case "groupPatched": {
       const fenced = action.group.messages ? bumpTranscriptGeneration(state, action.group.threadId) : state;
-      return { ...fenced, groups: patchedGroups(state.groups, action.group.messages ? { ...action.group, transcriptLoaded: true } : action.group) };
+      return { ...fenced, groups: patchedGroups(state.groups, action.group.messages ? { ...action.group, transcriptLoaded: true, transcriptStale: undefined } : action.group) };
     }
     case "groupSnapshot": {
       const group = snapshotPatch(state, action);
@@ -1102,7 +1129,7 @@ export function reducer(state: AppState, action: Action): AppState {
         return {
           ...state,
           unreadDivider: openedUnreadDivider(state, room.threadId, room.unread, room.messages, room.lastReadMessageId),
-          unreadDividerPending: room.transcriptLoaded === false && room.unread ? room.threadId : undefined,
+          unreadDividerPending: (room.transcriptLoaded === false || room.transcriptStale) && room.unread ? room.threadId : undefined,
           activeView: "chat",
           selectedId: action.id,
           groups: state.groups.map((g) => (g.id === action.id ? { ...g, unread: false } : g)),
@@ -1116,7 +1143,7 @@ export function reducer(state: AppState, action: Action): AppState {
             unreadDivider: opened
               ? openedUnreadDivider(state, opened.threadId, threadOpensUnread(opened), visibleMessages(opened), threadReadCursor(opened))
               : state.unreadDivider,
-            unreadDividerPending: opened?.transcriptLoaded === false && threadOpensUnread(opened) ? opened.threadId : undefined,
+            unreadDividerPending: (opened?.transcriptLoaded === false || opened?.transcriptStale) && threadOpensUnread(opened) ? opened.threadId : undefined,
             activeView: "chat",
             selectedId: action.id,
           },
@@ -1237,6 +1264,7 @@ export function reducer(state: AppState, action: Action): AppState {
         // Old approvals must never be sent to the replacement thread while its transcript loads.
         messages: switchedThread ? [] : b.messages,
         hasMore: switchedThread ? undefined : b.hasMore,
+        transcriptStale: switchedThread ? undefined : b.transcriptStale,
       }));
       return reconcileModelVariantSessions(patched);
     }
@@ -1764,6 +1792,7 @@ export function reducer(state: AppState, action: Action): AppState {
         hasMore: action.bot.hasMore,
         awaitingThreadSnapshot: false,
         transcriptLoaded: true,
+        transcriptStale: undefined,
         switchingTo: undefined,
       }));
       for (const frame of state.backgroundThreadEvents[action.bot.threadId] ?? []) switched = reducer(switched, frame);

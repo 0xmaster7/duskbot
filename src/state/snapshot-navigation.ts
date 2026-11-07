@@ -1,4 +1,5 @@
 import type { Bot, Group, Message } from "./store";
+import { reconcileTranscript } from "./transcript-cache";
 
 // One branch per transcript array and leaf: every sidebar row, the composer and the chat ask for it on each store
 // change, and an unchanged transcript keeps the same array (so memos keyed on it hold).
@@ -48,6 +49,7 @@ export function keepBotNavigation(previous: Bot | undefined, incoming: Bot, pres
     awaitingThreadSnapshot: previous.awaitingThreadSnapshot,
     messages: previous.messages,
     transcriptLoaded: previous.transcriptLoaded,
+    transcriptStale: previous.transcriptStale,
     hasMore: previous.hasMore,
     activeLeafId: previous.activeLeafId,
     pinnedMessageId: previous.pinnedMessageId,
@@ -62,6 +64,7 @@ export function keepGroupNavigation(previous: Group | undefined, incoming: Group
     tasks: keepNewTasks(previous.tasks, incoming.tasks, taskIdsAtStart),
     messages: previous.messages,
     transcriptLoaded: previous.transcriptLoaded,
+    transcriptStale: previous.transcriptStale,
     hasMore: previous.hasMore,
     pinnedCwd: previous.pinnedCwd,
     pinnedMessageId: previous.pinnedMessageId,
@@ -70,4 +73,29 @@ export function keepGroupNavigation(previous: Group | undefined, incoming: Group
     busyBotId: previous.busyBotId,
     turnStartedAt: previous.turnStartedAt,
   };
+}
+
+/** A snapshot's conversation, keeping the transcript this device already holds for the same thread. A thread the
+ * snapshot only previews keeps it as is, marked stale until its newest page confirms it; a thread the snapshot sends
+ * whole keeps the older history above that page and every message object that did not change. */
+export function heldTranscript<T extends Bot | Group>(previous: T | undefined, incoming: T, loaded: boolean): T {
+  const held = previous && previous.threadId === incoming.threadId && previous.transcriptLoaded !== false ? previous : undefined;
+  if (loaded) {
+    if (!held) return { ...incoming, transcriptLoaded: true, transcriptStale: undefined };
+    const kept = reconcileTranscript(held.messages, new Set(held.messages), incoming.messages, Boolean(incoming.hasMore), held.hasMore);
+    return { ...incoming, ...kept, transcriptLoaded: true, transcriptStale: undefined };
+  }
+  if (!held) return { ...incoming, transcriptLoaded: false, transcriptStale: undefined };
+  const kept = { ...incoming, messages: held.messages, hasMore: held.hasMore, transcriptLoaded: true, transcriptStale: true };
+  if (!("modelSelection" in kept) || !("modelSelection" in held)) return kept;
+  const leaf = kept.activeLeafId && held.messages.some((message) => message.id === kept.activeLeafId) ? kept.activeLeafId : held.activeLeafId;
+  return { ...kept, activeLeafId: leaf };
+}
+
+const NO_MESSAGES: Message[] = [];
+
+/** What a chat may draw of a conversation: nothing while only the snapshot's preview of it is held, since a preview
+ * is a few chosen lines, not the transcript. */
+export function shownTranscript<T extends { messages: Message[]; transcriptLoaded?: boolean }>(owner: T): T {
+  return owner.transcriptLoaded === false ? { ...owner, messages: NO_MESSAGES } : owner;
 }

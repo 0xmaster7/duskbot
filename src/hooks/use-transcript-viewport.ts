@@ -112,15 +112,6 @@ export function useTranscriptViewport<T extends { id: string; role?: string }>({
   }, [threadId, messages, setBottomFollow, state.focusMessage, transcriptKey]);
   useFocusMessage(threadId, messages.length > 0);
 
-  // `follow` is omitted on purpose: re-arming only arms future content and never scrolls.
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el || !followRef.current) return;
-    el.scrollTo({ top: el.scrollHeight });
-    previousScrollTop.current = el.scrollTop;
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- pinOn is the caller's dependency list
-  }, [transcriptKey, messages.length, ...pinOn]);
-
   // Shift scrollTop by the growth after commit (scroll anchoring is off here); a switch drops the capture.
   const preExpandHeight = useRef<{ key: string; height: number } | null>(null);
   const expandingRef = useRef(false);
@@ -146,6 +137,20 @@ export function useTranscriptViewport<T extends { id: string; role?: string }>({
     previousScrollTop.current = el.scrollTop;
     expandingRef.current = false;
   }, [transcriptWindow.start, oldestId, transcriptKey]);
+
+  // `follow` is omitted on purpose: re-arming only arms future content and never scrolls. Before paint, so an opened
+  // chat's first frame is already at its newest row; a switch re-arms following here rather than a frame later.
+  useLayoutEffect(() => {
+    // the newest row seen is recorded after paint, so here it still names the thread that was open before
+    if (seenNewest.current.key !== transcriptKey) setBottomFollow(true);
+    const el = scrollRef.current;
+    // a search jump into this thread places the transcript itself
+    const focus = state.focusMessage;
+    if (!el || !followRef.current || (focus && !focus.consumed && focus.threadId === threadId && appliedFocus.current !== focus.nonce)) return;
+    el.scrollTo({ top: el.scrollHeight });
+    previousScrollTop.current = el.scrollTop;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pinOn is the caller's dependency list
+  }, [transcriptKey, messages.length, ...pinOn]);
 
   const showEarlier = () => {
     holdRowForPrepend();
