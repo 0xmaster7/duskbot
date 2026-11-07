@@ -252,6 +252,7 @@ export function createVpsLink(deps) {
             const previous = pending.steps[event.step];
             const nextLog = event.status === "failed" && typeof event.log === "string" ? event.log.slice(-4000) : undefined;
             if (previous?.status === event.status && previous?.log === nextLog) continue;
+            if (event.status === "running" && previous && previous.status !== "running") contact.steps[event.step] = { lines: [] };
             pending.steps[event.step] = { status: event.status, ...(nextLog ? { log: nextLog } : {}) };
             changed = true;
           }
