@@ -674,7 +674,7 @@ export const MOUNT_STEP_ROWS = 24;
 /** A chat opened on a long window paints its newest rows first, then mounts the older ones above them a step at a time in
  * interruptible renders, so switching into it never blocks a frame. A search jump or a window off the latest rows
  * (`hold`) mounts whole, since it scrolls to a row that may sit above the tail. */
-export function useFirstPaintRows(key: string, rows: Message[], hold: boolean, scrollRef?: RefObject<HTMLElement | null>): Message[] {
+export function useFirstPaintRows(key: string, rows: Message[], hold: boolean, scrollRef?: RefObject<HTMLElement | null>, pinned = false): Message[] {
   const [shown, setShown] = useState({ key, count: FIRST_PAINT_ROWS });
   if (shown.key !== key) setShown({ key, count: FIRST_PAINT_ROWS });
   // a chat whose rows all showed once keeps showing all of them as it grows, without another render to say so
@@ -688,6 +688,12 @@ export function useFirstPaintRows(key: string, rows: Message[], hold: boolean, s
     if (!el || count >= total || el.scrollHeight > el.clientHeight + 1) return;
     setShown({ key, count: count + MOUNT_STEP_ROWS >= total ? Infinity : count + MOUNT_STEP_ROWS });
   }, [key, count, total, scrollRef]);
+  // older rows mount above the ones on screen: a chat held at its newest row stays there in the same frame, rather than
+  // a frame later when the transcript's resize is noticed, which would show the rows jumping down and back
+  useLayoutEffect(() => {
+    const el = scrollRef?.current;
+    if (el && pinned) el.scrollTop = el.scrollHeight;
+  }, [count, pinned, scrollRef]);
   useEffect(() => {
     if (count >= total) {
       whole.current = key;
@@ -1032,7 +1038,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   useThinkingMoment(markRef, waiting && !teammatesWorking);
   // the bubble the line hangs under keeps its pinched corner until the line has finished leaving, as grok's does
   const presenceShown = useLingering(presenceVisible, 140);
-  const paintedMessages = useFirstPaintRows(transcriptKey, windowedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef);
+  const paintedMessages = useFirstPaintRows(transcriptKey, windowedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef, following);
   const lastShownRow = windowedMessages.findLast((message) => !quietRow(message, showToolCalls));
   const lastRowIsBubble = Boolean(lastShownRow && isBotTextRow(lastShownRow, bot.id));
   const presenceUnderBubble = lastRowIsBubble;
