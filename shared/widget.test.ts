@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { WIDGET_SAMPLES } from "./widget-samples.ts";
 import {
-  dayList, parseWidgetInput, resolveWidgetAction, widgetAdvice, widgetActionByLabel, widgetActions, widgetFieldOptions, widgetFields, widgetInitialValues, widgetScope, widgetToText,
+  dayList, parseWidgetInput, resolveWidgetAction, widgetAdvice, widgetActionByLabel, widgetActions, widgetChoiceRuns, widgetFieldOptions, widgetFields, widgetInitialValues, widgetScope, widgetToText,
   WIDGET_LIMITS, WIDGET_NODE_TYPES, type WidgetNode, type WidgetPayload, type WidgetRoot,
 } from "./widget.ts";
 
@@ -487,5 +487,33 @@ describe("times, days, labels and progress", () => {
       { type: "Form", onSubmitAction: { type: "b" }, children: [{ type: "Input", name: "two", label: "Two" }, { type: "Button", label: "Send two", submit: true }] },
     ] });
     expect(widgetAdvice(twoForms)).toBeUndefined();
+  });
+});
+
+describe("a pick-one", () => {
+  const subjects = ["Three new glazes", "Your holiday mug", "Frost, Ember, Pine"];
+  const pick = (children: unknown[], more: Record<string, unknown> = {}) => parsed({ type: "Card", title: "Subject line", ...more, children });
+  const buttons = (extra: Record<string, unknown> = {}) => subjects.map((label) => ({ type: "Button", label, onClickAction: { type: "pick" }, ...extra }));
+
+  it("is two or more Buttons in a column that each send their label, and the one pressed answers the card", () => {
+    const root = pick([{ type: "Col", children: buttons() }]);
+    expect(widgetChoiceRuns(root)).toEqual([["n3", "n4", "n5"]]);
+    expect(widgetActions(root).map(({ label, tone }) => ({ label, tone }))).toEqual(subjects.map((label) => ({ label, tone: "confirm" })));
+    expect(resolveWidgetAction({ v: 1, root }, "n4", undefined)).toMatchObject({ ok: true, text: subjects[1], tone: "confirm" });
+  });
+
+  it("is also a Row of nothing else, or Buttons straight on the card", () => {
+    expect(widgetChoiceRuns(pick([{ type: "Row", children: buttons() }]))).toEqual([["n3", "n4", "n5"]]);
+    expect(widgetChoiceRuns(pick([{ type: "Text", value: "Pick one" }, ...buttons()]))).toEqual([["n3", "n4", "n5"]]);
+  });
+
+  it("is not a link, a danger, a submit or a lone Button, and not a card with fields, a status or progress", () => {
+    expect(widgetChoiceRuns(pick([{ type: "Row", children: [...buttons(), { type: "Button", label: "Docs", onClickAction: { type: "open_url", payload: { url: "https://example.com" } } }] }]))).toEqual([]);
+    expect(widgetChoiceRuns(pick([{ type: "Col", children: buttons({ style: "danger" }) }]))).toEqual([]);
+    expect(widgetChoiceRuns(pick([{ type: "Col", children: buttons().slice(0, 1) }]))).toEqual([]);
+    expect(widgetChoiceRuns(pick([{ type: "Input", name: "note", label: "Note" }, { type: "Col", children: buttons() }]))).toEqual([]);
+    expect(widgetChoiceRuns(pick([{ type: "Progress", value: 0.5 }, { type: "Col", children: buttons() }]))).toEqual([]);
+    expect(widgetChoiceRuns(pick([{ type: "Col", children: buttons() }], { status: { text: "Working" } }))).toEqual([]);
+    expect(widgetActions(pick([{ type: "Progress", value: 0.5 }, { type: "Col", children: buttons() }])).every((entry) => entry.tone === undefined)).toBe(true);
   });
 });

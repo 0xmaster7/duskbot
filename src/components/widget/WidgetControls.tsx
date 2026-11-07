@@ -28,13 +28,15 @@ export interface WidgetForm {
   labelled: ReadonlySet<string>;
   compact: boolean;
   name: string;
+  /** Each pick-one Button's whole run (widgetChoiceRuns), drawn as grok's lettered rows. */
+  choices: ReadonlyMap<string, readonly string[]>;
 }
 
 export const WIDGET_COMPACT_BELOW = 400;
 
 const INERT: WidgetForm = {
   uid: "widget", values: {}, setValue: () => {}, other: {}, chooseOther: () => {}, setOther: () => {}, locked: true, errorId: "widget-error", fields: new Map(), actions: new Map(),
-  press: () => {}, imagesAllowed: false, allowImages: () => {}, labelled: new Set(), compact: false, name: "",
+  press: () => {}, imagesAllowed: false, allowImages: () => {}, labelled: new Set(), compact: false, name: "", choices: new Map(),
 };
 const WidgetFormContext = createContext<WidgetForm>(INERT);
 export const WidgetFormProvider = WidgetFormContext.Provider;

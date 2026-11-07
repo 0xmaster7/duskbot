@@ -128,16 +128,16 @@ describe("drawing a widget", () => {
     expect(button("Fix #719 first")!.className).toContain("ring-composer-ring");
   });
 
-  it("sizes the card by its root: sm 360, md 440, otherwise 600", () => {
+  it("sizes the card by its root: sm 360, md 440, otherwise grok's 560", () => {
     const sized = (size?: string) => {
       mount(row({ type: "Card", id: "n1", ...(size ? { size } : {}), children: [] }));
       return find('[data-widget="w1"]')!.className;
     };
     expect(sized("sm")).toContain("max-w-[360px]");
     expect(sized("md")).toContain("max-w-[440px]");
-    expect(sized("lg")).toContain("max-w-[600px]");
-    expect(sized("full")).toContain("max-w-[600px]");
-    expect(sized()).toContain("max-w-[600px]");
+    expect(sized("lg")).toContain("max-w-[560px]");
+    expect(sized("full")).toContain("max-w-[560px]");
+    expect(sized()).toContain("max-w-[560px]");
   });
 
   it("draws the children of a type it does not know, and nothing for one with none, and never throws", () => {
@@ -695,3 +695,49 @@ describe("the widget renderer's sources", () => {
     expect(offending).toEqual([]);
   });
 });
+
+describe("a pick-one", () => {
+  const subjects = ["Three new glazes, fresh from the kiln", "Your holiday mug has arrived (almost)", "Frost, Ember, Pine: pick your winter mug"];
+  const pickOne = (): WidgetRoot => {
+    const parsed = parseWidgetInput({ type: "Card", title: "Holiday email subject line", caption: "Tap one and the email is ready to go.",
+      children: [{ type: "Col", children: subjects.map((label) => ({ type: "Button", label, onClickAction: { type: "pick" } })) }] });
+    if (!parsed.ok) throw new Error(parsed.error);
+    return parsed.value;
+  };
+
+  it("draws grok's lettered rows, left aligned and 1px apart, never full-width pills", () => {
+    mount(row(pickOne()));
+    const choices = all("[data-ask-choice]");
+    expect(choices.map((choice) => choice.textContent)).toEqual(subjects);
+    expect(choices.map((choice) => choice.querySelector("[data-letter]")!.getAttribute("data-letter"))).toEqual(["A", "B", "C"]);
+    expect(choices.every((choice) => choice.className.includes("text-start") && !choice.className.includes("rounded-full"))).toBe(true);
+    expect(choices[0]!.parentElement!.className).toContain("gap-px");
+    expect(find('[role="radiogroup"]')!.getAttribute("aria-label")).toBe("Holiday email subject line");
+  });
+
+  it("sends the tapped option's own press, and once answered keeps only that option with its letter", async () => {
+    mount(row(pickOne()));
+    await press(all("[data-ask-choice]")[1]!);
+    expect(posted().body.widgetAction).toMatchObject({ messageId: "w1", ref: "n4", rev: 0 });
+    expect(find('[data-ask-card="answered"]')!.textContent).toBe(`Holiday email subject line${t("ask.settled.chose")} ${subjects[1]}`);
+
+    mount(row(pickOne(), { settled: { ref: "n5", label: subjects[2]!, tone: "confirm", at: 2 } }));
+    const answered = find('[data-ask-card="answered"]')!;
+    expect(answered.textContent).toContain("Holiday email subject line");
+    expect(answered.textContent).toContain(subjects[2]);
+    expect(answered.textContent).not.toContain(subjects[0]);
+    expect(answered.querySelector("[data-letter]")!.getAttribute("data-letter")).toBe("C");
+    expect(find("[data-ask-choice]")).toBeNull();
+  });
+
+  it("keeps buttons that are not a pick-one 8px apart in a column", () => {
+    const parsed = parseWidgetInput({ type: "Card", children: [{ type: "Col", children: [
+      { type: "Button", label: "Delete", style: "danger", onClickAction: { type: "delete" } },
+      { type: "Button", label: "Keep", style: "danger", onClickAction: { type: "keep" } },
+    ] }] });
+    if (!parsed.ok) throw new Error(parsed.error);
+    mount(row(parsed.value));
+    expect(button("Delete")!.parentElement!.style.gap).toBe("8px");
+  });
+});
+

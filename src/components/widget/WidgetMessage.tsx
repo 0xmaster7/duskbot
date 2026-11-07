@@ -9,18 +9,20 @@ import { openThread } from "@/state/thread-navigation";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import {
-  PHONE_PAIRING_ACTION, widgetActions, widgetFields, widgetInitialValues, widgetScope, widgetString, type WidgetField, type WidgetNode, type WidgetOther, type WidgetPayload,
+  PHONE_PAIRING_ACTION, widgetActions, widgetChoiceRuns, widgetFields, widgetInitialValues, widgetScope, widgetString, type WidgetField, type WidgetNode, type WidgetOther, type WidgetPayload,
   type WidgetSettled, type WidgetValues,
 } from "../../../shared/widget";
-import { ASK_QUIET_BUTTON, AskSettledLine, returnFocusToComposer } from "../AskCard";
+import { ASK_CARD_LIFT, ASK_CARD_RING, ASK_QUIET_BUTTON, AskSettledLine, choiceLetter, returnFocusToComposer } from "../AskCard";
+import { AnsweredQuestion } from "../QuestionCard";
 import { plainBotBubble } from "../chat-bubble";
 import { WidgetBody } from "./WidgetBody";
 import { WIDGET_COMPACT_BELOW, widgetActionUrl, widgetThreadTarget, WidgetButton, WidgetFormProvider, WidgetGlyph, type WidgetForm } from "./WidgetControls";
 import { kids } from "./widget-style";
 import { newWidgetSendId, sendWidgetAction, type WidgetSendResult } from "./widget-send";
 
-const WIDTH: Record<string, string> = { sm: "max-w-[360px]", md: "max-w-[440px]", lg: "max-w-[600px]", full: "max-w-[600px]" };
-const SURFACE = "w-full overflow-hidden rounded-2xl bg-composer ring-1 ring-composer-ring transition-opacity";
+const WIDTH: Record<string, string> = { sm: "max-w-[360px]", md: "max-w-[440px]", lg: "max-w-[560px]", full: "max-w-[560px]" };
+/** Grok's card frame, the question card's: 24px corners, its 0.5px ring and the light skin's lift. */
+const SURFACE = `w-full overflow-hidden rounded-[24px] transition-opacity ${ASK_CARD_RING} ${ASK_CARD_LIFT}`;
 const SENT_MS = 1600;
 
 function labelledFields(node: WidgetNode, into = new Set<string>()): Set<string> {
@@ -49,6 +51,7 @@ export function WidgetMessage({ botId, threadId, message }: { botId: string; thr
 function WidgetCard({ botId, threadId, messageId, payload }: { botId: string; threadId?: string; messageId: string; payload: WidgetPayload }) {
   const root = payload.root;
   const { state, dispatch, flushBotPatches } = useStore();
+  const botColor = state.bots?.find((candidate) => candidate.id === botId)?.color;
   const showThreads = useShowThreads();
   const openPage = usePageOpener();
   const [settledHere, setSettledHere] = useState<WidgetSettled>();
@@ -108,6 +111,7 @@ function WidgetCard({ botId, threadId, messageId, payload }: { botId: string; th
   const actions = useMemo(() => new Map(widgetActions(root).map((entry) => [entry.ref, entry])), [root]);
   const fields = useMemo(() => new Map(widgetFields(root).map((field) => [field.name, field])), [root]);
   const labelled = useMemo(() => labelledFields(root), [root]);
+  const choices = useMemo(() => new Map(widgetChoiceRuns(root).flatMap((run) => run.map((ref) => [ref, run] as const))), [root]);
   const values = useMemo(() => ({ ...widgetInitialValues(root), ...edits, ...settled?.values }), [root, edits, settled]);
   const other = settled ? settled.other ?? {} : otherEdits;
 
@@ -212,6 +216,7 @@ function WidgetCard({ botId, threadId, messageId, payload }: { botId: string; th
     labelled,
     compact,
     name: title ?? statusText ?? "",
+    choices,
   };
   const confirm = actions.get("confirm");
   const cancel = actions.get("cancel");
@@ -238,8 +243,8 @@ function WidgetCard({ botId, threadId, messageId, payload }: { botId: string; th
                     <bdi dir="auto" className="min-w-0 truncate">{statusText}</bdi>
                   </p>
                 )}
-                {title && <div title={title} className="truncate text-[15px] font-semibold leading-6 text-ink"><bdi dir="auto">{title}</bdi></div>}
-                {caption && <div dir="auto" className="mt-0.5 text-[13px] leading-snug text-ink-secondary">{caption}</div>}
+                {title && <div title={title} className="truncate text-[15px] font-semibold leading-[22px] text-ink"><bdi dir="auto">{title}</bdi></div>}
+                {caption && <div dir="auto" className="text-[14px] leading-5 text-ink-secondary">{caption}</div>}
               </div>
               {meta && <span dir="auto" className="mt-1 shrink-0 whitespace-nowrap text-[12px] leading-4 tabular-nums text-ink-tertiary">{meta}</span>}
             </div>
@@ -264,6 +269,11 @@ function WidgetCard({ botId, threadId, messageId, payload }: { botId: string; th
   );
 
   if (!settled) return card;
+  const run = choices.get(settled.ref);
+  if (run) {
+    // grok keeps an answered pick-one in place: its title greys and only the picked option stays
+    return <AnsweredQuestion question={title ?? caption ?? name} answer={settled.label} letter={choiceLetter(run.indexOf(settled.ref))} color={botColor} own={false} />;
+  }
   const detailsId = `${uid}-details`;
   return (
     <AskSettledLine

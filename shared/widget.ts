@@ -2,6 +2,7 @@
 // of kind "widget". Node names and props follow ChatKit's widget components.
 // Model input is normalised here once; every renderer reads canonical trees only.
 import type { JsonValue } from "./json.ts";
+import { isClientWidgetAction, WIDGET_FIELD_NODES, widgetChoiceRuns } from "./widget-choices.ts";
 
 /** Past any of these, model input is refused with the path of the problem. */
 export const WIDGET_LIMITS = {
@@ -57,9 +58,8 @@ export function threadActionTarget(action: WidgetAction): { botId?: string; grou
   return undefined;
 }
 
-/** `open_phone_pairing` opens the app's own phone pairing (the QR code and link) on the device. */
-export const PHONE_PAIRING_ACTION = "open_phone_pairing";
-const CLIENT_ACTION = (action: WidgetAction): boolean => action.type === "open_url" || action.type === "open_thread" || action.type === PHONE_PAIRING_ACTION;
+export { PHONE_PAIRING_ACTION, widgetChoiceRuns } from "./widget-choices.ts";
+const CLIENT_ACTION = (action: WidgetAction): boolean => isClientWidgetAction(action);
 
 /** `confirm` and `cancel` on a root: the buttons under the card. */
 export interface WidgetButtonSpec {
@@ -115,7 +115,7 @@ export type WidgetOther = Record<string, string>;
 export type ParsedWidgetInput = { ok: true; value: WidgetRoot } | { ok: false; error: string };
 
 const ROOT_TYPES = new Set(["Card", "ListView"]);
-const FIELD_TYPES = new Set(["Select", "DatePicker", "TimePicker", "DayPicker", "Checkbox", "RadioGroup", "Input", "Textarea"]);
+const FIELD_TYPES = WIDGET_FIELD_NODES;
 const TYPE_ALIASES: Record<string, string> = { TableRow: "Table.Row", TableCell: "Table.Cell" };
 const ACTION_TYPE = /^[A-Za-z0-9_.:-]{1,64}$/;
 const FIELD_NAME = /^[A-Za-z0-9_.-]{1,64}$/;
@@ -698,6 +698,8 @@ export interface WidgetActionEntry {
 
 function collectActions(root: WidgetRoot, strict: boolean): WidgetActionEntry[] {
   const found: Array<WidgetActionEntry & { row?: string }> = [];
+  // a pick-one's answer settles the card, as a confirm does
+  const choices = new Set(widgetChoiceRuns(root).flat());
   walk(root, (node, ancestors) => {
     if (node.type === "Button") {
       if (node.disabled === true) return;
@@ -710,7 +712,7 @@ function collectActions(root: WidgetRoot, strict: boolean): WidgetActionEntry[] 
         return;
       }
       const row = lastOf(ancestors, (ancestor) => ancestor.type === "ListViewItem" || ancestor.type === "Table.Row" || ancestor.type === "Row");
-      found.push({ ref: node.id, label: widgetString(node, "label") ?? "", action: picked, kind: "button", ...(node.submit === true ? { tone: "submit" as const } : {}), ...(row ? { row: firstText(row) } : {}) });
+      found.push({ ref: node.id, label: widgetString(node, "label") ?? "", action: picked, kind: "button", ...(node.submit === true ? { tone: "submit" as const } : choices.has(node.id) ? { tone: "confirm" as const } : {}), ...(row ? { row: firstText(row) } : {}) });
     } else if (node.type === "ListViewItem" && isRecord(node.onClickAction)) {
       found.push({ ref: node.id, label: firstText(node), action: node.onClickAction as unknown as WidgetAction, kind: "item" });
     }
