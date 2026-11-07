@@ -22,7 +22,6 @@ vi.mock("./DesktopCapabilities", async (importOriginal) => ({
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
 
 const { initialState } = await import("@/state/store");
-const { EventDetails } = await import("./RoutineCalendarPage");
 const { ChatView } = await import("./ChatView");
 
 const bot: Bot = {
@@ -76,15 +75,6 @@ function buttonsFrom(render: () => ReactNode): Map<string, Button> {
   return buttons;
 }
 
-function details(receipt: RoutineRun | null = run, definition: Routine | null = routine) {
-  const onClose = vi.fn();
-  const buttons = buttonsFrom(() => EventDetails({
-    item: { kind: "routine", id: receipt?.id ?? definition!.id, at: 100, durationMinutes: 30, routine: definition, run: receipt },
-    bots: fixture.state!.bots, onClose, onEdit: vi.fn(), onOpenRoom: vi.fn(),
-  }));
-  return { buttons, onClose };
-}
-
 beforeEach(() => {
   fixture.dispatch.mockClear();
   fixture.showThreads = true;
@@ -93,45 +83,6 @@ beforeEach(() => {
 afterAll(() => vi.unstubAllGlobals());
 
 describe("routine results navigation", () => {
-  it("opens a historical run's source, not a destination configured after that run", () => {
-    const { buttons, onClose } = details();
-    expect(buttons.has("Open results thread")).toBe(true);
-    buttons.get("Open results thread")!.onClick!();
-    expect(fixture.dispatch.mock.calls).toEqual([
-      [{ type: "select", id: bot.id }],
-      [{ type: "switchTask", botId: bot.id, threadId: "original-source" }],
-      [{ type: "revealThread", threadId: "original-source" }],
-    ]);
-    expect(onClose).toHaveBeenCalledOnce();
-  });
-
-  it("uses the definition's destination only for a definition-only view", () => {
-    details(null).buttons.get("Open results thread")!.onClick!();
-    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "switchTask", botId: bot.id, threadId: "new-results" });
-  });
-
-  it("opens the bot's main thread for a definition with no thread of its own, never for a run", () => {
-    const { resultsThreadId: _chosen, ...unchosen } = routine;
-    fixture.state!.bots = [{ ...bot, mainThreadId: "original-source" }];
-    details(null, unchosen).buttons.get("Open results thread")!.onClick!();
-    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "switchTask", botId: bot.id, threadId: "original-source" });
-    expect(details({ ...run, sourceThreadId: undefined }, unchosen).buttons.has("Open results thread")).toBe(false);
-  });
-
-  it("does not redirect a deleted run destination to its source or the current definition", () => {
-    expect(details({ ...run, resultsThreadId: "deleted-destination" }).buttons.has("Open results thread")).toBe(false);
-    expect(details({ ...run, sourceThreadId: undefined }).buttons.has("Open results thread")).toBe(false);
-  });
-
-  it("opens the original group task from a historical run even when the definition has changed", () => {
-    details({ ...run, sourceThreadId: "original-room-source" }).buttons.get("Open results thread")!.onClick!();
-    expect(fixture.dispatch.mock.calls).toEqual([
-      [{ type: "select", id: group.id }],
-      [{ type: "switchGroupTask", groupId: group.id, threadId: "original-room-source" }],
-      [{ type: "revealThread", threadId: "original-room-source" }],
-    ]);
-  });
-
   it("returns from an execution chat to its group-owned source task", () => {
     fixture.state!.routineRuns = [{ ...run, sourceThreadId: "original-room-source" }];
     const buttons = buttonsFrom(() => ChatView({ bot }));
@@ -144,24 +95,6 @@ describe("routine results navigation", () => {
     ]);
   });
 
-  it("with threads hidden opens the run's thread or its results by the switch alone, leaving the thread the bot was on unread", () => {
-    fixture.showThreads = false;
-    const { buttons } = details();
-    buttons.get("Open results thread")!.onClick!();
-    expect(fixture.dispatch.mock.calls).toEqual([[{ type: "switchTask", botId: bot.id, threadId: "original-source" }], [{ type: "revealThread", threadId: "original-source" }]]);
-    fixture.dispatch.mockClear();
-    fixture.state!.bots = [{ ...bot, threadId: "new-results" }];
-    details().buttons.get("Open thread")!.onClick!();
-    expect(fixture.dispatch.mock.calls).toEqual([[{ type: "switchTask", botId: bot.id, threadId: "execution" }]]);
-    fixture.showThreads = true;
-    fixture.dispatch.mockClear();
-    details().buttons.get("Open thread")!.onClick!();
-    expect(fixture.dispatch.mock.calls).toEqual([
-      [{ type: "select", id: bot.id }],
-      [{ type: "switchTask", botId: bot.id, threadId: "execution" }],
-    ]);
-  });
-
   it("omits Back to results when the execution's recorded destination was deleted", () => {
     fixture.state!.routineRuns = [{ ...run, resultsThreadId: "deleted-destination" }];
     expect(buttonsFrom(() => ChatView({ bot })).has("Back to results")).toBe(false);
@@ -171,6 +104,6 @@ describe("routine results navigation", () => {
     fixture.state!.routineRuns = [{ ...run, resultsThreadId: "execution", sourceThreadId: "execution" }];
     const buttons = buttonsFrom(() => ChatView({ bot }));
     expect(buttons.has("Back to results")).toBe(false);
-    expect(buttons.has("Run logs")).toBe(false);
+    expect(buttons.has("Open routine")).toBe(false);
   });
 });

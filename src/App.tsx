@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, Menu } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { CLOUD_LINK_SETTINGS, openBot, StoreProvider, useStore } from "@/state/store";
@@ -22,7 +22,7 @@ import { preloadConnectedApps } from "@/lib/connected-apps";
 import { ConnectAppsHost, connectAppsPageFor, openConnectApps } from "@/components/connect-apps";
 import {
   ActivityPanel, BotSettingsDialog, CloudAddDialog, FilesView, KeyboardShortcutsModal, LocalVmWorkspace,
-  preloadScreens, RemoteAgentSettingsPanel, RoomPanel, SettingsModal, TriggersPage,
+  preloadScreens, RemoteAgentSettingsPanel, RoomPanel, SettingsModal,
 } from "@/components/lazy-screens";
 import { useRoomPanelShown } from "@/lib/room-panel";
 import { WorkspaceBackupRecovery } from "@/components/WorkspaceBackupSettings";
@@ -152,9 +152,8 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const roomPanelOpen = useRoomPanelShown({ group, state, simple: !remoteClient });
   const roomPanelOverlay = notificationFeed && state.notificationsOpen && !twoSidePanelsFit;
   // The sidebar only folds when the person folds it: a side panel opening beside it never collapses it, as in Grok Bot.
-  const calendarFocus = state.activeView === "routines" && state.routinesFocus.view === "calendar";
   const phoneLayout = useMediaQuery(PHONE_LAYOUT, false);
-  useEdgeSwipeOpen(phoneLayout && !drawerOpen && !calendarFocus, () => setDrawerOpen(true));
+  useEdgeSwipeOpen(phoneLayout && !drawerOpen, () => setDrawerOpen(true));
   usePhoneViewport(phoneLayout);
 
   const noEngines =
@@ -248,10 +247,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
     dispatch({ type: "toggleComputer", open: true });
   };
 
-  const closeCalendar = useCallback(() => {
-    dispatch({ type: "select", id: state.selectedId });
-  }, [dispatch, state.selectedId]);
-
   const nativeViewOverlayOpen =
     drawerOpen ||
     paletteOpen ||
@@ -297,7 +292,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const panelLoading = state.settingsOpen && !bot && !group && state.hydrated !== true && !remoteClient && !settingsOverlay;
   const framed = windowFramed(capabilities);
   const strips = <>
-    <UpdateBanner sidebarIndicator={framed || (!calendarFocus && (sidebarInline || drawerOpen))} />
+    <UpdateBanner sidebarIndicator={framed || sidebarInline || drawerOpen} />
     <CloudAsleepStrip />
     <LiveConnectionStrip connected={state.connected} hydrated={state.hydrated === true} />
     <CloudSendStrip cloudHome={state.config?.cloudHome === true} />
@@ -310,7 +305,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       <BotLimitPopup />
       {!framed && strips}
       <div className="relative flex min-h-0 flex-1">
-      {!calendarFocus && <button
+      <button
         type="button"
         ref={menuButtonRef}
         aria-label="Open bot list"
@@ -320,25 +315,23 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       >
         <Menu size={18} className="max-md:hidden" />
         <ChevronLeft size={20} aria-hidden="true" className="hidden max-md:block" />
-      </button>}
-      {!calendarFocus && <PlacesRail />}
+      </button>
+      <PlacesRail />
       {/* A framed window shows the app, its sidebar and the chat or page, as one square pane under the top bar and beside
           the window's rail, running to the window's right and bottom edges. */}
       <div data-window-card={framed ? "" : undefined}
         className={framed ? "relative flex min-w-0 flex-1 flex-col overflow-hidden bg-app" : "contents"}>
       {framed && strips}
       <div className={framed ? "relative flex min-h-0 flex-1" : "contents"}>
-      {!calendarFocus && <Sidebar
+      <Sidebar
         open={drawerOpen}
         onClose={() => {
           setDrawerOpen(false);
           menuButtonRef.current?.focus();
         }}
-      />}
+      />
       {state.activeView === "files" ? (
         <FilesView />
-      ) : state.activeView === "routines" ? (
-        <TriggersPage onBack={closeCalendar} />
       ) : !remoteClient && localVmWorkspaceBotId ? (
         <LocalVmWorkspace
           primaryBotId={localVmWorkspaceBotId}
@@ -372,8 +365,8 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       {roomPanelOpen && group && roomPanelOverlay && <RoomPanel key={`room:${group.id}`} group={group} overlay />}
       {!remoteClient && state.activityOpen && bot && <ActivityPanel key={`activity:${bot.id}`} bot={bot} />}
       {inboxShown && <InboxPanel />}
-      {notificationFeed && !calendarFocus && state.notificationsOpen && <NotificationsPanel />}
-      {notificationFeed && !calendarFocus && <NotificationRail />}
+      {notificationFeed && state.notificationsOpen && <NotificationsPanel />}
+      {notificationFeed && <NotificationRail />}
       </div>
       </div>
       <AnimatePresence>{state.appSettingsOpen && <SettingsModal key="settings" />}</AnimatePresence>
@@ -394,12 +387,12 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       <CommandPalette onOpenChange={setPaletteOpen} />
       <TitleTooltips />
       {/* Blink resolves -webkit-app-region in DOM order, so this no-drag twin after the headers cuts the drawer button back out. */}
-      {!calendarFocus && <span
+      <span
         aria-hidden
         data-drawer-button-no-drag
         style={captionChrome.noDragStyle}
         className="pointer-events-none absolute left-3 top-3 size-[30px] md:hidden"
-      />}
+      />
       </div>
       {/* Last child on purpose: Blink resolves -webkit-app-region in DOM order, so no-drag buttons must follow every drag region. */}
       <WindowCaptionButtons

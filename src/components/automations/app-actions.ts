@@ -28,9 +28,9 @@ export function useAllAutomationActions() {
     runNow: (automation: Automation) => automation.kind === "app"
       ? attempt(`run:${automation.id}`, () => appTriggerApi.test(automation.id))
       : base.runNow(automation),
-    remove: async (automation: Automation, question: string): Promise<boolean> => {
+    remove: async (automation: Automation, question: string | null): Promise<boolean> => {
       if (automation.kind !== "app") return base.remove(automation, question);
-      if (!window.confirm(question)) return false;
+      if (question !== null && !window.confirm(question)) return false;
       await attempt(`delete:${automation.id}`, () => appTriggerApi.remove(automation.id));
       return true;
     },

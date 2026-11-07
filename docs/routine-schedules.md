@@ -13,16 +13,16 @@ A routine can also name **checks** (calendar, mail, other routines' runs): plain
 code that runs on each tick before any AI turn, so a quiet tick costs nothing.
 See [Proactive routines](proactive-routines.md).
 
-In **Automations → Schedule**, choose **Monthly**, **Yearly**, or **Custom cron
-(advanced)** in the existing routine editor. Monthly offers days 1–31 and
-**Last day**. The timezone defaults to your browser's zone for a new preset and
-can be changed. Saved cron routines retain their own zone even on another
-computer. Editing just a title or instructions preserves the exact schedule.
+Ask the bot in chat for a monthly, yearly or custom cron schedule; the bot
+panel's routine editor offers only plain presets (every day, every weekday,
+every week, every hour, once) and keeps any other schedule as it is. Saved cron
+routines retain their own zone even on another computer. Editing just a name
+or instructions preserves the exact schedule.
 
 ## Off, on, and done
 
-The switch on **Automations** pauses a schedule or a webhook and turns it back
-on; a schedule comes back with its next time. If the server refuses, the reason
+The switch on a routine's row in its bot's panel pauses a schedule or a webhook
+and turns it back on; a schedule comes back with its next time. If the server refuses, the reason
 shows beside the switch. A one-time schedule whose time has passed reads
 **Done** and has no switch: turning it on would have nothing to do, so the
 server refuses it ("Its time has passed. Edit it to pick a new time."). Saving
@@ -80,8 +80,8 @@ use an appropriate event/webhook workflow instead of a fake weekly schedule.
   so a sleeping computer or a quit app runs nothing, and the app cannot wake
   a sleeping Mac. The desktop app does the one thing it can: while plugged
   in, it keeps the computer from idle-sleeping for the hour before a due
-  routine and while one runs (Automations → *Keep this computer awake for
-  routines*, on by default; a closed lid still sleeps). For true 24/7, run
+  routine and while one runs (Settings → Computer → *Keep this computer awake
+  for scheduled automations*, on by default; a closed lid still sleeps). For true 24/7, run
   OpenMausBot on a VPS — see [deploy-vps.md](deploy-vps.md).
 - Existing catch-up policy remains: up to 12 hours late, one missed occurrence
   can be dispatched; older work receives a missed-run receipt. The next date
@@ -124,8 +124,7 @@ use an appropriate event/webhook workflow instead of a fake weekly schedule.
 - Existing one-time, daily/weekday and interval schedules are not migrated or
   reinterpreted. Team exports retain cron expressions and zones; imports remain
   paused until enabled. Older phone apps safely treat cron as a newer schedule;
-  use chat or the desktop/web editor for it, rather than converting it to daily.
+  use chat for it, rather than converting it to daily.
 
-Cron series are edited through the routine editor rather than calendar dragging,
-which could otherwise ambiguously change an entire expression. Dense calendar
-projections are bounded per day; Run logs remain the source of actual outcomes.
+Cron series are changed through chat rather than the editor's presets, which
+could otherwise ambiguously change an entire expression.

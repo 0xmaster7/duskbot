@@ -44,7 +44,7 @@ import {
   skillRequestBehavior,
   type SkillRequestCardData,
 } from "../../shared/skill-request";
-import type { Routine, RoutineInput, RoutineRun, RoutineRunStatusFilter } from "@/lib/routines";
+import type { Routine, RoutineInput, RoutineRun } from "@/lib/routines";
 import type { WebhookAttempt, WebhookIngressStatus, WebhookTrigger } from "@/lib/webhooks";
 import { duplicateBotProfile, duplicateCreateRequest } from "@/lib/bot-duplicate";
 import { botShowsUnread } from "@/lib/bot-unread";
@@ -572,13 +572,14 @@ export interface AppState {
   liveCallVersion: number;
   liveCallLookupSeq: number;
   selectedId: string;
-  activeView: "chat" | "routines" | "files";
+  activeView: "chat" | "files";
   /** Folders a finished move left on this computer, for Files to offer sharing. */
   filesSuggest: string[] | null;
   routines: Routine[];
   routineRuns: RoutineRun[];
   routinesLoadState: "loading" | "ready" | "error"; routineRunsSince: number | null;
-  routinesFocus: { section?: "schedule" | "logs"; view?: "calendar" | "list"; botId?: string; routineId?: string; runStatus?: RoutineRunStatusFilter; nonce: number };
+  /** The routine the bot panel opens next, and whether straight into its form. */
+  routinesFocus: { routineId?: string; edit?: boolean; nonce: number };
   webhooks: WebhookTrigger[];
   webhookAttempts: WebhookAttempt[];
   webhookIngress: WebhookIngressStatus | null;
@@ -657,7 +658,7 @@ export type Action =
   | { type: "sections"; sections: string[] }
   | { type: "botsOrdered"; botIds: string[] }
   | { type: "sectionDeleted"; section: string; sections: string[] }
-  | { type: "showRoutines"; section?: "schedule" | "logs"; view?: "calendar" | "list"; botId?: string; routineId?: string; runStatus?: RoutineRunStatusFilter }
+  | { type: "openRoutine"; routineId: string; botId?: string; edit?: boolean }
   | { type: "showFiles"; suggest?: string[] }
   | { type: "showChat" }
   | { type: "routinesHydrated"; routines: Routine[]; runs: RoutineRun[]; since?: number }
@@ -1028,17 +1029,13 @@ export function reducer(state: AppState, action: Action): AppState {
     }
     case "botQueues":
       return reconcileSnapshotQueues(replaceBotQueues(state, action.queues), [...state.bots, ...state.groups]);
-    case "showRoutines":
-      return {
-        ...state,
-        activeView: "routines",
-        routinesFocus: { section: action.section, view: action.view, botId: action.botId, routineId: action.routineId, runStatus: action.runStatus, nonce: state.routinesFocus.nonce + 1 },
-        settingsOpen: false,
-        activityOpen: false,
-        notificationsOpen: false,
-        appSettingsOpen: false,
-        pluginsOpen: false,
-      };
+    case "openRoutine": {
+      // a routine lives in its bot's panel: open it there, on the Details tab
+      const botId = action.botId ?? state.routines.find((routine) => routine.id === action.routineId)?.botId ?? state.webhooks.find((webhook) => webhook.id === action.routineId)?.botId;
+      if (!botId) return state;
+      const focused = { ...state, activeView: "chat" as const, routinesFocus: { routineId: action.routineId, edit: action.edit, nonce: state.routinesFocus.nonce + 1 } };
+      return reducer(focused, { type: "toggleSettings", open: true, section: "routines", botId });
+    }
     case "showChat":
       return state.activeView === "chat" ? state : { ...state, activeView: "chat" };
     case "showFiles":
@@ -2289,7 +2286,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const wrapped: React.Dispatch<Action> = (action) => {
       // a saved setting re-renders the whole app: as a transition, so the switch that saved it and the next click never wait
       if (action.type === "configStatus") { startTransition(() => rawDispatch(action)); return; }
-      if (["select", "newTask", "switchTask", "newGroupTask", "switchGroupTask", "showChat", "showRoutines", "showFiles"].includes(action.type)) selectionRevision.current++;
+      if (["select", "newTask", "switchTask", "newGroupTask", "switchGroupTask", "showChat", "showFiles"].includes(action.type)) selectionRevision.current++;
       // Pin before any await or optimistic state change.
       action = pinBotThreadAction(action, stateRef.current.bots);
       if (action.type === "switchTask" && !action.cached) action = { ...action, cached: transcriptCache.current(action.threadId) };

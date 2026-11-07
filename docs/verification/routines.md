@@ -2,13 +2,10 @@
 
 ## Monthly and custom cron
 
-See [schedule behavior and examples](../routine-schedules.md). In the isolated
-renderer below, create a monthly routine for day 1 at 09:00 in Asia/Kolkata.
-Check that the next three dates are all on the 1st, then save, reload and edit
-the title without changing its expression or zone. Switch to Custom cron and
-try `0 9 31 2 *`: the inline error must disable Save and leave the stored rule
-untouched. Check `0 9 L * *` and `0 9 * * MON#2` for real month-end/nth-weekday
-previews.
+See [schedule behavior and examples](../routine-schedules.md). A person no longer types cron in the app: bots set
+cron schedules from chat, and the bot panel's routine editor keeps such a
+schedule as it is ("Keep" in its When picker) while the name or instructions
+change.
 
 The automated cron tool fixture calls the real MCP proxy through a disposable
 server, confirms the resulting card, and verifies list/update/pause/resume,
@@ -24,8 +21,7 @@ This guard only applies to agent creation proposals; intentional duplicates
 in the manual editor remain possible. Existing routines are never removed.
 
 ```sh
-pnpm exec vitest run shared/routine-schedule.test.ts server/routine-cron.e2e.test.ts server/routine-requests.test.ts server/routines.test.ts server/routines-startup.test.ts src/components/routines/cron-editor.test.ts src/lib/routine-calendar.test.ts src/lib/schedule-label.test.ts server/bot-package.test.ts server/package-export.test.ts
-OMB_UI_E2E=1 pnpm exec vitest run scripts/testing/cron-routines-ui.e2e.test.ts
+pnpm exec vitest run shared/routine-schedule.test.ts server/routine-cron.e2e.test.ts server/routine-requests.test.ts server/routines.test.ts server/routines-startup.test.ts src/lib/routine-calendar.test.ts src/lib/routine-when.test.ts src/lib/schedule-label.test.ts src/components/routines/BotRoutines.test.ts server/bot-package.test.ts server/package-export.test.ts
 ```
 
 ## Launch the isolated renderer
@@ -72,50 +68,39 @@ The final startup JSON includes the server `url`, `previewUrl`, `pepperId`,
    and the caption's **See run** leads to the isolated execution thread. See
    [automation reports](automation-reports.md) for quiet runs, questions and
    the concurrency rule.
-2. Open **Automations → Schedule**. Toggle **List / Calendar**. The list must
-   show paused and finished schedules as well as active ones; changing views
-   must not change a routine or start a run. Filter by Pepper and Miso and
-   confirm that routine ownership stays correct.
-3. Use **New → Scheduled task** to create a distinctly named Pepper routine.
-   Check its saved schedule and prompt, edit it, then pause and resume it.
-   **Run now** should create one run and show its eventual saved result.
-   For the agent-created interval, compare `/api/routines` before and after a
-   title-only edit: `schedule.anchorAt` and `nextRunAt` must not shift. An
-   unchanged one-time schedule must likewise retain its exact `schedule.at`,
-   including seconds and milliseconds omitted by the editor's time field.
-4. Open **Run logs**. Verify the successful manual run, the Miso failure and its
-   error, and the automatic run. Open the automatic receipt and verify it was
-   **Scheduled**, not **Manual**. A finished one-shot schedule must not be
-   described as a successful run merely because its date has passed.
-5. Exercise bot and status filters, search by name or result/error text, and
-   open a routine's scoped **Run logs** link. **Show all routines** removes that
-   routine-only filter. Opening a run must show its own saved details and its
-   actual execution thread when that thread still exists.
-6. Return to Pepper and open its Computer side panel. The **Routines** tab next
-   to Computer and the compact entry below the computer section must reach the
-   same bot-scoped list. Check next-run dates, latest results and log links.
-   Switch to Miso and back; never show Pepper's routines under Miso. Each bot's
-   selected side-panel tab should survive closing and reopening the panel.
-7. Open bot settings → Routines. It must use the same routine editor and central
-   logs, without creating a second definition or competing history page.
-   Confirm that the chat's model header and Ask composer retain their positions.
+2. Open Pepper's panel (its name pill) on **Details**. **Routines** lists each
+   of Pepper's routines, webhooks and app events by name with when it runs (or
+   Paused) and its switch; Miso's never show under Pepper. Clicking a row opens
+   it in place: when (and the next run), what to do, where it works, where
+   results go, what it uses, its last three runs (each opens its run) and
+   **Run now**, **Edit**, **Delete**. Nothing slides or fades in.
+3. **Add a routine** opens the same small form at the end of the card: Name
+   (optional, filled from what to do), When (Every day, Every weekday, Every
+   week, Every hour, Once, with a time, day or date) and What to do. Save it,
+   then edit it in place, pause and resume it with the switch. **Run now**
+   creates one run whose result shows under Recent runs. For the agent-created
+   interval, compare `/api/routines` before and after a name-only edit:
+   `schedule.anchorAt` and `nextRunAt` must not shift, and a schedule the
+   picker cannot say stays exactly as it was.
+4. **Delete** asks once more in place (**Delete “name”** or Cancel) before the
+   routine goes.
+5. A chat's routine card and an execution chat's **Open routine** open that
+   routine in its bot's panel; the card's **Edit** opens it in its form.
+6. The Computer panel's **Routines** tab (Advanced mode) shows the same list.
+7. A new bot's draft (New bot → Routines) uses the same form.
 8. Expand Pepper's threads. **OMB management** contains one **Fleet health
    reports** thread, not separate sidebar entries for the two executions.
    Right-click the folder (or use its actions menu) → **Mark folder as read**.
    Its unread dots clear without selecting a conversation or resolving any
    pending approvals. Open the results thread: both captioned reports remain.
 9. Use a report's **See run** to inspect its fresh execution transcript, then
-   **Back to results**. **Run logs** retains the full execution history.
+   **Back to results**. The routine's Recent runs keep the latest three.
    A user follow-up sent in a completed execution makes it an ordinary visible
    thread; marking the older run seen must not hide that conversation again.
-10. In the routine editor, **Post results to** offers visible threads grouped by
-    folder or **The bot's main thread** (the default). Save to Fleet health
-    reports, reload, and confirm the selection persists. In quick create,
-    **More options** must preserve the chosen destination. Changing the owning
-    bot, including via Call/Team goal selectors, must reset a foreign destination.
-    Run a new routine twice: both reports use the chosen thread, while Run logs
-    links to two different executions. The default reports every run into the
-    bot's main thread and never creates a "· Results" thread.
+10. An opened routine names where its results go: **The bot's main thread**
+    (the default) or the thread a bot chose for it. Editing it in place keeps
+    that destination. Run a new routine twice: both reports land there as two
+    different executions, and none creates a "· Results" thread.
 
 Every routine reports into its bot's main thread unless the user chooses another
 destination, whether it was made in a chat, the editor or the API, and whether a

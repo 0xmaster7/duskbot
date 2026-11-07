@@ -11,8 +11,7 @@ import { appWaitingLine } from "@/lib/app-automations";
 import { useAppTriggers } from "@/lib/app-triggers";
 import { useAllAutomationActions } from "./automations/app-actions";
 
-// The editors live with the Automations page; a chat only loads one when Edit is pressed.
-const RoutineEditor = lazy(async () => ({ default: (await import("./RoutinesPage")).RoutineEditor }));
+// a routine is edited in its bot's panel; the other kinds' editors load only when Edit is pressed
 const WebhookEditor = lazy(async () => ({ default: (await import("./WebhookTrigger")).WebhookEditor }));
 const AppEventEditor = lazy(async () => ({ default: (await import("./automations/AppEventEditor")).AppEventEditor }));
 
@@ -71,7 +70,7 @@ export function TriggerCard({ card, threadId }: { card: OptionCardData; threadId
     <section data-trigger-card={automation.id} data-automation-status={status.state} aria-label={sentence} className="w-full max-w-[640px] rounded-xl border border-hairline/45 bg-card px-3.5 py-2.5 text-[13px]">
       <div className="flex items-start gap-2">
         <Zap size={14} className={cn("mt-0.5 shrink-0", status.state === "needs-you" ? "text-warning" : automation.enabled ? "text-accent" : "text-ink-tertiary")} />
-        <button type="button" onClick={() => dispatch({ type: "showRoutines", view: "list", routineId: automation.id })} className="min-w-0 text-left font-medium leading-snug text-ink hover:text-accent-text">
+        <button type="button" onClick={() => dispatch({ type: "openRoutine", routineId: automation.id, botId: automation.botId })} className="min-w-0 text-left font-medium leading-snug text-ink hover:text-accent-text">
           {t("automations.card.setUp", { sentence })}
         </button>
       </div>
@@ -79,7 +78,7 @@ export function TriggerCard({ card, threadId }: { card: OptionCardData; threadId
         <span className={cn("min-w-0 flex-1 basis-48 truncate", status.state === "needs-you" ? "text-warning" : "text-ink-secondary")} title={line}>{line}</span>
         <span className="flex shrink-0 items-center gap-0.5 text-ink-secondary">
           {status.state !== "done" && <><button type="button" disabled={Boolean(actions.busy)} onClick={() => void actions.toggle(automation)} className={ACTION}>{automation.enabled ? t("automations.pause") : t("automations.resume")}</button><span aria-hidden="true">·</span></>}
-          <button type="button" onClick={() => setEditing(true)} className={ACTION}>{t("automations.edit")}</button>
+          <button type="button" onClick={() => (automation.kind === "schedule" ? dispatch({ type: "openRoutine", routineId: automation.id, botId: automation.botId, edit: true }) : setEditing(true))} className={ACTION}>{t("automations.edit")}</button>
           {automation.kind === "webhook" && <><span aria-hidden="true">·</span><button type="button" disabled={Boolean(actions.busy)} onClick={() => void actions.copyAddress(automation.id)} className={ACTION}>{actions.copied === automation.id ? t("automations.address.copied") : t("automations.address.copy")}</button></>}
           {threadId && card.requestId && <><span aria-hidden="true">·</span><button type="button" onClick={undo} disabled={undoing} className={cn(ACTION, "text-accent")}>{undoing ? t("automations.card.undoing") : t("automations.card.undo")}</button></>}
         </span>
@@ -88,8 +87,7 @@ export function TriggerCard({ card, threadId }: { card: OptionCardData; threadId
       {/* On the page, not in the transcript: the transcript's scroller would clip it and the composer would cover Save. */}
       {editing && createPortal(
         <Suspense fallback={null}>
-          {automation.kind === "app" ? <AppEventEditor trigger={automation.appTrigger} bots={visibleBots} onClose={() => setEditing(false)} /> : automation.kind === "schedule"
-            ? <RoutineEditor routine={state.routines.find((routine) => routine.id === automation.id)} bots={visibleBots} plain onClose={() => setEditing(false)} />
+          {automation.kind === "app" ? <AppEventEditor trigger={automation.appTrigger} bots={visibleBots} onClose={() => setEditing(false)} />
             : <WebhookEditor webhook={state.webhooks.find((webhook) => webhook.id === automation.id)} bots={visibleBots} onClose={() => setEditing(false)} onCredential={(credential, id) => saveWebhookCredential(webhookCredentialStore(), id, credential)} />}
         </Suspense>,
         document.body,
