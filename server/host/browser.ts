@@ -240,6 +240,13 @@ export function createBrowserHost(deps: BrowserHostDeps) {
   function browserReady(profile: string | undefined): boolean {
     return onChrome(profile) ? chromeEngine.summary().kind === "engine" : browserEngineStatus().kind === "ready";
   }
+  /** A browser of this host itself could start: My Chrome attaches to the person's own, the new engine has its Chrome,
+   * and agent-browser finds one. A bot's VPS box brings its own Chromium, so this decides nothing there. */
+  function hostBrowserUsable(profile: string | undefined): boolean {
+    if (usesMyChrome(browserProfileIdOf(profile))) return true;
+    if (onChrome(profile)) return chromeEngine.summary().kind === "engine";
+    return !chromeLauncher.hostBrowserMissing();
+  }
   function turnIntegration(botId: string, session: string, turn: BrowserTurn) {
     const token = mintInternalCapability({ botId, ...turn, browserSession: session,
       kind: "browser", depth: 0, skillAuthoring: false, createdBots: 0, openedThreads: 0 });
@@ -268,6 +275,8 @@ export function createBrowserHost(deps: BrowserHostDeps) {
     const inBox = await boxChromeOf(botId, turn);
     assertCurrent();
     if (inBox === false) return null;
+    // tools that could only answer "Chrome not found" are not offered at all
+    if (!inBox && !hostBrowserUsable(profile)) return null;
     if (!inBox && onChrome(profile)) {
       const { session, spec } = chromeSpec(botId, profile, audience);
       usedBrowserSessions.set(session, spec);
@@ -291,6 +300,7 @@ export function createBrowserHost(deps: BrowserHostDeps) {
   async function currentBrowserSpec(botId: string, profile: string | undefined, audience: Audience = "team"): Promise<{ session: string; spec: Spec } | null> {
     const inBox = await boxChromeOf(botId);
     if (inBox === false) return null;
+    if (!inBox && !hostBrowserUsable(profile)) return null;
     if (!inBox && onChrome(profile)) return chromeSpec(botId, profile, audience);
     const engine = browserEngineStatus();
     if (engine.kind !== "ready") return null;
@@ -465,7 +475,7 @@ export function createBrowserHost(deps: BrowserHostDeps) {
   return {
     browserRuntime, browserLive, usedBrowserSessions, browserSweep, temporaryBrowserSessions, browserIdleMs: idleMs,
     currentBrowserSession, forgetTemporaryBrowser, myChromeAvailable, usesMyChrome, browserSessionSpec, browserIntegration,
-    browserReady, currentBrowserSpec, loginInput, browserSystemPrompt, signedInSitesRefusal, closeBrowser, browserEngineSwitched,
+    browserReady, hostBrowserUsable, currentBrowserSpec, loginInput, browserSystemPrompt, signedInSitesRefusal, closeBrowser, browserEngineSwitched,
     eraseDeletedBrowser, engineSummary, engineBrowsers, browserAudience, browserSessionsOf, signedInSitesTarget, uploadPaths,
     eraseAudienceBrowsers,
   };

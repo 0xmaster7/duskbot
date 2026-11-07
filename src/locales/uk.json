@@ -3257,6 +3257,7 @@
   "secretCard.stopped": "Зупинено · {label}",
   "secretCard.replaced": "Замінено новішим запитом · {label}",
   "secretCard.saveToVault": "Зберегти в сховищі",
+  "secretCard.login": "Запечатано для вашого сервера. Вводиться на сайті за вас; бот його ніколи не бачить.",
   "secretCard.submit": "Надіслати",
   "secretCard.resumeFailed": "Бот не зміг продовжити після збереження секрету",
   "settings.secrets.footnote": "Збережено з картки бота. Значення лише для запису: боти користуються ними, ніколи їх не бачачи.",
@@ -3277,5 +3278,6 @@
   "signIn.skipHint": "Скасувати цей запит, не виконуючи крок. {name} продовжить без нього.",
   "signIn.takeOver": "Взяти керування",
   "signIn.skipped": "Пропущено",
-  "signIn.status.saved": "Вхід збережено"
+  "signIn.status.saved": "Вхід збережено",
+  "server.connect.loginNote": "{bot} вводить його на сайті за вас і ніколи не бачить пароль."
 }

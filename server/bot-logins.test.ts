@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { cardLoginPlace, cardSignInElsewhere, observeSignInPage } from "./bot-logins.ts";
+import { BotLogins, cardLoginPlace, cardSignInElsewhere, ONCE_LOGIN_MS, observeSignInPage } from "./bot-logins.ts";
+import type { LoginStore } from "./login-store.ts";
+import type { OnePasswordLogins } from "./onepassword.ts";
 import { FakeLoginPage, LOGIN_FORM } from "./testing/fake-login-page.ts";
 
 let page: FakeLoginPage | null = null;
@@ -39,5 +41,36 @@ describe("the bot's open page", () => {
     expect(await observeSignInPage((args) => page!.engine(args))).toBeNull();
     expect(await observeSignInPage(async () => null)).toBeNull();
     expect(await observeSignInPage(async () => { throw new Error("The browser did not answer."); })).toBeNull();
+  });
+});
+
+describe("a login given for one task only", () => {
+  function logins(clock: { now: number }) {
+    const store = { usableFor: () => [], sitesFor: () => [], markUsed: () => {} } as unknown as LoginStore;
+    const onePassword = { candidates: () => [], sitesFor: () => [], markUsed: () => {}, fresh: async () => {} } as unknown as OnePasswordLogins;
+    return new BotLogins(store, onePassword, () => clock.now);
+  }
+
+  it("fills for its bot on its site until a fill uses it, then is gone, and never for another bot", async () => {
+    const clock = { now: 1_000 };
+    const all = logins(clock);
+    const id = all.keepOnce("b1", "the-internet.herokuapp.com", { username: "tomsmith", password: "fake-pass", totp: null });
+    expect(all.has("b1", "the-internet.herokuapp.com")).toBe(true);
+    expect(all.has("b2", "the-internet.herokuapp.com")).toBe(false);
+    expect(all.sitesFor("b1")).toEqual([{ site: "the-internet.herokuapp.com", hosts: ["the-internet.herokuapp.com"], exactHost: false, username: "tomsmith" }]);
+    const [candidate] = await all.candidates("b1", "the-internet.herokuapp.com");
+    expect(candidate).toMatchObject({ id, username: "tomsmith", source: "card" });
+    expect(await candidate!.secrets()).toEqual({ password: "fake-pass", totp: null });
+    expect(await all.candidates("b1", "example.com")).toEqual([]);
+    all.markUsed(id);
+    expect(all.has("b1", "the-internet.herokuapp.com")).toBe(false);
+  });
+
+  it("goes after an hour when no fill used it", () => {
+    const clock = { now: 1_000 };
+    const all = logins(clock);
+    all.keepOnce("b1", "example.com", { username: "me", password: "fake-pass", totp: null });
+    clock.now += ONCE_LOGIN_MS;
+    expect(all.sitesFor("b1")).toEqual([]);
   });
 });

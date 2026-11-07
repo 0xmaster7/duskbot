@@ -2853,6 +2853,7 @@
   "secretCard.stopped": "रोका गया · {label}",
   "secretCard.replaced": "नए अनुरोध से बदला गया · {label}",
   "secretCard.saveToVault": "वॉल्ट में सेव करें",
+  "secretCard.login": "आपके सर्वर के लिए सील किया गया। आपके लिए साइट में टाइप किया जाता है; बॉट इसे कभी नहीं देखता।",
   "secretCard.submit": "भेजें",
   "secretCard.resumeFailed": "सीक्रेट सेव होने के बाद बॉट फिर से शुरू नहीं हो सका",
   "settings.secrets.footnote": "किसी बॉट के कार्ड से सेव किए गए। वैल्यू सिर्फ़ लिखी जा सकती हैं: बॉट इन्हें बिना देखे इस्तेमाल करते हैं।",
@@ -2873,5 +2874,6 @@
   "signIn.skipHint": "यह कदम किए बिना यह अनुरोध रद्द करें। {name} इसके बिना आगे बढ़ेगा।",
   "signIn.takeOver": "नियंत्रण लें",
   "signIn.skipped": "छोड़ा गया",
-  "signIn.status.saved": "लॉगिन सेव हुआ"
+  "signIn.status.saved": "लॉगिन सेव हुआ",
+  "server.connect.loginNote": "{bot} इसे आपके लिए साइट में टाइप करता है और पासवर्ड कभी नहीं देखता।"
 }

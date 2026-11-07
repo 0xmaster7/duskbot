@@ -2857,6 +2857,7 @@
   "secretCard.stopped": "Arrêté · {label}",
   "secretCard.replaced": "Remplacé par une demande plus récente · {label}",
   "secretCard.saveToVault": "Enregistrer dans le coffre",
+  "secretCard.login": "Scellé pour votre serveur. Saisi sur le site pour vous ; le bot ne le voit jamais.",
   "secretCard.submit": "Envoyer",
   "secretCard.resumeFailed": "Le bot n'a pas pu reprendre après l'enregistrement du secret",
   "settings.secrets.footnote": "Enregistrés depuis la carte d'un bot. Les valeurs sont en écriture seule : les bots les utilisent sans jamais les voir.",
@@ -2877,5 +2878,6 @@
   "signIn.skipHint": "Annuler cette demande sans faire l’étape. {name} continue sans elle.",
   "signIn.takeOver": "Prendre la main",
   "signIn.skipped": "Passé",
-  "signIn.status.saved": "Identifiants enregistrés"
+  "signIn.status.saved": "Identifiants enregistrés",
+  "server.connect.loginNote": "{bot} le saisit sur le site pour vous et ne voit jamais le mot de passe."
 }

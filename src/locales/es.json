@@ -5426,6 +5426,7 @@
   "secretCard.stopped": "Detenido · {label}",
   "secretCard.replaced": "Sustituido por una solicitud más reciente · {label}",
   "secretCard.saveToVault": "Guardar en la Bóveda",
+  "secretCard.login": "Sellado para tu servidor. Se escribe en el sitio por ti; el bot nunca lo ve.",
   "secretCard.submit": "Enviar",
   "secretCard.resumeFailed": "El bot no pudo continuar después de guardar el secreto",
   "settings.secrets.footnote": "Guardados desde la tarjeta de un bot. Los valores son de solo escritura: los bots los usan sin verlos nunca.",
@@ -5439,5 +5440,6 @@
   "settings.vault.noneHere": "Aún no hay nada aquí.",
   "server.botDesktop.building": "Configurando el ordenador del bot en tu servidor. Pasa una vez por actualización y suele tardar unos minutos.",
   "computer.botWaking": "{name} se está despertando",
-  "seal.untrusted": "Este servidor no pudo demostrar que es el que esta app vinculó, así que no se envió nada. Si lo reinstalaste, vuelve a vincularlo."
+  "seal.untrusted": "Este servidor no pudo demostrar que es el que esta app vinculó, así que no se envió nada. Si lo reinstalaste, vuelve a vincularlo.",
+  "server.connect.loginNote": "{bot} lo escribe en el sitio por ti y nunca ve la contraseña."
 }
