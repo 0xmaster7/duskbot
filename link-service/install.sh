@@ -31,6 +31,19 @@ DEMO="${OMB_INSTALL_DEMO:-}"
 
 SVC_USER=maus
 SVC_HOME=/home/maus
+DATA=$SVC_HOME/.openmausbot
+# accounts: the server runs as maus and never holds docker, the link agent as omb-link (tunnel.json and the app's ssh key
+# are its own), docker only through the gate as omb-docker; every bot's turn runs in the bot box (OMB_BOT_BOX=required)
+LINK_USER=omb-link
+LINK_HOME=/var/lib/omb-link
+HANDOFF=$LINK_HOME/handoff
+GATE_USER=omb-docker
+GATE_GROUP=omb-dockergate
+GATE_SOCK=/run/openmausbot-docker/docker.sock
+LIB=/usr/local/lib/openmausbot
+GATE=$LIB/docker-gate.mjs
+ETC=/etc/openmausbot
+CLAUDE_TOKEN_LINE='^CLAUDE_CODE_OAUTH_TOKEN=[A-Za-z0-9._~+/=-]{20,}$'
 STATE=/var/lib/openmausbot-link
 LOGS=/var/log/openmausbot-link
 LOGS_SHOWN=$LOGS
@@ -612,7 +625,37 @@ do_check() {
 }
 
 do_basics() {
-  apt_install curl ca-certificates gnupg iproute2 procps tar xz-utils
+  apt_install curl ca-certificates gnupg iproute2 procps tar xz-utils bubblewrap socat
+  bwrap_userns
+}
+
+# ubuntu 24.04 gives unprivileged user namespaces no capabilities (kernel.apparmor_restrict_unprivileged_userns=1), and
+# the bot box is one: bubblewrap alone gets a profile that lets it make them
+bwrap_userns() {
+  [ -x /usr/bin/bwrap ] && [ -d /sys/kernel/security/apparmor ] && command -v apparmor_parser >/dev/null 2>&1 || return 0
+  [ "$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>/dev/null || echo 0)" = 1 ] || return 0
+  cat > "$TMP/new" <<'EOF'
+# managed by openmausbot-link: bubblewrap may make the user namespaces each bot's turn runs in
+abi <abi/4.0>,
+include <tunables/global>
+
+profile openmausbot-bwrap /usr/bin/bwrap flags=(unconfined) {
+  userns,
+
+  include if exists <local/openmausbot-bwrap>
+}
+EOF
+  new_file /etc/apparmor.d/openmausbot-bwrap
+  install -d -m 0755 /etc/apparmor.d
+  put_file /etc/apparmor.d/openmausbot-bwrap 0644 || true
+  x apparmor_parser -r /etc/apparmor.d/openmausbot-bwrap
+}
+
+# what the server's box check does: a user namespace with its own pid, network and mounts, as maus
+box_works() {
+  as_user /usr/bin/bwrap --unshare-user --unshare-pid --unshare-net --unshare-ipc --unshare-uts --die-with-parent \
+    --ro-bind /usr /usr --symlink usr/bin /bin --symlink usr/lib /lib --symlink usr/lib64 /lib64 \
+    --proc /proc --dev /dev --tmpfs /tmp /bin/true
 }
 
 do_docker() {
@@ -632,12 +675,75 @@ do_user() {
     manifest_add "user $SVC_USER"
     x useradd --create-home --home-dir "$SVC_HOME" --shell /bin/bash "$SVC_USER"
   fi
-  # the docker group is root-equivalent; the server is the person's own, and the bot desktop needs it
-  if getent group docker >/dev/null 2>&1; then usermod -aG docker "$SVC_USER"; fi
-  for dir in "$SVC_HOME/.local" "$SVC_HOME/.cache" "$SVC_HOME/.config" "$SVC_HOME/.config/openmausbot" "$SVC_HOME/.config/openmausbot-link"; do
+  # security: the docker group is root-equivalent and the server runs bots; it reaches docker only through the gate
+  if id -nG "$SVC_USER" | tr ' ' '\n' | grep -qx docker; then x gpasswd -d "$SVC_USER" docker; fi
+  if ! getent group "$GATE_GROUP" >/dev/null 2>&1; then manifest_add "group $GATE_GROUP"; x groupadd --system "$GATE_GROUP"; fi
+  usermod -aG "$GATE_GROUP" "$SVC_USER"
+  if ! id "$GATE_USER" >/dev/null 2>&1; then
+    manifest_add "user $GATE_USER"
+    x useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin --gid "$GATE_GROUP" "$GATE_USER"
+  fi
+  if getent group docker >/dev/null 2>&1; then usermod -aG docker "$GATE_USER"; fi
+  if ! id "$LINK_USER" >/dev/null 2>&1; then
+    manifest_add "user $LINK_USER"
+    # a shell, so sshd can run the forced command on the app's restricted key
+    x useradd --system --create-home --home-dir "$LINK_HOME" --shell /bin/sh "$LINK_USER"
+  fi
+  for dir in "$LINK_HOME" "$LINK_HOME/.config" "$LINK_HOME/.config/openmausbot-link" "$LINK_HOME/.ssh" "$HANDOFF"; do
+    install -d -o "$LINK_USER" -g "$LINK_USER" -m 0700 "$dir"
+  done
+  install -d -o root -g root -m 0700 "$ETC"
+  chmod 0700 "$SVC_HOME"
+  for dir in "$SVC_HOME/.local" "$SVC_HOME/.cache" "$SVC_HOME/.config"; do
     install -d -o "$SVC_USER" -g "$SVC_USER" -m 0700 "$dir"
   done
-  id "$SVC_USER"
+  [ ! -d "$DATA" ] || chmod 0700 "$DATA"
+  move_link_files
+  move_engine_token
+  seed_engine_home
+  id "$SVC_USER"; id "$LINK_USER"; id "$GATE_USER"
+}
+
+# an older install kept the link agent's files in maus's home; they move to omb-link, read as maus so no link in maus's
+# home can point root at another file
+move_link_files() {
+  old="$SVC_HOME/.config/openmausbot-link"
+  new="$LINK_HOME/.config/openmausbot-link/tunnel.json"
+  if [ -f "$old/tunnel.json" ] && [ ! -f "$new" ]; then
+    show mv "$old/tunnel.json" "$new"
+    as_user cat "$old/tunnel.json" | runuser -u "$LINK_USER" -- sh -c 'umask 077; cat > "$1.tmp" && mv -f "$1.tmp" "$1"' sh "$new"
+    [ -s "$new" ] || { echo "tunnel.json did not move"; return 1; }
+  fi
+  [ ! -d "$old" ] || as_user rm -rf "$old"
+  keys="$SVC_HOME/.ssh/authorized_keys"
+  if [ -f "$keys" ] && grep -q ' omb-link-[a-z2-7]\{10\}$' "$keys"; then
+    # the app asks the agent for a new key over the sealed tunnel once this one is refused, and gets omb-link's
+    as_user sh -c 'umask 077; grep -v " omb-link-[a-z2-7]\{10\}\$" "$1" > "$1.omb" || true; mv -f "$1.omb" "$1"' sh "$keys"
+    [ -s "$keys" ] || as_user rm -f "$keys"
+    echo "the app's direct key left $SVC_USER; it gets a new one for $LINK_USER"
+  fi
+}
+
+# the engine token an older install kept in maus's home goes to $ETC/engines.env, which only systemd reads
+move_engine_token() {
+  old="$SVC_HOME/.config/openmausbot/engines.env"
+  [ -f "$old" ] || return 0
+  as_user cat "$old" | grep -E "$CLAUDE_TOKEN_LINE" | awk "length <= 4200" | tail -n 1 > "$TMP/engines.env" || true
+  if [ -s "$TMP/engines.env" ]; then install -o root -g root -m 0600 "$TMP/engines.env" "$ETC/engines.env"; echo "the Claude sign-in moved to $ETC/engines.env"; fi
+  rm -f "$TMP/engines.env"
+  as_user rm -f "$old"
+  as_user rmdir "$SVC_HOME/.config/openmausbot" 2>/dev/null || true
+}
+
+# the bot box gives engines their own home in the data folder; conversations from before keep their engine sessions
+seed_engine_home() {
+  [ -d "$DATA" ] && [ ! -d "$DATA/engine-home" ] || return 0
+  show "copy engine sessions into $DATA/engine-home"
+  as_user sh -c 'set -e; umask 077; e="$1/engine-home.tmp"; rm -rf "$e"; mkdir -p "$e/.codex" "$e/.claude"
+    for d in sessions archived_sessions; do [ ! -d "$2/.codex/$d" ] || cp -a "$2/.codex/$d" "$e/.codex/"; done
+    for d in projects todos file-history; do [ ! -d "$2/.claude/$d" ] || cp -a "$2/.claude/$d" "$e/.claude/"; done
+    [ ! -f "$2/.claude.json" ] || cp -p "$2/.claude.json" "$e/.claude.json"
+    mv "$e" "$1/engine-home"' sh "$DATA" "$SVC_HOME"
 }
 
 node_major() { /usr/bin/node -v 2>/dev/null | sed -e 's/^v//' -e 's/\..*//'; }
@@ -751,6 +857,25 @@ put_file() { # path mode
   return 0
 }
 
+# what every unit here gets: no new privileges, no capabilities, the system read-only, private /tmp and devices
+HARDENING="NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictSUIDSGID=yes
+ProtectSystem=strict
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectProc=invisible
+LockPersonality=yes
+RestrictRealtime=yes
+KeyringMode=private
+SystemCallArchitectures=native"
+
 server_unit() {
   public=""
   [ "$(state_get mode)" = "direct" ] && public=" --public-url https://$(state_get host)"
@@ -758,20 +883,33 @@ server_unit() {
 # managed by openmausbot-link
 [Unit]
 Description=OpenMausBot server
-After=network-online.target
+After=network-online.target omb-docker-gate.service
 Wants=network-online.target
 
 [Service]
 User=$SVC_USER
+Group=$SVC_USER
+SupplementaryGroups=$GATE_GROUP
 WorkingDirectory=$SVC_HOME
 Environment=HOME=$SVC_HOME
 Environment=PATH=$SVC_HOME/.local/bin:/usr/local/bin:/usr/bin:/bin
-EnvironmentFile=-$SVC_HOME/.config/openmausbot/engines.env
+# every bot's turn in the bot box, in its own engine home, never unboxed; docker only through the gate
+Environment=OMB_BOT_BOX=required
+Environment=OMB_BOX_CODE_ROOTS=$SVC_HOME/.local/bin:$SVC_HOME/.local/lib
+Environment=OPENMAUSBOT_VPS_DOCKER=local
+Environment=DOCKER_HOST=unix://$GATE_SOCK
+EnvironmentFile=-$ETC/engines.env
 ExecStart=$SVC_HOME/.local/bin/openmausbot serve --port $PORT --no-pair --label $NAME$public
 Restart=always
 RestartSec=5
 # when memory runs out the kernel takes a bot computer (docker --oom-score-adj 500) long before the server
 OOMScoreAdjust=-800
+UMask=0077
+$HARDENING
+ProtectHome=tmpfs
+BindPaths=$SVC_HOME
+ReadWritePaths=$SVC_HOME
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
 
 [Install]
 WantedBy=multi-user.target
@@ -779,16 +917,40 @@ EOF
   put_file "$UNITS/openmausbot.service" 0644
 }
 
+handoff_script() {
+  cat > "$TMP/new" <<EOF
+#!/bin/sh
+# managed by openmausbot-link: takes what the link agent was handed for the server's engines to the server. the files
+# are read as $LINK_USER and the codex sign-in written as $SVC_USER, so neither account can point root at another file.
+set -eu
+umask 077
+restart=0
+if [ -e $HANDOFF/engines.env ]; then
+  runuser -u $LINK_USER -- cat $HANDOFF/engines.env | grep -E '$CLAUDE_TOKEN_LINE' | awk 'length <= 4200' | tail -n 1 > $ETC/engines.env.new || true
+  if [ -s $ETC/engines.env.new ]; then mv -f $ETC/engines.env.new $ETC/engines.env; restart=1; else rm -f $ETC/engines.env.new; fi
+  runuser -u $LINK_USER -- rm -f $HANDOFF/engines.env
+fi
+if [ -e $HANDOFF/codex-auth.json ]; then
+  runuser -u $LINK_USER -- head -c 65536 $HANDOFF/codex-auth.json | runuser -u $SVC_USER -- sh -c 'umask 077; mkdir -p $SVC_HOME/.codex; cat > $SVC_HOME/.codex/.auth.json.handoff && mv -f $SVC_HOME/.codex/.auth.json.handoff $SVC_HOME/.codex/auth.json'
+  runuser -u $LINK_USER -- rm -f $HANDOFF/codex-auth.json
+fi
+[ "\$restart" = 0 ] || systemctl restart openmausbot.service
+EOF
+  install -d -m 0755 "$LIB"
+  put_file "$LIB/engine-handoff.sh" 0755
+}
+
 helper_units() {
   changed=1
   cat > "$TMP/new" <<EOF
-# managed by openmausbot-link: restarts the server when the app sends a new engine sign-in
+# managed by openmausbot-link: the app sent an engine sign-in; the hand-off takes it to the server
 [Unit]
-Description=OpenMausBot engine sign-in changed
+Description=OpenMausBot engine sign-in handed off
 
 [Path]
-PathChanged=$SVC_HOME/.config/openmausbot/engines.env
-Unit=openmausbot-restart.service
+PathExists=$HANDOFF/engines.env
+PathExists=$HANDOFF/codex-auth.json
+Unit=openmausbot-handoff.service
 
 [Install]
 WantedBy=multi-user.target
@@ -797,13 +959,20 @@ EOF
   cat > "$TMP/new" <<EOF
 # managed by openmausbot-link
 [Unit]
-Description=Restart OpenMausBot after an engine sign-in
+Description=Hand an engine sign-in to OpenMausBot
 
 [Service]
 Type=oneshot
-ExecStart=/bin/systemctl restart openmausbot.service
+ExecStart=/bin/sh $LIB/engine-handoff.sh
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
 EOF
-  put_file "$UNITS/openmausbot-restart.service" 0644 && changed=0
+  put_file "$UNITS/openmausbot-handoff.service" 0644 && changed=0
+  if [ -f "$UNITS/openmausbot-restart.service" ]; then rm -f "$UNITS/openmausbot-restart.service"; changed=0; fi
   cat > "$TMP/new" <<EOF
 # managed by openmausbot-link: the outbound tunnel and control channel to the app
 [Unit]
@@ -812,18 +981,79 @@ After=network-online.target openmausbot.service
 Wants=network-online.target
 
 [Service]
-User=$SVC_USER
-Environment=HOME=$SVC_HOME
+User=$LINK_USER
+Group=$LINK_USER
+Environment=HOME=$LINK_HOME
+Environment=OMB_LINK_ENGINES_FILE=$HANDOFF/engines.env
+Environment=OMB_LINK_CODEX_AUTH_FILE=$HANDOFF/codex-auth.json
 ExecStart=/usr/bin/node $AGENT tunnel
 Restart=always
 RestartSec=5
 OOMScoreAdjust=-700
+UMask=0077
+$HARDENING
+ProtectHome=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+ReadWritePaths=$LINK_HOME
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
 
 [Install]
 WantedBy=multi-user.target
 EOF
   put_file "$UNITS/openmausbot-link.service" 0644 && changed=0
+  cat > "$TMP/new" <<EOF
+# managed by openmausbot-link: the only way to docker on this server, for the server's own labelled bot computers
+[Unit]
+Description=OpenMausBot docker gate
+After=docker.service
+Requires=docker.service
+
+[Service]
+User=$GATE_USER
+Group=$GATE_GROUP
+SupplementaryGroups=docker
+RuntimeDirectory=openmausbot-docker
+RuntimeDirectoryMode=0750
+ExecStart=/usr/bin/node $GATE --listen $GATE_SOCK --upstream /var/run/docker.sock
+Restart=always
+RestartSec=2
+UMask=0007
+$HARDENING
+ProtectHome=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictAddressFamilies=AF_UNIX
+IPAddressDeny=any
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  put_file "$UNITS/omb-docker-gate.service" 0644 && changed=0
   return "$changed"
+}
+
+get_gate() {
+  install -d -o root -g root -m 0755 "$LIB"
+  if fetch "$LINK_BASE/docker-gate.mjs" "$TMP/docker-gate.mjs" && /usr/bin/node --check "$TMP/docker-gate.mjs"; then
+    install -o root -g root -m 0644 "$TMP/docker-gate.mjs" "$GATE"
+  elif [ ! -f "$GATE" ]; then
+    echo "could not download the docker gate"; return 1
+  fi
+}
+
+# the gate up and answering maus, or why not; bots work without it, their computers do not
+gate_up() {
+  docker info >/dev/null 2>&1 || { echo "docker is not running; the docker gate waits for it"; return 0; }
+  systemctl enable omb-docker-gate.service >/dev/null 2>&1
+  x systemctl restart omb-docker-gate.service
+  i=0
+  while [ "$i" -lt 20 ]; do
+    if as_user env DOCKER_HOST="unix://$GATE_SOCK" docker version --format '{{.Server.Version}}' >/dev/null 2>&1; then echo "docker gate answers $SVC_USER on $GATE_SOCK"; return 0; fi
+    sleep 1; i=$((i + 1))
+  done
+  echo "the docker gate did not answer; bot computers will not start"
+  journalctl -u omb-docker-gate.service -n 20 --no-pager 2>/dev/null || true
 }
 
 wait_health() { # url seconds
@@ -857,12 +1087,16 @@ ssh_guard() {
 
 do_service() {
   reload=1
+  get_gate || true
+  handoff_script || true
   server_unit && reload=0
   helper_units && reload=0
   ssh_guard && reload=0
   [ "$reload" = 0 ] && x systemctl daemon-reload
   systemctl enable openmausbot.service openmausbot-engines.path >/dev/null 2>&1
-  x systemctl start openmausbot-engines.path
+  x systemctl restart openmausbot-engines.path
+  gate_up
+  if box_works >/dev/null 2>&1; then echo "bot box: bubblewrap works for $SVC_USER"; else echo "bot box: bubblewrap cannot make a user namespace here; bots' turns are refused until it can"; fi
   if [ "$reload" = 0 ]; then x systemctl restart openmausbot.service; else x systemctl start openmausbot.service; fi
   show curl "http://127.0.0.1:$PORT/api/health"
   if wait_health "http://127.0.0.1:$PORT/api/health" 120; then echo "server answers on 127.0.0.1:$PORT"; return 0; fi
@@ -1160,7 +1394,7 @@ do_link() {
   [ -f "$AGENT" ] || get_agent
   set +e
   show node "$AGENT" link
-  runuser -u "$SVC_USER" -- env HOME="$SVC_HOME" LINK_BASE="$LINK_BASE" LINK_ID="$LINK_ID" LINK_TOKEN="$VPS_TOKEN" \
+  runuser -u "$LINK_USER" -- env HOME="$LINK_HOME" LINK_BASE="$LINK_BASE" LINK_ID="$LINK_ID" LINK_TOKEN="$VPS_TOKEN" \
     LINK_MODE="$(state_get mode)" LINK_HOST="$(state_get host)" LINK_NAME="$NAME" /usr/bin/node "$AGENT" link
   code=$?
   set -e
