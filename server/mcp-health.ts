@@ -1,6 +1,5 @@
 // Whether each command MCP server starts, started the way a bot's AI would start it, and whether each plain URL server
-// answers. One that does not start is left
-// out of turns (an engine that mounts it anyway fails it on every session, and Claude Code then repeats the failure
+// answers. One that does not start is left out of turns (an engine that mounts it anyway fails it on every session, and Claude Code then repeats the failure
 // under every tool search), the person hears about it once, and it is tried again on its own. A bot's own server is
 // checked for that bot; any other server starts the same for every bot on this computer, so one check stands for all.
 import { createHash } from "node:crypto";
