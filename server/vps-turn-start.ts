@@ -21,3 +21,6 @@ export function vpsTurnStartPlan(input: {
 }
 
 export const LAZY_VPS_NOTE = " This bot's own VPS computer is asleep and starts on demand. Keep ordinary conversation computer-free. When the task needs browsing, files on that computer, or desktop actions, call select_computer with surface=cloud yourself; it wakes the computer and continues this request.";
+
+/** The computer is asleep but its tools are mounted: the first call wakes it, so the bot never has to switch or wait for another turn. */
+export const WAKES_ON_CALL_VPS_NOTE = " This bot's own VPS computer is asleep, and its tools are mounted: the first one you call wakes it and waits until it is ready, which takes a few seconds. Keep ordinary conversation computer-free; when the task needs the screen or a command there, call those tools directly in this turn. Do not call select_computer for it, and do not tell the person the computer is unavailable or that you will continue later.";

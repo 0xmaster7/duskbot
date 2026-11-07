@@ -62,7 +62,7 @@ import { parseProtocolAskQuestions, questionChoices } from "../../shared/ask-que
 import { codexQuestionReply, openAsyncQuestion, type CodexAsk } from "./codex-questions.ts";
 import { codexReleaseUpdate, codexUpdateCommand } from "./codex-update.ts";
 export { codexUpdateCommand };
-import { effectiveApprovalPolicy, effectiveApprovalsReviewer } from "./codex-approval-config.ts"; import { AGENTS_TOOL_TIMEOUT_SECONDS } from "./agents-tool-limit.ts";
+import { effectiveApprovalPolicy, effectiveApprovalsReviewer } from "./codex-approval-config.ts"; import { AGENTS_TOOL_TIMEOUT_SECONDS } from "./agents-tool-limit.ts"; import { COMPUTER_TOOL_TIMEOUT_SECONDS } from "../harness-budget.ts";
 import { canUseMcpServer } from "../../shared/tool-scope.ts";
 import { assertToolScopeSupported } from "../../shared/tool-scope-support.ts";
 import { appMountFor, gateServer, mcpStdioServer } from "../mcp-gate-config.ts"; import { OWN_APPS_SERVER } from "../../shared/own-apps.ts";
@@ -592,7 +592,8 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
           mountSelected("agents", "agents", turn.integrations.agents, "approve"); if (selectedMcp.has("agents")) appServerArgs.push("-c", `mcp_servers.agents.tool_timeout_sec=${AGENTS_TOOL_TIMEOUT_SECONDS}`);
         }
         if (turn.integrations?.localComputer) {
-          mountSelected("computer", "computer", turn.integrations.localComputer);
+          // codex ends an mcp call after 60 s by default; waking a computer on its first call can take longer
+          mountSelected("computer", "computer", turn.integrations.localComputer); if (selectedMcp.has("computer")) appServerArgs.push("-c", `mcp_servers.computer.tool_timeout_sec=${COMPUTER_TOOL_TIMEOUT_SECONDS}`);
         }
         if (turn.integrations?.browser) {
           mountSelected("browser", "browser", turn.integrations.browser);

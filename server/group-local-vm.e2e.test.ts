@@ -496,7 +496,7 @@ describe("Group Local VM ownership on the real isolated server", () => {
       expect((await fetch(base + "/api/internal/computer/select", { headers: { authorization: `Bearer ${token}` } })).status).toBe(200);
       expect(readVpsState().actions ?? []).toEqual([]);
       if (state === "removed") vpsState({ containers: {} });
-      const onVps = (sent: any) => computer(sent)?.args?.[0] === "fixture-vps-mcp";
+      const onVps = (sent: any) => computer(sent)?.args?.includes("fixture-vps-mcp") === true;
       rmSync(dumpFile, { force: true });
       writeFileSync(finishFile, "finish");
       const continued: any = await dump();
@@ -774,7 +774,7 @@ describe("Group Local VM ownership on the real isolated server", () => {
       await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "per-bot" } });
       await api("PATCH", `/api/bots/${bots[0].id}`, { computer: "cloud", modelSelection: VPS_MODEL });
       vpsState({ containers: { [bots[0].id]: "stopped" } });
-      const onVps = (sent: any) => computer(sent)?.args?.[0] === "fixture-vps-mcp";
+      const onVps = (sent: any) => computer(sent)?.args?.includes("fixture-vps-mcp") === true;
       writeFileSync(finishFile, "finish");
       await send(group.id);
       const first = await dump();

@@ -98,7 +98,7 @@ import { initialVpsMode, sharedVpsDefaults } from "./shared-vps-defaults.ts";
 import type { BotDesktopProgress } from "./bot-desktop.ts";
 import { createVpsLifecycleHost } from "./vps-lifecycle-host.ts";
 import { createVpsCapacityHost, knownScreenCapacity, setVpsCapacityHost } from "./vps-capacity.ts";
-import { LAZY_VPS_NOTE, vpsTurnStartPlan } from "./vps-turn-start.ts";
+import { LAZY_VPS_NOTE, vpsTurnStartPlan, WAKES_ON_CALL_VPS_NOTE } from "./vps-turn-start.ts"; import { ComputerToolLists, createComputerRelay, relayedComputerSpec, vpsToolsKey, type RelayBridge, type RelayTurn } from "./vps-computer-relay.ts";
 import type { VpsLifecycleResource, VpsLifecycleTarget, VpsLifecycleStage } from "./vps-lifecycle.ts";
 import { closeVpsBrowser } from "./vps-browser-close.ts";
 import { NO_EXEC_COMPUTER, VPS_EXEC_CHANGED, vpsContainerExec, withVpsGuestFile } from "./vps-exec.ts";
@@ -2038,7 +2038,7 @@ function releaseTurnResources(owner: TurnOwner | undefined): void {
 }
 
 function releaseRemoteComputerTurn(owner: TurnOwner): void {
-  if (turnVpsTargets.get(owner.threadId)?.generation === owner.generation) noteVpsTurnActivity(owner);
+  if (turnVpsTargets.get(owner.threadId)?.generation === owner.generation) noteVpsTurnActivity(owner); computerRelay.close(owner);
   const target = turnVpsTargets.get(owner.threadId);
   if (target?.generation === owner.generation) {
     target.screenLease?.release();
@@ -5655,7 +5655,7 @@ function waitForLocalVmUpdate(target: LocalVmTarget, threadId: string, isCurrent
     announce: (text) => { store.appendMessage(threadId, { role: "bot", kind: "activity", ...(from ? { from } : {}), tool: { name: text } }); } });
 }
 const activeVpsThreads = new Map<string, Set<string>>();
-const pendingVpsMounts = new Map<string, { generation: string; ownerId: string; alias: string }>();
+const pendingVpsMounts = new Map<string, { generation: string; ownerId: string; alias: string }>(); const computerRelay = createComputerRelay({ lists: new ComputerToolLists(join(DATA_DIR, "vps-computer-tools.json")) });
 async function prepareVpsTurn<T>(owner: TurnOwner, ownerId: string, alias: string, prepare: () => Promise<T>): Promise<T> {
   if (remoteComputerLifecycleBusyOwners.has(ownerId)) throw Object.assign(new Error("This VPS computer is being changed; wait for it to finish"), { status: 409 });
   const pending = { generation: owner.generation, ownerId, alias };
@@ -6132,7 +6132,7 @@ async function mountTeamVps(computer: TeamComputerRecord, botId: string, owner: 
       opts.onClaimed(capture);
     },
   });
-  return { ...mcp, platform: "linux", env: { ...mcp.env, OMB_CONTROL_URL: control.url, OMB_CONTROL_TOKEN: control.token } };
+  const bridge = { ...mcp, platform: "linux" as const, env: { ...mcp.env, OMB_CONTROL_URL: control.url, OMB_CONTROL_TOKEN: control.token } }; return botBox.enabled() ? relayedComputer(owner, botId, { bridge: () => bridge, wake: async () => bridge, toolsKey: vpsToolsKey(remote) }) : bridge;
 }
 
 function cloudEngine(instance: ReturnType<typeof registry.get>, model?: string): CloudEngine & { name: string } {
@@ -6173,38 +6173,41 @@ async function mountBotVps(
   owner: TurnOwner,
   opts: { start: boolean; lazy?: boolean; onClaimed: (capture: () => Promise<{ png: string; format: string }>) => void; onRejected?: (failure: string) => void },
 ) {
-  const botVpsConfig = vpsConfigForBot(cfg, bot);
-  return prepareVpsTurn(owner, bot.id, vpsSshAlias(botVpsConfig)!, async () => {
-    const vpsResource = `computer:vps:${vpsSshAliasForBot(cfg, bot)}:${bot.id}`;
-    const remote = await (opts.start ? vps.vpsComputerAction("provision", botVpsConfig, bot.id, undefined, { stillAllowed: () => activeInternalGenerationByThread.get(owner.threadId) === owner.generation, onStarting: () => computerStateChanged(bot.id, vpsSshAlias(botVpsConfig)!, "starting"), onProgress: announceDesktopBuild(owner.threadId) }) : vps.inspectVpsForAuto(botVpsConfig, bot.id));
-    if (opts.lazy && !remote?.ready && remote?.daemonUp && !vpsDesktopOutdated(remote)) return { asleep: true as const };
-    if (!remote?.ready || !remote.sshAlias) return { problem: remote?.problem ?? null, reachable: remote?.daemonUp === true, outdated: vpsDesktopOutdated(remote) };
-    const targetCfg = { vps: { sshAlias: remote.sshAlias } };
-    await rememberVpsReady(bot.id, remote, opts.start);
-    if (!remote.container_id) throw new Error("The VPS computer identity could not be verified");
+  const botVpsConfig = vpsConfigForBot(cfg, bot), alias = vpsSshAlias(botVpsConfig)!, current = () => activeInternalGenerationByThread.get(owner.threadId) === owner.generation, vpsResource = `computer:vps:${vpsSshAliasForBot(cfg, bot)}:${bot.id}`;
+  const provision = () => vps.vpsComputerAction("provision", botVpsConfig, bot.id, undefined, { stillAllowed: current, onStarting: () => computerStateChanged(bot.id, alias, "starting"), onProgress: announceDesktopBuild(owner.threadId) });
+  let attached: { bridge: RelayBridge; claim: () => Promise<void> } | null = null;
+  const attach = async (remote: vps.VpsComputerStatus, sshAlias: string, started: boolean) => {
+    const targetCfg = { vps: { sshAlias } }; await rememberVpsReady(bot.id, remote, started); if (!remote.container_id) throw new Error("The VPS computer identity could not be verified");
     turnVpsTargets.set(owner.threadId, { generation: owner.generation, botId: bot.id, ownerId: bot.id, config: targetCfg, containerId: remote.container_id });
-    const vpsMcp = vps.vpsComputerMcp(targetCfg, bot.id, remote.container_id);
-    const vpsControl = controlIntegration(bot.id, owner.threadId, owner.generation);
+    const vpsMcp = vps.vpsComputerMcp(targetCfg, bot.id, remote.container_id), vpsControl = controlIntegration(bot.id, owner.threadId, owner.generation);
     // Live frames only once this turn holds the desktop, or it would publish another turn's screen as its own.
     const vpsCapture = () => vps.vpsComputerScreenshot(targetCfg, bot.id);
-    autoVmClaims.set(owner.threadId, {
-      owner,
-      lazy: true,
-      label: "the VPS computer",
-      onRejected: opts.onRejected,
-      claim: async () => {
-        await bindTurnComputer(owner, vpsResource, true);
-        opts.onClaimed(vpsCapture);
-        desktopLogin.prewarm(bot.id, () => vps.vpsBoxChrome(targetCfg, bot.id, remote.container_id!));
-      },
-    });
-    return {
-      integration: {
-        ...vpsMcp,
-        env: { ...vpsMcp.env, OMB_CONTROL_URL: vpsControl.url, OMB_CONTROL_TOKEN: vpsControl.token },
-      },
-    };
+    return attached = { bridge: { ...vpsMcp, env: { ...vpsMcp.env, OMB_CONTROL_URL: vpsControl.url, OMB_CONTROL_TOKEN: vpsControl.token } },
+      claim: async () => { await bindTurnComputer(owner, vpsResource, true); opts.onClaimed(vpsCapture); desktopLogin.prewarm(bot.id, () => vps.vpsBoxChrome(targetCfg, bot.id, remote.container_id!)); } };
+  };
+  const wake = () => prepareVpsTurn(owner, bot.id, alias, async () => {
+    vpsThreadStarted(bot.id, owner.threadId);
+    const remote = await provision();
+    if (!current()) throw new DirectTurnSetupCancelled("This turn ended while its computer was starting");
+    if (!remote.ready || !remote.sshAlias) throw new Error(remote.problem ?? "the VPS computer could not be started");
+    return (await attach(remote, remote.sshAlias, true)).bridge;
+  }).catch((error: unknown) => { if (turnVpsTargets.get(owner.threadId)?.generation !== owner.generation) vpsThreadEnded(bot.id, owner.threadId); throw error; });
+  return prepareVpsTurn(owner, bot.id, alias, async () => {
+    const remote = await (opts.start ? provision() : vps.inspectVpsForAuto(botVpsConfig, bot.id));
+    const asleep = Boolean(opts.lazy && !remote?.ready && remote?.daemonUp && !vpsDesktopOutdated(remote));
+    if (asleep && !computerRelay.knowsTools(vpsToolsKey(remote))) return { asleep: true as const };
+    if (!asleep && (!remote?.ready || !remote.sshAlias)) return { problem: remote?.problem ?? null, reachable: remote?.daemonUp === true, outdated: vpsDesktopOutdated(remote) };
+    if (asleep) vpsThreadEnded(bot.id, owner.threadId); else await attach(remote, remote.sshAlias!, opts.start);
+    autoVmClaims.set(owner.threadId, { owner, lazy: true, label: "the VPS computer", onRejected: opts.onRejected, ...(asleep ? { startsComputer: true as const } : {}),
+      claim: async () => (attached ?? (await computerRelay.wake(owner), attached!)).claim() });
+    return { integration: asleep || botBox.enabled() ? relayedComputer(owner, bot.id, { bridge: () => attached?.bridge ?? null, wake, toolsKey: vpsToolsKey(remote) }) : attached!.bridge, ...(asleep ? { asleep: true as const } : {}) };
   });
+}
+
+/** A bot box has no docker or ssh, and a sleeping computer has no bridge yet: the engine's harness proxy reaches it through this server. */
+function relayedComputer(owner: TurnOwner, botId: string, turn: RelayTurn) {
+  computerRelay.open(owner, turn);
+  return relayedComputerSpec(controlIntegration(botId, owner.threadId, owner.generation).token, PORT);
 }
 
 function managedVpsOwners(): vps.ManagedVpsOwner[] {
@@ -8466,7 +8469,7 @@ async function beginTurn(
           });
           if ("integration" in mounted) {
             integrations.localComputer = mounted.integration;
-            computerKind = "vps";
+            computerKind = "vps"; ownVpsAsleep = "asleep" in mounted;
           } else {
             vpsThreadEnded(bot.id, threadId);
             if ("asleep" in mounted) ownVpsAsleep = true;
@@ -8522,7 +8525,7 @@ async function beginTurn(
           computerKind = "local";
         }
       }
-      let vpsUnavailableNote = ownVpsAsleep ? LAZY_VPS_NOTE : deferredSharedComputer
+      let vpsUnavailableNote = ownVpsAsleep ? computerKind === "vps" ? WAKES_ON_CALL_VPS_NOTE : LAZY_VPS_NOTE : deferredSharedComputer
         ? " A VPS computer is available on demand. Keep ordinary conversation computer-free. When the task needs browsing, files on that computer, or desktop actions, call select_computer with surface=cloud yourself; it prepares or wakes the shared computer and continues this request. Do not ask the person to configure a per-bot computer."
         : "";
       if (
@@ -13282,7 +13285,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         if (!source!.selected && picked.current) {
           return json(res, 200, { status: "ready", surface: current, message: option.ready
             ? "This computer is already selected. Use its mounted tools."
-            : "This computer is already selected. It starts on its first call; use its mounted tools." });
+            : "This computer is already selected and is waking now. Use its mounted tools directly in this turn: the first call waits until it is ready." });
         }
         if (!selectTurnPlace(internalCapability, option.surface)) return json(res, 409, { error: "A computer switch is already pending. End this turn to continue there." });
         return json(res, 200, { status: "pending", surface: option.surface,
@@ -13355,6 +13358,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         const result = appendMemoryLog(teamHost.layer(internalSender.id, internalCapability.threadId), body.text, { source: memorySource() });
         return json(res, result.ok ? 200 : 400, result);
       }
+      if (method === "POST" && path === "/api/internal/computer/mcp") { const body = await readInternalBody(), abort = new AbortController(); res.once("close", () => { if (!res.writableEnded) abort.abort(); }); const answer = await computerRelay.request(internalCapability, body, abort.signal); requireActiveInternalCapability(); if (body.method === "tools/call" && "result" in answer) noteVpsTurnActivity(internalCapability); return "error" in answer ? json(res, 502, { error: answer.error }) : json(res, 200, { result: answer.result }); }
       if (method === "POST" && path === "/api/internal/browser/mcp") {
         const body = await readInternalBody();
         const bot = store.bot(internalCapability.botId);
@@ -13537,6 +13541,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         try {
           const vm = await attachmentVmForTurn(internalCapability);
           if (!vm) {
+            if (turnVpsTargets.get(threadId)?.generation !== internalCapability.generation && computerRelay.asleep(internalCapability)) await computerRelay.wake(internalCapability);
             const remote = turnVpsTargets.get(threadId);
             if (remote?.generation !== internalCapability.generation) return json(res, 409, { error: NO_EXEC_COMPUTER });
             const gate = await computerCallGate(internalCapability);
