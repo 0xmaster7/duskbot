@@ -38,7 +38,7 @@ export function SidebarFooter({ owner = null, archived }: { owner?: string | nul
       <CloudUsageCard />
       <SidebarPlaceStatus place={place} className="mb-2 px-1" />
       <AccountMoveStatus kind={move.kind} place={move.place} retry={move.retry} onOpen={openAccount} className="ps-1" />
-      <div className="flex items-center gap-2 not-first:mt-2" onPointerLeave={() => setAppsEngaged(false)}>
+      <div className="flex items-center gap-1.5 not-first:mt-2" onPointerLeave={() => setAppsEngaged(false)}>
         {apps.connected ? <>
           <div className="me-auto min-w-0"><SidebarProfileMenu simple={account} named nameHidden={appsEngaged} /></div>
           <UpdateIndicator className="size-9" />

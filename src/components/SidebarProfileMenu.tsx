@@ -686,7 +686,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
         grok={simple}
         ariaLabel={name}
         onOpenChange={simple ? setMenuOpen : undefined}
-        triggerClassName={simple && named ? cn("group/account flex max-w-full items-center rounded-full pe-1 text-[13px] leading-[18px] tracking-[0.015em] text-ink transition-[background-color,color,width,padding] duration-300 ease-[cubic-bezier(.2,0,0,1)] hover:text-ink-secondary aria-expanded:text-ink-secondary", nameHidden && "pe-0", GROK_FOCUS) : iconOnly || simple ? cn("shrink-0", circle || simple ? "rounded-full" : "rounded-xl") : "w-full"}
+        triggerClassName={simple && named ? cn("group/account flex max-w-full items-center rounded-full pe-1 text-[13px] leading-[18px] tracking-[0.015em] text-ink transition-[background-color,color,width,padding] duration-300 ease-[cubic-bezier(.2,0,0,1)] hover:text-ink-secondary aria-expanded:text-ink-secondary", nameHidden && "pe-0", GROK_FOCUS) : iconOnly || simple ? cn("group/acct shrink-0", circle || simple ? "rounded-full" : "rounded-xl") : "w-full"}
         triggerTitle={iconOnly || (simple && !named) ? label : undefined}
         triggerLabel={label}
         triggerTour={account?.place.switchable ? "server-switcher" : undefined}
@@ -696,7 +696,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
             data-sidebar-account=""
             className={cn("relative flex size-9 items-center justify-center rounded-full", !named && (open ? "bg-ink/[0.06]" : "hover:bg-ink/[0.06]"))}
           >
-            <InitialsAvatar initials={initials} avatarUrl={profile?.avatarUrl} size={36} fallback={nameless} fontSize={14} className="bg-composer leading-[14px] tracking-[-0.35px] text-ink-secondary inset-ring inset-ring-ink/[0.08]" />
+            <InitialsAvatar initials={initials} avatarUrl={profile?.avatarUrl} size={36} fallback={nameless} fontSize={14} className="bg-composer leading-[14px] tracking-[-0.35px] text-ink-secondary inset-ring inset-ring-ink/[0.08] group-hover/acct:bg-[color-mix(in_srgb,var(--color-ink)_5%,var(--color-composer))] group-aria-expanded/acct:bg-[color-mix(in_srgb,var(--color-ink)_7%,var(--color-composer))]" />
             {dot && <span aria-hidden data-account-dot={dot} className={cn("absolute -right-0.5 -top-0.5 size-2.5 rounded-full ring-2 ring-panel", DOT_COLOR[dot])} />}
           </span>
           {named && <span aria-hidden="true" data-sidebar-account-name="" className={cn("min-w-0 truncate text-[14px] font-medium leading-5 tracking-[0.01em] transition-[opacity,margin,max-width] ease-[cubic-bezier(.2,0,0,1)] motion-reduce:transition-none",
