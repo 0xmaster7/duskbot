@@ -10,6 +10,7 @@ export const MAC_PICKUP_MS = 10_000;
 export const MAC_OFFLINE_PICKUP_MS = 3_000;
 /** A Mac whose last long poll ended this recently is still online: its next poll is on the way. */
 const BETWEEN_POLLS_MS = 6_000;
+const MAC_BUSY_TEXT = "The Mac is busy with other bots' work and did not take this. It did not run; try again in a moment.";
 export const MAC_RESULT_MAX_BYTES = 12 * 1024 * 1024;
 
 export const macJobOutcome = z.union([
@@ -49,8 +50,9 @@ export class MacJobs {
     this.onSeen = onSeen;
   }
 
+  /** polling now, between two polls, or running jobs it took (it polls again once one finishes) */
   online(): boolean {
-    return !this.closed && (this.polls > 0 || this.now() - this.lastPollAt < BETWEEN_POLLS_MS);
+    return !this.closed && (this.polls > 0 || this.sent.size > 0 || this.now() - this.lastPollAt < BETWEEN_POLLS_MS);
   }
 
   request(input: MacRequest): Promise<MacJobOutcome & { code?: "offline" | "timeout" | "turn_ended" }> {
@@ -68,7 +70,10 @@ export class MacJobs {
         timer: setTimeout(() => this.finish(job, { ok: false, code: "timeout", error: job.sent
           ? `${input.tool} did not finish on the Mac within ${seconds} seconds. It may still have run; check before repeating.`
           : `${input.tool} was never picked up by the Mac. It did not run.` }), input.timeoutMs),
-        pickup: setTimeout(() => { if (!job.sent) this.finish(job, { ok: false, code: "offline", error: input.offlineText }); },
+        pickup: setTimeout(() => {
+          if (job.sent) return;
+          this.finish(job, this.sent.size > 0 ? { ok: false, code: "timeout", error: MAC_BUSY_TEXT } : { ok: false, code: "offline", error: input.offlineText });
+        },
           this.online() ? MAC_PICKUP_MS : MAC_OFFLINE_PICKUP_MS),
       };
       this.queue.push(job);
