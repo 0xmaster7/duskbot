@@ -31,7 +31,6 @@ export function sendArrived(messages: readonly Message[] | undefined, sendId: st
 }
 
 export const LOST_SEND_RETRY_MS = [1_000, 3_000] as const;
-export const SEND_ATTEMPT_TIMEOUT_MS = 15_000;
 
 export interface SendDelivery {
   threadId: string;
@@ -49,7 +48,8 @@ function confirmsSend(body: unknown, threadId: string): boolean {
 }
 
 /** A send whose answer was lost may still have reached the server. It is asked again with the same sendId, which the
- * server never delivers twice, until it answers, refuses, or its copy arrives on the live stream. */
+ * server never delivers twice, until it answers, refuses, or its copy arrives on the live stream. A slow answer is
+ * never given up on: the server may be waiting on an engine before it steers or queues the message. */
 export async function sendReconciled<T>(
   post: (signal: AbortSignal) => Promise<T>,
   arrived: () => boolean,
@@ -80,8 +80,7 @@ export async function sendReconciled<T>(
     for (let attempt = 0; ; attempt++) {
       if (confirmed) return { arrived: true };
       try {
-        const signal = AbortSignal.any([owned.signal, AbortSignal.timeout(SEND_ATTEMPT_TIMEOUT_MS)]);
-        const body = await post(signal);
+        const body = await post(owned.signal);
         if (delivery && !confirmsSend(body, delivery.threadId)) throw new Error("The server did not confirm this message.");
         return { body };
       } catch (error) {

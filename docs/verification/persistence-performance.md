@@ -202,7 +202,8 @@ send. A matching canonical user SSE receipt releases the client send while
 that HTTP response remains unavailable. Aborting the owned request transport
 still lets the fake engine settle, and ten concurrent retries with the same
 send ID leave one canonical user message. HTTP success works without SSE;
-malformed success bodies, explicit refusals, timeout, lost response, rapid
+malformed success bodies, explicit refusals, slow steered or queued receipts
+(waited out, never timed out or resent), lost response, rapid
 cross-chat sends, and delivery during retry backoff have focused coverage.
 The renderer regression inserts three fresh bot replies together and checks
 that chat and room transcripts render all three without advancing timers.
