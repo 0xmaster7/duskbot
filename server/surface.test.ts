@@ -6,6 +6,7 @@ import {
   cloudPlaceRefusal,
   computerSkippedNote,
   computerToolsRefusal,
+  followedPin,
   isHandedWork,
   parseSurface,
   pinSource,
@@ -43,6 +44,25 @@ describe("pinSource", () => {
     expect(pinSource("local", { surfaceSource: "user" }, "local")).toBe("pin");
     expect(pinSource("local", {}, undefined)).toBe("pin");
     expect(pinSource("local", undefined, "cloud")).toBe("pin");
+  });
+});
+
+describe("followedPin", () => {
+  const browserAuto = { surface: "browser" as const, surfaceSource: "auto" as const };
+
+  it("drops a browser pin Auto recorded while the bot has its own cloud computer, so the turn mounts that computer", () => {
+    expect(followedPin(browserAuto, undefined, true)).toBeUndefined();
+    expect(resolveSurface({ destination: undefined, pinnedSurface: followedPin(browserAuto, undefined, true), browserOn: true }).computer).toBeUndefined();
+    expect(browserIsThePlace(resolveSurface({ destination: undefined, pinnedSurface: followedPin(browserAuto, undefined, true), browserOn: true }))).toBe(false);
+  });
+
+  it("keeps every other pin as it is", () => {
+    expect(followedPin(browserAuto, undefined, false)).toBe("browser");
+    expect(followedPin({ surface: "browser", surfaceSource: "user" }, undefined, true)).toBe("browser");
+    expect(followedPin(browserAuto, "browser", true)).toBe("browser");
+    expect(followedPin({ surface: "cloud", surfaceSource: "auto" }, undefined, true)).toBe("cloud");
+    expect(followedPin({ surface: "vm", surfaceSource: "auto" }, undefined, true)).toBe("vm");
+    expect(followedPin(undefined, undefined, true)).toBeUndefined();
   });
 });
 
