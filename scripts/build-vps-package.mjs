@@ -13,6 +13,8 @@
 // Beside it goes the bot computer kit: deploy/bot-desktop/ and shared/bot-desktop.ts
 // (build.sh reads the image tag there), which install.sh uses to fence the host
 // and to build the image when the registry has no copy of BOT_DESKTOP_IMAGE.
+// The same deploy/bot-desktop/ also goes inside the package, beside dist-server/,
+// so the installed server builds the image itself after an update (server/bot-desktop.ts).
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { copyFileSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
@@ -48,6 +50,12 @@ const npmDir = join(root, "release", "npm");
 const manifestPath = join(npmDir, "package.json");
 const pkg = JSON.parse(readFileSync(manifestPath, "utf8"));
 pkg.private = true;
+const kitFiles = quiet("git", ["ls-files", "deploy/bot-desktop", "shared/bot-desktop.ts"]).split("\n").filter(Boolean);
+for (const file of kitFiles.filter((path) => path.startsWith("deploy/bot-desktop/"))) {
+  mkdirSync(dirname(join(npmDir, file)), { recursive: true });
+  copyFileSync(join(root, file), join(npmDir, file));
+}
+pkg.files = [...new Set([...(pkg.files ?? []), "deploy"])];
 writeFileSync(manifestPath, JSON.stringify(pkg, null, 2) + "\n");
 
 const out = join(root, "release", "vps");
@@ -67,7 +75,6 @@ console.log(`vps package: ${join(out, name)} (${(bytes.length / 1048576).toFixed
 // the kit: tracked files only, no mac metadata
 const image = /^export const BOT_DESKTOP_IMAGE = "([^"]+)";/m.exec(readFileSync(join(root, "shared", "bot-desktop.ts"), "utf8"))?.[1];
 if (!image) throw new Error("BOT_DESKTOP_IMAGE not found in shared/bot-desktop.ts");
-const kitFiles = quiet("git", ["ls-files", "deploy/bot-desktop", "shared/bot-desktop.ts"]).split("\n").filter(Boolean);
 const kitTmp = join(out, "bot-desktop-kit.tgz");
 execFileSync("tar", ["--no-xattrs", "-czf", kitTmp, "-C", root, ...kitFiles], { env: { ...process.env, COPYFILE_DISABLE: "1" } });
 const kitBytes = readFileSync(kitTmp);
