@@ -97,6 +97,8 @@ import { teamComputerVpsTarget } from "./team-computer-vps.ts";
 import { initialVpsMode, sharedVpsDefaults } from "./shared-vps-defaults.ts";
 import type { BotDesktopProgress } from "./bot-desktop.ts";
 import { createVpsLifecycleHost } from "./vps-lifecycle-host.ts";
+import { createVpsCapacityHost, knownScreenCapacity, setVpsCapacityHost } from "./vps-capacity.ts";
+import { LAZY_VPS_NOTE, vpsTurnStartPlan } from "./vps-turn-start.ts";
 import type { VpsLifecycleResource, VpsLifecycleTarget, VpsLifecycleStage } from "./vps-lifecycle.ts";
 import { closeVpsBrowser } from "./vps-browser-close.ts";
 import { NO_EXEC_COMPUTER, VPS_EXEC_CHANGED, vpsContainerExec, withVpsGuestFile } from "./vps-exec.ts";
@@ -5695,7 +5697,7 @@ type BotScreen = { container: ScreenContainer; lease: IndependentScreenLease };
 const botScreens = new Map<string, BotScreen>();
 const humanScreenLeases = new Map<string, IndependentScreenLease>();
 const screenRuntime = createVpsScreenRuntime();
-const vpsScreens = createSharedScreenBroker({ ...screenRuntime, maxScreens: () => vpsDefaults().maxScreens, idleTimeoutMs: () => 0,
+const vpsScreens = createSharedScreenBroker({ ...screenRuntime, maxScreens: () => Math.min(vpsDefaults().maxScreens, knownScreenCapacity(vpsSshAlias(cfg))), idleTimeoutMs: () => 0,
   onError: error => console.warn(`Independent screen cleanup failed: ${redactSecretsInText(error instanceof Error ? error.message : String(error))}`), revoke: (container, target) => {
   const current = botScreens.get(target.botId);
   if (current?.container.containerId === container.containerId && current.lease.target.generation === target.generation) botScreens.delete(target.botId);
@@ -5843,6 +5845,23 @@ const vpsLifecycle = createVpsLifecycleHost({
   failed: (target, error, retryMs) => console.warn(`VPS lifecycle failed (${target?.ownerId ?? "state"}); ${retryMs === null ? "waiting for new activity" : "will retry"}: ${redactSecretsInText(error instanceof Error ? error.message : String(error))}`),
 });
 void vpsLifecycle.reconcile().catch(error => console.warn(`VPS lifecycle reconciliation failed: ${redactSecretsInText(error instanceof Error ? error.message : String(error))}`));
+// at the host's desktop cap, the least recently used idle desktop sleeps so another bot's can start (server/vps-capacity.ts)
+setVpsCapacityHost(createVpsCapacityHost({ containerName: vps.vpsContainerName,
+  owners: () => [...store.bots.filter(bot => !inheritedTeamComputer(bot)).map(bot => bot.id), ...teamComputers.list().map(computer => teamComputerOwner(computer.id))],
+  lastActivityAt: (ownerId, alias) => Math.max(0, ...vpsLifecycle.snapshot().entries.filter(entry => entry.target.ownerId === ownerId && entry.target.sshAlias === alias).map(entry => entry.lastActivityAt)),
+  sleep: async (ownerId, alias) => {
+    const known = knownVpsComputers.get(vpsIdleKey(ownerId, alias));
+    if (remoteComputerLifecycleBusyOwners.has(ownerId) || (known && vpsLifecycleBusy("computer", known, false)) || managedVpsOwners().some(owner => owner.botId === ownerId && owner.inUse)) return false;
+    remoteComputerLifecycleBusyOwners.add(ownerId);
+    try {
+      if (known) await vpsScreens.closeContainer(known);
+      await vps.vpsComputerAction("stop", { vps: { sshAlias: alias } }, ownerId, undefined, known ? { expectedContainerId: known.containerId } : {});
+      if (known) { vpsLifecycle.cancel(known); knownVpsComputers.delete(vpsIdleKey(ownerId, alias)); }
+      computerStateChanged(ownerId, alias, "stopped");
+      return true;
+    } catch (error) { console.warn(`Putting an idle VPS computer to sleep failed: ${redactSecretsInText(error instanceof Error ? error.message : String(error))}`); return false; }
+    finally { remoteComputerLifecycleBusyOwners.delete(ownerId); }
+  } }));
 
 onConfigSaved((before, after) => {
   vpsLifecycle.configure();
@@ -6138,12 +6157,13 @@ function announceDesktopBuild(threadId: string): (step: BotDesktopProgress) => v
 async function mountBotVps(
   bot: BotRecord,
   owner: TurnOwner,
-  opts: { start: boolean; onClaimed: (capture: () => Promise<{ png: string; format: string }>) => void; onRejected?: (failure: string) => void },
+  opts: { start: boolean; lazy?: boolean; onClaimed: (capture: () => Promise<{ png: string; format: string }>) => void; onRejected?: (failure: string) => void },
 ) {
   const botVpsConfig = vpsConfigForBot(cfg, bot);
   return prepareVpsTurn(owner, bot.id, vpsSshAlias(botVpsConfig)!, async () => {
     const vpsResource = `computer:vps:${vpsSshAliasForBot(cfg, bot)}:${bot.id}`;
     const remote = await (opts.start ? vps.vpsComputerAction("provision", botVpsConfig, bot.id, undefined, { stillAllowed: () => activeInternalGenerationByThread.get(owner.threadId) === owner.generation, onStarting: () => computerStateChanged(bot.id, vpsSshAlias(botVpsConfig)!, "starting"), onProgress: announceDesktopBuild(owner.threadId) }) : vps.inspectVpsForAuto(botVpsConfig, bot.id));
+    if (opts.lazy && !remote?.ready && remote?.daemonUp && !vpsDesktopOutdated(remote)) return { asleep: true as const };
     if (!remote?.ready || !remote.sshAlias) return { problem: remote?.problem ?? null, reachable: remote?.daemonUp === true, outdated: vpsDesktopOutdated(remote) };
     const targetCfg = { vps: { sshAlias: remote.sshAlias } };
     await rememberVpsReady(bot.id, remote, opts.start);
@@ -8153,8 +8173,10 @@ async function beginTurn(
       const mountsComputerMcp = instance.adapter.capabilities.computerMcp === true;
       const mountsLocalComputer = instance.adapter.capabilities.localComputerMcp === true;
       const dispatchTask = store.taskByThread(bot.id, threadId);
-      const deferredSharedComputer = teamComputer?.scope === "workspace" && Boolean(vpsSshAliasForBot(cfg, bot)) && bot.computer === undefined && plan.computer === undefined
-        && agentsMounted && computerSelectionTurns.get(threadId)?.generation === dispatchClaimId;
+      const canSelectComputer = agentsMounted && computerSelectionTurns.get(threadId)?.generation === dispatchClaimId;
+      // a chat turn never wakes the shared computer or takes a screen; one already holding a live screen keeps it mounted
+      const deferredSharedComputer = teamComputer?.scope === "workspace" && Boolean(vpsSshAliasForBot(cfg, bot)) && canSelectComputer && ((bot.computer === undefined && plan.computer === undefined)
+        || (bot.computer === undefined && plan.pinned === "cloud" && pinSource(plan.pinned, dispatchTask, bot.computer) === "auto-pin" && vpsDefaults().autoStart && !botScreens.get(bot.id)?.lease.live()));
       let wants: ComputerWant = computerSkipped ? "off" : plan.computer;
       const skipComputer = (error: unknown) => {
         if (!answer.incident || error instanceof DirectTurnSetupCancelled || error instanceof ComputerWaitParked) throw error;
@@ -8181,7 +8203,7 @@ async function beginTurn(
       let previewCapture: (() => Promise<{ png: string; format: string }>) | null = null;
       let browserCapture: (() => Promise<{ png: string; format: string }>) | null = null;
       let computerKind: "vps" | "vm" | "local" | null = null;
-      let autoVpsProblem: string | null = null;
+      let autoVpsProblem: string | null = null, ownVpsAsleep = false;
       let autoVpsReachable: boolean | undefined, autoVpsOutdated = false, vmUpdateNote = "";
       /** A capture in flight after another thread owns the shared desktop would picture its work under this bot's name. */
       const localVmPreviewFor = (localVmTarget: LocalVmTarget, claimThreadId: string) => () => {
@@ -8378,8 +8400,8 @@ async function beginTurn(
         if ((wants === "cloud" || (wants === undefined && managedPolicy.computerAllowed("vps"))) && !teamComputer && !deferredSharedComputer && Boolean(vpsSshAliasForBot(cfg, bot)) &&
             canWorkOnCloud(cloudEngine(instance))) {
           vpsThreadStarted(bot.id, threadId);
-          const mounted = await mountBotVps(bot, resourceOwner, {
-            start: vpsDefaults().autoStart && vps.vpsStartsForTurn({ wants, autoStartVps: bot.autoStartVps ?? true, automationSource: opts?.automationSource }),
+          const vpsStart = vpsTurnStartPlan({ wants, autoStart: vpsDefaults().autoStart, autoStartVps: bot.autoStartVps ?? true, automationSource: opts?.automationSource, canSelect: canSelectComputer, chosen: placeSource !== undefined && placeSource !== "auto-pin" });
+          const mounted = await mountBotVps(bot, resourceOwner, { start: vpsStart === "start", lazy: vpsStart === "lazy",
             onClaimed: (vpsCapture) => {
               pinAutoSurface("cloud");
               adoptClaimedCapture(vpsCapture);
@@ -8394,11 +8416,13 @@ async function beginTurn(
             computerKind = "vps";
           } else {
             vpsThreadEnded(bot.id, threadId);
-            if (wants === "cloud") {
+            if ("asleep" in mounted) ownVpsAsleep = true;
+            else if (wants === "cloud") {
               throw new Error(mounted.problem ?? "the VPS computer could not be created or reached");
+            } else {
+              autoVpsProblem = mounted.problem ?? "the VPS computer could not be reached";
+              autoVpsReachable = mounted.reachable; autoVpsOutdated = "outdated" in mounted && mounted.outdated === true;
             }
-            autoVpsProblem = mounted.problem ?? "the VPS computer could not be reached";
-            autoVpsReachable = mounted.reachable; autoVpsOutdated = "outdated" in mounted && mounted.outdated === true;
           }
         }
 
@@ -8406,7 +8430,7 @@ async function beginTurn(
           integrations.localComputer = await mountTeamVps(teamComputer, bot.id, resourceOwner, canWorkOnCloud(cloudEngine(instance)), { onClaimed: adoptClaimedCapture, onRejected: surfaceLazyClaimRejection("the team's VPS computer") });
           computerKind = "vps";
         }
-        if (wants === "cloud" && computerKind !== "vps") {
+        if (wants === "cloud" && computerKind !== "vps" && !ownVpsAsleep && !deferredSharedComputer) {
           throw new Error("The VPS computer is unavailable; connect a VPS in Settings and retry");
         }
       } catch (error) {
@@ -8445,7 +8469,7 @@ async function beginTurn(
           computerKind = "local";
         }
       }
-      let vpsUnavailableNote = deferredSharedComputer
+      let vpsUnavailableNote = ownVpsAsleep ? LAZY_VPS_NOTE : deferredSharedComputer
         ? " A VPS computer is available on demand. Keep ordinary conversation computer-free. When the task needs browsing, files on that computer, or desktop actions, call select_computer with surface=cloud yourself; it prepares or wakes the shared computer and continues this request. Do not ask the person to configure a per-bot computer."
         : "";
       if (
