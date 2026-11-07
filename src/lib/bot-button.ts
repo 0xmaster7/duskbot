@@ -1,31 +1,33 @@
 import type { CSSProperties } from "react";
-import { mixSrgb } from "./color-contrast";
+import { contrastRatio, mixSrgb, relativeLuminance } from "./color-contrast";
 import type { MausColor } from "./mascot";
 import { bothSchemes, grokFill, type Scheme } from "./user-bubble-tone";
 
-/** Pressing steps the hover fill toward black. */
+/** Pressing steps the fill away from its ink. */
 const PRESSED_MIX = 0.12;
-const WHITE = "#ffffff";
 
 export const BOT_BUTTON = "bot-button";
 
 export type BotButtonTone = { fill: string; ink: string; hover: string; pressed: string };
 
-/** A bot's own primary button: grok's button fill for the bot's colour under a white label. In one scheme as plain hex,
- * or, with no scheme, as css values that follow the color-scheme. */
+/** A bot's own primary button: grok's send button fill for the bot's colour under its light label (dark only on grok's
+ * inverted grey button in dark). In one scheme as plain hex, or, with no scheme, as css values that follow the scheme. */
 export function botButtonTone(color: MausColor, scheme?: Scheme): BotButtonTone {
   if (!scheme) {
     const light = botButtonTone(color, "light");
     const dark = botButtonTone(color, "dark");
     return {
       fill: bothSchemes(light.fill, dark.fill),
-      ink: WHITE,
+      ink: bothSchemes(light.ink, dark.ink),
       hover: bothSchemes(light.hover, dark.hover),
       pressed: bothSchemes(light.pressed, dark.pressed),
     };
   }
-  const { button, hover } = grokFill(color, scheme);
-  return { fill: button, ink: WHITE, hover, pressed: mixSrgb("#000000", hover, PRESSED_MIX) };
+  const { button, hover, buttonInk } = grokFill(color, scheme);
+  const away = relativeLuminance(buttonInk) > 0.5 ? "#000000" : "#ffffff";
+  // press from whichever of rest and hover holds the label better: grok's dark hover brightens toward the ink
+  const base = contrastRatio(buttonInk, hover) >= contrastRatio(buttonInk, button) ? hover : button;
+  return { fill: button, ink: buttonInk, hover, pressed: mixSrgb(away, base, PRESSED_MIX) };
 }
 
 export function botButtonStyle(color: MausColor): CSSProperties {

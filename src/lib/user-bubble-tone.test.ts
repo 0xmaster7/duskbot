@@ -31,21 +31,26 @@ const GROK_BUBBLE: Record<MausColor, { light: string; dark: string }> = {
 };
 
 const SCHEMES: Scheme[] = ["light", "dark"];
+/** Grok's text on its fills: white in light, its #f5f5f5 in dark. */
+const GROK_INK: Record<Scheme, string> = { light: "#ffffff", dark: "#f5f5f5" };
 const cases = MAUS_COLOR_NAMES.flatMap((color) => SCHEMES.map((scheme) => [color, scheme] as const));
 
 describe("user bubble tone", () => {
-  it.each(cases)("fills %s in %s with grok's own colour under white text", (color, scheme) => {
+  it.each(cases)("fills %s in %s with grok's own colour under its white text", (color, scheme) => {
     const tone = userBubbleTone(color, scheme);
     expect(tone.background).toBe(GROK_BUBBLE[color][scheme]);
     expect(grokFill(color, scheme).bubble).toBe(GROK_BUBBLE[color][scheme]);
-    expect(tone.ink).toBe("#ffffff");
+    expect(tone.ink).toBe(GROK_INK[scheme]);
+    expect(tone.focus).toBe(GROK_INK[scheme]);
+    expect(tone.selectionInk).toBe(GROK_INK[scheme]);
     expect(tone.gradient).toBe("linear-gradient(rgb(255 255 255 / 0.06), transparent)");
   });
 
   it("keeps the colours the user complained about vivid: atlas orange and yellow stay grok's, never darkened or dark-inked", () => {
     expect(userBubbleTone("orange", "light")).toMatchObject({ background: "#d2550a", ink: "#ffffff" });
     expect(userBubbleTone("yellow", "light")).toMatchObject({ background: "#c2730b", ink: "#ffffff" });
-    expect(MAUS_COLOR_NAMES.filter((color) => userBubbleTone(color).ink !== "#ffffff")).toEqual([]);
+    expect(userBubbleTone("orange", "dark")).toMatchObject({ background: "#cd5309", ink: "#f5f5f5" });
+    expect(MAUS_COLOR_NAMES.filter((color) => userBubbleTone(color).ink !== "light-dark(#ffffff, #f5f5f5)")).toEqual([]);
   });
 
   it("maps coral to grok's orange, the nearer of its orange and red", () => {
@@ -60,12 +65,12 @@ describe("user bubble tone", () => {
     const tone = userBubbleTone(color);
     expect(tone.background).toBe(`light-dark(${light.background}, ${dark.background})`);
     for (const key of Object.keys(tone) as (keyof typeof tone)[]) expect(tone[key], key).toBe(bothSchemes(light[key], dark[key]));
-    expect(tone.ink).toBe("#ffffff");
+    expect(tone.ink).toBe("light-dark(#ffffff, #f5f5f5)");
     const flat = userBubbleStyle(color, { flat: true }) as Record<string, unknown>;
     expect(flat.backgroundColor).toBe(tone.background);
     expect(flat.backgroundImage).toBe("none");
-    expect(flat["--color-ink"]).toBe("#ffffff");
-    expect(flat["--color-bubble-user-ink"]).toBe("#ffffff");
+    expect(flat["--color-ink"]).toBe(tone.ink);
+    expect(flat["--color-bubble-user-ink"]).toBe(tone.ink);
     expect((userBubbleStyle(color) as Record<string, unknown>).backgroundImage).toBe(tone.gradient);
   });
 

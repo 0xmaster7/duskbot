@@ -42,9 +42,12 @@ const GROK_BUTTON: Record<MausColor, Record<Scheme, { fill: string; hover: strin
   teal: { light: { fill: "#10a693", hover: "#0d9381" }, dark: { fill: "#0e9886", hover: "#12b39f" } },
   coral: { light: { fill: "#ee620d", hover: "#d2550a" }, dark: { fill: "#cd5309", hover: "#f4650e" } },
   brown: { light: { fill: "#9d6937", hover: "#86592e" }, dark: { fill: "#8c5d31", hover: "#aa723d" } },
-  silver: { light: { fill: "#1c1c1c", hover: "#1c1c1c" }, dark: { fill: "#3b3b3b", hover: "#474747" } },
-  chrome: { light: { fill: "#1c1c1c", hover: "#1c1c1c" }, dark: { fill: "#3b3b3b", hover: "#474747" } },
+  silver: { light: { fill: "#1c1c1c", hover: "#363636" }, dark: { fill: "#f5f5f5", hover: "#dbdbdb" } },
+  chrome: { light: { fill: "#1c1c1c", hover: "#363636" }, dark: { fill: "#f5f5f5", hover: "#dbdbdb" } },
 };
+/** Its icon: white in light and #f5f5f5 in dark, except the grey bot's #fcfcfc, and dark #121212 on its inverted dark button. */
+const grokIcon = (color: MausColor, scheme: Scheme) =>
+  color === "silver" || color === "chrome" ? { light: "#fcfcfc", dark: "#121212" }[scheme] : { light: "#ffffff", dark: "#f5f5f5" }[scheme];
 
 const SCHEMES: Scheme[] = ["light", "dark"];
 
@@ -58,24 +61,24 @@ function rule(selector: string): string {
 
 describe("a bot's own button", () => {
   it.each(MAUS_COLOR_NAMES.flatMap((color) => SCHEMES.map((scheme) => [color, scheme] as const)))(
-    "paints %s in %s with grok's send button fill and hover under a white icon",
+    "paints %s in %s with grok's send button fill, hover and icon colour",
     (color, scheme) => {
       const tone = botButtonTone(color, scheme);
       expect({ fill: tone.fill, hover: tone.hover }).toEqual(GROK_BUTTON[color][scheme]);
       expect(tone.fill).toBe(grokFill(color, scheme).button);
-      expect(tone.ink).toBe("#ffffff");
+      expect(tone.ink).toBe(grokIcon(color, scheme));
       expect(tone.pressed).not.toBe(tone.hover);
-      expect(contrastRatio(tone.ink, tone.pressed)).toBeGreaterThan(contrastRatio(tone.ink, tone.hover));
+      expect(contrastRatio(tone.ink, tone.pressed)).toBeGreaterThan(Math.max(contrastRatio(tone.ink, tone.hover), contrastRatio(tone.ink, tone.fill)));
       expect(contrastRatio(tone.ink, tone.pressed), "pressed label").toBeGreaterThanOrEqual(RING_MIN);
     },
   );
 
-  it.each(MAUS_COLOR_NAMES)("follows the color-scheme for %s, with white ink in both", (color) => {
+  it.each(MAUS_COLOR_NAMES)("follows the color-scheme for %s", (color) => {
     const light = botButtonTone(color, "light");
     const dark = botButtonTone(color, "dark");
     expect(botButtonTone(color)).toEqual({
       fill: `light-dark(${light.fill}, ${dark.fill})`,
-      ink: "#ffffff",
+      ink: `light-dark(${light.ink}, ${dark.ink})`,
       hover: `light-dark(${light.hover}, ${dark.hover})`,
       pressed: `light-dark(${light.pressed}, ${dark.pressed})`,
     });

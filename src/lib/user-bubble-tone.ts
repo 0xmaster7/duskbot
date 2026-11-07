@@ -1,4 +1,4 @@
-// Fills the person's bubble with Grok Bot's own colour for the bot's hue, always under white text.
+// Fills the person's bubble with Grok Bot's own colour for the bot's hue, always under white text (grok's #f5f5f5 in dark).
 
 import type { CSSProperties } from "react";
 import { contrastRatio, mixSrgb, toOklch } from "./color-contrast";
@@ -7,6 +7,7 @@ import { MAUS_COLORS, type MausColor } from "./mascot";
 const WHITE = "#ffffff";
 const BLACK = "#000000";
 const INK = "#101410";
+const DARK_INK = "#f5f5f5";
 /** Grok's fills do not all reach 4.5:1 under white (orange ~4:1, yellow ~3.6:1), so what we derive holds 3:1. */
 export const BUBBLE_TOKEN_MIN = 3;
 
@@ -15,23 +16,30 @@ export const SELECTION_BLACK_MIX = 0.35;
 
 export type Scheme = "light" | "dark";
 
-/** Grok's palette steps for one hue: light /2 (bubble) and /1 (button), dark /1 (both) and /2 (hover). */
-type GrokSteps = { bubble: string; button: string; dark: string; darkHover: string };
+export type GrokFill = { bubble: string; button: string; hover: string; ink: string; buttonInk: string };
 
-const steps = (bubble: string, button: string, dark: string, darkHover: string): GrokSteps => ({ bubble, button, dark, darkHover });
+type Steps = [bubble: string, button: string, hover: string];
+
+/** Grok's palette for one hue, measured in its renderer: light /2 bubble, /1 button darkening to /2 on hover; dark /1
+ * for both, brightening to /2. Text is white in light and grok's #f5f5f5 in dark. */
+const hue = (light: Steps, dark: Steps, buttonInk = { light: WHITE, dark: DARK_INK }): Record<Scheme, GrokFill> => ({
+  light: { bubble: light[0], button: light[1], hover: light[2], ink: WHITE, buttonInk: buttonInk.light },
+  dark: { bubble: dark[0], button: dark[1], hover: dark[2], ink: DARK_INK, buttonInk: buttonInk.dark },
+});
 
 const GROK_HUES = {
-  green: steps("#0d9655", "#10ab61", "#0e9f5a", "#13bb6b"),
-  blue: steps("#126fd4", "#1680f3", "#116dd2", "#1784fb"),
-  red: steps("#c82532", "#e72e3b", "#cf2b35", "#f73643"),
-  orange: steps("#d2550a", "#ee620d", "#cd5309", "#f4650e"),
-  purple: steps("#7442d1", "#8351e4", "#7845d7", "#8e59f8"),
-  cyan: steps("#0d9381", "#10a693", "#0e9886", "#12b39f"),
-  magenta: steps("#c82779", "#e52f8b", "#cf297e", "#f63397"),
-  yellow: steps("#c2730b", "#da830e", "#c8770c", "#ea8c10"),
-  brown: steps("#86592e", "#9d6937", "#8c5d31", "#aa723d"),
-  neutral: steps("#1c1c1c", "#1c1c1c", "#3b3b3b", "#474747"),
-} satisfies Record<string, GrokSteps>;
+  green: hue(["#0d9655", "#10ab61", "#0d9655"], ["#0e9f5a", "#0e9f5a", "#13bb6b"]),
+  blue: hue(["#126fd4", "#1680f3", "#126fd4"], ["#116dd2", "#116dd2", "#1784fb"]),
+  red: hue(["#c82532", "#e72e3b", "#c82532"], ["#cf2b35", "#cf2b35", "#f73643"]),
+  orange: hue(["#d2550a", "#ee620d", "#d2550a"], ["#cd5309", "#cd5309", "#f4650e"]),
+  purple: hue(["#7442d1", "#8351e4", "#7442d1"], ["#7845d7", "#7845d7", "#8e59f8"]),
+  cyan: hue(["#0d9381", "#10a693", "#0d9381"], ["#0e9886", "#0e9886", "#12b39f"]),
+  magenta: hue(["#c82779", "#e52f8b", "#c82779"], ["#cf297e", "#cf297e", "#f63397"]),
+  yellow: hue(["#c2730b", "#da830e", "#c2730b"], ["#c8770c", "#c8770c", "#ea8c10"]),
+  brown: hue(["#86592e", "#9d6937", "#86592e"], ["#8c5d31", "#8c5d31", "#aa723d"]),
+  // grok's grey bot: a near-black bubble and button in light; in dark an 18% ink bubble and an inverted button
+  neutral: hue(["#1c1c1c", "#1c1c1c", "#363636"], ["#3b3b3b", "#f5f5f5", "#dbdbdb"], { light: "#fcfcfc", dark: "#121212" }),
+} satisfies Record<string, Record<Scheme, GrokFill>>;
 
 /** Each of our colours on grok's nearest hue; coral sits closer to grok's orange than its red in oklab. */
 export const GROK_HUE_OF = {
@@ -50,15 +58,9 @@ export const GROK_HUE_OF = {
   chrome: "neutral",
 } as const satisfies Record<MausColor, keyof typeof GROK_HUES>;
 
-export type GrokFill = { bubble: string; button: string; hover: string };
-
-/** Grok's fills for the bot's colour in one scheme. In light the bubble is the darker step and the button the brighter
- * one, darkening to the bubble's on hover; in dark both share the primary, which brightens on hover. */
+/** Grok's fills and text for the bot's colour in one scheme. */
 export function grokFill(color: MausColor, scheme: Scheme): GrokFill {
-  const hue = GROK_HUES[GROK_HUE_OF[color]];
-  return scheme === "light"
-    ? { bubble: hue.bubble, button: hue.button, hover: hue.bubble }
-    : { bubble: hue.dark, button: hue.dark, hover: hue.darkHover };
+  return GROK_HUES[GROK_HUE_OF[color]][scheme];
 }
 
 /** One css value for both schemes; grok-dark sets color-scheme, the other skins read the light half. */
@@ -70,7 +72,7 @@ export function bothSchemes(light: string, dark: string): string {
 export function grokFills(color: MausColor): GrokFill {
   const light = grokFill(color, "light");
   const dark = grokFill(color, "dark");
-  return { bubble: bothSchemes(light.bubble, dark.bubble), button: bothSchemes(light.button, dark.button), hover: bothSchemes(light.hover, dark.hover) };
+  return Object.fromEntries(Object.entries(light).map(([key, value]) => [key, bothSchemes(value, dark[key as keyof GrokFill])])) as GrokFill;
 }
 
 export type UserBubbleTone = {
@@ -117,14 +119,14 @@ function lightEnough(hue: string, on: string, min: number): string {
   return best;
 }
 
-/** White eased toward the fill until it holds just `min`; white itself when it cannot. */
-function quiet(background: string, min: number): string {
+/** The ink eased toward the fill until it holds just `min`; the ink itself when it cannot. */
+function quiet(ink: string, background: string, min: number): string {
   let lo = 0;
   let hi = 1;
-  let best = WHITE;
+  let best = ink;
   for (let step = 0; step < 22; step += 1) {
     const mid = (lo + hi) / 2;
-    const candidate = mixSrgb(WHITE, background, mid);
+    const candidate = mixSrgb(ink, background, mid);
     if (contrastRatio(candidate, background) >= min) {
       best = candidate;
       hi = mid;
@@ -137,12 +139,12 @@ function darkInkOn(fill: string): string {
   return contrastRatio(INK, fill) >= contrastRatio(WHITE, fill) ? INK : WHITE;
 }
 
-function toneOn(color: MausColor, background: string): UserBubbleTone {
-  const white = contrastRatio(WHITE, background);
-  const secondary = quiet(background, Math.min(6.2, Math.max(BUBBLE_TOKEN_MIN, white * 0.82)));
-  let tertiary = quiet(background, Math.min(4.5, Math.max(BUBBLE_TOKEN_MIN, white * 0.68)));
+function toneOn(color: MausColor, { bubble: background, ink }: GrokFill): UserBubbleTone {
+  const body = contrastRatio(ink, background);
+  const secondary = quiet(ink, background, Math.min(6.2, Math.max(BUBBLE_TOKEN_MIN, body * 0.82)));
+  let tertiary = quiet(ink, background, Math.min(4.5, Math.max(BUBBLE_TOKEN_MIN, body * 0.68)));
   if (contrastRatio(tertiary, background) > contrastRatio(secondary, background)) tertiary = secondary;
-  // surfaces inside the bubble step darker on a vivid fill and lighter on grok's near-black grey, so white only gains
+  // surfaces inside the bubble step darker on a vivid fill and lighter on grok's near-black grey, so the ink only gains
   const dim = toOklch(background).l < 0.4;
   const step = dim ? WHITE : BLACK;
   const inset = mixSrgb(BLACK, background, 0.2);
@@ -153,7 +155,7 @@ function toneOn(color: MausColor, background: string): UserBubbleTone {
   return {
     background,
     gradient: BUBBLE_GLOSS,
-    ink: WHITE,
+    ink,
     secondary,
     tertiary,
     panel: mixSrgb(inset, background, 0.45),
@@ -165,21 +167,21 @@ function toneOn(color: MausColor, background: string): UserBubbleTone {
     accent,
     accentText: accent,
     accentInk: darkInkOn(accent),
-    focus: WHITE,
+    focus: ink,
     danger,
     dangerInk: darkInkOn(danger),
     success,
     successInk: darkInkOn(success),
     selection: dim ? mixSrgb(WHITE, background, 0.25) : selectionBackground(background),
-    selectionInk: WHITE,
+    selectionInk: ink,
   };
 }
 
 /** The bubble's tokens in one scheme as plain hex, or, with no scheme, as css values that follow the color-scheme. */
 export function userBubbleTone(color: MausColor, scheme?: Scheme): UserBubbleTone {
-  if (scheme) return toneOn(color, grokFill(color, scheme).bubble);
-  const light = toneOn(color, grokFill(color, "light").bubble);
-  const dark = toneOn(color, grokFill(color, "dark").bubble);
+  if (scheme) return toneOn(color, grokFill(color, scheme));
+  const light = toneOn(color, grokFill(color, "light"));
+  const dark = toneOn(color, grokFill(color, "dark"));
   return Object.fromEntries(
     Object.entries(light).map(([key, value]) => [key, bothSchemes(value, dark[key as keyof UserBubbleTone])]),
   ) as UserBubbleTone;
