@@ -1,5 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
-import { knownImageSize, rememberImageSize, type ImageSize } from "@/lib/image-sizes";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { MESSAGE_ROW } from "./MessageActions";
@@ -9,7 +8,7 @@ import { AttachmentThumbnail, type PreviewImage } from "./AttachmentPreview";
 // and the last one carries "+N" for the rest
 export const IMAGE_ROW = { height: 192, minHeight: 64, gap: 6, maxTiles: 3, aspect: 4 / 3 } as const;
 
-export type { ImageSize };
+export interface ImageSize { width: number; height: number }
 
 export interface ImageRowPlan { height: number; widths: number[]; folded: number }
 
@@ -59,7 +58,26 @@ export function planImageRow(sizes: Array<ImageSize | null>, available: number, 
   return { height: first, widths: widthsAt(aspects, Math.min(1, count), first, available), folded: count > 1 ? count : 0 };
 }
 
-export { rememberImageSize };
+const sizes = new Map<string, ImageSize | null>();
+const probing = new Set<string>();
+const listeners = new Set<() => void>();
+let version = 0;
+export function rememberImageSize(src: string, size: ImageSize | null) {
+  probing.delete(src);
+  if (sizes.has(src)) return;
+  sizes.set(src, size);
+  version++;
+  listeners.forEach((listener) => listener());
+}
+function probe(src: string) {
+  if (sizes.has(src) || probing.has(src) || typeof Image === "undefined") return;
+  probing.add(src);
+  const image = new Image();
+  image.onload = () => rememberImageSize(src, { width: image.naturalWidth, height: image.naturalHeight });
+  image.onerror = () => rememberImageSize(src, null);
+  image.src = src;
+}
+const subscribe = (listener: () => void) => { listeners.add(listener); return () => listeners.delete(listener); };
 
 function useRowWidth(ref: React.RefObject<HTMLDivElement | null>): number {
   const [width, setWidth] = useState(0);
@@ -87,11 +105,10 @@ export function ImageRow({ images, align = "start", eager = false, onOpen, class
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const rowWidth = useRowWidth(ref);
-  // tiles take the sizes known when the row first draws (the server sends them with the message) and keep them: a size
-  // learnt later would move the rows under this one, so it only shapes the next time the row draws
-  const [shapes] = useState(() => new Map<string, ImageSize | null>());
-  for (const image of images) if (!shapes.has(image.src)) shapes.set(image.src, knownImageSize(image.src) ?? null);
-  const known = images.map((image) => shapes.get(image.src) ?? null);
+  useSyncExternalStore(subscribe, () => version, () => version);
+  const sources = images.map((image) => image.src).join("\n");
+  useEffect(() => { for (const src of sources.split("\n")) probe(src); }, [sources]);
+  const known = images.map((image) => sizes.get(image.src) ?? null);
   const plan = planImageRow(known, rowWidth > 0 ? imageRowWidth(rowWidth) : 560);
   return (
     <div ref={ref} data-image-row className={cn("flex min-w-0 max-w-full flex-nowrap items-start gap-1.5", align === "end" && "justify-end", className)}>

@@ -1,7 +1,5 @@
 import type { Message, Store } from "../store.ts";
 import { toolResultPrefix } from "../tool-results.ts";
-import { ATTACHMENTS_DIR } from "../attachments.ts";
-import { storedImageSizes } from "../image-size.ts";
 
 const MESSAGE_PAGE_MAX = 200;
 /** How much of a tool step's output a conversation page carries: the rest is fetched when the step is opened, so
@@ -16,15 +14,9 @@ export function pageSize(raw: string | null): number | null | undefined {
   return Math.min(size, MESSAGE_PAGE_MAX);
 }
 
-const imageSizes = storedImageSizes(ATTACHMENTS_DIR);
-
-/** A message as the wire carries it: a screen row without its pixels, and the stored pictures it shows with their
- * sizes, so a client can hold their space before they load. */
 export function slimMessage(message: Message): Message | Record<string, unknown> {
-  const sizes = message.attachments?.length || message.text?.includes("<attached-image") ? imageSizes(message) : undefined;
-  const sized = sizes ? { ...message, imageSizes: sizes } : message;
-  if (message.kind !== "screen" || !message.png) return sized;
-  const { png: _png, ...rest } = sized;
+  if (message.kind !== "screen" || !message.png) return message;
+  const { png: _png, ...rest } = message;
   return { ...rest, hasImage: true };
 }
 
