@@ -1,4 +1,5 @@
-// Whether each command MCP server starts, started the way a bot's AI would start it. One that does not start is left
+// Whether each command MCP server starts, started the way a bot's AI would start it, and whether each plain URL server
+// answers. One that does not start is left
 // out of turns (an engine that mounts it anyway fails it on every session, and Claude Code then repeats the failure
 // under every tool search), the person hears about it once, and it is tried again on its own. A bot's own server is
 // checked for that bot; any other server starts the same for every bot on this computer, so one check stands for all.
@@ -7,7 +8,7 @@ import { readFileSync, statSync } from "node:fs";
 import { isAbsolute } from "node:path";
 
 import { writeFileAtomic } from "./atomic.ts";
-import type { McpServerSpec, StdioMcpSpec } from "./contracts.ts";
+import type { McpServerSpec } from "./contracts.ts";
 
 /** A server that did not start is tried again after this long; one that started is trusted this long. */
 export const RECHECK_FAILED_MS = 30 * 60_000;
@@ -19,23 +20,27 @@ const EVERY_BOT = "*";
 export interface McpStartCheck { ok: boolean; at: number; error?: string }
 interface ServerHealth { key: string; checks: Record<string, McpStartCheck>; told?: string }
 type Bot = { id: string; name: string };
-type CommandServer = StdioMcpSpec & { bot?: string };
+type CommandServer = McpServerSpec & { bot?: string };
 
 export interface McpHealthDeps {
   file: string;
-  /** The enabled command servers, by name. */
+  /** The enabled servers it checks, by name. */
   servers(): Record<string, CommandServer>;
   /** The bots whose turns start `name`. */
   users(name: string): Bot[];
   /** Starts the server as `botId`'s AI would and lists its tools. */
-  start(name: string, server: StdioMcpSpec, botId: string): Promise<{ ok: true } | { ok: false; error: string }>;
+  start(name: string, server: McpServerSpec, botId: string): Promise<{ ok: true } | { ok: false; error: string }>;
   /** Says it to the person, once. */
   tell(text: string, about: Bot): void;
   now?(): number;
 }
 
-/** The server's identity for its checks: what runs, and the files its command line names, so a fix shows. */
-export function startKey(server: StdioMcpSpec): string {
+/** The server's identity for its checks: what runs, and the files its command line names, so a fix shows; for a URL
+ * server, its address and headers. */
+export function startKey(server: McpServerSpec): string {
+  if ("url" in server) {
+    return createHash("sha256").update(JSON.stringify([server.type, server.url, Object.entries(server.headers).sort()])).digest("hex").slice(0, 32);
+  }
   const files = [server.command, ...server.args].filter((value) => isAbsolute(value)).map((path) => {
     try { const stat = statSync(path); return [path, stat.size, stat.mtimeMs]; } catch { return [path, null]; }
   });

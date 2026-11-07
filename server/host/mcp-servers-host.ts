@@ -1,4 +1,5 @@
-// Which config.json MCP servers each bot's turns start: every bot's and the bot's own, minus any that does not start.
+// Which config.json MCP servers each bot's turns start: every bot's and the bot's own, minus any that does not start or,
+// for a URL server with no sign-in, does not answer.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
@@ -6,10 +7,11 @@ import { writeFileAtomic } from "../atomic.ts";
 import type { AppConfig } from "../config.ts";
 import { launcherOf } from "../cloud-connections.ts";
 import { customMcpServers } from "../config.ts";
-import type { McpServerSpec, StdioMcpSpec } from "../contracts.ts";
+import type { McpServerSpec, RemoteMcpSpec, StdioMcpSpec } from "../contracts.ts";
 import { addBotMcpServer, claimBotMcpServers, keepForBot, withoutBotMcpServers, type BotKept, type BotMcpServerAdd } from "../mcp-bot-servers.ts";
 import { MCP_RESTART_ENV } from "../mcp-app-catalog.ts";
 import { createMcpHealth, nameList, toolLabel, type McpHealthDeps } from "../mcp-health.ts";
+import { MAX_REMOTE_MCP_BYTES, McpHttpError, McpRpcError, REMOTE_MCP_STARTUP_MS, RemoteMcpClient } from "../mcp-http.ts";
 import { probeMcpServer } from "../mcp-probe.ts";
 import { isRemoteMcpServer, parseStoredMcpServer, type StoredStdioMcpServer } from "../mcp-registry.ts";
 import { canUseMcpServer } from "../../shared/tool-scope.ts";
@@ -29,6 +31,9 @@ export interface McpServersHostDeps {
   startsServers(botId: string): boolean;
   /** Whether bots' turns run boxed here, each seeing only its own folders. */
   boxed(): boolean;
+  /** Whether a URL server is checked like a command server: true only when nothing but its address and saved headers
+   * reach it (no sign-in, no person's own key), so a failed check means it is down, not that someone is signed out. */
+  checksUrl?(name: string, server: RemoteMcpSpec): boolean;
   start?: McpHealthDeps["start"];
 }
 
@@ -68,6 +73,40 @@ function withRestarts(servers: Record<string, McpServerSpec>, restarts: Readonly
   }));
 }
 
+/** The enabled URL servers turns reach directly, by name: every bot's, never another computer's. */
+export function enabledUrlServers(cfg: AppConfig, checks: (name: string, server: RemoteMcpSpec) => boolean): Record<string, RemoteMcpSpec> {
+  const out: Record<string, RemoteMcpSpec> = {};
+  for (const [name, raw] of Object.entries(cfg.mcpServers ?? {})) {
+    const parsed = parseStoredMcpServer(name, raw);
+    if (!parsed.ok || !isRemoteMcpServer(parsed.server) || !parsed.server.enabled || parsed.server.runsOn || parsed.server.oauth) continue;
+    const { type, url, headers } = parsed.server;
+    if (checks(name, { type, url, headers })) out[name] = { type, url, headers };
+  }
+  return out;
+}
+
+/** A URL server that answers the MCP handshake, even to refuse its keys or ask for a sign-in, is up: the proxy says why a
+ * call fails. Only an address that cannot be reached, a timeout or an HTTP error leaves it out. The handshake alone, so
+ * the check never lists tools on top of the app catalog's own probe. */
+export async function urlServerAnswers(server: RemoteMcpSpec, timeoutMs: number = REMOTE_MCP_STARTUP_MS): Promise<{ ok: true } | { ok: false; error: string }> {
+  const client = new RemoteMcpClient(server, { maxBytes: MAX_REMOTE_MCP_BYTES });
+  const deadline = AbortSignal.timeout(timeoutMs);
+  try {
+    await client.initialize("OpenMausBot", deadline);
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof McpRpcError) return { ok: true };
+    if (error instanceof McpHttpError && error.kind === "status") {
+      return error.status === 401 || error.status === 403 ? { ok: true } : { ok: false, error: `The server answered HTTP ${error.status}. Check the address and headers.` };
+    }
+    if (deadline.aborted) return { ok: false, error: "The server did not answer in time." };
+    if (error instanceof McpHttpError && error.kind === "protocol") return { ok: false, error: "The server did not answer as an MCP server." };
+    return { ok: false, error: "Could not reach this address. Check the URL and your network." };
+  } finally {
+    await client.close().catch(() => {});
+  }
+}
+
 export function createMcpServersHost(deps: McpServersHostDeps) {
   const configured = (bot: Bot): Record<string, McpServerSpec> => deps.policy(customMcpServers(deps.cfg(), bot.mcpServers, bot.id));
   /** None on an AI that starts no servers, and only those its tool selection reaches. */
@@ -77,12 +116,13 @@ export function createMcpServersHost(deps: McpServersHostDeps) {
     return { id: botId, cwd: existsSync(own) ? own : deps.dataDir };
   };
   const start: McpHealthDeps["start"] = deps.start ?? (async (_name, server, botId) => {
+    if ("url" in server) return urlServerAnswers(server);
     const result = await probeMcpServer({ ...server, enabled: true }, startCheckTimeout(server.command), undefined, { asBot: asBot(botId) });
     return result.ok ? { ok: true } : { ok: false, error: result.error };
   });
   const checks = createMcpHealth({
     file: join(deps.dataDir, "mcp-health.json"),
-    servers: () => enabledCommandServers(deps.cfg()),
+    servers: () => ({ ...(deps.checksUrl ? enabledUrlServers(deps.cfg(), deps.checksUrl) : {}), ...enabledCommandServers(deps.cfg()) }),
     users: (name) => deps.bots().filter((bot) => started(bot).includes(name)),
     start,
     tell: deps.tell,
