@@ -1,14 +1,18 @@
 // @vitest-environment happy-dom
-import { createElement } from "react";
+import { act, createElement } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+import { LIFE_MASCOT_MS, LIFE_MASCOT_STATE } from "@/lib/reply-life";
+import type { MarkState } from "./mascot-motion-mark";
 
 import { loadLocale } from "@/lib/i18n";
 import type { Bot, Message } from "@/state/store";
 import { handoffWorkIds, RoomWorkingLines, roomStatusPhrase, roomWorkingIds } from "./RoomWorkingLines";
 
 await loadLocale("en");
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const bot = (id: string, name: string) => ({
   id, name, color: "green", threadId: id, title: "", description: "", notifications: true, unread: false, messages: [],
@@ -51,7 +55,7 @@ describe("the room's working phrase", () => {
 });
 
 describe("the room's working line", () => {
-  const draw = (workingIds: string[], speakerVisible = true) => {
+  const draw = (workingIds: string[], speakerVisible = true, markState: MarkState = "streaming", phase = "friendly:chat.typing") => {
     const host = document.createElement("div");
     document.body.append(host);
     const root = createRoot(host);
@@ -59,7 +63,7 @@ describe("the room's working line", () => {
       group: { id: "room", turnStartedAt: 1 },
       members,
       workingIds,
-      speaker: { bot: members[0], visible: speakerVisible, markState: "streaming", phrases: ["Typing…"], phase: "friendly:chat.typing", since: null },
+      speaker: { bot: members[0], visible: speakerVisible, markState, phrases: ["Typing…"], phase, since: null },
       slot: true,
     })));
     return { host, done: () => { flushSync(() => root.unmount()); host.remove(); } };
@@ -79,6 +83,20 @@ describe("the room's working line", () => {
     expect(host.querySelectorAll("[data-bot-faces] [role=img]")).toHaveLength(1);
     expect(host.innerHTML).toMatch(/width(="|: )28px/);
     done();
+  });
+
+  it("gives each answering face its own quiet wait: the mascot, then the dots; a typing one goes straight to the dots", () => {
+    vi.useFakeTimers({ now: 1_700_000_000_000 });
+    const { host, done } = draw(["echo", "nova"], true, "thinking", "friendly:thinking");
+    const states = () => [...host.querySelectorAll("[data-bot-faces] [data-grok-state]")].map((face) => face.getAttribute("data-grok-state"));
+    expect(states()).toEqual([LIFE_MASCOT_STATE, LIFE_MASCOT_STATE]);
+    act(() => void vi.advanceTimersByTime(LIFE_MASCOT_MS.max + 20));
+    expect(states()).toEqual(["thinking", "thinking"]);
+    done();
+    const typing = draw(["echo"]);
+    expect([...typing.host.querySelectorAll("[data-bot-faces] [data-grok-state]")].map((face) => face.getAttribute("data-grok-state"))).toEqual(["thinking"]);
+    typing.done();
+    vi.useRealTimers();
   });
 
   it("keeps the slot when nobody works", () => {

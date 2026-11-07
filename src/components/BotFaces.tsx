@@ -5,6 +5,7 @@ import { SPRING_UI } from "@/lib/motion-presets";
 import { usePrefersReducedMotion } from "./mascot-clock";
 import type { Bot } from "@/state/store";
 import { BotAvatar } from "./Avatar";
+import { MarkCrossfade } from "./MarkCrossfade";
 import type { MarkState } from "./mascot-motion-mark";
 
 /** A room's members as a small overlapping stack of faces, at most `max` and then "+N". A member at work comes first and
@@ -31,9 +32,12 @@ export function BotFaces({ members, size, max = 3, working, rest = "idle", overl
   const chip = Math.round(size * 0.84);
   const surface = ground ?? "var(--color-app)";
   const disc = (index: number) => ({ ...(ground ? { backgroundColor: ground } : {}), ...(index > 0 ? { marginInlineStart: -overlap } : {}) });
-  const face = (member: Bot) => (
-    <BotAvatar bot={member} size={size} state={busy(member) ? (stateOf?.(member) ?? "working") : rest} animated={busy(member)} eyeInk={eyeInk} trackPointer={false} forward={false} />
-  );
+  const face = (member: Bot) => {
+    const state = busy(member) ? (stateOf?.(member) ?? "working") : rest;
+    const avatar = <BotAvatar bot={member} size={size} state={state} animated={busy(member)} eyeInk={eyeInk} trackPointer={false} forward={false} />;
+    // a status line's face that cannot morph (reduced motion) crossfades between its states
+    return moving ? <MarkCrossfade swap={state}>{avatar}</MarkCrossfade> : avatar;
+  };
   return (
     <span data-bot-faces="" className={cn("flex shrink-0 items-center", className)}>
       {moving ? (

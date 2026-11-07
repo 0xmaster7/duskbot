@@ -8,6 +8,7 @@ import type { RuntimeEvent } from "../../shared/runtime-events";
 import type { ApprovalModeSelector } from "./ApprovalModeSelector";
 import type { ModelPicker } from "./ModelPicker";
 import { STATUS_QUIET_MS } from "./TurnPresence";
+import { LIFE_MASCOT_MS, LIFE_MASCOT_STATE } from "@/lib/reply-life";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -126,6 +127,30 @@ describe("the working line", () => {
     engine({ type: "turn.completed", ok: true } as Partial<RuntimeEvent>);
     render(busyBot([ask, reply], false));
     expect(mascot()).toBeNull();
+  });
+
+  it("lives the quiet wait: the mascot, its typing dots, then the reply in the frame it lands", () => {
+    vi.setSystemTime(started + 100);
+    const markState = () => host.querySelector(".turn-presence [data-grok-state]")?.getAttribute("data-grok-state");
+    engine({ type: "turn.started" });
+    render(busyBot([ask]));
+    expect(markState(), "the bot as itself first, not the dots").toBe(LIFE_MASCOT_STATE);
+    act(() => void vi.advanceTimersByTime(LIFE_MASCOT_MS.max + 20));
+    expect(markState(), "then it condenses into the typing dots").toBe("thinking");
+    engine({ type: "content.delta", streamKind: "assistant_text", delta: "Fair" } as Partial<RuntimeEvent>);
+    expect(markState(), "the reply being written holds the dots").toBe("thinking");
+    render(busyBot([ask, { id: "reply", role: "bot", kind: "text", at: started + 3_000, text: "Fair", turnId: "t1" }]));
+    expect(mascot(), "and the reply never waits on any of it").toBeNull();
+  });
+
+  it("skips the mascot's moment when the reply starts at once", () => {
+    vi.setSystemTime(started + 100);
+    const markState = () => host.querySelector(".turn-presence [data-grok-state]")?.getAttribute("data-grok-state");
+    engine({ type: "turn.started" });
+    render(busyBot([ask]));
+    expect(markState()).toBe(LIFE_MASCOT_STATE);
+    engine({ type: "content.delta", streamKind: "assistant_text", delta: "Hi" } as Partial<RuntimeEvent>);
+    expect(markState()).toBe("thinking");
   });
 
   it("says Teammates working while the bot waits on its teammates", () => {

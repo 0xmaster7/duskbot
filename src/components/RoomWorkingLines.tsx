@@ -7,6 +7,8 @@ import type { Bot, Group, Message } from "@/state/store";
 import { BotFaces } from "./BotFaces";
 import type { MarkState } from "./mascot-motion-mark";
 import { TurnPresence } from "./TurnPresence";
+import { useReplyLife } from "@/hooks/use-reply-life";
+import { lifeMarkState } from "@/lib/reply-life";
 
 type RoomWork = Pick<Group, "busyBotId" | "threadId" | "tasks" | "busyBotIds">;
 
@@ -101,7 +103,10 @@ export function RoomWorkingLines({ group, members, workingIds, typingIds = [], s
     : soloTyping ? { phrases: [t("chat.typing")], phase: TYPING_PHASE }
     : solo?.id === speakerId ? { phrases: speaker.phrases, phase: speaker.phase }
     : friendlyNowPhrases(null);
-  const stateOf = (bot: Bot): MarkState => typing.has(bot.id) ? "streaming" : bot.id === speakerId ? speaker.markState : "working";
+  // each answering face lives its own quiet wait, as the 1:1 chat's mark does: the mascot, its typing dots, then the reply
+  const speakerTyping = speaker.markState === "streaming" || speaker.phase === TYPING_PHASE;
+  const lives = useReplyLife(ordered.map((id) => ({ key: id, seed: `${group.id}:${group.turnStartedAt ?? ""}:${id}`, typing: typing.has(id) || (id === speakerId && speakerTyping) })));
+  const stateOf = (bot: Bot): MarkState => lifeMarkState(typing.has(bot.id) ? "streaming" : bot.id === speakerId ? speaker.markState : "thinking", lives.get(bot.id));
   return (
     <div className={slot ? "turn-status-slot h-9 shrink-0" : "contents"} data-room-working-lines="" data-room-working-count={ordered.length}>
       {!(landed && ordered.length === 0) && <TurnPresence

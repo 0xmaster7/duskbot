@@ -9,6 +9,8 @@ import { phraseAt, phraseHoldMs } from "@/lib/live-activity";
 import { quietText } from "@/lib/now-steps";
 import { t } from "@/lib/i18n";
 import { formatElapsed } from "@/lib/working-time";
+import { isQuietPhase } from "@/lib/turn-tail";
+import { LIFE_LATE_WORDS_MS, lifeDraw, lifeSpeaks } from "@/lib/reply-life";
 import type { StepQuiet } from "../../shared/turn-progress";
 
 const FADE_MS = 320;
@@ -76,15 +78,16 @@ function drawn(phrases: readonly string[], seed: string): string {
   return phrases[(hash >>> 0) % Math.max(1, phrases.length)] ?? "";
 }
 
-/** The step label the simple status line shows now, or null while the turn is still quiet. */
-export function useStatusLabel(phrases: readonly string[] | null, phase: string, seed: string, since: number | null, active: boolean): { key: string; text: string } | null {
+/** The step label the simple status line shows now, or null while the turn is still quiet. A `wordless` wait (about half
+ * the quiet ones, lifeSpeaks) keeps to the mark alone unless it runs long. */
+export function useStatusLabel(phrases: readonly string[] | null, phase: string, seed: string, since: number | null, active: boolean, wordless = false): { key: string; text: string } | null {
   const [, wake] = useState(0);
   const shown = useRef<{ key: string; text: string; at: number; leftAt?: number } | null>(null);
   const firstSeen = useRef<number | null>(null);
   const now = Date.now();
   if (!active) firstSeen.current = null;
   else firstSeen.current ??= now;
-  const quietUntil = (since ?? firstSeen.current ?? now) + quietFor(`${seed}|quiet`);
+  const quietUntil = (since ?? firstSeen.current ?? now) + (wordless ? lifeDraw(seed, "late", LIFE_LATE_WORDS_MS) : quietFor(`${seed}|quiet`));
   let next: { key: string; text: string } | null = phrases && phrases.length > 0 && now >= quietUntil
     ? { key: phase, text: drawn(phrases, `${seed}|${phase}`) }
     : null;
@@ -242,7 +245,8 @@ export function TurnPresence({
   const lead = label ?? t("chat.activity.working");
   const now = phrases && phrases.length > 0 ? phrases : null;
   const { current, previous } = useRotatingPhrase(now ?? NOTHING, phase ?? now?.[0] ?? "", seed, !simple && mounted && showWorking && now !== null);
-  const step = useStatusLabel(label ? [label] : now, label ? `label:${label}` : phase ?? now?.[0] ?? "", seed, since, mounted && simpleStatus);
+  const wordless = !label && isQuietPhase(phase) && !lifeSpeaks(seed);
+  const step = useStatusLabel(label ? [label] : now, label ? `label:${label}` : phase ?? now?.[0] ?? "", seed, since, mounted && simpleStatus, wordless);
   if (!mounted) return null;
   const status = simpleStatus ? (
     <span id={statusId} className="turn-label-slot flex h-[22px] min-w-0 items-center gap-x-1.5 text-[14px] leading-[22px]" data-turn-status>

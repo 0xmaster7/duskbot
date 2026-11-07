@@ -53,11 +53,14 @@ import type { MarkState } from "./mascot-motion-mark";
 import { turnMarkState } from "./mascot-presence";
 import type { LiveStatus } from "@/state/turn-status";
 import { TurnPresence } from "./TurnPresence";
+import { MarkCrossfade } from "./MarkCrossfade";
 import { showToolCallsEnabled } from "@/lib/feature-flags";
 import { normalizeState } from "@/lib/mascot";
 import { peerLine, peerRequest, type PeerLine } from "@/lib/peer-message";
 import { replyHidesLine, showWorkingDots } from "@/lib/turn-tail";
 import { useLandedReply } from "@/hooks/use-landed-reply";
+import { useReplyLife, type LifeTurn } from "@/hooks/use-reply-life";
+import { LIFE_MASCOT_STATE, lifeMarkState } from "@/lib/reply-life";
 import { lastNonReceipt } from "@/lib/receipts";
 import { useTurnLive } from "@/state/turn-status"; import { useLiveReplyActive } from "@/state/live-reply"; import { useTurnNow } from "./NowCard"; import { useThreadRoutineRun } from "@/state/older-routine-runs";
 import { ChatMarkdown } from "./ChatMarkdown";
@@ -635,6 +638,7 @@ const ActivityChip = memo(function ActivityChip({ message, place = "auto" }: { m
 const RoomHandoffChip = ({ message, comm, bots, dispatch }: { message: Message; comm: NonNullable<Message["comm"]>; bots: readonly Bot[]; dispatch: Dispatch<Action> }) => { const store = useStoreRef(); return <HandoffChip message={message} bots={bots} title={t("chat.openConversationWith", { name: comm.withName })} onClick={() => openRoomThread(dispatch, comm, store.state().groups)} />; };
 /** BotAvatar hands its ref through to the mark, whose handle pokes it; its props type just doesn't name the ref. */
 const StatusMark = BotAvatar as unknown as ComponentType<ComponentProps<typeof BotAvatar> & { ref?: Ref<MausAvatarHandle> }>;
+const NO_LIFE: readonly LifeTurn[] = [];
 
 /** What grok's status-line mark plays: the live step while the turn runs, its outcome once it ends. */
 export function statusMarkFor({ busy, waitingOnYou, answering, live, failed }: { busy: boolean; waitingOnYou: boolean; answering: boolean; live: LiveStatus["activity"] | undefined; failed: boolean }): MarkState {
@@ -1042,7 +1046,6 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const presenceVisible = waiting || teammatesWorking;
   // under the bot's words the line leaves at once, with no exit left to play
   const presenceMounted = presenceVisible || !landed.reply;
-  useThinkingMoment(markRef, waiting && !teammatesWorking);
   // the bubble the line hangs under keeps its pinched corner until the line has finished leaving, as grok's does
   const presenceShown = useLingering(presenceVisible, 140);
   const paintedMessages = useFirstPaintRows(transcriptKey, windowedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef, following);
@@ -1064,6 +1067,11 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   useEffect(() => {
     setBusySince(bot.busy ? bot.turnStartedAt ?? Date.now() : null);
   }, [bot.busy, bot.id, bot.threadId, bot.turnStartedAt]);
+  // the quiet wait lives: the mascot a while, its typing dots, back again on a long one; the reply never waits for it
+  const presenceSeed = `${bot.id}:${bot.threadId ?? ""}:${busySince ?? ""}`;
+  const lifeBeat = useReplyLife(waiting && !teammatesWorking ? [{ key: bot.id, seed: presenceSeed, typing: streamingReply || live.status?.activity === "reply" }] : NO_LIFE).get(bot.id);
+  const presenceMarkState = lifeMarkState(statusMarkState, lifeBeat);
+  useThinkingMoment(markRef, presenceMarkState === LIFE_MASCOT_STATE);
 
   // while the turn runs its notices stay in the chat; once it ends, what it left is one card above the composer
   const trailing = useTrailingRows(messages, !bot.busy);
@@ -1284,17 +1292,19 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           <div className={statusSlot ? cn("turn-status-slot h-9 shrink-0", presenceUnderBubble && SIMPLE_STACKED) : "contents"} onMouseEnter={() => setMarkEmphasized(true)} onMouseLeave={() => setMarkEmphasized(false)} onClick={() => markRef.current?.poke?.()}>
           {presenceMounted && <TurnPresence
             avatar={
-              <StatusMark
-                ref={markRef}
-                bot={bot}
-                state={statusMarkState}
-                size={28}
-                eyeInk="var(--color-app)"
-                emphasized={markEmphasized}
-                forward={false}
-                lookAround={1}
-                trackPointer={false}
-              />
+              <MarkCrossfade swap={presenceMarkState}>
+                <StatusMark
+                  ref={markRef}
+                  bot={bot}
+                  state={presenceMarkState}
+                  size={28}
+                  eyeInk="var(--color-app)"
+                  emphasized={markEmphasized}
+                  forward={false}
+                  lookAround={1}
+                  trackPointer={false}
+                />
+              </MarkCrossfade>
             }
             simple
             className={cn(!statusSlot && presenceUnderBubble && SIMPLE_STACKED)}
@@ -1303,7 +1313,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             {...now}
             phrases={teammatesWorking ? undefined : now.phrases}
             phase={now.phase}
-            seed={`${bot.id}:${bot.threadId ?? ""}:${busySince ?? ""}`}
+            seed={presenceSeed}
             since={busySince}
           />}
           </div>
