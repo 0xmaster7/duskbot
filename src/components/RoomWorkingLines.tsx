@@ -1,6 +1,7 @@
 import { useRef } from "react";
 
 import { friendlyNowPhrases } from "@/lib/friendly-activity";
+import { peerLine } from "@/lib/peer-message";
 import { activeLocale, t } from "@/lib/i18n";
 import type { Bot, Group, Message } from "@/state/store";
 import { BotFaces } from "./BotFaces";
@@ -16,6 +17,21 @@ export function roomWorkingIds(group: RoomWork, lastMessage: Message | undefined
   const inFlight = lastMessage?.kind === "activity" && lastMessage.tool && lastMessage.tool.ok === undefined ? lastMessage.from?.botId : undefined;
   const ids = [group.busyBotId, task?.busyBotId, ...(group.busyBotIds ?? []), inFlight];
   return [...new Set(ids.filter((id): id is string => typeof id === "string" && id.length > 0))];
+}
+
+/** Members a hand-off since the person's last line is still waiting on: each works in a thread of its own, so the room
+ * hears of it only from the hand-off rows. */
+export function handoffWorkIds(messages: readonly Message[]): string[] {
+  const open = new Map<string, number>();
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const m = messages[i]!;
+    if (m.role === "user" && !peerLine(m)) break;
+    const line = m.handoff;
+    if (!line) continue;
+    const id = line.phase === "sent" ? line.to.botId : line.from.botId;
+    open.set(id, (open.get(id) ?? 0) + (line.phase === "sent" ? 1 : -1));
+  }
+  return [...open].filter(([, count]) => count > 0).map(([id]) => id).reverse();
 }
 
 /** Ids in the order they first showed up, so faces never trade places while they work. */

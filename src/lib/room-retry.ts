@@ -1,3 +1,5 @@
+import { isMentionBoundary, isMentionNameContinuation } from "../../shared/mention-boundary.ts";
+import { resolveMentions } from "../../shared/room-mentions.ts";
 import type { WireMessage } from "../../shared/wire.ts";
 import { escapeAttribute } from "./composer-attachments.ts";
 import { peerLine } from "./peer-message.ts";
@@ -38,4 +40,32 @@ export function roomRetryRequest(transcript: readonly RetryMessage[], stoppedInd
     };
   }
   return null;
+}
+
+interface RetryMember { id: string; name: string }
+
+/** The person's line again for just the members that didn't answer it: a tag is what routes a room line, so every other
+ * member's @tag comes out and each of theirs the line lacks goes in front. */
+export function roomRetryText(text: string, members: readonly RetryMember[], retryIds: readonly string[]): string {
+  const others = members.filter((member) => !retryIds.includes(member.id) && member.name.trim()).sort((a, b) => b.name.length - a.name.length);
+  let kept = "";
+  for (let at = 0; at < text.length; at += 1) {
+    if (text[at] === "@" && isMentionBoundary(text, at)) {
+      const rest = text.slice(at + 1);
+      const tagged = others.find((member) => rest.slice(0, member.name.length).toLowerCase() === member.name.toLowerCase()
+        && !isMentionNameContinuation(rest.slice(member.name.length)));
+      if (tagged) {
+        at += tagged.name.length;
+        if (text[at + 1] === " " && (kept === "" || /\s$/u.test(kept))) at += 1;
+        continue;
+      }
+    }
+    kept += text[at];
+  }
+  const already = new Set(resolveMentions(kept, members).bots.map((member) => member.id));
+  const missing = retryIds.flatMap((id) => {
+    const member = members.find((candidate) => candidate.id === id);
+    return member && !already.has(id) ? [`@${member.name}`] : [];
+  });
+  return [...missing, kept.trim()].filter(Boolean).join(" ");
 }
