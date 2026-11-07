@@ -1,11 +1,13 @@
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { createServer, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
 
 import type { AppConfig } from "../config.ts";
 import { mcpServerConfigHash } from "../mcp-app-catalog.ts";
-import { claimedNotice, createMcpServersHost, startCheckTimeout } from "./mcp-servers-host.ts";
+import { claimedNotice, createMcpServersHost, startCheckTimeout, urlServerAnswers } from "./mcp-servers-host.ts";
 
 const dirs: string[] = [];
 afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
@@ -20,7 +22,7 @@ function script(data: string, ...parts: string[]): string {
   return path;
 }
 
-function setup(options: { boxed?: boolean; data?: string; bots?: Array<{ id: string; name: string; mcpServers?: string[]; toolScope?: unknown }> } = {}) {
+function setup(options: { boxed?: boolean; data?: string; bots?: Array<{ id: string; name: string; mcpServers?: string[]; toolScope?: unknown }>; checksUrl?: (name: string) => boolean } = {}) {
   const data = options.data ?? mkdtempSync(join(tmpdir(), "omb-mcp-host-"));
   if (!options.data) dirs.push(data);
   const cfg: AppConfig = {
@@ -43,11 +45,12 @@ function setup(options: { boxed?: boolean; data?: string; bots?: Array<{ id: str
     boxed: () => options.boxed ?? true,
     policy: (servers) => servers,
     tell: (text, about) => told.push({ text, about: about.id }),
+    ...(options.checksUrl ? { checksUrl: (name: string) => options.checksUrl!(name) } : {}),
     // The image's python has no `mcp` module: these start only in Iris's own box, where it is installed.
     start: async (name, server, botId) => {
       started.push(`${name}:${botId}`);
-      if (name === "broken") return { ok: false, error: "The server stopped before the MCP handshake finished." };
-      return server.command === "/usr/bin/python3" && botId !== "iris" ? { ok: false, error: "No module named 'mcp'" } : { ok: true };
+      if (name === "broken" || name === "down") return { ok: false, error: "The server stopped before the MCP handshake finished." };
+      return "command" in server && server.command === "/usr/bin/python3" && botId !== "iris" ? { ok: false, error: "No module named 'mcp'" } : { ok: true };
     },
   });
   return { cfg, host, told, started, data };
@@ -145,6 +148,49 @@ it("leaves servers reached by URL alone", async () => {
   cfg.mcpServers!.linear = { type: "http", url: "https://mcp.linear.app/mcp", headers: {}, enabled: true };
   host.health.changed("linear");
   expect(host.mounted(PAUL).linear).toEqual({ type: "http", url: "https://mcp.linear.app/mcp", headers: {} });
+});
+
+it("leaves a URL server that does not answer out of turns and says so once; one with a sign-in or its own app is never checked", async () => {
+  const { cfg, host, told, started } = setup({ boxed: false, bots: [PAUL], checksUrl: (name) => name !== "signed" });
+  cfg.mcpServers = {
+    docs: { type: "http", url: "https://docs.example/mcp", headers: {}, enabled: true },
+    down: { type: "http", url: "https://down.example/mcp", headers: {}, enabled: true },
+    signed: { type: "http", url: "https://signed.example/mcp", headers: {}, enabled: true },
+    registered: { type: "http", url: "https://registered.example/mcp", headers: {}, oauth: { clientId: "app" }, enabled: true },
+    elsewhere: { type: "http", url: "https://elsewhere.example/mcp", headers: {}, enabled: true, runsOn: { environmentId: "e", label: "Laptop" } },
+  };
+  host.boot();
+  await host.health.settled();
+  expect(started.sort()).toEqual(["docs:paul", "down:paul"]);
+  expect(Object.keys(host.mounted(PAUL)).sort()).toEqual(["docs", "registered", "signed"]);
+  expect(host.off(PAUL)).toEqual([{ name: "down", error: "The server stopped before the MCP handshake finished." }]);
+  expect(told).toEqual([{ text: "The Down tool doesn't start, so it's off for now. It comes back on its own once it starts.", about: "paul" }]);
+  await host.prepare(PAUL);
+  expect(started, "a failed check is not repeated before every turn").toHaveLength(2);
+});
+
+it("counts a URL server as up when it answers, even to refuse its keys, and as down when it is unreachable or silent", async () => {
+  const servers: Server[] = [];
+  const listen = async (handler: Parameters<typeof createServer>[1]) => {
+    const server = createServer(handler);
+    servers.push(server);
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    return `http://127.0.0.1:${(server.address() as AddressInfo).port}/mcp`;
+  };
+  try {
+    const refusing = await listen((_req, res) => { res.writeHead(401).end(); });
+    const silent = await listen(() => {});
+    const missing = await listen((_req, res) => { res.writeHead(404).end(); });
+    const closed = await listen(() => {});
+    await new Promise<void>((resolve) => servers.pop()!.close(() => resolve()));
+    expect(await urlServerAnswers({ type: "http", url: refusing, headers: { authorization: "Bearer wrong" } })).toEqual({ ok: true });
+    expect(await urlServerAnswers({ type: "http", url: silent, headers: {} }, 300)).toEqual({ ok: false, error: "The server did not answer in time." });
+    expect(await urlServerAnswers({ type: "http", url: closed, headers: {} })).toEqual({ ok: false, error: "Could not reach this address. Check the URL and your network." });
+    expect(await urlServerAnswers({ type: "http", url: missing, headers: {} })).toEqual({ ok: false, error: "The server answered HTTP 404. Check the address and headers." });
+  } finally {
+    for (const server of servers) server.closeAllConnections();
+    await Promise.all(servers.map((server) => new Promise((resolve) => server.close(resolve))));
+  }
 });
 
 it("a package runner's first check waits for its download; any other program's keeps the short wait", () => {

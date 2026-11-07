@@ -40,10 +40,10 @@ import { boxChromeExecArgs, boxChromeRelay, forwardViewer, isThisServerVps } fro
 import { sshViewer } from "./vps-viewer.ts";
 import { loadEnvironmentId } from "./environment.ts";
 import { SPAWNED_PROXIES } from "./proxy-paths.ts";
+import { MANAGED_VPS_CONTAINER_NAME, VPS_CONTAINER_LABEL, VPS_MANAGED_LABEL, isRenamedManagedCopy } from "./vps-managed-names.ts";
 
 export const VPS_IMAGE = CUA_IMAGE;
-export const VPS_MANAGED_LABEL = "com.openmausbot.vps";
-export const VPS_CONTAINER_LABEL = "com.openmausbot.container";
+export { VPS_CONTAINER_LABEL, VPS_MANAGED_LABEL } from "./vps-managed-names.ts";
 export const VPS_ENVIRONMENT_LABEL = "com.openmausbot.environment";
 export const VPS_VIEWER_LABEL = "com.openmausbot.vps-viewer";
 export const VPS_CONTAINER_PREFIX = "openmausbot-vps";
@@ -61,7 +61,6 @@ const COMMAND_TIMEOUT_KILL_GRACE_MS = COMMAND_TIMEOUT_TERM_GRACE_MS + 1_000;
 const CONTAINER_NAME = /^[a-zA-Z0-9][a-zA-Z0-9_.-]+$/;
 const CONTAINER_ID = /^[a-f0-9]{12,64}$/i;
 const FULL_CONTAINER_ID = /^[a-f0-9]{64}$/i;
-const MANAGED_VPS_CONTAINER_NAME = /^openmausbot-vps-[a-z0-9]{1,12}-[a-f0-9]{12}$/;
 const IMAGE_ID = /^sha256:[a-f0-9]{64}$/i;
 const SCREENSHOT_PATH = "/tmp/openmausbot-vps-preview.png";
 // The Cua XFCE base ships Pillow in /opt/venv; a container without it returns the original PNG.
@@ -753,6 +752,7 @@ async function scanManagedVpsAlias(
       const name = typeof detail.Name === "string" ? detail.Name.replace(/^\//, "") : "";
       const labels = detail.Config?.Labels;
       const listedId = ids.find((candidate) => id.startsWith(candidate.toLowerCase()));
+      if (listedId && FULL_CONTAINER_ID.test(id) && !seenIds.has(listedId) && isRenamedManagedCopy(name, labels)) { seenIds.add(listedId); continue; }
       if (
         !FULL_CONTAINER_ID.test(id) ||
         !listedId ||
