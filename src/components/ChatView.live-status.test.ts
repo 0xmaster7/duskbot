@@ -42,6 +42,7 @@ vi.mock("./ApprovalModeSelector", () => ({ ApprovalModeSelector: (_props: Compon
 
 const { ChatView } = await import("./ChatView");
 const { noteTurnEvent, resetTurnLive } = await import("@/state/turn-status");
+const { resetReplySlotClocks } = await import("./ReplySlot");
 
 const THREAD = "selected";
 const started = Date.UTC(2026, 9, 23, 12, 0, 0);
@@ -74,6 +75,7 @@ const statusLine = () => {
 beforeEach(() => {
   vi.useFakeTimers({ now: started + 72_000 });
   resetTurnLive();
+  resetReplySlotClocks();
   vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 200, headers: { "content-type": "application/json" } })));
   host = document.createElement("div");
   document.body.append(host);
@@ -98,16 +100,15 @@ describe("the working line", () => {
     expect([...row.classList]).toEqual(expect.arrayContaining(["h-9", "ps-2", "gap-[8.5px]"]));
     expect(row.title).toMatch(/^Working · /);
     expect(mascot()!.querySelector("[data-turn-status] .status-shimmer")).not.toBeNull();
-    const slot = () => mascot()!.closest(".turn-status-slot")!;
+    const slot = () => host.querySelector(".turn-status-slot")!;
     expect(slot().classList).not.toContain("-mt-3");
 
     engine({ type: "item.completed", itemType: "assistant_text", text: intro.text! } as Partial<RuntimeEvent>);
     render(busyBot([ask, intro]));
     expect(slot().classList, "under the bot's own bubble it sits close, as one more part of the reply").toContain("-mt-3");
+    expect(mascot(), "the reply takes the line's place in the frame it lands").toBeNull();
     engine({ type: "turn.progress", activity: "write", itemId: "toolu_write", file: "index.html", bytes: 14 * 1024 + 300 } as Partial<RuntimeEvent>);
-    expect(statusLine(), "a step keeps its words 800ms before the next replaces them, as grok's line does").toBe(first);
-    act(() => void vi.advanceTimersByTime(800));
-    expect(statusLine()).toBe("Writing some code");
+    expect(statusLine(), "the turn goes on with a named step: the line comes back saying it").toBe("Writing some code");
   });
 
   it("says Teammates working while the bot waits on its teammates", () => {
@@ -128,7 +129,49 @@ describe("the mascot and its status line through a long turn", () => {
     engine({ type: "turn.completed", ok: true } as Partial<RuntimeEvent>);
     const next: Message = { id: "next", role: "user", kind: "text", at: started + 90_000, text: "Add a chart" };
     render(busyBot([ask, intro, next]));
-    expect(mascot(), "a new prompt shows the line before the new turn's first frame").not.toBeNull();
+    expect(host.querySelector('[data-reply-slot="mascot"]'), "a new prompt shows the bot's mark before the new turn's first frame").not.toBeNull();
+  });
+});
+
+describe("the reply slot, from the send to the reply", () => {
+  const sent: Message = { id: "optimistic-s9", role: "user", kind: "text", at: started + 72_000, text: "how was your day?", sendId: "s9" };
+  const confirmed: Message = { ...sent, id: "m9" };
+  const answer: Message = { id: "r9", role: "bot", kind: "text", at: started + 75_000, text: "Fair, quiet day", turnId: "t1" };
+  const idle = (messages: Message[]) => busyBot(messages, false);
+  const slotState = () => host.querySelector<HTMLElement>("[data-reply-slot]")?.dataset.replySlot ?? null;
+
+  it("plays the mark at once, turns into the dots, and is gone in the frame the reply lands", () => {
+    render(idle([ask, intro, sent]));
+    expect(slotState(), "the send shows the mark before the server has the message").toBe("mascot");
+    expect(mascot()).toBeNull();
+    render(busyBot([ask, intro, confirmed]));
+    act(() => void vi.advanceTimersByTime(700));
+    expect(slotState()).toBe("dots");
+    expect(host.querySelector("[data-reply-slot] .animate-status-pulse")).not.toBeNull();
+
+    engine({ type: "content.delta", streamKind: "assistant_text", delta: "Fair" } as Partial<RuntimeEvent>);
+    render(busyBot([ask, intro, confirmed, answer]));
+    expect(slotState(), "no typing left under the reply, though the turn has not ended").toBeNull();
+    expect(mascot()).toBeNull();
+    expect(host.textContent).toContain("Fair, quiet day");
+    act(() => void vi.advanceTimersByTime(1_000));
+    engine({ type: "turn.completed", ok: true } as Partial<RuntimeEvent>);
+    render(idle([ask, intro, confirmed, answer]));
+    expect(slotState()).toBeNull();
+    expect(mascot()).toBeNull();
+  });
+
+  it("turns into the working line for a named step, and into the dots once the reply starts", () => {
+    render(idle([ask, intro, sent]));
+    render(busyBot([ask, intro, confirmed]));
+    expect(slotState()).toBe("mascot");
+    engine({ type: "turn.progress", activity: "command", itemId: "toolu_bash", tool: "Bash", detail: "npm test" } as Partial<RuntimeEvent>);
+    expect(slotState()).toBeNull();
+    expect(mascot(), "the working line takes the slot, never beside the dots").not.toBeNull();
+    act(() => void vi.advanceTimersByTime(400));
+    engine({ type: "content.delta", streamKind: "assistant_text", delta: "All" } as Partial<RuntimeEvent>);
+    expect(slotState()).toBe("dots");
+    expect(mascot()).toBeNull();
   });
 });
 
