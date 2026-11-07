@@ -142,7 +142,7 @@ import { JumpToLatestButton } from "./JumpToLatestButton";
 import { UsageBanner } from "./native/UsageMeter";
 import { openSettings } from "@/lib/open-settings";
 import { useTimestampPeek } from "./chat-timestamp-peek";
-import { grokUserBubbleFill, isBotTextRow, joinedCorners, needsStamp, quietRow, simpleRowLayout, SIMPLE_BOT_BUBBLE, SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT, SIMPLE_STACKED, SIMPLE_USER_BUBBLE, type BubbleJoin } from "./chat-bubble";
+import { emojiOnly, EMOJI_ONLY_TEXT, grokUserBubbleFill, isBotTextRow, joinedCorners, needsStamp, quietRow, simpleRowLayout, SIMPLE_BOT_BUBBLE, SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT, SIMPLE_STACKED, SIMPLE_USER_BUBBLE, type BubbleJoin } from "./chat-bubble";
 
 const USER_COLLAPSE_CHARS = 600;
 const USER_COLLAPSE_LINES = 8;
@@ -412,6 +412,7 @@ const Bubble = memo(function Bubble({
   // grok's tapbacks ride the bubble's top corner; a split or tabled reply keeps them in a row underneath
   // grok draws a bot's images, files and voice notes as rows of their own beside its words, never inside the bubble
   const mediaSplit = Boolean(!user && !split && !tabled && text.trim() && (voiceNotes.length > 0 || generatedPaths.length + linkedFiles.length > 0 || (group && group.images.length + group.files.length > 0)));
+  const bigEmoji = !webhookView && !replyTarget && !hasAttachments && !split && !tabled && !mediaSplit && !collapsible && emojiOnly(visibleText);
   const floatReactions = Boolean(message.reactions?.length && !split && !attachmentsOnly && !webhookView);
   // with media beside the words, grok's tapbacks ride the media row instead of the bubble
   const mediaReactions = floatReactions && mediaSplit;
@@ -460,7 +461,9 @@ const Bubble = memo(function Bubble({
             tabled ? "w-full" : "w-fit",
             !tabled && SIMPLE_BUBBLE_MAX,
             emerging && "turn-answer",
-            user && webhookView
+            bigEmoji
+              ? EMOJI_ONLY_TEXT
+              : user && webhookView
               ? cn("overflow-hidden rounded-[18px] border border-accent/25 bg-card text-ink", SIMPLE_BUBBLE_TEXT)
               : attachmentsOnly || split || tabled || mediaSplit
                 ? cn("text-ink", SIMPLE_BUBBLE_TEXT, mediaSplit && "flex flex-col items-start gap-1")
@@ -469,7 +472,8 @@ const Bubble = memo(function Bubble({
                   : SIMPLE_BOT_BUBBLE,
             join && !split && !attachmentsOnly && !tabled && !mediaSplit && joinedCorners(user ? "end" : "start", join),
           )}
-          style={user && !webhookView && !attachmentsOnly ? ownBubbleStyle : undefined}
+          data-emoji-only={bigEmoji ? "" : undefined}
+          style={user && !webhookView && !attachmentsOnly && !bigEmoji ? ownBubbleStyle : undefined}
           data-reacted={reactionsOnBubble ? "" : undefined}
         >
           {replyTarget && (

@@ -34,7 +34,7 @@ import { normalizeState } from "@/lib/mascot";
 import { groupResponseHint, jevRoomRoutingOn } from "@/lib/group-routing";
 import { ChatMarkdown } from "./ChatMarkdown";
 import { FailedTurnRow, MessageBoundary, SIMPLE_STATUS_SLOT, SIMPLE_TRAILING_GAP, statusMarkFor } from "./ChatView";
-import { joinedCorners, needsStamp, SIMPLE_BOT_BUBBLE, SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT, SIMPLE_STACKED, SIMPLE_USER_BUBBLE, type BubbleJoin } from "./chat-bubble";
+import { emojiOnly, EMOJI_ONLY_TEXT, joinedCorners, needsStamp, SIMPLE_BOT_BUBBLE, SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT, SIMPLE_STACKED, SIMPLE_USER_BUBBLE, type BubbleJoin } from "./chat-bubble";
 import { roomRowLayout, type RoomSlot } from "./room-row-layout";
 import { DaySeparator } from "./DaySeparator";
 import { useThreadOpenedAt } from "./ConversationalReply";
@@ -186,6 +186,7 @@ function RoomTextMessage({
   const collapsible = user && !expanded && (display.length > USER_COLLAPSE_CHARS || display.split("\n").length > USER_COLLAPSE_LINES);
   useEffect(() => { if (focusedSearch && collapsible) setExpanded(true); }, [focusedSearch, collapsible, focus?.nonce]);
   const mediaRow = Boolean(attachments && (attachments.images.length || attachments.files.length));
+  const bigEmoji = !m.replyToId && !mediaRow && !cited?.citations.length && !m.attachments?.length && emojiOnly(display);
   const speakerBot = members.find((member) => member.id === m.from?.botId);
   const botText = rawText; const teammates = useTeammates(); const peers = useMemo(() => [...members, ...teammates.peers], [members, teammates]);
   const pin = roomPin(group, m, dispatch);
@@ -230,7 +231,9 @@ function RoomTextMessage({
             !tabled && SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT,
             !user && emerging && "turn-answer",
             !tabled && joinedCorners(user ? "end" : "start", join),
-            tabled || (!user && !m.text?.trim() && !m.replyToId && m.attachments?.length) || (mediaRow && !display.trim() && !m.replyToId)
+            bigEmoji && !tabled
+              ? EMOJI_ONLY_TEXT
+              : tabled || (!user && !m.text?.trim() && !m.replyToId && m.attachments?.length) || (mediaRow && !display.trim() && !m.replyToId)
               ? "text-ink"
               : user
                 ? cn("chat-text whitespace-pre-wrap [overflow-wrap:anywhere] text-ink", SIMPLE_USER_BUBBLE)

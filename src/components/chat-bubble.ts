@@ -31,6 +31,19 @@ export function grokUserBubbleFill(color: MausColor | undefined): string | undef
   return color ? GROK_BOT_FILLS[color]?.bubble : undefined;
 }
 
+const EMOJI_RUN = /^(?:\p{Extended_Pictographic}|\p{Regional_Indicator}|[\u{1F3FB}-\u{1F3FF}\u{E0020}-\u{E007F}\u200d\ufe0f\u20e3\s])+$/u;
+const EMOJI_MAX = 3;
+
+/** One to three emoji and nothing else: grok draws these large, with no bubble round them. */
+export function emojiOnly(text: string | undefined): boolean {
+  const bare = text?.replace(/\s/g, "") ?? "";
+  if (!bare || !EMOJI_RUN.test(bare) || !/\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(bare)) return false;
+  return [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(bare)].length <= EMOJI_MAX;
+}
+
+/** An emoji-only message's type, every nested element following it. */
+export const EMOJI_ONLY_TEXT = "text-ink text-[40px] leading-[48px] [&_*]:text-[length:inherit] [&_*]:leading-[inherit] [&_*]:m-0";
+
 /** At most 560 wide, 80% of the column, and always 82px short of it, so a reply never meets the far edge. */
 export const SIMPLE_BUBBLE_MAX = "max-w-[min(var(--chat-bubble-max),var(--chat-bubble-pct),calc(100%-82px))]";
 
