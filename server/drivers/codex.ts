@@ -2,8 +2,7 @@ import { codexToolSurfaceArgs } from "./codex-tool-surface.ts";
 import { codexShellDisabled, GUEST_CONFINED_CODEX_ARGS } from "./codex-guest.ts";
 import { TEAM_TOOLS_FAILED, teamToolsFailed } from "./team-tools.ts";
 import { enabledMcpMounts, mcpStartupTracker, supportsMcpStartup } from "./codex-mcp-startup.ts";
-import { codexMountsOwnMcpOverHttp, type McpApprovalMode, mountMcpServer, mountOwnMcpOverHttp, OWN_MCP_ENV_FAMILY } from "./codex-mcp-mount.ts";
-import { ownMcpOverHttp } from "./turn-mcp.ts";
+import { codexMountsOwnMcpOverHttp, type McpApprovalMode, mountMcpServer, OWN_MCP_ENV_FAMILY } from "./codex-mcp-mount.ts";
 import { reportUnsupportedCalls, rolloutMark, type RolloutMark } from "./codex-unsupported-calls.ts";
 // The `codex` CLI headless over its app-server JSON-RPC (NDJSON on stdio): completion is
 // `turn/completed`, approvals arrive as server→client requests, resumeCursor is the codex thread id.
@@ -135,8 +134,6 @@ export function managedCodexArgs(config: NonNullable<CodexConfig["managed"]>): s
 }
 
 const PRIVATE_ENV_FAMILIES = ["OMB_GATE_CONFIG_", "OMB_REMOTE_MCP_CONFIG_", OWN_MCP_ENV_FAMILY];
-/** The built-in mounts that may be OpenMausBot's own proxies; a person's server of the same shape stays a process. */
-const OWN_SERVERS = new Set(["agents", "browser", "data", "email", "device"]);
 const PROXY_LITERAL_ENV = ["NODE_USE_ENV_PROXY", "NO_PROXY", "no_proxy"];
 const SHELL_ESSENTIALS = new Set(["PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "TERM", "LANG", "TZ"]);
 
@@ -422,8 +419,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
       void planAuth.refuseModel(model).then(() => refreshModels(true)).catch(() => {});
     };
     // Codex's model list ships with the CLI: updating 0.155.1 to 0.162.1 in place adds gpt-6.1-sol.
-    let modelsCliVersion: string | null = null;
-    let cliVersionSeen: string | null = null;
+    let modelsCliVersion: string | null = null, cliVersionSeen: string | null = null;
     let startupModelRefresh: Promise<void> | null = null;
     if (config.managed) {
       await refreshModels();
@@ -614,18 +610,12 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
           }
           return { command: proxy.command, args: proxy.args ?? [], env: shared };
         };
-        const ownOverHttp = turn.toolScope === undefined && codexMountsOwnMcpOverHttp(cliVersionSeen);
         const mountSelected = (name: string, mountName: string, server: McpServerSpec, approval: McpApprovalMode = "auto") => {
           const selected = scopedServer(name, mountName, server);
-          const endpoint = selected && ownOverHttp && OWN_SERVERS.has(name) ? ownMcpOverHttp({ name, ...selected }) : null;
-          if (selected && endpoint) {
+          if (selected) {
             selectedMcp.set(mountName, selected);
             selectedApprovals.set(mountName, approval);
-            mountOwnMcpOverHttp(appServerArgs, env, mountName, endpoint, approval, mountedNames);
-          } else if (selected) {
-            selectedMcp.set(mountName, selected);
-            selectedApprovals.set(mountName, approval);
-            mountMcpServer(appServerArgs, env, mountName, selected, approval, literalEnvs.get(mountName), mountedNames);
+            mountMcpServer(appServerArgs, env, mountName, selected, approval, literalEnvs.get(mountName), mountedNames, turn.toolScope === undefined && codexMountsOwnMcpOverHttp(cliVersionSeen) ? name : undefined);
             if (turn.toolScope !== undefined && approval === "prompt") appServerArgs.push("-c", `mcp_servers.${mountName}.default_tools_approval_mode="prompt"`);
           }
         };
@@ -1576,8 +1566,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
       execCli(config.cli, ["--version"], { timeout: 8000, env }, (err, stdout) => resolve(versionOf(err, stdout)));
     });
     if (!("version" in probe)) return { state: "unavailable", reason: probe.reason, ...(plan ? { chatgptPlan: true } : {}) };
-    const { version } = probe;
-    cliVersionSeen = version;
+    const { version } = probe; cliVersionSeen = version;
     if (planAuth) return { state: "available", version, chatgptPlan: true, billing: "subscription", ...await planAuth.snapshot(), update: await codexReleaseUpdate(version, config.cli),
       ...(planWarning ? { warning: { title: "Check ChatGPT connection", message: planWarning } } : {}) };
     if (config.managed) return { state: "available", version, authenticated: Boolean(input.environment.OPENMAUSBOT_COMPANY_API_KEY && input.environment.CODEX_HOME), billing: "metered" };
