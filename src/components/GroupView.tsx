@@ -18,7 +18,6 @@ import {
   type GroupDefaultResponder,
   type Message,
 } from "@/state/store";
-import { TranscriptSkeleton } from "./TranscriptSkeleton";
 import { BotAvatar } from "./Avatar";
 import { ScreenFrame } from "./ScreenFrame";
 import { RoomHoldsBanner } from "./RoomHoldsBanner";
@@ -1083,7 +1082,6 @@ export function GroupView({ group: room }: { group: Group }) {
           aria-live="off"
           aria-label={t("room.aria", { name: group.name })}
         >
-          {room.transcriptLoaded === false && <TranscriptSkeleton />}
           {group.messages.length === 0 && room.transcriptLoaded !== false && (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 py-24 text-center">
               <div className="flex -space-x-2">

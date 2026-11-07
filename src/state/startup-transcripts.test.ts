@@ -35,7 +35,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function fixture() {
+async function fixture(transcripts?: (path: string) => unknown) {
   const saved = new Map<string, string>();
   vi.stubGlobal("localStorage", { getItem: (key: string) => saved.get(key) ?? null, setItem: (key: string, value: string) => saved.set(key, value) });
   localStorage.setItem(LAST_CONVERSATION_KEY, "one");
@@ -46,6 +46,7 @@ async function fixture() {
       pending.set(path, (body) => resolve(json(body)));
       init?.signal?.addEventListener("abort", () => reject(init.signal!.reason), { once: true });
     });
+    if (path.startsWith("/api/transcripts?") && transcripts) return json(transcripts(path));
     if (path === "/api/instances") return json({ instances: [] });
     if (path.startsWith("/api/routines?")) return json({ routines: [], runs: [] });
     if (path === "/api/webhooks") return json({ webhooks: [] });
@@ -189,4 +190,18 @@ it("opens a chat from the device's cache at once and confirms it with the newest
   expect(confirmed.messages.map((message) => message.id)).toEqual(["three-old", "three-preview", "three-new"]);
   expect(confirmed.messages[0]).toBe(cached[0]);
   expect(confirmed.transcriptStale).toBeUndefined();
+});
+
+it("loads every chat in one read once the snapshot lands, so opening any of them reads nothing more", async () => {
+  const page = (thread: string, ids: string[]) => ({ threadId: thread, messages: ids.map((id) => line(id)), hasMore: false, activeLeafId: ids.at(-1) });
+  const app = await fixture(() => ({ threads: [page("two-thread", ["two-history", "two-preview"]), page("three-thread", ["three-history", "three-preview"]), page("room-thread", ["room-history", "room-preview"])] }));
+  await vi.waitFor(() => expect(app.state().bots.find((owner) => owner.id === "three")!.transcriptLoaded).toBe(true));
+  const bulk = app.request.mock.calls.filter(([path]) => path.startsWith("/api/transcripts?"));
+  expect(bulk).toHaveLength(1);
+  expect(bulk[0]![0]).toBe("/api/transcripts?limit=50&threads=room-thread,three-thread,two-thread");
+  expect(app.state().bots.find((owner) => owner.id === "two")!.messages.map((message) => message.id)).toEqual(["two-history", "two-preview"]);
+  expect(app.state().groups[0]!.messages.map((message) => message.id)).toEqual(["room-history", "room-preview"]);
+  await app.select("two");
+  await app.select("room");
+  expect(app.request.mock.calls.filter(([path]) => path.startsWith("/api/threads/"))).toHaveLength(0);
 });
