@@ -2,7 +2,7 @@ import { createElement, type KeyboardEvent } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { askPrimary, AskCard, AskChoices, AskDetail, AskHeader, AskReply, AskSettledLine, ASK_SECONDARY_BUTTON, ASK_QUIET_ANSWER, moveChoiceFocus, settledAnswer } from "./AskCard";
+import { askPrimary, AskCard, AskChoices, AskDetail, AskHeader, AskReply, AskSettledLine, ASK_SECONDARY_BUTTON, ASK_QUIET_ANSWER, CARD_BUTTON_MD, CardSettledRow, cardPrimary, cardSecondary, cardTertiary, moveChoiceFocus, settledAnswer } from "./AskCard";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -79,9 +79,11 @@ describe("AskChoices", () => {
 });
 
 describe("the card's buttons", () => {
-  it("are 36px tall, 44 on touch: the answer in the asking bot's colour, the rest quiet and neutral", () => {
+  it("are 36px tall, 44 on touch: the answer in grok's ink whoever asks, the rest quiet and neutral", () => {
     const primary = askPrimary("teal");
-    expect(primary.className.split(" ")).toEqual(expect.arrayContaining(["bot-button", "min-h-9", "pointer-coarse:min-h-11"]));
+    expect(primary.className.split(" ")).toEqual(expect.arrayContaining(["ui-button-primary", "min-h-9", "pointer-coarse:min-h-11"]));
+    expect(primary.className).not.toContain("bot-button");
+    expect(primary.style).toBeUndefined();
     expect(askPrimary(undefined).className.split(" ")).toEqual(expect.arrayContaining(["ui-button-primary", "min-h-9"]));
     expect(ASK_SECONDARY_BUTTON.split(" ")).toEqual(expect.arrayContaining(["min-h-9", "pointer-coarse:min-h-11", "bg-ink/[0.07]", "text-ink"]));
     expect(ASK_SECONDARY_BUTTON).not.toContain("danger");
@@ -89,11 +91,41 @@ describe("the card's buttons", () => {
   });
 });
 
+describe("grok's card anatomy", () => {
+  it("puts a source titlebar over the title, a 20px tile and a medium 13px name, and keeps the dismiss in it", () => {
+    const html = renderToStaticMarkup(createElement(AskCard, { ariaLabel: "Key", title: "API key", explanation: "Why.", source: { icon: "K", label: "Secrets" }, onDismiss: () => {}, dismissLabel: "Not now" }));
+    expect(html).toMatch(/min-h-\[52px\][^"]*px-4 py-3\.5/);
+    expect(html).toMatch(/size-5[^"]*rounded-\[6px\][^"]*border-ink\/\[0\.06\][^"]*bg-ink\/\[0\.06\]/);
+    expect(html).toMatch(/text-\[13px\] font-medium leading-\[18px\] text-ink">Secrets</);
+    expect(html.indexOf("Secrets")).toBeLessThan(html.indexOf("API key"));
+    expect(html.indexOf('aria-label="Not now"')).toBeLessThan(html.indexOf("API key"));
+    expect(html).toMatch(/class="px-5 py-1"><p class="[^"]*text-\[15px\] font-semibold leading-\[22px\]/);
+  });
+
+  it("folds a settled card to one 52px row in the same frame, rounded 18, which opens to its detail", () => {
+    const html = renderToStaticMarkup(createElement(CardSettledRow, { icon: "K", label: "Secrets", summary: "Saved · Stripe key", title: "Stripe key", detail: "Saved securely." }));
+    expect(html).toContain('data-ask-card="settled"');
+    expect(html).toContain("rounded-[18px]");
+    expect(html).toContain("ring-ink/[0.12]");
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).toMatch(/text-ink-tertiary">Saved · Stripe key</);
+    expect(html).not.toContain("Saved securely.");
+  });
+
+  it("sizes the answers like grok: 36 for a card's own, 32 for a permission's, ink, a 6% fill, bare text", () => {
+    expect(cardPrimary().className.split(" ")).toEqual(expect.arrayContaining(["h-9", "px-4", "ui-button-primary", "pointer-coarse:h-11"]));
+    expect(cardPrimary(CARD_BUTTON_MD).className.split(" ")).toEqual(expect.arrayContaining(["h-8", "px-3.5"]));
+    expect(cardSecondary().split(" ")).toEqual(expect.arrayContaining(["bg-ink/[0.06]", "font-medium", "text-ink"]));
+    expect(cardTertiary().split(" ")).toEqual(expect.arrayContaining(["font-normal", "text-ink-secondary"]));
+    expect(cardTertiary()).not.toMatch(/(^| )bg-/);
+  });
+});
+
 describe("AskReply", () => {
-  it("is a field with a send button in the asking bot's colour, which waits for words", () => {
+  it("is a field with an ink send button, which waits for words", () => {
     const html = renderToStaticMarkup(createElement(AskReply, { label: "Answer", placeholder: "Write your answer", color: "teal", value: "", onChange: () => {}, onSend: () => {} }));
     expect(html).toContain('placeholder="Write your answer"');
-    expect(html).toMatch(/<button type="submit" disabled=""[^>]*class="[^"]*bot-button/);
+    expect(html).toMatch(/<button type="submit" disabled=""[^>]*class="[^"]*ui-button-primary/);
   });
 });
 

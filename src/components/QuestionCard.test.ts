@@ -100,11 +100,11 @@ describe("QuestionCard", () => {
     expect(html).not.toContain("Submit");
   });
 
-  it("asks an open question with a reply field and a send button in the bot's colour, no choices", () => {
+  it("asks an open question with a reply field and an ink send button, no choices", () => {
     const html = render(asked({ options: [], subtitle: "What wording should the new footer text use?" }));
     expect(html).not.toContain("data-ask-choice");
     expect(html).toContain('placeholder="Type your answer"');
-    expect(html).toMatch(/<button type="submit"[^>]*class="[^"]*bot-button/);
+    expect(html).toMatch(/<button type="submit"[^>]*class="[^"]*ui-button-primary/);
   });
 
   it("shows the model's own question and options, with their descriptions", () => {
