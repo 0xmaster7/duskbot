@@ -840,6 +840,7 @@ export function ComputerPanel({
   const desktopUnreachable = () => {
     setDecodedDesktop(null);
     setLivePreviewFailed(viewerConnectionKey);
+    setRetry(value => value + 1);
     if (takeover.here) {
       takeover.leave();
       setError(new LocalizedPanelError("computer.err.openDesktop"));

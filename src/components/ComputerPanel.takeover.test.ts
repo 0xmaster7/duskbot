@@ -17,6 +17,8 @@ const fixture = vi.hoisted(() => ({
   ready: true,
   connections: 0,
   inline: false,
+  cloudState: "running" as "running" | "stopped",
+  statusReads: 0,
   live: null as null | { target: string; expanded: boolean; onUnreachable: () => void; viewOnly?: boolean; onReadyChange?: (ready: boolean) => void },
 }));
 vi.mock("./DesktopCapabilities", async (importOriginal) => ({
@@ -26,6 +28,8 @@ vi.mock("./DesktopCapabilities", async (importOriginal) => ({
     ready: true,
   connections: 0,
   inline: false,
+  cloudState: "running" as "running" | "stopped",
+  statusReads: 0,
     capabilities: {
       host: { platform: "darwin", label: "Host", session: "unknown", packaged: true, homeDir: "/Users/me" },
       windowChrome: "native",
@@ -77,7 +81,8 @@ vi.mock("@/state/store", async (importOriginal) => ({
     }
     if (route === "/api/bots/scout/local-computer/screenshot") return { image: "data:image/png;base64,FRAME" };
     if (route === "/api/bots/scout/computer") {
-      return { configured: true, ready: true, managed: true, imageMatches: true, container: "running", problem: null, box: { state: "ready" } };
+      fixture.statusReads++;
+      return { configured: true, ready: fixture.cloudState === "running", managed: true, imageMatches: true, container: fixture.cloudState, problem: null };
     }
     if (route === "/api/bots/scout/computer/screenshot") return { png: "FRAME", format: "png" };
     if (route === "/api/bots/scout/computer/join") return { joinUrl: "https://desktop.invalid/scout" };
@@ -163,6 +168,8 @@ beforeEach(() => {
   fixture.ready = true;
   fixture.connections = 0;
   fixture.inline = false;
+  fixture.cloudState = "running";
+  fixture.statusReads = 0;
   state = { ...initialState, instances: [engine], config: { box: { configured: true } } as AppState["config"], computerControl: {} } as AppState;
   vi.stubGlobal("ogb", {
     desktopViewer: { open: vi.fn(async () => true), close: vi.fn(async () => true), onState: () => () => {}, currentState: async () => ({ open: false, contextId: null }) },
@@ -331,13 +338,34 @@ describe("taking control of other computers", () => {
     expect(fixture.controls).toEqual([]);
   });
 
+  it("refreshes a desktop that stopped after its ready status when the live watch fails", async () => {
+    fixture.inline = true;
+    await open(makeBot({ computer: "cloud" }));
+    await shownLive();
+    const reads = fixture.statusReads;
+    fixture.cloudState = "stopped";
+    flushSync(() => fixture.live!.onUnreachable());
+    await settle();
+    expect(button("Wake computer"), document.body.textContent).toBeDefined();
+    expect(document.querySelector("[data-inline-computer]")?.getAttribute("data-stage")).toBe("asleep");
+    expect(fixture.statusReads).toBe(reads + 1);
+    expect(fixture.connections).toBe(1);
+    expect(fixture.controls).toEqual([]);
+    expect(fixture.posts.filter(path => !path.endsWith("/screenshot"))).toEqual([]);
+    await settle();
+    expect(fixture.statusReads).toBe(reads + 1);
+  });
+
   it("retries the inline live watch after a connection failure without taking control", async () => {
     fixture.inline = true;
     await open(makeBot({ computer: "cloud" }));
     await shownLive();
+    const reads = fixture.statusReads;
     flushSync(() => fixture.live!.onUnreachable());
     await settle();
     expect(liveDesktop()).toBeNull();
+    expect(fixture.statusReads).toBe(reads + 1);
+    expect(fixture.connections).toBe(1);
     expect(button("Take control")).toBeUndefined();
     await press("Retry preview");
     await shownLive();
