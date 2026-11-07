@@ -17,8 +17,15 @@ export function lastPreviewable<T extends { kind: string }>(messages: readonly T
   return messages?.findLast((message) => !isReceipt(message) && message.kind !== "screen");
 }
 
-export function sidebarPreviewMessages(owner: { messages: Message[]; previewMessages?: Message[]; transcriptLoaded?: boolean }): Message[] {
-  if (owner.transcriptLoaded !== false || !owner.previewMessages?.length) return owner.messages;
+export function sidebarPreviewMessages(owner: { messages: Message[]; previewMessages?: Message[]; transcriptLoaded?: boolean; transcriptStale?: boolean }): Message[] {
+  if (!owner.previewMessages?.length) return owner.messages;
+  if (owner.transcriptStale) {
+    // a held transcript may predate the snapshot's preview: the newer of the two, by time, is the row's last line
+    const known = new Set(owner.messages.map((message) => message.id));
+    const newer = owner.previewMessages.filter((message) => !known.has(message.id));
+    return newer.length ? [...owner.messages, ...newer].sort((a, b) => a.at - b.at) : owner.messages;
+  }
+  if (owner.transcriptLoaded !== false) return owner.messages;
   const rows = new Map(owner.previewMessages.map((message) => [message.id, message]));
   for (const message of owner.messages) rows.set(message.id, message);
   return [...rows.values()];

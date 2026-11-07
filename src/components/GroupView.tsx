@@ -12,11 +12,13 @@ import {
   formatTime,
   openRoomThread,
   openThread,
+  shownTranscript,
   type Bot,
   type Group,
   type GroupDefaultResponder,
   type Message,
 } from "@/state/store";
+import { TranscriptSkeleton } from "./TranscriptSkeleton";
 import { BotAvatar } from "./Avatar";
 import { ScreenFrame } from "./ScreenFrame";
 import { RoomHoldsBanner } from "./RoomHoldsBanner";
@@ -877,7 +879,8 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
 const USAGE_ROW_GAP = 8;
 
 
-export function GroupView({ group }: { group: Group }) {
+export function GroupView({ group: room }: { group: Group }) {
+  const group = useMemo(() => shownTranscript(room), [room]);
   const { state, dispatch } = useStore();
   const remoteClient = window.ogb?.remoteClient?.active === true;
   const composerDockRef = useRef<HTMLDivElement>(null);
@@ -1080,7 +1083,8 @@ export function GroupView({ group }: { group: Group }) {
           aria-live="off"
           aria-label={t("room.aria", { name: group.name })}
         >
-          {group.messages.length === 0 && (
+          {room.transcriptLoaded === false && <TranscriptSkeleton />}
+          {group.messages.length === 0 && room.transcriptLoaded !== false && (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 py-24 text-center">
               <div className="flex -space-x-2">
                 {members.slice(0, 3).map((b) => (

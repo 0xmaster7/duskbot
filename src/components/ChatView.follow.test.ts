@@ -8,10 +8,11 @@ const fixture = vi.hoisted(() => {
   vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => {} });
   return { refs: [] as { current: unknown }[], ref: 0, effects: [] as { effect: EffectCallback; deps?: DependencyList }[] };
 });
-// Server rendering runs no effects: record them, and keep refs across renders as a mounted component would.
+// Server rendering runs no effects: record them (layout ones too), and keep refs across renders as a mounted component would.
 vi.mock("react", async (original) => ({
   ...await original<typeof import("react")>(),
   useEffect: (effect: EffectCallback, deps?: DependencyList) => { fixture.effects.push({ effect, deps }); },
+  useLayoutEffect: (effect: EffectCallback, deps?: DependencyList) => { fixture.effects.push({ effect, deps }); },
   useRef: (initial: unknown) => (fixture.refs[fixture.ref++] ??= { current: initial }),
 }));
 vi.mock("@/state/store", async (importOriginal) => {

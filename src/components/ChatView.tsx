@@ -15,6 +15,7 @@ import { rememberComputerPanelOpen } from "@/lib/computer-panel-focus";
 import { useCaptionChrome, useDesktopCapabilities } from "@/components/DesktopCapabilities";
 import {
   currentTaskBot,
+  shownTranscript,
   useStore,
   formatTime,
   openRoomThread,
@@ -89,7 +90,7 @@ import { AttachmentGallery, collectMessageFiles, replyAttachmentGroup, splitMess
 import { ScreenFrame } from "./ScreenFrame";
 import { DigestChip } from "./DigestChip";
 import { ChatHeadRole, chiefOfStaffBadge } from "./BotRole";
-import { ChatHeadPill } from "./ChatHeadPill"; import { useStoreRef } from "@/state/store-ref";
+import { ChatHeadPill } from "./ChatHeadPill"; import { TranscriptSkeleton } from "./TranscriptSkeleton"; import { useStoreRef } from "@/state/store-ref";
 import { ELEVATED_FLOAT, ELEVATED_HOVER } from "./elevated";
 import { ModelPicker } from "./ModelPicker";
 import { ChatHeaderMenu, ChatMoreMenu } from "./ChatMoreMenu"; import { TeamOwnHelperHeader, TeamPrivateFirstLine, TeamPrivateHeader, TeamSharedHeader } from "./TeamPrivateChatsLine";
@@ -895,7 +896,8 @@ const MessagesList = memo(function MessagesList({
 });
 
 export function ChatView({ bot: profile }: { bot: Bot }) {
-  const bot = useMemo(() => currentTaskBot(profile), [profile]);
+  const bot = useMemo(() => shownTranscript(currentTaskBot(profile)), [profile]);
+  const transcriptPending = profile.transcriptLoaded === false;
   const { state, dispatch } = useStore();
   const showThreads = useShowThreads();
   const remoteClient = window.ogb?.remoteClient?.active === true;
@@ -1207,6 +1209,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           // grok leaves 54px between the last row and the composer: its 52px trailing inset and the row's own 2px
           style={{ paddingBottom: `calc(${composerDock.pad} + ${SIMPLE_TRAILING_GAP - (statusSlot ? SIMPLE_STATUS_SLOT : 0)}px)` }}
           role="log"
+          aria-busy={transcriptPending || undefined}
           // focusable like grok's transcript, so the keyboard can scroll it
           tabIndex={0}
           // off: a polite log re-reads every tick and chip while the bot works; TranscriptAnnouncer speaks once when
@@ -1222,7 +1225,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           ) : hiddenCount > 0 || bot.hasMore ? (
             <div ref={topSentinelRef} className="h-2 w-full pointer-events-none" aria-hidden="true" />
           ) : null}
-          {windowedMessages.length === 0 && !bot.busy && <EmptyChat bot={bot} />}
+          {transcriptPending ? <TranscriptSkeleton /> : windowedMessages.length === 0 && !bot.busy && <EmptyChat bot={bot} />}
           <ChatRowsContext.Provider value={rows}><LiveToolsContext value={liveTools}><ChatBusyContext value={busy}><FoldedNoticesContext value={folded}>
             <MessagesList
               messages={paintedMessages}

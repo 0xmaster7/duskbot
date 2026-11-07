@@ -1,0 +1,209 @@
+import { foldSnapshotOntoStreamed } from "./room-frames";
+import type { Message } from "./store";
+
+/** A conversation's messages as this device last saw them. */
+export interface CachedTranscript {
+  threadId: string;
+  messages: Message[];
+  hasMore: boolean;
+  activeLeafId: string | null;
+  savedAt: number;
+}
+
+export const CACHED_THREADS = 30;
+export const CACHED_BYTES = 8 * 1024 * 1024;
+export const CACHED_THREAD_BYTES = 512 * 1024;
+export const CACHED_MESSAGES = 200;
+const CACHED_TOOL_OUTPUT = 1_000;
+
+const sameMessage = (a: Message, b: Message) => a === b || JSON.stringify(a) === JSON.stringify(b);
+
+/** `incoming`, holding on to each message of `current` it did not change, so rows keyed on them do not draw again. */
+export function reuseMessages(current: readonly Message[], incoming: readonly Message[]): Message[] {
+  if (!current.length) return incoming as Message[];
+  const held = new Map(current.map((message) => [message.id, message]));
+  let changed = incoming.length !== current.length;
+  const merged = incoming.map((message, index) => {
+    const before = held.get(message.id);
+    const kept = before && sameMessage(before, message) ? before : message;
+    if (kept !== current[index]) changed = true;
+    return kept;
+  });
+  return changed ? merged : (current as Message[]);
+}
+
+/** A cached transcript brought up to date by the newest page: messages the page covers come from it (or from what
+ * streamed in while it was on its way), older cached history it does not reach stays above it, and every message
+ * that did not change keeps its object. */
+export function reconcileTranscript(
+  current: readonly Message[],
+  heldAtStart: ReadonlySet<Message>,
+  page: readonly Message[],
+  pageHasMore: boolean,
+  currentHasMore: boolean | undefined,
+): { messages: Message[]; hasMore: boolean } {
+  const folded = foldSnapshotOntoStreamed(current, heldAtStart, page);
+  const anchor = page.length ? current.findIndex((message) => message.id === page[0]!.id) : -1;
+  const pageIds = new Set(page.map((message) => message.id));
+  const older = pageHasMore && anchor > 0 ? current.slice(0, anchor).filter((message) => !pageIds.has(message.id)) : [];
+  return {
+    messages: reuseMessages(current, [...older, ...folded]),
+    hasMore: older.length ? Boolean(currentHasMore) || pageHasMore : pageHasMore,
+  };
+}
+
+function storable(message: Message): Message {
+  const output = message.tool?.output;
+  if (message.kind !== "activity" || output === undefined || output.length <= CACHED_TOOL_OUTPUT || message.relay || message.roomRequest || message.comm || message.threadRef) return message;
+  return { ...message, tool: { ...message.tool!, output: output.slice(0, CACHED_TOOL_OUTPUT), clipped: true } };
+}
+
+/** What of a transcript is worth keeping on disk: its newest messages, within a size budget. */
+export function cacheEntry(threadId: string, messages: readonly Message[], hasMore: boolean | undefined, activeLeafId: string | null | undefined, savedAt: number): CachedTranscript & { bytes: number } {
+  let kept = messages.slice(-CACHED_MESSAGES).filter((message) => !message.id.startsWith("optimistic-")).map(storable);
+  let bytes = JSON.stringify(kept).length;
+  while (bytes > CACHED_THREAD_BYTES && kept.length > 1) {
+    kept = kept.slice(Math.ceil(kept.length / 4));
+    bytes = JSON.stringify(kept).length;
+  }
+  return { threadId, messages: kept, hasMore: Boolean(hasMore) || kept.length < messages.length, activeLeafId: activeLeafId ?? null, savedAt, bytes };
+}
+
+/** Where cached transcripts live between launches. */
+export interface TranscriptShelf {
+  read(): Promise<Array<CachedTranscript & { bytes: number }>>;
+  write(put: ReadonlyArray<CachedTranscript & { bytes: number }>, remove: readonly string[]): Promise<void>;
+}
+
+const DB = "omb-transcripts";
+const STORE = "threads";
+
+function request<T>(req: IDBRequest<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export function indexedDbShelf(factory: IDBFactory | undefined = globalThis.indexedDB): TranscriptShelf | null {
+  if (!factory) return null;
+  let opened: Promise<IDBDatabase> | null = null;
+  const open = () => opened ??= new Promise<IDBDatabase>((resolve, reject) => {
+    const req = factory.open(DB, 1);
+    req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE, { keyPath: "threadId" }); };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return {
+    async read() {
+      const db = await open();
+      return request(db.transaction(STORE, "readonly").objectStore(STORE).getAll()) as Promise<Array<CachedTranscript & { bytes: number }>>;
+    },
+    async write(put, remove) {
+      const db = await open();
+      const tx = db.transaction(STORE, "readwrite");
+      const store = tx.objectStore(STORE);
+      for (const entry of put) store.put(entry);
+      for (const threadId of remove) store.delete(threadId);
+      await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+    },
+  };
+}
+
+/** The device's transcript cache: what each conversation last showed, kept current by the store, and the newest
+ * {@link CACHED_THREADS} of them saved to the shelf a moment after they change. Saving starts once
+ * {@link setEnabled} says the workspace is this person's own. */
+export function createTranscriptCache(shelf: TranscriptShelf | null, { delayMs = 1_500, now = Date.now }: { delayMs?: number; now?: () => number } = {}) {
+  const memory = new Map<string, CachedTranscript>();
+  const saved = new Map<string, CachedTranscript>();
+  const dirty = new Set<string>();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let writing: Promise<void> = Promise.resolve();
+  let enabled = false;
+
+  const loaded: Promise<void> = shelf
+    ? shelf.read().then((entries) => {
+      for (const entry of entries) {
+        if (!entry || typeof entry.threadId !== "string" || !Array.isArray(entry.messages)) continue;
+        saved.set(entry.threadId, entry);
+        if (!memory.has(entry.threadId)) memory.set(entry.threadId, entry);
+      }
+    }, () => undefined)
+    : Promise.resolve();
+
+  const flush = (): Promise<void> => {
+    timer = undefined;
+    if (!shelf || !enabled) return writing;
+    const candidates: Array<CachedTranscript & { bytes: number }> = [];
+    let used = 0;
+    for (const entry of [...memory.values()].sort((a, b) => b.savedAt - a.savedAt)) {
+      if (candidates.length >= CACHED_THREADS) break;
+      const stored = saved.get(entry.threadId) === entry && "bytes" in entry
+        ? entry as CachedTranscript & { bytes: number }
+        : cacheEntry(entry.threadId, entry.messages, entry.hasMore, entry.activeLeafId, entry.savedAt);
+      if (used + stored.bytes > CACHED_BYTES) continue;
+      candidates.push(stored);
+      used += stored.bytes;
+    }
+    const keep = new Set(candidates.map((entry) => entry.threadId));
+    const put = candidates.filter((entry) => dirty.has(entry.threadId) || !saved.has(entry.threadId));
+    const remove = [...saved.keys()].filter((threadId) => !keep.has(threadId));
+    dirty.clear();
+    for (const threadId of remove) saved.delete(threadId);
+    for (const entry of put) saved.set(entry.threadId, memory.get(entry.threadId) ?? entry);
+    if (!put.length && !remove.length) return writing;
+    writing = writing.then(() => shelf.write(put, remove)).catch(() => {});
+    return writing;
+  };
+  const schedule = () => {
+    if (!shelf || !enabled || timer !== undefined) return;
+    timer = setTimeout(flush, delayMs);
+  };
+
+  return {
+    /** Resolves once the shelf has been read; what it held is then in {@link get}. */
+    loaded,
+    get(threadId: string): CachedTranscript | undefined {
+      return memory.get(threadId);
+    },
+    /** A conversation's current messages. The same array again changes nothing. */
+    remember(threadId: string, messages: Message[], hasMore: boolean | undefined, activeLeafId: string | null | undefined) {
+      const before = memory.get(threadId);
+      if (before?.messages === messages && before.activeLeafId === (activeLeafId ?? null) && before.hasMore === Boolean(hasMore)) return;
+      if (!messages.length) return;
+      memory.set(threadId, { threadId, messages, hasMore: Boolean(hasMore), activeLeafId: activeLeafId ?? null, savedAt: now() });
+      dirty.add(threadId);
+      schedule();
+    },
+    /** Marks a conversation as just opened, so it is among the last to leave the shelf. */
+    touch(threadId: string) {
+      const entry = memory.get(threadId);
+      if (!entry) return;
+      memory.set(threadId, { ...entry, savedAt: now() });
+      dirty.add(threadId);
+      schedule();
+    },
+    /** Off on a shared workspace, where what one person was shown must never wait on disk for the next: that also
+     * empties the shelf. */
+    setEnabled(next: boolean) {
+      if (next === enabled) return;
+      enabled = next;
+      if (next) {
+        schedule();
+        return;
+      }
+      if (timer !== undefined) clearTimeout(timer);
+      timer = undefined;
+      const remove = [...saved.keys()];
+      saved.clear();
+      if (shelf && remove.length) writing = writing.then(() => shelf.write([], remove)).catch(() => {});
+    },
+    flush,
+  };
+}
+
+export type TranscriptCache = ReturnType<typeof createTranscriptCache>;
