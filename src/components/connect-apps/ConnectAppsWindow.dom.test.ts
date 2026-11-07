@@ -48,7 +48,7 @@ vi.mock("@/lib/mcp-servers", () => ({ useMcpServers: () => ({ servers: [], error
 vi.mock("../McpServersPanel", () => ({ McpServersPanel: () => null }));
 vi.mock("../XCard", () => ({ XCard: () => null }));
 vi.mock("../EmailCard", () => ({ EmailCard: () => null }));
-vi.mock("../PluginsPanel", () => ({ botsUsingService: () => [], connectorSetupNotice: () => null, disconnectAccountConfirmation: () => ({ title: "", body: "", confirmLabel: "" }) }));
+vi.mock("./connector-helpers", () => ({ botsUsingService: () => [], connectorSetupNotice: () => null }));
 
 import { ConnectAppsWindow } from "./ConnectAppsWindow";
 import { ApiError } from "@/state/api";

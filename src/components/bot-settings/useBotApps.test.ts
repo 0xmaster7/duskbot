@@ -1,8 +1,7 @@
 import { afterAll, describe, expect, it, vi } from "vitest";
 
-import type { ToolkitCard } from "../PluginsPanel";
+import type { ToolkitCard } from "../ServiceIcon";
 
-// PluginsPanel reads `window` when it loads; the src suite runs without one.
 vi.hoisted(() => {
   vi.stubGlobal("window", {});
   vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => {} });

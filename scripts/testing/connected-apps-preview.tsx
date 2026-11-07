@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ConnectorCard } from "../../src/components/ConnectorCard";
-import { PluginsPanel } from "../../src/components/PluginsPanel";
-import { StoreProvider, useStore, type Message } from "../../src/state/store";
+import { ConnectAppsHost, openConnectApps } from "../../src/components/connect-apps";
+import { StoreProvider, type Message } from "../../src/state/store";
 import { applySkin, readSkin } from "../../src/lib/skins";
 import "../../src/styles.css";
 
 // Only the disposable OAuth recipe serves this entry; production components
 // stay mounted, while these controls simulate a server card update/deletion.
 function Preview() {
-  const { state, dispatch } = useStore();
-  const [target, setTarget] = useState(1);
+    const [target, setTarget] = useState(1);
   const [status, setStatus] = useState<"required" | "authorizing" | "failed">("required");
   const [error, setError] = useState<string | undefined>();
   const [showCard, setShowCard] = useState(true);
@@ -20,7 +19,7 @@ function Preview() {
   };
   return <main className="mx-auto max-w-4xl space-y-6 p-8">
     <nav className="flex flex-wrap gap-4">
-      <button onClick={() => dispatch({ type: "togglePlugins", open: true, surface: "apps" })}>Settings Apps</button>
+      <button onClick={() => openConnectApps()}>Settings Apps</button>
       <button onClick={() => setStatus("authorizing")}>Card authorizing</button>
       <button onClick={() => setStatus("failed")}>Card failed</button>
       <button onClick={() => { setStatus("failed"); setError("Add an account alias so the existing connection is not replaced"); }}>Card needs label</button>
@@ -28,7 +27,7 @@ function Preview() {
       <button onClick={() => setShowCard(false)}>Remove card</button>
     </nav>
     {showCard && <ConnectorCard botId="fixture-bot" threadId={`thread-${target}`} message={message} />}
-    {state.pluginsOpen && <PluginsPanel />}
+    <ConnectAppsHost />
   </main>;
 }
 

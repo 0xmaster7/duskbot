@@ -17,7 +17,7 @@ import { McpServersPanel } from "../McpServersPanel";
 import { XCard } from "../XCard";
 import { EmailCard } from "../EmailCard";
 import { openKeySettings } from "../keys/key-focus";
-import { botsUsingService } from "../PluginsPanel";
+import { botsUsingService } from "./connector-helpers";
 import { AppRow, AppTile, GlyphTile, type RowAction } from "./AppRow";
 import { AppFacts, AppPage, appFacts, type AppPageModel, type Way } from "./AppPage";
 import { OnePasswordBody } from "./OnePasswordBody";

@@ -29,7 +29,7 @@ it("keeps asking after any other failure", async () => {
 
 it("asks for the connected apps once, and answers a refused session's later reads from that", async () => {
   api.mockRejectedValue(refusal());
-  const { preloadConnectedApps } = await import("@/components/PluginsPanel");
+  const { preloadConnectedApps } = await import("@/lib/connected-apps");
   expect(await preloadConnectedApps()).toEqual({ services: {}, authoritative: true, refused: true });
   expect(await preloadConnectedApps(true)).toEqual({ services: {}, authoritative: true, refused: true });
   expect(api).toHaveBeenCalledTimes(1);
