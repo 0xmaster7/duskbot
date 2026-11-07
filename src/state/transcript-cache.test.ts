@@ -51,17 +51,17 @@ function memoryShelf(initial: Array<CachedTranscript & { bytes: number }> = []) 
   };
 }
 
-it("saves nothing until the workspace is known to be the person's own, then only the newest 30", async () => {
+it("saves nothing until the workspace is known to be the person's own, then only the newest it keeps", async () => {
   const { stored, shelf } = memoryShelf();
   let clock = 0;
   const cache = createTranscriptCache(shelf, { delayMs: 0, now: () => (clock += 1) });
-  for (let index = 0; index < 35; index += 1) cache.remember(`t${index}`, [line(`m${index}`)], false, null);
+  for (let index = 0; index < CACHED_THREADS + 5; index += 1) cache.remember(`t${index}`, [line(`m${index}`)], false, null);
   await cache.flush();
   expect(stored.size).toBe(0);
   cache.setEnabled(true);
   await cache.flush();
   expect(stored.size).toBe(CACHED_THREADS);
-  expect(stored.has("t34")).toBe(true);
+  expect(stored.has(`t${CACHED_THREADS + 4}`)).toBe(true);
   expect(stored.has("t0")).toBe(false);
   cache.touch("t0");
   await cache.flush();

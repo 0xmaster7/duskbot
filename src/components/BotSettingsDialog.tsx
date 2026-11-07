@@ -3,7 +3,6 @@ import { useEffect, useRef } from "react";
 import { useStore, type Bot } from "@/state/store";
 import { useBotSettingsDerived } from "./bot-settings/useBotSettingsDerived";
 import { BotPanel } from "./bot-panel/PanelShell";
-import { rememberPanelBot } from "./bot-panel/PanelPlaceholder";
 import { BOT_PANEL_ID, sidePanelCls } from "./bot-panel/side-panel";
 
 export function BotSettingsDialog({ bot, overlay = false }: {
@@ -16,11 +15,6 @@ export function BotSettingsDialog({ bot, overlay = false }: {
   const dialogRef = useRef<HTMLElement | null>(null);
   const collapsed = !state.botSettingsExpandAccordion;
   const linkedSection = !collapsed && !state.botSettingsExpandRemembered ? section : null;
-
-  const { id, name, color, mascotBody, mascotFaceColor } = bot;
-  useEffect(() => {
-    rememberPanelBot({ id, name, color, mascotBody, mascotFaceColor });
-  }, [id, name, color, mascotBody, mascotFaceColor]);
 
   useEffect(() => {
     if (collapsed) return;
