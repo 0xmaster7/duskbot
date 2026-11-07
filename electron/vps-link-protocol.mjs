@@ -481,8 +481,11 @@ export function createRelayClient({ base, fetch: fetchImpl = fetch }) {
 
 /** a relay stream still open this long after the direct path came up moves over (an event stream reconnects by itself) */
 const MOVE_AFTER_MS = 3000;
-/** a websocket (the live desktop) opened while the direct path is dialling waits this long for it before taking the relay */
-const UPGRADE_HOLD_MS = 4000;
+/**
+ * a websocket (the live desktop) opened while the direct path is dialling waits this long for it before taking the relay;
+ * once a dial failed on this network it waits for nothing
+ */
+export const UPGRADE_HOLD_MS = 700;
 
 /** the relay's tcp socket, with what this computer sends kept under a lossy vpn's real mtu once it connects */
 function clampedDial(host, port) {
@@ -711,10 +714,10 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
     if (closed) { socket.end("HTTP/1.1 502 Bad Gateway\r\ncontent-length: 0\r\nconnection: close\r\n\r\n"); return; }
     socket.setNoDelay(true);
     // the live desktop is long-lived and moving it means a reconnect: worth a short wait for the direct path
-    const dialling = direct && !direct.ready() && ["connecting", "up"].includes(direct.state());
+    const dialling = direct && !direct.ready() && !direct.failing?.() && ["connecting", "up"].includes(direct.state());
     if (!dialling) { upgradeVia(req, socket, head, pick()); return; }
     socket.pause();
-    void direct.whenUp(UPGRADE_HOLD_MS).then(() => { if (!socket.destroyed && !closed) { socket.resume(); upgradeVia(req, socket, head, pick()); } else socket.destroy(); });
+    void direct.whenUp(UPGRADE_HOLD_MS).then(() => { if (!socket.destroyed && !closed) upgradeVia(req, socket, head, pick()); else socket.destroy(); });
   }
 
   function upgradeVia(req, socket, head, via) {
@@ -744,7 +747,8 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
           for (const one of Array.isArray(value) ? value : [value]) if (/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(name) && !/[\r\n]/.test(String(one))) lines.push(`${name}: ${one}`);
         }
         socket.write(`${lines.join("\r\n")}\r\n\r\n`);
-        if (open) socket.on("data", read);
+        // a socket held for the direct path was paused, and what it buffered meanwhile is read only from here on
+        if (open) { socket.on("data", read); socket.resume(); }
       },
       data: (chunk) => {
         if (socket.writableLength + chunk.length > RECEIVE_HIGH) {
