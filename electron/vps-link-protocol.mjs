@@ -326,7 +326,11 @@ export function createRelayClient({ base, fetch: fetchImpl = fetch }) {
  * the app's end of the relay tunnel: a loopback http server at http://vps-<id>.localhost:<port> whose requests travel to
  * the vps sealed, and whose replies stream back the same way. only that host name is served.
  */
-export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS }) {
+/**
+ * `egress`: makes this app's end of "route traffic through this computer" (vps-link-egress.mjs createEgressEndpoint) from
+ * the tunnel's stream api; without it the vps's stream requests go unanswered.
+ */
+export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS, egress: makeEgress = null }) {
   const fetchImpl = given ?? keepAliveFetch();
   const stream = streamChoice();
   let unwarm = () => {};
@@ -364,8 +368,10 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
     for (const entry of waiting.values()) entry.fail(message);
     waiting.clear();
   }
+  const egress = makeEgress?.({ send: emit, bytes: (r, chunk) => outbox.bytes(r, chunk), queued: () => outbox.size, onDrain: (resume) => outbox.onDrain(resume), log }) ?? null;
 
   function deliver(frame) {
+    if (egress?.handle(frame)) return;
     const entry = waiting.get(frame.r);
     if (!entry) return;
     entry.touch();
@@ -529,6 +535,7 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
       await new Promise((resolve) => { v6.once("error", () => resolve()); v6.listen(listeningPort, "::1", () => { server6 = v6; resolve(); }); });
       if (!given) unwarm = fetchImpl.warm(base);
       void poll();
+      egress?.start();
       return `http://${host}:${listeningPort}`;
     },
     /** a request for the agent itself (credentials, pausing the server), answered over the same sealed tunnel */
@@ -544,6 +551,8 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
       });
     },
     async close() {
+      // the goodbye gets a moment to leave, so the vps stops routing through this computer at once
+      if (egress && !closed) { egress.close(); await sleep(300); }
       closed = true;
       abort.abort();
       unwarm();

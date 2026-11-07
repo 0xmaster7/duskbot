@@ -6075,5 +6075,11 @@
   "server.botDesktop.building": "サーバーでボットのコンピューターを準備しています。アップデートごとに一度だけで、通常は数分かかります。",
   "computer.botWaking": "{name}が起きています",
   "seal.untrusted": "このサーバーは、このアプリがリンクしたサーバーであることを証明できなかったため、何も送信しませんでした。再インストールした場合は、もう一度リンクしてください。",
-  "server.connect.loginNote": "{bot} がサイトに代わりに入力し、パスワードを見ることはありません。"
+  "server.connect.loginNote": "{bot} がサイトに代わりに入力し、パスワードを見ることはありません。",
+  "routeTraffic.title": "このコンピュータ経由で通信する",
+  "routeTraffic.titleWeb": "あなたのコンピュータ経由で通信する",
+  "routeTraffic.hint": "ボットのコンピュータのネットワーク通信を、クラウドではなくあなたのデスクトップコンピュータ経由で送ります。新しい接続から適用されます。",
+  "routeTraffic.through": "あなたのコンピュータ経由。新しい接続から適用されます。",
+  "routeTraffic.offline": "サーバーのネットワークを使用中。コンピュータがオフラインです",
+  "routeTraffic.error": "保存できませんでした。もう一度お試しください。"
 }

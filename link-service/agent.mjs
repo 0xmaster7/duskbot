@@ -3,13 +3,16 @@
 //   node agent.mjs link     (maus)  mint a pairing code, seal it for the app, report the result, write tunnel.json
 //   node agent.mjs tunnel   (maus)  the steady-state relay: requests from the app, sealed end to end, to 127.0.0.1:8799
 // standalone on purpose: node's own modules only, one file the link service serves at /agent.mjs.
+// it also lends the bot computers on this server the app's own internet connection when the person turns on "route
+// traffic through this computer": a socks5 and http connect proxy on the bot computers' bridge (see createEgressProxy).
 import { createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes } from "node:crypto";
 import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { BlockList, createServer as createTcpServer } from "node:net";
 import { Agent as HttpAgent, createServer, request as httpRequest } from "node:http";
 import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
 import { Readable } from "node:stream";
 import { connect as tlsConnect } from "node:tls";
-import { homedir, hostname } from "node:os";
+import { homedir, hostname, networkInterfaces } from "node:os";
 import { dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
@@ -455,7 +458,262 @@ export async function control(op, data) {
   throw new Error("unknown request");
 }
 
-export function createTunnelAgent({ base, id, key: keyText, token, server = SERVER, fetchImpl: given, log = (line) => console.error(line), stallMs = STREAM_STALL_MS }) {
+// ---- egress ----
+
+/** the bridge every bot computer joins (shared/bot-desktop.ts BOT_DESKTOP_BRIDGE) and the proxy's port on it */
+export const EGRESS_BRIDGE = "omb-desk0";
+export const EGRESS_PORT = Number(process.env.LINK_EGRESS_PORT) || 3129;
+/** the app says hello every 15 s while it takes streams; three missed and this server uses its own network again */
+const EGRESS_SEEN_MS = 40_000;
+const EGRESS_DIAL_MS = 5000;
+const EGRESS_QUEUE_HIGH = 1024 * 1024;
+const EGRESS_HEAD_MAX = 8 * 1024;
+/**
+ * socks5 replies. chromium 156 falls back to a direct connection on every failure reply and then skips the proxy for
+ * minutes, so only "this computer cannot take it" fails that way; a destination this computer refuses or cannot reach
+ * gets a success reply and an immediate close, which fails only that request.
+ */
+const SOCKS = { ok: 0, failure: 1, notAllowed: 2, unreachable: 4, refused: 5, command: 7, address: 8 };
+
+/** the bridge's own ipv4 address and subnet, or null while docker has not made it */
+export function bridgeAddress(name = EGRESS_BRIDGE, interfaces = networkInterfaces()) {
+  const entry = (interfaces[name] ?? []).find((one) => one.family === "IPv4" || one.family === 4);
+  if (!entry) return null;
+  const [network, bits] = String(entry.cidr ?? `${entry.address}/24`).split("/");
+  const subnet = new BlockList();
+  subnet.addSubnet(network, Number(bits), "ipv4");
+  return { host: entry.address, subnet };
+}
+
+function socksReply(code) { return Buffer.from([5, code, 0, 1, 0, 0, 0, 0, 0, 0]); }
+
+/** reads a socks5 connect or an http connect off `socket`: `{ host, port, rest, reply(ok, code) }`, or null */
+function readProxyHandshake(socket) {
+  return new Promise((resolve) => {
+    let buffered = Buffer.alloc(0), stage = "first", done = false;
+    const finish = (value) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      socket.off("data", onData);
+      socket.off("end", gone);
+      socket.off("close", gone);
+      socket.pause();
+      resolve(value);
+    };
+    const gone = () => finish(null);
+    const timer = setTimeout(() => { socket.destroy(); finish(null); }, 10_000);
+    const onData = (chunk) => {
+      buffered = Buffer.concat([buffered, chunk]);
+      if (buffered.length > EGRESS_HEAD_MAX) { socket.destroy(); return finish(null); }
+      if (stage === "first") {
+        if (buffered[0] === 5) stage = "socks-hello";
+        else if (buffered[0] === 0x43) stage = "http";
+        else { socket.destroy(); return finish(null); }
+      }
+      if (stage === "socks-hello") {
+        if (buffered.length < 2 || buffered.length < 2 + buffered[1]) return;
+        const methods = buffered.subarray(2, 2 + buffered[1]);
+        buffered = buffered.subarray(2 + methods.length);
+        if (!methods.includes(0)) { socket.end(Buffer.from([5, 0xff])); return finish(null); }
+        socket.write(Buffer.from([5, 0]));
+        stage = "socks-request";
+      }
+      if (stage === "socks-request") {
+        if (buffered.length < 5) return;
+        const [version, command, , type] = buffered;
+        let host, at;
+        if (type === 1) { if (buffered.length < 10) return; host = [...buffered.subarray(4, 8)].join("."); at = 8; }
+        else if (type === 3) { const size = buffered[4]; if (buffered.length < 5 + size + 2) return; host = buffered.toString("latin1", 5, 5 + size); at = 5 + size; }
+        else if (type === 4) {
+          if (buffered.length < 22) return;
+          const groups = [];
+          for (let i = 4; i < 20; i += 2) groups.push(buffered.readUInt16BE(i).toString(16));
+          host = groups.join(":"); at = 20;
+        } else { socket.end(socksReply(SOCKS.address)); return finish(null); }
+        if (version !== 5 || command !== 1) { socket.end(socksReply(SOCKS.command)); return finish(null); }
+        const port = buffered.readUInt16BE(at);
+        return finish({ host, port, rest: buffered.subarray(at + 2), reply: (ok, code) => socket.write(socksReply(ok ? SOCKS.ok : code ?? SOCKS.failure)), fail: () => socket.end(socksReply(SOCKS.ok)) });
+      }
+      if (stage === "http") {
+        const end = buffered.indexOf("\r\n\r\n");
+        if (end < 0) return;
+        const line = buffered.toString("latin1", 0, buffered.indexOf("\r\n"));
+        const match = /^CONNECT (\[[0-9a-f:.]+\]|[^\s:]+):(\d{1,5}) HTTP\/1\.[01]$/i.exec(line);
+        if (!match) { socket.end("HTTP/1.1 405 Method Not Allowed\r\ncontent-length: 0\r\nconnection: close\r\n\r\n"); return finish(null); }
+        return finish({
+          host: match[1].replace(/^\[|\]$/g, ""), port: Number(match[2]), rest: buffered.subarray(end + 4),
+          reply: (ok, code) => socket.write(ok ? "HTTP/1.1 200 Connection Established\r\n\r\n"
+            : `HTTP/1.1 ${code === SOCKS.notAllowed ? "403 Forbidden" : "502 Bad Gateway"}\r\ncontent-length: 0\r\nconnection: close\r\n\r\n`),
+          fail: (code) => socket.end(`HTTP/1.1 ${code === SOCKS.notAllowed ? "403 Forbidden" : "502 Bad Gateway"}\r\ncontent-length: 0\r\nconnection: close\r\n\r\n`),
+        });
+      }
+    };
+    socket.on("data", onData);
+    socket.once("end", gone);
+    socket.once("close", gone);
+  });
+}
+
+const egressCode = (code) => (code === "port" || code === "home-network" || code === "loopback" || code === "metadata" || code === "link-local" || code === "reserved"
+  ? SOCKS.notAllowed : code === "refused" ? SOCKS.refused : code === "unreachable" ? SOCKS.unreachable : SOCKS.failure);
+
+/**
+ * the server's half of "route traffic through this computer": a proxy the bot computers reach on their bridge, whose
+ * connections the app opens from the person's own computer. it rides any tunnel with the stream api `send(frame)`,
+ * `bytes(r, chunk)`, `queued()` and `onDrain(fn)`, and takes the app's frames through `handle(frame)`.
+ * Security: it never connects anywhere itself (a box reaching this host must not get past the host fence), only
+ * answers on the bridge, and refuses the bridge's own address so processes on this host cannot use it. the app checks
+ * every destination again on its side.
+ */
+export function createEgressProxy({
+  send, bytes, queued, onDrain, log = () => {}, now = Date.now,
+  bind = () => bridgeAddress(), port = EGRESS_PORT, report = null, reportMs = 5000, dialMs = EGRESS_DIAL_MS,
+}) {
+  const streams = new Map();
+  let seenAt = 0, ready = false, enabled = report === null, server = null, listening = null, timer = null, stopped = false;
+  const stats = { relayed: 0, refused: 0, fallbacks: 0 };
+  const online = () => ready && now() - seenAt < EGRESS_SEEN_MS;
+  const randomId = () => Array.from(randomBytes(12), (byte) => "abcdefghijklmnopqrstuvwxyz234567"[byte & 31]).join("");
+
+  function forget(r, tell) {
+    const entry = streams.get(r);
+    if (!entry) return;
+    streams.delete(r);
+    clearTimeout(entry.timer);
+    entry.settle?.({ ok: false, code: "closed" });
+    entry.socket.destroy();
+    if (tell) send({ t: "cancel", r });
+  }
+
+  /** the app went away: its streams are dead, so their browsers see the close now instead of waiting */
+  function gone() {
+    ready = false;
+    for (const [r, entry] of streams) {
+      if (entry.settle) { const settle = entry.settle; entry.settle = null; clearTimeout(entry.timer); settle({ ok: false, code: "closed" }); }
+      else if (entry.relaying) forget(r, false);
+    }
+  }
+
+  async function accept(socket, allowed) {
+    socket.on("error", () => {});
+    const remote = String(socket.remoteAddress ?? "").replace(/^::ffff:/, "");
+    if (!allowed(remote)) { socket.destroy(); return; }
+    const asked = await readProxyHandshake(socket);
+    if (!asked || stopped) { socket.destroy(); return; }
+    const fallBack = () => { stats.refused += 1; stats.fallbacks += 1; asked.reply(false, SOCKS.failure); socket.end(); };
+    if (!enabled || !online()) return fallBack();
+    const r = randomId();
+    const answer = await new Promise((settle) => {
+      const entry = { socket, settle, endSent: false, timer: setTimeout(() => {
+        // the app did not answer in time: it is asleep or gone, so new connections go direct until it says hello again
+        log("egress: the app did not answer; bot computers use this server's own network until it is back");
+        entry.settle = null;
+        settle({ ok: false, code: "timeout" });
+        gone();
+      }, dialMs) };
+      streams.set(r, entry);
+      send({ t: "dial", r, host: asked.host, port: asked.port });
+    });
+    const entry = streams.get(r);
+    if (!answer.ok || !entry) {
+      if (entry) { streams.delete(r); clearTimeout(entry.timer); if (answer.code === "timeout") send({ t: "cancel", r }); }
+      if (answer.code === "timeout" || answer.code === "busy" || answer.code === "closed") return fallBack();
+      stats.refused += 1;
+      return asked.fail(egressCode(answer.code));
+    }
+    stats.relayed += 1;
+    entry.relaying = true;
+    asked.reply(true);
+    if (asked.rest.length) bytes(r, asked.rest);
+    socket.setNoDelay(true);
+    socket.on("data", (chunk) => {
+      if (streams.get(r) !== entry) return;
+      bytes(r, chunk);
+      if (queued() >= EGRESS_QUEUE_HIGH) { socket.pause(); onDrain(() => { if (streams.get(r) === entry) socket.resume(); }); }
+    });
+    socket.on("end", () => { if (streams.get(r) === entry) { entry.endSent = true; send({ t: "end", r }); } });
+    socket.on("close", () => { if (streams.get(r) === entry) forget(r, !entry.endSent); });
+    socket.resume();
+  }
+
+  async function relisten() {
+    if (stopped) return;
+    const want = bind();
+    if (listening && want && listening.host === want.host) return;
+    if (server) { const old = server; server = null; listening = null; await new Promise((resolve) => old.close(() => resolve())); }
+    if (!want) return;
+    const allowed = want.allow ?? ((address) => address !== want.host && want.subnet.check(address, "ipv4"));
+    const next = createTcpServer((socket) => void accept(socket, allowed));
+    try {
+      await new Promise((resolve, reject) => { next.once("error", reject); next.listen(want.port ?? port, want.host, () => resolve()); });
+      server = next;
+      listening = { host: want.host, port: next.address().port };
+      log(`egress: bot computers can route through the app at ${listening.host}:${listening.port}`);
+    } catch (error) {
+      log(`egress: could not listen on ${want.host}:${port} (${error?.code ?? error?.message ?? error})`);
+    }
+  }
+
+  async function tick() {
+    await relisten();
+    if (!report || stopped) return;
+    try {
+      const said = await report({ online: online(), proxy: listening, active: streams.size, ...stats });
+      if (typeof said?.enabled === "boolean") enabled = said.enabled;
+    } catch { /* the server is restarting; the last answer stands */ }
+  }
+
+  return {
+    get listening() { return listening; },
+    get enabled() { return enabled; },
+    online,
+    stats: () => ({ ...stats, active: streams.size }),
+    async start() {
+      await tick();
+      timer = setInterval(() => void tick(), reportMs);
+      timer.unref?.();
+    },
+    /** the app's frames: hello, dial answers and the bytes of streams this proxy opened */
+    handle(frame) {
+      if (frame?.t === "egress") {
+        const was = online();
+        if (frame.ready === true) { ready = true; seenAt = now(); }
+        else { gone(); seenAt = 0; }
+        if (was !== online()) { log(online() ? "egress: the app takes streams again" : "egress: the app stopped taking streams"); void tick(); }
+        return true;
+      }
+      const entry = typeof frame?.r === "string" ? streams.get(frame.r) : undefined;
+      if (!entry) return frame?.t === "dialed";
+      if (frame.t === "dialed") {
+        clearTimeout(entry.timer);
+        seenAt = now();
+        ready = true;
+        entry.settle?.(frame.ok === true ? { ok: true } : { ok: false, code: typeof frame.code === "string" ? frame.code : "unreachable" });
+        entry.settle = null;
+      } else if (frame.t === "bytes") {
+        if (entry.socket.writableLength + frame.b.length > 8 * 1024 * 1024) forget(frame.r, true);
+        else entry.socket.write(frame.b);
+      } else if (frame.t === "end") entry.socket.end();
+      else if (frame.t === "cancel") forget(frame.r, false);
+      else return false;
+      return true;
+    },
+    async stop() {
+      stopped = true;
+      clearInterval(timer);
+      for (const r of streams.keys()) forget(r, false);
+      if (server) await new Promise((resolve) => server.close(() => resolve()));
+      server = null;
+      listening = null;
+    },
+  };
+}
+
+// ---- end egress ----
+
+/** `egress`: options for createEgressProxy, which then rides this tunnel; without it the app's hellos are ignored */
+export function createTunnelAgent({ base, id, key: keyText, token, server = SERVER, fetchImpl: given, log = (line) => console.error(line), stallMs = STREAM_STALL_MS, egress: egressOptions = null }) {
   const fetchImpl = given ?? keepAliveFetch();
   const stream = streamChoice();
   const key = Buffer.from(keyText, "base64url");
@@ -471,6 +729,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
     stopped = true;
     terminal = reason;
     abort.abort();
+    void egress?.stop();
     if (!given) fetchImpl.close();
     for (const req of pending.values()) req.destroy();
     pending.clear();
@@ -498,6 +757,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
   // 5 ms: a websocket's replies (the live desktop) are felt; posts are one at a time, so more coalesce while one is out
   const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-app", r, bytes), post, delayMs: 5, signal: abort.signal, parallel: () => (ordered ? POSTS_IN_FLIGHT : 1), onError: () => { log("link: reply queue failed; restarting the tunnel"); stop(); } });
   const emit = (frame) => { if (!stopped) outbox.push(sealFrame(key, id, "to-app", frame), frame.r); };
+  const egress = egressOptions ? createEgressProxy({ send: emit, bytes: (r, chunk) => outbox.bytes(r, chunk), queued: () => outbox.size, onDrain: (resume) => outbox.onDrain(resume), log, ...egressOptions }) : null;
 
   function overflow(r) {
     const entry = pending.get(r);
@@ -570,6 +830,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
   }
 
   async function handle(frame) {
+    if (egress?.handle(frame)) return;
     if (frame.t === "req" && typeof frame.r === "string" && typeof frame.path === "string" && frame.path.startsWith("/")) return startRequest(frame);
     if (frame.t === "body") {
       const req = pending.get(frame.r);
@@ -589,6 +850,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
   async function run() {
     let failures = 0;
     const unwarm = given ? () => {} : fetchImpl.warm(base);
+    void egress?.start();
     while (!stopped) {
       const postsBefore = successfulPosts;
       const streaming = stream.wanted();
@@ -632,13 +894,15 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
     unwarm();
     return terminal;
   }
-  return { run, stop };
+  return { run, stop, egress };
 }
 
 async function tunnel() {
   let saved;
   try { saved = JSON.parse(readFileSync(tunnelFile(), "utf8")); } catch { console.error("link: not linked yet; nothing to do"); return 0; }
-  const agent = createTunnelAgent(saved);
+  const agent = createTunnelAgent({ ...saved, egress: {
+    report: async (state) => { const answer = await local("POST", "/api/computer/egress/agent", state); return answer.status === 200 ? answer.body : null; },
+  } });
   for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { agent.stop(); process.exit(0); });
   const how = await agent.run();
   // unlinked: stay quiet instead of letting systemd restart a tunnel that no longer exists

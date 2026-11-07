@@ -73,6 +73,48 @@ link service, the agent nor anything else that relays the request can read it:
 - Reinstalling OpenMausBot with a fresh data folder makes a new identity: the app then refuses to seal for it until the
   server is linked again (run the install line from a new "Add your VPS").
 
+## Route traffic through this computer
+
+Settings > Computer > Your computer > "Route traffic through this computer" (`PUT /api/computer/egress {enabled}`,
+saved as `vps.routeThroughComputer`, off by default) sends the bot computers' web traffic out through the person's own
+computer while its app runs, so sites see a home connection instead of the VPS's data centre address. When the app is
+closed, asleep or offline, new connections use the VPS's own network, and they go back through the computer once it
+says hello again. It applies to new connections only.
+
+```
+ bot computer (chromium)         vps host                            the app (electron main)
+ managed policy: PAC              agent.mjs createEgressProxy         vps-link-egress.mjs createEgressEndpoint
+ "SOCKS5 172.18.0.1:3129; DIRECT" -> socks5 / http connect on the  -> {t:"dial", r, host, port}  ->  resolve here, check
+                                    omb-desk0 bridge only             <- {t:"dialed", r, ok, code}     every address, connect
+                                                                      <-> bytes frames on the same sealed tunnel streams
+```
+
+- Frames: the app says `{t:"egress", ready}` every 15 s while it takes streams (and `ready: false` on close). The agent
+  sends `dial`, the app answers `dialed`; then both sides send the stream's bytes as ordinary `bytes` frames and `end`
+  or `cancel`. It is the tunnel's own stream api (`send`, `bytes`, `queued`, `onDrain`), so it rides any transport the
+  tunnel uses, with the outbox's per-stream round robin. Egress reads pause at 1 MiB queued (the desktop's own mark is
+  2 MiB), so the screen and API keep their share.
+- The app connects only to ports 80 and 443 on the public internet. It looks names up itself, refuses a whole name when
+  any answer is loopback, this computer, its networks (and its public IPv6 prefix), the home's public address (from
+  `GET /v1/ip` on the link service), private, CGNAT, link-local, metadata, multicast or reserved (NAT64 and 6to4
+  unwrapped), refuses `.local`, `.localhost`, `.internal`, `.lan`, `.home.arpa` and single-label names, and connects
+  only to the addresses it checked (no second lookup, so DNS rebinding changes nothing). At most 128 streams, 600 new
+  streams a minute and 8 MiB/s down; idle streams close after 5 minutes. No UDP.
+- The agent never dials anything itself (a box must not reach this host past the host fence). It listens only on the
+  bridge's address, refuses the bridge's own address (so processes on the host cannot use it), and answers with a
+  SOCKS failure at once when the setting is off, the app is at its stream cap, has not said hello for 40 s or did not
+  answer a dial within 5 s (then its open streams close too). Chromium (156) then falls back to a direct connection for that request and skips the proxy
+  for a few minutes; the server writes a fresh policy to undo that once the app is back. A destination the app refuses
+  or cannot reach (its own DNS may block ad domains, for one) gets a SOCKS success and an immediate close instead,
+  which fails only that request and keeps the proxy in use; HTTP CONNECT gets 403 or 502.
+- `host-fence.sh` lets the bridge reach TCP 3129 on the host (`omb-box-egress`); nothing else on the host.
+- The server (`server/computer-egress.ts`) takes the agent's report every 5 s (`POST /api/computer/egress/agent`,
+  owner-trust loopback only), and writes `/etc/chromium/policies/managed/omb-egress.json` into each running bot
+  computer while the route is up and the box can reach the proxy (removing it otherwise). Chromium rereads that folder
+  by itself, so nothing restarts and no image change is needed. Strict (read-only) boxes keep using the server's network.
+- Settings show the row only on a linked VPS, with the route new connections take now: through your computer, or the
+  server's network while your computer is offline. Bots are told about it in their prompt while it is on.
+
 ## Step events
 
 install.sh posts every step to `POST /v1/sessions/<id>/events` (bearer: the VPS token); the app reads them from

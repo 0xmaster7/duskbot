@@ -1,6 +1,7 @@
 #!/bin/sh
 # the host side of a free bot box: boxes on the omb-desk0 bridge reach the public internet and nothing else. not this
-# host (any of its addresses, any port), not other boxes or containers, not the LAN or VPC, not cloud metadata.
+# host (any of its addresses, any port but the link agent's egress proxy, which only relays to the person's own
+# computer), not other boxes or containers, not the LAN or VPC, not cloud metadata.
 # rules live in the host's netfilter, out of reach of root inside a box, and apply to runc and gVisor boxes alike.
 #   sudo deploy/bot-desktop/host-fence.sh            apply (idempotent; run at boot after docker, see README.md)
 #   sudo deploy/bot-desktop/host-fence.sh --check    exit 0 when the fence is in place
@@ -8,6 +9,8 @@
 set -eu
 BRIDGE=omb-desk0
 MARK="omb-box-fence v1"
+# link-service/agent.mjs EGRESS_PORT
+EGRESS_PORT="${OMB_EGRESS_PORT:-3129}"
 BLOCKED4="0.0.0.0/8 10.0.0.0/8 100.64.0.0/10 127.0.0.0/8 169.254.0.0/16 172.16.0.0/12 192.0.0.0/24 192.0.2.0/24
 192.168.0.0/16 198.18.0.0/15 198.51.100.0/24 203.0.113.0/24 224.0.0.0/4 240.0.0.0/4"
 
@@ -44,6 +47,7 @@ for chain in OMB-BOX-IN OMB-BOX-FWD; do ipt -N "$chain" 2>/dev/null || ipt -F "$
 
 # to this host: only replies to connections the host opened (the viewer tunnel), so no host service is reachable
 ipt -A OMB-BOX-IN -m conntrack --ctstate ESTABLISHED,RELATED -m comment --comment "$MARK" -j ACCEPT
+ipt -A OMB-BOX-IN -p tcp --dport "$EGRESS_PORT" -m comment --comment "omb-box-egress" -j ACCEPT
 ipt -A OMB-BOX-IN -j DROP
 
 # through this host: replies, then never another box or any private, local or metadata range, then the internet

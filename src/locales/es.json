@@ -5441,5 +5441,11 @@
   "server.botDesktop.building": "Configurando el ordenador del bot en tu servidor. Pasa una vez por actualización y suele tardar unos minutos.",
   "computer.botWaking": "{name} se está despertando",
   "seal.untrusted": "Este servidor no pudo demostrar que es el que esta app vinculó, así que no se envió nada. Si lo reinstalaste, vuelve a vincularlo.",
-  "server.connect.loginNote": "{bot} lo escribe en el sitio por ti y nunca ve la contraseña."
+  "server.connect.loginNote": "{bot} lo escribe en el sitio por ti y nunca ve la contraseña.",
+  "routeTraffic.title": "Enrutar el tráfico por este ordenador",
+  "routeTraffic.titleWeb": "Enrutar el tráfico por tu ordenador",
+  "routeTraffic.hint": "Envía el tráfico de red del ordenador del bot a través de tu ordenador de escritorio en lugar de la nube. Se aplica a las conexiones nuevas.",
+  "routeTraffic.through": "A través de tu ordenador. Se aplica a las conexiones nuevas.",
+  "routeTraffic.offline": "Usando la red del servidor, tu ordenador está desconectado",
+  "routeTraffic.error": "No se guardó. Inténtalo de nuevo."
 }

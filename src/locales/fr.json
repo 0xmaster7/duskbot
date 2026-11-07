@@ -2879,5 +2879,11 @@
   "signIn.takeOver": "Prendre la main",
   "signIn.skipped": "Passé",
   "signIn.status.saved": "Identifiants enregistrés",
-  "server.connect.loginNote": "{bot} le saisit sur le site pour vous et ne voit jamais le mot de passe."
+  "server.connect.loginNote": "{bot} le saisit sur le site pour vous et ne voit jamais le mot de passe.",
+  "routeTraffic.title": "Faire passer le trafic par cet ordinateur",
+  "routeTraffic.titleWeb": "Faire passer le trafic par ton ordinateur",
+  "routeTraffic.hint": "Fait passer le trafic réseau de l'ordinateur du bot par ton ordinateur de bureau plutôt que par le cloud. S'applique aux nouvelles connexions.",
+  "routeTraffic.through": "Par ton ordinateur. S'applique aux nouvelles connexions.",
+  "routeTraffic.offline": "Réseau du serveur utilisé, ton ordinateur est hors ligne",
+  "routeTraffic.error": "Ce n'est pas enregistré. Réessaie."
 }

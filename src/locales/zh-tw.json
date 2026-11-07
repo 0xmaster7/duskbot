@@ -4479,5 +4479,11 @@
   "signIn.takeOver": "接管",
   "signIn.skipped": "已略過",
   "signIn.status.saved": "登入資訊已儲存",
-  "server.connect.loginNote": "{bot} 會替你在網站上輸入，且永遠看不到密碼。"
+  "server.connect.loginNote": "{bot} 會替你在網站上輸入，且永遠看不到密碼。",
+  "routeTraffic.title": "透過這台電腦傳送流量",
+  "routeTraffic.titleWeb": "透過你的電腦傳送流量",
+  "routeTraffic.hint": "讓機器人電腦的網路流量經由你的桌上型電腦傳送，而不是經由雲端。適用於新的連線。",
+  "routeTraffic.through": "經由你的電腦。適用於新的連線。",
+  "routeTraffic.offline": "正在使用伺服器的網路，你的電腦已離線",
+  "routeTraffic.error": "沒有儲存成功，請再試一次。"
 }
