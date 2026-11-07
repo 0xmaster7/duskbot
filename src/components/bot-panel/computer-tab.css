@@ -38,3 +38,24 @@
 :root[data-reduced-motion="true"] .computer-asleep-z { animation: none; opacity: 0.8; }
 :root[data-reduced-motion="true"] .computer-asleep-z:nth-child(2) { opacity: 0.5; transform: translateY(-4px); }
 :root[data-reduced-motion="true"] .computer-asleep-z:nth-child(3) { opacity: 0.25; transform: translateY(-8px); }
+
+/* grok's waking line in the panel's frame: a band of full ink sweeps the dimmed text, as the dark cover's does */
+.computer-waking-line {
+  color: transparent;
+  background-image: linear-gradient(90deg, color-mix(in srgb, var(--color-ink) 40%, transparent) 0%, color-mix(in srgb, var(--color-ink) 40%, transparent) 25%, var(--color-ink) 60%, color-mix(in srgb, var(--color-ink) 40%, transparent) 75%, color-mix(in srgb, var(--color-ink) 40%, transparent) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: computer-waking-line 2.2s linear infinite;
+}
+@keyframes computer-waking-line {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .computer-waking-line { animation: none; background-image: none; color: var(--color-ink); }
+}
+:root[data-reduced-motion="true"] .computer-waking-line { animation: none; background-image: none; color: var(--color-ink); }
+@media (forced-colors: active) {
+  .computer-waking-line { color: CanvasText; background-image: none; }
+}

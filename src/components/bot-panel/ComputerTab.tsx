@@ -15,7 +15,7 @@ import type { BotPatch, useBotSettingsDerived } from "../bot-settings/useBotSett
 import type { PlaceActionId } from "../../../shared/place-view";
 import type { SimplePageId } from "./page-registry";
 import { Card, RadioRow } from "./rows";
-import { AsleepMascot, COMPUTER_FRAME_CLASS } from "./ComputerScreenMascot";
+import { AsleepMascot, COMPUTER_FRAME_CLASS, COMPUTER_SCREEN_ASPECT } from "./ComputerScreenMascot";
 import "./computer-tab.css";
 
 const ComputerPanel = lazy(() => import("../ComputerPanel").then((module) => ({ default: module.ComputerPanel })));
@@ -181,7 +181,7 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
   return (
     <div data-panel-tabpanel="computer">
       <div ref={setScreenBox}>
-        <Suspense fallback={<div data-panel-screen="" data-stage={current === "off" ? "off" : "asleep"} className={`${COMPUTER_FRAME_CLASS} aspect-video`}><AsleepMascot bot={bot} /><span className="max-w-[80%] font-medium text-ink">{t(current === "off" ? "place.view.off.short" : "botPanel.screen.resting")}</span></div>}>
+        <Suspense fallback={<div data-panel-screen="" data-stage={current === "off" ? "off" : "asleep"} className={COMPUTER_FRAME_CLASS} style={{ aspectRatio: String(COMPUTER_SCREEN_ASPECT) }}><AsleepMascot bot={bot} /><span className="max-w-[80%] font-medium text-ink">{t(current === "off" ? "place.view.off.short" : "botPanel.screen.resting")}</span></div>}>
           <ComputerPanel bot={bot} inline visible={onScreen} />
         </Suspense>
       </div>

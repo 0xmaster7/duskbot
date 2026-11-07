@@ -10,7 +10,7 @@ import { api, ApiError, currentTaskBot, useStore, type Bot, type ConfigStatus } 
 import { useAdvancedMode } from "@/lib/interface-mode";
 import { ComputerFullscreen, ComputerFullscreenNote, fullscreenActionCls, type ScreenControl } from "./ComputerFullscreen";
 import { MausAvatar } from "./Avatar";
-import { AsleepMascot, COMPUTER_FRAME_CLASS } from "./bot-panel/ComputerScreenMascot";
+import { AsleepMascot, COMPUTER_FRAME_CLASS, COMPUTER_SCREEN_ASPECT, ComputerWaking } from "./bot-panel/ComputerScreenMascot";
 import { effectivePlace, isComputerPlace, personPin, placeLabelKey, placeOffered } from "@/lib/place";
 import type { CloudBackend } from "../../shared/wire";
 
@@ -265,6 +265,7 @@ export function ComputerPanel({
   const [retry, setRetry] = useState(0);
   const [livePreviewFailed, setLivePreviewFailed] = useState<string | null>(null);
   const [decodedDesktop, setDecodedDesktop] = useState<{ key: string; ready: boolean } | null>(null);
+  const [screenAspect, setScreenAspect] = useState(COMPUTER_SCREEN_ASPECT);
   const desktopDecoded = decodedDesktop?.key === viewerConnectionKey && decodedDesktop.ready;
   const lastStatusTarget = useRef<string | null>(null);
   const vpsReadinessAttempts = useRef(0);
@@ -1142,9 +1143,10 @@ export function ComputerPanel({
     }
   });
 
+  const wakingView = (cover = false) => <ComputerWaking bot={bot} cover={cover} />;
   const remoteFrame = (liveHere || livePreview) && liveTarget ? (
-      <Suspense fallback={null}>
-        <LiveDesktop key={viewerConnectionKey}
+      <Suspense fallback={inline ? wakingView() : null}>
+        <LiveDesktop key={viewerConnectionKey} waking={wakingView} onScreenSize={(width, height) => setScreenAspect(width / height)}
           target={liveTarget} threadId={bot.threadId} name={bot.name} poster={frameSrc} viewOnly={!liveHere}
           expanded={takeover.expanded} onExpandedChange={(expanded) => {
             if (!expanded && inline && takeover.here) void handBack(); else takeover.setExpanded(expanded);
@@ -1176,10 +1178,12 @@ export function ComputerPanel({
       ? <LiveScreenVideo stream={liveLocal.stream} playing={pageVisible} className="absolute inset-0 size-full object-contain" />
       : !waking && frameSrc ? <img src={frameSrc} alt={t("computer.screenOf", { name: bot.name })} className="absolute inset-0 size-full object-contain" /> : null);
     const stage = remoteFrame ? desktopDecoded ? "screen" : "loading" : frame ? "screen" : waking ? "loading" : phase === "off" ? "off" : "asleep";
+    // a wake the person asked for shows the bot waking up until the live screen paints itself over it
+    const wakeRequested = !frame && (pending === "provision" || pending === "vm-start" || phase === "starting");
     return (
       <div data-inline-computer="" data-stage={stage}>
-        <div data-panel-screen="" aria-busy={stage === "loading" || undefined} className={`${COMPUTER_FRAME_CLASS} aspect-video`}>
-          {frame ?? (
+        <div data-panel-screen="" aria-busy={stage === "loading" || undefined} className={COMPUTER_FRAME_CLASS} style={{ aspectRatio: String(screenAspect) }}>
+          {wakeRequested ? wakingView() : frame ?? (
             <button type="button" data-panel-action="open-computer" data-stage={stage} onClick={wake} disabled={waking || phase === "off" || needsAdmin || (phase === "error" && !vpsStatus?.configured)}
               aria-label={frameActionLabel}
               className="flex size-full flex-col items-center justify-center gap-1.5 px-5 enabled:cursor-pointer enabled:transition-[background-color] enabled:duration-100 enabled:hover:bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_8%)] focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--color-ink)_22%,transparent)] disabled:cursor-default">
@@ -1187,11 +1191,6 @@ export function ComputerPanel({
               <span className="max-w-[80%] font-medium text-ink">{needsAdmin ? frameActionLabel : waking || phase === "vps-stopped" ? t("botPanel.screen.resting") : frameActionLabel}</span>
             </button>
           )}
-          {remoteFrame && !desktopDecoded && <div data-computer-waking="" role="status"
-            className={`${COMPUTER_FRAME_CLASS} pointer-events-none absolute inset-0`}>
-            <AsleepMascot bot={bot} />
-            <span className="max-w-[80%] font-medium text-ink">{t("botPanel.screen.resting")}</span>
-          </div>}
           {!remoteFrame && liveTarget && livePreviewFailed === viewerConnectionKey && <button type="button"
             aria-label={t("computer.preview.retry")} title={t("computer.preview.retry")}
             onClick={() => setLivePreviewFailed(null)} className="absolute inset-0 flex cursor-pointer items-end justify-center pb-3">

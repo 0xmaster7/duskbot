@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 // Take control where the person watches: the real panel, its real control requests, a stand-in for the live desktop.
-import { createElement, useEffect } from "react";
+import { createElement, useEffect, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -47,10 +47,13 @@ vi.mock("./CloudScreenPreview", () => ({
     createElement("button", { onClick: () => onRetry(false) }, "Retry live screen")),
 }));
 vi.mock("./LiveDesktop", () => ({
-  LiveDesktop: (props: { target: string; expanded: boolean; onUnreachable: () => void; viewOnly?: boolean; onReadyChange?: (ready: boolean) => void; onTakeControl?: () => void; onOpenPreview?: () => void; originalViewer?: boolean }) => {
-    fixture.live = props;
-    useEffect(() => { fixture.connections++; props.onReadyChange?.(fixture.ready); }, [props.target]);
-    return createElement("div", { "data-live-desktop": "", "data-target": props.target, "data-expanded": String(props.expanded), "data-view-only": String(props.viewOnly) }, props.originalViewer && props.expanded && props.viewOnly ? createElement("button", { onClick: props.onTakeControl }, "Take control") : null);
+  LiveDesktop: (props: { target: string; expanded: boolean; onUnreachable: () => void; viewOnly?: boolean; onReadyChange?: (ready: boolean) => void; onTakeControl?: () => void; onOpenPreview?: () => void; originalViewer?: boolean; waking?: (expanded: boolean) => ReactNode }) => {
+    // like the real one, it shows the panel's waking view until its first frame
+    const [ready, setReady] = useState(fixture.ready);
+    const report = (value: boolean) => { setReady(value); props.onReadyChange?.(value); };
+    fixture.live = { ...props, onReadyChange: report };
+    useEffect(() => { fixture.connections++; report(fixture.ready); }, [props.target]);
+    return createElement("div", { "data-live-desktop": "", "data-target": props.target, "data-expanded": String(props.expanded), "data-view-only": String(props.viewOnly) }, ready ? null : props.waking?.(props.expanded), props.originalViewer && props.expanded && props.viewOnly ? createElement("button", { onClick: props.onTakeControl }, "Take control") : null);
   },
 }));
 vi.mock("./BrowserPanel", () => ({ BrowserPanel: () => null }));
@@ -356,12 +359,15 @@ describe("taking control of other computers", () => {
     expect(fixture.statusReads).toBe(reads + 1);
   });
 
-  it("keeps the original mascot inline, opens the viewer read-only, then takes explicit control", async () => {
+  it("shows the bot waking up inline, opens the viewer read-only, then takes explicit control", async () => {
     fixture.inline = true;
     fixture.ready = false;
     await open(makeBot({ computer: "cloud" }));
     await shownLive();
-    expect(document.querySelector("[data-computer-waking] [data-asleep-mascot]")).not.toBeNull();
+    const waking = document.querySelector("[data-computer-waking]");
+    expect(waking?.querySelector("[data-waking-mascot]")).not.toBeNull();
+    expect(waking?.textContent).toBe("Scout is waking up");
+    expect(document.body.textContent).not.toMatch(/connecting/i);
     expect(liveDesktop()?.dataset.expanded).toBe("false");
     expect(fixture.controls).toEqual([]);
     flushSync(() => fixture.live!.onReadyChange?.(true));

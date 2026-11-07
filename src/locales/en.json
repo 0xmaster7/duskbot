@@ -5066,6 +5066,7 @@
   "computer.stopControl": "Stop",
   "computer.takeControlHint": "Take control to click and type",
   "computer.wakingUp": "Waking up…",
+  "computer.botWaking": "{name} is waking up",
   "computer.simple.addCloud": "Add cloud desktop…",
   "computer.badge.local": "this computer",
   "computer.badge.vps": "your own machine",

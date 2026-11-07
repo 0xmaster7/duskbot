@@ -6680,5 +6680,6 @@
   "settings.vault.footnote": "机器人永远看不到你的密码或已保存的密钥：{app} 会替它们填写，或交给自己的工具，所以值永远不会到达 AI。机器人能看到登录的网站和用户名。",
   "settings.vault.nothing": "还没有保存任何内容。用“新建项目”添加登录，或在机器人请求时保存密钥。",
   "settings.vault.noneHere": "这里还没有内容。",
-  "server.botDesktop.building": "正在你的服务器上设置机器人的电脑。每次更新只需一次，通常需要几分钟。"
+  "server.botDesktop.building": "正在你的服务器上设置机器人的电脑。每次更新只需一次，通常需要几分钟。",
+  "computer.botWaking": "{name} 正在醒来"
 }

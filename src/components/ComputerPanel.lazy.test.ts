@@ -17,6 +17,8 @@ const fixture = vi.hoisted(() => ({
   advanced: true,
   owner: true,
   instancesLoaded: true,
+  /** Holds the wake open until the test lets it finish. */
+  provisionGate: null as Promise<void> | null,
 }));
 vi.mock("./DesktopCapabilities", async (importOriginal) => ({
   ...await importOriginal<typeof import("./DesktopCapabilities")>(),
@@ -46,6 +48,7 @@ vi.mock("@/state/store", async (importOriginal) => ({
   api: async (path: string, init?: RequestInit) => {
     if (init?.method === "POST") fixture.posts.push(path.split("?")[0]!);
     if (path.startsWith("/api/bots/scout/computer/provision")) {
+      await fixture.provisionGate;
       fixture.container = "running";
       fixture.screenStopped = false;
       return { surface: "cloud", backend: "vps", configured: true, ready: true, container: "running" };
@@ -122,6 +125,7 @@ afterEach(() => {
   fixture.instancesLoaded = true;
   fixture.owner = true;
   fixture.advanced = true;
+  fixture.provisionGate = null;
   vi.useRealTimers();
 });
 
@@ -204,6 +208,24 @@ describe("VPS computer preparation", () => {
     expect(fixture.posts.filter((path) => path.endsWith("/provision"))).toHaveLength(1);
     await expect.poll(() => document.querySelector("[data-live-screen]")).not.toBeNull();
     expect(fixture.posts.filter((path) => path.endsWith("/control"))).toEqual([]);
+  });
+
+  it("a wake shows the bot waking up in a screen-shaped frame, never a connecting line", async () => {
+    let finish!: () => void;
+    fixture.provisionGate = new Promise((resolve) => { finish = resolve; });
+    await open(makeBot({ computer: "cloud" }), true);
+    const frame = document.querySelector<HTMLElement>("[data-panel-screen]")!;
+    expect(frame.style.aspectRatio).toMatch(/^1\.6\b/);
+    flushSync(() => frame.querySelector<HTMLButtonElement>("button")!.click());
+    await settle();
+    const waking = document.querySelector("[data-computer-waking]");
+    expect(waking?.getAttribute("role")).toBe("status");
+    expect(waking?.querySelector("[data-waking-mascot]")).not.toBeNull();
+    expect(waking?.textContent).toBe("Scout is waking up");
+    expect(document.querySelector("[data-asleep-mascot]")).toBeNull();
+    expect(text()).not.toMatch(/connecting/i);
+    finish();
+    await expect.poll(() => document.querySelector("[data-live-screen]")).not.toBeNull();
   });
 
   it("wakes a stopped Auto computer inline without selecting a different destination", async () => {
