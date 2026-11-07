@@ -1,5 +1,5 @@
 import { vpsContainerStartedAt } from "./vps-container-start.ts";
-import { pollVpsReadiness } from "./vps-readiness.ts";
+import { pollVpsReadiness, readinessCanImprove } from "./vps-readiness.ts";
 import { ensureVpsScreenBrowser } from "./vps-browser-ready.ts";
 import { independentScreenExecArgs, isManagedScreenViewerPort, type IndependentScreenTarget } from "./shared-desktop-screens.ts";
 import { boxChromes, desktopTunnels, evictVpsBoxChrome, NATIVE_VIEWER_LIFETIME_MS, REMOTE_VIEWER_GRACE_MS, requireLiveScreen, screenKey, stopDesktopTunnel, type VpsScreenConnection } from "./vps-connections.ts";
@@ -452,7 +452,8 @@ async function computeVpsComputerStatus(
   botId: string,
   runner: VpsCommandRunner,
   prefer = preferredVpsDesktop(),
-  options: { reuseProbeWithinMs?: number } = {},
+  /** `probe: false` skips the desktop driver's health check (its picture needs none), leaving desktopReady false. */
+  options: { reuseProbeWithinMs?: number; probe?: boolean } = {},
 ): Promise<VpsComputerStatus> {
   const alias = vpsSshAlias(cfg);
   const status = emptyStatus(botId, alias, prefer);
@@ -582,7 +583,7 @@ async function computeVpsComputerStatus(
     if (canProbe && containerRef && options.reuseProbeWithinMs && verified?.containerId === containerRef &&
       verified.startedAt === status.container_started_at && Date.now() - verified.at < options.reuseProbeWithinMs) {
       status.desktopReady = true;
-    } else if (canProbe && containerRef) {
+    } else if (canProbe && containerRef && options.probe !== false) {
       verifiedDesktops.delete(connectionKey);
       try {
         const health = await run(vpsDesktopProbeArgs(containerRef), 20_000);
@@ -1131,6 +1132,8 @@ export async function vpsComputerJoin(
   runner: VpsCommandRunner = defaultRunner,
   remoteViewer = false,
   screen?: VpsScreenConnection,
+  /** Only the picture: a computer still waking opens its viewer once the container runs, before its driver answers. */
+  picture = false,
 ): Promise<{ joinUrl: string; state: "running" }> {
   cfg = snapshotVpsConfig(cfg);
   const alias = vpsSshAlias(cfg);
@@ -1140,10 +1143,10 @@ export async function vpsComputerJoin(
   const tunnelKey = screenKey(botId, screen);
   // Always re-inspect: a cached IP or password may predate a container replacement.
   invalidateVpsStatus(`${alias}:${vpsContainerName(botId)}`);
-  const status = await computeVpsComputerStatus(cfg, botId, runner, undefined, { reuseProbeWithinMs: JOIN_REUSES_PROBE_MS });
+  const status = await computeVpsComputerStatus(cfg, botId, runner, undefined, picture ? { probe: false } : { reuseProbeWithinMs: JOIN_REUSES_PROBE_MS });
   requireLiveScreen(botId, screen);
   if (screen && status.container_id !== screen.containerId) throw Object.assign(new Error("The independent screen container changed"), { status: 409 });
-  if (!status.ready) {
+  if (!status.ready && !(picture && readinessCanImprove(status))) {
     stopDesktopTunnel(tunnelKey);
     throw Object.assign(new Error(status.problem ?? "The VPS computer is not ready"), { status: 409 });
   }

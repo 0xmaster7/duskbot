@@ -6409,6 +6409,30 @@ function providerTransitionForTurn(
 }
 
 /** One synchronous lane: whichever lifecycle operation starts first excludes the other. */
+const WAKING_JOIN_POLL_MS = 150;
+const WAKING_JOIN_BUDGET_MS = 60_000;
+const WAKING_JOIN_GRACE_MS = 3_000;
+
+/** While this bot's own computer is being woken, opens its viewer as soon as the container runs (the picture needs no
+ * driver). Undefined when no wake is in flight or it ended first: the caller then joins the ordinary way. */
+async function joinWhileWaking(bot: Pick<BotRecord, "id" | "threadId">, ownerId: string, config: AppConfig, res: ServerResponse): Promise<Record<string, unknown> | undefined> {
+  const deadline = Date.now() + WAKING_JOIN_BUDGET_MS;
+  // the wake and this join leave the app together, so the wake may not have reached its lock yet
+  const grace = Date.now() + WAKING_JOIN_GRACE_MS;
+  while ((vps.vpsComputerPreparing(config, ownerId) || Date.now() < grace) && !res.destroyed && Date.now() < deadline) {
+    if (computerProviderConfigTransitions.has("vps")) return undefined;
+    try {
+      const result = await vps.vpsComputerJoin(config, ownerId, undefined, true, undefined, true);
+      const connection = vps.vpsDesktopConnection(ownerId);
+      if (connection) return { ...result, resourceKey: vpsResourceKey(ownerId, vpsSshAlias(config) ?? ""), viewer: { password: connection.password }, joinUrl: desktopViewerUrl(`vps/${bot.id}`, bot.threadId) };
+    } catch {
+      // not running yet: the wake is still starting the container
+    }
+    await new Promise((resolve) => setTimeout(resolve, WAKING_JOIN_POLL_MS));
+  }
+  return undefined;
+}
+
 function claimBotComputerLifecycle(botId: string, allowPreview = false): () => void {
   if (remoteComputerLifecycleBusyOwners.has(botId)) {
     throw Object.assign(new Error("this bot's cloud computer is being changed — wait for it to finish"), { status: 409 });
@@ -15463,6 +15487,11 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       const target = shared ? teamComputerVpsTarget(cfg, shared) : { ownerId: bot.id, config: vpsConfigForBot(cfg, bot) };
       const ownerId = target.ownerId;
       if (action === "join") for (let pending; (pending = vpsJoinRequests.get(ownerId));) await pending;
+      // a viewer asked while waking: its picture opens the moment the container runs, beside the wake, not after it
+      if (action === "join" && url.searchParams.get("wake") === "1" && !shared && url.searchParams.get("viewer") === "proxy") {
+        const early = await joinWhileWaking(bot, ownerId, target.config, res);
+        if (early) return json(res, 200, early);
+      }
       if (computerProviderConfigTransitions.has("vps")) return json(res, 409, { error: providerTransitionMessage("vps") });
       if (remoteComputerLifecycleBusyOwners.has(ownerId) || remoteComputerLifecycleBusyOwners.has(bot.id)) return json(res, 409, { error: "This VPS computer is being changed; wait for it to finish" });
       if (action === "exec") return json(res, 409, { error: "Use the bot's scoped computer tools for this VPS console" });
