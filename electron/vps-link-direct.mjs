@@ -392,7 +392,10 @@ export function sshConnector({ host, port = 22, user, privateKey, hostKeys, time
       sock.destroy();
       reject(refused ? Object.assign(new Error("the server's ssh key is not the one it said"), { code: "HOSTKEY" }) : error);
     };
-    client.once("error", (error) => fail(error));
+    // ssh2 can emit more than one error (e.g. a reset then "Connection lost before handshake"): every one must be
+    // handled, or an uncaught exception takes down the main process; after settling, the channel's close drops the link
+    client.on("error", (error) => fail(error));
+    sock.on("error", (error) => fail(error));
     client.once("ready", () => {
       client.exec("omb-direct", (error, channel) => {
         if (error) return fail(error);
