@@ -105,6 +105,12 @@ stdio proxies run and with the environment those proxies would get, so a turn
 starts no child process for them; tool schemas are compiled once per schema
 text. `node --experimental-strip-types scripts/bench-tool-calls.ts` measures
 mount time, one agents call and read batching with no model in the loop.
+`node --experimental-strip-types scripts/bench-everyday.ts` runs ten everyday
+tasks (research, a PDF summary, an email draft behind an Ask card, an event,
+a comparison, a data query, renames, a reminder, a multi-step lookup and a code
+fix) through the real driver with a scripted model and fixture tools, and fails
+a task whose writes or approval cards differ from the script; `BENCH_ROOT` runs
+another checkout's code for a before and after.
 
 The harness proves the OpenAI-compatible adapter and the shared execution
 path. It does not establish that every third-party model supports tools, or
