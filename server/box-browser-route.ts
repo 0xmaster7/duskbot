@@ -9,3 +9,9 @@ export function boxBrowserRoute(input: { mountedForTurn: boolean; inTurn: boolea
   // a turn pinned to the built-in browser mounts no screen; its browser is still the bot's own box's Chromium
   return "own-box";
 }
+
+/** The computer a browser tool call must hold besides its browser profile: the box whose Chromium it drives. */
+export function browserCallComputerResource(input: { mountedResource?: string; ownBoxResource: string; ownCloudBox: boolean; teamComputer: boolean }): string | undefined {
+  const route = boxBrowserRoute({ mountedForTurn: Boolean(input.mountedResource), inTurn: true, ownCloudBox: input.ownCloudBox, teamComputer: input.teamComputer });
+  return route === "mounted" ? input.mountedResource : route === "own-box" ? input.ownBoxResource : undefined;
+}

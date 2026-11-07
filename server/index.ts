@@ -431,7 +431,7 @@ import { HeldSecrets, LoginStore } from "./login-store.ts";
 import { OnePasswordLogins, onePasswordUnavailable, sdkOnePasswordClient, type OnePasswordSdk } from "./onepassword.ts";
 import { nativeRequire } from "./data/engine.ts";
 import { createFillLoginTurn } from "./host/fill-login-turn.ts";
-import { boxBrowserRoute } from "./box-browser-route.ts";
+import { boxBrowserRoute, browserCallComputerResource } from "./box-browser-route.ts";
 import { BotLogins, cardLoginPlace, cardSignInElsewhere, observeSignInPage, type ObservedPage } from "./bot-logins.ts";
 import { relayFrame } from "./browser-relay.ts";
 import { browserEvidence, stepContext } from "./browser-steps.ts";
@@ -13314,8 +13314,10 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
             throw Object.assign(new Error("Browser access changed while connecting."), { status: 409 });
           }
           const remote = turnVpsTargets.get(internalCapability.threadId);
-          if (body.method === "tools/call" && remote?.generation === internalCapability.generation) {
-            const resource = mountedVpsResource(remote);
+          const mountedRemote = remote?.generation === internalCapability.generation ? remote : undefined;
+          const resource = browserCallComputerResource({ mountedResource: mountedRemote && mountedVpsResource(mountedRemote), ownBoxResource: vpsResourceKey(current.id, vpsSshAliasForBot(cfg, current) ?? ""),
+            ownCloudBox: current.computer === "cloud", teamComputer: Boolean(inheritedTeamComputer(current)) });
+          if (body.method === "tools/call" && resource) {
             const snapshot = botComputerControlSnapshot(bot.id, internalCapability.teamComputerId);
             if (snapshot.held || !claimTurnResource(internalCapability, resource)) throw Object.assign(new Error("This computer is held by another person or turn; wait before browsing"), { status: 409 });
           }
