@@ -88,6 +88,7 @@ import { AutomationCaption, RoutineRunRow } from "./RoutineRunCard"; import { In
 import { CallRecordRow } from "./CallRecordRow";
 import { AttachmentGallery, collectMessageFiles, replyAttachmentGroup, splitMessageAttachments } from "./AttachmentGallery";
 import { ScreenFrame } from "./ScreenFrame";
+import { noteMediaSizes } from "@/lib/image-cache";
 import { DigestChip } from "./DigestChip";
 import { ChatHeadRole, chiefOfStaffBadge } from "./BotRole";
 import { ChatHeadPill } from "./ChatHeadPill"; import { useStoreRef } from "@/state/store-ref";
@@ -360,6 +361,7 @@ const Bubble = memo(function Bubble({
       onToggle: () => dispatch({ type: "updateTask", botId, threadId, patch: { pinnedMessageId: pinned ? "" : message.id } }),
     },
   });
+  noteMediaSizes(message.media);
   const attached = useMemo(() => splitMessageAttachments(message.attachments), [message.attachments]);
   const generatedPaths = attached.images;
   const linkedFiles = useMemo(
@@ -432,7 +434,7 @@ const Bubble = memo(function Bubble({
     <div {...{ [MESSAGE_ROW]: "" }} data-arrival={fresh ? (user ? "end" : "start") : undefined} className={cn("group relative flex w-full flex-col", (reactionsOnBubble || (mediaReactions && !group)) && "pt-[26px]", user ? "items-end" : "items-start", join?.above && SIMPLE_STACKED)}>
       {message.relay ? <RelayLabel message={message} /> : peer && <PeerLabel peer={peer} />}
       {speaker && <div className="mb-0.5 px-1 text-[12px] font-medium text-ink-secondary">{speaker}</div>}
-      {imagesAbove && <AttachmentGallery images={imagesAbove.images} files={imagesAbove.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} align="end" className="mb-1" />}
+      {imagesAbove && <AttachmentGallery media={message.media} images={imagesAbove.images} files={imagesAbove.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} align="end" className="mb-1" />}
       <div data-own-row={user ? "" : undefined} className={cn("flex w-full items-center gap-1.5", user ? "justify-end" : "justify-start")}>
         {user && (
           <MessageActions
@@ -495,7 +497,7 @@ const Bubble = memo(function Bubble({
             </div>
           ) : user ? (
             <>
-              {attachments && !imagesAbove && <AttachmentGallery images={attachments.images} files={attachments.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} align="end" className={!visibleText ? "mb-0" : undefined} />}
+              {attachments && !imagesAbove && <AttachmentGallery media={message.media} images={attachments.images} files={attachments.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} align="end" className={!visibleText ? "mb-0" : undefined} />}
               {visibleText && (
                 <div
                   className={cn("chat-text", collapsible && "max-h-40 overflow-hidden [mask-image:linear-gradient(to_bottom,black_60%,transparent)]")}
@@ -538,8 +540,8 @@ const Bubble = memo(function Bubble({
                 </div>
               )}
               {!group && (mediaChips && (generatedPaths.length + linkedFiles.length > 0)
-                ? <div className="relative">{mediaChips}<AttachmentGallery images={generatedPaths} files={linkedFiles} message={{ threadId, messageId: message.id }} eager={eagerAttachments} /></div>
-                : <AttachmentGallery images={generatedPaths} files={linkedFiles} message={{ threadId, messageId: message.id }} eager={eagerAttachments} />)}
+                ? <div className="relative">{mediaChips}<AttachmentGallery media={message.media} images={generatedPaths} files={linkedFiles} message={{ threadId, messageId: message.id }} eager={eagerAttachments} /></div>
+                : <AttachmentGallery media={message.media} images={generatedPaths} files={linkedFiles} message={{ threadId, messageId: message.id }} eager={eagerAttachments} />)}
               {split ? (
                 <ConversationalReply join={join} segments={reply.segments} firstNew={reply.firstNew} citation={{ messageId: message.id, botId, threadId }}
                   renderSegment={(segment) => <ChatMarkdown text={segment} mentionPeers={mentionPeers} mentionPerson={mentionPerson} message={{ threadId, messageId: message.id }} delivered={group?.delivered} />} />
@@ -555,8 +557,8 @@ const Bubble = memo(function Bubble({
                 <div data-citation-source={message.id} data-citation-owner-type="bot" data-citation-owner={botId} data-citation-thread={threadId}><ChatMarkdown text={text} mentionPeers={mentionPeers} mentionPerson={mentionPerson} message={{ threadId, messageId: message.id }} delivered={group?.delivered} /></div>
               ) : null}
               {group && (mediaChips
-                ? <div className="relative mt-[26px]">{mediaChips}<AttachmentGallery images={group.images} files={group.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} /></div>
-                : <AttachmentGallery images={group.images} files={group.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} />)}
+                ? <div className="relative mt-[26px]">{mediaChips}<AttachmentGallery media={message.media} images={group.images} files={group.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} /></div>
+                : <AttachmentGallery media={message.media} images={group.images} files={group.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} />)}
             </MessageBoundary>
           )}
           {reactionsOnBubble && <ReactionChips float threadId={threadId} message={message} bots={bots} align={user ? "end" : "start"} canReact={canReact} />}
@@ -851,7 +853,7 @@ const MessagesList = memo(function MessagesList({
             case "compaction":
               return null;
             case "screen":
-              return <ScreenFrame threadId={threadId} message={m} />;
+              return showToolCalls ? <ScreenFrame threadId={threadId} message={m} /> : null;
             default: {
               if (m.publishedPage) return <PublishedPageCard message={m} />;
               const peer = peerLine(m) ?? peerRequest(m, botId);
