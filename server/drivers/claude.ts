@@ -10,7 +10,7 @@ import { DATA_DIR, stripWorkspaceCredentialEnv } from "../config.ts";
 import { openStartupModelCatalog, unconfirmedModelCatalog, writeStartupModelCache } from "../startup-model-catalog.ts";
 import { writeFileAtomicIfChanged } from "../atomic.ts";
 import { augmentedPath } from "../env-path.ts";
-import { brokerSocketPath, cliVersionReader, describeSpawnFailure, execCli, killCliTree, readOnlyBotFolders, spawnCli } from "../procs.ts";
+import { brokerSocketPath, cliVersionReader, describeSpawnFailure, execCli, killCliTree, lentBotFolders, readOnlyBotFolders, spawnCli } from "../procs.ts";
 import { claudeAuthStatus } from "./claude-auth-status.ts";
 import { projectMcpServers } from "./claude-project-mcp.ts";
 import { botSettingsFor, withBotSettings } from "./claude-bot-settings.ts";
@@ -1153,7 +1153,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
       if (hooks) own.hooks = claudeHookSettings(HOOK_HELPER_PATH);
       if (turn.guestConfined) own.permissions = GUEST_CLAUDE_PERMISSIONS;
       else {
-        const scope = engineReadScope({ dataDir: DATA_DIR, home: homedir(), cwd, botId, threadId, boxed: botBox.enabled(), extraReadable: readOnlyBotFolders(cwd) });
+        const scope = engineReadScope({ dataDir: DATA_DIR, home: homedir(), cwd, botId, threadId, boxed: botBox.enabled(), extraReadable: [...readOnlyBotFolders(cwd), ...lentBotFolders(cwd)] });
         for (const dir of scope.missing) mkdirSync(dir, { recursive: true, mode: 0o700 });
         own.permissions = { blockReadsOutsideWorkingDirectories: true, deny: claudeDenyRules(scope) };
         for (const dir of [...scope.readable, ...scope.readOnly]) if (existsSync(dir)) args.push("--add-dir", dir);

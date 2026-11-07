@@ -173,6 +173,11 @@ export function readOnlyBotFolders(cwd?: string): readonly string[] {
   return botBox.readOnlyFor(cwd);
 }
 
+/** Folders a boxed conversation may also write (a Team Cloud's memory layers), so an engine's own file tools reach them. */
+export function lentBotFolders(cwd?: string): readonly string[] {
+  return botBox.lentFor(cwd);
+}
+
 /** The box for this spawn, or null when it runs as is. A spawn in an engine home has that home in place of HOME. */
 export function boxedSpawn(resolved: ResolvedSpawn, opts: CliSpawnOptions, owner: CliOwner, homed: HomedSpawn | null = null): WrappedSpawn | null {
   // Where the box is required, an engine in a conversation's home (a keep-warm fork in the bot's folder) is a bot's too.

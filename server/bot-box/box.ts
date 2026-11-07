@@ -98,6 +98,12 @@ export class BoxRunner {
     return ids ? this.lentReadOnly.get(`${ids.botId}/${ids.threadId}`) ?? [] : [];
   }
 
+  /** The read-write paths lent to the conversation working in `cwd`. */
+  lentFor(cwd?: string): readonly string[] {
+    const ids = cwd ? taskWorkspaceIds(cwd, this.options.setup.dataDir) : null;
+    return ids ? this.lentTo(ids.botId, ids.threadId) : [];
+  }
+
   wrap(asked: BoxRequest): WrappedSpawn {
     const given = this.options.engineHome && !asked.home ? this.inEngineHome(asked, this.options.engineHome) : asked;
     const ids = given.cwd ? taskWorkspaceIds(given.cwd, this.options.setup.dataDir) : null;
@@ -322,6 +328,7 @@ export class BotBox {
   /** More read-write folders for one conversation's boxes (a memory layer); nothing without a runner. */
   lend(botId: string, threadId: string, rw: readonly string[], ro: readonly string[] = []): void { this.runner?.lend(botId, threadId, rw, ro); }
   readOnlyFor(cwd?: string): readonly string[] { return this.runner?.readOnlyFor(cwd) ?? []; }
+  lentFor(cwd?: string): readonly string[] { return this.runner?.lentFor(cwd) ?? []; }
 
   tools(): { bwrap: string; socat: string | null } | null { return this.detection.tools; }
 
