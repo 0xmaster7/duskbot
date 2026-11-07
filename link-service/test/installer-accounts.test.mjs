@@ -73,12 +73,14 @@ describe("the installer's units", () => {
     expect(server).not.toMatch(/SupplementaryGroups=.*\bdocker\b/);
     // bubblewrap makes user, mount, pid and network namespaces and their loopback over netlink
     expect(server).not.toContain("RestrictNamespaces");
+    // and mounts a fresh /proc, which the kernel refuses under a partly covered one
+    for (const masking of ["ProtectKernelTunables", "ProtectKernelLogs", "ProcSubset"]) expect(server).not.toContain(masking);
     expect(server).toContain("RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK");
     expect(server).not.toContain("config/openmausbot/engines.env");
 
     const link = await read(join(dir, "units", "openmausbot-link.service"));
     for (const line of ["User=omb-link", `Environment=HOME=${dir}/var/lib/omb-link`, `Environment=OMB_LINK_ENGINES_FILE=${dir}/var/lib/omb-link/handoff/engines.env`,
-      `Environment=OMB_LINK_CODEX_AUTH_FILE=${dir}/var/lib/omb-link/handoff/codex-auth.json`, "NoNewPrivileges=yes", "ProtectHome=yes", "RestrictNamespaces=yes", `ReadWritePaths=${dir}/var/lib/omb-link`]) {
+      `Environment=OMB_LINK_CODEX_AUTH_FILE=${dir}/var/lib/omb-link/handoff/codex-auth.json`, "NoNewPrivileges=yes", "ProtectHome=yes", "RestrictNamespaces=yes", "ProtectKernelTunables=yes", `ReadWritePaths=${dir}/var/lib/omb-link`]) {
       expect(link.split("\n"), line).toContain(line);
     }
     expect(link).not.toContain("User=maus");
