@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 import { SettingRow } from "./SettingsPrimitives";
 import { Card as RowsCard, FormDialog, FormField, ItemRow, NavRow, NoteRow, useSubPage } from "./ListRows";
 import { textFieldCls } from "./ui/GrokDialog";
-import { MacLocalControl } from "./MacLocalControl";
+import { NativeComputerSettings } from "./NativeComputerSettings";
 import { PRIVATE_SETUP_PAGE } from "./settings-page-ids";
 import { SettingsSelect } from "./SettingsSelect";
 import { useCopyFeedback } from "@/lib/copy-text";
@@ -837,6 +837,7 @@ export function LocalComputerSection() {
   return (
     <>
       {announcer}
+      {!cloudHome && <NativeComputerSettings />}
       <RowsCard data-settings-block="vps-desktops">
         {vpsConfigured === false && !vpsLoading && !vpsUnavailableReason && (typeof window === "undefined" || window.ogb?.remoteClient?.active !== true) && <NavRow title={t("vpsLink.add")} hint={t("vpsLink.addHint")} onClick={openAddVps} />}
         <VpsComputersCard
@@ -853,7 +854,7 @@ export function LocalComputerSection() {
       </RowsCard>
 
       {!cloudHome && (
-        <RowsCard label={t("settings.grok.group.yourComputer")} data-settings-block="private-desktop">
+        <RowsCard label={t("settings.native.optionalDesktop")} data-settings-block="private-desktop">
           <ItemRow
             title={t("settings.w6a.private.title")}
             hint={<span aria-live="polite">{loading
@@ -888,7 +889,6 @@ export function LocalComputerSection() {
           <NavRow data-panel-page={PRIVATE_SETUP_PAGE} title={t("settings.w6a.private.more")} onClick={() => sub.open(PRIVATE_SETUP_PAGE, t("settings.w6a.private.more"))} />
         </RowsCard>
       )}
-      <MacLocalControl />
     </>
   );
 }

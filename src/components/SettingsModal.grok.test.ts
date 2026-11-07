@@ -184,6 +184,16 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(current(open("looks"))).toBe("general");
     expect(current(open("engines"))).toBe("general");
   });
+
+  it("offers VPS policy on a paired server without local computer actions", () => {
+    vi.stubGlobal("window", { ogb: { remoteClient: { active: true }, environments: {} } });
+    fixture.config = { ...fixture.config, vps: { configured: true, sshAlias: "fixture" } };
+    const html = open("computer");
+    expect(html).toContain('data-settings-block="vps"');
+    expect(html).toContain('data-panel-page="elsewhere"');
+    expect(html).not.toContain('data-panel-page="computers"');
+    expect(html).not.toContain('data-settings-block="browser"');
+  });
 });
 
 describe("where every section lives now", () => {

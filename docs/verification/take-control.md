@@ -3,7 +3,7 @@
 Run the focused checks in disposable homes:
 
 ```sh
-pnpm exec vitest run src/components/ComputerPanel.takeover.test.ts src/components/computer-takeover.dom.test.ts src/components/ComputerPanel.simple.test.ts src/components/LiveDesktop.test.ts src/lib/desktop-connection.test.ts
+pnpm exec vitest run src/components/ComputerPanel.takeover.test.ts src/components/computer-takeover.dom.test.ts src/components/ComputerPanel.simple.test.ts src/components/LiveDesktop.test.ts src/lib/desktop-connection.test.ts src/components/ComputerPanel.lazy.test.ts src/hooks/use-computer-panel-activity.test.ts
 pnpm exec vitest run server/computer-take-control.e2e.test.ts server/container-computer.test.ts server/vps-computer.test.ts server/routes/desktop-viewer.test.ts
 ```
 
@@ -13,9 +13,11 @@ only the live desktop itself is a stand-in. They prove:
 - A ready Local VM or VPS is watched through one live, view-only noVNC connection.
   Watching sends no control request and does not poll screenshots. Pointer,
   keyboard and clipboard input remain disabled in the viewer.
-- **Take control** acquires this view's control lease and enables input on the
+- Opening a stopped desktop waits for an explicit wake click inside its frame.
+  Engine inventory loading stays in Checking rather than a false error or wake state.
+- **Take control** stays disabled until the first decoded frame, then acquires this view's control lease and enables input on the
   existing connection. **Full screen** expands that same desktop without
-  reconnecting. Nothing opens in another window or tab.
+  reconnecting or acquiring control. Nothing opens in another window or tab.
 - **Hand control back** releases the computer at once and disables input on
   the same connection, so watching resumes without another handshake.
 - Closing the panel, leaving its Computer view, opening another conversation or
@@ -27,6 +29,9 @@ only the live desktop itself is a stand-in. They prove:
   falls back to bounded screenshot polling when the live viewer cannot connect.
 - Handing back a VPS keeps the watched tunnel alive. Closing the viewer releases
   its connection; remote tunnels expire through the existing reconnect grace.
+- Selected computer activity opens the right panel without taking control, including
+  an already-awake desktop found by one status read after reload or selection.
+  Closing it manually suppresses reopening during the same wake cycle.
 - Cancelled or replaced connections cannot publish late state or leave a
   WebSocket running. A new target gets its own first-connection failure check.
 

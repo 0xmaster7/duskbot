@@ -112,7 +112,7 @@ export function SettingsModal() {
     permissions: false,
   };
   offered.permissions = offered.botAccess || offered.activity;
-  const has = (id: AppSettingsSection) => offered[id] && (!remoteActive || REMOTE_SECTIONS.includes(id));
+  const has = (id: AppSettingsSection) => offered[id] && (!remoteActive || REMOTE_SECTIONS.includes(id) || (id === "computer" && state.config?.vps?.configured === true));
 
   const paneShown = (pane: SettingsPane) => !remoteActive || pane === "general" || pane === "texting" || pane === "computer";
   const panes = SETTINGS_PANES.filter((pane) => paneShown(pane.id) && pane.sections.some(has));

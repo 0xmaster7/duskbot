@@ -9,9 +9,11 @@ import { useCaptionChrome, useDesktopCapabilities } from "./DesktopCapabilities"
 type Connection = "connecting" | "connected" | "disconnected";
 
 /** The computer the person took control of, live and drivable where they were watching it. */
-export function LiveDesktop({ target, threadId, name, poster, expanded, onExpandedChange, onHandBack, handingBack, onUnreachable, viewOnly = false }: {
+export function LiveDesktop({ target, threadId, name, poster, expanded, onExpandedChange, onHandBack, handingBack, onUnreachable, onReadyChange, onTakeControl, viewOnly = false }: {
   target: string;
   viewOnly?: boolean;
+  onReadyChange?: (ready: boolean) => void;
+  onTakeControl?: () => void;
   threadId: string;
   name: string;
   /** The last watched frame, shown until the first live one arrives. */
@@ -37,6 +39,8 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
   watching.current = viewOnly;
   const { dragProps, noDragStyle } = useCaptionChrome();
   const macInset = useDesktopCapabilities().capabilities.windowChrome === "mac-inset";
+  const readyChanged = useRef(onReadyChange);
+  readyChanged.current = onReadyChange;
   const unreachable = useRef(onUnreachable);
   unreachable.current = onUnreachable;
 
@@ -45,9 +49,13 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
     let client: RFB | undefined;
     let retry: ReturnType<typeof setTimeout> | undefined;
     let ended = false;
+    let decoded = false;
+    const reportReady = readyChanged.current;
+    reportReady?.(false);
     const lost = () => {
       if (controller.signal.aborted || ended) return;
       ended = true;
+      reportReady?.(false);
       setConnection("disconnected");
       if (live.current !== identity || attempt > 0) unreachable.current();
       else if (attempt === 0) retry = setTimeout(() => setRetry({ identity, attempt: 1 }), 1_000);
@@ -61,7 +69,9 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
       events: {
         connected: () => {
           if (controller.signal.aborted) return;
+          decoded = true;
           live.current = identity;
+          reportReady?.(true);
           setConnection("connected");
         },
         disconnected: lost,
@@ -70,10 +80,11 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
       if (controller.signal.aborted) return connected.disconnect();
       client = connected;
       rfb.current = connected;
-      connected.viewOnly = watching.current;
-      connected.focusOnClick = !watching.current;
+      connected.viewOnly = watching.current || !decoded;
+      connected.focusOnClick = !connected.viewOnly;
     }, () => { if (!controller.signal.aborted) lost(); });
     const disconnect = () => {
+      reportReady?.(false);
       controller.abort();
       clearTimeout(retry);
       client?.disconnect();
@@ -92,8 +103,8 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
   useLayoutEffect(() => {
     const client = rfb.current;
     if (!client) return;
-    client.viewOnly = viewOnly;
-    client.focusOnClick = !viewOnly;
+    client.viewOnly = viewOnly || connection !== "connected";
+    client.focusOnClick = !client.viewOnly;
     if (connection === "connected" && !viewOnly) client.focus({ preventScroll: true });
   }, [expanded, connection, viewOnly]);
 
@@ -121,6 +132,7 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
         <header {...dragProps} className={cn("flex shrink-0 flex-wrap items-center gap-2 border-b border-hairline/40 bg-panel px-3 py-2", macInset && "pl-[86px]")}>
           <span className="min-w-0 truncate text-[13px] font-medium text-ink">{label}</span>
           {pill}
+          {viewOnly && onTakeControl && <button type="button" style={noDragStyle} onClick={onTakeControl} disabled={connection !== "connected"} className={cn(iconButton, "ml-auto bg-control text-ink hover:bg-raised-hover")}>{t("computer.takeControl")}</button>}
           {!viewOnly && <form
             style={noDragStyle}
             className="ml-auto flex min-w-0 items-center gap-1"
@@ -161,6 +173,11 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
           <img src={poster} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-contain opacity-50" />
         )}
         <div ref={screen} role="application" aria-label={label} className="absolute inset-0" />
+        {viewOnly && onTakeControl && (
+          <button type="button" aria-label={t("computer.takeControl")} title={t("computer.takeControl")}
+            onClick={onTakeControl} disabled={connection !== "connected"}
+            className="absolute inset-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-wait" />
+        )}
         {connection === "connecting" && (
           <div role="status" className="pointer-events-none absolute inset-0 flex items-center justify-center gap-2 text-[12px] text-ink-secondary">
             <Loader2 size={16} className="animate-spin" aria-hidden="true" />

@@ -35,6 +35,8 @@ export interface PreviewOptions {
   logLevel?: "info" | "warn" | "error" | "silent";
   /** Set on every request the page sends the fixture, e.g. a Cloud home's edge headers and a paired device's token. */
   proxyHeaders?: Record<string, string>;
+  /** Freeze the mounted document while other worktree files are edited. */
+  hmr?: boolean;
 }
 
 export interface MountedPreview {
@@ -65,7 +67,7 @@ export async function mountPreview(
     optimizeDeps: { entries: [join(REPO_ROOT, entry.replace(/^\/+/, ""))] },
     ...(logLevel ? { logLevel } : {}),
     // A worktree's node_modules may be a link to another checkout's: its files (the fonts) are served from there.
-    server: { host: "127.0.0.1", port: 0, fs: { allow: [REPO_ROOT, realpathSync(join(REPO_ROOT, "node_modules"))] }, proxy: {
+    server: { host: "127.0.0.1", port: 0, ...(options.hmr === false ? { hmr: false } : {}), fs: { allow: [REPO_ROOT, realpathSync(join(REPO_ROOT, "node_modules"))] }, proxy: {
       "/api": { target: fixture.info.url, ws: true, ...(proxyHeaders ? { headers: proxyHeaders } : {}) },
       "/.well-known/openmausbot/environment": { target: fixture.info.url, ...(proxyHeaders ? { headers: proxyHeaders } : {}) },
     } },

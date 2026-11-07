@@ -66,6 +66,7 @@ import { phonePairingSettingsAction, takePhonePairingRequest } from "@/lib/phone
 import { useDesktopNotificationOpens, useExternalChatLinks } from "@/hooks/use-external-chat-links";
 import { useReadShownChatOnFocus } from "@/hooks/use-read-shown-chat";
 import { usePresence } from "@/hooks/use-presence";
+import { useComputerPanelActivity } from "@/hooks/use-computer-panel-activity";
 import { AppEmptyMain } from "@/components/AppEmptyMain";
 import { loadingLine } from "@/lib/app-loading";
 import { useAiSwitchKeeper } from "@/lib/ai-switch";
@@ -144,6 +145,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const loading = loadingLine({ connected: state.connected, hydrated: state.hydrated === true, developer: import.meta.env.DEV });
   const group = state.groups.find((g) => g.id === state.selectedId);
   const bot = group ? undefined : (state.bots.find((b) => b.id === state.selectedId) ?? state.bots[0]);
+  useComputerPanelActivity({ bot, active: state.activeView === "chat", settingsOpen: state.settingsOpen, computerOpen: state.computerOpen, targetKey: `${bot?.vpsAlias}:${bot?.section}:${state.config?.vps?.sshAlias}:${state.config?.vps?.mode}:${state.config?.vps?.independentScreens}`, dispatch });
   const notificationFeed = useNotificationFeed() && !remoteClient;
   const roomPanelOpen = useRoomPanelShown({ group, state, simple: !remoteClient });
   const roomPanelOverlay = notificationFeed && state.notificationsOpen && !twoSidePanelsFit;

@@ -14,9 +14,12 @@ synthetic Docker/SSH and RFB desktop:
 node --experimental-strip-types scripts/verify-desktop-viewer.ts --live-only
 ```
 
-This mounts the real ComputerPanel through Vite. It checks view-only keyboard
-and pointer blocking, enabled input after Take control, blocked input after
-Hand control back, one RFB connection throughout, and zero screenshot polls.
+This mounts the real inline ComputerPanel through Vite. A stopped desktop wakes
+inside its frame after an explicit click. The fixture delays the first RFB frame
+and checks that Take control stays disabled until decoded pixels appear. It
+checks view-only keyboard and pointer blocking, enabled input after Take control,
+blocked input after Hand control back, one RFB connection throughout, zero
+screenshot polls, and one authenticated join without a second viewer-config GET.
 It also checks that loopback proxy viewers use the app URL and reconnect grace.
 The same flow runs for an Auto bot using an assigned shared team desktop,
 including watching before any control hold is taken.

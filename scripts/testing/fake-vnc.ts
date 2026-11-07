@@ -11,6 +11,8 @@ export async function fakeVnc() {
   const pointers: Array<{ buttons: number; x: number; y: number }> = [];
   const events = new EventEmitter();
   let connections = 0;
+  let paused = false;
+  const waitingFrames = new Set<() => void>();
   sockets.on("connection", socket => {
     connections++;
     let pending: Buffer = Buffer.alloc(0);
@@ -25,6 +27,7 @@ export async function fakeVnc() {
       for (let i = 16; i < data.length; i += 4) data[i] = 255;
       socket.send(data);
     };
+    socket.on("close", () => waitingFrames.delete(frame));
     socket.on("message", raw => {
       pending = Buffer.concat([pending, Buffer.from(raw as Buffer)]);
       for (;;) {
@@ -58,7 +61,10 @@ export async function fakeVnc() {
           init[14] = 16; init[15] = 8;
           init.writeUInt32BE(name.length, 20); name.copy(init, 24);
           socket.send(init);
-        } else if (message[0] === 3 && !sentFrame) { sentFrame = true; frame(); }
+        } else if (message[0] === 3 && !sentFrame) {
+          sentFrame = true;
+          if (paused) waitingFrames.add(frame); else frame();
+        }
         else if (message[0] === 4 && message[1] === 1) {
           const key = message.readUInt32BE(4);
           keys.push(key);
@@ -93,6 +99,8 @@ export async function fakeVnc() {
       bytes.copy(message, 8);
       for (const socket of sockets.clients) socket.send(message);
     },
+    pauseFrames: () => { paused = true; },
+    releaseFrames: () => { paused = false; for (const frame of waitingFrames) frame(); waitingFrames.clear(); },
     connections: () => connections,
     nextConnection: () => once(sockets, "connection", { signal: AbortSignal.timeout(10_000) }),
     async close() {

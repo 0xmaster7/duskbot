@@ -27,43 +27,65 @@ export async function connectDesktop(screen: HTMLElement, target: string, option
   if (!DESKTOP_VIEWER_TARGET.test(target)) throw new DesktopUnreachable(true);
   const { signal: cancelled, events } = options;
   const signal = AbortSignal.any([cancelled, AbortSignal.timeout(30_000)]);
+  let config: { password?: string | null } | undefined;
   if (target.startsWith("vps/")) {
     const query = `?${new URLSearchParams({ viewer: "proxy", ...(options.threadId ? { threadId: options.threadId } : {}) })}`;
     const joined = await fetch(`/api/bots/${target.slice(4)}/computer/join${query}`, {
       method: "POST", headers: { "content-type": "application/json" }, body: "{}", signal,
     });
     if (!joined.ok) throw new DesktopUnreachable();
+    const result = await joined.json();
+    if (result?.viewer && (result.viewer.password === null || typeof result.viewer.password === "string")) config = result.viewer;
   }
   const path = `/api/desktop-viewer/${target}`;
   const query = target.startsWith("vps/") && options.threadId ? `?${new URLSearchParams({ threadId: options.threadId })}` : "";
-  const response = await fetch(`${path}${query}`, { signal, credentials: "same-origin", cache: "no-store" });
-  if (!response.ok) throw new DesktopUnreachable();
-  const config = await response.json();
+  if (!config) {
+    const response = await fetch(`${path}${query}`, { signal, credentials: "same-origin", cache: "no-store" });
+    if (!response.ok) throw new DesktopUnreachable();
+    config = await response.json();
+  }
   cancelled.throwIfAborted();
   const websocket = new URL(`${path}/websockify${query}`, location.href);
   websocket.protocol = location.protocol === "https:" ? "wss:" : "ws:";
   const client = new RFB(screen, websocket.href, {
-    credentials: { password: config.password ?? "", username: "", target: "" },
+    credentials: { password: config?.password ?? "", username: "", target: "" },
   });
-  client.viewOnly = options.viewOnly === true;
-  client.focusOnClick = !client.viewOnly;
+  client.viewOnly = true;
+  client.focusOnClick = false;
   client.scaleViewport = true;
   client.background = "var(--color-inset)";
   let ended = false;
+  let decoded = false;
+  let frameCheck: ReturnType<typeof setTimeout> | undefined;
   const deadline = setTimeout(() => { client.disconnect(); end(); }, 15_000);
   function end() {
     clearTimeout(deadline);
+    clearTimeout(frameCheck);
     if (ended || cancelled.aborted) return;
     ended = true;
     cancelled.removeEventListener("abort", abort);
     events.disconnected();
   }
-  const abort = () => { clearTimeout(deadline); client.disconnect(); };
+  const abort = () => { clearTimeout(deadline); clearTimeout(frameCheck); client.disconnect(); };
   cancelled.addEventListener("abort", abort, { once: true });
-  client.addEventListener("connect", () => {
-    clearTimeout(deadline);
-    if (!cancelled.aborted && !ended) events.connected();
-  });
+  const showFirstFrame = () => {
+    if (cancelled.aborted || ended || decoded) return;
+    try {
+      const canvas = screen.querySelector("canvas");
+      // noVNC 1.7 leaves its visible canvas transparent until a decoded framebuffer update is painted.
+      if (canvas?.width && canvas.height && canvas.getContext("2d")?.getImageData(0, 0, 1, 1).data[3]) {
+        decoded = true;
+        clearTimeout(deadline);
+        client.viewOnly = options.viewOnly === true;
+        client.focusOnClick = !client.viewOnly;
+        events.connected();
+      } else frameCheck = setTimeout(showFirstFrame, 32);
+    } catch {
+      client.disconnect();
+      end();
+    }
+  };
+  client.addEventListener("connect", showFirstFrame);
   client.addEventListener("disconnect", end);
   client.addEventListener("clipboard", (event) => {
     if (!cancelled.aborted && !ended) events.clipboard?.(event.detail.text);

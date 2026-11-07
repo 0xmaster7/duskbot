@@ -22,16 +22,17 @@ let fixture: VerificationServer | undefined;
 let browser: { binary: string; env: NodeJS.ProcessEnv } | undefined;
 let preview: MountedPreview | undefined;
 try {
-  // This executable answers only read-only inspection. No command can reach
-  // the machine's real Docker installation, even during fixture startup.
+  // No fixture command can reach the machine's real Docker installation.
   writeFileSync(join(bin, "docker"), `#!${process.execPath}
+const fs = require("node:fs");
+const stopped = ${JSON.stringify(join(scratch, "stopped"))};
 let args = process.argv.slice(2);
 if (args[0] === "-H") args = args.slice(2);
 const labels = ${JSON.stringify({ "com.openmausbot.local-vm": "1", "com.openmausbot.cua-driver": CUA_DRIVER_VERSION, "com.openmausbot.cua-base": BASE_IMAGE_DIGEST, "com.openmausbot.image-layer": IMAGE_LAYER_VERSION, "com.openmausbot.workspace": "1" })};
 let result;
 const imageId = 'sha256:' + 'a'.repeat(64);
 if (args[0] === 'inspect' && /^openmausbot-vps-/.test(args[1])) result = [{
-  Id:'b'.repeat(64), Image:imageId, State:{Running:true}, Mounts:[],
+  Id:'b'.repeat(64), Image:imageId, State:{Running:!fs.existsSync(stopped)}, Mounts:[],
   Config:{Image:${JSON.stringify(IMAGE)}, Env:['VNC_PW=fixture-password'], Labels:{...labels,
     'com.openmausbot.vps':'1', 'com.openmausbot.container':args[1], 'com.openmausbot.vps-viewer':'1'}},
   HostConfig:{Privileged:false,NetworkMode:'bridge',PortBindings:{},Memory:4294967296,MemorySwap:4294967296,NanoCpus:2000000000,
@@ -39,6 +40,7 @@ if (args[0] === 'inspect' && /^openmausbot-vps-/.test(args[1])) result = [{
     CgroupnsMode:'private',SecurityOpt:[],RestartPolicy:{Name:'unless-stopped',MaximumRetryCount:0}},
   NetworkSettings:{Networks:{bridge:{IPAddress:'172.17.0.5'}}}
 }];
+else if (args[0] === 'start' && (/^openmausbot-vps-/.test(args[1]) || args[1] === 'b'.repeat(64))) { fs.rmSync(stopped,{force:true}); result = args[1]; }
 else if (args[0] === 'exec') result = args.includes('--version') ? 'cua-driver ${CUA_DRIVER_VERSION}'
   : (args.includes('omb-desktop-probe') || args.includes('health_report')) ? {schema_version:'1',overall:'ok',checks:[]} : {};
 else if (args[0] === 'info') result = 'fixture';
@@ -85,14 +87,28 @@ process.on('SIGTERM',()=>{fs.appendFileSync(log,'close ');process.exit(0)});
   // Pair through the actual HTTP endpoint in this disposable browser. The
   // resulting cookie forces both status and upgrades through session auth.
   assert.equal(await evaluate(`(async () => (await fetch('/api/auth/pair', {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:${JSON.stringify(pairing.code)},cookie:true,label:'Viewer fixture'})})).status)()`), 200);
-  const verifyLiveComputer = async (botId: string) => {
+  const verifyLiveComputer = async (botId: string, wake = false) => {
     preview ??= await mountPreview(fixture, {
       entry: "/scripts/testing/live-computer-preview.tsx", route: "/__live-computer.html",
-      title: "Isolated live computer", logLevel: "silent",
+      title: "Isolated live computer", logLevel: "silent", hmr: false,
     });
     const connectedBeforeWatch = desktop.connections();
     await command("set", "viewport", "1100", "850");
-    await command("open", `${preview.previewUrl}?bot=${botId}`);
+    desktop.pauseFrames();
+    if (wake) writeFileSync(join(scratch, "stopped"), "stopped");
+    await command("open", `${preview.previewUrl}?bot=${botId}&inline=1`);
+    console.log(JSON.stringify({ step: "inline-open", botId, wake }));
+    if (wake) {
+      await command("wait", "--fn", "document.querySelector('[data-inline-computer][data-stage=asleep] button[aria-label=\"Wake computer\"]:not(:disabled)') !== null && window.liveComputerFixture.status.configured === true && window.liveComputerFixture.status.container === 'stopped'");
+      assert.equal(desktop.connections(), connectedBeforeWatch);
+      console.log(JSON.stringify({ step: "inline-wake", botId }));
+      await command("click", "[data-panel-screen] button");
+    }
+    await command("wait", "--fn", "document.querySelector('[data-live-desktop] canvas') !== null");
+    assert.equal(await evaluate("document.querySelector('[data-inline-computer]').dataset.stage"), "loading");
+    assert.equal(await evaluate("(() => { const buttons = Array.from(document.querySelectorAll('button')).filter(button => button.getAttribute('aria-label') === 'Take control' || button.textContent.trim() === 'Take control'); return buttons.length > 0 && buttons.every(button => button.disabled); })()"), true);
+    assert.equal((await api("GET", `/api/bots/${botId}/computer/control`)).held, false);
+    desktop.releaseFrames();
     await command("wait", "--fn", "document.querySelector('[data-live-desktop][data-state=connected][data-view-only=true] canvas') !== null");
     await command("wait", "--fn", "document.querySelector('canvas').getContext('2d').getImageData(0,0,1,1).data[0] === 255");
     assert.equal(desktop.connections(), connectedBeforeWatch + 1);
@@ -127,6 +143,8 @@ process.on('SIGTERM',()=>{fs.appendFileSync(log,'close ');process.exit(0)});
     assert.equal(desktop.pointers.length, 0);
     assert.equal((await api("GET", `/api/bots/${botId}/computer/control`)).held, false);
     assert.equal(await evaluate("window.liveComputerFixture.screenshots"), 0);
+    assert.equal(await evaluate("window.liveComputerFixture.requests.filter(request => request.method === 'POST' && request.url.includes('/computer/join')).length"), 1);
+    assert.equal(await evaluate("window.liveComputerFixture.requests.filter(request => request.method === 'GET' && request.url.includes('/desktop-viewer/')).length"), 0);
   };
   if (process.argv.includes("--live-only")) {
     await runControlOmb(["new-bot", "--name", "Live watch fixture", "--url", fixture.info.url]);
@@ -136,7 +154,7 @@ process.on('SIGTERM',()=>{fs.appendFileSync(log,'close ');process.exit(0)});
     await api("PATCH", `/api/bots/${bot.id}`, { computer: "cloud", cloudBackend: "vps" });
     const loopbackProxy = await api("POST", `/api/bots/${bot.id}/computer/join?viewer=proxy`, {});
     assert.equal(new URL(loopbackProxy.joinUrl, fixture.info.url).pathname, "/desktop-viewer");
-    await verifyLiveComputer(bot.id);
+    await verifyLiveComputer(bot.id, true);
     await command("open", "about:blank");
     const shared = await api("POST", "/api/team-computers", { name: "Shared live fixture", requestId: crypto.randomUUID(), acknowledgeCost: true });
     await api("PATCH", `/api/team-computers/${shared.id}`, { section: "", acknowledgeSharedAccess: true });
@@ -146,7 +164,7 @@ process.on('SIGTERM',()=>{fs.appendFileSync(log,'close ');process.exit(0)});
     assert.equal(sharedStatus.ready, true);
     assert.equal((await api("GET", `/api/bots/${bot.id}/computer/control`)).held, false);
     await verifyLiveComputer(bot.id);
-    console.log(JSON.stringify({ ok: true, checks: ["real ComputerPanel renders synthetic RFB pixels", "view-only keyboard/pointer blocked", "take sends keyboard input after lease", "hand-back blocks input", "one RFB connection for watch/take/hand-back with zero screenshots", "loopback proxy viewer URL", "shared team desktop watches without taking control and reuses its connection for take/hand-back"], logPath: fixture.info.logPath }));
+    console.log(JSON.stringify({ ok: true, checks: ["sleeping desktop wakes inline without taking control", "Take control disabled until decoded RFB pixels", "real ComputerPanel renders synthetic RFB pixels", "view-only keyboard/pointer blocked", "take sends keyboard input after lease", "hand-back blocks input", "one RFB connection for watch/take/hand-back with zero screenshots", "loopback proxy viewer URL", "shared team desktop watches without taking control and reuses its connection for take/hand-back"], logPath: fixture.info.logPath }));
   } else {
   await command("wait", "--fn", "document.getElementById('retry') !== null");
   let nextConnection = desktop.nextConnection();
@@ -345,7 +363,7 @@ process.on('SIGTERM',()=>{fs.appendFileSync(log,'close ');process.exit(0)});
   if (browser) {
     console.error(await agentBrowser(browser.binary, browser.env, ["console"]).catch(() => "Browser console unavailable"));
     console.error(await agentBrowser(browser.binary, browser.env, ["errors"]).catch(() => "Browser errors unavailable"));
-    console.error(await agentBrowser(browser.binary, browser.env, ["eval", "document.body.innerText"]).catch(() => "Browser unavailable"));
+    console.error(await agentBrowser(browser.binary, browser.env, ["eval", "JSON.stringify({text:document.body.innerText,fixture:window.liveComputerFixture})"]).catch(() => "Browser unavailable"));
   }
   throw error;
 } finally {
