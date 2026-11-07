@@ -223,9 +223,8 @@ web for “Acme construction leads”", "Reading linkedin.com"), with the whole 
 hover. Once the step has run past the quiet notice it adds how it is doing: the
 time since its last output, or what its own processes show ("waiting on the
 network", "busy, no output yet", "idle, no output yet"). A click on the line,
-or Enter on it, unfolds the **Now** card: the current ask's steps, a running
-command's last lines of output and **Open activity**, which opens the Activity
-panel at this run. A second click or Escape folds it. A working bot's sidebar
+or Enter on it, unfolds the **Now** card: the current ask's steps and a running
+command's last lines of output. A second click or Escape folds it. A working bot's sidebar
 row shows the same step in place of its last message.
 
 A scripted call with `hold` stays running until `FAKE_CLAUDE_RELEASE` exists;
