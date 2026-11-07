@@ -14,6 +14,16 @@ import { createVpsLink } from "./vps-link.mjs";
 
 export const DEFAULT_LINK_BASE = "https://link.apps.siddz.com";
 
+/**
+ * a linked server's page is http://vps-<id>.localhost, and every request it makes crosses the tunnel. chromium gives a
+ * host six connections, so a page's burst (startup asks ~20 things) waited in line a whole tunnel round trip per six;
+ * measured on a linked vps, requests queued up to 12 s. "localhost" covers every vps-<id>.localhost and only loopback
+ * names. call before the app is ready.
+ */
+export function unlimitTunnelConnections(app) {
+  app.commandLine.appendSwitch("ignore-connections-limit", "localhost");
+}
+
 /** reads a value saved by protect; electron's async safeStorage decrypt answers { result }, not a bare string */
 export function unprotectWith(encryption) {
   return async (value) => {
