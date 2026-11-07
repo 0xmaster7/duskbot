@@ -56,7 +56,8 @@ import { TurnPresence } from "./TurnPresence";
 import { showToolCallsEnabled } from "@/lib/feature-flags";
 import { normalizeState } from "@/lib/mascot";
 import { peerLine, peerRequest, type PeerLine } from "@/lib/peer-message";
-import { showWorkingDots } from "@/lib/turn-tail";
+import { justSent } from "@/lib/reply-slot";
+import { ReplySlot, useReplySlotPhase } from "./ReplySlot";
 import { lastNonReceipt } from "@/lib/receipts";
 import { useTurnLive } from "@/state/turn-status"; import { useLiveReplyActive } from "@/state/live-reply"; import { useTurnNow } from "./NowCard"; import { useThreadRoutineRun } from "@/state/older-routine-runs";
 import { ChatMarkdown } from "./ChatMarkdown";
@@ -102,7 +103,6 @@ import { LiveCallBar } from "./LiveCallBar";
 import { LiveCallChip } from "./LiveCallPill";
 import { effectivePlace, toolPlace, type EffectivePlace } from "@/lib/place";
 import { cn } from "@/lib/cn";
-import { useThinkingMoment } from "@/hooks/use-thinking-moment";
 import { activeLocale, t } from "@/lib/i18n";
 import { COMPACT_BUBBLE } from "@/lib/compact-chip";
 import { groupTranscript, isStatusActivity, type TranscriptItem } from "@/lib/activity-runs";
@@ -1028,16 +1028,21 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
 
   const lastMessage = lastNonReceipt(messages);
   const live = useTurnLive(bot.threadId), now = useTurnNow(bot, messages, lastMessage, live);
-  // The mascot and its status line stay for the whole turn; only its end hides them, never a timer.
-  const waiting = Boolean(bot.busy && bot.activity !== "waiting-on-you" && showWorkingDots(bot.busy, lastMessage, undefined, live.ended));
+  // the reply is written whole; while the engine types it the slot shows the dots and the mark looks like it is answering
+  const streamingReply = useLiveReplyActive(bot.threadId);
+  const { phase: slotPhase, reply: landedReply } = useReplySlotPhase({
+    scope: `${bot.id}:${bot.threadId ?? ""}`, messages, phase: now.phase, streaming: streamingReply, ended: live.ended, since: bot.turnStartedAt,
+    waiting: bot.activity !== "waiting-on-you" && (Boolean(bot.busy) || justSent(lastMessage)),
+  });
+  const waiting = slotPhase === "status";
+  const replyPending = slotPhase === "mascot" || slotPhase === "dots" ? slotPhase : null;
   const teammatesWorking = !bot.busy && Boolean(bot.waitingForTeammates);
   const markRef = useRef<MausAvatarHandle>(null);
   const [markEmphasized, setMarkEmphasized] = useState(false);
-  // the reply is written whole; while the engine types it the mark only looks like it is answering
-  const streamingReply = useLiveReplyActive(bot.threadId);
   const statusMarkState = bot.busy ? turnMarkState({ running: true, composing: streamingReply, activity: live.status?.activity ?? null, awaiting: bot.activity === "waiting-on-you", settled: null }, Date.now()) : statusMarkFor({ busy: false, waitingOnYou: bot.activity === "waiting-on-you", answering: streamingReply, live: live.status?.activity, failed: lastMessage?.kind === "activity" && lastMessage.tool?.ok === false });
   const presenceVisible = waiting || teammatesWorking;
-  useThinkingMoment(markRef, waiting && !teammatesWorking);
+  // a landed reply takes the line's place in the same frame, with no exit left to play
+  const presenceMounted = !replyPending && (presenceVisible || !landedReply);
   // the bubble the line hangs under keeps its pinched corner until the line has finished leaving, as grok's does
   const presenceShown = useLingering(presenceVisible, 140);
   const paintedMessages = useFirstPaintRows(transcriptKey, windowedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef, following);
@@ -1277,7 +1282,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             </div>
           )}
           <div className={statusSlot ? cn("turn-status-slot h-9 shrink-0", presenceUnderBubble && SIMPLE_STACKED) : "contents"} onMouseEnter={() => setMarkEmphasized(true)} onMouseLeave={() => setMarkEmphasized(false)} onClick={() => markRef.current?.poke?.()}>
-          <TurnPresence
+          {replyPending && <ReplySlot phase={replyPending} bot={bot} markState={bot.busy ? statusMarkState : "thinking"} />}
+          {presenceMounted && <TurnPresence
             avatar={
               <StatusMark
                 ref={markRef}
@@ -1300,7 +1306,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             phase={now.phase}
             seed={`${bot.id}:${bot.threadId ?? ""}:${busySince ?? ""}`}
             since={busySince}
-          />
+          />}
           </div>
         </div>
         </div>
