@@ -11,6 +11,7 @@ import { resolveRequestAuth, type RequestAuth } from "../request-auth.ts";
 import { json, readBody } from "../harness/http.ts";
 import { SHARED_LOCAL_VM_TARGET, perBotLocalVmTarget, poolLocalVmTarget, type ContainerComputerStatus } from "../container-computer.ts";
 import { createDesktopViewer, desktopViewerUrl, type DesktopTarget } from "./desktop-viewer.ts";
+import { readFrame, writeFrame } from "./rfb-handshake.ts";
 import { viewerTargetId } from "../../shared/desktop-viewer.ts";
 import { localDesktopTarget, localVmViewerStatus } from "../desktop-viewer-targets.ts";
 
@@ -457,4 +458,69 @@ it("keeps the session and scope checks ahead of the lease, and closes a session'
   const rest = Promise.all([other, browser].map(socket => once(socket, "close")));
   expect(viewer.closeForOwner(admin.session.id)).toBe(2);
   await rest;
+});
+
+it("dials a VPS desktop again while it is still waking up, until its viewer port answers", async () => {
+  const waking = createServer((_req, res) => res.writeHead(404).end());
+  const port = await listen(waking);
+  await new Promise<void>(resolve => waking.close(() => resolve()));
+  vpsTarget = { key: "vps/test-bot", resolve: async () => ({ port, password: "fixture-secret" }) };
+  const opened = open("/api/desktop-viewer/vps/test-bot/websockify");
+  await new Promise(resolve => setTimeout(resolve, 350));
+  const awake = createServer((_req, res) => res.writeHead(404).end());
+  awake.on("upgrade", (req, socket) => {
+    peers.add(socket);
+    const accept = createHash("sha1").update(`${req.headers["sec-websocket-key"]}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest("base64");
+    socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+  });
+  await new Promise<void>(resolve => awake.listen(port, "127.0.0.1", resolve));
+  try {
+    expect((await opened).status).toBe(101);
+  } finally {
+    for (const peer of peers) peer.destroy();
+    await new Promise<void>(resolve => { awake.close(() => resolve()); awake.closeAllConnections(); });
+  }
+});
+
+it("answers a VPS desktop's handshake on the server when the viewer asks, so the viewer gets the opening at once", async () => {
+  desktop.removeAllListeners("upgrade");
+  desktop.on("upgrade", (req, socket) => {
+    peers.add(socket);
+    const accept = createHash("sha1").update(`${req.headers["sec-websocket-key"]}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest("base64");
+    socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+    // a desktop with no password: version, None, an OK result, then ServerInit once ClientInit arrives
+    let raw = Buffer.alloc(0);
+    let step = 0;
+    socket.write(writeFrame(Buffer.from("RFB 003.008\n"), false));
+    socket.on("data", (chunk: Buffer) => {
+      raw = Buffer.concat([raw, chunk]);
+      for (let next; (next = readFrame(raw));) {
+        raw = raw.subarray(next.size);
+        step++;
+        if (step === 1) socket.write(writeFrame(Buffer.from([1, 1]), false));
+        if (step === 2) socket.write(writeFrame(Buffer.from([0, 0, 0, 0]), false));
+        if (step === 3) socket.write(writeFrame(Buffer.concat([Buffer.alloc(20), Buffer.from([0, 0, 0, 1]), Buffer.from("x")]), false));
+      }
+    });
+  });
+  vpsTarget = { key: "vps/test-bot", resolve: async () => ({ port: desktopPort, password: null }) };
+  let raw = Buffer.alloc(0);
+  const messages: string[] = [];
+  const read = (chunk: Buffer) => {
+    raw = Buffer.concat([raw, chunk]);
+    for (let next; (next = readFrame(raw));) { raw = raw.subarray(next.size); messages.push(next.frame.payload.toString("latin1")); }
+  };
+  const status = await new Promise<number>((resolve, reject) => {
+    const req = request({ hostname: "127.0.0.1", port: appPort, path: "/api/desktop-viewer/vps/test-bot/websockify?rfb=server", headers: {
+      ...headers(), Upgrade: "websocket", Connection: "Upgrade", "Sec-WebSocket-Key": "dGhlIHNhbXBsZSBub25jZQ==", "Sec-WebSocket-Version": "13",
+    } });
+    req.once("upgrade", (res, socket, head) => { peers.add(socket); read(head); socket.on("data", read); resolve(res.statusCode!); });
+    req.once("response", res => resolve(res.statusCode!));
+    req.once("error", reject);
+    req.end();
+  });
+  expect(status).toBe(101);
+  await expect.poll(() => messages.length).toBe(2);
+  expect(messages[0]).toBe("RFB 003.008\n");
+  expect(messages[1]).toBe(Buffer.concat([Buffer.from([1, 1, 0, 0, 0, 0]), Buffer.alloc(20), Buffer.from([0, 0, 0, 1]), Buffer.from("x")]).toString("latin1"));
 });
