@@ -118,6 +118,20 @@ describe("failed replies in a room", () => {
     expect(card([ask, waiting])).toBe("");
   });
 
+  it("says a direct chat's first reply that never came in the card, with Switch AI and Connect your subscription", () => {
+    const rescue = { botId: "echo", threadId: "main", turnId: "t", instanceId: "claude", ai: "Claude" };
+    const silent: Message = { id: "silent", role: "bot", kind: "activity", at: 2,
+      tool: { name: "notice: Echo didn't hear back from Claude.", ok: true, rescue: { ...rescue, over: true } } };
+    const markup = renderToStaticMarkup(createElement(FailedReplyCard, { rows: trailingRows([ask, silent]), botId: "echo", threadId: "main", onRetry: () => {} }));
+    expect(count(markup, "data-chat-error")).toBe(1);
+    expect(markup).toContain("Bot failed to respond");
+    expect(markup).toContain("Echo didn&#x27;t hear back from Claude.");
+    expect(markup).toContain("Switch AI</button>");
+    expect(markup).toContain("Connect your subscription</button>");
+    const waiting = { ...silent, tool: { ...silent.tool!, name: "notice: Echo hasn't heard back from Claude yet.", rescue } };
+    expect(renderToStaticMarkup(createElement(FailedReplyCard, { rows: trailingRows([ask, waiting]), botId: "echo", threadId: "main" }))).toBe("");
+  });
+
   it("offers no Try again when nothing can send the line again", () => {
     expect(card([ask, failed("Echo", "API Error: 529 Overloaded")])).not.toContain("Try again</button>");
   });

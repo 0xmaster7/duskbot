@@ -11,7 +11,7 @@ import { failedTurnCause, type FailedReplyReason } from "../../shared/failed-tur
 import { trialCreditKind } from "../../shared/trial-credit";
 import { isCancelledTranscriptRow } from "../../shared/client-cancel";
 
-export type FailedReplyKind = FailedReplyReason | "claude_update" | "trial_credit" | "place" | "other";
+export type FailedReplyKind = FailedReplyReason | "claude_update" | "trial_credit" | "place" | "no_answer" | "other";
 
 /** A failed turn's row: a reply that never came, not one that came back with a step that failed. */
 export function isFailedReply(message: Message): boolean {
@@ -19,10 +19,9 @@ export function isFailedReply(message: Message): boolean {
   return message.kind === "activity" && Boolean(tool) && failedTurnCause(tool!.name) !== null && !tool!.partial && !isCancelledTranscriptRow(message);
 }
 
-/** A room member's turn that ended without a word from its AI: no error row says it, so the card does. */
-export function isUnansweredRoomTurn(message: Message): boolean {
-  const rescue = message.tool?.rescue;
-  return Boolean(rescue?.groupId && rescue.over);
+/** A turn that ended without a word from its AI: no error row says it, so the card does. */
+export function isUnansweredTurn(message: Message): boolean {
+  return Boolean(message.tool?.rescue?.over);
 }
 
 /** A notice line a bot's turn left (a sign-out, a limit, a switch to another AI); never a live rescue or a stop. */
@@ -46,7 +45,7 @@ export function trailingRows(messages: readonly Message[], scan = 200): { failur
     if (settled.has(who)) continue;
     if (isFoldableNotice(m)) { notices.push(m); continue; }
     settled.add(who);
-    if (isFailedReply(m) || isUnansweredRoomTurn(m)) failures.push(m);
+    if (isFailedReply(m) || isUnansweredTurn(m)) failures.push(m);
   }
   return { failures: failures.reverse(), notices: notices.reverse() };
 }
@@ -61,7 +60,7 @@ const CREDIT_WORDS = /out of credits?|payment required|insufficient (?:funds|bal
 
 /** What stopped a failed row: the server's own reading when it stored one, its flags and words for an older row. */
 export function failedReplyKind(tool: NonNullable<Message["tool"]>, engine: InstanceInfo | undefined): FailedReplyKind {
-  if (tool.rescue) return "other";
+  if (tool.rescue) return "no_answer";
   const cause = failedTurnCause(tool.name) ?? tool.name;
   if (tool.place) return "place";
   if (trialCreditKind(cause)) return "trial_credit";
@@ -89,7 +88,7 @@ export function plainFailureWords(cause: string): string | null {
 }
 
 /** Most actionable first: when bots fail for different reasons, the card says the one a person can fix. */
-const PRIORITY: FailedReplyKind[] = ["signed_out", "claude_update", "credits", "trial_credit", "usage_limit", "place", "rate_limit", "overloaded", "timeout", "other"];
+const PRIORITY: FailedReplyKind[] = ["signed_out", "claude_update", "credits", "trial_credit", "usage_limit", "place", "rate_limit", "overloaded", "timeout", "no_answer", "other"];
 
 export function mostActionable<T extends { kind: FailedReplyKind }>(items: readonly T[]): T | undefined {
   return [...items].sort((a, b) => PRIORITY.indexOf(a.kind) - PRIORITY.indexOf(b.kind))[0];
@@ -100,6 +99,7 @@ const DETAIL: Record<Exclude<FailedReplyKind, "signed_out" | "credits" | "claude
   rate_limit: "failedReply.rateLimited",
   overloaded: "failedReply.overloaded",
   timeout: "failedReply.timeout",
+  no_answer: "error.plain.generic",
   other: "error.plain.generic",
 };
 

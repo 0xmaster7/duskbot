@@ -25,7 +25,7 @@ export function WindowsLocalControl() {
   };
 
   return (
-    <section data-windows-local-control={local.reasonCode ?? "unavailable"} className="mt-4 rounded-xl border border-warning/25 bg-warning/10 p-4">
+    <section data-windows-local-control={local.reasonCode ?? "unavailable"} className="mt-4 py-1">
       <div className="flex items-start gap-3">
         <MonitorX size={16} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
         <div className="min-w-0 flex-1">

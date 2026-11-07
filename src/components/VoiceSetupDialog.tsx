@@ -143,7 +143,7 @@ export function VoiceSetupDialog({
         {/* Mounted before it has anything to say: a live region announces only changes made after it exists. */}
         <div role="status" aria-live="polite">
           {ready && (
-            <div className="mx-4 mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-2 rounded-[10px] bg-ink/4 py-1.5 pl-3 pr-1.5">
+            <div className="mx-4 mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-2 py-1.5">
               <CheckCircle2 size={14} className="shrink-0 text-success" aria-hidden="true" />
               <span className="min-w-0 flex-1 text-[13px] leading-[18px] text-ink">
                 {t("call.voiceSetup.ready", { name: callName })}

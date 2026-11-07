@@ -160,7 +160,7 @@ export function McpServersCard({ bot, patch }: { bot: Bot; patch: (patch: { mcpS
       {servers === null ? !error && (
         <div className="mt-3 text-[12px] text-ink-secondary">{t("mcp.loading")}</div>
       ) : servers.length === 0 ? (
-        <div className="mt-3 rounded-lg bg-inset px-3 py-2 text-[12px] text-ink-secondary">{t("botAccess.mcpEmpty")}</div>
+        <div className="mt-3 text-[12px] text-ink-secondary">{t("botAccess.mcpEmpty")}</div>
       ) : (
         <div className="mt-3 divide-y divide-hairline/40 overflow-hidden rounded-lg border border-hairline/40">
           {servers.map((server) => (
@@ -600,7 +600,7 @@ export function CloudPreference({ bot, patch }: { bot: Bot; patch: ReturnType<ty
   return (
     <>
       {!bot.computer && (
-        <div className="mt-3 rounded-lg bg-inset px-3 py-2.5 text-[12px] leading-relaxed text-ink-secondary">
+        <div className="mt-3 text-[12px] leading-relaxed text-ink-secondary">
           <span className="font-medium text-ink">{t("botAccess.cloud.autoTitle")}</span>{" "}
           {t("botAccess.cloud.autoDescription")}
         </div>
@@ -799,7 +799,7 @@ export function AccessSection({
         <div className="mt-0.5 text-[13px] text-ink-secondary">{t("botAccess.webhooks.description")}</div>
         <ProposalStatus bot={bot} kind="owner" />
         {webhooks.length === 0 ? (
-          <div className="mt-3 rounded-lg bg-inset px-3 py-2 text-[12px] text-ink-secondary">{t("botAccess.webhooks.empty")}</div>
+          <div className="mt-3 text-[12px] text-ink-secondary">{t("botAccess.webhooks.empty")}</div>
         ) : (
           <div className="mt-3 divide-y divide-hairline/40 overflow-hidden rounded-lg border border-hairline/40">
             {webhooks.map((webhook) => (
@@ -827,7 +827,7 @@ export function AccessSection({
         <div className="mt-0.5 text-[13px] text-ink-secondary">{t("botAccess.always.description")}</div>
         <ProposalStatus bot={bot} kind="owner" />
         {alwaysAllow.length === 0 ? (
-          <div className="mt-3 rounded-lg bg-inset px-3 py-2 text-[12px] text-ink-secondary">{t("botAccess.always.empty")}</div>
+          <div className="mt-3 text-[12px] text-ink-secondary">{t("botAccess.always.empty")}</div>
         ) : (
           <div className="mt-3 divide-y divide-hairline/40 overflow-hidden rounded-lg border border-hairline/40">
             {alwaysAllow.map((entry) => (

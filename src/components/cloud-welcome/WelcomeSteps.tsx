@@ -32,11 +32,11 @@ export function WelcomeEngine({ name, headingRef, onFinish }: { name: string; he
   const others = { ...engines, choices: engines.choices.filter((choice) => choice.id !== "claude") };
   return <section aria-labelledby="cloud-welcome-step" data-welcome-step="engine" className="flex flex-col">
     <StepHeading headingRef={headingRef} title={t("cloudSetup.engine.title")} sub={t("cloudWelcome.engine.sub", { name })} />
-    {credit?.state === "active" && <p role="status" data-welcome-credit className="mt-5 flex items-start gap-2.5 rounded-xl bg-success/12 px-3.5 py-3 text-[13px] leading-relaxed text-ink">
+    {credit?.state === "active" && <p role="status" data-welcome-credit className="mt-5 flex items-start gap-2.5 text-[13px] leading-relaxed text-ink">
       <Check size={16} strokeWidth={2.5} aria-hidden="true" className="mt-px shrink-0 text-success" />
       <span>{credit.left !== null ? t("cloudWelcome.engine.credit", { amount: usd(credit.left) }) : t("cloudWelcome.engine.creditPlain")}</span>
     </p>}
-    {credit && credit.state !== "active" && <p role="status" data-welcome-credit={credit.state} className="mt-5 flex items-start gap-2.5 rounded-xl bg-warning/10 px-3.5 py-3 text-[13px] leading-relaxed text-ink">
+    {credit && credit.state !== "active" && <p role="status" data-welcome-credit={credit.state} className="mt-5 flex items-start gap-2.5 text-[13px] leading-relaxed text-ink">
       <CircleAlert size={16} aria-hidden="true" className="mt-px shrink-0 text-warning" />
       <span>{t(credit.state === "used_up" ? "cloudSignIn.creditUsedUp" : "cloudSignIn.creditEnded")}</span>
     </p>}

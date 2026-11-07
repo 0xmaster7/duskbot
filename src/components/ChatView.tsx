@@ -1028,7 +1028,9 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   }, [lastTypedMessage]);
 
   const lastMessage = lastNonReceipt(messages);
-  const live = useTurnLive(bot.threadId), now = useTurnNow(bot, messages, lastMessage, live);
+  // a first reply's wait is no phrase for the line: the line already says the bot is at work
+  const lastForLine = useMemo(() => lastMessage?.tool?.rescue ? lastNonReceipt(messages.filter((m) => !m.tool?.rescue)) : lastMessage, [messages, lastMessage]);
+  const live = useTurnLive(bot.threadId), now = useTurnNow(bot, messages, lastForLine, live);
   // The mascot and its status line stay for the turn; its end, or its reply landing, hides them.
   const landed = useLandedReply(`${bot.id}:${bot.threadId ?? ""}`, messages);
   const waiting = Boolean(bot.busy && bot.activity !== "waiting-on-you" && showWorkingDots(bot.busy, lastMessage, undefined, live.ended))

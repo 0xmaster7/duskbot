@@ -80,7 +80,7 @@ export function AppInfo({ id, network, bytes, bordered }: { id: string; network:
   if (bytes > 0) rows.push([t("app.info.size"), formatAppBytes(bytes)]);
   rows.push([t("app.info.off"), t("app.info.offList")]);
   return (
-    <div id={id} data-app-info className={cn("rounded-2xl bg-inset px-3.5 py-3 text-[13px] leading-[18px]", bordered ? "mx-4 mb-3" : "mb-2")}>
+    <div id={id} data-app-info className={cn("border-t border-ink/[0.12] py-2.5 text-[13px] leading-[18px]", bordered ? "mx-4" : "mb-2")}>
       <p className="mb-2 text-ink-secondary">{t("app.info.sandbox")}</p>
       <dl className="grid grid-cols-[minmax(0,auto)_minmax(0,1fr)] gap-x-4 gap-y-1">
         {rows.map(([label, value]) => (
