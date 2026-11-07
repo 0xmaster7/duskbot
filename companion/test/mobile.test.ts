@@ -347,7 +347,7 @@ describe("mobile WebSocket forwarding", () => {
     await new Promise<void>((resolve, reject) => {
       socket.on("error", reject);
       socket.on("data", (chunk) => {
-        received = Buffer.concat([received, chunk]);
+        received = Buffer.concat([received, Buffer.from(chunk)]);
         if (received.includes("harness-headphone-headphone-payload")) resolve();
       });
       socket.on("connect", () => {
