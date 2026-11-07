@@ -8,11 +8,11 @@ import { SEND_KEYS, type SendKey } from "@/lib/send-key";
 import type { ApprovalModeSelector } from "./ApprovalModeSelector";
 import type { ModelPicker } from "./ModelPicker";
 
-const fixture = vi.hoisted(() => ({ dispatch: vi.fn(), instances: [] as unknown[], config: undefined as unknown, tourOpen: false }));
+const fixture = vi.hoisted(() => ({ dispatch: vi.fn(), instances: [] as unknown[], config: undefined as unknown }));
 vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();
   return { ...original, api: vi.fn(async () => ({})), useStore: () => ({
-    state: { ...original.initialState, instances: fixture.instances, config: fixture.config ?? original.initialState.config, tourOpen: fixture.tourOpen },
+    state: { ...original.initialState, instances: fixture.instances, config: fixture.config ?? original.initialState.config },
     dispatch: fixture.dispatch,
   }) };
 });
@@ -32,7 +32,6 @@ vi.mock("@/components/Avatar", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/components/Avatar")>(),
   MausAvatar: () => null,
 }));
-// The tour's text, without measuring an anchor on screen.
 vi.mock("./onboarding/Spotlight", () => ({ Spotlight: ({ children }: { children: ReactNode }) => createElement("div", null, children) }));
 vi.mock("@/components/onboarding/view-transition", () => ({ withViewTransition: (update: () => void) => { update(); return null; } }));
 
@@ -40,7 +39,6 @@ const { Composer } = await import("./Composer");
 const { ChatView } = await import("./ChatView");
 const { CitationBadge } = await import("./CitationUI");
 const { CloudIntent } = await import("./CloudIntent");
-const { GuidedTour } = await import("./onboarding/GuidedTour");
 const { setSendKey } = await import("@/lib/send-key");
 const { setFollowUpDefault } = await import("@/lib/follow-up");
 const { setPendingIntent } = await import("@/lib/cloud-intent");
@@ -102,7 +100,6 @@ beforeEach(() => {
   vi.mocked(api).mockClear();
   fixture.instances = [];
   fixture.config = undefined;
-  fixture.tourOpen = false;
   setSendKey("enter");
   setFollowUpDefault("steer");
   vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 200, headers: { "content-type": "application/json" } })));
@@ -217,16 +214,6 @@ describe("the send key in hints", () => {
     expect(host.querySelector('button[aria-label="Send message"]')?.getAttribute("title")).toBe("Send (Shift+Enter)");
     flushSync(() => setSendKey("mod-enter"));
     expect(host.querySelector('button[aria-label="Send message"]')?.getAttribute("title")).toBe("Send (Ctrl+Enter)");
-  });
-
-  it.each([
-    ["enter", "Enter"], ["shift-enter", "Shift+Enter"], ["mod-enter", "Ctrl+Enter"],
-  ] as const)("names the key in the tour's composer step (%s)", (mode, label) => {
-    fixture.config = { onboarding: { completedAt: 1, hintsSeen: [] } };
-    fixture.tourOpen = true; // started from Settings: the app tour never starts by itself
-    setSendKey(mode);
-    render(createElement(GuidedTour));
-    expect(document.body.textContent).toContain(`Type anything and press ${label}. Every chat`);
   });
 
   it("names the key on the Cloud's first-job button", () => {

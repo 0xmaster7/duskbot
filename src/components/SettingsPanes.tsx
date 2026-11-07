@@ -54,7 +54,7 @@ import { WorkspacesSection } from "./WorkspacesSection";
 import { UsageMeterCard } from "./native/UsageMeter";
 import { reportsUsage, useEngineLimits } from "@/lib/limit-resets";
 import {
-  ExperimentalFeaturesRow, FollowUpRow, LanguageRow, ReplayTourRows, SendKeyRow, TalkingStyleRow, UpdatesRow,
+  ExperimentalFeaturesRow, FollowUpRow, LanguageRow, SendKeyRow, TalkingStyleRow, UpdatesRow,
 } from "./AppSettingsRows";
 
 export type Has = (id: AppSettingsSection) => boolean;
@@ -312,7 +312,7 @@ function ServerUpdatesRow() {
   return <NavRow data-settings-open="server-update" title={versionTitle()} hint={status} value={action} drill={false} disabled={entry.item.disabled} onClick={entry.item.onSelect} />;
 }
 
-export function UpdatesPane({ remoteActive }: { remoteActive: boolean }) {
+export function UpdatesPane() {
   const { at } = useSubPage();
   if (at === "diagnostics") return <SettingsRows><DiagnosticsRow simple /></SettingsRows>;
   return (
@@ -322,12 +322,12 @@ export function UpdatesPane({ remoteActive }: { remoteActive: boolean }) {
           {window.ogb?.updater ? <UpdatesRow title={versionTitle()} /> : <ServerUpdatesRow />}
         </SettingsRows>
       </SettingsGroup>
-      <HelpGroup remoteActive={remoteActive} />
+      <HelpGroup />
     </>
   );
 }
 
-function HelpGroup({ remoteActive }: { remoteActive: boolean }) {
+function HelpGroup() {
   const [about, setAbout] = useState(false);
   const [shortcuts, setShortcuts] = useState(false);
   return (
@@ -336,7 +336,6 @@ function HelpGroup({ remoteActive }: { remoteActive: boolean }) {
       <NavRow data-settings-open="shortcuts" title={t("settings.advanced.about.shortcuts")} onClick={() => setShortcuts(true)} />
       <NavRow data-settings-open="help" title={t("settings.advanced.about.help")} external onClick={() => void openExternalLink(HELP_CENTER_URL)} />
       <NavRow data-settings-open="feedback" title={t("settings.advanced.about.feedback")} external onClick={() => void openExternalLink(FEEDBACK_URL)} />
-      {!remoteActive && <ReplayTourRows />}
       <PageRow data-settings-open="diagnostics" page="diagnostics" title={t("settings.diagnostics.title")} hint={t("settings.hint.diagnostics")} />
       <AboutDialog open={about} onClose={() => setAbout(false)} />
       <KeyboardShortcutsModal open={shortcuts} onClose={() => setShortcuts(false)} />

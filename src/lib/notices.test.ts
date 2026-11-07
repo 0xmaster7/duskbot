@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { EMPTY_ONBOARDING, type OnboardingStatus } from "@/lib/onboarding";
-import { withTourReset } from "@/lib/guided-tour";
 import { CLOUD_INTRO, CLOUD_NOTICE, CLOUD_TRIAL_NOTICE, dismissNotice, GROK_MOVE_NOTICE, introShown, introStage, launchNotice, localDay, markLaunchNotice, nextNotice, noticeSeen,
   NOTICES, OLD_PRO_DISMISSALS, TWO_PLACES_NOTICE, usedBefore, WHATS_NEW_NOTICE, type NoticeFacts } from "./notices";
 
@@ -59,7 +58,6 @@ it("a dismissal holds on this device at once and in the workspace record for goo
   expect(noticeSeen(record(), CLOUD_NOTICE)).toBe(false);
   expect(noticeSeen(record([CLOUD_NOTICE]), CLOUD_NOTICE)).toBe(true);
   expect(dismissNotice(record([CLOUD_NOTICE]), CLOUD_NOTICE)).toBeNull();
-  expect(withTourReset(record([CLOUD_INTRO, `${CLOUD_INTRO}:day-2`, CLOUD_NOTICE, "tour.done"]))).toEqual([CLOUD_INTRO, `${CLOUD_INTRO}:day-2`, CLOUD_NOTICE]);
 });
 
 it("browser storage that throws still leaves the workspace record in charge", () => {

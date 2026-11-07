@@ -72,7 +72,7 @@ Use only mapped, tested commands:
 - [Reactions](reactions.md)
 - [Chat widgets: prompts to try with a real bot](widget-prompts.md)
 - [Phone web app installation and safe areas](phone-web-app.md)
-- [Welcome flow and guided tour](onboarding.md)
+- [Welcome flow](onboarding.md)
 - [Channels](channels.md)
 - [In-chat team coordination](room-coordination.md)
 - [Question cards: a teammate's question, in its chat and the person's inbox](question-cards.md)

@@ -8,7 +8,6 @@ import { useWelcomeViewer, WelcomeGate } from "@/components/onboarding/WelcomeGa
 import { CloudTimeZoneSync } from "@/components/CloudTimeZone";
 import { useWarmChatImages } from "@/components/use-warm-chat-images";
 import { cloudSignInDue, type WelcomeViewer } from "@/lib/onboarding";
-import { GuidedTour } from "@/components/onboarding/GuidedTour";
 import { LiveCallHost } from "@/components/LiveCallHost";
 import { ThreadRefsProvider } from "@/components/ThreadRefs";
 import { parseComputerHelp } from "@/lib/computer-control";
@@ -369,7 +368,6 @@ function Application() {
         </ThreadRefsProvider>
         <WelcomeGate viewer={viewer} />
         <CloudTimeZoneSync viewer={viewer} />
-        <GuidedTour />
         <LiveCallHost />
       </StoreProvider>
     </DesktopCapabilitiesProvider>

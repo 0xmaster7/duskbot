@@ -121,7 +121,6 @@ describe("who gets the welcome flow", () => {
     store.dispatch.mockReset();
     store.state = { ...store.state, welcomeOpen: true };
     gate(LOCAL_VIEWER).tree!.props.onDone!(null);
-    expect(store.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "toggleTour" }));
     expect(store.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "select" }));
   });
 

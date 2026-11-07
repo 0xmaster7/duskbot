@@ -6,7 +6,6 @@ import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { runControlOmb } from "./control-omb.ts";
-import { TOUR_STEPS } from "../src/lib/guided-tour.ts";
 
 const handle = process.argv[2];
 if (!handle) throw new Error("Usage: node --experimental-strip-types scripts/verify-onboarding-ui.ts /path/to/fixture/ui.json");
@@ -137,35 +136,6 @@ await ui("press", "--keys", "Enter");
 await poll(() => evaluate(`fetch('/api/threads/${first.threadId}/messages?limit=20').then(r => r.json()).then(data => data.messages.some(message => message.role === 'bot' && message.kind === 'text' && message.turnSucceeded === true))`), true, "first onboarding message completes");
 console.log("PASS connected default selected automatically; first message succeeds without a model pick");
 
-// The app tour still runs from Settings. Complete every live-interface step and verify its server record. A missing
-// optional browser tab may skip itself, but every required anchor must work.
-await openSettings();
-await click("Replay app tour");
-for (const step of TOUR_STEPS) {
-  if ((await config()).onboarding.hintsSeen.includes(step.id)) continue;
-  await poll(() => evaluate("Boolean(document.querySelector('[data-tour-card] button'))"), true, step.id);
-  await screenshot(step.id);
-  await click(step.id === "tour.done" ? "Finish" : "Next");
-  await poll(async () => (await config()).onboarding.hintsSeen.includes(step.id), true, `saved ${step.id}`);
-}
-await poll(() => evaluate("document.querySelectorAll('[data-tour-card]').length"), 0, "tour closed");
-await evaluate("setTimeout(() => location.reload(), 0); true");
-await textVisible(composer);
-assert.equal(await evaluate("document.querySelectorAll('[data-welcome], [data-tour-card]').length"), 0);
-console.log("PASS full app tour from Settings, saved progress, reload stays dismissed");
-
-await openSettings();
-await click("Replay app tour");
-await textVisible("This is where you talk to your bots");
-await holdConfigWrite();
-await click("Next");
-await poll(() => evaluate("window.heldWrites"), 1, "Next pending");
-await click("Skip tour");
-await poll(() => evaluate("document.querySelectorAll('[data-tour-card]').length"), 0, "Skip closes immediately");
-await evaluate("window.releaseWrite(); true");
-await poll(async () => (await config()).onboarding.hintsSeen.filter((id: string) => id.startsWith("tour.")).length, TOUR_STEPS.length, "Skip survives in-flight Next");
-console.log("PASS Settings replay and Skip queued behind slow Next");
-
 await openSettings();
 await click("Replay welcome tour");
 await textVisible("Meet OpenMausBot");
@@ -176,29 +146,5 @@ await evaluate("window.releaseWrite(); true");
 console.log("PASS welcome replay can close while persistence is pending");
 await poll(async () => Boolean((await config()).onboarding.completedAt), true, "welcome save completed");
 
-// An upgraded install can have only the legacy browser gate. Replay still
-// works without a new welcome completion, and failures keep Settings open.
-await evaluate("fetch('/api/config', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({onboarding:{completedAt:'', version:0}})}).then(r=>r.ok)");
-await evaluate("setTimeout(() => location.reload(), 0); true");
-await textVisible(composer);
-await openSettings();
-await evaluate(`(() => {
-  const original = window.fetch.bind(window);
-  window.fetch = (input, init) => {
-    if (String(input) === '/api/config' && init?.method === 'PUT') {
-      window.fetch = original;
-      return Promise.resolve(new Response('{}', {status:503}));
-    }
-    return original(input, init);
-  };
-  return true;
-})()`);
-await click("Replay app tour");
-await textVisible("Couldn't save your progress");
-await click("Replay app tour");
-await textVisible("This is where you talk to your bots");
-await click("Skip tour");
-await poll(async () => (await config()).onboarding.hintsSeen.filter((id: string) => id.startsWith("tour.")).length, TOUR_STEPS.length, "legacy replay saved");
-console.log("PASS legacy-install replay and failed replay retry");
 await screenshot("complete");
 console.log(JSON.stringify({ ok: true, evidence, config: (await config()).onboarding }));
