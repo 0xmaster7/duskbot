@@ -9,23 +9,25 @@ import {
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
+import type { LocaleKey } from "@/locales";
 import { useStore, type Message } from "@/state/store";
 import type { GroupGoalRunCardData } from "../../shared/group-goal-run";
 
 const DETAIL_LIMIT = 280;
 
+// a status word in its semantic colour beside its icon; working and stopped stay neutral
 const COPY = {
-  working: { label: "Working", tone: "text-accent", border: "border-accent/30" },
-  completed: { label: "Completed", tone: "text-success", border: "border-success/30" },
-  "needs-input": { label: "Needs your input", tone: "text-warning", border: "border-warning/35" },
-  blocked: { label: "Blocked", tone: "text-warning", border: "border-warning/35" },
-  "limit-reached": { label: "Turn limit reached", tone: "text-warning", border: "border-warning/35" },
-  paused: { label: "Paused", tone: "text-warning", border: "border-warning/35" },
-  stopped: { label: "Stopped", tone: "text-ink-secondary", border: "border-hairline/45" },
-  failed: { label: "Failed", tone: "text-danger", border: "border-danger/35" },
+  working: { label: "chat.activity.working", tone: "text-ink-secondary" },
+  completed: { label: "routines.goal.completed", tone: "text-success" },
+  "needs-input": { label: "routines.goal.needs-input", tone: "text-warning" },
+  blocked: { label: "routines.goal.blocked", tone: "text-warning" },
+  "limit-reached": { label: "routines.goal.limit-reached", tone: "text-warning" },
+  paused: { label: "routines.goal.paused", tone: "text-warning" },
+  stopped: { label: "routines.goal.stopped", tone: "text-ink-secondary" },
+  failed: { label: "routines.goal.failed", tone: "text-danger" },
 } satisfies Record<
   GroupGoalRunCardData["status"],
-  { label: string; tone: string; border: string }
+  { label: LocaleKey; tone: string }
 >;
 
 function compact(value: string | undefined, limit: number): string {
@@ -37,7 +39,7 @@ function StatusIcon({ status }: { status: GroupGoalRunCardData["status"] }) {
   const className = "size-4 shrink-0";
   switch (status) {
     case "working":
-      return <Loader2 aria-hidden="true" className={cn(className, "animate-spin text-accent")} />;
+      return <Loader2 aria-hidden="true" className={cn(className, "animate-spin text-ink-tertiary motion-reduce:animate-none")} />;
     case "completed":
       return <CheckCircle2 aria-hidden="true" className={cn(className, "text-success")} />;
     case "needs-input":
@@ -66,38 +68,39 @@ export function GoalRunCard({ message, solo = false, onStop }: { message: Messag
   }
 
   const copy = COPY[run.status];
+  const label = t(copy.label);
   const goal = compact(run.goal, 180);
   const detail = compact(run.detail, DETAIL_LIMIT);
   const turns = run.status === "working"
-    ? `Turn ${Math.min(run.turnCount + 1, run.maxTurns)} of ${run.maxTurns}`
-    : `${run.turnCount} ${run.turnCount === 1 ? "turn" : "turns"}`;
+    ? t("goalRun.turnOf", { turn: Math.min(run.turnCount + 1, run.maxTurns), max: run.maxTurns })
+    : run.turnCount === 1 ? t("chat.usage.turnsOne") : t("chat.usage.turnsMany", { count: run.turnCount });
 
   return (
     <section
-      aria-label={`Goal run: ${copy.label}`}
-      className={cn("w-full max-w-[680px] rounded-2xl border bg-card px-3.5 py-3 shadow-sm", copy.border)}
+      aria-label={t("goalRun.aria", { status: label })}
+      className="w-full max-w-[680px] rounded-2xl bg-card px-3.5 py-3"
     >
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-inset">
+      <div className="flex items-start gap-2.5">
+        <span className="mt-0.5 flex shrink-0">
           <StatusIcon status={run.status} />
-        </div>
+        </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <h3 className="truncate text-[14px] font-semibold text-ink">{goal || "Group goal"}</h3>
-            <span aria-live="polite" className={cn("text-[12px] font-medium", copy.tone)}>
-              {copy.label}
+            <h3 className="truncate text-[14px] font-medium text-ink">{goal || t("composer.goal.chip")}</h3>
+            <span aria-live="polite" className={cn("text-[13px]", copy.tone)}>
+              {label}
             </span>
           </div>
           {detail && <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-ink-secondary">{detail}</p>}
           <p className="mt-1 text-[12px] text-ink-tertiary">
-            {run.coordinatorName}{solo ? "" : " coordinating"} · {turns}
+            {solo ? run.coordinatorName : t("goalRun.coordinating", { name: run.coordinatorName })} · {turns}
           </p>
         </div>
         {onStop && run.status === "working" && (
           <button
             type="button"
             onClick={onStop}
-            className="shrink-0 rounded-lg border border-hairline/50 px-2.5 py-1 text-[12px] font-medium text-ink-secondary hover:bg-raised hover:text-ink"
+            className="flex h-7 shrink-0 items-center rounded-full bg-ink/[0.06] px-2.5 text-[13px] text-ink-secondary transition-colors hover:bg-ink/[0.11] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           >
             {t("chat.stop")}
           </button>
