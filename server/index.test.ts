@@ -3068,7 +3068,7 @@ describe("harness HTTP API", () => {
   it("clears an explicit computer to Auto, keeps status passive, and allows manual VPS wake", async () => {
     let botId = "";
     try {
-      expect((await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps" } })).status).toBe(200);
+      expect((await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "per-bot" } })).status).toBe(200);
       const bot = (await api("POST", "/api/bots")).body.bot;
       botId = bot.id;
       expect((await api("PATCH", `/api/bots/${bot.id}`, { computer: "cloud" })).body.bot.computer).toBe("cloud");
@@ -3089,7 +3089,7 @@ describe("harness HTTP API", () => {
       expect((await api("POST", `/api/bots/${bot.id}/computer/provision`, {}))).toMatchObject({ status: 200, body: { ready: true } });
     } finally {
       if (botId) await api("DELETE", `/api/bots/${botId}`);
-      await api("PUT", "/api/config", { vps: { sshAlias: "" } });
+      await api("PUT", "/api/config", { vps: { sshAlias: "", mode: "shared" } });
     }
   });
 
@@ -3238,7 +3238,7 @@ describe("harness HTTP API", () => {
       }
     };
     try {
-      expect((await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps" } })).status).toBe(200);
+      expect((await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", independentScreens: false } })).status).toBe(200);
       for (const name of ["Direct shared", "Room shared", "Explicit off"]) {
         const bot = (await api("POST", "/api/bots", { name, section,
           modelSelection: { instanceId: "claude", model: "claude-sonnet-5" } })).body.bot;
@@ -3357,7 +3357,7 @@ describe("harness HTTP API", () => {
       await api("PATCH", `/api/team-computers/${requestId}`, { section: null, acknowledgeSharedAccess: true }).catch(() => undefined);
       if (roomId) await api("DELETE", `/api/groups/${roomId}`).catch(() => undefined);
       for (const botId of botIds) await api("DELETE", `/api/bots/${botId}`).catch(() => undefined);
-      await api("PUT", "/api/config", { vps: { autoStart: true } }).catch(() => undefined);
+      await api("PUT", "/api/config", { vps: { autoStart: true, independentScreens: true } }).catch(() => undefined);
       await api("PUT", "/api/config", { vps: { sshAlias: "" } }).catch(() => undefined);
       rmSync(fakeClaudeDump, { force: true });
     }
@@ -3370,7 +3370,7 @@ describe("harness HTTP API", () => {
     let holderThread = "";
     const waiterThreads: string[] = [];
     try {
-      expect((await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps" } })).status).toBe(200);
+      expect((await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", independentScreens: false } })).status).toBe(200);
       // Four live threads on one bot: on a small machine's default of 3 the fourth would park in the send queue instead.
       expect((await api("PUT", "/api/config", { threads: { maxConcurrentPerBot: 6 } })).status).toBe(200);
       const bot = (await api("POST", "/api/bots", { name: "Queue probe", section,
@@ -3434,7 +3434,7 @@ describe("harness HTTP API", () => {
       await api("POST", `/api/team-computers/${requestId}/control`, { action: "release" }).catch(() => undefined);
       await api("PATCH", `/api/team-computers/${requestId}`, { section: null, acknowledgeSharedAccess: true }).catch(() => undefined);
       if (botId) await api("DELETE", `/api/bots/${botId}`).catch(() => undefined);
-      await api("PUT", "/api/config", { vps: { sshAlias: "" } }).catch(() => undefined);
+      await api("PUT", "/api/config", { vps: { sshAlias: "", independentScreens: true } }).catch(() => undefined);
       await api("PUT", "/api/config", { threads: { maxConcurrentPerBot: 3 } }).catch(() => undefined);
       rmSync(fakeClaudeDump, { force: true });
     }
@@ -3499,7 +3499,7 @@ describe("harness HTTP API", () => {
     let roomId = "";
     try {
       await waitForIsolatedServer(isolatedChild, isolatedPort, () => isolatedStderr);
-      expect((await isolatedApi("PUT", "/api/config", { vps: { sshAlias: "fixture-vps" } })).status).toBe(200);
+      expect((await isolatedApi("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", independentScreens: false } })).status).toBe(200);
       const bot = (await isolatedApi("POST", "/api/bots", {
         name: "Park holder", section,
         modelSelection: { instanceId: "claude", model: "claude-sonnet-5" },
@@ -3622,7 +3622,7 @@ describe("harness HTTP API", () => {
       await isolatedApi("POST", `/api/bots/${botId}/interrupt`, { threadId: siblingThreadId }).catch(() => undefined);
       if (stoppedThreadId) await isolatedApi("POST", `/api/bots/${botId}/interrupt`, { threadId: stoppedThreadId }).catch(() => undefined);
       await isolatedApi("DELETE", `/api/bots/${botId}`).catch(() => undefined);
-      await isolatedApi("PUT", "/api/config", { vps: { sshAlias: "" } }).catch(() => undefined);
+      await isolatedApi("PUT", "/api/config", { vps: { sshAlias: "", independentScreens: true } }).catch(() => undefined);
       await waitForExit(isolatedChild, { signal: "SIGTERM" });
       await removeTempDir(isolatedHome);
     }
@@ -3733,7 +3733,7 @@ describe("harness HTTP API", () => {
     let roomId = "";
     try {
       await waitForIsolatedServer(isolatedChild, isolatedPort, () => isolatedStderr);
-      expect((await isolatedApi("PUT", "/api/config", { vps: { sshAlias: "fixture-vps" } })).status).toBe(200);
+      expect((await isolatedApi("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", independentScreens: false } })).status).toBe(200);
       const holder = (await isolatedApi("POST", "/api/bots", {
         name: "Goal park holder", section,
         modelSelection: { instanceId: "holder", model: "claude-sonnet-5" },
@@ -3797,7 +3797,7 @@ describe("harness HTTP API", () => {
       await isolatedApi("POST", `/api/bots/${workerId}/interrupt`, {}).catch(() => undefined);
       await isolatedApi("DELETE", `/api/groups/${roomId}`).catch(() => undefined);
       for (const botId of [holderBotId, leadId, workerId]) await isolatedApi("DELETE", `/api/bots/${botId}`).catch(() => undefined);
-      await isolatedApi("PUT", "/api/config", { vps: { sshAlias: "" } }).catch(() => undefined);
+      await isolatedApi("PUT", "/api/config", { vps: { sshAlias: "", independentScreens: true } }).catch(() => undefined);
       await waitForExit(isolatedChild, { signal: "SIGTERM" });
       await removeTempDir(isolatedHome);
     }
@@ -7221,7 +7221,7 @@ describe("harness HTTP API", () => {
       expect(none.status).toBe(200);
       expect(none.headers.get("cache-control")).toBe("private, no-store");
       expect(await none.json()).toEqual({ cloudComputers: 0, teamComputers: teams });
-      expect((await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps" } })).status).toBe(200);
+      expect((await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "per-bot" } })).status).toBe(200);
       const before = (await api("GET", "/api/computers/usage")).body.cloudComputers;
       const bot = (await api("POST", "/api/bots")).body.bot;
       botId = bot.id;
@@ -7233,7 +7233,7 @@ describe("harness HTTP API", () => {
       expect(await counted.json()).toEqual({ cloudComputers: before + 1, teamComputers: teams });
     } finally {
       if (botId) await api("DELETE", `/api/bots/${botId}`).catch(() => undefined);
-      await api("PUT", "/api/config", { vps: { sshAlias: "" } });
+      await api("PUT", "/api/config", { vps: { sshAlias: "", mode: "shared" } });
     }
   });
 
@@ -9040,7 +9040,7 @@ describe("harness HTTP API", () => {
       expect((await computerSection(bot.id)).text).toBe(computerPrompt("vm-private"));
       expect((await api("PATCH", "/api/config", { localVm: { mode: "shared", maxInstances: 2 } })).status).toBe(200);
       expect((await computerSection(bot.id)).text).toBe(computerPrompt("vm-shared"));
-      expect((await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps" } })).status).toBe(200);
+      expect((await api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "per-bot" } })).status).toBe(200);
       expect((await api("PATCH", `/api/bots/${bot.id}`, { computer: "cloud" })).status).toBe(200);
       expect((await computerSection(bot.id)).text).toBe(computerPrompt("vps"));
       expect(await turnPrompt(messagesPath)).toContain(computerPrompt("vps"));
@@ -9050,7 +9050,7 @@ describe("harness HTTP API", () => {
       if (room) await api("POST", `/api/groups/${room.id}/interrupt`, {}).catch(() => undefined);
       await api("POST", `/api/bots/${bot.id}/interrupt`, {}).catch(() => undefined);
       await api("PATCH", "/api/config", { localVm: { mode: "shared", maxInstances: 2 } }).catch(() => undefined);
-      await api("PUT", "/api/config", { vps: { sshAlias: "" } }).catch(() => undefined);
+      await api("PUT", "/api/config", { vps: { sshAlias: "", mode: "shared" } }).catch(() => undefined);
       if (room) await api("DELETE", `/api/groups/${room.id}`).catch(() => undefined);
       await api("DELETE", `/api/bots/${bot.id}`).catch(() => undefined);
       rmSync(fakeClaudeDump, { force: true });

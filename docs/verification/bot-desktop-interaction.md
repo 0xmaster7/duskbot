@@ -48,7 +48,7 @@ did not establish a benefit from forcing renderer accessibility.
 The independent-screen qualification uses the same isolated image:
 
 ```sh
-OMB_VERIFY_DESKTOP_IMAGE=omb-bot-desktop:shared-screens-fixture-20261107 node --experimental-strip-types scripts/verify-bot-desktop-screens.mjs
+OMB_VERIFY_DESKTOP_IMAGE=omb-bot-desktop:twenty-screens-fixture-20261107 node --experimental-strip-types scripts/verify-bot-desktop-screens.mjs
 ```
 
 It acquires two screens through the real broker and guest runtime, submits a
@@ -87,3 +87,21 @@ pages repeatedly; cgroup cache charges also vary between cold and warm starts.
 Compare anonymous/shared memory and PSS alongside total memory. These are guest
 container measurements with lightweight local HTML; the host server, tool-host
 processes, Docker and real websites require additional resources.
+
+The Chromium policy and extension fixture uses an explicitly selected image:
+
+```sh
+OMB_VERIFY_DESKTOP_IMAGE=<imageID> node scripts/verify-bot-desktop-browser-policy.mjs
+OMB_VERIFY_DESKTOP_IMAGE=<imageID> node scripts/verify-bot-desktop-browser-policy.mjs --installed-defaults
+```
+
+The comparison mounts owned empty/trial recommended-policy directories; the
+installed-defaults mode reads the baked image without mounting policies. Both
+use a locally authored Manifest V3 extension and an isolated HTTP page to check
+content scripts, a service worker, persistent storage across browser restart,
+native Unicode input and screenshots. Only the owned test extension is mounted
+read-only. No browser sign-in or Web Store account is used.
+
+Short idle samples do not establish Memory Saver's automatic-discard savings.
+Report anonymous/shared memory and PSS separately from reclaimable file cache,
+and do not treat one startup/navigation observation as a latency benchmark.

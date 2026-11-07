@@ -1,2 +1,5 @@
 README.md
 build.sh
+**/__pycache__
+**/*.pyc
+**/*.pyo
