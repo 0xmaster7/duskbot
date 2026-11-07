@@ -12,6 +12,7 @@ const fixture = vi.hoisted(() => ({
   posts: [] as string[],
   actions: [] as Action[],
   shared: false,
+  screenStopped: false,
   looks: 0,
   advanced: true,
   owner: true,
@@ -38,7 +39,7 @@ vi.mock("./CloudScreenPreview", () => ({
   CloudScreenPreview: () => createElement("div", { "data-live-screen": "" }),
 }));
 vi.mock("./BrowserPanel", () => ({ BrowserPanel: () => null }));
-vi.mock("./LiveDesktop", () => ({ LiveDesktop: () => createElement("div", { "data-live-screen": "" }) }));
+vi.mock("./LiveDesktop", () => ({ LiveDesktop: (props: { expanded: boolean }) => createElement("div", { "data-live-screen": "", "data-expanded": String(props.expanded) }) }));
 vi.mock("./bot-settings/RoutinesSection", () => ({ RoutinesSection: () => null }));
 vi.mock("@/state/store", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/state/store")>(),
@@ -46,13 +47,15 @@ vi.mock("@/state/store", async (importOriginal) => ({
     if (init?.method === "POST") fixture.posts.push(path.split("?")[0]!);
     if (path.startsWith("/api/bots/scout/computer/provision")) {
       fixture.container = "running";
+      fixture.screenStopped = false;
       return { surface: "cloud", backend: "vps", configured: true, ready: true, container: "running" };
     }
     if (path.startsWith("/api/bots/scout/computer/screenshot")) return { png: "FRAME", format: "jpeg" };
     if (path.startsWith("/api/bots/scout/computer/control")) return { held: false, helpReason: null };
     if (path.startsWith("/api/bots/scout/computer?")) {
       fixture.looks++;
-      return { surface: "cloud", backend: "vps", configured: fixture.configured, ready: fixture.container === "running" && fixture.imageMatches,
+      return { surface: "cloud", backend: "vps", configured: fixture.configured, ready: fixture.container === "running" && fixture.imageMatches && !fixture.screenStopped,
+        ...(fixture.screenStopped ? { state: "stopped", viewerKey: "unallocated" } : {}),
         ...(fixture.shared ? { teamComputer: { id: "shared", name: "Shared desktop" } } : {}),
         container: fixture.container, managed: fixture.container !== "missing", imageMatches: fixture.imageMatches, problem: "Fixture desktop is not running" };
     }
@@ -111,6 +114,7 @@ afterEach(() => {
   fixture.posts.length = 0;
   fixture.actions.length = 0;
   fixture.shared = false;
+  fixture.screenStopped = false;
   fixture.container = "missing";
   fixture.configured = true;
   fixture.imageMatches = true;
@@ -138,6 +142,26 @@ describe("VPS computer preparation", () => {
     expect(fixture.looks).toBe(looks);
     expect(spinning()).toBe(false);
     expect(fixture.posts).toEqual([]);
+  });
+
+  it("shows a closed shared bot screen asleep while its container is running and wakes only on click", async () => {
+    fixture.container = "running";
+    fixture.shared = true;
+    fixture.screenStopped = true;
+    await open(makeBot(), true);
+    expect(document.querySelector("[data-inline-computer]")?.getAttribute("data-stage")).toBe("asleep");
+    const wake = document.querySelector<HTMLButtonElement>("[data-panel-screen] button");
+    expect(wake?.getAttribute("aria-label")).toBe("Wake computer");
+    expect(wake?.disabled).toBe(false);
+    expect(spinning()).toBe(false);
+    expect(document.querySelector("[data-live-screen]")).toBeNull();
+    expect(fixture.looks).toBe(1);
+    expect(fixture.posts).toEqual([]);
+    flushSync(() => wake!.click());
+    await settle();
+    await expect.poll(() => document.querySelector("[data-live-screen]")).not.toBeNull();
+    expect(document.querySelector("[data-live-screen]")?.getAttribute("data-expanded")).toBe("false");
+    expect(fixture.posts).toEqual(["/api/bots/scout/computer/provision"]);
   });
 
   it("keeps the wake frame disabled while the engine inventory is loading", async () => {

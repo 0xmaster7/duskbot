@@ -504,6 +504,13 @@ export function ComputerPanel({
           return;
         }
         if (computerAction.current) return;
+        if (status.state === "stopped") {
+          vpsReadinessAttempts.current = 0;
+          setContainerState(status.container ?? null);
+          setError(null);
+          setPhase("vps-stopped");
+          return;
+        }
         if ((status.state === "starting" || (status.container === "running" && status.managed && status.imageMatches)) && vpsReadinessAttempts.current < 15) {
           vpsReadinessAttempts.current++;
           setError(null);
