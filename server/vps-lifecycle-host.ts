@@ -111,6 +111,7 @@ export function createVpsLifecycleHost(deps: VpsLifecycleHostDeps) {
     cancel: manager.cancel,
     forgetScreen: manager.forgetScreen,
     configure: manager.configure,
+    snapshot: manager.snapshot,
     flush: manager.flush,
     reconcile() { return reconciling ??= reconcileResources().finally(() => { reconciling = undefined; }); },
     close() {

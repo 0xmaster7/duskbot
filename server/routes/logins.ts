@@ -1,5 +1,10 @@
-// No answer ever carries a password, a 2FA key or the token: a saved secret is only ever replaced.
-import { LOGIN_FIELD_MAX, loginPlace, normalizeLoginHost, type LoginBots, type LoginSummary, type OnePasswordStatus } from "../../shared/logins.ts";
+// No answer ever carries a password, a 2FA key or the token: a saved secret is only ever replaced. From any client but
+// this computer's own app they arrive sealed (server/sealed-fields.ts): a login for its site and username, a change for
+// its id, the token for 1Password.
+import type { CardSealer } from "../card-seal.ts";
+import type { RequestAuth } from "../request-auth.ts";
+import { unsealFields } from "../sealed-fields.ts";
+import { LOGIN_FIELD_MAX, loginPlace, loginSealTarget, normalizeLoginHost, type LoginBots, type LoginSummary, type OnePasswordStatus } from "../../shared/logins.ts";
 import type { LoginPatch, NewLogin } from "../login-store.ts";
 import { parseTotpKey, type TotpKey } from "../totp.ts";
 import { PASS, type RouteHandler } from "./table.ts";
@@ -72,8 +77,12 @@ function isJson(req: { headers: Record<string, string | string[] | undefined> })
   return String(req.headers["content-type"] ?? "").split(";", 1)[0]!.trim().toLowerCase() === "application/json";
 }
 
-export function createLoginRoutes(deps: LoginRouteDeps): RouteHandler {
-  return async ({ req, res, path, method, json, readBody }) => {
+const LOGIN_SECRETS = ["password", "totp"] as const;
+
+export function createLoginRoutes(deps: LoginRouteDeps, sealer: CardSealer): RouteHandler {
+  const unseal = (body: unknown, auth: RequestAuth, purpose: "login.create" | "login.update" | "onepassword.connect", target: string[], fields: readonly string[]) =>
+    unsealFields(body && typeof body === "object" && !Array.isArray(body) ? body as Record<string, unknown> : {}, { auth, sealer, purpose, target, fields });
+  return async ({ req, res, path, method, auth, json, readBody }) => {
     if (path !== "/api/logins" && !path.startsWith("/api/logins/")) return PASS;
     res.setHeader("cache-control", "no-store");
     if (path === "/api/logins" && method === "GET") {
@@ -83,7 +92,9 @@ export function createLoginRoutes(deps: LoginRouteDeps): RouteHandler {
     if (method !== "GET" && method !== "DELETE" && !isJson(req)) return json(res, 415, { error: "content-type must be application/json" });
     // 1Password's own paths, ahead of the /api/logins/:id pattern they would match.
     if (path === ONE_PASSWORD && method === "POST") {
-      const body = await readBody(req, 16_384);
+      const opened = await unseal(await readBody(req, 16_384), auth, "onepassword.connect", [], ["token"]);
+      if (!opened.ok) return json(res, opened.status, opened.body);
+      const body = opened.body;
       const token = body && typeof body === "object" && typeof body.token === "string" ? body.token.trim() : "";
       if (!token || token.length > 8192 || /\s/u.test(token)) return json(res, 400, { error: LOGIN_ERRORS.token });
       if (!token.startsWith("ops_")) return json(res, 400, { error: LOGIN_ERRORS.notServiceAccount });
@@ -102,10 +113,13 @@ export function createLoginRoutes(deps: LoginRouteDeps): RouteHandler {
     }
     if (path === ONE_PASSWORD || path.startsWith(`${ONE_PASSWORD}/`)) return json(res, 405, { error: "method not allowed" });
     if (path === "/api/logins" && method === "POST") {
-      const body = await readBody(req, 16_384);
-      if (!body || typeof body !== "object" || Array.isArray(body)) return json(res, 400, { error: "send the login as a JSON object" });
-      const host = normalizeLoginHost(body.site);
+      const raw = await readBody(req, 16_384);
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) return json(res, 400, { error: "send the login as a JSON object" });
+      const host = normalizeLoginHost(raw.site);
       if (!host) return json(res, 400, { error: LOGIN_ERRORS.site });
+      const opened = await unseal(raw, auth, "login.create", loginSealTarget(host, raw.username), LOGIN_SECRETS);
+      if (!opened.ok) return json(res, opened.status, opened.body);
+      const body = opened.body;
       const fields = parseLoginFields(body, { passwordRequired: true });
       if (!fields.ok) return json(res, 400, { error: fields.error });
       const totp = parseTotpField(body.totp);
@@ -126,8 +140,11 @@ export function createLoginRoutes(deps: LoginRouteDeps): RouteHandler {
       return deps.remove(id) ? json(res, 200, { ok: true }) : json(res, 404, { error: "no such login" });
     }
     if (method !== "PATCH") return json(res, 405, { error: "method not allowed" });
-    const body = await readBody(req, 16_384);
-    if (!body || typeof body !== "object" || Array.isArray(body)) return json(res, 400, { error: "send the change as a JSON object" });
+    const raw = await readBody(req, 16_384);
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return json(res, 400, { error: "send the change as a JSON object" });
+    const opened = await unseal(raw, auth, "login.update", [id], LOGIN_SECRETS);
+    if (!opened.ok) return json(res, opened.status, opened.body);
+    const body = opened.body;
     const fields = parseLoginFields(body, { passwordRequired: false });
     if (!fields.ok) return json(res, 400, { error: fields.error });
     const totp = parseTotpField(body.totp);

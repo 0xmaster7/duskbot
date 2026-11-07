@@ -5907,5 +5907,6 @@
   "settings.vault.nothing": "Nada salvo ainda. Adicione um login com Novo item, ou salve um segredo quando um bot pedir.",
   "settings.vault.noneHere": "Nada aqui ainda.",
   "server.botDesktop.building": "Configurando o computador do bot no seu servidor. Isso acontece uma vez por atualização e costuma levar alguns minutos.",
-  "computer.botWaking": "{name} está acordando"
+  "computer.botWaking": "{name} está acordando",
+  "seal.untrusted": "Este servidor não conseguiu provar que é o que este app vinculou, então nada foi enviado. Se você o reinstalou, vincule-o de novo."
 }

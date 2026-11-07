@@ -23,7 +23,7 @@ vi.mock("@/state/store", async (original) => ({
   useStore: () => ({ dispatch }),
 }));
 vi.mock("@/lib/analytics", () => ({ track: fixture.track }));
-vi.mock("@/lib/card-seal", () => ({ sealCardSecret: vi.fn(async (_value: string, key: { keyId: string }, context: { remember: boolean }) => ({ keyId: key.keyId, encapsulatedKey: "E", ciphertext: `sealed-${context.remember ? "save" : "once"}` })) }));
+vi.mock("@/lib/card-seal", () => ({ SealTrustError: class SealTrustError extends Error {}, sealCardSecret: vi.fn(async (_value: string, key: { keyId: string }, context: { remember: boolean }) => ({ keyId: key.keyId, encapsulatedKey: "E", ciphertext: `sealed-${context.remember ? "save" : "once"}` })) }));
 
 import { SecretRequestCard } from "./SecretRequestCard";
 

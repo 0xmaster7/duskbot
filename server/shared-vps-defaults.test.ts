@@ -11,7 +11,7 @@ afterEach(() => rmSync(path, { force: true }));
 
 describe("personal workspace computer defaults", () => {
   it("defaults to one shared desktop, automatic start, and staged idle cleanup", () => {
-    expect(sharedVpsDefaults({}, personal)).toEqual({ mode: "shared", sharingAllowed: true, workspaceShared: true, autoStart: true, independentScreens: true, maxScreens: 20, idleTimeoutMinutes: 10, lifecycle: { browserIdleMinutes: 180, screenIdleMinutes: 1440, computerIdleMinutes: 2880 } });
+    expect(sharedVpsDefaults({}, personal)).toEqual({ mode: "shared", sharingAllowed: true, workspaceShared: true, autoStart: true, independentScreens: true, maxScreens: 20, idleTimeoutMinutes: 10, lifecycle: { browserIdleMinutes: 10, screenIdleMinutes: 10, computerIdleMinutes: 15 } });
     expect(vpsIdleTimeoutMinutes({})).toBe(10);
   });
   it.each([
@@ -23,9 +23,14 @@ describe("personal workspace computer defaults", () => {
     expect(sharedVpsDefaults({ vps: { mode: "shared" } }, privacy)).toMatchObject({ mode: "shared", workspaceShared: false, sharingAllowed: false });
   });
   it("keeps private mode and explicit manual power preferences", () => {
-    expect(sharedVpsDefaults({ vps: { mode: "per-bot", autoStart: false, independentScreens: false, maxScreens: 20, idleTimeoutMinutes: 0 } }, personal)).toEqual({
-      mode: "per-bot", workspaceShared: false, sharingAllowed: true, autoStart: false, independentScreens: false, maxScreens: 20, idleTimeoutMinutes: 0,
+    expect(sharedVpsDefaults({ vps: { mode: "per-bot", autoStart: false, independentScreens: false, maxScreens: 20, lifecycle: { browserIdleMinutes: 0, screenIdleMinutes: 0, computerIdleMinutes: 0 } } }, personal)).toEqual({
+      mode: "per-bot", workspaceShared: false, sharingAllowed: true, autoStart: false, independentScreens: false, maxScreens: 20, idleTimeoutMinutes: 10,
       lifecycle: { browserIdleMinutes: 0, screenIdleMinutes: 0, computerIdleMinutes: 0 },
+    });
+  });
+  it("still sleeps a desktop whose config carries the legacy 0 an older setup wrote", () => {
+    expect(sharedVpsDefaults({ vps: { mode: "per-bot", idleTimeoutMinutes: 0 } }, personal)).toMatchObject({
+      idleTimeoutMinutes: 10, lifecycle: { browserIdleMinutes: 10, screenIdleMinutes: 10, computerIdleMinutes: 15 },
     });
   });
 });

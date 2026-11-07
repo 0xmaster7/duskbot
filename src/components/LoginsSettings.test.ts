@@ -9,6 +9,13 @@ vi.mock("@/state/store", async (importOriginal) => ({
   api: fixture.api,
   useStore: () => ({ state: { bots: [{ id: "pepper", name: "Pepper" }, { id: "quill", name: "Quill" }], config: fixture.config }, dispatch: vi.fn() }),
 }));
+// every password, 2FA key and token leaves sealed (src/lib/sealed-send.ts has its own tests): the fake names what it sealed, never the value
+vi.mock("@/lib/sealed-send", () => ({
+  sendSealed: async (purpose: string, target: string[], values: Record<string, string>, send: (sealed: unknown) => Promise<unknown>) => {
+    const names = Object.keys(values).filter((name) => values[name]).sort();
+    return send(names.length ? { keyId: "k", encapsulatedKey: "E", ciphertext: `${purpose}|${target.join("|")}|${names.join(",")}` } : null);
+  },
+}));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => fixture.admin }));
 // the Vault's saved secrets load on their own (SavedSecretsSettings.tsx); these tests count the logins calls only
 vi.mock("./SavedSecretsSettings", () => ({ useSavedSecrets: () => ({ secrets: [], error: null, remove: async () => {} }), SavedSecretDialog: () => null }));
@@ -88,7 +95,7 @@ describe("Settings → Logins", () => {
     await act(async () => { [...document.body.querySelectorAll<HTMLInputElement>('input[type="radio"]')][1]!.click(); });
     await act(async () => { document.body.querySelector<HTMLInputElement>('fieldset input[type="checkbox"]')!.click(); });
     await submit();
-    expect(fixture.api).toHaveBeenNthCalledWith(2, "/api/logins", { method: "POST", body: JSON.stringify({ site: "crm.example.org", username: "team", password: "fake-typed-pass", bots: ["pepper"] }) });
+    expect(fixture.api).toHaveBeenNthCalledWith(2, "/api/logins", { method: "POST", body: JSON.stringify({ site: "crm.example.org", username: "team", sealed: { keyId: "k", encapsulatedKey: "E", ciphertext: "login.create|crm.example.org|team|password" }, bots: ["pepper"] }) });
     expect(document.body.querySelector("[data-login-form]")).toBeNull();
     expect(document.body.innerHTML).not.toContain("fake-typed-pass");
   });
@@ -105,7 +112,7 @@ describe("Settings → Logins", () => {
     expect(exact.closest("label")!.textContent).toBe("Only on this exact address, not elsewhere on its site");
     await act(async () => { exact.click(); });
     await submit();
-    expect(fixture.api).toHaveBeenNthCalledWith(2, "/api/logins", { method: "POST", body: JSON.stringify({ site: "acme.okta.com", username: "", password: "fake-tenant-pass", bots: "all", exactHost: true }) });
+    expect(fixture.api).toHaveBeenNthCalledWith(2, "/api/logins", { method: "POST", body: JSON.stringify({ site: "acme.okta.com", username: "", sealed: { keyId: "k", encapsulatedKey: "E", ciphertext: "login.create|acme.okta.com||password" }, bots: "all", exactHost: true }) });
   });
 
   it("replaces a password, keeps the 2FA key unless asked, and changes who may use it", async () => {
@@ -116,7 +123,7 @@ describe("Settings → Logins", () => {
     await type("password", "fake-new-pass");
     await act(async () => { document.body.querySelector<HTMLInputElement>('input[type="radio"]')!.click(); });
     await submit();
-    expect(fixture.api).toHaveBeenNthCalledWith(2, "/api/logins/l1", { method: "PATCH", body: JSON.stringify({ password: "fake-new-pass", bots: "all" }) });
+    expect(fixture.api).toHaveBeenNthCalledWith(2, "/api/logins/l1", { method: "PATCH", body: JSON.stringify({ sealed: { keyId: "k", encapsulatedKey: "E", ciphertext: "login.update|l1|password" }, bots: "all" }) });
   });
 
   it("keeps a login to its sign-in hosts, or lets it fill on its whole site again", async () => {
@@ -158,7 +165,7 @@ describe("Settings → Logins", () => {
     await type("onePasswordToken", "ops_fake-typed-token");
     await click("Connect 1Password");
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
-    expect(fixture.api).toHaveBeenNthCalledWith(2, "/api/logins/1password", { method: "POST", body: JSON.stringify({ token: "ops_fake-typed-token" }) });
+    expect(fixture.api).toHaveBeenNthCalledWith(2, "/api/logins/1password", { method: "POST", body: JSON.stringify({ sealed: { keyId: "k", encapsulatedKey: "E", ciphertext: "onepassword.connect||token" } }) });
     expect(document.body.querySelector("[data-onepassword]")!.textContent).toContain("Connected to Shared with OMB · 1 logins with a website");
     expect(document.body.innerHTML).not.toContain("ops_fake-typed-token");
     const row = document.body.querySelector('[data-login-row="example.com"]')!;

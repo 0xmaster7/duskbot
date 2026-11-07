@@ -7530,5 +7530,6 @@
   "vpsLink.progress.waiting": "Waiting for your server",
   "vpsLink.progress.paused": "Setup needs attention",
   "vpsLink.progress.continue": "Continue setup",
-  "server.botDesktop.building": "Setting up the bot's computer on your server. This happens once per update and usually takes a few minutes."
+  "server.botDesktop.building": "Setting up the bot's computer on your server. This happens once per update and usually takes a few minutes.",
+  "seal.untrusted": "This server couldn't prove it's the one this app linked, so nothing was sent. If you reinstalled it, link it again."
 }

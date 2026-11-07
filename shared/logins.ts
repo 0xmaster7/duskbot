@@ -150,3 +150,9 @@ export function loginLabel(login: LoginPlace & { username: string }): string {
 export function savedLoginResumePrompt(site: string): string {
   return `OpenMausBot sign-in update: the person saved a login for ${site}. Open its login page in your browser and call fill_login there: it fills the form and submits it. Then check you are signed in. You never see the password. Never ask for a password or a one-time code in chat.`;
 }
+
+/** What a login saved from Settings is sealed for (shared/saved-secrets.ts sealedValueAAD): its normalized host and
+ * trimmed username, so a relay cannot move the password to another site or account. */
+export function loginSealTarget(host: string, username: unknown): string[] {
+  return [host, typeof username === "string" ? username.trim() : ""];
+}

@@ -5867,5 +5867,6 @@
   "settings.vault.nothing": "Ancora nulla di salvato. Aggiungi un accesso con Nuovo elemento, oppure salva un segreto quando un bot te lo chiede.",
   "settings.vault.noneHere": "Ancora nulla qui.",
   "server.botDesktop.building": "Sto preparando il computer del bot sul tuo server. Succede una volta per aggiornamento e di solito richiede qualche minuto.",
-  "computer.botWaking": "{name} si sta svegliando"
+  "computer.botWaking": "{name} si sta svegliando",
+  "seal.untrusted": "Questo server non ha potuto dimostrare di essere quello collegato da questa app, quindi non è stato inviato nulla. Se l'hai reinstallato, collegalo di nuovo."
 }

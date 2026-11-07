@@ -26,6 +26,9 @@ import {
 } from "../config.ts";
 import type { InstanceConfigMap, ModelSelection } from "../contracts.ts";
 import type { RequestAuth } from "../request-auth.ts";
+import type { CardSealer } from "../card-seal.ts";
+import { unsealConfig } from "../sealed-fields.ts";
+import type { JsonValue } from "../schema.ts";
 import { DECIDER_KEY_REJECTED, deciderIncludedHere, deciderPatchKey, deciderSavePatch, deciderSharedKeyUsable, type Decider } from "../decider/index.ts";
 import type { ProviderRegistry } from "../harness/registry.ts";
 import { HOSTED_PROVIDER_SETTINGS_ERROR } from "../hosted-models.ts";
@@ -92,6 +95,8 @@ export interface ConfigRouteDeps {
   reloadProviders(before: Record<string, unknown>): Promise<void>;
   broadcast(payload: Record<string, unknown>): void;
   drainQueuedSends(): void;
+  /** Opens API keys a remote app sealed for this server; a plain one comes only from this computer's own app. */
+  sealer: CardSealer;
 }
 
 export function createConfigRoutes(deps: ConfigRouteDeps): RouteHandler {
@@ -101,7 +106,7 @@ export function createConfigRoutes(deps: ConfigRouteDeps): RouteHandler {
     localVmIdleMs, localVmIdles, localVmActiveThreads, localVmLifecycleBusy, localVmImageBusy, localVmModeChangeBusy,
     providerConfigBusy, computerProviderConfigTransitions, managedVpsOwners, providerOperationConflict, vpsSharingChanged,
     perBotLocalVmCountForModeChange, checkedModelSelection, policyModelRefusal, browserSessionSpec, configStatus,
-    configForAccess, resyncOpenCodeProviderKeys, revokeEngineCapabilities, reloadProviders, broadcast, drainQueuedSends, ownProfile,
+    configForAccess, resyncOpenCodeProviderKeys, revokeEngineCapabilities, reloadProviders, broadcast, drainQueuedSends, ownProfile, sealer,
   } = deps;
   return async ({ req, res, url, path, method, auth, json, readBody }) => {
     // API keys are never echoed back: booleans only.
@@ -109,9 +114,11 @@ export function createConfigRoutes(deps: ConfigRouteDeps): RouteHandler {
       return json(res, 200, configForAccess(configStatus(), auth));
     }
     if ((method === "PUT" || method === "PATCH") && path === "/api/config") {
-      const body = await readBody(req);
+      const opened = await unsealConfig(await readBody(req), { auth, sealer });
+      if (!opened.ok) return json(res, opened.status, opened.body);
+      const body = opened.body;
       if (hostedModels && ["instances", "anthropic", "openai", "openrouter", "openaiCompat", "xai", "mistral", "cerebras", "groq", "greenference", "meta", "opencodeGo"].some(key => Object.hasOwn(body, key))) return json(res, 403, { error: HOSTED_PROVIDER_SETTINGS_ERROR });
-      const patch = parseConfigPatch(body);
+      const patch = parseConfigPatch(body as JsonValue);
       if (patch.profile && ownProfile) {
         // The address is the verified claim's; a profile names no other.
         const { email: _email, ...own } = patch.profile;

@@ -4470,5 +4470,6 @@
   "settings.vault.nothing": "還沒有儲存任何內容。用「新增項目」加入登入，或在機器人請求時儲存密鑰。",
   "settings.vault.noneHere": "這裡還沒有內容。",
   "server.botDesktop.building": "正在你的伺服器上設定機器人的電腦。每次更新只需一次，通常需要幾分鐘。",
-  "computer.botWaking": "{name} 正在醒來"
+  "computer.botWaking": "{name} 正在醒來",
+  "seal.untrusted": "這台伺服器無法證明它就是此 App 連結的那台，所以沒有傳送任何內容。如果你重新安裝了它，請再連結一次。"
 }

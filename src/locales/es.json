@@ -5432,5 +5432,6 @@
   "settings.vault.nothing": "Aún no hay nada guardado. Añade un inicio de sesión con Nuevo elemento o guarda un secreto cuando un bot te lo pida.",
   "settings.vault.noneHere": "Aún no hay nada aquí.",
   "server.botDesktop.building": "Configurando el ordenador del bot en tu servidor. Pasa una vez por actualización y suele tardar unos minutos.",
-  "computer.botWaking": "{name} se está despertando"
+  "computer.botWaking": "{name} se está despertando",
+  "seal.untrusted": "Este servidor no pudo demostrar que es el que esta app vinculó, así que no se envió nada. Si lo reinstalaste, vuelve a vincularlo."
 }

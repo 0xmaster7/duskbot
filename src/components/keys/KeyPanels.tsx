@@ -3,6 +3,7 @@ import { Loader2, TriangleAlert } from "lucide-react";
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
+import { putConfig } from "@/lib/sealed-send";
 import { Switch } from "../SettingsPrimitives";
 import { smallButtonCls } from "../ui/GrokDialog";
 import type { KeyEntry } from "./key-catalog";
@@ -21,7 +22,7 @@ export function OpenCodeProviderKeys() {
   const busy = adding || removing !== null;
 
   const put = (target: string, value: string) =>
-    api("/api/config", { method: "PUT", body: JSON.stringify({ opencodeGo: { providerKeys: { [target]: value } } }) })
+    putConfig({ opencodeGo: { providerKeys: { [target]: value } } })
       .then((status: ConfigStatus) => dispatch({ type: "configStatus", config: status }));
 
   const add = () => {

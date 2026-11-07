@@ -770,6 +770,8 @@ EnvironmentFile=-$SVC_HOME/.config/openmausbot/engines.env
 ExecStart=$SVC_HOME/.local/bin/openmausbot serve --port $PORT --no-pair --label $NAME$public
 Restart=always
 RestartSec=5
+# when memory runs out the kernel takes a bot computer (docker --oom-score-adj 500) long before the server
+OOMScoreAdjust=-800
 
 [Install]
 WantedBy=multi-user.target
@@ -815,6 +817,7 @@ Environment=HOME=$SVC_HOME
 ExecStart=/usr/bin/node $AGENT tunnel
 Restart=always
 RestartSec=5
+OOMScoreAdjust=-700
 
 [Install]
 WantedBy=multi-user.target
@@ -833,10 +836,30 @@ wait_health() { # url seconds
   return 1
 }
 
+# sshd is the way back in: never the kernel's choice, and its memory is not reclaimed away under pressure
+SSH_GUARD="# managed by openmausbot-link
+[Service]
+OOMScoreAdjust=-1000
+MemoryMin=64M"
+ssh_guard() {
+  changed=1
+  for unit in ssh sshd; do
+    systemctl cat "$unit.service" >/dev/null 2>&1 || continue
+    install -d -m 0755 "$UNITS/$unit.service.d"
+    printf '%s\n' "$SSH_GUARD" > "$TMP/new"
+    put_file "$UNITS/$unit.service.d/10-openmausbot-oom.conf" 0644 && changed=0
+    # the running daemon takes it now; a restart would only pick up the same value
+    pid=$(systemctl show -p MainPID --value "$unit.service" 2>/dev/null)
+    [ -n "$pid" ] && [ "$pid" != 0 ] && echo -1000 > "/proc/$pid/oom_score_adj" 2>/dev/null || true
+  done
+  return "$changed"
+}
+
 do_service() {
   reload=1
   server_unit && reload=0
   helper_units && reload=0
+  ssh_guard && reload=0
   [ "$reload" = 0 ] && x systemctl daemon-reload
   systemctl enable openmausbot.service openmausbot-engines.path >/dev/null 2>&1
   x systemctl start openmausbot-engines.path

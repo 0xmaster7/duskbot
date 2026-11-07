@@ -84,7 +84,11 @@ describe("bot desktop run flags", () => {
       expect(args.some((arg) => arg.includes("docker.sock"))).toBe(false);
       expect(flag(args, "--label")).toEqual(expect.arrayContaining(["a=1", `${BOT_DESKTOP_LABEL}=${BOT_DESKTOP_VERSION}`, `${DRIVER_LABEL}=${CUA_DRIVER_VERSION}`]));
       expect(flag(args, "--pids-limit")).toHaveLength(1);
-      expect(flag(args, "--memory")).toEqual(["4g"]);
+      expect(flag(args, "--memory")).toEqual(["1536m"]);
+      expect(flag(args, "--memory-swap")).toEqual(["1536m"]);
+      expect(flag(args, "--oom-score-adj")).toEqual(["500"]);
+      expect(flag(args, "--cpu-shares")).toEqual(["256"]);
+      expect(flag(args, "--restart")).toEqual(["no"]);
       expect(flag(args, "--cpus")).toEqual(["2"]);
     }
   });

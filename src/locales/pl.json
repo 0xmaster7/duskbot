@@ -6032,5 +6032,6 @@
   "settings.vault.nothing": "Nic jeszcze nie zapisano. Dodaj login przez Nowy element albo zapisz sekret, gdy bot o niego poprosi.",
   "settings.vault.noneHere": "Na razie nic tu nie ma.",
   "server.botDesktop.building": "Konfiguruję komputer bota na twoim serwerze. Dzieje się to raz na aktualizację i zwykle trwa kilka minut.",
-  "computer.botWaking": "{name} się budzi"
+  "computer.botWaking": "{name} się budzi",
+  "seal.untrusted": "Ten serwer nie udowodnił, że jest tym, który ta aplikacja połączyła, więc nic nie zostało wysłane. Jeśli zainstalowałeś go ponownie, połącz go jeszcze raz."
 }

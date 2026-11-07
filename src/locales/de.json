@@ -2947,5 +2947,6 @@
   "settings.vault.nothing": "Noch nichts gespeichert. Füge mit Neues Element ein Login hinzu oder speichere ein Secret, wenn ein Bot danach fragt.",
   "settings.vault.noneHere": "Hier ist noch nichts.",
   "server.botDesktop.building": "Der Computer des Bots wird auf deinem Server eingerichtet. Das passiert einmal pro Update und dauert meist ein paar Minuten.",
-  "computer.botWaking": "{name} wacht auf"
+  "computer.botWaking": "{name} wacht auf",
+  "seal.untrusted": "Dieser Server konnte nicht beweisen, dass er der ist, den diese App verbunden hat, darum wurde nichts gesendet. Wenn du ihn neu installiert hast, verbinde ihn erneut."
 }

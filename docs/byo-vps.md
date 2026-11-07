@@ -116,12 +116,26 @@ Each bot owns one container on the VPS, named `openmausbot-vps-<bot>-<hash>` —
 independent of the bot's display name. It lives on the bot's server: the default alias, or the bot's own
 when it has one.
 
-New containers default to 4 GiB memory with no extra swap, 2 CPUs, 512 PIDs, 512 MiB shared memory and an
-`unless-stopped` restart policy. These are creation defaults, not compatibility requirements. Existing
-managed containers can keep customized resource and OOM settings, unlimited budgets, or other restart
-policies, including the legacy `no` policy. OpenMausBot does not reset those settings or recreate a
-container to enforce its defaults. Restart behavior follows the chosen Docker policy; for example,
-`always` can wake a slept container after a Docker daemon restart.
+A bot can never take its own VPS down:
+
+- **Lazy wake.** On Auto (and on a computer the bot picked itself earlier), a chat turn never wakes a
+  sleeping desktop or takes a shared-computer screen: the bot gets `select_computer` and wakes it only
+  when the task needs the screen. An awake desktop is mounted as usual. A computer the person chose
+  (Works on, their own pin, a routine) and turns that cannot pick (schedules, handoffs) start it as before.
+- **Idle sleep by default.** Browsers close and desktops sleep after 10 idle minutes, a shared computer
+  after 15. A legacy `vps.idleTimeoutMinutes: 0` no longer disables sleep; set
+  `vps.lifecycle.{browser,screen,computer}IdleMinutes` to `0` to keep a stage awake on purpose.
+- **A host cap.** At most `floor((host memory - 2.5 GB) / 1.5 GB)` desktops are awake at once (six on
+  12 GB, from `docker info`); a shared computer's independent screens follow the same rule. At the cap a
+  desktop no bot owns any more sleeps first, then the least recently used idle one; when all are busy the
+  start waits up to 30 seconds, then the bot is told plainly to wait. `OMB_VPS_MAX_DESKTOPS` overrides it.
+- **Limits per container.** 1.5 GB of memory with no swap (a shared computer gets the whole budget), CPU
+  weight below host services (`--cpu-shares 256`), `--oom-score-adj 500`, 2 CPUs, 4096 PIDs, 512 MiB shared
+  memory and restart policy `no`, so a reboot leaves desktops asleep instead of starting them all at once.
+  A stopped desktop made under the old 4 GB, `unless-stopped` defaults is updated in place
+  (`docker update`) before it next starts; a running one keeps its settings until then.
+- **Host services first.** The installer gives `openmausbot.service` `OOMScoreAdjust=-800`, the link
+  `-700`, and sshd `-1000` with `MemoryMin=64M`, so the kernel kills a desktop's tab long before SSH.
 
 - **Provision** (choosing **Cloud** for the bot, or the panel's button): pulls the bot desktop image on
   the VPS if needed (or builds the pinned Cua image when it cannot), creates the container if missing, starts it if stopped, and waits until the desktop answers.

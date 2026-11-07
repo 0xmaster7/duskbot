@@ -11,7 +11,7 @@ import { ASK_FIELD, askPrimary, ASK_QUIET_BUTTON, AskCard, returnFocusToComposer
 import { EmailServerInputs } from "./EmailCard";
 import type { EmailServerFields } from "../../shared/email";
 import { productName } from "@/lib/brand";
-import { sealCardSecret } from "@/lib/card-seal";
+import { sealCardSecret, SealTrustError } from "@/lib/card-seal";
 import type { CardSealKey } from "../../shared/saved-secrets";
 import { GrokIcon } from "./GrokIcon";
 
@@ -138,7 +138,7 @@ export function SecretRequestCard({
       returnFocusToComposer();
     } catch (error) {
       if ((error as { body?: { needsServer?: unknown } }).body?.needsServer === true) setNeedsServer(true);
-      setLocalError(error instanceof Error ? error.message : String(error));
+      setLocalError(error instanceof SealTrustError ? t("seal.untrusted") : error instanceof Error ? error.message : String(error));
     } finally {
       setSaving(false);
     }

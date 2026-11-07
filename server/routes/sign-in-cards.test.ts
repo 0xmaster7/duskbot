@@ -2,8 +2,10 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { createCardSealer } from "../card-seal.ts";
 import { json, readBody } from "../harness/http.ts";
 import type { RequestAuth } from "../request-auth.ts";
+import { sealValues } from "../../src/lib/card-seal.ts";
 import { createSignInCardRoutes, type SignInOutcome } from "./sign-in-cards.ts";
 import { dispatchRoutes } from "./table.ts";
 
@@ -12,7 +14,7 @@ afterEach(async () => {
   await Promise.all(servers.splice(0).map((server) => new Promise((done) => server.close(done))));
 });
 
-async function serve() {
+async function serve(auth = { kind: "loopback", scopes: ["admin"] } as unknown as RequestAuth, sealer = createCardSealer()) {
   const settled: Array<{ botId: string; threadId: string; messageId: string; outcome: SignInOutcome }> = [];
   const saved: Array<{ botId: string; threadId: string; messageId: string; body: Record<string, unknown> }> = [];
   const targets: Array<{ botId: string; threadId: string; messageId: string }> = [];
@@ -30,10 +32,10 @@ async function serve() {
       return { status: 200, body: { site: "example.com", signInHost: "login.microsoftonline.com" } };
     },
     threadVisible: (_auth, threadId) => threadId !== "hidden",
+    sealer,
   })];
   const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
-    const auth = { kind: "loopback", scopes: ["admin"] } as unknown as RequestAuth;
     if (!await dispatchRoutes(routes, { req, res, url, path: url.pathname, method: req.method ?? "GET", auth, json, readBody })) json(res, 404, { from: "inline routes" });
   });
   servers.push(server);
@@ -106,5 +108,26 @@ describe("sign-in card routes", () => {
     const { saved, post } = await serve();
     expect((await post("/api/bots/scout/sign-in-cards/m1/save-login", { threadId: "t1", password: "fake-card-pass" }, "text/plain")).status).toBe(415);
     expect(saved).toEqual([]);
+  });
+});
+
+describe("a login saved from a sign-in card through a relay", () => {
+  const forwarded = { kind: "session", via: "cookie", scopes: ["client"], session: { id: "s1" } } as unknown as RequestAuth;
+
+  it("is opened for its own card only, and refused in the clear", async () => {
+    const sealer = createCardSealer();
+    const { saved, post } = await serve(forwarded, sealer);
+    const plain = await post("/api/bots/scout/sign-in-cards/m1/save-login", { threadId: "t1", username: "alice", password: "fake-card-pass" });
+    expect(plain.status).toBe(400);
+    const refused = await plain.json();
+    expect(refused).toMatchObject({ code: "seal_required", sealKey: { keyId: sealer.publicKey().keyId } });
+    expect(JSON.stringify(refused)).not.toContain("fake-card-pass");
+    expect(saved).toHaveLength(0);
+
+    const sealed = await sealValues({ password: "fake-card-pass" }, sealer.publicKey(), "login.card", ["scout", "t1", "m1"]);
+    expect((await post("/api/bots/scout/sign-in-cards/m2/save-login", { threadId: "t1", username: "alice", sealed })).status).toBe(400);
+    expect(saved).toHaveLength(0);
+    expect((await post("/api/bots/scout/sign-in-cards/m1/save-login", { threadId: "t1", username: "alice", sealed })).status).toBe(200);
+    expect(saved).toEqual([{ botId: "scout", threadId: "t1", messageId: "m1", body: { threadId: "t1", username: "alice", password: "fake-card-pass" } }]);
   });
 });
