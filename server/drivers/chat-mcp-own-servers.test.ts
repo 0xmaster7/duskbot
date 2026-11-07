@@ -1,4 +1,7 @@
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SPAWNED_PROXIES } from "../proxy-paths.ts";
 import { harnessMcpTokenEnv } from "../harness-mcp-token.ts";
@@ -121,5 +124,24 @@ describe("OpenMausBot's own servers on the chat runtime", () => {
     const stub = await harness((_request, _body, response) => json(response, {}));
     await mount({ custom: { mine: agentsServer(stub.url) } });
     expect(spawned).toEqual([[SPAWNED_PROXIES.agents]]);
+  });
+});
+
+describe("tool search scheduling", () => {
+  it("lets catalog searches and calls of read-only tools overlap, and keeps other calls ordered", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "omb-chat-directory-"));
+    cleanups.push(async () => rmSync(dir, { recursive: true, force: true }));
+    const tools = Array.from({ length: 130 }, (_, index) => ({ name: `tool_${index}`, description: `Fixture tool ${index}`,
+      inputSchema: { type: "object", properties: {} }, ...(index % 2 ? {} : { annotations: { readOnlyHint: true } }) }));
+    writeFileSync(join(dir, "tools.json"), JSON.stringify(tools));
+    const fake = { command: process.execPath, args: [join(import.meta.dirname, "../testing/fake-mcp-server.ts")], env: { FAKE_MCP_TOOLS_FILE: join(dir, "tools.json") } };
+    const session = await mount({ custom: { big: fake } });
+    expect(session.definitions.map((tool) => tool.function.name)).toEqual(["mcp_search_tools", "mcp_describe_tool", "mcp_call_tool"]);
+    expect(session.parallel("mcp_search_tools", { query: "fixture" })).toBe(true);
+    expect(session.parallel("mcp_describe_tool", { name: "big_tool_0" })).toBe(true);
+    expect(session.parallel("mcp_call_tool", { name: "big_tool_0", arguments: {} })).toBe(true);
+    expect(session.parallel("mcp_call_tool", { name: "big_tool_1", arguments: {} })).toBe(false);
+    expect(session.parallel("mcp_call_tool", { name: "missing", arguments: {} })).toBe(false);
+    expect(session.view("mcp_call_tool", { name: "big_tool_0", arguments: {} })).toMatchObject({ ask: true });
   });
 });

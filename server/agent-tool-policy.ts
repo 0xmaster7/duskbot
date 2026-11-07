@@ -13,6 +13,18 @@ export const READ_ONLY_AGENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   "skills_list",
   "list_unread_notifications",
   "usage_limits",
+  "list_room_targets",
+  "list_team_library",
+]);
+
+/** The reviewed reads that reach past this workspace (X, the research catalog, a decision or extraction model): they
+ * change nothing, so they may run beside other reads, but each may be paid. */
+export const OPEN_WORLD_AGENT_READ_NAMES: ReadonlySet<string> = new Set([
+  "x_search",
+  "research_search",
+  "research_endpoint",
+  "extract",
+  "decide",
 ]);
 
 export const READ_ONLY_ANNOTATIONS = Object.freeze({
@@ -22,10 +34,13 @@ export const READ_ONLY_ANNOTATIONS = Object.freeze({
   openWorldHint: false,
 } as const);
 
+export const OPEN_WORLD_READ_ANNOTATIONS = Object.freeze({ ...READ_ONLY_ANNOTATIONS, openWorldHint: true } as const);
+
 export function isReadOnlyAgentTool(name: string): boolean {
-  return READ_ONLY_AGENT_TOOL_NAMES.has(name);
+  return READ_ONLY_AGENT_TOOL_NAMES.has(name) || OPEN_WORLD_AGENT_READ_NAMES.has(name);
 }
 
-export function agentToolAnnotations(name: string): typeof READ_ONLY_ANNOTATIONS | undefined {
-  return isReadOnlyAgentTool(name) ? READ_ONLY_ANNOTATIONS : undefined;
+export function agentToolAnnotations(name: string): typeof READ_ONLY_ANNOTATIONS | typeof OPEN_WORLD_READ_ANNOTATIONS | undefined {
+  if (READ_ONLY_AGENT_TOOL_NAMES.has(name)) return READ_ONLY_ANNOTATIONS;
+  return OPEN_WORLD_AGENT_READ_NAMES.has(name) ? OPEN_WORLD_READ_ANNOTATIONS : undefined;
 }

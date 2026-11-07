@@ -82,17 +82,29 @@ cover it with real stdio servers:
 pnpm exec vitest run server/drivers/chat-mcp-tools.test.ts server/drivers/openai-chat-tools.test.ts
 ```
 
-In a provider's tool-call batch, up to four adjacent explicitly read-only MCP
-calls run together. Results return to the provider in its original call order.
-Writes, questions, unannotated tools, directory calls and the built-in browser
-and computer remain ordered barriers. Calls that still need an approval card
-also stay serial. Read-only annotations affect scheduling only; schema, tool
-selection, approval and safety-floor checks still run for every call.
+In a provider's tool-call batch, up to eight adjacent explicitly read-only MCP
+calls run together (Hermes Agent caps a batch at 8 workers; Claude Code runs
+read-only tools concurrently too). Results return to the provider in its
+original call order. Tool search's `mcp_search_tools` and `mcp_describe_tool`
+only read the catalog, so they overlap too, and `mcp_call_tool` overlaps when
+the tool it runs is read-only. Writes, questions, unannotated tools and the
+built-in browser and computer remain ordered barriers. Calls that still need an
+approval card also stay serial. Read-only annotations affect scheduling only;
+schema, tool selection, approval and safety-floor checks still run for every
+call. The agents server marks its reviewed reads (`server/agent-tool-policy.ts`),
+including the open-world ones such as `x_search` and `research_search`.
 
-The gated driver fixtures hold four reads open at once, release them out of
-order, and prove that a fifth read and a following write wait. They also prove
+The gated driver fixtures hold eight reads open at once, release them out of
+order, and prove that a ninth read and a following write wait. They also prove
 that denial and Stop prevent a later operation from being dispatched. These
 are synthetic protocol checks, not a live-provider latency benchmark.
+
+The chat runtime answers OpenMausBot's own built-in servers (agents, data,
+email, browser, phone) in the server's own process, through the code their
+stdio proxies run and with the environment those proxies would get, so a turn
+starts no child process for them; tool schemas are compiled once per schema
+text. `node --experimental-strip-types scripts/bench-tool-calls.ts` measures
+mount time, one agents call and read batching with no model in the loop.
 
 The harness proves the OpenAI-compatible adapter and the shared execution
 path. It does not establish that every third-party model supports tools, or

@@ -2,7 +2,8 @@ import { ASK_USER_TOOL } from "../../shared/ask-question.ts";
 import type { ChatToolSession } from "./chat-mcp-tools.ts";
 import { object, type ChatToolCall } from "./openai-chat-protocol.ts";
 
-const MAX_PARALLEL_READS = 4;
+/** Hermes Agent's worker cap; Claude Code's is reported as 10. Each server's own queue takes more (16 for the harness proxies). */
+export const MAX_PARALLEL_READS = 8;
 
 interface BatchOptions<Result> {
   session: Pick<ChatToolSession, "parallel" | "view">;

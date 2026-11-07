@@ -736,7 +736,13 @@ export async function mountChatTools(integrations: SendTurnInput["integrations"]
   return {
     definitions, skipped, trimmed, budget, validate, view, close,
     parallel(name, args) {
-      if (directoryNames.has(name)) return false;
+      const listedAs = directoryNames.get(name);
+      // Search and describe only read the catalog in memory; a call is as parallel as the tool it runs.
+      if (listedAs && listedAs !== CALL_TOOL) return true;
+      if (listedAs) {
+        const call = searchedCall(args);
+        return call?.tool.parallel === true && !selectionExcludes(call.tool, call.args);
+      }
       const tool = registered.get(name);
       return tool?.parallel === true && !selectionExcludes(tool, args);
     },
