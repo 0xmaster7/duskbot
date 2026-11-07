@@ -55,12 +55,13 @@ const markRank = (task: RowThread): number | null => {
   return task.busy || task.activity === "working" ? 2 : null;
 };
 
-/** The thread a bot's row or tile is marked for: what waits on the person, then an unread reply, then work under way. The
- * thread the bot opens to wins a tie, then the newest. Null when the row has no mark. */
+/** The thread a bot's row or tile is marked for: what waits on the person, then (with threads shown) an unread reply, then
+ * work under way. The thread the bot opens to wins a tie, then the newest. Null when the row has no mark. */
 export function markedThread(bot: Pick<NotificationThreadOwner, "threadId" | "mainThreadId" | "tasks">, threadsShown: boolean): string | null {
   const home = botOpensTo(bot, threadsShown);
   const stamp = (task: RowThread) => task.updatedAt ?? task.createdAt ?? 0;
-  const marked = (bot.tasks ?? []).flatMap((task) => { const rank = markRank(task); return rank === null ? [] : [{ task, rank }]; })
+  // with threads hidden a bot is one conversation: only a question waiting on the person leads away from it
+  const marked = (bot.tasks ?? []).flatMap((task) => { const rank = markRank(task); return rank === null || (!threadsShown && rank > 0) ? [] : [{ task, rank }]; })
     .sort((a, b) => a.rank - b.rank || Number(b.task.threadId === home) - Number(a.task.threadId === home) || stamp(b.task) - stamp(a.task));
   return marked[0]?.task.threadId ?? null;
 }

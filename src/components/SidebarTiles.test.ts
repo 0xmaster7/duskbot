@@ -86,10 +86,20 @@ describe("the sidebar tiles", () => {
 });
 
 describe("a tile with a dot", () => {
-  it("lands on the thread the dot is about: a tile has no row under it to reach it from", () => {
+  it("opens the bot's one conversation and shows no dot for an unread line in another of its threads", () => {
     const withWork = bot({ threadId: "main", mainThreadId: "main", unread: true, tasks: [{ threadId: "main", title: "Main", createdAt: 1 }, { threadId: "work", title: "@Scout · work", createdAt: 2, unread: true }] });
+    expect(renderToStaticMarkup(createElement(SidebarBotTile, props(withWork)))).not.toContain('data-testid="unread-dot"');
     let tree: ReactNode;
     function Capture() { tree = tile({ ...props(withWork), primary: true }); return tree; }
+    renderToStaticMarkup(createElement(Capture));
+    (find(tree, "data-sidebar-tile")!.props.onKeyDown as (event: KeyboardEvent) => void)({ key: "Enter", preventDefault: vi.fn() } as unknown as KeyboardEvent);
+    expect(dispatch).toHaveBeenCalledWith({ type: "select", id: "mausbot" });
+  });
+
+  it("still lands on a question waiting on the person in another thread", () => {
+    const asking = bot({ threadId: "main", mainThreadId: "main", tasks: [{ threadId: "main", title: "Main", createdAt: 1 }, { threadId: "work", title: "@Scout · work", createdAt: 2, activity: "waiting-on-you" }] });
+    let tree: ReactNode;
+    function Capture() { tree = tile({ ...props(asking), primary: true }); return tree; }
     renderToStaticMarkup(createElement(Capture));
     (find(tree, "data-sidebar-tile")!.props.onKeyDown as (event: KeyboardEvent) => void)({ key: "Enter", preventDefault: vi.fn() } as unknown as KeyboardEvent);
     expect(dispatch).toHaveBeenCalledWith({ type: "switchTask", botId: "mausbot", threadId: "work" });
