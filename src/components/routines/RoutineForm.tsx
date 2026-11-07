@@ -15,6 +15,54 @@ const labelCls = "block text-[12px] leading-4 tracking-[0.01em] text-ink-seconda
 const primaryCls = cn(buttonCls, "bg-ink text-app shadow-none enabled:hover:bg-ink/85");
 const PRESETS: readonly Exclude<WhenPreset, "keep">[] = ["daily", "weekdays", "weekly", "hourly", "once"];
 
+/** "9", "9pm", "9:30 am", "21:30", "930" -> "HH:MM", or null. */
+export function parseTypedTime(text: string): string | null {
+  const m = /^\s*(\d{1,2})(?:[:.\s]?(\d{2}))?\s*([ap])?\.?\s*m?\.?\s*$/i.exec(text);
+  if (!m) return null;
+  let hour = Number(m[1]);
+  const minute = m[2] ? Number(m[2]) : 0;
+  const half = m[3]?.toLowerCase();
+  if (minute > 59 || hour > 23 || (half && (hour < 1 || hour > 12))) return null;
+  if (half === "p" && hour < 12) hour += 12;
+  if (half === "a" && hour === 12) hour = 0;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+const shownTime = (time: string) => {
+  const [h, m] = time.split(":").map(Number);
+  return new Date(2026, 0, 1, h ?? 0, m ?? 0).toLocaleTimeString(activeLocale(), { hour: "numeric", minute: "2-digit" });
+};
+
+function TimeField({ value, onChange }: { value: string; onChange: (time: string) => void }) {
+  const [text, setText] = useState(() => shownTime(value));
+  const [bad, setBad] = useState(false);
+  const commit = () => {
+    const time = parseTypedTime(text);
+    if (!time) return setBad(true);
+    setBad(false);
+    onChange(time);
+    setText(shownTime(time));
+  };
+  return (
+    <input
+      type="text"
+      data-routine-time=""
+      aria-label={t("routines.inline.time")}
+      aria-invalid={bad || undefined}
+      value={text}
+      onChange={(event) => {
+        setText(event.target.value);
+        setBad(false);
+        const time = parseTypedTime(event.target.value);
+        if (time) onChange(time);
+      }}
+      onBlur={commit}
+      onKeyDown={(event) => { if (event.key === "Enter" && !imeComposing(event.nativeEvent)) { event.preventDefault(); commit(); } }}
+      className={cn(fieldCls, "w-[7.5rem] flex-none", bad && "border-danger")}
+    />
+  );
+}
+
 const dayName = (day: number) => new Date(2026, 0, 4 + day).toLocaleDateString(activeLocale(), { weekday: "long" });
 
 /** One routine's name, when and what, edited in place: a new one for `bot`, or `routine` as it is saved. Only these three
@@ -92,7 +140,7 @@ export function RoutineForm({ bot, routine, defaultRunOn, onDone }: {
             <input type="date" aria-label={t("routines.inline.date")} value={when.date} onChange={(event) => patchWhen({ date: event.target.value })} className={cn(fieldCls, "w-auto flex-none")} />
           )}
           {when.preset !== "hourly" && when.preset !== "keep" && (
-            <input type="time" aria-label={t("routines.inline.time")} value={when.time} onChange={(event) => patchWhen({ time: event.target.value })} className={cn(fieldCls, "w-auto flex-none")} />
+            <TimeField value={when.time} onChange={(time) => patchWhen({ time })} />
           )}
         </div>
       </div>
@@ -105,7 +153,7 @@ export function RoutineForm({ bot, routine, defaultRunOn, onDone }: {
           value={prompt}
           placeholder={t("routines.inline.whatPlaceholder")}
           onChange={(event) => setPrompt(event.target.value)}
-          className={cn(fieldCls, "mt-1 h-auto w-full resize-none py-1.5")}
+          className={cn(fieldCls, "mt-1 h-auto max-h-[40vh] min-h-[4.75rem] w-full resize-none py-1.5 [field-sizing:content]")}
         />
       </div>
       {error && <p role="alert" className="m-0 text-[12px] leading-4 text-danger">{error}</p>}

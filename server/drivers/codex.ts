@@ -8,11 +8,14 @@ import { reportUnsupportedCalls, rolloutMark, type RolloutMark } from "./codex-u
 // `turn/completed`, approvals arrive as server→client requests, resumeCursor is the codex thread id.
 import { mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { homedir } from "node:os";
 import { codexConfigMcp, codexConfigRunsServer, mountedMcpServerName } from "./codex-mcp-names.ts";
 
 import { DATA_DIR, stripWorkspaceCredentialEnv } from "../config.ts";
+import { botBox } from "../bot-box/box.ts";
+import { under } from "../bot-box/plan.ts";
+import { CODEX_WORKSPACE_PROFILE, codexWorkspaceFilesystem, engineReadScope, type EngineReadScope } from "./engine-read-scope.ts";
 import { laterStartup, openStartupModelCatalog, unconfirmedModelCatalog, writeStartupModelCache } from "../startup-model-catalog.ts";
 import { hostedWorkspaceConfigured } from "../enterprise.ts";
 import { cloudHomeConfigured } from "../cloud-home.ts";
@@ -150,6 +153,8 @@ function noteRenamedMcpServer(name: string, mountName: string): void {
 interface CodexApprovalParams {
   thread: Record<string, unknown>;
   turn: Record<string, unknown>;
+  /** The thread `config` layer the named profile is defined in, when OpenMausBot defines it. */
+  config?: Record<string, unknown>;
   /** Legacy settings for an older app-server that rejects the named-profile field. */
   fallback?: Omit<CodexApprovalParams, "fallback">;
 }
@@ -194,8 +199,10 @@ function extendShellExclusions(policy: Record<string, unknown>, patterns: readon
 }
 
 /** Codex persists these on its native thread, so they are explicit on start, resume and every turn.
- * Codex has no narrower "edits only" sandbox, so a stray Edits value asks. */
-function namedApprovalParams(mode: Exclude<ApprovalMode, "custom">): CodexApprovalParams {
+ * Codex has no narrower "edits only" sandbox, so a stray Edits value asks. With a read scope, Ask and Auto run in
+ * OpenMausBot's own permission profile, which also hides the scope's paths from reads; Codex's legacy
+ * workspace-write sandbox reads the whole disk. */
+function namedApprovalParams(mode: Exclude<ApprovalMode, "custom">, scope?: EngineReadScope, codexConfig?: unknown): CodexApprovalParams {
   if (mode === "full") {
     return {
       thread: {
@@ -210,18 +217,43 @@ function namedApprovalParams(mode: Exclude<ApprovalMode, "custom">): CodexApprov
       },
     };
   }
-  return {
-    thread: {
-      approvalPolicy: "on-request",
-      approvalsReviewer: mode === "auto" ? "auto_review" : "user",
-      sandbox: "workspace-write",
-    },
-    turn: {
-      approvalPolicy: "on-request",
-      approvalsReviewer: mode === "auto" ? "auto_review" : "user",
-      sandboxPolicy: { type: "workspaceWrite" },
-    },
+  const approvalsReviewer = mode === "auto" ? "auto_review" : "user";
+  const legacy: CodexApprovalParams = {
+    thread: { approvalPolicy: "on-request", approvalsReviewer, sandbox: "workspace-write" },
+    turn: { approvalPolicy: "on-request", approvalsReviewer, sandboxPolicy: { type: "workspaceWrite" } },
   };
+  if (!scope) return legacy;
+  const named = { permissions: CODEX_WORKSPACE_PROFILE, approvalPolicy: "on-request", approvalsReviewer };
+  return {
+    thread: named,
+    turn: named,
+    config: { permissions: { [CODEX_WORKSPACE_PROFILE]: workspaceProfile(scope, codexConfig) } },
+    fallback: legacy,
+  };
+}
+
+/** The profile keeps what config.toml's `[sandbox_workspace_write]` gives the legacy sandbox (codex-cli 0.167). */
+function workspaceProfile(scope: EngineReadScope, codexConfig: unknown): Record<string, unknown> {
+  const workspace = plainRecord(plainRecord(codexConfig)?.sandbox_workspace_write) ?? {};
+  const filesystem: Record<string, string> = codexWorkspaceFilesystem(scope);
+  if (workspace.exclude_slash_tmp === true) delete filesystem[":slash_tmp"];
+  if (workspace.exclude_tmpdir_env_var === true) delete filesystem[":tmpdir"];
+  const extra = Array.isArray(workspace.writable_roots) ? workspace.writable_roots.filter((root): root is string => typeof root === "string" && isAbsolute(root)) : [];
+  for (const root of extra) if (!scope.hidden.some((path) => under(root, path))) filesystem[root] = "write";
+  return { filesystem, ...(workspace.network_access === true ? { network: { enabled: true } } : {}) };
+}
+
+/** Codex 0.167 echoes the profile it applied; an app-server that dropped the field must not have fallen back to a
+ * wider default sandbox. */
+function assertProfileApplied(params: CodexApprovalParams, session: unknown): void {
+  const id = params.config ? params.thread.permissions : undefined;
+  if (typeof id !== "string") return;
+  const active = plainRecord(plainRecord(session)?.activePermissionProfile);
+  const sandbox = plainRecord(plainRecord(session)?.sandbox);
+  const applied = active ? active.id === id : sandbox?.type === "workspaceWrite" || sandbox?.type === "readOnly";
+  if (!applied || sandbox?.type === "dangerFullAccess") {
+    throw new Error("Codex did not apply the requested sandbox mode; cannot safely start the turn.");
+  }
 }
 
 function withResolvedSandbox(params: CodexApprovalParams, session: unknown): CodexApprovalParams {
@@ -1399,8 +1431,14 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
           // Omitting these on a resumed thread would keep the previous named mode.
           approvalParams = customApprovalParams(effectiveConfig);
         } else {
-          approvalParams = namedApprovalParams(approvalMode);
+          const cwd = turn.cwd ?? homedir();
+          approvalParams = namedApprovalParams(approvalMode, approvalMode === "full" ? undefined : engineReadScope({
+            dataDir: DATA_DIR, home: homedir(), cwd, botId: turn.botId, threadId, boxed: botBox.enabled(), extraReadable: botBox.readOnlyFor(cwd),
+          }), effectiveConfig);
         }
+        const threadConfig = () => approvalParams.config
+          ? { config: { ...selectionConfig.config, ...approvalParams.config } }
+          : selectionConfig;
         // Codex's `never` means "do not ask to escalate", not "grant every requested permission":
         // only Full may synthesize approvals.
         autoAcceptPermissions = approvalMode === "full";
@@ -1416,7 +1454,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         let promptText = turn.text;
         if (cursor) {
           const resumeThread = () => request("thread/resume", {
-            ...selectionConfig,
+            ...threadConfig(),
             threadId: cursor,
             developerInstructions,
             model: selection.model,
@@ -1435,6 +1473,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
               approvalParams = approvalParams.fallback;
               resumed = await resumeUnarchived();
             }
+            assertProfileApplied(approvalParams, resumed);
             approvalParams = withResolvedSandbox(approvalParams, resumed);
             codexThreadId = resumed?.thread?.id ?? cursor;
             rolloutAt = rolloutMark(resumed?.thread?.path);
@@ -1457,7 +1496,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         }
         if (!codexThreadId) {
           const startThread = () => request("thread/start", {
-              ...selectionConfig,
+              ...threadConfig(),
               developerInstructions,
               cwd: turn.cwd ?? homedir(),
               model: selection.model,
@@ -1474,6 +1513,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
             approvalParams = approvalParams.fallback;
             started = await startThread();
           }
+          assertProfileApplied(approvalParams, started);
           approvalParams = withResolvedSandbox(approvalParams, started);
           codexThreadId = started?.thread?.id ?? null;
           rolloutAt = rolloutMark(started?.thread?.path);

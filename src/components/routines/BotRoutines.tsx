@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Check, Copy, Plus } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 
 import { automationSentence, automationsFrom, automationStatus, AUTOMATION_FIX_LABEL, nextWhen, plainWhen, runLine, type Automation, type AutomationFix } from "@/lib/automations";
 import { appWhen } from "@/lib/app-automations";
@@ -14,7 +14,7 @@ import { useStore, type Bot } from "@/state/store";
 import { useAllAutomationActions } from "../automations/app-actions";
 import { AppEventEditor } from "../automations/AppEventEditor";
 import { WebhookEditor } from "../WebhookTrigger";
-import { BotSwitch, buttonCls, Card, LinkRow, PanelEmpty, rowCls, RowText } from "../bot-panel/rows";
+import { BotSwitch, buttonCls, Card, PanelEmpty, rowCls, RowText } from "../bot-panel/rows";
 import { RoutineForm } from "./RoutineForm";
 
 const termCls = "text-[12px] leading-4 tracking-[0.01em] text-ink-secondary";
@@ -62,14 +62,11 @@ export function BotRoutines({ bot, defaultRunOn, label = true }: { bot: Bot; def
 
   const add = editing === "new"
     ? <RoutineForm bot={bot} defaultRunOn={defaultRunOn} onDone={(saved) => { setEditing(null); if (saved) setOpenId(saved.id); }} />
-    : <LinkRow data-panel-action="new-routine" icon={Plus} onClick={() => { setEditing("new"); setOpenId(null); }}>{t("botPanel.routines.add")}</LinkRow>;
+    : null;
 
   if (automations.length === 0 && editing !== "new") {
     return (
-      <div className="flex flex-col items-center gap-1">
-        <PanelEmpty data-panel-empty="routines">{t("botPanel.routines.empty")}</PanelEmpty>
-        <button type="button" data-panel-action="new-routine" onClick={() => setEditing("new")} className={buttonCls}><Plus size={14} aria-hidden="true" />{t("botPanel.routines.add")}</button>
-      </div>
+      <PanelEmpty data-panel-empty="routines">{t("botPanel.routines.empty")}</PanelEmpty>
     );
   }
   return (

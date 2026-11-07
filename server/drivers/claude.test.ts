@@ -18,6 +18,7 @@ import {
   claudeHookSettings,
   ClaudeDriver,
   createPermissionBroker,
+  GUEST_CLAUDE_PERMISSIONS,
   hookTokenFile,
   parseClaudeCliVersion,
   permissionSocketPath,
@@ -38,6 +39,9 @@ import { ephemeralWorkspaceTokenPath } from "../workspace-backup-policy.ts";
 import * as procs from "../procs.ts";
 import * as localInject from "./local-inject.ts";
 import { botBox } from "../bot-box/box.ts";
+import { boxUploadsDir } from "../bot-box/plan.ts";
+import { spillDir } from "../mcp-gate-config.ts";
+import { claudeRulePath } from "./engine-read-scope.ts";
 
 const FAKE_CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "testing", "fake-claude-cli.ts");
 const dumpedPid = (dump: string): number => JSON.parse(readFileSync(dump, "utf8")).pid;
@@ -833,6 +837,8 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(after("--permission-mode")).toBe("default");
     expect(seen.settings.permissions).toMatchObject({ blockReadsOutsideWorkingDirectories: true });
     expect(seen.settings.permissions.deny).toEqual(expect.arrayContaining(["Bash", "PowerShell", "WebFetch"]));
+    expect(seen.settings.permissions).toEqual(GUEST_CLAUDE_PERMISSIONS);
+    expect(seen.argv).not.toContain("--add-dir");
     expect(Object.keys(seen.mcpConfig.mcpServers)).not.toContain("planted");
     expect(after("--allowedTools").split(",")).not.toContain("mcp__browser");
     expect(recorder.events.find((e) => e.type === "turn.completed")).toMatchObject({ ok: true });
@@ -1586,6 +1592,77 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(JSON.parse(readFileSync(dump, "utf8")).argv).not.toContain("--autocompact");
   });
 
+  describe("reads outside the bot's own folders", () => {
+    const rule = (tool: "Read" | "Edit", path: string, below = false) => `${tool}(${claudeRulePath(path)}${below ? "/**" : ""})`;
+    const folders = (bot: string, thread: string) => {
+      const cwd = join(DATA_DIR, "task-workspaces", bot, thread), own = join(DATA_DIR, "workspaces", bot), soul = join(DATA_DIR, "bots", bot);
+      const other = join(DATA_DIR, "workspaces", `${bot}-else`);
+      for (const dir of [cwd, own, soul, other, join(DATA_DIR, "attachments")]) mkdirSync(dir, { recursive: true });
+      return { cwd, own, soul, other };
+    };
+    const added = (argv: string[]) => argv.flatMap((arg, i) => argv[i - 1] === "--add-dir" ? [arg] : []);
+
+    it("blocks reads outside the working folders, denies the server's own files and adds the bot's folders", async () => {
+      const dump = join(scratch, "read-scope.json");
+      process.env.FAKE_CLAUDE_DUMP = dump;
+      await create();
+      const { cwd, own, soul, other } = folders("b-reads", "t-reads");
+      await instance.adapter.sendTurn({ threadId: "t-reads", botId: "b-reads", text: "hi", cwd, approvalMode: "full" });
+      await recorder.until((e) => e.type === "turn.completed");
+      const seen = JSON.parse(readFileSync(dump, "utf8"));
+      expect(seen.settings.permissions.blockReadsOutsideWorkingDirectories).toBe(true);
+      const deny: string[] = seen.settings.permissions.deny;
+      expect(deny).toEqual(expect.arrayContaining([
+        rule("Read", join(DATA_DIR, "config.json")), rule("Edit", join(DATA_DIR, "config.json")),
+        rule("Read", join(DATA_DIR, "messages.db"), true), rule("Read", join(DATA_DIR, "engine-homes"), true),
+        rule("Read", join(DATA_DIR, "providers"), true), rule("Read", other, true), rule("Edit", other, true),
+        rule("Read", join(homedir(), ".ssh"), true), rule("Read", join(homedir(), ".config"), true), rule("Edit", soul, true),
+      ]));
+      for (const open of [DATA_DIR, cwd, own, soul, join(DATA_DIR, "workspaces"), join(DATA_DIR, "attachments")]) {
+        expect(deny).not.toContain(rule("Read", open));
+        expect(deny).not.toContain(rule("Read", open, true));
+      }
+      expect(added(seen.argv)).toEqual(expect.arrayContaining([own, soul, join(DATA_DIR, "attachments"), spillDir("t-reads")]));
+      expect(added(seen.argv)).not.toContain(cwd);
+    });
+
+    it("in the bot box, adds the conversation's uploads instead of every upload", async () => {
+      const dump = join(scratch, "read-scope-boxed.json");
+      process.env.FAKE_CLAUDE_DUMP = dump;
+      await create();
+      const boxed = vi.spyOn(botBox, "enabled").mockReturnValue(true);
+      try {
+        const { cwd, own } = folders("b-boxed", "t-boxed");
+        await instance.adapter.sendTurn({ threadId: "t-boxed", botId: "b-boxed", text: "hi", cwd });
+        await recorder.until((e) => e.type === "turn.completed");
+        const seen = JSON.parse(readFileSync(dump, "utf8"));
+        expect(added(seen.argv)).toEqual(expect.arrayContaining([own, boxUploadsDir(DATA_DIR, "b-boxed", "t-boxed")]));
+        expect(added(seen.argv)).not.toContain(join(DATA_DIR, "attachments"));
+        expect(seen.settings.permissions.deny).toContain(rule("Read", join(DATA_DIR, "attachments"), true));
+      } finally {
+        boxed.mockRestore();
+      }
+    });
+
+    it("keeps its denies when the bot's settings file allows those reads", async () => {
+      const dump = join(scratch, "read-scope-bot-settings.json");
+      process.env.FAKE_CLAUDE_DUMP = dump;
+      await create();
+      const { cwd, own } = folders("b-allow", "t-allow");
+      const file = join(own, ".claude", "settings.json");
+      mkdirSync(dirname(file), { recursive: true });
+      writeFileSync(file, JSON.stringify({ permissions: {
+        allow: [rule("Read", join(DATA_DIR, "config.json"))], deny: ["Read(./.env)"], blockReadsOutsideWorkingDirectories: false,
+      } }));
+      await instance.adapter.sendTurn({ threadId: "t-allow", botId: "b-allow", text: "hi", cwd, botSettingsFile: file });
+      await recorder.until((e) => e.type === "turn.completed");
+      const permissions = JSON.parse(readFileSync(dump, "utf8")).settings.permissions;
+      expect(permissions.allow).toEqual([rule("Read", join(DATA_DIR, "config.json"))]);
+      expect(permissions.deny).toEqual(expect.arrayContaining(["Read(./.env)", rule("Read", join(DATA_DIR, "config.json"))]));
+      expect(permissions.blockReadsOutsideWorkingDirectories).toBe(true);
+    });
+  });
+
   describe("the bot's own settings file", () => {
     const guard = { matcher: "Bash", hooks: [{ type: "command", command: "/opt/guards/no-force-push.sh" }] };
     const botFolders = (name: string, settings: unknown) => {
@@ -1618,7 +1695,9 @@ describe("ClaudeDriver turns (fake CLI)", () => {
       expect(seen.settings.hooks.Stop[0]).toEqual({ hooks: [{ type: "command", command: "/opt/guards/notify.sh" }] });
       expect(Object.keys(seen.settings.hooks)).toEqual(expect.arrayContaining(Object.keys(claudeHookSettings("/helper.ts"))));
       expect(seen.settings.enabledPlugins).toEqual({ "guard@team": true });
-      expect(seen.settings.permissions).toEqual({ deny: ["Read(./.env)"] });
+      expect(seen.settings.permissions.deny[0]).toBe("Read(./.env)");
+      expect(seen.settings.permissions.blockReadsOutsideWorkingDirectories).toBe(true);
+      expect(seen.settings.permissions).not.toHaveProperty("defaultMode");
       expect(seen.settings.env).toMatchObject({ GUARD_LEVEL: "strict", ENABLE_TOOL_SEARCH: "true" });
       expect(seen.settings).not.toHaveProperty("model");
       expect(seen.settings.claudeMdExcludes).toEqual([join(homedir(), ".claude", "CLAUDE.md")]);
@@ -1836,7 +1915,8 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     await instance.adapter.sendTurn({ threadId: "t-auth-settings", text: "hi" });
     await recorder.until((e) => e.type === "turn.completed");
     const seen = JSON.parse(readFileSync(dump, "utf8"));
-    expect(seen.settings).toEqual({ claudeMdExcludes: [join(homedir(), ".claude", "CLAUDE.md")], apiKeyHelper: settings.apiKeyHelper, env: { ANTHROPIC_BASE_URL: settings.env.ANTHROPIC_BASE_URL, ANTHROPIC_AUTH_TOKEN: "synthetic-token", ENABLE_TOOL_SEARCH: "true", CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1" } });
+    const { permissions: _ownReads, ...authOnly } = seen.settings;
+    expect(authOnly).toEqual({ claudeMdExcludes: [join(homedir(), ".claude", "CLAUDE.md")], apiKeyHelper: settings.apiKeyHelper, env: { ANTHROPIC_BASE_URL: settings.env.ANTHROPIC_BASE_URL, ANTHROPIC_AUTH_TOKEN: "synthetic-token", ENABLE_TOOL_SEARCH: "true", CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1" } });
     expect(seen.argv[seen.argv.indexOf("--setting-sources") + 1]).toBe("project");
     expect(JSON.stringify(seen.argv)).not.toContain("synthetic");
     const settingsPath = seen.argv[seen.argv.indexOf("--settings") + 1];
@@ -1945,7 +2025,8 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     await instance.adapter.sendTurn({ threadId: "t-auth-explicit", text: "hi" });
     await recorder.until((e) => e.type === "turn.completed");
     const seen = JSON.parse(readFileSync(dump, "utf8"));
-    expect(seen.settings).toEqual({ claudeMdExcludes: [join(homedir(), ".claude", "CLAUDE.md")], env: { ENABLE_TOOL_SEARCH: "true", CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1" } });
+    const { permissions: _ownReads, ...authOnly } = seen.settings;
+    expect(authOnly).toEqual({ claudeMdExcludes: [join(homedir(), ".claude", "CLAUDE.md")], env: { ENABLE_TOOL_SEARCH: "true", CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1" } });
     expect(seen.env.ANTHROPIC_API_KEY).toBe("workspace-key");
     expect(seen.env.ANTHROPIC_BASE_URL).toBeUndefined();
     expect(readClaudeAuthSettings({ HOME: scratch, CLAUDE_CONFIG_DIR: join(scratch, "other-account") })).toEqual({});
