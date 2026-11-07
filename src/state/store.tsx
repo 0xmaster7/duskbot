@@ -14,6 +14,7 @@ import { botOpensTo, openBot, openThread, visibleNotificationThread } from "./th
 import { patchGroupTask } from "./thread-edits";
 import type { EngineInstall } from "./engine-install";
 import { optimisticMessageId, optimisticUserMessage, sendArrived, sendReconciled } from "./optimistic-send";
+import { applySendReceipt } from "./send-receipt";
 import { foldSnapshotOntoStreamed, patchedGroups, roomAnswers, snapshotPatch } from "./room-frames";
 import { savedStateAction, type SavedOwner, type SavedSnapshot } from "./saved-state";
 import { keepBotNavigation, keepGroupNavigation, navigatedSince, visibleMessages } from "./snapshot-navigation";
@@ -2449,35 +2450,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const sendId = action.sendId ?? randomUuid();
           const arrived = () => sendArrived(stateRef.current.bots.find((bot) => bot.id === action.botId && bot.threadId === threadId)?.messages, sendId);
           void waitForExecutionSettings(botBeforeSend ? [botBeforeSend] : [], threadId)
-            .then(() => sendReconciled(() => api(`/api/bots/${action.botId}/messages`, {
-                method: "POST",
+            .then(() => sendReconciled((signal) => api(`/api/bots/${action.botId}/messages`, {
+                method: "POST", signal,
                 body: JSON.stringify({ text: action.text, replyToId: action.replyToId, threadId, sendId, ...(action.dataContext ? { dataContext: action.dataContext } : {}), ...(action.pointed?.length ? { pointed: action.pointed } : {}), ...(action.mode === "goal" ? { mode: "goal" } : {}), ...(action.followUp ? { followUp: action.followUp } : {}), ...(action.mentions?.length ? { mentions: action.mentions } : {}) }),
-              }), arrived))
-            .then((sent) => {
-              if (!("body" in sent)) return;
-              const body = sent.body;
-              if (body?.message && typeof body.threadId === "string") {
-                rawDispatch({ type: "messageAdded", threadId: body.threadId, message: body.message });
-              }
-              if (
-                body?.queued &&
-                typeof body.threadId === "string" &&
-                typeof body.queueId === "string"
-              ) {
-                rawDispatch({
-                  type: "optimisticMessageRemoved",
-                  threadId: body.threadId,
-                  sendId,
-                });
-                rawDispatch({
-                  type: "pendingQueued",
-                  threadId: body.threadId,
-                  queueId: body.queueId,
-                  text: action.text,
-                  reason: body.reason === "capacity" || body.reason === "group-turn" ? body.reason : undefined,
-                });
-              }
-            })
+              }), arrived, undefined, threadId ? { threadId, sendId, text: action.text, replyToId: action.replyToId, channelMode: action.mode } : undefined))
+            .then((sent) => applySendReceipt(sent, sendId, action.text, rawDispatch))
             .catch((error) => {
               if (threadId) {
                 rawDispatch({ type: "optimisticMessageRemoved", threadId, sendId });
@@ -2694,9 +2671,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const threadId =
             action.threadId ?? stateRef.current.groups.find((group) => group.id === action.groupId)?.threadId;
           const sendId = action.sendId ?? randomUuid();
+          const arrived = () => sendArrived(stateRef.current.groups.find((group) => group.id === action.groupId && group.threadId === threadId)?.messages, sendId);
           void waitForExecutionSettings(executionBotsBeforeAction)
-            .then(() => api(`/api/groups/${action.groupId}/messages`, {
-              method: "POST",
+            .then(() => sendReconciled((signal) => api(`/api/groups/${action.groupId}/messages`, {
+              method: "POST", signal,
               body: JSON.stringify({
                 text: action.text,
                 replyToId: action.replyToId,
@@ -2704,29 +2682,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 sendId,
                 mode: action.mode ?? "chat", ...(action.mentions?.length ? { mentions: action.mentions } : {}),
               }),
-            }))
-            .then((body) => {
-              if (body?.message && typeof body.threadId === "string") {
-                rawDispatch({ type: "messageAdded", threadId: body.threadId, message: body.message });
-              }
-              if (
-                body?.queued &&
-                typeof body.threadId === "string" &&
-                typeof body.queueId === "string"
-              ) {
-                rawDispatch({
-                  type: "optimisticMessageRemoved",
-                  threadId: body.threadId,
-                  sendId,
-                });
-                rawDispatch({
-                  type: "pendingQueued",
-                  threadId: body.threadId,
-                  queueId: body.queueId,
-                  text: action.text,
-                });
-              }
-            })
+            }), arrived, undefined, threadId ? { threadId, sendId, text: action.text, replyToId: action.replyToId, channelMode: action.mode } : undefined))
+            .then((sent) => applySendReceipt(sent, sendId, action.text, rawDispatch))
             .catch((error) => {
               if (threadId) {
                 rawDispatch({ type: "optimisticMessageRemoved", threadId, sendId });

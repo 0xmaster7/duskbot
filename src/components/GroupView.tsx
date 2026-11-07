@@ -32,7 +32,7 @@ import { normalizeState } from "@/lib/mascot";
 import { defaultResponderName, groupResponseHint, jevRoomRoutingOn } from "@/lib/group-routing";
 import { ChatMarkdown } from "./ChatMarkdown";
 import { FailedTurnRow, MessageBoundary, SIMPLE_STATUS_SLOT, SIMPLE_TRAILING_GAP, statusMarkFor } from "./ChatView";
-import { joinedCorners, needsStamp, quietRow, SIMPLE_BOT_BUBBLE, SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT, SIMPLE_STACKED, SIMPLE_USER_BUBBLE, type BubbleJoin } from "./chat-bubble";
+import { joinedCorners, needsStamp, SIMPLE_BOT_BUBBLE, SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT, SIMPLE_STACKED, SIMPLE_USER_BUBBLE, type BubbleJoin } from "./chat-bubble";
 import { roomRowLayout, type RoomSlot } from "./room-row-layout";
 import { DaySeparator } from "./DaySeparator";
 import { useThreadOpenedAt } from "./ConversationalReply";
@@ -72,7 +72,6 @@ import { ManageMembersPanel } from "./ManageMembersPanel";
 import { groupActivityRuns, isStatusActivity } from "@/lib/activity-runs";
 import { ActivityRun } from "./ActivityRun";
 import { cn } from "@/lib/cn";
-import { usePacedArrivals } from "@/hooks/use-paced-arrivals";
 import { useMenuMotion } from "./MenuMotion";
 import { useLiveToolIds } from "@/hooks/use-live-tool-ids";
 import { roomNeedsSetup } from "@/lib/room-setup";
@@ -871,7 +870,6 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
  * distance from the composer by adding it. */
 const USAGE_ROW_GAP = 8;
 
-const pacedRoomRow = (m: Message) => m.role === "bot" && m.kind !== "activity" && m.kind !== "compaction" && !quietRow(m, false);
 
 export function GroupView({ group }: { group: Group }) {
   const { state, dispatch } = useStore();
@@ -964,9 +962,6 @@ export function GroupView({ group }: { group: Group }) {
   useTimestampPeek(scrollRef);
   // the status line keeps its slot at the end of the room whether it shows or not, so it never moves a row
   const statusSlot = windowedMessages.length > 0 || threadWorking;
-  const { shown: arrivedMessages, held: heldReplies } = usePacedArrivals(transcriptKey, windowedMessages, pacedRoomRow);
-  // a member whose reply landed but waits its turn is still typing until its bubble takes over
-  const typingIds = [...new Set(heldReplies.flatMap((m) => (m.from?.botId ? [m.from.botId] : [])))];
   const unreadDivider = useUnreadDivider({ threadId: group.threadId, messages: group.messages, following });
 
   useEffect(() => setFolderOpen(false), [group.id]);
@@ -1110,7 +1105,7 @@ export function GroupView({ group }: { group: Group }) {
             group={group}
             members={members}
             locale={activeLocale()}
-            messages={arrivedMessages}
+            messages={windowedMessages}
             transcript={group.messages}
             unreadDividerId={unreadDivider.messageId}
             unreadDividerFading={unreadDivider.fading}
@@ -1130,7 +1125,7 @@ export function GroupView({ group }: { group: Group }) {
             group={group}
             members={members}
             workingIds={workingIds}
-            typingIds={typingIds}
+            typingIds={[]}
             speaker={{ bot: presenceSpeaker, visible: presenceVisible, markState: statusMarkState, phrases: now.phrases, phase: now.phase, since: speaker ? group.turnStartedAt ?? null : null }}
             slot={statusSlot}
           />

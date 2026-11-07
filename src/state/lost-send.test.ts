@@ -24,7 +24,7 @@ it("asks again with the same sendId when a send's answer is lost, and never give
     if (path !== SEND) return response({});
     bodies.push(String(init?.body));
     if (bodies.length === 1) throw new TypeError("Failed to fetch");
-    return response({ threadId: "thread", message: { id: "m1", role: "user", kind: "text", text: "say ok6", at: 1, sendId: "send-0123456789abcdef" } }, 202);
+    return response({ ok: true, threadId: "thread", message: { id: "m1", role: "user", kind: "text", text: "say ok6", at: 1, sendId: "send-0123456789abcdef" } }, 202);
   });
   const onError = vi.fn();
   mount(requests)(onError);
