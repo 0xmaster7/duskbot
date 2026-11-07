@@ -12,9 +12,13 @@ import { useCaptionChrome, useDesktopCapabilities } from "./DesktopCapabilities"
 type Connection = "connecting" | "connected" | "disconnected";
 
 /** The computer the person took control of, live and drivable where they were watching it. */
-export function LiveDesktop({ target, threadId, name, poster, expanded, onExpandedChange, onHandBack, handingBack, onUnreachable, onReadyChange, onTakeControl, onOpenPreview, onScreenSize, waking, originalViewer = false, viewOnly = false }: {
+export function LiveDesktop({ target, threadId, name, poster, expanded, onExpandedChange, onHandBack, handingBack, onUnreachable, onReadyChange, onTakeControl, onOpenPreview, onScreenSize, waking, originalViewer = false, viewOnly = false, wake = false, taking = false }: {
   target: string;
   viewOnly?: boolean;
+  /** The computer is waking: the picture is asked for beside the wake and shows the moment the desktop answers. */
+  wake?: boolean;
+  /** Take control was asked for and the answer is on its way. */
+  taking?: boolean;
   /** What shows until the first frame: the bot waking up, never a connecting line. */
   waking?: (expanded: boolean) => ReactNode;
   /** The desktop's own size in pixels, once its first frame arrives, so the frame around it can match its shape. */
@@ -46,6 +50,8 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
   const live = useRef<string | null>(null);
   const watching = useRef(viewOnly);
   watching.current = viewOnly;
+  const wakeRequest = useRef(wake);
+  wakeRequest.current = wake;
   const { dragProps, noDragStyle } = useCaptionChrome();
   const macInset = useDesktopCapabilities().capabilities.windowChrome === "mac-inset";
   const readyChanged = useRef(onReadyChange);
@@ -79,6 +85,7 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
       threadId,
       signal: controller.signal,
       viewOnly: watching.current,
+      wake: wakeRequest.current,
       events: {
         connected: () => {
           if (controller.signal.aborted) return;
@@ -195,7 +202,7 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
         {viewOnly && (originalViewer ? !expanded && onOpenPreview : onTakeControl) && (
           <button type="button" data-panel-action={originalViewer ? "open-computer" : undefined} aria-label={originalViewer ? t("computer.open") : t("computer.takeControl")}
             title={originalViewer ? t("computer.open") : t("computer.takeControl")}
-            onClick={originalViewer ? onOpenPreview : onTakeControl} disabled={connection !== "connected"}
+            onClick={originalViewer ? onOpenPreview : onTakeControl} disabled={!originalViewer && connection !== "connected"}
             className="group/screen absolute inset-0 flex cursor-pointer items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-wait">
             {originalViewer && <span data-panel-open-pill="" aria-hidden="true" className="pointer-events-none relative z-[2] inline-flex items-center gap-1.5 rounded-full bg-[rgb(0_0_0/0.9)] px-2.5 py-2 text-[13px] font-medium leading-4 tracking-[0.01em] text-white opacity-0 transition-opacity duration-[120ms] ease-out group-hover/screen:opacity-100 group-focus-within/screen:opacity-100 touch:opacity-100">
               <GrokIcon name="arrows-expand-simple" size={12} />{t("computer.open")}
@@ -219,7 +226,7 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
       data-expanded={expanded ? "true" : undefined} className="relative h-full w-full">
       <ComputerFullscreen embedded expanded={expanded} label={label} aspect={aspect} onExit={() => onExpandedChange(false)}
         frame={desktopFrame} note={null} control={viewOnly
-          ? { held: false, onTake: onTakeControl, busy: connection !== "connected" || handingBack }
+          ? { held: false, onTake: onTakeControl, busy: connection !== "connected" || handingBack || taking, pending: taking }
           : { held: true, onDone: onHandBack, busy: handingBack }} />
     </div>
   );

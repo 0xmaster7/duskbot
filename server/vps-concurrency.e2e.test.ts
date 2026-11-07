@@ -266,6 +266,8 @@ it.skipIf(process.platform === "win32")("never wakes a bot's own VPS computer fo
       expect(readFileSync(h.vps.calls, "utf8").slice(before)).not.toMatch(/"(?:run|start)"/);
       const token = first.mcpConfig.mcpServers.agents.env.OMB_COMMS_TOKEN;
       expect((await h.api("POST", "/api/internal/computer/select", { surface: "cloud" }, token)).body).toMatchObject({ status: "pending" });
+      // it starts while this turn is still ending, not after: the continuation joins that same start
+      await expect.poll(() => readFileSync(h.vps.calls, "utf8").slice(before).includes('"run"'), { timeout: 10_000 }).toBe(true);
       h.release(first.pid);
       const second = await h.launched(bot.threadId, turn => Boolean(turn.mcpConfig.mcpServers.computer));
       const calls = readFileSync(h.vps.calls, "utf8").slice(before).trim().split("\n").filter(Boolean).map(line => JSON.parse(line) as string[]);

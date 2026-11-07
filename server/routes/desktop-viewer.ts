@@ -1,16 +1,19 @@
 // Only the RFB WebSocket crosses the container boundary: container-controlled JavaScript on the app's origin would reach the person's workspace.
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { request, type IncomingMessage } from "node:http";
 import type { Socket } from "node:net";
 import type { Duplex } from "node:stream";
 import { isSameOrigin, type RequestAuth } from "../request-auth.ts";
 import { PASS, type RouteHandler } from "./table.ts";
+import { joinViewer, openDesktop, writeFrame } from "./rfb-handshake.ts";
 import { createUpgrades, type Upgrades } from "./upgrades.ts";
 
 const ROUTE = /^\/api\/desktop-viewer\/(local\/(?:shared|bot-[a-f0-9]{64}|pool-\d+)|vps\/[\w-]+)(\/websockify)?$/;
 const HANDSHAKE_MS = 10_000;
 const RECHECK_MS = 5_000;
 const WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+/** A desktop that just woke answers its viewer port a moment after the container runs: dial again until it does. */
+const REDIAL_MS = 100;
 const BOT_ID = /^[\w-]+$/;
 const CONTROL_LEASE = /^[A-Za-z0-9_-]{16,120}$/;
 
@@ -115,64 +118,97 @@ export function createDesktopViewer(deps: {
       || typeof key !== "string" || !/^[A-Za-z0-9+/]{22}==$/.test(key)) {
       return json(res, 400, { error: "Invalid WebSocket handshake" });
     }
-    // Fixed host and path, port from an inspected managed container. Never forward cookies, bearer tokens, query parameters or forwarded headers.
-    const upstream = request({
-      hostname: "127.0.0.1", port: connection.port, path: "/websockify",
-      headers: { Upgrade: "websocket", Connection: "Upgrade", "Sec-WebSocket-Key": key, "Sec-WebSocket-Version": "13" },
-    });
+    // the viewer may ask the server to answer the desktop's handshake (see rfb-handshake.ts): VPS desktops only
+    const serverHandshake = url.searchParams.get("rfb") === "server" && match[1].startsWith("vps/");
     const { socket } = upgrade;
     socket.setNoDelay(true);
     let peer: Duplex | undefined;
+    let upstream: ReturnType<typeof request> | undefined;
+    let redial: ReturnType<typeof setTimeout> | undefined;
     let recheck: ReturnType<typeof setInterval> | undefined;
     const release = connection.retain?.();
     let closed = false;
-    const timeout = setTimeout(() => fail(), HANDSHAKE_MS);
+    const timeout = setTimeout(() => fail(true), HANDSHAKE_MS);
     timeout.unref();
     upgrade.close = () => {
       if (closed) return;
       closed = true;
       release?.();
       clearTimeout(timeout);
+      clearTimeout(redial);
       clearInterval(recheck);
-      upstream.destroy();
+      upstream?.destroy();
       peer?.destroy();
       socket.destroy();
     };
-    const fail = () => {
+    const fail = (final = false) => {
       if (closed) return;
       if (peer || socket.destroyed) { upgrade.close(); return; }
+      upstream?.destroy();
+      if (!final && live() && holds()) { redial = setTimeout(dial, REDIAL_MS); return; }
+      clearTimeout(redial);
       if (!res.headersSent && !socket.destroyed) json(res, 502, { error: "Could not connect to the desktop viewer" });
-      upstream.destroy();
     };
     socket.once("close", upgrade.close);
-    upstream.once("error", fail);
-    upstream.once("response", (answer) => { answer.resume(); fail(); });
-    upstream.once("upgrade", (answer, remote, remoteHead) => {
-      const accept = createHash("sha1").update(key + WS_GUID).digest("base64");
-      if (!live() || !holds() || socket.destroyed || answer.headers["sec-websocket-accept"] !== accept
-        || answer.headers.upgrade?.toLowerCase() !== "websocket") {
-        remote.destroy(); fail(); return;
-      }
+    const accept = createHash("sha1").update(key + WS_GUID).digest("base64");
+    const opened = (remote: Duplex, opening?: Buffer[], rest?: { payload: Buffer; raw: Buffer }) => {
       clearTimeout(timeout);
       peer = remote;
-      if ("setNoDelay" in remote && typeof remote.setNoDelay === "function") remote.setNoDelay(true);
       remote.once("error", upgrade.close);
       remote.once("close", upgrade.close);
       pending.release();
       res.detachSocket(socket);
       socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
-      if (remoteHead.length) socket.write(remoteHead);
-      if (pending.head.length) remote.write(pending.head);
+      const head = pending.head;
       pending.head = Buffer.alloc(0);
-      socket.pipe(remote).pipe(socket);
+      if (opening && rest) {
+        for (const message of opening) socket.write(writeFrame(message, false));
+        joinViewer(socket, head, remote, rest, upgrade.close);
+      } else {
+        if (head.length) remote.write(head);
+        socket.pipe(remote).pipe(socket);
+      }
       connection.touch?.();
       recheck = setInterval(() => {
         if (!live() || !holds()) upgrade.close();
         else connection.touch?.();
       }, RECHECK_MS);
       recheck.unref();
-    });
-    upstream.end();
+    };
+    // Fixed host and path, port from an inspected managed container. Never forward cookies, bearer tokens, query parameters or forwarded headers.
+    const dial = () => {
+      if (closed || socket.destroyed) return;
+      const upstreamKey = serverHandshake ? randomBytes(16).toString("base64") : key;
+      const next = request({
+        hostname: "127.0.0.1", port: connection.port, path: "/websockify",
+        headers: { Upgrade: "websocket", Connection: "Upgrade", "Sec-WebSocket-Key": upstreamKey, "Sec-WebSocket-Version": "13" },
+      });
+      upstream = next;
+      next.once("error", () => { if (upstream === next) fail(); });
+      next.once("response", (answer) => { answer.resume(); if (upstream === next) fail(true); });
+      next.once("upgrade", (answer, remote, remoteHead) => {
+        const expected = createHash("sha1").update(upstreamKey + WS_GUID).digest("base64");
+        if (upstream !== next || !live() || !holds() || socket.destroyed || answer.headers["sec-websocket-accept"] !== expected
+          || answer.headers.upgrade?.toLowerCase() !== "websocket") {
+          remote.destroy(); fail(true); return;
+        }
+        if ("setNoDelay" in remote && typeof remote.setNoDelay === "function") remote.setNoDelay(true);
+        if (!serverHandshake) {
+          opened(remote);
+          if (remoteHead.length) socket.write(remoteHead);
+          return;
+        }
+        const lost = () => fail(true);
+        remote.once("error", lost);
+        openDesktop(remote, remoteHead, connection.password).then(({ opening, rest }) => {
+          remote.off("error", lost);
+          if (closed || socket.destroyed || !live() || !holds()) { remote.destroy(); fail(true); return; }
+          opened(remote, opening, rest);
+        }, () => { remote.destroy(); fail(); });
+      });
+      next.end();
+    };
+    dial();
   };
 
   return {
