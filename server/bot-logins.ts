@@ -76,6 +76,19 @@ export class BotLogins {
     return [...this.once.values()].filter((login) => login.botId === botId);
   }
 
+  /** Where a login card's answer goes: the Vault for this bot, or, with Save off or `vault` false (a Team Cloud's member
+   * never adds to the shared Vault from a card), memory for this task only. */
+  cardLogins(options: { vault: boolean }) {
+    return {
+      has: (botId: string, host: string) => this.has(botId, host),
+      keep: (login: { botId: string; host: string; username: string; password: string; totp: TotpKey | null; remember: boolean }) => {
+        const { botId, host, username, password, totp, remember } = login;
+        if (remember && options.vault) this.store.create({ ...loginPlace(host), username, password, totp, source: "card", bots: [botId] });
+        else this.keepOnce(botId, host, { username, password, totp });
+      },
+    };
+  }
+
   /** A login this bot may use fills on this host already. */
   has(botId: string, host: string): boolean {
     return this.store.usableFor(host, botId).length > 0 || this.onceFor(botId).some((login) => loginMatchesHost(login, host))

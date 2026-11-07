@@ -38,7 +38,7 @@ import {
   type ApprovalMode,
 } from "../shared/approval-mode.ts";
 import { createApprovalModeSupport } from "./harness-capabilities.ts";
-import { isPendingSignInRequest, normalizeSignInSite, signInOutcome, signInResumePrompt } from "../shared/sign-in-request.ts";
+import { signInOutcome, signInResumePrompt } from "../shared/sign-in-request.ts";
 
 import { createRoomTurnLevels } from "./room-turn-level.ts";
 import { createSignInSettle } from "./host/sign-in-settle.ts"; import { createPersonLanguages, THIS_COMPUTER } from "./host/person-languages.ts"; import "./server-line-packs.ts"; import { conversationLanguage, serverLine, setConversationLanguage } from "./server-lines.ts";
@@ -115,7 +115,7 @@ import { liveDecisionRefusal } from "../shared/live-approval.ts"; import type { 
 import { vpsLeftBehindNotice } from "./cloud-backend.ts";
 import * as composio from "./composio.ts";
 import { connectorCallFromFrame, connectorRefusalText, connectorScopeRefusalText, connectorUnrecognizedText, evaluateConnectorTools } from "./connector-verdict.ts";
-import { connectorCardDescription, connectorCardText, signInCardText } from "./connector-card-text.ts";
+import { connectorCardDescription, connectorCardText } from "./connector-card-text.ts";
 import { BOT_LIMIT_CODE } from "../shared/bot-limit.ts"; import { createBotLimit } from "./host/starter-bot-limit.ts"; import { chiefOfStaffSystemPrompt } from "./chief-of-staff.ts"; import { chiefLevel, readTeamRolesWith } from "./chief-level.ts"; import { defaultBotRefusal, ensureDefaultBot } from "./default-bot.ts";
 import { buildRecall, recallRooms, recallThreadIds, withRecalled } from "./recall.ts";
 import { hostTimeZone, takesTurnClock, turnClockLine, withTurnClock } from "./turn-clock.ts";
@@ -435,12 +435,13 @@ import { OnePasswordLogins, onePasswordUnavailable, sdkOnePasswordClient, type O
 import { nativeRequire } from "./data/engine.ts";
 import { createFillLoginTurn } from "./host/fill-login-turn.ts";
 import { createDesktopLogin, DESKTOP_FILL_BUSY } from "./host/desktop-login.ts";
-import { boxBrowserRoute, browserCallComputerResource } from "./box-browser-route.ts";
+import { createSignInRequests } from "./host/sign-in-requests.ts";
+import { boxBrowserRoute, browserCallComputerResource, ownBoxBrowser } from "./box-browser-route.ts";
 import { BotLogins, cardLoginPlace, cardSignInElsewhere, observeSignInPage, type ObservedPage } from "./bot-logins.ts";
 import { relayFrame } from "./browser-relay.ts";
 import { browserEvidence, stepContext } from "./browser-steps.ts";
 import { parseLoginFields, parseTotpField, createLoginRoutes } from "./routes/logins.ts";
-import { loginPlace, loginSite } from "../shared/logins.ts";
+import { loginSite } from "../shared/logins.ts";
 import { browserRestartRefusal } from "./browser-live.ts";
 import { browserEngineStatus } from "./browser-engine.ts";
 import { chromeLauncher } from "./browser/chrome/launcher.ts";
@@ -2323,13 +2324,7 @@ function cancelDirectTurnDispatch(botId: string, expectedThreadId?: string): Dir
   return claim;
 }
 
-/** Its browser is its own VPS box's Chromium: that box is its computer, or it works on Auto with a VPS desktop of its own
- * while this host has no Chrome to start (an ARM server), so browsing goes where a browser exists. */
-function browsesInOwnBox(bot: BotRecord): boolean {
-  if (bot.computer === "cloud") return true;
-  return bot.computer === undefined && !inheritedTeamComputer(bot) && !hostBrowserUsable(bot.browserProfile) && Boolean(vpsSshAlias(vpsConfigForBot(cfg, bot)));
-}
-
+const browsesInOwnBox = (bot: BotRecord) => ownBoxBrowser(bot.computer, () => !inheritedTeamComputer(bot) && !hostBrowserUsable(bot.browserProfile) && Boolean(vpsSshAlias(vpsConfigForBot(cfg, bot))));
 /** A bot whose computer is a VPS box on this server's own Docker browses in that box's Chromium (see vpsBoxChrome). */
 async function botBoxChrome(botId: string, turn?: { threadId: string; generation: string }): Promise<string | false | null> {
   const bot = store.bot(botId);
@@ -5972,8 +5967,7 @@ async function computerCallGate(internalCapability: InternalCapability, signal?:
     } else if (snapshot.held) {
       personHeld = true;
       held = { held: true, helpOpen, reason: "person" };
-    } else if (desktopLogin.filling(threadId)) {
-      // no screenshot or input on this desktop while fill_login types into its Chromium
+    } else if (desktopLogin.filling(threadId)) { // no screenshot or input while fill_login types on this desktop
       held = { held: true, helpOpen, blockedReason: DESKTOP_FILL_BUSY };
     } else if (lazyClaim?.failed) {
       // A rejected lazy claim refuses every screen call for the rest of the generation: never forward onto a desktop this turn never claimed.
@@ -6357,9 +6351,7 @@ async function selectableComputers(bot: BotRecord) {
 
 function browserSelectable(bot: BotRecord): boolean {
   return registry.get(bot.modelSelection.instanceId)?.adapter.capabilities.browserMcp === true && builtInBrowserEnabled(cfg)
-    && bot.browser !== false && bot.computer !== "off" && browserReady(bot.browserProfile)
-    // a host with no Chrome offers no browser of its own; a bot on its VPS box browses in the box's Chromium
-    && (hostBrowserUsable(bot.browserProfile) || bot.computer === "cloud");
+    && bot.browser !== false && bot.computer !== "off" && browserReady(bot.browserProfile) && (hostBrowserUsable(bot.browserProfile) || bot.computer === "cloud");
 }
 
 /** Continues this request on `surface` once its turn ends; false when this turn cannot switch, or already switches elsewhere. */
@@ -11796,11 +11788,7 @@ function claimPhoneSecretBotDeletion(botId: string): (() => void) | null {
 }
 
 const secretCards = createSecretCards({ savedSecrets, sealer, store, cfg, botLogins, phoneSecrets, phoneSecretSubmissions, connectorThread, answerCardNode, followCard: (threadId, from, to) => coordinator.followCard(threadId, from, to), threadLanguage, email: { connect: (request) => emailService.connect(request), refusal: () => emailService.status().reason, connected: (address) => { const one = emailService.store.get(address); return Boolean(one && !one.problem); }, profileAddress: () => cfg.profile?.email?.trim() || undefined }, dataDir: DATA_DIR, providerKeysRefused: Boolean(hostedModels), layerFolder: (botId, threadId) => workspaceDir(teamHost.layer(botId, threadId)), turnVm: (threadId) => localVmThreadTargets.get(threadId)?.key,
-  // a Team Cloud's member never adds to the shared Vault from a card, so their login is kept for this task only
-  logins: { has: (botId, host) => botLogins.has(botId, host), keep: ({ botId, host, username, password, totp, remember }) => {
-    if (remember && !CLOUD_TEAM) logins.create({ ...loginPlace(host), username, password, totp, source: "card", bots: [botId] });
-    else botLogins.keepOnce(botId, host, { username, password, totp });
-  } } });
+  logins: botLogins.cardLogins({ vault: !CLOUD_TEAM }) });
 ROUTES.push(createSavedSecretRoutes({ store: savedSecrets }));
 ROUTES.push(createSecretCardRoutes({ cards: secretCards, phoneSecretSubmissions, threadVisible: (auth, threadId) => visibleTo(viewerFor(auth)).thread(threadId), answerContext: (auth, botId, threadId) => ({ personalCloud: Boolean(CLOUD_PERSONAL), shared: sharedMembership(), owner: (CLOUD_TEAM ? teamOwners.routing.askedPerson(botId, threadId) : null) ?? threadStarters.get(threadId) ?? null, person: auth.kind === "session" ? personKey(auth.session) : null }) }));
 
@@ -11823,32 +11811,8 @@ function signInControlKey(bot: BotRecord, threadId: string, place: Surface): str
   return team?.botId === bot.id && !vpsDefaults().independentScreens ? teamComputerOwner(team.computerId) : botComputerControlKey(bot);
 }
 
-/** Appends the new card first, so a failed append leaves the older one actionable. */
-function requestSignIn(from: BotRecord, threadId: string, rawSite: unknown, rawReason: unknown):
-  { messageId: string; site: string; place: Surface } | { status: number; error: string } {
-  const owner = connectorThread(from.id, threadId);
-  if (!owner) return { status: 403, error: "source conversation does not belong to sender" };
-  const target = normalizeSignInSite(rawSite);
-  if (!target) return { status: 400, error: "site must be a web address or a domain, such as example.com" };
-  const place = signInPlace(from, threadId);
-  if (!place) return { status: 409, error: "this conversation has no browser or computer for the person to sign in on" };
-  const reason = typeof rawReason === "string" ? rawReason.trim().slice(0, 240) : "";
-  const message = store.appendMessage(threadId, {
-    role: "bot",
-    kind: "signin",
-    text: signInCardText(from.name, target.site, threadLanguage(threadId)),
-    ...(owner.group ? { from: { botId: from.id, name: from.name, color: from.color } } : {}),
-    signIn: { url: target.url, site: target.site, place, ...(reason ? { reason } : {}) },
-  });
-  for (const prior of store.activePath(threadId)) {
-    if (prior.id === message.id || !prior.signIn || !isPendingSignInRequest(prior, target.site, from.id, Boolean(owner.group))) continue;
-    store.patchMessage(threadId, prior.id, { signIn: { ...prior.signIn, superseded: true } }); coordinator.followCard(threadId, prior.id, message.id);
-    computerControl.settleHelp(prior.id);
-  }
-  computerControl.requestHelp(signInControlKey(from, threadId, place), `sign in to ${target.site}`,
-    { botId: from.id, threadId, messageId: message.id, site: target.site, place });
-  return { messageId: message.id, site: target.site, place };
-}
+const { requestSignIn } = createSignInRequests({ store, connectorThread, signInPlace, threadLanguage, followCard: (threadId, from, to) => coordinator.followCard(threadId, from, to),
+  computerControl, signInControlKey });
 
 /** In a room, only the asking bot's own card. */
 function signInMessage(botId: string, threadId: string, messageId: string): Message | null {
@@ -11918,11 +11882,8 @@ async function botBrowserTarget(bot: BotRecord, threadId: string): Promise<{ ses
   return target && { ...target, env: browserRuntimeEnv({ ...target.spec.env, AGENT_BROWSER_SESSION: target.session }) };
 }
 
-const desktopLogin = createDesktopLogin<InternalCapability>({
-  mounted: (threadId) => turnVpsTargets.get(threadId), gate: (capability) => computerCallGate(capability), boxChrome: botBoxChrome,
-  personHolds: (botId, computerId) => botComputerControlSnapshot(botId, computerId).held, active: internalCapabilityIsActive, touched: noteVpsTurnActivity,
-});
-
+const desktopLogin = createDesktopLogin<InternalCapability>({ mounted: (threadId) => turnVpsTargets.get(threadId), gate: (capability) => computerCallGate(capability), boxChrome: botBoxChrome,
+  personHolds: (botId, computerId) => botComputerControlSnapshot(botId, computerId).held, active: internalCapabilityIsActive, touched: noteVpsTurnActivity });
 const { fillLoginForTurn } = createFillLoginTurn({
   place: signInPlace, current: (bot, threadId) => botForThread(bot.id, threadId) ?? bot, builtInBrowserOn: () => builtInBrowserEnabled(cfg),
   browserSelectable, moveToBrowser: (turn) => selectTurnPlace(turn, "browser"), myChrome: (bot) => usesMyChrome(bot.browserProfile),
