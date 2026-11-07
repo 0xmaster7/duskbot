@@ -857,16 +857,16 @@ put_file() { # path mode
   return 0
 }
 
-# what every unit here gets: no new privileges, no capabilities, the system read-only, private /tmp and devices. the
-# server's units leave /proc unmasked (ProtectKernelTunables, ProtectKernelLogs, ProcSubset): bubblewrap mounts a new
-# proc for each bot box, and the kernel refuses that under a partly covered /proc (systemd 255, linux 6.8)
+# what every unit here gets: no new privileges, no capabilities, the system read-only, a private /tmp. the server's unit
+# leaves /proc and /dev as they are (ProtectKernelTunables, ProtectKernelLogs, ProcSubset, PrivateDevices): bubblewrap
+# mounts a new proc and dev for each bot box, which a partly covered /proc or a private /dev refuses (systemd 255,
+# linux 6.8, and lxc hosts)
 HARDENING="NoNewPrivileges=yes
 CapabilityBoundingSet=
 AmbientCapabilities=
 RestrictSUIDSGID=yes
 ProtectSystem=strict
 PrivateTmp=yes
-PrivateDevices=yes
 ProtectKernelModules=yes
 ProtectControlGroups=yes
 ProtectClock=yes
@@ -992,6 +992,7 @@ RestartSec=5
 OOMScoreAdjust=-700
 UMask=0077
 $HARDENING
+PrivateDevices=yes
 ProtectKernelTunables=yes
 ProtectKernelLogs=yes
 ProtectHome=yes
@@ -1022,6 +1023,7 @@ Restart=always
 RestartSec=2
 UMask=0007
 $HARDENING
+PrivateDevices=yes
 ProtectKernelTunables=yes
 ProtectKernelLogs=yes
 ProtectHome=yes
