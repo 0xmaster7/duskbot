@@ -39,7 +39,7 @@ it("loads only local and VPS inventories and offers the existing VPS setup flow"
   const root = createRoot(container);
   try {
     await act(async () => { root.render(createElement(LocalComputerSection)); });
-    expect(paths.sort()).toEqual(["/api/computers/vps", "/api/local-computer"]);
+    expect(paths.sort()).toEqual(["/api/computer/egress", "/api/computers/vps", "/api/local-computer", "/api/mac"]);
     expect(container.textContent).toContain("Add your VPS");
     expect(local.openAddVps).not.toHaveBeenCalled();
     expect(container.textContent).not.toMatch(/Boat|credit|cloud desktop/i);

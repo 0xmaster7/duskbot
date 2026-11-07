@@ -14,6 +14,7 @@ import { isOwnThreadFolder } from "../../../shared/thread-folder";
 import { useDesktopCapabilities } from "../DesktopCapabilities";
 import { Switch } from "../SettingsPrimitives";
 import { PhoneAppsCard } from "./PhoneAppsCard";
+import { MacAccessCard } from "./MacAccessCard";
 import { ProposalStatus } from "./ProposalStatus";
 import { ToolSelectionCard } from "./ToolSelectionCard";
 import { BotApiCard } from "./BotApiCard";
@@ -744,6 +745,7 @@ export function AccessSection({
       </div>}
 
       {shows("phone") && <PhoneAppsCard bot={bot} patch={patch} />}
+      {!draft && shows("phone") && <MacAccessCard bot={bot} patch={patch} />}
       {shows("mcp") && <McpServersCard bot={bot} patch={patch} />}
       {shows("tools") && <ToolSelectionCard key={bot.id} bot={bot} engineKind={derived.engine?.driverKind} />}
 

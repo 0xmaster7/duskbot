@@ -5956,5 +5956,14 @@
   "linkDirect.direct": "Prosto do twojego serwera przez jego port SSH. Gdy ten port jest zablokowany, wraca do przekaźnika.",
   "linkDirect.relay": "Teraz przez przekaźnik. Samo przejdzie na bezpośrednie, gdy port SSH twojego serwera odpowie.",
   "linkDirect.off": "Wszystko idzie przez przekaźnik. Włącz, aby łączyć się z serwerem bezpośrednio przez jego port SSH, z przekaźnikiem w zapasie.",
-  "routeTraffic.notice": "Twój komputer jest offline, więc komputery botów na razie korzystają z sieci serwera. Wrócą, gdy będzie online."
+  "routeTraffic.notice": "Twój komputer jest offline, więc komputery botów na razie korzystają z sieci serwera. Wrócą, gdy będzie online.",
+  "macControl.title": "Pozwól botom używać Twojego Maca",
+  "macControl.hint": "Wyłączone. Boty na tym serwerze nie mogą uruchamiać poleceń, niczego otwierać ani zapisywać plików na Twoim Macu.",
+  "macControl.online": "Włączone. Boty mogą uruchamiać polecenia, otwierać różne rzeczy i zapisywać pliki na {name}. Wszystko, co robią, widać na czacie.",
+  "macControl.offline": "Włączone, ale Twój Mac jest offline. Otwórz na nim MausBot, aby boty mogły z niego korzystać.",
+  "macControl.error": "Nie zapisano. Spróbuj ponownie.",
+  "botAccess.mac.title": "Używaj Twojego Maca",
+  "botAccess.mac.on": "Może uruchamiać polecenia, otwierać aplikacje i zapisywać pliki na {name}.",
+  "botAccess.mac.off": "Wyłączone dla tego bota.",
+  "botAccess.mac.offEverywhere": "Wyłączone dla wszystkich botów w Ustawienia > Komputer."
 }

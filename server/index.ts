@@ -85,8 +85,8 @@ import { chartRenderer, compileChart, dataEngine, validateVegaLite } from "./dat
 import { BUILT_IN_DATA_SYSTEM_PROMPT } from "./data/instructions.ts";
 import { DATA_INTERNAL_MCP_PATH, dataRpc } from "./data/rpc.ts";
 import { createEmailRoutes } from "./routes/email.ts"; import { createEmailHost, EMAIL_INTERNAL_MCP_PATH } from "./email/host.ts"; import { createEmailService } from "./email/service.ts";
-import { createPhones } from "./host/phones.ts";
-import { NOT_THE_OWNER } from "./phones/owner.ts";
+import { createPhones } from "./host/phones.ts"; import { createDevices } from "./host/devices.ts";
+import { desktopPhonesOffered, NOT_THE_OWNER } from "./phones/owner.ts";
 import { PHONE_INTERNAL_MCP_PATH } from "./phones/rpc.ts";
 import { isLongPollPath } from "./routes/phones.ts";
 import { createDataRoutes } from "./data/routes.ts";
@@ -2793,7 +2793,7 @@ const routineHolds = CLOUD_HOME ? createRoutineHoldsHost({ dataDir: DATA_DIR, st
 const skillsHost = createSkillsLibraryHost({ store, cfg, appendSkillRequestCard, engineConfig: (instanceId) => providerConfigs()[instanceId], instanceOf: (instanceId) => { const instance = registry.get(instanceId); return instance ? { instanceId, driverKind: instance.driverKind } : undefined; } });
 const { listBotSkills, readBotSkillFile } = skillsHost; const cloudConnections = createCloudConnectionsHost({ cloudHome: CLOUD_HOME, ownHome: ownHome.owner, config: () => cfg, environmentId: ENVIRONMENT_ID, mcpOAuth, heldKeys, dataDir: DATA_DIR, email: { accounts: () => emailService.store.list(), adopt: (accounts) => emailService.adopt(accounts) }, stayedNotices: { bots: () => store.bots, language: (threadId) => threadLanguage(threadId), say: (threadId, text, kind) => { store.appendMessage(threadId, kind === "line" ? { role: "bot", kind: "text", text } : { role: "bot", kind: "activity", tool: { name: `notice: ${text}`, ok: true } }); }, notify: (text, bot, threadId) => notify(buildNoticeNotification(bot, threadId, text)) }, engines: async () => selectableInstances(await registry.describe()).filter((instance) => readyToRun(instance, selectionContext)).map((instance) => instance.instanceId) });
 const emailHost = createEmailHost({ service: emailService, dataDir: DATA_DIR, bot: (id) => store.bot(id), inRoom: (threadId) => Boolean(store.groupByThread(threadId)), appendMessage: (threadId, message) => { store.appendMessage(threadId, message as Parameters<typeof store.appendMessage>[1]); }, appAllowed: () => managedPolicy.appAllowed("email"), onChange: (listener) => store.onChange(listener as never), markOutside: (threadId) => outsideLineage.mark(threadId) });
-const phones = createPhones({
+const phoneHost = createPhones({
   dataDir: DATA_DIR, shared: Boolean(HOSTED_WORKSPACE || CLOUD_TEAM), cloudHome: Boolean(CLOUD_HOME), cloudOwnerKey: CLOUD_OWNER_KEY,
   loopbackTrust: LOOPBACK.trust, sharedMembership, store, sessions, routines: () => routines, ownerOrAdmin, cloudOwnerSession,
   cloudOwnerRefusal: (turn) => ownerTurnRefusal(cloudOwnerTurn(turn)), cloudOwnerTurn, originIsUser: (turn) => turnOrigin(turn).kind === "user", request: (threadId) => directRequestOwners.get(threadId),
@@ -2801,6 +2801,10 @@ const phones = createPhones({
   mint: (botId, turn) => mintInternalCapability({ botId, ...turn, kind: "device", depth: 0, skillAuthoring: false, createdBots: 0, openedThreads: 0 }),
   active: (turn) => internalCapabilityIsActive(turn as InternalCapability),
 });
+const phones = createDevices({ phones: phoneHost, dataDir: DATA_DIR, offered: () => !HOSTED_WORKSPACE && !CLOUD_HOME && desktopPhonesOffered({ sharedMembership: sharedMembership(), loopbackTrust: LOOPBACK.trust }), enabled: () => cfg.vps?.macControl !== false, setEnabled: (enabled) => { saveConfig({ vps: { macControl: enabled } }); Object.assign(cfg, loadConfig()); },
+  ownerOrAdmin, sessions, bot: (id) => store.bot(id), active: (turn) => internalCapabilityIsActive(turn as InternalCapability), log: (line) => console.warn(line), fileRoots: messageFileRootsForThread, attachmentsDir: ATTACHMENTS_DIR, attachmentInThread: (threadId, path) => attachmentNameInThread(threadId, path) !== null,
+  computer: (bot) => { const team = inheritedTeamComputer(bot), alias = team ? vpsSshAlias(cfg) : vpsSshAliasForBot(cfg, bot); return alias ? { dockerArgs: (args) => vps.vpsDockerArgs(alias, args), container: team ? teamComputerVpsTarget(cfg, team).containerName : vps.vpsContainerName(bot.id) } : null; },
+  run: (args, timeoutMs) => vps.defaultRunner(args, { timeoutMs }) });
 const cloudPlanTier = createCloudPlanTier({ dataDir: DATA_DIR, cloudHome: Boolean(CLOUD_HOME), changed: () => broadcast({ kind: "config", ...configStatus() }) }); const botLimit = createBotLimit({ starter: () => cloudPlanTier.starter(), bots: () => store.bots }); let cloudPower: CloudPower | null = null; // The sleep handshake of a plan that sleeps (server/cloud-power.ts), made just before the server listens.
 const { cloudHealth, cloudSigned } = createCloudSignedHost({ cloudHome: CLOUD_HOME, sessions, power: () => cloudPower, box: () => botBox.report(), teamAdmin: teamAdminHost(), policyChanged: nudgeCloudTeamPolicy, plan: (cancelled) => routineHolds?.plan(cancelled), planTier: (tier) => cloudPlanTier.set(tier), memberLeft: (email) => leaveTeam ? leaveTeam(email).then((result) => { botApi.manager.revokeMintedBy(personKey({ id: "", email })); teamOwners.left(email); teamMessages.inbox.forget(personKey({ id: "", email })); forgetSetupPresser(store, personKey({ id: "", email })); devsReports.forget(personKey({ id: "", email })); return result; }) : Promise.reject(new Error("not a team")), health: { store, bus, dataDir: DATA_DIR, eventsDir: EVENTS_DIR, version: serverVersion(), image: process.env.OMB_CLOUD_IMAGE,
   engines: () => registry.instances().map((instance) => ({ instanceId: instance.instanceId, driverKind: instance.driverKind, snapshot: registry.knownSnapshot(instance.instanceId) })),

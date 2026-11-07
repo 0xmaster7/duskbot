@@ -345,6 +345,8 @@ export interface WireBot extends DefaultBotFields, BotAccessFields {
    * actions), which spend the workspace's treg balance.
    * Absent/false = off: the person turns it on per bot. */
   xResearch?: boolean;
+  /** On a linked VPS: whether this bot may use the owner's Mac (the mac_ tools). Absent/true = allowed. */
+  macControl?: boolean;
   /** Whether this bot uses native memory. Absent/true = enabled. */
   memoryEnabled?: boolean;
   /** Queue direct-chat messages behind outstanding delegated work. */

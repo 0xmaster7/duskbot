@@ -5792,5 +5792,14 @@
   "linkDirect.direct": "Dritto al tuo server tramite la sua porta SSH. Torna al relay se quella porta è bloccata.",
   "linkDirect.relay": "Al momento sul relay. Passa al diretto da solo appena la porta SSH del tuo server risponde.",
   "linkDirect.off": "Tutto passa dal relay. Attivala per raggiungere il tuo server direttamente tramite la sua porta SSH, con il relay come riserva.",
-  "routeTraffic.notice": "Il tuo computer è offline, quindi per ora i computer dei bot usano la rete del server. Torneranno indietro appena sarà online."
+  "routeTraffic.notice": "Il tuo computer è offline, quindi per ora i computer dei bot usano la rete del server. Torneranno indietro appena sarà online.",
+  "macControl.title": "Lascia che i bot usino il tuo Mac",
+  "macControl.hint": "Disattivato. I bot di questo server non possono eseguire comandi, aprire cose o salvare file sul tuo Mac.",
+  "macControl.online": "Attivo. I bot possono eseguire comandi, aprire cose e salvare file su {name}. Tutto ciò che fanno appare nella chat.",
+  "macControl.offline": "Attivo, ma il tuo Mac è offline. Apri MausBot sul Mac perché i bot possano usarlo.",
+  "macControl.error": "Non è stato salvato. Riprova.",
+  "botAccess.mac.title": "Usa il tuo Mac",
+  "botAccess.mac.on": "Può eseguire comandi, aprire app e salvare file su {name}.",
+  "botAccess.mac.off": "Disattivato per questo bot.",
+  "botAccess.mac.offEverywhere": "Disattivato per tutti i bot in Impostazioni > Computer."
 }

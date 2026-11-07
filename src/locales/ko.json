@@ -6410,5 +6410,14 @@
   "linkDirect.direct": "서버의 SSH 포트로 바로 연결해요. 그 포트가 막혀 있으면 릴레이를 써요.",
   "linkDirect.relay": "지금은 릴레이를 쓰고 있어요. 서버의 SSH 포트가 응답하면 알아서 직접 연결로 바뀌어요.",
   "linkDirect.off": "모든 연결이 릴레이를 거쳐요. 켜면 SSH 포트로 서버에 바로 연결하고, 릴레이는 대비용으로 남아요.",
-  "routeTraffic.notice": "컴퓨터가 오프라인이라 봇 컴퓨터가 당분간 서버 네트워크를 써요. 온라인이 되면 다시 돌아와요."
+  "routeTraffic.notice": "컴퓨터가 오프라인이라 봇 컴퓨터가 당분간 서버 네트워크를 써요. 온라인이 되면 다시 돌아와요.",
+  "macControl.title": "봇이 Mac을 사용하도록 허용",
+  "macControl.hint": "꺼짐. 이 서버의 봇은 Mac에서 명령을 실행하거나, 무언가를 열거나, 파일을 저장할 수 없습니다.",
+  "macControl.online": "켜짐. 봇이 {name}에서 명령을 실행하고, 무언가를 열고, 파일을 저장할 수 있습니다. 봇이 하는 모든 일은 채팅에 표시됩니다.",
+  "macControl.offline": "켜져 있지만 Mac이 오프라인입니다. 봇이 사용할 수 있도록 Mac에서 MausBot을 여세요.",
+  "macControl.error": "저장되지 않았습니다. 다시 시도하세요.",
+  "botAccess.mac.title": "Mac 사용",
+  "botAccess.mac.on": "{name}에서 명령을 실행하고, 앱을 열고, 파일을 저장할 수 있습니다.",
+  "botAccess.mac.off": "이 봇은 꺼져 있습니다.",
+  "botAccess.mac.offEverywhere": "설정 > 컴퓨터에서 모든 봇에 대해 꺼져 있습니다."
 }

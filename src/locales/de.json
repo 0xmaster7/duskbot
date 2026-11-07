@@ -2958,5 +2958,14 @@
   "routines.inline.check.mail": "neue E-Mails",
   "routines.inline.check.runs": "Ergebnisse anderer Routinen",
   "routines.inline.deleteConfirm": "„{name}“ löschen",
-  "routines.inline.open": "Routine öffnen"
+  "routines.inline.open": "Routine öffnen",
+  "macControl.title": "Bots deinen Mac nutzen lassen",
+  "macControl.hint": "Aus. Bots auf diesem Server können auf deinem Mac keine Befehle ausführen, nichts öffnen und keine Dateien speichern.",
+  "macControl.online": "An. Bots können auf {name} Befehle ausführen, Dinge öffnen und Dateien speichern. Alles, was sie tun, erscheint im Chat.",
+  "macControl.offline": "An, aber dein Mac ist offline. Öffne MausBot darauf, damit Bots ihn nutzen können.",
+  "macControl.error": "Das wurde nicht gespeichert. Versuch es noch einmal.",
+  "botAccess.mac.title": "Deinen Mac nutzen",
+  "botAccess.mac.on": "Kann auf {name} Befehle ausführen, Apps öffnen und Dateien speichern.",
+  "botAccess.mac.off": "Für diesen Bot aus.",
+  "botAccess.mac.offEverywhere": "Für alle Bots aus, unter Einstellungen > Computer."
 }

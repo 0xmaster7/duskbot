@@ -7434,5 +7434,14 @@
   "linkDirect.direct": "Straight to your server over its SSH port. Falls back to the relay when that port is blocked.",
   "linkDirect.relay": "On the relay right now. Goes direct by itself once your server's SSH port answers.",
   "linkDirect.off": "Everything goes through the relay. Turn on to reach your server straight over its SSH port, with the relay as fallback.",
-  "routeTraffic.notice": "Your computer is offline, so your bot computers use the server's network for now. They switch back once it's online."
+  "routeTraffic.notice": "Your computer is offline, so your bot computers use the server's network for now. They switch back once it's online.",
+  "macControl.title": "Let bots use your Mac",
+  "macControl.hint": "Off. Bots on this server can't run commands, open things or save files on your Mac.",
+  "macControl.online": "On. Bots can run commands, open things and save files on {name}. Everything they do shows in the chat.",
+  "macControl.offline": "On, but your Mac is offline. Open MausBot on it so bots can use it.",
+  "macControl.error": "That didn't save. Try again.",
+  "botAccess.mac.title": "Use your Mac",
+  "botAccess.mac.on": "Can run commands, open apps and save files on {name}.",
+  "botAccess.mac.off": "Off for this bot.",
+  "botAccess.mac.offEverywhere": "Off for every bot in Settings > Computer."
 }
