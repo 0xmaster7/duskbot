@@ -25,7 +25,15 @@ OPT=/opt/openmausbot-link
 MANIFEST=/var/lib/openmausbot/install-manifest
 FENCE=/usr/local/sbin/omb-host-fence
 UNITS=/etc/systemd/system
-OUR_UNITS="openmausbot-link.service openmausbot.service openmausbot-engines.path openmausbot-restart.service omb-box-fence.service"
+OUR_UNITS="openmausbot-link.service openmausbot.service openmausbot-engines.path openmausbot-restart.service openmausbot-handoff.service omb-docker-gate.service omb-box-fence.service"
+# the accounts install.sh splits the server into (link agent, docker gate) and their files
+LINK_USER=omb-link
+LINK_HOME=/var/lib/omb-link
+GATE_USER=omb-docker
+GATE_GROUP=omb-dockergate
+LIB=/usr/local/lib/openmausbot
+ETC=/etc/openmausbot
+BWRAP_PROFILE=/etc/apparmor.d/openmausbot-bwrap
 NETWORK=openmausbot-desktops
 BRIDGE=omb-desk0
 DAEMON=/etc/docker/daemon.json
@@ -292,7 +300,7 @@ daemon_ours() {
 }
 caddy_ours() { [ -f /etc/caddy/openmausbot.caddy ] || grep -qs 'openmausbot' /etc/caddy/Caddyfile; }
 our_paths() {
-  for _p in "$OPT" "$LOGS_DIR" "$STATE" "$FENCE" "$DAEMON.omb-before" /etc/caddy/openmausbot.caddy "$SVC_HOME"; do
+  for _p in "$OPT" "$LOGS_DIR" "$STATE" "$FENCE" "$DAEMON.omb-before" /etc/caddy/openmausbot.caddy "$SVC_HOME" "$LINK_HOME" "$LIB" "$ETC" "$BWRAP_PROFILE"; do
     [ -e "$_p" ] && printf '%s\n' "$_p"
   done
   for _u in $OUR_UNITS; do [ -e "$UNITS/$_u" ] && printf '%s\n' "$UNITS/$_u"; done
@@ -510,7 +518,8 @@ failure_panel() {
 
 # ---------- steps ----------
 do_revoke() {
-  file="$SVC_HOME/.config/openmausbot-link/tunnel.json"
+  file="$LINK_HOME/.config/openmausbot-link/tunnel.json"
+  [ -f "$file" ] || file="$SVC_HOME/.config/openmausbot-link/tunnel.json"
   [ -f "$file" ] || { echo "not linked to an app"; return 10; }
   id=$(sed -n 's/.*"id":"\([a-z2-7]\{10\}\)".*/\1/p' "$file" | head -n 1)
   token=$(sed -n 's/.*"token":"\([A-Za-z0-9_-]\{20,100\}\)".*/\1/p' "$file" | head -n 1)
@@ -538,11 +547,13 @@ do_units() {
   x systemctl daemon-reload
   # shellcheck disable=SC2086
   systemctl reset-failed $OUR_UNITS >/dev/null 2>&1 || true
-  if id "$SVC_USER" >/dev/null 2>&1 && pgrep -u "$SVC_USER" >/dev/null 2>&1; then
-    x pkill -TERM -u "$SVC_USER" || true
-    sleep 2
-    pkill -KILL -u "$SVC_USER" 2>/dev/null || true
-  fi
+  for _who in "$SVC_USER" "$LINK_USER" "$GATE_USER"; do
+    if id "$_who" >/dev/null 2>&1 && pgrep -u "$_who" >/dev/null 2>&1; then
+      x pkill -TERM -u "$_who" || true
+      sleep 2
+      pkill -KILL -u "$_who" 2>/dev/null || true
+    fi
+  done
   echo "stopped and removed: $(words "$found")"
   note "$(count "$found") services stopped and removed"
 }
@@ -663,8 +674,21 @@ do_backup() {
   note "your bots are backed up in /root"
 }
 
+# the link agent's and docker gate's accounts: only ever install.sh's, by their names
+other_accounts() {
+  for _who in "$LINK_USER" "$GATE_USER"; do
+    id "$_who" >/dev/null 2>&1 || continue
+    pkill -KILL -u "$_who" 2>/dev/null || true
+    x userdel "$_who" 2>&1 | grep -v 'mail spool' || true
+    getent group "$_who" >/dev/null 2>&1 && groupdel "$_who" 2>/dev/null || true
+  done
+  getent group "$GATE_GROUP" >/dev/null 2>&1 && x groupdel "$GATE_GROUP" || true
+  [ ! -d "$LINK_HOME" ] || x rm -rf "$LINK_HOME"
+}
+
 do_user() {
   if ! id "$SVC_USER" >/dev/null 2>&1; then
+    other_accounts
     if [ -d "$SVC_HOME" ]; then x rm -rf "$SVC_HOME"; echo "removed $SVC_HOME"; return 0; fi
     echo "no maus account"; return 10
   fi
@@ -677,6 +701,7 @@ do_user() {
   id "$SVC_USER" >/dev/null 2>&1 && { echo "the maus account is still there"; return 1; }
   getent group "$SVC_USER" >/dev/null 2>&1 && groupdel "$SVC_USER" 2>/dev/null || true
   [ -d "$SVC_HOME" ] && x rm -rf "$SVC_HOME"
+  other_accounts
   echo "removed the maus account and $SVC_HOME"
   note "maus and its home removed"
 }
@@ -705,7 +730,11 @@ do_caddy() {
 
 do_files() {
   removed=""
-  for path in "$OPT" "$LOGS_DIR" "$STATE" "$FENCE"; do
+  if [ -f "$BWRAP_PROFILE" ]; then
+    command -v apparmor_parser >/dev/null 2>&1 && apparmor_parser -R "$BWRAP_PROFILE" >/dev/null 2>&1 || true
+    x rm -f "$BWRAP_PROFILE"; removed="$removed $BWRAP_PROFILE"
+  fi
+  for path in "$OPT" "$LOGS_DIR" "$STATE" "$FENCE" "$LIB" "$ETC"; do
     if [ -e "$path" ]; then x rm -rf "$path"; removed="$removed $path"; fi
   done
   # the manifest keeps only what is still installed (packages, apt sources), so a later --all can take those too

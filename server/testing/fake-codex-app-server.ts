@@ -35,6 +35,7 @@
 //   FAKE_CODEX_STARTUP_DELAY_MS  hold the initialize reply this long, like a loaded host
 //   FAKE_CODEX_STARTUP_LOG  append {pid, at, event: "initialize" | "turn/start"} per launch
 //   FAKE_CODEX_START_ERROR  JSON-RPC error rejecting thread/start
+//   FAKE_CODEX_REJECT_PERMISSIONS  "1": refuse a named `permissions` profile, as an app-server without profiles does
 //   FAKE_CODEX_MCP_FAILED  MCP server whose startup fails (`mcpServer/startupStatus/updated`) as thread/start begins
 //   FAKE_CODEX_RESTORED_USAGE  report 100/50/10 tokens used before turn/start, as a resumed thread can
 //   FAKE_CODEX_STEER_ERROR  JSON-RPC error rejecting turn/steer
@@ -207,10 +208,15 @@ const notify = (method: string, params: any) => out({
 });
 
 // The response and restored usage notification may share one stdout chunk; force that ordering.
-const resolvedSandbox = (params: Record<string, unknown>) => {
+/** codex-cli 0.167 names a profile the thread's own config defines in `activePermissionProfile`, and reports a
+ * profile with writable workspace roots as the legacy workspace-write sandbox. */
+const threadProfile = (params: Record<string, any>): string | null =>
+  typeof params.permissions === "string" && params.config?.permissions?.[params.permissions] ? params.permissions : null;
+const activeProfile = (params: Record<string, any>) => threadProfile(params) ? { activePermissionProfile: { id: threadProfile(params), extends: null } } : {};
+const resolvedSandbox = (params: Record<string, any>) => {
   if (process.env.FAKE_CODEX_RESOLVED_SANDBOX) return JSON.parse(process.env.FAKE_CODEX_RESOLVED_SANDBOX);
   if (params.sandbox === "danger-full-access") return { type: "dangerFullAccess" };
-  if (params.sandbox === "workspace-write") return {
+  if (params.sandbox === "workspace-write" || (threadProfile(params) && params.config.permissions[threadProfile(params)!].filesystem?.[":workspace_roots"] === "write")) return {
     type: "workspaceWrite", networkAccess: false, writableRoots: [],
     excludeTmpdirEnvVar: false, excludeSlashTmp: false,
   };
@@ -581,12 +587,12 @@ process.stdin.on("data", (chunk) => {
           const id = msg.params?.threadId;
           out({ jsonrpc: "2.0", id: msg.id, error: { code: -32600, message: `session ${id} is archived. Run \`codex unarchive ${id}\` to unarchive it first.` } });
         } else if (process.env.FAKE_CODEX_ARCHIVED) {
-          threadReply({ jsonrpc: "2.0", id: msg.id, result: { thread: { id: msg.params?.threadId }, sandbox: resolvedSandbox(msg.params ?? {}) } });
-        } else if (msg.params?.permissions && (!experimentalApi || mode === "config-profile-unsupported")) {
+          threadReply({ jsonrpc: "2.0", id: msg.id, result: { thread: { id: msg.params?.threadId }, sandbox: resolvedSandbox(msg.params ?? {}), ...activeProfile(msg.params ?? {}) } });
+        } else if (msg.params?.permissions && (!experimentalApi || mode === "config-profile-unsupported" || process.env.FAKE_CODEX_REJECT_PERMISSIONS === "1")) {
           out({ jsonrpc: "2.0", id: msg.id, error: { code: -32602, message: "experimental API required for permissions" } });
         } else if (mode === "resume" || mode === "review-events" || mode === "helper-events" || mode === "instructions-unsupported" || mode === "config-profile" || mode === "config-profile-unsupported" || mode === "async-question" ||
             (mode === "resume-then-missing" && !existsSync(process.env.FAKE_CODEX_STATE ?? ""))) {
-          threadReply({ jsonrpc: "2.0", id: msg.id, result: { thread: { id: msg.params?.threadId, ...(process.env.FAKE_CODEX_ROLLOUT ? { path: process.env.FAKE_CODEX_ROLLOUT } : {}) }, sandbox: resolvedSandbox(msg.params ?? {}) } });
+          threadReply({ jsonrpc: "2.0", id: msg.id, result: { thread: { id: msg.params?.threadId, ...(process.env.FAKE_CODEX_ROLLOUT ? { path: process.env.FAKE_CODEX_ROLLOUT } : {}) }, sandbox: resolvedSandbox(msg.params ?? {}), ...activeProfile(msg.params ?? {}) } });
         } else {
           out({ jsonrpc: "2.0", id: msg.id, error: { code: -32600, message: `no rollout found for thread id ${msg.params?.threadId}` } });
         }
@@ -634,14 +640,14 @@ process.stdin.on("data", (chunk) => {
         }
         if (process.env.FAKE_CODEX_START_ERROR) {
           out({ jsonrpc: "2.0", id: msg.id, error: JSON.parse(process.env.FAKE_CODEX_START_ERROR) });
-        } else if (msg.params?.permissions && (!experimentalApi || mode === "config-profile-unsupported")) {
+        } else if (msg.params?.permissions && (!experimentalApi || mode === "config-profile-unsupported" || process.env.FAKE_CODEX_REJECT_PERMISSIONS === "1")) {
           out({ jsonrpc: "2.0", id: msg.id, error: { code: -32602, message: "experimental API required for permissions" } });
         } else if (process.env.FAKE_CODEX_MCP_START === "1") {
           // Codex starts MCP servers with the thread; one that fails leaves the thread without its tools.
-          const reply = { jsonrpc: "2.0", id: msg.id, result: { thread: { id: "codex-thread-1" }, model: "fake-codex-model", sandbox: resolvedSandbox(msg.params ?? {}) } };
+          const reply = { jsonrpc: "2.0", id: msg.id, result: { thread: { id: "codex-thread-1" }, model: "fake-codex-model", sandbox: resolvedSandbox(msg.params ?? {}), ...activeProfile(msg.params ?? {}) } };
           void startMcpServers().then((startup) => { mcpStartup = startup; dump(); threadReply(reply); });
         } else {
-          threadReply({ jsonrpc: "2.0", id: msg.id, result: { thread: { id: "codex-thread-1", ...(process.env.FAKE_CODEX_ROLLOUT ? { path: process.env.FAKE_CODEX_ROLLOUT } : {}) }, model: "fake-codex-model", sandbox: resolvedSandbox(msg.params ?? {}) } });
+          threadReply({ jsonrpc: "2.0", id: msg.id, result: { thread: { id: "codex-thread-1", ...(process.env.FAKE_CODEX_ROLLOUT ? { path: process.env.FAKE_CODEX_ROLLOUT } : {}) }, model: "fake-codex-model", sandbox: resolvedSandbox(msg.params ?? {}), ...activeProfile(msg.params ?? {}) } });
         }
         break;
       case "turn/start": {
@@ -704,7 +710,7 @@ process.stdin.on("data", (chunk) => {
           notify("turn/completed", { turn: { status: "failed", error: { message } } });
           break;
         }
-        if (msg.params?.permissions && (!experimentalApi || mode === "config-profile-unsupported")) {
+        if (msg.params?.permissions && (!experimentalApi || mode === "config-profile-unsupported" || process.env.FAKE_CODEX_REJECT_PERMISSIONS === "1")) {
           out({ jsonrpc: "2.0", id: msg.id, error: { code: -32602, message: "experimental API required for permissions" } });
           break;
         }

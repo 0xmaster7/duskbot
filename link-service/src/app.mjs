@@ -184,6 +184,7 @@ function frameQueue() {
  *   scriptPath: string,
  *   uninstallPath?: string,
  *   agentPath: string,
+ *   gatePath?: string,
  *   packagesDir?: string | null,
  *   trustProxy?: boolean,
  *   now?: () => number,
@@ -191,7 +192,7 @@ function frameQueue() {
  *   log?: (line: string) => void,
  * }} options
  */
-export function createLinkService({ base, dataDir = null, scriptPath, uninstallPath = join(dirname(scriptPath), "uninstall.sh"), agentPath, packagesDir, trustProxy = true, now = Date.now, fetch: fetchImpl = fetch, log = () => {} }) {
+export function createLinkService({ base, dataDir = null, scriptPath, uninstallPath = join(dirname(scriptPath), "uninstall.sh"), agentPath, gatePath = join(dirname(agentPath), "docker-gate.mjs"), packagesDir, trustProxy = true, now = Date.now, fetch: fetchImpl = fetch, log = () => {} }) {
   const store = createStore({ dir: dataDir, now });
   const packages = createPackages(packagesDir !== undefined ? packagesDir : dataDir ? join(dataDir, "packages") : null);
   const sessionWaiters = new Map();
@@ -330,9 +331,9 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       res.writeHead(200, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
       return res.end(file(uninstallPath).replaceAll("__LINK_BASE__", base));
     }
-    if (method === "GET" && path === "/agent.mjs") {
+    if (method === "GET" && (path === "/agent.mjs" || path === "/docker-gate.mjs")) {
       res.writeHead(200, { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
-      return res.end(file(agentPath));
+      return res.end(file(path === "/agent.mjs" ? agentPath : gatePath));
     }
 
     if (method === "POST" && path === "/v1/sessions") {

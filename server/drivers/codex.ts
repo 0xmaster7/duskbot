@@ -13,6 +13,9 @@ import { homedir } from "node:os";
 import { codexConfigMcp, codexConfigRunsServer, mountedMcpServerName } from "./codex-mcp-names.ts";
 
 import { DATA_DIR, stripWorkspaceCredentialEnv } from "../config.ts";
+import { botBox } from "../bot-box/box.ts";
+import { engineReadScope } from "./engine-read-scope.ts";
+import { assertProfileApplied, namedApprovalParams, type CodexApprovalParams } from "./codex-read-profile.ts";
 import { laterStartup, openStartupModelCatalog, unconfirmedModelCatalog, writeStartupModelCache } from "../startup-model-catalog.ts";
 import { hostedWorkspaceConfigured } from "../enterprise.ts";
 import { cloudHomeConfigured } from "../cloud-home.ts";
@@ -147,12 +150,6 @@ function noteRenamedMcpServer(name: string, mountName: string): void {
   console.error(`codex: MCP server ${JSON.stringify(name)} is also declared in Codex's own config.toml — mounted as ${JSON.stringify(mountName)} for this bot so the two do not merge`);
 }
 
-interface CodexApprovalParams {
-  thread: Record<string, unknown>;
-  turn: Record<string, unknown>;
-  /** Legacy settings for an older app-server that rejects the named-profile field. */
-  fallback?: Omit<CodexApprovalParams, "fallback">;
-}
 
 /** RequestPermissionProfile uses null for permission families that were not
  * requested; GrantedPermissionProfile requires those keys to be absent. */
@@ -193,36 +190,6 @@ function extendShellExclusions(policy: Record<string, unknown>, patterns: readon
   ]) };
 }
 
-/** Codex persists these on its native thread, so they are explicit on start, resume and every turn.
- * Codex has no narrower "edits only" sandbox, so a stray Edits value asks. */
-function namedApprovalParams(mode: Exclude<ApprovalMode, "custom">): CodexApprovalParams {
-  if (mode === "full") {
-    return {
-      thread: {
-        approvalPolicy: "never",
-        approvalsReviewer: "user",
-        sandbox: "danger-full-access",
-      },
-      turn: {
-        approvalPolicy: "never",
-        approvalsReviewer: "user",
-        sandboxPolicy: { type: "dangerFullAccess" },
-      },
-    };
-  }
-  return {
-    thread: {
-      approvalPolicy: "on-request",
-      approvalsReviewer: mode === "auto" ? "auto_review" : "user",
-      sandbox: "workspace-write",
-    },
-    turn: {
-      approvalPolicy: "on-request",
-      approvalsReviewer: mode === "auto" ? "auto_review" : "user",
-      sandboxPolicy: { type: "workspaceWrite" },
-    },
-  };
-}
 
 function withResolvedSandbox(params: CodexApprovalParams, session: unknown): CodexApprovalParams {
   const requested = plainRecord(params.turn.sandboxPolicy);
@@ -1399,8 +1366,14 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
           // Omitting these on a resumed thread would keep the previous named mode.
           approvalParams = customApprovalParams(effectiveConfig);
         } else {
-          approvalParams = namedApprovalParams(approvalMode);
+          const cwd = turn.cwd ?? homedir();
+          approvalParams = namedApprovalParams(approvalMode, approvalMode === "full" ? undefined : engineReadScope({
+            dataDir: DATA_DIR, home: homedir(), cwd, botId: turn.botId, threadId, boxed: botBox.enabled(), extraReadable: [...botBox.readOnlyFor(cwd), ...botBox.lentFor(cwd)],
+          }), effectiveConfig);
         }
+        const threadConfig = () => approvalParams.config
+          ? { config: { ...selectionConfig.config, ...approvalParams.config } }
+          : selectionConfig;
         // Codex's `never` means "do not ask to escalate", not "grant every requested permission":
         // only Full may synthesize approvals.
         autoAcceptPermissions = approvalMode === "full";
@@ -1416,7 +1389,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         let promptText = turn.text;
         if (cursor) {
           const resumeThread = () => request("thread/resume", {
-            ...selectionConfig,
+            ...threadConfig(),
             threadId: cursor,
             developerInstructions,
             model: selection.model,
@@ -1435,6 +1408,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
               approvalParams = approvalParams.fallback;
               resumed = await resumeUnarchived();
             }
+            assertProfileApplied(approvalParams, resumed);
             approvalParams = withResolvedSandbox(approvalParams, resumed);
             codexThreadId = resumed?.thread?.id ?? cursor;
             rolloutAt = rolloutMark(resumed?.thread?.path);
@@ -1457,7 +1431,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         }
         if (!codexThreadId) {
           const startThread = () => request("thread/start", {
-              ...selectionConfig,
+              ...threadConfig(),
               developerInstructions,
               cwd: turn.cwd ?? homedir(),
               model: selection.model,
@@ -1474,6 +1448,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
             approvalParams = approvalParams.fallback;
             started = await startThread();
           }
+          assertProfileApplied(approvalParams, started);
           approvalParams = withResolvedSandbox(approvalParams, started);
           codexThreadId = started?.thread?.id ?? null;
           rolloutAt = rolloutMark(started?.thread?.path);

@@ -1,8 +1,9 @@
 // the openmausbot link agent on a person's vps. the install script runs it as:
 //   node agent.mjs probe    (root)  can the link service reach this server directly on port 80? exit 0 yes, 3 no
-//   node agent.mjs link     (maus)  mint a pairing code, seal it for the app, report the result, write tunnel.json
-//   node agent.mjs tunnel   (maus)  the steady-state relay: requests from the app, sealed end to end, to 127.0.0.1:8799
-//   node agent.mjs direct   (maus)  the same frames on stdin/stdout: what the app's own ssh key may run, and nothing else
+//   node agent.mjs link     (omb-link)  mint a pairing code, seal it for the app, report the result, write tunnel.json
+//   node agent.mjs tunnel   (omb-link)  the steady-state relay: requests from the app, sealed end to end, to 127.0.0.1:8799
+//   node agent.mjs direct   (omb-link)  the same frames on stdin/stdout: what the app's own ssh key may run, and nothing else
+// omb-link is its own account, never the server's: tunnel.json and the app's ssh key stay out of the bots' reach.
 // standalone on purpose: node's own modules only, one file the link service serves at /agent.mjs.
 // it also lends the bot computers on this server the app's own internet connection when the person turns on "route
 // traffic through this computer": a socks5 and http connect proxy on the bot computers' bridge (see createEgressProxy).
@@ -624,8 +625,10 @@ export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, w
 
 const configDir = () => join(homedir(), ".config", "openmausbot-link");
 const tunnelFile = () => join(configDir(), "tunnel.json");
-const enginesFile = () => join(homedir(), ".config", "openmausbot", "engines.env");
-const codexAuthFile = () => join(process.env.CODEX_HOME || join(homedir(), ".codex"), "auth.json");
+// on an install where this agent has its own account, its unit names a hand-off folder for these two: a root unit takes
+// them from there to the server (the token into its environment, the sign-in into its engine home)
+const enginesFile = () => process.env.OMB_LINK_ENGINES_FILE || join(homedir(), ".config", "openmausbot", "engines.env");
+const codexAuthFile = () => process.env.OMB_LINK_CODEX_AUTH_FILE || join(process.env.CODEX_HOME || join(homedir(), ".codex"), "auth.json");
 
 function writePrivate(path, text) {
   mkdirSync(dirname(path), { recursive: true, mode: 0o700 });

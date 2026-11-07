@@ -42,9 +42,15 @@ export interface BoxSetup {
   bridges: readonly BoxBridge[];
   /** The descriptor number the box reads its seccomp filter from (`--seccomp FD`), or none. */
   seccompFd?: number;
+  /** Security: on a host where engines must never reach the server's own files (a VPS install), no line may hold a
+   * `whole` path (the server's HOME, the data folder) or lie inside an `inside` one (HOME's keys, settings and code), and a
+   * working folder inside the data folder must be a bot's own. Such a spawn is refused, never boxed with a hole. */
+  fence?: BoxFence;
   /** Test knobs; production passes none. */
   mutate?: ReadonlySet<BoxMutation>;
 }
+
+export interface BoxFence { whole: readonly string[]; inside: readonly string[] }
 
 /** Each removes one protection, so a test can prove the matching check fails without it. */
 export type BoxMutation = "bind-data" | "bind-otherws" | "share-pid" | "share-net" | "env-all" | "tmp-shared" | "no-seccomp" | "engines-rw";
@@ -69,8 +75,9 @@ export interface BoxRequest {
   botId?: string;
   /** A Team Cloud audience's engine home, bound read-write in place of the server's HOME, none of which the box then has. */
   home?: string;
-  /** Files bound read-write over their names in `home`: the team's engine sign-ins. */
-  shared?: ReadonlyArray<{ source: string; target: string }>;
+  /** Files bound over their names in `home`: the engine sign-ins (read-write, so a refreshed token lands in the source),
+   * and with `readOnly` the person's engine settings, which a boxed engine may read but never change. */
+  shared?: ReadonlyArray<{ source: string; target: string; readOnly?: boolean }>;
 }
 
 export interface BoxPlan {
@@ -123,6 +130,28 @@ export const PATH_ENV_NAMES = ["CLAUDE_CONFIG_DIR", "CODEX_HOME", "XDG_CONFIG_HO
  * runtime) read `possible` at start and stop themselves (SIGABRT, exit 134) when it is missing. */
 export const CPU_LIST_FILES = ["/sys/devices/system/cpu/possible", "/sys/devices/system/cpu/online"] as const;
 
+export class BoxFenceError extends Error {
+  readonly path: string;
+  constructor(path: string) {
+    super(`The bot box will not share ${path} with a bot: it holds this server's private files. Pick a working folder of the bot's own.`);
+    this.path = path;
+  }
+}
+
+/** Whether `fence` keeps `path` out of every box. `cwd` adds the data folder rule. */
+export function fencedPath(path: string, fence: BoxFence | undefined, dataDir: string, cwd = false): boolean {
+  if (!fence) return false;
+  const full = resolve(path);
+  if (fence.whole.some((root) => under(resolve(root), full))) return true;
+  if (fence.inside.some((root) => under(full, resolve(root)))) return true;
+  if (cwd && under(full, dataDir)) {
+    const rel = relative(dataDir, full).split(sep);
+    const own = (rel[0] === "workspaces" && rel.length >= 2 && ID.test(rel[1]!)) || (rel[0] === "task-workspaces" && rel.length >= 3 && ID.test(rel[1]!) && ID.test(rel[2]!));
+    if (!own) return true;
+  }
+  return false;
+}
+
 /** Folders the box always has its own copy of, so no setting may put the host's back. */
 const PRIVATE_INSIDE = ["/tmp", "/var/tmp", "/run", "/dev", "/proc"];
 
@@ -159,7 +188,7 @@ export function planBox(setup: BoxSetup, request: BoxRequest): BoxPlan {
   // HOME first; the data folder is replaced by an empty one right after, so the lines below put back only what is named.
   // An engine home lives in the data folder, so it goes back after that.
   const ownHome = request.home ? resolve(request.home) : null;
-  if (!ownHome) rw(home);
+  if (!ownHome && !setup.fence) rw(home);
   const dataInsideHome = under(dataDir, home);
   if (!mutate.has("bind-data")) {
     if (dataInsideHome) mounts.push({ kind: "tmpfs", target: dataDir });
@@ -172,6 +201,10 @@ export function planBox(setup: BoxSetup, request: BoxRequest): BoxPlan {
   const covered = (path: string) => (ownHome !== null && under(path, ownHome)) || (writable.some((root) => under(path, root)) && !(dataHidden && under(path, dataDir)));
 
   const cwd = request.cwd ? resolve(request.cwd) : null;
+  const refuse = (path: string, isCwd = false) => { if (fencedPath(path, setup.fence, dataDir, isCwd)) throw new BoxFenceError(resolve(path)); };
+  if (cwd) refuse(cwd, true);
+  for (const path of [...(request.rw ?? []), ...(request.ro ?? [])]) refuse(path);
+  if (ownHome) refuse(ownHome);
   const ids = cwd ? taskWorkspaceIds(cwd, dataDir) : null;
   const botId = request.botId ?? ids?.botId ?? null;
   if (cwd && !covered(cwd)) rw(cwd);
@@ -186,12 +219,15 @@ export function planBox(setup: BoxSetup, request: BoxRequest): BoxPlan {
   for (const name of PATH_ENV_NAMES) {
     const value = request.env[name];
     // A temp folder stays the box's own private one; anything else the engine writes is put back.
-    if (value && isAbsolute(value) && !covered(resolve(value)) && !PRIVATE_INSIDE.some((base) => under(resolve(value), base))) rw(resolve(value));
+    if (value && isAbsolute(value) && !covered(resolve(value)) && !PRIVATE_INSIDE.some((base) => under(resolve(value), base))) {
+      refuse(value);
+      rw(resolve(value));
+    }
   }
   for (const path of request.rw ?? []) if (!covered(resolve(path))) rw(resolve(path));
   if (ownHome) {
     for (const file of request.shared ?? []) {
-      if (under(resolve(file.target), ownHome)) mounts.push({ kind: "bind", source: resolve(file.source), target: resolve(file.target), optional: true });
+      if (under(resolve(file.target), ownHome)) mounts.push({ kind: file.readOnly ? "ro" : "bind", source: resolve(file.source), target: resolve(file.target), optional: true });
     }
   }
   // After every read-write line, so none of them can make an engine another conversation also runs writable.
@@ -208,7 +244,7 @@ export function planBox(setup: BoxSetup, request: BoxRequest): BoxPlan {
   for (const path of [...(request.ro ?? []), ...argvPaths(request.args), ...(botId && ID.test(botId) ? [join(dataDir, "bots", botId, "SOUL.md")] : [])]) {
     const full = resolve(path);
     // Code and the system are already there; a file under HOME or /tmp the command line names is put back read-only.
-    if (covered(full) || readOnly.has(full)) continue;
+    if (covered(full) || readOnly.has(full) || fencedPath(full, setup.fence, dataDir)) continue;
     if (["/usr", "/etc", "/opt", "/var/lib", ...setup.codeRoots, ...setup.engineRoots].some((base) => under(full, resolve(base)))) continue;
     readOnly.add(full);
     mounts.push({ kind: "ro", source: full, target: full, optional: true });

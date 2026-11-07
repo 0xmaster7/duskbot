@@ -1,7 +1,7 @@
 // Claude Code over stream-json both ways: prompt on stdin, one retained CLI process per thread,
 // each turn settled by the CLI's own `result` frame.
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { createServer as createNetServer } from "node:net";
 import { homedir, tmpdir } from "node:os";
 import { join, dirname, isAbsolute, normalize } from "node:path";
@@ -10,7 +10,7 @@ import { DATA_DIR, stripWorkspaceCredentialEnv } from "../config.ts";
 import { openStartupModelCatalog, unconfirmedModelCatalog, writeStartupModelCache } from "../startup-model-catalog.ts";
 import { writeFileAtomicIfChanged } from "../atomic.ts";
 import { augmentedPath } from "../env-path.ts";
-import { brokerSocketPath, cliVersionReader, describeSpawnFailure, execCli, killCliTree, readOnlyBotFolders, spawnCli } from "../procs.ts";
+import { brokerSocketPath, cliVersionReader, describeSpawnFailure, execCli, killCliTree, lentBotFolders, readOnlyBotFolders, spawnCli } from "../procs.ts";
 import { claudeAuthStatus } from "./claude-auth-status.ts";
 import { projectMcpServers } from "./claude-project-mcp.ts";
 import { botSettingsFor, withBotSettings } from "./claude-bot-settings.ts";
@@ -36,6 +36,8 @@ import type {
   TextGenerationOptions,
 } from "../contracts.ts";
 import { appMountFor, customServerGate, gateQueryTools, gateServer } from "../mcp-gate-config.ts";
+import { botBox } from "../bot-box/box.ts";
+import { claudeDenyRules, engineReadScope } from "./engine-read-scope.ts";
 import { canUseMcpServer } from "../../shared/tool-scope.ts";
 import { assertToolScopeSupported } from "../../shared/tool-scope-support.ts";
 import { newEventId, newId } from "../contracts.ts";
@@ -1150,6 +1152,12 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
       if (isolated) own.claudeMdExcludes = [join(homedir(), ".claude", "CLAUDE.md")];
       if (hooks) own.hooks = claudeHookSettings(HOOK_HELPER_PATH);
       if (turn.guestConfined) own.permissions = GUEST_CLAUDE_PERMISSIONS;
+      else {
+        const scope = engineReadScope({ dataDir: DATA_DIR, home: homedir(), cwd, botId, threadId, boxed: botBox.enabled(), extraReadable: [...readOnlyBotFolders(cwd), ...lentBotFolders(cwd)] });
+        for (const dir of scope.missing) mkdirSync(dir, { recursive: true, mode: 0o700 });
+        own.permissions = { blockReadsOutsideWorkingDirectories: true, deny: claudeDenyRules(scope) };
+        for (const dir of [...scope.readable, ...scope.readOnly]) if (existsSync(dir)) args.push("--add-dir", dir);
+      }
       // Approvals and browser credentials expire at the turn boundary; native background workers must not outlive it.
       env.CLAUDE_CODE_DISABLE_BACKGROUND_TASKS = "1";
       // Never for a guest: --restricted leaves project settings out, and a hook is a command.

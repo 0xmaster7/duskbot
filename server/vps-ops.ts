@@ -31,7 +31,7 @@ doctor  the same checks with suggested next steps
 logs    print a bounded, redacted journal tail (1 to 500 lines; no follow)
 
 No service is started or restarted. No configuration, database or credentials
-are read. Docker checks use only the local /var/run/docker.sock. Journal access
+are read. Docker checks use only a local socket (DOCKER_HOST's, else /var/run/docker.sock). Journal access
 depends on this account's existing permissions. HTTP and subprocess checks
 have a 4-second limit.`;
 
@@ -153,8 +153,14 @@ async function serviceStatus(service: ServiceName, command: typeof runOpsCommand
   };
 }
 
+/** A local unix socket only: on a VPS install the server reaches Docker through its gate (DOCKER_HOST). */
+export function localDockerHost(env: Record<string, string | undefined> = process.env): string {
+  const host = env.DOCKER_HOST ?? "";
+  return /^unix:\/\/\/[\w./-]+$/.test(host) ? host : "unix:///var/run/docker.sock";
+}
+
 async function computerSummary(command: typeof runOpsCommand): Promise<ComputerSummary> {
-  const result = await command("docker", ["--host", "unix:///var/run/docker.sock", "ps", "--all", "--filter", "label=com.openmausbot.vps=1", "--format", "{{.State}}"]);
+  const result = await command("docker", ["--host", localDockerHost(), "ps", "--all", "--filter", "label=com.openmausbot.vps=1", "--format", "{{.State}}"]);
   if (!result.ok) return { available: false, error: result.error };
   const states: Record<string, number> = {};
   const known = new Set(["created", "restarting", "running", "removing", "paused", "exited", "dead"]);
@@ -205,7 +211,7 @@ export async function collectVpsOpsStatus(options: VpsOpsOptions, dependencies: 
   if (server.state !== "active") hints.push("The server service is not active or cannot be inspected. Check your installed service and this account's permissions.");
   if (!["active", "not-installed"].includes(link.state)) hints.push("The outbound link is not active or cannot be inspected. Inspect: openmausbot vps logs --service link");
   if (!["active", "not-installed"].includes(fence.state)) hints.push("The computer network fence is not active or cannot be inspected. Inspect: openmausbot vps logs --service fence");
-  if (!computers.available) hints.push("Local Docker could not be inspected. Check that Docker is installed and this account may read /var/run/docker.sock.");
+  if (!computers.available) hints.push("Local Docker could not be inspected. Check that Docker is installed and this account may reach its socket (on a VPS install, the openmausbot docker gate).");
   if (host.diskBytes && host.diskBytes.free < 1024 ** 3) hints.push("Less than 1 GiB is available on the data filesystem.");
   return { healthy, http, services: { server, link, fence }, computers, host, hints };
 }
