@@ -430,7 +430,7 @@ import { listSignedInSites, signOutOfSites } from "./browser-sites.ts";
 import { HeldSecrets, LoginStore } from "./login-store.ts";
 import { OnePasswordLogins, onePasswordUnavailable, sdkOnePasswordClient, type OnePasswordSdk } from "./onepassword.ts";
 import { nativeRequire } from "./data/engine.ts";
-import { createFillLoginTurn } from "./host/fill-login-turn.ts";
+import { createFillLoginTurn } from "./host/fill-login-turn.ts"; import { boxBrowserRoute } from "./box-browser-route.ts";
 import { BotLogins, cardLoginPlace, cardSignInElsewhere, observeSignInPage, type ObservedPage } from "./bot-logins.ts";
 import { relayFrame } from "./browser-relay.ts";
 import { browserEvidence, stepContext } from "./browser-steps.ts";
@@ -2313,14 +2313,16 @@ function cancelDirectTurnDispatch(botId: string, expectedThreadId?: string): Dir
 async function botBoxChrome(botId: string, turn?: { threadId: string; generation: string }): Promise<string | false | null> {
   const bot = store.bot(botId);
   if (!bot) return null;
-  const mounted = turn ? turnVpsTargets.get(turn.threadId) : undefined;
-  if (mounted && mounted.generation === turn!.generation && mounted.botId === botId) {
+  const candidate = turn ? turnVpsTargets.get(turn.threadId) : undefined;
+  const mounted = candidate && candidate.generation === turn!.generation && candidate.botId === botId ? candidate : undefined;
+  const shared = mounted ? undefined : inheritedTeamComputer(bot);
+  const route = boxBrowserRoute({ mountedForTurn: Boolean(mounted), inTurn: Boolean(turn), ownCloudBox: bot.computer === "cloud", teamComputer: Boolean(shared) });
+  if (mounted) {
     const url = await vps.vpsBoxChrome(mounted.config, mounted.ownerId, mounted.containerId, undefined, mounted.screenLease ? { containerId: mounted.containerId, target: mounted.screenLease.target, live: () => mounted.screenLease!.live() } : undefined);
     return url ?? false;
   }
-  const shared = inheritedTeamComputer(bot);
-  if (bot.computer !== "cloud" && !shared) return null;
-  if (turn) throw new Error("This turn has no assigned VPS computer; start a new turn after reconnecting it");
+  if (route === "host") return null;
+  if (route === "refuse") throw new Error("This turn has no assigned VPS computer; start a new turn after reconnecting it");
   const target = shared ? teamComputerVpsTarget(cfg, shared) : { ownerId: bot.id, config: vpsConfigForBot(cfg, bot) };
   const screen = shared && vpsDefaults().independentScreens ? screenConnection(botId, target.ownerId, vpsSshAlias(target.config) ?? "") : undefined;
   if (shared && vpsDefaults().independentScreens && !screen) throw new Error("Wake this bot screen before opening its browser");
