@@ -96,11 +96,15 @@ function readHead(path: string, bytes: number): Buffer | null {
 
 /** Stored names never change bytes, so a measurement holds until the file goes. */
 const measured = new Map<string, MediaSize | null>();
+/** A missing file (cleared, or still on its way from another computer) is looked for again after a minute. */
+const absentUntil = new Map<string, number>();
+const ABSENT_RECHECK_MS = 60_000;
 
 export function attachmentImageSize(name: string, dir = ATTACHMENTS_DIR): MediaSize | null {
   if (!IMAGE_NAME.test(name)) return null;
   const key = `${dir}\0${name}`;
   if (measured.has(key)) return measured.get(key)!;
+  if ((absentUntil.get(key) ?? 0) > Date.now()) return null;
   const path = join(dir, name);
   let size: MediaSize | null = null;
   const head = readHead(path, HEAD_BYTES);
@@ -117,11 +121,8 @@ export function attachmentImageSize(name: string, dir = ATTACHMENTS_DIR): MediaS
     }
   }
   if (head) measured.set(key, size);
+  else absentUntil.set(key, Date.now() + ABSENT_RECHECK_MS);
   return size;
-}
-
-export function forgetAttachmentImageSize(name: string, dir = ATTACHMENTS_DIR): void {
-  measured.delete(`${dir}\0${name}`);
 }
 
 const NAME_IN_TEXT = /(?:<attached-image[\t ]+path="[^"\r\n]*?|\/api\/attachments\/)([A-Za-z0-9-]+\.(?:png|jpg|gif|webp))\b/g;
