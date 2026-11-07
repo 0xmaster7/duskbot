@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Message } from "@/state/store";
-import { awaitedMemberId, showWorkingDots } from "./turn-tail";
+import { awaitedMemberId, landedReply, LINE_BACK_AFTER_REPLY_MS, replyHidesLine, showWorkingDots } from "./turn-tail";
 
 const msg = (m: Partial<Message>): Message => ({ id: "m1", role: "bot", kind: "text", at: 1, ...m });
 
@@ -64,5 +64,32 @@ describe("awaitedMemberId", () => {
     expect(awaitedMemberId(true, null, msg({ from: { botId: "b", name: "B", color: "blue" } }))).toBeUndefined();
     expect(awaitedMemberId(true, null, msg({ kind: "goal.run" }))).toBeUndefined();
     expect(awaitedMemberId(true, null, undefined)).toBeUndefined();
+  });
+});
+
+describe("a landed reply and the working line", () => {
+  const ask = msg({ id: "ask", role: "user" });
+  const reply = msg({ id: "reply", from: { botId: "a", name: "A", color: "blue" } });
+  const tool = msg({ id: "tool", kind: "activity" });
+
+  it("finds the bot's words after the person's newest message, in a room only the speaker's own", () => {
+    expect(landedReply([ask, reply])).toBe(reply);
+    expect(landedReply([ask, reply, tool])).toBe(reply);
+    expect(landedReply([reply, ask])).toBeUndefined();
+    expect(landedReply([ask, reply], "a")).toBe(reply);
+    expect(landedReply([ask, reply], "b")).toBeUndefined();
+  });
+
+  it("hides the line in the frame the reply lands, whatever the engine still calls the turn", () => {
+    for (const phase of [undefined, "friendly:generic", "friendly:thinking", "friendly:chat.typing"]) {
+      expect(replyHidesLine(0, phase)).toBe(true);
+    }
+    expect(replyHidesLine(null, "friendly:chat.typing"), "no reply yet").toBe(false);
+  });
+
+  it("lets the line back for a named step, or once the turn has run on a while", () => {
+    expect(replyHidesLine(0, "friendly:code")).toBe(false);
+    expect(replyHidesLine(LINE_BACK_AFTER_REPLY_MS - 1, "friendly:generic")).toBe(true);
+    expect(replyHidesLine(LINE_BACK_AFTER_REPLY_MS, "friendly:generic")).toBe(false);
   });
 });

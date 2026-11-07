@@ -80,7 +80,8 @@ import { useLiveToolIds } from "@/hooks/use-live-tool-ids";
 import { roomNeedsSetup } from "@/lib/room-setup";
 import { useComposerDockPad } from "@/lib/composer-dock";
 import { GlassBar, GlassScrollFrame } from "./GlassScrollFrame";
-import { awaitedMemberId, showWorkingDots } from "@/lib/turn-tail";
+import { awaitedMemberId, replyHidesLine, showWorkingDots } from "@/lib/turn-tail";
+import { useLandedReply } from "@/hooks/use-landed-reply";
 import { useTurnLive } from "@/state/turn-status";
 import { splitTranscriptAttachments } from "@/lib/composer-attachments";
 import { useTranscriptViewport } from "@/hooks/use-transcript-viewport";
@@ -924,9 +925,6 @@ export function GroupView({ group: room }: { group: Group }) {
   const awaited = members.find(
     (b) => b.id === awaitedMemberId(threadWorking, group.busyBotId, lastGroupMessage),
   );
-  // the speaker's mark and its status line stay for the whole turn; only its end hides them
-  const presenceVisible =
-    Boolean(speaker && showWorkingDots(true, group.messages.at(-1), speaker.id, live.ended)) || awaited !== undefined;
   const announcement = useMemo((): TranscriptSnapshot => {
     const approval = pendingApprovals(group.messages)[0];
     return {
@@ -944,6 +942,10 @@ export function GroupView({ group: room }: { group: Group }) {
     group.messages, lastGroupMessage, live,
   );
   const streamingReply = useLiveReplyActive(group.threadId);
+  const landed = useLandedReply(`${group.id}:${group.threadId}:${speaker?.id ?? ""}`, group.messages, speaker?.id);
+  // the speaker's mark and its status line stay for the turn; its end, or its reply landing, hides them
+  const presenceVisible =
+    Boolean(speaker && showWorkingDots(true, group.messages.at(-1), speaker.id, live.ended) && !replyHidesLine(landed.sinceMs, now.phase)) || awaited !== undefined;
   const statusMarkState = statusMarkFor({ busy: threadWorking, waitingOnYou: false, answering: streamingReply, live: live.status?.activity, failed: lastGroupMessage?.kind === "activity" && lastGroupMessage.tool?.ok === false });
   const workingIds = roomWorkingIds(group, lastGroupMessage);
   const trailing = useTrailingRows(group.messages);
@@ -1141,6 +1143,7 @@ export function GroupView({ group: room }: { group: Group }) {
             typingIds={[]}
             speaker={{ bot: presenceSpeaker, visible: presenceVisible, markState: statusMarkState, phrases: now.phrases, phase: now.phase, since: speaker ? group.turnStartedAt ?? null : null }}
             slot={statusSlot}
+            landed={Boolean(landed.reply)}
           />
         </div>
         </div>
