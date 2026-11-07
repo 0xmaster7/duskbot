@@ -291,6 +291,20 @@ describe("independent bot threads", () => {
     expect(currentTaskBot(state.bots[0]!).modelSelection.model).toBe("other-model");
   });
 
+  it("shows a conversation the cache holds current at once, and the switch's own page keeps the very same rows", () => {
+    const held: Message[] = [{ id: "s1", role: "user", kind: "text", text: "Hi", at: 1, parentId: null }, { id: "s2", role: "bot", kind: "text", text: "Hello", at: 2, parentId: "s1" }];
+    let state = reducer(start(), { type: "switchTask", botId: bot.id, threadId: "second", cached: { threadId: "second", messages: held, hasMore: false, activeLeafId: "s2", savedAt: 1 } });
+    expect(state.bots[0]).toMatchObject({ threadId: "second", activeLeafId: "s2", switchingTo: "second" });
+    expect(state.bots[0]?.messages).toBe(held);
+    const reply: Message = { id: "s3", role: "bot", kind: "text", text: "More", at: 3, parentId: "s2" };
+    state = reducer(state, { type: "messageAdded", threadId: "second", message: reply });
+    state = reducer(state, { type: "taskSwitched", bot: { ...bot, threadId: "second", messages: held.map((message) => ({ ...message })), activeLeafId: "s2" } });
+    expect(state.bots[0]?.messages[0]).toBe(held[0]);
+    expect(state.bots[0]?.messages[1]).toBe(held[1]);
+    expect(state.bots[0]?.messages.map((message) => message.id)).toEqual(["s1", "s2", "s3"]);
+    expect(state.bots[0]?.switchingTo).toBeUndefined();
+  });
+
   it("can start a new thread while another waits and cancels only the pinned queue", () => {
     const opened = reducer(start(), { type: "newTask", botId: bot.id });
     expect(opened.selectedId).toBe(bot.id);

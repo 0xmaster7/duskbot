@@ -1,3 +1,4 @@
+import { optimisticMessageId } from "./optimistic-send";
 import { foldSnapshotOntoStreamed } from "./room-frames";
 import type { Message } from "./store";
 
@@ -119,6 +120,8 @@ export function indexedDbShelf(factory: IDBFactory | undefined = globalThis.inde
  * {@link setEnabled} says the workspace is this person's own. */
 export function createTranscriptCache(shelf: TranscriptShelf | null, { delayMs = 1_500, now = Date.now }: { delayMs?: number; now?: () => number } = {}) {
   const memory = new Map<string, CachedTranscript>();
+  // conversations this device has followed since the server last confirmed them: what is here is what the server has
+  const fresh = new Set<string>();
   const saved = new Map<string, CachedTranscript>();
   const dirty = new Set<string>();
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -163,6 +166,14 @@ export function createTranscriptCache(shelf: TranscriptShelf | null, { delayMs =
     if (!shelf || !enabled || timer !== undefined) return;
     timer = setTimeout(flush, delayMs);
   };
+  const put = (threadId: string, messages: Message[], hasMore: boolean | undefined, activeLeafId: string | null | undefined) => {
+    const before = memory.get(threadId);
+    if (before?.messages === messages && before.activeLeafId === (activeLeafId ?? null) && before.hasMore === Boolean(hasMore)) return;
+    if (!messages.length) return;
+    memory.set(threadId, { threadId, messages, hasMore: Boolean(hasMore), activeLeafId: activeLeafId ?? null, savedAt: now() });
+    dirty.add(threadId);
+    schedule();
+  };
 
   return {
     /** Resolves once the shelf has been read; what it held is then in {@link get}. */
@@ -170,14 +181,37 @@ export function createTranscriptCache(shelf: TranscriptShelf | null, { delayMs =
     get(threadId: string): CachedTranscript | undefined {
       return memory.get(threadId);
     },
+    /** A conversation as the server has it right now, or undefined when this device may have missed some of it. */
+    current(threadId: string): CachedTranscript | undefined {
+      return fresh.has(threadId) ? memory.get(threadId) : undefined;
+    },
+    /** The newest page of a conversation, straight from the server. */
+    confirm(threadId: string, messages: Message[], hasMore: boolean | undefined, activeLeafId: string | null | undefined, heldAtStart?: readonly Message[]) {
+      const before = memory.get(threadId);
+      put(threadId, before ? reconcileTranscript(before.messages, new Set(heldAtStart ?? before.messages), messages, Boolean(hasMore), before.hasMore).messages : messages, hasMore, activeLeafId);
+      fresh.add(threadId);
+    },
+    /** A live frame: every conversation held here follows it, the one on screen or not. */
+    follow(frame: { kind: string; threadId?: string; message?: unknown; activeLeafId?: string | null }) {
+      const entry = frame.threadId ? memory.get(frame.threadId) : undefined;
+      if (!entry) return;
+      if (frame.kind === "thread") return put(entry.threadId, entry.messages, entry.hasMore, frame.activeLeafId ?? null);
+      const message = frame.message as Message | undefined;
+      if (!message?.id || (frame.kind !== "message" && frame.kind !== "message.patch")) return;
+      const index = entry.messages.findIndex((held) => held.id === message.id);
+      if (index < 0 && frame.kind === "message") {
+        const adoptsLeaf = (message.parentId ?? null) === entry.activeLeafId;
+        put(entry.threadId, [...entry.messages.filter((held) => !message.sendId || held.id !== optimisticMessageId(message.sendId)), message], entry.hasMore, adoptsLeaf ? message.id : entry.activeLeafId);
+      } else if (index >= 0) put(entry.threadId, entry.messages.map((held, at) => (at === index ? message : held)), entry.hasMore, entry.activeLeafId);
+    },
+    /** The live stream restarted without replaying what it missed: nothing here is known current until confirmed again. */
+    forgetConfirmed() {
+      fresh.clear();
+    },
     /** A conversation's current messages. The same array again changes nothing. */
     remember(threadId: string, messages: Message[], hasMore: boolean | undefined, activeLeafId: string | null | undefined) {
-      const before = memory.get(threadId);
-      if (before?.messages === messages && before.activeLeafId === (activeLeafId ?? null) && before.hasMore === Boolean(hasMore)) return;
-      if (!messages.length) return;
-      memory.set(threadId, { threadId, messages, hasMore: Boolean(hasMore), activeLeafId: activeLeafId ?? null, savedAt: now() });
-      dirty.add(threadId);
-      schedule();
+      fresh.add(threadId);
+      put(threadId, messages, hasMore, activeLeafId);
     },
     /** Marks a conversation as just opened, so it is among the last to leave the shelf. */
     touch(threadId: string) {

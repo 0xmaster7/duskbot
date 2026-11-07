@@ -173,8 +173,11 @@ export function createThreadRoutes(deps: ThreadRouteDeps): RouteHandler {
       for (const bot of store.bots) {
         if (!visible.bot(bot.id)) continue;
         // narrowed first, as for the list of bots: a conversation this person may not read never goes out
-        const shown = memberBot(wireBot(bot), visible) as { threadId?: unknown };
+        const shown = memberBot(wireBot(bot), visible) as { threadId?: unknown; mainThreadId?: unknown; tasks?: Array<{ threadId?: unknown }> };
         if (typeof shown.threadId === "string") add(shown.threadId);
+        // the conversation the bot's chat opens to, when another of its threads is current
+        const main = shown.mainThreadId;
+        if (typeof main === "string" && main !== shown.threadId && shown.tasks?.some((task) => task.threadId === main)) add(main);
       }
       for (const group of store.groups) if (visible.group(group.id)) add(group.threadId);
       return json(res, 200, { threads });
