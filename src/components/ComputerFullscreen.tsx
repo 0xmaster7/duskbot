@@ -34,8 +34,10 @@ function useWatchHint(active: boolean) {
 
 /** Grok's full computer view: the bot's screen on a dark cover, Exit fullscreen in the top right, and the control pill
  * under the frame. Without a frame it shows `note` (waking up, connecting, or what is in the way). */
-export function ComputerFullscreen({ label, onExit, frame, note, control, alert, embedded = false, expanded = true }: {
+export function ComputerFullscreen({ label, onExit, frame, note, control, alert, embedded = false, expanded = true, aspect = 16 / 10 }: {
   label: string;
+  /** The screen's width over its height, so the frame meets it edge to edge; bot desktops are 16:10. */
+  aspect?: number;
   onExit: () => void;
   frame: ReactNode;
   note: ReactNode;
@@ -92,7 +94,7 @@ export function ComputerFullscreen({ label, onExit, frame, note, control, alert,
             <div
               data-computer-frame=""
               className={cn("relative overflow-hidden", inline ? "size-full" : "rounded-[6px] bg-white/4")}
-              style={inline ? undefined : { width: `min(100cqw, calc((100cqh - ${control ? BAR : 0}px) * 16 / 10))`, aspectRatio: "16 / 10" }}
+              style={inline ? undefined : { width: `min(100cqw, calc((100cqh - ${control ? BAR : 0}px) * ${aspect}))`, aspectRatio: String(aspect) }}
               onPointerDown={watching ? hint.bump : undefined}
             >
               {frame}

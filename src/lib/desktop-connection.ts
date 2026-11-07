@@ -93,6 +93,32 @@ export async function connectDesktop(screen: HTMLElement, target: string, option
   return client;
 }
 
+const XK_SHIFT_L = 0xffe1;
+const XK_INSERT = 0xff63;
+type HeldKeys = { _keyboard?: { _keyDownList?: Record<string, number>; _sendKeyEvent?(keysym: number, code: string, down: boolean): void } };
+
+/** The paste shortcut of the person's own machine: Cmd+V on a Mac, Ctrl+V elsewhere (with or without Shift). */
+export function isPasteShortcut(event: Pick<KeyboardEvent, "key" | "code" | "metaKey" | "ctrlKey" | "altKey">, mac: boolean): boolean {
+  if (event.altKey || !(event.code === "KeyV" || event.key.toLowerCase() === "v")) return false;
+  return mac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
+}
+
+/** Pastes text into the focused app on the desktop: the guest clipboard (and with it the X selection) takes the text,
+ * then Shift+Insert, the one paste key Linux text fields, browsers and terminals all answer. The shortcut's modifier
+ * is released first, as the guest saw it (Cmd arrives as Alt), so the guest gets a bare Shift+Insert. */
+export function pasteOnDesktop(client: RFB, text: string): void {
+  if (!text || client.viewOnly) return;
+  // noVNC 1.7 keeps no public way to release held keys without also dropping input; this is its own release path
+  const keyboard = (client as unknown as HeldKeys)._keyboard;
+  const held = keyboard?._keyDownList;
+  if (held && keyboard?._sendKeyEvent) for (const code of Object.keys(held)) keyboard._sendKeyEvent(held[code]!, code, false);
+  client.clipboardPasteFrom(text);
+  client.sendKey(XK_SHIFT_L, "ShiftLeft", true);
+  client.sendKey(XK_INSERT, "Insert", true);
+  client.sendKey(XK_INSERT, "Insert", false);
+  client.sendKey(XK_SHIFT_L, "ShiftLeft", false);
+}
+
 /** Explicit text entry works with phone keyboards without reading the clipboard; non-Latin text uses Unicode keysyms. */
 export function typeOnDesktop(client: RFB, text: string): void {
   for (const char of text) {

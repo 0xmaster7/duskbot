@@ -251,17 +251,18 @@ test("a stalled HTTP response is bounded and cancelled while another response co
   }
 });
 
-test("relay POST bodies are cancelled before the next request reuses the connection", { timeout: 2000 }, async () => {
-  let cancelled = 0;
+test("relay POST bodies are read to the end, so the next post reuses the connection", { timeout: 2000 }, async () => {
+  let read = 0, cancelled = 0;
   const response = deferred();
   const proxy = createTunnelProxy({ ...options, fetch: async (url, init) => {
-    if (String(url).includes("/to-vps")) return { ok: true, body: { cancel: async () => { cancelled += 1; response.resolve(); } } };
+    if (String(url).includes("/to-vps")) return { ok: true, text: async () => { read += 1; response.resolve(); return "{\"ok\":true}"; }, body: { cancel: async () => { cancelled += 1; } } };
     return new Promise((_resolve, reject) => init.signal.addEventListener("abort", () => reject(init.signal.reason), { once: true }));
   } });
   await proxy.start();
   const ping = proxy.control("ping").catch(() => {});
   await response.promise;
-  assert.equal(cancelled, 1);
+  assert.equal(read, 1);
+  assert.equal(cancelled, 0);
   await proxy.close();
   await ping;
 });
@@ -325,5 +326,43 @@ test("a stalled desktop socket is bounded and cancelled without blocking HTTP", 
     desktop?.destroy();
     await proxy.close();
     Socket.prototype.write = write;
+  }
+});
+
+test("a streamed read a proxy holds back falls back to plain long polls", { timeout: 3000 }, async () => {
+  const urls = [];
+  const fellBack = deferred();
+  const lines = [];
+  const proxy = createTunnelProxy({ ...options, stallMs: 50, log: (line) => lines.push(line), fetch: (url, init) => {
+    urls.push(String(url));
+    if (String(url).includes("&stream=1")) return Promise.resolve(new Response(new ReadableStream({ start(controller) { init.signal.addEventListener("abort", () => controller.error(init.signal.reason), { once: true }); } }), { headers: { "content-type": "application/x-ndjson" } }));
+    fellBack.resolve();
+    return new Promise((_resolve, reject) => init.signal.addEventListener("abort", () => reject(init.signal.reason), { once: true }));
+  } });
+  await proxy.start();
+  await fellBack.promise;
+  assert.ok(urls[0].includes("/to-app?wait=25&stream=1"));
+  assert.ok(urls.at(-1).endsWith("/to-app?wait=25"));
+  assert.ok(lines.some((line) => line.includes("polling instead")));
+  await proxy.close();
+});
+
+test("the keep-alive fetch reuses one socket across posts", { timeout: 3000 }, async () => {
+  const { createServer } = await import("node:http");
+  const { keepAliveFetch } = await import("./vps-link-protocol.mjs");
+  const sockets = new Set();
+  const server = createServer((req, res) => { sockets.add(req.socket); req.resume(); req.on("end", () => res.end('{"ok":true}')); });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const go = keepAliveFetch();
+  try {
+    for (let i = 0; i < 5; i += 1) {
+      const response = await go(`http://127.0.0.1:${server.address().port}/v1/x`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+      assert.equal(await response.text(), '{"ok":true}');
+    }
+    assert.equal(sockets.size, 1);
+  } finally {
+    go.close();
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
   }
 });
