@@ -6409,6 +6409,19 @@ function providerTransitionForTurn(
 }
 
 /** One synchronous lane: whichever lifecycle operation starts first excludes the other. */
+/** A bot just chose its own asleep VPS computer: it starts now, while the engine ends this turn, so the continuation
+ * (or the first computer call) finds it awake or nearly so. The turn's own provision joins this one. */
+function wakeChosenVps(bot: BotRecord): void {
+  if (inheritedTeamComputer(bot) || computerProviderConfigTransitions.has("vps")) return;
+  const config = vpsConfigForBot(cfg, bot);
+  const alias = vpsSshAlias(config);
+  if (!alias || remoteComputerLifecycleBusyOwners.has(bot.id) || vps.vpsComputerPreparing(config, bot.id)) return;
+  void vps.vpsComputerAction("provision", config, bot.id, undefined, {
+    stillAllowed: () => Boolean(store.bot(bot.id)) && !computerProviderConfigTransitions.has("vps"),
+    onStarting: () => computerStateChanged(bot.id, alias, "starting", undefined, bot.id),
+  }).then((status) => (status.ready ? rememberVpsReady(bot.id, status, true) : undefined)).catch(() => {});
+}
+
 const WAKING_JOIN_POLL_MS = 150;
 const WAKING_JOIN_BUDGET_MS = 60_000;
 const WAKING_JOIN_GRACE_MS = 3_000;
@@ -13269,6 +13282,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         const picked = pickComputer(options, requested, current, startsOnFirstCall);
         const option = picked.option;
         if (!option?.available) return json(res, 409, { error: option?.reason ?? "No configured computer or browser is available. Open the Screen panel to set one up.", options });
+        if (!option.ready && option.surface === "cloud") wakeChosenVps(bot);
         if (!source!.selected && picked.current) {
           return json(res, 200, { status: "ready", surface: current, message: option.ready
             ? "This computer is already selected. Use its mounted tools."
