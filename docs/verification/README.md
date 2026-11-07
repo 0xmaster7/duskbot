@@ -186,6 +186,10 @@ also covers target isolation and private migration of retired provider settings.
 The [VPS recovery fixtures](vps-recovery.md) reproduce preview/startup contention
 and Docker-over-SSH timeout cleanup without contacting a real server.
 
+The [wire latency fixture](wire-latency.md) times a live event and an API request
+hop by hop across the real link agent, relay and app proxy with the measured
+link's delays, and records the live link's numbers.
+
 The [live browser fixture](browser-live.md) mounts the real Browser panel with
 an explicitly selected native engine and Chrome in a disposable home, covering
 watching, takeover, input, and profile switching.

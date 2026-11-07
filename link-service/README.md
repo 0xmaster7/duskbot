@@ -315,4 +315,15 @@ deploy link-service --name omb-link --domain link --env-file /tmp/omb-link.env
 Requests stay under 1 MB (nginx's default body limit), and long polls are 25 s (under nginx's 60 s read timeout).
 WebSockets are not needed.
 
+How the two ends use it, for speed (docs/verification/wire-latency.md has the measurements):
+
+- Both reach the service over one HTTP/2 connection when it offers h2 (nginx does): the streamed read and every post
+  share one warm TLS connection, and up to eight posts are out at once (the service holds eight that overtook an
+  earlier one). A service without h2 gets keep-alive HTTP/1.1 and three posts.
+- A post leaves on the next turn of the event loop; frames that come while posts are out gather for 2 ms per post out.
+- Each end asks for its next streamed read 21 s into the current one, so the next is waiting at the service when the
+  current one ends (the service hands the queue to the newest reader): no frame waits through a round-trip gap.
+- After a sleep or a network change the connections are dropped but the TLS sessions are kept, so reconnecting
+  resumes instead of paying a full handshake.
+
 Tests: `pnpm vitest run link-service electron/vps-link.test.mjs` and `node --test electron/vps-link-*.node-test.mjs` from the repo root.
