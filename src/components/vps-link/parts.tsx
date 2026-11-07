@@ -75,7 +75,7 @@ export function ProgressBar({ value, label, detail, tone }: { value: number | nu
   return (
     <div role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={clamped === null ? undefined : Math.round(clamped * 100)} aria-valuetext={detail ?? undefined}
       className="h-1 w-full overflow-hidden rounded-full bg-ink/8">
-      <div className={cn("vps-bar h-full w-full origin-left rounded-full transition-transform duration-300 ease-out motion-reduce:transition-none rtl:origin-right", clamped === null && "animate-pulse motion-reduce:animate-none opacity-30", tone === "danger" ? "bg-danger" : "bg-ink")} style={{ transform: clamped === null ? undefined : `scaleX(${clamped})` }} />
+      <div className={cn("vps-bar h-full w-full rounded-full", clamped === null && "animate-pulse motion-reduce:animate-none opacity-30", tone === "danger" ? "bg-danger" : "bg-ink")} style={{ transform: clamped === null ? undefined : `scaleX(${clamped})` }} />
     </div>
   );
 }

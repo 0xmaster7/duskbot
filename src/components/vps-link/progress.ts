@@ -10,7 +10,6 @@ export const STEP_TITLE: Record<VpsStepId, LocaleKey> = {
 const MOVE_TITLE: Record<VpsMoveStep, LocaleKey> = {
   backup: "vpsLink.move.step.backup", copy: "vpsLink.move.step.copy", verify: "vpsLink.move.step.verify", empty: "vpsLink.move.step.empty", done: "vpsLink.progress.connected",
 };
-export const QUIET_AFTER_MS = 30_000;
 
 export function reportedProgress(progress: VpsInstallProgress | undefined): { value: number | null; detail: string | null } {
   if (!progress) return { value: null, detail: null };
@@ -23,11 +22,6 @@ export function reportedProgress(progress: VpsInstallProgress | undefined): { va
   const counts = t(progress.kind === "layers" ? "vpsLink.progress.layers" : "vpsLink.progress.build", { done: progress.completed, total: progress.total });
   const bytes = progress.receivedBytes !== undefined ? reportedProgress({ kind: "download", receivedBytes: progress.receivedBytes, totalBytes: progress.totalBytes }) : null;
   return { value: bytes?.value ?? progress.completed / progress.total, detail: bytes?.detail ? `${counts} · ${bytes.detail}` : counts };
-}
-
-export function progressQuietFor(view: VpsLinkView, now: number): number {
-  return (view.stage === "installing" || view.stage === "moving") && view.activity?.progressAt
-    ? Math.max(0, now - view.activity.progressAt) : 0;
 }
 
 export function vpsProgress(view: VpsLinkView): { title: string; detail: string | null; value: number | null; failed: boolean; error: string | null } {

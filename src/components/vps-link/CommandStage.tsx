@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { VpsLinkView } from "@/lib/vps-link";
 import { centered, CommandPill, ErrorNote, Footer, formatElapsed, Heading, PILL, ProgressBar, SOFT_PILL, useNow } from "./parts";
-import { progressQuietFor, QUIET_AFTER_MS, STEP_TITLE, vpsProgress } from "./progress";
+import { STEP_TITLE, vpsProgress } from "./progress";
 const CHEER_MS = 4000;
 
 function minutesLeft(expiresAt: number | null, now: number): number | null {
@@ -114,41 +114,35 @@ function CopyLog({ text }: { text: string }) {
 }
 
 export function InstallScreen({ view, onRetry }: { view: VpsLinkView; onRetry: () => void }) {
+  const [start] = useState(() => Date.now());
   const now = useNow(1000);
   const failed = view.steps.find((step) => step.status === "failed");
   const running = view.steps.find((step) => step.status === "running");
   const next = view.steps.find((step) => step.status === "waiting");
-  const finished = view.steps.filter((step) => step.status === "done" || step.status === "skipped").length;
   const progress = vpsProgress(view);
-  const quietFor = progressQuietFor(view, now);
   const current = failed ?? running ?? next;
-  const elapsed = current?.activity ? current.activity.elapsedMs + (current.status === "running" ? Math.max(0, now - current.activity.at) : 0) : null;
   const label = failed
     ? t("vpsLink.install.stepFailed", { step: t(STEP_TITLE[failed.id]) })
     : current ? t(STEP_TITLE[current.id]) : t("vpsLink.install.almost");
   return (
     <>
       <Heading>{failed ? t("vpsLink.install.stuck") : t("vpsLink.install.title")}</Heading>
-      <div className={cn(centered, "top-[calc(50%-58px)] flex flex-col gap-2")}>
+      <div className={cn(centered, "top-[calc(50%-40px)] flex flex-col gap-2.5")}>
         <div className="flex items-baseline gap-3">
           <p role="status" className={cn("m-0 min-w-0 flex-1 truncate text-[15px] leading-5", failed ? "text-danger" : "text-ink")}>{label}</p>
-          {elapsed !== null && <span aria-label={t("vpsLink.progress.stepTime")} className="shrink-0 font-mono text-[12px] leading-4 tabular-nums text-ink/56">{formatElapsed(elapsed)}</span>}
+          <span aria-label={t("vpsLink.install.elapsedAria")} className="shrink-0 font-mono text-[12px] leading-4 tabular-nums text-ink/56">{formatElapsed(now - start)}</span>
         </div>
-        <p className="m-0 flex justify-between gap-3 text-[12px] leading-4 tabular-nums text-ink/56">
-          <span>{progress.detail}</span>
-          {running?.progress && <span>{t("vpsLink.progress.steps", { done: finished, total: view.steps.length })}</span>}
-        </p>
         <ProgressBar value={progress.value} detail={progress.detail} label={t("vpsLink.install.progressAria")} tone={failed ? "danger" : undefined} />
       </div>
       {failed
         ? <>
-            <div className={cn(centered, "top-[calc(50%+16px)] flex flex-col gap-2")}>
+            <div className={cn(centered, "top-[calc(50%+10px)] flex flex-col gap-2")}>
               <p className="m-0 text-center text-[13px] leading-[18px] text-ink/68 text-pretty">{t("vpsLink.install.rerun")}</p>
               {view.command && <CommandPill command={view.command} />}
             </div>
-            <Mirror view={view} className={cn(centered, "top-[calc(50%+102px)] h-[92px]")} />
+            <Mirror view={view} className={cn(centered, "top-[calc(50%+96px)] h-[92px]")} />
           </>
-        : <Mirror view={view} className={cn(centered, "top-[calc(50%+12px)] h-[112px]")} />}
+        : <Mirror view={view} className={cn(centered, "top-[calc(50%+4px)] h-[112px]")} />}
       <Footer>
         {progress.error && <ErrorNote>{progress.error}</ErrorNote>}
         {failed || view.error
@@ -156,7 +150,7 @@ export function InstallScreen({ view, onRetry }: { view: VpsLinkView; onRetry: (
               <button type="button" data-primary="" className={PILL} onClick={onRetry}>{t("vpsLink.tryAgain")}</button>
               {failed?.log && <CopyLog text={failed.log} />}
             </>
-          : <p role="status" className={cn("m-0 text-[13px] leading-[18px]", quietFor >= QUIET_AFTER_MS ? "text-warning" : "text-ink/56")}>{quietFor >= QUIET_AFTER_MS ? t("vpsLink.progress.quiet", { time: formatElapsed(quietFor) }) : t("vpsLink.install.closeOk")}</p>}
+          : <p className="m-0 text-[13px] leading-[18px] text-ink/56">{t("vpsLink.install.closeOk")}</p>}
       </Footer>
     </>
   );

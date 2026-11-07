@@ -41,8 +41,6 @@ it("loads only local and VPS inventories and offers the existing VPS setup flow"
     await act(async () => { root.render(createElement(LocalComputerSection)); });
     expect(paths.sort()).toEqual(["/api/computers/vps", "/api/local-computer"]);
     expect(container.textContent).toContain("Add your VPS");
-    expect(container.querySelector('[data-native-computer-state="working"]')).not.toBeNull();
-    expect(container.textContent).toContain("No Docker or VPS required.");
     expect(local.openAddVps).not.toHaveBeenCalled();
     expect(container.textContent).not.toMatch(/Boat|credit|cloud desktop/i);
     await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });

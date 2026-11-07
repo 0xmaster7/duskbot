@@ -27,8 +27,6 @@ import { EnginesSettings } from "./EnginesSettings";
 import { ImportSettings } from "./ImportSettings";
 import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal";
 import { LocalComputerSection } from "./LocalComputerSection";
-import { VpsComputerSettings } from "./VpsComputerSettings";
-import { NativeComputerSettings } from "./NativeComputerSettings";
 import { CLOUD_SETUP_PAGE, PHONE_ADVANCED_PAGE, PRIVATE_SETUP_PAGE, PROFILE_PAGE } from "./settings-page-ids";
 import { CloudDesktopKeys } from "./keys/KeysPage";
 import { LoginsSettings } from "./LoginsSettings";
@@ -242,8 +240,7 @@ export function TextingPane({ has, remoteAccess }: { has: Has; remoteAccess: Rem
 export function ComputerPane({ has, remoteAccess, servers, transfer }: { has: Has; remoteAccess: RemoteAccessCards; servers: ReactNode; transfer?: ReactNode }) {
   const { at } = useSubPage();
   const { state } = useStore();
-  const remoteActive = window.ogb?.remoteClient?.active === true;
-  if (!remoteActive && (at === "computers" || at === PRIVATE_SETUP_PAGE)) return <div data-settings-block="computer" className="flex flex-col gap-5"><AdminOnly><LocalComputerSection /></AdminOnly></div>;
+  if (at === "computers" || at === PRIVATE_SETUP_PAGE) return <div data-settings-block="computer" className="flex flex-col gap-5"><AdminOnly><LocalComputerSection /></AdminOnly></div>;
   if (at === CLOUD_SETUP_PAGE) return <AdminOnly><CloudDesktopKeys /></AdminOnly>;
   if (at === "profiles" || at?.startsWith(PROFILE_PAGE)) return <BrowserProfilesManager />;
   if (at === "elsewhere") {
@@ -258,14 +255,12 @@ export function ComputerPane({ has, remoteAccess, servers, transfer }: { has: Ha
   const showProfiles = builtInBrowserEnabled(state.config) || profiles.length > 0;
   return (
     <>
-      {has("computer") && !remoteActive && !state.config?.cloudHome && <NativeComputerSettings />}
-      {has("computer") && <VpsComputerSettings />}
-      {has("computer") && !remoteActive && (
+      {has("computer") && (
         <RowsCard data-settings-block="computer">
           <PageRow page="computers" title={t("settings.rows.desktops")} hint={t("settings.hint.desktops")} />
         </RowsCard>
       )}
-      {has("computer") && !remoteActive && (
+      {has("computer") && (
         <SettingsGroup label={t("settings.grok.group.browser")} block="browser">
           <SettingsRows>
             <BuiltInBrowserRow />

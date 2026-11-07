@@ -1,12 +1,13 @@
 // the move: what goes, the bots travelling to the server one by one, then a free Mac with its backup kept
+import { LoaderCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { activeLocale, t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { formatBytes, type VpsLinkBridge, type VpsLinkMove, type VpsLinkView, type VpsMovePreview } from "@/lib/vps-link";
 import { BotFace } from "./Scene";
-import { centered, deviceWord, ErrorNote, Footer, formatElapsed, Heading, Lead, message, PILL, ProgressBar, SOFT_PILL } from "./parts";
-import { progressQuietFor, QUIET_AFTER_MS, vpsProgress } from "./progress";
+import { centered, deviceWord, ErrorNote, Footer, Heading, Lead, message, PILL, ProgressBar, SOFT_PILL } from "./parts";
+import { vpsProgress } from "./progress";
 
 const SHOWN_BOTS = 6;
 
@@ -35,14 +36,14 @@ export function retryClock(ms: number): string {
 }
 
 /** The time now, once a second while there is a time (`until`) to count down to. */
-function useNow(until: number | null, active: boolean): number {
+function useNow(until: number | null): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    if (until === null && !active) return;
+    if (until === null) return;
     setNow(Date.now());
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [until, active]);
+  }, [until]);
   return now;
 }
 
@@ -50,16 +51,21 @@ const STEP_WORD: Record<"backup" | "copy" | "verify" | "empty", LocaleKey> = {
   backup: "vpsLink.move.step.backup", copy: "vpsLink.move.step.copy", verify: "vpsLink.move.step.verify", empty: "vpsLink.move.step.empty",
 };
 
-function Bots({ preview }: { preview: VpsMovePreview }) {
+function Bots({ preview, moving }: { preview: VpsMovePreview; moving?: boolean }) {
   const shown = preview.bots.slice(0, SHOWN_BOTS), more = preview.bots.length - shown.length;
   if (preview.bots.length === 0) return <p className="m-0 text-center text-[13px] leading-[18px] text-ink/56">{t("vpsLink.move.noBots")}</p>;
   return (
     <ul aria-label={t("vpsLink.move.botsAria")} className="m-0 flex list-none flex-wrap justify-center gap-x-5 gap-y-3 p-0">
       {shown.map((bot, index) => {
+        const status = moving === undefined ? null : moving ? "moving" : "waiting";
         return (
-          <li key={bot.id} data-vps-bot="" className="flex w-[64px] flex-col items-center gap-1.5">
-            <span className="flex"><BotFace bot={bot} index={index} size={36} /></span>
+          <li key={bot.id} data-vps-bot={status ?? ""} className="flex w-[64px] flex-col items-center gap-1.5">
+            <span className={cn("flex transition-opacity duration-200", status === "waiting" && "opacity-45")}><BotFace bot={bot} index={index} size={36} /></span>
             <span className="w-full truncate text-center text-[12px] leading-4 text-ink">{bot.name}</span>
+            {status && <span className="inline-flex items-center gap-1 text-[11px] leading-[14px] text-ink/56">
+              {moving && <LoaderCircle size={11} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />}
+              {t(moving ? "vpsLink.move.botMoving" : "vpsLink.move.botWaiting")}
+            </span>}
           </li>
         );
       })}
@@ -106,8 +112,7 @@ export function MoveScreen({ view, preview, previewError, onReload, bridge, onMo
   };
   // a failed copy waits for its next try: the error, a countdown and Try now, in place of the hint
   const retryAt = phase === "moving" && move?.error && typeof move.retryAt === "number" ? move.retryAt : null;
-  const now = useNow(retryAt, phase === "moving");
-  const quietFor = progressQuietFor(view, now);
+  const now = useNow(retryAt);
 
   if (phase === "moved") {
     return (
@@ -142,7 +147,7 @@ export function MoveScreen({ view, preview, previewError, onReload, bridge, onMo
           <ProgressBar value={value} detail={detail} label={t(STEP_WORD[step], { name, device })} tone={paused ? "danger" : undefined} />
         </div>
         <div className={cn(centered, "top-[calc(50%+24px)]")}>
-          {preview && <Bots preview={preview} />}
+          {preview && <Bots preview={preview} moving={!paused} />}
         </div>
         <Footer>
           {retryError && <ErrorNote>{retryError}</ErrorNote>}
@@ -162,7 +167,7 @@ export function MoveScreen({ view, preview, previewError, onReload, bridge, onMo
                 </>
               : <>
                   {(move.error || view.error) && <><ErrorNote>{move.error ?? view.error}</ErrorNote><button type="button" className={SOFT_PILL} disabled={retrying} onClick={retry}>{t("vpsLink.move.retryNow")}</button></>}
-                  <p role="status" className={cn("m-0 text-[13px] leading-[18px]", quietFor >= QUIET_AFTER_MS ? "text-warning" : "text-ink/56")}>{quietFor >= QUIET_AFTER_MS ? t("vpsLink.progress.quiet", { time: formatElapsed(quietFor) }) : t("vpsLink.move.movingHint")}</p>
+                  <p className="m-0 text-[13px] leading-[18px] text-ink/56">{t("vpsLink.move.movingHint")}</p>
                 </>}
         </Footer>
       </>
