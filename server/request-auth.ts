@@ -290,6 +290,10 @@ export const CLIENT_ALLOW: ReadonlyArray<{ methods: readonly string[]; path: Reg
   // The phones those codes opened: a member lists and removes their own only (routes/team-phone.ts visiblePhones).
   { methods: ["GET"], path: /^\/api\/team\/phones$/ },
   { methods: ["DELETE"], path: /^\/api\/team\/phones\/[\w-]+$/ },
+  // A paired phone's own record and push registration (mobile/link.ts checks the device is this session's).
+  { methods: ["GET"], path: /^\/api\/mobile\/device$/ },
+  { methods: ["PUT", "DELETE"], path: /^\/api\/mobile\/push$/ },
+  { methods: ["DELETE"], path: /^\/api\/mobile\/devices\/[\w-]+$/ },
   // This phone's own apps, keyed by its session (routes/phones.ts): register, poll, lease, answer.
   { methods: ["GET", "PUT", "DELETE"], path: /^\/api\/phones\/self$/ },
   { methods: ["GET"], path: /^\/api\/phones\/self\/jobs$/ },

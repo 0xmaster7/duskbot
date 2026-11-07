@@ -451,7 +451,7 @@ import { screenFrameHash, screenSurfaceForTool, screenTouchingTool, settledFrame
 import { asSchedule, RoutineRequestService } from "./routine-requests.ts"; import { ownerSpokeOnly } from "./cloud-routine-level.ts"; import { routineRunCard, routineRunFallbackText } from "./routine-run-card.ts";
 import { activeRoutinesContext } from "./active-routines-context.ts";
 import { createRefusedHandoffs } from "./host/refused-handoffs.ts"; import { automationContextText, createAutomationReports, newestAutomationLines } from "./automation-reports.ts"; import { createAutomationDestinations } from "./automation-destinations.ts"; import { createProactive } from "./host/proactive.ts"; import { READ_AND_DRAFT_PARTS, READ_AND_DRAFT_REFUSAL, READ_AND_DRAFT_TOOLS, recordsAnswer } from "./read-and-draft.ts"; import { createPresenceRoutes } from "./routes/presence.ts"; import { needsYouNow } from "./today.ts";
-import { engineLabel, LimitResetClock, nearLimitNote } from "./limit-resets.ts"; import { loadPlanUsage, planAccountsFromInstances } from "./plan-usage.ts"; import { LimitFailovers, limitBackupAllowed } from "./limit-failover.ts"; import { createLimitResetRoutes } from "./routes/limit-resets.ts"; import { createComputerEgress } from "./computer-egress.ts"; import { createComputerEgressRoutes } from "./routes/computer-egress.ts"; import { isThisServerVps } from "./vps-local.ts";
+import { engineLabel, LimitResetClock, nearLimitNote } from "./limit-resets.ts"; import { loadPlanUsage, planAccountsFromInstances } from "./plan-usage.ts"; import { LimitFailovers, limitBackupAllowed } from "./limit-failover.ts"; import { createLimitResetRoutes } from "./routes/limit-resets.ts"; import { createComputerEgress } from "./computer-egress.ts"; import { createComputerEgressRoutes } from "./routes/computer-egress.ts"; import { createMobileLink, mobileLookupRelay, notifyPhones } from "./mobile/link.ts"; import { isThisServerVps } from "./vps-local.ts";
 import { parseTriggerRequest, triggerTarget } from "./trigger-tools.ts"; import { WebhookRequestError, WebhookRequestService } from "./webhook-requests.ts"; import { createAppTriggerHost } from "./app-trigger-host.ts";
 import { appliesNow, directApply, UNDO_STALE, type DirectApply } from "./direct-apply.ts";
 import { createAgentCard } from "./chat-widgets.ts";
@@ -4736,7 +4736,7 @@ function cursorSeq(raw: string | string[] | undefined): number | null {
 
 /** `adminOnly` frames are withheld from client sessions, live and on replay; a `person`'s frames reach only their streams. */
 function broadcast(payload: Record<string, unknown>, options: { adminOnly?: boolean; person?: string } = {}) {
-  if (payload.kind === "config") recheckRemoteViewers();
+  if (payload.kind === "config") recheckRemoteViewers(); else if (payload.kind === "notify") notifyPhones(payload.notification, options);
   // Close stale email streams before any further workspace data is delivered.
   sessions.recheckMembership();
   const seq = ++lastSeq;
@@ -9772,7 +9772,7 @@ ROUTES.push(createLimitResetRoutes({ clock: limitClock, routines: routines!, req
   created: (id, auth) => cloudRoutineAuthors?.wrote(id, auth.kind === "session" ? actorKey(auth) : CLOUD_NOBODY_KEY) }));
 const computerEgress = createComputerEgress({ enabled: () => cfg.vps?.routeThroughComputer !== false, log: (line) => console.warn(line),
   docker: () => (isThisServerVps(vpsSshAlias(cfg)) ? (args, timeoutMs) => vps.defaultRunner(args, { timeoutMs }) : null) });
-ROUTES.push(createComputerEgressRoutes({ egress: computerEgress, setEnabled: (enabled) => { saveConfig({ vps: { routeThroughComputer: enabled } }); Object.assign(cfg, loadConfig()); } }));
+ROUTES.push(createComputerEgressRoutes({ egress: computerEgress, setEnabled: (enabled) => { saveConfig({ vps: { routeThroughComputer: enabled } }); Object.assign(cfg, loadConfig()); } })); const mobileLink = createMobileLink({ dataDir: DATA_DIR, sessions, workspace: () => ({ name: cfg.computerName || environmentDescriptor({ environmentId: ENVIRONMENT_ID, ...TEAM_LABEL, desktopManaged: DESKTOP_MANAGED }).label, environmentId: ENVIRONMENT_ID, kind: DESKTOP_MANAGED ? "mac" : "server" }), publicOrigin: () => (publicUrl()?.startsWith("https://") ? publicUrl() : null), refusal: () => (HOSTED_WORKSPACE || CLOUD_HOME ? "Phones sign in to this workspace through its own sign-in." : null), lookupRelay: mobileLookupRelay() }); ROUTES.push(async (ctx) => ((await mobileLink.route(ctx)) ? undefined : PASS));
 
 let webhookIngress: WebhookIngress | null = null;
 let webhookIngressError: string | null = null;
@@ -12940,7 +12940,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         serverName: cfg.computerName || environmentDescriptor({ environmentId: ENVIRONMENT_ID, ...TEAM_LABEL, desktopManaged: DESKTOP_MANAGED }).label,
       });
     }
-    const gate = resolveRequestAuth(req, {
+    if (await mobileLink.publicRoute(req, res, path, method, json, readBody)) return; const gate = resolveRequestAuth(req, {
       sessions,
       cookieName: SESSION_COOKIE,
       streamPath: "/api/events",
