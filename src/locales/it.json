@@ -5818,5 +5818,10 @@
   "routeTraffic.hint": "Fa passare il traffico di rete del computer del bot dal tuo computer desktop invece che dal cloud. Vale per le nuove connessioni.",
   "routeTraffic.through": "Tramite il tuo computer. Vale per le nuove connessioni.",
   "routeTraffic.offline": "In uso la rete del server, il tuo computer è offline",
-  "routeTraffic.error": "Non è stato salvato. Riprova."
+  "routeTraffic.error": "Non è stato salvato. Riprova.",
+  "linkDirect.title": "Connessione diretta veloce",
+  "linkDirect.direct": "Dritto al tuo server tramite la sua porta SSH. Torna al relay se quella porta è bloccata.",
+  "linkDirect.relay": "Al momento sul relay. Passa al diretto da solo appena la porta SSH del tuo server risponde.",
+  "linkDirect.off": "Tutto passa dal relay. Attivala per raggiungere il tuo server direttamente tramite la sua porta SSH, con il relay come riserva.",
+  "routeTraffic.notice": "Il tuo computer è offline, quindi per ora i computer dei bot usano la rete del server. Torneranno indietro appena sarà online."
 }

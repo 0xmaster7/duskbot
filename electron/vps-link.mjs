@@ -349,6 +349,7 @@ export function createVpsLink(deps) {
   /** asks the agent (over the sealed relay) to accept a new key, once; an older agent says no and is asked again later */
   async function directFor(link, proxy) {
     if (!deps.direct || closed || proxy.useDirect === undefined) return;
+    if (link.directOff) { if (link.directRevoke) await revokeDirect(link, proxy); return; }
     try {
       if (!directValid(link.direct)) {
         if (link.directRefusedAt && now() - link.directRefusedAt < DIRECT_RETRY_MS) return;
@@ -381,6 +382,53 @@ export function createVpsLink(deps) {
       if (/unknown request/.test(String(error?.message))) { link.directRefusedAt = now(); write(); return; }
       log(`vps link: ${link.name} stays on the relay (${error?.message ?? error})`);
     }
+  }
+
+  /** takes this app's key off the server; a server that does not answer is asked again when its tunnel next opens */
+  async function revokeDirect(link, proxy, timeoutMs = 30_000) {
+    try {
+      await proxy.control("direct-off", {}, timeoutMs);
+      if (link.directRevoke) { delete link.directRevoke; write(); }
+      return true;
+    } catch (error) {
+      log(`vps link: ${link.name} did not take the direct key off yet (${error?.message ?? error})`);
+      return false;
+    }
+  }
+
+  const linkAt = (origin) => {
+    let wanted;
+    try { wanted = new URL(origin).origin; } catch { return null; }
+    return state.links.find((entry) => { try { return Boolean(entry.origin) && new URL(entry.origin).origin === wanted; } catch { return false; } }) ?? null;
+  };
+
+  /** Settings > Computer "Fast direct connection" for the linked server at `origin`: null where it does not apply */
+  function directSetting(origin) {
+    const link = linkAt(origin);
+    if (!link || link.mode !== "relay" || !deps.direct) return null;
+    const proxy = proxies.get(link.id);
+    return { on: !link.directOff, path: proxy?.transport?.() === "direct" ? "direct" : "relay" };
+  }
+
+  /** turned off: the direct path closes and the server drops this app's key (direct-off); turned on: a new key is set up */
+  async function setDirect(origin, on) {
+    const link = linkAt(origin);
+    if (!link || link.mode !== "relay" || !deps.direct) return null;
+    const proxy = proxies.get(link.id) ?? null;
+    if (on) {
+      if (link.directOff || link.directRevoke) { delete link.directOff; delete link.directRevoke; delete link.directRefusedAt; write(); }
+      if (proxy) void directFor(link, proxy);
+      return directSetting(origin);
+    }
+    if (!link.directOff) {
+      link.directOff = true;
+      link.directRevoke = true;
+      delete link.direct;
+      write();
+    }
+    proxy?.useDirect?.(null);
+    if (proxy && link.directRevoke) await revokeDirect(link, proxy);
+    return directSetting(origin);
   }
 
   /** after a wake or a network change */
@@ -757,6 +805,9 @@ export function createVpsLink(deps) {
   async function forget() {
     const link = currentLink();
     if (!link) return view();
+    // the server drops this app's ssh key now; its agent also does once the link service says the tunnel is gone
+    const proxy = proxies.get(link.id);
+    if (proxy) await revokeDirect(link, proxy, 5000);
     try { await relay.forget(link.id, await unprotect(link.tokenP)); } catch (error) { log(`vps link: the link service did not forget the tunnel (${error?.message ?? error})`); }
     await proxyStarts.get(link.id)?.catch(() => {});
     await proxies.get(link.id)?.close();
@@ -791,9 +842,7 @@ export function createVpsLink(deps) {
   /** whether `identity` is the one pinned for the linked server at `origin`: null for an origin no link has. A link made
    * before the agent sent one pins the first it sees, which reaches this app through the same sealed tunnel */
   function sealTrust(origin, identity) {
-    let wanted;
-    try { wanted = new URL(origin).origin; } catch { return null; }
-    const link = state.links.find((entry) => { try { return Boolean(entry.origin) && new URL(entry.origin).origin === wanted; } catch { return false; } });
+    const link = linkAt(origin);
     if (!link) return null;
     if (typeof identity !== "string" || !SEAL_IDENTITY.test(identity)) return { ok: false, pinned: true };
     if (!link.sealIdentity) {
@@ -808,7 +857,7 @@ export function createVpsLink(deps) {
   }
 
   return {
-    view, start, cancel, resume, sealTrust, nudge,
+    view, start, cancel, resume, sealTrust, nudge, directSetting, setDirect,
     reset() { lastError = null; if (!state.pending && state.move?.step === "done") state.move = null; write(); return view(); },
     engines, signIn, signInStatus, signInCode, signInCancel,
     preview, move, retryMove, moveBack, backups, backupNow: async () => ({ id: (await backupNow("manual")).id }), restore, forget, where,

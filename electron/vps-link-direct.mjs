@@ -8,6 +8,7 @@ import { createRequire } from "node:module";
 import { connect as netConnect } from "node:net";
 
 import { openFrame, sealBytes, sealFrame } from "./vps-link-protocol.mjs";
+import { clampMss } from "./tcp-clamp.mjs";
 
 // ---- direct transport shared with link-service/agent.mjs (keep both in step; a test checks they interoperate) ----
 /** each end writes this first; a login shell's greeting before it is skipped */
@@ -384,6 +385,7 @@ export function sshConnector({ host, port = 22, user, privateKey, hostKeys, time
     const sock = netConnect({ host, port });
     sock.setNoDelay(true);
     sock.setKeepAlive(true, 15_000);
+    sock.once("connect", () => void clampMss(sock));
     let settled = false, refused = false;
     const fail = (error) => {
       if (settled) return;

@@ -632,6 +632,9 @@ do_user() {
     manifest_add "user $SVC_USER"
     x useradd --create-home --home-dir "$SVC_HOME" --shell /bin/bash "$SVC_USER"
   fi
+  # useradd leaves the password "!" (locked), and sshd without PAM refuses every key for a locked account; "*" still
+  # allows no password but lets the app's restricted direct key in (OpenSSH auth.c allowed_user)
+  if [ "$(getent shadow "$SVC_USER" | cut -d: -f2)" = "!" ]; then usermod -p '*' "$SVC_USER"; fi
   # the docker group is root-equivalent; the server is the person's own, and the bot desktop needs it
   if getent group docker >/dev/null 2>&1; then usermod -aG docker "$SVC_USER"; fi
   for dir in "$SVC_HOME/.local" "$SVC_HOME/.cache" "$SVC_HOME/.config" "$SVC_HOME/.config/openmausbot" "$SVC_HOME/.config/openmausbot-link"; do

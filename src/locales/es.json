@@ -5406,5 +5406,10 @@
   "routeTraffic.hint": "Envía el tráfico de red del ordenador del bot a través de tu ordenador de escritorio en lugar de la nube. Se aplica a las conexiones nuevas.",
   "routeTraffic.through": "A través de tu ordenador. Se aplica a las conexiones nuevas.",
   "routeTraffic.offline": "Usando la red del servidor, tu ordenador está desconectado",
-  "routeTraffic.error": "No se guardó. Inténtalo de nuevo."
+  "routeTraffic.error": "No se guardó. Inténtalo de nuevo.",
+  "linkDirect.title": "Conexión directa rápida",
+  "linkDirect.direct": "Directo a tu servidor por su puerto SSH. Usa el relé si ese puerto está bloqueado.",
+  "linkDirect.relay": "Ahora mismo por el relé. Pasa a directo solo cuando el puerto SSH de tu servidor responda.",
+  "linkDirect.off": "Todo pasa por el relé. Actívalo para llegar a tu servidor directamente por su puerto SSH, con el relé como respaldo.",
+  "routeTraffic.notice": "Tu computadora está sin conexión, así que tus computadoras de bots usan la red del servidor por ahora. Volverán cuando esté en línea."
 }

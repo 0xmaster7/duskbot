@@ -4,12 +4,13 @@ import { createCipheriv, createDecipheriv, createHash, createPrivateKey, createP
 import { Agent as HttpAgent, STATUS_CODES, createServer, request as httpRequest } from "node:http";
 import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
 import { connect as http2Connect, constants as h2Constants } from "node:http2";
-import { isIP } from "node:net";
+import { connect as netConnect, isIP } from "node:net";
 import { Readable } from "node:stream";
 import { connect as tlsConnect } from "node:tls";
 import { setTimeout as sleep } from "node:timers/promises";
 
 import { createDirectLink } from "./vps-link-direct.mjs";
+import { clampMss } from "./tcp-clamp.mjs";
 
 const B32 = "abcdefghijklmnopqrstuvwxyz234567";
 const FRAME_SKEW_MS = 5 * 60_000;
@@ -211,7 +212,11 @@ export function sealBytes(key, id, dir, r, bytes, raw = false) {
   head.writeDoubleBE(Date.now(), 13);
   return (raw ? sealRaw : seal)(key, `${id}|${dir}`, Buffer.concat([head, bytes]));
 }
-/** `sealed` is base64url (relay) or bytes (direct); the guard keys on the iv either way, so one guard spans both paths */
+/**
+ * `sealed` is base64url (relay) or bytes (direct); the guard keys on the iv either way. the app keeps one guard for both
+ * paths; on the vps the tunnel process and each direct session keep their own, which is enough there: a relay frame
+ * cannot be replayed into a direct session without the app's ssh key, and direct frames never pass the relay
+ */
 export function openFrame(key, id, dir, sealed, guard) {
   const plain = open(key, `${id}|${dir}`, sealed);
   const value = plain[0] === 1 && plain.length >= 21
@@ -305,15 +310,16 @@ const until = (promise, signal) => (!signal ? promise : new Promise((resolve, re
  * keepAliveFetch's api over one http/2 connection when the relay offers h2 (nginx does): the streamed read and every
  * post share one warm tls connection, so a post never waits on a new handshake (5.5 s behind a lossy vpn, 0.3 s from a
  * vps) and many can be out at once (`multiplexed()`). plain http, or an origin that answers without h2, goes through
- * keepAliveFetch. `tls` is extra tls.connect options (a test's ca).
+ * keepAliveFetch. `tls` is extra tls.connect options (a test's ca); `dial(host, port)` makes the tcp socket under it.
  */
-export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8 } = {}) {
+export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null } = {}) {
   const h1 = keepAliveFetch({ maxSockets, tls: tlsOptions });
   const h1Origins = new Set();
   let session = null, opening = null, tlsSession = null, lastUsed = 0;
   const live = (one) => Boolean(one && !one.closed && !one.destroyed);
   const open = (url) => new Promise((resolve) => {
-    const socket = tlsConnect({ host: url.hostname, port: Number(url.port) || 443, ...(isIP(url.hostname) ? {} : { servername: url.hostname }), ALPNProtocols: ["h2", "http/1.1"], ...(tlsSession ? { session: tlsSession } : {}), ...tlsOptions });
+    const host = url.hostname, port = Number(url.port) || 443;
+    const socket = tlsConnect({ host, port, ...(dial ? { socket: dial(host, port) } : {}), ...(isIP(host) ? {} : { servername: host }), ALPNProtocols: ["h2", "http/1.1"], ...(tlsSession ? { session: tlsSession } : {}), ...tlsOptions });
     socket.on("session", (value) => { tlsSession = value; });
     const failed = () => { socket.destroy(); resolve(null); };
     socket.once("error", failed);
@@ -478,6 +484,13 @@ const MOVE_AFTER_MS = 3000;
 /** a websocket (the live desktop) opened while the direct path is dialling waits this long for it before taking the relay */
 const UPGRADE_HOLD_MS = 4000;
 
+/** the relay's tcp socket, with what this computer sends kept under a lossy vpn's real mtu once it connects */
+function clampedDial(host, port) {
+  const socket = netConnect({ host, port });
+  socket.once("connect", () => void clampMss(socket));
+  return socket;
+}
+
 /**
  * the app's end of the tunnel: a loopback http server at http://vps-<id>.localhost:<port> whose requests travel to the
  * vps sealed, and whose replies stream back the same way. only that host name is served. two paths carry the frames:
@@ -489,7 +502,7 @@ const UPGRADE_HOLD_MS = 4000;
  * agent's half of it lives.
  */
 export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS, direct: directSpec = null, directFactory = createDirectLink, egress: makeEgress = null, waitS = 25, aheadMs = STREAM_AHEAD_MS }) {
-  const fetchImpl = given ?? relayFetch();
+  const fetchImpl = given ?? relayFetch({ dial: clampedDial });
   const stream = streamChoice();
   let unwarm = () => {};
   const key = Buffer.from(keyText, "base64url");

@@ -80,7 +80,7 @@ function railKeepsItsSize() {
 if (typeof window !== "undefined") {
   for (const type of ["resize", "DOMContentLoaded"]) window.addEventListener(type, () => { leaveRailRoom(); railKeepsItsSize(); });
 }
-const REMOTE_SAFE = new Set(["platform", "app", "getCapabilities", "onCapabilitiesChanged", "applySkin", "setUnreadCount", "permStatus", "workspaces", "rail", "cloudAdd", "cloudPlan", "cloudSendPage", "accountSheet", "desktopNotices", "desktopNotifications", "desktopAnalytics", "desktopLanguage", "updatesConsent", "windowControls", "onOpenAppSettings", "windowFrame", "sealTrust"]);
+const REMOTE_SAFE = new Set(["platform", "app", "getCapabilities", "onCapabilitiesChanged", "applySkin", "setUnreadCount", "permStatus", "workspaces", "rail", "cloudAdd", "cloudPlan", "cloudSendPage", "accountSheet", "desktopNotices", "desktopNotifications", "desktopAnalytics", "desktopLanguage", "updatesConsent", "windowControls", "onOpenAppSettings", "windowFrame", "sealTrust", "linkDirect"]);
 /** My Cloud's own page once it is the person's home (main checks the sender again): it is this app's page then. */
 const HOME_PAGE = ["home", "onChatLink", "onPackageInstall", "exportDiagnostics", "openLogsFolder", "openAtLogin", "callActive"];
 function updaterOffered() {
@@ -530,6 +530,12 @@ const bridge = {
   // Every page: whether its server's identity is the one this app pinned for it. Main names the server from the page that
   // asks; only a public key crosses here.
   sealTrust: { check: identity => ipcRenderer.invoke("seal-trust:check", String(identity)) },
+  // A linked server's page: Settings > Computer "Fast direct connection" for the link main finds from the page asking.
+  linkDirect: {
+    state: () => ipcRenderer.invoke("link-direct:state"),
+    set: on => navigator.userActivation?.isActive === true
+      ? ipcRenderer.invoke("link-direct:set", on === true) : Promise.reject(new Error("Turn the switch to change the connection.")),
+  },
   // This computer's page only (never in REMOTE_SAFE, and main refuses any other): Add your VPS, its AI sign-in, the move
   // there and back, and the backups made on the way. No secret ever comes through here.
   vpsLink: {
