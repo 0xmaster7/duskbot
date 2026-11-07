@@ -465,7 +465,7 @@ export const Transcript = memo(function Transcript({
       sender: first.role === "bot" && first.from?.botId && !(first.kind === "activity" && (first.comm || first.handoff)) ? first.from.botId : null,
       stamped: newDay || divider !== null,
     } : null;
-    return { item, first, newDay, divider, slot };
+    return { item, prev, first, newDay, divider, slot };
   });
   const places = roomRowLayout(rows.map((row) => row.slot));
   if (seamId) {
@@ -475,7 +475,7 @@ export const Transcript = memo(function Transcript({
 
   return (
     <>
-      {rows.map(({ item, first, newDay, divider: own, slot }, i) => {
+      {rows.map(({ item, prev, first, newDay, divider: own, slot }, i) => {
         const place = places[i]!;
         const run = exchanges.runAt.get(i);
         const collapsed = run !== undefined && !exchanges.isOpen(run);
@@ -485,14 +485,14 @@ export const Transcript = memo(function Transcript({
           lead = (
             <>
               {run.items.map((_, offset) => rows[run.start + offset]!.divider).find(Boolean)}
-              {newDay && <DaySeparator at={first.at} today={today} />}
+              {newDay && <DaySeparator at={first.at} today={today} prev={prev} next={first} />}
               <PeerExchangeLine summary={run.summary} bots={state.bots} expanded={!collapsed} onToggle={() => exchanges.toggle(run)} />
             </>
           );
           if (collapsed) return <div key={run.id} className="contents" data-mid={first.id}>{lead}</div>;
         }
         const divider = run ? null : own;
-        const stamp = lead ?? (newDay && <DaySeparator at={first.at} today={today} />);
+        const stamp = lead ?? (newDay && <DaySeparator at={first.at} today={today} prev={prev} next={first} />);
         const label = place.label && first.from && <ClusterLabel bot={memberOf(first.from.botId)} name={first.from.name} color={first.from.color} />;
         const labelled = (row: ReactNode) => label ? <div className="flex w-full flex-col gap-1">{label}{row}</div> : row;
         if (item.kind === "run") {
@@ -877,9 +877,9 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
     </section>
   );
 }
-/** A 1:1 chat's dock always holds its usage row, 8px tall when empty; a room has none, so its last row keeps the same
- * distance from the composer by adding it. */
-const USAGE_ROW_GAP = 8;
+/** A 1:1 chat's dock always holds its usage row, 8px tall when empty; a room has none, so it adds those 8px, and 12px
+ * more because grok's room ends its last bubble 66px over the composer, not 54. */
+const USAGE_ROW_GAP = 8 + 12;
 
 
 export function GroupView({ group: room }: { group: Group }) {
