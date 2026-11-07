@@ -129,6 +129,10 @@ const __APP_VERSION__: string;
         dismiss(key: string): Promise<{ suggest: import("../lib/two-places").TwoPlacesSuggestion | null }>;
         onChanged(callback: () => void): () => void;
       };
+      /** Every page this window shows: whether a server's identity key (`x.y`) is the one this app pinned for the server
+       * the page belongs to, pinned at linking or on first use. `pinned: false` when there is nothing to pin against (this
+       * computer's own server, or a server this app did not link). Main decides the server from the page, never from it. */
+      sealTrust?: { check(identity: string): Promise<{ ok: boolean; pinned: boolean }> };
       /** This computer's page only: Add your VPS, its install, sign-in, move, and the Transfer pane (electron/vps-link.mjs). */
       vpsLink?: import("../lib/vps-link").VpsLinkBridge;
       /** Settings on the person's own Cloud: the plan, read only. */

@@ -13,6 +13,8 @@ const record = (value) => value !== null && typeof value === "object" && !Array.
 const SKILL_KINDS = new Set(["skill", "imported-skill", "library-skill"]);
 const ROUTINE_KINDS = new Set(["routine", "call", "webhook", "app-event"]);
 const CLAUDE_TOKEN = /sk-ant-oat01-[A-Za-z0-9_-]{20,}/;
+/** a server's long-term identity key as it signs its sealing keys: P-256, `x.y` in base64url */
+export const SEAL_IDENTITY = /^[A-Za-z0-9_-]{43}\.[A-Za-z0-9_-]{43}$/;
 
 function installProgress(value) {
   if (!record(value)) return null;
@@ -344,6 +346,8 @@ export function createVpsLink(deps) {
       link = {
         id: pending.id, base, name: result.name, mode: result.mode, origin: result.mode === "direct" ? result.origin : null, port: null,
         spki: result.spki ?? null, environmentId: result.environmentId ?? null, envId: null, at: now(), keyP, tokenP,
+        // pinned here when the agent sent it inside the sealed result; an older agent's link pins it on first use instead
+        sealIdentity: typeof result.sealIdentity === "string" && SEAL_IDENTITY.test(result.sealIdentity) ? result.sealIdentity : null,
       };
       if (link.mode === "direct") deps.pin?.(new URL(link.origin).host, link.spki);
       const proxy = await proxyFor(link);
@@ -732,8 +736,27 @@ export function createVpsLink(deps) {
     if (state.move && state.move.status === "running" && state.move.step === "backup") moveTo("backup", "failed", { error: "The app closed while saving the backup. Nothing on this Mac changed." });
   }
 
+  /** whether `identity` is the one pinned for the linked server at `origin`: null for an origin no link has. A link made
+   * before the agent sent one pins the first it sees, which reaches this app through the same sealed tunnel */
+  function sealTrust(origin, identity) {
+    let wanted;
+    try { wanted = new URL(origin).origin; } catch { return null; }
+    const link = state.links.find((entry) => { try { return Boolean(entry.origin) && new URL(entry.origin).origin === wanted; } catch { return false; } });
+    if (!link) return null;
+    if (typeof identity !== "string" || !SEAL_IDENTITY.test(identity)) return { ok: false, pinned: true };
+    if (!link.sealIdentity) {
+      link.sealIdentity = identity;
+      link.sealPinnedAt = now();
+      write();
+      log(`vps link: pinned ${link.name}'s identity on first use`);
+      return { ok: true, pinned: true };
+    }
+    if (link.sealIdentity !== identity) log(`vps link: ${link.name} offered an identity other than the one pinned for it; nothing is sealed for it`);
+    return { ok: link.sealIdentity === identity, pinned: true };
+  }
+
   return {
-    view, start, cancel, resume,
+    view, start, cancel, resume, sealTrust,
     reset() { lastError = null; if (!state.pending && state.move?.step === "done") state.move = null; write(); return view(); },
     engines, signIn, signInStatus, signInCode, signInCancel,
     preview, move, retryMove, moveBack, backups, backupNow: async () => ({ id: (await backupNow("manual")).id }), restore, forget, where,
