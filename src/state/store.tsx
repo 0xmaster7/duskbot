@@ -1,6 +1,6 @@
 import { cloudAsleep, onCloudPower } from "../lib/cloud-power";
 import { api, ApiError, snapshotArrays } from "./api";
-import { createContext, startTransition, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from "react";
+import { createContext, startTransition, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import type { BotMovedTo, BotVisibility, CardAnswerer, CloudBackend, ConnectorToolGrant, EffortLevel, InstalledPackageMetadata, LiveCallState, ServerFrame, GroupThreadUsage, SteerQueueReason, WireBot, WireGroup, WireTask, OptionCardData as WireOptionCard } from "../../shared/wire";
 import { movesThreadToTop } from "../../shared/wire"; import type { DefaultBotFields } from "../../shared/default-bot";
@@ -18,7 +18,7 @@ import { applySendReceipt } from "./send-receipt";
 import { foldSnapshotOntoStreamed, patchedGroups, roomAnswers, snapshotPatch } from "./room-frames";
 import { savedStateAction, type SavedOwner, type SavedSnapshot } from "./saved-state";
 import { heldTranscript, keepBotNavigation, keepGroupNavigation, navigatedSince, visibleMessages } from "./snapshot-navigation";
-import { reconcileTranscript, type CachedTranscript } from "./transcript-cache";
+import { createTranscriptCache, indexedDbShelf, reconcileTranscript, type CachedTranscript } from "./transcript-cache";
 export { shownTranscript, visibleMessages } from "./snapshot-navigation";
 export { awayFromMainThread, botOpensTo, markedThread, openBot, openBotRow, openBotThread, openRoomThread, openThread, visibleNotificationThread, type ThreadTarget } from "./thread-navigation";
 import type { TurnDigest } from "../../shared/digest";
@@ -757,7 +757,7 @@ export type Action =
       onError?: (message: string) => void;
     }
   | { type: "newTask"; botId: string; projectId?: string; cwd?: string; onCreated?: () => void; onError?: (message: string) => void }
-  | { type: "switchTask"; botId: string; threadId: string; whole?: true }
+  | { type: "switchTask"; botId: string; threadId: string; whole?: true; cached?: CachedTranscript }
   | { type: "switchTaskFailed"; botId: string; threadId: string }
   | { type: "taskSwitched"; bot: Bot }
   | { type: "renameTask"; botId: string; threadId: string; title: string }
@@ -1755,8 +1755,11 @@ export function reducer(state: AppState, action: Action): AppState {
       return action.cwd !== undefined ? state : { ...state, selectedId: action.botId, activeView: "chat" };
     case "switchTask": {
       const { [action.threadId]: _old, ...backgroundThreadEvents } = state.backgroundThreadEvents;
-      return updateBot({ ...state, backgroundThreadEvents, selectedId: action.botId, activeView: "chat", revealThread: { threadId: action.threadId, nonce: (state.revealThread?.nonce ?? 0) + 1 } }, action.botId,
-        (bot) => ({ ...bot, switchingTo: action.threadId }));
+      // a conversation the cache holds current shows at once; the switch's own page then confirms the same rows
+      const { cached } = action, moved = updateBot({ ...state, backgroundThreadEvents, selectedId: action.botId, activeView: "chat", revealThread: { threadId: action.threadId, nonce: (state.revealThread?.nonce ?? 0) + 1 } }, action.botId,
+        (bot) => (cached ? { ...bot, threadId: action.threadId, messages: cached.messages, hasMore: cached.hasMore, activeLeafId: cached.activeLeafId, transcriptLoaded: true, transcriptStale: undefined, switchingTo: action.threadId } : { ...bot, switchingTo: action.threadId }));
+      const shown = cached && moved.bots.find((bot) => bot.id === action.botId);
+      return shown ? { ...moved, unreadDivider: openedUnreadDivider(moved, shown.threadId, threadOpensUnread(shown), visibleMessages(shown), threadReadCursor(shown)) } : moved;
     }
     case "switchTaskFailed":
       return updateBot(state, action.botId, (bot) => bot.switchingTo === action.threadId ? { ...bot, switchingTo: undefined } : bot);
@@ -1783,8 +1786,9 @@ export function reducer(state: AppState, action: Action): AppState {
         computer: action.bot.computer,
         toolScope: action.bot.toolScope, managedSections: action.bot.managedSections,
         vpsAlias: action.bot.vpsAlias,
-        messages: action.bot.messages ?? [],
-        hasMore: action.bot.hasMore,
+        ...(bot.threadId === action.bot.threadId && bot.transcriptLoaded !== false && bot.messages.length && action.bot.messages
+          ? reconcileTranscript(bot.messages, new Set(bot.messages.filter((message) => message.at <= (action.bot.messages?.at(-1)?.at ?? Infinity))), action.bot.messages, Boolean(action.bot.hasMore), bot.hasMore)
+          : { messages: action.bot.messages ?? [], hasMore: action.bot.hasMore }),
         awaitingThreadSnapshot: false,
         transcriptLoaded: true,
         transcriptStale: undefined,
@@ -1795,7 +1799,7 @@ export function reducer(state: AppState, action: Action): AppState {
       switched = { ...switched, backgroundThreadEvents };
       const opened = switched.bots.find((bot) => bot.id === action.bot.id);
       if (opened && opened.id === switched.selectedId) {
-        switched = { ...switched, unreadDivider: openedUnreadDivider(switched, opened.threadId, threadOpensUnread(opened), visibleMessages(opened), threadReadCursor(opened)) };
+        switched = { ...switched, unreadDivider: state.unreadDivider?.threadId === opened.threadId ? state.unreadDivider : openedUnreadDivider(switched, opened.threadId, threadOpensUnread(opened), visibleMessages(opened), threadReadCursor(opened)) };
         // The snapshot predates the switch's own announcement and must not put the unread dot back.
         if (switched.activeView === "chat") switched = updateBot(switched, opened.id, (bot) => ({ ...bot,
           unread: Boolean(bot.tasks?.some((task) => task.threadId !== bot.threadId && task.unread)),
@@ -2132,8 +2136,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, rawDispatch] = useReducer(reducer, initialState, restoreBotSettingsSection);
   const stateRef = useRef(state), selectionRevision = useRef(0);
   stateRef.current = state;
-  const invalidateTranscripts = useSelectedTranscript(state, rawDispatch, MESSAGE_PAGE_SIZE);
-  useTranscriptCache(state, rawDispatch);
+  const [transcriptCache] = useState(() => createTranscriptCache(indexedDbShelf()));
+  const invalidateTranscripts = useSelectedTranscript(state, rawDispatch, MESSAGE_PAGE_SIZE, transcriptCache);
+  useTranscriptCache(state, rawDispatch, transcriptCache);
   const showThreads = useShowThreads();
   const showThreadsRef = useRef(showThreads);
   showThreadsRef.current = showThreads;
@@ -2287,6 +2292,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (["select", "newTask", "switchTask", "newGroupTask", "switchGroupTask", "showChat", "showRoutines", "showFiles"].includes(action.type)) selectionRevision.current++;
       // Pin before any await or optimistic state change.
       action = pinBotThreadAction(action, stateRef.current.bots);
+      if (action.type === "switchTask" && !action.cached) action = { ...action, cached: transcriptCache.current(action.threadId) };
       if (action.type === "taskSwitched") action = { ...action, bot: withTaskWrites(action.bot) as Bot };
       if (action.type === "botPatched") action = { ...action, bot: withTaskWrites(action.bot) };
       if ((action.type === "send" || action.type === "sendGroup" || action.type === "editMessage") && !action.sendId) action = { ...action, sendId: randomUuid() };

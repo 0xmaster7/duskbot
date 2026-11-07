@@ -91,3 +91,31 @@ it("keeps a transcript's newest messages within a size budget and clips long too
   expect(entry.messages.at(-1)!.tool!.clipped).toBe(true);
   expect(entry.hasMore).toBe(true);
 });
+
+it("follows every live frame for a conversation it holds, on screen or not, and knows when it may have missed some", () => {
+  const cache = createTranscriptCache(null);
+  expect(cache.current("t")).toBeUndefined();
+  cache.confirm("t", [line("a")], false, "a");
+  cache.follow({ kind: "message", threadId: "t", message: { ...line("b"), parentId: "a" } });
+  cache.follow({ kind: "message.patch", threadId: "t", message: line("a", "edited") });
+  cache.follow({ kind: "message", threadId: "t", message: { ...line("b"), parentId: "a" } });
+  cache.follow({ kind: "message", threadId: "elsewhere", message: line("x") });
+  expect(cache.current("t")?.messages.map((message) => message.text)).toEqual(["edited", "b"]);
+  expect(cache.current("t")?.activeLeafId).toBe("b");
+  expect(cache.get("elsewhere")).toBeUndefined();
+  cache.forgetConfirmed();
+  expect(cache.current("t"), "the stream restarted without replaying").toBeUndefined();
+  expect(cache.get("t")?.messages).toHaveLength(2);
+});
+
+it("takes a sent message in place of its optimistic copy, and keeps unchanged objects when the server confirms", () => {
+  const cache = createTranscriptCache(null);
+  const optimistic = { ...line("optimistic-s1"), role: "user" as const };
+  cache.confirm("t", [line("a"), optimistic], false, null);
+  cache.follow({ kind: "message", threadId: "t", message: { ...line("u1"), role: "user", sendId: "s1" } });
+  expect(cache.get("t")?.messages.map((message) => message.id)).toEqual(["a", "u1"]);
+  const held = cache.get("t")!.messages;
+  cache.confirm("t", [line("a"), { ...line("u1"), role: "user", sendId: "s1" }], false, null);
+  expect(cache.current("t")!.messages[0]).toBe(held[0]);
+  expect(cache.current("t")!.messages[1]).toBe(held[1]);
+});

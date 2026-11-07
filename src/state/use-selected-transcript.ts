@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch } from "react";
 import { api } from "./api";
 import type { Action, AppState, Bot, Group, Message } from "./store";
+import type { TranscriptCache } from "./transcript-cache";
 
 /** How many of each conversation's newest messages the one startup read brings. */
 export const BULK_PAGE = 50;
@@ -17,9 +18,16 @@ export function threadsNeedingPages(state: Pick<AppState, "bots" | "groups">): s
   return [...state.bots, ...state.groups].filter(needsPage).map((owner) => owner.threadId).sort();
 }
 
+/** The main threads a bot's chat opens to while another of its threads is current, that the cache does not hold current. */
+export function mainThreadsNeedingPages(bots: readonly Bot[], cache: Pick<TranscriptCache, "current"> | undefined): string[] {
+  if (!cache) return [];
+  return bots.flatMap((bot) => bot.mainThreadId && bot.mainThreadId !== bot.threadId && bot.tasks?.some((task) => task.threadId === bot.mainThreadId) &&
+    !cache.current(bot.mainThreadId) ? [bot.mainThreadId] : []).sort();
+}
+
 /** Loads every conversation without a current transcript in one read once the snapshot lands, so any chat opens with
  * its messages already there; the open one also reads its own page at once if that read has not brought it yet. */
-export function useSelectedTranscript(state: AppState, dispatch: Dispatch<Action>, pageSize: number): () => void {
+export function useSelectedTranscript(state: AppState, dispatch: Dispatch<Action>, pageSize: number, cache?: TranscriptCache): () => void {
   const current = useRef(state);
   current.current = state;
   const epoch = useRef(0);
@@ -91,7 +99,7 @@ export function useSelectedTranscript(state: AppState, dispatch: Dispatch<Action
   // snapshot's read is not asked for again, and a failed read is tried again a moment later
   const asked = useRef({ epoch: -1, threads: new Set<string>() });
   const [retry, setRetry] = useState(0);
-  const missingThreads = state.hydrated ? threadsNeedingPages(state).join(",") : "";
+  const missingThreads = state.hydrated ? [...threadsNeedingPages(state), ...mainThreadsNeedingPages(state.bots, cache)].join(",") : "";
   useEffect(() => {
     if (!missingThreads) return;
     if (asked.current.epoch !== epoch.current) asked.current = { epoch: epoch.current, threads: new Set() };
@@ -99,6 +107,7 @@ export function useSelectedTranscript(state: AppState, dispatch: Dispatch<Action
     if (!wanted.length) return;
     for (const threadId of wanted) asked.current.threads.add(threadId);
     const starts = new Map(wanted.flatMap((threadId) => { const start = fence(threadId); return start ? [[threadId, start] as const] : []; }));
+    const cachedAtStart = new Map(wanted.map((threadId) => [threadId, cache?.get(threadId)?.messages ?? []]));
     const startedEpoch = epoch.current;
     const controller = new AbortController();
     const key = `${startedEpoch}:bulk:${wanted.join(",")}`;
@@ -109,6 +118,7 @@ export function useSelectedTranscript(state: AppState, dispatch: Dispatch<Action
         for (const page of threads) {
           const start = starts.get(page.threadId);
           if (start) deliver(page.threadId, page, start);
+          else if (cache && Array.isArray(page.messages) && !current.current.bots.some((bot) => bot.threadId === page.threadId)) cache.confirm(page.threadId, page.messages, page.hasMore, page.activeLeafId, cachedAtStart.get(page.threadId));
         }
       })
       .catch(() => {
@@ -119,6 +129,6 @@ export function useSelectedTranscript(state: AppState, dispatch: Dispatch<Action
       .finally(() => { if (reads.current.get(key)?.result === result) reads.current.delete(key); });
     reads.current.set(key, { controller, result });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fence reads the latest state through a ref
-  }, [missingThreads, retry, deliver]);
+  }, [missingThreads, retry, deliver, cache]);
   return invalidate;
 }

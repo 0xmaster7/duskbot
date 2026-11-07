@@ -50,6 +50,15 @@ it("sends every conversation's newest page in one reply, and only the ones asked
     expect(room.messages).toHaveLength(50);
     expect(room.hasMore).toBe(true);
 
+    // a bot on another of its threads: its main conversation, the one its chat opens to, comes too
+    const moved = imported.bots[2]!;
+    const away = (await request(`/api/bots/${moved.id}/tasks`, "POST", {})).body as { bot: WireBot };
+    await request(`/api/bots/${moved.id}`, "PATCH", { mainThreadChoice: moved.threadId });
+    expect(away.bot.threadId).not.toBe(moved.threadId);
+    const both = (await request("/api/transcripts?limit=50")).body.threads as Array<{ threadId: string; messages: WireMessage[] }>;
+    expect(both.find((thread) => thread.threadId === moved.threadId)?.messages).toHaveLength(8);
+    expect(both.some((thread) => thread.threadId === away.bot.threadId)).toBe(true);
+
     const picked = [imported.bots[1]!.threadId!, imported.groups[0]!.threadId];
     const some = (await request(`/api/transcripts?limit=50&threads=${picked.join(",")}`)).body.threads as Array<{ threadId: string }>;
     expect(some.map((thread) => thread.threadId).sort()).toEqual([...picked].sort());
