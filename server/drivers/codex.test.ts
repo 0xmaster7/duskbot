@@ -842,6 +842,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
         const thread = calls.find((call) => call.method === (resumeCursor ? "thread/resume" : "thread/start"))!.params;
         expect(thread).toMatchObject({ permissions: "omb-workspace", approvalPolicy: "on-request", approvalsReviewer: approvalMode === "auto" ? "auto_review" : "user" });
         expect(thread).not.toHaveProperty("sandbox");
+        expect(thread.config.default_permissions).toBe("omb-workspace");
         const filesystem = thread.config.permissions["omb-workspace"].filesystem;
         expect(filesystem).toMatchObject({ ":root": "read", ":workspace_roots": "write", ":tmpdir": "write", ":slash_tmp": "write" });
         for (const hidden of ["config.json", "messages.db", "engine-homes", "providers", join("workspaces", "b-other"), join("task-workspaces", "b-other")]) {
@@ -876,6 +877,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
       expect(starts[1]!.params).toMatchObject({ sandbox: "workspace-write", approvalPolicy: "on-request" });
       expect(starts[1]!.params).not.toHaveProperty("permissions");
       expect(starts[1]!.params.config?.permissions).toBeUndefined();
+      expect(starts[1]!.params.config?.default_permissions).toBeUndefined();
       expect(calls.find((call) => call.method === "turn/start")!.params).toMatchObject({ sandboxPolicy: { type: "workspaceWrite" } });
     });
 
@@ -1479,7 +1481,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
     const { turnId } = await instance.adapter.sendTurn({ threadId: "no-header-shell", text: "go" });
     await recorder.until((event) => event.type === "turn.completed" && event.turnId === turnId);
     const seen = JSON.parse(readFileSync(dump, "utf8"));
-    expect(Object.keys(seen.calls.find((call: { method: string }) => call.method === "thread/start").params.config)).toEqual(["permissions"]);
+    expect(Object.keys(seen.calls.find((call: { method: string }) => call.method === "thread/start").params.config)).toEqual(["default_permissions", "permissions"]);
     expect(seen.argv).not.toContain("features.shell_snapshot=false");
   });
 
@@ -1652,7 +1654,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
         expect(await recorder.until((event) => event.type === "turn.completed" && event.turnId === turnId)).toMatchObject({ ok: true });
         const seen = JSON.parse(readFileSync(dump, "utf8"));
         const thread = seen.calls.find((call: { method: string }) => call.method === (resumeCursor ? "thread/resume" : "thread/start"));
-        const { permissions: _profile, ...shell } = thread.params.config;
+        const { permissions: _profile, default_permissions: _default, ...shell } = thread.params.config;
         expect(shell).toEqual({ [key]: expected });
       }
     });
