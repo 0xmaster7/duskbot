@@ -751,11 +751,12 @@ describe("agents-proxy MCP surface", () => {
   it("advertises read annotations only for the reviewed built-in reads", async () => {
     const list = await rpc("tools/list");
     const readNames = [
-      "tool_result_read",
+      "tool_result_read", "list_room_targets",
       "assignment_status", "list_bots", "usage_limits", "list_rooms", "list_threads",
-      "list_team_setup",
+      "list_team_setup", "list_team_library", "decide", "extract",
       "session_search", "trigger_info", "list_waits", "skills_list",
     ];
+    const openWorld = new Set(["decide", "extract"]);
     expect(list.result.tools.filter((tool: any) => tool.annotations?.readOnlyHint)
       .map((tool: any) => tool.name)).toEqual(readNames);
     for (const tool of list.result.tools) {
@@ -764,7 +765,7 @@ describe("agents-proxy MCP surface", () => {
           readOnlyHint: true,
           destructiveHint: false,
           idempotentHint: true,
-          openWorldHint: false,
+          openWorldHint: openWorld.has(tool.name),
         });
       } else {
         expect(tool.annotations).toBeUndefined();

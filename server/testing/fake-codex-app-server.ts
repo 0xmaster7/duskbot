@@ -295,7 +295,8 @@ const announceMcpStartup = () => {
   const report = (name: string, status: string, error: string | null = null) =>
     out({ jsonrpc: "2.0", method: "mcpServer/startupStatus/updated", params: { threadId: null, name, status, error, failureReason: null } });
   mcpPending = Object.entries(mcpMounts())
-    .filter(([name, fields]) => "command" in fields && fields.enabled !== false && name !== process.env.FAKE_CODEX_MCP_FAILED)
+    // codex-cli 0.167.0 reports a url mount's startup as it does a command's.
+    .filter(([name, fields]) => ("command" in fields || "url" in fields) && fields.enabled !== false && name !== process.env.FAKE_CODEX_MCP_FAILED)
     .map(([name]) => name);
   for (const name of mcpPending) report(name, "starting");
   const settle = (name: string) => {

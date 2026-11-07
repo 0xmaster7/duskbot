@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agentToolAnnotations, isReadOnlyAgentTool, READ_ONLY_AGENT_TOOL_NAMES } from "./agent-tool-policy.ts";
+import { agentToolAnnotations, isReadOnlyAgentTool, OPEN_WORLD_AGENT_READ_NAMES, READ_ONLY_AGENT_TOOL_NAMES } from "./agent-tool-policy.ts";
 
 describe("built-in agent tool read policy", () => {
   it("includes only the reviewed local reads", () => {
@@ -16,6 +16,8 @@ describe("built-in agent tool read policy", () => {
       "skills_list",
       "list_unread_notifications",
       "usage_limits",
+      "list_room_targets",
+      "list_team_library",
     ]);
     for (const name of READ_ONLY_AGENT_TOOL_NAMES) {
       expect(isReadOnlyAgentTool(name)).toBe(true);
@@ -28,7 +30,16 @@ describe("built-in agent tool read policy", () => {
     }
   });
 
+  it("marks the reviewed outside reads as open-world reads", () => {
+    expect([...OPEN_WORLD_AGENT_READ_NAMES]).toEqual(["x_search", "research_search", "research_endpoint", "extract", "decide"]);
+    for (const name of OPEN_WORLD_AGENT_READ_NAMES) {
+      expect(isReadOnlyAgentTool(name)).toBe(true);
+      expect(agentToolAnnotations(name)).toEqual({ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true });
+    }
+  });
+
   it.each([
+    "research_call",
     "ask_bot", "delegate_bot", "check_delegation", "wait_delegation", "start_thread", "close_thread", "post_to_room",
     // These post into the chat: never read-only.
     "attach_file", "show_widget", "update_widget", "show_html", "update_html",

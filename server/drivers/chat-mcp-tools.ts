@@ -17,10 +17,15 @@ import { CALL_TOOL, DESCRIBE_TOOL, SEARCH_TOOL, ToolDirectory, catalogExceedsSiz
 import { AppObserver, modelVisible, withUiExtension } from "../mcp-app-observer.ts";
 import { appMountFor, mcpStdioServer } from "../mcp-gate-config.ts";
 import { REMOTE_MCP_STARTUP_MS, remoteMcpSpec } from "../mcp-http.ts";
-import { compileServerToolSchema, compileToolSchema, schemaProblems } from "../mcp-schema-validator.ts";
+import { compileServerToolSchema, schemaProblems } from "../mcp-schema-validator.ts";
 import { fitToolList } from "../mcp-tool-schema.ts";
 import { listsComputerTool } from "../computer-tool-list.ts";
-import { capToolList, shareToolBudget } from "../tool-count-limit.ts";
+import { capToolList, shareToolBudget, toolLimitFromEnv } from "../tool-count-limit.ts";
+import { harnessMcpRequest, parseHarnessMcpKind } from "../harness-mcp-request.ts";
+import { harnessMcpTokenEnv } from "../harness-mcp-token.ts";
+import { SPAWNED_PROXIES } from "../proxy-paths.ts";
+import { agentsMcp } from "./agents-mcp.ts";
+import type { Json } from "./agents-client.ts";
 import type { ToolSchemaProfile } from "../tool-schema-profile.ts";
 import { allowsTool, canUseMcpServer, parseToolScope, type ToolScope } from "../../shared/tool-scope.ts";
 import { OWN_APPS_SERVER } from "../../shared/own-apps.ts";
@@ -54,7 +59,7 @@ export interface ChatToolSession {
 }
 
 type Server = { command: string; args: string[]; env: Record<string, string> };
-type RegisteredTool = { client: ChatMcpClient; server: string; launch: string; builtInBrowser: boolean; agents: boolean; computer: boolean; hostComputer: boolean; name: string; schema: ValidateFunction; searched: boolean; parallel: boolean };
+type RegisteredTool = { client: McpPeer; server: string; launch: string; builtInBrowser: boolean; agents: boolean; computer: boolean; hostComputer: boolean; name: string; schema: ValidateFunction; searched: boolean; parallel: boolean };
 function chatToolName(server: string, tool: string): string {
   return `${server}_${tool}`.toLowerCase().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 64) || "mcp_tool";
 }
@@ -88,7 +93,52 @@ export function chatMcpEnvironment(serverEnv: Record<string, string>, source: No
   return { ...env, ...serverEnv };
 }
 
-export class ChatMcpClient {
+/** One mounted MCP server, as the turn talks to it. */
+abstract class McpPeer {
+  abstract call(method: string, params: unknown, signal: AbortSignal, timeout: number, keepOnRefusal?: boolean): Promise<unknown>;
+  protected abstract notify(method: string): void;
+  abstract close(): Promise<void>;
+
+  async tools(signal: AbortSignal, include: (tool: unknown) => boolean = () => true, startupMs = STARTUP_MS, observer?: AppObserver): Promise<unknown[]> {
+    const deadline = Date.now() + startupMs;
+    const remaining = () => {
+      if (Date.now() >= deadline) throw new Error("MCP startup timed out");
+      return deadline - Date.now();
+    };
+    const handshake = { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "openmausbot-chat", version: "1" } };
+    let initialized: unknown;
+    if (observer?.mount.extension) {
+      try { initialized = await this.call("initialize", withUiExtension(handshake), signal, remaining(), true); }
+      catch (error) {
+        if (!(error instanceof McpRequestRefused)) throw error;
+        initialized = await this.call("initialize", handshake, signal, remaining());
+      }
+    } else {
+      initialized = await this.call("initialize", handshake, signal, remaining());
+    }
+    if (!object(initialized)) throw new Error("MCP initialization returned an invalid result");
+    observer?.initialized(initialized);
+    if (signal.aborted) throw aborted();
+    this.notify("notifications/initialized");
+    const tools: unknown[] = [];
+    const cursors = new Set<string>();
+    let cursor: string | undefined;
+    for (let page = 0; page < MAX_PAGES; page += 1) {
+      const result = await this.call("tools/list", cursor ? { cursor } : {}, signal, remaining());
+      if (!object(result) || !Array.isArray(result.tools)) throw new Error("MCP tools/list returned an invalid result");
+      observer?.listed(result);
+      tools.push(...result.tools.filter((tool) => modelVisible(tool) && include(tool)));
+      if (tools.length > SERVER_TOOLS_MAX) throw new Error(`MCP server offers more than ${SERVER_TOOLS_MAX} tools`);
+      if (result.nextCursor === undefined) return tools;
+      if (typeof result.nextCursor !== "string" || !result.nextCursor || cursors.has(result.nextCursor)) throw new Error("MCP tools/list returned an invalid pagination cursor");
+      cursors.add(result.nextCursor);
+      cursor = result.nextCursor;
+    }
+    throw new Error("MCP tools/list exceeded the pagination limit");
+  }
+}
+
+export class ChatMcpClient extends McpPeer {
   private readonly frameBytes: number;
   private child: ReturnType<typeof spawnCli>;
   private buffer = "";
@@ -100,7 +150,8 @@ export class ChatMcpClient {
 
   /** `configured`: a server the person set up, whose own environment passes the bot box as theirs. */
   constructor(server: Server, computerUse = false, configured = false) {
-    this.frameBytes = computerUse ? 32 * 1024 * 1024 : FRAME_BYTES;
+    super();
+    this.frameBytes = frameLimit(computerUse);
     try {
       // The desktop shell inherits Finder's bare PATH, where `npx`-style servers cannot find `node`.
       this.child = spawnCli(server.command, server.args, {
@@ -215,43 +266,101 @@ export class ChatMcpClient {
     }
   }
 
-  async tools(signal: AbortSignal, include: (tool: unknown) => boolean = () => true, startupMs = STARTUP_MS, observer?: AppObserver): Promise<unknown[]> {
-    const deadline = Date.now() + startupMs;
-    const remaining = () => {
-      if (Date.now() >= deadline) throw new Error("MCP startup timed out");
-      return deadline - Date.now();
-    };
-    const handshake = { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "openmausbot-chat", version: "1" } };
-    let initialized: unknown;
-    if (observer?.mount.extension) {
-      try { initialized = await this.call("initialize", withUiExtension(handshake), signal, remaining(), true); }
-      catch (error) {
-        if (!(error instanceof McpRequestRefused)) throw error;
-        initialized = await this.call("initialize", handshake, signal, remaining());
-      }
-    } else {
-      initialized = await this.call("initialize", handshake, signal, remaining());
-    }
-    if (!object(initialized)) throw new Error("MCP initialization returned an invalid result");
-    observer?.initialized(initialized);
-    if (signal.aborted) throw aborted();
-    this.write({ jsonrpc: "2.0", method: "notifications/initialized" });
-    const tools: unknown[] = [];
-    const cursors = new Set<string>();
-    let cursor: string | undefined;
-    for (let page = 0; page < MAX_PAGES; page += 1) {
-      const result = await this.call("tools/list", cursor ? { cursor } : {}, signal, remaining());
-      if (!object(result) || !Array.isArray(result.tools)) throw new Error("MCP tools/list returned an invalid result");
-      observer?.listed(result);
-      tools.push(...result.tools.filter((tool) => modelVisible(tool) && include(tool)));
-      if (tools.length > SERVER_TOOLS_MAX) throw new Error(`MCP server offers more than ${SERVER_TOOLS_MAX} tools`);
-      if (result.nextCursor === undefined) return tools;
-      if (typeof result.nextCursor !== "string" || !result.nextCursor || cursors.has(result.nextCursor)) throw new Error("MCP tools/list returned an invalid pagination cursor");
-      cursors.add(result.nextCursor);
-      cursor = result.nextCursor;
-    }
-    throw new Error("MCP tools/list exceeded the pagination limit");
+  protected notify(method: string): void {
+    this.write({ jsonrpc: "2.0", method });
   }
+}
+
+type Answer = (frame: Record<string, unknown>) => Promise<unknown>;
+
+/** OpenMausBot's own agents or harness server for a built-in mount, answered in this process by the code its stdio proxy
+ * runs, with the environment that proxy would get; the endpoints behind it check the turn's token as they do the proxy's.
+ * `stop` ends the harness requests still in flight, as ending the proxy's process does. */
+export function ownServerAnswer(server: Server): ((stop: AbortSignal) => Answer) | undefined {
+  if (server.command !== process.execPath) return undefined;
+  const env = chatMcpEnvironment(server.env);
+  const harness = env.OMB_HARNESS_URL;
+  if (!harness || !/^http:\/\/127\.0\.0\.1:\d+$/.test(harness)) return undefined;
+  if (server.args.length === 1 && server.args[0] === SPAWNED_PROXIES.agents) {
+    if (!env.OMB_COMMS_TOKEN) return undefined;
+    return (stop) => {
+      const answer = agentsMcp(env, stop);
+      return (frame) => answer(frame as Json);
+    };
+  }
+  const kind = server.args.length === 2 && server.args[0] === SPAWNED_PROXIES.harnessMcp ? parseHarnessMcpKind(server.args[1]) : undefined;
+  const token = kind ? env[harnessMcpTokenEnv(kind)] : undefined;
+  if (!kind || !token) return undefined;
+  const connection = { url: harness, token, kind, toolLimit: toolLimitFromEnv(env) };
+  return (stop) => (frame) => harnessMcpRequest(frame, { ...connection, stop });
+}
+
+/** A built-in server answered in this process: no child to start, and the same envelope, size and timeout checks. */
+export class InProcessMcpClient extends McpPeer {
+  private readonly stop = new AbortController();
+  private readonly answer: Answer;
+  private readonly frameBytes: number;
+  private nextId = 1;
+  private closed = false;
+
+  constructor(answer: (stop: AbortSignal) => Answer, frameBytes: number) {
+    super();
+    this.answer = answer(this.stop.signal);
+    this.frameBytes = frameBytes;
+  }
+
+  close(): Promise<void> {
+    this.closed = true;
+    this.stop.abort();
+    return Promise.resolve();
+  }
+
+  protected notify(method: string): void {
+    if (!this.closed) void this.answer({ jsonrpc: "2.0", method }).catch(() => {});
+  }
+
+  async call(method: string, params: unknown, signal: AbortSignal, timeout: number, keepOnRefusal = false): Promise<unknown> {
+    if (signal.aborted) { await this.close(); throw aborted(); }
+    if (this.closed) throw new Error("MCP session closed");
+    const id = this.nextId++;
+    try {
+      const reply = await new Promise<unknown>((resolve, reject) => {
+        const finish = (error?: Error, value?: unknown) => {
+          clearTimeout(timer);
+          signal.removeEventListener("abort", cancel);
+          this.stop.signal.removeEventListener("abort", closed);
+          if (error) reject(error); else resolve(value);
+        };
+        const cancel = () => finish(aborted());
+        const closed = () => finish(new Error("MCP session closed"));
+        const timer = setTimeout(() => finish(new Error("MCP request timed out; execution outcome may be uncertain")), timeout);
+        timer.unref();
+        signal.addEventListener("abort", cancel, { once: true });
+        this.stop.signal.addEventListener("abort", closed, { once: true });
+        this.answer({ jsonrpc: "2.0", id, method, params }).then((value) => finish(undefined, value),
+          () => finish(new Error("MCP server failed; execution outcome may be uncertain")));
+      });
+      if (!object(reply) || reply.jsonrpc !== "2.0" || reply.id !== id) throw new Error("MCP server returned an invalid RPC envelope");
+      if (Buffer.byteLength(JSON.stringify(reply)) > this.frameBytes) throw new Error("MCP response exceeds the frame limit");
+      if ("error" in reply) throw new McpRequestRefused("MCP request failed; inspect the configured integration");
+      if (!("result" in reply)) throw new Error("MCP response has no result");
+      return reply.result;
+    } catch (error) {
+      if (!(keepOnRefusal && error instanceof McpRequestRefused)) await this.close();
+      throw error;
+    }
+  }
+}
+
+function frameLimit(computerUse: boolean): number {
+  return computerUse ? 32 * 1024 * 1024 : FRAME_BYTES;
+}
+
+/** A built-in mount of OpenMausBot's own server is answered in this process; anything else runs as its own child. */
+function openPeer(server: Server, computerUse: boolean, builtIn: boolean): McpPeer {
+  const own = builtIn ? ownServerAnswer(server) : undefined;
+  if (own) return new InProcessMcpClient(own, frameLimit(computerUse));
+  return new ChatMcpClient(server, computerUse, !builtIn);
 }
 
 export function trimmedToolsNotice(trimmed: readonly TrimmedChatMcpServer[]): string | undefined {
@@ -410,10 +519,10 @@ export async function mountChatTools(integrations: SendTurnInput["integrations"]
     servers.push([name, { command: stdio.command, args: stdio.args ?? [], env: stdio.env ?? {} }]);
   }
   if (servers.length > 32) throw new Error("MCP server count exceeds the 32-server limit");
-  const clients: ChatMcpClient[] = [];
+  const clients: McpPeer[] = [];
   const skipped: SkippedChatMcpServer[] = [];
   const trimmed: TrimmedChatMcpServer[] = [];
-  const started = new Map<string, ChatMcpClient>();
+  const started = new Map<string, McpPeer>();
   let closed = false;
   let closing: Promise<void> | undefined;
   const close = (): Promise<void> => {
@@ -461,7 +570,7 @@ export async function mountChatTools(integrations: SendTurnInput["integrations"]
       for (const [alias, { tools: targets }] of Object.entries(AGENTS_TOOL_ALIASES)) {
         const listed = staged.find((entry) => targets.includes(entry.tool.name));
         const name = chatToolName(origin.server, alias);
-        if (listed && !registered.has(name)) registered.set(name, { ...listed.tool, name: alias, parallel: false, schema: compileToolSchema({ type: "object" }) });
+        if (listed && !registered.has(name)) registered.set(name, { ...listed.tool, name: alias, parallel: false, schema: compileServerToolSchema({ type: "object" }) });
       }
     }
   };
@@ -470,7 +579,7 @@ export async function mountChatTools(integrations: SendTurnInput["integrations"]
     // Concurrent starts, consumed in config order so names and collision suffixes stay stable.
     const mounts = await Promise.allSettled(servers.map(async ([name, descriptor], index) => {
       if (signal.aborted || closed) throw aborted();
-      const client = new ChatMcpClient(descriptor, computerUse, index >= builtIns);
+      const client = openPeer(descriptor, computerUse, index < builtIns);
       clients.push(client);
       started.set(name, client);
       const computer = descriptor === integrations?.localComputer;
@@ -627,7 +736,13 @@ export async function mountChatTools(integrations: SendTurnInput["integrations"]
   return {
     definitions, skipped, trimmed, budget, validate, view, close,
     parallel(name, args) {
-      if (directoryNames.has(name)) return false;
+      const listedAs = directoryNames.get(name);
+      // Search and describe only read the catalog in memory; a call is as parallel as the tool it runs.
+      if (listedAs && listedAs !== CALL_TOOL) return true;
+      if (listedAs) {
+        const call = searchedCall(args);
+        return call?.tool.parallel === true && !selectionExcludes(call.tool, call.args);
+      }
       const tool = registered.get(name);
       return tool?.parallel === true && !selectionExcludes(tool, args);
     },

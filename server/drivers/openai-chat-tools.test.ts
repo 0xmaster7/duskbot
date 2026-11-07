@@ -20,6 +20,7 @@ import { GrokDriver } from "./grok.ts";
 import { CerebrasDriver } from "./cerebras.ts";
 import { MinimaxDriver } from "./minimax.ts";
 import { OpenAICompatDriver } from "./openai-compat.ts";
+import { MAX_PARALLEL_READS } from "./chat-tool-batches.ts";
 
 interface ChatRequest {
   messages: Array<{
@@ -179,27 +180,29 @@ async function fixture(script: Script, provider: Provider = "openai-compat", api
 describe("independent read-only tool batches", () => {
   const readCall = (name: string, index: number) => ({ ...toolCall("audit_read", JSON.stringify({ name, value: name }), `read_${index}`), index });
 
-  it("overlaps at most four reads, retains provider result order, and runs writes as barriers", async () => {
-    const calls = [readCall("a", 0), readCall("b", 1), readCall("c", 2), readCall("d", 3), readCall("e", 4),
-      { ...toolCall("audit_write", '{"name":"write","value":"done"}', "write"), index: 5 }, readCall("f", 6)];
+  it("overlaps at most MAX_PARALLEL_READS reads, retains provider result order, and runs writes as barriers", async () => {
+    const reads = Array.from({ length: MAX_PARALLEL_READS + 1 }, (_, index) => `r${index}`);
+    const calls = [...reads.map((name, index) => readCall(name, index)),
+      { ...toolCall("audit_write", '{"name":"write","value":"done"}', "write"), index: reads.length }, readCall("after", reads.length + 1)];
     const f = await fixture((_body, response, round) => round === 1
       ? sse(response, [chunk({ tool_calls: calls }, "tool_calls")]) : answer(response));
-    const release = ["a", "b", "c", "d", "e", "write", "f"].map((name) => f.holdRpc(name));
+    const release = [...reads, "write", "after"].map((name) => f.holdRpc(name));
+    const first = reads.slice(0, MAX_PARALLEL_READS);
     try {
       await f.start({ approvalMode: "full" });
-      await expect.poll(() => f.rpcCalls.map((call) => call.args.name)).toEqual(["a", "b", "c", "d"]);
-      release[1]!(); release[2]!(); release[3]!();
-      await expect.poll(() => f.recorder.events.filter((event) => event.type === "item.completed" && event.itemType === "tool").length).toBe(3);
-      expect(f.rpcCalls.map((call) => call.args.name)).toEqual(["a", "b", "c", "d"]);
+      await expect.poll(() => f.rpcCalls.map((call) => call.args.name)).toEqual(first);
+      for (let index = 1; index < first.length; index += 1) release[index]!();
+      await expect.poll(() => f.recorder.events.filter((event) => event.type === "item.completed" && event.itemType === "tool").length).toBe(first.length - 1);
+      expect(f.rpcCalls.map((call) => call.args.name)).toEqual(first);
       release[0]!();
-      await expect.poll(() => f.rpcCalls.map((call) => call.args.name)).toEqual(["a", "b", "c", "d", "e"]);
-      release[4]!();
-      await expect.poll(() => f.rpcCalls.map((call) => call.args.name)).toEqual(["a", "b", "c", "d", "e", "write"]);
+      await expect.poll(() => f.rpcCalls.map((call) => call.args.name)).toEqual(reads);
+      release[reads.length - 1]!();
+      await expect.poll(() => f.rpcCalls.map((call) => call.args.name)).toEqual([...reads, "write"]);
       expect(f.effects()).toEqual([]);
-      release[5]!();
-      await expect.poll(() => f.rpcCalls.map((call) => call.args.name)).toEqual(["a", "b", "c", "d", "e", "write", "f"]);
+      release[reads.length]!();
+      await expect.poll(() => f.rpcCalls.map((call) => call.args.name)).toEqual([...reads, "write", "after"]);
       expect(f.effects()).toEqual([{ name: "write", value: "done" }]);
-      release[6]!();
+      release[reads.length + 1]!();
       expect(await f.completed()).toMatchObject({ ok: true });
       expect(f.requests[1].messages.filter((message) => message.role === "tool").map((message) => message.tool_call_id))
         .toEqual(calls.map((call) => call.id));

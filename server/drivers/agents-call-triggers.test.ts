@@ -124,3 +124,15 @@ describe("delete_trigger", () => {
     expect(calls).toEqual([{ path: "/api/internal/trigger-requests", body: { fromBotId: "scout", fromThreadId: "thread-1", action: "delete", triggerId: "t-1", forBotId: "helper" } }]);
   });
 });
+
+describe("schedule triggers", () => {
+  it("takes a once schedule that also names its timezone, keeping only the instant", async () => {
+    const { calls, context: ctx } = context();
+    const result = await callTool("create_trigger", { when: "schedule", name: "Stretch", instructions: "Say: Time to stretch",
+      schedule: { type: "once", at: "2099-11-07T13:34:00+00:00", timeZone: "UTC" } }, ctx);
+    expect(result.isError).toBeUndefined();
+    expect(JSON.stringify(calls[0]!.body)).toContain(JSON.stringify({ type: "once", at: "2099-11-07T13:34:00+00:00" }));
+    expect(JSON.stringify(calls[0]!.body)).not.toContain("timeZone");
+  });
+});
+

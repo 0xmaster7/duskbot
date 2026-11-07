@@ -30,15 +30,37 @@ export function compileToolSchema(schema: Record<string, unknown>, options: { al
   catch { throw new Error("MCP tool schema could not be validated; check its constraints, formats, and references"); }
 }
 
+/** Compiled validators by schema text, newest last: a turn mounts the same servers as the one before, and compiling
+ * costs milliseconds of the server's one thread per tool. A validator keeps no state between its synchronous calls. */
+const compiled = new Map<string, ValidateFunction>();
+let compiledBytes = 0;
+const COMPILED_BYTES_MAX = 8 * 1024 * 1024;
+
 /** A configured server's tool schema. Where strict compilation refuses it, its copy without what asserts nothing is
  * compiled instead, so a refusal still means a constraint this checker cannot hold. */
 export function compileServerToolSchema(schema: Record<string, unknown>): ValidateFunction {
-  try { return compileToolSchema(schema); }
+  const key = JSON.stringify(schema);
+  const cached = compiled.get(key);
+  if (cached) {
+    compiled.delete(key);
+    compiled.set(key, cached);
+    return cached;
+  }
+  let validate: ValidateFunction;
+  try { validate = compileToolSchema(schema); }
   catch (error) {
     const plain = withoutNonAssertions(schema);
     if (!plain) throw error;
-    return compileToolSchema(plain);
+    validate = compileToolSchema(plain);
   }
+  compiled.set(key, validate);
+  compiledBytes += key.length;
+  for (const [oldest] of compiled) {
+    if (compiledBytes <= COMPILED_BYTES_MAX) break;
+    compiled.delete(oldest);
+    compiledBytes -= oldest.length;
+  }
+  return validate;
 }
 
 const DRAFT_07 = "http://json-schema.org/draft-07/schema#";

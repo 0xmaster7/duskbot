@@ -726,6 +726,14 @@ provider outage. So on a Cloud home (`server/engine-memory.ts`):
   process each (about 20–30 MB PSS apiece) in every OpenCode session. A server
   behind a tool selection keeps its stdio gate; the person's own servers are
   unchanged.
+- **Codex and the chat-completions engines do too.** On codex-cli 0.167.0 or
+  later a turn with no tool selection mounts the agents, browser, Data, Email
+  and device servers as those endpoints (`url`, `bearer_token_env_var` and
+  `env_http_headers`, so argv carries only variable names, and the variables
+  stay out of Codex's shell); an older or unknown Codex keeps the proxies.
+  The chat-completions runtime answers the same servers inside the server's
+  own process. On the 2-core test VPS each skipped proxy was 60–85 MB RSS and
+  0.15–2.2 s to answer `tools/list` under load.
 - **The reason is said, in one line.** A turn whose engine was stopped for
   memory, by the home or by the kernel (a SIGKILL while `/proc/vmstat`'s
   `oom_kill` rose), ends with "Ran out of room, so I closed the browser to

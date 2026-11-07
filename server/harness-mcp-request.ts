@@ -63,7 +63,7 @@ async function boundedJson(response: Response, name: string): Promise<unknown> {
 
 export async function harnessMcpRequest(
   frame: unknown,
-  connection: { url: string; token: string; kind: HarnessMcpKind; toolLimit?: number },
+  connection: { url: string; token: string; kind: HarnessMcpKind; toolLimit?: number; stop?: AbortSignal },
 ): Promise<unknown | undefined> {
   if (!frame || typeof frame !== "object" || Array.isArray(frame)) return failure(null, null, "Invalid request.", -32600);
   const message = frame as { id?: RpcId; jsonrpc?: unknown; method?: unknown; params?: unknown };
@@ -90,7 +90,7 @@ export async function harnessMcpRequest(
     const response = await fetch(new URL(`/api/internal/${connection.kind}/mcp`, url), {
       method: "POST", redirect: "error",
       headers: { "content-type": "application/json", authorization: `Bearer ${connection.token}` },
-      body, signal: AbortSignal.timeout(HARNESS_PROXY_TIMEOUTS_MS[connection.kind] ?? HARNESS_PROXY_TIMEOUT_MS),
+      body, signal: AbortSignal.any([AbortSignal.timeout(HARNESS_PROXY_TIMEOUTS_MS[connection.kind] ?? HARNESS_PROXY_TIMEOUT_MS), ...(connection.stop ? [connection.stop] : [])]),
     });
     const payload = await boundedJson(response, name) as { result?: unknown; error?: unknown };
     if (!response.ok || !payload || typeof payload !== "object" || !Object.hasOwn(payload, "result")) {
