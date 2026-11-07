@@ -26,8 +26,11 @@ import type { AttachChoices } from "./ComposerFilePickers";
 import { SIMPLE_CONTROL } from "./composer-simple";
 import { GrokIcon } from "./GrokIcon";
 
-/** Finish together: the room (or, `solo`, the one bot) keeps working until the goal is done. The chip turns accent while it is on.
- * `compact` is Simple mode's chip, shown only while the mode is on: its name and a × that turns it off. */
+/** Finish together: the room (or, `solo`, the one bot) keeps working until the goal is done. A quiet neutral pill, like
+ * the approval chip beside it. `compact` is Simple mode's chip, shown only while the mode is on: its name and a × that
+ * turns it off. */
+const GOAL_FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
+
 export function GoalToggle({ on, onToggle, solo = false, compact = false }: { on: boolean; onToggle: () => void; solo?: boolean; compact?: boolean }) {
   if (compact) {
     const off = t(solo ? "composer.goal.offSolo" : "composer.goal.off");
@@ -38,10 +41,11 @@ export function GoalToggle({ on, onToggle, solo = false, compact = false }: { on
         aria-label={off}
         title={off}
         onClick={onToggle}
-        className="flex h-7 items-center gap-1 whitespace-nowrap rounded-full border border-accent/35 bg-accent/10 px-2.5 text-[13px] text-accent transition-colors hover:bg-accent/15"
+        className={cn("group/goal flex h-7 items-center gap-1.5 whitespace-nowrap rounded-full bg-ink/[0.06] ps-2.5 pe-2 text-[13px] text-ink-secondary transition-colors hover:bg-ink/[0.11] hover:text-ink", GOAL_FOCUS)}
       >
+        <Target size={14} aria-hidden="true" />
         {t(solo ? "composer.goal.soloAria" : "composer.goal.aria")}
-        <X size={12} aria-hidden="true" />
+        <X size={12} aria-hidden="true" className="text-ink-tertiary group-hover/goal:text-ink" />
       </button>
     );
   }
@@ -53,11 +57,9 @@ export function GoalToggle({ on, onToggle, solo = false, compact = false }: { on
       title={t(solo ? "composer.goal.soloTitle" : "composer.goal.title")}
       onClick={onToggle}
       className={cn(
-        "flex items-center gap-1.5 whitespace-nowrap rounded-full border text-[13px] transition-colors",
-        compact ? "h-7 px-2.5" : "h-8 px-3",
-        on
-          ? "border-accent/35 bg-accent/10 text-accent"
-          : "border-hairline/20 bg-transparent text-ink-secondary hover:bg-raised hover:text-ink",
+        "flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[13px] transition-colors",
+        on ? "bg-ink/[0.11] text-ink" : "bg-ink/[0.06] text-ink-secondary hover:bg-ink/[0.11] hover:text-ink",
+        GOAL_FOCUS,
       )}
     >
       <Target size={14} aria-hidden="true" />

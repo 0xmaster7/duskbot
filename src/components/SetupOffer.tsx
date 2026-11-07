@@ -176,12 +176,12 @@ function WaitingChip({ bot, threadId }: { bot: Bot; threadId: string }) {
   };
   return (
     <div data-setup-request className="mb-2 flex">
-      <span className="inline-flex h-7 max-w-full items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 ps-2.5 pe-1 text-[13px] text-ink">
-        <Sparkles size={13} aria-hidden="true" className="shrink-0 text-accent-text" />
+      <span className="inline-flex h-7 max-w-full items-center gap-1.5 rounded-full bg-ink/[0.06] ps-2.5 pe-1 text-[13px] text-ink-secondary">
+        <Sparkles size={13} aria-hidden="true" className="shrink-0 text-ink-tertiary" />
         <bdi dir="auto" className="min-w-0 truncate">{t("composer.setupRequest.waiting", { name: bot.name })}</bdi>
         <button type="button" data-setup-request-cancel="" onClick={stop} disabled={stopping}
           aria-label={t("composer.setupRequest.cancel", { name: bot.name })} title={t("composer.setupRequest.cancel", { name: bot.name })}
-          className="flex size-5 shrink-0 items-center justify-center rounded-full text-ink-secondary hover:bg-ink/[0.08] hover:text-ink">
+          className="flex size-5 shrink-0 items-center justify-center rounded-full text-ink-secondary hover:bg-ink/[0.08] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
           <X size={12} />
         </button>
       </span>

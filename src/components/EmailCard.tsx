@@ -5,7 +5,7 @@ import { t } from "@/lib/i18n";
 import type { EmailConnectAnswer, EmailServerFields, EmailStatus } from "../../shared/email";
 import { KitActions, KitBody, KitButton, KitCard, KitField, KitLink, KitRow, KitStatus, KitText } from "./connect-apps/detail-kit";
 
-const field = "h-8 w-full min-w-0 rounded-lg bg-inset px-2.5 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none focus:ring-1 focus:ring-accent/50";
+const field = "h-8 w-full min-w-0 rounded-lg bg-inset px-2.5 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none focus:ring-1 focus:ring-focus";
 
 /** Where a mail server is, for when it can't be found from the address. */
 export function EmailServerInputs({ value, onChange, className = field }: { value: EmailServerFields; onChange: (next: EmailServerFields) => void; className?: string }) {

@@ -2970,7 +2970,10 @@
       "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
       "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
       "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
-      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4",
+      "goalRun.coordinating": "5cda1e9badec2421cdab8a7fa7415eca6085acb52ca2b88cf334f9d8b53bf120",
+      "goalRun.turnOf": "ee6fef7e60ff1aee26755fc95bf5edea7f2b446d8d0216fb2de288e12867e09d",
+      "goalRun.aria": "3743b85b1c1adcddda738f81a00a0b116ede8ce476ce0b40b395e215f8b51cd9"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -8366,7 +8369,10 @@
       "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
       "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
       "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
-      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4",
+      "goalRun.coordinating": "5cda1e9badec2421cdab8a7fa7415eca6085acb52ca2b88cf334f9d8b53bf120",
+      "goalRun.turnOf": "ee6fef7e60ff1aee26755fc95bf5edea7f2b446d8d0216fb2de288e12867e09d",
+      "goalRun.aria": "3743b85b1c1adcddda738f81a00a0b116ede8ce476ce0b40b395e215f8b51cd9"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -11260,7 +11266,10 @@
       "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
       "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
       "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
-      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4",
+      "goalRun.coordinating": "5cda1e9badec2421cdab8a7fa7415eca6085acb52ca2b88cf334f9d8b53bf120",
+      "goalRun.turnOf": "ee6fef7e60ff1aee26755fc95bf5edea7f2b446d8d0216fb2de288e12867e09d",
+      "goalRun.aria": "3743b85b1c1adcddda738f81a00a0b116ede8ce476ce0b40b395e215f8b51cd9"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -14150,7 +14159,10 @@
       "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
       "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
       "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
-      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4",
+      "goalRun.coordinating": "5cda1e9badec2421cdab8a7fa7415eca6085acb52ca2b88cf334f9d8b53bf120",
+      "goalRun.turnOf": "ee6fef7e60ff1aee26755fc95bf5edea7f2b446d8d0216fb2de288e12867e09d",
+      "goalRun.aria": "3743b85b1c1adcddda738f81a00a0b116ede8ce476ce0b40b395e215f8b51cd9"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -20151,7 +20163,10 @@
       "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
       "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
       "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
-      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4",
+      "goalRun.coordinating": "5cda1e9badec2421cdab8a7fa7415eca6085acb52ca2b88cf334f9d8b53bf120",
+      "goalRun.turnOf": "ee6fef7e60ff1aee26755fc95bf5edea7f2b446d8d0216fb2de288e12867e09d",
+      "goalRun.aria": "3743b85b1c1adcddda738f81a00a0b116ede8ce476ce0b40b395e215f8b51cd9"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -25994,7 +26009,10 @@
       "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
       "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
       "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
-      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4",
+      "goalRun.coordinating": "5cda1e9badec2421cdab8a7fa7415eca6085acb52ca2b88cf334f9d8b53bf120",
+      "goalRun.turnOf": "ee6fef7e60ff1aee26755fc95bf5edea7f2b446d8d0216fb2de288e12867e09d",
+      "goalRun.aria": "3743b85b1c1adcddda738f81a00a0b116ede8ce476ce0b40b395e215f8b51cd9"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -32598,7 +32616,10 @@
       "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
       "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
       "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
-      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4",
+      "goalRun.coordinating": "5cda1e9badec2421cdab8a7fa7415eca6085acb52ca2b88cf334f9d8b53bf120",
+      "goalRun.turnOf": "ee6fef7e60ff1aee26755fc95bf5edea7f2b446d8d0216fb2de288e12867e09d",
+      "goalRun.aria": "3743b85b1c1adcddda738f81a00a0b116ede8ce476ce0b40b395e215f8b51cd9"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -37062,7 +37083,10 @@
       "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
       "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
       "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
-      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4",
+      "goalRun.coordinating": "5cda1e9badec2421cdab8a7fa7415eca6085acb52ca2b88cf334f9d8b53bf120",
+      "goalRun.turnOf": "ee6fef7e60ff1aee26755fc95bf5edea7f2b446d8d0216fb2de288e12867e09d",
+      "goalRun.aria": "3743b85b1c1adcddda738f81a00a0b116ede8ce476ce0b40b395e215f8b51cd9"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -40340,7 +40364,10 @@
       "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
       "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
       "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
-      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4",
+      "goalRun.coordinating": "5cda1e9badec2421cdab8a7fa7415eca6085acb52ca2b88cf334f9d8b53bf120",
+      "goalRun.turnOf": "ee6fef7e60ff1aee26755fc95bf5edea7f2b446d8d0216fb2de288e12867e09d",
+      "goalRun.aria": "3743b85b1c1adcddda738f81a00a0b116ede8ce476ce0b40b395e215f8b51cd9"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -45258,7 +45285,10 @@
       "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
       "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
       "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
-      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4",
+      "goalRun.coordinating": "5cda1e9badec2421cdab8a7fa7415eca6085acb52ca2b88cf334f9d8b53bf120",
+      "goalRun.turnOf": "ee6fef7e60ff1aee26755fc95bf5edea7f2b446d8d0216fb2de288e12867e09d",
+      "goalRun.aria": "3743b85b1c1adcddda738f81a00a0b116ede8ce476ce0b40b395e215f8b51cd9"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -50176,7 +50206,10 @@
       "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
       "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
       "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
-      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4",
+      "goalRun.coordinating": "5cda1e9badec2421cdab8a7fa7415eca6085acb52ca2b88cf334f9d8b53bf120",
+      "goalRun.turnOf": "ee6fef7e60ff1aee26755fc95bf5edea7f2b446d8d0216fb2de288e12867e09d",
+      "goalRun.aria": "3743b85b1c1adcddda738f81a00a0b116ede8ce476ce0b40b395e215f8b51cd9"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -56145,7 +56178,10 @@
       "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
       "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
       "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
-      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4",
+      "goalRun.coordinating": "5cda1e9badec2421cdab8a7fa7415eca6085acb52ca2b88cf334f9d8b53bf120",
+      "goalRun.turnOf": "ee6fef7e60ff1aee26755fc95bf5edea7f2b446d8d0216fb2de288e12867e09d",
+      "goalRun.aria": "3743b85b1c1adcddda738f81a00a0b116ede8ce476ce0b40b395e215f8b51cd9"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -62128,7 +62164,10 @@
       "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
       "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
       "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
-      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4",
+      "goalRun.coordinating": "5cda1e9badec2421cdab8a7fa7415eca6085acb52ca2b88cf334f9d8b53bf120",
+      "goalRun.turnOf": "ee6fef7e60ff1aee26755fc95bf5edea7f2b446d8d0216fb2de288e12867e09d",
+      "goalRun.aria": "3743b85b1c1adcddda738f81a00a0b116ede8ce476ce0b40b395e215f8b51cd9"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -67933,7 +67972,10 @@
       "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
       "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
       "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
-      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4",
+      "goalRun.coordinating": "5cda1e9badec2421cdab8a7fa7415eca6085acb52ca2b88cf334f9d8b53bf120",
+      "goalRun.turnOf": "ee6fef7e60ff1aee26755fc95bf5edea7f2b446d8d0216fb2de288e12867e09d",
+      "goalRun.aria": "3743b85b1c1adcddda738f81a00a0b116ede8ce476ce0b40b395e215f8b51cd9"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -74356,7 +74398,10 @@
       "botAccess.mac.title": "8954e476cfc6a3779d4263034d2cc0a0f529255f263a4e1108de062aea20b756",
       "botAccess.mac.on": "37bdea08369b0205800046384a359e764a710b619fa170b6ae1435359d675394",
       "botAccess.mac.off": "cff82b7b54850b57cda23e2243a3d08cd1f2c83088a5b73abdcde652ce40b128",
-      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4"
+      "botAccess.mac.offEverywhere": "a3b2f7f897a1725aa4f89ad713a0ed0204484c1084ed12dc7201350ae966ade4",
+      "goalRun.coordinating": "5cda1e9badec2421cdab8a7fa7415eca6085acb52ca2b88cf334f9d8b53bf120",
+      "goalRun.turnOf": "ee6fef7e60ff1aee26755fc95bf5edea7f2b446d8d0216fb2de288e12867e09d",
+      "goalRun.aria": "3743b85b1c1adcddda738f81a00a0b116ede8ce476ce0b40b395e215f8b51cd9"
     }
   }
 }
