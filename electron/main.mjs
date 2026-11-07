@@ -2839,12 +2839,6 @@ setCuaStateListener((connection) => {
 
 app.whenReady().then(async () => {
   startupTrace.mark("ready");
-  await evictStartupCacheOnce({
-    userData: app.getPath("userData"),
-    currentVersion: app.getVersion(),
-    clearCache: () => session.defaultSession.clearCache(),
-    log: slog,
-  });
   if (process.platform === "win32") {
     try {
       desktopTray = createSystemTray({
@@ -2865,8 +2859,16 @@ app.whenReady().then(async () => {
     onShow: (win) => desktopTray?.windowShown(win),
     onFinished: () => { startupScreen = null; },
   });
-  await startupScreen?.ready;
-  startupTrace.mark("splash");
+  // the splash is a data: page and paints on its own, so nothing waits for it
+  const credentialsLoading = evictStartupCacheOnce({
+    userData: app.getPath("userData"),
+    currentVersion: app.getVersion(),
+    clearCache: () => session.defaultSession.clearCache(),
+    log: slog,
+  }).then(() => loadSecureCredentials());
+  credentialsLoading.catch(() => {});
+  void startupScreen?.ready.then(() => startupTrace.mark("splash"));
+  secureCredentials = await credentialsLoading;
   if (desktopShutdownStarted) return;
   session.defaultSession.on("will-download", (_event, item) => {
     item.setSavePath(collisionFreeDownloadPath(app.getPath("downloads"), item.getFilename()));
@@ -2907,7 +2909,6 @@ app.whenReady().then(async () => {
     ownerToken: () => (app.isPackaged && serverReady ? desktopMutationToken : null) });
   if (app.isPackaged) app.setAsDefaultProtocolClient("openmausbot");
   if (process.platform === "darwin") app.dock.setIcon(APP_ICON);
-  secureCredentials = await loadSecureCredentials();
   // An orphaned third-party key with no clear handler left: drop it rather than keep it at rest.
   if (secureCredentials && Object.hasOwn(secureCredentials, "assemblyAiApiKey") && !credentialStoreUnavailable) {
     try {
