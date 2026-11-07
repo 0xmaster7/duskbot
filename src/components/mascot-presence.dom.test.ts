@@ -59,7 +59,8 @@ describe("useBotMarkState", () => {
 
   it("finishes for 8 s after a turn ends on screen, then idles", () => {
     render({ threadId: "t2", busy: true, messages: [] });
-    expect(seen.at(-1)).toBe("thinking");
+    // at work with no words coming yet: the mascot works, the typing dots (thinking) wait for the reply
+    expect(seen.at(-1)).toBe("working");
     render({ threadId: "t2", busy: false, messages: [{ kind: "text" }] });
     expect(seen.at(-1)).toBe("finished");
     act(() => vi.advanceTimersByTime(SETTLED_HOLD_MS + 10));

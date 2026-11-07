@@ -34,6 +34,7 @@ import { normalizeState } from "@/lib/mascot";
 import { groupResponseHint, jevRoomRoutingOn } from "@/lib/group-routing";
 import { ChatMarkdown } from "./ChatMarkdown";
 import { FailedTurnRow, MessageBoundary, SIMPLE_STATUS_SLOT, SIMPLE_TRAILING_GAP, statusMarkFor } from "./ChatView";
+import { presenceKind, turnWorked, useHeldPresence, workingMark } from "@/lib/presence-mark";
 import { emojiOnly, EMOJI_ONLY_TEXT, joinedCorners, needsStamp, SIMPLE_BOT_BUBBLE, SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT, SIMPLE_STACKED, SIMPLE_USER_BUBBLE, type BubbleJoin } from "./chat-bubble";
 import { roomRowLayout, type RoomSlot } from "./room-row-layout";
 import { DaySeparator } from "./DaySeparator";
@@ -958,7 +959,12 @@ export function GroupView({ group: room }: { group: Group }) {
   // the speaker's mark and its status line stay for the turn; its end, or its reply landing, hides them
   const presenceVisible =
     Boolean(speaker && showWorkingDots(true, group.messages.at(-1), speaker.id, live.ended) && !replyHidesLine(landed.sinceMs, now.phase)) || awaited !== undefined;
-  const statusMarkState = statusMarkFor({ busy: threadWorking, waitingOnYou: false, answering: streamingReply, live: live.status?.activity, failed: lastGroupMessage?.kind === "activity" && lastGroupMessage.tool?.ok === false });
+  const baseMarkState = statusMarkFor({ busy: threadWorking, waitingOnYou: false, answering: streamingReply, live: live.status?.activity, failed: lastGroupMessage?.kind === "activity" && lastGroupMessage.tool?.ok === false });
+  // the speaker's typing dots only while its reply is being written; at work it shows its own mascot (the room's lines
+  // read "streaming" as typing and play the dots)
+  const worked = useMemo(() => turnWorked(group.messages), [group.messages]);
+  const presence = useHeldPresence(threadWorking ? presenceKind({ writing: streamingReply, activity: live.status?.activity, worked }) : null);
+  const statusMarkState = presence === "typing" ? "streaming" : presence === "working" ? workingMark(live.status?.activity) : baseMarkState;
   const handoffIds = useMemo(() => handoffWorkIds(group.messages), [group.messages]);
   const workingIds = threadWorking ? [...new Set([...roomWorkingIds(group, lastGroupMessage), ...handoffIds])] : roomWorkingIds(group, lastGroupMessage);
   const trailing = useTrailingRows(group.messages);

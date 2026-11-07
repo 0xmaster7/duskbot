@@ -61,6 +61,7 @@ import { replyHidesLine, showWorkingDots } from "@/lib/turn-tail";
 import { useLandedReply } from "@/hooks/use-landed-reply";
 import { useReplyLife, type LifeTurn } from "@/hooks/use-reply-life";
 import { LIFE_MASCOT_STATE, lifeMarkState } from "@/lib/reply-life";
+import { presenceKind, TYPING_MARK, turnWorked, useHeldPresence, workingMark } from "@/lib/presence-mark";
 import { lastNonReceipt } from "@/lib/receipts";
 import { useTurnLive } from "@/state/turn-status"; import { useLiveReplyActive } from "@/state/live-reply"; import { useTurnNow } from "./NowCard"; import { useThreadRoutineRun } from "@/state/older-routine-runs";
 import { ChatMarkdown } from "./ChatMarkdown";
@@ -1074,8 +1075,12 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   }, [bot.busy, bot.id, bot.threadId, bot.turnStartedAt]);
   // the quiet wait lives: the mascot a while, its typing dots, back again on a long one; the reply never waits for it
   const presenceSeed = `${bot.id}:${bot.threadId ?? ""}:${busySince ?? ""}`;
-  const lifeBeat = useReplyLife(waiting && !teammatesWorking ? [{ key: bot.id, seed: presenceSeed, typing: streamingReply || live.status?.activity === "reply" }] : NO_LIFE).get(bot.id);
-  const presenceMarkState = lifeMarkState(statusMarkState, lifeBeat);
+  // the typing dots only while the reply is being written; a turn at work shows the bot's own mascot at work
+  const worked = useMemo(() => turnWorked(messages), [messages]);
+  const writing = streamingReply || live.status?.activity === "reply";
+  const presence = useHeldPresence(bot.busy && bot.activity !== "waiting-on-you" ? presenceKind({ writing, activity: live.status?.activity, worked }) : null);
+  const lifeBeat = useReplyLife(waiting && !teammatesWorking && presence === "waiting" ? [{ key: bot.id, seed: presenceSeed, typing: writing }] : NO_LIFE).get(bot.id);
+  const presenceMarkState = presence === "typing" ? TYPING_MARK : presence === "working" ? workingMark(live.status?.activity) : lifeMarkState(statusMarkState, lifeBeat);
   useThinkingMoment(markRef, presenceMarkState === LIFE_MASCOT_STATE);
 
   // while the turn runs its notices stay in the chat; once it ends, what it left is one card above the composer
