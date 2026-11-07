@@ -6,6 +6,7 @@
 // symmetric nat (most vpns), while tcp 22 is open on every vps; see link-service/README.md "Direct path".
 import { createRequire } from "node:module";
 import { connect as netConnect } from "node:net";
+import { networkInterfaces } from "node:os";
 
 import { openFrame, sealBytes, sealFrame } from "./vps-link-protocol.mjs";
 import { clampMss } from "./tcp-clamp.mjs";
@@ -197,29 +198,62 @@ export function createDirectWriter({ sealFrame: sealOne, sealBytes: sealPiece, w
 // ---- end direct transport ----
 
 
-const BACKOFF_MS = [1000, 2000, 5000, 10_000, 30_000, 60_000];
+/** a port an isp blocks is tried less and less often, down to twice an hour, until the network changes */
+export const BACKOFF_MS = [1000, 5000, 15_000, 60_000, 3 * 60_000, 10 * 60_000, 30 * 60_000];
+/** a link that lasted this long was really up: its loss starts the backoff over */
+const STABLE_MS = 60_000;
+
+/**
+ * where this computer is on the network: its ipv4 addresses and its ipv6 /64 prefixes (privacy addresses rotate inside
+ * the prefix every few hours, which is not a new network)
+ */
+export function networkFingerprint(interfaces = networkInterfaces()) {
+  const seen = new Set();
+  for (const [name, entries] of Object.entries(interfaces)) {
+    for (const entry of entries ?? []) {
+      if (entry.internal) continue;
+      if (entry.family === "IPv4" || entry.family === 4) seen.add(`${name} ${entry.address}`);
+      else if (!/^fe80:/i.test(entry.address)) seen.add(`${name} ${entry.address.split(":").slice(0, 4).join(":")}`);
+    }
+  }
+  return [...seen].sort().join(",");
+}
 
 /**
  * one direct link, kept up in the background: dial, wait for the agent's sealed hello, ping for liveness and rtt, redial
  * with backoff. `connect()` gives { readable, writable, close }. while it is not up, the caller uses the relay.
  */
-export function createDirectLink({ id, key: keyText, guard, connect, onFrame, onChange = () => {}, onFailure = () => {}, log = () => {}, pingMs = 5000, helloMs = 20_000 }) {
+export function createDirectLink({ id, key: keyText, guard, connect, onFrame, onChange = () => {}, onFailure = () => {}, log = () => {}, pingMs = 5000, helloMs = 20_000, connectMs = 25_000, backoff = BACKOFF_MS, network = networkFingerprint, watchMs = 15_000 }) {
   const key = Buffer.from(keyText, "base64url");
-  let state = "idle", conn = null, writer = null, closed = false, attempt = 0, retryTimer = null, pingTimer = null, helloTimer = null;
-  let rtt = null, everUp = false, pingSeq = 0, suspect = false, heardAt = 0;
+  let state = "idle", conn = null, writer = null, closed = false, attempt = 0, retryTimer = null, watchTimer = null, pingTimer = null, helloTimer = null;
+  let rtt = null, everUp = false, pingSeq = 0, suspect = false, heardAt = 0, upAt = 0, failing = false, failedOn = null;
   const outstanding = new Map();
   const waiters = new Set();
   const set = (next, extra = {}) => { state = next; for (const wake of [...waiters]) wake(); onChange({ state, ...extra }); };
   const ready = () => state === "up" && !suspect;
+  const here = () => { try { return network(); } catch { return null; } };
+  /** a new network is a new chance: the backoff starts over and the next dial goes now */
+  const moved = () => failedOn !== null && here() !== failedOn;
 
   function retry() {
     if (closed) return;
     clearTimeout(retryTimer);
-    const ms = BACKOFF_MS[Math.min(attempt, BACKOFF_MS.length - 1)];
+    clearInterval(watchTimer);
+    const ms = backoff[Math.min(attempt, backoff.length - 1)];
     attempt += 1;
     set("waiting");
     retryTimer = setTimeout(() => void dial(), ms);
     retryTimer.unref?.();
+    if (ms > watchMs) {
+      watchTimer = setInterval(() => { if (state === "waiting" && moved()) { attempt = 0; void dial(); } }, watchMs);
+      watchTimer.unref?.();
+    }
+  }
+
+  function failed() {
+    failing = true;
+    failedOn = here();
+    retry();
   }
 
   function drop(reason) {
@@ -236,6 +270,8 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
     try { gone.close(); } catch { /* already closed */ }
     log(`vps link: direct path ${was === "up" ? "lost" : "failed"} (${reason})`);
     set("down", { lost: was === "up" });
+    if (was !== "up") { failed(); return; }
+    if (performance.now() - upAt >= STABLE_MS) attempt = 0;
     retry();
   }
 
@@ -257,16 +293,20 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
   async function dial() {
     if (closed || conn || state === "connecting") return;
     clearTimeout(retryTimer);
+    clearInterval(watchTimer);
     set("connecting");
-    let link;
-    try { link = await connect(); }
+    let link, deadline = null;
+    // a connector that never settles must not keep the link "connecting" for good
+    const dialing = (async () => connect())();
+    try { link = await Promise.race([dialing, new Promise((_, reject) => { deadline = setTimeout(() => reject(new Error("no answer in time")), connectMs); deadline.unref?.(); })]); }
     catch (error) {
+      void dialing.then((late) => late?.close?.(), () => {});
       if (closed) return;
       log(`vps link: direct path did not connect (${error?.message ?? error})`);
       onFailure(error);
-      retry();
+      failed();
       return;
-    }
+    } finally { clearTimeout(deadline); }
     if (closed) { link.close(); return; }
     conn = link;
     const mine = link;
@@ -285,8 +325,10 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
       if (!frame) return;
       if (frame.t === "hello") {
         clearTimeout(helloTimer);
-        attempt = 0;
         everUp = true;
+        failing = false;
+        failedOn = null;
+        upAt = performance.now();
         set("up");
         pingTimer = setInterval(() => ping(), pingMs);
         pingTimer.unref?.();
@@ -324,6 +366,8 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
     state: () => state,
     rtt: () => rtt,
     everUp: () => everUp,
+    /** the last dial on this network failed: nothing should wait for this path until it says hello */
+    failing: () => failing,
     /** resolves true once up, false after `ms` or when the link gave up for now */
     whenUp(ms) {
       if (ready()) return Promise.resolve(true);
@@ -337,16 +381,20 @@ export function createDirectLink({ id, key: keyText, guard, connect, onFrame, on
     bytes: (r, chunk) => (writer ? writer.bytes(r, chunk) : true),
     onDrain: (resume) => (writer ? writer.onDrain(resume) : resume()),
     discard: (r) => writer?.discard(r),
-    /** after a wake or a network change: new requests take the relay until a quick ping proves this connection alive */
+    /**
+     * after a wake or a network change: new requests take the relay until a quick ping proves this connection alive. a
+     * path that keeps failing is dialled again now only from a different network; on the same one it keeps its backoff
+     */
     nudge() {
       if (closed) return;
       if (state === "up") { suspect = true; set("up"); ping(Math.max(1500, (rtt ?? 500) * 3)); }
-      else if (state === "waiting" || state === "down") { attempt = 0; void dial(); }
+      else if ((state === "waiting" || state === "down") && (!failing || moved())) { attempt = 0; failing = false; void dial(); }
     },
     close() {
       if (closed) return;
       closed = true;
       clearTimeout(retryTimer);
+      clearInterval(watchTimer);
       const gone = conn;
       conn = null;
       clearInterval(pingTimer);
@@ -375,7 +423,7 @@ export function newDirectKey() {
  * dials sshd and opens one channel. only a host key the agent sent inside the sealed tunnel is accepted, so neither the
  * network nor the relay can stand in for the server; the server's forced command ignores what is asked to run.
  */
-export function sshConnector({ host, port = 22, user, privateKey, hostKeys, timeoutMs = 20_000 }) {
+export function sshConnector({ host, port = 22, user, privateKey, hostKeys, timeoutMs = 20_000, bannerMs = 7000 }) {
   const pinned = hostKeys.map((entry) => Buffer.from(String(entry).split(/\s+/)[1] ?? "", "base64")).filter((blob) => blob.length > 0);
   // an rsa host key signs with sha-2 on any recent sshd
   const types = [...new Set(hostKeys.flatMap((entry) => { const type = String(entry).split(/\s+/)[0]; return type === "ssh-rsa" ? ["rsa-sha2-512", "rsa-sha2-256", "ssh-rsa"] : [type]; }))];
@@ -398,9 +446,16 @@ export function sshConnector({ host, port = 22, user, privateKey, hostKeys, time
     // handled, or an uncaught exception takes down the main process; after settling, the channel's close drops the link
     client.on("error", (error) => fail(error));
     sock.on("error", (error) => fail(error));
+    // sshd greets first, so a port that is blocked (syn dropped) or held by a middlebox is known in seconds, not at the
+    // end of the whole handshake's timeout
+    const silent = setTimeout(() => { if (!sock.bytesRead) fail(Object.assign(new Error("the server's ssh port did not answer"), { code: "ETIMEDOUT", level: "client-timeout" })); }, bannerMs);
+    silent.unref?.();
+    // ssh2 stops its own timeout when the socket closes and does not always say why: a close before the channel opens fails
+    sock.once("close", () => { clearTimeout(silent); fail(Object.assign(new Error("the connection closed before the handshake"), { level: "client-socket" })); });
     client.once("ready", () => {
       client.exec("omb-direct", (error, channel) => {
         if (error) return fail(error);
+        clearTimeout(silent);
         settled = true;
         resolve({ readable: channel, writable: channel, close: () => { channel.destroy?.(); client.end(); sock.destroy(); } });
       });
