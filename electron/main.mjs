@@ -63,6 +63,7 @@ import {
   readPhoneSecretIdentity,
   withPhoneSecretIdentity,
 } from "./phone-secret-identity.mjs";
+import { ensureSavedSecretsKey, savedSecretsKeyMessage } from "./saved-secrets-key.mjs";
 import {
   desktopCompanionAccess,
   desktopCompanionRendererArguments,
@@ -351,6 +352,7 @@ async function stopUtilityServer(proc, timeoutMs = UTILITY_SERVER_STOP_TIMEOUT_M
   ]).finally(() => clearTimeout(timer));
 }
 let phoneSecretIdentity = null;
+let savedSecretsKey = null;
 let desktopRemoteAccess = null;
 let desktopCompanionRelay = null;
 
@@ -804,6 +806,14 @@ async function gatherDiagnostics() {
 
 let serverStartConflictOnly = false;
 
+function syncSavedSecretsKey(proc) {
+  try {
+    proc.postMessage(savedSecretsKeyMessage(savedSecretsKey));
+  } catch (error) {
+    slog(`saved secrets key sync failed: ${error?.message ?? error}`);
+  }
+}
+
 function syncPhoneSecretKey(proc) {
   const message = phoneSecretPrivateKeyMessage(phoneSecretIdentity);
   if (!message) return;
@@ -1181,7 +1191,7 @@ async function startServerOn(port, dataDir = runningDataDir ?? startupEnvironmen
     slog(`spawned pid=${proc.pid}`);
     if (!serverSupervisor.isCurrent(proc)) return;
     syncDesktopMutationToken(proc);
-    syncPhoneSecretKey(proc); grantLocalComputer(proc, (child) => serverSupervisor.isCurrent(child));
+    syncPhoneSecretKey(proc); syncSavedSecretsKey(proc); grantLocalComputer(proc, (child) => serverSupervisor.isCurrent(child));
   });
   let exited = false;
   proc.once("exit", (code) => {
@@ -2899,6 +2909,7 @@ app.whenReady().then(async () => {
   });
   secureCredentials = secureCredentialState.read();
   if (app.isPackaged) await ensurePhoneSecretIdentity();
+  savedSecretsKey = await ensureSavedSecretsKey(() => secureCredentialState?.read() ?? secureCredentials, (derive) => updateSecureCredentialDocument(derive));
   desktopRemoteAccess = desktopCompanionAccess(secureCredentials);
   const hostedAccount = desktopRemoteAccess ? null : ensureCompanionAccountService();
   // Display capture needs a one-shot renderer intent from the same frame/origin, no audio, and a user gesture.

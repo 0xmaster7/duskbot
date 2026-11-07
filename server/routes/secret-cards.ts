@@ -1,8 +1,14 @@
 // POST /api/bots/<bot>/secret-cards/<message>/provide with a phone's sealed envelope, .../save with {threadId, value}
 // for a custom secret typed in the app, and .../(provided|resume|dismiss) with {threadId}; and the agents tool's
-// /api/internal/request-credential. A value is never echoed back, logged or added to the card.
+// /api/internal/request-credential. A value is never echoed back, logged or added to the card. From any session but this
+// computer's own app, .../save takes only a value sealed for this server ({prepare: true} gets its key), so whatever
+// relays the request (the VPS link tunnel, a Cloud's proxy) never carries it in the clear. GET /api/saved-secrets lists
+// the Vault's saved secrets by label and bots, DELETE /api/saved-secrets/<id> removes one; neither ever has a value.
 import { CUSTOM_SECRET_TARGET, credentialResumeOutcome, isCredentialTargetId } from "../../shared/credential-request.ts";
+import { CardSealError, sealedCardSecret } from "../card-seal.ts";
 import { phoneSecretEnvelopeSchema, type SecretCards } from "../host/secret-cards.ts";
+import type { SavedSecretStore } from "../saved-secrets.ts";
+import { SavedSecretsUnavailable } from "../saved-secrets.ts";
 import type { PhoneSecretSubmissionRegistry } from "../phone-secret.ts";
 import type { RequestAuth } from "../request-auth.ts";
 import { SECRET_VALUE_MAX_BYTES } from "../secret-vault.ts";
@@ -54,9 +60,25 @@ export function createSecretCardRoutes(deps: SecretCardRouteDeps): RouteHandler 
       if (!deps.threadVisible(auth, threadId) || !secretMessage(m[1]!, threadId, m[2]!)) return json(res, 404, { error: "no such credential request" });
       const refusal = secretAnswerRefusal(auth, deps.answerContext(auth, m[1]!, threadId));
       if (refusal) return json(res, 403, { error: refusal });
+      if (fields.prepare === true) return json(res, 200, { sealKey: deps.cards.sealKey() });
+      const remember = fields.remember === true;
+      let value: unknown = fields.value;
+      if (fields.sealed !== undefined) {
+        const sealed = sealedCardSecret(fields.sealed);
+        if (!sealed) return json(res, 400, { error: "The sealed secret is invalid." });
+        try {
+          value = await deps.cards.openSealed(m[1]!, threadId, m[2]!, sealed, remember);
+        } catch (error) {
+          if (error instanceof CardSealError) return json(res, error.status, { error: error.message, ...(error.sealKey ? { sealKey: error.sealKey } : {}) });
+          throw error;
+        }
+      } else if (auth.kind !== "loopback") {
+        // Only this computer's own app may send it unsealed: nothing sits between them.
+        return json(res, 400, { error: "Seal the secret for this server before sending it. Update the app and try again.", code: "seal_required", sealKey: deps.cards.sealKey() });
+      }
       const result = secretMessage(m[1]!, threadId, m[2]!)?.secret?.delivery === "email"
-        ? await deps.cards.saveEmailSecret(m[1]!, threadId, m[2]!, fields)
-        : deps.cards.saveCustomSecret(m[1]!, threadId, m[2]!, fields.value);
+        ? await deps.cards.saveEmailSecret(m[1]!, threadId, m[2]!, { ...fields, value })
+        : deps.cards.saveCustomSecret(m[1]!, threadId, m[2]!, value, remember);
       return json(res, result.status, result.body);
     }
     // An HPKE envelope bound to the paired device, bot, task, card and target; only the embedded Electron server holds the key to open it.
@@ -153,5 +175,29 @@ export function createInternalCredentialRequestRoutes(deps: {
     if (method !== "POST" || path !== "/api/internal/request-credential") return PASS;
     const result = deps.request(await deps.readBody());
     return json(res, result.status, result.body);
+  };
+}
+
+/** The Vault's saved secrets: by label, bots and when last used. A value is never returned; one is only removed. */
+export function createSavedSecretRoutes(deps: { store: SavedSecretStore }): RouteHandler {
+  return async ({ res, path, method, json }) => {
+    if (path === "/api/saved-secrets" && method === "GET") {
+      try {
+        return json(res, 200, { secrets: deps.store.list() });
+      } catch (error) {
+        if (error instanceof SavedSecretsUnavailable) return json(res, 503, { error: error.message });
+        throw error;
+      }
+    }
+    const m = path.match(/^\/api\/saved-secrets\/([\w-]{1,128})$/);
+    if (m && method === "DELETE") {
+      try {
+        return deps.store.remove(m[1]!) ? json(res, 200, { removed: true }) : json(res, 404, { error: "no such saved secret" });
+      } catch (error) {
+        if (error instanceof SavedSecretsUnavailable) return json(res, 503, { error: error.message });
+        throw error;
+      }
+    }
+    return PASS;
   };
 }

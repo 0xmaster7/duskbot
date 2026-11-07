@@ -41,13 +41,14 @@ describe("POST /api/bots/<bot>/secret-cards/<card>/save", () => {
   const PATH = "/api/bots/atlas/secret-cards/card-1/save";
   function route(over: Partial<{ visible: boolean; context: SecretAnswerContext }> = {}) {
     const saveCustomSecret = vi.fn(() => ({ status: 200, body: { provided: true, resumed: true } }));
-    const cards = { secretMessage: vi.fn(() => ({ id: "card-1" })), saveCustomSecret } as unknown as SecretCards;
+    const openSealed = vi.fn(async () => "sk_live_canary");
+    const cards = { secretMessage: vi.fn(() => ({ id: "card-1" })), saveCustomSecret, openSealed, sealKey: () => ({ version: 1, keyId: "k".repeat(22), x: "x", y: "y" }) } as unknown as SecretCards;
     const handler = createSecretCardRoutes({
       cards, phoneSecretSubmissions: { has: () => false },
       threadVisible: () => over.visible ?? true,
       answerContext: () => over.context ?? team("p:ada", "p:ada"),
     });
-    return { handler, saveCustomSecret };
+    return { handler, saveCustomSecret, openSealed };
   }
   const context = (body: unknown, contentType = "application/json", auth: RequestAuth = MEMBER): RouteContext => ({
     req: { headers: { "content-type": contentType } } as unknown as IncomingMessage, res: {} as ServerResponse,
@@ -55,12 +56,30 @@ describe("POST /api/bots/<bot>/secret-cards/<card>/save", () => {
     readBody: vi.fn(async () => body), json: vi.fn(),
   });
 
-  it("hands the value to the card's own save, and answers without it", async () => {
-    const { handler, saveCustomSecret } = route();
-    const ctx = context({ threadId: "thread-1", value: "sk_live_canary" });
+  const SEALED = { keyId: "k".repeat(22), encapsulatedKey: "e".repeat(87), ciphertext: "c".repeat(40) };
+
+  it("opens a sealed value for the card's own save, and answers without it", async () => {
+    const { handler, saveCustomSecret, openSealed } = route();
+    const ctx = context({ threadId: "thread-1", sealed: SEALED, remember: true });
     await handler(ctx);
-    expect(saveCustomSecret).toHaveBeenCalledExactlyOnceWith("atlas", "thread-1", "card-1", "sk_live_canary");
+    expect(openSealed).toHaveBeenCalledExactlyOnceWith("atlas", "thread-1", "card-1", SEALED, true);
+    expect(saveCustomSecret).toHaveBeenCalledExactlyOnceWith("atlas", "thread-1", "card-1", "sk_live_canary", true);
     expect(ctx.json).toHaveBeenCalledExactlyOnceWith(ctx.res, 200, { provided: true, resumed: true });
+  });
+
+  it("takes an unsealed value only from this computer's own app, and gives the key to seal for", async () => {
+    const remote = route();
+    const refused = context({ threadId: "thread-1", value: "sk_live_canary" });
+    await remote.handler(refused);
+    expect(remote.saveCustomSecret).not.toHaveBeenCalled();
+    expect(vi.mocked(refused.json).mock.calls[0]?.[1]).toBe(400);
+    expect(vi.mocked(refused.json).mock.calls[0]?.[2]).toMatchObject({ code: "seal_required", sealKey: { keyId: "k".repeat(22) } });
+    const local = route();
+    await local.handler(context({ threadId: "thread-1", value: "sk_live_canary" }, "application/json", { kind: "loopback", scopes: ["admin", "client"] }));
+    expect(local.saveCustomSecret).toHaveBeenCalledExactlyOnceWith("atlas", "thread-1", "card-1", "sk_live_canary", false);
+    const prepare = context({ threadId: "thread-1", prepare: true });
+    await local.handler(prepare);
+    expect(vi.mocked(prepare.json).mock.calls[0]?.[2]).toEqual({ sealKey: { version: 1, keyId: "k".repeat(22), x: "x", y: "y" } });
   });
 
   it.each([

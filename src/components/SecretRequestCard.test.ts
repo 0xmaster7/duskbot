@@ -23,6 +23,7 @@ vi.mock("@/state/store", async (original) => ({
   useStore: () => ({ dispatch }),
 }));
 vi.mock("@/lib/analytics", () => ({ track: fixture.track }));
+vi.mock("@/lib/card-seal", () => ({ sealCardSecret: vi.fn(async (_value: string, key: { keyId: string }, context: { remember: boolean }) => ({ keyId: key.keyId, encapsulatedKey: "E", ciphertext: `sealed-${context.remember ? "save" : "once"}` })) }));
 
 import { SecretRequestCard } from "./SecretRequestCard";
 
@@ -63,9 +64,8 @@ describe("SecretRequestCard superseded requests", () => {
 
   it("stops offering entry and names its replacement once superseded", () => {
     const html = view({ superseded: true });
-    expect(html).toContain("Superseded");
     expect(html).toContain("replaced by a newer one for the same key");
-    expect(html).toContain("Superseded by a newer request");
+    expect(html).toContain("Replaced by a newer request · OpenAI API key");
     expect(html).not.toContain("Save securely");
     expect(html).not.toContain("type=\"password\"");
     expect(html).not.toContain("Not now");
@@ -115,8 +115,9 @@ describe("SecretRequestCard ask card", () => {
   it("folds into one line that names the key once it is saved and the bot resumed", () => {
     const html = view({ provided: true, resumed: true });
     expect(html).toContain('data-ask-card="settled"');
-    expect(html).toContain("OpenAI API key saved securely");
-    expect(html).toContain("Bot resumed without seeing the key");
+    expect(html).toContain(">Secrets</span>");
+    expect(html).toContain("Saved · OpenAI API key");
+    expect(html).toContain('data-icon-name="key"');
     expect(html).not.toContain("<input");
     expect(html).not.toContain("<form");
   });
@@ -245,13 +246,24 @@ describe("SecretRequestCard key analytics", () => {
   it("keeps a custom secret behind its card, with no product event naming it", async () => {
     const setCredential = vi.fn();
     vi.stubGlobal("window", { ogb: { setCredential } });
-    fixture.api.mockResolvedValueOnce({ provided: true, resumed: true });
+    fixture.api.mockResolvedValueOnce({ sealKey: { version: 1, keyId: "k1", x: "x", y: "y" } }).mockResolvedValueOnce({ provided: true, resumed: true });
     await submit("customSecret", "sk_live_ZZtestSECRET0123456789", { delivery: "ref", helpUrl: "" });
     expect(setCredential).not.toHaveBeenCalled();
-    expect(fixture.api.mock.calls).toEqual([["/api/bots/bot-1/secret-cards/secret-card/save", {
-      method: "POST", body: JSON.stringify({ threadId: "thread-1", value: "sk_live_ZZtestSECRET0123456789" }),
-    }]]);
+    expect(fixture.api.mock.calls).toEqual([
+      ["/api/bots/bot-1/secret-cards/secret-card/save", { method: "POST", body: JSON.stringify({ threadId: "thread-1", prepare: true }) }],
+      ["/api/bots/bot-1/secret-cards/secret-card/save", { method: "POST", body: JSON.stringify({ threadId: "thread-1", sealed: { keyId: "k1", encapsulatedKey: "E", ciphertext: "sealed-save" }, remember: true }) }],
+    ]);
+    expect(JSON.stringify(fixture.api.mock.calls)).not.toContain("ZZtestSECRET");
     expect(fixture.track).not.toHaveBeenCalled();
+  });
+
+  it("seals again for a server that restarted between the two steps", async () => {
+    fixture.api.mockResolvedValueOnce({ sealKey: { version: 1, keyId: "k1", x: "x", y: "y" } })
+      .mockRejectedValueOnce(Object.assign(new Error("restarted"), { body: { sealKey: { version: 1, keyId: "k2", x: "x", y: "y" } } }))
+      .mockResolvedValueOnce({ provided: true });
+    await submit("customSecret", "sk_live_ZZtestSECRET0123456789", { delivery: "file", helpUrl: "" });
+    expect(fixture.api).toHaveBeenCalledTimes(3);
+    expect(JSON.parse(fixture.api.mock.calls[2]![1].body).sealed.keyId).toBe("k2");
   });
 });
 
@@ -263,6 +275,18 @@ describe("SecretRequestCard custom secrets", () => {
     expect(file).toContain("Saved to a private file your bot&#x27;s commands can read for 24 hours, then deleted.");
     expect(file).not.toContain("Where to get this key");
     const ref = view({ target: "customSecret", label: "Notion key", reason: "For Notion.", helpUrl: "", delivery: "ref" });
-    expect(ref).toContain("MausBot keeps it for one use by its own tools. Your bot never sees it");
+    expect(ref).toContain("MausBot gives its own tools a one-use reference. Your bot never sees it");
+    expect(ref).toContain('data-secret-remember=""');
+    expect(ref).toMatch(/type="checkbox"[^>]*checked=""/u);
+    expect(ref).toContain("Save to Vault");
+  });
+
+  it("settles into Grok's Secrets line: saved, used once, or cancelled", () => {
+    const custom = { target: "customSecret", label: "OpenRouter API key", helpUrl: "", delivery: "ref" };
+    expect(view({ ...custom, provided: true, resumed: true, kept: "vault" })).toContain("Saved · OpenRouter API key");
+    expect(view({ ...custom, provided: true, resumed: true, kept: "once" })).toContain("Used once · OpenRouter API key");
+    const cancelled = view({ ...custom, dismissed: true, resumed: true });
+    expect(cancelled).toContain("Cancelled · OpenRouter API key");
+    expect(cancelled).not.toContain("<input");
   });
 });

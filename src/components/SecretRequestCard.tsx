@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from "react";
-import { ExternalLink, KeyRound, Loader2, LockKeyhole, RefreshCw, X } from "lucide-react";
+import { useState, type FormEvent, type ReactNode } from "react";
+import { ExternalLink, KeyRound, Loader2, LockKeyhole, RefreshCw } from "lucide-react";
 
 import { CUSTOM_SECRET_TARGET, credentialResumeOutcome, credentialSaveRequest, desktopCredentialSlot, isConfigCredentialTarget } from "../../shared/credential-request";
 import { credentialProvider } from "@/lib/analytics-allowlist";
@@ -7,12 +7,40 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { keySaved, keySaveFailure, savedKeyResult } from "@/lib/product-events";
 import { api, useStore, type Bot, type ConfigStatus, type Message } from "@/state/store";
-import { ASK_FIELD, askPrimary, ASK_QUIET_BUTTON, AskCard, AskSettledLine, returnFocusToComposer } from "./AskCard";
+import { ASK_FIELD, askPrimary, ASK_QUIET_BUTTON, AskCard, returnFocusToComposer } from "./AskCard";
 import { EmailServerInputs } from "./EmailCard";
 import type { EmailServerFields } from "../../shared/email";
 import { productName } from "@/lib/brand";
+import { sealCardSecret } from "@/lib/card-seal";
+import type { CardSealKey } from "../../shared/saved-secrets";
+import { GrokIcon } from "./GrokIcon";
 
-// Security: the value goes straight to the host's settings, never into the chat.
+// Security: the value goes straight to the host's settings, never into the chat. A custom secret leaves this app only
+// sealed for the server that keeps it, so a relay between them (the VPS tunnel, a Cloud's proxy) never reads it.
+
+/** Grok's settled secret line: a key in a small rounded square, "Secrets", then one grey line with what happened. */
+export function SecretSettledRow({ label, status, tone = "done", title, action, detail }: {
+  label: string;
+  status: string;
+  tone?: "done" | "off" | "failed";
+  title?: string;
+  action?: ReactNode;
+  detail?: ReactNode;
+}) {
+  return (
+    <div role="group" aria-label={label} data-ask-card="settled" data-secret-row={tone} className="w-full max-w-[560px] text-start text-[13px] leading-[18px]">
+      <div className="flex min-w-0 items-center gap-2">
+        <span aria-hidden="true" className="flex size-6 shrink-0 items-center justify-center rounded-md border-[0.5px] border-ink/10 text-ink-secondary">
+          <GrokIcon name="key" size={14} />
+        </span>
+        <span className="shrink-0 text-ink">{t("secretCard.title")}</span>
+        <span dir="auto" aria-live="polite" title={title} className={cn("min-w-0 truncate", tone === "failed" ? "text-danger" : "text-ink-tertiary")}>{status}</span>
+        {action}
+      </div>
+      {detail}
+    </div>
+  );
+}
 
 export function SecretRequestCard({
   botId,
@@ -35,6 +63,8 @@ export function SecretRequestCard({
   const [address, setAddress] = useState(secret.address ?? "");
   const [server, setServer] = useState<EmailServerFields>({});
   const [needsServer, setNeedsServer] = useState(false);
+  // Grok's default: a custom secret is saved to the Vault so the bot can use it again; off, it is used once and forgotten.
+  const [remember, setRemember] = useState(true);
   const endpoint = `/api/bots/${encodeURIComponent(botId)}/secret-cards/${encodeURIComponent(message.id)}`;
   const error = localError ?? secret.error;
   const custom = secret.target === CUSTOM_SECRET_TARGET;
@@ -57,17 +87,6 @@ export function SecretRequestCard({
     : declined
       ? `You chose not to provide this credential. ${productName()} could not resume the bot yet.`
       : custom && secret.reason ? secret.reason : secret.description;
-  const footerLabel = stopped
-    ? "Stopped"
-    : declined
-    ? "Continuing without this credential failed"
-    : secret.resumed
-      ? custom && (secret.delivery === "file" || email) ? t("secretCard.resumed") : "Bot resumed without seeing the key"
-      : error
-        ? "The key is safe; resuming failed"
-        : "Waiting to resume safely";
-
-  if (declined && (secret.resumed || !error)) return null;
 
   const notifyProvided = async () => {
     await api(`${endpoint}/provided`, {
@@ -99,7 +118,21 @@ export function SecretRequestCard({
     setLocalError(null);
     try {
       // A password goes as typed: a mailbox's can begin or end with a space.
-      await api(`${endpoint}/save`, { method: "POST", body: JSON.stringify(email ? { threadId, value, address: address.trim(), ...server } : { threadId, value: value.trim() }) });
+      const typed = email ? value : value.trim();
+      const keep = !email && remember;
+      const send = async (key: CardSealKey) => {
+        const sealed = await sealCardSecret(typed, key, { botId, threadId, messageId: message.id, requestKey: secret.requestKey, remember: keep });
+        return api(`${endpoint}/save`, { method: "POST", body: JSON.stringify(email ? { threadId, sealed, address: address.trim(), ...server } : { threadId, sealed, remember: keep }) });
+      };
+      const prepared = await api(`${endpoint}/save`, { method: "POST", body: JSON.stringify({ threadId, prepare: true }) }) as { sealKey: CardSealKey };
+      try {
+        await send(prepared.sealKey);
+      } catch (error) {
+        // The server restarted between the two steps: seal once more for its new key.
+        const fresh = (error as { body?: { sealKey?: CardSealKey } }).body?.sealKey;
+        if (!fresh || fresh.keyId === prepared.sealKey.keyId) throw error;
+        await send(fresh);
+      }
       setValue("");
       returnFocusToComposer();
     } catch (error) {
@@ -154,46 +187,32 @@ export function SecretRequestCard({
   };
 
   if (superseded) {
-    return (
-      <AskSettledLine icon={<X size={13} />} ariaLabel={secret.label}>
-        <span className="text-ink-secondary" title={description}>{secret.label}</span>
-        <span> · Superseded by a newer request</span>
-      </AskSettledLine>
-    );
+    return <SecretSettledRow label={secret.label} tone="off" title={description} status={t("secretCard.replaced", { label: secret.label })} />;
   }
 
   if (stopped && !provided) {
-    return (
-      <AskSettledLine icon={<X size={13} />} ariaLabel={secret.label}>
-        <span className="text-ink-secondary" title={secret.description}>{secret.label}</span>
-        <span> · Stopped</span>
-      </AskSettledLine>
-    );
+    return <SecretSettledRow label={secret.label} tone="off" title={secret.description} status={t("secretCard.stopped", { label: secret.label })} />;
   }
 
   if (provided || declined) {
     const retry = !secret.resumed && !stopped && error ? (
       <button type="button" onClick={() => void retryResume()} disabled={saving} className={cn(ASK_QUIET_BUTTON, "text-accent-text")}>
         {saving ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-        Try again
+        {t("common.tryAgain")}
       </button>
     ) : undefined;
+    const status = declined
+      ? t("secretCard.cancelled", { label: secret.label })
+      : t(secret.kept === "once" ? "secretCard.usedOnce" : "secretCard.saved", { label: secret.label });
     return (
-      <AskSettledLine
-        ariaLabel={secret.label}
-        icon={secret.resumed || stopped
-          ? undefined
-          : declined
-            ? <X size={13} className="text-danger" />
-            : error
-              ? <KeyRound size={13} />
-              : <Loader2 size={13} className="animate-spin" />}
+      <SecretSettledRow
+        label={secret.label}
+        tone={declined ? "off" : "done"}
+        title={description}
+        status={status}
         action={retry}
-        detail={error && <p role="alert" className="ms-[19px] mt-1 text-[12px] text-danger">{error}</p>}
-      >
-        <span className="text-ink-secondary" title={description}>{provided ? `${secret.label} saved securely` : secret.label}</span>
-        <span className={declined ? "text-danger" : undefined}> · {footerLabel}</span>
-      </AskSettledLine>
+        detail={error && <p role="alert" className="ms-8 mt-1 text-[12px] text-danger">{t("secretCard.resumeFailed")}: {error}</p>}
+      />
     );
   }
 
@@ -234,7 +253,7 @@ export function SecretRequestCard({
             />
             <button type="submit" disabled={saving || (!value.trim() && !savedLocally) || (email && !address.trim())} {...askPrimary(color)}>
               {saving ? <Loader2 size={14} className="animate-spin" /> : <LockKeyhole size={14} />}
-              {savedLocally ? "Continue task" : "Save securely"}
+              {savedLocally ? "Continue task" : custom ? t("secretCard.submit") : "Save securely"}
             </button>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-tertiary">
@@ -242,6 +261,12 @@ export function SecretRequestCard({
               <LockKeyhole size={11} />{" "}
               {!custom ? `Stored securely by ${productName()} and never added to chat.` : email ? t("secretCard.email") : secret.delivery === "file" ? t("secretCard.file") : t("secretCard.ref")}
             </span>
+            {custom && !email && (
+              <label className="ms-auto inline-flex cursor-pointer items-center gap-1.5 text-ink-secondary" data-secret-remember="">
+                <input type="checkbox" checked={remember} disabled={saving} onChange={(event) => setRemember(event.target.checked)} className="size-3.5 accent-current" />
+                {t("secretCard.saveToVault")}
+              </label>
+            )}
             {secret.helpUrl && (
               <a
                 href={secret.helpUrl}

@@ -10,6 +10,8 @@ vi.mock("@/state/store", async (importOriginal) => ({
   useStore: () => ({ state: { bots: [{ id: "pepper", name: "Pepper" }, { id: "quill", name: "Quill" }], config: fixture.config }, dispatch: vi.fn() }),
 }));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => fixture.admin }));
+// the Vault's saved secrets load on their own (SavedSecretsSettings.tsx); these tests count the logins calls only
+vi.mock("./SavedSecretsSettings", () => ({ useSavedSecrets: () => ({ secrets: [], error: null, remove: async () => {} }), SavedSecretDialog: () => null }));
 const { LoginsSettings, VaultNewItem } = await import("./LoginsSettings");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -48,6 +50,10 @@ async function type(name: string, value: string) {
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
 }
+async function openOnePassword() {
+  await click("New item");
+  await act(async () => [...document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find((item) => item.getAttribute("aria-label") === "1Password")!.click());
+}
 async function submit() {
   await act(async () => { document.body.querySelector<HTMLFormElement>("[data-login-form]")!.requestSubmit(); });
   await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
@@ -58,7 +64,7 @@ describe("Settings → Logins", () => {
     fixture.api.mockResolvedValueOnce({ logins: [CARD_LOGIN, SHARED_LOGIN, TENANT_LOGIN], onePassword: OFF });
     await render();
     expect(fixture.api).toHaveBeenCalledWith("/api/logins");
-    const rows = [...document.body.querySelectorAll("[data-login-row]")].map((row) => row.textContent);
+    const rows = [...document.body.querySelectorAll("[data-login-row]")].map((row) => `${row.textContent} | ${row.getAttribute("data-login-detail")}`);
     expect(rows[0]).toContain("example.com");
     expect(rows[0]).toContain("alice@example.com");
     expect(rows[0]).toContain("Also signs in on login.microsoftonline.com");
@@ -73,7 +79,7 @@ describe("Settings → Logins", () => {
   it("adds a login for the bots chosen, and keeps nothing it was typed once saved", async () => {
     fixture.api.mockResolvedValueOnce({ logins: [], onePassword: OFF }).mockResolvedValueOnce({ login: SHARED_LOGIN }).mockResolvedValueOnce({ logins: [SHARED_LOGIN], onePassword: OFF });
     await render();
-    expect(document.body.textContent).toContain("No saved logins yet.");
+    expect(document.body.textContent).toContain("Nothing saved yet.");
     await click("New item");
     await click("Add login");
     await type("site", "crm.example.org");
@@ -143,8 +149,10 @@ describe("Settings → Logins", () => {
       .mockResolvedValueOnce({ onePassword: OFF })
       .mockResolvedValueOnce({ logins: [], onePassword: OFF });
     await render();
-    expect(document.body.querySelector("[data-onepassword]")!.textContent).toContain("service account that reads one vault");
-    await act(async () => document.body.querySelector<HTMLButtonElement>('[data-settings-open="onepassword"]')!.click());
+    // nothing about 1Password shows until it is connected: New item opens it
+    expect(document.body.querySelector("[data-onepassword]")).toBeNull();
+    await openOnePassword();
+    expect(document.body.querySelector('[data-panel-modal="onepassword"]')!.textContent).toContain("service account that reads one vault");
     const field = document.body.querySelector<HTMLInputElement>('input[name="onePasswordToken"]')!;
     expect(field.type).toBe("password");
     await type("onePasswordToken", "ops_fake-typed-token");
@@ -154,12 +162,12 @@ describe("Settings → Logins", () => {
     expect(document.body.querySelector("[data-onepassword]")!.textContent).toContain("Connected to Shared with OMB · 1 logins with a website");
     expect(document.body.innerHTML).not.toContain("ops_fake-typed-token");
     const row = document.body.querySelector('[data-login-row="example.com"]')!;
-    expect(row.textContent).toContain("From 1Password · All bots");
+    expect(row.getAttribute("data-login-detail")).toContain("From 1Password · All bots");
     expect(row.querySelectorAll("button")).toHaveLength(0);
     await click("Disconnect");
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
     expect(fixture.api).toHaveBeenNthCalledWith(4, "/api/logins/1password", { method: "DELETE" });
-    await act(async () => document.body.querySelector<HTMLButtonElement>('[data-settings-open="onepassword"]')!.click());
+    await openOnePassword();
     expect(document.body.querySelector<HTMLInputElement>('input[name="onePasswordToken"]')!.value).toBe("");
   });
 
@@ -181,13 +189,13 @@ describe("Settings → Logins", () => {
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
     expect(fixture.api).toHaveBeenNthCalledWith(2, "/api/logins/1password/vaults/v1", { method: "PATCH", body: JSON.stringify({ bots: ["quill"] }) });
     expect(row().textContent).toContain("2 logins · Quill");
-    expect(document.body.querySelector('[data-login-row="example.com"]')!.textContent).toContain("From 1Password · Quill");
+    expect(document.body.querySelector('[data-login-row="example.com"]')!.getAttribute("data-login-detail")).toContain("From 1Password · Quill");
   });
 
   it("says why 1Password refused a token", async () => {
     fixture.api.mockResolvedValueOnce({ logins: [], onePassword: OFF }).mockRejectedValueOnce(new Error("1Password did not accept the token."));
     await render();
-    await act(async () => document.body.querySelector<HTMLButtonElement>('[data-settings-open="onepassword"]')!.click());
+    await openOnePassword();
     await type("onePasswordToken", "ops_fake-wrong");
     await click("Connect 1Password");
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });

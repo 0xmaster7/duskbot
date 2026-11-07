@@ -130,6 +130,14 @@ export function savedLoginsPrompt(logins: ReadonlyArray<LoginPlace & { username:
   return ` Your saved logins, for fill_login on these sites and their sign-in pages: ${shown.join(", ")}${more}.`;
 }
 
+/** Secrets the person saved to the Vault for this bot, by label only: request_credential with one gets it without a card. */
+export function savedSecretsPrompt(labels: readonly string[]): string {
+  if (!labels.length) return "";
+  const shown = labels.slice(0, 40).map((label) => JSON.stringify(label));
+  const more = labels.length > shown.length ? ` and ${labels.length - shown.length} more` : "";
+  return ` Secrets saved in the person's Vault for you: ${shown.join(", ")}${more}. To use one, call request_credential with that label and a delivery; it comes back at once as a secretRef or a private file, with no card, and you never see the value.`;
+}
+
 export function computerPrompt(kind: ComputerPromptKind | null): string {
   if (!kind) return "";
   return COMPUTER_PARAGRAPH[kind] + SIGN_IN_PROMPT;

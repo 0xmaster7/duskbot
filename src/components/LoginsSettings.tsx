@@ -8,6 +8,8 @@ import { relativeTime } from "@/lib/memory";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { useStore } from "@/state/store";
 import { LoginBotPicker, LoginForm } from "./LoginForm";
+import { SavedSecretDialog, useSavedSecrets } from "./SavedSecretsSettings";
+import type { SavedSecretSummary } from "../../shared/saved-secrets";
 import { ItemRow, NavRow, NoteRow, SwitchRow } from "./ListRows";
 import { Card, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
 import { DialogPane, GrokDialog, mdPrimaryCls, mdSecondaryCls, textFieldCls } from "./ui/GrokDialog";
@@ -63,7 +65,31 @@ export function VaultNewItem() {
   );
 }
 
-type VaultTab = "all" | "saved" | "onepassword";
+type VaultTab = "all" | "saved" | "secrets" | "onepassword";
+
+/** One Vault item as Grok draws it: a 24px tile, the name, one grey line, a chevron; ink 6% on hover. */
+function VaultRow({ tile, title, hint, detail, onClick, disabled, label }: {
+  tile: ReactNode; title: ReactNode; hint: ReactNode; detail?: string; onClick?: () => void; disabled?: boolean; label?: string;
+}) {
+  const body = (
+    <>
+      <span aria-hidden="true" className="flex w-[30px] shrink-0 justify-center">{tile}</span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate text-[13px] font-medium leading-[18px] text-ink">{title}</span>
+        <span className="truncate text-[12px] leading-4 text-ink-secondary">{hint}</span>
+      </span>
+      {onClick && <GrokIcon name="chevron-right" size={12} className="shrink-0 text-ink/[0.56]" />}
+    </>
+  );
+  const cls = "flex min-h-[50px] w-full items-center gap-3 rounded-md p-2 text-start";
+  return onClick
+    ? <button type="button" title={detail} aria-label={label} disabled={disabled} onClick={onClick} className={cn(cls, "cursor-pointer hover:bg-ink/[0.06] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus disabled:cursor-default")}>{body}</button>
+    : <div title={detail} className={cls}>{body}</div>;
+}
+
+function KeyTile() {
+  return <span className="flex size-6 items-center justify-center rounded-md border border-ink/[0.12] bg-app text-ink/[0.68]"><GrokIcon name="key" size={14} /></span>;
+}
 
 /** A login's site as Grok's rounded tile: the site's own icon once it loads, its first letter on a faint fill until
  * then or when the site has none. */
@@ -102,15 +128,16 @@ export function LoginsSettings() {
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<VaultTab>("all");
   const [query, setQuery] = useState("");
+  const saved_secrets = useSavedSecrets(ownerOrAdmin === true);
+  const [openSecret, setOpenSecret] = useState<SavedSecretSummary | null>(null);
+  const [connectNonce, setConnectNonce] = useState(0);
   const request = useSyncExternalStore(subscribeVault, () => vaultRequest, () => vaultRequest);
   const [seen, setSeen] = useState(request?.nonce ?? 0);
   if (request && request.nonce !== seen) {
     setSeen(request.nonce);
     if (request.kind === "login") { setEditing(null); setDeleting(null); setAdding(true); }
+    else setConnectNonce(request.nonce);
   }
-  useEffect(() => {
-    if (request?.kind === "onepassword") document.querySelector<HTMLElement>('[data-settings-block="onepassword"] input, [data-settings-block="onepassword"] button')?.focus();
-  }, [request]);
 
   const load = async () => {
     try {
@@ -156,14 +183,20 @@ export function LoginsSettings() {
   const editingLogin = logins?.find((login) => login.id === editing);
   const saved = (logins ?? []).filter((login) => login.source !== "1password");
   const fromVaults = (logins ?? []).filter((login) => login.source === "1password");
+  const secrets = saved_secrets.secrets ?? [];
   const tabs: Array<{ id: VaultTab; label: string; count: number }> = [
-    { id: "all", label: t("settings.vault.all"), count: logins?.length ?? 0 },
+    { id: "all", label: t("settings.vault.all"), count: (logins?.length ?? 0) + secrets.length },
     { id: "saved", label: t("settings.section.logins"), count: saved.length },
-    { id: "onepassword", label: t("settings.logins.onePassword.title"), count: fromVaults.length },
+    { id: "secrets", label: t("secretCard.title"), count: secrets.length },
+    ...(onePassword.connected || fromVaults.length ? [{ id: "onepassword" as const, label: t("settings.logins.onePassword.title"), count: fromVaults.length }] : []),
   ];
   const words = query.trim().toLowerCase();
-  const shown = (tab === "saved" ? saved : tab === "onepassword" ? fromVaults : logins ?? [])
+  const shown = (tab === "saved" ? saved : tab === "onepassword" ? fromVaults : tab === "secrets" ? [] : logins ?? [])
     .filter((login) => !words || `${login.site} ${login.username} ${login.hosts.join(" ")}`.toLowerCase().includes(words));
+  const shownSecrets = (tab === "all" || tab === "secrets" ? secrets : []).filter((secret) => !words || secret.label.toLowerCase().includes(words));
+  const nothing = logins !== null && logins.length === 0 && secrets.length === 0;
+  const secretHint = (secret: SavedSecretSummary) => [botNames(secret.bots),
+    secret.lastUsedAt ? t("settings.logins.used", { when: relativeTime(secret.lastUsedAt) }) : t("settings.logins.neverUsed")].join(" · ");
 
   return (
     <>
@@ -177,40 +210,50 @@ export function LoginsSettings() {
               </button>
             ))}
           </div>
-          <label className="flex h-7 w-[200px] max-w-full items-center gap-2 rounded-full border border-ink/10 px-2.5 text-ink-secondary">
+          <label className="flex h-8 w-[160px] max-w-full items-center gap-2 rounded-full border border-ink/[0.12] bg-ink/[0.04] ps-[7px] pe-2 text-ink-secondary">
             <GrokIcon name="search" size={14} />
             <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} aria-label={t("settings.vault.search")} placeholder={t("settings.vault.search")}
               className="h-full min-w-0 flex-1 border-0! bg-transparent p-0 text-[13px] leading-[18px] text-ink outline-none placeholder:text-ink-secondary [&::-webkit-search-cancel-button]:hidden" />
           </label>
         </div>
         {state.config?.cloudHome === true && <p className="px-3 text-[12px] leading-4 text-ink-tertiary" data-logins-cloud-own>{t("settings.logins.cloudOwn")}</p>}
-        {logins?.length === 0 ? <p className="py-2 text-center text-[13px] leading-[18px] text-ink-secondary">{t("settings.w6c.logins.empty")} {t("settings.vault.empty")}</p> : <SettingsRows>
-          <div aria-busy={logins === null || busy} className="flex flex-col">
+        {nothing ? <p data-vault-empty="" className="py-10 text-center text-[13px] leading-[18px] text-ink-secondary">{t("settings.vault.nothing")}</p> : <>
+          <div aria-busy={logins === null || busy} className="flex flex-col rounded-xl border border-ink/[0.12] bg-app p-1.5">
             {logins === null && !error && <NoteRow>{t("settings.logins.loading")}</NoteRow>}
-            {!!logins?.length && shown.length === 0 && <NoteRow>{t("settings.vault.noMatch")}</NoteRow>}
+            {logins !== null && shown.length + shownSecrets.length === 0 && <NoteRow>{words ? t("settings.vault.noMatch") : t("settings.vault.noneHere")}</NoteRow>}
             {!!shown.length && (
               <ul className="flex flex-col" data-logins-list>
                 {shown.map((login) => {
-                  const details = [login.username || t("settings.logins.noUsername"), t(SOURCE_KEYS[login.source]), botNames(login.bots),
+                  const details = [t(SOURCE_KEYS[login.source]), botNames(login.bots),
                     login.lastUsedAt ? t("settings.logins.used", { when: relativeTime(login.lastUsedAt) }) : t("settings.logins.neverUsed")].join(" · ");
                   const hosts = signInHostsLine(login);
-                  const title = <span dir="ltr">{login.site}{login.hasTotp && <span className="text-ink-secondary"> · {t("settings.logins.twoFactor")}</span>}</span>;
-                  const hint = <span dir="auto">{details}{hosts && <span data-login-hosts> · {hosts}</span>}</span>;
+                  const title = <span dir="ltr">{login.site}{login.hasTotp && <span className="font-normal text-ink-secondary"> · {t("settings.logins.twoFactor")}</span>}</span>;
+                  const hint = <span dir="auto">{login.username || t("settings.logins.noUsername")}{hosts && <span data-login-hosts> · {hosts}</span>}</span>;
                   return (
-                    <li key={login.id} className="flex flex-col" data-login-row={login.site}>
-                      {login.source === "1password"
-                        ? <ItemRow icon={undefined} title={<span className="flex items-center gap-2.5"><SiteTile site={login.site} /><span className="min-w-0">{title}</span></span>} hint={<span className="block ps-[34px]">{hint}</span>} />
-                        : <NavRow title={<span className="flex items-center gap-2.5"><SiteTile site={login.site} /><span className="min-w-0">{title}</span></span>} hint={<span className="block ps-[34px]">{hint}</span>} disabled={busy} aria-label={t("settings.logins.changeFor", { site: login.site })} onClick={() => startEdit(login)} />}
+                    <li key={login.id} className="flex flex-col" data-login-row={login.site} data-login-detail={details}>
+                      <VaultRow tile={<SiteTile site={login.site} />} title={title} hint={hint} detail={details}
+                        {...(login.source === "1password" ? {} : { onClick: () => startEdit(login), disabled: busy, label: t("settings.logins.changeFor", { site: login.site }) })} />
                     </li>
                   );
                 })}
               </ul>
             )}
+            {!!shownSecrets.length && (
+              <ul className="flex flex-col" data-saved-secrets="">
+                {shownSecrets.map((secret) => (
+                  <li key={secret.id} data-saved-secret={secret.label}>
+                    <VaultRow tile={<KeyTile />} title={secret.label} hint={secretHint(secret)} onClick={() => setOpenSecret(secret)} label={secret.label} />
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-        </SettingsRows>}
-        <p data-settings-footnote="" className="-mt-3.5 px-3 text-[11px] leading-[15px] text-ink-tertiary">{t("settings.vault.footnote")}</p>
-        {error && <p role="alert" className="px-3 text-[12px] leading-4 text-danger">{error}</p>}
+          <p data-settings-footnote="" className="-mt-2 px-2 text-[12px] leading-4 text-ink/[0.56]">{t("settings.vault.footnote")}</p>
+        </>}
+        {(error ?? saved_secrets.error) && <p role="alert" className="px-3 text-[12px] leading-4 text-danger">{error ?? saved_secrets.error}</p>}
       </section>
+      {openSecret && <SavedSecretDialog secret={openSecret} hint={secretHint(openSecret)} onClose={() => setOpenSecret(null)}
+        onRemove={async () => { await saved_secrets.remove(openSecret); setOpenSecret(null); }} />}
       {adding && loginForm(t("settings.logins.add"), () => setAdding(false),
         <LoginForm site={{ value: site, onChange: setSite }} compact submitLabel={t("settings.logins.save")} autoFocus
           onCancel={() => setAdding(false)}
@@ -249,7 +292,7 @@ export function LoginsSettings() {
           </div>
         </>,
       )}
-      <OnePasswordConnection status={onePassword} disabled={logins === null} bots={bots} botNames={botNames}
+      <OnePasswordConnection status={onePassword} disabled={logins === null} bots={bots} botNames={botNames} openNonce={connectNonce}
         onChange={async (next) => { setOnePassword(next); await load(); }} />
     </>
   );
@@ -308,7 +351,8 @@ function VaultAccess({ vault, bots, botNames, disabled, onChange }: {
   );
 }
 
-function OnePasswordConnection({ status, disabled, bots, botNames, onChange }: {
+function OnePasswordConnection({ status, disabled, bots, botNames, onChange, openNonce }: {
+  openNonce: number;
   status: OnePasswordStatus;
   disabled: boolean;
   bots: ReadonlyArray<{ id: string; name: string }>;
@@ -319,6 +363,9 @@ function OnePasswordConnection({ status, disabled, bots, botNames, onChange }: {
   const [busy, setBusy] = useState<"connect" | "refresh" | "disconnect" | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // New item → 1Password opens the token dialog; nothing about 1Password shows until it is connected.
+  const [seenNonce, setSeenNonce] = useState(openNonce);
+  if (openNonce !== seenNonce) { setSeenNonce(openNonce); if (!status.connected) setConnecting(true); }
   const run = async (kind: NonNullable<typeof busy>, work: () => Promise<OnePasswordStatus>) => {
     if (busy) return;
     setBusy(kind);
@@ -331,12 +378,31 @@ function OnePasswordConnection({ status, disabled, bots, botNames, onChange }: {
     event.preventDefault();
     if (token.trim()) void run("connect", () => connectOnePassword(token.trim()));
   };
+  const tokenDialog = connecting && (
+    <DialogPane.Provider value={false}>
+      <GrokDialog data-panel-modal="onepassword" title={t("settings.logins.onePassword.title")} description={t("settings.w6c.logins.onePasswordGuide")} onClose={() => setConnecting(false)}>
+        <form className="flex flex-col gap-3" onSubmit={connect}>
+          <input name="onePasswordToken" type="password" autoComplete="off" spellCheck={false} maxLength={8192} value={token} data-autofocus
+            onChange={(event) => setToken(event.target.value)} disabled={disabled || busy !== null}
+            aria-label={t("settings.logins.onePassword.token")} placeholder={t("settings.logins.onePassword.token")}
+            className={textFieldCls} />
+          {error && <p role="alert" className="m-0 text-[12px] leading-4 text-danger">{error}</p>}
+          <div className="flex justify-end gap-2">
+            <button type="button" className={mdSecondaryCls} onClick={() => setConnecting(false)}>{t("common.cancel")}</button>
+            <button type="submit" className={mdPrimaryCls} disabled={disabled || busy !== null || !token.trim()}>
+              {busy === "connect" && <Loader2 size={13} className="animate-spin" />}{t("settings.logins.onePassword.connect")}
+            </button>
+          </div>
+        </form>
+      </GrokDialog>
+    </DialogPane.Provider>
+  );
+  if (!status.connected) return tokenDialog || null;
   return (
     <SettingsGroup label={t("settings.logins.onePassword.title")} block="onepassword">
       <section aria-label={t("settings.logins.onePassword.title")} data-onepassword>
         <SettingsRows>
-          {status.connected ? (
-            <>
+          <>
               <ItemRow title={t("settings.logins.onePassword.title")}
                 hint={t("settings.logins.onePassword.connected", { vaults: (status.vaults ?? []).map((vault) => vault.title).join(", ") || "-", count: String(status.items ?? 0) })} />
               {status.error && <NoteRow tone="danger">{status.error}</NoteRow>}
@@ -348,32 +414,7 @@ function OnePasswordConnection({ status, disabled, bots, botNames, onChange }: {
               <NavRow drill={false} disabled={disabled || busy !== null} title={t("settings.logins.onePassword.refresh")}
                 value={busy === "refresh" ? <Loader2 size={13} className="animate-spin" /> : undefined} onClick={() => void run("refresh", refreshOnePassword)} />
               <NavRow drill={false} disabled={disabled || busy !== null} title={t("settings.logins.onePassword.disconnect")} onClick={() => void run("disconnect", disconnectOnePassword)} />
-            </>
-          ) : (
-            <>
-              <NavRow data-settings-open="onepassword" title={t("settings.logins.onePassword.title")} hint={t("settings.w6c.logins.onePasswordGuide")}
-                disabled={disabled} onClick={() => setConnecting(true)} />
-              {connecting && (
-                <DialogPane.Provider value={false}>
-                  <GrokDialog data-panel-modal="onepassword" title={t("settings.logins.onePassword.title")} description={t("settings.w6c.logins.onePasswordGuide")} onClose={() => setConnecting(false)}>
-                    <form className="flex flex-col gap-3" onSubmit={connect}>
-                      <input name="onePasswordToken" type="password" autoComplete="off" spellCheck={false} maxLength={8192} value={token} data-autofocus
-                        onChange={(event) => setToken(event.target.value)} disabled={disabled || busy !== null}
-                        aria-label={t("settings.logins.onePassword.token")} placeholder={t("settings.logins.onePassword.token")}
-                        className={textFieldCls} />
-                      {error && <p role="alert" className="m-0 text-[12px] leading-4 text-danger">{error}</p>}
-                      <div className="flex justify-end gap-2">
-                        <button type="button" className={mdSecondaryCls} onClick={() => setConnecting(false)}>{t("common.cancel")}</button>
-                        <button type="submit" className={mdPrimaryCls} disabled={disabled || busy !== null || !token.trim()}>
-                          {busy === "connect" && <Loader2 size={13} className="animate-spin" />}{t("settings.logins.onePassword.connect")}
-                        </button>
-                      </div>
-                    </form>
-                  </GrokDialog>
-                </DialogPane.Provider>
-              )}
-            </>
-          )}
+          </>
         </SettingsRows>
         {error && !connecting && <p role="alert" className="mt-2 px-3 text-[12px] leading-4 text-danger">{error}</p>}
       </section>

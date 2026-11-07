@@ -749,6 +749,7 @@ export interface SecretRequestCardData {
   vm?: string;
   /** When a custom secret was saved; its file goes a day later. */
   savedAt?: number;
+  /** A custom secret: "vault", also saved to the Vault for this bot to use again; "once", used once, not kept. */ kept?: "vault" | "once";
   requestKey: string;
   phoneOperationId?: string;
   provided?: boolean;

@@ -12,6 +12,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { cloudHomeConfiguration, cloudPairingSignature } from "./cloud-home.ts";
 import { cloudHomeChildEnvironments, spawnWithSecrets } from "./cloud-home-start.ts";
+import { sealCardSecret } from "../src/lib/card-seal.ts";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 import { hostTimeout } from "./testing/host-timeout.ts";
 import { freePortBlock } from "./testing/ports.ts";
@@ -20,6 +21,7 @@ const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
 const HOST = "omb-t-5ec2e7f1a0b9.fly.dev";
 const FILE_CANARY = `sk_test_FILECANARY${randomBytes(12).toString("hex")}`;
 const REF_CANARY = `ntn_REFCANARY${randomBytes(12).toString("hex")}`;
+const VAULT_CANARY = `or_VAULTCANARY${randomBytes(12).toString("hex")}`;
 const bootstrap = randomBytes(32).toString("base64url");
 let home = "";
 let base = "";
@@ -154,7 +156,15 @@ it("keeps a file secret and a ref secret out of every record, and the bot uses e
   expect(Object.keys(listed.inputSchema.properties)).toEqual(["credential_id", "address", "label", "reason", "placeholder", "delivery"]);
   expect(listed.inputSchema.properties.credential_id.enum).toEqual(expect.arrayContaining(["composioApiKey", "openaiApiKey", "anthropicApiKey"]));
   const cards = async () => (await api("GET", `/api/threads/${bot.threadId}/messages`)).body.messages.filter((message: any) => message.kind === "secret");
-  const save = (cardId: string, value: unknown) => api("POST", `/api/bots/${bot.id}/secret-cards/${cardId}/save`, { threadId: bot.threadId, value });
+  // Through a relay the app seals the value for this server first: the request never carries it in the clear.
+  const save = async (cardId: string, value: string, remember = false) => {
+    const path = `/api/bots/${bot.id}/secret-cards/${cardId}/save`;
+    const prepared = await api("POST", path, { threadId: bot.threadId, prepare: true });
+    if (prepared.status !== 200) return prepared;
+    const card = (await cards()).find((message: any) => message.id === cardId);
+    const sealed = await sealCardSecret(value, prepared.body.sealKey, { botId: bot.id, threadId: bot.threadId, messageId: cardId, requestKey: card.secret.requestKey, remember });
+    return api("POST", path, { threadId: bot.threadId, sealed, remember });
+  };
 
   // A file for the bot's own commands.
   expect((await tools.call("request_credential", { label: "Stripe secret key", reason: "To create test charges." })).text).toMatch(/needs delivery/u);
@@ -163,7 +173,7 @@ it("keeps a file secret and a ref secret out of every record, and the bot uses e
   const fileCard = (await cards()).at(-1);
   expect(fileCard.secret).toMatchObject({ target: "customSecret", label: "Stripe secret key", placeholder: "sk_test_…", helpUrl: "", delivery: "file", reason: "To create test charges." });
   expect(fileCard.secret.description).toBe("To create test charges. Ledger's commands can read it from a private file for 24 hours; it is never added to chat.");
-  expect(await save(fileCard.id, "")).toMatchObject({ status: 400 });
+  expect(await api("POST", `/api/bots/${bot.id}/secret-cards/${fileCard.id}/save`, { threadId: bot.threadId, value: "" })).toMatchObject({ status: 400, body: { code: "seal_required" } });
   expect(await save(fileCard.id, FILE_CANARY)).toMatchObject({ status: 200, body: { provided: true } });
   expect(await save(fileCard.id, FILE_CANARY)).toMatchObject({ status: 409, body: { error: "this secret was already saved" } });
   const fileText = (await tools.call("request_credential", { label: "Stripe secret key", reason: "To create test charges.", delivery: "file" })).text;
@@ -196,14 +206,35 @@ it("keeps a file secret and a ref secret out of every record, and the bot uses e
   expect(pathAsRef.isError).toBe(true);
   expect(pathAsRef.text).toMatch(/^That is a secret file for your own commands, not a secretRef/u);
 
+  // Saved to the Vault: the same bot gets it again without a card, Settings lists it by label only, and Remove forgets it.
+  await tools.call("request_credential", { label: "OpenRouter API key", reason: "To call OpenRouter models.", delivery: "file" });
+  const vaultCard = (await cards()).at(-1);
+  expect(await api("POST", `/api/bots/${bot.id}/secret-cards/${vaultCard.id}/save`, { threadId: bot.threadId, value: VAULT_CANARY })).toMatchObject({ status: 400, body: { code: "seal_required" } });
+  expect(await save(vaultCard.id, VAULT_CANARY, true)).toMatchObject({ status: 200, body: { provided: true } });
+  expect((await cards()).at(-1).secret).toMatchObject({ label: "OpenRouter API key", kept: "vault" });
+  const before = (await cards()).length;
+  const again = await tools.call("request_credential", { label: "openrouter api key", reason: "Again.", delivery: "ref" });
+  expect(again.text).toMatch(/^OpenRouter API key is saved in the person's Vault, so no card was needed\. It is here as secret-ref:[0-9a-f]{32}\./u);
+  expect((await cards()).length).toBe(before);
+  const vaultList = await api("GET", "/api/saved-secrets");
+  expect(vaultList).toMatchObject({ status: 200, body: { secrets: [{ label: "OpenRouter API key", bots: [bot.id] }] } });
+  expect(Object.keys(vaultList.body.secrets[0]).sort()).toEqual(["bots", "createdAt", "id", "label", "lastUsedAt", "updatedAt"]);
+  expect(await api("DELETE", `/api/saved-secrets/${vaultList.body.secrets[0].id}`)).toMatchObject({ status: 200, body: { removed: true } });
+  expect((await api("GET", "/api/saved-secrets")).body.secrets).toEqual([]);
+  expect((await tools.call("request_credential", { label: "OpenRouter API key", reason: "Once more.", delivery: "ref" })).text).toMatch(/^A secure card for OpenRouter API key/u);
+  const vaultFile = join(home, ".openmausbot", "workspaces", bot.id, ".openmausbot-secrets", bot.threadId, vaultCard.id);
+
   // A bot that disobeys and writes a value into its memory still leaves it out of every record.
   expect((await tools.call("memory_update", { action: "append", text: `Stripe test key: ${FILE_CANARY}` })).isError).toBe(false);
 
   // Only the secret file holds one value, and only the MCP server's settings the other.
   expect(filesHolding(home, FILE_CANARY)).toEqual([relative(home, secretFile)]);
   expect(filesHolding(home, REF_CANARY)).toEqual([join(".openmausbot", "config.json")]);
+  // the Vault kept it sealed (and has since forgotten it): only the card's own private file ever held it in the clear
+  expect(filesHolding(home, VAULT_CANARY)).toEqual([relative(home, vaultFile)]);
   for (const where of [...said, log]) {
     expect(where).not.toContain(FILE_CANARY);
     expect(where).not.toContain(REF_CANARY);
+    expect(where).not.toContain(VAULT_CANARY);
   }
 }, hostTimeout(60_000));

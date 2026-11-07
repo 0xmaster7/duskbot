@@ -220,7 +220,7 @@ export class SecretVault {
           }
           for (const card of readdirSync(threadFolder)) {
             const file = join(threadFolder, card);
-            const at = ID.test(card) ? savedAt(thread, card) : null;
+            const at = ID.test(card) ? savedAt(thread, card) ?? this.issuedAt(card) : null;
             if (at === null || now - at >= SECRET_FILE_TTL_MS || !lstatSync(file).isFile()) rmSync(file, { recursive: true, force: true });
           }
           if (readdirSync(threadFolder).length === 0) rmSync(threadFolder, { recursive: true, force: true });
@@ -233,6 +233,12 @@ export class SecretVault {
     for (const [ref, at] of this.used) if (now - at >= SECRET_FILE_TTL_MS) this.used.delete(ref);
     for (const [card, saved] of this.byCard) if (("until" in saved && saved.until <= now) || ("ref" in saved && !this.refs.has(saved.ref))) this.byCard.delete(card);
     this.held = this.held.filter((entry) => entry.until > now);
+  }
+
+  /** When a file not behind a card (one the Vault handed out) was written, while this process remembers it. */
+  private issuedAt(card: string): number | null {
+    const saved = this.byCard.get(card);
+    return saved && "until" in saved ? saved.until - SECRET_FILE_TTL_MS : null;
   }
 
   scrub(text: string): string {
