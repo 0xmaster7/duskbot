@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
-import { rememberComputerPanelOpen } from "@/lib/computer-panel-focus";
 import { writeComputerPanelView, type ComputerPanelView } from "@/lib/computer-panel-view";
 import { t } from "@/lib/i18n";
 import type { Place } from "@/lib/place";
@@ -37,10 +36,8 @@ const EXTRA_PLACE_LABEL: Record<Exclude<PlaceChoice, "auto" | "local" | "cloud" 
 
 export function useOpenComputer(bot: Pick<Bot, "id">) {
   const { dispatch } = useStore();
-  return (view: ComputerPanelView = "computer", keyboard = false) => {
+  return (view: ComputerPanelView = "computer") => {
     writeComputerPanelView(bot.id, view);
-    rememberComputerPanelOpen({ botId: bot.id, opener: null, tabs: keyboard });
-    dispatch({ type: "toggleSettings", open: false });
     dispatch({ type: "toggleComputer", open: true });
   };
 }

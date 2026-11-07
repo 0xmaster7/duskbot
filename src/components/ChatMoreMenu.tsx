@@ -56,8 +56,8 @@ export function useChatMoreItems(profile: Bot, phoneHeader = false): { items: Si
       key: "computer",
       label: t("chat.computer"),
       icon: <Monitor size={16} />,
-      active: state.computerOpen,
-      onSelect: () => dispatch({ type: "toggleComputer" }),
+      active: state.settingsOpen && state.botSettingsSection === "computer",
+      onSelect: () => dispatch({ type: "toggleComputer", open: true }),
     },
   ] : [];
   const items: SidebarMenuItem[] = [

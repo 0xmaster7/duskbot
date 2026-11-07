@@ -7,7 +7,6 @@ import { useStore, type Bot } from "@/state/store";
 import { awayFromMainThread } from "@/state/thread-navigation";
 import { BotAvatar } from "./Avatar";
 import { GrokIcon } from "./GrokIcon";
-import { sidebarBotActivityTasks } from "./SidebarBotActivity";
 import { BOT_PANEL_ID } from "./bot-panel/side-panel";
 import { sharedChatAudience } from "./TeamPrivateChatsLine";
 
@@ -49,12 +48,12 @@ interface ChatHeadPillProps {
 }
 
 /** Simple mode's whole chat header: the bot's face and name in one pill, which opens and closes the bot panel. Away from
- * the bot's main conversation it also names the one on screen. A dot says another of the bot's conversations needs a
- * look; a team chat says who can read it with one quiet glyph. A room's header is the same pill with its members' faces. */
+ * the bot's main conversation it also names the one on screen; a team chat says who can read it with one quiet glyph.
+ * No dot: the sidebar says which of the bot's other conversations need a look. A room's header is the same pill with
+ * its members' faces. */
 export function ChatHeadPill({ bot, avatar, privacy = null, room, onToggle }: ChatHeadPillProps) {
   const { state } = useStore();
   const open = room ? room.expanded : state.settingsOpen;
-  const elsewhere = bot ? sidebarBotActivityTasks(bot, state.pendingQueued).filter((task) => task.threadId !== bot.threadId).length : 0;
   const privacyLabel = privacyLabelOf(privacy);
   const PrivacyIcon = privacy ? PRIVACY_ICONS[privacy.kind] : Users;
   const title = bot?.tasks?.find((task) => task.threadId === bot.threadId)?.title;
@@ -86,9 +85,6 @@ export function ChatHeadPill({ bot, avatar, privacy = null, room, onToggle }: Ch
           <PrivacyIcon size={13} aria-hidden="true" />
           <span className="sr-only">{privacyLabel}</span>
         </span>
-      )}
-      {elsewhere > 0 && (
-        <span role="img" data-chathead-elsewhere aria-label={t("task.otherActivity", { count: elsewhere })} className="size-1.5 shrink-0 rounded-full bg-accent" />
       )}
     </button>
   );

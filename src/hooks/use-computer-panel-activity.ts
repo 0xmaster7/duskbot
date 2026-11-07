@@ -4,16 +4,15 @@ import { effectivePlace } from "@/lib/place";
 import { writeComputerPanelView } from "@/lib/computer-panel-view";
 import { api, type Action, type Bot } from "@/state/store";
 
-export function useComputerPanelActivity({ bot, active, settingsOpen, computerOpen, targetKey, dispatch }: {
+export function useComputerPanelActivity({ bot, active, settingsOpen, targetKey, dispatch }: {
   bot: Bot | undefined;
   active: boolean;
   settingsOpen: boolean;
-  computerOpen: boolean;
   targetKey?: string;
   dispatch: (action: Action) => void;
 }) {
-  const current = useRef({ bot, active, settingsOpen, computerOpen });
-  current.current = { bot, active, settingsOpen, computerOpen };
+  const current = useRef({ bot, active, settingsOpen });
+  current.current = { bot, active, settingsOpen };
   const activity = useRef(new Map<string, { resource: string; state: string; opened: boolean }>());
   const open = () => {
     const view = current.current;
@@ -24,7 +23,6 @@ export function useComputerPanelActivity({ bot, active, settingsOpen, computerOp
     const state = activity.current.get(selected.id);
     if (!state || state.opened || (state.state !== "starting" && state.state !== "ready")) return;
     state.opened = true;
-    if (view.computerOpen) return;
     writeComputerPanelView(selected.id, "computer");
     dispatch({ type: "toggleComputer", open: true });
   };

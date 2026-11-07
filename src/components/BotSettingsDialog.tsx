@@ -59,6 +59,7 @@ export function BotSettingsDialog({ bot, overlay = false }: {
         bot={bot}
         derived={derived}
         linkedSection={linkedSection}
+        computerRequest={state.computerTabRequest}
         onClose={() => dispatch({ type: "toggleSettings", open: false })}
       />
     </aside>

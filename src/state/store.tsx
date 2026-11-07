@@ -549,7 +549,8 @@ export type BotSettingsSection =
   | "voice"
   | "visibility"
   | "history"
-  | "usage";
+  | "usage"
+  | "computer";
 
 export interface ModelVariantSession {
   instanceId: string;
@@ -585,7 +586,6 @@ export interface AppState {
   pluginsOpen: boolean;
   pluginsSurface: "apps" | "mcp";
   botCreationPending: boolean;
-  computerOpen: boolean;
   activityOpen: boolean;
   /** Cross-bot, so a bot switch leaves it open; pinned, opening another side panel leaves it open too. */
   notificationsOpen: boolean;
@@ -606,6 +606,8 @@ export interface AppState {
   botSettingsExpandAccordion: boolean;
   botSettingsSectionStored: boolean;
   botSettingsExpandRemembered: boolean;
+  /** Counts requests to show a bot's computer: the bot panel lands on its Computer tab again even when already open. */
+  computerTabRequest: number;
   computerStarts: Record<string, ComputerStart>;
   deletingBots: Record<string, true>;
   computerControl: Record<string, ComputerControlState>;
@@ -1032,7 +1034,6 @@ export function reducer(state: AppState, action: Action): AppState {
         activeView: "routines",
         routinesFocus: { section: action.section, view: action.view, botId: action.botId, routineId: action.routineId, runStatus: action.runStatus, nonce: state.routinesFocus.nonce + 1 },
         settingsOpen: false,
-        computerOpen: false,
         activityOpen: false,
         notificationsOpen: false,
         appSettingsOpen: false,
@@ -1045,7 +1046,7 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         activeView: "files",
         filesSuggest: action.suggest?.length ? action.suggest : null,
-        settingsOpen: false, computerOpen: false, activityOpen: false, appSettingsOpen: false, pluginsOpen: false,
+        settingsOpen: false, activityOpen: false, appSettingsOpen: false, pluginsOpen: false,
       };
     case "routinesHydrated":
       return { ...state, routines: action.routines, routineRuns: trimRoutineRuns(action.runs), routineRunsSince: action.since ?? null, routinesLoadState: "ready" };
@@ -1528,15 +1529,10 @@ export function reducer(state: AppState, action: Action): AppState {
       return state.signInFocus?.requestId === action.requestId
         ? { ...state, signInFocus: { ...state.signInFocus, consumed: true } } : state;
     case "toggleComputer": {
-      const open = action.open ?? !state.computerOpen;
-      return {
-        ...state, selectedId: action.botId !== undefined && state.bots.some((bot) => bot.id === action.botId) ? action.botId : state.selectedId,
-        computerOpen: open,
-        settingsOpen: open ? false : state.settingsOpen,
-        activityOpen: open ? false : state.activityOpen,
-        appSettingsOpen: open ? false : state.appSettingsOpen,
-        notificationsOpen: open && !state.notificationsPinned ? false : state.notificationsOpen,
-      };
+      // the bot's computer lives on its panel's Computer tab: there is no separate screen panel to open or close
+      if (action.open === false) return state;
+      const shown = reducer(state, { type: "toggleSettings", open: true, section: "computer", ...(action.botId !== undefined ? { botId: action.botId } : {}) });
+      return shown === state ? state : { ...shown, computerTabRequest: state.computerTabRequest + 1 };
     }
     case "toggleActivity": {
       const open = action.open ?? !state.activityOpen;
@@ -1544,7 +1540,6 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         activityOpen: open,
         settingsOpen: open ? false : state.settingsOpen,
-        computerOpen: open ? false : state.computerOpen,
         appSettingsOpen: open ? false : state.appSettingsOpen,
         notificationsOpen: open && !state.notificationsPinned ? false : state.notificationsOpen,
       };
@@ -1555,7 +1550,6 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         notificationsOpen: open,
         settingsOpen: open ? false : state.settingsOpen,
-        computerOpen: open ? false : state.computerOpen,
         activityOpen: open ? false : state.activityOpen,
         appSettingsOpen: open ? false : state.appSettingsOpen,
       };
@@ -1906,7 +1900,6 @@ export const initialState: AppState = {
   pluginsOpen: false,
   pluginsSurface: "apps",
   botCreationPending: false,
-  computerOpen: false,
   activityOpen: false,
   notificationsOpen: false,
   notificationsPinned: false,
@@ -1925,6 +1918,7 @@ export const initialState: AppState = {
   botSettingsExpandAccordion: false,
   botSettingsSectionStored: false,
   botSettingsExpandRemembered: false,
+  computerTabRequest: 0,
   computerStarts: {},
   deletingBots: {},
   computerControl: {},

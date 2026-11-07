@@ -44,7 +44,7 @@ beforeEach(() => {
   fixture.values = [];
   vi.stubGlobal("window", {});
   const welcomed = { ...EMPTY_ONBOARDING, completedAt: "2026-10-23T00:00:00.000Z", version: WELCOME_VERSION };
-  store.state = { config: { onboarding: welcomed }, welcomeOpen: false, tourOpen: false, computerOpen: false, pluginsOpen: false };
+  store.state = { config: { onboarding: welcomed }, welcomeOpen: false, tourOpen: false, pluginsOpen: false };
 });
 
 describe("the app tour", () => {
