@@ -21,7 +21,7 @@ import { usePhoneViewport } from "@/lib/phone-viewport";
 import { preloadConnectedApps } from "@/lib/connected-apps";
 import { ConnectAppsHost, connectAppsPageFor, openConnectApps } from "@/components/connect-apps";
 import {
-  BotSettingsDialog, CloudAddDialog, FilesView, KeyboardShortcutsModal,
+  BotSettingsDialog, CloudAddDialog, KeyboardShortcutsModal,
   preloadScreens, RemoteAgentSettingsPanel, RoomPanel, SettingsModal,
 } from "@/components/lazy-screens";
 import { useRoomPanelShown } from "@/lib/room-panel";
@@ -305,9 +305,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
           menuButtonRef.current?.focus();
         }}
       />
-      {state.activeView === "files" ? (
-        <FilesView />
-      ) : firstRun === "welcome" ? (
+      {firstRun === "welcome" ? (
         <CloudWelcome />
       ) : firstRun === "intent" ? (
         <CloudIntent />

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { CloudFilesBridge, CloudFilesState } from "../../electron/cloud-sync.mjs";
 
-/** Files lives in this computer's own window: a companion connected to another computer has none. */
+/** Shared folders live in this computer's own window: a companion connected to another computer has none. */
 export function cloudFilesBridge(): CloudFilesBridge | undefined {
   return window.ogb?.remoteClient?.active ? undefined : window.ogb?.cloudAccount?.files;
 }
@@ -17,10 +17,4 @@ export function useCloudFiles(bridge: CloudFilesBridge | undefined) {
     return () => { live = false; off(); };
   }, [bridge]);
   return [state, setState] as const;
-}
-
-/** The Files row shows only while main says this app has a Ready My Cloud (signed out or offline included). */
-export function useCloudFilesReady(): boolean {
-  const [state] = useCloudFiles(cloudFilesBridge());
-  return state !== null && state.phase !== "unavailable";
 }

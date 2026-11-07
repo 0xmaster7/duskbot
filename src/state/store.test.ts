@@ -1149,8 +1149,7 @@ describe("config status", () => {
   });
 
   it("replaces the config without moving the person off their current view", () => {
-    const onFiles = reducer(initialState, { type: "showFiles" });
-    expect(onFiles.activeView).toBe("files");
+    const onFiles = { ...initialState, activeView: "files" as const };
 
     const next = reducer(onFiles, {
       type: "configStatus",
@@ -2503,17 +2502,6 @@ describe("bot settings section", () => {
     expect(reducer(state, { type: "select", id: "bot-a" })).toMatchObject(kept);
     expect(reducer(state, { type: "select", id: room.id })).toMatchObject(kept);
   });
-});
-
-describe("files page", () => {
-  it("opens Files as its own page, carrying the folders it should offer to share only when asked", () => {
-    const open = { ...initialState, appSettingsOpen: true, settingsOpen: true };
-    const suggested = reducer(open, { type: "showFiles", suggest: ["/Users/ada/site"] });
-    expect(suggested).toMatchObject({ activeView: "files", filesSuggest: ["/Users/ada/site"], appSettingsOpen: false, settingsOpen: false });
-    expect(reducer(suggested, { type: "showFiles" })).toMatchObject({ activeView: "files", filesSuggest: null });
-    expect(reducer(suggested, { type: "showFiles", suggest: [] }).filesSuggest).toBeNull();
-  });
-
 });
 
 describe("live config frames", () => {

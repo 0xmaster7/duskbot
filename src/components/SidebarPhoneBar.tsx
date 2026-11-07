@@ -1,6 +1,5 @@
-import { FolderOpen, LayoutGrid, Puzzle, Search, X } from "lucide-react";
+import { LayoutGrid, Puzzle, Search, X } from "lucide-react";
 
-import { useCloudFilesReady } from "@/lib/cloud-files";
 import { t } from "@/lib/i18n";
 import { useStore } from "@/state/store";
 
@@ -12,15 +11,7 @@ import { UpdateIndicator } from "./UpdateIndicator";
 /** The phone's bottom bar: a round button for the tools that are rows in the desktop sidebar, and a search pill. */
 export function SidebarPhoneBar({ query, onQuery }: { query: string; onQuery: (query: string) => void }) {
   const { state, dispatch } = useStore();
-  const filesReady = useCloudFilesReady();
   const items: SidebarMenuItem[] = [
-    ...(filesReady ? [{
-      key: "files",
-      label: t("sidebar.nav.files"),
-      icon: <FolderOpen size={18} />,
-      active: state.activeView === "files",
-      onSelect: () => dispatch({ type: "showFiles" }),
-    }] : []),
     {
       key: "apps",
       label: t("sidebar.nav.apps"),

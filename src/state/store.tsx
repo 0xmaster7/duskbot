@@ -573,8 +573,6 @@ export interface AppState {
   liveCallLookupSeq: number;
   selectedId: string;
   activeView: "chat" | "files";
-  /** Folders a finished move left on this computer, for Files to offer sharing. */
-  filesSuggest: string[] | null;
   routines: Routine[];
   routineRuns: RoutineRun[];
   routinesLoadState: "loading" | "ready" | "error"; routineRunsSince: number | null;
@@ -658,7 +656,6 @@ export type Action =
   | { type: "botsOrdered"; botIds: string[] }
   | { type: "sectionDeleted"; section: string; sections: string[] }
   | { type: "openRoutine"; routineId: string; botId?: string; edit?: boolean }
-  | { type: "showFiles"; suggest?: string[] }
   | { type: "showChat" }
   | { type: "routinesHydrated"; routines: Routine[]; runs: RoutineRun[]; since?: number }
   | { type: "routinesLoadFailed" } | { type: "routineRunsLoaded"; runs: RoutineRun[]; from?: number; to?: number }
@@ -1036,13 +1033,6 @@ export function reducer(state: AppState, action: Action): AppState {
     }
     case "showChat":
       return state.activeView === "chat" ? state : { ...state, activeView: "chat" };
-    case "showFiles":
-      return {
-        ...state,
-        activeView: "files",
-        filesSuggest: action.suggest?.length ? action.suggest : null,
-        settingsOpen: false, appSettingsOpen: false, pluginsOpen: false,
-      };
     case "routinesHydrated":
       return { ...state, routines: action.routines, routineRuns: trimRoutineRuns(action.runs), routineRunsSince: action.since ?? null, routinesLoadState: "ready" };
     case "routinesLoadFailed":
@@ -1879,7 +1869,6 @@ export const initialState: AppState = {
   routineRuns: [], routineRunsSince: null,
   routinesLoadState: "loading",
   routinesFocus: { nonce: 0 },
-  filesSuggest: null,
   webhooks: [],
   webhookAttempts: [],
   webhookIngress: null,
@@ -2271,7 +2260,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const wrapped: React.Dispatch<Action> = (action) => {
       // a saved setting re-renders the whole app: as a transition, so the switch that saved it and the next click never wait
       if (action.type === "configStatus") { startTransition(() => rawDispatch(action)); return; }
-      if (["select", "newTask", "switchTask", "newGroupTask", "switchGroupTask", "showChat", "showFiles"].includes(action.type)) selectionRevision.current++;
+      if (["select", "newTask", "switchTask", "newGroupTask", "switchGroupTask", "showChat"].includes(action.type)) selectionRevision.current++;
       // Pin before any await or optimistic state change.
       action = pinBotThreadAction(action, stateRef.current.bots);
       if (action.type === "switchTask" && !action.cached) action = { ...action, cached: transcriptCache.current(action.threadId) };
