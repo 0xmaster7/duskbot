@@ -92,7 +92,7 @@ describe("trust controls in the real renderer", () => {
         : String(input) === '/api/connectors/tools'
           ? Promise.resolve(new Response(JSON.stringify({ configured: true, services: { gmail: [] } }), { headers: {'content-type':'application/json'} }))
           : original(input, init);
-      await (await import('/src/components/PluginsPanel.tsx')).preloadConnectedApps(true);
+      await (await import('/src/lib/connected-apps.ts')).preloadConnectedApps(true);
       return true;
     })()`);
     await sheetPage(ui, "tools");

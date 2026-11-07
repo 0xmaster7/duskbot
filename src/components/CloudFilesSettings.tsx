@@ -1,24 +1,21 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Folder, FolderOpen, MoreHorizontal } from "lucide-react";
+import { Folder, MoreHorizontal } from "lucide-react";
 import type { CloudFilesBridge, CloudFilesDisk, CloudFilesState, FolderCheck, SharedFolder } from "../../electron/cloud-sync.mjs";
 import { cn } from "@/lib/cn";
 import { cloudFilesBridge, useCloudFiles } from "@/lib/cloud-files";
 import { activeLocale, t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
-import { useStore } from "@/state/store";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { useCaptionChrome } from "./DesktopCapabilities";
-import { Switch } from "./SettingsPrimitives";
+import { Card, Switch } from "./SettingsPrimitives";
 import { MENU_SHEET } from "./menu-recipe";
 
 const REFUSAL: Record<string, LocaleKey> = {
   "too-broad": "files.refusal.tooBroad", "app-data": "files.refusal.appData", "already-shared": "files.refusal.alreadyShared",
   "not-a-folder": "files.refusal.notAFolder", private: "files.refusal.private",
 };
-const SETTINGS = { type: "toggleAppSettings", open: true, section: "cloudAccount" } as const;
 type Run = (action: () => Promise<CloudFilesState | void>) => Promise<void>;
-type Ask = { kind: "share"; check: FolderCheck } | { kind: "stop"; folder: SharedFolder } | { kind: "suggest"; checks: FolderCheck[]; chosen: string[] };
+type Ask = { kind: "share"; check: FolderCheck } | { kind: "stop"; folder: SharedFolder };
 
 const count = (value: number) => new Intl.NumberFormat(activeLocale()).format(value);
 const formatBytes = (value: number) => {
@@ -32,8 +29,8 @@ export function folderSize(check: FolderCheck): string {
   return `${files} · ${formatBytes(check.bytes)}`;
 }
 
-export function refusalText(refusal: string, listed = false): string {
-  return t(listed && refusal === "not-a-folder" ? "files.refusal.notAFolderListed" : REFUSAL[refusal] ?? "files.refusal.other");
+export function refusalText(refusal: string): string {
+  return t(REFUSAL[refusal] ?? "files.refusal.other");
 }
 
 export function folderStatus(folder: SharedFolder): string {
@@ -50,47 +47,18 @@ export function failureText(error: unknown): string {
   return line ? t("files.failedWith", { reason: line }) : t("files.failed");
 }
 
-/** Security: main decides every path; this page shows main's state and passes the person's choices (tokens, folder ids). */
-export function FilesView() {
-  const { dragProps } = useCaptionChrome();
+/** The folders this computer shares with My Cloud and where Cloud bots' work lands, as Settings > MausBot Cloud shows
+ * them. Security: main decides every path; this shows main's state and passes the person's choices (tokens, folder ids). */
+export function CloudFilesSettings() {
   const bridge = cloudFilesBridge();
-  return <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-app text-ink">
-    <header {...dragProps} className="flex shrink-0 items-center gap-2.5 border-b border-hairline/40 px-6 py-4 max-md:pl-12">
-      <FolderOpen size={18} className="text-ink-secondary" />
-      <h1 className="text-[17px] font-semibold">{t("files.title")}</h1>
-    </header>
-    <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-6 py-6">
-        {bridge ? <FilesPage bridge={bridge} /> : <Unavailable />}
-      </div>
-    </div>
-  </main>;
+  return bridge ? <FilesSection bridge={bridge} /> : null;
 }
 
-function Unavailable() {
-  const { dispatch } = useStore();
-  return <div className="flex flex-col items-start gap-3">
-    <p className="text-[14px] text-ink">{t("files.unavailable")}</p>
-    <button type="button" className="ui-button" onClick={() => dispatch(SETTINGS)}>{t("files.openSettings")}</button>
-  </div>;
-}
-
-function FilesPage({ bridge }: { bridge: CloudFilesBridge }) {
-  const { state: app, dispatch } = useStore();
+function FilesSection({ bridge }: { bridge: CloudFilesBridge }) {
   const [state, setState] = useCloudFiles(bridge);
   const [ask, setAsk] = useState<Ask | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
-  const suggest = app.filesSuggest;
-  const ready = state !== null && state.phase !== "unavailable";
-  useEffect(() => {
-    if (!ready || !suggest) return;
-    let live = true;
-    void bridge.checkFolders(suggest).then((checks) => {
-      if (live && checks.length) setAsk({ kind: "suggest", checks, chosen: checks.filter((check) => !check.refusal).map((check) => check.token) });
-    }).catch((error: unknown) => { if (live) setFailed(failureText(error)); });
-    return () => { live = false; };
-  }, [bridge, suggest, ready]);
   const run: Run = async (action) => {
     setBusy(true);
     setFailed(null);
@@ -99,34 +67,27 @@ function FilesPage({ bridge }: { bridge: CloudFilesBridge }) {
     finally { setBusy(false); }
   };
   const close = () => setAsk(null);
-  const share = (tokens: string[]) => { close(); void run(async () => { let next: CloudFilesState | undefined; for (const token of tokens) next = await bridge.share(token); return next; }); };
+  const share = (token: string) => { close(); void run(() => bridge.share(token)); };
   const moreSpace = () => void run(() => bridge.moreSpace());
-  if (!state) return null;
-  if (state.phase === "unavailable") return <Unavailable />;
-  return <>
-    {(state.phase === "offline" || state.phase === "asleep") && <p role="status" data-files-phase={state.phase} className="rounded-xl bg-card px-4 py-3 text-[13px] text-ink-secondary">{t(state.phase === "asleep" ? "files.asleep" : "files.offline")}</p>}
-    {state.phase === "signed-out" && <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-card px-4 py-3">
-      <p className="text-[13px] text-ink">{t("files.signedOut")}</p>
-      <button type="button" className="ui-button" onClick={() => dispatch(SETTINGS)}>{t("files.openSettings")}</button>
-    </div>}
-    {failed && <p role="alert" className="text-[13px] text-danger">{failed}</p>}
-    <section aria-labelledby="files-shared" className="flex flex-col gap-3">
-      <div>
-        <h2 id="files-shared" className="text-[15px] font-medium text-ink">{t("files.shared.title")}</h2>
-        <p className="mt-1 text-[13px] leading-relaxed text-ink-secondary">{t("files.shared.help")}</p>
+  if (!state || state.phase === "unavailable") return null;
+  return <div data-settings-block="files" className="contents">
+    <Card title={t("files.shared.title")} subtitle={t("files.shared.help")}>
+      <div className="flex flex-col items-start gap-3">
+        {(state.phase === "offline" || state.phase === "asleep" || state.phase === "signed-out") && <p role="status" data-files-phase={state.phase} className="text-[13px] text-ink-secondary">
+          {t(state.phase === "asleep" ? "files.asleep" : state.phase === "offline" ? "files.offline" : "files.signedOut")}</p>}
+        {failed && <p role="alert" className="text-[13px] text-danger">{failed}</p>}
+        {state.shared.length > 0
+          ? <ul className="flex w-full flex-col divide-y divide-hairline/40">
+            {state.shared.map((folder) => <FolderRow key={folder.id} folder={folder} bridge={bridge} busy={busy} run={run} onStop={() => setAsk({ kind: "stop", folder })} />)}
+          </ul>
+          : <p className="text-[13px] text-ink-secondary">{t("files.empty")}</p>}
+        <button type="button" disabled={busy} className="ui-button"
+          onClick={() => void run(async () => { const check = await bridge.pickFolder(); if (check) setAsk({ kind: "share", check }); })}>{t("files.add")}</button>
+        {state.disk && <Storage disk={state.disk} busy={busy} onMore={moreSpace} />}
       </div>
-      {state.shared.length > 0
-        ? <ul className="flex flex-col divide-y divide-hairline/40 rounded-xl bg-card">
-          {state.shared.map((folder) => <FolderRow key={folder.id} folder={folder} bridge={bridge} busy={busy} run={run} onStop={() => setAsk({ kind: "stop", folder })} />)}
-        </ul>
-        : <p className="text-[13px] text-ink-secondary">{t("files.empty")}</p>}
-      <button type="button" disabled={busy} className="ui-button self-start"
-        onClick={() => void run(async () => { const check = await bridge.pickFolder(); if (check) setAsk({ kind: "share", check }); })}>{t("files.add")}</button>
-      {state.disk && <Storage disk={state.disk} busy={busy} onMore={moreSpace} />}
-    </section>
-    <section aria-labelledby="files-outputs" className="flex flex-col gap-3">
-      <h2 id="files-outputs" className="text-[15px] font-medium text-ink">{t("files.outputs.title")}</h2>
-      <div className="flex flex-col items-start gap-3 rounded-xl bg-card p-4">
+    </Card>
+    <Card title={t("files.outputs.title")}>
+      <div className="flex flex-col items-start gap-3">
         <div className="flex w-full items-start justify-between gap-4">
           <div className="min-w-0">
             <p id="files-outputs-switch" className="text-[14px] text-ink">{t("files.outputs.switch")}</p>
@@ -138,34 +99,16 @@ function FilesPage({ bridge }: { bridge: CloudFilesBridge }) {
         {state.outputs.problem && <p className="text-[12px] text-danger">{state.outputs.problem}</p>}
         {state.outputs.enabled && <button type="button" className="ui-button" onClick={() => void run(() => bridge.open({ outputs: true }))}>{t("files.outputs.open")}</button>}
       </div>
-    </section>
+    </Card>
     {ask?.kind === "share" && (ask.check.refusal
       ? <FilesDialog label={refusalText(ask.check.refusal)} onClose={close}
         actions={<button type="button" autoFocus className="ui-button ui-button-primary" onClick={close}>{t("files.ok")}</button>} />
       : <ConfirmDialog open tone="neutral" title={t("files.share.title", { name: ask.check.name })}
         body={t("confirm.filesShare", { size: folderSize(ask.check) })} confirmLabel={t("files.share.confirm")}
-        onCancel={close} onConfirm={() => share([ask.check.token])} />)}
+        onCancel={close} onConfirm={() => share(ask.check.token)} />)}
     {ask?.kind === "stop" && <ConfirmDialog open title={t("files.stop.title", { name: ask.folder.name })} body={t("confirm.filesStop")}
       confirmLabel={t("files.stop")} onCancel={close} onConfirm={() => { close(); void run(() => bridge.stopSharing(ask.folder.id)); }} />}
-    {ask?.kind === "suggest" && <FilesDialog label={t("files.suggest.title")} onClose={close} actions={<>
-      <button type="button" autoFocus className="ui-button" onClick={close}>{t("files.cancel")}</button>
-      <button type="button" disabled={!ask.chosen.length} className="ui-button ui-button-primary" onClick={() => share(ask.chosen)}>{t("files.share.confirm")}</button>
-    </>}>
-      <p className="mt-1.5 text-[13px] leading-relaxed text-ink-secondary">{t("files.suggest.body")}</p>
-      <ul className="mt-3 flex max-h-72 flex-col gap-1 overflow-y-auto">
-        {ask.checks.map((check, index) => <li key={`${index}:${check.pcPath}`}>
-          <label className={cn("flex items-start gap-3 rounded-lg px-2 py-2", check.refusal && "opacity-50")}>
-            <input type="checkbox" className="mt-1" disabled={Boolean(check.refusal)} checked={!check.refusal && ask.chosen.includes(check.token)}
-              onChange={(event) => setAsk({ ...ask, chosen: event.target.checked ? [...ask.chosen, check.token] : ask.chosen.filter((token) => token !== check.token) })} />
-            <span className="flex min-w-0 flex-col">
-              <span className="truncate text-[14px] text-ink" title={check.pcPath}>{check.name}</span>
-              <span className="text-[12px] text-ink-secondary">{check.refusal ? refusalText(check.refusal, true) : folderSize(check)}</span>
-            </span>
-          </label>
-        </li>)}
-      </ul>
-    </FilesDialog>}
-  </>;
+  </div>;
 }
 
 function FolderRow({ folder, bridge, busy, run, onStop }: { folder: SharedFolder; bridge: CloudFilesBridge; busy: boolean; run: Run; onStop: () => void }) {
@@ -180,7 +123,7 @@ function FolderRow({ folder, bridge, busy, run, onStop }: { folder: SharedFolder
       {button(t("files.locate"), () => void run(() => bridge.locate(folder.id)), true)}
       {button(t("files.stop"), onStop)}
     </> : null;
-  return <li data-files-folder={folder.status} className="flex items-start gap-3 px-4 py-3">
+  return <li data-files-folder={folder.status} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
     <Folder size={18} className="mt-0.5 shrink-0 text-ink-secondary" />
     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
       <span className="truncate text-[14px] text-ink" title={folder.pcPath}>{folder.name}</span>
@@ -216,7 +159,7 @@ function FolderMenu({ name, busy, onOpen, onStop }: { name: string; busy: boolea
 
 function Storage({ disk, busy, onMore }: { disk: CloudFilesDisk; busy: boolean; onMore: () => void }) {
   const percent = disk.totalBytes > 0 ? Math.min(100, Math.round((disk.usedBytes / disk.totalBytes) * 100)) : 0;
-  return <div className="flex flex-col gap-1.5">
+  return <div className="flex w-full flex-col gap-1.5">
     <span className="text-[12px] text-ink-secondary">{t("files.storage", { used: formatBytes(disk.usedBytes), total: formatBytes(disk.totalBytes) })}</span>
     <div className="h-1 w-full overflow-hidden rounded-full bg-control" aria-hidden="true">
       <div className={cn("h-full rounded-full", disk.warn ? "bg-warning" : "bg-accent")} style={{ width: `${percent}%` }} />

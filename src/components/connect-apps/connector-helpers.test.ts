@@ -1,12 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  botsMissingConnectedApps,
-  botsWithLimitedServiceTools,
-  hasUsableConnectedApps,
-  connectorSetupNotice,
-  disconnectAccountConfirmation,
-} from "./PluginsPanel";
+import { botsUsingService, connectorSetupNotice } from "./connector-helpers";
 import { mergeCompleteConnectorStatus, mergeCurrentConnectorStatus, onlyLatestConnectorResponses } from "@/lib/connector-status-merge";
 import {
   accountToReconnect,
@@ -16,87 +10,23 @@ import {
   requiresAccountAlias,
   type ConnectorStatus,
 } from "@/lib/connector-status";
-import { managedConnectorUnavailableReason } from "../../shared/connector-availability";
+import { managedConnectorUnavailableReason } from "../../../shared/connector-availability";
 import type { Bot, InstanceInfo } from "@/state/store";
 
-// Narrow fixtures: the helper reads four fields, so the casts keep the test about the rule.
 const engine = (instanceId: string, composioMcp: boolean) =>
   ({ instanceId, capabilities: { composioMcp } }) as unknown as InstanceInfo;
 const bot = (id: string, fields: Partial<Bot> = {}) =>
   ({ id, name: id, modelSelection: { instanceId: "claude" }, ...fields }) as unknown as Bot;
 
-describe("bots whose connected-app tools are limited by grants", () => {
-  const instances = [engine("claude", true), engine("grok", false)];
-
-  it("leaves legacy bots and all-tools grants out", () => {
+describe("bots that use a connected app", () => {
+  it("names visible bots on an engine that mounts the tools and whose grant reaches the app", () => {
+    const instances = [engine("claude", true), engine("grok", false)];
     const bots = [
-      bot("legacy"),
-      bot("star", { connectorTools: { gmail: { tools: "*" } } }),
+      bot("scout"), bot("quiet", { composio: false }), bot("ghost", { hidden: true }),
+      bot("grok", { modelSelection: { instanceId: "grok" } as Bot["modelSelection"] }),
+      bot("narrow", { connectorTools: { gmail: { tools: "*" } } as Bot["connectorTools"] }),
     ];
-    expect(botsWithLimitedServiceTools(bots, instances, "gmail")).toEqual([]);
-  });
-
-  it("names partial lists and services an explicit record leaves out", () => {
-    const bots = [
-      bot("partial", { connectorTools: { gmail: { tools: ["GMAIL_SEND_EMAIL"] } } }),
-      bot("absent", { connectorTools: { gmail: { tools: "*" } } }),
-    ];
-    expect(botsWithLimitedServiceTools(bots, instances, "gmail").map((b) => b.id)).toEqual(["partial"]);
-    expect(botsWithLimitedServiceTools(bots, instances, "slack").map((b) => b.id)).toEqual(["partial", "absent"]);
-  });
-
-  it("counts a grant shape this build cannot read as limited", () => {
-    const future = bot("future", {
-      connectorTools: { gmail: { tools: { prefix: "GMAIL_" } } } as unknown as Bot["connectorTools"],
-    });
-    expect(botsWithLimitedServiceTools([future], instances, "gmail")).toEqual([future]);
-  });
-
-  it("never points at bots whose editor is a dead end from here", () => {
-    const grant = { connectorTools: { gmail: { tools: ["GMAIL_SEND_EMAIL"] } } } as Partial<Bot>;
-    const bots = [
-      bot("hidden", { hidden: true, ...grant }),
-      bot("off", { composio: false, ...grant }),
-      bot("grok", { ...grant, modelSelection: { instanceId: "grok" } as Bot["modelSelection"] }),
-    ];
-    expect(botsWithLimitedServiceTools(bots, instances, "gmail")).toEqual([]);
-  });
-});
-
-describe("connected apps a bot cannot see", () => {
-  const instances = [engine("claude", true), engine("grok", false)];
-
-  it("only offers grants after catalog and inventory confirm a usable account", () => {
-    const active = { calendar: { connected: true, pending: false, status: "ACTIVE" } };
-    expect(hasUsableConnectedApps(true, "ready", false, active)).toBe(true);
-    expect(hasUsableConnectedApps(false, "ready", false, active)).toBe(false);
-    expect(hasUsableConnectedApps(true, "loading", false, active)).toBe(false);
-    expect(hasUsableConnectedApps(true, "error", false, active)).toBe(false);
-    expect(hasUsableConnectedApps(true, "ready", true, active)).toBe(false);
-    expect(hasUsableConnectedApps(true, "ready", false, { calendar: { connected: false, pending: false, status: "EXPIRED" } })).toBe(false);
-  });
-
-  it("names the bots whose own grant is off, and only those", () => {
-    const bots = [
-      bot("allowed"),
-      bot("off", { composio: false }),
-      bot("also-off", { composio: false }),
-    ];
-    expect(botsMissingConnectedApps(bots, instances).map((b) => b.id)).toEqual(["off", "also-off"]);
-  });
-
-  it("treats an absent grant as allowed, the way every turn does", () => {
-    expect(botsMissingConnectedApps([bot("fresh"), bot("explicit", { composio: true })], instances)).toEqual([]);
-  });
-
-  it("leaves out a bot whose engine could never mount the tools", () => {
-    const bots = [bot("grok-bot", { composio: false, modelSelection: { instanceId: "grok" } as Bot["modelSelection"] })];
-    expect(botsMissingConnectedApps(bots, instances)).toEqual([]);
-    expect(botsMissingConnectedApps([bot("orphan", { composio: false, modelSelection: { instanceId: "gone" } as Bot["modelSelection"] })], instances)).toEqual([]);
-  });
-
-  it("leaves out hidden bots, which the person cannot act on from here", () => {
-    expect(botsMissingConnectedApps([bot("ghost", { composio: false, hidden: true })], instances)).toEqual([]);
+    expect(botsUsingService(bots, instances, "gmail").map((entry) => entry.id)).toEqual(["scout", "narrow"]);
   });
 });
 
@@ -222,13 +152,6 @@ describe("connected-app status races", () => {
       generations,
     );
     expect(racing.gmail).toEqual({ connected: true, accounts: [{ id: "ca_new", status: "ACTIVE" }] });
-  });
-
-  it("names the exact account and limits disconnect confirmation to that account", () => {
-    expect(disconnectAccountConfirmation("Gmail", { id: "ca_work", alias: "work" })).toEqual({
-      title: "Disconnect “work” (ca_work)?", body: "Only this Gmail account is revoked.", confirmLabel: "Disconnect",
-    });
-    expect(disconnectAccountConfirmation("GitHub", { id: "ca_personal" }).title).toBe("Disconnect “ca_personal”?");
   });
 
   it("recognizes the existing-account alias guard and ignores unrelated errors", () => {

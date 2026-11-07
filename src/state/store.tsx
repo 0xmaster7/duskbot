@@ -573,8 +573,6 @@ export interface AppState {
   liveCallLookupSeq: number;
   selectedId: string;
   activeView: "chat" | "files";
-  /** Folders a finished move left on this computer, for Files to offer sharing. */
-  filesSuggest: string[] | null;
   routines: Routine[];
   routineRuns: RoutineRun[];
   routinesLoadState: "loading" | "ready" | "error"; routineRunsSince: number | null;
@@ -587,10 +585,6 @@ export interface AppState {
   pluginsOpen: boolean;
   pluginsSurface: "apps" | "mcp";
   botCreationPending: boolean;
-  activityOpen: boolean;
-  /** Cross-bot, so a bot switch leaves it open; pinned, opening another side panel leaves it open too. */
-  notificationsOpen: boolean;
-  notificationsPinned: boolean;
   notifications: NotificationLogEntry[];
   appSettingsOpen: boolean;
   appSettingsSection: AppSettingsSection;
@@ -659,7 +653,6 @@ export type Action =
   | { type: "botsOrdered"; botIds: string[] }
   | { type: "sectionDeleted"; section: string; sections: string[] }
   | { type: "openRoutine"; routineId: string; botId?: string; edit?: boolean }
-  | { type: "showFiles"; suggest?: string[] }
   | { type: "showChat" }
   | { type: "routinesHydrated"; routines: Routine[]; runs: RoutineRun[]; since?: number }
   | { type: "routinesLoadFailed" } | { type: "routineRunsLoaded"; runs: RoutineRun[]; from?: number; to?: number }
@@ -667,8 +660,6 @@ export type Action =
   | { type: "routineDeleted"; routineId: string }
   | { type: "routineRunPatched"; run: RoutineRun }
   | NotificationFeedAction
-  | { type: "toggleNotifications"; open?: boolean }
-  | { type: "toggleNotificationsPinned"; pinned?: boolean }
   | { type: "webhooksHydrated"; webhooks: WebhookTrigger[]; attempts: WebhookAttempt[]; ingress: WebhookIngressStatus }
   | { type: "webhookPatched"; webhook: WebhookTrigger }
   | { type: "webhookAttempted"; attempt: WebhookAttempt }
@@ -800,7 +791,6 @@ export type Action =
   | { type: "toggleComputer"; open?: boolean; botId?: string }
   | { type: "openSignIn"; botId: string; messageId: string; url: string; site: string; place: import("../../shared/wire").Surface }
   | { type: "signInFocusConsumed"; requestId: number }
-  | { type: "toggleActivity"; open?: boolean }
   | { type: "focusMessage"; threadId: string; messageId: string; matchText?: string }
   | { type: "focusMessageConsumed"; nonce: number }
   | { type: "unreadDividerDone"; threadId: string }
@@ -1038,13 +1028,6 @@ export function reducer(state: AppState, action: Action): AppState {
     }
     case "showChat":
       return state.activeView === "chat" ? state : { ...state, activeView: "chat" };
-    case "showFiles":
-      return {
-        ...state,
-        activeView: "files",
-        filesSuggest: action.suggest?.length ? action.suggest : null,
-        settingsOpen: false, activityOpen: false, appSettingsOpen: false, pluginsOpen: false,
-      };
     case "routinesHydrated":
       return { ...state, routines: action.routines, routineRuns: trimRoutineRuns(action.runs), routineRunsSince: action.since ?? null, routinesLoadState: "ready" };
     case "routinesLoadFailed":
@@ -1477,7 +1460,6 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         selectedId,
         settingsOpen: open,
-        activityOpen: open ? false : state.activityOpen,
         botSettingsSection: action.section ?? state.botSettingsSection,
         botSettingsExpandAccordion: open ? named || (freshOpen && state.botSettingsSectionStored) : false,
         botSettingsExpandRemembered: open ? !named && freshOpen && state.botSettingsSectionStored : false,
@@ -1531,28 +1513,6 @@ export function reducer(state: AppState, action: Action): AppState {
       const shown = reducer(state, { type: "toggleSettings", open: true, section: "computer", ...(action.botId !== undefined ? { botId: action.botId } : {}) });
       return shown === state ? state : { ...shown, computerTabRequest: state.computerTabRequest + 1 };
     }
-    case "toggleActivity": {
-      const open = action.open ?? !state.activityOpen;
-      return {
-        ...state,
-        activityOpen: open,
-        settingsOpen: open ? false : state.settingsOpen,
-        appSettingsOpen: open ? false : state.appSettingsOpen,
-        notificationsOpen: open && !state.notificationsPinned ? false : state.notificationsOpen,
-      };
-    }
-    case "toggleNotifications": {
-      const open = action.open ?? !state.notificationsOpen;
-      return {
-        ...state,
-        notificationsOpen: open,
-        settingsOpen: open ? false : state.settingsOpen,
-        activityOpen: open ? false : state.activityOpen,
-        appSettingsOpen: open ? false : state.appSettingsOpen,
-      };
-    }
-    case "toggleNotificationsPinned":
-      return { ...state, notificationsPinned: action.pinned ?? !state.notificationsPinned };
     case "toggleAppSettings": {
       const open = action.open ?? !state.appSettingsOpen;
       return {
@@ -1893,7 +1853,6 @@ export const initialState: AppState = {
   routineRuns: [], routineRunsSince: null,
   routinesLoadState: "loading",
   routinesFocus: { nonce: 0 },
-  filesSuggest: null,
   webhooks: [],
   webhookAttempts: [],
   webhookIngress: null,
@@ -1901,9 +1860,6 @@ export const initialState: AppState = {
   pluginsOpen: false,
   pluginsSurface: "apps",
   botCreationPending: false,
-  activityOpen: false,
-  notificationsOpen: false,
-  notificationsPinned: false,
   notifications: [],
   appSettingsOpen: false,
   appSettingsSection: "general",
@@ -2286,7 +2242,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const wrapped: React.Dispatch<Action> = (action) => {
       // a saved setting re-renders the whole app: as a transition, so the switch that saved it and the next click never wait
       if (action.type === "configStatus") { startTransition(() => rawDispatch(action)); return; }
-      if (["select", "newTask", "switchTask", "newGroupTask", "switchGroupTask", "showChat", "showFiles"].includes(action.type)) selectionRevision.current++;
+      if (["select", "newTask", "switchTask", "newGroupTask", "switchGroupTask", "showChat"].includes(action.type)) selectionRevision.current++;
       // Pin before any await or optimistic state change.
       action = pinBotThreadAction(action, stateRef.current.bots);
       if (action.type === "switchTask" && !action.cached) action = { ...action, cached: transcriptCache.current(action.threadId) };

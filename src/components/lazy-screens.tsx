@@ -3,12 +3,8 @@ import { lazyScreen } from "./lazy-screen";
 export { lazyScreen, type LazyScreen } from "./lazy-screen";
 export { BotSettingsDialog } from "./BotSettingsDialog";
 
-export const ActivityPanel = lazyScreen("ActivityPanel", async () => (await import("./ActivityPanel")).ActivityPanel);
-export const FilesView = lazyScreen("FilesView", async () => (await import("./FilesView")).FilesView);
 export const KeyboardShortcutsModal = lazyScreen("KeyboardShortcutsModal", async () => (await import("./KeyboardShortcutsModal")).KeyboardShortcutsModal);
-export const LocalVmWorkspace = lazyScreen("LocalVmWorkspace", async () => (await import("./LocalVmWorkspace")).LocalVmWorkspace);
 export const NewBotDialog = lazyScreen("NewBotDialog", async () => (await import("./NewBotDialog")).NewBotDialog);
-export const PluginsPanel = lazyScreen("PluginsPanel", async () => (await import("./PluginsPanel")).PluginsPanel);
 export const RemoteAgentSettingsPanel = lazyScreen("RemoteAgentSettingsPanel", async () => (await import("./RemoteAgentSettingsPanel")).RemoteAgentSettingsPanel);
 export const RoomPanel = lazyScreen("RoomPanel", async () => (await import("./room-panel/RoomPanel")).RoomPanel);
 export const SettingsModal = lazyScreen("SettingsModal", async () => (await import("./SettingsModal")).SettingsModal);
@@ -22,8 +18,8 @@ export const TeamLibraryPanel = lazyScreen("TeamLibraryPanel", async () => (awai
 
 // Most opened first: a Cloud page fetches these in this order.
 const SCREENS = [
-  SettingsModal, PluginsPanel, ActivityPanel, FilesView, KeyboardShortcutsModal,
-  LocalVmWorkspace, NewBotDialog, RemoteAgentSettingsPanel, RoomPanel,
+  SettingsModal, KeyboardShortcutsModal,
+  NewBotDialog, RemoteAgentSettingsPanel, RoomPanel,
 ];
 
 if (typeof location !== "undefined" && new URLSearchParams(location.search).has("desktop-settings")) {

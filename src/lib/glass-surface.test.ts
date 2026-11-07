@@ -64,16 +64,10 @@ describe("glass surface", () => {
     }
   });
 
-  it("is what the Apps pop-up is drawn on; Settings is Grok's opaque sheet", () => {
+  it("leaves Settings as Grok's opaque sheet", () => {
     const settings = readFileSync(join(src, "components", "SettingsModal.tsx"), "utf8");
     expect(settings).not.toContain("glass-surface");
     expect(settings).toContain('className="settings-scrim"');
-    for (const file of ["PluginsPanel.tsx"]) {
-      const source = readFileSync(join(src, "components", file), "utf8");
-      expect(source, file).toContain("glass-surface");
-      // The scrim is a sibling: a backdrop-filter on an ancestor would hide the app from the pane's own blur.
-      expect(source, file).toContain('className="glass-scrim pointer-events-none absolute inset-0"');
-    }
   });
 
   it("sits in a safe area clear of the window's own buttons, at every window size", () => {
@@ -86,18 +80,13 @@ describe("glass surface", () => {
     expect(glassPopupTopInset("mac-inset")).toBe(56);
     expect(glassPopupTopInset("win-caption")).toBe(56);
     expect(glassPopupTopInset("native")).toBe(24);
-    for (const file of ["PluginsPanel.tsx"]) {
-      const source = readFileSync(join(src, "components", file), "utf8");
-      expect(source, file).toContain('className="glass-popup-frame"');
-      expect(source, file).toContain("style={glassPopupFrameStyle()}");
-      expect(source, file).toMatch(/className="glass-surface glass-popup /);
-      expect(source, file).not.toMatch(/100dvh/);
-    }
+    const voice = readFileSync(join(src, "components", "VoiceSetupDialog.tsx"), "utf8");
+    expect(voice).toContain('className="glass-popup-frame"');
+    expect(voice).toContain("style={glassPopupFrameStyle()}");
+    expect(voice).not.toMatch(/100dvh/);
   });
 
-  it("lets the Apps contents reflow inside the pop-up rather than overflow it", () => {
-    const apps = readFileSync(join(src, "components", "PluginsPanel.tsx"), "utf8");
-    expect(apps).toContain('data-apps-grid className="@container flex flex-col gap-7 pt-1"');
+  it("lets the Apps contents reflow rather than overflow", () => {
     const section = readFileSync(join(src, "components", "AppsSection.tsx"), "utf8");
     expect(section).toContain("grid grid-cols-1 items-start gap-x-2 gap-y-0.5 @xl:grid-cols-2");
     const mcp = readFileSync(join(src, "components", "McpServersPanel.tsx"), "utf8");

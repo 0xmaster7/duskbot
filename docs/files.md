@@ -1,6 +1,6 @@
 # Files: share folders with My Cloud, get your bots' work
 
-Files is a top-level page in the desktop app, for people with a MausBot Cloud ("My Cloud"). It does two jobs:
+Files lives in Settings > MausBot Cloud in the desktop app, for people with a MausBot Cloud ("My Cloud"), under the My Cloud card. It does two jobs:
 
 - **Shared folders.** A folder added here gets a read-only copy on My Cloud, kept up to date while this computer is on. Bots on My Cloud read that copy; they never reach this computer itself.
 - **Your bots' work.** What Cloud bots make comes down to `Documents/MausBot/<bot>/<conversation>` on this computer.
@@ -11,10 +11,9 @@ It never merges two sides. Nothing on this computer is deleted because of someth
 
 There is no setting, size picker or list of changes.
 
-- **Add a folder** on the Files page shares it, read only. The folder picker opens. The app checks the folder, then asks: "Share “Clients” with My Cloud? 1,240 files · 3.2 GB." Choose **Share** or **Cancel**.
+- **Add a folder** under Shared with the Cloud shares it, read only. The folder picker opens. The app checks the folder, then asks: "Share “Clients” with My Cloud? 1,240 files · 3.2 GB." Choose **Share** or **Cancel**.
 - **Stop sharing**, from the ⋯ menu. My Cloud's copy moves to its trash for 30 days. Nothing on this computer changes.
-- **The Files page lists every folder My Cloud has a copy of.**
-- **After a move to My Cloud**, the folders that stayed on this computer are offered: **Share them with My Cloud**.
+- **Shared with the Cloud lists every folder My Cloud has a copy of.**
 - **The bots' work switch.** It is on by default. Only conversations active since the switch was turned on come down, so old history doesn't flood Documents.
 - The person chooses nothing: there is no move, list of files to tick or sign-in step.
 
@@ -36,7 +35,7 @@ There is no setting, size picker or list of changes.
   - If 10 or more files go at once and they are at least a fifth of the folder, or the folder is now empty, the folder waits: "{n} files were removed from this folder here. Remove them from My Cloud too?" The person chooses **Remove from My Cloud** or **Keep them**.
   - A folder that is gone from this computer (moved, renamed, a drive unplugged) is "missing". Nothing changes on My Cloud, and the person chooses **Find it** (the picker) or **Stop sharing**.
   - A file that is still being written, a link, a hard-linked file, or anything under a linked folder is "kept": it is not carried, and it never reads as deleted.
-- **Full.** My Cloud always keeps max(2 GB, 15% of its disk) free (`cloudReserveBytes`). Files that don't fit wait, smallest first, and Files shows **Get more space**. The disk grows by itself, 10 GB at a time, up to the plan's size; past that, files keep waiting.
+- **Full.** My Cloud always keeps max(2 GB, 15% of its disk) free (`cloudReserveBytes`). Files that don't fit wait, smallest first, and Settings shows **Get more space**. The disk grows by itself, 10 GB at a time, up to the plan's size; past that, files keep waiting.
 
 ## Bots' work (My Cloud → this computer)
 

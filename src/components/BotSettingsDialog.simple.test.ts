@@ -413,7 +413,7 @@ describe("the bot panel in Simple mode", () => {
     expect(sectionTarget("library")).toEqual({ tab: "advanced", anchor: "library" });
   });
 
-  // App tool grants (PluginsPanel) and the working folder (the files pane) name a Simple page; MCP and tool
+  // App tool grants and the working folder (the files pane) name a Simple page; MCP and tool
   // selection name none, so they land where Access does.
   it.each([["apps", "apps"], ["folder", "folder"], ["mcp", "where"], ["tools", "where"]] as const)("lands an Access link naming %s on %s", (page, landing) => {
     askedModal();

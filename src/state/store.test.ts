@@ -1149,8 +1149,7 @@ describe("config status", () => {
   });
 
   it("replaces the config without moving the person off their current view", () => {
-    const onFiles = reducer(initialState, { type: "showFiles" });
-    expect(onFiles.activeView).toBe("files");
+    const onFiles = { ...initialState, activeView: "files" as const };
 
     const next = reducer(onFiles, {
       type: "configStatus",
@@ -1428,8 +1427,8 @@ describe("routine receipt retention", () => {
   it("opens a routine in its bot's panel, on the Details tab, and only for a bot that exists", () => {
     const bots = [{ id: "echo", name: "Echo", threadId: "t-echo", hidden: false, messages: [] }] as unknown as AppState["bots"];
     const routines = [{ id: "routine-1", botId: "echo" }] as unknown as AppState["routines"];
-    const focused = reducer({ ...initialState, bots, routines, activityOpen: true, activeView: "files" }, { type: "openRoutine", routineId: "routine-1" });
-    expect(focused).toMatchObject({ settingsOpen: true, selectedId: "echo", botSettingsSection: "routines", activityOpen: false, activeView: "chat" });
+    const focused = reducer({ ...initialState, bots, routines, activeView: "files" }, { type: "openRoutine", routineId: "routine-1" });
+    expect(focused).toMatchObject({ settingsOpen: true, selectedId: "echo", botSettingsSection: "routines", activeView: "chat" });
     expect(focused.routinesFocus).toEqual({ routineId: "routine-1", edit: undefined, nonce: 1 });
     const editing = reducer(focused, { type: "openRoutine", routineId: "app-1", botId: "echo", edit: true });
     expect(editing.routinesFocus).toEqual({ routineId: "app-1", edit: true, nonce: 2 });
@@ -2505,47 +2504,6 @@ describe("bot settings section", () => {
   });
 });
 
-describe("activity panel", () => {
-  it("starts closed", () => {
-    expect(initialState.activityOpen).toBe(false);
-  });
-
-  it("toggleActivity opens it and closes the other side panels", () => {
-    const withPanels = { ...initialState, settingsOpen: true, appSettingsOpen: true };
-    const next = reducer(withPanels, { type: "toggleActivity" });
-    expect(next.activityOpen).toBe(true);
-    expect(next.settingsOpen).toBe(false);
-    expect(next.appSettingsOpen).toBe(false);
-    expect(reducer(next, { type: "toggleActivity" }).activityOpen).toBe(false);
-  });
-
-  it("opening the computer closes the activity panel", () => {
-    const open = { ...initialState, activityOpen: true };
-    expect(reducer(open, { type: "toggleComputer", open: true }).activityOpen).toBe(false);
-  });
-
-  it("opening bot settings closes activity without changing the other panels", () => {
-    const open = { ...initialState, activityOpen: true, notificationsOpen: true };
-    const next = reducer(open, { type: "toggleSettings", open: true });
-    expect(next.activityOpen).toBe(false);
-    expect(next.notificationsOpen).toBe(true);
-  });
-
-  it("switching to files closes the activity panel", () => {
-    const open = { ...initialState, activityOpen: true };
-    expect(reducer(open, { type: "showFiles" }).activityOpen).toBe(false);
-  });
-
-  it("opens Files as its own page, carrying the folders it should offer to share only when asked", () => {
-    const open = { ...initialState, activityOpen: true, appSettingsOpen: true, settingsOpen: true };
-    const suggested = reducer(open, { type: "showFiles", suggest: ["/Users/ada/site"] });
-    expect(suggested).toMatchObject({ activeView: "files", filesSuggest: ["/Users/ada/site"], activityOpen: false, appSettingsOpen: false, settingsOpen: false });
-    expect(reducer(suggested, { type: "showFiles" })).toMatchObject({ activeView: "files", filesSuggest: null });
-    expect(reducer(suggested, { type: "showFiles", suggest: [] }).filesSuggest).toBeNull();
-  });
-
-});
-
 describe("live config frames", () => {
   const baseFrame: ConfigStatusFrame = {
     composio: { configured: false },
@@ -3110,47 +3068,6 @@ describe("notifications feed", () => {
     });
     state = reducer(state, { type: "notificationsRead", ids: ["n1", "n3", "gone"] });
     expect(state.notifications.filter((n) => n.read).map((n) => n.id)).toEqual(["n3", "n1"]);
-  });
-
-  it("toggleNotifications closes the other docked panels, and vice versa", () => {
-    let state = reducer(initialState, { type: "toggleComputer", open: true });
-    expect(state.settingsOpen).toBe(true);
-    state = reducer(state, { type: "toggleNotifications", open: true });
-    expect(state).toMatchObject({ notificationsOpen: true, settingsOpen: false });
-    state = reducer(state, { type: "toggleActivity", open: true });
-    expect(state).toMatchObject({ activityOpen: true, notificationsOpen: false });
-  });
-
-  it("toggleNotificationsPinned flips independently of notificationsOpen", () => {
-    const state = reducer(initialState, { type: "toggleNotificationsPinned" });
-    expect(state).toMatchObject({ notificationsPinned: true, notificationsOpen: false });
-  });
-
-  it("survives a bot switch: select/switchTask never reset it", () => {
-    const withOpen = reducer(initialState, { type: "toggleNotifications", open: true });
-    const afterSwitch = reducer(withOpen, { type: "switchTask", botId: "other-bot", threadId: "other-thread" });
-    expect(afterSwitch.notificationsOpen).toBe(true);
-  });
-
-  it("pinned, the feed survives Computer/Activity/AppSettings opening", () => {
-    const open = { ...reducer(initialState, { type: "toggleNotifications", open: true }), notificationsPinned: true };
-    for (const action of [
-      { type: "toggleComputer", open: true } as const,
-      { type: "toggleActivity", open: true } as const,
-      { type: "toggleAppSettings", open: true } as const,
-    ]) {
-      expect(reducer(open, action).notificationsOpen).toBe(true);
-    }
-  });
-
-  it("unpinned, the side panels still close it, the settings modal does not (regression guard)", () => {
-    const open = reducer(initialState, { type: "toggleNotifications", open: true });
-    expect(open.notificationsPinned).toBe(false);
-    expect(reducer(open, { type: "toggleActivity", open: true }).notificationsOpen).toBe(false);
-    // the bot's computer is its panel's Computer tab, which sits beside the feed like the panel does
-    expect(reducer(open, { type: "toggleComputer", open: true }).notificationsOpen).toBe(true);
-    // Settings is a modal: the feed beside the chat stays as it was under it
-    expect(reducer(open, { type: "toggleAppSettings", open: true }).notificationsOpen).toBe(true);
   });
 });
 

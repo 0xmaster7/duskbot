@@ -28,8 +28,6 @@ vi.mock("@/lib/notification-preferences", () => ({
   useNotificationSounds: () => fixture.sounds,
   setNotificationSounds: vi.fn(),
   notificationSoundsEnabled: () => fixture.sounds,
-  useNotificationFeed: () => false,
-  setNotificationFeed: vi.fn(),
   useFinishedNotifications: () => true,
   setFinishedNotifications: vi.fn(),
 }));

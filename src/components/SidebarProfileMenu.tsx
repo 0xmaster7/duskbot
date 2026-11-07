@@ -6,7 +6,6 @@ import {
   Check,
   CircleUserRound,
   Cloud,
-  FolderOpen,
   Gauge,
   Info,
   HelpCircle,
@@ -34,7 +33,6 @@ import { useCloudPlanSnapshot } from "./CloudTrialNotice";
 import type { WorkspacePlace } from "./DesktopWorkspaceSwitcher";
 import { railShown, usePlaces } from "@/lib/places";
 import { useAutomationsNeedYou } from "./SidebarFooterNav";
-import { useCloudFilesReady } from "@/lib/cloud-files";
 import { SidebarPopoverMenu, type SidebarMenuItem } from "./SidebarPopoverMenu";
 import { ShortcutHint } from "./ShortcutHint";
 import { useSidebarPhoneStatus } from "./SidebarPhoneButton";
@@ -337,14 +335,8 @@ export function phoneMenuItems({
   } satisfies SidebarMenuItem));
 }
 
-export function toolMenuItems({ activeView, onFiles, archived }: {
-  activeView: string;
-  /** set once My Cloud's files are ready to open */
-  onFiles?: () => void;
-  archived?: ArchivedBots;
-}): SidebarMenuItem[] {
+export function toolMenuItems({ archived }: { archived?: ArchivedBots }): SidebarMenuItem[] {
   return [
-    ...(onFiles ? [{ key: "files", label: t("sidebar.nav.files"), icon: <FolderOpen size={16} />, active: activeView === "files", onSelect: onFiles }] : []),
     ...(archived?.count ? [{ key: "archived", label: t("sidebar.archived.title"), icon: <Archive size={16} />, value: String(archived.count), onSelect: archived.open }] : []),
   ];
 }
@@ -624,7 +616,6 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
   const connectTo = (destination: PhoneDestination) => selectPhoneDestination(destination, { bridge: cloudPhone.bridge, dispatch });
   const remote = window.ogb?.remoteClient?.active === true;
   const besideRail = railShown(usePlaces());
-  const filesReady = useCloudFilesReady();
   const cloudAccount = !remote && Boolean(window.ogb?.cloudAccount || (window.ogb?.cloudPlan && state.config?.cloudHome === true));
   const openCloudAccount = () => dispatch({ type: "toggleAppSettings", open: true, section: "cloudAccount" });
   const move = useAccountMove(state.config?.cloudHome === true, { onOpen: openCloudAccount, onPairPhone: () => dispatch(phonePairingSettingsAction()) });
@@ -659,11 +650,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
     account: cloudAccount ? cloudRowLabel(accounts.view) : null,
     accounts: accountMenuItems(accounts),
     ...(account ? { simple: {
-      tools: toolMenuItems({
-        activeView: state.activeView,
-        onFiles: filesReady ? () => dispatch({ type: "showFiles" }) : undefined,
-        archived: account.archived,
-      }),
+      tools: toolMenuItems({ archived: account.archived }),
       places: placeMenuItems(account.place, { owner: account.owner, name: state.config?.team?.name, besideRail, onCloudSettings: openCloudAccount }),
     } } : {}),
     onUsage: () => dispatch({ type: "toggleAppSettings", open: true, section: "usage" }),

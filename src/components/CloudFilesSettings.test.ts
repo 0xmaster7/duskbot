@@ -4,8 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import type { CloudFilesBridge, CloudFilesState, FolderCheck, SharedFolder } from "../../electron/cloud-sync.mjs";
 import { setLocale } from "@/lib/i18n";
-import { BotEditorStore, initialState, type useStore } from "@/state/store";
-import { FilesView } from "./FilesView";
+import { CloudFilesSettings } from "./CloudFilesSettings";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 const GB = 1024 ** 3;
@@ -17,13 +16,12 @@ const check = (name: string, extra: Partial<FolderCheck> = {}): FolderCheck =>
 
 type FakeBridge = { [K in keyof CloudFilesBridge]: Mock<CloudFilesBridge[K]> };
 let host: HTMLDivElement, root: Root, bridge: FakeBridge, emit: (state: CloudFilesState) => void;
-const off = vi.fn(), dispatch = vi.fn();
-async function mount(state: CloudFilesState = base, filesSuggest: string[] | null = null) {
+const off = vi.fn();
+async function mount(state: CloudFilesState = base) {
   act(() => root.unmount());
   root = createRoot(host);
   bridge.state.mockResolvedValue(state);
-  const store = { state: { ...initialState, filesSuggest }, dispatch } as unknown as ReturnType<typeof useStore>;
-  await act(async () => root.render(createElement(BotEditorStore, { value: store, children: createElement(FilesView) })));
+  await act(async () => root.render(createElement(CloudFilesSettings)));
 }
 const page = () => document.body.textContent ?? "";
 const buttons = (scope: ParentNode = document.body) => Array.from(scope.querySelectorAll("button"));
@@ -39,7 +37,7 @@ const dialog = () => document.querySelector<HTMLElement>('[role="dialog"], [role
 
 beforeEach(() => {
   setLocale("en");
-  dispatch.mockReset(); off.mockReset();
+  off.mockReset();
   bridge = {
     state: vi.fn(), onState: vi.fn((callback) => { emit = callback; return off; }),
     pickFolder: vi.fn(), checkFolders: vi.fn(), share: vi.fn().mockResolvedValue(base), stopSharing: vi.fn().mockResolvedValue(base),
@@ -54,7 +52,7 @@ afterEach(() => { act(() => root.unmount()); host.remove(); document.body.replac
 describe("Shared with the Cloud", () => {
   it("says what sharing does, shows nothing shared yet, and always offers Add a folder", async () => {
     await mount();
-    expect(page()).toContain("Files");
+    expect(page()).toContain("Shared with the Cloud");
     expect(page()).toContain("Cloud bots can use these folders, even when this computer is off. They change files here only in folders you let them edit.");
     expect(page()).toContain("Nothing shared yet.");
     expect(button("Add a folder")).toBeTruthy();
@@ -180,33 +178,6 @@ describe("Add a folder", () => {
   });
 });
 
-describe("folders a move to My Cloud left here", () => {
-  it("checks the suggested folders, asks once with each one ticked, and shares only the ticked ones", async () => {
-    bridge.checkFolders.mockResolvedValue([check("site"), check("notes", { files: 1, bytes: 2048 }), check("x.docx", { refusal: "not-a-folder" }), check("Home", { refusal: "too-broad" })]);
-    await mount(base, ["/Users/ada/site", "/Users/ada/notes", "/Users/ada/x.docx", "/Users/ada"]);
-    expect(bridge.checkFolders).toHaveBeenCalledExactlyOnceWith(["/Users/ada/site", "/Users/ada/notes", "/Users/ada/x.docx", "/Users/ada"]);
-    const shown = dialog()!;
-    expect(shown.textContent).toContain("Share these folders with the Cloud?");
-    expect(shown.textContent).toContain("120 files · 3 MB");
-    expect(shown.textContent).toContain("1 file · 2 KB");
-    expect(shown.textContent).toContain("Not a folder on this computer.");
-    expect(shown.textContent).toContain("That folder is too big to share.");
-    const boxes = Array.from(shown.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'));
-    expect(boxes.map((box) => [box.checked, box.disabled])).toEqual([[true, false], [true, false], [false, true], [false, true]]);
-    await act(async () => boxes[1]!.click());
-    await click("Share", shown);
-    expect(bridge.share.mock.calls).toEqual([["t-site"]]);
-    expect(dialog()).toBeNull();
-  });
-
-  it("asks nothing until The Cloud is ready, and nothing without suggestions", async () => {
-    await mount({ ...base, phase: "unavailable" }, ["/Users/ada/site"]);
-    expect(bridge.checkFolders).not.toHaveBeenCalled();
-    await mount();
-    expect(bridge.checkFolders).not.toHaveBeenCalled();
-  });
-});
-
 describe("Your bots' work", () => {
   it("switches saving what Cloud bots make, says where it goes, and opens that folder", async () => {
     bridge.setOutputs.mockResolvedValue({ ...base, outputs: { ...base.outputs, enabled: true } });
@@ -236,22 +207,17 @@ describe("My Cloud's state", () => {
     expect(off).toHaveBeenCalledOnce();
   });
 
-  it("asks to sign in again, through Settings → MausBot Cloud", async () => {
+  it("asks to sign in again, beside the account it sits under", async () => {
     await mount({ ...base, phase: "signed-out", shared: [folder("synced")] });
     expect(page()).toContain("Sign in to the Cloud again to keep sharing files.");
     expect(row("synced")).toBeTruthy();
-    await click("Open MausBot Cloud settings");
-    expect(dispatch).toHaveBeenCalledWith({ type: "toggleAppSettings", open: true, section: "cloudAccount" });
   });
 
-  it("without a Ready My Cloud, explains Files works with it and opens its settings", async () => {
+  it("shows nothing without a Ready My Cloud, or on a companion connected to another computer", async () => {
     await mount({ ...base, phase: "unavailable" });
-    expect(page()).toContain("Files works with MausBot Cloud.");
-    expect(button("Add a folder")).toBeUndefined();
-    await click("Open MausBot Cloud settings");
-    expect(dispatch).toHaveBeenCalledWith({ type: "toggleAppSettings", open: true, section: "cloudAccount" });
+    expect(page()).toBe("");
     delete window.ogb;
     await mount();
-    expect(page()).toContain("Files works with MausBot Cloud.");
+    expect(page()).toBe("");
   });
 });

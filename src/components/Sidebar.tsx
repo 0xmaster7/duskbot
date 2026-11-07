@@ -33,7 +33,7 @@ import { RenameTitle } from "./RenameTitle";
 import { navigateThreadMenu } from "./BotProjects";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { setSidebarDensity, useSidebarDensity, usePinnedCircles, useUniversalPins, type SidebarDensity } from "@/lib/sidebar-preferences";
-import { ATTENTION_SECTION_ID, BOT_CHATS_SECTION_ID, BOTS_SECTION_ID, CHANNELS_SECTION_ID, PINNED_SECTION_ID, activeBotsFirst, partitionSidebarBots, partitionSidebarGroups, pinnedCircleThreadListVisible, sidebarSectionLabel, userSectionId, userSectionName } from "@/lib/sidebar-layout";
+import { BOT_CHATS_SECTION_ID, BOTS_SECTION_ID, CHANNELS_SECTION_ID, PINNED_SECTION_ID, activeBotsFirst, partitionSidebarBots, partitionSidebarGroups, pinnedCircleThreadListVisible, sidebarSectionLabel, userSectionId, userSectionName } from "@/lib/sidebar-layout";
 import { stepKey, type BotDropPlace } from "@/lib/sidebar-bot-drop";
 import { BotDropLine, botRowDropClass, useSidebarBotDrag, type BotRowDrag } from "./SidebarBotDrag";
 import { useSidebarSections } from "./SidebarSections";
@@ -51,7 +51,7 @@ import { useCloudOwner } from "./CloudOwner";
 import { SidebarSectionHeader } from "./SidebarSectionHeader";
 import { SectionRows } from "./SidebarSectionRows";
 import { GrokIcon } from "./GrokIcon";
-import { NeedsYouButton, OwnerPickerHost } from "./TeamOwner"; import { SidebarPeople } from "./SidebarPeople"; import { setAttentionPinned, useAttentionPinned } from "./inbox/attention-pinned";
+import { NeedsYouButton, OwnerPickerHost } from "./TeamOwner"; import { SidebarPeople } from "./SidebarPeople";
 import { MENU_ITEM, MENU_ITEM_SEPARATOR, MENU_SHEET } from "./menu-recipe";
 import { SidebarResizeHandle, useSidebarWidth } from "./SidebarResizeHandle";
 import { SidebarMoreUnreads } from "./SidebarMoreUnreads";
@@ -61,7 +61,7 @@ import { isSidebarToggle } from "@/lib/keyboard-shortcuts";
 import { SidebarRailSeparator, SimpleRailFooter } from "./SidebarSimpleRail";
 import { useShowThreads } from "@/lib/thread-preferences";
 import { useBotUnread } from "./unread-notice";
-import { attentionJumpAction, crossBotAttentionThreads, runningRoutineRun, SidebarBotActivity, sidebarBotActivityTasks, sidebarBotStatus } from "./SidebarBotActivity";
+import { runningRoutineRun, SidebarBotActivity, sidebarBotActivityTasks, sidebarBotStatus } from "./SidebarBotActivity";
 import { SidebarNoBots, SidebarTileGrid } from "./SidebarTiles";
 import { BotContextMenu, GROK_LABEL, GROK_MENU_ITEM, GROK_ROW_FILL, GrokMenuIcon } from "./SidebarBotMenu";
 import { GROK_DANGER } from "./menu-recipe";
@@ -69,7 +69,6 @@ export { BotContextMenu };
 import { AvatarActivityDot, RowDot, RowStatusText, rowSurface } from "./SidebarRowMarkers";
 
 
-import { SidebarAttentionPanel } from "./SidebarAttentionPanel";
 import { useLiveMedia } from "@/lib/live-call-media";
 import { LiveCallPill, liveBadgeFor } from "./LiveCallPill";
 import { usePopoverDismiss } from "@/hooks/use-popover-dismiss";
@@ -767,7 +766,6 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
   const deletingRoom = deletingRoomId ? state.groups.find((g) => g.id === deletingRoomId) : undefined;
   const [plusOpen, setPlusOpen] = useState(false);
   const plusMotion = useMenuMotion(plusOpen);
-  const attentionPinned = useAttentionPinned();
   const [newRoom, setNewRoom] = useState(false);
   useEffect(() => {
     const open = () => setNewRoom(true);
@@ -943,7 +941,6 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
   const sectionMenuFor = (id: string): boolean => layoutInteractive && !remoteClient && (userSectionName(id) !== null || (id === BOTS_SECTION_ID && sectionIds.length > 1));
   const archivedBots = state.bots.filter((bot) => bot.hidden && !bot.movedTo);
   const archivedEntry = remoteClient ? undefined : { count: archivedBots.length, open: () => setArchivedBotsOpen(true) };
-  const attention = crossBotAttentionThreads(state.bots, state.pendingQueued, undefined, state.groups);
   const pendingBotUndo = teamFeedback?.restoreBot;
   const tabStopId = [rowStop, state.activeView === "chat" ? state.selectedId : null].find((id) => id && matchingBots.some((bot) => bot.id === id)) ?? null;
   const botRow = (bot: Bot) => botRowProps(state, dispatch, bot, { density, query: q, onMenu: setMenu, renameRequest: renameRequest?.botId === bot.id ? renameRequest.nonce : 0, main: simpleDesk && bot.id === mainBotId,
@@ -1118,16 +1115,6 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
             listItem={BotListItem}
           />
         </div>
-      )}
-
-      {attentionPinned && density !== "icons" && (
-        <SidebarAttentionPanel
-          entries={attention}
-          onUnpin={() => setAttentionPinned(false)}
-          onJump={(entry) => dispatch(attentionJumpAction(entry))}
-          collapsed={sectionCollapsed(ATTENTION_SECTION_ID)}
-          onToggle={layoutInteractive ? () => toggleSection(ATTENTION_SECTION_ID) : undefined}
-        />
       )}
 
       {tiles && <SidebarTileGrid primary={null} pinned={pinnedBots} row={botRow} corner={corner} />}

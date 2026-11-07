@@ -9,8 +9,6 @@ const fixture = vi.hoisted(() => ({ optedIn: true, setFinishedNotifications: vi.
 vi.mock("@/lib/notification-preferences", () => ({
   useNotificationSounds: () => true,
   setNotificationSounds: vi.fn(),
-  useNotificationFeed: () => false,
-  setNotificationFeed: vi.fn(),
   useFinishedNotifications: () => fixture.optedIn,
   setFinishedNotifications: fixture.setFinishedNotifications,
 }));

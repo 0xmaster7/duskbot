@@ -5,7 +5,6 @@ import { describe, expect, it, vi } from "vitest";
 import {
   PINNED_CIRCLES_KEY,
   PINNED_CIRCLE_ORDER_KEY,
-  SIDEBAR_ATTENTION_PINNED_KEY,
   UNIVERSAL_PINS_KEY,
   SIDEBAR_COLLAPSED_SECTIONS_KEY,
   SIDEBAR_DENSITY_KEY,
@@ -16,21 +15,18 @@ import {
   loadPinnedCircles,
   loadPinnedCircleOrder,
   loadUniversalPins,
-  loadSidebarAttentionPinned,
   loadCollapsedSections,
   loadSectionOrder,
   loadSidebarDensity,
   loadSidebarWidth,
   parsePinnedCircles,
   parseUniversalPins,
-  parseSidebarAttentionPinned,
   parseSidebarDensity,
   saveCollapsedSections,
   savePinnedCircles,
   setPinnedCircleOrder,
   saveUniversalPins,
   saveSectionOrder,
-  saveSidebarAttentionPinned,
   saveSidebarDensity,
   saveSidebarWidth,
   toggleCollapsedSection,
@@ -212,20 +208,4 @@ describe("universal pins preference", () => {
   });
 });
 
-
-describe("sidebar attention pin preference", () => {
-  it("round-trips the pinned flag and defaults to the popover", () => {
-    expect(parseSidebarAttentionPinned("true")).toBe(true);
-    expect(parseSidebarAttentionPinned("false")).toBe(false);
-    expect(parseSidebarAttentionPinned("yes")).toBe(false);
-    expect(parseSidebarAttentionPinned(null)).toBe(false);
-
-    const setItem = vi.fn();
-    saveSidebarAttentionPinned(true, { setItem });
-    expect(setItem).toHaveBeenCalledWith(SIDEBAR_ATTENTION_PINNED_KEY, "true");
-    expect(loadSidebarAttentionPinned({ getItem: () => "true" })).toBe(true);
-    expect(loadSidebarAttentionPinned({ getItem: () => "untrusted" })).toBe(false);
-    expect(loadSidebarAttentionPinned({ getItem: () => { throw new Error("blocked"); } })).toBe(false);
-  });
-});
 

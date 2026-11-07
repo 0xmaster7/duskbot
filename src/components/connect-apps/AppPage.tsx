@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { needsReconnect } from "@/lib/connector-status";
-import { connectorSetupNotice } from "../PluginsPanel";
+import { connectorSetupNotice } from "./connector-helpers";
 import type { ToolkitCard } from "../ServiceIcon";
 import { GrokIcon } from "../GrokIcon";
 import { AppTile, CancelLink, ConnectedMark, RowPill, type RowAction } from "./AppRow";

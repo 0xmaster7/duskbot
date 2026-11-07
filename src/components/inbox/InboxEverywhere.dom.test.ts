@@ -17,7 +17,6 @@ import { initialState, StoreContext, type AppState, type Bot } from "@/state/sto
 import { closeInbox, openInbox, readInboxLine, setInboxView } from "@/state/inbox";
 import { setTeamPeople } from "@/state/team-people";
 import type { InboxRow, InboxView } from "../../../shared/inbox";
-import { setAttentionPinned } from "./attention-pinned";
 import { InboxPanel } from "./InboxPanel";
 import { senderLabel } from "./inbox-view";
 
@@ -57,7 +56,6 @@ beforeEach(() => {
   server.answer = placeView([]);
   dispatch.mockClear();
   setTeamPeople(null);
-  setAttentionPinned(false);
 });
 afterEach(() => {
   act(() => root.unmount());
@@ -143,7 +141,7 @@ describe("a place's inbox in the panel", () => {
     expect(dispatch.mock.calls.map(([action]) => action.threadId).filter(Boolean).every((threadId) => threadId === "eli-launch"), "nothing opens another of the bot's threads").toBe(true);
   });
 
-  it("lists each bot at work once, with a jump and the pin, leaving out what the inbox already asks", async () => {
+  it("lists each bot at work once, with a jump, leaving out what the inbox already asks", async () => {
     const working = { threadId: "eli-work", title: "Writing the page", createdAt: 1, busy: true, activity: "working" as const };
     const asking = { threadId: "eli-pricing", title: "Pricing work", createdAt: 2, activity: "waiting-on-you" as const };
     const told = { threadId: "noa-main", title: "Told already", createdAt: 3, unread: true };
@@ -151,13 +149,11 @@ describe("a place's inbox in the panel", () => {
     const lineThere = { ...news, id: "line-t", origin: { botId: "eli", threadId: "line-thread", title: "Told and still working" } };
     await panel([approval, news, lineThere], [bot({ tasks: [working, asking, told, toldAndWorking] as Bot["tasks"] })]);
     const section = document.querySelector<HTMLElement>("[data-inbox-active]")!;
-    const rows = [...section.querySelectorAll<HTMLElement>("button[aria-label]")].filter((one) => !one.hasAttribute("data-inbox-pin"));
+    const rows = [...section.querySelectorAll<HTMLElement>("button[aria-label]")];
     expect(rows.map((one) => one.getAttribute("aria-label")), "one row for the bot, named for it, not its thread").toEqual(["Eli · Working"]);
     expect(section.textContent).not.toContain("Writing the page");
     expect(section.textContent).not.toContain("Pricing work");
     await act(async () => { rows[0]!.click(); });
     expect(dispatch).toHaveBeenCalledWith({ type: "switchTask", botId: "eli", threadId: "eli-work" });
-    await click("[data-inbox-pin]");
-    expect(document.querySelector("[data-inbox-pin]")!.getAttribute("aria-label")).toBe("Unpin");
   });
 });
