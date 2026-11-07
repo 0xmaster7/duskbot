@@ -93,24 +93,6 @@ describe("a bot's routines in its panel", () => {
     expect(fixture.dispatch).toHaveBeenCalled();
   });
 
-  it("adds one in place: what to do, a plain schedule, and a name from what it does when none is given", async () => {
-    fixture.api.mockImplementation(async (_path: unknown, init: unknown) => ({ routine: { ...routine, id: "routine-2", ...JSON.parse((init as { body: string }).body), nextRunAt: now + 1, createdAt: now + 1 } }));
-    mount();
-    flushSync(() => container.querySelector<HTMLButtonElement>("[data-panel-action=new-routine]")!.click());
-    const form = container.querySelector<HTMLFormElement>('[data-routine-form="new"]')!;
-    expect(form.querySelector<HTMLButtonElement>("button[type=submit]")!.disabled).toBe(true);
-    flushSync(() => type(form.querySelector("textarea")!, "Check the news and send me the top three stories."));
-    flushSync(() => type(form.querySelector<HTMLInputElement>('input[data-routine-time]')!, "7:30 am"));
-    flushSync(() => form.querySelector<HTMLButtonElement>("button[type=submit]")!.click());
-    await vi.waitFor(() => expect(row("routine-2")).not.toBeNull());
-    expect(writes()).toEqual([["/api/routines", "POST", {
-      name: "Check the news and send me the top three stories", prompt: "Check the news and send me the top three stories.", botId: "bot-a", enabled: true,
-      schedule: { type: "daily", time: "07:30", weekdays: [0, 1, 2, 3, 4, 5, 6] },
-    }]]);
-    expect(container.querySelector("[data-routine-form]")).toBeNull();
-    expect(row("routine-2").dataset.routineOpen).toBe("true");
-  });
-
   it("edits name, when and what in place, and keeps a schedule no preset can say", async () => {
     fixture.state.routines = [{ ...routine, schedule: { type: "cron", expression: "0 9 1 * *", timeZone: "UTC" } as Routine["schedule"] }];
     fixture.api.mockImplementation(async (_path: unknown, init: unknown) => ({ routine: { ...(fixture.state.routines as Routine[])[0], ...JSON.parse((init as { body: string }).body), updatedAt: now + 1 } }));
@@ -208,11 +190,10 @@ describe("a bot's routines in its panel", () => {
     expect(row("routine-1").querySelector("form")).not.toBeNull();
   });
 
-  it("says what a routine is when the bot has none, and still adds one", () => {
+  it("says what a routine is when the bot has none and points to the chat, with no add button", () => {
     fixture.state.routines = [];
     mount();
-    expect(container.textContent).toContain("Routines are recurring tasks");
-    flushSync(() => container.querySelector<HTMLButtonElement>("[data-panel-action=new-routine]")!.click());
-    expect(container.querySelector('[data-routine-form="new"]')).not.toBeNull();
+    expect(container.textContent).toContain("Ask it in chat to set one up");
+    expect(container.querySelector("[data-panel-action=new-routine]")).toBeNull();
   });
 });
