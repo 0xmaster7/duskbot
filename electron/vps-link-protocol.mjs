@@ -3,7 +3,10 @@
 import { createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes } from "node:crypto";
 import { Agent as HttpAgent, STATUS_CODES, createServer, request as httpRequest } from "node:http";
 import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
+import { connect as http2Connect, constants as h2Constants } from "node:http2";
+import { isIP } from "node:net";
 import { Readable } from "node:stream";
+import { connect as tlsConnect } from "node:tls";
 import { setTimeout as sleep } from "node:timers/promises";
 
 import { createDirectLink } from "./vps-link-direct.mjs";
@@ -273,6 +276,118 @@ export function keepAliveFetch({ maxSockets = 8, tls = {} } = {}) {
   return go;
 }
 
+/** an http/2 stream's own window and the connection's: a whole desktop frame or download in flight at a long round trip */
+const H2_STREAM_WINDOW = 4 * 1024 * 1024;
+const H2_SESSION_WINDOW = 8 * 1024 * 1024;
+/** a request that never reached the relay: the connection was closing (goaway), gone, or refused the stream */
+const H2_UNSENT = new Set(["ERR_HTTP2_GOAWAY_SESSION", "ERR_HTTP2_INVALID_SESSION", "ERR_HTTP2_REFUSED_STREAM"]);
+/** posts out at once over http/2: as many as the relay holds while an earlier one is still on its way (HELD_POSTS) */
+const H2_POSTS_IN_FLIGHT = 8;
+const H2_DIAL_MS = 20_000;
+const until = (promise, signal) => (!signal ? promise : new Promise((resolve, reject) => {
+  const stop = () => reject(signal.reason);
+  signal.addEventListener("abort", stop, { once: true });
+  promise.then((value) => { signal.removeEventListener("abort", stop); resolve(value); }, (error) => { signal.removeEventListener("abort", stop); reject(error); });
+}));
+
+/**
+ * keepAliveFetch's api over one http/2 connection when the relay offers h2 (nginx does): the streamed read and every
+ * post share one warm tls connection, so a post never waits on a new handshake (5.5 s behind a lossy vpn, 0.3 s from a
+ * vps) and many can be out at once (`multiplexed()`). plain http, or an origin that answers without h2, goes through
+ * keepAliveFetch. `tls` is extra tls.connect options (a test's ca).
+ */
+export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8 } = {}) {
+  const h1 = keepAliveFetch({ maxSockets, tls: tlsOptions });
+  const h1Origins = new Set();
+  let session = null, opening = null, tlsSession = null, lastUsed = 0;
+  const live = (one) => Boolean(one && !one.closed && !one.destroyed);
+  const open = (url) => new Promise((resolve) => {
+    const socket = tlsConnect({ host: url.hostname, port: Number(url.port) || 443, ...(isIP(url.hostname) ? {} : { servername: url.hostname }), ALPNProtocols: ["h2", "http/1.1"], ...(tlsSession ? { session: tlsSession } : {}), ...tlsOptions });
+    socket.on("session", (value) => { tlsSession = value; });
+    const failed = () => { socket.destroy(); resolve(null); };
+    socket.once("error", failed);
+    socket.setTimeout(H2_DIAL_MS, failed);
+    socket.once("secureConnect", () => {
+      socket.off("error", failed);
+      socket.setTimeout(0);
+      socket.setNoDelay(true);
+      if (socket.alpnProtocol !== "h2") { h1Origins.add(url.origin); socket.destroy(); resolve(null); return; }
+      const next = http2Connect(url.origin, { createConnection: () => socket, settings: { initialWindowSize: H2_STREAM_WINDOW } });
+      next.on("error", () => {});
+      next.on("goaway", () => { if (session === next) session = null; });
+      next.on("close", () => { if (session === next) session = null; });
+      next.once("connect", () => { next.setLocalWindowSize(H2_SESSION_WINDOW); resolve(next); });
+    });
+  });
+  async function sessionFor(url) {
+    if (live(session)) return session;
+    opening ??= open(url).then((next) => { if (next) session = next; return next; }).finally(() => { opening = null; });
+    return opening;
+  }
+  const request = (one, url, init) => new Promise((resolve, reject) => {
+    const { signal } = init;
+    const body = init.body == null ? null : Buffer.from(init.body);
+    const headers = { ":method": init.method ?? "GET", ":path": `${url.pathname}${url.search}` };
+    for (const [name, value] of Object.entries(init.headers ?? {})) headers[name.toLowerCase()] = value;
+    if (body) headers["content-length"] = body.length;
+    let stream;
+    try { stream = one.request(headers, { endStream: !body }); } catch (error) { reject(error); return; }
+    let answered = false;
+    const stop = () => { stream.close(h2Constants.NGHTTP2_CANCEL); if (!answered) reject(signal.reason); };
+    signal?.addEventListener("abort", stop, { once: true });
+    const unanswered = (error) => {
+      if (answered) return;
+      answered = true;
+      reject(stream.rstCode === h2Constants.NGHTTP2_REFUSED_STREAM ? Object.assign(new Error("the relay refused the stream"), { code: "ERR_HTTP2_REFUSED_STREAM" }) : error ?? new Error("the relay closed the stream"));
+    };
+    stream.once("error", unanswered);
+    stream.once("close", () => { signal?.removeEventListener("abort", stop); unanswered(null); });
+    stream.once("response", (head) => {
+      if (answered) return;
+      answered = true;
+      const status = head[":status"];
+      const out = new Headers();
+      for (const [name, value] of Object.entries(head)) if (!name.startsWith(":")) for (const each of Array.isArray(value) ? value : [value]) out.append(name, String(each));
+      const empty = status === 204 || status === 205 || status === 304 || init.method === "HEAD";
+      if (empty) stream.resume();
+      resolve(new Response(empty ? null : Readable.toWeb(stream), { status, headers: out }));
+    });
+    if (body) stream.end(body);
+  });
+  const go = async (input, init = {}) => {
+    const url = new URL(input);
+    if (init.signal?.aborted) throw init.signal.reason;
+    if (url.protocol !== "https:" || h1Origins.has(url.origin)) return h1(input, init);
+    lastUsed = Date.now();
+    // a connection the relay is closing (goaway) or that died refuses a request unprocessed: once more on a fresh one
+    for (let attempt = 0; ; attempt += 1) {
+      const one = await until(sessionFor(url), init.signal);
+      if (!one) return h1(input, init);
+      init.onConnected?.();
+      try { return await request(one, url, init); }
+      catch (error) {
+        if (attempt > 0 || init.signal?.aborted || !H2_UNSENT.has(error?.code)) throw error;
+        if (session === one) { session = null; one.destroy(); }
+      }
+    }
+  };
+  go.connectAware = true;
+  /** posts may share the connection with each other and the streamed read */
+  go.multiplexed = () => live(session);
+  go.postsInFlight = () => (live(session) ? H2_POSTS_IN_FLIGHT : POSTS_IN_FLIGHT);
+  go.warm = (base) => {
+    const stopH1 = h1.warm(base, () => h1Origins.has(new URL(base).origin) || !base.startsWith("https:"));
+    // nginx closes an h2 connection idle for its keepalive timeout; the streamed read usually keeps it busy anyway
+    const timer = setInterval(() => { if (live(session) && Date.now() - lastUsed >= WARM_MS - 5000) session.ping(() => {}); }, WARM_MS);
+    timer.unref?.();
+    return () => { stopH1(); clearInterval(timer); };
+  };
+  go.close = () => { session?.close(); session = null; h1.close(); };
+  /** after a sleep or a network change: a fresh connection, resuming the tls session */
+  go.reset = () => { session?.destroy(); session = null; h1.reset(); };
+  return go;
+}
+
 /**
  * a relay read: one json document, or, from a relay that streams (`stream=1`), one {"frames":[...]} per line as frames
  * arrive, so a reply never waits for the next poll to reach the relay. true when the answer streamed.
@@ -363,7 +478,7 @@ const UPGRADE_HOLD_MS = 4000;
  * agent's half of it lives.
  */
 export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS, direct: directSpec = null, directFactory = createDirectLink, egress: makeEgress = null }) {
-  const fetchImpl = given ?? keepAliveFetch();
+  const fetchImpl = given ?? relayFetch();
   const stream = streamChoice();
   let unwarm = () => {};
   const key = Buffer.from(keyText, "base64url");
