@@ -59,6 +59,7 @@ const plain = (error, fallback) => {
  *   relaunch(): void,
  *   dataSize?(): Promise<number | null>,
  *   proxyFactory?: typeof createTunnelProxy,
+ *   egress?: Parameters<typeof createTunnelProxy>[0]["egress"],
  *   now?(): number,
  *   onChange?(view: any): void,
  *   log?(line: string): void,
@@ -302,7 +303,7 @@ export function createVpsLink(deps) {
     const starting = (async () => {
       const [key, token] = await Promise.all([unprotect(link.keyP), unprotect(link.tokenP)]);
       if (closed) throw new Error("The app is closing.");
-      let proxy = makeProxy({ base: link.base ?? base, id: link.id, key, token, port: link.port ?? 0, log });
+      let proxy = makeProxy({ base: link.base ?? base, id: link.id, key, token, port: link.port ?? 0, log, egress: deps.egress });
       proxies.set(link.id, proxy);
       let origin;
       try {
@@ -310,7 +311,7 @@ export function createVpsLink(deps) {
         catch (error) {
           if (error?.code !== "EADDRINUSE" || closed) throw error;
           await proxy.close();
-          proxy = makeProxy({ base: link.base ?? base, id: link.id, key, token, port: 0, log });
+          proxy = makeProxy({ base: link.base ?? base, id: link.id, key, token, port: 0, log, egress: deps.egress });
           proxies.set(link.id, proxy);
           origin = await proxy.start();
         }
