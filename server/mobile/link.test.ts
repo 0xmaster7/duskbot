@@ -145,15 +145,15 @@ describe("mobile link", () => {
     const auth: RequestAuth = { kind: "session", session: sessions.authenticate(phone.token)!, via: "bearer", scopes: phone.scopes };
     expect((await call(mobile, owner, "PUT", "/api/mobile/push", { service: "apns", token: "abcdef0123456789" })).status).toBe(403);
     expect((await call(mobile, auth, "PUT", "/api/mobile/push", { service: "apns", token: "abcdef0123456789", environment: "sandbox" })).body).toEqual({ ok: true, delivering: true });
-    await mobile.notify({ id: "n1", at: 1, read: false, kind: "reply", botId: "b1", botName: "Nova", threadId: "t1", title: "Nova", body: "secret text" });
-    expect(sent).toEqual([{ target: { service: "apns", token: "abcdef0123456789", environment: "sandbox" }, message: { id: "n1", kind: "reply", title: "Nova", botId: "b1", botName: "Nova", threadId: "t1" } }]);
-    await mobile.notify({ id: "n1", at: 1, read: false, kind: "reply", botId: "b1", botName: "Nova", threadId: "t1", title: "Nova", body: "again" });
+    await mobile.notify({ id: "n1", at: 1, read: false, kind: "mention", botId: "b1", botName: "Nova", threadId: "t1", title: "Nova", body: "secret text" });
+    expect(sent).toEqual([{ target: { service: "apns", token: "abcdef0123456789", environment: "sandbox" }, message: { id: "n1", kind: "mention", title: "Nova", botId: "b1", botName: "Nova", threadId: "t1" } }]);
+    await mobile.notify({ id: "n1", at: 1, read: false, kind: "mention", botId: "b1", botName: "Nova", threadId: "t1", title: "Nova", body: "again" });
     expect(sent).toHaveLength(1);
   });
 
   it("reads the typed-code relay from the environment", () => {
-    expect(mobileLookupRelay({})).toBe("https://link.apps.siddz.com");
-    expect(mobileLookupRelay({ OMB_MOBILE_RELAY: "off" })).toBeNull();
+    expect(mobileLookupRelay({})).toBeNull();
+    expect(mobileLookupRelay({ OMB_MOBILE_RELAY: "default" })).toBe("https://link.apps.siddz.com");
     expect(mobileLookupRelay({ OMB_MOBILE_RELAY: "http://127.0.0.1:9" })).toBe("http://127.0.0.1:9");
   });
 });

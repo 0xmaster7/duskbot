@@ -87,11 +87,11 @@ export function notifyPhones(notification: unknown, options: { adminOnly?: boole
   if (activeNotify && entry && typeof entry.id === "string" && typeof entry.threadId === "string") activeNotify(entry, options);
 }
 
-/** OMB_MOBILE_RELAY: the relay that holds typed-code lookups, "off" for none */
+/** OMB_MOBILE_RELAY: the relay that holds typed-code lookups when no link agent names one ("default" for the public one); unset, none */
 export function mobileLookupRelay(env: NodeJS.ProcessEnv = process.env): string | null {
   const value = env.OMB_MOBILE_RELAY?.trim();
-  if (value === "off") return null;
-  return value && /^https?:\/\/[^/\s]+$/.test(value) ? value : DEFAULT_MOBILE_RELAY;
+  if (value === "default") return DEFAULT_MOBILE_RELAY;
+  return value && /^https?:\/\/[^/\s]+$/.test(value) ? value : null;
 }
 
 type Json = (res: import("node:http").ServerResponse, status: number, body: unknown) => void;
