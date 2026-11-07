@@ -1,7 +1,9 @@
 // POST /api/bots/<bot>/sign-in-cards/<message>/(done|cancel|save-login) with {threadId}, and GET .../save-login?threadId=
 // for where a login saved from the card would fill. A saved password goes into the encrypted store and no route ever
-// returns it.
+// returns it; from any client but this computer's own app it arrives sealed for this card (server/sealed-fields.ts).
+import type { CardSealer } from "../card-seal.ts";
 import type { RequestAuth } from "../request-auth.ts";
+import { unsealFields } from "../sealed-fields.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 export type SignInOutcome = "done" | "cancelled";
@@ -14,6 +16,7 @@ export interface SignInCardRouteDeps {
   saveTarget(botId: string, threadId: string, messageId: string): Promise<Answer>;
   /** A member reaches a card only in a thread shown to them, which in a room can be narrower than the bot. */
   threadVisible(auth: RequestAuth, threadId: string): boolean;
+  sealer: CardSealer;
 }
 
 const HIDDEN: Answer = { status: 404, body: { error: "no such sign-in request" } };
@@ -35,9 +38,12 @@ export function createSignInCardRoutes(deps: SignInCardRouteDeps): RouteHandler 
       const mediaType = String(req.headers["content-type"] ?? "").split(";", 1)[0]!.trim().toLowerCase();
       if (mediaType !== "application/json") return json(res, 415, { error: "content-type must be application/json" });
       const body = await readBody(req, 16_384);
-      const fields = body && typeof body === "object" && !Array.isArray(body) ? body as Record<string, unknown> : {};
-      const threadId = String(fields.threadId ?? "");
-      const result = deps.threadVisible(auth, threadId) ? await deps.saveLogin(m[1]!, threadId, m[2]!, fields, auth) : HIDDEN;
+      const raw = body && typeof body === "object" && !Array.isArray(body) ? body as Record<string, unknown> : {};
+      const threadId = String(raw.threadId ?? "");
+      if (!deps.threadVisible(auth, threadId)) return json(res, HIDDEN.status, HIDDEN.body);
+      const opened = await unsealFields(raw, { auth, sealer: deps.sealer, purpose: "login.card", target: [m[1]!, threadId, m[2]!], fields: ["password", "totp"] });
+      if (!opened.ok) return json(res, opened.status, opened.body);
+      const result = await deps.saveLogin(m[1]!, threadId, m[2]!, opened.body, auth);
       return json(res, result.status, result.body);
     }
     const body = await readBody(req);

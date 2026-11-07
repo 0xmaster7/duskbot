@@ -17,6 +17,9 @@ import { SERVER_ROOT } from "./proxy-paths.ts";
 
 export interface EnvironmentDescriptor {
   environmentId: string;
+  /** The server's long-term identity key (`x.y`, P-256, base64url) that signs each sealing key; the link agent hands it to
+   * the desktop app at pairing, which pins it. Added where the descriptor is served. */
+  sealIdentity?: string;
   label: string;
   platform: NodeJS.Platform;
   version: string;
