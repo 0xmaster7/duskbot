@@ -154,6 +154,23 @@ describe("the live desktop", () => {
     root = createRoot(container);
   });
 
+  it("opens on click the moment the screen shows, before its first frame, and spins Take control while it is asked", () => {
+    const open = vi.fn();
+    draw({ originalViewer: true, viewOnly: true, onOpenPreview: open, onTakeControl: vi.fn() });
+    // still connecting: the screen is clickable already
+    expect(button("Open")!.disabled).toBe(false);
+    flushSync(() => button("Open")!.click());
+    expect(open).toHaveBeenCalledTimes(1);
+    flushSync(() => fixture.attempts[0]!.events.connected());
+    draw({ expanded: true, taking: true });
+    const take = button("Take control")!;
+    expect(take.disabled).toBe(true);
+    expect(take.querySelector("[data-computer-taking]")).not.toBeNull();
+    draw({ taking: false });
+    expect(button("Take control")!.disabled).toBe(false);
+    expect(document.querySelector("[data-computer-taking]")).toBeNull();
+  });
+
   it("opens the original viewer read-only and enables input only through its control button", () => {
     const open = vi.fn();
     const take = vi.fn();

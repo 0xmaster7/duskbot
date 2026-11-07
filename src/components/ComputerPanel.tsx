@@ -1219,7 +1219,7 @@ export function ComputerPanel({
     const localScreen = phase === "local" && !isLinux;
     const screenControl: ScreenControl = held
       ? { held: true, onDone: () => void handBack(), asked: Boolean(control.helpReason), busy: controlPending || takeover.handingBack }
-      : { held: false, onTake: liveTarget || cloudPreviewReady || localScreen ? () => void takeControl() : undefined, busy: controlPending || pending === "join" || Boolean(liveTarget && !desktopDecoded) };
+      : { held: false, onTake: liveTarget || cloudPreviewReady || localScreen ? () => void takeControl() : undefined, busy: controlPending || pending === "join" || Boolean(liveTarget && !desktopDecoded), pending: controlPending };
     const frame = remoteFrame ?? (localScreen && liveLocal.stream ? (
       <LiveScreenVideo stream={liveLocal.stream} label={t("computer.screenOf", { name: bot.name })} className="absolute inset-0 size-full object-contain" />
     ) : frameSrc ? <img src={frameSrc} alt={t("computer.screenOf", { name: bot.name })} draggable={false} className="absolute inset-0 size-full object-contain" /> : null);
