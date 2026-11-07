@@ -35,10 +35,10 @@ function fakeDocker(ids: string[], answer: (args: string[]) => string = (args) =
 describe("the PAC script", () => {
   it("sends web ports on public names to the person's computer, with a direct fallback", () => {
     const find = pacFor();
-    expect(find("https://www.instagram.com/")).toBe("SOCKS5 172.18.0.1:3129; DIRECT");
-    expect(find("http://example.com/")).toBe("SOCKS5 172.18.0.1:3129; DIRECT");
-    expect(find("wss://chat.example.com/")).toBe("SOCKS5 172.18.0.1:3129; DIRECT");
-    expect(find("https://93.184.216.34/")).toBe("SOCKS5 172.18.0.1:3129; DIRECT");
+    expect(find("https://www.instagram.com/")).toBe("SOCKS5 172.18.0.1:3129");
+    expect(find("http://example.com/")).toBe("SOCKS5 172.18.0.1:3129");
+    expect(find("wss://chat.example.com/")).toBe("SOCKS5 172.18.0.1:3129");
+    expect(find("https://93.184.216.34/")).toBe("SOCKS5 172.18.0.1:3129");
   });
   it("keeps everything else direct, so the computer never refuses it and the proxy is not skipped for minutes", () => {
     const find = pacFor();

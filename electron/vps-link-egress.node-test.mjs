@@ -32,6 +32,7 @@ test("only web ports on the public internet pass, never this computer's home", (
     "127.0.0.1": "loopback", "::1": "loopback", "::ffff:127.0.0.1": "loopback", "10.1.2.3": "home-network", "172.20.0.1": "home-network",
     "192.168.1.1": "home-network", "192.168.7.7": "home-network", "100.64.0.1": "home-network", "169.254.169.254": "metadata",
     "100.100.100.200": "metadata", "fd00:ec2::254": "metadata", "169.254.10.10": "link-local", "fe80::1": "link-local",
+    "fec0::1": "home-network", "feff:ffff::1": "home-network", "fd12:3456::1": "home-network",
     "224.0.0.251": "reserved", "239.255.255.250": "reserved", "ff02::1": "reserved", "0.0.0.0": "reserved", "::": "reserved",
     // nat64 and 6to4 wrappers of loopback and the lan
     "64:ff9b::7f00:1": "loopback", "64:ff9b::c0a8:101": "home-network", "2002:7f00:1::": "loopback",
@@ -87,6 +88,26 @@ test("the home's public address is asked once and kept", async () => {
   assert.equal(asked, 2);
   const broken = seenAsCache(async () => { throw new Error("offline"); });
   assert.equal(await broken(), null);
+});
+
+test("a failed lookup keeps the last address, logs, and asks again soon", async () => {
+  let t = 0, fail = false, asked = 0;
+  const lines = [];
+  const seenAs = seenAsCache(async () => { asked += 1; if (fail) throw new Error("offline"); return "149.88.103.35"; },
+    { ttlMs: 600_000, retryMs: 30_000, now: () => t, log: (line) => lines.push(line) });
+  assert.equal(await seenAs(), "149.88.103.35");
+  fail = true;
+  t = 600_000;
+  assert.equal(await seenAs(), "149.88.103.35");
+  assert.equal(lines.length, 1);
+  assert.match(lines[0], /asking again in 30 s/);
+  t += 10_000;
+  await seenAs();
+  assert.equal(asked, 2);
+  fail = false;
+  t += 25_000;
+  assert.equal(await seenAs(), "149.88.103.35");
+  assert.equal(asked, 3);
 });
 
 test("the proxy answers only boxes on the bridge, never the bridge's own address", () => {

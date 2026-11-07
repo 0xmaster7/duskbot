@@ -46,13 +46,14 @@ export function RouteTrafficRow() {
   };
 
   const inApp = typeof window !== "undefined" && window.ogb?.remoteClient?.active === true;
-  const hint = !status.enabled ? t("routeTraffic.hint") : status.route === "computer" ? t("routeTraffic.through") : t("routeTraffic.offline");
+  const fallback = status.enabled && status.route !== "computer";
+  const hint = !status.enabled ? t("routeTraffic.hint") : fallback ? t("routeTraffic.offline") : t("routeTraffic.through");
   return (
     <>
       <SwitchRow
         data-settings-row="route-traffic"
         title={inApp ? t("routeTraffic.title") : t("routeTraffic.titleWeb")}
-        hint={<span aria-live="polite">{hint}</span>}
+        hint={<span aria-live="polite" className={fallback ? "text-warning" : undefined}>{hint}</span>}
         checked={status.enabled}
         disabled={pending}
         onChange={() => void toggle()}
