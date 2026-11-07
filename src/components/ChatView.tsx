@@ -11,7 +11,6 @@ import { useBotMessageMenu, userMessageMenu } from "@/components/message-menu";
 import { useSpeech } from "@/lib/tts/useSpeech";
 import { localSystemVoiceActive } from "@/lib/local-voice";
 import { computerStartLine, useScreensWhile } from "@/lib/computer-start";
-import { rememberComputerPanelOpen } from "@/lib/computer-panel-focus";
 import { useCaptionChrome, useDesktopCapabilities } from "@/components/DesktopCapabilities";
 import {
   currentTaskBot,
@@ -1152,11 +1151,11 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           {/* Grok's header is the bot's pill alone: the pill opens the panel, whose Computer tab shows the bot's screen. */}
           {!phoneMenu && !simpleHead && <button
             data-tour="computer"
-            onClick={(event) => { if (!state.computerOpen) rememberComputerPanelOpen({ botId: bot.id, opener: event.currentTarget, tabs: event.detail === 0 }); dispatch({ type: "toggleComputer" }); }}
+            onClick={() => dispatch({ type: "toggleComputer", open: true })}
             className={cn(
               "relative",
               "flex size-8 items-center justify-center rounded-full transition-colors hover:bg-ink/[0.06]",
-              state.computerOpen ? "text-accent" : "text-ink-secondary hover:text-ink",
+              "text-ink-secondary hover:text-ink",
             )}
             title={t("chat.computer")} aria-label={busy && place === "browser" ? `${t("chat.computer")}, ${t("place.live")}` : t("chat.computer")}
           >

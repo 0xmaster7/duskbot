@@ -3,7 +3,6 @@ import { createRoot } from "react-dom/client";
 import { LocalComputerSection } from "../../src/components/LocalComputerSection";
 import { ComputerPanel } from "../../src/components/ComputerPanel";
 import { BotSettingsDialog } from "../../src/components/BotSettingsDialog";
-import { RemoteDesktopPanel } from "../../src/components/remote-desktop-panel";
 import { StoreProvider, useStore, type Bot } from "../../src/state/store";
 import { rememberComputerPanelOpen } from "../../src/lib/computer-panel-focus";
 import { applySkin, readSkin } from "../../src/lib/skins";
@@ -142,11 +141,13 @@ function Fixture() {
   const [busy, setBusy] = useState(false);
   const [generation, setGeneration] = useState(0);
   const [panel, setPanel] = useState("computer");
+  // the app has no separate screen panel any more: this harness alone still mounts ComputerPanel outside the bot panel
+  const [panelOpen, setPanelOpen] = useState(false);
   const [scenario, setScenario] = useState("default");
   useEffect(() => {
     if (bot) {
       dispatch({ type: "updateBot", botId: bot.id, patch: { computer: "cloud", cloudBackend: "vps" } });
-      dispatch({ type: "toggleComputer", open: true });
+      setPanelOpen(true);
     }
   }, [bot?.id, dispatch]);
   useEffect(() => {
@@ -170,12 +171,12 @@ function Fixture() {
         {["connected", "slow", "held", "contended", "failed", "unconfigured", "corrupt", "timeout"].map((value) => <option key={value}>{value}</option>)}
       </select></label>
       <label>Panel<select aria-label="Panel" value={panel} onChange={(event) => setPanel(event.target.value)}>
-        <option value="computer">Computer</option><option value="remote">Remote desktop</option><option value="settings">VM settings</option>
+        <option value="computer">Computer</option><option value="settings">VM settings</option>
       </select></label>
       {/* Stays mounted while the panel is up, like the chat header's own button. */}
       <button onClick={(event) => {
         if (fixtureBot) rememberComputerPanelOpen({ botId: fixtureBot.id, opener: event.currentTarget, tabs: event.detail === 0 });
-        dispatch({ type: "toggleComputer", open: true });
+        setPanelOpen(true);
       }}>Open computer panel</button>
       <label>Conversation<select aria-label="Conversation surface" value={scenario} onChange={(event) => {
         const previousScenario = surfaceScenario;
@@ -197,10 +198,9 @@ function Fixture() {
       })}>Publish live frame</button>
     </div>
     {state.settingsOpen && bot && <BotSettingsDialog key={bot.id} bot={bot} />}
-    {state.computerOpen && fixtureBot && (panel === "computer"
+    {panelOpen && fixtureBot && (panel === "computer"
       ? <ComputerPanel key={generation} bot={fixtureBot} />
-      : panel === "settings" ? <div className="w-[720px] overflow-y-auto"><LocalComputerSection /></div>
-      : <RemoteDesktopPanel key={generation} bot={fixtureBot} />)}
+      : <div className="w-[720px] overflow-y-auto"><LocalComputerSection /></div>)}
   </div>;
 }
 applySkin(readSkin());
