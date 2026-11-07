@@ -44,7 +44,7 @@ export const SAMPLE_BOTS: Omit<Bot, "lastActiveAt">[] = [
 
 const WEIGHT: Record<string, number> = { nova: 1.25, quill: 0.7, rivet: 1.1, tally: 0.75, echo: 0.35, juno: 0.95 };
 // per-turn dollars of AI at engine rates; own subscriptions show this as value, never as a charge
-const AI_RATE: Record<string, number> = { nova: 0.11, quill: 0.11, rivet: 0.16, tally: 0.15, echo: 0.09, juno: 0.03 };
+const AI_RATE: Record<string, number> = { nova: 0.11, quill: 0.075, rivet: 0.16, tally: 0.1, echo: 0.065, juno: 0.03 };
 
 function routinesFor(now: number): Bot["routines"] {
   const at = (days: number, hour: number, minute = 0) => { const d = new Date(startOfDay(now) + days * DAY); d.setHours(hour, minute); return d.getTime(); };
