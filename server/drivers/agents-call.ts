@@ -37,14 +37,14 @@ export interface ToolCallResult {
   passthrough?: Json;
 }
 
-export function toolCallContextFromEnv(env: NodeJS.ProcessEnv): ToolCallContext {
+export function toolCallContextFromEnv(env: NodeJS.ProcessEnv, stop?: AbortSignal): ToolCallContext {
   const profile = catalogProfileFromEnv(env);
   return {
     botId: profile.botId,
     threadId: env.OMB_THREAD_ID ?? "",
     depth: Number(env.OMB_TURN_DEPTH ?? "0") || 0,
     externalRuntime: env.OMB_EXTERNAL_RUNTIME === "1",
-    client: harnessClientFromEnv(env),
+    client: harnessClientFromEnv(env, stop),
   };
 }
 
