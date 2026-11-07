@@ -324,19 +324,19 @@ test("the window's rail of places is shown until the person hides it, and the ch
   assert.equal(createDesktopPrefs({ read: () => ({ railHidden: "yes" }), write: () => {} }).railHidden(), false);
 });
 
-test("the talk shortcut is on with ⌃⌥Space until changed, and the choice survives a restart", () => {
+test("the talk shortcut is off until turned on, with ⌃⌥Space as its key, and the choice survives a restart", () => {
   let saved = null;
   const prefs = createDesktopPrefs({ read: () => saved, write: value => { saved = structuredClone(value); } });
-  assert.equal(prefs.talkShortcut(), true);
+  assert.equal(prefs.talkShortcut(), false);
   assert.equal(prefs.talkKey(), "ctrl-opt-space");
-  prefs.setTalkShortcut(false);
+  prefs.setTalkShortcut(true);
   assert.equal(prefs.setTalkKey("opt-shift-space"), true);
   for (const key of ["cmd-space", "__proto__", "toString", 7]) assert.equal(prefs.setTalkKey(key), false);
   const restarted = createDesktopPrefs({ read: () => saved, write: () => {} });
-  assert.equal(restarted.talkShortcut(), false);
+  assert.equal(restarted.talkShortcut(), true);
   assert.equal(restarted.talkKey(), "opt-shift-space");
   const junk = createDesktopPrefs({ read: () => ({ talkShortcut: "off", talkKey: "toString" }), write: () => {} });
-  assert.equal(junk.talkShortcut(), true);
+  assert.equal(junk.talkShortcut(), false);
   assert.equal(junk.talkKey(), "ctrl-opt-space");
 });
 

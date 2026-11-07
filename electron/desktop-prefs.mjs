@@ -99,7 +99,7 @@ export function createDesktopPrefs({ read, write, frameByDefault = true }) {
       save({ ...current(), updatesConsent });
       return true;
     },
-    talkShortcut: () => current().talkShortcut ?? true,
+    talkShortcut: () => current().talkShortcut ?? false,
     setTalkShortcut(enabled) { save({ ...current(), talkShortcut: enabled === true }); },
     talkKey: () => current().talkKey ?? DEFAULT_TALK_KEY,
     setTalkKey(id) {
