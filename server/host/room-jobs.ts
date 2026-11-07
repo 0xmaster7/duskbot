@@ -2,6 +2,7 @@ import type { AppConfig } from "../config.ts";
 import type { Coordinator, HandoffView } from "../coordinator.ts";
 import { peerDeliveryReceipt, type PeerDeliveryReceipt } from "../peer-delivery.ts";
 import { peerName } from "../peer-roster.ts";
+import { roomLeaderId } from "../room-leader.ts";
 import { queuedJobDetail, roomQueue, sequentialRoomNotice, type RoomLineItem } from "../room-queue.ts";
 import type { GroupRecord, Store } from "../store.ts";
 import type { RoomQueueEntry } from "../../shared/wire.ts";
@@ -50,7 +51,10 @@ export function createRoomJobs({ store, coordinator, cfg, operations, speakerOf,
   }
 
   function useLanes(room: GroupRecord, roomThreadId: string, jobs: number, mode: string): boolean {
-    if (mode === "notify" || !parallelRoomJobsEnabled(cfg)) return false;
+    if (mode === "notify") return false;
+    // a led room is a department: every job runs in its member's own thread, side by side
+    if (roomLeaderId(room)) return true;
+    if (!parallelRoomJobsEnabled(cfg)) return false;
     return jobs > 1 || coordinator.all().some(n => live(n) && (n.groupId === room.id ? n.threadId === roomThreadId : laneRoomThread(n) === roomThreadId));
   }
 

@@ -25,6 +25,8 @@ const peerKey = (peer: PeerRef) => peer.id ?? `name:${peer.name}`;
 function activityEntry(m: Message): PeerEntry | null {
   const tool = m.tool;
   if (m.kind !== "activity" || !tool || m.relay || (!m.threadRef && !m.comm)) return null;
+  // a hand-off line is read as its own row in the chat, never folded into "Messaged X"
+  if (m.handoff && tool.ok !== false) return null;
   const target = m.threadRef?.botId ?? m.comm?.withBotId;
   if (m.roomRequest?.phase === "result") {
     const id = m.from?.botId ?? target;

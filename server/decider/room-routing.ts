@@ -32,10 +32,27 @@ export interface RoomRoutingInput {
   message: { from: string; text: string };
 }
 
+/** Who decided: the decider (Jev and its backends), or a quick model of the person's own engine (MausBot decides). */
+export type RoomRouteProvider = DeciderProvider | "mausbot";
+
+/** Several members joined by this mark, in `choice`, mean exactly those members; only MausBot answers that way. */
+export const SEVERAL_MARK = "+";
+
 export type RoomRoute =
-  | { kind: "member"; botId: string; probability: number; provider: DeciderProvider }
-  | { kind: "everyone"; probability: number; provider: DeciderProvider }
+  | { kind: "member"; botId: string; probability: number; provider: RoomRouteProvider }
+  | { kind: "members"; botIds: string[]; probability: number; provider: RoomRouteProvider }
+  | { kind: "everyone"; probability: number; provider: RoomRouteProvider }
   | { kind: "fallback"; reason: DeciderFailure | "low_confidence" | "no_choice" };
+
+/** The one contract the decider and MausBot share: pick an option, sure by `pTop`. */
+export interface RoomChooser {
+  choose(
+    seam: "roomRouting",
+    state: unknown,
+    question: { instructions: string; options: Record<string, string> },
+    options: { timeoutMs?: number; signal?: AbortSignal },
+  ): Promise<{ ok: true; provider: RoomRouteProvider; answers: { choice: string; pTop: number } } | { ok: false; reason: DeciderFailure }>;
+}
 
 function clip(value: string, max: number): string {
   const flat = value.replace(/\s+/g, " ").trim();
@@ -81,14 +98,14 @@ export function roomRoutingRequest(input: RoomRoutingInput) {
 
 /** Never throws. */
 export async function decideRoomResponder(
-  decider: Pick<Decider, "choose">,
+  decider: Pick<Decider, "choose"> | RoomChooser,
   input: RoomRoutingInput,
   options: { signal?: AbortSignal; timeoutMs?: number } = {},
 ): Promise<RoomRoute> {
   try {
     if (input.members.length < 2) return { kind: "fallback", reason: "no_choice" };
     const { state, question } = roomRoutingRequest(input);
-    const result = await decider.choose("roomRouting", state, question, {
+    const result = await (decider as RoomChooser).choose("roomRouting", state, question, {
       timeoutMs: options.timeoutMs ?? ROOM_ROUTING_TIMEOUT_MS,
       signal: options.signal,
     });
@@ -96,6 +113,13 @@ export async function decideRoomResponder(
     const { choice, pTop } = result.answers;
     if (pTop < ROOM_ROUTING_MIN_PROBABILITY) return { kind: "fallback", reason: "low_confidence" };
     if (choice === EVERYONE_OPTION) return { kind: "everyone", probability: pTop, provider: result.provider };
+    if (choice.includes(SEVERAL_MARK)) {
+      const botIds = [...new Set(choice.split(SEVERAL_MARK).map((id) => id.trim()).filter(Boolean))];
+      if (!botIds.length || !botIds.every((id) => input.members.some((member) => member.id === id))) return { kind: "fallback", reason: "malformed" };
+      if (botIds.length === 1) return { kind: "member", botId: botIds[0]!, probability: pTop, provider: result.provider };
+      return botIds.length === input.members.length ? { kind: "everyone", probability: pTop, provider: result.provider }
+        : { kind: "members", botIds, probability: pTop, provider: result.provider };
+    }
     if (!input.members.some((member) => member.id === choice)) return { kind: "fallback", reason: "malformed" };
     return { kind: "member", botId: choice, probability: pTop, provider: result.provider };
   } catch {

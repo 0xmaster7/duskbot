@@ -126,8 +126,12 @@ describe("the Room panel's card", () => {
 
   it("names each way a room can answer, and the folder by its last part", () => {
     render(room({ defaultResponder: { kind: "auto", fallbackBotId: "lead" }, cwd: "/Users/ada/code/recruiting/" }));
-    expect(rowValue('[data-panel-page="responder"]')).toBe("MausBot decides");
+    expect(rowValue('[data-panel-page="responder"]')).toBe("Jev decides");
     expect(rowValue('[data-panel-page="folder"]')).toBe("recruiting");
+    render(room({ defaultResponder: { kind: "auto", fallbackBotId: "lead", by: "mausbot" } }));
+    expect(rowValue('[data-panel-page="responder"]')).toBe("MausBot decides");
+    render(room({ defaultResponder: { kind: "member", botId: "lead", leader: true } }));
+    expect(rowValue('[data-panel-page="responder"]')).toBe("Desk Manager leads");
     render(room({ defaultResponder: { kind: "everyone" } }));
     expect(rowValue('[data-panel-page="responder"]')).toBe("Everyone at once");
     render(room({ defaultResponder: { kind: "mentions" }, bulletin: "" }));
@@ -222,47 +226,56 @@ describe("Name and description", () => {
 });
 
 describe("Who responds", () => {
-  it("lists each member, then MausBot choosing, everyone and mentions only", () => {
+  it("offers a leader, everyone, MausBot deciding and Jev deciding, and who leads under the leader", () => {
     renderPage(createElement(RoomResponderModal, { group: room(), members: fixtureBots, onClose: vi.fn() }));
     expect(modal("responder")).not.toBeNull();
     const choices = [...modal("responder")!.querySelectorAll("[data-panel-choice]")].map((row) => [row.getAttribute("data-panel-choice"), words(row), row.getAttribute("aria-checked")]);
     expect(choices).toEqual([
-      ["member:lead", "Desk Manager", "true"],
-      ["member:bench", "Vendor Bench", "false"],
-      ["member:paper", "Paperwork", "false"],
-      ["member:match", "Matcher", "false"],
-      ["auto", "Let MausBot choosePicks the right bot for each message", "false"],
+      ["leader", "LeaderDesk Manager gets your message and hands out the work", "true"],
       ["everyone", "Everyone at onceEvery bot answers, side by side", "false"],
-      ["mentions", "Only who I @mentionBots answer only when named", "false"],
+      ["mausbot", "MausBot decidesA quick model of your AI picks who answers", "false"],
+      ["auto", "Jev decidesPicks the right bot for each message", "false"],
+      ["leader:lead", "Desk Manager", "true"],
+      ["leader:bench", "Vendor Bench", "false"],
+      ["leader:paper", "Paperwork", "false"],
+      ["leader:match", "Matcher", "false"],
     ]);
-    // one tab stop for the group: the chosen row
-    expect([...document.querySelectorAll('[role="radio"]')].map((row) => row.getAttribute("tabindex"))).toEqual(["0", "-1", "-1", "-1", "-1", "-1", "-1"]);
+    // one tab stop per group: the chosen row of each
+    expect([...document.querySelectorAll('[role="radio"]')].map((row) => row.getAttribute("tabindex"))).toEqual(["0", "-1", "-1", "-1", "0", "-1", "-1", "-1"]);
     expect($('[data-sheet-group="jev"]')).toBeNull();
+    // the fixture's room is from before leaders: picking its bot again makes it the leader
+    click($('[data-panel-choice="leader"]'));
+    click($('[data-panel-choice="mausbot"]'));
     click($('[data-panel-choice="auto"]'));
-    click($('[data-panel-choice="member:bench"]'));
     click($('[data-panel-choice="everyone"]'));
-    click($('[data-panel-choice="mentions"]'));
-    click($('[data-panel-choice="member:lead"]'));
+    click($('[data-panel-choice="leader:bench"]'));
     expect(patches()).toEqual([
+      { type: "patchGroup", groupId: "desk", patch: { defaultResponder: { kind: "member", botId: "lead", leader: true } } },
+      { type: "patchGroup", groupId: "desk", patch: { defaultResponder: { kind: "auto", fallbackBotId: "lead", by: "mausbot" } } },
       { type: "patchGroup", groupId: "desk", patch: { defaultResponder: { kind: "auto", fallbackBotId: "lead" } } },
-      { type: "patchGroup", groupId: "desk", patch: { defaultResponder: { kind: "member", botId: "bench" } } },
       { type: "patchGroup", groupId: "desk", patch: { defaultResponder: { kind: "everyone" } } },
-      { type: "patchGroup", groupId: "desk", patch: { defaultResponder: { kind: "mentions" } } },
+      { type: "patchGroup", groupId: "desk", patch: { defaultResponder: { kind: "member", botId: "bench", leader: true } } },
     ]);
   });
 
+  it("keeps Only who I @mention for a room already set that way, and hides who leads", () => {
+    renderPage(createElement(RoomResponderModal, { group: room({ defaultResponder: { kind: "mentions" } }), members: fixtureBots, onClose: vi.fn() }));
+    expect([...modal("responder")!.querySelectorAll("[data-panel-choice]")].map((row) => row.getAttribute("data-panel-choice")))
+      .toEqual(["leader", "everyone", "mausbot", "auto", "mentions"]);
+  });
+
   it("moves and picks with the arrow keys, wrapping at the ends", () => {
-    renderPage(createElement(RoomResponderModal, { group: room(), members: fixtureBots, onClose: vi.fn() }));
-    const first = $('[data-panel-choice="member:lead"]')!;
+    renderPage(createElement(RoomResponderModal, { group: room({ defaultResponder: { kind: "member", botId: "lead", leader: true } }), members: fixtureBots, onClose: vi.fn() }));
+    const first = $('[data-panel-choice="leader:lead"]')!;
     first.focus();
     press(first, "ArrowDown");
-    expect(document.activeElement?.getAttribute("data-panel-choice")).toBe("member:bench");
+    expect(document.activeElement?.getAttribute("data-panel-choice")).toBe("leader:bench");
     press(document.activeElement, "ArrowUp");
     press(document.activeElement, "ArrowUp");
-    expect(document.activeElement?.getAttribute("data-panel-choice")).toBe("mentions");
+    expect(document.activeElement?.getAttribute("data-panel-choice")).toBe("leader:match");
     expect(patches().map((action) => action.patch.defaultResponder)).toEqual([
-      // the fixture's room stays on its lead, so landing back on it changes nothing
-      { kind: "member", botId: "bench" }, { kind: "mentions" },
+      // landing back on the leader changes nothing
+      { kind: "member", botId: "bench", leader: true }, { kind: "member", botId: "match", leader: true },
     ]);
   });
 

@@ -143,6 +143,7 @@ export interface Message extends Pick<import("../../shared/wire").WireMessage, "
   from?: { botId: string; name: string; color: MausColor };
   peerAsk?: { botId: string; name: string; unattended?: boolean };
   roomRequest?: { id: string; phase: "request" | "result" };
+  handoff?: import("../../shared/handoff-line").HandoffLine;
   reactions?: import("../../shared/wire").WireMessage["reactions"];
   reaction?: string;
   comm?: { groupId: string; threadId?: string; withBotId: string; withName: string; withColor: MausColor };
@@ -2648,7 +2649,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               section: action.section,
               ...(window.ogb?.remoteClient?.active
                 ? { setup: { bulletin: "", defaultResponder: { kind: "mentions" } } }
-                : {}),
+                : action.memberIds.length > 1 ? { defaultResponder: { kind: "member", botId: action.memberIds[0], leader: true } } : {}),
             }),
           })
             .then(({ group }) => {

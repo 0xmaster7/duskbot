@@ -97,7 +97,7 @@ import { TranscriptAnnouncer } from "./TranscriptAnnouncer";
 import { localDay } from "@/lib/transcript-derivations";
 import { roomThreadWorking } from "@/lib/room-threads";
 import { JumpToLatestButton } from "./JumpToLatestButton";
-import { HandoffChip } from "./HandoffReply"; import { TeammateChip } from "./TeammateChip"; import { useTeammates } from "@/state/team-people";
+import { HandoffChip } from "./HandoffReply"; import { HandoffRow } from "./HandoffRow"; import { TeammateChip } from "./TeammateChip"; import { useTeammates } from "@/state/team-people";
 import { RoomWorkingFolder } from "./RoomWorkingFolder";
 import { RoomBulletin } from "./RoomBulletin";
 import { RoomHeader } from "./RoomHeader";
@@ -116,6 +116,9 @@ export function RoomToolChip({ message, roomId, threadId, live = false }: { mess
     return <FailedTurnRow tool={tool} engine={botEngine(state.bots.find((b) => b.id === message.from?.botId), state.instances)} botId={message.from?.botId} />;
   }
   const comm = message.comm;
+  if (comm && message.handoff && tool.ok !== false) {
+    return <HandoffRow message={message} bots={state.bots} onOpen={comm.groupId !== roomId ? () => openRoomThread(dispatch, comm, state.groups) : undefined} />;
+  }
   if (comm && comm.groupId !== roomId) {
     return <HandoffChip message={message} bots={state.bots} title={t("room.openBot", { name: comm.withName })} onClick={() => openRoomThread(dispatch, comm, state.groups)} />;
   }
@@ -454,7 +457,8 @@ export const Transcript = memo(function Transcript({
     const bubble = m && m.kind === "text" && !m.publishedPage;
     const slot: RoomSlot | null = drawn ? {
       group: bubble ? (m.role === "user" ? `user:${m.from?.name ?? ""}` : `bot:${m.from?.botId ?? ""}`) : null,
-      sender: first.role === "bot" && first.from?.botId && !(first.kind === "activity" && first.comm) ? first.from.botId : null,
+      // a hand-off row names both bots itself, so it carries no speaker line
+      sender: first.role === "bot" && first.from?.botId && !(first.kind === "activity" && (first.comm || first.handoff)) ? first.from.botId : null,
       stamped: newDay || divider !== null,
     } : null;
     return { item, first, newDay, divider, slot };
@@ -566,7 +570,7 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
     if (behavior === "mentions") return { kind: "mentions" };
     if (behavior === "auto") return members.some((member) => member.id === leadId) ? { kind: "auto", fallbackBotId: leadId } : { kind: "auto" };
     return members.some((member) => member.id === leadId)
-      ? { kind: "member", botId: leadId }
+      ? { kind: "member", botId: leadId, leader: true }
       : group.defaultResponder;
   };
 

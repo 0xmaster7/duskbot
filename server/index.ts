@@ -305,7 +305,7 @@ import {
 } from "./store.ts";
 import * as tts from "./tts/index.ts";
 import { createDecider, deciderReady, describeDecider } from "./decider/index.ts"; import { createExtractor, describeHelpers } from "./extractor/index.ts";
-import { createStopLineRoutes } from "./routes/stop-line.ts"; import { decideRoomResponder } from "./decider/room-routing.ts"; import { roomRoutingInput } from "./host/room-routing-input.ts";
+import { createStopLineRoutes } from "./routes/stop-line.ts"; import { decideRoomResponder } from "./decider/room-routing.ts"; import { MAUSBOT_ROUTING_TIMEOUT_MS, mausbotChooser } from "./decider/mausbot-chooser.ts"; import { roomRoutingInput } from "./host/room-routing-input.ts";
 import { createLiveSession, liveAttachUrl, liveHistoryFrom, LiveSessionError, type LiveBot, type LiveHistoryMessage } from "./live-call.ts";
 import { LiveCallController, LiveCallSignedOutError, openLiveSocket } from "./live-call-controller.ts";
 import { liveCallSettings, liveSettingsFor, liveSettingsForClient, saveLiveSettings } from "./live-settings.ts"; import { azureLiveCallRefusal, liveScopeRefusal } from "./live-access.ts";
@@ -579,7 +579,7 @@ import { createBrowserEvidenceRoutes } from "./routes/browser-evidence.ts";
 import { createSignInCardRoutes } from "./routes/sign-in-cards.ts";
 import { createInternalChiefTeamRoutes } from "./routes/internal-chief-team.ts";
 import { createRoomHoldRoutes } from "./routes/room-holds.ts";
-import { checkedGroupResponder, createGroupRoutes } from "./routes/groups.ts";
+import { checkedGroupResponder, createGroupRoutes } from "./routes/groups.ts"; import { leaderCapRefusal, leaderSystemNote, memberSystemNote, roomLeaderId } from "./room-leader.ts";
 import { createChannelRoutes } from "./routes/channels.ts";
 import { createTaskRoutes } from "./routes/tasks.ts";
 import { createTeamRoutes } from "./routes/teams.ts";
@@ -3550,7 +3550,14 @@ function createChannel(value: unknown): GroupRecord {
     if (!responder) throw Object.assign(new Error("invalid setup.defaultResponder"), { status: 400 });
     setup = { bulletin: requested.bulletin, defaultResponder: responder, completed: true };
   }
-  return store.createGroup(name, memberIds, false, section, setup ?? (deciderReady(cfg, "roomRouting") ? { defaultResponder: { kind: "auto" } } : undefined));
+  // the app's New group asks for its first member as leader; setup stays to finish
+  let chosen: GroupDefaultResponder | undefined;
+  if (!setup && body.defaultResponder !== undefined) {
+    chosen = checkedGroupResponder(body.defaultResponder, memberIds) ?? undefined;
+    if (!chosen) throw Object.assign(new Error("invalid defaultResponder"), { status: 400 });
+  }
+  return store.createGroup(name, memberIds, false, section, setup ?? (chosen ? { defaultResponder: chosen }
+    : deciderReady(cfg, "roomRouting") ? { defaultResponder: { kind: "auto" } } : undefined));
 }
 
 function updateChannel(groupId: string, value: unknown): GroupRecord {
@@ -3903,6 +3910,11 @@ const handoffTicks = createHandoffTicks(), coordinator: Coordinator = createCoor
         role: "bot", kind: "activity",
         roomRequest: { id: child.id, phase: "result" },
         from: bot ? { botId: bot.id, name: bot.name, color: bot.color } : undefined,
+        ...(() => {
+          const requester = store.bot(parent.botId);
+          return bot && requester ? { handoff: { phase: "result" as const, from: { botId: bot.id, name: bot.name, color: bot.color },
+            to: { botId: requester.id, name: requester.name, color: requester.color } } } : {};
+        })(),
         tool: {
           name: teammateResultRow(threadLanguage(parent.threadId), child, bot?.name, problem, child.groupId ? store.group(child.groupId)?.name : undefined),
           ok: child.status === "completed" && !problem,
@@ -3935,7 +3947,9 @@ const handoffTicks = createHandoffTicks(), coordinator: Coordinator = createCoor
       const sender = parent ? store.bot(parent.botId) : undefined;
       const brief = composed.text;
       const liveRoster = resumed ? undefined : coordinationLiveRosterBlock(bot);
-      const turnText = liveRoster ? `${brief}\n\n${liveRoster}` : brief;
+      const leaderRoom = parent?.groupId ? store.group(parent.groupId) : undefined;
+      const forLeader = !group && !resumed && sender && leaderRoom && roomLeaderId(leaderRoom) === sender.id ? memberSystemNote(sender.name, leaderRoom.name) : "";
+      const turnText = [brief, liveRoster, forLeader].filter(Boolean).join("\n\n");
       const systemInstructions = node.parentId ? coordinationSystemInstructions() : "";
       const request = coordinator.sharedRequest(node);
       if (!resumed && !store.messagesFor(node.threadId).some(m => m.roomRequest?.id === request.id && m.roomRequest.phase === "request")) {
@@ -10062,6 +10076,10 @@ async function runClaimedGroupMemberTurn(
     outsideRoom.length > 0 && roomPeerRosterSystemPrompt(outsideRoom), sharedNamesNote(roomMembers.filter((member) => member.id !== bot.id), Boolean(integrations.agents)),
     integrations.agents && (CREDENTIAL_PROMPT + (orchestration && !orchestration.roomHandoffId ? THREADS_PROMPT : "")).trim(),
     integrations.agents && (!orchestration || orchestration.roomHandoffId) && "For actual OpenMausBot teamwork, discover IDs with list_room_targets and use coordinate_bots for advice or work in this or another room. Do not substitute native coding helpers for these named bots. Consult only when needed to make a decision; no discussion step is mandatory. Give concrete responsibilities, exact accessible paths and acceptance checks. End your turn after assigning; busy teammates queue and results automatically resume you. When they return, finish the requested verification and give the user one final answer. Native helper names are not evidence that an OpenMausBot teammate participated. Plain @mentions are only for conversational replies in this room." + requesterRule,
+    integrations.agents && roomLeaderId(readyGroup) === bot.id && !roomHandoff?.parentId
+      && leaderSystemNote(bot, roomMembers, typeof userName === "string" ? userName : "The person"),
+    roomHandoff?.parentId && roomLeaderId(readyGroup) === coordinator.node(roomHandoff.parentId)?.botId && roomRequester
+      && memberSystemNote(roomRequester, readyGroup.name),
     integrations.agents && TRIGGER_PROMPT.trim(),
     integrations.agents && PROFILE_PROMPT.trim(),
     integrations.agents && skillAuthoringEnabled(cfg) && LEARN_PROMPT.trim(),
@@ -10763,8 +10781,16 @@ function startGroupTurn(
     throw Object.assign(new Error("the selected goal coordinator is not an active room member"), { status: 409 });
   }
   // Read the room before this message is appended just below.
+  const byMausBot = group.defaultResponder.kind === "auto" && group.defaultResponder.by === "mausbot";
+  // MausBot decides on the quick model of the engine the room's fallback member runs on
+  const mausbotWriter = () => {
+    const responder = group.defaultResponder;
+    const writerId = (responder.kind === "auto" && responder.fallbackBotId) || group.memberIds.find((id) => !store.bot(id)?.hidden);
+    const text = writerId ? sideJobs.text("room-routing", writerId) : null;
+    return text ? text.generateText : null;
+  };
   const autoCandidate = !group.dm && channelMode === "chat" && group.defaultResponder.kind === "auto" &&
-    deciderReady(cfg, "roomRouting");
+    (byMausBot ? mausbotWriter() !== null : deciderReady(cfg, "roomRouting"));
   const historyBeforeSend = autoCandidate
     ? (() => {
         const before = store.messagesFor(threadId);
@@ -10895,8 +10921,8 @@ function startGroupTurn(
     operation.requestMessageId = message.id;
   }
   const routing = autoRoute
-    ? decideRoomResponder(decider, roomRoutingInput(group.name, text, routableMembers, historyBeforeSend, userNameFor(group.threadId), options.sender), {
-        signal: operation.cancellation.signal,
+    ? decideRoomResponder(byMausBot ? mausbotChooser(mausbotWriter) : decider, roomRoutingInput(group.name, text, routableMembers, historyBeforeSend, userNameFor(group.threadId), options.sender), {
+        signal: operation.cancellation.signal, ...(byMausBot ? { timeoutMs: MAUSBOT_ROUTING_TIMEOUT_MS } : {}),
       })
     : null;
   if (queuedGroup && queuedGroup.length > 0) {
@@ -10927,8 +10953,9 @@ function startGroupTurn(
         const route = await routing;
         if (operation.cancelled) return;
         const picked = route.kind === "member" ? routableMembers.filter((member) => member.id === route.botId)
-          : route.kind === "everyone" ? routableMembers
-            : [];
+          : route.kind === "members" ? routableMembers.filter((member) => route.botIds.includes(member.id))
+            : route.kind === "everyone" ? routableMembers
+              : [];
         if (picked.length && route.kind !== "fallback") {
           round = picked;
           routedBy = { provider: route.provider, probability: Math.round(route.probability * 100) / 100 };
@@ -13640,6 +13667,14 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
             : roomHandoffProblem(target, address);
           if (eligibility) return refuse(403, eligibility);
         }
+        // a group's leader gets a few rounds and tasks per message of the person's, so a department never ping-pongs
+        if (source && roomLeaderId(source) === internalSender.id && call.reply !== "none") {
+          const self = coordinator.node(internalCapability.roomHandoffId ?? internalCapability.generation);
+          if (self && !self.parentId) {
+            const capped = leaderCapRefusal({ round: Math.max(1, self.executions), tasksSoFar: coordinator.children(self.id).length, adding: targets.length });
+            if (capped) return refuse(429, capped);
+          }
+        }
         let approvalGranted = false;
         if (peerReviewRequired(internalSender, address.threadId)) {
           const verdicts = await Promise.all(targets.map(target =>
@@ -13736,7 +13771,8 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
             if (!duplicate) {
               if (!EXTERNAL) delegatedThisTurn(node.id);
               store.appendMessage(address.threadId, sentRow({ sender: internalSender, recipient, threadId: node.threadId, room: addressedRoom, via, language: threadLanguage(address.threadId),
-                reason: call.reason, doneWhen: call.doneWhen ? redactSecretsInText(call.doneWhen) : undefined, title: store.taskByThread(recipient.id, node.threadId)?.title }));
+                reason: call.reason, doneWhen: call.doneWhen ? redactSecretsInText(call.doneWhen) : undefined, title: store.taskByThread(recipient.id, node.threadId)?.title,
+                brief: redactSecretsInText(call.message) }));
             }
           } catch (error) {
             if (createdThread) store.deleteTask(target.botId, createdThread);

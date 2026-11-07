@@ -4,7 +4,7 @@ import { join } from "node:path"; import { isDeepStrictEqual } from "node:util";
 import { OwnedFile, writeFileAtomic } from "./atomic.ts"; import { saveSoon } from "./save-batch.ts"; import { discardNativeLog } from "./drivers/native.ts";
 import { commitRegistryChange, keptRevocation, saveRegistryFor, touchesPermissions } from "./registry-save.ts";
 import { parseToolScope, toolScopeWidens } from "../shared/tool-scope.ts"; import { grantScopedApps } from "../shared/connector-scopes.ts";
-import { reorderStable } from "../shared/bot-order.ts";
+import { reorderStable } from "../shared/bot-order.ts"; import { normalizeGroupDefaultResponder } from "./group-responder.ts";
 import { botOwner, chiefConflict, chiefScope, ownerEmail } from "../shared/bot-owner.ts";
 import { ensureSections, readSections, changeEmptySection } from "./section-context.ts";
 import type { TeamComputers } from "./team-computers.ts";
@@ -212,32 +212,7 @@ export function mentionedBots<T extends { id?: string; name: string; hidden?: bo
   return resolveMentions(text, peers, picked).bots;
 }
 
-export function normalizeGroupDefaultResponder(
-  value: unknown,
-  memberIds: string[],
-  dm = false,
-): GroupDefaultResponder {
-  if (dm) return { kind: "mentions" };
-  if (value && typeof value === "object") {
-    const candidate = value as { kind?: unknown; botId?: unknown; fallbackBotId?: unknown };
-    if (candidate.kind === "everyone") return { kind: "everyone" };
-    if (candidate.kind === "mentions") return { kind: "mentions" };
-    if (candidate.kind === "auto") {
-      return typeof candidate.fallbackBotId === "string" && memberIds.includes(candidate.fallbackBotId)
-        ? { kind: "auto", fallbackBotId: candidate.fallbackBotId }
-        : { kind: "auto" };
-    }
-    if (
-      candidate.kind === "member" &&
-      typeof candidate.botId === "string" &&
-      memberIds.includes(candidate.botId)
-    ) {
-      return { kind: "member", botId: candidate.botId };
-    }
-  }
-  if (memberIds.length === 0) return { kind: "mentions" };
-  return { kind: "everyone" };
-}
+export { normalizeGroupDefaultResponder };
 
 /** Rooms from before everyone answered at once: the first member was the default, so that choice becomes everyone. */
 export function migratedDefaultResponder(group: Pick<GroupRecord, "dm" | "memberIds" | "defaultResponder" | "respondersAtOnce">): GroupDefaultResponder {

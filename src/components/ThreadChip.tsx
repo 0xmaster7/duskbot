@@ -5,6 +5,7 @@ import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { BotAvatar } from "./Avatar";
 import { HandoffReply } from "./HandoffReply";
+import { HandoffRow } from "./HandoffRow";
 
 export function ThreadChip({ message }: { message: Message }) {
   const { state, dispatch } = useStore();
@@ -14,6 +15,9 @@ export function ThreadChip({ message }: { message: Message }) {
   if (!ref || !tool) return null;
   const bot = state.bots.find((candidate) => candidate.id === ref.botId);
   const direct = message.sentDirectly;
+  if (message.handoff && tool.ok !== false && !direct) {
+    return <HandoffRow message={message} bots={state.bots} onOpen={() => openThread(dispatch, ref, state, showThreads)} />;
+  }
   const label = !direct ? tool.name
     : direct.room ? t("chat.sentDirectlyNotInRoom", { name: direct.name, room: direct.room }) : t("chat.sentDirectly", { name: direct.name });
   return (

@@ -452,6 +452,7 @@ export const EXCERPT_SUMMARY_HEADER = "Historical excerpts in chronological orde
 /** One transcript line, serialized as stored. */
 export interface WireMessage extends HelperIntroField, SetupCardFields, WaitLineField, BugReportField {
   roomRequest?: { id: string; phase: "request" | "result" };
+  handoff?: import("./handoff-line.ts").HandoffLine;
   id: string;
   role: "bot" | "user";
   kind: "text" | "options" | "activity" | "screen" | "connector" | "secret" | "signin" | "routine.run" | "goal.run" | "digest" | "compaction" | "call" | "widget" | "app";
@@ -583,7 +584,7 @@ export interface WireMessage extends HelperIntroField, SetupCardFields, WaitLine
   /** A room reply whose speaker the decision model picked (an Auto room),
    * with how sure it was. Absent on every other message; clients that do
    * not know it ignore it. */
-  routedBy?: { provider: "jev" | "workersai" | "openrouter" | "gateway"; probability: number };
+  routedBy?: { provider: "jev" | "workersai" | "openrouter" | "gateway" | "mausbot"; probability: number };
   /** On a conversational bot's user line: the picker label of the quick model its reply ran on. */
   quickModel?: string;
   /** On a "Sent to" hand-off row: the done_when the sender set, redacted, so the chip can show what counts as finished. */
@@ -804,15 +805,14 @@ export interface ComputerHelpRef {
   place: Surface;
 }
 
-/** Who answers a room message nobody was @mentioned in. `auto` asks the
- * decision model and falls back to `fallbackBotId` (else the first member)
- * whenever it is off or unsure. Readers must treat any kind they do not know
- * as the default lead. */
+/** Who answers a room message nobody was @mentioned in. `member` + `leader`: it leads and hands members tasks
+ * (room-leader.ts). `auto` asks the decision model (`by: "mausbot"`: the person's own engine's quick model) and falls
+ * back to `fallbackBotId` (else the first member). Readers must treat any kind they do not know as the default lead. */
 export type GroupDefaultResponder =
-  | { kind: "member"; botId: string }
+  | { kind: "member"; botId: string; leader?: true }
   | { kind: "everyone" }
   | { kind: "mentions" }
-  | { kind: "auto"; fallbackBotId?: string };
+  | { kind: "auto"; fallbackBotId?: string; by?: "mausbot" };
 
 /** One independent conversation inside a user-created channel. */
 export interface GroupTask {

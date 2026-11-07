@@ -22,21 +22,24 @@ export interface GroupRouteDeps {
 /** A room's default responder from a request body; null when it is not one, or names a bot outside the room. */
 export function checkedGroupResponder(value: unknown, memberIds: string[]): GroupDefaultResponder | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const responder = value as { kind?: unknown; botId?: unknown; fallbackBotId?: unknown };
+  const responder = value as { kind?: unknown; botId?: unknown; fallbackBotId?: unknown; leader?: unknown; by?: unknown };
   if (responder.kind === "everyone") return { kind: "everyone" };
   if (responder.kind === "mentions") return { kind: "mentions" };
   if (responder.kind === "auto") {
-    if (responder.fallbackBotId === undefined || responder.fallbackBotId === null) return { kind: "auto" };
+    if (responder.by !== undefined && responder.by !== "mausbot") return null;
+    const by = responder.by === "mausbot" ? { by: "mausbot" as const } : {};
+    if (responder.fallbackBotId === undefined || responder.fallbackBotId === null) return { kind: "auto", ...by };
     return typeof responder.fallbackBotId === "string" && memberIds.includes(responder.fallbackBotId)
-      ? { kind: "auto", fallbackBotId: responder.fallbackBotId }
+      ? { kind: "auto", fallbackBotId: responder.fallbackBotId, ...by }
       : null;
   }
   if (
     responder.kind === "member" &&
     typeof responder.botId === "string" &&
-    memberIds.includes(responder.botId)
+    memberIds.includes(responder.botId) &&
+    (responder.leader === undefined || typeof responder.leader === "boolean")
   ) {
-    return { kind: "member", botId: responder.botId };
+    return { kind: "member", botId: responder.botId, ...(responder.leader === true ? { leader: true as const } : {}) };
   }
   return null;
 }

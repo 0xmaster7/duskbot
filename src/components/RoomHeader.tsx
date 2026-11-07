@@ -45,12 +45,13 @@ export function DefaultResponderSelect({ group, members }: { group: Group; membe
     >
       <optgroup label={t("room.responder.groupLead")}>
         {members.map((member) => (
-          <option key={member.id} value={`member:${member.id}`}>
-            {t("room.responder.leadOption", { name: member.name })}
+          <option key={member.id} value={responder.kind === "member" && !responder.leader && responder.botId === member.id ? `member:${member.id}` : `leader:${member.id}`}>
+            {t("room.responder.leaderOption", { name: member.name })}
           </option>
         ))}
       </optgroup>
       <optgroup label={t("room.responder.groupBehavior")}>
+        <option value="mausbot">{t("room.panel.responder.mausbot")}</option>
         <option value="auto">{jevOn ? t("room.responder.autoOption") : t("room.responder.autoOptionOff")}</option>
         <option value="everyone">{t("room.responder.everyoneOption")}</option>
         <option value="mentions">{t("room.responder.mentionsOption")}</option>

@@ -4,9 +4,9 @@ import { effectiveDefaultResponder } from "@/lib/group-routing";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { normalizeState } from "@/lib/mascot";
-import { chosenResponder, responderChoice, type ResponderChoice } from "@/lib/room-responder";
+import { chosenResponder, responderChoice, responderLeadId, type ResponderChoice } from "@/lib/room-responder";
 import { shortPath } from "@/lib/short-path";
-import { api, useStore, type Bot, type Group } from "@/state/store";
+import { api, useStore, type Bot, type Group, type GroupDefaultResponder } from "@/state/store";
 import { BotAvatar } from "../Avatar";
 import { FolderPathDialog } from "../bot-panel/modals/FolderModal";
 import { InstructionsCard } from "../bot-panel/modals/InstructionsModal";
@@ -116,37 +116,53 @@ export function RoomFolderModal({ group }: { group: Group; onClose: () => void }
   );
 }
 
-/** Who answers a message that @mentions nobody: one member, MausBot choosing (with Jev set up right under it),
- * everyone, or only who is mentioned. Each choice is its own row; arrow keys move between them. */
+/** Who answers a message that @mentions nobody: a leader who hands out the work, everyone, MausBot deciding or Jev
+ * deciding (with Jev set up right under it). A leader picks who leads in the rows under it; arrow keys move between rows. */
 export function RoomResponderModal({ group, members }: { group: Group; members: Bot[]; onClose: () => void }) {
   const { dispatch } = useStore();
   const responder = effectiveDefaultResponder(group, members);
   const current = responderChoice(responder);
-  const choose = (choice: ResponderChoice) => {
-    if (choice === current) return;
-    dispatch({ type: "patchGroup", groupId: group.id, patch: { defaultResponder: chosenResponder(choice, responder) } });
+  const leading = current.startsWith("leader:") || current.startsWith("member:");
+  const leadId = responderLeadId(responder) ?? members[0]?.id;
+  const lead = members.find((member) => member.id === leadId) ?? members[0];
+  const set = (next: GroupDefaultResponder) => dispatch({ type: "patchGroup", groupId: group.id, patch: { defaultResponder: next } });
+  const choose = (choice: ResponderChoice | "leader") => {
+    const next: ResponderChoice = choice === "leader" ? `leader:${leadId ?? ""}` : choice;
+    // a room from before leaders becomes a led room when its one bot is picked again
+    if (next === current) return;
+    set(chosenResponder(next, responder));
   };
-  const behaviours: { choice: "auto" | "everyone" | "mentions"; title: LocaleKey; hint: LocaleKey }[] = [
-    { choice: "auto", title: "room.panel.responder.autoOption", hint: "room.panel.responder.autoHint" },
+  const behaviours: { choice: "everyone" | "mausbot" | "auto" | "mentions"; title: LocaleKey; hint: LocaleKey }[] = [
     { choice: "everyone", title: "room.panel.responder.everyone", hint: "room.panel.responder.everyoneHint" },
-    { choice: "mentions", title: "room.panel.responder.mentions", hint: "room.panel.responder.mentionsHint" },
+    { choice: "mausbot", title: "room.panel.responder.mausbot", hint: "room.panel.responder.mausbotHint" },
+    { choice: "auto", title: "room.panel.responder.jev", hint: "room.panel.responder.autoHint" },
+    // only who is @mentioned stays for rooms already set that way
+    ...(current === "mentions" ? [{ choice: "mentions" as const, title: "room.panel.responder.mentions" as LocaleKey, hint: "room.panel.responder.mentionsHint" as LocaleKey }] : []),
   ];
-  const row = (choice: ResponderChoice, props: Omit<Parameters<typeof RadioRow>[0], "checked" | "onClick">) => (
-    <RadioRow key={choice} {...props} data-panel-choice={choice} checked={current === choice} tabIndex={current === choice ? 0 : -1} onClick={() => choose(choice)} />
+  const row = (choice: ResponderChoice | "leader", checked: boolean, props: Omit<Parameters<typeof RadioRow>[0], "checked" | "onClick">) => (
+    <RadioRow key={choice} {...props} data-panel-choice={choice} checked={checked} tabIndex={checked ? 0 : -1} onClick={() => choose(choice)} />
   );
   return (
     <SheetPane data-panel-modal="responder" title={t("room.panel.whoResponds")}>
       <div role="radiogroup" aria-label={t("room.panel.whoResponds")} onKeyDown={radioArrows} className="contents">
-        <Card data-sheet-group="members" label={t("room.panel.responder.oneBot")}>
-          {members.map((member) => row(`member:${member.id}`, {
-            title: member.name,
-            leading: <BotAvatar bot={member} state={normalizeState(member.mascotExpression) ?? "happy"} size={20} animated={false} />,
-          }))}
-        </Card>
         <Card data-sheet-group="behaviours" footnote={t("room.panel.responder.mentionsWin")}>
-          {behaviours.map(({ choice, title, hint }) => row(choice, { title: t(title), hint: t(hint) }))}
+          {lead && row("leader", leading, {
+            title: t("room.panel.responder.leader"),
+            hint: t("room.panel.responder.leaderHint", { name: lead.name }),
+          })}
+          {behaviours.map(({ choice, title, hint }) => row(choice, current === choice, { title: t(title), hint: t(hint) }))}
         </Card>
       </div>
+      {leading && members.length > 1 && (
+        <div role="radiogroup" aria-label={t("room.panel.responder.whoLeads")} onKeyDown={radioArrows} className="contents">
+          <Card data-sheet-group="members" label={t("room.panel.responder.whoLeads")}>
+            {members.map((member) => row(`leader:${member.id}`, member.id === leadId, {
+              title: member.name,
+              leading: <BotAvatar bot={member} state={normalizeState(member.mascotExpression) ?? "happy"} size={20} animated={false} />,
+            }))}
+          </Card>
+        </div>
+      )}
       {current === "auto" && <JevSetup />}
     </SheetPane>
   );
