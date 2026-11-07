@@ -3,6 +3,15 @@ import type { Routine, RoutineManagerOptions, RoutineRun } from "./routines.ts";
 
 export type ResultsThreadAllocation = { botId: string; threadId: string };
 
+export function cloneRun(run: RoutineRun): RoutineRun {
+  return {
+    ...run,
+    ...(run.asked ? { asked: structuredClone(run.asked) } : {}),
+    attachments: cloneAttachments(run.attachments),
+    denials: run.denials ? [...run.denials] : undefined,
+  };
+}
+
 export function resolveRoutineResultsThread(
   routine: Routine,
   resolve: RoutineManagerOptions["resolveResultsThread"],

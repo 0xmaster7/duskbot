@@ -216,6 +216,7 @@ pnpm exec vitest run server/vps-routing.test.ts server/routine-cron.e2e.test.ts
 
 ```sh
 pnpm exec vitest run server/routines.test.ts server/routines-startup.test.ts server/routine-results.e2e.test.ts server/routine-delegation.e2e.test.ts server/drivers/agents-proxy.test.ts
+pnpm exec vitest run server/routine-concurrency.test.ts server/routine-parallel-approvals.e2e.test.ts
 pnpm exec vitest run src/components/routines/RoutineViews.test.ts src/components/routines/ResultsDestination.test.ts src/components/bot-settings/RoutinesSection.test.ts src/components/RoutineRunCard.test.ts src/lib/folder-read.test.ts src/lib/computer-panel-view.test.ts src/state/store.test.ts
 ```
 
@@ -232,6 +233,15 @@ turn runs again once (§5), and the one-time import of a pre-runtime
 retained server-log and JSON evidence paths. These complement the scheduler,
 proposal and renderer tests; they do not prove real-provider tool selection,
 actual desktop work, or packaged Electron behavior.
+
+The parallel-approval fixture opens two permission requests through a running
+routine's real Claude broker. Answering the first leaves the routine waiting
+for the second; their answers reach the broker independently, and cancellation
+keeps one terminal receipt. The scheduler regressions additionally cover both
+resolution orders, unknown and duplicate events, overlapping wait-time
+accounting, restart recovery, independent bot dispatch, and invalid one-time
+timestamp rejection. These requests are scripted in a disposable fake-engine
+workspace and run no external action.
 
 Webhook delivery IDs are committed atomically with their execution receipt.
 Retries keep the same run ID for seven days, independently of run-log pruning;

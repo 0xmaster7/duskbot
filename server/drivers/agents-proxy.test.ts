@@ -1619,7 +1619,8 @@ describe("agents-proxy MCP surface", () => {
     expect(res.result.isError).toBeFalsy();
   });
 
-  it.each(["box", "cloud"])("maps %s execution to the bot's own VPS runner", async (run_on) => {
+  it("maps cloud execution to the bot's own VPS runner", async () => {
+    const run_on = "cloud";
     const res = await callTool("create_trigger", { when: "schedule",
       name: "VPS check", instructions: "Check on the connected VPS.",
       schedule: { type: "daily", time: "09:00" }, run_on,
@@ -1658,6 +1659,8 @@ describe("agents-proxy MCP surface", () => {
 
   it.each([
     { run_on: 7 },
+    { run_on: "box" },
+    { runOn: "box" },
     { run_on: "maus", runOn: "cloud" },
     { timeout_minutes: "20" },
     { timeout_minutes: 10, timeoutMinutes: 20 },

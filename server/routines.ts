@@ -25,7 +25,7 @@ import {
 import {
   dispatchRefusal, engineFacts, loadOwnerNotices, recoverRun, requeueOnce, weekRuns, type RoutineAlert, type RoutineFailureFacts, type RoutineOwnerNotice,
 } from "./routine-recovery.ts";
-import { activeMs, askOf, settleAsk, waitingFor, type RoutineRunAsk } from "./routine-waits.ts";
+import { activeMs, matchesAsk, openAsk, settleAsk, waitingFor, type RoutineRunAsk } from "./routine-waits.ts";
 import { failsLikeLastOutcome, outcomesNewestFirst } from "./routine-outcomes.ts";
 import { EVENT_RETRY_WINDOW_MS, loadEventReceipts, MAX_EVENT_RECEIPTS, type EventRunReceipt } from "./routine-event-receipts.ts";
 import { attachmentPathsOf, attachmentsMalformed, cloneAttachments } from "./routine-attachments.ts";
@@ -33,7 +33,7 @@ import { loadInstalledPackage, loadRequestReceipts, loadRoutine, loadRun } from 
 import { applyHolds, holdCauses, type AppliedHolds } from "./routine-holds.ts";
 import { sanitizeInput } from "./routine-input.ts";
 import { checkHold, CHECK_BOOT_HOLD_MS, type CheckHold } from "./routine-check-pacing.ts";
-import { resolveRoutineResultsThread, routineRunDefinition, type ResultsThreadAllocation } from "./routine-run-definition.ts";
+import { cloneRun, resolveRoutineResultsThread, routineRunDefinition, type ResultsThreadAllocation } from "./routine-run-definition.ts";
 
 export type { RoutineContextAttachment, RoutineIntervalWindow, RoutineRunStatus, RoutineRunTrigger };
 export { intervalHasRestrictions } from "./routine-intervals.ts";
@@ -282,14 +282,6 @@ function cloneRoutine(routine: Routine): Routine {
     ...routine,
     schedule: cloneSchedule(routine.schedule),
     attachments: cloneAttachments(routine.attachments),
-  };
-}
-
-function cloneRun(run: RoutineRun): RoutineRun {
-  return {
-    ...run,
-    attachments: cloneAttachments(run.attachments),
-    denials: run.denials ? [...run.denials] : undefined,
   };
 }
 
@@ -1255,16 +1247,16 @@ export class RoutineManager {
       run.status = "running";
       run.attention = undefined;
     } else if (event.type === "request.opened") {
-      run.asked ??= askOf(event, this.now());
-      this.wait(run, waitingFor(run.asked));
+      this.wait(run, waitingFor(openAsk(run, event, this.now())));
     } else if (event.type === "request.resolved") {
+      if (!matchesAsk(run, event)) return null;
       const unanswered = settleAsk(run, event, this.now());
       if (unanswered) {
         void this.stopRun(run, unanswered, "stopped");
         return cloneRun(run);
       }
-      run.status = "running";
-      run.attention = undefined;
+      if (run.asked) this.wait(run, waitingFor(run.asked));
+      else { run.status = "running"; run.attention = undefined; }
     } else if (event.type === "item.completed" && event.itemType === "assistant_text") {
       run.output = redactSecretsInText(event.text).trim().slice(0, 2_000);
     } else if (event.type === "runtime.error") {
