@@ -6,7 +6,6 @@ import {
   useRef,
   useState,
   type DependencyList,
-  type RefObject,
   type PointerEvent,
   type TouchEvent,
   type WheelEvent,
@@ -36,7 +35,6 @@ export function useTranscriptViewport<T extends { id: string; role?: string }>({
   pinOn,
   transcriptShown = true,
   hasMore = false,
-  composerRef,
 }: {
   ownerId: string;
   threadId: string;
@@ -44,8 +42,6 @@ export function useTranscriptViewport<T extends { id: string; role?: string }>({
   pinOn: DependencyList;
   transcriptShown?: boolean;
   hasMore?: boolean;
-  /** the composer dock: a person's sent bubble rises from its top edge */
-  composerRef?: RefObject<HTMLElement | null>;
 }) {
   const { state, dispatch } = useStore();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -299,7 +295,7 @@ export function useTranscriptViewport<T extends { id: string; role?: string }>({
     },
   };
 
-  useArrivalFlow({ scrollRef, clipRef, columnRef: transcriptRef, composerRef, transcriptKey, following: follow });
+  useArrivalFlow({ scrollRef, clipRef, columnRef: transcriptRef, transcriptKey, following: follow });
 
   return {
     scrollRef,

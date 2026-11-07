@@ -1661,11 +1661,15 @@ export function reducer(state: AppState, action: Action): AppState {
       const threadId = action.threadId ?? bot?.threadId;
       if (!bot || threadId !== bot.threadId) return animated;
       if (bot.messages.some((message) => message.sendId === action.sendId)) return animated;
+      // a leaf the transcript does not hold (none yet, or a pointer ahead of its message) would leave the send alone on
+      // screen until the server's copy lands: it chains onto the last row shown instead
+      const leaf = bot.activeLeafId && bot.messages.some((message) => message.id === bot.activeLeafId)
+        ? bot.activeLeafId : visibleMessages(bot).at(-1)?.id ?? null;
       const message = optimisticUserMessage(
         action.text,
         action.sendId,
         action.replyToId,
-        bot.activeLeafId,
+        leaf,
       );
       message.optimisticThreadOrderAt = bot.tasks?.find((task) => task.threadId === threadId)?.lastThreadOrderAt;
       return bumpThreadUpdatedAt(updateBot(animated, bot.id, (current) => ({

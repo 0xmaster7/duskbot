@@ -6,6 +6,7 @@ import { useLiveReplyActive } from "@/state/live-reply";
 import { useStoppedAt } from "@/lib/stop-turn";
 import { lastNonReceipt } from "@/lib/receipts";
 import { SETTLED_HOLD_MS, type MarkState } from "./mascot-motion-mark";
+import { presenceKind, TYPING_MARK, useHeldPresence, workingMark } from "@/lib/presence-mark";
 
 export type TurnOutcome = "success" | "error" | "cancelled";
 
@@ -79,6 +80,10 @@ export function useBotMarkState(bot: MarkBot): MarkState {
     const timer = setTimeout(() => wake((tick) => tick + 1), left);
     return () => clearTimeout(timer);
   }, [settled]);
+  // a running turn shows the typing dots only while its reply is being written, and the bot's own mascot at work otherwise
+  const activity = live.status?.activity;
+  const presence = useHeldPresence(running ? presenceKind({ writing: composing, activity, worked: true }) : null);
+  if (presence) return presence === "typing" ? TYPING_MARK : workingMark(activity);
   return turnMarkState({
     running,
     composing: composing || live.status?.activity === "reply",
