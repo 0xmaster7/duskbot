@@ -63,6 +63,7 @@ vi.mock("./VoiceSetupDialog", () => ({
   },
 }));
 
+await (await import("./lazy-screens")).VoiceSetupDialog.preload();
 const { CallButton, CallTargetButton } = await import("./CallView");
 const { configureLiveMedia, liveMedia, resetLiveMedia } = await import("@/lib/live-call-media");
 
