@@ -1155,7 +1155,8 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
       else {
         const scope = engineReadScope({ dataDir: DATA_DIR, home: homedir(), cwd, botId, threadId, boxed: botBox.enabled(), extraReadable: [...readOnlyBotFolders(cwd), ...lentBotFolders(cwd)] });
         for (const dir of scope.missing) mkdirSync(dir, { recursive: true, mode: 0o700 });
-        own.permissions = { blockReadsOutsideWorkingDirectories: true, deny: claudeDenyRules(scope) };
+        // a boxed (server) turn reads only its own folders; on the person's own computer bots may read their files, but never the app's secrets
+        own.permissions = { blockReadsOutsideWorkingDirectories: botBox.enabled(), deny: claudeDenyRules(scope) };
         for (const dir of [...scope.readable, ...scope.readOnly]) if (existsSync(dir)) args.push("--add-dir", dir);
       }
       // Approvals and browser credentials expire at the turn boundary; native background workers must not outlive it.

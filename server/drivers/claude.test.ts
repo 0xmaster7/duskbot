@@ -1610,7 +1610,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
       await instance.adapter.sendTurn({ threadId: "t-reads", botId: "b-reads", text: "hi", cwd, approvalMode: "full" });
       await recorder.until((e) => e.type === "turn.completed");
       const seen = JSON.parse(readFileSync(dump, "utf8"));
-      expect(seen.settings.permissions.blockReadsOutsideWorkingDirectories).toBe(true);
+      expect(seen.settings.permissions.blockReadsOutsideWorkingDirectories).toBe(false);
       const deny: string[] = seen.settings.permissions.deny;
       expect(deny).toEqual(expect.arrayContaining([
         rule("Read", join(DATA_DIR, "config.json")), rule("Edit", join(DATA_DIR, "config.json")),
@@ -1659,7 +1659,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
       const permissions = JSON.parse(readFileSync(dump, "utf8")).settings.permissions;
       expect(permissions.allow).toEqual([rule("Read", join(DATA_DIR, "config.json"))]);
       expect(permissions.deny).toEqual(expect.arrayContaining(["Read(./.env)", rule("Read", join(DATA_DIR, "config.json"))]));
-      expect(permissions.blockReadsOutsideWorkingDirectories).toBe(true);
+      expect(permissions.blockReadsOutsideWorkingDirectories).toBe(false);
     });
   });
 
@@ -1696,7 +1696,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
       expect(Object.keys(seen.settings.hooks)).toEqual(expect.arrayContaining(Object.keys(claudeHookSettings("/helper.ts"))));
       expect(seen.settings.enabledPlugins).toEqual({ "guard@team": true });
       expect(seen.settings.permissions.deny[0]).toBe("Read(./.env)");
-      expect(seen.settings.permissions.blockReadsOutsideWorkingDirectories).toBe(true);
+      expect(seen.settings.permissions.blockReadsOutsideWorkingDirectories).toBe(false);
       expect(seen.settings.permissions).not.toHaveProperty("defaultMode");
       expect(seen.settings.env).toMatchObject({ GUARD_LEVEL: "strict", ENABLE_TOOL_SEARCH: "true" });
       expect(seen.settings).not.toHaveProperty("model");
