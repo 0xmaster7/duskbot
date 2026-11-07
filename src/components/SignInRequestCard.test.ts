@@ -29,6 +29,7 @@ vi.mock("@/lib/logins", () => ({
 
 import { LoginForm } from "./LoginForm";
 import { SignInBanner, SignInRequestCard } from "./SignInRequestCard";
+import { frameAddress, signInScreenPath } from "./SignInScreen";
 
 const card = (signIn: Record<string, unknown> = {}): Message => ({
   id: "card-1",
@@ -79,12 +80,24 @@ describe("SignInRequestCard while it waits", () => {
     expect(html).not.toContain("<input");
   });
 
+  it("shows the computer's screen edge to edge with grok's Take over pill on a computer, in a box reserved before the first frame", () => {
+    const html = view({ place: "vm", reason: undefined });
+    expect(html).toMatch(/<button[^>]*aria-label="Take over the computer"[^>]*data-sign-in-screen=""[^>]*class="[^"]*aspect-\[16\/10\] w-full/);
+    expect(html.indexOf("data-sign-in-screen")).toBeGreaterThan(html.indexOf("Action needed"));
+    expect(html.indexOf("data-sign-in-screen")).toBeLessThan(html.indexOf(">Skip<"));
+    expect(view({ place: "cloud" })).toContain("data-sign-in-screen");
+  });
+
+  it.each(["browser", "local"])("has no screen on %s, where no view-only frame exists", (place) => {
+    expect(view({ place })).not.toContain("data-sign-in-screen");
+  });
+
   it("paints Take over in ink and the other answers neutral, whatever the bot's colour", () => {
     const html = renderToStaticMarkup(createElement(SignInRequestCard, { ...props(), color: "teal" }));
     const tag = (label: string) => (html.match(/<button[^>]*>[^<]*<\/button>/g) ?? []).find((one) => one.includes(`>${label}<`))!;
     expect(tag("Take over")).toContain("ui-button-primary");
     expect(tag("Take over")).not.toContain("--bot-button");
-    expect(tag("Skip")).toContain("bg-ink/[0.06]");
+    expect(tag("Skip")).toContain("bg-(--card-fill)");
     expect(tag("Skip")).toContain('title="Cancel this request without doing the step. Pepper continues without it."');
   });
 
@@ -169,6 +182,20 @@ describe("SignInRequestCard while it waits", () => {
     button(tree(), choice === "done" ? "I'm done" : "Skip").props.onClick!();
     await settle();
     expect(answerSignIn).toHaveBeenCalledExactlyOnceWith({ botId: "pepper", threadId: "thread-1", messageId: "card-1", place: "browser" }, choice);
+  });
+});
+
+describe("the sign-in card's screen", () => {
+  it("asks each computer for its own view-only frame, for this conversation", () => {
+    expect(signInScreenPath("vm", "pepper", "thread 1")).toBe("/api/bots/pepper/local-computer/screenshot?threadId=thread%201");
+    expect(signInScreenPath("cloud", "pepper", "thread-1")).toBe("/api/bots/pepper/computer/screenshot?threadId=thread-1");
+    expect(signInScreenPath("browser", "pepper", "thread-1")).toBeNull();
+  });
+
+  it("reads both frame shapes as an image address", () => {
+    expect(frameAddress({ image: "data:image/png;base64,AAA" })).toBe("data:image/png;base64,AAA");
+    expect(frameAddress({ png: "BBB", format: "jpeg" })).toBe("data:image/jpeg;base64,BBB");
+    expect(frameAddress({ png: " " })).toBeNull();
   });
 });
 

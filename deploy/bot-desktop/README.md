@@ -138,7 +138,7 @@ systemctl daemon-reload && systemctl enable --now omb-box-fence.service
 /usr/local/sbin/omb-host-fence --check && echo fenced
 ```
 
-It adds chains `OMB-BOX-IN` (from `INPUT -i omb-desk0`: only replies to connections the host opened) and `OMB-BOX-FWD`
+It adds chains `OMB-BOX-IN` (from `INPUT -i omb-desk0`: only replies to connections the host opened, and TCP to the link agent's egress proxy port 3129) and `OMB-BOX-FWD`
 (from `DOCKER-USER -i omb-desk0`: drop box-to-box and every private, loopback, CGNAT, link-local and reserved range,
 then the internet), and drops all IPv6 from `omb-desk0`. It uses the host's `iptables` (nft on Ubuntu 24.04).
 `--remove` takes it away. The fence never comes down on its own.

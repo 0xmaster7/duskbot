@@ -1,4 +1,5 @@
 import { useEffect, useState, type Dispatch } from "react";
+import { listenLiveFrames } from "../lib/live-events";
 import { createTranscriptCache, indexedDbShelf, type TranscriptCache } from "./transcript-cache";
 import type { Action, AppState } from "./store";
 
@@ -19,6 +20,7 @@ export function useTranscriptCache(state: AppState, dispatch: Dispatch<Action>, 
     if (known) own.setEnabled(!shared);
   }, [own, known, shared]);
   useEffect(() => () => void own.flush(), [own]);
+  useEffect(() => listenLiveFrames({ onFrame: (frame) => own.follow(frame), onMissedFrames: () => own.forgetConfirmed() }), [own]);
 
   useEffect(() => {
     for (const owner of [...state.bots, ...state.groups]) {

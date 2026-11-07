@@ -2180,6 +2180,7 @@
   "signIn.skip": "Bỏ qua",
   "signIn.skipHint": "Hủy yêu cầu này mà không làm bước đó. {name} tiếp tục mà không có nó.",
   "signIn.takeOver": "Tiếp quản",
+  "signIn.takeOverComputer": "Tiếp quản máy tính",
   "signIn.skipped": "Đã bỏ qua",
   "signIn.status.saved": "Đã lưu đăng nhập",
   "browser.live.botBusy": "{name} đang sử dụng trình duyệt này. Chế độ xem trực tiếp sẽ mở khi trình duyệt rảnh…",
@@ -4958,5 +4959,11 @@
   "server.botDesktop.building": "Đang thiết lập máy tính của bot trên máy chủ của bạn. Việc này diễn ra một lần mỗi bản cập nhật và thường mất vài phút.",
   "computer.botWaking": "{name} đang thức dậy",
   "seal.untrusted": "Máy chủ này không chứng minh được nó là máy chủ mà ứng dụng này đã liên kết, nên không có gì được gửi. Nếu bạn đã cài lại, hãy liên kết lại.",
-  "server.connect.loginNote": "{bot} nhập nó vào trang web cho bạn và không bao giờ thấy mật khẩu."
+  "server.connect.loginNote": "{bot} nhập nó vào trang web cho bạn và không bao giờ thấy mật khẩu.",
+  "routeTraffic.title": "Định tuyến lưu lượng qua máy tính này",
+  "routeTraffic.titleWeb": "Định tuyến lưu lượng qua máy tính của bạn",
+  "routeTraffic.hint": "Chuyển lưu lượng mạng từ máy tính của bot qua máy tính để bàn của bạn thay vì đám mây. Áp dụng cho các kết nối mới.",
+  "routeTraffic.through": "Qua máy tính của bạn. Áp dụng cho các kết nối mới.",
+  "routeTraffic.offline": "Đang dùng mạng của máy chủ, máy tính của bạn đang ngoại tuyến",
+  "routeTraffic.error": "Chưa lưu được. Hãy thử lại."
 }

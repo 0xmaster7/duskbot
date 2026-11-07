@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { Bot, Message } from "@/state/store";
-import { ApprovalCard } from "./ApprovalCard";
+import { ApprovalCard, showsSettledChange } from "./ApprovalCard";
 import { HelperIntro } from "./HelperIntro";
 import { MessageBoundary } from "./MessageBoundary";
 import { OptionCard, shouldHideOnboardingCard } from "./OptionCard";
@@ -8,6 +8,17 @@ import { QuestionCard } from "./QuestionCard";
 import { isQuestionCard } from "@/lib/question-card";
 import type { Asker } from "./AskCard";
 import { AskingLine } from "./TeamOwner";
+
+/**
+ * A settled card that grok keeps in the chat: an answered or dismissed question (its title greys, the answer stays) and
+ * a decided permission (one centred grey line). A stopped one, a quiz and an applied change leave no row of their own.
+ */
+export function settledCardStays(card: NonNullable<Message["card"]>): boolean {
+  const applied: boolean = showsSettledChange(card);
+  if (card.stopped || applied) return false;
+  if (isQuestionCard(card)) return !card.expired && (card.answered === "answer" || card.dismissed === true || Boolean(card.answeredText));
+  return Boolean(card.requestId && card.tool) && !card.dismissed;
+}
 
 /**
  * Called, not mounted: a quiz that dropped out must come back as null so the transcript draws no row and no day

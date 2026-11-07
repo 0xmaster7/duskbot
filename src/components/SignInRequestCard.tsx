@@ -10,6 +10,7 @@ import { answerSignIn, signInHostIsHere } from "@/lib/sign-in";
 import { useStore, type Bot, type Message } from "@/state/store";
 import { ASK_QUIET_BUTTON, AskCard, CardSettledRow, cardPrimary, cardSecondary, cardTertiary, returnFocusToComposer } from "./AskCard";
 import { GrokIcon } from "./GrokIcon";
+import { SignInScreen, signInScreenPath } from "./SignInScreen";
 import { LoginForm } from "./LoginForm";
 
 // Security: a saved login is encrypted on the server and filled by fill_login; neither the bot nor any screen ever gets
@@ -125,10 +126,12 @@ export function SignInRequestCard({
   let pageHost = card.site;
   try { pageHost = new URL(card.url).hostname; } catch {}
   const takeOver = cardPrimary();
+  const screen = saving ? null : signInScreenPath(card.place, botId, threadId);
   return (
     <AskCard
       ariaLabel={t("signIn.cardLabel", { name: botName, site: card.site })}
       source={source}
+      media={screen && <SignInScreen path={screen} name={botName} onOpen={open} disabled={pending !== null} />}
       title={t("signIn.actionNeeded")}
       explanation={<>
         <span dir="ltr" className="break-all" data-testid="sign-in-site">{instruction}</span>

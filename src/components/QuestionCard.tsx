@@ -113,7 +113,7 @@ export function QuestionCard({
 
   if (!card?.requestId || !questions.length) return null;
   if (decidedByBot(card)) return <DecidedQuestion threadId={threadId} asker={asker} card={card} questions={questions} />;
-  if (card.answered || card.expired || card.stopped) return <SettledQuestion card={card} questions={questions} asker={asker} />;
+  if (card.answered || card.dismissed || card.expired || card.stopped) return <SettledQuestion card={card} questions={questions} asker={asker} />;
 
   const currentIndex = Math.min(active, questions.length - 1);
   const current = questions[currentIndex]!;
@@ -293,11 +293,32 @@ function AnsweredQuestion({ question, answer, letter, color, own }: { question: 
   );
 }
 
+/** Grok's dismissed question stays too: its title and every choice grey, nothing left to press. */
+function DismissedQuestion({ question, choices }: { question: string; choices: readonly string[] }) {
+  return (
+    <div role="group" aria-label={t("question.aria.card")} data-ask-card="dismissed" className={cn("w-full max-w-[560px] rounded-[24px] px-4 pb-2 pt-3.5 text-start", ASK_CARD_RING, ASK_CARD_LIFT)}>
+      <div className="min-w-0 break-words text-[15px] font-semibold leading-[22px] text-ink/[0.56]"><bdi dir="auto">{question}</bdi></div>
+      <span className="sr-only">{t("question.status.closed")}</span>
+      <div className="-mx-2 mt-3 flex flex-col gap-px">
+        {choices.map((choice, index) => (
+          <div key={choice} className="flex min-h-10 items-center gap-2.5 p-2">
+            <ChoiceLetter letter={choiceLetter(index)} quiet />
+            <span dir="auto" className="min-w-0 flex-1 break-words text-[14px] leading-5 text-ink/40 [unicode-bidi:plaintext]">{choice}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SettledQuestion({ card, questions, asker }: { card: NonNullable<Message["card"]>; questions: readonly AskQuestion[]; asker?: Asker }) {
   const [open, setOpen] = useState(false);
   if (card.stopped) return <AskSettledLine tone="stopped" ariaLabel={t("question.aria.card")}>{t("ask.settled.stopped")}</AskSettledLine>;
   if (card.expired) return <AskSettledLine tone="expired" ariaLabel={t("question.aria.card")}>{t("ask.settled.expired")}</AskSettledLine>;
   const answer = card.answeredText ?? (card.answered === "answer" ? null : undefined);
+  if (card.dismissed && !card.answeredText && questions.length === 1 && questions[0]!.options.length) {
+    return <DismissedQuestion question={questions[0]!.question} choices={questions[0]!.options.map((option) => option.label)} />;
+  }
   if (answer === undefined || card.answered === "unavailable" || card.dismissed && !card.answeredText) {
     return <AskSettledLine tone="closed" ariaLabel={t("question.aria.card")}>{t("question.status.closed")}</AskSettledLine>;
   }

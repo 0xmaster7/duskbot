@@ -71,7 +71,7 @@ import { userBubbleStyle } from "@/lib/user-bubble-tone";
 import { ToolActivity } from "./ToolActivity";
 import { DataResultChip } from "./DataResultChip"; import { PublishedPageCard } from "./PublishedPageCard";
 import { ThreadRefText } from "./ThreadRefs";
-import { optionsCardRow } from "./OptionsCardRow";
+import { optionsCardRow, settledCardStays } from "./OptionsCardRow";
 import { MessageBoundary } from "./MessageBoundary";
 import { RichMessageRow, UserLineNote, richRowKind } from "./RichMessageRow"; import { SetupOffer } from "./SetupOffer";
 import { Composer } from "./Composer"; import { FailedReplyCard, FoldedNoticesContext, foldedNoticeIds, useTrailingRows } from "./FailedReplyCard";
@@ -825,7 +825,8 @@ const MessagesList = memo(function MessagesList({
             case "connector":
               return m.connector ? <ConnectorCard botId={botId} color={botColor} threadId={threadId} message={m} /> : null;
             case "options":
-              if (m.card && (m.card.answered || m.card.dismissed)) return showsSettledChange(m.card) ? <SettledChangeEvent bot={{ name: botName }} message={m} threadId={threadId} /> : null;
+              // grok keeps an answered question in place and folds a decided permission to one grey line; the rest leave no row
+              if (m.card && (m.card.answered || m.card.dismissed) && !settledCardStays(m.card)) return showsSettledChange(m.card) ? <SettledChangeEvent bot={{ name: botName }} message={m} threadId={threadId} /> : null;
               return optionsCardRow({ message: m, transcript, botId, botName, botColor: bots.find((one) => one.id === m.inbox?.from.botId)?.color ?? botColor, threadId, asker: bots.find((one) => one.id === (m.inbox?.from.botId ?? botId)) });
             case "widget":
             case "app":

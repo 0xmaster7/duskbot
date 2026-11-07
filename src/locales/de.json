@@ -2956,6 +2956,13 @@
   "signIn.skip": "Überspringen",
   "signIn.skipHint": "Diese Anfrage abbrechen, ohne den Schritt zu erledigen. {name} macht ohne ihn weiter.",
   "signIn.takeOver": "Übernehmen",
+  "signIn.takeOverComputer": "Den Computer übernehmen",
   "signIn.skipped": "Übersprungen",
-  "signIn.status.saved": "Login gespeichert"
+  "signIn.status.saved": "Login gespeichert",
+  "routeTraffic.title": "Datenverkehr über diesen Computer leiten",
+  "routeTraffic.titleWeb": "Datenverkehr über deinen Computer leiten",
+  "routeTraffic.hint": "Leitet den Netzwerkverkehr vom Computer des Bots über deinen eigenen Desktop-Computer statt über die Cloud. Gilt für neue Verbindungen.",
+  "routeTraffic.through": "Über deinen Computer. Gilt für neue Verbindungen.",
+  "routeTraffic.offline": "Nutzt das Netzwerk des Servers, dein Computer ist offline",
+  "routeTraffic.error": "Das wurde nicht gespeichert. Versuch es noch einmal."
 }

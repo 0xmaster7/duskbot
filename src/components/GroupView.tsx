@@ -69,6 +69,7 @@ import { VoiceNoteBubble, type VoiceNoteAttachment } from "./VoiceNoteBubble";
 import { OptionCard } from "./OptionCard";
 
 import { ApprovalCard, SettledChangeEvent, showsSettledChange } from "./ApprovalCard";
+import { settledCardStays } from "./OptionsCardRow";
 import { isQuestionCard, QuestionCard } from "./QuestionCard";
 import { ManageMembersPanel } from "./ManageMembersPanel";
 import { groupActivityRuns, isStatusActivity } from "@/lib/activity-runs";
@@ -379,7 +380,7 @@ export const Transcript = memo(function Transcript({
       : undefined;
     // the room talks in bubbles: stops and settled cards leave no technical rows behind
     if (isCancelledTranscriptRow(m)) return null;
-    if (m.kind === "options" && m.card && (m.card.answered || m.card.dismissed)) {
+    if (m.kind === "options" && m.card && (m.card.answered || m.card.dismissed) && !settledCardStays(m.card)) {
       return showsSettledChange(m.card) ? <SettledChangeEvent bot={memberOf(m.from?.botId)} message={m} threadId={group.threadId} /> : null;
     }
     return m.kind === "secret" && m.secret && m.from?.botId ? (

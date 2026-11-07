@@ -2606,6 +2606,7 @@
   "signIn.skip": "Salta",
   "signIn.skipHint": "Annulla questa richiesta senza fare il passaggio. {name} continua senza.",
   "signIn.takeOver": "Prendi il controllo",
+  "signIn.takeOverComputer": "Prendi il controllo del computer",
   "signIn.skipped": "Saltato",
   "signIn.status.saved": "Accesso salvato",
   "browser.live.botBusy": "{name} sta usando questo browser. La vista dal vivo si apre quando è libero…",
@@ -5876,5 +5877,11 @@
   "server.botDesktop.building": "Sto preparando il computer del bot sul tuo server. Succede una volta per aggiornamento e di solito richiede qualche minuto.",
   "computer.botWaking": "{name} si sta svegliando",
   "seal.untrusted": "Questo server non ha potuto dimostrare di essere quello collegato da questa app, quindi non è stato inviato nulla. Se l'hai reinstallato, collegalo di nuovo.",
-  "server.connect.loginNote": "{bot} lo inserisce nel sito al posto tuo e non vede mai la password."
+  "server.connect.loginNote": "{bot} lo inserisce nel sito al posto tuo e non vede mai la password.",
+  "routeTraffic.title": "Instrada il traffico tramite questo computer",
+  "routeTraffic.titleWeb": "Instrada il traffico tramite il tuo computer",
+  "routeTraffic.hint": "Fa passare il traffico di rete del computer del bot dal tuo computer desktop invece che dal cloud. Vale per le nuove connessioni.",
+  "routeTraffic.through": "Tramite il tuo computer. Vale per le nuove connessioni.",
+  "routeTraffic.offline": "In uso la rete del server, il tuo computer è offline",
+  "routeTraffic.error": "Non è stato salvato. Riprova."
 }

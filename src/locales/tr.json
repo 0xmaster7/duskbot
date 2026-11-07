@@ -2180,6 +2180,7 @@
   "signIn.skip": "Atla",
   "signIn.skipHint": "Bu adımı yapmadan isteği iptal edin. {name} onsuz devam eder.",
   "signIn.takeOver": "Kontrolü al",
+  "signIn.takeOverComputer": "Bilgisayarın kontrolünü al",
   "signIn.skipped": "Atlandı",
   "signIn.status.saved": "Giriş kaydedildi",
   "browser.live.botBusy": "{name} bu tarayıcıyı kullanıyor. Canlı görünüm, tarayıcı boşaldığında açılır…",
@@ -4958,5 +4959,11 @@
   "server.botDesktop.building": "Botun bilgisayarı sunucunda kuruluyor. Bu her güncellemede bir kez olur ve genellikle birkaç dakika sürer.",
   "computer.botWaking": "{name} uyanıyor",
   "seal.untrusted": "Bu sunucu, bu uygulamanın bağladığı sunucu olduğunu kanıtlayamadı, bu yüzden hiçbir şey gönderilmedi. Yeniden kurduysan tekrar bağla.",
-  "server.connect.loginNote": "{bot} bunu sizin için siteye yazar ve parolayı asla görmez."
+  "server.connect.loginNote": "{bot} bunu sizin için siteye yazar ve parolayı asla görmez.",
+  "routeTraffic.title": "Trafiği bu bilgisayar üzerinden yönlendir",
+  "routeTraffic.titleWeb": "Trafiği bilgisayarın üzerinden yönlendir",
+  "routeTraffic.hint": "Botun bilgisayarındaki ağ trafiğini bulut yerine kendi masaüstü bilgisayarın üzerinden yönlendirir. Yeni bağlantılar için geçerlidir.",
+  "routeTraffic.through": "Bilgisayarın üzerinden. Yeni bağlantılar için geçerlidir.",
+  "routeTraffic.offline": "Sunucunun ağı kullanılıyor, bilgisayarın çevrimdışı",
+  "routeTraffic.error": "Kaydedilmedi. Tekrar dene."
 }

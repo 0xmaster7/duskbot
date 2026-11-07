@@ -9,6 +9,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
 import { newDirectKey, sshConnector } from "./vps-link-direct.mjs";
+import { createEgressDialer, createEgressEndpoint, seenAsCache } from "./vps-link-egress.mjs";
 import { createVpsLink } from "./vps-link.mjs";
 
 export const DEFAULT_LINK_BASE = "https://link.apps.siddz.com";
@@ -98,8 +99,12 @@ export function installVpsLink(deps) {
   const unprotect = unprotectWith(encryption);
   const ownHomeFiles = ["own-home.json", "own-home-choice.json", "own-home-send.json"].map((name) => jsonFile(path.join(userData, name)));
 
+  const base = (deps.base || process.env.OMB_LINK_BASE || DEFAULT_LINK_BASE).replace(/\/+$/, "");
+  // the link service tells this computer the public address it connects from, so its home router stays out of reach
+  const seenAs = seenAsCache(async () => (await (await fetch(`${base}/v1/ip`, { signal: AbortSignal.timeout(5000) })).json())?.ip);
   const link = createVpsLink({
-    base: (deps.base || process.env.OMB_LINK_BASE || DEFAULT_LINK_BASE).replace(/\/+$/, ""),
+    base,
+    egress: (tunnel) => createEgressEndpoint({ ...tunnel, dialer: createEgressDialer({ seenAs }) }),
     serverFetch: (...args) => session.defaultSession.fetch(...args),
     store: jsonFile(path.join(userData, "vps-link.json")),
     protect, unprotect,

@@ -344,8 +344,11 @@ const UPGRADE_HOLD_MS = 4000;
  * the relay, always there, and the direct path (vps-link-direct.mjs) once `useDirect` gave it a way to connect. each
  * request takes the best path when it starts and keeps it; a lost direct path sends a request that had no answer yet
  * and can safely be sent again over the relay, and fails the rest.
+ * `egress`: makes this app's end of "route traffic through this computer" (vps-link-egress.mjs createEgressEndpoint) from
+ * the tunnel's stream api; without it the vps's stream requests go unanswered. it always rides the relay, where the
+ * agent's half of it lives.
  */
-export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS, direct: directSpec = null, directFactory = createDirectLink }) {
+export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fetch: given, log = () => {}, replyTimeoutMs = 90_000, stallMs = STREAM_STALL_MS, direct: directSpec = null, directFactory = createDirectLink, egress: makeEgress = null }) {
   const fetchImpl = given ?? keepAliveFetch();
   const stream = streamChoice();
   let unwarm = () => {};
@@ -395,6 +398,7 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
     for (const entry of waiting.values()) entry.fail(message);
     waiting.clear();
   }
+  const egress = makeEgress?.({ send: relayPath.push, bytes: (r, chunk) => outbox.bytes(r, chunk), queued: () => outbox.size, onDrain: (resume) => outbox.onDrain(resume), log }) ?? null;
 
   function directChanged({ state, lost }) {
     if (lost) {
@@ -424,6 +428,7 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
   }
 
   function deliver(frame) {
+    if (egress?.handle(frame)) return;
     const entry = waiting.get(frame.r);
     if (!entry) return;
     entry.touch();
@@ -613,6 +618,7 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
       if (!given) unwarm = fetchImpl.warm(base);
       void poll();
       if (directSpec) useDirect(directSpec);
+      egress?.start();
       return `http://${host}:${listeningPort}`;
     },
     /** gives the direct path a way to connect (null: relay only); it dials in the background */
@@ -641,6 +647,8 @@ export function createTunnelProxy({ base, id, key: keyText, token, port = 0, fet
       });
     },
     async close() {
+      // the goodbye gets a moment to leave, so the vps stops routing through this computer at once
+      if (egress && !closed) { egress.close(); await sleep(300); }
       closed = true;
       clearTimeout(moveTimer);
       direct?.close();

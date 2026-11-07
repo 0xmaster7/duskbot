@@ -1,6 +1,6 @@
 // Dev-only gallery of the question and approval cards on a Team Cloud, served at /question-cards-preview.html; not in
 // the packaged app. It mounts the real chat and inbox components over a fixed store, with no server behind it.
-// ?state=question|approval|open|answered|others|signin|signin-vm|secret|settled&surface=chat|inbox|panel&skin=grok|midnight|daylight&lang=de
+// ?state=question|approval|open|answered|others|signin|signin-vm|secret|secret-login|settled&surface=chat|inbox|panel&skin=grok|midnight|daylight&lang=de
 import { StrictMode, useMemo, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import type { InboxRow, InboxView } from "../shared/inbox";
@@ -67,6 +67,8 @@ const cards = (state: string): Message[] | null => {
     case "signin": return [message("signin", 1, { kind: "signin", signIn: SIGN_IN })];
     case "signin-vm": return [message("signin", 1, { kind: "signin", signIn: { ...SIGN_IN, place: "vm", reason: undefined } })];
     case "secret": return [message("secret", 1, { kind: "secret", secret: SECRET })];
+    case "secret-login": return [message("secret", 1, { kind: "secret", secret: { ...SECRET, target: "customSecret", delivery: "login", label: "Login for the-internet.herokuapp.com",
+      description: "Ledger signs in with it and never sees the password.", helpUrl: "" } })];
     case "settled": return [
       message("signin-done", 1, { kind: "signin", signIn: { ...SIGN_IN, done: true, resumed: true } }),
       message("signin-skip", 2, { kind: "signin", signIn: { ...SIGN_IN, site: "amazon.com", cancelled: true, resumed: true } }),
@@ -74,6 +76,7 @@ const cards = (state: string): Message[] | null => {
       settledApproval("allowed", 4, "allow", "ls ~/Desktop"),
       settledApproval("denied", 5, "deny", "rm -rf build"),
       message("ask", 6, { kind: "options", text: QUESTION, card: questionCard(CHOICES[0]) }),
+      message("ask-dismissed", 7, { kind: "options", text: "Which colour?", card: { title: "Your bot has a question", subtitle: "Which colour?", options: ["Red", "Blue"], requestId: "req-dismissed", requestType: "question", dismissed: true } }),
     ];
     default: return null;
   }
@@ -159,10 +162,14 @@ function Gallery() {
   );
 }
 
+const SCREEN = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800"><rect width="1280" height="800" fill="#f4f4f4"/><rect width="1280" height="44" fill="#dedede"/><rect x="16" y="12" width="420" height="20" rx="10" fill="#fff"/><text x="30" y="27" font-family="sans-serif" font-size="13" fill="#555">the-internet.herokuapp.com/login</text><text x="440" y="200" font-family="sans-serif" font-size="34" fill="#222">Login Page</text><rect x="440" y="260" width="400" height="44" rx="4" fill="#fff" stroke="#bbb"/><rect x="440" y="330" width="400" height="44" rx="4" fill="#fff" stroke="#bbb"/><rect x="440" y="400" width="120" height="44" rx="4" fill="#2a6ebb"/><text x="470" y="428" font-family="sans-serif" font-size="16" fill="#fff">Login</text></svg>`)}`;
 const realFetch = window.fetch.bind(window);
 window.fetch = async (input, init) => {
   const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-  if (!new URL(url, location.href).pathname.startsWith("/api/")) return realFetch(input, init);
+  const pathname = new URL(url, location.href).pathname;
+  if (!pathname.startsWith("/api/")) return realFetch(input, init);
+  // a computer's screen for the sign-in card: a plain page with a login form
+  if (pathname.endsWith("/screenshot")) return new Response(JSON.stringify({ image: SCREEN }), { status: 200, headers: { "content-type": "application/json" } });
   return new Response("{}", { status: 200, headers: { "content-type": "application/json" } });
 };
 setTeamPeople({ people: [{ ...CLEO, you: true }, { email: "ben@acme.test", name: "Ben", role: "member" }], me: { ...CLEO, you: true }, admin: true, needsYou: [] });
