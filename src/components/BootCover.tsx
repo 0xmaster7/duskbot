@@ -11,6 +11,8 @@ export function BootCover({ busy, text }: { busy: boolean; text: string }) {
   const arc = useRef<SVGCircleElement>(null);
   const shown = useRef(0);
   const since = useRef(performance.now());
+  const said = useRef(text);
+  if (phase === "loading" && busy) said.current = text;
 
   useEffect(() => {
     if (busy || phase !== "loading") return;
@@ -51,7 +53,7 @@ export function BootCover({ busy, text }: { busy: boolean; text: string }) {
           strokeDasharray="100" strokeDashoffset="100" className="stroke-ink" />
         <circle cx="28" cy="28" r="4.5" className="fill-ink" />
       </svg>
-      <p role="status" className="text-[14px] font-medium leading-5 text-ink">{text}</p>
+      <p role="status" className="text-[14px] font-medium leading-5 text-ink">{said.current}</p>
     </div>
   );
 }
