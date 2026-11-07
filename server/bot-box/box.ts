@@ -3,19 +3,20 @@
 // with owner "bot") in bubblewrap by the plan (plan.ts). Nothing here changes a spawn when the box is off: the command,
 // its arguments and its environment go through untouched, so every host that is not a Cloud home behaves as before.
 import { existsSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { basename, delimiter, dirname, isAbsolute, join, resolve } from "node:path";
 
+import { homedSpawn } from "../engine-homes/layout.ts";
 import { engineInstallRoots } from "../engine-roots.ts";
 import { SERVER_ROOT, resolveProxy } from "../proxy-paths.ts";
 import { bridgedCommand, type BridgeTools } from "./bridge.ts";
 import { brokerRewrite } from "./broker-env.ts";
 import { openCredentialBroker, type BrokerGrant, type CredentialBroker } from "./broker.ts";
-import { detectBox, type BoxDetection, type BoxKind } from "./detect.ts";
+import { boxWanted, detectBox, type BoxDetection, type BoxKind } from "./detect.ts";
 import { openBoxEgressGate, type BoxEgressGate } from "./egress-gate.ts";
 import { boxEnvironment } from "./env.ts";
 import { openHarnessGate, type HarnessGate } from "./harness-gate.ts";
 import { DENIED_SYSCALLS, seccompBytes, seccompSupported } from "./seccomp.ts";
-import { boxUploadsDir, bwrapArgs, planBox, taskWorkspaceIds, type BoxBridge, type BoxPlan, type BoxRequest, type BoxSetup } from "./plan.ts";
+import { boxUploadsDir, bwrapArgs, planBox, taskWorkspaceIds, type BoxBridge, type BoxFence, type BoxPlan, type BoxRequest, type BoxSetup } from "./plan.ts";
 
 /** The loopback port inside a box that reaches the egress gate. The harness gate sits at the server's own port. */
 export const BOX_EGRESS_PORT = 3128;
@@ -58,9 +59,17 @@ export interface RunnerOptions {
   egressPort?: number;
   /** The seccomp filter file to hand each box on BOX_SECCOMP_FD; none loads no filter. */
   seccompFile?: string | null;
+  /** Every boxed spawn's HOME, in place of the server's, which the box then never has: the engines' own home. The
+   * server's engine sign-ins are bound into it read-write and their settings read-only, so a bot can neither read the
+   * server's other files nor leave a setting, hook or key there that a process outside a box would run. */
+  engineHome?: string;
   /** The broker to mint per-process tokens with; none leaves keys in the environment. */
   broker?: { port: number; mintForProcess(input: { botId?: string | null; threadId?: string | null; grants: Record<string, BrokerGrant> }): { token: string }; revoke(token: string): void } | null;
 }
+
+/** Engine files bound read-only into the engine home: settings an engine reads (MCP servers, hooks, commands), never a
+ * sign-in it refreshes. */
+export const ENGINE_SETTINGS_FILES: ReadonlySet<string> = new Set(["config.toml", "settings.json"]);
 
 /** Wraps spawns for one setup (the server's, or a self-check fixture's). */
 export class BoxRunner {
@@ -89,7 +98,8 @@ export class BoxRunner {
     return ids ? this.lentReadOnly.get(`${ids.botId}/${ids.threadId}`) ?? [] : [];
   }
 
-  wrap(given: BoxRequest): WrappedSpawn {
+  wrap(asked: BoxRequest): WrappedSpawn {
+    const given = this.options.engineHome && !asked.home ? this.inEngineHome(asked, this.options.engineHome) : asked;
     const ids = given.cwd ? taskWorkspaceIds(given.cwd, this.options.setup.dataDir) : null;
     const lent = ids ? this.lentTo(ids.botId, ids.threadId) : [];
     const ro = this.readOnlyFor(given.cwd);
@@ -119,6 +129,14 @@ export class BoxRunner {
     const vouched = (request.allowEnv ?? []).filter((name) => /(?:KEY|TOKEN|SECRET)$/.test(name) && brokered.env[name] !== undefined && brokered.env[name] === request.env[name]);
     const unbrokered = [...new Set([...brokered.unbrokered, ...vouched])];
     return { command: this.options.bwrap, args: [...bwrapArgs(plan), "--", inner.command, ...inner.args], env: brokered.env, plan, token: brokered.token, release: brokered.release, unbrokered, extraFds };
+  }
+
+  private inEngineHome(request: BoxRequest, engineHome: string): BoxRequest {
+    const setup = this.options.setup;
+    const homed = homedSpawn(request.env, { dataDir: setup.dataDir, serverHome: setup.home, home: engineHome });
+    for (const folder of [engineHome, ...homed.folders]) mkdirSync(folder, { recursive: true, mode: 0o700 });
+    const shared = homed.shared.map((file) => ({ ...file, readOnly: ENGINE_SETTINGS_FILES.has(basename(file.target)) }));
+    return { ...request, env: homed.env, home: engineHome, shared };
   }
 
   /** Keys become a per-process token when the broker is on and the box has its own network (the bridge to the broker). */
@@ -186,6 +204,19 @@ export interface StartOptions {
   detect?: (env: Record<string, string | undefined>) => BoxDetection;
 }
 
+/** Paths in the server's HOME a box line may never lie inside: its keys, settings and the code it runs. */
+export const HOME_PRIVATE = [".ssh", ".config", ".local", ".gnupg", ".docker", ".aws", ".kube", ".npmrc", ".gitconfig", ".bashrc", ".profile"] as const;
+
+/** A required box's fence: the server's HOME and data folder whole, and HOME's private files. */
+export function requiredFence(home: string, dataDir: string): BoxFence {
+  return { whole: [resolve(home), resolve(dataDir)], inside: HOME_PRIVATE.map((name) => join(resolve(home), name)) };
+}
+
+/** OMB_BOX_CODE_ROOTS: more folders of code (an npm prefix's bin and lib in the server's HOME) the box sees read-only. */
+export function extraCodeRoots(env: Record<string, string | undefined>): string[] {
+  return (env.OMB_BOX_CODE_ROOTS ?? "").split(delimiter).filter((root) => root && isAbsolute(root)).map((root) => resolve(root));
+}
+
 export function defaultCodeRoots(): string[] {
   const roots = [dirname(SERVER_ROOT)];
   const node = dirname(dirname(process.execPath));
@@ -204,15 +235,17 @@ export class BotBox {
   private boxed = 0;
   private unbrokered = new Set<string>();
   private started: StartOptions | null = null;
+  private required = false;
 
   /** Detects, and when the box is on opens the gates. Safe to call once; returns what it decided. */
   async start(options: StartOptions): Promise<BoxDetection> {
     this.started = options;
     const env = options.env ?? process.env;
     this.detection = (options.detect ?? ((e) => detectBox({ env: e })))(env);
+    this.required = boxWanted(env) === "required";
     const log = options.log ?? ((line: string) => console.log(line));
     if (this.detection.box !== "bwrap" || !this.detection.tools) {
-      log(`bot box: off (${this.detection.reason})`);
+      log(this.required ? `bot box: REQUIRED but unavailable (${this.detection.reason}); bots' turns are refused until it works` : `bot box: off (${this.detection.reason})`);
       return this.detection;
     }
     const dir = join(options.dataDir, "box");
@@ -231,11 +264,16 @@ export class BotBox {
     this.runner = new BoxRunner({
       bwrap: this.detection.tools.bwrap,
       bridge: { socat: this.detection.tools.socat, bridgeScript: BOX_BRIDGE_SCRIPT, node: process.execPath },
-      setup: { dataDir: options.dataDir, home: options.home, codeRoots: options.codeRoots ?? defaultCodeRoots(), engineRoots: options.engineRoots ?? engineInstallRoots(options.dataDir), bridges },
+      setup: {
+        dataDir: options.dataDir, home: options.home, codeRoots: [...(options.codeRoots ?? defaultCodeRoots()), ...extraCodeRoots(env)],
+        engineRoots: options.engineRoots ?? engineInstallRoots(options.dataDir), bridges,
+        ...(this.required ? { fence: requiredFence(options.home, options.dataDir) } : {}),
+      },
+      ...(this.required ? { engineHome: engineHomeDir(options.dataDir) } : {}),
       denyEnv: options.denyEnv, seccompFile: this.seccompFile,
       broker: { port: BOX_BROKER_PORT, mintForProcess: this.credentials.mintForProcess, revoke: this.credentials.revoke },
     });
-    log(`bot box: on (bubblewrap, ${this.detection.tools.socat ? "socat" : "node"} bridges, credential broker, seccomp ${this.seccompFile ? "on" : "unsupported here"})`);
+    log(`bot box: on${this.required ? " and required (engine home, fenced)" : ""} (bubblewrap, ${this.detection.tools.socat ? "socat" : "node"} bridges, credential broker, seccomp ${this.seccompFile ? "on" : "unsupported here"})`);
     return this.detection;
   }
 
@@ -253,7 +291,10 @@ export class BotBox {
 
   /** The box for one spawn, or null when turns are not boxed here. */
   wrap(request: BoxRequest): WrappedSpawn | null {
-    if (!this.runner) return null;
+    if (!this.runner) {
+      if (this.required) throw new Error(`This server runs every bot's turn in its bot box, and the box cannot start here (${this.detection.reason ?? "not started"}). Check bubblewrap on the server.`);
+      return null;
+    }
     const wrapped = this.runner.wrap(request);
     this.boxed += 1;
     for (const name of wrapped.unbrokered) this.unbrokered.add(name);
@@ -261,6 +302,9 @@ export class BotBox {
   }
 
   enabled(): boolean { return this.runner !== null; }
+
+  /** True when no bot's turn may run unboxed here (OMB_BOT_BOX=required), whether or not the box started. */
+  isRequired(): boolean { return this.required; }
 
   /** The box a bot's Chrome runs in: the system read-only, private /tmp and /run, the host's network (the browser's own
    * gate filters it), `ro` paths, and nothing of HOME or the data folder; the launcher binds the one profile it starts
@@ -309,6 +353,11 @@ export class BotBox {
     this.seccompFile = null;
     this.runner = null;
   }
+}
+
+/** The engines' HOME on a host whose box is required: inside the data folder, so the box hides it from everything else. */
+export function engineHomeDir(dataDir: string): string {
+  return join(resolve(dataDir), "engine-home");
 }
 
 export const botBox = new BotBox();
