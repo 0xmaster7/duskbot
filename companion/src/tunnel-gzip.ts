@@ -19,6 +19,11 @@ export function gzipTunnelReplies<T>(handle: (req: IncomingMessage, res: ServerR
   };
 }
 
+/** Whether this reply goes out on a tunnel listener or to a forwarded request. */
+export function isTunnelReply(res: ServerResponse): boolean {
+  return tunnelReplies.has(res);
+}
+
 /** Whether Accept-Encoding takes gzip: named, or covered by `*`, with a q above 0. A named gzip outranks `*`. */
 export function acceptsGzip(header: string | string[] | undefined): boolean {
   let named: number | undefined;
