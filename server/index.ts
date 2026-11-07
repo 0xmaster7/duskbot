@@ -95,6 +95,7 @@ import { DataFailure } from "./data/types.ts";
 import { TeamComputers, teamComputerOwner, type TeamComputerRecord } from "./team-computers.ts";
 import { teamComputerVpsTarget } from "./team-computer-vps.ts";
 import { initialVpsMode, sharedVpsDefaults, vpsIdleTimeoutMinutes } from "./shared-vps-defaults.ts";
+import { BOT_DESKTOP_BUILDING, type BotDesktopProgress } from "./bot-desktop.ts";
 import { createVpsIdleManager, type VpsIdleTarget } from "./vps-idle.ts";
 import { compareVpsContainerStarts } from "./vps-container-start.ts";
 import { createSharedScreenBroker, type IndependentScreenLease, type ScreenContainer } from "./shared-desktop-screens.ts";
@@ -5953,7 +5954,7 @@ async function mountTeamVps(computer: TeamComputerRecord, botId: string, owner: 
   let remote: vps.VpsComputerStatus;
   try {
     remote = canStart
-      ? await vps.vpsComputerAction("provision", target.config, target.ownerId, undefined, { stillAllowed: () => teamComputerTurns.get(owner.threadId) === turn && activeInternalGenerationByThread.get(owner.threadId) === owner.generation, onStarting: () => computerStateChanged(target.ownerId, vpsSshAlias(target.config)!, "starting", undefined, botId) })
+      ? await vps.vpsComputerAction("provision", target.config, target.ownerId, undefined, { stillAllowed: () => teamComputerTurns.get(owner.threadId) === turn && activeInternalGenerationByThread.get(owner.threadId) === owner.generation, onStarting: () => computerStateChanged(target.ownerId, vpsSshAlias(target.config)!, "starting", undefined, botId), onProgress: announceDesktopBuild(owner.threadId) })
       : await vps.vpsComputerStatus(target.config, target.ownerId, undefined, { fresh: true });
     requireCurrent();
   } catch (error) {
@@ -6007,6 +6008,10 @@ async function mountHostComputer(owner: TurnOwner, botId: string, providerSuppor
   return gatedLocalComputer(cua, controlIntegration(botId, owner.threadId, owner.generation, "this computer"));
 }
 
+function announceDesktopBuild(threadId: string): (step: BotDesktopProgress) => void {
+  return (step) => { if (step === "building") store.appendMessage(threadId, { role: "bot", kind: "activity", tool: { name: BOT_DESKTOP_BUILDING } }); };
+}
+
 async function mountBotVps(
   bot: BotRecord,
   owner: TurnOwner,
@@ -6014,7 +6019,7 @@ async function mountBotVps(
 ) {
   const botVpsConfig = vpsConfigForBot(cfg, bot);
   const vpsResource = `computer:vps:${vpsSshAliasForBot(cfg, bot)}:${bot.id}`;
-  const remote = await (opts.start ? vps.vpsComputerAction("provision", botVpsConfig, bot.id, undefined, { stillAllowed: () => activeInternalGenerationByThread.get(owner.threadId) === owner.generation, onStarting: () => computerStateChanged(bot.id, vpsSshAlias(botVpsConfig)!, "starting") }) : vps.inspectVpsForAuto(botVpsConfig, bot.id));
+  const remote = await (opts.start ? vps.vpsComputerAction("provision", botVpsConfig, bot.id, undefined, { stillAllowed: () => activeInternalGenerationByThread.get(owner.threadId) === owner.generation, onStarting: () => computerStateChanged(bot.id, vpsSshAlias(botVpsConfig)!, "starting"), onProgress: announceDesktopBuild(owner.threadId) }) : vps.inspectVpsForAuto(botVpsConfig, bot.id));
   if (!remote?.ready || !remote.sshAlias) return { problem: remote?.problem ?? null, reachable: remote?.daemonUp === true, outdated: vpsDesktopOutdated(remote) };
   const targetCfg = { vps: { sshAlias: remote.sshAlias } };
   await rememberVpsReady(bot.id, remote, opts.start);

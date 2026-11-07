@@ -13,6 +13,9 @@ import {
   BOT_DESKTOP_NETWORK_LABEL,
   BOT_DESKTOP_VERSION,
 } from "../shared/bot-desktop.ts";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import { CUA_DRIVER_VERSION, DRIVER_LABEL, dockerSecurityIsHardened, type DockerHardeningConfig } from "./container-computer.ts";
 import { PIDS_LIMIT } from "./container-limits.ts";
 
@@ -225,15 +228,59 @@ interface BotDesktopPreparation {
   hostAddresses: string[];
 }
 
-const pendingPreparations = new Map<string, Promise<BotDesktopPreparation | false>>();
+const pendingPreparations = new Map<string, Promise<BotDesktopPreparation>>();
 
-async function prepareBotDesktop(run: DockerRun, imageId: string | null): Promise<BotDesktopPreparation | false> {
+export type BotDesktopProgress = "pulling" | "building";
+
+/** Shown in the bot's chat while this server builds its own copy of the bot computer image. */
+export const BOT_DESKTOP_BUILDING =
+  "Building the bot computer on this VPS from the copy that came with the app, once per app version; it usually takes a few minutes.";
+
+/**
+ * The build folder for BOT_DESKTOP_IMAGE that ships with this server (deploy/bot-desktop beside dist-server or server),
+ * or OMB_BOT_DESKTOP_KIT. Null unless its Dockerfile builds exactly BOT_DESKTOP_VERSION and docker can read it (not in an asar).
+ */
+export function botDesktopKit(env: NodeJS.ProcessEnv = process.env): string | null {
+  const dir = env.OMB_BOT_DESKTOP_KIT?.trim() ? resolve(env.OMB_BOT_DESKTOP_KIT.trim()) : fileURLToPath(new URL("../deploy/bot-desktop", import.meta.url));
+  if (dir.split(sep).some((part) => part.endsWith(".asar"))) return null;
+  const dockerfile = `${dir}${sep}Dockerfile`;
+  if (!existsSync(dockerfile)) return null;
+  try {
+    return new RegExp(`^ARG BOT_DESKTOP_VERSION=${BOT_DESKTOP_VERSION}$`, "m").test(readFileSync(dockerfile, "utf8")) ? dir : null;
+  } catch {
+    return null;
+  }
+}
+
+function unavailable(message: string): Error {
+  return Object.assign(new Error(message), { status: 409, code: "bot_desktop_unavailable" });
+}
+
+function lastLine(error: unknown): string {
+  const text = (error instanceof Error ? error.message : String(error)).trim().split("\n").filter(Boolean).at(-1) ?? "";
+  return text.length > 300 ? `${text.slice(0, 297)}...` : text;
+}
+
+/** Pulls BOT_DESKTOP_IMAGE, else builds it on the docker host from the kit this server ships; refuses clearly when neither works. */
+async function obtainBotDesktopImage(run: DockerRun, onProgress?: (step: BotDesktopProgress) => void): Promise<void> {
+  onProgress?.("pulling");
+  const pullError = await run(["pull", BOT_DESKTOP_IMAGE], 15 * 60_000).then(() => null, (error: unknown) => error);
+  if (!pullError) return;
+  const kit = botDesktopKit();
+  if (!kit) {
+    throw unavailable(`The bot computer image ${BOT_DESKTOP_IMAGE} is not on the VPS and could not be downloaded (${lastLine(pullError)}), and this app has no copy of its build kit. Build it on the VPS with deploy/bot-desktop/build.sh, or update the server from the link service. Nothing was created.`);
+  }
+  onProgress?.("building");
+  try {
+    await run(["build", "--build-arg", `BOT_DESKTOP_VERSION=${BOT_DESKTOP_VERSION}`, "-t", BOT_DESKTOP_IMAGE, kit], 45 * 60_000);
+  } catch (error) {
+    throw unavailable(`The bot computer image ${BOT_DESKTOP_IMAGE} could not be downloaded, and building it on the VPS failed: ${lastLine(error)}. Docker needs BuildKit (docker-buildx) for this build. Nothing was created.`);
+  }
+}
+
+async function prepareBotDesktop(run: DockerRun, imageId: string | null, onProgress?: (step: BotDesktopProgress) => void): Promise<BotDesktopPreparation> {
   if (!imageId) {
-    try {
-      await run(["pull", BOT_DESKTOP_IMAGE], 15 * 60_000);
-    } catch {
-      return false;
-    }
+    await obtainBotDesktopImage(run, onProgress);
     const [image] = JSON.parse((await run(["image", "inspect", BOT_DESKTOP_IMAGE], 20_000)).stdout) as Array<{
       Id?: string;
       Config?: { Labels?: Record<string, string> };
@@ -274,20 +321,20 @@ export async function provisionBotDesktop(run: DockerRun, input: {
   labels: string[];
   viewerSecret: string;
   hostKey?: string;
-}): Promise<BotDesktopMode | false> {
+  onProgress?: (step: BotDesktopProgress) => void;
+}): Promise<BotDesktopMode> {
   const key = input.hostKey ? JSON.stringify([input.hostKey, input.imageId, process.env.OPENMAUSBOT_VPS_GVISOR, process.env.OPENMAUSBOT_VPS_BOX]) : null;
   let preparation = key ? pendingPreparations.get(key) : undefined;
   if (!preparation) {
-    preparation = prepareBotDesktop(run, input.imageId);
+    preparation = prepareBotDesktop(run, input.imageId, input.onProgress);
     if (key) pendingPreparations.set(key, preparation);
   }
-  let prepared: BotDesktopPreparation | false;
+  let prepared: BotDesktopPreparation;
   try {
     prepared = await preparation;
   } finally {
     if (key && pendingPreparations.get(key) === preparation) pendingPreparations.delete(key);
   }
-  if (!prepared) return false;
   await run(botDesktopRunArgs({ ...input, imageRef: prepared.imageId, mode: prepared.mode, runtime: prepared.runtime, blockedHostAddresses: prepared.hostAddresses }), 2 * 60_000);
   return prepared.mode;
 }
