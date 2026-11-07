@@ -1,4 +1,4 @@
-# OpenMausBot bot desktop: a small dark Linux desktop for one bot, driven by Cua Driver and viewed through noVNC.
+# OpenMausBot bot desktop: a small dark Linux desktop for a workspace or bot, driven by Cua Driver and viewed through noVNC.
 # Multi-arch (linux/amd64, linux/arm64). Build: deploy/bot-desktop/build.sh
 ARG DEBIAN=debian:trixie-slim
 
@@ -18,6 +18,24 @@ RUN set -eux; mkdir -p /out/icons; \
     magick "$src" -background black -alpha remove -alpha off -filter Lanczos -resize "${RESOLUTION}^" \
       -gravity center -extent "${RESOLUTION}" -colorspace Gray /out/wallpaper.png; \
     for icon in browser tools terminal; do rsvg-convert -w 68 -h 68 "/src/icons/$icon.svg" -o "/out/icons/$icon.png"; done
+
+FROM ${DEBIAN} AS driver
+ARG TARGETARCH
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends binutils ca-certificates curl python3 \
+ && rm -rf /var/lib/apt/lists/*
+RUN set -eux; \
+    case "${TARGETARCH:-$(dpkg --print-architecture)}" in \
+      amd64) url='https://files.pythonhosted.org/packages/3b/b0/97f6d8828b8a6ca3649ad7150ddbc23addde56f014c9bd407876484ecb8d/cua_driver-0.37.0-py3-none-manylinux_2_31_x86_64.whl'; sha='e530ee36226d99516ef7ec696ba31d516e487ae5e5effdd5e2610c56af3eee19' ;; \
+      arm64) url='https://files.pythonhosted.org/packages/dc/33/81e2531353837f80358fbf56629a74f50d7f097af4b5f67626b0afce2d61/cua_driver-0.37.0-py3-none-manylinux_2_31_aarch64.whl'; sha='1a0103fd7fa5e9d51ee3ce26d502eb4187702282b3f4bcf1e9c09c6ce9f9d558' ;; \
+      *) echo "unsupported architecture" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "$url" -o /tmp/cua.whl; \
+    echo "$sha  /tmp/cua.whl" | sha256sum -c -; \
+    python3 -c 'import sys, zipfile; z = zipfile.ZipFile(sys.argv[1]); open(sys.argv[2], "wb").write(z.read("cua_driver/bin/cua-driver"))' /tmp/cua.whl /tmp/cua-driver; \
+    strip --strip-unneeded /tmp/cua-driver; \
+    install -D -m 0755 /tmp/cua-driver /out/cua-driver; \
+    rm -f /tmp/cua.whl /tmp/cua-driver
 
 FROM ${DEBIAN}
 ARG TARGETARCH
@@ -60,24 +78,13 @@ RUN set -eux; \
       noVNC-1.6.0/vendor noVNC-1.6.0/vnc.html noVNC-1.6.0/vnc_lite.html noVNC-1.6.0/LICENSE.txt; \
     rm -f /tmp/novnc.tgz
 
-# Cua Driver: the exact wheel the harness pins, checked by SHA-256, only its binary kept.
-RUN set -eux; \
-    case "${TARGETARCH:-$(dpkg --print-architecture)}" in \
-      amd64) url='https://files.pythonhosted.org/packages/3b/b0/97f6d8828b8a6ca3649ad7150ddbc23addde56f014c9bd407876484ecb8d/cua_driver-0.37.0-py3-none-manylinux_2_31_x86_64.whl'; sha='e530ee36226d99516ef7ec696ba31d516e487ae5e5effdd5e2610c56af3eee19' ;; \
-      arm64) url='https://files.pythonhosted.org/packages/dc/33/81e2531353837f80358fbf56629a74f50d7f097af4b5f67626b0afce2d61/cua_driver-0.37.0-py3-none-manylinux_2_31_aarch64.whl'; sha='1a0103fd7fa5e9d51ee3ce26d502eb4187702282b3f4bcf1e9c09c6ce9f9d558' ;; \
-      *) echo "unsupported architecture" >&2; exit 1 ;; \
-    esac; \
-    curl -fsSL "$url" -o /tmp/cua.whl; \
-    echo "$sha  /tmp/cua.whl" | sha256sum -c -; \
-    python3 -c 'import sys, zipfile; z = zipfile.ZipFile(sys.argv[1]); open(sys.argv[2], "wb").write(z.read("cua_driver/bin/cua-driver"))' /tmp/cua.whl /tmp/cua-driver; \
-    install -D -m 0755 /tmp/cua-driver /usr/local/libexec/openmausbot/cua-driver; \
-    rm -f /tmp/cua.whl /tmp/cua-driver; \
-    test "$(/usr/local/libexec/openmausbot/cua-driver --version)" = "cua-driver ${CUA_DRIVER_VERSION}"
+COPY --from=driver /out/cua-driver /usr/local/libexec/openmausbot/cua-driver
 
 # The harness's screenshot transfer runs /opt/venv/bin/python with Pillow; the system python has it.
 # Two modes (omb-init): "free" (the host fences the network, the bot has sudo and a writable root) and "strict" (the box
 # fences itself, read-only root, no sudo). Runtime state points into /run, /tmp or the home volume in both.
 RUN set -eux; \
+    test "$(/usr/local/libexec/openmausbot/cua-driver --version)" = "cua-driver ${CUA_DRIVER_VERSION}"; \
     install -d /opt/venv/bin; ln -s /usr/bin/python3 /opt/venv/bin/python; \
     useradd --uid 1000 --user-group --create-home --shell /bin/bash cua; \
     install -d -o cua -g cua -m 0700 /home/cua/Downloads /home/cua/workspace; \
