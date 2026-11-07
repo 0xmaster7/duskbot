@@ -1,6 +1,6 @@
 // Dev-only gallery of the question and approval cards on a Team Cloud, served at /question-cards-preview.html; not in
 // the packaged app. It mounts the real chat and inbox components over a fixed store, with no server behind it.
-// ?state=question|approval|open|answered|others&surface=chat|inbox|panel&skin=midnight|daylight&lang=de
+// ?state=question|approval|open|answered|others|signin|signin-vm|secret|settled&surface=chat|inbox|panel&skin=grok|midnight|daylight&lang=de
 import { StrictMode, useMemo, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import type { InboxRow, InboxView } from "../shared/inbox";
@@ -12,6 +12,7 @@ import { openInbox, setInboxView } from "@/state/inbox";
 import { initialState, StoreContext, type AppState, type Bot, type Message } from "@/state/store";
 import { setTeamPeople } from "@/state/team-people";
 import "./styles.css";
+import "./font-faces";
 
 const params = new URLSearchParams(location.search);
 const stateName = params.get("state") ?? "question";
@@ -54,8 +55,34 @@ const others = (): Message[] => [
   message("quiz", 4, { kind: "options", card: { title: "What should I call you?", subtitle: "", options: ["Cleo", "Cleo L.", "Ms Lee"] } }),
 ] as Message[];
 
+const SIGN_IN: NonNullable<Message["signIn"]> = { url: "https://the-internet.herokuapp.com/login", site: "the-internet.herokuapp.com", place: "browser", reason: "The secure area is behind a login." };
+const SECRET: NonNullable<Message["secret"]> = { target: "openaiImageApiKey", label: "OpenAI API key", description: "Generate a key at platform.openai.com. Ledger can use it but never read it back.",
+  placeholder: "sk-…", helpUrl: "https://platform.openai.com/api-keys", requestKey: "request-key-1" };
+const settledApproval = (id: string, minutes: number, answered: "allow" | "deny", subtitle: string): Message =>
+  message(id, minutes, { kind: "options", text: subtitle, card: { title: "Approval needed", subtitle, options: ["Allow", "Deny"], requestId: `req-${id}`, requestType: "permission", tool: "Bash", answered } });
+
+/** Every card a bot puts in the chat, one kind per state, for side by side shots with Grok's. */
+const cards = (state: string): Message[] | null => {
+  switch (state) {
+    case "signin": return [message("signin", 1, { kind: "signin", signIn: SIGN_IN })];
+    case "signin-vm": return [message("signin", 1, { kind: "signin", signIn: { ...SIGN_IN, place: "vm", reason: undefined } })];
+    case "secret": return [message("secret", 1, { kind: "secret", secret: SECRET })];
+    case "settled": return [
+      message("signin-done", 1, { kind: "signin", signIn: { ...SIGN_IN, done: true, resumed: true } }),
+      message("signin-skip", 2, { kind: "signin", signIn: { ...SIGN_IN, site: "amazon.com", cancelled: true, resumed: true } }),
+      message("secret-done", 3, { kind: "secret", secret: { ...SECRET, provided: true, resumed: true } }),
+      settledApproval("allowed", 4, "allow", "ls ~/Desktop"),
+      settledApproval("denied", 5, "deny", "rm -rf build"),
+      message("ask", 6, { kind: "options", text: QUESTION, card: questionCard(CHOICES[0]) }),
+    ];
+    default: return null;
+  }
+};
+
 function ledgerMessages(state: string): Message[] {
   if (state === "others") return others();
+  const only = cards(state);
+  if (only) return only;
   const rows: Message[] = [
     message("brief", 0, { role: "bot", from: { botId: "scout", name: "Scout", color: "orange" }, roomRequest: { id: "job-1", phase: "request" },
       text: "@Ledger Please apply the fix to the pricing page: on branch fix/pricing-page-footer, with a PR into main." }),
