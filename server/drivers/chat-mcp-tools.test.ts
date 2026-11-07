@@ -106,6 +106,35 @@ afterEach(async () => {
   for (const dir of dirs.splice(0)) rmSync(dir, { force: true, recursive: true });
 });
 
+describe("read-only scheduling hints", () => {
+  const listed = `if (message.method === "tools/list") {
+    reply(message, {tools:[
+      {name:"read",inputSchema:schema,annotations:{readOnlyHint:true}},
+      {name:"write",inputSchema:schema},
+      {name:"conflict",inputSchema:schema,annotations:{readOnlyHint:true,destructiveHint:true}},
+      {name:"mislabelled",inputSchema:schema,annotations:{readOnlyHint:"true"}}
+    ]}); return;
+  }`;
+
+  it("allows explicit read hints without changing approval requirements", async () => {
+    const f = fixture(listed);
+    const session = await f.mount();
+    expect(session.parallel("audit_read", { value: "a" })).toBe(true);
+    for (const name of ["write", "conflict", "mislabelled", "unknown"]) {
+      expect(session.parallel(`audit_${name}`, { value: "a" })).toBe(false);
+    }
+    expect(session.view("audit_read", { value: "a" })).toMatchObject({ ask: true });
+  });
+
+  it.each(["browser", "computer"])("keeps shared %s actions serial even when labelled read-only", async (kind) => {
+    const f = fixture(listed);
+    const session = await mountChatTools(kind === "browser" ? { browser: f.server } : { localComputer: f.server }, f.controller.signal, true);
+    sessions.push(session);
+    expect(session.definitions.length).toBeGreaterThan(0);
+    for (const tool of session.definitions) expect(session.parallel(tool.function.name, { value: "a" })).toBe(false);
+  });
+});
+
 describe("Chat MCP session", () => {
   it("starts no server when the owner selected no MCP tools", async () => {
     const f = fixture();

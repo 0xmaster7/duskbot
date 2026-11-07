@@ -95,6 +95,16 @@ incoming-route panel or mandatory discussion. The existing **Finish together** g
 remains unchanged and owns its own teammate turns; it does not run a competing
 handoff loop inside those turns.
 
+Ordinary bot turns also receive guidance to contact reachable teammates when
+their task needs a teammate's knowledge or independent work, without waiting
+for the person to name that teammate. Questions use `consult: true`, useful
+one-way updates use `reply: "none"`, and independent assignments can be sent
+together. Existing peer approval, visibility, depth and task limits apply.
+`server/peer-allowlist.e2e.test.ts` captures this prompt in a real isolated
+fake-engine turn and checks the roster and endpoint scope. It proves the
+available capability and delivered guidance, not a live model's choice to
+delegate any particular task.
+
 The tools are `list_room_targets` and `coordinate_bots`. Discovery includes
 reachable bots as well as rooms. The latter addresses 1–4 existing bots in this
 room (default), or — in ordinary direct chat without a room — the sender's one

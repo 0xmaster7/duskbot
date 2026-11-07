@@ -141,6 +141,7 @@ const asError = (value: unknown): Error =>
 
 const MAX_CHAT_ROUNDS = 64;
 const MAX_TURN_TOOL_CALLS = 200;
+const MAX_PARALLEL_READS = 4;
 const MAX_ANNOUNCEMENT_NUDGES = 3;
 const stoppedAfter = (count: string) =>
   `Stopped after ${count} without a final answer. The steps so far already ran, so ask only for what's left.`;
@@ -787,12 +788,22 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
           // failed step still shows as failed; a failure in the last calls before the answer, or a person's no, still ends it.
           if (!denials.length) { toolFailed = false; failedCalls.length = 0; }
           const screenshotParts: ChatContentPart[] = [];
-          for (const call of completion.toolCalls) {
-            abort.signal.throwIfAborted();
+          const session = tools;
+          const parallelRead = (call: ChatToolCall): boolean => {
+            if (call.function.name === ASK_USER_TOOL) return false;
+            try {
+              const args = object(JSON.parse(call.function.arguments));
+              if (!args || !session.parallel(call.function.name, args)) return false;
+              const shown = session.view(call.function.name, args);
+              return (turn.approvalModeNow?.() ?? turn.approvalMode) === "full" || !shown.ask || approval.covered(shown.grant);
+            } catch { return false; }
+          };
+          const executeCall = async (call: ChatToolCall) => {
             let result: ChatToolResult;
             let started = false;
             let fatal: Error | undefined, title = call.function.name, skipRepeatCount = false;
             try {
+              abort.signal.throwIfAborted();
               let args: unknown;
               try { args = JSON.parse(call.function.arguments); }
               catch { throw new ChatProtocolError("tool arguments are not complete JSON"); }
@@ -822,8 +833,8 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
               } else {
                 const refused = repeats?.refuses(call.function.name, call.function.arguments);
                 if (refused) { skipRepeatCount = true; throw new Error(refused); }
-                tools.validate(call.function.name, args);
-                const shown = tools.view(call.function.name, args as Record<string, unknown>); title = shown.title;
+                session.validate(call.function.name, args);
+                const shown = session.view(call.function.name, args as Record<string, unknown>); title = shown.title;
                 const shownPreview = shown.input === args ? inputPreview : preview(shown.input);
                 // This runtime has no provider reviewer, so Full access is honoured here.
                 const full = (turn.approvalModeNow?.() ?? turn.approvalMode) === "full";
@@ -836,7 +847,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
                 });
                 started = true;
                 if (allowed) {
-                  result = await tools.execute(call.function.name, args as Record<string, unknown>, abort.signal);
+                  result = await session.execute(call.function.name, args as Record<string, unknown>, abort.signal);
                   if (result.images?.length && !seesImages(turn)) {
                     const { images: _dropped, ...rest } = result;
                     result = { ...rest, text: `${rest.text}\n${TEXT_ONLY_SCREENSHOT_NOTE}` };
@@ -861,14 +872,28 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
                 : safeText(asError(error).message).slice(0, 2_000) };
             }
             if (!started) emit({ ...base(turn.threadId, turnId), type: "item.started", itemType: "tool", itemId: call.id, title: call.function.name });
-            const repeatNote = skipRepeatCount ? undefined : repeats?.noteAfter(call.function.name, call.function.arguments, result);
             const text = safeText(result.text);
             const output = preview({ ok: result.ok, result: text });
             emit({ ...base(turn.threadId, turnId), type: "item.completed", itemType: "tool", itemId: call.id, ok: result.ok, output });
-            if (!result.ok) { toolFailed = true; failedCalls.push(title); }
-            messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify({ ok: result.ok, result: repeatNote ? `${text}\n\n${repeatNote}` : text }) });
-            screenshotParts.push(...chatToolImages(call.id, result.images));
+            return { call, result, text, title, fatal, skipRepeatCount };
+          };
+          for (let index = 0; index < completion.toolCalls.length;) {
             abort.signal.throwIfAborted();
+            const batch = [completion.toolCalls[index++]!];
+            if (parallelRead(batch[0]!)) {
+              while (batch.length < MAX_PARALLEL_READS && index < completion.toolCalls.length && parallelRead(completion.toolCalls[index]!)) {
+                batch.push(completion.toolCalls[index++]!);
+              }
+            }
+            const results = await Promise.all(batch.map(executeCall));
+            for (const { call, result, text, title, skipRepeatCount } of results) {
+              const repeatNote = skipRepeatCount ? undefined : repeats?.noteAfter(call.function.name, call.function.arguments, result);
+              if (!result.ok) { toolFailed = true; failedCalls.push(title); }
+              messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify({ ok: result.ok, result: repeatNote ? `${text}\n\n${repeatNote}` : text }) });
+              screenshotParts.push(...chatToolImages(call.id, result.images));
+            }
+            abort.signal.throwIfAborted();
+            const fatal = results.find((result) => result.fatal)?.fatal;
             if (fatal) throw fatal;
             if (repeats?.stopped) { stopReason = "incomplete_action"; throw new ChatProtocolError(repeats.stopped); }
           }

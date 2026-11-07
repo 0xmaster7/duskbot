@@ -82,6 +82,18 @@ cover it with real stdio servers:
 pnpm exec vitest run server/drivers/chat-mcp-tools.test.ts server/drivers/openai-chat-tools.test.ts
 ```
 
+In a provider's tool-call batch, up to four adjacent explicitly read-only MCP
+calls run together. Results return to the provider in its original call order.
+Writes, questions, unannotated tools, directory calls and the built-in browser
+and computer remain ordered barriers. Calls that still need an approval card
+also stay serial. Read-only annotations affect scheduling only; schema, tool
+selection, approval and safety-floor checks still run for every call.
+
+The gated driver fixtures hold four reads open at once, release them out of
+order, and prove that a fifth read and a following write wait. They also prove
+that denial and Stop prevent a later operation from being dispatched. These
+are synthetic protocol checks, not a live-provider latency benchmark.
+
 The harness proves the OpenAI-compatible adapter and the shared execution
 path. It does not establish that every third-party model supports tools, or
 that live Grok and MiniMax services accept a particular schema. Model support

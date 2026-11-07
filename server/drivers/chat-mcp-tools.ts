@@ -47,12 +47,14 @@ export interface ChatToolSession {
   validate(name: string, args: unknown): void;
   /** Directory reads and OpenMausBot's own agents server need no card; call_tool shows the tool it runs. */
   view(name: string, args: Record<string, unknown>): ChatToolCallView;
+  /** Scheduling only: explicitly read-only calls may overlap. This never changes approval or scope checks. */
+  parallel(name: string, args: Record<string, unknown>): boolean;
   execute(name: string, args: Record<string, unknown>, signal: AbortSignal): Promise<ChatToolResult>;
   close(): Promise<void>;
 }
 
 type Server = { command: string; args: string[]; env: Record<string, string> };
-type RegisteredTool = { client: ChatMcpClient; server: string; launch: string; builtInBrowser: boolean; agents: boolean; hostComputer: boolean; name: string; schema: ValidateFunction; searched: boolean };
+type RegisteredTool = { client: ChatMcpClient; server: string; launch: string; builtInBrowser: boolean; agents: boolean; computer: boolean; hostComputer: boolean; name: string; schema: ValidateFunction; searched: boolean; parallel: boolean };
 function chatToolName(server: string, tool: string): string {
   return `${server}_${tool}`.toLowerCase().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 64) || "mcp_tool";
 }
@@ -337,7 +339,10 @@ function omitBlankDefaults(builtInBrowser: boolean, tool: string, args: unknown)
 }
 
 type CheckedTool = { tool: Record<string, unknown> & { name: string; inputSchema: Record<string, unknown> }; schema: ValidateFunction };
-type ToolOrigin = Omit<RegisteredTool, "name" | "schema">;
+type ToolOrigin = Omit<RegisteredTool, "name" | "schema" | "parallel">;
+const parallelRead = (origin: ToolOrigin, tool: Record<string, unknown>): boolean =>
+  !origin.builtInBrowser && !origin.computer && object(tool.annotations)
+  && tool.annotations.readOnlyHint === true && tool.annotations.destructiveHint !== true;
 const ARGUMENTS_MISFIT = "Tool arguments do not match the advertised input schema; use its required fields and types";
 
 function checkedTools(tools: readonly unknown[]): CheckedTool[] {
@@ -443,7 +448,7 @@ export async function mountChatTools(integrations: SendTurnInput["integrations"]
       const description = (typeof listed.description === "string" ? listed.description : "Configured MCP tool") +
         (Object.keys(constraints).length ? " Additional argument constraints (validated before execution): " + JSON.stringify(constraints) : "");
       const name = uniqueName(chatToolName(origin.server, tool.name), (candidate) => registered.has(candidate) || staged.some((entry) => entry.definition.function.name === candidate));
-      staged.push({ tool: { ...origin, name: tool.name, schema }, definition: { type: "function", function: { name, description, parameters } } });
+      staged.push({ tool: { ...origin, name: tool.name, schema, parallel: parallelRead(origin, tool) }, definition: { type: "function", function: { name, description, parameters } } });
     }
     if (Buffer.byteLength(JSON.stringify([...definitions, ...staged.map((entry) => entry.definition)])) > CATALOG_BYTES) throw new Error("MCP tool catalog exceeds the 1MB limit");
     for (const { tool, definition } of staged) {
@@ -456,7 +461,7 @@ export async function mountChatTools(integrations: SendTurnInput["integrations"]
       for (const [alias, { tools: targets }] of Object.entries(AGENTS_TOOL_ALIASES)) {
         const listed = staged.find((entry) => targets.includes(entry.tool.name));
         const name = chatToolName(origin.server, alias);
-        if (listed && !registered.has(name)) registered.set(name, { ...listed.tool, name: alias, schema: compileToolSchema({ type: "object" }) });
+        if (listed && !registered.has(name)) registered.set(name, { ...listed.tool, name: alias, parallel: false, schema: compileToolSchema({ type: "object" }) });
       }
     }
   };
@@ -478,6 +483,7 @@ export async function mountChatTools(integrations: SendTurnInput["integrations"]
       // hashes the descriptor (no credential kept); machine bridges mint a bearer per turn, so theirs last a turn.
       const launch = createHash("sha256").update(JSON.stringify(descriptor)).digest("hex");
       const origin: ToolOrigin = { client, server: name, launch, builtInBrowser: descriptor === integrations?.browser, agents: descriptor === agentsServer,
+        computer: descriptor === integrations?.localComputer,
         hostComputer: descriptor === integrations?.localComputer && integrations?.localComputer?.scope === "local-computer", searched: searchable.has(name) };
       return { origin, tools };
     }));
@@ -529,7 +535,7 @@ export async function mountChatTools(integrations: SendTurnInput["integrations"]
       for (const { origin, tools } of searched) {
         for (const { tool, schema } of tools) {
           const name = uniqueName(chatToolName(origin.server, tool.name), (candidate) => catalog.has(candidate));
-          catalog.set(name, { ...origin, name: tool.name, schema });
+          catalog.set(name, { ...origin, name: tool.name, schema, parallel: parallelRead(origin, tool) });
           entries.push({ ...tool, name });
         }
       }
@@ -618,6 +624,11 @@ export async function mountChatTools(integrations: SendTurnInput["integrations"]
   const answer = (result: DirectoryResult): ChatToolResult => ({ text: boundedText(result.content.map((part) => part.text).join("\n")), ok: result.isError !== true });
   return {
     definitions, skipped, trimmed, budget, validate, view, close,
+    parallel(name, args) {
+      if (directoryNames.has(name)) return false;
+      const tool = registered.get(name);
+      return tool?.parallel === true && !selectionExcludes(tool, args);
+    },
     async execute(name, args, callSignal) {
       validate(name, args);
       if (callSignal.aborted) { await close(); throw aborted(); }

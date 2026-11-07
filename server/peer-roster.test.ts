@@ -259,6 +259,9 @@ describe("peerRosterSystemPrompt", () => {
     expect(prompt).not.toMatch(/allowed peer|team membership|under Permissions/i);
     expect(prompt).toContain("coordinate_bots with a teammate's bot id");
     expect(prompt).toContain("consult: true");
+    expect(prompt).toContain("without waiting for the person to name them or tell you to contact them");
+    expect(prompt).toContain("while honoring any approval the tool requires");
+    expect(prompt).toContain('reply: "none"');
     expect(prompt).not.toMatch(/\b(delegate_bot|ask_bot|send_to_bot|check_delegation|wait_delegation)\b/);
     expect(prompt).toContain("peers, not staff");
     expect(prompt).not.toContain("create_bot");
