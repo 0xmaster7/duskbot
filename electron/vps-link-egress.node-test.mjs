@@ -195,13 +195,25 @@ test("http connect works the same way", { timeout: 10_000 }, async () => {
   } finally { await target.close(); }
 });
 
-test("a refused destination fails the request at once, so the browser goes direct for it", { timeout: 10_000 }, async () => {
+test("a destination this computer refuses fails only that request: never a direct fallback, the proxy stays in use", { timeout: 10_000 }, async () => {
   const target = await fixture();
   try {
-    assert.equal((await socks(target.port, "lan.example", 443)).reply, 2);
-    assert.equal((await socks(target.port, "site.example", 22)).reply, 2);
-    assert.equal((await socks(target.port, "localhost", 443)).reply, 2);
+    for (const [host, port] of [["lan.example", 443], ["site.example", 22], ["localhost", 443], ["gone.example", 443]]) {
+      const { socket, reply, read } = await socks(target.port, host, port);
+      // chromium skips a proxy for minutes after any failure reply; success then close fails just this connection
+      assert.equal(reply, 0, host);
+      assert.equal(await read(1), null, host);
+      socket.destroy();
+    }
     assert.deepEqual(target.dials, []);
+    assert.equal(target.agent.egress.stats().fallbacks, 0);
+    const http = connect({ port: target.port, host: "127.0.0.1" });
+    await once(http, "connect");
+    http.write("CONNECT lan.example:443 HTTP/1.1\r\n\r\n");
+    let text = "";
+    http.on("data", (chunk) => { text += chunk; });
+    await once(http, "close");
+    assert.match(text, /^HTTP\/1\.1 403 /);
   } finally { await target.close(); }
 });
 

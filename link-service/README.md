@@ -101,10 +101,12 @@ says hello again. It applies to new connections only.
   only to the addresses it checked (no second lookup, so DNS rebinding changes nothing). At most 128 streams, 600 new
   streams a minute and 8 MiB/s down; idle streams close after 5 minutes. No UDP.
 - The agent never dials anything itself (a box must not reach this host past the host fence). It listens only on the
-  bridge's address, refuses the bridge's own address (so processes on the host cannot use it), and answers every
-  request with a SOCKS or HTTP failure at once when the setting is off or the app has not said hello for 40 s or did
-  not answer a dial within 8 s. Chromium then falls back to a direct connection for that request (and skips the proxy
-  for a few minutes; the server writes a fresh policy to undo that once the app is back).
+  bridge's address, refuses the bridge's own address (so processes on the host cannot use it), and answers with a
+  SOCKS failure at once when the setting is off, the app is at its stream cap, has not said hello for 40 s or did not
+  answer a dial within 8 s. Chromium (156) then falls back to a direct connection for that request and skips the proxy
+  for a few minutes; the server writes a fresh policy to undo that once the app is back. A destination the app refuses
+  or cannot reach (its own DNS may block ad domains, for one) gets a SOCKS success and an immediate close instead,
+  which fails only that request and keeps the proxy in use; HTTP CONNECT gets 403 or 502.
 - `host-fence.sh` lets the bridge reach TCP 3129 on the host (`omb-box-egress`); nothing else on the host.
 - The server (`server/computer-egress.ts`) takes the agent's report every 5 s (`POST /api/computer/egress/agent`,
   owner-trust loopback only), and writes `/etc/chromium/policies/managed/omb-egress.json` into each running bot

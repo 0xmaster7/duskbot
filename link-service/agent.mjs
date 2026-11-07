@@ -468,7 +468,11 @@ const EGRESS_SEEN_MS = 40_000;
 const EGRESS_DIAL_MS = 8000;
 const EGRESS_QUEUE_HIGH = 1024 * 1024;
 const EGRESS_HEAD_MAX = 8 * 1024;
-/** socks5 replies; every one but success makes chromium fall back to a direct connection for that request */
+/**
+ * socks5 replies. chromium 156 falls back to a direct connection on every failure reply and then skips the proxy for
+ * minutes, so only "this computer cannot take it" fails that way; a destination this computer refuses or cannot reach
+ * gets a success reply and an immediate close, which fails only that request.
+ */
 const SOCKS = { ok: 0, failure: 1, notAllowed: 2, unreachable: 4, refused: 5, command: 7, address: 8 };
 
 /** the bridge's own ipv4 address and subnet, or null while docker has not made it */
@@ -529,7 +533,7 @@ function readProxyHandshake(socket) {
         } else { socket.end(socksReply(SOCKS.address)); return finish(null); }
         if (version !== 5 || command !== 1) { socket.end(socksReply(SOCKS.command)); return finish(null); }
         const port = buffered.readUInt16BE(at);
-        return finish({ host, port, rest: buffered.subarray(at + 2), reply: (ok, code) => socket.write(socksReply(ok ? SOCKS.ok : code ?? SOCKS.failure)) });
+        return finish({ host, port, rest: buffered.subarray(at + 2), reply: (ok, code) => socket.write(socksReply(ok ? SOCKS.ok : code ?? SOCKS.failure)), fail: () => socket.end(socksReply(SOCKS.ok)) });
       }
       if (stage === "http") {
         const end = buffered.indexOf("\r\n\r\n");
@@ -541,6 +545,7 @@ function readProxyHandshake(socket) {
           host: match[1].replace(/^\[|\]$/g, ""), port: Number(match[2]), rest: buffered.subarray(end + 4),
           reply: (ok, code) => socket.write(ok ? "HTTP/1.1 200 Connection Established\r\n\r\n"
             : `HTTP/1.1 ${code === SOCKS.notAllowed ? "403 Forbidden" : "502 Bad Gateway"}\r\ncontent-length: 0\r\nconnection: close\r\n\r\n`),
+          fail: (code) => socket.end(`HTTP/1.1 ${code === SOCKS.notAllowed ? "403 Forbidden" : "502 Bad Gateway"}\r\ncontent-length: 0\r\nconnection: close\r\n\r\n`),
         });
       }
     };
@@ -587,8 +592,8 @@ export function createEgressProxy({
     if (!allowed(remote)) { socket.destroy(); return; }
     const asked = await readProxyHandshake(socket);
     if (!asked || stopped) { socket.destroy(); return; }
-    const refuse = (code) => { stats.refused += 1; stats.fallbacks += 1; asked.reply(false, code); socket.end(); };
-    if (!enabled || !online()) return refuse(SOCKS.failure);
+    const fallBack = () => { stats.refused += 1; stats.fallbacks += 1; asked.reply(false, SOCKS.failure); socket.end(); };
+    if (!enabled || !online()) return fallBack();
     const r = randomId();
     const answer = await new Promise((settle) => {
       const entry = { socket, settle, endSent: false, timer: setTimeout(() => {
@@ -604,7 +609,9 @@ export function createEgressProxy({
     const entry = streams.get(r);
     if (!answer.ok || !entry) {
       if (entry) { streams.delete(r); clearTimeout(entry.timer); if (answer.code === "timeout") send({ t: "cancel", r }); }
-      return refuse(egressCode(answer.code));
+      if (answer.code === "timeout" || answer.code === "busy" || answer.code === "closed") return fallBack();
+      stats.refused += 1;
+      return asked.fail(egressCode(answer.code));
     }
     stats.relayed += 1;
     asked.reply(true);
