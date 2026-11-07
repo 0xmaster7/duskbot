@@ -50,6 +50,7 @@ export interface ConfigStatus {
     mode?: "shared" | "per-bot";
     autoStart?: boolean;
     independentScreens?: boolean;
+    maxScreens?: number;
     idleTimeoutMinutes?: 0 | 5 | 10 | 30;
     sharingAllowed?: boolean;
     workspaceShared?: boolean;

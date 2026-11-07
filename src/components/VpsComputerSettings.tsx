@@ -5,7 +5,7 @@ import { t } from "@/lib/i18n";
 import { Card, ItemRow, NoteRow, SwitchRow } from "./ListRows";
 import { SettingsSelect } from "./SettingsSelect";
 
-type VpsPolicy = Pick<ConfigStatus["vps"], "mode" | "autoStart" | "idleTimeoutMinutes" | "independentScreens">;
+type VpsPolicy = Pick<ConfigStatus["vps"], "mode" | "autoStart" | "idleTimeoutMinutes" | "independentScreens" | "maxScreens">;
 
 export function VpsComputerSettings() {
   const { state } = useStore();
@@ -27,6 +27,8 @@ function VpsSettings() {
   const mode = draft?.mode ?? vps.mode ?? "shared";
   const autoStart = draft?.autoStart ?? vps.autoStart ?? true;
   const idle = draft?.idleTimeoutMinutes ?? vps.idleTimeoutMinutes ?? 10;
+  const independentScreens = draft?.independentScreens ?? vps.independentScreens ?? true;
+  const maxScreens = draft?.maxScreens ?? vps.maxScreens ?? 20;
   const serverPage = window.ogb?.remoteClient?.active === true || window.ogb?.app?.ownPage === false;
   const working = serverPage && state.connected;
   const save = async (patch: VpsPolicy) => {
@@ -62,7 +64,10 @@ function VpsSettings() {
       </ItemRow>
       {mode === "shared" && vps.sharingAllowed !== false && <details className="px-1">
         <summary className="cursor-pointer px-2 py-2 text-[13px] text-ink-secondary">{t("settings.simple.advanced")}</summary>
-        <SwitchRow title={t("settings.vps.independentScreens")} hint={t("settings.vps.independentScreensHint")} checked={draft?.independentScreens ?? vps.independentScreens ?? false} disabled={disabled} onChange={() => void save({ independentScreens: !(vps.independentScreens ?? false) })} />
+        <SwitchRow title={t("settings.vps.independentScreens")} hint={t("settings.vps.independentScreensHint")} checked={independentScreens} disabled={disabled} onChange={() => void save({ independentScreens: !independentScreens })} />
+        {independentScreens && <ItemRow title={t("settings.vps.maxScreens")} hint={t("settings.vps.maxScreensHint")}>
+          <SettingsSelect aria-label={t("settings.vps.maxScreens")} value={String(maxScreens)} disabled={disabled} onChange={(event) => void save({ maxScreens: Number(event.target.value) })} options={[...new Set([4, 10, 15, 20, maxScreens])].sort((left, right) => left - right).map((count) => ({ value: String(count), label: String(count) }))} />
+        </ItemRow>}
       </details>}
     </>}
     {owner === false && <NoteRow>{t("settings.adminOnly.change")}</NoteRow>}

@@ -10,9 +10,27 @@ import { openBotSettings } from "./bot-panel/panel-link";
 
 const MAX_FILES = 20;
 
-export function recentChangedFiles(bot: Bot, limit = MAX_FILES): string[] {
+export function automaticSystemFile(path: string, cwd?: string | null): boolean {
+  const normalized = path.replace(/\\/g, "/");
+  const parts = normalized.split("/");
+  if (parts.some((part) => [".git", ".cache", ".npm", ".pnpm-store", ".venv", "node_modules", "__pycache__", ".browser-profiles", ".ssh", ".DS_Store", ".Trash", ".openmausbot", ".mausbot", ".Xauthority", ".ICEauthority", ".xsession-errors"].includes(part))) return true;
+  if (/(?:^|\/)\.local\/(?:state|share|lib)(?:\/|$)/.test(normalized)) return true;
+  if (/(?:^|\/)\.config\/(?:chromium|openbox|tint2|Thunar|xfce4|OpenMausBot)(?:\/|$)/i.test(normalized)) return true;
+  const folder = cwd?.replace(/\\/g, "/").replace(/\/+$/, "");
+  const windows = /^[a-z]:\//i.test(normalized);
+  const inWorkspace = folder && (windows ? normalized.toLowerCase().startsWith(`${folder.toLowerCase()}/`) : normalized.startsWith(`${folder}/`));
+  if (inWorkspace) return false;
+  return /^\/(?:bin|sbin|usr|etc|proc|sys|dev|run|boot|lib|lib64|var|System|Library)(?:\/|$)/.test(normalized)
+    || /^[a-z]:\/(?:Windows|Program Files(?: \(x86\))?|ProgramData)(?:\/|$)/i.test(normalized)
+    || /\/(?:Library\/(?:Caches|Application Support\/OpenMausBot)|AppData\/(?:Local|Roaming)\/OpenMausBot)(?:\/|$)/i.test(normalized);
+}
+
+export function recentChangedFiles(bot: Bot, limit = MAX_FILES, showSystemFiles = false): string[] {
   const seen = new Set<string>();
   const files: string[] = [];
+  const shared = showSystemFiles ? null : sharedFileReferences(bot);
+  const task = bot.tasks?.find((candidate) => candidate.threadId === bot.threadId);
+  const cwd = task?.cwd === undefined ? bot.cwd : task.cwd;
   const messages = visibleMessages(bot);
   for (let index = messages.length - 1; index >= 0 && files.length < limit; index -= 1) {
     const digestFiles = messages[index]!.digest?.files;
@@ -21,6 +39,7 @@ export function recentChangedFiles(bot: Bot, limit = MAX_FILES): string[] {
     for (const path of [...digestFiles.added, ...digestFiles.changed]) {
       if (seen.has(path)) continue;
       seen.add(path);
+      if (!showSystemFiles && !shared?.has(path) && automaticSystemFile(path, cwd)) continue;
       files.push(path);
       if (files.length >= limit) break;
     }

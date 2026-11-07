@@ -19,7 +19,7 @@ const fixture = vi.hoisted(() => ({
   inline: false,
   cloudState: "running" as "running" | "stopped",
   statusReads: 0,
-  live: null as null | { target: string; expanded: boolean; onUnreachable: () => void; viewOnly?: boolean; onReadyChange?: (ready: boolean) => void },
+  live: null as null | { target: string; expanded: boolean; onUnreachable: () => void; viewOnly?: boolean; onReadyChange?: (ready: boolean) => void; onTakeControl?: () => void },
 }));
 vi.mock("./DesktopCapabilities", async (importOriginal) => ({
   ...await importOriginal<typeof import("./DesktopCapabilities")>(),
@@ -47,7 +47,7 @@ vi.mock("./CloudScreenPreview", () => ({
     createElement("button", { onClick: () => onRetry(false) }, "Retry live screen")),
 }));
 vi.mock("./LiveDesktop", () => ({
-  LiveDesktop: (props: { target: string; expanded: boolean; onUnreachable: () => void; viewOnly?: boolean; onReadyChange?: (ready: boolean) => void }) => {
+  LiveDesktop: (props: { target: string; expanded: boolean; onUnreachable: () => void; viewOnly?: boolean; onReadyChange?: (ready: boolean) => void; onTakeControl?: () => void }) => {
     fixture.live = props;
     useEffect(() => { fixture.connections++; props.onReadyChange?.(fixture.ready); }, [props.target]);
     return createElement("div", { "data-live-desktop": "", "data-target": props.target, "data-expanded": String(props.expanded), "data-view-only": String(props.viewOnly) });
@@ -354,6 +354,32 @@ describe("taking control of other computers", () => {
     expect(fixture.posts.filter(path => !path.endsWith("/screenshot"))).toEqual([]);
     await settle();
     expect(fixture.statusReads).toBe(reads + 1);
+  });
+
+  it.each(["preview", "button"])("keeps loading and watching inline, then expands on %s control", async (trigger) => {
+    fixture.inline = true;
+    fixture.ready = false;
+    await open(makeBot({ computer: "cloud" }));
+    await shownLive();
+    expect(document.querySelector("[data-computer-waking] [data-grok-state=working]")).not.toBeNull();
+    expect(liveDesktop()?.dataset.expanded).toBe("false");
+    expect(fixture.controls).toEqual([]);
+    flushSync(() => fixture.live!.onReadyChange?.(true));
+    await settle();
+    expect(document.querySelector("[data-computer-waking]")).toBeNull();
+    expect(liveDesktop()?.dataset.expanded).toBe("false");
+    expect(liveDesktop()?.dataset.viewOnly).toBe("true");
+    expect(fixture.controls).toEqual([]);
+    if (trigger === "preview") {
+      flushSync(() => fixture.live!.onTakeControl?.());
+      await settle();
+    } else await press("Take control");
+    expect(liveDesktop()?.dataset.expanded).toBe("true");
+    expect(liveDesktop()?.dataset.viewOnly).toBe("false");
+    expect(fixture.connections).toBe(1);
+    expect(fixture.controls[0]?.action).toBe("take");
+    expect(window.ogb!.desktopViewer!.open).not.toHaveBeenCalled();
+    expect(window.open).not.toHaveBeenCalled();
   });
 
   it("retries the inline live watch after a connection failure without taking control", async () => {

@@ -87,9 +87,15 @@ export async function fakeVnc() {
     port: (server.address() as { port: number }).port, keys, pointers,
     nextPointer: () => once(events, "pointer", { signal: AbortSignal.timeout(10_000) }),
     nextClipboard: () => once(events, "clipboard", { signal: AbortSignal.timeout(10_000) }),
+    async untilPointer(buttons: number) {
+      const signal = AbortSignal.timeout(10_000);
+      try { while (!pointers.some(pointer => pointer.buttons === buttons)) await once(events, "pointer", { signal }); }
+      catch { throw new Error(`Expected RFB button mask ${buttons}; received ${pointers.map(pointer => pointer.buttons).join(",")}`); }
+    },
     async untilKey(key: number) {
       const signal = AbortSignal.timeout(10_000);
-      while (!keys.includes(key)) await once(events, "key", { signal });
+      try { while (!keys.includes(key)) await once(events, "key", { signal }); }
+      catch { throw new Error(`Expected RFB key ${key}; received ${keys.join(",")}`); }
     },
     sendClipboard(text: string) {
       const bytes = Buffer.from(text, "latin1");

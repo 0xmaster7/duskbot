@@ -21,7 +21,7 @@ export interface LibraryItems {
 }
 
 /** What the bot made in the open conversation, newest first: its live published pages, its apps, and its files. */
-export function libraryItems(bot: Bot, messages: readonly Message[] = visibleMessages(bot)): LibraryItems {
+export function libraryItems(bot: Bot, messages: readonly Message[] = visibleMessages(bot), showSystemFiles = false): LibraryItems {
   const pages: LibraryItems["pages"] = [];
   const apps: LibraryItems["apps"] = [];
   const seenPages = new Set<string>();
@@ -41,7 +41,7 @@ export function libraryItems(bot: Bot, messages: readonly Message[] = visibleMes
     seenFiles.add(reference.file.path);
     shared.push(reference);
   }
-  const unshared = recentChangedFiles(bot).filter((path) => !references.has(path));
+  const unshared = recentChangedFiles(bot, undefined, showSystemFiles).filter((path) => !references.has(path));
   return { pages, apps, shared, unshared };
 }
 
@@ -168,11 +168,11 @@ function Group({ group, entries, now }: { group: GroupKey; entries: Entry[]; now
 }
 
 /** Everything the bot made in this conversation as Library rows, newest first, with when each was made. */
-function useLibraryEntries(bot: Bot): Entry[] {
+function useLibraryEntries(bot: Bot, showSystemFiles = false): Entry[] {
   const { dispatch } = useStore();
   const openPage = usePageOpener();
   const phone = !useMediaQuery(SIDEBAR_INLINE, true);
-  const items = useMemo(() => libraryItems(bot), [bot]);
+  const items = useMemo(() => libraryItems(bot, undefined, showSystemFiles), [bot, showSystemFiles]);
   const showInChat = (messageId: string) => {
     dispatch({ type: "focusMessage", threadId: bot.threadId, messageId });
     if (phone) dispatch({ type: "toggleSettings", open: false });
@@ -216,17 +216,23 @@ function useLibraryEntries(bot: Bot): Entry[] {
 
 /** Grok's Library: everything the bot made in this conversation, newest first, under Today, This week and Older. */
 export function LibraryPage({ bot }: { bot: Bot }) {
-  const entries = useLibraryEntries(bot);
+  return <LibraryPageContents key={`${bot.id}:${bot.threadId}`} bot={bot} />;
+}
+
+function LibraryPageContents({ bot }: { bot: Bot }) {
+  const [showSystemFiles, setShowSystemFiles] = useState(false);
+  const entries = useLibraryEntries(bot, showSystemFiles);
+  const hidden = useMemo(() => {
+    const shown = new Set(recentChangedFiles(bot, Infinity));
+    return recentChangedFiles(bot, Infinity, true).some((path) => !shown.has(path));
+  }, [bot]);
   const now = Date.now();
-  if (entries.length === 0) {
-    return (
-      <div data-panel-library="">
-        <PanelEmpty data-panel-empty="library">{t("botPanel.library.empty")}</PanelEmpty>
-      </div>
-    );
-  }
   return (
     <div data-panel-library="">
+      {hidden && <button type="button" aria-pressed={showSystemFiles} onClick={() => setShowSystemFiles((shown) => !shown)} className="mb-2 px-2 text-[12px] text-ink-secondary hover:text-ink">
+        {t(showSystemFiles ? "computer.files.hideSystem" : "computer.files.showSystem")}
+      </button>}
+      {entries.length === 0 && <PanelEmpty data-panel-empty="library">{t("botPanel.library.empty")}</PanelEmpty>}
       {GROUPS.map((group) => {
         const inGroup = entries.filter((entry) => libraryGroup(entry.at, now) === group);
         return inGroup.length > 0 && <Group key={group} group={group} entries={inGroup} now={now} />;

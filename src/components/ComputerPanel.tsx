@@ -138,7 +138,7 @@ export function ComputerPanel({
   const livePlace = effectivePlace(profileBot, liveTask);
   const livePin = personPin(liveTask);
   const threadBot = currentTaskBot(profileBot);
-  const connectionKey = `${profileBot.id}:${profileBot.threadId}:${livePlace}:vps:${threadBot.modelSelection.instanceId}:${profileBot.vpsAlias ?? ""}:${profileBot.section ?? ""}:${state.config?.vps?.sshAlias ?? ""}:${state.config?.vps?.mode ?? "shared"}:${state.config?.vps?.independentScreens ?? false}`;
+  const connectionKey = `${profileBot.id}:${profileBot.threadId}:${livePlace}:vps:${threadBot.modelSelection.instanceId}:${profileBot.vpsAlias ?? ""}:${profileBot.section ?? ""}:${state.config?.vps?.sshAlias ?? ""}:${state.config?.vps?.mode ?? "shared"}:${state.config?.vps?.independentScreens ?? true}`;
   const [autoSurface, setAutoSurface] = useState<{ key: string; surface: Bot["computer"]; revision: number; status?: VpsComputerStatus } | null>(null);
   const autoSurfaceCurrent = autoSurface?.key === connectionKey;
   const surfaceReady = livePlace !== "auto" || autoSurfaceCurrent;
@@ -1142,7 +1142,7 @@ export function ComputerPanel({
           onHandBack={() => void handBack()} handingBack={takeover.handingBack}
           onUnreachable={desktopUnreachable}
           onReadyChange={(ready) => setDecodedDesktop({ key: viewerConnectionKey, ready })}
-          onTakeControl={() => void takeControl()}
+          onTakeControl={() => void takeControl(inline)}
         />
       </Suspense>
   ) : null;
@@ -1163,7 +1163,7 @@ export function ComputerPanel({
       : needsAdmin ? t("place.askAdmin") : phase === "vps-incompatible" ? t("computer.openVpsSettings") : screenLine;
     const frame = remoteFrame ?? (localPicture && liveLocal.stream
       ? <LiveScreenVideo stream={liveLocal.stream} playing={pageVisible} className="absolute inset-0 size-full object-contain" />
-      : frameSrc ? <img src={frameSrc} alt={t("computer.screenOf", { name: bot.name })} className="absolute inset-0 size-full object-contain" /> : null);
+      : !waking && frameSrc ? <img src={frameSrc} alt={t("computer.screenOf", { name: bot.name })} className="absolute inset-0 size-full object-contain" /> : null);
     const stage = remoteFrame ? desktopDecoded ? "screen" : "loading" : frame ? "screen" : waking ? "loading" : phase === "off" ? "off" : "asleep";
     return (
       <div data-inline-computer="" data-stage={stage}>
@@ -1172,10 +1172,15 @@ export function ComputerPanel({
             <button type="button" onClick={wake} disabled={waking || phase === "off" || needsAdmin || (phase === "error" && !vpsStatus?.configured)}
               aria-label={frameActionLabel}
               className="flex size-full flex-col items-center justify-center gap-2 px-5 text-center text-[12px] text-ink-secondary enabled:cursor-pointer disabled:cursor-default">
-              <MausAvatar color={bot.color} bodyId={bot.mascotBody ?? undefined} size={32} state={waking ? "thinking" : "sleeping"} label={bot.name} />
+              <MausAvatar color={bot.color} bodyId={bot.mascotBody ?? undefined} size={32} state={waking ? "working" : "sleeping"} label={bot.name} />
               <span>{frameActionLabel}</span>
             </button>
           )}
+          {remoteFrame && !desktopDecoded && <div data-computer-waking="" role="status"
+            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-card text-[12px] text-ink-secondary">
+            <MausAvatar color={bot.color} bodyId={bot.mascotBody ?? undefined} size={32} state="working" label={bot.name} />
+            <span>{t("computer.wakingUp")}</span>
+          </div>}
           {!remoteFrame && liveTarget && livePreviewFailed === viewerConnectionKey && <button type="button"
             aria-label={t("computer.preview.retry")} title={t("computer.preview.retry")}
             onClick={() => setLivePreviewFailed(null)} className="absolute inset-0 flex cursor-pointer items-end justify-center pb-3">
@@ -1186,7 +1191,7 @@ export function ComputerPanel({
           <div className="mt-1.5 flex items-center justify-between gap-2 px-1 text-[12px] text-ink-secondary">
             <span>{t(liveHere || control.held ? "computer.inControl" : "computer.watching")}</span>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={() => liveHere ? void handBack() : void takeControl()}
+              <button type="button" onClick={() => liveHere ? void handBack() : void takeControl(true)}
                 disabled={controlPending || takeover.handingBack}
                 className="ui-button h-6 min-h-0 px-2 text-[12px]">{t(liveHere ? "computer.handBack" : "computer.takeControl")}</button>
               {remoteFrame && <button type="button" aria-label={t("computer.fullScreen")} title={t("computer.fullScreen")}

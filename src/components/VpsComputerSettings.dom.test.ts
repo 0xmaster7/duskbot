@@ -76,14 +76,39 @@ it("keeps workspace privacy and owner permissions authoritative", async () => {
 it("keeps independent screens under Advanced and only offers them for shared computers", async () => {
   const advanced = host.querySelector("details")!;
   expect(advanced.open).toBe(false);
-  expect(advanced.textContent).toContain("Shared files, separate browser sign-ins");
+  expect(advanced.textContent).toContain("Shared files, separate screens and browser sign-ins");
+  expect(advanced.querySelector('[role="switch"]')?.getAttribute("aria-checked")).toBe("true");
+  expect(advanced.querySelector('[aria-label="Simultaneous screens"]')?.textContent).toContain("20");
   fx.api.mockImplementation(async (_path, request) => ({ vps: { ...fx.state.config.vps, ...JSON.parse(request.body).vps } }));
   await act(async () => { advanced.open = true; advanced.querySelector<HTMLButtonElement>('[role="switch"]')!.click(); });
-  expect(fx.api.mock.calls[0][1].body).toBe('{"vps":{"independentScreens":true}}');
-  expect(advanced.querySelector('[role="switch"]')?.getAttribute("aria-checked")).toBe("true");
+  expect(fx.api.mock.calls[0][1].body).toBe('{"vps":{"independentScreens":false}}');
+  expect(advanced.querySelector('[role="switch"]')?.getAttribute("aria-checked")).toBe("false");
+  expect(advanced.querySelector('[aria-label="Simultaneous screens"]')).toBeNull();
   fx.state.config = { vps: { ...fx.state.config.vps, mode: "per-bot" } };
   await render();
   expect(host.querySelector("details")).toBeNull();
+});
+
+it("preserves an explicit shared screen preference and custom screen count", async () => {
+  fx.state.config.vps = { ...fx.state.config.vps, independentScreens: false, maxScreens: 7 };
+  await render();
+  expect(host.querySelector('details [role="switch"]')?.getAttribute("aria-checked")).toBe("false");
+  expect(host.querySelector('[aria-label="Simultaneous screens"]')).toBeNull();
+  fx.state.config.vps.independentScreens = true;
+  await render();
+  expect(host.querySelector('[aria-label="Simultaneous screens"]')?.textContent).toContain("7");
+  fx.api.mockImplementation(async (_path, request) => ({ vps: { ...fx.state.config.vps, ...JSON.parse(request.body).vps } }));
+  await choose("Simultaneous screens", "15");
+  expect(fx.api.mock.calls[0][1].body).toBe('{"vps":{"maxScreens":15}}');
+  expect(host.querySelector('[aria-label="Simultaneous screens"]')?.textContent).toContain("15");
+});
+
+it("rolls back a rejected screen limit without changing other policy", async () => {
+  fx.api.mockRejectedValueOnce(new Error("fixture screen still active"));
+  await choose("Simultaneous screens", "4");
+  expect(host.querySelector('[aria-label="Simultaneous screens"]')?.textContent).toContain("20");
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("fixture screen still active");
+  expect(fx.state.config.vps).toMatchObject({ sshAlias: "fixture", mode: "shared" });
 });
 
 it("does not apply a response to a different linked server", async () => {

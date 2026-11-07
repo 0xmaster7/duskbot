@@ -10,7 +10,7 @@ vi.mock("@/state/store", async (original) => ({
   useStore: () => ({ dispatch: vi.fn() }),
 }));
 
-import { ComputerFilesPane, recentChangedFiles, sharedFileReferences } from "./ComputerFilesPane";
+import { automaticSystemFile, ComputerFilesPane, recentChangedFiles, sharedFileReferences } from "./ComputerFilesPane";
 
 const reply = (id: string, text: string, patch: Partial<Message> = {}) =>
   ({ id, role: "bot", kind: "text", at: 1, text, ...patch }) as Message;
@@ -23,6 +23,22 @@ const bot = (messages: Message[], patch: Partial<Bot> = {}) => ({
 }) as Bot;
 
 describe("file grants in the visible conversation", () => {
+  it("hides automatic system and runtime changes while keeping project dotfiles and reports", () => {
+    const value = bot([digest(["/etc/hosts", "/usr/share/theme.css", "/workspace/node_modules/pkg/index.js", "/workspace/.git/index", "/home/cua/.cache/chromium/state", "/workspace/.gitignore", "/workspace/.github/workflows/check.yml", "/workspace/.env.example", "/home/cua/Downloads/report.pdf", "/workspace/report.md"])]);
+    expect(recentChangedFiles(value)).toEqual(["/workspace/.gitignore", "/workspace/.github/workflows/check.yml", "/workspace/.env.example", "/home/cua/Downloads/report.pdf", "/workspace/report.md"]);
+    expect(automaticSystemFile("C:\\Windows\\System32\\state", "C:\\work")).toBe(true);
+    expect(automaticSystemFile("C:\\work\\.github\\workflows\\ci.yml", "C:\\work")).toBe(false);
+    expect(automaticSystemFile("/var/www/project/report.md", "/var/www/project")).toBe(false);
+  });
+
+  it("keeps explicitly shared system paths visible and applies the limit after filtering", () => {
+    const hidden = Array.from({ length: 25 }, (_, index) => `/workspace/.cache/${index}`);
+    const reports = Array.from({ length: 25 }, (_, index) => `/workspace/report-${index}.md`);
+    const value = bot([reply("shared", "[configuration](/etc/hosts)"), digest([...hidden, "/etc/hosts", ...reports])]);
+    expect(recentChangedFiles(value)).toEqual(["/etc/hosts", ...reports.slice(0, 19)]);
+    expect(recentChangedFiles(value, 20, true)).toEqual(hidden.slice(0, 20));
+  });
+
   it("keeps the newest shared message and its authored encoded URL", () => {
     const path = "/workspace/release notes#1.md";
     const href = "file:///workspace/release%20notes%231.md";

@@ -15,14 +15,26 @@ node --experimental-strip-types scripts/verify-desktop-viewer.ts --live-only
 ```
 
 This mounts the real inline ComputerPanel through Vite. A stopped desktop wakes
-inside its frame after an explicit click. The fixture delays the first RFB frame
+inside its frame after an explicit click, with the animated mascot until the live
+preview is decoded. Wake never opens fullscreen or takes control. A second click
+on the awake preview opens fullscreen and takes control on the same connection.
+The fixture delays the first RFB frame
 and checks that Take control stays disabled until decoded pixels appear. It
 checks view-only keyboard and pointer blocking, enabled input after Take control,
 blocked input after Hand control back, one RFB connection throughout, zero
 screenshot polls, and one authenticated join without a second viewer-config GET.
 It also checks that loopback proxy viewers use the app URL and reconnect grace.
 The same flow runs for an Auto bot using an assigned shared team desktop,
-including watching before any control hold is taken.
+including watching before any control hold is taken. This input fixture selects
+`independentScreens: false` explicitly so it tests the primary display transport.
+
+Right and middle clicks are checked against received RFB masks 4 and 2. Native
+wheel events at the canvas check vertical masks 8/16 and horizontal masks 32/64.
+Control+A, Enter and Backspace reach the guest only after takeover. The inline
+Keyboard control sends `line1` followed by a newline and Cyrillic text through
+the real noVNC connection without clipboard reads or fullscreen. Hand-back hides
+the text field; fullscreen preserves the same connection. These checks do not
+use the host clipboard or control its desktop.
 
 To reuse installed browser tools, set `OMB_AGENT_BROWSER_PATH` and
 `AGENT_BROWSER_EXECUTABLE_PATH` explicitly. The fixture prints its temporary

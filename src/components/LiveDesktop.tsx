@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Hand, Loader2, Minimize2, RefreshCw, Send } from "lucide-react";
+import { Hand, Keyboard, Loader2, Minimize2, RefreshCw, Send } from "lucide-react";
 import type RFB from "@novnc/novnc";
 import { cn } from "@/lib/cn";
 import { connectDesktop, typeOnDesktop } from "@/lib/desktop-connection";
@@ -34,6 +34,7 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
   const attempt = retryState.identity === identity ? retryState.attempt : 0;
   const reconnect = () => setRetry({ identity, attempt: attempt + 1 });
   const [text, setText] = useState("");
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const live = useRef<string | null>(null);
   const watching = useRef(viewOnly);
   watching.current = viewOnly;
@@ -57,10 +58,13 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
       ended = true;
       reportReady?.(false);
       setConnection("disconnected");
+      setKeyboardOpen(false);
+      setText("");
       if (live.current !== identity || attempt > 0) unreachable.current();
       else if (attempt === 0) retry = setTimeout(() => setRetry({ identity, attempt: 1 }), 1_000);
     };
     setText("");
+    setKeyboardOpen(false);
     setConnection("connecting");
     void connectDesktop(screen.current!, target, {
       threadId,
@@ -84,6 +88,8 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
       connected.focusOnClick = !connected.viewOnly;
     }, () => { if (!controller.signal.aborted) lost(); });
     const disconnect = () => {
+      setKeyboardOpen(false);
+      setText("");
       reportReady?.(false);
       controller.abort();
       clearTimeout(retry);
@@ -108,6 +114,10 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
     if (connection === "connected" && !viewOnly) client.focus({ preventScroll: true });
   }, [expanded, connection, viewOnly]);
 
+  useEffect(() => {
+    if (viewOnly) { setText(""); setKeyboardOpen(false); }
+  }, [viewOnly]);
+
   const label = t("computer.viewerTitle", { name });
   const pill = (
     <span className="pointer-events-none flex items-center gap-1.5 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-medium text-white shadow-sm">
@@ -116,6 +126,23 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
     </span>
   );
   const iconButton = "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-50";
+
+  const typingForm = (
+    <form style={noDragStyle} className="ml-auto flex min-w-0 items-center gap-1" onSubmit={(event) => {
+      event.preventDefault();
+      if (viewOnly || !rfb.current || connection !== "connected" || !text) return;
+      typeOnDesktop(rfb.current, text);
+      setText("");
+    }}>
+      <textarea rows={2} value={text} onChange={(event) => setText(event.target.value)} maxLength={4096}
+        autoComplete="off" autoCapitalize="off" spellCheck={false}
+        placeholder={t("desktopViewer.text")} aria-label={t("desktopViewer.text")}
+        className={cn("min-w-0 resize-none rounded-lg border border-hairline bg-inset px-2.5 py-1.5 text-[12px] text-ink outline-none focus:border-focus", expanded ? "w-44 max-sm:w-28" : "w-0 flex-1")} />
+      <button type="submit" disabled={connection !== "connected" || !text} title={t("desktopViewer.send")} aria-label={t("desktopViewer.send")} className={cn(iconButton, "bg-control text-ink hover:bg-raised-hover")}>
+        <Send size={14} aria-hidden="true" />
+      </button>
+    </form>
+  );
 
   return (
     <div
@@ -133,31 +160,7 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
           <span className="min-w-0 truncate text-[13px] font-medium text-ink">{label}</span>
           {pill}
           {viewOnly && onTakeControl && <button type="button" style={noDragStyle} onClick={onTakeControl} disabled={connection !== "connected"} className={cn(iconButton, "ml-auto bg-control text-ink hover:bg-raised-hover")}>{t("computer.takeControl")}</button>}
-          {!viewOnly && <form
-            style={noDragStyle}
-            className="ml-auto flex min-w-0 items-center gap-1"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (viewOnly || !rfb.current || connection !== "connected" || !text) return;
-              typeOnDesktop(rfb.current, text);
-              setText("");
-            }}
-          >
-            <input
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-              maxLength={4096}
-              autoComplete="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              placeholder={t("desktopViewer.text")}
-              aria-label={t("desktopViewer.text")}
-              className="w-44 min-w-0 rounded-lg border border-hairline bg-inset px-2.5 py-1.5 text-[12px] text-ink outline-none focus:border-focus max-sm:w-28"
-            />
-            <button type="submit" disabled={connection !== "connected" || !text} title={t("desktopViewer.send")} aria-label={t("desktopViewer.send")} className={cn(iconButton, "bg-control text-ink hover:bg-raised-hover")}>
-              <Send size={14} aria-hidden="true" />
-            </button>
-          </form>}
+          {!viewOnly && typingForm}
           <button type="button" style={noDragStyle} onClick={() => onExpandedChange(false)} className={cn(iconButton, "bg-control text-ink hover:bg-raised-hover")}>
             <Minimize2 size={14} aria-hidden="true" />
             <span className="max-sm:hidden">{t("desktopViewer.exitFullscreen")}</span>
@@ -178,6 +181,14 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
             onClick={onTakeControl} disabled={connection !== "connected"}
             className="absolute inset-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-wait" />
         )}
+        {!expanded && !viewOnly && connection === "connected" && <>
+          <button type="button" aria-label={t("desktopViewer.keyboard")} title={t("desktopViewer.keyboard")}
+            aria-expanded={keyboardOpen} onClick={() => setKeyboardOpen(value => !value)}
+            className="absolute right-2 bottom-2 z-10 flex size-8 items-center justify-center rounded-lg bg-card/95 text-ink shadow-sm focus-visible:outline-2 focus-visible:outline-focus">
+            <Keyboard size={16} aria-hidden="true" />
+          </button>
+          {keyboardOpen && <div className="absolute inset-x-2 bottom-12 z-10 rounded-xl bg-card/95 p-2 shadow-sm">{typingForm}</div>}
+        </>}
         {connection === "connecting" && (
           <div role="status" className="pointer-events-none absolute inset-0 flex items-center justify-center gap-2 text-[12px] text-ink-secondary">
             <Loader2 size={16} className="animate-spin" aria-hidden="true" />
