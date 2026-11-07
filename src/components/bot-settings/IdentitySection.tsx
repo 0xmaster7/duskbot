@@ -1,13 +1,10 @@
-import { useState } from "react";
 import { DefaultBotHideRow } from "../DefaultBotControls";
-import { BookOpen } from "lucide-react";
 
 import { useStore, type Bot } from "@/state/store";
 import type { MausMotion, MausState } from "@/lib/mascot";
 import { cn } from "@/lib/cn";
 import { BOT_PROFILE_LIMITS } from "../../../shared/bot-profile";
 import { BotProfileAvatarCard } from "../BotProfileAvatarCard";
-import { BotInstructionsDialog } from "../BotInstructionsDialog";
 import { Field, inputCls } from "./field";
 import type { BotPatch } from "./useBotSettingsDerived";
 import { useBotEditor } from "./BotEditorContext";
@@ -33,7 +30,6 @@ export function IdentitySection({
   namePlaceholder?: string;
   parts?: readonly IdentityPart[];
 }) {
-  const [instructionsOpen, setInstructionsOpen] = useState(false);
   const { draft } = useBotEditor();
   const { state } = useStore();
   const shows = (part: IdentityPart) => !parts || parts.includes(part);
@@ -76,18 +72,9 @@ export function IdentitySection({
         />
       </Field>}
       {shows("blurb") && <div className="block">
-        <div className="mb-1.5 flex items-center justify-between gap-3">
-          <label htmlFor={`bot-instructions-${bot.id}`} className="text-[13px] text-ink-secondary">
-            {t("botSettings.identity.blurb")}
-          </label>
-          <button
-            type="button"
-            onClick={() => setInstructionsOpen(true)}
-            className="inline-flex h-6 cursor-pointer items-center gap-1 rounded-full px-2 text-[12px] leading-4 tracking-[0.01em] text-ink/68 hover:bg-ink/[0.035] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus"
-          >
-            <BookOpen size={12} /> {t("botSettings.identity.viewFull")}
-          </button>
-        </div>
+        <label htmlFor={`bot-instructions-${bot.id}`} className="mb-1.5 block text-[13px] text-ink-secondary">
+          {t("botSettings.identity.blurb")}
+        </label>
         <ProposalStatus bot={bot} kind="chief" />
         <textarea
           id={`bot-instructions-${bot.id}`}
@@ -109,7 +96,6 @@ export function IdentitySection({
       </div>}
 
       <DefaultBotHideRow bot={bot} />
-      {instructionsOpen && <BotInstructionsDialog bot={bot} inline={draft} onClose={() => setInstructionsOpen(false)} />}
     </div>
   );
 }

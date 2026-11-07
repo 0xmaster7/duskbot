@@ -42,7 +42,6 @@ vi.mock("./DesktopCapabilities", () => ({
 vi.mock("react-dom", async (original) => ({ ...await original<object>(), createPortal: (children: unknown) => children }));
 import { GroupView, RoomToolChip } from "./GroupView";
 import { RunRow } from "./UsageSection";
-import { BotInstructionsDialog } from "./BotInstructionsDialog";
 const render = (component: Parameters<typeof renderToStaticMarkup>[0]) => {
   vi.stubGlobal("window", { ogb: undefined });
   vi.stubGlobal("document", { body: {} });
@@ -79,11 +78,5 @@ describe("uploaded bot identity portraits", () => {
     expect(html).toContain('<img src="/api/attachments/fixture-0.png"');
     expect(html).toContain('<img src="/api/attachments/fixture-1.png"');
     expect(html).toContain("Plan the launch");
-  });
-  it("titles the compact instructions card with the bot's name, without a portrait", () => {
-    const html = render(createElement(BotInstructionsDialog, { bot: avatarBots[0]!, onClose: vi.fn() }));
-    expect(html).not.toContain("<img");
-    expect(html).toContain('role="dialog"');
-    expect(html).toMatch(new RegExp(`id="bot-instructions-title"[^>]*>${avatarBots[0]!.name}</h2>`));
   });
 });

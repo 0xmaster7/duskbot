@@ -35,7 +35,7 @@ export function BotSettingsDialog({ bot, overlay = false }: {
     const onKey = (event: KeyboardEvent) => {
       const nested = dialog?.querySelector<HTMLElement>('[role="dialog"], [role="alertdialog"]');
       if (nested && nested.getClientRects().length > 0) return;
-      // BotInstructionsDialog portals to document.body: a key pressed with focus outside this dialog is not ours.
+      // a dialog portalled to document.body: a key pressed with focus outside this dialog is not ours
       if (dialog && event.target instanceof Node && !dialog.contains(event.target)) return;
       // A popover or field inside that already handled this Escape keeps the panel open.
       if (event.key === "Escape" && !event.defaultPrevented) {
