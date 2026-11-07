@@ -1760,7 +1760,6 @@
   "task.switchWithUsage": "Tüm konular · {label} ({input} girdi · {output} çıktı)",
   "task.switchWithUsageDetail": "Tüm konular · {label} ({detail})",
   "task.switch": "Tüm konular",
-  "task.otherActivity": "Diğer etkinlikler ({count})",
   "task.workingElsewhere": "Diğer konularda çalışıyor: {count}",
   "attention.title": "Aktif Konular",
   "attention.titleCount": "Aktif Konular, {count}",

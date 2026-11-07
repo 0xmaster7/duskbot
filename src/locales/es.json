@@ -2024,7 +2024,6 @@
   "task.switchWithUsage": "Todos los hilos · {label} ({input} de entrada · {output} de salida)",
   "task.switchWithUsageDetail": "Todos los hilos · {label} ({detail})",
   "task.switch": "Todos los hilos",
-  "task.otherActivity": "Otra actividad ({count})",
   "task.workingElsewhere": "Trabajando en otros hilos: {count}",
   "attention.title": "Hilos activos",
   "attention.titleCount": "Hilos activos, {count}",

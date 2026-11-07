@@ -2155,7 +2155,6 @@
   "task.switchWithUsage": "Все треды · {label} ({input} получено · {output} отправлено)",
   "task.switchWithUsageDetail": "Все ветки · {label} ({detail})",
   "task.switch": "Все ветки",
-  "task.otherActivity": "Другая активность ({count})",
   "task.workingElsewhere": "Работают в других ветках: {count}",
   "attention.title": "Активные ветки",
   "attention.titleCount": "Активные ветки, {count}",

@@ -2585,7 +2585,6 @@
   "task.switchWithUsage": "All threads · {label} ({input} in · {output} out)",
   "task.switchWithUsageDetail": "All threads · {label} ({detail})",
   "task.switch": "All threads",
-  "task.otherActivity": "Other activity ({count})",
   "task.workingElsewhere": "Working in other threads: {count}",
   "attention.title": "Active Threads",
   "attention.titleCount": "Active Threads, {count}",

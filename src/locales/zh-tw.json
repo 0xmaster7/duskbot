@@ -1539,7 +1539,6 @@
   "task.switchWithUsage": "所有對話 · {label}（輸入 {input} · 輸出 {output}）",
   "task.switchWithUsageDetail": "所有對話 · {label}（{detail}）",
   "task.switch": "所有對話",
-  "task.otherActivity": "其他活動（{count}）",
   "task.workingElsewhere": "其他對話進行中：{count}",
   "attention.title": "進行中的對話",
   "attention.empty": "沒有進行中的對話",
