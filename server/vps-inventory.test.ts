@@ -274,6 +274,26 @@ describe("managed VPS inventory", () => {
     expect((await listManagedVpsComputers(CONFIG, [OWNER], truncatedId.runner)).available).toBe(false);
   });
 
+  it("skips renamed backup copies of a managed computer instead of failing the whole inventory", async () => {
+    const ownedName = vpsContainerName(OWNER.botId);
+    const fake = inventoryRunner([
+      { id: "1".repeat(64), name: ownedName },
+      { id: "2".repeat(64), name: `${ownedName}-before-lazy-20261107T095641Z`, state: "exited", running: false, labels: labels(ownedName) },
+      { id: "3".repeat(64), name: `${ownedName}-rollback-20261107T061134Z`, state: "exited", running: false, labels: labels(ownedName) },
+    ]);
+
+    const inventory = await listManagedVpsComputers(CONFIG, [OWNER], fake.runner);
+    expect(inventory.available).toBe(true);
+    expect(inventory.problem).toBeNull();
+    expect(inventory.instances.map((instance) => instance.name)).toEqual([ownedName]);
+
+    await expect(removeManagedVpsComputer(CONFIG, [OWNER], ownedName, ownedName, fake.runner)).resolves.toEqual({ removed: true, name: ownedName });
+    expect(fake.calls.at(-1)).toEqual(["rm", "-f", "1".repeat(64)]);
+
+    const unrelated = inventoryRunner([{ id: "4".repeat(64), name: "someone-else", labels: labels(ownedName) }]);
+    expect((await listManagedVpsComputers(CONFIG, [OWNER], unrelated.runner)).available).toBe(false);
+  });
+
   it("freshly revalidates identity and confirmation before explicit removal", async () => {
     const name = vpsContainerName(OWNER.botId);
     const fake = inventoryRunner([{ id: "d".repeat(64), name }]);

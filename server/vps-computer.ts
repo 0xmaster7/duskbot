@@ -693,6 +693,13 @@ function managedVpsState(value: unknown, running: unknown): ManagedVpsInventoryI
   return "unknown";
 }
 
+function isRenamedManagedCopy(name: string, labels: unknown): boolean {
+  if (!labels || typeof labels !== "object") return false;
+  const labelled = (labels as Record<string, unknown>)[VPS_CONTAINER_LABEL];
+  return (labels as Record<string, unknown>)[VPS_MANAGED_LABEL] === "1" && typeof labelled === "string" &&
+    MANAGED_VPS_CONTAINER_NAME.test(labelled) && !MANAGED_VPS_CONTAINER_NAME.test(name) && name.startsWith(`${labelled}-`);
+}
+
 async function scanManagedVpsAlias(
   alias: string,
   owners: ManagedVpsOwner[],
@@ -742,6 +749,11 @@ async function scanManagedVpsAlias(
       const name = typeof detail.Name === "string" ? detail.Name.replace(/^\//, "") : "";
       const labels = detail.Config?.Labels;
       const listedId = ids.find((candidate) => id.startsWith(candidate.toLowerCase()));
+      if (listedId && FULL_CONTAINER_ID.test(id) && !seenIds.has(listedId) && isRenamedManagedCopy(name, labels)) {
+        // a renamed copy (a manual backup) keeps the managed labels but is never ours to list or act on.
+        seenIds.add(listedId);
+        continue;
+      }
       if (
         !FULL_CONTAINER_ID.test(id) ||
         !listedId ||
