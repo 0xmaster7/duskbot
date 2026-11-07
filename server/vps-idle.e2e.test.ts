@@ -90,7 +90,8 @@ it.skipIf(process.platform === "win32")("sleeps despite read-only watch traffic,
     expect((await h.api("POST", `/api/bots/${h.bot.id}/computer/control`, { action: "release", controlLeaseId: lease })).body.released).toBe(true);
     await expect.poll(() => h.row()?.State.Running, { timeout: 8_000, interval: 50 }).toBe(false);
     expect(h.mutations().filter((action) => action === "stop")).toHaveLength(2);
-    expect((await h.api("PUT", "/api/config", { vps: { idleTimeoutMinutes: 0 } })).status).toBe(200);
+    // only explicit zeros keep it awake; a legacy idleTimeoutMinutes 0 no longer does
+    expect((await h.api("PUT", "/api/config", { vps: { lifecycle: { browserIdleMinutes: 0, screenIdleMinutes: 0, computerIdleMinutes: 0 } } })).status).toBe(200);
     await h.wake();
     await delay(1_700);
     expect(h.row()?.State.Running).toBe(true);

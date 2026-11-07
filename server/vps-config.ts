@@ -12,6 +12,8 @@ export interface VpsLifecyclePolicy {
   screenIdleMinutes: number;
   computerIdleMinutes: number;
 }
+/** an idle desktop holds about 1.5 GB of the VPS: it sleeps soon, and wakes again on the bot's next computer call */
+export const DEFAULT_BROWSER_IDLE = 10, DEFAULT_SCREEN_IDLE = 10, DEFAULT_COMPUTER_IDLE = 15;
 const lifecycleMinutes = z.number().int().min(0).max(43_200);
 export const vpsLifecycleSchema = z.object({
   browserIdleMinutes: lifecycleMinutes.optional(),
@@ -19,8 +21,13 @@ export const vpsLifecycleSchema = z.object({
   computerIdleMinutes: lifecycleMinutes.optional(),
 });
 export function vpsLifecyclePolicy(vps: Pick<VpsConfig, "idleTimeoutMinutes" | "lifecycle"> = {}): VpsLifecyclePolicy {
-  const legacy = vps.idleTimeoutMinutes;
-  const policy = { browserIdleMinutes: legacy ?? 180, screenIdleMinutes: legacy ?? 1440, computerIdleMinutes: legacy ?? 2880, ...vps.lifecycle };
+  // a legacy 0 came from older setups and migrations, not a choice anyone can see; only a nested 0 keeps a stage awake
+  const legacy = vps.idleTimeoutMinutes || undefined;
+  // a stage left unset never ends before an earlier stage someone set longer
+  let floor = 0;
+  const stage = (explicit: number | undefined, fallback: number) => { const value = explicit ?? Math.max(legacy ?? fallback, floor); if (value > 0) floor = value; return value; };
+  const policy = { browserIdleMinutes: stage(vps.lifecycle?.browserIdleMinutes, DEFAULT_BROWSER_IDLE), screenIdleMinutes: stage(vps.lifecycle?.screenIdleMinutes, DEFAULT_SCREEN_IDLE),
+    computerIdleMinutes: stage(vps.lifecycle?.computerIdleMinutes, DEFAULT_COMPUTER_IDLE) };
   if (Object.values(policy).some(value => !Number.isInteger(value) || value < 0 || value > 43_200)) throw invalidPreferences("VPS lifecycle minutes must be integers from zero to 43200");
   const enabled = Object.values(policy).filter(value => value > 0);
   if (enabled.some((value, index) => index > 0 && value < enabled[index - 1]!)) throw invalidPreferences("VPS lifecycle stages must be ordered from browser to screen to computer");
@@ -38,7 +45,7 @@ export interface VpsConfig {
   independentScreens?: boolean;
   /** Maximum active bot displays, from 1 to 20; default 20. Screens are allocated on demand. */
   maxScreens?: number;
-  /** Compatibility choice supplying unspecified lifecycle stages; zero disables those stages. */
+  /** Compatibility choice supplying unspecified lifecycle stages; zero means unset (the defaults apply). */
   idleTimeoutMinutes?: 0 | 5 | 10 | 30;
   /** Idle minutes before closing browsers, screens and the owned computer container; zero disables a stage. */
   lifecycle?: Partial<VpsLifecyclePolicy>;

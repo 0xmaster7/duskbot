@@ -9,7 +9,7 @@ export interface VpsWorkspacePrivacy {
 }
 
 export function vpsIdleTimeoutMinutes(cfg: AppConfig): 0 | 5 | 10 | 30 {
-  return cfg.vps?.idleTimeoutMinutes ?? 10;
+  return cfg.vps?.idleTimeoutMinutes || 10;
 }
 
 export function sharedVpsDefaults(cfg: AppConfig, privacy: VpsWorkspacePrivacy) {
