@@ -44,4 +44,8 @@ describe("plainPreviewText", () => {
   it("folds every line break and run of spaces into one line", () => {
     expect(plainPreviewText("  one\n\n\ttwo   three \n")).toBe("one two three");
   });
+
+  it("shows pasted text without its wrapper", () => {
+    expect(plainPreviewText('<pasted-text index="1">\nNo, not yet\n</pasted-text>')).toBe("No, not yet");
+  });
 });

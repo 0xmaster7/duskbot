@@ -19,6 +19,7 @@ export function plainPreviewText(text: string): string {
   out = out.replace(/^[ \t]{0,3}\[[^\]]+\]:[ \t]+\S+.*$/gm, "");
   out = out.replace(/<((?:https?|mailto):[^>\s]+)>/gi, "$1");
   out = out.replace(/<br\s*\/?>/gi, " ");
+  out = out.replace(/<\/?pasted-text\b[^>]*>/gi, " ");
   out = out.replace(/<\/?(?:b|strong|i|em|u|s|del|ins|mark|code|kbd|sub|sup|small|span|p|div)\b[^>]*>/gi, "");
   out = out.replace(/^[ \t]{0,3}#{1,6}[ \t]+/gm, "");
   out = out.replace(/^[ \t]{0,3}#{1,6}[ \t]*$/gm, "");
