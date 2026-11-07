@@ -16,7 +16,7 @@ export function TranscriptNote({ text, warning = false, details, actions, ...res
   actions?: ReactNode;
 } & { [data: `data-${string}`]: string | undefined }) {
   return (
-    <div role="status" {...rest} className="flex w-fit max-w-[min(var(--chat-bubble-max),var(--chat-bubble-pct))] flex-wrap items-center gap-x-2 gap-y-1.5 text-[13px] leading-[18px] text-ink-tertiary">
+    <div role="status" data-transcript-note="" {...rest} className="flex w-fit max-w-[min(var(--chat-bubble-max),var(--chat-bubble-pct))] flex-wrap items-center gap-x-2 gap-y-1.5 text-[13px] leading-[18px] text-ink-tertiary">
       <span className="flex min-w-0 items-start gap-1.5">
         {warning && <GrokIcon name="exclamation-circle" variant="filled" size={14} className="mt-0.5 shrink-0 text-warning" />}
         <span dir="auto" className="min-w-0 break-words">{text}</span>
