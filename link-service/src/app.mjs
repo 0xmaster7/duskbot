@@ -33,6 +33,9 @@ const MAX_WAIT_S = 25;
 const FRAME_MAX = 1024 * 1024 + 64;
 const QUEUE_FRAMES = 1024;
 const QUEUE_BYTES = 16 * 1024 * 1024;
+const HELD_POSTS = 8;
+const GAP_MS = 5000;
+const EPOCH = /^[a-z2-7]{12}$/;
 const CREATE_PER_HOUR = 30;
 /** downloads (server build and desktop kit together) one install session may make; install.sh retries three times */
 const PACKAGE_DOWNLOADS = 10;
@@ -97,9 +100,25 @@ export function publicIp(ip) {
 /** queues of sealed frames, one per direction per tunnel, with long-poll waiters. never persisted. */
 function frameQueue() {
   const frames = [];
-  let bytes = 0;
+  let bytes = 0, reader = 0, gap = null;
   const waiters = new Set();
-  return {
+  const order = { epoch: null, next: 0, held: new Map(), retired: [] };
+  function drainHeld() {
+    while (order.held.has(order.next) && queue.push(order.held.get(order.next))) { order.held.delete(order.next); order.next += 1; }
+    if (!order.held.size) { clearTimeout(gap); gap = null; }
+  }
+  function armGap() {
+    if (gap) return;
+    gap = setTimeout(() => {
+      gap = null;
+      if (!order.held.size) return;
+      order.next = Math.min(...order.held.keys());
+      drainHeld();
+      if (order.held.size) armGap();
+    }, GAP_MS);
+    gap.unref?.();
+  }
+  const queue = {
     push(list) {
       const size = list.reduce((sum, frame) => sum + frame.length, 0);
       if (frames.length + list.length > QUEUE_FRAMES || bytes + size > QUEUE_BYTES) return false;
@@ -126,7 +145,36 @@ function frameQueue() {
       });
     },
     wakeAll() { for (const wake of waiters) wake(); waiters.clear(); },
+    /**
+     * a post numbered by its writer: frames join the queue in the writer's order even when posts overtake each other.
+     * a new epoch is the writer restarted; a gap left by a post that never comes is skipped after a while.
+     */
+    pushInOrder(list, from, at) {
+      if (from !== order.epoch) {
+        if (order.retired.includes(from)) return true;
+        if (order.epoch !== null) order.retired = [...order.retired.slice(-3), order.epoch];
+        order.epoch = from;
+        order.next = 0;
+        order.held.clear();
+      }
+      if (at < order.next) return true;
+      if (at > order.next) {
+        if (order.held.size >= HELD_POSTS) return false;
+        order.held.set(at, list);
+        armGap();
+        return true;
+      }
+      if (!queue.push(list)) return false;
+      order.next += 1;
+      drainHeld();
+      return true;
+    },
+    /** one streamed reader per queue: a newer one (the same end, reconnected) ends the older */
+    claim() { reader += 1; for (const wake of waiters) wake(); waiters.clear(); return reader; },
+    holds: (turn) => turn === reader,
+    close() { clearTimeout(gap); gap = null; order.held.clear(); },
   };
+  return queue;
 }
 
 /**
@@ -457,7 +505,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         if (!tunnel) return;
         store.tunnels.delete(id);
         store.save();
-        for (const dir of ["to-vps", "to-app"]) { queue(id, dir).wakeAll(); queues.delete(`${id}:${dir}`); }
+        for (const dir of ["to-vps", "to-app"]) { queue(id, dir).wakeAll(); queue(id, dir).close(); queues.delete(`${id}:${dir}`); }
         return send(res, 200, { ok: true });
       }
       if (action === "status" && method === "GET") {
@@ -478,14 +526,17 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         if (!Array.isArray(frames) || frames.length === 0 || frames.length > 256 || frames.some((frame) => typeof frame !== "string" || frame.length > FRAME_MAX || !B64URL.test(frame))) {
           return fail(res, 400, "frames must be 1-256 base64url strings");
         }
-        if (!queue(id, action).push(frames)) return fail(res, 429, "the other side is behind; try again", "queue_full");
-        return send(res, 200, { ok: true });
+        const ordered = typeof body.epoch === "string" && EPOCH.test(body.epoch) && Number.isSafeInteger(body.seq) && body.seq >= 0;
+        const q = queue(id, action);
+        if (!(ordered ? q.pushInOrder(frames, body.epoch, body.seq) : q.push(frames))) return fail(res, 429, "the other side is behind; try again", "queue_full");
+        return send(res, 200, { ok: true, ordered: true });
       }
       if (method === "GET") {
         const wait = Math.min(MAX_WAIT_S, Math.max(0, Number.parseInt(url.searchParams.get("wait") ?? "0", 10) || 0));
         const abort = new AbortController();
         res.on("close", () => abort.abort());
         const q = queue(id, action);
+        if (wait && url.searchParams.get("stream") === "1") return streamFrames(res, id, q, wait * 1000, abort.signal);
         if (wait && q.length === 0) await q.wait(wait * 1000, abort.signal);
         if (abort.signal.aborted || !store.tunnels.has(id)) return abort.signal.aborted ? undefined : fail(res, 404, "not found", "not_found");
         return send(res, 200, { frames: q.take() });
@@ -494,6 +545,28 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     }
 
     return fail(res, 404, "not found");
+  }
+
+  /** a long poll that stays open: each batch of frames goes out as one json line the moment it is queued */
+  async function streamFrames(res, id, q, ms, signal) {
+    const turn = q.claim();
+    const until = Date.now() + ms;
+    res.writeHead(200, { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "x-accel-buffering": "no" });
+    let first = true;
+    try {
+      while (!signal.aborted && q.holds(turn) && store.tunnels.has(id)) {
+        if (!first && q.length === 0) {
+          const left = until - Date.now();
+          if (left <= 0) break;
+          await q.wait(left, signal);
+          continue;
+        }
+        first = false;
+        if (!res.write(`${JSON.stringify({ frames: q.take() })}\n`)) {
+          await new Promise((resolve) => { res.once("drain", resolve); signal.addEventListener("abort", resolve, { once: true }); });
+        }
+      }
+    } finally { res.end(); }
   }
 
   async function streamSession(res, session, after, signal) {

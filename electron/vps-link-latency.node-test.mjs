@@ -129,8 +129,9 @@ test("a lost relay acknowledgment retries the sealed batch without replaying a m
 
 test("a lost reply times out its mutation and recovers another request without replay", { timeout: 5000 }, async () => {
   let dropped = false;
+  // the long-poll answer an older relay gives: one json document per poll
   const target = await fixture({ replyTimeoutMs: 1000, clientFetch: async (url, init) => {
-    const response = await fetch(url, init);
+    const response = await fetch(String(url).replace("&stream=1", ""), init);
     if (init.method === "POST" || !response.ok) return response;
     const body = await response.json();
     if (!dropped && body.frames.length) { dropped = true; throw new Error("reply lost during disconnect"); }

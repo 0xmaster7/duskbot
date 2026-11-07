@@ -5,7 +5,9 @@
 // standalone on purpose: node's own modules only, one file the link service serves at /agent.mjs.
 import { createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes } from "node:crypto";
 import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { createServer, request as httpRequest } from "node:http";
+import { Agent as HttpAgent, createServer, request as httpRequest } from "node:http";
+import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
+import { Readable } from "node:stream";
 import { connect as tlsConnect } from "node:tls";
 import { homedir, hostname } from "node:os";
 import { dirname, join } from "node:path";
@@ -22,14 +24,16 @@ const BATCH_BYTES = 700 * 1024;
 const STREAM_HIGH = 2 * 1024 * 1024;
 const STREAM_LOW = 512 * 1024;
 const RECEIVE_HIGH = 8 * 1024 * 1024;
+/** posts out at once once the relay says it puts them back in order (one before it does) */
+const POSTS_IN_FLIGHT = 3;
 /**
  * frames waiting for the one post in flight (kept in step with the other end of the tunnel). a stream's bytes join its
  * last waiting piece and are sealed only when sent, so a busy websocket costs a few frames per post, not one per chunk.
  */
-export function createOutbox({ seal: sealRaw, post, delayMs, signal, onError = () => {} }) {
+export function createOutbox({ seal: sealRaw, post, delayMs, signal, onError = () => {}, parallel = () => 1 }) {
   const streams = new Map();
   const drains = new Set();
-  let flushing = null, queued = 0;
+  let flushing = null, queued = 0, seq = 0, nudge = null;
   const release = () => { const waiting = [...drains]; drains.clear(); for (const resume of waiting) resume(); };
   const clear = () => { streams.clear(); queued = 0; };
   signal?.addEventListener("abort", () => { clear(); release(); }, { once: true });
@@ -65,14 +69,30 @@ export function createOutbox({ seal: sealRaw, post, delayMs, signal, onError = (
       if (!progressed || !streams.size) return frames;
     }
   }
+  /** posts carry a sequence number, so a relay that orders them lets several be in flight at once */
   function kick() {
+    if (flushing) nudge?.();
     if (flushing || signal?.aborted) return;
     flushing = (async () => {
       try {
         await delay(delayMs, undefined, { signal });
-        while (streams.size && !signal?.aborted) {
-          if ((await post(batch())) === false) clear();
-          if (drains.size && queued < STREAM_LOW) release();
+        const out = new Set();
+        let failed = null;
+        while ((streams.size || out.size) && !signal?.aborted) {
+          while (streams.size && out.size < parallel() && !signal?.aborted) {
+            const frames = batch(), at = seq++;
+            const sending = Promise.resolve().then(() => post(frames, at))
+              .then((ok) => { if (ok === false) clear(); if (drains.size && queued < STREAM_LOW) release(); }, (error) => { failed ??= error; })
+              .finally(() => out.delete(sending));
+            out.add(sending);
+          }
+          if (out.size) {
+            // new frames while posts are out go in a free slot without waiting for one of them to come back
+            const nudged = await new Promise((resolve) => { nudge = () => resolve(true); for (const sending of out) void sending.then(() => resolve(false)); });
+            nudge = null;
+            if (nudged) await delay(delayMs, undefined, { signal });
+          }
+          if (failed) throw failed;
         }
       } catch (error) {
         clear();
@@ -178,6 +198,91 @@ export function openFrame(key, id, dir, sealed, guard) {
   return value;
 }
 // ---- end shared crypto ----
+
+// ---- relay transport shared with electron/vps-link-protocol.mjs ----
+/** how long a streamed read may stay silent before this end decides a proxy holds the lines back and polls instead */
+export const STREAM_STALL_MS = 5000;
+const STREAM_OFF_MS = 10 * 60_000;
+const WARM_MS = 40_000;
+
+/**
+ * fetch over node's own http(s) with its sockets kept open. the global fetch closes an idle socket after 4 s (undici's
+ * default), so every reply after a pause paid a new tcp and tls handshake to the link service, and a cold tcp window.
+ */
+export function keepAliveFetch({ maxSockets = 8 } = {}) {
+  const agents = new Map();
+  let lastUsed = 0;
+  const agentFor = (protocol) => {
+    let found = agents.get(protocol);
+    if (!found) agents.set(protocol, (found = new (protocol === "https:" ? HttpsAgent : HttpAgent)({ keepAlive: true, keepAliveMsecs: 15_000, maxSockets, scheduling: "lifo" })));
+    return found;
+  };
+  const go = (input, init = {}) => new Promise((resolve, reject) => {
+    const url = new URL(input);
+    const { signal } = init;
+    if (signal?.aborted) { reject(signal.reason); return; }
+    lastUsed = Date.now();
+    const body = init.body == null ? null : Buffer.from(init.body);
+    const send = url.protocol === "https:" ? httpsRequest : httpRequest;
+    const stop = () => req.destroy(signal.reason);
+    const req = send(url, { method: init.method ?? "GET", headers: { ...init.headers, ...(body ? { "content-length": body.length } : {}) }, agent: agentFor(url.protocol) }, (res) => {
+      res.once("close", () => signal?.removeEventListener("abort", stop));
+      const headers = new Headers();
+      for (const [name, value] of Object.entries(res.headers)) for (const one of Array.isArray(value) ? value : [value]) headers.append(name, one);
+      const empty = res.statusCode === 204 || res.statusCode === 205 || res.statusCode === 304 || init.method === "HEAD";
+      if (empty) res.resume();
+      resolve(new Response(empty ? null : Readable.toWeb(res), { status: res.statusCode, headers }));
+    });
+    signal?.addEventListener("abort", stop, { once: true });
+    req.once("error", (error) => { signal?.removeEventListener("abort", stop); reject(error); });
+    req.end(body);
+  });
+  /** a spare socket stays open: nginx closes one idle for 75 s, and the long poll holds the other */
+  go.warm = (base) => {
+    const timer = setInterval(() => {
+      if (Date.now() - lastUsed < WARM_MS - 5000) return;
+      void go(`${base}/healthz`, { signal: AbortSignal.timeout(10_000) }).then((response) => response.text()).catch(() => {});
+    }, WARM_MS);
+    timer.unref?.();
+    return () => clearInterval(timer);
+  };
+  go.close = () => { for (const agent of agents.values()) agent.destroy(); agents.clear(); };
+  return go;
+}
+
+/**
+ * a relay read: one json document, or, from a relay that streams (`stream=1`), one {"frames":[...]} per line as frames
+ * arrive, so a reply never waits for the next poll to reach the relay. true when the answer streamed.
+ */
+export async function readFrameBatches(response, onFrames) {
+  if (!/^application\/x-ndjson\b/i.test(response.headers.get("content-type") ?? "")) {
+    const { frames = [] } = await response.json();
+    onFrames(frames);
+    return false;
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let text = "", from = 0;
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    text += decoder.decode(value, { stream: true });
+    for (let at = text.indexOf("\n", from); at >= 0; at = text.indexOf("\n")) {
+      const line = text.slice(0, at);
+      text = text.slice(at + 1);
+      if (line) onFrames(JSON.parse(line).frames ?? []);
+    }
+    from = text.length;
+  }
+  return true;
+}
+
+/** when to ask for a streamed read: always, except for a while after a proxy was seen holding the lines back */
+export function streamChoice(now = Date.now) {
+  let offUntil = 0;
+  return { wanted: () => now() >= offUntil, stalled: () => { offUntil = now() + STREAM_OFF_MS; } };
+}
+// ---- end relay transport ----
 
 const configDir = () => join(homedir(), ".config", "openmausbot-link");
 const tunnelFile = () => join(configDir(), "tunnel.json");
@@ -348,7 +453,9 @@ export async function control(op, data) {
   throw new Error("unknown request");
 }
 
-export function createTunnelAgent({ base, id, key: keyText, token, server = SERVER, fetchImpl = fetch, log = (line) => console.error(line) }) {
+export function createTunnelAgent({ base, id, key: keyText, token, server = SERVER, fetchImpl: given, log = (line) => console.error(line), stallMs = STREAM_STALL_MS }) {
+  const fetchImpl = given ?? keepAliveFetch();
+  const stream = streamChoice();
   const key = Buffer.from(keyText, "base64url");
   const guard = frameGuard();
   const pending = new Map();
@@ -362,17 +469,22 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
     stopped = true;
     terminal = reason;
     abort.abort();
+    if (!given) fetchImpl.close();
     for (const req of pending.values()) req.destroy();
     pending.clear();
   }
 
   const wait = (ms) => delay(ms, undefined, { signal: abort.signal }).catch(() => {});
 
-  const post = async (frames) => {
+  const epoch = Array.from(randomBytes(12), (byte) => "abcdefghijklmnopqrstuvwxyz234567"[byte & 31]).join("");
+  let ordered = false;
+  const post = async (frames, at) => {
     for (let attempt = 0; !stopped; attempt += 1) {
       try {
-        const response = await fetchImpl(`${base}/v1/tunnels/${id}/to-app`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ frames }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(60_000)]) });
-        await response.body?.cancel();
+        const response = await fetchImpl(`${base}/v1/tunnels/${id}/to-app`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ frames, epoch, seq: at }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(60_000)]) });
+        // read, not cancelled: a cancelled body closes the socket the next post would reuse
+        const said = await response.text().catch(() => "");
+        if (response.ok && !ordered) ordered = /"ordered":true/.test(said);
         if (response.ok) { successfulPosts += 1; pollRetry?.abort(); return true; }
         if (response.status === 404) { stop("unlinked"); return false; }
       } catch { /* retried below */ }
@@ -382,7 +494,7 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
     return false;
   };
   // 5 ms: a websocket's replies (the live desktop) are felt; posts are one at a time, so more coalesce while one is out
-  const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-app", r, bytes), post, delayMs: 5, signal: abort.signal, onError: () => { log("link: reply queue failed; restarting the tunnel"); stop(); } });
+  const outbox = createOutbox({ seal: (r, bytes) => sealBytes(key, id, "to-app", r, bytes), post, delayMs: 5, signal: abort.signal, parallel: () => (ordered ? POSTS_IN_FLIGHT : 1), onError: () => { log("link: reply queue failed; restarting the tunnel"); stop(); } });
   const emit = (frame) => { if (!stopped) outbox.push(sealFrame(key, id, "to-app", frame), frame.r); };
 
   function overflow(r) {
@@ -474,25 +586,38 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
 
   async function run() {
     let failures = 0;
+    const unwarm = given ? () => {} : fetchImpl.warm(base);
     while (!stopped) {
       const postsBefore = successfulPosts;
+      const streaming = stream.wanted();
+      const stall = new AbortController();
+      let heard = false;
+      const stallTimer = streaming ? setTimeout(() => { if (!heard) stall.abort(); }, stallMs) : null;
       try {
-        const response = await fetchImpl(`${base}/v1/tunnels/${id}/to-vps?wait=25`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.any([abort.signal, AbortSignal.timeout(40_000)]) });
+        const response = await fetchImpl(`${base}/v1/tunnels/${id}/to-vps?wait=25${streaming ? "&stream=1" : ""}`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.any([abort.signal, stall.signal, AbortSignal.timeout(40_000)]) });
         if (response.status === 404) {
           log("link: this server was unlinked in the app; the tunnel stops");
           stop("unlinked");
+          unwarm();
           return "unlinked";
         }
         if (!response.ok) throw new Error(`link service answered ${response.status}`);
-        const { frames = [] } = await response.json();
-        failures = 0;
-        for (const sealed of frames) {
-          let frame = null;
-          try { frame = openFrame(key, id, "to-vps", sealed, guard); } catch { log("link: dropped a frame that did not open"); }
-          if (frame) void handle(frame);
-        }
+        await readFrameBatches(response, (frames) => {
+          heard = true;
+          failures = 0;
+          for (const sealed of frames) {
+            let frame = null;
+            try { frame = openFrame(key, id, "to-vps", sealed, guard); } catch { log("link: dropped a frame that did not open"); }
+            if (frame) void handle(frame);
+          }
+        });
       } catch (error) {
         if (stopped) break;
+        if (stall.signal.aborted && !heard) {
+          stream.stalled();
+          log("link: the link service's streamed requests were held back; polling instead");
+          continue;
+        }
         failures += 1;
         if (failures === 1 || failures % 20 === 0) log(`link: tunnel retrying (${error?.message ?? error})`);
         if (postsBefore === successfulPosts) {
@@ -500,8 +625,9 @@ export function createTunnelAgent({ base, id, key: keyText, token, server = SERV
           await delay(Math.min(30_000, 500 * 2 ** Math.min(failures, 6)), undefined, { signal: AbortSignal.any([abort.signal, pollRetry.signal]) }).catch(() => {});
           pollRetry = null;
         }
-      }
+      } finally { clearTimeout(stallTimer); }
     }
+    unwarm();
     return terminal;
   }
   return { run, stop };
