@@ -175,3 +175,18 @@ it("keeps a visited transcript through a replacement snapshot and confirms it in
   expect(confirmed.messages[0]).toBe(before[0]);
   expect(confirmed.transcriptStale).toBeUndefined();
 });
+
+it("opens a chat from the device's cache at once and confirms it with the newest page, appending in place", async () => {
+  const app = await fixture();
+  const cached = [line("three-old"), line("three-preview")];
+  await app.dispatch({ type: "transcriptsCached", transcripts: [{ threadId: "three-thread", messages: cached, hasMore: false, activeLeafId: "three-preview", savedAt: 1 }] });
+  const seeded = app.state().bots.find((owner) => owner.id === "three")!;
+  expect(seeded.messages).toBe(cached);
+  expect(seeded.transcriptStale).toBe(true);
+  await app.select("three");
+  await app.answer("three-thread", [line("three-old"), line("three-preview"), line("three-new")]);
+  const confirmed = app.state().bots.find((owner) => owner.id === "three")!;
+  expect(confirmed.messages.map((message) => message.id)).toEqual(["three-old", "three-preview", "three-new"]);
+  expect(confirmed.messages[0]).toBe(cached[0]);
+  expect(confirmed.transcriptStale).toBeUndefined();
+});

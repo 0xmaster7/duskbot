@@ -68,6 +68,7 @@ import { unlessRefused } from "@/lib/admin-scope";
 import { olderRunsSince, ROUTINE_RUNS_WINDOW_MS, trimRoutineRuns, withOlderRoutineRuns } from "./routine-runs";
 import { reconcileSnapshotQueues, rememberConsumedQueueId, replaceBotQueues } from "./queue-receipts";
 import { useSelectedTranscript } from "./use-selected-transcript";
+import { useTranscriptCache } from "./use-transcript-cache";
 
 export type { MausColor } from "@/lib/mascot";
 export type { RoutineRunCardData } from "../../shared/routine-run";
@@ -2138,6 +2139,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const stateRef = useRef(state), selectionRevision = useRef(0);
   stateRef.current = state;
   const invalidateTranscripts = useSelectedTranscript(state, rawDispatch, MESSAGE_PAGE_SIZE);
+  useTranscriptCache(state, rawDispatch);
   const showThreads = useShowThreads();
   const showThreadsRef = useRef(showThreads);
   showThreadsRef.current = showThreads;
