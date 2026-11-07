@@ -1,9 +1,30 @@
 import { z } from "zod";
 
 const SSH_ALIAS = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/;
+const invalidPreferences = (message: string) => Object.assign(new Error(message), { status: 400 });
 
 export function isValidSshAlias(value: unknown): value is string {
   return typeof value === "string" && SSH_ALIAS.test(value);
+}
+
+export interface VpsLifecyclePolicy {
+  browserIdleMinutes: number;
+  screenIdleMinutes: number;
+  computerIdleMinutes: number;
+}
+const lifecycleMinutes = z.number().int().min(0).max(43_200);
+export const vpsLifecycleSchema = z.object({
+  browserIdleMinutes: lifecycleMinutes.optional(),
+  screenIdleMinutes: lifecycleMinutes.optional(),
+  computerIdleMinutes: lifecycleMinutes.optional(),
+});
+export function vpsLifecyclePolicy(vps: Pick<VpsConfig, "idleTimeoutMinutes" | "lifecycle"> = {}): VpsLifecyclePolicy {
+  const legacy = vps.idleTimeoutMinutes;
+  const policy = { browserIdleMinutes: legacy ?? 180, screenIdleMinutes: legacy ?? 1440, computerIdleMinutes: legacy ?? 2880, ...vps.lifecycle };
+  if (Object.values(policy).some(value => !Number.isInteger(value) || value < 0 || value > 43_200)) throw invalidPreferences("VPS lifecycle minutes must be integers from zero to 43200");
+  const enabled = Object.values(policy).filter(value => value > 0);
+  if (enabled.some((value, index) => index > 0 && value < enabled[index - 1]!)) throw invalidPreferences("VPS lifecycle stages must be ordered from browser to screen to computer");
+  return policy;
 }
 
 export interface VpsConfig {
@@ -17,8 +38,10 @@ export interface VpsConfig {
   independentScreens?: boolean;
   /** Maximum active bot displays, from 1 to 20; default 20. Screens are allocated on demand. */
   maxScreens?: number;
-  /** Stop an unused desktop after this many minutes; zero disables automatic idle stop. Default 10. */
+  /** Compatibility choice supplying unspecified lifecycle stages; zero disables those stages. */
   idleTimeoutMinutes?: 0 | 5 | 10 | 30;
+  /** Idle minutes before closing browsers, screens and the owned computer container; zero disables a stage. */
+  lifecycle?: Partial<VpsLifecyclePolicy>;
 }
 
 export const vpsConfigSchema = z.object({
@@ -28,17 +51,23 @@ export const vpsConfigSchema = z.object({
   independentScreens: z.boolean().optional(),
   maxScreens: z.number().int().min(1).max(20).optional(),
   idleTimeoutMinutes: z.union([z.literal(0), z.literal(5), z.literal(10), z.literal(30)]).optional(),
+  lifecycle: vpsLifecycleSchema.optional(),
+}).superRefine((value, context) => {
+  const enabled = (["browserIdleMinutes", "screenIdleMinutes", "computerIdleMinutes"] as const).map(key => value.lifecycle?.[key]).filter((minutes): minutes is number => minutes !== undefined && minutes > 0);
+  if (enabled.some((minutes, index) => index > 0 && minutes < enabled[index - 1]!)) context.addIssue({ code: "custom", path: ["lifecycle"], message: "enabled lifecycle stages must be ordered from browser to screen to computer" });
 });
 
 export function normalizeVpsConfig(raw: unknown): VpsConfig {
   if (raw === undefined || raw === null) return {};
   const parsed = vpsConfigSchema.safeParse(raw);
-  if (!parsed.success) throw new Error("vps requires a valid SSH config alias and computer preferences");
+  if (!parsed.success) throw invalidPreferences(parsed.error.issues.some(issue => issue.message.includes("ordered"))
+    ? "VPS lifecycle stages must be ordered from browser to screen to computer" : "vps requires a valid SSH config alias and computer preferences");
   const normalized = { ...parsed.data };
+  vpsLifecyclePolicy(normalized);
   if (normalized.sshAlias === "") delete normalized.sshAlias;
   return normalized;
 }
 
 export function mergeVpsConfig(current: VpsConfig | undefined, patch: VpsConfig): VpsConfig {
-  return normalizeVpsConfig({ ...current, ...patch });
+  return normalizeVpsConfig({ ...current, ...patch, ...((current?.lifecycle || patch.lifecycle) ? { lifecycle: { ...current?.lifecycle, ...patch.lifecycle } } : {}) });
 }

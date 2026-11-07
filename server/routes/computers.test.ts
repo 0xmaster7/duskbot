@@ -135,7 +135,7 @@ function teamFixture() {
     } as RouteContext);
     return sent!;
   };
-  return { registry, computer, control, cfg, call, busy: () => { active = true; } };
+  return { registry, computer, control, cfg, call, deps, busy: () => { active = true; } };
 }
 
 describe("shared team VPS lifecycle", () => {
@@ -161,6 +161,20 @@ describe("shared team VPS lifecycle", () => {
     });
     await expect(call("PATCH", `/${computer.id}`, assignment)).rejects.toMatchObject({ status: 409 });
     expect(registry.get(computer.id)?.section).toBeNull();
+  });
+  it("validates the destination and completes scoped cleanup before changing a team assignment", async () => {
+    const { computer, registry, call, deps } = teamFixture();
+    const cleanup = vi.fn(async (): Promise<void> => { throw Object.assign(new Error("fixture cleanup unavailable"), { status: 503 }); });
+    deps.prepareTeamComputerAssignment = cleanup;
+    const assignment = { section: "Research", acknowledgeSharedAccess: true };
+    await expect(call("PATCH", `/${computer.id}`, { ...assignment, section: "Foreign" })).rejects.toMatchObject({ status: 404 });
+    expect(cleanup).not.toHaveBeenCalled();
+    vi.mocked(vps.vpsComputerStatus).mockResolvedValue({ managed: true, container: "running", security: "hardened", network: "private", mounts: "none" } as vps.VpsComputerStatus);
+    await expect(call("PATCH", `/${computer.id}`, assignment)).rejects.toMatchObject({ status: 503 });
+    expect(registry.get(computer.id)?.section).toBeNull();
+    cleanup.mockImplementation(async () => { expect(registry.get(computer.id)?.section).toBeNull(); });
+    expect((await call("PATCH", `/${computer.id}`, assignment)).status).toBe(200);
+    expect(registry.get(computer.id)?.section).toBe("Research");
   });
   it("requires shared control before ready-only join and keeps remote viewers on the authenticated proxy", async () => {
     const { computer, control, cfg, call } = teamFixture();

@@ -9,7 +9,7 @@ export interface SidebarSectionRouteDeps {
   store: Store;
   teamComputers: TeamComputers;
   maxBots: number;
-  assertTeamComputerChangeIdle(before: BotRecord, after: BotRecord): void;
+  assertTeamComputerChangeIdle(before: BotRecord, after: BotRecord): void | Promise<void>;
   wireBot(bot: BotRecord): WireBot;
 }
 
@@ -45,10 +45,15 @@ export function createSidebarSectionRoutes(deps: SidebarSectionRouteDeps): Route
       const ids = z.array(z.string().regex(/^[\w-]+$/)).max(MAX_WORKSPACE_BOTS);
       const parsed = z.object({ addBotIds: ids, removeBotIds: ids }).strict().safeParse(await readBody(req));
       if (!parsed.success) return json(res, 400, { error: "Provide addBotIds and removeBotIds" });
+      const checked = store.updateTeamMembers(section, parsed.data.addBotIds, parsed.data.removeBotIds, true);
+      if (!checked.ok) return json(res, checked.reason === "unavailable" ? 404 : 409, { error:
+        checked.reason === "chief-conflict" ? "A department can have only one Chief of Staff. Change the Chief before moving this bot."
+          : checked.reason === "membership-changed" ? "Department membership changed. Reopen the dialog and try again."
+            : "One or more bots are unavailable" });
       for (const [botIds, destination] of [[parsed.data.addBotIds, section], [parsed.data.removeBotIds, undefined]] as const) {
         for (const id of botIds) {
           const bot = store.bot(id);
-          if (bot) assertTeamComputerChangeIdle(bot, { ...bot, section: destination });
+          if (bot) await assertTeamComputerChangeIdle(bot, { ...bot, section: destination });
         }
       }
       const result = store.updateTeamMembers(section, parsed.data.addBotIds, parsed.data.removeBotIds);
@@ -69,9 +74,11 @@ export function createSidebarSectionRoutes(deps: SidebarSectionRouteDeps): Route
       }
       const botIds = [...new Set(parsed.data.botIds)];
       if (!name && !botIds.length) return json(res, 400, { error: "Department name is required" });
+      const checked = store.setBotsSection(botIds, name, true);
+      if (!checked.ok) return json(res, checked.reason === "unavailable" ? 404 : 409, { error: checked.reason === "chief-conflict" ? "A department can have only one Chief of Staff. Choose one Chief or use a department without one." : "one or more bots are unavailable" });
       for (const botId of botIds) {
         const bot = store.bot(botId);
-        if (bot) assertTeamComputerChangeIdle(bot, { ...bot, section: name || undefined });
+        if (bot) await assertTeamComputerChangeIdle(bot, { ...bot, section: name || undefined });
       }
       const result = store.setBotsSection(botIds, name);
       if (!result.ok) {

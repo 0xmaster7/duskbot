@@ -91,7 +91,9 @@ else if (['start','stop','rm'].includes(args[0])) {
     else if(action==='ensure') {
       if(!Number.isInteger(display) || display<2 || display>21 || !/^[a-f0-9]{64}$/.test(botHash) || !/^[a-f0-9-]{36}$/.test(generation))process.exit(64);
       out={version:2,ready:true,display,botHash,generation};fs.writeFileSync(file,JSON.stringify(out));
-    } else if(action==='stop'){if(valid())fs.unlinkSync(file);out={};}
+    } else if(action==='stop'){if(fs.existsSync(path.join(path.dirname(screens),'screen-stop-fail'))){process.stderr.write('fixture screen stop failed');process.exit(1);}if(valid())fs.unlinkSync(file);out={};}
+    else if(action==='browser-close'){if(!valid())process.exit(1);out={...current(),browserClosed:true};fs.writeFileSync(file,JSON.stringify(out));}
+    else if(action==='browser-ensure'){if(!valid())process.exit(1);out={...current(),browserClosed:false};fs.writeFileSync(file,JSON.stringify(out));}
     else if(action==='check'){if(!valid())process.exit(1);out={ready:true};}
     else if(action==='relay') {
       if(!valid())process.exit(1);

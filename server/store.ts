@@ -1584,6 +1584,7 @@ export class Store {
   setBotsSection(
     botIds: string[],
     section: string,
+    validateOnly = false,
   ): { ok: true; bots: BotRecord[] } | { ok: false; reason: "unavailable" | "chief-conflict" } {
     const ids = [...new Set(botIds)];
     const targets = ids.map((id) => this.bot(id));
@@ -1597,6 +1598,7 @@ export class Store {
     }
     if (chiefConflict(this.bots.map((bot) => ({ ...bot, ...patches.get(bot.id) })))) return { ok: false, reason: "chief-conflict" };
 
+    if (validateOnly) return { ok: true, bots: selected };
     const changedIds = new Set<string>();
     const nextBots = this.bots.map((bot) => {
       const patch = patches.get(bot.id);
@@ -1617,7 +1619,7 @@ export class Store {
     return { ok: true, bots: ids.map((id) => this.bot(id)!) };
   }
 
-  updateTeamMembers(section: string, addIds: string[], removeIds: string[]):
+  updateTeamMembers(section: string, addIds: string[], removeIds: string[], validateOnly = false):
     { ok: true; bots: BotRecord[] } | { ok: false; reason: "unavailable" | "chief-conflict" | "membership-changed" } {
     const key = sectionKey(section);
     if (!key || !this.sections.includes(key)) return { ok: false, reason: "unavailable" };
@@ -1632,6 +1634,7 @@ export class Store {
     const next = this.bots.map(bot => ids.has(bot.id)
       ? { ...bot, section: adds.has(bot.id) ? key : undefined } : bot);
     if (chiefConflict(next)) return { ok: false, reason: "chief-conflict" };
+    if (validateOnly) return { ok: true, bots: next.filter(bot => ids.has(bot.id)) };
     if (ids.size) {
       this.saveBots(next);
       for (let i = 0; i < next.length; i++) if (ids.has(next[i].id)) Object.assign(this.bots[i], next[i]);

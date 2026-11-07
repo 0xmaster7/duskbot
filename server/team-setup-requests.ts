@@ -84,6 +84,7 @@ interface Options {
   autoApply?(botId: string, threadId: string): DirectApply | null;
   driverCapabilities?(instanceId: string): DriverCapabilities | undefined;
   validateChange?(before: BotRecord, fields: TeamSetupFields): void;
+  prepareChange?(before: BotRecord, fields: TeamSetupFields): Promise<void>;
   maxBots: number;
   botLimit?: Pick<BotLimit, "refusal">;
   ownsThread(botId: string, threadId: string): boolean;
@@ -320,7 +321,16 @@ export class TeamSetupRequestService {
         this.validate(request, true, immediate);
       };
       revalidate();
-      if (!request.deletion) return this.options.store.applyTeamSetup(request);
+      if (!request.deletion) {
+        for (const operation of request.operations) {
+          if (operation.action !== "update") continue;
+          revalidate();
+          const target = this.options.store.bot(operation.botId);
+          if (target) await this.options.prepareChange?.(target, operation.fields);
+        }
+        revalidate();
+        return this.options.store.applyTeamSetup(request);
+      }
       await this.options.deleteBot(request.deletion.botId, revalidate, request);
       return { state: "applied", bots: [{ id: request.deletion.botId, name: request.deletion.name, action: "deleted" }], newTeams: [] };
     } catch (error) {

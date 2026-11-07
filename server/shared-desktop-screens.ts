@@ -46,8 +46,8 @@ export function independentScreenTarget(botId: string, display: IndependentDispl
     chromiumProfile: `/home/cua/.config/omb/screens/${botHash}/chromium`, generation });
 }
 
-export function independentScreenExecArgs(containerId: string, action: "version" | "reset" | "ensure" | "stop" | "browser-ensure", target?: IndependentScreenTarget): string[] {
-  if (!CONTAINER.test(containerId) || !["version", "reset", "ensure", "stop", "browser-ensure"].includes(action)) throw failure("Invalid independent screen operation", 400);
+export function independentScreenExecArgs(containerId: string, action: "version" | "reset" | "ensure" | "stop" | "browser-ensure" | "browser-close", target?: IndependentScreenTarget): string[] {
+  if (!CONTAINER.test(containerId) || !["version", "reset", "ensure", "stop", "browser-ensure", "browser-close"].includes(action)) throw failure("Invalid independent screen operation", 400);
   const args = ["exec", "-u", "cua", containerId, "/usr/local/bin/omb-screen", action];
   if (action === "reset" || action === "version") {
     if (target) throw failure("This operation does not accept a screen target", 400);
@@ -145,6 +145,7 @@ export function createSharedScreenBroker(hooks: SharedScreenHooks) {
       failBot(state, previous.botId, error);
       try { hooks.onError?.(error, state.container, previous); } catch {}
     }).finally(() => { if (slot.pending === operation) slot.pending = undefined; drain(state); });
+    return operation;
   }
   function armIdle(state: ContainerState, slot: Slot) {
     clearIdle(slot);
@@ -159,7 +160,7 @@ export function createSharedScreenBroker(hooks: SharedScreenHooks) {
     }, Math.max(1, timeout - (now() - slot.usedAt)));
     slot.expiry.unref?.();
   }
-  function lease(state: ContainerState, slot: Slot, request: Request): IndependentScreenLease {
+  function lease(state: ContainerState, slot: Slot, request: Pick<Request, "kind">): IndependentScreenLease {
     const token = Symbol();
     const target = slot.target!;
     slot.leases.set(token, request.kind);
@@ -251,6 +252,26 @@ export function createSharedScreenBroker(hooks: SharedScreenHooks) {
     return closing;
   }
   return {
+    /** The caller must first inspect the owned container and verify this exact generation with the guest controller. */
+    adoptVerifiedScreen(container: ScreenContainer, target: IndependentScreenTarget): IndependentScreenLease {
+      independentScreenExecArgs(container.containerId, "ensure", target);
+      const identity = key(container);
+      capacity();
+      if (closed) throw failure("Shared screen broker closed", 503);
+      if ([...containers.values()].some(state => state.container.sshAlias === container.sshAlias && state.container.containerId === container.containerId && state.container.ownerId !== container.ownerId)) throw failure("This container belongs to a different computer owner", 403);
+      let state = containers.get(identity);
+      if (!state) {
+        state = { container: Object.freeze({ ...container }), slots: INDEPENDENT_DISPLAYS.map(display => ({ display, ready: false, leases: new Map(), usedAt: 0 })), queue: [], abort: new AbortController(), initialized: true, closed: false };
+        containers.set(identity, state);
+      }
+      const slot = state.slots.find(slot => slot.display === target.display)!;
+      if (state.closed || state.initialization || slot.pending || slot.cleanup || (slot.target && slot.target.generation !== target.generation)
+        || state.slots.some(other => other !== slot && (other.target?.botId === target.botId || other.cleanup?.botId === target.botId))) throw failure("The verified screen conflicts with an active screen", 409);
+      if (slot.target && slot.target.botId !== target.botId) throw failure("The verified screen belongs to another bot", 409);
+      state.initialized = true;
+      slot.target ??= Object.freeze({ ...target }); slot.ready = true;
+      return lease(state, slot, { kind: "watch" });
+    },
     acquire(container: ScreenContainer, botId: string, options: { kind: ScreenLeaseKind; signal?: AbortSignal }): Promise<IndependentScreenLease> {
       if (closed) return Promise.reject(failure("Shared screen broker closed", 503));
       if (!ID.test(botId) || !["turn", "hold", "watch"].includes(options.kind)) return Promise.reject(failure("Invalid screen lease", 400));
@@ -285,9 +306,39 @@ export function createSharedScreenBroker(hooks: SharedScreenHooks) {
       if (state.closed) return false;
       return Boolean(state.initialization || state.slots.some(slot => slot.pending || [...slot.leases.values()].some(kind => kind !== "watch")) || state.queue.some(request => request.kind !== "watch"));
     },
+    screenBusy(container: ScreenContainer, target: IndependentScreenTarget): boolean {
+      independentScreenExecArgs(container.containerId, "ensure", target);
+      const state = containers.get(key(container));
+      const slot = state?.slots.find(slot => [slot.target, slot.cleanup].some(known => known?.generation === target.generation && known.botId === target.botId && known.display === target.display));
+      return Boolean(state && slot && (state.closed || state.initialization || slot.pending || hardLease(slot)));
+    },
     configure() {
       capacity();
       for (const state of containers.values()) { for (const slot of state.slots) armIdle(state, slot); drain(state); }
+    },
+    async withIdleScreen(container: ScreenContainer, target: IndependentScreenTarget, operation: (stillIdle: () => boolean) => Promise<void>): Promise<boolean> {
+      independentScreenExecArgs(container.containerId, "ensure", target);
+      const state = containers.get(key(container));
+      const slot = state?.slots.find(slot => slot.target?.generation === target.generation && slot.target.botId === target.botId && slot.display === target.display);
+      if (!state || state.closed || !slot?.ready || slot.pending || hardLease(slot)) return false;
+      const pinned = slot.target;
+      const stillIdle = () => !state.closed && slot.target === pinned && slot.ready && !hardLease(slot);
+      let performed = false;
+      const pending = Promise.resolve().then(async () => { if (stillIdle()) { performed = true; await operation(stillIdle); } });
+      slot.pending = pending;
+      clearIdle(slot);
+      try { await pending; return performed; }
+      finally { if (slot.pending === pending) slot.pending = undefined; armIdle(state, slot); drain(state); }
+    },
+    async closeScreen(container: ScreenContainer, target: IndependentScreenTarget): Promise<boolean> {
+      independentScreenExecArgs(container.containerId, "stop", target);
+      const state = containers.get(key(container));
+      const slot = state?.slots.find(slot => (slot.cleanup ?? slot.target)?.generation === target.generation && (slot.cleanup ?? slot.target)?.botId === target.botId && slot.display === target.display);
+      if (!state || state.closed || !slot || slot.pending || hardLease(slot)) return false;
+      const pending = retire(state, slot);
+      if (!pending) return false;
+      await pending;
+      return true;
     },
     closeContainer,
     async close() {

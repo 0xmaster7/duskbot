@@ -569,6 +569,7 @@ export function browserProfilePartitionTarget(
 export function parseStoredConfig(value: JsonValue): AppConfig {
   const parsed = storedAppConfigSchema.safeParse(value);
   if (!parsed.success) throw new Error(schemaIssue(parsed.error, "Invalid stored configuration"));
+  if (parsed.data.vps) normalizeVpsConfig(parsed.data.vps);
   return parsed.data;
 }
 

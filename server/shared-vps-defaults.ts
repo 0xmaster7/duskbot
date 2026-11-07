@@ -1,4 +1,6 @@
 import type { AppConfig } from "./config.ts";
+import { vpsLifecyclePolicy } from "./vps-config.ts";
+export { vpsLifecyclePolicy } from "./vps-config.ts";
 
 export interface VpsWorkspacePrivacy {
   cloudTeam: boolean;
@@ -19,6 +21,7 @@ export function sharedVpsDefaults(cfg: AppConfig, privacy: VpsWorkspacePrivacy) 
     independentScreens: cfg.vps?.independentScreens ?? true,
     maxScreens: cfg.vps?.maxScreens ?? 20,
     idleTimeoutMinutes: vpsIdleTimeoutMinutes(cfg),
+    lifecycle: vpsLifecyclePolicy(cfg.vps),
     sharingAllowed,
     workspaceShared: mode === "shared" && sharingAllowed,
   };

@@ -10,8 +10,8 @@ const path = join(DATA_DIR, "config.json");
 afterEach(() => rmSync(path, { force: true }));
 
 describe("personal workspace computer defaults", () => {
-  it("defaults to one shared desktop, automatic start, and ten-minute idle stop", () => {
-    expect(sharedVpsDefaults({}, personal)).toEqual({ mode: "shared", sharingAllowed: true, workspaceShared: true, autoStart: true, independentScreens: true, maxScreens: 20, idleTimeoutMinutes: 10 });
+  it("defaults to one shared desktop, automatic start, and staged idle cleanup", () => {
+    expect(sharedVpsDefaults({}, personal)).toEqual({ mode: "shared", sharingAllowed: true, workspaceShared: true, autoStart: true, independentScreens: true, maxScreens: 20, idleTimeoutMinutes: 10, lifecycle: { browserIdleMinutes: 180, screenIdleMinutes: 1440, computerIdleMinutes: 2880 } });
     expect(vpsIdleTimeoutMinutes({})).toBe(10);
   });
   it.each([
@@ -25,6 +25,7 @@ describe("personal workspace computer defaults", () => {
   it("keeps private mode and explicit manual power preferences", () => {
     expect(sharedVpsDefaults({ vps: { mode: "per-bot", autoStart: false, independentScreens: false, maxScreens: 20, idleTimeoutMinutes: 0 } }, personal)).toEqual({
       mode: "per-bot", workspaceShared: false, sharingAllowed: true, autoStart: false, independentScreens: false, maxScreens: 20, idleTimeoutMinutes: 0,
+      lifecycle: { browserIdleMinutes: 0, screenIdleMinutes: 0, computerIdleMinutes: 0 },
     });
   });
 });

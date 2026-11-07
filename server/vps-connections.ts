@@ -89,3 +89,9 @@ export function vpsDesktopConnection(botId: string, screen?: VpsScreenConnection
     },
   };
 }
+
+export function closeVpsBrowserConnections(ownerId: string, screen?: VpsScreenConnection): void {
+  const key = screenKey(ownerId, screen);
+  boxChromes.get(key)?.close();
+  boxChromes.delete(key);
+}

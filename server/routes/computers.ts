@@ -73,6 +73,7 @@ export interface ComputerRouteDeps {
   computerPreviewBot(botId: string, url: URL): BotRecord | null;
   computerPreviewSurface(bot: BotRecord, threadId?: string): Promise<string | undefined>;
   claimTeamComputerLifecycle(computer: TeamComputerRecord): () => void;
+  prepareTeamComputerAssignment?(computer: TeamComputerRecord): Promise<void>;
   /** `allowPreview`: a desktop link only reads the screen, so a panel's preview in flight does not refuse it. */
   claimBotComputerLifecycle(botId: string, allowPreview?: boolean): () => void;
   claimManagedVpsMutation(containerName: string): () => void;
@@ -156,6 +157,8 @@ export function createComputerRoutes(deps: ComputerRouteDeps): RouteHandler {
           }
           checkAssignment();
           if (teamComputerInUse(found)) return json(res, 409, { error: "This team computer became busy; stop its work before assigning it" });
+          await deps.prepareTeamComputerAssignment?.(found);
+          checkAssignment();
           teamComputers.assign(found.id, section);
           deps.recheckDesktopViewers();
           return json(res, 200, { ok: true });
