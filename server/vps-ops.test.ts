@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { collectVpsOpsStatus, parseVpsOpsArgs, redactOpsLogs, runOpsCommand, runVpsOps, type OpsCommandResult, type VpsOpsOptions } from "./vps-ops.ts";
+import { collectVpsOpsStatus, localDockerHost, parseVpsOpsArgs, redactOpsLogs, runOpsCommand, runVpsOps, type OpsCommandResult, type VpsOpsOptions } from "./vps-ops.ts";
 
 const defaults = { port: 8799, dataDir: "/fixture/data" };
 const options: VpsOpsOptions = { ...defaults, action: "status", service: "server", lines: 100, json: false };
@@ -162,5 +162,14 @@ describe("bounded operations process runner", () => {
     expect(tooLarge.ok).toBe(false);
     expect(tooLarge.stdout).toBe("");
     expect(await runOpsCommand("openmausbot-fixture-command-does-not-exist", [])).toMatchObject({ ok: false, error: "command not installed" });
+  });
+});
+
+describe("the local docker socket", () => {
+  it("is the gate's when DOCKER_HOST names a local socket, never a remote host", () => {
+    expect(localDockerHost({})).toBe("unix:///var/run/docker.sock");
+    expect(localDockerHost({ DOCKER_HOST: "unix:///run/openmausbot-docker/docker.sock" })).toBe("unix:///run/openmausbot-docker/docker.sock");
+    expect(localDockerHost({ DOCKER_HOST: "tcp://10.0.0.5:2375" })).toBe("unix:///var/run/docker.sock");
+    expect(localDockerHost({ DOCKER_HOST: "ssh://vps" })).toBe("unix:///var/run/docker.sock");
   });
 });
