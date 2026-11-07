@@ -46,8 +46,14 @@ ipcRenderer.on("app:open-settings", (_event, section) => {
 });
 
 // The full bridge goes only to the local server's UI; a remote page gets the safe subset, and main enforces the same rule.
-const localOrigin = process.argv.find((arg) => arg.startsWith("--omb-local-origin="))?.slice("--omb-local-origin=".length) ?? null;
-const isLocalPage = !localOrigin || location.origin === localOrigin;
+const currentLocalOrigin = process.argv.includes("--omb-current-local-origin=1");
+const localOrigin = currentLocalOrigin ? (() => {
+  try {
+    const origin = ipcRenderer.sendSync("desktop:local-origin");
+    return typeof origin === "string" && origin ? origin : null;
+  } catch { return null; }
+})() : process.argv.find((arg) => arg.startsWith("--omb-local-origin="))?.slice("--omb-local-origin=".length) ?? null;
+const isLocalPage = (!currentLocalOrigin && !localOrigin) || (localOrigin !== null && location.origin === localOrigin);
 
 // The window's own rail of places stands at its left edge (electron/chrome-rail.mjs): main says how wide, and every page
 // beside it, whatever server it comes from, moves over by that much, at any zoom (a zoom change resizes the page). The

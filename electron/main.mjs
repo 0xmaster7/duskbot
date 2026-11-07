@@ -27,6 +27,7 @@ import { activateExistingWindow, releaseSingleInstanceLock } from "./single-inst
 import { bootFailureMessage, listeningSignal, pollServerIdentity, SERVER_BOOT_TIMEOUT_MS, SERVER_LISTENING_GRACE_MS } from "./server-boot-probe.mjs";
 import { createServerSupervisor } from "./server-supervisor.mjs";
 import { serverChildLaunch } from "./server-child-launch.mjs";
+import { savedVpsStartupTarget, startPackagedAlongsideVps, waitForLocalStartup } from "./saved-vps-startup.mjs";
 import { packageUrlFromCommandLine, packageUrlFromDeepLink } from "./package-link.mjs";
 import { chatLinkFrom, chatLinkFromCommandLine } from "./chat-link.mjs"; import { installDesktopNotifications } from "./desktop-notifications.mjs";
 import { createOrganizationEntry, isOrganizationDeepLink, takeOrganizationDeepLink, organizationRestartIntent, withOrganizationRestartIntent, withoutOrganizationRestartIntent } from "./organization-entry.mjs";
@@ -257,6 +258,8 @@ app.on("second-instance", (_event, commandLine) => {
 
 let serverProc = null;
 let serverReady = !app.isPackaged;
+let localRuntimeStarting = null;
+let earlyVpsOpened = null;
 let secureCredentials = {};
 let secureCredentialState = null;
 let desktopDataDirLease = null;
@@ -294,6 +297,7 @@ const serverSupervisor = createServerSupervisor({
   onReady(proc) {
     serverProc = proc;
     serverReady = true;
+    setLocalOrigin(confirmedRendererOrigin());
     serverStartConflictOnly = false;
     slog(`server ready pid=${proc.pid} port=${SERVER_PORT}`);
     void readCloudOfferBrand();
@@ -314,11 +318,13 @@ const serverSupervisor = createServerSupervisor({
   onUnavailable() {
     serverReady = false;
     serverProc = null;
+    setLocalOrigin(confirmedRendererOrigin());
     companyBackupSchedule?.reconcile();
     routineWake.stop();
   },
   onExhausted() {
     slog("server recovery paused after repeated failures; quit and reopen to retry");
+    if (earlyVpsOpened && activeRemote(environmentsState)?.id === earlyVpsOpened && mainWindow && !mainWindow.isDestroyed()) return;
     dialog.showErrorBox(
       "The bot server stopped",
       "Automatic recovery could not restart the background server. Quit and reopen OpenMausBot to try again. Interrupted chat turns were not resent.\n\n" +
@@ -1279,6 +1285,12 @@ function rendererOrigin() {
   return new URL(app.isPackaged || desktopRemoteAccess ? `http://127.0.0.1:${SERVER_PORT}` : DEV_URL).origin;
 }
 
+function confirmedRendererOrigin() {
+  return app.isPackaged && !serverReady ? null : rendererOrigin();
+}
+
+ipcMain.on("desktop:local-origin", event => { event.returnValue = confirmedRendererOrigin(); });
+
 function respondToDisplayMediaRequest(callback, response) {
   const error = invokeDisplayMediaCallback(callback, response);
   if (error && response.video) {
@@ -1634,6 +1646,7 @@ async function switchLocalEnvironmentTo(targetDir, targetId, quiet = false) {
 async function switchEnvironment(id) {
   if ((id === environmentsState.activeId && !homeWindow.asking()) || (id !== LOCAL_ID && !environmentsState.environments.some((entry) => entry.id === id))) return;
   const entry = environmentsState.environments.find((candidate) => candidate.id === id);
+  if (localRuntimeStarting && (id === LOCAL_ID || entry?.kind === "local")) await waitForLocalStartup(localRuntimeStarting);
   if (entry?.team || entry?.cloud) return void await showHome({ place: entry.team ? { team: entry.team.id, name: entry.name } : { cloud: entry.cloud.id, name: entry.name } });
   homePlaces.remember(null);
   if (entry?.kind === "local") return await switchLocalEnvironmentTo(entry.dataDir, entry.id);
@@ -1974,6 +1987,7 @@ function createWindow({ deferNavigation = false } = {}) {
       contextIsolation: true,
       preload: path.join(__dirname, "preload.cjs"),
       additionalArguments: [...desktopCompanionRendererArguments(rendererOrigin(), desktopRemoteAccess),
+        "--omb-current-local-origin=1",
         ...(app.isPackaged && !desktopRemoteAccess ? ["--omb-company-desktop=1"] : []), `--omb-app-version=${app.getVersion()}`],
     },
   });
@@ -2323,7 +2337,6 @@ ipcMain.handle("desktop:open-external", localOnly("desktop:open-external", async
   return true;
 }));
 
-// The Boat VNC viewer must be a top-level page for its token exchange.
 ipcMain.handle("desktop-viewer:open", localOnly("desktop-viewer:open", (event, rawUrl, title, contextId) => {
   const owner = BrowserWindow.fromWebContents(event.sender);
   return openDesktopViewer(owner, rawUrl, title, contextId);
@@ -2604,7 +2617,11 @@ installCloudPlanIpc({ ipcMain, pageSender: cloudPageSender, account: () => cloud
 const cloudLook = createCloudLook({ store: lookFile(() => path.join(app.getPath("userData"), cloudTarget(process.env).look), fs), accountId: () => cloudAccount?.state().account?.id ?? null,
   homeEntry: cloudHomeEntry, saveEntry: (origin, look) => persistEnvironments(withEnvironmentLook(environmentsState, origin, look)) });
 const cloudBuy = installCloudBuy({ ipcMain, guard: localWorkspaceOnly, client: ensureCloudAccount, offersReady: cloudOffersReady, clipboard, look: cloudLook });
-const localServerRequest = (route, init = {}) => ((serverProc || !app.isPackaged) && serverReady ? fetch(`http://127.0.0.1:${SERVER_PORT}${route}`, { ...init, redirect: "error", credentials: "omit", headers: { ...init.headers, [DESKTOP_MUTATION_HEADER]: desktopMutationToken } }) : Promise.reject(new Error("not running")));
+const localServerRequest = async (route, init = {}) => {
+  if (localRuntimeStarting && !serverReady) await waitForLocalStartup(localRuntimeStarting);
+  if (!(serverProc || !app.isPackaged) || !serverReady) throw new Error("This computer's background server is unavailable. Restart the app and try again.");
+  return fetch(`http://127.0.0.1:${SERVER_PORT}${route}`, { ...init, redirect: "error", credentials: "omit", headers: { ...init.headers, [DESKTOP_MUTATION_HEADER]: desktopMutationToken } });
+};
 const teamProfileSeeds = createTeamProfileSeeds({ teamFetch: (...args) => session.defaultSession.fetch(...args), localRequest: localServerRequest, log: slog });
 const oneHome = installOneHome({ ipcMain, clean: cleanWorkspace, cloudPage: cloudPageAsking, pageOrigin: activePageOrigin, confirmMove: confirmTeamMove, server: () => serverProc, cookieFetch: (...args) => session.defaultSession.fetch(...args), home: () => (myCloud() && cloudAccount ? { origin: myCloud(), grant: () => cloudAccount.pairHome() } : null), power: cloudPower, file: () => path.join(app.getPath("userData"), "cloud-send.json"), localRequest: localServerRequest, space: { disk: () => cloudPlanDisk(ensureCloudAccount().state()), grow: sizeGb => ensureCloudAccount().growDisk(sizeGb) }, reconnect: origin => signInCloudSession({ origin, mine: myCloud(), pair: () => ensureCloudAccount().pairHome(), fetch: (...args) => session.defaultSession.fetch(...args) }), window: () => (desktopRemoteAccess ? null : mainWindow), localOrigin: rendererOrigin, account: () => cloudAccount, journalFile: () => path.join(app.getPath("userData"), "one-home.json"), tempRoot: () => path.join(app.getPath("temp"), "openmaus-one-home"), phone: { paired: () => companionEnabledAtRest(), stop: () => stopDesktopCompanion({ remember: false }).then(() => {}), start: () => startDesktopCompanion({ waitForHosted: false, remember: false }).then(() => {}) }, openHome: () => void showHome({ place: "cloud" }), openTeam: team => void showHome({ place: { team: team.id, name: team.name } }), openLocal: () => void showHome(), restart: () => relaunchAfterDesktopRemoteChange(), version: app.getVersion(), log: slog, other: () => ownHome, accountsHere: () => accountRing()?.count() ?? 1 }); ownHome = installOwnHome({ localRequest: localServerRequest, fetch: (...args) => session.defaultSession.fetch(...args), environments: () => environmentsState.environments, handoff: what => oneHome.handoff(what), cloudJournal: () => oneHome.journal(), journal: jsonFile(path.join(app.getPath("userData"), "own-home.json")), choice: jsonFile(path.join(app.getPath("userData"), "own-home-choice.json")), sendState: jsonFile(path.join(app.getPath("userData"), "own-home-send.json")), phone: { paired: () => companionEnabledAtRest(), stop: () => stopDesktopCompanion({ remember: false }).then(() => {}), start: () => startDesktopCompanion({ waitForHosted: false, remember: false }).then(() => {}) }, openHome: place => void workspaceMenuAction(() => switchEnvironment(place.id)), lastInput: oneHome.lastInput, version: app.getVersion(), log: slog, onChange: () => { oneHome.publish(); railChanged(); } }); twoPlaces = installTwoPlacesMain({ ipcMain, guard: localWorkspaceOnly, localRequest: localServerRequest, fetch: (...args) => session.defaultSession.fetch(...args), environments: () => environmentsState.environments, cloud: () => ({ origin: myCloud(), asleep: cloudPower.asleep() }), oneHome, ownHome, dismissed: jsonFile(path.join(app.getPath("userData"), "two-places.json")), account: () => cloudAccount, teamsRemembered: jsonFile(path.join(app.getPath("userData"), "team-places.json")), log: slog, tell: () => { if (mainWindow && !mainWindow.isDestroyed() && senderIsLocal({ sender: mainWindow.webContents })) mainWindow.webContents.send("two-places:changed"); } }); const vpsLink = installVpsLink({ ipcMain, whenReady: () => app.whenReady(), guard: localWorkspaceOnly, userData: app.getPath("userData"), session, shell, encryption: cloudEncryption, jsonFile, environments: () => environmentsState, persist: persistEnvironments, withEnvironment, makeId: randomUUID, forgetEnvironment: id => forgetEnvironment(id, false, true), ownHome, localRequest: localServerRequest, switchTo: id => workspaceMenuAction(() => switchEnvironment(id)), relaunch: () => relaunchAfterDesktopRemoteChange(), dataDir: () => runningDataDir, label: () => os.hostname().replace(/\.local$/, "").slice(0, 60) || "My computer", log: slog, tell: view => { if (mainWindow && !mainWindow.isDestroyed() && senderIsLocal({ sender: mainWindow.webContents })) mainWindow.webContents.send("vps-link:changed", view); } });
 // Teams from the verified session as places this window shows (home-places.mjs): the one to open next time, and its lines.
@@ -2632,7 +2649,7 @@ const placeInbox = createPlaceInboxWatch({ places: () => [{ id: LOCAL_ID, local:
 const railList = () => { ownHome?.refresh(); return railPlaces({ saved: environmentsState, waiting: placeInbox.waiting, home: homeWindow.cloudOrigin() ?? ownHome?.origin() ?? null, mine: myCloud(), state: desktopRemoteAccess ? null : cloudAccount?.state(), offers: entry => !desktopRemoteAccess && ownHome?.offers(entry) === true, accounts: accountRing.waiting() }); };
 // The rail as the window's own chrome (chrome-rail.mjs): this app's page beside every place's page, the one that lists.
 const chromeRail = createChromeRail({ createView: options => new WebContentsView(options), preload: path.join(__dirname, "preload.cjs"), log: slog, prefs: () => desktopPrefs, changed: () => rail.changed(),
-  args: () => [...desktopCompanionRendererArguments(rendererOrigin(), desktopRemoteAccess), ...(app.isPackaged && !desktopRemoteAccess ? ["--omb-company-desktop=1"] : []), `--omb-app-version=${app.getVersion()}`],
+  args: () => [...desktopCompanionRendererArguments(rendererOrigin(), desktopRemoteAccess), "--omb-current-local-origin=1", ...(app.isPackaged && !desktopRemoteAccess ? ["--omb-company-desktop=1"] : []), `--omb-app-version=${app.getVersion()}`],
   url: () => `${rendererOrigin()}${CHROME_RAIL_PATH}`, wanted: () => !desktopRemoteAccess && serverReady && railList().length > 0 });
 chromeRail.install(ipcMain);
 function railChanged() { chromeRail.refresh(); rail.changed(); }
@@ -2791,7 +2808,7 @@ async function broadcastDesktopCapabilities() {
     if (window.isDestroyed()) continue;
     let isLocal = false;
     try {
-      isLocal = new URL(window.webContents.getURL()).origin === rendererOrigin();
+      isLocal = new URL(window.webContents.getURL()).origin === confirmedRendererOrigin();
     } catch {}
     if (!isLocal) redacted ??= build(true);
     window.webContents.send("desktop:capabilities-changed", isLocal ? local : redacted);
@@ -2901,7 +2918,7 @@ app.whenReady().then(async () => {
     session.defaultSession.setDisplayMediaRequestHandler(
       (request, callback) => {
         displayMediaRequestCount += 1;
-        if (!displayMediaGuard.consume(request, rendererOrigin())) {
+        if (!displayMediaGuard.consume(request, confirmedRendererOrigin())) {
           respondToDisplayMediaRequest(callback, {});
           return;
         }
@@ -2955,6 +2972,20 @@ app.whenReady().then(async () => {
     },
     page: event => senderIsLocal(event) ? "local" : cloudPageAsking(event) ?? (workspaceSenderAllowed(event, mainWindow?.webContents, environmentsState, rendererOrigin()) ? "server" : null) });
   talk.start({ globalShortcut, screen, prefs: desktopPrefs, remote: () => Boolean(desktopRemoteAccess), away: () => homeWindow.current().kind !== "computer", starting: () => !serverReady, localRequest: localServerRequest, dataDir: () => runningDataDir });
+  setLocalOrigin(confirmedRendererOrigin());
+  session.defaultSession.webRequest.onCompleted({ urls: ["https://*/api/*"] }, details => homeWindow.responded(details));
+  appPermissions = appPermissionHandlers({
+    rendererOrigin: confirmedRendererOrigin,
+    mainContents: () => (mainWindow && !mainWindow.isDestroyed() ? mainWindow.webContents : null),
+    cloudHomeOrigin: myCloud,
+    cloudHomeRestoring: () => cloudAccountRestoring ? cloudAccountRestored() : null,
+    activeRemoteOrigin: () => activeEnvironment(environmentsState)?.origin ?? null,
+    activeRemoteMicrophone: () => activeEnvironment(environmentsState)?.microphone === true,
+    askRemoteMicrophone,
+    homeOrigin: () => homeWindow.placeOrigin(),
+  });
+  session.defaultSession.setPermissionRequestHandler(appPermissions.request);
+  session.defaultSession.setPermissionCheckHandler(appPermissions.check);
   // Before the window, so the harness has the CUA descriptor on first render.
   cuaReady =
     !desktopRemoteAccess && (process.platform === "darwin" || process.platform === "linux" || process.platform === "win32")
@@ -2983,43 +3014,72 @@ app.whenReady().then(async () => {
       return;
     }
   } else if (app.isPackaged) {
-    const booted = await startServerPackaged();
-    if (!booted && !desktopShutdownStarted && bootDataDir !== desktopDataDir()) {
-      slog(`boot environment ${bootDataDir} did not start; falling back to the default data dir`);
-      persistEnvironments({ ...environmentsState, activeId: LOCAL_ID });
-      try {
-        desktopDataDirLease?.release();
-      } catch (error) {
-        slog(`boot fallback lease release failed: ${error?.message ?? error}`);
-      }
-      desktopDataDirLease = null;
-      try {
-        desktopDataDirLease = acquireDataDirLease(desktopDataDir(), {
-          legacyDataDir: path.join(app.getPath("home"), ".opengrokbot"),
-        });
-        runningDataDir = desktopDataDir();
-      } catch (error) {
-        dialog.showErrorBox(
-          "OpenMausBot could not start safely",
-          error?.message ?? "Another process is using this OpenMausBot data folder.",
-        );
-        app.quit();
-        return;
-      }
-      const retried = await startServerPackaged();
-      if (retried) {
-        dialog.showErrorBox(
-          "The environment was unhealthy",
-          `OpenMausBot could not start on ${bootDataDir} and came up on this computer's default data folder instead. Choose that environment again from the Server menu once it is available.`,
-        );
-      } else {
-        dialog.showErrorBox(
-          "OpenMausBot could not start",
-          `OpenMausBot could not start on ${bootDataDir} or on this computer's default data folder. Check that both folders are readable, then start the app again.`,
-        );
-        app.quit();
-      }
-    }
+    const target = () => {
+      const marker = cleanWorkspace.marker();
+      return savedVpsStartupTarget({
+        packaged: app.isPackaged, hidden: hiddenStart, remoteAccess: desktopRemoteAccess,
+        active: activeRemote(environmentsState), link: vpsLink.view(),
+        priority: desktopShutdownStarted || pendingOrganizationEntry || cloudEntry.pending() || pendingPackageInstallUrl || pendingChatLink ||
+          organizationRestartIntent(secureCredentialState?.read() ?? secureCredentials) || ownHome?.underWay(),
+        cloudHome: oneHome.away() || (marker.frozen && !marker.place), rememberedPlace: homePlaces.remembered(),
+      });
+    };
+    const startup = startPackagedAlongsideVps({
+      startLocal: async () => {
+        const booted = await startServerPackaged();
+        if (!booted && !desktopShutdownStarted && bootDataDir !== desktopDataDir()) {
+          slog(`boot environment ${bootDataDir} did not start; falling back to the default data dir`);
+          persistEnvironments({ ...environmentsState, activeId: LOCAL_ID });
+          try {
+            desktopDataDirLease?.release();
+          } catch (error) {
+            slog(`boot fallback lease release failed: ${error?.message ?? error}`);
+          }
+          desktopDataDirLease = null;
+          try {
+            desktopDataDirLease = acquireDataDirLease(desktopDataDir(), {
+              legacyDataDir: path.join(app.getPath("home"), ".opengrokbot"),
+            });
+            runningDataDir = desktopDataDir();
+          } catch (error) {
+            dialog.showErrorBox(
+              "OpenMausBot could not start safely",
+              error?.message ?? "Another process is using this OpenMausBot data folder.",
+            );
+            app.quit();
+            return;
+          }
+          const retried = await startServerPackaged();
+          if (retried) {
+            dialog.showErrorBox(
+              "The environment was unhealthy",
+              `OpenMausBot could not start on ${bootDataDir} and came up on this computer's default data folder instead. Choose that environment again from the Server menu once it is available.`,
+            );
+          } else {
+            dialog.showErrorBox(
+              "OpenMausBot could not start",
+              `OpenMausBot could not start on ${bootDataDir} or on this computer's default data folder. Check that both folders are readable, then start the app again.`,
+            );
+            app.quit();
+          }
+        }
+      },
+      target,
+      ready: id => vpsLink.readyServer(id),
+      open: async ({ id, origin }) => {
+        if (!mainWindow || mainWindow.isDestroyed()) createWindow({ deferNavigation: true });
+        const loaded = await navigateMainWindow(origin);
+        if (loaded) earlyVpsOpened = id;
+        return loaded;
+      },
+      failed: error => slog(`saved VPS startup: ${error?.message ?? error}`),
+    });
+    localRuntimeStarting = startup.local;
+    try { await startup.local; }
+    catch (error) {
+      if (!(await startup.remote) || activeRemote(environmentsState)?.id !== earlyVpsOpened) throw error;
+      slog(`local background server did not start: ${error?.message ?? error}`);
+    } finally { localRuntimeStarting = null; }
   }
   if (desktopShutdownStarted) return;
   if (app.isPackaged && !desktopRemoteAccess) void ensureManagedDesktop().start().then(() => companyBackupSchedule.start()).catch(() => {});
@@ -3034,20 +3094,7 @@ app.whenReady().then(async () => {
     const wanted = () => !desktopShutdownStarted && companionEnabledAtRest() && !companionRunning() && !oneHome.away() && !ownHome?.away();
     void autoStartCompanion({ restored: managedDesktop?.whenRestored(), start: () => startDesktopCompanion({ waitForHosted: false, remember: false }), wanted, log: slog });
   }
-  setLocalOrigin(rendererOrigin());
-  session.defaultSession.webRequest.onCompleted({ urls: ["https://*/api/*"] }, details => homeWindow.responded(details));
-  appPermissions = appPermissionHandlers({
-    rendererOrigin,
-    mainContents: () => (mainWindow && !mainWindow.isDestroyed() ? mainWindow.webContents : null),
-    cloudHomeOrigin: myCloud,
-    cloudHomeRestoring: () => cloudAccountRestoring ? cloudAccountRestored() : null,
-    activeRemoteOrigin: () => activeEnvironment(environmentsState)?.origin ?? null,
-    activeRemoteMicrophone: () => activeEnvironment(environmentsState)?.microphone === true,
-    askRemoteMicrophone,
-    homeOrigin: () => homeWindow.placeOrigin(),
-  });
-  session.defaultSession.setPermissionRequestHandler(appPermissions.request);
-  session.defaultSession.setPermissionCheckHandler(appPermissions.check);
+  setLocalOrigin(confirmedRendererOrigin());
   cloudSync.start();
   // lending to a Cloud is gone: a login item it added earlier goes too (the person's own stays).
   loginItem.follow(false);

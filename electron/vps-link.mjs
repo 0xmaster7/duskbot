@@ -674,6 +674,13 @@ export function createVpsLink(deps) {
     engines, signIn, signInStatus, signInCode, signInCancel,
     preview, move, retryMove, moveBack, backups, backupNow: async () => ({ id: (await backupNow("manual")).id }), restore, forget, where,
     open: async () => { const link = needLink(); await deps.switchTo(link.envId); },
+    readyServer: async (envId) => {
+      const link = state.links.find(entry => entry.envId === envId);
+      if (!link || closed) return null;
+      if (link.mode === "direct" && link.spki && link.origin) deps.pin?.(new URL(link.origin).host, link.spki);
+      await proxyFor(link);
+      return !closed && state.links.includes(link) ? { id: envId, origin: link.origin } : null;
+    },
     async close() { closed = true; invalidateSetup(); stopFollowing(); clearTimeout(moveTimer); for (const flow of signIns.values()) flow.abort?.abort(); await Promise.allSettled(proxyStarts.values()); await Promise.all([...proxies.values()].map((proxy) => proxy.close())); },
   };
 }

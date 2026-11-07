@@ -239,3 +239,16 @@ test("cancelling while protecting a command revokes the created session", { time
   assert.equal(deleted.length, 1);
   await link.close();
 });
+
+test("startup waits only for its selected saved server and refuses an unknown environment", async () => {
+  const selected = deferred();
+  const { link, calls } = controller([savedLink("aaaaaaaaaa"), savedLink("bbbbbbbbbb")], {
+    proxyFactory: ({ id }) => ({ start: () => id === "aaaaaaaaaa" ? selected.promise : new Promise(() => {}), close: async () => {} }),
+  });
+  assert.equal(await link.readyServer("not-saved"), null);
+  const waiting = link.readyServer("aaaaaaaaaa");
+  selected.resolve("http://vps-aaaaaaaaaa.localhost:26");
+  assert.deepEqual(await waiting, { id: "aaaaaaaaaa", origin: "http://vps-aaaaaaaaaa.localhost:26" });
+  assert.deepEqual(calls, [], "listener readiness must not probe engines or wait for a model CLI");
+  await link.close();
+});
