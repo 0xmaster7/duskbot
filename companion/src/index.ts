@@ -6,11 +6,14 @@
 //   :8799  127.0.0.1  the harness spoken to as this machine, unmodified
 //   UDS/pipe            one Electron-owned sidecar generation, never TCP
 import { createServer } from "node:http";
+import { join } from "node:path";
 
 import { createAddressWatcher } from "./advertise-watch.ts";
 import { createControlServer, hostCandidates, initialControlToken } from "./control.ts";
 import { createConnectedDeviceTracker } from "./connected-devices.ts";
 import { DeviceRegistry } from "./devices.ts";
+import { createMobileSessions } from "./mobile.ts";
+import { DATA_DIR } from "./state.ts";
 import { companionEndpointCandidates, hostedCompanionUrl } from "./endpoints.ts";
 import { lanAddresses, refreshTailnetName, tailnetName, tailscaleAddress } from "./listener.ts";
 import {
@@ -106,6 +109,7 @@ let nameTimer: ReturnType<typeof setInterval> | null = null;
 let stopping = false;
 
 const devices = new DeviceRegistry();
+const mobile = createMobileSessions({ file: join(DATA_DIR, "mobile-sessions.json") });
 const mdns = new MdnsResponder();
 
 /** Advertise when a network appears, re-advertise when DHCP moves us, withdraw
@@ -130,6 +134,7 @@ const service = (): ServiceInfo => ({
 const connectedDevices = createConnectedDeviceTracker();
 const proxy = createProxyHandler({
     harnessPort: HARNESS_PORT,
+    mobile,
     mutationToken: parentPort ? () => mutationToken : undefined,
     // Also stamps lastSeenAt.
     authenticate: (token) => devices.authenticate(token),

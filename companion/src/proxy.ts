@@ -2,9 +2,12 @@
 // (a DNS-rebinding defence), so a device's request is replayed to 127.0.0.1
 // as this process, never with the device's Host or Origin.
 import { request as httpRequest, type IncomingMessage, type ServerResponse } from "node:http";
+import { isIP } from "node:net";
 import type { Duplex } from "node:stream";
+import type { TLSSocket } from "node:tls";
 
 import { bearerToken } from "./devices.ts";
+import type { createMobileSessions } from "./mobile.ts";
 import {
   COMPANION_ENDPOINT_KINDS,
   MAX_COMPANION_ENDPOINTS,
@@ -22,6 +25,7 @@ import { createSseScrubber, isJson, scrub } from "./wire.ts";
 
 export interface ProxyOptions {
   harnessPort: number;
+  mobile?: ReturnType<typeof createMobileSessions>;
   /** null: bootstrap is not ready yet; undefined: a plain Node harness. */
   mutationToken?: () => string | null;
   authenticate: (
@@ -188,10 +192,10 @@ export function companionIdentityHeaders(authenticatedDeviceId?: string, mutatio
 
 /** An allowlist: `host` and `origin` must not travel, `authorization` is the
  * sidecar's own credential, and hop-by-hop headers are not ours to relay. */
-const forwardHeaders = (req: IncomingMessage, authenticatedDeviceId?: string, mutationToken?: string): Record<string, string> => {
+const forwardHeaders = (req: IncomingMessage, authenticatedDeviceId?: string, mutationToken?: string, companion = true): Record<string, string> => {
   const out: Record<string, string> = {
     accept: String(req.headers.accept ?? "*/*"),
-    ...companionIdentityHeaders(authenticatedDeviceId, mutationToken),
+    ...(companion ? companionIdentityHeaders(authenticatedDeviceId, mutationToken) : {}),
   };
   const contentType = req.headers["content-type"];
   if (contentType) out["content-type"] = String(contentType);
@@ -216,6 +220,185 @@ const forwardHeaders = (req: IncomingMessage, authenticatedDeviceId?: string, mu
   }
   return out;
 };
+
+const redeemCalls: number[] = [];
+const remoteHeaders = (req: IncomingMessage): Record<string, string> => ({
+  "x-forwarded-for": isIP(req.socket.remoteAddress ?? "") ? req.socket.remoteAddress! : "192.0.2.11",
+  "x-forwarded-proto": (req.socket as TLSSocket).encrypted || !req.socket.remoteAddress ? "https" : "http",
+});
+
+const responseHeaders = (headers: IncomingMessage["headers"]): IncomingMessage["headers"] => {
+  const out = { ...headers };
+  const hopHeaders = [
+    "connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "proxy-connection",
+    "te", "trailer", "transfer-encoding", "upgrade",
+    ...String(headers.connection ?? "").toLowerCase().split(",").map((name) => name.trim()),
+  ];
+  for (const name of hopHeaders) delete out[name];
+  return privateHeaders(out);
+};
+
+const readBytes = async (stream: IncomingMessage, limit: number): Promise<Buffer> => {
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of stream) {
+    const bytes = Buffer.from(chunk);
+    size += bytes.length;
+    if (size > limit) throw new Error("body too large");
+    chunks.push(bytes);
+  }
+  return Buffer.concat(chunks);
+};
+
+const forgetMobile = (options: ProxyOptions, token: string): void => {
+  try {
+    options.mobile?.forget(token);
+  } catch {
+    console.warn("companion: could not save mobile session removal");
+  }
+};
+
+function forwardMobile(req: IncomingMessage, res: ServerResponse, options: ProxyOptions, token?: string): void {
+  const redeem = token === undefined;
+  const headers = { ...forwardHeaders(req, undefined, undefined, false), ...remoteHeaders(req) };
+  if (redeem) {
+    delete headers["last-event-id"];
+    delete headers.range;
+  } else {
+    headers.authorization = `Bearer ${token}`;
+  }
+  let timedOut = false;
+  const upstream = httpRequest({
+    hostname: "127.0.0.1",
+    port: options.harnessPort,
+    method: req.method,
+    path: req.url,
+    headers,
+  }, (harness) => {
+    clearTimeout(deadline);
+    if (token && harness.statusCode === 401) forgetMobile(options, token);
+    if (redeem) {
+      void readBytes(harness, 256 * 1024).then((body) => {
+        if (harness.statusCode === 200) {
+          let parsed;
+          try {
+            parsed = JSON.parse(body.toString("utf8"));
+          } catch {
+            parsed = null;
+          }
+          if (typeof parsed?.token === "string" && typeof parsed?.device?.id === "string") {
+            options.mobile?.remember(parsed.token, parsed.device.id);
+          }
+        }
+        res.writeHead(harness.statusCode ?? 502, {
+          "content-type": "application/json",
+          "content-length": body.length,
+          ...PRIVATE_RESPONSE_HEADERS,
+        });
+        res.end(body);
+      }).catch(() => sendJson(res, 502, { error: "could not read the mobile pairing response" }));
+      return;
+    }
+    res.writeHead(harness.statusCode ?? 502, responseHeaders(harness.headers));
+    if (String(harness.headers["content-type"] ?? "").includes("text/event-stream")) {
+      res.flushHeaders();
+      res.socket?.setNoDelay(true);
+      res.socket?.setKeepAlive(true, 30_000);
+    }
+    harness.on("error", () => res.destroy());
+    res.on("close", () => harness.destroy());
+    harness.pipe(res);
+  });
+  const deadline = setTimeout(() => {
+    timedOut = true;
+    upstream.destroy();
+  }, proxyHeadersTimeoutMs(req.url ?? "", options.headersTimeoutMs));
+  deadline.unref?.();
+  upstream.on("close", () => clearTimeout(deadline));
+  upstream.on("error", () => {
+    clearTimeout(deadline);
+    if (res.destroyed || res.writableEnded) return;
+    sendJson(res, timedOut ? 504 : 502, {
+      error: timedOut ? "OpenMausBot did not respond" : "OpenMausBot is not running on this computer",
+    });
+  });
+  res.on("close", () => {
+    if (!res.writableEnded) upstream.destroy();
+  });
+  req.on("error", () => upstream.destroy());
+  if (redeem) {
+    void readBytes(req, 64 * 1024).then((body) => upstream.end(body)).catch(() => {
+      clearTimeout(deadline);
+      sendJson(res, 413, { error: "mobile pairing body too large" });
+      upstream.destroy();
+    });
+  } else {
+    req.pipe(upstream);
+  }
+}
+
+function upgradeMobile(req: IncomingMessage, socket: Duplex, head: Buffer, options: ProxyOptions, token: string): void {
+  const headers: Record<string, string> = {
+    authorization: `Bearer ${token}`,
+    upgrade: String(req.headers.upgrade ?? "websocket"),
+    connection: "Upgrade",
+    ...remoteHeaders(req),
+  };
+  for (const name of ["sec-websocket-key", "sec-websocket-version", "sec-websocket-protocol", "sec-websocket-extensions"]) {
+    const value = req.headers[name];
+    if (value !== undefined) headers[name] = String(value);
+  }
+  const writeHeaders = (harness: IncomingMessage, status: string, upgraded = true): void => {
+    const lines = [`HTTP/1.1 ${status}`];
+    if (upgraded) {
+      for (let i = 0; i < harness.rawHeaders.length; i += 2) {
+        lines.push(`${harness.rawHeaders[i]}: ${harness.rawHeaders[i + 1]}`);
+      }
+    } else {
+      for (const [name, value] of Object.entries(responseHeaders(harness.headers))) {
+        for (const item of [value].flat()) {
+          if (item !== undefined) lines.push(`${name}: ${item}`);
+        }
+      }
+      lines.push("connection: close");
+    }
+    socket.write(`${lines.join("\r\n")}\r\n\r\n`);
+  };
+  const upstream = httpRequest({
+    hostname: "127.0.0.1",
+    port: options.harnessPort,
+    method: "GET",
+    path: req.url,
+    headers,
+  });
+  const deadline = setTimeout(() => upstream.destroy(), proxyHeadersTimeoutMs(req.url ?? "", options.headersTimeoutMs));
+  deadline.unref?.();
+  upstream.on("upgrade", (harness, peer, harnessHead) => {
+    clearTimeout(deadline);
+    writeHeaders(harness, "101 Switching Protocols");
+    socket.write(harnessHead);
+    peer.write(head);
+    const close = () => { socket.destroy(); peer.destroy(); };
+    socket.on("error", close);
+    socket.on("close", close);
+    peer.on("error", close);
+    peer.on("close", close);
+    socket.pipe(peer).pipe(socket);
+  });
+  upstream.on("response", (harness) => {
+    clearTimeout(deadline);
+    if (harness.statusCode === 401) forgetMobile(options, token);
+    writeHeaders(harness, `${harness.statusCode ?? 502} ${harness.statusMessage ?? ""}`, false);
+    harness.on("error", () => socket.destroy());
+    socket.on("close", () => harness.destroy());
+    harness.pipe(socket);
+  });
+  upstream.on("close", () => clearTimeout(deadline));
+  upstream.on("error", () => { clearTimeout(deadline); socket.destroy(); });
+  socket.on("error", () => upstream.destroy());
+  socket.on("close", () => upstream.destroy());
+  upstream.end();
+}
 
 /** Read-only (`action: "check"`); every failure is "no". */
 function harnessControlCheck(options: ProxyOptions) {
@@ -277,6 +460,24 @@ export function createProxyHandler(options: ProxyOptions) {
     }
 
     const token = bearerToken(req.headers.authorization);
+    if (method === "POST" && path === "/api/mobile/redeem") {
+      if (!options.mobile) {
+        const authenticated = Boolean(options.authenticate(token));
+        return sendJson(res, authenticated ? 404 : 401, {
+          error: authenticated ? `no route: ${method} ${path}` : "pair this device from Remote access settings on the host computer",
+        });
+      }
+      const now = Date.now();
+      while (redeemCalls.length && redeemCalls[0] <= now - 60_000) redeemCalls.shift();
+      if (redeemCalls.length >= 20) return sendJson(res, 429, { error: "too many mobile pairing attempts" });
+      redeemCalls.push(now);
+      forwardMobile(req, res, options);
+      return;
+    }
+    if (token?.startsWith("omb_sess_") && options.mobile?.has(token)) {
+      forwardMobile(req, res, options, token);
+      return;
+    }
     const device = options.authenticate(token);
     const browserRequest = isBrowserControlAccess(method, path);
     const browserRefusal = () => {
@@ -640,6 +841,14 @@ export function createProxyHandler(options: ProxyOptions) {
       return;
     }
     const token = bearerToken(req.headers.authorization);
+    if (token?.startsWith("omb_sess_") && options.mobile?.has(token)) {
+      if (!requestTarget(req.url)) {
+        socket.destroy();
+        return;
+      }
+      upgradeMobile(req, socket, head, options, token);
+      return;
+    }
     const device = options.authenticate(token);
     viewers.handleUpgrade(req, socket, head, device);
   };
