@@ -63,7 +63,7 @@ describe("computerPrompt", () => {
     const paragraphs: Record<ComputerPromptKind, string> = {
       "vm-private": "your own isolated Cua sandbox",
       "vm-shared": "shared, isolated Cua sandbox",
-      vps: "This is the user's own VPS",
+      vps: "a sandboxed computer on the user's own VPS",
       local: "act on the user's computer",
     };
     const kinds = ["vm-private", "vm-shared", "vps", "local"] as const satisfies readonly ComputerPromptKind[];
@@ -228,7 +228,7 @@ describe("computerPrompt", () => {
   it("shares the authorized sign-in policy across every computer and browser surface", () => {
     expect(computerPrompt("vm-private")).toContain("your own isolated Cua sandbox");
     expect(computerPrompt("vm-shared")).toContain("a shared, isolated Cua sandbox");
-    expect(computerPrompt("vps")).toContain("self-hosted remote Linux computer");
+    expect(computerPrompt("vps")).toContain("a sandboxed computer on the user's own VPS");
     expect(computerPrompt("local")).toContain("act on the user's computer");
     for (const kind of ["vm-private", "vm-shared", "vps", "local"] as const) {
       expect(computerPrompt(kind).endsWith(SIGN_IN_PROMPT)).toBe(true);
