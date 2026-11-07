@@ -322,7 +322,6 @@ describe("Chat MCP session", () => {
     ["oversized incomplete frame", `process.stdout.write("x".repeat(2*1024*1024+1));`],
     ["oversized complete frame", `process.stdout.write("x".repeat(2*1024*1024+1) + "\\n");`],
     ["too many response frames", `process.stdout.write("\\n".repeat(10001));`],
-    ["oversized tool catalog", `reply(message, {tools:[{name:"write",inputSchema:schema,description:"x".repeat(1024*1024)}]});`],
   ])("skips a configured server that fails startup and awaits child cleanup for %s", async (_label, response) => {
     const f = fixture(`if (message.method === "tools/list") { ${response} continue; }`);
     await expectSkipped(f, /MCP/);
@@ -927,6 +926,22 @@ describe("Chat MCP servers past the tool limit", () => {
     expect(wide.read().calls.some(call => call.method === "tools/call")).toBe(false);
     await expect(session.execute("mcp_call_tool", args, signal)).resolves.toEqual({ ok: true, text: "recorded:size-budget receipt" });
     expect(wide.read().calls.at(-1)).toMatchObject({ method: "tools/call", params: { name: "op_19", arguments: args.arguments } });
+  });
+
+  it("reaches a server whose catalog alone exceeds 1MB through the tool search", async () => {
+    const huge = fixture(`if (message.method === "tools/list") {
+      reply(message, {tools:Array.from({length:150}, (_, index) => ({name:"op_" + index,
+        description:"Large record " + "x".repeat(8_000), inputSchema:schema}))}); return;
+    }`);
+    const { session, signal, names } = await mount({ huge: huge.server });
+    expect(names).toEqual(["mcp_search_tools", "mcp_describe_tool", "mcp_call_tool"]);
+    expect(session.skipped).toEqual([]);
+    expect(session.budget.servers).toEqual([{ name: "huge", tools: 150, direct: false }]);
+    const found = JSON.parse((await session.execute("mcp_search_tools", { query: "op_149" }, signal)).text);
+    expect(found.matches.map((match: { name: string }) => match.name)).toContain("huge_op_149");
+    const args = { name: "huge_op_149", arguments: { value: "past the catalog limit" } };
+    await expect(session.execute("mcp_call_tool", args, signal)).resolves.toEqual({ ok: true, text: "recorded:past the catalog limit" });
+    expect(huge.read().calls.at(-1)).toMatchObject({ method: "tools/call", params: { name: "op_149", arguments: args.arguments } });
   });
 
   it("reserves search slots beside full built-ins when schemas exceed the size budget", async () => {

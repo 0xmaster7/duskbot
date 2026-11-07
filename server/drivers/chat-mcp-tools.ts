@@ -346,7 +346,6 @@ const parallelRead = (origin: ToolOrigin, tool: Record<string, unknown>): boolea
 const ARGUMENTS_MISFIT = "Tool arguments do not match the advertised input schema; use its required fields and types";
 
 function checkedTools(tools: readonly unknown[]): CheckedTool[] {
-  if (Buffer.byteLength(JSON.stringify(tools)) > CATALOG_BYTES) throw new Error("MCP tool catalog exceeds the 1MB limit");
   const names = new Set<string>();
   return tools.map((tool) => {
     if (!object(tool) || typeof tool.name !== "string" || !tool.name.trim() || names.has(tool.name)) throw new Error("MCP server advertised an invalid or duplicate tool name");

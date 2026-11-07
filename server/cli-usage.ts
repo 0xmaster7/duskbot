@@ -62,8 +62,8 @@ access  who may sign in with an emailed code at /pair: an address or
         Takes effect at once, no restart.
 service keep the server running across reboots: writes a systemd unit
         (Linux) or a launchd agent (macOS) for the same serve options and
-        prints the commands that install it. Install the package
-        permanently first (npm install -g openmausbot).
+        prints the commands that install it. Install the private
+        package permanently first (see the end of this help).
 browser install: the bots' browser engine (agent-browser, pinned) into the
         data dir, and Chrome for Testing into the user's browser cache.
         --with-deps also installs
@@ -95,6 +95,8 @@ fleet   many client workspaces on one Linux server, each its own account,
 
 ${HEADLESS_USAGE}
 
-Install once with \`npm install -g openmausbot\`, then type \`openmausbot\`.
-Or run without a global install: \`npx openmausbot\`. Node 24+ is required.
+Install once from the private archive your operator supplies, then type
+\`openmausbot\` (add $HOME/.local/bin to PATH if needed). Node 24+ is required.
+  npm install --global --prefix "$HOME/.local" ./openmausbot-private.tgz
+The desktop's Add your VPS flow installs it on a server for you.
 `;

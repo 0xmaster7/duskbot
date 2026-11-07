@@ -75,21 +75,24 @@ describe("canonical send confirmation", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  it("bounds repeated stalled requests and preserves the retry count", async () => {
-    const timeouts: AbortController[] = [];
-    vi.spyOn(AbortSignal, "timeout").mockImplementation(() => {
-      const controller = new AbortController(); timeouts.push(controller); return controller.signal;
+  it("waits out a slow steered or queued receipt without a live event instead of failing or resending", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(AbortSignal, "timeout").mockImplementation((ms) => {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(new DOMException("Timed out", "TimeoutError")), ms);
+      return controller.signal;
     });
-    const post = vi.fn((signal: AbortSignal) => new Promise((_, reject) => signal.addEventListener("abort", () => reject(signal.reason), { once: true })));
-    const waits: number[] = [];
-    const result = expect(sendReconciled(post, () => false, async (ms) => { waits.push(ms); }, delivery)).rejects.toMatchObject({ name: "TimeoutError" });
-    for (let i = 0; i < 3; i++) {
-      timeouts[i]!.abort(new DOMException("Timed out", "TimeoutError"));
-      await flush();
+    for (const body of [{ ok: true, steered: true, threadId: delivery.threadId, message: { id: "steered" } },
+      { ok: true, queued: true, queueId: "queue", threadId: delivery.threadId }]) {
+      let signal!: AbortSignal;
+      const post = vi.fn((owned: AbortSignal) => { signal = owned; return new Promise((resolve) => setTimeout(() => resolve(body), 120_000)); });
+      const result = sendReconciled(post, () => false, undefined, delivery);
+      await vi.advanceTimersByTimeAsync(119_000);
+      expect(signal.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(1_000);
+      await expect(result).resolves.toEqual({ body });
+      expect(post).toHaveBeenCalledOnce();
     }
-    await result;
-    expect(waits).toEqual([1_000, 3_000]);
-    expect(post).toHaveBeenCalledTimes(3);
   });
 
   it("keeps many rapid sends independent when events arrive out of order across chats", async () => {

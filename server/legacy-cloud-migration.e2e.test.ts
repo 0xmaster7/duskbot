@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { expect, it } from "vitest";
 import { launchVerificationServer } from "../scripts/control-omb.ts";
 
-it("keeps legacy desktop secrets private and normalizes old client backend values through HTTP", async () => {
+it("drops a legacy desktop token from disk, never shows it, and normalizes old client backend values through HTTP", async () => {
   const fixture = await launchVerificationServer();
   const api = async (method: string, path: string, body?: unknown, status = 200) => {
     const response = await fetch(`${fixture.info.url}${path}`, {
@@ -22,10 +22,10 @@ it("keeps legacy desktop secrets private and normalizes old client backend value
     writeFileSync(configPath, JSON.stringify({ ...stored, box: { token: legacyToken } }));
     const changed = await api("PATCH", "/api/config", { features: { showToolCalls: true } });
     expect(JSON.stringify(changed)).not.toContain(legacyToken);
-    expect(JSON.parse(readFileSync(configPath, "utf8")).box).toEqual({ token: legacyToken });
+    expect(JSON.parse(readFileSync(configPath, "utf8"))).not.toHaveProperty("box");
     const rejected = await api("PUT", "/api/config", { box: { token: "replacement-fixture-secret" } }, 400);
     expect(rejected.error).toContain("Paid desktop provider settings are no longer supported");
-    expect(JSON.parse(readFileSync(configPath, "utf8")).box).toEqual({ token: legacyToken });
+    expect(readFileSync(configPath, "utf8")).not.toContain("replacement-fixture-secret");
     const status = await api("GET", "/api/config");
     expect(status).not.toHaveProperty("box");
     expect(JSON.stringify(status)).not.toContain(legacyToken);

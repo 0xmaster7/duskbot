@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setLocale } from "@/lib/i18n";
 import type { AppSettingsSection } from "@/state/store";
 import { SETTINGS_PANES, SettingsModal, openSettings, settingsLocation } from "./SettingsModal";
-import { ADVANCED_PAGES } from "./SettingsPanes";
+import { ADVANCED_PAGES, TextingPane } from "./SettingsPanes";
 
 const fixture = vi.hoisted(() => ({
   section: "general" as AppSettingsSection,
@@ -165,6 +165,15 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(markers(open("desktopWorkspaces"))).toContain("desktopWorkspaces");
     expect(markers(open("logins"))).toEqual(["logins"]);
     expect(current(open("logins"))).toBe("vault");
+  });
+
+  it("leaves out the Phone app group when there is no phone to pair", () => {
+    const remoteAccess = { pairing: null, companion: null, client: null, domain: null };
+    const without = renderToStaticMarkup(createElement(TextingPane, { has: (id) => id !== "companion", remoteAccess }));
+    expect(without).not.toContain('data-settings-block="phone-app"');
+    expect(groups(without)).toEqual([]);
+    const paired = renderToStaticMarkup(createElement(TextingPane, { has: () => true, remoteAccess }));
+    expect(paired).toContain('data-panel-page="pairing"');
   });
 
   it("gives a team's admins Bot access on Permissions, and hides the pane when it would be empty", () => {

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { skillAuthoringEnabled } from "@/lib/feature-flags";
 import { localeChoices } from "@/locales";
@@ -20,9 +20,18 @@ import { effectiveLanguage, setLanguageChoice, useLanguageChoice } from "@/lib/l
 import { SettingsSelect } from "./SettingsSelect";
 import { TALKING_STYLES, talkingStyleOf } from "../../shared/talking-style";
 
+const UP_TO_DATE_MS = 3000;
+
 export function UpdatesRow({ title = t("settings.updates.title") }: { title?: string }) {
   const s = useUpdaterState();
   const updater = window.ogb?.updater;
+  const [asked, setAsked] = useState(false);
+  const answered = asked && s?.status === "idle";
+  useEffect(() => {
+    if (!answered) return;
+    const timer = setTimeout(() => setAsked(false), UP_TO_DATE_MS);
+    return () => clearTimeout(timer);
+  }, [answered]);
   if (!s || !updater) return null;
   const label =
     s.status === "checking"
@@ -46,12 +55,15 @@ export function UpdatesRow({ title = t("settings.updates.title") }: { title?: st
                 ? t("settings.updates.handedOff")
                 : s.status === "error"
                   ? t("settings.updates.failed", { message: s.message ?? t("settings.updates.unknownError") })
-                  : t("settings.updates.latest");
+                  : answered
+                    ? t("sidebar.update.upToDate")
+                    : t("settings.updates.latest");
   return (
     <SettingRow title={title} subtitle={label}>
       <button
         onClick={() => {
           if (s.status === "downloaded") return void updater.install();
+          setAsked(true);
           void updater.check();
         }}
         disabled={
