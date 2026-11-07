@@ -19,6 +19,12 @@ export function isFailedReply(message: Message): boolean {
   return message.kind === "activity" && Boolean(tool) && failedTurnCause(tool!.name) !== null && !tool!.partial && !isCancelledTranscriptRow(message);
 }
 
+/** A room member's turn that ended without a word from its AI: no error row says it, so the card does. */
+export function isUnansweredRoomTurn(message: Message): boolean {
+  const rescue = message.tool?.rescue;
+  return Boolean(rescue?.groupId && rescue.over);
+}
+
 /** A notice line a bot's turn left (a sign-out, a limit, a switch to another AI); never a live rescue or a stop. */
 export function isFoldableNotice(message: Message): boolean {
   const status = statusActivity(message);
@@ -40,7 +46,7 @@ export function trailingRows(messages: readonly Message[], scan = 200): { failur
     if (settled.has(who)) continue;
     if (isFoldableNotice(m)) { notices.push(m); continue; }
     settled.add(who);
-    if (isFailedReply(m)) failures.push(m);
+    if (isFailedReply(m) || isUnansweredRoomTurn(m)) failures.push(m);
   }
   return { failures: failures.reverse(), notices: notices.reverse() };
 }
@@ -55,6 +61,7 @@ const CREDIT_WORDS = /out of credits?|payment required|insufficient (?:funds|bal
 
 /** What stopped a failed row: the server's own reading when it stored one, its flags and words for an older row. */
 export function failedReplyKind(tool: NonNullable<Message["tool"]>, engine: InstanceInfo | undefined): FailedReplyKind {
+  if (tool.rescue) return "other";
   const cause = failedTurnCause(tool.name) ?? tool.name;
   if (tool.place) return "place";
   if (trialCreditKind(cause)) return "trial_credit";
@@ -74,6 +81,12 @@ const PLAIN_KIND: Partial<Record<string, FailedReplyKind>> = {
   "error.plain.busy": "overloaded",
   "error.plain.timeout": "timeout",
 };
+
+/** What stopped a reply, in the card's plain words, when its engine words say a reason; null for any other failure. */
+export function plainFailureWords(cause: string): string | null {
+  const kind = PLAIN_KIND[plainErrorKind(cause) ?? ""];
+  return kind && kind !== "other" && kind in DETAIL ? t(DETAIL[kind as keyof typeof DETAIL]) : null;
+}
 
 /** Most actionable first: when bots fail for different reasons, the card says the one a person can fix. */
 const PRIORITY: FailedReplyKind[] = ["signed_out", "claude_update", "credits", "trial_credit", "usage_limit", "place", "rate_limit", "overloaded", "timeout", "other"];

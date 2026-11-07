@@ -87,7 +87,7 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
   const engineName = lead.engine?.displayName ?? t("failedReply.yourAi");
   let detail: string | null = failedReplyDetail(lead.kind, engineName, onServer);
   const actions: Array<{ label: string; onClick: () => void }> = [];
-  const retry = onRetry && !group ? onRetry : undefined;
+  const retry = onRetry;
   let update = null;
   if (lead.kind === "place" && tool.place && leadBotId) {
     const view = placeRowViewFor(tool.place, seat, worksOnSimpleLabel(lead.bot?.computer, platform));

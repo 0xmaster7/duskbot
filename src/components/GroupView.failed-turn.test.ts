@@ -43,8 +43,8 @@ const failed = (name: string, cause: string, patch: Partial<NonNullable<Message[
   from: { botId: name.toLowerCase(), name, color: "blue" },
   tool: { name: `error: ${cause}`, ok: false, ...patch },
 });
-const card = (messages: Message[], group = true) =>
-  renderToStaticMarkup(createElement(FailedReplyCard, { rows: trailingRows(messages), group, threadId: "room" }));
+const card = (messages: Message[], group = true, onRetry?: () => void) =>
+  renderToStaticMarkup(createElement(FailedReplyCard, { rows: trailingRows(messages), group, threadId: "room", onRetry }));
 const count = (markup: string, needle: string) => markup.split(needle).length - 1;
 
 describe("failed replies in a room", () => {
@@ -100,5 +100,42 @@ describe("failed replies in a room", () => {
 
   it("titles a direct chat's card the way grok does", () => {
     expect(card([ask, signedOut[0]!], false)).toContain("Bot failed to respond");
+  });
+
+  it("says a member that timed out, or whose AI never answered, in the same card, with Try again", () => {
+    const timedOut = failed("Rivet", "Rivet's room turn made no progress for 1 minute and was stopped", { reason: "timeout" });
+    const rescue = { botId: "quill", threadId: "room", turnId: "t", instanceId: "claude", ai: "Claude", groupId: "g" };
+    const silent: Message = { id: "silent", role: "bot", kind: "activity", at: 2, from: { botId: "quill", name: "Quill", color: "blue" },
+      tool: { name: "notice: Quill didn't hear back from Claude.", ok: true, rescue: { ...rescue, over: true } } };
+    const markup = card([ask, failed("Echo", "API Error: 529 Overloaded"), timedOut, silent], true, () => {});
+    expect(count(markup, "data-chat-error")).toBe(1);
+    expect(markup).toContain("Echo, Rivet and 1 more couldn&#x27;t respond");
+    expect(markup).toContain("Try again</button>");
+    expect(markup).not.toContain("made no progress");
+    expect(markup).not.toContain("hear back");
+    // still waiting is no failure: the working line says it
+    const waiting = { ...silent, tool: { ...silent.tool!, name: "notice: Quill hasn't heard back from Claude yet.", rescue } };
+    expect(card([ask, waiting])).toBe("");
+  });
+
+  it("offers no Try again when nothing can send the line again", () => {
+    expect(card([ask, failed("Echo", "API Error: 529 Overloaded")])).not.toContain("Try again</button>");
+  });
+});
+
+describe("a member's hand-off that failed", () => {
+  it("is a flat hand-off row in plain words, never a red pill with the engine's", () => {
+    const message: Message = {
+      id: "h", role: "bot", kind: "activity", at: 2, from: { botId: "quill", name: "Quill", color: "blue" },
+      roomRequest: { id: "job", phase: "result" },
+      handoff: { phase: "result", from: { botId: "quill", name: "Quill", color: "blue" }, to: { botId: "nova", name: "Nova", color: "red" } },
+      comm: { groupId: "room", withBotId: "quill", withName: "Quill", withColor: "blue" },
+      tool: { name: "Quill \u2014 failed: API Error: 529 Overloaded", ok: false },
+    };
+    const markup = renderToStaticMarkup(createElement(RoomToolChip, { message, roomId: "room" }));
+    expect(markup).toContain('data-handoff-row="result"');
+    expect(markup).toContain("Model provider is overloaded");
+    expect(markup).not.toContain("529");
+    expect(markup).not.toContain("text-danger");
   });
 });

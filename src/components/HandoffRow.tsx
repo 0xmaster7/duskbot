@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Bot, MausColor, Message } from "@/state/store";
 import { handoffResult } from "@/lib/handoff-result";
 import { t } from "@/lib/i18n";
+import { plainFailureWords } from "@/lib/failed-reply";
 import { cn } from "@/lib/cn";
 import { BotAvatar } from "./Avatar";
 
@@ -12,7 +13,11 @@ export function HandoffRow({ message, bots, onOpen }: { message: Message; bots: 
   const line = message.handoff;
   if (!line) return null;
   const result = line.phase === "result" ? handoffResult(message) : null;
-  const words = line.phase === "sent" ? line.text ?? "" : result?.preview ?? "";
+  // a member that couldn't finish: plain words, never the engine's
+  const failed = line.phase === "result" && message.tool?.ok === false;
+  const words = line.phase === "sent" ? line.text ?? ""
+    : failed ? plainFailureWords(message.tool!.name) ?? t("failedReply.titleOne", { name: line.from.name })
+    : result?.preview ?? "";
   const from = bots.find((bot) => bot.id === line.from.botId) ?? { name: line.from.name, color: line.from.color as MausColor };
   const title = line.phase === "sent"
     ? t("chat.handoff.sentTitle", { from: line.from.name, to: line.to.name })

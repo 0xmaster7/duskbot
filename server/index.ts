@@ -10505,7 +10505,7 @@ async function runClaimedGroupMemberTurn(
         role: "bot",
         kind: "activity",
         from: { botId: bot.id, name: bot.name, color: bot.color },
-        tool: { name: roomTurnTimeoutMessage(bot.name, timeoutMinutes, threadLanguage(threadId)), ok: false },
+        tool: failedTurnTool(roomTurnTimeoutMessage(bot.name, timeoutMinutes, threadLanguage(threadId)), { reason: "timeout" }),
       });
       finish("timed_out");
     });

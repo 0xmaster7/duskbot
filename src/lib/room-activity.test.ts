@@ -25,6 +25,12 @@ describe("roomActivityVisible", () => {
     expect(roomActivityVisible(chip({ tool: { name: "recovery: Automatic recovery: trying a backup once.", ok: true } }), false)).toBe(true);
   });
 
+  it("never shows the wait for a member's first reply: the working line and the card above the composer say it", () => {
+    const rescue = { botId: "b", threadId: "t", turnId: "u", instanceId: "claude", ai: "Claude", groupId: "g" };
+    expect(roomActivityVisible(chip({ tool: { name: "notice: Rivet hasn't heard back from Claude yet.", ok: true, rescue } }), true)).toBe(false);
+    expect(roomActivityVisible(chip({ tool: { name: "notice: Rivet didn't hear back from Claude.", ok: true, rescue: { ...rescue, over: true } } }), false)).toBe(false);
+  });
+
   it("hides a failed step like a 1:1 chat, and a failed turn, which the card above the composer says", () => {
     const failedStep = chip({ tool: { name: "Ran a command", ok: false } });
     expect(roomActivityVisible(failedStep, false)).toBe(false);

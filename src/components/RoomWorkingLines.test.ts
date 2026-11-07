@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import { loadLocale } from "@/lib/i18n";
 import type { Bot, Message } from "@/state/store";
-import { RoomWorkingLines, roomStatusPhrase, roomWorkingIds } from "./RoomWorkingLines";
+import { handoffWorkIds, RoomWorkingLines, roomStatusPhrase, roomWorkingIds } from "./RoomWorkingLines";
 
 await loadLocale("en");
 
@@ -21,6 +21,24 @@ describe("who works in a room", () => {
     const toolCall = { id: "a", role: "bot", kind: "activity", at: 1, from: { botId: "moss", name: "Moss", color: "green" }, tool: { name: "Bash", input: "{}" } } as Message;
     expect(roomWorkingIds({ threadId: "t", busyBotId: "echo", busyBotIds: ["echo", "nova"] }, toolCall)).toEqual(["echo", "nova", "moss"]);
     expect(roomWorkingIds({ threadId: "t", busyBotId: null }, undefined)).toEqual([]);
+  });
+});
+
+describe("members at work on a hand-off", () => {
+  const who = (botId: string, name: string) => ({ botId, name, color: "green" });
+  const line = (id: string, phase: "sent" | "result", from: string, to: string): Message => ({
+    id, role: "bot", kind: "activity", at: 2, tool: { name: id, ok: true },
+    handoff: { phase, from: who(from, from), to: who(to, to) },
+  });
+  const ask: Message = { id: "ask", role: "user", kind: "text", at: 1, text: "Get the launch ready" };
+
+  it("counts each member a hand-off since the person's last line still waits on", () => {
+    expect(handoffWorkIds([ask, line("a", "sent", "nova", "quill"), line("b", "sent", "nova", "moss")])).toEqual(["quill", "moss"]);
+    expect(handoffWorkIds([ask, line("a", "sent", "nova", "quill"), line("b", "sent", "nova", "moss"), line("c", "result", "quill", "nova")])).toEqual(["moss"]);
+  });
+
+  it("forgets hand-offs from before the person last wrote", () => {
+    expect(handoffWorkIds([line("a", "sent", "nova", "quill"), ask])).toEqual([]);
   });
 });
 

@@ -1,7 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { splitReplyBlocks } from "@/lib/formatted-reply";
 import { activeLocale, t } from "@/lib/i18n";
-import { openBotSettings } from "@/lib/open-settings";
 import { useShowThreads } from "@/lib/thread-preferences";
 import { useReactor } from "@/lib/cloud-guest";
 import { otherSpeaker } from "@/lib/own-profile";
@@ -25,13 +24,14 @@ import { RoomHoldsBanner } from "./RoomHoldsBanner";
 import { ThreadChip } from "./ThreadChip";
 import { ToolActivity } from "./ToolActivity";
 import { ThreadRefText } from "./ThreadRefs";
-import { RoomWorkingLines, roomWorkingIds } from "./RoomWorkingLines";
+import { handoffWorkIds, RoomWorkingLines, roomWorkingIds } from "./RoomWorkingLines";
+import { roomRetryRequest, roomRetryText } from "@/lib/room-retry";
 import { showToolCallsEnabled } from "@/lib/feature-flags";
 import { DigestChip } from "./DigestChip";
 import { roomActivityVisible } from "@/lib/room-activity";
 import { StatusActivityRow } from "@/components/StatusActivityRow"; import { BugReportNote } from "@/components/BugReportNote";
 import { normalizeState } from "@/lib/mascot";
-import { defaultResponderName, groupResponseHint, jevRoomRoutingOn } from "@/lib/group-routing";
+import { groupResponseHint, jevRoomRoutingOn } from "@/lib/group-routing";
 import { ChatMarkdown } from "./ChatMarkdown";
 import { FailedTurnRow, MessageBoundary, SIMPLE_STATUS_SLOT, SIMPLE_TRAILING_GAP, statusMarkFor } from "./ChatView";
 import { joinedCorners, needsStamp, SIMPLE_BOT_BUBBLE, SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT, SIMPLE_STACKED, SIMPLE_USER_BUBBLE, type BubbleJoin } from "./chat-bubble";
@@ -119,7 +119,7 @@ export function RoomToolChip({ message, roomId, threadId, live = false }: { mess
     return <FailedTurnRow tool={tool} engine={botEngine(state.bots.find((b) => b.id === message.from?.botId), state.instances)} botId={message.from?.botId} />;
   }
   const comm = message.comm;
-  if (comm && message.handoff && tool.ok !== false) {
+  if (comm && message.handoff && (tool.ok !== false || message.handoff.phase === "result")) {
     return <HandoffRow message={message} bots={state.bots} onOpen={comm.groupId !== roomId ? () => openRoomThread(dispatch, comm, state.groups) : undefined} />;
   }
   if (comm && comm.groupId !== roomId) {
@@ -468,6 +468,13 @@ export const Transcript = memo(function Transcript({
     return { item, prev, first, newDay, divider, slot };
   });
   const places = roomRowLayout(rows.map((row) => row.slot));
+  // hand-off rows one after another read as one short list
+  const handoffRun = new Set<number>();
+  rows.forEach((row, i) => {
+    if (!row.slot || row.slot.stamped || row.divider || row.item.kind !== "message" || !row.item.message.handoff) return;
+    const before = rows.slice(0, i).findLast((other) => other.slot);
+    if (before?.item.kind === "message" && before.item.message.handoff) handoffRun.add(i);
+  });
   if (seamId) {
     const at = rows.findIndex((row) => row.item.kind === "message" && row.item.message.id === seamId);
     if (at >= 0) places[at] = { ...places[at]!, join: { ...places[at]!.join, below: true } };
@@ -518,7 +525,7 @@ export const Transcript = memo(function Transcript({
         if (!row) return (lead || divider) && <div key={m.id} className="contents">{lead}{divider}</div>;
         return (
           // a send keeps its row when the server's copy replaces the optimistic one, so it never mounts or rises twice
-          <div key={m.sendId ? `send:${m.sendId}` : m.id} className="contents" data-mid={m.id} data-tuck={place.tuck ? "" : undefined}>
+          <div key={m.sendId ? `send:${m.sendId}` : m.id} className="contents" data-mid={m.id} data-tuck={place.tuck ? "" : undefined} data-handoff-next={handoffRun.has(i) ? "" : undefined}>
             {divider}
             {stamp}
             {labelled(row)}
@@ -937,9 +944,11 @@ export function GroupView({ group: room }: { group: Group }) {
     };
   }, [group.messages, threadWorking, group.name, speaker?.name]);
   const presenceSpeaker = speaker ?? awaited ?? members[0];
+  // a member's wait for its first reply is no phrase for the line: the line already says it is at work
+  const lastForLine = useMemo(() => group.messages.findLast((m) => !m.tool?.rescue), [group.messages]);
   const now = useTurnNow(
     { id: presenceSpeaker?.id ?? group.id, name: presenceSpeaker?.name ?? group.name, threadId: group.threadId },
-    group.messages, lastGroupMessage, live,
+    group.messages, lastForLine, live,
   );
   const streamingReply = useLiveReplyActive(group.threadId);
   const landed = useLandedReply(`${group.id}:${group.threadId}:${speaker?.id ?? ""}`, group.messages, speaker?.id);
@@ -947,9 +956,21 @@ export function GroupView({ group: room }: { group: Group }) {
   const presenceVisible =
     Boolean(speaker && showWorkingDots(true, group.messages.at(-1), speaker.id, live.ended) && !replyHidesLine(landed.sinceMs, now.phase)) || awaited !== undefined;
   const statusMarkState = statusMarkFor({ busy: threadWorking, waitingOnYou: false, answering: streamingReply, live: live.status?.activity, failed: lastGroupMessage?.kind === "activity" && lastGroupMessage.tool?.ok === false });
-  const workingIds = roomWorkingIds(group, lastGroupMessage);
+  const handoffIds = useMemo(() => handoffWorkIds(group.messages), [group.messages]);
+  const workingIds = threadWorking ? [...new Set([...roomWorkingIds(group, lastGroupMessage), ...handoffIds])] : roomWorkingIds(group, lastGroupMessage);
   const trailing = useTrailingRows(group.messages);
   const folded = useMemo(() => foldedNoticeIds(trailing), [trailing]);
+  const retry = useMemo(() => {
+    const failures = trailing?.failures ?? [];
+    const ids = [...new Set(failures.flatMap((m) => m.from?.botId ? [m.from.botId] : []))];
+    const at = failures[0] ? group.messages.indexOf(failures[0]) : -1;
+    const request = ids.length > 0 && at >= 0 ? roomRetryRequest(group.messages, at) : null;
+    if (!request) return undefined;
+    return () => dispatch({
+      type: "sendGroup", groupId: group.id, threadId: group.threadId, mode: request.mode,
+      text: roomRetryText(request.text, members, ids), ...(request.replyToId ? { replyToId: request.replyToId } : {}),
+    });
+  }, [trailing, group.messages, group.id, group.threadId, members, dispatch]);
 
   const {
     scrollRef,
@@ -1007,22 +1028,6 @@ export function GroupView({ group: room }: { group: Group }) {
       <ChatNotice notice={state.notice} />
       {!setupPending && <RoomContextWarnings group={group} members={members} />}
 
-      {!setupPending && !group.dm && !remoteClient && state.config && group.defaultResponder.kind === "auto" && !jevRoomRoutingOn(state.config) && (
-        <div className="w-full px-5">
-          <p data-testid="room-jev-off" className="mb-1 px-2 text-[12px] text-ink-secondary">
-            {t("room.responder.jevOffHint", { name: defaultResponderName(group, members) ?? t("room.responder.leadFallback") })}{" "}
-            <button
-              type="button"
-              onClick={() => dispatch(openBotSettings({ kind: "group", id: group.id, row: "responder" }))}
-              className="cursor-pointer text-accent hover:underline"
-            >
-              {t("room.responder.jevOffOpen")}
-            </button>
-          </p>
-        </div>
-      )}
-
-      {!setupPending && !group.dm && <RoomHoldsBanner group={group} members={members} />}
 
       {!setupPending && !simpleHeader && <RoomBulletin group={group} remoteClient={remoteClient} />}
 
@@ -1159,7 +1164,10 @@ export function GroupView({ group: room }: { group: Group }) {
         </div>
       )}
       <div className="pointer-events-auto"><ChatErrorBanner message={state.error} onDismiss={() => dispatch({ type: "error", message: null })} /></div>
-      <div className="pointer-events-auto"><FailedReplyCard rows={trailing} group threadId={group.threadId} /></div>
+      {/* one card above the composer: what went wrong first, else who the person stopped */}
+      <div className="pointer-events-auto">{trailing?.failures.length || trailing?.notices.length || setupPending || group.dm
+        ? <FailedReplyCard rows={trailing} group threadId={group.threadId} onRetry={retry} />
+        : <RoomHoldsBanner group={group} members={members} />}</div>
       <RoomComposer
         key={group.threadId}
         group={group}

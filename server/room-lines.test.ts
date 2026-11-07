@@ -4,6 +4,7 @@ import { roomResetNote } from "./room-context.ts";
 import { heldMemberLine, isHeldMemberLine } from "./room-holds.ts";
 import { finishedWithoutSummaryLine } from "./room-reply.ts";
 import { roomTurnTimeoutMessage } from "./room-turn-timeout.ts";
+import { failedTurnTool } from "../shared/failed-turn.ts";
 import "./server-line-packs.ts";
 import { isServerLine } from "./server-lines.ts";
 import { HARNESS_NOTICE } from "./sentinel/normalize.ts";
@@ -41,6 +42,9 @@ describe("the sentinel reading a German room", () => {
     const stopped = notice("m1", roomTurnTimeoutMessage("<bot>", 5, "de"));
     expect(turnStop.detect([stopped], config).map((one) => one.kind)).toEqual(["turn_timeout"]);
     expect(toolError.detect([stopped], config)).toEqual([]);
+    const stored = notice("m4", failedTurnTool(roomTurnTimeoutMessage("<bot>", 5, "de"), { reason: "timeout" }).name);
+    expect(turnStop.detect([stored], config).map((one) => one.kind)).toEqual(["turn_timeout"]);
+    expect(toolError.detect([stored], config)).toEqual([]);
     expect(toolError.detect([notice("m2", heldMemberLine("<bot>", "de"))], config)).toEqual([]);
     expect(toolError.detect([notice("m3", "Ein Werkzeug ist abgestürzt")], config)).toHaveLength(1);
   });
