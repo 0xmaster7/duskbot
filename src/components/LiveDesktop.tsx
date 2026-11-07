@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Hand, Loader2, Minimize2, RefreshCw, Send } from "lucide-react";
 import type RFB from "@novnc/novnc";
 import { cn } from "@/lib/cn";
-import { connectDesktop, typeOnDesktop } from "@/lib/desktop-connection";
+import { connectDesktop, isPasteShortcut, pasteOnDesktop, typeOnDesktop } from "@/lib/desktop-connection";
 import { t } from "@/lib/i18n";
+import { isMacPlatform } from "@/lib/keyboard-shortcuts";
 import { ComputerFullscreen } from "./ComputerFullscreen";
 import { GrokIcon } from "./GrokIcon";
 import { useCaptionChrome, useDesktopCapabilities } from "./DesktopCapabilities";
@@ -11,9 +12,13 @@ import { useCaptionChrome, useDesktopCapabilities } from "./DesktopCapabilities"
 type Connection = "connecting" | "connected" | "disconnected";
 
 /** The computer the person took control of, live and drivable where they were watching it. */
-export function LiveDesktop({ target, threadId, name, poster, expanded, onExpandedChange, onHandBack, handingBack, onUnreachable, onReadyChange, onTakeControl, onOpenPreview, originalViewer = false, viewOnly = false }: {
+export function LiveDesktop({ target, threadId, name, poster, expanded, onExpandedChange, onHandBack, handingBack, onUnreachable, onReadyChange, onTakeControl, onOpenPreview, onScreenSize, waking, originalViewer = false, viewOnly = false }: {
   target: string;
   viewOnly?: boolean;
+  /** What shows until the first frame: the bot waking up, never a connecting line. */
+  waking?: (expanded: boolean) => ReactNode;
+  /** The desktop's own size in pixels, once its first frame arrives, so the frame around it can match its shape. */
+  onScreenSize?: (width: number, height: number) => void;
   onReadyChange?: (ready: boolean) => void;
   onTakeControl?: () => void;
   onOpenPreview?: () => void;
@@ -47,6 +52,9 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
   readyChanged.current = onReadyChange;
   const unreachable = useRef(onUnreachable);
   unreachable.current = onUnreachable;
+  const sized = useRef(onScreenSize);
+  sized.current = onScreenSize;
+  const [aspect, setAspect] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -76,10 +84,17 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
           if (controller.signal.aborted) return;
           decoded = true;
           live.current = identity;
+          const canvas = screen.current?.querySelector("canvas");
+          if (canvas?.width && canvas.height) {
+            setAspect(canvas.width / canvas.height);
+            sized.current?.(canvas.width, canvas.height);
+          }
           reportReady?.(true);
           setConnection("connected");
         },
         disconnected: lost,
+        // in control, what the person copies on the desktop reaches their own clipboard, so pasting it back works too
+        clipboard: (copied) => { if (!watching.current && copied) void navigator.clipboard?.writeText(copied).catch(() => {}); },
       },
     }).then((connected) => {
       if (controller.signal.aborted) return connected.disconnect();
@@ -116,6 +131,35 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
 
   useEffect(() => { if (viewOnly) setText(""); }, [viewOnly]);
 
+  // the person's paste shortcut pastes their clipboard into the desktop instead of reaching the guest as Alt+V or Ctrl+V
+  useEffect(() => {
+    const element = screen.current;
+    if (!element || viewOnly || connection !== "connected") return;
+    const mac = isMacPlatform();
+    let fallback: ReturnType<typeof setTimeout> | undefined;
+    const send = (text: string) => { if (rfb.current) pasteOnDesktop(rfb.current, text); };
+    const keydown = (event: KeyboardEvent) => {
+      if (!isPasteShortcut(event, mac)) return;
+      // noVNC must not see it, so the browser's own paste follows with the text; no paste event means reading it directly
+      event.stopPropagation();
+      clearTimeout(fallback);
+      fallback = setTimeout(() => void navigator.clipboard?.readText().then(send, () => {}), 150);
+    };
+    const paste = (event: ClipboardEvent) => {
+      if (!element.contains(document.activeElement)) return;
+      clearTimeout(fallback);
+      event.preventDefault();
+      send(event.clipboardData?.getData("text/plain") ?? "");
+    };
+    element.addEventListener("keydown", keydown, true);
+    document.addEventListener("paste", paste, true);
+    return () => {
+      clearTimeout(fallback);
+      element.removeEventListener("keydown", keydown, true);
+      document.removeEventListener("paste", paste, true);
+    };
+  }, [viewOnly, connection]);
+
   const label = t("computer.viewerTitle", { name });
   const pill = (
     <span className="pointer-events-none flex items-center gap-1.5 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-medium text-white shadow-sm">
@@ -147,23 +191,18 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
         {poster && connection !== "connected" && (
           <img src={poster} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-contain opacity-50" />
         )}
-        <div ref={screen} role="application" aria-label={label} className="absolute inset-0" />
+        <div ref={screen} role="application" aria-label={label} data-live-desktop-screen="" data-watching={viewOnly ? "" : undefined} className="absolute inset-0" />
         {viewOnly && (originalViewer ? !expanded && onOpenPreview : onTakeControl) && (
           <button type="button" data-panel-action={originalViewer ? "open-computer" : undefined} aria-label={originalViewer ? t("computer.open") : t("computer.takeControl")}
             title={originalViewer ? t("computer.open") : t("computer.takeControl")}
             onClick={originalViewer ? onOpenPreview : onTakeControl} disabled={connection !== "connected"}
             className="group/screen absolute inset-0 flex cursor-pointer items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-wait">
-            {originalViewer && <span data-panel-open-pill="" aria-hidden="true" className="pointer-events-none relative z-[2] inline-flex items-center gap-1.5 rounded-full bg-[rgb(0_0_0/0.9)] px-2.5 py-2 text-[13px] font-medium leading-4 tracking-[0.01em] text-white opacity-0 transition-opacity duration-[120ms] ease-out group-hover/screen:opacity-100 group-focus-visible/screen:opacity-100">
+            {originalViewer && <span data-panel-open-pill="" aria-hidden="true" className="pointer-events-none relative z-[2] inline-flex items-center gap-1.5 rounded-full bg-[rgb(0_0_0/0.9)] px-2.5 py-2 text-[13px] font-medium leading-4 tracking-[0.01em] text-white opacity-0 transition-opacity duration-[120ms] ease-out group-hover/screen:opacity-100 group-focus-within/screen:opacity-100 touch:opacity-100">
               <GrokIcon name="arrows-expand-simple" size={12} />{t("computer.open")}
             </span>}
           </button>
         )}
-        {connection === "connecting" && (
-          <div role="status" className="pointer-events-none absolute inset-0 flex items-center justify-center gap-2 text-[12px] text-ink-secondary">
-            <Loader2 size={16} className="animate-spin" aria-hidden="true" />
-            {t("desktopViewer.connecting")}
-          </div>
-        )}
+        {connection === "connecting" && waking?.(expanded)}
         {connection === "disconnected" && (
           <div role="alert" className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 bg-card/95 p-3 text-center text-[12px] text-ink-secondary">
             <span>{t("desktopViewer.disconnected")}</span>
@@ -178,7 +217,7 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
   if (originalViewer) return (
     <div data-live-desktop="" data-state={connection} data-view-only={viewOnly ? "true" : undefined}
       data-expanded={expanded ? "true" : undefined} className="relative h-full w-full">
-      <ComputerFullscreen embedded expanded={expanded} label={label} onExit={() => onExpandedChange(false)}
+      <ComputerFullscreen embedded expanded={expanded} label={label} aspect={aspect} onExit={() => onExpandedChange(false)}
         frame={desktopFrame} note={null} control={viewOnly
           ? { held: false, onTake: onTakeControl, busy: connection !== "connected" || handingBack }
           : { held: true, onDone: onHandBack, busy: handingBack }} />

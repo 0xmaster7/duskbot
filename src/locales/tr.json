@@ -4948,5 +4948,6 @@
   "settings.vault.footnote": "Botlar şifrelerini ve kayıtlı sırlarını asla görmez: {app} onları kendisi yazar ya da kendi araçlarına verir, böylece değerler yapay zekâya hiç ulaşmaz. Botlar bir girişin sitesini ve kullanıcı adını görebilir.",
   "settings.vault.nothing": "Henüz kayıtlı bir şey yok. Yeni öğe ile bir giriş ekle ya da bir bot istediğinde bir sır kaydet.",
   "settings.vault.noneHere": "Burada henüz bir şey yok.",
-  "server.botDesktop.building": "Botun bilgisayarı sunucunda kuruluyor. Bu her güncellemede bir kez olur ve genellikle birkaç dakika sürer."
+  "server.botDesktop.building": "Botun bilgisayarı sunucunda kuruluyor. Bu her güncellemede bir kez olur ve genellikle birkaç dakika sürer.",
+  "computer.botWaking": "{name} uyanıyor"
 }

@@ -2949,7 +2949,8 @@
       "settings.vault.footnote": "e6df170878d78b1dbe0d94f7a72061e2720973db0096cfeb012f5d2051e95587",
       "settings.vault.nothing": "dd8932cc9e4e34934a28b997f74e8ff52f4751a80b3521ad6ecf47d7febd3b34",
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
-      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad"
+      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
+      "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -8384,7 +8385,8 @@
       "settings.vault.footnote": "e6df170878d78b1dbe0d94f7a72061e2720973db0096cfeb012f5d2051e95587",
       "settings.vault.nothing": "dd8932cc9e4e34934a28b997f74e8ff52f4751a80b3521ad6ecf47d7febd3b34",
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
-      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad"
+      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
+      "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -11256,7 +11258,8 @@
       "settings.vault.footnote": "e6df170878d78b1dbe0d94f7a72061e2720973db0096cfeb012f5d2051e95587",
       "settings.vault.nothing": "dd8932cc9e4e34934a28b997f74e8ff52f4751a80b3521ad6ecf47d7febd3b34",
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
-      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad"
+      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
+      "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -14124,7 +14127,8 @@
       "settings.vault.footnote": "e6df170878d78b1dbe0d94f7a72061e2720973db0096cfeb012f5d2051e95587",
       "settings.vault.nothing": "dd8932cc9e4e34934a28b997f74e8ff52f4751a80b3521ad6ecf47d7febd3b34",
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
-      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad"
+      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
+      "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -20193,7 +20197,8 @@
       "settings.vault.footnote": "e6df170878d78b1dbe0d94f7a72061e2720973db0096cfeb012f5d2051e95587",
       "settings.vault.nothing": "dd8932cc9e4e34934a28b997f74e8ff52f4751a80b3521ad6ecf47d7febd3b34",
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
-      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad"
+      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
+      "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -26103,7 +26108,8 @@
       "settings.vault.footnote": "e6df170878d78b1dbe0d94f7a72061e2720973db0096cfeb012f5d2051e95587",
       "settings.vault.nothing": "dd8932cc9e4e34934a28b997f74e8ff52f4751a80b3521ad6ecf47d7febd3b34",
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
-      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad"
+      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
+      "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -32787,7 +32793,8 @@
       "settings.vault.footnote": "e6df170878d78b1dbe0d94f7a72061e2720973db0096cfeb012f5d2051e95587",
       "settings.vault.nothing": "dd8932cc9e4e34934a28b997f74e8ff52f4751a80b3521ad6ecf47d7febd3b34",
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
-      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad"
+      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
+      "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -37260,7 +37267,8 @@
       "settings.vault.footnote": "e6df170878d78b1dbe0d94f7a72061e2720973db0096cfeb012f5d2051e95587",
       "settings.vault.nothing": "dd8932cc9e4e34934a28b997f74e8ff52f4751a80b3521ad6ecf47d7febd3b34",
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
-      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad"
+      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
+      "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -40533,7 +40541,8 @@
       "settings.vault.footnote": "e6df170878d78b1dbe0d94f7a72061e2720973db0096cfeb012f5d2051e95587",
       "settings.vault.nothing": "dd8932cc9e4e34934a28b997f74e8ff52f4751a80b3521ad6ecf47d7febd3b34",
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
-      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad"
+      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
+      "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -45485,7 +45494,8 @@
       "settings.vault.footnote": "e6df170878d78b1dbe0d94f7a72061e2720973db0096cfeb012f5d2051e95587",
       "settings.vault.nothing": "dd8932cc9e4e34934a28b997f74e8ff52f4751a80b3521ad6ecf47d7febd3b34",
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
-      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad"
+      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
+      "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -50437,7 +50447,8 @@
       "settings.vault.footnote": "e6df170878d78b1dbe0d94f7a72061e2720973db0096cfeb012f5d2051e95587",
       "settings.vault.nothing": "dd8932cc9e4e34934a28b997f74e8ff52f4751a80b3521ad6ecf47d7febd3b34",
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
-      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad"
+      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
+      "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -56472,7 +56483,8 @@
       "settings.vault.footnote": "e6df170878d78b1dbe0d94f7a72061e2720973db0096cfeb012f5d2051e95587",
       "settings.vault.nothing": "dd8932cc9e4e34934a28b997f74e8ff52f4751a80b3521ad6ecf47d7febd3b34",
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
-      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad"
+      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
+      "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -62520,7 +62532,8 @@
       "settings.vault.footnote": "e6df170878d78b1dbe0d94f7a72061e2720973db0096cfeb012f5d2051e95587",
       "settings.vault.nothing": "dd8932cc9e4e34934a28b997f74e8ff52f4751a80b3521ad6ecf47d7febd3b34",
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
-      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad"
+      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
+      "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -68390,7 +68403,8 @@
       "settings.vault.footnote": "e6df170878d78b1dbe0d94f7a72061e2720973db0096cfeb012f5d2051e95587",
       "settings.vault.nothing": "dd8932cc9e4e34934a28b997f74e8ff52f4751a80b3521ad6ecf47d7febd3b34",
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
-      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad"
+      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
+      "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -74893,7 +74907,8 @@
       "settings.vault.footnote": "e6df170878d78b1dbe0d94f7a72061e2720973db0096cfeb012f5d2051e95587",
       "settings.vault.nothing": "dd8932cc9e4e34934a28b997f74e8ff52f4751a80b3521ad6ecf47d7febd3b34",
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
-      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad"
+      "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
+      "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780"
     }
   }
 }

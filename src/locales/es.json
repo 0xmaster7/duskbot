@@ -5431,5 +5431,6 @@
   "settings.vault.footnote": "Los bots nunca ven tus contraseñas ni tus secretos guardados: {app} los escribe o se los pasa a sus herramientas, así que los valores nunca llegan a la IA. Los bots pueden ver el sitio y el usuario de un inicio de sesión.",
   "settings.vault.nothing": "Aún no hay nada guardado. Añade un inicio de sesión con Nuevo elemento o guarda un secreto cuando un bot te lo pida.",
   "settings.vault.noneHere": "Aún no hay nada aquí.",
-  "server.botDesktop.building": "Configurando el ordenador del bot en tu servidor. Pasa una vez por actualización y suele tardar unos minutos."
+  "server.botDesktop.building": "Configurando el ordenador del bot en tu servidor. Pasa una vez por actualización y suele tardar unos minutos.",
+  "computer.botWaking": "{name} se está despertando"
 }

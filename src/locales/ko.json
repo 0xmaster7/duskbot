@@ -6499,5 +6499,6 @@
   "settings.vault.footnote": "봇은 비밀번호나 저장된 시크릿을 절대 보지 못해요. {app}이 직접 입력하거나 자체 도구에 넘기므로 값이 AI에 닿지 않아요. 봇은 로그인의 사이트와 사용자 이름만 볼 수 있어요.",
   "settings.vault.nothing": "아직 저장된 항목이 없어요. 새 항목으로 로그인을 추가하거나, 봇이 요청할 때 시크릿을 저장하세요.",
   "settings.vault.noneHere": "아직 아무것도 없어요.",
-  "server.botDesktop.building": "서버에 봇의 컴퓨터를 준비하고 있어요. 업데이트마다 한 번이며 보통 몇 분 걸려요."
+  "server.botDesktop.building": "서버에 봇의 컴퓨터를 준비하고 있어요. 업데이트마다 한 번이며 보통 몇 분 걸려요.",
+  "computer.botWaking": "{name}이(가) 깨어나는 중이에요"
 }

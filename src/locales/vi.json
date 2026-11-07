@@ -4948,5 +4948,6 @@
   "settings.vault.footnote": "Bot không bao giờ thấy mật khẩu hay bí mật đã lưu của bạn: {app} tự gõ hoặc chuyển cho công cụ của nó, nên giá trị không bao giờ đến được AI. Bot có thể thấy trang và tên người dùng của một đăng nhập.",
   "settings.vault.nothing": "Chưa lưu gì. Thêm đăng nhập bằng Mục mới, hoặc lưu bí mật khi bot hỏi.",
   "settings.vault.noneHere": "Chưa có gì ở đây.",
-  "server.botDesktop.building": "Đang thiết lập máy tính của bot trên máy chủ của bạn. Việc này diễn ra một lần mỗi bản cập nhật và thường mất vài phút."
+  "server.botDesktop.building": "Đang thiết lập máy tính của bot trên máy chủ của bạn. Việc này diễn ra một lần mỗi bản cập nhật và thường mất vài phút.",
+  "computer.botWaking": "{name} đang thức dậy"
 }

@@ -6,20 +6,30 @@ import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-type Events = { connected(): void; disconnected(): void };
+type Events = { connected(): void; disconnected(): void; clipboard?(text: string): void };
 const fixture = vi.hoisted(() => ({
-  attempts: [] as Array<{ target: string; events: Events; client: { focus: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn>; viewOnly: boolean; focusOnClick: boolean } }>,
+  attempts: [] as Array<{ target: string; events: Events; screen: HTMLElement; client: { focus: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn>; viewOnly: boolean; focusOnClick: boolean } }>,
   refuse: false,
   typed: [] as string[],
+  pasted: [] as string[],
 }));
-vi.mock("@/lib/desktop-connection", () => ({
-  connectDesktop: async (_screen: HTMLElement, target: string, options: { events: Events }) => {
+vi.mock("@/lib/desktop-connection", async (importOriginal) => ({
+  isPasteShortcut: (await importOriginal<typeof import("@/lib/desktop-connection")>()).isPasteShortcut,
+  connectDesktop: async (screen: HTMLElement, target: string, options: { events: Events }) => {
     if (fixture.refuse) throw new Error("unreachable");
-    const client = { focus: vi.fn(), disconnect: vi.fn(), viewOnly: false, focusOnClick: true };
-    fixture.attempts.push({ target, events: options.events, client });
+    // noVNC's canvas: the desktop's own size, focusable, and the guest's cursor painted on it
+    const canvas = document.createElement("canvas");
+    canvas.width = 1280;
+    canvas.height = 800;
+    canvas.tabIndex = -1;
+    canvas.style.cursor = "none";
+    screen.append(canvas);
+    const client = { focus: vi.fn(() => canvas.focus()), disconnect: vi.fn(), viewOnly: false, focusOnClick: true };
+    fixture.attempts.push({ target, events: options.events, client, screen });
     return client;
   },
   typeOnDesktop: (_client: unknown, text: string) => fixture.typed.push(text),
+  pasteOnDesktop: (_client: unknown, text: string) => fixture.pasted.push(text),
 }));
 vi.mock("./DesktopCapabilities", async (importOriginal) => ({
   ...await importOriginal<typeof import("./DesktopCapabilities")>(),
@@ -44,6 +54,7 @@ beforeEach(async () => {
   fixture.attempts = [];
   fixture.refuse = false;
   fixture.typed = [];
+  fixture.pasted = [];
   const container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -195,5 +206,76 @@ describe("the live desktop", () => {
     expect(desktop().matches(noDragSelector)).toBe(true);
     draw({ expanded: false });
     expect(desktop().matches(noDragSelector)).toBe(false);
+  });
+
+  it("shows the bot waking up until the first frame, never a connecting line, and reports the screen's shape", async () => {
+    const sizes: Array<[number, number]> = [];
+    root.unmount();
+    const container = document.createElement("div");
+    document.body.append(container);
+    root = createRoot(container);
+    draw({ originalViewer: true, viewOnly: true, waking: (expanded) => createElement("div", { "data-test-waking": String(expanded) }, "Scout is waking up"), onScreenSize: (width, height) => sizes.push([width, height]) });
+    await settle();
+    const attempt = fixture.attempts.at(-1)!;
+    expect(document.querySelector("[data-test-waking]")?.getAttribute("data-test-waking")).toBe("false");
+    expect(document.body.textContent).not.toMatch(/connecting/i);
+    flushSync(() => attempt.events.connected());
+    expect(document.querySelector("[data-test-waking]")).toBeNull();
+    expect(sizes).toEqual([[1280, 800]]);
+    draw({ expanded: true });
+    expect(document.querySelector<HTMLElement>("[data-computer-frame]")!.style.aspectRatio).toMatch(/^1\.6\b/);
+  });
+
+  it("marks the screen while watching so the person's own pointer stays visible over it", () => {
+    const screen = () => document.querySelector<HTMLElement>("[data-live-desktop-screen]")!;
+    draw({ viewOnly: true });
+    expect(screen().hasAttribute("data-watching")).toBe(true);
+    draw({ viewOnly: false });
+    expect(screen().hasAttribute("data-watching")).toBe(false);
+    const rule = readFileSync("src/components/computer-fullscreen.css", "utf8");
+    expect(rule).toContain("[data-live-desktop-screen][data-watching] canvas");
+    expect(rule).toContain('[data-live-desktop-screen] canvas[style*="cursor: none"]');
+  });
+
+  it("pastes the person's clipboard into the desktop in control, and never while watching", () => {
+    const paste = (text: string) => {
+      const event = new Event("paste", { bubbles: true, cancelable: true }) as ClipboardEvent;
+      Object.defineProperty(event, "clipboardData", { value: { getData: (type: string) => type === "text/plain" ? text : "" } });
+      document.activeElement!.dispatchEvent(event);
+      return event;
+    };
+    draw({ viewOnly: true });
+    flushSync(() => fixture.attempts[0]!.events.connected());
+    const canvas = fixture.attempts[0]!.screen.querySelector("canvas")!;
+    canvas.focus();
+    expect(paste("watching").defaultPrevented).toBe(false);
+    expect(fixture.pasted).toEqual([]);
+    draw({ viewOnly: false });
+    expect(document.activeElement).toBe(canvas);
+    const reachedGuest = vi.fn();
+    canvas.addEventListener("keydown", reachedGuest);
+    const shortcut = new KeyboardEvent("keydown", { key: "v", code: "KeyV", metaKey: navigator.userAgent.includes("Mac"), ctrlKey: !navigator.userAgent.includes("Mac"), bubbles: true, cancelable: true });
+    canvas.dispatchEvent(shortcut);
+    expect(reachedGuest, "the shortcut itself never reaches the guest").not.toHaveBeenCalled();
+    expect(shortcut.defaultPrevented, "the browser's own paste still follows").toBe(false);
+    expect(paste("pasted from the mac").defaultPrevented).toBe(true);
+    expect(fixture.pasted).toEqual(["pasted from the mac"]);
+    canvas.dispatchEvent(new KeyboardEvent("keydown", { key: "a", code: "KeyA", bubbles: true }));
+    expect(reachedGuest).toHaveBeenCalledTimes(1);
+  });
+
+  it("in control, what the person copies on the desktop reaches their own clipboard", () => {
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText, readText: vi.fn() } });
+    try {
+      draw({ viewOnly: true });
+      flushSync(() => fixture.attempts[0]!.events.connected());
+      fixture.attempts[0]!.events.clipboard?.("seen while watching");
+      draw({ viewOnly: false });
+      fixture.attempts[0]!.events.clipboard?.("copied on the desktop");
+      expect(writeText.mock.calls).toEqual([["copied on the desktop"]]);
+    } finally {
+      delete (navigator as { clipboard?: unknown }).clipboard;
+    }
   });
 });

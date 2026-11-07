@@ -2868,5 +2868,6 @@
   "settings.vault.footnote": "Les bots ne voient jamais tes mots de passe ni tes secrets enregistrés : {app} les saisit ou les transmet à ses outils, donc les valeurs n'atteignent jamais l'IA. Les bots voient le site et le nom d'utilisateur d'un identifiant.",
   "settings.vault.nothing": "Rien d'enregistré pour l'instant. Ajoute un identifiant avec Nouvel élément, ou enregistre un secret quand un bot en demande un.",
   "settings.vault.noneHere": "Rien ici pour l'instant.",
-  "server.botDesktop.building": "Configuration de l'ordinateur du bot sur ton serveur. Cela se fait une fois par mise à jour et prend en général quelques minutes."
+  "server.botDesktop.building": "Configuration de l'ordinateur du bot sur ton serveur. Cela se fait une fois par mise à jour et prend en général quelques minutes.",
+  "computer.botWaking": "{name} se réveille"
 }

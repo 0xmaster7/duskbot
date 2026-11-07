@@ -5906,5 +5906,6 @@
   "settings.vault.footnote": "Os bots nunca veem suas senhas nem seus segredos salvos: {app} digita ou entrega às próprias ferramentas, então os valores nunca chegam à IA. Os bots podem ver o site e o usuário de um login.",
   "settings.vault.nothing": "Nada salvo ainda. Adicione um login com Novo item, ou salve um segredo quando um bot pedir.",
   "settings.vault.noneHere": "Nada aqui ainda.",
-  "server.botDesktop.building": "Configurando o computador do bot no seu servidor. Isso acontece uma vez por atualização e costuma levar alguns minutos."
+  "server.botDesktop.building": "Configurando o computador do bot no seu servidor. Isso acontece uma vez por atualização e costuma levar alguns minutos.",
+  "computer.botWaking": "{name} está acordando"
 }
