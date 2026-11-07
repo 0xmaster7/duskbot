@@ -2979,6 +2979,7 @@
   "signIn.skip": "跳过",
   "signIn.skipHint": "取消此请求，不执行这一步。{name} 会继续进行。",
   "signIn.takeOver": "接管",
+  "signIn.takeOverComputer": "接管电脑",
   "signIn.skipped": "已跳过",
   "signIn.status.saved": "登录信息已保存",
   "browser.live.botBusy": "{name} 正在使用这个浏览器。空闲时会打开实时视图…",

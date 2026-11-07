@@ -2958,7 +2958,8 @@
       "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
-      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -8401,7 +8402,8 @@
       "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
-      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -11282,7 +11284,8 @@
       "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
-      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -14159,7 +14162,8 @@
       "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
-      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -20236,7 +20240,8 @@
       "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
-      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -26154,7 +26159,8 @@
       "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
-      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -32846,7 +32852,8 @@
       "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
-      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -37327,7 +37334,8 @@
       "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
-      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -40608,7 +40616,8 @@
       "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
-      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -45568,7 +45577,8 @@
       "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
-      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -50528,7 +50538,8 @@
       "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
-      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -56571,7 +56582,8 @@
       "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
-      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -62627,7 +62639,8 @@
       "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
-      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -68505,7 +68518,8 @@
       "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
-      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -75016,7 +75030,8 @@
       "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
       "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
       "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
-      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8",
+      "signIn.takeOverComputer": "7e757871839915e28cf3ac00eaca72d47008f08ed252be980c70f665961bbf4d"
     }
   }
 }

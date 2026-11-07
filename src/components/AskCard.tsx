@@ -28,6 +28,7 @@ export function AskHeader({ asker, line, origin }: { asker: Asker; line: string;
 export function AskCard({
   header,
   source,
+  media,
   icon,
   title,
   meta,
@@ -45,6 +46,8 @@ export function AskCard({
   header?: ReactNode;
   /** Grok's titlebar: where the ask comes from, an icon in a small tile and a name, above the title. */
   source?: { icon: ReactNode; label: ReactNode };
+  /** Edge to edge under the title, as grok's computer screen: only with a source. */
+  media?: ReactNode;
   icon?: ReactNode;
   title: ReactNode;
   meta?: ReactNode;
@@ -78,12 +81,13 @@ export function AskCard({
   const frame = cn("w-full max-w-[560px] rounded-[24px] text-start", ASK_CARD_RING, ASK_CARD_LIFT, stays && "sticky top-[60px] bottom-[72px] z-10");
   if (source) {
     return (
-      <div role="group" aria-label={ariaLabel} data-tour={tour} data-ask-card="pending" onKeyDown={onKeyDown} className={frame}>
+      <div role="group" aria-label={ariaLabel} data-tour={tour} data-ask-card="pending" onKeyDown={onKeyDown} className={cn(frame, media && "overflow-hidden")}>
         <CardTitlebar icon={source.icon} label={source.label} trailing={dismiss} />
         <div className="px-5 py-1">
           <p className="break-words text-[15px] font-semibold leading-[22px] text-ink"><bdi dir="auto">{title}</bdi></p>
           {explanation && <div className="break-words text-[14px] leading-5 text-ink-secondary">{explanation}</div>}
         </div>
+        {media && <div className="mt-4">{media}</div>}
         {children ? <div className="p-4">{children}</div> : !footer && <div className="pb-4" />}
         {footer && <div className={cn("flex flex-wrap items-center justify-end gap-2 px-4 pb-4", children ? "pt-0" : "pt-2.5")}>{footer}</div>}
       </div>

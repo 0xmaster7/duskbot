@@ -2728,6 +2728,7 @@
   "signIn.skip": "スキップ",
   "signIn.skipHint": "この手順を行わずにリクエストを取り消します。{name} はそのまま続けます。",
   "signIn.takeOver": "操作を代わる",
+  "signIn.takeOverComputer": "コンピューターの操作を代わる",
   "signIn.skipped": "スキップしました",
   "signIn.status.saved": "ログインを保存しました",
   "browser.live.botBusy": "{name} がこのブラウザーを使用中です。空くとライブビューが開きます…",

@@ -2954,6 +2954,7 @@
   "signIn.skip": "Überspringen",
   "signIn.skipHint": "Diese Anfrage abbrechen, ohne den Schritt zu erledigen. {name} macht ohne ihn weiter.",
   "signIn.takeOver": "Übernehmen",
+  "signIn.takeOverComputer": "Den Computer übernehmen",
   "signIn.skipped": "Übersprungen",
   "signIn.status.saved": "Login gespeichert"
 }

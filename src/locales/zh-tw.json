@@ -4476,6 +4476,7 @@
   "signIn.skip": "略過",
   "signIn.skipHint": "取消此請求，不執行這一步。{name} 會繼續進行。",
   "signIn.takeOver": "接管",
+  "signIn.takeOverComputer": "接管電腦",
   "signIn.skipped": "已略過",
   "signIn.status.saved": "登入資訊已儲存"
 }

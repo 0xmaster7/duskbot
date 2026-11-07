@@ -2180,6 +2180,7 @@
   "signIn.skip": "Atla",
   "signIn.skipHint": "Bu adımı yapmadan isteği iptal edin. {name} onsuz devam eder.",
   "signIn.takeOver": "Kontrolü al",
+  "signIn.takeOverComputer": "Bilgisayarın kontrolünü al",
   "signIn.skipped": "Atlandı",
   "signIn.status.saved": "Giriş kaydedildi",
   "browser.live.botBusy": "{name} bu tarayıcıyı kullanıyor. Canlı görünüm, tarayıcı boşaldığında açılır…",

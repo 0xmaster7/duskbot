@@ -2626,6 +2626,7 @@
   "signIn.skip": "Pular",
   "signIn.skipHint": "Cancela este pedido sem fazer a etapa. {name} continua sem ela.",
   "signIn.takeOver": "Assumir",
+  "signIn.takeOverComputer": "Assumir o computador",
   "signIn.skipped": "Pulado",
   "signIn.status.saved": "Login salvo",
   "browser.live.botBusy": "{name} está usando este navegador. A visualização ao vivo abre quando ele estiver livre…",

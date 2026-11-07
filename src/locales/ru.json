@@ -2700,6 +2700,7 @@
   "signIn.skip": "Пропустить",
   "signIn.skipHint": "Отменить этот запрос, не выполняя шаг. {name} продолжит без него.",
   "signIn.takeOver": "Взять управление",
+  "signIn.takeOverComputer": "Взять управление компьютером",
   "signIn.skipped": "Пропущено",
   "signIn.status.saved": "Вход сохранён",
   "browser.live.botBusy": "{name} пользуется этим браузером. Живой просмотр откроется, когда он освободится…",

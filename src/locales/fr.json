@@ -2876,6 +2876,7 @@
   "signIn.skip": "Passer",
   "signIn.skipHint": "Annuler cette demande sans faire l’étape. {name} continue sans elle.",
   "signIn.takeOver": "Prendre la main",
+  "signIn.takeOverComputer": "Prendre la main sur l’ordinateur",
   "signIn.skipped": "Passé",
   "signIn.status.saved": "Identifiants enregistrés"
 }
