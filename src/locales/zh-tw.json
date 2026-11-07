@@ -4470,5 +4470,12 @@
   "settings.vault.noneHere": "這裡還沒有內容。",
   "server.botDesktop.building": "正在你的伺服器上設定機器人的電腦。每次更新只需一次，通常需要幾分鐘。",
   "computer.botWaking": "{name} 正在醒來",
-  "seal.untrusted": "這台伺服器無法證明它就是此 App 連結的那台，所以沒有傳送任何內容。如果你重新安裝了它，請再連結一次。"
+  "seal.untrusted": "這台伺服器無法證明它就是此 App 連結的那台，所以沒有傳送任何內容。如果你重新安裝了它，請再連結一次。",
+  "signIn.actionNeeded": "需要操作",
+  "signIn.instruction": "登入 {site}",
+  "signIn.skip": "略過",
+  "signIn.skipHint": "取消此請求，不執行這一步。{name} 會繼續進行。",
+  "signIn.takeOver": "接管",
+  "signIn.skipped": "已略過",
+  "signIn.status.saved": "登入資訊已儲存"
 }

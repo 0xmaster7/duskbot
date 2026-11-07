@@ -2951,7 +2951,14 @@
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
       "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
       "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780",
-      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e"
+      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e",
+      "signIn.actionNeeded": "f6b44079c1c82081b2511dc5e6de8a7c72408d3f807e6deddf73d8eb0df0c252",
+      "signIn.instruction": "ee9a633f95ddc99c0f0af577a71354d912101993bc847fcc0a716c5023eeceb2",
+      "signIn.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
+      "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -8387,7 +8394,14 @@
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
       "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
       "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780",
-      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e"
+      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e",
+      "signIn.actionNeeded": "f6b44079c1c82081b2511dc5e6de8a7c72408d3f807e6deddf73d8eb0df0c252",
+      "signIn.instruction": "ee9a633f95ddc99c0f0af577a71354d912101993bc847fcc0a716c5023eeceb2",
+      "signIn.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
+      "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -11261,7 +11275,14 @@
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
       "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
       "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780",
-      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e"
+      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e",
+      "signIn.actionNeeded": "f6b44079c1c82081b2511dc5e6de8a7c72408d3f807e6deddf73d8eb0df0c252",
+      "signIn.instruction": "ee9a633f95ddc99c0f0af577a71354d912101993bc847fcc0a716c5023eeceb2",
+      "signIn.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
+      "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -14131,7 +14152,14 @@
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
       "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
       "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780",
-      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e"
+      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e",
+      "signIn.actionNeeded": "f6b44079c1c82081b2511dc5e6de8a7c72408d3f807e6deddf73d8eb0df0c252",
+      "signIn.instruction": "ee9a633f95ddc99c0f0af577a71354d912101993bc847fcc0a716c5023eeceb2",
+      "signIn.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
+      "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -20201,7 +20229,14 @@
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
       "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
       "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780",
-      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e"
+      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e",
+      "signIn.actionNeeded": "f6b44079c1c82081b2511dc5e6de8a7c72408d3f807e6deddf73d8eb0df0c252",
+      "signIn.instruction": "ee9a633f95ddc99c0f0af577a71354d912101993bc847fcc0a716c5023eeceb2",
+      "signIn.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
+      "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -26112,7 +26147,14 @@
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
       "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
       "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780",
-      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e"
+      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e",
+      "signIn.actionNeeded": "f6b44079c1c82081b2511dc5e6de8a7c72408d3f807e6deddf73d8eb0df0c252",
+      "signIn.instruction": "ee9a633f95ddc99c0f0af577a71354d912101993bc847fcc0a716c5023eeceb2",
+      "signIn.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
+      "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -32797,7 +32839,14 @@
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
       "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
       "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780",
-      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e"
+      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e",
+      "signIn.actionNeeded": "f6b44079c1c82081b2511dc5e6de8a7c72408d3f807e6deddf73d8eb0df0c252",
+      "signIn.instruction": "ee9a633f95ddc99c0f0af577a71354d912101993bc847fcc0a716c5023eeceb2",
+      "signIn.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
+      "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -37271,7 +37320,14 @@
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
       "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
       "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780",
-      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e"
+      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e",
+      "signIn.actionNeeded": "f6b44079c1c82081b2511dc5e6de8a7c72408d3f807e6deddf73d8eb0df0c252",
+      "signIn.instruction": "ee9a633f95ddc99c0f0af577a71354d912101993bc847fcc0a716c5023eeceb2",
+      "signIn.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
+      "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -40545,7 +40601,14 @@
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
       "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
       "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780",
-      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e"
+      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e",
+      "signIn.actionNeeded": "f6b44079c1c82081b2511dc5e6de8a7c72408d3f807e6deddf73d8eb0df0c252",
+      "signIn.instruction": "ee9a633f95ddc99c0f0af577a71354d912101993bc847fcc0a716c5023eeceb2",
+      "signIn.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
+      "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -45498,7 +45561,14 @@
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
       "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
       "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780",
-      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e"
+      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e",
+      "signIn.actionNeeded": "f6b44079c1c82081b2511dc5e6de8a7c72408d3f807e6deddf73d8eb0df0c252",
+      "signIn.instruction": "ee9a633f95ddc99c0f0af577a71354d912101993bc847fcc0a716c5023eeceb2",
+      "signIn.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
+      "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -50451,7 +50521,14 @@
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
       "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
       "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780",
-      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e"
+      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e",
+      "signIn.actionNeeded": "f6b44079c1c82081b2511dc5e6de8a7c72408d3f807e6deddf73d8eb0df0c252",
+      "signIn.instruction": "ee9a633f95ddc99c0f0af577a71354d912101993bc847fcc0a716c5023eeceb2",
+      "signIn.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
+      "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -56487,7 +56564,14 @@
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
       "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
       "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780",
-      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e"
+      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e",
+      "signIn.actionNeeded": "f6b44079c1c82081b2511dc5e6de8a7c72408d3f807e6deddf73d8eb0df0c252",
+      "signIn.instruction": "ee9a633f95ddc99c0f0af577a71354d912101993bc847fcc0a716c5023eeceb2",
+      "signIn.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
+      "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -62536,7 +62620,14 @@
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
       "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
       "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780",
-      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e"
+      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e",
+      "signIn.actionNeeded": "f6b44079c1c82081b2511dc5e6de8a7c72408d3f807e6deddf73d8eb0df0c252",
+      "signIn.instruction": "ee9a633f95ddc99c0f0af577a71354d912101993bc847fcc0a716c5023eeceb2",
+      "signIn.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
+      "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -68407,7 +68498,14 @@
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
       "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
       "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780",
-      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e"
+      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e",
+      "signIn.actionNeeded": "f6b44079c1c82081b2511dc5e6de8a7c72408d3f807e6deddf73d8eb0df0c252",
+      "signIn.instruction": "ee9a633f95ddc99c0f0af577a71354d912101993bc847fcc0a716c5023eeceb2",
+      "signIn.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
+      "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -74911,7 +75009,14 @@
       "settings.vault.noneHere": "2de5247a982a1cd69ea503d6cdda6038bc4f2b8b931f14ac94142a2eef9f102c",
       "server.botDesktop.building": "7521e38b032d7780abf8d2d776a340dd7d43bf1e864e65c8f7e8650752f40bad",
       "computer.botWaking": "64cd512b5cc3fe01380f944a0088720f68f577ee1bd96bac6c4eb208e2437780",
-      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e"
+      "seal.untrusted": "5a6b3afc2cc5977299234e809e93bb49f39a95092d829f5899e155eeec59da7e",
+      "signIn.actionNeeded": "f6b44079c1c82081b2511dc5e6de8a7c72408d3f807e6deddf73d8eb0df0c252",
+      "signIn.instruction": "ee9a633f95ddc99c0f0af577a71354d912101993bc847fcc0a716c5023eeceb2",
+      "signIn.skip": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06",
+      "signIn.skipHint": "1f1ae761b1f87bae70c2dbff5172a7811a5389a00db15c57fff8b23837d51f57",
+      "signIn.takeOver": "66abfef02cd8305f244c2d1a9540c31a2ab8f0e9b5f7c8cac521aa0a1cee7358",
+      "signIn.skipped": "12698ce1ea5cd4ab13ff4b7e6b1239908c41a4b2dfa0c2661cfb53fc2aa71bd0",
+      "signIn.status.saved": "03a208d117d90f7d4b7d42bf861dd48e1d7b1e66152db0b00403e413604155b8"
     }
   }
 }

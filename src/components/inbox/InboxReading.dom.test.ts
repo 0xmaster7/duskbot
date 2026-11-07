@@ -193,7 +193,7 @@ describe("a line read in full", () => {
   it("answers a password, a sign-in and an app to connect with the chat's own card for each", async () => {
     const base = { ...news, kind: "ask" as const, tab: "needs-you" as const };
     const rows: InboxRow[] = [
-      { ...base, id: "pw", secret: { target: "custom", label: "Stripe key", description: "For the billing report", placeholder: "sk_live_…", helpUrl: "", requestKey: "k", reason: "To read invoices" } as unknown as InboxRow["secret"] },
+      { ...base, id: "pw", secret: { target: "customSecret", label: "Stripe key", description: "For the billing report", placeholder: "sk_live_…", helpUrl: "", requestKey: "k", reason: "To read invoices" } as unknown as InboxRow["secret"] },
       { ...base, id: "si", signIn: { url: "https://shop.test", site: "shop.test", place: "browser", reason: "To see the order" } as InboxRow["signIn"] },
       { ...base, id: "co", connector: { label: "Gmail", description: "Read mail", resumeKey: "r1", status: "required" } as InboxRow["connector"] },
     ];

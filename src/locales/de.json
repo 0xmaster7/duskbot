@@ -2948,5 +2948,12 @@
   "settings.vault.noneHere": "Hier ist noch nichts.",
   "server.botDesktop.building": "Der Computer des Bots wird auf deinem Server eingerichtet. Das passiert einmal pro Update und dauert meist ein paar Minuten.",
   "computer.botWaking": "{name} wacht auf",
-  "seal.untrusted": "Dieser Server konnte nicht beweisen, dass er der ist, den diese App verbunden hat, darum wurde nichts gesendet. Wenn du ihn neu installiert hast, verbinde ihn erneut."
+  "seal.untrusted": "Dieser Server konnte nicht beweisen, dass er der ist, den diese App verbunden hat, darum wurde nichts gesendet. Wenn du ihn neu installiert hast, verbinde ihn erneut.",
+  "signIn.actionNeeded": "Aktion erforderlich",
+  "signIn.instruction": "Bei {site} anmelden",
+  "signIn.skip": "Überspringen",
+  "signIn.skipHint": "Diese Anfrage abbrechen, ohne den Schritt zu erledigen. {name} macht ohne ihn weiter.",
+  "signIn.takeOver": "Übernehmen",
+  "signIn.skipped": "Übersprungen",
+  "signIn.status.saved": "Login gespeichert"
 }

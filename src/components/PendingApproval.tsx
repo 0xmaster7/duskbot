@@ -6,7 +6,8 @@ import { t, tFromServer } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { SkillRequestPreview } from "@/components/SkillRequestPreview";
 import { titledCard, toolLabel } from "./ApprovalCard";
-import { ASK_QUIET_ANSWER, ASK_QUIET_BUTTON, AskDetail, AskHeader, askPrimary, type Asker } from "./AskCard";
+import { AskDetail, CARD_BUTTON_MD, CardTitlebar, cardPrimary, cardSecondary, cardTertiary, type Asker } from "./AskCard";
+import { BotAvatar } from "./Avatar";
 import { outboundSummary } from "@/lib/approval-summary";
 import { reviewedSkillSha256 } from "../../shared/skill-request";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
@@ -131,10 +132,18 @@ function approvalWords(pending: Pending, botName?: string): { line: string; summ
 }
 
 /** An inbox's copy names the conversation it was asked in, as the way back there. */
-function CopyHeader({ message, asker, line }: { message: Message; asker: Asker; line: string }) {
-  return <AskHeader asker={asker} line={line} origin={useInboxOrigin(message)} />;
+function CopyOrigin({ message }: { message: Message }) {
+  const origin = useInboxOrigin(message);
+  if (!origin) return null;
+  return (
+    <button type="button" onClick={origin.open} aria-label={origin.hint} title={origin.hint}
+      className="-ms-1 min-w-0 shrink truncate rounded-md px-1 text-[13px] leading-[18px] text-ink-tertiary hover:bg-ink/[0.06] hover:text-ink-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+      · {origin.label}
+    </button>
+  );
 }
 
+/** Grok's permission card: who asks in the titlebar, the question, the command in a quiet block, three answers. */
 export const PendingApprovalPanel = memo(function PendingApprovalPanel({
   pending,
   count,
@@ -163,6 +172,10 @@ export const PendingApprovalPanel = memo(function PendingApprovalPanel({
   const detailsId = `approval-details-${pending.requestId}`;
   const hidden = detail && detail !== inline ? detail : "";
   const skill = pending.message.card?.skillRequest;
+  const icon = asker
+    ? <BotAvatar bot={asker} state="happy" size={14} animated={false} motion="none" motionKey={0} label="" />
+    : <ShieldCheck size={12} aria-hidden="true" />;
+  const source = asker?.name ?? botName ?? t("approval.someone");
   return (
     <div
       role="region"
@@ -176,16 +189,8 @@ export const PendingApprovalPanel = memo(function PendingApprovalPanel({
               : t("approval.aria.pending")
       }
       data-ask-card="approval"
-      className="px-4 pb-4 pt-3.5"
     >
-      <div className="flex min-w-0 items-center gap-2" aria-live="polite">
-        <div className="min-w-0 flex-1">
-          {asker ? pending.message.inbox?.origin ? <CopyHeader message={pending.message} asker={asker} line={line} /> : <AskHeader asker={asker} line={line} /> : (
-            <div className="flex items-center gap-1.5 text-[13px] leading-[18px] text-ink-secondary">
-              <ShieldCheck size={15} className="shrink-0" aria-hidden="true" /><span className="min-w-0 truncate">{line}</span>
-            </div>
-          )}
-        </div>
+      <CardTitlebar icon={icon} label={<>{source}{pending.message.inbox?.origin && <> <CopyOrigin message={pending.message} /></>}</>} trailing={(count > 1 || hidden || skill || more) ? <>
         {count > 1 && (
           <span className="shrink-0 rounded-full bg-ink/[0.06] px-2 text-[12px] leading-5 tabular-nums text-ink-secondary">
             {t("approval.position", { index: index + 1, count })}
@@ -199,36 +204,43 @@ export const PendingApprovalPanel = memo(function PendingApprovalPanel({
             aria-label={open ? t("approval.applied.hideDetails") : t("approval.applied.details")}
             title={open ? t("approval.applied.hideDetails") : t("approval.applied.details")}
             onClick={() => setOpen((value) => !value)}
-            className={cn(ASK_QUIET_BUTTON, "-me-2 w-7 px-0")}
+            className="-me-1 flex size-6 shrink-0 items-center justify-center rounded-full text-ink-tertiary hover:bg-ink/[0.07] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus pointer-coarse:size-9"
           >
-            <ChevronDown size={16} aria-hidden="true" className={cn("motion-safe:transition-transform", open && "rotate-180")} />
+            <ChevronDown size={16} aria-hidden="true" className={cn(open && "rotate-180")} />
           </button>
         )}
+      </> : undefined} />
+      <div className="px-5 py-1" aria-live="polite">
+        <p dir="auto" className="break-words text-[15px] font-semibold leading-[22px] text-ink">{line}</p>
+        {summary && <p dir="auto" className="break-words text-[14px] leading-5 text-ink-secondary">{summary}</p>}
       </div>
-      {summary && <p dir="auto" className="mt-1.5 break-words text-[15px] font-medium leading-[22px] text-ink">{summary}</p>}
-      {inline && <AskDetail text={inline} mono label={t("approval.aria.reviewDetails")} />}
-      {heldNote && (outbound ? (
-        <p className="mt-2 flex items-center gap-1.5 text-[13px] leading-[18px] text-warning">
-          <Send size={13} aria-hidden="true" className="shrink-0" />
-          <span title={heldNote}>{t("approval.compact.maySend")}</span>
-        </p>
-      ) : (
-        <p className="mt-2 flex items-start gap-1.5 text-[13px] leading-[18px] text-warning">
-          <TriangleAlert size={13} aria-hidden="true" className="mt-0.5 shrink-0" />
-          <span>{heldNote}</span>
-        </p>
-      ))}
-      <div className="mt-3 flex flex-wrap items-center justify-end gap-2">{actions}</div>
-      <div id={detailsId} hidden={!open} className="mt-3 space-y-2">
-        {hidden && (
-          <pre tabIndex={0} aria-label={t("approval.aria.reviewDetails")}
-            className="max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-ink/[0.045] px-3 py-2 font-mono text-[12px] leading-[18px] text-ink-secondary">
-            {hidden}
-          </pre>
-        )}
-        {skill && <SkillRequestPreview request={skill} />}
-        {more}
-      </div>
+      {(inline || heldNote || open) && (
+        <div className="space-y-2 p-4">
+          {inline && <AskDetail text={inline} mono label={t("approval.aria.reviewDetails")} />}
+          {heldNote && (outbound ? (
+            <p className="flex items-center gap-1.5 text-[13px] leading-[18px] text-warning">
+              <Send size={13} aria-hidden="true" className="shrink-0" />
+              <span title={heldNote}>{t("approval.compact.maySend")}</span>
+            </p>
+          ) : (
+            <p className="flex items-start gap-1.5 text-[13px] leading-[18px] text-warning">
+              <TriangleAlert size={13} aria-hidden="true" className="mt-0.5 shrink-0" />
+              <span>{heldNote}</span>
+            </p>
+          ))}
+          <div id={detailsId} hidden={!open} className="space-y-2">
+            {hidden && (
+              <pre tabIndex={0} aria-label={t("approval.aria.reviewDetails")}
+                className="max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-[12px] border border-ink/[0.06] bg-ink/[0.04] px-3 py-2 font-mono text-[13px] leading-[18px] text-ink">
+                {hidden}
+              </pre>
+            )}
+            {skill && <SkillRequestPreview request={skill} />}
+            {more}
+          </div>
+        </div>
+      )}
+      <div className={cn("flex flex-wrap items-center justify-end gap-2 px-4 pb-4", inline || heldNote || open ? "pt-0" : "pt-2.5")}>{actions}</div>
     </div>
   );
 });
@@ -273,8 +285,8 @@ export function PendingApprovalActions({
       rememberCommand: rememberCommand || undefined,
     });
 
-  // grok's card answers are a black pill and a quiet text button, never the bot's colour
-  const allow = askPrimary(undefined);
+  // grok's permission answers: Allow once in ink, Always allow a quiet fill, Deny bare text, all 32px
+  const allow = cardPrimary(CARD_BUTTON_MD);
   const marked = (action: string) => (tag ? { [`data-${tag}-action`]: action } : {});
   const showPrimary = part !== "more";
   const showMore = part !== "primary";
@@ -287,11 +299,21 @@ export function PendingApprovalActions({
           ? { name: t("approval.action.alwaysAllowSession"), hint: t("approval.action.alwaysAllowSessionHint"), run: () => decide("allow", true) }
           : null;
   const more = showMore && !durableRequest ? [
-    <button key="cancel" type="button" onClick={onCancelTurn} className={ASK_QUIET_ANSWER}>
+    <button key="cancel" type="button" onClick={onCancelTurn} className={cardTertiary(CARD_BUTTON_MD)}>
       {t("approval.action.cancelTurn")}
     </button>,
   ] : [];
   const primary = showPrimary ? [
+    <button
+      key="deny"
+      {...marked("deny")}
+      type="button"
+      onClick={() => decide("deny")}
+      autoFocus={titled}
+      className={cardTertiary(CARD_BUTTON_MD)}
+    >
+      {isRoutineRequest || isProfileRequest || titled ? t("approval.action.cancel") : t("approval.action.deny")}
+    </button>,
     always && (
       <button
         key="always"
@@ -299,21 +321,11 @@ export function PendingApprovalActions({
         onClick={always.run}
         aria-label={always.name}
         title={always.hint}
-        className={ASK_QUIET_ANSWER}
+        className={cardSecondary(CARD_BUTTON_MD)}
       >
         {t("approval.action.alwaysAllow")}
       </button>
     ),
-    <button
-      key="deny"
-      {...marked("deny")}
-      type="button"
-      onClick={() => decide("deny")}
-      autoFocus={titled}
-      className={ASK_QUIET_ANSWER}
-    >
-      {isRoutineRequest || isProfileRequest || titled ? t("approval.action.cancel") : t("approval.action.deny")}
-    </button>,
     <button
       key="allow"
       {...marked("allow")}

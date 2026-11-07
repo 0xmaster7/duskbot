@@ -66,24 +66,35 @@ beforeEach(() => {
 });
 
 describe("SignInRequestCard while it waits", () => {
-  it("leads with the site, quotes the bot's reason, and offers Open, Done and Cancel", () => {
+  it("is grok's action card: the place in the titlebar, Action needed, the step and the bot's reason, Skip, I'm done and Take over", () => {
     const html = view();
-    expect(html).toContain("Sign in needed");
-    expect(html).toMatch(/data-testid="sign-in-site"[^>]*>example\.com</);
-    expect(html).toContain("“The report is behind a login.”");
-    expect(html).toContain("— Pepper");
-    expect(html).toContain("Pepper’s built-in browser");
-    for (const label of ["Open", "Done", "Cancel"]) expect(html).toContain(label);
-    expect(html).toContain("MausBot never sees it.");
+    expect(html).toMatch(/text-\[13px\] font-medium[^"]*">Browser</);
+    expect(html).toContain("Action needed");
+    expect(html).toMatch(/data-testid="sign-in-site"[^>]*>Sign in to example\.com</);
+    expect(html).toContain("The report is behind a login.");
+    expect(html).not.toContain("— Pepper");
+    for (const label of [">Skip<", ">I&#x27;m done<", ">Take over<"]) expect(html).toContain(label);
+    expect(html.indexOf(">Skip<")).toBeLessThan(html.indexOf(">Take over<"));
+    expect(html).not.toContain("shadow-(--shadow-float)");
     expect(html).not.toContain("<input");
+  });
+
+  it("paints Take over in ink and the other answers neutral, whatever the bot's colour", () => {
+    const html = renderToStaticMarkup(createElement(SignInRequestCard, { ...props(), color: "teal" }));
+    const tag = (label: string) => (html.match(/<button[^>]*>[^<]*<\/button>/g) ?? []).find((one) => one.includes(`>${label}<`))!;
+    expect(tag("Take over")).toContain("ui-button-primary");
+    expect(tag("Take over")).not.toContain("--bot-button");
+    expect(tag("Skip")).toContain("bg-ink/[0.06]");
+    expect(tag("Skip")).toContain('title="Cancel this request without doing the step. Pepper continues without it."');
   });
 
   it.each([
     ["vm", "the private desktop Pepper works on"],
     ["cloud", "the cloud desktop Pepper works on"],
     ["local", "on this computer, in the browser Pepper is using"],
-  ])("names the place for %s", (place, words) => {
+  ])("names the place for %s on Take over", (place, words) => {
     expect(view({ place })).toContain(words);
+    expect(view({ place })).toMatch(/text-\[13px\] font-medium[^"]*">(Computer|This computer)</);
   });
 
   it("says the host computer, not this one, where this computer is somewhere else", () => {
@@ -91,8 +102,8 @@ describe("SignInRequestCard while it waits", () => {
     expect(view({ place: "local" })).toContain("the computer MausBot runs on");
   });
 
-  it("Open goes to the place the bot works", () => {
-    button(tree(), "Open").props.onClick!();
+  it("Take over goes to the place the bot works", () => {
+    button(tree(), "Take over").props.onClick!();
     expect(dispatch).toHaveBeenCalledExactlyOnceWith({
       type: "openSignIn", botId: "pepper", messageId: "card-1", url: "https://example.com/login", site: "example.com", place: "browser",
     });
@@ -117,7 +128,7 @@ describe("SignInRequestCard while it waits", () => {
     expect(html).toContain('type="password"');
     expect(html).toMatch(/type="password" autocomplete="new-password"/iu);
     expect(html).toContain("Save and continue");
-    expect(html).not.toMatch(/>Done<|>Open</);
+    expect(html).not.toMatch(/>I&#x27;m done<|>Take over</);
     expect(saveLoginFromCard).not.toHaveBeenCalled();
   });
 
@@ -155,34 +166,39 @@ describe("SignInRequestCard while it waits", () => {
   });
 
   it.each(["done", "cancel"] as const)("%s settles this card", async (choice) => {
-    button(tree(), choice === "done" ? "Done" : "Cancel").props.onClick!();
+    button(tree(), choice === "done" ? "I'm done" : "Skip").props.onClick!();
     await settle();
     expect(answerSignIn).toHaveBeenCalledExactlyOnceWith({ botId: "pepper", threadId: "thread-1", messageId: "card-1", place: "browser" }, choice);
   });
 });
 
 describe("SignInRequestCard once settled", () => {
-  it("folds into one line that names the site once done and resumed", () => {
+  const row = (signIn: Record<string, unknown>) => tree(signIn)[0]!.props as unknown as { summary: string; title: string; detail: ReactNode; tone: string };
+  const detailText = (signIn: Record<string, unknown>) => renderToStaticMarkup(createElement("div", null, row(signIn).detail));
+
+  it("folds into grok's one row, Done and the step, and opens to what happened", () => {
     const html = view({ done: true, resumed: true });
     expect(html).toContain('data-ask-card="settled"');
-    expect(html).toContain("Signed in to example.com");
-    expect(html).toContain("Pepper is continuing");
-    expect(html).not.toMatch(/>Done<|>Open</);
+    expect(html).toContain("Done · Sign in to example.com");
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).not.toMatch(/>I&#x27;m done<|>Take over</);
+    expect(detailText({ done: true, resumed: true })).toContain("Signed in to example.com · Pepper is continuing");
   });
 
   it("says a login was saved, for the site it was saved for", () => {
-    const html = view({ done: true, resumed: true, savedLogin: "example.com and login.microsoftonline.com" });
-    expect(html).toContain("Login saved for example.com and login.microsoftonline.com");
-    expect(html).toContain("Pepper is continuing");
+    expect(view({ done: true, resumed: true, savedLogin: "example.com and login.microsoftonline.com" })).toContain("Login saved · Sign in to example.com");
+    expect(detailText({ done: true, resumed: true, savedLogin: "example.com and login.microsoftonline.com" })).toContain("Login saved for example.com and login.microsoftonline.com · Pepper is continuing");
   });
 
-  it("says a declined sign-in was declined", () => {
-    expect(view({ cancelled: true, resumed: true })).toContain("Sign-in to example.com declined");
+  it("says a declined sign-in was skipped", () => {
+    expect(view({ cancelled: true, resumed: true })).toContain("Skipped · Sign in to example.com");
+    expect(detailText({ cancelled: true, resumed: true })).toContain("Sign-in to example.com declined");
   });
 
   it("keeps a retry with the same answer when resuming failed", async () => {
     const nodes = tree({ done: true, resumed: false, error: "The bot could not be resumed." });
-    expect(view({ done: true, resumed: false, error: "The bot could not be resumed." })).toContain("The bot could not be resumed.");
+    expect(row({ done: true, resumed: false, error: "The bot could not be resumed." }).tone).toBe("failed");
+    expect(detailText({ done: true, resumed: false, error: "The bot could not be resumed." })).toContain("The bot could not be resumed.");
     const retry = nodes.flatMap((node) => elements((node.props as { action?: ReactNode }).action)).find((node) => node.type === "button")!;
     retry.props.onClick!();
     await settle();
@@ -191,8 +207,8 @@ describe("SignInRequestCard once settled", () => {
 
   it("stops offering anything once superseded", () => {
     const html = view({ superseded: true });
-    expect(html).toContain("Superseded by a newer request");
-    expect(html).not.toMatch(/>Done<|>Open<|>Cancel</);
+    expect(html).toContain("Superseded by a newer request · Sign in to example.com");
+    expect(html).not.toMatch(/>I&#x27;m done<|>Take over<|>Skip</);
   });
 });
 
