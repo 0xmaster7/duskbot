@@ -28,6 +28,11 @@ export function workspaceComputerId(environmentId: string): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
+export interface BotPlacement {
+  computer?: string; cloudBackend?: string; section?: string; vpsAlias?: string;
+  createdBy?: string; reportsTo?: string; defaultBot?: { person?: string };
+}
+
 export const teamComputerOwner = (id: string): string => `computer_${id}`;
 const failure = (message: string, status = 409) => Object.assign(new Error(message), { status });
 
@@ -77,17 +82,22 @@ export class TeamComputers {
     this.save([...entries, entry]);
     return { ...entry };
   }
-  forBot(bot: {
-    computer?: string; cloudBackend?: string; section?: string; vpsAlias?: string;
-    createdBy?: string; reportsTo?: string; defaultBot?: { person?: string };
-  }, options: { workspaceShared?: boolean } = {}): TeamComputerRecord | undefined {
+  forBot(bot: BotPlacement, options: { workspaceShared?: boolean } = {}): TeamComputerRecord | undefined {
+    const placement = this.placement(bot);
+    if (placement !== "workspace") return placement;
+    return options.workspaceShared ? this.workspaceDefault() : undefined;
+  }
+  /** True when shared mode would move this bot off its own computer onto the workspace one; never creates the shared entry. */
+  joinsWorkspaceComputer(bot: BotPlacement): boolean { return this.placement(bot) === "workspace"; }
+  hasWorkspaceComputer(): boolean { return this.list().some(entry => entry.scope === "workspace"); }
+  private placement(bot: BotPlacement): TeamComputerRecord | "workspace" | undefined {
     if (bot.computer !== undefined && bot.computer !== "cloud") return undefined;
     if (bot.computer === undefined) {
       const assigned = this.forSection(bot.section);
       if (assigned) return assigned;
     }
-    if (!options.workspaceShared || bot.vpsAlias || bot.createdBy?.trim() || bot.reportsTo?.trim() || bot.defaultBot?.person?.trim()) return undefined;
-    return this.workspaceDefault();
+    if (bot.vpsAlias || bot.createdBy?.trim() || bot.reportsTo?.trim() || bot.defaultBot?.person?.trim()) return undefined;
+    return "workspace";
   }
   create(name: string, id: string = randomUUID()): TeamComputerRecord {
     const entries = this.list();

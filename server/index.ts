@@ -94,7 +94,7 @@ import { DataSheetRegistry } from "./data/sheet.ts";
 import { DataFailure } from "./data/types.ts";
 import { TeamComputers, teamComputerOwner, type TeamComputerRecord } from "./team-computers.ts";
 import { teamComputerVpsTarget } from "./team-computer-vps.ts";
-import { sharedVpsDefaults, vpsIdleTimeoutMinutes } from "./shared-vps-defaults.ts";
+import { initialVpsMode, sharedVpsDefaults, vpsIdleTimeoutMinutes } from "./shared-vps-defaults.ts";
 import { createVpsIdleManager, type VpsIdleTarget } from "./vps-idle.ts";
 import { compareVpsContainerStarts } from "./vps-container-start.ts";
 import { createSharedScreenBroker, type IndependentScreenLease, type ScreenContainer } from "./shared-desktop-screens.ts";
@@ -2781,6 +2781,13 @@ const { cloudHealth, cloudSigned } = createCloudSignedHost({ cloudHome: CLOUD_HO
   connectors: () => emailHost.health(composio.configured(cfg) ? composio.connectedServices(cfg) : null),
   browser: () => ({ available: browserReady(undefined), installing: Boolean(browserEngineInstall), interrupted: browserRuntime.interruptedCount() }), ...(engineMemory.enabled ? { room: () => engineMemory.dayPressure() } : {}) } });
 const teamComputers = new TeamComputers(join(DATA_DIR, "team-computers.json"), ENVIRONMENT_ID);
+{
+  let workspaceComputerInUse = false;
+  try { workspaceComputerInUse = teamComputers.hasWorkspaceComputer(); } catch { workspaceComputerInUse = false; }
+  const mode = initialVpsMode(cfg, { vpsConfigured: Boolean(vpsSshAlias(cfg)), workspaceComputerInUse,
+    botsOnOwnComputers: store.bots.some(bot => { try { return teamComputers.joinsWorkspaceComputer(bot); } catch { return true; } }) });
+  if (mode) { saveConfig({ vps: { mode } }); cfg.vps = mergeVpsConfig(cfg.vps, { mode }); }
+}
 let followupsReady = false;
 const sendSequencer = new SendSequencer();
 // Before the new-bot default is read: a saved default may name the engine.
