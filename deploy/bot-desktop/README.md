@@ -4,7 +4,7 @@ The bot's own computer: a small dark Linux desktop in a hardened container, one 
 locally in Docker). Bots drive it through Cua Driver exactly as they drive the Cua XFCE image (screenshots, clicks,
 typing, AT-SPI, Chromium over CDP); people see it through noVNC when they take control.
 
-Image: `ghcr.io/sidddevz/omb-bot-desktop:v2` (`BOT_DESKTOP_IMAGE` in `shared/bot-desktop.ts`). linux/arm64 and
+Image: `ghcr.io/sidddevz/omb-bot-desktop:v3` (`BOT_DESKTOP_IMAGE` in `shared/bot-desktop.ts`). linux/arm64 and
 linux/amd64.
 
 ## What is inside
@@ -64,8 +64,12 @@ makes `sudo` inert. Read-only root filesystem; same network rules plus the host'
 
 `server/bot-desktop.ts` (`provisionBotDesktop`), over `docker -H ssh://<alias>`:
 
-1. `docker pull ghcr.io/sidddevz/omb-bot-desktop:v2` unless present. If the pull fails (not published yet,
-   registry down) it falls back to building the Cua XFCE desktop as before. `OPENMAUSBOT_VPS_DESKTOP=cua` forces Cua.
+1. `docker pull ghcr.io/sidddevz/omb-bot-desktop:v3` unless present. If the pull fails (not published, private
+   package, registry down) it builds the image on the docker host from this folder as shipped with the server
+   (`deploy/bot-desktop/` beside `dist-server/`, or `OMB_BOT_DESKTOP_KIT`), only when its Dockerfile's
+   `ARG BOT_DESKTOP_VERSION` equals `BOT_DESKTOP_VERSION`; the turn's chat says the build is running. When neither
+   works, provisioning refuses with the reason and creates nothing; it never falls back to the Cua XFCE desktop.
+   `OPENMAUSBOT_VPS_DESKTOP=cua` forces Cua.
 2. `docker network create --driver bridge --opt com.docker.network.bridge.enable_icc=false
    --opt com.docker.network.bridge.name=omb-desk0 --label com.openmausbot.vps-network=1 openmausbot-desktops`
 3. `docker info` for `runsc` (gVisor) and `name=userns` (remapping); `OPENMAUSBOT_VPS_GVISOR=off` skips gVisor.
@@ -150,6 +154,29 @@ deploy/bot-desktop/build.sh --push     # amd64 + arm64 to the registry (docker b
 
 On a VPS without the registry image: copy this folder over and run `build.sh` there (only Docker is needed); the
 harness then finds the image by its tag and skips the pull.
+
+## Rolling out a new version
+
+Desktops are refused, never silently replaced, when their version label differs from `BOT_DESKTOP_VERSION`, so roll
+out in this order:
+
+1. Bump `BOT_DESKTOP_VERSION` and `BOT_DESKTOP_IMAGE` in `shared/bot-desktop.ts` and `ARG BOT_DESKTOP_VERSION` in the
+   Dockerfile together; the server builds only a kit whose Dockerfile matches.
+2. Optionally publish the image: `deploy/bot-desktop/build.sh --push`, and make the registry package public, since
+   VPSes pull anonymously. Without it every server builds its own copy (Docker with BuildKit, `docker-buildx` on
+   Ubuntu; about 90 s warm, longer on a small VPS).
+3. Publish the VPS package to the link service (`link-service/README.md`, "The server build"). It carries this folder
+   twice: as the installer's kit and inside the server package.
+4. Update the server on each linked VPS to that package. New bot computers then pull or build the new image on first
+   use. To prepare it ahead of time, run `IMAGE=<BOT_DESKTOP_IMAGE> sh deploy/bot-desktop/build.sh` from the
+   installed package folder.
+5. Existing desktops of the old version stay as they are, refused with a clear problem, until the person chooses
+   Replace the desktop on your VPS in that bot's Computer panel (Advanced). Replace removes only the container and
+   recreates it on the same home volume, so saved files and browser sign-ins stay; anything installed outside the
+   home is gone.
+
+The desktop app talking to a VPS over an SSH alias ships no kit, so it can only pull; when the registry refuses, the
+problem says to build on the VPS with `build.sh`.
 
 Measured on Apple Silicon (arm64, OrbStack, 2026-11-07): build about 90 s from a warm Debian base; image 1.8 GB
 unpacked, about 500 MB compressed; Cua Driver answers 0.3 to 0.5 s after `docker run`, Chromium has google.com up

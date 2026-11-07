@@ -17,7 +17,7 @@ const EVERYDAY_PREFIXES: Record<string, readonly string[]> = {
     "botPanel.", "botApi.", "botSettings.simple.", "botAccess.tools.", "botAccess.browser.",
   ],
   "the Screen panel and where a bot works": [
-    "place.", "computer.tab.", "computer.simple.", "computer.phase.", "computer.cloud.", "computer.badge.", "computer.problem.",
+    "place.", "computer.tab.", "computer.simple.", "computer.phase.", "computer.badge.", "computer.problem.",
     "computer.screen.", "vm.cloud.", "browser.",
   ],
   "MausBot Cloud: buying it, setting it up, moving to it and sharing with it": [

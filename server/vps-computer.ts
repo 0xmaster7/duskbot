@@ -29,7 +29,7 @@ import {
 import { PIDS_LIMIT, raisePidsLimit } from "./container-limits.ts";
 import {
   BOT_DESKTOP_IMAGE, BOT_DESKTOP_LABEL, BOT_DESKTOP_VERSION, botDesktopIsHardened, botDesktopLabelsMatch, botDesktopMountsAreSafe, botDesktopNetworkIsPrivate,
-  containerBotDesktopMode, containerDesktopKind, preferredVpsDesktop, provisionBotDesktop, type VpsDesktopKind,
+  containerBotDesktopMode, containerDesktopKind, preferredVpsDesktop, provisionBotDesktop, type BotDesktopProgress, type VpsDesktopKind,
 } from "./bot-desktop.ts";
 import { DATA_DIR, isValidSshAlias, vpsSshAlias, type AppConfig } from "./config.ts";
 import { augmentedPath } from "./env-path.ts";
@@ -424,7 +424,7 @@ function statusProblem(status: VpsComputerStatus, desktopVersion?: string): stri
   if (!status.daemonUp) return "Docker over SSH could not reach the VPS; check the SSH alias and Docker on the VPS";
   if (status.managed && status.desktop === "bot-desktop" && desktopVersion && /^\d{1,4}$/.test(desktopVersion) && desktopVersion !== BOT_DESKTOP_VERSION &&
     status.network === "private" && status.mounts === "none" && status.security === "hardened") {
-    return `This managed computer uses desktop version ${desktopVersion}; this app requires version ${BOT_DESKTOP_VERSION}. Update the image and explicitly recreate the managed computer with its existing home volume. No container or files were removed.`;
+    return `This managed computer uses desktop version ${desktopVersion}; this app requires version ${BOT_DESKTOP_VERSION}. Use Replace the desktop on your VPS in this bot's Computer panel: it downloads the new image or builds it on the VPS, then recreates the computer on its existing home volume, keeping saved files and browser sign-ins. No container or files were removed.`;
   }
   if (!status.image) {
     return status.desktop === "cua"
@@ -1022,7 +1022,7 @@ export async function vpsComputerAction(
   cfg: AppConfig,
   botId: string,
   runner: VpsCommandRunner = defaultRunner,
-  guard: { expectedContainerId?: string; stillAllowed?: () => boolean; onStarting?: () => void } = {},
+  guard: { expectedContainerId?: string; stillAllowed?: () => boolean; onStarting?: () => void; onProgress?: (step: BotDesktopProgress) => void } = {},
 ): Promise<VpsComputerStatus> {
   cfg = snapshotVpsConfig(cfg);
   const alias = vpsSshAlias(cfg);
@@ -1053,12 +1053,12 @@ export async function vpsComputerAction(
         if (before.container === "missing" || before.container === "stopped") guard.onStarting?.();
         const botDesktop = () => provisionBotDesktop((args, timeoutMs) => run(args, timeoutMs), {
           containerName: before.container_name, imageId: before.image ? before.image_id : null, hostKey: alias,
-          labels: vpsOwnershipLabels(before.container_name), viewerSecret: randomBytes(18).toString("base64url"),
+          labels: vpsOwnershipLabels(before.container_name), viewerSecret: randomBytes(18).toString("base64url"), onProgress: guard.onProgress,
         });
         if (before.container === "missing") {
-          // the bot desktop when its image can be had, else the Cua desktop: the registry may not carry it yet
-          if (before.desktop === "cua" || !(await botDesktop())) {
-            let imageRef = before.image && before.desktop === "cua" ? before.image_id : null;
+          if (before.desktop === "bot-desktop") await botDesktop();
+          else {
+            let imageRef = before.image ? before.image_id : null;
             if (!imageRef) {
               await prepareVpsImage(alias, guardedRunner);
               imageRef = (await computeVpsComputerStatus(cfg, botId, guardedRunner, "cua")).image_id;

@@ -356,7 +356,6 @@ const appConfigSchema = z.object({
     .optional(),
   /** Composio project key; `userId`/`sessionId` reuse one Composio Session. */
   composio: z.object({ apiKey: optionalText, userId: optionalText, sessionId: optionalText }).optional(),
-  box: z.object({ token: optionalText }).optional(),
   vps: vpsConfigSchema.optional(),
   /** OpenCode key, plus `providerKeys` for its other providers by the env name OpenCode reads; both write-only and only for its child. */
   opencodeGo: z.object({ apiKey: optionalText, providerKeys: z.record(z.string(), z.string()).optional() }).optional(),
@@ -436,7 +435,7 @@ const storedAppConfigSchema = appConfigSchema.extend(helperStoredShape).extend({
       .optional(),
   }).optional(),
 });
-const appConfigPatchSchema = appConfigSchema.omit({ box: true, instances: true, mcpServers: true, cliStartup: true, customDomain: true })
+const appConfigPatchSchema = appConfigSchema.omit({ instances: true, mcpServers: true, cliStartup: true, customDomain: true })
   .extend({ threads: threadsPatchSchema.optional(), newBots: newBotsPatchSchema.optional() });
 const jsonObjectSchema = z.record(z.string(), z.json());
 
@@ -478,7 +477,6 @@ export interface AppConfig extends HelperConfig {
   openaiCompat?: { key?: string; url?: string; model?: string; provider?: string };
   composio?: { apiKey?: string; userId?: string; sessionId?: string };
   /** Ignored legacy credential retained in existing configuration files. */
-  box?: { token?: string };
   /** A named host from the user's SSH config. Authentication stays with SSH. */
   vps?: VpsConfig;
   opencodeGo?: { apiKey?: string; providerKeys?: Record<string, string> };
@@ -717,6 +715,22 @@ export function ensureDirs() {
   }
   for (const dir of [DATA_DIR, EVENTS_DIR, NATIVE_DIR]) mkdirSync(dir, { recursive: true });
   migrateLegacyFeatureFlags(DATA_DIR);
+  dropRetiredBoatToken(DATA_DIR);
+}
+
+/** The retired paid desktop provider's token is removed from config.json, never kept or read. */
+export function dropRetiredBoatToken(dataDir: string): void {
+  const p = join(dataDir, "config.json");
+  try {
+    if (!existsSync(p)) return;
+    const disk = jsonObjectSchema.safeParse(parseJson(readFileSync(p, "utf8")));
+    if (!disk.success || !Object.hasOwn(disk.data, "box")) return;
+    const kept: JsonObject = { ...disk.data };
+    delete kept.box;
+    writeFileAtomic(p, JSON.stringify(kept, null, 2), { mode: 0o600 });
+  } catch (error) {
+    console.error(`[config] could not remove the retired Boat token: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 let lastIgnoredConfigWarning = "";
@@ -916,7 +930,8 @@ export function saveConfig(
   const before = configSaveListeners.size ? structuredClone(disk) : disk;
   const storedProfiles = storedBrowserProfilesSchema.safeParse(disk.browserProfiles);
   if (storedProfiles.success) disk.browserProfiles = storedProfiles.data;
-  for (const key of ["xai", "anthropic", "mistral", "cerebras", "treg", "groq", "greenference", "meta", "deepseek", "openai", "openrouter", "openaiCompat", "composio", "box", "opencodeGo", "tts", "decider", "imageGen", "live", "profile", "rooms", "mcp", "threads", "context", "memory", "localVm", "features", "budgets", "billing", "decisions", "loopGuard", "onboarding", "browserEngine", "newBots", "safetyFloor"] as const) {
+  delete disk.box;
+  for (const key of ["xai", "anthropic", "mistral", "cerebras", "treg", "groq", "greenference", "meta", "deepseek", "openai", "openrouter", "openaiCompat", "composio", "opencodeGo", "tts", "decider", "imageGen", "live", "profile", "rooms", "mcp", "threads", "context", "memory", "localVm", "features", "budgets", "billing", "decisions", "loopGuard", "onboarding", "browserEngine", "newBots", "safetyFloor"] as const) {
     const section = checkedPatch[key];
     if (!section) continue;
     const current = jsonObjectSchema.safeParse(disk[key]);

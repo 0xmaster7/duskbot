@@ -10,6 +10,7 @@ import { cacheUntilConfigChanges,
   customMcpServers,
   engineLaunches,
   DATA_DIR,
+  dropRetiredBoatToken,
   ensureDirs,
   instanceConfigs,
   isValidSshAlias,
@@ -51,8 +52,8 @@ const reloaded = (patch: object, cfg: AppConfig = {}) =>
   changedInstanceIds(engineLaunches(instanceConfigs(cfg), {}), engineLaunches(instanceConfigs({ ...cfg, ...patch } as AppConfig), {}));
 
 describe("configuration boundaries", () => {
-  it("rejects paid desktop key writes while retaining legacy stored credentials", () => {
-    expect(parseStoredConfig({ box: { token: "legacy-fixture-token" } }).box).toEqual({ token: "legacy-fixture-token" });
+  it("rejects paid desktop key writes and never keeps a stored Boat token", () => {
+    expect(parseStoredConfig({ box: { token: "legacy-fixture-token" } })).not.toHaveProperty("box");
     for (const box of [{ token: "new-fixture-token" }, { token: "" }, {}, null] as JsonValue[]) {
       expect(() => parseConfigPatch({ box })).toThrow("Paid desktop provider settings are no longer supported");
     }
@@ -1144,7 +1145,6 @@ describe("Instance CLI override", () => {
   it("never persists the credential env instanceConfigs injects", () => {
     const cfg: AppConfig = {
       xai: { key: "SECRET-XAI" },
-      box: { token: "SECRET-BOAT" },
       opencodeGo: { apiKey: "SECRET-OCG" },
       instances: {
         claude: { driver: "claudeAgent" },
@@ -1317,7 +1317,7 @@ describe("saving OpenCode provider keys", () => {
 
 describe("credential env narrowing", () => {
   it("injects each credential only into the driver that consumes it", () => {
-    const cfg: AppConfig = {
+    const cfg = {
       xai: { key: "SECRET-XAI" },
       box: { token: "SECRET-BOAT" },
       opencodeGo: { apiKey: "SECRET-OCG" },
@@ -1328,7 +1328,7 @@ describe("credential env narrowing", () => {
         codex: { driver: "codex" },
       },
     };
-    const instances = instanceConfigs(cfg);
+    const instances = instanceConfigs(cfg as AppConfig);
     expect(instances.grokApi.environment).toEqual({ XAI_API_KEY: "SECRET-XAI" });
     expect(instances.opencode.environment).toEqual({ OPENCODE_API_KEY: "SECRET-OCG" });
     for (const entry of Object.values(instances)) expect(Object.values(entry.environment ?? {})).not.toContain("SECRET-BOAT");
@@ -1337,8 +1337,7 @@ describe("credential env narrowing", () => {
   });
 
   it("hands no credential to any default-fleet CLI engine, and the Boat key to none at all", () => {
-    const cfg: AppConfig = { xai: { key: "SECRET-XAI" }, box: { token: "SECRET-BOAT" } };
-    const instances = instanceConfigs(cfg);
+    const instances = instanceConfigs({ xai: { key: "SECRET-XAI" }, box: { token: "SECRET-BOAT" } } as AppConfig);
     for (const [id, entry] of Object.entries(instances)) {
       if (id === "xaiApi") expect(entry.environment).toEqual({ XAI_API_KEY: "SECRET-XAI" });
       else expect(entry.environment).toEqual({});
@@ -1489,6 +1488,18 @@ describe("credential env preference", () => {
     rmSync(join(DATA_DIR, "config.json"), { force: true });
   });
 
+  it("removes a stored Boat token from config.json at startup and on the next save", () => {
+    const file = join(DATA_DIR, "config.json");
+    writeFileSync(file, JSON.stringify({ box: { token: "box_retired_fixture" }, profile: { name: "Ada" } }));
+    expect(loadConfig()).not.toHaveProperty("box");
+    dropRetiredBoatToken(DATA_DIR);
+    expect(JSON.parse(readFileSync(file, "utf8"))).toEqual({ profile: { name: "Ada" } });
+    writeFileSync(file, JSON.stringify({ box: { token: "box_retired_fixture" } }));
+    saveConfig({ profile: { name: "Ada" } });
+    expect(readFileSync(file, "utf8")).not.toContain("box_retired_fixture");
+    expect(loadConfig().profile).toEqual({ name: "Ada" });
+  });
+
   it("prefers env for active credentials and ignores a retired provider override", () => {
     // The desktop shell hands secrets over as env and leaves the file without them: env must win over a leftover plaintext value.
     writeFileSync(
@@ -1509,7 +1520,7 @@ describe("credential env preference", () => {
     process.env.OMB_OPENAI_IMAGE_KEY = "env-image";
     const cfg = loadConfig();
     expect(cfg.xai).toEqual({ key: "env-xai", url: "https://api.example.test/v1" });
-    expect(cfg.box).toEqual({ token: "file-box" });
+    expect(cfg).not.toHaveProperty("box");
     expect(cfg.opencodeGo).toEqual({ apiKey: "env-ocg" });
     expect(cfg.tts).toEqual({ key: "env-tts", fishKey: "env-fish", voice: "narrator" });
     expect(cfg.imageGen).toEqual({ key: "env-image" });
@@ -1538,13 +1549,13 @@ describe("credential env preference", () => {
     for (const [name, value] of Object.entries(included)) vi.stubEnv(name, value);
     try {
       const cfg = loadConfig();
-      expect(cfg.box?.token).toBeUndefined();
+      expect(cfg).not.toHaveProperty("box");
       expect(cfg.tts?.key).toBeUndefined();
       expect(cfg.decider?.key).toBeUndefined();
       for (const entry of Object.values(instanceConfigs(cfg))) {
         for (const value of Object.values(entry.environment ?? {})) expect(Object.values(included)).not.toContain(value);
       }
-      saveConfig({ tts: { voice: "chosen" }, box: { token: "" }, decider: { enabled: true, jobs: { roomRouting: true } } });
+      saveConfig({ tts: { voice: "chosen" }, decider: { enabled: true, jobs: { roomRouting: true } } });
       const disk = readFileSync(join(DATA_DIR, "config.json"), "utf8");
       const runtime = JSON.stringify([loadConfig(), instanceConfigs(loadConfig()), persistableInstanceConfigs(loadConfig())]);
       for (const token of [included.OMB_CLOUD_BOAT_TOKEN, included.OMB_CLOUD_VOICE_TOKEN, included.OMB_CLOUD_DECIDER_TOKEN]) {
@@ -1553,7 +1564,8 @@ describe("credential env preference", () => {
       }
       process.env.BOX_TOKEN = "box_own";
       process.env.OMB_TTS_KEY = "sk-own";
-      expect(loadConfig()).toMatchObject({ box: { token: "" }, tts: { key: "sk-own" } });
+      expect(loadConfig()).toMatchObject({ tts: { key: "sk-own" } });
+      expect(loadConfig()).not.toHaveProperty("box");
       expect(JSON.stringify(instanceConfigs(loadConfig()))).not.toContain("box_own");
     } finally {
       vi.unstubAllEnvs();
@@ -1817,7 +1829,6 @@ describe("credential env preference", () => {
     syncCredentialEnv({
       xai: { key: "just-saved" },
       composio: { apiKey: "ak_just_saved" },
-      box: { token: "" },
       profile: { name: "Ada" },
     });
     expect(process.env.XAI_API_KEY).toBe("just-saved");

@@ -18,6 +18,20 @@ afterEach(() => { for (const directory of directories.splice(0)) rmSync(director
 const enabled = { workspaceShared: true };
 
 describe("one implicit personal workspace computer", () => {
+  it("tells which bots shared mode would move without creating the workspace computer", () => {
+    const { file, registry } = fixture();
+    const named = registry.create("Named desktop");
+    registry.assign(named.id, "Research");
+    expect(registry.joinsWorkspaceComputer({})).toBe(true);
+    expect(registry.joinsWorkspaceComputer({ computer: "cloud", section: "Research" })).toBe(true);
+    for (const bot of [{ section: "Research" }, { computer: "local" }, { vpsAlias: "private-host" }, { createdBy: "owner@example.test" }]) {
+      expect(registry.joinsWorkspaceComputer(bot), JSON.stringify(bot)).toBe(false);
+    }
+    expect(registry.hasWorkspaceComputer()).toBe(false);
+    expect(JSON.parse(readFileSync(file, "utf8")).computers).toHaveLength(1);
+    registry.workspaceDefault();
+    expect(registry.hasWorkspaceComputer()).toBe(true);
+  });
   it("does not create a registry entry until sharing is explicitly permitted by workspace policy", () => {
     const { file, registry } = fixture();
     expect(registry.forBot({})).toBeUndefined();

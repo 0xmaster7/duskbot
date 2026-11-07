@@ -91,9 +91,27 @@ function renderAnswer(question: DeciderQuestion, answer: DeciderAnswer): Record<
   return { yes: round(answer.p) };
 }
 
-async function readInput(body: Record<string, unknown>, ctx: HelperToolContext, signal: AbortSignal): Promise<ExtractInput | string> {
+type ReadInput = { input: ExtractInput; cutAt?: number };
+
+function fittedText(fields: FieldSchema, content: string): ReadInput {
+  const fits = (chars: number) => Buffer.byteLength(JSON.stringify({ fields, input: { text: content.slice(0, chars) } })) <= EXTRACT_LIMITS.bodyBytesWithoutImages;
+  let kept = Math.min(content.length, EXTRACT_LIMITS.text);
+  if (!fits(kept)) {
+    let low = 0;
+    while (low < kept) {
+      const mid = Math.ceil((low + kept) / 2);
+      if (fits(mid)) low = mid; else kept = mid - 1;
+    }
+  }
+  const last = content.charCodeAt(kept - 1);
+  if (kept < content.length && last >= 0xd800 && last <= 0xdbff) kept -= 1;
+  if (kept === content.length || kept === 0) return { input: { text: content } };
+  return { input: { text: content.slice(0, kept) }, cutAt: kept };
+}
+
+async function readInput(body: Record<string, unknown>, fields: FieldSchema, ctx: HelperToolContext, signal: AbortSignal): Promise<ReadInput | string> {
   const file = text(body.file);
-  if (!file) return typeof body.text === "string" ? { text: body.text } : {};
+  if (!file) return { input: typeof body.text === "string" ? { text: body.text } : {} };
   let opened = await ctx.openAttachment?.(file) ?? null;
   let target = opened?.name ?? "";
   if (!opened) {
@@ -113,16 +131,16 @@ async function readInput(body: Record<string, unknown>, ctx: HelperToolContext, 
   }
   try {
     const extension = extname(target).toLowerCase();
-    if (extension === ".pdf") return { text: await pdfText(await opened.handle.readFile(), signal) };
+    if (extension === ".pdf") return fittedText(fields, await pdfText(await opened.handle.readFile(), signal));
     const mime = IMAGE_TYPES[extension];
     if (mime) {
       if (opened.bytes > EXTRACT_LIMITS.imageBytes) return "The image is over 1 MB. Make it smaller first.";
-      return { ...(typeof body.text === "string" ? { text: body.text } : {}), images: [{ mime, data: (await opened.handle.readFile()).toString("base64") }] };
+      return { input: { ...(typeof body.text === "string" ? { text: body.text } : {}), images: [{ mime, data: (await opened.handle.readFile()).toString("base64") }] } };
     }
     if (opened.bytes > TEXT_FILE_BYTES) return "The file is over 1 MB. Pass the part that matters as text.";
     const content = (await opened.handle.readFile()).toString("utf8");
     if (content.includes("\u0000")) return "That file is not text or a PNG, JPEG or WebP image.";
-    return { text: content };
+    return fittedText(fields, content);
   } catch (error) {
     if (error instanceof PdfTextError) return error.message;
     throw error;
@@ -158,9 +176,10 @@ export function createHelperToolRoutes(deps: HelperToolDeps) {
       const fields = body.fields as FieldSchema;
       const fieldsProblem = extractRequestProblem(fields, { text: "check" });
       if (fieldsProblem) return void ctx.json(ctx.res, 400, { error: fieldsProblem });
-      const input = await readInput(body, ctx, abort.signal);
+      const read = await readInput(body, fields, ctx, abort.signal);
       if (abort.signal.aborted) return;
-      if (typeof input === "string") return void ctx.json(ctx.res, 400, { error: input });
+      if (typeof read === "string") return void ctx.json(ctx.res, 400, { error: read });
+      const { input, cutAt } = read;
       const problem = extractRequestProblem(fields, input);
       if (problem) return void ctx.json(ctx.res, 400, { error: problem });
       const result = await deps.extractor.extract("botExtract", fields, input, { timeoutMs: HELPER_TOOL_TIMEOUT_MS, signal: abort.signal });
@@ -170,7 +189,8 @@ export function createHelperToolRoutes(deps: HelperToolDeps) {
         return void ctx.json(ctx.res, off ? 409 : 502, { error: off ? HELPER_MESSAGES.extractOff : FAILURE[result.reason] ?? "The extraction model's answer could not be read. Try again." });
       }
       return void ctx.json(ctx.res, 200, {
-        text: `${JSON.stringify({ values: result.values, by: BY[result.provider] })}\nnull means the input did not say. Check totals and long sums yourself.`,
+        text: `${JSON.stringify({ values: result.values, by: BY[result.provider] })}\nnull means the input did not say. Check totals and long sums yourself.`
+          + (cutAt === undefined ? "" : `\nThe file was too long to read whole: only its first ${cutAt.toLocaleString("en-US")} characters were read, so values after that are missing. Pass the part that matters as text for the rest.`),
       });
     } finally {
       ctx.res.removeListener("close", disconnected);

@@ -1,10 +1,13 @@
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BOT_DESKTOP_IMAGE, BOT_DESKTOP_LABEL, BOT_DESKTOP_MODE_LABEL, BOT_DESKTOP_NETWORK, BOT_DESKTOP_VERSION } from "../shared/bot-desktop.ts";
 import {
   FREE_CAPABILITIES,
   botDesktopIsHardened,
+  botDesktopKit,
   botDesktopMode,
   botDesktopMountsAreSafe,
   botDesktopNetworkCreateArgs,
@@ -202,11 +205,12 @@ describe("bot desktop isolation checks", () => {
 });
 
 describe("bot desktop provisioning", () => {
-  function host({ pull = true, network = false, runsc = false, fenced = false } = {}) {
+  function host({ pull = true, network = false, runsc = false, fenced = false, build = true } = {}) {
     const calls: string[][] = [];
     const run = async (args: string[]) => {
       calls.push(args);
-      if (args[0] === "pull") { if (!pull) throw new Error("denied"); return { stdout: "" }; }
+      if (args[0] === "pull") { if (!pull) throw new Error("Error response from daemon: denied"); return { stdout: "" }; }
+      if (args[0] === "build") { if (!build) throw new Error("ERROR: failed to solve: process did not complete successfully"); return { stdout: "" }; }
       if (args[0] === "image") return { stdout: JSON.stringify([{ Id: IMAGE_ID, Config: { Labels: { [BOT_DESKTOP_LABEL]: BOT_DESKTOP_VERSION, [DRIVER_LABEL]: CUA_DRIVER_VERSION } } }]) };
       if (args[0] === "network" && args[1] === "inspect") {
         if (!network) throw new Error(`Error: No such network: ${BOT_DESKTOP_NETWORK}`);
@@ -243,10 +247,47 @@ describe("bot desktop provisioning", () => {
     expect(await provisionBotDesktop(host({ network: true, fenced: true }).run, input)).toBe("strict");
   });
 
-  it("tells the caller to fall back when the image cannot be pulled, before touching anything else", async () => {
+  it("builds the image on the docker host from the shipped kit when the registry refuses it, and reports the build", async () => {
     const fake = host({ pull: false, network: true });
-    expect(await provisionBotDesktop(fake.run, input)).toBe(false);
-    expect(fake.calls).toHaveLength(1);
+    const progress: string[] = [];
+    expect(await provisionBotDesktop(fake.run, { ...input, onProgress: step => progress.push(step) })).toBe("strict");
+    expect(progress).toEqual(["pulling", "building"]);
+    const kit = botDesktopKit()!;
+    expect(kit).toBe(resolve(import.meta.dirname, "..", "deploy", "bot-desktop"));
+    expect(fake.calls[1]).toEqual(["build", "--build-arg", `BOT_DESKTOP_VERSION=${BOT_DESKTOP_VERSION}`, "-t", BOT_DESKTOP_IMAGE, kit]);
+    expect(steps(fake.calls).slice(0, 3)).toEqual([`pull ${BOT_DESKTOP_IMAGE}`, "build --build-arg", "image inspect"]);
+    expect(fake.calls.at(-1)!.at(-1)).toBe(IMAGE_ID);
+  });
+
+  it("refuses with a clear reason, creating nothing, when the image can be neither pulled nor built", async () => {
+    vi.stubEnv("OMB_BOT_DESKTOP_KIT", join(tmpdir(), "omb-no-such-kit"));
+    try {
+      const fake = host({ pull: false, network: true });
+      await expect(provisionBotDesktop(fake.run, input)).rejects.toMatchObject({ status: 409, code: "bot_desktop_unavailable",
+        message: expect.stringMatching(/not on the VPS and could not be downloaded \(Error response from daemon: denied\).*no copy of its build kit/) });
+      expect(steps(fake.calls)).toEqual([`pull ${BOT_DESKTOP_IMAGE}`]);
+    } finally { vi.unstubAllEnvs(); }
+    const broken = host({ pull: false, network: true, build: false });
+    await expect(provisionBotDesktop(broken.run, input)).rejects.toMatchObject({ status: 409,
+      message: expect.stringContaining("building it on the VPS failed: ERROR: failed to solve") });
+    expect(broken.calls.map(args => args[0])).toEqual(["pull", "build"]);
+  });
+
+  it("only offers a kit that builds exactly this app's desktop version, outside any asar archive", () => {
+    const directory = mkdtempSync(join(tmpdir(), "omb-kit-"));
+    try {
+      const kit = join(directory, "bot-desktop");
+      mkdirSync(kit);
+      writeFileSync(join(kit, "Dockerfile"), `FROM debian\nARG BOT_DESKTOP_VERSION=${Number(BOT_DESKTOP_VERSION) - 1}\n`);
+      expect(botDesktopKit({ OMB_BOT_DESKTOP_KIT: kit })).toBeNull();
+      writeFileSync(join(kit, "Dockerfile"), `FROM debian\nARG BOT_DESKTOP_VERSION=${BOT_DESKTOP_VERSION}\n`);
+      expect(botDesktopKit({ OMB_BOT_DESKTOP_KIT: kit })).toBe(kit);
+      const packed = join(directory, "app.asar", "deploy", "bot-desktop");
+      mkdirSync(packed, { recursive: true });
+      writeFileSync(join(packed, "Dockerfile"), `ARG BOT_DESKTOP_VERSION=${BOT_DESKTOP_VERSION}\n`);
+      expect(botDesktopKit({ OMB_BOT_DESKTOP_KIT: packed })).toBeNull();
+      expect(botDesktopKit({ OMB_BOT_DESKTOP_KIT: join(directory, "missing") })).toBeNull();
+    } finally { rmSync(directory, { recursive: true, force: true }); }
   });
 
   it("shares preparation for concurrent bots on one host, then rechecks the fence on the next start", async () => {
@@ -275,14 +316,16 @@ describe("bot desktop provisioning", () => {
   });
 
   it("keeps preparation separate across hosts and lets a failed pull retry", async () => {
+    vi.stubEnv("OMB_BOT_DESKTOP_KIT", join(tmpdir(), "omb-no-such-kit"));
     const unavailable = host({ pull: false });
     const available = host({ runsc: true, network: true, fenced: true });
     expect(await Promise.all([
       provisionBotDesktop(unavailable.run, { ...input, hostKey: "offline-vps" }),
       provisionBotDesktop(available.run, { ...input, hostKey: "online-vps" }),
-    ])).toEqual([false, "free"]);
+    ].map(attempt => attempt.catch((error: { code?: string }) => error.code)))).toEqual(["bot_desktop_unavailable", "free"]);
     expect(await provisionBotDesktop(available.run, { ...input, hostKey: "offline-vps" })).toBe("free");
     expect(available.calls.filter((args) => args[0] === "pull")).toHaveLength(2);
+    vi.unstubAllEnvs();
   });
 });
 
@@ -374,15 +417,31 @@ describe("bot desktop on the VPS path", () => {
     expect(inspected(name)._mounts[0].Name).toBe(botDesktopVolume(name));
   });
 
-  it("falls back to building the Cua desktop when the bot desktop image cannot be pulled", async () => {
+  it("never silently falls back to the Cua desktop: it builds the bot desktop from the kit, or refuses", async () => {
     const fake = daemon();
+    const builds: string[][] = [];
     const runner: VpsCommandRunner = async (args, options) => {
       if (args[2] === "pull" && args[3] === BOT_DESKTOP_IMAGE) throw new Error("manifest unknown");
-      if (args[2] === "pull" || args[2] === "build") return { stdout: "", stderr: "" };
+      if (args[2] === "build") { builds.push(args.slice(2)); fake.state.image = true; return { stdout: "", stderr: "" }; }
       return fake.runner(args, options);
     };
-    // the Cua image never appears in this fake, so the fallback stops at identifying it: enough to prove the route
-    await expect(vpsComputerAction("provision", CONFIG, BOT, runner)).rejects.toThrow(/could not be identified/);
+    const progress: string[] = [];
+    const status = await vpsComputerAction("provision", CONFIG, BOT, runner, { onProgress: step => progress.push(step) });
+    expect(status).toMatchObject({ desktop: "bot-desktop", image_ref: BOT_DESKTOP_IMAGE, ready: true });
+    expect(progress).toEqual(["pulling", "building"]);
+    expect(builds.map(args => args.at(-1))).toEqual([botDesktopKit()]);
+    expect(fake.calls.some(args => args.some(arg => arg.includes("cua-local-vm")))).toBe(false);
+
+    const refused = daemon();
+    vi.stubEnv("OMB_BOT_DESKTOP_KIT", join(tmpdir(), "omb-no-such-kit"));
+    const offline: VpsCommandRunner = async (args, options) => {
+      if (args[2] === "pull") throw new Error("manifest unknown");
+      return refused.runner(args, options);
+    };
+    try {
+      await expect(vpsComputerAction("provision", CONFIG, `${BOT}-offline`, offline)).rejects.toMatchObject({ status: 409, code: "bot_desktop_unavailable" });
+      expect(refused.calls.some(args => ["build", "run", "network"].includes(args[0]!))).toBe(false);
+    } finally { vi.stubEnv("OMB_BOT_DESKTOP_KIT", undefined); }
   });
 
   it("pins an in-box browser to its observed container and SSH host", async () => {

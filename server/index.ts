@@ -94,8 +94,8 @@ import { DataSheetRegistry } from "./data/sheet.ts";
 import { DataFailure } from "./data/types.ts";
 import { TeamComputers, teamComputerOwner, type TeamComputerRecord } from "./team-computers.ts";
 import { teamComputerVpsTarget } from "./team-computer-vps.ts";
-import { sharedVpsDefaults } from "./shared-vps-defaults.ts";
-import { preserveVpsRouting } from "./vps-config-migration.ts";
+import { initialVpsMode, sharedVpsDefaults } from "./shared-vps-defaults.ts";
+import type { BotDesktopProgress } from "./bot-desktop.ts";
 import { createVpsLifecycleHost } from "./vps-lifecycle-host.ts";
 import type { VpsLifecycleResource, VpsLifecycleTarget, VpsLifecycleStage } from "./vps-lifecycle.ts";
 import { closeVpsBrowser } from "./vps-browser-close.ts";
@@ -749,7 +749,6 @@ let desktopMutationToken: string | undefined = DESKTOP_MANAGED ? "" : undefined;
 let companionMutationToken: string | undefined = DESKTOP_MANAGED ? "" : undefined;
 const FALLBACK_PUBLIC_URL = process.env.OMB_PUBLIC_URL?.trim().replace(/\/+$/, "") || null;
 const cfg = loadConfig();
-preserveVpsRouting(cfg, DATA_DIR, vpsIsThisServer(), saveConfig);
 const hostedModels = hostedModelPolicy(DATA_DIR);
 const providerConfigs = () => hostedModels ? hostedModels.configs() : instanceConfigs(cfg);
 const decorateHostedProvider = hostedModels ? (instance: ProviderInstance) => hostedModels.decorate(instance) : undefined;
@@ -2790,6 +2789,13 @@ const { cloudHealth, cloudSigned } = createCloudSignedHost({ cloudHome: CLOUD_HO
   connectors: () => emailHost.health(composio.configured(cfg) ? composio.connectedServices(cfg) : null),
   browser: () => ({ available: browserReady(undefined), installing: Boolean(browserEngineInstall), interrupted: browserRuntime.interruptedCount() }), ...(engineMemory.enabled ? { room: () => engineMemory.dayPressure() } : {}) } });
 const teamComputers = new TeamComputers(join(DATA_DIR, "team-computers.json"), ENVIRONMENT_ID);
+{
+  let workspaceComputerInUse = false;
+  try { workspaceComputerInUse = teamComputers.hasWorkspaceComputer(); } catch { workspaceComputerInUse = false; }
+  const mode = initialVpsMode(cfg, { vpsConfigured: Boolean(vpsSshAlias(cfg)), workspaceComputerInUse,
+    botsOnOwnComputers: store.bots.some(bot => { try { return teamComputers.joinsWorkspaceComputer(bot); } catch { return true; } }) });
+  if (mode) { saveConfig({ vps: { mode } }); cfg.vps = mergeVpsConfig(cfg.vps, { mode }); }
+}
 let followupsReady = false;
 const sendSequencer = new SendSequencer();
 // Before the new-bot default is read: a saved default may name the engine.
@@ -6061,7 +6067,7 @@ async function mountTeamVps(computer: TeamComputerRecord, botId: string, owner: 
   let remote: vps.VpsComputerStatus;
   try {
     remote = canStart
-      ? await vps.vpsComputerAction("provision", target.config, target.ownerId, undefined, { stillAllowed: () => teamComputerTurns.get(owner.threadId) === turn && activeInternalGenerationByThread.get(owner.threadId) === owner.generation, onStarting: () => computerStateChanged(target.ownerId, vpsSshAlias(target.config)!, "starting", undefined, botId) })
+      ? await vps.vpsComputerAction("provision", target.config, target.ownerId, undefined, { stillAllowed: () => teamComputerTurns.get(owner.threadId) === turn && activeInternalGenerationByThread.get(owner.threadId) === owner.generation, onStarting: () => computerStateChanged(target.ownerId, vpsSshAlias(target.config)!, "starting", undefined, botId), onProgress: announceDesktopBuild(owner.threadId) })
       : await vps.vpsComputerStatus(target.config, target.ownerId, undefined, { fresh: true });
     requireCurrent();
   } catch (error) {
@@ -6120,6 +6126,10 @@ async function mountHostComputer(owner: TurnOwner, botId: string, providerSuppor
   return gatedLocalComputer(cua, controlIntegration(botId, owner.threadId, owner.generation, "this computer"));
 }
 
+function announceDesktopBuild(threadId: string): (step: BotDesktopProgress) => void {
+  return (step) => { if (step === "building") store.appendMessage(threadId, { role: "bot", kind: "activity", tool: { name: serverLine(threadLanguage(threadId), "server.botDesktop.building") } }); };
+}
+
 async function mountBotVps(
   bot: BotRecord,
   owner: TurnOwner,
@@ -6128,7 +6138,7 @@ async function mountBotVps(
   const botVpsConfig = vpsConfigForBot(cfg, bot);
   return prepareVpsTurn(owner, bot.id, vpsSshAlias(botVpsConfig)!, async () => {
     const vpsResource = `computer:vps:${vpsSshAliasForBot(cfg, bot)}:${bot.id}`;
-    const remote = await (opts.start ? vps.vpsComputerAction("provision", botVpsConfig, bot.id, undefined, { stillAllowed: () => activeInternalGenerationByThread.get(owner.threadId) === owner.generation, onStarting: () => computerStateChanged(bot.id, vpsSshAlias(botVpsConfig)!, "starting") }) : vps.inspectVpsForAuto(botVpsConfig, bot.id));
+    const remote = await (opts.start ? vps.vpsComputerAction("provision", botVpsConfig, bot.id, undefined, { stillAllowed: () => activeInternalGenerationByThread.get(owner.threadId) === owner.generation, onStarting: () => computerStateChanged(bot.id, vpsSshAlias(botVpsConfig)!, "starting"), onProgress: announceDesktopBuild(owner.threadId) }) : vps.inspectVpsForAuto(botVpsConfig, bot.id));
     if (!remote?.ready || !remote.sshAlias) return { problem: remote?.problem ?? null, reachable: remote?.daemonUp === true, outdated: vpsDesktopOutdated(remote) };
     const targetCfg = { vps: { sshAlias: remote.sshAlias } };
     await rememberVpsReady(bot.id, remote, opts.start);
@@ -8138,7 +8148,7 @@ async function beginTurn(
       const mountsComputerMcp = instance.adapter.capabilities.computerMcp === true;
       const mountsLocalComputer = instance.adapter.capabilities.localComputerMcp === true;
       const dispatchTask = store.taskByThread(bot.id, threadId);
-      const deferredSharedComputer = Boolean(vpsSshAliasForBot(cfg, bot)) && bot.computer === undefined && plan.computer === undefined
+      const deferredSharedComputer = teamComputer?.scope === "workspace" && Boolean(vpsSshAliasForBot(cfg, bot)) && bot.computer === undefined && plan.computer === undefined
         && agentsMounted && computerSelectionTurns.get(threadId)?.generation === dispatchClaimId;
       let wants: ComputerWant = computerSkipped ? "off" : plan.computer;
       const skipComputer = (error: unknown) => {
