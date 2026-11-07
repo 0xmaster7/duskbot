@@ -30,6 +30,8 @@ export const USAGE = `openmausbot — your team of AI bots, ready in a few steps
                     [--public-url https://host]
   openmausbot sessions [revoke ID]
   openmausbot status
+  openmausbot vps status|doctor [--port N] [--data-dir DIR] [--json]
+  openmausbot vps logs [--service server|link|fence] [--lines 100] [--json]
   openmausbot login [--email you@example.com]
   openmausbot logout
   openmausbot access list | add EMAIL [--chat-only] | remove EMAIL
@@ -49,6 +51,9 @@ serve   starts the server without prompts and prints a pairing link + QR code
 pair    mints a pairing code against a running server (--client: chat only)
 sessions lists paired devices; "sessions revoke ID" signs one out
 status  what the server says about itself
+vps     read-only Linux VPS status, host resources, managed computers and
+        bounded redacted logs, including when the server is stopped.
+        Run on the VPS; no sudo, service changes or credential reads.
 login   signs this machine in to an OpenMausBot account (an emailed code)
         and reserves its public address for --tunnel
 logout  releases that address and signs out
