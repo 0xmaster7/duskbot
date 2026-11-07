@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 
+import { Loader2 } from "lucide-react";
+
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { useCaptionChrome, useDesktopCapabilities } from "./DesktopCapabilities";
@@ -11,7 +13,7 @@ import "./computer-fullscreen.css";
 /** The pill under the screen, as grok's control bar: watching with Take control; in control with I'm done when the bot
  * asked for the person's hands (`asked`), else Stop. A screen that can only be watched shows the status alone. */
 export type ScreenControl =
-  | { held: false; onTake?: () => void; busy?: boolean }
+  | { held: false; onTake?: () => void; busy?: boolean; /** Take control is on its way: a spinner holds the label's place. */ pending?: boolean }
   | { held: true; onDone: () => void; asked?: boolean; busy?: boolean };
 
 // grok's control row under the frame
@@ -152,7 +154,14 @@ function ControlPill({ control, hint }: { control: ScreenControl; hint: { count:
                 : "bg-ink text-app enabled:hover:bg-[color-mix(in_srgb,var(--color-ink)_88.5%,var(--color-menu))]",
             )}
           >
-            {control.held ? (control.asked ? t("computer.done") : t("computer.stopControl")) : t("computer.takeControl")}
+            <span className={cn(!control.held && control.pending && "invisible")}>
+              {control.held ? (control.asked ? t("computer.done") : t("computer.stopControl")) : t("computer.takeControl")}
+            </span>
+            {!control.held && control.pending && (
+              <span data-computer-taking="" aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
+                <Loader2 size={13} className="animate-spin motion-reduce:animate-none" />
+              </span>
+            )}
           </button>
         </span>
       )}
