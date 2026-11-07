@@ -19,7 +19,6 @@ const fixture = vi.hoisted(() => ({
   setSidebarToolsLayout: vi.fn(),
   notificationSounds: true,
   setNotificationSounds: vi.fn(),
-  setNotificationFeed: vi.fn(),
   sendKey: "enter" as SendKey,
   setSendKey: vi.fn(),
   colorUserBubbles: false,
@@ -57,8 +56,6 @@ vi.mock("@/lib/sidebar-preferences", async (importOriginal) => ({
 vi.mock("@/lib/notification-preferences", () => ({
   useNotificationSounds: () => fixture.notificationSounds,
   setNotificationSounds: fixture.setNotificationSounds,
-  useNotificationFeed: () => false,
-  setNotificationFeed: fixture.setNotificationFeed,
   useFinishedNotifications: () => true,
   setFinishedNotifications: vi.fn(),
 }));
@@ -212,17 +209,6 @@ describe("Settings → General → Appearance", () => {
     const html = render();
     expect(html).toContain("メッセージの送信キー");
     expect(html).toContain(">Shift+Enter<");
-  });
-
-  it("offers the notification feed in Notifications, off until chosen", () => {
-    fixture.section = "general";
-    const html = render();
-    expect(html).toContain("Notification feed");
-    const toggle = fixture.switches.find((props) => props["aria-label"] === "Show the notification feed")!;
-    expect(toggle.checked).toBe(false);
-    toggle.onClick!({} as never);
-    expect(fixture.setNotificationFeed).toHaveBeenCalledWith(true);
-    expect(fixture.api).not.toHaveBeenCalled();
   });
 
   it("keeps the experiments on their own page, with no timeouts or task limits, and recovery with the models", () => {

@@ -585,9 +585,6 @@ export interface AppState {
   pluginsOpen: boolean;
   pluginsSurface: "apps" | "mcp";
   botCreationPending: boolean;
-  /** Cross-bot, so a bot switch leaves it open; pinned, opening another side panel leaves it open too. */
-  notificationsOpen: boolean;
-  notificationsPinned: boolean;
   notifications: NotificationLogEntry[];
   appSettingsOpen: boolean;
   appSettingsSection: AppSettingsSection;
@@ -663,8 +660,6 @@ export type Action =
   | { type: "routineDeleted"; routineId: string }
   | { type: "routineRunPatched"; run: RoutineRun }
   | NotificationFeedAction
-  | { type: "toggleNotifications"; open?: boolean }
-  | { type: "toggleNotificationsPinned"; pinned?: boolean }
   | { type: "webhooksHydrated"; webhooks: WebhookTrigger[]; attempts: WebhookAttempt[]; ingress: WebhookIngressStatus }
   | { type: "webhookPatched"; webhook: WebhookTrigger }
   | { type: "webhookAttempted"; attempt: WebhookAttempt }
@@ -1518,17 +1513,6 @@ export function reducer(state: AppState, action: Action): AppState {
       const shown = reducer(state, { type: "toggleSettings", open: true, section: "computer", ...(action.botId !== undefined ? { botId: action.botId } : {}) });
       return shown === state ? state : { ...shown, computerTabRequest: state.computerTabRequest + 1 };
     }
-    case "toggleNotifications": {
-      const open = action.open ?? !state.notificationsOpen;
-      return {
-        ...state,
-        notificationsOpen: open,
-        settingsOpen: open ? false : state.settingsOpen,
-        appSettingsOpen: open ? false : state.appSettingsOpen,
-      };
-    }
-    case "toggleNotificationsPinned":
-      return { ...state, notificationsPinned: action.pinned ?? !state.notificationsPinned };
     case "toggleAppSettings": {
       const open = action.open ?? !state.appSettingsOpen;
       return {
@@ -1876,8 +1860,6 @@ export const initialState: AppState = {
   pluginsOpen: false,
   pluginsSurface: "apps",
   botCreationPending: false,
-  notificationsOpen: false,
-  notificationsPinned: false,
   notifications: [],
   appSettingsOpen: false,
   appSettingsSection: "general",

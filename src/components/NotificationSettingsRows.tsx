@@ -2,10 +2,8 @@ import { useEffect, useState } from "react";
 import { t } from "@/lib/i18n";
 import {
   setFinishedNotifications,
-  setNotificationFeed,
   setNotificationSounds,
   useFinishedNotifications,
-  useNotificationFeed,
   useNotificationSounds,
 } from "@/lib/notification-preferences";
 import { requestNotificationPermission } from "@/lib/notify";
@@ -20,7 +18,6 @@ export function NotificationRows() {
       <DeviceNotificationsRow />
       <NotificationSoundsRow />
       <NotificationSoundPickerRow />
-      <NotificationFeedRow />
     </>
   );
 }
@@ -76,19 +73,6 @@ function NotificationSoundsRow() {
         checked={enabled}
         aria-label={t("settings.notificationSounds.play")}
         onClick={() => setNotificationSounds(!enabled)}
-      />
-    </SettingRow>
-  );
-}
-
-function NotificationFeedRow() {
-  const enabled = useNotificationFeed();
-  return (
-    <SettingRow title={t("settings.notificationFeed.title")}>
-      <Switch
-        checked={enabled}
-        aria-label={t("settings.notificationFeed.show")}
-        onClick={() => setNotificationFeed(!enabled)}
       />
     </SettingRow>
   );

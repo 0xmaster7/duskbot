@@ -1,11 +1,9 @@
 import { useSyncExternalStore } from "react";
 
 export const NOTIFICATION_SOUNDS_KEY = "omb-notification-sounds";
-export const NOTIFICATION_FEED_KEY = "omb-notification-feed";
 export const FINISHED_NOTIFICATIONS_KEY = "omb-finished-notifications";
 
 let sessionChoice: boolean | undefined;
-let feedSessionChoice: boolean | undefined;
 let finishedSessionChoice: boolean | undefined;
 const listeners = new Set<() => void>();
 
@@ -31,10 +29,9 @@ function notify() {
 }
 
 function onStorage(event: StorageEvent) {
-  if (event.key !== NOTIFICATION_SOUNDS_KEY && event.key !== NOTIFICATION_FEED_KEY && event.key !== FINISHED_NOTIFICATIONS_KEY && event.key !== null) return;
+  if (event.key !== NOTIFICATION_SOUNDS_KEY && event.key !== FINISHED_NOTIFICATIONS_KEY && event.key !== null) return;
   if (event.storageArea && event.storageArea !== storage()) return;
   sessionChoice = undefined;
-  feedSessionChoice = undefined;
   finishedSessionChoice = undefined;
   notify();
 }
@@ -66,31 +63,6 @@ export function setNotificationSounds(enabled: boolean): void {
 
 export function useNotificationSounds(): boolean {
   return useSyncExternalStore(subscribe, notificationSoundsEnabled, () => true);
-}
-
-export function notificationFeedEnabled(): boolean {
-  if (feedSessionChoice !== undefined) return feedSessionChoice;
-  try {
-    return storage()?.getItem(NOTIFICATION_FEED_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-export function setNotificationFeed(enabled: boolean): void {
-  feedSessionChoice = enabled;
-  try {
-    const local = storage();
-    const value = enabled ? "1" : "0";
-    local?.setItem(NOTIFICATION_FEED_KEY, value);
-    if (local?.getItem(NOTIFICATION_FEED_KEY) === value) feedSessionChoice = undefined;
-  } catch {
-  }
-  notify();
-}
-
-export function useNotificationFeed(): boolean {
-  return useSyncExternalStore(subscribe, notificationFeedEnabled, () => false);
 }
 
 /** Per device: "done" notices only; approvals, questions and warnings always show. */

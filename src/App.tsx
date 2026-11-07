@@ -15,7 +15,7 @@ import { parseComputerHelp } from "@/lib/computer-control";
 import { Sidebar } from "@/components/Sidebar";
 import { ChatView } from "@/components/ChatView";
 import { GroupView } from "@/components/GroupView";
-import { PHONE_LAYOUT, SIDEBAR_INLINE, TWO_SIDE_PANELS_FIT, useMediaQuery } from "@/lib/use-media-query";
+import { PHONE_LAYOUT, SIDEBAR_INLINE, useMediaQuery } from "@/lib/use-media-query";
 import { useEdgeSwipeOpen } from "@/components/SidebarDrawer";
 import { usePhoneViewport } from "@/lib/phone-viewport";
 import { preloadConnectedApps } from "@/lib/connected-apps";
@@ -26,8 +26,6 @@ import {
 } from "@/components/lazy-screens";
 import { useRoomPanelShown } from "@/lib/room-panel";
 import { WorkspaceBackupRecovery } from "@/components/WorkspaceBackupSettings";
-import { NotificationRail, NotificationsPanel } from "@/components/NotificationsPanel";
-import { useNotificationFeed } from "@/lib/notification-preferences";
 import { UpdateBanner } from "@/components/UpdateBanner";
 import { AppNotices } from "@/components/AppNotices";
 import { BotLimitPopup } from "@/components/BotLimitPopup";
@@ -95,7 +93,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
     state.bots.filter((bot) => !bot.hidden).reduce((sum, bot) => sum + botUnreadCount(bot), 0) +
     state.groups.filter((group) => group.unread).length;
   const remoteClient = window.ogb?.remoteClient?.active === true;
-  const twoSidePanelsFit = useMediaQuery(TWO_SIDE_PANELS_FIT, true);
   const sidebarInline = useMediaQuery(SIDEBAR_INLINE, false);
   // As Grok Bot: the bot's panel docks beside the sidebar only while the chat keeps its 424px and the panel its 280.
   const botPanelDocks = useMediaQuery(`(min-width: ${BOT_PANEL_DOCKS_AT}px)`, true);
@@ -147,9 +144,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const group = state.groups.find((g) => g.id === state.selectedId);
   const bot = group ? undefined : (state.bots.find((b) => b.id === state.selectedId) ?? state.bots[0]);
   useComputerPanelActivity({ bot, active: state.activeView === "chat", settingsOpen: state.settingsOpen, targetKey: `${bot?.vpsAlias}:${bot?.section}:${state.config?.vps?.sshAlias}:${state.config?.vps?.mode}:${state.config?.vps?.independentScreens}`, dispatch });
-  const notificationFeed = useNotificationFeed() && !remoteClient;
   const roomPanelOpen = useRoomPanelShown({ group, state, simple: !remoteClient });
-  const roomPanelOverlay = notificationFeed && state.notificationsOpen && !twoSidePanelsFit;
   // The sidebar only folds when the person folds it: a side panel opening beside it never collapses it, as in Grok Bot.
   const phoneLayout = useMediaQuery(PHONE_LAYOUT, false);
   useEdgeSwipeOpen(phoneLayout && !drawerOpen, () => setDrawerOpen(true));
@@ -262,7 +257,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
     });
   }, [dispatch]);
 
-  const settingsOverlay = !botPanelDocks || (notificationFeed && state.notificationsOpen && !twoSidePanelsFit);
+  const settingsOverlay = !botPanelDocks;
   // a reload with the panel open keeps its column from the first frame, not only once the bots arrive
   const panelLoading = state.settingsOpen && !bot && !group && state.hydrated !== true && !remoteClient && !settingsOverlay;
   const framed = windowFramed(capabilities);
@@ -324,14 +319,11 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       {state.settingsOpen && bot && remoteClient && <RemoteAgentSettingsPanel bot={bot} />}
       {state.settingsOpen && bot && !remoteClient && settingsOverlay && <BotSettingsDialog key={`settings:${bot.id}`} bot={bot} overlay />}
       {/* bot and room panels share one slot, so moving between a bot and a room swaps the content without the column closing */}
-      <PanelSlot open={Boolean(state.settingsOpen && bot && !remoteClient && !settingsOverlay) || Boolean(roomPanelOpen && group && !roomPanelOverlay) || panelLoading}>
+      <PanelSlot open={Boolean(state.settingsOpen && bot && !remoteClient && !settingsOverlay) || Boolean(roomPanelOpen && group) || panelLoading}>
         {bot ? <BotSettingsDialog key={`settings:${bot.id}`} bot={bot} /> : group ? <RoomPanel key={`room:${group.id}`} group={group} />
           : panelLoading ? <PanelPlaceholder onClose={() => dispatch({ type: "toggleSettings", open: false })} /> : null}
       </PanelSlot>
-      {roomPanelOpen && group && roomPanelOverlay && <RoomPanel key={`room:${group.id}`} group={group} overlay />}
       {inboxShown && <InboxPanel />}
-      {notificationFeed && state.notificationsOpen && <NotificationsPanel />}
-      {notificationFeed && <NotificationRail />}
       </div>
       </div>
       <AnimatePresence>{state.appSettingsOpen && <SettingsModal key="settings" />}</AnimatePresence>

@@ -3069,43 +3069,6 @@ describe("notifications feed", () => {
     state = reducer(state, { type: "notificationsRead", ids: ["n1", "n3", "gone"] });
     expect(state.notifications.filter((n) => n.read).map((n) => n.id)).toEqual(["n3", "n1"]);
   });
-
-  it("toggleNotifications closes the other docked panels, and vice versa", () => {
-    let state = reducer(initialState, { type: "toggleComputer", open: true });
-    expect(state.settingsOpen).toBe(true);
-    state = reducer(state, { type: "toggleNotifications", open: true });
-    expect(state).toMatchObject({ notificationsOpen: true, settingsOpen: false });
-  });
-
-  it("toggleNotificationsPinned flips independently of notificationsOpen", () => {
-    const state = reducer(initialState, { type: "toggleNotificationsPinned" });
-    expect(state).toMatchObject({ notificationsPinned: true, notificationsOpen: false });
-  });
-
-  it("survives a bot switch: select/switchTask never reset it", () => {
-    const withOpen = reducer(initialState, { type: "toggleNotifications", open: true });
-    const afterSwitch = reducer(withOpen, { type: "switchTask", botId: "other-bot", threadId: "other-thread" });
-    expect(afterSwitch.notificationsOpen).toBe(true);
-  });
-
-  it("pinned, the feed survives Computer/Activity/AppSettings opening", () => {
-    const open = { ...reducer(initialState, { type: "toggleNotifications", open: true }), notificationsPinned: true };
-    for (const action of [
-      { type: "toggleComputer", open: true } as const,
-      { type: "toggleAppSettings", open: true } as const,
-    ]) {
-      expect(reducer(open, action).notificationsOpen).toBe(true);
-    }
-  });
-
-  it("unpinned, the side panels still close it, the settings modal does not (regression guard)", () => {
-    const open = reducer(initialState, { type: "toggleNotifications", open: true });
-    expect(open.notificationsPinned).toBe(false);
-    // the bot's computer is its panel's Computer tab, which sits beside the feed like the panel does
-    expect(reducer(open, { type: "toggleComputer", open: true }).notificationsOpen).toBe(true);
-    // Settings is a modal: the feed beside the chat stays as it was under it
-    expect(reducer(open, { type: "toggleAppSettings", open: true }).notificationsOpen).toBe(true);
-  });
 });
 
 describe("a routine's answer and its broadcast", () => {
