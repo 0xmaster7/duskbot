@@ -70,6 +70,9 @@ keep() {
   ( while :; do "$@" >>"$logs/$name.log" 2>>"$logs/$name.error.log" || true; sleep 1; done ) &
 }
 
+# the viewer bridge first: python takes about a second and a half to start under gVisor, and it needs no X, only the VNC
+# port it dials per viewer, so it is ready by the time the screen is
+keep websockify websockify --web /usr/share/novnc "0.0.0.0:$viewer_port" "127.0.0.1:$vnc_port"
 # shellcheck disable=SC2086
 keep xvnc Xvnc "$DISPLAY" -geometry "$geometry" -depth 24 -rfbport "$vnc_port" -localhost -AlwaysShared \
   -AcceptSetDesktopSize=0 -FrameRate 30 -CompareFB 1 -nolisten tcp $security
@@ -89,7 +92,6 @@ fi
 
 keep openbox openbox --config-file /etc/xdg/openbox/rc.xml
 keep tint2 tint2 -c /etc/xdg/tint2/tint2rc
-keep websockify websockify --web /usr/share/novnc "0.0.0.0:$viewer_port" "127.0.0.1:$vnc_port"
 keep cua-driver env CUA_DRIVER_BROWSER_NO_SANDBOX=1 CUA_DRIVER_INSTALL_CHANNEL=python_package \
   CUA_DRIVER_RS_TELEMETRY_ENABLED=0 CUA_DRIVER_WINDOW_CHANGE_TIMEOUT_MS=200 NO_COLOR=1 \
   /usr/local/libexec/openmausbot/cua-driver serve --socket "$cua_socket" \
