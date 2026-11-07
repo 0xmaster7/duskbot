@@ -2,6 +2,7 @@ import { Fragment, useRef, useState, type KeyboardEvent, type ReactNode } from "
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { widgetNumber, widgetString, widgetTakesOther, type WidgetNode } from "../../../shared/widget";
+import { isChoiceList, WidgetChoices, widgetPieces } from "./WidgetChoices";
 import { useWidgetForm, WidgetOtherInput, WidgetRadioMark } from "./WidgetControls";
 import { WIDGET_ROW, WIDGET_ROW_CONTROLS, WidgetListRow, WidgetNodeView } from "./WidgetNodes";
 import { ALIGN, fourSides, kids } from "./widget-style";
@@ -15,27 +16,36 @@ function roomBetween(above: WidgetNode | undefined, below: WidgetNode | undefine
 }
 
 export function WidgetBody({ root, headed }: { root: WidgetNode; headed: boolean }) {
+  const form = useWidgetForm();
   const children = kids(root);
   if (root.type === "ListView") return <ListBody root={root} items={children} headed={headed} />;
   if (!children.length) return null;
-  const [top, right, bottom, left] = fourSides(root.padding)
-    ?? [headed ? 0 : isRows(children[0]) ? 6 : 16, 16, isRows(children[children.length - 1]) ? 6 : 16, 16];
+  const pieces = widgetPieces(children, form);
+  const first = pieces[0]!.node;
+  const last = pieces[pieces.length - 1]!.node;
+  // grok's option rows sit 8px in from the card's edge, as its question card's do
+  const edge = (node: WidgetNode) => isChoiceList(node, form) ? 8 : isRows(node) ? 6 : 16;
+  const [top, right, bottom, left] = fourSides(root.padding) ?? [headed ? 0 : edge(first), 16, edge(last), 16];
   return (
     <div className="flex min-w-0 flex-col" style={{ padding: `${top}px ${right}px ${bottom}px ${left}px` }}>
-      {children.map((child, index) => {
-        const room = roomBetween(children[index - 1], child);
+      {pieces.map(({ node: child, run }, index) => {
+        const above = pieces[index - 1]?.node;
+        const below = pieces[index + 1]?.node;
+        const room = roomBetween(above, child);
         return (
           <Fragment key={child.id ?? index}>
             {room > 0 && <div aria-hidden="true" className="shrink-0" style={{ height: room }} />}
-            <WidgetNodeView
-              node={child}
-              where={{
-                axis: "col",
-                gap: roomBetween(child, children[index + 1]),
-                card: { top: index === 0 ? top : 0, left, right },
-                room: [isRow(children[index - 1]) ? 0 : 12, isRow(children[index + 1]) ? 0 : 12],
-              }}
-            />
+            {run ? <WidgetChoices run={run} /> : (
+              <WidgetNodeView
+                node={child}
+                where={{
+                  axis: "col",
+                  gap: roomBetween(child, below),
+                  card: { top: index === 0 ? top : 0, left, right },
+                  room: [isRow(above) ? 0 : 12, isRow(below) ? 0 : 12],
+                }}
+              />
+            )}
           </Fragment>
         );
       })}

@@ -279,7 +279,7 @@ function DecidedQuestion({ threadId, asker, card, questions }: { threadId: strin
 }
 
 /** Grok keeps an answered question in place: its title greys and only the answer stays, its letter in the bot's colour. */
-function AnsweredQuestion({ question, answer, letter, color, own }: { question: string; answer: string; letter: string | null; color?: MausColor; own: boolean }) {
+export function AnsweredQuestion({ question, answer, letter, color, own }: { question: string; answer: string; letter: string | null; color?: MausColor; own: boolean }) {
   const fill = color ? GROK_BOT_FILLS[color]?.button ?? botButtonTone(color).fill : undefined;
   return (
     <div role="group" aria-label={t("question.aria.card")} data-ask-card="answered" className={cn("w-full max-w-[560px] rounded-[24px] px-4 pb-2 pt-3.5 text-start", ASK_CARD_RING, ASK_CARD_LIFT)}>

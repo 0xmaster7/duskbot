@@ -68,6 +68,18 @@ export function bothSchemes(light: string, dark: string): string {
   return light === dark ? light : `light-dark(${light}, ${dark})`;
 }
 
+/** Grok's text in the bot's colour (sand-text-<hue>-primary, light then dark), as its New line wears; its grey bot's is ink. */
+const GROK_TEXT: Record<Exclude<keyof typeof GROK_HUES, "neutral">, readonly [string, string]> = {
+  green: ["#00854a", "#00ba69"], blue: ["#0b6dd3", "#4d9bff"], red: ["#cd2834", "#ff6463"], orange: ["#c14c00", "#fe6600"],
+  purple: ["#7547d0", "#a582ff"], cyan: ["#008273", "#00b7a2"], magenta: ["#c62378", "#ff55a4"], yellow: ["#aa6300", "#e28600"],
+  brown: ["#996b42", "#c59e7d"],
+};
+
+export function grokAccentText(color: MausColor): string {
+  const hue = GROK_HUE_OF[color];
+  return hue === "neutral" ? "var(--color-ink)" : bothSchemes(...GROK_TEXT[hue]);
+}
+
 /** Grok's fills as css values that follow the color-scheme. */
 export function grokFills(color: MausColor): GrokFill {
   const light = grokFill(color, "light");

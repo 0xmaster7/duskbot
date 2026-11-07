@@ -16,6 +16,7 @@ vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
 
 const { Transcript } = await import("./GroupView");
 const { NewMessagesDivider } = await import("./NewMessagesDivider");
+const { grokAccentText } = await import("@/lib/user-bubble-tone");
 
 beforeAll(() => vi.stubGlobal("window", {}));
 afterAll(() => vi.unstubAllGlobals());
@@ -64,11 +65,20 @@ describe("NewMessagesDivider", () => {
     expect(html).toContain('aria-hidden="true"');
     expect(html).toContain(">New<");
     expect(html).toContain("text-[11px]");
-    expect(html).toContain("text-accent-text");
+    expect(html).toContain("text-(--new-ink)");
+    expect(html).toContain("--new-ink:var(--grok-new, var(--color-accent-text))");
     expect(html.match(/h-px min-w-0 flex-1/g)).toHaveLength(2);
-    expect(html).toContain("bg-accent-text/20");
+    expect(html).toContain("bg-(--new-ink)/20");
     expect(html).toContain("motion-reduce:transition-none");
     expect(html).toContain("grid-rows-[1fr]");
+  });
+
+  it("wears grok's text colour for the bot's hue on the grok skins, over the chat's own tint", () => {
+    const html = renderToStaticMarkup(createElement(NewMessagesDivider, { fading: false, tint: "var(--identity-purple)", grokTint: grokAccentText("purple") }));
+    expect(html).toContain("--new-ink:var(--grok-new, var(--identity-purple))");
+    expect(html).toContain("--grok-new-fill:light-dark(#7547d0, #a582ff)");
+    expect(grokAccentText("coral")).toBe("light-dark(#c14c00, #fe6600)");
+    expect(grokAccentText("silver")).toBe("var(--color-ink)");
   });
 
   it("folds its height and the row gap away while fading", () => {

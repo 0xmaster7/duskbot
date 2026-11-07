@@ -68,7 +68,7 @@ import { ThreadChip } from "./ThreadChip";
 import { HandoffChip } from "./HandoffReply"; import { TeammateChip } from "./TeammateChip"; import { useTeammates } from "@/state/team-people"; import type { MentionPeer } from "@/lib/mentions";
 import { NewConversationInstead } from "./NewConversationInstead";
 import { useColorUserBubbles } from "@/lib/user-bubble-preference";
-import { userBubbleStyle } from "@/lib/user-bubble-tone";
+import { grokAccentText, userBubbleStyle } from "@/lib/user-bubble-tone";
 import { ToolActivity } from "./ToolActivity";
 import { DataResultChip } from "./DataResultChip"; import { PublishedPageCard } from "./PublishedPageCard";
 import { ThreadRefText } from "./ThreadRefs";
@@ -775,7 +775,7 @@ const MessagesList = memo(function MessagesList({
   const dividerAbove = (rows: readonly Message[]) => {
     if (!unreadIds || dividerPlaced || !rows.some((row) => unreadIds.has(row.id))) return null;
     dividerPlaced = true;
-    return <NewMessagesDivider fading={unreadDividerFading} tint={bubbleStyle ? `var(--identity-${botColor})` : undefined} />;
+    return <NewMessagesDivider fading={unreadDividerFading} tint={bubbleStyle ? `var(--identity-${botColor})` : undefined} grokTint={botColor ? grokAccentText(botColor) : undefined} />;
   };
   return (
     <>

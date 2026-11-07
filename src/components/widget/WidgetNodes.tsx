@@ -4,6 +4,7 @@ import { cn } from "@/lib/cn";
 import { widgetNumber, widgetString, type WidgetNode } from "../../../shared/widget";
 import { ChatMarkdown } from "../ChatMarkdown";
 import { WidgetChart } from "./WidgetChart";
+import { WidgetChoices, widgetPieces } from "./WidgetChoices";
 import { WidgetBadge, WidgetImage, WidgetProgress } from "./WidgetContent";
 import { useWidgetForm, widgetActionUrl, widgetCanPress, widgetFieldId, WidgetButton, WidgetGlyph, type WidgetForm } from "./WidgetControls";
 import { WIDGET_CAPTION, WIDGET_FIELD_TYPES, WidgetFieldView } from "./WidgetFields";
@@ -26,7 +27,10 @@ export interface WidgetWhere {
 const RULE = "bg-ink/[0.12]";
 
 export function WidgetChildren({ nodes, where }: { nodes: WidgetNode[]; where: WidgetWhere }) {
-  return <>{nodes.map((child, index) => <WidgetNodeView key={child.id ?? index} node={child} where={where} />)}</>;
+  const form = useWidgetForm();
+  return <>{widgetPieces(nodes, form).map(({ node, run }, index) => run
+    ? <WidgetChoices key={node.id ?? index} run={run} />
+    : <WidgetNodeView key={node.id ?? index} node={node} where={where} />)}</>;
 }
 
 export function WidgetNodeView({ node, where }: { node: WidgetNode; where: WidgetWhere }): ReactNode {
@@ -112,9 +116,13 @@ function Layout({ node, where }: { node: WidgetNode; where: WidgetWhere }) {
   const form = useWidgetForm();
   const stacked = form.compact && node.type === "Row" && pairsField(node);
   const axis = !stacked && (node.type === "Row" || (node.type !== "Col" && node.direction === "row")) ? "row" : "col";
-  const gap = stacked ? 6 : widgetNumber(node, "gap") ?? (axis === "row" ? 8 : node.type === "Form" ? 12 : 0);
   const isForm = node.type === "Form";
   const shown = stacked ? kids(node).filter((child) => child.type !== "Spacer") : kids(node);
+  const pieces = widgetPieces(shown, form);
+  // a row of nothing but a pick-one's Buttons is that list, top to bottom
+  if (pieces.length === 1 && pieces[0]!.run?.length === shown.length) return <WidgetChoices run={pieces[0]!.run} />;
+  // buttons stacked in a column keep the row's 8px apart, never touching
+  const gap = stacked ? 6 : widgetNumber(node, "gap") ?? (axis === "row" ? 8 : isForm ? 12 : flows(shown) ? 8 : 0);
   const className = cn(
     "flex min-w-0",
     axis === "row" ? "flex-row" : "flex-col",
