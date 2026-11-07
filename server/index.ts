@@ -12750,7 +12750,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       return;
     }
     // Two public routes come first; everything else needs the loopback owner or a paired session with the right scope.
-    if (method === "GET" && !path.startsWith("/api/") && !path.startsWith("/.well-known/") && (moveFreeze.screen(path) ? (res.writeHead(302, { location: moveFreeze.screen(path)!, "cache-control": "no-store" }).end(), true) : serveStatic(res, path, STATIC_DIR))) return;
+    if (method === "GET" && !path.startsWith("/api/") && !path.startsWith("/.well-known/") && (moveFreeze.screen(path) ? (res.writeHead(302, { location: moveFreeze.screen(path)!, "cache-control": "no-store" }).end(), true) : serveStatic(res, path, STATIC_DIR, req))) return;
     if (method === "GET" && path === "/.well-known/openmausbot/environment") {
       return json(res, 200, environmentDescriptor({ environmentId: ENVIRONMENT_ID, ...TEAM_LABEL, desktopManaged: DESKTOP_MANAGED, emailSignIn: !HOSTED_WORKSPACE && !CLOUD_HOME && emailSignIn.enabled(), cloudHome: Boolean(CLOUD_HOME), cloudTeam: CLOUD_TEAM !== null, ownHome: ownHome.takesMove() }));
     }
@@ -15476,7 +15476,9 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
   }
 };
 
-const server = createServer(IDLE_HTTP_SERVER, handleRequest);
+// a forwarded request (the VPS link agent, a proxy) crosses a slow network: its JSON gets the phone tunnel's gzip
+const gzipForwarded = gzipTunnelReplies(handleRequest);
+const server = createServer(IDLE_HTTP_SERVER, (req, res) => (req.headers["x-forwarded-for"] === undefined ? handleRequest(req, res) : gzipForwarded(req, res)));
 upgrades.attach(server, handleRequest);
 
 
