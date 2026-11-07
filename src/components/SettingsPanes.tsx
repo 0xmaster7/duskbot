@@ -229,11 +229,13 @@ export function TextingPane({ has, remoteAccess }: { has: Has; remoteAccess: Rem
   if (at === PHONE_ADVANCED_PAGE) return <div data-settings-block="companion-advanced" className="flex flex-col gap-5">{remoteAccess.companion}</div>;
   return (
     <>
-      <SettingsGroup label={t("settings.texting.phoneApp.title")} block="phone-app">
-        <SettingsRows>
-          {has("companion") && <PageRow page="pairing" title={t("settings.w6.pairing.title")} hint={t("settings.phone.pair.hint")} />}
-        </SettingsRows>
-      </SettingsGroup>
+      {has("companion") && (
+        <SettingsGroup label={t("settings.texting.phoneApp.title")} block="phone-app">
+          <SettingsRows>
+            <PageRow page="pairing" title={t("settings.w6.pairing.title")} hint={t("settings.phone.pair.hint")} />
+          </SettingsRows>
+        </SettingsGroup>
+      )}
       {has("companion") && remoteAccess.companion && <div data-settings-block="companion" className="contents">{remoteAccess.companion}</div>}
     </>
   );
