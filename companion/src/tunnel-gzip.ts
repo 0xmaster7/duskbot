@@ -1,5 +1,6 @@
-// Gzips large JSON replies on a phone tunnel listener, and nowhere else. That hop runs over the user's home upload to
-// Cloudflare, uncompressed; Cloud and VPS routes already pass Caddy's `encode`, and loopback would only spend CPU.
+// Gzips large JSON replies on a phone tunnel listener and on forwarded requests (the VPS link agent), and nowhere else.
+// Those hops run over a home upload or a relay, uncompressed; Caddy's `encode` leaves an encoded reply alone, and
+// loopback would only spend CPU.
 // This file is both server/harness/tunnel-gzip.ts and companion/src/tunnel-gzip.ts, since the companion builds alone;
 // a test keeps the two equal.
 import type { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:http";

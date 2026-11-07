@@ -287,23 +287,29 @@ async function prepareBotDesktop(run: DockerRun, imageId: string | null, onProgr
     }
     imageId = image.Id;
   }
-  try {
-    const network = JSON.parse((await run(["network", "inspect", BOT_DESKTOP_NETWORK, "--format", "{{json .}}"], 20_000)).stdout) as {
-      Labels?: Record<string, string> | null;
-      Options?: Record<string, string> | null;
-    };
-    if (network.Labels?.[BOT_DESKTOP_NETWORK_LABEL] !== "1" || network.Options?.["com.docker.network.bridge.name"] !== BOT_DESKTOP_BRIDGE) {
-      throw Object.assign(new Error(`The VPS has a Docker network named ${BOT_DESKTOP_NETWORK} that OpenMausBot did not create`), { status: 409 });
+  const ensureNetwork = async () => {
+    try {
+      const network = JSON.parse((await run(["network", "inspect", BOT_DESKTOP_NETWORK, "--format", "{{json .}}"], 20_000)).stdout) as {
+        Labels?: Record<string, string> | null;
+        Options?: Record<string, string> | null;
+      };
+      if (network.Labels?.[BOT_DESKTOP_NETWORK_LABEL] !== "1" || network.Options?.["com.docker.network.bridge.name"] !== BOT_DESKTOP_BRIDGE) {
+        throw Object.assign(new Error(`The VPS has a Docker network named ${BOT_DESKTOP_NETWORK} that OpenMausBot did not create`), { status: 409 });
+      }
+    } catch (error) {
+      if (!missing(error)) throw error;
+      // two bots provisioning at once both see it missing; the second create finding it there is fine
+      await run(botDesktopNetworkCreateArgs(), 30_000).catch((created: unknown) => {
+        if (!/already exists/i.test(created instanceof Error ? created.message : String(created))) throw created;
+      });
     }
-  } catch (error) {
-    if (!missing(error)) throw error;
-    // two bots provisioning at once both see it missing; the second create finding it there is fine
-    await run(botDesktopNetworkCreateArgs(), 30_000).catch((created: unknown) => {
-      if (!/already exists/i.test(created instanceof Error ? created.message : String(created))) throw created;
-    });
-  }
-  const isolation = hostIsolation((await run(["info", "--format", "{{json .}}"], 20_000).catch(() => ({ stdout: "" }))).stdout);
-  const fenced = await run(hostFenceProbeArgs(imageId), 30_000).then(() => true, () => false);
+  };
+  const [, info, fenced] = await Promise.all([
+    ensureNetwork(),
+    run(["info", "--format", "{{json .}}"], 20_000).catch(() => ({ stdout: "" })),
+    run(hostFenceProbeArgs(imageId), 30_000).then(() => true, () => false),
+  ]);
+  const isolation = hostIsolation(info.stdout);
   const mode = botDesktopMode(fenced, isolation);
   const hostAddresses = mode === "strict"
     ? parseHostAddresses((await run(hostAddressProbeArgs(imageId), 30_000).catch(() => ({ stdout: "" }))).stdout)
