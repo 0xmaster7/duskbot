@@ -34,6 +34,7 @@ export function activityPreview(tool: ActivityTool, engine: InstanceInfo | undef
   const cause = failedTurnCause(tool.name);
   if (cause !== null && isClientCancellation(cause)) return t("chat.turnStopped");
   if (cause !== null && tool.partial) return t("chat.error.partialPreview");
+  if (cause !== null && tool.reason === "timeout") return t("failedReply.timeout");
   if (cause === null) return STATUS_MARKER.test(tool.name) ? tool.name.replace(STATUS_MARKER, "") : toolStepLabel(tool);
   const signedOut = signedOutEngine(tool, engine);
   return signedOut ? t("sidebar.preview.signedOut", { name: signedOut.displayName }) : plainErrorLine(cause) ?? cause;

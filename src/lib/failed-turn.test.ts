@@ -27,6 +27,11 @@ describe("failed turn text", () => {
     expect(activityPreview(loginRow, engine())).toBe("Claude isn't signed in");
   });
 
+  it("previews a turn the room stopped for making no progress in plain words", () => {
+    expect(activityPreview({ name: "error: Rivet's room turn made no progress for 1 minute and was stopped", ok: false, reason: "timeout" }, engine()))
+      .toBe("The reply timed out");
+  });
+
   it("says Grok Build is signed out through the same rule, now that its card is the in-app code", () => {
     const grokRow = { name: "error: Grok is not signed in to your grok.com account — choose Sign in to Grok in engine setup", ok: false, setup: true };
     const grok = engine({
