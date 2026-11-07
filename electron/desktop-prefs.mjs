@@ -6,12 +6,12 @@ import fs from "node:fs";
 import os from "node:os";
 import { onboardingHints } from "./onboarding-record.mjs";
 import { DEFAULT_TALK_KEY, isTalkKey } from "./talk-keys.mjs";
-import { createUpdatesConsent, parseUpdatesConsent, registerUpdatesConsent } from "./updates-consent.mjs";
+import { parseUpdatesConsent } from "./updates-consent.mjs";
 import { accountFullName } from "./system-name.mjs";
 
 export { DESKTOP_PORTS } from "./desktop-ports.mjs";
 /** The only notices a page may record, so no page can write anything else into the file. */
-export const DESKTOP_NOTICES = Object.freeze(["whats-new-2026-11", "boat-credit-2026-11", "grok-move-2026-11"]);
+export const DESKTOP_NOTICES = Object.freeze(["whats-new-2026-11", "grok-move-2026-11"]);
 const WHATS_NEW = DESKTOP_NOTICES[0];
 /** A locale code such as "de" or "pt-br", or "" for following the system. */
 const LANGUAGE = /^(?:[a-z]{2,3}(?:-[a-z0-9]{2,8}){0,2})?$/i;
@@ -131,14 +131,12 @@ export function createDesktopPrefs({ read, write, frameByDefault = true }) {
 }
 
 /**
- * `cloudAccount()`: the MausBot Cloud sign-in client, for the product-updates question (updates-consent.mjs), which is
- * asked where Cloud offers are (`cloudOffered`); without it nothing is asked and null is returned.
  * `page(event)`: "local" for this computer's page, "cloud" for My Cloud's own page as main verifies it, "server" for
  * another saved server open in this desktop's window, null for anything else. `cloudOffered()`: this desktop sells
  * MausBot Cloud, asked once its Cloud sign-in is restored. `localConfig()`: This computer's own workspace's config.json.
  * `languageChanged(language, sender)`: tells this desktop's other pages the language picked on one of them.
  */
-export function registerDesktopPrefs({ prefs: given, ipcMain, read, write, page, cloudOffered, cloudAccount, localConfig = () => null, languageChanged = () => {}, frame = null, now = Date.now, systemName = accountFullName, loginName = () => os.userInfo().username }) {
+export function registerDesktopPrefs({ prefs: given, ipcMain, read, write, page, cloudOffered, localConfig = () => null, languageChanged = () => {}, frame = null, systemName = accountFullName, loginName = () => os.userInfo().username }) {
   let prefs = given ?? null;
   const store = () => prefs ??= createDesktopPrefs({ read, write });
   const from = (channel, pages, handler) => (event, ...args) => {
@@ -191,10 +189,5 @@ export function registerDesktopPrefs({ prefs: given, ipcMain, read, write, page,
     try { frame?.changed(); } catch {}
     return frameState();
   }));
-  if (!cloudAccount) return null;
-  const consent = createUpdatesConsent({ prefs: { installId: () => store().installId(), updatesConsent: () => store().updatesConsent(), setUpdatesConsent: value => store().setUpdatesConsent(value) },
-    account: cloudAccount, available: cloudOffered, now });
-  registerUpdatesConsent({ ipcMain, page, consent });
-  void cloudOffered().then(offered => offered && consent.sync()).catch(() => {});
-  return consent;
+  return null;
 }

@@ -4,7 +4,6 @@ import { useStore, type ConfigStatus } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { scrollParent, scrollWithin } from "@/lib/scroll-within";
 import { t } from "@/lib/i18n";
-import { BoatOfferRow } from "../BoatOffer";
 import { Card as RowsCard, FormDialog } from "../ListRows";
 import { footnoteCls, smallButtonCls } from "../ui/GrokDialog";
 import type { LocaleKey } from "@/locales";
@@ -89,7 +88,6 @@ export function KeyCatalogRow({ entry }: { entry: KeyEntry }) {
   return (
     <>
       <KeyRow id={entry.id} quiet={quiet(entry)} compact setUp={SET_UP.has(entry.id)} title={title ? t(title) : undefined}>{EXTRAS[entry.id]?.()}</KeyRow>
-      {entry.id === "box" && <BoatOfferRow />}
     </>
   );
 }

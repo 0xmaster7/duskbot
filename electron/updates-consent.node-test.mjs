@@ -217,7 +217,7 @@ test("the record on disk: only a whole, known answer is kept", () => {
   assert.equal(createDesktopPrefs({ read: () => saved, write: () => {} }).installId(), id, "kept across launches");
 });
 
-test("only this computer's page and My Cloud's own page may ask or answer; main wires it through the desktop prefs", async () => {
+test("the legacy consent bridge remains scoped but desktop startup does not register or sync upstream marketing", async () => {
   const handlers = new Map(), calls = [];
   const consent = { state: async () => { calls.push("state"); return { due: true }; }, choose: async choice => { calls.push(choice); return { due: false }; } };
   registerUpdatesConsent({ ipcMain: { handle: (channel, handler) => handlers.set(channel, handler) }, page: event => event.page, consent });
@@ -235,7 +235,13 @@ test("only this computer's page and My Cloud's own page may ask or answer; main 
   const base = { ipcMain, read: () => null, write: () => {}, page: () => "local", cloudOffered: async () => false };
   assert.equal(registerDesktopPrefs(base), null, "no Cloud client: no question");
   assert.equal(channels.has("updates-consent:state"), false);
-  const wired = registerDesktopPrefs({ ...base, cloudAccount: () => null });
-  assert.equal(typeof wired.accountChanged, "function");
-  assert.ok(channels.has("updates-consent:state") && channels.has("updates-consent:choose"));
+  let callsToAccount = 0, checks = 0;
+  const wired = registerDesktopPrefs({ ...base, cloudAccount: () => { callsToAccount++; return null; }, cloudOffered: async () => { checks++; return true; } });
+  await Promise.resolve();
+  assert.equal(wired, null);
+  assert.equal(channels.has("updates-consent:state"), false);
+  assert.equal(channels.has("updates-consent:choose"), false);
+  assert.equal(callsToAccount, 0);
+  assert.equal(checks, 0);
+
 });
