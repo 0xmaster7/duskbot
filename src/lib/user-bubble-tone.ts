@@ -1,26 +1,82 @@
-// Fills the person's bubble with a gradient of the bot's hue whose text clears WCAG AA at both ends.
+// Fills the person's bubble with Grok Bot's own colour for the bot's hue, always under white text (grok's #f5f5f5 in dark).
 
 import type { CSSProperties } from "react";
-import { contrastRatio, fromOklch, mixSrgb, toOklch } from "./color-contrast";
+import { contrastRatio, mixSrgb, toOklch } from "./color-contrast";
 import { MAUS_COLORS, type MausColor } from "./mascot";
 
 const WHITE = "#ffffff";
+const BLACK = "#000000";
 const INK = "#101410";
-/** Body text. 15px is normal text, so the bar is 4.5:1, not the large-text 3:1. */
-export const BUBBLE_TEXT_MIN = 4.5;
-/** A border or focus ring: WCAG 1.4.11. */
-const UI_MIN = 3;
-const LIGHT_END_MIN = 4.6;
+const DARK_INK = "#f5f5f5";
+/** Grok's fills do not all reach 4.5:1 under white (orange ~4:1, yellow ~3.6:1), so what we derive holds 3:1. */
+export const BUBBLE_TOKEN_MIN = 3;
 
 export const MENTION_CHIP_MIX = 0.22;
 export const SELECTION_BLACK_MIX = 0.35;
-export const SELECTION_WHITE_MIX = 0.55;
 
-const YELLOW_HUES = { from: 65, to: 115 };
+export type Scheme = "light" | "dark";
+
+export type GrokFill = { bubble: string; button: string; hover: string; ink: string; buttonInk: string };
+
+type Steps = [bubble: string, button: string, hover: string];
+
+/** Grok's palette for one hue, measured in its renderer: light /2 bubble, /1 button darkening to /2 on hover; dark /1
+ * for both, brightening to /2. Text is white in light and grok's #f5f5f5 in dark. */
+const hue = (light: Steps, dark: Steps, buttonInk = { light: WHITE, dark: DARK_INK }): Record<Scheme, GrokFill> => ({
+  light: { bubble: light[0], button: light[1], hover: light[2], ink: WHITE, buttonInk: buttonInk.light },
+  dark: { bubble: dark[0], button: dark[1], hover: dark[2], ink: DARK_INK, buttonInk: buttonInk.dark },
+});
+
+const GROK_HUES = {
+  green: hue(["#0d9655", "#10ab61", "#0d9655"], ["#0e9f5a", "#0e9f5a", "#13bb6b"]),
+  blue: hue(["#126fd4", "#1680f3", "#126fd4"], ["#116dd2", "#116dd2", "#1784fb"]),
+  red: hue(["#c82532", "#e72e3b", "#c82532"], ["#cf2b35", "#cf2b35", "#f73643"]),
+  orange: hue(["#d2550a", "#ee620d", "#d2550a"], ["#cd5309", "#cd5309", "#f4650e"]),
+  purple: hue(["#7442d1", "#8351e4", "#7442d1"], ["#7845d7", "#7845d7", "#8e59f8"]),
+  cyan: hue(["#0d9381", "#10a693", "#0d9381"], ["#0e9886", "#0e9886", "#12b39f"]),
+  magenta: hue(["#c82779", "#e52f8b", "#c82779"], ["#cf297e", "#cf297e", "#f63397"]),
+  yellow: hue(["#c2730b", "#da830e", "#c2730b"], ["#c8770c", "#c8770c", "#ea8c10"]),
+  brown: hue(["#86592e", "#9d6937", "#86592e"], ["#8c5d31", "#8c5d31", "#aa723d"]),
+  // grok's grey bot: a near-black bubble and button in light; in dark an 18% ink bubble and an inverted button
+  neutral: hue(["#1c1c1c", "#1c1c1c", "#363636"], ["#3b3b3b", "#f5f5f5", "#dbdbdb"], { light: "#fcfcfc", dark: "#121212" }),
+} satisfies Record<string, Record<Scheme, GrokFill>>;
+
+/** Each of our colours on grok's nearest hue; coral sits closer to grok's orange than its red in oklab. */
+export const GROK_HUE_OF = {
+  green: "green",
+  blue: "blue",
+  red: "red",
+  orange: "orange",
+  purple: "purple",
+  cyan: "cyan",
+  pink: "magenta",
+  yellow: "yellow",
+  teal: "cyan",
+  coral: "orange",
+  brown: "brown",
+  silver: "neutral",
+  chrome: "neutral",
+} as const satisfies Record<MausColor, keyof typeof GROK_HUES>;
+
+/** Grok's fills and text for the bot's colour in one scheme. */
+export function grokFill(color: MausColor, scheme: Scheme): GrokFill {
+  return GROK_HUES[GROK_HUE_OF[color]][scheme];
+}
+
+/** One css value for both schemes; grok-dark sets color-scheme, the other skins read the light half. */
+export function bothSchemes(light: string, dark: string): string {
+  return light === dark ? light : `light-dark(${light}, ${dark})`;
+}
+
+/** Grok's fills as css values that follow the color-scheme. */
+export function grokFills(color: MausColor): GrokFill {
+  const light = grokFill(color, "light");
+  const dark = grokFill(color, "dark");
+  return Object.fromEntries(Object.entries(light).map(([key, value]) => [key, bothSchemes(value, dark[key as keyof GrokFill])])) as GrokFill;
+}
 
 export type UserBubbleTone = {
   background: string;
-  deep: string;
   gradient: string;
   ink: string;
   secondary: string;
@@ -43,25 +99,27 @@ export type UserBubbleTone = {
   selectionInk: string;
 };
 
-function reach(target: string, hue: string, on: string, min: number): string {
+/** Grok's faint top gloss over the fill. */
+export const BUBBLE_GLOSS = "linear-gradient(rgb(255 255 255 / 0.06), transparent)";
+
+/** `hue` eased toward white until it holds `min` on `on`. */
+function lightEnough(hue: string, on: string, min: number): string {
   if (contrastRatio(hue, on) >= min) return hue;
   let lo = 0;
   let hi = 1;
-  let best = target;
+  let best = WHITE;
   for (let step = 0; step < 22; step += 1) {
     const mid = (lo + hi) / 2;
-    const candidate = mixSrgb(target, hue, mid);
+    const candidate = mixSrgb(WHITE, hue, mid);
     if (contrastRatio(candidate, on) >= min) {
       best = candidate;
       hi = mid;
     } else lo = mid;
   }
-  return contrastRatio(best, on) >= min ? best : target;
+  return best;
 }
 
-const lightEnough = (hue: string, on: string, min: number) => reach(WHITE, hue, on, min);
-const darkEnough = (hue: string, on: string, min: number) => reach(INK, hue, on, min);
-
+/** The ink eased toward the fill until it holds just `min`; the ink itself when it cannot. */
 function quiet(ink: string, background: string, min: number): string {
   let lo = 0;
   let hi = 1;
@@ -74,122 +132,59 @@ function quiet(ink: string, background: string, min: number): string {
       hi = mid;
     } else lo = mid;
   }
-  return contrastRatio(best, background) >= min ? best : ink;
-}
-
-function darkInkOn(fill: string): string {
-  return contrastRatio(INK, fill) >= BUBBLE_TEXT_MIN ? INK : WHITE;
-}
-
-function brightestCarrying(ink: string, c: number, h: number): string {
-  let lo = 0.2;
-  let hi = 0.95;
-  let best = fromOklch({ l: lo, c, h });
-  for (let step = 0; step < 24; step += 1) {
-    const mid = (lo + hi) / 2;
-    const candidate = fromOklch({ l: mid, c, h });
-    if (contrastRatio(candidate, ink) >= LIGHT_END_MIN) {
-      best = candidate;
-      lo = mid;
-    } else hi = mid;
-  }
   return best;
 }
 
-function gradientOf(light: string, deep: string): string {
-  return `linear-gradient(to bottom left, ${light}, ${deep})`;
+function darkInkOn(fill: string): string {
+  return contrastRatio(INK, fill) >= contrastRatio(WHITE, fill) ? INK : WHITE;
 }
 
-function whiteInkTone(palette: string): UserBubbleTone {
-  const { c, h } = toOklch(palette);
-  const turn = h < 90 ? -8 : h >= 270 ? -12 : 12;
-  const background = contrastRatio(WHITE, palette) >= BUBBLE_TEXT_MIN ? palette : brightestCarrying(WHITE, c * 1.05, h - turn / 2);
-  const deep = fromOklch({ l: toOklch(background).l - 0.09, c: c * (h < 90 ? 1.1 : 1.25), h: h + turn });
-  const secondary = quiet(WHITE, background, Math.min(6.2, Math.max(BUBBLE_TEXT_MIN, contrastRatio(WHITE, background) - 0.6)));
-  let tertiary = quiet(WHITE, background, BUBBLE_TEXT_MIN);
+function toneOn(color: MausColor, { bubble: background, ink }: GrokFill): UserBubbleTone {
+  const body = contrastRatio(ink, background);
+  const secondary = quiet(ink, background, Math.min(6.2, Math.max(BUBBLE_TOKEN_MIN, body * 0.82)));
+  let tertiary = quiet(ink, background, Math.min(4.5, Math.max(BUBBLE_TOKEN_MIN, body * 0.68)));
   if (contrastRatio(tertiary, background) > contrastRatio(secondary, background)) tertiary = secondary;
-  let inset = mixSrgb("#000000", background, 0.2);
-  if (contrastRatio(WHITE, inset) < BUBBLE_TEXT_MIN) inset = background;
-  if (contrastRatio(secondary, inset) < BUBBLE_TEXT_MIN) inset = background;
-  const panel = mixSrgb(inset, background, 0.45);
-  let raised = mixSrgb(WHITE, background, 0.1);
-  if (contrastRatio(WHITE, raised) < BUBBLE_TEXT_MIN) raised = background;
-  let raisedHover = mixSrgb(WHITE, background, 0.16);
-  if (contrastRatio(WHITE, raisedHover) < BUBBLE_TEXT_MIN) raisedHover = raised;
-  const hairline = lightEnough(mixSrgb(WHITE, background, 0.45), background, UI_MIN);
-  let accent = lightEnough(palette, background, BUBBLE_TEXT_MIN);
-  if (contrastRatio(accent, raised) < BUBBLE_TEXT_MIN) accent = lightEnough(accent, raised, BUBBLE_TEXT_MIN);
-  if (contrastRatio(INK, accent) < BUBBLE_TEXT_MIN) accent = lightEnough(accent, INK, BUBBLE_TEXT_MIN);
-  const danger = lightEnough("#ff6d80", background, BUBBLE_TEXT_MIN);
-  const success = lightEnough("#7ddead", background, BUBBLE_TEXT_MIN);
+  // surfaces inside the bubble step darker on a vivid fill and lighter on grok's near-black grey, so the ink only gains
+  const dim = toOklch(background).l < 0.4;
+  const step = dim ? WHITE : BLACK;
+  const inset = mixSrgb(BLACK, background, 0.2);
+  const raised = mixSrgb(step, background, 0.1);
+  const accent = lightEnough(MAUS_COLORS[color], background, BUBBLE_TOKEN_MIN);
+  const danger = lightEnough("#ff6d80", background, BUBBLE_TOKEN_MIN);
+  const success = lightEnough("#7ddead", background, BUBBLE_TOKEN_MIN);
   return {
     background,
-    deep,
-    gradient: gradientOf(background, deep),
-    ink: WHITE,
+    gradient: BUBBLE_GLOSS,
+    ink,
     secondary,
     tertiary,
-    panel,
+    panel: mixSrgb(inset, background, 0.45),
     inset,
     raised,
-    raisedHover,
+    raisedHover: mixSrgb(step, background, 0.16),
     control: raised,
-    hairline,
+    hairline: lightEnough(mixSrgb(WHITE, background, 0.45), background, BUBBLE_TOKEN_MIN),
     accent,
     accentText: accent,
     accentInk: darkInkOn(accent),
-    focus: WHITE,
+    focus: ink,
     danger,
     dangerInk: darkInkOn(danger),
     success,
     successInk: darkInkOn(success),
-    selection: selectionBackground(background),
-    selectionInk: WHITE,
+    selection: dim ? mixSrgb(WHITE, background, 0.25) : selectionBackground(background),
+    selectionInk: ink,
   };
 }
 
-function darkInkTone(palette: string): UserBubbleTone {
-  const { c, h } = toOklch(palette);
-  const background = fromOklch({ l: 0.8, c: c * 1.1, h: h + 2 });
-  const deep = fromOklch({ l: 0.72, c: c * 1.25, h: h - 16 });
-  const secondary = quiet(INK, deep, Math.min(6.2, Math.max(BUBBLE_TEXT_MIN, contrastRatio(INK, deep) - 0.6)));
-  let tertiary = quiet(INK, deep, BUBBLE_TEXT_MIN);
-  if (contrastRatio(tertiary, deep) > contrastRatio(secondary, deep)) tertiary = secondary;
-  const inset = mixSrgb(WHITE, deep, 0.35);
-  const raised = mixSrgb(WHITE, deep, 0.18);
-  const accent = darkEnough(palette, deep, BUBBLE_TEXT_MIN);
-  const danger = darkEnough("#c02b3a", deep, BUBBLE_TEXT_MIN);
-  const success = darkEnough("#1f7a4d", deep, BUBBLE_TEXT_MIN);
-  return {
-    background,
-    deep,
-    gradient: gradientOf(background, deep),
-    ink: INK,
-    secondary,
-    tertiary,
-    panel: mixSrgb(inset, deep, 0.45),
-    inset,
-    raised,
-    raisedHover: mixSrgb(WHITE, deep, 0.28),
-    control: raised,
-    hairline: darkEnough(mixSrgb(INK, deep, 0.35), deep, UI_MIN),
-    accent,
-    accentText: accent,
-    accentInk: darkInkOn(accent),
-    focus: INK,
-    danger,
-    dangerInk: darkInkOn(danger),
-    success,
-    successInk: darkInkOn(success),
-    selection: mixSrgb(WHITE, background, SELECTION_WHITE_MIX),
-    selectionInk: INK,
-  };
-}
-
-export function userBubbleTone(color: MausColor): UserBubbleTone {
-  const palette = MAUS_COLORS[color];
-  const { h } = toOklch(palette);
-  return h >= YELLOW_HUES.from && h <= YELLOW_HUES.to ? darkInkTone(palette) : whiteInkTone(palette);
+/** The bubble's tokens in one scheme as plain hex, or, with no scheme, as css values that follow the color-scheme. */
+export function userBubbleTone(color: MausColor, scheme?: Scheme): UserBubbleTone {
+  if (scheme) return toneOn(color, grokFill(color, scheme));
+  const light = toneOn(color, grokFill(color, "light"));
+  const dark = toneOn(color, grokFill(color, "dark"));
+  return Object.fromEntries(
+    Object.entries(light).map(([key, value]) => [key, bothSchemes(value, dark[key as keyof UserBubbleTone])]),
+  ) as UserBubbleTone;
 }
 
 export function mentionChipBackground(mention: string, inset: string): string {
@@ -197,14 +192,14 @@ export function mentionChipBackground(mention: string, inset: string): string {
 }
 
 export function selectionBackground(background: string): string {
-  return mixSrgb("#000000", background, SELECTION_BLACK_MIX);
+  return mixSrgb(BLACK, background, SELECTION_BLACK_MIX);
 }
 
 export function quoteSurface(inset: string, background: string): string {
   return mixSrgb(inset, background, 0.7);
 }
 
-/** `flat`: Simple mode's one even fill, the tone's background with no gradient over it. */
+/** `flat`: Simple mode's one even fill, the tone's background with no gloss over it. */
 export function userBubbleStyle(color: MausColor, { flat = false }: { flat?: boolean } = {}): CSSProperties {
   const tone = userBubbleTone(color);
   return {

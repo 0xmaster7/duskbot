@@ -9,7 +9,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bot, Group } from "@/state/store";
 import { restoreComposerDraft } from "@/lib/drafts";
 import { setCallMode } from "@/lib/call-mode";
-import { userBubbleTone } from "@/lib/user-bubble-tone";
 import { BOT_BUTTON, botButtonTone } from "@/lib/bot-button";
 
 const fixture = vi.hoisted(() => ({
@@ -114,8 +113,8 @@ describe("the Simple composer in a bot chat", () => {
     expect(container.querySelector('button[aria-label="Attach a file"]')).toBeNull();
     expect(container.querySelector("[data-goal-chip]")).toBeNull();
     expect(container.querySelector("[data-approval-chip]")).toBeNull();
-    const tone = userBubbleTone("purple");
-    expect(fixture.call).toMatchObject({ bot: { id: "atlas" }, placement: "composer", fill: `var(--grok-cta, ${tone.background})`, ink: tone.ink });
+    const tone = botButtonTone("purple");
+    expect(fixture.call).toMatchObject({ bot: { id: "atlas" }, placement: "composer", fill: `var(--grok-cta, ${tone.fill})`, ink: tone.ink });
     openPlus();
     expect([...menu()!.querySelectorAll("[data-menu-key]")].map((row) => row.getAttribute("data-menu-key"))).toEqual(["attach", "teach"]);
     expect([...menu()!.querySelectorAll("[data-menu-key]")].map((row) => row.querySelector(".truncate")!.textContent)).toEqual(["Attach files", "Teach a task"]);
