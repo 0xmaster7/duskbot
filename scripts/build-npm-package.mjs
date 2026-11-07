@@ -73,17 +73,19 @@ writeFileSync(
 
 writeFileSync(
   join(out, "README.md"),
-  `# openmausbot
+  `# OpenMausBot private server
 
-Your own team of AI bots, with guided terminal setup. Requires Node 24+.
+Install the reviewed private archive supplied by your operator. Requires Node 24+.
 
 \`\`\`sh
-npm install -g openmausbot
-openmausbot
+npm install --global --prefix "$HOME/.local" ./openmausbot-private.tgz
+"$HOME/.local/bin/openmausbot" setup
 \`\`\`
 
-Or run \`npx openmausbot\` without a global install. Use the same command next
-time; \`openmausbot start\` is an alias for the bare command.
+Use the installed \`openmausbot\` command on later launches. Add
+\`$HOME/.local/bin\` to PATH if needed. \`openmausbot start\` is an alias for
+the bare command. The desktop's Add your VPS flow installs this private build
+through its one-time link; app and server upgrades are operator-managed.
 
 First launch: use arrow keys and Enter (numbered choices in plain terminals) to choose
 ChatGPT/Codex, Claude Code, or an API service; sign in or paste a hidden API
