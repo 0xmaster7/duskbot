@@ -33,6 +33,11 @@ export function landedReply(messages: readonly Message[], speakerBotId?: string)
   return undefined;
 }
 
+/** A quiet phase names no step: the mark's own wait (reply-life) plays only then. */
+export function isQuietPhase(phase: string | undefined): boolean {
+  return QUIET_PHASES.has(phase);
+}
+
 /** A reply that just landed takes the line's place in the same frame, whatever the engine still calls the turn; only a
  * named step, or the turn still running a while later, brings the line back under it. */
 export function replyHidesLine(sinceReplyMs: number | null, phase: string | undefined): boolean {
