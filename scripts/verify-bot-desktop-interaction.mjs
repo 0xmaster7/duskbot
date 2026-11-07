@@ -66,7 +66,7 @@ async function measure(forced) {
     assert.equal(desktop.platform, "linux");
     const session = "computer-fixture";
     const snapshot = () => call("get_window_state", { pid: window.pid, window_id: window.window_id, session, include_screenshot: false, tree_format: "elements", timeout_ms: 5000 });
-    const tree = await snapshot();
+    const tree = await eventually(snapshot, state => state.elements.some(element => element.role === "entry" && element.label === "Fixture name"), "fixture web controls did not become accessible");
     await writeFile(join(evidence, `${mode}-tree.json`), JSON.stringify(tree, null, 2));
     result.accessibility = {
       elements: tree.element_count,

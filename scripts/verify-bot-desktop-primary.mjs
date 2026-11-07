@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import WebSocket from "ws";
-import { eventually, httpFixture, socket } from "./testing/bot-desktop-fixture.mjs";
+import { connectMcp, eventually, httpFixture, socket } from "./testing/bot-desktop-fixture.mjs";
 
 const run = promisify(execFile);
 const image = process.env.OMB_VERIFY_DESKTOP_IMAGE;
@@ -151,8 +151,27 @@ print(json.dumps(state))`])).stdout);
 
   const idle = await create("no-browser", false);
   await eventually(() => docker(["exec", "-u", "1000:1000", idle.container, "python3", "-I", "-c", `from pathlib import Path; assert Path(${JSON.stringify(socket)}).is_socket()`]), () => true, "primary CUA did not start without Chromium");
+  const native = await connectMcp(idle.container);
+  try {
+    const state = await native.call("get_desktop_state", { screenshot_out_file: "/tmp/lazy-desktop.png" });
+    assert.equal(state.platform, "linux");
+    assert.ok(!state.windows.some(window => /chromium/i.test(window.app_name)), "Chromium opened before a browser request");
+  } finally { await native.close(); }
+  await new Promise(resolve => setTimeout(resolve, 700));
   await docker(["exec", "-u", "1000:1000", idle.container, "python3", "-I", "-c", "import socket; s=socket.socket(); s.settimeout(1); assert s.connect_ex(('127.0.0.1',9222)) != 0"]);
-  receipt.cases.push({ case: "primary stops with browser startup disabled", ...await stop(idle) });
+  await fixtureServer(idle);
+  await browser(idle, async send => {
+    await navigate(send, "http://127.0.0.1:8765/cookie?value=lazy-primary");
+    await eventually(async () => (await send("Storage.getCookies")).cookies.some(cookie => cookie.name === "FixtureScreen" && cookie.value === "lazy-primary"), Boolean, "on-demand browser did not set its persistent cookie");
+  }, false);
+  const lazyStopped = await stop(idle);
+  await docker(["start", idle.name]);
+  await eventually(() => docker(["exec", "-u", "1000:1000", idle.container, "python3", "-I", "-c", `from pathlib import Path; assert Path(${JSON.stringify(socket)}).is_socket()`]), () => true, "restarted CUA did not become ready");
+  await browser(idle, async send => {
+    assert.ok((await send("Storage.getCookies")).cookies.some(cookie => cookie.name === "FixtureScreen" && cookie.value === "lazy-primary"));
+  }, false);
+  receipt.cases.push({ case: "desktop wakes without Chromium and on-demand browser preserves its profile across restart", ...lazyStopped });
+  await stop(idle);
   await docker(["rm", idle.name]);
   names.delete(idle.name);
 
@@ -160,7 +179,7 @@ print(json.dumps(state))`])).stdout);
   receipt.cases.push({ case: "primary stops during startup", ...await stop(early) });
   await docker(["start", early.name]);
   await browser(early, async send => {
-    assert.ok((await send("Storage.getCookies")).cookies.some(cookie => cookie.name === "FixtureScreen" && cookie.value === "reopened"));
+    assert.ok((await send("Storage.getCookies")).cookies.some(cookie => cookie.name === "FixtureScreen" && cookie.value === "lazy-primary"));
   });
   receipt.ok = true;
 } catch (error) {

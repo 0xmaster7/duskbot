@@ -90,7 +90,7 @@ describe("bot desktop run flags", () => {
     expect(strict).toContain("--read-only");
     expect(flag(strict, "--cap-add").sort()).toEqual(["NET_ADMIN", "SETGID", "SETUID"]);
     expect(flag(strict, "--security-opt")).toEqual(["no-new-privileges"]);
-    expect(flag(strict, "-e")).toEqual(["OMB_MODE=strict", `VNC_PW=${SECRET}`, "OMB_BLOCK_EXTRA=203.0.113.7"]);
+    expect(flag(strict, "-e")).toEqual(["OMB_MODE=strict", "OMB_BROWSER_AT_START=off", `VNC_PW=${SECRET}`, "OMB_BLOCK_EXTRA=203.0.113.7"]);
     expect(strict).not.toContain("--runtime");
   });
 
@@ -101,7 +101,7 @@ describe("bot desktop run flags", () => {
     for (const cap of ["NET_ADMIN", "NET_RAW", "SYS_ADMIN", "SYS_PTRACE", "SYS_MODULE", "MKNOD", "DAC_READ_SEARCH", "SETFCAP"]) {
       expect(flag(free, "--cap-add")).not.toContain(cap);
     }
-    expect(flag(free, "-e")).toEqual(["OMB_MODE=free", `VNC_PW=${SECRET}`]);
+    expect(flag(free, "-e")).toEqual(["OMB_MODE=free", "OMB_BROWSER_AT_START=off", `VNC_PW=${SECRET}`]);
     expect(flag(free, "--runtime")).toEqual(["runsc"]);
     expect(flag(free, "--label")).toContain(`${BOT_DESKTOP_MODE_LABEL}=free`);
   });
@@ -195,6 +195,7 @@ describe("bot desktop isolation checks", () => {
     expect(script).toContain(`image="\${image:-ghcr.io/sidddevz/omb-bot-desktop:v$version}"`);
     expect(script).toContain(`version="\${version:-${BOT_DESKTOP_VERSION}}"`);
     expect(readFileSync(new URL("../deploy/bot-desktop/Dockerfile", import.meta.url), "utf8")).toContain(`ARG BOT_DESKTOP_VERSION=${BOT_DESKTOP_VERSION}\n`);
+    expect(readFileSync(new URL("../deploy/bot-desktop/rootfs/usr/local/bin/omb-session", import.meta.url), "utf8")).toContain('${OMB_BROWSER_AT_START:-off}');
     expect(BOT_DESKTOP_IMAGE).toBe(`ghcr.io/sidddevz/omb-bot-desktop:v${BOT_DESKTOP_VERSION}`);
     expect(readFileSync(new URL("../deploy/bot-desktop/host-fence.sh", import.meta.url), "utf8")).toContain("BRIDGE=omb-desk0\n");
   });

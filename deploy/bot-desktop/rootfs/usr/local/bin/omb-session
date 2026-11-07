@@ -95,7 +95,7 @@ keep cua-driver env CUA_DRIVER_BROWSER_NO_SANDBOX=1 CUA_DRIVER_INSTALL_CHANNEL=p
   /usr/local/libexec/openmausbot/cua-driver serve --socket "$cua_socket" \
   --permission-mode standard --cursor-reduced-motion on
 
-[ "${OMB_BROWSER_AT_START:-on}" = off ] || (sleep 0.3; exec chromium "${OMB_START_URL:-https://www.google.com}" >>"$logs/chromium.log" 2>&1) &
+[ "${OMB_BROWSER_AT_START:-off}" = off ] || (sleep 0.3; exec chromium "${OMB_START_URL:-https://www.google.com}" >>"$logs/chromium.log" 2>&1) &
 
 echo "omb-session: desktop ready on $DISPLAY ($geometry)"
 wait

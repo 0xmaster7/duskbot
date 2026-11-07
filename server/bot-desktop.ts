@@ -87,6 +87,7 @@ export function botDesktopRunArgs(input: {
     "--shm-size", "512m",
     "--restart", "unless-stopped",
     "-e", `OMB_MODE=${input.mode}`,
+    "-e", "OMB_BROWSER_AT_START=off",
     "-e", `VNC_PW=${input.viewerSecret}`,
     ...(!free && blocked.length ? ["-e", `OMB_BLOCK_EXTRA=${blocked.join(",")}`] : []),
     input.imageRef,
