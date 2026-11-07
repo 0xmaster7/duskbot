@@ -40,6 +40,17 @@ The installed SDK receives the startup AbortSignal directly. Registered IPC
 retry checks also prove concurrent requests share one stop/start sequence and
 an explicit Stop/quit during cleanup prevents its delayed restart.
 
+The development Mac path starts the installed CuaDriver app through LaunchServices
+when its socket is absent or stale, preserving its existing macOS permission
+identity. Its launch failure stays in the app log; conversation refusals use plain
+recovery or explicit Accessibility/Screen Recording guidance.
+`pnpm exec vitest run server/desktop-computer.test.ts server/desktop-computer.e2e.test.ts`
+also verifies that the first local turn waits for the private parent's pending
+helper grant, stops waiting on terminal failure or cancellation, and cannot start
+after Stop when a late ready grant arrives. These tests use an inert fake driver
+and a disposable server home, without launching the installed helper or asking for
+native permissions.
+
 The Electron subprocess ratchet permits only the pre-existing cached boot-ID
 read and Linux private-group lookup. Those synchronous ownership checks remain
 outside this narrow change; the active macOS launch/status calls are asynchronous.

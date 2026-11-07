@@ -306,7 +306,7 @@ export async function startCua({ attempt = 0 } = {}) {
       }
     }
   } else if (process.platform === "darwin" && (await socketAlive(STANDALONE_SOCKET))) {
-      // Never on Windows: the shared pipe belongs to whatever driver the user has, so it is never adopted implicitly.
+    // Never on Windows: the shared pipe belongs to whatever driver the user has, so it is never adopted implicitly.
     nextConnection = {
       mode: "standalone",
       socketPath: STANDALONE_SOCKET,
@@ -315,10 +315,16 @@ export async function startCua({ attempt = 0 } = {}) {
       mcpEnv: { ...CUA_ENV },
     };
   } else {
-    nextConnection = {
+    try {
+      nextConnection = await attachStandalone(signal);
+      if (nextConnection) nextConnection.mcpCommand = binary;
+    } catch (error) {
+      signal.throwIfAborted();
+      console.error("[cua] Computer helper launch failed:", error);
+    }
+    nextConnection ??= {
       mode: "unavailable",
-      reason:
-        "no running cua-driver daemon; run `cua-driver serve` or grant via `cua-driver permissions grant`",
+      reason: "The computer helper could not start. Restart OpenMausBot and try again.",
     };
   }
 

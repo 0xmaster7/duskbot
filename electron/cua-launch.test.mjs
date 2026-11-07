@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const fixture = vi.hoisted(() => ({ home: "", script: "", socketReady: false, children: [], calls: [], embeddedDelays: [], hosts: [], handlers: new Map() }));
+const fixture = vi.hoisted(() => ({ home: "", script: "", socketExists: false, socketReady: false, children: [], calls: [], embeddedDelays: [], hosts: [], handlers: new Map() }));
 vi.mock("electron", () => ({ app: { isPackaged: false, getPath: () => fixture.home }, ipcMain: { handle: (name, handler) => fixture.handlers.set(name, handler) } }));
 vi.mock("@trycua/cua-driver/embedded", () => ({
   EmbeddedCuaDriverHost: class {
@@ -30,7 +30,7 @@ vi.mock("node:fs", async (original) => {
   const fs = await original();
   return { ...fs, default: { ...fs.default, existsSync: (file) => {
     if (file === "/Applications/CuaDriver.app/Contents/MacOS/cua-driver") return true;
-    if (String(file).endsWith("cua-driver.sock")) return fixture.socketReady;
+    if (String(file).endsWith("cua-driver.sock")) return fixture.socketExists || fixture.socketReady;
     return fs.existsSync(file);
   } } };
 });
@@ -39,7 +39,7 @@ vi.mock("node:net", async (original) => {
   const { EventEmitter } = await import("node:events");
   return { ...net, default: { ...net.default, createConnection: () => {
     const socket = Object.assign(new EventEmitter(), { destroy: vi.fn() });
-    queueMicrotask(() => socket.emit("connect"));
+    queueMicrotask(() => fixture.socketReady ? socket.emit("connect") : socket.emit("error", new Error("fixture stale socket")));
     return socket;
   } } };
 });
@@ -74,6 +74,7 @@ beforeEach(async () => {
   fixture.home = mkdtempSync(join(tmpdir(), "omb-cua-async-"));
   fixture.script = "setTimeout(() => process.exit(0), 120)";
   fixture.socketReady = false;
+  fixture.socketExists = false;
   fixture.children = [];
   fixture.calls = [];
   fixture.embeddedDelays = [];
@@ -100,6 +101,34 @@ afterEach(async () => {
 });
 
 describe.skipIf(process.platform !== "darwin")("async standalone CUA launch (isolated commands)", () => {
+  it.each([false, true])("starts the development Mac helper automatically with an absent or stale socket: %s", async (stale) => {
+    vi.stubEnv("OPENMAUSBOT_CUA_EMBEDDED", "");
+    fixture.socketExists = stale;
+    await expect(cua.startCua()).resolves.toMatchObject({ mode: "standalone", mcpCommand: "/fixture/cua-driver", mcpArgs: ["mcp"] });
+    expect(fixture.calls).toHaveLength(1);
+    expect(fixture.calls[0]).toMatchObject({ command: "/usr/bin/open", args: ["-a", "CuaDriver"] });
+    expect(fixture.hosts).toHaveLength(0);
+  });
+
+  it("keeps an already running development helper without launching another", async () => {
+    vi.stubEnv("OPENMAUSBOT_CUA_EMBEDDED", "");
+    fixture.socketReady = true;
+    await expect(cua.startCua()).resolves.toMatchObject({ mode: "standalone" });
+    expect(fixture.calls).toHaveLength(0);
+    expect(fixture.hosts).toHaveLength(0);
+  });
+
+  it("recovers a failed development launch through one coalesced retry without shell instructions", async () => {
+    vi.stubEnv("OPENMAUSBOT_CUA_EMBEDDED", "");
+    fixture.script = "process.stderr.write('fixture launch failure'); process.exit(4)";
+    const failure = await cua.startCua();
+    expect(failure).toEqual({ mode: "unavailable", reason: "The computer helper could not start. Restart OpenMausBot and try again." });
+    fixture.script = "setTimeout(() => process.exit(0), 120)";
+    const results = await Promise.all([cua.requestComputerUse(), cua.requestComputerUse()]);
+    expect(results).toEqual([{ enabled: true, status: "ready", reasonCode: undefined, message: undefined }, { enabled: true, status: "ready", reasonCode: undefined, message: undefined }]);
+    expect(fixture.calls).toHaveLength(2);
+  });
+
   it("keeps the event loop responsive and publishes the existing descriptor shape", async () => {
     let ticks = 0;
     const timer = setInterval(() => ticks++, 10);
@@ -119,7 +148,8 @@ describe.skipIf(process.platform !== "darwin")("async standalone CUA launch (iso
     expect(result.reason).toContain("fixture launch failure");
   });
 
-  it("cancels a pending launch without publishing a stale ready connection", async () => {
+  it.each([false, true])("cancels a pending launch without publishing a stale ready connection (development: %s)", async (development) => {
+    if (development) vi.stubEnv("OPENMAUSBOT_CUA_EMBEDDED", "");
     fixture.script = "process.on('SIGTERM', () => {}); setInterval(() => {}, 1000)";
     const started = cua.startCua();
     const aborted = expect(started).rejects.toMatchObject({ name: "AbortError" });

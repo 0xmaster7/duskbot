@@ -12,6 +12,8 @@ export interface DesktopComputer {
   /** Only ever called with a message from the parent port; true when it was this grant. */
   receive(message: unknown): boolean;
   connection(): LocalComputerConnection | null;
+  /** Waits only for the parent's initial pending grant, never a terminal failure or an unowned server. */
+  waitForConnection(options?: { signal?: AbortSignal; timeoutMs?: number; isCurrent?: () => boolean }): Promise<LocalComputerConnection | null>;
   /** Whether the desktop app has spoken: false on any server it did not launch. */
   granted(): boolean;
   unavailableReason(): string | null;
@@ -26,6 +28,8 @@ export function createDesktopComputer({
 } = {}): DesktopComputer {
   let record: unknown = null;
   let heard = false;
+  const changed = new Set<() => void>();
+  const connection = () => (record ? decode(record, { platform }) : null);
   return {
     receive(message) {
       if (!message || typeof message !== "object" || Array.isArray(message)) return false;
@@ -37,10 +41,37 @@ export function createDesktopComputer({
       }
       record = connection;
       heard = true;
+      for (const notify of changed) notify();
       return true;
     },
     // Decoded on every use: a Linux driver is checked again (same binary, live processes) each time, as the file was.
-    connection: () => (record ? decode(record, { platform }) : null),
+    connection,
+    waitForConnection({ signal, timeoutMs = 15_000, isCurrent = () => true } = {}) {
+      signal?.throwIfAborted();
+      if (!isCurrent()) return Promise.reject(new DOMException("Computer setup cancelled", "AbortError"));
+      if (!heard || record !== null) return Promise.resolve(connection());
+      return new Promise((resolve, reject) => {
+        const finish = (error?: unknown) => {
+          clearTimeout(timeout);
+          clearInterval(cancelled);
+          changed.delete(update);
+          signal?.removeEventListener("abort", abort);
+          if (error) reject(error);
+          else resolve(connection());
+        };
+        const abort = () => finish(signal?.reason ?? new DOMException("Computer setup cancelled", "AbortError"));
+        const update = () => {
+          if (!isCurrent()) finish(new DOMException("Computer setup cancelled", "AbortError"));
+          else if (record !== null) finish();
+        };
+        const timeout = setTimeout(() => finish(), timeoutMs);
+        const cancelled = setInterval(update, 100);
+        timeout.unref?.();
+        cancelled.unref?.();
+        changed.add(update);
+        signal?.addEventListener("abort", abort, { once: true });
+      });
+    },
     granted: () => heard,
     unavailableReason: () => (record ? cuaUnavailableReason(record, platform) : null),
   };
@@ -55,5 +86,10 @@ export function thisComputerNotReady(desktop: DesktopComputer = desktopComputer,
   const reason = desktop.unavailableReason();
   if (!reason) return `${THIS_COMPUTER_NOT_READY}make sure OpenMausBot has the permissions it asks for, then restart it`;
   const permission = platform === "darwin" && /(?:Screen Recording|Accessibility).*required/i.test(reason);
-  return `${THIS_COMPUTER_NOT_READY}${reason}${permission ? ". Relaunch OpenMausBot after granting the missing macOS permission." : ""}`;
+  if (permission) {
+    const missing = [reason.includes("Accessibility") && "Accessibility", reason.includes("Screen Recording") && "Screen Recording"].filter(Boolean).join(" and ");
+    return `${THIS_COMPUTER_NOT_READY}allow ${missing} in macOS System Settings, then relaunch OpenMausBot.`;
+  }
+  if (platform === "darwin") return `${THIS_COMPUTER_NOT_READY}the computer helper could not start. Restart OpenMausBot and try again.`;
+  return `${THIS_COMPUTER_NOT_READY}${reason}`;
 }

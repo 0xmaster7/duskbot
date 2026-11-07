@@ -6011,7 +6011,12 @@ async function mountHostComputer(owner: TurnOwner, botId: string, providerSuppor
       ? "bots can't use this computer on this system — choose another place for this bot to work"
       : "this bot's AI can't use this computer — pick another AI for this bot, or choose another place for it to work");
   }
-  const cua = desktopComputer.connection();
+  const cua = await desktopComputer.waitForConnection({ isCurrent: () =>
+    activeInternalGenerationByThread.get(owner.threadId) === owner.generation &&
+    turnResourceOwners.get(owner.threadId)?.generation === owner.generation }).catch((error) => {
+      if (error instanceof Error && error.name === "AbortError") throw new DirectTurnSetupCancelled("Computer setup cancelled");
+      throw error;
+    });
   if (!cua) throw new Error(thisComputerNotReady());
   await bindTurnComputer(owner, "computer:host");
   autoVmClaims.set(owner.threadId, {

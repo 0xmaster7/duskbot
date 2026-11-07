@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, wr
 import { tmpdir } from "node:os";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createDesktopComputer, DESKTOP_COMPUTER_GRANT, thisComputerNotReady } from "./desktop-computer.ts";
 
@@ -12,6 +12,7 @@ const saved = { userData: process.env.OMB_USER_DATA, parent: process.env.OMB_DES
 const folders: string[] = [];
 
 afterEach(() => {
+  vi.useRealTimers();
   for (const [key, value] of [["OMB_USER_DATA", saved.userData], ["OMB_DESKTOP_PARENT", saved.parent], ["HOME", saved.home]] as const) {
     if (value === undefined) delete process.env[key];
     else process.env[key] = value;
@@ -20,6 +21,47 @@ afterEach(() => {
 });
 
 describe("this computer, only for the desktop app's own server", () => {
+  it("waits for the parent's pending startup and resolves its first ready grant", async () => {
+    const desktop = createDesktopComputer({ platform: "darwin" });
+    desktop.receive({ type: DESKTOP_COMPUTER_GRANT, connection: null });
+    let settled = false;
+    const ready = desktop.waitForConnection().then((connection) => { settled = true; return connection; });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    desktop.receive({ type: DESKTOP_COMPUTER_GRANT, connection: READY });
+    await expect(ready).resolves.toEqual(desktop.connection());
+  });
+
+  it("does not wait for an unowned server or a terminal permission failure", async () => {
+    const desktop = createDesktopComputer({ platform: "darwin" });
+    await expect(desktop.waitForConnection()).resolves.toBeNull();
+    desktop.receive({ type: DESKTOP_COMPUTER_GRANT, connection: null });
+    const ready = desktop.waitForConnection();
+    desktop.receive({ type: DESKTOP_COMPUTER_GRANT, connection: { mode: "unavailable", reason: "Accessibility required" } });
+    await expect(ready).resolves.toBeNull();
+    await expect(desktop.waitForConnection()).resolves.toBeNull();
+  });
+
+  it("bounds pending startup and cancels a stopped generation without accepting its late grant", async () => {
+    vi.useFakeTimers();
+    const desktop = createDesktopComputer({ platform: "darwin" });
+    desktop.receive({ type: DESKTOP_COMPUTER_GRANT, connection: null });
+    const timeout = desktop.waitForConnection({ timeoutMs: 200 });
+    await vi.advanceTimersByTimeAsync(200);
+    await expect(timeout).resolves.toBeNull();
+    const abort = new AbortController();
+    const cancelled = expect(desktop.waitForConnection({ signal: abort.signal })).rejects.toMatchObject({ name: "AbortError" });
+    abort.abort();
+    await cancelled;
+    let current = true;
+    const stopped = expect(desktop.waitForConnection({ isCurrent: () => current })).rejects.toMatchObject({ name: "AbortError" });
+    current = false;
+    await vi.advanceTimersByTimeAsync(100);
+    await stopped;
+    desktop.receive({ type: DESKTOP_COMPUTER_GRANT, connection: READY });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("finds nothing on a server the app did not launch, though the app's record, its folder and the desktop flag are all there", () => {
     const home = mkdtempSync(join(tmpdir(), "omb-desktop-computer-"));
     folders.push(home);
@@ -48,12 +90,22 @@ describe("this computer, only for the desktop app's own server", () => {
     expect(desktop.connection()).toBeNull();
     expect(desktop.unavailableReason()).toBe(reason);
     expect(thisComputerNotReady(desktop, "darwin")).toBe(
-      `OpenMausBot can't use this computer yet: ${reason}. Relaunch OpenMausBot after granting the missing macOS permission.`,
+      "OpenMausBot can't use this computer yet: allow Screen Recording in macOS System Settings, then relaunch OpenMausBot.",
     );
     expect(desktop.receive({ type: DESKTOP_COMPUTER_GRANT, connection: null })).toBe(true);
     expect(desktop.connection()).toBeNull();
     expect(desktop.granted()).toBe(true);
     expect(thisComputerNotReady(desktop)).toBe("OpenMausBot can't use this computer yet: make sure OpenMausBot has the permissions it asks for, then restart it");
+  });
+
+  it.each([
+    "no running cua-driver daemon; run `cua-driver serve` or grant via `cua-driver permissions grant`",
+    "embedded host failed: launch failed: /private/fixture/cua-driver --socket /private/fixture.sock",
+  ])("keeps native helper diagnostics out of the conversation: %s", (reason) => {
+    const desktop = createDesktopComputer({ platform: "darwin" });
+    desktop.receive({ type: DESKTOP_COMPUTER_GRANT, connection: { mode: "unavailable", reason } });
+    expect(desktop.unavailableReason()).toBe(reason);
+    expect(thisComputerNotReady(desktop, "darwin")).toBe("OpenMausBot can't use this computer yet: the computer helper could not start. Restart OpenMausBot and try again.");
   });
 
   it("decodes again on every use, so a Linux driver that stopped is no longer used", () => {

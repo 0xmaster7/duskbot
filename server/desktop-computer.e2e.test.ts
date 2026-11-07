@@ -126,7 +126,10 @@ describe("this computer belongs to the desktop app's own server", () => {
     await stop();
     if (home) await removeTempDir(home);
   });
-  afterEach(async () => { await stop(); resetTurn(); });
+  afterEach(async () => {
+    await stop(); resetTurn();
+    writeFileAtomic(join(home, "user-data", "cua-connection.json"), JSON.stringify(record));
+  });
 
   it("a server the app did not launch mounts no computer on Auto, though the app's record is on disk", async () => {
     await start(false);
@@ -165,5 +168,43 @@ describe("this computer belongs to the desktop app's own server", () => {
     expect(sent.mcpConfig.mcpServers.computer.env.OMB_CUA_COMMAND).toBe("/fixture/cua-driver");
     writeFileSync(finishFile, "finish");
     await idle(bot.id, task.threadId);
+  });
+
+  itHost("the first local turn waits for helper startup and mounts it without replaying the turn", async () => {
+    const grantFile = join(home, "user-data", "cua-connection.json");
+    writeFileAtomic(grantFile, "null");
+    await start(true);
+    const { bot } = await apiOk("POST", "/api/bots", { name: "Starting Desktop Bot" });
+    const { task } = await apiOk("POST", `/api/bots/${bot.id}/tasks`, {});
+    await apiOk("PATCH", `/api/bots/${bot.id}/tasks/${task.threadId}`, { surface: "local" });
+    resetTurn();
+    await apiOk("POST", `/api/bots/${bot.id}/messages`, { text: "Open Chrome on this computer.", threadId: task.threadId });
+    await new Promise(resolve => setTimeout(resolve, 200));
+    expect(existsSync(dumpFile)).toBe(false);
+    expect((await rows(task.threadId)).join("\n")).not.toContain("can't use this computer yet");
+    writeFileAtomic(grantFile, JSON.stringify(record));
+    const sent = await dump();
+    expect(sent.mcpConfig.mcpServers.computer.env.OMB_CUA_COMMAND).toBe("/fixture/cua-driver");
+    writeFileSync(finishFile, "finish");
+    await idle(bot.id, task.threadId);
+    expect((await rows(task.threadId)).filter(line => line === "Open Chrome on this computer.")).toHaveLength(1);
+  });
+
+  itHost("Stop during helper startup prevents a late ready grant from starting the turn", async () => {
+    const grantFile = join(home, "user-data", "cua-connection.json");
+    writeFileAtomic(grantFile, "null");
+    await start(true);
+    const { bot } = await apiOk("POST", "/api/bots", { name: "Stopped Desktop Bot" });
+    const { task } = await apiOk("POST", `/api/bots/${bot.id}/tasks`, {});
+    await apiOk("PATCH", `/api/bots/${bot.id}/tasks/${task.threadId}`, { surface: "local" });
+    resetTurn();
+    await apiOk("POST", `/api/bots/${bot.id}/messages`, { text: "Open Chrome on this computer.", threadId: task.threadId });
+    await new Promise(resolve => setTimeout(resolve, 200));
+    await apiOk("POST", `/api/bots/${bot.id}/interrupt`, { threadId: task.threadId });
+    await idle(bot.id, task.threadId);
+    writeFileAtomic(grantFile, JSON.stringify(record));
+    await new Promise(resolve => setTimeout(resolve, 200));
+    expect(existsSync(dumpFile)).toBe(false);
+    expect((await rows(task.threadId)).join("\n")).not.toMatch(/Computer setup cancelled|can't use this computer yet/);
   });
 });
