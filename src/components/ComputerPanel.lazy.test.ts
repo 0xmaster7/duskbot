@@ -41,7 +41,7 @@ vi.mock("./CloudScreenPreview", () => ({
   CloudScreenPreview: () => createElement("div", { "data-live-screen": "" }),
 }));
 vi.mock("./BrowserPanel", () => ({ BrowserPanel: () => null }));
-vi.mock("./LiveDesktop", () => ({ LiveDesktop: (props: { expanded: boolean }) => createElement("div", { "data-live-screen": "", "data-expanded": String(props.expanded) }) }));
+vi.mock("./LiveDesktop", () => ({ LiveDesktop: (props: { expanded: boolean; wake?: boolean }) => createElement("div", { "data-live-screen": "", "data-expanded": String(props.expanded), "data-wake": String(Boolean(props.wake)) }) }));
 vi.mock("./bot-settings/RoutinesSection", () => ({ RoutinesSection: () => null }));
 vi.mock("@/state/store", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/state/store")>(),
@@ -208,6 +208,24 @@ describe("VPS computer preparation", () => {
     expect(fixture.posts.filter((path) => path.endsWith("/provision"))).toHaveLength(1);
     await expect.poll(() => document.querySelector("[data-live-screen]")).not.toBeNull();
     expect(fixture.posts.filter((path) => path.endsWith("/control"))).toEqual([]);
+  });
+
+  it("asks for the live screen beside the wake, and keeps one waking picture until it paints", async () => {
+    let finish!: () => void;
+    fixture.provisionGate = new Promise((resolve) => { finish = resolve; });
+    await open(makeBot({ computer: "cloud" }), true);
+    flushSync(() => document.querySelector<HTMLButtonElement>("[data-panel-screen] button")!.click());
+    await settle();
+    // the viewer is already connecting while the wake is still running
+    await expect.poll(() => document.querySelector("[data-live-screen]")?.getAttribute("data-wake")).toBe("true");
+    const waking = document.querySelector("[data-computer-waking]");
+    expect(waking).not.toBeNull();
+    finish();
+    await expect.poll(() => fixture.container).toBe("running");
+    await settle();
+    expect(document.querySelectorAll("[data-live-screen]")).toHaveLength(1);
+    // the same element throughout: its animation never restarts
+    expect(document.querySelector("[data-computer-waking]")).toBe(waking);
   });
 
   it("a wake shows the bot waking up in a screen-shaped frame, never a connecting line", async () => {

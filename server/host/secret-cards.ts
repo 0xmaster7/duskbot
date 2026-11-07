@@ -10,6 +10,7 @@ import {
   CUSTOM_SECRET_LABEL_MAX,
   CUSTOM_SECRET_REASON_MAX,
   CUSTOM_SECRET_TARGET,
+  LOGIN_CREDENTIAL,
   SECRET_DELIVERIES,
   credentialIsConfigured,
   isCredentialTargetId,
@@ -40,6 +41,9 @@ import {
   type PhoneSecretSubmissionRegistry,
 } from "../phone-secret.ts";
 import type { BotLogins } from "../bot-logins.ts";
+import { normalizeSignInSite } from "../../shared/sign-in-request.ts";
+import { parseLoginFields, parseTotpField } from "../routes/logins.ts";
+import type { TotpKey } from "../totp.ts";
 import type { BotRecord, GroupRecord, Message, Store } from "../store.ts";
 import { serverLine } from "../server-lines.ts";
 
@@ -86,6 +90,19 @@ export interface SecretCardsDeps {
   /** The Vault a card saves to when the person keeps Save on: the bot uses it again later without a card. */
   savedSecrets?: SavedSecretStore;
   sealer?: CardSealer;
+  /** Website logins typed into a login card: kept for fill_login, in the Vault or for this bot's next fills only. */
+  logins?: {
+    /** A saved login this bot may use already fills on this host. */
+    has(botId: string, host: string): boolean;
+    keep(login: { botId: string; host: string; username: string; password: string; totp: TotpKey | null; remember: boolean }): void;
+  };
+}
+
+/** What the bot is told when the person answered a login card; never a value. */
+export function loginCardUpdateText(site: string, outcome: "provided" | "dismissed", kept?: "vault" | "once"): string {
+  return outcome === "provided"
+    ? `OpenMausBot login update: the person typed their login for ${site} on the secure card${kept === "vault" ? " and saved it to their Vault, so next time no card is needed" : ", for this task only (not saved)"}. Open ${site}'s login page where you work (your browser, or Chromium on your own VPS desktop) and call fill_login: OpenMausBot types it and submits it, and you never see the password. Then check you are signed in and continue the task that paused for it. Never ask for the password in chat.`
+    : `OpenMausBot login update: the person declined to give their login for ${site}. If they would rather sign in themselves, call request_sign_in; otherwise say in one line what you cannot do without it. Do not ask for it in chat.`;
 }
 
 export type SecretCards = ReturnType<typeof createSecretCards>;
@@ -169,6 +186,7 @@ export function createSecretCards(deps: SecretCardsDeps) {
 
   function updateText(messageId: string, secret: SecretRequestCardData, outcome: "provided" | "dismissed"): string {
     if (!custom(secret)) return credentialUpdateText(secret.label, outcome);
+    if (secret.delivery === "login") return loginCardUpdateText(secret.site ?? secret.label, outcome, secret.kept);
     if (secret.delivery === "email") return emailUpdateText(secret, outcome);
     return outcome === "provided"
       ? `OpenMausBot secret update: ${savedSecretText(secret.label, vault.savedFor(messageId))}${secret.kept === "vault" ? " It is also saved in the person's Vault: next time, request_credential with the same label gets it without a card." : ""} Continue the task that paused for it.`
@@ -402,6 +420,7 @@ export function createSecretCards(deps: SecretCardsDeps) {
       }
       if (opened !== null) {
         if (current.secret.stopped) throw new PhoneSecretError("This request stopped with its task", 409);
+        if (current.secret.delivery === "login") throw new PhoneSecretError("Type this login in OpenMausBot on your computer.", 409);
         if (current.secret.delivery === "email") {
           if (!current.secret.address || !deps.email) throw new PhoneSecretError("Type your email address and password on your computer.", 409);
           const answer = await deps.email.connect({ address: current.secret.address, password: opened });
@@ -433,6 +452,7 @@ export function createSecretCards(deps: SecretCardsDeps) {
     if (!owner) return { status: 403, body: { error: "source conversation does not belong to sender" } };
     if (body.credentialId === undefined) return requestCustomSecret(from, fromThreadId, Boolean(owner.group), body);
     if (body.credentialId === EMAIL_CREDENTIAL) return requestEmailCard(from, fromThreadId, Boolean(owner.group), body);
+    if (body.credentialId === LOGIN_CREDENTIAL) return requestLoginCard(from, fromThreadId, Boolean(owner.group), body);
     if (!isCredentialTargetId(body.credentialId)) {
       return { status: 400, body: { error: "unsupported credential id" } };
     }
@@ -500,6 +520,72 @@ export function createSecretCards(deps: SecretCardsDeps) {
       store.patchMessage(threadId, prior.id, { secret: { ...prior.secret, superseded: true } });
     }
     return { status: 201, body: { messageId: message.id, label, delivery: "email" } };
+  }
+
+  /** One card for a website's username, password and 2FA key, typed by the person and filled by fill_login. A login the bot
+   * may use already fills there: no card. */
+  function requestLoginCard(from: BotRecord, threadId: string, room: boolean, body: Record<string, unknown>): { status: number; body: Record<string, unknown> } {
+    if (!deps.logins) return { status: 403, body: { error: "Logins can't be saved here. Call request_sign_in so the person signs in themselves." } };
+    const target = normalizeSignInSite(body.site);
+    if (!target) return { status: 400, body: { error: "site must be the login page's address or the site's domain, such as example.com" } };
+    const host = new URL(target.url).hostname.toLowerCase();
+    if (deps.logins.has(from.id, host)) {
+      return { status: 200, body: { site: target.site, text: `A saved login for ${target.site} is already yours to use, so no card was needed. Open its login page where you work and call fill_login.` } };
+    }
+    const reason = typeof body.reason === "string" ? body.reason.trim().slice(0, CUSTOM_SECRET_REASON_MAX) : "";
+    const language = deps.threadLanguage?.(threadId);
+    const note = serverLine(language, "server.connect.loginNote", { bot: from.name });
+    const message = store.appendMessage(threadId, {
+      role: "bot",
+      kind: "secret",
+      text: credentialDesktopHandoff(target.site, language),
+      ...(room ? { from: { botId: from.id, name: from.name, color: from.color } } : {}),
+      secret: {
+        target: CUSTOM_SECRET_TARGET,
+        label: target.site,
+        description: `${reason ? `${reason} ` : ""}${note}`,
+        reason: `${reason ? `${reason} ` : ""}${note}`,
+        placeholder: "",
+        helpUrl: "",
+        delivery: "login",
+        site: host,
+        requestKey: randomUUID(),
+      },
+    });
+    for (const prior of store.activePath(threadId)) {
+      if (prior.id === message.id || !prior.secret || !isPendingCustomSecretRequest(prior, target.site, from.id, room)) continue;
+      store.patchMessage(threadId, prior.id, { secret: { ...prior.secret, superseded: true } });
+      deps.followCard(threadId, prior.id, message.id);
+    }
+    return { status: 201, body: { messageId: message.id, site: target.site, delivery: "login" } };
+  }
+
+  /** A login card's answer: `value` is the sealed JSON of its password and 2FA key, opened for this card only. Kept before
+   * the card settles, so a refused save leaves it open. */
+  function saveLoginSecret(botId: string, threadId: string, messageId: string, fields: Record<string, unknown>, remember: boolean): { status: number; body: Record<string, unknown> } {
+    const message = secretMessage(botId, threadId, messageId);
+    if (!message?.secret || message.secret.delivery !== "login" || !message.secret.site) return { status: 404, body: { error: "no such credential request" } };
+    const secret = message.secret;
+    if (secret.dismissed) return { status: 409, body: { error: "this request was declined" } };
+    if (secret.superseded) return { status: 409, body: { error: "this request was replaced by a newer one" } };
+    if (secret.stopped) return { status: 409, body: { error: "this request stopped with its task" } };
+    if (secret.provided || secret.savedAt !== undefined) return { status: 409, body: { error: "this login was already saved" } };
+    if (!deps.logins) return { status: 409, body: { error: "Logins can't be saved here." } };
+    let opened: { password?: unknown; totp?: unknown } = {};
+    try { opened = typeof fields.value === "string" ? JSON.parse(fields.value) as typeof opened : {}; } catch {}
+    const parsed = parseLoginFields({ username: typeof fields.username === "string" ? fields.username : "", password: typeof opened.password === "string" ? opened.password : "" }, { passwordRequired: true });
+    if (!parsed.ok) return { status: 400, body: { error: parsed.error } };
+    const totp = parseTotpField(typeof opened.totp === "string" && opened.totp.trim() ? opened.totp : undefined);
+    if (!totp.ok) return { status: 400, body: { error: totp.error } };
+    try {
+      deps.logins.keep({ botId, host: secret.site!, username: parsed.value.username ?? "", password: parsed.value.password!, totp: totp.value ?? null, remember });
+    } catch (error) {
+      console.warn(`login card: could not keep a login: ${error instanceof Error ? error.name : "error"}`);
+      return { status: 500, body: { error: "The login could not be kept safely. Nothing was saved.", code: "secret_store_failed" } };
+    }
+    store.patchMessage(threadId, message.id, { secret: { ...secret, savedAt: Date.now(), kept: remember ? "vault" : "once" } });
+    if (!resumeSecretCard(botId, threadId, message.id, "provided")) return { status: 409, body: { error: "this credential request is no longer available" } };
+    return { status: 200, body: currentSecretState(botId, threadId, message.id) ?? { provided: true, resumed: false } };
   }
 
   /** A secret OpenMausBot does not keep: the same bot asking again for one already saved here gets it back, and a newer
@@ -582,7 +668,7 @@ export function createSecretCards(deps: SecretCardsDeps) {
 
   return {
     sealKey, openSealed,
-    phoneSecretSubmissionKey, secretMessage, currentSecretState, resumeSecretCard, provideSecretFromPhone, requestCredential, saveCustomSecret, saveEmailSecret,
+    phoneSecretSubmissionKey, secretMessage, currentSecretState, resumeSecretCard, provideSecretFromPhone, requestCredential, saveCustomSecret, saveEmailSecret, saveLoginSecret,
     secretSaved, updateText, redeemMcpServer,
   };
 }

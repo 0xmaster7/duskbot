@@ -116,7 +116,6 @@ export function ComputerFilesPane({ bot }: { bot: Bot }) {
           <button
             type="button"
             onClick={() => {
-              dispatch({ type: "toggleComputer", open: false });
               openBotSettings(dispatch, "access", { page: "folder" });
             }}
             className="shrink-0 rounded-lg bg-control px-2.5 py-1 text-[12px] text-ink hover:bg-raised-hover"

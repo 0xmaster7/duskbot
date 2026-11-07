@@ -1,5 +1,5 @@
 // The agents tool catalog and which tools a turn sees: definitions only, no environment, no calls.
-import { CREDENTIAL_TARGETS } from "../../shared/credential-request.ts";
+import { CREDENTIAL_TARGETS, LOGIN_CREDENTIAL } from "../../shared/credential-request.ts";
 import { EMAIL_CREDENTIAL } from "../../shared/email.ts";
 import { OPTIONS_CARD_LIMITS, WATCHER_OPTIONS_CARD_BOT_ID } from "../../shared/options-card.ts";
 import { agentToolAnnotations } from "../agent-tool-policy.ts";
@@ -436,15 +436,16 @@ const TOOL_DEFINITIONS = [
   {
     name: "request_credential",
     description:
-      "Ask the person for a secret on a secure card in the app or a QR-paired phone, never in chat. credential_id: a key OpenMausBot keeps (onePasswordToken: a 1Password service account token; email: a mailbox on any mail host, one card for its address and password). Other secrets: label, reason, delivery. You never see the value; end the turn, and you resume when they save or decline.",
+      "Ask the person for a secret on a secure card in the app or a QR-paired phone, never in chat. credential_id: a key OpenMausBot keeps (onePasswordToken: a 1Password service account token; email: a mailbox on any mail host, one card for its address and password; login: a site's password, for fill_login). Other secrets: label, reason, delivery. You never see the value; end the turn, and you resume when they save or decline.",
     inputSchema: {
       type: "object",
       properties: {
         credential_id: {
           type: "string",
-          enum: [...Object.keys(CREDENTIAL_TARGETS), EMAIL_CREDENTIAL],
+          enum: [...Object.keys(CREDENTIAL_TARGETS), EMAIL_CREDENTIAL, LOGIN_CREDENTIAL],
         },
         address: { type: "string", description: "credential_id email only: the mailbox's address, when you know it." },
+        site: { type: "string", maxLength: 2048, description: "login: its page or domain." },
         label: { type: "string", description: "Other secret's card title, e.g. Stripe secret key." },
         reason: { type: "string", description: "Short, non-sensitive: why, and where to find it." },
         placeholder: { type: "string" },
@@ -459,7 +460,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "request_sign_in",
     description:
-      "Ask the person to sign in to a website themselves, in the browser or on the computer you are using now. Use it when a page needs a login you do not have, or a CAPTCHA, passkey or other step only they can do, or a one-time code you cannot read. A code the site sends to the person's own email or messages for a sign-in they asked for is not one: read it there and type it in yourself. They get a card and a notification, sign in where you work, and press Done. Never ask for a password or code in chat. After calling it, end your turn; OpenMausBot resumes you when they finish or decline, and then check you are signed in.",
+      "Ask the person to sign in to a website themselves, in the browser or on the computer you are using now. Use it for a CAPTCHA, passkey, phone approval, OAuth consent or other step only they can do, a one-time code you cannot read, or when they prefer it. A missing password: request_credential login. A code the site sends to the person's own email or messages for a sign-in they asked for is not one: read it there and type it in yourself. They get a card and a notification, sign in where you work, and press Done. Never ask for a password or code in chat. After calling it, end your turn; OpenMausBot resumes you when they finish or decline, and then check you are signed in.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -473,7 +474,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "fill_login",
     description:
-      "Sign in with a login the person saved in OpenMausBot or in their connected 1Password. Call it on the login page open in your browser: OpenMausBot types the username, password and any one-time code itself, submits each step, and says where the page went; you never see the password. A login fills on its own site, such as any page of example.com. With no saved login for the site, sign in another way the person allowed (a code sent to their own email, which you read and type in, is one), or call request_sign_in.",
+      "Sign in with a login the person saved in OpenMausBot or in their connected 1Password. Call it on the login page, in your browser or desktop Chromium: OpenMausBot types the username, password and any one-time code itself, submits each step, and says where the page went; you never see the password. A login fills only on its own site. None saved: request_credential login first.",
     inputSchema: {
       type: "object",
       additionalProperties: false,

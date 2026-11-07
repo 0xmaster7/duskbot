@@ -138,6 +138,8 @@ export type CredentialConfig = {
 
 /** A secret OpenMausBot does not keep itself: the bot names it, and gets a one-use reference or a private file. */
 export const CUSTOM_SECRET_TARGET = "customSecret";
+/** request_credential's credential_id for a website login: a card the person types it into, filled by fill_login. */
+export const LOGIN_CREDENTIAL = "login";
 export type SecretDelivery = "ref" | "file";
 export const SECRET_DELIVERIES: readonly SecretDelivery[] = ["ref", "file"];
 export const CUSTOM_SECRET_LABEL_MAX = 80;

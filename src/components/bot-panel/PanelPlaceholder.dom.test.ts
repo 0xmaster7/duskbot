@@ -4,21 +4,15 @@ import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../Avatar", () => ({ BotAvatar: (props: { bot: { name: string } }) => createElement("span", { "data-stub-avatar": props.bot.name }) }));
 vi.mock("./PanelShell", () => ({ PanelDetailsTab: { preload: () => Promise.resolve() }, PanelAdvancedTab: { preload: () => Promise.resolve() } }));
 
 const saved = new Map<string, string>();
-vi.stubGlobal("localStorage", {
-  getItem: (key: string) => saved.get(key) ?? null,
-  setItem: (key: string, value: string) => void saved.set(key, value),
-  clear: () => saved.clear(),
-});
+vi.stubGlobal("localStorage", { getItem: (key: string) => saved.get(key) ?? null, setItem: (key: string, value: string) => void saved.set(key, value) });
 
-const { PanelPlaceholder, readPanelBot, rememberPanelBot } = await import("./PanelPlaceholder");
+const { PanelPlaceholder } = await import("./PanelPlaceholder");
 
 afterEach(() => {
   document.body.innerHTML = "";
-  localStorage.clear();
 });
 
 function mount(onClose = () => {}) {
@@ -29,22 +23,14 @@ function mount(onClose = () => {}) {
 }
 
 describe("PanelPlaceholder", () => {
-  it("draws the bot the panel last showed while the bots load", () => {
-    rememberPanelBot({ id: "b1", name: "Tally", color: "green", mascotBody: null, mascotFaceColor: null });
-    expect(readPanelBot()).toEqual({ id: "b1", name: "Tally", color: "green", mascotBody: null, mascotFaceColor: null });
-    const host = mount();
-    const panel = host.querySelector("[data-panel-placeholder]")!;
-    expect(panel.getAttribute("aria-busy")).toBe("true");
-    expect(panel.getAttribute("aria-label")).toBe("Tally");
-    expect(host.querySelector("[data-stub-avatar]")?.getAttribute("data-stub-avatar")).toBe("Tally");
-  });
-
-  it("falls back to placeholders with nothing remembered, and closes", () => {
-    localStorage.setItem("openmausbot.botPanelLast.v1", "{broken");
-    expect(readPanelBot()).toBeNull();
+  it("draws the panel's shell while the window loads, never a remembered bot's face or name, and closes", () => {
+    localStorage.setItem("openmausbot.botPanelLast.v1", JSON.stringify({ id: "b1", name: "Tally", color: "green" }));
     const onClose = vi.fn();
     const host = mount(onClose);
-    expect(host.querySelector("[data-stub-avatar]")).toBeNull();
+    const panel = host.querySelector("[data-panel-placeholder]")!;
+    expect(panel.getAttribute("aria-busy")).toBe("true");
+    expect(panel.textContent).not.toContain("Tally");
+    expect(panel.querySelectorAll(".animate-pulse, [class*='animate-pulse']").length).toBeGreaterThan(5);
     host.querySelector<HTMLButtonElement>("button[aria-label]")!.click();
     expect(onClose).toHaveBeenCalledOnce();
   });

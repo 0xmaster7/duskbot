@@ -16,6 +16,7 @@ import { cardAutomation } from "@/lib/automations";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { yourComputerAsk } from "@/lib/your-computer";
 import { TriggerCard } from "./TriggerCard";
+import { ASK_CARD_LIFT, ASK_CARD_RING } from "./AskCard";
 import { EventChip, EventLabel, EventLine } from "./EventLine";
 import { GrokIcon, type GrokIconName } from "./GrokIcon";
 import { BotAvatar } from "./Avatar";
@@ -460,6 +461,33 @@ function CompactApprovalRow({
       </div>
     );
   }
+  if (!waiting) {
+    // grok's answered permission: one centered grey line of what was decided, nothing to press but the details
+    return (
+      <div data-approval-row="settled" className="flex w-full flex-col items-center text-center text-[12px] leading-4 text-ink-secondary">
+        <p className="max-w-[560px] break-words">
+          <span>{header}</span>
+          {summary && <span> · {summary}</span>}
+          {quietOutcome
+            ? <span className="sr-only" aria-live="polite">{outcome}</span>
+            : <span aria-live="polite"> · {outcome ?? t("approval.status.waitingAnswer")}</span>}
+          {byVoice && <> {byVoice}</>}
+          {detail && (
+            <> <button type="button" aria-expanded={open} onClick={toggle}
+              className="rounded px-0.5 text-ink-tertiary underline-offset-2 hover:text-ink-secondary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+              {open ? t("approval.applied.hideDetails") : t("approval.applied.details")}
+            </button></>
+          )}
+        </p>
+        {open && (
+          <pre tabIndex={0} aria-label={t("approval.aria.details")}
+            className="mt-1.5 max-h-40 w-full max-w-[560px] overflow-auto whitespace-pre-wrap break-words rounded-[12px] border border-ink/[0.06] bg-ink/[0.04] px-3 py-2 text-start font-mono text-[13px] leading-[18px] text-ink">
+            {detail}
+          </pre>
+        )}
+      </div>
+    );
+  }
   return (
     <div
       data-tour={waiting ? "approval" : undefined}
@@ -593,10 +621,7 @@ export function ApprovalCard({
   return (
     <div
       data-tour={settled || expired ? undefined : "approval"}
-      className={cn(
-        "w-full max-w-[840px] rounded-2xl border bg-card p-4",
-        settled || expired ? "border-hairline/30 opacity-70" : "border-accent/40",
-      )}
+      className={cn("w-full max-w-[560px] rounded-[24px] px-4 pb-4 pt-3.5", ASK_CARD_RING, ASK_CARD_LIFT, (settled || expired) && "opacity-70")}
     >
       <div className="flex items-baseline justify-between gap-3">
         <div className="text-[15px] font-semibold text-ink">
@@ -623,7 +648,7 @@ export function ApprovalCard({
                 ? t("approval.aria.profileChange")
                 : t("approval.aria.details")
         }
-        className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-inset px-3 py-2 font-mono text-[13px] leading-relaxed text-ink"
+        className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-[12px] border border-ink/[0.06] bg-ink/[0.04] px-3 py-2 font-mono text-[13px] leading-[18px] text-ink"
       >
         {card.subtitle}
       </pre>

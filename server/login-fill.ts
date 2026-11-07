@@ -256,6 +256,9 @@ function sameDocumentUrl(a: string, b: string): boolean {
   return a.split("#", 1)[0] === b.split("#", 1)[0];
 }
 
+/** What a bot without a saved login for a site does next: ask for one on the sealed card, then fill it. */
+export const NO_LOGIN_NEXT = "Call request_credential with credential_id \"login\" and the site: the person types the username and password on a secure card (saved to their Vault unless they untick it), you never see them, and you are resumed to call fill_login. Use request_sign_in instead only for a step no login can fill (a CAPTCHA, a passkey, an approval on their phone, an OAuth consent) or when they would rather sign in themselves.";
+
 const FIELD_WORDS: Record<FilledField, string> = { username: "the username", password: "the password", code: "the one-time code" };
 const CODE_FROM_INBOX = "If the site sent it to the person's own email or phone, read it from their connected email or messages and type it in yourself; otherwise call request_sign_in so the person enters it.";
 
@@ -290,7 +293,7 @@ export async function fillLogin(input: FillLoginInput, deps: FillLoginDeps): Pro
   if (!all.length) {
     const trouble = input.trouble?.();
     const missing = trouble ? ` 1Password could not be read just now, so its logins may be missing: ${trouble}` : "";
-    return { ok: false, host: pageHost, text: `No saved login for ${pageHost}. A login fills on its own site and the sign-in hosts saved with it, never on another site. ${listed(await input.available())}${missing} Open that site's login page, or call request_sign_in so the person signs in.` };
+    return { ok: false, host: pageHost, text: `No saved login for ${pageHost}. A login fills on its own site and the sign-in hosts saved with it, never on another site. ${listed(await input.available())}${missing} If this is the right site, ${NO_LOGIN_NEXT[0]!.toLowerCase()}${NO_LOGIN_NEXT.slice(1)}` };
   }
   let chosen = all;
   const wanted = input.username?.trim();

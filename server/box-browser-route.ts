@@ -15,3 +15,9 @@ export function browserCallComputerResource(input: { mountedResource?: string; o
   const route = boxBrowserRoute({ mountedForTurn: Boolean(input.mountedResource), inTurn: true, ownCloudBox: input.ownCloudBox, teamComputer: input.teamComputer });
   return route === "mounted" ? input.mountedResource : route === "own-box" ? input.ownBoxResource : undefined;
 }
+
+/** A bot browses in its own VPS box's Chromium when that box is its computer, or when it works on Auto with a VPS desktop
+ * of its own while this host has no Chrome to start (an ARM server): browsing goes where a browser exists. */
+export function ownBoxBrowser(computer: string | undefined, autoInBox: () => boolean): boolean {
+  return computer === "cloud" || (computer === undefined && autoInBox());
+}

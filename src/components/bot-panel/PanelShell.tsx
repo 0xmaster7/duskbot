@@ -26,10 +26,12 @@ function initialTarget(section: BotSettingsSection | null, link: PanelLink | nul
   return section ? resolveTarget(linkTarget(section, link)) : { tab: "details" };
 }
 
-export function BotPanel({ bot, derived, linkedSection, onClose }: {
+export function BotPanel({ bot, derived, linkedSection, computerRequest = 0, onClose }: {
   bot: Bot;
   derived: ReturnType<typeof useBotSettingsDerived>;
   linkedSection: BotSettingsSection | null;
+  /** Each request to show the bot's computer lands on the Computer tab, even when the panel was already open. */
+  computerRequest?: number;
   onClose: () => void;
 }) {
   const { dragProps } = useCaptionChrome();
@@ -84,6 +86,12 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
   useEffect(() => {
     if (linkedSection) go(linkTarget(linkedSection, link));
   }, [linkedSection, link]);
+  const shownRequest = useRef(computerRequest);
+  useEffect(() => {
+    if (shownRequest.current === computerRequest) return;
+    shownRequest.current = computerRequest;
+    go({ tab: "computer" });
+  }, [computerRequest]);
 
   useEffect(() => {
     if (!anchor) return;

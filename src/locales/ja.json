@@ -2172,7 +2172,6 @@
   "task.switchWithUsage": "すべてのスレッド · {label}（入力 {input} · 出力 {output}）",
   "task.switchWithUsageDetail": "すべてのスレッド · {label}（{detail}）",
   "task.switch": "すべてのスレッド",
-  "task.otherActivity": "その他のアクティビティ（{count}）",
   "task.workingElsewhere": "他のスレッドで作業中: {count}",
   "attention.title": "アクティブなスレッド",
   "attention.titleCount": "アクティブなスレッド、{count} 件",
@@ -2724,6 +2723,13 @@
   "signIn.save.submit": "保存して続ける",
   "signIn.save.elsewhere": "現在ブラウザで開いているサインインページ（{host}）にも入力する",
   "signIn.settled.saved": "{site}のログイン情報を保存しました",
+  "signIn.actionNeeded": "操作が必要です",
+  "signIn.instruction": "{site} にサインイン",
+  "signIn.skip": "スキップ",
+  "signIn.skipHint": "この手順を行わずにリクエストを取り消します。{name} はそのまま続けます。",
+  "signIn.takeOver": "操作を代わる",
+  "signIn.skipped": "スキップしました",
+  "signIn.status.saved": "ログインを保存しました",
   "browser.live.botBusy": "{name} がこのブラウザーを使用中です。空くとライブビューが開きます…",
   "browser.input.tooSlow": "ブラウザーが入力に追いつかないため、入力を停止しました（ブラウザーが応答していないか、接続が遅い可能性があります）。再び入力する前にビューを再接続してください。応答しないままの場合は、ブラウザーを再起動してください。",
   "browser.profiles.heldElsewhere": "別のウィンドウがこのブラウザーを使用中です。操作が終わってからプロファイルを切り替えてください。",
@@ -6054,6 +6060,7 @@
   "secretCard.stopped": "停止 · {label}",
   "secretCard.replaced": "新しいリクエストに置き換え · {label}",
   "secretCard.saveToVault": "ボールトに保存",
+  "secretCard.login": "あなたのサーバー向けに封印されています。サイトへの入力は代わりに行われ、ボットが見ることはありません。",
   "secretCard.submit": "送信",
   "secretCard.resumeFailed": "シークレットの保存後、ボットを再開できませんでした",
   "settings.secrets.footnote": "ボットのカードから保存したもの。値は書き込み専用で、ボットは見ることなく使います。",
@@ -6067,5 +6074,6 @@
   "settings.vault.noneHere": "まだ何もありません。",
   "server.botDesktop.building": "サーバーでボットのコンピューターを準備しています。アップデートごとに一度だけで、通常は数分かかります。",
   "computer.botWaking": "{name}が起きています",
-  "seal.untrusted": "このサーバーは、このアプリがリンクしたサーバーであることを証明できなかったため、何も送信しませんでした。再インストールした場合は、もう一度リンクしてください。"
+  "seal.untrusted": "このサーバーは、このアプリがリンクしたサーバーであることを証明できなかったため、何も送信しませんでした。再インストールした場合は、もう一度リンクしてください。",
+  "server.connect.loginNote": "{bot} がサイトに代わりに入力し、パスワードを見ることはありません。"
 }

@@ -187,7 +187,7 @@ it.skipIf(process.platform === "win32")("fills a login saved for example.com on 
 
     page.navigate("https://bob.github.io/login", LOGIN_FORM);
     await turn("Sign in to Bob's page.", 2);
-    expect(answered(1, "fill_login")[0].content[0].text).toBe(`No saved login for bob.github.io. A login fills on its own site and the sign-in hosts saved with it, never on another site. Your saved logins: alice.github.io (alice), example.com (${USERNAME}). Open that site's login page, or call request_sign_in so the person signs in.`);
+    expect(answered(1, "fill_login")[0].content[0].text).toBe(`No saved login for bob.github.io. A login fills on its own site and the sign-in hosts saved with it, never on another site. Your saved logins: alice.github.io (alice), example.com (${USERNAME}). If this is the right site, call request_credential with credential_id "login" and the site: the person types the username and password on a secure card (saved to their Vault unless they untick it), you never see them, and you are resumed to call fill_login. Use request_sign_in instead only for a step no login can fill (a CAPTCHA, a passkey, an approval on their phone, an OAuth consent) or when they would rather sign in themselves.`);
     expect(page.typed).toEqual([USERNAME, PASSWORD]);
 
     page.navigate("https://www.example.com/login", LOGIN_FORM);

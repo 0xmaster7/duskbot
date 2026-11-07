@@ -2303,12 +2303,21 @@ describe("bot settings section", () => {
     expect(next.botSettingsExpandAccordion).toBe(true);
   });
 
-  it("toggleSettings leaves the computer panel open, closes app settings", () => {
-    const withPanels = { ...initialState, computerOpen: true, appSettingsOpen: true };
+  it("toggleSettings closes app settings", () => {
+    const withPanels = { ...initialState, appSettingsOpen: true };
     const next = reducer(withPanels, { type: "toggleSettings", open: true });
     expect(next.settingsOpen).toBe(true);
-    expect(next.computerOpen).toBe(true);
     expect(next.appSettingsOpen).toBe(false);
+  });
+
+  it("shows the bot's computer on its panel's Computer tab, never a separate screen panel", () => {
+    const shown = reducer(initialState, { type: "toggleComputer", open: true });
+    expect(shown).toMatchObject({ settingsOpen: true, botSettingsSection: "computer", botSettingsExpandAccordion: true, computerTabRequest: 1 });
+    expect("computerOpen" in shown).toBe(false);
+    // asked again while the panel is open, it lands on the Computer tab again
+    expect(reducer(shown, { type: "toggleComputer" }).computerTabRequest).toBe(2);
+    // there is nothing separate to close
+    expect(reducer(shown, { type: "toggleComputer", open: false })).toBe(shown);
   });
 
   it("reopens the same section after a collapse without remounting settings", () => {
@@ -2494,10 +2503,10 @@ describe("activity panel", () => {
   });
 
   it("toggleActivity opens it and closes the other side panels", () => {
-    const withPanels = { ...initialState, computerOpen: true, appSettingsOpen: true };
+    const withPanels = { ...initialState, settingsOpen: true, appSettingsOpen: true };
     const next = reducer(withPanels, { type: "toggleActivity" });
     expect(next.activityOpen).toBe(true);
-    expect(next.computerOpen).toBe(false);
+    expect(next.settingsOpen).toBe(false);
     expect(next.appSettingsOpen).toBe(false);
     expect(reducer(next, { type: "toggleActivity" }).activityOpen).toBe(false);
   });
@@ -2508,10 +2517,10 @@ describe("activity panel", () => {
   });
 
   it("opening bot settings closes activity without changing the other panels", () => {
-    const open = { ...initialState, activityOpen: true, computerOpen: true };
+    const open = { ...initialState, activityOpen: true, notificationsOpen: true };
     const next = reducer(open, { type: "toggleSettings", open: true });
     expect(next.activityOpen).toBe(false);
-    expect(next.computerOpen).toBe(true);
+    expect(next.notificationsOpen).toBe(true);
   });
 
   it("switching to routines or files closes the activity panel", () => {
@@ -3103,9 +3112,9 @@ describe("notifications feed", () => {
 
   it("toggleNotifications closes the other docked panels, and vice versa", () => {
     let state = reducer(initialState, { type: "toggleComputer", open: true });
-    expect(state.computerOpen).toBe(true);
+    expect(state.settingsOpen).toBe(true);
     state = reducer(state, { type: "toggleNotifications", open: true });
-    expect(state).toMatchObject({ notificationsOpen: true, computerOpen: false });
+    expect(state).toMatchObject({ notificationsOpen: true, settingsOpen: false });
     state = reducer(state, { type: "toggleActivity", open: true });
     expect(state).toMatchObject({ activityOpen: true, notificationsOpen: false });
   });
@@ -3135,12 +3144,9 @@ describe("notifications feed", () => {
   it("unpinned, the side panels still close it, the settings modal does not (regression guard)", () => {
     const open = reducer(initialState, { type: "toggleNotifications", open: true });
     expect(open.notificationsPinned).toBe(false);
-    for (const action of [
-      { type: "toggleComputer", open: true } as const,
-      { type: "toggleActivity", open: true } as const,
-    ]) {
-      expect(reducer(open, action).notificationsOpen).toBe(false);
-    }
+    expect(reducer(open, { type: "toggleActivity", open: true }).notificationsOpen).toBe(false);
+    // the bot's computer is its panel's Computer tab, which sits beside the feed like the panel does
+    expect(reducer(open, { type: "toggleComputer", open: true }).notificationsOpen).toBe(true);
     // Settings is a modal: the feed beside the chat stays as it was under it
     expect(reducer(open, { type: "toggleAppSettings", open: true }).notificationsOpen).toBe(true);
   });

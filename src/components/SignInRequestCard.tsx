@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Check, Hand, KeyRound, Loader2, LockKeyhole, LogIn, RefreshCw, X } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Check, Hand, Loader2, RefreshCw } from "lucide-react";
 
 import type { ComputerHelpRef } from "../../shared/wire";
 import { signInOutcome } from "../../shared/sign-in-request";
@@ -8,11 +8,21 @@ import { t } from "@/lib/i18n";
 import { cardSaveTarget, saveLoginFromCard } from "@/lib/logins";
 import { answerSignIn, signInHostIsHere } from "@/lib/sign-in";
 import { useStore, type Bot, type Message } from "@/state/store";
-import { ASK_CHIP, ASK_CHIP_IDLE, askPrimary, ASK_QUIET_BUTTON, AskCard, AskSettledLine, returnFocusToComposer } from "./AskCard";
+import { ASK_QUIET_BUTTON, AskCard, CardSettledRow, cardPrimary, cardSecondary, cardTertiary, returnFocusToComposer } from "./AskCard";
+import { GrokIcon } from "./GrokIcon";
 import { LoginForm } from "./LoginForm";
 
 // Security: a saved login is encrypted on the server and filled by fill_login; neither the bot nor any screen ever gets
 // it back.
+
+/** Grok's titlebar names where the step happens. */
+const SOURCE = {
+  browser: "computer.tab.browser",
+  vm: "botPanel.tab.computer",
+  cloud: "botPanel.tab.computer",
+  local: "place.local",
+  host: "botPanel.tab.computer",
+} as const;
 
 const WHERE = {
   browser: "signIn.where.browser",
@@ -25,7 +35,6 @@ const WHERE = {
 export function SignInRequestCard({
   botId,
   botName,
-  color,
   threadId,
   message,
 }: {
@@ -71,23 +80,16 @@ export function SignInRequestCard({
   };
 
   const stopped = card.stopped === true;
+  const source = { icon: <GrokIcon name={card.place === "browser" ? "browser" : "laptop"} size={12} />, label: t(SOURCE[card.place === "local" && !here ? "host" : card.place]) };
+  const instruction = t("signIn.instruction", { site: card.site });
+  const settled = (status: string, more: { tone?: "done" | "closed" | "stopped" | "failed"; detail?: ReactNode; action?: ReactNode } = {}) => (
+    <CardSettledRow ariaLabel={t("signIn.cardLabel", { name: botName, site: card.site })} icon={source.icon} label={source.label}
+      summary={`${status} · ${instruction}`} title={status} detail={more.detail ?? instruction} tone={more.tone} action={more.action} />
+  );
 
-  if (card.answeredInChat) {
-    return (
-      <AskSettledLine ariaLabel={t("signIn.title")}>
-        <span className="text-ink-secondary">{card.site}</span>
-        <span> · {t("signIn.answeredInChat")}</span>
-      </AskSettledLine>
-    );
-  }
-
+  if (card.answeredInChat) return settled(t("signIn.answeredInChat"));
   if (card.superseded || (stopped && !outcome)) {
-    return (
-      <AskSettledLine icon={<X size={13} />} ariaLabel={t("signIn.title")}>
-        <span className="text-ink-secondary">{card.site}</span>
-        <span> · {t(card.superseded ? "signIn.superseded" : "chat.turnStopped")}</span>
-      </AskSettledLine>
-    );
+    return settled(t(card.superseded ? "signIn.superseded" : "chat.turnStopped"), { tone: card.superseded ? "closed" : "stopped" });
   }
 
   if (outcome) {
@@ -98,19 +100,19 @@ export function SignInRequestCard({
         {t("signIn.retry")}
       </button>
     ) : undefined;
-    return (
-      <AskSettledLine
-        ariaLabel={t("signIn.title")}
-        icon={outcome === "cancelled" ? <X size={13} className="text-ink-tertiary" /> : card.resumed || stopped ? undefined : error ? <LogIn size={13} /> : <Loader2 size={13} className="animate-spin" />}
-        action={retry}
-        detail={error && <p role="alert" className="ms-[19px] mt-1 text-[12px] text-danger">{error}</p>}
-      >
-        <span className="text-ink-secondary">{card.savedLogin
-          ? t("signIn.settled.saved", { site: card.savedLogin })
-          : t(outcome === "done" ? "signIn.settled.done" : "signIn.settled.cancelled", { site: card.site })}</span>
-        <span> · {card.resumed ? t("signIn.settled.resumed", { name: botName }) : stopped ? t("chat.turnStopped") : error ? t("signIn.settled.failed") : t("signIn.settled.waiting")}</span>
-      </AskSettledLine>
-    );
+    const status = card.savedLogin ? t("signIn.status.saved") : t(outcome === "done" ? "common.done" : "signIn.skipped");
+    const what = card.savedLogin
+      ? t("signIn.settled.saved", { site: card.savedLogin })
+      : t(outcome === "done" ? "signIn.settled.done" : "signIn.settled.cancelled", { site: card.site });
+    const after = card.resumed ? t("signIn.settled.resumed", { name: botName }) : stopped ? t("chat.turnStopped") : error ? t("signIn.settled.failed") : t("signIn.settled.waiting");
+    return settled(status, {
+      tone: error && !card.resumed && !stopped ? "failed" : outcome === "cancelled" ? "closed" : "done",
+      action: retry,
+      detail: <>
+        <span>{what} · {after}</span>
+        {error && <span role="alert" className="mt-1 block text-[13px] leading-[18px] text-danger">{error}</span>}
+      </>,
+    });
   }
 
   const where = WHERE[card.place === "local" && !here ? "host" : card.place];
@@ -122,41 +124,40 @@ export function SignInRequestCard({
   const canSave = card.place === "browser" && window.ogb?.remoteClient?.active !== true;
   let pageHost = card.site;
   try { pageHost = new URL(card.url).hostname; } catch {}
+  const takeOver = cardPrimary();
   return (
     <AskCard
       ariaLabel={t("signIn.cardLabel", { name: botName, site: card.site })}
-      icon={<LogIn size={15} />}
-      title={t("signIn.title")}
+      source={source}
+      title={t("signIn.actionNeeded")}
+      explanation={<>
+        <span dir="ltr" className="break-all" data-testid="sign-in-site">{instruction}</span>
+        {card.reason && <span className="block"><bdi dir="auto">{card.reason}</bdi></span>}
+        {explained && <span role="note" className="mt-1 block text-ink">{t(here ? "signIn.local.explain" : "signIn.local.explainHost", { name: botName })}</span>}
+        {error && <span role="alert" className="mt-1 block text-[13px] leading-[18px] text-danger">{error}</span>}
+      </>}
       stays
       footer={saving ? undefined : <>
-        <button type="button" onClick={() => void answer("cancel")} disabled={pending !== null} className={cn(ASK_CHIP, ASK_CHIP_IDLE)}>
-          {pending === "cancel" ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
-          {t("signIn.cancel")}
-        </button>
-        <button type="button" onClick={open} disabled={pending !== null} className={cn(ASK_CHIP, ASK_CHIP_IDLE)}>
-          <LogIn size={14} />
-          {t("signIn.open")}
-        </button>
         {canSave && (
-          <button type="button" onClick={startSaving} disabled={pending !== null} className={cn(ASK_CHIP, ASK_CHIP_IDLE)}>
-            <KeyRound size={14} />
+          <button type="button" onClick={startSaving} disabled={pending !== null} className={cn(cardTertiary(), "me-auto -ms-2")}>
             {t("signIn.saveLogin")}
           </button>
         )}
-        <button type="button" onClick={() => void answer("done")} disabled={pending !== null} {...askPrimary(color)}>
-          {pending === "done" ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-          {t("signIn.done")}
+        <button type="button" onClick={() => void answer("cancel")} disabled={pending !== null} title={t("signIn.skipHint", { name: botName })} className={cardSecondary()}>
+          {pending === "cancel" && <Loader2 size={14} className="animate-spin" />}
+          {t("signIn.skip")}
+        </button>
+        <button type="button" onClick={() => void answer("done")} disabled={pending !== null} className={cardSecondary()}>
+          {pending === "done" && <Loader2 size={14} className="animate-spin" />}
+          {t("computer.done")}
+        </button>
+        <button type="button" onClick={open} disabled={pending !== null} title={t(where, { name: botName })} className={takeOver.className} style={takeOver.style}>
+          {card.place === "local" ? t("signIn.open") : t("signIn.takeOver")}
         </button>
       </>}
     >
-      <div dir="ltr" className="break-all text-[20px] font-semibold leading-7 text-ink" data-testid="sign-in-site">{card.site}</div>
-      {card.reason && (
-        <blockquote className="mt-1.5 border-s-2 border-hairline ps-2.5 text-[13px] leading-snug text-ink-secondary">
-          <bdi dir="auto">“{card.reason}”</bdi> <span className="text-ink-tertiary">— {botName}</span>
-        </blockquote>
-      )}
-      {saving ? (
-        <div className="mt-2.5" data-testid="sign-in-save">
+      {saving && (
+        <div data-testid="sign-in-save">
           <p className="mb-2 text-[13px] leading-snug text-ink-secondary">{t("signIn.save.note", { name: botName, site: target?.site ?? pageHost })}</p>
           <LoginForm submitLabel={t("signIn.save.submit")} autoFocus onCancel={() => setSaving(false)}
             onSubmit={async (fields) => {
@@ -172,16 +173,7 @@ export function SignInRequestCard({
             )}
           </LoginForm>
         </div>
-      ) : <p className="mt-2 text-[13px] leading-snug text-ink-secondary">{t(where, { name: botName })}</p>}
-      {explained && (
-        <p role="note" className="mt-1.5 text-[13px] leading-snug text-ink">{t(here ? "signIn.local.explain" : "signIn.local.explainHost", { name: botName })}</p>
       )}
-      {!saving && (
-        <p className="mt-2 flex items-center gap-1 text-[12px] text-ink-tertiary">
-          <LockKeyhole size={11} aria-hidden="true" /> {t("signIn.private")}
-        </p>
-      )}
-      {error && <p role="alert" className="mt-2 text-[12px] text-danger">{error}</p>}
     </AskCard>
   );
 }

@@ -5,6 +5,7 @@ import { fromMarkdown } from "mdast-util-from-markdown";
 import { Download, Film, LoaderCircle, Music, Play, X } from "lucide-react";
 import { attachmentBasename, FILE_MAX_BYTES, type TranscriptFileAttachment, type TranscriptImageAttachment } from "@/lib/composer-attachments";
 import { cn } from "@/lib/cn";
+import type { MediaSize } from "@/lib/image-cache";
 import { t } from "@/lib/i18n";
 import { windowsPathDestinations } from "../../shared/markdown-windows-paths";
 import { localFilePath } from "./ChatMarkdown";
@@ -110,10 +111,11 @@ export function replyAttachmentGroup(text: string, attachments: readonly Message
   return { images: attached.images, files, delivered };
 }
 
-export function MessageAttachmentGallery({ text, attachments = NO_GENERATED_ATTACHMENTS, message, eager, className }: {
+export function MessageAttachmentGallery({ text, attachments = NO_GENERATED_ATTACHMENTS, message, media, eager, className }: {
   text: string;
   attachments?: readonly MessageAttachmentEntry[];
   message: MessageAttachmentContext;
+  media?: Readonly<Record<string, MediaSize>>;
   eager?: boolean;
   className?: string;
 }) {
@@ -122,7 +124,7 @@ export function MessageAttachmentGallery({ text, attachments = NO_GENERATED_ATTA
     () => [...attached.files, ...collectMessageFiles(text, [...attached.images, ...attached.files.map((file) => file.path)])],
     [text, attached],
   );
-  return <AttachmentGallery images={attached.images} files={files} message={message} eager={eager} className={className} />;
+  return <AttachmentGallery images={attached.images} files={files} message={message} media={media} eager={eager} className={className} />;
 }
 
 const MEDIA_STALL_MS = 15_000;
@@ -392,10 +394,12 @@ type GalleryItem = { key: string } & (
 
 const BENEATH_LIMIT = 6;
 
-export function AttachmentGallery({ images = [], files = [], message, eager = false, beneath = false, align = "start", className }: {
+export function AttachmentGallery({ images = [], files = [], message, media, eager = false, beneath = false, align = "start", className }: {
   images?: Array<string | TranscriptImageAttachment>;
   files?: GalleryFile[];
   message?: MessageAttachmentContext;
+  /** The message's picture sizes (WireMessage.media), so every tile's box is reserved before it loads. */
+  media?: Readonly<Record<string, MediaSize>>;
   eager?: boolean;
   beneath?: boolean;
   align?: "start" | "end";
@@ -412,7 +416,7 @@ export function AttachmentGallery({ images = [], files = [], message, eager = fa
       if (seen.has(key)) continue;
       seen.add(key);
       const image = typeof reference === "string" || reference.private
-        ? previewImage(path, typeof reference === "string" ? undefined : reference.name)
+        ? previewImage(path, typeof reference === "string" ? undefined : reference.name, media)
         : null;
       if (image) result.push({ key, kind: "image", image });
       else result.push({ key, kind: "file", file: typeof reference === "string" ? { path, name: attachmentBasename(path) } : reference });
@@ -425,13 +429,13 @@ export function AttachmentGallery({ images = [], files = [], message, eager = fa
       result.push({ key, kind: trusted && isVideoAttachment(file.path) ? "video" : trusted && isAudioAttachment(file.path) ? "audio" : "file", file });
     }
     return result;
-  }, [images, files, message]);
+  }, [images, files, message, media]);
   if (!items.length) return null;
   const simpleImages = beneath ? [] : items.filter((item) => item.kind === "image");
   const listed = beneath ? items : items.filter((item) => item.kind !== "image");
   const limit = beneath ? BENEATH_LIMIT : simpleImages.length ? 3 : 4;
   const shown = expanded ? listed : listed.slice(0, limit);
-  const media = shown.filter((item) => item.kind === "image" || item.kind === "video");
+  const mediaItems = shown.filter((item) => item.kind === "image" || item.kind === "video");
   const documents = shown.filter((item) => item.kind === "file" || item.kind === "audio");
   const previews = items.flatMap((item) => item.kind === "image" ? [item.image] : []);
   const label = items.length === 1 ? t("attach.gallerySingle") : t("attach.galleryCount", { count: items.length });
@@ -482,7 +486,7 @@ export function AttachmentGallery({ images = [], files = [], message, eager = fa
   return (
     <section aria-label={label} className={cn("flex w-full max-w-full flex-col gap-3 text-left whitespace-normal", align === "end" ? "items-end" : "items-start", className)}>
       {rowImages.length > 0 && <ImageRow images={rowImages} align={align} eager={eager} onOpen={(index) => setSelected(rowImages[index] ?? null)} />}
-      {media.map((item) => item.kind === "video" && message ? (
+      {mediaItems.map((item) => item.kind === "video" && message ? (
         <div key={item.key} className="w-[min(34rem,70vw)] max-w-full"><VideoAttachment key={`${message.threadId}:${message.messageId}:${item.key}`} file={item.file} message={message} /></div>
       ) : null)}
       {documents.map((item) => item.kind === "audio" && message

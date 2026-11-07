@@ -6,6 +6,7 @@ import {
   parseAudioRange, readAttachment, saveFile, saveImageUpload, validateAttachmentUploadId, type SavedAttachment,
 } from "../attachments.ts";
 import { deliveredCopy } from "../bot-attachment.ts";
+import { attachmentImageSize } from "../media-size.ts";
 import { memberBot, memberGroup, type Viewer, type VisibleSet } from "../bot-visibility.ts";
 import type { ComputerControl } from "../computer-control.ts";
 import { speakerOf, type PersonName } from "../replies.ts";
@@ -24,14 +25,39 @@ import type { BotRecord, GroupRecord, Message, Store } from "../store.ts";
 import { createJobRoutes } from "./jobs.ts";
 import { PASS, type RouteContext, type RouteHandler } from "./table.ts";
 
+/** How many of each conversation's newest messages GET /api/transcripts sends when not asked for a number. */
+export const RECENT_PAGE = 50;
 const UPLOADED_NAME = /^[A-Za-z0-9-]+\.[A-Za-z0-9]{1,10}$/;
+
+const ATTACHMENT_MAX_AGE_S = 365 * 24 * 60 * 60;
+
+export function attachmentCacheHeaders(name: string, mime: string, size: number) {
+  return {
+    "content-type": mime,
+    "cache-control": `private, max-age=${ATTACHMENT_MAX_AGE_S}, immutable`,
+    "cdn-cache-control": "no-store",
+    "cloudflare-cdn-cache-control": "no-store",
+    vary: "Cookie, Authorization",
+    etag: `"${name}:${size}"`,
+    "x-content-type-options": "nosniff",
+  };
+}
+
+export function etagMatches(header: string | string[] | undefined, etag: string): boolean {
+  const raw = Array.isArray(header) ? header.join(",") : header;
+  if (!raw) return false;
+  return raw.split(",").some((candidate) => {
+    const value = candidate.trim();
+    return value === "*" || value === etag || value === `W/${etag}`;
+  });
+}
 
 export type MessagePage = { messages: Array<Message | Record<string, unknown>>; hasMore?: boolean; activeLeafId: string | null };
 
 export interface ThreadRouteDeps {
   store: Pick<Store,
     | "activeLeaf" | "activePath" | "bot" | "botByThread" | "bots" | "groupByThread" | "groupTaskByThread" | "groups" | "messagesFor"
-    | "onChange" | "sections" | "taskByThread" | "tasks" | "messagesPreview">;
+    | "onChange" | "sections" | "taskByThread" | "tasks" | "messagesPreview" | "withMediaSizes">;
   coordinator: Pick<Coordinator, "job">;
   groupThreadIsWorking(groupId: string, threadId: string): boolean;
   /** What people's lines are called in this conversation (replies.ts PersonName). */
@@ -102,7 +128,7 @@ export function createThreadRoutes(deps: ThreadRouteDeps): RouteHandler {
           return messagePage(threadId, limit);
         }
         const page = messagePage(threadId, Math.min(limit ?? DEFAULT_PAGE, 1));
-        const previewMessages = store.messagesPreview(threadId, limit ?? DEFAULT_PAGE).map(pageMessage);
+        const previewMessages = store.withMediaSizes(threadId, store.messagesPreview(threadId, limit ?? DEFAULT_PAGE)).map(pageMessage);
         return { ...page, messages: previewMessages.length ? [previewMessages.at(-1)!] : [], previewMessages };
       };
       const queued = publicBotQueuedMessages();
@@ -130,6 +156,28 @@ export function createThreadRoutes(deps: ThreadRouteDeps): RouteHandler {
         ),
         ...(selective ? { loadedThreads } : {}),
       });
+    }
+
+    if (method === "GET" && path === "/api/transcripts") {
+      // every conversation the person can open, newest page each, in one reply: what a client keeps so any chat opens at once
+      const limit = url.searchParams.has("limit") ? pageSize(url.searchParams.get("limit")) : RECENT_PAGE;
+      if (limit === null || limit === undefined) return json(res, 400, { error: "limit must be a non-negative whole number" });
+      const wanted = url.searchParams.get("threads");
+      const only = wanted ? new Set(wanted.split(",").filter(Boolean)) : null;
+      const threads: Array<{ threadId: string; messages: unknown[]; hasMore?: boolean; activeLeafId: string | null }> = [];
+      const add = (threadId: string) => {
+        if (only && !only.has(threadId)) return;
+        const page = messagePage(threadId, limit);
+        threads.push({ threadId, messages: page.messages, hasMore: page.hasMore, activeLeafId: store.activeLeaf(threadId) });
+      };
+      for (const bot of store.bots) {
+        if (!visible.bot(bot.id)) continue;
+        // narrowed first, as for the list of bots: a conversation this person may not read never goes out
+        const shown = memberBot(wireBot(bot), visible) as { threadId?: unknown };
+        if (typeof shown.threadId === "string") add(shown.threadId);
+      }
+      for (const group of store.groups) if (visible.group(group.id)) add(group.threadId);
+      return json(res, 200, { threads });
     }
 
     m = path.match(/^\/api\/threads\/([\w-]+)\/messages$/);
@@ -353,7 +401,8 @@ export function createThreadRoutes(deps: ThreadRouteDeps): RouteHandler {
         req.on("error", (e) => fail(400, e instanceof Error ? e.message : String(e)));
       });
       deps.uploads.note(auth, basename(saved.path));
-      return json(res, 201, saved);
+      const media = attachmentImageSize(basename(saved.path));
+      return json(res, 201, media ? { ...saved, media } : saved);
     }
 
     // Raw bytes; a UUID uploadId is stable across retries, and the quota rejects rather than delete files old prompts reference.
@@ -421,12 +470,13 @@ export function createThreadRoutes(deps: ThreadRouteDeps): RouteHandler {
       const attachment = readAttachment(m[1]!);
       if (!attachment) return json(res, 404, { error: "no such attachment" });
       const size = attachment.bytes.byteLength;
-      // Visibility is decided per request, so the browser must never reuse one member's copy for another identity.
-      const headers = {
-        "content-type": attachment.mime,
-        "cache-control": "private, no-store",
-        "x-content-type-options": "nosniff",
-      };
+      // Security: a stored name never changes bytes, so only the browser's private cache may keep a copy, and Vary keeps it
+      // from answering for another session or identity; shared caches and CDNs never store one.
+      const headers = attachmentCacheHeaders(m[1]!, attachment.mime, size);
+      if (etagMatches(req.headers["if-none-match"], headers.etag)) {
+        res.writeHead(304, headers);
+        return res.end();
+      }
       if (attachment.mime.startsWith("audio/")) {
         const rawRange = Array.isArray(req.headers.range) ? req.headers.range[0] : req.headers.range;
         const range = parseAudioRange(rawRange, size);

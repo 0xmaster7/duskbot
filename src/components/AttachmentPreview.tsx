@@ -27,6 +27,10 @@ import { FilePreviewButton } from "./FilePreviewButton";
 import { chipNameAction, SaveIconButton, useHtmlPreview } from "./HtmlFilePreview";
 import { ImageLoading } from "./ImageLoading";
 import { GrokIcon } from "./GrokIcon";
+import { imageReady, knownImageSize, noteImageLoaded, reservedAspect, type MediaSize } from "@/lib/image-cache";
+import { canonicalDownloadFilename } from "@/lib/download-filename";
+
+export { canonicalDownloadFilename, contentDispositionFilename, safeDownloadFilename } from "@/lib/download-filename";
 
 export interface PreviewImage {
   src: string;
@@ -34,18 +38,22 @@ export interface PreviewImage {
   downloadUrl?: string;
   downloadName?: string;
   openUrl?: string;
+  /** The picture's own size when known before it loads; its box is reserved from this. */
+  size?: MediaSize;
 }
 
 export interface MessageAttachmentContext { threadId: string; messageId: string }
 
-export function previewImage(path: string, name = attachmentBasename(path)): PreviewImage | null {
+export function previewImage(path: string, name = attachmentBasename(path), media?: Readonly<Record<string, MediaSize>>): PreviewImage | null {
   const src = attachmentImageUrl(path);
   if (!src) return null;
+  const size = knownImageSize(path, media);
   return {
     src,
     name,
     downloadUrl: src,
     downloadName: canonicalDownloadFilename({ fallback: name, source: path }),
+    ...(size ? { size } : {}),
   };
 }
 
@@ -67,107 +75,6 @@ export function imageGalleryLayout(count: number): string {
   if (count <= 1) return "w-[min(32rem,70vw)] grid-cols-1";
   if (count === 2) return "w-[min(36rem,70vw)] grid-cols-2";
   return "w-[min(38rem,70vw)] grid-cols-2 sm:grid-cols-3";
-}
-
-const IMAGE_EXTENSION_BY_MIME: Readonly<Record<string, string>> = {
-  "image/avif": "avif",
-  "image/bmp": "bmp",
-  "image/gif": "gif",
-  "image/heic": "heic",
-  "image/heif": "heif",
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/tiff": "tiff",
-  "image/webp": "webp",
-};
-
-const IMAGE_EXTENSIONS = new Set([
-  "avif",
-  "bmp",
-  "gif",
-  "heic",
-  "heif",
-  "jpeg",
-  "jpg",
-  "png",
-  "tif",
-  "tiff",
-  "webp",
-]);
-
-export function safeDownloadFilename(value: string | null | undefined): string {
-  const basename = (value ?? "").split(/[\\/]/).at(-1) ?? "";
-  const cleaned = basename
-    .normalize("NFC")
-    // oxlint-disable-next-line no-control-regex -- strips control and bidi characters from a filename
-    .replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, "")
-    .replace(/[<>:"|?*]/g, "_")
-    .trim()
-    .replace(/[. ]+$/g, "");
-  const bounded = Array.from(cleaned)
-    .filter((character) => {
-      const code = character.charCodeAt(0);
-      return character.length > 1 || code < 0xd800 || code > 0xdfff;
-    })
-    .slice(0, 180)
-    .join("");
-  if (!bounded) return "download";
-  const stem = bounded.split(".", 1)[0]!.toUpperCase();
-  return /^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/.test(stem) ? `_${bounded}` : bounded;
-}
-
-/** Prefers RFC 5987's UTF-8 filename* form. */
-export function contentDispositionFilename(header: string | null): string | null {
-  if (!header) return null;
-  const encoded = /(?:^|;)\s*filename\*\s*=\s*(?:UTF-8'[^']*')?([^;]*)/i.exec(header)?.[1]?.trim();
-  if (encoded) {
-    const unquoted = encoded.replace(/^"|"$/g, "");
-    try {
-      return safeDownloadFilename(decodeURIComponent(unquoted));
-    } catch {
-    }
-  }
-  const quoted = /(?:^|;)\s*filename\s*=\s*"((?:\\.|[^"\\])*)"/i.exec(header)?.[1];
-  if (quoted !== undefined) return safeDownloadFilename(quoted.replace(/\\(.)/g, "$1"));
-  const plain = /(?:^|;)\s*filename\s*=\s*([^;]*)/i.exec(header)?.[1]?.trim();
-  return plain ? safeDownloadFilename(plain) : null;
-}
-
-function sourceImageExtension(source: string | undefined): string | null {
-  if (!source) return null;
-  let pathname = source;
-  try {
-    pathname = decodeURIComponent(new URL(source, "https://openmausbot.invalid").pathname);
-  } catch {
-    pathname = source.split(/[?#]/, 1)[0] ?? source;
-  }
-  const extension = /\.([a-z0-9]+)$/i.exec(pathname)?.[1]?.toLowerCase();
-  return extension && IMAGE_EXTENSIONS.has(extension) ? extension : null;
-}
-
-function replaceExtension(name: string, extension: string): string {
-  const suffix = `.${extension}`;
-  const stem = name.replace(/\.[^.]*$/, "") || "image";
-  const available = Math.max(1, 180 - Array.from(suffix).length);
-  return `${Array.from(stem).slice(0, available).join("")}${suffix}`;
-}
-
-export function canonicalDownloadFilename({
-  contentDisposition,
-  fallback,
-  source,
-  mime,
-}: {
-  contentDisposition?: string | null;
-  fallback?: string;
-  source?: string;
-  mime?: string | null;
-}): string {
-  const selected = contentDispositionFilename(contentDisposition ?? null)
-    ?? safeDownloadFilename(fallback);
-  const mediaType = mime?.split(";", 1)[0]?.trim().toLowerCase() ?? "";
-  const imageExtension = IMAGE_EXTENSION_BY_MIME[mediaType] ?? sourceImageExtension(source);
-  return imageExtension ? replaceExtension(selected, imageExtension) : selected;
 }
 
 export function isExternalImageSource(src: string): boolean {
@@ -667,6 +574,8 @@ export function AttachmentThumbnail({
   explainRefusal = false,
   label,
   onSize,
+  fit,
+  style,
 }: {
   image: PreviewImage;
   onPreview: () => void;
@@ -675,18 +584,25 @@ export function AttachmentThumbnail({
   explainRefusal?: boolean;
   label?: string;
   onSize?: (size: { width: number; height: number }) => void;
+  /** A caller that sized the box itself says how the picture fills it; otherwise unknown sizes letterbox. */
+  fit?: "cover" | "contain";
+  /** A box the caller reserved itself (it wins over the thumbnail's own). */
+  style?: React.CSSProperties;
 }) {
   // Callers key this by src: resetting in an effect races a cached image's onLoad, which can fire before the effect
   // runs.
-  const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
+  const [warm] = useState(() => imageReady(image.src));
+  const [state, setState] = useState<"loading" | "ready" | "failed">(warm ? "ready" : "loading");
   const [attempt, setAttempt] = useState(0);
   const [outsideWorkspace, setOutsideWorkspace] = useState(false);
-  const [ratio, setRatio] = useState<number | null>(null);
+  // decided once, before any byte: a size learned on load never reshapes a box already on screen
+  const [box] = useState(() => reservedAspect(image.size ?? knownImageSize(image.src)));
 
   return (
     <span
-      style={ratio ? { aspectRatio: String(ratio) } : undefined}
-      className={cn("group/image relative block aspect-[4/3] min-w-0 overflow-hidden rounded-xl border border-hairline/40 bg-inset", className)}
+      style={{ aspectRatio: String(box.ratio), ...style }}
+      data-reserved={box.known ? "size" : "default"}
+      className={cn("group/image relative block min-w-0 overflow-hidden rounded-xl border border-hairline/40 bg-inset", className)}
     >
       {state === "loading" && <ImageLoading name={image.name} className="absolute inset-0 bg-raised/65" />}
       {state === "failed" ? (
@@ -743,14 +659,13 @@ export function AttachmentThumbnail({
             key={`${image.src}:${attempt}`}
             src={image.src}
             alt={image.name}
-            loading={eager ? "eager" : "lazy"}
+            loading={eager || warm ? "eager" : "lazy"}
+            decoding={warm ? "sync" : "async"}
             fetchPriority={eager ? "high" : undefined}
             onLoad={(event) => {
               const { naturalWidth, naturalHeight } = event.currentTarget;
-              if (naturalWidth > 0 && naturalHeight > 0) {
-                setRatio(Math.min(Math.max(naturalWidth / naturalHeight, 0.6), 2.4));
-                onSize?.({ width: naturalWidth, height: naturalHeight });
-              }
+              if (naturalWidth > 0 && naturalHeight > 0) onSize?.({ width: naturalWidth, height: naturalHeight });
+              noteImageLoaded(image.src, event.currentTarget);
               setState("ready");
             }}
             onError={() => {
@@ -758,7 +673,8 @@ export function AttachmentThumbnail({
               if (explainRefusal) void messageImageOutsideWorkspace(image.src).then(setOutsideWorkspace);
             }}
             className={cn(
-              "block size-full object-cover transition-opacity duration-[180ms] ease-[ease]",
+              "block size-full transition-opacity duration-[180ms] ease-[ease]",
+              (fit ?? (box.known ? "cover" : "contain")) === "cover" ? "object-cover" : "object-contain",
               state === "ready" ? "opacity-100" : "opacity-0",
             )}
           />
@@ -805,6 +721,16 @@ export function AttachedImageGallery({
   );
 }
 
+/** grok's single inline image: as wide as the picture up to 560px, never taller than 200px. */
+export const MARKDOWN_IMAGE = { maxWidth: 560, maxHeight: 200 } as const;
+
+/** The box an inline image keeps from first paint to load: its own shape when known, else 560 by at most 200, letterboxed. */
+export function markdownImageBox(size: MediaSize | undefined): { width: string; aspectRatio: string; maxHeight: number; known: boolean } {
+  const { ratio, known } = reservedAspect(size, 4 / 3, [0.2, 5]);
+  const width = known ? Math.min(size!.w, MARKDOWN_IMAGE.maxWidth, Math.round(MARKDOWN_IMAGE.maxHeight * ratio)) : MARKDOWN_IMAGE.maxWidth;
+  return { width: `min(100%, ${width}px)`, aspectRatio: String(ratio), maxHeight: MARKDOWN_IMAGE.maxHeight, known };
+}
+
 export function MarkdownImagePreview({
   src,
   name,
@@ -812,6 +738,7 @@ export function MarkdownImagePreview({
   message,
   filePath,
   sourceOffset,
+  size,
 }: {
   src: string;
   name: string;
@@ -819,8 +746,11 @@ export function MarkdownImagePreview({
   message?: MessageAttachmentContext;
   filePath?: string;
   sourceOffset?: number;
+  size?: MediaSize;
 }) {
   const [open, setOpen] = useState(false);
+  const [box] = useState(() => markdownImageBox(size ?? knownImageSize(filePath ?? src)));
+  const frame = { aspectRatio: box.aspectRatio, maxHeight: box.maxHeight };
   const containerRef = useRef<HTMLSpanElement>(null);
   const threadId = message?.threadId;
   const messageId = message?.messageId;
@@ -869,24 +799,25 @@ export function MarkdownImagePreview({
     downloadName: localMessageImage
       ? canonicalDownloadFilename({ fallback: name, source: filePath })
       : undefined,
+    ...(size ? { size } : {}),
   };
   return (
     <>
-      <span ref={containerRef} className="my-2 block w-[min(36rem,70vw)] max-w-full">
+      <span ref={containerRef} data-markdown-image={box.known ? "size" : "default"} className="my-2 block max-w-full" style={{ width: box.width }}>
         {external && !externalAllowed ? (
-          <span className="flex aspect-[4/3] max-h-96 flex-col items-center justify-center gap-2 rounded-xl border border-hairline/40 bg-inset px-4 text-center text-[12px] text-ink-secondary">
+          <span style={frame} className="flex flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-hairline/40 bg-inset px-4 text-center text-[12px] text-ink-secondary">
             <ImageOff size={20} />
             <span>{t("attach.externalHidden")}</span>
             <button type="button" className="rounded-md border border-hairline/50 bg-panel px-2.5 py-1 text-ink hover:bg-raised" onClick={(event) => { event.preventDefault(); event.stopPropagation(); setApprovedExternalSource(src); }}>{t("attach.loadImage")}</button>
           </span>
         ) : filePath && (!threadId || !messageId || localSourceOffset === null) ? (
-          <span className="flex aspect-[4/3] max-h-96 items-center justify-center gap-2 rounded-xl border border-hairline/40 bg-inset text-[12px] text-ink-secondary" role="alert">
+          <span style={frame} className="flex items-center justify-center gap-2 rounded-xl border border-hairline/40 bg-inset text-[12px] text-ink-secondary" role="alert">
             <ImageOff size={17} /> {t("attach.oldImage")}
           </span>
         ) : visibleSource ? (
-          <AttachmentThumbnail key={image.src} image={image} onPreview={() => setOpen(true)} className="max-h-96" eager explainRefusal={localMessageImage} />
+          <AttachmentThumbnail key={image.src} image={image} onPreview={() => setOpen(true)} style={frame} fit="contain" className="w-full" label={t("attach.openFullScreen")} eager explainRefusal={localMessageImage} />
         ) : (
-          <ImageLoading name={name} className="aspect-[4/3] max-h-96 rounded-xl border border-hairline/40 bg-inset" />
+          <ImageLoading name={name} style={frame} className="w-full rounded-xl border border-hairline/40 bg-inset" />
         )}
         {openUrl && (
           <a href={openUrl} target="_blank" rel="noreferrer" className="mt-1 inline-flex text-[11px] text-accent hover:underline">

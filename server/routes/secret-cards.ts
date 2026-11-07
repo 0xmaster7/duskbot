@@ -76,9 +76,12 @@ export function createSecretCardRoutes(deps: SecretCardRouteDeps): RouteHandler 
         // Only this computer's own app may send it unsealed: nothing sits between them.
         return json(res, 400, { error: "Seal the secret for this server before sending it. Update the app and try again.", code: "seal_required", sealKey: deps.cards.sealKey() });
       }
-      const result = secretMessage(m[1]!, threadId, m[2]!)?.secret?.delivery === "email"
+      const delivery = secretMessage(m[1]!, threadId, m[2]!)?.secret?.delivery;
+      const result = delivery === "email"
         ? await deps.cards.saveEmailSecret(m[1]!, threadId, m[2]!, { ...fields, value })
-        : deps.cards.saveCustomSecret(m[1]!, threadId, m[2]!, value, remember);
+        : delivery === "login"
+          ? deps.cards.saveLoginSecret(m[1]!, threadId, m[2]!, { username: fields.username, value }, remember)
+          : deps.cards.saveCustomSecret(m[1]!, threadId, m[2]!, value, remember);
       return json(res, result.status, result.body);
     }
     // An HPKE envelope bound to the paired device, bot, task, card and target; only the embedded Electron server holds the key to open it.

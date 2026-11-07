@@ -118,13 +118,17 @@ describe("remembering exact command approvals", () => {
       pending, count: 1, index: 0, botName: "Scout", actions: slot("primary"), more: slot("more"),
     }));
     const details = html.indexOf('id="approval-details-');
-    const row = html.slice(0, details);
+    const hidden = html.slice(details, html.indexOf("</div>", html.indexOf("Cancel turn")));
+    expect(hidden).toContain("Cancel turn");
+    const row = html.slice(0, details) + html.slice(details + hidden.length);
     expect(row).toContain(">Deny</button>");
     expect(row).toContain(">Allow once</button>");
     expect(row).toContain('aria-label="Always allow this command"');
     expect(row).toContain(">Always allow</button>");
     expect(row).not.toContain("Cancel turn");
-    expect(html.slice(details)).toContain("Cancel turn");
+    // grok's order: the bare refusal, the quiet standing yes, then the one primary
+    expect(row.indexOf(">Deny<")).toBeLessThan(row.indexOf(">Always allow<"));
+    expect(row.indexOf(">Always allow<")).toBeLessThan(row.indexOf(">Allow once<"));
   });
 
   it("never offers always allow on code or a real send", () => {
@@ -136,24 +140,24 @@ describe("remembering exact command approvals", () => {
     }
   });
 
-  it("keeps the answers flat and finger-sized: a quiet extra, a neutral Deny and the one primary, a ring only for keyboard focus", () => {
+  it("keeps grok's three permission answers flat, 32px and 44 on touch: a bare Deny, a quiet Always allow, the ink primary", () => {
     const tree = PendingApprovalActions({ pending: pendingApprovals([message()])[0]!, bot, threadId: "thread-1", onCancelTurn: vi.fn(), part: "primary" });
     const classes = nodes(tree).filter((node) => node.type === "button").map((node) => String((node.props as { className?: string }).className));
     expect(classes).toHaveLength(3);
     for (const name of classes) {
       expect(name).not.toMatch(/(^|\s)(border|shadow|ring-\d)/);
       expect(name).toContain("focus-visible:ring-2");
-      expect(name).toContain("min-h-9");
-      expect(name).toContain("pointer-coarse:min-h-11");
+      expect(name).toContain("h-8");
+      expect(name).toContain("pointer-coarse:h-11");
       expect(name).toContain("text-[14px]");
     }
-    const [always, deny, allow] = classes;
-    // grok's Discard sits at regular weight beside the medium primary
-    expect(always).toContain("font-normal");
+    const [deny, always, allow] = classes;
+    // grok's Never sits at regular weight beside the medium answers
     expect(deny).toContain("font-normal");
+    expect(always).toContain("font-medium");
     expect(allow).toContain("font-medium");
-    expect(always).toContain("text-ink-secondary");
-    expect(always).not.toMatch(/(^|\s)bg-/);
+    expect(always).toContain("bg-ink/[0.06]");
+    expect(deny).not.toMatch(/(^|\s)bg-/);
     // grok's Discard: quiet text, no fill
     expect(deny).toContain("text-ink-secondary");
     expect(deny).not.toContain("danger");
