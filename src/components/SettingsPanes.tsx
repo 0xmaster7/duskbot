@@ -54,7 +54,7 @@ import { WebhooksSettingsRow } from "./WebhooksSettingsRow";
 import { UsageMeterCard } from "./native/UsageMeter";
 import { reportsUsage, useEngineLimits } from "@/lib/limit-resets";
 import {
-  ExperimentalFeaturesRow, LanguageRow, ReplayTourRows, SendKeyRow, TalkingStyleRow, UpdatesRow,
+  ExperimentalFeaturesRow, FollowUpRow, LanguageRow, ReplayTourRows, SendKeyRow, TalkingStyleRow, UpdatesRow,
 } from "./AppSettingsRows";
 
 export type Has = (id: AppSettingsSection) => boolean;
@@ -194,6 +194,7 @@ export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boo
           <SettingsRows>
             <TalkShortcutRow />
             <SendKeyRow simple />
+            <FollowUpRow simple />
             <OpenAtLoginRow simple />
           </SettingsRows>
         </SettingsGroup>

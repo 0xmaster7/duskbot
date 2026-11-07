@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 
 import { t } from "@/lib/i18n";
 import { type BotSettingsRow, type RoomSettingsRow, type SettingsBotTarget } from "@/lib/open-settings";
@@ -16,16 +16,15 @@ import { useMemoryDoc } from "./bot-panel/use-memory-doc";
 import { PRESET_TURN_LIMITS, useConversationTurnLimit } from "./ConversationTurnLimit";
 import { DefaultBotSidebarRow } from "./DefaultBotControls";
 import { useDesktopCapabilities } from "./DesktopCapabilities";
-import { Card, FormDialog, NavRow, SheetInSettings, SwitchRow, useSubPage } from "./ListRows";
+import { Card, NavRow, SheetInSettings, SwitchRow, useSubPage } from "./ListRows";
 import { effortLabel } from "./ModelPicker";
 import { ModelSelectRow } from "./native/ModelSelectRow";
 import { DefaultBotSettings } from "./NewBotDialog";
-import { ProfileFields } from "./ProfileSettings";
 import { RoomAboutModal, RoomFolderModal, RoomInstructionsModal, RoomResponderModal } from "./room-panel/RoomModals";
 import { SettingRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
 import { SettingsSelect } from "./SettingsSelect";
 import { DialogPane } from "./ui/GrokDialog";
-import { FollowUpRow, NewBotEffortRow } from "./AppSettingsRows";
+import { NewBotEffortRow } from "./AppSettingsRows";
 
 const BOT_HINTS: Partial<Record<BotSettingsRow, () => string>> = {
   backups: () => t("settings.bots.hint.backups"),
@@ -123,28 +122,14 @@ export function BotsPane() {
 }
 
 function DefaultsRows() {
-  const { state } = useStore();
-  const [editing, setEditing] = useState(false);
-  const name = state.config?.profile?.name?.trim();
   return (
-    <>
-      <SettingsGroup label={t("settings.advanced.bots.defaults")} block="bot-defaults">
-        <SettingsRows>
-          <DefaultBotSidebarRow simple />
-          <FollowUpRow simple />
-          <NewBotEffortRow />
-          <DefaultBotSettings />
-        </SettingsRows>
-      </SettingsGroup>
-      <Card label={t("settings.w6.group.aboutYou")} data-settings-block="profile">
-        <NavRow data-settings-open="profile" title={t("settings.profile.name")} value={name || t("settings.simple.account.noName")} onClick={() => setEditing(true)} />
-      </Card>
-      {editing && (
-        <FormDialog data-panel-modal="profile" title={t("settings.w6.group.aboutYou")} width={460} onClose={() => setEditing(false)}>
-          <div data-settings-look="simple" className="-mx-2 flex flex-col"><ProfileFields /></div>
-        </FormDialog>
-      )}
-    </>
+    <SettingsGroup label={t("settings.advanced.bots.defaults")} block="bot-defaults">
+      <SettingsRows>
+        <DefaultBotSidebarRow simple />
+        <NewBotEffortRow />
+        <DefaultBotSettings />
+      </SettingsRows>
+    </SettingsGroup>
   );
 }
 
