@@ -102,7 +102,7 @@ export function CallSheet({ message, transcript, botName, threadId, busy, partia
   const when = new Date(call.startedAt || call.endedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 sm:p-6"
+      className="ui-dialog-scrim fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
       onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
     >
       <div
@@ -112,7 +112,7 @@ export function CallSheet({ message, transcript, botName, threadId, busy, partia
         aria-modal="true"
         aria-labelledby="call-sheet-title"
         data-testid="call-sheet"
-        className="flex max-h-[min(720px,calc(100dvh-2rem))] w-full max-w-[640px] flex-col overflow-hidden rounded-2xl border border-hairline/50 bg-panel text-ink shadow-2xl"
+        className="flex max-h-[min(720px,calc(100dvh-2rem))] w-full max-w-[640px] flex-col overflow-hidden rounded-[14px] border border-ink/12 bg-menu text-ink"
         style={{ outline: "none" }}
       >
         <header className="flex items-start justify-between gap-4 border-b border-hairline/40 px-5 pb-3.5 pt-4">

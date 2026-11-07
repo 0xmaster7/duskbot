@@ -80,9 +80,9 @@ export function RailSheet({ wide = false, focusKey, onClose, children }: { wide?
     if (sheet.current?.contains(document.activeElement) && document.activeElement !== sheet.current) return;
     (sheet.current?.querySelector<HTMLElement>("[data-autofocus]") ?? sheet.current?.querySelector<HTMLElement>("#cloud-add-title"))?.focus();
   }, [focusKey]);
-  return <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 sm:p-6" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+  return <div className="ui-dialog-scrim fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <div ref={sheet} role="dialog" aria-modal="true" aria-labelledby="cloud-add-title" data-place-add-sheet tabIndex={-1}
-      className={cn("relative max-h-full w-full overflow-y-auto overscroll-contain rounded-2xl border border-hairline/70 bg-panel shadow-2xl outline-none", wide ? "max-w-[900px]" : "max-w-[560px]")}>
+      className={cn("relative max-h-full w-full overflow-y-auto overscroll-contain rounded-[14px] border border-ink/12 bg-menu outline-none", wide ? "max-w-[900px]" : "max-w-[560px]")}>
       <button type="button" onClick={onClose} aria-label={t("cloudAdd.close")} className="ui-icon-button absolute end-3.5 top-3.5 z-10"><X size={18} /></button>
       {children}
     </div>
