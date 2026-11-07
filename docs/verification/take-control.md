@@ -14,16 +14,13 @@ only the live desktop itself is a stand-in. They prove:
   Watching sends no control request and does not poll screenshots. Pointer,
   keyboard and clipboard input remain disabled in the viewer.
 - Opening a stopped desktop waits for an explicit wake click inside its frame.
-  The mascot animates until its live preview arrives. Wake stays inline without
-  taking control; clicking the awake preview or Take control opens fullscreen
-  and takes control. Engine inventory loading stays in Checking.
+  The original grey mascot remains visible until its live preview arrives.
+  Wake stays inline without taking control. Clicking the awake preview opens
+  the original fullscreen viewer read-only; only its Take control button enables input.
 - **Take control** stays disabled until the first decoded frame, then acquires this view's control lease and enables input on the
   existing connection. **Full screen** expands that same desktop without
   reconnecting or acquiring control. Nothing opens in another window or tab.
-- While controlling the inline desktop, **Keyboard** opens a two-line text field.
-  Pasted multiline Unicode text is sent only by **Send text**. Hand-back,
-  disconnect and target changes clear its draft; watch mode hides the control.
-- **Hand control back** releases the computer at once and disables input on
+- **Stop** in the original viewer, or **Hand control back** in the advanced view, releases the computer at once and disables input on
   the same connection, so watching resumes without another handshake.
 - Closing the panel, leaving its Computer view, opening another conversation or
   closing the page gives back the hold this view took, with a keepalive request,
