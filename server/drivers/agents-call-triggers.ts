@@ -57,8 +57,9 @@ function normalizeScheduleInput(args: Json): NormalizedSchedule {
   }
   if (!jsonRecord(raw)) return { error: `The schedule must be a JSON object. ${SUPPORTED_SCHEDULES}` };
   const type = typeof raw.type === "string" ? raw.type.trim().toLowerCase() : "";
+  // "at" carries its own offset, so a once schedule's timeZone says nothing more and is dropped.
   const fields = type === "once"
-    ? ["type", "at"]
+    ? ["type", "at", "timeZone"]
     : type === "weekly" || type === "daily"
       ? ["type", "time", "weekdays"]
       : type === "interval"
