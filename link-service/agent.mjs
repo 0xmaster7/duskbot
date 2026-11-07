@@ -261,8 +261,12 @@ export function keepAliveFetch({ maxSockets = 8 } = {}) {
     return () => clearInterval(timer);
   };
   go.close = () => { for (const agent of agents.values()) agent.destroy(); agents.clear(); };
-  /** after a sleep or a network change: every socket may be dead, so the next requests open fresh ones */
-  go.reset = go.close;
+  /**
+   * after a sleep or a network change: every socket may be dead, so the next requests open fresh ones. the agents stay
+   * with their tls sessions, so those connections resume instead of a full handshake (no certificate flight: behind a
+   * vpn that drops full-size packets a full handshake to the relay took 5.5 s and a resumed one 0.8 s)
+   */
+  go.reset = () => { for (const agent of agents.values()) agent.destroy(); };
   return go;
 }
 
