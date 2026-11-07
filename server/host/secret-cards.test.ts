@@ -174,3 +174,78 @@ describe("the mailbox card", () => {
     expect(fixture.cards.updateText(card(fixture).id, secret, "dismissed")).toContain("chose not to connect a mailbox");
   });
 });
+
+describe("the login card", () => {
+  const PASSWORD = "fake-Card!pass";
+  function loginCards(options: { saved?: boolean } = {}) {
+    const dataDir = mkdtempSync(join(tmpdir(), "omb-secret-cards-"));
+    dirs.push(dataDir);
+    const lines: Message[] = [];
+    let ids = 0;
+    const store = {
+      activePath: () => lines,
+      messagesFor: () => lines,
+      appendMessage: (_threadId: string, message: Omit<Message, "id" | "at">) => { const full = { id: `m${++ids}`, at: Date.now(), ...message } as Message; lines.push(full); return full; },
+      patchMessage: (_threadId: string, id: string, patch: Partial<Message>) => { const line = lines.find((one) => one.id === id)!; Object.assign(line, patch); return line; },
+      botByThread: () => null, groupByThread: () => undefined, onChange: () => () => {},
+    };
+    const kept: Array<Record<string, unknown>> = [];
+    const resumed: string[] = [];
+    const bot = { id: "vaultie", name: "Vaultie" } as BotRecord;
+    const cards = createSecretCards({
+      store: store as never, cfg: {} as never, botLogins: { credentialConfig: (config) => ({ ...config, onePassword: { connected: false } }) },
+      phoneSecrets: { provide: async () => {}, open: async () => PASSWORD } as never, phoneSecretSubmissions: { has: () => false, run: async (_card: unknown, _op: unknown, work: () => Promise<void>) => work() } as never,
+      connectorThread: () => ({ bot, group: undefined }), answerCardNode: (_thread, _id, text) => { resumed.push(text); return true; }, followCard: () => {}, dataDir, providerKeysRefused: false,
+      layerFolder: () => dataDir, turnVm: () => undefined,
+      logins: { has: () => options.saved === true, keep: (login) => { kept.push(login); } },
+    });
+    return { cards, lines, kept, resumed, bot };
+  }
+
+  it("asks for a site's login on one card, keeps what is typed for fill_login, and tells the bot to fill it, never the password", () => {
+    const { cards, lines, kept, resumed, bot } = loginCards();
+    const asked = cards.requestCredential(bot, "t1", { credentialId: "login", site: "https://the-internet.herokuapp.com/login", reason: "To read the secure area." });
+    expect(asked).toEqual({ status: 201, body: { messageId: "m1", site: "the-internet.herokuapp.com", delivery: "login" } });
+    expect(lines[0]!.secret).toMatchObject({ delivery: "login", site: "the-internet.herokuapp.com", label: "the-internet.herokuapp.com" });
+    expect(lines[0]!.secret!.reason).toBe("To read the secure area. Vaultie types it into the site for you and never sees the password.");
+    const saved = cards.saveLoginSecret(bot.id, "t1", "m1", { username: "tomsmith", value: JSON.stringify({ password: PASSWORD, totp: "" }) }, true);
+    expect(saved.status).toBe(200);
+    expect(kept).toEqual([{ botId: "vaultie", host: "the-internet.herokuapp.com", username: "tomsmith", password: PASSWORD, totp: null, remember: true }]);
+    expect(lines[0]!.secret).toMatchObject({ kept: "vault" });
+    expect(resumed).toHaveLength(1);
+    expect(resumed[0]).toContain("call fill_login");
+    expect(resumed[0]).toContain("saved it to their Vault");
+    for (const text of [JSON.stringify(lines), ...resumed, JSON.stringify(saved.body)]) expect(text).not.toContain(PASSWORD);
+  });
+
+  it("keeps a login given with Save to Vault off for this task only, and takes a 2FA key", () => {
+    const { cards, lines, kept, resumed, bot } = loginCards();
+    cards.requestCredential(bot, "t1", { credentialId: "login", site: "example.com" });
+    expect(cards.saveLoginSecret(bot.id, "t1", "m1", { username: "me", value: JSON.stringify({ password: PASSWORD, totp: "JBSWY3DPEHPK3PXP" }) }, false).status).toBe(200);
+    expect(kept[0]).toMatchObject({ remember: false, totp: { secret: "JBSWY3DPEHPK3PXP" } });
+    expect(lines[0]!.secret!.kept).toBe("once");
+    expect(resumed[0]).toContain("for this task only");
+  });
+
+  it("refuses an empty password and a second answer, and needs no card when a login is saved already", () => {
+    const { cards, bot } = loginCards();
+    cards.requestCredential(bot, "t1", { credentialId: "login", site: "example.com" });
+    expect(cards.saveLoginSecret(bot.id, "t1", "m1", { username: "me", value: JSON.stringify({ password: "" }) }, true).status).toBe(400);
+    expect(cards.saveLoginSecret(bot.id, "t1", "m1", { username: "me", value: JSON.stringify({ password: PASSWORD }) }, true).status).toBe(200);
+    expect(cards.saveLoginSecret(bot.id, "t1", "m1", { username: "me", value: JSON.stringify({ password: PASSWORD }) }, true).status).toBe(409);
+    const known = loginCards({ saved: true });
+    const answer = known.cards.requestCredential(known.bot, "t1", { credentialId: "login", site: "example.com" });
+    expect(answer.status).toBe(200);
+    expect(String(answer.body.text)).toContain("call fill_login");
+    expect(known.lines).toHaveLength(0);
+    expect(cards.requestCredential(bot, "t1", { credentialId: "login", site: "javascript:alert(1)" }).status).toBe(400);
+  });
+
+  it("tells the bot what to do when the person declines", () => {
+    const { cards, resumed, bot } = loginCards();
+    cards.requestCredential(bot, "t1", { credentialId: "login", site: "example.com" });
+    cards.resumeSecretCard(bot.id, "t1", "m1", "dismissed");
+    expect(resumed[0]).toContain("declined to give their login for example.com");
+    expect(resumed[0]).toContain("request_sign_in");
+  });
+});

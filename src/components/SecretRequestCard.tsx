@@ -60,6 +60,10 @@ export function SecretRequestCard({
   const [savedLocally, setSavedLocally] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const email = secret.delivery === "email";
+  // a website login: fill_login types it into the site, so the bot never receives it
+  const login = secret.delivery === "login";
+  const [username, setUsername] = useState("");
+  const [totp, setTotp] = useState("");
   const [address, setAddress] = useState(secret.address ?? "");
   const [server, setServer] = useState<EmailServerFields>({});
   const [needsServer, setNeedsServer] = useState(false);
@@ -119,11 +123,12 @@ export function SecretRequestCard({
     setLocalError(null);
     try {
       // A password goes as typed: a mailbox's can begin or end with a space.
-      const typed = email ? value : value.trim();
+      const typed = login ? JSON.stringify({ password: value, totp: totp.trim() }) : email ? value : value.trim();
       const keep = !email && remember;
       const send = async (key: CardSealKey) => {
         const sealed = await sealCardSecret(typed, key, { botId, threadId, messageId: message.id, requestKey: secret.requestKey, remember: keep });
-        return api(`${endpoint}/save`, { method: "POST", body: JSON.stringify(email ? { threadId, sealed, address: address.trim(), ...server } : { threadId, sealed, remember: keep }) });
+        return api(`${endpoint}/save`, { method: "POST", body: JSON.stringify(email ? { threadId, sealed, address: address.trim(), ...server }
+          : login ? { threadId, sealed, remember: keep, username: username.trim() } : { threadId, sealed, remember: keep }) });
       };
       const prepared = await api(`${endpoint}/save`, { method: "POST", body: JSON.stringify({ threadId, prepare: true }) }) as { sealKey: CardSealKey };
       try {
@@ -135,6 +140,7 @@ export function SecretRequestCard({
         await send(fresh);
       }
       setValue("");
+      setTotp("");
       returnFocusToComposer();
     } catch (error) {
       if ((error as { body?: { needsServer?: unknown } }).body?.needsServer === true) setNeedsServer(true);
@@ -239,6 +245,10 @@ export function SecretRequestCard({
               {needsServer && <EmailServerInputs value={server} onChange={setServer} className={cn(ASK_FIELD, "w-full")} />}
             </div>
           )}
+          {login && (
+            <input type="text" name="username" autoComplete="off" spellCheck={false} dir="ltr" value={username} onChange={(event) => setUsername(event.target.value)}
+              placeholder={t("logins.username")} disabled={saving} aria-label={t("logins.username")} maxLength={512} className={cn(ASK_FIELD, "mb-2 w-full")} />
+          )}
           <div className="flex flex-wrap gap-2">
             <input
               type="password"
@@ -247,9 +257,9 @@ export function SecretRequestCard({
               dir="ltr"
               value={value}
               onChange={(event) => setValue(event.target.value)}
-              placeholder={secret.placeholder}
+              placeholder={login ? t("logins.password") : secret.placeholder}
               disabled={saving || savedLocally}
-              aria-label={secret.label}
+              aria-label={login ? t("logins.password") : secret.label}
               className={cn(ASK_FIELD, "min-w-[10rem] flex-1")}
             />
             <button type="submit" disabled={saving || (!value.trim() && !savedLocally) || (email && !address.trim())} {...askPrimary(color)}>
@@ -257,10 +267,14 @@ export function SecretRequestCard({
               {savedLocally ? "Continue task" : custom ? t("secretCard.submit") : "Save securely"}
             </button>
           </div>
+          {login && (
+            <input type="password" name="totp" autoComplete="off" spellCheck={false} dir="ltr" value={totp} onChange={(event) => setTotp(event.target.value)}
+              placeholder={t("logins.totp")} disabled={saving} aria-label={t("logins.totp")} title={t("logins.totpHint")} maxLength={2048} className={cn(ASK_FIELD, "mt-2 w-full")} />
+          )}
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-tertiary">
             <span className="flex items-center gap-1">
               <LockKeyhole size={11} />{" "}
-              {!custom ? `Stored securely by ${productName()} and never added to chat.` : email ? t("secretCard.email") : secret.delivery === "file" ? t("secretCard.file") : t("secretCard.ref")}
+              {!custom ? `Stored securely by ${productName()} and never added to chat.` : email ? t("secretCard.email") : login ? t("secretCard.login") : secret.delivery === "file" ? t("secretCard.file") : t("secretCard.ref")}
             </span>
             {custom && !email && (
               <label className="ms-auto inline-flex cursor-pointer items-center gap-1.5 text-ink-secondary" data-secret-remember="">

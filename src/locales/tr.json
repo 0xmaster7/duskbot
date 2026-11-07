@@ -4937,6 +4937,7 @@
   "secretCard.stopped": "Durduruldu · {label}",
   "secretCard.replaced": "Daha yeni bir istekle değiştirildi · {label}",
   "secretCard.saveToVault": "Kasaya kaydet",
+  "secretCard.login": "Sunucunuz için mühürlenir. Sizin için siteye yazılır; bot onu asla görmez.",
   "secretCard.submit": "Gönder",
   "secretCard.resumeFailed": "Sır kaydedildikten sonra bot devam edemedi",
   "settings.secrets.footnote": "Bir botun kartından kaydedildi. Değerler yalnızca yazılabilir: botlar onları hiç görmeden kullanır.",
@@ -4950,5 +4951,6 @@
   "settings.vault.noneHere": "Burada henüz bir şey yok.",
   "server.botDesktop.building": "Botun bilgisayarı sunucunda kuruluyor. Bu her güncellemede bir kez olur ve genellikle birkaç dakika sürer.",
   "computer.botWaking": "{name} uyanıyor",
-  "seal.untrusted": "Bu sunucu, bu uygulamanın bağladığı sunucu olduğunu kanıtlayamadı, bu yüzden hiçbir şey gönderilmedi. Yeniden kurduysan tekrar bağla."
+  "seal.untrusted": "Bu sunucu, bu uygulamanın bağladığı sunucu olduğunu kanıtlayamadı, bu yüzden hiçbir şey gönderilmedi. Yeniden kurduysan tekrar bağla.",
+  "server.connect.loginNote": "{bot} bunu sizin için siteye yazar ve parolayı asla görmez."
 }

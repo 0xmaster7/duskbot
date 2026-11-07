@@ -740,7 +740,9 @@ export interface SecretRequestCardData {
   description: string;
   placeholder: string;
   helpUrl: string;
-  /** A custom secret's use: "ref", OpenMausBot's own tools only; "file", the bot's commands; "email", the Email connector, never a bot. */ delivery?: SecretDelivery | "email";
+  /** A custom secret's use: "ref", OpenMausBot's own tools only; "file", the bot's commands; "email", the Email connector, never a bot;
+   * "login", a website login fill_login types for the bot, which never receives it. */ delivery?: SecretDelivery | "email" | "login";
+  /** A login card: the site it fills on (a login page's host, or the domain the bot named). */ site?: string;
   /** An email card: the mailbox it is for, when known; off a phone the person can change it on the card. */ address?: string;
   /** A custom secret: the bot's own words on why; `description` adds what the bot may do with it, and helpUrl is empty. */
   reason?: string;

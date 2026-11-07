@@ -5895,6 +5895,7 @@
   "secretCard.stopped": "Parado · {label}",
   "secretCard.replaced": "Substituído por um pedido mais novo · {label}",
   "secretCard.saveToVault": "Salvar no Cofre",
+  "secretCard.login": "Selado para o seu servidor. Digitado no site por você; o bot nunca vê.",
   "secretCard.submit": "Enviar",
   "secretCard.resumeFailed": "O bot não conseguiu continuar depois que o segredo foi salvo",
   "settings.secrets.footnote": "Salvos a partir do cartão de um bot. Os valores são só de escrita: os bots usam sem nunca ver.",
@@ -5908,5 +5909,6 @@
   "settings.vault.noneHere": "Nada aqui ainda.",
   "server.botDesktop.building": "Configurando o computador do bot no seu servidor. Isso acontece uma vez por atualização e costuma levar alguns minutos.",
   "computer.botWaking": "{name} está acordando",
-  "seal.untrusted": "Este servidor não conseguiu provar que é o que este app vinculou, então nada foi enviado. Se você o reinstalou, vincule-o de novo."
+  "seal.untrusted": "Este servidor não conseguiu provar que é o que este app vinculou, então nada foi enviado. Se você o reinstalou, vincule-o de novo.",
+  "server.connect.loginNote": "{bot} digita no site por você e nunca vê a senha."
 }

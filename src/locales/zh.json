@@ -6669,6 +6669,7 @@
   "secretCard.stopped": "已停止 · {label}",
   "secretCard.replaced": "已被更新的请求取代 · {label}",
   "secretCard.saveToVault": "保存到保险库",
+  "secretCard.login": "已为你的服务器密封。会替你在网站上输入；机器人永远看不到。",
   "secretCard.submit": "提交",
   "secretCard.resumeFailed": "保存密钥后机器人未能继续",
   "settings.secrets.footnote": "从机器人的卡片中保存。值只能写入：机器人使用它们，但永远看不到。",
@@ -6682,5 +6683,6 @@
   "settings.vault.noneHere": "这里还没有内容。",
   "server.botDesktop.building": "正在你的服务器上设置机器人的电脑。每次更新只需一次，通常需要几分钟。",
   "computer.botWaking": "{name} 正在醒来",
-  "seal.untrusted": "此服务器无法证明它就是此应用关联的那台，所以没有发送任何内容。如果你重新安装了它，请重新关联。"
+  "seal.untrusted": "此服务器无法证明它就是此应用关联的那台，所以没有发送任何内容。如果你重新安装了它，请重新关联。",
+  "server.connect.loginNote": "{bot} 会替你在网站上输入，并且永远看不到密码。"
 }
