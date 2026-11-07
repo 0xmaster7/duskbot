@@ -18,6 +18,7 @@ import { resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CUA_DRIVER_VERSION, DRIVER_LABEL, dockerSecurityIsHardened, type DockerHardeningConfig } from "./container-computer.ts";
 import { PIDS_LIMIT } from "./container-limits.ts";
+import { desktopLimitArgs, desktopLimits, type VpsDesktopLimits } from "./vps-capacity.ts";
 
 export { BOT_DESKTOP_IMAGE, BOT_DESKTOP_LABEL, BOT_DESKTOP_NETWORK, BOT_DESKTOP_VERSION };
 
@@ -61,6 +62,7 @@ export function botDesktopRunArgs(input: {
   mode: BotDesktopMode;
   runtime?: "runsc" | null;
   blockedHostAddresses?: string[];
+  limits?: VpsDesktopLimits;
 }): string[] {
   const free = input.mode === "free";
   const blocked = (input.blockedHostAddresses ?? []).filter(isHostAddress);
@@ -85,10 +87,11 @@ export function botDesktopRunArgs(input: {
     ...(free ? [] : ["--security-opt", "no-new-privileges"]),
     "--ipc", "private",
     "--cgroupns", "private",
-    "--memory", "4g", "--memory-swap", "4g", "--cpus", "2",
+    ...desktopLimitArgs(input.limits ?? desktopLimits(0, false)), "--cpus", "2",
     "--pids-limit", String(PIDS_LIMIT),
     "--shm-size", "512m",
-    "--restart", "unless-stopped",
+    // a reboot leaves desktops asleep: they wake one by one when a bot needs one, never all at once
+    "--restart", "no",
     "-e", `OMB_MODE=${input.mode}`,
     "-e", "OMB_BROWSER_AT_START=off",
     "-e", `VNC_PW=${input.viewerSecret}`,
@@ -325,6 +328,8 @@ export async function provisionBotDesktop(run: DockerRun, input: {
   viewerSecret: string;
   hostKey?: string;
   onProgress?: (step: BotDesktopProgress) => void;
+  /** holds the host's room for this desktop around its start (server/vps-capacity.ts) */
+  admit?: (start: (limits: VpsDesktopLimits) => Promise<unknown>) => Promise<unknown>;
 }): Promise<BotDesktopMode> {
   const key = input.hostKey ? JSON.stringify([input.hostKey, input.imageId, process.env.OPENMAUSBOT_VPS_GVISOR, process.env.OPENMAUSBOT_VPS_BOX]) : null;
   let preparation = key ? pendingPreparations.get(key) : undefined;
@@ -338,6 +343,7 @@ export async function provisionBotDesktop(run: DockerRun, input: {
   } finally {
     if (key && pendingPreparations.get(key) === preparation) pendingPreparations.delete(key);
   }
-  await run(botDesktopRunArgs({ ...input, imageRef: prepared.imageId, mode: prepared.mode, runtime: prepared.runtime, blockedHostAddresses: prepared.hostAddresses }), 2 * 60_000);
+  const create = (limits: VpsDesktopLimits) => run(botDesktopRunArgs({ ...input, limits, imageRef: prepared.imageId, mode: prepared.mode, runtime: prepared.runtime, blockedHostAddresses: prepared.hostAddresses }), 2 * 60_000);
+  await (input.admit ? input.admit(create) : create(desktopLimits(0, false)));
   return prepared.mode;
 }
