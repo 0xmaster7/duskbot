@@ -1,13 +1,13 @@
 export const APP_NAME = "OpenMausBot";
-export const APP_REPOSITORY = "https://github.com/milind-soni/OpenMausBot";
-export const DOCS_URL = `${APP_REPOSITORY}/tree/main/docs`;
+export const APP_REPOSITORY = "https://github.com/SiddDevZ/OpenMausBot";
+export const DOCS_URL = `${APP_REPOSITORY}/tree/custom/docs`;
 export const HELP_CENTER_URL = DOCS_URL;
-export const APPROVAL_LEVELS_URL = `${APP_REPOSITORY}/blob/main/docs/approval-levels.md`;
+export const APPROVAL_LEVELS_URL = `${APP_REPOSITORY}/blob/custom/docs/approval-levels.md`;
 export const PASSKEY_HELP_URL = "https://docs.openmausbot.com/docs/troubleshooting/google-sign-in-cloud-browser";
 export const FEEDBACK_URL = "https://discord.gg/9Wb8MEpXRs";
 export const RELEASES_URL = `${APP_REPOSITORY}/releases`;
 export const CLOUD_PLAN_URL = "https://cloud.openmausbot.com/cloud";
-export const LICENSE_URL = `${APP_REPOSITORY}/blob/main/LICENSE`;
+export const LICENSE_URL = `${APP_REPOSITORY}/blob/custom/LICENSE`;
 
 export function appVersion(): string {
   return typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : "dev";

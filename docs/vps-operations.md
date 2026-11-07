@@ -41,11 +41,23 @@ For bot and conversation operations against a running workspace, use the
 existing `openmausbot doctor`, `bots`, `messages`, `run`, `wait`, and `events`
 commands documented in [the headless CLI](headless-cli.md).
 
+App and server upgrades are operator-managed for this private fork. The
+desktop does not initialize an update provider, query release feeds, or install
+downloaded updates on quit or while idle. The server's update check returns no
+release offer or public npm install command. Packaging has no publish target;
+project and release links point to `SiddDevZ/OpenMausBot`.
+
+Install a reviewed private build before restarting the services you intend to
+update. `fleet upgrade` refuses to install the upstream public npm package.
+An authenticated private update feed must be designed before automatic app
+updates can be enabled.
+
 Verification uses temporary homes and a disposable fake-engine server:
 
 ```sh
 pnpm exec vitest run server/vps-ops.test.ts server/vps-ops.e2e.test.ts
 node --experimental-strip-types server/openmausbot.ts vps --help
+pnpm exec vitest run server/update-check.test.ts server/update-check.e2e.test.ts server/fleet.test.ts electron/updater-disabled.test.mjs
 ```
 
 The fixtures prove argument bounds, read-only command selection, concurrent
