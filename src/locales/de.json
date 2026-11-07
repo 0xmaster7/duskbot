@@ -2945,5 +2945,6 @@
   "settings.secrets.loadError": "Gespeicherte Secrets konnten nicht geladen werden.",
   "settings.vault.footnote": "Bots sehen deine Passwörter und gespeicherten Secrets nie: {app} tippt sie ein oder gibt sie an seine Werkzeuge weiter, sodass die Werte nie bei der KI ankommen. Bots sehen die Website und den Benutzernamen eines Logins.",
   "settings.vault.nothing": "Noch nichts gespeichert. Füge mit Neues Element ein Login hinzu oder speichere ein Secret, wenn ein Bot danach fragt.",
-  "settings.vault.noneHere": "Hier ist noch nichts."
+  "settings.vault.noneHere": "Hier ist noch nichts.",
+  "server.botDesktop.building": "Der Computer des Bots wird auf deinem Server eingerichtet. Das passiert einmal pro Update und dauert meist ein paar Minuten."
 }

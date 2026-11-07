@@ -232,10 +232,6 @@ const pendingPreparations = new Map<string, Promise<BotDesktopPreparation>>();
 
 export type BotDesktopProgress = "pulling" | "building";
 
-/** Shown in the bot's chat while this server builds its own copy of the bot computer image. */
-export const BOT_DESKTOP_BUILDING =
-  "Building the bot computer on this VPS from the copy that came with the app, once per app version; it usually takes a few minutes.";
-
 /**
  * The build folder for BOT_DESKTOP_IMAGE that ships with this server (deploy/bot-desktop beside dist-server or server),
  * or OMB_BOT_DESKTOP_KIT. Null unless its Dockerfile builds exactly BOT_DESKTOP_VERSION and docker can read it (not in an asar).

@@ -17,8 +17,6 @@ const notActions: Array<{ file: string; snippet: string; why: string }> = [
   { file: "components/ScreenFrame.tsx", snippet: "group-hover/image:opacity-100", why: "aria-hidden zoom hint; the whole image is the tap target" },
   { file: "components/CreateBotDialog.tsx", snippet: "group-hover/shape:opacity-12", why: "aria-hidden ring round a shape tile; the tile itself is the tap target and shows the chosen ring" },
   { file: "components/bot-panel/AvatarEditorCard.tsx", snippet: "opacity-0 group-hover/shape:opacity-100", why: "aria-hidden ring round a shape tile; the tile itself is the tap target and shows the chosen ring" },
-  { file: "components/bot-panel/ComputerTab.tsx", snippet: "group-hover/screen:opacity-100", why: "aria-hidden Open pill; the whole live screen is the tap target" },
-  { file: "components/remote-desktop-panel.tsx", snippet: "bg-black/65 py-2", why: "caption; the whole preview is the tap target" },
   { file: "components/routines/CalendarSidebar.tsx", snippet: "text-[9px]", why: "'Drag' hint badge, not a control" },
   { file: "components/ComputerPanel.tsx", snippet: "opacity-80", why: "already visible at 80% without hover" },
   { file: "components/ChatView.tsx", snippet: "-ml-2.5 w-0 shrink-0 text-ink-secondary", why: "decorative chevron in the Simple bot pill; the whole pill is the tap target" },

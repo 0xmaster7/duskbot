@@ -95,7 +95,7 @@ import { DataFailure } from "./data/types.ts";
 import { TeamComputers, teamComputerOwner, type TeamComputerRecord } from "./team-computers.ts";
 import { teamComputerVpsTarget } from "./team-computer-vps.ts";
 import { initialVpsMode, sharedVpsDefaults, vpsIdleTimeoutMinutes } from "./shared-vps-defaults.ts";
-import { BOT_DESKTOP_BUILDING, type BotDesktopProgress } from "./bot-desktop.ts";
+import type { BotDesktopProgress } from "./bot-desktop.ts";
 import { createVpsIdleManager, type VpsIdleTarget } from "./vps-idle.ts";
 import { compareVpsContainerStarts } from "./vps-container-start.ts";
 import { createSharedScreenBroker, type IndependentScreenLease, type ScreenContainer } from "./shared-desktop-screens.ts";
@@ -6028,7 +6028,7 @@ async function mountHostComputer(owner: TurnOwner, botId: string, providerSuppor
 }
 
 function announceDesktopBuild(threadId: string): (step: BotDesktopProgress) => void {
-  return (step) => { if (step === "building") store.appendMessage(threadId, { role: "bot", kind: "activity", tool: { name: BOT_DESKTOP_BUILDING } }); };
+  return (step) => { if (step === "building") store.appendMessage(threadId, { role: "bot", kind: "activity", tool: { name: serverLine(threadLanguage(threadId), "server.botDesktop.building") } }); };
 }
 
 async function mountBotVps(
