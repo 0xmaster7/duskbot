@@ -100,7 +100,7 @@ describe("a bot's routines in its panel", () => {
     const form = container.querySelector<HTMLFormElement>('[data-routine-form="new"]')!;
     expect(form.querySelector<HTMLButtonElement>("button[type=submit]")!.disabled).toBe(true);
     flushSync(() => type(form.querySelector("textarea")!, "Check the news and send me the top three stories."));
-    flushSync(() => type(form.querySelector<HTMLInputElement>('input[type=time]')!, "07:30"));
+    flushSync(() => type(form.querySelector<HTMLInputElement>('input[data-routine-time]')!, "7:30 am"));
     flushSync(() => form.querySelector<HTMLButtonElement>("button[type=submit]")!.click());
     await vi.waitFor(() => expect(row("routine-2")).not.toBeNull());
     expect(writes()).toEqual([["/api/routines", "POST", {
@@ -119,7 +119,7 @@ describe("a bot's routines in its panel", () => {
     flushSync(() => action("routine-1", "edit").click());
     const form = row("routine-1").querySelector("form")!;
     expect(form.querySelector<HTMLInputElement>("input:not([type])")!.value).toBe("Morning summary");
-    expect(form.querySelector("input[type=time]")).toBeNull();
+    expect(form.querySelector("input[data-routine-time]")).toBeNull();
     flushSync(() => type(form.querySelector<HTMLInputElement>("input:not([type])")!, "Monthly summary"));
     flushSync(() => form.querySelector<HTMLButtonElement>("button[type=submit]")!.click());
     await vi.waitFor(() => expect(row("routine-1").querySelector("form")).toBeNull());
