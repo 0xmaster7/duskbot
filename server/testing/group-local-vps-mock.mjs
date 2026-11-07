@@ -6,6 +6,7 @@ export {
 } from '../vps-computer.ts?actual';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { writeFileAtomic } from '../atomic.ts';
 import { vpsContainerName } from '../vps-computer.ts?actual';
 
@@ -50,13 +51,21 @@ export async function removeManagedVpsComputer(_cfg, owners, name, confirmed) {
   return { removed: true, name };
 }
 
-export async function defaultRunner() { throw new Error('Unexpected real VPS command in isolated fixture'); }
+// a vm_exec on a fixture desktop answers like the real wrapper (the exit marker on stderr); any other command is refused
+export async function defaultRunner(args) {
+  if (!args.includes('omb-exec')) throw new Error('Unexpected real VPS command in isolated fixture');
+  const [command, marker] = args.slice(-2);
+  const state = read();
+  state.execs = [...(state.execs ?? []), command];
+  writeFileAtomic(file, JSON.stringify(state), { durable: false });
+  return { stdout: `fixture ran ${command}\n`, stderr: `\n${marker}0\n` };
+}
 
 export const inspectVpsForAuto = vpsComputerStatus;
 export async function reuseVps(cfg, ownerId) { const status = await vpsComputerStatus(cfg, ownerId); return status.ready ? status : null; }
 export async function vpsBoxChrome() { return null; }
 export function vpsComputerMcp(cfg, ownerId, containerId) {
-  return { command: process.execPath, args: ['fixture-vps-mcp', cfg.vps.sshAlias, ownerId, containerId], env: {} };
+  return { command: process.execPath, args: [fileURLToPath(new URL('./fake-vps-driver.mjs', import.meta.url)), 'fixture-vps-mcp', cfg.vps.sshAlias, ownerId, containerId], env: {} };
 }
 export async function vpsComputerScreenshot() {
   return { png: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+X2ioAAAAASUVORK5CYII=', format: 'png' };
