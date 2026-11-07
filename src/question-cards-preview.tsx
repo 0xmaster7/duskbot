@@ -1,6 +1,6 @@
 // Dev-only gallery of the question and approval cards on a Team Cloud, served at /question-cards-preview.html; not in
 // the packaged app. It mounts the real chat and inbox components over a fixed store, with no server behind it.
-// ?state=question|approval|open|answered|others|signin|signin-vm|secret|secret-login|settled&surface=chat|inbox|panel&skin=grok|midnight|daylight&lang=de
+// ?state=question|approval|open|answered|others|signin|signin-vm|secret|secret-login|settled|options|options-answered&surface=chat|inbox|panel&skin=grok|midnight|daylight&lang=de
 import { StrictMode, useMemo, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import type { InboxRow, InboxView } from "../shared/inbox";
@@ -82,8 +82,23 @@ const cards = (state: string): Message[] | null => {
   }
 };
 
+const SUBJECTS = ["Three new glazes, fresh from the kiln", "Your holiday mug has arrived (almost)", "Frost, Ember, Pine: pick your winter mug"];
+const pickRoot = {
+  type: "Card", id: "n1", title: "Holiday email subject line", caption: "Tap one and the email is ready to go. You can also just type a number.",
+  children: [{ type: "Col", id: "n2", children: SUBJECTS.map((label, index) => ({ type: "Button", id: `n${index + 3}`, label, style: "secondary", onClickAction: { type: "pick", payload: { index } } })) }],
+};
+/** A bot's pick-one widget between two of its bubbles, under the New line: the card a person reported as broken. */
+const optionRows = (answered: boolean): Message[] => [
+  message("asked", 0, { role: "user", text: "Just give me the subject line options again" }),
+  message("intro", 1, { text: "Hi! Since we keep circling, here's a one-tap way to pick the subject line." }),
+  message("pick", 2, { kind: "widget", text: "Holiday email subject line", widget: { v: 1, root: pickRoot,
+    ...(answered ? { settled: { ref: "n3", label: SUBJECTS[0]!, tone: "confirm", at: AT } } : {}) } }),
+  message("vote", 3, { text: "My vote's still the first one. Tap away!" }),
+];
+
 function ledgerMessages(state: string): Message[] {
   if (state === "others") return others();
+  if (state === "options" || state === "options-answered") return optionRows(state === "options-answered");
   const only = cards(state);
   if (only) return only;
   const rows: Message[] = [
@@ -130,7 +145,7 @@ const BASE = {
 } as const;
 
 function bots(state: string): Bot[] {
-  const ledger: Bot = { ...BASE, id: "ledger", name: "Ledger", title: "Developer", color: "teal", createdBy: CLEO.email, threadId: WORK, mainThreadId: "ledger-main",
+  const ledger: Bot = { ...BASE, id: "ledger", name: "Ledger", title: "Developer", color: stateName.startsWith("options") ? "purple" : "teal", createdBy: CLEO.email, threadId: WORK, mainThreadId: "ledger-main",
     busy: state === "question" || state === "approval", activity: state === "question" || state === "approval" ? "waiting-on-you" : "idle",
     tasks: [{ threadId: "ledger-main", title: "Ledger", createdAt: AT - 86_400_000 }, { threadId: WORK, title: "Pricing page: fix", createdAt: AT, private: true,
       openedBy: { botId: "scout", name: "Scout", at: AT } }], messages: ledgerMessages(state) };
@@ -150,7 +165,8 @@ function Gallery() {
   setInboxView(view);
   if (surface === "panel") openInbox(view.rows[0]?.kind === "ask" && stateName !== "answered" ? { reading: view.rows[0].id } : {});
   const shown = surface === "chat" ? all[0]! : all[1]!;
-  const state: AppState = { ...initialState, bots: all, selectedId: shown.id, connected: true };
+  const state: AppState = { ...initialState, bots: all, selectedId: shown.id, connected: true,
+    ...(stateName.startsWith("options") ? { unreadDivider: { threadId: WORK, messageId: "intro" } } : {}) };
   const value = { state, dispatch: () => {}, flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} };
   return (
     <StoreContext.Provider value={value}>
