@@ -28,6 +28,7 @@ import {
   MANAGED_LABEL,
 } from "./container-computer.ts";
 import { PIDS_LIMIT, raisePidsLimit } from "./container-limits.ts";
+import { admitVpsDesktop, desktopLimitArgs, desktopLimits, desktopUpdateArgs, type VpsDesktopLimits } from "./vps-capacity.ts";
 import {
   BOT_DESKTOP_IMAGE, BOT_DESKTOP_LABEL, BOT_DESKTOP_VERSION, botDesktopIsHardened, botDesktopLabelsMatch, botDesktopMountsAreSafe, botDesktopNetworkIsPrivate,
   containerBotDesktopMode, containerDesktopKind, preferredVpsDesktop, provisionBotDesktop, type BotDesktopProgress, type VpsDesktopKind,
@@ -827,6 +828,7 @@ export function vpsContainerRunArgs(
   containerName: string,
   imageRef = VPS_IMAGE,
   viewerSecret = randomBytes(18).toString("base64url"),
+  limits: VpsDesktopLimits = desktopLimits(0, false),
 ): string[] {
   if (!CONTAINER_NAME.test(containerName) || (imageRef !== VPS_IMAGE && !IMAGE_ID.test(imageRef))) {
     throw new Error("invalid managed VPS container or image reference");
@@ -838,11 +840,11 @@ export function vpsContainerRunArgs(
   ];
   return [
     "run", "-d", "--name", containerName, ...labels.flatMap((label) => ["--label", label]),
-    "--memory", "4g", "--memory-swap", "4g", "--cpus", "2", "--pids-limit", String(PIDS_LIMIT),
+    ...desktopLimitArgs(limits), "--cpus", "2", "--pids-limit", String(PIDS_LIMIT),
     "--network", "bridge", "--ipc", "private", "--cgroupns", "private",
     "--cap-drop", "ALL", "--cap-add", "SETUID", "--cap-add", "SETGID", "--shm-size", "512m",
-    // Without a restart policy Docker leaves the container down after a VPS reboot; unless-stopped still honors Stop.
-    "--restart", "unless-stopped", "-e", `VNC_PW=${viewerSecret}`, imageRef,
+    // down after a VPS reboot on purpose: desktops wake one by one when a bot needs one
+    "--restart", "no", "-e", `VNC_PW=${viewerSecret}`, imageRef,
   ];
 }
 
@@ -1035,11 +1037,14 @@ export async function vpsComputerAction(
       const run = (args: string[], timeoutMs = 2 * 60_000) => guardedRunner(vpsDockerArgs(alias, args), { timeoutMs });
 
       const containerRef = before.container_id ?? before.container_name;
+      const admit = <T>(start: (limits: VpsDesktopLimits) => Promise<T>) => admitVpsDesktop({ alias, containerName: before.container_name, shared: botId.startsWith("computer_"),
+        local: isThisServerVps(alias), environmentId: vpsEnvironmentId(), docker: (args, timeoutMs) => run(args, timeoutMs), requireAllowed }, start);
+      const wake = () => admit(limits => run(desktopUpdateArgs(containerRef, limits), 30_000).catch(() => {}).then(() => run(["start", containerRef])));
       if (action === "provision") {
         if (before.container === "missing" || before.container === "stopped") guard.onStarting?.();
         const botDesktop = () => provisionBotDesktop((args, timeoutMs) => run(args, timeoutMs), {
           containerName: before.container_name, imageId: before.image ? before.image_id : null, hostKey: alias,
-          labels: vpsOwnershipLabels(before.container_name), viewerSecret: randomBytes(18).toString("base64url"), onProgress: guard.onProgress,
+          labels: vpsOwnershipLabels(before.container_name), viewerSecret: randomBytes(18).toString("base64url"), onProgress: guard.onProgress, admit,
         });
         if (before.container === "missing") {
           if (before.desktop === "bot-desktop") await botDesktop();
@@ -1050,18 +1055,18 @@ export async function vpsComputerAction(
               imageRef = (await computeVpsComputerStatus(cfg, botId, guardedRunner, "cua")).image_id;
             }
             if (!imageRef) throw Object.assign(new Error("The prepared VPS image could not be identified"), { status: 409 });
-            await run(vpsContainerRunArgs(before.container_name, imageRef));
+            await admit(limits => run(vpsContainerRunArgs(before.container_name, imageRef!, undefined, limits)));
           }
         } else {
           assertUsableContainer(before);
-          if (before.container === "stopped") await run(["start", containerRef]);
+          if (before.container === "stopped") await wake();
         }
       } else if (action === "start") {
         if (before.container === "missing") throw Object.assign(new Error("No VPS container exists for this bot"), { status: 409 });
         if (before.container === "running") throw Object.assign(new Error("The VPS container is already running"), { status: 409 });
         assertUsableContainer(before);
         guard.onStarting?.();
-        await run(["start", containerRef]);
+        await wake();
       } else if (action === "remove") {
         // Skips the usability check (remove escapes a broken container); the ownership labels are the only gate.
         if (before.container === "missing") return before;

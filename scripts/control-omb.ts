@@ -217,6 +217,7 @@ export function verificationServerEnvironment(parentEnv: NodeJS.ProcessEnv, data
   // The memory gate runs here too, on the memory a fixture file says this machine has.
   if (parentEnv.OMB_TEST_MEMORY_GATE === "1") childEnv.OMB_TEST_MEMORY_GATE = "1";
   if (parentEnv.OMB_TEST_VPS_IDLE_CLOCK === "1") childEnv.OMB_TEST_VPS_IDLE_CLOCK = "1";
+  if (/^[1-9][0-9]?$/.test(parentEnv.OMB_VPS_MAX_DESKTOPS ?? "")) childEnv.OMB_VPS_MAX_DESKTOPS = parentEnv.OMB_VPS_MAX_DESKTOPS;
   if (parentEnv.OMB_TEST_LOCAL_BROWSER_GUARD === "1") childEnv.OMB_TEST_LOCAL_BROWSER_GUARD = "1";
   // The first-reply rescue's delay in ms, so a check need not sit through 20 s of silence.
   if (/^\d{1,6}$/.test(parentEnv.OMB_FIRST_REPLY_NOTICE_MS ?? "")) childEnv.OMB_FIRST_REPLY_NOTICE_MS = parentEnv.OMB_FIRST_REPLY_NOTICE_MS;

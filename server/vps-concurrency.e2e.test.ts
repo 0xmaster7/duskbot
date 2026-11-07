@@ -18,7 +18,8 @@ async function harness(options: Parameters<typeof createTeamVpsFixture>[0] & { h
   if (host) writeFileSync(hostDescriptor, JSON.stringify({ mode: "embedded", status: "ready", socketPath: join(dirname(vps.records), "host.sock"),
     mcpCommand: process.execPath, mcpArgs: ["mcp"], mcpEnv: {} }));
   let fixture: VerificationServer;
-  try { fixture = await launchVerificationServer(host ? { OMB_TEST_DESKTOP_CUA_CONNECTION: hostDescriptor } : {}, undefined, vps.localVm); }
+  // the fixture host is not measured; these checks are about screen sharing, not the memory cap
+  try { fixture = await launchVerificationServer({ OMB_VPS_MAX_DESKTOPS: "20", ...(host ? { OMB_TEST_DESKTOP_CUA_CONNECTION: hostDescriptor } : {}) }, undefined, vps.localVm); }
   catch (error) { await vps.close(); throw error; }
   const evidence: Array<Record<string, unknown>> = [];
   const pids = new Set<number>();
@@ -251,6 +252,28 @@ it.skipIf(process.platform === "win32")("provisions a missing shared VPS only af
     expect((await h.api("PATCH", "/api/config", { vps: { mode: "per-bot" } })).status).toBe(200);
   } finally { await h.close(); }
 }, 60_000);
+
+it.skipIf(process.platform === "win32")("never wakes a bot's own VPS computer for a plain reply, only after the bot selects it", async () => {
+  const h = await harness({ missingInitially: true });
+  try {
+    expect((await h.api("PUT", "/api/config", { vps: { sshAlias: "fixture-vps", mode: "per-bot", autoStart: true } })).status).toBe(200);
+    for (const name of ["Lazy own desktop one", "Lazy own desktop two"]) {
+      const before = readFileSync(h.vps.calls, "utf8").length;
+      const bot = (await h.api("POST", "/api/bots", { name })).body.bot;
+      expect((await h.api("POST", `/api/bots/${bot.id}/messages`, { text: "Just say hello" })).status).toBe(202);
+      const first = await h.launched(bot.threadId);
+      expect(first.mcpConfig.mcpServers.computer).toBeUndefined();
+      expect(readFileSync(h.vps.calls, "utf8").slice(before)).not.toMatch(/"(?:run|start)"/);
+      const token = first.mcpConfig.mcpServers.agents.env.OMB_COMMS_TOKEN;
+      expect((await h.api("POST", "/api/internal/computer/select", { surface: "cloud" }, token)).body).toMatchObject({ status: "pending" });
+      h.release(first.pid);
+      const second = await h.launched(bot.threadId, turn => Boolean(turn.mcpConfig.mcpServers.computer));
+      const calls = readFileSync(h.vps.calls, "utf8").slice(before).trim().split("\n").filter(Boolean).map(line => JSON.parse(line) as string[]);
+      expect(calls.filter(args => args.includes("run"))).toHaveLength(1);
+      h.release(second.pid); await h.idle(bot.id, bot.threadId);
+    }
+  } finally { await h.close(); }
+}, 90_000);
 
 it.skipIf(process.platform !== "darwin")("refuses an unavailable explicit cloud destination while a synthetic host connection is available", async () => {
   const h = await harness({ host: true, missingInitially: true });

@@ -26,6 +26,7 @@ import {
   MANAGED_LABEL,
 } from "./container-computer.ts";
 import { PIDS_LIMIT } from "./container-limits.ts";
+import { resetVpsCapacityForTests, setVpsCapacityHost } from "./vps-capacity.ts";
 import type { AppConfig } from "./config.ts";
 import {
   VPS_CONTAINER_LABEL,
@@ -531,7 +532,8 @@ esac
       .toMatch(/^com\.openmausbot\.environment=[0-9a-f-]{36}$/i);
     expect(run.join(" ")).toContain(`--label ${IMAGE_LAYER_LABEL}=${IMAGE_LAYER_VERSION}`);
     expect(run.join(" ")).toContain(`--label ${VPS_VIEWER_LABEL}=1`);
-    expect(run.join(" ")).toContain("--restart unless-stopped");
+    expect(run.join(" ")).toContain("--memory 1536m --memory-swap 1536m --cpu-shares 256 --oom-score-adj 500");
+    expect(run.join(" ")).toContain("--restart no");
     expect(run).toContain("-e");
     expect(run.some((arg) => /^VNC_PW=[A-Za-z0-9_-]{8,}$/.test(arg))).toBe(true);
     expect(run).not.toContain("--mount");
@@ -586,6 +588,39 @@ esac
       expectedContainerId: "e".repeat(64), stillAllowed: () => true,
     })).rejects.toMatchObject({ code: "vps_container_changed" });
     expect(fake.calls.some(({ args }) => args[2] === "stop")).toBe(false);
+  });
+
+  it("wakes a stopped desktop under the new limits, and holds it asleep while the host is full of busy desktops", async () => {
+    resetVpsCapacityForTests();
+    const fake = fixture({ running: false });
+    let busyHost = false;
+    const runner: VpsCommandRunner = async (args, options) => {
+      const command = args[2];
+      if (command === "info") { fake.calls.push({ args, options }); return { stdout: String(12 * 1024 ** 3), stderr: "" }; }
+      if (command === "ps") {
+        fake.calls.push({ args, options });
+        const others = busyHost ? Array.from({ length: 6 }, (_, index) => `openmausbot-vps-busy${index}-${"b".repeat(11)}${index}\t\topenmausbot-vps-busy${index}-${"b".repeat(11)}${index}`) : [];
+        return { stdout: others.join("\n"), stderr: "" };
+      }
+      if (command === "update") { fake.calls.push({ args, options }); return { stdout: "", stderr: "" }; }
+      return fake.runner(args, options);
+    };
+    setVpsCapacityHost({ owned: () => new Set(Array.from({ length: 6 }, (_, index) => `openmausbot-vps-busy${index}-${"b".repeat(11)}${index}`)), sleepLeastRecent: async () => false });
+    try {
+      busyHost = true;
+      vi.useFakeTimers({ toFake: ["setTimeout", "Date"] });
+      const refused = vpsComputerAction("provision", CONFIG, BOT_ID, runner).catch((error: unknown) => error);
+      await vi.advanceTimersByTimeAsync(31_000);
+      expect(await refused).toMatchObject({ code: "vps_capacity_full" });
+      vi.useRealTimers();
+      expect(fake.calls.some(({ args }) => args[2] === "start")).toBe(false);
+      busyHost = false;
+      expect((await vpsComputerAction("provision", CONFIG, BOT_ID, runner)).ready).toBe(true);
+      const commands = fake.calls.map(({ args }) => args.slice(2).join(" "));
+      const update = commands.findIndex(command => command.startsWith("update --memory 1536m --memory-swap 1536m --cpu-shares 256 --restart no"));
+      expect(update).toBeGreaterThanOrEqual(0);
+      expect(commands.findIndex(command => command.startsWith("start "))).toBeGreaterThan(update);
+    } finally { vi.useRealTimers(); setVpsCapacityHost(null); resetVpsCapacityForTests(); }
   });
 
   it("announces preparation only when the computer must be created or started", async () => {

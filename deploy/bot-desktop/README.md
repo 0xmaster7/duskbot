@@ -88,8 +88,8 @@ docker run -d --name openmausbot-vps-<bot>-<hash> --hostname bot \
   --mount type=volume,source=<name>-home,target=/home/cua \
   --cap-drop ALL --cap-add AUDIT_WRITE --cap-add CHOWN --cap-add DAC_OVERRIDE --cap-add FOWNER --cap-add FSETID \
   --cap-add KILL --cap-add NET_BIND_SERVICE --cap-add SETGID --cap-add SETUID --cap-add SYS_CHROOT \
-  --ipc private --cgroupns private --memory 4g --memory-swap 4g --cpus 2 --pids-limit 4096 --shm-size 512m \
-  --restart unless-stopped -e OMB_MODE=free -e VNC_PW=<random> <image id>
+  --ipc private --cgroupns private --memory 1536m --memory-swap 1536m --cpu-shares 256 --oom-score-adj 500 \
+  --cpus 2 --pids-limit 4096 --shm-size 512m --restart no -e OMB_MODE=free -e VNC_PW=<random> <image id>
 ```
 
    Strict instead: `--read-only`, `--cap-add NET_ADMIN --cap-add SETUID --cap-add SETGID` only,
