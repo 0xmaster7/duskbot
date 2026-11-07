@@ -376,7 +376,8 @@ export function newDirectKey() {
  */
 export function sshConnector({ host, port = 22, user, privateKey, hostKeys, timeoutMs = 20_000 }) {
   const pinned = hostKeys.map((entry) => Buffer.from(String(entry).split(/\s+/)[1] ?? "", "base64")).filter((blob) => blob.length > 0);
-  const types = [...new Set(hostKeys.map((entry) => String(entry).split(/\s+/)[0]))];
+  // an rsa host key signs with sha-2 on any recent sshd
+  const types = [...new Set(hostKeys.flatMap((entry) => { const type = String(entry).split(/\s+/)[0]; return type === "ssh-rsa" ? ["rsa-sha2-512", "rsa-sha2-256", "ssh-rsa"] : [type]; }))];
   return () => new Promise((resolve, reject) => {
     const { Client } = loadSsh2();
     const client = new Client();
