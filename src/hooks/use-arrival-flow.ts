@@ -2,7 +2,7 @@ import { animate, spring } from "motion/react";
 import { useLayoutEffect, useRef, type RefObject } from "react";
 
 import { usePrefersReducedMotion } from "@/components/mascot-clock";
-import { EASE_OUT, MSG_FADE, SPRING_SETTLE } from "@/lib/motion-presets";
+import { EASE, MSG_FADE, SPRING_SETTLE } from "@/lib/motion-presets";
 
 const ROW = "[data-message-row]";
 const SLOT = ".turn-status-slot";
@@ -13,12 +13,14 @@ const BOT_BUBBLE = ".chat-bubble-bot";
 /** How far below its place the person's own bubble starts, and how long it takes to glide up while it fades in (ms). */
 export const SEND_RISE_PX = 24;
 export const SEND_MS = 220;
-/** One easing for every arrival: entering, it starts fast and lands with no overshoot. */
-export const ARRIVAL_EASE = `cubic-bezier(${EASE_OUT.join(", ")})`;
+/** One easing for every arrival: a decelerating curve with no overshoot whose start is gentle enough that a tall reply
+ * opens rather than snaps. */
+export const ARRIVAL_CURVE = EASE.drawer;
+export const ARRIVAL_EASE = `cubic-bezier(${ARRIVAL_CURVE.join(", ")})`;
 /** A reply's reveal takes longer the taller it is, within these bounds (ms), so a long answer opens rather than snaps. */
 export const REVEAL_MS = [260, 520] as const;
 const REVEAL_SHORT_PX = 36;
-const REVEAL_TALL_PX = 480;
+const REVEAL_TALL_PX = 360;
 /** The status line fades out as a reply fades in, and if it still has work to report it comes back in its slot (ms). */
 const LINE_OUT_MS = 160;
 const LINE_BACK_AT_MS = 300;
@@ -148,8 +150,8 @@ function lift(el: HTMLElement, transform: [string, string], opacity: [number, nu
     done();
   };
   const keyframes = opacity ? { transform, opacity } : { transform };
-  const transition = { duration: timing.duration / 1000, ease: EASE_OUT };
-  const options = opacity ? { transform: transition, opacity: { duration: Math.min(timing.duration / 1000, MSG_FADE.duration), ease: EASE_OUT } } : { transform: transition };
+  const transition = { duration: timing.duration / 1000, ease: ARRIVAL_CURVE };
+  const options = opacity ? { transform: transition, opacity: { duration: Math.min(timing.duration / 1000, MSG_FADE.duration), ease: ARRIVAL_CURVE } } : { transform: transition };
   animate(el, keyframes, options).finished.then(finish, finish);
 }
 

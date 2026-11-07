@@ -15,8 +15,7 @@ vi.mock("motion/react", async (original) => ({
 }));
 const lifts = (el: Element) => (lifted.calls as Lifted[]).filter((call) => call.el === el);
 
-import { ARRIVAL_EASE, REVEAL_MS, revealTiming, SEND_MS, SEND_RISE_PX, settleTiming, useArrivalFlow } from "./use-arrival-flow";
-import { EASE_OUT } from "@/lib/motion-presets";
+import { ARRIVAL_CURVE, ARRIVAL_EASE, REVEAL_MS, revealTiming, SEND_MS, SEND_RISE_PX, settleTiming, useArrivalFlow } from "./use-arrival-flow";
 
 // happy-dom has no layout: each element reports the offsets the test gives it, and animations are recorded
 type Recorded = { el: Element; keyframes: Keyframe[]; options: KeyframeAnimationOptions };
@@ -106,7 +105,7 @@ describe("useArrivalFlow", () => {
     expect(moved(column)).toHaveLength(0);
     const [entrance] = lifts(reply);
     expect(entrance?.keyframes).toMatchObject({ transform: ["translateY(7px) scale(0.98)", "translateY(0px) scale(1)"], opacity: [0, 1] });
-    expect(entrance?.options.transform).toEqual({ duration: REVEAL_MS[0] / 1000, ease: EASE_OUT });
+    expect(entrance?.options.transform).toEqual({ duration: REVEAL_MS[0] / 1000, ease: ARRIVAL_CURVE });
     // its first frame is on the element before the browser paints
     expect(reply.style.transform).toBe("translateY(7px) scale(0.98)");
     const line = recorded.find((r) => r.el === slot);
@@ -163,7 +162,7 @@ describe("useArrivalFlow", () => {
     expect(revealTiming(2000).duration).toBe(REVEAL_MS[1]);
     expect(revealTiming(300).easing).toBe(ARRIVAL_EASE);
     // an ease-out bezier whose control points stay inside 0..1 never overshoots
-    expect(EASE_OUT.every((value) => value >= 0 && value <= 1)).toBe(true);
+    expect(ARRIVAL_CURVE.every((value) => value >= 0 && value <= 1)).toBe(true);
   });
 
   it("puts the view at its end on a send and glides the column and the new bubble into place, never jumping", () => {
@@ -181,7 +180,7 @@ describe("useArrivalFlow", () => {
     const [rise] = lifts(mine);
     expect(rise?.keyframes.transform).toEqual([`translateY(${SEND_RISE_PX}px)`, "translateY(0px)"]);
     expect(rise?.keyframes.opacity).toEqual([0, 1]);
-    expect(rise?.options.transform).toEqual({ duration: SEND_MS / 1000, ease: EASE_OUT });
+    expect(rise?.options.transform).toEqual({ duration: SEND_MS / 1000, ease: ARRIVAL_CURVE });
     // the slot rides under it on the same move
     expect(lifts(slot)[0]?.keyframes.transform).toEqual(rise?.keyframes.transform);
     // settled: the transform is handed back and the clip comes off
