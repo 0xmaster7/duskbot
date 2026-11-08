@@ -13,17 +13,35 @@ import { HomePage } from "./pages/Home";
 import { AuthScreen } from "./pages/Auth";
 import "./app.css";
 
-const CloudDesktopPage = lazy(() => import("./pages/CloudDesktop").then((m) => ({ default: m.CloudDesktopPage })));
-const WorkspacesPage = lazy(() => import("./pages/Workspaces").then((m) => ({ default: m.WorkspacesPage })));
-const WorkspacePage = lazy(() => import("./pages/Workspaces").then((m) => ({ default: m.WorkspacePage })));
-const BotsPage = lazy(() => import("./pages/Bots").then((m) => ({ default: m.BotsPage })));
-const BotPage = lazy(() => import("./pages/Bots").then((m) => ({ default: m.BotPage })));
-const ConnectorsPage = lazy(() => import("./pages/Connectors").then((m) => ({ default: m.ConnectorsPage })));
-const UsagePage = lazy(() => import("./pages/Usage").then((m) => ({ default: m.UsagePage })));
-const BillingPage = lazy(() => import("./pages/Billing").then((m) => ({ default: m.BillingPage })));
-const AccountPage = lazy(() => import("./pages/Account").then((m) => ({ default: m.AccountPage })));
-const DeviceApprovalPage = lazy(() => import("./pages/DeviceApproval").then((m) => ({ default: m.DeviceApprovalPage })));
-const Onboarding = lazy(() => import("./pages/Onboarding").then((m) => ({ default: m.Onboarding })));
+const pages = {
+  cloud: () => import("./pages/CloudDesktop"),
+  workspaces: () => import("./pages/Workspaces"),
+  bots: () => import("./pages/Bots"),
+  connectors: () => import("./pages/Connectors"),
+  usage: () => import("./pages/Usage"),
+  billing: () => import("./pages/Billing"),
+  account: () => import("./pages/Account"),
+  device: () => import("./pages/DeviceApproval"),
+  onboarding: () => import("./pages/Onboarding"),
+};
+const CloudDesktopPage = lazy(() => pages.cloud().then((m) => ({ default: m.CloudDesktopPage })));
+const WorkspacesPage = lazy(() => pages.workspaces().then((m) => ({ default: m.WorkspacesPage })));
+const WorkspacePage = lazy(() => pages.workspaces().then((m) => ({ default: m.WorkspacePage })));
+const BotsPage = lazy(() => pages.bots().then((m) => ({ default: m.BotsPage })));
+const BotPage = lazy(() => pages.bots().then((m) => ({ default: m.BotPage })));
+const ConnectorsPage = lazy(() => pages.connectors().then((m) => ({ default: m.ConnectorsPage })));
+const UsagePage = lazy(() => pages.usage().then((m) => ({ default: m.UsagePage })));
+const BillingPage = lazy(() => pages.billing().then((m) => ({ default: m.BillingPage })));
+const AccountPage = lazy(() => pages.account().then((m) => ({ default: m.AccountPage })));
+const DeviceApprovalPage = lazy(() => pages.device().then((m) => ({ default: m.DeviceApprovalPage })));
+const Onboarding = lazy(() => pages.onboarding().then((m) => ({ default: m.Onboarding })));
+
+// once the first page is up, fetch the other pages in idle time so moving between them never waits on the network;
+// connectors carries the 450 kB app catalogue and loads when opened
+function prefetchPages() {
+  const idle = window.requestIdleCallback ?? ((fn: () => void) => setTimeout(fn, 1200));
+  idle(() => { for (const [name, load] of Object.entries(pages)) if (name !== "connectors") void load().catch(() => {}); });
+}
 
 initTheme();
 stashClaim();
@@ -57,6 +75,7 @@ function route(path: string): ReactNode {
 
 function SignedIn() {
   const { path, query } = useLocation();
+  useEffect(prefetchPages, []);
   const { account } = useCloud();
   const next = query.get("next");
   const moved = MOVED[path] && (path === "/sign-in" && next?.startsWith("/") && !next.startsWith("//") ? next : MOVED[path]);
