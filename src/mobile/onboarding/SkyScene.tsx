@@ -63,12 +63,60 @@ export function useScreen(): { w: number; h: number } {
   return size;
 }
 
-const Mascot = memo(function Mascot({ cast, stage, drag, working, w, h }: { cast: Cast; stage: SkyStage; drag?: MotionValue<number>; working: boolean; w: number; h: number }) {
+/** `margin`: how far a mascot keeps off it; top-bar controls ask for more room than content. */
+export type ClearRect = { left: number; top: number; right: number; bottom: number; margin?: number };
+const CLEAR_MARGIN = 14;
+const BAR_MARGIN = 36;
+
+/** Where a mascot of `radius` centred at (x, y) lands so it stays out of every rect the screen asked to keep clear: it
+ * leaves the first rect it overlaps by the shortest way out, and it may hang off the screen edge, never onto content. */
+export function keepClear(x: number, y: number, radius: number, rects: readonly ClearRect[], w: number, h: number): { x: number; y: number } {
+  let px = x, py = y;
+  for (let pass = 0; pass < 3; pass++) {
+    const hit = rects.find((r) => { const m = r.margin ?? CLEAR_MARGIN; return px + radius > r.left - m && px - radius < r.right + m && py + radius > r.top - m && py - radius < r.bottom + m; });
+    if (!hit) break;
+    const m = hit.margin ?? CLEAR_MARGIN;
+    const exits = [
+      { x: hit.left - m - radius, y: py },
+      { x: hit.right + m + radius, y: py },
+      { x: px, y: hit.top - m - radius },
+      { x: px, y: hit.bottom + m + radius },
+    ].filter((p) => p.x > -radius * 0.6 && p.x < w + radius * 0.6 && p.y > -radius * 0.6 && p.y < h + radius * 0.6);
+    if (!exits.length) break;
+    const best = exits.reduce((a, b) => (Math.hypot(a.x - px, a.y - py) <= Math.hypot(b.x - px, b.y - py) ? a : b));
+    px = best.x; py = best.y;
+  }
+  return { x: px, y: py };
+}
+
+/** The rects of everything on screen marked `data-sky-clear`, measured after the step has laid out and again once its
+ * entrance has settled. */
+function useClearRects(root: HTMLElement | null, key: string): ClearRect[] {
+  const [rects, setRects] = useState<ClearRect[]>([]);
+  useEffect(() => {
+    if (!root) return;
+    const measure = () => {
+      const base = root.getBoundingClientRect();
+      setRects([...root.ownerDocument.querySelectorAll<HTMLElement>("[data-sky-clear]")]
+        .filter((el) => el.offsetParent !== null || el.getClientRects().length > 0)
+        .map((el) => { const r = el.getBoundingClientRect(); return { left: r.left - base.left, top: r.top - base.top, right: r.right - base.left, bottom: r.bottom - base.top, ...(el.dataset.skyClear === "bar" ? { margin: BAR_MARGIN } : {}) }; })
+        .filter((r) => r.right > r.left && r.bottom > r.top));
+    };
+    const first = requestAnimationFrame(measure);
+    const settled = window.setTimeout(measure, 320);
+    window.addEventListener("resize", measure);
+    return () => { cancelAnimationFrame(first); window.clearTimeout(settled); window.removeEventListener("resize", measure); };
+  }, [root, key]);
+  return rects;
+}
+
+const Mascot = memo(function Mascot({ cast, stage, drag, working, w, h, clear }: { cast: Cast; stage: SkyStage; drag?: MotionValue<number>; working: boolean; w: number; h: number; clear: readonly ClearRect[] }) {
   const ref = useRef<MausAvatarHandle>(null);
   const reduced = useReducedMotion();
   const spot = cast.spots[stage];
   const zero = useMotionValue(0);
   const parallax = useTransform(drag ?? zero, (v) => (reduced ? 0 : v * cast.depth));
+  const placed = keepClear((spot.x / 100) * w, (spot.y / 100) * h, 42 * spot.s, clear, w, h);
   return (
     <motion.div className="absolute left-0 top-0" style={{ x: parallax }}>
       <motion.button
@@ -77,7 +125,7 @@ const Mascot = memo(function Mascot({ cast, stage, drag, working, w, h }: { cast
         aria-hidden
         className="absolute left-[-42px] top-[-42px] size-[84px] touch-manipulation"
         initial={false}
-        animate={{ x: (spot.x / 100) * w, y: (spot.y / 100) * h, scale: spot.s, rotate: spot.r ?? 0, opacity: spot.o ?? 1 }}
+        animate={{ ...placed, scale: spot.s, rotate: spot.r ?? 0, opacity: spot.o ?? 1 }}
         transition={{ ...spring.panel, opacity: { duration: 0.22 } }}
         whileTap={{ scale: spot.s * 1.14, transition: spring.lively }}
         onPointerDown={() => { haptic("light"); ref.current?.poke?.(); }}
@@ -92,11 +140,13 @@ const Mascot = memo(function Mascot({ cast, stage, drag, working, w, h }: { cast
 
 /** The onboarding's one continuous scene: a night sky the mascots live in. Every step of onboarding plays in front of it,
  * and the mascots regroup for each step instead of the screen cutting. */
-export function SkyScene({ stage, drag, children, glyphs }: { stage: SkyStage; drag?: MotionValue<number>; children?: ReactNode; glyphs?: ReactNode }) {
+export function SkyScene({ stage, drag, children, glyphs, clearKey = "" }: { stage: SkyStage; drag?: MotionValue<number>; children?: ReactNode; glyphs?: ReactNode; /** changes when the screen in front changes, so the keep-clear zones are measured again */ clearKey?: string }) {
+  const [root, setRoot] = useState<HTMLDivElement | null>(null);
+  const clear = useClearRects(root, `${stage}:${clearKey}`);
   const field = useMemo(() => stars(52), []);
   const { w, h } = useScreen();
   return (
-    <div className="omb-sky absolute inset-0 overflow-hidden" data-scan-clear>
+    <div ref={setRoot} className="omb-sky absolute inset-0 overflow-hidden" data-scan-clear>
       <div aria-hidden className="absolute inset-0" data-scan-hide style={{ background: "linear-gradient(180deg, #0a0c13 0%, #111626 52%, #1a2036 100%)" }} />
       <div aria-hidden className="absolute -right-24 -top-24 size-[340px] rounded-full" data-scan-hide style={{ background: "radial-gradient(closest-side, rgb(255 244 222 / 0.10), transparent)" }} />
       <div aria-hidden className="absolute inset-0" data-scan-hide>
@@ -112,7 +162,7 @@ export function SkyScene({ stage, drag, children, glyphs }: { stage: SkyStage; d
       </div>
       {glyphs}
       <div className="absolute inset-0" data-scan-hide>
-        {CAST.map((cast) => <Mascot key={cast.id} cast={cast} stage={stage} drag={drag} w={w} h={h} working={stage === "intro2" && (cast.id === "a" || cast.id === "e")} />)}
+        {CAST.map((cast) => <Mascot key={cast.id} cast={cast} stage={stage} drag={drag} w={w} h={h} clear={clear} working={stage === "intro2" && (cast.id === "a" || cast.id === "e")} />)}
       </div>
       {children}
     </div>

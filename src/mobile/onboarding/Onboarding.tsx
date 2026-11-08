@@ -12,9 +12,11 @@ import { usePlatform, type CameraPermission } from "../platform";
 import { PairError, parseTypedPairing, redeemPairing, resolveTypedCode, type TypedPairing } from "../connection/pair";
 import { IntroPager, SyncGlyphs } from "./IntroPager";
 import { Scanner } from "./Scanner";
+import { AccountStep } from "./AccountStep";
+import { accountService, signedInAccount } from "./account";
 import { SkyScene, type SkyStage } from "./SkyScene";
 
-type Step = "intro" | "link" | "permission" | "denied" | "scan" | "code" | "paste";
+type Step = "intro" | "account" | "link" | "permission" | "denied" | "scan" | "code" | "paste";
 type Failure = { code: PairError["code"]; name: string; companion: boolean };
 
 const INTRO_SEEN = "omb.mobile.introSeen";
@@ -102,12 +104,15 @@ export function Onboarding({ initial = null, reason = null, startAtLink = false,
 
   useEffect(() => {
     if (step) return;
-    void platform.prefs.get(INTRO_SEEN).then((seen) => setStep(seen ? "link" : "intro"));
+    void platform.prefs.get(INTRO_SEEN).then((seen) => { if (seen) void afterIntro(); else setStep("intro"); });
   }, [platform, step]);
   useEffect(() => { platform.setStatusBar?.("light"); }, [platform]);
 
   const go = (next: Step) => { setFailure(null); setValue(""); lastTry.current = null; setStep(next); };
-  const finishIntro = () => { void platform.prefs.set(INTRO_SEEN, "1"); go("link"); };
+  const service = accountService();
+  /** After the intro: the account step while accounts are on and this phone has none yet, else straight to linking. */
+  const afterIntro = async () => go(service && !(await signedInAccount(platform).catch(() => false)) ? "account" : "link");
+  const finishIntro = () => { void platform.prefs.set(INTRO_SEEN, "1"); void afterIntro(); };
 
   const redeem = async (text: string | TypedPairing, from: Step) => {
     if (locked.current) return;
@@ -154,26 +159,33 @@ export function Onboarding({ initial = null, reason = null, startAtLink = false,
 
   const stage: SkyStage = step === "intro" ? (["intro0", "intro1", "intro2"] as const)[page] : step === "scan" ? "scan" : step === "code" || step === "paste" ? "form" : "link";
   const back = (
-    <button type="button" onClick={() => go("link")} aria-label={t("mobile.sheet.back")} className="mobile-press flex size-11 items-center justify-center rounded-full bg-white/[0.1] text-white"><ChevronLeft size={21} /></button>
+    <button type="button" data-sky-clear="bar" onClick={() => go("link")} aria-label={t("mobile.sheet.back")} className="mobile-press flex size-11 items-center justify-center rounded-full bg-white/[0.1] text-white"><ChevronLeft size={21} /></button>
   );
 
   return (
     <main className="omb-mobile omb-onboarding relative size-full overflow-hidden bg-[#0b0d14]" data-scan-clear aria-busy={busy}>
-      <SkyScene stage={stage} drag={drag} glyphs={<SyncGlyphs shown={step === "intro" && page === 1} />}>
+      <SkyScene stage={stage} drag={drag} clearKey={`${step}:${confirm ? "c" : ""}:${failure ? "f" : ""}`} glyphs={<SyncGlyphs shown={step === "intro" && page === 1} />}>
         <AnimatePresence mode="wait" initial={false}>
           {step === "intro" && (
             <StepPane id="intro"><IntroPager drag={drag} onPage={setPage} onDone={finishIntro} /></StepPane>
+          )}
+
+          {step === "account" && service && (
+            <StepPane id="account">
+              <div className="flex-1" />
+              <AccountStep platform={platform} service={service} onDone={() => go("link")} />
+            </StepPane>
           )}
 
           {step === "link" && (
             <StepPane id={confirm ? "confirm" : "link"}>
               {startAtLink && onCancel && !confirm && (
                 <div className="px-4 pt-[calc(var(--m-safe-top)+8px)]">
-                  <button type="button" onClick={onCancel} aria-label={t("mobile.sheet.close")} className="mobile-press flex size-11 items-center justify-center rounded-full bg-white/[0.1] text-white"><X size={20} /></button>
+                  <button type="button" data-sky-clear="bar" onClick={onCancel} aria-label={t("mobile.sheet.close")} className="mobile-press flex size-11 items-center justify-center rounded-full bg-white/[0.1] text-white"><X size={20} /></button>
                 </div>
               )}
               <div className="flex-1" />
-              <div className="px-6 pb-[calc(var(--m-safe-bottom)+20px)]">
+              <div data-sky-clear className="px-6 pb-[calc(var(--m-safe-bottom)+20px)]">
                 {confirm ? (
                   <>
                     <h1 className="text-center text-[28px] font-semibold leading-[1.15] tracking-tight text-white">{t("mobile.pair.confirm", { name: installationName(confirm) })}</h1>
@@ -208,14 +220,14 @@ export function Onboarding({ initial = null, reason = null, startAtLink = false,
             <StepPane id={step}>
               <div className="px-4 pt-[calc(var(--m-safe-top)+8px)]">{back}</div>
               <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-                <div className="relative flex size-28 items-center justify-center rounded-[34px] bg-white/[0.08] ring-1 ring-white/10">
+                <div data-sky-clear className="relative flex size-28 items-center justify-center rounded-[34px] bg-white/[0.08] ring-1 ring-white/10">
                   <Camera size={46} strokeWidth={1.5} className="text-white/85" />
                   <span className="absolute -right-6 -top-7"><MausAvatar color="green" bodyId="bean" size={46} state={step === "denied" ? "sad" : "curious"} gaze={{ x: -1, y: 1 }} label="" /></span>
                 </div>
-                <h1 className="mt-8 text-[26px] font-semibold tracking-tight text-white">{t(step === "denied" ? "mobile.onboarding.deniedTitle" : "mobile.onboarding.cameraTitle")}</h1>
-                <p className="mt-2 max-w-[300px] text-[15px] leading-6 text-white/60">{t(step === "denied" ? "mobile.onboarding.deniedBody" : "mobile.onboarding.cameraBody")}</p>
+                <h1 data-sky-clear className="mt-8 text-[26px] font-semibold tracking-tight text-white">{t(step === "denied" ? "mobile.onboarding.deniedTitle" : "mobile.onboarding.cameraTitle")}</h1>
+                <p data-sky-clear className="mt-2 max-w-[300px] text-[15px] leading-6 text-white/60">{t(step === "denied" ? "mobile.onboarding.deniedBody" : "mobile.onboarding.cameraBody")}</p>
               </div>
-              <div className="flex flex-col gap-3 px-6 pb-[calc(var(--m-safe-bottom)+20px)]">
+              <div data-sky-clear className="flex flex-col gap-3 px-6 pb-[calc(var(--m-safe-bottom)+20px)]">
                 {step === "permission"
                   ? <button type="button" className={PRIMARY} onClick={() => void askCamera()}>{t("mobile.onboarding.allowCamera")}</button>
                   : platform.camera?.openSettings && <button type="button" className={PRIMARY} onClick={() => void platform.camera?.openSettings?.()}>{t("mobile.onboarding.openSettings")}</button>}
@@ -227,7 +239,7 @@ export function Onboarding({ initial = null, reason = null, startAtLink = false,
           {(step === "code" || step === "paste") && (
             <StepPane id={step}>
               <div className="px-4 pt-[calc(var(--m-safe-top)+8px)]">{back}</div>
-              <form className="flex flex-1 flex-col px-6 pt-10" onSubmit={(event) => { event.preventDefault(); if (value.trim()) void redeem(value, step); }}>
+              <form data-sky-clear className="flex flex-1 flex-col px-6 pt-10" onSubmit={(event) => { event.preventDefault(); if (value.trim()) void redeem(value, step); }}>
                 <h1 className="text-[28px] font-semibold tracking-tight text-white">{t(step === "code" ? "mobile.onboarding.codeTitle" : "mobile.onboarding.pasteTitle")}</h1>
                 <p className="mt-2 text-[15px] leading-6 text-white/60">{t(step === "code" ? "mobile.onboarding.codeBody" : "mobile.onboarding.pasteBody")}</p>
                 <label htmlFor={fieldId} className="sr-only">{t(step === "code" ? "mobile.onboarding.codeLabel" : "mobile.onboarding.pasteLabel")}</label>

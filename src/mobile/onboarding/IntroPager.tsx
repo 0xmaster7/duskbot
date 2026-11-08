@@ -70,19 +70,21 @@ export function IntroPager({ onDone, onPage, drag }: { onDone: () => void; onPag
   return (
     <div className="absolute inset-0 flex flex-col">
       <div className="flex justify-end px-5 pt-[calc(var(--m-safe-top)+10px)]">
-        <button type="button" onClick={onDone} className="mobile-press h-11 rounded-full px-4 text-[15px] font-medium text-white/70">{t("mobile.onboarding.skip")}</button>
+        <button type="button" data-sky-clear="bar" onClick={onDone} className="mobile-press h-11 rounded-full px-4 text-[15px] font-medium text-white/70">{t("mobile.onboarding.skip")}</button>
       </div>
       <div ref={areaRef} className="relative min-h-0 flex-1 overflow-hidden" aria-roledescription="carousel" aria-label={t("mobile.onboarding.introLabel")}>
         <motion.div className="absolute bottom-0 left-0 flex h-full" style={{ x: track, width: w * PAGES.length }}>
           {PAGES.map((item, index) => (
             <section key={item.title} aria-hidden={index !== page} className="flex h-full flex-col justify-end px-7 pb-8" style={{ width: w }}>
-              <h1 className="text-[32px] font-semibold leading-[1.12] tracking-tight text-white">{t(item.title)}</h1>
-              <p className="mt-3 max-w-[320px] text-[17px] leading-[1.5] text-white/65">{t(item.body)}</p>
+              <div data-sky-clear={index === page ? "" : undefined}>
+                <h1 className="text-[32px] font-semibold leading-[1.12] tracking-tight text-white">{t(item.title)}</h1>
+                <p className="mt-3 max-w-[320px] text-[17px] leading-[1.5] text-white/65">{t(item.body)}</p>
+              </div>
             </section>
           ))}
         </motion.div>
       </div>
-      <div className="flex items-center gap-4 px-7 pb-[calc(var(--m-safe-bottom)+20px)]">
+      <div data-sky-clear className="flex items-center gap-4 px-7 pb-[calc(var(--m-safe-bottom)+20px)]">
         <div className="flex flex-1 items-center gap-2" role="tablist" aria-label={t("mobile.onboarding.pages")}>
           {PAGES.map((item, index) => (
             <button key={item.title} type="button" role="tab" aria-selected={index === page} aria-label={t("mobile.onboarding.pageN", { n: index + 1 })} onClick={() => goTo(index)} className="flex size-11 items-center justify-center -mx-3.5">
