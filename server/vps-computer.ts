@@ -1,5 +1,5 @@
 import { vpsContainerStartedAt } from "./vps-container-start.ts";
-import { pollVpsReadiness, readinessCanImprove } from "./vps-readiness.ts";
+import { pollVpsReadiness, readinessCanImprove, validateVpsDesktopReport } from "./vps-readiness.ts";
 import { ensureVpsScreenBrowser } from "./vps-browser-ready.ts";
 import { independentScreenExecArgs, isManagedScreenViewerPort, type IndependentScreenTarget } from "./shared-desktop-screens.ts";
 import { boxChromes, desktopTunnels, evictVpsBoxChrome, NATIVE_VIEWER_LIFETIME_MS, REMOTE_VIEWER_GRACE_MS, requireLiveScreen, screenKey, stopDesktopTunnel, type VpsScreenConnection } from "./vps-connections.ts";
@@ -85,6 +85,14 @@ const DESKTOP_PROBE = `version="$("$1" --version)"
 export function vpsDesktopProbeArgs(container: string): string[] {
   const args = cuaExecArgs([], { container });
   return [...args.slice(0, -1), "sh", "-ec", DESKTOP_PROBE, "omb-desktop-probe", CUA_EXECUTABLE, `cua-driver ${CUA_DRIVER_VERSION}`, CUA_SOCKET];
+}
+
+export function vpsDesktopWaitProbeArgs(container: string, waitMs: number): string[] {
+  if (!Number.isFinite(waitMs) || waitMs <= 0) throw new Error("invalid VPS desktop wait");
+  const args = vpsDesktopProbeArgs(container);
+  args[args.indexOf("-ec") + 1] = `timeout "$4" sh -ec 'until "$1" status --socket "$3" >/dev/null 2>&1; do sleep 0.05; done' omb-desktop-wait "$1" "$2" "$3"
+${DESKTOP_PROBE}`;
+  return [...args, (Math.max(100, Math.floor(waitMs / 100) * 100) / 1000).toFixed(1)];
 }
 
 /** The app config reloads in place: across awaits it could inspect one host and mutate another. */
@@ -587,18 +595,7 @@ async function computeVpsComputerStatus(
       verifiedDesktops.delete(connectionKey);
       try {
         const health = await run(vpsDesktopProbeArgs(containerRef), 20_000);
-        const report = JSON.parse(health.stdout) as {
-          schema_version?: string;
-          overall?: string;
-          checks?: unknown[];
-        };
-        if (
-          report.schema_version !== "1" ||
-          !Array.isArray(report.checks) ||
-          (report.overall !== "ok" && report.overall !== "degraded")
-        ) {
-          throw new Error(`Cua health report is ${report.overall ?? "invalid"}`);
-        }
+        validateVpsDesktopReport(health.stdout);
         status.desktopReady = true;
         verifiedDesktops.set(connectionKey, { containerId: containerRef, startedAt: status.container_started_at, at: Date.now() });
       } catch (error) {
@@ -652,7 +649,7 @@ export async function vpsComputerStatus(
     const pending = pendingStatuses.get(key);
     if (pending) return pending;
   }
-  const inspection = computeVpsComputerStatus(cfg, botId, runner);
+  const inspection = computeVpsComputerStatus(cfg, botId, runner, undefined, { reuseProbeWithinMs: JOIN_REUSES_PROBE_MS });
   if (cacheable) {
     pendingStatuses.set(key, inspection);
     if (options.fresh) pendingFreshStatuses.set(key, inspection);
@@ -895,17 +892,24 @@ async function waitForVpsReady(
     }
   };
   if (!alias) return computeVpsComputerStatus(cfg, botId, boundedRunner);
-  let status = await pollVpsReadiness({
-    deadline, expired: () => budgetExpired, inspect: () => computeVpsComputerStatus(cfg, botId, boundedRunner),
-    driverAnswers: (containerId) => boundedRunner(vpsDockerArgs(alias, cuaExecArgs(["status", "--socket", CUA_SOCKET], { container: containerId ?? vpsContainerName(botId) })), { timeoutMs: 10_000 }).then(() => true, () => false),
+  const inspect = (reuseProbe = false) => computeVpsComputerStatus(cfg, botId, boundedRunner, undefined,
+    { probe: false, ...(reuseProbe ? { reuseProbeWithinMs: JOIN_REUSES_PROBE_MS } : {}) });
+  const status = await pollVpsReadiness({
+    deadline: deadline - COMMAND_TIMEOUT_KILL_GRACE_MS, expired: () => budgetExpired, inspect,
+    waitAndProbe: async (status, waitMs) => {
+      const key = `${alias}:${status.container_name}`;
+      verifiedDesktops.delete(key);
+      const health = await boundedRunner(vpsDockerArgs(alias, vpsDesktopWaitProbeArgs(status.container_id!, waitMs)), { timeoutMs: waitMs + 1_000 });
+      validateVpsDesktopReport(health.stdout);
+      verifiedDesktops.set(key, { containerId: status.container_id!, startedAt: status.container_started_at, at: Date.now() });
+    },
   });
-  status ??= await computeVpsComputerStatus(cfg, botId, boundedRunner);
   if (budgetExpired) return {
     ...status,
     ready: false,
     desktopReady: false,
     desktop_error: "VPS desktop readiness timed out",
-    problem: "The VPS desktop did not become ready in time — retry when the connection recovers",
+    problem: "The VPS desktop did not become ready in time; retry when the connection recovers",
   };
   return status;
 }
@@ -1117,7 +1121,7 @@ export async function inspectVpsForAuto(
   if (!key) return computeVpsComputerStatus(cfg, botId, runner);
   const pending = pendingAutoInspections.get(key);
   if (pending && pending.runner === runner && lifecycleLocks.get(key) === pending.lock) return pending.inspection;
-  const inspection = withVpsLifecycleLock(key, () => computeVpsComputerStatus(cfg, botId, runner), PREPARATION_LOCK_TIMEOUT_MS);
+  const inspection = withVpsLifecycleLock(key, () => computeVpsComputerStatus(cfg, botId, runner, undefined, { reuseProbeWithinMs: JOIN_REUSES_PROBE_MS }), PREPARATION_LOCK_TIMEOUT_MS);
   // withVpsLifecycleLock queues synchronously, so the newest lock slot is this inspection's own.
   const entry = { inspection, lock: lifecycleLocks.get(key), runner };
   pendingAutoInspections.set(key, entry);

@@ -1,6 +1,5 @@
 import type { VpsComputerStatus } from "./vps-computer.ts";
 
-const READY_POLL_MS = 200;
 const READY_SETTLE_MS = 400;
 const READY_RECHECK_MS = 3_000;
 
@@ -10,29 +9,38 @@ export function readinessCanImprove(status: VpsComputerStatus): boolean {
     status.network === "private" && status.mounts === "none" && status.security === "hardened";
 }
 
-/**
- * Polls the cheap driver probe right after a start and inspects in full only once the driver answers or every few
- * seconds, so a container that died or changed still ends the wait early. Undefined when no inspection finished.
- */
+export function validateVpsDesktopReport(stdout: string): void {
+  const report = JSON.parse(stdout) as { schema_version?: string; overall?: string; checks?: unknown[] };
+  if (report.schema_version !== "1" || !Array.isArray(report.checks) || (report.overall !== "ok" && report.overall !== "degraded")) {
+    throw new Error(`Cua health report is ${report.overall ?? "invalid"}`);
+  }
+}
+
 export async function pollVpsReadiness(input: {
   deadline: number;
   expired: () => boolean;
-  driverAnswers: (containerId: string | null) => Promise<boolean>;
-  inspect: () => Promise<VpsComputerStatus>;
-}): Promise<VpsComputerStatus | undefined> {
-  let status: VpsComputerStatus | undefined;
-  let inspectedAt = Date.now();
-  while (!input.expired() && Date.now() < input.deadline) {
-    const answers = await input.driverAnswers(status?.container_id ?? null);
+  waitAndProbe: (status: VpsComputerStatus, waitMs: number) => Promise<void>;
+  inspect: (reuseProbe?: boolean) => Promise<VpsComputerStatus>;
+}): Promise<VpsComputerStatus> {
+  let status = await input.inspect();
+  while (!input.expired() && Date.now() < input.deadline && readinessCanImprove(status) && status.container_id) {
+    const before = status;
+    let failure: unknown;
+    try {
+      await input.waitAndProbe(status, Math.min(READY_RECHECK_MS, input.deadline - Date.now()));
+    } catch (error) {
+      failure = error;
+    }
     if (input.expired()) break;
-    if (answers || Date.now() - inspectedAt >= READY_RECHECK_MS) {
-      status = await input.inspect();
-      inspectedAt = Date.now();
-      if (status.ready || !readinessCanImprove(status)) return status;
+    status = await input.inspect(failure === undefined);
+    if (status.ready || !readinessCanImprove(status)) return status;
+    if (failure !== undefined && status.container_id === before.container_id && status.container_started_at === before.container_started_at) {
+      status.desktop_error = failure instanceof Error ? failure.message.slice(0, 320) : null;
+      if (status.desktop_error) status.problem = `The VPS Cua desktop failed to start: ${status.desktop_error}`;
     }
     if (input.expired() || Date.now() >= input.deadline) break;
     await new Promise((resolve) => {
-      const sleep = setTimeout(resolve, Math.min(answers ? READY_SETTLE_MS : READY_POLL_MS, Math.max(0, input.deadline - Date.now())));
+      const sleep = setTimeout(resolve, Math.min(READY_SETTLE_MS, Math.max(0, input.deadline - Date.now())));
       sleep.unref?.();
     });
   }

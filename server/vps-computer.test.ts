@@ -19,6 +19,8 @@ import {
   BASE_IMAGE_DIGEST,
   BASE_IMAGE_LABEL,
   CUA_DRIVER_VERSION,
+  CUA_EXECUTABLE,
+  CUA_SOCKET,
   DRIVER_LABEL,
   DISPLAY,
   IMAGE_LAYER_LABEL,
@@ -42,6 +44,7 @@ import {
   vpsComputerScreenshot,
   vpsComputerStatus,
   vpsDesktopProbeArgs,
+  vpsDesktopWaitProbeArgs,
   vpsComputerMcp,
   vpsContainerMcpArgs,
   vpsContainerName,
@@ -75,6 +78,8 @@ const hasPillow = (() => {
   catch { return false; }
 })();
 
+let fixtureBootMs = Date.parse("2026-11-01T00:00:00Z");
+
 function fixture({
   image = true,
   container = true,
@@ -103,7 +108,7 @@ function fixture({
   cgroupnsMode,
   imageLabelsMatch = true,
   environmentId = null,
-  startedAt,
+  startedAt = new Date(++fixtureBootMs).toISOString(),
 }: {
   image?: boolean;
   container?: boolean;
@@ -379,6 +384,19 @@ esac
         expect(() => run(failure)).toThrow();
         expect(readFileSync(log, "utf8").trim().split("\n")).toHaveLength(count);
       }
+      const waitArgs = vpsDesktopWaitProbeArgs(CONTAINER_ID, 1_000);
+      const waitScript = waitArgs[waitArgs.indexOf("-ec") + 1]!;
+      const runWait = (fail: string) => execFileSync("sh", ["-ec", waitScript, "omb-desktop-probe", driver, `cua-driver ${CUA_DRIVER_VERSION}`, "/run/fixture.sock", waitArgs.at(-1)!], {
+        encoding: "utf8", env: { PATH: process.env.PATH, PROBE_LOG: log, PROBE_FAIL: fail }, stdio: ["ignore", "pipe", "pipe"],
+      });
+      writeFileSync(log, "");
+      expect(JSON.parse(runWait(""))).toMatchObject({ overall: "ok" });
+      expect(readFileSync(log, "utf8").trim().split("\n")).toEqual(["status --socket", "--version ", "status --socket", "call health_report", "call get_desktop_state"]);
+      writeFileSync(log, "");
+      expect(() => runWait("status")).toThrow();
+      const attempts = readFileSync(log, "utf8").trim().split("\n");
+      expect(attempts.length).toBeGreaterThan(1);
+      expect(attempts.every(call => call === "status --socket")).toBe(true);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -1201,54 +1219,93 @@ esac
     expect(fake.calls.some(({ args }) => args[2] === "exec" && args.includes("tail"))).toBe(true);
   });
 
-  it("waits for readiness with a cheap driver probe, not full re-inspections", async () => {
+  it("provisions a stopped desktop with one wait and health exec, then reuses it for a fresh status", async () => {
     vi.useFakeTimers();
     try {
-      const fake = fixture({ container: false });
-      let driverProbes = 0;
+      const fake = fixture({ running: false });
       const runner: VpsCommandRunner = async (args, options) => {
-        if (args[2] === "exec" && (args.includes("omb-desktop-probe") || args.includes("status"))) {
-          driverProbes += 1;
-          if (driverProbes < 4) throw new Error("driver not up yet");
+        if (args.includes("omb-desktop-probe")) await new Promise(resolve => setTimeout(resolve, 2_000));
+        return fake.runner(args, options);
+      };
+      const startedAt = Date.now();
+      let readyAt = Infinity;
+      const pending = vpsComputerAction("provision", CONFIG, BOT_ID, runner).then(status => { readyAt = Date.now(); return status; });
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect((await pending).ready).toBe(true);
+      expect(readyAt - startedAt).toBe(2_000);
+      expect((await vpsComputerStatus(CONFIG, BOT_ID, runner, { fresh: true })).ready).toBe(true);
+      expect((await inspectVpsForAuto(CONFIG, BOT_ID, runner)).ready).toBe(true);
+      const afterStart = fake.calls.slice(fake.calls.findIndex(({ args }) => args[2] === "start") + 1);
+      const execs = afterStart.filter(({ args }) => args[2] === "exec");
+      expect(execs).toHaveLength(1);
+      expect(execs[0]?.args).toEqual(["-H", "ssh://production-vps", ...vpsDesktopWaitProbeArgs(CONTAINER_ID, 3_000)]);
+      expect(afterStart.some(({ args }) => args.includes("status"))).toBe(false);
+      expect(afterStart.filter(({ args }) => args[2] === "inspect")).toHaveLength(4);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it.each([false, true])("ends readiness with the real stopped status when the container dies during the wait (probe passes: %s)", async probePasses => {
+    vi.useFakeTimers();
+    try {
+      const fake = fixture({ running: false });
+      let waits = 0;
+      const runner: VpsCommandRunner = async (args, options) => {
+        if (args.includes("omb-desktop-probe")) {
+          waits++;
+          await new Promise(resolve => setTimeout(resolve, 3_000));
+          fake.state.running = false;
+          if (!probePasses) throw new Error("container is not running");
         }
         return fake.runner(args, options);
       };
       const pending = vpsComputerAction("provision", CONFIG, BOT_ID, runner);
-      await vi.advanceTimersByTimeAsync(10_000);
-      const status = await pending;
-      expect(status.ready).toBe(true);
-      const desktopCalls = fake.calls.filter(({ args }) => (args.includes("omb-desktop-probe") || args.includes("get_desktop_state")));
-      expect(desktopCalls).toHaveLength(1);
-      const healthCalls = fake.calls.filter(({ args }) => (args.includes("omb-desktop-probe") || args.includes("health_report")));
-      expect(healthCalls).toHaveLength(1);
-      expect(driverProbes).toBeGreaterThanOrEqual(4);
-    } finally {
-      vi.useRealTimers();
-    }
+      await vi.advanceTimersByTimeAsync(3_000);
+      expect(await pending).toMatchObject({ ready: false, desktopReady: false, container: "stopped", problem: "The OpenMausBot VPS container is stopped" });
+      expect(waits).toBe(1);
+    } finally { vi.useRealTimers(); }
   });
 
-  it("polls the driver every few hundred ms after a start without re-inspecting until it answers", async () => {
+  it.each([
+    { schema_version: "2", overall: "ok", checks: [] },
+    { schema_version: "1", overall: "ok", checks: {} },
+    { schema_version: "1", overall: "failed", checks: [] },
+  ])("rejects a bad wait health report %#", async report => {
     vi.useFakeTimers();
     try {
       const fake = fixture({ running: false });
-      let started = false, driverAnswersAt = Infinity, readyAt = Infinity;
       const runner: VpsCommandRunner = async (args, options) => {
-        if (args[2] === "start") { started = true; driverAnswersAt = Date.now() + 2_000; }
-        if (args[2] === "exec" && (args.includes("status") || args.includes("omb-desktop-probe")) && Date.now() < driverAnswersAt) throw new Error("driver not up yet");
-        return fake.runner(args, options);
+        const result = await fake.runner(args, options);
+        return args.includes("omb-desktop-probe") ? { stdout: JSON.stringify(report), stderr: "" } : result;
       };
-      const pending = vpsComputerAction("provision", CONFIG, BOT_ID, runner).then((status) => { readyAt = Date.now(); return status; });
-      const startedAt = Date.now();
-      await vi.advanceTimersByTimeAsync(10_000);
-      expect((await pending).ready).toBe(true);
-      expect(started).toBe(true);
-      expect(readyAt - startedAt).toBeLessThanOrEqual(2_200);
-      const afterStart = fake.calls.slice(fake.calls.findIndex(({ args }) => args[2] === "start"));
-      expect(afterStart.filter(({ args }) => args[2] === "inspect")).toHaveLength(1);
-      expect(afterStart.filter(({ args }) => args.includes("omb-desktop-probe"))).toHaveLength(1);
-    } finally {
-      vi.useRealTimers();
-    }
+      const pending = vpsComputerAction("provision", CONFIG, BOT_ID, runner);
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(await pending).toMatchObject({ ready: false, desktopReady: false, desktop_error: expect.stringContaining("Cua health report") });
+    } finally { vi.useRealTimers(); }
+  });
+
+  it("rechecks a restarted container instead of reusing its previous boot verification", async () => {
+    const fake = fixture({ running: false });
+    await vpsComputerAction("provision", CONFIG, BOT_ID, fake.runner);
+    fake.state.startedAt = new Date(++fixtureBootMs).toISOString();
+    const before = fake.calls.length;
+    expect((await vpsComputerStatus(CONFIG, BOT_ID, fake.runner, { fresh: true })).ready).toBe(true);
+    expect(fake.calls.slice(before).filter(({ args }) => args.includes("omb-desktop-probe"))).toHaveLength(1);
+  });
+
+  it("keeps wait probe values out of the script and validates its wait", () => {
+    const container = "fixture-$(touch-unsafe)";
+    const args = vpsDesktopWaitProbeArgs(container, 2_450);
+    const script = args[args.indexOf("-ec") + 1]!;
+    expect(args).toContain(container);
+    expect(args).toContain(CUA_SOCKET);
+    expect(args.at(-1)).toBe("2.4");
+    expect(script).not.toContain(container);
+    expect(script).not.toContain(CUA_SOCKET);
+    expect(script).not.toContain(CUA_EXECUTABLE);
+    expect(script).toContain('"$1" status --socket "$3"');
+    expect(script).toContain('timeout "$4"');
+    expect(script).toContain("sleep 0.05");
+    for (const wait of [0, -1, NaN, Infinity]) expect(() => vpsDesktopWaitProbeArgs(container, wait)).toThrow("invalid VPS desktop wait");
   });
 
   it("opens a viewer right after a wake without repeating the desktop probe, and probes again once stale", async () => {
@@ -1260,12 +1317,12 @@ esac
       expect(probes()).toBe(1);
       const status = await vpsComputerStatus(CONFIG, BOT_ID, fake.runner);
       expect(status.ready).toBe(true);
-      expect(probes()).toBe(2);
+      expect(probes()).toBe(1);
       await vpsComputerJoin(CONFIG, BOT_ID, fake.runner, true).catch(() => {});
-      expect(probes()).toBe(2);
+      expect(probes()).toBe(1);
       vi.setSystemTime(Date.now() + 10_001);
       await vpsComputerJoin(CONFIG, BOT_ID, fake.runner, true).catch(() => {});
-      expect(probes()).toBe(3);
+      expect(probes()).toBe(2);
     } finally { closeAllVpsDesktopTunnels(); vi.useRealTimers(); }
   });
 
@@ -1293,8 +1350,8 @@ esac
       await vi.advanceTimersByTimeAsync(120_000);
       expect((await pending).ready).toBe(false);
       expect(finishedAt - startedAt).toBeLessThanOrEqual(60_000);
-      expect(desktopTimeouts).toHaveLength(2);
-      expect(desktopTimeouts[1]).toBeLessThan(20_000);
+      expect(desktopTimeouts.length).toBeGreaterThan(1);
+      expect(desktopTimeouts.every(timeout => timeout <= 4_000)).toBe(true);
       expect(vpsLifecycleBusy()).toBe(false);
     } finally { vi.useRealTimers(); }
   });
@@ -1474,6 +1531,7 @@ it("reports the container boot identity even when an external restart retains it
 
 it.each([undefined, "", "not-a-date", "2026-02-30T10:00:00Z", "2026-11-07T10:00:00+05:30", "x".repeat(10000)])("omits an invalid container start timestamp %#", async startedAt => {
   const fake = fixture({ startedAt });
+  fake.state.startedAt = startedAt;
   expect((await vpsComputerStatus(CONFIG, BOT_ID, fake.runner)).container_started_at).toBeUndefined();
 });
 
