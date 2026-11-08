@@ -39,7 +39,7 @@ export function createAdminRoutes(ctx: BillingContext) {
     if (!cloud) throw new BillingError(404, "not_found"); return cloud;
   }
   function subscription(account: AccountRef) {
-    const sub = service.subscriptions(account.id).find(s => s.cart.license.kind !== "none" && s.status !== "ended" && s.status !== "pending");
+    const sub = service.subscriptions(account.id).find(s => s.status !== "ended" && s.status !== "pending");
     if (!sub) throw new BillingError(409, "not_subscribed"); return sub;
   }
   function cloudEntry(account: AccountRef, c: StoredCloud) {
@@ -110,7 +110,7 @@ export function createAdminRoutes(ctx: BillingContext) {
         const add = route === "clouds", cart = bundleCart(add ? data.tier : data.plan, add ? data.interval : "month");
         const source = add ? optionalText(data.source) : text(data.source);
         if (add && service.licenseCheck(account).license?.status === "active") cart.license = { kind: "none" };
-        if (!add && service.subscriptions(account.id).some(s => s.status !== "ended" && s.cart.license.kind !== "none")) throw new BillingError(409, "already_subscribed");
+        if (!add && service.subscriptions(account.id).some(s => s.status !== "ended")) throw new BillingError(409, "already_subscribed");
         const name = add ? cloudName(data.name) : undefined;
         const swatch = !add || data.color === undefined ? null : color(data.color);
         const answer = await service.checkout(account, { kind: "cart", cart, ...(name ? { name } : {}), ...(swatch ? { color: swatch } : {}) }, { source });
