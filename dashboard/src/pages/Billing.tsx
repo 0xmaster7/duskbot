@@ -95,9 +95,9 @@ function PlanCard({ id, catalog, interval, use, current, lead, onChoose, action,
       <div className="flex min-h-[24px] items-center gap-2">
         {current ? <Badge>Your plan</Badge> : lead ? <Badge>Most popular</Badge> : null}
       </div>
-      <h2 id={`plan-${id}`} className="mt-3 font-[family-name:var(--font-display)] text-[34px] font-medium leading-[1.1] tracking-[-0.01em] text-ink">{b.name}</h2>
+      <h2 id={`plan-${id}`} className="mt-3 font-serif text-[34px] leading-[1.1] tracking-[-0.01em] text-ink [font-synthesis:none]">{b.name}</h2>
       <p className="mt-1 text-14 text-ink-3">{TAG[id]}</p>
-      <p className={cx("num mt-8 font-[family-name:var(--font-display)] text-[56px] font-medium leading-[1] tracking-[-0.02em]", lead ? "text-accent" : "text-ink")}>{monthly === 0 ? "$0" : p.amount}</p>
+      <p className={cx("num mt-8 font-serif text-56 tracking-[-0.02em] [font-synthesis:none]", lead ? "text-accent" : "text-ink")}>{monthly === 0 ? "$0" : p.amount}</p>
       <p className="mt-2 text-14 text-ink-3">{monthly === 0 ? "free forever" : interval === "year" ? "per year · 2 months free" : "per month"}</p>
       <p className="h-5 text-13 text-ink-4">{note}</p>
       <button type="button" onClick={onChoose} disabled={disabled} className={cx("press sheen mt-7 h-12 w-full rounded-full text-15 font-medium disabled:opacity-50 max-sm:h-12", lead && !current ? "hover-accent bg-accent-fill text-[#fbfbfb]" : "hover-lift bg-card-2 text-ink ring-1 ring-line-2")}>{action}</button>

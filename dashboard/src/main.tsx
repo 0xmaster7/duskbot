@@ -1,4 +1,4 @@
-import { lazy, StrictMode, Suspense, useEffect, type ReactNode } from "react";
+import { lazy, StrictMode, Suspense, useEffect, type ComponentType, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { CloudDataProvider, useCloud } from "./data/cloud";
 import { SessionProvider, useSession } from "./data/session";
@@ -13,17 +13,41 @@ import { HomePage } from "./pages/Home";
 import { AuthScreen } from "./pages/Auth";
 import "./app.css";
 
-const CloudDesktopPage = lazy(() => import("./pages/CloudDesktop").then((m) => ({ default: m.CloudDesktopPage })));
-const WorkspacesPage = lazy(() => import("./pages/Workspaces").then((m) => ({ default: m.WorkspacesPage })));
-const WorkspacePage = lazy(() => import("./pages/Workspaces").then((m) => ({ default: m.WorkspacePage })));
-const BotsPage = lazy(() => import("./pages/Bots").then((m) => ({ default: m.BotsPage })));
-const BotPage = lazy(() => import("./pages/Bots").then((m) => ({ default: m.BotPage })));
-const ConnectorsPage = lazy(() => import("./pages/Connectors").then((m) => ({ default: m.ConnectorsPage })));
-const UsagePage = lazy(() => import("./pages/Usage").then((m) => ({ default: m.UsagePage })));
-const BillingPage = lazy(() => import("./pages/Billing").then((m) => ({ default: m.BillingPage })));
-const AccountPage = lazy(() => import("./pages/Account").then((m) => ({ default: m.AccountPage })));
-const DeviceApprovalPage = lazy(() => import("./pages/DeviceApproval").then((m) => ({ default: m.DeviceApprovalPage })));
-const Onboarding = lazy(() => import("./pages/Onboarding").then((m) => ({ default: m.Onboarding })));
+type Page<P> = ComponentType<P> & { preload(): Promise<unknown> };
+
+/** a page from its own chunk; once the chunk is in it renders straight away instead of suspending, which spares
+ * later visits react's suspense reveal delay */
+function page<M, P extends object>(load: () => Promise<M>, pick: (m: M) => ComponentType<P>): Page<P> {
+  let loaded: ComponentType<P> | null = null;
+  const take = (m: M) => (loaded = pick(m));
+  const Lazy = lazy(() => load().then((m) => ({ default: take(m) })));
+  return Object.assign((props: P) => {
+    const Current = (loaded ?? Lazy) as ComponentType<P>;
+    return <Current {...props} />;
+  }, { preload: () => load().then(take) });
+}
+
+const CloudDesktopPage = page(() => import("./pages/CloudDesktop"), (m) => m.CloudDesktopPage);
+const WorkspacesPage = page(() => import("./pages/Workspaces"), (m) => m.WorkspacesPage);
+const WorkspacePage = page(() => import("./pages/Workspaces"), (m) => m.WorkspacePage);
+const BotsPage = page(() => import("./pages/Bots"), (m) => m.BotsPage);
+const BotPage = page(() => import("./pages/Bots"), (m) => m.BotPage);
+const ConnectorsPage = page(() => import("./pages/Connectors"), (m) => m.ConnectorsPage);
+const UsagePage = page(() => import("./pages/Usage"), (m) => m.UsagePage);
+const BillingPage = page(() => import("./pages/Billing"), (m) => m.BillingPage);
+const AccountPage = page(() => import("./pages/Account"), (m) => m.AccountPage);
+const DeviceApprovalPage = page(() => import("./pages/DeviceApproval"), (m) => m.DeviceApprovalPage);
+const Onboarding = page(() => import("./pages/Onboarding"), (m) => m.Onboarding);
+
+// after the first page has painted, fetch the others in idle time so moving between them never waits;
+// connectors carries the 450 kB app catalogue and loads when opened
+function prefetchPages() {
+  const idle = window.requestIdleCallback ?? ((fn: () => void) => setTimeout(fn, 1));
+  const timer = setTimeout(() => idle(() => {
+    for (const p of [CloudDesktopPage, WorkspacesPage, WorkspacePage, BotsPage, BotPage, UsagePage, BillingPage, AccountPage, DeviceApprovalPage, Onboarding]) void p.preload().catch(() => {});
+  }), 1500);
+  return () => clearTimeout(timer);
+}
 
 initTheme();
 stashClaim();
@@ -57,6 +81,7 @@ function route(path: string): ReactNode {
 
 function SignedIn() {
   const { path, query } = useLocation();
+  useEffect(prefetchPages, []);
   const { account } = useCloud();
   const next = query.get("next");
   const moved = MOVED[path] && (path === "/sign-in" && next?.startsWith("/") && !next.startsWith("//") ? next : MOVED[path]);

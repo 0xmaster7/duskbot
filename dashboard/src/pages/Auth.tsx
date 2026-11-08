@@ -102,7 +102,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
         <div>
           {step === "start" ? (
             <div key="start" className="step-in">
-              <h1 className="text-24 font-semibold tracking-[-0.022em] text-ink">{signup ? "Create your account" : "Sign in to OpenMausBot"}</h1>
+              <h1 className="t-title">{signup ? "Create your account" : "Sign in to OpenMausBot"}</h1>
               <p className="mt-1.5 text-14 leading-[1.5] text-ink-3">One account for the app, your phone and your cloud desktop.</p>
               {note && <div className="mt-3 text-13 leading-[1.5] text-ink-2">{note}</div>}
               {pending && <div className="mt-3 text-13 leading-[1.5] text-ink-2">One more step: your provider did not share an email, so enter the one you want to sign in with.</div>}
@@ -130,7 +130,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
             </div>
           ) : (
             <form key="code" className="step-in" onSubmit={(e) => { e.preventDefault(); void verify(); }}>
-              <h1 className="text-24 font-semibold tracking-[-0.022em] text-ink">Check your email</h1>
+              <h1 className="t-title">Check your email</h1>
               <p className="mt-1.5 text-14 leading-[1.5] text-ink-3">We sent a {length}-digit code to <span className="break-all text-ink-2">{email.trim()}</span>. It works for 10 minutes.</p>
               <label htmlFor="code" className="mb-1.5 mt-6 block text-13 text-ink-3">Code</label>
               <input

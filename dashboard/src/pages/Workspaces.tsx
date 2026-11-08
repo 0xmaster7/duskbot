@@ -17,12 +17,14 @@ import { SkyEmpty } from "../ui/Sky";
 import { CloudStatus, regionName, tierName, workspaceIcon } from "./cloud-bits";
 import { CommandButton } from "./common";
 import { MachineView } from "./Machine";
+import { useNow } from "../lib/now";
 
 const INSTALL = "curl -fsSL https://openmausbot.com/install.sh | sh";
 const ICON = { size: 16, strokeWidth: 1.5 } as const;
 
 function WorkspaceRow({ w, cloud }: { w: WorkspaceSummary; cloud: CloudDesktop | null }) {
-  const { now, refresh, toast } = useSession();
+  const { refresh, toast } = useSession();
+  const now = useNow();
   const { clouds } = useCloud();
   const [name, setName] = useState(w.name);
   const [editing, setEditing] = useState(false);
@@ -62,7 +64,7 @@ function WorkspaceRow({ w, cloud }: { w: WorkspaceSummary; cloud: CloudDesktop |
       </Td>
       <Td className="text-ink-2 max-md:hidden">{KIND_LABEL(w.kind, cloud)}</Td>
       <Td><FreshnessTag freshness={w.freshness} at={w.lastReportAt} now={now} className="!text-14" /></Td>
-      <Td className="num text-ink-2 max-lg:hidden">{w.version}</Td>
+      <Td className="t-id text-ink-2 max-lg:hidden">{w.version}</Td>
       <Td className="num whitespace-nowrap text-ink-2 max-lg:hidden">{longDate(w.connectedAt)}</Td>
       <Td className="relative z-10 w-0 !pe-1 !ps-0">
         <RowMenu label={`More for ${w.name}`} items={menu} />
@@ -149,7 +151,8 @@ function WorkspaceDevices({ detail, now, ready }: { detail: WorkspaceDetail; now
 }
 
 export function WorkspacePage({ id }: { id: string }) {
-  const { workspaces, workspace: selected, pick, now, detailError } = useSession();
+  const { workspaces, workspace: selected, pick, detailError } = useSession();
+  const now = useNow();
   const { clouds, catalog } = useCloud();
   const w = workspaces?.find((item) => item.id === id);
   const detail = useWorkspaceDetail(w ? id : null);
@@ -158,7 +161,7 @@ export function WorkspacePage({ id }: { id: string }) {
   return <div className="min-w-0">
     <Link to="/workspaces" className="press-soft hover-ghost -ms-2 mb-6 inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-13 text-ink-2"><ArrowLeft size={15} strokeWidth={1.5} aria-hidden /> Workspaces</Link>
     {workspaces === null ? <Skeleton className="h-60 !rounded-card" /> : !w ? <SkyEmpty title="That workspace is not on your account">It may have been removed. Choose a workspace from the list.</SkyEmpty> : <>
-      <header className="mb-8 flex items-center gap-4"><span className="grid size-14 shrink-0 place-items-center rounded-[12px] bg-card-2 text-ink-2" aria-hidden>{workspaceIcon(w, cloud, 24)}</span><div className="min-w-0 flex-1"><h1 className="truncate text-24 font-semibold tracking-[-0.02em] text-ink">{w.name}</h1><div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-13 text-ink-3"><span>{KIND_LABEL(w.kind, cloud)}</span><FreshnessTag freshness={w.freshness} at={w.lastReportAt} now={now} /></div></div></header>
+      <header className="mb-8 flex items-center gap-4"><span className="grid size-14 shrink-0 place-items-center rounded-[12px] bg-card-2 text-ink-2" aria-hidden>{workspaceIcon(w, cloud, 24)}</span><div className="min-w-0 flex-1"><h1 className="t-title truncate">{w.name}</h1><div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-13 text-ink-3"><span>{KIND_LABEL(w.kind, cloud)}</span><FreshnessTag freshness={w.freshness} at={w.lastReportAt} now={now} /></div></div></header>
       <div className="flex flex-col gap-4">
         {cloud && <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-line px-6 py-4"><div className="min-w-0"><p className="text-14 text-ink">{tierName(catalog, cloud)} · {regionName(catalog, cloud.region)}</p><CloudStatus cloud={cloud} className="mt-1" /></div><ButtonLink to="/cloud" size="sm">Open cloud desktop</ButtonLink></div>}
         {!detail || selected?.id !== id ? selected?.id === id && detailError ? <Card><p role="alert" className="text-13 text-bad">{detailError}</p></Card> : <Skeleton className="h-60 !rounded-card" /> : !detail.report ? <SkyEmpty title="Waiting for its first report">Keep OpenMausBot running there. Its first report usually arrives in a few seconds.</SkyEmpty> : <><MachineView detail={detail} now={now} /><WorkspaceDevices detail={detail} now={now} ready={selected?.id === id} /></>}

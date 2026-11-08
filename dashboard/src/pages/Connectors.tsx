@@ -4,7 +4,7 @@ import { popularity } from "@/components/connect-apps/catalog";
 import { connectedIn, searchApps, useConnectorRows, useDashApps, type ConnectorRow, type DashApp } from "../data/connectors";
 import { useCloud } from "../data/cloud";
 import { useSession } from "../data/session";
-import { APP_LINK } from "../lib/usage";
+import { appLink, openApp } from "../lib/app-link";
 import { AppLogo } from "../ui/AppLogo";
 import { Modal, Select, Toggle } from "../ui/controls";
 import { Button, PageHeader, Skeleton } from "../ui/kit";
@@ -13,10 +13,8 @@ import { NameDot, Nil, RowMenu, SectionHead, Table, Td, Th, type MenuItem } from
 type Tab = "connectors" | "skills";
 const PAGE = 8;
 
-function openConnect(app: { id: string; label: string }, workspaceId: string, toast: (t: string) => void) {
-  toast(`Opening OpenMausBot to connect ${app.label}`);
-  window.location.assign(`${APP_LINK}connect/${encodeURIComponent(app.id)}?workspace=${encodeURIComponent(workspaceId)}`);
-}
+// the app has no link that starts a connector sign-in, so it opens on its own and the toast says where to go
+const openConnect = (app: { label: string }) => openApp(appLink.app, `Opening OpenMausBot. Add ${app.label} from Connectors there.`);
 
 function Tile({ row }: { row: ConnectorRow }) {
   if (row.app) return <AppLogo app={row.app} size={32} />;
@@ -52,7 +50,7 @@ function Row({ row, onAuth, menu }: { row: ConnectorRow; onAuth(): void; menu: M
       </Td>
       <Td className="text-ink-2 max-md:hidden">{row.type}</Td>
       <Td className="text-ink-2 max-lg:hidden">{row.category}</Td>
-      <Td className="num text-ink-2 max-lg:hidden">{row.tools ?? <Nil />}</Td>
+      <Td className="t-id text-ink-2 max-lg:hidden">{row.tools ?? <Nil />}</Td>
       <Td className="text-ink-2 max-xl:hidden">{row.permissions ?? <Nil />}</Td>
       <Td className="max-md:hidden"><WorkspacesCell list={row.workspaces} /></Td>
       <Td className="w-0 !px-1 text-end">{needs && <Button variant="outline" size="sm" onClick={onAuth}>Sign in</Button>}</Td>
@@ -62,7 +60,7 @@ function Row({ row, onAuth, menu }: { row: ConnectorRow; onAuth(): void; menu: M
 }
 
 function AddDialog({ open, onClose, apps, connections }: { open: boolean; onClose(): void; apps: DashApp[] | null; connections: Record<string, string[]> }) {
-  const { workspaces, workspace, toast } = useSession();
+  const { workspaces, workspace } = useSession();
   const [query, setQuery] = useState("");
   const [target, setTarget] = useState("");
   const where = target || workspace?.id || workspaces?.[0]?.id || "";
@@ -89,7 +87,7 @@ function AddDialog({ open, onClose, apps, connections }: { open: boolean; onClos
           <li key={app.id} className="flex items-center gap-3 border-b border-line px-2 py-3">
             <AppLogo app={app} size={32} />
             <div className="min-w-0 flex-1"><div className="truncate text-14 text-ink">{app.label}</div><div className="truncate text-13 text-ink-3">{app.description}</div></div>
-            {connectedIn(app, connected) ? <span className="px-2 text-13 text-ink-3">Added</span> : <Button size="sm" disabled={!where} onClick={() => openConnect(app, where, toast)} aria-label={`Add ${app.label}`}>Add</Button>}
+            {connectedIn(app, connected) ? <span className="px-2 text-13 text-ink-3">Added</span> : <Button size="sm" disabled={!where} onClick={() => openConnect(app)} aria-label={`Add ${app.label}`}>Add</Button>}
           </li>
         )) : <li className="px-2 py-4 text-14 text-ink-3">No apps match "{query.trim()}". Try another name.</li>}
       </ul>
@@ -98,7 +96,7 @@ function AddDialog({ open, onClose, apps, connections }: { open: boolean; onClos
 }
 
 export function ConnectorsPage() {
-  const { workspaces, workspace, toast } = useSession();
+  const { workspaces, workspace } = useSession();
   const { connections } = useCloud();
   const { apps } = useDashApps();
   const { rows, loading, error } = useConnectorRows();
@@ -121,16 +119,15 @@ export function ConnectorsPage() {
   const filtered = Boolean(category) || needsOnly;
 
   const menuFor = (row: ConnectorRow): MenuItem[] => {
-    const items: MenuItem[] = [{ label: "Manage in the app", onSelect: () => window.location.assign(APP_LINK) }];
-    if (row.type !== "Skill") for (const w of workspaces ?? []) if (!row.workspaces.some((x) => x.id === w.id)) items.push({ label: `Add to ${w.name}`, onSelect: () => openConnect({ id: row.app?.id ?? row.id, label: row.label }, w.id, toast) });
+    const items: MenuItem[] = [{ label: "Manage in the app", onSelect: () => openApp(appLink.app) }];
+    if (row.type !== "Skill") for (const w of workspaces ?? []) if (!row.workspaces.some((x) => x.id === w.id)) items.push({ label: `Add to ${w.name}`, onSelect: () => openConnect(row) });
     return items;
   };
-  const authWorkspace = (row: ConnectorRow) => (row.workspaces.some((w) => w.id === home) ? home : row.workspaces[0]?.id ?? home);
   const switchTab = (v: Tab) => { setTab(v); setLimit(PAGE); setCategory(null); setNeedsOnly(false); };
 
   return (
     <div className="min-w-0">
-      <PageHeader title="Connectors" sub={<>Apps your bots can use. Each workspace keeps its own sign-ins; <a href={APP_LINK} className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">manage them in the app</a>.</>} />
+      <PageHeader title="Connectors" sub={<>Apps your bots can use. Each workspace keeps its own sign-ins; <a href={appLink.app} onClick={(e) => { e.preventDefault(); openApp(appLink.app); }} className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">manage them in the app</a>.</>} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Toggle<Tab> label="Show" value={tab} onChange={switchTab} options={[{ value: "connectors", label: "Connectors" }, { value: "skills", label: "Skills" }]} />
@@ -150,7 +147,7 @@ export function ConnectorsPage() {
               ...(tab === "connectors" ? [{ label: needsOnly ? "Show every status" : "Needs sign-in only", onSelect: () => { setNeedsOnly((v) => !v); setLimit(PAGE); } }] : []),
             ]}
           />
-          <Button variant="primary" onClick={() => (tab === "skills" ? window.location.assign(APP_LINK) : setAdding(true))}>Add</Button>
+          <Button variant="primary" onClick={() => (tab === "skills" ? openApp(appLink.app, "Opening OpenMausBot. Add skills from a bot's Skills there.") : setAdding(true))}>Add</Button>
         </div>
       </div>
 
@@ -175,7 +172,7 @@ export function ConnectorsPage() {
                   <Th className="w-0 max-sm:w-12"><span className="sr-only">More</span></Th>
                 </tr>
               </thead>
-              <tbody>{shown.slice(0, limit).map((row) => <Row key={row.id} row={row} menu={menuFor(row)} onAuth={() => openConnect({ id: row.app?.id ?? row.id, label: row.label }, authWorkspace(row), toast)} />)}</tbody>
+              <tbody>{shown.slice(0, limit).map((row) => <Row key={row.id} row={row} menu={menuFor(row)} onAuth={() => openConnect(row)} />)}</tbody>
             </Table>
             {shown.length > limit && <button type="button" onClick={() => setLimit((n) => n + PAGE * 2)} className="press-soft hover-ghost -ms-4 mt-2 h-11 rounded-full px-4 text-14 text-ink-3">Show more</button>}
           </>
@@ -203,7 +200,7 @@ export function ConnectorsPage() {
                       <div className="truncate text-14 font-medium text-ink">{app.label}</div>
                       <div className="truncate text-14 text-ink-3">{app.description}</div>
                     </div>
-                    <Button variant="outline" size="sm" disabled={!home} onClick={() => openConnect(app, home, toast)} aria-label={`Add ${app.label}`}>Add</Button>
+                    <Button variant="outline" size="sm" disabled={!home} onClick={() => openConnect(app)} aria-label={`Add ${app.label}`}>Add</Button>
                   </li>
                 ))}
               </ul>

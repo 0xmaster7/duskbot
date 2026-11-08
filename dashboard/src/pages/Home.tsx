@@ -14,12 +14,14 @@ import { Card, Segmented, Skeleton } from "../ui/kit";
 import { BotMascot, Mascot } from "../ui/Mascot";
 import { CloudPitch, CloudStatus, PowerButton, Provisioning, regionName, tierName } from "./cloud-bits";
 import { PlanSheet } from "./plan-sheet";
+import { useNow } from "../lib/now";
+import { Figure } from "../ui/Figure";
 
 function Big({ label, value, sub }: { label: string; value: ReactNode; sub?: ReactNode }) {
   return (
     <div className="min-w-0">
       <div className="text-13 text-ink-3">{label}</div>
-      <div className="num mt-1 truncate text-28 font-medium tracking-[-0.02em] text-ink">{value}</div>
+      <div className="mt-1.5"><Figure value={value} /></div>
       {sub && <div className="num truncate text-13 text-ink-4">{sub}</div>}
     </div>
   );
@@ -110,11 +112,11 @@ function Activity({ detail, now }: { detail: WorkspaceDetail; now: number }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 id="activity-title" className="text-14 text-ink-2">{metric === "turns" ? "Bot turns" : metric === "tokens" ? "Tokens" : "Estimated spend"} on {detail.workspace.name}</h2>
-          <p className="num mt-1 text-28 font-medium tracking-[-0.02em] text-ink">{total}</p>
+          <p className="mt-1.5"><Figure value={total} /></p>
         </div>
         <Segmented<HeatMetric> label="Measure" value={metric} onChange={setMetric} options={[{ value: "turns", label: "Turns" }, { value: "tokens", label: "Tokens" }, { value: "spend", label: "Spend" }]} />
       </div>
-      <div className="mt-6"><Heatmap days={days} metric={metric} now={now} /></div>
+      <div key={metric} className="swap-in mt-6"><Heatmap days={days} metric={metric} now={now} /></div>
       <div className="mt-7 border-t border-line pt-5"><HeatStats days={days} metric={metric} now={now} /></div>
     </Card>
   );
@@ -122,7 +124,7 @@ function Activity({ detail, now }: { detail: WorkspaceDetail; now: number }) {
 
 /** the bots that ran last, across every workspace */
 function Recent() {
-  const { now } = useSession();
+  const now = useNow();
   const { bots } = useAccountUsage();
   const rows = useMemo(() => bots.filter((r) => r.bot.lastActiveAt).sort((a, b) => Number(b.bot.busy) - Number(a.bot.busy) || (b.bot.lastActiveAt ?? 0) - (a.bot.lastActiveAt ?? 0)).slice(0, 5), [bots]);
   if (!rows.length) return null;
@@ -152,7 +154,8 @@ function Recent() {
 }
 
 export function HomePage() {
-  const { account, now, detail, workspaces } = useSession();
+  const { account, detail, workspaces } = useSession();
+  const now = useNow(60_000);
   const { clouds } = useCloud();
   const name = account?.name || account?.email.split("@")[0] || "";
   const cloud = clouds?.[0] ?? null;
@@ -161,7 +164,7 @@ export function HomePage() {
   return (
     <div>
       {plan && <PlanSheet start="starter" onClose={() => setPlan(false)} />}
-      <h1 className="enter mb-8 text-28 font-semibold tracking-[-0.025em] text-ink max-sm:mb-6 max-sm:text-24">Welcome, {name}.</h1>
+      <h1 className="t-title enter mb-8 max-sm:mb-6">Welcome, {name}.</h1>
       <div className="flex flex-col gap-4">
         {clouds === null ? <Skeleton className="h-[200px] !rounded-card" /> : cloud ? <CloudLive cloud={cloud} detail={cloudDetail} /> : <CloudPitch />}
         <div className="enter grid grid-cols-4 gap-4 max-lg:grid-cols-2 max-sm:gap-3" style={{ ["--i" as string]: 2 }}>
