@@ -251,8 +251,8 @@ app.on("second-instance", (_event, commandLine) => {
     queueOrganizationEntry("openmausbot://organization");
     return;
   }
-  if (cloudEntry.fromArgs(commandLine) || slackOAuthLinks.fromCommandLine(commandLine)) return;
-  const packageUrl = packageUrlFromCommandLine(commandLine);
+  if (cloudEntry.fromArgs(commandLine)) return;
+  if (slackOAuthLinks.fromCommandLine(commandLine)) return; const packageUrl = packageUrlFromCommandLine(commandLine);
   if (packageUrl) pendingPackageInstallUrl = packageUrl;
   const chatLink = chatLinkFromCommandLine(commandLine);
   if (chatLink) pendingChatLink = chatLink;
