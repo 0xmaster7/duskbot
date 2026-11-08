@@ -112,12 +112,12 @@ export const api = {
     const answer = await send<EmailStartAnswer>("/v1/auth/start", "POST", { email, pending });
     return { attempt: answer.attempt, resendAfter: answer.resendAfter, expiresIn: answer.expiresIn, codeLength: EMAIL_CODE_DIGITS };
   },
-  verify: async (attempt: string, code: string): Promise<{ account: Account; created: boolean }> => {
+  verify: async (attempt: string, code: string): Promise<{ account: Account; created: boolean; redirect?: string }> => {
     if (FIXTURE) return send("/v1/auth/verify", "POST", { attempt, code });
     const answer = await send<WebSignInAnswer>("/v1/auth/verify", "POST", { attempt, code });
     const account = rememberAccount(answer.account, answer.csrfToken);
     if (answer.created) localStorage.removeItem(`omb-dash-onboarded:${account.id}`);
-    return { account, created: answer.created };
+    return { account, created: answer.created, ...(answer.redirect ? { redirect: answer.redirect } : {}) };
   },
   oauthUrl: (provider: IdentityProvider, intent: "signin" | "signup", opts?: { link?: boolean; next?: string }) => FIXTURE ? `/v1/auth/oauth/${provider}/start?intent=${intent}` : `/v1/auth/oauth/${provider}/start?next=${encodeURIComponent(opts?.next ?? (opts?.link ? "/account" : "/"))}${opts?.link ? "&link=1" : ""}`,
   signOut: async () => { const answer = await send("/v1/auth/signout", "POST"); clearSession(); return answer; },

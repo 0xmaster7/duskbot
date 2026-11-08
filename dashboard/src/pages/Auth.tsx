@@ -40,7 +40,9 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
   const { query } = useLocation();
   const pending = query.get("pending");
   const next = query.get("next");
-  const home = next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+  // signed out on a page like /cloud/desktop?code= or /claim: come back to it after signing in
+  const here = ["/sign-in", "/signup", "/welcome"].includes(window.location.pathname) ? "/" : `${window.location.pathname}${window.location.search}`;
+  const home = next && next.startsWith("/") && !next.startsWith("//") ? next : here;
   const [step, setStep] = useState<"start" | "code">("start");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -76,7 +78,12 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
   const verify = async (value = code) => {
     if (!attempt) return;
     setBusy("email"); setError(null);
-    try { const r = await api.verify(attempt, value.replace(/\D/g, "")); navigate(home, { replace: true }); setAccount(r.account); }
+    try {
+      const r = await api.verify(attempt, value.replace(/\D/g, ""));
+      // a phone sign-in that needed an email goes back to the app with its one-time code
+      if (r.redirect?.startsWith("openmausbot://auth?")) { window.location.assign(r.redirect); return; }
+      navigate(home, { replace: true }); setAccount(r.account);
+    }
     catch (e) { setError(reason(e)); setCode(""); codeRef.current?.focus(); if (e instanceof ApiError && e.code === "expired") setAttempt(null); }
     finally { setBusy(null); }
   };
