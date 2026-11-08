@@ -2,12 +2,12 @@ import { ArrowLeft } from "lucide-react";
 import type { BotReport, ComputerReport, WorkspaceDetail } from "../../../shared/dashboard-protocol";
 import { ago, bytes, compact, until, usd } from "../lib/format";
 import { Link } from "../lib/router";
-import { ButtonLink, Card, cx, KV, PageHeader, SectionTitle, Stat } from "../ui/kit";
+import { Button, Card, cx, KV, PageHeader, SectionTitle, Stat } from "../ui/kit";
 import { BotMascot } from "../ui/Mascot";
 import { SkyEmpty } from "../ui/Sky";
 import { Nil, Table, Td, Th } from "../ui/table";
 import { CommandButton, WorkspaceGate } from "./common";
-import { APP_LINK } from "../lib/usage";
+import { appLink, openApp } from "../lib/app-link";
 import { useNow } from "../lib/now";
 
 const PLACE: Record<NonNullable<BotReport["computer"]>, string> = { vps: "Cloud computer", "local-vm": "This Mac's VM", team: "Shared computer" };
@@ -47,7 +47,7 @@ function BotRow({ bot, detail, now }: { bot: BotReport; detail: WorkspaceDetail;
       <Td className="text-ink-2 max-lg:hidden">{computer ? <StatePill state={computer.state} /> : bot.computer ? PLACE[bot.computer] : <Nil />}</Td>
       <Td className="t-id text-end text-ink-2 max-md:hidden">{usage ? usage.turns.toLocaleString("en-US") : <Nil />}</Td>
       <Td className="whitespace-nowrap text-ink-2 max-md:hidden">{bot.busy ? <span className="text-good">Working now</span> : ago(bot.lastActiveAt, now)}</Td>
-      <Td className="relative z-10 w-0 !ps-1 text-end"><ButtonLink to={APP_LINK} external size="sm" className="!h-9 !px-4 !text-14">Open</ButtonLink></Td>
+      <Td className="relative z-10 w-0 !ps-1 text-end"><Button size="sm" className="!h-9 !px-4 !text-14" onClick={() => openApp(appLink.bot(bot.id))} aria-label={`Open ${bot.name} in the app`}>Open</Button></Td>
     </tr>
   );
 }
@@ -60,7 +60,7 @@ export function BotsPage() {
       <WorkspaceGate>
         {(detail) => {
           const bots = [...(detail.report?.bots ?? [])].sort((a, b) => Number(b.busy) - Number(a.busy) || (b.lastActiveAt ?? 0) - (a.lastActiveAt ?? 0));
-          if (!bots.length) return <SkyEmpty title="No bots here yet" action={<ButtonLink to={APP_LINK} external variant="primary">Open the app</ButtonLink>}>Make your first bot in the app; it shows up here on the next report.</SkyEmpty>;
+          if (!bots.length) return <SkyEmpty title="No bots here yet" action={<Button variant="primary" onClick={() => openApp(appLink.app)}>Open the app</Button>}>Make your first bot in the app; it shows up here on the next report.</SkyEmpty>;
           return (
             <Table label="Bots" className="enter">
               <thead><tr><Th>Bot</Th><Th className="max-md:hidden">Model</Th><Th className="max-lg:hidden">Computer</Th><Th className="!text-end max-md:hidden">Turns this year</Th><Th className="max-md:hidden">Last active</Th><Th className="w-0"><span className="sr-only">Open</span></Th></tr></thead>
@@ -92,7 +92,7 @@ export function BotPage({ id }: { id: string }) {
                   <h1 className="t-title truncate">{bot.name}</h1>
                   <p className="mt-1 text-14 text-ink-3">{bot.busy ? <span className="text-good">Working now</span> : `Last active ${ago(bot.lastActiveAt, now)}`}</p>
                 </div>
-                <ButtonLink to={APP_LINK} external variant="primary">Open in the app</ButtonLink>
+                <Button variant="primary" onClick={() => openApp(appLink.bot(bot.id))}>Open in the app</Button>
               </header>
               <div className="grid gap-4 md:grid-cols-2">
                 <Card>

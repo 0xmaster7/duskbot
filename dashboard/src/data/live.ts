@@ -102,15 +102,16 @@ export function billingFromWire(overview: WireBillingOverview, catalog: PlanCata
   };
 }
 
+export const SETUP_LABELS = { reserving: "Reserving your machine", storage: "Preparing its disk", starting: "Installing OpenMausBot", checking: "Waking your bots" } as const;
+
 export function cloudFromWire(cloud: CloudDesktopView): CloudDesktop | null {
   if (cloud.status === "destroying" || cloud.status === "destroyed") return null;
   const statuses = { checkout: "provisioning", provisioning: "provisioning", running: "running", sleeping: "sleeping", stopped: "stopped", payment_problem: "error", suspended: "error", error: "error" } as const;
   const status = statuses[cloud.status];
-  const stepLabels = { reserving: "Reserving your machine", storage: "Preparing its disk", starting: "Installing OpenMausBot", checking: "Waking your bots" };
   return {
     id: cloud.id, name: cloud.name, status, tier: desktopIds[cloud.kind], placement: cloud.placement === "pool" ? "shared" : "dedicated", region: cloud.region,
     ...cloud.machine, workspaceId: cloud.workspaceId, createdAt: cloud.createdAt,
-    progress: status === "provisioning" && cloud.setupStep !== null ? { step: stepLabels[cloud.setupStep], value: (SETUP_STEPS.indexOf(cloud.setupStep) + 0.5) / 4 } : null,
+    progress: status === "provisioning" && cloud.setupStep !== null ? { step: SETUP_LABELS[cloud.setupStep], value: (SETUP_STEPS.indexOf(cloud.setupStep) + 0.5) / 4 } : null,
     error: cloud.status === "payment_problem" ? "The last payment did not go through. Update your card to wake it." : cloud.status === "suspended" ? "It is paused. Write to us to sort it out." : cloud.error,
     botComputers: { used: 0, limit: cloud.botComputers }, uptimeSec: null,
   };
