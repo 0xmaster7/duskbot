@@ -3,7 +3,7 @@ import { runInNewContext } from "node:vm";
 import { describe, expect, it } from "vitest";
 import { BOT_DESKTOP_BRIDGE } from "../shared/bot-desktop.ts";
 import { EGRESS_PORTS as MAC_PORTS } from "../electron/vps-link-egress.mjs";
-import { EGRESS_POLICY_PATH, EGRESS_PORTS, createComputerEgress, egressPac, egressPolicy, parseEgressReport, type EgressAgentReport } from "./computer-egress.ts";
+import { EGRESS_POLICY_PATH, EGRESS_PORTS, FAST_DIAL_MS, SLOW_DIAL_MS, createComputerEgress, egressPac, egressPolicy, parseEgressReport, type EgressAgentReport } from "./computer-egress.ts";
 import { createComputerEgressRoutes } from "./routes/computer-egress.ts";
 import { PASS, type RouteContext } from "./routes/table.ts";
 
@@ -35,10 +35,10 @@ function fakeDocker(ids: string[], answer: (args: string[]) => string = (args) =
 describe("the PAC script", () => {
   it("sends web ports on public names to the person's computer, with a direct fallback", () => {
     const find = pacFor();
-    expect(find("https://www.instagram.com/")).toBe("SOCKS5 172.18.0.1:3129");
-    expect(find("http://example.com/")).toBe("SOCKS5 172.18.0.1:3129");
-    expect(find("wss://chat.example.com/")).toBe("SOCKS5 172.18.0.1:3129");
-    expect(find("https://93.184.216.34/")).toBe("SOCKS5 172.18.0.1:3129");
+    expect(find("https://www.instagram.com/")).toBe("SOCKS5 172.18.0.1:3129; DIRECT");
+    expect(find("http://example.com/")).toBe("SOCKS5 172.18.0.1:3129; DIRECT");
+    expect(find("wss://chat.example.com/")).toBe("SOCKS5 172.18.0.1:3129; DIRECT");
+    expect(find("https://93.184.216.34/")).toBe("SOCKS5 172.18.0.1:3129; DIRECT");
   });
   it("keeps everything else direct, so the computer never refuses it and the proxy is not skipped for minutes", () => {
     const find = pacFor();
@@ -125,9 +125,35 @@ describe("routing the bot computers", () => {
     expect(egress.status()).toMatchObject({ available: false, route: "server" });
     egress.report(report());
     expect(egress.status().route).toBe("computer");
-    expect(egress.prompt()).toContain("leaves through their internet connection");
+    expect(egress.prompt()).toContain("check it in the browser");
     t = 60_000;
     expect(egress.status()).toMatchObject({ available: false, route: "server" });
+  });
+
+  it("routes through the computer only while its dials are fast, and does not flap between the two limits", async () => {
+    // over the relay a dial took 350-1100 ms and pages stayed black for minutes
+    const fake = fakeDocker(["aaaaaaaaaaaa"]);
+    const egress = createComputerEgress({ enabled: () => true, docker: () => fake.docker });
+    const route = async (dialMs: number | null) => { egress.report(report({ dialMs })); await egress.changed(); return egress.status().route; };
+    expect(await route(null)).toBe("server");
+    expect(await route(450)).toBe("server");
+    expect(await route(FAST_DIAL_MS + 1)).toBe("server");
+    expect(await route(FAST_DIAL_MS)).toBe("computer");
+    expect(fake.calls.filter((args) => args[0] === "exec").map((args) => args[7])).toEqual(["off", "on"]);
+    expect(await route(SLOW_DIAL_MS)).toBe("computer");
+    expect(await route(null)).toBe("computer");
+    expect(await route(SLOW_DIAL_MS + 1)).toBe("server");
+    expect(fake.calls.filter((args) => args[0] === "exec").map((args) => args[7])).toEqual(["off", "on", "off"]);
+    expect(await route(SLOW_DIAL_MS)).toBe("server");
+  });
+
+  it("keeps an agent that does not measure dials on the old rule", () => {
+    const egress = createComputerEgress({ enabled: () => true, docker: () => null });
+    egress.report(report());
+    expect(egress.status().route).toBe("computer");
+    expect(parseEgressReport({ ...report(), dialMs: -3 })).not.toHaveProperty("dialMs");
+    expect(parseEgressReport({ ...report(), dialMs: null })?.dialMs).toBeNull();
+    expect(parseEgressReport({ ...report(), dialMs: 120 })?.dialMs).toBe(120);
   });
 
   it("a box that cannot hold the policy (read-only) does not stop the others", async () => {
