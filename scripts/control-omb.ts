@@ -196,6 +196,9 @@ export function verificationServerEnvironment(parentEnv: NodeJS.ProcessEnv, data
   // @devs reports reach a loopback fake only, else a closed port: never the MausBot team.
   const bugReportUrl = parentEnv.OMB_BUG_REPORT_URL?.trim() ?? "";
   childEnv.OMB_BUG_REPORT_URL = /^http:\/\/127\.0\.0\.1:\d{1,5}\/[A-Za-z0-9/_-]*$/.test(bugReportUrl) ? bugReportUrl : "http://127.0.0.1:9/api/bug-reports";
+  // Slack reaches a loopback fake only (server/testing/fake-slack.ts), else a closed port: a fixture never talks to slack.com.
+  const slackUrl = parentEnv.OMB_SLACK_API_URL?.trim() ?? "";
+  childEnv.OMB_SLACK_API_URL = /^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(slackUrl) ? slackUrl : "http://127.0.0.1:9";
   const tregUrl = parentEnv.OMB_TREG_URL?.trim() ?? "";
   if (/^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(tregUrl)) childEnv.OMB_TREG_URL = tregUrl;
   // Loopback only, for harness mechanics: a fake ElevenLabs the measurement
