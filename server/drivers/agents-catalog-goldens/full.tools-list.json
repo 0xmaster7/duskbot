@@ -838,6 +838,32 @@
       }
     },
     {
+      "name": "web_search_many",
+      "description": "Search the web for 1 to 10 independent queries concurrently in one call. Prefer this for 2 or more searches. Returns up to 5 top results per query, each with title, url and snippet. Uses Perplexity Fast Search through treg, billed to the user's treg balance or Cloud research allowance; reports cost when available. A failed query does not discard the others.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "queries": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "1 to 10 independent web search queries, at most 512 characters each."
+          }
+        },
+        "required": [
+          "queries"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
       "name": "x_search",
       "description": "Read X (Twitter) without an X account (was also x_user_posts / x_post / x_profile). Every call is paid (the user's treg balance or Cloud plan) and read-only: you cannot post, like or reply. search (the default) finds posts; write one well-filtered query instead of many broad ones. The query takes X operators: from:handle, to:handle, \"exact phrase\", since:YYYY-MM-DD, until:YYYY-MM-DD, min_faves:N, -filter:replies, lang:en, OR. Bare words are all required, so use a short phrase or OR between alternatives. user_posts reads an account's recent posts, newest first. Both return compact posts (link, author, time, text, likes, reposts, replies, quotes, views) and newestId: to monitor X, for example in a routine, keep newestId and pass it back as sinceId next time to get only newer posts. post reads one post, and with replies the first page of up to 20 replies to it. profile looks up an account: name, bio, followers, following, post count and verified status.",
       "inputSchema": {

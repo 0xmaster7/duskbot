@@ -69,7 +69,7 @@ const TEAMWORK_TOOLS = ["list_room_targets", "coordinate_bots", "assignment_stat
 const MAUSBOT_TOOLS = ["list_unread_notifications", "mark_notifications_read"];
 /** MausBot's tools may make its list at most this much longer than the same Chief's without them. */
 const MAUSBOT_ADDS = 0.02;
-const RESEARCH_TOOLS = ["x_search", "research_search", "research_endpoint", "research_call"];
+const RESEARCH_TOOLS = ["web_search_many", "x_search", "research_search", "research_endpoint", "research_call"];
 /** The fullest profile, checked in whole; every other one is pinned by tool names, bytes and sha256. */
 const FULL = "skills+voice+x+team";
 
@@ -88,8 +88,8 @@ const BUDGET_BASELINE: Record<string, number> = {
   "default+legacy-switches": 58250,
   "default+mausbot": 58901,
   "skills+voice+mausbot": 62475,
-  "skills+voice+x": 65663,
-  "skills+voice+x+team": 65663,
+  "skills+voice+x": 67304,
+  "skills+voice+x+team": 67304,
   "default+no-computer-pick": 57038,
   "default+room": 50849,
   "non-chief+room": 40777,

@@ -20,6 +20,7 @@ export const READ_ONLY_AGENT_TOOL_NAMES: ReadonlySet<string> = new Set([
 /** The reviewed reads that reach past this workspace (X, the research catalog, a decision or extraction model): they
  * change nothing, so they may run beside other reads, but each may be paid. */
 export const OPEN_WORLD_AGENT_READ_NAMES: ReadonlySet<string> = new Set([
+  "web_search_many",
   "x_search",
   "research_search",
   "research_endpoint",

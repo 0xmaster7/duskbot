@@ -20,6 +20,7 @@ import {
   type XResearchErrorCode,
 } from "../x-research.ts";
 import { PASS } from "./table.ts";
+import { webSearchMany, WEB_SEARCH_NOT_CONFIGURED } from "../web-search-many.ts";
 
 export interface XResearchDeps {
   /** The person's own treg key, else the plan's relay credential (researchCredential), read per request. */
@@ -49,7 +50,7 @@ export interface XInternalContext {
 const X_PREFIX = "/api/internal/x/";
 const X_ACTIONS = new Set(["search", "user-posts", "post", "profile"]);
 const RESEARCH_PREFIX = "/api/internal/research/";
-const RESEARCH_ACTIONS = new Set(["search", "endpoint", "call"]);
+const RESEARCH_ACTIONS = new Set(["search", "endpoint", "call", "web-search-many"]);
 
 /** 401 is never used: on internal routes it means the capability expired. */
 function statusFor(code: XResearchErrorCode): number {
@@ -128,10 +129,12 @@ export function createXResearchInternalRoutes(deps: XResearchDeps) {
     const action = prefix ? ctx.path.slice(prefix.length) : "";
     if (!prefix || !(prefix === X_PREFIX ? X_ACTIONS : RESEARCH_ACTIONS).has(action)) return PASS;
     const credential = deps.credential();
+    if (!credential && prefix === RESEARCH_PREFIX && action === "web-search-many") return void ctx.json(ctx.res, 200, { message: WEB_SEARCH_NOT_CONFIGURED });
     if (!credential) return void ctx.json(ctx.res, 403, { error: X_MESSAGES.noKey });
     if (!deps.botEnabled(ctx.botId)) return void ctx.json(ctx.res, 403, { error: X_MESSAGES.botOff });
     const body = await ctx.readBody();
     try {
+      if (prefix === RESEARCH_PREFIX && action === "web-search-many") return void ctx.json(ctx.res, 200, await webSearchMany(body, researchClientFor(credential), deps.researchOff));
       ctx.json(ctx.res, 200, prefix === X_PREFIX ? await run(action, body, xClientFor(credential)) : await research(action, body, researchClientFor(credential)));
     } catch (error) {
       if (!(error instanceof XResearchError)) throw error;

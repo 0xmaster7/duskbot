@@ -10,8 +10,9 @@ import type { Json } from "./agents-client.ts";
 const RESEARCH_ROUTES: Readonly<Record<string, string>> = {
   x_search: "x/search", x_user_posts: "x/user-posts", x_post: "x/post", x_profile: "x/profile",
   research_search: "research/search", research_endpoint: "research/endpoint", research_call: "research/call",
+  web_search_many: "research/web-search-many",
 };
-export const RESEARCH_TOOL_NAMES: ReadonlySet<string> = new Set(["x_search", "research_search", "research_endpoint", "research_call"]);
+export const RESEARCH_TOOL_NAMES: ReadonlySet<string> = new Set(["x_search", "research_search", "research_endpoint", "research_call", "web_search_many"]);
 /** The ones that need only X: shown without research. */
 export const X_TOOL_NAMES: ReadonlySet<string> = new Set(["x_search"]);
 
@@ -30,10 +31,21 @@ export async function callResearchTool(name: string, args: Json, context: ToolCa
     if (typeof value !== "string" || !value.trim()) return { text: `x_search ${member === "x_search" ? "search" : String(action)} needs ${needed}.`, isError: true };
   }
   const { ok, body } = await context.client.apiResponse(`/api/internal/${RESEARCH_ROUTES[member]}`, { method: "POST", body: JSON.stringify(input) });
+  if (ok && name === "web_search_many" && typeof body.message === "string") return { text: body.message };
   return ok ? { text: JSON.stringify(body) } : { text: String(body.error ?? "Research failed. Try again shortly."), isError: true };
 }
 
 export const RESEARCH_TOOL_DEFINITIONS = [
+  {
+    name: "web_search_many",
+    description: "Search the web for 1 to 10 independent queries concurrently in one call. Prefer this for 2 or more searches. Returns up to 5 top results per query, each with title, url and snippet. Uses Perplexity Fast Search through treg, billed to the user's treg balance or Cloud research allowance; reports cost when available. A failed query does not discard the others.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: { queries: { type: "array", minItems: 1, maxItems: 10, items: { type: "string", minLength: 1, maxLength: 512 }, description: "1 to 10 independent web search queries, at most 512 characters each." } },
+      required: ["queries"],
+    },
+  },
   {
     name: "x_search",
     description:

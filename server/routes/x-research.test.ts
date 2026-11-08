@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { createServer } from "node:http";
 import { X_MESSAGES, XResearchError, type XResearchClient } from "../x-research.ts";
 import type { ResearchClient } from "../research.ts";
 import type { ServiceCredential } from "../included-services.ts";
@@ -155,6 +156,54 @@ describe("research internal routes", () => {
     }
     expect(research.call).not.toHaveBeenCalled();
     expect((await callInternal(routes(research).handler, { path: "/api/internal/research/unknown", body: {} })).out).toBe(PASS);
+  });
+
+  it("rechecks batch search credentials and the bot switch and validates the cap before spending", async () => {
+    const research = fakeResearch();
+    const path = "/api/internal/research/web-search-many";
+    const body = { queries: ["query"] };
+    expect(await callInternal(routes(research, () => null).handler, { path, body })).toMatchObject({ status: 200, body: { message: "Web search is not configured." } });
+    expect(await callInternal(routes(research).handler, { path, body, botId: "bot-2" })).toMatchObject({ status: 403, body: { error: X_MESSAGES.botOff } });
+    expect((await callInternal(routes(research).handler, { path, body: { queries: Array(11).fill("query") } })).status).toBe(400);
+    expect(research.call).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])("sends concurrent batches to an isolated provider using the real research client (included: %s)", async (included) => {
+    const pending: Array<() => void> = [];
+    const requests: Array<{ body: any; headers: import("node:http").IncomingHttpHeaders }> = [];
+    const provider = createServer(async (req, res) => {
+      const reply = (body: unknown) => { res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify(body)); };
+      if (req.url === "/catalog/endpoints/perplexity.web.search.fast") return reply({ endpoint: { id: "perplexity.web.search.fast", method: "POST" } });
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) chunks.push(chunk);
+      const body = JSON.parse(Buffer.concat(chunks).toString());
+      requests.push({ body, headers: req.headers });
+      pending.push(() => reply({ results: [{ title: "Found", url: "https://example.com/", snippet: (included ? body.params : body).query }] }));
+      if (pending.length === 3) for (const send of pending) send();
+    });
+    await new Promise<void>((resolve) => provider.listen(0, "127.0.0.1", resolve));
+    const address = provider.address();
+    if (!address || typeof address === "string") throw new Error("fixture has no port");
+    const handler = createXResearchInternalRoutes({
+      credential: () => ({ api: `http://127.0.0.1:${address.port}`, token: "fixture-secret", included }),
+      botEnabled: () => true,
+    });
+    try {
+      const queries = ["first", "second", "third"];
+      const result = await callInternal(handler, { path: "/api/internal/research/web-search-many", body: { queries } });
+      expect(result).toMatchObject({ status: 200, body: { results: queries.map((query) => ({ query, results: [{ title: "Found", url: "https://example.com/", snippet: query }] })) } });
+      expect(requests).toHaveLength(3);
+      for (const request of requests) {
+        expect(request.headers.authorization).toBe(included ? "Bearer fixture-secret" : undefined);
+        expect(request.headers["x-treg-token"]).toBe(included ? undefined : "fixture-secret");
+        expect(included ? request.body.params : request.body).toMatchObject({ search_type: "fast", max_results: 5 });
+      }
+      expect(new Set(requests.map((request) => request.headers["idempotency-key"])).size).toBe(3);
+      expect(JSON.stringify(result)).not.toContain("fixture-secret");
+    } finally {
+      provider.closeAllConnections();
+      await new Promise<void>((resolve, reject) => provider.close((error) => error ? reject(error) : resolve()));
+    }
   });
 });
 

@@ -9,9 +9,9 @@ import { expect, it } from "vitest";
 import { launchVerificationServer, runControlOmb } from "../scripts/control-omb.ts";
 import { request } from "../scripts/mcp-server.ts";
 
-interface Seen { method: string; path: string; authorization: string | undefined; tregToken: string | undefined; idempotencyKey: string | undefined; body: unknown }
+interface Seen { method: string; path: string; authorization: string | undefined; tregToken: string | undefined; idempotencyKey: string | undefined; body: unknown; startedAt: number; finishedAt?: number }
 const RELAY_PATH = "/api/cloud/services/x", PLAN_TOKEN = "omb_x_e2e_fixture", OWN_KEY = "treg_e2e_own_key";
-const RESEARCH_TOOLS = ["x_search", "research_search", "research_endpoint", "research_call"];
+const RESEARCH_TOOLS = ["web_search_many", "x_search", "research_search", "research_endpoint", "research_call"];
 const POSTS = { output: { data: { items: [
   { id: "2107987482155561188", authorUsername: "maus", authorName: "Maus", createdUtc: 1791418354, text: "MausBot searched X", likeCount: 4, viewCount: 120 },
 ], nextCursor: "" } } };
@@ -32,12 +32,20 @@ async function serveStub(seen: Seen[], options: { researchOff?: boolean } = {}):
     req.on("end", () => {
       const path = req.url ?? "";
       seen.push({ method: req.method ?? "", path, authorization: req.headers.authorization, tregToken: req.headers["x-treg-token"] as string | undefined,
-        idempotencyKey: req.headers["idempotency-key"] as string | undefined, body: raw ? JSON.parse(raw) : undefined });
+        idempotencyKey: req.headers["idempotency-key"] as string | undefined, body: raw ? JSON.parse(raw) : undefined, startedAt: performance.now() });
+      const entry = seen.at(-1)!;
       const send = (status: number, body: unknown, headers: Record<string, string> = {}) => {
+        entry.finishedAt = performance.now();
         res.writeHead(status, { "content-type": "application/json", ...headers });
         res.end(JSON.stringify(body));
       };
       const own = req.headers["x-treg-token"] === OWN_KEY, plan = req.headers.authorization === `Bearer ${PLAN_TOKEN}`;
+      if (own && path === "/catalog/endpoints/perplexity.web.search.fast") return send(200, { endpoint: { id: "perplexity.web.search.fast", method: "POST" } });
+      if ((own && path === "/call/perplexity.web.search.fast") || (plan && path === `${RELAY_PATH}/research/call/perplexity.web.search.fast`)) {
+        const input = JSON.parse(raw);
+        const query = own ? input.query : input.params.query;
+        return void setTimeout(() => send(200, { results: [{ title: query, url: "https://example.com/", snippet: `Found ${query}` }] }), 100);
+      }
       if (own && path === "/auth/me") return send(200, { org_id: "org-e2e" });
       if (own && path === "/orgs/org-e2e/balance?limit=1") return send(200, { balance_micro: 4_250_000 });
       if (own && path === "/call/anyapi.x.search.posts") return send(200, POSTS, { "x-treg-cost-micro": "750" });
@@ -108,6 +116,24 @@ async function withFixture(test: (f: any) => Promise<void>, options: { plan: boo
 
 const SEARCH = { tool: "x_search", arguments: { query: "mausbot" } };
 const PEOPLE = { tool: "research_call", arguments: { id: "apollo.people.search", params: { q_organization_domains: "openmausbot.com" } } };
+
+it.each([false, true])("runs a search batch concurrently through the real harness (own key: %s)", async (ownKey) => withFixture(async (f) => {
+  const bot = await f.newBot("Batch search");
+  const queries = ["first product", "second product", "third product"];
+  const { tools, results, evidence } = await f.turn(bot, [{ tool: "web_search_many", arguments: { queries } }]);
+  expect(tools).toContain("web_search_many");
+  expect(results).toEqual([{ results: queries.map((query) => ({ query, results: [{ title: query, url: "https://example.com/", snippet: `Found ${query}` }] })) }]);
+  const calls = f.seen.filter((entry: Seen) => entry.path.endsWith("/call/perplexity.web.search.fast"));
+  expect(calls).toHaveLength(3);
+  expect(Math.max(...calls.map((entry: Seen) => entry.startedAt))).toBeLessThan(Math.min(...calls.map((entry: Seen) => entry.finishedAt!)));
+  expect(new Set(calls.map((entry: Seen) => entry.idempotencyKey)).size).toBe(3);
+  for (const entry of calls) {
+    expect(entry.tregToken).toBe(ownKey ? OWN_KEY : undefined);
+    expect(entry.authorization).toBe(ownKey ? undefined : `Bearer ${PLAN_TOKEN}`);
+    expect(ownKey ? entry.body : entry.body.params).toMatchObject({ search_type: "fast", max_results: 5 });
+  }
+  for (const secret of [OWN_KEY, PLAN_TOKEN]) expect(evidence + f.engineLaunch()).not.toContain(secret);
+}, { plan: !ownKey, ownKey }), 90_000);
 
 it("shows no research tools without a treg key or a Cloud plan, even to a bot switched on", async () => withFixture(async (f) => {
   const config = await f.api("/api/config", undefined, "GET");
@@ -191,6 +217,6 @@ it("with a Cloud plan whose relay has research off, bots get x_search and not th
   const bot = await f.newBot("X only");
   const { tools, results } = await f.turn(bot, [SEARCH]);
   expect(tools).toContain("x_search");
-  for (const tool of ["research_search", "research_endpoint", "research_call"]) expect(tools).not.toContain(tool);
+  for (const tool of ["web_search_many", "research_search", "research_endpoint", "research_call"]) expect(tools).not.toContain(tool);
   expect(results[0].newestId).toBe("2107987482155561188");
 }, { plan: true, ownKey: false, researchOff: true }), 90_000);

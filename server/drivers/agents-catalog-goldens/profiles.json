@@ -481,8 +481,8 @@
     ]
   },
   "skills+voice+x": {
-    "bytes": 66561,
-    "sha256": "97119eb5f1814d4ff991f5eed6c4e5e0c4e818f1fad4b6a25a0ed74ecba24cc9",
+    "bytes": 67304,
+    "sha256": "16bc0318cd2295a0f2af3487c5846af9940cf0174b750fff2f9f0613f6de31e2",
     "tools": [
       "tool_result_read",
       "list_room_targets",
@@ -512,6 +512,7 @@
       "request_sign_in",
       "fill_login",
       "send_voice_note",
+      "web_search_many",
       "x_search",
       "research_search",
       "research_endpoint",
@@ -538,8 +539,8 @@
     ]
   },
   "skills+voice+x+team": {
-    "bytes": 66561,
-    "sha256": "97119eb5f1814d4ff991f5eed6c4e5e0c4e818f1fad4b6a25a0ed74ecba24cc9",
+    "bytes": 67304,
+    "sha256": "16bc0318cd2295a0f2af3487c5846af9940cf0174b750fff2f9f0613f6de31e2",
     "tools": [
       "tool_result_read",
       "list_room_targets",
@@ -569,6 +570,7 @@
       "request_sign_in",
       "fill_login",
       "send_voice_note",
+      "web_search_many",
       "x_search",
       "research_search",
       "research_endpoint",

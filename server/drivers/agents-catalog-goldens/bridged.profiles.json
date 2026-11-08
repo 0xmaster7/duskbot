@@ -226,8 +226,8 @@
     ]
   },
   "skills+voice+x": {
-    "bytes": 18466,
-    "sha256": "a1921dea227788afef90d50ab587ec4ed70e186d8a04df3ee23d94cdc1f083e6",
+    "bytes": 18483,
+    "sha256": "02c3ea2ace1b40819330ced7dc0410832e577227be7b2b75a4dcc7c1ed082c12",
     "tools": [
       "tool_result_read",
       "list_room_targets",
@@ -249,8 +249,8 @@
     ]
   },
   "skills+voice+x+team": {
-    "bytes": 18466,
-    "sha256": "a1921dea227788afef90d50ab587ec4ed70e186d8a04df3ee23d94cdc1f083e6",
+    "bytes": 18483,
+    "sha256": "02c3ea2ace1b40819330ced7dc0410832e577227be7b2b75a4dcc7c1ed082c12",
     "tools": [
       "tool_result_read",
       "list_room_targets",
