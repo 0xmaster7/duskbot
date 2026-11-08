@@ -75,28 +75,16 @@ afterAll(() => {
 });
 
 describe("an automation's line in the chat", () => {
-  it("is the bot's own message under the automation's name, with its run one click away", async () => {
-    await draw(transcript([{ id: "r1", parentId: "m2", role: "bot", kind: "text", text: "Acme replied about the order.", at: at(3), automation: line("run-1") }]));
-    const label = caption("run-1");
-    expect(label?.textContent).toContain("Inbox brief");
-    expect(label?.querySelector("time")?.getAttribute("datetime")).toBe(new Date(at(0)).toISOString());
-    expect(document.querySelector('[data-mid="r1"]')?.textContent).toContain("Acme replied about the order.");
-    const open = label?.querySelector<HTMLButtonElement>("button");
-    expect(open?.textContent).toBe(t("chat.automation.openRun"));
-    dispatch.mockClear();
-    flushSync(() => open!.click());
-    expect(dispatch).toHaveBeenCalledWith({ type: "switchTask", botId: "pepper", threadId: "run-1-thread" });
-    expect(caption("m2")).toBeNull();
-  });
-
-  it("says when the run needs the person or could not finish, and offers no run it cannot open", async () => {
+  it("is the bot's own message, with no caption above it", async () => {
     await draw(transcript([
-      { id: "r1", parentId: "m2", role: "bot", kind: "text", text: "Should I send it?", at: at(3), automation: line("run-1", { needsYou: true }) },
-      { id: "r2", parentId: "r1", role: "bot", kind: "text", text: "This run didn't finish: signed out.", at: at(4), automation: line("run-gone", { failed: true }) },
+      { id: "r1", parentId: "m2", role: "bot", kind: "text", text: "Acme replied about the order.", at: at(3), automation: line("run-1") },
+      { id: "r2", parentId: "r1", role: "bot", kind: "text", text: "Should I send it?", at: at(4), automation: line("run-2", { needsYou: true }) },
     ]));
-    expect(caption("run-1")?.textContent).toContain(t("chat.automation.needsYou"));
-    expect(caption("run-gone")?.textContent).toContain(t("chat.automation.failed"));
-    expect(caption("run-gone")?.querySelector("button")).toBeNull();
+    expect(document.querySelector('[data-mid="r1"]')?.textContent).toContain("Acme replied about the order.");
+    expect(document.querySelector('[data-mid="r2"]')?.textContent).toContain("Should I send it?");
+    expect(caption("run-1")).toBeNull();
+    expect(caption("run-2")).toBeNull();
+    expect(document.body.textContent).not.toContain(t("chat.automation.needsYou"));
   });
 
   it("never offers Regenerate on a report, which would branch the person's chat away from it", async () => {
@@ -106,34 +94,12 @@ describe("an automation's line in the chat", () => {
     expect(await regenerateOffers()).toEqual([]);
   });
 
-  it("stops saying the run needs the person once the copy is answered, or once they wrote after the question", async () => {
-    const question = { title: "Your bot has a question", subtitle: "Which account?", options: ["Work", "Home"], requestId: "ask-1", requestType: "question" as const };
-    await draw(transcript([{ id: "c1", parentId: "m2", role: "bot", kind: "options", at: at(3), automation: line("run-1", { needsYou: true }), card: { ...question, answered: "answer" } }]));
-    expect(caption("run-1")?.textContent ?? "").not.toContain(t("chat.automation.needsYou"));
-    await draw(transcript([
-      { id: "r1", parentId: "m2", role: "bot", kind: "text", text: "Should I send it?", at: at(3), automation: line("run-1", { needsYou: true }) },
-      { id: "u1", parentId: "r1", role: "user", kind: "text", text: "Yes, send it.", at: at(4) },
-    ]));
-    expect(caption("run-1")?.textContent ?? "").not.toContain(t("chat.automation.needsYou"));
-  });
-
-  it("keeps saying a named sign-in needs the person, whatever they write, until the server settles it", async () => {
-    const named = (needsYou: boolean): Message[] => transcript([
-      { id: "r1", parentId: "m2", role: "bot", kind: "text", text: "I need you to sign in to example.com.", at: at(3), automation: line("run-1", { copyOf: "card-1", ...(needsYou ? { needsYou: true as const } : {}) }) },
-      { id: "u1", parentId: "r1", role: "user", kind: "text", text: "Thanks.", at: at(4) },
-    ]);
-    await draw(named(true));
-    expect(caption("run-1")?.textContent).toContain(t("chat.automation.needsYou"));
-    await draw(named(false));
-    expect(caption("run-1")?.textContent ?? "").not.toContain(t("chat.automation.needsYou"));
-  });
-
-  it("labels a copy of a card the run waits on the same way", async () => {
+  it("shows a card the run waits on as the card alone", async () => {
     await draw(transcript([{
       id: "c1", parentId: "m2", role: "bot", kind: "options", at: at(3), automation: line("run-1", { needsYou: true }),
       card: { title: "Your bot has a question", subtitle: "Which account should I check?", options: ["Work", "Home"], requestId: "ask-1", requestType: "question" },
     }]));
-    expect(caption("run-1")?.textContent).toContain("Inbox brief");
+    expect(caption("run-1")).toBeNull();
     expect(document.querySelector('[data-mid="c1"]')?.textContent).toContain("Which account should I check?");
   });
 });
