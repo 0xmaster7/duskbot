@@ -27,8 +27,9 @@ export function createDashboardRoutes(deps: DashboardRouteDeps): RouteHandler {
     if (method === "GET") return json(res, 200, deps.reporter.status());
     if (String(req.headers["content-type"] ?? "").split(";", 1)[0].trim().toLowerCase() !== "application/json") return json(res, 415, { error: "content-type must be application/json" });
     if (method === "DELETE") { await deps.reporter.forget(); return json(res, 200, { ok: true }); }
-    const body = await readBody(req) as { url?: unknown } | null;
+    const body = await readBody(req) as { url?: unknown; enrollToken?: unknown } | null;
     if (!body || typeof body !== "object" || Array.isArray(body)) return json(res, 400, { error: "Expected a JSON object." });
+    if (body.enrollToken !== undefined && (typeof body.enrollToken !== "string" || body.enrollToken.length !== 43 || !/^[A-Za-z0-9_-]{43}$/.test(body.enrollToken))) return json(res, 400, { error: "Invalid enrollment token." });
     let selected: unknown = body.url ?? (deps.env ?? process.env).OMB_DASHBOARD_URL;
     if (selected === undefined) {
       const base = deps.linkAgentBase();
@@ -46,7 +47,7 @@ export function createDashboardRoutes(deps: DashboardRouteDeps): RouteHandler {
     const url = dashboardUrl(selected);
     if (!url) return json(res, 400, { error: "Use an https dashboard URL, or localhost http for a fixture." });
     try {
-      const answer = await deps.reporter.link(url);
+      const answer = await (body.enrollToken === undefined ? deps.reporter.link(url) : deps.reporter.link(url, { enrollToken: body.enrollToken as string }));
       return json(res, 200, { claimUrl: answer.claimUrl, dashboardUrl: answer.dashboardUrl, workspaceId: answer.workspaceId, claimed: answer.claimExpiresAt === 0 });
     } catch { return json(res, 502, { error: "Could not connect to the dashboard. Try again shortly." }); }
   };

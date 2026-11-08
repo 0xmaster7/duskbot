@@ -6,7 +6,7 @@ import test from "node:test";
 // Node tests run without Electron: satisfy preload's require("electron") from the require cache; the real preload still runs.
 const require = createRequire(import.meta.url);
 // The company desktop's keys are part of the bridge too: the test looks at the whole of it.
-process.argv.push("--omb-company-desktop=1");
+process.argv.push("--omb-company-desktop=1", "--omb-account-gate=1");
 const exposed = { api: null };
 const fakeElectron = {
   ipcRenderer: { on: () => undefined, removeListener: () => undefined, invoke: async () => undefined, send: () => undefined },
@@ -37,4 +37,10 @@ test("a Cloud or server page keeps the bridge keys it had, and the home page its
   const remote = new Set(listed("REMOTE_SAFE")), home = new Set([...remote, ...listed("HOME_PAGE")]);
   for (const key of contract.remoteSafe) assert.ok(remote.has(key), `${key} left REMOTE_SAFE. ${KEEP}`);
   for (const key of contract.homePage) assert.ok(home.has(key), `${key} left the home page's bridge. ${KEEP}`);
+});
+
+
+test("the account gate exposes its complete local contract and never joins the remote bridge", () => {
+  assert.deepEqual(Object.keys(exposed.api.accountGate).sort(), ["state", "signInStart", "signInVerify", "signInCancel", "browser", "cancel", "onChange"].sort());
+  for (const name of ["REMOTE_SAFE", "HOME_PAGE"]) assert.equal(listed(name).includes("accountGate"), false);
 });

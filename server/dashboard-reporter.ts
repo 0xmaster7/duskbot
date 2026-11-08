@@ -173,15 +173,22 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
     const run = ++generation;
     void reports(run); void wait(run);
   }
-  async function link(url: string): Promise<EnrollAnswer> {
+  async function link(url: string, { enrollToken }: { enrollToken?: string } = {}): Promise<EnrollAnswer> {
     const normalized = url.replace(/\/+$/, "");
     const keys = state?.url === normalized ? state : (() => {
       const pair = generateKeyPairSync("ed25519");
       return { publicKey: pair.publicKey.export({ type: "spki", format: "der" }).toString("base64"), privateKey: pair.privateKey.export({ type: "pkcs8", format: "der" }).toString("base64") };
     })();
     const workspace = deps.collect.workspace();
-    const body: EnrollRequest = { v: 1, publicKey: keys.publicKey, name: workspace.name, kind: workspace.kind, version: workspace.version };
-    const response = await fetcher(`${normalized}/v1/enroll`, { method: "POST", redirect: "error", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(15_000) });
+    const body: EnrollRequest = { v: 1, publicKey: keys.publicKey, name: workspace.name, kind: workspace.kind, version: workspace.version, ...(enrollToken === undefined ? {} : { enrollToken }) };
+    const bytes = JSON.stringify(body), headers: Record<string, string> = { "content-type": "application/json" };
+    if (enrollToken !== undefined) {
+      const time = now();
+      headers[SIGNATURE_HEADERS.time] = String(time);
+      headers[SIGNATURE_HEADERS.signature] = sign(null, Buffer.from(signedPayload("POST", new URL(`${normalized}/v1/enroll`).pathname, time, createHash("sha256").update(bytes).digest("hex"))),
+        createPrivateKey({ key: Buffer.from(keys.privateKey, "base64"), type: "pkcs8", format: "der" })).toString("base64");
+    }
+    const response = await fetcher(`${normalized}/v1/enroll`, { method: "POST", redirect: "error", headers, body: bytes, signal: AbortSignal.timeout(15_000) });
     if (!response.ok) throw new Error(`Dashboard enrollment failed (${response.status}).`);
     const answer = await response.json() as EnrollAnswer;
     if (answer.v !== 1 || !answer.workspaceId || !answer.claimUrl || typeof answer.claimExpiresAt !== "number") throw new Error("The dashboard returned an invalid enrollment.");

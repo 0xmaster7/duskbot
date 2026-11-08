@@ -437,6 +437,19 @@ const bridge = {
       return () => ipcRenderer.removeListener("workspaces:open-settings", handler);
     },
   },
+  accountGate: process.argv.includes("--omb-account-gate=1") ? {
+    state: () => ipcRenderer.invoke("account-gate:state"),
+    signInStart: email => ipcRenderer.invoke("account-gate:signInStart", String(email)),
+    signInVerify: code => ipcRenderer.invoke("account-gate:signInVerify", String(code)),
+    signInCancel: () => ipcRenderer.invoke("account-gate:signInCancel"),
+    browser: provider => ipcRenderer.invoke("account-gate:browser", String(provider)),
+    cancel: () => ipcRenderer.invoke("account-gate:cancel"),
+    onChange: cb => {
+      const handler = (_event, state) => cb(state);
+      ipcRenderer.on("account-gate:changed", handler);
+      return () => ipcRenderer.removeListener("account-gate:changed", handler);
+    },
+  } : undefined,
   cloudAccount: process.argv.includes("--omb-company-desktop=1") ? {
     state: () => ipcRenderer.invoke("cloud-account:state"),
     begin: () => ipcRenderer.invoke("cloud-account:begin"),

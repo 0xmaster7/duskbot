@@ -246,7 +246,7 @@ export interface CloudPlanBridge {
 export declare const CLOUD_ORIGIN: string;
 export declare const STAGING_CLOUD_ORIGIN: string;
 export declare function cloudTarget(env?: Record<string, string | undefined>): {
-  origin: string; staging: boolean;
+  origin: string; staging: boolean; custom: boolean;
   /** Under userData: the sign-in, saved servers, Files' folder, the Cloud's chosen name. */
   file: string; saved: string; places: string; environments: string; sync: string; look: string;
 };
@@ -255,8 +255,8 @@ export declare const UPGRADE_SOURCES: readonly string[];
 export declare const CLOUD_CANCEL_ANSWERS: readonly CloudCancelAnswer[];
 /** The survey as main sends it (trimmed; words without a reason as `other`), or null when it says nothing or isn't one. */
 export declare function cancelSurvey(input: unknown): { answer: CloudCancelAnswer; expected?: string; improve?: string } | null;
-export declare function checkoutDestination(value: unknown, options?: { fixture?: boolean; staging?: boolean }): string | null;
-export declare function cloudOrigin(value?: string, fixture?: boolean): string;
+export declare function checkoutDestination(value: unknown, options?: { fixture?: boolean; staging?: boolean; custom?: boolean }): string | null;
+export declare function cloudOrigin(value?: string, fixture?: boolean, custom?: boolean): string;
 export interface CloudAccountStore {
   read(): Promise<unknown>;
   write(value: unknown): Promise<void>;
@@ -273,7 +273,8 @@ export declare function createCloudAccountStore(options: {
 export interface CloudAccountClient {
   state(): CloudAccountState;
   start(): Promise<CloudAccountState>;
-  begin(): Promise<CloudAccountState>;
+  begin(intent?: { plan: string; source: string } | null, options?: { provider?: string }): Promise<CloudAccountState>;
+  enrollGrant(): Promise<{ enrollToken: string; dashboardUrl: string } | null>;
   /** Only when the sign-in has ended: forget it and start a new one. */
   signInAgain(): Promise<CloudAccountState>;
   reopen(): Promise<CloudAccountState>;
@@ -376,6 +377,7 @@ export declare function createCloudAccountClient(options: {
   origin?: string;
   /** Enables HTTP loopback only for isolated fixtures. Production main never sets it. */
   fixture?: boolean;
+  custom?: boolean;
   fetch?: typeof fetch;
   now?: () => number;
   onState?: (state: CloudAccountState) => void;
