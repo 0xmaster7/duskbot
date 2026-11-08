@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Copy, Laptop, Smartphone } from "lucide-react";
 import type { WorkspaceDetail, WorkspaceSummary } from "../../../shared/dashboard-protocol";
 import { cloudForWorkspace, useCloud } from "../data/cloud";
@@ -10,8 +10,8 @@ import { ago, longDate } from "../lib/format";
 import { Link, navigate } from "../lib/router";
 import { DOWNLOAD_URL } from "../lib/usage";
 import { Field, Modal } from "../ui/controls";
-import { Button, ButtonLink, Card, FreshnessTag, PageHeader, SectionTitle, Skeleton } from "../ui/kit";
-import { RowMenu, Table, Td, Th, type MenuItem } from "../ui/table";
+import { Button, ButtonLink, FreshnessTag, PageHeader, SectionTitle, Skeleton } from "../ui/kit";
+import { RowMenu, SectionHead, Table, Td, Th, type MenuItem } from "../ui/table";
 import { KIND_LABEL } from "../ui/Shell";
 import { SkyEmpty } from "../ui/Sky";
 import { CloudStatus, regionName, tierName, workspaceIcon } from "./cloud-bits";
@@ -19,7 +19,7 @@ import { CommandButton } from "./common";
 import { MachineView } from "./Machine";
 
 const INSTALL = "curl -fsSL https://openmausbot.com/install.sh | sh";
-const ICON = { size: 18, strokeWidth: 1.5 } as const;
+const ICON = { size: 16, strokeWidth: 1.5 } as const;
 
 function WorkspaceRow({ w, cloud }: { w: WorkspaceSummary; cloud: CloudDesktop | null }) {
   const { now, refresh, toast } = useSession();
@@ -53,7 +53,7 @@ function WorkspaceRow({ w, cloud }: { w: WorkspaceSummary; cloud: CloudDesktop |
     <tr className="hover-row relative transition-colors duration-150">
       <Td>
         <div className="flex min-w-0 items-center gap-3">
-          <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-card-2 text-ink-2">{workspaceIcon(w, cloud, 17)}</span>
+          <span className="shrink-0 text-ink-3" aria-hidden>{workspaceIcon(w, cloud, 16)}</span>
           <div className="min-w-0">
             <Link to={to} className="block truncate font-medium text-ink after:absolute after:inset-0 after:content-['']">{w.name}</Link>
             <div className="truncate text-13 text-ink-3 md:hidden">{KIND_LABEL(w.kind, cloud)}</div>
@@ -62,7 +62,6 @@ function WorkspaceRow({ w, cloud }: { w: WorkspaceSummary; cloud: CloudDesktop |
       </Td>
       <Td className="text-ink-2 max-md:hidden">{KIND_LABEL(w.kind, cloud)}</Td>
       <Td><FreshnessTag freshness={w.freshness} at={w.lastReportAt} now={now} className="!text-14" /></Td>
-      <Td className="num text-ink-2 max-lg:hidden">{w.version}</Td>
       <Td className="num whitespace-nowrap text-ink-2 max-lg:hidden">{longDate(w.connectedAt)}</Td>
       <Td className="relative z-10 w-0 !pe-1 !ps-0">
         <RowMenu label={`More for ${w.name}`} items={menu} />
@@ -82,10 +81,6 @@ function WorkspaceRow({ w, cloud }: { w: WorkspaceSummary; cloud: CloudDesktop |
   );
 }
 
-function Step({ n, title, children }: { n: number; title: ReactNode; children?: ReactNode }) {
-  return <li className="flex min-w-0 gap-3"><span className="num grid size-8 shrink-0 place-items-center rounded-full border border-line-2 text-13 text-ink-2" aria-hidden>{n}</span><div className="min-w-0 flex-1 pt-1"><div className="text-14 font-medium text-ink">{title}</div>{children && <div className="mt-1 text-13 leading-[1.55] text-ink-3">{children}</div>}</div></li>;
-}
-
 export function WorkspacesPage() {
   const { workspaces, toast } = useSession();
   const { clouds } = useCloud();
@@ -97,39 +92,33 @@ export function WorkspacesPage() {
   };
   return (
     <div className="min-w-0">
-      <PageHeader title="Workspaces" sub="Every place your bots run: your Mac, your own server and your cloud desktops." />
+      <PageHeader title="Workspaces" sub="Where your bots run." />
       <div className="flex flex-col gap-4">
         <section className="enter min-w-0" aria-label="Your workspaces">
           {workspaces === null ? <div className="flex flex-col gap-2" aria-busy="true">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-14" />)}</div> : workspaces.length ? (
-            <Table label="Workspaces">
-              <thead><tr><Th>Name</Th><Th className="max-md:hidden">Type</Th><Th>Status</Th><Th className="max-lg:hidden">Version</Th><Th className="max-lg:hidden">Connected</Th><Th className="w-0"><span className="sr-only">More</span></Th></tr></thead>
+            <Table label="Workspaces" className="max-sm:[&_table]:table-fixed max-sm:[&_td]:px-2 max-sm:[&_th]:px-2">
+              <thead><tr><Th>Name</Th><Th className="max-md:hidden">Type</Th><Th className="max-sm:w-[120px]">Status</Th><Th className="max-lg:hidden">Connected</Th><Th className="w-0 max-sm:w-11"><span className="sr-only">More</span></Th></tr></thead>
               <tbody>{sorted.map((w) => <WorkspaceRow key={w.id} w={w} cloud={cloudForWorkspace(clouds, w.id)} />)}</tbody>
             </Table>
-          ) : <p className="border-y border-line py-8 text-15 text-ink-3">No workspaces yet. Add your Mac or server below.</p>}
+          ) : <p className="border-y border-line py-8 text-14 text-ink-3">No workspaces yet. Add your Mac or server below.</p>}
         </section>
-        {clouds?.length === 0 && <div className="enter flex flex-wrap items-center justify-between gap-4 rounded-card border border-line px-6 py-4" style={{ ["--i" as string]: 1 }}><p className="min-w-0 max-w-[64ch] text-13 leading-[1.55] text-ink-3">Self-hosted works, until the machine sleeps or reboots. A cloud desktop stays on 24/7 and we keep it updated.</p><ButtonLink size="sm" to="/cloud">See cloud desktops</ButtonLink></div>}
-        <section id="add" className="enter mt-6 scroll-mt-20" style={{ ["--i" as string]: 2 }}>
-          <Card>
-            <SectionTitle>Add a workspace</SectionTitle>
-            <div className="grid min-w-0 gap-6 md:grid-cols-2 md:gap-0">
-              <div className="min-w-0 md:pr-6">
-                <h3 className="mb-5 text-14 font-medium text-ink">Your Mac</h3>
-                <ol className="flex flex-col gap-5">
-                  <Step n={1} title={<a className="hover-link underline decoration-line-2 underline-offset-4" href={DOWNLOAD_URL} target="_blank" rel="noreferrer">Download OpenMausBot for Mac</a>} />
-                  <Step n={2} title="Sign in with this account">It shows up here by itself a few seconds later.</Step>
-                  <Step n={3} title="Keep it awake">Your bots run while the Mac is on. For 24/7, add a cloud desktop.</Step>
-                </ol>
-              </div>
-              <div className="min-w-0 border-line max-md:border-t max-md:pt-6 md:border-l md:pl-6">
-                <h3 className="mb-5 text-14 font-medium text-ink">Your own server</h3>
-                <ol className="flex flex-col gap-5">
-                  <Step n={1} title="Install on your VPS"><div className="mt-2 flex min-w-0 items-center gap-1 rounded-[10px] bg-bg px-3 py-2"><code className="scroll-x min-w-0 flex-1 whitespace-nowrap font-mono text-13 text-ink-2">{INSTALL}</code><button type="button" aria-label="Copy install command" className="press hover-ghost grid size-11 shrink-0 place-items-center rounded-full text-ink-3" onClick={() => void copy()}><Copy size={16} strokeWidth={1.5} aria-hidden /></button></div></Step>
-                  <Step n={2} title="Sign in when it asks" />
-                  <Step n={3} title="It reports here">Machine, bots and bot computers, live.</Step>
-                </ol>
+        <section id="add" className="mt-10 scroll-mt-20">
+          <SectionHead>Add a workspace</SectionHead>
+          <div className="grid min-w-0 gap-x-10 md:grid-cols-2">
+            <div className="min-w-0 border-t border-line py-5">
+              <h3 className="text-14 font-medium text-ink">Your Mac</h3>
+              <p className="mt-2 text-14 text-ink-3">Download the app and sign in with this account. It shows up here by itself.</p>
+              <ButtonLink to={DOWNLOAD_URL} external variant="outline" className="mt-4">Download for Mac</ButtonLink>
+            </div>
+            <div className="min-w-0 border-t border-line py-5">
+              <h3 className="text-14 font-medium text-ink">Your own server</h3>
+              <p className="mt-2 text-14 text-ink-3">Run this on the server, then sign in when it asks.</p>
+              <div className="mt-4 flex min-w-0 items-center gap-1 rounded-[10px] bg-card px-3 py-2">
+                <code className="min-w-0 flex-1 break-all font-mono text-13 text-ink-2">{INSTALL}</code>
+                <button type="button" aria-label="Copy install command" className="press hover-ghost grid size-11 shrink-0 place-items-center rounded-full text-ink-3" onClick={() => void copy()}><Copy size={16} strokeWidth={1.5} aria-hidden /></button>
               </div>
             </div>
-          </Card>
+          </div>
         </section>
       </div>
     </div>
@@ -138,7 +127,7 @@ export function WorkspacesPage() {
 
 function WorkspaceDevices({ detail, now, ready }: { detail: WorkspaceDetail; now: number; ready: boolean }) {
   const devices = detail.report?.devices;
-  return <Card>
+  return <section className="mt-6">
     <SectionTitle>Phones and signed-in apps</SectionTitle>
     {!devices ? <p className="text-13 text-ink-3">This workspace has not sent its devices yet.</p> : <>
       <h3 className="text-13 text-ink-3">Phones</h3>
@@ -146,7 +135,7 @@ function WorkspaceDevices({ detail, now, ready }: { detail: WorkspaceDetail; now
       <h3 className="mt-6 text-13 text-ink-3">Signed-in apps and browsers</h3>
       {devices.sessions.length ? <ul className="divide-y divide-line">{devices.sessions.map((s) => <li key={s.id} className="flex items-center gap-3 py-3"><Laptop {...ICON} className="shrink-0 text-ink-3" aria-hidden /><div className="min-w-0 flex-1"><div className="truncate text-14 text-ink">{s.label}</div><p className="truncate text-13 text-ink-3">{[s.scopes.includes("admin") ? "Owner" : "Member", s.lastSeenAt ? `active ${ago(s.lastSeenAt, now)}` : s.createdAt ? `signed in ${ago(s.createdAt, now)}` : null].filter(Boolean).join(" · ")}</p></div><CommandButton kind="session.revoke" target={s.id} label="Sign out" doing="Signing out" variant="danger" disabled={!ready} confirm={`Sign ${s.label} out of this workspace?`} /></li>)}</ul> : <p className="mt-2 text-13 text-ink-3">Only the app on this computer. Nothing else is signed in.</p>}
     </>}
-  </Card>;
+  </section>;
 }
 
 export function WorkspacePage({ id }: { id: string }) {
@@ -159,10 +148,10 @@ export function WorkspacePage({ id }: { id: string }) {
   return <div className="min-w-0">
     <Link to="/workspaces" className="press-soft hover-ghost -ms-2 mb-6 inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-13 text-ink-2"><ArrowLeft size={15} strokeWidth={1.5} aria-hidden /> Workspaces</Link>
     {workspaces === null ? <Skeleton className="h-60 !rounded-card" /> : !w ? <SkyEmpty title="That workspace is not on your account">It may have been removed. Choose a workspace from the list.</SkyEmpty> : <>
-      <header className="mb-8 flex items-center gap-4"><span className="grid size-14 shrink-0 place-items-center rounded-[12px] bg-card-2 text-ink-2">{workspaceIcon(w, cloud, 24)}</span><div className="min-w-0 flex-1"><h1 className="truncate text-28 font-medium tracking-[-0.02em] text-ink">{w.name}</h1><div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-13 text-ink-3"><span>{KIND_LABEL(w.kind, cloud)}</span><FreshnessTag freshness={w.freshness} at={w.lastReportAt} now={now} /></div></div></header>
+      <header className="mb-8 flex items-center gap-4"><span className="shrink-0 text-ink-3" aria-hidden>{workspaceIcon(w, cloud, 20)}</span><div className="min-w-0 flex-1"><h1 className="truncate text-24 font-semibold tracking-[-0.02em] text-ink">{w.name}</h1><div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-13 text-ink-3"><span>{KIND_LABEL(w.kind, cloud)}</span><FreshnessTag freshness={w.freshness} at={w.lastReportAt} now={now} /></div></div></header>
       <div className="flex flex-col gap-4">
-        {cloud && <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-line px-6 py-4"><div className="min-w-0"><p className="text-14 text-ink">{tierName(catalog, cloud)} · {regionName(catalog, cloud.region)}</p><CloudStatus cloud={cloud} className="mt-1" /></div><ButtonLink to="/cloud" size="sm">Open cloud desktop</ButtonLink></div>}
-        {!detail || selected?.id !== id ? selected?.id === id && detailError ? <Card><p role="alert" className="text-13 text-bad">{detailError}</p></Card> : <Skeleton className="h-60 !rounded-card" /> : !detail.report ? <SkyEmpty title="Waiting for its first report">Keep OpenMausBot running there. Its first report usually arrives in a few seconds.</SkyEmpty> : <><MachineView detail={detail} now={now} /><WorkspaceDevices detail={detail} now={now} ready={selected?.id === id} /></>}
+        {cloud && <div className="flex flex-wrap items-center gap-x-5 gap-y-2 py-3"><p className="text-14 text-ink">{tierName(catalog, cloud)} · {regionName(catalog, cloud.region)}</p><CloudStatus cloud={cloud} /><Link to="/cloud" className="hover-link text-14 text-ink-2">Open cloud desktop</Link></div>}
+        {!detail || selected?.id !== id ? selected?.id === id && detailError ? <p role="alert" className="text-13 text-bad">{detailError}</p> : <Skeleton className="h-60 !rounded-card" /> : !detail.report ? <SkyEmpty title="Waiting for its first report">Keep OpenMausBot running there. Its first report usually arrives in a few seconds.</SkyEmpty> : <><MachineView detail={detail} now={now} /><WorkspaceDevices detail={detail} now={now} ready={selected?.id === id} /></>}
       </div>
     </>}
   </div>;

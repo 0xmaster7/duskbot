@@ -6,7 +6,6 @@ import { Link, navigate, useLocation } from "../lib/router";
 import { ProviderMark, PROVIDER_NAME } from "../ui/BrandMarks";
 import { Button, cx } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
-import { Stars } from "../ui/Sky";
 
 const REASON: Record<string, string> = {
   wrong_code: "That code does not match. Check the newest email and try again.",
@@ -34,7 +33,6 @@ const OAUTH_ERROR: Record<string, string> = {
 
 type Mode = "signin" | "signup";
 
-/** sign in and sign up: a quiet night sky, one mascot peeking over the card */
 export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
   const { setAccount } = useSession();
   const { query } = useLocation();
@@ -99,16 +97,13 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
 
   return (
     <div className="relative grid min-h-[100dvh] place-items-center overflow-hidden bg-bg px-4 py-14">
-      <Stars count={70} seed={4} className="[mask-image:radial-gradient(ellipse_at_top,black_30%,transparent_75%)]" />
-      <div className="relative w-full max-w-[400px]">
-        <div className="relative z-0 flex justify-center">
-          <span className="peek inline-flex"><Mascot color="blue" size={76} state={step === "code" ? "waiting" : "curious"} track label="OpenMausBot" /></span>
-        </div>
-        <div className="enter relative z-10 -mt-5 rounded-card bg-card p-7 max-sm:p-6">
+      <div className="w-full max-w-[360px]">
+        <div className="mb-6"><Mascot color="blue" size={40} still label="OpenMausBot" /></div>
+        <div>
           {step === "start" ? (
             <div key="start" className="step-in">
-              <h1 className="text-20 font-medium tracking-[-0.01em] text-ink">{signup ? "Create your account" : "Sign in to OpenMausBot"}</h1>
-              <p className="mt-1.5 text-14 leading-[1.5] text-ink-3">{signup ? "Free for personal use. One account for the app, your phone and your cloud desktop." : "One account for the app, your phone and your cloud desktop."}</p>
+              <h1 className="text-24 font-semibold tracking-[-0.022em] text-ink">{signup ? "Create your account" : "Sign in to OpenMausBot"}</h1>
+              <p className="mt-1.5 text-14 leading-[1.5] text-ink-3">One account for the app, your phone and your cloud desktop.</p>
               {note && <div className="mt-3 text-13 leading-[1.5] text-ink-2">{note}</div>}
               {pending && <div className="mt-3 text-13 leading-[1.5] text-ink-2">One more step: your provider did not share an email, so enter the one you want to sign in with.</div>}
               <div className="mt-6 flex flex-col gap-2">
@@ -118,26 +113,26 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
                     type="button"
                     onClick={() => void oauth(p)}
                     disabled={busy !== null || !enabled(p)}
-                    className="press hover-outline relative flex h-11 w-full items-center justify-center gap-2.5 rounded-full border border-line-2 text-14 font-medium text-ink disabled:opacity-45"
+                    className="press hover-outline relative flex h-11 w-full items-center justify-center gap-2.5 rounded-full bg-card-2 text-14 font-medium text-ink disabled:opacity-45"
                   >
                     <span className="absolute start-4 grid size-5 place-items-center text-ink"><ProviderMark provider={p} size={18} /></span>
                     {busy === p ? "Signing in" : enabled(p) ? `Continue with ${PROVIDER_NAME[p]}` : `${PROVIDER_NAME[p]}, coming soon`}
                   </button>
                 ))}
               </div>
-              <div className={cx("my-5 flex items-center gap-3 text-12 text-ink-4", pending && "hidden")} aria-hidden><span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" /></div>
+              <div className={cx("my-5 flex items-center gap-3 text-13 text-ink-3", pending && "hidden")} aria-hidden><span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" /></div>
               <form onSubmit={(e) => { e.preventDefault(); void send(); }} noValidate>
-                <label htmlFor="email" className="mb-1.5 block text-13 text-ink-2">Email</label>
+                <label htmlFor="email" className="mb-1.5 block text-13 text-ink-3">Email</label>
                 <input id="email" type="email" autoComplete="email" inputMode="email" required value={email} onChange={(e) => { setEmail(e.target.value); setError(null); }} className="field" aria-invalid={Boolean(error)} aria-describedby={error ? "auth-error" : undefined} />
                 {error && <p id="auth-error" role="alert" className="mt-2 text-13 text-bad">{error}</p>}
-                <Button type="submit" variant="primary" className="mt-4 w-full !h-11" disabled={busy !== null || !email.trim()}>{busy === "email" ? "Sending code" : "Continue with email"}</Button>
+                <Button type="submit" variant="primary" className="mt-4 w-full !h-11" disabled={busy !== null || !email.trim()}>{busy === "email" ? "Sending code" : "Continue"}</Button>
               </form>
             </div>
           ) : (
             <form key="code" className="step-in" onSubmit={(e) => { e.preventDefault(); void verify(); }}>
-              <h1 className="text-20 font-medium tracking-[-0.01em] text-ink">Check your email</h1>
+              <h1 className="text-24 font-semibold tracking-[-0.022em] text-ink">Check your email</h1>
               <p className="mt-1.5 text-14 leading-[1.5] text-ink-3">We sent a {length}-digit code to <span className="break-all text-ink-2">{email.trim()}</span>. It works for 10 minutes.</p>
-              <label htmlFor="code" className="mb-1.5 mt-6 block text-13 text-ink-2">Code</label>
+              <label htmlFor="code" className="mb-1.5 mt-6 block text-13 text-ink-3">Code</label>
               <input
                 ref={codeRef}
                 id="code"
@@ -167,7 +162,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
         <p className="mt-6 text-center text-13 text-ink-3">
           {signup ? <>Have an account? <Link to="/signin" className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">Sign in</Link></> : <>New to OpenMausBot? <Link to="/signup" className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">Create an account</Link></>}
         </p>
-        <p className="mt-3 text-center text-12 leading-[1.5] text-ink-4">
+        <p className="mt-3 text-center text-13 leading-[1.5] text-ink-3">
           {signup ? <>By continuing you agree to the <a href="https://openmausbot.com/terms" className="hover-link underline decoration-line-2 underline-offset-4">Terms</a> and <a href="https://openmausbot.com/privacy" className="hover-link underline decoration-line-2 underline-offset-4">Privacy Policy</a>.</> : "Your chats and files stay on your own computers."}
         </p>
       </div>
