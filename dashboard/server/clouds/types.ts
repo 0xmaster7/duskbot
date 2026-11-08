@@ -8,6 +8,7 @@ export interface ProviderServer {
   ipv4: string | null;
   serverType: string;
   diskGb: number;
+  origin?: string;
 }
 
 export interface CreateServerInput {
@@ -16,6 +17,7 @@ export interface CreateServerInput {
   spec: MachineSpec;
   region: string;
   userData: string;
+  quota?: SlotQuota;
 }
 
 /** provisioning backend. dedicated: fake or hetzner. pool: PoolProvider over pool hosts (fake driver in tests). */
@@ -26,8 +28,8 @@ export interface CloudProvider {
   create(input: CreateServerInput): Promise<ProviderServer>;
   status(serverId: string): Promise<ProviderServer>;
   power(serverId: string, action: PowerAction): Promise<void>;
-  /** the server must be off; the disk never shrinks */
-  resize(serverId: string, spec: MachineSpec): Promise<void>;
+  /** dedicated servers must be off; pool quotas can change live */
+  resize(serverId: string, spec: MachineSpec, quota?: SlotQuota): Promise<void>;
   destroy(serverId: string): Promise<void>;
 }
 
@@ -35,7 +37,7 @@ export interface CloudProvider {
 export interface PoolHost {
   id: string;
   region: string;
-  /** what the host may hand out (after the configured overcommit) */
+  /** physical resources available for slots, before the provider's overcommit */
   capacity: { vcpu: number; ramGb: number; diskGb: number; slots: number };
   /** https origins of slots on it are https://<cloudId>.<domain> */
   domain: string;
@@ -43,11 +45,12 @@ export interface PoolHost {
 }
 /** the hard limits a slot (one user's server container plus its bot computer containers) runs under */
 export interface SlotQuota { vcpu: number; ramGb: number; diskGb: number; netMbps: number; pids: number; botComputers: number | null }
-export interface SlotState { id: string; hostId: string; state: ProviderServer["state"] | "suspended"; quota: SlotQuota }
+export interface SlotState { id: string; hostId: string; cloudId?: string; state: ProviderServer["state"] | "suspended"; quota: SlotQuota }
 
 /** one host agent per pool host (gVisor containers, separate networks, no shared disks or secrets); fake in tests */
 export interface PoolHostDriver {
   hosts(): Promise<PoolHost[]>;
+  slots(hostId: string): Promise<SlotState[]>;
   createSlot(hostId: string, input: { cloudId: string; quota: SlotQuota; bootstrap: string }): Promise<SlotState>;
   slot(hostId: string, slotId: string): Promise<SlotState | null>;
   findSlot(cloudId: string): Promise<SlotState | null>;
@@ -101,6 +104,14 @@ export interface StoredCloud {
   createdAt: number;
   updatedAt: number;
   powerSince: number;
+  linkPublicKey?: string;
+  sealedLinkPrivateKey?: string;
+  provisionedAt?: number;
+  poolFullSince?: number;
+  lastCheckedAt?: number;
+  resizeStage?: "off" | "resize" | "on";
+  appliedQuota?: SlotQuota;
+  suspensionApplied?: boolean;
 }
 
 export interface DesktopPlan { kind: Exclude<DesktopKind, "none">; placement: Placement; spec: MachineSpec; botComputers: number | null }
@@ -117,7 +128,7 @@ export interface CloudsService {
   order(input: OrderInput): StoredCloud;
   /** paid: provisioning starts (idempotent) */
   activate(cloudId: string, subscriptionId: string, plan: DesktopPlan): void;
-  /** a plan change: resized (or moved between pool and dedicated) on the next reconcile */
+  /** a plan change: resized on the next reconcile; placement changes are refused */
   changePlan(cloudId: string, plan: DesktopPlan): void;
   setPaymentProblem(cloudId: string, problem: boolean): void;
   /** destroyed at `at` unless cancelled (keep plan, renewed) */
