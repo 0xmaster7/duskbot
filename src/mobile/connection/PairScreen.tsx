@@ -8,7 +8,7 @@ import type { MobileConnectionRecord } from "../../../shared/mobile-link";
 import { dur, ease } from "../motion";
 import { haptic } from "../haptics";
 import { usePlatform } from "../platform";
-import { PairError, parseTypedPairing, redeemPairing, type TypedPairing } from "./pair";
+import { PairError, parseTypedPairing, redeemPairing, resolveTypedCode, type TypedPairing } from "./pair";
 
 const MASCOTS = [
   { color: "purple", bodyId: "flower", size: 100, left: "-32px", top: "10%" },
@@ -53,9 +53,14 @@ export function PairScreen({ initial = null, reason, onLinked, onCancel }: {
       if (source === "scan") {
         const result = await platform.scanQr?.();
         if (!result || !mounted.current) return;
-        payload = parseTypedPairing(result.text);
-      } else if (!payload) payload = parseTypedPairing(input);
+        const parsed = parseTypedPairing(result.text);
+        payload = parsed && "kind" in parsed ? await resolveTypedCode(parsed.code) : parsed;
+      } else if (!payload) {
+        const parsed = parseTypedPairing(input);
+        payload = parsed && "kind" in parsed ? await resolveTypedCode(parsed.code) : parsed;
+      }
       if (!payload) throw new PairError("invalid");
+      if (!mounted.current) return;
       const result = await redeemPairing(payload, platform);
       if (!mounted.current) return;
       haptic("success");
@@ -115,8 +120,8 @@ export function PairScreen({ initial = null, reason, onLinked, onCancel }: {
                 {platform.scanQr && <button type="button" disabled={Boolean(busy)} className={primary} onClick={() => void link("scan")}>{label("scan", t("mobile.pair.scan"))}</button>}
                 {typing ? (
                   <form className="flex items-center gap-2" onSubmit={(event) => { event.preventDefault(); void link("link"); }}>
-                    <label htmlFor={inputId} className="sr-only">{t("mobile.pair.inputLabel")}</label>
-                    <input id={inputId} autoFocus type="text" inputMode="text" autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete="off" value={input} onChange={(event) => setInput(event.target.value)} disabled={Boolean(busy)} placeholder={t("mobile.pair.inputPlaceholder")} className="mobile-float h-12 min-w-0 flex-1 rounded-full bg-composer px-4 text-[16px] text-ink placeholder:text-ink-tertiary disabled:opacity-50" />
+                    <label htmlFor={inputId} className="sr-only">{t("mobile.pair.linkOrCode")}</label>
+                    <input id={inputId} autoFocus type="text" inputMode="text" autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete="off" value={input} onChange={(event) => setInput(event.target.value)} disabled={Boolean(busy)} placeholder={t("mobile.pair.linkOrCode")} className="mobile-float h-12 min-w-0 flex-1 rounded-full bg-composer px-4 text-[16px] text-ink placeholder:text-ink-tertiary disabled:opacity-50" />
                     <button type="submit" disabled={Boolean(busy) || !input.trim()} className={primary}>{label("link", t("mobile.pair.link"))}</button>
                   </form>
                 ) : <button type="button" disabled={Boolean(busy)} className="mobile-press h-12 rounded-full bg-ink/[0.06] px-6 text-[16px] font-semibold disabled:opacity-50" onClick={() => setTyping(true)}>{t("mobile.pair.enter")}</button>}

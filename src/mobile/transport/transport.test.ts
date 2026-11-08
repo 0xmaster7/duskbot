@@ -258,3 +258,60 @@ describe("installed adapters", () => {
     expect(revoke).toHaveBeenCalledTimes(301);
   });
 });
+
+describe("relay transport", () => {
+  it("tunnels API fetches, request bodies and EventSource with the workspace bearer", async () => {
+    const { browser, fetcher, FakeSource } = transportFixture();
+    const channel = {
+      request: vi.fn().mockImplementation(async (_method: string, path: string) => path.startsWith("/api/events")
+        ? new Response("event: ping\ndata: relay hello\n\n", { headers: { "Content-Type": "text/event-stream" } })
+        : new Response("uploaded")),
+      close: vi.fn(),
+    };
+    const restore = installTransport({ kind: "relay", channel, token: "workspace-secret" });
+    try {
+      const abort = new AbortController();
+      const form = new FormData();
+      form.append("file", new Blob(["binary bytes"]), "file.txt");
+      await browser.fetch(new Request("https://localhost/api/files", { method: "POST", body: form, signal: abort.signal }));
+      const [method, path, headers, bytes, signal] = channel.request.mock.calls[0];
+      expect(method).toBe("POST");
+      expect(path).toBe("/api/files");
+      expect(headers.get("Authorization")).toBe("Bearer workspace-secret");
+      expect(headers.get("Content-Type")).toMatch(/^multipart\/form-data; boundary=/);
+      expect(new TextDecoder().decode(bytes)).toContain("binary bytes");
+      abort.abort();
+      expect(signal.aborted).toBe(true);
+      const events = new browser.EventSource("/api/events?cursor=7");
+      const ping = vi.fn();
+      events.addEventListener("ping", ping);
+      await vi.waitFor(() => expect(ping).toHaveBeenCalledOnce());
+      expect((ping.mock.calls[0][0] as MessageEvent).data).toBe("relay hello");
+      expect(channel.request.mock.calls[1][1]).toBe("/api/events?cursor=7");
+      expect(channel.request.mock.calls[1][2].get("Authorization")).toBe("Bearer workspace-secret");
+      expect(new browser.EventSource("https://external.test/api/events")).toBeInstanceOf(FakeSource);
+      await browser.fetch("https://external.test/api/files");
+      expect(fetcher).toHaveBeenCalledWith("https://external.test/api/files", undefined);
+      expect(mediaUrl("/api/attachments/a")).toBe("/api/attachments/a");
+    } finally { restore(); }
+    expect(channel.close).toHaveBeenCalledOnce();
+    expect(browser.fetch).toBe(fetcher);
+  });
+
+  it("loads media through the relay and revokes its blob on uninstall", async () => {
+    const { document, EmptyElement, fetcher } = transportFixture();
+    const element = new EmptyElement();
+    element.setAttribute("src", "/api/attachments/a");
+    document.elements = [element];
+    const channel = { request: vi.fn().mockResolvedValue(new Response("image bytes")), close: vi.fn() };
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:relay-image");
+    const revoke = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    const restore = installTransport({ kind: "relay", channel, token: "workspace-secret" });
+    try {
+      await vi.waitFor(() => expect(element.getAttribute("src")).toBe("blob:relay-image"));
+      expect(channel.request.mock.calls[0].slice(0, 2)).toEqual(["GET", "/api/attachments/a"]);
+      expect(fetcher).not.toHaveBeenCalled();
+    } finally { restore(); }
+    expect(revoke).toHaveBeenCalledWith("blob:relay-image");
+  });
+});

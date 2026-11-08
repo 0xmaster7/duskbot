@@ -1,0 +1,147 @@
+import { createPrivateKey, randomBytes } from "node:crypto";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { createRelaySecrets, deviceChannelKey, unbase64 } from "./link-crypto";
+import { frameGuard, open, openFrame, readFrameBatches, sealFrame, type RelayFrame } from "./relay";
+
+const protocolPath = "../../../electron/vps-link-protocol.mjs";
+const protocol = await import(protocolPath);
+const key = randomBytes(32);
+const channel = "abcdefghij";
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+describe("relay crypto compatibility", () => {
+  it("opens node control and binary vectors and lets node open browser frames", async () => {
+    const frame = { t: "req", r: "abcdefghijkl", method: "POST", path: "/api/files", end: false };
+    const nodeFrame = protocol.sealFrame(key, channel, "to-vps", frame);
+    expect(await openFrame(key, channel, "to-vps", nodeFrame, frameGuard())).toMatchObject(frame);
+    const browserFrame = await sealFrame(key, channel, "to-vps", frame);
+    expect(protocol.openFrame(key, channel, "to-vps", browserFrame, protocol.frameGuard())).toMatchObject(frame);
+    const bytes = randomBytes(150_000);
+    const nodeBytes = protocol.sealBytes(key, channel, "to-app", frame.r, bytes);
+    const opened = await openFrame(key, channel, "to-app", nodeBytes, frameGuard());
+    expect(opened?.t).toBe("bytes");
+    expect(Buffer.from(opened!.b!)).toEqual(bytes);
+    await expect(openFrame(key, "abcdefghik", "to-app", nodeBytes, frameGuard())).rejects.toThrow();
+    await expect(openFrame(key, channel, "to-vps", nodeBytes, frameGuard())).rejects.toThrow();
+  });
+
+  it("matches the agent's X25519 and HKDF channel key", async () => {
+    const phone = await createRelaySecrets();
+    const agent = protocol.x25519Pair();
+    const jwk = createPrivateKey({ key: Buffer.from(unbase64(phone.priv)), format: "der", type: "pkcs8" }).export({ format: "jwk" });
+    expect(Buffer.from(await deviceChannelKey(phone.priv, agent.pub, channel))).toEqual(protocol.sealKeyOf(jwk.d, phone.pub, agent.pub, channel));
+    expect(Buffer.from(await deviceChannelKey(phone.priv, agent.pub, channel))).toEqual(protocol.sealKeyOf(agent.priv, agent.pub, phone.pub, channel));
+  });
+
+  it("rejects replay, stale and future frames", async () => {
+    const sealed = protocol.sealFrame(key, channel, "to-app", { t: "end", r: "abcdefghijkl" });
+    const guard = frameGuard();
+    expect(await openFrame(key, channel, "to-app", sealed, guard)).not.toBeNull();
+    expect(await openFrame(key, channel, "to-app", sealed, guard)).toBeNull();
+    expect(await openFrame(key, channel, "to-app", sealed, frameGuard(() => Date.now() + 310_000))).toBeNull();
+    expect(await openFrame(key, channel, "to-app", sealed, frameGuard(() => Date.now() - 310_000))).toBeNull();
+    expect(frameGuard()("iv", Number.NaN)).toBe(false);
+  });
+});
+
+describe("relay reader", () => {
+  it("reads split ndjson including CRLF, empty batches and the final line", async () => {
+    const bytes = new TextEncoder().encode('\n{"frames":["one"]}\r\n{"frames":[]}\n{"frames":["two","three"]}');
+    const stream = new ReadableStream<Uint8Array>({ start(controller) { for (const byte of bytes) controller.enqueue(Uint8Array.of(byte)); controller.close(); } });
+    const received: string[][] = [];
+    await readFrameBatches(new Response(stream), async (frames) => { received.push(frames); });
+    expect(received).toEqual([["one"], [], ["two", "three"]]);
+  });
+
+  it("rejects malformed batches", async () => {
+    await expect(readFrameBatches(new Response('{"frames":[3]}\n'), async () => {})).rejects.toThrow("invalid relay batch");
+  });
+});
+
+function relayFixture() {
+  let incoming: ReadableStreamDefaultController<Uint8Array>;
+  const controls: RelayFrame[] = [];
+  const posts: Array<{ epoch: string; seq: number }> = [];
+  const bodies = new Map<string, Uint8Array[]>();
+  const streams = new Set<string>();
+  const guard = protocol.frameGuard();
+  const emit = (frames: RelayFrame[]) => incoming.enqueue(new TextEncoder().encode(`${JSON.stringify({ frames: frames.map((frame) => protocol.sealFrame(key, channel, "to-app", frame)) })}\n`));
+  const finish = (r: string) => {
+    const body = Buffer.concat((bodies.get(r) ?? []).map((chunk) => Buffer.from(chunk)));
+    emit([{ t: "head", r, status: 200, headers: { "content-type": "application/octet-stream" } }]);
+    incoming.enqueue(new TextEncoder().encode(`${JSON.stringify({ frames: [protocol.sealBytes(key, channel, "to-app", r, body)] })}\n`));
+    emit([{ t: "end", r }]);
+  };
+  const streamFetch = vi.fn<typeof fetch>().mockImplementation(async (_input, init) => new Response(new ReadableStream<Uint8Array>({
+    start(controller) {
+      incoming = controller;
+      init?.signal?.addEventListener("abort", () => controller.error(new Error("aborted")), { once: true });
+    },
+  })));
+  const fetcher = vi.fn<typeof fetch>().mockImplementation(async (_input, init) => {
+    const batch = JSON.parse(String(init?.body));
+    posts.push({ epoch: batch.epoch, seq: batch.seq });
+    for (const sealed of batch.frames) {
+      const frame = protocol.openFrame(key, channel, "to-vps", sealed, guard) as RelayFrame;
+      controls.push(frame);
+      if (frame.t === "req") {
+        bodies.set(frame.r, []);
+        if (frame.path === "/api/events") {
+          streams.add(frame.r);
+          emit([{ t: "head", r: frame.r, status: 200, headers: { "content-type": "text/event-stream" } }, { t: "data", r: frame.r, d: Buffer.from("data: hello\n\n").toString("base64") }]);
+        } else if (frame.end) finish(frame.r);
+      } else if (frame.t === "body") {
+        if (frame.d) bodies.get(frame.r)!.push(unbase64(frame.d));
+        if (frame.end) finish(frame.r);
+      }
+    }
+    return new Response('{"ordered":true}');
+  });
+  vi.stubGlobal("fetch", fetcher);
+  vi.stubGlobal("window", { fetch: fetcher, CapacitorWebFetch: streamFetch });
+  return { fetcher, streamFetch, controls, posts, streams, emit };
+}
+
+describe("relay channel", () => {
+  it("streams SSE while uploading binary chunks with ordered posts", async () => {
+    const fixture = relayFixture();
+    const client = open("https://relay.test", channel, "channel-secret", key);
+    try {
+      const events = await client.request("GET", "/api/events", { Authorization: "Bearer session-secret" });
+      expect(events.headers.get("content-type")).toBe("text/event-stream");
+      const reader = events.body!.getReader();
+      expect(new TextDecoder().decode((await reader.read()).value)).toBe("data: hello\n\n");
+      const bytes = randomBytes(300_000);
+      const response = await client.request("POST", "/api/files", { "Content-Type": "application/octet-stream" }, bytes);
+      expect(Buffer.from(await response.arrayBuffer())).toEqual(bytes);
+      expect(fixture.controls.filter((frame) => frame.t === "body")).toHaveLength(3);
+      expect(fixture.posts.map((batch) => batch.seq)).toEqual([0, 1, 2, 3, 4]);
+      expect(new Set(fixture.posts.map((batch) => batch.epoch)).size).toBe(1);
+      expect(fixture.posts[0].epoch).toMatch(/^[a-z2-7]{12}$/);
+      expect(fixture.streamFetch.mock.calls[0]).toEqual(["https://relay.test/v1/channels/abcdefghij/to-app?wait=25&stream=1", expect.objectContaining({ headers: { Authorization: "Bearer channel-secret" } })]);
+      expect(fixture.fetcher.mock.calls.every(([url]) => String(url).endsWith("/to-vps"))).toBe(true);
+      await reader.cancel();
+      await vi.waitFor(() => expect(fixture.controls.some((frame) => frame.t === "cancel")).toBe(true));
+    } finally { client.close(); }
+  });
+
+  it("aborts an open response and closes pending channel reads", async () => {
+    const fixture = relayFixture();
+    const client = open("https://relay.test", channel, "channel-secret", key);
+    const abort = new AbortController();
+    const response = await client.request("GET", "/api/events", {}, null, abort.signal);
+    abort.abort();
+    await expect(response.text()).rejects.toThrow();
+    await vi.waitFor(() => expect(fixture.controls.some((frame) => frame.t === "cancel")).toBe(true));
+    client.close();
+    expect(fixture.streamFetch.mock.calls[0][1]?.signal?.aborted).toBe(true);
+    await expect(client.request("GET", "/api/bots")).rejects.toThrow("relay closed");
+  });
+
+  it("fails requests when the relay refuses a poll", async () => {
+    vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 404 })));
+    const client = open("https://relay.test", channel, "channel-secret", key);
+    await expect(client.request("GET", "/api/bots")).rejects.toThrow();
+    client.close();
+  });
+});

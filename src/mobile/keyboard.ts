@@ -46,6 +46,9 @@ export function useKeyboardSync(platform: MobilePlatform, rootRef: RefObject<HTM
       committed = height;
     };
 
+    // android resizes the whole webview with the window (adjustResize; the keyboard plugin's resize mode is ios only), so
+    // there the layout already ends at the keyboard and only ios gets the ride-along choreography
+    if (platform.kind === "android") return;
     if (platform.onKeyboard) {
       const stop = platform.onKeyboard(({ height, phase }) => {
         if (height > 0) {

@@ -1,6 +1,53 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { MobileConnectionRecord } from "../../../shared/mobile-link";
+import type { MobileConnectionRecord, MobileTransport } from "../../../shared/mobile-link";
 import { usePlatform, type MobilePlatform } from "../platform";
+import { deviceChannelKey, type RelaySecrets } from "../transport/link-crypto";
+import { open as openRelay } from "../transport/relay";
+import type { PhoneTransport } from "../transport/transport";
+import { PairError } from "./pair";
+
+export async function connectToWorkspace(record: MobileConnectionRecord, token: string, platform: MobilePlatform, signal: AbortSignal): Promise<PhoneTransport> {
+  const routes: MobileTransport[] = record.via ?? (record.origin ? [record.transport === "companion"
+    ? { kind: "companion", url: record.origin, net: "lan", priority: 0 }
+    : { kind: "https", url: record.origin }] : []);
+  for (const route of routes) {
+    signal.throwIfAborted();
+    let transport: PhoneTransport | undefined;
+    let response: Response;
+    try {
+      const timed = AbortSignal.any([signal, AbortSignal.timeout(15_000)]);
+      const headers = { Authorization: `Bearer ${token}` };
+      if (route.kind === "relay") {
+        const relay = record.relay;
+        const saved = await platform.secrets.get(`relay.${record.id}`);
+        if (!relay?.agentPub || !saved) continue;
+        const keys = JSON.parse(saved) as RelaySecrets;
+        const key = await deviceChannelKey(keys.priv, relay.agentPub, relay.channel);
+        signal.throwIfAborted();
+        const channel = openRelay(relay.base, relay.channel, keys.token, key);
+        transport = { kind: "relay", channel, token };
+        response = await channel.request("GET", "/api/auth/session", headers, null, timed);
+      } else {
+        if (route.kind === "companion" && !platform.native) continue;
+        transport = { kind: "bearer", origin: route.url, token };
+        response = await fetch(`${route.url}/api/auth/session`, { headers, credentials: "omit", redirect: "error", signal: timed });
+      }
+      await response.body?.cancel().catch(() => {});
+    } catch {
+      if (transport?.kind === "relay") transport.channel.close();
+      continue;
+    }
+    if (signal.aborted || !response.ok) {
+      if (transport.kind === "relay") transport.channel.close();
+      signal.throwIfAborted();
+      if (response.status === 401) throw new PairError("refused");
+      continue;
+    }
+    return transport;
+  }
+  signal.throwIfAborted();
+  throw new PairError("unreachable");
+}
 
 const CONNECTIONS_KEY = "omb.mobile.connections.v1";
 const ACTIVE_KEY = "omb.mobile.active.v1";
@@ -51,7 +98,11 @@ export function createConnectionStore(platform: MobilePlatform): ConnectionStore
         await platform.secrets.set(saved.sessionRef, token);
         await write([...records.filter((entry) => !replaced.includes(entry)), saved]);
         await platform.prefs.set(ACTIVE_KEY, saved.id);
-        for (const old of replaced) if (old.sessionRef !== saved.sessionRef) await platform.secrets.remove(old.sessionRef);
+        for (const old of replaced) if (old.sessionRef !== saved.sessionRef) {
+          await platform.secrets.remove(old.sessionRef);
+          await platform.secrets.remove(`relay.${old.id}`);
+          await platform.prefs.remove(`omb.mobile.push.${old.id}`);
+        }
       });
     },
     setActive(id) {
@@ -68,6 +119,8 @@ export function createConnectionStore(platform: MobilePlatform): ConnectionStore
         const records = await read();
         if (await platform.prefs.get(ACTIVE_KEY) === id) await platform.prefs.remove(ACTIVE_KEY);
         await platform.secrets.remove(`token.${id}`);
+        await platform.secrets.remove(`relay.${id}`);
+        await platform.prefs.remove(`omb.mobile.push.${id}`);
         await write(records.filter((entry) => entry.id !== id));
       });
     },

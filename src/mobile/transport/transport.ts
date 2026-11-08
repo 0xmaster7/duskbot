@@ -1,7 +1,21 @@
-export interface MobileTransport {
-  kind: "same-origin" | "bearer";
-  origin: string;
-  token?: string;
+import type { RelayChannel } from "./relay";
+
+export type PhoneTransport =
+  | { kind: "same-origin" | "bearer"; origin: string; token?: string }
+  | { kind: "relay"; channel: RelayChannel; token: string };
+
+const originOf = (transport: PhoneTransport) => transport.kind === "relay" ? "https://mobile-relay.invalid" : transport.origin;
+
+export function relayFetch(channel: RelayChannel, token: string): typeof fetch {
+  return async (input, init) => {
+    const request = new Request(input, init);
+    const url = new URL(request.url);
+    const headers = new Headers(request.headers);
+    headers.set("Authorization", `Bearer ${token}`);
+    const body = request.body ? new Uint8Array(await request.arrayBuffer()) : null;
+    request.signal.throwIfAborted();
+    return channel.request(request.method, `${url.pathname}${url.search}`, headers, body, request.signal);
+  };
 }
 
 type SseEvent = { data: string; lastEventId: string; type: string };
@@ -65,7 +79,7 @@ export function rewriteApiUrl(input: string, pageOrigin: string, workspaceOrigin
 }
 
 type StreamContext = { fetch: typeof fetch; token: string; url: string };
-let installed: { transport: MobileTransport; streamFetch: typeof fetch } | null = null;
+let installed: { transport: PhoneTransport; streamFetch: typeof fetch } | null = null;
 
 export class BearerEventSource extends EventTarget {
   static readonly CONNECTING = 0;
@@ -84,7 +98,7 @@ export class BearerEventSource extends EventTarget {
 
   constructor(url: string | URL, _init?: EventSourceInit, context?: StreamContext) {
     super();
-    const rewritten = installed && rewriteApiUrl(String(url), window.location.origin, installed.transport.origin);
+    const rewritten = installed && rewriteApiUrl(String(url), window.location.origin, originOf(installed.transport));
     const stream = context ?? (installed && rewritten ? { fetch: installed.streamFetch, token: installed.transport.token ?? "", url: rewritten } : null);
     this.url = stream?.url ?? String(url);
     if (stream) void this.open(stream);
@@ -236,30 +250,32 @@ function installMedia(): () => void {
   };
 }
 
-export function installTransport(transport: MobileTransport): () => void {
+export function installTransport(transport: PhoneTransport): () => void {
   if (transport.kind === "same-origin") return () => {};
-  const workspace = workspaceUrl(transport.origin);
+  const origin = originOf(transport);
+  const workspace = workspaceUrl(origin);
   const originalFetch = window.fetch;
   const OriginalEventSource = window.EventSource;
   const OriginalWebSocket = window.WebSocket;
   const previous = installed;
   const streamFetch = (window as Window & { CapacitorWebFetch?: typeof fetch }).CapacitorWebFetch ?? originalFetch;
-  const context = { transport, streamFetch: streamFetch.bind(window) };
+  const fetchWorkspace = transport.kind === "relay" ? relayFetch(transport.channel, transport.token) : originalFetch.bind(window);
+  const context = { transport, streamFetch: transport.kind === "relay" ? fetchWorkspace : streamFetch.bind(window) };
   installed = context;
   const patchedFetch: typeof fetch = (input, init) => {
-    const url = rewriteApiUrl(input instanceof Request ? input.url : String(input), window.location.origin, transport.origin);
+    const url = rewriteApiUrl(input instanceof Request ? input.url : String(input), window.location.origin, origin);
     if (!url) return originalFetch.call(window, input, init);
     const request = input instanceof Request ? new Request(input, init) : null;
     const headers = new Headers(request?.headers ?? init?.headers);
     if (!headers.has("Authorization")) headers.set("Authorization", `Bearer ${transport.token ?? ""}`);
     // redirects must not carry the workspace credential to a different origin, including through native http.
     const options: RequestInit = { ...(request ? {} : init), headers, credentials: "omit", mode: "cors", redirect: "error" };
-    return originalFetch.call(window, request ? new Request(new Request(url, request), options) : url, request ? undefined : options);
+    return fetchWorkspace(request ? new Request(new Request(url, request), options) : url, request ? undefined : options);
   };
   const sources = new Set<BearerEventSource>();
   const PatchedEventSource = new Proxy(OriginalEventSource, {
     construct(Target, args: [string | URL, EventSourceInit?]) {
-      const url = rewriteApiUrl(String(args[0]), window.location.origin, transport.origin);
+      const url = rewriteApiUrl(String(args[0]), window.location.origin, origin);
       if (!url || !new URL(url).pathname.startsWith("/api/")) return new Target(...args);
       for (const source of sources) if (source.readyState === source.CLOSED) sources.delete(source);
       const source = new BearerEventSource(args[0], args[1], { url, token: transport.token ?? "", fetch: context.streamFetch });
@@ -275,7 +291,7 @@ export function installTransport(transport: MobileTransport): () => void {
       let target: URL | null = null;
       try {
         const url = new URL(input, window.location.href);
-        if (url.host === window.location.host && ["ws:", "wss:", window.location.protocol].includes(url.protocol) && url.pathname.startsWith("/api/") && !url.username && !url.password) {
+        if (transport.kind !== "relay" && url.host === window.location.host && ["ws:", "wss:", window.location.protocol].includes(url.protocol) && url.pathname.startsWith("/api/") && !url.username && !url.password) {
           target = new URL(`${url.pathname}${url.search}`, workspace);
           target.protocol = workspace.protocol === "https:" ? "wss:" : "ws:";
           // the sync branch's server must accept access_token on authenticated viewer upgrades.
@@ -296,6 +312,7 @@ export function installTransport(transport: MobileTransport): () => void {
     if (stopped) return;
     stopped = true;
     stopMedia();
+    if (transport.kind === "relay") transport.channel.close();
     for (const source of sources) source.close();
     for (const socket of sockets) socket.close();
     if (window.fetch === patchedFetch) window.fetch = originalFetch;
@@ -306,5 +323,5 @@ export function installTransport(transport: MobileTransport): () => void {
 }
 
 export function mediaUrl(path: string): string {
-  return installed ? rewriteApiUrl(path, window.location.origin, installed.transport.origin) ?? path : path;
+  return installed && installed.transport.kind !== "relay" ? rewriteApiUrl(path, window.location.origin, originOf(installed.transport)) ?? path : path;
 }

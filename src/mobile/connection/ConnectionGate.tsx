@@ -6,9 +6,10 @@ import { parseMobilePairingLink, type MobileConnectionRecord } from "../../../sh
 import { usePlatform } from "../platform";
 import { Sheet } from "../Sheet";
 import { installTransport } from "../transport/transport";
-import { createConnectionStore } from "./connections";
+import { connectToWorkspace, createConnectionStore } from "./connections";
 import { PairScreen } from "./PairScreen";
-import type { TypedPairing } from "./pair";
+import { PairError, parseTypedPairing, type TypedPairing } from "./pair";
+import { registerPushForConnection } from "./push";
 
 type GateState = { kind: "loading" } | { kind: "pair"; reason?: "revoked" } | { kind: "ready"; id: string };
 
@@ -28,17 +29,20 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
       if (forcePair) { setState({ kind: "pair" }); return; }
       const active = await store.active();
       if (stopped) return;
-      if (active?.record.origin && active.record.transport !== "relay") {
-        uninstall = installTransport({ kind: "bearer", origin: active.record.origin, token: active.token });
-        setState({ kind: "ready", id: active.record.id });
-        void store.touch(active.record.id).catch(() => {});
-        void fetch("/api/auth/session", { signal: controller.signal }).then(async (response) => {
-          if (stopped || response.status !== 401) return;
-          setState({ kind: "pair", reason: "revoked" });
-          uninstall?.();
-          uninstall = undefined;
-          await store.remove(active.record.id);
-        }).catch(() => {});
+      if (active) {
+        try {
+          const transport = await connectToWorkspace(active.record, active.token, platform, controller.signal);
+          if (stopped) { if (transport.kind === "relay") transport.channel.close(); return; }
+          uninstall = installTransport(transport);
+          setState({ kind: "ready", id: active.record.id });
+          void store.touch(active.record.id).catch(() => {});
+        } catch (error) {
+          if (stopped) return;
+          if (error instanceof PairError && error.code === "refused") {
+            await store.remove(active.record.id);
+            if (!stopped) setState({ kind: "pair", reason: "revoked" });
+          } else setState({ kind: "pair" });
+        }
         return;
       }
       const session = await readSessionState();
@@ -50,7 +54,11 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
     };
     void decide().catch(() => { if (!stopped) setState({ kind: "pair" }); });
     return () => { stopped = true; controller.abort(); uninstall?.(); };
-  }, [forcePair, store]);
+  }, [forcePair, platform, store]);
+
+  useEffect(() => {
+    if (state.kind === "ready" && platform.native) void registerPushForConnection(platform);
+  }, [state, platform]);
 
   useEffect(() => {
     const receive = (url: string) => {
@@ -60,7 +68,10 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
     };
     const customLink = (event: Event) => {
       const detail: unknown = (event as CustomEvent).detail;
-      if (typeof detail === "string") receive(detail);
+      if (typeof detail === "string") {
+        const parsed = parseTypedPairing(detail);
+        if (parsed && !("kind" in parsed)) setIncoming({ payload: parsed, sequence: ++sequence.current });
+      }
     };
     const stop = platform.onAppUrl?.(receive);
     window.addEventListener("omb:pair-link", customLink);
@@ -71,7 +82,7 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
     await store.save(record, token);
     window.location.reload();
   }, [store]);
-  const cancel = () => setIncoming(null);
+  const cancel = () => { ++sequence.current; setIncoming(null); };
   if (state.kind === "loading" && !incoming && !forcePair) return <div className="omb-mobile flex size-full items-center justify-center bg-app"><MausAvatar color="green" size={56} state="idle" animated={false} personality={false} /></div>;
   if (state.kind !== "ready" || forcePair) return <PairScreen key={incoming?.sequence ?? 0} initial={incoming?.payload} reason={state.kind === "pair" ? state.reason : null} onLinked={linked} onCancel={cancel} />;
   return (

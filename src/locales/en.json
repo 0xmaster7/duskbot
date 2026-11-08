@@ -7655,5 +7655,7 @@
   "mobile.link.invalid": "This link or code is not valid. Scan the QR code or paste the full link from your computer.",
   "mobile.link.scanError": "Could not scan the QR code. Try again or paste the link.",
   "mobile.connectors.passwordName": "1Password",
-  "mobile.connectors.xName": "X"
+  "mobile.connectors.xName": "X",
+  "mobile.pair.unsupported": "This device cannot open this connection. Update your browser or phone app and try again.",
+  "mobile.pair.linkOrCode": "Link or 12-character code"
 }
