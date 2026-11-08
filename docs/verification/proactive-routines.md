@@ -99,7 +99,7 @@ cap, busy bots, and Run now. The others:
 - `server/read-and-draft.test.ts`: the fence;
 - `server/routes/bot-messages.test.ts` and `server/routes/presence.test.ts`: the
   press fences and presence;
-- `src/lib/automations.test.ts`: the Automations row.
+- `src/lib/automations.test.ts`: the routine display helpers.
 
 ## Looking at it in the real renderer
 
@@ -110,9 +110,9 @@ cap, busy bots, and Run now. The others:
    `POST /api/presence/active`, then `POST /api/routines/<watch>/run`.
 2. Serve the renderer against it:
    `OMB_PORT=<fixture port> pnpm exec vite --port 19872 --strictPort`.
-3. Open `http://127.0.0.1:19872/` in a headless Chromium. Dismiss the welcome
-   tour, then open MausBot's chat and Automations. In the chat, the cards are
-   `[data-widget]` elements.
+3. Open `http://127.0.0.1:19872/` in a headless Chromium. Finish the welcome,
+   then open MausBot's chat and its bot panel's routine controls. In the chat,
+   the cards are `[data-widget]` elements.
 
 Not verified this way: a real Google account. The Composio slugs and answer
 shapes follow its documentation and the fixtures.

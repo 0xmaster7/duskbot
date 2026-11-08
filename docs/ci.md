@@ -358,55 +358,6 @@ The packaged-server smoke asks the OS for free ports (listen on port 0)
 instead of picking them at random: a random pick inside a range Windows
 reserves failed with `listen EACCES 127.0.0.1:497xx`.
 
-## Linux on Boat
-
-GitHub runs a limited number of jobs at once for the whole account, and each
-PR's run used to be about thirty of them, so with twenty agents opening PRs a
-run waited hours for runners. While the repository variable **`BOAT_CI`** is
-`on`, a run's Linux work goes to one [Boat](https://docs.boat.dev/ci) VM
-instead (Settings → Secrets and variables → Actions → Variables; anything but
-`on` switches it off, and CI runs as it always has).
-
-- **Which runs.** A push to main, a merge group, and a PR whose branch is in
-  this repository, when the repository owner authored the PR and both pushed
-  and started the run (`github.actor`, `github.triggering_actor`). Boat runs a
-  public repository's job only for the users on its allow-list
-  (`boat ci public milind-soni on --users "milind-soni"`) and fails any
-  other job at once (a teammate's PR got nine failed Boat jobs that way), so
-  every other run stays on GitHub: forks, teammates, bots, re-runs by anyone
-  else, the nightly run and manual runs (the release lane needs every
-  platform's shards by name). To give a teammate Boat too, add them to Boat's
-  list and to the condition in `ci.yml`'s `static` job. To run Windows on a PR
-  as well, label it `windows` (Windows above).
-- **What changes.** `static` runs on `boat-xlarge` (16 vCPU, 32 GB) and is
-  named "typecheck + lint + Linux tests (Boat)". After its usual checks it
-  runs the Linux vitest shards, behavior evals and the Linux packaged server
-  smoke side by side as lanes of that VM (`scripts/ci-linux-lanes.mjs`, the
-  same commands as their GitHub jobs), and prints each lane's log in a group
-  when it ends. GitHub keeps only 10 error annotations per step, so when many
-  tests fail, the lane groups in the log are the full record. `ci-scope.mjs` leaves those jobs out of the selection, so the
-  `CI` gate reads them as skipped by design and `static`'s result covers
-  them. The Windows jobs, the macOS smokes, the advisory Linux jobs (open-source
-  edition, control plane, renderer smoke, browser identity and driver, Linux
-  package, ARM installer) and the `CI` gate stay on GitHub's runners.
-- **The VM made like a GitHub runner.** Boat's runner gives its processes
-  `cap_dac_read_search`, and its image has a desktop (`DISPLAY`), the
-  coding agents (Claude, Codex, Hermes, …) and a working `bwrap`. The lanes run
-  under `setpriv` without the capability, with `DISPLAY` unset, `C.UTF-8` and
-  UTC, and the step before them deletes the agents and `bwrap`. Otherwise
-  permission tests read files set to mode 000, the server starts Boat's
-  Hermes in every test home, and Team Cloud turns run in boxes they never get
-  on GitHub.
-- **Cost.** One Boat start per run, and the account's daily start limit is
-  shared with customers' Cloud computers: keep it to one job. The job takes
-  about 25 minutes: 4 for setup and the checks, 21 for the lanes, whose
-  slowest shard sets the time.
-- **Where to look.** `boat ci` (setup, problems, the last jobs), `boat ci job
-  <job id>` and `boat ci logs <job id> --follow`, or the CI on Boat VMs tab
-  of the Boat dashboard. The job id is the GitHub job's id.
-- **If Boat is down.** Set `BOAT_CI` to `off`: new runs go back to GitHub's
-  runners. A queued Boat job does not move; cancel the run and re-run it.
-
 ## Required check
 
 The `main-ci-gate` ruleset requires the single `CI` check (it replaced the

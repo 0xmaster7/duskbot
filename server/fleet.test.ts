@@ -100,7 +100,7 @@ describe("rendered files", () => {
       "OMB_DATA_DIR=/var/lib/openmausbot/acme/.openmausbot\nOMB_PORT=8810\nOMB_WEBHOOK_PORT=8811\nOMB_PUBLIC_URL=https://acme.agentada.cc\n",
     );
     expect(JSON.parse(initialConfig({ admins: ["ada@example.test"], members: ["@acme.test"], anthropicKey: "sk-ant-x", monthlyCapUsd: 50 }))).toEqual({
-      signIn: { admins: ["ada@example.test"], members: ["@acme.test"] }, anthropic: { key: "sk-ant-x" }, budgets: { monthlyUsd: 50 },
+      signIn: { admins: ["ada@example.test"], members: ["@acme.test"] }, anthropic: { key: "sk-ant-x" },
     });
     const added = applySignIn('{"anthropic":{"key":"k"},"signIn":{"admins":["ada@example.test"]}}', "add", "Bob@Acme.test", true);
     expect(JSON.parse(added.config)).toEqual({ anthropic: { key: "k" }, signIn: { admins: ["ada@example.test"], members: ["bob@acme.test"] } });
@@ -138,9 +138,10 @@ describe("plans", () => {
 
   it("creates a workspace as its own account with private data, a fenced port, a unit and a site", () => {
     const registry = emptyRegistry("agentada.cc");
-    const plan = createPlan({ registry, slug: "acme", seed: { admins: ["ada@example.test"], members: [] }, memoryMax: "1G", now, layout });
+    const plan = createPlan({ registry, slug: "acme", seed: { admins: ["ada@example.test"], members: [], brandJson: "{}" }, memoryMax: "1G", now, layout });
     expect(plan.workspace).toEqual({ slug: "acme", host: "acme.agentada.cc", port: 8810, webhookPort: 8811, status: "running", createdAt: now.toISOString() });
     expect(plan.registry.nextPort).toBe(8820);
+    expect(plan.steps.some((step) => step.kind === "write" && step.path.endsWith("brand.json"))).toBe(false);
     const checkpoints = plan.steps.flatMap((step) => step.kind === "write" && step.path === layout.registryFile ? [JSON.parse(step.content)] : []);
     expect(checkpoints.map((checkpoint) => checkpoint.workspaces.acme)).toEqual([
       { ...plan.workspace, status: "provisioning", accountCreated: false },

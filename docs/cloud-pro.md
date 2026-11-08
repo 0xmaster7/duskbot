@@ -817,16 +817,14 @@ ignores them:
   trial's Claude credit (below); the person's own engines are otherwise the
   only way to a model.
 
-### Included Boat computers, voice and decisions
+### Included voice and decisions
 
-Pro includes Boat cloud computers, ElevenLabs voice and the decision model
+Pro includes ElevenLabs voice and the decision model
 (TypeSafe's Jev, [decision-model.md](decision-model.md)) with no key to paste.
 For each service the Admin has configured, it also sets:
 
 | Variable | Fly | Value |
 | --- | --- | --- |
-| `OMB_CLOUD_BOAT_URL` | env | `https://cloud.openmausbot.com/api/cloud/services/boat/api/box/v1`, the Admin's Boat relay. The app speaks Boat's public API v1 (`/sandboxes`, `sandbox` envelopes); this relay still serves Boat's retired box API (`/boxes`, `box` envelopes), so for a base ending in `/api/box/v1` the app translates paths and answers in one place, `server/boat-relay.ts`. A base ending in `/api/v1` gets v1 as it is. Bots use it only for cloud computers, as a tool on their own engine; no turn runs on Boat's own agent, so nothing calls its `/prompt`, `/events`, `/prompts/{id}` or `/interrupt` routes. |
-| `OMB_CLOUD_BOAT_TOKEN` | secret | This machine's Boat relay token (`box_omb_…`). It is not a Boat key and works only through the relay. |
 | `OMB_CLOUD_VOICE_URL` | env | `https://cloud.openmausbot.com/api/cloud/services/voice/v1`, the Admin's voice relay. |
 | `OMB_CLOUD_VOICE_TOKEN` | secret | This machine's voice relay token (`omb_voice_…`). |
 | `OMB_TTS_DEFAULT_VOICE` | env | An ElevenLabs voice id, used until the person picks a voice or another speech provider in Settings. |
@@ -836,21 +834,19 @@ For each service the Admin has configured, it also sets:
 | `OMB_CLOUD_X_TOKEN` | secret | This machine's X research relay token (`omb_x_…`). Not a treg key; it works only through the relay, within the plan's monthly X research calls. A signed-in desktop gets its own (`omb_xd_…`) from `POST /api/cloud/desktop/services/x` and hands it to its server in memory. |
 
 A service is included only when both its URL and its token are set
-(`server/included-services.ts`). The real Boat, ElevenLabs and Jev keys stay
-on the Admin, which checks the subscription, the monthly caps and which
-computers belong to this machine on every request.
+(`server/included-services.ts`). The real ElevenLabs and Jev keys stay
+on the Admin, which checks the subscription, the monthly caps on every request.
 
 - **The person's own key always wins.** An included token is a fallback, used
   only while the person has no key of their own: none saved in Settings
-  (`box.token`, `tts.key`, `decider.key`) and no `BOX_TOKEN`, `OMB_TTS_KEY`
+  (`tts.key`, `decider.key`) and no `OMB_TTS_KEY`
   or `OMB_JEV_API_KEY` in the environment. Adding a key switches to it at
-  once; removing it falls back to the included service again (for Boat, once
-  that key's cloud computers are deleted: removing a Boat key that still has
-  computers is refused). The choice is made on every request.
+  once; removing it falls back to the included service again. The choice is
+  made on every request.
 - **Each credential goes to one place.** The relays know only the Admin's
-  accounts, so an own key goes only to the provider (`OMB_BOAT_API`,
-  `OMB_ELEVENLABS_API` or `decider.baseUrl` when set, for development and
-  tests, else Boat's, ElevenLabs' and Jev's own APIs) and an included token
+  accounts, so an own key goes only to the provider (`OMB_ELEVENLABS_API` or
+  `decider.baseUrl` when set, for development and tests, else ElevenLabs' and
+  Jev's own APIs) and an included token
   only to its relay, whatever those settings say.
 - **The decision relay takes two requests, and the app sends it nothing
   else.** Through the included token the app sends only room routing's
@@ -879,9 +875,7 @@ computers belong to this machine on every request.
   `included: true`, and says "Included with your Cloud plan"), and Settings never
   verifies, rotates or clears it. The decision model's **Test** button, with
   no key pasted, makes one tiny call through the relay, never to Jev
-  directly. Boat's account-change rules still apply: adding an own Boat key
-  while included cloud computers exist is refused until they are deleted,
-  because the new account cannot reach them.
+  directly.
 - **What holding the tokens does and does not do.** The server receives the
   tokens over the launcher's pipe, never its environment, keeps them in
   memory, and they are on the credential list. So no process the server

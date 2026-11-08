@@ -276,7 +276,6 @@ export function initialConfig(seed: WorkspaceSeed): string {
   const config: Record<string, unknown> = { signIn: { admins: seed.admins, members: seed.members } };
   if (seed.anthropicKey) config.anthropic = { key: seed.anthropicKey, ...(seed.anthropicUrl ? { url: seed.anthropicUrl } : {}) };
   if (seed.openrouterDefault && seed.openrouterModels?.length) config.defaultModelSelection = { instanceId: "opencodeGo", model: `${MANAGED_OPENROUTER}/${seed.openrouterModels[0]}` };
-  if (seed.monthlyCapUsd !== undefined) config.budgets = { monthlyUsd: seed.monthlyCapUsd };
   return `${JSON.stringify(config, null, 2)}\n`;
 }
 
@@ -379,7 +378,6 @@ export function createPlan(input: {
         models: managedOpenRouterModels(input.seed.openrouterModels ?? []),
       } } }, null, 2)}\n` },
     ] : []),
-    ...(input.seed.brandJson ? [{ kind: "write" as const, path: join(dataDir, "brand.json"), content: input.seed.brandJson, mode: 0o600, owner: user }] : []),
     { kind: "write", path: join(layout.instancesDir, `${workspace.slug}.env`), content: instanceEnv({ workspace, dataDir, portalUrl: input.seed.portalUrl }), mode: 0o600 },
     ...(input.memoryMax
       ? [

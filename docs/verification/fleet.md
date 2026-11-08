@@ -5,7 +5,7 @@
 - `fleet init`: template unit, loopback fence and its unit, workspace folders,
   registry, and the Caddy import, once per server.
 - `fleet create`: a workspace as its own OS user with private data, its
-  sign-in list, brand, provider key and cap seeded, fenced ports, a service
+  sign-in list and provider key seeded, fenced ports, a service
   started now and at boot, a site block, and a health wait.
 - `fleet users`, `suspend`, `resume`, `delete` (with `--yes`, optionally
   `--keep-data`), `upgrade` (rolling restarts), `list`.
@@ -106,7 +106,7 @@ record):
    Claude Code installed once as root, a wildcard DNS record at the server.
 2. `openmausbot fleet init --domain <domain>`; check `systemctl status
    openmausbot-fence` and `nft list table inet openmausbot`.
-3. `openmausbot fleet create alpha --admin you@example.test --cap 1` and the
+3. `openmausbot fleet create alpha --admin you@example.test` and the
    same for `beta`; both `https://alpha.<domain>` and `https://beta.<domain>`
    must show the pair page with a certificate.
 4. Isolation: as `omb-alpha` (`runuser -u omb-alpha -- curl -s

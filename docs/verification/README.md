@@ -274,7 +274,7 @@ The [right-to-left fixture](bidi.md) checks per-block direction in bot replies
 and per-line direction in sent turns, with code pinned left-to-right.
 
 The [routines fixture](routines.md) checks confirmed proposals, manual and
-scheduled runs, central run logs, List/Calendar views, and bot-scoped routines
+scheduled runs, central run logs, and bot-scoped routine controls
 using the real renderer and an isolated fake-engine server.
 
 The [automation reports recipe](automation-reports.md) checks that every run
