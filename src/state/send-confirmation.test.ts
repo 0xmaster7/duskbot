@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ServerFrame } from "../../shared/wire";
 import { publishLiveFrame, publishMissedFrames } from "../lib/live-events";
 import { ApiError } from "./api";
-import { optimisticMessageId, sendReconciled, type SendDelivery } from "./optimistic-send";
+import { LOST_SEND_RETRY_MS, optimisticMessageId, sendReconciled, type SendDelivery } from "./optimistic-send";
 
 const delivery: SendDelivery = { threadId: "thread-one", sendId: "send-0123456789abcdef", text: "Hello", replyToId: "reply-one" };
 const message = (patch = {}): ServerFrame => ({ kind: "message", threadId: delivery.threadId,
@@ -53,6 +53,18 @@ describe("canonical send confirmation", () => {
     const post = vi.fn().mockResolvedValueOnce({}).mockResolvedValueOnce(body);
     await expect(sendReconciled(post, () => false, async () => {}, delivery)).resolves.toEqual({ body });
     expect(post).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps asking through a tunnel that stalls for most of a minute, with the same send", async () => {
+    // a message typed while the relay stalled went back into the composer after 4 s and never reached the bot
+    const body = { ok: true, threadId: delivery.threadId, message: { id: "accepted" } };
+    const waited: number[] = [];
+    let failures = 5;
+    const post = vi.fn(async () => { if (failures-- > 0) throw new TypeError("Failed to fetch"); return body; });
+    await expect(sendReconciled(post, () => false, async (ms) => { waited.push(ms); }, delivery)).resolves.toEqual({ body });
+    expect(post).toHaveBeenCalledTimes(6);
+    expect(waited.reduce((sum, ms) => sum + ms, 0)).toBeGreaterThanOrEqual(30_000);
+    expect(LOST_SEND_RETRY_MS.reduce((sum: number, ms) => sum + ms, 0)).toBeGreaterThanOrEqual(45_000);
   });
 
   it("preserves a server refusal and never retries it", async () => {
