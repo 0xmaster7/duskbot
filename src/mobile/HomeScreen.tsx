@@ -21,6 +21,16 @@ import { usePlatform } from "./platform";
 import { listTime } from "./time";
 import type { OpenSheet } from "./sheets";
 
+/** The row stays pressed while its chat builds offscreen, so the hand sees the tap land; cleared when the chat arrives. */
+function holdPressed(el: HTMLElement) {
+  for (const held of document.querySelectorAll("[data-opening]")) delete (held as HTMLElement).dataset.opening;
+  el.dataset.opening = "";
+}
+
+export function releasePressed() {
+  for (const held of document.querySelectorAll("[data-opening]")) delete (held as HTMLElement).dataset.opening;
+}
+
 type Entry =
   | { kind: "bot"; id: string; bot: Bot; at: number; preview: string; unread: boolean }
   | { kind: "group"; id: string; group: Group; members: Bot[]; at: number; preview: string; unread: boolean };
@@ -169,7 +179,7 @@ const PinnedTile = memo(function PinnedTile({ bot, onOpen, onMenu }: { bot: Bot;
   const ref = useRef<HTMLButtonElement>(null);
   useLongPress(ref, onMenu);
   return (
-    <button ref={ref} type="button" onClick={() => onOpen(bot.id)} className="mobile-press flex w-[84px] shrink-0 flex-col items-center gap-1.5 rounded-[20px] py-1" aria-label={botShowsUnread(bot) ? t("mobile.home.unreadChat", { name: bot.name }) : bot.name}>
+    <button ref={ref} type="button" onClick={(event) => { holdPressed(event.currentTarget); onOpen(bot.id); }} className="mobile-press flex w-[84px] shrink-0 flex-col items-center gap-1.5 rounded-[20px] py-1" aria-label={botShowsUnread(bot) ? t("mobile.home.unreadChat", { name: bot.name }) : bot.name}>
       <PinnedTileFace bot={bot} />
     </button>
   );
@@ -201,7 +211,7 @@ const HomeRow = memo(function HomeRow({ entry, onOpen, onMenu }: { entry: Entry;
     <button
       ref={ref}
       type="button"
-      onClick={() => onOpen(entry.id)}
+      onClick={(event) => { holdPressed(event.currentTarget); onOpen(entry.id); }}
       aria-label={entry.unread ? t("mobile.home.unreadChat", { name }) : undefined}
       className="mobile-row block w-full rounded-[18px] text-left"
     >

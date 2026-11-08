@@ -49,14 +49,14 @@ export function projectRelease(position: number, velocity: number, decelerationR
 
 /** Hands a gesture's release velocity to a spring, so the settle starts at the finger's speed. Reduced motion cuts to a
  * short fade-length tween instead. */
-export function settleTo(value: MotionValue<number>, target: number, velocity: number, onDone?: () => void, options?: { stiffness?: number; damping?: number }): AnimationPlaybackControls {
+export function settleTo(value: MotionValue<number>, target: number, velocity: number, onDone?: () => void, options?: { stiffness?: number; damping?: number; restDelta?: number }): AnimationPlaybackControls {
   if (prefersReducedMotion()) return animate(value, target, { duration: dur.fast, ease: ease.out, onComplete: onDone });
   return animate(value, target, {
     type: "spring",
     stiffness: options?.stiffness ?? spring.settle.stiffness,
     damping: options?.damping ?? spring.settle.damping,
     velocity,
-    restDelta: 0.5,
+    restDelta: options?.restDelta ?? 0.5,
     restSpeed: 10,
     onComplete: onDone,
   });

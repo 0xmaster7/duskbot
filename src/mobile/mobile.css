@@ -77,3 +77,7 @@
 
 /* the web phone preview draws a status bar and home indicator around an iframe, which reports no safe areas */
 [data-phone-frame] .omb-mobile { --m-safe-top: 54px; --m-safe-bottom: 34px; }
+
+/* a tapped row keeps its pressed look until the chat it opened has slid in */
+.omb-mobile .mobile-row[data-opening] { background-color: color-mix(in srgb, var(--color-ink) 6%, transparent); }
+.omb-mobile .mobile-press[data-opening] { scale: .96; }

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { motion, useMotionValue, useTransform, type AnimationPlaybackControls } from "motion/react";
-import { TranscriptStagingPaused } from "@/components/transcript-staging";
+import { TranscriptStaging } from "@/components/transcript-staging";
 import { canScroll, ownsDrag, useDrag } from "./gesture";
 import { prefersReducedMotion, projectRelease, settleTo } from "./motion";
 
@@ -8,12 +8,13 @@ import { prefersReducedMotion, projectRelease, settleTo } from "./motion";
 const UNDER_SHIFT = 0.3;
 const EXIT = { stiffness: 440, damping: 40 };
 /** A tapped push starts from rest: critically damped (zeta 1), so it eases in and lands without overshoot or creep. */
-const PUSH = { stiffness: 460, damping: 43 };
-const READY_CAP_MS = 500;
+const PUSH = { stiffness: 460, damping: 43, restDelta: 0.1 };
+const READY_CAP_MS = 1000;
 
-/** Resolves once a freshly mounted page has painted and stopped growing: its transcript mounts older rows in steps, and
- * every step is layout work that would otherwise land in the middle of the slide. Gives up waiting after `READY_CAP_MS`. */
-function whenSettled(el: HTMLElement, signal: { cancelled: boolean }): Promise<void> {
+/** Resolves once a freshly mounted page is final: its transcript has mounted every row (`whole`, for a chat that builds
+ * in steps), and it has painted the same height for three smooth frames. Anything still moving then would move after
+ * the slide lands. Gives up waiting after `READY_CAP_MS`. */
+function whenSettled(el: HTMLElement, signal: { cancelled: boolean; whole: boolean }): Promise<void> {
   return new Promise((resolve) => {
     const started = performance.now();
     let last = performance.now();
@@ -27,7 +28,8 @@ function whenSettled(el: HTMLElement, signal: { cancelled: boolean }): Promise<v
       last = now;
       steady = next === height && smooth ? steady + 1 : 0;
       height = next;
-      if (steady >= 3 || now - started > READY_CAP_MS) resolve();
+      const building = Boolean(log) && (log!.getAttribute("aria-busy") === "true" || (!signal.whole && el.querySelector("[data-simple-rows]") !== null));
+      if ((steady >= 3 && !building) || now - started > READY_CAP_MS) resolve();
       else requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
@@ -83,10 +85,10 @@ export function NavStack({ base, page, pageKey, onBack, onSettled }: {
   }, [x, pageOpacity, width]);
 
   // the page mounts offscreen on its own layer and slides only once it has painted, so its mount cost never eats frames
-  const preparing = useRef<{ cancelled: boolean } | null>(null);
+  const preparing = useRef<{ cancelled: boolean; whole: boolean } | null>(null);
   const push = useCallback(() => {
     if (preparing.current) preparing.current.cancelled = true;
-    const signal = { cancelled: false };
+    const signal = { cancelled: false, whole: false };
     preparing.current = signal;
     run.current?.stop();
     x.set(width);
@@ -142,8 +144,8 @@ export function NavStack({ base, page, pageKey, onBack, onSettled }: {
   });
 
   const pageShown = Boolean(shownKey);
-  // older transcript rows wait while the page slides in, then mount above the fold once it rests
-  const staging = pageShown && moving;
+  // a constant value: the slide starting or landing never re-renders the chat underneath it
+  const staging = useMemo(() => ({ onWhole: () => { if (preparing.current) preparing.current.whole = true; } }), []);
   return (
     <div className="mobile-nav relative h-full w-full overflow-hidden bg-app">
       <motion.div
@@ -162,7 +164,7 @@ export function NavStack({ base, page, pageKey, onBack, onSettled }: {
           className="mobile-page absolute inset-0 bg-app"
           style={{ x, opacity: pageOpacity, willChange: moving ? "transform" : undefined }}
         >
-          <TranscriptStagingPaused value={staging}>{page ?? lastPage.current}</TranscriptStagingPaused>
+          <TranscriptStaging value={staging}>{page ?? lastPage.current}</TranscriptStaging>
         </motion.div>
       )}
     </div>
