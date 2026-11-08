@@ -21,6 +21,7 @@ const UNKNOWN: TurnLive = { ended: false, status: null };
 const MAX_THREADS = 500;
 const threads = new Map<string, TurnLive>();
 const listeners = new Map<string, Set<() => void>>();
+const anyListeners = new Set<() => void>();
 
 function sameStatus(a: LiveStatus | null, b: LiveStatus | null): boolean {
   if (a === b) return true;
@@ -35,6 +36,7 @@ function put(threadId: string, next: TurnLive): void {
   threads.set(threadId, next);
   if (threads.size > MAX_THREADS) threads.delete(threads.keys().next().value!);
   for (const listener of Array.from(listeners.get(threadId) ?? [])) listener();
+  for (const listener of Array.from(anyListeners)) listener();
 }
 
 /** One live runtime frame. A row in the chat supersedes the status it came from, except the row of the very tool call
@@ -100,6 +102,13 @@ export function forgetTurnStatuses(): void {
   const shown = Array.from(threads.keys());
   threads.clear();
   for (const threadId of shown) for (const listener of Array.from(listeners.get(threadId) ?? [])) listener();
+  for (const listener of Array.from(anyListeners)) listener();
+}
+
+/** Any thread's status changed: for a summary across every chat (the notch island). */
+export function onAnyTurnLive(listener: () => void): () => void {
+  anyListeners.add(listener);
+  return () => { anyListeners.delete(listener); };
 }
 
 /** Tests only. */

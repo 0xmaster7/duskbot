@@ -1,0 +1,52 @@
+import { afterEach, describe, expect, it } from "vitest";
+import type { Bot, Message } from "@/state/store";
+import { noteTurnEvent, resetTurnLive, turnLive } from "@/state/turn-status";
+import { ambientBot, ambientSnapshot } from "./summary";
+
+let at = 0;
+const message = (fields: Partial<Message>): Message => ({ id: `m${++at}`, at, role: "bot", kind: "text", ...fields }) as Message;
+const bot = (fields: Partial<Bot> = {}): Bot => ({ id: "nova", name: "Nova", color: "blue", threadId: "t1", messages: [], busy: false, unread: false, ...fields }) as unknown as Bot;
+const approval = (fields: Record<string, unknown> = {}) => message({ kind: "options", card: { title: "Run a command", subtitle: "npm test", options: ["Allow", "Deny"], requestId: "r1", tool: "Bash", requestType: "permission", ...fields } } as Partial<Message>);
+
+afterEach(() => resetTurnLive());
+
+describe("the summary the island and the dock draw", () => {
+  it("says what a running turn is doing, from the live stream", () => {
+    const busy = bot({ busy: true, messages: [message({ role: "user", text: "Fix the footer" })] });
+    expect(ambientBot(busy, [], turnLive).status).toBe("working");
+    noteTurnEvent({ type: "content.delta", threadId: "t1", turnId: "u1", streamKind: "reasoning_text", delta: "" } as never);
+    expect(ambientBot(busy, [], turnLive)).toMatchObject({ status: "thinking", detail: "Thinking" });
+    noteTurnEvent({ type: "content.delta", threadId: "t1", turnId: "u1", streamKind: "assistant_text", delta: "On it" } as never);
+    expect(ambientBot(busy, [], turnLive).status).toBe("talking");
+  });
+
+  it("offers a plain approval in place and leaves a proposal to its own card", () => {
+    const asking = ambientBot(bot({ messages: [approval()] }), [], turnLive);
+    expect(asking).toMatchObject({ status: "needs-you", asks: 1, approval: { requestId: "r1", threadId: "t1", title: "npm test" } });
+    expect(asking.detail).toMatch(/^Wants to /);
+    const proposal = ambientBot(bot({ messages: [approval({ skillRequest: { action: "enable", name: "x" } })] }), [], turnLive);
+    expect(proposal).toMatchObject({ status: "needs-you", approval: null });
+    const answered = ambientBot(bot({ messages: [approval({ answered: "Allow" })] }), [], turnLive);
+    expect(answered.status).not.toBe("needs-you");
+    expect(ambientBot(bot({ activity: "waiting-on-you" }), [], turnLive).status).toBe("needs-you");
+  });
+
+  it("marks an unread reply done, a failed step an error, and the rest idle with their newest line", () => {
+    const reply = message({ text: "The footer is fixed." });
+    expect(ambientBot(bot({ unread: true, messages: [reply] }), [], turnLive)).toMatchObject({ status: "done", unread: true, line: "The footer is fixed.", at: reply.at });
+    expect(ambientBot(bot({ messages: [message({ kind: "activity", tool: { name: "Bash", ok: false } })] }), [], turnLive).status).toBe("error");
+    expect(ambientBot(bot({ messages: [reply] }), [], turnLive).status).toBe("idle");
+  });
+
+  it("leaves out hidden and moved bots, and only passes this app's own pictures", () => {
+    const snapshot = ambientSnapshot([
+      bot({ avatarUrl: "/api/bots/nova/avatar.png", avatarCrop: "circle" } as Partial<Bot>),
+      bot({ id: "ghost", hidden: true }),
+      bot({ id: "moved", movedTo: { kind: "cloud" } } as unknown as Partial<Bot>),
+      bot({ id: "far", avatarUrl: "https://example.com/a.png", avatarCrop: "circle" } as Partial<Bot>),
+    ], [], turnLive, "en");
+    expect(snapshot.bots.map((entry) => [entry.id, entry.avatar])).toEqual([["nova", "/api/bots/nova/avatar.png"], ["far", null]]);
+    expect(snapshot.labels.idle).toBe("Idle");
+    expect(snapshot.lang).toBe("en");
+  });
+});
