@@ -87,7 +87,7 @@ export function QueuedComposerMessages({
 
   return (
     <div
-      className="relative z-[1] mx-3 -mb-3 max-h-36 overflow-y-auto rounded-t-2xl border border-b-0 border-hairline/40 bg-raised/95 pb-3 shadow-sm backdrop-blur-sm"
+      className="relative z-[1] mx-3 -mb-3 max-h-36 overflow-y-auto rounded-t-2xl border-[0.5px] border-b-0 border-ink/10 bg-composer pb-3"
       aria-label={
         items.length === 1
           ? t("composer.queued.regionOne")
