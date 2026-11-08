@@ -27,6 +27,8 @@
     "check:contrast": "node scripts/check-skin-contrast.mjs",
     "i18n:check": "node scripts/generate-locale.mjs --check",
     "dev": "vite",
+    "mobile:preview": "node apps/mobile/scripts/phone-preview.mjs",
+    "mobile:build": "pnpm --filter @openmausbot/mobile build",
     "docs:dev": "pnpm --filter @openmausbot/docs dev",
     "docs:build": "pnpm --filter @openmausbot/docs build",
     "docs:preview": "pnpm --filter @openmausbot/docs preview",

@@ -1,0 +1,3 @@
+/* the shared styles plus where tailwind finds classes: the phone app's vite root is apps/mobile, outside src */
+@import "../styles.css";
+@source "../";

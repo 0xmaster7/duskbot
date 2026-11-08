@@ -1,0 +1,264 @@
+import { memo, useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { motion, useTransform, type MotionValue } from "motion/react";
+import { BellDot, Check, MonitorSmartphone, Pin, PinOff, Plus, Search, Star, UserRound } from "lucide-react";
+import { api, useStore, type Bot, type Group } from "@/state/store";
+import { BotAvatar, MausAvatar } from "@/components/Avatar";
+import { GroupAvatar, useGroupYou } from "@/components/GroupAvatar";
+import { botPreview, groupPreview, lastPreviewable, sidebarPreviewMessages } from "@/components/sidebar-preview";
+import { WorkingDots } from "@/components/WorkingIndicator";
+import { partitionSidebarBots, withPrimaryTile } from "@/lib/sidebar-layout";
+import { botShowsUnread } from "@/lib/bot-unread";
+import { botUnreadThreadIds, markBotRead } from "@/lib/folder-read";
+import { stateForBot } from "@/lib/mascot";
+import { cn } from "@/lib/cn";
+import { t } from "@/lib/i18n";
+import { threadRefUrl } from "@/lib/thread-refs";
+import { RoundButton } from "./RoundButton";
+import { ContextMenu, useLongPress, type ContextAction } from "./ContextMenu";
+import { PullToRefresh } from "./PullToRefresh";
+import { refreshSnapshot } from "./refresh";
+import { usePlatform } from "./platform";
+import { listTime } from "./time";
+import type { OpenSheet } from "./sheets";
+
+type Entry =
+  | { kind: "bot"; id: string; bot: Bot; at: number; preview: string; unread: boolean }
+  | { kind: "group"; id: string; group: Group; members: Bot[]; at: number; preview: string; unread: boolean };
+
+const BAR_TOP = "calc(var(--m-safe-top) + 6px)";
+const LIST_TOP = "calc(var(--m-safe-top) + 64px)";
+
+function lastAt(owner: Bot | Group): number {
+  return lastPreviewable(sidebarPreviewMessages(owner))?.at ?? owner.tasks?.reduce((max, task) => Math.max(max, task.createdAt ?? 0), 0) ?? 0;
+}
+
+/** Grok's home: a few round buttons floating over the top, the pinned bots big, then every chat as a plain row. */
+export function HomeScreen({ onOpenChat, onOpenSheet }: { onOpenChat: (id: string) => void; onOpenSheet: OpenSheet }) {
+  const { state, dispatch } = useStore();
+  const platform = usePlatform();
+  const you = useGroupYou();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [scrolled, setScrolled] = useState(false);
+  const [menu, setMenu] = useState<{ entry: Entry; rect: DOMRect; pinnedTile: boolean } | null>(null);
+
+  const { pinned, entries } = useMemo(() => {
+    const parts = partitionSidebarBots(state.bots);
+    const { primary } = withPrimaryTile(parts, state.bots.find((bot) => bot.defaultBot && !bot.hidden)?.id);
+    const top = [...(primary ? [primary] : []), ...parts.pinnedBots.filter((bot) => bot.id !== primary?.id)];
+    const topIds = new Set(top.map((bot) => bot.id));
+    const visible = state.bots.filter((bot) => !bot.hidden && !topIds.has(bot.id) && (parts.unsectionedBots.includes(bot) || parts.sectionedBots.includes(bot) || parts.sectionChiefs.includes(bot)));
+    const rows: Entry[] = [
+      ...visible.map((bot): Entry => ({ kind: "bot", id: bot.id, bot, at: lastAt(bot), preview: botPreview(bot, sidebarPreviewMessages(bot), state.instances), unread: botShowsUnread(bot) })),
+      ...state.groups.map((group): Entry => {
+        const members = state.bots.filter((bot) => group.memberIds.includes(bot.id));
+        return { kind: "group", id: group.id, group, members, at: lastAt(group), preview: groupPreview(group, state.bots, state.instances), unread: Boolean(group.unread) };
+      }),
+    ];
+    rows.sort((a, b) => b.at - a.at);
+    return { pinned: top, entries: rows };
+  }, [state.bots, state.groups, state.instances]);
+
+  const unreadNotes = state.notifications.filter((note) => !note.read).length;
+  const primary = pinned[0];
+
+  const actionsFor = useCallback((entry: Entry): ContextAction[] => {
+    // the desktop app already opens these links (electron/chat-link.mjs), so the phone hands it the same ones
+    const desktopLink = entry.kind === "bot" ? threadRefUrl({ botId: entry.id, threadId: entry.bot.threadId }) : `openmausbot://thread/${encodeURIComponent(entry.group.threadId)}`;
+    const list: ContextAction[] = [];
+    if (entry.kind === "bot") {
+      const bot = entry.bot;
+      list.push({ key: "pin", label: bot.pinned ? t("sidebar.bot.unpin") : t("sidebar.bot.pin"), icon: bot.pinned ? <PinOff size={18} /> : <Pin size={18} />, onSelect: () => dispatch({ type: "updateBot", botId: bot.id, patch: { pinned: !bot.pinned } }) });
+      list.push(botUnreadThreadIds(bot).length > 0
+        ? { key: "read", label: t("sidebar.grok.markRead"), icon: <Check size={18} />, onSelect: () => { void markBotRead(bot, api, (updated) => dispatch({ type: "botPatched", bot: updated })).catch(() => {}); } }
+        : { key: "unread", label: t("sidebar.grok.markUnread"), icon: <BellDot size={18} />, onSelect: () => dispatch({ type: "markUnread", botId: bot.id }) });
+    }
+    list.push({ key: "profile", label: t("mobile.home.openProfile"), icon: <UserRound size={18} />, onSelect: () => onOpenSheet({ kind: "profile", id: entry.id }) });
+    if (platform.share) {
+      list.push({ key: "desktop", label: t("mobile.home.openOnDesktop"), icon: <MonitorSmartphone size={18} />, onSelect: () => { void platform.share?.({ title: entry.kind === "bot" ? entry.bot.name : entry.group.name, url: desktopLink }); } });
+    }
+    return list;
+  }, [dispatch, onOpenSheet, platform]);
+
+  const openMenu = useCallback((entry: Entry, rect: DOMRect, pinnedTile = false) => setMenu({ entry, rect, pinnedTile }), []);
+
+  return (
+    <div className="relative h-full bg-app">
+      <div
+        ref={scrollRef}
+        className="h-full overflow-y-auto overflow-x-hidden overscroll-y-contain"
+        onScroll={(event) => setScrolled(event.currentTarget.scrollTop > 2)}
+      >
+        <PullToRefresh
+          scrollRef={scrollRef}
+          onRefresh={() => refreshSnapshot(state, dispatch)}
+          top={LIST_TOP}
+          indicator={(progress, refreshing) => <RefreshMark bot={primary} progress={progress} refreshing={refreshing} />}
+        >
+          <div style={{ paddingTop: LIST_TOP }} className="pb-[calc(var(--m-safe-bottom)+24px)]">
+            {!state.hydrated ? <HomeSkeleton /> : pinned.length + entries.length === 0 ? (
+              <EmptyHome onCreate={() => onOpenSheet({ kind: "create" })} />
+            ) : (
+              <>
+                {pinned.length > 0 && (
+                  <section aria-label={t("sidebar.section.pinned")} className="no-scrollbar flex gap-4 overflow-x-auto px-4 pb-3 pt-1" data-no-swipe>
+                    {pinned.map((bot) => (
+                      <PinnedTile key={bot.id} bot={bot} onOpen={onOpenChat} onMenu={(rect) => openMenu(botEntry(bot, state), rect, true)} />
+                    ))}
+                  </section>
+                )}
+                <ul role="list" aria-label={t("mobile.home.chats")} className="px-2">
+                  {entries.map((entry) => (
+                    <li key={entry.id}>
+                      <HomeRow entry={entry} onOpen={onOpenChat} onMenu={openMenu} />
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        </PullToRefresh>
+      </div>
+
+      <div aria-hidden className={cn("pointer-events-none absolute inset-x-0 top-0 z-[5] h-[calc(var(--m-safe-top)+72px)] bg-gradient-to-b from-app from-60% to-transparent transition-opacity duration-150", scrolled ? "opacity-100" : "opacity-0")} />
+      <header className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center gap-2 px-3" style={{ paddingTop: BAR_TOP }}>
+        <RoundButton floating label={unreadNotes ? t("mobile.home.youWithNotifications", { count: unreadNotes }) : t("mobile.home.you")} onClick={() => onOpenSheet({ kind: "settings" })} className="pointer-events-auto overflow-visible">
+          {you?.avatarUrl
+            ? <img src={you.avatarUrl} alt="" className="size-full rounded-full object-cover" />
+            : <span className="text-[14px] font-semibold">{you?.initials ?? <UserRound size={19} />}</span>}
+          {unreadNotes > 0 && <span aria-hidden className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-ink px-1 text-[11px] font-semibold tabular-nums text-app ring-2 ring-app">{unreadNotes > 9 ? "9+" : unreadNotes}</span>}
+        </RoundButton>
+        <div className="flex-1" />
+        {state.hydrated && !state.connected && (
+          <span role="status" className="pointer-events-auto flex h-8 items-center gap-2 rounded-full bg-composer px-3 text-[13px] text-ink-secondary mobile-float">
+            <WorkingDots size={3} />{t("mobile.home.reconnecting")}
+          </span>
+        )}
+        <RoundButton floating label={t("mobile.home.search")} onClick={() => onOpenSheet({ kind: "search" })} className="pointer-events-auto"><Search size={19} strokeWidth={1.9} /></RoundButton>
+        <RoundButton floating label={t("mobile.home.newBot")} onClick={() => onOpenSheet({ kind: "create" })} className="pointer-events-auto"><Plus size={21} strokeWidth={1.9} /></RoundButton>
+      </header>
+
+      <ContextMenu
+        open={Boolean(menu)}
+        anchor={menu?.rect ?? null}
+        label={menu ? t("sidebar.bot.actions", { name: menu.entry.kind === "bot" ? menu.entry.bot.name : menu.entry.group.name }) : ""}
+        preview={menu ? (menu.pinnedTile && menu.entry.kind === "bot" ? <PinnedTileFace bot={menu.entry.bot} /> : <RowFace entry={menu.entry} />) : null}
+        actions={menu ? actionsFor(menu.entry) : []}
+        onClose={() => setMenu(null)}
+      />
+    </div>
+  );
+}
+
+function botEntry(bot: Bot, state: ReturnType<typeof useStore>["state"]): Entry {
+  return { kind: "bot", id: bot.id, bot, at: lastAt(bot), preview: botPreview(bot, sidebarPreviewMessages(bot), state.instances), unread: botShowsUnread(bot) };
+}
+
+function RefreshMark({ bot, progress, refreshing }: { bot?: Bot; progress: MotionValue<number>; refreshing: boolean }) {
+  const scale = useTransform(progress, [0, 1, 1.6], [0.55, 1, 1.08]);
+  const y = useTransform(progress, [0, 1], [-10, 0]);
+  return (
+    <motion.div style={{ scale, y }} className="pt-1">
+      {bot
+        ? <BotAvatar bot={bot} size={30} state={refreshing ? "working" : "idle"} animated={refreshing} label={t("mobile.home.refreshing")} />
+        : <MausAvatar color="blue" size={30} state={refreshing ? "working" : "idle"} label={t("mobile.home.refreshing")} />}
+    </motion.div>
+  );
+}
+
+const PinnedTile = memo(function PinnedTile({ bot, onOpen, onMenu }: { bot: Bot; onOpen: (id: string) => void; onMenu: (rect: DOMRect) => void }) {
+  const ref = useRef<HTMLButtonElement>(null);
+  useLongPress(ref, onMenu);
+  return (
+    <button ref={ref} type="button" onClick={() => onOpen(bot.id)} className="mobile-press flex w-[84px] shrink-0 flex-col items-center gap-1.5 rounded-[20px] py-1" aria-label={botShowsUnread(bot) ? t("mobile.home.unreadChat", { name: bot.name }) : bot.name}>
+      <PinnedTileFace bot={bot} />
+    </button>
+  );
+});
+
+function PinnedTileFace({ bot }: { bot: Bot }) {
+  const unread = botShowsUnread(bot);
+  return (
+    <span className="flex w-[84px] flex-col items-center gap-1.5 py-1">
+      <span className="relative">
+        <BotAvatar bot={bot} size={76} state={bot.busy ? "working" : "idle"} animated={bot.busy} label="" />
+        {bot.chiefOfStaff && (
+          <span aria-hidden className="absolute -bottom-0.5 -right-0.5 flex size-6 items-center justify-center rounded-full bg-[var(--identity-orange)] text-white ring-[3px] ring-app">
+            <Star size={12} fill="currentColor" strokeWidth={0} />
+          </span>
+        )}
+        {unread && <span aria-hidden className="absolute right-0.5 top-0.5 size-3 rounded-full bg-ink ring-[3px] ring-app" />}
+      </span>
+      <span className={cn("w-full truncate text-center text-[13px] leading-4", unread ? "font-semibold text-ink" : "text-ink-secondary")}>{bot.name}</span>
+    </span>
+  );
+}
+
+const HomeRow = memo(function HomeRow({ entry, onOpen, onMenu }: { entry: Entry; onOpen: (id: string) => void; onMenu: (entry: Entry, rect: DOMRect) => void }) {
+  const ref = useRef<HTMLButtonElement>(null);
+  useLongPress(ref, (rect) => onMenu(entry, rect));
+  const name = entry.kind === "bot" ? entry.bot.name : entry.group.name;
+  return (
+    <button
+      ref={ref}
+      type="button"
+      onClick={() => onOpen(entry.id)}
+      aria-label={entry.unread ? t("mobile.home.unreadChat", { name }) : undefined}
+      className="mobile-row block w-full rounded-[18px] text-left"
+    >
+      <RowFace entry={entry} />
+    </button>
+  );
+});
+
+function RowFace({ entry }: { entry: Entry }) {
+  const name = entry.kind === "bot" ? entry.bot.name : entry.group.name;
+  const working = entry.kind === "bot" ? Boolean(entry.bot.busy) : Boolean(entry.group.working);
+  const avatar: ReactNode = entry.kind === "bot"
+    ? <BotAvatar bot={entry.bot} size={52} state={working ? "working" : stateForBot(entry.bot) === "failed" ? "failed" : "idle"} animated={working} label="" />
+    : <GroupAvatar members={entry.members} size={52} />;
+  return (
+    <span className="flex min-h-[76px] items-center gap-3.5 px-2.5 py-3">
+      <span className="shrink-0">{avatar}</span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-baseline gap-2">
+          <span className="min-w-0 flex-1 truncate text-[16px] font-semibold leading-5 text-ink">{name}</span>
+          {entry.at > 0 && <span className={cn("shrink-0 text-[13px] tabular-nums leading-5", entry.unread ? "text-ink" : "text-ink-tertiary")}>{listTime(entry.at)}</span>}
+        </span>
+        <span className="mt-0.5 flex items-center gap-2">
+          <span className={cn("min-w-0 flex-1 truncate text-[14px] leading-5", entry.unread ? "text-ink" : "text-ink-secondary")}>
+            {working && <WorkingDots size={3} className="me-1.5 inline-flex align-middle" />}
+            {entry.preview || " "}
+          </span>
+          {entry.unread && <span aria-hidden className="size-2.5 shrink-0 rounded-full bg-ink" />}
+        </span>
+      </span>
+    </span>
+  );
+}
+
+function HomeSkeleton() {
+  return (
+    <div aria-hidden className="px-4">
+      <div className="flex gap-4 pb-4 pt-1">
+        {[0, 1, 2, 3].map((i) => <div key={i} className="flex w-[84px] flex-col items-center gap-2"><div className="size-[76px] rounded-full bg-ink/[0.06]" /><div className="h-3 w-12 rounded-full bg-ink/[0.06]" /></div>)}
+      </div>
+      {[0, 1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="flex min-h-[76px] items-center gap-3.5 px-0.5">
+          <div className="size-[52px] shrink-0 rounded-full bg-ink/[0.06]" />
+          <div className="flex-1 space-y-2"><div className="h-3.5 w-1/3 rounded-full bg-ink/[0.07]" /><div className="h-3 w-2/3 rounded-full bg-ink/[0.05]" /></div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyHome({ onCreate }: { onCreate: () => void }) {
+  return (
+    <div className="flex flex-col items-center px-8 pt-24 text-center">
+      <MausAvatar color="blue" size={88} state="happy" label="" />
+      <h1 className="mt-6 text-[22px] font-semibold text-ink">{t("mobile.home.emptyTitle")}</h1>
+      <p className="mt-2 max-w-[280px] text-[15px] leading-6 text-ink-secondary">{t("mobile.home.emptyBody")}</p>
+      <button type="button" onClick={onCreate} className="mobile-press mt-6 h-12 rounded-full bg-ink px-6 text-[16px] font-medium text-app">{t("mobile.home.emptyAction")}</button>
+    </div>
+  );
+}
