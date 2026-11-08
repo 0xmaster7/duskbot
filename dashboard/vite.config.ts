@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { licenseFiles } from "../scripts/license-files.ts";
 
 const here = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 // the dashboard service (dashboard/server/main.ts); `pnpm dashboard:fixture` starts one with a fake account server
@@ -12,7 +13,7 @@ const service = process.env.OMB_DASHBOARD_SERVICE || "http://127.0.0.1:7480";
 export default defineConfig({
   root: here("."),
   publicDir: false,
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), licenseFiles(here(".."))],
   resolve: { alias: { "@": here("../src") } },
   define: { __APP_VERSION__: JSON.stringify("dashboard") },
   build: { outDir: here("./dist"), emptyOutDir: true },

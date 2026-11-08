@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { licenseFiles } from "../../scripts/license-files.ts";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
@@ -11,7 +12,7 @@ const target = `http://127.0.0.1:${process.env.OMB_PORT || 8799}`;
 
 export default defineConfig({
   root,
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), licenseFiles(repoRoot)],
   resolve: { alias: { "@": fileURLToPath(new URL("../../src", import.meta.url)) } },
   define: { __APP_VERSION__: JSON.stringify(version) },
   server: {

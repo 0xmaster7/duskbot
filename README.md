@@ -2,11 +2,11 @@
 
 # OpenMausBot
 
-**The open-source Grok Bot alternative: your own team of AI bots, in a chat app.**
+**A source-available Grok Bot alternative: your own team of AI bots, in a chat app.**
 
 [**openmausbot.com**](https://www.openmausbot.com) &nbsp;·&nbsp; [Download](https://www.openmausbot.com/download) &nbsp;·&nbsp; [Open source Grok Bot alternative, compared](https://www.openmausbot.com/blog/grok-bot-vs-openmausbot)
 
-<sub>OpenMausBot is an open-source Grok Bot alternative: an independent project inspired by **Grok Bot**, and the open-source alternative to **Meta Muse**, **OpenAI dots** and **Cue by Manus** — bring-your-own-agent, local-first, on the models you already have. Also known as **MausBot**; formerly **OpenGrokBot**. Not affiliated with xAI, Meta, OpenAI or Manus.</sub>
+<sub>OpenMausBot is a source-available Grok Bot alternative: an independent project inspired by **Grok Bot**, and a source-available alternative to **Meta Muse**, **OpenAI dots** and **Cue by Manus** — bring-your-own-agent, local-first, on the models you already have. Also known as **MausBot**; formerly **OpenGrokBot**. Not affiliated with xAI, Meta, OpenAI or Manus.</sub>
 
 Every bot in the sidebar is a real agent — Claude or Codex running locally under the hood — with its own
 personality, its own model, its own cloud computer, and its own connected apps.
@@ -70,7 +70,7 @@ Talk to them like contacts. Watch them work. Approve what matters.
 
 ## Why
 
-One assistant in one box is the wrong shape for agents. OpenMausBot is an independent, open-source project inspired by **Grok Bot** —
+One assistant in one box is the wrong shape for agents. OpenMausBot is an independent, source-available project inspired by **Grok Bot**:
 it keeps the idea (AI as a *messaging app*: a roster of bots you chat with, each with its own personality,
 memory of its thread, model, computer, and apps) and rebuilds it open, local-first, and on the agents you
 already have:
@@ -85,12 +85,12 @@ already have:
   available on macOS and Ubuntu Xorg after explicit opt-in. Ubuntu Wayland host control remains disabled while
   issue #345 is resolved.
 
-## The open-source alternative to Grok Bot, Muse, dots and Cue
+## A source-available alternative to Grok Bot, Muse, dots and Cue
 
 Four closed personal-agent products shipped in seven weeks of 2026, and each one keeps the model, the
-computer and your data on its maker's side of the line. OpenMausBot is the open-source version of that
+computer and your data on its maker's side of the line. OpenMausBot is the source-available version of that
 shape: a team of agents in a chat app, each with its own model, its own computer and its own connected
-apps, running on your machine under Apache 2.0. If you searched for an *open Muse*, *open dots*, an
+apps, running on your machine under the PolyForm Noncommercial license. If you searched for an *open Muse*, *open dots*, an
 *open-source Grok Bot*, an *open Instinct* or an *open Cue*, this is the repository.
 
 | Looking for | What it is | How OpenMausBot differs | Read more |
@@ -98,7 +98,7 @@ apps, running on your machine under Apache 2.0. If you searched for an *open Mus
 | **Open source Grok Bot** | xAI's roster of bots on one shared cloud computer, Grok only, from a SuperGrok or Cursor plan | Same roster shape; any model per bot; your own machine; approval cards | [Grok Bot vs OpenMausBot](https://www.openmausbot.com/blog/grok-bot-vs-openmausbot) |
 | **Open Muse** | Meta's single personal agent in a Meta cloud VM, US and Canada only | A team instead of one agent; runs anywhere; data in `~/.openmausbot` | [Meta Muse alternative](https://www.openmausbot.com/blog/open-source-alternative-to-meta-muse) |
 | **Open dots** | OpenAI's always-on agent inside ChatGPT, GPT only, Pro and Business Premium plans | Several agents; your Claude, ChatGPT or Grok login; no plan required | [OpenAI dots alternative](https://www.openmausbot.com/blog/openai-dots-alternative) |
-| **Open Cue** | Manus's invite-only agents with their own phone, email and wallet | No invite; OAuth instead of passwords; open source | [Cue by Manus alternative](https://www.openmausbot.com/blog/open-source-alternative-to-cue-by-manus) |
+| **Open Cue** | Manus's invite-only agents with their own phone, email and wallet | No invite; OAuth instead of passwords; source-available | [Cue by Manus alternative](https://www.openmausbot.com/blog/open-source-alternative-to-cue-by-manus) |
 | **Open Instinct** | Spear Street's invite-only agent that holds your passwords on a cloud computer | Ask for approval when you want it; signs in over OAuth; your machine | [Instinct AI alternative](https://www.openmausbot.com/blog/instinct-ai-alternative) |
 
 All five side by side: [Muse vs Grok Bot vs Dots vs Cue](https://www.openmausbot.com/blog/muse-vs-grok-bot-vs-dots-vs-cue),
@@ -468,10 +468,10 @@ names, addresses or conversations. Turn them off in Settings → General → Usa
 
 ## Support the project
 
-OpenMausBot is free and open source. If it does real work for you, you can
+OpenMausBot is free for noncommercial use. If it does real work for you, you can
 [support its development through GitHub Sponsors](https://github.com/sponsors/milind-soni)
 with a one-time contribution or a monthly sponsorship. Your support helps fund ongoing development
-and maintenance; OpenMausBot remains free and open source.
+and maintenance; OpenMausBot remains free for noncommercial use.
 
 ## Run from a terminal or on a server
 
@@ -518,13 +518,15 @@ AI-provider sign-in. Devices pair once with a short code. The deployment guide i
 
 ## License
 
-The whole repository is under the [Apache License 2.0](LICENSE), © 2026 Milind Soni and OpenMausBot contributors.
+This repository is source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE): free for
+noncommercial use, commercial use needs a separate license. The original OpenMausBot code, © 2026 Milind Soni and
+OpenMausBot contributors, stays under the Apache License 2.0; that license and its NOTICE are in [`licenses/`](licenses/).
 See [LICENSING.md](LICENSING.md).
 
 Packaged Cua Driver components retain their upstream MIT, SIL OFL 1.1, MPL-2.0, and other dependency terms;
 the corresponding notices, license texts, source locations, and SBOM are in
 [`third_party/cua-driver/`](third_party/cua-driver/) and ship beside the native runtime.
 
-OpenMausBot is an independent, open-source project inspired by Grok Bot. It is
+OpenMausBot is an independent, source-available project inspired by Grok Bot. It is
 not affiliated with, endorsed by, or associated with xAI; "Grok" is a trademark
 of its respective owner.

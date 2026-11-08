@@ -289,7 +289,7 @@ Provider fakes under `server/testing/fake-*.ts` must stay dependency-free: they 
 - [ ] UI changes include before/after screenshots
 
 By contributing you agree your contributions are licensed under the
-[Apache License, Version 2.0](LICENSE).
+[PolyForm Noncommercial License 1.0.0](LICENSE); see [LICENSING.md](LICENSING.md).
 
 ## Moving code out of server/index.ts
 

@@ -25,7 +25,8 @@ cpSync(join(root, "dist-server"), join(out, "dist-server"), { recursive: true })
 cpSync(join(root, "dist"), join(out, "dist"), { recursive: true });
 if (existsSync(join(root, "skills"))) cpSync(join(root, "skills"), join(out, "skills"), { recursive: true });
 cpSync(join(root, "LICENSE"), join(out, "LICENSE"));
-cpSync(join(root, "NOTICE"), join(out, "NOTICE"));
+cpSync(join(root, "LICENSING.md"), join(out, "LICENSING.md"));
+cpSync(join(root, "licenses"), join(out, "licenses"), { recursive: true });
 
 // The bin lives next to the bundle so serverEntry() finds index.js by path.
 writeFileSync(join(out, "cli.js"), `#!/usr/bin/env node\nimport "./dist-server/openmausbot.js";\n`);
@@ -38,7 +39,7 @@ writeFileSync(
       private: true,
       version: app.version,
       description: "Run the OpenMausBot server anywhere and pair your devices to it",
-      license: "Apache-2.0",
+      license: "SEE LICENSE IN LICENSE",
       type: "module",
       bin: { openmausbot: "cli.js" },
       // Never bundled, so npm installs them beside the server: DuckDB and
@@ -50,7 +51,7 @@ writeFileSync(
         "@duckdb/node-api": app.dependencies["@duckdb/node-api"],
         "@resvg/resvg-js": app.dependencies["@resvg/resvg-js"],
       },
-      files: ["cli.js", "dist-server", "dist", "skills", "LICENSE", "NOTICE", "README.md"],
+      files: ["cli.js", "dist-server", "dist", "skills", "LICENSE", "LICENSING.md", "licenses", "README.md"],
       engines: { node: ">=24" },
       repository: app.repository,
       homepage: app.homepage,
