@@ -92,7 +92,7 @@ export function BotPage({ id }: { id: string }) {
                   <h1 className="t-title truncate">{bot.name}</h1>
                   <p className="mt-1 text-14 text-ink-3">{bot.busy ? <span className="text-good">Working now</span> : `Last active ${ago(bot.lastActiveAt, now)}`}</p>
                 </div>
-                <Button variant="primary" onClick={() => openApp(appLink.bot(bot.id))}>Open in the app</Button>
+                <Button variant="primary" className="max-sm:w-full" onClick={() => openApp(appLink.bot(bot.id))}>Open in the app</Button>
               </header>
               <div className="grid gap-4 md:grid-cols-2">
                 <Card>
