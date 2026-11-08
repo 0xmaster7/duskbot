@@ -1,35 +1,14 @@
-// Who looks after a bot on a Team Cloud: the picker that changes it (for an Admin, or the person looking after it now),
-// a teammate's face, and this person's Needs you.
-import { useCallback, useEffect, useState } from "react";
-import { createPortal } from "react-dom";
-import { Bell, Check } from "lucide-react";
+// A teammate's face, and this person's Needs you.
+import { useEffect, useState } from "react";
+import { Bell } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { api, useStore, openThread, type Bot } from "@/state/store";
+import { api, useStore, openThread } from "@/state/store";
 import { useShowThreads } from "@/lib/thread-preferences";
-import { askingWhom, ownerChanged, pictureOf, refreshNeedsYou, useTeamPeople, type TeamPerson } from "@/state/team-people";
+import { askingWhom, pictureOf, refreshNeedsYou, useTeamPeople, type TeamPerson } from "@/state/team-people";
 import type { NeedsYouItem } from "../../shared/today";
 import { useInboxSupport } from "@/state/inbox";
-import { useHeldMenuMotion } from "./MenuMotion";
-import { MENU_HEADING, MENU_SHEET } from "./menu-recipe";
-
-export type OwnerPickerTarget = { botIds: string[]; title: string; current: string | null; x: number; y: number };
-
-const hosts: Array<(target: OwnerPickerTarget) => void> = [];
-/** Opens the picker of the host mounted last, from a bot row, a bot's menu, a department's or the Team map. */
-export function requestOwnerPick(target: OwnerPickerTarget): void {
-  hosts.at(-1)?.(target);
-}
-
-export function OwnerPickerHost() {
-  const [target, setTarget] = useState<OwnerPickerTarget | null>(null);
-  useEffect(() => {
-    hosts.push(setTarget);
-    return () => { hosts.splice(hosts.lastIndexOf(setTarget), 1); };
-  }, []);
-  const close = useCallback(() => setTarget(null), []);
-  return <OwnerPicker target={target} onClose={close} />;
-}
+import { MENU_SHEET } from "./menu-recipe";
 
 const initial = (person: TeamPerson) => person.name.trim().charAt(0).toUpperCase() || "?";
 const HUES = ["bg-[#5B8DEF]", "bg-[#E0745B]", "bg-[#4FAF7F]", "bg-[#B26BD9]", "bg-[#D9A23B]", "bg-[#3BA7B8]"];
@@ -45,66 +24,6 @@ export function PersonFace({ person, size = 18 }: { person: TeamPerson; size?: n
   }
   return <span aria-hidden="true" style={{ width: size, height: size, fontSize: Math.round(size * 0.55) }}
     className={cn("inline-flex shrink-0 items-center justify-center rounded-full font-semibold leading-none text-white", hueOf(person.email))}>{initial(person)}</span>;
-}
-
-/** Changes who looks after one bot, or every bot of a department. */
-export function OwnerPicker({ target, onClose }: { target: OwnerPickerTarget | null; onClose: () => void }) {
-  const { dispatch } = useStore();
-  const team = useTeamPeople();
-  const motion = useHeldMenuMotion(target);
-  const shown = motion.value;
-  const [busy, setBusy] = useState(false);
-  useEffect(() => {
-    if (!target) return;
-    const onDown = (event: MouseEvent) => { if (!(event.target instanceof Element) || !event.target.closest("[data-owner-picker]")) onClose(); };
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
-    window.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onKey);
-    return () => { window.removeEventListener("mousedown", onDown); window.removeEventListener("keydown", onKey); };
-  }, [target, onClose]);
-  if (!motion.shown || !shown || !team) return null;
-  const pick = async (person: TeamPerson) => {
-    setBusy(true);
-    try {
-      if (shown.botIds.length === 1) {
-        const answer = await api<{ bot?: Bot }>(`/api/bots/${shown.botIds[0]}/reports-to`, { method: "PUT", body: JSON.stringify({ email: person.email }) });
-        if (answer?.bot) dispatch({ type: "botPatched", bot: answer.bot });
-      } else {
-        const answer = await api<{ bots?: Bot[] }>("/api/team/reports-to", { method: "PUT", body: JSON.stringify({ botIds: shown.botIds, email: person.email }) });
-        for (const bot of answer?.bots ?? []) dispatch({ type: "botPatched", bot });
-      }
-      ownerChanged();
-      onClose();
-    } catch (error) {
-      dispatch({ type: "error", message: error instanceof Error ? error.message : String(error) });
-    } finally {
-      setBusy(false);
-    }
-  };
-  const top = Math.max(8, Math.min(shown.y, window.innerHeight - 320));
-  const left = Math.max(8, Math.min(shown.x, window.innerWidth - 260));
-  return createPortal(
-    <div data-owner-picker role="menu" aria-label={shown.title} style={{ top, left }}
-      className={cn("fixed z-50 w-[248px] overflow-hidden", MENU_SHEET, motion.className)} {...motion.exitProps}>
-      <div className={MENU_HEADING}>{shown.title}</div>
-      <div className="flex max-h-[260px] flex-col gap-1 overflow-y-auto">
-        {team.people.map((person) => (
-          <button key={person.email} type="button" role="menuitemradio" aria-checked={person.email === shown.current} disabled={busy}
-            onClick={() => void pick(person)}
-            className={cn("flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[14px] leading-[18px] text-ink", person.email === shown.current ? "bg-menu-active" : "hover:bg-menu-hover")}>
-            <PersonFace person={person} size={20} />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate">{person.you ? t("owner.you", { name: person.name }) : person.name}</span>
-              <span className="block truncate text-[11px] text-ink-secondary">{person.email}</span>
-            </span>
-            {person.email === shown.current && <Check size={14} className="shrink-0 text-accent" />}
-          </button>
-        ))}
-      </div>
-      <div className="px-2 pb-1 text-[12px] leading-4 text-ink-tertiary">{t("lookedAfter.pickHint")}</div>
-    </div>,
-    document.body,
-  );
 }
 
 /** A tag or passed message is done once its person opens it, even in a shared chat someone else already read. */

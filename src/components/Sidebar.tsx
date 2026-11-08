@@ -51,7 +51,7 @@ import { useCloudOwner } from "./CloudOwner";
 import { SidebarSectionHeader } from "./SidebarSectionHeader";
 import { SectionRows } from "./SidebarSectionRows";
 import { GrokIcon } from "./GrokIcon";
-import { NeedsYouButton, OwnerPickerHost } from "./TeamOwner"; import { SidebarPeople } from "./SidebarPeople";
+import { NeedsYouButton } from "./TeamOwner"; import { SidebarPeople } from "./SidebarPeople";
 import { MENU_ITEM, MENU_ITEM_SEPARATOR, MENU_SHEET } from "./menu-recipe";
 import { SidebarResizeHandle, useSidebarWidth } from "./SidebarResizeHandle";
 import { SidebarMoreUnreads } from "./SidebarMoreUnreads";
@@ -1278,7 +1278,6 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
       <ConfirmDialog {...botConfirmProps(confirm, state.bots, { archive: (bot) => { setConfirm(null); void archiveBot(bot); }, remove: (bot) => { setConfirm(null); dispatch({ type: "deleteBot", botId: bot.id }); },
         archiveInstead: (chief) => { setConfirm(null); void archiveBotWithNotice(chief, { bots: state.bots, selectedId: state.selectedId, dispatch, showThreads, notify: setTeamFeedback }); } })}
         onCancel={cancelConfirm} returnFocusRef={sidebarRef} />
-      <OwnerPickerHost />
       {botDrag.overlay}
       {sectionMotion.shown && sectionMotion.value && createPortal(<div className={cn("fixed inset-0 z-40", sectionMotion.closing && "pointer-events-none")} onMouseDown={closeSectionMenu} onContextMenu={(event) => { event.preventDefault(); closeSectionMenu(); }}>
         {(() => {

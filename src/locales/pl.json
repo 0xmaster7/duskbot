@@ -1509,7 +1509,6 @@
   "sidebar.bot.chiefOfStaff": "Szef sztabu",
   "sidebar.bot.modelBadge": "Model: {model} ({engine})",
   "lookedAfter.pickTitle": "Kto się opiekuje",
-  "lookedAfter.pickHint": "Pytania, zatwierdzenia, niepowodzenia i raporty rutyn tego bota trafiają do tej osoby.",
   "lookedAfter.menu": "Opiekuje się: {name}…",
   "lookedAfter.menuNone": "Kto się opiekuje…",
   "lookedAfter.badge": "Opiekuje się nim",
