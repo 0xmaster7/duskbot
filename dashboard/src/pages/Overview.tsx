@@ -68,7 +68,7 @@ function SpendCard({ detail, now }: { detail: WorkspaceDetail; now: number }) {
       </div>
       <p className="mt-3 flex items-baseline gap-1.5"><span className="num text-28 font-medium tracking-[-0.02em] text-ink">{usd(month.costUsd ?? 0)}</span><span className="text-14 text-ink-3">used this month</span></p>
       <dl className="mt-4 text-14">
-        <div className="flex justify-between gap-3 py-1.5 text-13 text-ink-3"><dt>Estimated from your engines' token prices</dt><dd className="num">Resets {shortDate(next)}</dd></div>
+        <div className="flex justify-between gap-3 py-1.5 text-13 text-ink-3"><dt className="min-w-0 truncate">Estimated from token prices</dt><dd className="num shrink-0 whitespace-nowrap">Resets {shortDate(next)}</dd></div>
         <div className="flex justify-between gap-3 py-1.5"><dt className="text-ink-3">Monthly spending cap</dt><dd className="text-ink">Not set · <Link to="/billing" className="text-ink-2 underline decoration-line-2 underline-offset-4 hover:text-ink">Edit</Link></dd></div>
         <div className="flex justify-between gap-3 py-1.5"><dt className="text-ink-3">Credits available</dt><dd className="flex items-center gap-2"><Badge className="!h-5 !px-2 !text-[11px]">Preview</Badge><span className="num text-ink">$0.00</span></dd></div>
       </dl>
