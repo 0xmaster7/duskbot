@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { parseToolScope, type ToolScope } from "../shared/tool-scope.ts";
 
+import { REMOTE_MCP_CACHE_ENV, REMOTE_MCP_CACHE_ID_ENV, remoteMcpCacheIdentity } from "./mcp-remote-proxy-cache.ts";
 import { DATA_DIR } from "./config.ts";
 import type { SendTurnInput } from "./contracts.ts";
 import { unbridgedServer } from "./drivers/agents-bridge.ts";
@@ -44,7 +45,7 @@ export function hasOwnResultBudget(name: string, perServer: Readonly<Record<stri
   return typeof own === "number" && Number.isFinite(own) && own >= 1;
 }
 
-/** A URL server keeps its native connection (and Claude Code's tool search) unless it has a limit of its own, which must then hold. */
+/** a URL server uses the metadata proxy; a result limit of its own adds a trimming gate. */
 export function customServerGate(
   name: string,
   owned: boolean,
@@ -116,8 +117,11 @@ export function mcpStdioServer(server: unknown, options: StdioServerOptions = {}
     if (!/^[a-z][a-z0-9_-]{0,31}$/.test(options.directory.name) || !scope.ok) throw new Error("Invalid MCP tool search configuration.");
     directory = JSON.stringify({ name: options.directory.name, ...(scope.scope ? { toolScope: scope.scope } : {}) });
   }
+  const identity = (server as { [remoteMcpCacheIdentity]?: string })[remoteMcpCacheIdentity];
   const settings = {
+    ...(identity ? { [REMOTE_MCP_CACHE_ID_ENV]: identity } : {}),
     OMB_REMOTE_MCP_SERVER: JSON.stringify(remote),
+    [REMOTE_MCP_CACHE_ENV]: join(DATA_DIR, "remote-mcp-cache"),
     ...(directory ? { OMB_REMOTE_MCP_DIRECTORY: directory } : {}),
     ...(options.apps ? { [REMOTE_MCP_APPS_ENV]: JSON.stringify(options.apps) } : {}),
   };
@@ -156,7 +160,7 @@ export function gateServer(input: {
   if (!parsed.ok) throw new Error(parsed.error);
   const scoped = parsed.scope !== undefined;
   const remote = remoteMcpSpec(server) !== undefined;
-  if (budget <= 0 && !scoped && !apps && !schemaProfile && !limitsTools) return null;
+  if (budget <= 0 && !scoped && !apps && !schemaProfile && !limitsTools && !remote) return null;
   const directory = input.directory === true && remote;
   const proxyOptions = {
     nodeEnv: input.nodeEnv,
@@ -166,7 +170,6 @@ export function gateServer(input: {
     ...(apps && remote ? { apps } : {}),
   };
   if (!scoped && remote && !(input.gateRemote === true && budget > 0)) {
-    if (!apps && !limitsTools) return null;
     const proxy = mcpStdioServer(server, proxyOptions);
     return proxy ? { command: proxy.command, args: proxy.args ?? [], env: proxy.env ?? {} } : null;
   }

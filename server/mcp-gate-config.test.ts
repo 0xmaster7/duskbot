@@ -1,3 +1,6 @@
+import { join } from "node:path";
+import { DATA_DIR } from "./config.ts";
+import { remoteMcpCacheIdentity, remoteMcpCacheKey } from "./mcp-remote-proxy-cache.ts";
 import { describe, expect, it } from "vitest";
 
 import { customServerGate, gateQueryTools, gateServer, hasOwnResultBudget, mcpStdioServer, resultBudget, serverResultBudget } from "./mcp-gate-config.ts";
@@ -42,6 +45,15 @@ describe("result budget", () => {
 });
 
 describe("tool directory configuration", () => {
+  it("preserves the original cache identity through a brokered server spread and private env", () => {
+    const identity = remoteMcpCacheKey(remote, {});
+    const brokered = { ...remote, url: "http://127.0.0.1:18080/b/fixture/mcp-notes", headers: {}, [remoteMcpCacheIdentity]: identity };
+    const record = `OMB_REMOTE_MCP_CONFIG_${"a".repeat(64)}`;
+    const proxy = mcpStdioServer({ ...brokered }, { configEnvName: record })!;
+    expect(JSON.parse(proxy.env![record]!)).toMatchObject({ OMB_REMOTE_MCP_CACHE_ID: identity, OMB_REMOTE_MCP_CACHE_DIR: join(DATA_DIR, "remote-mcp-cache") });
+    expect(JSON.stringify(proxy)).not.toContain("disposable-remote-token");
+  });
+
   it("asks the remote proxy for a directory only when the caller does", () => {
     expect(mcpStdioServer(remote)!.env).not.toHaveProperty("OMB_REMOTE_MCP_DIRECTORY");
     const scope = { allow: ["mcp:whop:*"], deny: ["mcp:whop:payments_create"] };
@@ -76,7 +88,7 @@ describe("tool directory configuration", () => {
     expect(merged.env!.no_proxy).toBe(merged.env!.NO_PROXY);
     expect(proxy.env).not.toHaveProperty("UNRELATED_SECRET");
     expect(proxy.env).not.toHaveProperty("PATH");
-    expect(mcpStdioServer(remote, { sourceEnv: { NODE_EXTRA_CA_CERTS: "/etc/corp-ca.pem" } })!.env).toEqual({ NODE_EXTRA_CA_CERTS: "/etc/corp-ca.pem", OMB_REMOTE_MCP_SERVER: JSON.stringify(remote) });
+    expect(mcpStdioServer(remote, { sourceEnv: { NODE_EXTRA_CA_CERTS: "/etc/corp-ca.pem" } })!.env).toEqual({ NODE_EXTRA_CA_CERTS: "/etc/corp-ca.pem", OMB_REMOTE_MCP_SERVER: JSON.stringify(remote), OMB_REMOTE_MCP_CACHE_DIR: join(DATA_DIR, "remote-mcp-cache") });
     const record = `OMB_REMOTE_MCP_CONFIG_${"0".repeat(64)}`;
     expect(Object.keys(mcpStdioServer(remote, { sourceEnv, configEnvName: record })!.env!).sort()).toEqual(
       ["HTTPS_PROXY", "NODE_EXTRA_CA_CERTS", "NODE_USE_ENV_PROXY", "NO_PROXY", "SSL_CERT_FILE", "no_proxy", record].sort());
@@ -127,7 +139,7 @@ describe("tool directory configuration", () => {
     expect(plain.env).not.toHaveProperty("OMB_GATE_DIRECTORY");
     expect(JSON.parse(plain.env.OMB_GATE_UPSTREAM).env).not.toHaveProperty("OMB_REMOTE_MCP_DIRECTORY");
     expect(gateServer({ ...input, toolScope: { allow: [] }, directory: true })!.env).not.toHaveProperty("OMB_GATE_DIRECTORY");
-    expect(gateServer({ name: "whop", server: remote, threadId: "disposable-thread", budget: 8_000, directory: true })).toBeNull();
+    expect(gateServer({ name: "whop", server: remote, threadId: "disposable-thread", budget: 8_000, directory: true })!.args[0]).toContain("mcp-remote-proxy");
   });
 
   it("gates an unselected URL server only when its own result limit is set", () => {
@@ -139,8 +151,7 @@ describe("tool directory configuration", () => {
     expect(gated.env.OMB_GATE_BUDGET).toBe("40000");
     expect(gated.env).not.toHaveProperty("OMB_GATE_TOOL_SCOPE");
     expect(JSON.parse(gated.env.OMB_GATE_UPSTREAM).args[0]).toContain("mcp-remote-proxy");
-    // 0 = never trim: nothing to gate
-    expect(gateServer({ name: "whop", server: remote, threadId: "disposable-thread", budget: 0, gateRemote: true })).toBeNull();
+    expect(gateServer({ name: "whop", server: remote, threadId: "disposable-thread", budget: 0, gateRemote: true })!.args[0]).toContain("mcp-remote-proxy");
   });
 
   it("gives a person's own server its limit and leaves an engine's server alone", () => {

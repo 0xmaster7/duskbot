@@ -1,6 +1,8 @@
 // The upstream handshake is OMB's own, never the engine's: an engine's client adds capability fields a strict server
 // refuses. stdout carries only protocol frames.
 import { createInterface } from "node:readline";
+import { homedir } from "node:os";
+import { RemoteMcpMetadataCache, REMOTE_MCP_CACHE_ENV, REMOTE_MCP_CACHE_ID_ENV, remoteMcpCacheDirectory } from "./mcp-remote-proxy-cache.ts";
 import { redactSecretsInText } from "../shared/redact.ts";
 import { allowsTool, parseToolScope, type ToolScope } from "../shared/tool-scope.ts";
 
@@ -62,7 +64,7 @@ class Refusal extends Error {
   }
 }
 
-const SETTINGS = ["OMB_REMOTE_MCP_SERVER", "OMB_REMOTE_MCP_DIRECTORY", REMOTE_MCP_APPS_ENV];
+const SETTINGS = ["OMB_REMOTE_MCP_SERVER", "OMB_REMOTE_MCP_DIRECTORY", REMOTE_MCP_APPS_ENV, REMOTE_MCP_CACHE_ENV, REMOTE_MCP_CACHE_ID_ENV];
 /** Codex hands every MCP child one shared environment, so a mount names its own record; settings leave this env once read. */
 function privateSettings(): Record<string, string | undefined> {
   if (process.argv.length === 2) {
@@ -168,13 +170,15 @@ const client = new RemoteMcpClient(spec, {
   maxBytes: MAX_REMOTE_MCP_BYTES,
   ...(viaProxy ? { fetch: viaProxy } : {}),
   onNotification: (message) => {
-    if (directory && message.method === "notifications/tools/list_changed") {
-      generation += 1;
-      catalog = undefined;
-      loading = undefined;
-    }
+    if (message.method === "notifications/tools/list_changed") metadata.invalidate();
     send(message);
   },
+});
+const metadata = new RemoteMcpMetadataCache({
+  directory: remoteMcpCacheDirectory(settings[REMOTE_MCP_CACHE_ENV], homedir()), identity: settings[REMOTE_MCP_CACHE_ID_ENV], spec, handshake: HANDSHAKE, closed: closed.signal,
+  initialize: (signal) => client.initialize("OpenMausBot tool proxy", signal, HANDSHAKE),
+  request: (method, params, signal) => client.request(method, params, signal),
+  changed: () => { generation += 1; catalog = undefined; loading = undefined; },
 });
 const pending = new Map<string, AbortController>();
 const tasks = new Set<Promise<void>>();
@@ -184,13 +188,13 @@ let closing = false;
 /** A tool only an MCP app's view may call is never listed to the engine, and a call to it is refused. */
 async function upstream(method: string, params: unknown, signal: AbortSignal): Promise<unknown> {
   if (method === "initialize") {
-    const result = await client.initialize("OpenMausBot tool proxy", signal, HANDSHAKE);
+    const result = await metadata.request("initialize", undefined, signal);
     if (client.extensions === "refused") process.stderr.write("mcp-remote-proxy: the server refused the MCP Apps extension; connected without it\n");
     observer?.initialized(result);
     return result;
   }
   if (method === "tools/call" && isRecord(params) && appOnly.has(params.name as string)) throw new Refusal(-32602, APP_ONLY_REFUSAL);
-  const result = await client.request(method, params, signal);
+  const result = await metadata.request(method, params, signal);
   if (method === "tools/list" && isRecord(result) && Array.isArray(result.tools)) {
     observer?.listed(result);
     for (const tool of result.tools) {
