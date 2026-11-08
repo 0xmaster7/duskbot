@@ -213,7 +213,7 @@ function PanelBody({ bots, labels, lang, open, bridge, onPin, onSent }: {
     <div className="amb-panel-body">
       <header className="amb-head">
         <div className="amb-counts">
-          {(["needs-you", "busy", "error", "done"] as const).map((key) => counts[key] ? (
+          {(["needs-you", "busy", "done"] as const).map((key) => counts[key] ? (
             <span key={key} className="amb-count" data-status={key}>
               <span className="amb-dot" aria-hidden />
               {say(labels, key === "busy" ? "working" : key)}
@@ -263,8 +263,10 @@ function Row({ bot, labels, lang, now, open, replying, onToggleReply, onOpen, on
   onToggleReply: () => void; onOpen: () => void; onAct: AmbientBridge["act"]; onPin: (pinned: boolean) => void; onSent: () => void;
 }) {
   const busy = isBusy(bot.status);
-  const line = (busy || bot.status === "needs-you") && bot.detail ? bot.detail : bot.line;
   const approval = bot.approval;
+  // "Thinking" next to the status "Thinking" says nothing: the newest line does
+  const detail = bot.detail && bot.detail !== say(labels, bot.status) ? bot.detail : "";
+  const line = (busy || bot.status === "needs-you") && detail ? (approval?.title ? `${detail}: ${approval.title}` : detail) : bot.line;
   return (
     <li className="amb-row" data-status={bot.status}>
       <button type="button" className="amb-row-main" onClick={onOpen} aria-label={say(labels, "open", { name: bot.name })}>

@@ -51,15 +51,20 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
 
   // someone starts needing the person: the dock comes out for a moment on its own
   const waiting = bots.filter((bot) => bot.status === "needs-you").map((bot) => bot.id).join(",");
-  const lastWaiting = useRef(waiting);
+  const lastWaiting = useRef<string | null>(null);
+  const peekTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => {
-    const before = new Set(lastWaiting.current.split(",").filter(Boolean));
+    if (!snapshot) return;
+    const first = lastWaiting.current === null;
+    const before = new Set((lastWaiting.current ?? "").split(",").filter(Boolean));
     lastWaiting.current = waiting;
-    if (!waiting.split(",").some((id) => id && !before.has(id))) return;
+    // the first summary is how things stand, not news
+    if (first || !waiting.split(",").some((id) => id && !before.has(id))) return;
     setPeek(true);
-    const timer = setTimeout(() => setPeek(false), PEEK_MS);
-    return () => clearTimeout(timer);
-  }, [waiting]);
+    clearTimeout(peekTimer.current);
+    peekTimer.current = setTimeout(() => setPeek(false), PEEK_MS);
+  }, [waiting, snapshot]);
+  useEffect(() => () => clearTimeout(peekTimer.current), []);
 
   const bodyX = stageW - d.body;
   const cellTop = (index: number) => top + d.pad + index * d.cell;
@@ -201,7 +206,8 @@ function Badge({ bot }: { bot: AmbientBot }) {
 
 function Card({ bot, labels, lang, now }: { bot: AmbientBot; labels: AmbientLabels; lang: string; now: number }) {
   const busy = isBusy(bot.status);
-  const line = (busy || bot.status === "needs-you") && bot.detail ? bot.detail : bot.line;
+  const detail = bot.detail && bot.detail !== say(labels, bot.status) ? bot.detail : "";
+  const line = (busy || bot.status === "needs-you") && detail ? detail : bot.line;
   return (
     <div className="amb-card-body">
       <div className="amb-card-top">
