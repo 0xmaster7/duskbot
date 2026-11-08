@@ -7,7 +7,7 @@ export const fixtureCatalog: PlanCatalog = {
   licenses: [
     { id: "personal", name: "Personal", monthly: 0, includedMembers: 1, perExtraMember: 0, maxMembers: 1, work: false, blurb: "Personal and non-commercial use" },
     { id: "starter", name: "Starter", monthly: 12, includedMembers: 1, perExtraMember: 0, maxMembers: 1, work: true, blurb: "For one person at work" },
-    { id: "team", name: "Team", monthly: 30, includedMembers: 3, perExtraMember: 15, maxMembers: 50, work: true, blurb: "For a team, with shared bots" },
+    { id: "team", name: "Team", monthly: 30, includedMembers: 2, perExtraMember: 18, maxMembers: 50, work: true, blurb: "For a team, with shared bots" },
   ],
   desktops: [
     { id: "shared-s", name: "Shared S", monthly: 10, vcpu: 2, ramGb: 4, diskGb: 40, placement: "shared", botComputers: 2, priority: false, sizable: false, blurb: "Small, always on" },

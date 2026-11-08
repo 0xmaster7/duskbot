@@ -18,6 +18,15 @@ export function desktopMonthly(d: DesktopTier, size: MachineSpec | null, p: Cust
 
 export const yearly = (monthly: number, c: Pick<PlanCatalog, "yearlyDiscount">) => monthly * (1 - c.yearlyDiscount);
 
+/** a monthly list price as it reads per month on the chosen interval; the catalog only lists monthly prices */
+export const perMonthOn = (monthly: number, interval: BillingInterval, c: Pick<PlanCatalog, "yearlyDiscount">) => (interval === "year" ? yearly(monthly, c) : monthly);
+
+/** the license part of a selection on its own, so it can be priced and bought without a cloud desktop */
+export const licenseOnly = (sel: Selection): Selection => ({ ...sel, desktop: "none", size: null });
+
+/** the cloud desktop part on its own: personal use needs no license */
+export const desktopOnly = (sel: Selection): Selection => ({ ...sel, license: "personal", members: 1 });
+
 export interface CartLine { key: string; label: string; detail: string; monthly: number }
 
 export interface Cart {

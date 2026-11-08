@@ -129,24 +129,26 @@ export function PlanDialog({ open, onClose }: { open: boolean; onClose(): void }
 }
 
 /** the one cloud pitch: a line, a sentence, one button and the three mascots; home, the empty cloud page and billing share it */
-export function CloudPitch({ title = "Keep your bots on while your Mac sleeps", body = "A cloud desktop runs them all day and all night. Set up in one click.", action, link = { to: "/billing", label: "See plans" }, className, id = "pitch-title" }: { title?: string; body?: ReactNode; action?: ReactNode; link?: { to: string; label: string } | null; className?: string; id?: string }) {
+export function CloudPitch({ title = "Keep your bots on while your Mac sleeps", body = "A cloud desktop runs them all day and all night. Set up in one click.", action, link = { to: "/billing", label: "See plans" }, className, id = "pitch-title" }: { title?: string; body?: ReactNode; action?: ReactNode | false; link?: { to: string; label: string } | null; className?: string; id?: string }) {
   const [open, setOpen] = useState(false);
   return (
     <section className={cx("enter flex items-center gap-8 rounded-card bg-card px-8 py-7 max-sm:flex-col-reverse max-sm:items-start max-sm:gap-5 max-sm:p-5", className)} aria-labelledby={id}>
       <div className="min-w-0 flex-1">
         <h2 id={id} className="text-20 font-semibold tracking-[-0.015em] text-ink">{title}</h2>
         <p className="mt-1.5 max-w-[52ch] text-14 leading-[1.55] text-ink-3">{body}</p>
-        <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
-          {action ?? <Button variant="primary" onClick={() => setOpen(true)}>Get a cloud desktop</Button>}
-          {link && <Link to={link.to} className="hover-link inline-flex h-9 items-center text-14 text-ink-3 max-sm:h-11">{link.label}</Link>}
-        </div>
+        {(action !== false || link) && (
+          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
+            {action === false ? null : action ?? <Button variant="primary" onClick={() => setOpen(true)}>Get a cloud desktop</Button>}
+            {link && <Link to={link.to} className="hover-link inline-flex h-9 items-center text-14 text-ink-3 max-sm:h-11">{link.label}</Link>}
+          </div>
+        )}
       </div>
       <div className="flex shrink-0 items-end gap-1 pe-2" aria-hidden>
         <Mascot color="orange" size={36} />
         <span className="mb-3 inline-flex"><Mascot color="blue" size={48} /></span>
         <Mascot color="green" size={36} />
       </div>
-      {!action && <PlanDialog open={open} onClose={() => setOpen(false)} />}
+      {action === undefined && <PlanDialog open={open} onClose={() => setOpen(false)} />}
     </section>
   );
 }
