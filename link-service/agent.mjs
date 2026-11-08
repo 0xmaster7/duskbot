@@ -894,7 +894,12 @@ export const EGRESS_BRIDGE = "omb-desk0";
 export const EGRESS_PORT = Number(process.env.LINK_EGRESS_PORT) || 3129;
 /** the app says hello every 15 s while it takes streams; three missed and this server uses its own network again */
 const EGRESS_SEEN_MS = 40_000;
-const EGRESS_DIAL_MS = 5000;
+/**
+ * how long a bot computer's connection waits for the app to open its stream before it goes out direct instead. the route
+ * runs through the app only while its dials take about 200 ms, so a dial this slow means the path went bad: waiting 5 s
+ * here held every connection of a page that long while the relay faltered (2026-11-08)
+ */
+export const EGRESS_DIAL_MS = 2000;
 /** how long the app takes to open a stream, from the last few dials: the server routes through the app only while it is fast */
 const DIAL_SAMPLES = 7;
 const DIAL_SAMPLE_MAX_AGE_MS = 120_000;
