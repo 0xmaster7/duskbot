@@ -3273,5 +3273,22 @@
   "mobile.onboarding.err.invalid.title": "Ce n'est pas un code pour téléphone",
   "mobile.onboarding.err.invalid.body": "Scannez le code QR dans Paramètres, Phone sur votre ordinateur, ou vérifiez le code et réessayez.",
   "mobile.onboarding.err.unsupported.title": "Ce téléphone ne peut pas être associé de façon sécurisée",
-  "mobile.onboarding.err.unsupported.body": "Le chiffrement nécessaire à l'association manque. Mettez le système à jour ou associez un autre téléphone."
+  "mobile.onboarding.err.unsupported.body": "Le chiffrement nécessaire à l'association manque. Mettez le système à jour ou associez un autre téléphone.",
+  "mobile.account.title": "Créez votre compte",
+  "mobile.account.body": "Un seul compte relie vos bots, votre téléphone et vos ordinateurs.",
+  "mobile.account.apple": "Continuer avec Apple",
+  "mobile.account.google": "Continuer avec Google",
+  "mobile.account.x": "X",
+  "mobile.account.email": "E-mail",
+  "mobile.account.same": "Vous avez déjà un compte ? Ces mêmes boutons vous permettent de vous connecter.",
+  "mobile.account.inBrowser": "Terminez la connexion dans votre navigateur",
+  "mobile.account.finishing": "Connexion en cours",
+  "mobile.account.err.oauth_denied": "La connexion a été annulée. Choisissez une option pour continuer.",
+  "mobile.account.err.oauth_failed": "La connexion n'a pas abouti. Réessayez.",
+  "mobile.account.err.oauth_expired": "La connexion a pris trop de temps. Recommencez.",
+  "mobile.account.err.provider_unavailable": "Cette option n'est pas encore disponible. Essayez-en une autre.",
+  "mobile.account.err.signup_closed": "La création de comptes est fermée pour le moment.",
+  "mobile.account.err.identity_taken": "Cet accès est déjà lié à un autre compte.",
+  "mobile.account.err.state": "Cette connexion a démarré ailleurs. Recommencez ici.",
+  "mobile.account.err.network": "Le service de comptes est injoignable. Vérifiez votre connexion."
 }

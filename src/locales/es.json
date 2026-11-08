@@ -5775,5 +5775,22 @@
   "mobile.onboarding.err.invalid.title": "Ese no es un código de teléfono",
   "mobile.onboarding.err.invalid.body": "Escanea el código QR en Ajustes, Phone en tu ordenador, o revisa el código e inténtalo de nuevo.",
   "mobile.onboarding.err.unsupported.title": "Este teléfono no puede vincularse de forma segura",
-  "mobile.onboarding.err.unsupported.body": "Le falta el cifrado necesario para el vínculo. Actualiza el sistema o vincula otro teléfono."
+  "mobile.onboarding.err.unsupported.body": "Le falta el cifrado necesario para el vínculo. Actualiza el sistema o vincula otro teléfono.",
+  "mobile.account.title": "Crea tu cuenta",
+  "mobile.account.body": "Una cuenta mantiene unidos tus bots, tu teléfono y tus ordenadores.",
+  "mobile.account.apple": "Continuar con Apple",
+  "mobile.account.google": "Continuar con Google",
+  "mobile.account.x": "X",
+  "mobile.account.email": "Correo electrónico",
+  "mobile.account.same": "¿Ya tienes una cuenta? Usa los mismos botones para iniciar sesión.",
+  "mobile.account.inBrowser": "Termina de iniciar sesión en tu navegador",
+  "mobile.account.finishing": "Iniciando sesión",
+  "mobile.account.err.oauth_denied": "Se canceló el inicio de sesión. Elige una opción para continuar.",
+  "mobile.account.err.oauth_failed": "No se completó el inicio de sesión. Inténtalo de nuevo.",
+  "mobile.account.err.oauth_expired": "El inicio de sesión tardó demasiado. Empieza de nuevo.",
+  "mobile.account.err.provider_unavailable": "Esa opción aún no está disponible. Prueba otra.",
+  "mobile.account.err.signup_closed": "Ahora no se pueden crear cuentas nuevas.",
+  "mobile.account.err.identity_taken": "Ese inicio de sesión ya pertenece a otra cuenta.",
+  "mobile.account.err.state": "Ese inicio de sesión empezó en otro lugar. Empieza de nuevo aquí.",
+  "mobile.account.err.network": "No se pudo conectar con el servicio de cuentas. Comprueba tu conexión."
 }

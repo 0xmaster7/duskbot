@@ -6362,5 +6362,22 @@
   "mobile.onboarding.err.invalid.title": "Это не код для телефона",
   "mobile.onboarding.err.invalid.body": "Сканируйте QR-код в Настройки, Phone на компьютере или проверьте код и попробуйте ещё раз.",
   "mobile.onboarding.err.unsupported.title": "Этот телефон не может безопасно привязаться",
-  "mobile.onboarding.err.unsupported.body": "Отсутствует нужное для привязки шифрование. Обновите систему или привяжите другой телефон."
+  "mobile.onboarding.err.unsupported.body": "Отсутствует нужное для привязки шифрование. Обновите систему или привяжите другой телефон.",
+  "mobile.account.title": "Создайте аккаунт",
+  "mobile.account.body": "Один аккаунт объединяет ваших ботов, телефон и компьютеры.",
+  "mobile.account.apple": "Продолжить с Apple",
+  "mobile.account.google": "Продолжить с Google",
+  "mobile.account.x": "X",
+  "mobile.account.email": "Электронная почта",
+  "mobile.account.same": "Уже есть аккаунт? Используйте те же кнопки для входа.",
+  "mobile.account.inBrowser": "Завершите вход в браузере",
+  "mobile.account.finishing": "Выполняется вход",
+  "mobile.account.err.oauth_denied": "Вход отменён. Выберите способ продолжить.",
+  "mobile.account.err.oauth_failed": "Не удалось завершить вход. Попробуйте ещё раз.",
+  "mobile.account.err.oauth_expired": "Вход занял слишком много времени. Начните заново.",
+  "mobile.account.err.provider_unavailable": "Этот способ пока недоступен. Попробуйте другой.",
+  "mobile.account.err.signup_closed": "Сейчас нельзя создавать новые аккаунты.",
+  "mobile.account.err.identity_taken": "Этот способ входа уже связан с другим аккаунтом.",
+  "mobile.account.err.state": "Этот вход начат в другом месте. Начните заново здесь.",
+  "mobile.account.err.network": "Не удалось связаться со службой аккаунтов. Проверьте подключение."
 }

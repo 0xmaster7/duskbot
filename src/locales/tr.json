@@ -5297,5 +5297,22 @@
   "mobile.onboarding.err.invalid.title": "Bu bir telefon kodu değil",
   "mobile.onboarding.err.invalid.body": "Bilgisayarında Ayarlar, Phone bölümündeki QR kodunu tara veya kodu kontrol edip tekrar dene.",
   "mobile.onboarding.err.unsupported.title": "Bu telefon güvenli şekilde bağlanamıyor",
-  "mobile.onboarding.err.unsupported.body": "Bağlantı için gereken şifreleme eksik. Sistemi güncelle veya başka bir telefon bağla."
+  "mobile.onboarding.err.unsupported.body": "Bağlantı için gereken şifreleme eksik. Sistemi güncelle veya başka bir telefon bağla.",
+  "mobile.account.title": "Hesabını oluştur",
+  "mobile.account.body": "Tek hesap botlarını, telefonunu ve bilgisayarlarını bir arada tutar.",
+  "mobile.account.apple": "Apple ile devam et",
+  "mobile.account.google": "Google ile devam et",
+  "mobile.account.x": "X",
+  "mobile.account.email": "E-posta",
+  "mobile.account.same": "Zaten hesabın var mı? Aynı düğmelerle giriş yapabilirsin.",
+  "mobile.account.inBrowser": "Giriş işlemini tarayıcında tamamla",
+  "mobile.account.finishing": "Giriş yapılıyor",
+  "mobile.account.err.oauth_denied": "Giriş iptal edildi. Devam etmek için bir yol seç.",
+  "mobile.account.err.oauth_failed": "Giriş tamamlanamadı. Tekrar dene.",
+  "mobile.account.err.oauth_expired": "Giriş çok uzun sürdü. Yeniden başla.",
+  "mobile.account.err.provider_unavailable": "Bu seçenek henüz kullanılamıyor. Başka birini dene.",
+  "mobile.account.err.signup_closed": "Şu anda yeni hesap oluşturulamıyor.",
+  "mobile.account.err.identity_taken": "Bu giriş yöntemi zaten başka bir hesaba bağlı.",
+  "mobile.account.err.state": "Bu giriş başka bir yerde başlatıldı. Buradan yeniden başla.",
+  "mobile.account.err.network": "Hesap hizmetine ulaşılamadı. Bağlantını kontrol et."
 }

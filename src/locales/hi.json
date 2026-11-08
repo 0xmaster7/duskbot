@@ -3269,5 +3269,22 @@
   "mobile.onboarding.err.invalid.title": "वह फ़ोन का कोड नहीं है",
   "mobile.onboarding.err.invalid.body": "कंप्यूटर पर सेटिंग्स, Phone में QR कोड स्कैन करें या कोड जाँचें और फिर कोशिश करें।",
   "mobile.onboarding.err.unsupported.title": "यह फ़ोन सुरक्षित रूप से लिंक नहीं हो सकता",
-  "mobile.onboarding.err.unsupported.body": "लिंक के लिए ज़रूरी एन्क्रिप्शन मौजूद नहीं है। सिस्टम अपडेट करें या दूसरा फ़ोन लिंक करें।"
+  "mobile.onboarding.err.unsupported.body": "लिंक के लिए ज़रूरी एन्क्रिप्शन मौजूद नहीं है। सिस्टम अपडेट करें या दूसरा फ़ोन लिंक करें।",
+  "mobile.account.title": "अपना खाता बनाएँ",
+  "mobile.account.body": "एक खाता आपके बॉट, फ़ोन और कंप्यूटर को साथ रखता है।",
+  "mobile.account.apple": "Apple के साथ जारी रखें",
+  "mobile.account.google": "Google के साथ जारी रखें",
+  "mobile.account.x": "X",
+  "mobile.account.email": "ईमेल",
+  "mobile.account.same": "पहले से खाता है? इन्हीं बटनों से साइन इन करें।",
+  "mobile.account.inBrowser": "अपने ब्राउज़र में साइन इन पूरा करें",
+  "mobile.account.finishing": "साइन इन हो रहा है",
+  "mobile.account.err.oauth_denied": "साइन इन रद्द हो गया। आगे बढ़ने का तरीका चुनें।",
+  "mobile.account.err.oauth_failed": "साइन इन पूरा नहीं हुआ। फिर से कोशिश करें।",
+  "mobile.account.err.oauth_expired": "साइन इन में बहुत समय लगा। फिर से शुरू करें।",
+  "mobile.account.err.provider_unavailable": "यह विकल्प अभी उपलब्ध नहीं है। दूसरा आज़माएँ।",
+  "mobile.account.err.signup_closed": "अभी नए खाते नहीं बनाए जा सकते।",
+  "mobile.account.err.identity_taken": "यह साइन इन पहले से दूसरे खाते से जुड़ा है।",
+  "mobile.account.err.state": "यह साइन इन कहीं और शुरू हुआ था। यहाँ फिर से शुरू करें।",
+  "mobile.account.err.network": "खाता सेवा से संपर्क नहीं हो सका। अपना कनेक्शन जाँचें।"
 }

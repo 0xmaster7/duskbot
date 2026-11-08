@@ -6983,5 +6983,22 @@
   "mobile.onboarding.err.invalid.title": "这不是手机配对码",
   "mobile.onboarding.err.invalid.body": "请扫描电脑上设置、Phone 中的二维码，或检查代码后重试。",
   "mobile.onboarding.err.unsupported.title": "这部手机无法安全关联",
-  "mobile.onboarding.err.unsupported.body": "缺少关联所需的加密功能。请更新系统，或使用另一部手机关联。"
+  "mobile.onboarding.err.unsupported.body": "缺少关联所需的加密功能。请更新系统，或使用另一部手机关联。",
+  "mobile.account.title": "创建你的账号",
+  "mobile.account.body": "用一个账号连接你的机器人、手机和电脑。",
+  "mobile.account.apple": "通过 Apple 登录",
+  "mobile.account.google": "使用 Google 账号登录",
+  "mobile.account.x": "X",
+  "mobile.account.email": "电子邮箱",
+  "mobile.account.same": "已有账号？使用相同的按钮即可登录。",
+  "mobile.account.inBrowser": "在浏览器中完成登录",
+  "mobile.account.finishing": "正在登录",
+  "mobile.account.err.oauth_denied": "登录已取消。请选择一种方式继续。",
+  "mobile.account.err.oauth_failed": "未能完成登录。请重试。",
+  "mobile.account.err.oauth_expired": "登录超时。请重新开始。",
+  "mobile.account.err.provider_unavailable": "此选项暂不可用。请尝试其他选项。",
+  "mobile.account.err.signup_closed": "目前无法创建新账号。",
+  "mobile.account.err.identity_taken": "此登录方式已关联其他账号。",
+  "mobile.account.err.state": "此次登录在其他位置发起。请在这里重新开始。",
+  "mobile.account.err.network": "无法连接账号服务。请检查网络连接。"
 }

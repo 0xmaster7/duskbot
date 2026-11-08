@@ -4843,5 +4843,22 @@
   "mobile.onboarding.err.invalid.title": "這不是手機配對碼",
   "mobile.onboarding.err.invalid.body": "請掃描電腦上設定、Phone 中的 QR 碼，或檢查代碼後再試一次。",
   "mobile.onboarding.err.unsupported.title": "這支手機無法安全連結",
-  "mobile.onboarding.err.unsupported.body": "缺少連結所需的加密功能。請更新系統，或使用另一支手機連結。"
+  "mobile.onboarding.err.unsupported.body": "缺少連結所需的加密功能。請更新系統，或使用另一支手機連結。",
+  "mobile.account.title": "建立你的帳號",
+  "mobile.account.body": "用一個帳號連結你的機器人、手機和電腦。",
+  "mobile.account.apple": "使用 Apple 登入",
+  "mobile.account.google": "使用 Google 帳戶登入",
+  "mobile.account.x": "X",
+  "mobile.account.email": "電子郵件",
+  "mobile.account.same": "已有帳號？使用相同的按鈕即可登入。",
+  "mobile.account.inBrowser": "在瀏覽器中完成登入",
+  "mobile.account.finishing": "正在登入",
+  "mobile.account.err.oauth_denied": "登入已取消。請選擇一種方式繼續。",
+  "mobile.account.err.oauth_failed": "未能完成登入。請再試一次。",
+  "mobile.account.err.oauth_expired": "登入逾時。請重新開始。",
+  "mobile.account.err.provider_unavailable": "此選項暫時無法使用。請嘗試其他選項。",
+  "mobile.account.err.signup_closed": "目前無法建立新帳號。",
+  "mobile.account.err.identity_taken": "此登入方式已連結其他帳號。",
+  "mobile.account.err.state": "此次登入從其他地方開始。請在這裡重新開始。",
+  "mobile.account.err.network": "無法連線至帳號服務。請檢查網路連線。"
 }
