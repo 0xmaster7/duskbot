@@ -103,9 +103,9 @@ export function Modal({ open, onClose, title, children, footer, wide }: { open: 
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
       <div className="fade-in absolute inset-0 backdrop-blur-[4px]" style={{ background: "var(--scrim)" }} onClick={onClose} aria-hidden />
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className={cx("modal-in relative w-full rounded-card bg-card p-6 outline-none max-sm:p-5", wide ? "max-w-[560px]" : "max-w-[440px]")} style={{ boxShadow: "var(--pop-shadow)" }}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className={cx("modal-in relative my-auto w-full min-w-0 rounded-card bg-card p-6 outline-none max-sm:p-5", wide ? "max-w-[560px]" : "max-w-[440px]")} style={{ boxShadow: "var(--pop-shadow)" }}>
         <div className="flex items-start justify-between gap-4">
           <h2 id={titleId} className="text-16 font-medium text-ink">{title}</h2>
           <button data-close type="button" onClick={onClose} aria-label="Close" className="press hover-ghost -me-2 -mt-2 grid size-10 shrink-0 place-items-center rounded-full text-ink-3"><X size={18} strokeWidth={1.5} /></button>

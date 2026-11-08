@@ -119,7 +119,7 @@ function Resize({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog 
             <button key={d.id} type="button" role="radio" aria-checked={to === d.id} onClick={() => setTo(d.id)} className={cx("pick press-soft flex items-center gap-3 rounded-[12px] border px-4 py-3 text-start", to === d.id ? "border-ink-4 bg-card-2" : "hover-pick border-line-2")}>
               <span className="min-w-0 flex-1">
                 <span className="block text-14 font-medium text-ink">{d.name}{d.id === cloud.tier && <span className="ms-2 text-12 font-normal text-ink-3">Current</span>}</span>
-                <span className="block truncate text-13 text-ink-3">{specLine(d)} · {botsLine(d.botComputers)}</span>
+                <span className="block text-13 leading-[1.4] text-ink-3">{specLine(d)} · {botsLine(d.botComputers)}</span>
               </span>
               <span className="num shrink-0 text-14 text-ink">{dollars(desktopMonthly(d, null, catalog.custom))}<span className="text-ink-3">/mo</span></span>
             </button>
