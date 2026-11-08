@@ -14,6 +14,7 @@ import { KeysPage } from "./keys/KeysPage";
 import { useKeyFocus } from "./keys/key-focus";
 import { CompanionSection } from "./CompanionSection";
 import { ServerPairingCard } from "./ServerPairingCard";
+import { MobilePairingCard } from "./MobilePairingCard";
 import { CustomDomainSettings } from "./CustomDomainSettings";
 import { RemoteComputerSection } from "./RemoteComputerSection";
 import { ConnectedWorkspacesSettings } from "./ConnectedWorkspacesSettings";
@@ -237,7 +238,7 @@ export function SettingsModal() {
     client: <RemoteComputerSection hideWhenUnavailable />,
     domain: remoteActive ? null : <CustomDomainSettings />,
     // Security: the server decides who may pair (an owner or admin session), not this gate.
-    pairing: <ServerPairingCard cloudHome={cloudHome} focusRequest={computerPairs ? 0 : phoneFocus} team={state.config?.team?.name} teamPhoneBlocked={state.config?.managedPolicy?.remoteAccess === false ? t("policy.teamRemoteBlocked", { organization: state.config.managedPolicy.organizationName }) : null} simple />,
+    pairing: <><MobilePairingCard remote={remoteActive} /><ServerPairingCard cloudHome={cloudHome} focusRequest={computerPairs ? 0 : phoneFocus} team={state.config?.team?.name} teamPhoneBlocked={state.config?.managedPolicy?.remoteAccess === false ? t("policy.teamRemoteBlocked", { organization: state.config.managedPolicy.organizationName }) : null} simple /></>,
     companion: remoteActive ? null : <CompanionSection profileEmail={state.config?.profile?.email} focusRequest={computerPairs ? phoneFocus : 0} />,
   };
   const cloudAccount = has("cloudAccount") && !remoteActive

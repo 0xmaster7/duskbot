@@ -1,4 +1,4 @@
-// sessions and tunnels, kept in memory and written to one json file so a restart of the link service mid-setup loses
+// sessions, tunnels and channels, kept in memory and written to one json file so a restart mid-setup loses
 // nothing. only verifiers (sha256 of tokens) are stored, never a token, and never anything the app and vps seal.
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -10,13 +10,15 @@ export const SESSION_KEEP_MS = 15 * 60_000;
 export const MAX_EVENTS = 400;
 export const MAX_SESSIONS = 5000;
 export const MAX_TUNNELS = 20000;
+export const MAX_CHANNELS_PER_TUNNEL = 32;
 
-/** @param {{ dir?: string | null, now?: () => number }} options */
-export function createStore({ dir = null, now = Date.now } = {}) {
+/** @param {{ dir?: string | null, now?: () => number, onChannelDelete?: (channel: any) => void }} options */
+export function createStore({ dir = null, now = Date.now, onChannelDelete = () => {} } = {}) {
   /** @type {Map<string, any>} */
   const sessions = new Map();
   /** @type {Map<string, any>} */
   const tunnels = new Map();
+  const channels = new Map();
   const file = dir ? join(dir, "state.json") : null;
   if (file) {
     mkdirSync(dir, { recursive: true, mode: 0o700 });
@@ -24,6 +26,7 @@ export function createStore({ dir = null, now = Date.now } = {}) {
       const saved = JSON.parse(readFileSync(file, "utf8"));
       for (const session of saved.sessions ?? []) if (typeof session?.id === "string") sessions.set(session.id, session);
       for (const tunnel of saved.tunnels ?? []) if (typeof tunnel?.id === "string") tunnels.set(tunnel.id, tunnel);
+      for (const channel of saved.channels ?? []) if (typeof channel?.id === "string") channels.set(channel.id, channel);
     } catch (error) {
       if (error?.code !== "ENOENT") console.error(`link: state file unreadable, starting empty (${error?.message ?? error})`);
     }
@@ -33,7 +36,7 @@ export function createStore({ dir = null, now = Date.now } = {}) {
     timer = null;
     if (!file) return;
     const tmp = `${file}.${process.pid}.tmp`;
-    writeFileSync(tmp, JSON.stringify({ v: 1, sessions: [...sessions.values()], tunnels: [...tunnels.values()] }), { mode: 0o600 });
+    writeFileSync(tmp, JSON.stringify({ v: 1, sessions: [...sessions.values()], tunnels: [...tunnels.values()], channels: [...channels.values()] }), { mode: 0o600 });
     renameSync(tmp, file);
   }
   const save = () => {
@@ -59,11 +62,18 @@ export function createStore({ dir = null, now = Date.now } = {}) {
       const endedAt = session.endedAt ?? (state === "expired" ? session.createdAt + (session.state === "waiting" ? SESSION_CLAIM_MS : SESSION_LIFE_MS) : null);
       if (endedAt !== null && t > endedAt + SESSION_KEEP_MS) { sessions.delete(id); changed = true; }
     }
+    for (const [id, channel] of channels) {
+      if ((channel.expiresAt != null && channel.expiresAt <= t) || !tunnels.has(channel.tunnel)) {
+        channels.delete(id);
+        onChannelDelete(channel);
+        changed = true;
+      }
+    }
     if (changed) save();
   }
 
   return {
-    sessions, tunnels, stateOf, sweep, save,
+    sessions, tunnels, channels, stateOf, sweep, save,
     flush: () => { if (timer) clearTimeout(timer); flush(); },
     close: () => { if (timer) { clearTimeout(timer); flush(); } },
   };
