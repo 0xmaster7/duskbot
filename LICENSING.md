@@ -17,8 +17,7 @@ section 4(b)). The git history records what changed.
 
 ## Commercial use
 
-Commercial use needs a separate license: https://openmausbot.com (placeholder;
-the real link will be set here).
+Commercial use needs a separate license: https://openmausbot.com.
 
 ## Third-party components and trademarks
 
