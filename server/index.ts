@@ -6176,10 +6176,10 @@ async function mountBotVps(
   const botVpsConfig = vpsConfigForBot(cfg, bot), alias = vpsSshAlias(botVpsConfig)!, current = () => activeInternalGenerationByThread.get(owner.threadId) === owner.generation, vpsResource = `computer:vps:${vpsSshAliasForBot(cfg, bot)}:${bot.id}`;
   const provision = () => vps.vpsComputerAction("provision", botVpsConfig, bot.id, undefined, { stillAllowed: current, onStarting: () => computerStateChanged(bot.id, alias, "starting"), onProgress: announceDesktopBuild(owner.threadId) });
   let attached: { bridge: RelayBridge; claim: () => Promise<void> } | null = null;
-  const attach = async (remote: vps.VpsComputerStatus, sshAlias: string, started: boolean) => {
+  const attach = async (remote: vps.VpsComputerStatus, sshAlias: string, started: boolean, relayed = true) => {
     const targetCfg = { vps: { sshAlias } }; await rememberVpsReady(bot.id, remote, started); if (!remote.container_id) throw new Error("The VPS computer identity could not be verified");
     turnVpsTargets.set(owner.threadId, { generation: owner.generation, botId: bot.id, ownerId: bot.id, config: targetCfg, containerId: remote.container_id });
-    const vpsMcp = vps.vpsComputerMcp(targetCfg, bot.id, remote.container_id), vpsControl = controlIntegration(bot.id, owner.threadId, owner.generation);
+    const vpsMcp = vps.vpsComputerMcp(targetCfg, bot.id, remote.container_id), vpsControl = controlIntegration(bot.id, owner.threadId, owner.generation, relayed ? { relayed: true } : {});
     // Live frames only once this turn holds the desktop, or it would publish another turn's screen as its own.
     const vpsCapture = () => vps.vpsComputerScreenshot(targetCfg, bot.id);
     return attached = { bridge: { ...vpsMcp, env: { ...vpsMcp.env, OMB_CONTROL_URL: vpsControl.url, OMB_CONTROL_TOKEN: vpsControl.token } },
@@ -6197,7 +6197,7 @@ async function mountBotVps(
     const asleep = Boolean((opts.lazy || opts.prewake) && !remote?.ready && remote?.daemonUp && !vpsDesktopOutdated(remote)); if (!asleep && opts.start && opts.prewake && !remote?.ready) remote = await provision();
     if (asleep && !computerRelay.knowsTools(vpsToolsKey(remote))) { computerRelay.open(owner, { bridge: () => attached?.bridge ?? null, wake, toolsKey: vpsToolsKey(remote) }); return { asleep: true as const }; }
     if (!asleep && (!remote?.ready || !remote.sshAlias)) return { problem: remote?.problem ?? null, reachable: remote?.daemonUp === true, outdated: vpsDesktopOutdated(remote) };
-    if (asleep) vpsThreadEnded(bot.id, owner.threadId); else await attach(remote, remote.sshAlias!, opts.start);
+    if (asleep) vpsThreadEnded(bot.id, owner.threadId); else await attach(remote, remote.sshAlias!, opts.start, botBox.enabled());
     autoVmClaims.set(owner.threadId, { owner, lazy: true, label: "the VPS computer", onRejected: opts.onRejected, ...(asleep ? { startsComputer: true as const } : {}),
       claim: async () => (attached ?? (await computerRelay.wake(owner), attached!)).claim() });
     return { integration: asleep || botBox.enabled() ? relayedComputer(owner, bot.id, { bridge: () => attached?.bridge ?? null, wake, toolsKey: vpsToolsKey(remote) }) : attached!.bridge, ...(asleep ? { asleep: true as const } : {}) };

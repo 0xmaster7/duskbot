@@ -41,6 +41,8 @@ export interface McpSession {
 const MAX_BUFFERED = 16 * 1024 * 1024;
 const START_MS = 30_000;
 const KEPT_LISTS = 8;
+/** how long a finished turn's driver session waits for the next turn on the same desktop */
+const PARKED_MS = 5 * 60_000;
 const STOPPED = "The cloud computer's tools stopped. Take a screenshot before repeating an action whose result is uncertain.";
 const SLOW = "The cloud computer did not answer in time. It may still be running the action: take a screenshot before repeating it.";
 const STILL_STARTING = "The cloud computer is still starting. Call the tool again in a moment; nothing ran yet.";
@@ -157,9 +159,28 @@ function within<T>(work: Promise<T>, deadline: number, signal?: AbortSignal): Pr
   });
 }
 
-export function createComputerRelay(options: { lists: ComputerToolLists; open?: (bridge: RelayBridge) => McpSession; budgetMs?: number }) {
+export function createComputerRelay(options: { lists: ComputerToolLists; open?: (bridge: RelayBridge) => McpSession; budgetMs?: number; parkedMs?: number }) {
   const turns = new Map<string, Entry>();
-  const open = options.open ?? openBridgeSession;
+  // a driver session outlives its turn here, keyed by the whole bridge (container id and the thread's bearer), so the
+  // next turn on that desktop skips spawning the bridge and its docker exec; a stopped desktop ends the session itself
+  const parked = new Map<string, { session: McpSession; timer: ReturnType<typeof setTimeout> }>();
+  const parkedMs = options.parkedMs ?? PARKED_MS;
+  const bridgeKey = (bridge: RelayBridge) => JSON.stringify([bridge.command, bridge.args, Object.entries(bridge.env).sort(([a], [b]) => a.localeCompare(b))]);
+  const unpark = (key: string) => {
+    const held = parked.get(key);
+    if (!held) return undefined;
+    parked.delete(key);
+    clearTimeout(held.timer);
+    return held.session.closed ? undefined : held.session;
+  };
+  const park = (bridge: RelayBridge, session: McpSession) => {
+    const key = bridgeKey(bridge);
+    unpark(key)?.close();
+    const timer = setTimeout(() => unpark(key)?.close(), parkedMs);
+    timer.unref?.();
+    parked.set(key, { session, timer });
+  };
+  const open = (bridge: RelayBridge) => unpark(bridgeKey(bridge)) ?? (options.open ?? openBridgeSession)(bridge);
   const budgetMs = options.budgetMs ?? HARNESS_CALL_BUDGET_MS;
   const entryFor = (owner: RelayOwner) => {
     const entry = turns.get(owner.threadId);
@@ -186,7 +207,8 @@ export function createComputerRelay(options: { lists: ComputerToolLists; open?: 
   };
   const close = (entry: Entry) => {
     entry.closed = true;
-    entry.session?.close();
+    if (entry.session && !entry.session.closed && entry.bridge) park(entry.bridge, entry.session);
+    else entry.session?.close();
     if (turns.get(entry.owner.threadId) === entry) turns.delete(entry.owner.threadId);
   };
   return {
