@@ -92,7 +92,7 @@ function WorkspaceRow({ w, cloud }: { w: WorkspaceSummary; cloud: CloudDesktop |
         </span>
         <span className="num truncate text-13 text-ink-2 max-md:hidden">{botLine ?? <span className="skeleton inline-block h-4 w-20" aria-hidden />}</span>
         <span className="num truncate text-13 text-ink-3 max-md:hidden">{load ?? (detail ? <span className="text-ink-4">No live stats</span> : <span className="skeleton inline-block h-4 w-28" aria-hidden />)}</span>
-        <FreshnessTag freshness={w.freshness} at={w.lastReportAt} now={now} className="justify-end max-sm:[&>span:last-child]:hidden" />
+        <FreshnessTag freshness={w.freshness} at={w.lastReportAt} now={now} className="justify-end" />
         <ChevronRight size={16} strokeWidth={1.5} className="shrink-0 text-ink-4" aria-hidden />
       </button>
     </li>
