@@ -8,7 +8,8 @@ import { afterEach, expect, it, vi } from "vitest";
 import { signedPayload } from "../../../shared/dashboard-protocol.ts";
 import type { BillingOverview, Catalog, CheckoutAnswer, CloudDesktopView, InvoicePage, Quote } from "../../../shared/billing-api.ts";
 import { createDashboardApp } from "../app.ts";
-import { startFakeAdmin } from "../fake-admin.ts";
+import { memoryMailer } from "../auth/mail.ts";
+import { CSRF_HEADER } from "../../../shared/account-api.ts";
 import { createBilling } from "./index.ts";
 import type { BillingOptions } from "./index.ts";
 import { BILLING_CONFIG } from "./plans.ts";
@@ -33,24 +34,26 @@ function dataDirectory() {
 }
 async function fixture() {
   for (const key of ["OMB_BILLING_PROVIDER", "OMB_CLOUD_PROVIDER", "OMB_POOL_DRIVER", "OMB_CLOUD_SEAL_KEY", "OMB_DODO_PRODUCTS"]) vi.stubEnv(key, undefined);
-  const dir = dataDirectory(), admin = await startFakeAdmin(); cleanup.push(admin.close);
+  const dir = dataDirectory(), mailer = memoryMailer(), csrf = new Map<string, string>();
   let time = Date.now();
-  const app = createDashboardApp({ dataDir: dir, publicUrl: "http://127.0.0.1", accountOrigin: admin.url, staticDir: null, now: () => time });
+  const app = createDashboardApp({ dataDir: dir, publicUrl: "http://127.0.0.1", mailer, staticDir: null, now: () => time });
   const billing = vi.mocked(createBilling).mock.results.at(-1)!.value as ReturnType<typeof createBilling>;
   const dashboard = vi.mocked(createBilling).mock.calls.at(-1)![0].dashboard;
   cleanup.push(() => app.close());
   const origin = await listen(createServer(app.handle));
   async function page(path: string, data?: unknown, cookie?: string, method = data === undefined ? "GET" : "POST") {
-    return fetch(`${origin}${path}`, { method, headers: { "content-type": "application/json", ...(cookie ? { cookie } : {}) }, ...(data === undefined ? {} : { body: JSON.stringify(data) }), redirect: "manual" });
+    return fetch(`${origin}${path}`, { method, headers: { "content-type": "application/json", origin: "http://127.0.0.1", ...(cookie ? { cookie, [CSRF_HEADER]: csrf.get(cookie) ?? "" } : {}) }, ...(data === undefined ? {} : { body: JSON.stringify(data) }), redirect: "manual" });
   }
   async function answer<T>(path: string, data?: unknown, cookie?: string, method?: string) {
     const res = await page(path, data, cookie, method); expect(res.status, `${method ?? "request"} ${path}: ${res.status}`).toBe(200); return read<T>(res);
   }
   async function login(email = "owner@example.test") {
     const start = await answer<{ attempt: string }>("/v1/auth/start", { email });
-    const res = await page("/v1/auth/verify", { attempt: start.attempt, code: admin.codes.get(email) }); expect(res.status).toBe(200);
-    const { account } = await read<{ account: { id: string; email: string } }>(res);
-    return { cookie: res.headers.get("set-cookie")!.split(";")[0], account };
+    const res = await page("/v1/auth/verify", { attempt: start.attempt, code: mailer.outbox.findLast(item => item.to === email)?.text.match(/\b\d{8}\b/)?.[0] }); expect(res.status).toBe(200);
+    const { account, csrfToken } = await read<{ account: { id: string; email: string }; csrfToken: string }>(res);
+    const cookie = res.headers.getSetCookie().find(value => value.startsWith("omb_dash="))!.split(";")[0];
+    csrf.set(cookie, csrfToken);
+    return { cookie, account, csrfToken };
   }
   const saved = () => JSON.parse(readFileSync(join(dir, "billing.json"), "utf8")) as BillingState;
   async function deliver(delivery: { headers: Record<string, string>; body: Buffer }) {
@@ -68,7 +71,7 @@ async function fixture() {
 const bundle = (id: string) => ({ ...structuredClone(BILLING_CONFIG.bundles.find(b => b.id === id)!.cart), interval: "month" });
 
 it("runs the dashboard billing lifecycle over HTTP, including signed workspace reports and webhook replays", async () => {
-  const f = await fixture(), { cookie, account } = await f.login();
+  const f = await fixture(), { cookie, account, csrfToken } = await f.login();
   const catalog = await f.answer<Catalog>("/v1/billing/catalog"); expect(catalog.bundles.map(b => b.id)).toEqual(["free", "starter", "pro", "team"]);
   const builder = { interval: "year", license: { kind: "solo" }, desktop: { kind: "dedicated", region: "fsn1", spec: { vcpu: 12, ramGb: 24, diskGb: 240 } } };
   expect(await f.answer<Quote>("/v1/billing/quote", { cart: builder })).toMatchObject({ bundle: null, machine: builder.desktop.spec, totalCents: 90240 });
@@ -116,9 +119,14 @@ it("runs the dashboard billing lifecycle over HTTP, including signed workspace r
   for (const [path, data] of [[`/v1/clouds/${cloud.id}`, undefined], [`/v1/billing/subscriptions/${subId}/cancel`, {}], [invoices.invoices[0].downloadUrl!, undefined], [`/v1/billing/licenses/${overview.licenses[0].id}/members`, { email: "x@example.test" }]] as const) {
     const res = await f.page(path, data, stranger.cookie); expect(res.status).toBe(404); expect(await res.json()).toMatchObject({ code: "not_found" });
   }
-  const wrongType = await fetch(`${f.origin}/v1/billing/checkout`, { method: "POST", headers: { cookie, "content-type": "text/plain" }, body: "{}" }); expect(wrongType.status).toBe(403);
-  const foreignOrigin = await fetch(`${f.origin}/v1/billing/checkout`, { method: "POST", headers: { cookie, "content-type": "application/json", origin: "https://foreign.test" }, body: "{}" }); expect(foreignOrigin.status).toBe(403);
-  expect((await f.page("/v1/billing/overview")).status).toBe(401);
+  const wrongType = await fetch(`${f.origin}/v1/billing/checkout`, { method: "POST", headers: { cookie, [CSRF_HEADER]: csrfToken, origin: "http://127.0.0.1", "content-type": "text/plain" }, body: "{}" }); expect(wrongType.status).toBe(403);
+  const foreignOrigin = await fetch(`${f.origin}/v1/billing/checkout`, { method: "POST", headers: { cookie, [CSRF_HEADER]: csrfToken, "content-type": "application/json", origin: "https://foreign.test" }, body: "{}" }); expect(foreignOrigin.status).toBe(403);
+  const signedOut = await f.page("/v1/billing/overview");
+  expect(signedOut.status).toBe(401); expect(await signedOut.json()).toMatchObject({ code: "signed_out" });
+  const beforeCsrf = structuredClone({ billing: f.saved(), cloud: f.billing.clouds.get(cloud.id), dashboard: f.dashboard.state });
+  const noCsrf = await fetch(`${f.origin}/v1/billing/subscriptions/${subId}/cancel`, { method: "POST", headers: { cookie, "content-type": "application/json", origin: "http://127.0.0.1" }, body: "{}" });
+  expect(noCsrf.status).toBe(403); expect(await noCsrf.json()).toMatchObject({ code: "csrf" });
+  expect({ billing: f.saved(), cloud: f.billing.clouds.get(cloud.id), dashboard: f.dashboard.state }).toEqual(beforeCsrf);
   await f.answer(`/v1/billing/subscriptions/${subId}/cancel`, { survey: { answer: "price", improve: "cheaper", ignored: true } }, cookie);
   overview = await f.answer<BillingOverview>("/v1/billing/overview", undefined, cookie);
   expect(overview.subscriptions[0].cancelAtPeriodEnd).toBe(true);
