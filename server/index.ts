@@ -530,7 +530,7 @@ import {
   requestOrigin,
   requestSource,
   resolveLoopbackTrust,
-  resolveRequestAuth,
+  resolveRequestAuth, resolveHttpRequestAuth, answerMobilePreflight,
   parseCookies,
   serializeSessionCookie,
   sessionCookieName, ownerOrAdmin,
@@ -12940,7 +12940,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         serverName: cfg.computerName || environmentDescriptor({ environmentId: ENVIRONMENT_ID, ...TEAM_LABEL, desktopManaged: DESKTOP_MANAGED }).label,
       });
     }
-    if (await mobileLink.publicRoute(req, res, path, method, json, readBody)) return; const gate = resolveRequestAuth(req, {
+    if (answerMobilePreflight(req, res, url) || await mobileLink.publicRoute(req, res, path, method, json, readBody)) return; const gate = resolveHttpRequestAuth(req, res, {
       sessions,
       cookieName: SESSION_COOKIE,
       streamPath: "/api/events",

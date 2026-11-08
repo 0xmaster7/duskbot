@@ -1,12 +1,14 @@
 // Loopback requests (Host and Origin both loopback) or paired sessions (bearer, cookie, stream ticket); a session swaps the loopback rule for same-origin (CSRF) and a scope check.
 // Browsers never get loopback trust: a page a bot opens is a browser on this machine too.
-import type { IncomingMessage } from "node:http";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import { timingSafeEqual } from "node:crypto";
 import { isIP } from "node:net";
 
 import { BOT_PROFILE_PATCH_FIELDS } from "./bot-profile.ts";
 import type { Scope, SessionRecord, SessionRegistry } from "./sessions.ts";
 import { denyReason as companionDenial, isCompanionNotice } from "../companion/src/routes.ts";
+import { applyMobileCors, isMobileOrigin, takeViewerAccessToken } from "./mobile/request.ts";
+export { answerMobilePreflight } from "./mobile/request.ts";
 
 /** `owner`: the machine's owner. `service`: a shared server where every bot's shell is a loopback caller too,
  * so loopback without a session may reach only SERVICE_ALLOW. */
@@ -560,7 +562,10 @@ export function resolveRequestAuth(req: IncomingMessage, options: ResolveOptions
   const deny = (status: 401 | 403, error: string): RequestAuthResult => ({ auth: null, status, error });
 
   // A presented session credential wins over the loopback rule.
-  const bearer = bearerToken(req.headers.authorization);
+  const accessToken = takeViewerAccessToken(req, options.url);
+  if (accessToken === null) return deny(401, "unauthorized: invalid viewer session");
+  const bearer = accessToken ?? bearerToken(req.headers.authorization);
+  if (isMobileOrigin(req.headers.origin) && !bearer?.startsWith("omb_sess_")) return deny(403, "forbidden: cross-origin request");
   const cookie = parseCookies(headerValue(req.headers.cookie)).get(options.cookieName);
   const ticket = path === options.streamPath ? options.url.searchParams.get("ticket") : null;
   let session: SessionRecord | null = null;
@@ -642,4 +647,10 @@ export function resolveRequestAuth(req: IncomingMessage, options: ResolveOptions
     return deny(403, "forbidden: loopback host required (pair this device to use the server remotely)");
   }
   return deny(403, "forbidden: cross-origin request");
+}
+
+export function resolveHttpRequestAuth(req: IncomingMessage, res: ServerResponse, options: ResolveOptions): RequestAuthResult {
+  const result = resolveRequestAuth(req, options);
+  if (result.auth) applyMobileCors(req, res, result.auth);
+  return result;
 }

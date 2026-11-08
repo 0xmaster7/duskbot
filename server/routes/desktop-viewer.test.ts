@@ -61,11 +61,11 @@ function get(path: string, extra: Record<string, string> = {}) {
   });
 }
 
-function open(path = `${base}/websockify`, overrides: Record<string, string> = {}, rawKey = "dGhlIHNhbXBsZSBub25jZQ==") {
+function open(path = `${base}/websockify`, overrides: Record<string, string | undefined> = {}, rawKey = "dGhlIHNhbXBsZSBub25jZQ==") {
   return new Promise<{ status: number; socket?: Duplex; body?: string }>((resolve, reject) => {
-    const req = request({ hostname: "127.0.0.1", port: appPort, path, headers: {
+    const req = request({ hostname: "127.0.0.1", port: appPort, path, headers: Object.fromEntries(Object.entries({
       ...headers(), Upgrade: "websocket", Connection: "Upgrade", "Sec-WebSocket-Key": rawKey, "Sec-WebSocket-Version": "13", ...overrides,
-    } });
+    }).filter((entry): entry is [string, string] => entry[1] !== undefined)) });
     req.once("upgrade", (res, socket) => { peers.add(socket); resolve({ status: res.statusCode!, socket }); });
     req.once("response", res => {
       let body = "";
@@ -170,6 +170,40 @@ it("protects HTTP and upgrade requests with the existing session and scope check
     expect((await get(base, extra)).status).toBe(expected);
   }
   expect(inspected).toEqual([]);
+});
+
+it.each(["capacitor://localhost", "https://localhost", "http://localhost", undefined])("authenticates viewer query tokens from %s and strips them upstream", async origin => {
+  const answer = await open(`${base}/websockify?access_token=${admin.token}`, { origin, cookie: "" });
+  expect(answer.status).toBe(101);
+  expect(seenPath).toBe("/websockify");
+  expect(seenHeaders.authorization).toBeUndefined();
+  expect(seenHeaders.cookie).toBeUndefined();
+  const echoed = once(answer.socket!, "data");
+  answer.socket!.write(Buffer.from("phone viewer"));
+  expect((await echoed)[0]).toEqual(Buffer.from("phone viewer"));
+  const closed = once(answer.socket!, "close");
+  sessions.revoke(admin.session.id);
+  await closed;
+  expect((await open(`${base}/websockify?access_token=${admin.token}`, { origin, cookie: "" })).status).toBe(401);
+});
+
+it("refuses invalid, expired, duplicate, client-scoped and foreign-origin viewer query tokens", async () => {
+  for (const [query, origin, status] of [
+    ["access_token=invalid", "capacitor://localhost", 401],
+    ["access_token=omb_sess_invalid", "capacitor://localhost", 401],
+    [`access_token=${member.token}`, "capacitor://localhost", 403],
+    [`access_token=${admin.token}&access_token=${admin.token}`, "capacitor://localhost", 401],
+    [`access_token=${admin.token}`, "https://evil.example", 401],
+    [`access_token=${admin.token}`, remoteHeaders.origin, 401],
+  ] as const) expect((await open(`${base}/websockify?${query}`, { origin })).status).toBe(status);
+  now = admin.session.expiresAt + 1;
+  expect((await open(`${base}/websockify?access_token=${admin.token}`, { origin: "capacitor://localhost" })).status).toBe(401);
+  expect(inspected).toEqual([]);
+});
+
+it("allows mobile bearer viewer metadata and refuses foreign-origin bearers", async () => {
+  expect((await get(base, { origin: "capacitor://localhost", cookie: "", authorization: `Bearer ${admin.token}` })).status).toBe(200);
+  expect((await get(base, { origin: "https://evil.example", cookie: "", authorization: `Bearer ${admin.token}` })).status).toBe(403);
 });
 
 it("returns fresh credentials only to admins and selects shared, per-bot and pool targets", async () => {
