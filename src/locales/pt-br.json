@@ -6155,8 +6155,6 @@
   "mobile.onboarding.pages": "Páginas",
   "mobile.onboarding.pageN": "Página {n}",
   "mobile.onboarding.linkTitle": "Vincule sua instalação",
-  "mobile.onboarding.linkBody": "No computador, abra {app}, vá para Configurações, depois Phone, depois Pair with a code e leia o código exibido.",
-  "mobile.onboarding.illustrationPath": "Configurações › Phone",
   "mobile.onboarding.scan": "Ler código QR",
   "mobile.onboarding.enterCode": "Inserir um código",
   "mobile.onboarding.pasteLink": "Colar um link",
@@ -6322,5 +6320,9 @@
   "settings.ambient.display.active": "A tela que você está usando",
   "settings.ambient.display.built-in": "Tela integrada",
   "settings.ambient.display.main": "Tela principal",
-  "settings.ambient.failed": "Não foi possível salvar esta configuração. Tente novamente."
+  "settings.ambient.failed": "Não foi possível salvar esta configuração. Tente novamente.",
+  "mobile.onboarding.linkShort": "Abra {app} no computador e leia o código em Configurações › Phone.",
+  "mobile.onboarding.pasteInstead": "Colar um link em vez disso",
+  "mobile.home.onlyPinnedTitle": "Suas outras conversas aparecem aqui",
+  "mobile.home.onlyPinnedBody": "Crie um bot para uma tarefa, como cuidar dos e-mails, pesquisar ou trabalhar em um projeto, e a conversa dele aparecerá nesta lista."
 }

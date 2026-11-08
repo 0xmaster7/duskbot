@@ -6735,8 +6735,6 @@
   "mobile.onboarding.pages": "페이지",
   "mobile.onboarding.pageN": "{n}페이지",
   "mobile.onboarding.linkTitle": "설치 연결",
-  "mobile.onboarding.linkBody": "컴퓨터에서 {app}을 열고 설정, Phone, Pair with a code 순서로 선택한 뒤 표시된 코드를 스캔하세요.",
-  "mobile.onboarding.illustrationPath": "설정 › Phone",
   "mobile.onboarding.scan": "QR 코드 스캔",
   "mobile.onboarding.enterCode": "코드 입력",
   "mobile.onboarding.pasteLink": "링크 붙여넣기",
@@ -6902,5 +6900,9 @@
   "settings.ambient.display.active": "사용 중인 디스플레이",
   "settings.ambient.display.built-in": "내장 디스플레이",
   "settings.ambient.display.main": "주 디스플레이",
-  "settings.ambient.failed": "이 설정을 저장하지 못했어요. 다시 시도하세요."
+  "settings.ambient.failed": "이 설정을 저장하지 못했어요. 다시 시도하세요.",
+  "mobile.onboarding.linkShort": "컴퓨터에서 {app}을 열고 설정 › Phone에 있는 코드를 스캔하세요.",
+  "mobile.onboarding.pasteInstead": "대신 링크 붙여넣기",
+  "mobile.home.onlyPinnedTitle": "다른 채팅은 여기에 표시돼요",
+  "mobile.home.onlyPinnedBody": "메일 정리, 조사, 프로젝트 같은 일을 맡길 봇을 만들면 이 목록에 해당 채팅이 표시돼요."
 }

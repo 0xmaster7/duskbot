@@ -3206,8 +3206,6 @@
   "mobile.onboarding.pages": "पेज",
   "mobile.onboarding.pageN": "पेज {n}",
   "mobile.onboarding.linkTitle": "अपना इंस्टॉलेशन लिंक करें",
-  "mobile.onboarding.linkBody": "कंप्यूटर पर {app} खोलें, सेटिंग्स में जाएँ, फिर Phone, फिर Pair with a code चुनें और दिखाया गया कोड स्कैन करें।",
-  "mobile.onboarding.illustrationPath": "सेटिंग्स › Phone",
   "mobile.onboarding.scan": "QR कोड स्कैन करें",
   "mobile.onboarding.enterCode": "कोड दर्ज करें",
   "mobile.onboarding.pasteLink": "लिंक पेस्ट करें",
@@ -3373,5 +3371,9 @@
   "settings.ambient.display.active": "वह डिस्प्ले जिसका आप उपयोग कर रहे हैं",
   "settings.ambient.display.built-in": "बिल्ट-इन डिस्प्ले",
   "settings.ambient.display.main": "मुख्य डिस्प्ले",
-  "settings.ambient.failed": "यह सेटिंग सेव नहीं हो सकी। फिर से कोशिश करें।"
+  "settings.ambient.failed": "यह सेटिंग सेव नहीं हो सकी। फिर से कोशिश करें।",
+  "mobile.onboarding.linkShort": "कंप्यूटर पर {app} खोलें और सेटिंग्स › Phone में कोड स्कैन करें।",
+  "mobile.onboarding.pasteInstead": "इसके बजाय लिंक पेस्ट करें",
+  "mobile.home.onlyPinnedTitle": "आपकी बाकी चैट यहाँ दिखेंगी",
+  "mobile.home.onlyPinnedBody": "ईमेल, रिसर्च या किसी प्रोजेक्ट जैसे काम के लिए बॉट बनाएँ। उसकी चैट इस सूची में दिखेगी।"
 }

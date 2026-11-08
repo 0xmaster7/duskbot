@@ -3287,8 +3287,6 @@
   "mobile.onboarding.pages": "Seiten",
   "mobile.onboarding.pageN": "Seite {n}",
   "mobile.onboarding.linkTitle": "Deine Installation verknüpfen",
-  "mobile.onboarding.linkBody": "Öffne {app} auf deinem Computer, gehe zu Einstellungen, dann Phone, dann Pair with a code und scanne den angezeigten Code.",
-  "mobile.onboarding.illustrationPath": "Einstellungen › Phone",
   "mobile.onboarding.scan": "QR-Code scannen",
   "mobile.onboarding.enterCode": "Code eingeben",
   "mobile.onboarding.pasteLink": "Link einfügen",
@@ -3454,5 +3452,9 @@
   "settings.ambient.display.active": "Das Display, das du gerade nutzt",
   "settings.ambient.display.built-in": "Integriertes Display",
   "settings.ambient.display.main": "Hauptdisplay",
-  "settings.ambient.failed": "Diese Einstellung konnte nicht gespeichert werden. Versuche es erneut."
+  "settings.ambient.failed": "Diese Einstellung konnte nicht gespeichert werden. Versuche es erneut.",
+  "mobile.onboarding.linkShort": "Öffne {app} auf deinem Computer und scanne den Code unter Einstellungen › Phone.",
+  "mobile.onboarding.pasteInstead": "Stattdessen einen Link einfügen",
+  "mobile.home.onlyPinnedTitle": "Deine anderen Chats erscheinen hier",
+  "mobile.home.onlyPinnedBody": "Erstelle einen Bot für eine Aufgabe wie E-Mails, Recherche oder ein Projekt. Sein Chat erscheint dann in dieser Liste."
 }

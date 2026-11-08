@@ -3210,8 +3210,6 @@
   "mobile.onboarding.pages": "Pages",
   "mobile.onboarding.pageN": "Page {n}",
   "mobile.onboarding.linkTitle": "Associer votre installation",
-  "mobile.onboarding.linkBody": "Sur votre ordinateur, ouvrez {app}, allez dans Paramètres, puis Phone, puis Pair with a code et scannez le code affiché.",
-  "mobile.onboarding.illustrationPath": "Paramètres › Phone",
   "mobile.onboarding.scan": "Scanner le code QR",
   "mobile.onboarding.enterCode": "Saisir un code",
   "mobile.onboarding.pasteLink": "Coller un lien",
@@ -3377,5 +3375,9 @@
   "settings.ambient.display.active": "L’écran que vous utilisez",
   "settings.ambient.display.built-in": "Écran intégré",
   "settings.ambient.display.main": "Écran principal",
-  "settings.ambient.failed": "Impossible d’enregistrer ce réglage. Réessayez."
+  "settings.ambient.failed": "Impossible d’enregistrer ce réglage. Réessayez.",
+  "mobile.onboarding.linkShort": "Ouvrez {app} sur votre ordinateur et scannez le code dans Paramètres › Phone.",
+  "mobile.onboarding.pasteInstead": "Coller un lien à la place",
+  "mobile.home.onlyPinnedTitle": "Vos autres discussions apparaissent ici",
+  "mobile.home.onlyPinnedBody": "Créez un bot pour une tâche, comme gérer vos e-mails, faire des recherches ou travailler sur un projet. Sa discussion apparaîtra dans cette liste."
 }

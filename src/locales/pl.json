@@ -6283,8 +6283,6 @@
   "mobile.onboarding.pages": "Strony",
   "mobile.onboarding.pageN": "Strona {n}",
   "mobile.onboarding.linkTitle": "Połącz swoją instalację",
-  "mobile.onboarding.linkBody": "Na komputerze otwórz {app}, przejdź do Ustawienia, potem Phone, potem Pair with a code i zeskanuj wyświetlony kod.",
-  "mobile.onboarding.illustrationPath": "Ustawienia › Phone",
   "mobile.onboarding.scan": "Zeskanuj kod QR",
   "mobile.onboarding.enterCode": "Wpisz kod",
   "mobile.onboarding.pasteLink": "Wklej link",
@@ -6450,5 +6448,9 @@
   "settings.ambient.display.active": "Używany wyświetlacz",
   "settings.ambient.display.built-in": "Wbudowany wyświetlacz",
   "settings.ambient.display.main": "Główny wyświetlacz",
-  "settings.ambient.failed": "Nie udało się zapisać tego ustawienia. Spróbuj ponownie."
+  "settings.ambient.failed": "Nie udało się zapisać tego ustawienia. Spróbuj ponownie.",
+  "mobile.onboarding.linkShort": "Otwórz {app} na komputerze i zeskanuj kod w sekcji Ustawienia › Phone.",
+  "mobile.onboarding.pasteInstead": "Zamiast tego wklej link",
+  "mobile.home.onlyPinnedTitle": "Twoje pozostałe czaty pojawią się tutaj",
+  "mobile.home.onlyPinnedBody": "Utwórz bota do zadania, na przykład obsługi poczty, zbierania informacji lub pracy nad projektem, a jego czat pojawi się na tej liście."
 }

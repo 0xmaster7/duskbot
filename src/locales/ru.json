@@ -6295,8 +6295,6 @@
   "mobile.onboarding.pages": "Страницы",
   "mobile.onboarding.pageN": "Страница {n}",
   "mobile.onboarding.linkTitle": "Привяжите свою установку",
-  "mobile.onboarding.linkBody": "На компьютере откройте {app}, перейдите в Настройки, затем Phone, затем Pair with a code и сканируйте показанный код.",
-  "mobile.onboarding.illustrationPath": "Настройки › Phone",
   "mobile.onboarding.scan": "Сканировать QR-код",
   "mobile.onboarding.enterCode": "Ввести код",
   "mobile.onboarding.pasteLink": "Вставить ссылку",
@@ -6462,5 +6460,9 @@
   "settings.ambient.display.active": "Используемый дисплей",
   "settings.ambient.display.built-in": "Встроенный дисплей",
   "settings.ambient.display.main": "Основной дисплей",
-  "settings.ambient.failed": "Не удалось сохранить эту настройку. Попробуйте ещё раз."
+  "settings.ambient.failed": "Не удалось сохранить эту настройку. Попробуйте ещё раз.",
+  "mobile.onboarding.linkShort": "Откройте {app} на компьютере и отсканируйте код в разделе Настройки › Phone.",
+  "mobile.onboarding.pasteInstead": "Вместо этого вставить ссылку",
+  "mobile.home.onlyPinnedTitle": "Ваши остальные чаты появятся здесь",
+  "mobile.home.onlyPinnedBody": "Создайте бота для задачи, например для работы с почтой, поиска информации или ведения проекта, и его чат появится в этом списке."
 }

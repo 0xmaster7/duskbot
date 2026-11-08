@@ -4776,8 +4776,6 @@
   "mobile.onboarding.pages": "頁面",
   "mobile.onboarding.pageN": "第 {n} 頁",
   "mobile.onboarding.linkTitle": "連結你的安裝實例",
-  "mobile.onboarding.linkBody": "在電腦上開啟 {app}，依序前往設定、Phone、Pair with a code，再掃描顯示的 QR 碼。",
-  "mobile.onboarding.illustrationPath": "設定 › Phone",
   "mobile.onboarding.scan": "掃描 QR 碼",
   "mobile.onboarding.enterCode": "輸入代碼",
   "mobile.onboarding.pasteLink": "貼上連結",
@@ -4943,5 +4941,9 @@
   "settings.ambient.display.active": "正在使用的顯示器",
   "settings.ambient.display.built-in": "內建顯示器",
   "settings.ambient.display.main": "主要顯示器",
-  "settings.ambient.failed": "無法儲存此設定，請再試一次。"
+  "settings.ambient.failed": "無法儲存此設定，請再試一次。",
+  "mobile.onboarding.linkShort": "在電腦上開啟 {app}，掃描設定 › Phone 中的 QR 碼。",
+  "mobile.onboarding.pasteInstead": "改為貼上連結",
+  "mobile.home.onlyPinnedTitle": "你的其他聊天會顯示在這裡",
+  "mobile.home.onlyPinnedBody": "建立機器人來處理郵件、研究或專案等工作，它的聊天就會顯示在此清單中。"
 }

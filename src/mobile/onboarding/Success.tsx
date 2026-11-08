@@ -5,7 +5,7 @@ import type { Bot } from "@/state/store";
 import { t } from "@/lib/i18n";
 import { haptic } from "../haptics";
 import { dur, ease, spring } from "../motion";
-import { SkyScene, useScreen } from "./SkyScene";
+import { ONBOARDING_BG, SkyScene, useScreen } from "./SkyScene";
 
 const MIN_MS = 1900;
 const CAP_MS = 3200;
@@ -54,10 +54,10 @@ export function Success({ name, onDone }: { name: string; onDone: () => void }) 
   }, [bots, w, h]);
 
   return (
-    <motion.div className="omb-mobile omb-onboarding fixed inset-0 z-[60] bg-[#0b0d14]"
+    <motion.div className="omb-mobile omb-onboarding fixed inset-0 z-[60]" style={{ background: ONBOARDING_BG }}
       initial={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: dur.slow, ease: ease.out } }}
       role="status" aria-live="polite">
-      <SkyScene stage="success">
+      <SkyScene>
         <div className="absolute left-1/2 top-[44%]">
           {(bots === null ? [] : bots.length ? bots : [null]).map((bot, i) => {
             const seat = seats[i] ?? seats[0]!;

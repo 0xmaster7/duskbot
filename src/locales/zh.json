@@ -6916,8 +6916,6 @@
   "mobile.onboarding.pages": "页面",
   "mobile.onboarding.pageN": "第 {n} 页",
   "mobile.onboarding.linkTitle": "关联你的安装",
-  "mobile.onboarding.linkBody": "在电脑上打开 {app}，依次进入设置、Phone、Pair with a code，然后扫描显示的二维码。",
-  "mobile.onboarding.illustrationPath": "设置 › Phone",
   "mobile.onboarding.scan": "扫描二维码",
   "mobile.onboarding.enterCode": "输入代码",
   "mobile.onboarding.pasteLink": "粘贴链接",
@@ -7083,5 +7081,9 @@
   "settings.ambient.display.active": "正在使用的显示器",
   "settings.ambient.display.built-in": "内建显示屏",
   "settings.ambient.display.main": "主显示器",
-  "settings.ambient.failed": "无法保存此设置，请重试。"
+  "settings.ambient.failed": "无法保存此设置，请重试。",
+  "mobile.onboarding.linkShort": "在电脑上打开 {app}，扫描设置 › Phone 中的二维码。",
+  "mobile.onboarding.pasteInstead": "改为粘贴链接",
+  "mobile.home.onlyPinnedTitle": "你的其他聊天会显示在这里",
+  "mobile.home.onlyPinnedBody": "创建机器人来处理邮件、研究或项目等任务，它的聊天就会显示在此列表中。"
 }

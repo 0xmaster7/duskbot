@@ -3592,8 +3592,6 @@
   "mobile.onboarding.pages": "Сторінки",
   "mobile.onboarding.pageN": "Сторінка {n}",
   "mobile.onboarding.linkTitle": "Прив'яжіть свою інсталяцію",
-  "mobile.onboarding.linkBody": "На комп'ютері відкрийте {app}, перейдіть у Налаштування, потім Phone, потім Pair with a code і скануйте показаний код.",
-  "mobile.onboarding.illustrationPath": "Налаштування › Phone",
   "mobile.onboarding.scan": "Сканувати QR-код",
   "mobile.onboarding.enterCode": "Ввести код",
   "mobile.onboarding.pasteLink": "Вставити посилання",
@@ -3759,5 +3757,9 @@
   "settings.ambient.display.active": "Дисплей, яким ви користуєтеся",
   "settings.ambient.display.built-in": "Вбудований дисплей",
   "settings.ambient.display.main": "Основний дисплей",
-  "settings.ambient.failed": "Не вдалося зберегти це налаштування. Спробуйте ще раз."
+  "settings.ambient.failed": "Не вдалося зберегти це налаштування. Спробуйте ще раз.",
+  "mobile.onboarding.linkShort": "Відкрийте {app} на комп'ютері та скануйте код у розділі Налаштування › Phone.",
+  "mobile.onboarding.pasteInstead": "Натомість вставити посилання",
+  "mobile.home.onlyPinnedTitle": "Ваші інші чати з'являться тут",
+  "mobile.home.onlyPinnedBody": "Створіть бота для завдання, наприклад для роботи з поштою, пошуку інформації чи ведення проєкту, і його чат з'явиться в цьому списку."
 }

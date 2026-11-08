@@ -5230,8 +5230,6 @@
   "mobile.onboarding.pages": "Sayfalar",
   "mobile.onboarding.pageN": "Sayfa {n}",
   "mobile.onboarding.linkTitle": "Kurulumunu bağla",
-  "mobile.onboarding.linkBody": "Bilgisayarında {app} uygulamasını aç, Ayarlar, ardından Phone, ardından Pair with a code bölümüne git ve gösterilen kodu tara.",
-  "mobile.onboarding.illustrationPath": "Ayarlar › Phone",
   "mobile.onboarding.scan": "QR kodunu tara",
   "mobile.onboarding.enterCode": "Kod gir",
   "mobile.onboarding.pasteLink": "Bağlantı yapıştır",
@@ -5397,5 +5395,9 @@
   "settings.ambient.display.active": "Kullandığınız ekran",
   "settings.ambient.display.built-in": "Yerleşik ekran",
   "settings.ambient.display.main": "Ana ekran",
-  "settings.ambient.failed": "Bu ayar kaydedilemedi. Tekrar deneyin."
+  "settings.ambient.failed": "Bu ayar kaydedilemedi. Tekrar deneyin.",
+  "mobile.onboarding.linkShort": "Bilgisayarında {app} uygulamasını aç ve Ayarlar › Phone bölümündeki kodu tara.",
+  "mobile.onboarding.pasteInstead": "Bunun yerine bağlantı yapıştır",
+  "mobile.home.onlyPinnedTitle": "Diğer sohbetlerin burada görünür",
+  "mobile.home.onlyPinnedBody": "E-postalar, araştırma veya bir proje gibi bir iş için bot oluştur. Sohbeti bu listede görünür."
 }
