@@ -1,19 +1,18 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { ArrowUpRight, Blocks, ChevronRight, Code, Download, Smartphone } from "lucide-react";
-import type { WorkspaceDetail, WorkspaceSummary } from "../../../shared/dashboard-protocol";
-import { cloudForWorkspace, useCloud } from "../data/cloud";
+import type { WorkspaceDetail } from "../../../shared/dashboard-protocol";
+import { useCloud } from "../data/cloud";
 import { useWorkspaceDetail } from "../data/detail";
 import type { CloudDesktop } from "../data/contracts";
 import { useSession } from "../data/session";
 import { useAccountUsage } from "../data/usage";
 import { ago, compact, percent, plural, usd } from "../lib/format";
-import { Link, navigate } from "../lib/router";
+import { Link } from "../lib/router";
 import { API_DOCS, DOWNLOAD_URL } from "../lib/usage";
 import { Heatmap, HeatStats, type HeatMetric } from "../ui/Heatmap";
-import { Card, FreshnessTag, Segmented, Skeleton } from "../ui/kit";
+import { Card, Segmented, Skeleton } from "../ui/kit";
 import { BotMascot } from "../ui/Mascot";
-import { KIND_LABEL } from "../ui/Shell";
-import { CloudPitch, CloudStatus, PowerButton, Provisioning, regionName, tierName, workspaceIcon } from "./cloud-bits";
+import { CloudPitch, CloudStatus, PowerButton, Provisioning, regionName, tierName } from "./cloud-bits";
 
 function Big({ label, value, sub }: { label: string; value: ReactNode; sub?: ReactNode }) {
   return (
@@ -71,54 +70,6 @@ function CloudLive({ cloud, detail }: { cloud: CloudDesktop; detail: WorkspaceDe
 }
 
 /** one workspace and its live state: bots at work, and the machine's load when it reports */
-function WorkspaceRow({ w, cloud }: { w: WorkspaceSummary; cloud: CloudDesktop | null }) {
-  const { now, pick } = useSession();
-  const detail = useWorkspaceDetail(w.id);
-  const bots = detail?.report?.bots ?? [];
-  const working = bots.filter((b) => b.busy).length;
-  const m = detail?.report?.machine;
-  const fresh = w.freshness === "live" || w.freshness === "recent";
-  const botLine = !detail ? null : bots.length ? `${plural(bots.length, "bot")}${working && fresh ? `, ${working} working` : ""}` : "No bots yet";
-  const load = m && fresh ? `CPU ${percent(m.cpu.percent)} · Memory ${percent((m.memory.usedBytes / Math.max(1, m.memory.totalBytes)) * 100)}` : null;
-  return (
-    <li>
-      <button type="button" onClick={() => { pick(w.id); navigate(cloud ? "/cloud" : `/workspaces/${encodeURIComponent(w.id)}`); }} className="press-soft hover-row grid w-full grid-cols-[minmax(0,1fr)_130px_180px_150px_16px] items-center gap-4 rounded-row px-3 py-3 text-start max-md:grid-cols-[minmax(0,1fr)_auto_16px]">
-        <span className="flex min-w-0 items-center gap-3.5">
-          <span className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-card-2 text-ink-2">{workspaceIcon(w, cloud)}</span>
-          <span className="min-w-0">
-            <span className="block truncate text-14 text-ink">{w.name}</span>
-            <span className="block truncate text-13 text-ink-3">{KIND_LABEL(w.kind, cloud)}<span className="md:hidden">{botLine ? ` · ${botLine}` : ""}</span></span>
-          </span>
-        </span>
-        <span className="num truncate text-13 text-ink-2 max-md:hidden">{botLine ?? <span className="skeleton inline-block h-4 w-20" aria-hidden />}</span>
-        <span className="num truncate text-13 text-ink-3 max-md:hidden">{load ?? (detail ? <span className="text-ink-4">No live stats</span> : <span className="skeleton inline-block h-4 w-28" aria-hidden />)}</span>
-        <FreshnessTag freshness={w.freshness} at={w.lastReportAt} now={now} className="justify-end" />
-        <ChevronRight size={16} strokeWidth={1.5} className="shrink-0 text-ink-4" aria-hidden />
-      </button>
-    </li>
-  );
-}
-
-function Workspaces() {
-  const { workspaces } = useSession();
-  const { clouds } = useCloud();
-  return (
-    <Card className="enter !p-3" style={{ ["--i" as string]: 1 }} aria-labelledby="ws-title">
-      <div className="flex items-center justify-between gap-3 px-3 pb-1 pt-2">
-        <h2 id="ws-title" className="text-14 font-medium text-ink">Your workspaces</h2>
-        <Link to="/workspaces" className="hover-link inline-flex h-8 items-center rounded-full px-1 text-13 text-ink-3">Manage</Link>
-      </div>
-      {workspaces === null ? (
-        <div className="flex flex-col gap-2 p-3"><Skeleton className="h-12" /><Skeleton className="h-12" /></div>
-      ) : workspaces.length === 0 ? (
-        <p className="px-3 py-4 text-14 text-ink-3">Nothing connected yet. <Link to="/workspaces#add" className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">Connect your Mac</Link> to see it here.</p>
-      ) : (
-        <ul>{workspaces.map((w) => <WorkspaceRow key={w.id} w={w} cloud={cloudForWorkspace(clouds, w.id)} />)}</ul>
-      )}
-    </Card>
-  );
-}
-
 function Tile({ icon, title, body, to, external }: { icon: ReactNode; title: string; body: string; to: string; external?: boolean }) {
   const inner = (
     <>
@@ -198,7 +149,6 @@ export function HomePage() {
       <h1 className="enter mb-8 text-28 font-semibold tracking-[-0.025em] text-ink max-sm:mb-6 max-sm:text-24">Welcome, {name}.</h1>
       <div className="flex flex-col gap-4">
         {clouds === null ? <Skeleton className="h-[200px] !rounded-card" /> : cloud ? <CloudLive cloud={cloud} detail={cloudDetail} /> : <CloudPitch />}
-        <Workspaces />
         <div className="enter grid grid-cols-4 gap-4 max-lg:grid-cols-2 max-sm:gap-3" style={{ ["--i" as string]: 2 }}>
           <Tile icon={<Download {...ICON} />} title="Download the app" body="For Mac. Your bots, chats and their computers." to={DOWNLOAD_URL} external />
           <Tile icon={<Smartphone {...ICON} />} title="Link your phone" body="Chat with your bots from anywhere." to="/account#devices" />
