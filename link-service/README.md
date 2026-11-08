@@ -7,6 +7,12 @@ nothing tied to openmausbot.com or Cloudflare.
 curl -fsSL https://link.apps.siddz.com/i/<code> | sh
 ```
 
+## Slack OAuth return
+
+`GET /slack/callback` validates Slack's code or error and state, then returns a small page that opens
+`openmausbot://slack/oauth` with a copyable fallback. The route is stateless: it never calls Slack, stores nothing,
+and never logs the query. The app completes the exchange with its own harness, so the harness needs no public URL.
+
 ## How it fits together
 
 ```

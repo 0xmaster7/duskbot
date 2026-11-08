@@ -14,7 +14,7 @@ export interface AgentsConversation {
   /** The bot works on its team's cloud computer, so it has no computer of its own to pick. */
   teamComputer: boolean;
   /** `x`: a research credential is held (a treg key or a plan's); `research`: research works for it too. */
-  host: { skillAuthoring: boolean; cloudHome: boolean; team: boolean; voiceNotes: boolean; x: boolean; research: boolean };
+  host: { skillAuthoring: boolean; cloudHome: boolean; team: boolean; voiceNotes: boolean; x: boolean; research: boolean; slack?: boolean };
 }
 
 /** What one turn may do. Its bearer carries this to the harness, which checks it on every call. */
@@ -42,6 +42,7 @@ export function agentsServerEnv(conversation: AgentsConversation, turn: AgentsTu
     OMB_MEMORY_ENABLED: flag(bot.memoryEnabled !== false),
     OMB_CLOUD_HOME: flag(host.cloudHome), OMB_TEAM_PEOPLE: flag(host.team), OMB_ROOM: flag(conversation.room),
     OMB_VOICE_NOTES: flag(host.voiceNotes),
+    OMB_SLACK: flag(host.slack === true),
     OMB_X_RESEARCH: flag(host.x && bot.xResearch !== false),
     OMB_RESEARCH: flag(host.x && host.research && bot.xResearch !== false),
     ...roleToolEnv(bot),

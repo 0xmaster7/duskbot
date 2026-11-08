@@ -36,6 +36,6 @@ export function PanelModal({ page, bot, derived, slackUrl = null, onClose }: {
     case "backups":
       return <BackupsModal bot={bot} derived={derived} onClose={onClose} />;
     case "slack":
-      return slackUrl ? <SlackModal managementUrl={slackUrl} onClose={onClose} /> : null;
+      return <SlackModal bot={bot} managementUrl={slackUrl} onClose={onClose} />;
   }
 }

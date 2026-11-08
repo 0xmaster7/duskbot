@@ -62,7 +62,7 @@ import { botCycleStep, shouldOpenKeyboardShortcuts } from "@/lib/keyboard-shortc
 import { effectiveLanguage, useLanguageChoice, usePageLanguage } from "@/lib/language-preference";
 import { botUnreadCount, showBrowserUnread } from "@/lib/bot-unread";
 import { phonePairingSettingsAction, takePhonePairingRequest } from "@/lib/phone-pairing"; import { takeConnectRequest } from "@/lib/connect-link";
-import { useDesktopNotificationOpens, useExternalChatLinks } from "@/hooks/use-external-chat-links";
+import { useDesktopNotificationOpens, useExternalChatLinks } from "@/hooks/use-external-chat-links"; import { useSlackOAuthLinks } from "@/lib/slack-oauth-link";
 import { useReadShownChatOnFocus } from "@/hooks/use-read-shown-chat";
 import { usePresence } from "@/hooks/use-presence";
 import { useComputerPanelActivity } from "@/hooks/use-computer-panel-activity";
@@ -133,7 +133,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
     openConnectApps(connectAppsPageFor(state.pluginsSurface));
     dispatch({ type: "togglePlugins", open: false });
   }, [state.pluginsOpen, state.pluginsSurface, dispatch]);
-  useExternalChatLinks(state, dispatch); useDesktopNotificationOpens(state, dispatch);
+  useExternalChatLinks(state, dispatch); useDesktopNotificationOpens(state, dispatch); useSlackOAuthLinks();
   usePresence(state, dispatch);
   const [drawerOpen, setDrawerOpen] = useState(false);
   usePageLanguage(effectiveLanguage(useLanguageChoice(), state.config?.language));

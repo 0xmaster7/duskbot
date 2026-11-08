@@ -11,6 +11,8 @@ export interface CatalogProfile {
   /** As xResearch, and research works for that credential (the person's treg key, or a plan whose relay has research
    * on): research_search, research_endpoint and research_call are mounted too. Absent means off. */
   research?: boolean;
+  /** This bot holds its own Slack app with a bot token: the slack_* tools are mounted. Absent means off. */
+  slack?: boolean;
   cloudHome: boolean;
   memoryEnabled?: boolean;
   /** The section's Chief of Staff; the server refuses Chief-only tools to every other bot. */
@@ -36,6 +38,7 @@ export function catalogProfileFromEnv(env: NodeJS.ProcessEnv): CatalogProfile {
     voiceNotes: env.OMB_VOICE_NOTES === "1",
     xResearch: env.OMB_X_RESEARCH === "1",
     research: env.OMB_RESEARCH === "1",
+    slack: env.OMB_SLACK === "1",
     cloudHome: env.OMB_CLOUD_HOME === "1",
     memoryEnabled: env.OMB_MEMORY_ENABLED !== "0",
     chief: env.OMB_CHIEF_OF_STAFF === "1",

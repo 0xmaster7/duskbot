@@ -12,6 +12,7 @@ import { Card, FormDialog, FormField, NavRow, rowCls, RowText, SheetPane } from 
 import { textAreaCls, textFieldCls } from "../../ui/GrokDialog";
 import { PermissionsSheet } from "./PermissionsSheet";
 import { ToolsSheet } from "./ToolsSheet";
+import { SlackBotPage } from "../../slack/SlackBotPage";
 
 type Derived = ReturnType<typeof useBotSettingsDerived>;
 
@@ -105,11 +106,12 @@ function ProfileDialog({ bot, focus, onSave, onClose }: {
   );
 }
 
-export function SlackModal({ managementUrl }: { managementUrl: string; onClose: () => void }) {
+export function SlackModal({ bot, managementUrl }: { bot: Bot; managementUrl?: string | null; onClose: () => void }) {
   return (
     <SheetPane data-panel-modal="slack" title={t("botPanel.page.slack")}>
       <div data-bot-settings-section="slack" className="contents">
-        <Card data-sheet-group="slack">
+        <SlackBotPage bot={bot} />
+        {managementUrl && <Card data-sheet-group="slack">
           <a
             href={managementUrl}
             target="_blank"
@@ -121,7 +123,7 @@ export function SlackModal({ managementUrl }: { managementUrl: string; onClose: 
             <span className="shrink-0 text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{t("botSlack.manage")}</span>
             <GrokIcon name="link-external" size={12} className="shrink-0 text-ink-tertiary" />
           </a>
-        </Card>
+        </Card>}
       </div>
     </SheetPane>
   );

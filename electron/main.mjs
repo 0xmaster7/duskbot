@@ -29,7 +29,7 @@ import { createServerSupervisor } from "./server-supervisor.mjs";
 import { serverChildLaunch } from "./server-child-launch.mjs";
 import { savedVpsStartupTarget, startPackagedAlongsideVps, waitForLocalStartup } from "./saved-vps-startup.mjs";
 import { packageUrlFromCommandLine, packageUrlFromDeepLink } from "./package-link.mjs";
-import { chatLinkFrom, chatLinkFromCommandLine } from "./chat-link.mjs"; import { installDesktopNotifications } from "./desktop-notifications.mjs";
+import { chatLinkFrom, chatLinkFromCommandLine } from "./chat-link.mjs"; import { createSlackOAuthLinks } from "./slack-link.mjs"; import { installDesktopNotifications } from "./desktop-notifications.mjs";
 import { createOrganizationEntry, isOrganizationDeepLink, takeOrganizationDeepLink, organizationRestartIntent, withOrganizationRestartIntent, withoutOrganizationRestartIntent } from "./organization-entry.mjs";
 import { FRAME_BY_DEFAULT, widenedBounds, windowBackground, windowChromeOptions } from "./window-chrome.mjs";
 import { createAllWindowsClosedQuit } from "./window-all-closed.mjs";
@@ -151,7 +151,7 @@ const cloudEntry = createCloudEntry({
 });
 cloudEntry.fromLaunch(process.argv);
 let pendingPackageInstallUrl = pendingOrganizationEntry ? null : packageUrlFromCommandLine(process.argv);
-let pendingChatLink = pendingOrganizationEntry ? null : chatLinkFromCommandLine(process.argv);
+let pendingChatLink = pendingOrganizationEntry ? null : chatLinkFromCommandLine(process.argv); const slackOAuthLinks = createSlackOAuthLinks({ reveal: () => revealForLink(), send: (link) => { const win = mainWindow; if (!win || win.isDestroyed() || win.webContents.isLoadingMainFrame()) return false; win.webContents.send("slack:oauth", link); return true; } }); if (!pendingOrganizationEntry) slackOAuthLinks.fromCommandLine(process.argv);
 let organizationEntryReady = false;
 let mainWindow = null;
 const serverUnavailableWindows = new WeakSet();
@@ -242,7 +242,7 @@ function queueChatLink(rawLink) {
 }
 
 app.on("open-url", (event, url) => {
-  if (!queueOrganizationEntry(url) && !cloudEntry.fromUrl(url) && !queuePackageInstall(url) && !queueChatLink(url)) return;
+  if (!queueOrganizationEntry(url) && !cloudEntry.fromUrl(url) && !queuePackageInstall(url) && !queueChatLink(url) && !slackOAuthLinks.queue(url)) return;
   event.preventDefault();
 });
 
@@ -252,7 +252,7 @@ app.on("second-instance", (_event, commandLine) => {
     return;
   }
   if (cloudEntry.fromArgs(commandLine)) return;
-  const packageUrl = packageUrlFromCommandLine(commandLine);
+  if (slackOAuthLinks.fromCommandLine(commandLine)) return; const packageUrl = packageUrlFromCommandLine(commandLine);
   if (packageUrl) pendingPackageInstallUrl = packageUrl;
   const chatLink = chatLinkFromCommandLine(commandLine);
   if (chatLink) pendingChatLink = chatLink;
@@ -2100,7 +2100,7 @@ function createWindow({ deferNavigation = false } = {}) {
   // Not did-finish-load: Electron still reports the main frame as loading then.
   win.webContents.on("did-stop-loading", () => {
     deliverPackageInstall(win);
-    deliverChatLink(win); desktopNotifications.arrived();
+    deliverChatLink(win); slackOAuthLinks.deliver(); desktopNotifications.arrived();
   });
 
   // Electron has no default context menu.

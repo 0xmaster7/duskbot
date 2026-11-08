@@ -10,6 +10,7 @@ import { MotionDiv, useMotionReduced } from "./ui/SheetMotion";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { currentPhonePairingTarget, phonePairingSettingsAction } from "@/lib/phone-pairing";
 import { AdminOnly } from "./AdminOnly";
+import { SlackWorkspaceCard } from "./slack/SlackWorkspaceCard";
 import { KeysPage } from "./keys/KeysPage";
 import { useKeyFocus } from "./keys/key-focus";
 import { CompanionSection } from "./CompanionSection";
@@ -254,7 +255,7 @@ export function SettingsModal() {
       case "computer": return <ComputerPane has={has} remoteAccess={remoteAccess} servers={<ConnectedWorkspacesSettings />} transfer={has("transfer") ? <TransferSettings /> : null} />;
       case "permissions": return <PermissionsPane has={has} />;
       case "vault": return <VaultPane />;
-      case "models": return <ModelsPane has={has} disclose={disclose} connections={<AdminOnly><KeysPage /></AdminOnly>} />;
+      case "models": return <ModelsPane has={has} disclose={disclose} connections={<AdminOnly><KeysPage /><SlackWorkspaceCard /></AdminOnly>} />;
       case "bots": return <BotsPane />;
       case "usage": return <UsagePane has={has} cloudAccount={cloudAccount} />;
       case "updates": return <UpdatesPane />;
