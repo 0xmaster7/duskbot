@@ -16,7 +16,6 @@ describe("chat text follows the writer's direction", () => {
     expectDirAuto("BubbleEditor.tsx", "value={draft}");
     expectDirAuto("AskCard.tsx", "value={value}");
     expectDirAuto("ChatFindBar.tsx", "value={query}");
-    expectDirAuto("RawMarkdownToggle.tsx", 'data-testid="raw-markdown-view"');
     expectDirAuto("RoomBulletin.tsx", "value={bulletin.draft}");
     expectDirAuto("RoomBulletin.tsx", "group.bulletin.split");
     expectDirAuto("room-panel/RoomModals.tsx", "value={draft}");

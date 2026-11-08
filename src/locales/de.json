@@ -2329,8 +2329,6 @@
   "botLimit.body": "Um weitere zu erstellen, stufe diese Cloud hoch. Alle deine Bots bleiben, wie sie sind.",
   "botLimit.bodyElsewhere": "Um weitere zu erstellen, stufe diese Cloud auf ihrer Tarifseite hoch. Alle deine Bots bleiben, wie sie sind.",
   "botLimit.openPlan": "Tarifseite öffnen",
-  "chat.compactionExcerptTitle": "Früherer Kontext auf aktuelle Auszüge gekürzt",
-  "chat.compactionExcerptHint": "Es gab keine geschriebene Zusammenfassung, deshalb macht der Agent mit diesen Auszügen und den letzten Nachrichten weiter. Ältere Details können in seinem Kontext fehlen. Dein ganzes Gespräch ist weiterhin hier.",
   "chat.turnStoppedByYou": "Du hast das gestoppt.",
   "chat.rescue.over": "{bot} hat keine Antwort von {ai} erhalten.",
   "chat.rescue.switchAi": "KI wechseln",

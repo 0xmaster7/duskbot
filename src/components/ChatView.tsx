@@ -68,7 +68,6 @@ import { ChatMarkdown } from "./ChatMarkdown";
 import { TranscriptStaging } from "./transcript-staging";
 import { LiveToolsContext, useLiveToolIds } from "@/hooks/use-live-tool-ids";
 import { VoiceNoteBubble, type VoiceNoteAttachment } from "./VoiceNoteBubble";
-import { RawMarkdownView, RawToggleAction } from "./RawMarkdownToggle";
 import { ThreadChip } from "./ThreadChip";
 import { HandoffChip } from "./HandoffReply"; import { TeammateChip } from "./TeammateChip"; import { useTeammates } from "@/state/team-people"; import type { MentionPeer } from "@/lib/mentions";
 import { NewConversationInstead } from "./NewConversationInstead";
@@ -344,7 +343,6 @@ const Bubble = memo(function Bubble({
   const ownBubbleStyle = speaker ? undefined : bubbleStyle;
   const [expanded, setExpanded] = useState(false);
   const focusedSearch = focus?.messageId === message.id && Boolean(focus.matchText);
-  const [viewRaw, setViewRaw] = useState(false);
   const speech = useSpeech();
   const speaking = speech.messageId === message.id && speech.status !== "idle";
   const rawText = peer ? peer.body : (message.text ?? "");
@@ -381,10 +379,10 @@ const Bubble = memo(function Bubble({
   const join: BubbleJoin = { above: joinAbove, below: joinBelow };
   // only rows that arrive while the conversation is open slide in; a reply that streamed in is already in place
   const fresh = !emerging && message.at > openedAt;
-  const reply = useReplySegments(conversational && !user && !peer && !viewRaw && !replyTarget && message.kind === "text", text, message.at, openedAt);
+  const reply = useReplySegments(conversational && !user && !peer && !replyTarget && message.kind === "text", text, message.at, openedAt);
   const split = reply.segments.length > 1;
   // each table of a reply draws as its own card between the reply's prose bubbles
-  const blocks = useMemo(() => !user && !peer && !viewRaw && !split && text ? splitReplyBlocks(text) : null, [user, peer, viewRaw, split, text]);
+  const blocks = useMemo(() => !user && !peer && !split && text ? splitReplyBlocks(text) : null, [user, peer, split, text]);
   const tabled = Boolean(blocks?.some((block) => block.kind === "table"));
   const webhookView = user ? webhookMessageView(text) : null;
   const cited = user && !webhookView ? withoutCitationMarkers(text) : text;
@@ -425,10 +423,9 @@ const Bubble = memo(function Bubble({
   const togglePin = () =>
     dispatch({ type: "updateTask", botId, threadId, patch: { pinnedMessageId: pinned ? "" : message.id } });
   const botActions = !user && (
-    <MessageActions side="bot" forceOpen={viewRaw || speaking} menu={[...copyItem(text), ...botMenu]}>
+    <MessageActions side="bot" forceOpen={speaking} menu={[...copyItem(text), ...botMenu]}>
       {canReact && !peer && <ReactAction threadId={threadId} message={message} />}
       <ReplyAction onReply={() => onReply(message)} />
-      {text && viewRaw && <RawToggleAction active onToggle={() => setViewRaw(false)} className={messageActionClass} />}
       {text && speaking && <SpeakButton text={text} botId={botId} messageId={message.id} voiceId={voiceId} tts={tts} localVoice={localVoice} className={cn(messageActionClass, "text-accent")} />}
     </MessageActions>
   );
@@ -523,7 +520,7 @@ const Bubble = memo(function Bubble({
               )}
             </>
           ) : (
-            <MessageBoundary key={viewRaw ? "raw" : "rendered"} fallbackText={text || t("chat.generatedImage")}>
+            <MessageBoundary fallbackText={text || t("chat.generatedImage")}>
               {voiceNotes.length > 0 && (
                 <div className="flex flex-col gap-1">
                   {voiceNotes.map((note) => (
@@ -541,8 +538,6 @@ const Bubble = memo(function Bubble({
                 <ReplyBlocks blocks={blocks} join={join} tray={botActions}
                   chips={floatReactions && <ReactionChips float threadId={threadId} message={message} bots={bots} align="start" canReact={canReact} />}
                   render={(block) => <ChatMarkdown text={block} mentionPeers={mentionPeers} mentionPerson={mentionPerson} message={{ threadId, messageId: message.id }} delivered={group?.delivered} />} />
-              ) : viewRaw && text ? (
-                <RawMarkdownView text={text} />
               ) : text && mediaSplit ? (
                 <div data-chat-bubble="simple" className={cn("w-fit max-w-full", SIMPLE_BOT_BUBBLE, join && joinedCorners("start", join))}><ChatMarkdown text={text} mentionPeers={mentionPeers} mentionPerson={mentionPerson} message={{ threadId, messageId: message.id }} delivered={group?.delivered} /></div>
               ) : text ? (

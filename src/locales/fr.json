@@ -2277,8 +2277,6 @@
   "botLimit.body": "Pour en créer d'autres, passez ce Cloud au forfait supérieur. Tous vos bots restent tels quels.",
   "botLimit.bodyElsewhere": "Pour en créer d'autres, passez ce Cloud au forfait supérieur sur sa page Forfait. Tous vos bots restent tels quels.",
   "botLimit.openPlan": "Ouvrir la page Forfait",
-  "chat.compactionExcerptTitle": "Contexte antérieur réduit à des extraits récents",
-  "chat.compactionExcerptHint": "Aucun résumé rédigé n'était disponible : l'agent continue donc à partir de ces extraits et des messages récents. Des détails plus anciens peuvent manquer dans son contexte. Toute votre conversation est toujours là.",
   "chat.turnStoppedByYou": "Vous l'avez arrêté.",
   "chat.rescue.over": "{bot} n'a pas reçu de réponse de {ai}.",
   "chat.rescue.switchAi": "Changer d'IA",

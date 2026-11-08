@@ -47,7 +47,6 @@ import { CopyButton, MESSAGE_ROW, MessageActions, messageActionClass, ReplyActio
 import { ReactAction, ReactionChips, useCanReact } from "./Reactions";
 import { ClusterLabel } from "./RoomClusterLabel";
 import { roomPin, useBotMessageMenu, userMessageMenu } from "./message-menu";
-import { RawMarkdownView, RawToggleAction } from "./RawMarkdownToggle";
 import { SpeakButton } from "./SpeakButton";
 import { useSpeech } from "@/lib/tts/useSpeech";
 import { localSystemVoiceActive } from "@/lib/local-voice";
@@ -176,7 +175,6 @@ function RoomTextMessage({
   const attachments = user && m.text ? splitTranscriptAttachments(withoutCitationMarkers(m.text)) : null;
   const display = attachments?.display ?? rawText;
   const [expanded, setExpanded] = useState(false);
-  const [viewRaw, setViewRaw] = useState(false);
   const speech = useSpeech();
   const speaking = speech.messageId === m.id && speech.status !== "idle";
   const focus = state.focusMessage;
@@ -200,14 +198,13 @@ function RoomTextMessage({
   });
   noteMediaSizes(m.media);
   const replyGroup = useMemo(() => !user && botText.trim() ? replyAttachmentGroup(botText, m.attachments) : null, [user, botText, m.attachments]);
-  const blocks = useMemo(() => !user && !viewRaw && botText.trim() ? splitReplyBlocks(botText) : null, [user, viewRaw, botText]);
+  const blocks = useMemo(() => !user && botText.trim() ? splitReplyBlocks(botText) : null, [user, botText]);
   const tabled = Boolean(blocks?.some((block) => block.kind === "table"));
   const botActions = !user && (
-    <MessageActions side="bot" forceOpen={viewRaw || speaking} menu={botMenu}>
+    <MessageActions side="bot" forceOpen={speaking} menu={botMenu}>
       <ReplyAction onReply={() => onReply(m)} />
       {canReact && m.from && <ReactAction threadId={group.threadId} message={m} />}
       {botText && <CopyButton text={botText} className={messageActionClass} />}
-      {botText && viewRaw && <RawToggleAction active onToggle={() => setViewRaw(false)} className={messageActionClass} />}
       {botText && speaking && <SpeakButton text={botText} botId={speakerBot?.id} messageId={m.id} voiceId={speakerBot?.voice} tts={state.config?.tts} localVoice={localSystemVoiceActive()} className={cn(messageActionClass, "text-accent")} />}
     </MessageActions>
   );
@@ -274,7 +271,7 @@ function RoomTextMessage({
               )}
             </>
           ) : (
-            <MessageBoundary key={viewRaw ? "raw" : "rendered"} fallbackText={botText || t("chat.generatedImage")}>
+            <MessageBoundary fallbackText={botText || t("chat.generatedImage")}>
               {(m.attachments ?? []).some((attachment) => attachment.kind === "audio") && (
                 <div className={cn("flex flex-col", (m.text || (m.attachments ?? []).some((attachment) => attachment.kind === "image")) && "mb-2")}>
                   {m.attachments!.filter((attachment): attachment is VoiceNoteAttachment => attachment.kind === "audio").map((note) => (
@@ -283,9 +280,7 @@ function RoomTextMessage({
                 </div>
               )}
               {!botText.trim() && <MessageAttachmentGallery media={m.media} text={botText} attachments={m.attachments} message={{ threadId: group.threadId, messageId: m.id }} className={m.text ? undefined : "mb-0"} eager={eager} />}
-              {viewRaw && botText ? (
-                <RawMarkdownView text={botText} />
-              ) : tabled && blocks ? (
+              {tabled && blocks ? (
                 <ReplyBlocks blocks={blocks} tray={botActions}
                   render={(block) => <ChatMarkdown text={block} mentionPeers={peers} everyone={!group.dm} mentionPerson={{ profileName: state.config?.profile?.name }} message={{ threadId: group.threadId, messageId: m.id }} delivered={replyGroup?.delivered} />} />
               ) : botText ? (
