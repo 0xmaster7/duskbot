@@ -125,9 +125,9 @@ export function UsagePage() {
 
   let running = 0;
   const cumulative = days.map((d) => (running += d.paid));
-  const fullDays = isPeriod ? Math.round((end - start) / DAY) : days.length;
-  const forecastLine = isPeriod ? Array.from({ length: fullDays }, (_, i) => (i < days.length ? cumulative[i]! : cumulative[days.length - 1]! + f.perDay * (i - days.length + 1))) : undefined;
-  const labels = days.map((d) => (days.length > 40 ? `${monthName(d.t)} ${new Date(d.t).getDate()}` : String(new Date(d.t).getDate())));
+  const chartDays = isPeriod ? daily([], start, end) : days;
+  const forecastLine = isPeriod ? chartDays.map((_, i) => (i < days.length ? cumulative[i]! : (cumulative[days.length - 1] ?? 0) + f.perDay * (i - days.length + 1))) : undefined;
+  const labels = chartDays.map((d) => (chartDays.length > 40 ? `${monthName(d.t)} ${new Date(d.t).getDate()}` : String(new Date(d.t).getDate())));
 
   const pages = Math.max(1, Math.ceil(turns.length / PAGE));
   const at = Math.min(page, pages - 1);
@@ -182,8 +182,8 @@ export function UsagePage() {
         <CardHead title="Daily cost">
           <div className="hidden flex-wrap items-center gap-3 text-12 text-ink-3 sm:flex" aria-hidden>
             {CATS.map((c) => <span key={c} className="inline-flex items-center gap-1.5"><span className="size-2 rounded-[2px]" style={{ background: CAT_COLORS[c] }} />{categoryLabel[c]}</span>)}
-            <span className="inline-flex items-center gap-1.5"><span className="h-px w-3 bg-ink" />Paid so far</span>
-            {isPeriod && <span className="inline-flex items-center gap-1.5"><span className="w-3 border-t border-dotted border-ink" />Forecast</span>}
+            <span className="inline-flex items-center gap-1.5"><span className="h-px w-3 bg-ink-2" />Paid so far</span>
+            {isPeriod && <span className="inline-flex items-center gap-1.5"><span className="w-3 border-t border-dotted border-ink-2" />Forecast</span>}
           </div>
         </CardHead>
         <div className="px-2 pb-3 pt-1 sm:px-4">
@@ -191,7 +191,8 @@ export function UsagePage() {
             ? <EmptyState title="No turns in this view" state="sleeping">Nothing matches these filters. Widen the dates or clear a filter.</EmptyState>
             : <StackedBars keys={CATS.map((c) => ({ key: c, label: categoryLabel[c], color: CAT_COLORS[c] }))} rows={days.map((d) => d.byCategory)} labels={labels}
                 line={cumulative} lineLabel="Paid so far" forecast={forecastLine} cap={isPeriod && !botId ? data.billing.caps.ai.limitUsd : undefined} capLabel={`AI cap ${usd(data.billing.caps.ai.limitUsd)}`}
-                format={(v) => (v >= 10 ? `$${Math.round(v)}` : `$${v.toFixed(v >= 1 ? 1 : 2)}`)} label={`Daily cost from ${date(start)}, with paid spend so far as a line`}
+                rightAxisLabel={isPeriod ? "Month to date" : "Period to date"}
+                format={(v) => (v >= 10 ? `$${Math.round(v)}` : `$${v.toFixed(v >= 1 ? 1 : 2)}`)} label={`Daily cost from ${date(start)}: bars use the per-day left axis; paid spend, forecast and cap use the cumulative right axis`}
                 onPick={(i) => setQuery({ from: days[i]!.key, to: days[i]!.key, range: null })} />}
           {isPeriod && !botId && f.high > data.billing.caps.ai.limitUsd && (
             <p className="mx-2 mt-2 rounded-[10px] bg-warn-wash px-3 py-2 text-13 text-[#6b4800]">At this pace paid AI could reach your {usd(data.billing.caps.ai.limitUsd)} cap before the month ends{f.driver ? `, mostly from ${f.driver}` : ""}. Raise the cap in Billing or set a cap on that bot.</p>

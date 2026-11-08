@@ -1,18 +1,33 @@
-import { useSyncExternalStore, type ReactNode } from "react";
-import { MausAvatar } from "@/components/Avatar";
+import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import type { MausState } from "@/lib/mascot";
 import type { Bot } from "../data/types";
 import type { MausColor } from "../../../shared/wire";
 import type { BotBodyId } from "../../../shared/bot-body";
 import { cx } from "./kit";
 
+const MausAvatar = lazy(() => import("@/components/Avatar").then((m) => ({ default: m.MausAvatar })));
+
 const query = typeof window !== "undefined" ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
 export const useReducedMotion = () =>
   useSyncExternalStore((fn) => { query?.addEventListener("change", fn); return () => query?.removeEventListener("change", fn); }, () => query?.matches ?? false, () => false);
 
-export function Mascot({ color, body, size = 28, state = "idle", label, still, track = false }: { color: MausColor; body?: BotBodyId; size?: number; state?: MausState; label?: string; still?: boolean; track?: boolean }) {
+export function Mascot({ color, body, size = 28, state = "idle", label, still, track = false, eager = false }: { color: MausColor; body?: BotBodyId; size?: number; state?: MausState; label?: string; still?: boolean; track?: boolean; eager?: boolean }) {
   const reduced = useReducedMotion();
-  return <MausAvatar color={color} bodyId={body} size={size} state={state} label={label} animated={!still && !reduced} trackPointer={track} personality={!still} />;
+  const ref = useRef<HTMLSpanElement>(null);
+  const [visible, setVisible] = useState(eager);
+  useEffect(() => {
+    if (visible || !ref.current) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry?.isIntersecting) { setVisible(true); observer.disconnect(); }
+    });
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [visible]);
+  return (
+    <span ref={ref} className="inline-flex shrink-0" style={{ width: size, height: size }}>
+      {visible && <Suspense fallback={null}><MausAvatar color={color} bodyId={body} size={size} state={state} label={label} animated={!still && !reduced} trackPointer={track} personality={!still} /></Suspense>}
+    </span>
+  );
 }
 
 export function BotMark({ bot, size = 24, state, still = true }: { bot: Pick<Bot, "color" | "body" | "name">; size?: number; state?: MausState; still?: boolean }) {

@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, type ReactNode } from "react";
+import { lazy, StrictMode, Suspense, useEffect, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { DashboardProvider, useStore } from "./data/store";
 import { scrollToHash, useLocation } from "./lib/router";
@@ -6,15 +6,20 @@ import { Shell } from "./ui/Shell";
 import { Skeleton } from "./ui/kit";
 import { EmptyState } from "./ui/Mascot";
 import { ButtonLink } from "./ui/kit";
-import { HomePage } from "./pages/Home";
-import { BotPage, BotsPage } from "./pages/Bots";
-import { MyCloudPage } from "./pages/MyCloud";
-import { ComputersPage } from "./pages/Computers";
-import { UsagePage } from "./pages/Usage";
-import { BillingPage } from "./pages/Billing";
-import { ProfilePage, SecurityPage } from "./pages/AccountSecurity";
-import { ConnectionsPage, NotificationsPage, PrivacyPage } from "./pages/AccountMore";
 import "./app.css";
+
+const HomePage = lazy(() => import("./pages/Home").then((m) => ({ default: m.HomePage })));
+const BotsPage = lazy(() => import("./pages/Bots").then((m) => ({ default: m.BotsPage })));
+const BotPage = lazy(() => import("./pages/Bots").then((m) => ({ default: m.BotPage })));
+const MyCloudPage = lazy(() => import("./pages/MyCloud").then((m) => ({ default: m.MyCloudPage })));
+const ComputersPage = lazy(() => import("./pages/Computers").then((m) => ({ default: m.ComputersPage })));
+const UsagePage = lazy(() => import("./pages/Usage").then((m) => ({ default: m.UsagePage })));
+const BillingPage = lazy(() => import("./pages/Billing").then((m) => ({ default: m.BillingPage })));
+const ProfilePage = lazy(() => import("./pages/AccountSecurity").then((m) => ({ default: m.ProfilePage })));
+const SecurityPage = lazy(() => import("./pages/AccountSecurity").then((m) => ({ default: m.SecurityPage })));
+const ConnectionsPage = lazy(() => import("./pages/AccountMore").then((m) => ({ default: m.ConnectionsPage })));
+const NotificationsPage = lazy(() => import("./pages/AccountMore").then((m) => ({ default: m.NotificationsPage })));
+const PrivacyPage = lazy(() => import("./pages/AccountMore").then((m) => ({ default: m.PrivacyPage })));
 
 const TITLES: Record<string, string> = {
   "/": "Home", "/bots": "Bots", "/cloud": "My Cloud", "/cloud/computers": "Bot computers", "/usage": "Usage", "/billing": "Billing",
@@ -54,7 +59,7 @@ function App() {
   const { ready } = useStore();
   useEffect(() => { document.title = `${TITLES[path] ?? (path.startsWith("/bots/") ? "Bot" : "OpenMausBot")} · OpenMausBot`; }, [path]);
   useEffect(() => { if (window.location.hash) scrollToHash(window.location.hash.slice(1)); }, [path, ready]);
-  return <Shell>{ready ? route(path) : <Loading />}</Shell>;
+  return <Shell><Suspense fallback={null}>{ready ? route(path) : <Loading />}</Suspense></Shell>;
 }
 
 createRoot(document.getElementById("root")!).render(

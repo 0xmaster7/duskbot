@@ -44,7 +44,7 @@ function Hero() {
           return (
             <span key={bot.id} className={cx("drift pointer-events-auto absolute left-[var(--ml)] top-[var(--t)] -ms-6 sm:left-[var(--l)]", i >= 4 && "max-sm:hidden")}
               style={{ "--l": spot.left, "--ml": spot.mleft, "--t": spot.top, animationDelay: spot.delay } as CSSProperties}>
-              <Mascot color={bot.color} body={bot.body} size={spot.size} state={moodOf(bot, data.now)} label={`${bot.name}, ${moodOf(bot, data.now)}`} track />
+              <Mascot color={bot.color} body={bot.body} size={spot.size} state={moodOf(bot, data.now)} label={`${bot.name}, ${moodOf(bot, data.now)}`} track eager />
             </span>
           );
         })}

@@ -95,15 +95,15 @@ export function LineChart({ series, labels, height = 160, format, axis = format,
 
 export interface StackKey { key: string; label: string; color: string }
 
-export function StackedBars({ keys, rows, labels, line, lineLabel, forecast, cap, capLabel, height = 240, format, label, onPick }: {
+export function StackedBars({ keys, rows, labels, line, lineLabel, forecast, cap, capLabel, rightAxisLabel = "Month to date", height = 240, format, label, onPick }: {
   keys: StackKey[]; rows: Array<Record<string, number>>; labels: string[]; line?: number[]; lineLabel?: string; forecast?: number[]; cap?: number; capLabel?: string;
-  height?: number; format: (v: number) => string; label: string; onPick?: (i: number) => void;
+  rightAxisLabel?: string; height?: number; format: (v: number) => string; label: string; onPick?: (i: number) => void;
 }) {
   const [ref, width] = useWidth<HTMLDivElement>();
-  const n = labels.length;
-  const total = forecast?.length ?? n;
+  const n = rows.length;
+  const total = labels.length;
   const { index, setIndex, onKey } = useHover(n);
-  const pad = { l: 40, r: 44, t: 12, b: 22 };
+  const pad = { l: 40, r: 94, t: 34, b: 22 };
   const w = Math.max(0, width - pad.l - pad.r), h = height - pad.t - pad.b;
   const barMax = niceMax(Math.max(...rows.map((r) => keys.reduce((s, k) => s + (r[k.key] ?? 0), 0)), 0.01));
   const lineMax = niceMax(Math.max(...(line ?? [0]), ...(forecast ?? [0]), cap ?? 0, 0.01));
@@ -117,20 +117,21 @@ export function StackedBars({ keys, rows, labels, line, lineLabel, forecast, cap
     setIndex(Math.max(0, Math.min(n - 1, Math.floor((e.clientX - box.left - pad.l) / Math.max(1, slot)))));
   };
   const tickEvery = Math.max(1, Math.ceil(total / Math.max(2, Math.floor(w / 64))));
-  const allLabels = labels.concat(Array.from({ length: total - n }, () => ""));
   return (
     <div ref={ref} className="relative" style={{ height }}>
       {width > 0 && (
         <svg width={width} height={height} role="img" aria-label={label} tabIndex={0} onKeyDown={(e) => { onKey(e); if (e.key === "Enter" && index !== null) onPick?.(index); }}
           onPointerMove={onMove} onPointerLeave={() => setIndex(null)} onBlur={() => setIndex(null)} onClick={() => index !== null && onPick?.(index)} className={cx("block touch-pan-y", onPick && "cursor-pointer")}>
+          <text x={pad.l} y={14} className="fill-accent text-12">Per day</text>
+          {line && <text x={width - 4} y={14} textAnchor="end" className="fill-ink-2 text-12">{rightAxisLabel}</text>}
           {[0, 0.5, 1].map((f) => (
             <g key={f}>
               <line x1={pad.l} x2={width - pad.r} y1={yb(barMax * f)} y2={yb(barMax * f)} stroke="var(--color-row)" />
-              <text x={pad.l - 6} y={yb(barMax * f) + 4} textAnchor="end" className="fill-ink-4 text-[11px]">{format(barMax * f)}</text>
-              {line && <text x={width - pad.r + 6} y={yl(lineMax * f) + 4} className="fill-ink-4 text-[11px]">{format(lineMax * f)}</text>}
+              <text x={pad.l - 6} y={yb(barMax * f) + 4} textAnchor="end" className="fill-accent text-12">{format(barMax * f)}</text>
+              {line && <text x={width - pad.r + 6} y={yl(lineMax * f) + 4} className="fill-ink-2 text-12">{format(lineMax * f)}</text>}
             </g>
           ))}
-          {allLabels.map((l, i) => (i % tickEvery === 0 && l ? <text key={i} x={x(i)} y={height - 6} textAnchor="middle" className="fill-ink-4 text-[11px]">{l}</text> : null))}
+          {labels.map((l, i) => ((i % tickEvery === 0 && x(total - 1) - x(i) >= 32) || i === total - 1 ? <text key={i} x={x(i)} y={height - 6} textAnchor={i === total - 1 ? "end" : "middle"} className="fill-ink-4 text-12">{l}</text> : null))}
           {rows.map((r, i) => {
             let acc = 0;
             return (
@@ -147,13 +148,13 @@ export function StackedBars({ keys, rows, labels, line, lineLabel, forecast, cap
           })}
           {cap !== undefined && (
             <g>
-              <line x1={pad.l} x2={width - pad.r} y1={yl(cap)} y2={yl(cap)} stroke="var(--color-bad)" strokeDasharray="4 4" strokeWidth={1} opacity={0.6} />
-              <text x={width - pad.r - 4} y={yl(cap) - 5} textAnchor="end" className="fill-bad text-[11px] font-medium">{capLabel}</text>
+              <line x1={pad.l} x2={width - pad.r} y1={yl(cap)} y2={yl(cap)} stroke="var(--color-ink-3)" strokeDasharray="4 4" strokeWidth={1} />
+              <text x={width - pad.r + 6} y={yl(cap) - 7} className="fill-ink-3 text-12 font-medium">{capLabel}</text>
             </g>
           )}
-          {forecast && <path d={forecast.map((v, i) => (i < n - 1 ? "" : `${i === n - 1 ? "M" : "L"}${x(i).toFixed(1)},${yl(v).toFixed(1)}`)).join("")} fill="none" stroke="var(--color-ink)" strokeWidth={1.25} strokeDasharray="1.5 3.5" strokeLinecap="round" />}
-          {line && <path d={line.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${yl(v).toFixed(1)}`).join("")} fill="none" stroke="var(--color-ink)" strokeWidth={1.5} strokeLinejoin="round" />}
-          {index !== null && line && <circle cx={x(index)} cy={yl(line[index] ?? 0)} r={3} fill="var(--color-surface)" stroke="var(--color-ink)" strokeWidth={1.5} />}
+          {forecast && <path d={forecast.map((v, i) => (i < n - 1 ? "" : `${i === n - 1 ? "M" : "L"}${x(i).toFixed(1)},${yl(v).toFixed(1)}`)).join("")} fill="none" stroke="var(--color-ink-2)" strokeWidth={1.25} strokeDasharray="1.5 3.5" strokeLinecap="round" />}
+          {line && <path d={line.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${yl(v).toFixed(1)}`).join("")} fill="none" stroke="var(--color-ink-2)" strokeWidth={1.5} strokeLinejoin="round" />}
+          {index !== null && line && <circle cx={x(index)} cy={yl(line[index] ?? 0)} r={3} fill="var(--color-surface)" stroke="var(--color-ink-2)" strokeWidth={1.5} />}
         </svg>
       )}
       {index !== null && width > 0 && (
