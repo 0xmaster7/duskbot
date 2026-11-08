@@ -158,7 +158,7 @@ export async function startFakeSlack(options: FakeSlackOptions = {}): Promise<Fa
   const downloads: FakeSlack["downloads"] = [], uploads: FakeSlack["uploads"] = [], completed: FakeSlack["completed"] = [];
   const waiters = new Set<{ check(): void; stop(): void }>();
   const timers = new Set<ReturnType<typeof setTimeout>>();
-  const notify = () => { for (const waiter of [...waiters]) waiter.check(); };
+  const notify = () => { for (const waiter of Array.from(waiters)) waiter.check(); };
   function waitFor<T>(read: () => T | undefined, timeoutMs = 5000): Promise<T> {
     return new Promise((resolve, reject) => {
       let timer: ReturnType<typeof setTimeout>;
@@ -449,7 +449,7 @@ export async function startFakeSlack(options: FakeSlackOptions = {}): Promise<Fa
     close: async () => {
       if (closed) return;
       closed = true;
-      for (const waiter of [...waiters]) waiter.stop();
+      for (const waiter of Array.from(waiters)) waiter.stop();
       for (const timer of timers) clearTimeout(timer);
       for (const ws of wss.clients) ws.terminate();
       await Promise.all([

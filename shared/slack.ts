@@ -37,13 +37,14 @@ export interface SlackOAuthRequest { code: string; state: string }
 export interface SlackAppTokenRequest { token: string }
 /** Slack app settings where the person generates the app-level token. */
 export const slackAppTokenUrl = (appId: string) => `https://api.slack.com/apps/${encodeURIComponent(appId)}/general`;
+const unprintable = (text: string) => [...text].some((character) => character <= " " || character === "\u007f");
 /** The callback's deep link parsed strictly: a code and a state, or Slack's error and the state. */
 export function parseSlackOAuthLink(value: unknown): { code: string; state: string } | { error: string; state: string } | null {
-  if (typeof value !== "string" || value.length > 2048 || /[\u0000-\u0020\u007f]/.test(value) || !value.startsWith(`${SLACK_OAUTH_DEEP_LINK}?`)) return null;
+  if (typeof value !== "string" || value.length > 2048 || unprintable(value) || !value.startsWith(`${SLACK_OAUTH_DEEP_LINK}?`)) return null;
   try {
     const url = new URL(value);
     if (url.protocol !== "openmausbot:" || url.host !== "slack" || url.pathname !== "/oauth" || url.username || url.password || url.hash || value.includes("#")) return null;
-    if ([...url.searchParams.values()].some((value) => /[\u0000-\u0020\u007f]/.test(value))) return null;
+    if ([...url.searchParams.values()].some((value) => unprintable(value))) return null;
     const keys = [...url.searchParams.keys()];
     if (keys.length !== 2 || new Set(keys).size !== 2 || keys.some((key) => !["code", "error", "state"].includes(key))) return null;
     const state = url.searchParams.get("state");
