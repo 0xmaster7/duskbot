@@ -9,6 +9,8 @@ export interface CreateCheckoutInput {
   customerId: string | null;
   cart: ProviderCartLine[];
   returnUrl: string;
+  /** local quote for the fake provider; never sent to dodo */
+  billing?: { interval: "month" | "year" | null; amountCents: number; currency: string };
 }
 
 /** a provider webhook after its signature was verified, mapped to our words */
@@ -23,7 +25,7 @@ export type BillingEvent =
 
 export interface VerifiedWebhook { id: string; at: number; event: BillingEvent }
 
-export interface ChangePlanInput { subscriptionId: string; productId: string; addons: Array<{ addonId: string; quantity: number }> }
+export interface ChangePlanInput { subscriptionId: string; productId: string; addons: Array<{ addonId: string; quantity: number }>; billing?: CreateCheckoutInput["billing"] }
 
 /** payments backend: fake for tests and dev, dodo when configured. no method ever logs a secret. */
 export interface BillingProvider {
@@ -36,11 +38,12 @@ export interface BillingProvider {
   changePlan(input: ChangePlanInput): Promise<void>;
   /** a url the owner's browser may open for this payment's invoice */
   invoiceUrl(paymentId: string): Promise<string | null>;
+  invoicePdf(paymentId: string): Promise<{ contentType: string; body: Buffer } | null>;
 }
 
 export class BillingProviderError extends Error {
   code: "bad_signature" | "unavailable" | "refused";
-  constructor(code: "bad_signature" | "unavailable" | "refused", message: string) { super(message); this.code = code; }
+  constructor(code: "bad_signature" | "unavailable" | "refused", message: string = code) { super(message); this.code = code; }
 }
 
 /** the account behind a request: dashboard cookie or app bearer token. swapped for shared/account-api.ts once it lands. */
