@@ -1,3 +1,4 @@
+import { plainPreviewText } from "@/lib/plain-preview";
 import { useMemo, useState, type ComponentType } from "react";
 import { BotAvatar, MausAvatar } from "@/components/Avatar";
 import { cn } from "@/lib/cn";
@@ -97,7 +98,7 @@ export const NotificationsSheet: ComponentType<SheetPageProps<"notifications">> 
                             <time dateTime={new Date(entry.at).toISOString()} className="shrink-0 text-[13px] text-ink-tertiary">{listTime(entry.at)}</time>
                           </span>
                           <span className="mt-1 flex items-center gap-2">
-                            <span className="line-clamp-2 min-w-0 flex-1 text-[14px] leading-5 text-ink-secondary">{entry.body}</span>
+                            <span className="line-clamp-2 min-w-0 flex-1 text-[14px] leading-5 text-ink-secondary">{plainPreviewText(entry.body)}</span>
                             {!entry.read && <span aria-hidden className="size-2 shrink-0 rounded-full bg-ink" />}
                           </span>
                         </span>

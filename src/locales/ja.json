@@ -6313,8 +6313,6 @@
   "mobile.onboarding.pages": "ページ",
   "mobile.onboarding.pageN": "{n}ページ",
   "mobile.onboarding.linkTitle": "インストール環境と連携",
-  "mobile.onboarding.linkBody": "パソコンで{app}を開き、設定、Phone、Pair with a codeの順に選び、表示されたコードを読み取ってください。",
-  "mobile.onboarding.illustrationPath": "設定 › Phone",
   "mobile.onboarding.scan": "QRコードを読み取る",
   "mobile.onboarding.enterCode": "コードを入力",
   "mobile.onboarding.pasteLink": "リンクを貼り付け",
@@ -6440,5 +6438,9 @@
   "accountGate.oauthFailed": "ブラウザでのサインインに失敗しました。もう一度お試しください。",
   "accountGate.oauthExpired": "サインインの有効期限が切れました。最初からやり直してください。",
   "accountGate.providerUnavailable": "このサインイン方法は利用できません。別の方法をお試しください。",
-  "accountGate.identityTaken": "この認証情報は別のアカウントに属しています。別の方法をお試しください。"
+  "accountGate.identityTaken": "この認証情報は別のアカウントに属しています。別の方法をお試しください。",
+  "mobile.onboarding.linkShort": "パソコンで{app}を開き、設定 › Phoneのコードを読み取ってください。",
+  "mobile.onboarding.pasteInstead": "代わりにリンクを貼り付け",
+  "mobile.home.onlyPinnedTitle": "ほかのチャットはここに表示されます",
+  "mobile.home.onlyPinnedBody": "メールの整理、調べもの、プロジェクトなどの仕事用にボットを作ると、そのチャットがこのリストに表示されます。"
 }

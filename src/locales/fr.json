@@ -3210,8 +3210,6 @@
   "mobile.onboarding.pages": "Pages",
   "mobile.onboarding.pageN": "Page {n}",
   "mobile.onboarding.linkTitle": "Associer votre installation",
-  "mobile.onboarding.linkBody": "Sur votre ordinateur, ouvrez {app}, allez dans Paramètres, puis Phone, puis Pair with a code et scannez le code affiché.",
-  "mobile.onboarding.illustrationPath": "Paramètres › Phone",
   "mobile.onboarding.scan": "Scanner le code QR",
   "mobile.onboarding.enterCode": "Saisir un code",
   "mobile.onboarding.pasteLink": "Coller un lien",
@@ -3337,5 +3335,9 @@
   "accountGate.oauthFailed": "La connexion dans le navigateur a échoué. Veuillez réessayer.",
   "accountGate.oauthExpired": "Cette connexion a expiré. Veuillez recommencer.",
   "accountGate.providerUnavailable": "Ce fournisseur est indisponible. Essayez une autre méthode.",
-  "accountGate.identityTaken": "Cette identité appartient à un autre compte. Essayez une autre méthode."
+  "accountGate.identityTaken": "Cette identité appartient à un autre compte. Essayez une autre méthode.",
+  "mobile.onboarding.linkShort": "Ouvrez {app} sur votre ordinateur et scannez le code dans Paramètres › Phone.",
+  "mobile.onboarding.pasteInstead": "Coller un lien à la place",
+  "mobile.home.onlyPinnedTitle": "Vos autres discussions apparaissent ici",
+  "mobile.home.onlyPinnedBody": "Créez un bot pour une tâche, comme gérer vos e-mails, faire des recherches ou travailler sur un projet. Sa discussion apparaîtra dans cette liste."
 }

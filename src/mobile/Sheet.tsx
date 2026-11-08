@@ -130,13 +130,13 @@ export function Sheet({ open, onClose, title, label, children, full = false, bac
         {!flush && (
           <div className="flex shrink-0 items-center gap-3 px-4 pb-2 pt-1.5">
             {back
-              ? <RoundButton label={t("mobile.sheet.back")} onClick={back} size={40}><ChevronLeft size={20} /></RoundButton>
-              : <RoundButton label={t("mobile.sheet.close")} onClick={onClose} size={40}><X size={18} /></RoundButton>}
+              ? <RoundButton label={t("mobile.sheet.back")} onClick={back} size={44}><ChevronLeft size={20} /></RoundButton>
+              : <RoundButton label={t("mobile.sheet.close")} onClick={onClose} size={44}><X size={18} /></RoundButton>}
             <div className="min-w-0 flex-1 truncate text-[15px] font-semibold text-ink">{title}</div>
             {trailing}
           </div>
         )}
-        <div ref={bodyRef} className={cn("mobile-sheet-body relative min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[max(var(--m-safe-bottom),16px)]", bodyClassName)}>
+        <div ref={bodyRef} className={cn("mobile-sheet-body relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pb-[max(var(--m-safe-bottom),16px)]", bodyClassName)}>
           {children}
         </div>
       </motion.div>

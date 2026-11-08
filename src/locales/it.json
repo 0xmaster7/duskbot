@@ -6117,8 +6117,6 @@
   "mobile.onboarding.pages": "Pagine",
   "mobile.onboarding.pageN": "Pagina {n}",
   "mobile.onboarding.linkTitle": "Collega la tua installazione",
-  "mobile.onboarding.linkBody": "Sul computer, apri {app}, vai in Impostazioni, poi Phone, poi Pair with a code e scansiona il codice mostrato.",
-  "mobile.onboarding.illustrationPath": "Impostazioni › Phone",
   "mobile.onboarding.scan": "Scansiona il codice QR",
   "mobile.onboarding.enterCode": "Inserisci un codice",
   "mobile.onboarding.pasteLink": "Incolla un link",
@@ -6244,5 +6242,9 @@
   "accountGate.oauthFailed": "Accesso dal browser non riuscito. Riprova.",
   "accountGate.oauthExpired": "Questo accesso è scaduto. Ricomincia.",
   "accountGate.providerUnavailable": "Questo servizio di accesso non è disponibile. Prova un altro metodo.",
-  "accountGate.identityTaken": "Questa identità appartiene a un altro account. Prova un altro metodo."
+  "accountGate.identityTaken": "Questa identità appartiene a un altro account. Prova un altro metodo.",
+  "mobile.onboarding.linkShort": "Apri {app} sul computer e scansiona il codice in Impostazioni › Phone.",
+  "mobile.onboarding.pasteInstead": "Incolla un link invece",
+  "mobile.home.onlyPinnedTitle": "Le altre chat appaiono qui",
+  "mobile.home.onlyPinnedBody": "Crea un bot per un compito, come gestire la posta, fare ricerche o seguire un progetto. La sua chat apparirà in questo elenco."
 }

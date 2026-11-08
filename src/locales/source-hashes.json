@@ -3290,8 +3290,6 @@
       "mobile.onboarding.pages": "9046da16aea909ba75a36cec13b56cb2144dc2ede45cde361e99a8d79802eabf",
       "mobile.onboarding.pageN": "a456627ace382cd7eac7c2e266b2ae8b326f7f1bc8579b15af3c009ce2ba0923",
       "mobile.onboarding.linkTitle": "c161cce3483be6ff0f50c4c5750fe8df8cc7c6b39f2d0d0b99aabad4f0f61057",
-      "mobile.onboarding.linkBody": "af99415773b99c33f87f8fdfaa5068fa3a68fd594924bb3aaae1a65060247e46",
-      "mobile.onboarding.illustrationPath": "fccb6458940e1deba1c45f1ef0f06ea5a7743a526faa00c2b88db853e35e9aaf",
       "mobile.onboarding.scan": "e5c7478bbce26eb74cb858cff953997948571c3dbe789a482685f0f2d33e874a",
       "mobile.onboarding.enterCode": "954e327b6dc292072711ad28255fc4e74718c741f03068c5237e00dbf7e7b483",
       "mobile.onboarding.pasteLink": "8275f7c22a05ee0b0caa606a21a361a95ec1efb3fd158a7220febe367ee2ecf5",
@@ -3417,7 +3415,11 @@
       "accountGate.oauthFailed": "0e5ff39511525a2c5bfcbfe3a5d9cf2abf130a0535e63a9e9fc39200433687a5",
       "accountGate.oauthExpired": "8bd21dee2265644df2a69fad3907f71fa3a1a2b89a80c65309173878c0f785af",
       "accountGate.providerUnavailable": "4cdd801059195b82f67baed9c61e5ed4d5b4c7018c1b8a5ec5f4e2d93a3f5c06",
-      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35"
+      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35",
+      "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
+      "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
+      "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
     },
     "es": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -9129,8 +9131,6 @@
       "mobile.onboarding.pages": "9046da16aea909ba75a36cec13b56cb2144dc2ede45cde361e99a8d79802eabf",
       "mobile.onboarding.pageN": "a456627ace382cd7eac7c2e266b2ae8b326f7f1bc8579b15af3c009ce2ba0923",
       "mobile.onboarding.linkTitle": "c161cce3483be6ff0f50c4c5750fe8df8cc7c6b39f2d0d0b99aabad4f0f61057",
-      "mobile.onboarding.linkBody": "af99415773b99c33f87f8fdfaa5068fa3a68fd594924bb3aaae1a65060247e46",
-      "mobile.onboarding.illustrationPath": "fccb6458940e1deba1c45f1ef0f06ea5a7743a526faa00c2b88db853e35e9aaf",
       "mobile.onboarding.scan": "e5c7478bbce26eb74cb858cff953997948571c3dbe789a482685f0f2d33e874a",
       "mobile.onboarding.enterCode": "954e327b6dc292072711ad28255fc4e74718c741f03068c5237e00dbf7e7b483",
       "mobile.onboarding.pasteLink": "8275f7c22a05ee0b0caa606a21a361a95ec1efb3fd158a7220febe367ee2ecf5",
@@ -9256,7 +9256,11 @@
       "accountGate.oauthFailed": "0e5ff39511525a2c5bfcbfe3a5d9cf2abf130a0535e63a9e9fc39200433687a5",
       "accountGate.oauthExpired": "8bd21dee2265644df2a69fad3907f71fa3a1a2b89a80c65309173878c0f785af",
       "accountGate.providerUnavailable": "4cdd801059195b82f67baed9c61e5ed4d5b4c7018c1b8a5ec5f4e2d93a3f5c06",
-      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35"
+      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35",
+      "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
+      "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
+      "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
     },
     "fr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -12470,8 +12474,6 @@
       "mobile.onboarding.pages": "9046da16aea909ba75a36cec13b56cb2144dc2ede45cde361e99a8d79802eabf",
       "mobile.onboarding.pageN": "a456627ace382cd7eac7c2e266b2ae8b326f7f1bc8579b15af3c009ce2ba0923",
       "mobile.onboarding.linkTitle": "c161cce3483be6ff0f50c4c5750fe8df8cc7c6b39f2d0d0b99aabad4f0f61057",
-      "mobile.onboarding.linkBody": "af99415773b99c33f87f8fdfaa5068fa3a68fd594924bb3aaae1a65060247e46",
-      "mobile.onboarding.illustrationPath": "fccb6458940e1deba1c45f1ef0f06ea5a7743a526faa00c2b88db853e35e9aaf",
       "mobile.onboarding.scan": "e5c7478bbce26eb74cb858cff953997948571c3dbe789a482685f0f2d33e874a",
       "mobile.onboarding.enterCode": "954e327b6dc292072711ad28255fc4e74718c741f03068c5237e00dbf7e7b483",
       "mobile.onboarding.pasteLink": "8275f7c22a05ee0b0caa606a21a361a95ec1efb3fd158a7220febe367ee2ecf5",
@@ -12597,7 +12599,11 @@
       "accountGate.oauthFailed": "0e5ff39511525a2c5bfcbfe3a5d9cf2abf130a0535e63a9e9fc39200433687a5",
       "accountGate.oauthExpired": "8bd21dee2265644df2a69fad3907f71fa3a1a2b89a80c65309173878c0f785af",
       "accountGate.providerUnavailable": "4cdd801059195b82f67baed9c61e5ed4d5b4c7018c1b8a5ec5f4e2d93a3f5c06",
-      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35"
+      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35",
+      "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
+      "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
+      "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
     },
     "hi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -15807,8 +15813,6 @@
       "mobile.onboarding.pages": "9046da16aea909ba75a36cec13b56cb2144dc2ede45cde361e99a8d79802eabf",
       "mobile.onboarding.pageN": "a456627ace382cd7eac7c2e266b2ae8b326f7f1bc8579b15af3c009ce2ba0923",
       "mobile.onboarding.linkTitle": "c161cce3483be6ff0f50c4c5750fe8df8cc7c6b39f2d0d0b99aabad4f0f61057",
-      "mobile.onboarding.linkBody": "af99415773b99c33f87f8fdfaa5068fa3a68fd594924bb3aaae1a65060247e46",
-      "mobile.onboarding.illustrationPath": "fccb6458940e1deba1c45f1ef0f06ea5a7743a526faa00c2b88db853e35e9aaf",
       "mobile.onboarding.scan": "e5c7478bbce26eb74cb858cff953997948571c3dbe789a482685f0f2d33e874a",
       "mobile.onboarding.enterCode": "954e327b6dc292072711ad28255fc4e74718c741f03068c5237e00dbf7e7b483",
       "mobile.onboarding.pasteLink": "8275f7c22a05ee0b0caa606a21a361a95ec1efb3fd158a7220febe367ee2ecf5",
@@ -15934,7 +15938,11 @@
       "accountGate.oauthFailed": "0e5ff39511525a2c5bfcbfe3a5d9cf2abf130a0535e63a9e9fc39200433687a5",
       "accountGate.oauthExpired": "8bd21dee2265644df2a69fad3907f71fa3a1a2b89a80c65309173878c0f785af",
       "accountGate.providerUnavailable": "4cdd801059195b82f67baed9c61e5ed4d5b4c7018c1b8a5ec5f4e2d93a3f5c06",
-      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35"
+      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35",
+      "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
+      "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
+      "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
     },
     "it": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -22055,8 +22063,6 @@
       "mobile.onboarding.pages": "9046da16aea909ba75a36cec13b56cb2144dc2ede45cde361e99a8d79802eabf",
       "mobile.onboarding.pageN": "a456627ace382cd7eac7c2e266b2ae8b326f7f1bc8579b15af3c009ce2ba0923",
       "mobile.onboarding.linkTitle": "c161cce3483be6ff0f50c4c5750fe8df8cc7c6b39f2d0d0b99aabad4f0f61057",
-      "mobile.onboarding.linkBody": "af99415773b99c33f87f8fdfaa5068fa3a68fd594924bb3aaae1a65060247e46",
-      "mobile.onboarding.illustrationPath": "fccb6458940e1deba1c45f1ef0f06ea5a7743a526faa00c2b88db853e35e9aaf",
       "mobile.onboarding.scan": "e5c7478bbce26eb74cb858cff953997948571c3dbe789a482685f0f2d33e874a",
       "mobile.onboarding.enterCode": "954e327b6dc292072711ad28255fc4e74718c741f03068c5237e00dbf7e7b483",
       "mobile.onboarding.pasteLink": "8275f7c22a05ee0b0caa606a21a361a95ec1efb3fd158a7220febe367ee2ecf5",
@@ -22182,7 +22188,11 @@
       "accountGate.oauthFailed": "0e5ff39511525a2c5bfcbfe3a5d9cf2abf130a0535e63a9e9fc39200433687a5",
       "accountGate.oauthExpired": "8bd21dee2265644df2a69fad3907f71fa3a1a2b89a80c65309173878c0f785af",
       "accountGate.providerUnavailable": "4cdd801059195b82f67baed9c61e5ed4d5b4c7018c1b8a5ec5f4e2d93a3f5c06",
-      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35"
+      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35",
+      "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
+      "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
+      "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
     },
     "ja": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -28499,8 +28509,6 @@
       "mobile.onboarding.pages": "9046da16aea909ba75a36cec13b56cb2144dc2ede45cde361e99a8d79802eabf",
       "mobile.onboarding.pageN": "a456627ace382cd7eac7c2e266b2ae8b326f7f1bc8579b15af3c009ce2ba0923",
       "mobile.onboarding.linkTitle": "c161cce3483be6ff0f50c4c5750fe8df8cc7c6b39f2d0d0b99aabad4f0f61057",
-      "mobile.onboarding.linkBody": "af99415773b99c33f87f8fdfaa5068fa3a68fd594924bb3aaae1a65060247e46",
-      "mobile.onboarding.illustrationPath": "fccb6458940e1deba1c45f1ef0f06ea5a7743a526faa00c2b88db853e35e9aaf",
       "mobile.onboarding.scan": "e5c7478bbce26eb74cb858cff953997948571c3dbe789a482685f0f2d33e874a",
       "mobile.onboarding.enterCode": "954e327b6dc292072711ad28255fc4e74718c741f03068c5237e00dbf7e7b483",
       "mobile.onboarding.pasteLink": "8275f7c22a05ee0b0caa606a21a361a95ec1efb3fd158a7220febe367ee2ecf5",
@@ -28626,7 +28634,11 @@
       "accountGate.oauthFailed": "0e5ff39511525a2c5bfcbfe3a5d9cf2abf130a0535e63a9e9fc39200433687a5",
       "accountGate.oauthExpired": "8bd21dee2265644df2a69fad3907f71fa3a1a2b89a80c65309173878c0f785af",
       "accountGate.providerUnavailable": "4cdd801059195b82f67baed9c61e5ed4d5b4c7018c1b8a5ec5f4e2d93a3f5c06",
-      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35"
+      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35",
+      "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
+      "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
+      "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
     },
     "ko": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -35365,8 +35377,6 @@
       "mobile.onboarding.pages": "9046da16aea909ba75a36cec13b56cb2144dc2ede45cde361e99a8d79802eabf",
       "mobile.onboarding.pageN": "a456627ace382cd7eac7c2e266b2ae8b326f7f1bc8579b15af3c009ce2ba0923",
       "mobile.onboarding.linkTitle": "c161cce3483be6ff0f50c4c5750fe8df8cc7c6b39f2d0d0b99aabad4f0f61057",
-      "mobile.onboarding.linkBody": "af99415773b99c33f87f8fdfaa5068fa3a68fd594924bb3aaae1a65060247e46",
-      "mobile.onboarding.illustrationPath": "fccb6458940e1deba1c45f1ef0f06ea5a7743a526faa00c2b88db853e35e9aaf",
       "mobile.onboarding.scan": "e5c7478bbce26eb74cb858cff953997948571c3dbe789a482685f0f2d33e874a",
       "mobile.onboarding.enterCode": "954e327b6dc292072711ad28255fc4e74718c741f03068c5237e00dbf7e7b483",
       "mobile.onboarding.pasteLink": "8275f7c22a05ee0b0caa606a21a361a95ec1efb3fd158a7220febe367ee2ecf5",
@@ -35492,7 +35502,11 @@
       "accountGate.oauthFailed": "0e5ff39511525a2c5bfcbfe3a5d9cf2abf130a0535e63a9e9fc39200433687a5",
       "accountGate.oauthExpired": "8bd21dee2265644df2a69fad3907f71fa3a1a2b89a80c65309173878c0f785af",
       "accountGate.providerUnavailable": "4cdd801059195b82f67baed9c61e5ed4d5b4c7018c1b8a5ec5f4e2d93a3f5c06",
-      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35"
+      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35",
+      "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
+      "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
+      "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
     },
     "pl": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -41779,8 +41793,6 @@
       "mobile.onboarding.pages": "9046da16aea909ba75a36cec13b56cb2144dc2ede45cde361e99a8d79802eabf",
       "mobile.onboarding.pageN": "a456627ace382cd7eac7c2e266b2ae8b326f7f1bc8579b15af3c009ce2ba0923",
       "mobile.onboarding.linkTitle": "c161cce3483be6ff0f50c4c5750fe8df8cc7c6b39f2d0d0b99aabad4f0f61057",
-      "mobile.onboarding.linkBody": "af99415773b99c33f87f8fdfaa5068fa3a68fd594924bb3aaae1a65060247e46",
-      "mobile.onboarding.illustrationPath": "fccb6458940e1deba1c45f1ef0f06ea5a7743a526faa00c2b88db853e35e9aaf",
       "mobile.onboarding.scan": "e5c7478bbce26eb74cb858cff953997948571c3dbe789a482685f0f2d33e874a",
       "mobile.onboarding.enterCode": "954e327b6dc292072711ad28255fc4e74718c741f03068c5237e00dbf7e7b483",
       "mobile.onboarding.pasteLink": "8275f7c22a05ee0b0caa606a21a361a95ec1efb3fd158a7220febe367ee2ecf5",
@@ -41906,7 +41918,11 @@
       "accountGate.oauthFailed": "0e5ff39511525a2c5bfcbfe3a5d9cf2abf130a0535e63a9e9fc39200433687a5",
       "accountGate.oauthExpired": "8bd21dee2265644df2a69fad3907f71fa3a1a2b89a80c65309173878c0f785af",
       "accountGate.providerUnavailable": "4cdd801059195b82f67baed9c61e5ed4d5b4c7018c1b8a5ec5f4e2d93a3f5c06",
-      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35"
+      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35",
+      "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
+      "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
+      "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
     },
     "pt-br": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -48065,8 +48081,6 @@
       "mobile.onboarding.pages": "9046da16aea909ba75a36cec13b56cb2144dc2ede45cde361e99a8d79802eabf",
       "mobile.onboarding.pageN": "a456627ace382cd7eac7c2e266b2ae8b326f7f1bc8579b15af3c009ce2ba0923",
       "mobile.onboarding.linkTitle": "c161cce3483be6ff0f50c4c5750fe8df8cc7c6b39f2d0d0b99aabad4f0f61057",
-      "mobile.onboarding.linkBody": "af99415773b99c33f87f8fdfaa5068fa3a68fd594924bb3aaae1a65060247e46",
-      "mobile.onboarding.illustrationPath": "fccb6458940e1deba1c45f1ef0f06ea5a7743a526faa00c2b88db853e35e9aaf",
       "mobile.onboarding.scan": "e5c7478bbce26eb74cb858cff953997948571c3dbe789a482685f0f2d33e874a",
       "mobile.onboarding.enterCode": "954e327b6dc292072711ad28255fc4e74718c741f03068c5237e00dbf7e7b483",
       "mobile.onboarding.pasteLink": "8275f7c22a05ee0b0caa606a21a361a95ec1efb3fd158a7220febe367ee2ecf5",
@@ -48192,7 +48206,11 @@
       "accountGate.oauthFailed": "0e5ff39511525a2c5bfcbfe3a5d9cf2abf130a0535e63a9e9fc39200433687a5",
       "accountGate.oauthExpired": "8bd21dee2265644df2a69fad3907f71fa3a1a2b89a80c65309173878c0f785af",
       "accountGate.providerUnavailable": "4cdd801059195b82f67baed9c61e5ed4d5b4c7018c1b8a5ec5f4e2d93a3f5c06",
-      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35"
+      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35",
+      "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
+      "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
+      "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
     },
     "ru": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -54491,8 +54509,6 @@
       "mobile.onboarding.pages": "9046da16aea909ba75a36cec13b56cb2144dc2ede45cde361e99a8d79802eabf",
       "mobile.onboarding.pageN": "a456627ace382cd7eac7c2e266b2ae8b326f7f1bc8579b15af3c009ce2ba0923",
       "mobile.onboarding.linkTitle": "c161cce3483be6ff0f50c4c5750fe8df8cc7c6b39f2d0d0b99aabad4f0f61057",
-      "mobile.onboarding.linkBody": "af99415773b99c33f87f8fdfaa5068fa3a68fd594924bb3aaae1a65060247e46",
-      "mobile.onboarding.illustrationPath": "fccb6458940e1deba1c45f1ef0f06ea5a7743a526faa00c2b88db853e35e9aaf",
       "mobile.onboarding.scan": "e5c7478bbce26eb74cb858cff953997948571c3dbe789a482685f0f2d33e874a",
       "mobile.onboarding.enterCode": "954e327b6dc292072711ad28255fc4e74718c741f03068c5237e00dbf7e7b483",
       "mobile.onboarding.pasteLink": "8275f7c22a05ee0b0caa606a21a361a95ec1efb3fd158a7220febe367ee2ecf5",
@@ -54618,7 +54634,11 @@
       "accountGate.oauthFailed": "0e5ff39511525a2c5bfcbfe3a5d9cf2abf130a0535e63a9e9fc39200433687a5",
       "accountGate.oauthExpired": "8bd21dee2265644df2a69fad3907f71fa3a1a2b89a80c65309173878c0f785af",
       "accountGate.providerUnavailable": "4cdd801059195b82f67baed9c61e5ed4d5b4c7018c1b8a5ec5f4e2d93a3f5c06",
-      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35"
+      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35",
+      "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
+      "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
+      "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
     },
     "tr": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -59852,8 +59872,6 @@
       "mobile.onboarding.pages": "9046da16aea909ba75a36cec13b56cb2144dc2ede45cde361e99a8d79802eabf",
       "mobile.onboarding.pageN": "a456627ace382cd7eac7c2e266b2ae8b326f7f1bc8579b15af3c009ce2ba0923",
       "mobile.onboarding.linkTitle": "c161cce3483be6ff0f50c4c5750fe8df8cc7c6b39f2d0d0b99aabad4f0f61057",
-      "mobile.onboarding.linkBody": "af99415773b99c33f87f8fdfaa5068fa3a68fd594924bb3aaae1a65060247e46",
-      "mobile.onboarding.illustrationPath": "fccb6458940e1deba1c45f1ef0f06ea5a7743a526faa00c2b88db853e35e9aaf",
       "mobile.onboarding.scan": "e5c7478bbce26eb74cb858cff953997948571c3dbe789a482685f0f2d33e874a",
       "mobile.onboarding.enterCode": "954e327b6dc292072711ad28255fc4e74718c741f03068c5237e00dbf7e7b483",
       "mobile.onboarding.pasteLink": "8275f7c22a05ee0b0caa606a21a361a95ec1efb3fd158a7220febe367ee2ecf5",
@@ -59979,7 +59997,11 @@
       "accountGate.oauthFailed": "0e5ff39511525a2c5bfcbfe3a5d9cf2abf130a0535e63a9e9fc39200433687a5",
       "accountGate.oauthExpired": "8bd21dee2265644df2a69fad3907f71fa3a1a2b89a80c65309173878c0f785af",
       "accountGate.providerUnavailable": "4cdd801059195b82f67baed9c61e5ed4d5b4c7018c1b8a5ec5f4e2d93a3f5c06",
-      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35"
+      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35",
+      "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
+      "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
+      "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
     },
     "uk": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -63575,8 +63597,6 @@
       "mobile.onboarding.pages": "9046da16aea909ba75a36cec13b56cb2144dc2ede45cde361e99a8d79802eabf",
       "mobile.onboarding.pageN": "a456627ace382cd7eac7c2e266b2ae8b326f7f1bc8579b15af3c009ce2ba0923",
       "mobile.onboarding.linkTitle": "c161cce3483be6ff0f50c4c5750fe8df8cc7c6b39f2d0d0b99aabad4f0f61057",
-      "mobile.onboarding.linkBody": "af99415773b99c33f87f8fdfaa5068fa3a68fd594924bb3aaae1a65060247e46",
-      "mobile.onboarding.illustrationPath": "fccb6458940e1deba1c45f1ef0f06ea5a7743a526faa00c2b88db853e35e9aaf",
       "mobile.onboarding.scan": "e5c7478bbce26eb74cb858cff953997948571c3dbe789a482685f0f2d33e874a",
       "mobile.onboarding.enterCode": "954e327b6dc292072711ad28255fc4e74718c741f03068c5237e00dbf7e7b483",
       "mobile.onboarding.pasteLink": "8275f7c22a05ee0b0caa606a21a361a95ec1efb3fd158a7220febe367ee2ecf5",
@@ -63702,7 +63722,11 @@
       "accountGate.oauthFailed": "0e5ff39511525a2c5bfcbfe3a5d9cf2abf130a0535e63a9e9fc39200433687a5",
       "accountGate.oauthExpired": "8bd21dee2265644df2a69fad3907f71fa3a1a2b89a80c65309173878c0f785af",
       "accountGate.providerUnavailable": "4cdd801059195b82f67baed9c61e5ed4d5b4c7018c1b8a5ec5f4e2d93a3f5c06",
-      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35"
+      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35",
+      "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
+      "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
+      "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
     },
     "vi": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -68936,8 +68960,6 @@
       "mobile.onboarding.pages": "9046da16aea909ba75a36cec13b56cb2144dc2ede45cde361e99a8d79802eabf",
       "mobile.onboarding.pageN": "a456627ace382cd7eac7c2e266b2ae8b326f7f1bc8579b15af3c009ce2ba0923",
       "mobile.onboarding.linkTitle": "c161cce3483be6ff0f50c4c5750fe8df8cc7c6b39f2d0d0b99aabad4f0f61057",
-      "mobile.onboarding.linkBody": "af99415773b99c33f87f8fdfaa5068fa3a68fd594924bb3aaae1a65060247e46",
-      "mobile.onboarding.illustrationPath": "fccb6458940e1deba1c45f1ef0f06ea5a7743a526faa00c2b88db853e35e9aaf",
       "mobile.onboarding.scan": "e5c7478bbce26eb74cb858cff953997948571c3dbe789a482685f0f2d33e874a",
       "mobile.onboarding.enterCode": "954e327b6dc292072711ad28255fc4e74718c741f03068c5237e00dbf7e7b483",
       "mobile.onboarding.pasteLink": "8275f7c22a05ee0b0caa606a21a361a95ec1efb3fd158a7220febe367ee2ecf5",
@@ -69063,7 +69085,11 @@
       "accountGate.oauthFailed": "0e5ff39511525a2c5bfcbfe3a5d9cf2abf130a0535e63a9e9fc39200433687a5",
       "accountGate.oauthExpired": "8bd21dee2265644df2a69fad3907f71fa3a1a2b89a80c65309173878c0f785af",
       "accountGate.providerUnavailable": "4cdd801059195b82f67baed9c61e5ed4d5b4c7018c1b8a5ec5f4e2d93a3f5c06",
-      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35"
+      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35",
+      "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
+      "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
+      "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
     },
     "zh": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -75983,8 +76009,6 @@
       "mobile.onboarding.pages": "9046da16aea909ba75a36cec13b56cb2144dc2ede45cde361e99a8d79802eabf",
       "mobile.onboarding.pageN": "a456627ace382cd7eac7c2e266b2ae8b326f7f1bc8579b15af3c009ce2ba0923",
       "mobile.onboarding.linkTitle": "c161cce3483be6ff0f50c4c5750fe8df8cc7c6b39f2d0d0b99aabad4f0f61057",
-      "mobile.onboarding.linkBody": "af99415773b99c33f87f8fdfaa5068fa3a68fd594924bb3aaae1a65060247e46",
-      "mobile.onboarding.illustrationPath": "fccb6458940e1deba1c45f1ef0f06ea5a7743a526faa00c2b88db853e35e9aaf",
       "mobile.onboarding.scan": "e5c7478bbce26eb74cb858cff953997948571c3dbe789a482685f0f2d33e874a",
       "mobile.onboarding.enterCode": "954e327b6dc292072711ad28255fc4e74718c741f03068c5237e00dbf7e7b483",
       "mobile.onboarding.pasteLink": "8275f7c22a05ee0b0caa606a21a361a95ec1efb3fd158a7220febe367ee2ecf5",
@@ -76110,7 +76134,11 @@
       "accountGate.oauthFailed": "0e5ff39511525a2c5bfcbfe3a5d9cf2abf130a0535e63a9e9fc39200433687a5",
       "accountGate.oauthExpired": "8bd21dee2265644df2a69fad3907f71fa3a1a2b89a80c65309173878c0f785af",
       "accountGate.providerUnavailable": "4cdd801059195b82f67baed9c61e5ed4d5b4c7018c1b8a5ec5f4e2d93a3f5c06",
-      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35"
+      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35",
+      "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
+      "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
+      "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
     },
     "zh-tw": {
       "settings.talkingStyle.title": "b1f52e3d447b7f2c73e754991ee9eeb710a8a24af163d861ebdf33e22b87fe50",
@@ -80890,8 +80918,6 @@
       "mobile.onboarding.pages": "9046da16aea909ba75a36cec13b56cb2144dc2ede45cde361e99a8d79802eabf",
       "mobile.onboarding.pageN": "a456627ace382cd7eac7c2e266b2ae8b326f7f1bc8579b15af3c009ce2ba0923",
       "mobile.onboarding.linkTitle": "c161cce3483be6ff0f50c4c5750fe8df8cc7c6b39f2d0d0b99aabad4f0f61057",
-      "mobile.onboarding.linkBody": "af99415773b99c33f87f8fdfaa5068fa3a68fd594924bb3aaae1a65060247e46",
-      "mobile.onboarding.illustrationPath": "fccb6458940e1deba1c45f1ef0f06ea5a7743a526faa00c2b88db853e35e9aaf",
       "mobile.onboarding.scan": "e5c7478bbce26eb74cb858cff953997948571c3dbe789a482685f0f2d33e874a",
       "mobile.onboarding.enterCode": "954e327b6dc292072711ad28255fc4e74718c741f03068c5237e00dbf7e7b483",
       "mobile.onboarding.pasteLink": "8275f7c22a05ee0b0caa606a21a361a95ec1efb3fd158a7220febe367ee2ecf5",
@@ -81017,7 +81043,11 @@
       "accountGate.oauthFailed": "0e5ff39511525a2c5bfcbfe3a5d9cf2abf130a0535e63a9e9fc39200433687a5",
       "accountGate.oauthExpired": "8bd21dee2265644df2a69fad3907f71fa3a1a2b89a80c65309173878c0f785af",
       "accountGate.providerUnavailable": "4cdd801059195b82f67baed9c61e5ed4d5b4c7018c1b8a5ec5f4e2d93a3f5c06",
-      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35"
+      "accountGate.identityTaken": "85ad2c20a6546a1173be24f56631cc825d847dfd8c1553234f24bc1f0f178f35",
+      "mobile.onboarding.linkShort": "1181328b67c6dac7807c2247109d6047485fae481eee1f0a339cbee110bd1b3a",
+      "mobile.onboarding.pasteInstead": "5108182a130afc9214b416631576bcb9858da46cfa0beed05206a84d878297c3",
+      "mobile.home.onlyPinnedTitle": "3e5b54b3ec2cfaddea2d435c51d0aedf288b22b52ac1489cfc3909f3de79e728",
+      "mobile.home.onlyPinnedBody": "731a43775470bbf614d4b0bd70e7d5a8b473fe30cb6d203e7ee7334fcb85decf"
     }
   }
 }

@@ -6155,8 +6155,6 @@
   "mobile.onboarding.pages": "Páginas",
   "mobile.onboarding.pageN": "Página {n}",
   "mobile.onboarding.linkTitle": "Vincule sua instalação",
-  "mobile.onboarding.linkBody": "No computador, abra {app}, vá para Configurações, depois Phone, depois Pair with a code e leia o código exibido.",
-  "mobile.onboarding.illustrationPath": "Configurações › Phone",
   "mobile.onboarding.scan": "Ler código QR",
   "mobile.onboarding.enterCode": "Inserir um código",
   "mobile.onboarding.pasteLink": "Colar um link",
@@ -6282,5 +6280,9 @@
   "accountGate.oauthFailed": "Não foi possível entrar pelo navegador. Tente novamente.",
   "accountGate.oauthExpired": "Este login expirou. Comece novamente.",
   "accountGate.providerUnavailable": "Este provedor está indisponível. Tente outra forma de entrar.",
-  "accountGate.identityTaken": "Esta identidade pertence a outra conta. Tente outra forma de entrar."
+  "accountGate.identityTaken": "Esta identidade pertence a outra conta. Tente outra forma de entrar.",
+  "mobile.onboarding.linkShort": "Abra {app} no computador e leia o código em Configurações › Phone.",
+  "mobile.onboarding.pasteInstead": "Colar um link em vez disso",
+  "mobile.home.onlyPinnedTitle": "Suas outras conversas aparecem aqui",
+  "mobile.home.onlyPinnedBody": "Crie um bot para uma tarefa, como cuidar dos e-mails, pesquisar ou trabalhar em um projeto, e a conversa dele aparecerá nesta lista."
 }

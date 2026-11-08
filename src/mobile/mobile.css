@@ -66,7 +66,7 @@
 .omb-mobile [data-mobile-chat] { padding-bottom: max(var(--m-safe-bottom), var(--m-kb)); }
 
 /* the shared chat header row keeps its height as the spacer under the shell's floating nav */
-.omb-mobile [data-mobile-chat] [data-chathead-row] { visibility: hidden; }
+.omb-mobile [data-mobile-chat] :is([data-chathead-row], [data-roomhead-row]) { visibility: hidden; }
 .omb-mobile [data-mobile-chat] main { padding-top: var(--m-safe-top); }
 
 @media (prefers-reduced-motion: reduce) {
@@ -89,3 +89,13 @@ html.mobile-scanning #root,
 html.mobile-scanning .omb-mobile,
 html.mobile-scanning [data-scan-clear] { background: transparent !important; }
 html.mobile-scanning [data-scan-hide] { visibility: hidden; }
+
+/* the phone app's document never scrolls sideways: a focused field or a wide row must not shift the whole screen */
+html[data-mobile-app], html[data-mobile-app] body { overflow: hidden; overscroll-behavior: none; }
+
+/* touch targets the shared desktop components draw smaller than a thumb needs: at least 44px inside the phone shell */
+.omb-mobile [data-mobile-chat] [data-grok-inset] button:not([role="menuitem"]),
+.omb-mobile .side-panel [data-panel-head] button,
+.omb-mobile .side-panel > div > div > button[aria-label],
+.omb-mobile .side-panel [data-panel-share],
+.omb-mobile [data-mobile-chat] form button { min-width: 44px; min-height: 44px; }

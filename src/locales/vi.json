@@ -5230,8 +5230,6 @@
   "mobile.onboarding.pages": "Các trang",
   "mobile.onboarding.pageN": "Trang {n}",
   "mobile.onboarding.linkTitle": "Liên kết bản cài đặt của bạn",
-  "mobile.onboarding.linkBody": "Trên máy tính, mở {app}, vào Cài đặt, rồi Phone, rồi Pair with a code và quét mã hiển thị.",
-  "mobile.onboarding.illustrationPath": "Cài đặt › Phone",
   "mobile.onboarding.scan": "Quét mã QR",
   "mobile.onboarding.enterCode": "Nhập mã",
   "mobile.onboarding.pasteLink": "Dán liên kết",
@@ -5357,5 +5355,9 @@
   "accountGate.oauthFailed": "Đăng nhập qua trình duyệt thất bại. Vui lòng thử lại.",
   "accountGate.oauthExpired": "Lần đăng nhập này đã hết hạn. Vui lòng bắt đầu lại.",
   "accountGate.providerUnavailable": "Nhà cung cấp đăng nhập này không khả dụng. Hãy thử cách khác.",
-  "accountGate.identityTaken": "Danh tính này thuộc tài khoản khác. Hãy thử cách khác."
+  "accountGate.identityTaken": "Danh tính này thuộc tài khoản khác. Hãy thử cách khác.",
+  "mobile.onboarding.linkShort": "Mở {app} trên máy tính và quét mã trong Cài đặt › Phone.",
+  "mobile.onboarding.pasteInstead": "Thay vào đó, dán liên kết",
+  "mobile.home.onlyPinnedTitle": "Các cuộc trò chuyện khác của bạn sẽ hiện ở đây",
+  "mobile.home.onlyPinnedBody": "Tạo bot cho một công việc như xử lý email, nghiên cứu hoặc làm dự án, rồi cuộc trò chuyện với bot sẽ hiện trong danh sách này."
 }

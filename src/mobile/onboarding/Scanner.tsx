@@ -75,7 +75,7 @@ export function Scanner({ platform, busy, onCode, onClose, onEnterCode, onPaste 
       role="dialog" aria-modal="true" aria-label={t("mobile.onboarding.scanTitle")}
     >
       {platform.kind === "web" && <video ref={videoRef} className="absolute inset-0 size-full object-cover" muted playsInline autoPlay aria-hidden />}
-      {unavailable && <div aria-hidden className="absolute inset-0 bg-[#0b0d14]" />}
+      {unavailable && <div aria-hidden className="absolute inset-0 bg-[#121212]" />}
 
       <div className="absolute left-1/2 top-[40%] -translate-x-1/2 -translate-y-1/2" style={{ width: FRAME, height: FRAME }}>
         <div aria-hidden className="absolute inset-0 rounded-[38px]" style={{ boxShadow: "0 0 0 200vmax rgb(6 8 14 / 0.64)" }} />

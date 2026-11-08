@@ -1,7 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { AnimatePresence, motion, useMotionValue, useReducedMotion } from "motion/react";
-import { Camera, ChevronLeft, ClipboardPaste, KeyRound, Link2, QrCode, RotateCw, ScanLine, X } from "lucide-react";
-import { MausAvatar } from "@/components/Avatar";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { ChevronLeft, ClipboardPaste, RotateCw, ScanLine, X } from "lucide-react";
 import { WorkingDots } from "@/components/WorkingIndicator";
 import { productName } from "@/lib/brand";
 import { t } from "@/lib/i18n";
@@ -10,18 +9,18 @@ import { haptic } from "../haptics";
 import { dur, ease } from "../motion";
 import { usePlatform, type CameraPermission } from "../platform";
 import { PairError, parseTypedPairing, redeemPairing, resolveTypedCode, type TypedPairing } from "../connection/pair";
-import { IntroPager, SyncGlyphs } from "./IntroPager";
+import { IntroPager } from "./IntroPager";
 import { Scanner } from "./Scanner";
 import { AccountStep } from "./AccountStep";
 import { accountService, signedInAccount } from "./account";
-import { SkyScene, type SkyStage } from "./SkyScene";
+import { MascotTrio, ONBOARDING_BG, SkyScene } from "./SkyScene";
 
 type Step = "intro" | "account" | "link" | "permission" | "denied" | "scan" | "code" | "paste";
 type Failure = { code: PairError["code"]; name: string; companion: boolean };
 
 const INTRO_SEEN = "omb.mobile.introSeen";
-const PRIMARY = "mobile-press flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#f3f4f8] text-[17px] font-semibold text-[#0b0d14] disabled:opacity-60";
-const SECONDARY = "mobile-press flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-white/[0.09] px-4 text-[15px] font-medium text-white ring-1 ring-white/10 disabled:opacity-60";
+const PRIMARY = "mobile-press flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#f3f4f8] text-[17px] font-semibold text-[#121212] disabled:opacity-60";
+const QUIET = "mobile-press h-12 w-full rounded-full text-[15px] font-medium text-white/70 disabled:opacity-60";
 
 function installationName(payload: TypedPairing | null): string {
   if (payload?.name) return payload.name;
@@ -40,45 +39,35 @@ function StepPane({ id, children }: { id: string; children: ReactNode }) {
   );
 }
 
-/** Where the code is on the computer, drawn small: the desktop app's Settings, Phone, with its QR. */
-function WhereIsTheCode() {
-  return (
-    <div aria-hidden className="relative mx-auto mt-6 h-[150px] w-[250px] rounded-[16px] bg-white/[0.06] ring-1 ring-white/[0.12]">
-      <div className="flex h-7 items-center gap-1.5 border-b border-white/[0.08] px-3">
-        {[0, 1, 2].map((i) => <span key={i} className="size-2 rounded-full bg-white/20" />)}
-        <span className="ms-3 text-[11px] font-medium text-white/55">{t("mobile.onboarding.illustrationPath")}</span>
-      </div>
-      <div className="flex h-[122px]">
-        <div className="flex w-16 flex-col gap-2 border-e border-white/[0.08] p-2.5">
-          {[0.5, 0.3, 0.3, 0.3].map((o, i) => <span key={i} className="h-1.5 rounded-full bg-white" style={{ opacity: o * 0.5, width: i === 0 ? "100%" : "75%" }} />)}
-        </div>
-        <div className="relative flex flex-1 items-center justify-center">
-          <span className="relative flex size-[74px] items-center justify-center rounded-[12px] bg-white text-[#0b0d14]">
-            <QrCode size={58} strokeWidth={1.4} />
-            <span className="absolute -right-5 -top-6"><MausAvatar color="orange" bodyId="flower" size={34} state="happy" gaze={{ x: -1, y: 1 }} label="" /></span>
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function FailurePanel({ failure, onRetry }: { failure: Failure; onRetry: () => void }) {
   const key = failure.code === "unreachable" && failure.companion ? "network" : failure.code;
   return (
-    <motion.div role="alert" className="mt-5 rounded-[20px] bg-white/[0.07] p-4 ring-1 ring-white/10"
+    <motion.div role="alert" className="mt-6 w-full rounded-[20px] bg-white/[0.06] p-4 text-left"
       initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: dur.base, ease: ease.out }}>
-      <div className="flex items-start gap-3">
-        <MausAvatar color="coral" bodyId="pebble" size={36} state="sad" label="" />
-        <div className="min-w-0 flex-1">
-          <p className="text-[16px] font-semibold text-white">{t(`mobile.onboarding.err.${key}.title` as Parameters<typeof t>[0])}</p>
-          <p className="mt-1 text-[14px] leading-[1.45] text-white/65">{t(`mobile.onboarding.err.${key}.body` as Parameters<typeof t>[0], { name: failure.name })}</p>
-        </div>
-      </div>
-      <button type="button" onClick={onRetry} className="mobile-press mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-white/[0.12] text-[15px] font-medium text-white"><RotateCw size={16} />{t("mobile.onboarding.retry")}</button>
+      <p className="text-[16px] font-semibold text-white">{t(`mobile.onboarding.err.${key}.title` as Parameters<typeof t>[0])}</p>
+      <p className="mt-1 text-[14px] leading-[1.45] text-white/60">{t(`mobile.onboarding.err.${key}.body` as Parameters<typeof t>[0], { name: failure.name })}</p>
+      <button type="button" onClick={onRetry} className="mobile-press mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-white/[0.1] text-[15px] font-medium text-white"><RotateCw size={16} />{t("mobile.onboarding.retry")}</button>
     </motion.div>
   );
 }
+
+/** The one shape every onboarding screen takes: a top row that only ever holds back or close (art never goes up there,
+ * by the Dynamic Island), a centred middle (the mascots above the words when the screen has art), actions at the bottom. */
+function Screen({ top, art = true, children, actions }: { top?: ReactNode; art?: boolean; children: ReactNode; actions: ReactNode }) {
+  return (
+    <>
+      <div className="flex h-[calc(var(--m-safe-top)+60px)] shrink-0 items-end px-4 pb-2">{top}</div>
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-7 text-center">
+        {art && <MascotTrio className="mb-9" />}
+        {children}
+      </div>
+      <div className="flex shrink-0 flex-col items-center gap-2 px-6 pb-[calc(var(--m-safe-bottom)+16px)] pt-4">{actions}</div>
+    </>
+  );
+}
+
+const HEADLINE = "text-[28px] font-semibold leading-[1.15] tracking-tight text-white";
+const LINE = "mx-auto mt-3 max-w-[300px] text-[16px] leading-[1.5] text-white/60";
 
 /** First launch to linked: who this is, link to your installation by scanning the desktop's QR (or a code, or a link),
  * and hand the record back. The success moment and the hand-off to Home belong to the connection gate. */
@@ -91,9 +80,7 @@ export function Onboarding({ initial = null, reason = null, startAtLink = false,
   onCancel?: () => void;
 }) {
   const platform = usePlatform();
-  const drag = useMotionValue(0);
   const [step, setStep] = useState<Step | null>(initial || reason || startAtLink ? "link" : null);
-  const [page, setPage] = useState(0);
   const [confirm, setConfirm] = useState<TypedPairing | null>(initial);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<Failure | null>(null);
@@ -157,109 +144,95 @@ export function Onboarding({ initial = null, reason = null, startAtLink = false,
     if (text) setValue(text.trim());
   };
 
-  const stage: SkyStage = step === "intro" ? (["intro0", "intro1", "intro2"] as const)[page] : step === "scan" ? "scan" : step === "code" || step === "paste" ? "form" : "link";
   const back = (
-    <button type="button" data-sky-clear="bar" onClick={() => go("link")} aria-label={t("mobile.sheet.back")} className="mobile-press flex size-11 items-center justify-center rounded-full bg-white/[0.1] text-white"><ChevronLeft size={21} /></button>
+    <button type="button" onClick={() => go(step === "paste" ? "code" : "link")} aria-label={t("mobile.sheet.back")} className="mobile-press flex size-11 items-center justify-center rounded-full bg-white/[0.1] text-white"><ChevronLeft size={21} /></button>
   );
 
   return (
-    <main className="omb-mobile omb-onboarding relative size-full overflow-hidden bg-[#0b0d14]" data-scan-clear aria-busy={busy}>
-      <SkyScene stage={stage} drag={drag} clearKey={`${step}:${confirm ? "c" : ""}:${failure ? "f" : ""}`} glyphs={<SyncGlyphs shown={step === "intro" && page === 1} />}>
+    <main className="omb-mobile omb-onboarding relative size-full overflow-hidden" style={{ background: ONBOARDING_BG }} data-scan-clear aria-busy={busy}>
+      <SkyScene>
         <AnimatePresence mode="wait" initial={false}>
           {step === "intro" && (
-            <StepPane id="intro"><IntroPager drag={drag} onPage={setPage} onDone={finishIntro} /></StepPane>
+            <StepPane id="intro"><IntroPager onPage={() => {}} onDone={finishIntro} /></StepPane>
           )}
 
           {step === "account" && service && (
             <StepPane id="account">
-              <div className="flex-1" />
-              <AccountStep platform={platform} service={service} onDone={() => go("link")} />
+              <Screen actions={null}>
+                <AccountStep platform={platform} service={service} onDone={() => go("link")} />
+              </Screen>
             </StepPane>
           )}
 
-          {step === "link" && (
-            <StepPane id={confirm ? "confirm" : "link"}>
-              {startAtLink && onCancel && !confirm && (
-                <div className="px-4 pt-[calc(var(--m-safe-top)+8px)]">
-                  <button type="button" data-sky-clear="bar" onClick={onCancel} aria-label={t("mobile.sheet.close")} className="mobile-press flex size-11 items-center justify-center rounded-full bg-white/[0.1] text-white"><X size={20} /></button>
-                </div>
-              )}
-              <div className="flex-1" />
-              <div data-sky-clear className="px-6 pb-[calc(var(--m-safe-bottom)+20px)]">
-                {confirm ? (
-                  <>
-                    <h1 className="text-center text-[28px] font-semibold leading-[1.15] tracking-tight text-white">{t("mobile.pair.confirm", { name: installationName(confirm) })}</h1>
-                    <p className="mx-auto mt-2 max-w-[300px] text-center text-[15px] leading-6 text-white/60">{t("mobile.onboarding.confirmBody")}</p>
-                    {failure && <FailurePanel failure={failure} onRetry={() => lastTry.current?.()} />}
-                    <div className="mt-6 flex flex-col gap-3">
-                      <button type="button" disabled={busy} className={PRIMARY} onClick={() => void redeem(confirm, "link")}>{busy ? <WorkingDots /> : t("mobile.pair.link")}</button>
-                      <button type="button" disabled={busy} className="mobile-press h-12 rounded-full text-[15px] font-medium text-white/70" onClick={() => { setConfirm(null); setFailure(null); onCancel?.(); }}>{t("mobile.pair.cancel")}</button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {reason === "revoked" && <p role="status" className="mb-3 text-center text-[14px] text-white/65">{t("mobile.pair.revoked")}</p>}
-                    <h1 className="text-center text-[28px] font-semibold leading-[1.15] tracking-tight text-white">{t("mobile.onboarding.linkTitle")}</h1>
-                    <p className="mx-auto mt-2 max-w-[310px] text-center text-[15px] leading-6 text-white/60">{t("mobile.onboarding.linkBody", { app: productName() })}</p>
-                    <WhereIsTheCode />
-                    {failure && <FailurePanel failure={failure} onRetry={() => (lastTry.current ? lastTry.current() : void openScanner())} />}
-                    <div className="mt-6 flex flex-col gap-3">
-                      <button type="button" disabled={busy} className={PRIMARY} onClick={() => void openScanner()}><ScanLine size={20} />{t("mobile.onboarding.scan")}</button>
-                      <div className="flex gap-3">
-                        <button type="button" disabled={busy} className={SECONDARY} onClick={() => go("code")}><KeyRound size={17} />{t("mobile.onboarding.enterCode")}</button>
-                        <button type="button" disabled={busy} className={SECONDARY} onClick={() => go("paste")}><Link2 size={17} />{t("mobile.onboarding.pasteLink")}</button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
+          {step === "link" && confirm && (
+            <StepPane id="confirm">
+              <Screen actions={<>
+                <button type="button" disabled={busy} className={PRIMARY} onClick={() => void redeem(confirm, "link")}>{busy ? <WorkingDots /> : t("mobile.pair.link")}</button>
+                <button type="button" disabled={busy} className={QUIET} onClick={() => { setConfirm(null); setFailure(null); onCancel?.(); }}>{t("mobile.pair.cancel")}</button>
+              </>}>
+                <h1 className={HEADLINE}>{t("mobile.pair.confirm", { name: installationName(confirm) })}</h1>
+                <p className={LINE}>{t("mobile.onboarding.confirmBody")}</p>
+                {failure && <FailurePanel failure={failure} onRetry={() => lastTry.current?.()} />}
+              </Screen>
+            </StepPane>
+          )}
+
+          {step === "link" && !confirm && (
+            <StepPane id="link">
+              <Screen
+                top={startAtLink && onCancel ? <button type="button" onClick={onCancel} aria-label={t("mobile.sheet.close")} className="mobile-press flex size-11 items-center justify-center rounded-full bg-white/[0.08] text-white"><X size={20} /></button> : null}
+                actions={<>
+                  <button type="button" disabled={busy} className={PRIMARY} onClick={() => void openScanner()}><ScanLine size={20} />{t("mobile.onboarding.scan")}</button>
+                  <button type="button" disabled={busy} className={QUIET} onClick={() => go("code")}>{t("mobile.onboarding.codeInstead")}</button>
+                </>}>
+                {reason === "revoked" && <p role="status" className="mb-3 text-[14px] text-white/60">{t("mobile.pair.revoked")}</p>}
+                <h1 className={HEADLINE}>{t("mobile.onboarding.linkTitle")}</h1>
+                <p className={LINE}>{t("mobile.onboarding.linkShort", { app: productName() })}</p>
+                {failure && <FailurePanel failure={failure} onRetry={() => (lastTry.current ? lastTry.current() : void openScanner())} />}
+              </Screen>
             </StepPane>
           )}
 
           {(step === "permission" || step === "denied") && (
             <StepPane id={step}>
-              <div className="px-4 pt-[calc(var(--m-safe-top)+8px)]">{back}</div>
-              <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-                <div data-sky-clear className="relative flex size-28 items-center justify-center rounded-[34px] bg-white/[0.08] ring-1 ring-white/10">
-                  <Camera size={46} strokeWidth={1.5} className="text-white/85" />
-                  <span className="absolute -right-6 -top-7"><MausAvatar color="green" bodyId="bean" size={46} state={step === "denied" ? "sad" : "curious"} gaze={{ x: -1, y: 1 }} label="" /></span>
-                </div>
-                <h1 data-sky-clear className="mt-8 text-[26px] font-semibold tracking-tight text-white">{t(step === "denied" ? "mobile.onboarding.deniedTitle" : "mobile.onboarding.cameraTitle")}</h1>
-                <p data-sky-clear className="mt-2 max-w-[300px] text-[15px] leading-6 text-white/60">{t(step === "denied" ? "mobile.onboarding.deniedBody" : "mobile.onboarding.cameraBody")}</p>
-              </div>
-              <div data-sky-clear className="flex flex-col gap-3 px-6 pb-[calc(var(--m-safe-bottom)+20px)]">
+              <Screen top={back} actions={<>
                 {step === "permission"
                   ? <button type="button" className={PRIMARY} onClick={() => void askCamera()}>{t("mobile.onboarding.allowCamera")}</button>
                   : platform.camera?.openSettings && <button type="button" className={PRIMARY} onClick={() => void platform.camera?.openSettings?.()}>{t("mobile.onboarding.openSettings")}</button>}
-                <button type="button" className="mobile-press h-12 rounded-full text-[15px] font-medium text-white/75" onClick={() => go("code")}>{t("mobile.onboarding.codeInstead")}</button>
-              </div>
+                <button type="button" className={QUIET} onClick={() => go("code")}>{t("mobile.onboarding.codeInstead")}</button>
+              </>}>
+                <h1 className={HEADLINE}>{t(step === "denied" ? "mobile.onboarding.deniedTitle" : "mobile.onboarding.cameraTitle")}</h1>
+                <p className={LINE}>{t(step === "denied" ? "mobile.onboarding.deniedBody" : "mobile.onboarding.cameraBody")}</p>
+              </Screen>
             </StepPane>
           )}
 
           {(step === "code" || step === "paste") && (
             <StepPane id={step}>
-              <div className="px-4 pt-[calc(var(--m-safe-top)+8px)]">{back}</div>
-              <form data-sky-clear className="flex flex-1 flex-col px-6 pt-10" onSubmit={(event) => { event.preventDefault(); if (value.trim()) void redeem(value, step); }}>
-                <h1 className="text-[28px] font-semibold tracking-tight text-white">{t(step === "code" ? "mobile.onboarding.codeTitle" : "mobile.onboarding.pasteTitle")}</h1>
-                <p className="mt-2 text-[15px] leading-6 text-white/60">{t(step === "code" ? "mobile.onboarding.codeBody" : "mobile.onboarding.pasteBody")}</p>
-                <label htmlFor={fieldId} className="sr-only">{t(step === "code" ? "mobile.onboarding.codeLabel" : "mobile.onboarding.pasteLabel")}</label>
-                {step === "code" ? (
-                  <input id={fieldId} autoFocus value={value} disabled={busy}
-                    onChange={(event) => setValue(formatCode(event.target.value))}
-                    inputMode="text" autoCapitalize="characters" autoCorrect="off" spellCheck={false} autoComplete="one-time-code" placeholder="XXXX-XXXX-XXXX" maxLength={14}
-                    className="mt-8 h-16 w-full rounded-[20px] bg-white/[0.07] text-center font-mono text-[24px] tracking-[0.18em] text-white ring-1 ring-white/12 placeholder:text-white/25 focus:bg-white/[0.1]" />
-                ) : (
-                  <div className="mt-8 flex gap-2">
-                    <input id={fieldId} autoFocus value={value} disabled={busy} onChange={(event) => setValue(event.target.value)}
-                      inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="openmausbot://pair?..."
-                      className="h-14 min-w-0 flex-1 rounded-[18px] bg-white/[0.07] px-4 text-[16px] text-white ring-1 ring-white/12 placeholder:text-white/30" />
-                    {platform.readClipboard && <button type="button" onClick={() => void paste()} aria-label={t("mobile.onboarding.pasteFromClipboard")} className="mobile-press flex size-14 items-center justify-center rounded-[18px] bg-white/[0.1] text-white"><ClipboardPaste size={20} /></button>}
-                  </div>
-                )}
-                {failure && <FailurePanel failure={failure} onRetry={() => lastTry.current?.()} />}
-                <div className="flex-1" />
-                <div className="pb-[calc(var(--m-safe-bottom)+20px)] pt-6">
+              <form className="flex min-h-0 flex-1 flex-col" onSubmit={(event) => { event.preventDefault(); if (value.trim()) void redeem(value, step); }}>
+                <div className="flex h-[calc(var(--m-safe-top)+60px)] shrink-0 items-end px-4 pb-2">{back}</div>
+                <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pt-6">
+                  <h1 className={HEADLINE}>{t(step === "code" ? "mobile.onboarding.codeTitle" : "mobile.onboarding.pasteTitle")}</h1>
+                  <p className="mt-2 text-[16px] leading-[1.5] text-white/60">{t(step === "code" ? "mobile.onboarding.codeBody" : "mobile.onboarding.pasteBody")}</p>
+                  <label htmlFor={fieldId} className="sr-only">{t(step === "code" ? "mobile.onboarding.codeLabel" : "mobile.onboarding.pasteLabel")}</label>
+                  {step === "code" ? (
+                    <input id={fieldId} autoFocus value={value} disabled={busy}
+                      onChange={(event) => setValue(formatCode(event.target.value))}
+                      inputMode="text" autoCapitalize="characters" autoCorrect="off" spellCheck={false} autoComplete="one-time-code" placeholder="XXXX-XXXX-XXXX" maxLength={14}
+                      className="mt-8 h-16 w-full min-w-0 rounded-[20px] bg-white/[0.07] text-center font-mono text-[22px] tracking-[0.14em] text-white placeholder:text-white/25 focus:bg-white/[0.1]" />
+                  ) : (
+                    <div className="mt-8 flex w-full gap-2">
+                      <input id={fieldId} autoFocus value={value} disabled={busy} onChange={(event) => setValue(event.target.value)}
+                        inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="openmausbot://pair?..."
+                        className="h-14 min-w-0 flex-1 rounded-[18px] bg-white/[0.07] px-4 text-[16px] text-white placeholder:text-white/30" />
+                      {platform.readClipboard && <button type="button" onClick={() => void paste()} aria-label={t("mobile.onboarding.pasteFromClipboard")} className="mobile-press flex size-14 shrink-0 items-center justify-center rounded-[18px] bg-white/[0.08] text-white"><ClipboardPaste size={20} /></button>}
+                    </div>
+                  )}
+                  {failure && <FailurePanel failure={failure} onRetry={() => lastTry.current?.()} />}
+                </div>
+                <div className="flex shrink-0 flex-col items-center gap-2 px-6 pb-[calc(var(--m-safe-bottom)+16px)] pt-4">
                   <button type="submit" disabled={busy || !value.trim() || (step === "code" && value.replace(/-/g, "").length < 12)} className={PRIMARY}>{busy ? <WorkingDots /> : t("mobile.pair.link")}</button>
+                  {step === "code" && <button type="button" className={QUIET} onClick={() => { setValue(""); setFailure(null); setStep("paste"); }}>{t("mobile.onboarding.pasteInstead")}</button>}
                 </div>
               </form>
             </StepPane>

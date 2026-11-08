@@ -1,4 +1,7 @@
 import { spawn } from "node:child_process";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
@@ -47,10 +50,60 @@ function portFromUrl(value) {
   return url.port || (url.protocol === "https:" ? "443" : "80");
 }
 
+/** what the fixture's fake engine says, in order, so every seeded chat reads like a real one */
+const REPLIES = [
+  "Morning! Three things need you today: the **launch note** draft, two invoices to approve, and a reply to Priya about Thursday.",
+  "Drafted the launch note. It leads with the new phone app and keeps it under 150 words. Want me to send it to the team channel?",
+  "Build is green again. The flaky test was a race in the upload retry; I pinned the timer and added a regression test.",
+  "This month's spend is $1,284, up 6% on October. Most of it is the design tools renewal; nothing looks off.",
+  "Inbox is down to 4. I archived the newsletters and flagged one from the bank that looks like it needs you.",
+  "Booked the dentist for Tuesday at 9:30 and added it to your calendar with a 30 minute reminder.",
+  "Found 3 flats under budget near the station. The second one has the balcony you wanted.",
+  "Here is the plan for Friday: demo at 10, retro at 2, and I will collect everyone's notes before then.",
+];
+
+/** A believable team for the preview: bots with chats, two pinned, and one room. Nothing here runs outside the fixture. */
+const TEAM = [
+  { name: "Nova", color: "pink", text: "What needs my attention today?", pinned: true },
+  { name: "Quill", color: "orange", text: "Draft a short note to the team about Friday's launch" },
+  { name: "Rivet", color: "teal", text: "Check the build logs and tell me what broke", pinned: true },
+  { name: "Tally", color: "brown", text: "Summarise this month's spend" },
+  { name: "Echo", color: "purple", text: "Clean up my inbox" },
+  { name: "Juno", color: "red", text: "Book the dentist for next week" },
+  { name: "Basil", color: "green", text: "Find flats under 2,000 near the station" },
+];
+
+async function seedFixture(url) {
+  const call = async (path, body, patch = false) => {
+    const res = await fetch(new URL(path, url), { method: patch ? "PATCH" : "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    if (!res.ok) throw new Error(`${patch ? "PATCH" : "POST"} ${path}: ${res.status}`);
+    return res.json().catch(() => ({}));
+  };
+  const made = [];
+  for (const bot of TEAM) {
+    const { bot: created } = await call("/api/bots", { name: bot.name, color: bot.color });
+    if (bot.pinned) await call(`/api/bots/${encodeURIComponent(created.id)}`, { pinned: true }, true).catch(() => {});
+    made.push({ ...bot, id: created.id });
+  }
+  for (const bot of made) {
+    await call(`/api/bots/${encodeURIComponent(bot.id)}/messages`, { text: bot.text });
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+  await call("/api/groups", { name: "Launch room", memberIds: made.filter((b) => ["Nova", "Quill", "Rivet"].includes(b.name)).map((b) => b.id) }).catch(() => {});
+  console.log(`seeded ${made.length} bots with chats and a room`);
+}
+
+let fixtureUrl = null;
+
 async function fixturePort() {
-  const child = start(process.execPath, ["--experimental-strip-types", "scripts/control-omb.ts", "launch"], process.env);
+  const child = start(process.execPath, ["--experimental-strip-types", "scripts/control-omb.ts", "launch"], {
+    ...process.env,
+    FAKE_CLAUDE_REPLIES: JSON.stringify(REPLIES),
+    FAKE_CLAUDE_REPLY_STATE: join(mkdtempSync(join(tmpdir(), "omb-phone-preview-")), "replies"),
+  });
   return new Promise((resolve, reject) => {
     let output = "";
+    // resolves with the port; `url` is kept for seeding
     const timeout = setTimeout(() => onError(new Error("fixture did not print its URL within 90 seconds")), 90_000);
     const cleanup = () => {
       clearTimeout(timeout);
@@ -68,6 +121,7 @@ async function fixturePort() {
       try {
         const port = portFromUrl(info.url);
         cleanup();
+        fixtureUrl = info.url;
         resolve(port);
       } catch (error) { onError(error); }
     };
@@ -89,6 +143,7 @@ try {
   }
   if (fixture && workspaceUrl) throw new Error("choose either --fixture or --url");
   const port = fixture ? await fixturePort() : workspaceUrl ? portFromUrl(workspaceUrl) : process.env.OMB_PORT || "8799";
+  if (fixture && fixtureUrl) await seedFixture(fixtureUrl).catch((error) => console.error(`seeding the fixture failed: ${error.message}`));
   if (!stopping) {
     const vite = start(vitePath, ["--config", "apps/mobile/vite.config.ts"], { ...process.env, OMB_PORT: port });
     let output = "";

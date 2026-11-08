@@ -75,5 +75,5 @@ export function AccountGate({ children }: { children: ReactNode }) {
     enrollGrant: () => client.enrollGrant(),
   }), [account, client]);
   if (restoring && required) return <div className="omb-mobile flex size-full items-center justify-center bg-app"><MausAvatar color="green" size={56} state="idle" animated={false} personality={false} /></div>;
-  return <AccountContext value={context}>{required && !account ? <SignIn mobile emailStart={email => client.emailStart(email)} emailVerify={code => client.emailVerify(code)} cancelEmail={async () => { client.cancelEmail(); }} browser={provider => { setProblem(undefined); return client.oauthStart(provider); }} onSignedIn={() => { setAccount(client.account()); setProblem(undefined); }} notice={problem} /> : children}</AccountContext>;
+  return <AccountContext value={context}>{required && !account ? <div data-skin="grok-dark" className="omb-mobile size-full bg-[#121212] text-ink"><SignIn mobile emailStart={email => client.emailStart(email)} emailVerify={code => client.emailVerify(code)} cancelEmail={async () => { client.cancelEmail(); }} browser={provider => { setProblem(undefined); return client.oauthStart(provider); }} onSignedIn={() => { setAccount(client.account()); setProblem(undefined); }} notice={problem} /></div> : children}</AccountContext>;
 }

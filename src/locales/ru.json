@@ -6295,8 +6295,6 @@
   "mobile.onboarding.pages": "Страницы",
   "mobile.onboarding.pageN": "Страница {n}",
   "mobile.onboarding.linkTitle": "Привяжите свою установку",
-  "mobile.onboarding.linkBody": "На компьютере откройте {app}, перейдите в Настройки, затем Phone, затем Pair with a code и сканируйте показанный код.",
-  "mobile.onboarding.illustrationPath": "Настройки › Phone",
   "mobile.onboarding.scan": "Сканировать QR-код",
   "mobile.onboarding.enterCode": "Ввести код",
   "mobile.onboarding.pasteLink": "Вставить ссылку",
@@ -6422,5 +6420,9 @@
   "accountGate.oauthFailed": "Не удалось войти через браузер. Попробуйте снова.",
   "accountGate.oauthExpired": "Время для входа истекло. Начните снова.",
   "accountGate.providerUnavailable": "Этот способ входа недоступен. Попробуйте другой.",
-  "accountGate.identityTaken": "Эти данные связаны с другим аккаунтом. Попробуйте другой способ."
+  "accountGate.identityTaken": "Эти данные связаны с другим аккаунтом. Попробуйте другой способ.",
+  "mobile.onboarding.linkShort": "Откройте {app} на компьютере и отсканируйте код в разделе Настройки › Phone.",
+  "mobile.onboarding.pasteInstead": "Вместо этого вставить ссылку",
+  "mobile.home.onlyPinnedTitle": "Ваши остальные чаты появятся здесь",
+  "mobile.home.onlyPinnedBody": "Создайте бота для задачи, например для работы с почтой, поиска информации или ведения проекта, и его чат появится в этом списке."
 }

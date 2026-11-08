@@ -5230,8 +5230,6 @@
   "mobile.onboarding.pages": "Sayfalar",
   "mobile.onboarding.pageN": "Sayfa {n}",
   "mobile.onboarding.linkTitle": "Kurulumunu bağla",
-  "mobile.onboarding.linkBody": "Bilgisayarında {app} uygulamasını aç, Ayarlar, ardından Phone, ardından Pair with a code bölümüne git ve gösterilen kodu tara.",
-  "mobile.onboarding.illustrationPath": "Ayarlar › Phone",
   "mobile.onboarding.scan": "QR kodunu tara",
   "mobile.onboarding.enterCode": "Kod gir",
   "mobile.onboarding.pasteLink": "Bağlantı yapıştır",
@@ -5357,5 +5355,9 @@
   "accountGate.oauthFailed": "Tarayıcıda giriş başarısız oldu. Lütfen yeniden dene.",
   "accountGate.oauthExpired": "Bu girişin süresi doldu. Lütfen yeniden başla.",
   "accountGate.providerUnavailable": "Bu giriş sağlayıcısı kullanılamıyor. Başka bir yol dene.",
-  "accountGate.identityTaken": "Bu kimlik başka bir hesaba ait. Başka bir yol dene."
+  "accountGate.identityTaken": "Bu kimlik başka bir hesaba ait. Başka bir yol dene.",
+  "mobile.onboarding.linkShort": "Bilgisayarında {app} uygulamasını aç ve Ayarlar › Phone bölümündeki kodu tara.",
+  "mobile.onboarding.pasteInstead": "Bunun yerine bağlantı yapıştır",
+  "mobile.home.onlyPinnedTitle": "Diğer sohbetlerin burada görünür",
+  "mobile.home.onlyPinnedBody": "E-postalar, araştırma veya bir proje gibi bir iş için bot oluştur. Sohbeti bu listede görünür."
 }

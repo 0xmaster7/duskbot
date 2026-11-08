@@ -6916,8 +6916,6 @@
   "mobile.onboarding.pages": "页面",
   "mobile.onboarding.pageN": "第 {n} 页",
   "mobile.onboarding.linkTitle": "关联你的安装",
-  "mobile.onboarding.linkBody": "在电脑上打开 {app}，依次进入设置、Phone、Pair with a code，然后扫描显示的二维码。",
-  "mobile.onboarding.illustrationPath": "设置 › Phone",
   "mobile.onboarding.scan": "扫描二维码",
   "mobile.onboarding.enterCode": "输入代码",
   "mobile.onboarding.pasteLink": "粘贴链接",
@@ -7043,5 +7041,9 @@
   "accountGate.oauthFailed": "浏览器登录失败，请重试。",
   "accountGate.oauthExpired": "此次登录已过期，请重新开始。",
   "accountGate.providerUnavailable": "此登录服务暂不可用，请尝试其他方式。",
-  "accountGate.identityTaken": "此身份属于另一个账号，请尝试其他方式。"
+  "accountGate.identityTaken": "此身份属于另一个账号，请尝试其他方式。",
+  "mobile.onboarding.linkShort": "在电脑上打开 {app}，扫描设置 › Phone 中的二维码。",
+  "mobile.onboarding.pasteInstead": "改为粘贴链接",
+  "mobile.home.onlyPinnedTitle": "你的其他聊天会显示在这里",
+  "mobile.home.onlyPinnedBody": "创建机器人来处理邮件、研究或项目等任务，它的聊天就会显示在此列表中。"
 }

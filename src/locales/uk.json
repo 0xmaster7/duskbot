@@ -3592,8 +3592,6 @@
   "mobile.onboarding.pages": "Сторінки",
   "mobile.onboarding.pageN": "Сторінка {n}",
   "mobile.onboarding.linkTitle": "Прив'яжіть свою інсталяцію",
-  "mobile.onboarding.linkBody": "На комп'ютері відкрийте {app}, перейдіть у Налаштування, потім Phone, потім Pair with a code і скануйте показаний код.",
-  "mobile.onboarding.illustrationPath": "Налаштування › Phone",
   "mobile.onboarding.scan": "Сканувати QR-код",
   "mobile.onboarding.enterCode": "Ввести код",
   "mobile.onboarding.pasteLink": "Вставити посилання",
@@ -3719,5 +3717,9 @@
   "accountGate.oauthFailed": "Не вдалося ввійти через браузер. Спробуйте ще раз.",
   "accountGate.oauthExpired": "Час для входу минув. Почніть знову.",
   "accountGate.providerUnavailable": "Цей спосіб входу недоступний. Спробуйте інший.",
-  "accountGate.identityTaken": "Ця особа пов’язана з іншим обліковим записом. Спробуйте інший спосіб."
+  "accountGate.identityTaken": "Ця особа пов’язана з іншим обліковим записом. Спробуйте інший спосіб.",
+  "mobile.onboarding.linkShort": "Відкрийте {app} на комп'ютері та скануйте код у розділі Налаштування › Phone.",
+  "mobile.onboarding.pasteInstead": "Натомість вставити посилання",
+  "mobile.home.onlyPinnedTitle": "Ваші інші чати з'являться тут",
+  "mobile.home.onlyPinnedBody": "Створіть бота для завдання, наприклад для роботи з поштою, пошуку інформації чи ведення проєкту, і його чат з'явиться в цьому списку."
 }
