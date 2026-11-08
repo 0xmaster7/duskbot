@@ -57,7 +57,8 @@ export function createProviderRegistry(configs: ProviderConfigs = {}, options: {
           const result = await fetchJson(request, config.userUrl, { headers: { authorization: `Bearer ${tokens.access_token}` } });
           const data = result.data as Record<string, unknown> | undefined;
           if (!data || !text(data.id, 256)) throw new Error("Invalid provider subject.");
-          return { subject: data.id as string, email: email(data.confirmed_email), label: text(data.username, 100), name: text(data.name, 80) };
+          // x does not vouch that the address is still the person's today: it never links or creates an account by itself
+          return { subject: data.id as string, email: null, label: text(data.username, 100), name: text(data.name, 80) };
         }
         if (typeof tokens.id_token !== "string" || !config.jwksUrl || !config.issuers) throw new Error("Missing identity token.");
         const claims = await verifyJwt(tokens.id_token, { jwksUrl: config.jwksUrl, issuers: config.issuers, clientId: config.clientId, nonce, algorithms: ["RS256"] });
@@ -67,7 +68,10 @@ export function createProviderRegistry(configs: ProviderConfigs = {}, options: {
           const data = JSON.parse(user) as { name?: { firstName?: unknown; lastName?: unknown } };
           name = text([text(data?.name?.firstName, 80), text(data?.name?.lastName, 80)].filter(Boolean).join(" "), 80);
         }
-        return { subject: claims.sub as string, email: claims.email_verified === true || (id === "apple" && claims.email_verified === "true") ? email(claims.email) : null, label: name, name };
+        const verified = claims.email_verified === true || (id === "apple" && claims.email_verified === "true"), address = verified ? email(claims.email) : null;
+        // google is authoritative only for gmail and for a workspace domain (hd); other addresses go through an email code
+        const trusted = id !== "google" || (address !== null && (/@(gmail|googlemail)\.com$/.test(address) || (typeof claims.hd === "string" && address.endsWith(`@${claims.hd.toLowerCase()}`))));
+        return { subject: claims.sub as string, email: trusted ? address : null, label: name, name };
       },
     });
   }

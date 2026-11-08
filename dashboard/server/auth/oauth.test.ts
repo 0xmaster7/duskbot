@@ -138,11 +138,32 @@ describe("OAuth over isolated HTTP", () => {
     const code = /\b\d{8}\b/.exec(mailer.outbox.at(-1)!.text)![0];
     expect((await call("/v1/auth/verify", { attempt, code }, {}, "POST", new CookieJar())).status).toBe(410);
   });
-  it("treats X confirmed_email as verified and supports a public client", async () => {
+  it("never links or creates by an X confirmed_email and supports a public client", async () => {
+    const owner = await (await emailLogin("upper@example.test")).json() as WebSignInAnswer;
+    jar = new CookieJar();
     fake.setUser("x", { subject: "x-email", email: "UPPER@example.test", label: "handle", name: "X Name" });
     delete fake.config.x!.clientSecret; restart({ oauth: fake.config });
-    expect(location(await oauth("x"))).toBe("/");
-    expect((await account()).account).toMatchObject({ email: "upper@example.test", name: null });
+    const target = new URL(location(await oauth("x")), url);
+    expect(target.pathname).toBe("/sign-in"); expect(target.searchParams.get("pending")).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect((await call("/v1/me")).status).toBe(401);
+    expect(owner.account.providers).toEqual(["email"]);
+  });
+  it("links a Google address only where Google is authoritative (gmail or a workspace hd)", async () => {
+    const victim = await (await emailLogin("person@company.test")).json() as WebSignInAnswer;
+    jar = new CookieJar();
+    // a former owner of person@company.test still holds a google account claiming it, verified, without hd
+    fake.setUser("google", { subject: "stale-google", email: "person@company.test", emailVerified: true, label: null, name: "Former" });
+    const target = new URL(location(await oauth("google")), url);
+    expect(target.pathname).toBe("/sign-in"); expect(target.searchParams.get("pending")).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect((await call("/v1/me")).status).toBe(401);
+    jar = new CookieJar();
+    fake.setUser("google", { subject: "workspace-google", email: "person@company.test", emailVerified: true, hd: "company.test", label: null, name: "Person" });
+    expect(location(await oauth("google"))).toBe("/");
+    expect((await account()).account.id).toBe(victim.account.id);
+    jar = new CookieJar();
+    fake.setUser("google", { subject: "gmail-google", email: "someone@gmail.com", emailVerified: true, label: null, name: "Someone" });
+    expect(location(await oauth("google"))).toBe("/");
+    expect((await account()).account.email).toBe("someone@gmail.com");
   });
   it.each(["google", "apple", "x"] as const)("maps %s denial and clears the binding", async provider => {
     fake.deny(provider); const response = await oauth(provider, "?next=/account");

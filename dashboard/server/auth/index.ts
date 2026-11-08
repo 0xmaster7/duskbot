@@ -60,7 +60,7 @@ export function createAuth(options: AuthOptions) {
   const attempts = new Map<string, Attempt>();
   const devices = new Map<string, DeviceAuthorization>();
   const expiredDevices = new Map<string, number>();
-  const grants = new Map<string, { accountId: string; expiresAt: number }>();
+  const grants = new Map<string, { accountId: string; sessionId: string; expiresAt: number }>();
   const limits = new Map<string, { count: number; until: number }>();
   const sentAt = new Map<string, number>();
   const extensions: Array<(accountId: string) => Promise<Record<string, unknown>> | Record<string, unknown>> = [];
@@ -172,9 +172,12 @@ export function createAuth(options: AuthOptions) {
     const attempt = random(), code = randomInt(0, 100_000_000).toString().padStart(8, "0");
     const item: Attempt = { email, ...(typeof data.pending === "string" ? { pending: data.pending } : {}), codeHash: hmac(`${attempt}:${code}`), device, expiresAt: now() + EMAIL_CODE_TTL_SECONDS * 1000, tries: 0 };
     attempts.set(hash(attempt), item);
-    try {
-      if (options.signupOpen || state.accounts.some(item => item.email === email)) await options.mailer.send(codeMessage(email, code));
-    } catch { attempts.delete(hash(attempt)); fail(502, "failed"); }
+    if (options.signupOpen) {
+      try { await options.mailer.send(codeMessage(email, code)); } catch { attempts.delete(hash(attempt)); fail(502, "failed"); }
+    } else if (state.accounts.some(item => item.email === email)) {
+      // signups closed: answer before delivery so timing and mail failures never tell whether the address has an account
+      void options.mailer.send(codeMessage(email, code)).catch(() => console.error("Email delivery failed."));
+    }
     return { ...(app ? { cloudContractVersion: 1 } : {}), attempt, expiresIn: EMAIL_CODE_TTL_SECONDS, resendAfter: EMAIL_RESEND_SECONDS, signupOpen: options.signupOpen };
   }
   function verifyEmail(req: IncomingMessage, res: ServerResponse, data: Record<string, unknown>, app: boolean) {
@@ -465,7 +468,7 @@ export function createAuth(options: AuthOptions) {
         const found = appSession(req);
         if (!found) return fail(401, "invalid_token");
         const enrollToken = random(), expiresAt = now() + 600_000;
-        grants.set(hash(enrollToken), { accountId: found.account.id, expiresAt });
+        grants.set(hash(enrollToken), { accountId: found.account.id, sessionId: found.session.id, expiresAt });
         json({ v: 1, enrollToken, expiresAt, dashboardUrl: publicUrl });
       } else fail(404, "not_found");
     } catch (error) {
@@ -485,7 +488,8 @@ export function createAuth(options: AuthOptions) {
       sweep();
       const key = hash(token), grant = grants.get(key);
       grants.delete(key);
-      return grant && account(grant.accountId) ? grant.accountId : null;
+      // a grant dies with the app session that asked for it (signed out, revoked, everywhere)
+      return grant && account(grant.accountId) && state.sessions.some(item => item.id === grant.sessionId && item.accountId === grant.accountId && item.expiresAt > now()) ? grant.accountId : null;
     },
     close() { clearInterval(timer); store.close(); },
   };

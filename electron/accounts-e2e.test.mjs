@@ -47,7 +47,7 @@ describe("accounts across the website, desktop, workspace and phone", () => {
       return fetch(input, init);
     };
     for (const provider of ["google", "apple", "x"]) providers.setUser(provider, {
-      subject: `${provider}-fixture`, email: provider === "x" ? null : `${provider}@accounts.test`, emailVerified: true, label: `${provider} fixture`, name: `${provider} fixture`,
+      subject: `${provider}-fixture`, email: provider === "x" ? null : `${provider}@accounts.test`, emailVerified: true, ...(provider === "google" ? { hd: "accounts.test" } : {}), label: `${provider} fixture`, name: `${provider} fixture`,
     });
     f.app = createDashboardApp({ dataDir: f.dir, publicUrl: f.url, mailer: f.mailer, oauth: providers.config, staticDir: null, now: f.now, fetch: f.fetch });
     f.server.on("request", f.app.handle);

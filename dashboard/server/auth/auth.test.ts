@@ -8,7 +8,7 @@ import { createDashboardApp, type DashboardAppOptions } from "../app.ts";
 import { memoryMailer } from "./mail.ts";
 import { createCloudAccountClient } from "../../../electron/cloud-account.mjs";
 import { CSRF_COOKIE, CSRF_HEADER, SESSION_COOKIE, type AccountAnswer, type AppGrant, type EmailStartAnswer, type EnrollGrantAnswer, type WebSignInAnswer } from "../../../shared/account-api.ts";
-import { SIGNATURE_HEADERS, SIGNATURE_SKEW_MS, signedPayload, type EnrollAnswer } from "../../../shared/dashboard-protocol.ts";
+import { SIGNATURE_HEADERS, SIGNATURE_SKEW_MS, signedPayload, type EnrollAnswer, type WorkspaceDetail } from "../../../shared/dashboard-protocol.ts";
 
 const day = 86_400_000;
 const device = { deviceName: "Fixture Mac", platform: "darwin", appVersion: "1.2.3" };
@@ -370,6 +370,45 @@ describe("local account service", () => {
     app.close();
     const saved = JSON.parse(readFileSync(`${dataDir}/state.json`, "utf8"));
     expect(saved.workspaces[0].claimHash).toBeNull();
+  });
+
+  it("ends grants with their app session and drops the previous owner's queued commands on a move", async () => {
+    const first = await appLogin();
+    const firstGrant = await body<EnrollGrantAnswer>(call("/v1/app/enroll-grant", {}, bearer(first)));
+    const request = enrollment(firstGrant.enrollToken);
+    const enrolled = await body<EnrollAnswer>(call("/v1/enroll", request.input, request.headers));
+    time += 30_000;
+    const owner = await login();
+    expect((await call(`/v1/workspaces/${enrolled.workspaceId}/commands`, { kind: "routine.resume", target: "r1" }, browserHeaders(owner))).status).toBe(200);
+    time += 30_000;
+    const next = await appLogin("other@example.test");
+    const revoked = await body<EnrollGrantAnswer>(call("/v1/app/enroll-grant", {}, bearer(next)));
+    const kept = await body<EnrollGrantAnswer>(call("/v1/app/enroll-grant", {}, bearer(next)));
+    time += 30_000;
+    const later = await appLogin("other@example.test");
+    expect((await call("/api/cloud/desktop/session", {}, bearer(next), "DELETE")).status).toBe(200);
+    // the session that asked for the grant is gone, so neither of its grants enrolls anything
+    const stale = enrollment(revoked.enrollToken, { keys: request.keys, at: ++time });
+    expect((await call("/v1/enroll", stale.input, stale.headers)).status).toBe(403);
+    expect(app.auth.consumeEnrollGrant(kept.enrollToken)).toBeNull();
+    const fresh = await body<EnrollGrantAnswer>(call("/v1/app/enroll-grant", {}, bearer(later)));
+    const move = enrollment(fresh.enrollToken, { keys: request.keys, at: ++time });
+    expect((await call("/v1/enroll", move.input, move.headers)).status).toBe(200);
+    time += 30_000;
+    const nextOwner = await login("other@example.test");
+    expect(await body<WorkspaceDetail>(call(`/v1/workspaces/${enrolled.workspaceId}`, undefined, browserHeaders(nextOwner)))).toMatchObject({ commands: [] });
+  });
+
+  it("answers closed-signup starts before mail goes out, so timing never shows an account exists", async () => {
+    await login(); time += 30_000;
+    restart({ signupOpen: false, mailer: { send: () => new Promise<void>(() => {}) } });
+    const known = await call("/v1/auth/start", { email });
+    expect(known.status).toBe(200);
+    restart({ signupOpen: false, mailer: { send: async () => { throw new Error("down"); } } });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    time += 30_000;
+    expect((await call("/v1/auth/start", { email })).status).toBe(200);
+    expect((await call("/v1/auth/start", { email: "nobody@example.test" })).status).toBe(200);
   });
 
   it("deletes accounts, identities, sessions, attempts, grants and owned workspaces, awaiting hooks", async () => {

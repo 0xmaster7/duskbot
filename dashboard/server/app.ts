@@ -232,6 +232,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
         state.workspaces.push(ws);
       }
       if (ownerAccountId) {
+        // a new owner never inherits the previous owner's queued commands or open waits
+        if (ws.ownerAccountId && ws.ownerAccountId !== ownerAccountId) forget(ws);
         ws.ownerAccountId = ownerAccountId;
         ws.claimHash = null;
         ws.claimExpiresAt = 0;

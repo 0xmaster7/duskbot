@@ -4,7 +4,7 @@ import type { OAuthProvider } from "../../../shared/account-api.ts";
 import type { ProviderConfigs, ProviderProfile } from "./providers.ts";
 import { decodeJws } from "./jwt.ts";
 
-export interface FakeProfile extends ProviderProfile { emailVerified?: boolean | "true" | "false" }
+export interface FakeProfile extends ProviderProfile { emailVerified?: boolean | "true" | "false"; hd?: string }
 interface Authorization { provider: OAuthProvider; redirectUri: string; challenge: string | null; nonce: string | null; profile: FakeProfile; expiresAt: number }
 const random = () => randomBytes(32).toString("base64url");
 const escape = (value: string) => value.replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
@@ -13,7 +13,7 @@ export async function startFakeProviders({ port = 0 }: { port?: number } = {}) {
   const apple = generateKeyPairSync("ec", { namedCurve: "prime256v1" });
   const jwk = { ...rsa.publicKey.export({ format: "jwk" }), kid: "fixture-rsa", alg: "RS256", use: "sig" };
   const users: Record<OAuthProvider, FakeProfile> = {
-    google: { subject: "google-sid", email: "sid@openmausbot.test", emailVerified: true, label: "Sid Fixture", name: "Sid Fixture" },
+    google: { subject: "google-sid", email: "sid@openmausbot.test", emailVerified: true, hd: "openmausbot.test", label: "Sid Fixture", name: "Sid Fixture" },
     apple: { subject: "apple-sid", email: "sid@privaterelay.appleid.test", emailVerified: "true", label: "Apple Fixture", name: "Apple Fixture" },
     x: { subject: "x-sid", email: null, label: "sid_fixture", name: "X Fixture" },
   };
@@ -82,7 +82,7 @@ export async function startFakeProviders({ port = 0 }: { port?: number } = {}) {
         }
         const iat = Math.floor(Date.now() / 1000), profile = issued.profile;
         const claims = { iss: `${url}/${id}`, aud: settings.clientId, sub: profile.subject, email: profile.email, email_verified: profile.emailVerified ?? true,
-          ...(id === "google" ? { name: profile.name } : {}), nonce: issued.nonce, iat, exp: iat + 600 };
+          ...(id === "google" ? { name: profile.name, ...(profile.hd ? { hd: profile.hd } : {}) } : {}), nonce: issued.nonce, iat, exp: iat + 600 };
         const input = [ { alg: "RS256", kid: jwk.kid }, claims ].map(value => Buffer.from(JSON.stringify(value)).toString("base64url")).join(".");
         return json({ id_token: `${input}.${sign("sha256", Buffer.from(input), rsa.privateKey).toString("base64url")}`, token_type: "bearer" });
       }
