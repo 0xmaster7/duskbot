@@ -10,10 +10,9 @@ import { APP_LINK } from "../lib/usage";
 import { Modal } from "../ui/controls";
 import { Button, ButtonLink, Card, cx, KV, PageHeader, SectionTitle, Skeleton } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
-import { Nightshift } from "../ui/Nightshift";
 import { Stars } from "../ui/Sky";
 import { useWorkspaceDetail } from "../data/detail";
-import { CloudStatus, PowerButton, Provisioning, QuickPick, regionName, tierName } from "./cloud-bits";
+import { CloudHero, CloudStatus, PowerButton, Provisioning, regionName, tierName } from "./cloud-bits";
 import { MachineView } from "./Machine";
 
 const WHY = [
@@ -23,28 +22,21 @@ const WHY = [
 ];
 
 function Pitch() {
-  const { catalog } = useCloud();
   return (
     <div className="flex flex-col gap-4">
-      <Card className="enter grid gap-10 overflow-hidden !p-8 max-sm:!p-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:items-center" aria-labelledby="pitch-title">
-        <div className="min-w-0">
-          <h2 id="pitch-title" className="max-w-[16ch] text-44 font-medium tracking-[-0.03em] text-ink max-sm:text-[32px] max-sm:leading-[38px]">A computer that never sleeps, for your bots.</h2>
-          <p className="mt-3 max-w-[50ch] text-16 leading-[1.6] text-ink-3">Close the lid, lose Wi-Fi, go on holiday. Your cloud desktop keeps every bot working, all day and all night.</p>
-          <ul className="mt-7 flex flex-col gap-4">
-            {WHY.map(({ icon: Icon, title, body }) => (
-              <li key={title} className="flex gap-3.5">
-                <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-card-2 text-ink-2"><Icon size={17} strokeWidth={1.5} aria-hidden /></span>
-                <span className="min-w-0"><span className="block text-14 font-medium text-ink">{title}</span><span className="block text-13 leading-[1.5] text-ink-3">{body}</span></span>
-              </li>
-            ))}
-          </ul>
-          {catalog ? <QuickPick catalog={catalog} className="mt-8" /> : <Skeleton className="mt-8 h-[150px]" />}
-        </div>
-        <Nightshift className="max-lg:order-first" />
-      </Card>
-      <div className="enter flex flex-wrap items-center gap-x-4 gap-y-2 rounded-card border border-line px-6 py-4 max-sm:px-4" style={{ ["--i" as string]: 1 }}>
-        <p className="min-w-0 flex-1 text-14 text-ink-3">Have your own server? Connect it for free. You keep it running and up to date.</p>
-        <ButtonLink to="/workspaces#add" size="sm">Connect a VPS</ButtonLink>
+      <CloudHero id="pitch-title" title="A computer that never sleeps, for your bots" body="Close the lid, lose Wi-Fi, go on holiday. Your cloud desktop keeps every bot working, all day and all night." />
+      <ul className="enter grid gap-x-10 gap-y-6 px-10 py-8 max-sm:px-6 md:grid-cols-3" style={{ ["--i" as string]: 1 }}>
+        {WHY.map(({ icon: Icon, title, body }) => (
+          <li key={title} className="min-w-0">
+            <Icon size={18} strokeWidth={1.5} className="text-ink-3" aria-hidden />
+            <h3 className="mt-3 text-15 font-medium text-ink">{title}</h3>
+            <p className="mt-1 text-14 leading-[1.6] text-ink-3">{body}</p>
+          </li>
+        ))}
+      </ul>
+      <div className="enter flex flex-wrap items-center gap-x-4 gap-y-3 rounded-card border border-line px-10 py-5 max-sm:px-6" style={{ ["--i" as string]: 2 }}>
+        <p className="min-w-0 flex-1 text-15 text-ink-3">Have your own server? Connect it for free. You keep it running and up to date.</p>
+        <ButtonLink to="/workspaces#add">Connect a VPS</ButtonLink>
       </div>
     </div>
   );
