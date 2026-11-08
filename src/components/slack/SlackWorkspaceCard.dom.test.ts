@@ -97,7 +97,7 @@ describe("Slack workspace setup", () => {
   it("opens the same setup when the workspace needs reconnecting", async () => {
     status.state = "needs_reconnect";
     await mount();
-    expect(host.textContent).toContain("Slack stopped accepting the workspace token");
+    expect(host.textContent).toContain("Slack stopped accepting the Slack workspace token");
     await click("Reconnect");
     expect(host.querySelectorAll("input")).toHaveLength(2);
   });
