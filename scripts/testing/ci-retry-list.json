@@ -44,13 +44,6 @@
       "since": "2026-10-08"
     },
     {
-      "file": "server/boat-included.test.ts",
-      "test": "waking a sleeping computer > forgets a server error once a later resume is accepted",
-      "owner": "milind-soni",
-      "reason": "Failed 7 runs (3 main runs) since Sep 24: Ubuntu 5, Windows 2. #2444 targeted it; delete this entry once no retry is reported for a week.",
-      "since": "2026-10-08"
-    },
-    {
       "file": "server/browser/viewers/viewers.e2e.test.ts",
       "test": "a phone's v1 live view on real Chrome > sends the events and fields the agent-browser engine sent, step for step",
       "owner": "milind-soni",
