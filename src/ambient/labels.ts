@@ -2,6 +2,7 @@
 // pack of their own. Keys here are the snapshot's `labels`; values with {name} or {count} are filled in on the surface.
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
+import type { AmbientLabel } from "./say";
 
 export const AMBIENT_LABELS = {
   idle: "ambient.status.idle",
@@ -26,17 +27,10 @@ export const AMBIENT_LABELS = {
   island: "ambient.island",
   dock: "ambient.dock",
   reorder: "ambient.reorder",
-} as const satisfies Record<string, LocaleKey>;
+} as const satisfies Record<AmbientLabel, LocaleKey>;
 
-export type AmbientLabel = keyof typeof AMBIENT_LABELS;
-export type AmbientLabels = Partial<Record<AmbientLabel, string>>;
+export type { AmbientLabel, AmbientLabels } from "./say";
 
 export function ambientLabels(): Record<AmbientLabel, string> {
   return Object.fromEntries(Object.entries(AMBIENT_LABELS).map(([key, locale]) => [key, t(locale)])) as Record<AmbientLabel, string>;
-}
-
-/** A label with its {name} and {count} filled in; "" before the first summary brings the words. */
-export function say(labels: AmbientLabels, key: AmbientLabel, params?: Record<string, string | number>): string {
-  const template = labels[key] ?? "";
-  return params ? template.replace(/\{(\w+)\}/g, (match, name: string) => (name in params ? String(params[name]) : match)) : template;
 }

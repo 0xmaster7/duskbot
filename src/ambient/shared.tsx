@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { MausAvatar } from "@/components/Avatar";
 import type { MarkState } from "@/components/mascot-motion-mark";
 import type { BotBodyId } from "../../shared/bot-body";
-import { say, type AmbientLabels } from "./labels";
+import { say, type AmbientLabels } from "./say";
 import type { AmbientBot, AmbientBridge, AmbientSnapshot, AmbientStatus, DockLayout, IslandLayout } from "./types";
 
 /** Bencho's springs: settle for surfaces (no visible bounce), lively for small things that may overshoot. */

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "re
 import { AnimatePresence, Reorder, motion, useReducedMotion } from "motion/react";
 import { Plus } from "lucide-react";
 import { dockOrder, isBusy, shortAgo } from "./mood";
-import { say, type AmbientLabels } from "./labels";
+import { say, type AmbientLabels } from "./say";
 import { BotMark, FADE, FADE_OUT, LIVELY, SETTLE, StatusTag, useAmbientFeed, useNow, usePointerRegion } from "./shared";
 import type { AmbientBot, AmbientBridge } from "./types";
 

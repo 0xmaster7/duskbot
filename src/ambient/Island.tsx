@@ -5,7 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEve
 import { AnimatePresence, motion, useReducedMotion, useSpring, useTransform } from "motion/react";
 import { ArrowUp, CornerUpLeft, Plus } from "lucide-react";
 import { CELEBRATE_MS, MOOD_EMOJI, finishedSince, focusBot, isBusy, moodOf, rankBots, shortAgo, type Mood } from "./mood";
-import { say, type AmbientLabels } from "./labels";
+import { say, type AmbientLabels } from "./say";
 import { BotMark, FADE, FADE_OUT, LIVELY, SETTLE, StatusTag, useAmbientFeed, useNow, usePointerRegion } from "./shared";
 import type { AmbientBot, AmbientBridge, IslandLayout } from "./types";
 

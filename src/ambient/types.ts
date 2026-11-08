@@ -28,7 +28,7 @@ export interface AmbientBot {
 export interface AmbientSnapshot {
   bots: AmbientBot[];
   /** The surfaces' words in the person's language (labels.ts). */
-  labels: import("./labels").AmbientLabels;
+  labels: import("./say").AmbientLabels;
   lang: string;
 }
 
