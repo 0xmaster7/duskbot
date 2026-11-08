@@ -31,7 +31,7 @@ const timings = new Map<object, Timing>();
 
 /** A spring as a Web Animations timing, sampled every 8ms into `linear()`: the compositor runs it, it applies in the
  * frame it starts, and every mover shares one curve and clock. */
-function springTiming(preset: { stiffness: number; damping: number; mass: number }): Timing {
+export function springTiming(preset: { stiffness: number; damping: number; mass: number }): Timing {
   const known = timings.get(preset);
   if (known) return known;
   const { stiffness, damping, mass } = preset;
@@ -47,10 +47,6 @@ function springTiming(preset: { stiffness: number; damping: number; mass: number
   const timing = { duration: t, easing: `linear(${points.join(", ")})` };
   timings.set(preset, timing);
   return timing;
-}
-
-export function settleTiming(): Timing {
-  return springTiming(SPRING_SETTLE);
 }
 
 /** How long a reply `height` px tall takes to open, on the arrival ease. */
@@ -274,7 +270,7 @@ export function useArrivalFlow({
     };
     if (settle && canAnimate(column)) {
       scroller.scrollTop = max;
-      glide(delta, settleTiming());
+      glide(delta, springTiming(SPRING_SETTLE));
     }
 
     // a reply landing where the working line showed grows out of it, and the view glides up to make room for it instead of

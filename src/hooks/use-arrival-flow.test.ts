@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { SPRING_SETTLE } from "@/lib/motion-presets";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,7 +16,7 @@ vi.mock("motion/react", async (original) => ({
 }));
 const lifts = (el: Element) => (lifted.calls as Lifted[]).filter((call) => call.el === el);
 
-import { ARRIVAL_CURVE, ARRIVAL_EASE, REVEAL_MS, revealTiming, SEND_MS, SEND_RISE_PX, settleTiming, useArrivalFlow } from "./use-arrival-flow";
+import { ARRIVAL_CURVE, ARRIVAL_EASE, REVEAL_MS, revealTiming, SEND_MS, SEND_RISE_PX, springTiming, useArrivalFlow } from "./use-arrival-flow";
 
 // happy-dom has no layout: each element reports the offsets the test gives it, and animations are recorded
 type Recorded = { el: Element; keyframes: Keyframe[]; options: KeyframeAnimationOptions };
@@ -84,7 +85,7 @@ afterEach(() => {
 
 describe("useArrivalFlow", () => {
   it("samples the settle spring into one linear() curve that lands exactly", () => {
-    const { duration, easing } = settleTiming();
+    const { duration, easing } = springTiming(SPRING_SETTLE);
     expect(duration).toBeGreaterThan(250);
     expect(duration).toBeLessThan(900);
     expect(easing.startsWith("linear(0, ")).toBe(true);
