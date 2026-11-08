@@ -19,7 +19,7 @@ export function NewConversationInstead({ bot, room = false, onNew }: { bot?: Pic
   return (
     <div className="pointer-events-auto mx-5 mb-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 py-2" data-testid="cloud-guest-composer">
       <p className="text-[13px] text-ink-secondary">{t("chat.cloudGuest.notYours")}</p>
-      <button type="button" onClick={onNew} className="shrink-0 rounded-full bg-accent px-3 py-1 text-[13px] font-medium text-white">
+      <button type="button" onClick={onNew} className="shrink-0 rounded-full bg-ink px-3 py-1 text-[13px] font-medium text-app">
         {t("chat.cloudGuest.newConversation")}
       </button>
     </div>

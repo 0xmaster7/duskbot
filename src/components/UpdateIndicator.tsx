@@ -84,7 +84,7 @@ export function UpdateIndicator({ className, bar }: { className?: string; bar?: 
 }
 
 const button = "inline-flex h-7 min-w-0 items-center justify-center gap-2 rounded-full px-3.5 text-[13px] font-medium leading-4 transition-colors";
-const primary = `${button} bg-accent text-white hover:brightness-110 disabled:cursor-default disabled:bg-control disabled:text-ink-secondary disabled:hover:brightness-100`;
+const primary = `${button} bg-ink text-app hover:bg-ink/85 disabled:cursor-default disabled:bg-control disabled:text-ink-secondary`;
 const secondary = `${button} text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-50`;
 
 export function UpdateCard({
@@ -217,7 +217,7 @@ export function UpdateCard({
 
         {highlights.length > 0 && (
           <div className="mt-5">
-            <h3 className="text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-secondary">{t("update.card.whatsNew")}</h3>
+            <h3 className="text-[12px] font-medium leading-4 text-ink-secondary">{t("update.card.whatsNew")}</h3>
             <ul className="mt-2 space-y-2">
               {highlights.map((line) => (
                 <li key={line} className="flex gap-2.5 text-[14px] leading-5 text-ink">

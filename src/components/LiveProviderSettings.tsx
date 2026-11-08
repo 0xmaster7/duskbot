@@ -84,7 +84,7 @@ export function LiveProviderSettings() {
             <button
               type="submit"
               disabled={saving}
-              className="self-start rounded-lg bg-accent px-3 py-1.5 text-[13px] font-medium text-white hover:brightness-110 disabled:opacity-50"
+              className="self-start rounded-lg bg-ink px-3 py-1.5 text-[13px] font-medium text-app hover:bg-ink/85 disabled:opacity-50"
             >
               {t("common.save")}
             </button>

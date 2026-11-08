@@ -10,6 +10,7 @@ import { shortcutBots, shownBotIds } from "@/lib/sidebar-shortcut-order";
 import { applySkinChoice, THEME_SKINS } from "@/lib/skins";
 import { openNewGroup } from "@/lib/new-group-request";
 import { t } from "@/lib/i18n";
+import { withoutCitationTraces } from "@/lib/citations";
 import { BotAvatar } from "./Avatar";
 import { GroupAvatar, useGroupYou } from "./GroupAvatar";
 import { openCreateBot } from "./CreateBotDialog";
@@ -314,9 +315,9 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
                 }
                 if (entry.kind === "message") {
                   const { hit } = entry;
-                  const before = hit.snippet.slice(0, hit.matchStart);
+                  const before = withoutCitationTraces(hit.snippet.slice(0, hit.matchStart));
                   const match = hit.snippet.slice(hit.matchStart, hit.matchStart + hit.matchLength);
-                  const after = hit.snippet.slice(hit.matchStart + hit.matchLength);
+                  const after = withoutCitationTraces(hit.snippet.slice(hit.matchStart + hit.matchLength));
                   return row(`msg:${hit.threadId}:${hit.messageId}`, index, entry, tile("chat-bubbles"),
                     hit.name, <>{before}<span className="font-semibold text-ink">{match}</span>{after}</>, "Message");
                 }

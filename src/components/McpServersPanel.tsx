@@ -657,7 +657,7 @@ export function McpServersPanel({ embedded = false, rows = false, hostedCards, h
               disabled={busy !== null || (restricted && !policy?.mcp.allowlist.length)}
               title={restricted && policy ? t("policy.managedBy", { organization: policy.organizationName }) : undefined}
               onClick={() => openEditor("new")}
-              className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-[13px] font-medium text-white disabled:opacity-40 in-data-[connect-apps]:h-8 in-data-[connect-apps]:gap-1 in-data-[connect-apps]:rounded-full in-data-[connect-apps]:bg-ink in-data-[connect-apps]:py-0 in-data-[connect-apps]:text-[14px] in-data-[connect-apps]:font-normal in-data-[connect-apps]:text-app in-data-[connect-apps]:enabled:hover:bg-ink/[0.885]"
+              className="flex items-center gap-1.5 rounded-lg bg-ink px-3 py-2 text-[13px] font-medium text-app disabled:opacity-40 in-data-[connect-apps]:h-8 in-data-[connect-apps]:gap-1 in-data-[connect-apps]:rounded-full in-data-[connect-apps]:bg-ink in-data-[connect-apps]:py-0 in-data-[connect-apps]:text-[14px] in-data-[connect-apps]:font-normal in-data-[connect-apps]:text-app in-data-[connect-apps]:enabled:hover:bg-ink/[0.885]"
             >
               <Plus size={14} /> {t(embedded ? "apps.mcp.add" : "mcp.addServer")}
             </button>
@@ -725,7 +725,7 @@ export function McpServersPanel({ embedded = false, rows = false, hostedCards, h
                           <Loader2 size={14} className="animate-spin" /> {t("mcp.auth.cancel")}
                         </button>
                       ) : canSignIn ? (
-                        <button type="button" disabled={busy !== null || signingIn !== null || Boolean(server.managedBy)} onClick={() => void signIn(server)} className="flex items-center gap-1.5 rounded-lg bg-accent px-2.5 py-2 text-[12px] font-medium text-white hover:brightness-110 disabled:opacity-40">
+                        <button type="button" disabled={busy !== null || signingIn !== null || Boolean(server.managedBy)} onClick={() => void signIn(server)} className="flex items-center gap-1.5 rounded-lg bg-ink px-2.5 py-2 text-[12px] font-medium text-app hover:bg-ink/85 disabled:opacity-40">
                           <LogIn size={14} /> {hosted ? t("hostedMcp.connect", { service: hosted.label }) : t("mcp.auth.signIn")}
                         </button>
                       ) : auth === "signed-in" ? (

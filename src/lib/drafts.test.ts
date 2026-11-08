@@ -32,7 +32,6 @@ import {
   useComposerChannelMode,
   useDraft,
 } from "./drafts";
-import { citationAttachment, createCitationTextSelector } from "./citations";
 import { composeMessage } from "./composer-attachments";
 
 function memoryStorage(): Storage {
@@ -203,16 +202,12 @@ describe("channel draft delivery mode", () => {
 });
 
 describe("durable attachment completion", () => {
-  it("isolates persisted citation drafts and keeps an older failed citation send out of a newer draft", () => {
+  it("isolates persisted attachment drafts and keeps an older failed send out of a newer draft", () => {
     const store = memoryStorage();
     Object.defineProperty(globalThis, "localStorage", { configurable: true, value: store });
-    const draftId = "bot:citations:thread-a";
-    const otherDraftId = "bot:citations:thread-b";
-    const citation = citationAttachment(
-      { ownerType: "bot", ownerId: "citations", threadId: "thread-a", messageId: "source-1" },
-      createCitationTextSelector("before selected after", 7, 15)!,
-      "old note",
-    );
+    const draftId = "bot:pastes:thread-a";
+    const otherDraftId = "bot:pastes:thread-b";
+    const citation = { kind: "paste" as const, id: "p1", text: "before selected after", size: 21, lines: 1 };
     setDraftAttachments(store, draftId, [citation]);
     expect(getDraftAttachments(store, draftId)).toEqual([citation]);
     expect(getDraftAttachments(store, otherDraftId)).toEqual([]);

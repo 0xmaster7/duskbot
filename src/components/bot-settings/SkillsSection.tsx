@@ -254,7 +254,7 @@ export function SkillReviewDialog({
             type="button"
             disabled={working}
             onClick={onEnable}
-            className="rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-white disabled:opacity-40"
+            className="rounded-lg bg-ink px-4 py-2 text-[13px] font-semibold text-app disabled:opacity-40"
           >
             Enable reviewed skill
           </button>

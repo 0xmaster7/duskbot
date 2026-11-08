@@ -8,7 +8,6 @@ import {
   doubleEnterSteerWindowExpiresAt,
   doubleEnterSteersQueue,
 } from "./ComposerQueuedMessages";
-import { citationAttachment, createCitationTextSelector, serializeCitation } from "@/lib/citations";
 
 const oneItem = [{ queueId: "q1", text: "actually stop at 10\nand use the smaller model" }];
 
@@ -68,7 +67,7 @@ describe("QueuedComposerMessages", () => {
     }));
     expect(markup).toContain("Queued. Starts when this bot has a free thread slot.");
     expect(markup).toContain('aria-label="Delete queued message 1 of 1"');
-    expect(markup).not.toContain("Steer");
+    expect(markup).not.toMatch(/Send (all |next )?now|what the bot is doing now/);
   });
   it("names a queued picture instead of showing its attachment tag and path", () => {
     const markup = renderToStaticMarkup(
@@ -96,18 +95,13 @@ describe("QueuedComposerMessages", () => {
     expect(markup).toContain('aria-label="Queued messages"');
     expect(markup).toContain("actually stop at 10\nand use the smaller model");
     expect(markup).toContain("truncate");
-    expect(markup).toContain('aria-label="Steer queued message now"');
+    expect(markup).toContain('aria-label="Add this message to what the bot is doing now"');
     expect(markup).toContain('aria-label="Delete queued message 1 of 1"');
   });
 
-  it("shows readable citation content instead of transport metadata", () => {
-    const citation = citationAttachment(
-      { ownerType: "bot", ownerId: "b1", threadId: "t1", messageId: "m1" },
-      createCitationTextSelector("selected 🐭 code", 0, 16)!,
-      "explain it",
-    );
+  it("shows an old cited message's words instead of transport metadata", () => {
     const markup = renderToStaticMarkup(createElement(QueuedComposerMessages, {
-      items: [{ queueId: "citation", text: serializeCitation(citation) }],
+      items: [{ queueId: "citation", text: "<!--omb-citation-v1:eyJraW5kIjoiY2l0YXRpb24ifQ-->\n> Quoted message:\n> selected 🐭 code\n\nComment:\nexplain it" }],
       onCancel: () => undefined,
     }));
     expect(markup).toContain("selected 🐭 code");
@@ -137,12 +131,12 @@ describe("QueuedComposerMessages", () => {
   it("says the fallback Steer stops the running turn when the engine cannot steer live", () => {
     const base = { items: oneItem, onSteer: () => undefined, onCancel: () => undefined } as const;
     const liveMarkup = renderToStaticMarkup(createElement(QueuedComposerMessages, base));
-    expect(liveMarkup).toContain("aria-label=\"Steer queued message now\"");
+    expect(liveMarkup).toContain("aria-label=\"Add this message to what the bot is doing now\"");
     const interruptMarkup = renderToStaticMarkup(
       createElement(QueuedComposerMessages, { ...base, steerInterrupts: true }),
     );
     expect(interruptMarkup).toContain("aria-label=\"Stop the running turn and send this message now\"");
-    expect(interruptMarkup).not.toContain("aria-label=\"Steer queued message now\"");
+    expect(interruptMarkup).not.toContain("aria-label=\"Add this message to what the bot is doing now\"");
   });
 
   it("capable room chips offer the live head steer, one message at a time", () => {
@@ -157,7 +151,7 @@ describe("QueuedComposerMessages", () => {
         onCancel: () => undefined,
       }),
     );
-    expect(markup).toContain("aria-label=\"Steer the next queued message now\"");
+    expect(markup).toContain("aria-label=\"Add the next queued message to what the bot is doing now\"");
     expect(markup).not.toContain("Stop the running turn");
   });
 
@@ -175,7 +169,7 @@ describe("QueuedComposerMessages", () => {
       }),
     );
     expect(markup).toContain("aria-label=\"Stop the running turn and send the next queued message now\"");
-    expect(markup).not.toContain("aria-label=\"Steer the next queued message now\"");
+    expect(markup).not.toContain("aria-label=\"Add the next queued message to what the bot is doing now\"");
   });
 
   it("puts the queue-level Steer action on the head only and keeps every delete distinct", () => {
@@ -191,8 +185,8 @@ describe("QueuedComposerMessages", () => {
       }),
     );
 
-    expect(markup.match(/Steer all 2 queued messages now/g)).toHaveLength(2);
-    expect(markup.match(/>Steer all</g)).toHaveLength(1);
+    expect(markup.match(/Add all 2 queued messages to what the bot is doing now/g)).toHaveLength(2);
+    expect(markup.match(/>Send all now</g)).toHaveLength(1);
     expect(markup).toContain('aria-label="Delete queued message 1 of 2"');
     expect(markup).toContain('aria-label="Delete queued message 2 of 2"');
   });
@@ -210,16 +204,16 @@ describe("QueuedComposerMessages", () => {
       }),
     );
 
-    expect(markup).toContain('aria-label="Steer the next queued message now"');
-    expect(markup).toContain("Steer next");
+    expect(markup).toContain('aria-label="Add the next queued message to what the bot is doing now"');
+    expect(markup).toContain("Send next now");
   });
 
-  it("omits Steer when this conversation cannot be interrupted", () => {
+  it("omits Send now when this conversation cannot be interrupted", () => {
     const markup = renderToStaticMarkup(
       createElement(QueuedComposerMessages, { items: oneItem, onCancel: () => undefined }),
     );
 
-    expect(markup).not.toContain("Steer");
+    expect(markup).not.toMatch(/Send (all |next )?now|what the bot is doing now/);
     expect(markup).toContain("actually stop at 10");
   });
 
@@ -233,7 +227,7 @@ describe("QueuedComposerMessages", () => {
       }),
     );
 
-    expect(markup).toContain("Steering…");
+    expect(markup).toContain("Sending…");
     expect(markup).toContain("disabled");
   });
 
