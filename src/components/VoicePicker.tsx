@@ -188,7 +188,7 @@ export function VoicePicker({
 
   const heading = (text: string, hint?: string) => (
     <div role="presentation" className="px-2.5 pb-1 pt-2">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-secondary">{text}</div>
+      <div className="text-[12px] font-medium leading-4 text-ink-secondary">{text}</div>
       {hint && <div className="mt-0.5 text-[11px] leading-4 text-ink-tertiary">{hint}</div>}
     </div>
   );

@@ -1,4 +1,4 @@
-// a local dashboard service for development and verification: a fake account server, the service on a temporary
+// a local dashboard service for development and verification: a memory mailer, the service on a temporary
 // data folder, an optional signed-in session and an optional demo workspace that reports made-up numbers.
 //   node dashboard/scripts/fixture.ts [--port 7480] [--email you@example.test] [--demo] [--session-file path]
 // the demo workspace is fixture data only; real workspaces connect from the app (POST /api/dashboard/link).
@@ -11,33 +11,46 @@ import { parseArgs } from "node:util";
 import { FAST_REPORT_MS, SIGNATURE_HEADERS, signedPayload } from "../../shared/dashboard-protocol.ts";
 import type { BotReport, CommandResult, DashboardCommand, EnrollAnswer, ReportAnswer, WorkspaceReport } from "../../shared/dashboard-protocol.ts";
 import { createDashboardApp } from "../server/app.ts";
-import { startFakeAdmin } from "../server/fake-admin.ts";
+import { startFakeProviders } from "../server/auth/fake-providers.ts";
+import { memoryMailer } from "../server/auth/mail.ts";
+import { CSRF_HEADER } from "../../shared/account-api.ts";
 
 const { values } = parseArgs({ options: { port: { type: "string", default: "7480" }, email: { type: "string", default: "sid@openmausbot.test" }, demo: { type: "boolean", default: false }, "session-file": { type: "string" } } });
 const port = Number(values.port);
 const url = `http://127.0.0.1:${port}`;
 const dataDir = mkdtempSync(join(tmpdir(), "omb-dashboard-"));
-const admin = await startFakeAdmin();
-const app = createDashboardApp({ dataDir, publicUrl: url, accountOrigin: admin.url, staticDir: decodeURIComponent(new URL("../dist", import.meta.url).pathname) });
+const providers = await startFakeProviders();
+const mailer = memoryMailer();
+const send = mailer.send;
+mailer.send = async message => {
+  await send(message);
+  console.log(`code for ${message.to}: ${message.text.match(/\b\d{8}\b/)?.[0] ?? ""}`);
+};
+let csrfToken = "";
+const app = createDashboardApp({ dataDir, publicUrl: url, mailer, oauth: providers.config, staticDir: decodeURIComponent(new URL("../dist", import.meta.url).pathname) });
 const server = createServer(app.handle);
 await new Promise<void>((resolve) => server.listen(port, "127.0.0.1", resolve));
 
 async function post(path: string, body: unknown, cookie?: string) {
-  const res = await fetch(url + path, { method: "POST", headers: { "content-type": "application/json", origin: url, ...(cookie ? { cookie } : {}) }, body: JSON.stringify(body) });
+  const res = await fetch(url + path, { method: "POST", headers: { "content-type": "application/json", origin: url, ...(cookie ? { cookie, [CSRF_HEADER]: csrfToken } : {}) }, body: JSON.stringify(body) });
   return { res, data: await res.json() as Record<string, unknown> };
 }
 
 const start = await post("/v1/auth/start", { email: values.email });
-const code = admin.codes.get(values.email!.toLowerCase());
+const code = mailer.outbox.at(-1)?.text.match(/\b\d{8}\b/)?.[0];
 const verify = await post("/v1/auth/verify", { attempt: start.data.attempt, code });
+csrfToken = String(verify.data.csrfToken ?? "");
 const cookie = (verify.res.headers.get("set-cookie") ?? "").split(";")[0]!;
 if (values["session-file"]) writeFileSync(values["session-file"], cookie, { mode: 0o600 });
-console.log(JSON.stringify({ url, admin: admin.url, dataDir, signedIn: verify.res.ok, sessionFile: values["session-file"] ?? null }));
+console.log(JSON.stringify({ url, dataDir, signedIn: verify.res.ok, sessionFile: values["session-file"] ?? null }));
+
+console.log("Google, Apple and X sign in instantly as local fake users (X asks for an email code first).");
 
 if (values.demo) void demo(cookie);
 
-for (const signal of ["SIGINT", "SIGTERM"] as const) process.once(signal, () => {
-  app.close(); server.close(); server.closeAllConnections(); void admin.close();
+for (const signal of ["SIGINT", "SIGTERM"] as const) process.once(signal, async () => {
+  await providers.close();
+  app.close(); server.close(); server.closeAllConnections();
   rmSync(dataDir, { recursive: true, force: true });
   process.exit(0);
 });

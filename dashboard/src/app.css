@@ -78,14 +78,20 @@
   --text-13--line-height: 18px;
   --text-14: 14px;
   --text-14--line-height: 20px;
+  --text-15: 15px;
+  --text-15--line-height: 22px;
   --text-16: 16px;
   --text-16--line-height: 22px;
+  --text-17: 17px;
+  --text-17--line-height: 26px;
   --text-20: 20px;
   --text-20--line-height: 26px;
   --text-28: 28px;
   --text-28--line-height: 34px;
   --text-34: 34px;
   --text-34--line-height: 40px;
+  --text-44: 44px;
+  --text-44--line-height: 50px;
 
   --color-bg: var(--bg);
   --color-side: var(--side);
@@ -115,6 +121,7 @@
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-pop: cubic-bezier(0.24, 1.34, 0.38, 1);
   --ease-menu: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-release: cubic-bezier(0.28, 1.4, 0.36, 1);
   --dur-fast: 160ms;
   --dur-base: 220ms;
   --dur-slow: 420ms;
@@ -157,6 +164,28 @@
   from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: none; }
 }
+@keyframes step-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes progress-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(260%); }
+}
+@keyframes type-line {
+  0% { transform: scaleX(0); }
+  38%, 82% { transform: scaleX(1); }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+@keyframes zz {
+  0% { opacity: 0; transform: translate(0, 0); }
+  30% { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(10px, -22px); }
+}
 @keyframes peek {
   from { transform: translateY(70%); }
   to { transform: translateY(0); }
@@ -189,6 +218,8 @@
   .fade-in { animation: fade var(--dur-base) var(--ease-out) both; }
   .float { animation: float 5.5s ease-in-out infinite; animation-delay: var(--d, 0s); }
   .twinkle { animation: twinkle var(--t, 4s) ease-in-out infinite; animation-delay: var(--d, 0s); }
+  .type-line { transform-origin: left; animation: type-line 3.2s linear infinite; animation-delay: var(--d, 0s); }
+  .zz { animation: zz 3.6s var(--ease-out) infinite; animation-delay: var(--d, 0s); opacity: 0; }
   .peek { animation: peek var(--dur-long) var(--ease-out) both; animation-delay: calc(240ms + var(--i, 0) * 90ms); }
   .menu-in { animation: menu-in 120ms var(--ease-menu) both; }
   .drawer-in { animation: drawer-in 320ms var(--ease-out) both; }
@@ -205,6 +236,32 @@
   .press-soft:active { transform: scale(0.985); }
   .bar-fill { transition: transform var(--dur-slow) var(--ease-out); transform-origin: left; }
   .swap { transition: opacity var(--dur-fast) ease, filter var(--dur-fast) ease; }
+  .step-in { animation: step-in var(--dur-base) var(--ease-out) both; }
+  .modal-in { animation: modal-in 260ms var(--ease-out) both, fade var(--dur-fast) linear both; }
+  .sweep { animation: progress-sweep 1.6s linear infinite; }
+  .price-swap { transition: opacity var(--dur-fast) ease, filter var(--dur-fast) ease; }
+  .price-swap[data-swapping="true"] { opacity: 0; filter: blur(3px); }
+  .seg-thumb { transition: transform var(--dur-base) var(--ease-out); }
+  .pick { transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease; }
+  .switch-thumb { transition: transform 330ms var(--ease-release); }
+  .switch-track { transition: background-color var(--dur-base) ease; }
+
+  /* range input: the fill is a gradient stop driven by --fill on the input itself */
+  .range { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; cursor: pointer; touch-action: pan-y; }
+  .range:focus-visible { outline: none; }
+  .range::-webkit-slider-runnable-track { height: 4px; border-radius: 999px; background: linear-gradient(to right, var(--ink) var(--fill, 0%), var(--track) var(--fill, 0%)); }
+  .range::-moz-range-track { height: 4px; border-radius: 999px; background: var(--track); }
+  .range::-moz-range-progress { height: 4px; border-radius: 999px; background: var(--ink); }
+  .range::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; margin-top: -8px; border-radius: 999px; background: var(--ink); border: 0; box-shadow: 0 0 0 4px var(--card); transition: transform var(--dur-fast) var(--ease-out); }
+  .range::-moz-range-thumb { width: 20px; height: 20px; border-radius: 999px; background: var(--ink); border: 0; box-shadow: 0 0 0 4px var(--card); }
+  .range:active::-webkit-slider-thumb { transform: scale(1.12); }
+  .range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--card), 0 0 0 6px color-mix(in oklab, var(--ink) 55%, transparent); }
+  .range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(--card), 0 0 0 6px color-mix(in oklab, var(--ink) 55%, transparent); }
+
+  .field { height: 44px; width: 100%; border-radius: 12px; border: 1px solid var(--line-2); background: transparent; padding: 0 14px; font-size: 14px; color: var(--ink); outline: none; transition: border-color 150ms ease; }
+  .field::placeholder { color: var(--ink-4); }
+  .field:focus-visible { border-color: var(--ink-3); outline: 2px solid color-mix(in oklab, var(--ink) 25%, transparent); outline-offset: 1px; }
+  .field[aria-invalid="true"] { border-color: color-mix(in oklab, var(--bad) 70%, transparent); }
   .scroll-x { overflow-x: auto; scrollbar-width: none; }
   .scroll-x::-webkit-scrollbar { display: none; }
 }
@@ -218,13 +275,20 @@
   .hover-tile:hover { background: var(--card-2); }
   .hover-tile:hover .tile-arrow { color: var(--ink-2); }
   .hover-cell:hover { outline: 1px solid var(--ink-3); outline-offset: 0; }
+  .hover-pick:hover { border-color: var(--ink-4); }
+  .hover-link:hover { color: var(--ink); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .enter { animation: fade var(--dur-fast) linear both; }
-  .float, .twinkle, .skeleton, .live-dot[data-live="true"]::after { animation: none; }
+  .float, .twinkle, .skeleton, .live-dot[data-live="true"]::after, .type-line { animation: none; }
+  .zz { animation: none; opacity: 0.6; }
   .peek { animation: fade var(--dur-fast) linear both; }
-  .menu-in, .drawer-in, .toast-in { animation: fade var(--dur-fast) linear both; }
+  .menu-in, .drawer-in, .toast-in, .step-in, .modal-in { animation: fade var(--dur-fast) linear both; }
+  .sweep { animation: none; }
+  .seg-thumb, .switch-thumb { transition: none; }
+  .price-swap[data-swapping="true"] { filter: none; }
+  .range:active::-webkit-slider-thumb { transform: none; }
   .press:active:not(:disabled), .press-soft:active { transform: none; }
   .bar-fill { transition: none; }
 }

@@ -12,6 +12,7 @@ import "@/styles/motion.css";
 import "./mobile.css";
 import { installHaptics } from "./haptics";
 import { PlatformContext, type MobilePlatform } from "./platform";
+import { AccountGate } from "./account/AccountGate";
 import { ConnectionGate } from "./connection/ConnectionGate";
 import { MobileApp } from "./MobileApp";
 
@@ -40,9 +41,11 @@ export function mountMobile(platform: MobilePlatform): void {
       <StrictMode>
         <PageBoundary>
           <PlatformContext value={platform}>
-            <ConnectionGate forcePair={params.has("pair")}>
-              <MobileApp />
-            </ConnectionGate>
+            <AccountGate>
+              <ConnectionGate forcePair={params.has("pair")}>
+                <MobileApp />
+              </ConnectionGate>
+            </AccountGate>
           </PlatformContext>
         </PageBoundary>
       </StrictMode>,

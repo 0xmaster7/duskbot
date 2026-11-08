@@ -1,19 +1,33 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Bot, ChartNoAxesColumn, Check, ChevronsUpDown, Cloud, CreditCard, House, LogOut, Menu, MonitorSmartphone, Plus, Settings, X } from "lucide-react";
+import { Blocks, Bot, ChartNoAxesColumn, Check, ChevronsUpDown, CircleUser, Cloud, CreditCard, House, Layers, LogOut, Menu, Plus, X } from "lucide-react";
 import type { WorkspaceSummary } from "../../../shared/dashboard-protocol";
+import { cloudForWorkspace, useCloud } from "../data/cloud";
+import type { CloudDesktop } from "../data/contracts";
 import { useSession } from "../data/session";
 import { api } from "../lib/api";
 import { Link, navigate, useLocation } from "../lib/router";
-import { cx, FreshnessTag } from "./kit";
+import { ButtonLink, cx, FreshnessTag } from "./kit";
 import { Mascot } from "./Mascot";
 
 const ICON = { size: 18, strokeWidth: 1.5 } as const;
 
-const NAV: Array<{ label?: string; items: Array<{ to: string; label: string; icon: ReactNode }> }> = [
-  { items: [{ to: "/", label: "Overview", icon: <House {...ICON} /> }, { to: "/bots", label: "Bots", icon: <Bot {...ICON} /> }] },
-  { label: "Workspace", items: [{ to: "/cloud", label: "My Cloud", icon: <Cloud {...ICON} /> }, { to: "/devices", label: "Devices", icon: <MonitorSmartphone {...ICON} /> }] },
-  { label: "Account", items: [{ to: "/usage", label: "Usage", icon: <ChartNoAxesColumn {...ICON} /> }, { to: "/billing", label: "Billing", icon: <CreditCard {...ICON} /> }, { to: "/settings", label: "Settings", icon: <Settings {...ICON} /> }] },
+type NavItem = { to: string; label: string; icon: ReactNode };
+const NAV: Array<{ label?: string; items: NavItem[] }> = [
+  { items: [
+    { to: "/", label: "Home", icon: <House {...ICON} /> },
+    { to: "/cloud", label: "Cloud desktop", icon: <Cloud {...ICON} /> },
+    { to: "/workspaces", label: "Workspaces", icon: <Layers {...ICON} /> },
+    { to: "/bots", label: "Bots", icon: <Bot {...ICON} /> },
+    { to: "/connectors", label: "Connectors", icon: <Blocks {...ICON} /> },
+  ] },
+  { label: "Account", items: [
+    { to: "/billing", label: "Plans & billing", icon: <CreditCard {...ICON} /> },
+    { to: "/usage", label: "Usage", icon: <ChartNoAxesColumn {...ICON} /> },
+    { to: "/account", label: "Account", icon: <CircleUser {...ICON} /> },
+  ] },
 ];
+
+export const KIND_LABEL = (kind: string, cloud: CloudDesktop | null) => (cloud ? "Cloud desktop" : kind === "vps" ? "Self-hosted VPS" : kind === "mac" ? "Mac" : kind === "linux" ? "Linux" : "Windows");
 
 const active = (path: string, to: string) => (to === "/" ? path === "/" : path === to || path.startsWith(`${to}/`));
 
@@ -30,6 +44,7 @@ function useDismiss(open: boolean, close: () => void, ref: React.RefObject<HTMLE
 
 function WorkspaceSwitcher({ onNavigate }: { onNavigate?: () => void }) {
   const { workspaces, workspace, pick, now } = useSession();
+  const { clouds } = useCloud();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useDismiss(open, () => setOpen(false), ref);
@@ -54,13 +69,13 @@ function WorkspaceSwitcher({ onNavigate }: { onNavigate?: () => void }) {
             <button key={w.id} role="menuitemradio" aria-checked={w.id === workspace?.id} onClick={() => choose(w)} className="hover-ghost flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-start">
               <span className={cx("live-dot", w.freshness === "live" ? "text-good" : w.freshness === "recent" ? "text-warn" : "text-ink-4")} aria-hidden />
               <span className="min-w-0 flex-1 truncate text-14 text-ink">{w.name}</span>
-              <span className="text-12 text-ink-3">{w.kind === "vps" ? "VPS" : w.kind === "mac" ? "Mac" : "Server"}</span>
+              <span className="text-12 text-ink-3">{KIND_LABEL(w.kind, cloudForWorkspace(clouds, w.id))}</span>
               {w.id === workspace?.id && <Check size={15} strokeWidth={1.75} className="text-ink-2" aria-hidden />}
             </button>
           ))}
           <div className="my-1 h-px bg-line" />
-          <button role="menuitem" onClick={() => { setOpen(false); navigate("/connect"); onNavigate?.(); }} className="hover-ghost flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-start text-14 text-ink-2">
-            <Plus size={16} strokeWidth={1.5} aria-hidden /> Connect a workspace
+          <button role="menuitem" onClick={() => { setOpen(false); navigate("/workspaces#add"); onNavigate?.(); }} className="hover-ghost flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-start text-14 text-ink-2">
+            <Plus size={16} strokeWidth={1.5} aria-hidden /> Add a workspace
           </button>
         </div>
       )}
@@ -70,17 +85,20 @@ function WorkspaceSwitcher({ onNavigate }: { onNavigate?: () => void }) {
 
 function UserRow() {
   const { account, setAccount } = useSession();
+  const { billing, catalog } = useCloud();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useDismiss(open, () => setOpen(false), ref);
   if (!account) return null;
-  const name = account.email.split("@")[0] ?? account.email;
+  const name = account.name || (account.email.split("@")[0] ?? account.email);
+  const sub = billing?.subscription;
+  const plan = sub ? (sub.bundle ? catalog?.bundles.find((b) => b.id === sub.bundle)?.name ?? "Paid plan" : "Custom plan") : "Free, personal use";
   return (
     <div ref={ref} className="relative">
       {open && (
         <div role="menu" className="menu-in absolute inset-x-0 bottom-full z-30 mb-1 origin-bottom rounded-[14px] bg-card p-1.5" style={{ boxShadow: "var(--pop-shadow)" }}>
           <div className="truncate px-2.5 py-2 text-13 text-ink-3">{account.email}</div>
-          <button role="menuitem" onClick={() => { setOpen(false); navigate("/settings"); }} className="hover-ghost flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-14 text-ink-2"><Settings size={16} strokeWidth={1.5} aria-hidden /> Settings</button>
+          <button role="menuitem" onClick={() => { setOpen(false); navigate("/account"); }} className="hover-ghost flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-14 text-ink-2"><CircleUser size={16} strokeWidth={1.5} aria-hidden /> Account</button>
           <button role="menuitem" onClick={() => void api.signOut().finally(() => setAccount(null))} className="hover-ghost flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-14 text-ink-2"><LogOut size={16} strokeWidth={1.5} aria-hidden /> Sign out</button>
         </div>
       )}
@@ -88,10 +106,35 @@ function UserRow() {
         <span className="grid size-8 shrink-0 place-items-center rounded-full bg-card-2 text-13 font-medium uppercase text-ink-2" aria-hidden>{name.slice(0, 1)}</span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-14 text-ink">{name}</span>
-          <span className="block truncate text-12 text-ink-3">Self-hosted</span>
+          <span className="block truncate text-12 text-ink-3">{plan}</span>
         </span>
         <ChevronsUpDown size={16} strokeWidth={1.5} className="shrink-0 text-ink-3" aria-hidden />
       </button>
+    </div>
+  );
+}
+
+function CloudBadge() {
+  const { clouds } = useCloud();
+  const c = clouds?.[0];
+  if (!clouds) return null;
+  if (!c) return <span className="ms-auto rounded-full border border-line-2 px-2 py-px text-[11px] text-ink-3">24/7</span>;
+  const tone = c.status === "running" ? "text-good" : c.status === "provisioning" ? "text-accent" : c.status === "error" ? "text-bad" : "text-ink-4";
+  return <span className={cx("live-dot ms-auto", tone)} data-live={c.status === "running"} aria-label={c.status === "running" ? "Running" : c.status} role="img" />;
+}
+
+/** the quiet nudge for anyone without a cloud desktop */
+function SideUpsell() {
+  const { clouds } = useCloud();
+  const { path } = useLocation();
+  if (!clouds || clouds.length || path === "/cloud" || path === "/billing") return null;
+  return (
+    <div className="rounded-[14px] bg-card p-3.5">
+      <div className="flex items-start gap-3">
+        <Mascot color="silver" size={28} state="sleeping" />
+        <p className="min-w-0 text-13 leading-[1.45] text-ink-2">Your bots stop when your Mac sleeps.</p>
+      </div>
+      <ButtonLink to="/cloud" size="sm" variant="primary" className="mt-3 w-full">Keep them on 24/7</ButtonLink>
     </div>
   );
 }
@@ -115,6 +158,7 @@ function Nav({ onNavigate }: { onNavigate?: () => void }) {
               >
                 <span className={on ? "text-ink" : "text-ink-3"}>{item.icon}</span>
                 {item.label}
+                {item.to === "/cloud" && <CloudBadge />}
               </Link>
             );
           })}
@@ -126,7 +170,7 @@ function Nav({ onNavigate }: { onNavigate?: () => void }) {
 
 function Brand() {
   return (
-    <Link to="/" className="flex items-center gap-2.5 rounded-row px-2.5 py-1" aria-label="OpenMausBot account, overview">
+    <Link to="/" className="flex items-center gap-2.5 rounded-row px-2.5 py-1" aria-label="OpenMausBot, home">
       <Mascot color="blue" size={24} still />
       <span className="text-14 font-medium tracking-[-0.01em] text-ink">OpenMausBot</span>
     </Link>
@@ -162,7 +206,7 @@ export function Shell({ children }: { children: ReactNode }) {
       </div>
       <WorkspaceSwitcher onNavigate={close} />
       <Nav onNavigate={close} />
-      <div className="mt-auto"><UserRow /></div>
+      <div className="mt-auto flex flex-col gap-3"><SideUpsell /><UserRow /></div>
     </div>
   );
   return (

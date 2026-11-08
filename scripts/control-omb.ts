@@ -4,7 +4,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { closeSync, mkdirSync, mkdtempSync, openSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { delimiter, dirname, join } from "node:path";
+import { delimiter, dirname, isAbsolute, join, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs, type ParseArgsOptionsConfig } from "node:util";
 
@@ -196,6 +196,12 @@ export function verificationServerEnvironment(parentEnv: NodeJS.ProcessEnv, data
   // @devs reports reach a loopback fake only, else a closed port: never the MausBot team.
   const bugReportUrl = parentEnv.OMB_BUG_REPORT_URL?.trim() ?? "";
   childEnv.OMB_BUG_REPORT_URL = /^http:\/\/127\.0\.0\.1:\d{1,5}\/[A-Za-z0-9/_-]*$/.test(bugReportUrl) ? bugReportUrl : "http://127.0.0.1:9/api/bug-reports";
+  // A Vault key file a test made outside the fixture's data folder (the default sits inside it there, so none is used).
+  const keyFile = parentEnv.OMB_SAVED_SECRETS_KEY_FILE?.trim() ?? "";
+  if (isAbsolute(keyFile) && relative(dataDir, keyFile).startsWith("..")) childEnv.OMB_SAVED_SECRETS_KEY_FILE = keyFile;
+  // Slack reaches a loopback fake only (server/testing/fake-slack.ts), else a closed port: a fixture never talks to slack.com.
+  const slackUrl = parentEnv.OMB_SLACK_API_URL?.trim() ?? "";
+  childEnv.OMB_SLACK_API_URL = /^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(slackUrl) ? slackUrl : "http://127.0.0.1:9";
   const tregUrl = parentEnv.OMB_TREG_URL?.trim() ?? "";
   if (/^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(tregUrl)) childEnv.OMB_TREG_URL = tregUrl;
   // Loopback only, for harness mechanics: a fake ElevenLabs the measurement

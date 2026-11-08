@@ -24,9 +24,10 @@ each of their workspaces (their Mac, each VPS) side by side: bots, usage, the ma
 - **Transport.** Plain HTTPS from the workspace to the service, so it does not depend on any relay. A relay can name
   its dashboard at `/.well-known/openmausbot/dashboard` (`OMB_LINK_DASHBOARD_URL` on the link service); a workspace
   uses, in order, the URL it is given, `OMB_DASHBOARD_URL`, its relay's discovery answer, then `DEFAULT_DASHBOARD_URL`.
-- **Accounts.** Sign-in proxies the account server's own email-code flow (`/api/cloud/app/sign-in/*`, the one the
-  apps use). The service keeps the account id and email, revokes the account token at once and issues its own
-  HttpOnly session cookie (stored as a sha256).
+- **Accounts.** The service owns email-code sign-in, accounts and browser/app sessions (`shared/account-api.ts`).
+  Accounts and token hashes live in `auth.json`; codes and one-time grants stay in memory. Browser mutations echo
+  the `omb_csrf` cookie in `x-omb-csrf`. Apps use the existing Admin contract v1 bearer routes. Social providers are
+  unavailable for now, with coming-soon buttons only in development.
 - **Workspaces.** The server makes its key on first link (`dashboard-link.json` in its data folder, mode 0600). The
   claim link is one-time and lasts 30 minutes; an unclaimed workspace is dropped after a day. Removing a workspace in
   Settings stops its key working.
@@ -37,13 +38,21 @@ each of their workspaces (their Mac, each VPS) side by side: bots, usage, the ma
 
 ```sh
 pnpm build:dashboard            # the page, into dashboard/dist
-pnpm dashboard:service          # OMB_DASHBOARD_PORT, _HOST, _DATA, _PUBLIC_URL, _STATIC, OMB_ACCOUNT_ORIGIN
+pnpm dashboard:service          # OMB_DASHBOARD_PORT, _HOST, _DATA, _PUBLIC_URL, _STATIC
 ```
 
-Local work on the page: `pnpm dashboard:fixture` starts a fake account server, the service on `127.0.0.1:7480` with
-a temporary data folder, a signed-in session and a demo workspace (made-up numbers, fixture only); then
-`pnpm dev:dashboard` serves the page on `127.0.0.1:5288` with `/v1` proxied to it (`OMB_DASHBOARD_SERVICE` to point
-elsewhere). The fake account server prints sign-in codes to its terminal when run on its own
-(`node dashboard/server/fake-admin.ts --port 7481`).
+Production mail uses `OMB_MAIL_PROVIDER=resend`, `OMB_RESEND_API_KEY` and `OMB_MAIL_FROM`. Loopback HTTP or
+`OMB_DASHBOARD_DEV=1` enables development console mail. Set `OMB_AUTH_SIGNUP_OPEN=0` to close signups and
+`OMB_TRUST_PROXY=1` only behind a trusted proxy. `OMB_AUTH_SECRET` must be at least 32 characters if supplied;
+otherwise the service creates a private `auth-secret` file beside its data.
+
+Local work on the page: `pnpm dashboard:fixture` starts the service on `127.0.0.1:7480` with a temporary data folder,
+a memory mailer, a signed-in session and a demo workspace (made-up numbers, fixture only). Sign-in codes print in
+its terminal. Then `pnpm dev:dashboard` serves the page on `127.0.0.1:5288` with `/v1` proxied to it
+(`OMB_DASHBOARD_SERVICE` to point elsewhere).
 
 The page keeps its own English strings: it is a separate web app outside `src/` and its locales.
+
+### Sign-in providers
+
+Google uses `OMB_AUTH_GOOGLE_CLIENT_ID` and `OMB_AUTH_GOOGLE_CLIENT_SECRET`. Apple uses `OMB_AUTH_APPLE_CLIENT_ID` (Services ID), `OMB_AUTH_APPLE_TEAM_ID`, `OMB_AUTH_APPLE_KEY_ID`, and the .p8 key in `OMB_AUTH_APPLE_PRIVATE_KEY` (PEM, literal `\n` accepted) or `OMB_AUTH_APPLE_PRIVATE_KEY_FILE`. X uses `OMB_AUTH_X_CLIENT_ID`, optional `OMB_AUTH_X_CLIENT_SECRET`, and optional `OMB_AUTH_X_SCOPES` (default `users.read tweet.read`). Register `<public url>/v1/auth/oauth/google/callback`, `<public url>/v1/auth/oauth/apple/callback` (Apple's Return URL), and `<public url>/v1/auth/oauth/x/callback`. Partial provider configuration fails startup; endpoint overrides are available only through code options for isolated fixtures. The dashboard fixture runs local fake Google, Apple and X providers without external accounts.

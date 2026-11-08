@@ -27,16 +27,20 @@ function collector(): ReturnType<typeof createDashboardCollector> {
     activity: async () => ({ from: "2026-01-01", to: "2026-11-08", timeZone: "UTC", days: [], byBot: [], byModel: [], totals: { turns: 0, tokens: 0, costUsd: null } }), plans: async () => plans,
   };
 }
-async function fixture() {
+async function fixture(prefix = "") {
   const dir = mkdtempSync(join(tmpdir(), "dashboard-reporter-")); dirs.push(dir);
-  const reports: WorkspaceReport[] = [], signatures: boolean[] = [], enrollKeys: string[] = [];
+  const reports: WorkspaceReport[] = [], signatures: boolean[] = [], enrollKeys: string[] = [], enrollTokens: unknown[] = [], enrollSignatures: (boolean | null)[] = [];
   let publicKey = "", nextCommand: DashboardCommand | null = null, removed = false, watching = false, waits = 0;
   const server = createServer(async (req, res) => {
     const chunks: Buffer[] = []; for await (const chunk of req) chunks.push(Buffer.from(chunk));
     const bytes = Buffer.concat(chunks);
     const reply = (status: number, body: object) => { res.writeHead(status, { "content-type": "application/json" }); res.end(JSON.stringify(body)); };
-    if (req.url === "/v1/enroll") {
-      const body = JSON.parse(bytes.toString()); publicKey = body.publicKey; enrollKeys.push(publicKey);
+    if (req.url === `${prefix}/v1/enroll`) {
+      const body = JSON.parse(bytes.toString()); publicKey = body.publicKey; enrollKeys.push(publicKey); enrollTokens.push(body.enrollToken);
+      const signature = req.headers[SIGNATURE_HEADERS.signature], time = req.headers[SIGNATURE_HEADERS.time];
+      enrollSignatures.push(signature === undefined && time === undefined ? null : typeof time === "string" && Number.isSafeInteger(Number(time)) && verify(null,
+        Buffer.from(signedPayload("POST", req.url!, Number(time), createHash("sha256").update(bytes).digest("hex"))),
+        createPublicKey({ key: Buffer.from(publicKey, "base64"), format: "der", type: "spki" }), Buffer.from(String(signature), "base64")));
       expect(body).toMatchObject({ v: 1, name: "Fixture", kind: "linux", version: "1" });
       reply(200, { v: 1, workspaceId: "workspace", claimUrl: `${base}/claim`, dashboardUrl: base, claimExpiresAt: 0 }); return;
     }
@@ -46,19 +50,27 @@ async function fixture() {
       createPublicKey({ key: Buffer.from(publicKey, "base64"), format: "der", type: "spki" }), Buffer.from(String(req.headers[SIGNATURE_HEADERS.signature]), "base64")));
     if (removed) return reply(401, { code: "workspace_removed" });
     let commands: DashboardCommand[] = [];
-    if (req.url === "/v1/report") reports.push(JSON.parse(bytes.toString()));
-    if (req.url === "/v1/wait?wait=25") { waits++; if (nextCommand) { commands = [nextCommand]; nextCommand = null; } }
+    if (req.url === `${prefix}/v1/report`) reports.push(JSON.parse(bytes.toString()));
+    if (req.url === `${prefix}/v1/wait?wait=25`) { waits++; if (nextCommand) { commands = [nextCommand]; nextCommand = null; } }
     reply(200, { v: 1, watching, nextReportMs: 600_000, commands });
   });
   servers.push(server); await new Promise<void>((ready) => server.listen(0, "127.0.0.1", ready));
-  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}${prefix}`;
   const execute = vi.fn(async (command: DashboardCommand) => ({ id: command.id, ok: true, message: "Paused Morning brief.", at: Date.now() }));
   const make = (collect = collector()) => { const reporter = createDashboardReporter({ dataDir: dir, collect, execute }); reporters.push(reporter); return reporter; };
-  return { dir, base, reports, signatures, enrollKeys, execute, make, queue: (command: DashboardCommand) => { nextCommand = command; }, remove: () => { removed = true; }, watch: () => { watching = true; }, waits: () => waits };
+  return { dir, base, reports, signatures, enrollKeys, enrollTokens, enrollSignatures, execute, make, queue: (command: DashboardCommand) => { nextCommand = command; }, remove: () => { removed = true; }, watch: () => { watching = true; }, waits: () => waits };
 }
 const command: DashboardCommand = { id: "command", kind: "routine.pause", target: "routine", issuedAt: Date.now(), expiresAt: Date.now() + 60_000 };
 
 describe("dashboard reporter", () => {
+  it("signs the exact token enrollment body and prefixed path with the chosen workspace key, while legacy enrollment stays unsigned", async () => {
+    const f = await fixture("/accounts"), reporter = f.make(), enrollToken = "e".repeat(43);
+    await reporter.link(`${f.base}/`, { enrollToken });
+    expect(f.enrollTokens).toEqual([enrollToken]); expect(f.enrollSignatures).toEqual([true]);
+    const saved = readFileSync(join(f.dir, "dashboard-link.json"), "utf8"); expect(saved).not.toContain(enrollToken);
+    await reporter.link(f.base, { enrollToken }); expect(f.enrollSignatures).toEqual([true, true]); expect(f.enrollKeys[1]).toBe(f.enrollKeys[0]);
+    await reporter.link(f.base); expect(f.enrollSignatures).toEqual([true, true, null]); expect(f.enrollTokens[2]).toBeUndefined();
+  });
   it("enrolls, signs exact requests, executes a waited command and immediately delivers its result", async () => {
     const f = await fixture(), collect = collector(), activity = vi.spyOn(collect, "activity"), devices = vi.spyOn(collect, "devices"), plans = vi.spyOn(collect, "plans");
     const reporter = f.make(collect);

@@ -23,6 +23,17 @@ ipcRenderer.on("chat:open", (_event, link) => {
   for (const listener of chatLinkListeners) listener(link);
 });
 
+let pendingSlackOAuth = null;
+const slackOAuthListeners = new Set();
+ipcRenderer.on("slack:oauth", (_event, link) => {
+  if (typeof link !== "string") return;
+  if (!slackOAuthListeners.size) {
+    pendingSlackOAuth = link;
+    return;
+  }
+  for (const listener of slackOAuthListeners) listener(link);
+});
+
 let pendingNotificationOpen = null;
 const notificationOpenListeners = new Set();
 ipcRenderer.on("desktop-notifications:open", (_event, target) => {
@@ -80,7 +91,7 @@ function railKeepsItsSize() {
 if (typeof window !== "undefined") {
   for (const type of ["resize", "DOMContentLoaded"]) window.addEventListener(type, () => { leaveRailRoom(); railKeepsItsSize(); });
 }
-const REMOTE_SAFE = new Set(["platform", "app", "getCapabilities", "onCapabilitiesChanged", "applySkin", "setUnreadCount", "permStatus", "workspaces", "rail", "cloudAdd", "cloudPlan", "cloudSendPage", "accountSheet", "desktopNotices", "desktopNotifications", "desktopAnalytics", "desktopLanguage", "updatesConsent", "windowControls", "onOpenAppSettings", "windowFrame", "sealTrust", "linkDirect"]);
+const REMOTE_SAFE = new Set(["platform", "app", "getCapabilities", "onCapabilitiesChanged", "applySkin", "setUnreadCount", "permStatus", "workspaces", "rail", "cloudAdd", "cloudPlan", "cloudSendPage", "accountSheet", "desktopNotices", "desktopNotifications", "desktopAnalytics", "desktopLanguage", "updatesConsent", "windowControls", "onOpenAppSettings", "windowFrame", "sealTrust", "linkDirect", "onSlackOAuth"]);
 /** My Cloud's own page once it is the person's home (main checks the sender again): it is this app's page then. */
 const HOME_PAGE = ["home", "onChatLink", "onPackageInstall", "exportDiagnostics", "openLogsFolder", "openAtLogin", "callActive"];
 function updaterOffered() {
@@ -371,6 +382,15 @@ const bridge = {
     }
     return () => chatLinkListeners.delete(cb);
   },
+  onSlackOAuth: (cb) => {
+    slackOAuthListeners.add(cb);
+    if (pendingSlackOAuth) {
+      const link = pendingSlackOAuth;
+      pendingSlackOAuth = null;
+      cb(link);
+    }
+    return () => slackOAuthListeners.delete(cb);
+  },
   setUnreadCount: (count) => ipcRenderer.send("desktop:unread-count", count),
   desktopViewer: {
     open: (url, title, contextId) => ipcRenderer.invoke("desktop-viewer:open", url, title, contextId),
@@ -437,6 +457,19 @@ const bridge = {
       return () => ipcRenderer.removeListener("workspaces:open-settings", handler);
     },
   },
+  accountGate: process.argv.includes("--omb-account-gate=1") ? {
+    state: () => ipcRenderer.invoke("account-gate:state"),
+    signInStart: email => ipcRenderer.invoke("account-gate:signInStart", String(email)),
+    signInVerify: code => ipcRenderer.invoke("account-gate:signInVerify", String(code)),
+    signInCancel: () => ipcRenderer.invoke("account-gate:signInCancel"),
+    browser: provider => ipcRenderer.invoke("account-gate:browser", String(provider)),
+    cancel: () => ipcRenderer.invoke("account-gate:cancel"),
+    onChange: cb => {
+      const handler = (_event, state) => cb(state);
+      ipcRenderer.on("account-gate:changed", handler);
+      return () => ipcRenderer.removeListener("account-gate:changed", handler);
+    },
+  } : undefined,
   cloudAccount: process.argv.includes("--omb-company-desktop=1") ? {
     state: () => ipcRenderer.invoke("cloud-account:state"),
     begin: () => ipcRenderer.invoke("cloud-account:begin"),

@@ -225,7 +225,7 @@ export function McpServerEditor({ server, fixKeys = false, taken, team, busy, on
       <div className="mt-4 flex justify-end gap-2">
         <button type="button" onClick={onCancel} className="rounded-lg px-3 py-2 text-[13px] text-ink-secondary hover:bg-raised">{t("mcp.cancel")}</button>
         <button type="button" disabled={busy || !drafts.length} onClick={submit}
-          className="flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-white disabled:opacity-50">
+          className="flex items-center gap-1.5 rounded-lg bg-ink px-3.5 py-2 text-[13px] font-medium text-app disabled:opacity-50">
           {busy && <Loader2 size={13} className="animate-spin" />} {t(adding ? "mcp.add" : "mcp.save")}
         </button>
       </div>

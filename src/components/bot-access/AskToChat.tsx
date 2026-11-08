@@ -35,7 +35,7 @@ export function AskToChat({ bot }: { bot: Pick<Bot, "id" | "createdBy" | "report
     <>
       {error && <span role="alert" className="min-w-0 text-[12px] text-danger">{error}</span>}
       <button type="button" data-ask-to-chat disabled={busy} onClick={() => void ask()}
-        className="shrink-0 rounded-full bg-accent px-3 py-1 text-[13px] font-medium text-white hover:brightness-110 disabled:opacity-60">
+        className="shrink-0 rounded-full bg-ink px-3 py-1 text-[13px] font-medium text-app hover:bg-ink/85 disabled:opacity-60">
         {owner ? t("botAccess.ask", { name: owner.name }) : t("botAccess.askAdmins")}
       </button>
     </>

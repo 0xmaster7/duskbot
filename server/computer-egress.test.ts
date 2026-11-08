@@ -156,6 +156,29 @@ describe("routing the bot computers", () => {
     expect(parseEgressReport({ ...report(), dialMs: 120 })?.dialMs).toBe(120);
   });
 
+  it("clears a box that starts while the route is off, so a policy left in its root never outlives the route", async () => {
+    // live 2026-11-08: boxes woken while the route was off kept an old "SOCKS5 ..." policy with no fallback, and every
+    // page failed with ERR_SOCKS_CONNECTION_FAILED while the person's computer took no streams
+    const ids = ["aaaaaaaaaaaa"];
+    const fake = fakeDocker(ids);
+    const egress = createComputerEgress({ enabled: () => true, docker: () => fake.docker });
+    egress.report(report({ online: false }));
+    await egress.changed();
+    expect(fake.calls.filter((args) => args[0] === "exec").map((args) => [args[3], args[7]])).toEqual([["aaaaaaaaaaaa", "off"]]);
+    ids.length = 0;
+    egress.report(report({ online: false }));
+    await egress.changed();
+    ids.push("aaaaaaaaaaaa", "bbbbbbbbbbbb");
+    egress.report(report({ online: false }));
+    await egress.changed();
+    expect(fake.calls.filter((args) => args[0] === "exec").map((args) => [args[3], args[7]])).toEqual([
+      ["aaaaaaaaaaaa", "off"], ["aaaaaaaaaaaa", "off"], ["bbbbbbbbbbbb", "off"],
+    ]);
+    egress.report(report({ online: false }));
+    await egress.changed();
+    expect(fake.calls.filter((args) => args[0] === "exec")).toHaveLength(3);
+  });
+
   it("a box that cannot hold the policy (read-only) does not stop the others", async () => {
     const fake = fakeDocker(["aaaaaaaaaaaa", "bbbbbbbbbbbb"]);
     const docker = async (args: string[]) => {

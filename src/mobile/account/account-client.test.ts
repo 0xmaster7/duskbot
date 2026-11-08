@@ -1,0 +1,161 @@
+import { createHash } from "node:crypto";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createMobileAccount, isAccountAuthUrl } from "./account-client";
+import { webPlatform, type MobilePlatform } from "../platform";
+
+const origin = "https://accounts.example";
+const token = `omc_${"t".repeat(43)}`;
+const grant = () => ({ cloudContractVersion: 1, accessToken: token, expiresAt: Date.now() + 60_000, device: { id: "phone" }, account: { id: "person", email: "person@example.com" } });
+const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
+let secrets: Map<string, string>, platform: MobilePlatform;
+let fetcher: ReturnType<typeof vi.fn<typeof fetch>>;
+let client: ReturnType<typeof createMobileAccount>;
+const stored = (extra = {}) => ({ origin, token, expiresAt: Date.now() + 60_000, deviceId: "phone", account: grant().account, ...extra });
+const started = () => ({ cloudContractVersion: 1, attempt: "a".repeat(43), expiresIn: 600, resendAfter: 30, signupOpen: true });
+const start = async () => { fetcher.mockResolvedValueOnce(response(started())); return client.emailStart(" Person@Example.com "); };
+beforeEach(() => {
+  secrets = new Map();
+  platform = { ...webPlatform(), kind: "ios", native: true, deviceName: () => `  ${"p".repeat(120)}  `, appVersion: "bad version", secrets: {
+    get: async key => secrets.get(key) ?? null, set: async (key, value) => { secrets.set(key, value); }, remove: async key => { secrets.delete(key); },
+  }, openExternal: vi.fn(async () => {}) };
+  fetcher = vi.fn<typeof fetch>();
+  client = createMobileAccount({ platform, origin, fetch: fetcher });
+});
+
+describe("restore", () => {
+  it("validates a saved session with an isolated bearer request", async () => {
+    secrets.set("omb.account", JSON.stringify(stored())); fetcher.mockResolvedValue(response({}));
+    expect(await client.restore()).toEqual(grant().account);
+    const [url, init] = fetcher.mock.calls[0];
+    expect(url).toBe(`${origin}/api/cloud/desktop/session`);
+    expect(init).toMatchObject({ credentials: "omit", headers: { authorization: `Bearer ${token}`, accept: "application/json", "content-type": "application/json" } });
+    expect(init?.signal).toBeInstanceOf(AbortSignal);
+  });
+  it("removes invalid tokens", async () => {
+    secrets.set("omb.account", JSON.stringify(stored())); fetcher.mockResolvedValue(response({ error: "invalid_token" }, 401));
+    expect(await client.restore()).toBeNull(); expect(secrets.has("omb.account")).toBe(false);
+  });
+  it("ignores a grant for another origin", async () => {
+    secrets.set("omb.account", JSON.stringify(stored({ origin: "https://other.example" })));
+    expect(await client.restore()).toBeNull(); expect(fetcher).not.toHaveBeenCalled(); expect(secrets.has("omb.account")).toBe(true);
+  });
+  it.each([true, false])("offline grace requires a future expiry: %s", async future => {
+    secrets.set("omb.account", JSON.stringify(stored({ expiresAt: Date.now() + (future ? 60_000 : -60_000) })));
+    fetcher.mockRejectedValue(new TypeError("offline"));
+    expect(await client.restore()).toEqual(future ? grant().account : null);
+  });
+  it("does not grant offline grace to a server refusal", async () => {
+    secrets.set("omb.account", JSON.stringify(stored())); fetcher.mockResolvedValue(response({ error: "failed" }, 503));
+    expect(await client.restore()).toBeNull();
+  });
+  it("rejects malformed stored tokens", async () => {
+    secrets.set("omb.account", JSON.stringify(stored({ token: "bad" })));
+    expect(await client.restore()).toBeNull(); expect(fetcher).not.toHaveBeenCalled();
+  });
+});
+
+describe("email sign-in", () => {
+  it("normalizes email, bounds device data and stores a verified grant", async () => {
+    expect(await start()).toMatchObject({ outcome: "sent", email: "person@example.com", signupOpen: true });
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({ email: "person@example.com", deviceName: "p".repeat(100), platform: "ios", appVersion: "0.0.0" });
+    fetcher.mockResolvedValueOnce(response(grant()));
+    expect(await client.emailVerify("1234 5678")).toEqual({ outcome: "signed-in" });
+    expect(JSON.parse(String(fetcher.mock.calls[1][1]?.body))).toEqual({ attempt: "a".repeat(43), code: "12345678" });
+    expect(JSON.parse(secrets.get("omb.account")!)).toMatchObject({ origin, token, deviceId: "phone", account: grant().account });
+  });
+  it("uses linux for a browser and preserves a valid app version", async () => {
+    platform.kind = "web"; platform.appVersion = "1.2.3-beta+1"; await start();
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toMatchObject({ platform: "linux", appVersion: "1.2.3-beta+1" });
+  });
+  it("refuses invalid email and codes without a request", async () => {
+    expect(await client.emailStart("nope")).toEqual({ outcome: "invalid-email" });
+    expect(fetcher).not.toHaveBeenCalled(); await start();
+    expect(await client.emailVerify("123")).toEqual({ outcome: "wrong-code", triesLeft: 5 }); expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+  it.each([[400, "invalid_request", "invalid-email"], [403, "sso", "sso"], [429, "anything", "rate-limited"], [404, "not_found", "browser"], [405, "unsupported", "browser"], [501, "not_found", "browser"], [500, "invalid_request", "failed"]])("maps start %s %s", async (status, error, outcome) => {
+    fetcher.mockResolvedValueOnce(response({ error }, Number(status)));
+    expect(await client.emailStart("p@example.com")).toEqual({ outcome });
+  });
+  it.each([[400, "invalid_code", "wrong-code"], [410, "anything", "expired"], [403, "sso", "sso"], [403, "two_factor", "two-factor"], [403, "signup_closed", "signup-closed"], [403, "device_limit", "device-limit"], [429, "anything", "rate-limited"], [404, "not_found", "browser"], [500, "invalid_code", "failed"]])("maps verify %s %s", async (status, error, outcome) => {
+    await start(); fetcher.mockResolvedValueOnce(response({ error }, Number(status)));
+    expect(await client.emailVerify("12345678")).toMatchObject({ outcome });
+  });
+  it("expires after five wrong codes", async () => {
+    await start(); fetcher.mockImplementation(async () => response({ error: "invalid_code" }, 400));
+    for (let triesLeft = 4; triesLeft > 0; triesLeft--) expect(await client.emailVerify("12345678")).toEqual({ outcome: "wrong-code", triesLeft });
+    expect(await client.emailVerify("12345678")).toEqual({ outcome: "expired" });
+  });
+  it.each([{ cloudContractVersion: 2 }, { accessToken: "bad" }, { expiresAt: 1 }, { device: {} }, { account: { id: "", email: "bad" } }])("refuses malformed grants %j", async extra => {
+    await start(); fetcher.mockResolvedValueOnce(response({ ...grant(), ...extra }));
+    expect(await client.emailVerify("12345678")).toEqual({ outcome: "failed" }); expect(secrets.has("omb.account")).toBe(false);
+  });
+  it("caps streamed and declared responses at 64 KB", async () => {
+    fetcher.mockResolvedValueOnce(new Response(" ".repeat(65_537)));
+    expect(await client.emailStart("p@example.com")).toEqual({ outcome: "failed" });
+    fetcher.mockResolvedValueOnce(new Response("{}", { headers: { "content-length": "65537" } }));
+    expect(await client.emailStart("p@example.com")).toEqual({ outcome: "failed" });
+  });
+  it("treats an HTML missing route as browser sign-in", async () => {
+    fetcher.mockResolvedValueOnce(new Response("<html>not found</html>", { status: 404 }));
+    expect(await client.emailStart("p@example.com")).toEqual({ outcome: "browser" });
+  });
+});
+
+describe("browser sign-in", () => {
+  it("opens a PKCE S256 URL whose challenge matches the secret verifier", async () => {
+    await client.oauthStart("google");
+    const pending = JSON.parse(secrets.get("omb.account.pending")!);
+    const url = new URL(vi.mocked(platform.openExternal).mock.calls[0][0]);
+    expect(url.origin + url.pathname).toBe(`${origin}/v1/auth/app/start`);
+    expect(Object.fromEntries(url.searchParams)).toMatchObject({ provider: "google", code_challenge_method: "S256", redirect_uri: "openmausbot://auth", state: pending.state,
+      code_challenge: createHash("sha256").update(pending.verifier).digest("base64url") });
+    expect(pending.verifier).toHaveLength(43); expect(pending.state).toHaveLength(32);
+  });
+  it("leaves pairing links to the connection gate", async () => {
+    expect(await client.handleAuthUrl("openmausbot://pair?code=abc")).toBe(false);
+    expect(isAccountAuthUrl("https://auth")).toBe(false); expect(isAccountAuthUrl("openmausbot://auth/other")).toBe(false);
+  });
+  it("refuses a state mismatch and clears the pending attempt", async () => {
+    await client.oauthStart("apple");
+    expect(await client.handleAuthUrl("openmausbot://auth?code=abc&state=wrong")).toEqual({ outcome: "invalid-state" });
+    expect(fetcher).not.toHaveBeenCalled(); expect(secrets.has("omb.account.pending")).toBe(false);
+  });
+  it("refuses an old attempt", async () => {
+    await client.oauthStart("x"); const pending = JSON.parse(secrets.get("omb.account.pending")!); pending.at -= 15 * 60_000;
+    secrets.set("omb.account.pending", JSON.stringify(pending));
+    expect(await client.handleAuthUrl(`openmausbot://auth?code=abc&state=${pending.state}`)).toEqual({ outcome: "invalid-state" }); expect(fetcher).not.toHaveBeenCalled();
+  });
+  it("exchanges a matching code and persists the grant", async () => {
+    await client.oauthStart("google"); const pending = JSON.parse(secrets.get("omb.account.pending")!);
+    fetcher.mockResolvedValueOnce(response(grant()));
+    expect(await client.handleAuthUrl(`openmausbot://auth?code=abc&state=${pending.state}`)).toEqual({ outcome: "signed-in" });
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toMatchObject({ code: "abc", codeVerifier: pending.verifier, platform: "ios" });
+    expect(client.account()).toEqual(grant().account); expect(secrets.has("omb.account.pending")).toBe(false); expect(secrets.has("omb.account")).toBe(true);
+  });
+  it.each(["oauth_denied", "oauth_failed", "oauth_expired", "provider_unavailable", "signup_closed", "identity_taken"])("surfaces provider error %s", async error => {
+    await client.oauthStart("x"); const pending = JSON.parse(secrets.get("omb.account.pending")!);
+    expect(await client.handleAuthUrl(`openmausbot://auth?error=${error}&state=${pending.state}`)).toEqual({ outcome: error });
+    expect(secrets.has("omb.account.pending")).toBe(false); expect(fetcher).not.toHaveBeenCalled();
+  });
+  it("clears a pending attempt when code exchange fails", async () => {
+    await client.oauthStart("x"); const pending = JSON.parse(secrets.get("omb.account.pending")!); fetcher.mockRejectedValue(new Error("offline"));
+    expect(await client.handleAuthUrl(`openmausbot://auth?code=abc&state=${pending.state}`)).toEqual({ outcome: "failed" }); expect(secrets.has("omb.account.pending")).toBe(false);
+  });
+});
+
+describe("signed-in actions", () => {
+  const restore = async () => { secrets.set("omb.account", JSON.stringify(stored())); fetcher.mockResolvedValueOnce(response({})); await client.restore(); };
+  it("clears local secrets even when sign-out cannot reach the service", async () => {
+    await restore(); fetcher.mockRejectedValueOnce(new Error("offline"));
+    await client.signOut(); expect(client.account()).toBeNull(); expect(secrets.has("omb.account")).toBe(false);
+    expect(fetcher.mock.calls[1]).toMatchObject([`${origin}/api/cloud/desktop/session`, { method: "DELETE", body: "{}", headers: { authorization: `Bearer ${token}` } }]);
+  });
+  it.each([`${origin}/dashboard`, "https://other.example/dashboard", `${origin}/dashboard?ok=1`])("validates enrollment destination %s", async dashboardUrl => {
+    await restore(); fetcher.mockResolvedValueOnce(response({ enrollToken: "e".repeat(43), dashboardUrl }));
+    expect(await client.enrollGrant()).toEqual(dashboardUrl.startsWith(origin) ? { enrollToken: "e".repeat(43), dashboardUrl } : null);
+  });
+  it("rejects invalid enrollment tokens and signed-out requests", async () => {
+    expect(await client.enrollGrant()).toBeNull(); await restore(); fetcher.mockResolvedValueOnce(response({ enrollToken: "bad", dashboardUrl: origin }));
+    expect(await client.enrollGrant()).toBeNull();
+  });
+});

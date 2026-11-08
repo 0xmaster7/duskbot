@@ -9,6 +9,7 @@ import { dirname, join } from "node:path";
 import { pipeline } from "node:stream/promises";
 
 import { createPackages } from "./packages.mjs";
+import { slackCallback } from "./slack-callback.mjs";
 import { MAX_CHANNELS_PER_TUNNEL, MAX_EVENTS, MAX_SESSIONS, MAX_TUNNELS, SESSION_LIFE_MS, createStore } from "./store.mjs";
 
 const B32 = "abcdefghijklmnopqrstuvwxyz234567";
@@ -441,6 +442,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     }
     if (method === "GET" && path === "/healthz") return send(res, 200, { ok: true });
     if (method === "GET" && path === "/v1/ip") return send(res, 200, { ip: clientIp(req) });
+    if (method === "GET" && path === "/slack/callback") return slackCallback(res, url.searchParams);
     if (method === "GET" && (path === "/i" || path === "/install.sh" || (parts = /^\/i\/([a-z2-7-]{37})$/.exec(path)))) {
       const token = parts?.[1] ?? null;
       if (token !== null && !TOKEN.test(token)) return fail(res, 404, "not found");

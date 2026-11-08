@@ -9,7 +9,7 @@ import { DesktopCapabilitiesProvider } from "@/components/DesktopCapabilities";
 import { LiveCallHost } from "@/components/LiveCallHost";
 import { ConnectAppsHost } from "@/components/connect-apps";
 import { openChatLink } from "@/components/ThreadRefs";
-import { parseBotRefUrl, parseThreadRefUrl } from "@/lib/thread-refs";
+import { parseBotRefUrl, parseThreadRefUrl } from "@/lib/thread-refs"; import { completeSlackOAuth } from "@/lib/slack-oauth-link"; import { parseSlackOAuthLink } from "../../shared/slack";
 import { effectiveLanguage, useLanguageChoice, usePageLanguage } from "@/lib/language-preference";
 import { parseMobileOpenLink, type MobileOpenTarget } from "../../shared/mobile-link";
 import { NavStack } from "./NavStack";
@@ -70,6 +70,7 @@ function Shell() {
   }, [dispatch, openChat, openSheet]);
 
   useEffect(() => platform.onAppUrl?.((url) => {
+    if (parseSlackOAuthLink(url)) { void completeSlackOAuth(url); return true; }
     const target = parseMobileOpenLink(url);
     if (target) { openTarget(target); return true; }
     // the desktop's own chat links open the same chat here

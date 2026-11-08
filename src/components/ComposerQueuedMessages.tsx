@@ -3,12 +3,12 @@ import { CornerDownRight, Pencil, Trash2 } from "lucide-react";
 import type { SteerQueueReason } from "../../shared/wire";
 import { t } from "@/lib/i18n";
 import { replySnippet } from "@/lib/replies";
-import { splitTranscriptCitations } from "@/lib/citations";
+import { withoutCitationMarkers } from "@/lib/citations";
 
 const ATTACHMENT_TAG = /<attached-(?:image|file)\s/;
 
 function queuedMessageLabel(text: string): string {
-  return splitTranscriptCitations(text).citations.length || ATTACHMENT_TAG.test(text) ? replySnippet(text, 500) : text;
+  return withoutCitationMarkers(text) !== text || ATTACHMENT_TAG.test(text) ? replySnippet(text, 500) : text;
 }
 
 export function composerCanSteerQueuedMessages(
@@ -87,7 +87,7 @@ export function QueuedComposerMessages({
 
   return (
     <div
-      className="relative z-[1] mx-3 -mb-3 max-h-36 overflow-y-auto rounded-t-2xl border border-b-0 border-hairline/40 bg-raised/95 pb-3 shadow-sm backdrop-blur-sm"
+      className="relative z-[1] mx-3 -mb-3 max-h-36 overflow-y-auto rounded-t-2xl border-[0.5px] border-b-0 border-ink/10 bg-composer pb-3"
       aria-label={
         items.length === 1
           ? t("composer.queued.regionOne")

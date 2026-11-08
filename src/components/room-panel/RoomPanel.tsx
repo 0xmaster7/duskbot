@@ -13,7 +13,6 @@ import { roomWorkingIds } from "../RoomWorkingLines";
 import { useCaptionChrome } from "../DesktopCapabilities";
 import { GrokIcon } from "../GrokIcon";
 import { ManageMembersPanel } from "../ManageMembersPanel";
-import { RoomMoreMenu } from "../RoomMoreMenu";
 import { PANEL_TABS, TAB_LABEL, type PanelTab } from "../bot-panel/page-registry";
 import { pageSurfaceCls } from "../bot-panel/pages";
 import { roundButtonCls } from "../bot-panel/rows";
@@ -28,9 +27,6 @@ import { RoomSheet } from "./RoomSheet";
 const PAGES: Record<RoomPage, { title: LocaleKey }> = {
   models: { title: "room.panel.perBot" },
 };
-
-// RoomMoreMenu draws its own 32px trigger; in this header it wears the bot panel's 36px elevated circle
-const moreTriggerCls = "[&_[data-testid=room-more]]:size-9! [&_[data-testid=room-more]]:border-[0.5px]! [&_[data-testid=room-more]]:border-edge! [&_[data-testid=room-more]]:bg-composer! [&_[data-testid=room-more]]:text-ink/[0.92] [&_[data-testid=room-more]:hover]:bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_6%)]!";
 
 function RoomHero({ group, members }: { group: Group; members: Bot[] }) {
   const working = new Set(roomWorkingIds(group, group.messages.at(-1)));
@@ -199,9 +195,7 @@ export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: 
         <span aria-hidden="true" data-panel-edge className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[0.5px] bg-edge max-md:hidden" />
         <div {...dragProps} className="relative flex h-[60px] shrink-0 items-center gap-2 p-3">
           {page === null ? (
-            <span className={`ms-auto flex ${moreTriggerCls}`}>
-              <RoomMoreMenu group={group} />
-            </span>
+            <span className="ms-auto" />
           ) : (
             <>
               <button

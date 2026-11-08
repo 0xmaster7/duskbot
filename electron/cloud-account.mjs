@@ -10,9 +10,10 @@ export const STAGING_CLOUD_ORIGIN = "https://omb-cloud-staging.fly.dev";
 /** Which Admin this app signs in to, and the files that depend on it (the sign-in, saved servers with the Cloud's
  * entry, Files' state, the Cloud's chosen name): staging never reads or writes production's. */
 export function cloudTarget(env = process.env) {
+  if (customOrigin(env?.OMB_CLOUD_ORIGIN)) return { origin: env.OMB_CLOUD_ORIGIN, staging: false, custom: true, file: "cloud-account-custom.bin", saved: "cloud-accounts-custom.bin", places: "account-places-custom.json", environments: "environments-custom.json", sync: "cloud-sync-custom", look: "cloud-home-look-custom.json" };
   return env?.OMB_CLOUD_STAGING === "1"
-    ? { origin: STAGING_CLOUD_ORIGIN, staging: true, file: "cloud-account-staging.bin", saved: "cloud-accounts-staging.bin", places: "account-places-staging.json", environments: "environments-staging.json", sync: "cloud-sync-staging", look: "cloud-home-look-staging.json" }
-    : { origin: CLOUD_ORIGIN, staging: false, file: "cloud-account.bin", saved: "cloud-accounts.bin", places: "account-places.json", environments: "environments.json", sync: "cloud-sync", look: "cloud-home-look.json" };
+    ? { origin: STAGING_CLOUD_ORIGIN, staging: true, custom: false, file: "cloud-account-staging.bin", saved: "cloud-accounts-staging.bin", places: "account-places-staging.json", environments: "environments-staging.json", sync: "cloud-sync-staging", look: "cloud-home-look-staging.json" }
+    : { origin: CLOUD_ORIGIN, staging: false, custom: false, file: "cloud-account.bin", saved: "cloud-accounts.bin", places: "account-places.json", environments: "environments.json", sync: "cloud-sync", look: "cloud-home-look.json" };
 }
 const TOKEN = /^omc_[A-Za-z0-9_-]{43}$/;
 const CODE = /^[A-HJ-NP-Z2-9]{5}-[A-HJ-NP-Z2-9]{5}$/;
@@ -58,18 +59,22 @@ const ADD_INTERVALS = Object.freeze(["month", "year"]);
 const CHECKOUT_ORIGIN = "https://checkout.dodopayments.com", TEST_CHECKOUT_ORIGIN = "https://test.checkout.dodopayments.com";
 /** Only Dodo's own HTTPS checkout origin, with no credentials and no fragment; anything else is never opened. Staging's
  * Admin sells in Dodo's test mode, so its checkouts are only Dodo's test page. */
-export function checkoutDestination(value, { fixture = false, staging = false } = {}) {
+export function checkoutDestination(value, { fixture = false, staging = false, custom = false } = {}) {
   if (typeof value !== "string" || value.length > 2048) return null;
   let url;
   try { url = new URL(value); } catch { return null; }
-  const allowed = fixture ? [CHECKOUT_ORIGIN, TEST_CHECKOUT_ORIGIN] : staging ? [TEST_CHECKOUT_ORIGIN] : [CHECKOUT_ORIGIN];
+  const allowed = fixture || custom ? [CHECKOUT_ORIGIN, TEST_CHECKOUT_ORIGIN] : staging ? [TEST_CHECKOUT_ORIGIN] : [CHECKOUT_ORIGIN];
   if (!allowed.includes(url.origin) || url.username || url.password || url.hash || value.includes("#")) return null;
   return url.href;
 }
-// Never accept an address from the renderer.
-export function cloudOrigin(value = CLOUD_ORIGIN, fixture = false) {
+function customOrigin(value) {
+  if (typeof value !== "string") return false;
+  try { const url = new URL(value); return value === url.origin && (url.protocol === "https:" || (url.protocol === "http:" && ["127.0.0.1", "[::1]", "localhost"].includes(url.hostname))); } catch { return false; }
+}
+// never accept an address from the renderer.
+export function cloudOrigin(value = CLOUD_ORIGIN, fixture = false, custom = false) {
   const url = new URL(value);
-  if (value !== url.origin || (![CLOUD_ORIGIN, STAGING_CLOUD_ORIGIN].includes(value) && !(fixture && url.protocol === "http:" && ["127.0.0.1", "[::1]"].includes(url.hostname)))) {
+  if (value !== url.origin || (![CLOUD_ORIGIN, STAGING_CLOUD_ORIGIN].includes(value) && !(custom && customOrigin(value)) && !(fixture && url.protocol === "http:" && ["127.0.0.1", "[::1]"].includes(url.hostname)))) {
     throw new Error("Invalid MausBot Cloud address.");
   }
   return value;
@@ -94,9 +99,9 @@ function addOffer(result) {
 }
 
 export function createCloudAccountClient({ store, openBrowser, platform, deviceName, appVersion,
-  origin = CLOUD_ORIGIN, fixture = false, fetch: fetcher = globalThis.fetch, now = Date.now, onState = () => {},
+  origin = CLOUD_ORIGIN, fixture = false, custom = false, fetch: fetcher = globalThis.fetch, now = Date.now, onState = () => {},
   setTimer = setTimeout, clearTimer = clearTimeout, warn = message => console.warn(message), awaitingWake = () => false }) {
-  origin = cloudOrigin(origin, fixture);
+  origin = cloudOrigin(origin, fixture, custom);
   const staging = origin === STAGING_CLOUD_ORIGIN;
   let grant = null, issued = null, cleanup = null, pending = null, cleanupNeeded = false;
   let value = { status: "signed-out", message: "restoring" }, generation = 0, timer = null, closed = false, clearing = null, refreshing = null;
@@ -169,7 +174,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       if (!response.ok) throw Object.assign(new Error("Cloud request failed."), { status: response.status, opaque: true });
       throw new Error("Invalid Cloud response.");
     }
-    if (!response.ok) throw Object.assign(new Error("Cloud request failed."), { status: response.status, code: data?.error, interval: data?.interval, blocked: data?.addBlocked,
+    if (!response.ok) throw Object.assign(new Error("Cloud request failed."), { status: response.status, code: path.startsWith("/v1/") ? data?.code : data?.error, interval: data?.interval, blocked: data?.addBlocked,
       ...(typeof data?.checkoutUrl === "string" ? { checkoutUrl: data.checkoutUrl } : {}) });
     return data;
   }
@@ -354,7 +359,8 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       return state();
     }
   }
-  async function begin(intent = null) {
+  async function begin(intent = null, { provider } = {}) {
+    if (!intent || typeof intent !== "object" || !text(intent.plan, 24) || !CHECKOUT_SOURCES.includes(intent.source)) intent = null;
     if (closed || restoring || clearing || grant || issued || cleanupNeeded) throw new Error("Sign out before starting another Cloud connection.");
     const stamp = reset();
     opened = intent ? { plan: intent.plan, source: intent.source, startedAt: now(), signIn: true } : null;
@@ -367,7 +373,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
         result.verificationUriComplete !== `${origin}/cloud/desktop?code=${result.userCode}` || !Number.isSafeInteger(result.expiresIn) || result.expiresIn < 1 || result.expiresIn > MAX_ENROLL_SECONDS ||
         !Number.isSafeInteger(result.interval) || result.interval < 5 || result.interval > 60) throw new Error("Invalid Cloud authorization.");
       const next = intent ? `&${new URLSearchParams({ next: "checkout", plan: intent.plan, src: intent.source })}` : "";
-      pending = { deviceCode: result.deviceCode, verificationUri: `${result.verificationUriComplete}${next}`, expiresAt: now() + result.expiresIn * 1000, interval: result.interval * 1000 };
+      pending = { deviceCode: result.deviceCode, verificationUri: ["google", "apple", "x"].includes(provider) ? `${origin}/v1/auth/oauth/${provider}/start?next=${encodeURIComponent(`/cloud/desktop?code=${result.userCode}`)}` : `${result.verificationUriComplete}${next}`, expiresAt: now() + result.expiresIn * 1000, interval: result.interval * 1000 };
       publish({ status: "connecting", enrollment: { userCode: result.userCode, expiresAt: pending.expiresAt } });
       await openBrowser(pending.verificationUri);
       if (current(stamp)) schedule(poll, pending.interval);
@@ -426,7 +432,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     let destination;
     try {
       const result = await request("checkout", { method: "POST", body: { plan, source }, token: signedIn.token });
-      destination = checkoutDestination(result?.url, { fixture, staging });
+      destination = checkoutDestination(result?.url, { fixture, staging, custom });
       if (result?.cloudContractVersion !== 1 || !destination) return { outcome: "failed", state: state() };
     } catch (error) {
       if (!error?.opaque && error?.status === 409) return { outcome: "conflict", state: await refresh() };
@@ -485,7 +491,16 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
   return {
     state,
     start,
-    begin: () => begin(),
+    begin,
+    async enrollGrant() {
+      const signedIn = grant;
+      if (!signedIn || state().status !== "connected") return null;
+      try {
+        const result = await request("", { path: "/v1/app/enroll-grant", method: "POST", body: {}, token: signedIn.token });
+        if (grant !== signedIn || result?.v !== 1 || typeof result.enrollToken !== "string" || result.enrollToken.length !== 43 || !PRIVATE_CODE.test(result.enrollToken) || !Number.isSafeInteger(result.expiresAt) || result.expiresAt <= now() || typeof result.dashboardUrl !== "string" || new URL(result.dashboardUrl).origin !== origin) return null;
+        return { enrollToken: result.enrollToken, dashboardUrl: result.dashboardUrl };
+      } catch (error) { if (signInEnded(error)) await refresh().catch(() => {}); return null; }
+    },
     emailStart, emailVerify,
     emailCancel() { emailed = null; },
     checkout: openCheckout,
@@ -705,7 +720,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
         const blocked = !error?.opaque && ADD_BLOCKS.includes(error?.blocked) ? error.blocked : null;
         if (blocked === "checkout_open") {
           // Another Cloud's checkout is still open: its page is kept here, as one this app opened, to reopen or copy.
-          const open = checkoutDestination(error.checkoutUrl, { fixture, staging });
+          const open = checkoutDestination(error.checkoutUrl, { fixture, staging, custom });
           const listed = otherOwnClouds(value.clouds).find(cloud => cloud.status === "checkout") ?? null;
           if (open && grant === signedIn) {
             adding = { cloudId: listed?.id ?? null, name: listed?.name ?? cleanName, color: listed ? listed.color : color, tier: listed?.tier ?? tier, startedAt: now(), url: open };
@@ -719,7 +734,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
         if ([404, 405, 501].includes(error?.status)) return { outcome: "unsupported" };
         return { outcome: "failed" };
       }
-      const destination = checkoutDestination(result?.checkoutUrl, { fixture, staging });
+      const destination = checkoutDestination(result?.checkoutUrl, { fixture, staging, custom });
       if ((result?.cloudContractVersion !== undefined && result.cloudContractVersion !== 1) || typeof result?.cloudId !== "string" || !CLOUD_ID.test(result.cloudId) || !destination) return { outcome: "failed" };
       if (grant !== signedIn) return { outcome: "failed" };
       await openBrowser(destination);

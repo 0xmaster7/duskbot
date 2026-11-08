@@ -4,7 +4,9 @@ import { readFileSync, realpathSync, statSync } from "node:fs";
 import { CLAIM_TTL_MS, COMMAND_KINDS, COMMAND_TTL_MS, DASHBOARD_DISCOVERY_PATH, FAST_REPORT_MS, MAX_REPORT_BYTES, SIGNATURE_SKEW_MS, SLOW_REPORT_MS,
   freshnessOf, parseEnrollRequest, parseWorkspaceReport, signedPayload } from "../../shared/dashboard-protocol.ts";
 import type { CommandKind, CommandView, MachineSample, ReportAnswer, WorkspaceDetail, WorkspaceSummary } from "../../shared/dashboard-protocol.ts";
-import { AccountError, cleanEmail, createAccountProxy } from "./account.ts";
+import { AuthError, createAuth, isAppCorsRoute } from "./auth/index.ts";
+import type { ProviderConfigs } from "./auth/providers.ts";
+import type { Mailer } from "./auth/mail.ts";
 import { createStore } from "./store.ts";
 import type { Account, StoredWorkspace } from "./store.ts";
 import { createBilling } from "./billing/index.ts";
@@ -12,7 +14,11 @@ import { createBilling } from "./billing/index.ts";
 export interface DashboardAppOptions {
   dataDir: string;
   publicUrl: string;
-  accountOrigin: string;
+  mailer: Mailer;
+  oauth?: ProviderConfigs;
+  dev?: boolean;
+  signupOpen?: boolean;
+  trustProxy?: boolean;
   staticDir: string | null;
   now?: () => number;
   fetch?: typeof fetch;
@@ -24,19 +30,35 @@ class RequestError extends Error {
 }
 const hash = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
 const random = (bytes: number) => randomBytes(bytes).toString("base64url");
-const sessionMs = 30 * 24 * 60 * 60_000;
 const hourMs = 60 * 60_000;
 const sections = ["machine", "computers", "bots", "activity", "devices", "plans"] as const;
 
 export function createDashboardApp(options: DashboardAppOptions) {
   const now = options.now ?? Date.now;
   const publicUrl = new URL(options.publicUrl).origin;
-  const secure = publicUrl.startsWith("https:");
   const store = createStore(options.dataDir);
   const state = store.state;
-  const accountProxy = createAccountProxy(options.accountOrigin, options.fetch, now);
-  const billing = createBilling({ dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, accounts: { fromCookie: req => { try { return account(req); } catch { return null; } }, fromBearer: () => null } });
-  const attempts = new Map<string, { admin: string; expiresAt: number; busy: boolean }>();
+  const dev = options.dev ?? (new URL(publicUrl).protocol === "http:" && ["127.0.0.1", "localhost"].includes(new URL(publicUrl).hostname));
+  const auth = createAuth({ dataDir: options.dataDir, publicUrl, mailer: options.mailer, now, fetch: options.fetch, oauth: options.oauth,
+    dev, signupOpen: options.signupOpen ?? true, trustProxy: options.trustProxy ?? false, legacyAccounts: () => state.accounts });
+  state.sessions = [];
+  store.changed();
+  auth.onSignedIn(owner => {
+    const existing = state.accounts.find(item => item.id === owner.id);
+    if (existing) existing.email = owner.email; else state.accounts.push({ id: owner.id, email: owner.email });
+    store.changed();
+  });
+  auth.onAccountDeleted(id => {
+    state.accounts = state.accounts.filter(item => item.id !== id);
+    for (const ws of state.workspaces) if (ws.ownerAccountId === id) forget(ws);
+    state.workspaces = state.workspaces.filter(ws => ws.ownerAccountId !== id);
+    watching.delete(id);
+    store.changed();
+  });
+  const billing = createBilling({ dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, accounts: {
+    fromCookie: req => { try { return account(req); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; } },
+    fromBearer: req => auth.appSession(req)?.account ?? null } });
+  auth.extendSession(accountId => { const owner = auth.account(accountId); return owner && billing.enabled ? billing.sessionFields(owner) : {}; });
   const limits = new Map<string, { count: number; until: number }>();
   const watching = new Map<string, number>();
   const lastWatching = new Map<string, boolean>();
@@ -54,14 +76,11 @@ export function createDashboardApp(options: DashboardAppOptions) {
   function fail(status: number, code: string, message: string): never { throw new RequestError(status, code, message); }
   function cleanup() {
     const time = now();
-    for (const [id, attempt] of attempts) if (attempt.expiresAt <= time && !attempt.busy) attempts.delete(id);
     for (const [key, limit] of limits) if (limit.until <= time) limits.delete(key);
     for (const [signature, expiry] of replays) if (expiry < time) replays.delete(signature);
     for (const [id, until] of watching) if (until <= time) watching.delete(id);
-    const sessions = state.sessions.filter(session => session.expiresAt > time);
     const workspaces = state.workspaces.filter(ws => ws.ownerAccountId !== null || time - ws.connectedAt < 24 * hourMs);
-    if (sessions.length !== state.sessions.length || workspaces.length !== state.workspaces.length) {
-      state.sessions = sessions;
+    if (workspaces.length !== state.workspaces.length) {
       for (const ws of state.workspaces) if (!workspaces.includes(ws)) forget(ws);
       state.workspaces = workspaces;
       store.changed();
@@ -71,19 +90,16 @@ export function createDashboardApp(options: DashboardAppOptions) {
     }
   }
   function rate(req: IncomingMessage, kind: string, max: number) {
-    const key = `${kind}:${req.socket.remoteAddress ?? "unknown"}`;
+    const forwarded = req.headers["x-forwarded-for"];
+    const ip = options.trustProxy && typeof forwarded === "string" ? forwarded.split(",")[0]!.trim() : req.socket.remoteAddress ?? "unknown";
+    const key = `${kind}:${ip}`;
     const current = limits.get(key) ?? { count: 0, until: now() + hourMs };
     if (++current.count > max) fail(429, "rate_limited", "Try again later.");
     limits.set(key, current);
   }
   function account(req: IncomingMessage): Account {
-    const token = req.headers.cookie?.split(";").map(item => item.trim()).find(item => item.startsWith("omb_dash="))?.slice(9);
-    const session = token && /^[A-Za-z0-9_-]{43}$/.test(token) ? state.sessions.find(item => item.hash === hash(token) && item.expiresAt > now()) : undefined;
-    const found = session && state.accounts.find(item => item.id === session.accountId);
-    if (!found) fail(401, "signed_out", "Sign in to continue.");
-    return found;
+    return auth.requireWeb(req, { mutation: ["POST", "PATCH", "DELETE"].includes(req.method ?? "GET") });
   }
-  function cookie(token: string, maxAge: number) { return `omb_dash=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}${secure ? "; Secure" : ""}`; }
   function summary(ws: StoredWorkspace): WorkspaceSummary {
     return { id: ws.id, name: ws.name, kind: ws.kind, version: ws.version, connectedAt: ws.connectedAt, lastReportAt: ws.lastReportAt, freshness: freshnessOf(ws.lastReportAt, now()) };
   }
@@ -130,23 +146,26 @@ export function createDashboardApp(options: DashboardAppOptions) {
     if (!value || typeof value !== "object" || Array.isArray(value)) fail(400, "invalid_request", "Invalid request.");
     return value as Record<string, unknown>;
   }
-  function signed(req: IncomingMessage, body: Buffer): StoredWorkspace {
-    const id = req.headers["x-omb-workspace"];
+  function verifySignature(req: IncomingMessage, body: Buffer, publicKey: string) {
     const timeHeader = req.headers["x-omb-time"];
     const signature = req.headers["x-omb-signature"];
     const time = typeof timeHeader === "string" && /^\d{1,16}$/.test(timeHeader) ? Number(timeHeader) : NaN;
     if (!Number.isSafeInteger(time) || Math.abs(now() - time) > SIGNATURE_SKEW_MS) fail(401, "stale_time", "Request time is invalid.");
-    const ws = typeof id === "string" ? state.workspaces.find(item => item.id === id) : undefined;
-    if (!ws) fail(401, "unknown_workspace", "Workspace is unknown.");
     if (typeof signature !== "string" || !/^[A-Za-z0-9+/]{86}==$/.test(signature)) fail(401, "bad_signature", "Signature is invalid.");
     if (replays.has(signature)) fail(401, "replay", "Request was already received.");
     let valid = false;
     try {
       valid = verify(null, Buffer.from(signedPayload(req.method ?? "GET", req.url ?? "/", time, hash(body))),
-        createPublicKey({ key: Buffer.from(ws.publicKey, "base64"), format: "der", type: "spki" }), Buffer.from(signature, "base64"));
+        createPublicKey({ key: Buffer.from(publicKey, "base64"), format: "der", type: "spki" }), Buffer.from(signature, "base64"));
     } catch { valid = false; }
     if (!valid) fail(401, "bad_signature", "Signature is invalid.");
     replays.set(signature, time + SIGNATURE_SKEW_MS);
+  }
+  function signed(req: IncomingMessage, body: Buffer): StoredWorkspace {
+    const id = req.headers["x-omb-workspace"];
+    const ws = typeof id === "string" ? state.workspaces.find(item => item.id === id) : undefined;
+    if (!ws) fail(401, "unknown_workspace", "Workspace is unknown.");
+    verifySignature(req, body, ws.publicKey);
     return ws;
   }
   function staticPage(req: IncomingMessage, res: ServerResponse) {
@@ -178,55 +197,23 @@ export function createDashboardApp(options: DashboardAppOptions) {
     const url = new URL(req.url ?? "/", publicUrl);
     const path = url.pathname;
     const mutation = ["POST", "PATCH", "DELETE"].includes(method);
-    if (mutation) {
+    const appleCallback = method === "POST" && path === "/v1/auth/oauth/apple/callback" && req.headers["content-type"]?.split(";")[0]?.trim().toLowerCase() === "application/x-www-form-urlencoded";
+    if (mutation && !isAppCorsRoute(path) && !appleCallback) {
       if (req.headers["content-type"]?.split(";")[0]?.trim().toLowerCase() !== "application/json") fail(403, "forbidden", "JSON is required.");
       if (req.headers.origin !== undefined && req.headers.origin !== publicUrl) fail(403, "forbidden", "Origin is not allowed.");
     }
+    if (await auth.handle(req, res, url, { readBody, bodyObject })) return;
     if (method === "GET" && path === DASHBOARD_DISCOVERY_PATH) return json(res, 200, { v: 1, url: publicUrl });
     if (await billing.handle(req, res, url)) return;
     if (!path.startsWith("/v1/") && !path.startsWith("/.well-known/")) {
       if (method === "GET") return staticPage(req, res);
       fail(404, "not_found", "Route not found.");
     }
-    if (method === "POST" && path === "/v1/auth/start") {
-      rate(req, "start", 20);
-      const data = bodyObject(await readBody(req));
-      const email = cleanEmail(data.email);
-      if (!email) fail(400, "failed", "Enter a valid email address.");
-      const result = await accountProxy.start(email);
-      const attempt = random(32);
-      attempts.set(attempt, { admin: result.attempt, expiresAt: now() + hourMs, busy: false });
-      return json(res, 200, { attempt, resendAfter: result.resendAfter, expiresIn: result.expiresIn });
-    }
-    if (method === "POST" && path === "/v1/auth/verify") {
-      rate(req, "verify", 60);
-      const data = bodyObject(await readBody(req));
-      const id = typeof data.attempt === "string" ? data.attempt : "";
-      const attempt = attempts.get(id);
-      if (!attempt || attempt.expiresAt <= now()) fail(410, "expired", "Sign-in has expired.");
-      if (typeof data.code !== "string" || !/^\d{8}$/.test(data.code)) fail(400, "wrong_code", "Code is incorrect.");
-      if (attempt.busy) fail(429, "rate_limited", "Try again later.");
-      attempt.busy = true;
-      let owner: Account;
-      try { owner = await accountProxy.verify(attempt.admin, data.code); } finally { attempt.busy = false; }
-      attempts.delete(id);
-      const existing = state.accounts.find(item => item.id === owner.id);
-      if (existing) existing.email = owner.email; else state.accounts.push(owner);
-      const token = random(32);
-      state.sessions.push({ hash: hash(token), accountId: owner.id, expiresAt: now() + sessionMs });
-      store.changed();
-      res.setHeader("set-cookie", cookie(token, sessionMs / 1000));
-      return json(res, 200, { account: owner });
-    }
-    if (method === "POST" && path === "/v1/auth/signout") {
-      const token = req.headers.cookie?.split(";").map(item => item.trim()).find(item => item.startsWith("omb_dash="))?.slice(9);
-      if (token) { state.sessions = state.sessions.filter(session => session.hash !== hash(token)); store.changed(); }
-      res.setHeader("set-cookie", cookie("", 0));
-      return json(res, 200, { ok: true });
-    }
     if (method === "POST" && path === "/v1/enroll") {
       rate(req, "enroll", 30);
-      const data = parseEnrollRequest(bodyObject(await readBody(req)));
+      const body = await readBody(req), input = bodyObject(body);
+      const data = parseEnrollRequest(input);
+      if (input.enrollToken !== undefined && (typeof input.enrollToken !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(input.enrollToken))) fail(400, "invalid_request", "Invalid enrollment grant.");
       if (!data) fail(400, "invalid_request", "Invalid enrollment.");
       let publicKey: string;
       try {
@@ -236,13 +223,28 @@ export function createDashboardApp(options: DashboardAppOptions) {
         if (key.asymmetricKeyType !== "ed25519" || !key.export({ type: "spki", format: "der" }).equals(der)) throw new Error();
         publicKey = der.toString("base64");
       } catch { fail(400, "invalid_key", "Public key is invalid."); }
+      let ownerAccountId: string | null = null;
+      if (typeof input.enrollToken === "string") {
+        verifySignature(req, body, publicKey);
+        ownerAccountId = auth.consumeEnrollGrant(input.enrollToken);
+        if (!ownerAccountId) fail(403, "invalid_grant", "Enrollment grant is invalid.");
+      }
       let ws = state.workspaces.find(item => item.publicKey === publicKey);
-      if (ws?.ownerAccountId) return json(res, 200, { v: 1, workspaceId: ws.id, claimUrl: `${publicUrl}/?workspace=${ws.id}`, claimExpiresAt: 0, dashboardUrl: publicUrl });
+      if (ws?.ownerAccountId && !ownerAccountId) return json(res, 200, { v: 1, workspaceId: ws.id, claimUrl: `${publicUrl}/?workspace=${ws.id}`, claimExpiresAt: 0, dashboardUrl: publicUrl });
       const token = random(24);
       if (!ws) {
         ws = { id: `ws_${random(16)}`, publicKey, ownerAccountId: null, claimHash: null, claimExpiresAt: 0, name: data.name, kind: data.kind,
           version: data.version, connectedAt: now(), lastReportAt: null, lastSeq: 0, lastSeqAt: 0, report: null, sectionAt: {} };
         state.workspaces.push(ws);
+      }
+      if (ownerAccountId) {
+        // a new owner never inherits the previous owner's queued commands or open waits
+        if (ws.ownerAccountId && ws.ownerAccountId !== ownerAccountId) forget(ws);
+        ws.ownerAccountId = ownerAccountId;
+        ws.claimHash = null;
+        ws.claimExpiresAt = 0;
+        store.changed();
+        return json(res, 200, { v: 1, workspaceId: ws.id, claimUrl: `${publicUrl}/?workspace=${ws.id}`, claimExpiresAt: 0, dashboardUrl: publicUrl });
       }
       ws.claimHash = hash(token);
       ws.claimExpiresAt = now() + CLAIM_TTL_MS;
@@ -295,7 +297,6 @@ export function createDashboardApp(options: DashboardAppOptions) {
       res.on("close", clear);
       return;
     }
-    if (method === "GET" && path === "/v1/me") return json(res, 200, { account: account(req) });
     if (method === "GET" && path === "/v1/workspaces") {
       const owner = account(req);
       watch(owner);
@@ -352,16 +353,18 @@ export function createDashboardApp(options: DashboardAppOptions) {
     fail(404, "not_found", "Route not found.");
   }
   return {
+    auth,
     handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
       return route(req, res).catch(error => {
-        if (error instanceof RequestError || error instanceof AccountError) json(res, error.status, { error: error.message, code: error.code });
-        else json(res, 500, { error: "Request failed.", code: "failed" });
+        if (error instanceof RequestError || error instanceof AuthError) json(res, error.status, req.url?.startsWith("/api/cloud/") ? { error: error.code } : { error: error.message, code: error.code });
+        else json(res, 500, req.url?.startsWith("/api/cloud/") ? { error: "failed" } : { error: "Request failed.", code: "failed" });
       });
     },
     close() {
       billing.close();
       closed = true;
       for (const wait of Array.from(waits.values())) wait.cancel();
+      auth.close();
       store.close();
     },
   };

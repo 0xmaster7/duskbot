@@ -1,11 +1,12 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { CheckoutItem } from "../../../shared/billing-api.ts";
+import { AuthError } from "../auth/index.ts";
 import { CloudError } from "../clouds/service.ts";
 import type { BillingContext } from "./index.ts";
 import { BillingError } from "./service.ts";
 import { body, cartInput, cloudName, color, invalid, json, rawBody, survey, text } from "./http.ts";
 
-const messages: Record<string, string> = { signed_out: "Sign in to continue.", invalid_request: "Invalid request.", not_found: "Not found.", unavailable: "Billing is unavailable.", bad_signature: "Invalid webhook signature.", checkout_open: "A checkout is already open.", cap: "Cloud limit reached.", rate_limited: "Try again later." };
+const messages: Record<string, string> = { signed_out: "Sign in to continue.", invalid_request: "Invalid request.", not_found: "Not found.", unavailable: "Billing is unavailable.", bad_signature: "Invalid webhook signature.", checkout_open: "A checkout is already open.", csrf: "Refresh the page and try again.", cap: "Cloud limit reached.", rate_limited: "Try again later." };
 export function createBillingRoutes(ctx: BillingContext) {
   const { service, clouds } = ctx;
   return async (req: IncomingMessage, res: ServerResponse, url: URL): Promise<boolean> => {
@@ -94,7 +95,7 @@ export function createBillingRoutes(ctx: BillingContext) {
       }
       throw new BillingError(404, "not_found");
     } catch (error) {
-      const known = error instanceof BillingError || error instanceof CloudError;
+      const known = error instanceof BillingError || error instanceof CloudError || error instanceof AuthError;
       const code = known ? error.code : "failed";
       const status = webhook ? code === "bad_signature" ? 401 : known && error.status === 400 ? 400 : 500 : known ? error.status : 500;
       json(res, status, { error: messages[code] ?? "Request failed.", code, ...(error instanceof BillingError && error.url ? { checkoutUrl: error.url } : {}) });

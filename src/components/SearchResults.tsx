@@ -4,6 +4,7 @@ import { api, useStore, formatTime } from "@/state/store";
 import { BotAvatar } from "./Avatar";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
+import { withoutCitationTraces } from "@/lib/citations";
 import type { SearchHit } from "@/lib/search-hit";
 import { landOnSearchHit } from "@/lib/focus-message";
 import { useShowThreads } from "@/lib/thread-preferences";
@@ -51,16 +52,16 @@ export function SearchResults({ query, onLanded }: { query: string; onLanded: ()
 
   return (
     <div className="mt-2 border-t border-hairline/40 pt-2">
-      <div className="px-3 pb-1 text-[11px] font-medium uppercase tracking-wide text-ink-secondary">
+      <div className="px-3 pb-1 text-[12px] font-medium leading-4 text-ink-secondary">
         {t("search.messages")}{hits ? ` · ${hits.length}${hits.length === 40 ? "+" : ""}` : ""}
       </div>
       {error && <div role="alert" className="px-3 py-2 text-[13px] leading-[18px] text-danger">{t("search.failed", { error })}</div>}
       {hits && hits.length === 0 && !error && <div role="status" data-search-empty="" className="px-3 py-3 text-[13px] leading-[18px] tracking-[0.015em] text-ink/[0.56]">{t("search.none", { query: q })}</div>}
       {hits?.map((hit) => {
         const bot = hit.botId ? state.bots.find((b) => b.id === hit.botId) : undefined;
-        const before = hit.snippet.slice(0, hit.matchStart);
+        const before = withoutCitationTraces(hit.snippet.slice(0, hit.matchStart));
         const match = hit.snippet.slice(hit.matchStart, hit.matchStart + hit.matchLength);
-        const after = hit.snippet.slice(hit.matchStart + hit.matchLength);
+        const after = withoutCitationTraces(hit.snippet.slice(hit.matchStart + hit.matchLength));
         return (
           <button
             key={`${hit.threadId}:${hit.messageId}`}

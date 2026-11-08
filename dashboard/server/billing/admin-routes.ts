@@ -83,7 +83,7 @@ export function createAdminRoutes(ctx: BillingContext) {
     if (!/^(?:license|checkout|clouds|clouds\/[^/]+(?:\/(?:hide|cancel|keep))?|feedback|upgrade|upgrade\/preview|pairing|wake|resize-now|moved-to)$/.test(route)) return false;
     try {
       const match = /^Bearer (omc_[A-Za-z0-9_-]{43})$/.exec(req.headers.authorization ?? "");
-      const account = match ? await ctx.accounts.fromBearer(match[1]) : null;
+      const account = match ? await ctx.accounts.fromBearer(req) : null;
       if (!account) { json(res, 401, { error: "invalid_token" }); return true; }
       available();
       const send = (value: object) => { json(res, 200, { ...value, cloudContractVersion: 1 }); return true; };

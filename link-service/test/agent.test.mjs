@@ -1,7 +1,9 @@
 import { ClientRequest, createServer } from "node:http";
 import { describe, expect, it } from "vitest";
 
-import { createEgressProxy, createTunnelAgent, EGRESS_PROBE, openFrame, sealBytes, sealFrame } from "../agent.mjs";
+import { connect as tcpConnect } from "node:net";
+
+import { createEgressProxy, createTunnelAgent, EGRESS_DIAL_MS, EGRESS_PROBE, openFrame, sealBytes, sealFrame } from "../agent.mjs";
 
 const id = "abcdefghij";
 const key = Buffer.alloc(32, 3);
@@ -184,5 +186,51 @@ describe("egress dial timing", () => {
     expect(sent.filter((frame) => frame.t === "dial")).toHaveLength(0);
     t += 200_000;
     expect(proxy.dialLatency()).toBeNull();
+  });
+});
+
+describe("egress fallback", () => {
+  /** a socks5 connect through the proxy: the reply code and how long it took */
+  function socksConnect(port, host = "www.instagram.com") {
+    return new Promise((resolve, reject) => {
+      const started = Date.now();
+      const socket = tcpConnect({ host: "127.0.0.1", port });
+      let got = Buffer.alloc(0), stage = 0;
+      socket.on("error", reject);
+      socket.on("connect", () => socket.write(Buffer.from([5, 1, 0])));
+      socket.on("data", (chunk) => {
+        got = Buffer.concat([got, chunk]);
+        if (stage === 0 && got.length >= 2) {
+          got = got.subarray(2);
+          stage = 1;
+          const name = Buffer.from(host);
+          socket.write(Buffer.concat([Buffer.from([5, 1, 0, 3, name.length]), name, Buffer.from([1, 187])]));
+        }
+        if (stage === 1 && got.length >= 10) { socket.destroy(); resolve({ code: got[1], ms: Date.now() - started }); }
+      });
+    });
+  }
+
+  it("waits a bounded time for an app that stopped answering, then sends the rest straight to the direct fallback", async () => {
+    expect(EGRESS_DIAL_MS).toBeLessThanOrEqual(2000);
+    const sent = [];
+    const proxy = createEgressProxy({ send: (frame) => sent.push(frame), bytes: () => true, queued: () => 0, onDrain: () => {}, report: null, probe: null,
+      dialMs: 150, bind: () => ({ host: "127.0.0.1", port: 0, allow: () => true }) });
+    await proxy.start();
+    try {
+      proxy.handle({ t: "egress", ready: true });
+      const first = await socksConnect(proxy.listening.port);
+      expect(first.code).toBe(1);
+      expect(first.ms).toBeGreaterThanOrEqual(140);
+      expect(first.ms).toBeLessThan(1500);
+      expect(proxy.online()).toBe(false);
+      const next = await socksConnect(proxy.listening.port);
+      expect(next.code).toBe(1);
+      expect(next.ms).toBeLessThan(100);
+      expect(sent.filter((frame) => frame.t === "dial")).toHaveLength(1);
+      expect(proxy.stats()).toMatchObject({ fallbacks: 2, active: 0 });
+    } finally {
+      await proxy.stop();
+    }
   });
 });

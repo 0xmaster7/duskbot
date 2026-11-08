@@ -1,6 +1,6 @@
 import { useId, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Bell, CalendarClock, Check, Globe, KeyRound, LayoutDashboard, MoreHorizontal, Palette, Plug, Plus, Settings, UserRound } from "lucide-react";
+import { Bell, CalendarClock, Check, Globe, KeyRound, LayoutDashboard, LogOut, MoreHorizontal, Palette, Plug, Plus, Settings, UserRound } from "lucide-react";
 import { accountDashboardUrl } from "@/lib/account-dashboard";
 import { useGroupYou } from "@/components/GroupAvatar";
 import { t } from "@/lib/i18n";
@@ -13,6 +13,7 @@ import { useLongPress } from "../ContextMenu";
 import { useConnections } from "../connection/connections";
 import { haptic, setHapticsEnabled, useHapticsEnabled } from "../haptics";
 import { dur, ease, spring } from "../motion";
+import { useMobileAccount } from "../account/AccountGate";
 import { usePlatform } from "../platform";
 import { Sheet } from "../Sheet";
 import { SettingsRow, SettingsSection, SettingsSwitch } from "./SettingsRow";
@@ -23,6 +24,7 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
   const { connections, activeId, switchTo, remove } = useConnections();
   const you = useGroupYou();
   const platform = usePlatform();
+  const account = useMobileAccount();
   const hapticsEnabled = useHapticsEnabled();
   const skin = useSyncExternalStore(subscribeSkin, readSkinChoice, () => "system");
   const language = effectiveLanguage(useLanguageChoice(), state.config?.language);
@@ -79,7 +81,7 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
                 <WorkspaceRow key={connection.id} connection={connection} active={connection.id === activeId} confirming={unlinkId === connection.id} busy={busy} onSelect={() => { void changeWorkspace(connection.id); }} onConfirm={() => { setError(false); setUnlinkId(connection.id); }} onCancel={() => { setUnlinkId(null); setError(false); }} onUnlink={() => { void changeWorkspace(connection.id, true); }} />
               ))}
               {error && <p role="alert" className="px-4 py-2 text-[14px] text-danger">{t("mobile.settings.workspaceError")}</p>}
-              <SettingsRow icon={<Plus />} label={t("mobile.settings.link")} onClick={() => onOpenSheet({ kind: "link" })} />
+              <SettingsRow icon={<Plus />} label={t("mobile.settings.link")} onClick={() => { onClose(); window.dispatchEvent(new Event("omb:link-another")); }} />
             </SettingsSection>
             <SettingsSection title={t("mobile.settings.bots")}>
               <SettingsRow icon={<CalendarClock />} label={t("mobile.settings.routines")} onClick={() => onOpenSheet({ kind: "routines" })} />
@@ -101,6 +103,7 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
             </SettingsSection>
             <SettingsSection title={t("mobile.settings.else")}>
               <SettingsRow icon={<LayoutDashboard />} label={t("mobile.settings.accountDashboard")} onClick={() => void accountDashboardUrl().then((url) => platform.openExternal(url))} />
+              {account?.account && <SettingsRow icon={<LogOut />} label={t("accountGate.signOut")} detail={account.account.email} onClick={() => void account.signOut()} />}
               <SettingsRow icon={<Settings />} label={t("mobile.settings.all")} onClick={() => { dispatch({ type: "toggleAppSettings", open: true }); onClose(); }} />
             </SettingsSection>
             <p className="mt-8 text-center text-[13px] text-ink-tertiary">{t("mobile.settings.version", { version: platform.appVersion })}</p>

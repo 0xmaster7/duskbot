@@ -37,6 +37,7 @@ require.cache[electronEntry] = {
   loaded: true,
   exports: fakeElectron,
 };
+process.argv.push("--omb-account-gate=1");
 require("./preload.cjs");
 
 const emit = (channel, ...args) => {
@@ -165,4 +166,14 @@ test("a Cloud link arriving before React subscriptions is delivered exactly once
   await Promise.resolve();
   assert.deepEqual(calls, ["cloud"], "later subscriptions must not reopen Settings");
   late();
+});
+
+
+test("the account gate forwards text only and removes its changed listener", async () => {
+  const before = invocations.length, gate = exposed.api.accountGate;
+  await gate.state(); await gate.signInStart("person@example.test"); await gate.signInVerify(12345678); await gate.signInCancel(); await gate.browser("x"); await gate.cancel();
+  assert.deepEqual(invocations.slice(before), [["account-gate:state"], ["account-gate:signInStart", "person@example.test"], ["account-gate:signInVerify", "12345678"], ["account-gate:signInCancel"], ["account-gate:browser", "x"], ["account-gate:cancel"]]);
+  const states = [], unsubscribe = gate.onChange(state => states.push(state));
+  emit("account-gate:changed", { status: "connecting" }); assert.deepEqual(states, [{ status: "connecting" }]);
+  unsubscribe(); assert.equal(subscriberCount("account-gate:changed"), 0);
 });

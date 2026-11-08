@@ -55,5 +55,5 @@ export interface AccountResolver {
    * also enforce its csrf header on POST, PATCH and DELETE. */
   fromCookie(req: IncomingMessage): AccountRef | null | Promise<AccountRef | null>;
   /** the app's signed-in account (Authorization: Bearer omc_...), or null */
-  fromBearer(token: string): AccountRef | null | Promise<AccountRef | null>;
+  fromBearer(req: IncomingMessage): AccountRef | null | Promise<AccountRef | null>;
 }

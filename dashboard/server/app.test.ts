@@ -7,7 +7,8 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync }
 import { CLAIM_TTL_MS, COMMAND_TTL_MS, FAST_REPORT_MS, MAX_REPORT_BYTES, SIGNATURE_SKEW_MS, SLOW_REPORT_MS, parseEnrollRequest, parseWorkspaceReport, signedPayload } from "../../shared/dashboard-protocol.ts";
 import type { CommandView, EnrollAnswer, MachineReport, ReportAnswer, WorkspaceDetail, WorkspaceReport, WorkspaceSummary } from "../../shared/dashboard-protocol.ts";
 import { createDashboardApp } from "./app.ts";
-import { startFakeAdmin } from "./fake-admin.ts";
+import { memoryMailer } from "./auth/mail.ts";
+import { CSRF_HEADER } from "../../shared/account-api.ts";
 import type { Account } from "./store.ts";
 
 async function readJson<T>(response: Response | Promise<Response>): Promise<T> { return (await response).json() as Promise<T>; }
@@ -22,7 +23,9 @@ const bot = { id: "bot1", name: "Fixture bot", color: "blue", body: null, model:
 const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 describe("hosted dashboard service", () => {
-  let admin: Awaited<ReturnType<typeof startFakeAdmin>>;
+  let mailer: ReturnType<typeof memoryMailer>;
+  const csrf = new Map<string, string>();
+  const code = (email: string) => mailer.outbox.findLast(item => item.to === email)?.text.match(/\b\d{8}\b/)?.[0];
   let app: ReturnType<typeof createDashboardApp>;
   let server: Server;
   let dataDir: string;
@@ -30,7 +33,6 @@ describe("hosted dashboard service", () => {
   let url: string;
   let time: number;
   let nonce: number;
-  let proxyFetch: typeof fetch;
   const origin = "http://dashboard.test";
   let keys: { publicKey: KeyObject; privateKey: KeyObject };
 
@@ -42,9 +44,9 @@ describe("hosted dashboard service", () => {
     time = Date.now();
     nonce = 0;
     keys = generateKeyPairSync("ed25519");
-    admin = await startFakeAdmin();
-    proxyFetch = vi.fn(fetch);
-    app = createDashboardApp({ dataDir, publicUrl: origin, accountOrigin: admin.url, staticDir, now: () => time, fetch: proxyFetch });
+    mailer = memoryMailer();
+    csrf.clear();
+    app = createDashboardApp({ dataDir, publicUrl: origin, mailer, staticDir, now: () => time });
     server = createServer(app.handle);
     await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
     const address = server.address();
@@ -54,22 +56,23 @@ describe("hosted dashboard service", () => {
   afterEach(async () => {
     app.close();
     await new Promise<void>((resolve, reject) => { server.close(error => error ? reject(error) : resolve()); server.closeAllConnections(); });
-    await admin.close();
     rmSync(dataDir, { recursive: true, force: true });
     rmSync(staticDir, { recursive: true, force: true });
     vi.restoreAllMocks();
   });
   function page(path: string, body?: unknown, cookie?: string, method = body === undefined ? "GET" : "POST") {
-    return fetch(`${url}${path}`, { method, headers: { ...(body === undefined ? {} : { "content-type": "application/json" }), ...(cookie ? { cookie } : {}), origin },
+    return fetch(`${url}${path}`, { method, headers: { ...(body === undefined ? {} : { "content-type": "application/json" }), ...(cookie ? { cookie, [CSRF_HEADER]: csrf.get(cookie) ?? "" } : {}), origin },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   }
   async function login(email = "owner@example.com") {
     const start = await page("/v1/auth/start", { email });
     expect(start.status).toBe(200);
     const { attempt } = await readJson<{ attempt: string }>(start);
-    const verify = await page("/v1/auth/verify", { attempt, code: admin.codes.get(email) });
+    const verify = await page("/v1/auth/verify", { attempt, code: code(email) });
     expect(verify.status).toBe(200);
-    return verify.headers.get("set-cookie")!.split(";")[0]!;
+    const cookie = verify.headers.get("set-cookie")!.split(";")[0]!;
+    csrf.set(cookie, (await verify.json() as { csrfToken: string }).csrfToken);
+    return cookie;
   }
   async function enroll() {
     const response = await page("/v1/enroll", { v: 1, publicKey: keys.publicKey.export({ type: "spki", format: "der" }).toString("base64"), ...workspace });
@@ -93,21 +96,16 @@ describe("hosted dashboard service", () => {
   }
   function report(seq = 1): WorkspaceReport { return { v: 1, seq, at: time, workspace }; }
 
-  it("signs in, revokes the Admin token, persists only a web token hash, and signs out", async () => {
+  it("signs in, persists only a web token hash, and signs out", async () => {
     const cookie = await login();
-    const calls = vi.mocked(proxyFetch).mock.calls;
-    const revoke = calls.find(([target, init]) => String(target).endsWith("/api/cloud/desktop/session") && init?.method === "DELETE");
-    expect(revoke).toBeDefined();
-    const token = (revoke![1]!.headers as Record<string, string>).authorization;
-    expect((await fetch(`${admin.url}/api/cloud/desktop/session`, { method: "DELETE", headers: { authorization: token }, body: "{}" })).status).toBe(401);
     expect((await readJson<{ account: Account; code: string }>(page("/v1/me", undefined, cookie))).account.email).toBe("owner@example.com");
     app.close();
-    const saved = readFileSync(`${dataDir}/state.json`, "utf8");
+    const saved = readFileSync(`${dataDir}/auth.json`, "utf8");
     expect(saved).not.toContain(cookie.split("=")[1]);
     expect(saved).not.toContain("omc_");
-    expect(JSON.parse(saved).sessions[0].hash).toMatch(/^[a-f0-9]{64}$/);
-    expect(statSync(`${dataDir}/state.json`).mode & 0o777).toBe(0o600);
-    app = createDashboardApp({ dataDir, publicUrl: origin, accountOrigin: admin.url, staticDir });
+    expect(JSON.parse(saved).sessions[0].tokenHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(statSync(`${dataDir}/auth.json`).mode & 0o777).toBe(0o600);
+    app = createDashboardApp({ dataDir, publicUrl: origin, mailer, staticDir });
     server.removeAllListeners("request");
     server.on("request", app.handle);
     expect((await page("/v1/me", undefined, cookie)).status).toBe(200);
@@ -117,23 +115,23 @@ describe("hosted dashboard service", () => {
 
   it("maps a wrong code and enforces JSON, Origin and sign-in limits", async () => {
     const start = await readJson<{ attempt: string }>(page("/v1/auth/start", { email: "owner@example.com" }));
-    const wrong = admin.codes.get("owner@example.com") === "00000000" ? "11111111" : "00000000";
+    const wrong = code("owner@example.com") === "00000000" ? "11111111" : "00000000";
     const response = await page("/v1/auth/verify", { attempt: start.attempt, code: wrong });
     expect(response.status).toBe(400);
     expect((await readJson<{ code: string }>(response)).code).toBe("wrong_code");
     expect((await fetch(`${url}/v1/auth/start`, { method: "POST", body: "{}" })).status).toBe(403);
     expect((await fetch(`${url}/v1/auth/start`, { method: "POST", headers: { "content-type": "application/json", origin: "https://elsewhere.test" }, body: "{}" })).status).toBe(403);
-    for (let i = 0; i < 19; i++) expect((await page("/v1/auth/start", { email: "owner@example.com" })).status).toBe(200);
+    for (let i = 0; i < 19; i++) expect((await page("/v1/auth/start", { email: `owner${i}@example.com` })).status).toBe(200);
     expect((await page("/v1/auth/start", { email: "owner@example.com" })).status).toBe(429);
   });
 
   it("sets secure cookie attributes for https and expires web sessions after 30 days", async () => {
     app.close();
-    app = createDashboardApp({ dataDir, publicUrl: "https://dashboard.test", accountOrigin: admin.url, staticDir, now: () => time });
+    app = createDashboardApp({ dataDir, publicUrl: "https://dashboard.test", mailer, staticDir, now: () => time });
     server.removeAllListeners("request");
     server.on("request", app.handle);
     const start = await readJson<{ attempt: string }>(fetch(`${url}/v1/auth/start`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: "owner@example.com" }) }));
-    const verified = await fetch(`${url}/v1/auth/verify`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ attempt: start.attempt, code: admin.codes.get("owner@example.com") }) });
+    const verified = await fetch(`${url}/v1/auth/verify`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ attempt: start.attempt, code: code("owner@example.com") }) });
     expect(verified.status).toBe(200);
     const cookie = verified.headers.get("set-cookie")!;
     expect(cookie).toContain("; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000; Secure");
@@ -183,7 +181,7 @@ describe("hosted dashboard service", () => {
     expect(detail.report!.activity).toBeUndefined();
     expect(detail.history).toEqual([{ t: time - 5000, cpu: 25, mem: 50, rx: 10, tx: 20 }]);
     app.close();
-    app = createDashboardApp({ dataDir, publicUrl: origin, accountOrigin: admin.url, staticDir, now: () => time });
+    app = createDashboardApp({ dataDir, publicUrl: origin, mailer, staticDir, now: () => time });
     server.removeAllListeners("request");
     server.on("request", app.handle);
     detail = await readJson<WorkspaceDetail>(page(`/v1/workspaces/${id}`, undefined, cookie));
@@ -308,7 +306,7 @@ describe("hosted dashboard service", () => {
     });
     expect(traversal).toBe(404);
     app.close();
-    app = createDashboardApp({ dataDir, publicUrl: origin, accountOrigin: admin.url, staticDir: null });
+    app = createDashboardApp({ dataDir, publicUrl: origin, mailer, staticDir: null });
     server.removeAllListeners("request");
     server.on("request", app.handle);
     expect((await page("/claim")).status).toBe(404);
