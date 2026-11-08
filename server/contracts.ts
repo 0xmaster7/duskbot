@@ -147,6 +147,8 @@ export interface SendTurnInput {
   mentionTurn?: boolean;
   /** The bot will likely browse, so a driver may load browser tools up front rather than behind tool search. */
   preloadBrowserTools?: boolean;
+  /** The bot will likely use its computer, so a driver may load the computer's tools up front rather than behind tool search. */
+  preloadComputerTools?: boolean;
   /** Per-bot integrations the driver may hand to the agent as tools. */
   integrations?: {
     /** A harness-owned stdio bridge to Composio, so connection requests become trusted chat cards. */

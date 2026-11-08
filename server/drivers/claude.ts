@@ -860,6 +860,8 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
       } | null;
       idleTimer: ReturnType<typeof setTimeout> | null;
       closing: boolean;
+      /** Its computer tools load up front (preloadComputerTools); later turns keep them so the process stays reusable. */
+      preloadedComputer?: boolean;
       /** The engine could not start the `agents` MCP server: retired after this turn so the next one reconnects. */
       teamToolsFailed?: boolean;
       stderr: string;
@@ -1046,10 +1048,13 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
       }
       if (turn.integrations?.localComputer) {
         const local = turn.integrations.localComputer;
+        // Behind tool search the first screen action costs a ToolSearch model step; a warm engine that loaded them keeps them.
+        const preload = turn.preloadComputerTools || sessions.get(threadId)?.preloadedComputer === true;
         mcpServers.computer = {
           command: local.command,
           args: local.args,
           env: local.env,
+          ...(preload ? { alwaysLoad: true } : {}),
         };
         if (!controlsHost) allowed.push("mcp__computer");
       }
@@ -1345,6 +1350,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
         mcpConfigPath,
         systemPromptPath,
         argsKey,
+        preloadedComputer: (mcpServers.computer as { alwaysLoad?: boolean } | undefined)?.alwaysLoad === true,
         volatile: turn.systemVolatile ?? "",
         sessionId: sessionId ?? newSessionId,
         sawInit: false,

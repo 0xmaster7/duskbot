@@ -98,7 +98,7 @@ import { initialVpsMode, sharedVpsDefaults } from "./shared-vps-defaults.ts";
 import type { BotDesktopProgress } from "./bot-desktop.ts";
 import { createVpsLifecycleHost } from "./vps-lifecycle-host.ts";
 import { createVpsCapacityHost, knownScreenCapacity, setVpsCapacityHost } from "./vps-capacity.ts";
-import { prewakeComputer, shouldPrewakeComputer, rememberComputerTurn } from "./computer-prewake.ts"; import { LAZY_VPS_NOTE, vpsTurnStartPlan, WAKES_ON_CALL_VPS_NOTE } from "./vps-turn-start.ts"; import { ComputerToolLists, createComputerRelay, relayedComputerSpec, vpsToolsKey, type RelayBridge, type RelayTurn } from "./vps-computer-relay.ts";
+import { prewakeComputer, shouldPrewakeComputer, rememberComputerTurn, takeComputerLikely } from "./computer-prewake.ts"; import { LAZY_VPS_NOTE, vpsTurnStartPlan, WAKES_ON_CALL_VPS_NOTE } from "./vps-turn-start.ts"; import { ComputerToolLists, createComputerRelay, relayedComputerSpec, vpsToolsKey, type RelayBridge, type RelayTurn } from "./vps-computer-relay.ts";
 import type { VpsLifecycleResource, VpsLifecycleTarget, VpsLifecycleStage } from "./vps-lifecycle.ts";
 import { closeVpsBrowser } from "./vps-browser-close.ts";
 import { NO_EXEC_COMPUTER, VPS_EXEC_CHANGED, vpsContainerExec, withVpsGuestFile } from "./vps-exec.ts";
@@ -8735,7 +8735,7 @@ async function beginTurn(
         systemVolatile: prompt.volatile,
         mentionTurn: tagged.length > 0,
         integrations,
-        ...(integrations.browser && browserIsThePlace(turnSurfacePlan(bot, undefined, threadId, true)) ? { preloadBrowserTools: true } : {}),
+        ...(integrations.browser && browserIsThePlace(turnSurfacePlan(bot, undefined, threadId, true)) ? { preloadBrowserTools: true } : {}), ...(takeComputerLikely(bot.id) && integrations.localComputer ? { preloadComputerTools: true } : {}),
         ...settingsTurnFields(cfg, DATA_DIR, managedPolicy.restrictsMcp()),
         cwd,
         ...(worksInWorkspace || guestConfined || cloudGuestOpened(threadId) ? {} : { toolResultFolder: messageFileRootsForThread(bot.id, threadId).find((root) => root !== ATTACHMENTS_DIR) }),

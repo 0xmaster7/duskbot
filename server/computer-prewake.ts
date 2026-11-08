@@ -4,6 +4,7 @@ import type { ComputerRelay, RelayOwner } from "./vps-computer-relay.ts";
 
 type HistoryRow = Pick<WireMessage, "role" | "kind" | "turnId" | "tool" | "id">;
 const lastComputerTurns = new Map<string, boolean>();
+const likelyThisTurn = new Map<string, boolean>();
 
 export interface ComputerPrewakeInput {
   botId?: string;
@@ -37,9 +38,18 @@ export function rememberComputerTurn(botId: string, history: readonly HistoryRow
 }
 
 export function shouldPrewakeComputer(input: ComputerPrewakeInput): boolean {
-  return input.enabled && input.ownComputer && (input.place === undefined || input.place === "auto" || input.place === "cloud")
+  const likely = input.enabled && input.ownComputer && (input.place === undefined || input.place === "auto" || input.place === "cloud")
     && (/\b(?:computer|browser|open|website|app|tab|screen|download)\b/i.test(input.message)
       || ((input.botId ? lastComputerTurns.get(input.botId) : undefined) ?? lastTurnUsedComputer(input.history, input.currentMessageId)));
+  if (input.botId) likelyThisTurn.set(input.botId, likely);
+  return likely;
+}
+
+/** Whether the turn being set up for this bot will likely use its computer (the last shouldPrewakeComputer answer), once. */
+export function takeComputerLikely(botId: string): boolean {
+  const likely = likelyThisTurn.get(botId) ?? false;
+  likelyThisTurn.delete(botId);
+  return likely;
 }
 
 export function prewakeComputer(relay: Pick<ComputerRelay, "asleep" | "wake">, owner: RelayOwner, input: ComputerPrewakeInput): void {
