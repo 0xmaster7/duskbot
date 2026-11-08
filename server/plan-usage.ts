@@ -158,8 +158,8 @@ export function planAccountsFromInstances(instances: InstanceConfigMap): PlanAcc
       driver,
       environment: { ...entry.environment },
       ...(configDir ? { configDir } : {}),
-      // Reading ~/.codex/auth.json for a ChatGPT-plan provider would report (and hold it on) another account's limit.
-      ...(config?.authMode === "chatgpt-plan" ? { noUsage: true as const } : {}),
+      // a ChatGPT-plan provider or an API-key instance shares the signed-in account's folder: its limits are not this instance's
+      ...(config?.authMode === "chatgpt-plan" || entry.access === "api" || config?.requireApiKey === true ? { noUsage: true as const } : {}),
     });
   }
   return accounts;

@@ -510,4 +510,14 @@ describe("plan usage fetcher", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(report.providers.map((row) => row.id)).toEqual(["codex"]);
   });
+
+  it("reads no usage for Claude (API key), which shares the signed-in Claude folder", () => {
+    expect(planAccountsFromInstances({
+      claude: { driver: "claudeAgent" },
+      claudeApi: { driver: "claudeAgent", displayName: "Claude (API key)", access: "api", config: { requireApiKey: true } },
+    })).toEqual([
+      { id: "claude", name: "Claude", driver: "claude", environment: {} },
+      { id: "claudeApi", name: "Claude (API key)", driver: "claude", environment: {}, noUsage: true },
+    ]);
+  });
 });
