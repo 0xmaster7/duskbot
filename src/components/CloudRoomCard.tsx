@@ -23,7 +23,7 @@ export function CloudRoomCardView({ view, upgrade, browser, upgraded, restart, o
 }) {
   if (upgraded) {
     return (
-      <section data-cloud-room-card="upgraded" className="mb-2 rounded-xl border border-hairline/50 bg-card p-3 text-ink shadow-sm">
+      <section data-cloud-room-card="upgraded" className="mb-2 rounded-xl bg-composer p-3 text-ink ring-[0.5px] ring-ink/10">
         <p role="status" className="text-[12px] leading-relaxed text-ink">{restart && restart !== "asking" ? t(RESTART_NOTE[restart] as Parameters<typeof t>[0]) : t("roomCard.done", { plan: cloudPlanLabel(upgraded) })}</p>
         {(restart === null || restart === "asking") && <>
           <button type="button" className="ui-button mt-2.5 w-full justify-center gap-1.5" disabled={restart === "asking"} onClick={onRestart}>
@@ -39,7 +39,7 @@ export function CloudRoomCardView({ view, upgrade, browser, upgraded, restart, o
   if (!view) return <>{children}</>;
   return (
     <section aria-labelledby="cloud-room-card-title" data-cloud-room-card={view.offer ? "upgrade" : "tip"} data-room-cause={view.kind}
-      className="mb-2 rounded-xl border border-hairline/50 bg-card p-3 text-ink shadow-sm">
+      className="mb-2 rounded-xl bg-composer p-3 text-ink ring-[0.5px] ring-ink/10">
       <h2 id="cloud-room-card-title" className="text-[13px] font-semibold leading-5">{view.title}</h2>
       <p className="mt-1 text-[12px] leading-relaxed text-ink">{view.cause}</p>
       {view.offer ? <>

@@ -153,7 +153,7 @@ export function CloudUsageCardView({ usage, meters, band, upgrade, onHide, onSee
   const path = upgradePath(usage), target = nextPlan(usage);
   return (
     <section aria-labelledby="cloud-usage-card-title" data-cloud-usage-card={band}
-      className="mb-2 rounded-xl border border-hairline/50 bg-card p-3 text-ink shadow-sm">
+      className="mb-2 rounded-xl bg-composer p-3 text-ink ring-[0.5px] ring-ink/10">
       <div className="flex items-start justify-between gap-2">
         <h2 id="cloud-usage-card-title" className="min-w-0 text-[13px] font-semibold leading-5">{t(band === "full" ? "usageMeter.card.full" : "usageMeter.card.near")}</h2>
         <button type="button" onClick={onHide} aria-label={t("usageMeter.card.hide")} title={t("usageMeter.card.hide")} className="ui-icon-button -me-1 -mt-0.5 shrink-0"><X size={14} /></button>
