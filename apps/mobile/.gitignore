@@ -7,3 +7,4 @@ android/build/
 android/app/build/
 *.keystore
 ios/DerivedData/
+ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
