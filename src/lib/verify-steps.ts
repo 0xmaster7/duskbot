@@ -10,9 +10,6 @@ export type RunStep = {
   dryRun: boolean;
   verified: boolean;
 };
-/** @deprecated Use RunStep. */
-export type VerifyStep = RunStep;
-
 export { nameIsCommand } from "../../shared/tool-name";
 
 /** The driver's summary, never the name: server status chips quote commands in their name. */

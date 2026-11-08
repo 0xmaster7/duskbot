@@ -23,7 +23,3 @@ export function useAutomationNeedingYou(): AutomationNeedingYou | null {
   const found = unseen ?? (trouble ? { kind: "app" as const, id: trouble.id, botId: trouble.botId } : null);
   return found ? { kind: found.kind, id: found.id, botId: found.botId } : null;
 }
-
-export function useAutomationsNeedYou(): boolean {
-  return useAutomationNeedingYou() !== null;
-}

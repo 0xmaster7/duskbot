@@ -138,7 +138,3 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
 export function Skeleton({ className, style }: { className?: string; style?: CSSProperties }) {
   return <div className={cx("skeleton", className)} style={style} aria-hidden />;
 }
-
-export function Divider({ className }: { className?: string }) {
-  return <div className={cx("h-px bg-line", className)} />;
-}

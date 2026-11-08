@@ -5,8 +5,6 @@
 import { useSyncExternalStore } from "react";
 
 import type { RuntimeEvent } from "../../shared/runtime-events";
-import { isCancelledTranscriptRow } from "../../shared/client-cancel";
-import type { Message } from "@/state/store";
 
 export const STOP_REPEAT_MS = 1_000;
 
@@ -42,11 +40,6 @@ export function forgetLiveTurns(): void {
 /** How many turns this client has seen start in a thread: a change means another turn ran. */
 export function turnStartCount(threadId: string): number {
   return turnStarts.get(threadId) ?? 0;
-}
-
-/** The turn this client saw start in a thread and not yet end; undefined when it has seen none. */
-export function useLiveTurn(threadId: string): string | undefined {
-  return useSyncExternalStore(subscribe, () => liveTurns.get(threadId), () => undefined);
 }
 
 /** Tests only: start from no live turns and no recent Stops. */
@@ -92,13 +85,4 @@ export function sendStop(api: Api, action: StopAction, showError: (error: unknow
 /** When this client's Stop last reached a turn in the thread. */
 export function useStoppedAt(threadId: string): number | undefined {
   return useSyncExternalStore(subscribe, () => stopsHere.get(threadId), () => undefined);
-}
-
-/** A Stop from here ended the turn on the newest message, and nothing came after it: not an answer, not the server's
- * own stopped row. */
-export function stopNoticeDue(messages: readonly Message[], stoppedAt: number | undefined, busy: boolean): boolean {
-  if (busy || stoppedAt === undefined) return false;
-  const asked = messages.findLastIndex((message) => message.role === "user");
-  if (asked < 0 || messages[asked]!.at > stoppedAt) return false;
-  return !messages.slice(asked + 1).some((message) => message.kind === "text" || isCancelledTranscriptRow(message));
 }

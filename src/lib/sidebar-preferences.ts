@@ -174,12 +174,6 @@ export function savePinnedCircles(
   }
 }
 
-export function setPinnedCircles(enabled: boolean): void {
-  sessionPinnedCircles = enabled;
-  savePinnedCircles(enabled);
-  notifyPinnedCircles();
-}
-
 export function usePinnedCircles(): boolean {
   return useSyncExternalStore(subscribePinnedCircles, loadPinnedCircles, () => false);
 }
@@ -264,12 +258,6 @@ export function saveUniversalPins(
     target?.setItem(UNIVERSAL_PINS_KEY, enabled ? "true" : "false");
   } catch {
   }
-}
-
-export function setUniversalPins(enabled: boolean): void {
-  sessionUniversalPins = enabled;
-  saveUniversalPins(enabled);
-  notifyUniversalPins();
 }
 
 export function useUniversalPins(): boolean {

@@ -67,13 +67,6 @@ export function chiefStepFits<T extends ChiefCandidate>(bots: readonly T[], maus
 let chiefStep = false;
 const chiefStepListeners = new Set<() => void>();
 
-/** The first run's Chief step is on screen: the app behind it is the empty shell, never a chat. */
-export function setChiefStepOpen(open: boolean): void {
-  if (chiefStep === open) return;
-  chiefStep = open;
-  for (const listener of chiefStepListeners) listener();
-}
-
 export function useChiefStepOpen(): boolean {
   return useSyncExternalStore((listener) => {
     chiefStepListeners.add(listener);

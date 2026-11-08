@@ -31,4 +31,3 @@ export function createJsonStore<T extends object>(file: string, initial: () => T
     close() { if (timer) commit(); },
   };
 }
-export type JsonStore<T extends object> = ReturnType<typeof createJsonStore<T>>;

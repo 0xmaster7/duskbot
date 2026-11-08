@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { api, useStore, openThread, type Bot } from "@/state/store";
 import { useShowThreads } from "@/lib/thread-preferences";
-import { askingWhom, departmentOwner, ownerChanged, ownerOf, pictureOf, refreshNeedsYou, useTeamPeople, type TeamPeople, type TeamPerson } from "@/state/team-people";
+import { askingWhom, ownerChanged, pictureOf, refreshNeedsYou, useTeamPeople, type TeamPerson } from "@/state/team-people";
 import type { NeedsYouItem } from "../../shared/today";
 import { useInboxSupport } from "@/state/inbox";
 import { useHeldMenuMotion } from "./MenuMotion";
@@ -105,20 +105,6 @@ export function OwnerPicker({ target, onClose }: { target: OwnerPickerTarget | n
     </div>,
     document.body,
   );
-}
-
-/** The bot menu's line: "Looked after by Bob…". */
-export function ownerMenuLabel(bot: Bot, team: TeamPeople): string {
-  const owner = ownerOf(bot, team);
-  return owner ? t("lookedAfter.menu", { name: owner.name }) : t("lookedAfter.menuNone");
-}
-
-/** Opens the picker for one bot, or for every bot of a department ("Set owner for all bots…"). */
-export function pickOwnerOf(bots: readonly Bot[], team: TeamPeople, at: { x: number; y: number; name?: string }): void {
-  if (!bots.length) return;
-  const title = bots.length === 1 && at.name === undefined ? t("lookedAfter.pickTitle") : t("lookedAfter.setForAllTitle", { name: at.name ?? "" });
-  const current = bots.length === 1 ? ownerOf(bots[0]!, team)?.email ?? null : departmentOwner(bots, team)?.email ?? null;
-  requestOwnerPick({ botIds: bots.map((bot) => bot.id), title, current, x: at.x, y: at.y });
 }
 
 /** A tag or passed message is done once its person opens it, even in a shared chat someone else already read. */

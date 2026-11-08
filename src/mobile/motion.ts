@@ -15,13 +15,7 @@ export const spring = {
   popover: { type: "spring", stiffness: 420, damping: 34, mass: 0.7 } as const,
   panel: { type: "spring", stiffness: 320, damping: 32, mass: 0.7 } as const,
 };
-export const PRESS_SCALE = 0.96;
 export const withFade = <T extends object>(s: T) => ({ ...s, opacity: { duration: dur.fast } });
-
-export const css = {
-  out: "cubic-bezier(.22,1,.36,1)",
-  release: "cubic-bezier(.28,1.4,.36,1)",
-};
 
 /** The software keyboard's own curve: iOS slides it on a damped spring that this bezier traces within a frame, Android
  * on its emphasized decelerate. */

@@ -5,11 +5,6 @@ export function routineRunTime(run: RoutineRun): number {
   return run.createdAt || run.startedAt || run.scheduledFor;
 }
 
-export function latestRoutineRun(routineId: string, runs: readonly RoutineRun[]): RoutineRun | undefined {
-  return runs.filter((run) => run.routineId === routineId)
-    .reduce<RoutineRun | undefined>((latest, run) => !latest || routineRunTime(run) > routineRunTime(latest) ? run : latest, undefined);
-}
-
 /** A run that failed only because a step did, after its reply came back. */
 export function partlyDone(run: RoutineRun): boolean {
   return run.status === "failed" && run.partial === true && !run.goalStatus;
@@ -40,11 +35,6 @@ export function routineFinished(routine: Routine): boolean {
 export function routineScheduleState(routine: Routine): string {
   if (routineFinished(routine)) return t("routines.finishedSchedule");
   return routine.enabled ? t("routines.activeSchedule") : t("routines.pausedSchedule");
-}
-
-/** Why OpenMausBot keeps this routine paused, while it does (its owner left: shared/routines.ts RoutineHoldCause). */
-export function routineHeldNote(routine: Routine): string | null {
-  return routine.heldFor ? t(`routines.heldFor.${routine.heldFor}`) : null;
 }
 
 export function routineNextLabel(routine: Routine): string {

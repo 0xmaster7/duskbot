@@ -45,19 +45,6 @@ export function catalogSections<Card extends CatalogCard>(
   return sections;
 }
 
-// Catalog categories and blurbs come in English; the known ones show in the app's language.
-const APP_CATEGORY_COPY: Record<string, string> = {
-  productivity: "productivity",
-  "developer tools": "developerTools",
-  communication: "communication",
-  files: "files",
-  "sales and crm": "salesCrm",
-  design: "design",
-  marketing: "marketing",
-  analytics: "analytics",
-  social: "social",
-};
-
 const CONNECTOR_COPY: Record<string, string> = {
   "google calendar": "googleCalendar",
   "google sheets": "googleSheets",
@@ -84,11 +71,6 @@ const CONNECTOR_COPY: Record<string, string> = {
   figma: "figma",
   stripe: "stripe",
 };
-
-export function appCategoryLabel(name: string): string {
-  const id = APP_CATEGORY_COPY[name.trim().toLowerCase()];
-  return id ? t(`apps.category.${id}` as LocaleKey) : name;
-}
 
 export function connectorDescription(card: { label: string; blurb: string }): string {
   const id = CONNECTOR_COPY[card.label.trim().toLowerCase()];

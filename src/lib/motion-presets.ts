@@ -1,9 +1,6 @@
 // shared motion values for the `motion` package, read from Grok Bot's own bundle.
 // pass a preset as `transition`; under reduced motion use `REDUCED` and drop the movement, keep the fade.
 
-/** a press, a toggle thumb, a tab indicator: Grok's critically damped snap */
-export const SPRING_SNAP = { type: "spring", stiffness: 1000, damping: 63, mass: 1 } as const;
-
 /** a menu, popover or panel arriving: Grok's default UI spring */
 export const SPRING_UI = { type: "spring", stiffness: 175, damping: 26, mass: 1 } as const;
 
@@ -104,9 +101,3 @@ export const SWAP = {
   initial: { opacity: 0, y: 6 },
   animate: { opacity: 1, y: 0, transition: { duration: BENCHO.dur.base, ease: BENCHO.ease.out } },
 } as const;
-
-/** the person's sent bubble rising from the composer to its place: a little visible settle (about 3% overshoot) */
-export const SPRING_SEND = { type: "spring", stiffness: 400, damping: 30, mass: 1 } as const;
-
-/** a bot's reply settling in where it lands: soft, about 250ms, no overshoot to speak of */
-export const SPRING_REPLY = { type: "spring", stiffness: 420, damping: 36, mass: 1 } as const;

@@ -19,12 +19,6 @@ export function whenLabel(at: number): string {
   return sameDay ? niceTime(at) : date.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-export function durationLabel(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`;
-  if (minutes % 60 === 0) return `${minutes / 60} hr`;
-  return `${Math.floor(minutes / 60)} hr ${minutes % 60} min`;
-}
-
 export function intervalLabel(minutes: number): string {
   if (minutes < 60) return `Every ${minutes} min`;
   if (minutes === 60) return "Every hour";

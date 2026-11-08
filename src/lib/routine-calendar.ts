@@ -267,16 +267,3 @@ export function projectedRoutineItems(
   }
   return items.sort((left, right) => left.at - right.at);
 }
-
-export function calendarRangeLabel(from: number, days: number): string {
-  const to = addDays(from, days - 1);
-  const start = new Date(from);
-  const end = new Date(to);
-  if (days === 1) {
-    return start.toLocaleDateString([], { month: "long", day: "numeric", year: "numeric" });
-  }
-  if (start.getMonth() === end.getMonth()) {
-    return `${start.toLocaleDateString([], { month: "long" })} ${start.getDate()} – ${end.getDate()}, ${end.getFullYear()}`;
-  }
-  return `${start.toLocaleDateString([], { month: "short", day: "numeric" })} – ${end.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}`;
-}

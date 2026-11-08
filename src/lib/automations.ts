@@ -383,10 +383,3 @@ export function lastReceived(webhook: Pick<WebhookTrigger, "id" | "verificationS
   if (latest) return { at: latest.receivedAt, preview: latest.preview! };
   return webhook.verificationSample?.preview ? { at: webhook.verificationSample.receivedAt, preview: webhook.verificationSample.preview } : null;
 }
-
-/** Under an automation's name: when it runs and which bot runs it, or its whole sentence when it waits on an app. */
-export function automationSubtitle(automation: Automation, botName: string): string {
-  return automation.kind === "schedule" && automation.schedule
-    ? `${plainWhen(automation.schedule)} · ${botName}`
-    : automationSentence(automation, botName);
-}

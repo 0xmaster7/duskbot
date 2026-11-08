@@ -50,10 +50,6 @@ export function trailingRows(messages: readonly Message[], scan = 200): { failur
   return { failures: failures.reverse(), notices: notices.reverse() };
 }
 
-export function trailingFailures(messages: readonly Message[], scan = 200): Message[] {
-  return trailingRows(messages, scan).failures;
-}
-
 const SIGNED_OUT_WORDS = /not logged in|logged out|\/login|not signed in|sign in again|authentication required|unauthori[sz]ed|invalid api key|\b401\b/i;
 const USAGE_WORDS = /usage limit|limit reached|hit your [\w' -]{0,30}limit/i;
 const CREDIT_WORDS = /out of credits?|payment required|insufficient (?:funds|balance|credits?)/i;

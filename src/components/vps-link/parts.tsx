@@ -1,12 +1,10 @@
 // small shared pieces of Add your VPS, laid out where Grok Bot's first run puts them: the heading 264px above the middle,
 // the picture under it, one idea in the middle and the pills 200px below it
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Check, Copy, Loader2, Minus, X } from "lucide-react";
+import { Check, Copy, X } from "lucide-react";
 import { useCopyFeedback } from "@/lib/copy-text";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-
-export type RowStatus = "waiting" | "running" | "done" | "failed" | "skipped";
 
 export const TITLE_ID = "vps-flow-title";
 // grok's lg pills from the first run: the 288px primary, and Back's quiet ink/6 one under it
@@ -54,20 +52,6 @@ export function Footer({ children, note }: { children: ReactNode; note?: ReactNo
     </div>
   );
 }
-
-export function StatusMark({ status }: { status: RowStatus }) {
-  const box = "flex size-4 shrink-0 items-center justify-center rounded-full";
-  if (status === "done") return <span className={cn(box, "bg-success/15 text-success")}><Check size={10} strokeWidth={3} aria-hidden="true" /></span>;
-  if (status === "failed") return <span className={cn(box, "bg-danger/15 text-danger")}><X size={10} strokeWidth={3} aria-hidden="true" /></span>;
-  if (status === "skipped") return <span className={cn(box, "text-ink/40")}><Minus size={12} aria-hidden="true" /></span>;
-  if (status === "running") return <span className={cn(box, "text-ink")}><Loader2 size={13} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /></span>;
-  return <span className={cn(box, "border border-dashed border-ink/25")} aria-hidden="true" />;
-}
-
-const STATUS_WORD: Record<RowStatus, Parameters<typeof t>[0]> = {
-  waiting: "vpsLink.status.waiting", running: "vpsLink.status.running", done: "vpsLink.status.done", failed: "vpsLink.status.failed", skipped: "vpsLink.status.skipped",
-};
-export const statusWord = (status: RowStatus) => t(STATUS_WORD[status]);
 
 /** One thin bar, filled on transform. */
 export function ProgressBar({ value, label, detail, tone }: { value: number | null; label: string; detail?: string | null; tone?: "danger" }) {
