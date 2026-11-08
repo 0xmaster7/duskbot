@@ -126,8 +126,9 @@ export function createComputerEgress(deps: ComputerEgressDeps) {
   const log = deps.log ?? (() => {});
   let report: EgressAgentReport | null = null, reportedAt = -Infinity;
   let generation = 0, routeUp = false, lastFallbacks = 0, retryAt = 0, fast = false;
-  // a box may hold a policy from before this server started; the first pass clears what is not wanted
-  let dirty = true, running: Promise<void> | null = null, again = false;
+  let running: Promise<void> | null = null, again = false;
+  // what each running box holds. a box not in here (just started, or from before this server) gets the current policy,
+  // off included: its writable root keeps whatever an earlier route or server left in it across restarts
   const applied = new Map<string, string>();
 
   function route(): EgressRoute {
@@ -139,11 +140,10 @@ export function createComputerEgress(deps: ComputerEgressDeps) {
     const docker = deps.docker();
     const up = route() === "computer";
     if (up && !routeUp) generation += 1;
-    if (!up && routeUp) dirty = true;
     if (up && report && report.fallbacks > lastFallbacks && now() >= retryAt) { generation += 1; retryAt = now() + FALLBACK_RETRY_MS; }
     lastFallbacks = report?.fallbacks ?? 0;
     routeUp = up;
-    if (!docker || (!up && !dirty)) return;
+    if (!docker) return;
     const proxy = report?.proxy;
     const want = up && proxy ? { proxy, body: egressPolicy(proxy, generation) } : null;
     const key = want ? `on:${generation}:${want.proxy.host}:${want.proxy.port}` : "off";
@@ -167,7 +167,6 @@ export function createComputerEgress(deps: ComputerEgressDeps) {
         log(`route traffic: could not update bot computer ${id.slice(0, 12)} (${error instanceof Error ? error.message.split("\n")[0] : String(error)})`);
       }
     }));
-    if (!want) dirty = false;
   }
 
   function reconcile(): Promise<void> {
@@ -191,7 +190,6 @@ export function createComputerEgress(deps: ComputerEgressDeps) {
     },
     /** after the setting changed */
     changed(): Promise<void> {
-      if (!deps.enabled()) dirty = true;
       return reconcile();
     },
     status(): EgressStatus {
