@@ -7826,5 +7826,22 @@
   "mobile.onboarding.err.invalid.title": "That isn't a phone code",
   "mobile.onboarding.err.invalid.body": "Scan the QR code in Settings, Phone on your computer, or check the code and try again.",
   "mobile.onboarding.err.unsupported.title": "This phone can't link securely",
-  "mobile.onboarding.err.unsupported.body": "It's missing the encryption the link needs. Update the system, or link from another phone."
+  "mobile.onboarding.err.unsupported.body": "It's missing the encryption the link needs. Update the system, or link from another phone.",
+  "mobile.account.title": "Create your account",
+  "mobile.account.body": "One account keeps your bots, your phone and your computers together.",
+  "mobile.account.apple": "Continue with Apple",
+  "mobile.account.google": "Continue with Google",
+  "mobile.account.x": "X",
+  "mobile.account.email": "Email",
+  "mobile.account.same": "Already have an account? The same buttons sign you in.",
+  "mobile.account.inBrowser": "Finish signing in in your browser",
+  "mobile.account.finishing": "Signing you in",
+  "mobile.account.err.oauth_denied": "Sign-in was cancelled. Pick a way to continue.",
+  "mobile.account.err.oauth_failed": "That sign-in didn't finish. Try again.",
+  "mobile.account.err.oauth_expired": "That sign-in took too long. Start again.",
+  "mobile.account.err.provider_unavailable": "That option isn't available yet. Try another.",
+  "mobile.account.err.signup_closed": "New accounts are closed right now.",
+  "mobile.account.err.identity_taken": "That sign-in already belongs to another account.",
+  "mobile.account.err.state": "That sign-in started somewhere else. Start again here.",
+  "mobile.account.err.network": "Couldn't reach the account service. Check your connection."
 }

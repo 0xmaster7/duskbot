@@ -3657,5 +3657,22 @@
   "mobile.onboarding.err.invalid.title": "Це не код для телефону",
   "mobile.onboarding.err.invalid.body": "Скануйте QR-код у Налаштування, Phone на комп'ютері або перевірте код і спробуйте ще раз.",
   "mobile.onboarding.err.unsupported.title": "Цей телефон не може безпечно прив'язатися",
-  "mobile.onboarding.err.unsupported.body": "Бракує потрібного для прив'язування шифрування. Оновіть систему або прив'яжіть інший телефон."
+  "mobile.onboarding.err.unsupported.body": "Бракує потрібного для прив'язування шифрування. Оновіть систему або прив'яжіть інший телефон.",
+  "mobile.account.title": "Створіть обліковий запис",
+  "mobile.account.body": "Один обліковий запис об'єднує ваших ботів, телефон і комп'ютери.",
+  "mobile.account.apple": "Продовжити з Apple",
+  "mobile.account.google": "Продовжити з Google",
+  "mobile.account.x": "X",
+  "mobile.account.email": "Електронна пошта",
+  "mobile.account.same": "Уже маєте обліковий запис? Скористайтеся тими самими кнопками для входу.",
+  "mobile.account.inBrowser": "Завершіть вхід у браузері",
+  "mobile.account.finishing": "Виконується вхід",
+  "mobile.account.err.oauth_denied": "Вхід скасовано. Виберіть спосіб продовжити.",
+  "mobile.account.err.oauth_failed": "Не вдалося завершити вхід. Спробуйте ще раз.",
+  "mobile.account.err.oauth_expired": "Вхід тривав задовго. Почніть знову.",
+  "mobile.account.err.provider_unavailable": "Цей варіант поки недоступний. Спробуйте інший.",
+  "mobile.account.err.signup_closed": "Зараз не можна створювати нові облікові записи.",
+  "mobile.account.err.identity_taken": "Цей спосіб входу вже пов'язаний з іншим обліковим записом.",
+  "mobile.account.err.state": "Цей вхід розпочато в іншому місці. Почніть знову тут.",
+  "mobile.account.err.network": "Не вдалося зв'язатися зі службою облікових записів. Перевірте з'єднання."
 }

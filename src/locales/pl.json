@@ -6348,5 +6348,22 @@
   "mobile.onboarding.err.invalid.title": "To nie jest kod do połączenia telefonu",
   "mobile.onboarding.err.invalid.body": "Zeskanuj kod QR w Ustawienia, Phone na komputerze lub sprawdź kod i spróbuj ponownie.",
   "mobile.onboarding.err.unsupported.title": "Ten telefon nie może połączyć się bezpiecznie",
-  "mobile.onboarding.err.unsupported.body": "Brakuje szyfrowania wymaganego do połączenia. Zaktualizuj system lub połącz inny telefon."
+  "mobile.onboarding.err.unsupported.body": "Brakuje szyfrowania wymaganego do połączenia. Zaktualizuj system lub połącz inny telefon.",
+  "mobile.account.title": "Utwórz konto",
+  "mobile.account.body": "Jedno konto łączy twoje boty, telefon i komputery.",
+  "mobile.account.apple": "Kontynuuj z Apple",
+  "mobile.account.google": "Kontynuuj z Google",
+  "mobile.account.x": "X",
+  "mobile.account.email": "E-mail",
+  "mobile.account.same": "Masz już konto? Te same przyciski pozwolą ci się zalogować.",
+  "mobile.account.inBrowser": "Dokończ logowanie w przeglądarce",
+  "mobile.account.finishing": "Logowanie",
+  "mobile.account.err.oauth_denied": "Logowanie anulowano. Wybierz sposób, aby kontynuować.",
+  "mobile.account.err.oauth_failed": "Nie udało się dokończyć logowania. Spróbuj ponownie.",
+  "mobile.account.err.oauth_expired": "Logowanie trwało zbyt długo. Zacznij od nowa.",
+  "mobile.account.err.provider_unavailable": "Ta opcja nie jest jeszcze dostępna. Wypróbuj inną.",
+  "mobile.account.err.signup_closed": "Obecnie nie można tworzyć nowych kont.",
+  "mobile.account.err.identity_taken": "Ten sposób logowania jest już przypisany do innego konta.",
+  "mobile.account.err.state": "To logowanie rozpoczęto w innym miejscu. Zacznij od nowa tutaj.",
+  "mobile.account.err.network": "Nie udało się połączyć z usługą kont. Sprawdź połączenie."
 }

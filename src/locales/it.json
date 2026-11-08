@@ -6184,5 +6184,22 @@
   "mobile.onboarding.err.invalid.title": "Questo non è un codice per telefono",
   "mobile.onboarding.err.invalid.body": "Scansiona il codice QR in Impostazioni, Phone sul computer, oppure controlla il codice e riprova.",
   "mobile.onboarding.err.unsupported.title": "Questo telefono non può collegarsi in modo sicuro",
-  "mobile.onboarding.err.unsupported.body": "Manca la crittografia necessaria al collegamento. Aggiorna il sistema o collega un altro telefono."
+  "mobile.onboarding.err.unsupported.body": "Manca la crittografia necessaria al collegamento. Aggiorna il sistema o collega un altro telefono.",
+  "mobile.account.title": "Crea il tuo account",
+  "mobile.account.body": "Un solo account tiene insieme i tuoi bot, il telefono e i computer.",
+  "mobile.account.apple": "Continua con Apple",
+  "mobile.account.google": "Continua con Google",
+  "mobile.account.x": "X",
+  "mobile.account.email": "Email",
+  "mobile.account.same": "Hai già un account? Usa gli stessi pulsanti per accedere.",
+  "mobile.account.inBrowser": "Completa l'accesso nel browser",
+  "mobile.account.finishing": "Accesso in corso",
+  "mobile.account.err.oauth_denied": "L'accesso è stato annullato. Scegli un modo per continuare.",
+  "mobile.account.err.oauth_failed": "L'accesso non è stato completato. Riprova.",
+  "mobile.account.err.oauth_expired": "L'accesso ha richiesto troppo tempo. Ricomincia.",
+  "mobile.account.err.provider_unavailable": "Questa opzione non è ancora disponibile. Provane un'altra.",
+  "mobile.account.err.signup_closed": "Al momento non puoi creare nuovi account.",
+  "mobile.account.err.identity_taken": "Questo accesso è già associato a un altro account.",
+  "mobile.account.err.state": "Questo accesso è iniziato altrove. Ricomincia da qui.",
+  "mobile.account.err.network": "Impossibile raggiungere il servizio account. Controlla la connessione."
 }

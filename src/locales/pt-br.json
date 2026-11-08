@@ -6222,5 +6222,22 @@
   "mobile.onboarding.err.invalid.title": "Esse não é um código de celular",
   "mobile.onboarding.err.invalid.body": "Leia o código QR em Configurações, Phone no computador, ou confira o código e tente novamente.",
   "mobile.onboarding.err.unsupported.title": "Este celular não pode se vincular com segurança",
-  "mobile.onboarding.err.unsupported.body": "Falta a criptografia necessária para o vínculo. Atualize o sistema ou vincule outro celular."
+  "mobile.onboarding.err.unsupported.body": "Falta a criptografia necessária para o vínculo. Atualize o sistema ou vincule outro celular.",
+  "mobile.account.title": "Crie sua conta",
+  "mobile.account.body": "Uma só conta mantém seus bots, celular e computadores conectados.",
+  "mobile.account.apple": "Continuar com Apple",
+  "mobile.account.google": "Continuar com Google",
+  "mobile.account.x": "X",
+  "mobile.account.email": "E-mail",
+  "mobile.account.same": "Já tem uma conta? Use os mesmos botões para entrar.",
+  "mobile.account.inBrowser": "Conclua o login no navegador",
+  "mobile.account.finishing": "Entrando",
+  "mobile.account.err.oauth_denied": "O login foi cancelado. Escolha uma opção para continuar.",
+  "mobile.account.err.oauth_failed": "O login não foi concluído. Tente novamente.",
+  "mobile.account.err.oauth_expired": "O login demorou demais. Comece de novo.",
+  "mobile.account.err.provider_unavailable": "Essa opção ainda não está disponível. Tente outra.",
+  "mobile.account.err.signup_closed": "No momento, não é possível criar contas.",
+  "mobile.account.err.identity_taken": "Esse login já pertence a outra conta.",
+  "mobile.account.err.state": "Esse login começou em outro lugar. Comece de novo aqui.",
+  "mobile.account.err.network": "Não foi possível acessar o serviço de contas. Verifique sua conexão."
 }

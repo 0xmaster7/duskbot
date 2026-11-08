@@ -3350,5 +3350,22 @@
   "mobile.onboarding.err.invalid.title": "Das ist kein Handy-Code",
   "mobile.onboarding.err.invalid.body": "Scanne den QR-Code unter Einstellungen, Phone auf deinem Computer oder prüfe den Code und versuch es erneut.",
   "mobile.onboarding.err.unsupported.title": "Dieses Handy kann nicht sicher verknüpft werden",
-  "mobile.onboarding.err.unsupported.body": "Die nötige Verschlüsselung fehlt. Aktualisiere das System oder verknüpfe ein anderes Handy."
+  "mobile.onboarding.err.unsupported.body": "Die nötige Verschlüsselung fehlt. Aktualisiere das System oder verknüpfe ein anderes Handy.",
+  "mobile.account.title": "Erstelle dein Konto",
+  "mobile.account.body": "Ein Konto verbindet deine Bots, dein Handy und deine Computer.",
+  "mobile.account.apple": "Mit Apple fortfahren",
+  "mobile.account.google": "Mit Google fortfahren",
+  "mobile.account.x": "X",
+  "mobile.account.email": "E-Mail",
+  "mobile.account.same": "Du hast schon ein Konto? Mit denselben Schaltflächen meldest du dich an.",
+  "mobile.account.inBrowser": "Schließe die Anmeldung in deinem Browser ab",
+  "mobile.account.finishing": "Du wirst angemeldet",
+  "mobile.account.err.oauth_denied": "Die Anmeldung wurde abgebrochen. Wähle eine Option, um fortzufahren.",
+  "mobile.account.err.oauth_failed": "Die Anmeldung wurde nicht abgeschlossen. Versuche es erneut.",
+  "mobile.account.err.oauth_expired": "Die Anmeldung hat zu lange gedauert. Starte erneut.",
+  "mobile.account.err.provider_unavailable": "Diese Option ist noch nicht verfügbar. Versuche eine andere.",
+  "mobile.account.err.signup_closed": "Zurzeit können keine neuen Konten erstellt werden.",
+  "mobile.account.err.identity_taken": "Diese Anmeldung gehört bereits zu einem anderen Konto.",
+  "mobile.account.err.state": "Die Anmeldung wurde woanders gestartet. Starte hier erneut.",
+  "mobile.account.err.network": "Der Kontodienst ist nicht erreichbar. Prüfe deine Verbindung."
 }
