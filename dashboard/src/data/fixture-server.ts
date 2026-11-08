@@ -193,6 +193,13 @@ function route(method: string, path: string, body: unknown, query: URLSearchPara
     }
     if (method === "DELETE") {
       if (b.confirm !== s.account.profile.email) fail("The email does not match your account.", 400, "confirm_mismatch");
+      if (FIXTURE === "cloud" && b.cancelBilling !== true) {
+        const blockers = [
+          ...(s.billing.subscription ? [{ kind: "subscription" as const, id: s.billing.subscription.id, label: "Pro", status: s.billing.subscription.status }] : []),
+          ...s.clouds.map(cloud => ({ kind: "cloud_desktop" as const, id: cloud.id, label: cloud.name, status: cloud.status })),
+        ];
+        throw new ApiError("Cancel your plan and cloud desktops before deleting your account.", 409, "billing_active", blockers);
+      }
       s.signedIn = false; s.firstSignIn = true; return {};
     }
   }

@@ -10,6 +10,7 @@ import type { Mailer } from "./auth/mail.ts";
 import { createStore } from "./store.ts";
 import type { Account, StoredWorkspace } from "./store.ts";
 import { createBilling } from "./billing/index.ts";
+import { BillingError } from "./billing/service.ts";
 
 export interface DashboardAppOptions {
   dataDir: string;
@@ -53,11 +54,15 @@ export function createDashboardApp(options: DashboardAppOptions) {
     for (const ws of state.workspaces) if (ws.ownerAccountId === id) forget(ws);
     state.workspaces = state.workspaces.filter(ws => ws.ownerAccountId !== id);
     watching.delete(id);
-    store.changed();
+    store.changed(); store.close();
   });
-  const billing = createBilling({ dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, accounts: {
+  const billing = createBilling({ accountExists: id => auth.account(id) !== null, dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, accounts: {
     fromCookie: req => { try { return account(req); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; } },
     fromBearer: req => auth.appSession(req)?.account ?? null } });
+  auth.beforeAccountDelete(async (owner, body) => {
+    try { await billing.beforeAccountDelete(owner, body); } catch (error) { if (error instanceof BillingError && error.code === "billing_active") throw new AuthError(409, "billing_active", { blockers: error.blockers }); throw error; }
+  });
+  auth.onAccountDeleted(id => billing.accountDeleted(id));
   auth.extendSession(async accountId => {
     const owner = auth.account(accountId);
     // the app session must survive a billing failure; it then reads as the free plan

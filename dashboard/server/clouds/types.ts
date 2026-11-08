@@ -145,6 +145,7 @@ export interface CloudsService {
   end(cloudId: string, destroyAt: number): void;
   /** a checkout that never completed */
   abandon(cloudId: string): void;
+  scrubAccount(accountId: string, anonId: string): void;
   get(cloudId: string): StoredCloud | null;
   owned(accountId: string, cloudId: string): StoredCloud | null;
   list(accountId: string, includeHidden?: boolean): StoredCloud[];

@@ -1,3 +1,5 @@
+import type { DeletionBlocker } from "./billing-api.ts";
+
 // the account contract of the hosted service (dashboard/server): who a person is, how they sign in, and the sessions
 // the website and the apps hold. version 1. the Admin contract v1 routes the desktop app already speaks
 // (/api/cloud/app/sign-in/*, /api/cloud/desktop/{authorize,token,session}) keep their shapes; everything here is additive.
@@ -91,7 +93,7 @@ export const ACCOUNT_ROUTES = {
   identity: (provider: OAuthProvider) => `/v1/account/identities/${provider}`, // DELETE -> AccountAnswer (refused for the last way in)
   session: (id: string) => `/v1/account/sessions/${encodeURIComponent(id)}`, //  DELETE -> { ok: true }
   signOutEverywhere: "/v1/account/signout-everywhere", // POST {} -> { ok: true } (every browser and app, this one too)
-  deleteAccount: "/v1/account/delete", //       POST { email } (must equal the account's) -> { ok: true }
+  deleteAccount: "/v1/account/delete", //       POST { email, cancelBilling?, destroyDesktopsNow? } (email must equal the account's) -> { ok: true }
   /** link another provider to the signed-in account: GET oauthStart(provider)?link=1&next=/account. */
   deviceLookup: "/v1/auth/device", //           GET ?code=XXXXX-XXXXX -> DeviceLookupAnswer
   deviceApprove: "/v1/auth/device/approve", //  POST { userCode } -> { ok: true }
@@ -140,7 +142,8 @@ export interface AppSessionIdentity {
 /** the error answer of the /v1 routes: { error: human text, code }. the Admin contract v1 routes (/api/cloud/*) answer
  * { error: code } instead, as the shipped apps read it. */
 export type AccountErrorCode =
+  | "billing_active"
   | "invalid_request" | "invalid_email" | "wrong_code" | "invalid_code" | "expired" | "rate_limited" | "signup_closed"
   | "signed_out" | "invalid_token" | "forbidden" | "csrf" | "not_found" | "last_identity" | "identity_taken"
   | "authorization_pending" | "slow_down" | "access_denied" | "expired_token" | "invalid_grant" | "provider_unavailable" | "failed";
-export interface AccountErrorAnswer { error: string; code: AccountErrorCode }
+export interface AccountErrorAnswer { error: string; code: AccountErrorCode; blockers?: DeletionBlocker[] }

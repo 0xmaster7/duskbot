@@ -22,6 +22,7 @@ export class AuthError extends Error {
   }
 }
 const messages: Partial<Record<AccountErrorCode, string>> = {
+  billing_active: "Cancel your plan and cloud desktops before deleting your account.",
   invalid_request: "Invalid request.", invalid_email: "Enter a valid email address.", wrong_code: "Code is incorrect.", invalid_code: "Code is incorrect.",
   expired: "Sign-in has expired.", rate_limited: "Try again later.", signup_closed: "New accounts are not available.", signed_out: "Sign in to continue.",
   csrf: "Refresh the page and try again.", not_found: "Not found.", invalid_token: "Session is invalid.", invalid_grant: "Grant is invalid.",
@@ -64,6 +65,7 @@ export function createAuth(options: AuthOptions) {
   const limits = new Map<string, { count: number; until: number }>();
   const sentAt = new Map<string, number>();
   const extensions: Array<(accountId: string) => Promise<Record<string, unknown>> | Record<string, unknown>> = [];
+  const beforeDeleteHooks: Array<(owner: Account, body: Record<string, unknown>) => void | Promise<void>> = [];
   const deletedHooks: Array<(accountId: string) => void | Promise<void>> = [];
   const signedInHooks: Array<(account: Account) => void> = [];
   const hmac = (value: string) => createHmac("sha256", store.secret).update(value).digest("base64url");
@@ -408,12 +410,14 @@ export function createAuth(options: AuthOptions) {
       } else if (method === "POST" && (path === R.signOutEverywhere || path === R.deleteAccount)) {
         const owner = requireWeb(req, { mutation: true });
         if (path === R.deleteAccount && cleanEmail(data.email) !== owner.email) fail(400, "invalid_request");
+        if (path === R.deleteAccount) for (const hook of beforeDeleteHooks) await hook(owner, data);
         removeSessions(owner.id);
         if (path === R.deleteAccount) {
           state.accounts = state.accounts.filter(item => item !== owner);
           state.identities = state.identities.filter(item => item.accountId !== owner.id);
           for (const [key, grant] of grants) if (grant.accountId === owner.id) grants.delete(key);
           for (const [key, attempt] of attempts) if (attempt.email === owner.email) attempts.delete(key);
+          store.close();
           for (const hook of deletedHooks) { try { await hook(owner.id); } catch { console.error("Account deletion cleanup failed."); } }
         }
         cookies(res); json({ ok: true });
@@ -482,6 +486,7 @@ export function createAuth(options: AuthOptions) {
   return {
     handle, webSession, requireWeb, appSession, account,
     extendSession(fn: (accountId: string) => Promise<Record<string, unknown>> | Record<string, unknown>) { extensions.push(fn); },
+    beforeAccountDelete(fn: (owner: Account, body: Record<string, unknown>) => void | Promise<void>) { beforeDeleteHooks.push(fn); },
     onAccountDeleted(fn: (accountId: string) => void | Promise<void>) { deletedHooks.push(fn); },
     onSignedIn(fn: (account: Account) => void) { signedInHooks.push(fn); },
     consumeEnrollGrant(token: string) {

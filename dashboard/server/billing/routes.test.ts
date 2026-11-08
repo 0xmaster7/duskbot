@@ -66,7 +66,7 @@ async function fixture() {
     for (const delivery of deliveries) await deliver(delivery); return deliveries;
   }
   async function reconcile() { for (let n = 0; n < 8; n++) await billing.clouds.reconcile(); }
-  return { dir, dashboard, billing, origin, page, answer, login, saved, complete, deliver, reconcile, setTime: (at: number) => { time = at; }, now: () => time };
+  return { dir, app, dashboard, billing, origin, page, answer, login, saved, complete, deliver, reconcile, setTime: (at: number) => { time = at; }, now: () => time };
 }
 const bundle = (id: string) => ({ ...structuredClone(BILLING_CONFIG.bundles.find(b => b.id === id)!.cart), interval: "month" });
 
@@ -228,11 +228,11 @@ it("does not give a recreated account the deleted account's license", async () =
   const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("starter") }, owner.cookie);
   await f.complete(checkout.checkoutId); await f.reconcile();
   const before = f.saved(), cloud = f.billing.clouds.get(checkout.cloudId!)!;
-  await f.answer("/v1/account/delete", { email: owner.account.email }, owner.cookie);
+  await f.answer("/v1/account/delete", { email: owner.account.email, cancelBilling: true }, owner.cookie);
   expect(f.dashboard.state.accounts).toHaveLength(0);
   expect(f.dashboard.state.workspaces).toHaveLength(0);
-  expect(f.saved()).toEqual(before);
-  expect(cloud).toMatchObject({ status: "running", destroyAt: null });
+  expect(f.saved().subscriptions[0].cancelAtPeriodEnd).toBe(true);
+  expect(cloud).toMatchObject({ status: "running", destroyAt: before.subscriptions[0].currentPeriodEnd! + 7 * 86_400_000 });
   f.setTime(f.now() + 30_000);
   const replacement = await f.login();
   expect(replacement.account.id).not.toBe(owner.account.id);
@@ -277,4 +277,137 @@ it("never mounts fake completion at a public origin even when fake mode is expli
   const billing = createBilling(options({ env: { OMB_BILLING_PROVIDER: "fake" } })); cleanup.push(() => billing.close());
   const origin = await listen(createServer(async (req, res) => { if (!await billing.handle(req, res, new URL(req.url!, "https://dashboard.example.test"))) { res.writeHead(404); res.end(); } }));
   expect((await fetch(`${origin}/v1/billing/fake/complete`, { method: "POST", body: "{}" })).status).toBe(404);
+});
+
+it("refuses deletion with both billing blockers before changing the account or billing", async () => {
+  const f = await fixture(), owner = await f.login();
+  const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("starter"), name: "My desktop" }, owner.cookie);
+  await f.complete(checkout.checkoutId); await f.reconcile();
+  const before = f.saved(), clouds = readFileSync(join(f.dir, "clouds.json"), "utf8");
+  const response = await f.page("/v1/account/delete", { email: owner.account.email }, owner.cookie);
+  expect(response.status).toBe(409);
+  expect(await response.json()).toEqual({ error: "Cancel your plan and cloud desktops before deleting your account.", code: "billing_active", blockers: [
+    { kind: "subscription", id: before.subscriptions[0].id, label: "Starter", status: "active" },
+    { kind: "cloud_desktop", id: checkout.cloudId, label: "My desktop", status: "running" },
+  ] });
+  expect(f.app.auth.account(owner.account.id)).not.toBeNull();
+  expect((await f.page("/v1/me", undefined, owner.cookie)).status).toBe(200);
+  f.setTime(f.now() + 31_000);
+  expect((await f.login()).account.id).toBe(owner.account.id);
+  expect(f.saved()).toEqual(before); expect(readFileSync(join(f.dir, "clouds.json"), "utf8")).toBe(clouds);
+  expect(f.billing.fake!.cancelCalls).toEqual([]);
+});
+
+it("closes billing, revokes licenses and scrubs personal records while retaining invoices", async () => {
+  const f = await fixture(), owner = await f.login();
+  const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("starter"), name: owner.account.email }, owner.cookie);
+  await f.complete(checkout.checkoutId); await f.reconcile();
+  f.billing.service.feedback(owner.account, { cloudId: checkout.cloudId, survey: { answer: "other", expected: owner.account.email, improve: owner.account.id } });
+  const other = await f.login("other@example.test");
+  const team = await f.billing.service.checkout(other.account, { kind: "cart", cart: { ...BILLING_CONFIG.bundles.find(b => b.id === "team")!.cart, interval: "month" } });
+  await f.complete(team.checkoutId);
+  const otherLicense = f.billing.service.licenses(other.account.id)[0];
+  f.billing.service.addMember(other.account, otherLicense.id, owner.account.email);
+  f.billing.service.licenseCheck(owner.account);
+  const before = f.saved(), sub = before.subscriptions[0];
+  await f.answer("/v1/account/delete", { email: owner.account.email, cancelBilling: true }, owner.cookie);
+  expect(f.app.auth.account(owner.account.id)).toBeNull();
+  expect((await f.page("/v1/me", undefined, owner.cookie)).status).toBe(401);
+  const saved = f.saved(), closure = saved.closures![0];
+  expect(closure.anonId).toMatch(/^anon_[A-Za-z0-9_-]{22}$/);
+  expect(closure.accountId).toBe(closure.anonId); expect(closure.completedAt).toBe(f.now());
+  expect(f.billing.fake!.cancelCalls).toEqual([{ subscriptionId: sub.providerSubscriptionId, cancel: true }]);
+  expect(f.billing.clouds.get(checkout.cloudId!)).toMatchObject({ accountId: closure.anonId, name: "Deleted", destroyAt: sub.currentPeriodEnd! + 7 * 86_400_000 });
+  expect(saved.licenses[0]).toMatchObject({ ownerAccountId: closure.anonId, status: "expired", validUntil: f.now() });
+  expect(saved.licenses[1].members).toHaveLength(1);
+  expect(saved.invoices[0]).toMatchObject({ accountId: closure.anonId, amountCents: 2000, currency: "USD", status: "paid" });
+  for (const name of ["billing.json", "clouds.json"]) {
+    const content = readFileSync(join(f.dir, name), "utf8"); expect(content).not.toContain(owner.account.email); expect(content).not.toContain(owner.account.id);
+  }
+  f.billing.accountDeleted(owner.account.id); expect(f.saved()).toEqual(saved);
+});
+
+it("destroys desktops on reconcile when immediate destruction was requested", async () => {
+  const f = await fixture(), owner = await f.login();
+  const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("starter") }, owner.cookie);
+  await f.complete(checkout.checkoutId); await f.reconcile();
+  await f.answer("/v1/account/delete", { email: owner.account.email, cancelBilling: true, destroyDesktopsNow: true }, owner.cookie);
+  await f.billing.clouds.reconcile();
+  expect(f.billing.clouds.get(checkout.cloudId!)?.status).toBe("destroyed");
+});
+
+it("keeps the account on provider failure and resumes without cancelling completed subscriptions twice", async () => {
+  const f = await fixture(), owner = await f.login();
+  for (let n = 0; n < 2; n++) {
+    const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: { ...bundle("starter"), license: { kind: "none" } } }, owner.cookie);
+    await f.complete(checkout.checkoutId);
+  }
+  const original = f.billing.fake!.cancelAtPeriodEnd.bind(f.billing.fake);
+  const cancel = vi.spyOn(f.billing.fake!, "cancelAtPeriodEnd").mockImplementationOnce(original).mockRejectedValueOnce(new Error("provider unavailable"));
+  const response = await f.page("/v1/account/delete", { email: owner.account.email, cancelBilling: true }, owner.cookie);
+  expect(response.status).toBe(503); expect(await response.json()).toMatchObject({ code: "unavailable" });
+  expect(f.app.auth.account(owner.account.id)).not.toBeNull();
+  expect((await f.page("/v1/me", undefined, owner.cookie)).status).toBe(200);
+  expect(f.saved().closures![0].completedAt).toBeNull();
+  await f.answer("/v1/account/delete", { email: owner.account.email, cancelBilling: true }, owner.cookie);
+  expect(cancel).toHaveBeenCalledTimes(3);
+  expect(f.billing.fake!.cancelCalls).toEqual(f.saved().subscriptions.map(sub => ({ subscriptionId: sub.providerSubscriptionId, cancel: true })));
+  expect(f.app.auth.account(owner.account.id)).toBeNull();
+});
+
+it("records late renewal payments anonymously without reviving a closed account", async () => {
+  const f = await fixture(), owner = await f.login();
+  const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("starter") }, owner.cookie);
+  await f.complete(checkout.checkoutId); await f.reconcile();
+  const sub = f.saved().subscriptions[0];
+  await f.answer("/v1/account/delete", { email: owner.account.email, cancelBilling: true }, owner.cookie);
+  const destroyAt = f.billing.clouds.get(checkout.cloudId!)!.destroyAt;
+  const deliveries = f.billing.fake!.renew(sub.providerSubscriptionId!);
+  for (const event of deliveries) { await f.deliver(event); await f.deliver(event); }
+  await f.billing.service.drainProviderCancels();
+  const saved = f.saved(), anonId = saved.closures![0].anonId;
+  expect(saved.invoices).toHaveLength(2); expect(saved.invoices.every(invoice => invoice.accountId === anonId)).toBe(true);
+  expect(saved.subscriptions[0]).toMatchObject({ status: "ended", cancelAtPeriodEnd: true });
+  expect(saved.licenses).toHaveLength(1); expect(saved.licenses[0].status).toBe("expired");
+  expect(f.billing.clouds.get(checkout.cloudId!)!.destroyAt).toBe(destroyAt);
+  expect(f.billing.clouds.list(anonId, true)).toHaveLength(1);
+});
+
+it("abandons checkout desktops and queues renewal-off for payments received after deletion", async () => {
+  const f = await fixture(), owner = await f.login();
+  const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("starter") }, owner.cookie);
+  const session = f.saved().checkouts[0].providerSessionId!;
+  await f.answer("/v1/account/delete", { email: owner.account.email }, owner.cookie);
+  expect(f.billing.clouds.get(checkout.cloudId!)!.status).toBe("destroyed");
+  const deliveries = f.billing.fake!.complete(session);
+  const cancel = vi.spyOn(f.billing.fake!, "cancelAtPeriodEnd").mockRejectedValueOnce(new Error("offline"));
+  await f.deliver(deliveries[0]);
+  expect(f.saved().providerCancels![0].completedAt).toBeNull();
+  await f.deliver(deliveries[1]); await f.billing.service.drainProviderCancels();
+  for (const event of deliveries) await f.deliver(event);
+  const saved = f.saved(), anonId = saved.closures![0].anonId;
+  expect(saved.invoices).toHaveLength(1); expect(saved.invoices[0]).toMatchObject({ accountId: anonId, amountCents: 2000 });
+  expect(saved.subscriptions[0]).toMatchObject({ status: "ended", accountId: anonId });
+  expect(saved.providerCancels![0].completedAt).toBe(f.now()); expect(cancel).toHaveBeenCalledTimes(2);
+  expect(saved.licenses).toEqual([]); expect(f.billing.clouds.list(anonId, true)).toHaveLength(1);
+  expect(f.billing.clouds.get(checkout.cloudId!)!.status).toBe("destroyed"); expect(f.billing.fakePool!.calls).toEqual([]);
+});
+
+it("deletes accounts with no billing and recovers a crash between account deletion and scrubbing", async () => {
+  const f = await fixture(), owner = await f.login();
+  const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("starter") }, owner.cookie);
+  await f.complete(checkout.checkoutId);
+  vi.spyOn(f.billing, "accountDeleted").mockImplementationOnce(() => { throw new Error("simulated crash"); });
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  await f.answer("/v1/account/delete", { email: owner.account.email, cancelBilling: true }, owner.cookie);
+  expect(f.saved().closures![0].accountId).toBe(owner.account.id);
+  f.app.close();
+  const restarted = createDashboardApp({ dataDir: f.dir, publicUrl: "http://127.0.0.1", mailer: memoryMailer(), staticDir: null, now: f.now });
+  cleanup.push(() => restarted.close());
+  expect(restarted.auth.account(owner.account.id)).toBeNull();
+  expect(f.saved().closures![0].accountId).toBe(f.saved().closures![0].anonId);
+  for (const name of ["billing.json", "clouds.json"]) expect(readFileSync(join(f.dir, name), "utf8")).not.toContain(owner.account.id);
+  const empty = await fixture(), free = await empty.login();
+  await empty.answer("/v1/account/delete", { email: free.account.email }, free.cookie);
+  expect(empty.app.auth.account(free.account.id)).toBeNull(); expect(empty.saved().closures![0].steps).toContain("scrubbed");
 });

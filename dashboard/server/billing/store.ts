@@ -28,7 +28,12 @@ export interface StoredInvoice {
   id: string; accountId: string; providerPaymentId: string; subscriptionId: string | null; checkoutId: string | null; amountCents: number;
   currency: string; status: "paid" | "failed" | "refunded"; description: string; createdAt: number;
 }
+export interface AccountClosure {
+  id: string; accountId: string; anonId: string; startedAt: number; completedAt: number | null; destroyDesktopsNow: boolean; steps: string[];
+}
 export interface BillingState {
+  closures?: AccountClosure[];
+  providerCancels?: Array<{ id: string; completedAt: number | null }>;
   cloudActions?: CloudAction[];
   refunds?: Array<{ id: string; paymentId: string; amountCents: number; currency: string }>;
   customers: Array<{ accountId: string; email: string; providerCustomerId: string | null }>;
@@ -53,6 +58,8 @@ const cart: Check = shape({ interval: one("month", "year"), license: shape({ kin
 const line = shape({ kind: one("license", "members", "desktop", "discount"), label: str, amountCents: int });
 const plan = shape({ kind: one("shared_s", "shared_m", "dedicated"), placement: one("pool", "dedicated"), spec: shape({ vcpu: int, ramGb: int, diskGb: int }), botComputers: nullable(int) });
 const valid = shape({
+  closures: optional(array(shape({ id: str, accountId: str, anonId: str, startedAt: int, completedAt: nullable(int), destroyDesktopsNow: bool, steps: array(str) }))),
+  providerCancels: optional(array(shape({ id: str, completedAt: nullable(int) }))),
   cloudActions: optional(array(value => {
     if (!value || typeof value !== "object") return false;
     const action = value as CloudAction;
@@ -80,6 +87,6 @@ function validState(value: unknown): value is BillingState {
     && unique(state.subscriptions.flatMap(row => row.providerSubscriptionId ? [row.providerSubscriptionId] : []));
 }
 export function createBillingStore(dataDir: string) {
-  return createJsonStore<BillingState>(join(dataDir, "billing.json"), () => ({ customers: [], checkouts: [], subscriptions: [], licenses: [], invoices: [], credits: [], webhookEvents: [], feedback: [] }), validState);
+  return createJsonStore<BillingState>(join(dataDir, "billing.json"), () => ({ closures: [], providerCancels: [], customers: [], checkouts: [], subscriptions: [], licenses: [], invoices: [], credits: [], webhookEvents: [], feedback: [] }), validState);
 }
 export type BillingStore = ReturnType<typeof createBillingStore>;

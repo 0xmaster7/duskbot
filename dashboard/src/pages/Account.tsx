@@ -1,10 +1,11 @@
+import type { DeletionBlocker } from "../../../shared/billing-api";
 import { useEffect, useState } from "react";
 import { Globe, Monitor, Smartphone } from "lucide-react";
 import { ProviderMark } from "../ui/BrandMarks";
 import { useCloud } from "../data/cloud";
 import type { IdentityProvider, NotificationPrefs } from "../data/contracts";
 import { useSession } from "../data/session";
-import { api } from "../lib/api";
+import { api, ApiError } from "../lib/api";
 import { ago, longDate } from "../lib/format";
 import { setTheme, useTheme, type ThemePref } from "../lib/theme";
 import { Field, Modal, Switch } from "../ui/controls";
@@ -32,6 +33,9 @@ export function AccountPage() {
   const [deviceError, setDeviceError] = useState<{ id: string; message: string } | null>(null);
   const [confirm, setConfirm] = useState<"signout" | "delete" | null>(null);
   const [confirmEmail, setConfirmEmail] = useState("");
+  const [blockers, setBlockers] = useState<DeletionBlocker[] | null>(null);
+  const [destroyDesktopsNow, setDestroyDesktopsNow] = useState(false);
+  const [confirmDestroy, setConfirmDestroy] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<NotificationPrefs | null>(null);
   const [notificationBusy, setNotificationBusy] = useState(false);
@@ -70,13 +74,16 @@ export function AccountPage() {
     if (!confirm) return;
     setBusy(confirm); setConfirmError(null);
     try {
-      if (confirm === "delete") await cloud.deleteAccount(confirmEmail);
+      if (confirm === "delete") await cloud.deleteAccount(confirmEmail, { cancelBilling: blockers !== null, destroyDesktopsNow });
       else await cloud.signOutEverywhere();
       setAccount(null);
-    } catch (e) { setConfirmError((e as Error).message); }
+    } catch (e) {
+      if (e instanceof ApiError && e.code === "billing_active") { setBlockers(e.blockers); setConfirmError(null); }
+      else setConfirmError((e as Error).message);
+    }
     finally { setBusy(null); }
   };
-  const close = () => { if (!busy) { setConfirm(null); setConfirmError(null); setConfirmEmail(""); } };
+  const close = () => { if (!busy) { setConfirm(null); setConfirmError(null); setConfirmEmail(""); setBlockers(null); setDestroyDesktopsNow(false); setConfirmDestroy(false); } };
   if (!account) return <div className="max-w-[760px]"><PageHeader title="Account" />{cloud.error ? <Card><p role="alert" className="text-13 text-bad">Could not load your account. {cloud.error}</p><Button className="mt-4" size="sm" onClick={cloud.refresh}>Retry</Button></Card> : <div className="flex flex-col gap-4" aria-busy="true" aria-label="Loading account"><Skeleton className="h-52 !rounded-card" /><Skeleton className="h-64 !rounded-card" /><Skeleton className="h-60 !rounded-card" /></div>}</div>;
   const profile = account.profile;
   const displayName = profile.name || profile.email.split("@")[0] || profile.email;
@@ -115,8 +122,16 @@ export function AccountPage() {
       <Card className="enter" style={{ ["--i" as string]: 5 }}><SectionTitle>Your data</SectionTitle><p className="text-13 leading-[1.6] text-ink-3">Workspaces send counts and states only: machine stats, bot names and models, computer states, device names and daily usage totals. Chats, prompts, files and passwords stay on your machines. Removing a workspace deletes what it sent.</p></Card>
       <Card className="enter" style={{ ["--i" as string]: 6 }}><SectionTitle>Delete account</SectionTitle><p className="mb-4 text-13 text-ink-3">Close your account and remove its workspaces from the dashboard.</p><Button variant="danger" disabled={busy !== null} onClick={() => { setConfirmError(null); setConfirmEmail(""); setConfirm("delete"); }}>Delete account</Button></Card>
     </div>
-    <Modal open={confirm !== null} onClose={close} title={confirm === "delete" ? "Delete your account?" : "Sign out everywhere?"} footer={<><Button disabled={busy !== null} onClick={close}>Cancel</Button><Button variant={confirm === "delete" ? "danger" : "primary"} disabled={busy !== null || confirm === "delete" && confirmEmail !== profile.email} onClick={() => void finish()}>{busy === "delete" ? "Deleting" : busy === "signout" ? "Signing out" : confirm === "delete" ? "Delete account" : "Sign out everywhere"}</Button></>}>
-      {confirm === "delete" ? <><p>This cancels your plan, deletes your cloud desktop after 7 days and removes every workspace from the dashboard.</p><div className="mt-4"><Field label="Type your email to confirm" htmlFor="delete-email"><input id="delete-email" type="email" className="field" value={confirmEmail} disabled={busy !== null} autoComplete="off" onChange={(e) => setConfirmEmail(e.target.value)} /></Field></div></> : <p>Every app and browser signs out, this one too.</p>}
+    <Modal open={confirm !== null} onClose={close} title={confirm === "delete" ? "Delete your account?" : "Sign out everywhere?"} footer={<><Button disabled={busy !== null} onClick={close}>Cancel</Button><Button variant={confirm === "delete" ? "danger" : "primary"} disabled={busy !== null || confirm === "delete" && (confirmEmail !== profile.email || destroyDesktopsNow && !confirmDestroy)} onClick={() => void finish()}>{busy === "delete" ? "Deleting" : busy === "signout" ? "Signing out" : confirm === "delete" ? blockers !== null ? "Cancel everything and delete" : "Delete account" : "Sign out everywhere"}</Button></>}>
+      {confirm === "delete" ? <><p>This permanently deletes your account, signs out every device and removes your workspaces from the dashboard. Active plans and cloud desktops must be cancelled before deletion can finish.</p><div className="mt-4"><Field label="Type your email to confirm" htmlFor="delete-email"><input id="delete-email" type="email" className="field" value={confirmEmail} disabled={busy !== null} autoComplete="off" onChange={(e) => setConfirmEmail(e.target.value)} /></Field></div></> : <p>Every app and browser signs out, this one too.</p>}
+      {confirm === "delete" && blockers !== null && <div className="mt-4 space-y-3 text-13">
+        <p role="alert">Cancel your plan and cloud desktops before deleting your account.</p>
+        <ul className="list-disc pl-5">{blockers.map(blocker => <li key={`${blocker.kind}-${blocker.id}`}>{blocker.label} ({blocker.status.replaceAll("_", " ")})</li>)}</ul>
+        <ButtonLink to="/billing" size="sm">Plans &amp; billing</ButtonLink>
+        <p>Cancelling turns off renewal. Cloud desktops are kept until the paid period ends plus the grace period, unless you delete them now.</p>
+        <label className="flex items-start gap-2"><input type="checkbox" checked={destroyDesktopsNow} disabled={busy !== null} onChange={e => { setDestroyDesktopsNow(e.target.checked); setConfirmDestroy(false); }} />Delete my cloud desktops now</label>
+        {destroyDesktopsNow && <label className="flex items-start gap-2 text-bad"><input type="checkbox" checked={confirmDestroy} disabled={busy !== null} onChange={e => setConfirmDestroy(e.target.checked)} />Your cloud desktops and everything on them are deleted at once. This cannot be undone.</label>}
+      </div>}
       {confirmError && <p role="alert" className="mt-3 text-13 text-bad">{confirmError}</p>}
     </Modal>
   </div>;

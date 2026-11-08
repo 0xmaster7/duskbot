@@ -1,3 +1,4 @@
+import type { DeletionBlocker, DeleteAccountOptions } from "../../../shared/billing-api";
 import type { CommandKind, CommandView, WorkspaceDetail, WorkspaceSummary } from "../../../shared/dashboard-protocol";
 import type { AccountDevice, AccountProfile, AuthProviders, BillingOverview, CheckoutAnswer, CheckoutRequest, CloudDesktop, DesktopId, EmailCodeStart, Identity, IdentityProvider, MachineSpec, NotificationPrefs, PlanCatalog, Selection } from "../data/contracts";
 import { accountFromWire, billingFromWire, cartFromQuote, cartFromSelection, catalogFromWire, cloudFromWire, providersFromWire } from "../data/live";
@@ -22,7 +23,10 @@ function fixtureMode(): Scenario | null {
 export const FIXTURE: Scenario | null = fixtureMode();
 
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number, readonly code: string | null) { super(message); }
+  readonly status: number;
+  readonly code: string | null;
+  readonly blockers: DeletionBlocker[];
+  constructor(message: string, status: number, code: string | null, blockers: DeletionBlocker[] = []) { super(message); this.status = status; this.code = code; this.blockers = blockers; }
 }
 
 let csrfToken: string | null = null;
@@ -70,8 +74,8 @@ async function call<T>(path: string, init?: { method?: string; body?: unknown; s
     if ((error as Error).name === "AbortError") throw error;
     throw new ApiError("The dashboard could not be reached. Check your connection.", 0, "offline");
   }
-  const data = (await res.json().catch(() => null)) as (T & { error?: string; code?: string }) | null;
-  if (!res.ok) throw new ApiError(data?.error ?? `The dashboard answered ${res.status}.`, res.status, data?.code ?? null);
+  const data = (await res.json().catch(() => null)) as (T & { error?: string; code?: string; blockers?: DeletionBlocker[] }) | null;
+  if (!res.ok) throw new ApiError(data?.error ?? `The dashboard answered ${res.status}.`, res.status, data?.code ?? null, data?.blockers);
   return data as T;
 }
 
@@ -148,7 +152,7 @@ export const api = {
   },
   revokeDevice: (id: string) => send(`/v1/account/${FIXTURE ? "devices" : "sessions"}/${encodeURIComponent(id)}`, "DELETE"),
   signOutEverywhere: async () => { const answer = await send(FIXTURE ? "/v1/auth/signout-everywhere" : "/v1/account/signout-everywhere", "POST"); clearSession(); return answer; },
-  deleteAccount: async (email: string) => { const answer = await (FIXTURE ? send("/v1/account", "DELETE", { confirm: email }) : send("/v1/account/delete", "POST", { email })); clearSession(); return answer; },
+  deleteAccount: async (email: string, options: DeleteAccountOptions = {}) => { const answer = await (FIXTURE ? send("/v1/account", "DELETE", { confirm: email, ...options }) : send("/v1/account/delete", "POST", { email, ...options })); clearSession(); return answer; },
   deviceLookup: (code: string) => call<DeviceLookupAnswer>(`/v1/auth/device?code=${encodeURIComponent(code)}`),
   deviceApprove: (userCode: string) => send("/v1/auth/device/approve", "POST", { userCode }),
   deviceDeny: (userCode: string) => send("/v1/auth/device/deny", "POST", { userCode }),

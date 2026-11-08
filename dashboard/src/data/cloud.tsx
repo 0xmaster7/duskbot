@@ -1,3 +1,4 @@
+import type { DeleteAccountOptions } from "../../../shared/billing-api";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api, ApiError, FIXTURE, type AccountData } from "../lib/api";
 import type { BillingOverview, CheckoutRequest, CloudDesktop, DesktopId, IdentityProvider, MachineSpec, NotificationPrefs, PlanCatalog, Selection } from "./contracts";
@@ -23,7 +24,7 @@ export interface CloudData {
   unlinkIdentity(p: IdentityProvider): Promise<void>;
   revokeDevice(id: string): Promise<void>;
   signOutEverywhere(): Promise<void>;
-  deleteAccount(confirm: string): Promise<void>;
+  deleteAccount(confirm: string, options?: DeleteAccountOptions): Promise<void>;
   finishOnboarding(): Promise<void>;
 }
 
@@ -146,8 +147,8 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
     active.current = false; generation.current++; clearAccount();
   }, [mutate, clearAccount]);
 
-  const deleteAccount = useCallback(async (confirm: string) => {
-    await mutate(() => api.deleteAccount(confirm));
+  const deleteAccount = useCallback(async (confirm: string, options?: DeleteAccountOptions) => {
+    await mutate(() => api.deleteAccount(confirm, options));
     active.current = false; generation.current++; clearAccount();
   }, [mutate, clearAccount]);
 

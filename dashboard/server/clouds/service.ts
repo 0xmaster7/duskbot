@@ -212,6 +212,10 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
     end(id, at) { const c = requireCloud(id); if (c.status === "destroyed") return; c.ended = true; c.wantPower = "off"; c.destroyAt = c.destroyAt === null ? at : Math.min(c.destroyAt, at); c.nextAttemptAt = 0; save(c); kick(); },
     abandon(id) { const c = requireCloud(id); if (c.status === "checkout") { c.status = "destroyed"; save(c); } },
     get,
+    scrubAccount(accountId, anonId) {
+      for (const cloud of store.state.clouds) if (cloud.accountId === accountId) { cloud.accountId = anonId; cloud.name = "Deleted"; cloud.suspended = cloud.suspended === null ? null : "Account deleted"; }
+      store.commit();
+    },
     owned(accountId, id) { const c = get(id); return c?.accountId === accountId ? c : null; },
     list(accountId, includeHidden = false) { return store.state.clouds.filter(c => c.accountId === accountId && (includeHidden || !c.hidden)).reverse().sort((a, b) => b.createdAt - a.createdAt); },
     view(c) { return { id: c.id, name: c.name, color: c.color, kind: c.kind, placement: c.placement, status: c.status === "running" && c.paymentProblem ? "payment_problem" : c.status, setupStep: c.setupStep, region: c.region, machine: { ...c.spec }, botComputers: c.botComputers, origin: c.origin, workspaceId: c.workspaceId, lastReportAt: c.workspaceId ? workspaces.lastReportAt(c.workspaceId) : null, destroyAt: c.destroyAt, error: c.error, subscriptionId: c.subscriptionId, createdAt: c.createdAt }; },

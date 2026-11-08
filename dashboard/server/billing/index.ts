@@ -10,17 +10,18 @@ import { createHomeClient } from "../clouds/home-client.ts";
 import { createSealer, parseSealKey } from "../clouds/seal.ts";
 import type { CloudProvider, HomeClient } from "../clouds/types.ts";
 import { createBillingStore } from "./store.ts";
-import { createBillingService } from "./service.ts";
+import { BillingError, createBillingService } from "./service.ts";
 import { BILLING_CONFIG, dodoProducts } from "./plans.ts";
 import { createFakeBillingProvider } from "./fake-provider.ts";
 import { createDodoProvider } from "./dodo-provider.ts";
 import { BillingProviderError } from "./types.ts";
-import type { AccountResolver, BillingProvider } from "./types.ts";
+import type { AccountRef, AccountResolver, BillingProvider } from "./types.ts";
 import { createBillingRoutes } from "./routes.ts";
 import { createAdminRoutes } from "./admin-routes.ts";
 
 export interface BillingOptions {
   dataDir: string; publicUrl: string; dashboard: { state: DashboardState; changed(): void; close?(): void }; accounts: AccountResolver;
+  accountExists?: (accountId: string) => boolean;
   env?: NodeJS.ProcessEnv; now?: () => number; fetch?: typeof fetch;
 }
 /** the hosted app's Bearer resolver remains null until shared/account-api.ts supplies the accounts service */
@@ -85,10 +86,17 @@ export function createBilling(options: BillingOptions) {
   });
   const store = createBillingStore(options.dataDir);
   const service = createBillingService({ store, provider, clouds, config, publicUrl: url.origin, now });
+  if (options.accountExists) service.scrubDeleted(options.accountExists);
   const context = { service, clouds, store, config, accounts: options.accounts, now, enabled: billingProvider !== "off", fake: loopback ? fake : null };
   const routes = createBillingRoutes(context), admin = createAdminRoutes(context);
   return {
     async handle(req: IncomingMessage, res: ServerResponse, target: URL) { return await routes(req, res, target) || await admin.handle(req, res, target); },
+    async beforeAccountDelete(owner: AccountRef, body: Record<string, unknown>) {
+      const blockers = service.deletionBlockers(owner.id);
+      if (body.cancelBilling !== true && blockers.length) { const error = new BillingError(409, "billing_active"); error.blockers = blockers; throw error; }
+      await service.closeAccount(owner, { destroyDesktopsNow: body.destroyDesktopsNow === true });
+    },
+    accountDeleted: service.accountDeleted,
     enabled: context.enabled, sessionFields: admin.sessionFields, licenseCheck: service.licenseCheck, service, clouds, fake, fakePool,
     close() { clouds.close(); service.close(); },
   };

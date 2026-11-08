@@ -250,6 +250,8 @@ export interface BillingOverview {
  * provider webhooks: POST /v1/billing/webhooks/dodo (standard webhooks signature).
  * errors: { error, code } with codes below.
  */
-export const BILLING_ERROR_CODES = ["signed_out", "invalid_request", "not_found", "forbidden", "rate_limited", "already_subscribed", "checkout_open", "cap",
+export const BILLING_ERROR_CODES = ["billing_active", "signed_out", "invalid_request", "not_found", "forbidden", "rate_limited", "already_subscribed", "checkout_open", "cap",
   "confirmation_required", "price_changed", "not_subscribed", "already_on_plan", "plan_change_unavailable", "seats_full", "unavailable", "bad_signature", "failed"] as const;
+export interface DeletionBlocker { kind: "subscription" | "cloud_desktop"; id: string; label: string; status: string }
+export interface DeleteAccountOptions { cancelBilling?: boolean; destroyDesktopsNow?: boolean }
 export type BillingErrorCode = (typeof BILLING_ERROR_CODES)[number];
