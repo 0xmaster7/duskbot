@@ -259,5 +259,3 @@ function briefNotification(bot: BotRecord, threadId: string, detail: string): No
   if (bot.notifications === false) return null;
   return { kind: "brief", botId: bot.id, botName: bot.name, threadId, title: bot.name, body: detail.slice(0, 200), ...(bot.avatarUrl ? { avatarUrl: bot.avatarUrl } : {}) };
 }
-
-export type Proactive = ReturnType<typeof createProactive>;

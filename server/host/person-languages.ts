@@ -77,5 +77,3 @@ export function createPersonLanguages(deps: PersonLanguagesDeps) {
     forLine,
   };
 }
-
-export type PersonLanguages = ReturnType<typeof createPersonLanguages>;

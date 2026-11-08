@@ -1,11 +1,7 @@
-import type { DeletionBlocker } from "./billing-api.ts";
-
 // the account contract of the hosted service (dashboard/server): who a person is, how they sign in, and the sessions
 // the website and the apps hold. version 1. the Admin contract v1 routes the desktop app already speaks
 // (/api/cloud/app/sign-in/*, /api/cloud/desktop/{authorize,token,session}) keep their shapes; everything here is additive.
 // owned by the accounts work: other modules import it, they do not edit it.
-
-export const ACCOUNT_API_VERSION = 1;
 
 export type SignInProvider = "email" | "google" | "apple" | "x";
 export const OAUTH_PROVIDERS = ["google", "apple", "x"] as const;
@@ -63,25 +59,15 @@ export interface ProviderView {
   comingSoon: boolean;
 }
 
-/** the website's page paths the service redirects to; the dashboard page (dashboard/src) renders them. */
-export const WEB_PATHS = {
-  /** also ?error=OAuthErrorCode, and ?pending=<id> for a provider sign-in that needs an email to finish: the page asks
-   * for the address and code (POST /v1/auth/start with `pending`, then /v1/auth/verify). ?next= is kept. */
-  signIn: "/sign-in",
-  /** a desktop app's browser sign-in: /cloud/desktop?code=XXXXX-XXXXX; the page shows the device and asks to approve. */
-  desktopApproval: "/cloud/desktop",
-  home: "/",
-} as const;
-
-/** ?error= on WEB_PATHS.signIn (and on the app deep link) after a provider sign-in that did not finish. */
+/** ?error= on /sign-in (and on the app deep link) after a provider sign-in that did not finish. */
 export type OAuthErrorCode = "oauth_denied" | "oauth_failed" | "oauth_expired" | "provider_unavailable" | "signup_closed" | "identity_taken";
 
 /** every route, for the page and the apps. methods and bodies are listed beside each. */
 export const ACCOUNT_ROUTES = {
   // website, no session needed
   providers: "/v1/auth/providers", //           GET  -> ProvidersAnswer
-  emailStart: "/v1/auth/start", //              POST EmailStartBody -> EmailStartAnswer
-  emailVerify: "/v1/auth/verify", //            POST EmailVerifyBody -> WebSignInAnswer (+ session and csrf cookies)
+  emailStart: "/v1/auth/start", //              POST { email, pending? } -> EmailStartAnswer
+  emailVerify: "/v1/auth/verify", //            POST { attempt, code } -> WebSignInAnswer (+ session and csrf cookies)
   /** GET ?next=/path (same-origin path, default /): 302 to the provider; it comes back to oauthCallback and then to next. */
   oauthStart: (provider: OAuthProvider) => `/v1/auth/oauth/${provider}/start`,
   /** GET for google and x, POST form for apple (form_post). */
@@ -102,7 +88,7 @@ export const ACCOUNT_ROUTES = {
   /** GET ?provider&code_challenge&code_challenge_method=S256&state&redirect_uri=APP_AUTH_REDIRECT: 302 to the provider
    * (provider=email opens the website sign-in first); it ends at the deep link with a one-time code. */
   appStart: "/v1/auth/app/start",
-  appToken: "/v1/auth/app/token", //            POST AppTokenBody -> AppGrant
+  appToken: "/v1/auth/app/token", //            POST { code, codeVerifier, deviceName, platform, appVersion? } -> AppGrant
   /** bearer app session: a one-time token the app hands its own workspace so it enrolls into this account's dashboard. */
   enrollGrant: "/v1/app/enroll-grant", //       POST {} -> EnrollGrantAnswer
   // Admin contract v1 (unchanged shapes; bearer omc_ token where signed in)
@@ -114,14 +100,11 @@ export const ACCOUNT_ROUTES = {
 } as const;
 
 export interface ProvidersAnswer { v: 1; providers: ProviderView[]; signupOpen: boolean }
-export interface EmailStartBody { email: string; /** finishes a provider sign-in that had no address (WEB_PATHS.signIn?pending=). */ pending?: string }
 export interface EmailStartAnswer { attempt: string; expiresIn: number; resendAfter: number; signupOpen: boolean }
-export interface EmailVerifyBody { attempt: string; code: string }
 export interface WebSignInAnswer { account: AccountView; csrfToken: string; created: boolean; redirect?: string }
 export interface MeAnswer { account: AccountView; csrfToken: string }
 export interface AccountAnswer { account: AccountView; identities: IdentityView[]; sessions: SessionView[] }
 export interface DeviceLookupAnswer { device: { name: string; platform: string }; userCode: string; expiresAt: number }
-export interface AppTokenBody { code: string; codeVerifier: string; deviceName: string; platform: string; appVersion?: string }
 /** what an app sign-in ends in (Admin contract v1's verify answer). */
 export interface AppGrant {
   cloudContractVersion: 1;
@@ -146,4 +129,3 @@ export type AccountErrorCode =
   | "invalid_request" | "invalid_email" | "wrong_code" | "invalid_code" | "expired" | "rate_limited" | "signup_closed"
   | "signed_out" | "invalid_token" | "forbidden" | "csrf" | "not_found" | "last_identity" | "identity_taken"
   | "authorization_pending" | "slow_down" | "access_denied" | "expired_token" | "invalid_grant" | "provider_unavailable" | "failed";
-export interface AccountErrorAnswer { error: string; code: AccountErrorCode; blockers?: DeletionBlocker[] }

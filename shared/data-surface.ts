@@ -3,8 +3,6 @@
 
 /** The five tools a bot gets, in the order the catalog lists them. */
 export const DATA_TOOL_NAMES = ["data_load", "data_describe", "data_sql", "data_show", "data_export"] as const;
-export type DataToolName = (typeof DATA_TOOL_NAMES)[number];
-
 /** Bounds. Every result is capped by rows AND bytes; the gate's own trimming
  * is the backstop, never the plan. */
 export const DATA_LIMITS = {
@@ -178,20 +176,6 @@ export interface DataBroadcast {
   kind: "data";
   botId: string;
   sheet: DataSheet;
-}
-
-/** Read routes, all under `/api/bots/:botId/data`: the sheet, result pages for inline charts, and chart images. */
-export interface DataPageRequest {
-  /** A source table name, or a card id (its result table). Exactly one. */
-  table?: string;
-  cardId?: string;
-  offset: number;
-  limit: number;
-  sort?: { column: string; direction: "asc" | "desc" };
-  /** Case-insensitive literal text matching, across all columns unless filterColumn is set. */
-  filter?: string;
-  /** Exact column name to search; values are cast to text. */
-  filterColumn?: string;
 }
 
 export interface DataPage {

@@ -111,10 +111,6 @@ export function isRoutineProblemRun(run: { status: RoutineRunStatus }): boolean 
   return ROUTINE_PROBLEM_STATUSES.includes(run.status);
 }
 
-/** The logs view's status filter: every run, the composite problem set the
- * indicators count, or one exact status. */
-export type RoutineRunStatusFilter = "all" | "problems" | RoutineRunStatus;
-
 export interface Routine {
   id: string;
   name: string;

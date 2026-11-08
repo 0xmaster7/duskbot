@@ -92,5 +92,3 @@ export function createHelperSuggestion(deps: HelperSuggestionDeps) {
     },
   };
 }
-
-export type HelperSuggestion = ReturnType<typeof createHelperSuggestion>;

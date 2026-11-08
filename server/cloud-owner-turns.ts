@@ -30,13 +30,6 @@ export interface CloudOwnerTurn {
 
 const personOf = (line: Line | undefined) => line?.role === "user" && !line.peerAsk ? line.sender?.id : undefined;
 
-/** This turn answers a line the owner wrote: no run of a routine or a webhook, and no line a bot handed in. */
-export function answersOwnersLine(turn: CloudOwnerTurn): boolean {
-  const { request } = turn;
-  if (!request?.messageId || request.stopped || request.automation !== undefined || !request.generations.has(turn.generation)) return false;
-  return turn.ownerPerson(personOf(turn.thread.find((line) => line.id === request.messageId)));
-}
-
 export type CloudOwnerRefusal = "unproven" | "not-owner" | "someone-else";
 
 export function ownerTurnRefusal(turn: CloudOwnerTurn): CloudOwnerRefusal | null {

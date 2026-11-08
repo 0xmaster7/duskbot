@@ -34,5 +34,3 @@ export function createDoneNotice(deps: DoneNoticeDeps) {
     owes: (threadId: string): boolean => owed.has(threadId),
   };
 }
-
-export type DoneNotice = ReturnType<typeof createDoneNotice>;

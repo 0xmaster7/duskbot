@@ -191,5 +191,3 @@ export function createSlackHost(deps: SlackHostDeps) {
     botStatus,
   };
 }
-
-export type SlackHost = ReturnType<typeof createSlackHost>;

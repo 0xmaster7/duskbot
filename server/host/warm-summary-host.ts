@@ -162,5 +162,3 @@ export function createWarmSummaryHost(deps: WarmSummaryHostDeps) {
     },
   };
 }
-
-export type WarmSummaryHost = ReturnType<typeof createWarmSummaryHost>;

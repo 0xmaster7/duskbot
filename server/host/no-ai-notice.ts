@@ -108,5 +108,3 @@ export function createNoAiNotice(deps: NoAiNoticeDeps) {
     flush,
   };
 }
-
-export type NoAiNotice = ReturnType<typeof createNoAiNotice>;

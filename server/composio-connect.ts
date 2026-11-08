@@ -9,7 +9,6 @@ import type { RemoteMcpSpec } from "./contracts.ts";
 import { PASS, type RouteHandler } from "./routes/table.ts";
 
 export const COMPOSIO_CONNECT_URL = "https://connect.composio.dev/mcp";
-export const COMPOSIO_CONNECT_SERVER = "composio-connect";
 const MANAGE_TOOL = "COMPOSIO_MANAGE_CONNECTIONS";
 const CALL_MS = 30_000;
 

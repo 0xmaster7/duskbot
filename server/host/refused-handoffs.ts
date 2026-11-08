@@ -70,5 +70,3 @@ export function createRefusedHandoffs(deps: RefusedHandoffDeps) {
     },
   };
 }
-
-export type RefusedHandoffs = ReturnType<typeof createRefusedHandoffs>;

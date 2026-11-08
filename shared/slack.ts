@@ -1,6 +1,4 @@
 export const SLACK_WIRE_VERSION = 1;
-/** Free Slack workspaces allow ten third-party or custom apps; every bot takes one. */
-export const SLACK_FREE_PLAN_APP_LIMIT = 10;
 export const SLACK_APPS_URL = "https://api.slack.com/apps";
 export const SLACK_DEFAULT_REDIRECT_URL = "https://link.apps.siddz.com/slack/callback";
 export const SLACK_OAUTH_DEEP_LINK = "openmausbot://slack/oauth";
@@ -27,14 +25,8 @@ export interface SlackBotStatus {
   /** opens the bot's DM in Slack: https://app.slack.com/client/<teamId>/<dm or app id> style link, https only */
   openUrl?: string;
 }
-/** Configuration token pair supplied by the workspace administrator. */
-export interface SlackWorkspaceConnectRequest { accessToken: string; refreshToken: string }
 /** Provisioned bot status and its Slack authorization link. */
 export interface SlackProvisionResponse { status: SlackBotStatus; authorizeUrl: string }
-/** Single-use OAuth callback credentials. */
-export interface SlackOAuthRequest { code: string; state: string }
-/** App-level Socket Mode token supplied by the administrator. */
-export interface SlackAppTokenRequest { token: string }
 /** Slack app settings where the person generates the app-level token. */
 export const slackAppTokenUrl = (appId: string) => `https://api.slack.com/apps/${encodeURIComponent(appId)}/general`;
 const unprintable = (text: string) => [...text].some((character) => character <= " " || character === "\u007f");
