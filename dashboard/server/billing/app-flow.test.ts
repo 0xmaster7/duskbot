@@ -52,7 +52,7 @@ async function fixture() {
   const address = shim.address(); if (!address || typeof address === "string") throw new Error("No fixture address.");
   origin = `http://127.0.0.1:${address.port}`;
   billing = createBilling({ dataDir: dir, publicUrl: origin, now, env: {}, dashboard: { state: { accounts: [], sessions: [], workspaces: [] }, changed() {} },
-    accounts: { fromBearer: token => tokens.get(token) ?? null, fromCookie: cookie => cookie === "fixture=owner" ? owner : null } });
+    accounts: { fromBearer: token => tokens.get(token) ?? null, fromCookie: req => req.headers.cookie === "fixture=owner" ? owner : null } });
   cleanup.push(() => billing.close());
   cleanup.push(() => new Promise<void>(resolve => { shim.close(() => resolve()); shim.closeAllConnections(); }));
   const browsers: string[] = []; let saved: unknown = null;

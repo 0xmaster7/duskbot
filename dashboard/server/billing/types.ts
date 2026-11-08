@@ -1,3 +1,5 @@
+import type { IncomingMessage } from "node:http";
+
 /** what a checkout charges, as product ids the provider knows (plans.ts dodoCart): the base line, the rest as addons */
 export interface ProviderCartLine { productId: string; quantity: number; addons: Array<{ addonId: string; quantity: number }> }
 
@@ -49,8 +51,9 @@ export class BillingProviderError extends Error {
 /** the account behind a request: dashboard cookie or app bearer token. swapped for shared/account-api.ts once it lands. */
 export interface AccountRef { id: string; email: string }
 export interface AccountResolver {
-  /** the dashboard's signed-in account (HttpOnly cookie), or null */
-  fromCookie(cookieHeader: string | undefined): AccountRef | null | Promise<AccountRef | null>;
+  /** the dashboard's signed-in account (HttpOnly cookie), or null. gets the whole request so the accounts service can
+   * also enforce its csrf header on POST, PATCH and DELETE. */
+  fromCookie(req: IncomingMessage): AccountRef | null | Promise<AccountRef | null>;
   /** the app's signed-in account (Authorization: Bearer omc_...), or null */
   fromBearer(token: string): AccountRef | null | Promise<AccountRef | null>;
 }

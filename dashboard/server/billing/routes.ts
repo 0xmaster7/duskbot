@@ -21,7 +21,7 @@ export function createBillingRoutes(ctx: BillingContext) {
         service.handleWebhook(req.headers, await rawBody(req, 64 * 1024));
         json(res, 200, { ok: true }); return true;
       }
-      const account = await ctx.accounts.fromCookie(req.headers.cookie);
+      const account = await ctx.accounts.fromCookie(req);
       if (!account) throw new BillingError(401, "signed_out");
       const send = (data: unknown) => { json(res, 200, data); return true; };
       if (method === "GET") {

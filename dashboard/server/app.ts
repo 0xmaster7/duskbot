@@ -35,7 +35,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const store = createStore(options.dataDir);
   const state = store.state;
   const accountProxy = createAccountProxy(options.accountOrigin, options.fetch, now);
-  const billing = createBilling({ dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, accounts: { fromCookie: cookie => { try { return account({ headers: { cookie } } as IncomingMessage); } catch { return null; } }, fromBearer: () => null } });
+  const billing = createBilling({ dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, accounts: { fromCookie: req => { try { return account(req); } catch { return null; } }, fromBearer: () => null } });
   const attempts = new Map<string, { admin: string; expiresAt: number; busy: boolean }>();
   const limits = new Map<string, { count: number; until: number }>();
   const watching = new Map<string, number>();
