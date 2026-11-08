@@ -59,6 +59,13 @@ describe("workspace backup data boundary", () => {
     for (const path of ["logins.json", "logins.md", "workspaces/bot/logins.json.enc", "attachments/logins-key"]) expect(excludedWorkspaceAuthPath(path)).toBe(false);
   });
 
+  it("never exports or restores Slack credentials or the Slack conversation map", () => {
+    for (const path of ["slack-secrets.json.enc", "slack-secrets.json.enc.unreadable-12", "slack-secrets.json.enc.4242.05a7b3e0-1234.tmp", "slack-threads.json", "slack-threads.json.unreadable-12", "slack-threads.json.4242.05a7b3e0-1234.tmp"]) {
+      expect(excludedWorkspaceAuthPath(path)).toBe(true);
+    }
+    for (const path of ["slack-notes.md", "workspaces/bot/slack-threads.json"]) expect(excludedWorkspaceAuthPath(path)).toBe(false);
+  });
+
   it("never exports or restores the HighLevel connection or its key", () => {
     for (const path of ["highlevel.json.enc", "highlevel-key", "highlevel.json.enc.4242.05a7b3e0-1234-4abc-8def-0123456789ab.tmp", "highlevel-key.12.05a7b3e0-1234.tmp"]) {
       expect(excludedWorkspaceAuthPath(path)).toBe(true);

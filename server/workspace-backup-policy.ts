@@ -35,7 +35,7 @@ export function excludedWorkspaceAuthPath(path: string): boolean {
   // Secrets saved to the Vault from a bot's card stay sealed on the computer they were saved on (their key is not in this folder either).
   if (/^saved-secrets\.json\.enc(?:$|\.unreadable-\d+$|\.\d+\.[0-9a-f-]+\.tmp$)/.test(path)) return true;
   // Slack credentials and conversation links stay with the installation that connected them.
-  if (/^(?:slack-secrets\.json\.enc(?:$|\.unreadable-\d+$|\.\d+\.[0-9a-f-]+\.tmp$)|slack-threads\.json(?:$|\.\d+\.[0-9a-f-]+\.tmp$))/.test(path)) return true;
+  if (/^(?:slack-secrets\.json\.enc(?:$|\.unreadable-\d+$|\.\d+\.[0-9a-f-]+\.tmp$)|slack-threads\.json(?:$|\.unreadable-\d+$|\.\d+\.[0-9a-f-]+\.tmp$))/.test(path)) return true;
   // The server's identity key stays with this installation: a linked app pins it, and a copy would let another server pass as this one.
   if (path === "seal-identity.key") return true;
   // The HighLevel connection and its key stay with the installation that connected: its refresh token rotates, so a copy signs one side out.

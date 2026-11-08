@@ -222,10 +222,10 @@ describe("Slack encrypted secrets", () => {
   });
 
   it("excludes Slack credentials, unreadable files, thread maps and atomic temp files from backups", () => {
-    for (const path of [SLACK_SECRETS_FILE, `${SLACK_SECRETS_FILE}.unreadable-123`, `${SLACK_SECRETS_FILE}.123.0f0e-11.tmp`, "slack-threads.json", "slack-threads.json.123.0f0e-11.tmp"]) {
+    for (const path of [SLACK_SECRETS_FILE, `${SLACK_SECRETS_FILE}.unreadable-123`, `${SLACK_SECRETS_FILE}.123.0f0e-11.tmp`, "slack-threads.json", "slack-threads.json.unreadable-123", "slack-threads.json.123.0f0e-11.tmp"]) {
       expect(excludedWorkspaceAuthPath(path)).toBe(true);
     }
-    for (const path of ["slack-threads.json.unreadable-123", "slack-threads.json.bak", `${SLACK_SECRETS_FILE}.bak`, `workspaces/bot/${SLACK_SECRETS_FILE}`, "notes/slack-threads.json"]) {
+    for (const path of ["slack-threads.json.bak", `${SLACK_SECRETS_FILE}.bak`, `workspaces/bot/${SLACK_SECRETS_FILE}`, "notes/slack-threads.json"]) {
       expect(excludedWorkspaceAuthPath(path)).toBe(false);
     }
   });
