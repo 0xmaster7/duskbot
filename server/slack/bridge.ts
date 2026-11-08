@@ -136,11 +136,12 @@ export function createSlackBridge(deps: SlackBridgeDeps): {
       try {
         const file = deps.readAttachment(attachment.path);
         if (!file) continue;
+        const name = attachment.name || file.name, mime = attachment.mime || file.mime;
         const upload = await deps.api.queued(p.channel, () => deps.api.call<{ upload_url: string; file_id: string }>(
-          "files.getUploadURLExternal", link.botToken, { filename: file.name, length: file.bytes.length }));
-        await deps.api.queued(p.channel, () => deps.api.putUpload(upload.upload_url, file.bytes, file.mime));
+          "files.getUploadURLExternal", link.botToken, { filename: name, length: file.bytes.length }));
+        await deps.api.queued(p.channel, () => deps.api.putUpload(upload.upload_url, file.bytes, mime));
         await deps.api.queued(p.channel, () => deps.api.call("files.completeUploadExternal", link.botToken,
-          { files: [{ id: upload.file_id, title: file.name }], channel_id: p.channel, thread_ts: p.replyTs }));
+          { files: [{ id: upload.file_id, title: name }], channel_id: p.channel, thread_ts: p.replyTs }));
       } catch { log("Slack attachment could not be posted."); }
     }
   }
