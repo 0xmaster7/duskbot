@@ -92,6 +92,20 @@ afterAll(async () => {
   if (home) await removeTempDir(home);
 });
 
+describe("a list of bots drawn before the event stream opens", () => {
+  it("carries the stream cursor it was read at, and the stream resumes from it", async () => {
+    const { cursor } = await api("GET", "/api/bots?messages=0");
+    expect(cursor).toMatch(/^[\w-]+:\d+$/);
+    const stop = new AbortController();
+    const response = await fetch(`${base}/api/events?since=${encodeURIComponent(cursor)}&screens=off`, { signal: stop.signal });
+    const reader = response.body!.getReader();
+    let text = "";
+    while (!text.includes("\n\n")) text += new TextDecoder().decode((await reader.read()).value);
+    stop.abort();
+    expect(JSON.parse(text.slice(text.indexOf("data: ") + 6, text.indexOf("\n\n")))).toMatchObject({ kind: "hello", resumed: true });
+  });
+});
+
 describe("a bot's own VPS computer asleep at turn start", () => {
   it("wakes on the first screen call and vm_exec of the same turn", async () => {
     const { bot } = await api("POST", "/api/bots", { name: "Cinder fixture", modelSelection: { instanceId: "claude", model: "claude-sonnet-5" } });

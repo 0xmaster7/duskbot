@@ -12374,7 +12374,7 @@ ROUTES.push(createThreadRoutes({
   groupFor: personRooms.groupForAuth,
   store, userName: userNameFor, sessions, groupUsageReader,
   hostedWorkspace: HOSTED_WORKSPACE, sessionCookie: SESSION_COOKIE, loopback: LOOPBACK, defaultPage: DEFAULT_PAGE,
-  workspaceAccess: () => workspaceAccess,
+  workspaceAccess: () => workspaceAccess, streamCursor: () => `${STREAM_ID}:${lastSeq}`,
   desktopMutationToken: () => desktopMutationToken,
   companionMutationToken: () => companionMutationToken,
   cliOwnerToken: () => cliOwnerToken,
