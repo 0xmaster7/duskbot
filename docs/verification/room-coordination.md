@@ -223,7 +223,7 @@ now; `busyBotId` is the first of them.
 - Stop (`POST /api/groups/:id/interrupt`) stops every member run in the
   conversation. Each member's cards answer in its own run.
 - Each member still runs one turn at a time (busy elsewhere: it waits), and
-  per-turn spend caps and turn limits apply to each run.
+  turn limits apply to each run.
 - Team Cloud, My Cloud, hosted workspaces, guest-driven and proactively
   fenced rooms, and loopback `api` sends keep the one-at-a-time round.
 - Existing rooms move once: no responder, or the first member (the old

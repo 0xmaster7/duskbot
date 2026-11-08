@@ -18,7 +18,7 @@ too) into areas, and runs only the jobs some area can affect:
 | locales | `src/locales/*.json` except `en.json`, `src/locales/*.test.ts` | the build, the locale tests: every `src/` test and `scripts/generate-locale.test.mjs` in two Linux shards, with the Electron node tests |
 | web | the rest of `src/`, `public/`, the root `*-preview.html` pages | the build, the eight Linux shards, the renderer smoke |
 | script tests | `scripts/**/*.test.*` | the Linux shards (and Windows', see Windows), the renderer smoke, browser identity |
-| server | `server/`, `shared/`, `enterprise/`, `companion/`, `evals/`, `skills/`, `deploy/`, the composio broker, the Dockerfile, and the renderer files the server or a smoke loads | the build, Linux shards (and Windows', see Windows), behavior evals, packaged server, open-source edition, the macOS smokes, renderer smoke, browser identity, browser driver, Linux package |
+| server | `server/`, `shared/`, `companion/`, `evals/`, `skills/`, `deploy/`, the composio broker, the Dockerfile, and the renderer files the server or a smoke loads | the build, Linux shards (and Windows', see Windows), behavior evals, packaged server, the macOS smokes, renderer smoke, browser identity, browser driver, Linux package |
 | Windows computer control | the `electron/` modules that start computer control: `cua`, `cua-failure`, `cua-connection`, `capabilities`, `paced-typing` | the same as server, and Windows CUA |
 | desktop | the rest of `electron/`, `build/`, `electron-builder.yml`, `index.html` | the same as server |
 | control plane | `cloudflare/control-plane/` | the control-plane job |
@@ -53,7 +53,7 @@ sets (`laneOf` in `scripts/ci-scope.mjs`):
 | Event | Lane | What runs |
 | --- | --- | --- |
 | `pull_request` | its areas | the table above, with Linux shards, and Windows jobs only for a change that can break Windows (Windows below) |
-| `push` to main, `merge_group` | main | static (typecheck, lint, the build), the eight Linux and eight Windows shards with the Electron node tests, the macOS smokes job, behavior evals, the Linux and Windows packaged server smokes, the open-source edition, the control plane, the renderer smoke and Linux and Windows browser identity |
+| `push` to main, `merge_group` | main | static (typecheck, lint, the build), the eight Linux and eight Windows shards with the Electron node tests, the macOS smokes job, behavior evals, the Linux and Windows packaged server smokes, the the control plane, the renderer smoke and Linux and Windows browser identity |
 | `schedule` (nightly, 21:17 UTC), `workflow_dispatch` (manual runs, the release branch's CI that `prepare-release.yml` starts, and the release lane) | full | every job on every platform: also the Windows and macOS shards, the Windows packaged server and Windows CUA smokes, Windows and macOS browser identity, the browser driver on all three, the Linux package and the Linux ARM64 installer |
 
 The main lane runs Linux, Windows and one macOS job. The macOS shards, the

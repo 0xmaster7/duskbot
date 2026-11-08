@@ -1614,7 +1614,7 @@ screen's note.
 
 - **The menu item.** Main adds **Add a Cloud…** under the saved servers only
   for the installed app on this computer (never a dev build, companion mode or
-  a branded build, read once from the local `/api/brand`), and decides on a
+  a remote-access build), and decides on a
   click with nothing from the page: someone with a Cloud (paying or in a
   trial) gets a native "You already have My Cloud" box (**Email me when it's
   ready** registers interest once per account, `POST /api/cloud/desktop/interest`);
