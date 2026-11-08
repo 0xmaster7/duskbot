@@ -17,8 +17,6 @@ import { AttachmentPreviewDialog, FileGlyph, previewImage, type PreviewImage } f
 import { movesLess } from "./composer-wrap";
 import { rememberImageSize } from "@/lib/image-cache";
 import { t } from "@/lib/i18n";
-import { CitationBadge } from "./CitationUI";
-import type { CitationAttachment } from "@/lib/citations";
 
 /** Electron 32 removed File.path — only the preload can name a file. */
 export function pathForFile(file: File): string {
@@ -138,10 +136,9 @@ const CARD = "group/tile relative flex h-14 w-[calc(50%-4px)] min-w-[220px] max-
  * grok's attachments inside the composer: 56px tiles 8px apart in one scrolling row above the field, files as
  * cards, and a one-line notice above them. The row rides the pill's top edge while the pill opens.
  */
-export function ComposerAttachmentStrip({ items, onRemove, onChangeCitation, onDisplayInChatBox, notice, onNotice }: {
+export function ComposerAttachmentStrip({ items, onRemove, onDisplayInChatBox, notice, onNotice }: {
   items: Attachment[];
   onRemove: (id: string) => void;
-  onChangeCitation: (citation: CitationAttachment) => void;
   onDisplayInChatBox: (attachment: PasteAttachment) => void;
   notice: string | null;
   onNotice: (notice: string | null) => void;
@@ -174,9 +171,7 @@ export function ComposerAttachmentStrip({ items, onRemove, onChangeCitation, onD
       {notice && <p role="status" className="px-0.5 text-[11px] leading-[14px] text-ink/56">{notice}</p>}
       {items.length > 0 && (
         <div data-composer-attachments role="list" aria-label={t("attach.gallery")} className="pointer-events-none -mx-[9px] -mt-1.5 -mb-[18px] flex min-w-0 flex-nowrap gap-2 overflow-x-auto px-[9px] pt-1.5 pb-[18px] [scrollbar-width:none] *:pointer-events-auto">
-          {items.map((a) => a.kind === "citation" ? (
-            <div key={a.id} role="listitem" className="shrink-0"><CitationBadge citation={a} onChange={onChangeCitation} onRemove={() => remove(a.id)} /></div>
-          ) : a.kind === "image" ? (
+          {items.map((a) => a.kind === "image" ? (
             <div key={a.id} role="listitem" aria-label={a.name} data-composer-attachment aria-busy={a.uploading || undefined}
               className="group/tile relative size-14 shrink-0 overflow-hidden rounded-[10px] border-[0.5px] border-ink/12 bg-composer">
               <button
