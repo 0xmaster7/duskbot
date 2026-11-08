@@ -89,7 +89,7 @@ export function SoulField({
           </div>
           <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-control p-2 text-[12px]">{info.fileText}</pre>
           <div className="mt-2 flex gap-2">
-            <button type="button" disabled={resolving} onClick={() => void resolve("apply-file")} className="rounded-lg bg-accent px-3 py-1.5 text-[12px] font-medium text-white hover:brightness-110 disabled:opacity-50">
+            <button type="button" disabled={resolving} onClick={() => void resolve("apply-file")} className="rounded-lg bg-ink px-3 py-1.5 text-[12px] font-medium text-app hover:bg-ink/85 disabled:opacity-50">
               {t("botIdentity.soul.useFile")}
             </button>
             <button type="button" disabled={resolving} onClick={() => void resolve("discard-file")} className="rounded-lg bg-control px-3 py-1.5 text-[12px] text-ink hover:bg-raised-hover disabled:opacity-50">

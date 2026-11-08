@@ -91,7 +91,7 @@ export function CommandRow({
             onClick={() => void openTerminal()}
             aria-label={actionLabel}
             title={actionLabel}
-            className="flex shrink-0 items-center gap-1 rounded-md bg-accent px-2 py-1 text-[11px] font-semibold text-white hover:brightness-110"
+            className="flex shrink-0 items-center gap-1 rounded-md bg-ink px-2 py-1 text-[11px] font-semibold text-app hover:bg-ink/85"
           >
             {status === "opened" ? <Check size={12} /> : <TerminalSquare size={12} />}
             {status === "opened" ? t("engineSetup.opened") : t("engineSetup.terminal")}
@@ -129,7 +129,7 @@ export function CommandRow({
           <button
             type="button"
             onClick={() => void openTerminal()}
-            className="mt-2 flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-accent px-3 py-2 text-[13px] font-semibold text-white hover:brightness-110"
+            className="mt-2 flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-ink px-3 py-2 text-[13px] font-semibold text-app hover:bg-ink/85"
           >
             {status === "opened" ? <Check size={14} /> : <TerminalSquare size={14} />}
             {status === "opened" ? t("engineSetup.terminalOpened") : actionLabel}
@@ -207,7 +207,7 @@ function ServerEngineInstall({ instance, mode, command, quiet = false, rows }: {
         disabled={busy}
         onClick={() => void run()}
         className={cn("flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-[13px] font-semibold disabled:cursor-wait disabled:opacity-70",
-          quiet ? "bg-control text-ink hover:bg-raised-hover" : "ui-button-primary bg-accent text-white hover:brightness-110")}
+          quiet ? "bg-control text-ink hover:bg-raised-hover" : "ui-button-primary bg-ink text-app hover:bg-ink/85")}
       >
         {busy ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
         {busy
@@ -371,7 +371,7 @@ function ManagedEngineSetup({ instance, signInOnly }: { instance: InstanceInfo; 
           type="button"
           disabled={busy !== null}
           onClick={() => void install()}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-[13px] font-semibold text-white hover:brightness-110 disabled:cursor-wait disabled:opacity-70"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-3 py-2 text-[13px] font-semibold text-app hover:bg-ink/85 disabled:cursor-wait disabled:opacity-70"
         >
           {busy === "install" ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
           {busy === "install" ? t("engineSetup.installing") : managed.label}
@@ -390,7 +390,7 @@ function ManagedEngineSetup({ instance, signInOnly }: { instance: InstanceInfo; 
         type="button"
         disabled={busy !== null}
         onClick={() => void signIn()}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-[13px] font-semibold text-white hover:brightness-110 disabled:cursor-wait disabled:opacity-70"
+        className="flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-3 py-2 text-[13px] font-semibold text-app hover:bg-ink/85 disabled:cursor-wait disabled:opacity-70"
       >
         {busy === "signin" ? <Loader2 size={14} className="animate-spin" /> : <LogIn size={14} />}
         {busy === "signin"
