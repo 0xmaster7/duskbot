@@ -1659,7 +1659,7 @@ function mintInternalCapability(capability: Omit<InternalCapability, "orphanExpi
   if (activeInternalGenerationByThread.get(capability.threadId) !== capability.generation) {
     throw new Error("cannot mint an integration capability for an inactive turn");
   }
-  // perTurn: a machine stopped between turns needs a fresh engine, which a new bearer forces.
+  // perTurn: an engine that reaches its machine itself needs a fresh engine once that machine stops, which a new bearer forces.
   const token = perTurn ? randomBytes(24).toString("hex") : sessionBearer(capability);
   // Minted twice in one turn: keep that turn's record and its counters.
   if (internalCapabilities.get(token)?.generation !== capability.generation) {
@@ -2450,9 +2450,9 @@ function controlIntegration(
   botId: string,
   threadId: string,
   generation: string,
-  machine: "this computer" | { localVmTarget?: LocalVmTarget } = {},
+  machine: "this computer" | { localVmTarget?: LocalVmTarget; relayed?: true } = {},
 ) {
-  const { localVmTarget } = machine === "this computer" ? {} : machine;
+  const { localVmTarget, relayed } = machine === "this computer" ? {} as { localVmTarget?: undefined; relayed?: undefined } : machine;
   return {
     url: `http://127.0.0.1:${PORT}/api/internal/computer-control?botId=${encodeURIComponent(botId)}`,
     token: mintInternalCapability({
@@ -2467,7 +2467,7 @@ function controlIntegration(
       skillAuthoring: false,
       createdBots: 0,
       openedThreads: 0,
-    }, { perTurn: machine !== "this computer" }),
+    }, { perTurn: machine !== "this computer" && !relayed }),
   };
 }
 
@@ -6207,7 +6207,7 @@ async function mountBotVps(
 /** A bot box has no docker or ssh, and a sleeping computer has no bridge yet: the engine's harness proxy reaches it through this server. */
 function relayedComputer(owner: TurnOwner, botId: string, turn: RelayTurn) {
   computerRelay.open(owner, turn);
-  return relayedComputerSpec(controlIntegration(botId, owner.threadId, owner.generation).token, PORT);
+  return relayedComputerSpec(controlIntegration(botId, owner.threadId, owner.generation, { relayed: true }).token, PORT);
 }
 
 function managedVpsOwners(): vps.ManagedVpsOwner[] {

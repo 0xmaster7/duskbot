@@ -122,5 +122,15 @@ describe("a bot's own VPS computer asleep at turn start", () => {
     const transcript = JSON.stringify(await api("GET", "/api/bots?messages=50"));
     expect(transcript).not.toContain("The computer selection is now");
     expect(transcript).not.toContain("is not running");
+
+    // the next turn finds the same relayed computer: its engine keeps running, and its proxy's bearer works again
+    vpsState({ containers: { [bot.id]: "stopped" } });
+    writeFileSync(callsFile, JSON.stringify([{ name: "screenshot", server: "computer", input: {} }]));
+    rmSync(dumpFile, { force: true });
+    await api("POST", `/api/bots/${bot.id}/messages`, { text: "and take one more screenshot" });
+    const next: any = await dump();
+    await idle(bot.id);
+    expect(next.pid).toBe(sent.pid);
+    expect(driverCalls().map((entry) => entry.call.name)).toEqual(["launch_app", "screenshot", "screenshot"]);
   }, 60_000);
 });
