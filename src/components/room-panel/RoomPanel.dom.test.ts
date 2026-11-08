@@ -121,7 +121,7 @@ describe("the Room panel's card", () => {
     expect(rowValue('[data-panel-page="instructions"]')).toBeNull();
     expect(rowValue('[data-panel-row="members"]')).toBe("4");
     expect($('[data-room-panel] textarea, [data-room-panel] input')).toBeNull();
-    expect($('[data-testid="room-more"]')).not.toBeNull();
+    expect($('[data-testid="room-more"]')).toBeNull();
   });
 
   it("names each way a room can answer, and the folder by its last part", () => {
