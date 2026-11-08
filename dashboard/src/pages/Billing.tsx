@@ -2,17 +2,18 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Check, ChevronDown, Download } from "lucide-react";
 import { useCloud } from "../data/cloud";
 import type { BillingInterval, LicenseId, PlanCatalog } from "../data/contracts";
-import { botsLine, bundleOf, desktopOf, gb, licenseMonthly, licenseOf } from "../data/pricing";
+import { bundleOf, desktopOf, gb, licenseMonthly, licenseOf, perMonthOn } from "../data/pricing";
 import { useCart } from "../data/quote";
 import { useSession } from "../data/session";
 import { longDate, shortDate, usd } from "../lib/format";
 import { navigate, useLocation } from "../lib/router";
 import { Field, Modal, Select, Toggle } from "../ui/controls";
-import { Badge, Button, cx, PageHeader, Skeleton } from "../ui/kit";
+import { Badge, Button, cx, Skeleton } from "../ui/kit";
+import { Mascot } from "../ui/Mascot";
 import { SectionHead } from "../ui/table";
-import { CloudPitch, regionName } from "./cloud-bits";
+import { regionName } from "./cloud-bits";
 import { BuyCredits } from "./credits-dialog";
-import { cartText, IntervalToggle, LicenseSheet, per, PlanSheet, priceText, useInterval, type PaidPlan } from "./plan-sheet";
+import { cartText, IntervalToggle, LicenseSheet, PlanSheet, priceText, useInterval, type PaidPlan } from "./plan-sheet";
 
 export { IntervalToggle, useInterval };
 
@@ -20,42 +21,44 @@ type Use = "personal" | "work";
 const CONTACT = "mailto:hello@openmausbot.com";
 const members = (n: number) => `${n} ${n === 1 ? "member" : "members"}`;
 
-/** at most three points, with the catalog's real numbers; nothing here is invented */
-function points(id: "free" | "starter" | "pro", work: boolean, bots: number | null, members: number): string[] {
-  const at = bots === null ? "Unlimited bots at work at once" : `${bots} ${bots === 1 ? "bot" : "bots"} at work at once`;
-  if (id === "free") return ["Every bot, chat and connector", work ? "Work license for 1 person" : "Personal use, free forever", "No card needed"];
-  if (id === "starter") return [at, "Keeps going while your Mac sleeps", work ? "Work license for 1 person" : "Set up in one click"];
-  return [at, "Priority wake", `Work license for ${members} ${members === 1 ? "person" : "people"}`];
+/** four rows, the machine first; every number comes from the catalog */
+function points(id: "free" | "starter" | "pro", work: boolean, catalog: PlanCatalog): string[] {
+  const b = bundleOf(catalog, id);
+  const d = b ? desktopOf(catalog, b.desktop) : null;
+  const license = work || id === "pro" ? `Work license for ${licenseOf(catalog, b?.license !== "personal" ? b!.license : "starter")?.includedMembers ?? 1} person` : null;
+  if (!d) return ["Runs on your Mac while it's awake", "Every bot, chat and connector", license ?? "Personal use, free forever", "No card needed"];
+  const machine = `${d.vcpu} vCPU, ${gb(d.ramGb)} RAM, ${gb(d.diskGb)} disk`;
+  const bots = d.botComputers === null ? "Unlimited bots at work at once" : `${d.botComputers} ${d.botComputers === 1 ? "bot" : "bots"} at work at once`;
+  if (id === "starter") return [machine, bots, "Keeps going while your Mac sleeps", license ?? "Set up in one click"];
+  return [machine, bots, d.priority ? "Priority wake" : "Keeps going while your Mac sleeps", license ?? "Set up in one click"];
 }
-const LINE = { free: "Your bots on your own Mac.", starter: "A cloud desktop that never sleeps.", pro: "A bigger cloud desktop for real work." } as const;
+const MASCOT = { free: "orange", starter: "blue", pro: "green" } as const;
 
 function PlanCard({ id, catalog, interval, use, current, lead, onChoose, action, disabled }: { id: "free" | "starter" | "pro"; catalog: PlanCatalog; interval: BillingInterval; use: Use; current: boolean; lead: boolean; onChoose(): void; action: string; disabled: boolean }) {
   const b = bundleOf(catalog, id);
-  const desk = b ? desktopOf(catalog, b.desktop) : null;
   const work = licenseOf(catalog, "starter");
   if (!b) return null;
   const addsLicense = use === "work" && b.license === "personal" && work;
   const monthly = b.monthly + (addsLicense ? work.monthly : 0);
-  const p = per(monthly, interval, catalog);
-  const billing = monthly === 0 ? "Free forever" : interval === "year" ? "Billed yearly, 2 months free" : "Billed monthly";
-  const spec = desk ? `${desk.vcpu} vCPU · ${gb(desk.ramGb)} · ${gb(desk.diskGb)} · ${botsLine(desk.botComputers).toLowerCase()}` : "Runs on your Mac while it's awake";
+  // always per month; a yearly plan rounds it to whole dollars and gives the exact total underneath
+  const shown = monthly === 0 ? 0 : interval === "year" ? Math.round(perMonthOn(monthly, interval, catalog)) : monthly;
+  const sub = monthly === 0 ? "free forever" : interval === "year" ? `per month · ${priceText(monthly, interval, catalog).replace("/yr", "")} billed yearly` : "per month";
   return (
-    <article className={cx("enter flex min-w-0 flex-col rounded-card bg-card p-6 max-sm:p-5", lead && "ring-1 ring-line-2")} aria-labelledby={`plan-${id}`}>
-      <div className="flex h-[22px] items-center justify-between gap-2">
-        <h2 id={`plan-${id}`} className="text-15 font-medium text-ink">{b.name}</h2>
-        {current && <Badge>Current</Badge>}
+    <article className="enter flex min-w-0 flex-col rounded-card border border-line bg-card p-8 max-sm:p-6" aria-labelledby={`plan-${id}`}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-2.5 pt-1">
+          <h2 id={`plan-${id}`} className="text-[22px] font-medium leading-7 tracking-[-0.015em] text-ink">{b.name}</h2>
+          {current && <Badge>Current</Badge>}
+        </div>
+        <span className="-me-1 -mt-1 shrink-0" aria-hidden><Mascot color={MASCOT[id]} size={80} /></span>
       </div>
-      <p className="mt-5 flex items-baseline gap-1">
-        <span className="num text-34 font-semibold tracking-[-0.03em] text-ink">{monthly === 0 ? "$0" : p.amount}</span>
-        {monthly > 0 && <span className="text-14 text-ink-3">{p.unit}</span>}
-      </p>
-      <p className="text-13 text-ink-4">{billing}{addsLicense ? ", incl. work license" : ""}</p>
-      <p className="mt-4 text-14 leading-[1.5] text-ink-2">{LINE[id]}</p>
-      <p className="num mt-1 text-13 text-ink-3">{spec}</p>
-      <ul className="mt-5 flex flex-1 flex-col gap-2.5">
-        {points(id, use === "work", desk?.botComputers ?? null, licenseOf(catalog, b.license)?.includedMembers ?? 1).map((pt) => <li key={pt} className="flex gap-2.5 text-14 leading-[1.4] text-ink-3"><Check size={15} strokeWidth={1.75} className="mt-0.5 shrink-0 text-ink-4" aria-hidden />{pt}</li>)}
+      <p className="num mt-3 text-[56px] font-semibold leading-[1] tracking-[-0.035em] text-ink">${shown}</p>
+      <p className="num mt-2.5 text-14 text-ink-3">{sub}</p>
+      <button type="button" onClick={onChoose} disabled={disabled} className={cx("press mt-7 h-11 w-full rounded-full text-15 font-medium disabled:cursor-default disabled:opacity-50", lead && !current ? "hover-primary bg-primary text-primary-ink" : "hover-outline border border-line-2 bg-card-2 text-ink")}>{action}</button>
+      <h3 className="mt-9 text-15 font-medium text-ink">What you get:</h3>
+      <ul className="mt-5 flex flex-col gap-[18px]">
+        {points(id, use === "work", catalog).map((pt) => <li key={pt} className="flex gap-3 text-15 leading-[1.4] text-ink-2"><Check size={18} strokeWidth={1.25} className="mt-px shrink-0 text-ink-3" aria-hidden />{pt}</li>)}
       </ul>
-      <Button variant={lead && !current ? "primary" : "outline"} className="mt-7 w-full" onClick={onChoose} disabled={disabled}>{action}</Button>
     </article>
   );
 }
@@ -219,9 +222,9 @@ export function BillingPage() {
   if (!catalog || billing === null) {
     return (
       <div aria-busy="true" aria-label="Loading">
-        <Skeleton className="h-8 w-56" />
-        <Skeleton className="mt-8 h-[140px] !rounded-card" />
-        <div className="mt-8 grid gap-4 md:grid-cols-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-[420px] !rounded-card" />)}</div>
+        <Skeleton className="h-8 w-40" />
+        <Skeleton className="mt-3 h-5 w-96 max-w-full" />
+        <div className="mt-10 grid gap-4 md:grid-cols-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-[460px] !rounded-card" />)}</div>
       </div>
     );
   }
@@ -236,26 +239,26 @@ export function BillingPage() {
   const freeAction = () => {
     if (!current("free")) return { label: "Switch to Free", go: () => setCancelling(true) };
     if (use === "work" && !ownsLicense) return { label: "Add a work license", go: () => openLicense("starter", 1) };
-    return { label: "You're on Free", go: () => {} };
+    return { label: "Current plan", go: () => {} };
   };
   const fa = freeAction();
   const paid = (id: PaidPlan) => ({ label: current(id) ? "Current plan" : `${owned && ownDesk !== "none" ? "Switch to" : "Get"} ${bundleOf(catalog, id)?.name}`, go: () => setPlanSheet(id) });
 
   return (
     <div>
-      <PageHeader title="Plans & billing" />
-      <CloudPitch id="hero-title" title="Keep your bots working 24/7" body="Give them a cloud desktop of their own, so they keep going while your Mac sleeps. Set up in one click." action={false} link={null} />
-
-      <div className="mt-10 flex flex-wrap items-center gap-x-4 gap-y-3">
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+        <div className="min-w-0">
+          <h1 className="t-title">Plans</h1>
+          <p className="mt-1.5 max-w-[60ch] text-15 text-ink-3">Free for personal use. Add a cloud desktop to keep your bots working 24/7.{use === "work" && free ? ` Work use is free until ${longDate(free)}.` : ""}</p>
+        </div>
         <div className="flex flex-wrap gap-2">
           <Toggle<Use> label="Use" value={use} onChange={setUse} options={[{ value: "personal", label: "Personal" }, { value: "work", label: "Work" }]} />
           <IntervalToggle value={interval} onChange={setIv} catalog={catalog} />
         </div>
-        <p className="text-13 text-ink-4 sm:ms-auto">Personal use is free forever.{free ? ` Work use is free until ${longDate(free)}.` : ""}</p>
-      </div>
+      </header>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <PlanCard id="free" catalog={catalog} interval={interval} use={use} current={current("free")} lead={false} action={fa.label} onChoose={fa.go} disabled={fa.label === "You're on Free"} />
+      <div className="mt-10 grid gap-4 md:grid-cols-3 max-sm:mt-8">
+        <PlanCard id="free" catalog={catalog} interval={interval} use={use} current={current("free")} lead={false} action={fa.label} onChoose={fa.go} disabled={fa.label === "Current plan"} />
         <PlanCard id="starter" catalog={catalog} interval={interval} use={use} current={current("starter")} lead={false} action={paid("starter").label} onChoose={paid("starter").go} disabled={current("starter")} />
         <PlanCard id="pro" catalog={catalog} interval={interval} use={use} current={current("pro")} lead action={paid("pro").label} onChoose={paid("pro").go} disabled={current("pro")} />
       </div>
