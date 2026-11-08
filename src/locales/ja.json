@@ -6425,5 +6425,20 @@
   "slack.state.offline": "オフライン",
   "slack.state.notAdded": "未追加",
   "slack.state.needsStep": "手順が必要",
-  "slack.state.problem": "問題"
+  "slack.state.problem": "問題",
+  "accountGate.title": "OpenMausBotにサインイン",
+  "accountGate.sub": "ボット、Mac、クラウドデスクトップをひとつのアカウントで。",
+  "accountGate.google": "Googleで続ける",
+  "accountGate.apple": "Appleで続ける",
+  "accountGate.x": "Xで続ける",
+  "accountGate.or": "または",
+  "accountGate.verify": "サインイン",
+  "accountGate.browser": "ブラウザでサインインを完了してください",
+  "accountGate.ended": "セッションが終了しました。もう一度サインインしてください。",
+  "accountGate.signOut": "サインアウト",
+  "accountGate.oauthDenied": "サインインがキャンセルされました。準備ができたら再試行してください。",
+  "accountGate.oauthFailed": "ブラウザでのサインインに失敗しました。もう一度お試しください。",
+  "accountGate.oauthExpired": "サインインの有効期限が切れました。最初からやり直してください。",
+  "accountGate.providerUnavailable": "このサインイン方法は利用できません。別の方法をお試しください。",
+  "accountGate.identityTaken": "この認証情報は別のアカウントに属しています。別の方法をお試しください。"
 }

@@ -6395,5 +6395,20 @@
   "slack.state.offline": "Offline",
   "slack.state.notAdded": "Nie dodano",
   "slack.state.needsStep": "Wymagany krok",
-  "slack.state.problem": "Problem"
+  "slack.state.problem": "Problem",
+  "accountGate.title": "Zaloguj się do OpenMausBot",
+  "accountGate.sub": "Jedno konto dla Twoich botów, Maca i pulpitu w chmurze.",
+  "accountGate.google": "Kontynuuj z Google",
+  "accountGate.apple": "Kontynuuj z Apple",
+  "accountGate.x": "Kontynuuj z X",
+  "accountGate.or": "lub",
+  "accountGate.verify": "Zaloguj się",
+  "accountGate.browser": "Dokończ logowanie w przeglądarce",
+  "accountGate.ended": "Twoja sesja się zakończyła. Zaloguj się ponownie.",
+  "accountGate.signOut": "Wyloguj się",
+  "accountGate.oauthDenied": "Logowanie anulowano. Spróbuj ponownie, gdy będziesz gotowy.",
+  "accountGate.oauthFailed": "Logowanie w przeglądarce nie powiodło się. Spróbuj ponownie.",
+  "accountGate.oauthExpired": "Czas logowania upłynął. Zacznij ponownie.",
+  "accountGate.providerUnavailable": "Ten dostawca logowania jest niedostępny. Spróbuj inaczej.",
+  "accountGate.identityTaken": "Ta tożsamość należy do innego konta. Spróbuj inaczej."
 }

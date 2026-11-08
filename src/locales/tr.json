@@ -5342,5 +5342,20 @@
   "slack.state.offline": "Çevrimdışı",
   "slack.state.notAdded": "Eklenmedi",
   "slack.state.needsStep": "Bir adım gerekiyor",
-  "slack.state.problem": "Sorun"
+  "slack.state.problem": "Sorun",
+  "accountGate.title": "OpenMausBot hesabına giriş yap",
+  "accountGate.sub": "Botların, Mac’in ve bulut masaüstün için tek hesap.",
+  "accountGate.google": "Google ile devam et",
+  "accountGate.apple": "Apple ile devam et",
+  "accountGate.x": "X ile devam et",
+  "accountGate.or": "veya",
+  "accountGate.verify": "Giriş yap",
+  "accountGate.browser": "Tarayıcında giriş yapmayı tamamla",
+  "accountGate.ended": "Oturumun sona erdi. Yeniden giriş yap.",
+  "accountGate.signOut": "Çıkış yap",
+  "accountGate.oauthDenied": "Giriş iptal edildi. Hazır olduğunda yeniden dene.",
+  "accountGate.oauthFailed": "Tarayıcıda giriş başarısız oldu. Lütfen yeniden dene.",
+  "accountGate.oauthExpired": "Bu girişin süresi doldu. Lütfen yeniden başla.",
+  "accountGate.providerUnavailable": "Bu giriş sağlayıcısı kullanılamıyor. Başka bir yol dene.",
+  "accountGate.identityTaken": "Bu kimlik başka bir hesaba ait. Başka bir yol dene."
 }

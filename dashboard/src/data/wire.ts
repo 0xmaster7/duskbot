@@ -56,7 +56,7 @@ export interface ProvidersAnswer { v: 1; providers: ProviderView[]; signupOpen: 
 
 export interface EmailStartAnswer { attempt: string; expiresIn: number; resendAfter: number; signupOpen: boolean }
 
-export interface WebSignInAnswer { account: AccountView; csrfToken: string; created: boolean }
+export interface WebSignInAnswer { account: AccountView; csrfToken: string; created: boolean; redirect?: string }
 
 export interface MeAnswer { account: AccountView; csrfToken: string }
 

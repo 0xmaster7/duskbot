@@ -6847,5 +6847,20 @@
   "slack.state.offline": "오프라인",
   "slack.state.notAdded": "추가되지 않음",
   "slack.state.needsStep": "단계 필요",
-  "slack.state.problem": "문제"
+  "slack.state.problem": "문제",
+  "accountGate.title": "OpenMausBot에 로그인",
+  "accountGate.sub": "봇, Mac, 클라우드 데스크톱을 하나의 계정으로 이용하세요.",
+  "accountGate.google": "Google로 계속하기",
+  "accountGate.apple": "Apple로 계속하기",
+  "accountGate.x": "X로 계속하기",
+  "accountGate.or": "또는",
+  "accountGate.verify": "로그인",
+  "accountGate.browser": "브라우저에서 로그인을 완료하세요",
+  "accountGate.ended": "세션이 종료되었습니다. 다시 로그인하세요.",
+  "accountGate.signOut": "로그아웃",
+  "accountGate.oauthDenied": "로그인이 취소되었습니다. 준비되면 다시 시도하세요.",
+  "accountGate.oauthFailed": "브라우저 로그인에 실패했습니다. 다시 시도하세요.",
+  "accountGate.oauthExpired": "로그인 시간이 만료되었습니다. 다시 시작하세요.",
+  "accountGate.providerUnavailable": "이 로그인 제공업체를 사용할 수 없습니다. 다른 방법을 시도하세요.",
+  "accountGate.identityTaken": "이 인증 정보는 다른 계정에 연결되어 있습니다. 다른 방법을 시도하세요."
 }

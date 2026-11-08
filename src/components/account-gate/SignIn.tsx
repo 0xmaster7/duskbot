@@ -1,0 +1,81 @@
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { MausAvatar } from "@/components/Avatar";
+import { CodeBoxes, codeDigits } from "@/components/cloud-buy/CodeBoxes";
+import { problemLine } from "@/components/cloud-buy/SignInScreen";
+import type { CloudSignInProblem } from "@/lib/cloud-plan";
+import { t } from "@/lib/i18n";
+import type { CloudSignInStart } from "../../../electron/cloud-account.mjs";
+import { OAUTH_PROVIDERS, type OAuthProvider } from "../../../shared/account-api";
+import type { SignInVerify } from "./bridge";
+
+const PILL = "flex min-h-11 w-full items-center justify-center rounded-full border border-ink/15 px-5 text-[14px] font-medium outline-none focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-50";
+const FIELD = "h-11 w-full rounded-xl border border-ink/15 bg-transparent px-3 text-[16px] text-ink outline-none focus:border-ink disabled:opacity-50";
+
+export function SignIn({ emailStart, emailVerify, browser, cancelEmail, onSignedIn, notice, mobile = false }: {
+  emailStart(email: string): Promise<CloudSignInStart>;
+  emailVerify(code: string): Promise<SignInVerify>;
+  browser(provider: OAuthProvider): Promise<unknown>;
+  cancelEmail?(): Promise<unknown>;
+  onSignedIn(): void;
+  notice?: string;
+  mobile?: boolean;
+}) {
+  const id = useId();
+  const host = useRef<HTMLDivElement>(null);
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState<Extract<CloudSignInStart, { outcome: "sent" }> | null>(null);
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const locked = useRef(false);
+  const [problem, setProblem] = useState<CloudSignInProblem | null>(null);
+  const [triesLeft, setTriesLeft] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { host.current?.querySelector<HTMLInputElement>("[data-autofocus]")?.focus(); }, [sent]);
+  useEffect(() => {
+    if (!sent) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [sent]);
+  const run = async (work: () => Promise<void>) => {
+    if (locked.current) return;
+    locked.current = true;
+    setBusy(true); setProblem(null);
+    try { await work(); } catch { setProblem("failed"); }
+    finally { locked.current = false; setBusy(false); }
+  };
+  const send = () => run(async () => {
+    const result = await emailStart(email);
+    if (result.outcome === "sent") { setSent(result); setEmail(result.email); setCode(""); setNow(Date.now()); }
+    else setProblem(result.outcome);
+  });
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (!sent) { if (email.trim()) void send(); return; }
+    if (code.length !== 8) return;
+    void run(async () => {
+      const result = await emailVerify(code);
+      if (result.outcome === "signed-in") onSignedIn();
+      else { setProblem(result.outcome); setTriesLeft(result.outcome === "wrong-code" ? result.triesLeft : null); }
+    });
+  };
+  return <main className={`${mobile ? "omb-mobile " : ""}flex size-full min-h-0 flex-col items-center overflow-y-auto bg-app px-6 py-8 text-ink`}>
+    <div ref={host} className="my-auto flex w-full max-w-[360px] flex-col gap-4">
+      <div className="flex justify-center" aria-hidden="true"><MausAvatar color="green" size={80} state="idle" animated={false} personality={false} /></div>
+      <div className="text-center"><h1 className="text-[24px] font-semibold tracking-tight">{t("accountGate.title")}</h1><p className="mt-2 text-[14px] leading-5 text-ink-secondary">{t("accountGate.sub")}</p></div>
+      {notice && <p role="status" className="text-[13px] text-ink-secondary">{notice}</p>}
+      <div className="flex flex-col gap-2">{OAUTH_PROVIDERS.map(provider => <button key={provider} type="button" className={`${PILL} hover:bg-ink/[0.05]`} disabled={busy} onClick={() => void run(async () => { await browser(provider); })}>{t(provider === "google" ? "accountGate.google" : provider === "apple" ? "accountGate.apple" : "accountGate.x")}</button>)}</div>
+      <div className="flex items-center gap-3 text-[13px] text-ink-tertiary"><span className="h-px flex-1 bg-ink/10" />{t("accountGate.or")}<span className="h-px flex-1 bg-ink/10" /></div>
+      <form onSubmit={submit} className="flex flex-col gap-3" noValidate>
+        {!sent ? <><label htmlFor={`${id}-email`} className="text-[14px] text-ink-secondary">{t("cloudBuy.signIn.email")}</label>
+          <input id={`${id}-email`} data-autofocus type="email" inputMode="email" autoComplete="email" spellCheck={false} disabled={busy} value={email} onChange={event => setEmail(event.target.value)} className={FIELD} aria-invalid={problem === "invalid-email" || undefined} />
+        </> : <><p id={`${id}-code`} className="text-[14px] text-ink-secondary">{t("cloudBuy.signIn.codeLabel", { email: sent.email })}{" "}<button type="button" className="underline underline-offset-2" disabled={busy} onClick={() => void run(async () => { await cancelEmail?.(); setSent(null); setCode(""); })}>{t("cloudBuy.signIn.change")}</button></p>
+          <div className="[&_input:focus]:border-ink"><CodeBoxes code={code} onCode={value => setCode(codeDigits(value))} busy={busy} wrong={problem === "wrong-code"} labelId={`${id}-code`} problemId={problem ? `${id}-problem` : undefined} /></div>
+          {sent.signupOpen === false && <p className="text-[13px] text-ink-secondary">{t("cloudBuy.signIn.signupClosedNote")}</p>}
+        </>}
+        <button type="submit" disabled={busy || (sent ? code.length !== 8 : !email.trim())} className={`${PILL} bg-ink text-app hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink`}>{t(busy ? "cloudBuy.signIn.checking" : sent ? "accountGate.verify" : "cloudBuy.signIn.send")}</button>
+        {sent && <button type="button" className="min-h-11 text-[13px] underline underline-offset-2 disabled:opacity-40" disabled={busy || (problem !== "expired" && now < sent.resendAt)} onClick={() => void send()}>{t("cloudBuy.signIn.resend")}</button>}
+        {problem && <p id={`${id}-problem`} role="alert" className="text-[13px] text-ink">{problemLine(problem, triesLeft)}</p>}
+      </form>
+    </div>
+  </main>;
+}

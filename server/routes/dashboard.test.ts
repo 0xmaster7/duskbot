@@ -82,6 +82,13 @@ describe("dashboard collector", () => {
 });
 
 describe("dashboard link routes", () => {
+  it("accepts a valid enrollment token and rejects malformed tokens before linking", async () => {
+    const { call, reporter } = await routes(), enrollToken = "e".repeat(43);
+    for (const token of [null, 123, {}, "", "short", "e".repeat(44), `${"e".repeat(43)}\n`, `${"e".repeat(42)}!`]) expect((await call("POST", { url: "https://accounts.test", enrollToken: token })).status).toBe(400);
+    expect(reporter.link).not.toHaveBeenCalled();
+    expect(await (await call("POST", { url: "https://accounts.test", enrollToken })).json()).toEqual({ claimed: true, workspaceId: "workspace", claimUrl: "https://accounts.test/claim", dashboardUrl: "https://accounts.test" });
+    expect(reporter.link).toHaveBeenCalledWith("https://accounts.test", { enrollToken });
+  });
   it("rejects non-admin sessions and service loopback on every link method", async () => {
     for (const auth of [{ kind: "session", via: "bearer", session: { ...session, tokenHash: "hash" }, scopes: ["client"] } as RequestAuth, { ...ADMIN, trust: "service" } as RequestAuth]) {
       const { call, reporter } = await routes({}, auth);

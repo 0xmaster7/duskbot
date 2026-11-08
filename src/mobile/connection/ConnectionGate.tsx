@@ -4,6 +4,8 @@ import { MausAvatar } from "@/components/Avatar";
 import { readSessionState } from "@/lib/session";
 import { parseMobilePairingLink, type MobileConnectionRecord } from "../../../shared/mobile-link";
 import { usePlatform } from "../platform";
+import { useMobileAccount } from "../account/AccountGate";
+import { enrollWorkspace } from "../account/enroll-workspace";
 import { installTransport } from "../transport/transport";
 import { Onboarding } from "../onboarding/Onboarding";
 import { Success } from "../onboarding/Success";
@@ -15,6 +17,7 @@ type GateState = { kind: "loading" } | { kind: "pair"; reason?: "revoked" } | { 
 
 export function ConnectionGate({ children, forcePair }: { children: ReactNode; forcePair?: boolean }) {
   const platform = usePlatform();
+  const account = useMobileAccount();
   const store = useMemo(() => createConnectionStore(platform), [platform]);
   const [state, setState] = useState<GateState>({ kind: "loading" });
   const [incoming, setIncoming] = useState<{ payload: TypedPairing; sequence: number } | null>(null);
@@ -69,6 +72,10 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
   useEffect(() => {
     if (state.kind === "ready" && platform.native) void registerPushForConnection(platform);
   }, [state, platform]);
+
+  useEffect(() => {
+    if (state.kind === "ready" && account?.account) void enrollWorkspace(platform, state.id, account.account.id, account.enrollGrant);
+  }, [state, platform, account]);
 
   useEffect(() => {
     const receive = (url: string) => {

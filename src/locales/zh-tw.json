@@ -4888,5 +4888,20 @@
   "slack.state.offline": "離線",
   "slack.state.notAdded": "尚未新增",
   "slack.state.needsStep": "需要完成步驟",
-  "slack.state.problem": "問題"
+  "slack.state.problem": "問題",
+  "accountGate.title": "登入 OpenMausBot",
+  "accountGate.sub": "一個帳號，連結你的機器人、Mac 和雲端桌面。",
+  "accountGate.google": "使用 Google 繼續",
+  "accountGate.apple": "使用 Apple 繼續",
+  "accountGate.x": "使用 X 繼續",
+  "accountGate.or": "或",
+  "accountGate.verify": "登入",
+  "accountGate.browser": "請在瀏覽器中完成登入",
+  "accountGate.ended": "你的工作階段已結束，請重新登入。",
+  "accountGate.signOut": "登出",
+  "accountGate.oauthDenied": "登入已取消。準備好後請重試。",
+  "accountGate.oauthFailed": "瀏覽器登入失敗，請重試。",
+  "accountGate.oauthExpired": "此次登入已過期，請重新開始。",
+  "accountGate.providerUnavailable": "此登入服務暫時無法使用，請嘗試其他方式。",
+  "accountGate.identityTaken": "此身分屬於另一個帳號，請嘗試其他方式。"
 }
