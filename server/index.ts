@@ -98,7 +98,7 @@ import { initialVpsMode, sharedVpsDefaults } from "./shared-vps-defaults.ts";
 import type { BotDesktopProgress } from "./bot-desktop.ts";
 import { createVpsLifecycleHost } from "./vps-lifecycle-host.ts";
 import { createVpsCapacityHost, knownScreenCapacity, setVpsCapacityHost } from "./vps-capacity.ts";
-import { LAZY_VPS_NOTE, vpsTurnStartPlan, WAKES_ON_CALL_VPS_NOTE } from "./vps-turn-start.ts"; import { ComputerToolLists, createComputerRelay, relayedComputerSpec, vpsToolsKey, type RelayBridge, type RelayTurn } from "./vps-computer-relay.ts";
+import { prewakeComputer, shouldPrewakeComputer, rememberComputerTurn } from "./computer-prewake.ts"; import { LAZY_VPS_NOTE, vpsTurnStartPlan, WAKES_ON_CALL_VPS_NOTE } from "./vps-turn-start.ts"; import { ComputerToolLists, createComputerRelay, relayedComputerSpec, vpsToolsKey, type RelayBridge, type RelayTurn } from "./vps-computer-relay.ts";
 import type { VpsLifecycleResource, VpsLifecycleTarget, VpsLifecycleStage } from "./vps-lifecycle.ts";
 import { closeVpsBrowser } from "./vps-browser-close.ts";
 import { NO_EXEC_COMPUTER, VPS_EXEC_CHANGED, vpsContainerExec, withVpsGuestFile } from "./vps-exec.ts";
@@ -5398,7 +5398,7 @@ bus.subscribe((event: RuntimeEvent) => {
     const reply = messages.findLast((message) => message.role === "bot" && message.kind === "text" && message.turnId === event.turnId);
     const room = store.groupByThread(event.threadId);
     const bot = room ? (reply?.from ? store.bot(reply.from.botId) : undefined) : store.botByThread(event.threadId);
-    if (!bot) return;
+    if (!bot) return; rememberComputerTurn(bot.id, messages, event.turnId);
     const counts = event.ok && Boolean(reply?.text?.trim()) && !isInternalTurn(event.threadId)
       && !isUnattended(bot.id, event.threadId) && !routines?.runForThread(event.threadId)
       && !(CLOUD_HOME && !cloudOwnerOnlyThread(event.threadId));
@@ -6171,7 +6171,7 @@ function announceDesktopBuild(threadId: string): (step: BotDesktopProgress) => v
 async function mountBotVps(
   bot: BotRecord,
   owner: TurnOwner,
-  opts: { start: boolean; lazy?: boolean; onClaimed: (capture: () => Promise<{ png: string; format: string }>) => void; onRejected?: (failure: string) => void },
+  opts: { start: boolean; lazy?: boolean; prewake?: boolean; onClaimed: (capture: () => Promise<{ png: string; format: string }>) => void; onRejected?: (failure: string) => void },
 ) {
   const botVpsConfig = vpsConfigForBot(cfg, bot), alias = vpsSshAlias(botVpsConfig)!, current = () => activeInternalGenerationByThread.get(owner.threadId) === owner.generation, vpsResource = `computer:vps:${vpsSshAliasForBot(cfg, bot)}:${bot.id}`;
   const provision = () => vps.vpsComputerAction("provision", botVpsConfig, bot.id, undefined, { stillAllowed: current, onStarting: () => computerStateChanged(bot.id, alias, "starting"), onProgress: announceDesktopBuild(owner.threadId) });
@@ -6193,9 +6193,9 @@ async function mountBotVps(
     return (await attach(remote, remote.sshAlias, true)).bridge;
   }).catch((error: unknown) => { if (turnVpsTargets.get(owner.threadId)?.generation !== owner.generation) vpsThreadEnded(bot.id, owner.threadId); throw error; });
   return prepareVpsTurn(owner, bot.id, alias, async () => {
-    const remote = await (opts.start ? provision() : vps.inspectVpsForAuto(botVpsConfig, bot.id));
-    const asleep = Boolean(opts.lazy && !remote?.ready && remote?.daemonUp && !vpsDesktopOutdated(remote));
-    if (asleep && !computerRelay.knowsTools(vpsToolsKey(remote))) return { asleep: true as const };
+    let remote = await (opts.start && !opts.prewake ? provision() : vps.inspectVpsForAuto(botVpsConfig, bot.id));
+    const asleep = Boolean((opts.lazy || opts.prewake) && !remote?.ready && remote?.daemonUp && !vpsDesktopOutdated(remote)); if (!asleep && opts.start && opts.prewake && !remote?.ready) remote = await provision();
+    if (asleep && !computerRelay.knowsTools(vpsToolsKey(remote))) { computerRelay.open(owner, { bridge: () => attached?.bridge ?? null, wake, toolsKey: vpsToolsKey(remote) }); return { asleep: true as const }; }
     if (!asleep && (!remote?.ready || !remote.sshAlias)) return { problem: remote?.problem ?? null, reachable: remote?.daemonUp === true, outdated: vpsDesktopOutdated(remote) };
     if (asleep) vpsThreadEnded(bot.id, owner.threadId); else await attach(remote, remote.sshAlias!, opts.start);
     autoVmClaims.set(owner.threadId, { owner, lazy: true, label: "the VPS computer", onRejected: opts.onRejected, ...(asleep ? { startsComputer: true as const } : {}),
@@ -8457,7 +8457,7 @@ async function beginTurn(
             canWorkOnCloud(cloudEngine(instance))) {
           vpsThreadStarted(bot.id, threadId);
           const vpsStart = vpsTurnStartPlan({ wants, autoStart: vpsDefaults().autoStart, autoStartVps: bot.autoStartVps ?? true, automationSource: opts?.automationSource, canSelect: canSelectComputer, chosen: placeSource !== undefined && placeSource !== "auto-pin" });
-          const mounted = await mountBotVps(bot, resourceOwner, { start: vpsStart === "start", lazy: vpsStart === "lazy",
+          const mounted = await mountBotVps(bot, resourceOwner, { start: vpsStart === "start", lazy: vpsStart === "lazy", prewake: shouldPrewakeComputer({ botId: bot.id, place: wants, ownComputer: true, enabled: vpsStart !== "inspect", message: resolvedImages.text, history: store.activePath(threadId), currentMessageId: userMessage.id }),
             onClaimed: (vpsCapture) => {
               pinAutoSurface("cloud");
               adoptClaimedCapture(vpsCapture);
@@ -8479,7 +8479,7 @@ async function beginTurn(
               autoVpsProblem = mounted.problem ?? "the VPS computer could not be reached";
               autoVpsReachable = mounted.reachable; autoVpsOutdated = "outdated" in mounted && mounted.outdated === true;
             }
-          }
+          } prewakeComputer(computerRelay, resourceOwner, { botId: bot.id, place: wants, ownComputer: true, enabled: vpsStart !== "inspect", message: resolvedImages.text, history: store.activePath(threadId), currentMessageId: userMessage.id });
         }
 
         if (teamComputer && !deferredSharedComputer) {

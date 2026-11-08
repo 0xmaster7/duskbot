@@ -144,7 +144,7 @@ export class ComputerToolLists {
   }
 }
 
-interface Entry { owner: RelayOwner; turn: RelayTurn; closed: boolean; waking?: Promise<RelayBridge>; session?: McpSession; bridge?: RelayBridge }
+interface Entry { owner: RelayOwner; turn: RelayTurn; closed: boolean; waking?: Promise<RelayBridge>; wakeDeadline?: number; session?: McpSession; bridge?: RelayBridge }
 
 function within<T>(work: Promise<T>, deadline: number, signal?: AbortSignal): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -152,6 +152,8 @@ function within<T>(work: Promise<T>, deadline: number, signal?: AbortSignal): Pr
     const cancel = () => reject(new Error("The call was cancelled."));
     signal?.addEventListener("abort", cancel, { once: true });
     work.then(resolve, reject).finally(() => { clearTimeout(timer); signal?.removeEventListener("abort", cancel); });
+    if (signal?.aborted) cancel();
+    else if (deadline <= Date.now()) reject(Object.assign(new Error(STILL_STARTING), { slow: true }));
   });
 }
 
@@ -165,8 +167,11 @@ export function createComputerRelay(options: { lists: ComputerToolLists; open?: 
   };
   const awake = (entry: Entry): Promise<RelayBridge> => {
     const bridge = entry.turn.bridge();
-    if (bridge) return Promise.resolve(bridge);
-    entry.waking ??= entry.turn.wake().catch((error: unknown) => { entry.waking = undefined; throw error; });
+    if (bridge) { entry.wakeDeadline = undefined; return Promise.resolve(bridge); }
+    if (!entry.waking) {
+      entry.wakeDeadline = Date.now() + budgetMs;
+      entry.waking = entry.turn.wake().catch((error: unknown) => { entry.waking = undefined; entry.wakeDeadline = undefined; throw error; });
+    }
     return entry.waking;
   };
   const sessionFor = async (entry: Entry) => {
@@ -205,7 +210,8 @@ export function createComputerRelay(options: { lists: ComputerToolLists; open?: 
     async wake(owner: RelayOwner): Promise<void> {
       const entry = entryFor(owner);
       if (!entry) throw Object.assign(new Error(NO_COMPUTER), { status: 409 });
-      await awake(entry);
+      const waking = awake(entry);
+      await within(waking, entry.wakeDeadline ?? Date.now() + budgetMs);
     },
     async request(owner: RelayOwner, frame: unknown, signal?: AbortSignal): Promise<RelayAnswer> {
       const { method, params } = (frame && typeof frame === "object" ? frame : {}) as { method?: unknown; params?: unknown };
@@ -216,9 +222,13 @@ export function createComputerRelay(options: { lists: ComputerToolLists; open?: 
         const known = options.lists.get(entry.turn.toolsKey);
         if (known) return { result: { tools: known } };
       }
-      const deadline = Date.now() + budgetMs;
+      let deadline = Date.now() + budgetMs;
       let session: McpSession;
-      try { session = await within(sessionFor(entry), deadline, signal); }
+      try {
+        const starting = sessionFor(entry);
+        if (!entry.turn.bridge() && entry.wakeDeadline !== undefined) deadline = Math.min(deadline, entry.wakeDeadline);
+        session = await within(starting, deadline, signal);
+      }
       catch (error) {
         const text = error instanceof Error ? error.message : String(error);
         return { error: (error as { slow?: unknown }).slow ? text : `The cloud computer could not be started: ${text}` };

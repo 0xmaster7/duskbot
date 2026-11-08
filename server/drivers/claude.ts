@@ -1085,10 +1085,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
         };
         allowed.push("mcp__dweb");
       }
-      // User servers are not pre-allowed, so acceptEdits routes each call to the broker. Remote
-      // entries are already in the CLI's shape and it connects itself: Claude Code 2.1.292 sends only
-      // spec-defined initialize fields (2025-11-25), so strict servers accept it, and it keeps its MCP
-      // tool search for big catalogs.
+      // user servers are not pre-allowed, so acceptEdits routes each call to the broker.
       const botOwned = new Set<string>();
       for (const [name, server] of Object.entries(turn.integrations?.custom ?? {})) {
         if (Object.hasOwn(mcpServers, name)) continue;

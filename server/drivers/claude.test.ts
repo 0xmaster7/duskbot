@@ -1826,7 +1826,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(seen.argv[seen.argv.indexOf("--setting-sources") + 1]).toBe("project");
   });
 
-  it("mounts a url server in the CLI's own shape, header values in the private file", async () => {
+  it("mounts a cached url proxy with header values in the private file", async () => {
     await create();
     const dump = join(scratch, "remote-mcp.json");
     process.env.FAKE_CLAUDE_DUMP = dump;
@@ -1842,15 +1842,15 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     await recorder.until((e) => e.type === "turn.completed");
 
     const seen = JSON.parse(readFileSync(dump, "utf8"));
-    expect(seen.mcpConfig.mcpServers.docs).toEqual({ type: "http", url: "https://docs.example/mcp", headers: { Authorization: "Bearer tok-docs" } });
-    expect(seen.mcpConfig.mcpServers.legacy).toEqual({ type: "sse", url: "https://old.example/sse", headers: {} });
-    expect(JSON.stringify(seen.mcpConfig)).not.toContain("mcp-remote-proxy");
+    expect(JSON.parse(seen.mcpConfig.mcpServers.docs.env.OMB_REMOTE_MCP_SERVER)).toEqual({ type: "http", url: "https://docs.example/mcp", headers: { Authorization: "Bearer tok-docs" } });
+    expect(JSON.parse(seen.mcpConfig.mcpServers.legacy.env.OMB_REMOTE_MCP_SERVER)).toEqual({ type: "sse", url: "https://old.example/sse", headers: {} });
+    expect(seen.mcpConfig.mcpServers.docs.args[0]).toContain("mcp-remote-proxy");
     expect(JSON.stringify(seen.argv)).not.toContain("tok-docs");
   });
 
   // Claude Code advertises no MCP Apps UI extension and keeps tool results to itself, so only OMB's
   // remote proxy can observe a URL app server.
-  it("mounts a url app server through the proxy and a url server without apps natively, unchanged", async () => {
+  it("mounts cached url proxies with app observation only for apps", async () => {
     await create();
     const dump = join(scratch, "app-mcp.json");
     process.env.FAKE_CLAUDE_DUMP = dump;
@@ -1864,7 +1864,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     });
     await recorder.until((e) => e.type === "turn.completed");
     const seen = JSON.parse(readFileSync(dump, "utf8"));
-    expect(seen.mcpConfig.mcpServers.docs).toEqual(docs);
+    expect(JSON.parse(seen.mcpConfig.mcpServers.docs.env.OMB_REMOTE_MCP_SERVER)).toEqual(docs);
     const proxy = seen.mcpConfig.mcpServers.draw;
     expect(proxy.args[0]).toContain("mcp-remote-proxy");
     expect(JSON.parse(proxy.env.OMB_REMOTE_MCP_SERVER)).toEqual(draw);
@@ -1883,7 +1883,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     const draw = { type: "http" as const, url: "https://mcp.excalidraw.com/mcp", headers: {} };
     await instance.adapter.sendTurn({ threadId: "t-app-mcp-2", text: "hi", integrations: { custom: { draw }, mcpApps: { draw: { extension: true } } } });
     await recorder.until((e) => e.type === "turn.completed");
-    expect(JSON.parse(readFileSync(dump, "utf8")).mcpConfig.mcpServers.draw).toEqual(draw);
+    expect(JSON.parse(readFileSync(dump, "utf8")).mcpConfig.mcpServers.draw.env).not.toHaveProperty("OMB_REMOTE_MCP_APPS");
   });
 
   it("keeps a selected url server's whole catalog: Claude Code searches tools itself", async () => {
@@ -2194,7 +2194,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
       command: "npx",
       args: ["-y", "mcp-remote", "https://example.test/shop"],
     });
-    expect(seen.mcpConfig.mcpServers.hosted).toMatchObject({ type: "http", url: "https://example.test/mcp" });
+    expect(JSON.parse(seen.mcpConfig.mcpServers.hosted.env.OMB_REMOTE_MCP_SERVER)).toMatchObject({ type: "http", url: "https://example.test/mcp" });
     expect(seen.mcpConfig.mcpServers.ogb.args).not.toContain("evil");
     const allowed = seen.argv[seen.argv.indexOf("--allowedTools") + 1].split(",");
     expect(allowed).not.toContain("mcp__shop");
@@ -2269,7 +2269,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(seen.mcpConfig.mcpServers.shop).toMatchObject({ command: "npx", args: ["shop"] });
   });
 
-  it("gates a URL server with its own result limit; other URL servers keep their native connection", async () => {
+  it("gates a URL server with its own result limit and caches other URL servers", async () => {
     const dump = join(scratch, "gate-own-url.json");
     await create(undefined, { FAKE_CLAUDE_DUMP: dump });
 
@@ -2285,10 +2285,10 @@ describe("ClaudeDriver turns (fake CLI)", () => {
 
     const seen = JSON.parse(readFileSync(dump, "utf8"));
     expect(seen.mcpConfig.mcpServers.motion.env.OMB_GATE_BUDGET).toBe("40000");
-    expect(seen.mcpConfig.mcpServers.docs).toEqual({ type: "http", url: "https://docs.example.test/mcp", headers: {} });
+    expect(JSON.parse(seen.mcpConfig.mcpServers.docs.env.OMB_REMOTE_MCP_SERVER)).toEqual({ type: "http", url: "https://docs.example.test/mcp", headers: {} });
   });
 
-  it("leaves an http project server unmounted by the gate rather than mangling it", async () => {
+  it("caches an http project server through the remote proxy", async () => {
     await create();
     const dump = join(scratch, "gate-http.json");
     process.env.FAKE_CLAUDE_DUMP = dump;
@@ -2300,7 +2300,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     await recorder.until((e) => e.type === "turn.completed");
 
     const seen = JSON.parse(readFileSync(dump, "utf8"));
-    expect(seen.mcpConfig.mcpServers.hosted).toEqual({ type: "http", url: "https://example.test/mcp" });
+    expect(JSON.parse(seen.mcpConfig.mcpServers.hosted.env.OMB_REMOTE_MCP_SERVER)).toEqual({ type: "http", url: "https://example.test/mcp", headers: {} });
   });
 
   it("survives a malformed or missing project .mcp.json", async () => {

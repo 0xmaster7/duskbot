@@ -5,6 +5,8 @@
 // and ends at its TTL, or when the servers change. A server that failed when the engine started gets the conversation a
 // new token on its next turn, so the engine starts again and reconnects instead of keeping that failed connection.
 import { createHash } from "node:crypto";
+import { remoteMcpCacheIdentity, remoteMcpCacheKey } from "../mcp-remote-proxy-cache.ts";
+import { remoteMcpSpec } from "../mcp-http.ts";
 
 import { listNames } from "../../shared/place-view.ts";
 import type { McpServerSpec } from "../contracts.ts";
@@ -54,7 +56,8 @@ export function brokerRemoteMcp(custom: Record<string, McpServerSpec>, turn: Bro
   }
   for (const name of brokered) {
     const server = custom[name] as McpServerSpec & { url: string; type?: string };
-    out[name] = { ...server, url: brokerUrl(broker.port, token, mcpGrantName(name)), headers: {} } as McpServerSpec;
+    const original = remoteMcpSpec(server);
+    out[name] = { ...server, ...(original ? { [remoteMcpCacheIdentity]: remoteMcpCacheKey(original, {}) } : {}), url: brokerUrl(broker.port, token, mcpGrantName(name)), headers: {} } as McpServerSpec;
   }
   return out;
 }
