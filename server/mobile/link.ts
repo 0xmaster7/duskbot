@@ -5,7 +5,7 @@
 // authorized by that session exactly as any remote client's. The relay agent learns only channel ids, token verifiers,
 // phone public keys and, for a grant's five minutes, that grant's channel key. Grant channels reach redeem and nothing else
 // (link-service/agent.mjs).
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash, createPublicKey, diffieHellman, generateKeyPairSync, randomBytes, randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import type { IncomingMessage } from "node:http";
 import { join } from "node:path";
@@ -238,7 +238,7 @@ export function createMobileLink(deps: MobileLinkDeps) {
     const platform = MOBILE_PLATFORMS.find((one) => one === device?.platform) ?? "other";
     const app = typeof device?.app === "string" ? device.app.replace(/[^\w .+-]/g, "").slice(0, 40) : undefined;
     const relayAsk = body.relay as Record<string, unknown> | undefined;
-    if (relayAsk !== undefined && (typeof relayAsk?.pub !== "string" || !B64URL_KEY.test(relayAsk.pub) || typeof relayAsk.verifier !== "string" || !HEX64.test(relayAsk.verifier))) {
+    if (relayAsk !== undefined && (typeof relayAsk?.pub !== "string" || !usableX25519(relayAsk.pub) || typeof relayAsk.verifier !== "string" || !HEX64.test(relayAsk.verifier))) {
       return { status: 400, body: { error: "relay needs pub (base64url x25519) and verifier (sha256 hex)" } };
     }
     if (!secret) return { status: 400, body: { error: "secret is required" } };
@@ -396,6 +396,18 @@ export function createMobileLink(deps: MobileLinkDeps) {
     /** for tests */
     state: () => ({ rev, applied, devices: devices.map((device) => ({ ...device })), grants: grants.size, agent }),
   };
+}
+
+/** a low-order point (all zeros, say) makes every agreement fail, so the agent could never derive this phone's key */
+function usableX25519(pub: string): boolean {
+  if (!B64URL_KEY.test(pub)) return false;
+  try {
+    const mine = generateKeyPairSync("x25519");
+    diffieHellman({ privateKey: mine.privateKey, publicKey: createPublicKey({ key: { kty: "OKP", crv: "X25519", x: pub }, format: "jwk" }) });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function sha256hex(value: string): string {

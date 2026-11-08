@@ -1191,8 +1191,9 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
     headers["x-forwarded-for"] = forwardedFor;
     headers["x-forwarded-proto"] = "http";
     if (headers.host) headers["x-forwarded-host"] = headers.host;
-    let reply = null;
-    const req = httpRequest({ ...server, method: frame.method, path: frame.path, headers }, (res) => {
+    let reply = null, req;
+    // a frame's method, path and headers come from the other end: one node refuses (a bad header name) fails that request only
+    try { req = httpRequest({ ...server, method: frame.method, path: frame.path, headers }, (res) => {
       reply = res;
       if (!pending.has(frame.r) || stopped()) { res.destroy(); return; }
       const out = {};
@@ -1207,7 +1208,7 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
       });
       res.on("end", () => { if (pending.delete(frame.r)) emit({ t: "end", r: frame.r }); });
       res.on("error", () => { if (pending.delete(frame.r)) emit({ t: "err", r: frame.r, message: "reply cut off" }); });
-    });
+    }); } catch { emit({ t: "err", r: frame.r, message: "That request could not be sent." }); return; }
     req.on("error", () => { if (pending.delete(frame.r)) emit({ t: "err", r: frame.r, message: "OpenMausBot on the server did not answer" }); });
     // bytes the app sent before the handshake was answered wait for the socket
     const early = [];
@@ -1399,6 +1400,17 @@ async function readChannelBatches(response, onBatch) {
 export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = harnessSync(server), origin = null, spki = null, fetchImpl: given, log = (line) => console.error(line), waitS = 25, aheadMs = STREAM_AHEAD_MS }) {
   const fetchImpl = given ?? relayFetch(), stream = streamChoice();
   const abort = new AbortController(), channels = new Map();
+  // a channel the relay dropped and the sync brought back keeps its replay guard, or the relay could replay its frames
+  const guards = new Map();
+  const guardFor = (cid, key) => {
+    const t = Date.now();
+    for (const [one, kept] of guards) if (!channels.has(one) && t - kept.at > 2 * FRAME_SKEW_MS) guards.delete(one);
+    const known = guards.get(cid);
+    if (known && known.key.equals(key)) { known.at = t; return known.guard; }
+    const guard = frameGuard();
+    guards.set(cid, { key, guard, at: t });
+    return guard;
+  };
   const route = `${base}/v1/tunnels/${id}/channels`;
   const headers = { authorization: `Bearer ${token}`, "content-type": "application/json" };
   let stopped = false, successfulPosts = 0, pollRetry = null;
@@ -1407,6 +1419,8 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
     const channel = channels.get(cid);
     if (!channel) return;
     channels.delete(cid);
+    const kept = guards.get(cid);
+    if (kept) kept.at = Date.now();
     channel.abort.abort();
     channel.serving?.destroyAll();
   }
@@ -1451,10 +1465,14 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
         const answer = await sync({ base, tunnel: id, pub: keys.pub, origin, spki, applied, failed, wait: first ? 0 : waitS, signal: abort.signal });
         if (stopped) break;
         first = false;
-        let wanted = answer.channels.map((channel) => ({ ...channel, key: channel.kind === "grant" ? Buffer.from(channel.key, "base64url") : sealKeyOf(keys.priv, keys.pub, channel.pub, channel.id) }));
+        const unusable = [];
+        let wanted = answer.channels.flatMap((channel) => {
+          try { return [{ ...channel, key: channel.kind === "grant" ? Buffer.from(channel.key, "base64url") : sealKeyOf(keys.priv, keys.pub, channel.pub, channel.id) }]; }
+          catch { unusable.push(channel.id); return []; }
+        });
         const register = () => fetchImpl(route, { method: "PUT", headers, body: JSON.stringify({ channels: wanted.map(({ id, verifier, kind, expiresAt }) => ({ id, verifier, kind, ...(kind === "grant" ? { expiresAt } : {}) })) }), signal: AbortSignal.any([abort.signal, AbortSignal.timeout(40_000)]) });
         let response = await register();
-        const refused = [];
+        const refused = [...unusable];
         if (response.status === 409) {
           const conflict = await response.json();
           if (conflict.code === "taken" && wanted.some((channel) => channel.id === conflict.id)) {
@@ -1472,7 +1490,7 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
         for (const channel of wanted) {
           const old = channels.get(channel.id);
           if (old && (old.kind !== channel.kind || old.verifier !== channel.verifier || !old.key.equals(channel.key))) drop(channel.id);
-          if (!channels.has(channel.id)) channels.set(channel.id, { ...channel, guard: frameGuard(), abort: new AbortController() });
+          if (!channels.has(channel.id)) channels.set(channel.id, { ...channel, guard: guardFor(channel.id, channel.key), abort: new AbortController() });
         }
         applied = answer.rev;
         failed = refused;
@@ -1510,7 +1528,7 @@ export function createPhoneHub({ base, id, token, keys, server = SERVER, sync = 
           for (const sealed of frames) {
             let frame = null;
             try { frame = openFrame(channel.key, cid, "to-vps", sealed, channel.guard); } catch { log("link: dropped a phone frame that did not open"); }
-            if (frame) void serving(channel).handle(frame);
+            if (frame) serving(channel).handle(frame).catch(() => log("link: a phone frame failed"));
           }
         });
       } catch {

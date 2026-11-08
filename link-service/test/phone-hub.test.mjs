@@ -43,6 +43,14 @@ it("refuses control before reading its data and filters a request path without i
   serving.destroyAll();
 });
 
+it("answers a request frame node refuses with an error instead of crashing the agent", async () => {
+  const frames = [];
+  const serving = createServing({ controls: false, server: { host: "127.0.0.1", port: 9 }, sink: { push: (frame) => frames.push(frame) } });
+  await serving.handle({ t: "req", r: "malformed", method: "POST", path: "/api/mobile/redeem", headers: { "bad header": "1" }, end: true });
+  expect(frames).toEqual([{ t: "err", r: "malformed", message: "That request could not be sent." }]);
+  serving.destroyAll();
+});
+
 describe("phone hub without sockets", () => {
   let hub, running, calls, registrations, replies, reader, syncing, replyStatus, registration;
   const agentKeys = x25519Pair(), key = Buffer.alloc(32, 7), anotherKey = Buffer.alloc(32, 8);
@@ -108,6 +116,30 @@ describe("phone hub without sockets", () => {
     reader(control(second, anotherKey, "controlaaaab"));
     await until(() => replies.length === 3);
     expect(replies.at(-1).channel).toBe(second);
+  });
+
+  it("keeps a re-created channel's replay guard, so a relay cannot replay a frame after dropping it", async () => {
+    await start([spec()]);
+    const first = control();
+    reader(first);
+    await until(() => replies.length === 1);
+    syncing({ rev: 2, channels: [] });
+    await until(() => calls.length === 3);
+    syncing({ rev: 3, channels: [spec()] });
+    await until(() => calls.length === 4);
+    reader(first);
+    reader(control(cid, key, "controlaaaab"));
+    await until(() => replies.length === 2);
+    await delay(25);
+    expect(replies).toHaveLength(2);
+    expect(openFrame(key, cid, "to-app", replies[1].frames[0], frameGuard())).toMatchObject({ r: "controlaaaab" });
+  });
+
+  it("fails only the channel whose phone key no agreement can use", async () => {
+    const zero = { id: second, kind: "device", verifier: sha256hex("t"), pub: Buffer.alloc(32).toString("base64url") };
+    await start([spec(), zero]);
+    expect(registrations[0].channels.map((channel) => channel.id)).toEqual([cid]);
+    expect(calls[1]).toMatchObject({ applied: 1, failed: [second] });
   });
 
   it("retries a taken registration exactly once and reports the failed id at the applied revision", async () => {

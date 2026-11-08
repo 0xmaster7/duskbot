@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { parseMobileLink, type MobilePairingResponse, type MobileRedeemResponse } from "../../shared/mobile-link.ts";
 import type { RequestAuth } from "../request-auth.ts";
 import { SessionRegistry } from "../sessions.ts";
+import { generateKeyPairSync } from "node:crypto";
+
 import { createMobileLink, mobileLookupRelay } from "./link.ts";
 import { lookupKeys, openLookup } from "./lookup.ts";
 import type { PushMessage, PushTarget } from "./push.ts";
@@ -106,6 +108,7 @@ describe("mobile link", () => {
 
   it("serves relay channels to the link agent and hands a phone its own channel", async () => {
     const mobile = link({ publicOrigin: () => null });
+    const phonePub = generateKeyPairSync("x25519").publicKey.export({ format: "jwk" }).x!;
     const agent = { base: "https://link.test", tunnel: "abcdefghij", pub: "A".repeat(43) };
     // the agent's sync: answered at once the first time, then held until something changes
     const first = await call(mobile, owner, "POST", "/api/mobile/relay/sync", { ...agent, applied: 0, wait: 0 });
@@ -123,11 +126,11 @@ describe("mobile link", () => {
     expect(relay).toMatchObject({ kind: "relay", base: "https://link.test", channel: held.body.channels[0].id });
     expect(answer.payload.workspace.kind).toBe("vps");
 
-    const redeeming = redeem(mobile, { secret: answer.payload.grant.secret, attemptId: "attempt-0003", device: { name: "Pixel", platform: "android" }, relay: { pub: "B".repeat(43), verifier: "c".repeat(64) } });
+    const redeeming = redeem(mobile, { secret: answer.payload.grant.secret, attemptId: "attempt-0003", device: { name: "Pixel", platform: "android" }, relay: { pub: phonePub, verifier: "c".repeat(64) } });
     await new Promise((resolve) => setTimeout(resolve, 20));
     const next = await call(mobile, owner, "POST", "/api/mobile/relay/sync", { ...agent, applied: held.body.rev, wait: 0 });
     const device = next.body.channels.find((one: { kind: string }) => one.kind === "device");
-    expect(device).toMatchObject({ pub: "B".repeat(43), verifier: "c".repeat(64) });
+    expect(device).toMatchObject({ pub: phonePub, verifier: "c".repeat(64) });
     void call(mobile, owner, "POST", "/api/mobile/relay/sync", { ...agent, applied: next.body.rev, wait: 0 });
     const phone = (await redeeming).body as MobileRedeemResponse;
     expect(phone.relay).toEqual({ base: "https://link.test", channel: device.id, agentPub: agent.pub });
@@ -136,6 +139,13 @@ describe("mobile link", () => {
     sessions.revoke(sessions.authenticate(phone.token)!.id);
     const after = await call(mobile, owner, "POST", "/api/mobile/relay/sync", { ...agent, applied: next.body.rev, wait: 0 });
     expect(after.body.channels.some((one: { kind: string }) => one.kind === "device")).toBe(false);
+  });
+
+  it("refuses a relay key no agreement can use", async () => {
+    const mobile = link();
+    const answer = (await call(mobile, owner, "POST", "/api/mobile/pairing")).body as MobilePairingResponse;
+    const refused = await redeem(mobile, { secret: answer.payload.grant.secret, attemptId: "attempt-0009", device: { name: "p", platform: "ios" }, relay: { pub: Buffer.alloc(32).toString("base64url"), verifier: "c".repeat(64) } });
+    expect(refused.status).toBe(400);
   });
 
   it("registers a phone for push and fans notifications out without their text", async () => {
