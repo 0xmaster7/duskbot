@@ -257,7 +257,7 @@ function RoomTextMessage({
                 <ThreadRefText text={display} peers={peers} everyone={!group.dm} />
               </div>{m.bugReport && <BugReportNote report={m.bugReport} />}
               {m.via === "api" && (
-                <div className="mt-1 text-[11px] text-ink-secondary">Sent through the API, not typed here</div>
+                <div className="mt-1 text-[11px] text-ink-tertiary">{t("chat.viaBotApi")}</div>
               )}
               {collapsible && (
                 <button type="button" onClick={() => setExpanded(true)} className="mt-1 text-[13px] text-ink-secondary hover:text-ink">
