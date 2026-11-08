@@ -149,7 +149,7 @@ export function StackedBars({ keys, rows, labels, line, lineLabel, forecast, cap
           {cap !== undefined && (
             <g>
               <line x1={pad.l} x2={width - pad.r} y1={yl(cap)} y2={yl(cap)} stroke="var(--color-ink-3)" strokeDasharray="4 4" strokeWidth={1} />
-              <text x={width - pad.r + 6} y={yl(cap) - 7} className="fill-ink-3 text-12 font-medium">{capLabel}</text>
+              <text x={width - pad.r - 6} y={yl(cap) - 6} textAnchor="end" className="fill-ink-3 text-12 font-medium">{capLabel}</text>
             </g>
           )}
           {forecast && <path d={forecast.map((v, i) => (i < n - 1 ? "" : `${i === n - 1 ? "M" : "L"}${x(i).toFixed(1)},${yl(v).toFixed(1)}`)).join("")} fill="none" stroke="var(--color-ink-2)" strokeWidth={1.25} strokeDasharray="1.5 3.5" strokeLinecap="round" />}
