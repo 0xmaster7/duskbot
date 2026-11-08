@@ -303,6 +303,13 @@ const H2_UNSENT = new Set(["ERR_HTTP2_GOAWAY_SESSION", "ERR_HTTP2_INVALID_SESSIO
 /** posts out at once over http/2: as many as the relay holds while an earlier one is still on its way (HELD_POSTS) */
 const H2_POSTS_IN_FLIGHT = 8;
 const H2_DIAL_MS = 20_000;
+/**
+ * a request with no answer this long has its connection prove itself with a ping, and one that does not answer the ping
+ * in H2_PING_MS is dropped so the next request dials afresh. a connection can die without a word (a phone hotspot or
+ * vpn that changed under it): the app sat 20 minutes on one with every post and read timing out (2026-11-08)
+ */
+const H2_CHECK_MS = 10_000;
+const H2_PING_MS = 10_000;
 const until = (promise, signal) => (!signal ? promise : new Promise((resolve, reject) => {
   const stop = () => reject(signal.reason);
   signal.addEventListener("abort", stop, { once: true });
@@ -315,11 +322,21 @@ const until = (promise, signal) => (!signal ? promise : new Promise((resolve, re
  * vps) and many can be out at once (`multiplexed()`). plain http, or an origin that answers without h2, goes through
  * keepAliveFetch. `tls` is extra tls.connect options (a test's ca); `dial(host, port)` makes the tcp socket under it.
  */
-export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null } = {}) {
+export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, checkMs = H2_CHECK_MS, pingMs = H2_PING_MS } = {}) {
   const h1 = keepAliveFetch({ maxSockets, tls: tlsOptions });
   const h1Origins = new Set();
-  let session = null, opening = null, tlsSession = null, lastUsed = 0;
+  let session = null, opening = null, tlsSession = null, lastUsed = 0, checking = null;
   const live = (one) => Boolean(one && !one.closed && !one.destroyed);
+  /** a ping answered keeps the connection; none in time drops it, failing what is on it so the callers ask again */
+  const check = (one) => {
+    if (checking === one || !live(one)) return;
+    checking = one;
+    const dead = () => { if (checking === one) checking = null; if (session === one) session = null; one.destroy(); };
+    const timer = setTimeout(dead, pingMs);
+    timer.unref?.();
+    try { one.ping((error) => { clearTimeout(timer); if (checking === one) checking = null; if (error && live(one)) dead(); }); }
+    catch { clearTimeout(timer); dead(); }
+  };
   const open = (url) => new Promise((resolve) => {
     const host = url.hostname, port = Number(url.port) || 443;
     const socket = tlsConnect({ host, port, ...(dial ? { socket: dial(host, port) } : {}), ...(isIP(host) ? {} : { servername: host }), ALPNProtocols: ["h2", "http/1.1"], ...(tlsSession ? { session: tlsSession } : {}), ...tlsOptions });
@@ -353,6 +370,8 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null }
     let stream;
     try { stream = one.request(headers, { endStream: !body }); } catch (error) { reject(error); return; }
     let answered = false;
+    const quiet = setTimeout(() => { if (!answered) check(one); }, checkMs);
+    quiet.unref?.();
     const stop = () => { stream.close(h2Constants.NGHTTP2_CANCEL); if (!answered) reject(signal.reason); };
     signal?.addEventListener("abort", stop, { once: true });
     const unanswered = (error) => {
@@ -361,8 +380,9 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null }
       reject(stream.rstCode === h2Constants.NGHTTP2_REFUSED_STREAM ? Object.assign(new Error("the relay refused the stream"), { code: "ERR_HTTP2_REFUSED_STREAM" }) : error ?? new Error("the relay closed the stream"));
     };
     stream.once("error", unanswered);
-    stream.once("close", () => { signal?.removeEventListener("abort", stop); unanswered(null); });
+    stream.once("close", () => { clearTimeout(quiet); signal?.removeEventListener("abort", stop); unanswered(null); });
     stream.once("response", (head) => {
+      clearTimeout(quiet);
       if (answered) return;
       answered = true;
       const status = head[":status"];
@@ -398,7 +418,7 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null }
   go.warm = (base) => {
     const stopH1 = h1.warm(base, () => h1Origins.has(new URL(base).origin) || !base.startsWith("https:"));
     // nginx closes an h2 connection idle for its keepalive timeout; the streamed read usually keeps it busy anyway
-    const timer = setInterval(() => { if (live(session) && Date.now() - lastUsed >= WARM_MS - 5000) session.ping(() => {}); }, WARM_MS);
+    const timer = setInterval(() => { if (live(session) && Date.now() - lastUsed >= WARM_MS - 5000) check(session); }, WARM_MS);
     timer.unref?.();
     return () => { stopH1(); clearInterval(timer); };
   };
@@ -894,7 +914,12 @@ export const EGRESS_BRIDGE = "omb-desk0";
 export const EGRESS_PORT = Number(process.env.LINK_EGRESS_PORT) || 3129;
 /** the app says hello every 15 s while it takes streams; three missed and this server uses its own network again */
 const EGRESS_SEEN_MS = 40_000;
-const EGRESS_DIAL_MS = 5000;
+/**
+ * how long a bot computer's connection waits for the app to open its stream before it goes out direct instead. the route
+ * runs through the app only while its dials take about 200 ms, so a dial this slow means the path went bad: waiting 5 s
+ * here held every connection of a page that long while the relay faltered (2026-11-08)
+ */
+export const EGRESS_DIAL_MS = 2000;
 /** how long the app takes to open a stream, from the last few dials: the server routes through the app only while it is fast */
 const DIAL_SAMPLES = 7;
 const DIAL_SAMPLE_MAX_AGE_MS = 120_000;

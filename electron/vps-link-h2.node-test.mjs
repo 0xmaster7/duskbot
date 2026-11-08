@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { createServer as createHttpsServer } from "node:https";
 import { createSecureServer } from "node:http2";
+import { connect as netConnect, createServer as createNetServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -94,6 +95,39 @@ for (const [side, factory] of [["app", relayFetch], ["VPS", agentRelayFetch]]) {
       assert.equal(target.connections[2].resumed, true);
     } finally {
       go.close();
+      await target.close();
+    }
+  });
+
+  test(`${side} relay fetch drops a connection that went silent and asks again on a fresh one`, { timeout: 10_000 }, async (t) => {
+    const tls = certificate();
+    if (!tls) { t.skip("no openssl here"); return; }
+    const target = await serve(createSecureServer({ ...tls, allowHTTP1: true }, (req, res) => res.end(`ok ${req.url}`)));
+    // a path that can go dead without closing, like a hotspot that changed under the app
+    const pipes = [];
+    const middle = createNetServer((inbound) => {
+      const entry = { frozen: false };
+      const outbound = netConnect(Number(new URL(target.origin).port), "127.0.0.1");
+      inbound.on("data", (chunk) => { if (!entry.frozen) outbound.write(chunk); });
+      outbound.on("data", (chunk) => { if (!entry.frozen) inbound.write(chunk); });
+      for (const one of [inbound, outbound]) one.on("error", () => {});
+      inbound.on("close", () => outbound.destroy());
+      outbound.on("close", () => inbound.destroy());
+      pipes.push(entry);
+    });
+    await new Promise((resolve) => middle.listen(0, "127.0.0.1", resolve));
+    const go = factory({ tls: { ca: tls.cert }, dial: () => netConnect(middle.address().port, "127.0.0.1"), checkMs: 100, pingMs: 200 });
+    try {
+      assert.equal(await (await go(`${target.origin}/one`)).text(), "ok /one");
+      for (const entry of pipes) entry.frozen = true;
+      const started = Date.now();
+      await assert.rejects(go(`${target.origin}/two`, { signal: AbortSignal.timeout(5000) }), (error) => error?.name !== "TimeoutError");
+      assert.ok(Date.now() - started < 2000, `dropped after ${Date.now() - started} ms`);
+      assert.equal(await (await go(`${target.origin}/three`)).text(), "ok /three");
+      assert.equal(target.connections.length, 2);
+    } finally {
+      go.close();
+      middle.close();
       await target.close();
     }
   });
