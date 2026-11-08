@@ -19,6 +19,7 @@ const WorkspacePage = lazy(() => import("./pages/Workspaces").then((m) => ({ def
 const BotsPage = lazy(() => import("./pages/Bots").then((m) => ({ default: m.BotsPage })));
 const BotPage = lazy(() => import("./pages/Bots").then((m) => ({ default: m.BotPage })));
 const ConnectorsPage = lazy(() => import("./pages/Connectors").then((m) => ({ default: m.ConnectorsPage })));
+const UsagePage = lazy(() => import("./pages/Usage").then((m) => ({ default: m.UsagePage })));
 const BillingPage = lazy(() => import("./pages/Billing").then((m) => ({ default: m.BillingPage })));
 const AccountPage = lazy(() => import("./pages/Account").then((m) => ({ default: m.AccountPage })));
 const DeviceApprovalPage = lazy(() => import("./pages/DeviceApproval").then((m) => ({ default: m.DeviceApprovalPage })));
@@ -29,12 +30,12 @@ stashClaim();
 
 const TITLES: Record<string, string> = {
   "/": "Home", "/cloud": "Cloud desktop", "/workspaces": "Workspaces", "/bots": "Bots", "/connectors": "Connectors",
-  "/billing": "Plans & billing", "/account": "Account", "/claim": "Connect a workspace", "/welcome": "Welcome",
+  "/billing": "Plans & billing", "/usage": "Usage", "/account": "Account", "/claim": "Connect a workspace", "/welcome": "Welcome",
   "/signin": "Sign in", "/sign-in": "Sign in", "/signup": "Create your account", "/cloud/desktop": "Approve sign-in",
 };
 
 // older links keep working
-const MOVED: Record<string, string> = { "/usage": "/billing", "/settings": "/account", "/devices": "/account#devices", "/connect": "/workspaces#add", "/signin": "/", "/sign-in": "/", "/signup": "/" };
+const MOVED: Record<string, string> = { "/settings": "/account", "/devices": "/account#devices", "/connect": "/workspaces#add", "/signin": "/", "/sign-in": "/", "/signup": "/" };
 
 function route(path: string): ReactNode {
   if (path === "/") return <HomePage />;
@@ -47,6 +48,7 @@ function route(path: string): ReactNode {
   if (bot) return <BotPage id={decodeURIComponent(bot[1]!)} />;
   if (path === "/connectors") return <ConnectorsPage />;
   if (path === "/billing") return <BillingPage />;
+  if (path === "/usage") return <UsagePage />;
   if (path === "/account") return <AccountPage />;
   if (path === "/claim") return <ClaimPage />;
   if (path === "/cloud/desktop") return <DeviceApprovalPage />;

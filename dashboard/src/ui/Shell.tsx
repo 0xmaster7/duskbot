@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Blocks, Bot, Check, ChevronsUpDown, CircleUser, Cloud, CreditCard, House, Layers, LogOut, Menu, Plus, X } from "lucide-react";
+import { Blocks, Bot, ChartNoAxesColumn, Check, ChevronsUpDown, CircleUser, Cloud, CreditCard, House, Layers, LogOut, Menu, Plus, X } from "lucide-react";
 import type { WorkspaceSummary } from "../../../shared/dashboard-protocol";
 import { cloudForWorkspace, useCloud } from "../data/cloud";
 import type { CloudDesktop } from "../data/contracts";
@@ -22,6 +22,7 @@ const NAV: Array<{ label?: string; items: NavItem[] }> = [
   ] },
   { label: "Account", items: [
     { to: "/billing", label: "Plans & billing", icon: <CreditCard {...ICON} /> },
+    { to: "/usage", label: "Usage", icon: <ChartNoAxesColumn {...ICON} /> },
     { to: "/account", label: "Account", icon: <CircleUser {...ICON} /> },
   ] },
 ];
