@@ -48,8 +48,32 @@ const include = [
   "scripts/**/*.test.ts",
 ];
 
+/** The app is a dynamic import of src/main.tsx, found only once the entry and its imports have arrived and run: on a
+ * slow link that is a second round of downloads. The page names it and what it imports, so both rounds go at once. */
+function preloadApp(): Plugin {
+  return {
+    name: "preload-app",
+    apply: "build",
+    transformIndexHtml: {
+      order: "post",
+      handler(html, ctx) {
+        if (!ctx.bundle || !ctx.filename.endsWith("index.html")) return;
+        const app = Object.values(ctx.bundle).find((file) => file.type === "chunk" && file.isDynamicEntry && file.moduleIds.some((id) => id.endsWith("/src/App.tsx")));
+        if (!app || app.type !== "chunk") return;
+        const named = (file: string) => html.includes(`/${file}"`);
+        return [
+          ...[app.fileName, ...app.imports].filter((file) => !named(file))
+            .map((file) => ({ tag: "link", attrs: { rel: "modulepreload", crossorigin: true, href: `/${file}` }, injectTo: "head" as const })),
+          ...[...(app.viteMetadata?.importedCss ?? [])].filter((file) => !named(file))
+            .map((file) => ({ tag: "link", attrs: { rel: "preload", as: "style", crossorigin: true, href: `/${file}` }, injectTo: "head" as const })),
+        ];
+      },
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss(), railPage()],
+  plugins: [react(), tailwindcss(), railPage(), preloadApp()],
   build: {
     rollupOptions: { input: { index: page("./index.html"), rail: page("./rail.html"), ambient: page("./ambient.html") } },
   },

@@ -14,6 +14,7 @@ import { BrowserSignInPage } from "./pair/BrowserSignInPage";
 import { PairPage } from "./pair/PairPage";
 import { HomeScreen, SignedOutAtHome } from "./components/HomeScreen";
 import { PageBoundary } from "./components/PageBoundary";
+import { startBootReads } from "./state/boot-reads";
 import { endedBeforeReload, forgetEndedSession, SESSION_ENDED_REASON } from "./lib/session-ended";
 import "./font-faces";
 import "./styles.css";
@@ -29,6 +30,7 @@ watchFocusNav();
 // The app is its own chunk, so these pages don't parse it. Everywhere else its fetch starts now, alongside the session
 // read, instead of after it. A failed fetch renders as a throw, so PageBoundary offers a reload.
 const PAGES_WITHOUT_THE_APP = new Set(["/home", "/pair", "/desktop-viewer"]);
+if (!PAGES_WITHOUT_THE_APP.has(location.pathname)) startBootReads();
 const loadApp = () => import("./App").catch((error: unknown) => ({ default: (): never => { throw error; } }));
 const appPage = PAGES_WITHOUT_THE_APP.has(location.pathname) ? null : loadApp();
 

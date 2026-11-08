@@ -144,6 +144,30 @@ describe("the relayed VPS computer", () => {
     expect(readFileSync(log, "utf8")).toBe("");
   });
 
+  it("hands a finished turn's driver session to the next turn on the same desktop, and to no other", async () => {
+    const opened: RelayBridge[] = [];
+    const relay = createComputerRelay({ lists: new ComputerToolLists(), parkedMs: 60_000, open: (bridge) => {
+      opened.push(bridge);
+      let closed = false;
+      return { get closed() { return closed; }, request: async () => ({ result: { content: [] } }), close: () => { closed = true; } };
+    } });
+    const awake = (env: Record<string, string>) => ({ bridge: () => ({ command: "node", args: ["bridge"], env }), wake: async () => ({ command: "node", args: ["bridge"], env }), toolsKey: KEY });
+    const call = (who: typeof owner) => relay.request(who, { method: "tools/call", params: { name: "screenshot", arguments: {} } });
+    const turns = ["gen-1", "gen-2", "gen-3"].map((generation) => ({ threadId: "thread-park", generation }));
+
+    relay.open(turns[0]!, awake({ OMB_CONTROL_TOKEN: "thread-bearer", DESKTOP: "a" }));
+    await call(turns[0]!);
+    relay.close(turns[0]!);
+    relay.open(turns[1]!, awake({ DESKTOP: "a", OMB_CONTROL_TOKEN: "thread-bearer" }));
+    await call(turns[1]!);
+    expect(opened).toHaveLength(1);
+    relay.close(turns[1]!);
+    // a new container (or a new bearer) is a new bridge
+    relay.open(turns[2]!, awake({ OMB_CONTROL_TOKEN: "thread-bearer", DESKTOP: "b" }));
+    await call(turns[2]!);
+    expect(opened).toHaveLength(2);
+  });
+
   it("keeps known tool lists on disk across restarts", () => {
     const file = join(home, "lists.json");
     new ComputerToolLists(file).set(KEY, KNOWN);

@@ -42,6 +42,11 @@ export async function api<T = any>(path: string, init?: ApiInit): Promise<T> {
         ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)])
         : AbortSignal.timeout(timeoutMs),
   });
+  return answerOf<T>(res);
+}
+
+/** What `api` makes of a response, for one whose request started elsewhere (src/state/boot-reads.ts). */
+export async function answerOf<T = any>(res: Response): Promise<T> {
   if (asleepAnswer(res)) markCloudAsleep();
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {

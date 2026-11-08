@@ -122,6 +122,30 @@ describe("the chat's status line", () => {
   });
 });
 
+describe("a stream that starts from a snapshot already drawn", () => {
+  it("resumes from the snapshot's cursor and asks for no snapshot when the server replays", () => {
+    const test = harness();
+    const onFrame = vi.fn();
+    const onSnapshotRequired = vi.fn(async () => true);
+    const stop = openLiveEvents({ since: "ab12cd34:9", onFrame, onSnapshotRequired }, test.platform);
+    expect(test.sources[0].url).toMatch(/^\/api\/events\?since=ab12cd34%3A9(&|$)/);
+    test.sources[0].message({ kind: "hello", cursor: "ab12cd34:10", resumed: true });
+    test.sources[0].message({ kind: "message" }, "ab12cd34:10");
+    expect(onSnapshotRequired).not.toHaveBeenCalled();
+    expect(onFrame).toHaveBeenCalledTimes(1);
+    stop();
+  });
+
+  it("asks for a snapshot when the server cannot replay that far", () => {
+    const test = harness();
+    const onSnapshotRequired = vi.fn(async () => true);
+    const stop = openLiveEvents({ since: "old00000:3", onFrame: vi.fn(), onSnapshotRequired }, test.platform);
+    test.sources[0].message({ kind: "hello", cursor: "new00000:1", resumed: false });
+    expect(onSnapshotRequired).toHaveBeenCalledTimes(1);
+    stop();
+  });
+});
+
 describe("live events supervisor", () => {
   it("uses data pings as liveness without forwarding them", () => {
     const test = harness();
