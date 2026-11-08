@@ -107,6 +107,7 @@ export function presentCategories(entries: readonly AppEntry[]): Category[] {
 export const POPULAR_APPS = [
   "gmail", "googlecalendar", "googledrive", "slack", "github", "notion", "googledocs", "googlesheets",
   "outlook", "linear", "figma", "zoom", "dropbox", "jira", "hubspot", "asana", "trello", "discord",
+  "bitwarden", "lastpass", "dashlane",
 ] as const;
 
 /** Where an app stands among the popular ones, or Infinity. */
