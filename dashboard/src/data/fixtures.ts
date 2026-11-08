@@ -129,7 +129,7 @@ export function fixtureWorkspaces(scenario: Scenario, now = Date.now()): Workspa
 
 export function fixtureConnections(): Record<string, string[]> {
   return {
-    [fixtureWorkspaceIds.mac]: ["gmail", "github", "slack", "notion", "googlecalendar"],
+    [fixtureWorkspaceIds.mac]: ["gmail", "github", "slack", "notion", "googlecalendar", "linear"],
     [fixtureWorkspaceIds.vps]: ["github", "linear"],
     [fixtureWorkspaceIds.cloud]: ["gmail", "googlecalendar", "linear", "figma"],
   };
