@@ -3,13 +3,12 @@ import { Cloud, Laptop, Power, Server } from "lucide-react";
 import type { WorkspaceSummary } from "../../../shared/dashboard-protocol";
 import { useCloud } from "../data/cloud";
 import type { BundleId, CloudDesktop, PlanCatalog } from "../data/contracts";
-import { botsLine, bundleOf, desktopOf, dollars, priceCart, selectionFor, specLine, yearly } from "../data/pricing";
+import { botsLine, bundleOf, desktopOf, dollars, priceCart, selectionFor } from "../data/pricing";
 import { useSession } from "../data/session";
 import { duration } from "../lib/format";
 import { navigate } from "../lib/router";
-import { Modal, StatusDot } from "../ui/controls";
-import { Button, ButtonLink, cx, Skeleton } from "../ui/kit";
-import { NightScene } from "../ui/NightScene";
+import { Choice, Modal, StatusDot } from "../ui/controls";
+import { Button, ButtonLink, Skeleton } from "../ui/kit";
 
 export const STATUS: Record<CloudDesktop["status"], { label: string; tone: "good" | "warn" | "bad" | "quiet" | "accent" }> = {
   provisioning: { label: "Setting up", tone: "accent" },
@@ -75,14 +74,13 @@ export function Provisioning({ cloud }: { cloud: CloudDesktop }) {
         <div className="bar-fill h-full w-full rounded-full bg-ink" style={{ transform: `scaleX(${Math.max(0.03, v / 100)})` }} />
         <div className="sweep absolute inset-y-0 left-0 w-1/3 bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--bg)_45%,transparent),transparent)]" aria-hidden />
       </div>
-      <p className="mt-3 text-13 text-ink-4">About a minute. You can leave this page; it keeps going.</p>
     </div>
   );
 }
 
 const QUICK: BundleId[] = ["starter", "pro", "team"];
 
-/** the plan pick: three calm rows and one button that goes straight to checkout */
+/** the plan pick: three radio rows and one button that goes straight to checkout */
 export function QuickPick({ catalog, className, onDone, secondary }: { catalog: PlanCatalog; className?: string; onDone?(): void | Promise<void>; secondary?: ReactNode }) {
   const { checkout } = useCloud();
   const { toast } = useSession();
@@ -104,75 +102,31 @@ export function QuickPick({ catalog, className, onDone, secondary }: { catalog: 
   };
   return (
     <div className={className}>
-      <div role="radiogroup" aria-label="Cloud desktop plan" className="flex flex-col gap-2">
-        {bundles.map((b) => {
-          const desk = desktopOf(catalog, b.desktop);
-          const on = b.id === pick;
-          return (
-            <button
-              key={b.id}
-              type="button"
-              role="radio"
-              aria-checked={on}
-              onClick={() => setPick(b.id)}
-              className={cx("press-soft pick flex min-h-16 w-full min-w-0 items-center gap-4 rounded-[14px] border px-4 py-3 text-start", on ? "border-ink-3 bg-card-2" : "hover-pick border-line-2")}
-            >
-              <span className={cx("size-[18px] shrink-0 rounded-full border transition-[border-width,border-color] duration-150", on ? "border-[5px] border-ink" : "border-ink-4")} aria-hidden />
-              <span className="min-w-0 flex-1">
-                <span className="flex items-baseline gap-2">
-                  <span className="text-15 font-medium text-ink">{b.name}</span>
-                  {b.recommended && <span className="text-12 text-accent-ink">Recommended</span>}
-                </span>
-                <span className="mt-0.5 block truncate text-13 text-ink-3">{desk ? `${botsLine(desk.botComputers)} · ${specLine(desk)}` : b.blurb}</span>
-              </span>
-              <span className="num shrink-0 text-15 text-ink">{dollars(b.monthly)}<span className="text-13 text-ink-3">/mo</span></span>
-            </button>
-          );
-        })}
-      </div>
-      {chosen && <p className="mt-4 text-13 leading-[1.5] text-ink-3">{chosen.features[0]}. On 24/7, cancel any time.</p>}
+      <fieldset>
+        <legend className="sr-only">Cloud desktop plan</legend>
+        <div className="flex flex-col gap-1">
+          {bundles.map((b) => {
+            const desk = desktopOf(catalog, b.desktop);
+            return <Choice key={b.id} name="quick-plan" value={b.id} checked={b.id === pick} onChange={() => setPick(b.id)} title={b.name} detail={desk ? botsLine(desk.botComputers) : b.blurb} aside={<>{dollars(b.monthly)}<span className="text-ink-3">/mo</span></>} />;
+          })}
+        </div>
+      </fieldset>
+      <p className="mt-4 text-13 text-ink-3">Includes a work license. On 24/7, cancel any time.</p>
       {error && <p role="alert" className="mt-2 text-13 text-bad">{error}</p>}
       <div className="mt-6 flex flex-wrap items-center justify-end gap-2">
         {secondary}
-        <Button variant="primary" className="!h-11 !px-6" onClick={() => void go()} disabled={busy || !chosen}>{busy ? "Opening checkout" : `Continue with ${chosen?.name ?? ""}, ${dollars(chosen ? priceCart(selectionFor(chosen, catalog, "month", ""), catalog).perMonth : 0)}/mo`}</Button>
+        <Button variant="primary" onClick={() => void go()} disabled={busy || !chosen}>{busy ? "Opening checkout" : `Continue, ${dollars(chosen ? priceCart(selectionFor(chosen, catalog, "month", ""), catalog).perMonth : 0)}/mo`}</Button>
       </div>
     </div>
   );
 }
 
-/** the plan pick in a dialog, opened from a hero's one button */
+/** the plan pick in a dialog, opened from the home card's one button */
 export function PlanDialog({ open, onClose }: { open: boolean; onClose(): void }) {
   const { catalog } = useCloud();
   return (
-    <Modal open={open} onClose={onClose} title="Pick your cloud desktop" wide>
-      <p>Every plan includes a work license. Personal use stays free either way.</p>
-      {catalog ? <QuickPick catalog={catalog} className="mt-5" onDone={() => { onClose(); navigate("/cloud"); }} secondary={<ButtonLink to="/billing" variant="ghost" className="!h-11">Compare plans</ButtonLink>} /> : <Skeleton className="mt-5 h-[220px]" />}
+    <Modal open={open} onClose={onClose} title="Get a cloud desktop" wide>
+      {catalog ? <QuickPick catalog={catalog} className="mt-3" onDone={() => { onClose(); navigate("/cloud"); }} secondary={<ButtonLink to="/billing" variant="ghost">See plans</ButtonLink>} /> : <Skeleton className="mt-3 h-[200px]" />}
     </Modal>
   );
-}
-
-/** the cloud desktop pitch: a big line, one button, and the night scene */
-export function CloudHero({ id = "cloud-hero", heading: Heading = "h2", title = "Keep your bots working 24/7", body = "Your Mac sleeps. A cloud desktop never does, so your bots keep answering and running their routines all night.", onGet, secondary, className }: { id?: string; heading?: "h1" | "h2"; title?: string; body?: string; onGet?(): void; secondary?: ReactNode; className?: string }) {
-  const { catalog } = useCloud();
-  const [open, setOpen] = useState(false);
-  const starter = catalog ? bundleOf(catalog, "starter") : null;
-  return (
-    <section className={cx("enter grid min-w-0 overflow-hidden rounded-card bg-card lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:items-center", className)} aria-labelledby={id}>
-      <div className="min-w-0 px-10 py-14 max-lg:pt-2 max-sm:px-6 max-sm:pb-8 lg:pe-2">
-        <Heading id={id} className="max-w-[13ch] text-44 font-medium tracking-[-0.03em] text-ink max-sm:text-[34px] max-sm:leading-[40px]">{title}</Heading>
-        <p className="mt-4 max-w-[40ch] text-17 leading-[1.6] text-ink-3">{body}</p>
-        <div className="mt-8 flex flex-wrap items-center gap-3">
-          <Button variant="primary" className="!h-11 !px-6 !text-15" onClick={onGet ?? (() => setOpen(true))}>Get a cloud desktop</Button>
-          {secondary ?? <ButtonLink to="/billing" className="!h-11 !px-6 !text-15">Compare plans</ButtonLink>}
-        </div>
-        <p className="num mt-5 text-13 text-ink-4">{starter && catalog ? `From ${dollars(yearly(starter.monthly, catalog))}/mo billed yearly. Set up in one click.` : "Set up in one click."}</p>
-      </div>
-      <NightScene className="max-lg:order-first" />
-      {!onGet && <PlanDialog open={open} onClose={() => setOpen(false)} />}
-    </section>
-  );
-}
-
-export function Pill({ children }: { children: ReactNode }) {
-  return <span className="inline-flex h-6 items-center rounded-full border border-line-2 px-2.5 text-12 text-ink-2">{children}</span>;
 }

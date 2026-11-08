@@ -3,7 +3,7 @@ import type { BotReport, ComputerReport, WorkspaceDetail } from "../../../shared
 import { useSession } from "../data/session";
 import { ago, bytes, compact, until, usd } from "../lib/format";
 import { Link } from "../lib/router";
-import { Badge, ButtonLink, Card, KV, PageHeader, SectionTitle, Stat } from "../ui/kit";
+import { ButtonLink, Card, cx, KV, PageHeader, SectionTitle, Stat } from "../ui/kit";
 import { BotMascot } from "../ui/Mascot";
 import { SkyEmpty } from "../ui/Sky";
 import { Nil, Table, Td, Th } from "../ui/table";
@@ -17,9 +17,9 @@ export function computerFor(detail: WorkspaceDetail, bot: BotReport): ComputerRe
 }
 
 export function StatePill({ state }: { state: ComputerReport["state"] }) {
-  const map = { running: ["good", "Running"], asleep: ["plain", "Asleep"], starting: ["warn", "Waking"], missing: ["plain", "Not set up"], unknown: ["plain", "Unknown"] } as const;
+  const map = { running: ["text-good", "Running"], asleep: ["text-ink-4", "Asleep"], starting: ["text-warn", "Waking"], missing: ["text-ink-4", "Not set up"], unknown: ["text-ink-4", "Unknown"] } as const;
   const [tone, label] = map[state];
-  return <Badge tone={tone}><span className="live-dot !size-1.5" data-live={state === "starting"} aria-hidden />{label}</Badge>;
+  return <span className="inline-flex items-center gap-2 whitespace-nowrap text-13 text-ink-2"><span className={cx("live-dot !size-1.5", tone)} data-live={state === "starting"} aria-hidden />{label}</span>;
 }
 
 export function ComputerActions({ bot, computer }: { bot: Pick<BotReport, "id" | "name">; computer: ComputerReport | null }) {

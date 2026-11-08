@@ -74,15 +74,13 @@ export function Field({ label, error, hint, children, htmlFor }: { label: string
     <div>
       <label htmlFor={htmlFor} className="mb-1.5 block text-13 text-ink-2">{label}</label>
       {children}
-      {error ? <p id={`${htmlFor}-error`} role="alert" className="mt-2 text-13 text-bad">{error}</p> : hint ? <p className="mt-2 text-13 text-ink-4">{hint}</p> : null}
+      {error ? <p id={`${htmlFor}-error`} role="alert" className="mt-2 text-13 text-bad">{error}</p> : hint ? <p className="mt-2 text-13 text-ink-3">{hint}</p> : null}
     </div>
   );
 }
 
-/** a centered dialog: scrim, escape and outside click close it, focus moves in and comes back */
-export function Modal({ open, onClose, title, children, footer, wide }: { open: boolean; onClose(): void; title: string; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const titleId = useId();
+/** escape closes, tab stays inside, the body stops scrolling, focus moves in and comes back */
+function useDialog(open: boolean, onClose: () => void, ref: React.RefObject<HTMLDivElement | null>) {
   useEffect(() => {
     if (!open) return;
     const back = document.activeElement as HTMLElement | null;
@@ -101,15 +99,22 @@ export function Modal({ open, onClose, title, children, footer, wide }: { open: 
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.removeEventListener("keydown", key); document.body.style.overflow = overflow; back?.focus(); };
-  }, [open, onClose]);
+  }, [open, onClose, ref]);
+}
+
+/** a centered dialog: scrim, escape and outside click close it, focus moves in and comes back */
+export function Modal({ open, onClose, title, children, footer, wide }: { open: boolean; onClose(): void; title: string; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  useDialog(open, onClose, ref);
   if (!open) return null;
   // a portal, so a dialog opened from a table row or an animated card is never trapped under the shell
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
       <div className="fade-in absolute inset-0 backdrop-blur-[4px]" style={{ background: "var(--scrim)" }} onClick={onClose} aria-hidden />
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className={cx("modal-in relative my-auto w-full min-w-0 rounded-card bg-card p-6 outline-none max-sm:p-5", wide ? "max-w-[560px]" : "max-w-[440px]")} style={{ boxShadow: "var(--pop-shadow)" }}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className={cx("modal-in relative my-auto w-full min-w-0 rounded-card bg-card p-6 outline-none max-sm:p-5", wide ? "max-w-[520px]" : "max-w-[420px]")} style={{ boxShadow: "var(--pop-shadow)" }}>
         <div className="flex items-start justify-between gap-4">
-          <h2 id={titleId} className="text-16 font-medium text-ink">{title}</h2>
+          <h2 id={titleId} className="text-16 font-semibold tracking-[-0.01em] text-ink">{title}</h2>
           <button data-close type="button" onClick={onClose} aria-label="Close" className="press hover-ghost -me-2 -mt-2 grid size-10 shrink-0 place-items-center rounded-full text-ink-3"><X size={18} strokeWidth={1.5} /></button>
         </div>
         <div className="mt-2 text-14 leading-[1.55] text-ink-3">{children}</div>
@@ -137,5 +142,43 @@ export function Select({ className, children, ...rest }: SelectHTMLAttributes<HT
       <select {...rest} className="field cursor-pointer appearance-none bg-card pe-10">{children}</select>
       <ChevronDown size={16} strokeWidth={1.5} className="pointer-events-none absolute end-3.5 top-1/2 -translate-y-1/2 text-ink-3" aria-hidden />
     </span>
+  );
+}
+
+/** a side sheet from the right edge: the same dialog rules as Modal, with a footer that stays put */
+export function Sheet({ open, onClose, title, children, footer }: { open: boolean; onClose(): void; title: string; children: ReactNode; footer?: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  useDialog(open, onClose, ref);
+  if (!open) return null;
+  return createPortal(
+    <div className="fixed inset-0 z-50">
+      <div className="fade-in absolute inset-0" style={{ background: "var(--scrim)" }} onClick={onClose} aria-hidden />
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="sheet-in absolute inset-y-0 right-0 flex w-[min(440px,100vw)] flex-col bg-card outline-none" style={{ boxShadow: "var(--pop-shadow)" }}>
+        <div className="flex items-center justify-between gap-4 px-6 pb-2 pt-5 max-sm:px-5">
+          <h2 id={titleId} className="text-16 font-semibold tracking-[-0.01em] text-ink">{title}</h2>
+          <button data-close type="button" onClick={onClose} aria-label="Close" className="hover-ghost -me-2 grid size-10 shrink-0 place-items-center rounded-full text-ink-3 max-sm:size-11"><X size={18} strokeWidth={1.5} /></button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 max-sm:px-5">{children}</div>
+        {footer && <div className="border-t border-line px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 max-sm:px-5">{footer}</div>}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/** a radio row: a dot, a name with one line under it, and a value on the right */
+export function Choice({ name, value, checked, onChange, title, detail, aside }: { name: string; value: string; checked: boolean; onChange(): void; title: ReactNode; detail?: ReactNode; aside?: ReactNode }) {
+  const id = `${name}-${value}`;
+  return (
+    <label htmlFor={id} className={cx("pick flex min-h-14 cursor-pointer items-center gap-3 rounded-[10px] px-3 py-2.5", checked ? "bg-card-2" : "hover-row")}>
+      <input id={id} type="radio" name={name} value={value} checked={checked} onChange={onChange} className="peer sr-only" />
+      <span aria-hidden className={cx("size-4 shrink-0 rounded-full border transition-[border-width,border-color] duration-150 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink-3", checked ? "border-[5px] border-ink" : "border-ink-4")} />
+      <span className="min-w-0 flex-1">
+        <span className="block text-14 text-ink">{title}</span>
+        {detail && <span className="block truncate text-13 text-ink-3">{detail}</span>}
+      </span>
+      {aside && <span className="num shrink-0 text-end text-14 text-ink-2">{aside}</span>}
+    </label>
   );
 }
