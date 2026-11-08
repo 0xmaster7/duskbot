@@ -82,6 +82,20 @@ the fallback. Nothing is opened on the server and the person configures nothing:
   without `OMB_LINK_DIRECT_PORT`, or outbound port 22 blocked on the person's network: the app logs it and stays on
   the relay.
 
+## Phone channels
+
+The VPS agent syncs phone channels with its local harness at `/api/mobile/relay/sync` and registers them under the
+existing tunnel. Each phone has its own relay token verifier, encryption key, replay guard and queues. Grant channels
+only serve pairing redemption, environment discovery and health; device channels serve the harness API with the
+phone's session. Phone channels refuse agent controls and strip cookies and `x-openmausbot-*` headers. Requests carry
+a per-channel remote address, so they never receive loopback trust. Removing a channel from the harness closes its
+forwarded requests and removes it from the relay.
+
+The agent keeps its X25519 phone keys in `phone-keys.json` beside `tunnel.json`, with mode 0600. Grant keys come from
+the harness; device keys derive from the phone and agent key pairs using the channel id. Set `OMB_LINK_PHONES=off`
+to disable the phone hub. Phone clients use `createTunnelProxy` with `id` set to the channel id and `route` set to
+`${base}/v1/channels/${channelId}`.
+
 ## Security model
 
 - The code in the command is one-time. It must be used within 30 minutes and the session ends 2 hours after it opens.
