@@ -124,11 +124,7 @@ export async function nativePlatform(): Promise<MobilePlatform> {
     },
     onAppUrl(listener) {
       const stop = unsubscribe([App.addListener("appUrlOpen", ({ url }) => listener(url))]);
-      if (pendingLaunchUrl) {
-        const url = pendingLaunchUrl;
-        pendingLaunchUrl = undefined;
-        listener(url);
-      }
+      if (pendingLaunchUrl && listener(pendingLaunchUrl)) pendingLaunchUrl = undefined;
       return stop;
     },
     onResume(listener) {

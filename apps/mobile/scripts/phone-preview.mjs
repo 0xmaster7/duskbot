@@ -94,8 +94,8 @@ try {
     let ready = false;
     vite.stdout.on("data", (chunk) => {
       process.stdout.write(chunk);
-      output += chunk.toString().replace(/\u001b\[[0-9;]*m/g, "");
-      if (!ready && /ready in\s/.test(output)) {
+      output += chunk.toString();
+      if (!ready && output.includes("ready in")) {
         ready = true;
         console.log(`phone preview: http://127.0.0.1:${Number(process.env.OMB_MOBILE_PORT) || 5320}/phone.html`);
       }

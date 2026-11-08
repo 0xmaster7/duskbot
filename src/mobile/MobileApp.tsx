@@ -71,16 +71,17 @@ function Shell() {
 
   useEffect(() => platform.onAppUrl?.((url) => {
     const target = parseMobileOpenLink(url);
-    if (target) { openTarget(target); return; }
+    if (target) { openTarget(target); return true; }
     // the desktop's own chat links open the same chat here
     const bot = parseBotRefUrl(url);
     const thread = parseThreadRefUrl(url);
-    if (!bot && !thread) return;
+    if (!bot && !thread) return false;
     if (openChatLink(dispatch, url, latest.current, true)) {
       const owner = bot?.botId ?? thread?.botId ?? latest.current.groups.find((g) => g.threadId === thread?.threadId || g.tasks?.some((task) => task.threadId === thread?.threadId))?.id
         ?? latest.current.bots.find((b) => b.threadId === thread?.threadId || b.tasks?.some((task) => task.threadId === thread?.threadId))?.id;
       if (owner) setChatId(owner);
     }
+    return true;
   }), [platform, openTarget, dispatch]);
   useEffect(() => platform.onNotificationOpen?.(openTarget), [platform, openTarget]);
 

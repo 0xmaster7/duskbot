@@ -26,8 +26,9 @@ export interface MobilePlatform {
   setStatusBar?(style: "dark" | "light"): void;
   /** Android's hardware back; return true when handled. */
   onBack?(listener: () => boolean): () => void;
-  /** Links the OS hands the app: openmausbot://pair, openmausbot://open. */
-  onAppUrl?(listener: (url: string) => void): () => void;
+  /** Links the OS hands the app: openmausbot://pair, openmausbot://open, the desktop's thread links. A listener returns
+   * true when the link was its kind; the link that launched the app waits for the first listener that takes it. */
+  onAppUrl?(listener: (url: string) => boolean): () => void;
   onResume?(listener: () => void): () => void;
   /** Non-secret key/value storage. */
   prefs: {
