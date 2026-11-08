@@ -4,6 +4,7 @@ import { request, type IncomingMessage } from "node:http";
 import type { Socket } from "node:net";
 import type { Duplex } from "node:stream";
 import { isSameOrigin, type RequestAuth } from "../request-auth.ts";
+import { isMobileOrigin, mobileBearer } from "../mobile/request.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 import { joinViewer, openDesktop, writeFrame } from "./rfb-handshake.ts";
 import { createUpgrades, type Upgrades } from "./upgrades.ts";
@@ -58,8 +59,7 @@ export function createDesktopViewer(deps: {
     if (!match) return PASS;
     res.setHeader("cache-control", "private, no-store");
     if (method !== "GET") return json(res, 405, { error: "method not allowed" });
-    // Also enforced at this boundary: admin and same-origin only.
-    if (!auth.scopes.includes("admin") || !isSameOrigin(req)) return json(res, 403, { error: "forbidden" });
+    if (!auth.scopes.includes("admin") || (isMobileOrigin(req.headers.origin) ? !mobileBearer(req, auth) : !isSameOrigin(req))) return json(res, 403, { error: "forbidden" });
     // A lease-bound viewer: both names or neither, holding before anything is inspected, rechecked on every liveness pass.
     const botId = url.searchParams.get("botId");
     const controlLeaseId = url.searchParams.get("controlLeaseId");
