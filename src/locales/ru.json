@@ -6291,5 +6291,20 @@
   "call.saySomething": "Скажите что-нибудь…",
   "call.retryMicrophone": "Попробовать микрофон снова",
   "call.interrupt": "Прервать",
-  "call.shortcuts": "Удерживайте {keys}, чтобы говорить · Пробел прерывает · Esc завершает звонок"
+  "call.shortcuts": "Удерживайте {keys}, чтобы говорить · Пробел прерывает · Esc завершает звонок",
+  "accountGate.title": "Войти в OpenMausBot",
+  "accountGate.sub": "Один аккаунт для ваших ботов, Mac и облачного рабочего стола.",
+  "accountGate.google": "Продолжить с Google",
+  "accountGate.apple": "Продолжить с Apple",
+  "accountGate.x": "Продолжить с X",
+  "accountGate.or": "или",
+  "accountGate.verify": "Войти",
+  "accountGate.browser": "Завершите вход в браузере",
+  "accountGate.ended": "Ваш сеанс завершён. Войдите снова.",
+  "accountGate.signOut": "Выйти",
+  "accountGate.oauthDenied": "Вход отменён. Попробуйте снова, когда будете готовы.",
+  "accountGate.oauthFailed": "Не удалось войти через браузер. Попробуйте снова.",
+  "accountGate.oauthExpired": "Время для входа истекло. Начните снова.",
+  "accountGate.providerUnavailable": "Этот способ входа недоступен. Попробуйте другой.",
+  "accountGate.identityTaken": "Эти данные связаны с другим аккаунтом. Попробуйте другой способ."
 }

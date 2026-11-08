@@ -5226,5 +5226,20 @@
   "call.saySomething": "Bir şey söyleyin…",
   "call.retryMicrophone": "Mikrofonu tekrar dene",
   "call.interrupt": "Sözünü kes",
-  "call.shortcuts": "Konuşmak için {keys} tuşunu basılı tutun · Boşluk sözünü keser · Esc aramayı bitirir"
+  "call.shortcuts": "Konuşmak için {keys} tuşunu basılı tutun · Boşluk sözünü keser · Esc aramayı bitirir",
+  "accountGate.title": "OpenMausBot hesabına giriş yap",
+  "accountGate.sub": "Botların, Mac’in ve bulut masaüstün için tek hesap.",
+  "accountGate.google": "Google ile devam et",
+  "accountGate.apple": "Apple ile devam et",
+  "accountGate.x": "X ile devam et",
+  "accountGate.or": "veya",
+  "accountGate.verify": "Giriş yap",
+  "accountGate.browser": "Tarayıcında giriş yapmayı tamamla",
+  "accountGate.ended": "Oturumun sona erdi. Yeniden giriş yap.",
+  "accountGate.signOut": "Çıkış yap",
+  "accountGate.oauthDenied": "Giriş iptal edildi. Hazır olduğunda yeniden dene.",
+  "accountGate.oauthFailed": "Tarayıcıda giriş başarısız oldu. Lütfen yeniden dene.",
+  "accountGate.oauthExpired": "Bu girişin süresi doldu. Lütfen yeniden başla.",
+  "accountGate.providerUnavailable": "Bu giriş sağlayıcısı kullanılamıyor. Başka bir yol dene.",
+  "accountGate.identityTaken": "Bu kimlik başka bir hesaba ait. Başka bir yol dene."
 }

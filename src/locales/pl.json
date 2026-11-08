@@ -6277,5 +6277,20 @@
   "call.saySomething": "Powiedz coś…",
   "call.retryMicrophone": "Ponów próbę mikrofonu",
   "call.interrupt": "Przerwij",
-  "call.shortcuts": "Przytrzymaj {keys}, aby mówić · Spacja przerywa · Esc kończy połączenie"
+  "call.shortcuts": "Przytrzymaj {keys}, aby mówić · Spacja przerywa · Esc kończy połączenie",
+  "accountGate.title": "Zaloguj się do OpenMausBot",
+  "accountGate.sub": "Jedno konto dla Twoich botów, Maca i pulpitu w chmurze.",
+  "accountGate.google": "Kontynuuj z Google",
+  "accountGate.apple": "Kontynuuj z Apple",
+  "accountGate.x": "Kontynuuj z X",
+  "accountGate.or": "lub",
+  "accountGate.verify": "Zaloguj się",
+  "accountGate.browser": "Dokończ logowanie w przeglądarce",
+  "accountGate.ended": "Twoja sesja się zakończyła. Zaloguj się ponownie.",
+  "accountGate.signOut": "Wyloguj się",
+  "accountGate.oauthDenied": "Logowanie anulowano. Spróbuj ponownie, gdy będziesz gotowy.",
+  "accountGate.oauthFailed": "Logowanie w przeglądarce nie powiodło się. Spróbuj ponownie.",
+  "accountGate.oauthExpired": "Czas logowania upłynął. Zacznij ponownie.",
+  "accountGate.providerUnavailable": "Ten dostawca logowania jest niedostępny. Spróbuj inaczej.",
+  "accountGate.identityTaken": "Ta tożsamość należy do innego konta. Spróbuj inaczej."
 }

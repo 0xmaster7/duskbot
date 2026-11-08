@@ -30,7 +30,8 @@ export function createDashboardRoutes(deps: DashboardRouteDeps): RouteHandler {
     const body = await readBody(req) as { url?: unknown; enrollToken?: unknown } | null;
     if (!body || typeof body !== "object" || Array.isArray(body)) return json(res, 400, { error: "Expected a JSON object." });
     if (body.enrollToken !== undefined && (typeof body.enrollToken !== "string" || body.enrollToken.length !== 43 || !/^[A-Za-z0-9_-]{43}$/.test(body.enrollToken))) return json(res, 400, { error: "Invalid enrollment token." });
-    let selected: unknown = body.url ?? (deps.env ?? process.env).OMB_DASHBOARD_URL;
+    // a workspace already linked (by the app after sign-in, say) keeps its dashboard unless another is named
+    let selected: unknown = body.url ?? (deps.reporter.status().connected ? deps.reporter.status().url ?? undefined : undefined) ?? (deps.env ?? process.env).OMB_DASHBOARD_URL;
     if (selected === undefined) {
       const base = deps.linkAgentBase();
       if (base) {

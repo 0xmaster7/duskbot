@@ -3202,5 +3202,20 @@
   "call.saySomething": "Dites quelque chose…",
   "call.retryMicrophone": "Réessayer le microphone",
   "call.interrupt": "Interrompre",
-  "call.shortcuts": "Maintenez {keys} pour parler · Espace interrompt · Échap raccroche"
+  "call.shortcuts": "Maintenez {keys} pour parler · Espace interrompt · Échap raccroche",
+  "accountGate.title": "Se connecter à OpenMausBot",
+  "accountGate.sub": "Un compte pour vos bots, votre Mac et votre bureau dans le cloud.",
+  "accountGate.google": "Continuer avec Google",
+  "accountGate.apple": "Continuer avec Apple",
+  "accountGate.x": "Continuer avec X",
+  "accountGate.or": "ou",
+  "accountGate.verify": "Se connecter",
+  "accountGate.browser": "Terminez la connexion dans votre navigateur",
+  "accountGate.ended": "Votre session est terminée. Reconnectez-vous.",
+  "accountGate.signOut": "Se déconnecter",
+  "accountGate.oauthDenied": "La connexion a été annulée. Réessayez quand vous le souhaitez.",
+  "accountGate.oauthFailed": "La connexion dans le navigateur a échoué. Veuillez réessayer.",
+  "accountGate.oauthExpired": "Cette connexion a expiré. Veuillez recommencer.",
+  "accountGate.providerUnavailable": "Ce fournisseur est indisponible. Essayez une autre méthode.",
+  "accountGate.identityTaken": "Cette identité appartient à un autre compte. Essayez une autre méthode."
 }

@@ -3279,5 +3279,20 @@
   "call.saySomething": "Sag etwas…",
   "call.retryMicrophone": "Mikrofon erneut versuchen",
   "call.interrupt": "Unterbrechen",
-  "call.shortcuts": "Halte {keys} zum Sprechen · Leertaste unterbricht · Esc legt auf"
+  "call.shortcuts": "Halte {keys} zum Sprechen · Leertaste unterbricht · Esc legt auf",
+  "accountGate.title": "Bei OpenMausBot anmelden",
+  "accountGate.sub": "Ein Konto für deine Bots, deinen Mac und deinen Cloud-Desktop.",
+  "accountGate.google": "Mit Google fortfahren",
+  "accountGate.apple": "Mit Apple fortfahren",
+  "accountGate.x": "Mit X fortfahren",
+  "accountGate.or": "oder",
+  "accountGate.verify": "Anmelden",
+  "accountGate.browser": "Schließe die Anmeldung im Browser ab",
+  "accountGate.ended": "Deine Sitzung ist beendet. Melde dich erneut an.",
+  "accountGate.signOut": "Abmelden",
+  "accountGate.oauthDenied": "Die Anmeldung wurde abgebrochen. Versuche es erneut, wenn du bereit bist.",
+  "accountGate.oauthFailed": "Die Anmeldung im Browser ist fehlgeschlagen. Bitte versuche es erneut.",
+  "accountGate.oauthExpired": "Diese Anmeldung ist abgelaufen. Bitte beginne erneut.",
+  "accountGate.providerUnavailable": "Dieser Anmeldedienst ist nicht verfügbar. Versuche eine andere Methode.",
+  "accountGate.identityTaken": "Diese Identität gehört zu einem anderen Konto. Versuche eine andere Methode."
 }

@@ -5226,5 +5226,20 @@
   "call.saySomething": "Hãy nói gì đó…",
   "call.retryMicrophone": "Thử lại micrô",
   "call.interrupt": "Ngắt lời",
-  "call.shortcuts": "Giữ {keys} để nói · Phím cách ngắt lời · Esc kết thúc cuộc gọi"
+  "call.shortcuts": "Giữ {keys} để nói · Phím cách ngắt lời · Esc kết thúc cuộc gọi",
+  "accountGate.title": "Đăng nhập OpenMausBot",
+  "accountGate.sub": "Một tài khoản cho bot, máy Mac và màn hình nền đám mây của bạn.",
+  "accountGate.google": "Tiếp tục với Google",
+  "accountGate.apple": "Tiếp tục với Apple",
+  "accountGate.x": "Tiếp tục với X",
+  "accountGate.or": "hoặc",
+  "accountGate.verify": "Đăng nhập",
+  "accountGate.browser": "Hoàn tất đăng nhập trong trình duyệt",
+  "accountGate.ended": "Phiên của bạn đã kết thúc. Vui lòng đăng nhập lại.",
+  "accountGate.signOut": "Đăng xuất",
+  "accountGate.oauthDenied": "Đã hủy đăng nhập. Hãy thử lại khi bạn sẵn sàng.",
+  "accountGate.oauthFailed": "Đăng nhập qua trình duyệt thất bại. Vui lòng thử lại.",
+  "accountGate.oauthExpired": "Lần đăng nhập này đã hết hạn. Vui lòng bắt đầu lại.",
+  "accountGate.providerUnavailable": "Nhà cung cấp đăng nhập này không khả dụng. Hãy thử cách khác.",
+  "accountGate.identityTaken": "Danh tính này thuộc tài khoản khác. Hãy thử cách khác."
 }

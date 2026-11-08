@@ -6912,5 +6912,20 @@
   "call.saySomething": "说点什么…",
   "call.retryMicrophone": "重试麦克风",
   "call.interrupt": "打断",
-  "call.shortcuts": "按住 {keys} 说话 · 空格键打断 · Esc 挂断"
+  "call.shortcuts": "按住 {keys} 说话 · 空格键打断 · Esc 挂断",
+  "accountGate.title": "登录 OpenMausBot",
+  "accountGate.sub": "一个账号，连接你的机器人、Mac 和云桌面。",
+  "accountGate.google": "使用 Google 继续",
+  "accountGate.apple": "使用 Apple 继续",
+  "accountGate.x": "使用 X 继续",
+  "accountGate.or": "或",
+  "accountGate.verify": "登录",
+  "accountGate.browser": "请在浏览器中完成登录",
+  "accountGate.ended": "你的会话已结束，请重新登录。",
+  "accountGate.signOut": "退出登录",
+  "accountGate.oauthDenied": "登录已取消。准备好后请重试。",
+  "accountGate.oauthFailed": "浏览器登录失败，请重试。",
+  "accountGate.oauthExpired": "此次登录已过期，请重新开始。",
+  "accountGate.providerUnavailable": "此登录服务暂不可用，请尝试其他方式。",
+  "accountGate.identityTaken": "此身份属于另一个账号，请尝试其他方式。"
 }

@@ -119,6 +119,7 @@ const __APP_VERSION__: string;
        * whose page carries that server's version. Absent in desktop builds before it. */
       app?: { version: string; ownPage: boolean };
       organization?: import("../../electron/managed-desktop.mjs").ManagedDesktopBridge;
+      accountGate?: import("../components/account-gate/bridge").AccountGateBridge;
       cloudAccount?: import("../../electron/cloud-account.mjs").CloudAccountBridge;
       accounts?: import("../../electron/cloud-account.mjs").AccountsBridge;
       accountSheet?: import("../../electron/cloud-account.mjs").AccountSheetBridge;

@@ -6309,5 +6309,20 @@
   "call.saySomething": "何か話してください…",
   "call.retryMicrophone": "マイクを再試行",
   "call.interrupt": "割り込む",
-  "call.shortcuts": "{keys} を押しながら話す · スペースで割り込み · Esc で通話終了"
+  "call.shortcuts": "{keys} を押しながら話す · スペースで割り込み · Esc で通話終了",
+  "accountGate.title": "OpenMausBotにサインイン",
+  "accountGate.sub": "ボット、Mac、クラウドデスクトップをひとつのアカウントで。",
+  "accountGate.google": "Googleで続ける",
+  "accountGate.apple": "Appleで続ける",
+  "accountGate.x": "Xで続ける",
+  "accountGate.or": "または",
+  "accountGate.verify": "サインイン",
+  "accountGate.browser": "ブラウザでサインインを完了してください",
+  "accountGate.ended": "セッションが終了しました。もう一度サインインしてください。",
+  "accountGate.signOut": "サインアウト",
+  "accountGate.oauthDenied": "サインインがキャンセルされました。準備ができたら再試行してください。",
+  "accountGate.oauthFailed": "ブラウザでのサインインに失敗しました。もう一度お試しください。",
+  "accountGate.oauthExpired": "サインインの有効期限が切れました。最初からやり直してください。",
+  "accountGate.providerUnavailable": "このサインイン方法は利用できません。別の方法をお試しください。",
+  "accountGate.identityTaken": "この認証情報は別のアカウントに属しています。別の方法をお試しください。"
 }

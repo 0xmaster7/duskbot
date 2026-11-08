@@ -7755,5 +7755,20 @@
   "call.saySomething": "Say something…",
   "call.retryMicrophone": "Try microphone again",
   "call.interrupt": "Interrupt",
-  "call.shortcuts": "Hold {keys} to talk · Space interrupts · Esc hangs up"
+  "call.shortcuts": "Hold {keys} to talk · Space interrupts · Esc hangs up",
+  "accountGate.title": "Sign in to OpenMausBot",
+  "accountGate.sub": "One account for your bots, your Mac and your cloud desktop.",
+  "accountGate.google": "Continue with Google",
+  "accountGate.apple": "Continue with Apple",
+  "accountGate.x": "Continue with X",
+  "accountGate.or": "or",
+  "accountGate.verify": "Sign in",
+  "accountGate.browser": "Finish signing in in your browser",
+  "accountGate.ended": "Your session ended. Sign in again.",
+  "accountGate.signOut": "Sign out",
+  "accountGate.oauthDenied": "Sign-in was canceled. Try again when you are ready.",
+  "accountGate.oauthFailed": "Browser sign-in failed. Please try again.",
+  "accountGate.oauthExpired": "This sign-in expired. Please start again.",
+  "accountGate.providerUnavailable": "This sign-in provider is unavailable. Try another way.",
+  "accountGate.identityTaken": "This identity belongs to another account. Try another way."
 }

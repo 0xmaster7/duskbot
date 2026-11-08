@@ -5704,5 +5704,20 @@
   "call.saySomething": "Di algo…",
   "call.retryMicrophone": "Volver a probar el micrófono",
   "call.interrupt": "Interrumpir",
-  "call.shortcuts": "Mantén {keys} para hablar · Espacio interrumpe · Esc cuelga"
+  "call.shortcuts": "Mantén {keys} para hablar · Espacio interrumpe · Esc cuelga",
+  "accountGate.title": "Inicia sesión en OpenMausBot",
+  "accountGate.sub": "Una cuenta para tus bots, tu Mac y tu escritorio en la nube.",
+  "accountGate.google": "Continuar con Google",
+  "accountGate.apple": "Continuar con Apple",
+  "accountGate.x": "Continuar con X",
+  "accountGate.or": "o",
+  "accountGate.verify": "Iniciar sesión",
+  "accountGate.browser": "Termina de iniciar sesión en tu navegador",
+  "accountGate.ended": "Tu sesión ha terminado. Vuelve a iniciar sesión.",
+  "accountGate.signOut": "Cerrar sesión",
+  "accountGate.oauthDenied": "Se canceló el inicio de sesión. Inténtalo de nuevo cuando quieras.",
+  "accountGate.oauthFailed": "No se pudo iniciar sesión en el navegador. Inténtalo de nuevo.",
+  "accountGate.oauthExpired": "Este inicio de sesión ha caducado. Vuelve a empezar.",
+  "accountGate.providerUnavailable": "Este proveedor no está disponible. Prueba otra forma de iniciar sesión.",
+  "accountGate.identityTaken": "Esta identidad pertenece a otra cuenta. Prueba otra forma de iniciar sesión."
 }

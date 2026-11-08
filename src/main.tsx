@@ -1,3 +1,4 @@
+import { AccountGate } from "./components/account-gate/AccountGate";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -42,6 +43,8 @@ async function chooseRoot(): Promise<React.ReactNode> {
     }
     return <PairPage initialCode={takePairingCodeFromLocation()} initialEmail={takeInvitedEmailFromLocation()} />;
   }
+  const accountGate = window.ogb?.accountGate;
+  if (!PAGES_WITHOUT_THE_APP.has(location.pathname) && accountGate && (await accountGate.state()).blocked) return <AccountGate bridge={accountGate} />;
   const session = await readSessionState();
   if (session.kind === "unauthenticated") {
     const pair = <PairPage initialCode={null} reason={endedBeforeReload() ? SESSION_ENDED_REASON : session.error} />;

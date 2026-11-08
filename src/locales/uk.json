@@ -3586,5 +3586,20 @@
   "call.saySomething": "Скажіть щось…",
   "call.retryMicrophone": "Спробувати мікрофон знову",
   "call.interrupt": "Перервати",
-  "call.shortcuts": "Утримуйте {keys}, щоб говорити · Пробіл перериває · Esc завершує дзвінок"
+  "call.shortcuts": "Утримуйте {keys}, щоб говорити · Пробіл перериває · Esc завершує дзвінок",
+  "accountGate.title": "Увійти в OpenMausBot",
+  "accountGate.sub": "Один обліковий запис для ваших ботів, Mac і хмарного робочого столу.",
+  "accountGate.google": "Продовжити з Google",
+  "accountGate.apple": "Продовжити з Apple",
+  "accountGate.x": "Продовжити з X",
+  "accountGate.or": "або",
+  "accountGate.verify": "Увійти",
+  "accountGate.browser": "Завершіть вхід у браузері",
+  "accountGate.ended": "Ваш сеанс завершився. Увійдіть знову.",
+  "accountGate.signOut": "Вийти",
+  "accountGate.oauthDenied": "Вхід скасовано. Спробуйте ще раз, коли будете готові.",
+  "accountGate.oauthFailed": "Не вдалося ввійти через браузер. Спробуйте ще раз.",
+  "accountGate.oauthExpired": "Час для входу минув. Почніть знову.",
+  "accountGate.providerUnavailable": "Цей спосіб входу недоступний. Спробуйте інший.",
+  "accountGate.identityTaken": "Ця особа пов’язана з іншим обліковим записом. Спробуйте інший спосіб."
 }

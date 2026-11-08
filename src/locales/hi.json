@@ -3198,5 +3198,20 @@
   "call.saySomething": "कुछ कहें…",
   "call.retryMicrophone": "माइक्रोफ़ोन फिर आज़माएँ",
   "call.interrupt": "बीच में रोकें",
-  "call.shortcuts": "बोलने के लिए {keys} दबाए रखें · Space से बीच में रोकें · Esc से कॉल खत्म करें"
+  "call.shortcuts": "बोलने के लिए {keys} दबाए रखें · Space से बीच में रोकें · Esc से कॉल खत्म करें",
+  "accountGate.title": "OpenMausBot में साइन इन करें",
+  "accountGate.sub": "आपके बॉट, Mac और क्लाउड डेस्कटॉप के लिए एक खाता।",
+  "accountGate.google": "Google से जारी रखें",
+  "accountGate.apple": "Apple से जारी रखें",
+  "accountGate.x": "X से जारी रखें",
+  "accountGate.or": "या",
+  "accountGate.verify": "साइन इन करें",
+  "accountGate.browser": "अपने ब्राउज़र में साइन इन पूरा करें",
+  "accountGate.ended": "आपका सत्र समाप्त हो गया। फिर से साइन इन करें।",
+  "accountGate.signOut": "साइन आउट करें",
+  "accountGate.oauthDenied": "साइन इन रद्द हो गया। तैयार होने पर फिर से कोशिश करें।",
+  "accountGate.oauthFailed": "ब्राउज़र में साइन इन नहीं हो सका। फिर से कोशिश करें।",
+  "accountGate.oauthExpired": "इस साइन इन का समय समाप्त हो गया। फिर से शुरू करें।",
+  "accountGate.providerUnavailable": "यह साइन इन प्रदाता उपलब्ध नहीं है। दूसरा तरीका आज़माएँ।",
+  "accountGate.identityTaken": "यह पहचान दूसरे खाते से जुड़ी है। दूसरा तरीका आज़माएँ।"
 }
