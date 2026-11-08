@@ -89,8 +89,6 @@ extraResources:
 mac:
   # Two single-arch artifacts rather than one universal binary: the app is
   # architecture-specific, and universal would make users download both halves.
-  # electron-updater picks by filename (arm64-marked files on Apple silicon,
-  # unmarked ones on Intel), so latest-mac.yml must list all four files.
   target:
     - target: dmg
       arch: [arm64, x64]
@@ -173,17 +171,10 @@ win:
       to: cua-driver-background.exe
     - from: dist-native/cua-win32-x64/cua-sdk
       to: cua-sdk
-  # No signing config yet (would go under win.signtoolOptions or
-  # win.azureSignOptions — eb 26 nests it, there is no top-level
-  # win.certificateFile). The installer is unsigned, so SmartScreen shows
-  # "unknown publisher" on first run (README says so). verifyUpdateCodeSignature
-  # defaults true, but electron-updater skips the check when app-update.yml
-  # carries no publisherName — so auto-update still works today. Do NOT set
-  # publisherName without actually signing, or every update is rejected as
-  # untrusted; and once signed, keep the cert subject stable (or list both old
-  # and new in publisherName) or you strand already-installed users.
+  # unsigned windows builds show smartscreen's "unknown publisher" prompt.
 
 nsis:
+  differentialPackage: false
   oneClick: true
   perMachine: false
   shortcutName: OpenMausBot

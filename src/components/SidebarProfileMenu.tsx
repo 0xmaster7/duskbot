@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Archive,
-  ArrowDownToLine,
   ArrowLeftRight,
   Check,
   CircleUserRound,
@@ -40,8 +39,6 @@ import { useSidebarPhoneStatus } from "./SidebarPhoneButton";
 import { api, useStore, type Action } from "@/state/store";
 import { serverCheckPhase, serverUpdateRow, type ServerUpdateCheck, type ServerUpdatePhase } from "@/lib/server-update";
 import type { CloudAccountBridge, CloudAccountState } from "../../electron/cloud-account.mjs";
-import { useUpdaterState, type UpdaterState } from "@/lib/updater";
-import { productName } from "../lib/brand";
 import { cloudColor } from "@/lib/cloud-look";
 import { cn } from "@/lib/cn";
 import { meterPercent, resetLine } from "@/lib/usage-meter";
@@ -98,67 +95,16 @@ export function profileLabel(profile?: { name?: string; email?: string }): strin
   return profile?.name?.trim() || profile?.email?.trim() || t("sidebar.profile.you");
 }
 
-export type UpdatePhase =
-  | UpdaterState["status"]
-  | "up-to-date"
-  // only a self-hosted server's check reports a release it cannot install itself
-  | "available"
-  // or that it already runs a newer version than this page
-  | "reload";
+type UpdatePhase = ServerUpdatePhase;
 
-export function updatePhase(state: UpdaterState | null, upToDate: boolean): UpdatePhase {
-  const status = state?.status ?? "idle";
-  if (status !== "idle") return status;
-  return upToDate ? "up-to-date" : "idle";
-}
-
-export function updateLabel(phase: UpdatePhase, state: UpdaterState | null): string {
-  switch (phase) {
-    case "downloading":
-      return state?.percent == null
-        ? t("sidebar.update.startingDownload")
-        : t("sidebar.update.downloading", { percent: Math.round(state.percent) });
-    case "preparing":
-      return t("sidebar.update.preparing");
-    case "downloaded":
-      return (
-        state?.installMode === "handoff"
-          ? t("sidebar.update.readyInstall", { app: productName(), version: state?.version ?? "" })
-          : t("sidebar.update.ready", { app: productName(), version: state?.version ?? "" })
-      ).replace("  ", " ");
-    case "installing":
-      return (
-        state?.message ||
-        (state?.installMode === "handoff"
-          ? t("sidebar.update.openingTerminal")
-          : t("sidebar.update.installing"))
-      );
-    case "checking":
-      return t("sidebar.update.checking");
-    case "handed-off":
-      return t("sidebar.update.handedOff");
-    case "error":
-      return state?.message?.trim() || t("sidebar.update.failed");
-    case "up-to-date":
-      return t("sidebar.update.upToDate");
-    default:
-      return t("sidebar.update.check");
-  }
-}
-
-export function updateBusy(phase: UpdatePhase, pending = false): boolean {
-  return pending || phase === "checking" || phase === "downloading" || phase === "preparing" || phase === "installing";
+function updateBusy(phase: UpdatePhase, pending = false): boolean {
+  return pending || phase === "checking";
 }
 
 function UpdateIcon({ phase, pending, size = 18 }: { phase: UpdatePhase; pending: boolean; size?: number }) {
   if (updateBusy(phase, pending)) return <Loader2 size={size} className="animate-spin" />;
   if (phase === "up-to-date") return <Check size={size} />;
-  if (phase === "downloaded") return <ArrowDownToLine size={size} />;
   return <RefreshCw size={size} />;
-}
-
-export function updateHasButton(phase: UpdatePhase): boolean {
-  return phase === "downloading" || phase === "preparing" || phase === "downloaded" || phase === "installing";
 }
 
 export function updateNoteworthy(phase: UpdatePhase, pending = false): boolean {
@@ -170,17 +116,12 @@ interface UpdateEntry {
   phase: UpdatePhase;
   pending: boolean;
   label: string;
-  source?: "desktop" | "server";
-  installMode?: string;
+  source?: "server";
 }
 
 /** The update a Simple account menu raises to its top row: one waiting to be installed, or one that failed. */
-export function simpleUpdateTop(entry: Pick<UpdateEntry, "phase" | "source" | "installMode"> | null): { label: string; action: string } | null {
+export function simpleUpdateTop(entry: Pick<UpdateEntry, "phase" | "source"> | null): { label: string; action: string } | null {
   const ready = () => t("sidebar.update.readyShort");
-  if (entry?.source === "desktop") {
-    if (entry.phase === "downloaded") return { label: ready(), action: t(entry.installMode === "handoff" ? "sidebar.update.installAction" : "sidebar.update.restartAction") };
-    if (entry.phase === "error") return { label: t("sidebar.update.failedShort"), action: t("sidebar.update.retryAction") };
-  }
   if (entry?.source === "server") {
     if (entry.phase === "available") return { label: ready(), action: t("sidebar.update.installAction") };
     if (entry.phase === "reload") return { label: ready(), action: t("sidebar.update.restartAction") };
@@ -188,53 +129,6 @@ export function simpleUpdateTop(entry: Pick<UpdateEntry, "phase" | "source" | "i
   return null;
 }
 
-export function useUpdateItem(): UpdateEntry | null {
-  const state = useUpdaterState();
-  const updater = window.ogb?.updater;
-  const [pending, setPending] = useState(false);
-  const [checkedAt, setCheckedAt] = useState(0);
-  const status = state?.status ?? "idle";
-
-  useEffect(() => setPending(false), [status]);
-
-  const upToDate = Boolean(checkedAt) && (!state || state.status === "idle") && Date.now() - checkedAt < 3000;
-  useEffect(() => {
-    if (!upToDate) return;
-    const timer = setTimeout(() => setCheckedAt(0), 3000);
-    return () => clearTimeout(timer);
-  }, [upToDate]);
-
-  if (!updater || !state) return null;
-
-  const phase = updatePhase(state, upToDate);
-  const label = updateLabel(phase, state);
-  return {
-    phase,
-    pending,
-    label,
-    source: "desktop",
-    installMode: state.installMode,
-    item: {
-      key: "update",
-      label,
-      icon: <UpdateIcon phase={phase} pending={pending} />,
-      disabled: updateBusy(phase, pending) || state?.retryable === false,
-      keepOpen: true,
-      attention: phase === "downloaded" || phase === "error",
-      attentionTone: phase === "error" ? "danger" : "accent",
-      onSelect: () => {
-        if (phase === "downloaded") {
-          setPending(true);
-          return void updater.install();
-        }
-        setCheckedAt(Date.now());
-        void updater.check();
-      },
-    },
-  };
-}
-
-/** Without the packaged app's updater the server cannot replace itself, so the row says whether a newer release exists and how to install it. */
 export function useServerUpdateItem(enabled: boolean): UpdateEntry | null {
   const [phase, setPhase] = useState<ServerUpdatePhase>("idle");
   const [check, setCheck] = useState<ServerUpdateCheck | null>(null);
@@ -608,9 +502,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
   const connectPhone = useConnectPhoneEntry(state.config?.cloudHome === true);
   const cloudPhone = useCloudPhoneDestination(connectPhone?.target === "computer");
   const destinations = phoneDestinations(connectPhone, cloudPhone.cloud);
-  const desktopUpdate = useUpdateItem();
-  const serverUpdate = useServerUpdateItem(!window.ogb?.updater);
-  const update = desktopUpdate ?? serverUpdate;
+  const update = useServerUpdateItem(true);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [phoneAppOpen, setPhoneAppOpen] = useState(false);
   const [session, setSession] = useState<SessionState | null>(null);
@@ -691,7 +583,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
     onAccount: openCloudAccount,
     onDashboard: () => void openAccountDashboard(),
   });
-  const noteworthy = update && updateNoteworthy(update.phase, update.pending) && !updateHasButton(update.phase);
+  const noteworthy = update && updateNoteworthy(update.phase, update.pending);
   const needsYou = account?.automationsNeedYou === true;
   const initials = computer ? computer[0]!.toUpperCase() : profileInitials(profile);
   const nameless = simple && initials === "?" ? <UserRound size={18} strokeWidth={1.75} aria-hidden /> : undefined;

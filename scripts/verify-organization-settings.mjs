@@ -89,7 +89,6 @@ if (process.versions.electron && process.argv.includes(flag)) {
     settingsOpened++;
     return entry?.settingsOpened() ?? false;
   });
-  ipcMain.handle("update:get-state", () => ({ status: "idle" }));
   ipcMain.handle("companion:state", () => ({ running: false, enabled: false, devices: [], bind: null, publicUrl: null }));
   ipcMain.handle("perm:status", () => ({}));
   ipcMain.handle("window:state", () => ({ maximized: false, fullscreen: false }));

@@ -7,20 +7,17 @@ import test from "node:test";
 
 import {
   HAND_OFF_PACKAGE_TYPES,
-  linuxPackageType,
   packageInstallCommand,
   shellQuote,
-  stagedInstallFile,
 } from "./package-install-command.mjs";
 
 test("the Ubuntu command resolves dependencies", () => {
-  const command = packageInstallCommand("deb", "/home/u/.cache/openmausbot-updater/pending/x.deb");
+  const command = packageInstallCommand("deb", "/home/u/Downloads/x.deb");
 
   assert.equal(
     command,
-    "sudo apt-get install -y '/home/u/.cache/openmausbot-updater/pending/x.deb'",
+    "sudo apt-get install -y '/home/u/Downloads/x.deb'",
   );
-  // electron-updater ran `dpkg -i`, which installs nothing when a release adds a dependency; only apt resolves virtual Provides.
   assert.doesNotMatch(command, /dpkg/);
 });
 
@@ -37,32 +34,12 @@ test("inherited Object names are not install commands", () => {
   }
 });
 
-test("a staged path that is gone is not used", () => {
-  const workspace = mkdtempSync(join(tmpdir(), "omb-staged-"));
-  try {
-    const present = join(workspace, "OpenMausBot.deb");
-    writeFileSync(present, "x");
-    const missing = join(workspace, "gone.deb");
-
-    assert.equal(stagedInstallFile([present]), present);
-    assert.equal(stagedInstallFile([missing, present]), present);
-    assert.equal(stagedInstallFile([missing]), undefined);
-    assert.equal(stagedInstallFile([]), undefined);
-    assert.equal(stagedInstallFile(undefined), undefined);
-    assert.throws(
-      () => packageInstallCommand("deb", stagedInstallFile([missing])),
-      /no longer available/,
-    );
-  } finally {
-    rmSync(workspace, { recursive: true, force: true });
-  }
-});
 
 test("a missing download is reported instead of building a broken command", () => {
   assert.throws(() => packageInstallCommand("deb", undefined), /no longer available/);
   assert.throws(() => packageInstallCommand("deb", ""), /no longer available/);
   assert.throws(() => packageInstallCommand("deb", undefined), (error) =>
-    error.message.endsWith("Try the update again.") && !/download it/i.test(error.message));
+    error.message.endsWith("Download the package again.") && !/download it/i.test(error.message));
 });
 
 // A POSIX shell is the referee for what the quoting parses into; Windows CI has no /bin/sh and Windows users never get this command.
@@ -87,7 +64,7 @@ test("the quoted path survives a shell round-trip", { skip: posixShell }, () => 
 });
 
 test("the whole command parses into the arguments apt-get would receive", { skip: posixShell }, () => {
-  const file = "/home/o'brien/.cache/openmausbot-updater/pending/OpenMausBot-0.1.44-amd64.deb";
+  const file = "/home/o'brien/Downloads/OpenMausBot-0.1.44-amd64.deb";
   const command = packageInstallCommand("deb", file);
 
   // The privileged verb is replaced with a printer, so the shell shows exactly the flags and the one path it would pass.
@@ -98,69 +75,4 @@ test("the whole command parses into the arguments apt-get would receive", { skip
   );
 
   assert.deepEqual(printed.split("\n").filter(Boolean), ["install", "-y", file]);
-});
-
-test("the package marker decides the install path", () => {
-  const marker = (declared) => (file) => (file.endsWith("package-type") ? declared : null);
-
-  assert.equal(
-    linuxPackageType({ platform: "linux", resourcesPath: "/opt/app/resources", readMarker: marker("deb\n") }),
-    "deb",
-  );
-  // An AppImage ships no marker, so the env probe is what identifies it.
-  assert.equal(
-    linuxPackageType({
-      platform: "linux",
-      resourcesPath: "/tmp/squashfs-root/resources",
-      appImage: "/home/u/OpenMausBot.AppImage",
-      readMarker: marker(null),
-    }),
-    "AppImage",
-  );
-  // The marker wins, matching electron-updater's own precedence.
-  assert.equal(
-    linuxPackageType({
-      platform: "linux",
-      resourcesPath: "/opt/app/resources",
-      appImage: "/home/u/OpenMausBot.AppImage",
-      readMarker: marker("deb"),
-    }),
-    "deb",
-  );
-});
-
-test("a build with nothing to identify it keeps the restart path", () => {
-  const none = () => null;
-
-  assert.equal(
-    linuxPackageType({ platform: "linux", resourcesPath: "/opt/app/resources", appImage: undefined, readMarker: none }),
-    null,
-  );
-  assert.equal(linuxPackageType({ platform: "linux", resourcesPath: undefined, readMarker: none }), null);
-  assert.equal(
-    linuxPackageType({ platform: "linux", resourcesPath: undefined, appImage: "/a.AppImage", readMarker: none }),
-    "AppImage",
-  );
-  assert.equal(linuxPackageType({ platform: "darwin", readMarker: none }), null);
-  assert.equal(linuxPackageType({ platform: "win32", readMarker: none }), null);
-  assert.equal(
-    linuxPackageType({
-      platform: "linux",
-      resourcesPath: "/opt/app/resources",
-      appImage: undefined,
-      readMarker: () => "  \n",
-    }),
-    null,
-  );
-  assert.equal(
-    linuxPackageType({
-      platform: "linux",
-      resourcesPath: "/opt/app/resources",
-      appImage: undefined,
-      readMarker: () => {
-        throw new Error("EACCES");
-      },
-    }),
-    null,
-  );
 });

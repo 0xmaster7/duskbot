@@ -18,7 +18,7 @@ const LISTED_FROM = 1000;
 const LINES: Record<string, number> = {
   "server/index.ts": 15799,
   "src/state/store.tsx": 3365,
-  "electron/main.mjs": 3298,
+  "electron/main.mjs": 3211,
   "server/store.ts": 2348,
   "shared/wire.ts": 1005,
   "src/components/Sidebar.tsx": 1858,
@@ -42,7 +42,6 @@ const LINES: Record<string, number> = {
   "server/container-computer.ts": 1225,
   "src/components/ModelPicker.tsx": 1046,
   "src/components/PhoneSetupFlow.tsx": 1146,
-  "server/cli.ts": 1080,
   "src/components/AttachmentPreview.tsx": 1107,
   "src/components/Composer.tsx": 1038,
   "src/components/grok-icon-glyphs.ts": 1234,

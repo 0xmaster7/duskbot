@@ -55,7 +55,7 @@ import { WorkspaceBackupSettings } from "./WorkspaceBackupSettings";
 import { UsageMeterCard } from "./native/UsageMeter";
 import { reportsUsage, useEngineLimits } from "@/lib/limit-resets";
 import {
-  ExperimentalFeaturesRow, FollowUpRow, LanguageRow, SendKeyRow, TalkingStyleRow, UpdatesRow,
+  ExperimentalFeaturesRow, FollowUpRow, LanguageRow, SendKeyRow, TalkingStyleRow,
 } from "./AppSettingsRows";
 
 export type Has = (id: AppSettingsSection) => boolean;
@@ -320,7 +320,7 @@ export function UpdatesPane() {
     <>
       <SettingsGroup label={t("settings.grok.group.version")} block="updates">
         <SettingsRows>
-          {window.ogb?.updater ? <UpdatesRow title={versionTitle()} /> : <ServerUpdatesRow />}
+          <ServerUpdatesRow />
         </SettingsRows>
       </SettingsGroup>
       <HelpGroup />
