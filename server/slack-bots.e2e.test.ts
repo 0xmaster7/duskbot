@@ -107,6 +107,8 @@ describe("Slack bots on a fixture server", () => {
 
     const threadId = await thread("Slack · @Alice");
     expect(threadId).toBeTruthy();
+    // a Slack conversation asks before acting, whatever the bot's own default: people there are not this app's people
+    expect((await tasks()).find((task) => task.threadId === threadId)).toMatchObject({ approvalMode: "ask" });
     const line = (await messages(threadId!)).find((message) => message.role === "user");
     expect(line).toMatchObject({ relayed: true, sender: { name: "Alice" } });
     expect(line.text).toContain("Hello *there*");
