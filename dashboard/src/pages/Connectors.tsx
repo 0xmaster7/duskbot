@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Search, Sparkles } from "lucide-react";
+import { ListFilter, Search, Sparkles } from "lucide-react";
 import { popularity } from "@/components/connect-apps/catalog";
 import { connectedIn, searchApps, useConnectorRows, useDashApps, type ConnectorRow, type DashApp } from "../data/connectors";
 import { useCloud } from "../data/cloud";
@@ -8,7 +8,7 @@ import { APP_LINK } from "../lib/usage";
 import { AppLogo } from "../ui/AppLogo";
 import { Modal, Select, Toggle } from "../ui/controls";
 import { Button, PageHeader, Skeleton } from "../ui/kit";
-import { NameDot, RowMenu, SectionHead, Table, Td, Th, type MenuItem } from "../ui/table";
+import { NameDot, Nil, RowMenu, SectionHead, Table, Td, Th, type MenuItem } from "../ui/table";
 
 type Tab = "connectors" | "skills";
 const PAGE = 8;
@@ -21,8 +21,8 @@ function openConnect(app: { id: string; label: string }, workspaceId: string, to
 function Tile({ row }: { row: ConnectorRow }) {
   if (row.app) return <AppLogo app={row.app} size={32} />;
   return (
-    <span className="flex shrink-0 items-center text-13 text-ink-3" aria-hidden>
-      {row.type === "Skill" ? <Sparkles size={16} strokeWidth={1.5} /> : row.label.slice(0, 1).toUpperCase()}
+    <span className="grid size-8 shrink-0 place-items-center rounded-[9px] border border-line bg-card-2 text-13 text-ink-2" aria-hidden>
+      {row.type === "Skill" ? <Sparkles size={15} strokeWidth={1.5} /> : row.label.slice(0, 1).toUpperCase()}
     </span>
   );
 }
@@ -35,7 +35,7 @@ function WorkspacesCell({ list }: { list: ConnectorRow["workspaces"] }) {
 function Row({ row, onAuth, menu }: { row: ConnectorRow; onAuth(): void; menu: MenuItem[] }) {
   const needs = row.status === "needs-auth";
   return (
-    <tr className="hover-row transition-colors duration-150">
+    <tr className="hover-row">
       <Td>
         <div className="flex min-w-0 items-center gap-3">
           <Tile row={row} />
@@ -51,6 +51,9 @@ function Row({ row, onAuth, menu }: { row: ConnectorRow; onAuth(): void; menu: M
         </div>
       </Td>
       <Td className="text-ink-2 max-md:hidden">{row.type}</Td>
+      <Td className="text-ink-2 max-lg:hidden">{row.category}</Td>
+      <Td className="num text-ink-2 max-lg:hidden">{row.tools ?? <Nil />}</Td>
+      <Td className="text-ink-2 max-xl:hidden">{row.permissions ?? <Nil />}</Td>
       <Td className="max-md:hidden"><WorkspacesCell list={row.workspaces} /></Td>
       <Td className="w-0 !px-1 text-end">{needs && <Button variant="outline" size="sm" onClick={onAuth}>Sign in</Button>}</Td>
       <Td className="w-0 !pe-1 !ps-0"><RowMenu label={`More for ${row.label}`} items={menu} /></Td>
@@ -101,6 +104,8 @@ export function ConnectorsPage() {
   const { rows, loading, error } = useConnectorRows();
   const [tab, setTab] = useState<Tab>("connectors");
   const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<string | null>(null);
+  const [needsOnly, setNeedsOnly] = useState(false);
   const [limit, setLimit] = useState(PAGE);
   const [suggested, setSuggested] = useState(6);
   const [adding, setAdding] = useState(false);
@@ -108,9 +113,12 @@ export function ConnectorsPage() {
   const all = useMemo(() => [...new Set(Object.values(connections ?? {}).flat())], [connections]);
   const tabRows = rows.filter((r) => (tab === "skills" ? r.type === "Skill" : r.type !== "Skill"));
   const q = query.trim().toLowerCase();
-  const shown = tabRows.filter((r) => (!q || r.label.toLowerCase().includes(q) || r.category.toLowerCase().includes(q)));
+  const shown = tabRows.filter((r) => (!q || r.label.toLowerCase().includes(q) || r.category.toLowerCase().includes(q)) && (!category || r.category === category) && (!needsOnly || r.status === "needs-auth"));
+  const categories = [...new Set(tabRows.map((r) => r.category))].sort();
   const picks = apps ? apps.filter((a) => Number.isFinite(popularity(a)) && !connectedIn(a, all) && (!q || a.label.toLowerCase().includes(q))).slice(0, 24) : [];
   const home = workspace?.id ?? workspaces?.[0]?.id ?? "";
+
+  const filtered = Boolean(category) || needsOnly;
 
   const menuFor = (row: ConnectorRow): MenuItem[] => {
     const items: MenuItem[] = [{ label: "Manage in the app", onSelect: () => window.location.assign(APP_LINK) }];
@@ -118,11 +126,11 @@ export function ConnectorsPage() {
     return items;
   };
   const authWorkspace = (row: ConnectorRow) => (row.workspaces.some((w) => w.id === home) ? home : row.workspaces[0]?.id ?? home);
-  const switchTab = (v: Tab) => { setTab(v); setLimit(PAGE); };
+  const switchTab = (v: Tab) => { setTab(v); setLimit(PAGE); setCategory(null); setNeedsOnly(false); };
 
   return (
     <div className="min-w-0">
-      <PageHeader title="Connectors" sub="Apps your bots can use. Each workspace keeps its own sign-ins." />
+      <PageHeader title="Connectors" sub={<>Apps your bots can use. Each workspace keeps its own sign-ins; <a href={APP_LINK} className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">manage them in the app</a>.</>} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Toggle<Tab> label="Show" value={tab} onChange={switchTab} options={[{ value: "connectors", label: "Connectors" }, { value: "skills", label: "Skills" }]} />
@@ -132,6 +140,16 @@ export function ConnectorsPage() {
             <Search size={16} strokeWidth={1.5} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-3" aria-hidden />
             <input id="connector-search" type="search" className="field !h-10 !rounded-full !pl-10" placeholder={tab === "skills" ? "Search skills" : "Search connectors"} value={query} onChange={(e) => { setQuery(e.target.value); setLimit(PAGE); }} />
           </div>
+          <RowMenu
+            label={filtered ? "Filter, on" : "Filter"}
+            active={filtered}
+            icon={<ListFilter size={17} strokeWidth={1.5} aria-hidden />}
+            items={[
+              { label: "Every category", checked: !category, onSelect: () => { setCategory(null); setLimit(PAGE); } },
+              ...categories.map((c) => ({ label: c, checked: category === c, onSelect: () => { setCategory(c); setLimit(PAGE); } })),
+              ...(tab === "connectors" ? [{ label: needsOnly ? "Show every status" : "Needs sign-in only", onSelect: () => { setNeedsOnly((v) => !v); setLimit(PAGE); } }] : []),
+            ]}
+          />
           <Button variant="primary" onClick={() => (tab === "skills" ? window.location.assign(APP_LINK) : setAdding(true))}>Add</Button>
         </div>
       </div>
@@ -149,6 +167,9 @@ export function ConnectorsPage() {
                 <tr>
                   <Th>Name</Th>
                   <Th className="max-md:hidden">Type</Th>
+                  <Th className="max-lg:hidden">Category</Th>
+                  <Th className="max-lg:hidden">Tools enabled</Th>
+                  <Th className="max-xl:hidden">Permissions</Th>
                   <Th className="max-md:hidden">Workspaces</Th>
                   <Th className="w-0 max-sm:w-[88px]"><span className="sr-only">Sign in</span></Th>
                   <Th className="w-0 max-sm:w-12"><span className="sr-only">More</span></Th>
@@ -160,8 +181,8 @@ export function ConnectorsPage() {
           </>
         ) : (
           <div className="border-y border-line py-8">
-            <p className="text-14 text-ink-2">{q ? `Nothing here matches "${query.trim()}".` : tab === "skills" ? "No skills yet." : "Nothing connected yet."}</p>
-            <p className="mt-1 text-14 text-ink-3">{q ? "Clear the search to see everything." : tab === "skills" ? "Ask a bot in a chat to learn a skill, or add one in the app." : "Add an app and your bots can use it right away."}</p>
+            <p className="text-14 text-ink-2">{q || filtered ? `Nothing here matches${q ? ` "${query.trim()}"` : " that filter"}.` : tab === "skills" ? "No skills yet." : "Nothing connected yet."}</p>
+            <p className="mt-1 text-14 text-ink-3">{q || filtered ? "Clear the search or the filter to see everything." : tab === "skills" ? "Ask a bot in a chat to learn a skill, or add one in the app." : "Add an app and your bots can use it right away."}</p>
           </div>
         )}
         {tab === "skills" && !loading && <p className="mt-4 text-14 text-ink-4">Skills ship with the app and work on every workspace. Bots can also write their own in a chat.</p>}

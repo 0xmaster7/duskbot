@@ -33,7 +33,7 @@ function BotRow({ bot, detail, now }: { bot: BotReport; detail: WorkspaceDetail;
   const usage = detail.report?.activity?.byBot.find((b) => b.botId === bot.id);
   const computer = computerFor(detail, bot);
   return (
-    <tr className="hover-row relative transition-colors duration-150">
+    <tr className="hover-row relative">
       <Td>
         <div className="flex min-w-0 items-center gap-3">
           <BotMascot bot={bot} size={32} />

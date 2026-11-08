@@ -30,7 +30,7 @@ export function Onboarding() {
         <span className="flex items-center gap-2.5"><Mascot color="blue" size={20} still /><span className="text-14 font-medium text-ink">OpenMausBot</span></span>
         <div className="flex items-center gap-4">
           <ol className="flex items-center gap-1.5" aria-label={`Step ${ORDER.indexOf(step) + 1} of 3`}>
-            {ORDER.map((s, i) => <li key={s} aria-hidden className={cx("h-1 rounded-full transition-colors duration-200", i <= ORDER.indexOf(step) ? "bg-ink" : "bg-track", s === step ? "w-6" : "w-3")} />)}
+            {ORDER.map((s, i) => <li key={s} aria-hidden className={cx("h-1 rounded-full", i <= ORDER.indexOf(step) ? "bg-ink" : "bg-track", s === step ? "w-6" : "w-3")} />)}
           </ol>
           <button type="button" onClick={() => void done()} className="hover-link h-11 rounded-full px-2 text-13 text-ink-3">Skip</button>
         </div>

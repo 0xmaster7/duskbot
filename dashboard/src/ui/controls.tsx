@@ -60,7 +60,7 @@ export function Toggle<T extends string>({ value, options, onChange, label, clas
           role="radio"
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
-          className={cx("relative z-10 inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-13 transition-colors duration-150", value === o.value ? "text-ink" : "text-ink-3 hover-link")}
+          className={cx("relative z-10 inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-13", value === o.value ? "text-ink" : "text-ink-3 hover-link")}
         >
           {o.label}
         </button>
@@ -173,7 +173,7 @@ export function Choice({ name, value, checked, onChange, title, detail, aside }:
   return (
     <label htmlFor={id} className={cx("pick flex min-h-14 cursor-pointer items-center gap-3 rounded-[10px] px-3 py-2.5", checked ? "bg-card-2" : "hover-row")}>
       <input id={id} type="radio" name={name} value={value} checked={checked} onChange={onChange} className="peer sr-only" />
-      <span aria-hidden className={cx("size-4 shrink-0 rounded-full border transition-[border-width,border-color] duration-150 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink-3", checked ? "border-[5px] border-ink" : "border-ink-4")} />
+      <span aria-hidden className={cx("size-4 shrink-0 rounded-full border peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink-3", checked ? "border-[5px] border-ink" : "border-ink-4")} />
       <span className="min-w-0 flex-1">
         <span className="block text-14 text-ink">{title}</span>
         {detail && <span className="block truncate text-13 text-ink-3">{detail}</span>}
