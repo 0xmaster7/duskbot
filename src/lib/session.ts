@@ -1,3 +1,5 @@
+import { SESSION_PATH, takeBootRead } from "@/state/boot-reads";
+
 export interface EnvironmentDescriptor {
   environmentId: string;
   label: string;
@@ -43,7 +45,7 @@ export function readSessionState(fetchImpl: typeof fetch = fetch): Promise<Sessi
 async function fetchSessionState(fetchImpl: typeof fetch): Promise<SessionState> {
   let res: Response;
   try {
-    res = await fetchImpl("/api/auth/session", { credentials: "same-origin" });
+    res = await ((fetchImpl === fetch ? takeBootRead(SESSION_PATH) : undefined) ?? fetchImpl(SESSION_PATH, { credentials: "same-origin" }));
   } catch (error) {
     return { kind: "unreachable", error: error instanceof Error ? error.message : String(error) };
   }

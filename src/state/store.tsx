@@ -1,5 +1,6 @@
 import { cloudAsleep, onCloudPower } from "../lib/cloud-power";
-import { api, ApiError, snapshotArrays } from "./api";
+import { answerOf, api, ApiError, snapshotArrays } from "./api";
+import { chatSnapshotPath, MESSAGE_PAGE_SIZE, takeBootRead } from "./boot-reads";
 import { createContext, startTransition, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import type { BotMovedTo, BotVisibility, CardAnswerer, CloudBackend, ConnectorToolGrant, EffortLevel, InstalledPackageMetadata, LiveCallState, ServerFrame, GroupThreadUsage, SteerQueueReason, WireBot, WireGroup, WireTask, OptionCardData as WireOptionCard } from "../../shared/wire";
@@ -1893,7 +1894,7 @@ export const initialState: AppState = {
 export { api, ApiError, liveCallFromFrame, nextLiveCallLookup };
 
 /** Messages per snapshot thread and per scrollback page: the server's own page maximum. */
-export const MESSAGE_PAGE_SIZE = 200;
+export { MESSAGE_PAGE_SIZE };
 
 
 type TrustedApprovalBridge = {
@@ -2981,11 +2982,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const bumpPeripheralVersion = (...keys: PeripheralKey[]) => {
       for (const key of keys) refreshState(key).version += 1;
     };
-    const loadAll = async (): Promise<boolean> => {
+    type ChatSnapshot = Omit<Extract<Action, { type: "hydrate" }>, "type"> & { cursor?: string };
+    type LoadMarks = { navigationAtStart: number; navigationSince: AppState["transcriptGeneration"]; taskIdsAtStart: Set<string> };
+    const beginLoad = (): LoadMarks => {
       invalidateTranscripts();
-      const navigationAtStart = selectionRevision.current;
-      const navigationSince = stateRef.current.transcriptGeneration;
-      const taskIdsAtStart = new Set([...stateRef.current.bots, ...stateRef.current.groups].flatMap(owner => owner.tasks?.map(task => task.threadId) ?? []));
       const since = stateRef.current.liveCallVersion;
       const seq = nextLiveCallLookup();
       void unlessRefused<unknown>("/api/live/call", () => api<unknown>("/api/live/call"), null)
@@ -2994,23 +2994,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (alive && answer) flushSync(() => rawDispatch({ type: "liveCallLookup", call: answer.call, since, seq }));
         })
         .catch(() => {});
-      const selected = stateRef.current.selectedId || readLastConversation() || "";
+      return {
+        navigationAtStart: selectionRevision.current,
+        navigationSince: stateRef.current.transcriptGeneration,
+        taskIdsAtStart: new Set([...stateRef.current.bots, ...stateRef.current.groups].flatMap(owner => owner.tasks?.map(task => task.threadId) ?? [])),
+      };
+    };
+    const applyChat = ({ bots, groups, sections, computerControl, botQueuedMessages, loadedThreads }: ChatSnapshot, marks: LoadMarks) => rawDispatch({
+      type: "hydrate",
+      bots,
+      groups: groups ?? [],
+      sections: sections ?? [],
+      computerControl: computerControl ?? {},
+      botQueuedMessages,
+      loadedThreads,
+      preserveNavigation: selectionRevision.current !== marks.navigationAtStart,
+      navigationSince: marks.navigationSince,
+      taskIdsAtStart: marks.taskIdsAtStart,
+      resumeId: readLastConversation() ?? undefined,
+    });
+    const selectedPath = () => chatSnapshotPath(stateRef.current.selectedId || readLastConversation() || "");
+    const loadAll = async (): Promise<boolean> => {
+      const marks = beginLoad();
       const chat = () =>
-        readSnapshot<Omit<Extract<Action, { type: "hydrate" }>, "type">>(`/api/bots?messages=${MESSAGE_PAGE_SIZE}&selected=${encodeURIComponent(selected)}`).then((answer) => snapshotArrays(answer, "bots")).then(({ bots, groups, sections, computerControl, botQueuedMessages, loadedThreads }) => {
-          if (!alive) return;
-          rawDispatch({
-            type: "hydrate",
-            bots,
-            groups: groups ?? [],
-            sections: sections ?? [],
-            computerControl: computerControl ?? {},
-            botQueuedMessages,
-            loadedThreads,
-            preserveNavigation: selectionRevision.current !== navigationAtStart,
-            navigationSince,
-            taskIdsAtStart,
-            resumeId: readLastConversation() ?? undefined,
-          });
+        readSnapshot<ChatSnapshot>(selectedPath()).then((answer) => snapshotArrays(answer, "bots")).then((answer) => {
+          if (alive) applyChat(answer, marks);
         });
       const peripherals = peripheralParts.map((part) => ({
         key: part.key,
@@ -3050,7 +3058,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       });
       return hydrationPromise;
     };
-    const hydrationFallback = setTimeout(hydrate, 1_000);
+    // the snapshot the page asked for as it loaded (src/state/boot-reads.ts), drawn as soon as it lands
+    const bootRead = takeBootRead(selectedPath());
+    const bootChat = bootRead
+      ? bootRead.then((res) => answerOf<ChatSnapshot>(res)).then((answer) => snapshotArrays(answer, "bots")).catch(() => null)
+      : null;
+    let hydrationFallback = bootChat ? undefined : setTimeout(hydrate, 1_000);
 
     handleFrame = (frame) => {
       if (frame.kind === "config") bumpPeripheralVersion("config", "instances");
@@ -3211,7 +3224,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           break;
       }
     };
-    const stopLive = openLiveEvents({
+    let stopLive = () => {};
+    const startLive = (since: string | null) => { if (alive) stopLive = openLiveEvents({
+      since,
       onOpen: () => rawDispatch({ type: "connected", value: true }),
       onError: () => rawDispatch({ type: "connected", value: false }),
       onSnapshotRequired: () => {
@@ -3227,6 +3242,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (hydrated) handleFrame(frame as ServerFrame);
         else pendingFrames.push(withoutScreenPixels(frame as ServerFrame));
       },
+    }); };
+    if (!bootChat) startLive(null);
+    else void bootChat.then((answer) => {
+      if (!alive) return;
+      // the stream resumes after the snapshot's own cursor, so nothing between the two is lost; a server that cannot
+      // replay that far says so in its hello and the store reads a snapshot as it always did
+      if (answer?.cursor && !hydrated && !hydrationPromise) {
+        applyChat(answer, beginLoad());
+        hydrated = true;
+        for (const part of peripheralParts) void loadPeripheral(part, true).catch((error) => schedulePeripheralRetry(part, error));
+        startLive(answer.cursor);
+        return;
+      }
+      hydrationFallback = setTimeout(hydrate, 1_000);
+      startLive(null);
     });
     return () => {
       alive = false;

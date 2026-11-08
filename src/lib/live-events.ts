@@ -49,6 +49,8 @@ export interface LiveEventsHandlers {
   onSnapshotRequired: () => Promise<boolean>;
   onOpen?: () => void;
   onError?: () => void;
+  /** Resume from this cursor (a snapshot already drawn) instead of asking for a snapshot first. */
+  since?: string | null;
   staleMs?: number;
   retryMinMs?: number;
   retryMaxMs?: number;
@@ -212,7 +214,7 @@ export function openLiveEvents(
   let sourceScreens = screensWanted();
   let retryTimer: ReturnType<typeof setTimeout> | null = null;
   let retryAttempt = 0;
-  let cursor: string | null = null;
+  let cursor: string | null = handlers.since ?? null;
   let lastHeardAt = platform.now();
   let snapshotGeneration = 0;
   let pendingSnapshot: {
