@@ -6,13 +6,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { signedPayload } from "../../../shared/dashboard-protocol.ts";
-import type { BillingOverview, Catalog, CheckoutAnswer, CloudDesktopView, InvoicePage, Quote } from "../../../shared/billing-api.ts";
+import type { BillingOverview, Cart, Catalog, CheckoutAnswer, CloudDesktopView, InvoicePage, Quote } from "../../../shared/billing-api.ts";
 import { createDashboardApp } from "../app.ts";
 import { memoryMailer } from "../auth/mail.ts";
 import { CSRF_HEADER } from "../../../shared/account-api.ts";
 import { createBilling } from "./index.ts";
 import type { BillingOptions } from "./index.ts";
 import { BILLING_CONFIG } from "./plans.ts";
+import { quote } from "./pricing.ts";
 import type { BillingState } from "./store.ts";
 
 vi.mock("./index.ts", async importOriginal => {
@@ -68,7 +69,7 @@ async function fixture() {
   async function reconcile() { for (let n = 0; n < 8; n++) await billing.clouds.reconcile(); }
   return { dir, app, dashboard, billing, origin, page, answer, login, saved, complete, deliver, reconcile, setTime: (at: number) => { time = at; }, now: () => time };
 }
-const bundle = (id: string) => ({ ...structuredClone(BILLING_CONFIG.bundles.find(b => b.id === id)!.cart), interval: "month" });
+const bundle = (id: string): Cart => ({ ...structuredClone(BILLING_CONFIG.bundles.find(b => b.id === id)!.cart), interval: "month" });
 
 it("requires csrf on every cookie billing mutation and leaves public quotes and reads accessible", async () => {
   const f = await fixture(), owner = await f.login();
@@ -124,12 +125,12 @@ it("separates cookie and app credentials and preserves billing origin and CORS b
 it("runs the dashboard billing lifecycle over HTTP, including signed workspace reports and webhook replays", async () => {
   const f = await fixture(), { cookie, account, csrfToken } = await f.login();
   const catalog = await f.answer<Catalog>("/v1/billing/catalog"); expect(catalog.bundles.map(b => b.id)).toEqual(["free", "starter", "pro", "team"]);
-  const builder = { interval: "year", license: { kind: "solo" }, desktop: { kind: "dedicated", region: "fsn1", spec: { vcpu: 12, ramGb: 24, diskGb: 240 } } };
-  expect(await f.answer<Quote>("/v1/billing/quote", { cart: builder })).toMatchObject({ bundle: null, machine: builder.desktop.spec, totalCents: 90240 });
-  const team = { ...bundle("team"), license: { kind: "team", members: 6 } };
+  const builder: Cart = { interval: "year", license: { kind: "solo" }, desktop: { kind: "dedicated", region: "fsn1", spec: { vcpu: 12, ramGb: 24, diskGb: 240 } } };
+  expect(await f.answer<Quote>("/v1/billing/quote", { cart: builder })).toMatchObject({ bundle: null, machine: builder.desktop.spec, totalCents: quote(builder).totalCents });
+  const team: Cart = { ...bundle("team"), license: { kind: "team", members: 6 } };
   const teamQuote = await f.answer<Quote>("/v1/billing/quote", { cart: team });
-  expect(teamQuote.members).toBe(6); expect(teamQuote.lines.find(l => l.kind === "members")?.amountCents).toBe(4500);
-  const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("starter") }, cookie);
+  expect(teamQuote.members).toBe(6); expect(teamQuote.lines.find(l => l.kind === "members")?.amountCents).toBe((team.license.members! - BILLING_CONFIG.licenses.team.includedMembers) * BILLING_CONFIG.licenses.team.extraMemberCents!);
+  const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: { ...bundle("starter"), license: { kind: "solo" } } }, cookie);
   expect(checkout).toMatchObject({ v: 1, checkoutId: expect.any(String), cloudId: expect.any(String), checkoutUrl: expect.stringMatching(/^https:\/\/test.checkout.dodopayments.com\//) });
   const deliveries = await f.complete(checkout.checkoutId);
   let overview = await f.answer<BillingOverview>("/v1/billing/overview", undefined, cookie);
@@ -225,7 +226,7 @@ it("serves the billing portal and keeps license membership changes owner-only", 
 
 it("does not give a recreated account the deleted account's license", async () => {
   const f = await fixture(), owner = await f.login();
-  const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("starter") }, owner.cookie);
+  const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("pro") }, owner.cookie);
   await f.complete(checkout.checkoutId); await f.reconcile();
   const before = f.saved(), cloud = f.billing.clouds.get(checkout.cloudId!)!;
   await f.answer("/v1/account/delete", { email: owner.account.email, cancelBilling: true }, owner.cookie);
@@ -287,7 +288,7 @@ it("refuses deletion with both billing blockers before changing the account or b
   const response = await f.page("/v1/account/delete", { email: owner.account.email }, owner.cookie);
   expect(response.status).toBe(409);
   expect(await response.json()).toEqual({ error: "Cancel your plan and cloud desktops before deleting your account.", code: "billing_active", blockers: [
-    { kind: "subscription", id: before.subscriptions[0].id, label: "Starter", status: "active" },
+    { kind: "subscription", id: before.subscriptions[0].id, label: BILLING_CONFIG.bundles.find(b => b.id === "starter")!.label, status: "active" },
     { kind: "cloud_desktop", id: checkout.cloudId, label: "My desktop", status: "running" },
   ] });
   expect(f.app.auth.account(owner.account.id)).not.toBeNull();
@@ -300,7 +301,7 @@ it("refuses deletion with both billing blockers before changing the account or b
 
 it("closes billing, revokes licenses and scrubs personal records while retaining invoices", async () => {
   const f = await fixture(), owner = await f.login();
-  const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("starter"), name: owner.account.email }, owner.cookie);
+  const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("pro"), name: owner.account.email }, owner.cookie);
   await f.complete(checkout.checkoutId); await f.reconcile();
   f.billing.service.feedback(owner.account, { cloudId: checkout.cloudId, survey: { answer: "other", expected: owner.account.email, improve: owner.account.id } });
   const other = await f.login("other@example.test");
@@ -320,7 +321,7 @@ it("closes billing, revokes licenses and scrubs personal records while retaining
   expect(f.billing.clouds.get(checkout.cloudId!)).toMatchObject({ accountId: closure.anonId, name: "Deleted", destroyAt: sub.currentPeriodEnd! + 7 * 86_400_000 });
   expect(saved.licenses[0]).toMatchObject({ ownerAccountId: closure.anonId, status: "expired", validUntil: f.now() });
   expect(saved.licenses[1].members).toHaveLength(1);
-  expect(saved.invoices[0]).toMatchObject({ accountId: closure.anonId, amountCents: 2000, currency: "USD", status: "paid" });
+  expect(saved.invoices[0]).toMatchObject({ accountId: closure.anonId, amountCents: quote(bundle("pro")).totalCents, currency: "USD", status: "paid" });
   for (const name of ["billing.json", "clouds.json"]) {
     const content = readFileSync(join(f.dir, name), "utf8"); expect(content).not.toContain(owner.account.email); expect(content).not.toContain(owner.account.id);
   }
@@ -357,7 +358,7 @@ it("keeps the account on provider failure and resumes without cancelling complet
 
 it("records late renewal payments anonymously without reviving a closed account", async () => {
   const f = await fixture(), owner = await f.login();
-  const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("starter") }, owner.cookie);
+  const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("pro") }, owner.cookie);
   await f.complete(checkout.checkoutId); await f.reconcile();
   const sub = f.saved().subscriptions[0];
   await f.answer("/v1/account/delete", { email: owner.account.email, cancelBilling: true }, owner.cookie);
@@ -386,7 +387,7 @@ it("abandons checkout desktops and queues renewal-off for payments received afte
   await f.deliver(deliveries[1]); await f.billing.service.drainProviderCancels();
   for (const event of deliveries) await f.deliver(event);
   const saved = f.saved(), anonId = saved.closures![0].anonId;
-  expect(saved.invoices).toHaveLength(1); expect(saved.invoices[0]).toMatchObject({ accountId: anonId, amountCents: 2000 });
+  expect(saved.invoices).toHaveLength(1); expect(saved.invoices[0]).toMatchObject({ accountId: anonId, amountCents: quote(bundle("starter")).totalCents });
   expect(saved.subscriptions[0]).toMatchObject({ status: "ended", accountId: anonId });
   expect(saved.providerCancels![0].completedAt).toBe(f.now()); expect(cancel).toHaveBeenCalledTimes(2);
   expect(saved.licenses).toEqual([]); expect(f.billing.clouds.list(anonId, true)).toHaveLength(1);

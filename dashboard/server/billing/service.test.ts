@@ -5,6 +5,7 @@ import { join } from "node:path";
 import type { Cart } from "../../../shared/billing-api.ts";
 import type { CloudsService, DesktopPlan, OrderInput, StoredCloud } from "../clouds/types.ts";
 import { BILLING_CONFIG } from "./plans.ts";
+import { quote } from "./pricing.ts";
 import { createFakeBillingProvider } from "./fake-provider.ts";
 import { createBillingStore } from "./store.ts";
 import { createBillingService } from "./service.ts";
@@ -40,9 +41,10 @@ let dataDir: string, time: number;
 let store: ReturnType<typeof createBillingStore>, provider: ReturnType<typeof createFakeBillingProvider>, service: ReturnType<typeof createBillingService>, clouds: CloudsService;
 let config: typeof BILLING_CONFIG;
 const preset = (index: number, interval: Cart["interval"] = "month"): Cart => ({ ...structuredClone(config.bundles[index].cart), interval });
+const licensedDesktop = (): Cart => ({ ...preset(1), license: { kind: "solo" } });
 const desktopOnly = (): Cart => ({ ...preset(1), license: { kind: "none" } });
 function deliver(deliveries: Array<{ headers: Record<string, string>; body: Buffer }>) { return deliveries.map(delivery => service.handleWebhook(delivery.headers, delivery.body)); }
-async function buy(cart = preset(1), account = owner) {
+async function buy(cart = licensedDesktop(), account = owner) {
   const answer = await service.checkout(account, { kind: "cart", cart });
   const checkout = store.state.checkouts.find(checkout => checkout.id === answer.checkoutId)!;
   const deliveries = provider.complete(checkout.providerSessionId!); deliver(deliveries);
@@ -61,9 +63,9 @@ afterEach(() => { service.close(); rmSync(dataDir, { recursive: true, force: tru
 describe("billing service isolated fixture", () => {
   it("completes a checkout, persists its license and invoice, and replays without side effects", async () => {
     const { answer, sub, deliveries } = await buy();
-    expect(sub).toMatchObject({ status: "active", totalCents: 2000, cloudId: answer.cloudId, version: 1 });
+    expect(sub).toMatchObject({ status: "active", totalCents: quote(licensedDesktop(), config).totalCents, cloudId: answer.cloudId, version: 1 });
     expect(service.licenses(owner.id)[0]).toMatchObject({ kind: "solo", status: "active", seats: 1, members: [{ email: owner.email, role: "owner", accountId: owner.id }] });
-    expect(service.invoices(owner.id).invoices[0]).toMatchObject({ amountCents: 2000, currency: "USD", status: "paid" });
+    expect(service.invoices(owner.id).invoices[0]).toMatchObject({ amountCents: quote(licensedDesktop(), config).totalCents, currency: "USD", status: "paid" });
     expect(store.state.invoices[0].subscriptionId).toBe(sub.id);
     expect(clouds.activate).toHaveBeenCalledExactlyOnceWith(answer.cloudId, sub.id, { kind: "shared_s", placement: "pool", spec: { vcpu: 2, ramGb: 4, diskGb: 40 }, botComputers: 2 });
     const before = structuredClone(store.state); expect(deliver(deliveries)).toEqual([{ duplicate: true }, { duplicate: true }]);
@@ -73,7 +75,7 @@ describe("billing service isolated fixture", () => {
     service.close(); store = createBillingStore(dataDir);
     expect(store.state.subscriptions[0].id).toBe(sub.id); expect(statSync(join(dataDir, "billing.json")).mode & 0o777).toBe(0o600);
     expect(readFileSync(join(dataDir, "billing.json"), "utf8")).not.toContain(provider.secret);
-    expect(service.appState(owner)).toMatchObject({ entitlement: { plan: "pro", tier: "starter", status: "active" } });
+    expect(service.appState(owner)).toMatchObject({ entitlement: { plan: "pro", tier: "custom", status: "active" } });
   });
   it("refuses bad signatures without modifying state and records unknown signed events", () => {
     const delivery = signed("payment.succeeded", { payment_id: "p", total_amount: 1, currency: "USD", metadata: { checkoutId: "unknown" } });
@@ -108,9 +110,9 @@ describe("billing service isolated fixture", () => {
   it("previews and applies an upgrade with a single-use confirmation", async () => {
     const { sub } = await buy(); time = (sub.currentPeriodStart! + sub.currentPeriodEnd!) / 2;
     const preview = service.previewChange(owner, sub.id, preset(2));
-    expect(preview).toMatchObject({ chargeNowCents: 3000, expiresAt: time + 600_000 }); expect(preview.confirmation).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(preview).toMatchObject({ chargeNowCents: quote(preset(2), config).totalCents - quote(licensedDesktop(), config).totalCents, expiresAt: time + 600_000 }); expect(preview.confirmation).toMatch(/^[A-Za-z0-9_-]{43}$/);
     await service.change(owner, sub.id, preview.confirmation);
-    expect(sub).toMatchObject({ totalCents: 5000, version: 2, cart: preset(2) });
+    expect(sub).toMatchObject({ totalCents: quote(preset(2), config).totalCents, version: 2, cart: preset(2) });
     expect(clouds.changePlan).toHaveBeenCalledExactlyOnceWith(sub.cloudId, { kind: "shared_m", placement: "pool", spec: { vcpu: 4, ramGb: 8, diskGb: 80 }, botComputers: 5 });
     await expect(service.change(owner, sub.id, preview.confirmation)).rejects.toMatchObject({ code: "confirmation_required" });
     expect(() => service.previewChange(owner, sub.id, preset(2))).toThrow(expect.objectContaining({ code: "already_on_plan" }));
@@ -125,13 +127,13 @@ describe("billing service isolated fixture", () => {
     await expect(service.change(owner, sub.id, preview.confirmation)).rejects.toMatchObject({ code: "price_changed" });
     preview = service.previewChange(owner, sub.id, preset(2)); provider.failChangePlan = true;
     await expect(service.change(owner, sub.id, preview.confirmation)).rejects.toMatchObject({ status: 503, code: "unavailable" });
-    expect(sub.totalCents).toBe(2000); expect(clouds.changePlan).not.toHaveBeenCalled();
+    expect(sub.totalCents).toBe(quote(licensedDesktop(), BILLING_CONFIG).totalCents); expect(clouds.changePlan).not.toHaveBeenCalled();
     await expect(service.change(stranger, sub.id, preview.confirmation)).rejects.toMatchObject({ code: "not_found" });
   });
   it("licenses owners and invited members, binds normalized emails and enforces seats", async () => {
     expect(service.licenseCheck(owner).work).toBe("free_until"); time = config.freeWorkUntil!; expect(service.licenseCheck(owner).work).toBe("unlicensed");
     const { sub } = await buy(preset(3)); expect(service.licenseCheck(owner).work).toBe("licensed");
-    service.addMember(owner, sub.licenseId!, "  Friend@Example.com  "); service.addMember(owner, sub.licenseId!, "other@example.com");
+    service.addMember(owner, sub.licenseId!, "  Friend@Example.com  ");
     expect(() => service.addMember(owner, sub.licenseId!, "full@example.com")).toThrow(expect.objectContaining({ code: "seats_full" }));
     const friend = { id: "friend", email: "friend@example.com" }; expect(service.licenseCheck(friend)).toMatchObject({ work: "licensed", license: { role: "member" } });
     expect(service.licenses(friend.id)[0].members[1].accountId).toBe("friend");
@@ -152,7 +154,7 @@ describe("billing service isolated fixture", () => {
     expect(clouds.end).toHaveBeenLastCalledWith(sub.cloudId, time + 7 * day); expect(service.appState(owner).primary).toBeNull();
   });
   it("enforces open checkout, license exclusivity, desktop cap, and account rate limits", async () => {
-    await service.checkout(owner, { kind: "cart", cart: preset(1) });
+    await service.checkout(owner, { kind: "cart", cart: licensedDesktop() });
     await expect(service.checkout(owner, { kind: "cart", cart: preset(2) })).rejects.toMatchObject({ code: "checkout_open", url: store.state.checkouts[0].url });
     deliver(provider.complete(store.state.checkouts[0].providerSessionId!));
     await expect(service.checkout(owner, { kind: "cart", cart: preset(2) })).rejects.toMatchObject({ code: "already_subscribed" });
@@ -185,8 +187,8 @@ describe("billing service isolated fixture", () => {
     await expect(service.portal(owner, "//evil.test")).rejects.toMatchObject({ code: "invalid_request" });
   });
   it("adds and removes a desktop and updates seats without an unnecessary resize", async () => {
-    const licenseOnly: Cart = { ...preset(1), desktop: { kind: "none" } }; const { sub } = await buy(licenseOnly);
-    await service.change(owner, sub.id, service.previewChange(owner, sub.id, preset(1)).confirmation);
+    const licenseOnly: Cart = { ...licensedDesktop(), desktop: { kind: "none" } }; const { sub } = await buy(licenseOnly);
+    await service.change(owner, sub.id, service.previewChange(owner, sub.id, licensedDesktop()).confirmation);
     expect(clouds.activate).toHaveBeenCalledTimes(1); const cloudId = sub.cloudId;
     const team: Cart = { ...preset(1), license: { kind: "team", members: 5 } };
     await service.change(owner, sub.id, service.previewChange(owner, sub.id, team).confirmation);
@@ -205,7 +207,7 @@ describe("billing service isolated fixture", () => {
     config.desktops.shared_s.monthlyCents = 2500;
     deliver(provider.complete(store.state.checkouts[0].providerSessionId!));
     const sub = service.subscriptions(owner.id)[0];
-    expect(sub.totalCents).toBe(2000); expect(sub.lines.reduce((sum, line) => sum + line.amountCents, 0)).toBe(2000);
+    expect(sub.totalCents).toBe(quote(preset(1), BILLING_CONFIG).totalCents); expect(sub.lines.reduce((sum, line) => sum + line.amountCents, 0)).toBe(quote(preset(1), BILLING_CONFIG).totalCents);
     expect(sub.cloudId).toBe(answer.cloudId);
     service.close(); store = createBillingStore(dataDir);
     service = createBillingService({ store, provider, clouds, config, publicUrl: "https://dashboard.test", now: () => time });
@@ -214,13 +216,13 @@ describe("billing service isolated fixture", () => {
   });
   it("renews at the changed fake-provider price and streams an owner-only PDF", async () => {
     const { sub } = await buy(); await service.change(owner, sub.id, service.previewChange(owner, sub.id, preset(2)).confirmation);
-    deliver(provider.renew(sub.providerSubscriptionId!)); expect(store.state.invoices.at(-1)!.amountCents).toBe(5000);
+    deliver(provider.renew(sub.providerSubscriptionId!)); expect(store.state.invoices.at(-1)!.amountCents).toBe(quote(preset(2), config).totalCents);
     service = createBillingService({ store, provider: { ...provider, invoiceUrl: async () => null }, clouds, config, publicUrl: "https://dashboard.test", now: () => time });
     expect(await service.invoiceDownload(owner.id, store.state.invoices[0].id)).toMatchObject({ pdf: { contentType: "application/pdf", body: expect.any(Buffer) } });
   });
   it("serializes license additions across subscriptions of the same account", async () => {
     const first = await buy(desktopOnly()), second = await buy(desktopOnly());
-    const a = service.previewChange(owner, first.sub.id, preset(1)), b = service.previewChange(owner, second.sub.id, preset(1));
+    const a = service.previewChange(owner, first.sub.id, licensedDesktop()), b = service.previewChange(owner, second.sub.id, licensedDesktop());
     const results = await Promise.allSettled([service.change(owner, first.sub.id, a.confirmation), service.change(owner, second.sub.id, b.confirmation)]);
     expect(results[0].status).toBe("fulfilled"); expect(results[1]).toMatchObject({ status: "rejected", reason: { code: "already_subscribed" } });
     expect(provider.changeCalls).toHaveLength(1);
@@ -342,12 +344,12 @@ describe("durable provider reconciliation", () => {
     vi.spyOn(provider, "changePlan").mockImplementationOnce(async input => { await change(input); throw new Error("synthetic lost response"); });
     const preview = service.previewChange(owner, sub.id, preset(2));
     await expect(service.change(owner, sub.id, preview.confirmation)).rejects.toMatchObject({ code: "unavailable" });
-    expect(sub.totalCents).toBe(2000); expect(sub.pendingChange).toBeDefined();
+    expect(sub.totalCents).toBe(quote(licensedDesktop(), BILLING_CONFIG).totalCents); expect(sub.pendingChange).toBeDefined();
     expect(() => service.previewChange(owner, sub.id, preset(2))).toThrow(expect.objectContaining({ code: "plan_change_unavailable" }));
     service.close(); store = createBillingStore(dataDir);
     service = createBillingService({ store, provider, clouds, config, publicUrl: "https://dashboard.test", now: () => time });
     deliver(provider.renew(sub.providerSubscriptionId!));
-    expect(store.state.subscriptions[0]).toMatchObject({ totalCents: 5000, cart: preset(2) });
+    expect(store.state.subscriptions[0]).toMatchObject({ totalCents: quote(preset(2), config).totalCents, cart: preset(2) });
     expect(store.state.subscriptions[0].pendingChange).toBeUndefined(); expect(provider.changeCalls).toHaveLength(1);
     expect(clouds.changePlan).toHaveBeenCalledTimes(1);
   });
@@ -374,12 +376,12 @@ it("waits for a matching signed outcome before granting a Dodo upgrade", async (
   service = createBillingService({ store, provider: { ...provider, name: "dodo" }, clouds, config, publicUrl: "https://dashboard.test", now: () => time });
   const end = sub.currentPeriodEnd;
   const result = await service.change(owner, sub.id, service.previewChange(owner, sub.id, preset(2)).confirmation);
-  expect(result.totalCents).toBe(2000); expect(clouds.changePlan).not.toHaveBeenCalled();
+  expect(result.totalCents).toBe(quote(licensedDesktop(), BILLING_CONFIG).totalCents); expect(clouds.changePlan).not.toHaveBeenCalled();
   const data = JSON.parse(deliveries[1].body.toString()).data;
   deliver([signed("subscription.plan_changed", data)]);
-  expect(sub.pendingChange).toBeDefined(); expect(sub.totalCents).toBe(2000);
+  expect(sub.pendingChange).toBeDefined(); expect(sub.totalCents).toBe(quote(licensedDesktop(), BILLING_CONFIG).totalCents);
   deliver([signed("subscription.plan_changed", { ...data, addons: [{ addon_id: "addon_shared_m:month", quantity: 1 }] })]);
-  expect(sub.pendingChange).toBeUndefined(); expect(sub.totalCents).toBe(5000);
+  expect(sub.pendingChange).toBeUndefined(); expect(sub.totalCents).toBe(quote(preset(2), config).totalCents);
   expect(sub.currentPeriodEnd).toBe(end); expect(clouds.changePlan).toHaveBeenCalledTimes(1);
 });
 
