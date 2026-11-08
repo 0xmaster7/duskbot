@@ -45,7 +45,7 @@ function BotRow({ bot, detail, now }: { bot: BotReport; detail: WorkspaceDetail;
       </Td>
       <Td className="max-w-[220px] truncate text-ink-2 max-md:hidden">{bot.model ?? <Nil />}</Td>
       <Td className="text-ink-2 max-lg:hidden">{computer ? <StatePill state={computer.state} /> : bot.computer ? PLACE[bot.computer] : <Nil />}</Td>
-      <Td className="num text-end text-ink-2 max-md:hidden">{usage ? usage.turns.toLocaleString("en-US") : <Nil />}</Td>
+      <Td className="t-id text-end text-ink-2 max-md:hidden">{usage ? usage.turns.toLocaleString("en-US") : <Nil />}</Td>
       <Td className="whitespace-nowrap text-ink-2 max-md:hidden">{bot.busy ? <span className="text-good">Working now</span> : ago(bot.lastActiveAt, now)}</Td>
       <Td className="relative z-10 w-0 !ps-1 text-end"><ButtonLink to={APP_LINK} external size="sm" className="!h-9 !px-4 !text-14">Open</ButtonLink></Td>
     </tr>
@@ -89,7 +89,7 @@ export function BotPage({ id }: { id: string }) {
               <header className="mb-4 flex flex-wrap items-center gap-5">
                 <BotMascot bot={bot} size={72} still={false} track />
                 <div className="min-w-0 flex-1">
-                  <h1 className="truncate text-28 font-medium tracking-[-0.02em] text-ink">{bot.name}</h1>
+                  <h1 className="t-title truncate">{bot.name}</h1>
                   <p className="mt-1 text-14 text-ink-3">{bot.busy ? <span className="text-good">Working now</span> : `Last active ${ago(bot.lastActiveAt, now)}`}</p>
                 </div>
                 <ButtonLink to={APP_LINK} external variant="primary">Open in the app</ButtonLink>

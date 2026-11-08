@@ -105,7 +105,7 @@ export function Heatmap({ days, metric, now, compactCells = false }: { days: Act
           </div>
         </div>
       </div>
-      <div className="mt-4 flex items-center gap-1.5 text-12 text-ink-3" aria-hidden>
+      <div className="t-pixel mt-4 flex items-center gap-1.5 text-ink-3" aria-hidden>
         <span className="me-1">Less</span>
         {levels.map((l) => <span key={l} className="size-[10px] rounded-[2px]" style={{ background: l ? `var(--heat-${l})` : "var(--cell)" }} />)}
         <span className="ms-1">More</span>

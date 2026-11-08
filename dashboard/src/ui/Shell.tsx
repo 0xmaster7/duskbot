@@ -125,7 +125,7 @@ function CloudBadge() {
   const { clouds } = useCloud();
   const c = clouds?.[0];
   if (!clouds) return null;
-  if (!c) return <span className="ms-auto rounded-full border border-line-2 px-2 py-px text-[11px] text-ink-3">24/7</span>;
+  if (!c) return <span className="t-pixel ms-auto rounded-full border border-line-2 px-2 py-px text-ink-3">24/7</span>;
   const tone = c.status === "running" ? "text-good" : c.status === "provisioning" ? "text-accent" : c.status === "error" ? "text-bad" : "text-ink-4";
   return <span className={cx("live-dot ms-auto", tone)} data-live={c.status === "running"} aria-label={c.status === "running" ? "Running" : c.status} role="img" />;
 }

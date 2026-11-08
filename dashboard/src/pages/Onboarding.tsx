@@ -39,7 +39,7 @@ export function Onboarding() {
       <main className="relative mx-auto max-w-[960px] px-6 pb-16 pt-10 max-sm:px-4 max-sm:pt-4">
         {step === "where" && (
           <section key="where" className="step-in" aria-labelledby="where-title">
-            <h1 id="where-title" className="text-24 font-semibold tracking-[-0.022em] text-ink">Welcome, {name}.</h1>
+            <h1 id="where-title" className="t-title">Welcome, {name}.</h1>
             <p className="mt-2 text-14 text-ink-3">Where should your bots live?</p>
             <div className="mt-8 divide-y divide-line border-y border-line">
               <div className="flex flex-wrap items-center justify-between gap-4 py-6">
@@ -57,7 +57,7 @@ export function Onboarding() {
         {step === "plan" && (
           <section key="plan" className="step-in mx-auto max-w-[640px]" aria-labelledby="plan-title">
             <button type="button" onClick={() => setStep("where")} className="press-soft hover-ghost -ms-3 mb-4 inline-flex h-11 items-center gap-1.5 rounded-full px-3 text-13 text-ink-2"><ArrowLeft size={16} strokeWidth={1.5} aria-hidden /> Back</button>
-            <h1 id="plan-title" className="text-24 font-semibold tracking-[-0.022em] text-ink">Pick your cloud desktop</h1>
+            <h1 id="plan-title" className="t-title">Pick your cloud desktop</h1>
             <p className="mt-2 text-14 leading-[1.55] text-ink-3">Every plan includes a work license and stays on 24/7.</p>
             <Card className="mt-6">
               {catalog ? (
@@ -75,7 +75,7 @@ export function Onboarding() {
         {step === "apps" && (
           <section key="apps" className="step-in mx-auto max-w-[640px]" aria-labelledby="apps-title">
             {bought && <p className="mb-6 flex items-center gap-3 text-14 text-ink-3" role="status"><span className="live-dot shrink-0 text-accent" data-live aria-hidden />Your cloud desktop is being set up.</p>}
-            <h1 id="apps-title" className="text-24 font-semibold tracking-[-0.022em] text-ink">Get the apps</h1>
+            <h1 id="apps-title" className="t-title">Get the apps</h1>
             <p className="mt-2 text-14 text-ink-3">Sign in with this account on each device.</p>
             <ul className="mt-6 divide-y divide-line border-y border-line">
               <li className="flex flex-wrap items-center justify-between gap-4 py-5">

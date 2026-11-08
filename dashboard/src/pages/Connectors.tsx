@@ -52,7 +52,7 @@ function Row({ row, onAuth, menu }: { row: ConnectorRow; onAuth(): void; menu: M
       </Td>
       <Td className="text-ink-2 max-md:hidden">{row.type}</Td>
       <Td className="text-ink-2 max-lg:hidden">{row.category}</Td>
-      <Td className="num text-ink-2 max-lg:hidden">{row.tools ?? <Nil />}</Td>
+      <Td className="t-id text-ink-2 max-lg:hidden">{row.tools ?? <Nil />}</Td>
       <Td className="text-ink-2 max-xl:hidden">{row.permissions ?? <Nil />}</Td>
       <Td className="max-md:hidden"><WorkspacesCell list={row.workspaces} /></Td>
       <Td className="w-0 !px-1 text-end">{needs && <Button variant="outline" size="sm" onClick={onAuth}>Sign in</Button>}</Td>

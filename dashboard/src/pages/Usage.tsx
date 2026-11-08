@@ -13,6 +13,7 @@ import { Nil, SectionHead, Table, Td, Th } from "../ui/table";
 import { Legend, UsageChart } from "../ui/UsageChart";
 import { BuyCredits } from "./credits-dialog";
 import { useNow } from "../lib/now";
+import { Figure } from "../ui/Figure";
 
 const GROUPS: Array<{ value: UsageGroup; label: string }> = [{ value: "bot", label: "Bot" }, { value: "model", label: "Model" }, { value: "workspace", label: "Workspace" }];
 const PAGE = 12;
@@ -22,7 +23,7 @@ function Label({ id, children }: { id?: string; children: ReactNode }) {
 }
 
 function Big({ value, unit }: { value: ReactNode; unit?: string }) {
-  return <p className="num mt-4 flex items-baseline gap-2"><span className="text-28 font-medium tracking-[-0.02em] text-ink">{value}</span>{unit && <span className="text-15 text-ink-3">{unit}</span>}</p>;
+  return <p className="mt-4 flex min-w-0 items-baseline gap-2"><Figure value={value} />{unit && <span className="text-15 text-ink-3">{unit}</span>}</p>;
 }
 
 const resetText = (t: number | null, now: number) => (t ? (t - now < 86_400_000 ? `Resets ${until(t, now)}` : `Resets ${shortDate(t)}`) : "No reset time");
@@ -122,7 +123,7 @@ function Stat({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="min-w-0 rounded-card bg-card px-7 py-6 max-sm:px-5 max-sm:py-5">
       <div className="text-15 text-ink-3">{label}</div>
-      <div className="num mt-2 truncate text-28 font-medium tracking-[-0.02em] text-ink">{value}</div>
+      <div className="mt-2"><Figure value={value} /></div>
     </div>
   );
 }
@@ -209,9 +210,9 @@ export function UsagePage() {
                     <Td className="max-w-[200px] truncate text-ink-2 max-md:hidden">{e.workspaceName}</Td>
                     <Td className="max-w-[160px] truncate">{e.bot}</Td>
                     <Td className="max-w-[200px] truncate text-ink-2 max-lg:hidden">{e.model === "Mixed" ? <Nil /> : e.model}</Td>
-                    <Td className="num text-end text-ink-2 max-md:hidden">{e.turns.toLocaleString("en-US")}</Td>
-                    <Td className="num truncate text-end">{compact(e.tokens)}</Td>
-                    <Td className="num truncate text-end text-ink-2">{e.costUsd === null ? <Nil /> : usd(e.costUsd)}</Td>
+                    <Td className="t-id text-end text-ink-2 max-md:hidden">{e.turns.toLocaleString("en-US")}</Td>
+                    <Td className="t-id truncate text-end">{compact(e.tokens)}</Td>
+                    <Td className="t-id truncate text-end text-ink-2">{e.costUsd === null ? <Nil /> : usd(e.costUsd)}</Td>
                   </tr>
                 ))}
               </tbody>
