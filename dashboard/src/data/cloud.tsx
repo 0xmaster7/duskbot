@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { api, ApiError, FIXTURE, type AccountData } from "../lib/api";
 import type { BillingOverview, CheckoutRequest, CloudDesktop, DesktopId, IdentityProvider, MachineSpec, NotificationPrefs, PlanCatalog, Selection } from "./contracts";
 import { fixtureCatalog } from "./fixtures";
+import type { CancelAnswer } from "./wire";
 
 export interface CloudData {
   catalog: PlanCatalog | null;
@@ -15,7 +16,7 @@ export interface CloudData {
   power(id: string, on: boolean): Promise<void>;
   resize(id: string, req: { tier: Exclude<DesktopId, "none">; size: MachineSpec | null }): Promise<void>;
   changePlan(selection: Selection): Promise<void>;
-  cancel(reason: string): Promise<void>;
+  cancel(reason: CancelAnswer | ""): Promise<void>;
   openPortal(): Promise<void>;
   setNotifications(p: NotificationPrefs): Promise<void>;
   updateProfile(name: string): Promise<void>;
@@ -57,7 +58,7 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
     let alive = true;
     const request = ++cloudRequest.current;
     catalogRequest.current ??= api.catalog();
-    void Promise.allSettled([catalogRequest.current, api.billing(), api.clouds(), api.account(), api.connections()] as const).then(([plans, bill, desktops, profile, apps]) => {
+    void Promise.allSettled([catalogRequest.current, api.overview(), api.account(), api.connections()] as const).then(([plans, overview, profile, apps]) => {
       if (!alive || !active.current || generation.current !== version) return;
       const errors: string[] = [];
       if (plans.status === "fulfilled") setCatalog(plans.value);
@@ -65,9 +66,14 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
         if (plans.reason instanceof ApiError && plans.reason.status === 404) setCatalog(fixtureCatalog);
         errors.push(apiError(plans.reason).message);
       }
-      if (bill.status === "fulfilled") setBilling(bill.value); else { setBilling(null); errors.push(apiError(bill.reason).message); }
-      if (desktops.status === "fulfilled") { if (request === cloudRequest.current) setClouds(desktops.value.clouds); }
-      else { if (request === cloudRequest.current) setClouds(null); errors.push(apiError(desktops.reason).message); }
+      if (overview.status === "fulfilled") {
+        setBilling(overview.value.billing);
+        if (request === cloudRequest.current) setClouds(overview.value.clouds);
+      } else {
+        setBilling(null);
+        if (request === cloudRequest.current) setClouds(null);
+        errors.push(apiError(overview.reason).message);
+      }
       if (profile.status === "fulfilled") setAccount(profile.value); else { setAccount(null); errors.push(apiError(profile.reason).message); }
       if (apps.status === "fulfilled") setConnections(apps.value.byWorkspace); else { setConnections(null); errors.push(apiError(apps.reason).message); }
       setError([...new Set(errors)].join(" ") || null);

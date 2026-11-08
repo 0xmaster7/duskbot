@@ -245,7 +245,7 @@ function MobileCartBar({ catalog, sel, onCheckout, busy, show }: { catalog: Plan
 function CurrentPlan({ catalog }: { catalog: PlanCatalog }) {
   const { billing, cancel, openPortal } = useCloud();
   const [asking, setAsking] = useState(false);
-  const [reason, setReason] = useState("");
+  const [reason, setReason] = useState<Parameters<ReturnType<typeof useCloud>["cancel"]>[0]>("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sub = billing?.subscription;
@@ -281,12 +281,13 @@ function CurrentPlan({ catalog }: { catalog: PlanCatalog }) {
         <p>Your plan runs until {longDate(sub.currentPeriodEnd)}. After that your cloud desktop is kept for 7 days, then deleted, and your bots only run while your Mac is awake.</p>
         <div className="mt-4">
           <Field label="What made you cancel? (optional)" htmlFor="cancel-reason" error={error}>
-            <Select id="cancel-reason" value={reason} onChange={(e) => setReason(e.target.value)}>
+            <Select id="cancel-reason" value={reason} onChange={(e) => setReason(e.target.value as typeof reason)}>
               <option value="">Choose one</option>
+              <option value="feature">Missing a feature I need</option>
               <option value="price">Too expensive</option>
-              <option value="not_using">I do not use it enough</option>
-              <option value="missing">Missing something I need</option>
-              <option value="self_host">Moving to my own server</option>
+              <option value="setup">Setting it up was too hard</option>
+              <option value="broken">Something did not work</option>
+              <option value="later">I will come back later</option>
               <option value="other">Something else</option>
             </Select>
           </Field>

@@ -39,7 +39,7 @@ export interface NotificationPrefs {
 }
 
 /** which sign-in buttons work on this instance; a disabled one is not configured yet */
-export interface AuthProviders { providers: Array<{ id: IdentityProvider; enabled: boolean }> }
+export interface AuthProviders { providers: Array<{ id: IdentityProvider; enabled: boolean; comingSoon?: boolean }> }
 
 export interface EmailCodeStart { attempt: string; resendAfter: number; expiresIn: number; codeLength: number }
 
@@ -103,7 +103,9 @@ export interface CustomPricing {
   base: number;
   perVcpu: number;
   perGbRam: number;
+  /** per 10 GB past includedDiskGb */
   per10GbDisk: number;
+  includedDiskGb: number;
   vcpu: Range;
   ramGb: Range;
   diskGb: Range;
@@ -139,7 +141,7 @@ export interface Subscription {
   id: string;
   bundle: BundleId | null;
   selection: Selection;
-  status: "active" | "trialing" | "past_due" | "canceled";
+  status: "pending" | "active" | "past_due" | "canceled";
   /** what each period charges, after the yearly discount */
   amountUsd: number;
   currentPeriodEnd: number;

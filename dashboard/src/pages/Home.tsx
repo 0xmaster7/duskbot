@@ -45,6 +45,7 @@ function CloudLive({ cloud, detail }: { cloud: CloudDesktop; detail: WorkspaceDe
   const m = detail?.report?.machine;
   const bots = detail?.report?.bots ?? [];
   const busy = bots.filter((b) => b.busy).length;
+  const used = detail?.report?.computers?.computers.length ?? cloud.botComputers.used;
   const mem = m ? (m.memory.usedBytes / Math.max(1, m.memory.totalBytes)) * 100 : null;
   return (
     <Card className="enter relative overflow-hidden" style={{ ["--i" as string]: 1 }} aria-labelledby="cloud-live-title">
@@ -68,7 +69,7 @@ function CloudLive({ cloud, detail }: { cloud: CloudDesktop; detail: WorkspaceDe
       ) : (
         <div className="relative mt-8 grid grid-cols-4 gap-6 max-md:grid-cols-2">
           <Big label="Working now" value={cloud.status === "running" ? busy : 0} sub={plural(bots.length, "bot")} />
-          <Big label="Bot computers" value={`${cloud.botComputers.used}`} sub={cloud.botComputers.limit === null ? "no limit" : `of ${cloud.botComputers.limit}`} />
+          <Big label="Bot computers" value={`${used}`} sub={cloud.botComputers.limit === null ? "no limit" : `of ${cloud.botComputers.limit}`} />
           <Big label="CPU" value={m && cloud.status === "running" ? percent(m.cpu.percent) : "Idle"} sub={`${cloud.vcpu} vCPU`} />
           <Big label="Memory" value={mem !== null && cloud.status === "running" ? percent(mem) : "Idle"} sub={`${cloud.ramGb} GB`} />
         </div>

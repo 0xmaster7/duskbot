@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { AuthProviders, IdentityProvider } from "../data/contracts";
 import { useSession } from "../data/session";
 import { api, ApiError, FIXTURE } from "../lib/api";
-import { Link, navigate } from "../lib/router";
+import { Link, navigate, useLocation } from "../lib/router";
 import { ProviderMark, PROVIDER_NAME } from "../ui/BrandMarks";
 import { Button, cx } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
@@ -22,11 +22,25 @@ const REASON: Record<string, string> = {
 
 const OAUTH: IdentityProvider[] = ["google", "apple", "x"];
 
+// ?error= after a provider sign-in that did not finish
+const OAUTH_ERROR: Record<string, string> = {
+  oauth_denied: "Sign-in was cancelled at the provider. Try again, or use your email.",
+  oauth_failed: "The provider did not finish signing you in. Try again, or use your email.",
+  oauth_expired: "That sign-in took too long. Start again.",
+  provider_unavailable: "That sign-in option is not available right now. Use your email instead.",
+  signup_closed: "New accounts are not open yet.",
+  identity_taken: "That account is already linked to another OpenMausBot account. Sign in with it instead.",
+};
+
 type Mode = "signin" | "signup";
 
 /** sign in and sign up: a quiet night sky, one mascot peeking over the card */
 export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
   const { setAccount } = useSession();
+  const { query } = useLocation();
+  const pending = query.get("pending");
+  const next = query.get("next");
+  const home = next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
   const [step, setStep] = useState<"start" | "code">("start");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -34,7 +48,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
   const [attempt, setAttempt] = useState<string | null>(null);
   const [resendAt, setResendAt] = useState(0);
   const [busy, setBusy] = useState<IdentityProvider | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => OAUTH_ERROR[query.get("error") ?? ""] ?? null);
   const [providers, setProviders] = useState<AuthProviders["providers"] | null>(null);
   const [, force] = useState(0);
   const codeRef = useRef<HTMLInputElement>(null);
@@ -50,24 +64,25 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
 
   const reason = (e: unknown) => (e instanceof ApiError && e.code && REASON[e.code]) || (e as Error).message || "Sign-in did not work. Try again.";
   const enabled = (p: IdentityProvider) => providers === null ? true : providers.some((x) => x.id === p && x.enabled);
+  const hidden = (p: IdentityProvider) => providers !== null && !providers.some((x) => x.id === p && (x.enabled || x.comingSoon));
 
   const send = async () => {
     setBusy("email"); setError(null);
     try {
-      const r = await api.start(email.trim(), mode);
+      const r = await api.start(email.trim(), mode, pending ?? undefined);
       setAttempt(r.attempt); setLength(r.codeLength || 6); setResendAt(Date.now() + r.resendAfter * 1000); setStep("code"); setCode("");
     } catch (e) { setError(reason(e)); } finally { setBusy(null); }
   };
   const verify = async (value = code) => {
     if (!attempt) return;
     setBusy("email"); setError(null);
-    try { const r = await api.verify(attempt, value.replace(/\D/g, "")); navigate("/", { replace: true }); setAccount(r.account); }
+    try { const r = await api.verify(attempt, value.replace(/\D/g, "")); navigate(home, { replace: true }); setAccount(r.account); }
     catch (e) { setError(reason(e)); setCode(""); codeRef.current?.focus(); if (e instanceof ApiError && e.code === "expired") setAttempt(null); }
     finally { setBusy(null); }
   };
   const oauth = async (p: IdentityProvider) => {
     setError(null);
-    if (!FIXTURE) { window.location.assign(api.oauthUrl(p, mode)); return; }
+    if (!FIXTURE) { window.location.assign(api.oauthUrl(p, mode, { next: home })); return; }
     // fixtures have no provider page to bounce through: sign the demo account in
     setBusy(p);
     try { const s = await api.start("sid@openmausbot.test", mode); const r = await api.verify(s.attempt, "123456"); navigate("/", { replace: true }); setAccount(r.account); }
@@ -88,8 +103,9 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
               <h1 className="text-20 font-medium tracking-[-0.01em] text-ink">{signup ? "Create your account" : "Sign in to OpenMausBot"}</h1>
               <p className="mt-1.5 text-14 leading-[1.5] text-ink-3">{signup ? "Free for personal use. One account for the app, your phone and your cloud desktop." : "One account for the app, your phone and your cloud desktop."}</p>
               {note && <div className="mt-3 text-13 leading-[1.5] text-ink-2">{note}</div>}
+              {pending && <div className="mt-3 text-13 leading-[1.5] text-ink-2">One more step: your provider did not share an email, so enter the one you want to sign in with.</div>}
               <div className="mt-6 flex flex-col gap-2">
-                {OAUTH.map((p) => (
+                {!pending && OAUTH.filter((p) => !hidden(p)).map((p) => (
                   <button
                     key={p}
                     type="button"
@@ -102,7 +118,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
                   </button>
                 ))}
               </div>
-              <div className="my-5 flex items-center gap-3 text-12 text-ink-4" aria-hidden><span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" /></div>
+              <div className={cx("my-5 flex items-center gap-3 text-12 text-ink-4", pending && "hidden")} aria-hidden><span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" /></div>
               <form onSubmit={(e) => { e.preventDefault(); void send(); }} noValidate>
                 <label htmlFor="email" className="mb-1.5 block text-13 text-ink-2">Email</label>
                 <input id="email" type="email" autoComplete="email" inputMode="email" required value={email} onChange={(e) => { setEmail(e.target.value); setError(null); }} className="field" aria-invalid={Boolean(error)} aria-describedby={error ? "auth-error" : undefined} />

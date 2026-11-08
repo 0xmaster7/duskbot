@@ -162,7 +162,7 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
           <dl className="divide-y divide-line">
             <KV k="Region" v={regionName(catalog, cloud.region)} />
             <KV k="Runs on" v={cloud.placement === "shared" ? "Shared, own sandbox" : "Its own machine"} />
-            <KV k="Bot computers" v={`${cloud.botComputers.used} of ${cloud.botComputers.limit === null ? "unlimited" : cloud.botComputers.limit}`} />
+            <KV k="Bot computers" v={`${detail?.report?.computers?.computers.length ?? cloud.botComputers.used} of ${cloud.botComputers.limit === null ? "unlimited" : cloud.botComputers.limit}`} />
             <KV k="Created" v={longDate(cloud.createdAt)} />
           </dl>
           <p className="mt-4 text-13 text-ink-4">To remove it, cancel your plan in <Link to="/billing" className="hover-link underline decoration-line-2 underline-offset-4">Plans & billing</Link>.</p>

@@ -3,6 +3,7 @@ import { ApiError, FIXTURE } from "../lib/api";
 import type { BundleId, CheckoutRequest, CloudDesktop, DesktopId, MachineSpec, NotificationPrefs, Selection, Subscription } from "./contracts";
 import { fixtureAccount, fixtureBilling, fixtureCatalog, fixtureClouds, fixtureConnections, fixtureWorkspace, fixtureWorkspaces } from "./fixtures";
 import { desktopOf, licenseOf, priceCart } from "./pricing";
+import { CANCEL_ANSWERS } from "./wire";
 
 const DAY = 86_400_000;
 const steps = ["Reserving your machine", "Installing OpenMausBot", "Linking it to your account", "Waking your bots"];
@@ -144,7 +145,7 @@ function workspaceDetail(detail: WorkspaceDetail, now: number): WorkspaceDetail 
   return fresh;
 }
 
-function route(method: string, path: string, body: unknown): unknown {
+function route(method: string, path: string, body: unknown, query: URLSearchParams): unknown {
   const s = current(), now = Date.now();
   advance(now);
   const b = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
@@ -154,11 +155,11 @@ function route(method: string, path: string, body: unknown): unknown {
   if (method === "POST" && path === "/v1/auth/start") {
     if (typeof b.email !== "string" || !b.email.includes("@")) fail("Enter a valid email address.", 400, "invalid_email");
     s.email = (b.email as string).trim().toLowerCase(); s.intent = b.intent === "signup" ? "signup" : "signin"; s.attemptAt = now;
-    return { attempt: "fx", resendAfter: 30, expiresIn: 600, codeLength: 6 };
+    return { attempt: "fx", resendAfter: 30, expiresIn: 600, codeLength: 8 };
   }
   if (method === "POST" && path === "/v1/auth/verify") {
     if (b.attempt !== "fx" || s.attemptAt === null || now - s.attemptAt > 600_000) fail("That code has expired. Request another.", 400, "expired");
-    if (typeof b.code !== "string" || !/^\d{6}$/.test(b.code) || b.code === "000000") fail("That code does not match.", 400, "wrong_code");
+    if (typeof b.code !== "string" || !/^\d{8}$/.test(b.code) || b.code === "00000000") fail("That code does not match.", 400, "wrong_code");
     const created = s.firstSignIn;
     if (created) {
       s.account = fixtureAccount("new", now); s.billing = fixtureBilling("new", now); s.clouds = [];
@@ -170,6 +171,15 @@ function route(method: string, path: string, body: unknown): unknown {
     return { account: account(), created };
   }
   if (!s.signedIn) fail("Sign in to continue.", 401, "unauthorized");
+  if (method === "GET" && path === "/v1/auth/device") {
+    const userCode = query.get("code");
+    if (!userCode || userCode === "XXXXX-00000") fail("Device code not found.", 404, "not_found");
+    return { device: { name: "MacBook-Pro", platform: "macOS 26.1" }, userCode, expiresAt: now + 600_000 };
+  }
+  if (method === "POST" && (path === "/v1/auth/device/approve" || path === "/v1/auth/device/deny")) {
+    if (typeof b.userCode !== "string" || !b.userCode || b.userCode === "XXXXX-00000") fail("Device code not found.", 404, "not_found");
+    return { ok: true };
+  }
   if (method === "GET" && path === "/v1/me") return { account: account() };
   if (method === "POST" && (path === "/v1/auth/signout" || path === "/v1/auth/signout-everywhere")) {
     if (path.endsWith("signout-everywhere")) s.account.devices = [];
@@ -232,6 +242,10 @@ function route(method: string, path: string, body: unknown): unknown {
     return s.billing;
   }
   if (method === "POST" && path === "/v1/billing/cancel") {
+    if (b.survey !== undefined) {
+      const survey = b.survey as { answer?: unknown } | null;
+      if (!survey || typeof survey !== "object" || !CANCEL_ANSWERS.some((answer) => answer === survey.answer)) fail("Choose a cancellation reason.");
+    }
     if (!s.billing.subscription) fail("No subscription to cancel.", 404, "not_found");
     s.billing.subscription!.cancelAt = s.billing.subscription!.currentPeriodEnd; return s.billing;
   }
@@ -281,6 +295,7 @@ function route(method: string, path: string, body: unknown): unknown {
 }
 
 export function fixtureCall(method: string, path: string, body?: unknown): unknown {
-  return structuredClone(route(method.toUpperCase(), path.split("?")[0]!, body));
+  const url = new URL(path, "https://fixture.test");
+  return structuredClone(route(method.toUpperCase(), url.pathname, body, url.searchParams));
 }
 

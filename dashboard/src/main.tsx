@@ -21,6 +21,7 @@ const BotPage = lazy(() => import("./pages/Bots").then((m) => ({ default: m.BotP
 const ConnectorsPage = lazy(() => import("./pages/Connectors").then((m) => ({ default: m.ConnectorsPage })));
 const BillingPage = lazy(() => import("./pages/Billing").then((m) => ({ default: m.BillingPage })));
 const AccountPage = lazy(() => import("./pages/Account").then((m) => ({ default: m.AccountPage })));
+const DeviceApprovalPage = lazy(() => import("./pages/DeviceApproval").then((m) => ({ default: m.DeviceApprovalPage })));
 const Onboarding = lazy(() => import("./pages/Onboarding").then((m) => ({ default: m.Onboarding })));
 
 initTheme();
@@ -29,11 +30,11 @@ stashClaim();
 const TITLES: Record<string, string> = {
   "/": "Home", "/cloud": "Cloud desktop", "/workspaces": "Workspaces", "/bots": "Bots", "/connectors": "Connectors",
   "/billing": "Plans & billing", "/account": "Account", "/claim": "Connect a workspace", "/welcome": "Welcome",
-  "/signin": "Sign in", "/signup": "Create your account",
+  "/signin": "Sign in", "/sign-in": "Sign in", "/signup": "Create your account", "/cloud/desktop": "Approve sign-in",
 };
 
 // older links keep working
-const MOVED: Record<string, string> = { "/usage": "/billing", "/settings": "/account", "/devices": "/account#devices", "/connect": "/workspaces#add", "/signin": "/", "/signup": "/" };
+const MOVED: Record<string, string> = { "/usage": "/billing", "/settings": "/account", "/devices": "/account#devices", "/connect": "/workspaces#add", "/signin": "/", "/sign-in": "/", "/signup": "/" };
 
 function route(path: string): ReactNode {
   if (path === "/") return <HomePage />;
@@ -48,16 +49,18 @@ function route(path: string): ReactNode {
   if (path === "/billing") return <BillingPage />;
   if (path === "/account") return <AccountPage />;
   if (path === "/claim") return <ClaimPage />;
+  if (path === "/cloud/desktop") return <DeviceApprovalPage />;
   return <SkyEmpty title="Nothing lives here" action={<ButtonLink to="/" variant="primary">Go home</ButtonLink>}>There is no page at {path}. The sidebar has every page.</SkyEmpty>;
 }
 
 function SignedIn() {
-  const { path } = useLocation();
+  const { path, query } = useLocation();
   const { account } = useCloud();
-  const moved = MOVED[path];
+  const next = query.get("next");
+  const moved = MOVED[path] && (path === "/sign-in" && next?.startsWith("/") && !next.startsWith("//") ? next : MOVED[path]);
   useEffect(() => { if (moved) navigate(moved, { replace: true }); }, [moved]);
   if (moved) return null;
-  const onboard = path === "/welcome" || (account !== null && !account.profile.onboarded && path !== "/claim");
+  const onboard = path === "/welcome" || (account !== null && !account.profile.onboarded && path !== "/claim" && path !== "/cloud/desktop");
   if (onboard) return <Suspense fallback={<div className="min-h-[100dvh] bg-bg" aria-busy="true" />}><Onboarding /></Suspense>;
   return <Shell><Suspense fallback={<LoadingPage />}>{route(path)}</Suspense></Shell>;
 }
@@ -67,7 +70,7 @@ function App() {
   const { account } = useSession();
   useEffect(() => { document.title = `${TITLES[path] ?? (path.startsWith("/bots/") ? "Bot" : path.startsWith("/workspaces/") ? "Workspace" : "OpenMausBot")} · OpenMausBot`; }, [path]);
   if (account === undefined) return <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
-  if (account === null) return <AuthScreen mode={path === "/signup" ? "signup" : "signin"} note={path === "/claim" ? "Sign in to connect the workspace you opened this from." : undefined} />;
+  if (account === null) return <AuthScreen mode={path === "/signup" ? "signup" : "signin"} note={path === "/claim" ? "Sign in to connect the workspace you opened this from." : path === "/cloud/desktop" ? "Sign in to finish signing in the desktop app." : undefined} />;
   return <SignedIn />;
 }
 
