@@ -88,6 +88,7 @@ export interface StoredCloud {
   serverId: string | null;
   ipv4: string | null;
   origin: string | null;
+  destroyedOrigin?: string;
   /** aes-256-gcm sealed when a key is configured; the signing key for its OpenMausBot */
   bootstrapSecret: string;
   workspaceId: string | null;

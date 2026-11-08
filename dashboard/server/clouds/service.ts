@@ -87,6 +87,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       if (!c.serverId) c.serverId = (await provider.find(c.id))?.id ?? null;
       if (c.serverId) await provider.destroy(c.serverId);
       if (c.workspaceId) workspaces.remove(c.workspaceId);
+      c.destroyedOrigin = c.origin ?? c.destroyedOrigin;
       c.status = "destroyed"; c.setupStep = null; c.origin = null; c.ipv4 = null; c.bootstrapSecret = ""; c.sealedLinkPrivateKey = undefined; c.serverId = null;
       succeeded(c); return;
     }

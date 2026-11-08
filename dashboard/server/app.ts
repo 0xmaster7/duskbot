@@ -7,6 +7,7 @@ import type { CommandKind, CommandView, MachineSample, ReportAnswer, WorkspaceDe
 import { AccountError, cleanEmail, createAccountProxy } from "./account.ts";
 import { createStore } from "./store.ts";
 import type { Account, StoredWorkspace } from "./store.ts";
+import { createBilling } from "./billing/index.ts";
 
 export interface DashboardAppOptions {
   dataDir: string;
@@ -34,6 +35,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const store = createStore(options.dataDir);
   const state = store.state;
   const accountProxy = createAccountProxy(options.accountOrigin, options.fetch, now);
+  const billing = createBilling({ dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, accounts: { fromCookie: cookie => { try { return account({ headers: { cookie } } as IncomingMessage); } catch { return null; } }, fromBearer: () => null } });
   const attempts = new Map<string, { admin: string; expiresAt: number; busy: boolean }>();
   const limits = new Map<string, { count: number; until: number }>();
   const watching = new Map<string, number>();
@@ -181,6 +183,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       if (req.headers.origin !== undefined && req.headers.origin !== publicUrl) fail(403, "forbidden", "Origin is not allowed.");
     }
     if (method === "GET" && path === DASHBOARD_DISCOVERY_PATH) return json(res, 200, { v: 1, url: publicUrl });
+    if (await billing.handle(req, res, url)) return;
     if (!path.startsWith("/v1/") && !path.startsWith("/.well-known/")) {
       if (method === "GET") return staticPage(req, res);
       fail(404, "not_found", "Route not found.");
@@ -356,6 +359,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       });
     },
     close() {
+      billing.close();
       closed = true;
       for (const wait of Array.from(waits.values())) wait.cancel();
       store.close();
