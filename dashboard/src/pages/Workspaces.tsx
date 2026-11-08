@@ -7,10 +7,11 @@ import { useWorkspaceDetail } from "../data/detail";
 import { useSession } from "../data/session";
 import { api } from "../lib/api";
 import { ago, longDate } from "../lib/format";
-import { Link } from "../lib/router";
+import { Link, navigate } from "../lib/router";
 import { DOWNLOAD_URL } from "../lib/usage";
 import { Field, Modal } from "../ui/controls";
 import { Button, ButtonLink, Card, FreshnessTag, PageHeader, SectionTitle, Skeleton } from "../ui/kit";
+import { RowMenu, Table, Td, Th, type MenuItem } from "../ui/table";
 import { KIND_LABEL } from "../ui/Shell";
 import { SkyEmpty } from "../ui/Sky";
 import { CloudStatus, regionName, tierName, workspaceIcon } from "./cloud-bits";
@@ -43,41 +44,41 @@ function WorkspaceRow({ w, cloud }: { w: WorkspaceSummary; cloud: CloudDesktop |
     catch (e) { setError((e as Error).message); }
     finally { setBusy(false); }
   };
+  const menu: MenuItem[] = [
+    { label: "Rename", onSelect: () => { setName(w.name); setError(null); setEditing(true); } },
+    cloud ? { label: "Manage cloud desktop", onSelect: () => navigate("/cloud") } : { label: "Remove", danger: true, disabled: clouds === null, onSelect: () => { setError(null); setRemoving(true); } },
+  ];
+  const to = `/workspaces/${encodeURIComponent(w.id)}`;
   return (
-    <li className="hover-row rounded-[12px] px-3 py-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-card-2 text-ink-2">{workspaceIcon(w, cloud)}</span>
-        <div className="min-w-0 flex-1">
-          {editing ? (
-            <form className="step-in" onSubmit={(e) => { e.preventDefault(); void save(); }}>
-              <Field label="Workspace name" htmlFor={`workspace-name-${w.id}`} error={error}>
-                <input id={`workspace-name-${w.id}`} className="field" value={name} maxLength={60} autoFocus disabled={busy} aria-invalid={Boolean(error)} onChange={(e) => setName(e.target.value)} />
-              </Field>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button size="sm" variant="primary" type="submit" disabled={busy}>{busy ? "Saving" : "Save"}</Button>
-                <Button size="sm" variant="ghost" disabled={busy} onClick={() => { setEditing(false); setName(w.name); setError(null); }}>Cancel</Button>
-              </div>
-            </form>
-          ) : <>
-            <div className="truncate text-14 font-medium text-ink">{w.name}</div>
-            <p className="mt-0.5 text-13 text-ink-3">{KIND_LABEL(w.kind, cloud)} · {w.version} · connected {longDate(w.connectedAt)}</p>
-            <FreshnessTag freshness={w.freshness} at={w.lastReportAt} now={now} className="mt-1 sm:hidden" />
-          </>}
-        </div>
-        {!editing && <>
-          <FreshnessTag freshness={w.freshness} at={w.lastReportAt} now={now} className="max-sm:hidden" />
-          <div className="flex flex-wrap items-center gap-2 max-sm:w-full max-sm:pl-[52px]">
-            <ButtonLink size="sm" to={`/workspaces/${encodeURIComponent(w.id)}`}>Open</ButtonLink>
-            <Button size="sm" variant="ghost" onClick={() => { setName(w.name); setError(null); setEditing(true); }}>Rename</Button>
-            {cloud ? <ButtonLink size="sm" to="/cloud">Manage</ButtonLink> : <Button size="sm" variant="ghost" disabled={clouds === null} onClick={() => { setError(null); setRemoving(true); }}>Remove</Button>}
+    <tr className="hover-row relative transition-colors duration-150">
+      <Td>
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-card-2 text-ink-2">{workspaceIcon(w, cloud, 17)}</span>
+          <div className="min-w-0">
+            <Link to={to} className="block truncate font-medium text-ink after:absolute after:inset-0 after:content-['']">{w.name}</Link>
+            <div className="truncate text-13 text-ink-3 md:hidden">{KIND_LABEL(w.kind, cloud)}</div>
           </div>
-        </>}
-      </div>
-      <Modal open={removing} onClose={() => { if (!busy) setRemoving(false); }} title={`Remove ${w.name}?`} footer={<><Button disabled={busy} onClick={() => setRemoving(false)}>Cancel</Button><Button variant="danger" disabled={busy} onClick={() => void remove()}>{busy ? "Removing" : "Remove workspace"}</Button></>}>
-        <p>It stops reporting until you connect it again from the app. Your bots and files stay on the machine.</p>
-        {error && <p role="alert" className="mt-3 text-13 text-bad">{error}</p>}
-      </Modal>
-    </li>
+        </div>
+      </Td>
+      <Td className="text-ink-2 max-md:hidden">{KIND_LABEL(w.kind, cloud)}</Td>
+      <Td><FreshnessTag freshness={w.freshness} at={w.lastReportAt} now={now} className="!text-14" /></Td>
+      <Td className="num text-ink-2 max-lg:hidden">{w.version}</Td>
+      <Td className="num whitespace-nowrap text-ink-2 max-lg:hidden">{longDate(w.connectedAt)}</Td>
+      <Td className="relative z-10 w-0 !pe-1 !ps-0">
+        <RowMenu label={`More for ${w.name}`} items={menu} />
+        <Modal open={editing} onClose={() => { if (!busy) setEditing(false); }} title={`Rename ${w.name}`} footer={<><Button disabled={busy} onClick={() => setEditing(false)}>Cancel</Button><Button variant="primary" disabled={busy} onClick={() => void save()}>{busy ? "Saving" : "Save"}</Button></>}>
+          <form className="mt-2" onSubmit={(e) => { e.preventDefault(); void save(); }}>
+            <Field label="Workspace name" htmlFor={`workspace-name-${w.id}`} error={error}>
+              <input id={`workspace-name-${w.id}`} className="field" value={name} maxLength={60} disabled={busy} aria-invalid={Boolean(error)} onChange={(e) => setName(e.target.value)} />
+            </Field>
+          </form>
+        </Modal>
+        <Modal open={removing} onClose={() => { if (!busy) setRemoving(false); }} title={`Remove ${w.name}?`} footer={<><Button disabled={busy} onClick={() => setRemoving(false)}>Cancel</Button><Button variant="danger" disabled={busy} onClick={() => void remove()}>{busy ? "Removing" : "Remove workspace"}</Button></>}>
+          <p>It stops reporting until you connect it again from the app. Your bots and files stay on the machine.</p>
+          {error && <p role="alert" className="mt-3 text-13 text-bad">{error}</p>}
+        </Modal>
+      </Td>
+    </tr>
   );
 }
 
@@ -88,11 +89,8 @@ function Step({ n, title, children }: { n: number; title: ReactNode; children?: 
 export function WorkspacesPage() {
   const { workspaces, toast } = useSession();
   const { clouds } = useCloud();
-  const groups = [
-    { title: "Cloud desktops", rows: workspaces?.filter((w) => cloudForWorkspace(clouds, w.id)) ?? [] },
-    { title: "Your computers", rows: workspaces?.filter((w) => !cloudForWorkspace(clouds, w.id) && w.kind !== "vps") ?? [] },
-    { title: "Your servers", rows: workspaces?.filter((w) => !cloudForWorkspace(clouds, w.id) && w.kind === "vps") ?? [] },
-  ];
+  const rank = (w: WorkspaceSummary) => (cloudForWorkspace(clouds, w.id) ? 0 : w.kind === "vps" ? 2 : 1);
+  const sorted = [...(workspaces ?? [])].sort((a, b) => rank(a) - rank(b));
   const copy = async () => {
     try { await navigator.clipboard.writeText(INSTALL); toast("Copied"); }
     catch { toast("Could not copy the install command. Select it and copy it manually.", "bad"); }
@@ -101,11 +99,16 @@ export function WorkspacesPage() {
     <div className="min-w-0">
       <PageHeader title="Workspaces" sub="Every place your bots run: your Mac, your own server and your cloud desktops." />
       <div className="flex flex-col gap-4">
-        <Card className="enter !p-3">
-          {workspaces === null ? <Skeleton className="h-28" /> : workspaces.length ? groups.filter((g) => g.rows.length).map((g) => <div key={g.title}><h2 className="px-3 pb-1 pt-3 text-13 text-ink-3">{g.title}</h2><ul className="divide-y divide-line">{g.rows.map((w) => <WorkspaceRow key={w.id} w={w} cloud={cloudForWorkspace(clouds, w.id)} />)}</ul></div>) : <p className="p-3 text-14 text-ink-3">No workspaces yet. Add your Mac or server below.</p>}
-        </Card>
+        <section className="enter min-w-0" aria-label="Your workspaces">
+          {workspaces === null ? <div className="flex flex-col gap-2" aria-busy="true">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-14" />)}</div> : workspaces.length ? (
+            <Table label="Workspaces">
+              <thead><tr><Th>Name</Th><Th className="max-md:hidden">Type</Th><Th>Status</Th><Th className="max-lg:hidden">Version</Th><Th className="max-lg:hidden">Connected</Th><Th className="w-0"><span className="sr-only">More</span></Th></tr></thead>
+              <tbody>{sorted.map((w) => <WorkspaceRow key={w.id} w={w} cloud={cloudForWorkspace(clouds, w.id)} />)}</tbody>
+            </Table>
+          ) : <p className="border-y border-line py-8 text-15 text-ink-3">No workspaces yet. Add your Mac or server below.</p>}
+        </section>
         {clouds?.length === 0 && <div className="enter flex flex-wrap items-center justify-between gap-4 rounded-card border border-line px-6 py-4" style={{ ["--i" as string]: 1 }}><p className="min-w-0 max-w-[64ch] text-13 leading-[1.55] text-ink-3">Self-hosted works, until the machine sleeps or reboots. A cloud desktop stays on 24/7 and we keep it updated.</p><ButtonLink size="sm" to="/cloud">See cloud desktops</ButtonLink></div>}
-        <section id="add" className="enter scroll-mt-20" style={{ ["--i" as string]: 2 }}>
+        <section id="add" className="enter mt-6 scroll-mt-20" style={{ ["--i" as string]: 2 }}>
           <Card>
             <SectionTitle>Add a workspace</SectionTitle>
             <div className="grid min-w-0 gap-6 md:grid-cols-2 md:gap-0">

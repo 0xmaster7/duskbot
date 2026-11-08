@@ -1,11 +1,12 @@
 import { ArrowLeft } from "lucide-react";
 import type { BotReport, ComputerReport, WorkspaceDetail } from "../../../shared/dashboard-protocol";
 import { useSession } from "../data/session";
-import { ago, bytes, compact, plural, until, usd } from "../lib/format";
+import { ago, bytes, compact, until, usd } from "../lib/format";
 import { Link } from "../lib/router";
 import { Badge, ButtonLink, Card, KV, PageHeader, SectionTitle, Stat } from "../ui/kit";
 import { BotMascot } from "../ui/Mascot";
 import { SkyEmpty } from "../ui/Sky";
+import { Nil, Table, Td, Th } from "../ui/table";
 import { CommandButton, WorkspaceGate } from "./common";
 import { APP_LINK } from "../lib/usage";
 
@@ -32,21 +33,22 @@ function BotRow({ bot, detail, now }: { bot: BotReport; detail: WorkspaceDetail;
   const usage = detail.report?.activity?.byBot.find((b) => b.botId === bot.id);
   const computer = computerFor(detail, bot);
   return (
-    <li className="hover-row relative grid grid-cols-[minmax(0,1fr)_120px_110px_auto] items-center gap-4 rounded-row px-3 py-3 transition-colors duration-150 max-md:grid-cols-[minmax(0,1fr)_auto]">
-      <div className="flex min-w-0 items-center gap-3.5">
-        <BotMascot bot={bot} size={36} />
-        <div className="min-w-0">
-          <Link to={`/bots/${encodeURIComponent(bot.id)}`} className="block truncate text-14 font-medium text-ink after:absolute after:inset-0 after:rounded-row after:content-['']">{bot.name}</Link>
-          <div className="truncate text-13 text-ink-3">{[bot.model, bot.computer ? PLACE[bot.computer] : null].filter(Boolean).join(" · ") || "No model set"}</div>
+    <tr className="hover-row relative transition-colors duration-150">
+      <Td>
+        <div className="flex min-w-0 items-center gap-3">
+          <BotMascot bot={bot} size={32} />
+          <div className="min-w-0">
+            <Link to={`/bots/${encodeURIComponent(bot.id)}`} className="block truncate font-medium text-ink after:absolute after:inset-0 after:content-['']">{bot.name}</Link>
+            <div className="truncate text-13 text-ink-3 md:hidden">{bot.busy ? <span className="text-good">Working now</span> : bot.model ?? "No model set"}</div>
+          </div>
         </div>
-      </div>
-      <div className="num text-13 text-ink-2 max-md:hidden">{usage ? plural(usage.turns, "turn") : "No turns yet"}</div>
-      <div className="text-13 text-ink-3 max-md:hidden">{bot.busy ? <span className="text-good">Working now</span> : ago(bot.lastActiveAt, now)}</div>
-      <div className="relative z-10 flex items-center gap-2">
-        {computer && <span className="max-lg:hidden"><StatePill state={computer.state} /></span>}
-        <ButtonLink to={APP_LINK} external size="sm">Open</ButtonLink>
-      </div>
-    </li>
+      </Td>
+      <Td className="max-w-[220px] truncate text-ink-2 max-md:hidden">{bot.model ?? <Nil />}</Td>
+      <Td className="text-ink-2 max-lg:hidden">{computer ? <StatePill state={computer.state} /> : bot.computer ? PLACE[bot.computer] : <Nil />}</Td>
+      <Td className="num text-end text-ink-2 max-md:hidden">{usage ? usage.turns.toLocaleString("en-US") : <Nil />}</Td>
+      <Td className="whitespace-nowrap text-ink-2 max-md:hidden">{bot.busy ? <span className="text-good">Working now</span> : ago(bot.lastActiveAt, now)}</Td>
+      <Td className="relative z-10 w-0 !ps-1 text-end"><ButtonLink to={APP_LINK} external size="sm" className="!h-9 !px-4 !text-14">Open</ButtonLink></Td>
+    </tr>
   );
 }
 
@@ -60,12 +62,10 @@ export function BotsPage() {
           const bots = [...(detail.report?.bots ?? [])].sort((a, b) => Number(b.busy) - Number(a.busy) || (b.lastActiveAt ?? 0) - (a.lastActiveAt ?? 0));
           if (!bots.length) return <SkyEmpty title="No bots here yet" action={<ButtonLink to={APP_LINK} external variant="primary">Open the app</ButtonLink>}>Make your first bot in the app; it shows up here on the next report.</SkyEmpty>;
           return (
-            <Card className="!p-3">
-              <div className="grid grid-cols-[minmax(0,1fr)_120px_110px_auto] gap-4 px-3 pb-2 pt-2 text-12 text-ink-4 max-md:hidden" aria-hidden>
-                <span>Bot</span><span>This year</span><span>Last active</span><span />
-              </div>
-              <ul>{bots.map((b) => <BotRow key={b.id} bot={b} detail={detail} now={now} />)}</ul>
-            </Card>
+            <Table label="Bots" className="enter">
+              <thead><tr><Th>Bot</Th><Th className="max-md:hidden">Model</Th><Th className="max-lg:hidden">Computer</Th><Th className="!text-end max-md:hidden">Turns this year</Th><Th className="max-md:hidden">Last active</Th><Th className="w-0"><span className="sr-only">Open</span></Th></tr></thead>
+              <tbody>{bots.map((b) => <BotRow key={b.id} bot={b} detail={detail} now={now} />)}</tbody>
+            </Table>
           );
         }}
       </WorkspaceGate>
