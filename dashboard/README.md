@@ -52,3 +52,7 @@ its terminal. Then `pnpm dev:dashboard` serves the page on `127.0.0.1:5288` with
 (`OMB_DASHBOARD_SERVICE` to point elsewhere).
 
 The page keeps its own English strings: it is a separate web app outside `src/` and its locales.
+
+### Sign-in providers
+
+Google uses `OMB_AUTH_GOOGLE_CLIENT_ID` and `OMB_AUTH_GOOGLE_CLIENT_SECRET`. Apple uses `OMB_AUTH_APPLE_CLIENT_ID` (Services ID), `OMB_AUTH_APPLE_TEAM_ID`, `OMB_AUTH_APPLE_KEY_ID`, and the .p8 key in `OMB_AUTH_APPLE_PRIVATE_KEY` (PEM, literal `\n` accepted) or `OMB_AUTH_APPLE_PRIVATE_KEY_FILE`. X uses `OMB_AUTH_X_CLIENT_ID`, optional `OMB_AUTH_X_CLIENT_SECRET`, and optional `OMB_AUTH_X_SCOPES` (default `users.read tweet.read`). Register `<public url>/v1/auth/oauth/google/callback`, `<public url>/v1/auth/oauth/apple/callback` (Apple's Return URL), and `<public url>/v1/auth/oauth/x/callback`. Partial provider configuration fails startup; endpoint overrides are available only through code options for isolated fixtures. The dashboard fixture runs local fake Google, Apple and X providers without external accounts.

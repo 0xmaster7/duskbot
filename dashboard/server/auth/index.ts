@@ -1,15 +1,16 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
-import { ACCOUNT_ROUTES as R, CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_TRIES, EMAIL_CODE_TTL_SECONDS, EMAIL_RESEND_SECONDS, OAUTH_PROVIDERS, SESSION_COOKIE } from "../../../shared/account-api.ts";
-import type { AccountAnswer, AccountErrorCode, AccountView, AppGrant, AppSessionIdentity } from "../../../shared/account-api.ts";
+import { ACCOUNT_ROUTES as R, APP_AUTH_REDIRECT, CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_TRIES, EMAIL_CODE_TTL_SECONDS, EMAIL_RESEND_SECONDS, OAUTH_PROVIDERS, SESSION_COOKIE } from "../../../shared/account-api.ts";
+import type { AccountAnswer, AccountErrorCode, AccountView, AppGrant, AppSessionIdentity, OAuthErrorCode, OAuthProvider } from "../../../shared/account-api.ts";
 import { createAuthStore } from "./store.ts";
 import type { Account, Session } from "./store.ts";
 import { codeMessage } from "./mail.ts";
 import type { Mailer } from "./mail.ts";
-import { createProviderRegistry } from "./providers.ts";
+import { createProviderRegistry, type ProviderConfigs, type ProviderProfile } from "./providers.ts";
 
 export interface AuthOptions {
   dataDir: string; publicUrl: string; mailer: Mailer; now?: () => number; fetch?: typeof fetch;
+  oauth?: ProviderConfigs;
   dev: boolean; signupOpen: boolean; trustProxy: boolean; legacyAccounts?: () => Array<{ id: string; email: string }>;
 }
 export class AuthError extends Error {
@@ -42,13 +43,20 @@ export function isAppCorsRoute(path: string) {
 interface DeviceInfo { name: string; platform: string; appVersion: string | null }
 interface Attempt { email: string; codeHash: string; pending?: string; device: DeviceInfo | null; expiresAt: number; tries: number }
 interface DeviceAuthorization { userCode: string; device: DeviceInfo; expiresAt: number; interval: number; lastPollAt: number | null; accountId: string | null; denied: boolean }
+interface AppFlow { challenge: string; state: string; expiresAt: number }
+interface OAuthState { provider: OAuthProvider; nonce: string; verifier: string; bindingHash: string; next: string; linkAccount: string | null; linkSession: string | null; appFlow?: string; expiresAt: number }
+interface PendingIdentity { provider: OAuthProvider; profile: ProviderProfile; next: string; appFlow?: string; bindingHash: string; expiresAt: number }
 interface BodyHelpers { readBody(req: IncomingMessage): Promise<Buffer>; bodyObject(body: Buffer): Record<string, unknown> }
 
 export function createAuth(options: AuthOptions) {
   const now = options.now ?? Date.now;
   const publicUrl = new URL(options.publicUrl).origin;
   const store = createAuthStore(options.dataDir), state = store.state;
-  const providers = createProviderRegistry();
+  const providers = createProviderRegistry(options.oauth, { fetch: options.fetch, now });
+  const oauthStates = new Map<string, OAuthState>();
+  const pendingIdentities = new Map<string, PendingIdentity>();
+  const appFlows = new Map<string, AppFlow>();
+  const appCodes = new Map<string, { challenge: string; accountId: string; expiresAt: number }>();
   const attempts = new Map<string, Attempt>();
   const devices = new Map<string, DeviceAuthorization>();
   const expiredDevices = new Map<string, number>();
@@ -64,6 +72,10 @@ export function createAuth(options: AuthOptions) {
   const account = (id: string) => state.accounts.find(item => item.id === id) ?? null;
   function sweep() {
     const time = now();
+    for (const [key, item] of oauthStates) if (item.expiresAt + 600_000 <= time) oauthStates.delete(key);
+    for (const [key, item] of pendingIdentities) if (item.expiresAt <= time) pendingIdentities.delete(key);
+    for (const [key, item] of appFlows) if (item.expiresAt + 900_000 <= time) appFlows.delete(key);
+    for (const [key, item] of appCodes) if (item.expiresAt <= time) appCodes.delete(key);
     for (const [key, item] of attempts) if (item.expiresAt <= time) attempts.delete(key);
     for (const [key, item] of grants) if (item.expiresAt <= time) grants.delete(key);
     for (const [key, item] of devices) if (item.expiresAt <= time) { expiredDevices.set(key, item.expiresAt + hour); devices.delete(key); }
@@ -151,14 +163,14 @@ export function createAuth(options: AuthOptions) {
   async function start(req: IncomingMessage, data: Record<string, unknown>, app: boolean) {
     const email = cleanEmail(data.email);
     if (!email) return fail(400, app ? "invalid_request" : "invalid_email");
-    if (data.pending !== undefined) fail(400, "invalid_request");
+    if (data.pending !== undefined && (app || !opaque(data.pending) || !pendingFor(req, data.pending))) fail(400, "invalid_request");
     const device = app ? deviceInfo(data, true) : null;
     rate(`start:${ip(req)}`, 20);
     rate(`email:${email}`, 6);
     if (sentAt.has(email)) fail(429, "rate_limited");
     sentAt.set(email, now());
     const attempt = random(), code = randomInt(0, 100_000_000).toString().padStart(8, "0");
-    const item: Attempt = { email, codeHash: hmac(`${attempt}:${code}`), device, expiresAt: now() + EMAIL_CODE_TTL_SECONDS * 1000, tries: 0 };
+    const item: Attempt = { email, ...(typeof data.pending === "string" ? { pending: data.pending } : {}), codeHash: hmac(`${attempt}:${code}`), device, expiresAt: now() + EMAIL_CODE_TTL_SECONDS * 1000, tries: 0 };
     attempts.set(hash(attempt), item);
     try {
       if (options.signupOpen || state.accounts.some(item => item.email === email)) await options.mailer.send(codeMessage(email, code));
@@ -179,6 +191,14 @@ export function createAuth(options: AuthOptions) {
     }
     attempts.delete(key);
     if (!owner && !options.signupOpen) return fail(403, "signup_closed");
+    // a pending identity finishes only in the browser that signed in to the provider, never through a link sent to someone else
+    const pending = attempt.pending ? pendingFor(req, attempt.pending) : undefined;
+    if (attempt.pending && (!pending || pending.expiresAt <= now())) return fail(410, "expired");
+    if (pending?.appFlow && !activeFlow(pending.appFlow)) return fail(410, "expired");
+    if (pending) {
+      const existing = linkedIdentity(pending.provider, pending.profile.subject);
+      if (existing && existing.accountId !== owner?.id) return fail(409, "identity_taken");
+    }
     const created = !owner;
     if (!owner) {
       const legacy = options.legacyAccounts?.().find(item => cleanEmail(item.email) === attempt.email);
@@ -186,22 +206,136 @@ export function createAuth(options: AuthOptions) {
       state.accounts.push(owner);
       store.changed();
     }
+    let redirect: string | undefined;
+    if (pending && attempt.pending) {
+      pendingIdentities.delete(attempt.pending);
+      attach(owner, pending.provider, pending.profile);
+      redirect = pending.appFlow ? appRedirect(pending.appFlow, owner) : pending.next;
+    }
     for (const hook of signedInHooks) hook(owner);
     if (attempt.device) return appGrant(owner, attempt.device);
     const { token, session } = makeSession(owner, null), csrfToken = csrfFor(session);
     cookies(res, token, csrfToken);
-    return { account: view(owner), csrfToken, created };
+    return { account: view(owner), csrfToken, created, ...(redirect ? { redirect } : {}) };
+  }
+  const equal = (a: string, b: string) => timingSafeEqual(Buffer.from(hash(a)), Buffer.from(hash(b)));
+  function nextPath(value: string | null) {
+    if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("\\") || controls(value) || value.length > 512) return "/";
+    const target = new URL(value, publicUrl);
+    if (target.origin !== publicUrl || target.pathname.startsWith("//")) return "/";
+    return `${target.pathname}${target.search}${target.hash}`;
+  }
+  const linkedIdentity = (provider: OAuthProvider, subject: string) => state.identities.find(item => item.provider === provider && item.subject === subject);
+  function attach(owner: Account, provider: OAuthProvider, profile: ProviderProfile) {
+    const existing = linkedIdentity(provider, profile.subject);
+    if (existing && existing.accountId !== owner.id) return fail(409, "identity_taken");
+    if (!existing) state.identities.push({ accountId: owner.id, provider, subject: profile.subject, email: profile.email, label: profile.label, addedAt: now() });
+    if (provider !== "x" && owner.name === null && profile.name) owner.name = profile.name;
+    store.changed();
+  }
+  function pendingFor(req: IncomingMessage, id: string) {
+    const item = pendingIdentities.get(id), cookie = binding(req);
+    return item && opaque(cookie) && equal(hash(cookie), item.bindingHash) ? item : undefined;
+  }
+  function binding(req: IncomingMessage) {
+    return req.headers.cookie?.split(";").map(item => item.trim()).find(item => item.startsWith("omb_oauth="))?.slice(10);
+  }
+  function oauthCookie(res: ServerResponse, value = "") {
+    const secure = publicUrl.startsWith("https:");
+    res.appendHeader("set-cookie", `omb_oauth=${value}; HttpOnly; Path=/v1/auth; Max-Age=${value ? 600 : 0}; SameSite=${secure ? "None; Secure" : "Lax"}`);
+  }
+  function redirect(res: ServerResponse, location: string) { res.writeHead(302, { location, "referrer-policy": "no-referrer" }); res.end(); }
+  function oauthError(res: ServerResponse, code: OAuthErrorCode, next = "/", flowId?: string) {
+    const flow = flowId ? appFlows.get(flowId) : undefined;
+    if (flowId) appFlows.delete(flowId);
+    const query = new URLSearchParams({ error: code, ...(flow ? { state: flow.state } : { next }) });
+    oauthCookie(res);
+    redirect(res, `${flow ? APP_AUTH_REDIRECT : "/sign-in"}?${query}`);
+  }
+  function activeFlow(id: string) { const flow = appFlows.get(id); return flow && flow.expiresAt > now() ? flow : null; }
+  function appRedirect(id: string, owner: Account) {
+    const flow = activeFlow(id);
+    if (!flow) return fail(410, "expired");
+    appFlows.delete(id);
+    const code = random();
+    appCodes.set(hash(code), { challenge: flow.challenge, accountId: owner.id, expiresAt: now() + 300_000 });
+    return `${APP_AUTH_REDIRECT}?${new URLSearchParams({ code, state: flow.state })}`;
+  }
+  function oauthStart(req: IncomingMessage, res: ServerResponse, url: URL, id: string, flowId?: string) {
+    const next = nextPath(url.searchParams.get("next")), provider = providers.get(id as OAuthProvider);
+    if (!provider) return oauthError(res, "provider_unavailable", next, flowId);
+    const link = url.searchParams.get("link") === "1" ? webSession(req) : null;
+    if (url.searchParams.get("link") === "1" && !link) return oauthError(res, "oauth_failed", next, flowId);
+    const existing = binding(req), cookie = opaque(existing) ? existing : random();
+    const key = random(), nonce = random(), verifier = id === "apple" ? "" : random();
+    oauthStates.set(hash(key), { provider: provider.id, nonce, verifier, bindingHash: hash(cookie), next, linkAccount: link?.account.id ?? null,
+      linkSession: link?.session.id ?? null, ...(flowId ? { appFlow: flowId } : {}), expiresAt: now() + 600_000 });
+    oauthCookie(res, cookie);
+    redirect(res, provider.authorize({ state: key, nonce, verifier, redirectUri: `${publicUrl}${R.oauthCallback(provider.id)}` }));
+  }
+  async function oauthCallback(req: IncomingMessage, res: ServerResponse, url: URL, id: string, helpers: BodyHelpers) {
+    let item: OAuthState | undefined;
+    try {
+      let params = url.searchParams;
+      if (id === "apple" && req.method === "POST") {
+        if (req.headers["content-type"]?.split(";")[0]?.trim().toLowerCase() !== "application/x-www-form-urlencoded") throw new Error();
+        const raw = await helpers.readBody(req);
+        if (raw.length > 65_536 || url.search) throw new Error();
+        params = new URLSearchParams(raw.toString("utf8"));
+      }
+      const key = params.get("state"), stored = opaque(key) ? oauthStates.get(hash(key)) : undefined;
+      if (opaque(key)) oauthStates.delete(hash(key));
+      if (!stored || stored.provider !== id) throw new Error();
+      item = stored;
+      const cookie = binding(req);
+      if (!opaque(cookie) || !equal(hash(cookie), item.bindingHash)) throw new Error();
+      if (item.expiresAt <= now() || (item.appFlow && !activeFlow(item.appFlow))) return oauthError(res, "oauth_expired", item.next, item.appFlow);
+      if (req.method !== (id === "apple" ? "POST" : "GET") || [...params.keys()].some(key => params.getAll(key).length !== 1)) throw new Error();
+      if (params.get("error") === "access_denied") return oauthError(res, "oauth_denied", item.next, item.appFlow);
+      const code = params.get("code"), provider = providers.get(item.provider);
+      if (params.has("error") || !code || code.length > 4096 || controls(code) || !provider) throw new Error();
+      const profile = await provider.profile({ code, nonce: item.nonce, verifier: item.verifier, redirectUri: `${publicUrl}${R.oauthCallback(item.provider)}`, user: params.get("user") ?? undefined });
+      if (item.expiresAt <= now() || (item.appFlow && !activeFlow(item.appFlow))) return oauthError(res, "oauth_expired", item.next, item.appFlow);
+      const existing = linkedIdentity(item.provider, profile.subject);
+      let owner: Account | null | undefined;
+      if (item.linkAccount) {
+        owner = account(item.linkAccount);
+        if (!owner || !state.sessions.some(session => session.id === item!.linkSession && session.accountId === owner!.id && session.expiresAt > now())) throw new Error();
+        if (existing && existing.accountId !== owner.id) return oauthError(res, "identity_taken", item.next, item.appFlow);
+      } else if (existing) { owner = account(existing.accountId); if (!owner) throw new Error(); }
+      else if (profile.email) owner = state.accounts.find(owner => owner.email === profile.email);
+      if (!owner && !profile.email) {
+        const pending = random();
+        pendingIdentities.set(pending, { provider: item.provider, profile, next: item.next, appFlow: item.appFlow, bindingHash: item.bindingHash, expiresAt: now() + 600_000 });
+        oauthCookie(res, cookie);
+        return redirect(res, `/sign-in?${new URLSearchParams({ pending, next: item.next })}`);
+      }
+      if (!owner) {
+        if (!options.signupOpen) return oauthError(res, "signup_closed", item.next, item.appFlow);
+        const legacy = options.legacyAccounts?.().find(owner => cleanEmail(owner.email) === profile.email);
+        owner = { id: legacy?.id ?? `acct_${randomBytes(16).toString("base64url")}`, email: profile.email!, name: null, createdAt: now() };
+        state.accounts.push(owner);
+      }
+      attach(owner, item.provider, profile);
+      for (const hook of signedInHooks) hook(owner);
+      if (item.appFlow) { const location = appRedirect(item.appFlow, owner); oauthCookie(res); return redirect(res, location); }
+      const { token, session } = makeSession(owner, null);
+      cookies(res, token, csrfFor(session)); oauthCookie(res);
+      redirect(res, item.next);
+    } catch { oauthError(res, "oauth_failed", item?.next, item?.appFlow); }
   }
   function removeSessions(accountId: string) {
     state.sessions = state.sessions.filter(item => item.accountId !== accountId);
+    for (const [key, code] of appCodes) if (code.accountId === accountId) appCodes.delete(key);
+    for (const [key, item] of oauthStates) if (item.linkAccount === accountId) oauthStates.delete(key);
     for (const [key, device] of devices) if (device.accountId === accountId) devices.delete(key);
     store.changed();
   }
   async function handle(req: IncomingMessage, res: ServerResponse, url: URL, helpers: BodyHelpers): Promise<boolean> {
     const path = url.pathname, method = req.method ?? "GET", cors = isAppCorsRoute(path);
     const routes: string[] = [R.providers, R.emailStart, R.emailVerify, R.signOut, R.me, R.account, R.signOutEverywhere, R.deleteAccount, R.deviceLookup, R.deviceApprove, R.deviceDeny,
-      R.appEmailStart, R.appEmailVerify, R.desktopAuthorize, R.desktopToken, R.appSession, R.enrollGrant, R.appToken];
-    if (!routes.includes(path) && !path.startsWith("/v1/account/identities/") && !path.startsWith("/v1/account/sessions/") && !cors) return false;
+      R.appEmailStart, R.appEmailVerify, R.desktopAuthorize, R.desktopToken, R.appSession, R.enrollGrant, R.appToken, R.appStart];
+    if (!routes.includes(path) && !path.startsWith("/v1/auth/oauth/") && !path.startsWith("/v1/account/identities/") && !path.startsWith("/v1/account/sessions/") && !cors) return false;
     res.setHeader("cache-control", "no-store");
     if (cors) {
       res.setHeader("access-control-allow-origin", "*");
@@ -212,9 +346,34 @@ export function createAuth(options: AuthOptions) {
     function json(value: unknown, status = 200) { res.writeHead(status, { "content-type": "application/json; charset=utf-8" }); res.end(JSON.stringify(value)); }
     try {
       sweep();
+      const oauth = /^\/v1\/auth\/oauth\/([^/]+)\/(start|callback)$/.exec(path);
+      if (oauth?.[2] === "callback") { await oauthCallback(req, res, url, oauth[1]!, helpers); return true; }
+      if (method === "GET" && oauth?.[2] === "start") {
+        rate(`oauth:${ip(req)}`, 60); oauthStart(req, res, url, oauth[1]!); return true;
+      }
+      if (method === "GET" && path === R.appStart) {
+        rate(`oauth:${ip(req)}`, 60);
+        const provider = url.searchParams.get("provider"), challenge = url.searchParams.get("code_challenge"), appState = url.searchParams.get("state");
+        if (!provider || !providers.has(provider as OAuthProvider) || !challenge || !/^[A-Za-z0-9_-]{43,128}$/.test(challenge)
+          || url.searchParams.get("code_challenge_method") !== "S256" || !appState || !/^[A-Za-z0-9_-]{16,256}$/.test(appState)
+          || url.searchParams.get("redirect_uri") !== APP_AUTH_REDIRECT || url.searchParams.has("link") || [...url.searchParams.keys()].some(key => url.searchParams.getAll(key).length !== 1)) return fail(400, "invalid_request");
+        const flowId = random();
+        appFlows.set(flowId, { challenge, state: appState, expiresAt: now() + 600_000 });
+        oauthStart(req, res, url, provider, flowId); return true;
+      }
       const mutation = ["POST", "PATCH", "DELETE"].includes(method);
       const data = mutation ? helpers.bodyObject(await helpers.readBody(req)) : {};
-      if (method === "POST" && (path === R.emailStart || path === R.appEmailStart)) json(await start(req, data, path === R.appEmailStart));
+      if (method === "POST" && path === R.appToken) {
+        const key = opaque(data.code) ? hash(data.code) : "", code = appCodes.get(key);
+        appCodes.delete(key);
+        const owner = code && account(code.accountId);
+        if (!code || !owner || code.expiresAt <= now() || typeof data.codeVerifier !== "string" || !/^[A-Za-z0-9_-]{43,128}$/.test(data.codeVerifier)
+          || !equal(createHash("sha256").update(data.codeVerifier).digest("base64url"), code.challenge)) return fail(400, "invalid_grant");
+        let device: DeviceInfo;
+        try { device = deviceInfo(data, false); } catch { return fail(400, "invalid_grant"); }
+        json(appGrant(owner, device));
+      }
+      else if (method === "POST" && (path === R.emailStart || path === R.appEmailStart)) json(await start(req, data, path === R.appEmailStart));
       else if (method === "POST" && (path === R.emailVerify || path === R.appEmailVerify)) json(verifyEmail(req, res, data, path === R.appEmailVerify));
       else if (method === "POST" && path === R.signOut) {
         const found = webSession(req);
@@ -311,6 +470,7 @@ export function createAuth(options: AuthOptions) {
       } else fail(404, "not_found");
     } catch (error) {
       const known = error as { status?: number; code?: string; message?: string };
+      if (path === R.appToken) { json({ error: "invalid_grant" }, 400); return true; }
       const status = known.status ?? 500, code = known.code ?? "failed";
       json({ error: path.startsWith("/api/cloud/") ? code : known.status ? known.message : "Request failed.", ...(path.startsWith("/api/cloud/") ? {} : { code }), ...(error instanceof AuthError ? error.fields : {}) }, status);
     }

@@ -115,7 +115,7 @@ export interface ProvidersAnswer { v: 1; providers: ProviderView[]; signupOpen: 
 export interface EmailStartBody { email: string; /** finishes a provider sign-in that had no address (WEB_PATHS.signIn?pending=). */ pending?: string }
 export interface EmailStartAnswer { attempt: string; expiresIn: number; resendAfter: number; signupOpen: boolean }
 export interface EmailVerifyBody { attempt: string; code: string }
-export interface WebSignInAnswer { account: AccountView; csrfToken: string; created: boolean }
+export interface WebSignInAnswer { account: AccountView; csrfToken: string; created: boolean; redirect?: string }
 export interface MeAnswer { account: AccountView; csrfToken: string }
 export interface AccountAnswer { account: AccountView; identities: IdentityView[]; sessions: SessionView[] }
 export interface DeviceLookupAnswer { device: { name: string; platform: string }; userCode: string; expiresAt: number }

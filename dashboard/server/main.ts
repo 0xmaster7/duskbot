@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { existsSync } from "node:fs";
 import { createDashboardApp } from "./app.ts";
+import { providersFromEnv } from "./auth/providers.ts";
 import { mailerFromEnv } from "./auth/mail.ts";
 
 const port = Number(process.env.OMB_DASHBOARD_PORT ?? 7480);
@@ -14,7 +15,7 @@ const defaultStatic = decodeURIComponent(new URL("../dist", import.meta.url).pat
 const staticDir = process.env.OMB_DASHBOARD_STATIC ?? (existsSync(defaultStatic) ? defaultStatic : null);
 const publicAddress = new URL(publicUrl);
 const dev = process.env.OMB_DASHBOARD_DEV === "1" || (publicAddress.protocol === "http:" && ["127.0.0.1", "localhost"].includes(publicAddress.hostname));
-const app = createDashboardApp({ dataDir, publicUrl, mailer: mailerFromEnv(process.env, { dev }), dev,
+const app = createDashboardApp({ dataDir, publicUrl, mailer: mailerFromEnv(process.env, { dev }), oauth: providersFromEnv(process.env), dev,
   signupOpen: process.env.OMB_AUTH_SIGNUP_OPEN !== "0", trustProxy: process.env.OMB_TRUST_PROXY === "1", staticDir: staticDir || null });
 const server = createServer(app.handle);
 server.listen(port, host, () => console.log(`dashboard service listening on http://${host}:${port}`));

@@ -5,6 +5,7 @@ import { CLAIM_TTL_MS, COMMAND_KINDS, COMMAND_TTL_MS, DASHBOARD_DISCOVERY_PATH, 
   freshnessOf, parseEnrollRequest, parseWorkspaceReport, signedPayload } from "../../shared/dashboard-protocol.ts";
 import type { CommandKind, CommandView, MachineSample, ReportAnswer, WorkspaceDetail, WorkspaceSummary } from "../../shared/dashboard-protocol.ts";
 import { AuthError, createAuth, isAppCorsRoute } from "./auth/index.ts";
+import type { ProviderConfigs } from "./auth/providers.ts";
 import type { Mailer } from "./auth/mail.ts";
 import { createStore } from "./store.ts";
 import type { Account, StoredWorkspace } from "./store.ts";
@@ -13,6 +14,7 @@ export interface DashboardAppOptions {
   dataDir: string;
   publicUrl: string;
   mailer: Mailer;
+  oauth?: ProviderConfigs;
   dev?: boolean;
   signupOpen?: boolean;
   trustProxy?: boolean;
@@ -36,7 +38,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const store = createStore(options.dataDir);
   const state = store.state;
   const dev = options.dev ?? (new URL(publicUrl).protocol === "http:" && ["127.0.0.1", "localhost"].includes(new URL(publicUrl).hostname));
-  const auth = createAuth({ dataDir: options.dataDir, publicUrl, mailer: options.mailer, now, fetch: options.fetch,
+  const auth = createAuth({ dataDir: options.dataDir, publicUrl, mailer: options.mailer, now, fetch: options.fetch, oauth: options.oauth,
     dev, signupOpen: options.signupOpen ?? true, trustProxy: options.trustProxy ?? false, legacyAccounts: () => state.accounts });
   state.sessions = [];
   store.changed();
@@ -190,7 +192,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
     const url = new URL(req.url ?? "/", publicUrl);
     const path = url.pathname;
     const mutation = ["POST", "PATCH", "DELETE"].includes(method);
-    if (mutation && !isAppCorsRoute(path)) {
+    const appleCallback = method === "POST" && path === "/v1/auth/oauth/apple/callback" && req.headers["content-type"]?.split(";")[0]?.trim().toLowerCase() === "application/x-www-form-urlencoded";
+    if (mutation && !isAppCorsRoute(path) && !appleCallback) {
       if (req.headers["content-type"]?.split(";")[0]?.trim().toLowerCase() !== "application/json") fail(403, "forbidden", "JSON is required.");
       if (req.headers.origin !== undefined && req.headers.origin !== publicUrl) fail(403, "forbidden", "Origin is not allowed.");
     }
