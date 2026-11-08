@@ -85,9 +85,9 @@ function memberMauses(group: Group, members: Bot[]) {
         }
         className={cn(
           "relative inline-flex rounded-full",
-          busy && "ring-2 ring-accent/50 ring-offset-1 ring-offset-app",
+          busy && "ring-2 ring-ink/30 ring-offset-1 ring-offset-app",
           busyElsewhere && "ring-1 ring-hairline ring-offset-1 ring-offset-app",
-          queueTitle && !busyElsewhere && "ring-1 ring-accent/30 ring-offset-1 ring-offset-app",
+          queueTitle && !busyElsewhere && "ring-1 ring-ink/15 ring-offset-1 ring-offset-app",
         )}
       >
         <span className={cn("inline-flex", held && "opacity-50 grayscale")}>

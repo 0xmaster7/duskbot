@@ -118,13 +118,12 @@ export function ComposerAttachments({
       {dragging && createPortal(
         <div
           style={pane ? { top: pane.top + 8, left: pane.left + 8, width: pane.width - 16, height: pane.height - 16 } : undefined}
-          className={cn("composer-drop pointer-events-none fixed z-[60] flex flex-col items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-dashed border-accent bg-[color-mix(in_srgb,var(--color-app)_88%,transparent)] backdrop-blur-md", !pane && "inset-2")}
+          className={cn("composer-drop pointer-events-none fixed z-[60] flex flex-col items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-dashed border-ink/25 bg-[color-mix(in_srgb,var(--color-app)_88%,transparent)] backdrop-blur-md", !pane && "inset-2")}
         >
-          <span className="absolute inset-0 rounded-[inherit] bg-accent/[0.09]" aria-hidden="true" />
-          <span className="relative flex rounded-xl bg-composer p-2.5 text-accent shadow-[inset_0_0_0_0.5px_rgb(28_28_28/0.08)]" aria-hidden="true">
+          <span className="relative flex rounded-xl bg-composer p-2.5 text-ink shadow-[inset_0_0_0_0.5px_rgb(28_28_28/0.08)]" aria-hidden="true">
             <span className="flex size-[22px] items-center justify-center"><GrokIcon name="camera" size={18} /></span>
           </span>
-          <span className="relative text-[14px] leading-5 font-semibold text-accent">{t("composer.dropToAttach")}</span>
+          <span className="relative text-[14px] leading-5 font-semibold text-ink">{t("composer.dropToAttach")}</span>
         </div>,
         document.body,
       )}

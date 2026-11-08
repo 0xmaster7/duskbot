@@ -248,6 +248,17 @@ describe("the Simple composer in a bot chat", () => {
     click(chip);
     expect(container.querySelector("[data-goal-chip]")).toBeNull();
   });
+
+  it("turns a typed /goal into the chip, leaving only the goal itself in the field", () => {
+    render({ bot });
+    const field = container.querySelector("textarea")!;
+    flushSync(() => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(field, "/goal ship the release");
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(container.querySelector("[data-goal-chip]")?.textContent).toBe("Work until done");
+    expect(container.querySelector("textarea")!.value).toBe("ship the release");
+  });
 });
 
 describe("the composer after Set me up", () => {

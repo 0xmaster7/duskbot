@@ -265,7 +265,7 @@ function RoomContextMenu({
                 onClose();
               }
             }}
-            className="min-w-0 flex-1 rounded-lg bg-raised px-2 py-1.5 text-[14px] text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+            className="min-w-0 flex-1 rounded-lg bg-raised px-2 py-1.5 text-[14px] text-ink focus:outline-none focus:ring-1 focus:ring-focus"
           />
           <button
             type="button"
@@ -305,7 +305,7 @@ function RoomContextMenu({
                 onClose();
               }
             }}
-            className="min-w-0 flex-1 rounded-lg bg-raised px-2 py-1.5 text-[14px] text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+            className="min-w-0 flex-1 rounded-lg bg-raised px-2 py-1.5 text-[14px] text-ink focus:outline-none focus:ring-1 focus:ring-focus"
           />
           <button
             type="button"
@@ -932,7 +932,9 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
     ...sectionNames.map(userSectionId),
   ];
   const layout = sections.arrange(naturalSectionIds);
-  const sectionIds = layout.sectionIds;
+  // the main bot alone outside every department leads the list with no "Unassigned" header over it
+  const loneMain = simple && !drops.slot && unsectionedBots.length === 1 && unsectionedBots[0]!.id === mainBotId;
+  const sectionIds = loneMain ? [BOTS_SECTION_ID, ...layout.sectionIds.filter((id) => id !== BOTS_SECTION_ID)] : layout.sectionIds;
   const showPinnedCircleThreads = !simpleDesk && pinnedCircleThreadListVisible(pinnedCircles, density, pinnedBots.length);
   const tiles = simpleDesk && pinnedBots.length > 0;
   const primaryHeadless = primary !== null && simple && sectionIds[0] === BOTS_SECTION_ID;
