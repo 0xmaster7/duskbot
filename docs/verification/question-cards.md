@@ -93,13 +93,13 @@ card tool), `src/components/QuestionCard.test.ts`, `src/components/QuestionCard.
 pnpm exec vite --port 5287
 ```
 
-`http://127.0.0.1:5287/question-cards-preview.html` mounts the real chat, inbox card and inbox panel over a fixed store
+`http://127.0.0.1:5287/previews/question-cards-preview.html` mounts the real chat, inbox card and inbox panel over a fixed store
 (`src/question-cards-preview.tsx`): `?state=question|approval|open|answered`, `surface=chat|inbox|panel`,
 `skin=midnight|daylight`, `mode=simple|advanced`, `lang=de`; `state=others` shows the key, sign-in, connection and
 first-run cards that share the card's shell.
 
 The before-and-after screenshots were removed because they showed real example data. To see each screen, run the
-command above and open `question-cards-preview.html` in a 1338×870 window with these settings (for Phone, narrow the
+command above and open `previews/question-cards-preview.html` in a 1338×870 window with these settings (for Phone, narrow the
 window to a phone's width):
 
 | Screen | Settings |

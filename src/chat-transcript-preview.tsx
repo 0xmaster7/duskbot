@@ -1,4 +1,4 @@
-// Dev-only gallery of a Simple mode transcript, served at /chat-transcript-preview.html; not in the packaged app. It
+// Dev-only gallery of a Simple mode transcript, served at /previews/chat-transcript-preview.html; not in the packaged app. It
 // mounts the real ChatView over a fixed store, with no server behind it.
 // ?state=done|working|question|approval|empty|grok|grok-md|answered|cards|setup|events&skin=grok|grok-dark|midnight&tools=1&bot=amy&error=words
 // state=grok mirrors the grok sandbox's Amy chat line for line, so the two can be compared pixel for pixel.

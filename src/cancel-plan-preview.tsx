@@ -1,4 +1,4 @@
-// Dev-only gallery of Cancel trial / Cancel plan, served at /cancel-plan-preview.html; not in the packaged app.
+// Dev-only gallery of Cancel trial / Cancel plan, served at /previews/cancel-plan-preview.html; not in the packaged app.
 // ?view=settings|cloud&plan=trial|paid|team&cancelled=1&admin=old&skin=midnight|daylight&lang=de
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
