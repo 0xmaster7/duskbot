@@ -96,7 +96,7 @@ export function PlanSheet({ start, work = false, onClose }: { start: PaidPlan; w
           {cart && cart.discount > 0 && <p className="num flex justify-between text-13 text-ink-3"><span>Two months free</span><span>-{money(cart.discount * 12)}</span></p>}
           <div className="mt-1 flex items-baseline justify-between gap-4">
             <span className="text-14 text-ink-3">Total</span>
-            <span className="num"><span className="font-serif text-28 tracking-[-0.01em] text-ink [font-synthesis:none]">{cart ? money(interval === "year" ? cart.dueNow : cart.perMonth) : "..."}</span><span className="text-14 text-ink-3">{interval === "year" ? "/yr" : "/mo"}</span></span>
+            <span className="num"><span className="text-24 font-semibold tracking-[-0.02em] text-ink">{cart ? money(interval === "year" ? cart.dueNow : cart.perMonth) : "..."}</span><span className="text-14 text-ink-3">{interval === "year" ? "/yr" : "/mo"}</span></span>
           </div>
           <p className="num mt-0.5 text-end text-13 text-ink-4">{interval === "year" ? "Billed yearly" : "Billed monthly"}{owned ? ", prorated from today" : ""}</p>
           {(error ?? quoteError) && <p role="alert" className="mt-3 text-13 text-bad">{error ?? quoteError}</p>}
@@ -182,7 +182,7 @@ export function LicenseSheet({ start, onClose, onNothingLeft }: { start: { licen
           {cart && cart.discount > 0 && <p className="num flex justify-between text-13 text-ink-3"><span>Two months free</span><span>-{money(cart.discount * 12)}</span></p>}
           <div className="mt-1 flex items-baseline justify-between gap-4">
             <span className="text-14 text-ink-3">{owned ? "Your plan in total" : "Total"}</span>
-            <span className="num"><span className="font-serif text-28 tracking-[-0.01em] text-ink [font-synthesis:none]">{cart ? money(sel.interval === "year" ? cart.dueNow : cart.perMonth) : "..."}</span><span className="text-14 text-ink-3">{sel.interval === "year" ? "/yr" : "/mo"}</span></span>
+            <span className="num"><span className="text-24 font-semibold tracking-[-0.02em] text-ink">{cart ? money(sel.interval === "year" ? cart.dueNow : cart.perMonth) : "..."}</span><span className="text-14 text-ink-3">{sel.interval === "year" ? "/yr" : "/mo"}</span></span>
           </div>
           <p className="num mt-0.5 text-end text-13 text-ink-4">{cart?.free ? "Nothing to pay" : sel.interval === "year" ? "Billed yearly" : "Billed monthly"}</p>
           {(error ?? quoteError) && <p role="alert" className="mt-3 text-13 text-bad">{error ?? quoteError}</p>}

@@ -101,7 +101,7 @@ function Size({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog })
   return (
     <Card aria-labelledby="size-title" className="flex flex-col">
       <SectionTitle id="size-title" action={<Button size="sm" onClick={() => { setTo(cloud.tier); setOpen(true); }} disabled={!sub}>Resize</Button>}>Size</SectionTitle>
-      <p className="flex items-baseline gap-2"><span className="font-serif text-28 tracking-[-0.01em] text-ink [font-synthesis:none]">{current?.name ?? tierName(catalog, cloud)}</span>{current && <span className="num text-14 text-ink-3">{dollars(desktopMonthly(current, null, catalog.custom))}/mo</span>}</p>
+      <p className="flex items-baseline gap-2"><span className="text-24 font-semibold tracking-[-0.02em] text-ink">{current?.name ?? tierName(catalog, cloud)}</span>{current && <span className="num text-14 text-ink-3">{dollars(desktopMonthly(current, null, catalog.custom))}/mo</span>}</p>
       <ul className="mt-4 flex flex-col gap-2">
         {includes.map((line) => <li key={line} className="flex gap-2.5 text-14 text-ink-2"><Check size={15} strokeWidth={1.75} className="mt-0.5 shrink-0 text-ink-4" aria-hidden />{line}</li>)}
       </ul>

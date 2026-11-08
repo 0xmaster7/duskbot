@@ -45,7 +45,7 @@ function BotRow({ bot, detail, now }: { bot: BotReport; detail: WorkspaceDetail;
       </Td>
       <Td className="max-w-[220px] truncate text-ink-2 max-md:hidden">{bot.model ?? <Nil />}</Td>
       <Td className="text-ink-2 max-lg:hidden">{computer ? <StatePill state={computer.state} /> : bot.computer ? PLACE[bot.computer] : <Nil />}</Td>
-      <Td className="t-id text-end text-ink-2 max-md:hidden">{usage ? usage.turns.toLocaleString("en-US") : <Nil />}</Td>
+      <Td className="num text-end text-ink-2 max-md:hidden">{usage ? usage.turns.toLocaleString("en-US") : <Nil />}</Td>
       <Td className="whitespace-nowrap text-ink-2 max-md:hidden">{bot.busy ? <span className="text-good">Working now</span> : ago(bot.lastActiveAt, now)}</Td>
       <Td className="relative z-10 w-0 !ps-1 text-end"><Button size="sm" className="!h-9 !px-4 !text-14" onClick={() => openApp(appLink.bot(bot.id))} aria-label={`Open ${bot.name} in the app`}>Open</Button></Td>
     </tr>

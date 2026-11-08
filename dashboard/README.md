@@ -59,21 +59,16 @@ Google uses `OMB_AUTH_GOOGLE_CLIENT_ID` and `OMB_AUTH_GOOGLE_CLIENT_SECRET`. App
 
 ## Type
 
-Four families, each with one job. Geist Sans carries everything not listed here.
+Geist Sans everywhere, Geist Mono for ids. No serif and no pixel face anywhere in the dashboard.
 
 | role | family | size / line | where |
 |---|---|---|---|
-| page title (`.t-title`) | Geist Serif 400 | 30/36, 26/32 under 640px | the `h1` of every page, the sign-in and welcome steps |
-| plan name, plan price | Geist Serif 400 | 34/37 name, 56/56 price, 28 in sheets | Plans & billing cards, the cloud desktop's plan, plan sheet totals |
-| figure (`.t-figure`, `ui/Figure.tsx`) | Geist Pixel Square | 26/32, tabular | big numbers on stat cards and the activity total; rolls in out of a blur when it changes |
-| pixel accent (`.t-pixel`) | Geist Pixel Square | 13/16 | the heatmap legend, the 24/7 badge |
-| id, count (`.t-id`) | Geist Mono | 13 | ids, versions and counts in tables |
+| page title (`.t-title`) | Geist Sans 600, -0.022em | 28/34, 24/30 under 640px | the `h1` of every page, the sign-in and welcome steps |
+| plan price | Geist Sans 600 | 34 on cards, 24 in sheets | Plans & billing cards and plan sheet totals |
+| figure (`.t-figure`, `ui/Figure.tsx`) | Geist Sans 600, tabular | 26/32 | big numbers on stat cards and the activity total |
+| id (`.t-id`) | Geist Mono | 13 | ids and versions; table counts stay in sans, tabular |
 | heading | Geist Sans 500 | 15/22 | section titles |
 | body | Geist Sans 400 | 14/20, 13/18 secondary | everything else; never under 12px |
-
-Pixel sizes sit on its grid (one pixel is 0.076em): 13px and 26px draw whole device pixels. Serif and pixel come in
-one weight; `font-synthesis: none` keeps the browser from faking bold. Geist Serif and Geist Pixel are Vercel's (OFL
-1.1, `src/fonts/geist-OFL.txt`), taken from the `geist` 1.9.2 package and cut to Latin.
 
 ## Motion
 

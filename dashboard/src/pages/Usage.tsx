@@ -210,9 +210,9 @@ export function UsagePage() {
                     <Td className="max-w-[200px] truncate text-ink-2 max-md:hidden">{e.workspaceName}</Td>
                     <Td className="max-w-[160px] truncate">{e.bot}</Td>
                     <Td className="max-w-[200px] truncate text-ink-2 max-lg:hidden">{e.model === "Mixed" ? <Nil /> : e.model}</Td>
-                    <Td className="t-id text-end text-ink-2 max-md:hidden">{e.turns.toLocaleString("en-US")}</Td>
-                    <Td className="t-id truncate text-end">{compact(e.tokens)}</Td>
-                    <Td className="t-id truncate text-end text-ink-2">{e.costUsd === null ? <Nil /> : usd(e.costUsd)}</Td>
+                    <Td className="num text-end text-ink-2 max-md:hidden">{e.turns.toLocaleString("en-US")}</Td>
+                    <Td className="num truncate text-end">{compact(e.tokens)}</Td>
+                    <Td className="num truncate text-end text-ink-2">{e.costUsd === null ? <Nil /> : usd(e.costUsd)}</Td>
                   </tr>
                 ))}
               </tbody>

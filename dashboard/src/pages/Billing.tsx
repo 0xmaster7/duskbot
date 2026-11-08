@@ -1,15 +1,14 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Check, ChevronDown, Cloud, Coffee, Download, Sprout } from "lucide-react";
+import { Check, ChevronDown, Download } from "lucide-react";
 import { useCloud } from "../data/cloud";
-import type { BillingInterval, BundleId, LicenseId, PlanCatalog } from "../data/contracts";
-import { bundleOf, desktopOf, gb, licenseMonthly, licenseOf } from "../data/pricing";
+import type { BillingInterval, LicenseId, PlanCatalog } from "../data/contracts";
+import { botsLine, bundleOf, desktopOf, gb, licenseMonthly, licenseOf } from "../data/pricing";
 import { useCart } from "../data/quote";
 import { useSession } from "../data/session";
 import { longDate, shortDate, usd } from "../lib/format";
 import { navigate, useLocation } from "../lib/router";
 import { Field, Modal, Select, Toggle } from "../ui/controls";
 import { Badge, Button, cx, PageHeader, Skeleton } from "../ui/kit";
-import { Mascot } from "../ui/Mascot";
 import { SectionHead } from "../ui/table";
 import { CloudPitch, regionName } from "./cloud-bits";
 import { BuyCredits } from "./credits-dialog";
@@ -21,64 +20,14 @@ type Use = "personal" | "work";
 const CONTACT = "mailto:hello@openmausbot.com";
 const members = (n: number) => `${n} ${n === 1 ? "member" : "members"}`;
 
-/** each plan's little story, told by the real mascots; props are line icons in one quiet grey */
-const PROP = { strokeWidth: 1.25, className: "text-ink-4", "aria-hidden": true } as const;
-const at = (left: number, bottom: number) => ({ left, bottom });
-
-function PlanArt({ id }: { id: BundleId }) {
-  if (id === "free") {
-    return (
-      <div className="relative h-[96px] w-[132px]" aria-hidden>
-        {/* a closed laptop: the lid on its base */}
-        <span className="absolute h-[7px] w-[92px] rounded-[3px] bg-track" style={at(20, 12)} />
-        <span className="absolute h-[4px] w-[108px] rounded-full bg-line-2" style={at(12, 8)} />
-        <span className="absolute" style={at(44, 18)}><Mascot color="silver" size={44} state="sleeping" /></span>
-        <span className="absolute text-13 font-medium text-ink-4" style={at(92, 58)}>z</span>
-        <span className="absolute text-15 font-medium text-ink-4" style={at(102, 70)}>z</span>
-      </div>
-    );
-  }
-  if (id === "starter") {
-    return (
-      <div className="relative h-[96px] w-[132px]" aria-hidden>
-        <span className="absolute" style={at(30, 36)}><Cloud size={72} {...PROP} /></span>
-        <span className="absolute" style={at(6, 8)}><Mascot color="orange" size={40} state="working" /></span>
-        <span className="absolute" style={at(50, 2)}><Coffee size={20} {...PROP} /></span>
-        <span className="absolute" style={at(80, 8)}><Mascot color="green" size={40} state="working" /></span>
-        <span className="absolute" style={at(116, 6)}><Sprout size={20} {...PROP} /></span>
-      </div>
-    );
-  }
-  return (
-    <div className="relative h-[96px] w-[132px]" aria-hidden>
-      <span className="absolute" style={at(44, 40)}><Mascot color="blue" size={46} state="working" /></span>
-      <span className="absolute" style={at(4, 18)}><Mascot color="orange" size={38} state="working" /></span>
-      <span className="absolute" style={at(90, 22)}><Mascot color="green" size={38} state="working" /></span>
-      <span className="absolute" style={at(48, 0)}><Mascot color="purple" size={34} state="working" /></span>
-    </div>
-  );
-}
-
-/** outcomes with the catalog's real numbers in them; nothing here is invented */
+/** at most three points, with the catalog's real numbers; nothing here is invented */
 function points(id: "free" | "starter" | "pro", work: boolean, bots: number | null, members: number): string[] {
-  const at = bots === null ? "Unlimited bots using their computers at once" : `${bots} ${bots === 1 ? "bot" : "bots"} using their computers at once`;
-  if (id === "free") return ["Every bot, chat and connector", "Runs while your Mac is awake", work ? "Work license for 1 person" : "Personal use, free forever"];
-  if (id === "starter") return [at, "Keeps working while your Mac sleeps", work ? "Work license for 1 person" : "Runs routines overnight"];
-  return [at, "First in line to wake, every time", `Work license for ${members} ${members === 1 ? "person" : "people"} included`];
+  const at = bots === null ? "Unlimited bots at work at once" : `${bots} ${bots === 1 ? "bot" : "bots"} at work at once`;
+  if (id === "free") return ["Every bot, chat and connector", work ? "Work license for 1 person" : "Personal use, free forever", "No card needed"];
+  if (id === "starter") return [at, "Keeps going while your Mac sleeps", work ? "Work license for 1 person" : "Set up in one click"];
+  return [at, "Priority wake", `Work license for ${members} ${members === 1 ? "person" : "people"}`];
 }
-const TAG = { free: "Your bots, on your Mac", starter: "Your bots work 24/7", pro: "For real work" } as const;
-
-/** the plan's facts at a glance, straight from the catalog */
-function Specs({ facts, line }: { facts: Array<[string, string]>; line: string }) {
-  return (
-    <div className="mt-6 border-y border-line py-4">
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-13">
-        {facts.map(([k, v]) => <div key={k} className="min-w-0"><dt className="text-ink-4">{k}</dt><dd className="num truncate text-ink">{v}</dd></div>)}
-      </dl>
-      <p className="mt-3 text-13 text-ink-2">{line}</p>
-    </div>
-  );
-}
+const LINE = { free: "Your bots on your own Mac.", starter: "A cloud desktop that never sleeps.", pro: "A bigger cloud desktop for real work." } as const;
 
 function PlanCard({ id, catalog, interval, use, current, lead, onChoose, action, disabled }: { id: "free" | "starter" | "pro"; catalog: PlanCatalog; interval: BillingInterval; use: Use; current: boolean; lead: boolean; onChoose(): void; action: string; disabled: boolean }) {
   const b = bundleOf(catalog, id);
@@ -87,35 +36,26 @@ function PlanCard({ id, catalog, interval, use, current, lead, onChoose, action,
   if (!b) return null;
   const addsLicense = use === "work" && b.license === "personal" && work;
   const monthly = b.monthly + (addsLicense ? work.monthly : 0);
-  const note = b.license !== "personal" ? "Work license included" : addsLicense ? `Includes a ${priceText(work.monthly, interval, catalog)} work license` : null;
   const p = per(monthly, interval, catalog);
+  const billing = monthly === 0 ? "Free forever" : interval === "year" ? "Billed yearly, 2 months free" : "Billed monthly";
+  const spec = desk ? `${desk.vcpu} vCPU · ${gb(desk.ramGb)} · ${gb(desk.diskGb)} · ${botsLine(desk.botComputers).toLowerCase()}` : "Runs on your Mac while it's awake";
   return (
-    <article className={cx("enter relative flex min-w-0 flex-col rounded-card p-7 max-sm:p-5", lead ? "bg-card-2 ring-1 ring-line-2" : "bg-card")} aria-labelledby={`plan-${id}`}>
-      <div className="absolute right-5 top-5 max-sm:right-3 max-sm:top-3"><PlanArt id={id} /></div>
-      <div className="flex min-h-[24px] items-center gap-2">
-        {current ? <Badge>Your plan</Badge> : lead ? <Badge>Most popular</Badge> : null}
+    <article className={cx("enter flex min-w-0 flex-col rounded-card bg-card p-6 max-sm:p-5", lead && "ring-1 ring-line-2")} aria-labelledby={`plan-${id}`}>
+      <div className="flex h-[22px] items-center justify-between gap-2">
+        <h2 id={`plan-${id}`} className="text-15 font-medium text-ink">{b.name}</h2>
+        {current && <Badge>Current</Badge>}
       </div>
-      <h2 id={`plan-${id}`} className="mt-3 font-serif text-[34px] leading-[1.1] tracking-[-0.01em] text-ink [font-synthesis:none]">{b.name}</h2>
-      <p className="mt-1 text-14 text-ink-3">{TAG[id]}</p>
-      <p className={cx("num mt-8 font-serif text-56 tracking-[-0.02em] [font-synthesis:none]", lead ? "text-accent" : "text-ink")}>{monthly === 0 ? "$0" : p.amount}</p>
-      <p className="mt-2 text-14 text-ink-3">{monthly === 0 ? "free forever" : interval === "year" ? "per year · 2 months free" : "per month"}</p>
-      <p className="h-5 text-13 text-ink-4">{note}</p>
-      <button type="button" onClick={onChoose} disabled={disabled} className={cx("press sheen mt-7 h-12 w-full rounded-full text-15 font-medium disabled:opacity-50 max-sm:h-12", lead && !current ? "hover-accent bg-accent-fill text-[#fbfbfb]" : "hover-lift bg-card-2 text-ink ring-1 ring-line-2")}>{action}</button>
-      {desk ? (
-        <Specs facts={[["CPU", `${desk.vcpu} vCPU`], ["Memory", `${gb(desk.ramGb)} RAM`], ["Disk", gb(desk.diskGb)], ["Bot computers", desk.botComputers === null ? "Unlimited" : `${desk.botComputers}`]]} line={desk.priority ? "Always on, 24/7 · Priority wake" : "Always on, 24/7"} />
-      ) : (
-        <Specs facts={[["Runs on", "Your Mac"], ["Hours", "While it's awake"], ["Bot computers", "On your Mac"], ["Use", use === "work" ? "Work, 1 person" : "Personal"]]} line="No subscription, no card" />
-      )}
-      <h3 className="mt-7 text-14 font-medium text-ink-2">What you get:</h3>
-      <ul className="mt-4 flex flex-1 flex-col gap-3.5">
-        {points(id, use === "work", desk?.botComputers ?? null, licenseOf(catalog, b.license)?.includedMembers ?? 1).map((pt) => <li key={pt} className="flex gap-3 text-15 leading-[1.45] text-ink-2"><Check size={17} strokeWidth={1.75} className="mt-0.5 shrink-0 text-ink-3" aria-hidden />{pt}</li>)}
+      <p className="mt-5 flex items-baseline gap-1">
+        <span className="num text-34 font-semibold tracking-[-0.03em] text-ink">{monthly === 0 ? "$0" : p.amount}</span>
+        {monthly > 0 && <span className="text-14 text-ink-3">{p.unit}</span>}
+      </p>
+      <p className="text-13 text-ink-4">{billing}{addsLicense ? ", incl. work license" : ""}</p>
+      <p className="mt-4 text-14 leading-[1.5] text-ink-2">{LINE[id]}</p>
+      <p className="num mt-1 text-13 text-ink-3">{spec}</p>
+      <ul className="mt-5 flex flex-1 flex-col gap-2.5">
+        {points(id, use === "work", desk?.botComputers ?? null, licenseOf(catalog, b.license)?.includedMembers ?? 1).map((pt) => <li key={pt} className="flex gap-2.5 text-14 leading-[1.4] text-ink-3"><Check size={15} strokeWidth={1.75} className="mt-0.5 shrink-0 text-ink-4" aria-hidden />{pt}</li>)}
       </ul>
-      {desk && (
-        <details className="group mt-6">
-          <summary className="hover-link inline-flex h-9 cursor-pointer list-none items-center gap-1 text-13 text-ink-3 max-sm:h-11 [&::-webkit-details-marker]:hidden">What's inside<ChevronDown size={14} strokeWidth={1.5} className="group-open:rotate-180" aria-hidden /></summary>
-          <p className="pb-1 text-13 leading-[1.55] text-ink-3">{desk.placement === "shared" ? "Its own sandbox, disk and network on a shared host." : "A whole machine of its own."} You pick the region at checkout.</p>
-        </details>
-      )}
+      <Button variant={lead && !current ? "primary" : "outline"} className="mt-7 w-full" onClick={onChoose} disabled={disabled}>{action}</Button>
     </article>
   );
 }
@@ -299,20 +239,22 @@ export function BillingPage() {
     return { label: "You're on Free", go: () => {} };
   };
   const fa = freeAction();
-  const paid = (id: PaidPlan) => ({ label: current(id) ? "Your plan" : `${owned && ownDesk !== "none" ? "Switch to" : "Get"} ${bundleOf(catalog, id)?.name}`, go: () => setPlanSheet(id) });
+  const paid = (id: PaidPlan) => ({ label: current(id) ? "Current plan" : `${owned && ownDesk !== "none" ? "Switch to" : "Get"} ${bundleOf(catalog, id)?.name}`, go: () => setPlanSheet(id) });
 
   return (
     <div>
       <PageHeader title="Plans & billing" />
       <CloudPitch id="hero-title" title="Keep your bots working 24/7" body="Give them a cloud desktop of their own, so they keep going while your Mac sleeps. Set up in one click." action={false} link={null} />
 
-      <div className="mt-10 flex flex-wrap items-center justify-between gap-3">
-        <Toggle<Use> label="Use" value={use} onChange={setUse} options={[{ value: "personal", label: "Personal" }, { value: "work", label: "Work" }]} />
-        <IntervalToggle value={interval} onChange={setIv} catalog={catalog} />
+      <div className="mt-10 flex flex-wrap items-center gap-x-4 gap-y-3">
+        <div className="flex flex-wrap gap-2">
+          <Toggle<Use> label="Use" value={use} onChange={setUse} options={[{ value: "personal", label: "Personal" }, { value: "work", label: "Work" }]} />
+          <IntervalToggle value={interval} onChange={setIv} catalog={catalog} />
+        </div>
+        <p className="text-13 text-ink-4 sm:ms-auto">Personal use is free forever.{free ? ` Work use is free until ${longDate(free)}.` : ""}</p>
       </div>
-      <p className="mt-3 text-13 text-ink-4">{interval === "year" ? "Billed yearly, two months free." : "Billed monthly, cancel anytime."} Personal use is free forever.{free ? ` Work use is free until ${longDate(free)}.` : ""}</p>
 
-      <div className="mt-8 grid items-stretch gap-4 md:grid-cols-3">
+      <div className="mt-6 grid gap-4 md:grid-cols-3">
         <PlanCard id="free" catalog={catalog} interval={interval} use={use} current={current("free")} lead={false} action={fa.label} onChoose={fa.go} disabled={fa.label === "You're on Free"} />
         <PlanCard id="starter" catalog={catalog} interval={interval} use={use} current={current("starter")} lead={false} action={paid("starter").label} onChoose={paid("starter").go} disabled={current("starter")} />
         <PlanCard id="pro" catalog={catalog} interval={interval} use={use} current={current("pro")} lead action={paid("pro").label} onChoose={paid("pro").go} disabled={current("pro")} />

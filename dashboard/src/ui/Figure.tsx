@@ -5,7 +5,7 @@ import { useReducedMotion } from "./Mascot";
 const ROLL = [{ opacity: 0, transform: "translateY(-5px)", filter: "blur(2px)" }, { opacity: 1, transform: "none", filter: "blur(0)" }];
 const FADE = [{ opacity: 0.35 }, { opacity: 1 }];
 
-/** a number in geist pixel (a word like "Idle" stays in sans); when its text changes it rolls in out of a short blur */
+/** a big number; when its text changes it rolls in out of a short blur */
 export function Figure({ value, className }: { value: ReactNode; className?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   const shown = useRef<string | null>(null);
