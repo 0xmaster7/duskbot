@@ -59,13 +59,47 @@ fs.writeFileSync("/srv/omb-data/${CLOUD_HOME_MARKER_FILE}", JSON.stringify({ ver
 fs.writeFileSync("/etc/caddy/Caddyfile", url.host + " {\\n reverse_proxy 127.0.0.1:8080\\n}\\n");`;
   const payload = { cloudId: input.cloudId, template: input.originTemplate ?? "https://{ip-dashed}.sslip.io", env: homeEnv({ ...input, origin: "" }), link: input.link };
   const image = shellQuote(input.image);
+  const storage = `#!/bin/bash
+set -euo pipefail
+shopt -s nullglob
+for attempt in {1..30}; do
+  devices=(/dev/disk/by-id/scsi-0HC_Volume_*)
+  if [ "\${#devices[@]}" -eq 1 ] && [ -b "\${devices[0]}" ]; then break; fi
+  sleep 1
+done
+if [ "\${#devices[@]}" -ne 1 ] || [ ! -b "\${devices[0]}" ]; then exit 1; fi
+install -d -m 700 /srv/omb-data
+mountpoint -q /srv/omb-data || mount -o discard,defaults "\${devices[0]}" /srv/omb-data
+resize2fs "\${devices[0]}"
+`;
+  const storageUnit = `[Unit]
+Before=docker.service
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/omb-storage
+[Install]
+WantedBy=multi-user.target
+`;
   return `#!/bin/bash
 set +x
 set -euo pipefail
 umask 077
 apt-get update
 apt-get install -y ca-certificates curl caddy nodejs
-apt-get install -y docker.io
+apt-get install -y docker.io e2fsprogs
+install -d -m 755 /etc/systemd/system/docker.service.d
+install -m 700 /dev/stdin /usr/local/sbin/omb-storage <<'OMB_STORAGE'
+${storage}OMB_STORAGE
+install -m 644 /dev/stdin /etc/systemd/system/omb-storage.service <<'OMB_STORAGE_UNIT'
+${storageUnit}OMB_STORAGE_UNIT
+install -m 644 /dev/stdin /etc/systemd/system/docker.service.d/omb-storage.conf <<'OMB_DOCKER_UNIT'
+[Unit]
+Requires=omb-storage.service
+After=omb-storage.service
+OMB_DOCKER_UNIT
+systemctl daemon-reload
+systemctl enable --now omb-storage
 systemctl enable --now docker
 install -d -m 700 /srv/omb-data /srv/omb-data/.openmausbot
 ipv4="$(curl -fsS --max-time 10 http://169.254.169.254/hetzner/v1/metadata/public-ipv4)"

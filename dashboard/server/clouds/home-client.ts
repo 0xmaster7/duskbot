@@ -12,7 +12,7 @@ export function createHomeClient(options: { fetch?: typeof fetch; now?: () => nu
   async function request(origin: string, secret: string, method: string, target: string, body = ""): Promise<unknown> {
     try {
       const url = new URL(origin);
-      if (origin !== url.origin || url.username || url.password || (!options.fetch && (url.protocol !== "https:" || !url.hostname.includes("."))) || (options.fetch && !["https:", "http:"].includes(url.protocol))) throw new Error();
+      if (origin !== url.origin || url.username || url.password || (url.protocol !== "https:" || !url.hostname.includes("."))) throw new Error();
       const timestamp = String(Math.floor(now() / 1000)), nonce = random(24).toString("base64url");
       if (!/^[A-Za-z0-9_-]{22,128}$/.test(nonce)) throw new Error();
       const response = await fetcher(`${origin}${target}`, {

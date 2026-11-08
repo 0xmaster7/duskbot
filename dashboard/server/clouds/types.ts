@@ -28,9 +28,13 @@ export interface CloudProvider {
   create(input: CreateServerInput): Promise<ProviderServer>;
   status(serverId: string): Promise<ProviderServer>;
   power(serverId: string, action: PowerAction): Promise<void>;
+  /** stops a suspended machine without relying on guest cooperation */
+  suspend?(serverId: string, reason: string): Promise<void>;
   /** dedicated servers must be off; pool quotas can change live */
   resize(serverId: string, spec: MachineSpec, quota?: SlotQuota): Promise<void>;
   destroy(serverId: string): Promise<void>;
+  /** removes unattached storage left by an interrupted create */
+  cleanup?(cloudId: string): Promise<void>;
 }
 
 /** a big shared host in the pool, as its driver reports it */
@@ -95,6 +99,7 @@ export interface StoredCloud {
   primary: boolean;
   hidden: boolean;
   paymentProblem: boolean;
+  ended?: boolean;
   /** suspended for abuse: stays stopped until an operator resumes it */
   suspended: string | null;
   /** set while the plan is cancelled or ended; the server is destroyed after it */
@@ -117,6 +122,7 @@ export interface StoredCloud {
 
 export interface DesktopPlan { kind: Exclude<DesktopKind, "none">; placement: Placement; spec: MachineSpec; botComputers: number | null }
 export interface OrderInput extends DesktopPlan {
+  id?: string;
   accountId: string;
   name: string;
   color: CloudSwatch | null;
@@ -141,7 +147,7 @@ export interface CloudsService {
   abandon(cloudId: string): void;
   get(cloudId: string): StoredCloud | null;
   owned(accountId: string, cloudId: string): StoredCloud | null;
-  list(accountId: string): StoredCloud[];
+  list(accountId: string, includeHidden?: boolean): StoredCloud[];
   view(cloud: StoredCloud): CloudDesktopView;
   rename(accountId: string, cloudId: string, patch: { name?: string; color?: CloudSwatch | null }): StoredCloud;
   /** operator action against abuse (pool and dedicated alike) */

@@ -20,7 +20,7 @@ import { createBillingRoutes } from "./routes.ts";
 import { createAdminRoutes } from "./admin-routes.ts";
 
 export interface BillingOptions {
-  dataDir: string; publicUrl: string; dashboard: { state: DashboardState; changed(): void }; accounts: AccountResolver;
+  dataDir: string; publicUrl: string; dashboard: { state: DashboardState; changed(): void; close?(): void }; accounts: AccountResolver;
   env?: NodeJS.ProcessEnv; now?: () => number; fetch?: typeof fetch;
 }
 /** the hosted app's Bearer resolver remains null until shared/account-api.ts supplies the accounts service */
@@ -74,10 +74,10 @@ export function createBilling(options: BillingOptions) {
       register({ accountId, name, publicKey }) {
         const id = `ws_${randomBytes(16).toString("base64url")}`;
         options.dashboard.state.workspaces.push({ id, publicKey, ownerAccountId: accountId, claimHash: null, claimExpiresAt: 0, name, kind: "vps", version: "", connectedAt: now(), lastReportAt: null, lastSeq: 0, lastSeqAt: 0, report: null, sectionAt: {} });
-        options.dashboard.changed(); return id;
+        options.dashboard.changed(); options.dashboard.close?.(); return id;
       },
       lastReportAt: id => options.dashboard.state.workspaces.find(ws => ws.id === id)?.lastReportAt ?? null,
-      remove(id) { options.dashboard.state.workspaces = options.dashboard.state.workspaces.filter(ws => ws.id !== id); options.dashboard.changed(); },
+      remove(id) { options.dashboard.state.workspaces = options.dashboard.state.workspaces.filter(ws => ws.id !== id); options.dashboard.changed(); options.dashboard.close?.(); },
     },
     config: { adminOrigin: url.origin, dashboardUrl: url.origin, image, originTemplate: env.OMB_CLOUD_ORIGIN_TEMPLATE,
       configured: { pool: poolDriver !== "off", dedicated: cloudProvider !== "off" },
@@ -85,7 +85,7 @@ export function createBilling(options: BillingOptions) {
   });
   const store = createBillingStore(options.dataDir);
   const service = createBillingService({ store, provider, clouds, config, publicUrl: url.origin, now });
-  const context = { service, clouds, store, config, accounts: options.accounts, now, enabled: billingProvider !== "off", fake };
+  const context = { service, clouds, store, config, accounts: options.accounts, now, enabled: billingProvider !== "off", fake: loopback ? fake : null };
   const routes = createBillingRoutes(context), admin = createAdminRoutes(context);
   return {
     async handle(req: IncomingMessage, res: ServerResponse, target: URL) { return await routes(req, res, target) || await admin.handle(req, res, target); },

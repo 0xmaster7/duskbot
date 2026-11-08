@@ -16,7 +16,7 @@ function fakeClouds() {
   function get(id: string) { return rows.find(cloud => cloud.id === id) ?? null; }
   const clouds: CloudsService = {
     order: vi.fn((input: OrderInput) => {
-      const cloud: StoredCloud = { ...input, id: `cloud_${rows.length}`, desiredSpec: { ...input.spec }, subscriptionId: null, status: "checkout", setupStep: null, wantPower: "on", serverId: null, ipv4: null, origin: null, bootstrapSecret: "fixture", workspaceId: null, primary: false, hidden: false, paymentProblem: false, suspended: null, destroyAt: null, error: null, attempts: 0, nextAttemptAt: 0, createdAt: 0, updatedAt: 0, powerSince: 0 };
+      const cloud: StoredCloud = { ...input, id: input.id ?? `cloud_${rows.length}`, desiredSpec: { ...input.spec }, subscriptionId: null, status: "checkout", setupStep: null, wantPower: "on", serverId: null, ipv4: null, origin: null, bootstrapSecret: "fixture", workspaceId: null, primary: false, hidden: false, paymentProblem: false, suspended: null, destroyAt: null, error: null, attempts: 0, nextAttemptAt: 0, createdAt: 0, updatedAt: 0, powerSince: 0 };
       rows.push(cloud); return cloud;
     }),
     activate: vi.fn((id: string, subscriptionId: string, plan: DesktopPlan) => { Object.assign(get(id)!, plan, { subscriptionId, status: "provisioning" }); }),
@@ -27,7 +27,7 @@ function fakeClouds() {
     end: vi.fn((id: string, destroyAt: number) => { Object.assign(get(id)!, { status: "stopped", destroyAt }); }),
     abandon: vi.fn((id: string) => { get(id)!.status = "destroyed"; }),
     get, owned: (accountId, id) => rows.find(cloud => cloud.id === id && cloud.accountId === accountId) ?? null,
-    list: accountId => rows.filter(cloud => cloud.accountId === accountId),
+    list: (accountId, includeHidden = false) => rows.filter(cloud => cloud.accountId === accountId && (includeHidden || !cloud.hidden)),
     view: cloud => ({ id: cloud.id, name: cloud.name, color: cloud.color, kind: cloud.kind, placement: cloud.placement, status: cloud.status, setupStep: cloud.setupStep, region: cloud.region, machine: cloud.spec, botComputers: cloud.botComputers, origin: cloud.origin, workspaceId: cloud.workspaceId, lastReportAt: null, destroyAt: cloud.destroyAt, error: cloud.error, subscriptionId: cloud.subscriptionId, createdAt: cloud.createdAt }),
     rename: (_accountId, id, patch) => Object.assign(get(id)!, patch), suspend: async () => {}, resume: async () => {}, hide: (_accountId, id) => get(id)!, power: async (_accountId, id) => get(id)!,
     pair: async () => ({ origin: "https://fixture.test", code: "fixture", expiresAt: 0 }), reconcile: async () => {}, close() {},
@@ -90,7 +90,7 @@ describe("billing service isolated fixture", () => {
     expect(service.credits(owner.id)).toMatchObject({ balanceCents: 0, entries: expect.arrayContaining([expect.objectContaining({ reason: "refund", deltaCents: -2500 })]) });
     expect(service.credits(owner.id).entries).toHaveLength(2); expect(service.invoices(owner.id).invoices[0].status).toBe("refunded");
     const partial = signed("refund.succeeded", { refund_id: "extra_refund", payment_id: store.state.invoices[0].providerPaymentId, amount: 100, currency: "USD" }); deliver([partial]);
-    expect(service.credits(owner.id).balanceCents).toBe(-100);
+    expect(service.credits(owner.id).balanceCents).toBe(0);
   });
   it("cancels with a trimmed survey, schedules deletion, and keeps the subscription", async () => {
     const { sub } = await buy();
@@ -104,10 +104,10 @@ describe("billing service isolated fixture", () => {
     await expect(service.cancel(owner, sub.id, { answer: "other", improve: "x".repeat(2001) })).rejects.toMatchObject({ code: "invalid_request" });
     expect(() => service.feedback(stranger, { cloudId: sub.cloudId, survey: { answer: "later" } })).toThrow(expect.objectContaining({ code: "not_found" }));
   });
-  it("previews and applies a prorated upgrade with a single-use confirmation", async () => {
+  it("previews and applies an upgrade with a single-use confirmation", async () => {
     const { sub } = await buy(); time = (sub.currentPeriodStart! + sub.currentPeriodEnd!) / 2;
     const preview = service.previewChange(owner, sub.id, preset(2));
-    expect(preview).toMatchObject({ chargeNowCents: 1500, expiresAt: time + 600_000 }); expect(preview.confirmation).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(preview).toMatchObject({ chargeNowCents: 3000, expiresAt: time + 600_000 }); expect(preview.confirmation).toMatch(/^[A-Za-z0-9_-]{43}$/);
     await service.change(owner, sub.id, preview.confirmation);
     expect(sub).toMatchObject({ totalCents: 5000, version: 2, cart: preset(2) });
     expect(clouds.changePlan).toHaveBeenCalledExactlyOnceWith(sub.cloudId, { kind: "shared_m", placement: "pool", spec: { vcpu: 4, ramGb: 8, diskGb: 80 }, botComputers: 5 });
@@ -191,11 +191,11 @@ describe("billing service isolated fixture", () => {
     await service.change(owner, sub.id, service.previewChange(owner, sub.id, team).confirmation);
     expect(clouds.changePlan).not.toHaveBeenCalled(); expect(service.licenses(owner.id)[0]).toMatchObject({ kind: "team", seats: 5 });
     await service.change(owner, sub.id, service.previewChange(owner, sub.id, { ...team, desktop: { kind: "none" } }).confirmation);
-    expect(clouds.scheduleDestroy).toHaveBeenLastCalledWith(cloudId, time + 7 * day); expect(sub.cloudId).toBeNull();
+    expect(clouds.end).toHaveBeenLastCalledWith(cloudId, time + 7 * day); expect(sub.cloudId).toBeNull();
   });
   it("records failed invoices once and upgrades the same payment on success", async () => {
     await service.checkout(owner, { kind: "credits", pack: "c10" });
-    const data = { payment_id: "pay_one", metadata: { checkoutId: store.state.checkouts[0].id }, total_amount: 1000, currency: "USD" };
+    const data = { payment_id: "pay_one", customer: { customer_id: "cus_one" }, metadata: { checkoutId: store.state.checkouts[0].id, accountId: owner.id }, total_amount: 1000, currency: "USD" };
     deliver([signed("payment.failed", data)]); expect(store.state.invoices[0].status).toBe("failed"); expect(service.credits(owner.id).balanceCents).toBe(0);
     deliver([signed("payment.succeeded", data)]); expect(store.state.invoices).toHaveLength(1); expect(store.state.invoices[0].status).toBe("paid"); expect(service.credits(owner.id).balanceCents).toBe(1000);
   });
@@ -237,8 +237,184 @@ describe("billing service isolated fixture", () => {
   it("prunes webhook retention and refuses invalid persisted state", () => {
     store.state.webhookEvents = Array.from({ length: 20_000 }, (_, i) => ({ id: `old_${i}`, at: time, type: "ignored" }));
     store.state.webhookEvents.push({ id: "expired", at: time - 31 * day, type: "ignored" });
-    deliver([signed("unknown", {})]); expect(store.state.webhookEvents).toHaveLength(20_000); expect(store.state.webhookEvents.some(event => event.id === "expired")).toBe(false);
+    deliver([signed("unknown", {})]); expect(store.state.webhookEvents).toHaveLength(20_001); expect(store.state.webhookEvents.some(event => event.id === "expired")).toBe(false);
     writeFileSync(join(dataDir, "billing.json"), JSON.stringify({ ...store.state, invoices: [{ amountCents: 0.5 }] }));
     expect(() => createBillingStore(dataDir)).toThrow("Invalid state");
   });
+});
+
+describe("billing security regressions", () => {
+  it("binds signed events to account, customer, checkout kind, amount, currency and product", async () => {
+    const cart = await service.checkout(owner, { kind: "cart", cart: preset(1) });
+    await service.checkout(stranger, { kind: "credits", pack: "c25" });
+    const credit = store.state.checkouts[1];
+    const payment = { payment_id: "p", subscription_id: null, customer: { customer_id: "cus_stranger" }, metadata: { checkoutId: credit.id, accountId: stranger.id }, total_amount: 2500, currency: "USD" };
+    for (const patch of [{ metadata: { ...payment.metadata, accountId: owner.id } }, { subscription_id: "unexpected_subscription" }, { total_amount: 1 }, { currency: "EUR" }]) {
+      deliver([signed("payment.succeeded", { ...payment, ...patch })]);
+    }
+    expect(store.state.credits).toEqual([]); expect(store.state.customers.every(customer => customer.providerCustomerId === null)).toBe(true);
+    deliver([signed("payment.succeeded", payment)]);
+    deliver([signed("payment.succeeded", { ...payment, payment_id: "another_payment" })]);
+    expect(service.credits(stranger.id).balanceCents).toBe(2500);
+    const activation = JSON.parse(provider.complete(store.state.checkouts[0].providerSessionId!)[1].body.toString());
+    deliver([signed("subscription.active", { ...activation.data, metadata: { checkoutId: cart.checkoutId, accountId: stranger.id } })]);
+    deliver([signed("subscription.active", { ...activation.data, product_id: "wrong_product" })]);
+    deliver([signed("subscription.active", { ...activation.data, customer: payment.customer })]);
+    expect(store.state.subscriptions).toEqual([]); expect(clouds.activate).not.toHaveBeenCalled();
+    deliver([signed("subscription.active", activation.data)]); expect(store.state.subscriptions).toHaveLength(1);
+  });
+
+  it("does not associate a different subscription with a checkout already bound by its payment", async () => {
+    await service.checkout(owner, { kind: "cart", cart: preset(1) });
+    const deliveries = provider.complete(store.state.checkouts[0].providerSessionId!); deliver([deliveries[0]]);
+    const activation = JSON.parse(deliveries[1].body.toString());
+    deliver([signed("subscription.active", { ...activation.data, subscription_id: "other_subscription" })]);
+    expect(store.state.subscriptions).toEqual([]);
+    deliver([deliveries[1]]); expect(store.state.subscriptions).toHaveLength(1);
+  });
+
+  it("settles partial, out-of-order and taxed refunds without over-debiting purchased credits", async () => {
+    await service.checkout(owner, { kind: "credits", pack: "c10" });
+    const checkout = store.state.checkouts[0];
+    deliver([signed("refund.succeeded", { refund_id: "r1", payment_id: "p", amount: 600, currency: "USD" })]);
+    service.close(); store = createBillingStore(dataDir);
+    service = createBillingService({ store, provider, clouds, config, publicUrl: "https://dashboard.test", now: () => time });
+    const payment = { payment_id: "p", customer: { customer_id: "cus" }, metadata: { checkoutId: checkout.id, accountId: owner.id }, total_amount: 1200, currency: "USD" };
+    deliver([signed("payment.succeeded", payment)]);
+    expect(service.credits(owner.id).balanceCents).toBe(500); expect(store.state.invoices[0].status).toBe("paid");
+    deliver([signed("refund.succeeded", { refund_id: "wrong_currency", payment_id: "p", amount: 600, currency: "EUR" })]);
+    expect(service.credits(owner.id).balanceCents).toBe(500);
+    deliver([signed("refund.succeeded", { refund_id: "r2", payment_id: "p", amount: 900, currency: "USD" })]);
+    expect(service.credits(owner.id).balanceCents).toBe(0); expect(store.state.invoices[0].status).toBe("refunded");
+    deliver([signed("payment.succeeded", payment)]); expect(service.credits(owner.id).balanceCents).toBe(0);
+  });
+
+  it("commits the event and cloud intent together and retries partial application after restart", async () => {
+    await service.checkout(owner, { kind: "cart", cart: preset(1) });
+    const deliveries = provider.complete(store.state.checkouts[0].providerSessionId!); deliver([deliveries[0]]);
+    vi.mocked(clouds.setPaymentProblem).mockImplementationOnce(() => { throw new Error("synthetic disk failure"); });
+    expect(() => deliver([deliveries[1]])).toThrow(expect.objectContaining({ code: "unavailable" }));
+    expect(store.state.subscriptions).toHaveLength(1);
+    const subId = store.state.subscriptions[0].id;
+    expect(store.state.cloudActions).toHaveLength(2);
+    service.close(); store = createBillingStore(dataDir);
+    service = createBillingService({ store, provider, clouds, config, publicUrl: "https://dashboard.test", now: () => time });
+    expect(store.state.cloudActions).toEqual([]); expect(store.state.subscriptions[0].id).toBe(subId);
+    expect(deliver([deliveries[1]])).toEqual([{ duplicate: true }]); expect(clouds.activate).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not activate a cloud when the billing transaction fails to persist", async () => {
+    await service.checkout(owner, { kind: "cart", cart: preset(1) });
+    const deliveries = provider.complete(store.state.checkouts[0].providerSessionId!); deliver([deliveries[0]]);
+    vi.spyOn(store, "commit").mockImplementationOnce(() => { throw new Error("synthetic full disk"); });
+    expect(() => deliver([deliveries[1]])).toThrow(expect.objectContaining({ code: "unavailable" }));
+    expect(store.state.subscriptions).toEqual([]); expect(store.state.cloudActions).toEqual([]); expect(clouds.activate).not.toHaveBeenCalled();
+    deliver([deliveries[1]]); expect(store.state.subscriptions).toHaveLength(1); expect(clouds.activate).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps unpaid destruction scheduled and refuses stale activation or unpaid plan changes", async () => {
+    const { sub, deliveries } = await buy(); time += 1000;
+    deliver(provider.fail(sub.providerSubscriptionId!));
+    const deadline = sub.currentPeriodEnd! + config.graceDays * day;
+    expect(clouds.get(sub.cloudId!)?.destroyAt).toBe(deadline);
+    await expect(service.keep(owner, sub.id)).rejects.toMatchObject({ code: "not_subscribed" });
+    expect(() => service.previewChange(owner, sub.id, preset(2))).toThrow(expect.objectContaining({ code: "not_subscribed" }));
+    deliver([provider.sign("stale_activation", deliveries[1].body)]);
+    expect(sub.status).toBe("payment_problem"); expect(clouds.get(sub.cloudId!)?.destroyAt).toBe(deadline);
+    const updated = JSON.parse(deliveries[1].body.toString()).data;
+    deliver([signed("subscription.updated", { ...updated, next_billing_date: new Date(time + 365 * day).toISOString() })]);
+    expect(sub.currentPeriodEnd! + config.graceDays * day).toBe(deadline); expect(clouds.get(sub.cloudId!)?.destroyAt).toBe(deadline);
+  });
+
+  it("expires active licenses at the paid boundary even when an expiry webhook is missing", async () => {
+    const { sub } = await buy(); time = sub.currentPeriodEnd!;
+    expect(service.licenseCheck(owner).license).toBeNull();
+    await expect(service.keep(owner, sub.id)).rejects.toMatchObject({ code: "not_subscribed" });
+    expect(() => service.invoices(owner.id, "a".repeat(513))).toThrow(expect.objectContaining({ code: "invalid_request" }));
+  });
+});
+
+describe("durable provider reconciliation", () => {
+  it("recovers a plan change when the provider applied it but the response was lost", async () => {
+    const { sub } = await buy();
+    const change = provider.changePlan;
+    vi.spyOn(provider, "changePlan").mockImplementationOnce(async input => { await change(input); throw new Error("synthetic lost response"); });
+    const preview = service.previewChange(owner, sub.id, preset(2));
+    await expect(service.change(owner, sub.id, preview.confirmation)).rejects.toMatchObject({ code: "unavailable" });
+    expect(sub.totalCents).toBe(2000); expect(sub.pendingChange).toBeDefined();
+    expect(() => service.previewChange(owner, sub.id, preset(2))).toThrow(expect.objectContaining({ code: "plan_change_unavailable" }));
+    service.close(); store = createBillingStore(dataDir);
+    service = createBillingService({ store, provider, clouds, config, publicUrl: "https://dashboard.test", now: () => time });
+    deliver(provider.renew(sub.providerSubscriptionId!));
+    expect(store.state.subscriptions[0]).toMatchObject({ totalCents: 5000, cart: preset(2) });
+    expect(store.state.subscriptions[0].pendingChange).toBeUndefined(); expect(provider.changeCalls).toHaveLength(1);
+    expect(clouds.changePlan).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not revive a subscription when expiry arrives before activation", async () => {
+    await service.checkout(owner, { kind: "cart", cart: preset(1) });
+    const deliveries = provider.complete(store.state.checkouts[0].providerSessionId!);
+    const activation = JSON.parse(deliveries[1].body.toString());
+    deliver([signed("subscription.expired", { ...activation.data, status: "expired" })]);
+    deliver(deliveries);
+    expect(store.state.subscriptions[0].status).toBe("ended"); expect(clouds.activate).not.toHaveBeenCalled();
+  });
+
+  it("refreshes fake delivery signatures without changing their idempotency keys", async () => {
+    const { checkout } = await buy(); time += 600_000;
+    expect(deliver(provider.complete(checkout.providerSessionId!))).toEqual([{ duplicate: true }, { duplicate: true }]);
+    expect(store.state.subscriptions).toHaveLength(1);
+  });
+});
+
+it("waits for a matching signed outcome before granting a Dodo upgrade", async () => {
+  const { sub, deliveries } = await buy(); service.close();
+  config.products = Object.fromEntries(["license_solo:month", "addon_shared_s:month", "addon_shared_m:month"].map(key => [key, key]));
+  service = createBillingService({ store, provider: { ...provider, name: "dodo" }, clouds, config, publicUrl: "https://dashboard.test", now: () => time });
+  const end = sub.currentPeriodEnd;
+  const result = await service.change(owner, sub.id, service.previewChange(owner, sub.id, preset(2)).confirmation);
+  expect(result.totalCents).toBe(2000); expect(clouds.changePlan).not.toHaveBeenCalled();
+  const data = JSON.parse(deliveries[1].body.toString()).data;
+  deliver([signed("subscription.plan_changed", data)]);
+  expect(sub.pendingChange).toBeDefined(); expect(sub.totalCents).toBe(2000);
+  deliver([signed("subscription.plan_changed", { ...data, addons: [{ addon_id: "addon_shared_m:month", quantity: 1 }] })]);
+  expect(sub.pendingChange).toBeUndefined(); expect(sub.totalCents).toBe(5000);
+  expect(sub.currentPeriodEnd).toBe(end); expect(clouds.changePlan).toHaveBeenCalledTimes(1);
+});
+
+it("fulfills a late paid checkout with one replacement instead of reviving the abandoned cloud", async () => {
+  const answer = await service.checkout(owner, { kind: "cart", cart: preset(1) });
+  const checkout = store.state.checkouts[0]; time += 31 * 60_000;
+  await service.checkout(owner, { kind: "credits", pack: "c10" });
+  expect(clouds.get(answer.cloudId!)?.status).toBe("destroyed");
+  const deliveries = provider.complete(checkout.providerSessionId!); deliver(deliveries); deliver(deliveries);
+  const sub = store.state.subscriptions[0];
+  expect(sub.cloudId).not.toBe(answer.cloudId); expect(clouds.get(sub.cloudId!)?.status).toBe("provisioning");
+  expect(clouds.get(answer.cloudId!)?.status).toBe("destroyed"); expect(clouds.activate).toHaveBeenCalledTimes(1);
+});
+
+it("counts hidden desktops against the account limit", async () => {
+  const { sub } = await buy(); clouds.get(sub.cloudId!)!.hidden = true; config.maxCloudsPerAccount = 1;
+  expect(clouds.list(owner.id)).toEqual([]);
+  await expect(service.checkout(owner, { kind: "cart", cart: desktopOnly() })).rejects.toMatchObject({ code: "cap" });
+});
+
+it("does not debit a legacy fully refunded invoice again", async () => {
+  await service.checkout(owner, { kind: "credits", pack: "c10" });
+  deliver(provider.complete(store.state.checkouts[0].providerSessionId!));
+  const invoice = store.state.invoices[0];
+  deliver(provider.refund(invoice.providerPaymentId)); delete store.state.refunds; store.commit();
+  service.close(); store = createBillingStore(dataDir);
+  service = createBillingService({ store, provider, clouds, config, publicUrl: "https://dashboard.test", now: () => time });
+  deliver([signed("refund.succeeded", { refund_id: "another", payment_id: invoice.providerPaymentId, amount: 1000, currency: "USD" })]);
+  expect(service.credits(owner.id).balanceCents).toBe(0);
+});
+
+it("discards a stale resize intent after the desktop has been destroyed", async () => {
+  const { sub } = await buy();
+  clouds.get(sub.cloudId!)!.status = "destroyed";
+  store.state.cloudActions = [{ kind: "change", cloudId: sub.cloudId!, plan: { kind: "shared_m", placement: "pool", spec: { vcpu: 4, ramGb: 8, diskGb: 80 }, botComputers: 5 } }];
+  store.commit(); service.close();
+  service = createBillingService({ store, provider, clouds, config, publicUrl: "https://dashboard.test", now: () => time });
+  expect(clouds.changePlan).not.toHaveBeenCalled(); expect(store.state.cloudActions).toEqual([]);
 });

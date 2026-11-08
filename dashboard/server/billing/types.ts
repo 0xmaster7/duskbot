@@ -18,10 +18,10 @@ export interface CreateCheckoutInput {
 /** a provider webhook after its signature was verified, mapped to our words */
 export type BillingEvent =
   | { kind: "subscription"; type: "active" | "renewed" | "on_hold" | "failed" | "cancelled" | "expired" | "plan_changed" | "updated";
-      subscriptionId: string; customerId: string | null; checkoutId: string | null; productId: string | null;
+      subscriptionId: string; customerId: string | null; checkoutId: string | null; accountId: string | null; productId: string | null;
       addons: Array<{ addonId: string; quantity: number }>; nextBillingAt: number | null; cancelAtPeriodEnd: boolean; status: string | null }
   | { kind: "payment"; type: "succeeded" | "failed"; paymentId: string; subscriptionId: string | null; customerId: string | null;
-      checkoutId: string | null; amountCents: number; currency: string }
+      checkoutId: string | null; accountId: string | null; amountCents: number; currency: string }
   | { kind: "refund"; refundId: string; paymentId: string; amountCents: number; currency: string }
   | { kind: "ignored"; type: string };
 

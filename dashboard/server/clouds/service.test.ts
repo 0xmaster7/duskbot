@@ -53,13 +53,13 @@ it.each([dedicatedPlan, poolPlan])("provisions $placement in order and links the
 });
 it("activates twice idempotently and persists resumable bootstrap keys without plaintext secrets", async () => {
   const f = fixture(), c = f.order();
-  f.service.activate(c.id, "sub1", dedicatedPlan); f.service.activate(c.id, "sub2", dedicatedPlan);
+  f.service.activate(c.id, "sub1", dedicatedPlan); f.service.activate(c.id, "sub1", dedicatedPlan);
   const secret = f.deps.sealer.unseal(c.bootstrapSecret), key = f.deps.sealer.unseal(c.sealedLinkPrivateKey!);
   expect(readFileSync(join(f.dataDir, "clouds.json"), "utf8")).not.toContain(secret);
   expect(readFileSync(join(f.dataDir, "clouds.json"), "utf8")).not.toContain(key);
   await f.ready(c);
-  f.service.activate(c.id, "sub3", dedicatedPlan); await f.service.reconcile();
-  expect(c.subscriptionId).toBe("sub3"); expect(f.dedicated.calls.filter(c => c.method === "create")).toHaveLength(1); expect(f.workspaces.register).toHaveBeenCalledTimes(1);
+  expect(() => f.service.activate(c.id, "sub3", dedicatedPlan)).toThrow(CloudError); await f.service.reconcile();
+  expect(c.subscriptionId).toBe("sub1"); expect(f.dedicated.calls.filter(c => c.method === "create")).toHaveLength(1); expect(f.workspaces.register).toHaveBeenCalledTimes(1);
   f.service.close(); const reopened = createCloudsService(f.deps); cleanup.push(() => reopened.close());
   expect(reopened.get(c.id)?.status).toBe("running"); expect(reopened.view(reopened.get(c.id)!).origin).toBe(c.origin);
 });
@@ -170,4 +170,93 @@ it("recovers an ambiguous create by finding the existing server and wiping the b
   f.service.activate(c.id, "sub", dedicatedPlan); await f.service.reconcile();
   expect(c.sealedLinkPrivateKey).toBeTruthy(); f.advance(30_000); await f.ready(c);
   expect(c.sealedLinkPrivateKey).toBeUndefined(); expect(f.dedicated.calls.filter(c => c.method === "create")).toHaveLength(1);
+});
+
+it("cannot clear an unpaid or elapsed deadline, wake an ended cloud, or revive a destroyed cloud", async () => {
+  const f = fixture(), c = f.order(); f.service.activate(c.id, "sub", dedicatedPlan); await f.ready(c);
+  f.service.scheduleDestroy(c.id, f.now() + 1000); f.service.setPaymentProblem(c.id, true);
+  f.service.cancelDestroy(c.id); expect(c.destroyAt).toBe(f.now() + 1000);
+  f.service.setPaymentProblem(c.id, false); f.advance(1000);
+  f.service.cancelDestroy(c.id); expect(c.destroyAt).toBe(f.now());
+  await f.service.reconcile();
+  f.service.activate(c.id, "other", dedicatedPlan); f.service.end(c.id, f.now() + 5000);
+  expect(c.status).toBe("destroyed"); expect(c.subscriptionId).toBe("sub");
+  const ended = f.order(); f.service.activate(ended.id, "sub2", dedicatedPlan); await f.ready(ended);
+  f.service.end(ended.id, f.now() + 5000); await f.service.reconcile();
+  f.service.cancelDestroy(ended.id);
+  await expect(f.service.power("a", ended.id, "on")).rejects.toMatchObject({ status: 409 });
+  expect(ended.destroyAt).toBe(f.now() + 5000);
+});
+
+it("does not provision an ended checkout and keeps hidden machines countable", async () => {
+  const f = fixture(), c = f.order();
+  f.service.activate(c.id, "sub", dedicatedPlan); f.service.end(c.id, f.now() + 5000);
+  await f.service.reconcile(); expect(c.status).toBe("stopped");
+  expect(f.dedicated.calls.some(call => call.method === "create")).toBe(false);
+  f.service.hide("a", c.id); expect(f.service.list("a")).toEqual([]);
+  expect(f.service.list("a", true)).toEqual([c]);
+});
+
+it("records the resize actually sent when the desired plan changes in flight", async () => {
+  const f = fixture(), c = f.order(poolPlan); f.service.activate(c.id, "sub", poolPlan); await f.ready(c);
+  let release!: () => void;
+  const resize = f.pool.resize;
+  vi.spyOn(f.pool, "resize").mockImplementationOnce(async (...args) => { await new Promise<void>(resolve => { release = resolve; }); return resize(...args); });
+  f.service.changePlan(c.id, { ...poolPlan, spec: { ...poolPlan.spec, ramGb: 8 } });
+  const pending = f.service.reconcile(); await vi.waitFor(() => expect(release).toBeTypeOf("function"));
+  f.service.changePlan(c.id, { ...poolPlan, spec: { ...poolPlan.spec, ramGb: 12 } }); release(); await pending;
+  expect(c.spec.ramGb).toBe(8); await f.service.reconcile(); expect(c.spec.ramGb).toBe(12);
+});
+
+it("reasserts suspension if the provider still reports a running machine", async () => {
+  const f = fixture(), c = f.order(); f.service.activate(c.id, "sub", dedicatedPlan); await f.ready(c);
+  await f.service.suspend(c.id, "abuse");
+  await f.dedicated.power(c.serverId!, "on"); await f.service.reconcile();
+  expect((await f.dedicated.status(c.serverId!)).state).toBe("off"); expect(c.status).toBe("suspended");
+});
+
+it("seals legacy plaintext bootstrap material when a seal key is configured", async () => {
+  const f = fixture(), c = f.order(); f.service.close();
+  const plain = createCloudsService({ ...f.deps, sealer: createSealer(null) });
+  plain.activate(c.id, "sub", dedicatedPlan); plain.close();
+  const stored = plain.get(c.id)!, secret = stored.bootstrapSecret.slice(6), privateKey = stored.sealedLinkPrivateKey!.slice(6);
+  expect(readFileSync(join(f.dataDir, "clouds.json"), "utf8")).toContain(secret);
+  const sealed = createCloudsService(f.deps); cleanup.push(() => sealed.close());
+  const disk = readFileSync(join(f.dataDir, "clouds.json"), "utf8"); expect(disk).not.toContain(secret); expect(disk).not.toContain(privateKey);
+  expect(f.deps.sealer.unseal(sealed.get(c.id)!.bootstrapSecret)).toBe(secret);
+});
+
+it("retains bootstrap material while a provider is unconfigured so provisioning can recover", async () => {
+  const f = fixture(), c = f.order(); f.service.close();
+  const disabled = createCloudsService({ ...f.deps, config: { ...f.deps.config, configured: { pool: false, dedicated: false } } });
+  disabled.activate(c.id, "sub", dedicatedPlan); await disabled.reconcile();
+  expect(disabled.get(c.id)?.sealedLinkPrivateKey).toBeTruthy(); disabled.close();
+  const enabled = createCloudsService(f.deps); cleanup.push(() => enabled.close());
+  for (let i = 0; i < 5; i++) await enabled.reconcile();
+  expect(enabled.get(c.id)?.status).toBe("running");
+});
+
+it("does not record a later power request as already applied while an earlier request is in flight", async () => {
+  const f = fixture(), c = f.order(); f.service.activate(c.id, "sub", dedicatedPlan); await f.ready(c);
+  let release!: () => void;
+  const power = f.dedicated.power;
+  vi.spyOn(f.dedicated, "power").mockImplementationOnce(async (...args) => { await new Promise<void>(resolve => { release = resolve; }); return power(...args); });
+  const off = f.service.power("a", c.id, "off"); await vi.waitFor(() => expect(release).toBeTypeOf("function"));
+  const on = f.service.power("a", c.id, "on"); release(); await Promise.all([off, on]);
+  await f.service.reconcile(); expect(c.status).toBe("running"); expect((await f.dedicated.status(c.serverId!)).state).toBe("running");
+});
+
+it("cleans orphaned provider storage at the deadline even when no server was recorded", async () => {
+  const f = fixture(), c = f.order();
+  const cleanupStorage = vi.fn(async () => {});
+  Object.assign(f.dedicated, { cleanup: cleanupStorage });
+  f.service.end(c.id, f.now()); await f.service.reconcile();
+  expect(cleanupStorage).toHaveBeenCalledExactlyOnceWith(c.id); expect(c.status).toBe("destroyed");
+});
+
+it("keeps a suspended cloud suspended after a status failure with a future deletion deadline", async () => {
+  const f = fixture(), c = f.order(); f.service.activate(c.id, "sub", dedicatedPlan); await f.ready(c);
+  await f.service.suspend(c.id, "abuse"); f.service.scheduleDestroy(c.id, f.now() + 600_000);
+  f.dedicated.failNextStatus = true; await f.service.reconcile(); expect(c.status).toBe("suspended");
+  f.advance(30_000); await f.service.reconcile(); expect((await f.dedicated.status(c.serverId!)).state).toBe("off");
 });

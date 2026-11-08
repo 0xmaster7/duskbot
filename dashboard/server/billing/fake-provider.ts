@@ -20,14 +20,14 @@ export function createFakeBillingProvider(options: { secret?: string; now?: () =
   }
   function subscriptionData(subscriptionId: string) {
     const sub = subscriptions.get(subscriptionId); if (!sub) throw new BillingProviderError("refused");
-    return { subscription_id: subscriptionId, customer: { customer_id: sub.customerId }, metadata: { checkoutId: sub.input.checkoutId },
+    return { subscription_id: subscriptionId, customer: { customer_id: sub.customerId }, metadata: { checkoutId: sub.input.checkoutId, accountId: sub.input.accountId },
       product_id: sub.input.cart[0].productId, addons: sub.input.cart[0].addons.map(addon => ({ addon_id: addon.addonId, quantity: addon.quantity })),
       next_billing_date: new Date(sub.nextBillingAt).toISOString(), cancel_at_next_billing_date: sub.cancel, status: "active" };
   }
   function payment(input: CreateCheckoutInput, customerId: string, subscriptionId: string | null) {
     const paymentId = id("pay_"), amount = input.billing?.amountCents ?? 0, currency = input.billing?.currency ?? "USD";
     payments.set(paymentId, { amount, currency });
-    return delivery("payment.succeeded", { payment_id: paymentId, subscription_id: subscriptionId, customer: { customer_id: customerId }, metadata: { checkoutId: input.checkoutId }, total_amount: amount, currency });
+    return delivery("payment.succeeded", { payment_id: paymentId, subscription_id: subscriptionId, customer: { customer_id: customerId }, metadata: { checkoutId: input.checkoutId, accountId: input.accountId }, total_amount: amount, currency });
   }
   const provider = {
     name: "fake" as const, secret, sessions, subscriptions, payments, cancelCalls, changeCalls, failChangePlan: false,
@@ -44,7 +44,7 @@ export function createFakeBillingProvider(options: { secret?: string; now?: () =
     async invoicePdf(_paymentId: string) { return { contentType: "application/pdf", body: Buffer.from("%PDF-1.4\n%%EOF\n") }; },
     sign,
     complete(sessionId: string) {
-      const previous = completed.get(sessionId); if (previous) return previous;
+      const previous = completed.get(sessionId); if (previous) return previous.map(delivery => sign(delivery.headers["webhook-id"], delivery.body));
       const input = sessions.get(sessionId); if (!input) throw new BillingProviderError("refused");
       const customerId = input.customerId ?? id("cus_"), isCart = input.billing ? input.billing.interval !== null : !input.cart[0].productId.startsWith("credits_");
       const subscriptionId = isCart ? id("dsub_") : null;

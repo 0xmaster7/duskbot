@@ -86,8 +86,5 @@ export function dodoCreditsCart(packId: string, products: Record<string, string>
   const productId = products[`credits_${packId}`];
   return productId ? [{ productId, quantity: 1, addons: [] }] : null;
 }
-export function prorate(input: { fromTotalCents: number; toTotalCents: number; periodStart: number; periodEnd: number; now: number }) {
-  const { fromTotalCents, toTotalCents, periodStart, periodEnd, now } = input;
-  if (periodEnd <= periodStart) return 0;
-  return Math.max(0, Math.round((toTotalCents - fromTotalCents) * Math.max(0, Math.min(periodEnd - periodStart, periodEnd - now)) / (periodEnd - periodStart)));
-}
+/** what dodo charges now for a plan change in difference_immediately mode (the billing cycle restarts that day) */
+export function changeCharge(fromTotalCents: number, toTotalCents: number) { return Math.max(0, toTotalCents - fromTotalCents); }

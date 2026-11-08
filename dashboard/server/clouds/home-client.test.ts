@@ -51,3 +51,12 @@ it("bounds responses and sanitizes fetch failures, and requires https without in
   expect(await large.healthy("http://127.0.0.1", secret)).toBe(false);
   await expect(createHomeClient().pair("http://home.example.test", secret, { label: "test" })).rejects.toThrow();
 });
+
+it("requires a canonical https origin even with an injected transport", async () => {
+  const fetcher = vi.fn<typeof fetch>(async () => Response.json({ v: 1 }));
+  const client = createHomeClient({ fetch: fetcher });
+  for (const origin of ["http://127.0.0.1", "http://169.254.169.254", "https://user@cloud.example.test", "https://cloud.example.test/path", "https://localhost"]) {
+    expect(await client.healthy(origin, secret)).toBe(false);
+  }
+  expect(fetcher).not.toHaveBeenCalled();
+});

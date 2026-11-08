@@ -61,7 +61,7 @@ export function createAdminRoutes(ctx: BillingContext) {
     available();
     const state = service.appState(account), c = primary(account), list = clouds.list(account.id);
     const active = state.entitlement.status === "active";
-    const open = openCheckout(account), blocked = open ? "checkout_open" : list.filter(c => c.status !== "destroyed").length >= config.maxCloudsPerAccount ? "cap" : null;
+    const open = openCheckout(account), blocked = open ? "checkout_open" : clouds.list(account.id, true).filter(c => c.status !== "destroyed").length >= config.maxCloudsPerAccount ? "cap" : null;
     let summary: Record<string, unknown> | undefined;
     if (c && c.status !== "checkout") {
       const view = clouds.view(c);
@@ -134,7 +134,8 @@ export function createAdminRoutes(ctx: BillingContext) {
         const token = text(data.confirmation), confirmation = confirmations.get(token);
         if (!confirmation || confirmation.accountId !== account.id || confirmation.subscriptionId !== sub.id || confirmation.plan !== data.plan || confirmation.expiresAt <= now()) throw new BillingError(409, "confirmation_required");
         confirmations.delete(token);
-        await service.change(account, sub.id, token); return send({ status: "upgraded", tier: data.plan });
+        const changed = await service.change(account, sub.id, token);
+        return send({ status: changed.bundle === data.plan ? "upgraded" : "pending", tier: changed.bundle ?? "custom" });
       }
       if (route === "pairing") {
         const cloud = requireCloud(account, optionalText(data.cloudId));

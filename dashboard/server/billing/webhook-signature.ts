@@ -29,10 +29,11 @@ function eventOf(type: string, value: unknown): BillingEvent {
   if (type === "refund.succeeded") return { kind: "refund", refundId: string(data.refund_id), paymentId: string(data.payment_id), amountCents: amount(data.amount), currency: string(data.currency) };
   const customerId = data.customer == null ? null : optionalString(record(data.customer).customer_id);
   const checkoutId = data.metadata == null ? null : optionalString(record(data.metadata).checkoutId);
-  if (type.startsWith("payment.")) return { kind: "payment", type: type.slice(8) as "succeeded" | "failed", paymentId: string(data.payment_id), subscriptionId: optionalString(data.subscription_id), customerId, checkoutId, amountCents: amount(data.total_amount), currency: string(data.currency) };
+  const accountId = data.metadata == null ? null : optionalString(record(data.metadata).accountId);
+  if (type.startsWith("payment.")) return { kind: "payment", type: type.slice(8) as "succeeded" | "failed", paymentId: string(data.payment_id), subscriptionId: optionalString(data.subscription_id), customerId, checkoutId, accountId, amountCents: amount(data.total_amount), currency: string(data.currency) };
   if (data.addons !== undefined && !Array.isArray(data.addons)) throw new BillingProviderError("refused");
   if (data.cancel_at_next_billing_date !== undefined && typeof data.cancel_at_next_billing_date !== "boolean") throw new BillingProviderError("refused");
-  return { kind: "subscription", type: type.slice(13) as Extract<BillingEvent, { kind: "subscription" }>["type"], subscriptionId: string(data.subscription_id), customerId, checkoutId,
+  return { kind: "subscription", type: type.slice(13) as Extract<BillingEvent, { kind: "subscription" }>["type"], subscriptionId: string(data.subscription_id), customerId, checkoutId, accountId,
     productId: optionalString(data.product_id), addons: (data.addons as unknown[] ?? []).map(item => { const addon = record(item); return { addonId: string(addon.addon_id), quantity: amount(addon.quantity) }; }),
     nextBillingAt: data.next_billing_date == null ? null : date(data.next_billing_date), cancelAtPeriodEnd: data.cancel_at_next_billing_date === true, status: optionalString(data.status) };
 }

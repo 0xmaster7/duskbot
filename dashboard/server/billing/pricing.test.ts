@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Cart } from "../../../shared/billing-api.ts";
 import { BILLING_CONFIG as config, catalogView, dodoProducts } from "./plans.ts";
-import { dedicatedMonthlyCents, dodoCart, dodoCreditsCart, parseCart, prorate, quote } from "./pricing.ts";
+import { changeCharge, dedicatedMonthlyCents, dodoCart, dodoCreditsCart, parseCart, quote } from "./pricing.ts";
 
 const preset = (index: number, interval: Cart["interval"] = "month"): Cart => ({ ...structuredClone(config.bundles[index].cart), interval });
 const products = Object.fromEntries(["month", "year"].flatMap(interval => ["license_solo", "license_team", "desktop_shared_s", "desktop_shared_m", "desktop_dedicated", "addon_member", "addon_shared_s", "addon_shared_m", "addon_dedicated", "addon_vcpu", "addon_ram_gb", "addon_disk_10gb"].map(key => [`${key}:${interval}`, `${key}_${interval}`])));
@@ -46,10 +46,8 @@ describe("billing pricing", () => {
     expect(dodoCart(preset(1), {})).toBeNull(); expect(dodoCart(preset(1), { "license_solo:month": "solo" })).toBeNull();
     expect(dodoCreditsCart("c10", {})).toBeNull(); expect(dodoCreditsCart("c10", { credits_c10: "credits" })).toEqual([{ productId: "credits", quantity: 1, addons: [] }]);
   });
-  it("prorates bounded upgrades and validates product configuration", () => {
-    const input = { fromTotalCents: 2000, toTotalCents: 5000, periodStart: 0, periodEnd: 100, now: 50 };
-    expect(prorate(input)).toBe(1500); expect(prorate({ ...input, now: -100 })).toBe(3000); expect(prorate({ ...input, now: 150 })).toBe(0);
-    expect(prorate({ ...input, toTotalCents: 1000 })).toBe(0); expect(prorate({ ...input, periodEnd: 0 })).toBe(0);
+  it("charges the difference on upgrades, nothing on downgrades, and validates product configuration", () => {
+    expect(changeCharge(2000, 5000)).toBe(3000); expect(changeCharge(5000, 2000)).toBe(0);
     expect(dodoProducts({ OMB_DODO_PRODUCTS: '{"license_solo:month":"p1"}' })).toEqual({ "license_solo:month": "p1" });
     expect(() => dodoProducts({ OMB_DODO_PRODUCTS: '{"bad":1}' })).toThrow();
   });

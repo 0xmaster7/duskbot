@@ -11,7 +11,7 @@ export function createBillingRoutes(ctx: BillingContext) {
   return async (req: IncomingMessage, res: ServerResponse, url: URL): Promise<boolean> => {
     const path = url.pathname, method = req.method ?? "GET";
     if (!path.startsWith("/v1/billing/") && path !== "/v1/clouds" && !path.startsWith("/v1/clouds/")) return false;
-    if (path === "/v1/billing/fake/complete" && !ctx.fake) return false;
+    if (path === "/v1/billing/fake/complete" && (!ctx.fake || !["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket.remoteAddress ?? ""))) return false;
     const webhook = path === "/v1/billing/webhooks/dodo" && method === "POST";
     try {
       if (path === "/v1/billing/catalog" && method === "GET") { json(res, 200, service.catalog()); return true; }

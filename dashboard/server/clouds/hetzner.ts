@@ -21,7 +21,7 @@ interface Api { server?: Server; servers?: Server[]; volume?: Volume; volumes?: 
 export function createHetznerProvider(options: { token: string; fetch?: typeof fetch; baseUrl?: string; image?: string; serverTypes?: HetznerServerType[] }): CloudProvider {
   const fetcher = options.fetch ?? fetch, base = (options.baseUrl ?? "https://api.hetzner.cloud/v1").replace(/\/$/, ""), types = options.serverTypes ?? HETZNER_SERVER_TYPES;
   const cloudIds = new Map<string, string>();
-  function choose(spec: MachineSpec) { const type = types.find(t => t.vcpu >= spec.vcpu && t.ramGb >= spec.ramGb); if (!type) throw new Error("Cloud machine size unavailable."); return type; }
+  function choose(spec: MachineSpec, diskGb = 0) { const type = types.find(t => t.vcpu >= spec.vcpu && t.ramGb >= spec.ramGb && t.diskGb >= diskGb); if (!type) throw new Error("Cloud machine size unavailable."); return type; }
   async function request(method: string, path: string, body?: unknown, missingOk = false): Promise<Api | null> {
     try {
       const response = await fetcher(`${base}${path}`, { method, redirect: "error", signal: AbortSignal.timeout(20_000), headers: { authorization: `Bearer ${options.token}`, "content-type": "application/json" }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
@@ -67,45 +67,36 @@ export function createHetznerProvider(options: { token: string; fetch?: typeof f
     async create(input) {
       const existing = await provider.find(input.cloudId); if (existing) return existing;
       const type = choose(input.spec), labels = { omb_cloud: input.cloudId };
-      let volume: Volume | undefined;
-      if (input.spec.diskGb > type.diskGb) {
-        volume = (await volumes(input.cloudId))[0];
-        if (!volume) volume = (await request("POST", "/volumes", { size: input.spec.diskGb - type.diskGb, name: input.cloudId, location: input.region, labels, format: "ext4" }))?.volume;
-        if (!volume) throw new Error("Cloud provider returned no volume.");
-      }
-      const data = await request("POST", "/servers", { name: input.cloudId, server_type: type.name, image: options.image ?? "ubuntu-24.04", location: input.region, user_data: input.userData, labels, start_after_create: true, public_net: { enable_ipv4: true, enable_ipv6: true }, ...(volume ? { volumes: [volume.id], automount: true } : {}) });
+      let volume: Volume | undefined = (await volumes(input.cloudId))[0];
+      if (!volume) volume = (await request("POST", "/volumes", { size: input.spec.diskGb, name: input.cloudId, location: input.region, labels, format: "ext4" }))?.volume;
+      if (!volume) throw new Error("Cloud provider returned no volume.");
+      const data = await request("POST", "/servers", { name: input.cloudId, server_type: type.name, image: options.image ?? "ubuntu-24.04", location: input.region, user_data: input.userData, labels, start_after_create: true, public_net: { enable_ipv4: true, enable_ipv6: true }, volumes: [volume.id], automount: false });
       if (!data?.server) throw new Error("Cloud provider returned no server.");
       const server = mapped(data.server);
       cloudIds.set(server.id, input.cloudId);
-      if (volume) await request("PUT", `/volumes/${volume.id}`, { labels: { ...labels, omb_server: server.id } });
-      return { ...server, diskGb: type.diskGb + (volume?.size ?? 0) };
+      await request("PUT", `/volumes/${volume.id}`, { labels: { ...labels, omb_server: server.id } });
+      return { ...server, diskGb: volume.size };
     },
     async status(id) { const data = await request("GET", `/servers/${encodeURIComponent(id)}`, undefined, true); return data?.server ? mapped(data.server) : { id, state: "missing", ipv4: null, serverType: "", diskGb: 0 }; },
     async power(id, action) { await request("POST", `/servers/${encodeURIComponent(id)}/actions/${action === "on" ? "poweron" : "shutdown"}`, {}); },
+    async suspend(id) { await request("POST", `/servers/${encodeURIComponent(id)}/actions/poweroff`, {}); },
     async resize(id, spec) {
       const data = await request("GET", `/servers/${encodeURIComponent(id)}`, undefined, true);
       if (!data?.server) throw new Error("Cloud server unavailable.");
       const status = mapped(data.server);
       if (status.state !== "off") throw new Error("Cloud server must be off to resize.");
-      const type = choose(spec);
-      if (spec.diskGb > status.diskGb) {
-        const cloudId = cloudIds.get(id);
-        if (!cloudId) throw new Error("Cloud server unavailable.");
-        const disks = await volumes(cloudId), total = disks.reduce((sum, disk) => sum + disk.size, status.diskGb);
-        let volume = disks[0];
-        if (total < spec.diskGb) {
-          if (volume) await request("POST", `/volumes/${volume.id}/actions/resize`, { size: volume.size + spec.diskGb - total });
-          else {
-            const region = data.server.datacenter?.location.name;
-            if (!region) throw new Error("Cloud server location unavailable.");
-            const created = await request("POST", "/volumes", { size: spec.diskGb - total, name: cloudId, location: region, labels: { omb_cloud: cloudId, omb_server: id }, format: "ext4" });
-            if (!created?.volume) throw new Error("Cloud provider returned no volume.");
-            volume = created.volume;
-          }
-        }
-        if (volume?.server === null) await request("POST", `/volumes/${volume.id}/actions/attach`, { server: Number(id), automount: true });
-      }
+      const type = choose(spec, status.diskGb), cloudId = cloudIds.get(id);
+      if (!cloudId) throw new Error("Cloud server unavailable.");
+      const disks = await volumes(cloudId);
+      if (disks.length !== 1 || disks[0].server !== Number(id)) throw new Error("Cloud data volume unavailable.");
+      if (disks[0].size < spec.diskGb) await request("POST", `/volumes/${disks[0].id}/actions/resize`, { size: spec.diskGb });
       await request("POST", `/servers/${encodeURIComponent(id)}/actions/change_type`, { server_type: type.name, upgrade_disk: false });
+    },
+    async cleanup(cloudId) {
+      for (const volume of await volumes(cloudId)) {
+        if (volume.server !== null) throw new RetryableCloudError();
+        await request("DELETE", `/volumes/${volume.id}`, undefined, true);
+      }
     },
     async destroy(id) {
       const data = await request("GET", `/servers/${encodeURIComponent(id)}`, undefined, true);

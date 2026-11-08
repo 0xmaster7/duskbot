@@ -37,7 +37,7 @@ describe("dodo HTTP provider fixture", () => {
     expect(requests[0].url).toBe(`/customers/cus%2F1/customer-portal/session?return_url=${encodeURIComponent(input.returnUrl)}`);
     reply = {}; await p.cancelAtPeriodEnd("sub/1", true); await p.changePlan({ subscriptionId: "sub/1", productId: "new", addons: [{ addonId: "cpu", quantity: 8 }] });
     expect(requests[1]).toMatchObject({ method: "PATCH", url: "/subscriptions/sub%2F1", body: { cancel_at_next_billing_date: true } });
-    expect(requests[2]).toMatchObject({ method: "POST", url: "/subscriptions/sub%2F1/change-plan", body: { product_id: "new", quantity: 1, proration_billing_mode: "prorated_immediately", addons: [{ addon_id: "cpu", quantity: 8 }] } });
+    expect(requests[2]).toMatchObject({ method: "POST", url: "/subscriptions/sub%2F1/change-plan", body: { product_id: "new", quantity: 1, proration_billing_mode: "difference_immediately", on_payment_failure: "prevent_change", addons: [{ addon_id: "cpu", quantity: 8 }] } });
     expect(await p.invoiceUrl("pay")).toBeNull(); contentType = "application/pdf"; reply = Buffer.from("%PDF-fixture");
     expect(await p.invoicePdf("pay/1")).toEqual({ contentType, body: reply }); expect(requests[3].url).toBe("/invoices/payments/pay%2F1");
     status = 404; expect(await p.invoicePdf("missing")).toBeNull();

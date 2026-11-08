@@ -90,6 +90,7 @@ it("runs the dashboard billing lifecycle over HTTP, including signed workspace r
   expect(cloud).toMatchObject({ status: "running", origin: expect.stringMatching(/^https:\/\//), workspaceId: expect.stringMatching(/^ws_/) });
   const workspaces = await f.answer<{ workspaces: Array<{ id: string }> }>("/v1/workspaces", undefined, cookie); expect(workspaces.workspaces[0].id).toBe(cloud.workspaceId);
   expect(f.dashboard.state.workspaces[0].ownerAccountId).toBe(account.id);
+  expect(JSON.parse(readFileSync(join(f.dir, "state.json"), "utf8")).workspaces[0].id).toBe(cloud.workspaceId);
   const call = f.billing.fakePool!.calls.find(c => c.method === "createSlot")!;
   const bootstrap = JSON.parse((call.input as { bootstrap: string }).bootstrap) as { files: Array<{ path: string; content: string; mode: number }> };
   const link = JSON.parse(bootstrap.files[0].content) as { workspaceId: string; privateKey: string };
@@ -187,4 +188,10 @@ it("keeps billing off outside loopback, checks startup configuration, and never 
   const checkout = await noClouds.service.checkout({ id: "a", email: "a@example.test" }, { kind: "cart", cart: { ...BILLING_CONFIG.bundles[1].cart, interval: "month" } });
   for (const delivery of noClouds.fake!.complete([...noClouds.fake!.sessions.keys()][0])) noClouds.service.handleWebhook(delivery.headers, delivery.body);
   await noClouds.clouds.reconcile(); expect(noClouds.clouds.get(checkout.cloudId!)!).toMatchObject({ status: "provisioning", error: "Cloud desktops are not configured." });
+});
+
+it("never mounts fake completion at a public origin even when fake mode is explicitly configured", async () => {
+  const billing = createBilling(options({ env: { OMB_BILLING_PROVIDER: "fake" } })); cleanup.push(() => billing.close());
+  const origin = await listen(createServer(async (req, res) => { if (!await billing.handle(req, res, new URL(req.url!, "https://dashboard.example.test"))) { res.writeHead(404); res.end(); } }));
+  expect((await fetch(`${origin}/v1/billing/fake/complete`, { method: "POST", body: "{}" })).status).toBe(404);
 });

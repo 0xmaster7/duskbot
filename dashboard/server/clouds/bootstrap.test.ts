@@ -58,7 +58,9 @@ systemctl(){ printf 'systemctl %s\n' "$*" >> "$fixture/commands"; }
   expect(files.get("/etc/caddy/Caddyfile")?.content).toBe("203-0-113-2.sslip.io {\n reverse_proxy 127.0.0.1:8080\n}\n");
   const commands = readFileSync(join(dir, "commands"), "utf8").trim().split("\n");
   expect(commands).toEqual([
-    "apt-get update", "apt-get install -y ca-certificates curl caddy nodejs", "apt-get install -y docker.io", "systemctl enable --now docker",
+    "apt-get update", "apt-get install -y ca-certificates curl caddy nodejs", "apt-get install -y docker.io e2fsprogs", "install -d -m 755 /etc/systemd/system/docker.service.d",
+    "install -m 700 /dev/stdin /usr/local/sbin/omb-storage", "install -m 644 /dev/stdin /etc/systemd/system/omb-storage.service",
+    "install -m 644 /dev/stdin /etc/systemd/system/docker.service.d/omb-storage.conf", "systemctl daemon-reload", "systemctl enable --now omb-storage", "systemctl enable --now docker",
     "install -d -m 700 /srv/omb-data /srv/omb-data/.openmausbot",
     `docker run --rm --entrypoint id ${image} -u maus`, `docker run --rm --entrypoint id ${image} -g maus`,
     "chown -R 1234:5678 /srv/omb-data",
@@ -104,4 +106,22 @@ it("gives the pool image the same env, link and volume marker", () => {
   mkdirSync(join(dir, ".openmausbot"), { mode: 0o700 });
   for (const file of payload.files) writeFileSync(join(dir, file.path.slice("/data/".length)), file.content, { mode: file.mode });
   expect(prepareCloudHomeVolume(dir, cloudId)).toBe("existing");
+});
+
+it("mounts and grows the data volume before Docker starts, failing closed without exactly one disk", () => {
+  const script = dedicatedUserData({ ...input, image }), dir = temporaryDir();
+  const storage = script.split("<<'OMB_STORAGE'\n")[1].split("OMB_STORAGE\n")[0].replaceAll("/dev/disk/by-id", dir).replaceAll(" -b ", " -f ");
+  const mocks = `sleep(){ :; }
+install(){ :; }
+mountpoint(){ return 1; }
+mount(){ printf 'mount %s\\n' "$*"; }
+resize2fs(){ printf 'resize %s\\n' "$*"; }
+`;
+  expect(() => execFileSync("bash", ["-c", mocks + storage], { encoding: "utf8" })).toThrow();
+  writeFileSync(join(dir, "scsi-0HC_Volume_1"), "fixture device");
+  expect(execFileSync("bash", ["-c", mocks + storage], { encoding: "utf8" })).toBe(`mount -o discard,defaults ${dir}/scsi-0HC_Volume_1 /srv/omb-data\nresize ${dir}/scsi-0HC_Volume_1\n`);
+  writeFileSync(join(dir, "scsi-0HC_Volume_2"), "fixture device");
+  expect(() => execFileSync("bash", ["-c", mocks + storage], { encoding: "utf8" })).toThrow();
+  expect(script).toContain('Requires=omb-storage.service\nAfter=omb-storage.service');
+  expect(script.indexOf('systemctl enable --now omb-storage')).toBeLessThan(script.indexOf('node -e'));
 });

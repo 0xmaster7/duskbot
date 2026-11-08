@@ -8,7 +8,7 @@ afterEach(async () => { for (const server of active.splice(0)) { server.closeAll
 const cloudId = `c${"a".repeat(24)}`, token = "synthetic-test-token";
 async function fixture() {
   const calls: Array<{ method: string; path: string; query: URLSearchParams; body: Record<string, unknown>; authorization: string | undefined }> = [];
-  let exists = false, status = "initializing", failure = 0, volume = false, attached = false;
+  let exists = false, status = "initializing", failure = 0, volume = false, attached = false, volumeSize = 0;
   const machine = () => ({ id: 42, name: cloudId, labels: { omb_cloud: cloudId }, status, public_net: { ipv4: { ip: "203.0.113.42" } }, server_type: { name: "cx23", disk: 40 }, datacenter: { location: { name: "fsn1" } } });
   const server = createServer(async (req, res) => {
     const chunks: Buffer[] = []; for await (const chunk of req) chunks.push(Buffer.from(chunk));
@@ -21,10 +21,11 @@ async function fixture() {
     else if (url.pathname === "/servers" && req.method === "POST") { exists = true; attached = volume; answer = { server: machine() }; }
     else if (url.pathname === "/servers/42" && req.method === "GET") { if (!exists) res.statusCode = 404; else answer = { server: machine() }; }
     else if (url.pathname === "/servers/42" && req.method === "DELETE") { exists = false; attached = false; }
-    else if (url.pathname === "/volumes" && req.method === "GET") answer = { volumes: volume ? [{ id: 7, size: 60, server: attached ? 42 : null }] : [] };
-    else if (url.pathname === "/volumes" && req.method === "POST") { volume = true; answer = { volume: { id: 7, size: body.size, server: null } }; }
+    else if (url.pathname === "/volumes" && req.method === "GET") answer = { volumes: volume ? [{ id: 7, size: volumeSize, server: attached ? 42 : null }] : [] };
+    else if (url.pathname === "/volumes" && req.method === "POST") { volume = true; volumeSize = body.size; answer = { volume: { id: 7, size: body.size, server: null } }; }
     else if (url.pathname === "/volumes/7" && req.method === "DELETE") volume = false;
     else if (url.pathname === "/volumes/7/actions/attach") attached = true;
+    else if (url.pathname === "/volumes/7/actions/resize") volumeSize = body.size;
     res.end(JSON.stringify(answer));
   });
   await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve)); active.push(server);
@@ -37,14 +38,15 @@ it("creates the documented server body, looks up by label, powers, resizes while
   const input = { cloudId, region: "fsn1", spec: { vcpu: 2, ramGb: 4, diskGb: 40 }, userData: "synthetic user data" };
   const server = await provider.create(input);
   expect(server.state).toBe("creating");
-  expect(f.calls.find(c => c.method === "POST" && c.path === "/servers")?.body).toEqual({ name: cloudId, server_type: "cx23", image: "ubuntu-24.04", location: "fsn1", user_data: input.userData, labels: { omb_cloud: cloudId }, start_after_create: true, public_net: { enable_ipv4: true, enable_ipv6: true } });
+  expect(f.calls.find(c => c.method === "POST" && c.path === "/servers")?.body).toEqual({ name: cloudId, server_type: "cx23", image: "ubuntu-24.04", location: "fsn1", user_data: input.userData, labels: { omb_cloud: cloudId }, start_after_create: true, public_net: { enable_ipv4: true, enable_ipv6: true }, volumes: [7], automount: false });
   expect(f.calls[0].query.get("label_selector")).toBe(`omb_cloud==${cloudId}`);
   expect((await provider.find(cloudId))?.id).toBe("42");
   expect((await provider.create(input)).id).toBe("42"); expect(f.calls.filter(c => c.method === "POST" && c.path === "/servers")).toHaveLength(1);
   await expect(provider.resize("42", { vcpu: 4, ramGb: 8, diskGb: 40 })).rejects.toThrow("must be off");
   f.status("off"); await provider.resize("42", { vcpu: 4, ramGb: 8, diskGb: 40 });
   expect(f.calls.find(c => c.path.endsWith("change_type"))?.body).toEqual({ server_type: "cx33", upgrade_disk: false });
-  await provider.power("42", "on"); await provider.power("42", "off");
+  await provider.power("42", "on"); await provider.power("42", "off"); await provider.suspend!("42", "abuse");
+  expect(f.calls.some(c => c.path.endsWith("poweroff"))).toBe(true);
   expect(f.calls.some(c => c.path.endsWith("poweron"))).toBe(true); expect(f.calls.some(c => c.path.endsWith("shutdown"))).toBe(true);
   await provider.destroy("42"); await provider.destroy("42"); expect((await provider.status("42")).state).toBe("missing");
   expect(f.calls.every(c => c.authorization === `Bearer ${token}`)).toBe(true);
@@ -58,8 +60,8 @@ it("creates an additional disk first and cleans it up by label after the machine
   await f.provider.create({ cloudId, region: "fsn1", spec: { vcpu: 2, ramGb: 4, diskGb: 100 }, userData: "" });
   const volumeIndex = f.calls.findIndex(c => c.path === "/volumes" && c.method === "POST"), serverIndex = f.calls.findIndex(c => c.path === "/servers" && c.method === "POST");
   expect(volumeIndex).toBeLessThan(serverIndex);
-  expect(f.calls[volumeIndex].body).toMatchObject({ size: 60, name: cloudId, location: "fsn1", labels: { omb_cloud: cloudId }, format: "ext4" });
-  expect(f.calls[serverIndex].body).toMatchObject({ volumes: [7], automount: true });
+  expect(f.calls[volumeIndex].body).toMatchObject({ size: 100, name: cloudId, location: "fsn1", labels: { omb_cloud: cloudId }, format: "ext4" });
+  expect(f.calls[serverIndex].body).toMatchObject({ volumes: [7], automount: false });
   await f.provider.destroy("42");
   expect(f.calls.some(c => c.path === "/volumes/7" && c.method === "DELETE")).toBe(true);
 });
@@ -76,9 +78,22 @@ it("grows an extra disk without upgrading the machine's root disk", async () => 
   await f.provider.create({ cloudId, region: "fsn1", spec: { vcpu: 2, ramGb: 4, diskGb: 40 }, userData: "" });
   f.status("off");
   await f.provider.resize("42", { vcpu: 2, ramGb: 4, diskGb: 100 });
-  expect(f.calls.find(c => c.path === "/volumes" && c.method === "POST")?.body).toMatchObject({ size: 60, labels: { omb_cloud: cloudId, omb_server: "42" } });
-  expect(f.calls.find(c => c.path.endsWith("/actions/attach"))?.body).toEqual({ server: 42, automount: true });
+  expect(f.calls.find(c => c.path.endsWith("/actions/resize"))?.body).toEqual({ size: 100 });
   await f.provider.resize("42", { vcpu: 2, ramGb: 4, diskGb: 120 });
-  expect(f.calls.find(c => c.path.endsWith("/actions/resize"))?.body).toEqual({ size: 80 });
+  expect(f.calls.filter(c => c.path.endsWith("/actions/resize")).at(-1)?.body).toEqual({ size: 120 });
   expect(f.calls.filter(c => c.path.endsWith("change_type")).every(c => c.body.upgrade_disk === false)).toBe(true);
+});
+
+it("cleans up an unattached volume left by a failed server creation", async () => {
+  const calls: string[] = [];
+  const provider = createHetznerProvider({ token, fetch: async (url, init) => {
+    const path = new URL(String(url)).pathname; calls.push(`${init?.method} ${path}`);
+    if (path.endsWith("/servers") && init?.method === "GET") return Response.json({ servers: [] });
+    if (path.endsWith("/volumes") && init?.method === "GET") return Response.json({ volumes: [{ id: 7, size: 100, server: null }] });
+    if (path.endsWith("/servers") && init?.method === "POST") return Response.json({}, { status: 500 });
+    return new Response(null, { status: 204 });
+  } });
+  await expect(provider.create({ cloudId, region: "fsn1", spec: { vcpu: 2, ramGb: 4, diskGb: 100 }, userData: "" })).rejects.toMatchObject({ retryable: true });
+  await provider.cleanup!(cloudId);
+  expect(calls).toContain("DELETE /v1/volumes/7");
 });
