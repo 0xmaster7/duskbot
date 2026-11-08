@@ -70,6 +70,7 @@ export function UsageChart({ days, series }: { days: string[]; series: UsageSeri
         {days.map((d, i) => (i % every === 0 || i === days.length - 1) && (i === days.length - 1 || days.length - 1 - i >= every) ? (
           <text key={d} x={x(i)} y={H - 8} textAnchor={days.length > 1 && i === 0 ? "start" : days.length > 1 && i === days.length - 1 ? "end" : "middle"} style={{ fill: "var(--ink-4)", fontSize: 12 }}>{shortDate(parseDay(d))}</text>
         ) : null)}
+        <g className="draw-in">
         {[...series].reverse().map((s) => {
           const i = series.indexOf(s);
           const color = SERIES_COLORS[i % SERIES_COLORS.length]!;
@@ -81,6 +82,7 @@ export function UsageChart({ days, series }: { days: string[]; series: UsageSeri
             </g>
           );
         })}
+        </g>
         {at !== null && (
           <g>
             <line x1={x(at)} x2={x(at)} y1={PAD.top} y2={PAD.top + ih} style={{ stroke: "var(--line-2)" }} />

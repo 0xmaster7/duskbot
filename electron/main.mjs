@@ -9,6 +9,7 @@ import { buildErrorPage, desktopViewerErrorPage } from "./error-pages.mjs";
 import { startCua, stopCua, registerCuaIpc, setCuaStateListener, grantLocalComputer } from "./cua.mjs";
 import { finishSpeech, speechBusy, startSpeech, stopSpeech } from "./speech.mjs";
 import { installTalk, isTalkPanel } from "./talk-main.mjs";
+import { installAmbient, isAmbientWindow } from "./ambient-main.mjs";
 import { openBlankTerminal } from "./terminal-launch.mjs";
 import { linuxDisablesGpu } from "./linux-gpu.mjs";
 import { pasteMenuItem } from "./paste-menu-item.mjs";
@@ -140,7 +141,7 @@ let desktopWorkspaceManager = null;
 let desktopWorkspaceOwner = null;
 let pendingOrganizationEntry = takeOrganizationDeepLink(process.argv);
 function appWindows() {
-  return BrowserWindow.getAllWindows().filter((win) => !isTalkPanel(win));
+  return BrowserWindow.getAllWindows().filter((win) => !isTalkPanel(win) && !isAmbientWindow(win));
 }
 const cloudEntry = createCloudEntry({
   reveal: () => { if (!desktopTray?.show()) activateExistingWindow(appWindows()); },
@@ -306,7 +307,7 @@ const serverSupervisor = createServerSupervisor({
     setLocalOrigin(confirmedRendererOrigin());
     serverStartConflictOnly = false;
     slog(`server ready pid=${proc.pid} port=${SERVER_PORT}`);
-    syncManagedComposioCredentials(); includedX.serverStarted(); includedPages.serverStarted(); railChanged();
+    syncManagedComposioCredentials(); includedX.serverStarted(); includedPages.serverStarted(); railChanged(); ambientSurfaces.refresh();
     reportOwnListeners(proc);
     orgLibrary?.runtimeReady();
     if (managedDesktop) void managedDesktop.refresh().catch(() => {});
@@ -2404,6 +2405,9 @@ ipcMain.handle("desktop:relaunch", localOnly("desktop:relaunch", (event) => {
 
 const talk = installTalk({ ipcMain, localOnly, localOrHome, BrowserWindow, appleSpeech: nativeActions.appleSpeech,
   speech: { start: startSpeech, stop: stopSpeech, finish: finishSpeech, busy: speechBusy }, packaged: app.isPackaged, devUrl: DEV_URL, nativeImage, iconPath: APP_ICON, openLink: queueChatLink, reveal: revealForLink, log: slog });
+// the notch island and the bot dock (ambient-main.mjs), fed by the app page's own summary of its bots
+const ambientSurfaces = installAmbient({ ipcMain, BrowserWindow, page: () => mainWindow?.webContents ?? null, origin: confirmedRendererOrigin, file: jsonFile(path.join(app.getPath("userData"), "ambient-prefs.json")),
+  openChat: (botId, threadId) => queueChatLink(`openmausbot://thread/${encodeURIComponent(threadId)}?bot=${encodeURIComponent(botId)}`), reveal: revealForLink, log: slog });
 
 ipcMain.handle("companion:state", localOnly("companion:state", () => desktopCompanionState()));
 function managedRemoteAccessRefusal() {
@@ -2987,6 +2991,7 @@ app.whenReady().then(async () => {
     },
     page: event => senderIsLocal(event) ? "local" : cloudPageAsking(event) ?? (workspaceSenderAllowed(event, mainWindow?.webContents, environmentsState, rendererOrigin()) ? "server" : null) });
   talk.start({ globalShortcut, screen, prefs: desktopPrefs, remote: () => Boolean(desktopRemoteAccess), away: () => homeWindow.current().kind !== "computer", starting: () => !serverReady, localRequest: localServerRequest, dataDir: () => runningDataDir });
+  ambientSurfaces.start(screen);
   setLocalOrigin(confirmedRendererOrigin());
   session.defaultSession.webRequest.onCompleted({ urls: ["https://*/api/*"] }, details => homeWindow.responded(details));
   appPermissions = appPermissionHandlers({
@@ -3171,7 +3176,7 @@ process.once("SIGINT", requestSignalQuit);
 process.once("SIGTERM", requestSignalQuit);
 
 app.on("before-quit", (e) => {
-  talk.close();
+  talk.close(); ambientSurfaces.close();
   desktopShutdownStarted = true;
   startupScreen?.dispose();
   companyBackupSchedule?.close();

@@ -13,6 +13,7 @@ import { productName } from "../lib/brand";
 import { AccountsSheet, useAccounts } from "./AccountMenu";
 import { AboutDialog } from "./AboutDialog";
 import { AdminOnly } from "./AdminOnly";
+import { AmbientRows } from "./AmbientSettingsRows";
 import { BotDefaultsRows } from "./SettingsBots";
 import { ActivitySection } from "./ActivitySection";
 import { ArchivedBotsPanel } from "./ArchivedBotsPanel";
@@ -186,6 +187,7 @@ export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boo
           <LanguageRow simple />
           <TalkingStyleRow />
           <PlaceLookRows />
+          <AmbientRows />
         </SettingsRows>
       </SettingsGroup>
       {!remoteActive && (

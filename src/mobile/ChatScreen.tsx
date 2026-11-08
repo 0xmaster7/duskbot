@@ -23,6 +23,7 @@ export function ChatScreen({ bot, group, members, onBack, onProfile, onComputer 
   return (
     <div data-mobile-chat className="relative flex h-full flex-col">
       {group ? <GroupView key={group.id} group={group} /> : bot ? <ChatView bot={bot} /> : null}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-[29] h-[calc(var(--m-safe-top)+68px)] bg-gradient-to-b from-app from-55% to-transparent" />
       <nav
         aria-label={t("mobile.chat.nav", { name })}
         className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center gap-2 px-3 pt-[calc(var(--m-safe-top)+6px)]"

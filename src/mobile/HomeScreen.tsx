@@ -116,13 +116,21 @@ export function HomeScreen({ onOpenChat, onOpenSheet }: { onOpenChat: (id: strin
                     ))}
                   </section>
                 )}
-                <ul role="list" aria-label={t("mobile.home.chats")} className="px-2">
-                  {entries.map((entry) => (
-                    <li key={entry.id}>
-                      <HomeRow entry={entry} onOpen={onOpenChat} onMenu={openMenu} />
-                    </li>
-                  ))}
-                </ul>
+                {entries.length > 0 ? (
+                  <ul role="list" aria-label={t("mobile.home.chats")} className="px-2">
+                    {entries.map((entry) => (
+                      <li key={entry.id}>
+                        <HomeRow entry={entry} onOpen={onOpenChat} onMenu={openMenu} />
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="mx-4 mt-4 flex flex-col items-start gap-3 rounded-[20px] bg-ink/[0.04] px-5 py-5">
+                    <p className="text-[16px] font-semibold text-ink">{t("mobile.home.onlyPinnedTitle")}</p>
+                    <p className="text-[14px] leading-5 text-ink-secondary">{t("mobile.home.onlyPinnedBody")}</p>
+                    <button type="button" onClick={() => onOpenSheet({ kind: "create" })} className="mobile-press mt-1 flex h-11 items-center gap-2 rounded-full bg-ink px-5 text-[15px] font-medium text-app"><Plus size={18} />{t("mobile.home.emptyAction")}</button>
+                  </div>
+                )}
               </>
             )}
           </div>

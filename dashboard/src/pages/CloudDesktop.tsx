@@ -5,14 +5,17 @@ import type { CloudDesktop, DesktopTier, PlanCatalog } from "../data/contracts";
 import { botsLine, desktopMonthly, desktopOf, dollars, specLine } from "../data/pricing";
 import { useSession } from "../data/session";
 import { longDate } from "../lib/format";
+import { SETUP_LABELS } from "../data/live";
+import { SETUP_STEPS } from "../data/wire";
 import { Link } from "../lib/router";
-import { APP_LINK } from "../lib/usage";
+import { appLink, openApp } from "../lib/app-link";
 import { Choice, Modal } from "../ui/controls";
-import { Button, ButtonLink, Card, cx, KV, PageHeader, SectionTitle, Skeleton } from "../ui/kit";
+import { Button, Card, cx, KV, PageHeader, SectionTitle, Skeleton } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
 import { useWorkspaceDetail } from "../data/detail";
 import { CloudPitch, CloudStatus, PowerButton, Provisioning, regionName, tierName } from "./cloud-bits";
 import { MachineView } from "./Machine";
+import { useNow } from "../lib/now";
 
 /** no cloud desktop yet: the one pitch, then the sizes it comes in */
 function Empty() {
@@ -21,7 +24,7 @@ function Empty() {
     <div className="flex flex-col gap-4">
       <CloudPitch title="Keep your bots on 24/7" body="A cloud desktop of your own runs your bots all day and all night, even while your Mac sleeps." link={{ to: "/workspaces#add", label: "Use my own server instead" }} />
       <Card className="enter" style={{ ["--i" as string]: 1 }} aria-labelledby="sizes-title">
-        <SectionTitle id="sizes-title" action={<Link to="/billing#cloud" className="hover-link inline-flex h-8 items-center text-13 text-ink-3">Plans & billing</Link>}>Sizes</SectionTitle>
+        <SectionTitle id="sizes-title" action={<Link to="/billing" className="hover-link inline-flex h-8 items-center text-13 text-ink-3">Plans & billing</Link>}>Sizes</SectionTitle>
         {catalog ? (
           <ul className="divide-y divide-line">
             {catalog.desktops.map((d) => (
@@ -40,7 +43,7 @@ function Empty() {
   );
 }
 
-const STEPS = ["Reserving your machine", "Installing OpenMausBot", "Linking it to your account", "Waking your bots"];
+const STEPS: string[] = SETUP_STEPS.map((step) => SETUP_LABELS[step]);
 
 function SettingUp({ cloud }: { cloud: CloudDesktop }) {
   const at = Math.max(0, STEPS.indexOf(cloud.progress?.step ?? ""));
@@ -128,7 +131,8 @@ function Size({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog })
 
 function Live({ cloud }: { cloud: CloudDesktop }) {
   const { catalog, billing } = useCloud();
-  const { now, pick, workspace } = useSession();
+  const { pick, workspace } = useSession();
+  const now = useNow();
   const detail = useWorkspaceDetail(cloud.workspaceId);
   useEffect(() => { if (cloud.workspaceId && workspace?.id !== cloud.workspaceId) pick(cloud.workspaceId); }, [cloud.workspaceId, workspace?.id, pick]);
   const asleep = cloud.status === "sleeping" || cloud.status === "stopped";
@@ -161,7 +165,7 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
             <KV k="Created" v={longDate(cloud.createdAt)} />
             {sub && <KV k={sub.cancelAt ? "Ends" : "Renews"} v={longDate(sub.cancelAt ?? sub.currentPeriodEnd)} />}
           </dl>
-          <p className="mt-4 text-13 text-ink-3">To remove it, cancel it in <Link to="/billing#cloud" className="hover-link underline decoration-line-2 underline-offset-4">Plans & billing</Link>.</p>
+          <p className="mt-4 text-13 text-ink-3">To remove it, cancel it in <Link to="/billing" className="hover-link underline decoration-line-2 underline-offset-4">Plans & billing</Link>.</p>
         </Card>
         {catalog ? <Size cloud={cloud} catalog={catalog} /> : <Skeleton className="h-[220px] !rounded-card" />}
       </div>
@@ -187,7 +191,7 @@ export function CloudDesktopPage() {
       <PageHeader
         title={cloud.name}
         sub={<span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1"><CloudStatus cloud={cloud} /><span className="text-13 text-ink-4">{tierName(catalog, cloud)} · {regionName(catalog, cloud.region)}</span></span>}
-        action={cloud.status === "provisioning" ? undefined : <div className="flex gap-2"><PowerButton cloud={cloud} size="md" /><ButtonLink to={APP_LINK} external variant={running ? "primary" : "outline"}><AppWindow size={16} strokeWidth={1.5} aria-hidden />Open in the app</ButtonLink></div>}
+        action={cloud.status === "provisioning" ? undefined : <div className="flex gap-2"><PowerButton cloud={cloud} size="md" /><Button variant={running ? "primary" : "outline"} onClick={() => openApp(appLink.cloud)}><AppWindow size={16} strokeWidth={1.5} aria-hidden />Open in the app</Button></div>}
       />
       {cloud.status === "provisioning" ? <SettingUp cloud={cloud} /> : <Live cloud={cloud} />}
     </div>

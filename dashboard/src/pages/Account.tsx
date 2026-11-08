@@ -6,10 +6,12 @@ import { useCloud } from "../data/cloud";
 import type { IdentityProvider, NotificationPrefs } from "../data/contracts";
 import { useSession } from "../data/session";
 import { api, ApiError } from "../lib/api";
+import { API_DOCS } from "../lib/usage";
 import { ago } from "../lib/format";
 import { setTheme, useTheme, type ThemePref } from "../lib/theme";
 import { Field, Modal, Switch } from "../ui/controls";
 import { Button, ButtonLink, PageHeader, SectionTitle, Segmented, Skeleton } from "../ui/kit";
+import { useNow } from "../lib/now";
 
 const PROVIDERS: Array<{ id: IdentityProvider; label: string }> = [{ id: "google", label: "Google" }, { id: "apple", label: "Apple" }, { id: "x", label: "X" }, { id: "email", label: "Email" }];
 const NOTIFICATIONS: Array<{ id: keyof NotificationPrefs; label: string; hint: string }> = [
@@ -23,7 +25,8 @@ const ICON = { size: 16, strokeWidth: 1.5 } as const;
 export function AccountPage() {
   const cloud = useCloud();
   const { account } = cloud;
-  const { setAccount, now, toast } = useSession();
+  const { setAccount, toast } = useSession();
+  const now = useNow();
   const theme = useTheme();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
@@ -125,6 +128,10 @@ export function AccountPage() {
     <section className="mt-10" aria-labelledby="appearance-title">
       <SectionTitle id="appearance-title">Appearance</SectionTitle>
       <div className="divide-y divide-line"><div className="flex flex-wrap items-center justify-between gap-3 py-3"><span className="text-14 text-ink">Theme</span><Segmented<ThemePref> label="Theme" value={theme} onChange={setTheme} options={[{ value: "dark", label: "Dark" }, { value: "light", label: "Light" }, { value: "system", label: "System" }]} /></div></div>
+    </section>
+    <section className="mt-10" aria-labelledby="api-title">
+      <SectionTitle id="api-title">Developers</SectionTitle>
+      <p className="text-14 text-ink-3">Drive your bots from your own scripts with the bot API. <a href={API_DOCS} target="_blank" rel="noreferrer" className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">Read the API docs</a></p>
     </section>
     <section className="mt-10" aria-labelledby="delete-title">
       <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line py-3"><div className="min-w-0 flex-1"><SectionTitle id="delete-title">Delete account</SectionTitle><p className="text-13 text-ink-3">Close your account and remove its workspaces from the dashboard.</p></div><Button variant="danger" disabled={busy !== null} onClick={() => { setConfirmError(null); setConfirmEmail(""); setConfirm("delete"); }}>Delete account</Button></div>

@@ -306,6 +306,8 @@ const __APP_VERSION__: string;
       speechStop(): Promise<void>;
       /** Finish capture and emit the recognizer's final transcript. */
       speechFinish?(): Promise<void>;
+      /** The notch island and the bot dock: their choices, and this page's summary of its bots for them. */
+      ambient?: import("../ambient/types").AmbientAppBridge;
       /** This computer's page only: Settings → General's talk shortcut. */
       talkShortcut?: import("../../electron/talk-shortcut.mjs").TalkShortcutBridge;
       /** A call holds the microphone, so the talk shortcut waits. */

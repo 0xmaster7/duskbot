@@ -1986,6 +1986,23 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(other.onDemand).toContain("browser");
   });
 
+  it("loads the computer's tools up front on a turn likely to use it, and keeps them while the engine stays warm", async () => {
+    await create();
+    const dump = join(scratch, "computer-preload.json");
+    process.env.FAKE_CLAUDE_DUMP = dump;
+    const integrations = { localComputer: { command: process.execPath, args: ["/fake/computer.js"], env: {} } };
+    const turn = async (preloadComputerTools: boolean) => {
+      const { turnId } = await instance.adapter.sendTurn({ threadId: "t-computer-preload", text: "hi", cwd: scratch, preloadComputerTools, integrations });
+      await recorder.until((e) => e.type === "turn.completed" && e.turnId === turnId);
+      const seen = JSON.parse(readFileSync(dump, "utf8")) as { pid: number; mcpConfig: { mcpServers: Record<string, { alwaysLoad?: boolean }> } };
+      return { pid: seen.pid, preloaded: seen.mcpConfig.mcpServers.computer?.alwaysLoad === true };
+    };
+    const first = await turn(true);
+    expect(first.preloaded).toBe(true);
+    const next = await turn(false);
+    expect(next).toEqual(first);
+  });
+
   it("honours a person who turned Claude Code's tool search off, and restarts when they change it", async () => {
     const account = join(scratch, "account");
     mkdirSync(account);

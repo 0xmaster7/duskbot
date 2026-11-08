@@ -24,6 +24,9 @@
   --cell: #1f1f1f;
   --accent: #4d9bff;
   --accent-ink: #6aabff;
+  /* the accent as a filled surface under white text */
+  --accent-fill: #2f72cc;
+  --accent-fill-hover: #2966b8;
   --heat-1: #173257;
   --heat-2: #1f4f8c;
   --heat-3: #2f72cc;
@@ -55,6 +58,8 @@
   --cell: #ececec;
   --accent: #126fd4;
   --accent-ink: #0b69cc;
+  --accent-fill: #126fd4;
+  --accent-fill-hover: #0f62bd;
   --heat-1: #c9ddf8;
   --heat-2: #8fb8ef;
   --heat-3: #4b8fe3;
@@ -95,6 +100,8 @@
   --text-34--line-height: 40px;
   --text-44: 44px;
   --text-44--line-height: 50px;
+  --text-56: 56px;
+  --text-56--line-height: 56px;
 
   --color-bg: var(--bg);
   --color-side: var(--side);
@@ -110,6 +117,7 @@
   --color-cell: var(--cell);
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
+  --color-accent-fill: var(--accent-fill);
   --color-good: var(--good);
   --color-warn: var(--warn);
   --color-bad: var(--bad);
@@ -175,9 +183,23 @@
   from { transform: translateX(-100%); }
   to { transform: translateX(260%); }
 }
+@keyframes swap-in {
+  from { opacity: 0; filter: blur(4px); }
+  to { opacity: 1; filter: none; }
+}
+@keyframes draw-in {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
 @keyframes peek {
   from { transform: translateY(70%); }
   to { transform: translateY(0); }
+}
+
+/* the spacing scale is in rems over a 14px root, so size-11 draws 38.5px; on touch screens it steps in whole 4px
+   so a 44px target is 44px */
+@media (pointer: coarse) {
+  :root { --spacing: 4px; }
 }
 
 @layer base {
@@ -199,10 +221,24 @@
   button { cursor: pointer; font: inherit; color: inherit; }
   button:disabled { cursor: not-allowed; }
   input { font: inherit; color: inherit; }
+  /* on touch, every control answers a 44px square around its centre, whatever its drawn size; positioned
+     utilities win over this layer, so absolute and fixed controls keep their place; a stretched row link keeps its own */
+  @media (pointer: coarse) {
+    :where(button, a[href], summary, [role="button"], [role="radio"], [role="tab"]):not([class*="after:"]) { position: relative; }
+    :where(button, a[href], summary, [role="button"], [role="radio"], [role="tab"]):not([class*="after:"])::after {
+      content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%);
+    }
+  }
 }
 
 @layer components {
   .num { font-variant-numeric: tabular-nums; }
+  /* the type roles (README, "Type"): geist sans everywhere, mono for ids; no serif, no pixel face */
+  .t-title { font-weight: 600; font-size: 28px; line-height: 34px; letter-spacing: -0.022em; color: var(--ink); }
+  @media (max-width: 639px) { .t-title { font-size: 24px; line-height: 30px; } }
+  .t-figure { font-weight: 600; font-size: 26px; line-height: 32px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .t-pixel { font-size: 12px; line-height: 16px; }
+  .t-id { font-family: var(--font-mono); font-size: 13px; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
   .enter { animation: enter var(--dur-slow) var(--ease-out) both; animation-delay: calc(var(--i, 0) * 40ms); }
   .fade-in { animation: fade var(--dur-base) var(--ease-out) both; }
   .peek { animation: peek var(--dur-long) var(--ease-out) both; animation-delay: calc(240ms + var(--i, 0) * 90ms); }
@@ -224,6 +260,10 @@
   .bar-fill { transition: transform var(--dur-slow) var(--ease-out); transform-origin: left; }
   .swap { transition: opacity var(--dur-fast) ease, filter var(--dur-fast) ease; }
   .step-in { animation: step-in var(--dur-base) var(--ease-out) both; }
+  /* switched content comes in out of a soft blur instead of sliding (cooking-v2 kit card: content switch) */
+  .swap-in { animation: swap-in var(--dur-base) var(--ease-out) both; }
+  /* a chart draws once, left to right, when it first shows */
+  .draw-in { animation: draw-in var(--dur-long) var(--ease-out) both; }
   .modal-in { animation: modal-in 260ms var(--ease-out) both, fade var(--dur-fast) linear both; }
   .sweep { animation: progress-sweep 1.6s linear infinite; }
   .seg-thumb { transition: transform var(--dur-base) var(--ease-out); }
@@ -257,6 +297,8 @@
   .hover-ghost:hover { background: color-mix(in oklab, var(--ink) 7%, transparent); }
   .hover-outline:hover { background: color-mix(in oklab, var(--card-2) 90%, var(--ink)); }
   .hover-primary:hover { background: var(--primary-hover); }
+  .hover-accent:hover { background-color: var(--accent-fill-hover); }
+  .hover-lift:hover { background-color: color-mix(in oklab, var(--card-2) 86%, var(--ink)); }
   .hover-tile:hover { background: var(--card-2); }
   .hover-tile:hover .tile-arrow { color: var(--ink-2); }
   .hover-cell:hover { outline: 1px solid var(--ink-3); outline-offset: 0; }
@@ -268,7 +310,8 @@
   .enter { animation: fade var(--dur-fast) linear both; }
   .skeleton, .live-dot[data-live="true"]::after { animation: none; }
   .peek { animation: fade var(--dur-fast) linear both; }
-  .menu-in, .drawer-in, .sheet-in, .toast-in, .step-in, .modal-in { animation: fade var(--dur-fast) linear both; }
+  .menu-in, .drawer-in, .sheet-in, .toast-in, .step-in, .modal-in, .swap-in { animation: fade var(--dur-fast) linear both; }
+  .draw-in { animation: none; }
   .sweep { animation: none; }
   .seg-thumb, .switch-thumb { transition: none; }
   .range:active::-webkit-slider-thumb { transform: none; }

@@ -57,7 +57,7 @@ export function quote(cart: Cart, config: BillingConfig = BILLING_CONFIG): Quote
       amountCents: (cart.desktop.kind === "dedicated" ? dedicatedMonthlyCents(machine, config) : desktop.monthlyCents!) * multiplier });
   }
   const sum = lines.reduce((sum, line) => sum + line.amountCents, 0);
-  if (cart.interval === "year") lines.push({ kind: "discount", label: `Yearly discount (${config.yearlyDiscountPercent}%)`, amountCents: -Math.round(sum * config.yearlyDiscountPercent / 100) });
+  if (cart.interval === "year") lines.push({ kind: "discount", label: Math.abs(config.yearlyDiscountPercent - 100 / 6) < 0.001 ? "Yearly, 2 months free" : `Yearly discount (${Number(config.yearlyDiscountPercent.toFixed(1))}%)`, amountCents: -Math.round(sum * config.yearlyDiscountPercent / 100) });
   const totalCents = lines.reduce((sum, line) => sum + line.amountCents, 0);
   return { cart: structuredClone(cart), bundle: config.bundles.find(bundle => sameCart(cart, { ...bundle.cart, interval: cart.interval }))?.id ?? null,
     lines, totalCents, monthlyEquivalentCents: cart.interval === "year" ? Math.round(totalCents / 12) : totalCents, machine, botComputers, members };

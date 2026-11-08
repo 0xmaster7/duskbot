@@ -44,7 +44,7 @@ export function AccountStep({ platform, service, onDone }: { platform: MobilePla
   };
 
   return (
-    <div data-sky-clear className="px-6 pb-[calc(var(--m-safe-bottom)+20px)]">
+    <div className="w-full">
       <h1 className="text-center text-[28px] font-semibold leading-[1.15] tracking-tight text-white">{t("mobile.account.title")}</h1>
       <p className="mx-auto mt-2 max-w-[310px] text-center text-[15px] leading-6 text-white/60">{t("mobile.account.body")}</p>
       <AnimatePresence mode="wait" initial={false}>
@@ -68,7 +68,7 @@ export function AccountStep({ platform, service, onDone }: { platform: MobilePla
                 </div>
               </div>
             )}
-            <button type="button" onClick={() => start("apple")} className={`${ROW} bg-[#f3f4f8] text-[#0b0d14]`}>{MARKS.apple}{t("mobile.account.apple")}</button>
+            <button type="button" onClick={() => start("apple")} className={`${ROW} bg-[#f3f4f8] text-[#121212]`}>{MARKS.apple}{t("mobile.account.apple")}</button>
             <button type="button" onClick={() => start("google")} className={`${ROW} bg-white/[0.1] text-white ring-1 ring-white/10`}>{MARKS.google}{t("mobile.account.google")}</button>
             <div className="flex gap-3">
               <button type="button" onClick={() => start("x")} className={`${ROW} flex-1 bg-white/[0.1] text-[15px] text-white ring-1 ring-white/10`}>{MARKS.x}{t("mobile.account.x")}</button>

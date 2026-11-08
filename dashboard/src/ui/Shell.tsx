@@ -6,8 +6,11 @@ import type { CloudDesktop } from "../data/contracts";
 import { useSession } from "../data/session";
 import { api } from "../lib/api";
 import { Link, navigate, useLocation } from "../lib/router";
-import { cx, FreshnessTag } from "./kit";
+import { PlanSheet } from "../pages/plan-sheet";
+import { Button, cx, FreshnessTag } from "./kit";
 import { Mascot } from "./Mascot";
+import { useNow } from "../lib/now";
+import { useToasts } from "../lib/toast";
 
 const ICON = { size: 18, strokeWidth: 1.5 } as const;
 
@@ -43,7 +46,8 @@ function useDismiss(open: boolean, close: () => void, ref: React.RefObject<HTMLE
 }
 
 function WorkspaceSwitcher({ onNavigate }: { onNavigate?: () => void }) {
-  const { workspaces, workspace, pick, now } = useSession();
+  const { workspaces, workspace, pick } = useSession();
+  const now = useNow();
   const { clouds } = useCloud();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -94,8 +98,8 @@ function UserRow() {
   const name = account.name || (account.email.split("@")[0] ?? account.email);
   const sel = billing?.subscription?.selection;
   const license = sel && sel.license !== "personal" ? catalog?.licenses.find((l) => l.id === sel.license)?.name : null;
-  const desk = Boolean(sel && sel.desktop !== "none");
-  const plan = license ? `${license} license${desk ? " + cloud" : ""}` : desk ? "Cloud desktop" : "Personal, free";
+  const plan = sel && sel.desktop !== "none" ? catalog?.bundles.find((b) => b.desktop === sel.desktop && b.id !== "team")?.name ?? "Cloud desktop" : null;
+  const label = plan ? (license && plan !== "Pro" ? `${plan} + work license` : plan) : license ? `${license} license` : "Free";
   return (
     <div ref={ref} className="relative">
       {open && (
@@ -109,7 +113,7 @@ function UserRow() {
         <span className="grid size-8 shrink-0 place-items-center rounded-full bg-card-2 text-13 font-medium uppercase text-ink-2" aria-hidden>{name.slice(0, 1)}</span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-14 text-ink">{name}</span>
-          <span className="block truncate text-12 text-ink-3">{plan}</span>
+          <span className="block truncate text-12 text-ink-3">{label}</span>
         </span>
         <ChevronsUpDown size={16} strokeWidth={1.5} className="shrink-0 text-ink-3" aria-hidden />
       </button>
@@ -121,9 +125,33 @@ function CloudBadge() {
   const { clouds } = useCloud();
   const c = clouds?.[0];
   if (!clouds) return null;
-  if (!c) return <span className="ms-auto rounded-full border border-line-2 px-2 py-px text-[11px] text-ink-3">24/7</span>;
+  if (!c) return <span className="t-pixel ms-auto rounded-full border border-line-2 px-2 py-px text-ink-3">24/7</span>;
   const tone = c.status === "running" ? "text-good" : c.status === "provisioning" ? "text-accent" : c.status === "error" ? "text-bad" : "text-ink-4";
   return <span className={cx("live-dot ms-auto", tone)} data-live={c.status === "running"} aria-label={c.status === "running" ? "Running" : c.status} role="img" />;
+}
+
+const HIDE_KEY = "omb-dash-upsell-hidden-until";
+const WEEK = 7 * 86_400_000;
+
+/** the one nudge toward 24/7, for anyone without a cloud desktop; hides for a week when closed */
+function SideUpsell() {
+  const { clouds } = useCloud();
+  const { path } = useLocation();
+  const [hiddenUntil, setHiddenUntil] = useState(() => Number(localStorage.getItem(HIDE_KEY) ?? 0));
+  const [open, setOpen] = useState(false);
+  if (!clouds || clouds.length || path === "/billing" || hiddenUntil > Date.now()) return open ? <PlanSheet start="starter" onClose={() => setOpen(false)} /> : null;
+  const hide = () => { const until = Date.now() + WEEK; localStorage.setItem(HIDE_KEY, String(until)); setHiddenUntil(until); };
+  return (
+    <div className="relative rounded-[14px] bg-card p-3.5">
+      <button type="button" onClick={hide} aria-label="Hide for a week" className="hover-ghost absolute right-1 top-1 grid size-8 place-items-center rounded-full text-ink-4 max-lg:size-11"><X size={14} strokeWidth={1.5} /></button>
+      <div className="flex items-start gap-3 pe-5">
+        <Mascot color="silver" size={28} state="sleeping" />
+        <p className="min-w-0 text-13 leading-[1.45] text-ink-2">Your bots stop when your Mac sleeps.</p>
+      </div>
+      <Button size="sm" variant="primary" className="mt-3 w-full" onClick={() => setOpen(true)}>Keep them on 24/7</Button>
+      {open && <PlanSheet start="starter" onClose={() => setOpen(false)} />}
+    </div>
+  );
 }
 
 function Nav({ onNavigate }: { onNavigate?: () => void }) {
@@ -165,7 +193,7 @@ function Brand() {
 }
 
 function Toasts() {
-  const { toasts } = useSession();
+  const toasts = useToasts();
   return (
     <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-5 z-50 flex flex-col items-center gap-2 px-4">
       {toasts.map((t) => (
@@ -193,7 +221,7 @@ export function Shell({ children }: { children: ReactNode }) {
       </div>
       <WorkspaceSwitcher onNavigate={close} />
       <Nav onNavigate={close} />
-      <div className="mt-auto"><UserRow /></div>
+      <div className="mt-auto flex flex-col gap-3"><SideUpsell /><UserRow /></div>
     </div>
   );
   return (

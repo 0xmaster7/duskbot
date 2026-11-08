@@ -16,10 +16,10 @@ export interface PlanWindow {
 interface Answer { detail: WorkspaceDetail | null; error: string | null }
 
 export function useAccountUsage(): { month: UsageMonth | null; sources: UsageSource[]; loading: boolean; error: string | null; plans: PlanWindow[]; bots: Array<{ bot: BotReport; where: string }> } {
-  const { workspaces, workspace, detail, now } = useSession();
+  const { workspaces, workspace, detail } = useSession();
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
-  const current = useRef({ workspace, detail, now });
-  current.current = { workspace, detail, now };
+  const current = useRef({ workspace, detail });
+  current.current = { workspace, detail };
   const workspaceIds = JSON.stringify(workspaces?.map((item) => item.id) ?? null);
 
   useEffect(() => {
@@ -70,7 +70,7 @@ export function useAccountUsage(): { month: UsageMonth | null; sources: UsageSou
     }
     return { bots, sources, plans: [...windows.values()].map((item) => item.window).sort((a, b) => b.usedPercent - a.usedPercent) };
   }, [reportKey]);
-  const month = useMemo(() => usageMonth(sources, current.current.now, { split: FIXTURE ? "exact" : "estimate" }), [sources]);
+  const month = useMemo(() => usageMonth(sources, Date.now(), { split: FIXTURE ? "exact" : "estimate" }), [sources]);
   const loading = workspaces === null || reports.some((item) => !item.detail && !answers[item.workspace.id]);
   const error = !loading && reports.length > 0 && reports.every((item) => !item.detail) ? reports.map((item) => answers[item.workspace.id]?.error).find((message) => message !== null && message !== undefined) ?? null : null;
   return { month: sources.length || workspaces?.length === 0 ? month : null, sources, loading, error, plans, bots };

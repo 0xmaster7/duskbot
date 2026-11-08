@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState, type SyntheticEvent } from "react";
 import type { ActivityReport } from "../../../shared/dashboard-protocol";
 import { compact, dayKey, longDate, MONTH_NAMES, monthShort, parseDay, plural, usd } from "../lib/format";
 import { cx, Stat } from "./kit";
@@ -76,10 +76,31 @@ export function Heatmap({ days, metric, now, compactCells = false }: { days: Act
 
   useEffect(() => { const el = scroller.current; if (el) el.scrollLeft = el.scrollWidth; }, [weeks]);
 
+  const [picked, setPicked] = useState<{ key: string; v: number } | null>(null);
+  useEffect(() => setPicked(null), [metric]);
+  // one handler for the whole grid: a tap on touch, a hover with a mouse, shows the day under the legend
+  const pick = (event: SyntheticEvent<HTMLDivElement>) => {
+    const day = (event.target as HTMLElement).closest<HTMLElement>("[data-day]");
+    if (!day?.dataset.day || day.dataset.future) return;
+    const key = day.dataset.day;
+    setPicked((p) => (p?.key === key ? p : { key, v: Number(day.dataset.v) }));
+  };
   const cell = compactCells ? 11 : undefined;
+  const cells = useMemo(() => weeks.flat().map((c) => (
+    <div
+      key={c.key}
+      role="gridcell"
+      data-day={c.key}
+      data-v={c.v}
+      data-future={c.future || undefined}
+      aria-label={c.future ? undefined : `${longDate(parseDay(c.key))}: ${say(c.v, metric)}`}
+      className={cx("hover-cell aspect-square rounded-[3px]", c.future && "opacity-0")}
+      style={{ background: c.level ? `var(--heat-${c.level})` : "var(--cell)" }}
+    />
+  )), [weeks, metric]);
   return (
     <div>
-      <div ref={scroller} className="scroll-x -mx-1 px-1">
+      <div ref={scroller} className="scroll-x -mx-1 px-1 max-sm:[mask-image:linear-gradient(to_right,transparent,black_20px)]">
         <div className={cx("grid gap-y-2", compactCells ? "w-max" : "min-w-[640px]")}>
           <div className="relative h-4 text-12 text-ink-3" aria-hidden>
             {months.map((m) => (
@@ -91,24 +112,21 @@ export function Heatmap({ days, metric, now, compactCells = false }: { days: Act
             style={{ gridTemplateRows: "repeat(7, auto)", gridTemplateColumns: cell ? `repeat(${WEEKS}, ${cell}px)` : `repeat(${WEEKS}, minmax(0, 1fr))` }}
             role="grid"
             aria-label={`Activity over the last year, ${metric}`}
+            onClick={pick}
+            onPointerOver={(e) => { if (e.pointerType === "mouse") pick(e); }}
           >
-            {weeks.flat().map((c) => (
-              <div
-                key={c.key}
-                role="gridcell"
-                aria-label={c.future ? undefined : `${longDate(parseDay(c.key))}: ${say(c.v, metric)}`}
-                title={c.future ? undefined : `${say(c.v, metric)} on ${longDate(parseDay(c.key))}`}
-                className={cx("hover-cell aspect-square rounded-[3px]", c.future && "opacity-0")}
-                style={{ background: c.level ? `var(--heat-${c.level})` : "var(--cell)" }}
-              />
-            ))}
+            {cells}
           </div>
         </div>
       </div>
-      <div className="mt-4 flex items-center gap-1.5 text-12 text-ink-3" aria-hidden>
-        <span className="me-1">Less</span>
-        {levels.map((l) => <span key={l} className="size-[10px] rounded-[2px]" style={{ background: l ? `var(--heat-${l})` : "var(--cell)" }} />)}
-        <span className="ms-1">More</span>
+      {picked && <style>{`[data-day="${picked.key}"]{outline:1px solid var(--ink-2);outline-offset:0}`}</style>}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <p className="num min-h-4 text-13 text-ink-2" aria-live="polite">{picked ? `${say(picked.v, metric)} on ${longDate(parseDay(picked.key))}` : <span className="text-ink-4">Pick a day to see it</span>}</p>
+        <div className="t-pixel flex items-center gap-1.5 text-ink-3" aria-hidden>
+          <span className="me-1">Less</span>
+          {levels.map((l) => <span key={l} className="size-[10px] rounded-[2px]" style={{ background: l ? `var(--heat-${l})` : "var(--cell)" }} />)}
+          <span className="ms-1">More</span>
+        </div>
       </div>
     </div>
   );

@@ -128,7 +128,7 @@ it("runs the real desktop client through checkout, setup, pairing, upgrade, anot
   expect(parseCloudSummary(fields.cloud)).toMatchObject({ status: "ready", disk: { gb: 40, maxGb: 40 } });
   expect(parseCloudList(fields.clouds)).toHaveLength(1); expect(parseCloudRenewal(fields.clouds)).toMatchObject({ cancelled: false, trial: false, keptDays: 7 });
   expect(fields.offer).toBeUndefined();
-  expect(fields.license).toMatchObject({ work: "licensed", license: { role: "owner", status: "active" } });
+  expect(fields.license).toMatchObject({ work: f.now() < BILLING_CONFIG.freeWorkUntil! ? "free_until" : "unlicensed", license: null });
   const cloud = f.billing.clouds.get(checkout.cloudId!)!;
   expect(f.dashboard.state.workspaces).toHaveLength(1);
   expect(f.dashboard.state.workspaces[0]).toMatchObject({ id: cloud.workspaceId, ownerAccountId: f.owner().id, claimHash: null });
@@ -153,7 +153,7 @@ it("runs the real desktop client through checkout, setup, pairing, upgrade, anot
   expect(f.billing.fakePool!.calls.find(c => c.method === "setQuota")?.input).toMatchObject({ ...BILLING_CONFIG.desktops.shared_m.machine, botComputers: 5, netMbps: 250 });
   expect((await f.client.addCloud({ tier: "pro", interval: "month", name: "Client B", color: "green" })).outcome).toBe("opened");
   expect(f.snapshot().checkouts[1].cart).toMatchObject({ license: { kind: "none" }, desktop: { kind: "shared_m" } });
-  expect(f.snapshot().checkouts[1].amountCents).toBe(4000);
+  expect(f.snapshot().checkouts[1].amountCents).toBe(BILLING_CONFIG.desktops.shared_m.monthlyCents);
   await f.client.refresh();
   fields = await f.session();
   expect(parseCloudList(fields.clouds)).toHaveLength(2); expect(otherOwnClouds(parseCloudList(fields.clouds))).toMatchObject([{ name: "Client B", color: "green", primary: false }]);

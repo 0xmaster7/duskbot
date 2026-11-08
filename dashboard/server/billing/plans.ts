@@ -31,19 +31,20 @@ export function dodoProducts(env: Record<string, string | undefined>): Record<st
 function freeWorkUntil(value: string | undefined) {
   if (value === "off") return null;
   if (value && /^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(value) && Number.isFinite(Date.parse(value))) return Date.parse(value);
-  return Date.UTC(2027, 2, 31);
+  return Date.UTC(2026, 11, 1);
 }
 
 export const BILLING_CONFIG: BillingConfig = {
-  currency: "USD", yearlyDiscountPercent: 20, graceDays: 7, maxCloudsPerAccount: 5, checkoutOpenMinutes: 30, checkoutsPerHour: 10,
+  // yearly is two months free: 12 months for the price of 10
+  currency: "USD", yearlyDiscountPercent: 100 / 6, graceDays: 7, maxCloudsPerAccount: 5, checkoutOpenMinutes: 30, checkoutsPerHour: 10,
   freeWorkUntil: freeWorkUntil(process.env.OMB_FREE_WORK_UNTIL),
   licenses: {
-    solo: { kind: "solo", label: "Work license", monthlyCents: 1000, includedMembers: 1, extraMemberCents: null, maxMembers: 1, priority: false },
-    team: { kind: "team", label: "Team license", monthlyCents: 4000, includedMembers: 3, extraMemberCents: 1500, maxMembers: 50, priority: false },
+    solo: { kind: "solo", label: "Work license", monthlyCents: 1200, includedMembers: 1, extraMemberCents: null, maxMembers: 1, priority: false },
+    team: { kind: "team", label: "Team license", monthlyCents: 3000, includedMembers: 2, extraMemberCents: 1800, maxMembers: 50, priority: false },
   },
   desktops: {
-    shared_s: { kind: "shared_s", label: "Shared S", placement: "pool", monthlyCents: 1000, machine: { vcpu: 2, ramGb: 4, diskGb: 40 }, botComputers: 2, priority: false },
-    shared_m: { kind: "shared_m", label: "Shared M", placement: "pool", monthlyCents: 4000, machine: { vcpu: 4, ramGb: 8, diskGb: 80 }, botComputers: 5, priority: true },
+    shared_s: { kind: "shared_s", label: "Shared S", placement: "pool", monthlyCents: 2000, machine: { vcpu: 2, ramGb: 4, diskGb: 40 }, botComputers: 2, priority: false },
+    shared_m: { kind: "shared_m", label: "Shared M", placement: "pool", monthlyCents: 3800, machine: { vcpu: 4, ramGb: 8, diskGb: 80 }, botComputers: 5, priority: true },
     dedicated: { kind: "dedicated", label: "Dedicated", placement: "dedicated", monthlyCents: null, machine: { vcpu: 8, ramGb: 16, diskGb: 160 }, botComputers: null, priority: true },
   },
   dedicated: { baseCents: 1400, perVcpuCents: 300, perGbRamCents: 100, per10GbDiskCents: 50, includedDiskGb: 40,
@@ -51,11 +52,12 @@ export const BILLING_CONFIG: BillingConfig = {
   poolQuotas: { shared_s: { netMbps: 100, pids: 2048 }, shared_m: { netMbps: 250, pids: 4096 } },
   appAllowances: { shared_s: { computerHours: 720, voiceCharacters: 0 }, shared_m: { computerHours: 720, voiceCharacters: 0 }, dedicated: { computerHours: 720, voiceCharacters: 0 } },
   trial: null,
+  // free $0, plus $20 (a cloud desktop), pro $50 (a bigger one and a work license for one person); the starter id sells as Plus
   bundles: [
-    { id: "free", label: "Free", cart: { license: { kind: "none" }, desktop: { kind: "none" } }, highlights: ["Personal use", "Use your own computer", "No subscription"] },
-    { id: "starter", label: "Starter", cart: { license: { kind: "solo" }, desktop: { kind: "shared_s", region: "fsn1" } }, highlights: ["Work license, 1 member", "Shared cloud desktop, 2 bot computers, 24/7", "2 vCPU, 4 GB RAM, 40 GB disk"] },
-    { id: "pro", label: "Pro", cart: { license: { kind: "solo" }, desktop: { kind: "shared_m", region: "fsn1" } }, highlights: ["Work license, 1 member", "Shared cloud desktop, 5 bot computers, 24/7", "Priority cloud desktop"] },
-    { id: "team", label: "Team", cart: { license: { kind: "team", members: 3 }, desktop: { kind: "dedicated", region: "fsn1", spec: { vcpu: 8, ramGb: 16, diskGb: 160 } } }, highlights: ["Team license, 3 members", "Dedicated cloud desktop, unlimited bot computers", "8 vCPU, 16 GB RAM, 160 GB disk"] },
+    { id: "free", label: "Free", cart: { license: { kind: "none" }, desktop: { kind: "none" } }, highlights: ["Your bots, on your Mac", "Personal use", "No subscription"] },
+    { id: "starter", label: "Plus", cart: { license: { kind: "none" }, desktop: { kind: "shared_s", region: "fsn1" } }, highlights: ["Your bots work 24/7", "A cloud desktop that never sleeps", "2 bot computers"] },
+    { id: "pro", label: "Pro", cart: { license: { kind: "solo" }, desktop: { kind: "shared_m", region: "fsn1" } }, highlights: ["A bigger always-on cloud desktop", "5 bot computers, priority wake", "Work license for one person"] },
+    { id: "team", label: "Team", cart: { license: { kind: "team", members: 2 }, desktop: { kind: "dedicated", region: "fsn1", spec: { vcpu: 8, ramGb: 16, diskGb: 160 } } }, highlights: ["Team license, 2 members", "Dedicated cloud desktop, unlimited bot computers", "8 vCPU, 16 GB RAM, 160 GB disk"] },
   ],
   regions: [{ id: "fsn1", label: "Falkenstein", country: "DE" }, { id: "nbg1", label: "Nuremberg", country: "DE" }, { id: "hel1", label: "Helsinki", country: "FI" }, { id: "ash", label: "Ashburn", country: "US" }, { id: "hil", label: "Hillsboro", country: "US" }, { id: "sin", label: "Singapore", country: "SG" }],
   defaultRegion: "fsn1", poolRegions: ["fsn1"],
@@ -67,7 +69,7 @@ export function catalogView(now: number, config: BillingConfig = BILLING_CONFIG)
   return structuredClone({ v: 1, currency: config.currency, bundles: config.bundles.map(bundle => ({ ...bundle,
     monthlyCents: quote({ ...bundle.cart, interval: "month" }, config).totalCents,
     yearlyMonthlyCents: quote({ ...bundle.cart, interval: "year" }, config).monthlyEquivalentCents })),
-  licenses: Object.values(config.licenses), desktops: Object.values(config.desktops), dedicated: config.dedicated, regions: config.regions,
+  licenses: Object.values(config.licenses), desktops: Object.values(config.desktops), dedicated: config.dedicated, regions: config.regions, poolRegions: config.poolRegions,
   defaultRegion: config.defaultRegion, yearlyDiscountPercent: config.yearlyDiscountPercent, creditPacks: config.creditPacks,
   freeWorkUntil: config.freeWorkUntil !== null && now < config.freeWorkUntil ? config.freeWorkUntil : null, graceDays: config.graceDays });
 }

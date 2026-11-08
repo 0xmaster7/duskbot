@@ -91,7 +91,7 @@ function railKeepsItsSize() {
 if (typeof window !== "undefined") {
   for (const type of ["resize", "DOMContentLoaded"]) window.addEventListener(type, () => { leaveRailRoom(); railKeepsItsSize(); });
 }
-const REMOTE_SAFE = new Set(["platform", "app", "getCapabilities", "onCapabilitiesChanged", "applySkin", "setUnreadCount", "permStatus", "workspaces", "rail", "cloudAdd", "cloudPlan", "cloudSendPage", "accountSheet", "desktopNotices", "desktopNotifications", "desktopAnalytics", "desktopLanguage", "updatesConsent", "windowControls", "onOpenAppSettings", "windowFrame", "sealTrust", "linkDirect", "onSlackOAuth"]);
+const REMOTE_SAFE = new Set(["platform", "app", "getCapabilities", "onCapabilitiesChanged", "applySkin", "setUnreadCount", "permStatus", "workspaces", "rail", "cloudAdd", "cloudPlan", "cloudSendPage", "accountSheet", "desktopNotices", "desktopNotifications", "desktopAnalytics", "desktopLanguage", "updatesConsent", "windowControls", "onOpenAppSettings", "windowFrame", "sealTrust", "linkDirect", "onSlackOAuth", "ambient"]);
 /** My Cloud's own page once it is the person's home (main checks the sender again): it is this app's page then. */
 const HOME_PAGE = ["home", "onChatLink", "onPackageInstall", "exportDiagnostics", "openLogsFolder", "openAtLogin", "callActive"];
 function updaterOffered() {
@@ -219,6 +219,25 @@ const bridge = {
         return () => ipcRenderer.removeListener("rail:framed", handler);
       },
     } : {}),
+  },
+  // The notch island and the bot dock (electron/ambient-main.mjs): whichever place the window shows sums up its bots for
+  // them and carries out their asks; a server's page changes the choices only from the person's click.
+  ambient: {
+    prefs: () => ipcRenderer.invoke("ambient:prefs"),
+    set: (change) => isLocalPage || navigator.userActivation?.isActive === true
+      ? ipcRenderer.invoke("ambient:set", change && typeof change === "object" ? { ...change } : {}) : Promise.reject(new Error("Choose a setting to change it.")),
+    wanted: () => ipcRenderer.invoke("ambient:wanted"),
+    onWanted: (cb) => {
+      const handler = (_event, wanted) => cb(wanted === true);
+      ipcRenderer.on("ambient:wanted", handler);
+      return () => ipcRenderer.removeListener("ambient:wanted", handler);
+    },
+    publish: (snapshot) => ipcRenderer.send("ambient:publish", snapshot),
+    onAct: (cb) => {
+      const handler = (_event, act) => cb(act);
+      ipcRenderer.on("ambient:act", handler);
+      return () => ipcRenderer.removeListener("ambient:act", handler);
+    },
   },
   // The window's own frame, this desktop's choice for every page of its window; a server's page changes it only from the
   // person's click.

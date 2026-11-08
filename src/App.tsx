@@ -8,6 +8,7 @@ import { CloudTimeZoneSync } from "@/components/CloudTimeZone";
 import { useWarmChatImages } from "@/components/use-warm-chat-images";
 import { cloudSignInDue, type WelcomeViewer } from "@/lib/onboarding";
 import { LiveCallHost } from "@/components/LiveCallHost";
+import { AmbientPublisher } from "@/ambient/AmbientPublisher";
 import { ThreadRefsProvider } from "@/components/ThreadRefs";
 import { parseComputerHelp } from "@/lib/computer-control";
 import { Sidebar } from "@/components/Sidebar";
@@ -372,6 +373,7 @@ function Application() {
         <WelcomeGate viewer={viewer} />
         <CloudTimeZoneSync viewer={viewer} />
         <LiveCallHost />
+        <AmbientPublisher />
       </StoreProvider>
     </DesktopCapabilitiesProvider>
   );

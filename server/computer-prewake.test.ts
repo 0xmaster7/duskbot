@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { lastTurnUsedComputer, prewakeComputer, rememberComputerTurn, type ComputerPrewakeInput } from "./computer-prewake.ts";
+import { lastTurnUsedComputer, prewakeComputer, rememberComputerTurn, shouldPrewakeComputer, takeComputerLikely, type ComputerPrewakeInput } from "./computer-prewake.ts";
 import { ComputerToolLists, createComputerRelay, type RelayBridge } from "./vps-computer-relay.ts";
 
 const owner = { threadId: "thread", generation: "turn" };
@@ -53,6 +53,12 @@ describe("computer prewake", () => {
     rememberComputerTurn(botId, [row("text-only", "newer-turn")], "newer-turn");
     prewakeComputer(relay, owner, { ...input, botId, history: [row("old-thread", "old-turn", "click")] });
     expect(relay.wake).toHaveBeenCalledOnce();
+  });
+
+  it("tells the turn being set up, once, whether its bot will likely use the computer", () => {
+    shouldPrewakeComputer({ ...input, botId: "likely", message: "open siddz.com" });
+    shouldPrewakeComputer({ ...input, botId: "unlikely", message: "what is 2 + 2" });
+    expect([takeComputerLikely("likely"), takeComputerLikely("likely"), takeComputerLikely("unlikely"), takeComputerLikely("never")]).toEqual([true, false, false, false]);
   });
 
   it("absorbs a failed background wake", async () => {

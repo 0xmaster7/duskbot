@@ -22,14 +22,17 @@ for (const toggle of [dark, pair]) {
   });
 }
 
+/** Both phones always fit the window whole, by width and by height, so nothing on their screens is cut at the edge. */
 function fit() {
-  const scale = Math.min(1, preview.clientWidth / row.offsetWidth);
+  const room = window.innerHeight - preview.getBoundingClientRect().top - 24;
+  const scale = Math.min(1, preview.clientWidth / row.offsetWidth, room > 200 ? room / row.offsetHeight : 1);
   row.style.transform = `scale(${scale})`;
   stage.style.width = `${row.offsetWidth * scale}px`;
   stage.style.height = `${row.offsetHeight * scale}px`;
 }
 
 new ResizeObserver(fit).observe(preview);
+window.addEventListener("resize", fit);
 fit();
 
 export {};

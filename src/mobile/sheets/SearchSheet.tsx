@@ -66,7 +66,7 @@ export const SearchSheet: ComponentType<SheetPageProps<"search">> = ({ open, onC
   const normalized = normalizeSearch(q);
   const bots = state.bots.filter((bot) => !bot.hidden && normalizeSearch(bot.name).includes(normalized));
   const groups = state.groups.filter((group) => normalizeSearch(group.name).includes(normalized));
-  const recent = [...state.bots].filter((bot) => !bot.hidden).sort((a, b) => activity(b) - activity(a)).slice(0, 5);
+  const recent = [...state.bots].filter((bot) => !bot.hidden).sort((a, b) => activity(b) - activity(a)).slice(0, 4);
   const current = results.query === q;
   const loading = Boolean(q) && (!current || results.status === "loading");
   const hits = current ? results.hits : [];

@@ -91,7 +91,7 @@ export function PageHeader({ title, sub, action }: { title: string; sub?: ReactN
   return (
     <header className="mb-10 flex flex-wrap items-end justify-between gap-4 max-sm:mb-7">
       <div className="min-w-0">
-        <h1 className="text-24 font-semibold tracking-[-0.022em] text-ink">{title}</h1>
+        <h1 className="t-title">{title}</h1>
         {sub && <div className="mt-1.5 text-14 text-ink-3">{sub}</div>}
       </div>
       {action}

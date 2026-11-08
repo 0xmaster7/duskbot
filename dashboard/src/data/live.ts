@@ -18,7 +18,7 @@ export function catalogFromWire(catalog: Catalog): PlanCatalog {
   const pricing = catalog.dedicated;
   const licenses: PlanCatalog["licenses"] = [
     { id: "personal", name: "Personal", monthly: 0, includedMembers: 1, perExtraMember: 0, maxMembers: 1, work: false, blurb: "Personal and non-commercial use" },
-    ...catalog.licenses.map((license) => ({ id: licenseIds[license.kind], name: license.label, monthly: license.monthlyCents / 100, includedMembers: license.includedMembers, perExtraMember: (license.extraMemberCents ?? 0) / 100, maxMembers: license.maxMembers, work: true, blurb: "" })),
+    ...catalog.licenses.map((license) => ({ id: licenseIds[license.kind], name: license.label.replace(/ license$/i, ""), monthly: license.monthlyCents / 100, includedMembers: license.includedMembers, perExtraMember: (license.extraMemberCents ?? 0) / 100, maxMembers: license.maxMembers, work: true, blurb: "" })),
   ];
   return {
     licenses,
@@ -33,6 +33,7 @@ export function catalogFromWire(catalog: Catalog): PlanCatalog {
       return { id: bundle.id, name: bundle.label, monthly: bundle.monthlyCents / 100, license, members: bundle.cart.license.members ?? licenses.find((item) => item.id === license)!.includedMembers, desktop: desktopIds[bundle.cart.desktop.kind], blurb: bundleBlurbs[bundle.id], features: bundle.highlights, recommended: bundle.id === "pro" };
     }),
     regions: [...catalog.regions.filter((region) => region.id === catalog.defaultRegion), ...catalog.regions.filter((region) => region.id !== catalog.defaultRegion)].map((region) => ({ id: region.id, name: region.country, city: region.label })),
+    ...(catalog.poolRegions ? { poolRegions: catalog.poolRegions } : {}),
     yearlyDiscount: catalog.yearlyDiscountPercent / 100,
     workFreeUntil: catalog.freeWorkUntil,
     creditPacks: catalog.creditPacks.map((pack) => ({ id: pack.id, usd: pack.priceCents / 100 })),
@@ -101,15 +102,16 @@ export function billingFromWire(overview: WireBillingOverview, catalog: PlanCata
   };
 }
 
+export const SETUP_LABELS = { reserving: "Reserving your machine", storage: "Preparing its disk", starting: "Installing OpenMausBot", checking: "Waking your bots" } as const;
+
 export function cloudFromWire(cloud: CloudDesktopView): CloudDesktop | null {
   if (cloud.status === "destroying" || cloud.status === "destroyed") return null;
   const statuses = { checkout: "provisioning", provisioning: "provisioning", running: "running", sleeping: "sleeping", stopped: "stopped", payment_problem: "error", suspended: "error", error: "error" } as const;
   const status = statuses[cloud.status];
-  const stepLabels = { reserving: "Reserving your machine", storage: "Preparing its disk", starting: "Installing OpenMausBot", checking: "Waking your bots" };
   return {
     id: cloud.id, name: cloud.name, status, tier: desktopIds[cloud.kind], placement: cloud.placement === "pool" ? "shared" : "dedicated", region: cloud.region,
     ...cloud.machine, workspaceId: cloud.workspaceId, createdAt: cloud.createdAt,
-    progress: status === "provisioning" && cloud.setupStep !== null ? { step: stepLabels[cloud.setupStep], value: (SETUP_STEPS.indexOf(cloud.setupStep) + 0.5) / 4 } : null,
+    progress: status === "provisioning" && cloud.setupStep !== null ? { step: SETUP_LABELS[cloud.setupStep], value: (SETUP_STEPS.indexOf(cloud.setupStep) + 0.5) / 4 } : null,
     error: cloud.status === "payment_problem" ? "The last payment did not go through. Update your card to wake it." : cloud.status === "suspended" ? "It is paused. Write to us to sort it out." : cloud.error,
     botComputers: { used: 0, limit: cloud.botComputers }, uptimeSec: null,
   };

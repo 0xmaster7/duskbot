@@ -56,3 +56,23 @@ The page keeps its own English strings: it is a separate web app outside `src/` 
 ### Sign-in providers
 
 Google uses `OMB_AUTH_GOOGLE_CLIENT_ID` and `OMB_AUTH_GOOGLE_CLIENT_SECRET`. Apple uses `OMB_AUTH_APPLE_CLIENT_ID` (Services ID), `OMB_AUTH_APPLE_TEAM_ID`, `OMB_AUTH_APPLE_KEY_ID`, and the .p8 key in `OMB_AUTH_APPLE_PRIVATE_KEY` (PEM, literal `\n` accepted) or `OMB_AUTH_APPLE_PRIVATE_KEY_FILE`. X uses `OMB_AUTH_X_CLIENT_ID`, optional `OMB_AUTH_X_CLIENT_SECRET`, and optional `OMB_AUTH_X_SCOPES` (default `users.read tweet.read`). Register `<public url>/v1/auth/oauth/google/callback`, `<public url>/v1/auth/oauth/apple/callback` (Apple's Return URL), and `<public url>/v1/auth/oauth/x/callback`. Partial provider configuration fails startup; endpoint overrides are available only through code options for isolated fixtures. The dashboard fixture runs local fake Google, Apple and X providers without external accounts.
+
+## Type
+
+Geist Sans everywhere, Geist Mono for ids. No serif and no pixel face anywhere in the dashboard.
+
+| role | family | size / line | where |
+|---|---|---|---|
+| page title (`.t-title`) | Geist Sans 600, -0.022em | 28/34, 24/30 under 640px | the `h1` of every page, the sign-in and welcome steps |
+| plan price | Geist Sans 600 | 34 on cards, 24 in sheets | Plans & billing cards and plan sheet totals |
+| figure (`.t-figure`, `ui/Figure.tsx`) | Geist Sans 600, tabular | 26/32 | big numbers on stat cards and the activity total |
+| id (`.t-id`) | Geist Mono | 13 | ids and versions; table counts stay in sans, tabular |
+| heading | Geist Sans 500 | 15/22 | section titles |
+| body | Geist Sans 400 | 14/20, 13/18 secondary | everything else; never under 12px |
+
+## Motion
+
+Hovers are instant colour changes. Movement is kept for page and section entrances (`.enter`), menus, sheets,
+dialogs, toasts, figures that change, content switches (`.swap-in`, a soft blur, never a slide) and a chart's first
+draw. Tokens live in `app.css` (Bencho: 160/220/420/600 ms, `--ease-out`). Mascots draw at 30 fps, stop off screen
+and rest under reduced motion.

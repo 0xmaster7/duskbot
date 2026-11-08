@@ -1,0 +1,100 @@
+// What the island and the dock are allowed to know, checked in main: the app's page publishes a small summary of its
+// bots, and the person's choices for the two surfaces live in ambient-prefs.json. Everything past these shapes is
+// dropped, so a page can never put more than a short line per bot on screen.
+import { DISPLAY_CHOICES, ISLAND_SIZE_IDS } from "./ambient-geometry.mjs";
+
+export const AMBIENT_STATUSES = Object.freeze(["idle", "thinking", "working", "talking", "needs-you", "done", "error"]);
+const COLORS = new Set(["green", "blue", "red", "orange", "purple", "cyan", "pink", "yellow", "teal", "coral", "brown", "silver", "chrome"]);
+const ID = /^[\w.:-]{1,128}$/;
+const BODY = /^[a-z0-9-]{1,40}$/;
+const MAX_BOTS = 40;
+const MAX_LABELS = 48;
+const LABEL = /^[a-z][\w.-]{0,40}$/i;
+
+const text = (value, max) => (typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, max) : "");
+const id = value => (typeof value === "string" && ID.test(value) ? value : null);
+const count = value => (Number.isFinite(value) ? Math.max(0, Math.min(99, Math.floor(value))) : 0);
+// only this app's own pictures, from the page's own origin
+const avatar = value => (typeof value === "string" && /^\/[^/\\]/.test(value) && value.length <= 512 ? value : null);
+
+function bot(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const botId = id(raw.id), threadId = id(raw.threadId);
+  if (!botId || !threadId) return null;
+  const approval = raw.approval && typeof raw.approval === "object" && id(raw.approval.requestId) && id(raw.approval.threadId)
+    ? { requestId: raw.approval.requestId, threadId: raw.approval.threadId, title: text(raw.approval.title, 160) }
+    : null;
+  return {
+    id: botId,
+    threadId,
+    name: text(raw.name, 60) || "Bot",
+    color: COLORS.has(raw.color) ? raw.color : "green",
+    body: typeof raw.body === "string" && BODY.test(raw.body) ? raw.body : null,
+    face: raw.face === "white" || raw.face === "black" ? raw.face : null,
+    avatar: avatar(raw.avatar),
+    status: AMBIENT_STATUSES.includes(raw.status) ? raw.status : "idle",
+    detail: text(raw.detail, 120),
+    line: text(raw.line, 240),
+    at: Number.isFinite(raw.at) && raw.at > 0 ? Math.floor(raw.at) : 0,
+    unread: raw.unread === true,
+    asks: count(raw.asks),
+    approval,
+  };
+}
+
+/** The page's summary as the surfaces get it, or null for anything that is not one. */
+export function parseSnapshot(raw) {
+  if (!raw || typeof raw !== "object" || !Array.isArray(raw.bots)) return null;
+  const seen = new Set();
+  const bots = [];
+  for (const entry of raw.bots.slice(0, MAX_BOTS)) {
+    const parsed = bot(entry);
+    if (!parsed || seen.has(parsed.id)) continue;
+    seen.add(parsed.id);
+    bots.push(parsed);
+  }
+  // the page's own words for the surfaces, already in the person's language, so their pages carry no language packs
+  const labels = {};
+  if (raw.labels && typeof raw.labels === "object" && !Array.isArray(raw.labels)) {
+    for (const [key, value] of Object.entries(raw.labels).slice(0, MAX_LABELS)) if (LABEL.test(key) && typeof value === "string") labels[key] = text(value, 160);
+  }
+  return { bots, labels, lang: typeof raw.lang === "string" && /^[a-z]{2,3}(-[a-z0-9]{2,8})?$/i.test(raw.lang) ? raw.lang : "" };
+}
+
+/** The actions an island or dock may ask the app's page to take; anything else is dropped. */
+export function parseAct(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const botId = id(raw.botId), threadId = id(raw.threadId);
+  if (raw.kind === "new-bot") return { kind: "new-bot" };
+  if (!botId || !threadId) return null;
+  if (raw.kind === "reply") {
+    const message = typeof raw.text === "string" ? raw.text.trim().slice(0, 4000) : "";
+    return message ? { kind: "reply", botId, threadId, text: message } : null;
+  }
+  if (raw.kind === "allow" || raw.kind === "deny") {
+    const requestId = id(raw.requestId);
+    return requestId ? { kind: raw.kind, botId, threadId, requestId } : null;
+  }
+  return null;
+}
+
+export const AMBIENT_DEFAULTS = Object.freeze({ island: true, dock: true, size: "medium", display: "active", order: [] });
+
+/** The person's choices; the surfaces start on only on macOS, where the island hugs the notch. */
+export function parsePrefs(raw, platform = process.platform) {
+  const record = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  const on = platform === "darwin";
+  return {
+    island: typeof record.island === "boolean" ? record.island : on && AMBIENT_DEFAULTS.island,
+    dock: typeof record.dock === "boolean" ? record.dock : on && AMBIENT_DEFAULTS.dock,
+    size: ISLAND_SIZE_IDS.includes(record.size) ? record.size : AMBIENT_DEFAULTS.size,
+    display: DISPLAY_CHOICES.includes(record.display) ? record.display : AMBIENT_DEFAULTS.display,
+    order: Array.isArray(record.order) ? [...new Set(record.order.filter(entry => id(entry)))].slice(0, 200) : [],
+  };
+}
+
+/** A change from Settings or the dock, applied over the saved choices; unknown fields and bad values are ignored. */
+export function applyPrefsChange(prefs, change) {
+  if (!change || typeof change !== "object") return prefs;
+  return parsePrefs({ ...prefs, ...Object.fromEntries(Object.entries(change).filter(([key]) => key in AMBIENT_DEFAULTS)) });
+}
