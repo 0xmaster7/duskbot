@@ -1,8 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Check, ChevronDown, Cloud, Download, Laptop } from "lucide-react";
+import { Check, ChevronDown, Cloud, Coffee, Download, Sprout } from "lucide-react";
 import { useCloud } from "../data/cloud";
 import type { BillingInterval, BundleId, LicenseId, PlanCatalog } from "../data/contracts";
-import { botsLine, bundleOf, desktopOf, licenseMonthly, licenseOf, specLine } from "../data/pricing";
+import { bundleOf, desktopOf, gb, licenseMonthly, licenseOf } from "../data/pricing";
 import { useCart } from "../data/quote";
 import { useSession } from "../data/session";
 import { longDate, shortDate, usd } from "../lib/format";
@@ -21,43 +21,64 @@ type Use = "personal" | "work";
 const CONTACT = "mailto:hello@openmausbot.com";
 const members = (n: number) => `${n} ${n === 1 ? "member" : "members"}`;
 
-/** each plan's little story, told by the real mascots */
+/** each plan's little story, told by the real mascots; props are line icons in one quiet grey */
+const PROP = { strokeWidth: 1.25, className: "text-ink-4", "aria-hidden": true } as const;
+const at = (left: number, bottom: number) => ({ left, bottom });
+
 function PlanArt({ id }: { id: BundleId }) {
   if (id === "free") {
     return (
-      <div className="flex h-14 items-end gap-1" aria-hidden>
-        <Laptop size={40} strokeWidth={1.25} className="text-ink-4" />
-        <span className="relative inline-flex">
-          <Mascot color="silver" size={28} state="sleeping" />
-          <span className="absolute -right-3 -top-3 text-12 font-medium italic leading-[1.2] text-ink-4">zz</span>
-        </span>
+      <div className="relative h-[96px] w-[132px]" aria-hidden>
+        {/* a closed laptop: the lid on its base */}
+        <span className="absolute h-[7px] w-[92px] rounded-[3px] bg-track" style={at(20, 12)} />
+        <span className="absolute h-[4px] w-[108px] rounded-full bg-line-2" style={at(12, 8)} />
+        <span className="absolute" style={at(44, 18)}><Mascot color="silver" size={44} state="sleeping" /></span>
+        <span className="absolute text-13 font-medium text-ink-4" style={at(92, 58)}>z</span>
+        <span className="absolute text-15 font-medium text-ink-4" style={at(102, 70)}>z</span>
       </div>
     );
   }
   if (id === "starter") {
     return (
-      <div className="flex h-14 items-end gap-0.5" aria-hidden>
-        <Mascot color="orange" size={28} />
-        <Cloud size={40} strokeWidth={1.25} className="mb-2 text-ink-4" />
-        <Mascot color="green" size={28} />
+      <div className="relative h-[96px] w-[132px]" aria-hidden>
+        <span className="absolute" style={at(30, 36)}><Cloud size={72} {...PROP} /></span>
+        <span className="absolute" style={at(6, 8)}><Mascot color="orange" size={40} state="working" /></span>
+        <span className="absolute" style={at(50, 2)}><Coffee size={20} {...PROP} /></span>
+        <span className="absolute" style={at(80, 8)}><Mascot color="green" size={40} state="working" /></span>
+        <span className="absolute" style={at(116, 6)}><Sprout size={20} {...PROP} /></span>
       </div>
     );
   }
   return (
-    <div className="flex h-14 items-end gap-0.5" aria-hidden>
-      <Mascot color="orange" size={26} state="working" />
-      <span className="mb-2 inline-flex"><Mascot color="blue" size={32} state="working" /></span>
-      <Mascot color="green" size={26} state="working" />
-      <span className="mb-1 inline-flex"><Mascot color="purple" size={24} state="working" /></span>
+    <div className="relative h-[96px] w-[132px]" aria-hidden>
+      <span className="absolute" style={at(44, 40)}><Mascot color="blue" size={46} state="working" /></span>
+      <span className="absolute" style={at(4, 18)}><Mascot color="orange" size={38} state="working" /></span>
+      <span className="absolute" style={at(90, 22)}><Mascot color="green" size={38} state="working" /></span>
+      <span className="absolute" style={at(48, 0)}><Mascot color="purple" size={34} state="working" /></span>
     </div>
   );
 }
 
-const COPY: Record<"free" | "starter" | "pro", { tag: string; points: (work: boolean) => string[] }> = {
-  free: { tag: "Your bots, on your Mac", points: (work) => ["Every bot, chat and connector", "Works while your Mac is awake", work ? "Work license for one person" : "Personal use, free forever"] },
-  starter: { tag: "Your bots work 24/7", points: (work) => ["Keeps working while your Mac sleeps", "Opens sites, fills forms, runs routines overnight", work ? "Work license for one person" : "Set up in one click"] },
-  pro: { tag: "For real work", points: () => ["A bigger desktop, five bots at once", "First in line to wake, every time", "Work license for one person included"] },
-};
+/** outcomes with the catalog's real numbers in them; nothing here is invented */
+function points(id: "free" | "starter" | "pro", work: boolean, bots: number | null, members: number): string[] {
+  const at = bots === null ? "Unlimited bots using their computers at once" : `${bots} ${bots === 1 ? "bot" : "bots"} using their computers at once`;
+  if (id === "free") return ["Every bot, chat and connector", "Runs while your Mac is awake", work ? "Work license for 1 person" : "Personal use, free forever"];
+  if (id === "starter") return [at, "Keeps working while your Mac sleeps", work ? "Work license for 1 person" : "Runs routines overnight"];
+  return [at, "First in line to wake, every time", `Work license for ${members} ${members === 1 ? "person" : "people"} included`];
+}
+const TAG = { free: "Your bots, on your Mac", starter: "Your bots work 24/7", pro: "For real work" } as const;
+
+/** the plan's facts at a glance, straight from the catalog */
+function Specs({ facts, line }: { facts: Array<[string, string]>; line: string }) {
+  return (
+    <div className="mt-6 border-y border-line py-4">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-13">
+        {facts.map(([k, v]) => <div key={k} className="min-w-0"><dt className="text-ink-4">{k}</dt><dd className="num truncate text-ink">{v}</dd></div>)}
+      </dl>
+      <p className="mt-3 text-13 text-ink-2">{line}</p>
+    </div>
+  );
+}
 
 function PlanCard({ id, catalog, interval, use, current, lead, onChoose, action, disabled }: { id: "free" | "starter" | "pro"; catalog: PlanCatalog; interval: BillingInterval; use: Use; current: boolean; lead: boolean; onChoose(): void; action: string; disabled: boolean }) {
   const b = bundleOf(catalog, id);
@@ -69,26 +90,32 @@ function PlanCard({ id, catalog, interval, use, current, lead, onChoose, action,
   const note = b.license !== "personal" ? "Work license included" : addsLicense ? `Includes a ${priceText(work.monthly, interval, catalog)} work license` : null;
   const p = per(monthly, interval, catalog);
   return (
-    <article className={cx("enter flex min-w-0 flex-col rounded-card p-6 max-sm:p-5", lead ? "bg-card-2 ring-1 ring-line-2 md:-my-2 md:py-8" : "bg-card")} aria-labelledby={`plan-${id}`}>
-      <PlanArt id={id} />
-      <div className="mt-5 flex min-h-[22px] items-center justify-between gap-2">
-        <h2 id={`plan-${id}`} className="text-17 font-semibold tracking-[-0.01em] text-ink">{b.name}</h2>
+    <article className={cx("enter relative flex min-w-0 flex-col rounded-card p-7 max-sm:p-5", lead ? "bg-card-2 ring-1 ring-line-2" : "bg-card")} aria-labelledby={`plan-${id}`}>
+      <div className="absolute right-5 top-5 max-sm:right-3 max-sm:top-3"><PlanArt id={id} /></div>
+      <div className="flex min-h-[24px] items-center gap-2">
         {current ? <Badge>Your plan</Badge> : lead ? <Badge>Most popular</Badge> : null}
       </div>
-      <p className="mt-0.5 text-14 text-ink-3">{COPY[id].tag}</p>
-      <p className="mt-5 flex items-baseline gap-1">
-        <span className="num text-34 font-semibold tracking-[-0.03em] text-ink">{monthly === 0 ? "$0" : p.amount}</span>
-        {monthly > 0 && <span className="text-14 text-ink-3">{p.unit}</span>}
-      </p>
+      <h2 id={`plan-${id}`} className="mt-3 font-[family-name:var(--font-display)] text-[34px] font-medium leading-[1.1] tracking-[-0.01em] text-ink">{b.name}</h2>
+      <p className="mt-1 text-14 text-ink-3">{TAG[id]}</p>
+      <p className={cx("num mt-8 font-[family-name:var(--font-display)] text-[56px] font-medium leading-[1] tracking-[-0.02em]", lead ? "text-accent" : "text-ink")}>{monthly === 0 ? "$0" : p.amount}</p>
+      <p className="mt-2 text-14 text-ink-3">{monthly === 0 ? "free forever" : interval === "year" ? "per year · 2 months free" : "per month"}</p>
       <p className="h-5 text-13 text-ink-4">{note}</p>
-      <ul className="mt-5 flex flex-1 flex-col gap-2.5">
-        {COPY[id].points(use === "work").map((p) => <li key={p} className="flex gap-2.5 text-14 leading-[1.4] text-ink-2"><Check size={15} strokeWidth={1.75} className="mt-0.5 shrink-0 text-ink-3" aria-hidden />{p}</li>)}
+      <button type="button" onClick={onChoose} disabled={disabled} className={cx("press sheen mt-7 h-12 w-full rounded-full text-15 font-medium disabled:opacity-50 max-sm:h-12", lead && !current ? "hover-accent bg-accent-fill text-[#fbfbfb]" : "hover-lift bg-card-2 text-ink ring-1 ring-line-2")}>{action}</button>
+      {desk ? (
+        <Specs facts={[["CPU", `${desk.vcpu} vCPU`], ["Memory", `${gb(desk.ramGb)} RAM`], ["Disk", gb(desk.diskGb)], ["Bot computers", desk.botComputers === null ? "Unlimited" : `${desk.botComputers}`]]} line={desk.priority ? "Always on, 24/7 · Priority wake" : "Always on, 24/7"} />
+      ) : (
+        <Specs facts={[["Runs on", "Your Mac"], ["Hours", "While it's awake"], ["Bot computers", "On your Mac"], ["Use", use === "work" ? "Work, 1 person" : "Personal"]]} line="No subscription, no card" />
+      )}
+      <h3 className="mt-7 text-14 font-medium text-ink-2">What you get:</h3>
+      <ul className="mt-4 flex flex-1 flex-col gap-3.5">
+        {points(id, use === "work", desk?.botComputers ?? null, licenseOf(catalog, b.license)?.includedMembers ?? 1).map((pt) => <li key={pt} className="flex gap-3 text-15 leading-[1.45] text-ink-2"><Check size={17} strokeWidth={1.75} className="mt-0.5 shrink-0 text-ink-3" aria-hidden />{pt}</li>)}
       </ul>
-      <Button variant={lead && !current ? "primary" : "outline"} className="mt-7 w-full !h-10" onClick={onChoose} disabled={disabled}>{action}</Button>
-      <details className="group mt-4">
-        <summary className="hover-link inline-flex h-9 cursor-pointer list-none items-center gap-1 text-13 text-ink-3 max-sm:h-11 [&::-webkit-details-marker]:hidden">What's inside<ChevronDown size={14} strokeWidth={1.5} className="group-open:rotate-180" aria-hidden /></summary>
-        <p className="num pb-1 text-13 leading-[1.55] text-ink-3">{desk ? <>{specLine(desk)}<br />{botsLine(desk.botComputers)}{desk.priority ? ", priority wake" : ""}<br />Its own sandbox, in the region you pick</> : <>Runs on your own Mac or server.<br />Bots pause while it sleeps.</>}</p>
-      </details>
+      {desk && (
+        <details className="group mt-6">
+          <summary className="hover-link inline-flex h-9 cursor-pointer list-none items-center gap-1 text-13 text-ink-3 max-sm:h-11 [&::-webkit-details-marker]:hidden">What's inside<ChevronDown size={14} strokeWidth={1.5} className="group-open:rotate-180" aria-hidden /></summary>
+          <p className="pb-1 text-13 leading-[1.55] text-ink-3">{desk.placement === "shared" ? "Its own sandbox, disk and network on a shared host." : "A whole machine of its own."} You pick the region at checkout.</p>
+        </details>
+      )}
     </article>
   );
 }
