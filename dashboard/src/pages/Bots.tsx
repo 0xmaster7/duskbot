@@ -7,7 +7,7 @@ import { Badge, ButtonLink, Card, KV, PageHeader, SectionTitle, Stat } from "../
 import { BotMascot } from "../ui/Mascot";
 import { SkyEmpty } from "../ui/Sky";
 import { CommandButton, WorkspaceGate } from "./common";
-import { APP_LINK } from "./Overview";
+import { APP_LINK } from "../lib/usage";
 
 const PLACE: Record<NonNullable<BotReport["computer"]>, string> = { vps: "Cloud computer", "local-vm": "This Mac's VM", team: "Shared computer" };
 
